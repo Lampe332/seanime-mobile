@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest/download/Seanime-Mobile-1.7.0.apk"><b>⬇️ Download APK</b></a>
+  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><b>⬇️ Download APK</b></a>
   &nbsp;·&nbsp; <a href="#-installing-on-your-phone">Installation</a>
   &nbsp;·&nbsp; <a href="#-first-time-setup">Setup</a>
   &nbsp;·&nbsp; <a href="#-tutorial-video">Tutorial video</a>
@@ -109,6 +109,8 @@ No. Torrent and debrid features are deliberately disabled in the Android version
 
 In the app's private storage. They are only visible inside the app under *Downloads* and are deleted when you uninstall it.
 </details>
+
+Found a bug or have an idea? [Open an issue](https://github.com/Lampe332/seanime-mobile/issues) and include your phone model, Android version and app version.
 
 ## 🛠️ Build it yourself
 
