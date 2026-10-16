@@ -34,14 +34,13 @@
 | 🔄 **AniList** | Lists, progress and ratings are synced with AniList |
 | 🧩 **Extensions & plugins** | Sources and plugins from the Seanime ecosystem |
 | 🧭 **Setup tutorial** | An interactive tour on first launch shows how to add a repository and install sources |
+| 🌐 **English & German** | English by default; switch the mobile features to German under *Settings → App language* |
 
 ## 📱 Screenshots
 
-<p align="center"><img src="docs/images/gallery-discover.png" alt="Home, airing schedule, calendar, anime details" width="100%"></p>
+<p align="center"><img src="docs/images/gallery-discover.png" alt="Home, discover, search and filter, anime details" width="100%"></p>
 <p align="center"><img src="docs/images/gallery-offline.png" alt="Season download, downloads, your episodes, offline player" width="100%"></p>
-<p align="center"><img src="docs/images/gallery-more.png" alt="Discover, search, offline manga" width="76%"></p>
-
-> The app's own interface is currently partly in German, so some labels inside the screenshots are German.
+<p align="center"><img src="docs/images/gallery-more.png" alt="Airing schedule, calendar, offline manga, app language setting" width="100%"></p>
 
 ## 📲 Installing on your phone
 
