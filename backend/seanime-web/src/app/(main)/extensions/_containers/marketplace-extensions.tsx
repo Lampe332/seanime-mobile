@@ -281,6 +281,7 @@ export function MarketplaceExtensions(props: MarketplaceExtensionsProps) {
 
                             <Button
                                 intent="primary"
+                                data-tour="marketplace-repo-save"
                                 onClick={handleUrlChange}
                                 disabled={!tempUrl || !!urlError || isUpdatingUrl}
                                 loading={isUpdatingUrl}
@@ -325,6 +326,7 @@ export function MarketplaceExtensions(props: MarketplaceExtensionsProps) {
                         className="rounded-full"
                         intent="gray-outline"
                         leftIcon={<LuSettings />}
+                        data-tour="marketplace-change-repo"
                         onClick={() => {
                             setTempUrl(marketplaceUrl)
                             setUrlError("")
@@ -361,6 +363,7 @@ export function MarketplaceExtensions(props: MarketplaceExtensionsProps) {
                 )}
 
                 <StaticTabs
+                    data-marketplace-type-tabs
                     className="w-fit border rounded-full py-0"
                     triggerClass="px-4 py-2 text-sm h-full rounded-full"
                     pillClass="rounded-full border-transparent"
@@ -575,6 +578,7 @@ export function MarketplaceExtensionCard(props: MarketplaceExtensionCardProps) {
                         intent="primary-subtle"
                         icon={<LuDownload />}
                         loading={isInstalling}
+                        data-tour-install={extension.type}
                         onClick={() => installExtension({ manifestUri: extension.manifestURI })}
                     /> : <IconButton
                         size="sm"

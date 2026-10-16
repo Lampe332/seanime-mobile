@@ -2,6 +2,7 @@ import { useGetAnilistCacheLayerStatus, useToggleAnilistCacheLayerStatus } from 
 import { useListAnimeEntryEpisodeTabExtensions } from "@/api/hooks/extensions.hooks"
 import { useLocalSyncSimulatedDataToAnilist } from "@/api/hooks/local.hooks"
 import { __seaCommand_shortcuts } from "@/app/(main)/_features/sea-command/sea-command"
+import { useStartMobileTutorial } from "@/app/(main)/_features/tour/mobile-tutorial"
 import { SettingsCard } from "@/app/(main)/settings/_components/settings-card"
 import { SettingsSubmitButton } from "@/app/(main)/settings/_components/settings-submit-button"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
@@ -35,6 +36,7 @@ export function ServerSettings(props: ServerSettingsProps) {
     } = props
 
     const serverStatus = useServerStatus()
+    const startMobileTutorial = useStartMobileTutorial()
     const { data: episodeTabExtensions } = useListAnimeEntryEpisodeTabExtensions()
 
     const [shortcuts, setShortcuts] = useAtom(__seaCommand_shortcuts)
@@ -220,6 +222,15 @@ export function ServerSettings(props: ServerSettingsProps) {
                         icon={<LuShield className="" />}
                     />
                 </div>
+                {IS_ANDROID_APP && <div className="flex items-center justify-between gap-4 pt-2">
+                    <div>
+                        <p className="font-medium">Setup tutorial</p>
+                        <p className="text-sm text-[--muted]">Shows how to add a repository and install a streaming source.</p>
+                    </div>
+                    <Button type="button" intent="gray-outline" size="sm" onClick={startMobileTutorial}>
+                        Show tutorial
+                    </Button>
+                </div>}
             </SettingsCard>
 
             <SettingsCard

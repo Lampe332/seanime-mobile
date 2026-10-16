@@ -93,13 +93,14 @@ const STEPS = [
         icon: IoLibraryOutline,
         gradient: "from-blue-500 to-cyan-500",
     },
-    {
+    // Android uses the built-in player, nothing to configure
+    ...(!IS_ANDROID_APP ? [{
         id: "player",
         title: "Media Player",
         description: "Configure your video player",
         icon: LuMonitorPlay,
         gradient: "from-green-500 to-emerald-500",
-    },
+    }] : []),
     ...(!IS_ANDROID_APP ? [{
         id: "torrents",
         title: "Downloading",
@@ -266,7 +267,9 @@ function LibraryStep({ form }: { form: any }) {
                         label="Anime Library Path"
                         leftIcon={<BiFolder className="text-blue-500" />}
                         shouldExist
-                        help="Select the main folder containing your anime collection. You can add more folders later."
+                        help={IS_ANDROID_APP
+                            ? "Optional. Leave empty if you only stream online or use the app's downloads. You can add folders later."
+                            : "Select the main folder containing your anime collection. You can add more folders later."}
                         className="w-full"
                     />
                 </motion.div>
@@ -615,20 +618,20 @@ function FeaturesStep({ form }: { form: any }) {
             description: "Watch anime from online sources",
             gradient: "from-green-500 to-emerald-500",
         },
-        {
+        // desktop-only features
+        ...(!IS_ANDROID_APP ? [{
             name: "enableRichPresence",
             icon: FaDiscord,
             title: "Discord Rich Presence",
             description: "Show what you're watching on Discord",
             gradient: "from-indigo-500 to-blue-500",
-        },
-        {
+        }, {
             name: "enableTranscode",
             icon: MdOutlineBroadcastOnHome,
             title: "Transcoding / Direct Play",
             description: "Stream downloaded files on other devices",
             gradient: "from-cyan-500 to-indigo-500",
-        },
+        }] : []),
     ]
 
     return (
@@ -797,8 +800,9 @@ export function GettingStartedPage({ status }: { status: Status }) {
                         enableRichPresence: false,
                         autoScan: false,
                         enableManga: true,
-                        enableOnlinestream: false,
-                        enableAdultContent: true,
+                        // on Android, online streaming is the main way to watch
+                        enableOnlinestream: IS_ANDROID_APP,
+                        enableAdultContent: !IS_ANDROID_APP,
                         enableTorrentStreaming: !IS_ANDROID_APP,
                         enableTranscode: false,
                         debridProvider: "none",

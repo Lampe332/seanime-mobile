@@ -110,6 +110,7 @@ export const StaticTabs = React.forwardRef<HTMLElement, StaticTabsProps>((props,
                     )}
                     aria-current={tab.isCurrent ? "page" : undefined}
                     data-current={tab.isCurrent}
+                    data-tab-name={tab.name}
                 >
                     {isAnimated ? (
                         <>
@@ -160,6 +161,7 @@ export const StaticTabs = React.forwardRef<HTMLElement, StaticTabsProps>((props,
                     )}
                     aria-current={tab.isCurrent ? "page" : undefined}
                     data-current={tab.isCurrent}
+                    data-tab-name={tab.name}
                     onClick={tab.onClick}
                 >
                     {isAnimated ? (

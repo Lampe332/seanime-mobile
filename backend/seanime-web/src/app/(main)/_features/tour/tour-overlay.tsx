@@ -108,7 +108,7 @@ function resolvePlacement(
 
 
 // full-screen SVG with a transparent cutout over the target element
-function SpotlightOverlay({ rect, onClick }: { rect: Rect; onClick?: (e: React.MouseEvent) => void }) {
+function SpotlightOverlay({ rect, onClick, passThrough }: { rect: Rect; onClick?: (e: React.MouseEvent) => void; passThrough?: boolean }) {
     const vw = window.innerWidth
     const vh = window.innerHeight
 
@@ -133,7 +133,8 @@ function SpotlightOverlay({ rect, onClick }: { rect: Rect; onClick?: (e: React.M
 
     return (
         <svg
-            className="fixed inset-0 z-[9998] pointer-events-auto"
+            // with passThrough only the dimmed area catches taps, the cutout lets them reach the element below
+            className={cn("fixed inset-0 z-[1000000]", passThrough ? "pointer-events-none" : "pointer-events-auto")}
             width={vw}
             height={vh}
             style={{ width: vw, height: vh }}
@@ -156,6 +157,7 @@ function SpotlightOverlay({ rect, onClick }: { rect: Rect; onClick?: (e: React.M
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
                 fill="rgba(0, 0, 0, 0.7)"
+                style={passThrough ? { pointerEvents: "visiblePainted" } : undefined}
             />
             {/* subtle glow border around the spotlight */}
             {rect.width > 0 && (
@@ -183,7 +185,7 @@ function SpotlightOverlay({ rect, onClick }: { rect: Rect; onClick?: (e: React.M
 function ModalOverlay({ onClick }: { onClick?: (e: React.MouseEvent) => void }) {
     return (
         <motion.div
-            className="fixed inset-0 z-[9998] bg-black/70 pointer-events-auto"
+            className="fixed inset-0 z-[1000000] bg-black/70 pointer-events-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -208,18 +210,19 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
     ({ step, currentIndex, totalSteps, style, onNext, onPrev, onStop, isModal }, ref) => {
         const isFirstStep = currentIndex === 0
         const isLastStep = currentIndex === totalSteps - 1
-        const showBack = !isFirstStep && !step.disableBack
+        const showBack = !isFirstStep && !step.disableBack && !step.hideNextButton
 
         const content = (
             <motion.div
                 ref={ref}
                 className={cn(
-                    "z-[9999] pointer-events-auto",
+                    "z-[1000001] pointer-events-auto",
                     "rounded-xl border bg-[--paper] shadow-2xl",
                     "flex flex-col overflow-hidden",
                 )}
                 style={{
                     ...style,
+                    maxWidth: "calc(100vw - 32px)",
                     ...(isModal ? {} : { position: "fixed" as const }),
                 }}
                 initial={{ opacity: 0, scale: 0.95, y: 8 }}
@@ -289,7 +292,7 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
                                     </button>
                                 )}
 
-                                <button
+                                {!step.hideNextButton && <button
                                     onClick={onNext}
                                     className={cn(
                                         "text-sm font-semibold rounded-lg px-4 py-1.5 transition-all",
@@ -298,7 +301,7 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
                                     )}
                                 >
                                     {step.nextLabel ?? (isLastStep ? "Done" : "Next")}
-                                </button>
+                                </button>}
                             </div>
                         </div>
                     )}
@@ -310,7 +313,7 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
         // transform doesn't conflict with CSS centering
         if (isModal) {
             return (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none">
+                <div className="fixed inset-0 z-[1000001] flex items-center justify-center pointer-events-none px-4">
                     {content}
                 </div>
             )
@@ -325,7 +328,7 @@ TourCard.displayName = "TourCard"
 function TourLoadingIndicator() {
     return (
         <motion.div
-            className="fixed inset-0 z-[10000] flex items-center justify-center pointer-events-none"
+            className="fixed inset-0 z-[1000002] flex items-center justify-center pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -402,7 +405,13 @@ export function TourOverlay() {
         update()
 
         // scroll the element into view
-        el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
+        // center it so the popover card has room above or below; repeat once in case a re-render
+        // (e.g. a filtered list shrinking) moved it after the first scroll
+        el.scrollIntoView({ behavior: "auto", block: "center", inline: "nearest" })
+        const rescroll = setTimeout(() => {
+            if (el.isConnected) el.scrollIntoView({ behavior: "auto", block: "center", inline: "nearest" })
+            update()
+        }, 350)
 
         // re-measure on scroll/resize via RAF throttle
         let rafId = 0
@@ -418,6 +427,7 @@ export function TourOverlay() {
         ro.observe(el)
 
         return () => {
+            clearTimeout(rescroll)
             cancelAnimationFrame(rafId)
             window.removeEventListener("scroll", onLayout, true)
             window.removeEventListener("resize", onLayout)
@@ -435,17 +445,20 @@ export function TourOverlay() {
         }
     }, [active])
 
-    // advanceOnTargetClick
+    // advanceOnTargetClick / advanceOnSelectorClick
+    // listen on the document in the capture phase and match by selector, so it still works when the
+    // element is re-rendered (e.g. the Android floating menu rebuilds its rows) or stops propagation
     useEffect(() => {
-        if (!active || !currentStep?.target || !currentStep.advanceOnTargetClick || status !== "idle") return
+        const selector = currentStep?.advanceOnSelectorClick
+            ?? (currentStep?.advanceOnTargetClick ? currentStep.target : undefined)
+        if (!active || !selector || status !== "idle") return
 
-        const el = document.querySelector(currentStep.target)
-        if (!el) return
-
-        const handler = () => next()
-        el.addEventListener("click", handler)
-        return () => el.removeEventListener("click", handler)
-    }, [active, currentStep?.target, currentStep?.advanceOnTargetClick, status, next])
+        const handler = (e: MouseEvent) => {
+            if ((e.target as Element | null)?.closest?.(selector)) next()
+        }
+        document.addEventListener("click", handler, true)
+        return () => document.removeEventListener("click", handler, true)
+    }, [active, currentStep?.advanceOnSelectorClick, currentStep?.advanceOnTargetClick, currentStep?.target, status, next])
 
     // popover positioning
     const popoverWidth = typeof currentStep?.popoverWidth === "number"
@@ -511,6 +524,7 @@ export function TourOverlay() {
                                     key={`spotlight-${currentIndex}`}
                                     rect={targetRect}
                                     onClick={handleOverlayClick}
+                                    passThrough={currentStep?.allowTargetInteraction}
                                 />
                             ) : (
                                 <ModalOverlay

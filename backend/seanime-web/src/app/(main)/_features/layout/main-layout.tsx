@@ -14,6 +14,7 @@ import { ManualProgressTracking } from "@/app/(main)/_features/progress-tracking
 import { PlaybackManagerProgressTracking } from "@/app/(main)/_features/progress-tracking/playback-manager-progress-tracking"
 import { SeaCommand } from "@/app/(main)/_features/sea-command/sea-command"
 import { useChangelogTourListener } from "@/app/(main)/_features/tour/changelog-tour.tsx"
+import { MobileTutorialListener } from "@/app/(main)/_features/tour/mobile-tutorial"
 
 import { useAnimeCollectionLoader } from "@/app/(main)/_hooks/anilist-collection-loader"
 import { useAnimeLibraryCollectionLoader } from "@/app/(main)/_hooks/anime-library-collection-loader"
@@ -44,7 +45,9 @@ import { NakamaWatchPartyChat, NakamaWatchPartyChatProvider } from "../nakama/na
 import { RateLimitLoader } from "../rate-limit-loader"
 import { TopIndefiniteLoader } from "../top-indefinite-loader"
 
-const MpvCoreLazyWrapper = React.lazy(() => import("@/app/(main)/_features/mpv-core/mpv-core-lazy-wrapper"))
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
+const MpvCoreLazyWrapper =React.lazy(() => import("@/app/(main)/_features/mpv-core/mpv-core-lazy-wrapper"))
 const NativePlayerLazyWrapper = React.lazy(() => import("@/app/(main)/_features/native-player/native-player-lazy-wrapper"))
 
 export const MainLayout = ({ children }: { children: React.ReactNode }) => {
@@ -68,6 +71,7 @@ export const MainLayout = ({ children }: { children: React.ReactNode }) => {
             <IssueReport />
             <ErrorExplainer />
             <SeaCommand />
+            {IS_ANDROID_APP && <MobileTutorialListener />}
 
             <PluginManager />
             {(__isElectronDesktop__) && (

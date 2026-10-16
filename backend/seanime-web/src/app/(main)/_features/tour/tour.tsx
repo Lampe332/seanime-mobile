@@ -25,6 +25,10 @@ export type TourStep = {
     spotlightPadding?: number
     // clicking the highlighted element advances to the next step
     advanceOnTargetClick?: boolean
+    // let taps inside the spotlight reach the real element (e.g. a nav button)
+    allowTargetInteraction?: boolean
+    // advance when any element matching this selector is clicked (e.g. a Save button inside the target)
+    advanceOnSelectorClick?: string
     // disable back button for one-way flows
     disableBack?: boolean
     // custom label for the next button, e.g. "Got it!"
@@ -32,6 +36,8 @@ export type TourStep = {
     prevLabel?: string
     // hide nav buttons entirely
     hideControls?: boolean
+    // hide Back/Next but keep Skip, for steps the user completes by tapping the real element
+    hideNextButton?: boolean
     // custom width for the popover/modal card
     popoverWidth?: number | string
     // sync check before showing the step, return false to trigger fallback
@@ -255,6 +261,9 @@ export function useTour() {
         if (!state.active) return
 
         const handler = (e: KeyboardEvent) => {
+            // typing in a field (e.g. a URL during the tour) must not drive the tour
+            const el = e.target as HTMLElement | null
+            if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return
             if (e.key === "Escape") {
                 e.preventDefault()
                 stop()
@@ -325,6 +334,18 @@ export const tourHelpers = {
                 observer.disconnect()
                 resolve(document.querySelector(selector))
             }, timeoutMs)
+        })
+    },
+
+    // wait until no element matches the selector (e.g. a closing modal)
+    waitForSelectorGone(selector: string, timeoutMs = 15000): Promise<void> {
+        return new Promise((resolve) => {
+            const started = Date.now()
+            const check = () => {
+                if (!document.querySelector(selector) || Date.now() - started > timeoutMs) return resolve()
+                setTimeout(check, 150)
+            }
+            check()
         })
     },
 
