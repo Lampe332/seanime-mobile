@@ -1,1 +1,0 @@
-"use strict";(self.rspackChunkseanime_web=self.rspackChunkseanime_web||[]).push([[9057],{93416(e,n,s){s.r(n),s.d(n,{component:()=>a});var c=s(47891),r=s(16227),t=s(98087);s(99123);let a=function(){let e,n=(0,r.c)(1);return n[0]===Symbol.for("react.memo_cache_sentinel")?(e=(0,c.jsx)(t.q,{}),n[0]=e):e=n[0],e}}}]);

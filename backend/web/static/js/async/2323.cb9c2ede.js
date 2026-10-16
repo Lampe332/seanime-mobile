@@ -1,1 +1,0 @@
-"use strict";(self.rspackChunkseanime_web=self.rspackChunkseanime_web||[]).push([[2323],{80078(e,s,r){function n(){throw Error("This is a test error")}r.r(s),r.d(s,{component:()=>n})}}]);
