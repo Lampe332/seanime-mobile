@@ -1,5 +1,6 @@
 package com.seanime.app.offline
 
+import com.seanime.app.AppLanguage.tr
 import android.content.Context
 import android.net.Uri
 import androidx.media3.common.C
@@ -55,12 +56,12 @@ class EpisodeDownloads private constructor(private val context: Context) {
 
     fun enqueue(payload: JSONObject, result: (String?) -> Unit) {
         val url = payload.optString("url")
-        if (!validUri(url)) { result("Diese Quelle kann nicht heruntergeladen werden."); return }
+        if (!validUri(url)) { result(tr("This source cannot be downloaded.", "Diese Quelle kann nicht heruntergeladen werden.")); return }
         val id = MessageDigest.getInstance("SHA-256").digest(payload.getString("key").toByteArray())
             .joinToString("") { "%02x".format(it) }.take(32)
-        if (preparing.contains(id) || ready(id)) { result("Diese Folge ist bereits gespeichert oder wird vorbereitet."); return }
+        if (preparing.contains(id) || ready(id)) { result(tr("This episode is already saved or being prepared.", "Diese Folge ist bereits gespeichert oder wird vorbereitet.")); return }
         if (context.filesDir.usableSpace < 256L * 1024 * 1024) {
-            result("Weniger als 256 MB frei. Bitte zuerst Speicher freigeben."); return
+            result(tr("Less than 256 MB free. Please free up storage first.", "Weniger als 256 MB frei. Bitte zuerst Speicher freigeben.")); return
         }
         preparing.add(id)
         val mime = if (payload.optString("type") == "m3u8") MimeTypes.APPLICATION_M3U8 else MimeTypes.VIDEO_MP4
@@ -97,12 +98,12 @@ class EpisodeDownloads private constructor(private val context: Context) {
                     OfflineLibrary.get(context).capture(id, payload)
                     DownloadService.sendResumeDownloads(context, EpisodeDownloadService::class.java, false)
                     result(null)
-                } catch (_: Exception) { result("Download konnte nicht gestartet werden. Quelle bitte erneut laden.") }
+                } catch (_: Exception) { result(tr("Download could not start. Please reload the source.", "Download konnte nicht gestartet werden. Quelle bitte erneut laden.")) }
                 finally { helper.release(); preparing.remove(id) }
             }
             override fun onPrepareError(helper: DownloadHelper, e: IOException) {
                 helper.release(); preparing.remove(id)
-                result("Quelle nicht herunterladbar oder abgelaufen. Bitte einen anderen Server wählen.")
+                result(tr("Source not downloadable or expired. Please pick another server.", "Quelle nicht herunterladbar oder abgelaufen. Bitte einen anderen Server wählen."))
             }
         })
     }

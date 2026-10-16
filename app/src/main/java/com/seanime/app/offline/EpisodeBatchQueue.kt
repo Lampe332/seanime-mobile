@@ -1,5 +1,6 @@
 package com.seanime.app.offline
 
+import com.seanime.app.AppLanguage.tr
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Uri
@@ -38,7 +39,7 @@ class EpisodeBatchQueue private constructor(private val context: Context) {
     fun submit(payload: JSONObject): Int {
         val mediaId = payload.optInt("mediaId")
         val provider = payload.optString("provider")
-        val episodes = payload.optJSONArray("episodes") ?: error("Keine Folgen ausgewählt")
+        val episodes = payload.optJSONArray("episodes") ?: error(tr("No episodes selected", "Keine Folgen ausgewählt"))
         require(mediaId > 0 && provider.isNotBlank() && episodes.length() in 1..2000)
         val store = EpisodeDownloads.get(context)
         val existing = store.all().associateBy { it.request.id }
@@ -107,12 +108,12 @@ class EpisodeBatchQueue private constructor(private val context: Context) {
                             if (get(id)?.optString("status") != "resolving") { done.countDown(); return@post }
                             store.enqueue(resolved) { failure = it; done.countDown() }
                         }
-                        check(done.await(90, TimeUnit.SECONDS)) { "Quelle konnte nicht vorbereitet werden" }
+                        check(done.await(90, TimeUnit.SECONDS)) { tr("Source could not be prepared", "Quelle konnte nicht vorbereitet werden") }
                         if (failure != null) error(failure!!)
                         // Keep the virtual row until Media3 has persisted the real request.
                         val deadline = System.currentTimeMillis() + 10000
                         while (store.all().none { it.request.id == id } && System.currentTimeMillis() < deadline) Thread.sleep(100)
-                        check(store.all().any { it.request.id == id }) { "Download wurde nicht übernommen" }
+                        check(store.all().any { it.request.id == id }) { tr("Download was not accepted", "Download wurde nicht übernommen") }
                         main.post {
                             val latest = get(id)
                             if (latest == null) store.remove(id)
@@ -122,7 +123,7 @@ class EpisodeBatchQueue private constructor(private val context: Context) {
                     } catch (_: Exception) {
                         synchronized(this) {
                             get(id)?.takeIf { it.optString("status") == "resolving" }?.let {
-                                save(id, it.put("status", "failed").put("error", "Quelle nicht verfügbar. Erneut versuchen oder einen anderen Anbieter wählen."))
+                                save(id, it.put("status", "failed").put("error", tr("Source unavailable. Try again or pick another provider.", "Quelle nicht verfügbar. Erneut versuchen oder einen anderen Anbieter wählen.")))
                             }
                         }
                     }
@@ -144,7 +145,7 @@ class EpisodeBatchQueue private constructor(private val context: Context) {
             (if (it.optString("server").equals(preferredServer, true)) 100 else 0) +
                 (if (it.optString("quality").equals(quality, true)) 20 else 0) +
                 (if (it.optString("quality").equals("auto", true)) 10 else 0)
-        }.firstOrNull() ?: error("Keine herunterladbare Quelle")
+        }.firstOrNull() ?: error(tr("No downloadable source", "Keine herunterladbare Quelle"))
         val headers = source.optJSONObject("headers")
         fun url(raw: String): String = if (headers != null && headers.length() > 0)
             "http://127.0.0.1:43211/api/v1/proxy?url=${Uri.encode(raw)}&headers=${Uri.encode(headers.toString())}" else raw
@@ -156,7 +157,7 @@ class EpisodeBatchQueue private constructor(private val context: Context) {
             if (!EpisodeDownloads.validUri(raw)) continue
             val ext = Uri.parse(raw).path.orEmpty().lowercase()
             subs.put(JSONObject().put("url", url(raw)).put("language", sub.optString("language", "de"))
-                .put("label", sub.optString("language", "Untertitel")).put("default", sub.optBoolean("isDefault"))
+                .put("label", sub.optString("language", tr("Subtitles", "Untertitel"))).put("default", sub.optBoolean("isDefault"))
                 .put("mime", when { ext.endsWith(".ass") || ext.endsWith(".ssa") -> "text/x-ssa"; ext.endsWith(".srt") -> "application/x-subrip"; else -> "text/vtt" }))
         }
         return JSONObject(job.toString()).put("url", url(source.getString("url")))

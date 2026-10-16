@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { Field } from "@/components/ui/form"
 import { Switch } from "@/components/ui/switch"
+import { appLanguageAtom, AppLanguage, syncAppLanguageToAndroid } from "@/lib/app-language"
 import { __isElectronDesktop__ } from "@/types/constants"
 import { useAtom } from "jotai/react"
 import React from "react"
@@ -211,6 +212,8 @@ export function ServerSettings(props: ServerSettingsProps) {
                 />
 
             </SettingsCard>
+
+            {IS_ANDROID_APP && <AppLanguageSetting />}
 
             <SettingsCard title="Extensions">
                 <div data-settings-enable-extension-secure-mode>
@@ -513,4 +516,23 @@ const cardCheckboxStyles = {
     // ),
     // itemLabelClass: "font-medium flex flex-col items-center data-[state=checked]:text-[--brand] cursor-pointer",
     stackClass: "flex md:flex-row flex-col space-y-0 gap-4",
+}
+
+/** Language of the Seanime Mobile texts (downloads, calendar, offline player). Reloads so native screens and toasts follow. */
+function AppLanguageSetting() {
+    const [language, setLanguage] = useAtom(appLanguageAtom)
+    const choose = (next: AppLanguage) => {
+        if (next === language) return
+        setLanguage(next)
+        syncAppLanguageToAndroid(next)
+        window.setTimeout(() => window.location.reload(), 50)
+    }
+    return <SettingsCard title="App language" description="Language of the mobile features: downloads, calendar and offline player.">
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="App language" data-settings-app-language>
+            {([["en", "English"], ["de", "Deutsch"]] as const).map(([value, label]) => <Button key={value} type="button" size="sm"
+                intent={language === value ? "primary" : "gray-outline"} aria-pressed={language === value} onClick={() => choose(value)}>
+                {label}
+            </Button>)}
+        </div>
+    </SettingsCard>
 }

@@ -1,3 +1,4 @@
+import { tr } from "@/lib/app-language"
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { downloadOnAndroid, openAndroidDownloads } from "@/lib/android-offline"
 import { EpisodeDownloadPicker } from "./episode-download-picker"
@@ -831,9 +832,9 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                                     : /\.srt(?:\?|$)/i.test(videoSource.subtitles?.[index]?.url || sub.src || "") ? "application/x-subrip" : "text/vtt",
                             })),
                         })
-                        if (!queued) toast.error("Download-Funktion lädt noch. Bitte kurz erneut versuchen.")
+                        if (!queued) toast.error(tr("Download feature is still loading. Please try again in a moment.", "Download-Funktion lädt noch. Bitte kurz erneut versuchen."))
                     }}
-                >Auf Handy herunterladen</Button>
+                >{tr("Download to phone", "Auf Handy herunterladen")}</Button>
                 <Button size="sm" rounded intent="gray-basic" onClick={openAndroidDownloads}>Downloads</Button>
             </>}
             <Select

@@ -1,8 +1,4 @@
-declare global {
-    interface Window {
-        SeanimeAndroid?: { getAppVersion(): string }
-    }
-}
+import "@/lib/app-language"
 
 export function getAndroidAppVersion(): string | undefined {
     if (typeof window === "undefined") return undefined

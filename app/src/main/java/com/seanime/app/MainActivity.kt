@@ -45,6 +45,9 @@ class MainActivity : Activity() {
     inner class AppInfoBridge {
         @JavascriptInterface
         fun getAppVersion(): String = androidAppVersion
+
+        @JavascriptInterface
+        fun setLanguage(language: String) = AppLanguage.set(this@MainActivity, language)
     }
 
     inner class OrientationBridge {
@@ -83,6 +86,7 @@ class MainActivity : Activity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppLanguage.init(this)
         super.onCreate(savedInstanceState)
 
         window.statusBarColor = android.graphics.Color.TRANSPARENT

@@ -1,3 +1,4 @@
+import { tr } from "@/lib/app-language"
 import { Extension_Extension, ExtensionRepo_StoredPluginSettingsData } from "@/api/generated/types"
 import {
     useGetPluginSettings,
@@ -106,7 +107,7 @@ const ExtensionList = ({
     const filteredTrayIcons = trayIcons.filter(icon => icon.extensionName.toLocaleLowerCase().includes(pluginQuery.trim().toLocaleLowerCase()))
     const renderTrayList = () => (
         <div className="w-full min-w-0 space-y-3">
-            <input type="search" aria-label="Plugins suchen" placeholder="Plugins suchen…"
+            <input type="search" aria-label={tr("Search plugins", "Plugins suchen")} placeholder={tr("Search plugins…", "Plugins suchen…")}
                 value={pluginQuery} onChange={event => setPluginQuery(event.target.value)}
                 className="w-full min-h-11 rounded-lg border border-[--border] bg-[--background] px-3 text-sm" />
                     <div className="space-y-2 max-h-[min(50dvh,360px)] overflow-y-auto overscroll-contain" data-plugin-sidebar-debug-popover-content>
@@ -198,7 +199,7 @@ const ExtensionList = ({
                             </div>
                         ))}
                         {!filteredTrayIcons.length && <p className="text-sm text-[--muted] py-1 text-center w-full">
-                            Keine passenden Plugins
+                            {tr("No matching plugins", "Keine passenden Plugins")}
                         </p>}
 
                         {/* {developmentModeExtensions?.map(extension => (
@@ -532,7 +533,7 @@ export function PluginSidebarTray({ place }: { place: "sidebar" | "top" }) {
                     open={mobileExtensionListOpen}
                     onOpenChange={setMobileExtensionListOpen}
                     side="bottom"
-                    trigger={<button type="button" aria-label="Plugins öffnen"
+                    trigger={<button type="button" aria-label={tr("Open plugins", "Plugins öffnen")}
                         className="inline-flex h-11 items-center gap-2 rounded-xl bg-black/80 px-3 text-sm font-medium text-white">
                         <LuBlocks className="size-5" /><span>Plugins</span>
                     </button>}
@@ -544,7 +545,7 @@ export function PluginSidebarTray({ place }: { place: "sidebar" | "top" }) {
                 >
                     <div className="flex items-center justify-between gap-2 mb-3">
                         <h2 className="text-lg font-semibold">Plugins <span className="text-sm text-[--muted]">({trayIcons.length})</span></h2>
-                        <button type="button" aria-label="Plugin-Übersicht schließen" onClick={() => setMobileExtensionListOpen(false)}
+                        <button type="button" aria-label={tr("Close plugin overview", "Plugin-Übersicht schließen")} onClick={() => setMobileExtensionListOpen(false)}
                             className="flex h-11 w-11 items-center justify-center rounded-lg text-xl">×</button>
                     </div>
                     <ExtensionList

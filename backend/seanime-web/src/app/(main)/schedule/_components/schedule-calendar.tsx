@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { addMonths, Day, endOfMonth, endOfWeek, format, isSameMonth, isToday, parseISO, startOfMonth, startOfWeek, subMonths } from "date-fns"
 import { addDays } from "date-fns/addDays"
 import { de } from "date-fns/locale"
+import { useTr } from "@/lib/app-language"
 import { useGlobalScheduleDay } from "../_lib/use-global-schedule"
 import { useImmerAtom } from "jotai-immer"
 import { useAtom, useAtomValue } from "jotai/react"
@@ -29,10 +30,10 @@ type CalendarParams = {
 }
 
 const MAX_EVENT_COUNT = 4
-const STATUS_FILTERS: { value: AL_MediaListStatus, label: string }[] = [
-    { value: "CURRENT", label: "Schaue ich" }, { value: "PLANNING", label: "Geplant" },
-    { value: "PAUSED", label: "Pausiert" }, { value: "COMPLETED", label: "Abgeschlossen" },
-    { value: "DROPPED", label: "Abgebrochen" }, { value: "REPEATING", label: "Schaue erneut" },
+const STATUS_FILTERS: { value: AL_MediaListStatus, en: string, de: string }[] = [
+    { value: "CURRENT", en: "Watching", de: "Schaue ich" }, { value: "PLANNING", en: "Planning", de: "Geplant" },
+    { value: "PAUSED", en: "Paused", de: "Pausiert" }, { value: "COMPLETED", en: "Completed", de: "Abgeschlossen" },
+    { value: "DROPPED", en: "Dropped", de: "Abgebrochen" }, { value: "REPEATING", en: "Rewatching", de: "Schaue erneut" },
 ]
 export const calendarSourceAtom = atomWithStorage<"list" | "all">("sea-calendar-source", "list")
 
@@ -56,6 +57,7 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
         ...rest
     } = props
 
+    const t = useTr()
     const anilistListData = useAtomValue(__anilist_userAnimeListDataAtom)
 
 
@@ -158,16 +160,16 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
         <>
             <div className="flex h-full min-w-0 flex-col rounded-2xl border border-gray-800 overflow-hidden" data-schedule-calendar aria-busy={!items && scheduleLoading}>
                 {!items && <div className="p-3 sm:p-4 border-b border-gray-800 bg-gray-900/30 space-y-3" data-schedule-filters>
-                    <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/40 border border-gray-800" role="group" aria-label="Kalenderquelle">
-                        {([['list', 'Meine AniList'], ['all', 'Alle Anime']] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={source === value} onClick={() => setSource(value)} className={cn("min-h-11 rounded-lg px-2 text-sm font-semibold transition-colors", source === value ? "bg-gray-700 text-white shadow-sm" : "text-gray-400 hover:text-white")} data-schedule-source={value}>{label}</button>)}
+                    <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/40 border border-gray-800" role="group" aria-label={t("Calendar source", "Kalenderquelle")}>
+                        {([['list', t('My AniList', 'Meine AniList')], ['all', t('All anime', 'Alle Anime')]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={source === value} onClick={() => setSource(value)} className={cn("min-h-11 rounded-lg px-2 text-sm font-semibold transition-colors", source === value ? "bg-gray-700 text-white shadow-sm" : "text-gray-400 hover:text-white")} data-schedule-source={value}>{label}</button>)}
                     </div>
                     {!isAllAnime ? <>
-                        <div className="flex items-center justify-between gap-2"><p className="text-xs text-gray-400">Welche AniList-Status anzeigen?</p><button type="button" className="min-h-11 px-2 text-xs font-semibold text-[--brand]" onClick={() => setCalendarParams(draft => { draft.listStatuses = STATUS_FILTERS.map(item => item.value) })}>Alle Status</button></div>
-                        <div className="grid grid-cols-3 gap-2" role="group" aria-label="AniList-Status, Mehrfachauswahl">
-                            {STATUS_FILTERS.map(({ value, label }) => <button key={value} type="button" aria-pressed={calendarParams.listStatuses.includes(value)} data-schedule-status={value} onClick={() => setCalendarParams(draft => { draft.listStatuses = draft.listStatuses.includes(value) ? draft.listStatuses.filter(status => status !== value) : [...draft.listStatuses, value] })} className={cn("min-h-11 min-w-0 break-words px-1 rounded-xl border text-[11px] font-semibold transition-colors", calendarParams.listStatuses.includes(value) ? "border-[--brand] bg-gray-800 text-[--brand]" : "border-gray-800 bg-gray-900/40 text-gray-400")}>{label}</button>)}
+                        <div className="flex items-center justify-between gap-2"><p className="text-xs text-gray-400">{t("Which AniList statuses to show?", "Welche AniList-Status anzeigen?")}</p><button type="button" className="min-h-11 px-2 text-xs font-semibold text-[--brand]" onClick={() => setCalendarParams(draft => { draft.listStatuses = STATUS_FILTERS.map(item => item.value) })}>{t("All statuses", "Alle Status")}</button></div>
+                        <div className="grid grid-cols-3 gap-2" role="group" aria-label={t("AniList status, multiple choice", "AniList-Status, Mehrfachauswahl")}>
+                            {STATUS_FILTERS.map(({ value, en, de: label_de }) => <button key={value} type="button" aria-pressed={calendarParams.listStatuses.includes(value)} data-schedule-status={value} onClick={() => setCalendarParams(draft => { draft.listStatuses = draft.listStatuses.includes(value) ? draft.listStatuses.filter(status => status !== value) : [...draft.listStatuses, value] })} className={cn("min-h-11 min-w-0 break-words px-1 rounded-xl border text-[11px] font-semibold transition-colors", calendarParams.listStatuses.includes(value) ? "border-[--brand] bg-gray-800 text-[--brand]" : "border-gray-800 bg-gray-900/40 text-gray-400")}>{t(en, label_de)}</button>)}
                         </div>
-                        {calendarParams.listStatuses.length === 0 && <p className="text-sm text-gray-400" data-schedule-no-status>Wähle mindestens einen Status aus.</p>}
-                    </> : <p className="text-xs leading-relaxed text-gray-400">Alle bei AniList erfassten Folgen am gewählten Tag – unabhängig von deiner Liste. Datum antippen, um die Sendezeiten zu laden.</p>}
+                        {calendarParams.listStatuses.length === 0 && <p className="text-sm text-gray-400" data-schedule-no-status>{t("Pick at least one status.", "Wähle mindestens einen Status aus.")}</p>}
+                    </> : <p className="text-xs leading-relaxed text-gray-400">{t("All episodes AniList knows for the selected day, regardless of your list. Tap a date to load the airing times.", "Alle bei AniList erfassten Folgen am gewählten Tag – unabhängig von deiner Liste. Datum antippen, um die Sendezeiten zu laden.")}</p>}
                 </div>}
                 <header
                     className="relative grid grid-cols-[auto_1fr_auto_auto] lg:flex items-center justify-center py-3 px-2 lg:py-4 lg:px-6 gap-1 lg:gap-4 flex-none rounded-tr-xl rounded-tl-xl border-b bg-[--background]"
@@ -179,7 +181,7 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
                         rounded
                         intent="gray-outline"
                         size="sm"
-                        aria-label="Vorheriger Monat"
+                        aria-label={t("Previous month", "Vorheriger Monat")}
                         className="min-w-11 min-h-11"
                         data-schedule-calendar-header-button-previous
                     />
@@ -202,13 +204,13 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
                         rounded
                         intent="gray-outline"
                         size="sm"
-                        aria-label="Nächster Monat"
+                        aria-label={t("Next month", "Nächster Monat")}
                         className="min-w-11 min-h-11"
                         data-schedule-calendar-header-button-next
                     />
 
                     <Popover
-                        trigger={<IconButton icon={<BiCog />} intent="gray-basic" size="sm" aria-label="Kalender-Einstellungen" className="min-w-11 min-h-11" data-schedule-calendar-header-button-settings />}
+                        trigger={<IconButton icon={<BiCog />} intent="gray-basic" size="sm" aria-label={t("Calendar settings", "Kalender-Einstellungen")} className="min-w-11 min-h-11" data-schedule-calendar-header-button-settings />}
                         className="w-[min(400px,calc(100vw-24px))] space-y-2"
                         data-schedule-calendar-header-settings-popover
                     >
@@ -240,10 +242,10 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
                         />
                     </Popover>
                 </header>
-                {!items && scheduleLoading && <p className="p-3 text-sm text-[--muted]" role="status">Folgen werden geladen…</p>}
+                {!items && scheduleLoading && <p className="p-3 text-sm text-[--muted]" role="status">{t("Loading episodes…", "Folgen werden geladen…")}</p>}
                 {!items && scheduleError && <div className="p-3 text-sm" role="alert">
-                    Kalender konnte nicht geladen werden.
-                    <button type="button" onClick={() => refetch()} className="ml-2 min-h-11 underline">Erneut versuchen</button>
+                    {t("Calendar could not be loaded.", "Kalender konnte nicht geladen werden.")}
+                    <button type="button" onClick={() => refetch()} className="ml-2 min-h-11 underline">{t("Try again", "Erneut versuchen")}</button>
                 </div>}
                 <div
                     className="flex flex-auto flex-col rounded-br-xl rounded-bl-xl overflow-hidden"
@@ -329,22 +331,24 @@ function MobileMonthCalendar({ days, selectedDate, weekStartsOn, unavailable, al
     onSelect: (date: string) => void
     onToday: () => void
 }) {
+    const t = useTr()
     const calendarParams = useAtomValue(calendarParamsAtom)
     const selected = days.find(day => day.date === selectedDate) ?? days.find(day => day.isCurrentMonth)!
-    const labels = weekStartsOn === 0 ? ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"] : ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    const week = t("Mo Tu We Th Fr Sa Su", "Mo Di Mi Do Fr Sa So").split(" ")
+    const labels = weekStartsOn === 0 ? [week[6], ...week.slice(0, 6)] : week
     const monthEvents = days.filter(day => day.isCurrentMonth).reduce((n, day) => n + day.events.length, 0)
 
     return <div data-schedule-mobile-month>
         <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-[--muted]">
-            <span>{allAnime ? "Alle Anime · Tagesansicht" : unavailable ? "Veröffentlichungskalender" : `${monthEvents} ${monthEvents === 1 ? "Folge" : "Folgen"} aus deiner Auswahl`}</span>
-            <button type="button" onClick={onToday} className="min-h-11 px-3 rounded-lg border text-sm text-gray-100 hover:bg-gray-800" data-schedule-today>Heute</button>
+            <span>{allAnime ? t("All anime · day view", "Alle Anime · Tagesansicht") : unavailable ? t("Release calendar", "Veröffentlichungskalender") : t(`${monthEvents} ${monthEvents === 1 ? "episode" : "episodes"} from your selection`, `${monthEvents} ${monthEvents === 1 ? "Folge" : "Folgen"} aus deiner Auswahl`)}</span>
+            <button type="button" onClick={onToday} className="min-h-11 px-3 rounded-lg border text-sm text-gray-100 hover:bg-gray-800" data-schedule-today>{t("Today", "Heute")}</button>
         </div>
         <div className="grid grid-cols-7 text-center text-xs text-[--muted]" aria-hidden="true">
             {labels.map(label => <div key={label} className="py-2">{label}</div>)}
         </div>
-        <div className="grid grid-cols-7 gap-1 px-2 pb-3" role="group" aria-label="Tage im Monat" data-schedule-mobile-grid>
+        <div className="grid grid-cols-7 gap-1 px-2 pb-3" role="group" aria-label={t("Days of the month", "Tage im Monat")} data-schedule-mobile-grid>
             {days.map(day => <button key={day.date} type="button"
-                aria-label={`${format(parseISO(day.date), "dd.MM.yyyy")}, ${allAnime && day.date !== selectedDate ? "durch Antippen laden" : `${day.events.length} Folgen`}${day.isToday ? ", heute" : ""}`}
+                aria-label={`${format(parseISO(day.date), "dd.MM.yyyy")}, ${allAnime && day.date !== selectedDate ? t("tap to load", "durch Antippen laden") : `${day.events.length} ${t("episodes", "Folgen")}`}${day.isToday ? t(", today", ", heute") : ""}`}
                 aria-pressed={day.date === selected.date} aria-current={day.isToday ? "date" : undefined}
                 data-schedule-date={day.date} data-event-count={day.events.length}
                 onClick={() => onSelect(day.date)}
@@ -360,11 +364,11 @@ function MobileMonthCalendar({ days, selectedDate, weekStartsOn, unavailable, al
         </div>
         <section className="border-t border-gray-800 bg-gray-900/20 p-3 sm:p-4 space-y-3" aria-live="polite" aria-atomic="false" data-schedule-selected-day>
             <div className="flex items-center justify-between gap-2">
-                <h3 className="text-base font-semibold" data-schedule-selected-date>{format(parseISO(selected.date), "EEEE, d. MMMM", { locale: de })}{selected.isToday ? " · Heute" : ""}</h3>
-                <span className="shrink-0 rounded-full border border-gray-800 px-2 py-1 text-xs text-gray-300">{unavailable ? "…" : selected.events.length} {selected.events.length === 1 ? "Folge" : "Folgen"}</span>
+                <h3 className="text-base font-semibold" data-schedule-selected-date>{t(format(parseISO(selected.date), "EEEE, MMMM d"), format(parseISO(selected.date), "EEEE, d. MMMM", { locale: de }))}{selected.isToday ? t(" · Today", " · Heute") : ""}</h3>
+                <span className="shrink-0 rounded-full border border-gray-800 px-2 py-1 text-xs text-gray-300">{unavailable ? "…" : selected.events.length} {selected.events.length === 1 ? t("episode", "Folge") : t("episodes", "Folgen")}</span>
             </div>
             {selected.events.length > 0 ? selected.events.map(event => <MobileEventItem key={event.id} event={event} calendarParams={calendarParams} />)
-                : !unavailable && <p className="text-sm text-[--muted] py-4" data-schedule-empty-day>Keine Veröffentlichungen für diese Auswahl an diesem Tag.</p>}
+                : !unavailable && <p className="text-sm text-[--muted] py-4" data-schedule-empty-day>{t("No releases for this selection on this day.", "Keine Veröffentlichungen für diese Auswahl an diesem Tag.")}</p>}
         </section>
     </div>
 }

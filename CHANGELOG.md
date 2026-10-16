@@ -2,6 +2,12 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.8.0 — 16.10.2026 (versionCode 31015)
+
+- **App komplett auf Englisch**, Deutsch bleibt wählbar: *Settings → App language* (English / Deutsch). Gilt für Downloads, Folgen-Auswahl, Kalender, Manga-Downloads, Offline-Player, Benachrichtigungen und Meldungen. Standard ist Englisch.
+- Die Sprachwahl wird an die nativen Android-Teile (Offline-Player, Download-Benachrichtigung) weitergegeben; nach dem Umschalten lädt die App einmal neu.
+- Englische Mehrzahlformen korrigiert („1 chapter“ statt „1 chapters“).
+
 ## 1.7.0 — 16.10.2026 (versionCode 31014)
 
 - **Einrichtungs-Tutorial beim ersten Start:** Eine interaktive Tour führt Schritt für Schritt durch Menu → Extensions → Marketplace → Repository hinzufügen → Streaming-Erweiterung installieren, inklusive Manga-Hinweis. Der hervorgehobene Knopf wird jeweils selbst angetippt, „Skip" ist jederzeit möglich.

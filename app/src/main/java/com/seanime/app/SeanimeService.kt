@@ -52,13 +52,14 @@ class SeanimeService : Service() {
         val openIntent = PendingIntent.getActivity(this, 1, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
+        AppLanguage.init(this)
         val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, CHANNEL_ID) else Notification.Builder(this)
         return builder
             .setContentTitle("Seanime")
             .setContentText(when {
-                status.startsWith("Error:") -> "Seanime konnte nicht gestartet werden. App erneut öffnen."
-                status.startsWith("Server stopped") -> "Seanime wurde beendet. Zum Neustart App öffnen."
-                else -> "Seanime läuft im Hintergrund"
+                status.startsWith("Error:") -> AppLanguage.tr("Seanime could not start. Open the app again.", "Seanime konnte nicht gestartet werden. App erneut öffnen.")
+                status.startsWith("Server stopped") -> AppLanguage.tr("Seanime stopped. Open the app to restart.", "Seanime wurde beendet. Zum Neustart App öffnen.")
+                else -> AppLanguage.tr("Seanime is running in the background", "Seanime läuft im Hintergrund")
             })
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOnlyAlertOnce(true)
@@ -166,8 +167,9 @@ class SeanimeService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT < 26) return
+        AppLanguage.init(this)
         val channel = NotificationChannel(CHANNEL_ID, "Seanime Server", NotificationManager.IMPORTANCE_LOW)
-        channel.description = "Optionaler Hinweis für Wiedergabe und Downloads im Hintergrund"
+        channel.description = AppLanguage.tr("Optional notice for background playback and downloads", "Optionaler Hinweis für Wiedergabe und Downloads im Hintergrund")
         channel.setSound(null, null)
         channel.enableVibration(false)
         channel.setShowBadge(false)

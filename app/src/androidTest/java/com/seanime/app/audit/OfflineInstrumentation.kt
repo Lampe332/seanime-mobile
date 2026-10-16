@@ -134,7 +134,7 @@ class OfflineInstrumentation : Instrumentation() {
         until("Downloads route did not render") { javascript(activity, "return !!document.querySelector('[data-downloaded-anime]');") == "true" }
         val overview = JSONObject(javascript(activity, """
             var nav = document.getElementById('__seanime_bottom_nav');
-            var back = document.querySelector('[aria-label="Zurück zu Seanime"]');
+            var back = document.querySelector('[aria-label="Back to Seanime"]');
             var r = back.getBoundingClientRect(); var svg = back.querySelector('svg').getBoundingClientRect();
             return {route:location.pathname, nav:!!nav && nav.getBoundingClientRect().height > 0 && getComputedStyle(nav).visibility !== 'hidden',
                 labels:nav ? nav.innerText : '', cards:document.querySelectorAll('[data-downloaded-anime]').length,
@@ -147,12 +147,12 @@ class OfflineInstrumentation : Instrumentation() {
         javascript(activity, "Array.from(document.querySelectorAll('[data-downloaded-anime]')).find(x=>x.innerText.includes('Offline-Test Bibliothek')).click();return true;")
         until("Anime detail did not render") { javascript(activity, "return document.querySelectorAll('[data-downloaded-episode]').length===2;") == "true" }
         until("Offline episode artwork failed") { javascript(activity, "return Array.from(document.querySelectorAll('[data-downloaded-episode] img')).every(x=>x.complete && x.naturalWidth>0) && document.querySelectorAll('[data-downloaded-episode] img').length===2;") == "true" }
-        check(javascript(activity, "return document.body.innerText.includes('Testfolge 1') && document.body.innerText.includes('Testfolge 2') && document.body.innerText.includes('Über den Anime');") == "true")
-        javascript(activity, "document.querySelector('[aria-label=\"Folge 1 löschen\"]').click();return true;")
+        check(javascript(activity, "return document.body.innerText.includes('Testfolge 1') && document.body.innerText.includes('Testfolge 2') && document.body.innerText.includes('About this anime');") == "true")
+        javascript(activity, "document.querySelector('[aria-label=\"Delete episode 1\"]').click();return true;")
         until("Delete confirmation missing") { javascript(activity, "return !!document.querySelector('[data-download-delete-dialog]');") == "true" }
         javascript(activity, "window.dispatchEvent(new Event('seanime:android-back',{cancelable:true}));return true;")
         until("Back did not cancel deletion while retaining the episodes") { javascript(activity, "return !document.querySelector('[data-download-delete-dialog]') && document.querySelectorAll('[data-downloaded-episode]').length===2;") == "true" }
-        javascript(activity, "document.querySelector('[aria-label=\"Zurück zur Anime-Übersicht\"]').click();return true;")
+        javascript(activity, "document.querySelector('[aria-label=\"Back to anime overview\"]').click();return true;")
         until("Back did not return to anime overview") { javascript(activity, "return !!document.querySelector('[data-downloaded-anime]') && !document.querySelector('[data-downloaded-episode]');") == "true" }
         // Check the real existing episode was enriched without downloading its video again.
         if (!offline && store.all().any { store.metadata(it).optInt("mediaId") == 21087 }) until("Existing anime metadata was not supplemented", 90000) {
@@ -168,9 +168,9 @@ class OfflineInstrumentation : Instrumentation() {
             val fixtures = store.all().filter { store.metadata(it).optString("title") == "Offline-Test Bibliothek" }
             val sharedArtwork = store.metadata(fixtures.first()).optString("coverAsset")
             for ((index, number) in listOf(2, 1).withIndex()) {
-                javascript(activity, "document.querySelector('[aria-label=\"Folge $number löschen\"]').click();return true;")
+                javascript(activity, "document.querySelector('[aria-label=\"Delete episode $number\"]').click();return true;")
                 until("Delete dialog missing") { javascript(activity, "return !!document.querySelector('[data-download-delete-dialog]');") == "true" }
-                javascript(activity, "Array.from(document.querySelectorAll('[data-download-delete-dialog] button')).find(x=>x.textContent.trim()==='Löschen').click();return true;")
+                javascript(activity, "Array.from(document.querySelectorAll('[data-download-delete-dialog] button')).find(x=>x.textContent.trim()==='Delete').click();return true;")
                 until("Episode deletion did not settle") {
                     store.all().count { store.metadata(it).optString("title") == "Offline-Test Bibliothek" } == 1 - index
                 }
@@ -178,7 +178,7 @@ class OfflineInstrumentation : Instrumentation() {
             }
             until("Unreferenced artwork was not removed") { OfflineLibrary.get(targetContext).artworkFile(sharedArtwork) == null }
             fixtures.forEach { check(OfflineLibrary.get(targetContext).details(it.request.id).length() == 0) { "Deleted episode metadata retained" } }
-            javascript(activity, "document.querySelector('[aria-label=\"Zurück zur Anime-Übersicht\"]').click();return true;")
+            javascript(activity, "document.querySelector('[aria-label=\"Back to anime overview\"]').click();return true;")
             until("Deleted anime still shown") { javascript(activity, "return !!document.querySelector('[data-downloaded-anime]') && !Array.from(document.querySelectorAll('[data-downloaded-anime]')).some(x=>x.innerText.includes('Offline-Test Bibliothek'));") == "true" }
         }
         return "PASS [library${if (offline) "-offline" else ""}]: real main route, original six navigation tabs, centered back icon, anime grouping, two sorted episodes, local cover/episode artwork, saved facts, delete cancel, back to overview.\n"
@@ -226,8 +226,8 @@ class OfflineInstrumentation : Instrumentation() {
         Thread.sleep(1200)
         fun current() = field(activity, "player") as ExoPlayer?
         fun ready(): Boolean { var value = false; main { value = current()?.playbackState == Player.STATE_READY }; return value }
-        click(activity, "Bereit")
-        main { descendants(activity.window.decorView).first { it is TextView && it.isShown && it.text.toString().contains("Ansehen") }.performClick() }
+        click(activity, "Ready")
+        main { descendants(activity.window.decorView).first { it is TextView && it.isShown && it.text.toString().contains("Watch") }.performClick() }
         until("UI player did not prepare") { ready() }
         lateinit var original: ExoPlayer
         main {
@@ -236,9 +236,9 @@ class OfflineInstrumentation : Instrumentation() {
             check(kotlin.math.abs(host.width.toFloat() / host.height - 16f / 9) < .03f) { "Portrait video is not 16:9: ${host.width}x${host.height}" }
             original.pause(); original.seekTo(6000)
         }
-        click(activity, "10 Sekunden vor")
+        click(activity, "Forward 10 seconds")
         main { check(kotlin.math.abs(original.currentPosition - minOf(16000L, original.duration)) < 300) { "Forward seek failed: ${original.currentPosition}/${original.duration}" } }
-        click(activity, "5 Sekunden zurück")
+        click(activity, "Back 5 seconds")
         main { check(kotlin.math.abs(original.currentPosition - (minOf(16000L, original.duration) - 5000).coerceAtLeast(0)) < 300) { "Backward seek failed: ${original.currentPosition}" } }
         // Exercise scrubbing through the real SeekBar listener.
         val location = IntArray(2)
@@ -253,21 +253,21 @@ class OfflineInstrumentation : Instrumentation() {
         sendPointerSync(android.view.MotionEvent.obtain(now, now + 100, android.view.MotionEvent.ACTION_UP, seekX, seekY, 0))
         waitForIdleSync()
         main { check(kotlin.math.abs(original.currentPosition - original.duration * .4) < original.duration * .1) { "Scrubbing failed" } }
-        click(activity, "Wiedergabetempo")
+        click(activity, "Playback speed")
         main {
             val pv = descendants(activity.window.decorView).filterIsInstance<OfflinePlayerView>().single()
             val dialog = field(pv, "dialog") as AlertDialog
             dialog.listView.performItemClick(dialog.listView.getChildAt(4), 4, 4)
             check(original.playbackParameters.speed == 1.5f) { "Speed selection failed" }
         }
-        click(activity, "Untertitel")
+        click(activity, "Subtitles")
         main {
             val pv = descendants(activity.window.decorView).filterIsInstance<OfflinePlayerView>().single()
             val dialog = field(pv, "dialog") as AlertDialog
             dialog.listView.performItemClick(dialog.listView.getChildAt(0), 0, 0)
             check(original.trackSelectionParameters.disabledTrackTypes.contains(androidx.media3.common.C.TRACK_TYPE_TEXT))
         }
-        click(activity, "Vollbild umschalten")
+        click(activity, "Toggle fullscreen")
         until("Landscape not reached") { activity.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE }
         Thread.sleep(600)
         main {
@@ -280,8 +280,8 @@ class OfflineInstrumentation : Instrumentation() {
         main { check(current() === original); @Suppress("DEPRECATION") activity.onBackPressed() }
         Thread.sleep(800)
         main { check(current() == null) { "Back did not release player" } }
-        click(activity, "Bereit")
-        main { descendants(activity.window.decorView).first { it is TextView && it.isShown && it.text.toString().contains("Weiterschauen") }.performClick() }
+        click(activity, "Ready")
+        main { descendants(activity.window.decorView).first { it is TextView && it.isShown && it.text.toString().contains("Continue") }.performClick() }
         until("Resume did not prepare") { ready() }
         main {
             check(current()!!.currentPosition > 1000) { "Playback position not restored" }
@@ -317,13 +317,13 @@ class OfflineInstrumentation : Instrumentation() {
         until("Local manga cover missing") { javascript(activity, "return Array.from(document.querySelectorAll('[data-downloaded-manga] img')).some(x=>x.src.includes('/__android_offline/')&&x.complete&&x.naturalWidth>0);") == "true" }
         capture("manga-library")
         javascript(activity, "Array.from(document.querySelectorAll('[data-downloaded-manga]')).find(x=>/overgear/i.test(x.innerText)).click();return true;")
-        until("Chapter 2 not available") { javascript(activity, "return !!document.querySelector('[aria-label=\"Kapitel 2 lesen\"]:not(:disabled)');") == "true" }
+        until("Chapter 2 not available") { javascript(activity, "return !!document.querySelector('[aria-label=\"Read chapter 2\"]:not(:disabled)');") == "true" }
         capture("manga-chapters")
-        javascript(activity, "document.querySelector('[aria-label=\"Kapitel 2 lesen\"]').click();return true;")
+        javascript(activity, "document.querySelector('[aria-label=\"Read chapter 2\"]').click();return true;")
         until("Downloaded manga page did not decode", 60000) { javascript(activity, "return Array.from(document.querySelectorAll('[data-chapter-reader-drawer-content] img')).some(x=>x.src.includes('/manga-downloads/')&&x.complete&&x.naturalWidth>0);") == "true" }
         capture("manga-reader")
         javascript(activity, "window.dispatchEvent(new Event('seanime:android-back',{cancelable:true}));return true;")
-        until("Reader back lost chapter list") { javascript(activity, "return !!document.querySelector('[aria-label=\"Kapitel 2 lesen\"]')&&!document.querySelector('[data-chapter-reader-drawer-content]');") == "true" }
+        until("Reader back lost chapter list") { javascript(activity, "return !!document.querySelector('[aria-label=\"Read chapter 2\"]')&&!document.querySelector('[data-chapter-reader-drawer-content]');") == "true" }
         return "PASS [manga]: Downloads > Manga > Overgeared > Chapter 2; local cover and local-page image decoded; back preserved chapter list.\n"
     }
     private fun batchChecks(activity: Activity, store: EpisodeDownloads): String {
@@ -362,19 +362,19 @@ class OfflineInstrumentation : Instrumentation() {
         libraryChecks(activity, store, false)
         val fixtures = store.all().filter { store.metadata(it).optString("title") == "Offline-Test Bibliothek" }
         check(fixtures.size == 2)
-        javascript(activity, "Array.from(document.querySelectorAll('button')).find(x=>x.textContent.trim()==='Auswählen').click();return true;")
+        javascript(activity, "Array.from(document.querySelectorAll('button')).find(x=>x.textContent.trim()==='Select').click();return true;")
         until("Selection toolbar missing") { javascript(activity, "return !!document.querySelector('[data-anime-selection]');") == "true" }
         javascript(activity, "Array.from(document.querySelectorAll('[data-downloaded-anime]')).find(x=>x.innerText.includes('Offline-Test Bibliothek')).click();return true;")
         until("Anime was not selected") { javascript(activity, "return !!document.querySelector('[data-downloaded-anime][aria-pressed=true]');") == "true" }
         capture("anime-selection")
-        javascript(activity, "Array.from(document.querySelectorAll('[data-anime-selection] button')).find(x=>x.textContent.includes('Ausgewählte löschen')).click();return true;")
+        javascript(activity, "Array.from(document.querySelectorAll('[data-anime-selection] button')).find(x=>x.textContent.includes('Delete selected')).click();return true;")
         until("Anime delete confirmation missing") { javascript(activity, "return !!document.querySelector('[data-anime-delete-dialog]');") == "true" }
-        javascript(activity, "Array.from(document.querySelectorAll('[data-anime-delete-dialog] button')).find(x=>x.textContent==='Abbrechen').click();return true;")
+        javascript(activity, "Array.from(document.querySelectorAll('[data-anime-delete-dialog] button')).find(x=>x.textContent==='Cancel').click();return true;")
         until("Cancel failed") { javascript(activity, "return !document.querySelector('[data-anime-delete-dialog]');") == "true" }
         check(fixtures.all { store.ready(it.request.id) })
-        javascript(activity, "Array.from(document.querySelectorAll('[data-anime-selection] button')).find(x=>x.textContent.includes('Ausgewählte löschen')).click();return true;")
+        javascript(activity, "Array.from(document.querySelectorAll('[data-anime-selection] button')).find(x=>x.textContent.includes('Delete selected')).click();return true;")
         until("Second delete dialog missing") { javascript(activity, "return !!document.querySelector('[data-anime-delete-dialog]');") == "true" }
-        javascript(activity, "Array.from(document.querySelectorAll('[data-anime-delete-dialog] button')).find(x=>x.textContent==='Anime löschen').click();return true;")
+        javascript(activity, "Array.from(document.querySelectorAll('[data-anime-delete-dialog] button')).find(x=>x.textContent==='Delete anime').click();return true;")
         until("Whole-anime deletion failed") { store.all().none { store.metadata(it).optString("title") == "Offline-Test Bibliothek" } }
         fixtures.forEach { check(OfflineLibrary.get(targetContext).details(it.request.id).length() == 0) }
         return "PASS [bulk]: selected fixture anime, cancelled deletion preserving two videos, confirmed deletion removed both videos and metadata.\n"
@@ -387,9 +387,9 @@ class OfflineInstrumentation : Instrumentation() {
         until("Season picker missing") { javascript(activity, "return !!document.querySelector('[data-episode-download-picker]');") == "true" }
         val count = javascript(activity, "return document.querySelectorAll('[data-episode-download-picker] input[type=checkbox]').length;").toInt()
         check(count >= 12) { "Season episode list incomplete: $count" }
-        javascript(activity, "Array.from(document.querySelectorAll('[data-episode-download-picker] button')).find(x=>x.textContent==='Keine').click();return true;")
+        javascript(activity, "Array.from(document.querySelectorAll('[data-episode-download-picker] button')).find(x=>x.textContent==='None').click();return true;")
         until("Clear selection failed") { javascript(activity, "return document.querySelectorAll('[data-episode-download-picker] input:checked').length===0;") == "true" }
-        javascript(activity, "Array.from(document.querySelectorAll('[data-episode-download-picker] button')).find(x=>x.textContent==='Ganze Staffel').click();return true;")
+        javascript(activity, "Array.from(document.querySelectorAll('[data-episode-download-picker] button')).find(x=>x.textContent==='Whole season').click();return true;")
         until("Select whole season failed") { javascript(activity, "var e=document.querySelectorAll('[data-episode-download-picker] input:not(:disabled)');return e.length>0&&Array.from(e).every(x=>x.checked);") == "true" }
         capture("season-picker")
         return "PASS [picker]: actual streaming page, full episode list, clear selection, whole-season selection.\n"

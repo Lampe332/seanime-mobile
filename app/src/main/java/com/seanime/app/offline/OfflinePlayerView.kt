@@ -1,6 +1,8 @@
 package com.seanime.app.offline
 
 import android.app.AlertDialog
+import com.seanime.app.AppLanguage
+import com.seanime.app.AppLanguage.tr
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -54,7 +56,7 @@ class OfflinePlayerView(
             if (lastPlaying != exo.isPlaying) {
                 lastPlaying = exo.isPlaying
                 icon(toggle, if (exo.isPlaying) "pause" else "play", 28)
-                toggle.contentDescription = if (exo.isPlaying) "Pause" else "Abspielen"
+                toggle.contentDescription = if (exo.isPlaying) tr("Pause", "Pause") else tr("Play", "Abspielen")
             }
             speed.text = "${exo.playbackParameters.speed}×"
             handler.postDelayed(this, 300)
@@ -130,7 +132,7 @@ class OfflinePlayerView(
             }
         })
         touch.setOnTouchListener { _, event -> gestures.onTouchEvent(event) }
-        touch.contentDescription = "Videofläche: tippen für Steuerung, doppeltippen zum Spulen"
+        touch.contentDescription = tr("Video area: tap for controls, double-tap to seek", "Videofläche: tippen für Steuerung, doppeltippen zum Spulen")
         addView(touch, LayoutParams(-1, -1))
         controls.background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
             intArrayOf(0xB3000000.toInt(), 0x10000000, 0xD9000000.toInt()))
@@ -138,7 +140,7 @@ class OfflinePlayerView(
         controls.isClickable = false
         addView(controls, LayoutParams(-1, -1))
         val top = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(dp(4), dp(2), dp(6), 0) }
-        top.addView(button("‹", "Zurück zu Downloads") { exit() })
+        top.addView(button("‹", tr("Back to downloads", "Zurück zu Downloads")) { exit() })
         top.addView(caption(title, 13f).apply {
             maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
             setTypeface(typeface, android.graphics.Typeface.BOLD)
@@ -146,8 +148,8 @@ class OfflinePlayerView(
         top.addView(caption("OFFLINE", 9f).apply { setTextColor(0xFF65DEB0.toInt()); setPadding(dp(8), 0, dp(8), 0) })
         controls.addView(top, LayoutParams(-1, dp(46), Gravity.TOP))
         val center = LinearLayout(context).apply { gravity = Gravity.CENTER }
-        center.addView(button("−5", "5 Sekunden zurück", 52) { skip(-5) })
-        toggle = button("▶", "Abspielen", 64) {
+        center.addView(button("−5", tr("Back 5 seconds", "5 Sekunden zurück"), 52) { skip(-5) })
+        toggle = button("▶", tr("Play", "Abspielen"), 64) {
             if (exo.playbackState == Player.STATE_ENDED) { exo.seekTo(0); exo.play() }
             else if (exo.isPlaying) exo.pause() else exo.play()
         }.apply {
@@ -156,14 +158,14 @@ class OfflinePlayerView(
         }
         icon(toggle, "play", 28)
         center.addView(toggle, LinearLayout.LayoutParams(dp(64), dp(64)).apply { leftMargin = dp(20); rightMargin = dp(20) })
-        center.addView(button("+10", "10 Sekunden vor", 52) { skip(10) })
+        center.addView(button("+10", tr("Forward 10 seconds", "10 Sekunden vor"), 52) { skip(10) })
         controls.addView(center, LayoutParams(-2, dp(64), Gravity.CENTER))
 
         val bottom = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), dp(2))
         }
         seek = SeekBar(context).apply {
-            max = 1000; contentDescription = "Wiedergabeposition"
+            max = 1000; contentDescription = tr("Playback position", "Wiedergabeposition")
             progressTintList = android.content.res.ColorStateList.valueOf(0xFFAA94FF.toInt())
             thumbTintList = progressTintList
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -181,10 +183,10 @@ class OfflinePlayerView(
         val tools = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
         time = caption("00:00 / 00:00", 11f)
         tools.addView(time, LinearLayout.LayoutParams(0, dp(44), 1f))
-        speed = button("1.0×", "Wiedergabetempo") { speedMenu() }.apply { textSize = 12f }
+        speed = button("1.0×", tr("Playback speed", "Wiedergabetempo")) { speedMenu() }.apply { textSize = 12f }
         tools.addView(speed)
-        tools.addView(button("CC", "Untertitel") { subtitleMenu() }.apply { textSize = 12f })
-        tools.addView(button("", "Vollbild umschalten") { fullscreen() }.apply { icon(this, "fullscreen") })
+        tools.addView(button("CC", tr("Subtitles", "Untertitel")) { subtitleMenu() }.apply { textSize = 12f })
+        tools.addView(button("", tr("Toggle fullscreen", "Vollbild umschalten")) { fullscreen() }.apply { icon(this, "fullscreen") })
         bottom.addView(tools)
         controls.addView(bottom, LayoutParams(-1, -2, Gravity.BOTTOM))
         feedback = caption("", 14f).apply {
@@ -196,7 +198,7 @@ class OfflinePlayerView(
 
     private fun skip(seconds: Int) {
         exo.seekTo((exo.currentPosition + seconds * 1000).coerceIn(0, exo.duration.coerceAtLeast(0)))
-        feedback.text = if (seconds < 0) "−5 Sekunden" else "+10 Sekunden"
+        feedback.text = if (seconds < 0) tr("−5 seconds", "−5 Sekunden") else tr("+10 seconds", "+10 Sekunden")
         feedback.visibility = View.VISIBLE
         handler.removeCallbacks(clearFeedback); handler.postDelayed(clearFeedback, 700)
     }
@@ -210,13 +212,13 @@ class OfflinePlayerView(
         menuOpen = true; handler.removeCallbacks(hide)
         dialog = AlertDialog.Builder(context).setTitle(title).setSingleChoiceItems(labels, selected) { dialog, which ->
             apply(which); dialog.dismiss()
-        }.setNegativeButton("Schließen", null).create().also {
+        }.setNegativeButton(tr("Close", "Schließen"), null).create().also {
             it.setOnDismissListener { menuOpen = false; scheduleHide() }; it.show()
         }
     }
     private fun speedMenu() {
         val values = floatArrayOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
-        choose("Wiedergabetempo", values.map { "$it×" }.toTypedArray(), values.indexOfFirst { it == exo.playbackParameters.speed }) {
+        choose(tr("Playback speed", "Wiedergabetempo"), values.map { "$it×" }.toTypedArray(), values.indexOfFirst { it == exo.playbackParameters.speed }) {
             exo.setPlaybackSpeed(values[it])
         }
     }
@@ -224,15 +226,15 @@ class OfflinePlayerView(
         val tracks = exo.currentTracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
             .flatMap { group -> (0 until group.length).filter { group.isTrackSupported(it) }.map { group to it } }
         if (tracks.isEmpty()) {
-            choose("Untertitel", arrayOf("Keine Untertitel gespeichert"), 0) {}; return
+            choose(tr("Subtitles", "Untertitel"), arrayOf(tr("No subtitles saved", "Keine Untertitel gespeichert")), 0) {}; return
         }
-        val labels = arrayOf("Aus") + tracks.map { (group, index) ->
+        val labels = arrayOf(tr("Off", "Aus")) + tracks.map { (group, index) ->
             val format = group.getTrackFormat(index)
-            format.label ?: format.language?.let { Locale.forLanguageTag(it).getDisplayLanguage(Locale.GERMAN) } ?: "Untertitel"
+            format.label ?: format.language?.let { Locale.forLanguageTag(it).getDisplayLanguage(AppLanguage.locale) } ?: tr("Subtitles", "Untertitel")
         }
         val selected = if (exo.trackSelectionParameters.disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)) 0
             else tracks.indexOfFirst { (group, index) -> group.isTrackSelected(index) } + 1
-        choose("Untertitel", labels, selected) { index ->
+        choose(tr("Subtitles", "Untertitel"), labels, selected) { index ->
             val builder = exo.trackSelectionParameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_TEXT)
                 .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, index == 0)
             if (index > 0) {

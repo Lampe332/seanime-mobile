@@ -150,7 +150,7 @@ function getMobileTutorialSteps(): TourStep[] {
             content: (
                 <ul className="list-disc pl-4 space-y-1.5">
                     <li>Open any anime and tap <b>Online streaming</b> to watch.</li>
-                    <li><b>Staffel / Folgen herunterladen</b> saves episodes to your phone.</li>
+                    <li><b>Download season / episodes</b> saves episodes to your phone.</li>
                     <li>Saved episodes and chapters are under <b>Downloads</b> at the bottom, also offline.</li>
                     <li>Replay this tour any time in <b>Settings → Extensions</b>.</li>
                 </ul>

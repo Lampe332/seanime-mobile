@@ -1,5 +1,6 @@
 package com.seanime.app.offline
 
+import com.seanime.app.AppLanguage.tr
 import android.app.Activity
 import android.content.Intent
 import android.webkit.JavascriptInterface
@@ -73,14 +74,14 @@ class OfflineBridge(private val activity: Activity) {
         }
     }
     @JavascriptInterface fun batch(value: String, data: String): String {
-        if (value != token || data.length > 600000) return "{\"error\":\"Ungültige Anfrage\"}"
+        if (value != token || data.length > 600000) return "{\"error\":\"${tr("Invalid request", "Ungültige Anfrage")}\"}"
         // Submit runs on main because Media3's manager is main-thread owned.
         val done = java.util.concurrent.CountDownLatch(1)
-        var response = "{\"error\":\"App nicht bereit\"}"
+        var response = "{\"error\":\"${tr("App not ready", "App nicht bereit")}\"}"
         activity.runOnUiThread {
             try {
                 if (value == token && !activity.isDestroyed) response = JSONObject().put("added", EpisodeBatchQueue.get(activity).submit(JSONObject(data))).toString()
-            } catch (_: Exception) { response = "{\"error\":\"Folgen konnten nicht eingeplant werden\"}" }
+            } catch (_: Exception) { response = "{\"error\":\"${tr("Episodes could not be queued", "Folgen konnten nicht eingeplant werden")}\"}" }
             finally { done.countDown() }
         }
         done.await(20, java.util.concurrent.TimeUnit.SECONDS)
@@ -103,11 +104,11 @@ class OfflineBridge(private val activity: Activity) {
         activity.runOnUiThread {
             if (value != token || activity.isDestroyed) return@runOnUiThread
             try {
-                Toast.makeText(activity, "Download wird vorbereitet …", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, tr("Preparing download …", "Download wird vorbereitet …"), Toast.LENGTH_SHORT).show()
                 EpisodeDownloads.get(activity).enqueue(JSONObject(data)) { error ->
                     if (!activity.isDestroyed) Toast.makeText(activity, error ?: "Download gestartet. Fortschritt unter Downloads.", Toast.LENGTH_LONG).show()
                 }
-            } catch (_: Exception) { Toast.makeText(activity, "Ungültige Download-Quelle", Toast.LENGTH_LONG).show() }
+            } catch (_: Exception) { Toast.makeText(activity, tr("Invalid download source", "Ungültige Download-Quelle"), Toast.LENGTH_LONG).show() }
         }
     }
 }

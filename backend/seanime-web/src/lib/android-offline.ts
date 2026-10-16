@@ -1,3 +1,4 @@
+import "@/lib/app-language"
 /** Android-only capabilities. Desktop and ordinary web clients keep their existing behavior. */
 declare global {
     interface Window {

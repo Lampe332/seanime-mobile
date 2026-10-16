@@ -1,6 +1,8 @@
 package com.seanime.app.offline
 
 import android.app.Activity
+import com.seanime.app.AppLanguage
+import com.seanime.app.AppLanguage.tr
 import android.app.AlertDialog
 import android.content.res.ColorStateList
 import android.content.pm.ActivityInfo
@@ -38,7 +40,7 @@ class OfflineActivity : Activity() {
     private var player: ExoPlayer? = null
     private var playingId: String? = null
     private var lastRows = ""
-    private var filter = "Alle"
+    private var filter = "all"
     private var chips: LinearLayout? = null
     private var playerRoot: LinearLayout? = null
     private var playerHost: FrameLayout? = null
@@ -70,6 +72,7 @@ class OfflineActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppLanguage.init(this)
         window.statusBarColor = BACKGROUND
         window.navigationBarColor = BACKGROUND
         if (Build.VERSION.SDK_INT >= 29) {
@@ -145,7 +148,7 @@ class OfflineActivity : Activity() {
             gravity = Gravity.CENTER
             isClickable = true
             isFocusable = true
-            contentDescription = "Zurück zu Seanime"
+            contentDescription = tr("Back to Seanime", "Zurück zu Seanime")
             background = clickableBackground(SURFACE_HIGH, 16, BORDER)
             setOnClickListener { onBack() }
         }
@@ -178,7 +181,7 @@ class OfflineActivity : Activity() {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         lastRows = ""
         val root = rootColumn()
-        root.addView(header({ finish() }, "Downloads", "Deine Anime. Immer dabei."))
+        root.addView(header({ finish() }, "Downloads", tr("Your anime. Always with you.", "Deine Anime. Immer dabei.")))
         root.addView(View(this), LinearLayout.LayoutParams(1, dp(18)))
         summary = label("", 13f, MUTED)
         val summaryPanel = panel(12).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
@@ -208,14 +211,14 @@ class OfflineActivity : Activity() {
 
     private fun updateChips() {
         chips?.removeAllViews()
-        listOf("Alle", "Bereit", "Aktiv").forEach { name ->
-            chips?.addView(actionButton(name) {
+        listOf("all" to tr("All", "Alle"), "ready" to tr("Ready", "Bereit"), "active" to tr("Active", "Aktiv")).forEach { (name, text) ->
+            chips?.addView(actionButton(text) {
                 filter = name; lastRows = ""; updateChips(); refresh()
             }.apply {
                 textSize = 12f
                 setTextColor(if (filter == name) Color.WHITE else MUTED)
                 background = clickableBackground(if (filter == name) PRIMARY_DARK else SURFACE, 22)
-            }, LinearLayout.LayoutParams(0, dp(44), 1f).apply { rightMargin = dp(if (name == "Aktiv") 0 else 8) })
+            }, LinearLayout.LayoutParams(0, dp(44), 1f).apply { rightMargin = dp(if (name == "active") 0 else 8) })
         }
     }
 
@@ -229,22 +232,22 @@ class OfflineActivity : Activity() {
             background = rounded(0xFF342A53.toInt(), 32)
         }
         card.addView(icon, LinearLayout.LayoutParams(dp(64), dp(64)).apply { bottomMargin = dp(18) })
-        card.addView(label("Deine Offline-Bibliothek ist leer", 18f, Color.WHITE, true).apply {
+        card.addView(label(tr("Your offline library is empty", "Deine Offline-Bibliothek ist leer"), 18f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
         })
-        card.addView(label("Lade Folgen mit Internet herunter und schau sie später ohne Verbindung.", 14f, MUTED).apply {
+        card.addView(label(tr("Download episodes while online and watch them later without a connection.", "Lade Folgen mit Internet herunter und schau sie später ohne Verbindung."), 14f, MUTED).apply {
             gravity = Gravity.CENTER
             setPadding(0, dp(9), 0, dp(18))
         })
 
         val steps = panel(14).apply { background = rounded(SURFACE_HIGH, 14) }
-        listOf("1   Öffne eine Anime-Folge", "2   Tippe auf „Auf Handy herunterladen“", "3   Starte sie hier offline").forEachIndexed { index, item ->
+        listOf(tr("1   Open an anime episode", "1   Öffne eine Anime-Folge"), tr("2   Tap “Download to phone”", "2   Tippe auf „Auf Handy herunterladen“"), tr("3   Start it here offline", "3   Starte sie hier offline")).forEachIndexed { index, item ->
             val step = label(item, 13f, if (index == 2) 0xFFDCD2FF.toInt() else 0xFFE5E3ED.toInt())
             steps.addView(step)
             if (index < 2) steps.addView(View(this), LinearLayout.LayoutParams(1, dp(8)))
         }
         card.addView(steps, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(18) })
-        card.addView(actionButton("Zurück zu Seanime", primary = true) { finish() }, LinearLayout.LayoutParams(-1, dp(50)))
+        card.addView(actionButton(tr("Back to Seanime", "Zurück zu Seanime"), primary = true) { finish() }, LinearLayout.LayoutParams(-1, dp(50)))
         return card
     }
 
@@ -256,7 +259,7 @@ class OfflineActivity : Activity() {
             all.filter { it.request.id == download.request.id || it.request.id.startsWith("${download.request.id}:sub:") }
                 .sumOf { it.bytesDownloaded }
         }
-        summary.text = "$readyCount ${if (readyCount == 1) "Folge offline bereit" else "Folgen offline bereit"}\n${formatSize(totalBytes)} gespeichert · ${mains.size - readyCount} ausstehend"
+        summary.text = tr("$readyCount ${if (readyCount == 1) "episode" else "episodes"} ready offline\n${formatSize(totalBytes)} saved · ${mains.size - readyCount} pending", "$readyCount ${if (readyCount == 1) "Folge offline bereit" else "Folgen offline bereit"}\n${formatSize(totalBytes)} gespeichert · ${mains.size - readyCount} ausstehend")
         summary.setLineSpacing(dp(5).toFloat(), 1f)
 
         // Progress changes are rounded to 5% so cards do not flicker or reset the scroll position.
@@ -268,11 +271,11 @@ class OfflineActivity : Activity() {
             rows.addView(emptyState(), LinearLayout.LayoutParams(-1, -2))
             return
         }
-        val visible = mains.filter { filter == "Alle" || (filter == "Bereit") == store.ready(it.request.id) }
+        val visible = mains.filter { filter == "all" || (filter == "ready") == store.ready(it.request.id) }
         if (visible.isEmpty()) {
             rows.addView(panel(24).apply {
-                addView(label(if (filter == "Bereit") "Noch keine Folge bereit" else "Alles heruntergeladen", 17f, Color.WHITE, true))
-                addView(label(if (filter == "Bereit") "Fertige Downloads erscheinen hier automatisch." else "Deine gespeicherten Folgen findest du unter „Bereit“.", 13f, MUTED).apply { setPadding(0, dp(10), 0, 0) })
+                addView(label(if (filter == "ready") tr("No episode ready yet", "Noch keine Folge bereit") else tr("Everything downloaded", "Alles heruntergeladen"), 17f, Color.WHITE, true))
+                addView(label(if (filter == "ready") tr("Finished downloads show up here automatically.", "Fertige Downloads erscheinen hier automatisch.") else tr("Your saved episodes are under “Ready”.", "Deine gespeicherten Folgen findest du unter „Bereit“."), 13f, MUTED).apply { setPadding(0, dp(10), 0, 0) })
             })
         }
         var previousTitle = ""
@@ -288,13 +291,13 @@ class OfflineActivity : Activity() {
             val mb = group.sumOf { it.bytesDownloaded } / (1024.0 * 1024.0)
             val progressValue = download.percentDownloaded.takeIf { it >= 0 }?.toInt()
             val status = when {
-                ready -> "Offline bereit"
-                failed -> "Download fehlgeschlagen"
-                paused -> "Pausiert"
-                download.state == Download.STATE_REMOVING -> "Wird gelöscht"
-                store.manager.isWaitingForRequirements -> "Wartet auf Internet"
-                download.state == Download.STATE_COMPLETED -> "Untertitel werden gespeichert"
-                else -> "Wird heruntergeladen"
+                ready -> tr("Ready offline", "Offline bereit")
+                failed -> tr("Download failed", "Download fehlgeschlagen")
+                paused -> tr("Paused", "Pausiert")
+                download.state == Download.STATE_REMOVING -> tr("Deleting", "Wird gelöscht")
+                store.manager.isWaitingForRequirements -> tr("Waiting for internet", "Wartet auf Internet")
+                download.state == Download.STATE_COMPLETED -> tr("Saving subtitles", "Untertitel werden gespeichert")
+                else -> tr("Downloading", "Wird heruntergeladen")
             }
             val statusColor = when {
                 ready -> GREEN
@@ -302,10 +305,10 @@ class OfflineActivity : Activity() {
                 paused -> AMBER
                 else -> PRIMARY
             }
-            val title = metadata.optString("title").takeIf { it.isNotBlank() } ?: "Anime-Folge"
+            val title = metadata.optString("title").takeIf { it.isNotBlank() } ?: tr("Anime episode", "Anime-Folge")
             val episode = metadata.optString("episode").takeIf { it.isNotBlank() }
             val subtitle = listOfNotNull(
-                episode?.let { "Folge $it" },
+                episode?.let { tr("Episode $it", "Folge $it") },
                 metadata.optString("quality").takeIf { it.isNotBlank() },
                 metadata.optString("provider").takeIf { it.isNotBlank() },
             ).joinToString(" · ")
@@ -324,7 +327,7 @@ class OfflineActivity : Activity() {
             }
             info.addView(episodeTile, LinearLayout.LayoutParams(dp(58), dp(66)))
             val infoText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, 0, 0) }
-            infoText.addView(label(episode?.let { "Folge $it" } ?: title, 16f, Color.WHITE, true))
+            infoText.addView(label(episode?.let { tr("Episode $it", "Folge $it") } ?: title, 16f, Color.WHITE, true))
             infoText.addView(label(listOf(metadata.optString("quality"), metadata.optString("provider")).filter { it.isNotBlank() }.joinToString(" · "), 11f, MUTED).apply {
                 maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(dp(2), dp(6), 0, 0)
             })
@@ -358,26 +361,26 @@ class OfflineActivity : Activity() {
             }
             if (!ready) card.addView(progress, LinearLayout.LayoutParams(-1, dp(4)).apply { topMargin = dp(10) })
             val position = getSharedPreferences("offline-playback", MODE_PRIVATE).getLong(id, 0)
-            if (ready && position > 0) card.addView(label("Weiter bei ${OfflinePlayerView.clock(position)}", 11f, PRIMARY).apply { setPadding(dp(2), dp(8), 0, 0) })
+            if (ready && position > 0) card.addView(label(tr("Resume at ${OfflinePlayerView.clock(position)}", "Weiter bei ${OfflinePlayerView.clock(position)}"), 11f, PRIMARY).apply { setPadding(dp(2), dp(8), 0, 0) })
             card.addView(View(this), LinearLayout.LayoutParams(1, dp(12)))
 
             val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
             val actionText = when {
-                ready -> if (position > 0) "▶  Weiterschauen" else "▶  Ansehen"
-                paused || failed -> "Fortsetzen"
-                else -> "Pausieren"
+                ready -> if (position > 0) tr("▶  Continue", "▶  Weiterschauen") else tr("▶  Watch", "▶  Ansehen")
+                paused || failed -> tr("Resume", "Fortsetzen")
+                else -> tr("Pause", "Pausieren")
             }
             val primaryAction = actionButton(actionText, primary = ready) {
                 if (ready) play(download) else store.pause(id, !(paused || failed)).also { lastRows = "" }
             }
             actions.addView(primaryAction, LinearLayout.LayoutParams(0, dp(48), 1f))
             actions.addView(View(this), LinearLayout.LayoutParams(dp(8), 1))
-            val deleteAction = actionButton("Löschen") {
+            val deleteAction = actionButton(tr("Delete", "Löschen")) {
                 AlertDialog.Builder(this)
-                    .setTitle("Folge vom Handy löschen?")
-                    .setMessage("$title${episode?.let { " · Folge $it" } ?: ""}")
-                    .setPositiveButton("Löschen") { _, _ -> store.remove(id); lastRows = "" }
-                    .setNegativeButton("Abbrechen", null)
+                    .setTitle(tr("Delete episode from phone?", "Folge vom Handy löschen?"))
+                    .setMessage("$title${episode?.let { tr(" · Episode $it", " · Folge $it") } ?: ""}")
+                    .setPositiveButton(tr("Delete", "Löschen")) { _, _ -> store.remove(id); lastRows = "" }
+                    .setNegativeButton(tr("Cancel", "Abbrechen"), null)
                     .show()
             }
             actions.addView(deleteAction, LinearLayout.LayoutParams(dp(92), dp(48)))
@@ -386,8 +389,8 @@ class OfflineActivity : Activity() {
         }
     }
 
-    private fun formatMb(bytes: Long): String = String.format(Locale.GERMANY, "%.1f", bytes / (1024.0 * 1024.0))
-    private fun formatSize(bytes: Long): String = if (bytes >= 1024L * 1024 * 1024) String.format(Locale.GERMANY, "%.2f GB", bytes / (1024.0 * 1024 * 1024)) else "${formatMb(bytes)} MB"
+    private fun formatMb(bytes: Long): String = String.format(AppLanguage.locale, "%.1f", bytes / (1024.0 * 1024.0))
+    private fun formatSize(bytes: Long): String = if (bytes >= 1024L * 1024 * 1024) String.format(AppLanguage.locale, "%.2f GB", bytes / (1024.0 * 1024 * 1024)) else "${formatMb(bytes)} MB"
 
     private fun play(download: Download) {
         stopPlayer()
@@ -418,15 +421,15 @@ class OfflineActivity : Activity() {
         }
         val titles = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         titles.addView(label(title, 21f, Color.WHITE, true))
-        titles.addView(label("Folge $episode", 13f, MUTED).apply { setPadding(0, dp(8), 0, 0) })
+        titles.addView(label(tr("Episode $episode", "Folge $episode"), 13f, MUTED).apply { setPadding(0, dp(8), 0, 0) })
         metadata.optString("episodeTitle").takeIf { it.isNotBlank() }?.let {
             titles.addView(label(it, 14f, Color.WHITE, true).apply { setPadding(0, dp(8), 0, 0) })
         }
         heading.addView(titles, LinearLayout.LayoutParams(0, -2, 1f))
         info.addView(heading)
-        info.addView(label("✓  Offline verfügbar", 12f, GREEN).apply { setPadding(0, dp(16), 0, dp(12)) })
+        info.addView(label(tr("✓  Available offline", "✓  Offline verfügbar"), 12f, GREEN).apply { setPadding(0, dp(16), 0, dp(12)) })
         val facts = listOfNotNull(metadata.optInt("year").takeIf { it > 0 }?.toString(),
-            metadata.optInt("duration").takeIf { it > 0 }?.let { "$it Min." }, metadata.optString("format").takeIf { it.isNotBlank() })
+            metadata.optInt("duration").takeIf { it > 0 }?.let { tr("$it min", "$it Min.") }, metadata.optString("format").takeIf { it.isNotBlank() })
         if (facts.isNotEmpty()) info.addView(label(facts.joinToString(" · "), 12f, MUTED))
         metadata.optString("episodeDescription").takeIf { it.isNotBlank() }?.let { value ->
             val plain = if (Build.VERSION.SDK_INT >= 24) android.text.Html.fromHtml(value, android.text.Html.FROM_HTML_MODE_LEGACY)
@@ -441,7 +444,7 @@ class OfflineActivity : Activity() {
             exo.setAudioAttributes(androidx.media3.common.AudioAttributes.DEFAULT, true)
             exo.addListener(object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
-                    status.text = "Datei unvollständig oder nicht abspielbar. Bitte die Folge erneut herunterladen."
+                    status.text = tr("File incomplete or not playable. Please download the episode again.", "Datei unvollständig oder nicht abspielbar. Bitte die Folge erneut herunterladen.")
                     status.visibility = View.VISIBLE
                     if (fullscreen) setFullscreen(false)
                 }
@@ -449,7 +452,7 @@ class OfflineActivity : Activity() {
             exo.setMediaItem(store.mediaItem(download))
             exo.seekTo(getSharedPreferences("offline-playback", MODE_PRIVATE).getLong(download.request.id, 0))
             exo.prepare(); exo.playWhenReady = true
-            host.addView(OfflinePlayerView(this, exo, if (episode.isBlank()) title else "$title · Folge $episode",
+            host.addView(OfflinePlayerView(this, exo, if (episode.isBlank()) title else tr("$title · Episode $episode", "$title · Folge $episode"),
                 { setFullscreen(!fullscreen) }, { back() }), FrameLayout.LayoutParams(-1, -1))
         }
         val next = store.all().filter { !it.request.id.contains(":sub:") && store.ready(it.request.id) &&
@@ -458,11 +461,11 @@ class OfflineActivity : Activity() {
             .minByOrNull { store.metadata(it).optString("episode").toDoubleOrNull() ?: Double.MAX_VALUE }
         if (next != null) {
             info.addView(View(this), LinearLayout.LayoutParams(1, dp(24)))
-            info.addView(label("ALS NÄCHSTES", 10f, MUTED, true))
-            info.addView(actionButton("Folge ${store.metadata(next).optString("episode")} abspielen", true) { play(next) },
+            info.addView(label(tr("UP NEXT", "ALS NÄCHSTES"), 10f, MUTED, true))
+            info.addView(actionButton(tr("Play episode ${store.metadata(next).optString("episode")}", "Folge ${store.metadata(next).optString("episode")} abspielen"), true) { play(next) },
                 LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(10) })
         }
-        info.addView(actionButton("Alle Downloads") { stopPlayer(); if (intent.hasExtra("downloadId")) finish() else showList() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(24) })
+        info.addView(actionButton(tr("All downloads", "Alle Downloads")) { stopPlayer(); if (intent.hasExtra("downloadId")) finish() else showList() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(24) })
         setContentView(root)
         applyPlayerLayout()
     }

@@ -1,6 +1,6 @@
 # Seanime Mobile selbst bauen
 
-Anleitung für Windows 10/11 (PowerShell). Stand: App 1.7.0, Seanime-Backend 3.10.4, versionCode 31014.
+Anleitung für Windows 10/11 (PowerShell). Stand: App 1.8.0, Seanime-Backend 3.10.4, versionCode 31015.
 
 Es gibt zwei Wege:
 

@@ -1,3 +1,4 @@
+import { tr } from "@/lib/app-language"
 import { HibikeManga_ChapterDetails, Manga_MediaDownloadData, Nullish } from "@/api/generated/types"
 import {
     useClearAllChapterDownloadQueue,
@@ -103,7 +104,7 @@ export function useHandleDownloadMangaChapter(mediaId: string | undefined | null
                     startNow: import.meta.env.SEA_PUBLIC_PLATFORM === "mobile",
                 }, {
                     onSuccess: () => {
-                        toast.success(import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? "Kapitel werden heruntergeladen" : "Chapters added to download queue", {
+                        toast.success(import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? tr("Downloading chapters", "Kapitel werden heruntergeladen") : "Chapters added to download queue", {
                             action: import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? { label: "Downloads", onClick: () => openAndroidDownloads("manga") } : undefined,
                         })
                     },
