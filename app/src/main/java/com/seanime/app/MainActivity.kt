@@ -425,6 +425,11 @@ class MainActivity : Activity() {
     }
 
     private fun requestLibraryAccess() {
+        if (BuildConfig.STORE_PLAY) {
+            // Play variant: no all-files access; the app only uses its private storage.
+            requestNotificationAccess()
+            return
+        }
         val prefs = getSharedPreferences("android_permissions", MODE_PRIVATE)
         if (prefs.getBoolean("library_access_explained", false)) {
             requestNotificationAccess()

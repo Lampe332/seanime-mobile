@@ -15,6 +15,12 @@ describe("global calendar day", () => {
         expect(result.map(item => item.mediaId)).toEqual([901, 902])
         expect(result.every(item => item.episodeNumber === 3)).toBe(true)
     })
+    it("drops adult media from the calendar", async () => {
+        const adult = row(2, 902)
+        ;(adult.media as { isAdult?: boolean }).isAdult = true
+        const result = await fetchGlobalScheduleDay("2026-10-15", async () => page([row(1, 901), adult]))
+        expect(result.map(item => item.mediaId)).toEqual([901])
+    })
     it("requests the whole local day and keeps midnight but excludes the next day", async () => {
         const start = new Date(2026, 9, 15).getTime() / 1000
         const end = new Date(2026, 9, 16).getTime() / 1000

@@ -1,3 +1,4 @@
+import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { useServerMutation } from "@/api/client/requests"
 import { getAndroidAppVersion } from "@/lib/android-app"
 import { UpdateTheme_Variables } from "@/api/generated/endpoint.types"
@@ -643,7 +644,7 @@ export default function Page() {
                                                 >
                                                     Record an issue
                                                 </Button>
-                                                <Button
+                                                {!IS_PLAY_STORE && <Button
                                                     size="sm"
                                                     intent="gray-outline"
                                                     onClick={() => {
@@ -674,7 +675,7 @@ export default function Page() {
                                                     data-check-for-updates-button
                                                 >
                                                     Check for updates
-                                                </Button>
+                                                </Button>}
                                             </div>
                                         </div>
 

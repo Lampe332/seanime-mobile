@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"seanime/internal/storeflavor"
 	"seanime/internal/updater"
 	"seanime/internal/util/result"
 	"strings"
@@ -23,7 +24,7 @@ import (
 //	@route /api/v1/install-update [POST]
 //	@returns handlers.Status
 func (h *Handler) HandleInstallLatestUpdate(c echo.Context) error {
-	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
+	if runtime.GOOS == "android" || runtime.GOOS == "ios" || storeflavor.Play {
 		return h.RespondWithError(c, errors.New("self-updating is not supported on mobile platforms"))
 	}
 
@@ -104,6 +105,10 @@ var changelogCache = result.NewCache[string, []*changelogItem]()
 //	@param before query string true "The version to get the changelog for."
 //	@returns string
 func (h *Handler) HandleGetChangelog(c echo.Context) error {
+	if storeflavor.Play {
+		return h.RespondWithData(c, []*changelogItem{})
+	}
+
 	before := c.QueryParam("before")
 	after := c.QueryParam("after")
 

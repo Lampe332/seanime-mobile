@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"seanime/internal/storeflavor"
 	"seanime/internal/util"
 )
 
@@ -21,6 +22,9 @@ var (
 // If the decompression fails, the returned string will be the directory to the compressed file
 // If the decompression is successful, the returned string will be the directory to the extracted files
 func (u *Updater) DownloadLatestRelease(assetUrl, dest string) (string, error) {
+	if storeflavor.Play {
+		return "", errUpdatesDisabled
+	}
 	if u.LatestRelease == nil {
 		return "", errors.New("no new release found")
 	}
@@ -49,6 +53,9 @@ func (u *Updater) DownloadLatestRelease(assetUrl, dest string) (string, error) {
 }
 
 func (u *Updater) DownloadLatestReleaseN(assetUrl, dest, folderName string) (string, error) {
+	if storeflavor.Play {
+		return "", errUpdatesDisabled
+	}
 	if u.LatestRelease == nil {
 		return "", errors.New("no new release found")
 	}
@@ -322,3 +329,5 @@ func (u *Updater) getFilePath(url, dest string) string {
 	fileName := filepath.Base(url)
 	return filepath.Join(dest, fileName)
 }
+
+var errUpdatesDisabled = errors.New("updates are delivered through Google Play")

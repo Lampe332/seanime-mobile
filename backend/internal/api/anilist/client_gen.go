@@ -47,22 +47,26 @@ func NewClient(cli clientv2.HttpClient, baseURL string, options *clientv2.Option
 }
 
 type BaseAnime struct {
-	ID                int                          "json:\"id\" graphql:\"id\""
-	IDMal             *int                         "json:\"idMal,omitempty\" graphql:\"idMal\""
-	SiteURL           *string                      "json:\"siteUrl,omitempty\" graphql:\"siteUrl\""
-	Status            *MediaStatus                 "json:\"status,omitempty\" graphql:\"status\""
-	Season            *MediaSeason                 "json:\"season,omitempty\" graphql:\"season\""
-	Type              *MediaType                   "json:\"type,omitempty\" graphql:\"type\""
-	Format            *MediaFormat                 "json:\"format,omitempty\" graphql:\"format\""
-	SeasonYear        *int                         "json:\"seasonYear,omitempty\" graphql:\"seasonYear\""
-	BannerImage       *string                      "json:\"bannerImage,omitempty\" graphql:\"bannerImage\""
-	Episodes          *int                         "json:\"episodes,omitempty\" graphql:\"episodes\""
-	Synonyms          []*string                    "json:\"synonyms,omitempty\" graphql:\"synonyms\""
-	IsAdult           *bool                        "json:\"isAdult,omitempty\" graphql:\"isAdult\""
-	CountryOfOrigin   *string                      "json:\"countryOfOrigin,omitempty\" graphql:\"countryOfOrigin\""
-	MeanScore         *int                         "json:\"meanScore,omitempty\" graphql:\"meanScore\""
-	Description       *string                      "json:\"description,omitempty\" graphql:\"description\""
-	Genres            []*string                    "json:\"genres,omitempty\" graphql:\"genres\""
+	ID              int               "json:\"id\" graphql:\"id\""
+	IDMal           *int              "json:\"idMal,omitempty\" graphql:\"idMal\""
+	SiteURL         *string           "json:\"siteUrl,omitempty\" graphql:\"siteUrl\""
+	Status          *MediaStatus      "json:\"status,omitempty\" graphql:\"status\""
+	Season          *MediaSeason      "json:\"season,omitempty\" graphql:\"season\""
+	Type            *MediaType        "json:\"type,omitempty\" graphql:\"type\""
+	Format          *MediaFormat      "json:\"format,omitempty\" graphql:\"format\""
+	SeasonYear      *int              "json:\"seasonYear,omitempty\" graphql:\"seasonYear\""
+	BannerImage     *string           "json:\"bannerImage,omitempty\" graphql:\"bannerImage\""
+	Episodes        *int              "json:\"episodes,omitempty\" graphql:\"episodes\""
+	Synonyms        []*string         "json:\"synonyms,omitempty\" graphql:\"synonyms\""
+	IsAdult         *bool             "json:\"isAdult,omitempty\" graphql:\"isAdult\""
+	CountryOfOrigin *string           "json:\"countryOfOrigin,omitempty\" graphql:\"countryOfOrigin\""
+	MeanScore       *int              "json:\"meanScore,omitempty\" graphql:\"meanScore\""
+	Description     *string           "json:\"description,omitempty\" graphql:\"description\""
+	Genres          []*string         "json:\"genres,omitempty\" graphql:\"genres\""
+	Tags            []*BaseAnime_Tags "json:\"tags,omitempty\" graphql:\"tags\""
+	// IsSuggestive is not an AniList field: the backend sets it (package adultguard, Google Play build) so the UI can blur the cover.
+	// Re-add it after regenerating this file (TestGeneratedMediaHasSuggestiveMarker).
+	IsSuggestive      *bool                        "json:\"isSuggestive,omitempty\" graphql:\"isSuggestive\""
 	Duration          *int                         "json:\"duration,omitempty\" graphql:\"duration\""
 	Trailer           *BaseAnime_Trailer           "json:\"trailer,omitempty\" graphql:\"trailer\""
 	Title             *BaseAnime_Title             "json:\"title,omitempty\" graphql:\"title\""
@@ -167,6 +171,12 @@ func (t *BaseAnime) GetGenres() []*string {
 		t = &BaseAnime{}
 	}
 	return t.Genres
+}
+func (t *BaseAnime) GetTags() []*BaseAnime_Tags {
+	if t == nil {
+		t = &BaseAnime{}
+	}
+	return t.Tags
 }
 func (t *BaseAnime) GetDuration() *int {
 	if t == nil {
@@ -483,26 +493,29 @@ func (t *AnimeSchedule) GetUpcoming() *AnimeSchedule_Upcoming {
 }
 
 type BaseManga struct {
-	ID              int                   "json:\"id\" graphql:\"id\""
-	IDMal           *int                  "json:\"idMal,omitempty\" graphql:\"idMal\""
-	SiteURL         *string               "json:\"siteUrl,omitempty\" graphql:\"siteUrl\""
-	Status          *MediaStatus          "json:\"status,omitempty\" graphql:\"status\""
-	Season          *MediaSeason          "json:\"season,omitempty\" graphql:\"season\""
-	Type            *MediaType            "json:\"type,omitempty\" graphql:\"type\""
-	Format          *MediaFormat          "json:\"format,omitempty\" graphql:\"format\""
-	BannerImage     *string               "json:\"bannerImage,omitempty\" graphql:\"bannerImage\""
-	Chapters        *int                  "json:\"chapters,omitempty\" graphql:\"chapters\""
-	Volumes         *int                  "json:\"volumes,omitempty\" graphql:\"volumes\""
-	Synonyms        []*string             "json:\"synonyms,omitempty\" graphql:\"synonyms\""
-	IsAdult         *bool                 "json:\"isAdult,omitempty\" graphql:\"isAdult\""
-	CountryOfOrigin *string               "json:\"countryOfOrigin,omitempty\" graphql:\"countryOfOrigin\""
-	MeanScore       *int                  "json:\"meanScore,omitempty\" graphql:\"meanScore\""
-	Description     *string               "json:\"description,omitempty\" graphql:\"description\""
-	Genres          []*string             "json:\"genres,omitempty\" graphql:\"genres\""
-	Title           *BaseManga_Title      "json:\"title,omitempty\" graphql:\"title\""
-	CoverImage      *BaseManga_CoverImage "json:\"coverImage,omitempty\" graphql:\"coverImage\""
-	StartDate       *BaseManga_StartDate  "json:\"startDate,omitempty\" graphql:\"startDate\""
-	EndDate         *BaseManga_EndDate    "json:\"endDate,omitempty\" graphql:\"endDate\""
+	ID              int               "json:\"id\" graphql:\"id\""
+	IDMal           *int              "json:\"idMal,omitempty\" graphql:\"idMal\""
+	SiteURL         *string           "json:\"siteUrl,omitempty\" graphql:\"siteUrl\""
+	Status          *MediaStatus      "json:\"status,omitempty\" graphql:\"status\""
+	Season          *MediaSeason      "json:\"season,omitempty\" graphql:\"season\""
+	Type            *MediaType        "json:\"type,omitempty\" graphql:\"type\""
+	Format          *MediaFormat      "json:\"format,omitempty\" graphql:\"format\""
+	BannerImage     *string           "json:\"bannerImage,omitempty\" graphql:\"bannerImage\""
+	Chapters        *int              "json:\"chapters,omitempty\" graphql:\"chapters\""
+	Volumes         *int              "json:\"volumes,omitempty\" graphql:\"volumes\""
+	Synonyms        []*string         "json:\"synonyms,omitempty\" graphql:\"synonyms\""
+	IsAdult         *bool             "json:\"isAdult,omitempty\" graphql:\"isAdult\""
+	CountryOfOrigin *string           "json:\"countryOfOrigin,omitempty\" graphql:\"countryOfOrigin\""
+	MeanScore       *int              "json:\"meanScore,omitempty\" graphql:\"meanScore\""
+	Description     *string           "json:\"description,omitempty\" graphql:\"description\""
+	Genres          []*string         "json:\"genres,omitempty\" graphql:\"genres\""
+	Tags            []*BaseManga_Tags "json:\"tags,omitempty\" graphql:\"tags\""
+	// IsSuggestive: see BaseAnime.
+	IsSuggestive *bool                 "json:\"isSuggestive,omitempty\" graphql:\"isSuggestive\""
+	Title        *BaseManga_Title      "json:\"title,omitempty\" graphql:\"title\""
+	CoverImage   *BaseManga_CoverImage "json:\"coverImage,omitempty\" graphql:\"coverImage\""
+	StartDate    *BaseManga_StartDate  "json:\"startDate,omitempty\" graphql:\"startDate\""
+	EndDate      *BaseManga_EndDate    "json:\"endDate,omitempty\" graphql:\"endDate\""
 }
 
 func (t *BaseManga) GetID() int {
@@ -600,6 +613,12 @@ func (t *BaseManga) GetGenres() []*string {
 		t = &BaseManga{}
 	}
 	return t.Genres
+}
+func (t *BaseManga) GetTags() []*BaseManga_Tags {
+	if t == nil {
+		t = &BaseManga{}
+	}
+	return t.Tags
 }
 func (t *BaseManga) GetTitle() *BaseManga_Title {
 	if t == nil {
@@ -948,6 +967,24 @@ func (t *UserReleaseYearStats) GetChaptersRead() int {
 	return t.ChaptersRead
 }
 
+type BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &BaseAnime_Tags{}
+	}
+	return t.Rank
+}
+
 type BaseAnime_Trailer struct {
 	ID        *string "json:\"id,omitempty\" graphql:\"id\""
 	Site      *string "json:\"site,omitempty\" graphql:\"site\""
@@ -1276,6 +1313,24 @@ func (t *CompleteAnime_NextAiringEpisode) GetTimeUntilAiring() int {
 	return t.TimeUntilAiring
 }
 
+type CompleteAnime_Relations_Edges_Node_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *CompleteAnime_Relations_Edges_Node_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &CompleteAnime_Relations_Edges_Node_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *CompleteAnime_Relations_Edges_Node_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &CompleteAnime_Relations_Edges_Node_BaseAnime_Tags{}
+	}
+	return t.Rank
+}
+
 type CompleteAnime_Relations_Edges_Node_BaseAnime_Trailer struct {
 	ID        *string "json:\"id,omitempty\" graphql:\"id\""
 	Site      *string "json:\"site,omitempty\" graphql:\"site\""
@@ -1602,6 +1657,24 @@ func (t *AnimeSchedule_Upcoming) GetNodes() []*AnimeSchedule_Upcoming_Nodes {
 	return t.Nodes
 }
 
+type BaseManga_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *BaseManga_Tags) GetName() string {
+	if t == nil {
+		t = &BaseManga_Tags{}
+	}
+	return t.Name
+}
+func (t *BaseManga_Tags) GetRank() *int {
+	if t == nil {
+		t = &BaseManga_Tags{}
+	}
+	return t.Rank
+}
+
 type BaseManga_Title struct {
 	English       *string "json:\"english,omitempty\" graphql:\"english\""
 	Native        *string "json:\"native,omitempty\" graphql:\"native\""
@@ -1789,6 +1862,24 @@ func (t *AnimeCollection_MediaListCollection_Lists_Entries_CompletedAt) GetYear(
 		t = &AnimeCollection_MediaListCollection_Lists_Entries_CompletedAt{}
 	}
 	return t.Year
+}
+
+type AnimeCollection_MediaListCollection_Lists_Entries_Media_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *AnimeCollection_MediaListCollection_Lists_Entries_Media_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &AnimeCollection_MediaListCollection_Lists_Entries_Media_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *AnimeCollection_MediaListCollection_Lists_Entries_Media_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &AnimeCollection_MediaListCollection_Lists_Entries_Media_BaseAnime_Tags{}
+	}
+	return t.Rank
 }
 
 type AnimeCollection_MediaListCollection_Lists_Entries_Media_BaseAnime_Trailer struct {
@@ -2362,6 +2453,24 @@ func (t *AnimeCollectionWithRelations_MediaListCollection_Lists_Entries_Media_Co
 	return t.TimeUntilAiring
 }
 
+type AnimeCollectionWithRelations_MediaListCollection_Lists_Entries_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *AnimeCollectionWithRelations_MediaListCollection_Lists_Entries_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &AnimeCollectionWithRelations_MediaListCollection_Lists_Entries_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *AnimeCollectionWithRelations_MediaListCollection_Lists_Entries_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &AnimeCollectionWithRelations_MediaListCollection_Lists_Entries_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Tags{}
+	}
+	return t.Rank
+}
+
 type AnimeCollectionWithRelations_MediaListCollection_Lists_Entries_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Trailer struct {
 	ID        *string "json:\"id,omitempty\" graphql:\"id\""
 	Site      *string "json:\"site,omitempty\" graphql:\"site\""
@@ -2672,6 +2781,24 @@ func (t *AnimeCollectionWithRelations_MediaListCollection) GetLists() []*AnimeCo
 	return t.Lists
 }
 
+type BaseAnimeByMalId_Media_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *BaseAnimeByMalId_Media_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &BaseAnimeByMalId_Media_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *BaseAnimeByMalId_Media_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &BaseAnimeByMalId_Media_BaseAnime_Tags{}
+	}
+	return t.Rank
+}
+
 type BaseAnimeByMalId_Media_BaseAnime_Trailer struct {
 	ID        *string "json:\"id,omitempty\" graphql:\"id\""
 	Site      *string "json:\"site,omitempty\" graphql:\"site\""
@@ -2834,6 +2961,24 @@ func (t *BaseAnimeByMalId_Media_BaseAnime_NextAiringEpisode) GetTimeUntilAiring(
 		t = &BaseAnimeByMalId_Media_BaseAnime_NextAiringEpisode{}
 	}
 	return t.TimeUntilAiring
+}
+
+type BaseAnimeById_Media_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *BaseAnimeById_Media_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &BaseAnimeById_Media_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *BaseAnimeById_Media_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &BaseAnimeById_Media_BaseAnime_Tags{}
+	}
+	return t.Rank
 }
 
 type BaseAnimeById_Media_BaseAnime_Trailer struct {
@@ -3009,6 +3154,24 @@ func (t *SearchBaseAnimeByIds_Page_PageInfo) GetHasNextPage() *bool {
 		t = &SearchBaseAnimeByIds_Page_PageInfo{}
 	}
 	return t.HasNextPage
+}
+
+type SearchBaseAnimeByIds_Page_Media_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *SearchBaseAnimeByIds_Page_Media_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &SearchBaseAnimeByIds_Page_Media_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *SearchBaseAnimeByIds_Page_Media_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &SearchBaseAnimeByIds_Page_Media_BaseAnime_Tags{}
+	}
+	return t.Rank
 }
 
 type SearchBaseAnimeByIds_Page_Media_BaseAnime_Trailer struct {
@@ -3355,6 +3518,24 @@ func (t *CompleteAnimeById_Media_CompleteAnime_NextAiringEpisode) GetTimeUntilAi
 		t = &CompleteAnimeById_Media_CompleteAnime_NextAiringEpisode{}
 	}
 	return t.TimeUntilAiring
+}
+
+type CompleteAnimeById_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *CompleteAnimeById_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &CompleteAnimeById_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *CompleteAnimeById_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &CompleteAnimeById_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Tags{}
+	}
+	return t.Rank
 }
 
 type CompleteAnimeById_Media_CompleteAnime_Relations_Edges_Node_BaseAnime_Trailer struct {
@@ -4132,6 +4313,24 @@ func (t *AnimeDetailsById_Media_Recommendations) GetEdges() []*AnimeDetailsById_
 	return t.Edges
 }
 
+type AnimeDetailsById_Media_Relations_Edges_Node_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *AnimeDetailsById_Media_Relations_Edges_Node_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &AnimeDetailsById_Media_Relations_Edges_Node_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *AnimeDetailsById_Media_Relations_Edges_Node_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &AnimeDetailsById_Media_Relations_Edges_Node_BaseAnime_Tags{}
+	}
+	return t.Rank
+}
+
 type AnimeDetailsById_Media_Relations_Edges_Node_BaseAnime_Trailer struct {
 	ID        *string "json:\"id,omitempty\" graphql:\"id\""
 	Site      *string "json:\"site,omitempty\" graphql:\"site\""
@@ -4487,6 +4686,24 @@ func (t *ListAnime_Page_PageInfo) GetTotal() *int {
 	return t.Total
 }
 
+type ListAnime_Page_Media_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *ListAnime_Page_Media_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &ListAnime_Page_Media_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *ListAnime_Page_Media_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &ListAnime_Page_Media_BaseAnime_Tags{}
+	}
+	return t.Rank
+}
+
 type ListAnime_Page_Media_BaseAnime_Trailer struct {
 	ID        *string "json:\"id,omitempty\" graphql:\"id\""
 	Site      *string "json:\"site,omitempty\" graphql:\"site\""
@@ -4708,6 +4925,24 @@ func (t *ListAnimeAll_Page_PageInfo) GetTotal() *int {
 	return t.Total
 }
 
+type ListAnimeAll_Page_Media_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *ListAnimeAll_Page_Media_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &ListAnimeAll_Page_Media_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *ListAnimeAll_Page_Media_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &ListAnimeAll_Page_Media_BaseAnime_Tags{}
+	}
+	return t.Rank
+}
+
 type ListAnimeAll_Page_Media_BaseAnime_Trailer struct {
 	ID        *string "json:\"id,omitempty\" graphql:\"id\""
 	Site      *string "json:\"site,omitempty\" graphql:\"site\""
@@ -4927,6 +5162,24 @@ func (t *ListRecentAnime_Page_PageInfo) GetTotal() *int {
 		t = &ListRecentAnime_Page_PageInfo{}
 	}
 	return t.Total
+}
+
+type ListRecentAnime_Page_AiringSchedules_Media_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *ListRecentAnime_Page_AiringSchedules_Media_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &ListRecentAnime_Page_AiringSchedules_Media_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *ListRecentAnime_Page_AiringSchedules_Media_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &ListRecentAnime_Page_AiringSchedules_Media_BaseAnime_Tags{}
+	}
+	return t.Rank
 }
 
 type ListRecentAnime_Page_AiringSchedules_Media_BaseAnime_Trailer struct {
@@ -5742,6 +5995,24 @@ func (t *MangaCollection_MediaListCollection_Lists_Entries_CompletedAt) GetYear(
 	return t.Year
 }
 
+type MangaCollection_MediaListCollection_Lists_Entries_Media_BaseManga_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *MangaCollection_MediaListCollection_Lists_Entries_Media_BaseManga_Tags) GetName() string {
+	if t == nil {
+		t = &MangaCollection_MediaListCollection_Lists_Entries_Media_BaseManga_Tags{}
+	}
+	return t.Name
+}
+func (t *MangaCollection_MediaListCollection_Lists_Entries_Media_BaseManga_Tags) GetRank() *int {
+	if t == nil {
+		t = &MangaCollection_MediaListCollection_Lists_Entries_Media_BaseManga_Tags{}
+	}
+	return t.Rank
+}
+
 type MangaCollection_MediaListCollection_Lists_Entries_Media_BaseManga_Title struct {
 	English       *string "json:\"english,omitempty\" graphql:\"english\""
 	Native        *string "json:\"native,omitempty\" graphql:\"native\""
@@ -6060,6 +6331,24 @@ func (t *SearchBaseManga_Page_PageInfo) GetHasNextPage() *bool {
 	return t.HasNextPage
 }
 
+type SearchBaseManga_Page_Media_BaseManga_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *SearchBaseManga_Page_Media_BaseManga_Tags) GetName() string {
+	if t == nil {
+		t = &SearchBaseManga_Page_Media_BaseManga_Tags{}
+	}
+	return t.Name
+}
+func (t *SearchBaseManga_Page_Media_BaseManga_Tags) GetRank() *int {
+	if t == nil {
+		t = &SearchBaseManga_Page_Media_BaseManga_Tags{}
+	}
+	return t.Rank
+}
+
 type SearchBaseManga_Page_Media_BaseManga_Title struct {
 	English       *string "json:\"english,omitempty\" graphql:\"english\""
 	Native        *string "json:\"native,omitempty\" graphql:\"native\""
@@ -6190,6 +6479,24 @@ func (t *SearchBaseManga_Page) GetPageInfo() *SearchBaseManga_Page_PageInfo {
 		t = &SearchBaseManga_Page{}
 	}
 	return t.PageInfo
+}
+
+type BaseMangaById_Media_BaseManga_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *BaseMangaById_Media_BaseManga_Tags) GetName() string {
+	if t == nil {
+		t = &BaseMangaById_Media_BaseManga_Tags{}
+	}
+	return t.Name
+}
+func (t *BaseMangaById_Media_BaseManga_Tags) GetRank() *int {
+	if t == nil {
+		t = &BaseMangaById_Media_BaseManga_Tags{}
+	}
+	return t.Rank
 }
 
 type BaseMangaById_Media_BaseManga_Title struct {
@@ -6747,6 +7054,24 @@ func (t *MangaDetailsById_Media_Recommendations) GetEdges() []*MangaDetailsById_
 	return t.Edges
 }
 
+type MangaDetailsById_Media_Relations_Edges_Node_BaseManga_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *MangaDetailsById_Media_Relations_Edges_Node_BaseManga_Tags) GetName() string {
+	if t == nil {
+		t = &MangaDetailsById_Media_Relations_Edges_Node_BaseManga_Tags{}
+	}
+	return t.Name
+}
+func (t *MangaDetailsById_Media_Relations_Edges_Node_BaseManga_Tags) GetRank() *int {
+	if t == nil {
+		t = &MangaDetailsById_Media_Relations_Edges_Node_BaseManga_Tags{}
+	}
+	return t.Rank
+}
+
 type MangaDetailsById_Media_Relations_Edges_Node_BaseManga_Title struct {
 	English       *string "json:\"english,omitempty\" graphql:\"english\""
 	Native        *string "json:\"native,omitempty\" graphql:\"native\""
@@ -6989,6 +7314,24 @@ func (t *ListManga_Page_PageInfo) GetTotal() *int {
 	return t.Total
 }
 
+type ListManga_Page_Media_BaseManga_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *ListManga_Page_Media_BaseManga_Tags) GetName() string {
+	if t == nil {
+		t = &ListManga_Page_Media_BaseManga_Tags{}
+	}
+	return t.Name
+}
+func (t *ListManga_Page_Media_BaseManga_Tags) GetRank() *int {
+	if t == nil {
+		t = &ListManga_Page_Media_BaseManga_Tags{}
+	}
+	return t.Rank
+}
+
 type ListManga_Page_Media_BaseManga_Title struct {
 	English       *string "json:\"english,omitempty\" graphql:\"english\""
 	Native        *string "json:\"native,omitempty\" graphql:\"native\""
@@ -7158,6 +7501,24 @@ func (t *ListMangaAll_Page_PageInfo) GetTotal() *int {
 		t = &ListMangaAll_Page_PageInfo{}
 	}
 	return t.Total
+}
+
+type ListMangaAll_Page_Media_BaseManga_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *ListMangaAll_Page_Media_BaseManga_Tags) GetName() string {
+	if t == nil {
+		t = &ListMangaAll_Page_Media_BaseManga_Tags{}
+	}
+	return t.Name
+}
+func (t *ListMangaAll_Page_Media_BaseManga_Tags) GetRank() *int {
+	if t == nil {
+		t = &ListMangaAll_Page_Media_BaseManga_Tags{}
+	}
+	return t.Rank
 }
 
 type ListMangaAll_Page_Media_BaseManga_Title struct {
@@ -7524,6 +7885,24 @@ func (t *ViewerStats_Viewer) GetStatistics() *ViewerStats_Viewer_Statistics {
 		t = &ViewerStats_Viewer{}
 	}
 	return t.Statistics
+}
+
+type StudioDetails_Studio_Media_Nodes_BaseAnime_Tags struct {
+	Name string "json:\"name\" graphql:\"name\""
+	Rank *int   "json:\"rank,omitempty\" graphql:\"rank\""
+}
+
+func (t *StudioDetails_Studio_Media_Nodes_BaseAnime_Tags) GetName() string {
+	if t == nil {
+		t = &StudioDetails_Studio_Media_Nodes_BaseAnime_Tags{}
+	}
+	return t.Name
+}
+func (t *StudioDetails_Studio_Media_Nodes_BaseAnime_Tags) GetRank() *int {
+	if t == nil {
+		t = &StudioDetails_Studio_Media_Nodes_BaseAnime_Tags{}
+	}
+	return t.Rank
 }
 
 type StudioDetails_Studio_Media_Nodes_BaseAnime_Trailer struct {
@@ -8190,6 +8569,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id
@@ -8383,6 +8766,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id
@@ -8458,6 +8845,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id
@@ -8533,6 +8924,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id
@@ -8613,6 +9008,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id
@@ -8756,6 +9155,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id
@@ -8960,6 +9363,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id
@@ -9044,6 +9451,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id
@@ -9139,6 +9550,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id
@@ -9239,6 +9654,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id
@@ -9564,6 +9983,10 @@ fragment baseManga on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	title {
 		userPreferred
 		romaji
@@ -9666,6 +10089,10 @@ fragment baseManga on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	title {
 		userPreferred
 		romaji
@@ -9734,6 +10161,10 @@ fragment baseManga on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	title {
 		userPreferred
 		romaji
@@ -9894,6 +10325,10 @@ fragment baseManga on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	title {
 		userPreferred
 		romaji
@@ -9967,6 +10402,10 @@ fragment baseManga on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	title {
 		userPreferred
 		romaji
@@ -10052,6 +10491,10 @@ fragment baseManga on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	title {
 		userPreferred
 		romaji
@@ -10270,6 +10713,10 @@ fragment baseAnime on Media {
 	meanScore
 	description
 	genres
+	tags {
+		name
+		rank
+	}
 	duration
 	trailer {
 		id

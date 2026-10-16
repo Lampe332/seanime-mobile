@@ -1,5 +1,17 @@
 package models
 
+import "seanime/internal/adultguard"
+
+// EnforcePlatformPolicy overrides settings that platform policy does not allow
+// (adult content is always off on Android). Safe to call on nil.
+func (s *Settings) EnforcePlatformPolicy() {
+	if s == nil || s.Anilist == nil || !adultguard.Blocked() {
+		return
+	}
+	s.Anilist.EnableAdultContent = false
+	s.Anilist.BlurAdultContent = false
+}
+
 func (s *Settings) GetMediaPlayer() *MediaPlayerSettings {
 	if s == nil || s.MediaPlayer == nil {
 		return &MediaPlayerSettings{}

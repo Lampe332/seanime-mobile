@@ -45,6 +45,8 @@ import { LuCalendar, LuLeaf, LuTags } from "react-icons/lu"
 import { MdPersonalVideo } from "react-icons/md"
 import { RiSignalTowerLine } from "react-icons/ri"
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
 type LibraryViewProps = {
     collectionList: Anime_LibraryCollectionList[]
     continueWatchingList: Anime_Episode[]
@@ -422,7 +424,7 @@ export function SearchOptions() {
                     }}
                     />
                 </div>
-                {serverStatus?.settings?.anilist?.enableAdultContent && <div className="flex h-full items-center">
+                {!IS_ANDROID_APP && serverStatus?.settings?.anilist?.enableAdultContent && <div className="flex h-full items-center">
                     <Switch
                         label="Adult"
                         value={params.isAdult}

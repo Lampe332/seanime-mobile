@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"seanime/internal/adultguard"
 	"seanime/internal/events"
 	"seanime/internal/util"
 	"strconv"
@@ -253,6 +254,12 @@ func (ac *AnilistClientImpl) BaseAnimeByID(ctx context.Context, id *int, interce
 
 func (ac *AnilistClientImpl) AnimeDetailsByID(ctx context.Context, id *int, interceptors ...clientv2.RequestInterceptor) (*AnimeDetailsByID, error) {
 	ac.logger.Debug().Int("mediaId", *id).Msg("anilist: Fetching anime details")
+	// the details query has no isAdult field, so check the base media first
+	if adultguard.Blocked() {
+		if _, err := ac.BaseAnimeByID(ctx, id); err != nil {
+			return nil, err
+		}
+	}
 	return ac.Client.AnimeDetailsByID(ctx, id, interceptors...)
 }
 
@@ -263,6 +270,9 @@ func (ac *AnilistClientImpl) CompleteAnimeByID(ctx context.Context, id *int, int
 
 func (ac *AnilistClientImpl) ListAnime(ctx context.Context, page *int, search *string, perPage *int, sort []*MediaSort, status []*MediaStatus, genres []*string, tags []*string, averageScoreGreater *int, season *MediaSeason, seasonYear *int, format *MediaFormat, isAdult *bool, interceptors ...clientv2.RequestInterceptor) (*ListAnime, error) {
 	ac.logger.Debug().Msg("anilist: Fetching media list")
+	if adultguard.Blocked() {
+		isAdult = new(false)
+	}
 	if isAdult == nil {
 		ret, err := ac.Client.ListAnimeAll(ctx, page, search, perPage, sort, status, genres, tags, averageScoreGreater, season, seasonYear, format, interceptors...)
 		if err != nil {
@@ -290,11 +300,20 @@ func (ac *AnilistClientImpl) BaseMangaByID(ctx context.Context, id *int, interce
 
 func (ac *AnilistClientImpl) MangaDetailsByID(ctx context.Context, id *int, interceptors ...clientv2.RequestInterceptor) (*MangaDetailsByID, error) {
 	ac.logger.Debug().Int("mediaId", *id).Msg("anilist: Fetching manga details")
+	// the details query has no isAdult field, so check the base media first
+	if adultguard.Blocked() {
+		if _, err := ac.BaseMangaByID(ctx, id); err != nil {
+			return nil, err
+		}
+	}
 	return ac.Client.MangaDetailsByID(ctx, id, interceptors...)
 }
 
 func (ac *AnilistClientImpl) ListManga(ctx context.Context, page *int, search *string, perPage *int, sort []*MediaSort, status []*MediaStatus, genres []*string, tags []*string, averageScoreGreater *int, startDateGreater *string, startDateLesser *string, format *MediaFormat, countryOfOrigin *string, isAdult *bool, interceptors ...clientv2.RequestInterceptor) (*ListManga, error) {
 	ac.logger.Debug().Msg("anilist: Fetching manga list")
+	if adultguard.Blocked() {
+		isAdult = new(false)
+	}
 	if isAdult == nil {
 		ret, err := ac.Client.ListMangaAll(ctx, page, search, perPage, sort, status, genres, tags, averageScoreGreater, startDateGreater, startDateLesser, format, countryOfOrigin, interceptors...)
 		if err != nil {
@@ -617,8 +636,36 @@ func (ac *AnilistClientImpl) customDoFunc(ctx context.Context, req *http.Request
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	if adultguard.Active() {
+		body, err = guardResponseBody(body)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = parseResponse(body, resp.StatusCode, res)
 	return
+}
+
+// guardResponseBody removes adult media from a raw GraphQL response (Android policy, see adultguard).
+func guardResponseBody(body []byte) ([]byte, error) {
+	var doc map[string]interface{}
+	if err := json.Unmarshal(body, &doc); err != nil {
+		return body, nil // not JSON/not an object: parseResponse reports the real error
+	}
+	data, ok := doc["data"].(map[string]interface{})
+	if !ok {
+		return body, nil
+	}
+	removed, err := adultguard.FilterJSON(data)
+	if err != nil {
+		return nil, err
+	}
+	// the Play rules also mark media (isSuggestive) without removing anything
+	if removed == 0 && !adultguard.SuggestiveRulesEnabled() {
+		return body, nil
+	}
+	return json.Marshal(doc)
 }
 
 func parseResponse(body []byte, httpCode int, result interface{}) error {

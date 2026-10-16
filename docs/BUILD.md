@@ -108,6 +108,17 @@ Das Skript:
 
 Ohne `-RebuildBackend` werden nur Schritte 1, 4 und 5 ausgeführt.
 
+### Zwei Varianten: `-Store github|play`
+
+```powershell
+.\Build.ps1 -ToolchainRoot ... -WorkDirectory ... -RebuildBackend              # github (Standard): APK mit Selbst-Update
+.\Build.ps1 -ToolchainRoot ... -WorkDirectory ... -RebuildBackend -Store play  # Google Play: AAB + Test-APK
+```
+
+`play` hat eine eigene `applicationId` (`io.github.lampe332.animeapp`), kein Selbst-Update (`AppUpdater` ist dort ein leerer Stub), kein `REQUEST_INSTALL_PACKAGES` und keinen Alle-Dateien-Zugriff. Außerdem setzt es `SEA_PUBLIC_STORE=play` fürs Frontend und das Go-Build-Tag `play` (Ecchi-Regeln, Updates aus). Ergebnis: `Anime-App-<Version>-play.aab` und `Anime-App-<Version>-play-test.apk` in `-WorkDirectory`.
+
+Nach dem Bauen nur die Ergebnisse von `-Store github` (`backend\web`, `jniLibs`) ins Repo zurückkopieren. Die `play`-Binärdateien werden jedes Mal frisch gebaut und gehören nicht ins Repo.
+
 `Build.ps1` erzeugt einen **signierten** Release und braucht deshalb einen Schlüssel (nächster Abschnitt).
 
 ---
@@ -149,7 +160,7 @@ Dann:
 .\Build.ps1 -ToolchainRoot 'D:\Android-Toolchain' -WorkDirectory 'D:\Seanime-Build'
 ```
 
-Ohne Schlüssel baut `.\gradlew.bat :app:assembleRelease` eine unsignierte APK, die sich nicht installieren lässt.
+Ohne Schlüssel baut `.\gradlew.bat :app:assembleGithubRelease` eine unsignierte APK, die sich nicht installieren lässt.
 
 ---
 
@@ -189,9 +200,9 @@ Die Instrumentierung liest die AniList-Liste und stellt den vorherigen Widget-Ca
 Eine Kopie mit eigener Paket-ID (`com.seanime.app.local.fresh`) lässt sich neben der normalen App installieren und startet komplett leer, inklusive Einrichtungs-Assistent und Tutorial:
 
 ```powershell
-.\gradlew.bat :app:assembleRelease -PseanimeAppIdSuffix=.fresh
+.\gradlew.bat :app:assembleGithubRelease -PseanimeAppIdSuffix=.fresh
 adb shell am force-stop com.seanime.app.local
-adb install -r app\build\outputs\apk\release\app-release.apk
+adb install -r app\build\outputs\apk\github\release\app-github-release.apk
 ```
 
 Beide Apps nutzen denselben lokalen Server-Port (`127.0.0.1:43211`). Deshalb vorher die normale App stoppen, sonst verbindet sich die Test-Kopie mit deren Server. Danach `adb uninstall com.seanime.app.local.fresh`.

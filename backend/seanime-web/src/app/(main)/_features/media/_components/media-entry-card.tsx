@@ -1,3 +1,4 @@
+import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import {
     AL_BaseAnime,
     AL_BaseManga,
@@ -116,6 +117,8 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
     const mediaEpisodes = (media as AL_BaseAnime)?.episodes
     const mediaChapters = (media as AL_BaseManga)?.chapters
     const mediaIsAdult = media?.isAdult
+    // Google Play build: ecchi media is shown with a blurred cover
+    const mediaIsSuggestive = IS_PLAY_STORE && !!(media as AL_BaseAnime | AL_BaseManga | undefined)?.isSuggestive
     const collectionEntry = useMediaCollectionEntry(type, mediaId)
     const animeListDataFromCollection = useAnilistUserAnimeListData(mediaId, type === "anime" && !_listData)
     const animeCollectionEntry = type === "anime" ? collectionEntry as Anime_LibraryCollectionEntry | undefined : undefined
@@ -154,7 +157,7 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
             && listData?.status !== "COMPLETED"
     }, [listData?.progress, mediaEpisodes, mediaChapters, listData?.status, type])
 
-    const showTrailer = React.useMemo(() => _showTrailer && !libraryData && !mediaIsAdult, [_showTrailer, libraryData, mediaIsAdult])
+    const showTrailer = React.useMemo(() => _showTrailer && !libraryData && !mediaIsAdult && !mediaIsSuggestive, [_showTrailer, libraryData, mediaIsAdult, mediaIsSuggestive])
 
     const MANGA_LINK = React.useMemo(() =>
             serverStatus?.isOffline ? `/offline/entry/manga?id=${mediaId}` : `/manga/entry?id=${mediaId}`,
@@ -305,8 +308,8 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
                                 showTrailer={showTrailer}
                                 disableAnimeCardTrailers={serverStatus?.settings?.library?.disableAnimeCardTrailers}
                                 bannerImage={media.bannerImage || media.coverImage?.extraLarge}
-                                isAdult={media.isAdult}
-                                blurAdultContent={serverStatus?.settings?.anilist?.blurAdultContent}
+                                isAdult={media.isAdult || mediaIsSuggestive}
+                                blurAdultContent={serverStatus?.settings?.anilist?.blurAdultContent || mediaIsSuggestive}
                                 link={link}
                                 bypassEntryPreloadBudget={shouldBypassPreloadBudget}
                                 listStatus={listData?.status}
@@ -417,9 +420,9 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
                 progressTotal={progressTotal}
                 startDate={media.startDate}
                 bannerImage={media.coverImage?.extraLarge || ""}
-                isAdult={media.isAdult}
+                isAdult={media.isAdult || mediaIsSuggestive}
                 showLibraryBadge={showLibraryBadge}
-                blurAdultContent={serverStatus?.settings?.anilist?.blurAdultContent}
+                blurAdultContent={serverStatus?.settings?.anilist?.blurAdultContent || mediaIsSuggestive}
                 onClick={onClick}
                 hideReleasingBadge={hideReleasingBadge}
             >

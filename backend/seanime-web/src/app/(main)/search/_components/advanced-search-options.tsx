@@ -33,6 +33,8 @@ import { TbSwords, TbTagsFilled } from "react-icons/tb"
 import { useMount } from "react-use"
 import { useUpdateEffect } from "react-use"
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
 export function AdvancedSearchOptions() {
 
     const serverStatus = useServerStatus()
@@ -196,7 +198,7 @@ export function AdvancedSearchOptions() {
                         return
                     })}
                 />
-                {serverStatus?.settings?.anilist?.enableAdultContent && <Switch
+                {!IS_ANDROID_APP && serverStatus?.settings?.anilist?.enableAdultContent && <Switch
                     label="Adult"
                     value={params.isAdult}
                     onValueChange={v => setParams(draft => {

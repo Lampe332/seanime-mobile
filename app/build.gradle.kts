@@ -18,6 +18,24 @@ android {
         providers.gradleProperty("seanimeAppIdSuffix").orNull?.let { applicationIdSuffix = it }
     }
 
+    buildFeatures { buildConfig = true }
+
+    // Two stores from one code base:
+    //  github = APK with self-update (applicationId unchanged, existing users keep updating)
+    //  play   = Google Play build (own applicationId, no self-update, no install/all-files permissions)
+    flavorDimensions += "store"
+    productFlavors {
+        create("github") {
+            dimension = "store"
+            buildConfigField("boolean", "STORE_PLAY", "false")
+        }
+        create("play") {
+            dimension = "store"
+            applicationId = "io.github.lampe332.animeapp"
+            buildConfigField("boolean", "STORE_PLAY", "true")
+        }
+    }
+
     sourceSets["main"].jniLibs.srcDirs("src/main/jniLibs")
     testBuildType = "release"
 

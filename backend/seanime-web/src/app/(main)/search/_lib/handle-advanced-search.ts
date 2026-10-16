@@ -7,6 +7,8 @@ import { useInfiniteQuery } from "@tanstack/react-query"
 import { useAtomValue } from "jotai/react"
 import React from "react"
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
 export function useAnilistAdvancedSearch() {
 
     const params = useAtomValue(__advancedSearch_paramsAtom)
@@ -32,15 +34,18 @@ export function useAnilistAdvancedSearch() {
                     ...(__advancedSearch_getValue(params.sorting) || ["SCORE_DESC"])] : (__advancedSearch_getValue(params.sorting) || ["SCORE_DESC"]),
                 status: params.sorting?.includes("START_DATE_DESC") ? (__advancedSearch_getValue(params.status)
                     ?.filter((n: string) => n !== "NOT_YET_RELEASED") || ["FINISHED", "RELEASING"]) : __advancedSearch_getValue(params.status),
-                isAdult: params.isAdult,
+                isAdult: IS_ANDROID_APP ? false : params.isAdult,
             }
 
-            return buildSeaQuery<AL_ListAnime>({
+            const res = await buildSeaQuery<AL_ListAnime>({
                 endpoint: API_ENDPOINTS.ANILIST.AnilistListAnime.endpoint,
                 method: "POST",
                 data: variables,
                 password: password,
             })
+            // Android: never show adult media (the backend already filters, this is the second layer)
+            if (IS_ANDROID_APP && res?.Page?.media) res.Page.media = res.Page.media.filter(m => !m?.isAdult)
+            return res
         },
         getNextPageParam: (lastPage, pages) => {
             const curr = lastPage?.Page?.pageInfo?.currentPage
@@ -73,15 +78,17 @@ export function useAnilistAdvancedSearch() {
                 status: params.sorting?.includes("START_DATE_DESC") ? (__advancedSearch_getValue(params.status)
                     ?.filter((n: string) => n !== "NOT_YET_RELEASED") || ["FINISHED", "RELEASING"]) : __advancedSearch_getValue(params.status),
                 countryOfOrigin: __advancedSearch_getValue(params.countryOfOrigin),
-                isAdult: params.isAdult,
+                isAdult: IS_ANDROID_APP ? false : params.isAdult,
             }
 
-            return buildSeaQuery<AL_ListManga>({
+            const res = await buildSeaQuery<AL_ListManga>({
                 endpoint: API_ENDPOINTS.MANGA.AnilistListManga.endpoint,
                 method: "POST",
                 data: variables,
                 password: password,
             })
+            if (IS_ANDROID_APP && res?.Page?.media) res.Page.media = res.Page.media.filter(m => !m?.isAdult)
+            return res
         },
         getNextPageParam: (lastPage, pages) => {
             const curr = lastPage?.Page?.pageInfo?.currentPage

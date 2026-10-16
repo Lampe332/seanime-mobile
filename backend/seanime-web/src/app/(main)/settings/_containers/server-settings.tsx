@@ -1,3 +1,4 @@
+import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { useGetAnilistCacheLayerStatus, useToggleAnilistCacheLayerStatus } from "@/api/hooks/anilist.hooks"
 import { useListAnimeEntryEpisodeTabExtensions } from "@/api/hooks/extensions.hooks"
 import { useLocalSyncSimulatedDataToAnilist } from "@/api/hooks/local.hooks"
@@ -183,7 +184,7 @@ export function ServerSettings(props: ServerSettingsProps) {
                 />
 
 
-                <div className="space-y-3">
+                {!IS_ANDROID_APP && <div className="space-y-3">
                     <Field.Switch
                         side="right"
                         name="enableAdultContent"
@@ -201,7 +202,7 @@ export function ServerSettings(props: ServerSettingsProps) {
                             )}
                         />
                     </div>}
-                </div>
+                </div>}
 
                 <Field.Switch
                     side="right"
@@ -317,7 +318,7 @@ export function ServerSettings(props: ServerSettingsProps) {
                 />
             </SettingsCard>
 
-            <SettingsCard title="Updates">
+            {!IS_PLAY_STORE && <SettingsCard title="Updates">
 
                 <Field.Switch
                     side="right"
@@ -349,7 +350,7 @@ export function ServerSettings(props: ServerSettingsProps) {
                         description="You are currently using the canary release channel hosted on Seanime. This channel may receive unstable updates without much testing."
                     />
                 )}
-            </SettingsCard>
+            </SettingsCard>}
 
             <SettingsCard title="Server">
                 <Field.Switch

@@ -21,7 +21,8 @@ export async function fetchGlobalScheduleDay(date: string, fetchPage: (variables
             if (seen.has(row.id)) continue
             seen.add(row.id); added++
             const media = row.media
-            if (!media || media.type !== "ANIME" || row.airingAt * 1000 < start.getTime() || row.airingAt * 1000 >= end.getTime()) continue
+            // adult media never appears in the calendar (the backend filters it too)
+            if (!media || media.isAdult || media.type !== "ANIME" || row.airingAt * 1000 < start.getTime() || row.airingAt * 1000 >= end.getTime()) continue
             rows.set(row.id, { mediaId: media.id, title: media.title?.userPreferred || media.title?.romaji || media.title?.english || "Anime", time: "", dateTime: new Date(row.airingAt * 1000).toISOString(), image: media.coverImage?.large || media.coverImage?.medium || "", episodeNumber: row.episode, isMovie: media.format === "MOVIE", isSeasonFinale: !!media.episodes && row.episode === media.episodes })
         }
         if (!result.Page.pageInfo?.hasNextPage) break

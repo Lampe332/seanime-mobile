@@ -604,13 +604,14 @@ function FeaturesStep({ form }: { form: any }) {
             description: "Stream torrents without waiting for download",
             gradient: "from-violet-500 to-indigo-500",
         }] : []),
-        {
+        // no adult content option on Android
+        ...(!IS_ANDROID_APP ? [{
             name: "enableAdultContent",
             icon: HiEye,
             title: "NSFW Content",
             description: "Show adult content in library and search",
             gradient: "from-red-500 to-pink-500",
-        },
+        }] : []),
         {
             name: "enableOnlinestream",
             icon: HiGlobeAlt,
@@ -802,7 +803,7 @@ export function GettingStartedPage({ status }: { status: Status }) {
                         enableManga: true,
                         // on Android, online streaming is the main way to watch
                         enableOnlinestream: IS_ANDROID_APP,
-                        enableAdultContent: !IS_ANDROID_APP,
+                        enableAdultContent: false,
                         enableTorrentStreaming: !IS_ANDROID_APP,
                         enableTranscode: false,
                         debridProvider: "none",
