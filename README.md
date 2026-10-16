@@ -55,7 +55,13 @@ Unterstützt: Android 5.0 oder neuer, ARM64 und ARMv7 (praktisch alle Handys der
 
 1. **App öffnen.** Beim ersten Start fragt Android nach Benachrichtigungen (für Download-Fortschritt) und Dateizugriff. Beides erlauben.
 2. **Mit AniList anmelden.** Auf dem Startbildschirm **Log in with AniList** tippen und im Browser bestätigen. Ein kostenloses Konto gibt es auf [anilist.co](https://anilist.co). Danach erscheinen deine Listen unter *My Lists* und *Continue watching*.
-3. **Quellen hinzufügen.** *Menu → Extensions* öffnen und Online-Streaming- bzw. Manga-Erweiterungen installieren. Ohne Erweiterung kann die App Anime nur anzeigen, nicht abspielen.
+3. **Quellen hinzufügen.** Die App bringt **keine** Streaming- oder Manga-Quellen mit. Der offizielle Seanime-Marktplatz enthält nur Plugins. Quellen kommen aus Community-Repositories, die du selbst hinzufügst:
+   1. *Menu → Extensions* öffnen und oben den Tab **Marketplace** wählen.
+   2. **Change repository** tippen und die **Repository-URL** einfügen (eine Adresse, die auf eine `.json`-Datei endet). Passende Seanime-Extension-Repositories findest du online in der Seanime-Community.
+   3. Die Liste lädt neu. Die gewünschte **Online-Streaming**- bzw. **Manga**-Erweiterung antippen und **Install** wählen.
+   4. Alternativ: im Tab *Installed* → **Add extensions** → **Import from repository**. Damit werden alle Erweiterungen eines Repositories auf einmal installiert.
+
+   Ohne Erweiterung kann die App Anime und Manga nur anzeigen, nicht abspielen bzw. lesen. Torrent-Erweiterungen funktionieren in der Android-Version nicht.
 4. **Loslegen.** Anime antippen → *Online streaming* zum Schauen oder *Staffel / Folgen herunterladen* für offline. Gespeichertes findest du unten im Tab **Downloads**.
 
 ## ❓ Häufige Fragen
@@ -64,6 +70,12 @@ Unterstützt: Android 5.0 oder neuer, ARM64 und ARMv7 (praktisch alle Handys der
 <summary><b>„App nicht installiert“ beim Update</b></summary>
 
 Die neue APK muss mit demselben Schlüssel signiert sein wie die installierte. Das ist bei allen offiziellen Releases hier der Fall. Wenn du vorher eine selbst gebaute oder fremde Version installiert hattest, die alte App zuerst deinstallieren (dabei gehen lokale Downloads verloren).
+</details>
+
+<details>
+<summary><b>„No content providers available“ / keine Streaming-Quellen</b></summary>
+
+Das ist normal bei einer frischen Installation: Der Standard-Marktplatz enthält keine Streaming- oder Manga-Quellen. Füge wie unter [Erste Einrichtung](#-erste-einrichtung), Schritt 3, ein Community-Repository hinzu. Dieses Projekt verlinkt bewusst keine Quellen und hat mit deren Inhalten nichts zu tun.
 </details>
 
 <details>
