@@ -6,123 +6,125 @@
   <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><img src="https://img.shields.io/github/v/release/Lampe332/seanime-mobile?style=for-the-badge&color=7c5cff&label=Version" alt="Version"></a>
   <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><img src="https://img.shields.io/github/downloads/Lampe332/seanime-mobile/total?style=for-the-badge&color=7c5cff&label=Downloads" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/Android-5.0%2B-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Android 5.0+">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Lampe332/seanime-mobile?style=for-the-badge&color=555" alt="Lizenz"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Lampe332/seanime-mobile?style=for-the-badge&color=555" alt="License"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest/download/Seanime-Mobile-1.7.0.apk"><b>⬇️ APK herunterladen</b></a>
-  &nbsp;·&nbsp; <a href="#-installation-auf-dem-handy">Installation</a>
-  &nbsp;·&nbsp; <a href="#-erste-einrichtung">Einrichtung</a>
-  &nbsp;·&nbsp; <a href="#-tutorial-video">Tutorial-Video</a>
-  &nbsp;·&nbsp; <a href="docs/BUILD.md">Selbst bauen</a>
+  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest/download/Seanime-Mobile-1.7.0.apk"><b>⬇️ Download APK</b></a>
+  &nbsp;·&nbsp; <a href="#-installing-on-your-phone">Installation</a>
+  &nbsp;·&nbsp; <a href="#-first-time-setup">Setup</a>
+  &nbsp;·&nbsp; <a href="#-tutorial-video">Tutorial video</a>
+  &nbsp;·&nbsp; <a href="docs/BUILD.md">Build it yourself</a>
   &nbsp;·&nbsp; <a href="CHANGELOG.md">Changelog</a>
 </p>
 
 ---
 
-**Seanime Mobile** bringt [Seanime](https://github.com/5rahim/seanime) komplett aufs Android-Handy: Der Seanime-Server läuft direkt auf dem Gerät, die Oberfläche ist für Touch angepasst. Kein PC, kein eigener Server nötig. Anime streamen, ganze Staffeln herunterladen und unterwegs offline schauen. Dazu kommen Manga, AniList-Sync und ein Veröffentlichungskalender.
+**Seanime Mobile** brings [Seanime](https://github.com/5rahim/seanime) entirely to your Android phone: the Seanime server runs directly on the device, and the interface is adapted for touch. No PC and no server of your own required. Stream anime, download whole seasons and watch offline on the go. On top of that you get manga, AniList sync and a release calendar.
 
-## ✨ Funktionen
+## ✨ Features
 
-| Funktion | Beschreibung |
+| Feature | Description |
 |---|---|
-| 📺 **Streamen** | Anime über Online-Streaming-Erweiterungen direkt in der App schauen |
-| ⬇️ **Staffel-Downloads** | Ganze Staffel, „ab Folge …“ oder einzelne Folgen herunterladen, mit Warteschlange, die einen App-Neustart übersteht |
-| ✈️ **Offline schauen** | Eigener Offline-Player mit Vollbild, −5/+10 s, Tempo, Untertiteln und Fortsetzen; Cover und Infos bleiben offline sichtbar |
-| 📚 **Manga** | Kapitel lesen und herunterladen, offline im Reader öffnen |
-| 📅 **Kalender** | Monatskalender mit allen Folgen deiner AniList-Liste oder aller Anime, filterbar nach Status |
-| 🔄 **AniList** | Listen, Fortschritt und Bewertungen werden mit AniList synchronisiert |
-| 🧩 **Erweiterungen & Plugins** | Quellen und Plugins aus dem Seanime-Ökosystem |
-| 🧭 **Einrichtungs-Tutorial** | Interaktive Tour beim ersten Start zeigt, wie man ein Repository hinzufügt und Quellen installiert |
+| 📺 **Streaming** | Watch anime right in the app via online streaming extensions |
+| ⬇️ **Season downloads** | Download a whole season, "from episode …" or single episodes, with a queue that survives an app restart |
+| ✈️ **Offline viewing** | Dedicated offline player with fullscreen, −5/+10 s, playback speed, subtitles and resume; covers and info stay visible offline |
+| 📚 **Manga** | Read and download chapters, open them offline in the reader |
+| 📅 **Calendar** | Monthly calendar with all episodes from your AniList list or from all anime, filterable by status |
+| 🔄 **AniList** | Lists, progress and ratings are synced with AniList |
+| 🧩 **Extensions & plugins** | Sources and plugins from the Seanime ecosystem |
+| 🧭 **Setup tutorial** | An interactive tour on first launch shows how to add a repository and install sources |
 
 ## 📱 Screenshots
 
-<p align="center"><img src="docs/images/gallery-discover.png" alt="Startseite, Sendeplan, Kalender, Anime-Details" width="100%"></p>
-<p align="center"><img src="docs/images/gallery-offline.png" alt="Staffel laden, Downloads, Deine Folgen, Offline-Player" width="100%"></p>
-<p align="center"><img src="docs/images/gallery-more.png" alt="Entdecken, Suche, Manga offline" width="76%"></p>
+<p align="center"><img src="docs/images/gallery-discover.png" alt="Home, airing schedule, calendar, anime details" width="100%"></p>
+<p align="center"><img src="docs/images/gallery-offline.png" alt="Season download, downloads, your episodes, offline player" width="100%"></p>
+<p align="center"><img src="docs/images/gallery-more.png" alt="Discover, search, offline manga" width="76%"></p>
 
-## 📲 Installation auf dem Handy
+> The app's own interface is currently partly in German, so some labels inside the screenshots are German.
 
-1. Auf dem Handy die neueste **[Seanime-Mobile-APK](https://github.com/Lampe332/seanime-mobile/releases/latest)** öffnen und unter *Assets* die `.apk` herunterladen.
-2. Die heruntergeladene Datei antippen (Benachrichtigung oder *Eigene Dateien → Downloads*).
-3. Android fragt beim ersten Mal nach der Berechtigung **„Unbekannte Apps installieren“**. Für den Browser bzw. Dateimanager erlauben und zurückgehen.
-4. **Installieren** tippen. Fertig: Die App heißt *Seanime Mobile*.
+## 📲 Installing on your phone
 
-> **Update:** Neue APK einfach drüber installieren, Daten und Downloads bleiben erhalten.
-> **Play Protect** warnt eventuell, weil die App nicht aus dem Play Store kommt. *Trotzdem installieren* wählen.
+1. On your phone, open the latest **[Seanime Mobile APK](https://github.com/Lampe332/seanime-mobile/releases/latest)** and download the `.apk` under *Assets*.
+2. Tap the downloaded file (from the notification or *My Files → Downloads*).
+3. The first time, Android asks for the **"Install unknown apps"** permission. Allow it for your browser or file manager and go back.
+4. Tap **Install**. Done: the app is called *Seanime Mobile*.
 
-Unterstützt: Android 5.0 oder neuer, ARM64 und ARMv7 (praktisch alle Handys der letzten Jahre). Getestet auf Samsung Galaxy S22 Ultra.
+> **Updating:** Simply install the new APK over the old one; your data and downloads are kept.
+> **Play Protect** may show a warning because the app doesn't come from the Play Store. Choose *Install anyway*.
 
-## 🚀 Erste Einrichtung
+Supported: Android 5.0 or newer, ARM64 and ARMv7 (practically every phone from recent years). Tested on a Samsung Galaxy S22 Ultra.
 
-1. **App öffnen.** Ein kurzer Assistent fragt nach einem Anime-Ordner (optional, leer lassen ist ok) und den Funktionen. **Launch Seanime** tippen. Android fragt außerdem nach Dateizugriff (*Use streaming* reicht) und Benachrichtigungen (für den Download-Fortschritt).
-2. **Mit AniList anmelden.** Im Dialog **Get AniList token** tippen, im Browser bestätigen und den Token einfügen. Ein kostenloses Konto gibt es auf [anilist.co](https://anilist.co). Ohne Anmeldung den Dialog mit ✕ schließen, dann nutzt die App ein lokales Konto.
-3. **Quellen hinzufügen.** Danach startet automatisch ein **interaktives Tutorial**, das dich durch die folgenden Schritte führt ([Video](#-tutorial-video)). Später erneut starten: *Settings → Extensions → Show tutorial*.
-   Die App bringt **keine** Streaming- oder Manga-Quellen mit. Der offizielle Seanime-Marktplatz enthält nur Plugins. Quellen kommen aus Community-Repositories, die du selbst hinzufügst:
-   1. *Menu → Extensions* öffnen und oben den Tab **Marketplace** wählen.
-   2. **Change repository** tippen und die **Repository-URL** einfügen (eine Adresse, die auf eine `.json`-Datei endet). Passende Seanime-Extension-Repositories findest du online in der Seanime-Community.
-   3. Die Liste lädt neu. Oben **Online Streaming** (bzw. **Manga**) wählen und bei der gewünschten Erweiterung auf das **Download-Symbol** tippen.
-   4. Alternativ: im Tab *Installed* → **Add extensions** → **Import from repository**. Damit werden alle Erweiterungen eines Repositories auf einmal installiert.
+## 🚀 First-time setup
 
-   Ohne Erweiterung kann die App Anime und Manga nur anzeigen, nicht abspielen bzw. lesen. Torrent-Erweiterungen funktionieren in der Android-Version nicht.
-4. **Loslegen.** Anime antippen → *Online streaming* zum Schauen oder *Staffel / Folgen herunterladen* für offline. Gespeichertes findest du unten im Tab **Downloads**.
+1. **Open the app.** A short wizard asks for an anime folder (optional, leaving it empty is fine) and which features to use. Tap **Launch Seanime**. Android will also ask for file access (*Use streaming* is enough) and notifications (for download progress).
+2. **Log in with AniList.** In the dialog, tap **Get AniList token**, confirm in the browser and paste the token. You can create a free account at [anilist.co](https://anilist.co). To skip login, close the dialog with ✕ and the app will use a local account.
+3. **Add sources.** An **interactive tutorial** then starts automatically and guides you through the following steps ([video](#-tutorial-video)). To run it again later: *Settings → Extensions → Show tutorial*.
+   The app ships **without** any streaming or manga sources. The official Seanime marketplace only contains plugins. Sources come from community repositories that you add yourself:
+   1. Open *Menu → Extensions* and select the **Marketplace** tab at the top.
+   2. Tap **Change repository** and paste the **repository URL** (an address ending in a `.json` file). You can find suitable Seanime extension repositories online in the Seanime community.
+   3. The list reloads. Select **Online Streaming** (or **Manga**) at the top and tap the **download icon** next to the extension you want.
+   4. Alternatively: in the *Installed* tab → **Add extensions** → **Import from repository**. This installs all extensions from a repository at once.
 
-## 🎬 Tutorial-Video
+   Without an extension, the app can only display anime and manga, not play or read them. Torrent extensions do not work in the Android version.
+4. **Get started.** Tap an anime → *Online streaming* to watch, or *Download season / episodes* for offline viewing. Your saved content is in the **Downloads** tab at the bottom.
 
-So sieht der erste Start mit dem eingebauten Tutorial aus: Assistent, Repository hinzufügen, Streaming-Erweiterung installieren. Die Repository-Adresse und die Namen der Erweiterungen sind im Video unkenntlich gemacht.
+## 🎬 Tutorial video
+
+This is what the first launch with the built-in tutorial looks like: wizard, adding a repository, installing a streaming extension. The repository address and the extension names are blurred in the video.
 
 <p align="center">
-  <img src="docs/images/tutorial.gif" alt="Tutorial: Repository hinzufügen und Erweiterung installieren" width="300">
+  <img src="docs/images/tutorial.gif" alt="Tutorial: adding a repository and installing an extension" width="300">
 </p>
-<p align="center"><a href="docs/images/tutorial.mp4">▶️ Video in voller Qualität (MP4)</a></p>
+<p align="center"><a href="docs/images/tutorial.mp4">▶️ Full-quality video (MP4)</a></p>
 
-## ❓ Häufige Fragen
+## ❓ FAQ
 
 <details>
-<summary><b>„App nicht installiert“ beim Update</b></summary>
+<summary><b>"App not installed" when updating</b></summary>
 
-Die neue APK muss mit demselben Schlüssel signiert sein wie die installierte. Das ist bei allen offiziellen Releases hier der Fall. Wenn du vorher eine selbst gebaute oder fremde Version installiert hattest, die alte App zuerst deinstallieren (dabei gehen lokale Downloads verloren).
+The new APK must be signed with the same key as the installed one. That is the case for all official releases here. If you previously installed a self-built or third-party version, uninstall the old app first (local downloads will be lost).
 </details>
 
 <details>
-<summary><b>„No content providers available“ / keine Streaming-Quellen</b></summary>
+<summary><b>"No content providers available" / no streaming sources</b></summary>
 
-Das ist normal bei einer frischen Installation: Der Standard-Marktplatz enthält keine Streaming- oder Manga-Quellen. Füge wie unter [Erste Einrichtung](#-erste-einrichtung), Schritt 3, ein Community-Repository hinzu. Dieses Projekt verlinkt bewusst keine Quellen und hat mit deren Inhalten nichts zu tun.
+This is normal on a fresh install: the default marketplace contains no streaming or manga sources. Add a community repository as described in [First-time setup](#-first-time-setup), step 3. This project deliberately does not link to any sources and has nothing to do with their content.
 </details>
 
 <details>
-<summary><b>Eine Folge spielt nicht ab</b></summary>
+<summary><b>An episode won't play</b></summary>
 
-Meist liegt es an der Quelle. Im Player bzw. auf der Animeseite eine andere Erweiterung wählen oder unter *Menu → Extensions* die Erweiterungen aktualisieren.
+It's usually the source. Pick a different extension in the player or on the anime page, or update your extensions under *Menu → Extensions*.
 </details>
 
 <details>
-<summary><b>Gibt es Torrents?</b></summary>
+<summary><b>Are there torrents?</b></summary>
 
-Nein. Torrent- und Debrid-Funktionen sind in der Android-Version bewusst deaktiviert. Downloads laufen über direkte MP4-/HLS-Quellen.
+No. Torrent and debrid features are deliberately disabled in the Android version. Downloads use direct MP4/HLS sources.
 </details>
 
 <details>
-<summary><b>Wo liegen meine Downloads?</b></summary>
+<summary><b>Where are my downloads stored?</b></summary>
 
-Im privaten App-Speicher. Sie sind nur in der App unter *Downloads* sichtbar und werden beim Deinstallieren gelöscht.
+In the app's private storage. They are only visible inside the app under *Downloads* and are deleted when you uninstall it.
 </details>
 
-## 🛠️ Selbst bauen
+## 🛠️ Build it yourself
 
-Das Repository enthält den kompletten Quellcode: Android-App (Kotlin), Seanime-Backend (Go) und Oberfläche (React). Die Schritt-für-Schritt-Anleitung steht in **[docs/BUILD.md](docs/BUILD.md)**.
+The repository contains the complete source code: Android app (Kotlin), Seanime backend (Go) and interface (React). Step-by-step instructions are in **[docs/BUILD.md](docs/BUILD.md)**.
 
 ```
-app/            Android-App (Kotlin, WebView, Offline-Player, Download-Dienst)
-backend/        Seanime-Server (Go) + Weboberfläche (backend/seanime-web, React)
-docs/           Bau-Anleitung, Bilder, Upstream-Doku, Entwicklungsnotizen
-tests/          Navigations- und Plugin-Tests (Python/Playwright)
-Build.ps1       Kompletter Release-Build inkl. Backend
+app/            Android app (Kotlin, WebView, offline player, download service)
+backend/        Seanime server (Go) + web interface (backend/seanime-web, React)
+docs/           Build guide, images, upstream docs, development notes
+tests/          Navigation and plugin tests (Python/Playwright)
+Build.ps1       Full release build including the backend
 ```
 
-## 🙏 Credits & Lizenz
+## 🙏 Credits & license
 
-- [**Seanime**](https://github.com/5rahim/seanime) von 5rahim: Backend und Weboberfläche
-- [**Seanime Android**](https://github.com/Pal-droid/Seanime-Android) von Pal-droid: ursprüngliche Android-Portierung ([Original-README](docs/upstream/README.md))
+- [**Seanime**](https://github.com/5rahim/seanime) by 5rahim: backend and web interface
+- [**Seanime Android**](https://github.com/Pal-droid/Seanime-Android) by Pal-droid: original Android port ([original README](docs/upstream/README.md))
 
-Seanime Mobile ist ein unabhängiger Fork und steht wie das Original unter der **GPL-3.0** ([LICENSE](LICENSE)). Diese App hostet keine Inhalte; sie zeigt nur an, was installierte Erweiterungen liefern.
+Seanime Mobile is an independent fork and, like the original, is licensed under the **GPL-3.0** ([LICENSE](LICENSE)). This app does not host any content; it only displays what installed extensions provide.
