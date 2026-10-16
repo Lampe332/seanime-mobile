@@ -1,6 +1,6 @@
 # Seanime Mobile selbst bauen
 
-Anleitung für Windows 10/11 (PowerShell). Stand: App 1.6.0, Seanime-Backend 3.10.4, versionCode 31013.
+Anleitung für Windows 10/11 (PowerShell). Stand: App 1.7.0, Seanime-Backend 3.10.4, versionCode 31014.
 
 Es gibt zwei Wege:
 
@@ -183,6 +183,18 @@ adb shell am instrument -w com.seanime.app.local.test/com.seanime.app.audit.Mobi
 ```
 
 Die Instrumentierung liest die AniList-Liste und stellt den vorherigen Widget-Cache wieder her; sie verändert keinen AniList-Fortschritt.
+
+### Erststart testen, ohne die installierte App anzufassen
+
+Eine Kopie mit eigener Paket-ID (`com.seanime.app.local.fresh`) lässt sich neben der normalen App installieren und startet komplett leer, inklusive Einrichtungs-Assistent und Tutorial:
+
+```powershell
+.\gradlew.bat :app:assembleRelease -PseanimeAppIdSuffix=.fresh
+adb shell am force-stop com.seanime.app.local
+adb install -r app\build\outputs\apk\release\app-release.apk
+```
+
+Beide Apps nutzen denselben lokalen Server-Port (`127.0.0.1:43211`). Deshalb vorher die normale App stoppen, sonst verbindet sich die Test-Kopie mit deren Server. Danach `adb uninstall com.seanime.app.local.fresh`.
 
 ---
 

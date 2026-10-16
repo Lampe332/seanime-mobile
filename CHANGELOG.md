@@ -2,6 +2,13 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.7.0 — 16.10.2026 (versionCode 31014)
+
+- **Einrichtungs-Tutorial beim ersten Start:** Eine interaktive Tour führt Schritt für Schritt durch Menu → Extensions → Marketplace → Repository hinzufügen → Streaming-Erweiterung installieren, inklusive Manga-Hinweis. Der hervorgehobene Knopf wird jeweils selbst angetippt, „Skip" ist jederzeit möglich.
+- Tutorial erneut starten: *Settings → Extensions → Show tutorial*. Wer schon eine Streaming-Erweiterung hat, bekommt es nach dem Update nicht automatisch angezeigt.
+- Einrichtungs-Assistent auf Android verkürzt: kein Player-Schritt mehr, keine Desktop-Optionen (Discord, Transcoding). Online Streaming ist standardmäßig an, NSFW aus.
+- Tour-System robuster: Taps im Spotlight erreichen den echten Knopf, die Tour liegt über dem Android-Menü, Ziele werden mittig gescrollt, Tippen in Textfeldern schaltet die Tour nicht weiter.
+
 ## 1.6.0 — 16.10.2026 (versionCode 31013)
 
 - **Staffel / Folgen herunterladen** in der Animeansicht: ganze Staffel, ab Folge …, einzelne Folgen. Vorhandene oder eingeplante Folgen derselben Sprachfassung werden übersprungen.

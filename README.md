@@ -10,9 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest/download/Seanime-Mobile-1.6.0.apk"><b>⬇️ APK herunterladen</b></a>
+  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest/download/Seanime-Mobile-1.7.0.apk"><b>⬇️ APK herunterladen</b></a>
   &nbsp;·&nbsp; <a href="#-installation-auf-dem-handy">Installation</a>
   &nbsp;·&nbsp; <a href="#-erste-einrichtung">Einrichtung</a>
+  &nbsp;·&nbsp; <a href="#-tutorial-video">Tutorial-Video</a>
   &nbsp;·&nbsp; <a href="docs/BUILD.md">Selbst bauen</a>
   &nbsp;·&nbsp; <a href="CHANGELOG.md">Changelog</a>
 </p>
@@ -32,6 +33,7 @@
 | 📅 **Kalender** | Monatskalender mit allen Folgen deiner AniList-Liste oder aller Anime, filterbar nach Status |
 | 🔄 **AniList** | Listen, Fortschritt und Bewertungen werden mit AniList synchronisiert |
 | 🧩 **Erweiterungen & Plugins** | Quellen und Plugins aus dem Seanime-Ökosystem |
+| 🧭 **Einrichtungs-Tutorial** | Interaktive Tour beim ersten Start zeigt, wie man ein Repository hinzufügt und Quellen installiert |
 
 ## 📱 Screenshots
 
@@ -53,16 +55,26 @@ Unterstützt: Android 5.0 oder neuer, ARM64 und ARMv7 (praktisch alle Handys der
 
 ## 🚀 Erste Einrichtung
 
-1. **App öffnen.** Beim ersten Start fragt Android nach Benachrichtigungen (für Download-Fortschritt) und Dateizugriff. Beides erlauben.
-2. **Mit AniList anmelden.** Auf dem Startbildschirm **Log in with AniList** tippen und im Browser bestätigen. Ein kostenloses Konto gibt es auf [anilist.co](https://anilist.co). Danach erscheinen deine Listen unter *My Lists* und *Continue watching*.
-3. **Quellen hinzufügen.** Die App bringt **keine** Streaming- oder Manga-Quellen mit. Der offizielle Seanime-Marktplatz enthält nur Plugins. Quellen kommen aus Community-Repositories, die du selbst hinzufügst:
+1. **App öffnen.** Ein kurzer Assistent fragt nach einem Anime-Ordner (optional, leer lassen ist ok) und den Funktionen. **Launch Seanime** tippen. Android fragt außerdem nach Dateizugriff (*Use streaming* reicht) und Benachrichtigungen (für den Download-Fortschritt).
+2. **Mit AniList anmelden.** Im Dialog **Get AniList token** tippen, im Browser bestätigen und den Token einfügen. Ein kostenloses Konto gibt es auf [anilist.co](https://anilist.co). Ohne Anmeldung den Dialog mit ✕ schließen, dann nutzt die App ein lokales Konto.
+3. **Quellen hinzufügen.** Danach startet automatisch ein **interaktives Tutorial**, das dich durch die folgenden Schritte führt ([Video](#-tutorial-video)). Später erneut starten: *Settings → Extensions → Show tutorial*.
+   Die App bringt **keine** Streaming- oder Manga-Quellen mit. Der offizielle Seanime-Marktplatz enthält nur Plugins. Quellen kommen aus Community-Repositories, die du selbst hinzufügst:
    1. *Menu → Extensions* öffnen und oben den Tab **Marketplace** wählen.
    2. **Change repository** tippen und die **Repository-URL** einfügen (eine Adresse, die auf eine `.json`-Datei endet). Passende Seanime-Extension-Repositories findest du online in der Seanime-Community.
-   3. Die Liste lädt neu. Die gewünschte **Online-Streaming**- bzw. **Manga**-Erweiterung antippen und **Install** wählen.
+   3. Die Liste lädt neu. Oben **Online Streaming** (bzw. **Manga**) wählen und bei der gewünschten Erweiterung auf das **Download-Symbol** tippen.
    4. Alternativ: im Tab *Installed* → **Add extensions** → **Import from repository**. Damit werden alle Erweiterungen eines Repositories auf einmal installiert.
 
    Ohne Erweiterung kann die App Anime und Manga nur anzeigen, nicht abspielen bzw. lesen. Torrent-Erweiterungen funktionieren in der Android-Version nicht.
 4. **Loslegen.** Anime antippen → *Online streaming* zum Schauen oder *Staffel / Folgen herunterladen* für offline. Gespeichertes findest du unten im Tab **Downloads**.
+
+## 🎬 Tutorial-Video
+
+So sieht der erste Start mit dem eingebauten Tutorial aus: Assistent, Repository hinzufügen, Streaming-Erweiterung installieren. Die Repository-Adresse und die Namen der Erweiterungen sind im Video unkenntlich gemacht.
+
+<p align="center">
+  <img src="docs/images/tutorial.gif" alt="Tutorial: Repository hinzufügen und Erweiterung installieren" width="300">
+</p>
+<p align="center"><a href="docs/images/tutorial.mp4">▶️ Video in voller Qualität (MP4)</a></p>
 
 ## ❓ Häufige Fragen
 

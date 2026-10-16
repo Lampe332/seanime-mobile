@@ -14,7 +14,7 @@ android {
         versionName = "1.7.0"
         testInstrumentationRunner = "com.seanime.app.audit.OfflineInstrumentation"
         ndk { abiFilters += setOf("arm64-v8a", "armeabi-v7a") }
-        // -PseanimeAppIdSuffix=.test installs a separate copy next to the real app (fresh-install testing)
+        // -PseanimeAppIdSuffix=.fresh installs a separate copy next to the real app (fresh-install testing)
         providers.gradleProperty("seanimeAppIdSuffix").orNull?.let { applicationIdSuffix = it }
     }
 
