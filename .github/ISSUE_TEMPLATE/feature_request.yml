@@ -1,0 +1,82 @@
+name: Feature Request
+description: Suggest a new feature or improvement for the Android port of Seanime
+title: "[FEATURE] "
+labels: ["enhancement", "android"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Suggestion
+        Have an idea to improve the Android Seanime experience? Go ahead an share it!
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      description: Before submitting, please confirm the following
+      options:
+        - label: I've searched for existing feature requests to avoid duplicates
+        - label: This feature is relevant to the Android port of Seanime and **not** to the main Seanime repo
+        - label: I'm suggesting a feature/improvement, not reporting a bug
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: "What feature would you like to add?"
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case / Motivation
+      description: Why do you need this feature? What problem does it solve?
+      placeholder: |
+        - I want to be able to...
+        - The current workflow is...
+        - This would improve my experience by...
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: How should this feature work? Describe the ideal implementation
+      placeholder: |
+        The feature should work like this:
+        1. User opens the app and...
+        2. They can then...
+        3. The result would be...
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Have you considered other ways to accomplish this goal?
+      placeholder: "Other approaches could be..."
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Feature Scope
+      description: How much of the app would this affect?
+      options:
+        - Minor UI tweak or small feature
+        - Medium feature (affects one section)
+        - Major feature (affects multiple sections)
+        - Architectural change
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Mockups or References
+      description: |
+        If applicable, share mockups, screenshots from other apps, or design references
+        Tip: You can attach images by clicking this area to highlight it and then dragging files in
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other information that might be helpful
+      placeholder: "Have you seen this in other apps? Any technical considerations?"

@@ -1,0 +1,600 @@
+import { AL_MangaDetailsById_Media, HibikeManga_ChapterDetails, Manga_Entry, Manga_MediaDownloadData } from "@/api/generated/types"
+import { useGetMangaSourceRefresh, useStartMangaSourceRefresh } from "@/api/hooks/manga.hooks"
+import { SeaCommandInjectableItem, useSeaCommandInject } from "@/app/(main)/_features/sea-command/use-inject"
+import { ChapterListBulkActions } from "@/app/(main)/manga/_containers/chapter-list/_components/chapter-list-bulk-actions"
+import { DownloadedChapterList, manga_downloadedChapterContainerAtom } from "@/app/(main)/manga/_containers/chapter-list/downloaded-chapter-list"
+import { MangaManualMappingModal } from "@/app/(main)/manga/_containers/chapter-list/manga-manual-mapping-modal"
+import { ChapterReaderDrawer } from "@/app/(main)/manga/_containers/chapter-reader/chapter-reader-drawer"
+import { __manga_selectedChapterAtom } from "@/app/(main)/manga/_lib/handle-chapter-reader"
+import { __manga_resumeLocationsAtom, MANGA_READER_RESUME_MAX_AGE_MS } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
+import { useHandleMangaChapters } from "@/app/(main)/manga/_lib/handle-manga-chapters"
+import { useHandleDownloadMangaChapter } from "@/app/(main)/manga/_lib/handle-manga-downloads"
+import { __manga_preferencesHydratedAtom } from "@/app/(main)/manga/_lib/handle-manga-selected-provider"
+import { getChapterNumberFromChapter, useMangaChapterListRowSelection, useMangaDownloadDataUtils } from "@/app/(main)/manga/_lib/handle-manga-utils"
+import { LANGUAGES_LIST } from "@/app/(main)/manga/_lib/language-map"
+import { monochromeCheckboxClasses } from "@/components/shared/classnames"
+import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
+import { LuffyError } from "@/components/shared/luffy-error"
+import { Alert } from "@/components/ui/alert"
+import { Button, IconButton } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { DataGrid, defineDataGridColumns } from "@/components/ui/datagrid"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { Select } from "@/components/ui/select"
+import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
+import React from "react"
+import { ErrorBoundary } from "react-error-boundary"
+import { FaRedo } from "react-icons/fa"
+import { GiOpenBook } from "react-icons/gi"
+import { IoBookOutline, IoLibrary } from "react-icons/io5"
+import { LuDownload } from "react-icons/lu"
+import { LuSearch } from "react-icons/lu"
+import { MdOutlineOfflinePin } from "react-icons/md"
+import { toast } from "sonner"
+
+type ChapterListProps = {
+    mediaId: string | null
+    entry: Manga_Entry
+    details: AL_MangaDetailsById_Media | undefined
+    downloadData: Manga_MediaDownloadData | undefined
+    downloadDataLoading: boolean
+}
+
+export function ChapterList(props: ChapterListProps) {
+
+    const {
+        mediaId,
+        entry,
+        details,
+        downloadData,
+        downloadDataLoading,
+        ...rest
+    } = props
+
+    /**
+     * Find chapter container
+     */
+    const {
+        selectedExtension,
+        providerExtensionsLoading,
+        // Selected provider
+        providerOptions, // For dropdown
+        selectedProvider, // Current provider (id)
+        setSelectedProvider,
+        // Filters
+        selectedFilters,
+        setSelectedLanguage,
+        setSelectedScanlator,
+        languageOptions,
+        scanlatorOptions,
+        // Chapters
+        chapterContainer,
+        chapterContainerLoading,
+        chapterContainerError,
+    } = useHandleMangaChapters(mediaId)
+
+
+    // Keep track of chapter numbers as integers
+    // This is used to filter the chapters
+    // [id]: number
+    const chapterIdToNumbersMap = React.useMemo(() => {
+        const map = new Map<string, number>()
+
+        for (const chapter of chapterContainer?.chapters ?? []) {
+            map.set(chapter.id, getChapterNumberFromChapter(chapter.chapter))
+        }
+
+        return map
+    }, [chapterContainer?.chapters])
+
+    const [showUnreadChapter, setShowUnreadChapter] = React.useState(false)
+    const [showDownloadedChapters, setShowDownloadedChapters] = React.useState(false)
+
+    /**
+     * Set selected chapter
+     */
+    const setSelectedChapter = useSetAtom(__manga_selectedChapterAtom)
+    const { data: sourceRefreshJob } = useGetMangaSourceRefresh()
+    const { mutate: startSourceRefresh, isPending: isStartingSourceRefresh } = useStartMangaSourceRefresh()
+    const preferencesHydrated = useAtomValue(__manga_preferencesHydratedAtom)
+    const sourceRefreshRunning = sourceRefreshJob?.status === "running" || sourceRefreshJob?.status === "stopping"
+    const sourceRefreshEligible = entry.listData?.status === "CURRENT" || entry.listData?.status === "REPEATING"
+    /**
+     * Download chapter
+     */
+    const { downloadChapters, isSendingDownloadRequest } = useHandleDownloadMangaChapter(mediaId)
+    /**
+     * Download data utils
+     */
+    const {
+        isChapterQueued,
+        isChapterDownloaded,
+        isChapterLocal,
+    } = useMangaDownloadDataUtils(downloadData, downloadDataLoading)
+
+    const { inject, remove } = useSeaCommandInject()
+
+    /**
+     * Function to filter unread chapters
+     */
+    const retainUnreadChapters = React.useCallback((chapter: HibikeManga_ChapterDetails) => {
+        if (!entry.listData || !chapterIdToNumbersMap.has(chapter.id) || !entry.listData?.progress) return true
+
+        const chapterNumber = chapterIdToNumbersMap.get(chapter.id)
+        return !!chapterNumber && chapterNumber > entry.listData?.progress
+    }, [chapterIdToNumbersMap, chapterContainer, entry])
+
+    /**
+     * Chapter columns
+     */
+    const columns = React.useMemo(() => defineDataGridColumns<HibikeManga_ChapterDetails>(() => [
+        {
+            accessorKey: "title",
+            header: "Name",
+            size: 90,
+        },
+        ...(selectedExtension?.settings?.supportsMultiScanlator ? [{
+            id: "scanlator",
+            header: "Scanlator",
+            size: 30,
+            accessorFn: (row: any) => row.scanlator,
+            enableSorting: true,
+            cell: ({ getValue }: any) => <span className="text-sm text-[--muted]">{getValue()}</span>,
+        }] : []),
+        ...(selectedExtension?.settings?.supportsMultiLanguage ? [{
+            id: "language",
+            header: "Language",
+            size: 40,
+            accessorFn: (row: any) => LANGUAGES_LIST[row.language]?.nativeName || row.language,
+            enableSorting: true,
+            cell: ({ getValue }: any) => <span className="text-sm text-[--muted]">{getValue()}</span>,
+        }] : []),
+        {
+            id: "number",
+            header: "Number",
+            size: 10,
+            enableSorting: true,
+            accessorFn: (row) => {
+                return chapterIdToNumbersMap.get(row.id)
+            },
+        },
+        {
+            id: "_actions",
+            size: 10,
+            enableSorting: false,
+            enableGlobalFilter: false,
+            cell: ({ row }) => {
+                return (
+                    <div className="flex justify-end gap-2 items-center w-full">
+                        {(!isChapterLocal(row.original) && !isChapterDownloaded(row.original) && !isChapterQueued(row.original)) && <IconButton
+                            intent="gray-basic"
+                            size="sm"
+                            disabled={isSendingDownloadRequest}
+                            onClick={() => downloadChapters([row.original])}
+                            icon={<LuDownload className="text-xl" />}
+                            className="opacity-50 hover:opacity-100"
+                        />}
+                        {isChapterQueued(row.original) && <p className="text-[--muted]">Queued</p>}
+                        {isChapterDownloaded(row.original) && <p className="text-[--green] px-1"><MdOutlineOfflinePin className="text-2xl" /></p>}
+                        <IconButton
+                            intent="gray-subtle"
+                            size="md"
+                            onClick={() => setSelectedChapter({
+                                chapterId: row.original.id,
+                                chapterNumber: row.original.chapter,
+                                provider: row.original.provider,
+                                mediaId: Number(mediaId),
+                            })}
+                            icon={<GiOpenBook />}
+                        />
+                    </div>
+                )
+            },
+        },
+    ]), [chapterIdToNumbersMap, selectedExtension, isSendingDownloadRequest, isChapterDownloaded, downloadData, mediaId])
+
+    const unreadChapters = React.useMemo(() => chapterContainer?.chapters?.filter(ch => retainUnreadChapters(ch)) ?? [], [chapterContainer, entry])
+    const resumeLocations = useAtomValue(__manga_resumeLocationsAtom)
+    const resumeLocation = resumeLocations[String(mediaId)]
+    const resumeChapter = React.useMemo(() => {
+        if (!resumeLocation || resumeLocation.provider !== selectedProvider
+            || !Number.isInteger(resumeLocation.pageIndex) || resumeLocation.pageIndex < 0
+            || !Number.isFinite(resumeLocation.updatedAt)
+            || Date.now() - resumeLocation.updatedAt > MANGA_READER_RESUME_MAX_AGE_MS) return undefined
+        return unreadChapters.find(ch => ch.id === resumeLocation.chapterId && ch.provider === resumeLocation.provider)
+    }, [resumeLocation, selectedProvider, unreadChapters])
+    const readingChapter = resumeChapter || unreadChapters[0]
+    const allChapters = React.useMemo(() => chapterContainer?.chapters?.toReversed() ?? [], [chapterContainer])
+    const downloadableUnreadChapters = React.useMemo(() => unreadChapters.filter(chapter => {
+        return !isChapterLocal(chapter) && !isChapterDownloaded(chapter) && !isChapterQueued(chapter)
+    }), [unreadChapters, downloadData, isChapterDownloaded, isChapterLocal, isChapterQueued])
+
+    const confirmDownloadUnread = useConfirmationDialog({
+        title: "Download unread chapters",
+        actionIntent: "primary",
+        actionText: "Add to queue",
+        description: `Add ${downloadableUnreadChapters.length} unread ${downloadableUnreadChapters.length === 1
+            ? "chapter"
+            : "chapters"} to the download queue?`,
+        onConfirm: () => downloadChapters(downloadableUnreadChapters),
+    })
+
+    /**
+     * Set "showUnreadChapter" state if there are unread chapters
+     */
+    React.useLayoutEffect(() => {
+        setShowUnreadChapter(!!unreadChapters.length)
+    }, [unreadChapters?.length])
+
+    /**
+     * Filter chapters based on state
+     */
+    const chapters = React.useMemo(() => {
+        let d = showUnreadChapter ? unreadChapters : allChapters
+        if (showDownloadedChapters) {
+            d = d.filter(ch => isChapterDownloaded(ch) || isChapterQueued(ch))
+        }
+        return d
+    }, [
+        showUnreadChapter, unreadChapters, allChapters, showDownloadedChapters, downloadData, selectedExtension,
+    ])
+
+    const {
+        rowSelectedChapters,
+        onRowSelectionChange,
+        rowSelection,
+        setRowSelection,
+        resetRowSelection,
+        // setSelectedChapters,
+    } = useMangaChapterListRowSelection()
+
+    React.useEffect(() => {
+        resetRowSelection()
+    }, [])
+
+    // Inject chapter list command
+    React.useEffect(() => {
+        if (!chapterContainer?.chapters?.length) return
+
+        const nextChapter = unreadChapters[0]
+        const upcomingChapters = unreadChapters.slice(0, 10)
+
+        const commandItems: SeaCommandInjectableItem[] = [
+            // Next chapter
+            ...(nextChapter ? [{
+                data: nextChapter,
+                id: `next-chapter-${nextChapter.id}`,
+                value: `${nextChapter.chapter}`,
+                heading: "Next Chapter",
+                priority: 2,
+                render: () => (
+                    <div className="flex gap-1 items-center w-full">
+                        <p className="max-w-[70%] truncate">Chapter {nextChapter.chapter}</p>
+                        {nextChapter.scanlator && (
+                            <p className="text-[--muted]">({nextChapter.scanlator})</p>
+                        )}
+                    </div>
+                ),
+                onSelect: ({ ctx }) => {
+                    setSelectedChapter({
+                        chapterId: nextChapter.id,
+                        chapterNumber: nextChapter.chapter,
+                        provider: nextChapter.provider,
+                        mediaId: Number(mediaId),
+                    })
+                    ctx.close()
+                },
+            } as SeaCommandInjectableItem] : []),
+            // Upcoming chapters
+            ...upcomingChapters.map(chapter => ({
+                data: chapter,
+                id: `chapter-${chapter.id}`,
+                value: `${chapter.chapter}`,
+                heading: "Upcoming Chapters",
+                priority: 1,
+                render: () => (
+                    <div className="flex gap-1 items-center w-full">
+                        <p className="max-w-[70%] truncate">Chapter {chapter.chapter}</p>
+                        {chapter.scanlator && (
+                            <p className="text-[--muted]">({chapter.scanlator})</p>
+                        )}
+                    </div>
+                ),
+                onSelect: ({ ctx }) => {
+                    setSelectedChapter({
+                        chapterId: chapter.id,
+                        chapterNumber: chapter.chapter,
+                        provider: chapter.provider,
+                        mediaId: Number(mediaId),
+                    })
+                    ctx.close()
+                },
+            } as SeaCommandInjectableItem)),
+        ]
+
+        inject("manga-chapters", {
+            items: commandItems,
+            filter: ({ item, input }) => {
+                if (!input) return true
+                return item.value.toLowerCase().includes(input.toLowerCase()) ||
+                    (item.data.title?.toLowerCase() || "").includes(input.toLowerCase())
+            },
+            priority: 100,
+        })
+
+        return () => remove("manga-chapters")
+    }, [chapterContainer?.chapters, unreadChapters, mediaId])
+
+    const [downloadedChapterContainer] = useAtom(manga_downloadedChapterContainerAtom)
+
+    if (providerExtensionsLoading) return <LoadingSpinner />
+
+    return (
+        <div
+            className="space-y-4"
+            data-chapter-list-container
+            data-selected-filters={JSON.stringify(selectedFilters)}
+            data-selected-provider={JSON.stringify(selectedProvider)}
+        >
+
+            <div data-chapter-list-header-container className="flex flex-wrap gap-2 items-center">
+                <Select
+                    fieldClass="w-fit"
+                    options={providerOptions}
+                    value={selectedProvider || ""}
+                    onValueChange={v => setSelectedProvider({
+                        mId: mediaId,
+                        provider: v,
+                    })}
+                    leftAddon="Source"
+                    size="sm"
+                    disabled={sourceRefreshRunning}
+                />
+
+                <Button
+                    leftIcon={<FaRedo />}
+                    intent="gray-outline"
+                    onClick={() => {
+                        if (mediaId) {
+                            startSourceRefresh({ mode: "refresh_selected", mediaIds: [Number(mediaId)] }, {
+                                onSuccess: () => toast.info("Source refresh started"),
+                            })
+                        }
+                    }}
+                    loading={isStartingSourceRefresh || sourceRefreshRunning}
+                    disabled={!preferencesHydrated || !selectedExtension || !sourceRefreshEligible || sourceRefreshRunning}
+                    title={!sourceRefreshEligible ? "Source refresh is available for current and re-reading manga" : undefined}
+                    size="sm"
+                >
+                    {sourceRefreshRunning ? "Refresh running" : "Refresh source"}
+                </Button>
+
+                <MangaManualMappingModal entry={entry}>
+                    <Button
+                        leftIcon={<LuSearch className="text-lg" />}
+                        intent="gray-outline"
+                        size="sm"
+                        disabled={!selectedExtension}
+                    >
+                        Manual match
+                    </Button>
+                </MangaManualMappingModal>
+            </div>
+
+            {!providerExtensionsLoading && !selectedExtension && (
+                <Alert
+                    intent="warning-basic"
+                    title={selectedProvider ? "Saved source unavailable" : "No manga source available"}
+                    description={selectedProvider
+                        ? `The saved source “${selectedProvider}” is not currently installed. Install it again or choose another source to continue.`
+                        : "Install or select a manga source to load chapters."}
+                />
+            )}
+
+            <ErrorBoundary
+                fallbackRender={({ error }) => <Alert
+                    intent="alert"
+                    title="Client side error"
+                    description={`Could not load chapter filters. Please contact the extension developer: "${error}"`}
+                />}
+            >
+                {(selectedExtension?.settings?.supportsMultiLanguage || selectedExtension?.settings?.supportsMultiScanlator) && (
+                    <div data-chapter-list-header-filters-container className="flex flex-wrap gap-2 items-center">
+                        {selectedExtension?.settings?.supportsMultiScanlator && (
+                            <>
+                                <Select
+                                    fieldClass="w-full sm:w-64"
+                                    options={scanlatorOptions}
+                                    placeholder="All"
+                                    value={selectedFilters.scanlators[0] || ""}
+                                    onValueChange={v => setSelectedScanlator({
+                                        mId: mediaId,
+                                        scanlators: [v],
+                                    })}
+                                    leftAddon="Scanlator"
+                                    // intent="filled"
+                                    // size="sm"
+                                />
+                            </>
+                        )}
+                        {selectedExtension?.settings?.supportsMultiLanguage && (
+                            <Select
+                                fieldClass="w-full sm:w-64"
+                                options={languageOptions}
+                                placeholder="All"
+                                value={selectedFilters.language}
+                                onValueChange={v => setSelectedLanguage({
+                                    mId: mediaId,
+                                    language: v,
+                                })}
+                                leftAddon="Language"
+                                // intent="filled"
+                                // size="sm"
+                            />
+                        )}
+                    </div>
+                )}
+            </ErrorBoundary>
+
+            {chapterContainerLoading ? <LoadingSpinner /> : (
+                chapterContainerError ? <LuffyError title="No chapters found">
+                    <MangaManualMappingModal entry={entry}>
+                        <Button
+                            leftIcon={<LuSearch className="text-lg" />}
+                            intent="gray-outline"
+                            size="md"
+                        >
+                            Manual match
+                        </Button>
+                    </MangaManualMappingModal>
+                </LuffyError> : (
+                    <>
+
+                        {chapterContainer?.chapters?.length === 0 && (
+                            <LuffyError title="No chapters found"><p>Try another source</p></LuffyError>
+                        )}
+
+                        {!!chapterContainer?.chapters?.length && (
+                            <>
+                                <div data-chapter-list-header-container className="flex flex-wrap gap-2 items-center w-full pb-2">
+                                    <h2 className="px-1">Chapters</h2>
+                                    <div className="flex flex-1"></div>
+                                    <div>
+                                        {readingChapter && <Button
+                                            intent="white"
+                                            rounded
+                                            leftIcon={<IoBookOutline />}
+                                            className="h-auto min-h-11 max-w-full py-2"
+                                            onClick={() => {
+                                                setSelectedChapter({
+                                                    chapterId: readingChapter.id,
+                                                    chapterNumber: readingChapter.chapter,
+                                                    provider: readingChapter.provider,
+                                                    mediaId: Number(mediaId),
+                                                })
+                                            }}
+                                        >
+                                            <span className="text-left">
+                                                <span className="block">{resumeChapter ? "Resume reading" : entry.listData?.progress ? "Continue reading" : "Start reading"}</span>
+                                                {resumeChapter && <span className="block text-xs opacity-70">Chapter {resumeChapter.chapter} · Page {resumeLocation.pageIndex + 1}</span>}
+                                            </span>
+                                        </Button>}
+                                    </div>
+                                </div>
+
+                                {/* <ChapterListTable
+                                 chapters={chapters}
+                                 rowSelection={rowSelection}
+                                 setRowSelection={setRowSelection}
+                                 setSelectedChapters={setSelectedChapters}
+                                 onChapterClick={(chapter) => {
+                                 setSelectedChapter({
+                                 chapterId: chapter.id,
+                                 chapterNumber: chapter.chapter,
+                                 provider: chapter.provider,
+                                 mediaId: Number(mediaId),
+                                 })
+                                 }}
+                                 onDownloadChapter={(chapter) => downloadChapters([chapter])}
+                                 isChapterQueued={isChapterQueued}
+                                 isChapterDownloaded={isChapterDownloaded}
+                                 isChapterLocal={isChapterLocal}
+                                 /> */}
+
+                                <div data-chapter-list-bulk-actions-container className="space-y-4 rounded-2xl border bg-[--paper] p-4">
+
+                                    <div data-chapter-list-bulk-actions-checkboxes-container className="flex flex-wrap items-center gap-4">
+                                        <Checkbox
+                                            label="Show unread"
+                                            value={showUnreadChapter}
+                                            onValueChange={v => setShowUnreadChapter(v as boolean)}
+                                            fieldClass="w-fit"
+                                            {...monochromeCheckboxClasses}
+                                        />
+                                        {selectedProvider !== "local-manga" && <Checkbox
+                                            label={<span className="flex gap-2 items-center"><IoLibrary /> Show downloaded</span>}
+                                            value={showDownloadedChapters}
+                                            onValueChange={v => setShowDownloadedChapters(v as boolean)}
+                                            fieldClass="w-fit"
+                                            {...monochromeCheckboxClasses}
+                                        />}
+                                        {/*{!downloadDataLoading && !!downloadableUnreadChapters.length && (
+                                         <Button
+                                         intent="gray-outline"
+                                         size="sm"
+                                         leftIcon={<LuDownload />}
+                                         loading={isSendingDownloadRequest}
+                                         onClick={() => confirmDownloadUnread.open()}
+                                         >
+                                         Download unread ({downloadableUnreadChapters.length})
+                                         </Button>
+                                         )}*/}
+                                    </div>
+
+                                    <ChapterListBulkActions
+                                        rowSelectedChapters={rowSelectedChapters}
+                                        onDownloadSelected={chapters => {
+                                            downloadChapters(chapters)
+                                            resetRowSelection()
+                                        }}
+                                    />
+
+                                    <DataGrid<HibikeManga_ChapterDetails>
+                                        columns={columns}
+                                        data={chapters}
+                                        rowCount={chapters.length}
+                                        isLoading={chapterContainerLoading}
+                                        rowSelectionPrimaryKey="id"
+                                        enableRowSelection={row => (!isChapterDownloaded(row.original) && !isChapterQueued(row.original))}
+                                        initialState={{
+                                            pagination: {
+                                                pageIndex: 0,
+                                                pageSize: 10,
+                                            },
+                                        }}
+                                        state={{
+                                            rowSelection,
+                                        }}
+                                        hideColumns={[
+                                            {
+                                                below: 800,
+                                                hide: ["number"],
+                                            },
+                                            {
+                                                below: 600,
+                                                hide: ["scanlator", "language"],
+                                            },
+                                        ]}
+                                        onRowSelect={onRowSelectionChange}
+                                        onRowSelectionChange={setRowSelection}
+                                        className=""
+                                        tableClass="table-fixed lg:table-fixed"
+                                        tableBodyClass="border-0"
+                                        tdClass="border-[rgba(255,255,255,0.05)]"
+                                        // tableBodyClass="divide-0 space-y-2"
+                                        // trClass="p-3 border-0 bg-[--paper] rounded-lg"
+                                        // tdClass="p-3 border-0 rounded-lg"
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                    </>
+                )
+            )}
+
+            {(chapterContainer || downloadedChapterContainer) && <ChapterReaderDrawer
+                entry={entry}
+                chapterContainer={chapterContainer || downloadedChapterContainer!}
+                chapterIdToNumbersMap={chapterIdToNumbersMap}
+            />}
+
+            <DownloadedChapterList
+                entry={entry}
+                data={downloadData}
+            />
+
+            <ConfirmationDialog {...confirmDownloadUnread} />
+        </div>
+    )
+}

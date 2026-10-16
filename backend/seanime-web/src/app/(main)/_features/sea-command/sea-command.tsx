@@ -1,0 +1,297 @@
+import { SeaCommandActions } from "@/app/(main)/_features/sea-command/sea-command-actions"
+import { SeaCommandSearch } from "@/app/(main)/_features/sea-command/sea-command-search"
+import { SeaCommandSpoilers } from "@/app/(main)/_features/sea-command/sea-command-spoilers"
+import {
+    __seaCommand_torrentMagnetEpisodeNumberAtom,
+    __seaCommand_torrentMagnetLinkAtom,
+    __seaCommand_torrentMagnetMediaIdAtom,
+    __seaCommand_torrentMagnetStepAtom,
+    isMagnetLink,
+    SeaCommandTorrentMagnet,
+} from "@/app/(main)/_features/sea-command/sea-command-torrent-magnet.tsx"
+import { SeaCommand_ParsedCommandProps, useSeaCommand_ParseCommand } from "@/app/(main)/_features/sea-command/utils"
+import { CommandDialog, CommandInput, CommandList } from "@/components/ui/command"
+import { usePathname, useRouter, useSearchParams } from "@/lib/navigation"
+import { atom } from "jotai"
+import { useAtom, useSetAtom } from "jotai/react"
+import { atomWithStorage } from "jotai/utils"
+import mousetrap from "mousetrap"
+import React from "react"
+import { SeaCommandHandler } from "./config"
+import { SeaCommandInjectables } from "./sea-command-injectables"
+import { SeaCommandList } from "./sea-command-list"
+import { SeaCommandNavigation, SeaCommandUserMediaNavigation } from "./sea-command-navigation"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
+export const __seaCommand_shortcuts = atomWithStorage<string[]>("sea-command-shortcuts", ["meta+j", "q"], undefined, { getOnInit: true })
+
+export type SeaCommandContextProps = {
+    input: string
+    setInput: (input: string) => void
+    resetInput: () => void
+    close: () => void
+    select: (func?: () => void) => void
+    command: SeaCommand_ParsedCommandProps
+    scrollToTop: () => () => void
+    commandListRef: React.RefObject<HTMLDivElement | null>
+    router: {
+        pathname: string
+    }
+}
+
+export const SeaCommandContext = React.createContext<SeaCommandContextProps>({
+    input: "",
+    setInput: () => { },
+    resetInput: () => { },
+    close: () => { },
+    select: () => { },
+    command: { command: "", isCommand: false, args: [] },
+    scrollToTop: () => () => { },
+    commandListRef: React.createRef<HTMLDivElement>(),
+    router: {
+        pathname: "",
+    },
+})
+
+export function useSeaCommandContext() {
+    return React.useContext(SeaCommandContext) as SeaCommandContextProps
+}
+
+export const __seaCommand_isOpen = atom(false)
+const __seaCommand_input = atom("")
+
+export function useSeaCommand() {
+    const setOpen = useSetAtom(__seaCommand_isOpen)
+    const setInput = useSetAtom(__seaCommand_input)
+    return {
+        setSeaCommandOpen: setOpen,
+        setSeaCommandInput: setInput,
+    }
+}
+
+function isEditableTarget(target: EventTarget | null) {
+    if (!(target instanceof HTMLElement)) return false
+    if (target.isContentEditable) return true
+
+    return !!target.closest("input, textarea, select, [contenteditable='true'], [role='textbox']")
+}
+
+export function SeaCommand() {
+
+    const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
+
+    const [open, setOpen] = useAtom(__seaCommand_isOpen)
+    const [input, setInput] = useAtom(__seaCommand_input)
+    const [activeItemId, setActiveItemId] = React.useState("")
+
+    const [shortcuts, setShortcuts] = useAtom(__seaCommand_shortcuts)
+    const setMagnetStep = useSetAtom(__seaCommand_torrentMagnetStepAtom)
+    const setMagnetLink = useSetAtom(__seaCommand_torrentMagnetLinkAtom)
+    const setMagnetMediaId = useSetAtom(__seaCommand_torrentMagnetMediaIdAtom)
+    const setMagnetEpisodeNumber = useSetAtom(__seaCommand_torrentMagnetEpisodeNumberAtom)
+
+    const parsedCommandProps = useSeaCommand_ParseCommand(input)
+
+    React.useEffect(() => {
+        mousetrap.bind(shortcuts, () => {
+            setInput("")
+            React.startTransition(() => {
+                setOpen(true)
+            })
+        })
+
+        return () => {
+            mousetrap.unbind(shortcuts)
+        }
+    }, [shortcuts])
+
+    React.useEffect(() => {
+        if (!open) setInput("")
+    }, [open])
+
+    React.useEffect(() => {
+        mousetrap.bind(["s"], () => {
+            setOpen(true)
+            React.startTransition(() => {
+                setTimeout(() => {
+                    setInput("/search ")
+                }, 100)
+            })
+        })
+
+        return () => {
+            mousetrap.unbind(["s"])
+        }
+    }, [])
+
+    const commandListRef = React.useRef<HTMLDivElement>(null)
+
+    function scrollToTop() {
+        const list = commandListRef.current
+        if (!list) return () => {}
+
+        const t = setTimeout(() => {
+            list.scrollTop = 0
+            // Find and focus the first command item
+            const firstItem = list.querySelector("[cmdk-item]") as HTMLElement
+            if (firstItem) {
+                const value = firstItem.getAttribute("data-value")
+                if (value) {
+                    setActiveItemId(value)
+                }
+            }
+        }, 100)
+
+        return () => clearTimeout(t)
+    }
+
+    React.useEffect(() => {
+        const cl = scrollToTop()
+        return () => cl()
+    }, [input, pathname])
+
+    React.useEffect(() => {
+        const handlePaste = (event: ClipboardEvent) => {
+            if (IS_ANDROID_APP) return
+            if (isEditableTarget(event.target)) return
+
+            const value = event.clipboardData?.getData("text/plain")?.trim()
+            if (!value || !isMagnetLink(value)) return
+
+            event.preventDefault()
+
+            const mediaId = pathname.startsWith("/entry") ? Number(searchParams.get("id")) : NaN
+            const hasMediaId = Number.isFinite(mediaId) && mediaId > 0
+
+            setMagnetLink(value)
+            setMagnetMediaId(hasMediaId ? mediaId : null)
+            setMagnetEpisodeNumber(null)
+            setMagnetStep(hasMediaId ? "episode" : "select-anime")
+            setInput("/magnet ")
+
+            React.startTransition(() => {
+                setOpen(true)
+            })
+        }
+
+        document.addEventListener("paste", handlePaste)
+
+        return () => {
+            document.removeEventListener("paste", handlePaste)
+        }
+    }, [pathname, searchParams, setInput])
+
+    return (
+        <SeaCommandContext.Provider
+            value={{
+                input: input,
+                setInput: setInput,
+                resetInput: () => setInput(""),
+                close: () => {
+                    React.startTransition(() => {
+                        setOpen(false)
+                    })
+                },
+                select: (func?: () => void) => {
+                    func?.()
+                    setInput("")
+                },
+                scrollToTop,
+                command: parsedCommandProps,
+                commandListRef: commandListRef,
+                router: {
+                    pathname: pathname,
+                },
+            }}
+        >
+            <CommandDialog
+                open={open}
+                onOpenChange={setOpen}
+                commandProps={{
+                    value: activeItemId,
+                    onValueChange: setActiveItemId,
+                }}
+                overlayClass="bg-black/30"
+                contentClass="max-w-2xl sea-command-content"
+                commandClass="h-[300px]"
+            >
+
+                <CommandInput
+                    placeholder="Type a command or input..."
+                    value={input}
+                    onValueChange={setInput}
+                />
+                <CommandList className="mb-2" ref={commandListRef}>
+
+                    {/*Active commands*/}
+                    <SeaCommandHandler
+                        shouldShow={ctx => ctx.command.command === "search"}
+                        render={() => <SeaCommandSearch />}
+                    />
+                    <SeaCommandHandler
+                        shouldShow={ctx => (
+                            ctx.command.command === "anime"
+                            || ctx.command.command === "manga"
+                            || ctx.command.command === "library"
+                        )}
+                        render={() => <SeaCommandUserMediaNavigation />}
+                    />
+                    <SeaCommandHandler
+                        shouldShow={ctx => (!IS_ANDROID_APP && (
+                            ctx.command.command === "magnet"
+                        ))}
+                        render={() => <SeaCommandTorrentMagnet />}
+                    />
+                    <SeaCommandHandler
+                        shouldShow={ctx => (
+                            ctx.command.command === "logs"
+                            || ctx.command.command === "issue"
+                            || (!IS_ANDROID_APP && ctx.command.command === "droptorrent")
+                            || ctx.command.command === "reload"
+                            || ctx.command.command === "devtool"
+                        )}
+                        render={() => <SeaCommandActions />}
+                    />
+                    <SeaCommandHandler
+                        shouldShow={ctx => ctx.command.command === "spoilers"}
+                        render={() => <SeaCommandSpoilers />}
+                    />
+
+                    {/*Injected items*/}
+                    <SeaCommandHandler
+                        shouldShow={() => true}
+                        render={() => <SeaCommandInjectables />}
+                    />
+
+                    {/*Page items*/}
+                    {/* <SeaCommandHandler
+                     type="anime-entry"
+                     shouldShow={ctx => !ctx.command.isCommand && ctx.params.page === "anime-entry"}
+                     render={() => <SeaCommandAnimeEntry />}
+                     /> */}
+                    {/* <SeaCommandHandler
+                     type="anime-library"
+                     shouldShow={ctx => !ctx.command.isCommand && ctx.params.page === "anime-library"}
+                     render={() => <SeaCommandAnimeLibrary />}
+                     /> */}
+
+                    {/*Suggestions*/}
+                    <SeaCommandHandler
+                        shouldShow={ctx => ctx.input.startsWith("/")}
+                        render={() => <SeaCommandList />}
+                    />
+
+                    {/*Navigation*/}
+                    <SeaCommandHandler
+                        shouldShow={() => true}
+                        render={() => <SeaCommandNavigation />}
+                    />
+
+                </CommandList>
+            </CommandDialog>
+        </SeaCommandContext.Provider>
+    )
+}

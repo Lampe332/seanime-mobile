@@ -1,0 +1,283 @@
+# Development Guide
+
+A cursed but functional Android port of Seanime. The app runs the full Seanime Go backend as a foreground service and wraps the React web frontend in a WebView.
+
+## How It Works
+
+```
+┌─────────────────────────────────────────────┐
+│              Android APK                     │
+│                                              │
+│  ┌─────────────────────────────────────────┐ │
+│  │  Kotlin Shell (MainActivity + Service)  │ │
+│  │  - Foreground Service lifecycle         │ │
+│  │  - WebView loading localhost:43211      │ │
+│  │  - Permission management                │ │
+│  │  - Shutdown notification button         │ │
+│  └────────────┬────────────────────────────┘ │
+│               │ runs binary                  │
+│  ┌────────────▼────────────────────────────┐ │
+│  │  libseanime.so (Go binary)              │ │
+│  │  - Full Seanime server                  │ │
+│  │  - Embedded web assets                  │ │
+│  │  - SQLite database                      │ │
+│  │  - Torrent client                       │ │
+│  │  - AniList API, extensions, etc.        │ │
+│  └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
+```
+
+The Go binary is compiled for Android and placed in `app/src/main/jniLibs/` as `libseanime.so`. Android extracts it at install time, the foreground service runs it directly, and the app opens a WebView pointed at `localhost:43211`.
+
+---
+
+## Building the binary
+
+Follow these steps in order.
+
+### 1. Setting up
+
+Clone the official seanime repo and cd into it
+
+```bash
+git clone https://github.com/5rahim/seanime
+cd ~/seanime
+```
+
+### 2. Patch `main.go`
+
+Replace the contents of `main.go` in the root of the seanime directory with the following before building:
+
+```go
+package main
+
+import (
+	"embed"
+	"seanime/internal/server"
+	"context"
+	"net"
+)
+
+func init() {
+    net.DefaultResolver = &net.Resolver{
+        PreferGo: true,
+        Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+            d := net.Dialer{}
+            return d.DialContext(ctx, "udp", "8.8.8.8:53")
+        },
+    }
+}
+
+//go:embed all:web
+var WebFS embed.FS
+
+//go:embed internal/icon/logo.png
+var embeddedLogo []byte
+
+func main() {
+	server.StartServer(WebFS, embeddedLogo)
+}
+```
+
+This forces the Go DNS resolver and bypasses Android's broken DNS stack, which causes all external network requests to fail silently without it.
+
+### 3. Patch the `anet` dependency
+
+The `github.com/wlynxg/anet` package (pulled in by `anacrolix/torrent`, `pion/webrtc`, and others) references unexported Go runtime internals (`net.zoneCache`) that cause a **linker error** when building with `CGO_ENABLED=0` for Android. You must stub it out before building.
+
+**Create the stub:**
+
+```bash
+mkdir -p ~/seanime/patches/anet
+```
+
+```bash
+cat > ~/seanime/patches/anet/go.mod << 'EOF'
+module github.com/wlynxg/anet
+
+go 1.21
+EOF
+```
+
+```bash
+cat > ~/seanime/patches/anet/anet.go << 'EOF'
+package anet
+
+import "net"
+
+func Interfaces() ([]net.Interface, error) {
+	return net.Interfaces()
+}
+
+func InterfaceAddrs() ([]net.Addr, error) {
+	return net.InterfaceAddrs()
+}
+
+func InterfaceByIndex(index int) (*net.Interface, error) {
+	return net.InterfaceByIndex(index)
+}
+
+func InterfaceByName(name string) (*net.Interface, error) {
+	return net.InterfaceByName(name)
+}
+
+func InterfaceAddrsByInterface(ifi *net.Interface) ([]net.Addr, error) {
+	return ifi.Addrs()
+}
+
+func SetAndroidVersion(version uint) {}
+EOF
+```
+
+**Add the replace directive to `go.mod`** (run from `~/seanime`):
+
+```bash
+sed -i 's/^require /replace github.com\/wlynxg\/anet v0.0.3 => .\/patches\/anet\n\nrequire /' go.mod
+```
+
+**Verify:**
+
+```bash
+grep -A1 "replace" go.mod
+```
+
+You should see:
+```
+replace github.com/wlynxg/anet v0.0.3 => ./patches/anet
+```
+
+The stub re-exports the same public API using stdlib `net`, which works fine in Termux/Android environments where the standard network stack is intact.
+
+### 4. Build the Go Binary
+
+Follow the building steps referenced in the official seanime repo and then build the binary at the root of the directory:
+
+```bash
+go mod tidy
+GOOS=android GOARCH=arm64 CGO_ENABLED=0 go build -tags android -ldflags="-s -w" -o seanime-server .
+```
+
+Then after building the binary rename it to `libseanime.so` and place it in the correct JNI folder in the `seanime-android` repo.
+
+#### Multi-Architecture Support
+
+To build for other architectures, change `GOARCH` and place the binary in the corresponding folder:
+
+| Architecture | GOARCH | Folder |
+|---|---|---|
+| ARM64 (most modern phones) | `arm64` | `jniLibs/arm64-v8a/` |
+| ARM 32-bit | `arm` + `GOARM=7` | `jniLibs/armeabi-v7a/` |
+
+> [!IMPORTANT]
+> Building for ARM 32-bit requires `CGO_ENABLED=1`
+
+Gradle will automatically bundle the right binary for each device at install time.
+
+### 5. Build the APK
+
+Open the project in **Android Studio** or **CodeAssist** (on-device) and build from there. Manual Gradle builds are possible but brittle and not recommended.
+
+---
+
+## Permissions
+
+| Permission | Reason |
+|---|---|
+| `INTERNET` | Network access for API calls and streaming |
+| `FOREGROUND_SERVICE` | Keep server running in background |
+| `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Classifies the foreground service type |
+| `POST_NOTIFICATIONS` | Foreground service notification + shutdown button |
+
+`usesCleartextTraffic="true"` is also set in the manifest to allow the WebView to reach the Go server over `http://localhost`.
+
+---
+
+## Features
+
+| Feature | Status | Notes |
+|---|---|---|
+| Web UI | ✅ | Mobile-optimized via css injection |
+| Torrent client | ➖️ | Untested |
+| SQLite database | ✅ | Pure Go SQLite (glebarez/sqlite) |
+| File scanner | ✅️ | Works on internal storage |
+| AniList API / Extensions | ✅ | |
+| Online streaming playback | ✅ | Fully supported |
+| Torrent streaming | ✅️ | Via external player |
+| System tray | ✅️ | Partially implemented via Android notifications |
+| Discord RPC | ❌ | No named pipe IPC on Android |
+| Desktop notifications | ❌ | Could be added via Android notifications |
+| Verify ChromeDP works | ➖️ | Important, since some extensions rely on headless browser scraping |
+| Self-updater | ✅️ | Only looks for binary updates, not app updates |
+
+---
+
+## Not Planned
+
+* AndroidTV & IOS support
+* DiscordRPC support
+
+---
+
+## Debugging
+
+### Logs
+
+```bash
+# All Seanime-related logs
+adb logcat | grep -i seanime
+
+# Specific tags
+adb logcat SeanimeService:D MainActivity:D *:S
+```
+
+### Server Logs
+
+```bash
+adb shell run-as com.seanime.app ls files/logs
+adb shell run-as com.seanime.app cat files/logs/
+```
+
+### WebView Debugging
+
+WebView debugging is not enabled by default. To enable it, add this to `MainActivity.kt` inside `setupWebView()`:
+
+```kotlin
+WebView.setWebContentsDebuggingEnabled(true)
+```
+
+Then open `chrome://inspect/#devices` in Chrome.
+
+### Server Not Responding
+
+The app waits 2 seconds before loading `http://127.0.0.1:43211` and retries every 2 seconds if the server isn't up yet. If it never loads:
+
+```bash
+# Check if server started
+adb logcat | grep "Go server started"
+
+# Test server directly
+adb shell curl http://127.0.0.1:43211
+```
+
+---
+
+## Performance
+
+- **RAM**: ~150–300MB (Go server + WebView)
+- **Storage**: ~50MB binary, data varies
+- **Battery**: Moderate impact due to foreground service
+
+---
+
+## Future Improvements
+
+- [ ] Android-native notifications
+- [ ] Embedded MPV via libmpv for native torrent streaming video
+- [ ] Auto-update mechanism
+- [ ] Split APKs per architecture for smaller downloads
+
+---
+
+## License
+
+Same as the main [Seanime](https://github.com/5rahim/seanime) project.

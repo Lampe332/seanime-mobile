@@ -1,0 +1,440 @@
+import { MKVParser_ChapterInfo } from "@/api/generated/types"
+import { getChapterType, getDefaultSkipChapters, introIsOpening } from "@/app/(main)/_features/media-core/media-core-chapters"
+import { normalizeAniSkipData } from "@/app/(main)/_features/video-core/_lib/aniskip.utils"
+import { VideoCoreChapterCue } from "@/app/(main)/_features/video-core/video-core"
+import { vc_videoElement } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_videoSize } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_duration } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_currentTime } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_playbackRate } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_readyState } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_buffering } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_isMuted } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_volume } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_timeRanges } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_ended } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_paused } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_showOverlayFeedback } from "@/app/(main)/_features/video-core/video-core-overlay-display"
+import { VideoCoreTimeRangeChapter } from "@/app/(main)/_features/video-core/video-core-time-range"
+import { VideoCore_VideoPlaybackInfo } from "@/app/(main)/_features/video-core/video-core.atoms"
+import { atom } from "jotai"
+import { useSetAtom } from "jotai/react"
+import React, { useEffect } from "react"
+
+type VideoCoreAction = "seekTo" | "seek" | "togglePlay"
+
+export const vc_dispatchAction = atom(null, (get, set, action: { type: VideoCoreAction; payload?: any }) => {
+    const videoElement = get(vc_videoElement)
+    const duration = get(vc_duration)
+    let t = 0
+    if (videoElement) {
+        switch (action.type) {
+            // for smooth seeking, we don't want to peg the current time to the actual video time
+            // instead act like the target time is instantly reached
+            case "seekTo":
+                if (isNaN(duration) || duration <= 1) return
+                t = Math.min(duration, Math.max(0, action.payload.time))
+                videoElement.currentTime = t
+                set(vc_currentTime, t)
+                if (action.payload.flashTime) {
+                    set(vc_showOverlayFeedback, { message: `${vc_formatTime(t)} / ${vc_formatTime(duration)}`, type: "message" })
+                }
+                break
+            case "seek":
+                if (isNaN(duration) || duration <= 1) return
+                const currentTime = get(vc_currentTime)
+                t = Math.min(duration, Math.max(0, currentTime + action.payload.time))
+                videoElement.currentTime = t
+                set(vc_currentTime, t)
+                if (action.payload.flashTime) {
+                    set(vc_showOverlayFeedback, { message: `${vc_formatTime(t)} / ${vc_formatTime(duration)}`, type: "message" })
+                }
+                break
+            case "togglePlay":
+                videoElement.paused ? videoElement.play() : videoElement.pause()
+                break
+        }
+    }
+})
+
+export function useVideoCoreBindings(videoElement: HTMLVideoElement | null,
+    playbackInfo: VideoCore_VideoPlaybackInfo | null | undefined,
+) {
+
+    const setVideoSize = useSetAtom(vc_videoSize)
+    const setDuration = useSetAtom(vc_duration)
+    const setCurrentTime = useSetAtom(vc_currentTime)
+    const setPlaybackRate = useSetAtom(vc_playbackRate)
+    const setReadyState = useSetAtom(vc_readyState)
+    const setBuffering = useSetAtom(vc_buffering)
+    const setIsMuted = useSetAtom(vc_isMuted)
+    const setVolume = useSetAtom(vc_volume)
+    const setBuffered = useSetAtom(vc_timeRanges)
+    const setEnded = useSetAtom(vc_ended)
+    const setPaused = useSetAtom(vc_paused)
+
+    const prevRef = React.useRef({
+        videoWidth: 0,
+        videoHeight: 0,
+        duration: 0,
+        currentTime: 0,
+        playbackRate: 0,
+        readyState: 0,
+        buffering: false,
+        isMuted: false,
+        volume: 0,
+        ended: false,
+        paused: true,
+        bufferedLength: 0,
+    })
+
+    useEffect(() => {
+        if (!videoElement) return
+        const v = videoElement
+        const prev = prevRef.current
+
+        const handler = () => {
+            // only update atoms when values actually changed
+            if (prev.videoWidth !== v.videoWidth || prev.videoHeight !== v.videoHeight) {
+                prev.videoWidth = v.videoWidth
+                prev.videoHeight = v.videoHeight
+                setVideoSize({ width: v.videoWidth, height: v.videoHeight })
+            }
+            if (prev.duration !== v.duration) {
+                prev.duration = v.duration
+                setDuration(v.duration)
+            }
+            if (prev.currentTime !== v.currentTime) {
+                prev.currentTime = v.currentTime
+                setCurrentTime(v.currentTime)
+            }
+            if (prev.playbackRate !== v.playbackRate) {
+                prev.playbackRate = v.playbackRate
+                setPlaybackRate(v.playbackRate)
+            }
+            if (prev.readyState !== v.readyState) {
+                prev.readyState = v.readyState
+                setReadyState(v.readyState)
+            }
+            // Set buffering to true if readyState is less than HAVE_ENOUGH_DATA (3) and video is not paused
+            const isBuffering = v.readyState < 3 && !v.paused
+            if (prev.buffering !== isBuffering) {
+                prev.buffering = isBuffering
+                setBuffering(isBuffering)
+            }
+            if (prev.isMuted !== v.muted) {
+                prev.isMuted = v.muted
+                setIsMuted(v.muted)
+            }
+            if (prev.volume !== v.volume) {
+                prev.volume = v.volume
+                setVolume(v.volume)
+            }
+            // only check buffered ranges if the length changed (skip expensive comparison)
+            const bufferedLen = v.buffered.length
+            if (prev.bufferedLength !== bufferedLen) {
+                prev.bufferedLength = bufferedLen
+                setBuffered(v.buffered)
+            } else if (bufferedLen > 0) {
+                setBuffered(prevRanges => {
+                    const current = v.buffered
+                    if (!prevRanges || prevRanges.length !== current.length) return current
+                    for (let i = 0; i < current.length; i++) {
+                        if (prevRanges.start(i) !== current.start(i) || prevRanges.end(i) !== current.end(i)) {
+                            return current
+                        }
+                    }
+                    return prevRanges
+                })
+            }
+            if (prev.ended !== v.ended) {
+                prev.ended = v.ended
+                setEnded(v.ended)
+            }
+            if (prev.paused !== v.paused) {
+                prev.paused = v.paused
+                setPaused(v.paused)
+            }
+        }
+        const events = ["timeupdate", "loadedmetadata", "progress", "play", "pause", "ratechange", "volumechange", "ended", "loadeddata", "resize",
+            "waiting", "canplay", "stalled"]
+        events.forEach(e => v.addEventListener(e, handler))
+        handler() // initialize state once
+
+        return () => {
+            console.log("Removing video event listeners")
+            events.forEach(e => v.removeEventListener(e, handler))
+        }
+    }, [videoElement, playbackInfo?.id])
+
+}
+
+export const vc_createChapterCues = (chapters: Array<MKVParser_ChapterInfo> | undefined, duration: number): VideoCoreChapterCue[] => {
+    if (!chapters || chapters.length === 0 || duration === 0) {
+        return []
+    }
+
+    return vc_fillChapterCues(chapters.map((chapter, index) => ({
+        startTime: chapter.start,
+        endTime: chapter.end ? chapter.end : (chapters[index + 1]?.start ? chapters[index + 1].start : duration),
+        text: chapter.text || ``,
+    }))).filter(c => c.startTime !== undefined && c.endTime !== undefined && c.startTime <= duration && c.endTime <= duration)
+}
+
+export const vc_fillChapterCues = (chapters: VideoCoreChapterCue[]): VideoCoreChapterCue[] => {
+    if (!chapters || chapters.length === 0) {
+        return []
+    }
+
+    const EPS = 1e-6
+    const sorted = [...chapters].sort((a, b) => (a.startTime ?? 0) - (b.startTime ?? 0))
+    const out: VideoCoreChapterCue[] = []
+
+    for (let i = 0; i < sorted.length; i++) {
+        const cur = sorted[i]
+        const next = sorted[i + 1]
+        const start = cur.startTime ?? 0
+        let end = typeof cur.endTime === "number" ? cur.endTime : (next ? (next.startTime ?? start) : start)
+        if (end < start) end = start
+
+        // leading gap
+        if (i === 0 && start > EPS) {
+            out.push({ startTime: 0, endTime: start, text: "" })
+        }
+
+        // gap between previous output end and this start
+        const prev = out[out.length - 1]
+        if (prev) {
+            const prevEnd = prev.endTime ?? prev.startTime
+            if (start > (prevEnd ?? 0) + EPS) {
+                out.push({ startTime: prevEnd ?? 0, endTime: start, text: "" })
+            }
+        }
+
+        out.push({ startTime: start, endTime: end, text: cur.text ?? "" })
+    }
+
+    return out
+}
+
+export const vc_createChapterVTT = (chapters: Array<MKVParser_ChapterInfo> | undefined, duration: number) => {
+    if (!chapters || chapters.length === 0 || duration === 0) {
+        return ""
+    }
+
+    let vttContent = "WEBVTT\n\n"
+
+    chapters.forEach((chapter, index) => {
+        const startTime = chapter.start
+        const endTime = chapter.end ? chapter.end : (chapters[index + 1]?.start ? chapters[index + 1].start : duration)
+
+        const formatTime = (seconds: number) => {
+            const hours = Math.floor(seconds / 3600)
+            const minutes = Math.floor((seconds % 3600) / 60)
+            const secs = (seconds % 60).toFixed(3)
+            return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.padStart(6, "0")}`
+        }
+
+        vttContent += `${index + 1}\n`
+        vttContent += `${formatTime(startTime)} --> ${formatTime(endTime)}\n`
+        vttContent += `${chapter.text || ``}\n\n`
+    })
+
+    return vttContent
+}
+
+export function vc_getChapterType(name: string | null | undefined) {
+    return getChapterType(name)
+}
+
+export function vc_introIsOpening(chapters: VideoCoreTimeRangeChapter[]) {
+    return introIsOpening(chapters)
+}
+
+export function vc_getOPEDChapters(chapters: VideoCoreTimeRangeChapter[]): {
+    opening: VideoCoreTimeRangeChapter | null;
+    ending: VideoCoreTimeRangeChapter | null
+} {
+    return getDefaultSkipChapters(chapters)
+}
+
+export function isSubtitleFile(filename: string) {
+    const subRx = /\.srt$|\.ass$|\.ssa$|\.vtt$|\.txt$|\.ttml$|\.stl$/i
+    return subRx.test(filename)
+}
+
+export function detectSubtitleType(content: string): "ass" | "vtt" | "ttml" | "stl" | "srt" | "unknown" {
+    const trimmed = content.trim()
+
+    // ASS/SSA: [Script Info] or [V4+ Styles] or [V4 Styles]
+    if (
+        /^\[Script Info\]/im.test(trimmed) ||
+        /^\[V4\+ Styles\]/im.test(trimmed) ||
+        /^\[V4 Styles\]/im.test(trimmed)
+    ) {
+        return "ass"
+    }
+
+    // VTT: WEBVTT at start, optionally with BOM or comments
+    if (/^(?:\uFEFF)?WEBVTT\b/im.test(trimmed)) {
+        return "vtt"
+    }
+
+    // TTML: XML root with <tt> or <tt:tt>
+    if (
+        /^<\?xml[\s\S]*?<tt[:\s>]/im.test(trimmed) ||
+        /^<tt[:\s>]/im.test(trimmed)
+    ) {
+        return "ttml"
+    }
+
+    // STL: { ... } lines (MicroDVD/other curly-brace formats)
+    if (/^\{\d+\}/m.test(trimmed)) {
+        return "stl"
+    }
+
+    // SRT: 1\n00:00:00,000 --> 00:00:05,000
+    if (
+        /^\d+\s*\n\s*\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/m.test(trimmed) ||
+        /\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(trimmed)
+    ) {
+        return "srt"
+    }
+
+    // Fallback: check for VTT/SRT timecodes
+    if (/\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}/.test(trimmed)) {
+        return "vtt"
+    }
+    if (/\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/.test(trimmed)) {
+        return "srt"
+    }
+
+    return "unknown"
+}
+
+export function vc_createChaptersFromAniSkip(
+    aniSkipData: {
+        op: { interval: { startTime: number; endTime: number } } | null;
+        ed: { interval: { startTime: number; endTime: number } } | null
+    } | undefined,
+    duration: number,
+    mediaFormat?: string,
+): Array<MKVParser_ChapterInfo> {
+    const { op, ed } = normalizeAniSkipData(aniSkipData)
+
+    if (!op?.interval || duration <= 0) {
+        return []
+    }
+
+    const clampToDuration = (time: number) => Math.min(duration, Math.max(0, time))
+    const openingStart = op.interval.startTime > 5 ? clampToDuration(op.interval.startTime) : 0
+    const openingEnd = clampToDuration(op.interval.endTime)
+
+    if (openingEnd <= openingStart) {
+        return []
+    }
+
+    const endingStart = ed?.interval ? clampToDuration(ed.interval.startTime) : null
+    const endingEnd = ed?.interval ? clampToDuration(ed.interval.endTime) : null
+
+    const chapters: MKVParser_ChapterInfo[] = []
+
+    if (openingStart > 0) {
+        chapters.push({
+            uid: 90,
+            start: 0,
+            end: openingStart,
+            text: "Prologue",
+        })
+    }
+
+    chapters.push({
+        uid: 91,
+        start: openingStart,
+        end: openingEnd,
+        text: "Opening",
+    })
+
+    const middleEnd = endingStart ?? duration
+    if (middleEnd > openingEnd) {
+        chapters.push({
+            uid: 93,
+            start: openingEnd,
+            end: middleEnd,
+            text: mediaFormat !== "MOVIE" ? "Episode" : "Movie",
+        })
+    }
+
+    if (endingStart !== null && endingEnd !== null && endingEnd > endingStart) {
+        chapters.push({
+            uid: 92,
+            start: endingStart,
+            end: endingEnd,
+            text: "Ending",
+        })
+    }
+
+    if (endingEnd !== null && endingEnd < duration - 5) {
+        chapters.push({
+            uid: 94,
+            start: endingEnd,
+            end: duration,
+            text: (duration - endingEnd) > 0.5 * 60 ? "Ending" : "Preview",
+        })
+    }
+
+    return chapters.sort((a, b) => a.start - b.start)
+}
+
+export const vc_formatTime = (seconds: number) => {
+    const sign = seconds < 0 ? "-" : ""
+    const absSeconds = Math.abs(seconds)
+    const hours = Math.floor(absSeconds / 3600)
+    const minutes = Math.floor((absSeconds % 3600) / 60)
+    const secs = Math.floor(absSeconds % 60)
+
+    if (hours > 0) {
+        return `${sign}${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+    }
+    return `${sign}${minutes}:${secs.toString().padStart(2, "0")}`
+}
+
+export const vc_logGeneralInfo = (video: HTMLVideoElement | null) => {
+    if (!video) return
+    // MP4 container codec tests
+    console.log("HEVC main ->", video.canPlayType("video/mp4;codecs=\"hev1.1.6.L120.90\"") || "❌")
+    console.log("HEVC main 10 ->", video.canPlayType("video/mp4;codecs=\"hev1.2.4.L120.90\"") || "❌")
+    console.log("HEVC main still-picture ->", video.canPlayType("video/mp4;codecs=\"hev1.3.E.L120.90\"") || "❌")
+    console.log("HEVC range extensions ->", video.canPlayType("video/mp4;codecs=\"hev1.4.10.L120.90\"") || "❌")
+
+    // Audio codec tests
+    console.log("Dolby AC3 ->", video.canPlayType("audio/mp4; codecs=\"ac-3\"") || "❌")
+    console.log("Dolby EC3 ->", video.canPlayType("audio/mp4; codecs=\"ec-3\"") || "❌")
+
+    // GPU and hardware acceleration status
+    const canvas = document.createElement("canvas")
+    const gl = canvas.getContext("webgl2") || canvas.getContext("webgl")
+    if (gl) {
+        const debugInfo = gl.getExtension("WEBGL_debug_renderer_info")
+        if (debugInfo) {
+            console.log("GPU Vendor ->", gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL))
+            console.log("GPU Renderer ->", gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL))
+        }
+    }
+    console.log("Hardware concurrency ->", navigator.hardwareConcurrency)
+    console.log("User agent ->", navigator.userAgent)
+
+    // Web GPU
+    if (navigator.gpu) {
+        navigator.gpu.requestAdapter().then(adapter => {
+            if (adapter) {
+                console.log("WebGPU adapter ->", adapter)
+                console.log("WebGPU adapter features ->", adapter.features)
+            } else {
+                console.log("⚠️ No WebGPU adapter found.")
+            }
+        })
+    } else {
+        console.log("❌ WebGPU not supported.")
+    }
+}

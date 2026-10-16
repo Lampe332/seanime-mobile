@@ -1,0 +1,735 @@
+import { AL_BaseManga_Title } from "@/api/generated/types"
+import { AL_BaseAnime_Title } from "@/api/generated/types"
+import { AL_BaseAnime_NextAiringEpisode, AL_MediaListStatus, AL_MediaStatus } from "@/api/generated/types"
+import { ElectronYoutubeEmbed } from "@/app/(main)/_electron/electron-embed"
+import { MediaCardBodyBottomGradient } from "@/app/(main)/_features/custom-ui/item-bottom-gradients"
+import { MediaEntryProgressBadge } from "@/app/(main)/_features/media/_components/media-entry-progress-badge"
+import { imageShimmer } from "@/components/shared/image-helpers"
+import { SeaImage } from "@/components/shared/sea-image"
+import { SeaLink } from "@/components/shared/sea-link"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/components/ui/core/styling"
+import { Tooltip } from "@/components/ui/tooltip"
+import { getImageUrl } from "@/lib/server/assets"
+import { useThemeSettings } from "@/lib/theme/theme-hooks"
+import { __isElectronDesktop__ } from "@/types/constants"
+import { addSeconds, formatDistanceToNow } from "date-fns"
+import { atom, useAtom } from "jotai"
+import capitalize from "lodash/capitalize"
+import React, { memo } from "react"
+import { BiCalendarAlt } from "react-icons/bi"
+import { IoLibrarySharp } from "react-icons/io5"
+import { RiSignalTowerLine } from "react-icons/ri"
+
+type MediaEntryCardImageProps = React.ComponentProps<typeof SeaImage> & {
+    loadedClassName?: string
+    faster?: boolean
+}
+
+function MediaEntryCardImage(props: MediaEntryCardImageProps) {
+    const {
+        className,
+        loadedClassName = "opacity-100 scale-100",
+        src,
+        onLoad,
+        faster,
+        ...rest
+    } = props
+
+    const [loaded, setLoaded] = React.useState<"not-loaded" | "loaded" | "end">("not-loaded")
+    const [prevSrc, setPrevSrc] = React.useState(src)
+    const imageRef = React.useRef<HTMLImageElement | null>(null)
+
+    if (src !== prevSrc) {
+        setPrevSrc(src)
+        setLoaded("not-loaded")
+    }
+
+    React.useEffect(() => {
+        if (loaded !== "loaded") return
+
+        const timeout = setTimeout(() => {
+            setLoaded("end")
+        }, 1000)
+
+        return () => clearTimeout(timeout)
+    }, [loaded])
+
+    return (
+        <>
+            <span
+                aria-hidden="true"
+                className={cn(
+                    "absolute inset-0 z-0 bg-gradient-to-br from-gray-900/80 via-gray-800/70 to-gray-950/80",
+                    loaded !== "not-loaded" ? "opacity-0" : "opacity-100",
+                )}
+            />
+            <SeaImage
+                ref={imageRef}
+                {...rest}
+                src={src}
+                decoding="async"
+                onLoad={(event) => {
+                    setLoaded("loaded")
+                    onLoad?.(event)
+                }}
+                className={cn(
+                    className,
+                    "transition-[opacity,transform] ease-out motion-reduce:transition-none",
+                    faster ? "duration-200" : loaded === "end" ? "duration-200" : "duration-400",
+                    loaded !== "not-loaded" ? loadedClassName : (
+                        faster ? "opacity-10" : "opacity-0 scale-[0.95]"
+                    ),
+                )}
+            />
+        </>
+    )
+}
+
+export function MediaEntryCardAdultVeil(props: React.HTMLAttributes<HTMLDivElement>) {
+    const { className, ...rest } = props
+
+    return (
+        <div
+            aria-hidden="true"
+            className={cn("absolute inset-0 z-[4] overflow-hidden rounded-[--radius] bg-gray-950 opacity-[0.97]", className)}
+            {...rest}
+        >
+            <div
+                className="absolute inset-0 opacity-90"
+                style={{
+                    backgroundImage: "radial-gradient(circle at 22% 18%, rgba(90, 63, 244, 0.32), transparent 28%), radial-gradient(circle at 74% 72%, rgba(59, 130, 246, 0.24), transparent 34%), linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%)",
+                }}
+            />
+            <div
+                className="absolute inset-0 opacity-50"
+                style={{
+                    backgroundImage: "repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.10) 0 1px, transparent 1px 12px), repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 10px)",
+                }}
+            />
+            <div className="absolute inset-0 bg-black/45" />
+        </div>
+    )
+}
+
+type MediaEntryCardContainerProps = {
+    children?: React.ReactNode
+} & React.HTMLAttributes<HTMLDivElement>
+
+export function MediaEntryCardContainer(props: MediaEntryCardContainerProps) {
+
+    const {
+        children,
+        className,
+        ...rest
+    } = props
+
+    return (
+        <div
+            data-media-entry-card-container
+            className={cn(
+                "h-full col-span-1 group/media-entry-card relative flex flex-col place-content-stretch focus-visible:outline-0 flex-none",
+                className,
+            )}
+            {...rest}
+        >
+            {children}
+        </div>
+    )
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type MediaEntryCardOverlayProps = {
+    overlay?: React.ReactNode
+}
+
+export function MediaEntryCardOverlay(props: MediaEntryCardOverlayProps) {
+
+    const {
+        overlay,
+        ...rest
+    } = props
+
+    return (
+        <div
+            data-media-entry-card-overlay
+            className={cn(
+                "absolute z-[14] top-0 left-0 w-full",
+            )}
+        >{overlay}</div>
+    )
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type MediaEntryCardHoverPopupProps = {
+    children?: React.ReactNode
+    coverImage?: string
+    shouldRenderPopup?: boolean
+} & React.HTMLAttributes<HTMLDivElement>
+
+export const MediaEntryCardHoverPopup = React.memo((props: MediaEntryCardHoverPopupProps) => {
+
+    const {
+        children,
+        className,
+        coverImage,
+        shouldRenderPopup,
+        ...rest
+    } = props
+
+    const ts = useThemeSettings()
+    // const markBorderRenderingArtifacts = useAtomValue(__ui_fixBorderRenderingArtifacts)
+    const markBorderRenderingArtifacts = true
+
+    return (
+        <div
+            data-media-entry-card-hover-popup
+            data-state={shouldRenderPopup ? "open" : "closed"}
+            className={cn(
+                "group/media-entry-card-popup",
+                !ts.enableMediaCardBlurredBackground ? "bg-[--media-card-popup-background]" : "bg-gray-950/90 backdrop-blur-sm",
+                "absolute z-[15] opacity-0 scale-100 border border-[rgb(255_255_255_/_5%)] duration-150",
+                "group-hover/media-entry-card:opacity-100 group-hover/media-entry-card:scale-100",
+                "group-focus-visible/media-entry-card:opacity-100 group-focus-visible/media-entry-card:scale-100",
+                "focus-visible:opacity-100 focus-visible:scale-100",
+                "h-[105%] w-[100%] -top-[5%] rounded-[0.7rem] transition ease-in-out",
+                "transform-gpu will-change-[opacity,transform] [contain:layout_paint_style]",
+                "focus-visible:ring-2 ring-brand-400 focus-visible:outline-0",
+                "hidden lg:block", // Hide on small screens
+                markBorderRenderingArtifacts && "w-[103%] -left-[1.5%]",
+            )}
+            {...rest}
+        >
+            {/*<GlowingEffect*/}
+            {/*    spread={50}*/}
+            {/*    glow={true}*/}
+            {/*    disabled={false}*/}
+            {/*    proximity={100}*/}
+            {/*    inactiveZone={0.01}*/}
+            {/*    // movementDuration={4}*/}
+            {/*    className="opacity-15"*/}
+            {/*/>*/}
+            {/*{(ts.enableMediaCardBlurredBackground && !!coverImage) &&*/}
+            {/*    <div*/}
+            {/*        data-media-entry-card-hover-popup-image-container*/}
+            {/*        className="absolute top-0 left-0 w-full h-full rounded-[--radius] overflow-hidden"*/}
+            {/*    >*/}
+            {/*        <SeaImage*/}
+            {/*            data-media-entry-card-hover-popup-image*/}
+            {/*            src={getImageUrl(coverImage || "")}*/}
+            {/*            alt={"cover image"}*/}
+            {/*            fill*/}
+            {/*            placeholder={imageShimmer(700, 475)}*/}
+            {/*            quality={100}*/}
+            {/*            sizes="20rem"*/}
+            {/*            className="object-cover object-center transition opacity-20"*/}
+            {/*        />*/}
+
+            {/*        <div*/}
+            {/*            data-media-entry-card-hover-popup-image-blur-overlay*/}
+            {/*            className="absolute top-0 w-full h-full backdrop-blur-xl z-[0]"*/}
+            {/*        ></div>*/}
+            {/*    </div>}*/}
+
+            {shouldRenderPopup && (
+                <>
+                    {ts.enableMediaCardBlurredBackground && <div
+                        data-media-entry-card-hover-popup-image-blur-gradient
+                        className="w-full absolute top-0 h-[50%] opacity-60 bg-gradient-to-b from-30% from-[--background] to-transparent z-[2] rounded-[--radius]"
+                    />}
+
+                    <div data-media-entry-card-hover-popup-content className="p-2 h-full w-full flex flex-col justify-between relative z-[2]">
+                        {children}
+                    </div>
+                </>
+            )}
+        </div>
+    )
+})
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type MediaEntryCardHoverPopupBodyProps = {
+    children?: React.ReactNode
+} & React.HTMLAttributes<HTMLDivElement>
+
+export function MediaEntryCardHoverPopupBody(props: MediaEntryCardHoverPopupBodyProps) {
+
+    const {
+        children,
+        className,
+        ...rest
+    } = props
+
+    return (
+        <div
+            data-media-entry-card-hover-popup-body
+            className={cn(
+                "space-y-1 select-none",
+                className,
+            )}
+            {...rest}
+        >
+            {children}
+        </div>
+    )
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type MediaEntryCardHoverPopupFooterProps = {
+    children?: React.ReactNode
+} & React.HTMLAttributes<HTMLDivElement>
+
+export function MediaEntryCardHoverPopupFooter(props: MediaEntryCardHoverPopupFooterProps) {
+
+    const {
+        children,
+        className,
+        ...rest
+    } = props
+
+    return (
+        <div
+            data-media-entry-card-hover-popup-footer
+            className={cn(
+                "flex gap-2 items-center",
+                className,
+            )}
+            {...rest}
+        >
+            {children}
+        </div>
+    )
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type MediaEntryCardHoverPopupTitleSectionProps = {
+    link: string
+    bypassEntryPreloadBudget?: boolean
+    title: string
+    allTitles?: AL_BaseAnime_Title | AL_BaseManga_Title | undefined
+    season?: string
+    year?: number
+    format?: string
+    onClick?: () => void
+    onHover?: () => void
+    onHoverLeave?: () => void
+}
+
+export function MediaEntryCardHoverPopupTitleSection(props: MediaEntryCardHoverPopupTitleSectionProps) {
+
+    const {
+        link,
+        bypassEntryPreloadBudget,
+        title,
+        allTitles,
+        season,
+        year,
+        format,
+        onClick,
+        onHover,
+        onHoverLeave,
+        ...rest
+    } = props
+
+    const otherTitle = (!allTitles || allTitles?.english?.toUpperCase() === allTitles?.romaji?.toUpperCase()) ? undefined :
+        (title.toUpperCase() === allTitles.english?.toUpperCase() && !!allTitles.romaji) ? allTitles.romaji : allTitles.english
+
+
+    return (
+        <>
+            <div
+                data-media-entry-card-hover-popup-title
+                className="select-none"
+                onMouseEnter={onHover}
+                onMouseLeave={onHoverLeave}
+            >
+                <SeaLink
+                    href={!onClick ? link : undefined}
+                    bypassEntryPreloadBudget={bypassEntryPreloadBudget}
+                    className="block text-center text-pretty font-medium text-sm lg:text-base px-2 leading-none line-clamp-2 hover:text-brand-100"
+                    onClick={onClick}
+                >
+                    {title}
+                </SeaLink>
+                {!!otherTitle && <p className="text-xs text-[--muted] text-center px-4 line-clamp-1">
+                    {otherTitle}
+                </p>}
+            </div>
+            {!!year && <div>
+                <p
+                    data-media-entry-card-hover-popup-title-section-year-season
+                    className="justify-center text-sm text-[--muted] flex w-full gap-1 items-center"
+                >
+                    {/*{startCase(format || "")} - <BiCalendarAlt /> {capitalize(season ?? "")} {year}*/}
+                    <BiCalendarAlt /> {capitalize(season ?? "")} {year}{(format !== "TV" && format !== "MANGA") && ` - ${format || ""}`}
+                </p>
+            </div>}
+        </>
+    )
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type AnimeEntryCardNextAiringProps = {
+    nextAiring: AL_BaseAnime_NextAiringEpisode | undefined
+}
+
+export function AnimeEntryCardNextAiring(props: AnimeEntryCardNextAiringProps) {
+
+    const {
+        nextAiring,
+        ...rest
+    } = props
+
+    if (!nextAiring) return null
+
+    return (
+        <>
+            <div data-anime-entry-card-next-airing-container className="flex gap-1 items-center justify-center">
+                {/*<p className="text-xs min-[2000px]:text-md">Next episode:</p>*/}
+                <p data-anime-entry-card-next-airing className="text-justify font-normal text-xs min-[2000px]:text-md">
+                    Episode <span className="font-semibold">{nextAiring?.episode}</span> {formatDistanceToNow(addSeconds(new Date(),
+                    nextAiring?.timeUntilAiring), { addSuffix: true })}
+                    {/*<Badge*/}
+                    {/*    size="sm"*/}
+                    {/*    className="bg-transparent rounded-[--radius]"*/}
+                    {/*>{nextAiring?.episode}</Badge>*/}
+                </p>
+            </div>
+        </>
+    )
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type MediaEntryCardBodyProps = {
+    link: string
+    bypassEntryPreloadBudget?: boolean
+    warmEntryOnViewport?: boolean
+    type: "anime" | "manga"
+    title: string
+    season?: string
+    listStatus?: AL_MediaListStatus
+    status?: AL_MediaStatus
+    showProgressBar?: boolean
+    progress?: number
+    progressTotal?: number
+    startDate?: { year?: number, month?: number, day?: number }
+    bannerImage?: string
+    isAdult?: boolean
+    showLibraryBadge?: boolean
+    children?: React.ReactNode
+    blurAdultContent?: boolean
+    onClick?: () => void
+    hideReleasingBadge?: boolean
+}
+
+export function MediaEntryCardBody(props: MediaEntryCardBodyProps) {
+
+    const {
+        link,
+        bypassEntryPreloadBudget,
+        warmEntryOnViewport,
+        type,
+        title,
+        season,
+        listStatus,
+        status,
+        showProgressBar,
+        progress,
+        progressTotal,
+        startDate,
+        bannerImage,
+        isAdult,
+        showLibraryBadge,
+        children,
+        blurAdultContent,
+        onClick,
+        hideReleasingBadge,
+        ...rest
+    } = props
+
+    const ts = useThemeSettings()
+
+    return (
+        <>
+            <SeaLink
+                href={!onClick ? link : undefined}
+                bypassEntryPreloadBudget={bypassEntryPreloadBudget}
+                warmEntryOnViewport={warmEntryOnViewport}
+                onClick={onClick}
+                className="w-full relative focus-visible:ring-2 ring-[--brand]"
+                data-media-entry-card-body-link
+            >
+                <div
+                    data-media-entry-card-body
+                    className={cn(
+                        "media-entry-card__body aspect-[6/8] flex-none rounded-[--radius] object-cover object-center relative overflow-hidden isolate select-none",
+                    )}
+                >
+
+                    {/*[CUSTOM UI] BOTTOM GRADIENT*/}
+                    <MediaCardBodyBottomGradient />
+
+                    {(showProgressBar && progress && progressTotal) && (
+                        <div
+                            data-media-entry-card-body-progress-bar-container
+                            className={cn(
+                                "absolute top-0 w-full h-1 z-[2] bg-gray-700 left-0",
+                                listStatus === "COMPLETED" && "hidden",
+                            )}
+                        >
+                            <div
+                                data-media-entry-card-body-progress-bar
+                                className={cn(
+                                    "h-1 absolute z-[2] left-0 bg-gray-200 transition-all",
+                                    (listStatus === "CURRENT") ? "bg-brand-400" : "bg-gray-400",
+                                )}
+                                style={{
+                                    width: `${String(Math.ceil((progress / progressTotal) * 100))}%`,
+                                }}
+                            ></div>
+                        </div>
+                    )}
+
+                    {(showLibraryBadge) &&
+                        <div data-media-entry-card-body-library-badge className="absolute z-[1] left-0 top-0">
+                            <Badge
+                                size="xl" intent="warning-solid"
+                                className="rounded-[--radius] rounded-bl-none rounded-tr-none bg-amber-600/80 text-amber-950"
+                            ><IoLibrarySharp /></Badge>
+                        </div>}
+
+                    {/*RELEASING BADGE*/}
+                    {(status === "RELEASING" || status === "NOT_YET_RELEASED") && !hideReleasingBadge &&
+                        <div data-media-entry-card-body-releasing-badge-container className="absolute z-[10] right-1 top-2">
+                            <Badge intent={status === "RELEASING" ? "primary-solid" : "zinc-solid"} size="lg"><RiSignalTowerLine /></Badge>
+                        </div>}
+
+
+                    {children}
+
+                    <MediaEntryCardImage
+                        data-media-entry-card-body-image
+                        src={getImageUrl(bannerImage || "")}
+                        alt={""}
+                        fill
+                        placeholder={imageShimmer(700, 475)}
+                        quality={100}
+                        sizes="20rem"
+                        className={cn(
+                            "object-cover object-center",
+                            "group-hover/media-entry-card:scale-110",
+                        )}
+                        loadedClassName={cn("scale-100", (blurAdultContent && isAdult) ? "opacity-80" : "opacity-100")}
+                    />
+
+                    {(blurAdultContent && isAdult) && <MediaEntryCardAdultVeil data-media-entry-card-body-blur-adult-content-overlay />}
+                </div>
+            </SeaLink>
+        </>
+    )
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type MediaEntryCardTitleSectionProps = {
+    title: string
+    season?: string
+    year?: number
+    format?: string
+}
+
+export function MediaEntryCardTitleSection(props: MediaEntryCardTitleSectionProps) {
+
+    const {
+        title,
+        season,
+        year,
+        format,
+        ...rest
+    } = props
+
+    return (
+        <div data-media-entry-card-title-section className="pt-2 space-y-1 flex flex-col justify-between h-full select-none">
+            <div>
+                <p
+                    data-media-entry-card-title-section-title
+                    className="text-pretty font-medium min-[2000px]:font-semibold text-sm lg:text-[1rem] min-[2000px]:text-lg line-clamp-2"
+                >{title}</p>
+            </div>
+            {(!!season || !!year) && <div>
+                <p data-media-entry-card-title-section-year-season className="text-sm text-[--muted] inline-flex gap-1 items-center">
+                    {capitalize(season ?? "")} {year}
+                </p>
+            </div>}
+        </div>
+    )
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const __mediaEntryCard_hoveredPopupId = atom<number | undefined>(undefined)
+
+export const MediaEntryCardHoverPopupBanner = memo(({
+    trailerId,
+    showProgressBar,
+    mediaId,
+    progress,
+    progressTotal,
+    forceShowProgress,
+    showTrailer,
+    disableAnimeCardTrailers,
+    bannerImage,
+    isAdult,
+    blurAdultContent,
+    link,
+    bypassEntryPreloadBudget,
+    listStatus,
+    status,
+    onClick,
+}: {
+    mediaId: number
+    trailerId?: string
+    progress?: number
+    progressTotal?: number
+    forceShowProgress?: boolean
+    bannerImage?: string
+    showProgressBar: boolean
+    showTrailer?: boolean
+    link: string
+    bypassEntryPreloadBudget?: boolean
+    disableAnimeCardTrailers?: boolean
+    blurAdultContent?: boolean
+    isAdult?: boolean
+    listStatus?: AL_MediaListStatus
+    status?: AL_MediaStatus
+    onClick?: () => void
+}) => {
+
+    const [trailerLoaded, setTrailerLoaded] = React.useState(false)
+    const [actionPopupHoverId] = useAtom(__mediaEntryCard_hoveredPopupId)
+    const actionPopupHover = actionPopupHoverId === mediaId
+    const [trailerEnabled, setTrailerEnabled] = React.useState(!!trailerId && !disableAnimeCardTrailers && showTrailer)
+
+    const ts = useThemeSettings()
+
+    React.useEffect(() => {
+        setTrailerEnabled(!!trailerId && !disableAnimeCardTrailers && showTrailer)
+    }, [!!trailerId, !disableAnimeCardTrailers, showTrailer])
+
+    return <SeaLink
+        tabIndex={-1}
+        href={!onClick ? link : undefined}
+        bypassEntryPreloadBudget={bypassEntryPreloadBudget}
+        onClick={onClick}
+        data-media-entry-card-hover-popup-banner-link
+    >
+        <div
+            data-media-entry-card-hover-popup-banner-container
+            className={cn("aspect-[4/2] relative rounded-t-[--radius] mb-2 cursor-pointer overflow-hidden isolate",
+                ts.enableMediaCardBlurredBackground && "rounded-[--radius]")}
+        >
+            {(showProgressBar && progress && listStatus && progressTotal && progress !== progressTotal) &&
+                <div
+                    data-media-entry-card-hover-popup-banner-progress-bar-container
+                    className="absolute overflow-hidden top-0 w-full h-1 z-[2] bg-gray-700 left-0"
+                >
+                    <div
+                        data-media-entry-card-hover-popup-banner-progress-bar
+                        className={cn(
+                            "h-1 absolute z-[2] left-0 bg-gray-200 transition-all",
+                            (listStatus === "CURRENT" || listStatus === "COMPLETED") ? "bg-brand-400" : "bg-gray-400",
+                        )}
+                        style={{ width: `${String(Math.ceil((progress / progressTotal) * 100))}%` }}
+                    ></div>
+                </div>}
+
+            {(status === "RELEASING" || status === "NOT_YET_RELEASED") &&
+                <div data-media-entry-card-hover-popup-banner-releasing-badge-container className="absolute z-[10] right-1 top-2">
+                    <Tooltip
+                        trigger={<Badge intent={status === "RELEASING" ? "primary-solid" : "zinc-solid"} size="lg"><RiSignalTowerLine /></Badge>}
+                    >
+                        {status === "RELEASING" ? "Releasing" : "Not yet released"}
+                    </Tooltip>
+                </div>}
+
+            {(!!bannerImage) ? <div className="absolute object-cover top-0 object-center w-full h-full overflow-hidden">
+                <MediaEntryCardImage
+                    data-media-entry-card-hover-popup-banner-image
+                    src={getImageUrl(bannerImage || "")}
+                    alt={"banner"}
+                    fill
+                    placeholder={imageShimmer(700, 475)}
+                    quality={100}
+                    sizes="20rem"
+                    faster
+                    className={cn(
+                        "object-cover top-0 object-center transition-transform duration-200",
+                        // "scale-[1.04] group-hover/media-entry-card-popup:scale-100 delay-500",
+                        trailerLoaded && "hidden",
+                    )}
+                />
+            </div> : <div
+                data-media-entry-card-hover-popup-banner-image-gradient
+                className="h-full block absolute w-full bg-gradient-to-t from-gray-800 to-transparent"
+            ></div>}
+
+            {(blurAdultContent && isAdult) && <MediaEntryCardAdultVeil data-media-entry-card-hover-popup-banner-blur-adult-content-overlay />}
+
+            <div data-media-entry-card-hover-popup-banner-progress-badge-container className="absolute z-[4] left-0 bottom-0">
+                <MediaEntryProgressBadge
+                    progress={progress}
+                    progressTotal={progressTotal}
+                    forceShowProgress={forceShowProgress}
+                    forceShowTotal
+                />
+            </div>
+
+            {(trailerEnabled && actionPopupHover) && <div
+                data-media-entry-card-hover-popup-banner-trailer-container
+                className={cn(
+                    "absolute w-full h-full overflow-hidden rounded-[--radius]",
+                    !trailerLoaded && "hidden",
+                )}
+            >
+                {__isElectronDesktop__ && <ElectronYoutubeEmbed
+                    isCompact
+                    trailerId={`${trailerId}`}
+                    onLoad={() => setTimeout(() => setTrailerLoaded(true), 1500)}
+                    onError={() => setTrailerEnabled(false)}
+                />}
+                {!__isElectronDesktop__ && <iframe
+                    data-media-entry-card-hover-popup-banner-trailer
+                    {...({ credentialless: "true" } as any)}
+                    src={`https://www.youtube-nocookie.com/embed/${trailerId}?autoplay=1&controls=0&mute=1&disablekb=1&loop=1&vq=medium&playlist=${trailerId}&cc_lang_pref=ja&enablejsapi=true`}
+                    className={cn(
+                        "aspect-video w-full absolute left-0 h-[calc(100%+120px)] top-[50%] -translate-y-1/2",
+                    )}
+                    // playsInline
+                    // preload="none"
+                    // loop
+                    allow="autoplay"
+                    // muted
+                    onLoad={() => setTimeout(() => setTrailerLoaded(true), 1000)}
+                    onError={() => setTrailerEnabled(false)}
+                />}
+            </div>}
+
+            {<div
+                data-media-entry-card-hover-popup-banner-gradient
+                className={cn(
+                    "w-full absolute -bottom-1 h-[80%] from-10% bg-gradient-to-t from-[--media-card-popup-background] to-transparent z-[2]",
+                    ts.enableMediaCardBlurredBackground && "from-[--background] from-0% opacity-60",
+                )}
+            />}
+        </div>
+    </SeaLink>
+})

@@ -1,0 +1,36 @@
+# Gradle files
+.gradle/
+build/
+
+# Local configuration
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+.DS_Store
+
+# Device specific
+captures/
+
+# External native build (if you're compiling Go with NDK)
+.externalNativeBuild/
+.cxx/
+
+# Signing files
+*.jks
+*.keystore
+*.p12
+signing/password.txt
+signing/
+*.apk
+*.aab
+*.apks
+.kotlin/
+__pycache__/
+*.log
+backend/seanime-web/node_modules/
+backend/seanime-web/out/
+
+tests/plugin-dom-test.js

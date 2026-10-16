@@ -1,0 +1,349 @@
+import { Anime_Episode } from "@/api/generated/types"
+import { EpisodeCardImage } from "@/app/(main)/_features/anime/_components/episode-card-image"
+import { SeaContextMenu } from "@/app/(main)/_features/context-menu/sea-context-menu"
+import { EpisodeItemBottomGradient } from "@/app/(main)/_features/custom-ui/item-bottom-gradients"
+import { MediaEntryCardAdultVeil } from "@/app/(main)/_features/media/_components/media-entry-card-components"
+import { useMediaPreviewModal } from "@/app/(main)/_features/media/_containers/media-preview-modal"
+import { usePlaylistEditorManager } from "@/app/(main)/_features/playlists/lib/playlist-editor-manager"
+import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
+import { imageShimmer } from "@/components/shared/image-helpers"
+import { SeaImage } from "@/components/shared/sea-image"
+import { ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuTrigger } from "@/components/ui/context-menu"
+import { cn } from "@/components/ui/core/styling"
+import { ProgressBar } from "@/components/ui/progress-bar"
+import { usePathname, useRouter } from "@/lib/navigation"
+import { getImageUrl } from "@/lib/server/assets"
+import { getSpoilerFreeAnimeImage, useEpisodeSpoilerState } from "@/lib/theme/anime-spoilers"
+import { useThemeSettings } from "@/lib/theme/theme-hooks"
+import React from "react"
+import { BiAddToQueue } from "react-icons/bi"
+import { FaCirclePlay } from "react-icons/fa6"
+import { LuDock, LuEye } from "react-icons/lu"
+import { PluginEpisodeCardContextMenuItems } from "../../plugin/actions/plugin-actions"
+
+type EpisodeCardProps = {
+    title: React.ReactNode
+    actionIcon?: React.ReactElement | null
+    image?: string
+    spoilerSafeImage?: string
+    onClick?: () => void
+    topTitle?: string
+    spoilerSafeTopTitle?: string
+    meta?: string
+    type?: "carousel" | "grid"
+    spoilerMode?: "blur" | "replace"
+    spoilerActive?: boolean
+    contextType?: string // used for plugin context menu item filtering
+    isInvalid?: boolean
+    containerClass?: string
+    episodeNumber?: number
+    progressNumber?: number
+    watchedProgress?: number
+    progressTotal?: number
+    mRef?: React.RefObject<HTMLDivElement | null>
+    hasDiscrepancy?: boolean
+    length?: string | number | null
+    imageClass?: string
+    badge?: React.ReactNode
+    isAdult?: boolean
+    percentageComplete?: number
+    minutesRemaining?: number
+    allowAnimeInfo?: boolean
+    forceSingleContainer?: boolean
+    additionalContextMenuItems?: React.ReactNode
+    fallbackImage?: (string | undefined)[] | undefined
+    anime?: {
+        id?: number
+        image?: string
+        title?: string
+    }
+    episode?: Anime_Episode // Optional, used for plugin actions
+    disableAnimation?: boolean
+} & Omit<React.ComponentPropsWithoutRef<"div">, "title">
+
+export function EpisodeCard(props: EpisodeCardProps) {
+
+    const {
+        children,
+        actionIcon = props.actionIcon !== null ? <FaCirclePlay className="opacity-50" /> : undefined,
+        image,
+        spoilerSafeImage,
+        onClick,
+        topTitle,
+        spoilerSafeTopTitle,
+        meta,
+        title,
+        type = "carousel",
+        spoilerMode = "blur",
+        spoilerActive,
+        isInvalid,
+        className,
+        containerClass,
+        mRef,
+        episodeNumber,
+        progressTotal,
+        progressNumber,
+        watchedProgress,
+        hasDiscrepancy,
+        length,
+        imageClass,
+        badge,
+        isAdult,
+        percentageComplete,
+        minutesRemaining,
+        allowAnimeInfo,
+        forceSingleContainer,
+        anime,
+        episode,
+        contextType,
+        additionalContextMenuItems,
+        fallbackImage,
+        disableAnimation,
+        ...rest
+    } = props
+
+    const router = useRouter()
+    const pathname = usePathname()
+    const serverStatus = useServerStatus()
+    const ts = useThemeSettings()
+    const { setPreviewModalMediaId } = useMediaPreviewModal()
+    const { selectEpisodeToAddAndOpenEditor } = usePlaylistEditorManager()
+
+    const showAnimeInfo = ts.showEpisodeCardAnimeInfo && !!anime && allowAnimeInfo
+    const showTotalEpisodes = React.useMemo(() => !!progressTotal && progressTotal > 1, [progressTotal])
+    const offset = React.useMemo(() => hasDiscrepancy ? 1 : 0, [hasDiscrepancy])
+
+    // const missingImage = fallbackImage?.includes(image || "")
+    const missingImage = false
+
+    const isSingleContainer = ts.useLegacyEpisodeCard || forceSingleContainer
+    const spoiler = useEpisodeSpoilerState(ts, {
+        mediaId: anime?.id ?? episode?.baseAnime?.id,
+        episodeNumber,
+        watchedProgress,
+        spoilerMode,
+        spoilerActive,
+    })
+    const displayTopTitle = spoiler.replaceTitle
+        ? spoilerSafeTopTitle || topTitle
+        : topTitle
+    const displayImage = spoiler.replaceImage
+        ? spoilerSafeImage || getSpoilerFreeAnimeImage(episode?.baseAnime) || anime?.image || image
+        : image
+    const showAdultVeil = !!serverStatus?.settings?.anilist?.blurAdultContent && !!(isAdult ?? episode?.baseAnime?.isAdult)
+
+    const Meta = () => (
+        <div data-episode-card-info-container className="relative z-[3] w-full space-y-0">
+            {(displayTopTitle !== title || showTotalEpisodes) && <p
+                data-episode-card-title
+                className={cn(
+                    "w-[80%] line-clamp-1 text-md md:text-lg transition-colors duration-200 text-[--foreground] font-semibold",
+                    isSingleContainer && "text-sm max-w-[80%] text-white/60",
+                    spoiler.blurTitle && "blur-sm",
+                )}
+            >
+                {displayTopTitle?.replaceAll("`", "'")}
+            </p>}
+            <div data-episode-card-info-content className="w-full justify-between flex flex-none items-center">
+                <p data-episode-card-subtitle className="line-clamp-1 flex items-center">
+                    <span className="flex-none text-base md:text-xl font-medium">{title}{showTotalEpisodes ?
+                        <span className="opacity-40">{` / `}{progressTotal! - offset}</span>
+                        : ``}</span>
+                    <span className="text-[--muted] text-base md:text-lg ml-2 font-normal line-clamp-1">{showAnimeInfo
+                        ? "- " + anime.title
+                        : ""}</span>
+                </p>
+                {(!!meta || !!length) && (!isSingleContainer || !minutesRemaining) && (
+                    <p data-episode-card-meta-text className="text-[--muted] flex-none ml-2 text-sm md:text-base line-clamp-2 text-right">
+                        {meta}{!!meta && !!length && `  • `}{length ? `${length}m` : ""}
+                    </p>)}
+            </div>
+        </div>
+    )
+
+    return (
+        <SeaContextMenu
+            hideMenuIf={!anime?.id}
+            content={
+                <ContextMenuGroup>
+                    <ContextMenuLabel className="text-[--muted] line-clamp-1 py-0 my-2">
+                        {anime?.title}
+                    </ContextMenuLabel>
+
+                    {pathname !== "/entry" && <>
+                        {!serverStatus?.isOffline && <ContextMenuItem
+                            onClick={() => {
+                                setPreviewModalMediaId(anime?.id || 0, "anime")
+                            }}
+                        >
+                            <LuEye /> Preview
+                        </ContextMenuItem>}
+                        <ContextMenuItem
+                            onClick={() => {
+                                if (!serverStatus?.isOffline) {
+                                    router.push(`/entry?id=${anime?.id}`)
+                                } else {
+                                    router.push(`/offline/entry/anime?id=${anime?.id}`)
+                                }
+                            }}
+                        >
+                            <LuDock /> Open page
+                        </ContextMenuItem>
+                    </>}
+                    {(props.episode && anime?.id && props.episode?.aniDBEpisode) && <ContextMenuItem
+                        onClick={() => {
+                            selectEpisodeToAddAndOpenEditor(anime.id!, props.episode?.aniDBEpisode!)
+                        }}
+                    >
+                        <BiAddToQueue /> Add to Playlist
+                    </ContextMenuItem>}
+
+                    {additionalContextMenuItems}
+
+                    <PluginEpisodeCardContextMenuItems episode={props.episode} type={contextType} />
+
+                </ContextMenuGroup>
+            }
+        >
+            <ContextMenuTrigger>
+                <div
+                    ref={mRef}
+                    className={cn(
+                        "rounded-xl space-y-2 flex-none group/episode-card cursor-pointer",
+                        "select-none",
+                        type === "carousel" && "w-full",
+                        type === "grid" && "aspect-[4/2] w-72 lg:w-[26rem]",
+                        className,
+                        containerClass,
+                    )}
+                    onClick={onClick}
+                    data-episode-card
+                    data-episode-number={episodeNumber}
+                    data-media-id={anime?.id}
+                    data-progress-total={progressTotal}
+                    data-progress-number={progressNumber}
+                    {...rest}
+                >
+                    <div
+                        data-episode-card-image-container
+                        className={cn(
+                            "w-full h-full rounded-xl overflow-hidden z-[1] aspect-[4/2] relative bg-[--background]",
+                            // "lg:group-hover/episode-card:scale-[1.02] lg:group-hover/episode-card:translate-y-1  transition-transform
+                            // duration-200",
+                        )}
+                    >
+                        {!!displayImage ? <EpisodeCardImage
+                            data-episode-card-image
+                            src={getImageUrl(displayImage)}
+                            alt={""}
+                            fill
+                            quality={100}
+                            placeholder={imageShimmer(700, 475)}
+                            sizes="20rem"
+                            disabled={disableAnimation}
+                            className="object-cover rounded-xl object-center"
+                            loadedClassName={cn(
+                                "opacity-100 scale-100 lg:group-hover/episode-card:scale-[1.02]",
+                                showAdultVeil && "opacity-80",
+                                spoiler.blurImage && "blur-2xl scale-110 lg:group-hover/episode-card:scale-110",
+                                imageClass,
+                            )}
+                        /> : <div
+                            data-episode-card-image-bottom-gradient
+                            className="h-full block rounded-xl absolute w-full bg-gradient-to-t from-gray-800 to-transparent z-[2]"
+                        ></div>}
+
+                        {showAdultVeil && (
+                            <MediaEntryCardAdultVeil
+                                data-episode-card-adult-content-overlay
+                                className="z-[2]"
+                            />
+                        )}
+
+                        {/*[CUSTOM UI] BOTTOM GRADIENT*/}
+                        <EpisodeItemBottomGradient isSingleContainer={isSingleContainer} className="rounded-b-xl" />
+
+                        {!!badge && <div className="absolute left-2 top-2 z-[3]">
+                            {badge}
+                        </div>}
+
+                        {isSingleContainer && (
+                            <div className="absolute bottom-0 left-0 w-full h-fit z-[3] p-3">
+                                <Meta />
+                            </div>
+                        )}
+
+                        {(serverStatus?.settings?.library?.enableWatchContinuity && !!percentageComplete) &&
+                            <div
+                                data-episode-card-progress-bar-container
+                                className="absolute bottom-0 left-0 w-full z-[3]"
+                                data-episode-number={episodeNumber}
+                                data-media-id={anime?.id}
+                                data-progress-total={progressTotal}
+                                data-progress-number={progressNumber}
+                            >
+                                <ProgressBar value={percentageComplete} size="xs" />
+                                {!!minutesRemaining && <div
+                                    className={cn(
+                                        "absolute bottom-2 right-2 text-[--muted]",
+                                        isSingleContainer && "right-4 bottom-4 ",
+                                    )}
+                                >
+                                    <span>{minutesRemaining}m left</span>
+                                </div>}
+                            </div>}
+
+                        <div
+                            data-episode-card-action-icon
+                            className={cn(
+                                "group-hover/episode-card:opacity-100 text-6xl text-gray-200",
+                                "cursor-pointer opacity-0 transition-opacity bg-gray-950 bg-opacity-60 z-[2] absolute w-[105%] h-[105%] items-center justify-center",
+                                "hidden md:flex",
+                            )}
+                        >
+                            {actionIcon && actionIcon}
+                        </div>
+                        {missingImage && !topTitle?.toLowerCase?.()?.includes?.("movie") && <div
+                            data-episode-card-action-icon
+                            className={cn(
+                                "px-12 text-gray-200",
+                                "cursor-pointer bg-gray-900/50 z-[1] absolute w-[105%] h-[105%] items-center justify-center",
+                                "hidden md:flex flex-col gap-1",
+                            )}
+                        >
+                            <div className="bg-gray-900/70 px-3 py-2 rounded-lg text-center">
+                                {/*{topTitle !== title && <p className="line-clamp-1 text-[--muted]">{topTitle}</p>}*/}
+                                <p className="text-2xl tracking-wide">{title}</p>
+                            </div>
+                        </div>}
+
+                        {/*{isInvalid &&*/}
+                        {/*    <p data-episode-card-invalid-metadata className="text-red-300 opacity-50 absolute left-2 bottom-2 z-[2]">No metadata*/}
+                        {/*                                                                                                             found</p>}*/}
+                    </div>
+                    {(showAnimeInfo && !isSingleContainer) ? <div data-episode-card-anime-info-container className="flex gap-3 items-center">
+                        <div
+                            data-episode-card-anime-image-container
+                            className="flex-none w-12 aspect-[5/6] rounded-lg overflow-hidden z-[1] relative hidden"
+                        >
+                            {!!anime?.image && <SeaImage
+                                data-episode-card-anime-image
+                                src={getImageUrl(anime.image)}
+                                alt={""}
+                                fill
+                                quality={100}
+                                placeholder={imageShimmer(700, 475)}
+                                sizes="20rem"
+                                className={cn(
+                                    "object-cover rounded-lg object-center transition lg:group-hover/episode-card:scale-105 duration-200",
+                                    imageClass,
+                                )}
+                            />}
+                        </div>
+                        <Meta />
+                    </div> : !isSingleContainer ? <Meta /> : null}
+                </div>
+            </ContextMenuTrigger>
+        </SeaContextMenu>
+    )
+}

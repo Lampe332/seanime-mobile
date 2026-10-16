@@ -1,0 +1,577 @@
+import { Extension_Extension, ExtensionRepo_StoredPluginSettingsData } from "@/api/generated/types"
+import {
+    useGetPluginSettings,
+    useListDevelopmentModeExtensions,
+    useReloadExternalExtension,
+    useSetPluginSettingsPinnedTrays,
+} from "@/api/hooks/extensions.hooks"
+import { WebSocketContext } from "@/app/(main)/_atoms/websocket.atoms"
+import { DebugLogEntry } from "@/app/(main)/_features/plugin/tray/plugin-debug-window.tsx"
+import { maxDebugLogs } from "@/app/(main)/_features/plugin/tray/plugin-debug-window.tsx"
+import { PluginDebugWindow } from "@/app/(main)/_features/plugin/tray/plugin-debug-window.tsx"
+import { PluginTray, TrayIcon } from "@/app/(main)/_features/plugin/tray/plugin-tray"
+import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
+import { useServerDisabledFeatures } from "@/app/(main)/_hooks/use-server-status"
+import { SeaImage } from "@/components/shared/sea-image"
+import { Badge } from "@/components/ui/badge"
+import { IconButton } from "@/components/ui/button"
+import { cn } from "@/components/ui/core/styling"
+import { Popover } from "@/components/ui/popover"
+import { Tooltip } from "@/components/ui/tooltip"
+import { usePathname } from "@/lib/navigation"
+import { WSEvents } from "@/lib/server/ws-events"
+import { useWindowSize } from "@uidotdev/usehooks"
+import { useAtom } from "jotai/react"
+import { atom } from "jotai/vanilla"
+import React from "react"
+import { LuSquareTerminal } from "react-icons/lu"
+import { LuBlocks, LuCircleDashed, LuCircuitBoard, LuComponent, LuRefreshCw } from "react-icons/lu"
+import { TbPinned, TbPinnedFilled } from "react-icons/tb"
+import {
+    usePluginListenDebugClearEvent,
+    usePluginListenDebugLogEvent,
+    usePluginListenTrayBadgeUpdatedEvent,
+    usePluginListenTrayCloseEvent,
+    usePluginListenTrayIconEvent,
+    usePluginListenTrayOpenEvent,
+    usePluginSendListTrayIconsEvent,
+} from "../generated/plugin-events"
+
+export const __plugin_trayIconsAtom = atom<TrayIcon[]>([])
+
+export const __plugin_hasNavigatedAtom = atom<boolean>(false)
+
+export const __plugin_unpinnedTrayIconClickedAtom = atom<TrayIcon | null>(null)
+
+export const __plugin_openedTrayPlugin = atom<string | null>(null)
+
+const ExtensionList = ({
+    place,
+    developmentModeExtensions,
+    debugCounts,
+    isReloadingExtension,
+    openDebugWindow,
+    reloadExternalExtension,
+    trayIcons,
+    settings,
+    width,
+}: {
+    place: "sidebar" | "top";
+    developmentModeExtensions: Extension_Extension[];
+    debugCounts: Record<string, number>;
+    isReloadingExtension: boolean;
+    openDebugWindow: (extensionId: string) => void;
+    reloadExternalExtension: (params: { id: string }) => void;
+    trayIcons: TrayIcon[];
+    settings: ExtensionRepo_StoredPluginSettingsData | undefined;
+    width: number | null;
+}) => {
+
+    const { mutate: setPluginSettingsPinnedTrays, isPending: isSettingPluginSettingsPinnedTrays } = useSetPluginSettingsPinnedTrays()
+
+    const pinnedTrayPluginIds = settings?.pinnedTrayPluginIds || []
+
+    const isPinned = (extensionId: string) => pinnedTrayPluginIds.includes(extensionId)
+
+    const [unpinnedTrayIconClicked, setUnpinnedTrayIconClicked] = useAtom(__plugin_unpinnedTrayIconClickedAtom)
+    const [openedTrayPlugin, setOpenedTrayPlugin] = useAtom(__plugin_openedTrayPlugin)
+
+
+    const [trayIconListOpen, setTrayIconListOpen] = React.useState(false)
+
+    const pinnedTrayIcons = trayIcons.filter(trayIcon => isPinned(trayIcon.extensionId) || trayIcon.extensionId === unpinnedTrayIconClicked?.extensionId)
+    const unpinnedBadgeCount = trayIcons.filter(trayIcon => !isPinned(trayIcon.extensionId) && !!trayIcon.badgeNumber).length
+
+    usePluginListenTrayOpenEvent((data) => {
+        if (!data.extensionId) return
+
+        if (!isPinned(data.extensionId)) {
+            setUnpinnedTrayIconClicked(trayIcons.find(t => t.extensionId === data.extensionId) || null)
+            setOpenedTrayPlugin(data.extensionId)
+        }
+    }, "")
+
+    usePluginListenTrayCloseEvent((data) => {
+        if (!data.extensionId) return
+
+        if (!isPinned(data.extensionId) && unpinnedTrayIconClicked?.extensionId === data.extensionId) {
+            setUnpinnedTrayIconClicked(null)
+        }
+        if (openedTrayPlugin === data.extensionId) {
+            setOpenedTrayPlugin(null)
+        }
+    }, "")
+
+    const [pluginQuery, setPluginQuery] = React.useState("")
+    const filteredTrayIcons = trayIcons.filter(icon => icon.extensionName.toLocaleLowerCase().includes(pluginQuery.trim().toLocaleLowerCase()))
+    const renderTrayList = () => (
+        <div className="w-full min-w-0 space-y-3">
+            <input type="search" aria-label="Plugins suchen" placeholder="Plugins suchen…"
+                value={pluginQuery} onChange={event => setPluginQuery(event.target.value)}
+                className="w-full min-h-11 rounded-lg border border-[--border] bg-[--background] px-3 text-sm" />
+                    <div className="space-y-2 max-h-[min(50dvh,360px)] overflow-y-auto overscroll-contain" data-plugin-sidebar-debug-popover-content>
+                        {/* <div className="text-sm">
+                         <p className="font-bold">
+                         Plugins
+                         </p>
+                         </div> */}
+                        {filteredTrayIcons.map(trayIcon => (
+                            <div
+                                key={trayIcon.extensionId}
+                                className="flex min-h-14 items-center gap-2 justify-between bg-gray-900 hover:bg-[--subtle] rounded-xl p-2 max-w-full min-w-0"
+                            >
+                                <button
+                                    type="button"
+                                    aria-label={`Open ${trayIcon.extensionName}`}
+                                    className="flex flex-1 min-h-11 items-center gap-3 text-left min-w-0"
+                                    onClick={() => {
+                                        setUnpinnedTrayIconClicked(trayIcon)
+                                        setTrayIconListOpen(false)
+                                    }}
+                                >
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden relative flex-none">
+                                        {trayIcon.iconUrl ? <SeaImage
+                                            src={trayIcon.iconUrl}
+                                            alt="logo"
+                                            fill
+                                            className="p-1 w-full h-full object-contain"
+                                            data-plugin-tray-icon-image
+                                            isExternal
+                                        /> : <div
+                                            className="w-8 h-8 rounded-full flex items-center justify-center flex-none"
+                                            data-plugin-tray-icon-image-fallback
+                                        >
+                                            <LuCircleDashed className="text-2xl" />
+                                        </div>}
+                                    </div>
+                                    <p className="text-sm font-medium break-words whitespace-normal min-w-0">{trayIcon.extensionName}</p>
+                                    {!!trayIcon.badgeNumber && <Badge
+                                        intent={`${trayIcon.badgeIntent}-solid` as any}
+                                        size="sm"
+                                        className="select-none pointer-events-none"
+                                        data-plugin-tray-list-badge
+                                    >
+                                        {trayIcon.badgeNumber}
+                                    </Badge>}
+                                </button>
+                                <div className="flex items-center gap-1 flex-none">
+                                    {/* <IconButton
+                                     intent="gray-basic"
+                                     size="sm"
+                                     icon={<LuRefreshCw className="size-4" />}
+                                     className="rounded-full"
+                                     onClick={() => reloadExternalExtension({ id: trayIcon.extensionId })}
+                                     loading={isReloadingExtension}
+                                     /> */}
+                                    <Tooltip
+                                        trigger={<div>
+                                            {isPinned(trayIcon.extensionId) ? <IconButton
+                                                aria-label={`Unpin ${trayIcon.extensionName}`}
+                                                intent="primary-basic"
+                                                size="sm"
+                                                icon={<TbPinnedFilled className="size-5" />}
+                                                className="rounded-full min-w-11 min-h-11"
+                                                onClick={() => {
+                                                    setPluginSettingsPinnedTrays({
+                                                        pinnedTrayPluginIds: pinnedTrayPluginIds.filter(id => id !== trayIcon.extensionId),
+                                                    })
+                                                }}
+                                                disabled={isSettingPluginSettingsPinnedTrays}
+                                            /> : <IconButton
+                                                aria-label={`Pin ${trayIcon.extensionName}`}
+                                                intent="gray-basic"
+                                                size="sm"
+                                                icon={<TbPinned className="size-5 text-[--muted]" />}
+                                                className="rounded-full min-w-11 min-h-11"
+                                                onClick={() => {
+                                                    setPluginSettingsPinnedTrays({
+                                                        pinnedTrayPluginIds: [...pinnedTrayPluginIds, trayIcon.extensionId],
+                                                    })
+                                                }}
+                                                disabled={isSettingPluginSettingsPinnedTrays}
+                                            />}
+                                        </div>}
+                                    >
+                                        {isPinned(trayIcon.extensionId) ? "Unpin" : "Pin"}
+                                    </Tooltip>
+                                </div>
+                            </div>
+                        ))}
+                        {!filteredTrayIcons.length && <p className="text-sm text-[--muted] py-1 text-center w-full">
+                            Keine passenden Plugins
+                        </p>}
+
+                        {/* {developmentModeExtensions?.map(extension => (
+                         <div key={extension.id} className="flex items-center gap-2 justify-between bg-[--subtle] rounded-md p-2">
+                         <p className="text-sm font-medium">{extension.id}</p>
+                         <div>
+                         <IconButton
+                         intent="warning-basic"
+                         size="sm"
+                         icon={<LuRefreshCw className="size-5" />}
+                         className="rounded-full"
+                         onClick={() => reloadExternalExtension({ id: extension.id })}
+                         loading={isReloadingExtension}
+                         />
+                         </div>
+                         </div>
+                         ))} */}
+                    </div>
+        </div>
+    )
+
+    return (
+        <>
+            <div
+                data-plugin-sidebar-tray
+                className={cn(
+                    "w-10 mx-auto p-1 my-2",
+                    "flex flex-col gap-1 items-center border border-transparent justify-center rounded-full transition-all duration-300 select-none",
+                    place === "top" && "flex-col w-full mx-0 my-0 items-stretch justify-start p-0 border-none",
+                    pinnedTrayIcons.length > 0 && "border-[--border]",
+                )}
+            >
+
+                {place === "top" ? renderTrayList() : <Popover
+                    open={trayIconListOpen}
+                    onOpenChange={setTrayIconListOpen}
+                    side="right"
+                    trigger={<div className="relative">
+                        <Tooltip
+                            side="right"
+                            trigger={<IconButton
+                                intent="gray-basic"
+                                size="sm"
+                                icon={<LuComponent className="size-5 text-[--muted]" />}
+                                className="rounded-full hover:rotate-360 transition-all duration-300"
+                            />}
+                        >{unpinnedBadgeCount ? `Tray Plugins (${unpinnedBadgeCount})` : "Tray Plugins"}</Tooltip>
+                        {!!unpinnedBadgeCount && <Badge
+                            intent="alert-solid"
+                            size="sm"
+                            className="absolute -top-2 -right-2 z-10 select-none pointer-events-none"
+                            data-plugin-tray-launcher-badge
+                        >
+                            {unpinnedBadgeCount > 9 ? "9+" : unpinnedBadgeCount}
+                        </Badge>}
+                    </div>}
+                    className="p-2 w-[300px]"
+                    data-plugin-sidebar-debug-popover
+                    modal={false}
+                >
+                    {renderTrayList()}
+                </Popover>}
+
+                {!!developmentModeExtensions.length && <Popover
+                    side={place === "top" ? "bottom" : "right"}
+                    trigger={<div>
+                        <IconButton
+                            intent="warning-basic"
+                            size="sm"
+                            icon={<LuCircuitBoard className="size-4" />}
+                            className="rounded-full"
+                        />
+                    </div>}
+                    className="p-2"
+                    data-plugin-sidebar-debug-popover
+                    modal={false}
+                >
+                    <div className="space-y-1" data-plugin-sidebar-debug-popover-content>
+                        <div className="text-sm space-y-1">
+                            <p className="font-bold">
+                                Debug
+                            </p>
+                            <p className="text-xs text-[--muted]">
+                                These extensions are loaded in development mode.
+                            </p>
+                        </div>
+                        {developmentModeExtensions?.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })).map(extension => (
+                            <div key={extension.id} className="flex items-center gap-2 justify-between bg-[--subtle] rounded-md px-2 py-1">
+                                <p className="min-w-0 truncate text-sm font-medium">{extension.id}</p>
+                                <div className="flex items-center gap-1">
+                                    <Tooltip
+                                        trigger={<div>
+                                            <IconButton
+                                                intent={debugCounts[extension.id] ? "primary-basic" : "gray-basic"}
+                                                size="sm"
+                                                icon={<LuSquareTerminal className="size-5" />}
+                                                className="rounded-full"
+                                                onClick={() => openDebugWindow(extension.id)}
+                                            />
+                                        </div>}
+                                    >Debug logs</Tooltip>
+                                    <IconButton
+                                        intent="warning-basic"
+                                        size="sm"
+                                        icon={<LuRefreshCw className="size-5" />}
+                                        className="rounded-full"
+                                        onClick={() => reloadExternalExtension({ id: extension.id })}
+                                        loading={isReloadingExtension}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Popover>}
+
+                {pinnedTrayIcons.map((trayIcon, index) => (
+                    <PluginTray
+                        key={trayIcon.extensionId}
+                        trayIcon={trayIcon}
+                        isPinned={isPinned(trayIcon.extensionId)}
+                        place={place}
+                        width={width}
+                    />
+                ))}
+            </div>
+        </>
+    )
+}
+
+export function PluginSidebarTray({ place }: { place: "sidebar" | "top" }) {
+    const { isFeatureDisabled } = useServerDisabledFeatures()
+    const { width } = useWindowSize()
+    const [trayIcons, setTrayIcons] = useAtom(__plugin_trayIconsAtom)
+
+    const [hasNavigated, setHasNavigated] = useAtom(__plugin_hasNavigatedAtom)
+    const pathname = usePathname()
+
+    const { data: pluginSettings } = useGetPluginSettings()
+
+    const [mobileExtensionListOpen, setMobileExtensionListOpen] = React.useState(false)
+    const [pendingTrayOpenExtensionId, setPendingTrayOpenExtensionId] = React.useState<string | null>(null)
+
+    const socket = React.useContext(WebSocketContext)
+
+    const firstRender = React.useRef(true)
+    React.useEffect(() => {
+        if (firstRender.current) {
+            firstRender.current = false
+            return
+        }
+        if (!hasNavigated) {
+            setHasNavigated(true)
+        }
+    }, [pathname, hasNavigated])
+
+    /**
+     * 1. Send a request to the server to list all tray icons
+     * 2. Receive the tray icons from the server
+     * 3. Set the tray icons in the state to display them
+     */
+    const { sendListTrayIconsEvent } = usePluginSendListTrayIconsEvent()
+
+    React.useEffect(() => {
+        // Send a request to all plugins to list their tray icons.
+        // Only plugins with a registered tray icon will respond.
+        sendListTrayIconsEvent({}, "")
+    }, [])
+
+    /**
+     * TODO: Listen to other events from Extension Repository to refetch tray icons
+     * - When an extension is loaded
+     * - When an extension is unloaded
+     * - When an extension is updated
+     */
+
+    usePluginListenTrayIconEvent((data, extensionId) => {
+        setTrayIcons(prev => {
+            const oldTrayIcons = prev.filter(icon => icon.extensionId !== extensionId)
+            return [...oldTrayIcons, {
+                ...data,
+            }].sort((a, b) => a.extensionId.localeCompare(b.extensionId, undefined, { numeric: true }))
+        })
+    }, "")
+
+    usePluginListenTrayBadgeUpdatedEvent((data, extensionId) => {
+        if (!extensionId) return
+
+        setTrayIcons(prev => {
+            let changed = false
+            const next = prev.map(trayIcon => {
+                if (trayIcon.extensionId !== extensionId) return trayIcon
+                if (trayIcon.badgeNumber === data.badgeNumber && trayIcon.badgeIntent === data.badgeIntent) return trayIcon
+
+                changed = true
+                return {
+                    ...trayIcon,
+                    badgeNumber: data.badgeNumber,
+                    badgeIntent: data.badgeIntent,
+                }
+            })
+
+            return changed ? next : prev
+        })
+    }, "")
+
+    /**
+     * Handling mobile programmatic tray open/close
+     */
+
+    usePluginListenTrayOpenEvent((data) => {
+        const isMobile = width && width < 1024
+        if (isMobile && place === "top") {
+            // Store which extension triggered the open event
+            setPendingTrayOpenExtensionId(data.extensionId || "")
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: "smooth" })
+            // Open the mobile extension list
+            setMobileExtensionListOpen(true)
+        }
+    }, "")
+
+    usePluginListenTrayCloseEvent((data) => {
+        const isMobile = width && width < 1024
+        if (isMobile && place === "top") {
+            setPendingTrayOpenExtensionId(null)
+            setTimeout(() => {
+                setMobileExtensionListOpen(false)
+            }, 300)
+        }
+    }, "")
+
+    // Re-send the tray open event after the extension list is opened and rendered.
+    // This is necessary because the first tray open event is ignored since the tray is not rendered yet.
+    React.useEffect(() => {
+        if (mobileExtensionListOpen && pendingTrayOpenExtensionId && socket) {
+            // Small delay to ensure the PluginTray components are rendered
+            const timeout = setTimeout(() => {
+                // Re-send the tray open event now that the extension list is open
+                const fakeEvent = new MessageEvent("message", {
+                    data: JSON.stringify({
+                        type: "plugin",
+                        payload: {
+                            type: "tray:open",
+                            extensionId: pendingTrayOpenExtensionId,
+                            payload: {
+                                extensionId: pendingTrayOpenExtensionId,
+                            },
+                        },
+                    }),
+                })
+                socket.dispatchEvent(fakeEvent)
+            }, 100)
+            return () => clearTimeout(timeout)
+        }
+    }, [mobileExtensionListOpen, pendingTrayOpenExtensionId, socket])
+
+    // End
+
+    const { data: developmentModeExtensions, refetch } = useListDevelopmentModeExtensions()
+    const { mutate: reloadExternalExtension, isPending: isReloadingExtension } = useReloadExternalExtension()
+
+    const [debugLogs, setDebugLogs] = React.useState<Record<string, DebugLogEntry[]>>({})
+    const [openDebugWindows, setOpenDebugWindows] = React.useState<string[]>([])
+    const debugLogId = React.useRef(0)
+
+    const debugCounts = React.useMemo(() => {
+        return Object.fromEntries(Object.entries(debugLogs).map(([extensionId, logs]) => [extensionId, logs.length]))
+    }, [debugLogs])
+
+    const openDebugWindow = React.useCallback((extensionId: string) => {
+        setOpenDebugWindows(prev => prev.includes(extensionId) ? prev : [...prev, extensionId])
+    }, [])
+
+    const closeDebugWindow = React.useCallback((extensionId: string) => {
+        setOpenDebugWindows(prev => prev.filter(id => id !== extensionId))
+    }, [])
+
+    const clearDebugLogs = React.useCallback((extensionId: string) => {
+        setDebugLogs(prev => ({ ...prev, [extensionId]: [] }))
+    }, [])
+
+    usePluginListenDebugLogEvent((payload, extensionId) => {
+        setDebugLogs(prev => {
+            const nextLog = { ...payload, id: ++debugLogId.current, extensionId }
+            return {
+                ...prev,
+                [extensionId]: [...(prev[extensionId] || []), nextLog].slice(-maxDebugLogs),
+            }
+        })
+    }, "")
+
+    usePluginListenDebugClearEvent((_, extensionId) => {
+        clearDebugLogs(extensionId)
+    }, "")
+
+    useWebsocketMessageListener({
+        type: WSEvents.PLUGIN_UNLOADED,
+        onMessage: (extensionId) => {
+            const id = String(extensionId || "")
+            if (!id) return
+            setTrayIcons(prev => prev.filter(icon => icon.extensionId !== id))
+            setDebugLogs(prev => ({ ...prev, [id]: [] }))
+            setOpenDebugWindows(prev => prev.filter(openId => openId !== id))
+            setTimeout(() => {
+                refetch()
+            }, 1000)
+        },
+    })
+
+    const isMobile = width && width < 1024
+
+    if (isFeatureDisabled("PluginTray")) return null
+
+    if (!trayIcons) return null
+
+    return (
+        <>
+            {!isMobile && place === "sidebar" && <ExtensionList
+                place={place}
+                developmentModeExtensions={developmentModeExtensions || []}
+                debugCounts={debugCounts}
+                isReloadingExtension={isReloadingExtension}
+                openDebugWindow={openDebugWindow}
+                reloadExternalExtension={reloadExternalExtension}
+                trayIcons={trayIcons}
+                settings={pluginSettings}
+                width={width}
+            />}
+            {isMobile && place === "top" && <div className="">
+                <Popover
+                    open={mobileExtensionListOpen}
+                    onOpenChange={setMobileExtensionListOpen}
+                    side="bottom"
+                    trigger={<button type="button" aria-label="Plugins öffnen"
+                        className="inline-flex h-11 items-center gap-2 rounded-xl bg-black/80 px-3 text-sm font-medium text-white">
+                        <LuBlocks className="size-5" /><span>Plugins</span>
+                    </button>}
+                    data-mobile-plugin-overview
+                    align="start"
+                    collisionPadding={16}
+                    className="rounded-2xl p-3 overflow-y-auto overscroll-contain bg-[--background] max-w-[calc(100vw-32px)] max-h-[80dvh]"
+                    style={{ width: Math.min(384, (width || 384) - 32) }}
+                >
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                        <h2 className="text-lg font-semibold">Plugins <span className="text-sm text-[--muted]">({trayIcons.length})</span></h2>
+                        <button type="button" aria-label="Plugin-Übersicht schließen" onClick={() => setMobileExtensionListOpen(false)}
+                            className="flex h-11 w-11 items-center justify-center rounded-lg text-xl">×</button>
+                    </div>
+                    <ExtensionList
+                        place={place}
+                        developmentModeExtensions={developmentModeExtensions || []}
+                        debugCounts={debugCounts}
+                        isReloadingExtension={isReloadingExtension}
+                        openDebugWindow={openDebugWindow}
+                        reloadExternalExtension={reloadExternalExtension}
+                        trayIcons={trayIcons}
+                        settings={pluginSettings}
+                        width={width}
+                    />
+                </Popover>
+            </div>}
+            {openDebugWindows.map((extensionId, index) => {
+                const extension = developmentModeExtensions?.find(extension => extension.id === extensionId)
+                return <PluginDebugWindow
+                    key={extensionId}
+                    extensionId={extensionId}
+                    extensionName={extension?.name}
+                    logs={debugLogs[extensionId] || []}
+                    index={index}
+                    onClear={() => clearDebugLogs(extensionId)}
+                    onClose={() => closeDebugWindow(extensionId)}
+                />
+            })}
+        </>
+    )
+}

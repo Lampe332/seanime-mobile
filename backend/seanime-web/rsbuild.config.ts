@@ -1,0 +1,152 @@
+import { defineConfig, loadEnv, RsbuildPluginAPI } from "@rsbuild/core"
+import { pluginNodePolyfill } from "@rsbuild/plugin-node-polyfill"
+import { pluginReact } from "@rsbuild/plugin-react"
+import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin"
+import { TanStackRouterRspack } from "@tanstack/router-plugin/rspack"
+import { buildSync } from "esbuild"
+import * as fs from "node:fs"
+import path from "path"
+
+const { publicVars } = loadEnv({ prefixes: ["SEA_"] })
+
+const isElectronDesktop = process.env.SEA_PUBLIC_DESKTOP === "electron"
+const distPath = isElectronDesktop ? "out-denshi" : "out"
+
+export default defineConfig({
+    plugins: [
+        pluginReact({
+            reactCompiler: true,
+        }),
+        pluginNodePolyfill({
+            include: ["buffer", "crypto"],
+        }),
+        { // run stuff before build
+            name: "before-build",
+            setup(api: RsbuildPluginAPI) {
+                // api.onBeforeStartDevServer(processJassub)
+                api.onBeforeBuild(processJassub)
+
+                function processJassub() {
+                    console.log("Running transpilation...")
+                    const source = path.resolve(__dirname, "node_modules/jassub/dist/worker/worker.js")
+                    const outDir = path.resolve(__dirname, "public", "jassub")
+                    const outFile = path.join(outDir, "jassub-worker.js")
+
+                    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true })
+
+                    // transpile using esbuild (goated)
+                    buildSync({
+                        entryPoints: [source],
+                        outfile: outFile,
+                        bundle: true,
+                        format: "iife",
+                        define: {
+                            "import.meta.url": "self.location.href",
+                        },
+                        minify: false,
+                    })
+
+                    // copy wasm files
+                    const wasmSource = path.resolve(__dirname, "node_modules/jassub/dist/wasm/jassub-worker.wasm")
+                    const wasmModernSource = path.resolve(__dirname, "node_modules/jassub/dist/wasm/jassub-worker-modern.wasm")
+                    fs.copyFileSync(wasmSource, path.join(outDir, "jassub-worker.wasm"))
+                    fs.copyFileSync(wasmModernSource, path.join(outDir, "jassub-worker-modern.wasm"))
+                    console.log("Finished transpiling")
+                }
+            },
+        },
+    ].filter(Boolean),
+    source: {
+        entry: {
+            index: "./src/main.tsx",
+        },
+        define: publicVars,
+    },
+    resolve: {
+        alias: {
+            "@": path.resolve(__dirname, "./src"),
+            "react": path.resolve(__dirname, "node_modules/react"),
+            "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
+            [path.join(fs.realpathSync(path.resolve(__dirname, "node_modules/jassub/dist")), "default.woff2")]: path.resolve(__dirname, "public/fonts/Roboto-Medium.ttf"),
+        },
+    },
+    server: { // dev server
+        port: 43210,
+        host: "0.0.0.0",
+        headers: {
+            "Cross-Origin-Embedder-Policy": "credentialless",
+            "Cross-Origin-Opener-Policy": "same-origin",
+        },
+    },
+    output: {
+        cleanDistPath: true,
+        sourceMap: !!process.env.RSDOCTOR,
+        distPath: {
+            root: distPath,
+        },
+        filename: {
+            js: process.env.NODE_ENV === "production" ? "[name].[contenthash:8].js" : "[name].js",
+            css: process.env.NODE_ENV === "production" ? "[name].[contenthash:8].css" : "[name].css",
+        },
+    },
+    html: {
+        template: "./index.html",
+        title: "Seanime",
+    },
+    performance: {
+        chunkSplit: {
+            forceSplitting: {
+                "hls": /hls\.js/,
+                "recorder": /rrweb/,
+            },
+        },
+    },
+    tools: {
+        // swc: {
+        //   minify: true,
+        // },
+        rspack: {
+            experiments: {
+                // breaks rrweb
+                // outputModule: true,
+            },
+            output: { // redundant?
+                chunkFilename: process.env.NODE_ENV === "production" ? "static/js/async/[name].[contenthash:8].js" : "static/js/async/[name].js",
+            },
+            optimization: {
+                chunkIds: !!process.env.RSDOCTOR ? "named" : undefined,
+            },
+            plugins: [
+                TanStackRouterRspack({
+                    routesDirectory: "./src/routes",
+                    generatedRouteTree: "./src/routeTree.gen.ts",
+                    autoCodeSplitting: true,
+                }),
+                process.env.RSDOCTOR && new RsdoctorRspackPlugin({}),
+            ].filter(Boolean),
+            resolve: {
+                fallback: {
+                    module: false,
+                },
+            },
+            module: {
+                rules: [
+                    { // stops circular deps warning
+                        test: /jassub\/dist\/.*\.js$/,
+                        parser: {
+                            worker: false,
+                        },
+                    },
+                    { // don't emit these again
+                        test: /\.wasm$/,
+                        include: /node_modules[\\/]jassub/,
+                        type: "asset/resource",
+                        generator: {
+                            emit: false,
+                        },
+                    },
+                ],
+            },
+        },
+    },
+})

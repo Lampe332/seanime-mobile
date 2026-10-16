@@ -1,0 +1,134 @@
+import { useListExtensionData } from "@/api/hooks/extensions.hooks"
+import { API_ENDPOINTS } from "@/api/generated/endpoints"
+import { queryClient, store } from "@/app/client-providers"
+import { marketplaceUrlAtom } from "@/app/(main)/extensions/_lib/marketplace.atoms"
+import { useIsMainTabRef } from "@/app/websocket-provider"
+import { useDebounce } from "@/hooks/use-debounce"
+import { copyToClipboard } from "@/lib/helpers/browser.ts"
+import { usePathname, useRouter, useSearchParams } from "@/lib/navigation"
+import { WSEvents } from "@/lib/server/ws-events"
+import { startTransition, useEffect, useState } from "react"
+import { useWindowSize } from "react-use"
+import { useWebsocketMessageListener } from "../../_hooks/handle-websockets"
+import { PluginCommandPalettes } from "./command/plugin-command-palettes"
+import { usePluginListenDOMClipboardWriteEvent } from "./generated/plugin-events"
+import {
+    usePluginListenDOMGetViewportSizeEvent,
+    usePluginListenMarketplaceGetURLEvent,
+    usePluginListenMarketplaceSetURLEvent,
+    usePluginListenScreenGetCurrentEvent,
+    usePluginListenScreenNavigateToEvent,
+    usePluginListenScreenReloadEvent,
+    usePluginSendDOMViewportSizeEvent,
+    usePluginSendMarketplaceGetURLResultEvent,
+    usePluginSendScreenChangedEvent,
+} from "./generated/plugin-events"
+import { PluginHandler } from "./plugin-handler"
+
+export function PluginManager() {
+    const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
+    const { sendScreenChangedEvent } = usePluginSendScreenChangedEvent()
+    const { sendMarketplaceGetURLResultEvent } = usePluginSendMarketplaceGetURLResultEvent()
+    const isMainTabRef = useIsMainTabRef()
+
+    const { data: extensions } = useListExtensionData()
+
+    const [unloadedExtensions, setUnloadedExtensions] = useState<string[]>([])
+
+    useWebsocketMessageListener({
+        type: WSEvents.PLUGIN_LOADED,
+        onMessage: (extensionId: string) => {
+            startTransition(() => {
+                setUnloadedExtensions(prev => prev.filter(id => id !== extensionId))
+            })
+        },
+    })
+
+    useEffect(() => {
+        if (!isMainTabRef.current) return
+        sendScreenChangedEvent({
+            pathname: pathname,
+            query: searchParams.size > 0 ? "?" + searchParams.toString() : "",
+        })
+    }, [pathname, searchParams])
+
+    usePluginListenScreenGetCurrentEvent((event, extensionId) => {
+        if (!isMainTabRef.current) return
+        sendScreenChangedEvent({
+            pathname: pathname,
+            query: searchParams.size > 0 ? "?" + searchParams.toString() : "",
+        }, extensionId)
+    }, "") // Listen to all plugins
+
+    usePluginListenScreenNavigateToEvent((event) => {
+        if (!isMainTabRef.current) return
+        if ([
+            "/entry", "/lists", "/search", "/manga",
+            "/settings", "/auto-downloader", "/debrid", "/torrent-list",
+            "/schedule", "/extensions", "/sync", "/discover",
+            "/scan-summaries", "/webview", "/torrent-client",
+
+        ].some(path => event.path.startsWith(path))) {
+            router.push(event.path)
+        }
+    }, "") // Listen to all plugins
+
+    usePluginListenScreenReloadEvent((event) => {
+        if (!isMainTabRef.current) return
+        router.refresh()
+    }, "") // Li
+
+    usePluginListenDOMClipboardWriteEvent((event) => {
+        if (!isMainTabRef.current) return
+        copyToClipboard(event.text)
+    }, "") // Listen to all plugins
+
+    usePluginListenMarketplaceGetURLEvent((event, extensionId) => {
+        if (!isMainTabRef.current) return
+        sendMarketplaceGetURLResultEvent({ requestId: event.requestId, url: store.get(marketplaceUrlAtom) }, extensionId)
+    }, "") // Listen to all plugins
+
+    usePluginListenMarketplaceSetURLEvent((event) => {
+        if (!isMainTabRef.current) return
+        store.set(marketplaceUrlAtom, event.url)
+        queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.EXTENSIONS.GetMarketplaceExtensions.key] })
+    }, "") // Listen to all plugins
+
+    return <>
+        {/* Render plugin handlers for each extension */}
+        <SizeEvents />
+        {extensions?.filter(e => e.type === "plugin" && !unloadedExtensions.includes(e.id)).map(extension => (
+            <PluginHandler key={extension.id} extensionId={extension.id} onUnloaded={() => setUnloadedExtensions(prev => [...prev, extension.id])} />
+        ))}
+        <PluginCommandPalettes />
+    </>
+}
+
+function SizeEvents() {
+    const isMainTabRef = useIsMainTabRef()
+    const { sendDOMViewportSizeEvent } = usePluginSendDOMViewportSizeEvent()
+
+    const { width, height } = useWindowSize()
+    const debouncedWidth = useDebounce(width, 400)
+    const debouncedHeight = useDebounce(height, 400)
+
+    useEffect(() => {
+        if (!isMainTabRef.current) return
+        sendDOMViewportSizeEvent({
+            width: debouncedWidth,
+            height: debouncedHeight,
+        })
+    }, [debouncedWidth, debouncedHeight])
+
+    usePluginListenDOMGetViewportSizeEvent((event, extensionId) => {
+        if (!isMainTabRef.current) return
+        sendDOMViewportSizeEvent({
+            width: debouncedWidth,
+            height: debouncedHeight,
+        }, extensionId)
+    }, "")
+
+    return null
+}
