@@ -23,7 +23,7 @@
 
 ## ✨ Funktionen
 
-| | |
+| Funktion | Beschreibung |
 |---|---|
 | 📺 **Streamen** | Anime über Online-Streaming-Erweiterungen direkt in der App schauen |
 | ⬇️ **Staffel-Downloads** | Ganze Staffel, „ab Folge …“ oder einzelne Folgen herunterladen, mit Warteschlange, die einen App-Neustart übersteht |
