@@ -1,112 +1,104 @@
-# Seanime Mobile
+<p align="center">
+  <img src="docs/images/banner.png" alt="Seanime Mobile" width="100%">
+</p>
 
-Seanime Mobile 1.6.0, basierend auf Seanime 3.10.4.
+<p align="center">
+  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><img src="https://img.shields.io/github/v/release/Lampe332/seanime-mobile?style=for-the-badge&color=7c5cff&label=Version" alt="Version"></a>
+  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><img src="https://img.shields.io/github/downloads/Lampe332/seanime-mobile/total?style=for-the-badge&color=7c5cff&label=Downloads" alt="Downloads"></a>
+  <img src="https://img.shields.io/badge/Android-5.0%2B-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Android 5.0+">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Lampe332/seanime-mobile?style=for-the-badge&color=555" alt="Lizenz"></a>
+</p>
 
-Eigenständiger, angepasster Android-Fork mit lokalem Go-Backend und React-Oberfläche in einer Android-WebView. Paket `com.seanime.app.local`, App-Version `1.6.0`, Seanime-Version `3.10.4`, Android-VersionCode `31013`.
+<p align="center">
+  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest/download/Seanime-Mobile-1.6.0.apk"><b>⬇️ APK herunterladen</b></a>
+  &nbsp;·&nbsp; <a href="#-installation-auf-dem-handy">Installation</a>
+  &nbsp;·&nbsp; <a href="#-erste-einrichtung">Einrichtung</a>
+  &nbsp;·&nbsp; <a href="docs/BUILD.md">Selbst bauen</a>
+  &nbsp;·&nbsp; <a href="CHANGELOG.md">Changelog</a>
+</p>
 
-**App installieren:** die fertige APK unter [Releases](../../releases/latest) herunterladen und auf dem Handy öffnen. Das Repository enthält den vollständigen Quellcode zum selbst Bauen.
+---
 
-Die ursprüngliche Android-Portierung stammt aus [Seanime Android von Pal-droid](https://github.com/Pal-droid/Seanime-Android); Backend und Weboberfläche aus [Seanime von 5rahim](https://github.com/5rahim/seanime). Dieser Fork ist ein unabhängiges Projekt. Ursprüngliche Dokumentation: [UPSTREAM-README.md](UPSTREAM-README.md). Die bestehenden GPL-Lizenztexte und Werkzeughinweise liegen bei.
+**Seanime Mobile** bringt [Seanime](https://github.com/5rahim/seanime) komplett aufs Android-Handy: Der Seanime-Server läuft direkt auf dem Gerät, die Oberfläche ist für Touch angepasst. Kein PC, kein eigener Server nötig. Anime streamen, ganze Staffeln herunterladen und unterwegs offline schauen. Dazu kommen Manga, AniList-Sync und ein Veröffentlichungskalender.
 
-## Neu in App 1.6.0
+## ✨ Funktionen
 
-- „Staffel / Folgen herunterladen“ in der Animeansicht: ganze Staffel, ab Folge …, einzelne Folgen. Vorhandene oder eingeplante Folgen werden übersprungen.
-- Dauerhafte Download-Warteschlange (max. zwei Videos gleichzeitig), übersteht Seitenwechsel und App-Neustart; pausieren, fortsetzen, entfernen.
-- Downloads-Tab mit Anime und Manga. Manga mit lokalem Cover, Infos und Kapitelübersicht; heruntergeladene Kapitel öffnen den Manga-Reader, auch offline.
-- Manga-Downloads starten auf Android sofort (`startNow: true`); Routenfehler beim Öffnen eines Manga behoben.
-- Mehrere Anime auswählen und gemeinsam löschen; „Anime löschen“ in der Detailansicht.
+| | |
+|---|---|
+| 📺 **Streamen** | Anime über Online-Streaming-Erweiterungen direkt in der App schauen |
+| ⬇️ **Staffel-Downloads** | Ganze Staffel, „ab Folge …“ oder einzelne Folgen herunterladen, mit Warteschlange, die einen App-Neustart übersteht |
+| ✈️ **Offline schauen** | Eigener Offline-Player mit Vollbild, −5/+10 s, Tempo, Untertiteln und Fortsetzen; Cover und Infos bleiben offline sichtbar |
+| 📚 **Manga** | Kapitel lesen und herunterladen, offline im Reader öffnen |
+| 📅 **Kalender** | Monatskalender mit allen Folgen deiner AniList-Liste oder aller Anime, filterbar nach Status |
+| 🔄 **AniList** | Listen, Fortschritt und Bewertungen werden mit AniList synchronisiert |
+| 🧩 **Erweiterungen & Plugins** | Quellen und Plugins aus dem Seanime-Ökosystem |
 
-## Änderungen in App 1.5.0
+## 📱 Screenshots
 
-- Downloads als Route `/android-downloads` in der Haupt-App mit unterer Navigation.
-- Anime-Übersicht mit Covern, Folgenansicht mit Banner, Genres, Beschreibung und Folgenbildern; Bilder und Metadaten werden dauerhaft lokal gespeichert und funktionieren offline.
-- Offline-Wiedergabe direkt aus der Folgenansicht.
+<p align="center"><img src="docs/images/gallery-discover.png" alt="Startseite, Sendeplan, Kalender, Anime-Details" width="100%"></p>
+<p align="center"><img src="docs/images/gallery-offline.png" alt="Staffel laden, Downloads, Deine Folgen, Offline-Player" width="100%"></p>
+<p align="center"><img src="docs/images/gallery-more.png" alt="Entdecken, Suche, Manga offline" width="76%"></p>
 
-## Änderungen in App 1.4.x
+## 📲 Installation auf dem Handy
 
-- 1.4.1: Downloads nach Anime gruppiert, Filter Alle/Bereit/Aktiv, Offline-Player (Media3/ExoPlayer) mit 16:9, Vollbild, −5/+10 s, Tempo und Untertiteln, Fortsetzungsposition.
-- 1.4.0: Torrent- und Debrid-Funktionen auf Android deaktiviert (UI und API gesperrt); Offline-Downloads für direkte MP4-/HLS-Quellen.
+1. Auf dem Handy die neueste **[Seanime-Mobile-APK](https://github.com/Lampe332/seanime-mobile/releases/latest)** öffnen und unter *Assets* die `.apk` herunterladen.
+2. Die heruntergeladene Datei antippen (Benachrichtigung oder *Eigene Dateien → Downloads*).
+3. Android fragt beim ersten Mal nach der Berechtigung **„Unbekannte Apps installieren“**. Für den Browser bzw. Dateimanager erlauben und zurückgehen.
+4. **Installieren** tippen. Fertig: Die App heißt *Seanime Mobile*.
 
-## Änderungen in App 1.3.3
+> **Update:** Neue APK einfach drüber installieren, Daten und Downloads bleiben erhalten.
+> **Play Protect** warnt eventuell, weil die App nicht aus dem Play Store kommt. *Trotzdem installieren* wählen.
 
-- Sichtbare, gespeicherte Kalenderquelle: Meine AniList oder Alle Anime.
-- Direkte Mehrfachauswahl aller sechs AniList-Status: Schaue ich, Geplant, Pausiert, Abgeschlossen, Abgebrochen, Schaue erneut. Alle Status wählt alle Listenstatus, nicht die globale Anime-Datenquelle.
-- Alle Anime fragt sämtliche AniList-Sendezeiten des ausgewählten lokalen Tages über den bestehenden Server ab, lädt alle Ergebnisseiten und entfernt doppelte Termine. Die persönlichen Statusfilter gelten nur in Meine AniList und bleiben beim Quellenwechsel erhalten.
-- Globale Tagesabfragen sind fünf Minuten zwischengespeichert. Andere Kalendertage laden ihre globalen Termine erst beim Antippen; es werden keine unvollständigen globalen Monatszahlen behauptet.
-- Kompaktere Überschrift, zwei Reihen Statusflächen, deutliche Terminzellen und Auswahlkontraste sowie größere Folgenkarten.
-- Zusätzliche unfiltrierte Folgenbereiche aus Schedule entfernt: Die angezeigten Folgen gehören ausschließlich zum gewählten Tag und zur aktiven Quelle/Statusauswahl.
-- Globale Abruffehler liefern keine scheinbar vollständige Teilliste. Laden und Fehler mit erneutem Abruf sind sichtbar.
-- Sechs Unit-Tests für Pagination, lokale Tagesgrenzen, Fehler und Abbruch in `backend/seanime-web/src/app/(main)/schedule/_lib/global-schedule.test.ts`.
+Unterstützt: Android 5.0 oder neuer, ARM64 und ARMv7 (praktisch alle Handys der letzten Jahre). Getestet auf Samsung Galaxy S22 Ultra.
 
-## Änderungen in App 1.3.2
+## 🚀 Erste Einrichtung
 
-- Schedule auf Handys als Monatskalender mit sieben Wochentagen statt langer Tagesliste.
-- Veröffentlichungstage mit Folgenanzahl, ausgewählter Tag mit vollständiger Episodenliste und Anime-Links.
-- Monatswechsel, Heute, Montag/Sonntag als Wochenbeginn und bestehende Status-/Gesehen-Filter.
-- Kalender zuerst, danach kommende und fehlende Folgen; Kalender lädt unabhängig von fehlenden Folgen.
-- Ladeanzeige sowie Fehlerzustand mit erneutem Abruf. Datumszuordnung nach lokaler Zeitzone.
-- PC-Kalender bleibt erhalten. Layout- und Funktionstests auf fünf Handyformaten sowie PC-Format; direkter Laufzeittest auf S22 Ultra.
+1. **App öffnen.** Beim ersten Start fragt Android nach Benachrichtigungen (für Download-Fortschritt) und Dateizugriff. Beides erlauben.
+2. **Mit AniList anmelden.** Auf dem Startbildschirm **Log in with AniList** tippen und im Browser bestätigen. Ein kostenloses Konto gibt es auf [anilist.co](https://anilist.co). Danach erscheinen deine Listen unter *My Lists* und *Continue watching*.
+3. **Quellen hinzufügen.** *Menu → Extensions* öffnen und Online-Streaming- bzw. Manga-Erweiterungen installieren. Ohne Erweiterung kann die App Anime nur anzeigen, nicht abspielen.
+4. **Loslegen.** Anime antippen → *Online streaming* zum Schauen oder *Staffel / Folgen herunterladen* für offline. Gespeichertes findest du unten im Tab **Downloads**.
 
-## Änderungen in App 1.3.1
+## ❓ Häufige Fragen
 
-- Home-Auswahlfelder umbrechen und bleiben innerhalb eines Dialogs mit Bildschirmabstand.
-- Plugin-Übersicht direkt öffnen, Plugins durchsuchen, lesbare Namen und größere Pin-Flächen.
-- Plugin-DOM-Beobachter nur bei aktiven Abonnements starten; Änderungen in 16-ms-Paketen verarbeiten; beim Abmelden aufräumen.
-- WebSocket-Nachrichten einmal je Ereignis einlesen und Daten erst für passende Empfänger kopieren; Empfänger bleiben voneinander isoliert.
-- Android-Navigationsbeobachter vermeiden unnötige Layoutabfragen; Entry-Anpassungen bündeln verzögerte Arbeiten.
-- Einstellungen zeigen Backend-Version und echte installierte APK-Version getrennt.
-- Beide nativen Architekturen mit dem aktualisierten Frontend neu gebaut.
+<details>
+<summary><b>„App nicht installiert“ beim Update</b></summary>
 
-## Bisherige Mobile-Korrekturen
+Die neue APK muss mit demselben Schlüssel signiert sein wie die installierte. Das ist bei allen offiziellen Releases hier der Fall. Wenn du vorher eine selbst gebaute oder fremde Version installiert hattest, die alte App zuerst deinstallieren (dabei gehen lokale Downloads verloren).
+</details>
 
-- Aktueller Bereich in der unteren Navigation sichtbar markiert.
-- Scrollbares Menü mit beschrifteten, vollständig antippbaren Zeilen; auch bei wenig Bildschirmhöhe erreichbar.
-- Android-Zurück schließt Resetdialog, Navigationsbearbeitung und Menü vor dem Verlassen der Seite.
-- Schnelles Schließen und Wiederöffnen erzeugt keinen unsichtbaren offenen Menü-Zustand.
-- Ungültige Widget-Links öffnen eine nutzbare Startseite.
-- Externe Seiten besitzen eigene Zurück-Navigation, eine 48-dp-Schließen-Fläche und werden beim Schließen freigegeben.
-- Benachrichtigungsberechtigung wird einmal und nach der Dateizugriffserklärung angefragt.
-- Widget-Abfragen verwenden gültige GraphQL-Variablen und stoppen den gemeinsamen App-Server nicht mehr.
-- System-Dateiauswahl für Web-Importe und Android-Speicherdialog für Downloads und Blob-Exporte bis 25 MiB.
-- Vorhandene Manga-Reader-, Resume-, Doppelseiten- und PiP-Korrekturen bleiben enthalten.
-- WebView-Debugging nur in Debug-Builds.
+<details>
+<summary><b>Eine Folge spielt nicht ab</b></summary>
 
-## Installation
+Meist liegt es an der Quelle. Im Player bzw. auf der Animeseite eine andere Erweiterung wählen oder unter *Menu → Extensions* die Erweiterungen aktualisieren.
+</details>
 
-Die signierte APK `Seanime-Mobile-1.6.0.apk` (Release v1.6.0) gehört zu diesem Quellstand. Für Updates auf vorhandenen Geräten müssen Paket-ID und Signierschlüssel übereinstimmen. Die veröffentlichte APK nutzt den bisherigen lokalen Schlüssel; das öffentliche Quellarchiv enthält diesen privaten Schlüssel nicht.
+<details>
+<summary><b>Gibt es Torrents?</b></summary>
 
-ARM64 und ARMv7 werden mitgeliefert. Minimum API 21, Ziel API 36. Laufzeittests dieses Updates erfolgten auf einem Samsung Galaxy S22 Ultra. Andere Geräte, sämtliche Videoformate und alle externen Anbieter sind dadurch nicht abgedeckt.
+Nein. Torrent- und Debrid-Funktionen sind in der Android-Version bewusst deaktiviert. Downloads laufen über direkte MP4-/HLS-Quellen.
+</details>
 
-## Bauen und prüfen
+<details>
+<summary><b>Wo liegen meine Downloads?</b></summary>
 
-Siehe [BUILD-ANDROID.md](BUILD-ANDROID.md). Für einen lokalen Debug-Build mit vorhandenen nativen Bibliotheken:
+Im privaten App-Speicher. Sie sind nur in der App unter *Downloads* sichtbar und werden beim Deinstallieren gelöscht.
+</details>
 
-```powershell
-.\gradlew.bat :app:assembleDebug
+## 🛠️ Selbst bauen
+
+Das Repository enthält den kompletten Quellcode: Android-App (Kotlin), Seanime-Backend (Go) und Oberfläche (React). Die Schritt-für-Schritt-Anleitung steht in **[docs/BUILD.md](docs/BUILD.md)**.
+
+```
+app/            Android-App (Kotlin, WebView, Offline-Player, Download-Dienst)
+backend/        Seanime-Server (Go) + Weboberfläche (backend/seanime-web, React)
+docs/           Bau-Anleitung, Bilder, Upstream-Doku, Entwicklungsnotizen
+tests/          Navigations- und Plugin-Tests (Python/Playwright)
+Build.ps1       Kompletter Release-Build inkl. Backend
 ```
 
-Die Dateien unter `app/src/main/jniLibs` enthalten das zum gelieferten Backend- und Frontend-Quellstand gehörende native Programm. Für vollständige Backend-/Frontend-Neubauten: `Build.ps1 -RebuildBackend`, wie in der Build-Anleitung beschrieben.
+## 🙏 Credits & Lizenz
 
-Navigationstests benötigen Python und Playwright:
+- [**Seanime**](https://github.com/5rahim/seanime) von 5rahim: Backend und Weboberfläche
+- [**Seanime Android**](https://github.com/Pal-droid/Seanime-Android) von Pal-droid: ursprüngliche Android-Portierung ([Original-README](docs/upstream/README.md))
 
-```powershell
-python -m pip install playwright
-python -m playwright install chromium
-python tests/mobile_navigation.py
-python tests/plugin_dom.py
-```
-
-Gerätetest für das Widget:
-
-```powershell
-.\gradlew.bat :app:assembleDebug :app:assembleDebugAndroidTest
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-adb shell am instrument -w com.seanime.app.local.test/com.seanime.app.audit.MobileInstrumentation
-```
-
-Die Instrumentierung benötigt ein eingerichtetes AniList-Konto im Testgerät, liest seine Liste und stellt den vorherigen Widget-Cache wieder her. Sie verändert keinen AniList-Fortschritt. Debug- und Test-APK müssen denselben Schlüssel verwenden; ein anders signierter Debug-Build lässt sich nicht über eine vorhandene Release-Installation installieren.
-
-## Veröffentlichung
-
-APK als Release-Datei veröffentlichen; Quellen, Lizenzen und Änderungen dieses Builds gemeinsam zugänglich machen. `signing/`, Passwörter, persönliche Datenbanken, lokale Konfigurationen und Debug-APKs gehören nicht in das Repository. Der private Signierschlüssel liegt außerhalb des Repositorys im Nachbarordner `../seanime-mobile-signing/`; `Build.ps1` findet ihn dort automatisch.
+Seanime Mobile ist ein unabhängiger Fork und steht wie das Original unter der **GPL-3.0** ([LICENSE](LICENSE)). Diese App hostet keine Inhalte; sie zeigt nur an, was installierte Erweiterungen liefern.

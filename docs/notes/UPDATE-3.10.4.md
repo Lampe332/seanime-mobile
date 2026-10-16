@@ -11,5 +11,5 @@ Geänderte UI-Quelldateien:
 - backend/seanime-web/src/app/(main)/manga/_containers/chapter-list/chapter-list.tsx
 
 Die nativen Bibliotheken für arm64-v8a und armeabi-v7a enthalten Backend 3.10.4 und die neu gebaute mobile Oberfläche.
-BUILD-ANDROID.md beschreibt den Build. Go lädt die im go.mod geforderte Toolchain 1.27.1 automatisch.
-Historische Notiz: Der ursprüngliche private Build enthielt den Ordner signing. Das öffentliche Mobile-Quellarchiv enthält keine Signierschlüssel. Aktueller Stand und Build-Anleitung: README.md und BUILD-ANDROID.md.
+docs/BUILD.md beschreibt den Build. Go lädt die im go.mod geforderte Toolchain 1.27.1 automatisch.
+Historische Notiz: Der ursprüngliche private Build enthielt den Ordner signing. Das öffentliche Mobile-Quellarchiv enthält keine Signierschlüssel. Aktueller Stand und Build-Anleitung: README.md und docs/BUILD.md.
