@@ -10,8 +10,8 @@ android {
         applicationId = "com.seanime.app.local"
         minSdk = 21
         targetSdk = 36
-        versionCode = 31018
-        versionName = "1.8.3"
+        versionCode = 31019
+        versionName = "1.8.4"
         testInstrumentationRunner = "com.seanime.app.audit.OfflineInstrumentation"
         ndk { abiFilters += setOf("arm64-v8a", "armeabi-v7a") }
         // -PseanimeAppIdSuffix=.fresh installs a separate copy next to the real app (fresh-install testing)

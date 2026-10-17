@@ -17,7 +17,7 @@ object UIBottomNav {
             s.id = '__seanime_bottomnav_styles';
             s.textContent = `
                 [data-main-layout-content="true"] {
-                    padding-bottom: 4.5rem !important;
+                    padding-bottom: 5.25rem !important;
                 }
 
                 #__seanime_bottom_nav {
@@ -26,7 +26,7 @@ object UIBottomNav {
                     left: 0;
                     right: 0;
                     z-index: 9000;
-                    height: 4rem;
+                    height: 4.75rem;
                     display: flex;
                     align-items: stretch;
                     background: rgba(10, 10, 15, 0.82);
@@ -45,8 +45,12 @@ object UIBottomNav {
                 #__seanime_bottom_nav:not(.visible) { visibility: hidden; }
                 #__seanime_bottom_nav a[data-active="true"] {
                     color: #c4b5fd;
-                    background: rgba(139,92,246,0.12);
-                    box-shadow: inset 0 3px #a78bfa;
+                    background: rgba(139,92,246,0.18);
+                }
+                #__seanime_bottom_nav a[data-active="true"] span,
+                #__seanime_bottom_nav a[data-active="true"] div {
+                    color: #ddd6fe;
+                    font-weight: 700;
                 }
                 #__seanime_bottom_nav :focus-visible,
                 #android-floating-menu :focus-visible {
@@ -61,15 +65,19 @@ object UIBottomNav {
                     align-items: center;
                     justify-content: center;
                     gap: 0.22rem;
+                    min-width: 0;
+                    min-height: 48px;
+                    margin: 6px 4px;
+                    border-radius: 14px;
                     background: transparent;
                     border: none;
-                    color: rgba(255,255,255,0.38);
-                    font-size: 0.6rem;
+                    color: rgba(255,255,255,0.55);
+                    font-size: 0.72rem;
                     font-weight: 600;
-                    letter-spacing: 0.03em;
+                    letter-spacing: 0.01em;
                     text-decoration: none;
                     cursor: pointer;
-                    transition: color 0.15s;
+                    transition: color 0.15s, background 0.15s;
                     padding: 0;
                     -webkit-tap-highlight-color: transparent;
                     position: relative;
@@ -79,13 +87,17 @@ object UIBottomNav {
                 }
                 #__seanime_bottom_nav a svg,
                 #__seanime_bottom_nav button svg {
-                    width: 22px;
-                    height: 22px;
+                    width: 24px;
+                    height: 24px;
                     flex-shrink: 0;
                 }
                 #__seanime_bottom_nav a:active,
                 #__seanime_bottom_nav button:active {
-                    color: rgba(255,255,255,0.7);
+                    color: rgba(255,255,255,0.8);
+                    background: rgba(255,255,255,0.08);
+                }
+                #__seanime_bottom_nav a[data-active="true"]:active {
+                    background: rgba(139,92,246,0.28);
                 }
                 #__seanime_bottom_nav button[data-menu-open="true"] {
                     color: white;
@@ -186,7 +198,7 @@ object UIBottomNav {
                     opacity: 0;
                     pointer-events: none;
                     left: 1.25rem;
-                    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+                    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
                 }
                 #__seanime_wrench_btn.wrench-visible {
                     opacity: 1;
@@ -225,7 +237,7 @@ object UIBottomNav {
                     opacity: 0;
                     pointer-events: none;
                     left: 5rem;
-                    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+                    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
                     transform: scale(0.95);
                 }
                 #__seanime_reset_btn.reset-visible {
