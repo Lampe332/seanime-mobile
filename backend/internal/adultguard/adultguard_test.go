@@ -150,7 +150,27 @@ func TestSuggestiveTagSet(t *testing.T) {
 	require.True(t, IsSuggestiveTag("Nudity"))
 	require.True(t, IsSuggestiveTag("Rape"))
 	require.False(t, IsSuggestiveTag("School"))
-	require.Equal(t, 67, len(suggestiveTags))
+	// traits/themes that mainstream shows carry must not hide anything
+	for _, name := range []string{"Large Breasts", "Flat Chest", "Feet", "Armpits", "Sweat", "Virginity", "MILF", "DILF",
+		"Masochism", "Sadism", "Prostitution", "Amputation", "Lactation", "Hair Pulling", "Male Pregnancy"} {
+		require.False(t, IsSuggestiveTag(name), name)
+	}
+	require.Equal(t, 52, len(suggestiveTags))
+}
+
+func TestSuggestive_TraitTagsOnlyBlurEcchi(t *testing.T) {
+	defer SetBlockedForTest(true)()
+	defer SetSuggestiveRulesForTest(true)()
+	v := decode(t, `{"Page":{"media":[
+		{"id":1,"isAdult":false,"genres":["Comedy","Ecchi"],"tags":[{"name":"Large Breasts","rank":95}]},
+		{"id":2,"isAdult":false,"genres":["Romance"],"tags":[{"name":"Virginity","rank":90}]}]}}`)
+	removed, err := FilterJSON(v)
+	require.NoError(t, err)
+	require.Equal(t, 0, removed)
+	media := v.(map[string]interface{})["Page"].(map[string]interface{})["media"].([]interface{})
+	require.Equal(t, true, media[0].(map[string]interface{})["isSuggestive"])
+	_, has := media[1].(map[string]interface{})["isSuggestive"]
+	require.False(t, has)
 }
 
 // The gqlgenc decoder rejects unknown fields, so objects that are not baseAnime/baseManga-shaped

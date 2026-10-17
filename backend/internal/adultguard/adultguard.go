@@ -1,19 +1,17 @@
-// Package adultguard enforces the content policy of the Android builds.
+// Package adultguard enforces the content policy of the Google Play build only.
 //
-// Android (GOOS=android, every variant): adult media (AniList isAdult == true) is never
-// listed, searched, loaded or streamed, and the user settings that would
-// enable it are ignored.
-//
-// Google Play build (build tag "play", see package storeflavor), additionally:
+// Google Play build (build tag "play", see package storeflavor):
+//   - adult media (AniList isAdult == true) is never listed, searched, loaded or streamed,
+//     and the user settings that would enable it are ignored,
 //   - media carrying a sexual-content tag with rank >= SuggestiveTagHideRank is hidden like adult media,
 //   - every other "Ecchi" media is marked isSuggestive so the UI can blur its cover.
 //
-// On every other platform/variant the guard is inactive and upstream behavior is unchanged.
+// Every other build (including the GitHub APK) keeps upstream behavior: adult content is a user
+// setting (off by default).
 package adultguard
 
 import (
 	"errors"
-	"runtime"
 	"sync/atomic"
 
 	"seanime/internal/storeflavor"
@@ -26,7 +24,7 @@ var blocked atomic.Bool
 var suggestiveRules atomic.Bool
 
 func init() {
-	blocked.Store(runtime.GOOS == "android")
+	blocked.Store(storeflavor.Play)
 	suggestiveRules.Store(storeflavor.Play)
 }
 

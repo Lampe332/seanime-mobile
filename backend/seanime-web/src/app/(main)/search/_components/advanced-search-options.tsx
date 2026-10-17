@@ -1,3 +1,4 @@
+import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import {
     ADVANCED_SEARCH_COUNTRIES_MANGA,
@@ -198,7 +199,7 @@ export function AdvancedSearchOptions() {
                         return
                     })}
                 />
-                {!IS_ANDROID_APP && serverStatus?.settings?.anilist?.enableAdultContent && <Switch
+                {!IS_PLAY_STORE && serverStatus?.settings?.anilist?.enableAdultContent && <Switch
                     label="Adult"
                     value={params.isAdult}
                     onValueChange={v => setParams(draft => {

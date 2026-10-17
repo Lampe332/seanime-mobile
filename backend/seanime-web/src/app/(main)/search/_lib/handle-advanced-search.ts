@@ -1,3 +1,4 @@
+import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { buildSeaQuery } from "@/api/client/requests"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { AL_ListAnime, AL_ListManga } from "@/api/generated/types"
@@ -34,7 +35,7 @@ export function useAnilistAdvancedSearch() {
                     ...(__advancedSearch_getValue(params.sorting) || ["SCORE_DESC"])] : (__advancedSearch_getValue(params.sorting) || ["SCORE_DESC"]),
                 status: params.sorting?.includes("START_DATE_DESC") ? (__advancedSearch_getValue(params.status)
                     ?.filter((n: string) => n !== "NOT_YET_RELEASED") || ["FINISHED", "RELEASING"]) : __advancedSearch_getValue(params.status),
-                isAdult: IS_ANDROID_APP ? false : params.isAdult,
+                isAdult: IS_PLAY_STORE ? false : params.isAdult,
             }
 
             const res = await buildSeaQuery<AL_ListAnime>({
@@ -43,8 +44,8 @@ export function useAnilistAdvancedSearch() {
                 data: variables,
                 password: password,
             })
-            // Android: never show adult media (the backend already filters, this is the second layer)
-            if (IS_ANDROID_APP && res?.Page?.media) res.Page.media = res.Page.media.filter(m => !m?.isAdult)
+            // Google Play build: never show adult media (the backend already filters, this is the second layer)
+            if (IS_PLAY_STORE && res?.Page?.media) res.Page.media = res.Page.media.filter(m => !m?.isAdult)
             return res
         },
         getNextPageParam: (lastPage, pages) => {
@@ -78,7 +79,7 @@ export function useAnilistAdvancedSearch() {
                 status: params.sorting?.includes("START_DATE_DESC") ? (__advancedSearch_getValue(params.status)
                     ?.filter((n: string) => n !== "NOT_YET_RELEASED") || ["FINISHED", "RELEASING"]) : __advancedSearch_getValue(params.status),
                 countryOfOrigin: __advancedSearch_getValue(params.countryOfOrigin),
-                isAdult: IS_ANDROID_APP ? false : params.isAdult,
+                isAdult: IS_PLAY_STORE ? false : params.isAdult,
             }
 
             const res = await buildSeaQuery<AL_ListManga>({
@@ -87,7 +88,7 @@ export function useAnilistAdvancedSearch() {
                 data: variables,
                 password: password,
             })
-            if (IS_ANDROID_APP && res?.Page?.media) res.Page.media = res.Page.media.filter(m => !m?.isAdult)
+            if (IS_PLAY_STORE && res?.Page?.media) res.Page.media = res.Page.media.filter(m => !m?.isAdult)
             return res
         },
         getNextPageParam: (lastPage, pages) => {

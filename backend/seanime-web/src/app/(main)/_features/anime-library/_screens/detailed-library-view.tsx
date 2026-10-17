@@ -1,3 +1,4 @@
+import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { Anime_Episode, Anime_LibraryCollectionEntry, Anime_LibraryCollectionList } from "@/api/generated/types"
 import {
     __library_debouncedSearchInputAtom,
@@ -424,7 +425,7 @@ export function SearchOptions() {
                     }}
                     />
                 </div>
-                {!IS_ANDROID_APP && serverStatus?.settings?.anilist?.enableAdultContent && <div className="flex h-full items-center">
+                {!IS_PLAY_STORE && serverStatus?.settings?.anilist?.enableAdultContent && <div className="flex h-full items-center">
                     <Switch
                         label="Adult"
                         value={params.isAdult}

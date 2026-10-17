@@ -1,3 +1,4 @@
+import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import {
     AL_AnimeCollection_MediaListCollection_Lists_Entries,
     AL_BaseAnime,
@@ -211,7 +212,7 @@ export function filterListEntries<T extends AL_MangaCollection_MediaListCollecti
     if (!!arr && params.isAdult) arr = arr.filter(n => n.media?.isAdult)
 
     // Filter by showAdultContent
-    if (IS_ANDROID_APP || !showAdultContent) arr = arr.filter(n => !n.media?.isAdult)
+    if (IS_PLAY_STORE || !showAdultContent) arr = arr.filter(n => !n.media?.isAdult)
 
     // Filter by format
     if (!!arr && !!params.format) arr = arr.filter(n => n.media?.format === params.format)
@@ -321,7 +322,7 @@ export function filterCollectionEntries<T extends Anime_LibraryCollectionEntry[]
     if (!!arr && params.isAdult) arr = arr.filter(n => n.media?.isAdult)
 
     // Filter by showAdultContent
-    if (IS_ANDROID_APP || !showAdultContent) arr = arr.filter(n => !n.media?.isAdult)
+    if (IS_PLAY_STORE || !showAdultContent) arr = arr.filter(n => !n.media?.isAdult)
 
     // Filter by format
     if (!!arr && !!params.format) arr = arr.filter(n => n.media?.format === params.format)

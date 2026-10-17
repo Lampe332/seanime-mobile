@@ -184,7 +184,7 @@ export function ServerSettings(props: ServerSettingsProps) {
                 />
 
 
-                {!IS_ANDROID_APP && <div className="space-y-3">
+                {!IS_PLAY_STORE && <div className="space-y-3">
                     <Field.Switch
                         side="right"
                         name="enableAdultContent"

@@ -1,3 +1,4 @@
+import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { AL_AnimeCollection_MediaListCollection_Lists } from "@/api/generated/types"
 import { useGetAniListStats } from "@/api/hooks/anilist.hooks"
 import { AnilistAnimeEntryList } from "@/app/(main)/_features/anime/_components/anilist-media-entry-list"
@@ -387,7 +388,7 @@ export function SearchOptions({
                 />
             </div>
 
-            {!IS_ANDROID_APP && serverStatus?.settings?.anilist?.enableAdultContent && <Switch
+            {!IS_PLAY_STORE && serverStatus?.settings?.anilist?.enableAdultContent && <Switch
                 label="Adult"
                 value={params.isAdult}
                 onValueChange={v => setParams(draft => {

@@ -15,6 +15,12 @@ describe("global calendar day", () => {
         expect(result.map(item => item.mediaId)).toEqual([901, 902])
         expect(result.every(item => item.episodeNumber === 3)).toBe(true)
     })
+    it("keeps adult media only when it is allowed", async () => {
+        const adult = row(2, 902)
+        ;(adult.media as { isAdult?: boolean }).isAdult = true
+        const result = await fetchGlobalScheduleDay("2026-10-15", async () => page([row(1, 901), adult]), undefined, false)
+        expect(result.map(item => item.mediaId)).toEqual([901, 902])
+    })
     it("drops adult media from the calendar", async () => {
         const adult = row(2, 902)
         ;(adult.media as { isAdult?: boolean }).isAdult = true
@@ -33,9 +39,9 @@ describe("global calendar day", () => {
         await expect(fetchGlobalScheduleDay("2026-10-15", fetch)).rejects.toThrow("offline")
     })
     it("rejects invalid responses and stalled pagination", async () => {
-        await expect(fetchGlobalScheduleDay("2026-10-15", async () => undefined)).rejects.toThrow("gültigen")
+        await expect(fetchGlobalScheduleDay("2026-10-15", async () => undefined)).rejects.toThrow("no valid calendar data")
         const fetch = vi.fn().mockResolvedValue(page([row(1)], true))
-        await expect(fetchGlobalScheduleDay("2026-10-15", fetch)).rejects.toThrow("vollständig")
+        await expect(fetchGlobalScheduleDay("2026-10-15", fetch)).rejects.toThrow("could not be loaded completely")
         expect(fetch).toHaveBeenCalledTimes(2)
     })
     it("stops fetching after the selected query is cancelled", async () => {
@@ -47,7 +53,7 @@ describe("global calendar day", () => {
     it("supports a genuinely empty day and rejects invalid dates before a request", async () => {
         expect(await fetchGlobalScheduleDay("2026-10-15", async () => page([]))).toEqual([])
         const fetch = vi.fn()
-        await expect(fetchGlobalScheduleDay("invalid", fetch)).rejects.toThrow("Ungültiges")
+        await expect(fetchGlobalScheduleDay("invalid", fetch)).rejects.toThrow("Invalid calendar date")
         expect(fetch).not.toHaveBeenCalled()
     })
 })

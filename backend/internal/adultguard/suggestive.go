@@ -8,22 +8,23 @@ const SuggestiveTagHideRank = 60
 const suggestiveGenre = "Ecchi"
 
 // suggestiveTags are the AniList tags that count as sexual content in the Google Play build:
-// every tag of the AniList tag category "Sexual Content" plus "Nudity" (category "Cast-Traits").
-// Source: AniList GraphQL MediaTagCollection, fetched 2026-10-16.
+// "Nudity" plus the tags of the AniList category "Sexual Content" that describe sex acts, fetishes or
+// sexual violence. Body/character traits and themes from that category that many mainstream shows carry
+// with a high rank (e.g. Large Breasts, Flat Chest, Feet, Armpits, Sweat, Virginity, MILF/DILF, Masochism,
+// Sadism, Prostitution, Amputation) are deliberately NOT in this list.
+// Source: AniList GraphQL MediaTagCollection, fetched 2026-10-16; narrowed 2026-10-17.
 var suggestiveTags = map[string]struct{}{}
 
 func init() {
 	for _, name := range []string{
 		"Nudity",
-		"Ahegao", "Amputation", "Anal Sex", "Armpits", "Ashikoki", "Asphyxiation", "Bondage", "Boobjob",
-		"Cervix Penetration", "Cumflation", "Cunnilingus", "Deepthroat", "Defloration", "DILF", "Double Penetration",
-		"Erotic Piercings", "Exhibitionism", "Facial", "Feet", "Fellatio", "Femdom", "Fingering", "Fisting",
-		"Flat Chest", "Futanari", "Group Sex", "Hair Pulling", "Handjob", "Human Pet", "Hypersexuality", "Irrumatio",
-		"Lactation", "Large Breasts", "Male Pregnancy", "Masochism", "Masturbation", "Mating Press", "MILF",
-		"Nakadashi", "Netorare", "Netorase", "Netori", "Oyakodon", "Pet Play", "Prostitution", "Public Sex", "Rape",
-		"Rimjob", "Sadism", "Scat", "Scissoring", "Sex Toys", "Shimaidon", "Sixty-nine", "Squirting", "Strap-on",
-		"Sumata", "Swapping", "Sweat", "Tentacles", "Threesome", "Virginity", "Vore", "Voyeur", "Watersports",
-		"Zoophilia",
+		"Ahegao", "Anal Sex", "Ashikoki", "Asphyxiation", "Bondage", "Boobjob", "Cervix Penetration", "Cumflation",
+		"Cunnilingus", "Deepthroat", "Defloration", "Double Penetration", "Erotic Piercings", "Exhibitionism",
+		"Facial", "Fellatio", "Femdom", "Fingering", "Fisting", "Futanari", "Group Sex", "Handjob", "Human Pet",
+		"Hypersexuality", "Irrumatio", "Masturbation", "Mating Press", "Nakadashi", "Netorare", "Netorase", "Netori",
+		"Oyakodon", "Pet Play", "Public Sex", "Rape", "Rimjob", "Scat", "Scissoring", "Sex Toys", "Shimaidon",
+		"Sixty-nine", "Squirting", "Strap-on", "Sumata", "Swapping", "Tentacles", "Threesome", "Vore", "Voyeur",
+		"Watersports", "Zoophilia",
 	} {
 		suggestiveTags[name] = struct{}{}
 	}
