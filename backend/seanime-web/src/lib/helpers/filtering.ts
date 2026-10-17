@@ -1,4 +1,3 @@
-import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import {
     AL_AnimeCollection_MediaListCollection_Lists_Entries,
     AL_BaseAnime,
@@ -16,8 +15,6 @@ import { MangaEntryFilters } from "@/app/(main)/manga/_lib/manga-preferences"
 import { getMangaEntryUnreadState } from "@/app/(main)/manga/_lib/manga-unread"
 import sortBy from "lodash/sortBy"
 import { anilist_getUnwatchedCount } from "./media"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 type BaseCollectionSorting =
     "START_DATE"
@@ -212,7 +209,7 @@ export function filterListEntries<T extends AL_MangaCollection_MediaListCollecti
     if (!!arr && params.isAdult) arr = arr.filter(n => n.media?.isAdult)
 
     // Filter by showAdultContent
-    if (IS_PLAY_STORE || !showAdultContent) arr = arr.filter(n => !n.media?.isAdult)
+    if (!showAdultContent) arr = arr.filter(n => !n.media?.isAdult)
 
     // Filter by format
     if (!!arr && !!params.format) arr = arr.filter(n => n.media?.format === params.format)
@@ -322,7 +319,7 @@ export function filterCollectionEntries<T extends Anime_LibraryCollectionEntry[]
     if (!!arr && params.isAdult) arr = arr.filter(n => n.media?.isAdult)
 
     // Filter by showAdultContent
-    if (IS_PLAY_STORE || !showAdultContent) arr = arr.filter(n => !n.media?.isAdult)
+    if (!showAdultContent) arr = arr.filter(n => !n.media?.isAdult)
 
     // Filter by format
     if (!!arr && !!params.format) arr = arr.filter(n => n.media?.format === params.format)

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"seanime/internal/adultguard"
 	"seanime/internal/contentgate"
 	"seanime/internal/util"
 	"time"
@@ -109,12 +108,6 @@ func customQuery(body []byte, logger *zerolog.Logger, token ...string) (data int
 	data, ok = res.(map[string]interface{})["data"]
 	if !ok {
 		return nil, errors.New("failed to parse data")
-	}
-
-	if adultguard.Active() {
-		if _, err = adultguard.FilterJSON(data); err != nil {
-			return nil, err
-		}
 	}
 
 	return data, nil

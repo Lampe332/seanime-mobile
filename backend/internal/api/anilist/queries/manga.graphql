@@ -221,10 +221,6 @@ fragment baseManga on Media {
   meanScore
   description
   genres
-  tags {
-    name
-    rank
-  }
   title {
     userPreferred
     romaji

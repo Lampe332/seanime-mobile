@@ -1,4 +1,3 @@
-import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { AL_AnimeCollection_MediaListCollection_Lists } from "@/api/generated/types"
 import { useGetAniListStats } from "@/api/hooks/anilist.hooks"
 import { AnilistAnimeEntryList } from "@/app/(main)/_features/anime/_components/anilist-media-entry-list"
@@ -40,8 +39,6 @@ import { LuCalendar, LuLeaf, LuTags } from "react-icons/lu"
 import { MdPersonalVideo } from "react-icons/md"
 import { RiSignalTowerLine } from "react-icons/ri"
 import { TbSwords } from "react-icons/tb"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 const selectedIndexAtom = atom("-")
 const watchListSearchInputAtom = atom<string>("")
@@ -388,7 +385,7 @@ export function SearchOptions({
                 />
             </div>
 
-            {!IS_PLAY_STORE && serverStatus?.settings?.anilist?.enableAdultContent && <Switch
+            {serverStatus?.settings?.anilist?.enableAdultContent && <Switch
                 label="Adult"
                 value={params.isAdult}
                 onValueChange={v => setParams(draft => {

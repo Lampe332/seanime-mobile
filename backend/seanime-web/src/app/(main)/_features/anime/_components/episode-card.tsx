@@ -1,4 +1,3 @@
-import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { Anime_Episode } from "@/api/generated/types"
 import { EpisodeCardImage } from "@/app/(main)/_features/anime/_components/episode-card-image"
 import { SeaContextMenu } from "@/app/(main)/_features/context-menu/sea-context-menu"
@@ -131,8 +130,7 @@ export function EpisodeCard(props: EpisodeCardProps) {
     const displayImage = spoiler.replaceImage
         ? spoilerSafeImage || getSpoilerFreeAnimeImage(episode?.baseAnime) || anime?.image || image
         : image
-    const showAdultVeil = (!!serverStatus?.settings?.anilist?.blurAdultContent && !!(isAdult ?? episode?.baseAnime?.isAdult))
-        || (IS_PLAY_STORE && !!episode?.baseAnime?.isSuggestive)
+    const showAdultVeil = !!serverStatus?.settings?.anilist?.blurAdultContent && !!(isAdult ?? episode?.baseAnime?.isAdult)
 
     const Meta = () => (
         <div data-episode-card-info-container className="relative z-[3] w-full space-y-0">

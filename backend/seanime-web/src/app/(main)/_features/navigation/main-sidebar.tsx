@@ -1,4 +1,3 @@
-import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { useRefreshAnimeCollection } from "@/api/hooks/anilist.hooks"
 import { openAndroidDownloads } from "@/lib/android-offline"
 import { useLogout } from "@/api/hooks/auth.hooks"
@@ -490,8 +489,6 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
 }
 
 function SidebarUpdates({ isCollapsed }: { isCollapsed: boolean }) {
-    // Google Play updates the app, the in-app update flow does not exist there
-    if (IS_PLAY_STORE) return null
     return (
         !__isDesktop__ ? <UpdateModal collapsed={isCollapsed} /> :
             __isElectronDesktop__ ? <ElectronUpdateModal collapsed={isCollapsed} /> :

@@ -1,9 +1,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$ToolchainRoot,
     [string]$WorkDirectory = (Join-Path $env:TEMP 'Seanime-Android-Build'),
-    [switch]$RebuildBackend,
-    # github = APK with self-update (default, unchanged behavior); play = Google Play build (AAB + test APK)
-    [ValidateSet('github','play')][string]$Store = 'github'
+    [switch]$RebuildBackend
 )
 $ErrorActionPreference = 'Stop'
 $sourceRoot = $PSScriptRoot
@@ -40,7 +38,6 @@ if ($RebuildBackend) {
     $env:GOCACHE = Join-Path $ToolchainRoot 'go-cache'
     $env:npm_config_cache = Join-Path $ToolchainRoot 'npm-cache'
     $env:SEA_PUBLIC_PLATFORM = 'mobile'
-    $env:SEA_PUBLIC_STORE = $Store
     Push-Location (Join-Path $buildRoot 'backend\seanime-web')
     try {
         & npm.cmd ci --no-audit --no-fund
@@ -56,7 +53,6 @@ if ($RebuildBackend) {
     Move-Item -LiteralPath $embedded -Destination $reference
     New-Item -ItemType Directory -Path $embedded | Out-Null
     Copy-Item -Path (Join-Path $buildRoot 'backend\seanime-web\out\*') -Destination $embedded -Recurse
-    $goTags = if ($Store -eq 'play') { 'nosystray,play' } else { 'nosystray' }
     $env:GOOS = 'android'
     $env:CGO_ENABLED = '1'
     $env:CGO_LDFLAGS = '-Wl,-z,max-page-size=16384'
@@ -70,35 +66,21 @@ if ($RebuildBackend) {
         $env:CC = Join-Path $ndkBin ($target.Compiler + '-clang.cmd')
         $env:CXX = Join-Path $ndkBin ($target.Compiler + '-clang++.cmd')
         $nativeFile = Join-Path $buildRoot ('app\src\main\jniLibs\' + $target.Abi + '\libseanime.so')
-        & (Join-Path $ToolchainRoot 'go\bin\go.exe') build -C (Join-Path $buildRoot 'backend') -p 2 -buildvcs=false -trimpath -buildmode=pie "-tags=$goTags" -ldflags='-s -w -checklinkname=0' -o $nativeFile .
+        & (Join-Path $ToolchainRoot 'go\bin\go.exe') build -C (Join-Path $buildRoot 'backend') -p 2 -buildvcs=false -trimpath -buildmode=pie -tags=nosystray -ldflags='-s -w -checklinkname=0' -o $nativeFile .
         if ($LASTEXITCODE -ne 0) { throw ('Native build failed: ' + $target.Abi) }
     }
 }
 Push-Location $buildRoot
 try {
-    $flavor = if ($Store -eq 'play') { 'Play' } else { 'Github' }
-    $gradleTasks = @(":app:assemble${flavor}Release", ":app:lint${flavor}Release")
-    if ($Store -eq 'play') { $gradleTasks += ':app:bundlePlayRelease' }
-    & '.\gradlew.bat' --no-daemon --console=plain --max-workers=2 @gradleTasks
+    & '.\gradlew.bat' --no-daemon --console=plain --max-workers=2 :app:assembleRelease :app:lintRelease
     if ($LASTEXITCODE -ne 0) { throw 'Android build or lint failed.' }
 } finally { Pop-Location }
-$apk = Join-Path $buildRoot ('app\build\outputs\apk\' + $Store + '\release\app-' + $Store + '-release.apk')
+$apk = Join-Path $buildRoot 'app\build\outputs\apk\release\app-release.apk'
 & (Join-Path $env:ANDROID_HOME 'build-tools\36.0.0\apksigner.bat') verify --verbose $apk
 if ($LASTEXITCODE -ne 0) { throw 'APK signature verification failed.' }
 & (Join-Path $env:ANDROID_HOME 'build-tools\36.0.0\zipalign.exe') -c -P 16 4 $apk
 if ($LASTEXITCODE -ne 0) { throw 'APK alignment verification failed.' }
 $appVersion = [regex]::Match((Get-Content -LiteralPath (Join-Path $sourceRoot 'app\build.gradle.kts') -Raw), 'versionName\s*=\s*"([^"]+)"').Groups[1].Value
-if ($Store -eq 'play') {
-    $aab = Join-Path $buildRoot 'app\build\outputs\bundle\playRelease\app-play-release.aab'
-    if (-not (Test-Path -LiteralPath $aab)) { throw 'AAB was not produced.' }
-    $resultAab = Join-Path $WorkDirectory ('Anime-App-' + $appVersion + '-play.aab')
-    Copy-Item -LiteralPath $aab -Destination $resultAab -Force
-    $result = Join-Path $WorkDirectory ('Anime-App-' + $appVersion + '-play-test.apk')
-    Copy-Item -LiteralPath $apk -Destination $result -Force
-    Write-Output ('PASS: signed AAB: ' + $resultAab)
-    Write-Output ('PASS: signed APK built and verified: ' + $result)
-} else {
-    $result = Join-Path $WorkDirectory ('Seanime-Mobile-' + $appVersion + '.apk')
-    Copy-Item -LiteralPath $apk -Destination $result -Force
-    Write-Output ('PASS: signed APK built and verified: ' + $result)
-}
+$result = Join-Path $WorkDirectory ('Seanime-Mobile-' + $appVersion + '.apk')
+Copy-Item -LiteralPath $apk -Destination $result -Force
+Write-Output ('PASS: signed APK built and verified: ' + $result)

@@ -21,7 +21,7 @@ export async function fetchGlobalScheduleDay(date: string, fetchPage: (variables
             if (seen.has(row.id)) continue
             seen.add(row.id); added++
             const media = row.media
-            // adult media only if allowed (Google Play build / setting off: hidden; the backend filters too)
+            // Adult media is shown only when the user enabled it.
             if (!media || (hideAdult && media.isAdult) || media.type !== "ANIME" || row.airingAt * 1000 < start.getTime() || row.airingAt * 1000 >= end.getTime()) continue
             rows.set(row.id, { mediaId: media.id, title: media.title?.userPreferred || media.title?.romaji || media.title?.english || "Anime", time: "", dateTime: new Date(row.airingAt * 1000).toISOString(), image: media.coverImage?.large || media.coverImage?.medium || "", episodeNumber: row.episode, isMovie: media.format === "MOVIE", isSeasonFinale: !!media.episodes && row.episode === media.episodes })
         }

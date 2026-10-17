@@ -2,7 +2,6 @@ package anilist
 
 import (
 	"fmt"
-	"seanime/internal/adultguard"
 	"seanime/internal/hook"
 
 	"github.com/goccy/go-json"
@@ -184,9 +183,6 @@ func ListAnimeM(
 	if Format != nil {
 		variables["format"] = *Format
 	}
-	if adultguard.Blocked() {
-		IsAdult = new(false)
-	}
 	if IsAdult != nil {
 		variables["isAdult"] = *IsAdult
 	}
@@ -270,9 +266,6 @@ func ListMangaM(
 	}
 	if CountryOfOrigin != nil {
 		variables["countryOfOrigin"] = *CountryOfOrigin
-	}
-	if adultguard.Blocked() {
-		IsAdult = new(false)
 	}
 	if IsAdult != nil {
 		variables["isAdult"] = *IsAdult

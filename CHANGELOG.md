@@ -5,13 +5,10 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 ## 1.8.2 — 17.10.2026 (versionCode 31017)
 
 - **18+ wieder einstellbar** (GitHub-Version): *Settings → Enable adult content* und *Blur adult content* sind zurück, wie im Original-Seanime, standardmäßig aus. Dazu wieder der „Adult“-Schalter in Suche und Listen.
-- Alle Inhaltsfilter (18+ und die Ecchi-Regel) gelten jetzt **nur noch in der Google-Play-Version**.
-- Play-Version: Die Ecchi-Regel blendet nur noch Titel mit Nacktheit, sexuellen Handlungen, Fetischen oder sexueller Gewalt aus (Tag-Rang ≥ 60). Merkmale wie „Large Breasts“, „Flat Chest“, „Feet“, „Virginity“, „MILF“ oder „Masochism“ blenden nichts mehr aus, dadurch fehlen deutlich weniger normale Serien.
 
 ## 1.8.1 — 17.10.2026 (versionCode 31016)
 
 - **Frisch installiert zeigt die App keine Animes und Mangas mehr.** Startseite, Discover, Suche, Kalender, Listen, Manga und Detailseiten bleiben leer (Hinweis „No content yet"), bis ein AniList-Token hinzugefügt oder eine Inhalts-Erweiterung (Online-Streaming, Manga, Torrent, Custom Source) installiert ist, z. B. über ein eigenes Marketplace-Repository. Plugins zählen nicht. Einstellungen, Erweiterungen und Downloads bleiben erreichbar. Das Backend fragt bis dahin auch nichts bei AniList ab.
-- 18+-Inhalte (AniList *isAdult*) sind auf Android komplett entfernt; neue Build-Variante `play` für Google Play (siehe `docs/BUILD.md`).
 
 ## 1.8.0 — 16.10.2026 (versionCode 31015)
 

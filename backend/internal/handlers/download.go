@@ -12,7 +12,6 @@ import (
 	"path"
 	"path/filepath"
 	"seanime/internal/api/anilist"
-	"seanime/internal/storeflavor"
 	"seanime/internal/updater"
 	"seanime/internal/util"
 	"strconv"
@@ -243,9 +242,6 @@ type DownloadReleaseResponse struct {
 //	@route /api/v1/download-release [POST]
 //	@returns handlers.DownloadReleaseResponse
 func (h *Handler) HandleDownloadRelease(c echo.Context) error {
-	if storeflavor.Play {
-		return h.RespondWithError(c, errors.New("updates are delivered through Google Play"))
-	}
 
 	type body struct {
 		DownloadUrl string `json:"download_url"`
@@ -300,9 +296,6 @@ func (h *Handler) HandleDownloadRelease(c echo.Context) error {
 //	@route /api/v1/download-mac-denshi-update [POST]
 //	@returns handlers.DownloadReleaseResponse
 func (h *Handler) HandleDownloadMacDenshiUpdate(c echo.Context) error {
-	if storeflavor.Play {
-		return h.RespondWithError(c, errors.New("updates are delivered through Google Play"))
-	}
 	if err := h.guardPrivilegedLocalExecution(c); err != nil {
 		return err
 	}

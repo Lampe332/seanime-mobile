@@ -409,9 +409,6 @@ export type AL_BaseAnime = {
     meanScore?: number
     description?: string
     genres?: Array<string>
-    tags?: Array<{ name: string, rank?: number }>
-    /** Set by the backend in the Google Play build for ecchi media (cover is blurred). */
-    isSuggestive?: boolean
     duration?: number
     trailer?: AL_BaseAnime_Trailer
     title?: AL_BaseAnime_Title
@@ -559,9 +556,6 @@ export type AL_BaseManga = {
     meanScore?: number
     description?: string
     genres?: Array<string>
-    tags?: Array<{ name: string, rank?: number }>
-    /** Set by the backend in the Google Play build for ecchi media (cover is blurred). */
-    isSuggestive?: boolean
     title?: AL_BaseManga_Title
     coverImage?: AL_BaseManga_CoverImage
     startDate?: AL_BaseManga_StartDate

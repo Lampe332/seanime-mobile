@@ -1,4 +1,3 @@
-import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { buildSeaQuery } from "@/api/client/requests"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { AL_ListAnime, AL_ListManga } from "@/api/generated/types"
@@ -7,8 +6,6 @@ import { __advancedSearch_getValue, __advancedSearch_paramsAtom } from "@/app/(m
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { useAtomValue } from "jotai/react"
 import React from "react"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 export function useAnilistAdvancedSearch() {
 
@@ -35,18 +32,15 @@ export function useAnilistAdvancedSearch() {
                     ...(__advancedSearch_getValue(params.sorting) || ["SCORE_DESC"])] : (__advancedSearch_getValue(params.sorting) || ["SCORE_DESC"]),
                 status: params.sorting?.includes("START_DATE_DESC") ? (__advancedSearch_getValue(params.status)
                     ?.filter((n: string) => n !== "NOT_YET_RELEASED") || ["FINISHED", "RELEASING"]) : __advancedSearch_getValue(params.status),
-                isAdult: IS_PLAY_STORE ? false : params.isAdult,
+                isAdult: params.isAdult,
             }
 
-            const res = await buildSeaQuery<AL_ListAnime>({
+            return buildSeaQuery<AL_ListAnime>({
                 endpoint: API_ENDPOINTS.ANILIST.AnilistListAnime.endpoint,
                 method: "POST",
                 data: variables,
                 password: password,
             })
-            // Google Play build: never show adult media (the backend already filters, this is the second layer)
-            if (IS_PLAY_STORE && res?.Page?.media) res.Page.media = res.Page.media.filter(m => !m?.isAdult)
-            return res
         },
         getNextPageParam: (lastPage, pages) => {
             const curr = lastPage?.Page?.pageInfo?.currentPage
@@ -79,17 +73,15 @@ export function useAnilistAdvancedSearch() {
                 status: params.sorting?.includes("START_DATE_DESC") ? (__advancedSearch_getValue(params.status)
                     ?.filter((n: string) => n !== "NOT_YET_RELEASED") || ["FINISHED", "RELEASING"]) : __advancedSearch_getValue(params.status),
                 countryOfOrigin: __advancedSearch_getValue(params.countryOfOrigin),
-                isAdult: IS_PLAY_STORE ? false : params.isAdult,
+                isAdult: params.isAdult,
             }
 
-            const res = await buildSeaQuery<AL_ListManga>({
+            return buildSeaQuery<AL_ListManga>({
                 endpoint: API_ENDPOINTS.MANGA.AnilistListManga.endpoint,
                 method: "POST",
                 data: variables,
                 password: password,
             })
-            if (IS_PLAY_STORE && res?.Page?.media) res.Page.media = res.Page.media.filter(m => !m?.isAdult)
-            return res
         },
         getNextPageParam: (lastPage, pages) => {
             const curr = lastPage?.Page?.pageInfo?.currentPage

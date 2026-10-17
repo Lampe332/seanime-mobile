@@ -1,4 +1,3 @@
-import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { Anime_Episode, Anime_LibraryCollectionEntry, Anime_LibraryCollectionList } from "@/api/generated/types"
 import {
     __library_debouncedSearchInputAtom,
@@ -45,8 +44,6 @@ import { FiSearch } from "react-icons/fi"
 import { LuCalendar, LuLeaf, LuTags } from "react-icons/lu"
 import { MdPersonalVideo } from "react-icons/md"
 import { RiSignalTowerLine } from "react-icons/ri"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 type LibraryViewProps = {
     collectionList: Anime_LibraryCollectionList[]
@@ -425,7 +422,7 @@ export function SearchOptions() {
                     }}
                     />
                 </div>
-                {!IS_PLAY_STORE && serverStatus?.settings?.anilist?.enableAdultContent && <div className="flex h-full items-center">
+                {serverStatus?.settings?.anilist?.enableAdultContent && <div className="flex h-full items-center">
                     <Switch
                         label="Adult"
                         value={params.isAdult}

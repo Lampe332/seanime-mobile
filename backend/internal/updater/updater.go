@@ -3,7 +3,6 @@ package updater
 import (
 	"net/http"
 	"seanime/internal/events"
-	"seanime/internal/storeflavor"
 	"seanime/internal/util"
 	"strings"
 	"time"
@@ -43,7 +42,7 @@ func New(currVersion string, logger *zerolog.Logger, wsEventManager events.WSEve
 	ret := &Updater{
 		CurrentVersion:      currVersion,
 		hasCheckedForUpdate: false,
-		checkForUpdate:      !storeflavor.Play, // Google Play updates the app, never the app itself
+		checkForUpdate:      true,
 		UpdateChannel:       "github",
 
 		logger: logger,
@@ -110,16 +109,13 @@ func (u *Updater) ShouldRefetchReleases() {
 }
 
 func (u *Updater) SetEnabled(checkForUpdate bool) {
-	u.checkForUpdate = checkForUpdate && !storeflavor.Play
+	u.checkForUpdate = checkForUpdate
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GetLatestRelease returns the latest release from the specified channel.
 func (u *Updater) GetLatestRelease(channel string) (*Release, error) {
-	if storeflavor.Play {
-		return nil, errUpdatesDisabled
-	}
 	if u.hasCheckedForUpdate {
 		return u.LatestRelease, nil
 	}

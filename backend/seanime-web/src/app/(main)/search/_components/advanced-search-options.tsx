@@ -1,4 +1,3 @@
-import { IS_PLAY_STORE } from "@/lib/store-flavor"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import {
     ADVANCED_SEARCH_COUNTRIES_MANGA,
@@ -33,8 +32,6 @@ import { RiSignalTowerLine } from "react-icons/ri"
 import { TbSwords, TbTagsFilled } from "react-icons/tb"
 import { useMount } from "react-use"
 import { useUpdateEffect } from "react-use"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 export function AdvancedSearchOptions() {
 
@@ -199,7 +196,7 @@ export function AdvancedSearchOptions() {
                         return
                     })}
                 />
-                {!IS_PLAY_STORE && serverStatus?.settings?.anilist?.enableAdultContent && <Switch
+                {serverStatus?.settings?.anilist?.enableAdultContent && <Switch
                     label="Adult"
                     value={params.isAdult}
                     onValueChange={v => setParams(draft => {

@@ -11,7 +11,6 @@ import (
 var CurrSettings *models.Settings
 
 func (db *Database) UpsertSettings(settings *models.Settings) (*models.Settings, error) {
-	settings.EnforcePlatformPolicy()
 	if settings != nil && settings.Torrent != nil {
 		settings.Torrent.QBittorrentHost = strings.TrimSpace(strings.Trim(settings.Torrent.QBittorrentHost, "\""))
 		settings.Torrent.TransmissionHost = strings.TrimSpace(strings.Trim(settings.Torrent.TransmissionHost, "\""))
@@ -52,7 +51,6 @@ func (db *Database) GetSettings() (*models.Settings, error) {
 	}
 
 	ResolveSettingsPathsPhysical(&settings)
-	settings.EnforcePlatformPolicy()
 
 	CurrSettings = &settings
 	return &settings, nil

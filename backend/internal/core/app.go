@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"seanime/internal/adultguard"
 	"seanime/internal/api/anilist"
 	"seanime/internal/api/metadata_provider"
 	"seanime/internal/constants"
@@ -270,12 +269,6 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 	anilistToken := database.GetAnilistToken()
 
 	anilistCacheDir := filepath.Join(cfg.Cache.Dir, "anilist")
-	// content rules changed: drop cached AniList data once so it cannot show media the rules now hide
-	if cleared, err := adultguard.ResetStaleCache(anilistCacheDir); err != nil {
-		logger.Warn().Err(err).Msg("app: Failed to reset the AniList cache")
-	} else if cleared {
-		logger.Info().Msg("app: AniList cache cleared (content rules changed)")
-	}
 
 	// Initialize Anilist API client with the token
 	// If the token is empty, the client will not be authenticated
