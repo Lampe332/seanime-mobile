@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"seanime/internal/adultguard"
+	"seanime/internal/contentgate"
 	"seanime/internal/events"
 	"seanime/internal/util"
 	"strconv"
@@ -588,6 +589,11 @@ func notifyAniListRateLimit(logger *zerolog.Logger, waitSeconds int) {
 
 // customDoFunc is a custom request interceptor function that handles rate limiting and retries.
 func (ac *AnilistClientImpl) customDoFunc(ctx context.Context, req *http.Request, gqlInfo *clientv2.GQLRequestInfo, res interface{}) (err error) {
+	// Android: no AniList content until the user added a token or an extension (see contentgate)
+	if contentgate.LockedFor(ac.token) {
+		return contentgate.ErrLocked
+	}
+
 	var rlRemainingStr string
 
 	reqTime := time.Now()

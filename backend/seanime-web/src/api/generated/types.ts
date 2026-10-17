@@ -2979,6 +2979,10 @@ export type Status = {
     serverReady: boolean
     serverHasPassword: boolean
     showChangelogTour: string
+    /**
+     * ContentLocked is true on Android until the user added an AniList token or an extension (see contentgate).
+     */
+    contentLocked: boolean
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

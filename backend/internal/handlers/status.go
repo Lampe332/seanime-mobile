@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"seanime/internal/constants"
+	"seanime/internal/contentgate"
 	"seanime/internal/core"
 	"seanime/internal/database/models"
 	"seanime/internal/report"
@@ -48,6 +49,8 @@ type Status struct {
 	ServerReady           bool                          `json:"serverReady"`
 	ServerHasPassword     bool                          `json:"serverHasPassword"`
 	ShowChangelogTour     string                        `json:"showChangelogTour"`
+	// ContentLocked is true on Android until the user added an AniList token or an extension (see contentgate).
+	ContentLocked bool `json:"contentLocked"`
 }
 
 var clientInfoCache = result.NewMap[string, util.ClientInfo]()
@@ -129,6 +132,7 @@ func (h *Handler) NewStatus(c echo.Context) *Status {
 		ServerHasPassword:     h.App.Config.Server.Password != "",
 		DisabledFeatures:      h.App.FeatureManager.DisabledFeatures,
 		ShowChangelogTour:     h.App.ShowTour,
+		ContentLocked:         contentgate.Locked(),
 	}
 
 	return status

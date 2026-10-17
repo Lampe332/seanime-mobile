@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"seanime/internal/adultguard"
+	"seanime/internal/contentgate"
 	"seanime/internal/util"
 	"time"
 
@@ -54,6 +55,11 @@ func customQuery(body []byte, logger *zerolog.Logger, token ...string) (data int
 	authToken := ""
 	if len(token) > 0 {
 		authToken = token[0]
+	}
+
+	// Android: no AniList content until the user added a token or an extension (see contentgate)
+	if contentgate.LockedFor(authToken) {
+		return nil, contentgate.ErrLocked
 	}
 
 	if err = initAnilistReq(req.Context(), req, authToken); err != nil {

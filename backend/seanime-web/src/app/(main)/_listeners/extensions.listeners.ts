@@ -24,6 +24,8 @@ export function useExtensionListener() {
                 await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.EXTENSIONS.GetExtensionUserConfig.key] })
                 await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.EXTENSIONS.GetExtensionUpdateData.key] })
                 await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.EXTENSIONS.ListDevelopmentModeExtensions.key] })
+                // installing/removing an extension can lock or unlock content (status.contentLocked)
+                await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
             })()
         },
     })

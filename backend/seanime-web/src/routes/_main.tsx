@@ -1,3 +1,4 @@
+import { ContentGate } from "@/app/(main)/_features/content-gate/content-gate"
 import { MainLayout } from "@/app/(main)/_features/layout/main-layout"
 import { OfflineLayout } from "@/app/(main)/_features/layout/offline-layout"
 import { TopNavbar } from "@/app/(main)/_features/layout/top-navbar"
@@ -49,7 +50,9 @@ function Layout() {
                     <TopNavbar />
                     <div data-main-layout-content>
                         <ErrorBoundary FallbackComponent={AppErrorBoundary}>
-                            <Outlet />
+                            <ContentGate>
+                                <Outlet />
+                            </ContentGate>
                         </ErrorBoundary>
                     </div>
                 </div>

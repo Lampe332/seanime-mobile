@@ -8,6 +8,7 @@ import (
 	"seanime/internal/api/anilist"
 	"seanime/internal/api/metadata_provider"
 	"seanime/internal/constants"
+	"seanime/internal/contentgate"
 	"seanime/internal/continuity"
 	"seanime/internal/database/db"
 	"seanime/internal/database/models"
@@ -538,6 +539,12 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 	if !app.IsOffline() {
 		go app.Updater.FetchAnnouncements()
 	}
+
+	// Android: AniList content stays hidden until the user added a token or a (non built-in) extension
+	contentgate.Configure(
+		func() bool { return app.GetUserAnilistToken() != "" },
+		func() bool { return HasUserExtension(extensionRepository) },
+	)
 
 	// Initialize all modules that depend on settings
 	app.InitOrRefreshModules()

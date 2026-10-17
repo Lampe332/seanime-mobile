@@ -2,6 +2,11 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.8.1 — 17.10.2026 (versionCode 31016)
+
+- **Frisch installiert zeigt die App keine Animes und Mangas mehr.** Startseite, Discover, Suche, Kalender, Listen, Manga und Detailseiten bleiben leer (Hinweis „No content yet"), bis ein AniList-Token hinzugefügt oder eine Inhalts-Erweiterung (Online-Streaming, Manga, Torrent, Custom Source) installiert ist, z. B. über ein eigenes Marketplace-Repository. Plugins zählen nicht. Einstellungen, Erweiterungen und Downloads bleiben erreichbar. Das Backend fragt bis dahin auch nichts bei AniList ab.
+- 18+-Inhalte (AniList *isAdult*) sind auf Android komplett entfernt; neue Build-Variante `play` für Google Play (siehe `docs/BUILD.md`).
+
 ## 1.8.0 — 16.10.2026 (versionCode 31015)
 
 - **App komplett auf Englisch**, Deutsch bleibt wählbar: *Settings → App language* (English / Deutsch). Gilt für Downloads, Folgen-Auswahl, Kalender, Manga-Downloads, Offline-Player, Benachrichtigungen und Meldungen. Standard ist Englisch.
