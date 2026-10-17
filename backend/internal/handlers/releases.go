@@ -60,6 +60,9 @@ func (h *Handler) HandleInstallLatestUpdate(c echo.Context) error {
 //	@route /api/v1/check-for-updates [POST]
 //	@returns updater.Update
 func (h *Handler) HandleCheckForUpdates(c echo.Context) error {
+	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
+		return h.RespondWithData(c, &updater.Update{})
+	}
 	// Temporarily enable update checking (bypasses disableUpdateCheck setting)
 	h.App.Updater.SetEnabled(true)
 	defer h.App.Updater.SetEnabled(!h.App.Settings.Library.DisableUpdateCheck)
@@ -82,6 +85,9 @@ func (h *Handler) HandleCheckForUpdates(c echo.Context) error {
 //	@route /api/v1/latest-update [GET]
 //	@returns updater.Update
 func (h *Handler) HandleGetLatestUpdate(c echo.Context) error {
+	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
+		return h.RespondWithData(c, &updater.Update{})
+	}
 	update, err := h.App.Updater.GetLatestUpdate()
 	if err != nil {
 		return h.RespondWithData(c, &updater.Update{})
@@ -104,6 +110,9 @@ var changelogCache = result.NewCache[string, []*changelogItem]()
 //	@param before query string true "The version to get the changelog for."
 //	@returns string
 func (h *Handler) HandleGetChangelog(c echo.Context) error {
+	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
+		return h.RespondWithData(c, []*changelogItem{})
+	}
 	before := c.QueryParam("before")
 	after := c.QueryParam("after")
 

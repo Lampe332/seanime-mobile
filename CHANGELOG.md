@@ -2,6 +2,12 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.8.3 — 17.10.2026 (versionCode 31018)
+
+- 🦺 Updates: The update popup now compares the installed Android app version against stable releases of `Lampe332/seanime-mobile` instead of desktop Seanime releases
+- ⚡️ Updates: The download button saves the matching `Seanime-Mobile-<version>.apk` directly to Downloads
+- 🏗️ Updates: Desktop server updates, their changelogs and announcements are no longer fetched on the phone, and the desktop update channels are hidden
+
 ## 1.8.2 — 17.10.2026 (versionCode 31017)
 
 - **18+ wieder einstellbar** (GitHub-Version): *Settings → Enable adult content* und *Blur adult content* sind zurück, wie im Original-Seanime, standardmäßig aus. Dazu wieder der „Adult“-Schalter in Suche und Listen.

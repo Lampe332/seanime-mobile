@@ -10,8 +10,8 @@ android {
         applicationId = "com.seanime.app.local"
         minSdk = 21
         targetSdk = 36
-        versionCode = 31017
-        versionName = "1.8.2"
+        versionCode = 31018
+        versionName = "1.8.3"
         testInstrumentationRunner = "com.seanime.app.audit.OfflineInstrumentation"
         ndk { abiFilters += setOf("arm64-v8a", "armeabi-v7a") }
         // -PseanimeAppIdSuffix=.fresh installs a separate copy next to the real app (fresh-install testing)
@@ -59,6 +59,7 @@ android {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation("androidx.media3:media3-exoplayer:1.8.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.8.1")
     implementation("androidx.media3:media3-ui:1.8.1")

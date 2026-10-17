@@ -42,7 +42,7 @@ func New(currVersion string, logger *zerolog.Logger, wsEventManager events.WSEve
 	ret := &Updater{
 		CurrentVersion:      currVersion,
 		hasCheckedForUpdate: false,
-		checkForUpdate:      true,
+		checkForUpdate:      desktopUpdatesAvailable(),
 		UpdateChannel:       "github",
 
 		logger: logger,
@@ -60,7 +60,7 @@ func New(currVersion string, logger *zerolog.Logger, wsEventManager events.WSEve
 }
 
 func (u *Updater) GetLatestUpdate() (*Update, error) {
-	if !u.checkForUpdate {
+	if !desktopUpdatesAvailable() || !u.checkForUpdate {
 		return nil, nil
 	}
 
@@ -109,13 +109,16 @@ func (u *Updater) ShouldRefetchReleases() {
 }
 
 func (u *Updater) SetEnabled(checkForUpdate bool) {
-	u.checkForUpdate = checkForUpdate
+	u.checkForUpdate = checkForUpdate && desktopUpdatesAvailable()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GetLatestRelease returns the latest release from the specified channel.
 func (u *Updater) GetLatestRelease(channel string) (*Release, error) {
+	if !desktopUpdatesAvailable() {
+		return nil, errDesktopUpdateOnMobile
+	}
 	if u.hasCheckedForUpdate {
 		return u.LatestRelease, nil
 	}

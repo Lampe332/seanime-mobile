@@ -4,8 +4,14 @@ import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Status, Updater_Update } from "@/api/generated/types"
 import { useSetServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { toast } from "sonner"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { checkAppUpdate, IS_MOBILE_APP } from "@/lib/app-updates"
 
 export function useGetLatestUpdate(enabled: boolean) {
+    if (IS_MOBILE_APP) return useQuery<Updater_Update | undefined>({
+        queryKey: [API_ENDPOINTS.RELEASES.GetLatestUpdate.key], queryFn: checkAppUpdate,
+        enabled, staleTime: 60 * 60 * 1000, refetchInterval: 60 * 60 * 1000, retry: false,
+    })
     return useServerQuery<Updater_Update>({
         endpoint: API_ENDPOINTS.RELEASES.GetLatestUpdate.endpoint,
         method: API_ENDPOINTS.RELEASES.GetLatestUpdate.methods[0],
@@ -39,6 +45,9 @@ export function useGetChangelog(before: string, after: string, enabled: boolean)
 }
 
 export function useCheckForUpdates() {
+    if (IS_MOBILE_APP) return useMutation<Updater_Update | undefined, Error, void>({
+        mutationFn: checkAppUpdate, onError: error => toast.error(error.message),
+    })
     return useServerMutation<Updater_Update>({
         endpoint: API_ENDPOINTS.RELEASES.CheckForUpdates.endpoint,
         method: API_ENDPOINTS.RELEASES.CheckForUpdates.methods[0],

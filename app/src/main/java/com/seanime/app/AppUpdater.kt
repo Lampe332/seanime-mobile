@@ -1,52 +1,32 @@
 package com.seanime.app
 
 import android.Manifest
-import android.animation.ValueAnimator
 import android.app.Activity
-import android.app.Dialog
-import android.content.Intent
+import android.content.ContentValues
 import android.content.pm.PackageManager
-import android.graphics.Color
-import android.graphics.Typeface
-import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.GradientDrawable
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
-import android.provider.Settings
-import android.view.Gravity
-import android.view.View
-import android.view.ViewGroup
-import android.view.animation.LinearInterpolator
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
-import android.widget.FrameLayout
-import android.widget.TextView
-import android.widget.Toast
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
-import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.regex.Pattern
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
+/** The existing web update modal uses this bridge; no desktop version or DOM-button patching is involved. */
 object AppUpdater {
-
-    private const val RELEASES_URL = "https://api.github.com/repos/Seanime-contributions/Seanime-Android/releases"
     private const val PERMISSION_REQUEST_CODE = 1001
-
     private lateinit var activity: Activity
     private lateinit var webView: WebView
-    private val mainHandler = Handler(Looper.getMainLooper())
-
-    // Flags for permission handling
-    private var pendingDownloadAfterPermission = false
-    private var pendingInstallAfterPermission = false
-    private var pendingCurrentVersion: String? = null // store version while waiting for permission
+    private val handler = Handler(Looper.getMainLooper())
+    private val downloading = AtomicBoolean(false)
+    private var pendingRequest: String? = null
 
     fun init(activity: Activity, webView: WebView) {
         this.activity = activity
@@ -54,450 +34,125 @@ object AppUpdater {
         webView.addJavascriptInterface(Bridge, "AppUpdater")
     }
 
-    fun inject(webView: WebView) {
-        val js = """
-            (function() {
-                if (window.__seanime_appupdater_init) return;
-                window.__seanime_appupdater_init = true;
+    @Suppress("UNUSED_PARAMETER")
+    fun inject(webView: WebView) = Unit
 
-                if (!document.getElementById('__seanime_appupdater_styles')) {
-                    var style = document.createElement('style');
-                    style.id = '__seanime_appupdater_styles';
-                    style.textContent = '@keyframes __sau_spin { to { transform: rotate(360deg); } }';
-                    document.head.appendChild(style);
-                }
-
-                // Helper to get current version from the modal's H4
-                function getCurrentVersion() {
-                    var h4 = document.querySelector('h4.font-bold');
-                    if (h4) {
-                        var spans = h4.querySelectorAll('span');
-                        if (spans.length >= 1) {
-                            return spans[0].textContent.trim(); // first span = current version
-                        }
-                    }
-                    return null;
-                }
-
-                function findUpdateNowBtn() {
-                    return Array.from(document.querySelectorAll('button')).find(function(btn) {
-                        var span = btn.querySelector('span.md\\:inline-block');
-                        return span && span.textContent.trim() === 'Update now';
-                    });
-                }
-
-                function findDownloadBtn() {
-                    return Array.from(document.querySelectorAll('button')).find(function(btn) {
-                        var span = btn.querySelector('span.md\\:inline-block');
-                        return span && span.textContent.trim() === 'Download';
-                    });
-                }
-
-                function patchUpdateNowBtn(btn) {
-                    if (btn.dataset.sauPatched) return;
-                    var clone = btn.cloneNode(true);
-                    clone.dataset.sauPatched = 'true';
-                    clone.addEventListener('click', function(e) {
-                        e.stopPropagation(); e.preventDefault();
-                        var currentVer = getCurrentVersion();
-                        if (window.AppUpdater) window.AppUpdater.startUpdate(currentVer);
-                    });
-                    btn.parentNode.replaceChild(clone, btn);
-                }
-
-                function patchDownloadBtn(btn) {
-                    if (btn.dataset.sauPatched) return;
-                    var clone = btn.cloneNode(true);
-                    clone.dataset.sauPatched = 'true';
-                    clone.dataset.sauDownloadBtn = 'true';
-                    clone.addEventListener('click', function(e) {
-                        e.stopPropagation(); e.preventDefault();
-                        clone.disabled = true;
-                        clone.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:__sau_spin 0.8s linear infinite;flex-shrink:0;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
-                        var currentVer = getCurrentVersion(); // optional, not used for download
-                        if (window.AppUpdater) window.AppUpdater.startDownload(currentVer);
-                    });
-                    btn.parentNode.replaceChild(clone, btn);
-                }
-
-                function scanButtons() {
-                    var updateBtn = findUpdateNowBtn(); if (updateBtn) patchUpdateNowBtn(updateBtn);
-                    var dlBtn = findDownloadBtn(); if (dlBtn) patchDownloadBtn(dlBtn);
-                }
-
-                scanButtons();
-                new MutationObserver(scanButtons).observe(document.body, { childList: true, subtree: true });
-            })();
-        """.trimIndent()
-        webView.evaluateJavascript(js, null)
-    }
-
-    fun onRequestPermissionsResult(requestCode: Int, grantResults: IntArray) {
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted, retry pending download/update
-                if (pendingDownloadAfterPermission) {
-                    pendingDownloadAfterPermission = false
-                    Bridge.startDownload(pendingCurrentVersion)
-                } else if (pendingInstallAfterPermission) {
-                    pendingInstallAfterPermission = false
-                    Bridge.startUpdate(pendingCurrentVersion)
-                }
-                pendingCurrentVersion = null
-            } else {
-                Toast.makeText(activity, "Storage permission denied. Cannot download to public folder.", Toast.LENGTH_LONG).show()
-                pendingDownloadAfterPermission = false
-                pendingInstallAfterPermission = false
-                pendingCurrentVersion = null
+    private fun emit(event: String, requestId: String, data: JSONObject) {
+        data.put("requestId", requestId)
+        handler.post {
+            if (!activity.isFinishing && !activity.isDestroyed) {
+                webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('$event',{detail:$data}));", null)
             }
         }
+    }
+
+    private fun currentVersion(): String = activity.packageManager.getPackageInfo(activity.packageName, 0).versionName ?: "0.0.0"
+
+    private fun connection(url: String): HttpURLConnection = (URL(url).openConnection() as HttpURLConnection).apply {
+        connectTimeout = 15_000
+        readTimeout = 30_000
+        setRequestProperty("Accept", "application/vnd.github+json")
+        setRequestProperty("User-Agent", "Seanime-Mobile-Updater")
+    }
+
+    private fun fetchUpdate(): AppReleasePolicy.Update? {
+        val conn = connection(AppReleasePolicy.RELEASES_URL)
+        val releases = try {
+            check(conn.responseCode in 200..299) { "GitHub HTTP ${conn.responseCode}" }
+            JSONArray(conn.inputStream.bufferedReader().use { it.readText() })
+        } finally { conn.disconnect() }
+        return AppReleasePolicy.select(currentVersion(), (0 until releases.length()).map { index ->
+            val release = releases.getJSONObject(index)
+            val assets = release.optJSONArray("assets") ?: JSONArray()
+            AppReleasePolicy.Release(
+                release.optString("tag_name"), release.optString("body"),
+                (0 until assets.length()).map { i -> assets.getJSONObject(i).let { AppReleasePolicy.Asset(it.optString("name"), it.optString("browser_download_url")) } },
+                release.optBoolean("draft", true), release.optBoolean("prerelease", true),
+            )
+        })
     }
 
     object Bridge {
         @JavascriptInterface
-        fun startUpdate(currentVersion: String?) {
-            mainHandler.post {
-                if (activity.packageName.endsWith(".local")) {
-                    Toast.makeText(activity,
-                        "This local build needs a newer APK signed with the same build key. Install that APK to update and keep your app data.",
-                        Toast.LENGTH_LONG).show()
-                    return@post
-                }
-                if (!checkStoragePermission(installAfter = true)) {
-                    pendingInstallAfterPermission = true
-                    pendingCurrentVersion = currentVersion
-                    return@post
-                }
-                val dialog = showUpdatingDialog()
-                fetchAndDownload(
-                    installAfter = true,
-                    currentVersion = currentVersion,
-                    onComplete = {
-                        mainHandler.post {
-                            dialog.dismiss()
-                            dismissSeanimeModal()
-                        }
-                    },
-                    onError = { msg ->
-                        mainHandler.post {
-                            dialog.dismiss()
-                            Toast.makeText(activity, "Update failed: $msg", Toast.LENGTH_LONG).show()
-                        }
+        fun checkForUpdates(requestId: String) {
+            thread(name = "app-update-check") {
+                try {
+                    val update = fetchUpdate()
+                    val data = JSONObject().put("type", "app").put("current_version", currentVersion())
+                    if (update != null) {
+                        data.put("release", JSONObject()
+                            .put("version", update.version).put("tag_name", update.release.tag)
+                            .put("name", "Seanime Mobile ${update.version}").put("body", update.release.body)
+                            .put("html_url", "https://github.com/${AppReleasePolicy.REPOSITORY}/releases/tag/${update.release.tag}")
+                            .put("released", true))
                     }
-                )
+                    emit("seanime-app-update", requestId, JSONObject().put("update", data))
+                } catch (e: Exception) {
+                    emit("seanime-app-update", requestId, JSONObject().put("error", e.message ?: "Update check failed"))
+                }
             }
         }
 
         @JavascriptInterface
-        fun startDownload(currentVersion: String?) {
-            mainHandler.post {
-                if (!checkStoragePermission(installAfter = false)) {
-                    pendingDownloadAfterPermission = true
-                    pendingCurrentVersion = currentVersion
-                    return@post
-                }
-                fetchAndDownload(
-                    installAfter = false,
-                    currentVersion = currentVersion, // not used for download but passed for consistency
-                    onComplete = {
-                        mainHandler.post {
-                            Toast.makeText(activity, "Download complete", Toast.LENGTH_SHORT).show()
-                            webView.evaluateJavascript("""
-                                (function() {
-                                    var btn = document.querySelector('[data-sau-download-btn="true"]');
-                                    if (!btn) return;
-                                    btn.disabled = false;
-                                    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg><span class="md:inline-block" style="margin-inline-start:0.5rem;">Downloaded</span>';
-                                })();
-                            """.trimIndent(), null)
-                        }
-                    },
-                    onError = { msg ->
-                        mainHandler.post {
-                            Toast.makeText(activity, "Download failed: $msg", Toast.LENGTH_LONG).show()
-                            webView.evaluateJavascript("""
-                                (function() {
-                                    var btn = document.querySelector('[data-sau-download-btn="true"]');
-                                    if (!btn) return;
-                                    btn.disabled = false;
-                                    btn.innerHTML = '<span class="md:inline-block">Download</span>';
-                                })();
-                            """.trimIndent(), null)
-                        }
+        fun downloadUpdate(requestId: String) {
+            handler.post {
+                if (Build.VERSION.SDK_INT in 23..28 && activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    if (pendingRequest != null) {
+                        emit("seanime-app-download", requestId, JSONObject().put("error", "A download is already pending"))
+                        return@post
                     }
-                )
-            }
-        }
-    }
-
-    private fun checkStoragePermission(installAfter: Boolean): Boolean {
-        return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                    true
-                } else {
+                    pendingRequest = requestId
                     activity.requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), PERMISSION_REQUEST_CODE)
-                    false
-                }
-            } else {
-                true
-            }
-        } else {
-            true
-        }
-    }
-
-    private fun fetchAndDownload(installAfter: Boolean, currentVersion: String?, onComplete: () -> Unit, onError: (String) -> Unit) {
-        thread {
-            try {
-                // 1. Fetch releases list
-                val releaseConn = URL(RELEASES_URL).openConnection() as HttpURLConnection
-                releaseConn.setRequestProperty("Accept", "application/vnd.github.v3+json")
-                releaseConn.setRequestProperty("User-Agent", "Seanime-App-Updater")
-                releaseConn.connectTimeout = 15000
-
-                val releaseJson = releaseConn.inputStream.bufferedReader().readText()
-                releaseConn.disconnect()
-
-                val releasesArray = JSONArray(releaseJson)
-                if (releasesArray.length() == 0) {
-                    onError("No releases found")
-                    return@thread
-                }
-
-                val latestRelease = releasesArray.getJSONObject(0)
-
-                // 2. Find APK asset and extract its version
-                val assets = latestRelease.getJSONArray("assets")
-                var apkUrl: String? = null
-                var apkVersion: String? = null
-
-                for (i in 0 until assets.length()) {
-                    val asset = assets.getJSONObject(i)
-                    val name = asset.getString("name")
-                    val wantsArm64 = Build.SUPPORTED_ABIS.firstOrNull() == "arm64-v8a"
-                    val matchingAbi = name.contains("universal", true) ||
-                        (if (wantsArm64) name.contains("arm64", true) else name.contains("armeabi", true) || name.contains("arm32", true))
-                    if (name.endsWith(".apk") && matchingAbi) {
-                        apkUrl = asset.getString("browser_download_url")
-                        apkVersion = extractVersionFromApkName(name)
-                        break
-                    }
-                }
-
-                if (apkUrl == null) {
-                    onError("No compatible APK for this device in the Android release. Use a matching, signed Android build.")
-                    return@thread
-                }
-
-                // The installed Android package is authoritative, not text supplied by a web page.
-                run {
-                    val baseVersion = getCurrentVersionName()
-                    if (apkVersion == null || !isNewerVersion(baseVersion, apkVersion)) {
-                        onError("No updates available for Android yet, try again later")
-                        return@thread
-                    }
-                }
-
-                // 4. Download the APK
-                val dlConn = URL(apkUrl).openConnection() as HttpURLConnection
-                dlConn.connectTimeout = 15000
-                dlConn.readTimeout = 30000
-                dlConn.setRequestProperty("User-Agent", "Seanime-App-Updater")
-                dlConn.instanceFollowRedirects = true
-
-                val fileName = apkUrl.substringAfterLast('/').ifEmpty { "update.apk" }
-                val uri = dlConn.inputStream.use { inputStream ->
-                    saveApkToDownloads(inputStream, fileName)
-                }
-                dlConn.disconnect()
-
-                if (uri == null) {
-                    onError("Could not save APK to Downloads")
-                    return@thread
-                }
-
-                onComplete()
-
-                if (installAfter) {
-                    mainHandler.post { installApk(uri) }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                onError(e.message ?: "Network error")
+                } else download(requestId)
             }
         }
     }
 
-    /** Extract version from APK filename (e.g., "seanime_v0.1.0a-s3.5.2.apk" → "3.5.2") */
-    private fun extractVersionFromApkName(name: String): String? {
-        // Look for pattern: s followed by digits and dots, ending before .apk
-        val pattern = Pattern.compile("s(\\d+\\.\\d+\\.\\d+)")
-        val matcher = pattern.matcher(name)
-        return if (matcher.find()) matcher.group(1) else null
+    fun onRequestPermissionsResult(requestCode: Int, grantResults: IntArray) {
+        if (requestCode != PERMISSION_REQUEST_CODE) return
+        val requestId = pendingRequest ?: return
+        pendingRequest = null
+        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) download(requestId)
+        else emit("seanime-app-download", requestId, JSONObject().put("error", AppLanguage.tr("Storage permission denied", "Speicherzugriff verweigert")))
     }
 
-    private fun getCurrentVersionName(): String {
-        return try {
-            val pInfo = activity.packageManager.getPackageInfo(activity.packageName, 0)
-            pInfo.versionName ?: "0.0.0"
-        } catch (e: Exception) {
-            "0.0.0"
-        }
-    }
-
-    private fun isNewerVersion(currentVersion: String, latestVersion: String): Boolean {
-        val cleanCurrent = currentVersion.replace(Regex("^[^0-9]*"), "")
-        val cleanLatest = latestVersion.replace(Regex("^[^0-9]*"), "")
-
-        val currentParts = cleanCurrent.split('.').mapNotNull { it.toIntOrNull() }
-        val latestParts = cleanLatest.split('.').mapNotNull { it.toIntOrNull() }
-
-        for (i in 0 until maxOf(currentParts.size, latestParts.size)) {
-            val cur = if (i < currentParts.size) currentParts[i] else 0
-            val lat = if (i < latestParts.size) latestParts[i] else 0
-            if (lat > cur) return true
-            if (lat < cur) return false
-        }
-        return false
-    }
-
-    private fun saveApkToDownloads(inputStream: java.io.InputStream, fileName: String): Uri? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val contentValues = android.content.ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.android.package-archive")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-            }
-            val resolver = activity.contentResolver
-            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-            uri?.let {
-                resolver.openOutputStream(it)?.use { outputStream ->
-                    inputStream.copyTo(outputStream)
-                }
-            }
-            uri
-        } else {
-            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            if (!downloadsDir.exists()) downloadsDir.mkdirs()
-            val file = File(downloadsDir, fileName)
-            FileOutputStream(file).use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
-            Uri.fromFile(file)
-        }
-    }
-
-    private fun installApk(uri: Uri) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
-            Toast.makeText(activity, "Please enable 'Install unknown apps' for Seanime", Toast.LENGTH_LONG).show()
-            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                data = Uri.parse("package:${activity.packageName}")
-            }
-            activity.startActivity(intent)
+    private fun download(requestId: String) {
+        if (!downloading.compareAndSet(false, true)) {
+            emit("seanime-app-download", requestId, JSONObject().put("error", "A download is already running"))
             return
         }
-
-        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        thread(name = "app-update-download") {
+            try {
+                val update = fetchUpdate() ?: error(AppLanguage.tr("No newer app APK is available", "Keine neuere App-APK verfügbar"))
+                val conn = connection(update.asset.url)
+                try {
+                    conn.setRequestProperty("Accept", "application/octet-stream")
+                    check(conn.responseCode in 200..299) { "Download HTTP ${conn.responseCode}" }
+                    conn.inputStream.use { input ->
+                        if (Build.VERSION.SDK_INT >= 29) {
+                            val resolver = activity.contentResolver
+                            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, ContentValues().apply {
+                                put(MediaStore.MediaColumns.DISPLAY_NAME, update.asset.name)
+                                put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.android.package-archive")
+                                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                                put(MediaStore.MediaColumns.IS_PENDING, 1)
+                            }) ?: error("Cannot create download")
+                            try {
+                                (resolver.openOutputStream(uri) ?: error("Cannot open download")).use { input.copyTo(it) }
+                                resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+                            } catch (e: Exception) { resolver.delete(uri, null, null); throw e }
+                        } else {
+                            val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), update.asset.name)
+                            file.parentFile?.mkdirs()
+                            try { file.outputStream().use { input.copyTo(it) } }
+                            catch (e: Exception) { file.delete(); throw e }
+                        }
+                    }
+                } finally { conn.disconnect() }
+                emit("seanime-app-download", requestId, JSONObject().put("fileName", update.asset.name))
+            } catch (e: Exception) {
+                emit("seanime-app-download", requestId, JSONObject().put("error", e.message ?: "Download failed"))
+            } finally { downloading.set(false) }
         }
-
-        try {
-            activity.startActivity(installIntent)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(activity, "Unable to launch installer: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun dismissSeanimeModal() {
-        webView.evaluateJavascript("""
-            (function() {
-                document.dispatchEvent(new KeyboardEvent('keydown', {
-                    key: 'Escape',
-                    code: 'Escape',
-                    keyCode: 27,
-                    which: 27,
-                    bubbles: true,
-                    cancelable: true
-                }));
-            })();
-        """.trimIndent(), null)
-    }
-
-    private fun showUpdatingDialog(): Dialog {
-        // (unchanged, same as before)
-        val dialog = Dialog(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
-        dialog.setCancelable(false)
-        val root = FrameLayout(activity).apply { setBackgroundColor(Color.parseColor("#99000000")) }
-
-        val cardW = (activity.resources.displayMetrics.widthPixels * 0.80).toInt()
-        val card = FrameLayout(activity).apply {
-            layoutParams = FrameLayout.LayoutParams(cardW, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER }
-            background = GradientDrawable().apply {
-                setColor(Color.parseColor("#0f0f14"))
-                cornerRadius = 28f
-                setStroke(1, Color.parseColor("#22ffffff"))
-            }
-            setPadding(72, 72, 72, 80)
-        }
-
-        val title = TextView(activity).apply {
-            text = "Updating Seanime"
-            setTextColor(Color.WHITE)
-            textSize = 15f
-            typeface = Typeface.DEFAULT_BOLD
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL }
-        }
-
-        val subtitle = TextView(activity).apply {
-            text = "Downloading latest release…"
-            setTextColor(Color.parseColor("#88ffffff"))
-            textSize = 11f
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).also {
-                it.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                it.topMargin = 72
-            }
-        }
-
-        val track = FrameLayout(activity).apply {
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 10).also { it.topMargin = 124 }
-            background = GradientDrawable().apply {
-                setColor(Color.parseColor("#1affffff"))
-                cornerRadius = 99f
-            }
-        }
-
-        val fill = View(activity).apply {
-            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.parseColor("#6366f1"), Color.parseColor("#818cf8"))).apply { cornerRadius = 99f }
-        }
-
-        track.addView(fill)
-        val barMaxW = cardW - 144
-        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 1100
-            repeatMode = ValueAnimator.REVERSE
-            repeatCount = ValueAnimator.INFINITE
-            interpolator = LinearInterpolator()
-            addUpdateListener { anim ->
-                val p = anim.animatedValue as Float
-                val barW = (barMaxW * 0.42f).toInt()
-                val offset = ((barMaxW - barW) * p).toInt()
-                fill.layoutParams = FrameLayout.LayoutParams(barW, 10).also { it.leftMargin = offset }
-                fill.requestLayout()
-            }
-        }
-
-        animator.start()
-        dialog.setOnDismissListener { animator.cancel() }
-        card.addView(title); card.addView(subtitle); card.addView(track)
-        root.addView(card); dialog.setContentView(root)
-        dialog.window?.apply {
-            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        }
-        dialog.show()
-        return dialog
     }
 }

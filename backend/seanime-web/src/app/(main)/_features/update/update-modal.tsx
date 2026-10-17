@@ -21,6 +21,8 @@ import { BiDownload, BiLinkExternal } from "react-icons/bi"
 import { FiArrowRight } from "react-icons/fi"
 import { GrInstall } from "react-icons/gr"
 import { toast } from "sonner"
+import { downloadAppUpdate, IS_MOBILE_APP } from "@/lib/app-updates"
+import { useTr } from "@/lib/app-language"
 
 type UpdateModalProps = {
     collapsed?: boolean
@@ -31,6 +33,17 @@ export const updateModalOpenAtom = atom<boolean>(false)
 const downloaderOpenAtom = atom<boolean>(false)
 
 export function UpdateModal(props: UpdateModalProps) {
+    const t = useTr()
+    const [appDownloading, setAppDownloading] = React.useState(false)
+    async function handleAppDownload() {
+        if (appDownloading) return
+        setAppDownloading(true)
+        try {
+            await downloadAppUpdate()
+            toast.success(t("APK saved to Downloads. Tap it to install the update.", "APK in Downloads gespeichert. Zum Installieren antippen."))
+        } catch (error) { toast.error(String(error)) }
+        finally { setAppDownloading(false) }
+    }
     const serverStatus = useServerStatus()
     const [updateModalOpen, setUpdateModalOpen] = useAtom(updateModalOpenAtom)
     const [downloaderOpen, setDownloaderOpen] = useAtom(downloaderOpenAtom)
@@ -53,8 +66,8 @@ export function UpdateModal(props: UpdateModalProps) {
     React.useEffect(() => {
         if (serverStatus?.settings?.library?.disableUpdateCheck) return
         if (updateData && updateData.release) {
-            localStorage.setItem("latest-available-update", JSON.stringify(updateData.release.version))
-            const latestVersionNotified = localStorage.getItem("notified-available-update")
+            localStorage.setItem(IS_MOBILE_APP ? "latest-available-app-update" : "latest-available-update", JSON.stringify(updateData.release.version))
+            const latestVersionNotified = localStorage.getItem(IS_MOBILE_APP ? "notified-available-app-update" : "notified-available-update")
             if (!latestVersionNotified || (latestVersionNotified !== JSON.stringify(updateData.release.version))) {
                 setUpdateModalOpen(true)
             }
@@ -63,7 +76,7 @@ export function UpdateModal(props: UpdateModalProps) {
 
     const ignoreUpdate = () => {
         if (updateData && updateData.release) {
-            localStorage.setItem("notified-available-update", JSON.stringify(updateData.release.version))
+            localStorage.setItem(IS_MOBILE_APP ? "notified-available-app-update" : "notified-available-update", JSON.stringify(updateData.release.version))
             setUpdateModalOpen(false)
         }
     }
@@ -92,7 +105,7 @@ export function UpdateModal(props: UpdateModalProps) {
                 onOpenChange={() => ignoreUpdate()}
                 contentClass="max-w-3xl"
             >
-                <Downloader release={updateData?.release} />
+                {!IS_MOBILE_APP && <Downloader release={updateData?.release} />}
 
                 <div className="space-y-2">
                     <h3 className="text-center">A new update is available!</h3>
@@ -108,7 +121,7 @@ export function UpdateModal(props: UpdateModalProps) {
                     <UpdateChangelogBody updateData={updateData} />
 
                     <div className="flex gap-2 w-full items-center !mt-4">
-                        {!serverStatus?.isDesktopSidecar && <Modal
+                        {!IS_MOBILE_APP && !serverStatus?.isDesktopSidecar && <Modal
                             trigger={<Button leftIcon={<GrInstall className="text-2xl" />}>
                                 Update now
                             </Button>}
@@ -129,7 +142,10 @@ export function UpdateModal(props: UpdateModalProps) {
                         <SeaLink href={updateData?.release?.html_url || ""} target="_blank">
                             <Button intent="white-subtle" rightIcon={<BiLinkExternal />}>See on GitHub</Button>
                         </SeaLink>
-                        {!serverStatus?.isDesktopSidecar &&
+                        {IS_MOBILE_APP && <Button intent="white" leftIcon={<BiDownload />} onClick={handleAppDownload} loading={appDownloading}>
+                            {t("Download update", "Update herunterladen")}
+                        </Button>}
+                        {!IS_MOBILE_APP && !serverStatus?.isDesktopSidecar &&
                             <Button intent="white" leftIcon={<BiDownload />} onClick={() => setDownloaderOpen(true)}>Download</Button>}
                     </div>
                 </div>

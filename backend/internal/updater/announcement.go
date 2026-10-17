@@ -113,6 +113,9 @@ func (u *Updater) GetAnnouncements(version string, platform string, settings *mo
 
 func (u *Updater) FetchAnnouncements() []Announcement {
 	var announcements []Announcement
+	if !desktopUpdatesAvailable() {
+		return announcements
+	}
 
 	response, err := http.Get(constants.AnnouncementURL)
 	if err != nil {

@@ -1,6 +1,7 @@
 import { Updater_Update } from "@/api/generated/types"
 import { useGetChangelog } from "@/api/hooks/releases.hooks"
 import React from "react"
+import { IS_MOBILE_APP } from "@/lib/app-updates"
 import { AiFillExclamationCircle } from "react-icons/ai"
 
 type UpdateChangelogBodyProps = {
@@ -18,7 +19,7 @@ export function UpdateChangelogBody(props: UpdateChangelogBodyProps) {
 
     const { data: changelog } = useGetChangelog(updateData?.release?.version!,
         updateData?.current_version!,
-        !!updateData?.release?.version! && !!updateData?.current_version)
+        !IS_MOBILE_APP && !!updateData?.release?.version! && !!updateData?.current_version)
 
     const { body } = useUpdateChangelogBody(updateData)
 

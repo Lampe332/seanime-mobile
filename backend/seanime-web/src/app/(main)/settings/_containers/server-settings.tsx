@@ -330,7 +330,7 @@ export function ServerSettings(props: ServerSettingsProps) {
                     moreHelp={__isElectronDesktop__ ? "You cannot disable auto-updates for Seanime Denshi." : undefined}
                     icon={<TbDownloadOff className="" />}
                 />
-                <Field.Select
+                {!IS_ANDROID_APP && <Field.Select
                     label="Update Channel"
                     name="updateChannel"
                     help={__isElectronDesktop__ ? "Also applies to Seanime Denshi auto-updates." : ""}
@@ -339,11 +339,11 @@ export function ServerSettings(props: ServerSettingsProps) {
                         { label: "Seanime", value: "seanime" },
                         { label: "Seanime (Canary)", value: "seanime_nightly" },
                     ]}
-                />
-                {serverStatus?.settings?.library?.updateChannel === "seanime" && (
+                />}
+                {!IS_ANDROID_APP && serverStatus?.settings?.library?.updateChannel === "seanime" && (
                     <Alert intent="info" description="You are currently using a release channel hosted on Seanime." />
                 )}
-                {serverStatus?.settings?.library?.updateChannel === "seanime_nightly" && (
+                {!IS_ANDROID_APP && serverStatus?.settings?.library?.updateChannel === "seanime_nightly" && (
                     <Alert
                         intent="warning"
                         description="You are currently using the canary release channel hosted on Seanime. This channel may receive unstable updates without much testing."
