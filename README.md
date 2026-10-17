@@ -58,6 +58,7 @@ Supported: Android 5.0 or newer, ARM64 and ARMv7 (practically every phone from r
 
 1. **Open the app.** A short wizard asks for an anime folder (optional, leaving it empty is fine) and which features to use. Tap **Launch Seanime**. Android will also ask for file access (*Use streaming* is enough) and notifications (for download progress).
 2. **Log in with AniList.** In the dialog, tap **Get AniList token**, confirm in the browser and paste the token. You can create a free account at [anilist.co](https://anilist.co). To skip login, close the dialog with ✕ and the app will use a local account.
+   > **The app starts empty.** Until you add an AniList token or install a content extension (step 3), every page shows *No content yet* instead of anime or manga. Settings, Extensions and Downloads always work.
 3. **Add sources.** An **interactive tutorial** then starts automatically and guides you through the following steps ([video](#-tutorial-video)). To run it again later: *Settings → Extensions → Show tutorial*.
    The app ships **without** any streaming or manga sources. The official Seanime marketplace only contains plugins. Sources come from community repositories that you add yourself:
    1. Open *Menu → Extensions* and select the **Marketplace** tab at the top.
@@ -65,7 +66,7 @@ Supported: Android 5.0 or newer, ARM64 and ARMv7 (practically every phone from r
    3. The list reloads. Select **Online Streaming** (or **Manga**) at the top and tap the **download icon** next to the extension you want.
    4. Alternatively: in the *Installed* tab → **Add extensions** → **Import from repository**. This installs all extensions from a repository at once.
 
-   Without an extension, the app can only display anime and manga, not play or read them. Torrent extensions do not work in the Android version.
+   As soon as a streaming or manga extension is installed, anime and manga appear. With only an AniList account and no extension, the app shows your lists and the catalog but cannot play or read anything. Plugins alone do not unlock content. Torrent extensions do not work in the Android version.
 4. **Get started.** Tap an anime → *Online streaming* to watch, or *Download season / episodes* for offline viewing. Your saved content is in the **Downloads** tab at the bottom.
 
 ## 🎬 Tutorial video
@@ -83,6 +84,12 @@ This is what the first launch with the built-in tutorial looks like: wizard, add
 <summary><b>"App not installed" when updating</b></summary>
 
 The new APK must be signed with the same key as the installed one. That is the case for all official releases here. If you previously installed a self-built or third-party version, uninstall the old app first (local downloads will be lost).
+</details>
+
+<details>
+<summary><b>The app only shows "No content yet"</b></summary>
+
+That is intended on a fresh install: the app ships without any content. Tap **Add AniList token** to log in, or **Install extension** and add a streaming or manga extension from a repository ([First-time setup](#-first-time-setup), step 3). The pages fill up right away, no restart needed.
 </details>
 
 <details>
