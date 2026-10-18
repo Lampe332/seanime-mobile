@@ -1,3 +1,4 @@
+from mobile_icon_source import icon_script
 from pathlib import Path
 import re
 from playwright.sync_api import sync_playwright
@@ -21,6 +22,7 @@ with sync_playwright() as p:
                 {id:'android-downloads',label:'Downloads',href:'/android-downloads',placement:'float'},
                 {id:'menu',isMenu:true,placement:'nav'}]));
         }''',full)
+        page.evaluate(icon_script)
         for script in scripts: page.evaluate(script.replace("${'$'}",'$'))
         saved=page.evaluate('''()=>Object.fromEntries(Object.entries(localStorage).map(([k,v])=>[k,JSON.parse(v)]))''')
         assert saved['__seanime_nav_order']==['home','android-downloads','menu'],saved

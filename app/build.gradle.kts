@@ -10,8 +10,8 @@ android {
         applicationId = "com.seanime.app.local"
         minSdk = 21
         targetSdk = 36
-        versionCode = 31021
-        versionName = "1.8.6"
+        versionCode = 31023
+        versionName = "1.8.8"
         testInstrumentationRunner = providers.gradleProperty("seanimeAuditRunner").orNull
             ?: "com.seanime.app.audit.OfflineInstrumentation"
         ndk { abiFilters += setOf("arm64-v8a", "armeabi-v7a") }
@@ -20,6 +20,7 @@ android {
     }
 
     sourceSets["main"].jniLibs.srcDirs("src/main/jniLibs")
+    sourceSets["main"].assets.srcDir("../backend/seanime-web/src/lib/mobile-icons")
     testBuildType = "release"
 
     packaging {

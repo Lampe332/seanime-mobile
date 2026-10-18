@@ -6,7 +6,7 @@ import java.net.URI
 object AppReleasePolicy {
     const val REPOSITORY = "Lampe332/seanime-mobile"
     const val RELEASES_URL = "https://api.github.com/repos/$REPOSITORY/releases?per_page=30"
-    data class Asset(val name: String, val url: String)
+    data class Asset(val name: String, val url: String, val size: Long = 0, val digest: String = "")
     data class Release(val tag: String, val body: String, val assets: List<Asset>, val draft: Boolean, val prerelease: Boolean)
     data class Update(val version: String, val release: Release, val asset: Asset)
 

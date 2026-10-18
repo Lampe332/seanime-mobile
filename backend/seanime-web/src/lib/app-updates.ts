@@ -3,7 +3,7 @@ import type { Updater_Update } from "@/api/generated/types"
 export const IS_MOBILE_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 declare global {
     interface Window {
-        AppUpdater?: { checkForUpdates?(requestId: string): void, downloadUpdate?(requestId: string): void }
+        AppUpdater?: { checkForUpdates?(requestId: string): void, downloadUpdate?(requestId: string): void, getKnownUpdate?(): string, getDownloadState?(): string, openDownloadedApk?(): void }
     }
 }
 let nextRequest = 0
@@ -32,10 +32,27 @@ function nativeRequest<T>(eventName: string, method: "checkForUpdates" | "downlo
 
 export async function checkAppUpdate(): Promise<Updater_Update> {
     // Builds without the app bridge never fall back to desktop release feeds.
-    if (!window.AppUpdater?.checkForUpdates) return { type: "app" }
+    if (!window.AppUpdater?.checkForUpdates) throw new Error("App updater unavailable")
     return (await nativeRequest<{ update: Updater_Update }>("seanime-app-update", "checkForUpdates", 60_000)).update
 }
 
-export async function downloadAppUpdate(): Promise<string> {
-    return (await nativeRequest<{ fileName: string }>("seanime-app-download", "downloadUpdate", 15 * 60_000)).fileName
+export type AppDownloadState = {
+    status: "idle" | "downloading" | "complete" | "error"
+    version?: string, fileName?: string, location?: string, bytes?: number, total?: number, sha256?: string, error?: string, message?: string
+}
+let downloadRequest: Promise<AppDownloadState> | undefined
+export function readAppDownload(): AppDownloadState {
+    try { return JSON.parse(window.AppUpdater?.getDownloadState?.() || '{"status":"idle"}') as AppDownloadState }
+    catch { return { status: "error", error: "Download status unavailable" } }
+}
+export function downloadAppUpdate(): Promise<AppDownloadState> {
+    if (downloadRequest) return downloadRequest
+    downloadRequest = nativeRequest<{ state: AppDownloadState }>("seanime-app-download", "downloadUpdate", 60_000)
+        .then(result => result.state).finally(() => { downloadRequest = undefined })
+    return downloadRequest
+}
+
+export function knownAppUpdate(): Updater_Update | undefined {
+    try { return (JSON.parse(window.AppUpdater?.getKnownUpdate?.() || "null") as Updater_Update | null) || undefined }
+    catch { return undefined }
 }

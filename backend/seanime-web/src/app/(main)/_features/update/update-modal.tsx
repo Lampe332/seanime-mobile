@@ -1,3 +1,4 @@
+import { MobileUpdateModal } from "./mobile-update-modal"
 import { Updater_Release } from "@/api/generated/types"
 import { useDownloadRelease } from "@/api/hooks/download.hooks"
 import { useGetLatestUpdate, useInstallLatestUpdate } from "@/api/hooks/releases.hooks"
@@ -21,7 +22,7 @@ import { BiDownload, BiLinkExternal } from "react-icons/bi"
 import { FiArrowRight } from "react-icons/fi"
 import { GrInstall } from "react-icons/gr"
 import { toast } from "sonner"
-import { downloadAppUpdate, IS_MOBILE_APP } from "@/lib/app-updates"
+import { IS_MOBILE_APP } from "@/lib/app-updates"
 import { useTr } from "@/lib/app-language"
 
 type UpdateModalProps = {
@@ -33,17 +34,10 @@ export const updateModalOpenAtom = atom<boolean>(false)
 const downloaderOpenAtom = atom<boolean>(false)
 
 export function UpdateModal(props: UpdateModalProps) {
+    return IS_MOBILE_APP ? <MobileUpdateModal /> : <DesktopUpdateModal {...props} />
+}
+function DesktopUpdateModal(props: UpdateModalProps) {
     const t = useTr()
-    const [appDownloading, setAppDownloading] = React.useState(false)
-    async function handleAppDownload() {
-        if (appDownloading) return
-        setAppDownloading(true)
-        try {
-            await downloadAppUpdate()
-            toast.success(t("APK saved to Downloads. Tap it to install the update.", "APK in Downloads gespeichert. Zum Installieren antippen."))
-        } catch (error) { toast.error(String(error)) }
-        finally { setAppDownloading(false) }
-    }
     const serverStatus = useServerStatus()
     const [updateModalOpen, setUpdateModalOpen] = useAtom(updateModalOpenAtom)
     const [downloaderOpen, setDownloaderOpen] = useAtom(downloaderOpenAtom)
@@ -142,9 +136,6 @@ export function UpdateModal(props: UpdateModalProps) {
                         <SeaLink href={updateData?.release?.html_url || ""} target="_blank">
                             <Button intent="white-subtle" rightIcon={<BiLinkExternal />}>See on GitHub</Button>
                         </SeaLink>
-                        {IS_MOBILE_APP && <Button intent="white" leftIcon={<BiDownload />} onClick={handleAppDownload} loading={appDownloading}>
-                            {t("Download update", "Update herunterladen")}
-                        </Button>}
                         {!IS_MOBILE_APP && !serverStatus?.isDesktopSidecar &&
                             <Button intent="white" leftIcon={<BiDownload />} onClick={() => setDownloaderOpen(true)}>Download</Button>}
                     </div>

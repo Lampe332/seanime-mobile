@@ -1,4 +1,5 @@
 """Regression checks for the Android-injected navigation. Run with Python + Playwright."""
+from mobile_icon_source import icon_script
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import json,re,sys
@@ -41,6 +42,7 @@ with sync_playwright() as p:
             document.body.appendChild(video);
         }''')
         page.evaluate('''()=>document.querySelectorAll('aside a').forEach(a=>a.onclick=e=>{e.preventDefault();history.pushState({},'',a.getAttribute('href'))})''')
+        page.evaluate(icon_script)
         for script in scripts: page.evaluate(script.replace("${'$'}",'$'))
         page.wait_for_timeout(100)
         nav=page.locator('#__seanime_bottom_nav');menu=nav.locator('button')
@@ -110,6 +112,7 @@ with sync_playwright() as p:
             page.reload();page.evaluate('''() => {
                 document.querySelectorAll('aside a').forEach(a=>a.onclick=e=>{e.preventDefault();history.pushState({},'',a.getAttribute('href'))});
             }''')
+            page.evaluate(icon_script)
             for script in scripts: page.evaluate(script.replace("${'$'}",'$'))
             page.wait_for_timeout(200)
             record(prefix+'7 entries persist after reload',ids()==after and nav.get_attribute('data-nav-count')=='7',ids())

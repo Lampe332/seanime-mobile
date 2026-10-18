@@ -5,6 +5,7 @@ import android.webkit.WebView
 object UIBottomNav {
 
     fun inject(webView: WebView) {
+        MobileIcons.inject(webView)
         injectBottomNavStyles(webView)
         injectBottomNav(webView)
     }
@@ -691,11 +692,13 @@ object UIBottomNav {
                 // ─────────────────────────────────────────────────────────────
                 // SVG CONSTANTS — defined once so they are always available
                 // ─────────────────────────────────────────────────────────────
-                var SVG_HAMBURGER = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>';
-                var SVG_WRENCH    = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>';
-                var SVG_RESET     = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-                var SVG_GRIP      = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="8" x2="19" y2="8"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="16" x2="19" y2="16"/></svg>';
-                var SVG_CHECK     = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+                var icon = window.__seanimeIcons.svg;
+                var iconFor = window.__seanimeIcons.forItem;
+                var SVG_HAMBURGER = icon('menu');
+                var SVG_WRENCH = icon('wrench');
+                var SVG_RESET = icon('close');
+                var SVG_GRIP = icon('grip');
+                var SVG_CHECK = icon('check');
 
                 // Maximum number of entries in the bottom bar (the Menu button counts).
                 var MAX_NAV_ITEMS = 7;
@@ -710,7 +713,7 @@ object UIBottomNav {
                         label: 'Home',
                         matchExact: true,
                         placement: 'nav',
-                        svg: '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M80 212v236a16 16 0 0 0 16 16h96V328a24 24 0 0 1 24-24h80a24 24 0 0 1 24 24v136h96a16 16 0 0 0 16-16V212"/><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M480 256 266.89 52c-5-5.28-16.69-5.34-21.78 0L32 256m368-77V64h-48v69"/></svg>'
+                        svg: icon('home')
                     },
                     {
                         id: 'lists',
@@ -718,7 +721,7 @@ object UIBottomNav {
                         label: 'My Lists',
                         matchExact: false,
                         placement: 'nav',
-                        svg: '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8 6V9H5V6H8ZM3 4V11H10V4H3ZM13 4H21V6H13V4ZM13 11H21V13H13V11ZM13 18H21V20H13V18ZM10.707 16.207L9.293 14.793 6 18.086 4.207 16.293 2.793 17.707 6 20.914Z"/></svg>'
+                        svg: icon('lists')
                     },
                     {
                         id: 'discover',
@@ -726,7 +729,7 @@ object UIBottomNav {
                         label: 'Discover',
                         matchExact: false,
                         placement: 'nav',
-                        svg: '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/><circle cx="12" cy="12" r="10"/></svg>'
+                        svg: icon('discover')
                     },
                     {
                         id: 'search',
@@ -734,7 +737,7 @@ object UIBottomNav {
                         label: 'Search',
                         matchExact: false,
                         placement: 'nav',
-                        svg: '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+                        svg: icon('search')
                     },
                     {
                         id: 'menu',
@@ -760,7 +763,7 @@ object UIBottomNav {
                         label: it.label || it.id,
                         matchExact: !!it.matchExact,
                         placement: it.placement || 'nav',
-                        svg: isMenu ? SVG_HAMBURGER : (it.svg || ''),
+                        svg: iconFor(it) || window.__seanimeIcons.clean(it.svg),
                         isMenu: isMenu,
                         immovableToFloat: !!it.immovableToFloat,
                         isSidebarItem: !!it.isSidebarItem,
@@ -793,7 +796,7 @@ object UIBottomNav {
                                 var n = normalizeNavItem(x);
                                 if (n && !isAndroidRemovedOfflineItem(n)) rebuilt.push(n);
                             });
-                            if (rebuilt.length) return rebuilt;
+                            if (rebuilt.length) { localStorage.setItem(LS_NAV_ITEMS, JSON.stringify(rebuilt)); return rebuilt; }
                         }
                     } catch(e) {}
 
@@ -900,13 +903,14 @@ object UIBottomNav {
                     if (items.some(function(item) { return item.id === 'android-downloads' || navigationPath(item.href) === '/android-downloads'; })) return;
                     items.push({ id: 'android-downloads', href: '/android-downloads', label: 'Downloads',
                         matchExact: true, placement: 'nav',
-                        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4"/></svg>' });
+                        svg: icon('download') });
                 }
 
                 var NAV_ITEMS = loadNavItems().filter(function(item) {
                     return !/^\/(torrent-list|torrent-client|auto-downloader)(\/|${'$'})/.test(item.href || '');
                 });
                 ensureAndroidDownloadsItem(NAV_ITEMS);
+                NAV_ITEMS.forEach(function(it) { it.svg = iconFor(it) || window.__seanimeIcons.clean(it.svg); });
                 var menuOpen  = false;
                 var editMode  = false;
                 var menuBtn   = null;
@@ -1058,7 +1062,7 @@ object UIBottomNav {
                         var isCurrent = a.getAttribute('data-current') === 'true';
                         var svgEl = a.querySelector('svg');
                         if (label && href && !seen(label, href) && !inNav(label, href)) {
-                            items.push({ type: 'link', label: label, href: href, svg: svgEl ? svgEl.outerHTML : '', isCurrent: isCurrent });
+                            items.push({ type: 'link', label: label, href: href, svg: iconFor({href:href, label:label}) || window.__seanimeIcons.clean(svgEl ? svgEl.outerHTML : ''), isCurrent: isCurrent });
                             markSeen(label, href);
                         }
                     });
@@ -1066,8 +1070,9 @@ object UIBottomNav {
                         if (btn.style.display === 'none' && !btn.dataset.hiddenByUs) return;
                         var label = btn.getAttribute('data-vertical-menu-item-button');
                         var svgEl = btn.querySelector('svg');
+                        if (label === 'Update available') return;
                         if (label && !seen(label, null) && !inNav(label, null)) {
-                            items.push({ type: 'button', label: label, svg: svgEl ? svgEl.outerHTML : '' });
+                            items.push({ type: 'button', label: label, svg: iconFor({label:label}) || window.__seanimeIcons.clean(svgEl ? svgEl.outerHTML : '') });
                             markSeen(label, null);
                         }
                     });
@@ -1118,6 +1123,7 @@ object UIBottomNav {
 
                     NAV_ITEMS = DEFAULT_NAV_ITEMS.map(function(d) { return Object.assign({}, d); });
                     ensureAndroidDownloadsItem(NAV_ITEMS);
+                NAV_ITEMS.forEach(function(it) { it.svg = iconFor(it) || window.__seanimeIcons.clean(it.svg); });
                     saveNavState();
 
                     saveFloatHidden({});
@@ -1160,6 +1166,10 @@ object UIBottomNav {
                     var hiddenMap = loadFloatHidden();
 
                     menu.innerHTML = '';
+                    var updateHost = document.createElement('div');
+                    updateHost.id = '__seanime_update_menu_host';
+                    menu.appendChild(updateHost);
+                    window.dispatchEvent(new Event('seanime-update-menu'));
                     // Reverse so last item in array appears at bottom (visually stacks upward)
                     var visible = floatSidebarItems.slice().reverse().filter(function(it) { return !hiddenMap[it.label]; });
 

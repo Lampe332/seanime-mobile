@@ -1229,3 +1229,11 @@ media-preview-chapter-display {
 [data-mpv-prism-video-canvas] {
     background: #000000 !important;
 }
+
+/* Android app update progress uses the same violet as navigation states. */
+[data-app-update-panel] progress { appearance: none; height: 6px; border: 0; border-radius: 6px; overflow: hidden; }
+[data-app-update-panel] progress::-webkit-progress-bar { background: rgba(167,139,250,.18); }
+[data-app-update-panel] progress::-webkit-progress-value { background: #a78bfa; }
+[data-app-update-panel] progress:indeterminate { background: linear-gradient(90deg, transparent, #a78bfa, transparent); background-size: 200% 100%; animation: app-update-progress 1.4s linear infinite; }
+@keyframes app-update-progress { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { [data-app-update-panel] progress:indeterminate { animation: none; } }

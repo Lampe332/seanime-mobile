@@ -2,13 +2,11 @@ package com.seanime.app
 
 import android.Manifest
 import android.app.Activity
-import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import org.json.JSONArray
@@ -27,6 +25,8 @@ object AppUpdater {
     private val handler = Handler(Looper.getMainLooper())
     private val downloading = AtomicBoolean(false)
     private var pendingRequest: String? = null
+    // In-process device instrumentation only. No bridge, preferences, intent or build-config override.
+    internal var instrumentationOffer: (() -> AppReleasePolicy.Update?)? = null
 
     fun init(activity: Activity, webView: WebView) {
         this.activity = activity
@@ -56,6 +56,7 @@ object AppUpdater {
     }
 
     private fun fetchUpdate(): AppReleasePolicy.Update? {
+        instrumentationOffer?.let { return it() }
         val conn = connection(AppReleasePolicy.RELEASES_URL)
         val releases = try {
             check(conn.responseCode in 200..299) { "GitHub HTTP ${conn.responseCode}" }
@@ -66,13 +67,41 @@ object AppUpdater {
             val assets = release.optJSONArray("assets") ?: JSONArray()
             AppReleasePolicy.Release(
                 release.optString("tag_name"), release.optString("body"),
-                (0 until assets.length()).map { i -> assets.getJSONObject(i).let { AppReleasePolicy.Asset(it.optString("name"), it.optString("browser_download_url")) } },
+                (0 until assets.length()).map { i -> assets.getJSONObject(i).let { AppReleasePolicy.Asset(it.optString("name"), it.optString("browser_download_url"), it.optLong("size"), it.optString("digest", "")) } },
                 release.optBoolean("draft", true), release.optBoolean("prerelease", true),
             )
         })
     }
 
     object Bridge {
+        @JavascriptInterface
+        fun getKnownUpdate(): String {
+            val saved = prefs.getString("known_update", null) ?: return "null"
+            return try {
+                val data = JSONObject(saved)
+                if (data.optString("current_version") == currentVersion() &&
+                    AppReleasePolicy.compare(data.optJSONObject("release")?.optString("version") ?: "", currentVersion()) > 0) saved else "null"
+            } catch (_: Exception) { "null" }
+        }
+
+        @JavascriptInterface
+        fun getDownloadState(): String = downloadState().toString()
+
+        @JavascriptInterface
+        fun openDownloadedApk() {
+            thread(name = "app-update-open") {
+                if (downloadState().optString("status") != "complete") return@thread
+                val uri = manager.getUriForDownloadedFile(prefs.getLong("id", -1)) ?: return@thread
+                handler.post {
+                    try {
+                        activity.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW)
+                            .setDataAndType(uri, "application/vnd.android.package-archive")
+                            .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                    } catch (_: Exception) { /* Download remains available in Downloads. */ }
+                }
+            }
+        }
+
         @JavascriptInterface
         fun checkForUpdates(requestId: String) {
             thread(name = "app-update-check") {
@@ -86,6 +115,7 @@ object AppUpdater {
                             .put("html_url", "https://github.com/${AppReleasePolicy.REPOSITORY}/releases/tag/${update.release.tag}")
                             .put("released", true))
                     }
+                    if (instrumentationOffer == null) prefs.edit().putString("known_update", data.toString()).apply()
                     emit("seanime-app-update", requestId, JSONObject().put("update", data))
                 } catch (e: Exception) {
                     emit("seanime-app-update", requestId, JSONObject().put("error", e.message ?: "Update check failed"))
@@ -116,40 +146,125 @@ object AppUpdater {
         else emit("seanime-app-download", requestId, JSONObject().put("error", AppLanguage.tr("Storage permission denied", "Speicherzugriff verweigert")))
     }
 
+    private val prefs get() = activity.getSharedPreferences("app_updater", android.content.Context.MODE_PRIVATE)
+    private val manager get() = activity.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
+    private var validatedId = -1L
+
+    private fun installedCode(): Long {
+        val info = activity.packageManager.getPackageInfo(activity.packageName, 0)
+        return if (Build.VERSION.SDK_INT >= 28) info.longVersionCode else info.versionCode.toLong()
+    }
+
+    private fun certificates(info: android.content.pm.PackageInfo): Set<String> {
+        val signatures = if (Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners else info.signatures
+        return signatures?.map { it.toCharsString() }?.toSet() ?: emptySet()
+    }
+
+    /** Validate the actual downloaded archive, not the enqueue result or its filename. */
+    private fun validate(id: Long): String {
+        val uri = manager.getUriForDownloadedFile(id) ?: error("Downloaded APK is missing")
+        val file = File(activity.cacheDir, "update-validation.apk")
+        try {
+            val hash = java.security.MessageDigest.getInstance("SHA-256")
+            var count = 0L
+            (activity.contentResolver.openInputStream(uri) ?: error("Cannot read downloaded APK")).use { input ->
+                file.outputStream().use { output ->
+                    val buffer = ByteArray(65536)
+                    while (true) {
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        output.write(buffer, 0, n); hash.update(buffer, 0, n); count += n
+                    }
+                }
+            }
+            val expected = prefs.getLong("size", 0)
+            check(count > 0 && (expected <= 0 || count == expected)) { "Incomplete APK: $count / $expected bytes" }
+            val digest = hash.digest().joinToString("") { "%02x".format(it) }
+            val expectedHash = prefs.getString("digest", "") ?: ""
+            check(expectedHash.isEmpty() || expectedHash == "sha256:$digest") { "APK checksum mismatch" }
+            val flags = if (Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES
+            val archive = activity.packageManager.getPackageArchiveInfo(file.path, flags) ?: error("Download is not a valid APK")
+            val installed = activity.packageManager.getPackageInfo(activity.packageName, flags)
+            check(archive.packageName == activity.packageName) { "APK belongs to another app" }
+            check(archive.versionName == prefs.getString("version", "")) { "APK version does not match release" }
+            val code = if (Build.VERSION.SDK_INT >= 28) archive.longVersionCode else archive.versionCode.toLong()
+            check(code > installedCode() && AppReleasePolicy.compare(archive.versionName ?: "", currentVersion()) > 0) { "APK is not newer than installed app" }
+            check(certificates(archive).isNotEmpty() && certificates(archive) == certificates(installed)) { "APK signing certificate mismatch" }
+            java.util.zip.ZipFile(file).use { zip ->
+                check(Build.SUPPORTED_ABIS.any { zip.getEntry("lib/$it/libseanime.so") != null }) { "APK does not support this device" }
+            }
+            prefs.edit().putString("sha256", digest).putLong("bytes", count).apply()
+            return digest
+        } finally { file.delete() }
+    }
+
+    @Synchronized
+    private fun downloadState(): JSONObject {
+        val id = prefs.getLong("id", -1)
+        val state = JSONObject().put("status", "idle")
+        if (id < 0) return state
+        val version = prefs.getString("version", "") ?: ""
+        if (AppReleasePolicy.compare(version, currentVersion()) <= 0) return state
+        state.put("version", version).put("fileName", prefs.getString("name", ""))
+            .put("location", "Downloads/" + prefs.getString("name", ""))
+        try {
+            manager.query(android.app.DownloadManager.Query().setFilterById(id)).use { cursor ->
+                check(cursor.moveToFirst()) { "Download no longer exists. Please retry." }
+                fun number(column: String) = cursor.getLong(cursor.getColumnIndexOrThrow(column))
+                val bytes = number(android.app.DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                val total = number(android.app.DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                state.put("bytes", bytes).put("total", total)
+                when (number(android.app.DownloadManager.COLUMN_STATUS).toInt()) {
+                    android.app.DownloadManager.STATUS_SUCCESSFUL -> {
+                        // Recheck existence on every query; full archive validation once per process.
+                        val uri = manager.getUriForDownloadedFile(id) ?: error("Downloaded APK is missing")
+                        activity.contentResolver.openFileDescriptor(uri, "r").use { fd ->
+                            check(fd != null && fd.statSize == prefs.getLong("size", 0).takeIf { it > 0 }.let { it ?: bytes }) { "Downloaded APK is missing or incomplete" }
+                        }
+                        if (validatedId != id) { validate(id); validatedId = id }
+                        state.put("status", "complete").put("sha256", prefs.getString("sha256", ""))
+                    }
+                    android.app.DownloadManager.STATUS_FAILED -> error("Download failed (Android ${number(android.app.DownloadManager.COLUMN_REASON)}). Please retry.")
+                    android.app.DownloadManager.STATUS_PAUSED -> state.put("status", "downloading").put("message", "Waiting for network / Android download service")
+                    else -> state.put("status", "downloading")
+                }
+            }
+        } catch (e: Exception) {
+            state.put("status", "error").put("error", e.message ?: "Cannot read download")
+        }
+        return state
+    }
+
     private fun download(requestId: String) {
         if (!downloading.compareAndSet(false, true)) {
-            emit("seanime-app-download", requestId, JSONObject().put("error", "A download is already running"))
+            emit("seanime-app-download", requestId, JSONObject().put("state", JSONObject().put("status", "downloading")))
             return
         }
         thread(name = "app-update-download") {
             try {
-                val update = fetchUpdate() ?: error(AppLanguage.tr("No newer app APK is available", "Keine neuere App-APK verfügbar"))
-                val conn = connection(update.asset.url)
-                try {
-                    conn.setRequestProperty("Accept", "application/octet-stream")
-                    check(conn.responseCode in 200..299) { "Download HTTP ${conn.responseCode}" }
-                    conn.inputStream.use { input ->
-                        if (Build.VERSION.SDK_INT >= 29) {
-                            val resolver = activity.contentResolver
-                            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, ContentValues().apply {
-                                put(MediaStore.MediaColumns.DISPLAY_NAME, update.asset.name)
-                                put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.android.package-archive")
-                                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                                put(MediaStore.MediaColumns.IS_PENDING, 1)
-                            }) ?: error("Cannot create download")
-                            try {
-                                (resolver.openOutputStream(uri) ?: error("Cannot open download")).use { input.copyTo(it) }
-                                resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
-                            } catch (e: Exception) { resolver.delete(uri, null, null); throw e }
-                        } else {
-                            val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), update.asset.name)
-                            file.parentFile?.mkdirs()
-                            try { file.outputStream().use { input.copyTo(it) } }
-                            catch (e: Exception) { file.delete(); throw e }
-                        }
-                    }
-                } finally { conn.disconnect() }
-                emit("seanime-app-download", requestId, JSONObject().put("fileName", update.asset.name))
+                val previous = downloadState()
+                if (previous.optString("status") == "downloading") {
+                    emit("seanime-app-download", requestId, JSONObject().put("state", previous))
+                    return@thread
+                }
+                val update = fetchUpdate() ?: error("No newer app APK is available")
+                if (previous.optString("status") == "complete" && previous.optString("version") == update.version) {
+                    emit("seanime-app-download", requestId, JSONObject().put("state", previous))
+                    return@thread
+                }
+                val old = prefs.getLong("id", -1)
+                if (old >= 0 && previous.optString("status") != "complete") manager.remove(old)
+                val request = android.app.DownloadManager.Request(android.net.Uri.parse(update.asset.url))
+                    .setTitle("Seanime Mobile ${update.version}")
+                    .setMimeType("application/vnd.android.package-archive")
+                    .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, update.asset.name)
+                val id = manager.enqueue(request)
+                validatedId = -1
+                prefs.edit().putLong("id", id).putString("version", update.version)
+                    .putString("name", update.asset.name).putLong("size", update.asset.size)
+                    .putString("digest", update.asset.digest).remove("sha256").commit()
+                emit("seanime-app-download", requestId, JSONObject().put("state", downloadState()))
             } catch (e: Exception) {
                 emit("seanime-app-download", requestId, JSONObject().put("error", e.message ?: "Download failed"))
             } finally { downloading.set(false) }

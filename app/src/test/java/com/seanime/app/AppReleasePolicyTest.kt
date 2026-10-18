@@ -8,6 +8,14 @@ class AppReleasePolicyTest {
         "v$v", "- App fixes", listOf(AppReleasePolicy.Asset("Seanime-Mobile-$v.apk", "https://github.com/Lampe332/seanime-mobile/releases/download/v$v/Seanime-Mobile-$v.apk")), draft, prerelease,
     )
     @Test fun newerOwnApkIsOffered() { assertEquals("1.8.3", AppReleasePolicy.select("1.8.2", listOf(release("1.8.3")))?.version) }
+    @Test fun selectedAssetRetainsExpectedBytesAndDigestForArchiveValidation() {
+        val release = release("2.0.0")
+        val asset = release.assets.single().copy(size = 67154647L, digest = "sha256:expected")
+        assertEquals(asset, AppReleasePolicy.select("1.8.8", listOf(release.copy(assets = listOf(asset))))?.asset)
+    }
+    @Test fun releaseCannotBorrowAnApkFromAnotherVersion() {
+        assertNull(AppReleasePolicy.select("1.8.8", listOf(release("2.0.0").copy(assets = release("1.8.9").assets))))
+    }
     @Test fun sameAndOlderAreNotOffered() { assertNull(AppReleasePolicy.select("1.8.2", listOf(release("1.8.2"), release("1.8.1")))) }
     @Test fun comparesNumericallyAndDoesNotCompareBackendVersion() { assertEquals("1.10.0", AppReleasePolicy.select("1.9.0", listOf(release("1.10.0")))?.version) }
     @Test fun draftsAndPrereleasesAreSkipped() { assertNull(AppReleasePolicy.select("1.8.2", listOf(release("2.0.0", draft = true), release("2.1.0", prerelease = true)))) }

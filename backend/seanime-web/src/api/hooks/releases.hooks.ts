@@ -5,11 +5,12 @@ import { Status, Updater_Update } from "@/api/generated/types"
 import { useSetServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { toast } from "sonner"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { checkAppUpdate, IS_MOBILE_APP } from "@/lib/app-updates"
+import { checkAppUpdate, IS_MOBILE_APP, knownAppUpdate } from "@/lib/app-updates"
 
 export function useGetLatestUpdate(enabled: boolean) {
     if (IS_MOBILE_APP) return useQuery<Updater_Update | undefined>({
         queryKey: [API_ENDPOINTS.RELEASES.GetLatestUpdate.key], queryFn: checkAppUpdate,
+        initialData: knownAppUpdate, initialDataUpdatedAt: 0,
         enabled, staleTime: 60 * 60 * 1000, refetchInterval: 60 * 60 * 1000, retry: false,
     })
     return useServerQuery<Updater_Update>({
