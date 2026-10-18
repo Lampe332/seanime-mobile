@@ -7,7 +7,6 @@ Dieses Repository ist die private Arbeitsbasis für **Seanime Mobile**.
 - `origin` zeigt auf dieses private Repository; Zwischenstände werden hierher gepusht. Keine Releases oder Tags erstellen.
 - Die Veröffentlichung im öffentlichen Repository erfolgt erst in einer späteren, ausdrücklich beauftragten Aufgabe.
 - Die separate Play-Store-App **„Anime App“**, ihr Repository und ihre Installation sind ausgeschlossen.
-- Eine spätere Aufgabe übernimmt ausschließlich Navigationsleiste, Menü-Tab und **„Navigation anpassen“** aus der derzeit installierten Seanime-Mobile-Version. Diese Übernahme jetzt nicht durchführen.
 - Vor einer späteren Installation auf dem Handy App-Identität, Signaturkompatibilität und Datenerhalt prüfen.
 
 GitHub Actions sind in diesem privaten Repository deaktiviert.
