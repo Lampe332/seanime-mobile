@@ -2,6 +2,14 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.1 — 18.10.2026 (versionCode 31026)
+
+- 🎉 Updates: Download, verify and install newer APK releases through Android PackageInstaller, with source permission and system confirmation when required
+- 🎉 Updates: Confirm the actual installed version once after a successful app replacement and offer an app-opening notification when notifications are allowed
+- ⚡️ Updates: Preserve installation state across process restarts and reuse verified APKs after denied permission or cancelled installation
+- ⚡️ Updates: Check on app start or resume with an hourly freshness limit instead of periodic release polling
+- 🦺 Navigation: Simplified the Home roof and Download Notifier arrow in the shared outline catalogue, including saved navigation icons
+
 ## 1.8.8 — 18.10.2026 (versionCode 31023)
 
 - 🦺 Navigation: Redrew the existing control icons with consistent outline geometry across tabs, Menu and navigation customization

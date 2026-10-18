@@ -399,6 +399,16 @@ class MainActivity : Activity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        UpdateInstaller.onResume(this)
+    }
+
+    override fun onPause() {
+        UpdateInstaller.onPause(this)
+        super.onPause()
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         if (::webView.isInitialized) webView.saveState(outState)
         super.onSaveInstanceState(outState)
@@ -406,6 +416,7 @@ class MainActivity : Activity() {
 
     @Deprecated("WebView file callbacks use the platform Activity result API")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (UpdateInstaller.onActivityResult(requestCode, resultCode)) return
         if (!fileTransfer.onActivityResult(requestCode, resultCode, data)) {
             super.onActivityResult(requestCode, resultCode, data)
         }

@@ -11,7 +11,7 @@ export function useGetLatestUpdate(enabled: boolean) {
     if (IS_MOBILE_APP) return useQuery<Updater_Update | undefined>({
         queryKey: [API_ENDPOINTS.RELEASES.GetLatestUpdate.key], queryFn: checkAppUpdate,
         initialData: knownAppUpdate, initialDataUpdatedAt: 0,
-        enabled, staleTime: 60 * 60 * 1000, refetchInterval: 60 * 60 * 1000, retry: false,
+        enabled, staleTime: 60 * 60 * 1000, refetchOnWindowFocus: true, retry: false,
     })
     return useServerQuery<Updater_Update>({
         endpoint: API_ENDPOINTS.RELEASES.GetLatestUpdate.endpoint,

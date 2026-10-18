@@ -32,6 +32,8 @@ object AppUpdater {
         this.activity = activity
         this.webView = webView
         webView.addJavascriptInterface(Bridge, "AppUpdater")
+        UpdateInstaller.init(activity)
+        monitor()
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -85,22 +87,13 @@ object AppUpdater {
         }
 
         @JavascriptInterface
-        fun getDownloadState(): String = downloadState().toString()
+        fun getDownloadState(): String = publicState.toString()
 
         @JavascriptInterface
-        fun openDownloadedApk() {
-            thread(name = "app-update-open") {
-                if (downloadState().optString("status") != "complete") return@thread
-                val uri = manager.getUriForDownloadedFile(prefs.getLong("id", -1)) ?: return@thread
-                handler.post {
-                    try {
-                        activity.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW)
-                            .setDataAndType(uri, "application/vnd.android.package-archive")
-                            .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION))
-                    } catch (_: Exception) { /* Download remains available in Downloads. */ }
-                }
-            }
-        }
+        fun openDownloadedApk() = UpdateInstaller.requestRetry()
+
+        @JavascriptInterface
+        fun acknowledgeInstalledUpdate() = UpdateInstaller.acknowledge()
 
         @JavascriptInterface
         fun checkForUpdates(requestId: String) {
@@ -133,7 +126,7 @@ object AppUpdater {
                     }
                     pendingRequest = requestId
                     activity.requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), PERMISSION_REQUEST_CODE)
-                } else download(requestId)
+                } else beginUpdate(requestId)
             }
         }
     }
@@ -142,7 +135,7 @@ object AppUpdater {
         if (requestCode != PERMISSION_REQUEST_CODE) return
         val requestId = pendingRequest ?: return
         pendingRequest = null
-        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) download(requestId)
+        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) beginUpdate(requestId)
         else emit("seanime-app-download", requestId, JSONObject().put("error", AppLanguage.tr("Storage permission denied", "Speicherzugriff verweigert")))
     }
 
@@ -163,7 +156,7 @@ object AppUpdater {
     /** Validate the actual downloaded archive, not the enqueue result or its filename. */
     private fun validate(id: Long): String {
         val uri = manager.getUriForDownloadedFile(id) ?: error("Downloaded APK is missing")
-        val file = File(activity.cacheDir, "update-validation.apk")
+        val file = File(activity.filesDir, "app-update/pending.apk").apply { parentFile!!.mkdirs() }
         try {
             val hash = java.security.MessageDigest.getInstance("SHA-256")
             var count = 0L
@@ -185,6 +178,7 @@ object AppUpdater {
             val flags = if (Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES
             val archive = activity.packageManager.getPackageArchiveInfo(file.path, flags) ?: error("Download is not a valid APK")
             val installed = activity.packageManager.getPackageInfo(activity.packageName, flags)
+            if (Build.VERSION.SDK_INT >= 24) check(archive.applicationInfo!!.minSdkVersion <= Build.VERSION.SDK_INT) { "APK requires a newer Android version" }
             check(archive.packageName == activity.packageName) { "APK belongs to another app" }
             check(archive.versionName == prefs.getString("version", "")) { "APK version does not match release" }
             val code = if (Build.VERSION.SDK_INT >= 28) archive.longVersionCode else archive.versionCode.toLong()
@@ -193,9 +187,9 @@ object AppUpdater {
             java.util.zip.ZipFile(file).use { zip ->
                 check(Build.SUPPORTED_ABIS.any { zip.getEntry("lib/$it/libseanime.so") != null }) { "APK does not support this device" }
             }
-            prefs.edit().putString("sha256", digest).putLong("bytes", count).apply()
+            check(prefs.edit().putString("sha256", digest).putLong("bytes", count).putLong("target_code", code).commit()) { "Cannot save validated update" }
             return digest
-        } finally { file.delete() }
+        } catch (e: Exception) { file.delete(); throw e }
     }
 
     @Synchronized
@@ -221,7 +215,10 @@ object AppUpdater {
                         activity.contentResolver.openFileDescriptor(uri, "r").use { fd ->
                             check(fd != null && fd.statSize == prefs.getLong("size", 0).takeIf { it > 0 }.let { it ?: bytes }) { "Downloaded APK is missing or incomplete" }
                         }
-                        if (validatedId != id) { validate(id); validatedId = id }
+                        if (validatedId != id) {
+                            publicState = JSONObject(state.toString()).put("status", "verifying")
+                            validate(id); validatedId = id
+                        }
                         state.put("status", "complete").put("sha256", prefs.getString("sha256", ""))
                     }
                     android.app.DownloadManager.STATUS_FAILED -> error("Download failed (Android ${number(android.app.DownloadManager.COLUMN_REASON)}). Please retry.")
@@ -235,6 +232,29 @@ object AppUpdater {
         return state
     }
 
+    @Volatile private var publicState = JSONObject().put("status", "idle")
+    private var monitorStarted = false
+    private fun monitor() {
+        if (monitorStarted) return
+        monitorStarted = true
+        thread(name = "app-update-monitor", isDaemon = true) {
+            while (true) {
+                try {
+                    val state = downloadState()
+                    publicState = UpdateInstaller.state(state)
+                    if (state.optString("status") == "complete") UpdateInstaller.onVerified()
+                } catch (_: Exception) { /* Next poll retries querying the platform service. */ }
+                Thread.sleep(1000)
+            }
+        }
+    }
+
+    private fun beginUpdate(requestId: String) {
+        // The visible action explicitly authorizes download and installation; the UI warns first.
+        UpdateInstaller.authorize()
+        download(requestId)
+    }
+
     private fun download(requestId: String) {
         if (!downloading.compareAndSet(false, true)) {
             emit("seanime-app-download", requestId, JSONObject().put("state", JSONObject().put("status", "downloading")))
@@ -243,7 +263,7 @@ object AppUpdater {
         thread(name = "app-update-download") {
             try {
                 val previous = downloadState()
-                if (previous.optString("status") == "downloading") {
+                if (previous.optString("status") == "downloading" || UpdateInstaller.isInstalling()) {
                     emit("seanime-app-download", requestId, JSONObject().put("state", previous))
                     return@thread
                 }
@@ -252,6 +272,7 @@ object AppUpdater {
                     emit("seanime-app-download", requestId, JSONObject().put("state", previous))
                     return@thread
                 }
+                UpdateInstaller.newDownload()
                 val old = prefs.getLong("id", -1)
                 if (old >= 0 && previous.optString("status") != "complete") manager.remove(old)
                 val request = android.app.DownloadManager.Request(android.net.Uri.parse(update.asset.url))
@@ -266,6 +287,7 @@ object AppUpdater {
                     .putString("digest", update.asset.digest).remove("sha256").commit()
                 emit("seanime-app-download", requestId, JSONObject().put("state", downloadState()))
             } catch (e: Exception) {
+                UpdateInstaller.fail(e.message ?: "Download failed")
                 emit("seanime-app-download", requestId, JSONObject().put("error", e.message ?: "Download failed"))
             } finally { downloading.set(false) }
         }

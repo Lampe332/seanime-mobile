@@ -7,7 +7,7 @@ with sync_playwright() as p:
  b=p.chromium.launch(headless=True); page=b.new_page(viewport={'width':412,'height':883},is_mobile=True,has_touch=True)
  page.route('http://icons.test/**',lambda r:r.fulfill(body='<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><aside class="UI-AppSidebar__sidebar"></aside></body></html>',content_type='text/html'))
  page.goto('http://icons.test/')
- items=[{'id':'home','href':'/','label':'Home','placement':'float','svg':'<svg><path d="M0 0"/></svg>'},{'id':'android-downloads','href':'/android-downloads','label':'Downloads','placement':'nav','svg':'old'},{'id':'custom','href':'/custom','label':'Custom','placement':'nav','svg':'<svg viewBox="0 0 24 24" class="rotate-90" onload="alert(1)"><path d="M4 4h16v16H4z"/></svg>'},{'id':'menu','label':'Menu','isMenu':True,'placement':'nav'}]
+ items=[{'id':'home','href':'/','label':'Home','placement':'float','svg':'<svg><path d="M0 0"/></svg>'},{'id':'android-downloads','href':'/android-downloads','label':'Downloads','placement':'nav','svg':'old'},{'id':'notifier','href':'/webview?id=seanime-download-notifier','label':'Download Notifier','placement':'float','svg':'old'},{'id':'custom','href':'/custom','label':'Custom','placement':'nav','svg':'<svg viewBox="0 0 24 24" class="rotate-90" onload="alert(1)"><path d="M4 4h16v16H4z"/></svg>'},{'id':'menu','label':'Menu','isMenu':True,'placement':'nav'}]
  page.evaluate('(items)=>{localStorage.setItem("__seanime_nav_items_full",JSON.stringify(items));localStorage.setItem("__seanime_float_hidden",JSON.stringify({Settings:true}));localStorage.setItem("__seanime_float_order",JSON.stringify(["Settings","Manga"]));}',items)
  page.evaluate(icon_script)
  for script in scripts: page.evaluate(script.replace("${'$'}",'$'))
@@ -15,7 +15,9 @@ with sync_playwright() as p:
  assert [(x['id'],x['placement']) for x in actual]==[(x['id'],x['placement']) for x in items]
  assert 'M0 0' not in actual[0]['svg'] and 'stroke-width="1.8"' in actual[0]['svg']
  assert 'M12 3v12' in actual[1]['svg']
- assert 'M4 4h16v16H4z' in actual[2]['svg'] and 'rotate' not in actual[2]['svg'] and 'onload' not in actual[2]['svg']
+ assert 'M4 10 12 3l8 7v11h-6v-7h-4v7H4Z' in actual[0]['svg']
+ assert 'M12 3v12' in actual[2]['svg'] and 'a5' not in actual[2]['svg']
+ assert 'M4 4h16v16H4z' in actual[3]['svg'] and 'rotate' not in actual[3]['svg'] and 'onload' not in actual[3]['svg']
  assert page.evaluate('localStorage.getItem("__seanime_float_hidden")')=='{"Settings":true}'
  assert page.evaluate('localStorage.getItem("__seanime_float_order")')=='["Settings","Manga"]'
  assert '<circle' in page.evaluate("window.__seanimeIcons.clean('<svg viewBox=\"0 0 24 24\"><use href=\"#missing\"/></svg>')")

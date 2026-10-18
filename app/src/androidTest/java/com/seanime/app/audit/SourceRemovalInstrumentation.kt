@@ -29,6 +29,7 @@ class SourceRemovalInstrumentation : Instrumentation() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
             val field = MainActivity::class.java.getDeclaredField("webView").apply { isAccessible = true }
             val view = field.get(activity) as WebView
+            if (args.getString("auditDebug") == "true") runOnMainSync { WebView.setWebContentsDebuggingEnabled(true) }
             if (args.getString("discardLocalTestDownload") == "true") {
                 val preferences = targetContext.getSharedPreferences("app_updater", android.content.Context.MODE_PRIVATE)
                 val id = preferences.getLong("id", -1)
@@ -47,6 +48,16 @@ class SourceRemovalInstrumentation : Instrumentation() {
                 val release = AppReleasePolicy.Release("v" + offer.getString("version"), "Controlled local device test; no public release.", listOf(asset), false, false)
                 val provider: () -> AppReleasePolicy.Update? = { AppReleasePolicy.Update(offer.getString("version"), release, asset) }
                 AppUpdater::class.java.getDeclaredField("instrumentationOffer").apply { isAccessible = true }.set(null, provider)
+            }
+            if (args.getString("requireAction") == "true") {
+                com.seanime.app.UpdateInstaller::class.java.getDeclaredField("instrumentationUserActionRequired")
+                    .apply { isAccessible = true }.setBoolean(null, true)
+            }
+            if (args.getString("inspectUpdate") == "true") {
+                val preferences = targetContext.getSharedPreferences("app_updater", android.content.Context.MODE_PRIVATE)
+                val state = JSONObject()
+                listOf("install_status", "from_code", "target_code", "session_id", "success_unread", "auto_install", "sha256", "bytes", "confirmation_intent").forEach { key -> state.put(key, preferences.all[key]) }
+                result.putString("transaction", state.toString())
             }
             Thread.sleep(args.getString("waitMs", "8000").toLong())
             args.getString("setup")?.let { encoded ->
@@ -96,6 +107,8 @@ class SourceRemovalInstrumentation : Instrumentation() {
                 }
                 bitmap.recycle()
             }
+            Thread.sleep(args.getString("holdMs", "0").toLong())
+            if (args.getString("auditDebug") == "true") runOnMainSync { WebView.setWebContentsDebuggingEnabled(false) }
             finish(-1, result)
         } catch (failure: Throwable) {
             result.putString("stream", "FAIL: $failure\n")

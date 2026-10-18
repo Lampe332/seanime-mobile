@@ -1,12 +1,12 @@
 {
   "paths": {
-    "home": "<path d=\"M3 10 12 3l4 3M19 8l2 2M5 9v12h5v-7h4v7h5V9M16 6V3h3v5\"/>",
+    "home": "<path d=\"M4 10 12 3l8 7v11h-6v-7h-4v7H4Z\"/>",
     "lists": "<path d=\"M4 4h5v5H4zM13 5h7M13 12h7M13 19h7M3 17l3 3 4-5\"/>",
     "discover": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m16 8-2.5 5.5L8 16l2.5-5.5z\"/>",
     "search": "<circle cx=\"10.5\" cy=\"10.5\" r=\"7.5\"/><path d=\"m16 16 5 5\"/>",
     "menu": "<path d=\"M4 6h16M4 12h16M4 18h16\"/>",
     "download": "<path d=\"M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4\"/>",
-    "notifier": "<path d=\"M12 3v11m-4-4 4 4 4-4M4 18v3h16v-3M18 4a5 5 0 0 1 3 4\"/>",
+    "notifier": "<path d=\"M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4\"/>",
     "logout": "<path d=\"M10 7V3h11v18H10v-4M15 12H3m4-4-4 4 4 4\"/>",
     "refresh": "<path d=\"M3 10a9 9 0 0 1 15-5l3 3M21 3v5h-5M21 14A9 9 0 0 1 6 19l-3-3M3 21v-5h5\"/>",
     "settings": "<path d=\"m9 3-.5 3-2 .9-2.6-1-2 3.4L4 11v2l-2.1 1.7 2 3.4 2.6-1 2 .9.5 3h4l.5-3 2-.9 2.6 1 2-3.4L18 13v-2l2.1-1.7-2-3.4-2.6 1-2-.9L13 3z\"/><circle cx=\"11\" cy=\"12\" r=\"3\"/>",

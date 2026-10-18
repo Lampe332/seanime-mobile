@@ -60,3 +60,10 @@ it("reports unreadable state honestly", () => {
     target.AppUpdater = {getDownloadState: () => "not JSON"}
     expect(readAppDownload().status).toBe("error")
 })
+
+it("retains distinct installation states instead of treating download completion as installed", () => {
+    for (const status of ["verifying", "permission", "confirmation", "preparing", "installing", "failed", "installed"]) {
+        target.AppUpdater = {getDownloadState: () => JSON.stringify({status, version: "1.9.0"})}
+        expect(readAppDownload().status).toBe(status)
+    }
+})

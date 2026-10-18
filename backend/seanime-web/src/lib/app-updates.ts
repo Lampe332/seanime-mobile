@@ -3,7 +3,7 @@ import type { Updater_Update } from "@/api/generated/types"
 export const IS_MOBILE_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 declare global {
     interface Window {
-        AppUpdater?: { checkForUpdates?(requestId: string): void, downloadUpdate?(requestId: string): void, getKnownUpdate?(): string, getDownloadState?(): string, openDownloadedApk?(): void }
+        AppUpdater?: { checkForUpdates?(requestId: string): void, downloadUpdate?(requestId: string): void, getKnownUpdate?(): string, getDownloadState?(): string, openDownloadedApk?(): void, acknowledgeInstalledUpdate?(): void }
     }
 }
 let nextRequest = 0
@@ -37,8 +37,8 @@ export async function checkAppUpdate(): Promise<Updater_Update> {
 }
 
 export type AppDownloadState = {
-    status: "idle" | "downloading" | "complete" | "error"
-    version?: string, fileName?: string, location?: string, bytes?: number, total?: number, sha256?: string, error?: string, message?: string
+    status: "idle" | "downloading" | "verifying" | "complete" | "permission" | "confirmation" | "preparing" | "installing" | "failed" | "installed" | "error"
+    verified?: boolean, version?: string, fileName?: string, location?: string, bytes?: number, total?: number, sha256?: string, error?: string, message?: string
 }
 let downloadRequest: Promise<AppDownloadState> | undefined
 export function readAppDownload(): AppDownloadState {

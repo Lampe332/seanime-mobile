@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 const native = vi.hoisted(() => ({ check: vi.fn() }))
-vi.mock("@/lib/app-updates", () => ({ IS_MOBILE_APP: true, checkAppUpdate: native.check }))
+vi.mock("@/lib/app-updates", () => ({ IS_MOBILE_APP: true, checkAppUpdate: native.check, knownAppUpdate: () => undefined }))
 vi.mock("@/api/client/requests", () => ({
     useServerQuery: () => { throw new Error("Unexpected desktop API request") },
     useServerMutation: () => { throw new Error("Unexpected desktop API mutation") },
@@ -14,6 +14,9 @@ describe("mobile update routing", () => {
         const query = useGetLatestUpdate(true) as any
         expect(query.queryFn).toBe(native.check)
         expect(query.enabled).toBe(true)
+        expect(query.refetchInterval).toBeUndefined()
+        expect(query.staleTime).toBe(3600000)
+        expect(query.refetchOnWindowFocus).toBe(true)
     })
     it("manual checks use the same source instead of the desktop updater", () => {
         expect((useCheckForUpdates() as any).mutationFn).toBe(native.check)
