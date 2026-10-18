@@ -6,6 +6,7 @@ object UIPatches {
 
     fun inject(webView: WebView) {
         UIBottomNav.inject(webView)
+        UIHosterPlayerPatch.inject(webView)
         UIHomePatch.inject(webView)
         UIMangaHomePatch.inject(webView)
         UIEntryPatch.inject(webView)

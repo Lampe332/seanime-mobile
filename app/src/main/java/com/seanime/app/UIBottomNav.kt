@@ -100,6 +100,12 @@ object UIBottomNav {
                     text-overflow: clip;
                     white-space: nowrap;
                     line-height: 1.2;
+                    background: transparent !important;
+                    border: 0 !important;
+                    box-shadow: none !important;
+                    border-radius: 0 !important;
+                    backdrop-filter: none !important;
+                    -webkit-backdrop-filter: none !important;
                 }
                 #__seanime_bottom_nav a:active,
                 #__seanime_bottom_nav button:active {
@@ -214,7 +220,12 @@ object UIBottomNav {
                     white-space: normal !important;
                     overflow-wrap: anywhere;
                     background: transparent !important;
+                    background-image: none !important;
                     border: 0 !important;
+                    border-radius: 0 !important;
+                    box-shadow: none !important;
+                    backdrop-filter: none !important;
+                    -webkit-backdrop-filter: none !important;
                     opacity: 1 !important;
                     transform: none !important;
                 }
@@ -772,6 +783,22 @@ object UIBottomNav {
                     };
                 }
 
+                function navigationPath(href) {
+                    if (!href || href === '#') return '';
+                    try {
+                        var path = new URL(String(href), window.location.href).pathname;
+                        while (path.length > 1 && path.charAt(path.length - 1) === '/') path = path.slice(0, -1);
+                        return path;
+                    } catch (e) {
+                        var path = String(href).split(/[?#]/)[0];
+                        while (path.length > 1 && path.charAt(path.length - 1) === '/') path = path.slice(0, -1);
+                        return path;
+                    }
+                }
+                function isAndroidRemovedOfflineItem(item) {
+                    return !!item && navigationPath(item.href) === '/sync';
+                }
+
                 function loadNavItems() {
                     try {
                         var savedFull = JSON.parse(localStorage.getItem(LS_NAV_ITEMS) || 'null');
@@ -779,7 +806,7 @@ object UIBottomNav {
                             var rebuilt = [];
                             savedFull.forEach(function(x) {
                                 var n = normalizeNavItem(x);
-                                if (n) rebuilt.push(n);
+                                if (n && !isAndroidRemovedOfflineItem(n)) rebuilt.push(n);
                             });
                             if (rebuilt.length) return rebuilt;
                         }
@@ -835,11 +862,50 @@ object UIBottomNav {
                     try { localStorage.setItem(LS_FLOAT_ORDER, JSON.stringify(arr)); } catch(e) {}
                 }
 
+                // Remove the Android navigation entry by its /sync destination, independent of its label.
+                function migrateStoredOfflineNavigation() {
+                    try {
+                        var saved = JSON.parse(localStorage.getItem(LS_NAV_ITEMS) || 'null');
+                        if (!Array.isArray(saved)) return;
+                        var removed = saved.filter(isAndroidRemovedOfflineItem);
+                        if (!removed.length) return;
+
+                        var removedIds = {};
+                        var removedLabels = {};
+                        removed.forEach(function(item) {
+                            if (item && item.id) removedIds[item.id] = true;
+                            if (item && item.label) removedLabels[item.label] = true;
+                        });
+                        localStorage.setItem(LS_NAV_ITEMS, JSON.stringify(saved.filter(function(item) {
+                            return !isAndroidRemovedOfflineItem(item);
+                        })));
+
+                        var order = JSON.parse(localStorage.getItem(LS_NAV_ORDER) || 'null');
+                        if (Array.isArray(order)) localStorage.setItem(LS_NAV_ORDER, JSON.stringify(order.filter(function(id) { return !removedIds[id]; })));
+
+                        var placement = JSON.parse(localStorage.getItem(LS_NAV_PLACEMENT) || 'null');
+                        if (placement && typeof placement === 'object' && !Array.isArray(placement)) {
+                            Object.keys(removedIds).forEach(function(id) { delete placement[id]; });
+                            localStorage.setItem(LS_NAV_PLACEMENT, JSON.stringify(placement));
+                        }
+
+                        var floatOrder = JSON.parse(localStorage.getItem(LS_FLOAT_ORDER) || 'null');
+                        if (Array.isArray(floatOrder)) localStorage.setItem(LS_FLOAT_ORDER, JSON.stringify(floatOrder.filter(function(label) { return !removedLabels[label]; })));
+
+                        var hidden = JSON.parse(localStorage.getItem(LS_FLOAT_HIDDEN) || 'null');
+                        if (hidden && typeof hidden === 'object' && !Array.isArray(hidden)) {
+                            Object.keys(removedLabels).forEach(function(label) { delete hidden[label]; });
+                            localStorage.setItem(LS_FLOAT_HIDDEN, JSON.stringify(hidden));
+                        }
+                    } catch(e) {}
+                }
+                migrateStoredOfflineNavigation();
+
                 // ─────────────────────────────────────────────────────────────
                 // STATE
                 // ─────────────────────────────────────────────────────────────
                 function ensureAndroidDownloadsItem(items) {
-                    if (items.some(function(item) { return item.id === 'android-downloads'; })) return;
+                    if (items.some(function(item) { return item.id === 'android-downloads' || navigationPath(item.href) === '/android-downloads'; })) return;
                     items.push({ id: 'android-downloads', href: '/android-downloads', label: 'Downloads',
                         matchExact: true, placement: 'nav',
                         svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4"/></svg>' });
@@ -996,6 +1062,7 @@ object UIBottomNav {
                         if (a.style.display === 'none' && !a.dataset.hiddenByUs) return;
                         var label = a.getAttribute('data-vertical-menu-item-link');
                         var href  = a.getAttribute('href');
+                        if (isAndroidRemovedOfflineItem({ href: href })) return;
                         var isCurrent = a.getAttribute('data-current') === 'true';
                         var svgEl = a.querySelector('svg');
                         if (label && href && !seen(label, href) && !inNav(label, href)) {
@@ -1015,7 +1082,7 @@ object UIBottomNav {
 
                     // Then add nav items that are in float placement, but only if not already in nav (should not happen) and not duplicate target
                     NAV_ITEMS.filter(function(it) { return it.placement === 'float' && !it.isMenu; }).forEach(function(navIt) {
-                        if (!seen(navIt.label, navIt.href) && !inNav(navIt.label, navIt.href)) {
+                        if (!isAndroidRemovedOfflineItem(navIt) && !seen(navIt.label, navIt.href) && !inNav(navIt.label, navIt.href)) {
                             items.push(navItemToFloatPill(navIt));
                             markSeen(navIt.label, navIt.href);
                         }
@@ -1806,6 +1873,7 @@ object UIBottomNav {
                 // Bring a menu entry into the bar. Nothing falls out; refuses (with feedback) at MAX_NAV_ITEMS.
                 function addFloatToNav(sidebarItem, insertIndex, rowEl) {
                     if (!sidebarItem) return false;
+                    if (isAndroidRemovedOfflineItem(sidebarItem)) return false;
                     if (navCount() >= MAX_NAV_ITEMS) {
                         showEditNotice('Leiste ist voll (' + MAX_NAV_ITEMS + '/' + MAX_NAV_ITEMS + ')', rowEl);
                         return false;
@@ -1976,7 +2044,7 @@ object UIBottomNav {
                         fs.id  = '__seanime_float_item_styles';
                         fs.textContent = [
                             '.float-nav-item{display:flex;align-items:center;justify-content:center;position:relative;width:100%;}',
-                            '.float-nav-tooltip{position:absolute;right:64px;background:rgba(15,15,15,0.95);color:white;font-size:13px;font-weight:500;padding:6px 12px;border-radius:8px;white-space:nowrap;border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(10px);pointer-events:none;}',
+                            '.float-nav-tooltip{position:absolute;right:64px;background:transparent!important;color:white;font-size:13px;font-weight:500;padding:0;border-radius:0;white-space:nowrap;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none;}',
                             '.float-nav-icon{width:44px!important;height:44px!important;border-radius:12px;background:rgba(25,25,25,0.9);border:1px solid rgba(255,255,255,0.1);display:grid!important;place-items:center!important;color:#a0a0a0;box-shadow:0 4px 10px rgba(0,0,0,0.4);}',
                             '.float-nav-icon--active{background:rgba(255,255,255,0.15);color:white;border-color:rgba(255,255,255,0.3);}'
                         ].join('');

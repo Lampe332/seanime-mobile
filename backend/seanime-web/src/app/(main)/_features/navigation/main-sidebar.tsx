@@ -576,7 +576,7 @@ function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogo
                             </Badge>
                             : undefined,
                     },
-                    {
+                    ...(!IS_ANDROID_APP ? [{
                         iconType: IoCloudOfflineOutline,
                         name: "Offline",
                         href: "/sync",
@@ -589,7 +589,7 @@ function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogo
                                 1
                             </Badge>
                             : undefined,
-                    },
+                    }] : []),
                     {
                         iconType: LuSettings,
                         name: "Settings",
