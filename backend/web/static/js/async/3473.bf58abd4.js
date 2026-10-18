@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkseanime_web=self.rspackChunkseanime_web||[]).push([[3473],{15560(e,n,s){s.d(n,{Route:()=>t});var a=s(72361),c=s(97145),o=s(82799);let t=(0,s(58932).uV)("/_main/sync/")({component:function(){let e,n=(0,c.c)(1);return n[0]===Symbol.for("react.memo_cache_sentinel")?(e=(0,a.jsx)(o.C,{to:"/android-downloads",replace:!0}),n[0]=e):e=n[0],e}})}}]);
