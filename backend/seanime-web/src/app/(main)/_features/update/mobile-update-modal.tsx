@@ -16,7 +16,7 @@ import { UpdateChangelogBody } from "./update-helper"
 export function MobileUpdateModal() {
     const t = useTr()
     const server = useServerStatus()
-    const { data, isLoading, error, refetch } = useGetLatestUpdate(!!server && !server.settings?.library?.disableUpdateCheck)
+    const { data, isLoading, isFetching, error, refetch } = useGetLatestUpdate(!!server && !server.settings?.library?.disableUpdateCheck)
     const [open, setOpen] = useAtom(updateModalOpenAtom)
     const [nativeDownload, setDownload] = React.useState<AppDownloadState>({ status: "idle" })
     const download: AppDownloadState = nativeDownload.status === "complete" && data?.release?.version && nativeDownload.version !== data.release.version
@@ -24,6 +24,7 @@ export function MobileUpdateModal() {
     const [starting, setStarting] = React.useState(false)
     const [host, setHost] = React.useState<HTMLElement | null>(null)
     const lock = React.useRef(false)
+    const checkLock = React.useRef(false)
     const confirmed = React.useRef<string | undefined>(undefined)
     React.useEffect(() => {
         const find = () => setHost(document.getElementById("__seanime_update_menu_host"))
@@ -56,6 +57,12 @@ export function MobileUpdateModal() {
         catch (e) { setDownload({ status: "error", error: String(e) }) }
         finally { lock.current = false; setStarting(false) }
     }
+    async function checkAgain() {
+        if (checkLock.current || isFetching) return
+        checkLock.current = true
+        try { await refetch() }
+        finally { checkLock.current = false }
+    }
     const busy = starting || ["downloading", "verifying", "preparing", "installing"].includes(download.status)
     const complete = download.status === "installed"
     const percent = download.total && download.total > 0 ? Math.min(100, Math.floor((download.bytes || 0) * 100 / download.total)) : undefined
@@ -66,11 +73,12 @@ export function MobileUpdateModal() {
         : download.status === "permission" ? t("Allow installation from this source to continue", "Installation aus dieser Quelle freigeben")
         : download.status === "confirmation" ? t("Android installation confirmation required", "Android-Installationsbestätigung erforderlich")
         : download.status === "complete" ? t("APK verified. Ready to install.", "APK geprüft. Bereit zur Installation.")
-        : download.status === "failed" || download.status === "error" ? download.error
         : busy ? `${t("Downloading", "Wird heruntergeladen")} ${percent === undefined ? "…" : `${percent}%`}`
-        : error ? t("Update check failed", "Updateprüfung fehlgeschlagen")
-        : isLoading ? t("Checking for updates…", "Suche nach Updates…") : version
-        ? t("New version available", "Neue Version verfügbar") : data ? t("Up to date", "Aktuell") : t("Update check unavailable", "Updateprüfung nicht verfügbar")
+        : isFetching ? t("Searching for updates…", "Suche nach Updates…")
+        : download.status === "failed" || download.status === "error" ? download.error
+        : error ? t("Could not check for updates. Check your connection and try again.", "Updates konnten nicht geprüft werden. Prüfe deine Verbindung und versuche es erneut.")
+        : isLoading ? t("Searching for updates…", "Suche nach Updates…") : version
+        ? t("New version available", "Neue Version verfügbar") : data ? t("Up to date", "Auf dem neuesten Stand") : t("Update check unavailable", "Updateprüfung nicht verfügbar")
     const installAction = download.status === "complete" || download.status === "permission" || download.status === "confirmation" || (download.status === "failed" && download.verified)
     const summary = <section data-app-update-panel className="rounded-2xl border border-brand-300/20 bg-brand-300/5 p-3 my-2 space-y-2 min-w-0" aria-label={t("App update", "App-Update")}>
         <div className="flex items-start gap-3">
@@ -78,7 +86,10 @@ export function MobileUpdateModal() {
             <div className="min-w-0 flex-1">
                 <strong className="block break-words">Seanime Mobile{version ? ` ${version}` : ""}</strong>
                 {data?.current_version && <small className="text-[--muted]">{t("Installed", "Installiert")}: {data.current_version}</small>}
-                <p role="status" className="text-sm break-words" data-download-status={download.status}>{status}</p>
+                <p role="status" className="text-sm break-words" data-download-status={download.status}>
+                    {isFetching && !busy && <span aria-hidden="true" data-update-check-spinner className="inline-block size-4 shrink-0 rounded-full border-2 border-current border-r-transparent align-[-0.15em] animate-spin" style={{ display: "inline-block", width: "1rem", height: "1rem", border: "2px solid currentColor", borderRightColor: "transparent", borderRadius: "50%", animation: "spin .8s linear infinite" }} />}
+                    {status}
+                </p>
             </div>
         </div>
         {download.status === "downloading" && <progress className="w-full accent-violet-400" aria-label={t("Download progress", "Downloadfortschritt")} max={100} value={percent} />}
@@ -90,7 +101,9 @@ export function MobileUpdateModal() {
             </Button>}
             {installAction && <Button intent="white" disabled={busy} onClick={() => window.AppUpdater?.openDownloadedApk?.()}>{download.status === "confirmation" ? t("Confirm installation", "Installation bestätigen") : t("Install update", "Update installieren")}</Button>}
             {version && <Button intent="gray-subtle" onClick={() => setOpen(true)}>{t("Update details", "Updateinformationen")}</Button>}
-            {!version && !isLoading && <Button intent="gray-subtle" onClick={() => refetch()}>{t("Check again", "Erneut prüfen")}</Button>}
+            {!version && <Button type="button" intent="gray-subtle" disabled={isFetching} onClick={() => void checkAgain()}>
+                {isFetching ? t("Checking…", "Prüfung läuft…") : error ? t("Try again", "Erneut versuchen") : t("Check again", "Erneut prüfen")}
+            </Button>}
         </div>
     </section>
     return <>

@@ -80,7 +80,11 @@ $apk = Join-Path $buildRoot 'app\build\outputs\apk\release\app-release.apk'
 if ($LASTEXITCODE -ne 0) { throw 'APK signature verification failed.' }
 & (Join-Path $env:ANDROID_HOME 'build-tools\36.0.0\zipalign.exe') -c -P 16 4 $apk
 if ($LASTEXITCODE -ne 0) { throw 'APK alignment verification failed.' }
-$appVersion = [regex]::Match((Get-Content -LiteralPath (Join-Path $sourceRoot 'app\build.gradle.kts') -Raw), 'versionName\s*=\s*"([^"]+)"').Groups[1].Value
+$gradleSource = Get-Content -LiteralPath (Join-Path $sourceRoot 'app\build.gradle.kts') -Raw
+$versionNameLine = [regex]::Match($gradleSource, '(?m)^\s*versionName\s*=\s*[^\r\n]+').Value
+$versionLiterals = [regex]::Matches($versionNameLine, '"([^"]+)"')
+if ($versionLiterals.Count -eq 0) { throw 'Could not read the default Android version name.' }
+$appVersion = $versionLiterals[$versionLiterals.Count - 1].Groups[1].Value
 $result = Join-Path $WorkDirectory ('Seanime-Mobile-' + $appVersion + '.apk')
 Copy-Item -LiteralPath $apk -Destination $result -Force
 Write-Output ('PASS: signed APK built and verified: ' + $result)

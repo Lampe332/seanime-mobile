@@ -2071,7 +2071,11 @@ object UIBottomNav {
                             exitEditMode();
                             return;
                         }
-                        if (menuOpen) closeMenu();
+                        if (menuOpen) {
+                            var floatMenu = document.getElementById('android-floating-menu');
+                            if (floatMenu && floatMenu.contains(e.target)) return;
+                            closeMenu();
+                        }
                     });
 
                     buildResetDialog();
