@@ -10,9 +10,10 @@ android {
         applicationId = "com.seanime.app.local"
         minSdk = 21
         targetSdk = 36
-        versionCode = 31020
-        versionName = "1.8.5"
-        testInstrumentationRunner = "com.seanime.app.audit.OfflineInstrumentation"
+        versionCode = 31021
+        versionName = "1.8.6"
+        testInstrumentationRunner = providers.gradleProperty("seanimeAuditRunner").orNull
+            ?: "com.seanime.app.audit.OfflineInstrumentation"
         ndk { abiFilters += setOf("arm64-v8a", "armeabi-v7a") }
         // -PseanimeAppIdSuffix=.fresh installs a separate copy next to the real app (fresh-install testing)
         providers.gradleProperty("seanimeAppIdSuffix").orNull?.let { applicationIdSuffix = it }

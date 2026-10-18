@@ -654,6 +654,13 @@ func (r *Repository) loadExternalExtension(filePath string) {
 		return
 	}
 
+	if runtime.GOOS == "android" {
+		if err := migrateMobileHosterSource(filePath, ext); err != nil {
+			r.logger.Error().Err(err).Msg("extensions: Failed to migrate Android hoster source")
+			return
+		}
+	}
+
 	ext.Lang = extension.GetExtensionLang(ext.Lang)
 
 	var manifestError error

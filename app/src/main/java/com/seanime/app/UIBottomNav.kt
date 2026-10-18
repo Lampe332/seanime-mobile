@@ -100,12 +100,6 @@ object UIBottomNav {
                     text-overflow: clip;
                     white-space: nowrap;
                     line-height: 1.2;
-                    background: transparent !important;
-                    border: 0 !important;
-                    box-shadow: none !important;
-                    border-radius: 0 !important;
-                    backdrop-filter: none !important;
-                    -webkit-backdrop-filter: none !important;
                 }
                 #__seanime_bottom_nav a:active,
                 #__seanime_bottom_nav button:active {
@@ -219,13 +213,6 @@ object UIBottomNav {
                     min-width: 0;
                     white-space: normal !important;
                     overflow-wrap: anywhere;
-                    background: transparent !important;
-                    background-image: none !important;
-                    border: 0 !important;
-                    border-radius: 0 !important;
-                    box-shadow: none !important;
-                    backdrop-filter: none !important;
-                    -webkit-backdrop-filter: none !important;
                     opacity: 1 !important;
                     transform: none !important;
                 }
@@ -648,8 +635,6 @@ object UIBottomNav {
                     flex: 1;
                     font-size: 0.9rem;
                     font-weight: 500;
-                    background: transparent !important;
-                    border: 0 !important;
                     padding: 0 !important;
                     color: inherit;
                 }
@@ -866,17 +851,24 @@ object UIBottomNav {
                 function migrateStoredOfflineNavigation() {
                     try {
                         var saved = JSON.parse(localStorage.getItem(LS_NAV_ITEMS) || 'null');
-                        if (!Array.isArray(saved)) return;
+                        var hasSavedItems = Array.isArray(saved);
+                        if (!hasSavedItems) saved = [];
                         var removed = saved.filter(isAndroidRemovedOfflineItem);
-                        if (!removed.length) return;
 
                         var removedIds = {};
                         var removedLabels = {};
+                        // The former built-in sidebar registered Offline -> /sync.
+                        // Its float-order identity can remain even when it never entered the bar.
+                        // Preserve a user item that reuses this label for another destination.
+                        if (!saved.some(function(item) { return item.label === 'Offline' && !isAndroidRemovedOfflineItem(item); })) {
+                            removedIds.__float_Offline = true;
+                            removedLabels.Offline = true;
+                        }
                         removed.forEach(function(item) {
                             if (item && item.id) removedIds[item.id] = true;
                             if (item && item.label) removedLabels[item.label] = true;
                         });
-                        localStorage.setItem(LS_NAV_ITEMS, JSON.stringify(saved.filter(function(item) {
+                        if (hasSavedItems) localStorage.setItem(LS_NAV_ITEMS, JSON.stringify(saved.filter(function(item) {
                             return !isAndroidRemovedOfflineItem(item);
                         })));
 
@@ -2044,7 +2036,7 @@ object UIBottomNav {
                         fs.id  = '__seanime_float_item_styles';
                         fs.textContent = [
                             '.float-nav-item{display:flex;align-items:center;justify-content:center;position:relative;width:100%;}',
-                            '.float-nav-tooltip{position:absolute;right:64px;background:transparent!important;color:white;font-size:13px;font-weight:500;padding:0;border-radius:0;white-space:nowrap;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none;}',
+                            '.float-nav-tooltip{position:absolute;right:64px;color:white;font-size:13px;font-weight:500;padding:0;white-space:nowrap;pointer-events:none;}',
                             '.float-nav-icon{width:44px!important;height:44px!important;border-radius:12px;background:rgba(25,25,25,0.9);border:1px solid rgba(255,255,255,0.1);display:grid!important;place-items:center!important;color:#a0a0a0;box-shadow:0 4px 10px rgba(0,0,0,0.4);}',
                             '.float-nav-icon--active{background:rgba(255,255,255,0.15);color:white;border-color:rgba(255,255,255,0.3);}'
                         ].join('');

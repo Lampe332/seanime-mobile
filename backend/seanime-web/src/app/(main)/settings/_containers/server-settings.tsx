@@ -265,7 +265,7 @@ export function ServerSettings(props: ServerSettingsProps) {
 
             <ConfirmationDialog {...confirmDialog} />
 
-            <SettingsCard title="Offline mode" description="Only available when authenticated with AniList.">
+            {import.meta.env.SEA_PUBLIC_PLATFORM !== "mobile" && <SettingsCard title="Offline mode" description="Only available when authenticated with AniList.">
 
                 <Field.Switch
                     side="right"
@@ -284,7 +284,7 @@ export function ServerSettings(props: ServerSettingsProps) {
                     icon={<TbChecklist className="" />}
                 />
 
-            </SettingsCard>
+            </SettingsCard>}
 
             <SettingsCard title="Metadata Providers">
                 <div className="space-y-3">

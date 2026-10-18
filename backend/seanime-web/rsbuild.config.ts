@@ -64,6 +64,9 @@ export default defineConfig({
     },
     resolve: {
         alias: {
+            ...(process.env.SEA_PUBLIC_PLATFORM === "mobile" ? {
+                "@/app/(main)/sync/page": path.resolve(__dirname, "src/mobile/legacy-sync-redirect.tsx"),
+            } : {}),
             "@": path.resolve(__dirname, "./src"),
             "react": path.resolve(__dirname, "node_modules/react"),
             "react-dom": path.resolve(__dirname, "node_modules/react-dom"),

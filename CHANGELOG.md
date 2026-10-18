@@ -2,6 +2,13 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.8.6 — 18.10.2026 (versionCode 31021)
+
+- 🏗️ Player: Removed the floating Hoster Player launcher from its local plugin source
+- 🦺 Navigation: Removed the styles that painted dark backgrounds behind menu labels
+- 🏗️ Android: Replaced the legacy Offline page with Downloads; old Offline links now open Downloads
+- 🦺 Navigation: Preserved the order and placement of saved entries when removing legacy Offline navigation
+
 ## 1.8.4 — 17.10.2026 (versionCode 31019)
 
 - ⚡️ Navigation: Made the bottom tab bar easier to read, with larger icons and labels and a clearer active state

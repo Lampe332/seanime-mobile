@@ -7,7 +7,6 @@ ROOT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path(__file__).resolve(
 K=ROOT/'app/src/main/java/com/seanime/app'
 back=re.search(r'val backScript = """(.*?)"""\.trimIndent',(K/'AndroidNavigation.kt').read_text(),re.S).group(1)
 scripts=re.findall(r'val js = """(.*?)"""\.trimIndent\(\)',(K/'UIBottomNav.kt').read_text(encoding='utf-8'),re.S)
-hoster=re.search(r'private val js = """(.*?)"""\.trimIndent\(\)',(K/'UIHosterPlayerPatch.kt').read_text(encoding='utf-8'),re.S).group(1)
 links=[('Home','/'),('Schedule','/schedule'),('Manga','/manga'),('My lists','/lists'),('Discover','/discover'),('Search','/search'),('Torrent list','/torrent-list'),('Download Notifier','/webview?id=test'),('Extensions','/extensions'),('Offline-Synchronisierung','/sync?from=legacy'),('Settings','/settings')]
 html='<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}aside{display:none}</style></head><body><aside class="UI-AppSidebar__sidebar">'+''.join(f'<a href="{url}" data-vertical-menu-item-link="{name}">{name}</a>' for name,url in links)+'</aside><main data-main-layout-content="true"></main></body></html>'
 results=[]
@@ -40,17 +39,9 @@ with sync_playwright() as p:
             const video = document.createElement('video');
             video.id = 'episode-player';
             document.body.appendChild(video);
-            const wrapper = document.createElement('div');
-            wrapper.id = 'hoster-launcher-wrapper';
-            const button = document.createElement('button');
-            button.id = 'pe-host-1q';
-            button.textContent = 'Hoster-Player';
-            wrapper.appendChild(button);
-            document.body.appendChild(wrapper);
         }''')
         page.evaluate('''()=>document.querySelectorAll('aside a').forEach(a=>a.onclick=e=>{e.preventDefault();history.pushState({},'',a.getAttribute('href'))})''')
         for script in scripts: page.evaluate(script.replace("${'$'}",'$'))
-        page.evaluate(hoster)
         page.wait_for_timeout(100)
         nav=page.locator('#__seanime_bottom_nav');menu=nav.locator('button')
         prefix=f'{width}x{height}: '
@@ -64,25 +55,15 @@ with sync_playwright() as p:
         })''')
         record(prefix+'legacy /sync config removed by destination',all(item.get('href')!='/sync?from=legacy' for item in migrated['items']) and '__float_Synchronisation' not in migrated['order'] and '__float_Synchronisation' not in migrated['placement'],migrated)
         record(prefix+'other order, placement and float settings preserved',migrated['order']==['home','lists','discover','search','menu','android-downloads','__float_Settings'] and migrated['placement'].get('__float_Settings')=='float' and migrated['floatOrder']==['Settings'] and migrated['hidden']=={'Keep hidden':True},migrated)
-        record(prefix+'existing launcher removed without touching playback',page.locator('[id^="pe-host-"]').count()==0 and page.locator('#hoster-launcher-wrapper').count()==0 and page.locator('#episode-player').count()==1)
+
         record(prefix+'Downloads retained once at original end position',ids()==['home','lists','discover','search','menu','android-downloads'] and nav.locator('[data-nav-id="android-downloads"]').count()==1,ids())
         record(prefix+'home marked',nav.locator('a[aria-current="page"]').count()==1)
         nav.locator('a[href="/search"]').click();page.wait_for_timeout(150)
         record(prefix+'SPA tab updates',nav.locator('a[href="/search"]').get_attribute('aria-current')=='page' and page.url.endswith('/search'))
         bar_style=nav.locator('a[href="/search"] span').evaluate('''e=>({label:getComputedStyle(e).backgroundColor,tab:getComputedStyle(e.parentElement).backgroundColor})''')
         record(prefix+'bottom label has no chip and active tab stays purple',bar_style['label']=='rgba(0, 0, 0, 0)' and bar_style['tab']!='rgba(0, 0, 0, 0)',bar_style)
-        page.evaluate('''() => {
-            history.pushState({},'', '/entry?id=2');
-            const wrapper=document.createElement('div');
-            wrapper.id='hoster-route-wrapper';
-            const launcher=document.createElement('button');
-            launcher.id='pe-host-route-8s';
-            launcher.textContent='Reproductor externo';
-            wrapper.appendChild(launcher);
-            document.body.appendChild(wrapper);
-        }''')
+        page.evaluate("history.pushState({},'', '/entry?id=21')")
         page.wait_for_timeout(120)
-        record(prefix+'launcher removed after route change and localized label',page.locator('[id^="pe-host-"]').count()==0 and page.locator('#hoster-route-wrapper').count()==0)
         menu.click();page.wait_for_timeout(800)
         box=page.locator('#android-floating-menu').bounding_box()
         record(prefix+'menu fits viewport',box['y']>=0 and box['y']+box['height']<=height,box)
@@ -128,16 +109,11 @@ with sync_playwright() as p:
             page.locator('#__seanime_edit_done_btn').click();page.wait_for_timeout(200)
             page.reload();page.evaluate('''() => {
                 document.querySelectorAll('aside a').forEach(a=>a.onclick=e=>{e.preventDefault();history.pushState({},'',a.getAttribute('href'))});
-                const button=document.createElement('button');
-                button.id='pe-host-reload-4x';
-                button.textContent='Player';
-                document.body.appendChild(button);
             }''')
             for script in scripts: page.evaluate(script.replace("${'$'}",'$'))
-            page.evaluate(hoster)
             page.wait_for_timeout(200)
             record(prefix+'7 entries persist after reload',ids()==after and nav.get_attribute('data-nav-count')=='7',ids())
-            record(prefix+'launcher removed after document reload',page.locator('[id^="pe-host-"]').count()==0)
+
             menu.click();page.wait_for_timeout(700)
             page.locator('#__seanime_wrench_btn').click();page.wait_for_timeout(300)
             panel.locator('.float-nav-item[data-section="bar"][data-nav-id="__float_Schedule"]').click();page.wait_for_timeout(200)
