@@ -179,7 +179,7 @@ async def main():
             episode_requests.clear()
             await page.locator('[data-home-episode-card]').first.click()
             await page.wait_for_url(re.compile(r'/entry\?id='+series_id))
-            for _ in range(30):
+            for _ in range(60):  # source follows the external provider episode list
                 if episode_requests: break
                 await page.wait_for_timeout(250)
             record('Primary continuation uses the existing entry route',True,{'series':series_id,'episode':shown[0][1]})

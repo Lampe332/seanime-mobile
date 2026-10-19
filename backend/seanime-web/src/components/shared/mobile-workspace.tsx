@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog"
 import { LuArrowLeft, LuX } from "react-icons/lu"
 import { useTr } from "@/lib/app-language"
 import { cn } from "@/components/ui/core/styling"
+import "./mobile-surface.css"
 import "./mobile-workspace.css"
 
 /** Opt-in surface for mobile workflows; independent of document scroll and native modal patches. */

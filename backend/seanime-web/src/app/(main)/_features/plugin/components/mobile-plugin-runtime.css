@@ -43,7 +43,7 @@
     .plugin-runtime-menu-item { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
     .mobile-plugin-command .mobile-workspace-body { display: flex; overflow: hidden; }
     .mobile-plugin-command .UI-Command__root { background: transparent; min-width: 0; min-height: 0; }
-    .mobile-plugin-command .UI-Command__input { flex: none; border: 1px solid #bca1eb40; border-radius: .8rem; background: #100d17; }
+    .mobile-plugin-command .UI-Command__input { flex: none; border: 1px solid var(--sm-line-strong); border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
     .mobile-plugin-command input { min-height: 44px; min-width: 0; font-size: 1rem; }
     .mobile-plugin-command .UI-Command__list { flex: 1; min-height: 0; max-height: none; overscroll-behavior: contain; margin-top: .6rem; }
     .mobile-plugin-command .UI-Command__item { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }

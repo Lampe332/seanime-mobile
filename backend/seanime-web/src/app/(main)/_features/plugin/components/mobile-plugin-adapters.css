@@ -6,7 +6,7 @@
     }
     [data-plugin-tray-popover-content="Watch-Next"] .plugin-runtime-button.group-hover\:opacity-100 {
         opacity: 1; inset: auto 8px 8px auto; width: auto; height: auto;
-        max-width: calc(100% - 16px); background: #4e367c; border: 1px solid #d2b4ff80;
+        max-width: calc(100% - 16px); background: var(--sm-surface-control); border: 1px solid var(--sm-accent-line); color: var(--sm-text);
         border-radius: .75rem;
     }
 }

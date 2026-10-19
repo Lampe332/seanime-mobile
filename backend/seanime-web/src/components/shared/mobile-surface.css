@@ -1,0 +1,26 @@
+/* Shared Android surface tokens: neutral greys; the accent follows the Seanime theme colour. */
+:root {
+    --sm-surface: #141416;
+    --sm-surface-raised: #1c1c1f;
+    --sm-surface-control: #26262a;
+    --sm-surface-sunken: #0e0e10;
+    --sm-line: rgb(255 255 255 / .08);
+    --sm-line-strong: rgb(255 255 255 / .14);
+    --sm-text: #ededf0;
+    --sm-text-muted: #b6b6bc;
+    --sm-text-subtle: #9c9ca3;
+    --sm-danger: #f2a7b6;
+    --sm-scrim: rgb(0 0 0 / .72);
+    --sm-shadow: 0 -8px 32px rgb(0 0 0 / .45);
+    --sm-accent: rgb(var(--color-brand-300));
+    --sm-accent-strong: rgb(var(--color-brand-400));
+    --sm-accent-soft: rgb(var(--color-brand-400) / .18);
+    --sm-accent-softer: rgb(var(--color-brand-400) / .08);
+    --sm-accent-line: rgb(var(--color-brand-300) / .55);
+    --sm-radius-lg: 1.25rem;
+    --sm-radius: 1rem;
+    --sm-radius-sm: .75rem;
+}
+/* Radix's scroll lock injects this inherited variable on every open; pre-seeding the
+   same value keeps that injection from restyling the whole document. */
+:root { --removed-body-scroll-bar-size: 0px; }

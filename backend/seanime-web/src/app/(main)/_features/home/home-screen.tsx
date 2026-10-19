@@ -56,6 +56,7 @@ import { MediaEntryCardSkeleton } from "../media/_components/media-entry-card-sk
 import { MediaEntryPageLoadingDisplay } from "../media/_components/media-entry-page-loading-display"
 
 import { useTr } from "@/lib/app-language"
+import "@/components/shared/mobile-surface.css"
 import "./home-mobile.css"
 
 export const __home_currentView = atom<"base" | "detailed">("base")

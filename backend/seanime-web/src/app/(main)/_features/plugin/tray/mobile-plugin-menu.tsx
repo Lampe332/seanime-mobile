@@ -9,6 +9,7 @@ import { LuPin, LuPinOff, LuSearch, LuX, LuChevronRight, LuRefreshCw, LuSquareTe
 import { PluginTray, TrayIcon } from "./plugin-tray"
 import { __plugin_openedTrayPlugin, __plugin_unpinnedTrayIconClickedAtom } from "./plugin-sidebar-tray"
 import { usePluginListenTrayOpenEvent } from "../generated/plugin-events"
+import "@/components/shared/mobile-surface.css"
 import "./mobile-plugin-menu.css"
 
 /** An extension fitting into an open socket, using the existing 24px/2px icon language. */
