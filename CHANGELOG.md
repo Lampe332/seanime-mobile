@@ -2,6 +2,17 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.9 — 20.10.2026 (versionCode 31035)
+
+- ⚡️ Anime: Redesigned the anime details header, episode list and online-stream episode selection for phones.
+- ⚡️ Home: Switched Home, the plugin chooser, playlists and plugin workspaces to neutral surfaces, keeping the theme colour for accents.
+- ⚡️ Home: Arranged the Customize Home section actions in even columns, with a single column for large text.
+- ⚡️ Home: Aired Recently and Missed Sequels no longer auto-scroll or start hover trailers on phones.
+- ⚡️ Performance: Reduced main-thread work while scrolling and when opening Home sheets.
+- 🦺 Home: Fixed the plugin chooser search and close button moving off-screen while the keyboard is open.
+- 🦺 Home: Fixed misaligned manga and carousel sections and the dub badge covering airing information.
+- 🦺 Plugins: Fixed memory growing each time Home was revisited while plugins decorate its cards.
+
 ## 1.9.8 — 19.10.2026 (versionCode 31033)
 
 - 🦺 Home: Show pinned plugins as compact icon buttons, keeping their names available to screen readers without overflowing the header.
