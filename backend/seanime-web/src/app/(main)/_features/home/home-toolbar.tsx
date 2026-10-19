@@ -30,6 +30,7 @@ import { LuFolderSearch, LuFolderSync, LuFolderTree } from "react-icons/lu"
 import { MdOutlineConnectWithoutContact, MdOutlineVideoLibrary } from "react-icons/md"
 import { TbFileSad, TbReportSearch } from "react-icons/tb"
 import { PluginAnimeLibraryDropdownItems } from "../plugin/actions/plugin-actions"
+import { useTr } from "@/lib/app-language"
 
 const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
@@ -43,6 +44,7 @@ export type HomeToolbarProps = {
     isStreamingOnly: boolean
     isNakamaLibrary: boolean
     className?: string
+    mobileHome?: boolean
 }
 
 export function HomeToolbar(props: HomeToolbarProps) {
@@ -59,6 +61,7 @@ export function HomeToolbar(props: HomeToolbarProps) {
     } = props
 
     const serverStatus = useServerStatus()
+    const tr = useTr()
     const ts = useThemeSettings()
     const setBulkActionIsOpen = useSetAtom(__bulkAction_modalAtomIsOpen)
     const nakamaStatus = useNakamaStatus()
@@ -113,6 +116,7 @@ export function HomeToolbar(props: HomeToolbarProps) {
                     <>
                         {(!isStreamingOnly && !isNakamaLibrary) && <Tooltip
                             trigger={<IconButton
+                                aria-label={homeView === "base" ? "Local Anime Library" : "Home"}
                                 data-home-toolbar-switch-view-button
                                 intent={homeView === "base" ? "white-subtle" : "white"}
                                 icon={homeView === "base" ? <IoLibraryOutline className="text-2xl" /> : <IoHome className="text-2xl" />}
@@ -124,6 +128,7 @@ export function HomeToolbar(props: HomeToolbarProps) {
 
                         {(!isStreamingOnly && !isNakamaLibrary && hasLibraryPath) && <Tooltip
                             trigger={<IconButton
+                                aria-label="Library Explorer"
                                 data-home-toolbar-switch-view-button
                                 intent={"white-subtle"}
                                 icon={<LuFolderTree className="text-2xl" />}
@@ -137,7 +142,8 @@ export function HomeToolbar(props: HomeToolbarProps) {
                         </Tooltip>}
 
                         <Tooltip
-                            trigger={<IconButton
+                            trigger={props.mobileHome ? <Button data-home-toolbar-playlists-button className="home-labeled-action" leftIcon={<MdOutlineVideoLibrary aria-hidden />} onClick={() => setModalOpen(true)}>{tr("Playlists", "Playlists")}</Button> : <IconButton
+                                aria-label="Playlists"
                                 data-home-toolbar-playlists-button
                                 intent={"white-subtle"}
                                 icon={<MdOutlineVideoLibrary className="text-2xl" />}
@@ -181,11 +187,12 @@ export function HomeToolbar(props: HomeToolbarProps) {
                     Resolve hidden media ({unknownGroups.length})
                 </Button>}
 
-                <HomeSettingsButton type="toolbar" />
+                <HomeSettingsButton type="toolbar" labeled={props.mobileHome} />
 
                 {(!isStreamingOnly && !isNakamaLibrary && hasLibraryPath) &&
                     <DropdownMenu
                         trigger={<IconButton
+                            aria-label={tr("More Home actions", "Weitere Home-Aktionen")}
                             data-home-toolbar-dropdown-menu-trigger
                             icon={<BiDotsVerticalRounded className="text-2xl" />} intent="gray-basic"
                         />}

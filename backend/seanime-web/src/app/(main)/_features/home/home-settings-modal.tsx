@@ -2,7 +2,7 @@ import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Models_HomeItem } from "@/api/generated/types"
 import { useSaveDebridSettings } from "@/api/hooks/debrid.hooks"
 import { useSaveSettings } from "@/api/hooks/settings.hooks"
-import { useGetHomeItems, useUpdateHomeItems } from "@/api/hooks/status.hooks"
+import { useUpdateHomeItems } from "@/api/hooks/status.hooks"
 import { useSaveTorrentstreamSettings } from "@/api/hooks/torrentstream.hooks"
 import { DEFAULT_HOME_ITEMS, HOME_ITEM_IDS, HOME_ITEMS } from "@/app/(main)/_features/home/home-items.utils"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
@@ -41,6 +41,7 @@ import {
 import { MdOutlineVideoLibrary } from "react-icons/md"
 import { TbCarouselHorizontal } from "react-icons/tb"
 import { toast } from "sonner"
+import { useTr } from "@/lib/app-language"
 
 export const __home_settingsModalOpen = atom(false)
 
@@ -63,13 +64,13 @@ const HOME_ITEM_ICONS = {
     "my-lists": LuListTodo,
 } as const
 
-export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary }: { emptyLibrary?: boolean, isNakamaLibrary: boolean }) {
+export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, mobileHome = false, homeItems: _homeItems, itemsLoading: isLoadingHomeItems = false }: { emptyLibrary?: boolean, isNakamaLibrary: boolean, mobileHome?: boolean, homeItems?: Models_HomeItem[] | null, itemsLoading?: boolean }) {
+    const tr = useTr()
     const serverStatus = useServerStatus()
     const ts = useThemeSettings()
     const [isModalOpen, setIsModalOpen] = useAtom(__home_settingsModalOpen)
     const [optionsModalOpen, setOptionsModalOpen] = React.useState<string | null>(null)
 
-    const { data: _homeItems, isLoading: isLoadingHomeItems } = useGetHomeItems()
     const { mutate: updateHomeItems, isPending: isUpdatingHomeItems } = useUpdateHomeItems()
 
     const [currentItems, setCurrentItems] = React.useState<Models_HomeItem[]>(_homeItems || DEFAULT_HOME_ITEMS)
@@ -201,6 +202,7 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary }: { emptyLibr
                 </div>}
                 contentClass={cn(
                     "max-w-5xl sm:rounded-3xl",
+                    mobileHome && "home-mobile-settings",
                     // ts.enableBlurringEffects && "bg-gray-950 bg-opacity-80 backdrop-blur-sm firefox:bg-opacity-100 firefox:backdrop-blur-none",
                 )}
                 overlayClass={cn(ts.enableBlurringEffects && "bg-gray-950/70 backdrop-blur-sm")}
@@ -293,6 +295,23 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary }: { emptyLibr
 
                     </div>
 
+                    {mobileHome && <section className="home-mobile-sections">
+                        <h3>{tr("Home sections", "Home-Bereiche")}</h3>
+                        <p>{tr("Changes are saved automatically. Use Up and Down to change the order.", "Änderungen werden automatisch gespeichert. Mit Hoch und Runter änderst du die Reihenfolge.")}</p>
+                        {currentItems.map((item, index) => <div className="home-mobile-section" data-home-mobile-item={item.id} data-home-item-type={item.type} key={item.id}>
+                            <h4>{HOME_ITEMS[item.type]?.name || item.type}</h4>
+                            <div className="home-mobile-section-actions">
+                                {([-1, 1] as const).map(direction => <Button key={direction} intent="gray-subtle" disabled={isUpdatingHomeItems || (direction < 0 ? index === 0 : index === currentItems.length - 1)} aria-label={`${direction < 0 ? tr("Move up", "Nach oben") : tr("Move down", "Nach unten")}: ${HOME_ITEMS[item.type]?.name}`} onClick={() => {
+                                    updateHomeItems({ items: normalizeHomeItems(arrayMove(currentItems, index, index + direction)) })
+                                }}>{direction < 0 ? tr("Up", "Hoch") : tr("Down", "Runter")}</Button>)}
+                                {HOME_ITEMS[item.type]?.options && <Button intent="gray-subtle" disabled={isUpdatingHomeItems} onClick={() => setOptionsModalOpen(item.id)}>{tr("Options", "Optionen")}</Button>}
+                                <Button intent="gray-basic" disabled={isUpdatingHomeItems} onClick={() => handleRemoveItem(item.id)} aria-label={`${tr("Remove", "Entfernen")}: ${HOME_ITEMS[item.type]?.name}`}>{tr("Remove", "Entfernen")}</Button>
+                            </div>
+                        </div>)}
+                        <h3>{tr("Add a section", "Bereich hinzufügen")}</h3>
+                        <div className="home-mobile-available">{availableItems.toSorted((a,b) => HOME_ITEMS[a].name.localeCompare(HOME_ITEMS[b].name)).map(type => <Button key={type} intent="gray-subtle" disabled={isUpdatingHomeItems} leftIcon={<BiPlus aria-hidden />} onClick={() => handleAddItem(type)}>{HOME_ITEMS[type].name}</Button>)}</div>
+                    </section>}
+
                     <div
                         className={cn(
                             // isNakamaLibrary && "pointer-events-none opacity-30",
@@ -372,6 +391,7 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary }: { emptyLibr
 
             {optionsModalOpen && (
                 <HomeItemOptionsModal
+                    mobileHome={mobileHome}
                     id={optionsModalOpen}
                     item={currentItems.find(item => item.id === optionsModalOpen)!}
                     isOpen={!!optionsModalOpen}
@@ -513,6 +533,7 @@ function AvailableHomeItem({ id, type, onAdd, isUpdating }: AvailableHomeItemPro
 }
 
 interface HomeItemOptionsModalProps {
+    mobileHome?: boolean
     id: string
     item: Models_HomeItem
     isOpen: boolean
@@ -521,7 +542,7 @@ interface HomeItemOptionsModalProps {
     isUpdating: boolean
 }
 
-function HomeItemOptionsModal({ id, item, isOpen, onClose, onSave, isUpdating }: HomeItemOptionsModalProps) {
+function HomeItemOptionsModal({ id, item, isOpen, onClose, onSave, isUpdating, mobileHome }: HomeItemOptionsModalProps) {
     const homeItemConfig = HOME_ITEMS[item.type]
     const [formData, setFormData] = React.useState<Record<string, any>>(item.options || {})
 
@@ -556,7 +577,7 @@ function HomeItemOptionsModal({ id, item, isOpen, onClose, onSave, isUpdating }:
                     Configure {homeItemConfig.name}
                 </div>
             }
-            contentClass="max-w-2xl bg-gray-950 bg-opacity-90 firefox:bg-opacity-100 firefox:backdrop-blur-none sm:rounded-3xl"
+            contentClass={cn("max-w-2xl bg-gray-950 bg-opacity-90 firefox:bg-opacity-100 firefox:backdrop-blur-none sm:rounded-3xl", mobileHome && "home-mobile-settings")}
             overlayClass="bg-black/80"
         >
             <div className="space-y-6">

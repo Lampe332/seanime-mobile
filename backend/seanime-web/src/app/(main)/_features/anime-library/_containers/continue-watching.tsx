@@ -21,17 +21,24 @@ import { atom } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
 import React from "react"
 import { seaCommand_compareMediaTitles } from "../../sea-command/utils"
+import { SeaLink } from "@/components/shared/sea-link"
+import { useTr } from "@/lib/app-language"
+import { LuArrowUpRight } from "react-icons/lu"
+import { resumeHomeEpisode } from "../../home/home-playback"
 
 export const __libraryHeaderEpisodeAtom = atom<Anime_Episode | null>(null)
 
-export function ContinueWatching({ episodes, isLoading, linkTemplate, withTitle }: {
+export function ContinueWatching({ episodes, isLoading, linkTemplate, withTitle, homeMobile = false }: {
     episodes: Anime_Episode[],
     isLoading: boolean
     linkTemplate?: string
     withTitle?: boolean
+    homeMobile?: boolean
 }) {
 
     const router = useRouter()
+    const tr = useTr()
+    const serverStatus = useServerStatus()
     const ts = useThemeSettings()
     const spoilerActive = useContinueWatchingSpoilers(ts)
 
@@ -48,11 +55,13 @@ export function ContinueWatching({ episodes, isLoading, linkTemplate, withTitle 
 
     // Create refs for each episode
     React.useEffect(() => {
+        if (homeMobile) return
         setEpisodeRefs(episodes.map(() => React.createRef()))
-    }, [episodes])
+    }, [episodes, homeMobile])
 
     // Observe each episode
     React.useEffect(() => {
+        if (homeMobile) return
         const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 const index = episodeRefs.findIndex(ref => ref.current === entry.target)
@@ -79,12 +88,13 @@ export function ContinueWatching({ episodes, isLoading, linkTemplate, withTitle 
                 }
             })
         }
-    }, [episodeRefs, width])
+    }, [episodeRefs, width, homeMobile])
 
     const prevSelectedEpisodeRef = React.useRef<Anime_Episode | null>(null)
 
     // Set header image when new episode is in view
     React.useEffect(() => {
+        if (homeMobile) return
         if (debouncedInViewEpisodes.length === 0) return
 
         let candidateIndices = debouncedInViewEpisodes
@@ -104,7 +114,7 @@ export function ContinueWatching({ episodes, isLoading, linkTemplate, withTitle 
             })
             prevSelectedEpisodeRef.current = selectedEpisode
         }
-    }, [debouncedInViewEpisodes, episodes, setHeaderImage])
+    }, [debouncedInViewEpisodes, episodes, setHeaderImage, homeMobile])
 
     const { setPlayNext } = usePlayNext()
 
@@ -154,6 +164,18 @@ export function ContinueWatching({ episodes, isLoading, linkTemplate, withTitle 
         return () => remove("continue-watching")
     }, [episodes, inject, remove, router, setPlayNext])
 
+    if (homeMobile) return <section data-continue-watching-container aria-label={tr("Continue watching", "Weiterschauen")}>
+        <div className="home-section-heading"><h2>{tr("Continue watching", "Weiterschauen")}</h2></div>
+        {episodes.length ? <div className="home-resume-row">
+            {episodes.map(episode => <div className="home-resume-tile" key={`${episode.baseAnime?.id}-${episode.episodeNumber}-${episode.localFile?.path || ""}`}>
+                <_EpisodeCard episode={episode} homeMobile mRef={undefined} overrideLink={linkTemplate} spoilerActive={spoilerActive} watchHistory={watchHistory} />
+                <SeaLink className="home-episode-page" href={serverEntryLink(episode.baseAnime?.id, !!serverStatus?.isOffline)} aria-label={`${tr("Open series", "Serie öffnen")}: ${episode.baseAnime?.title?.userPreferred || ""}`}>
+                    {tr("Series details", "Seriendetails")}<LuArrowUpRight aria-hidden />
+                </SeaLink>
+            </div>)}
+        </div> : <p className="home-state">{tr("No episodes to continue. Choose a series from your library.", "Keine Folge zum Fortsetzen. Wähle eine Serie aus deiner Bibliothek.")}</p>}
+    </section>
+
     if (episodes.length > 0) return (
         <PageWrapper className="space-y-3 lg:space-y-6 p-4 relative z-[4]" data-continue-watching-container>
             <h2 data-continue-watching-title>Continue watching</h2>
@@ -195,12 +217,15 @@ export function ContinueWatching({ episodes, isLoading, linkTemplate, withTitle 
     return null
 }
 
-const _EpisodeCard = React.memo(({ episode, mRef, overrideLink, spoilerActive, watchHistory }: {
+function serverEntryLink(id: number | undefined, offline: boolean) { return `${offline ? "/offline/entry/anime" : "/entry"}?id=${id || 0}` }
+
+const _EpisodeCard = React.memo(({ episode, mRef, overrideLink, spoilerActive, watchHistory, homeMobile = false }: {
     episode: Anime_Episode,
-    mRef: React.RefObject<any>,
+    mRef: React.RefObject<any> | undefined,
     overrideLink?: string
     spoilerActive: boolean
     watchHistory: Continuity_WatchHistory | undefined
+    homeMobile?: boolean
 }) => {
     const serverStatus = useServerStatus()
     const router = useRouter()
@@ -208,6 +233,7 @@ const _EpisodeCard = React.memo(({ episode, mRef, overrideLink, spoilerActive, w
     const setHeaderEpisode = useSetAtom(__libraryHeaderEpisodeAtom)
 
     React.useEffect(() => {
+        if (homeMobile) return
         setHeaderImage(prev => {
             if (prev?.episodeImage === null) {
                 return {
@@ -231,6 +257,7 @@ const _EpisodeCard = React.memo(({ episode, mRef, overrideLink, spoilerActive, w
         <EpisodeCard
             key={episode.localFile?.path || ""}
             episode={episode}
+            homeMobile={homeMobile}
             image={episode.episodeMetadata?.image || episode.baseAnime?.bannerImage || episode.baseAnime?.coverImage?.extraLarge}
             topTitle={episode.episodeTitle || episode?.baseAnime?.title?.userPreferred}
             spoilerSafeTopTitle={episode?.baseAnime?.title?.userPreferred}
@@ -253,6 +280,7 @@ const _EpisodeCard = React.memo(({ episode, mRef, overrideLink, spoilerActive, w
                 title: episode?.baseAnime?.title?.userPreferred,
             }}
             onMouseEnter={() => {
+                if (homeMobile) return
                 React.startTransition(() => {
                     setHeaderImage({
                         bannerImage: episode.baseAnime?.bannerImage || null,
@@ -263,6 +291,10 @@ const _EpisodeCard = React.memo(({ episode, mRef, overrideLink, spoilerActive, w
             allowAnimeInfo
             mRef={mRef}
             onClick={() => {
+                if (homeMobile) {
+                    resumeHomeEpisode(episode, !!serverStatus?.isOffline, setPlayNext, url => router.push(url), overrideLink)
+                    return
+                }
                 if (!overrideLink) {
                     setPlayNext(episode.baseAnime?.id, () => {
                         if (!serverStatus?.isOffline) {

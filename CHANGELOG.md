@@ -2,6 +2,14 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.4 — 19.10.2026 (versionCode 31029)
+
+- 🎉 Home: Made existing section selection, options and reordering accessible on phones with touch controls.
+- ⚡️ Home: Redesigned the mobile header, continuation cards, library rows and labeled actions while preserving the saved section order and settings.
+- ⚡️ Home: Replaced the scrolling animated background with a compact static banner and manual continuation rows to reduce work during scrolling.
+- ⚡️ Home: Improved genre filters, loading and retry states, long titles, touch targets and reduced-motion support.
+- 🦺 Home: Avoid a duplicate settings request from the closed customization dialog on each Home load.
+
 ## 1.9.3 — 19.10.2026 (versionCode 31028)
 
 - ⚡️ Updates: Redesigned the update menu and dialog with clearer versions, compact actions, download size and consistent progress, permission and error states.

@@ -20,8 +20,10 @@ import { BiAddToQueue } from "react-icons/bi"
 import { FaCirclePlay } from "react-icons/fa6"
 import { LuDock, LuEye } from "react-icons/lu"
 import { PluginEpisodeCardContextMenuItems } from "../../plugin/actions/plugin-actions"
+import { useTr } from "@/lib/app-language"
 
 type EpisodeCardProps = {
+    homeMobile?: boolean
     title: React.ReactNode
     actionIcon?: React.ReactElement | null
     image?: string
@@ -64,6 +66,7 @@ type EpisodeCardProps = {
 export function EpisodeCard(props: EpisodeCardProps) {
 
     const {
+        homeMobile = false,
         children,
         actionIcon = props.actionIcon !== null ? <FaCirclePlay className="opacity-50" /> : undefined,
         image,
@@ -103,20 +106,21 @@ export function EpisodeCard(props: EpisodeCardProps) {
     } = props
 
     const router = useRouter()
+    const tr = useTr()
     const pathname = usePathname()
     const serverStatus = useServerStatus()
     const ts = useThemeSettings()
     const { setPreviewModalMediaId } = useMediaPreviewModal()
     const { selectEpisodeToAddAndOpenEditor } = usePlaylistEditorManager()
 
-    const showAnimeInfo = ts.showEpisodeCardAnimeInfo && !!anime && allowAnimeInfo
+    const showAnimeInfo = !homeMobile && ts.showEpisodeCardAnimeInfo && !!anime && allowAnimeInfo
     const showTotalEpisodes = React.useMemo(() => !!progressTotal && progressTotal > 1, [progressTotal])
     const offset = React.useMemo(() => hasDiscrepancy ? 1 : 0, [hasDiscrepancy])
 
     // const missingImage = fallbackImage?.includes(image || "")
     const missingImage = false
 
-    const isSingleContainer = ts.useLegacyEpisodeCard || forceSingleContainer
+    const isSingleContainer = !homeMobile && (ts.useLegacyEpisodeCard || forceSingleContainer)
     const spoiler = useEpisodeSpoilerState(ts, {
         mediaId: anime?.id ?? episode?.baseAnime?.id,
         episodeNumber,
@@ -132,7 +136,14 @@ export function EpisodeCard(props: EpisodeCardProps) {
         : image
     const showAdultVeil = !!serverStatus?.settings?.anilist?.blurAdultContent && !!(isAdult ?? episode?.baseAnime?.isAdult)
 
-    const Meta = () => (
+    const Meta = () => homeMobile ? <div className="home-episode-meta">
+        <p>{anime?.title || displayTopTitle}</p>
+        <div className="home-episode-detail"><span>{tr("Episode", "Folge")} {episodeNumber}{showTotalEpisodes ? ` / ${progressTotal! - offset}` : ""}</span>
+            {!!length && <span>{length} min</span>}
+            {!!minutesRemaining && <span>{minutesRemaining} {tr("min left", "Min. übrig")}</span>}
+        </div>
+        <span className="home-resume-action"><FaCirclePlay aria-hidden />{isInvalid ? tr("Unavailable", "Nicht verfügbar") : tr("Continue", "Fortsetzen")}</span>
+    </div> : (
         <div data-episode-card-info-container className="relative z-[3] w-full space-y-0">
             {(displayTopTitle !== title || showTotalEpisodes) && <p
                 data-episode-card-title
@@ -218,6 +229,12 @@ export function EpisodeCard(props: EpisodeCardProps) {
                     )}
                     onClick={onClick}
                     data-episode-card
+                    data-home-episode-card={homeMobile || undefined}
+                    role={homeMobile ? "button" : undefined}
+                    tabIndex={homeMobile ? (isInvalid ? -1 : 0) : undefined}
+                    aria-disabled={homeMobile ? isInvalid : undefined}
+                    aria-label={homeMobile ? `${tr("Continue", "Fortsetzen")}: ${anime?.title || displayTopTitle}, ${tr("episode", "Folge")} ${episodeNumber}` : undefined}
+                    onKeyDown={homeMobile ? e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (!isInvalid) onClick?.() } } : undefined}
                     data-episode-number={episodeNumber}
                     data-media-id={anime?.id}
                     data-progress-total={progressTotal}

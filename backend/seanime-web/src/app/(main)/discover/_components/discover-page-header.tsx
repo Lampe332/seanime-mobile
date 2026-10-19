@@ -32,6 +32,7 @@ import { useAtom, useSetAtom } from "jotai/react"
 import { AnimatePresence, motion } from "motion/react"
 import React from "react"
 import { RiSignalTowerLine } from "react-icons/ri"
+import { useTr } from "@/lib/app-language"
 
 // Atoms for state management
 export const __discover_hoveringHeaderAtom = atom(false)
@@ -348,8 +349,10 @@ function MediaMetadata({ media, pageType, isTransitioning, onHoverChange }: Medi
     )
 }
 
-export function DiscoverPageHeader({ playTrailer }: { playTrailer?: boolean }) {
+export function DiscoverPageHeader({ playTrailer, homeMobile = false }: { playTrailer?: boolean, homeMobile?: boolean }) {
     const ts = useThemeSettings()
+    const tr = useTr()
+    const { setPreviewModalMediaId } = useMediaPreviewModal()
     const pathname = usePathname()
 
     const [pageType, setPageType] = useAtom(__discord_pageTypeAtom)
@@ -439,6 +442,12 @@ export function DiscoverPageHeader({ playTrailer }: { playTrailer?: boolean }) {
         setShowTrailer(false)
         setTrailerLoaded(false)
     }
+
+    if (homeMobile) return <section className="home-discover-feature" aria-label={tr("Featured", "Im Fokus")}>
+        {randomTrending ? <><h2>{tr("Featured", "Im Fokus")}</h2><p>{randomTrending.title?.userPreferred}</p>
+            <Button intent="primary-subtle" onClick={() => setPreviewModalMediaId(randomTrending.id, pageType === "manga" ? "manga" : "anime")}>{tr("Preview", "Vorschau")}</Button>
+        </> : <Skeleton className="h-24 rounded-xl" />}
+    </section>
 
     if (!randomTrending) return <div>
         <Skeleton

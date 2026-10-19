@@ -11,8 +11,11 @@ import { getLibraryCollectionTitle } from "@/lib/server/utils"
 import { useAtom } from "jotai/react"
 import React from "react"
 import { LuListFilter } from "react-icons/lu"
+import { useTr } from "@/lib/app-language"
+import { Button } from "@/components/ui/button"
 
-export function LibraryCollectionLists({ collectionList, isLoading, streamingMediaIds, showStatuses, type }: {
+export function LibraryCollectionLists({ collectionList, isLoading, streamingMediaIds, showStatuses, type, homeMobile }: {
+    homeMobile?: boolean
     collectionList: Anime_LibraryCollectionList[],
     isLoading: boolean,
     streamingMediaIds: number[],
@@ -36,6 +39,7 @@ export function LibraryCollectionLists({ collectionList, isLoading, streamingMed
             {collectionList.map(collection => {
                 if (!collection.entries?.length) return null
                 return <LibraryCollectionListItem
+                    homeMobile={homeMobile}
                     key={collection.type}
                     list={collection}
                     streamingMediaIds={streamingMediaIds}
@@ -103,7 +107,8 @@ export function LibraryCollectionFilteredLists({ collectionList, isLoading, stre
 
 }
 
-export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, showStatuses, type }: {
+export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, showStatuses, type, homeMobile }: {
+    homeMobile?: boolean
     list: Anime_LibraryCollectionList,
     streamingMediaIds: number[],
     showStatuses?: AL_MediaListStatus[],
@@ -111,6 +116,7 @@ export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, 
 }) => {
 
     const isCurrentlyWatching = list.type === "CURRENT"
+    const tr = useTr()
 
     const [params, setParams] = useAtom(__mainLibrary_paramsAtom)
 
@@ -123,10 +129,10 @@ export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, 
                     className={cn(
                         "p-0 m-0",
                     )}
-                >{getLibraryCollectionTitle(list.type)}</h2>
+                >{homeMobile && isCurrentlyWatching ? tr("Currently watching", "Gerade dabei") : getLibraryCollectionTitle(list.type)}</h2>
                 {type === "grid" && <div className="flex flex-1"></div>}
                 {isCurrentlyWatching && <DropdownMenu
-                    trigger={<IconButton
+                    trigger={homeMobile ? <Button intent="gray-basic" leftIcon={<LuListFilter aria-hidden />} aria-label={tr("Filter currently watching", "Aktuelle Serien filtern")} aria-pressed={!!params.continueWatchingOnly}>{tr("Filter", "Filter")}{params.continueWatchingOnly ? " · 1" : ""}</Button> : <IconButton
                         intent="white-basic"
                         size="xs"
                         className="mt-1"
@@ -141,7 +147,7 @@ export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, 
                             })
                         }}
                     >
-                        {params.continueWatchingOnly ? "Show all" : "Show unwatched only"}
+                        {homeMobile ? (params.continueWatchingOnly ? tr("Show all", "Alle anzeigen") : tr("Show unwatched only", "Nur ungesehene anzeigen")) : (params.continueWatchingOnly ? "Show all" : "Show unwatched only")}
                     </DropdownMenuItem>
                 </DropdownMenu>}
             </div>

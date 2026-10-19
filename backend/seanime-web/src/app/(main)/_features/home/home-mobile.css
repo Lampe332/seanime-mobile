@@ -1,0 +1,70 @@
+/* All overrides are opt-in to Android Home. Shared screens keep their styles. */
+.home-mobile-settings .home-mobile-sections { display: grid; gap: .75rem; }
+.home-mobile-settings .home-mobile-sections h3 { font-size: 1.125rem; font-weight: 650; }
+.home-mobile-settings .home-mobile-sections p { font-size: .8125rem; color: #bcb4ca; line-height: 1.5; }
+.home-mobile-settings .home-mobile-section { padding: .85rem; border-radius: 1rem; background: #1b1723; border: 1px solid #bba6ff24; min-width: 0; }
+.home-mobile-settings .home-mobile-section h4 { font-size: .9375rem; margin-bottom: .65rem; overflow-wrap: anywhere; }
+.home-mobile-settings .home-mobile-section-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+.home-mobile-settings button { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+.home-mobile-settings .home-mobile-available { display: grid; gap: .5rem; }
+.home-mobile-settings .home-mobile-available button { justify-content: flex-start; text-align: left; }
+[data-home-mobile="true"] { display: block; position: relative; min-width: 0; padding-bottom: 1.5rem; }
+[data-home-mobile="true"] .home-mobile-header { position: relative; z-index: 1; padding: 1rem 1rem .75rem; min-height: 5rem; }
+[data-home-mobile="true"] .home-mobile-backdrop { position: absolute; z-index: 0; inset: -5rem 0 auto; height: min(28rem,105vw); min-height: 22rem; overflow: hidden; pointer-events: none; }
+[data-home-mobile="true"] .home-mobile-backdrop img { object-position: 65% top; opacity: .7; }
+[data-home-mobile="true"] .home-mobile-backdrop::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg,#09080c18 0%,#09080c35 20%,var(--background) 100%),linear-gradient(90deg,#09080cc9 0%,#09080c45 72%,#09080c22); }
+[data-home-mobile="true"] .home-mobile-heading { position: relative; }
+[data-home-mobile="true"] .home-mobile-heading > span { color: #d4c5ee; font-size: .75rem; letter-spacing: .08em; }
+[data-home-mobile="true"] h1 { font-size: 1.5rem; line-height: 1.25; margin: .15rem 0 0; font-weight: 700; }
+[data-home-mobile="true"] h2, [data-home-mobile="true"] h3 { font-size: 1.125rem; line-height: 1.4; font-weight: 650; overflow-wrap: anywhere; }
+[data-home-mobile="true"] [data-library-toolbar-top-padding],
+[data-home-mobile="true"] [data-custom-library-banner-top-spacer] { display: none !important; }
+[data-home-mobile="true"] [data-home-toolbar-container] { justify-content: flex-start; padding: .75rem 1rem !important; margin: 0 !important; gap: .5rem; }
+[data-home-mobile="true"] [data-home-toolbar-spacer] { display: none; }
+[data-home-mobile="true"] [data-home-toolbar-container] button { border-radius: .85rem; min-height: 44px; white-space: normal; }
+[data-home-mobile="true"] [data-home-toolbar-container] .home-labeled-action { width: auto; gap: .45rem; padding: .6rem .8rem; font-size: .8125rem; background: #211a2ee6; border: 1px solid #bda7ff35; color: #eee5ff; }
+[data-home-mobile="true"] [data-page-wrapper] { padding-top: 0 !important; max-width: 100%; min-width: 0; }
+[data-home-mobile="true"] [data-continue-watching-container] { padding: .5rem 1rem 1.25rem !important; margin: 0 !important; }
+[data-home-mobile="true"] .home-section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; gap: .5rem; }
+[data-home-mobile="true"] .home-section-heading > span { color: #b9b1c8; font-size: .75rem; }
+[data-home-mobile="true"] .home-resume-row { display: flex; gap: .75rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 0 0 .5rem; scrollbar-width: thin; }
+[data-home-mobile="true"] .home-resume-tile { flex: 0 0 min(82vw, 21rem); min-width: 0; scroll-snap-align: start; border: 1px solid #bba6ff24; border-radius: 1rem; background: #17151deb; overflow: hidden; }
+[data-home-mobile="true"] [data-home-episode-card] { display: grid; grid-template-columns: min(5.75rem,22vw) minmax(0,1fr); border-radius: 1rem 1rem 0 0; outline-offset: -3px; }
+[data-home-mobile="true"] [data-home-episode-card]:focus-visible { outline: 2px solid #c1a7ff; }
+[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-image-container] { height: 100%; min-height: 8rem; aspect-ratio: auto; border-radius: .9rem 0 0 0; background: #24202c; }
+[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-image] { border-radius: 0; }
+[data-home-mobile="true"] .home-episode-meta { padding: .75rem; min-width: 0; margin: 0 !important; }
+[data-home-mobile="true"] .home-episode-meta > p { font-size: .9375rem; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+[data-home-mobile="true"] .home-episode-detail { margin-top: .25rem; display: flex; flex-wrap: wrap; gap: .25rem .65rem; font-size: .8125rem; color: #bbb4c7; }
+[data-home-mobile="true"] .home-resume-action { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; color: #d7c5ff; margin-top: .6rem; font-size: .8125rem; font-weight: 600; }
+[data-home-mobile="true"] .home-episode-page { display: flex; flex-wrap: wrap; align-items: center; min-height: 44px; padding: .6rem .8rem; border-top: 1px solid #ffffff0d; font-size: .8125rem; color: #bcb4ca; gap: .4rem; }
+[data-home-mobile="true"] [data-library-genre-selector-container] { margin: 0 !important; padding: 0 1rem .5rem !important; }
+[data-home-mobile="true"] .home-genre-row { display: flex; gap: .5rem; overflow-x: auto; overscroll-behavior-x: contain; padding: .25rem 1rem .5rem; scrollbar-width: thin; }
+[data-home-mobile="true"] .home-genre-row button { flex: 0 0 auto; min-height: 44px; border: 1px solid #ffffff12; border-radius: 999px; padding: .5rem .8rem; color: #bcb4ca; background: #151319; font-size: .8125rem; }
+[data-home-mobile="true"] .home-genre-row button[aria-pressed="true"] { color: #e0d1ff; background: #a78bfa24; border-color: #bba6ff70; }
+[data-home-mobile="true"] [data-library-genre-selector-container] .UI-StaticTabs__root { padding: .25rem 0; gap: .25rem; margin-left: 0; }
+[data-home-mobile="true"] [data-media-genre-selector-scroll-container], [data-home-mobile="true"] [data-media-genre-selector-scroll-container-end] { display: none; }
+[data-home-mobile="true"] .UI-StaticTabs__trigger { min-height: 44px; height: auto !important; padding: .6rem .85rem !important; }
+[data-home-mobile="true"] [data-library-collection-lists-container] { padding: .25rem 1rem !important; }
+[data-home-mobile="true"] [data-library-collection-list-item-header] { gap: .5rem; margin: 1rem 0 .75rem !important; }
+[data-home-mobile="true"] [data-library-collection-list-item-header] button { width: auto; min-width: 44px; min-height: 44px; font-size: .8125rem; }
+[data-home-mobile="true"] [data-library-collection-lists] > [data-media-card-grid], [data-home-mobile="true"] [data-library-collection-lists] > [data-media-card-lazy-grid-renderer] { margin-top: .75rem !important; }
+[data-home-mobile="true"] [data-media-card-grid], [data-home-mobile="true"] [data-media-card-lazy-grid] { gap: .75rem !important; }
+[data-home-mobile="true"] [data-media-entry-card-container] { min-width: 0; }
+[data-home-mobile="true"] [data-media-entry-card-title-section-title] { font-size: .8125rem !important; line-height: 1.4; -webkit-line-clamp: 3; }
+[data-home-mobile="true"] [data-media-entry-card-title-section-year-season] { font-size: .75rem; display: block; overflow-wrap: anywhere; }
+/* The installed dub plugin supplies a status badge, not a separate card action. */
+[data-home-mobile="true"] .seanime-base-dub-badge { pointer-events: none !important; }
+[data-home-mobile="true"] .seanime-base-dub-badge .UI-Badge__root { background: #241c36; color: #dfd2fa; box-shadow: none; cursor: default; font-size: .625rem; height: auto; padding: .25rem .4rem; border: 1px solid #bba6ff40; }
+[data-home-mobile="true"] .seanime-base-dub-badge svg { display: none; }
+[data-home-mobile="true"] .seanime-base-dub-badge .UI-Badge__root::after { content: "Dub"; }
+[data-home-mobile="true"] [data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"] { display: flex !important; flex-wrap: nowrap; overflow-x: auto !important; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 0 0 .75rem !important; }
+[data-home-mobile="true"] [data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"] > [data-media-entry-card-container] { width: min(39vw, 10rem) !important; flex: 0 0 min(39vw, 10rem); scroll-snap-align: start; }
+[data-home-mobile="true"] [data-home-screen-item-divider] { height: 1rem; }
+[data-home-mobile="true"] .home-state { margin: .75rem 1rem; padding: 1.25rem; border: 1px solid #bba6ff24; background: #17151d; border-radius: 1rem; line-height: 1.5; }
+[data-home-mobile="true"] .home-state p { color: #bcb4ca; margin: .5rem 0 1rem; }
+[data-home-mobile="true"] .home-discover-feature { margin: .75rem 1rem; padding: 1rem; border-radius: 1rem; background: #1b1723; border: 1px solid #bba6ff24; }
+[data-home-mobile="true"] .home-discover-feature p { font-size: 1rem; line-height: 1.4; margin: .5rem 0; }
+@media (prefers-reduced-motion: reduce) {
+    [data-home-mobile="true"] *, [data-home-mobile="true"] *::before, [data-home-mobile="true"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

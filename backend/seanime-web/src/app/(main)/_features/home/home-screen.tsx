@@ -55,15 +55,22 @@ import { MediaEntryCard } from "../media/_components/media-entry-card"
 import { MediaEntryCardSkeleton } from "../media/_components/media-entry-card-skeleton"
 import { MediaEntryPageLoadingDisplay } from "../media/_components/media-entry-page-loading-display"
 
+import { HomeMobileHeader } from "./home-mobile-header"
+import { useTr } from "@/lib/app-language"
+import "./home-mobile.css"
+
 export const __home_currentView = atom<"base" | "detailed">("base")
 
 export const __home_discoverHeaderType = atomWithStorage<"anime" | "manga">("sea-home-discover-header-type", "anime", undefined, { getOnInit: true })
 
 export function HomeScreen() {
     const serverStatus = useServerStatus()
-    const { data: _homeItems, isLoading: isLoadingItems } = useGetHomeItems()
+    const { data: _homeItems, isLoading: isLoadingItems, isError: homeItemsError, refetch: retryHomeItems } = useGetHomeItems()
 
     const { width } = useWindowSize()
+    const mobileHome = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && width < 1024
+    const tr = useTr()
+    const { isError: collectionError, refetch: retryCollection } = useGetLibraryCollection()
 
     const allUserMedia = useAtomValue(__anilist_userAnimeMediaAtom)
     const noMediaInCollection = !allUserMedia?.length
@@ -129,6 +136,17 @@ export function HomeScreen() {
         : "local"
 
 
+    if (mobileHome && (homeItemsError || (collectionError && !hasEntries))) return <div data-home-screen data-home-mobile="true">
+        <HomeMobileHeader />
+        <div className="home-state" role="alert"><h2>{tr("Home could not load", "Startseite konnte nicht geladen werden")}</h2>
+            <p>{tr("Your saved layout is still available. Try loading it again.", "Deine gespeicherte Anordnung bleibt erhalten. Versuche es erneut.")}</p>
+            <Button onClick={() => { retryHomeItems(); retryCollection() }}>{tr("Try again", "Erneut versuchen")}</Button>
+        </div>
+    </div>
+    if (mobileHome && (isLoading || isLoadingItems)) return <div data-home-screen data-home-mobile="true" aria-busy="true" aria-label={tr("Loading Home", "Startseite wird geladen")}>
+        <HomeMobileHeader />
+        <div className="home-state"><Skeleton className="h-8 w-40 mb-4" /><Skeleton className="h-48 rounded-xl" /></div>
+    </div>
     if (isLoading || isLoadingItems) return <React.Fragment>
         <div className="p-4 space-y-4 relative z-[4]">
             <Skeleton className="h-12 w-full max-w-lg relative" />
@@ -156,9 +174,10 @@ export function HomeScreen() {
 
     if (!hasEntries && isAnimeLibraryItemsOnly(homeItems) && !isLoading) {
         return (
-            <div data-home-screen="no-entries" className="contents">
+            <div data-home-screen="no-entries" data-home-mobile={mobileHome || undefined} className="contents">
+                {mobileHome && <HomeMobileHeader />}
                 <React.Fragment>
-                    <DiscoverPageHeader />
+                    {!mobileHome && <DiscoverPageHeader />}
                     <div className="h-0 visibility-hidden pointer-events-none opacity-0">
                         {/*{discoverHeaderType === "anime" && <DiscoverTrending />}*/}
                         {discoverHeaderType === "manga" && <DiscoverTrendingCountry country="JP" forDiscoverHeader />}
@@ -166,6 +185,7 @@ export function HomeScreen() {
                 </React.Fragment>
 
                 <HomeToolbar
+                    mobileHome={mobileHome}
                     collectionList={libraryCollectionList}
                     unmatchedLocalFiles={unmatchedLocalFiles}
                     ignoredLocalFiles={ignoredLocalFiles}
@@ -238,7 +258,7 @@ export function HomeScreen() {
 
                 <div data-home-screen-item-divider className="h-8" />
 
-                <HomeSettingsModal emptyLibrary isNakamaLibrary={isNakamaLibrary} />
+                <HomeSettingsModal emptyLibrary isNakamaLibrary={isNakamaLibrary} mobileHome={mobileHome} homeItems={_homeItems} itemsLoading={isLoadingItems} />
 
                 <UnmatchedFileManager
                     unmatchedGroups={unmatchedGroups}
@@ -255,11 +275,12 @@ export function HomeScreen() {
     }
 
     return (
-        <div data-home-screen className="contents">
+        <div data-home-screen data-home-mobile={mobileHome || undefined} className="contents">
+            {mobileHome && <HomeMobileHeader episode={continueWatchingList[0]} />}
 
             {/*Discover Page Header*/}
             {homeItems[0]?.type === "discover-header" && <React.Fragment>
-                <DiscoverPageHeader />
+                <DiscoverPageHeader homeMobile={mobileHome} />
                 <div className="h-0 visibility-hidden pointer-events-none opacity-0">
                     {discoverHeaderType === "anime" && <DiscoverTrending />}
                     {discoverHeaderType === "manga" && <DiscoverTrendingCountry country="JP" forDiscoverHeader />}
@@ -272,7 +293,7 @@ export function HomeScreen() {
             </React.Fragment>}
 
             {/*Manga Library Header*/}
-            {(ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Dynamic && homeItems[0]?.type === "manga-library") && (
+            {(!mobileHome && ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Dynamic && homeItems[0]?.type === "manga-library") && (
                 <>
                     <MangaLibraryHeader manga={mangaCollection?.lists?.flatMap(l => l.entries)?.flatMap(e => e?.media)?.filter(Boolean) || []} />
                 </>
@@ -303,6 +324,7 @@ export function HomeScreen() {
             ></div>}
 
             <HomeToolbar
+                mobileHome={mobileHome}
                 collectionList={libraryCollectionList}
                 unmatchedLocalFiles={unmatchedLocalFiles}
                 ignoredLocalFiles={ignoredLocalFiles}
@@ -332,13 +354,13 @@ export function HomeScreen() {
             <PluginWebviewSlot slot="after-home-screen-toolbar" />
 
             {(
-                hasEntries &&
+                !mobileHome && hasEntries &&
                 ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Custom
                 && homeItems[0]?.type !== "discover-header"
                 && homeItems[0]?.type !== "anime-continue-watching-header"
             ) && <CustomLibraryBanner isLibraryScreen isHomeScreen />}
 
-            {(hasEntries && homeItems.findIndex(n => n.type === "anime-continue-watching") !== -1) && ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Dynamic &&
+            {(!mobileHome && hasEntries && homeItems.findIndex(n => n.type === "anime-continue-watching") !== -1) && ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Dynamic &&
                 <div
                     className={cn(
                         homeItems[0]?.type !== "anime-continue-watching" ? "visibility-hidden pointer-events-none opacity-0 !mt-0" : "contents !mt-0",
@@ -369,6 +391,7 @@ export function HomeScreen() {
                                 ) && <div data-home-screen-item-divider={index} className="h-8" />}
                                 <HomeScreenItem
                                     item={item}
+                                    mobileHome={mobileHome}
                                     index={homeItems.findIndex(n => n.id === item.id)}
                                     libraryCollectionProps={{
                                         libraryGenres,
@@ -418,7 +441,7 @@ export function HomeScreen() {
                 </PageWrapper>}
             </AnimatePresence>}
 
-            <HomeSettingsModal isNakamaLibrary={isNakamaLibrary} />
+            <HomeSettingsModal isNakamaLibrary={isNakamaLibrary} mobileHome={mobileHome} homeItems={_homeItems} itemsLoading={isLoadingItems} />
 
             <UnmatchedFileManager
                 unmatchedGroups={unmatchedGroups}
@@ -437,6 +460,7 @@ export function HomeScreen() {
 export type HomeScreenItemProps = {
     item: Models_HomeItem
     libraryCollectionProps: HandleLibraryCollectionProps
+    mobileHome?: boolean
     index: number
 }
 
@@ -501,6 +525,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
                     episodes={continueWatchingList}
                     isLoading={isLoading}
                     withTitle={index === 0}
+                    homeMobile={props.mobileHome}
                 />
             </>
         )
@@ -510,6 +535,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
         return (
             <>
                 <LibraryView
+                    homeMobile={props.mobileHome}
                     genres={libraryGenres}
                     collectionList={libraryCollectionList}
                     filteredCollectionList={filteredLibraryCollectionList}

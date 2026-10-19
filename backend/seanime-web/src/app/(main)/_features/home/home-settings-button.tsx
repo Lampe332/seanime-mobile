@@ -1,5 +1,6 @@
 import { __home_settingsModalOpen } from "@/app/(main)/_features/home/home-settings-modal"
-import { IconButton } from "@/components/ui/button"
+import { Button, IconButton } from "@/components/ui/button"
+import { useTr } from "@/lib/app-language"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
@@ -12,10 +13,12 @@ export const __home_settingsToolbarButtonDiscovered = atomWithStorage("sea-v3-ho
 
 type HomeSettingsButtonProps = {
     type: "toolbar" | "empty-home"
+    labeled?: boolean
 }
 
 export function HomeSettingsButton(props: HomeSettingsButtonProps) {
     const { type } = props
+    const tr = useTr()
     const [discoveredOnce, setDiscoveredOnce] = useAtom(__home_settingsToolbarButtonDiscovered)
     const [isModalOpen, setIsModalOpen] = useAtom(__home_settingsModalOpen)
 
@@ -42,6 +45,8 @@ export function HomeSettingsButton(props: HomeSettingsButtonProps) {
     //         </Tooltip>
     //     </>
     // )
+
+    if (props.labeled) return <Button data-library-toolbar-switch-view-button className="home-labeled-action" leftIcon={<LuSettings2 aria-hidden />} onClick={() => setIsModalOpen(true)}>{tr("Customize", "Anpassen")}</Button>
 
     if (type === "toolbar") return (
         <>
