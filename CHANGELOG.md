@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.8 — 19.10.2026 (versionCode 31033)
+
+- 🦺 Home: Show pinned plugins as compact icon buttons, keeping their names available to screen readers without overflowing the header.
+
 ## 1.9.7 — 19.10.2026 (versionCode 31032)
 
 - ⚡️ Plugins: Added a shared phone layout for plugin contents and nested settings, with touch controls, keyboard-aware scrolling and Android Back navigation.

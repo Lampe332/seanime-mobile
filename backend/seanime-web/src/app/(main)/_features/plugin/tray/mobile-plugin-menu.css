@@ -41,14 +41,13 @@ html:has(.mobile-plugin-sheet[data-state="open"]) { overflow-y: hidden !importan
 .mobile-plugin-debug > div { display: flex; align-items: center; gap: .5rem; }
 .mobile-plugin-debug span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .mobile-plugin-debug button { min-width: 44px; min-height: 44px; }
-.mobile-plugin-actions { display: flex; align-items: center; gap: .4rem; max-width: 100%; min-width: 0; }
+.mobile-plugin-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; max-width: 100%; min-width: 0; }
 .mobile-plugin-actions > .mobile-plugin-trigger { flex: none; }
-.mobile-plugin-shortcuts { display: flex; align-items: center; gap: .4rem; overflow-x: auto; min-width: 0; scrollbar-width: thin; overscroll-behavior-x: contain; padding: 3px; }
+.mobile-plugin-shortcuts { display: flex; flex: 1 1 50px; align-items: center; gap: .4rem; overflow-x: auto; min-width: 50px; scrollbar-width: thin; overscroll-behavior-x: contain; padding: 3px; }
 .mobile-plugin-shortcuts:empty { display: none; }
-.mobile-plugin-shortcuts > button { display: flex; align-items: center; gap: .4rem; flex: none; min-height: 44px; max-width: 11rem; padding: .3rem .5rem; border: 1px solid #bca1eb38; border-radius: .8rem; background: #b184f316; color: #eee3ff; }
+.mobile-plugin-shortcuts > button { display: grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 1px solid #bca1eb38; border-radius: .8rem; background: #b184f316; color: #eee3ff; }
 .mobile-plugin-shortcuts .mobile-plugin-icon { width: 28px; height: 28px; border: 0; background: transparent; }
 .mobile-plugin-shortcuts .mobile-plugin-icon img { width: 24px; height: 24px; }
-.mobile-plugin-shortcuts > button > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; }
 .mobile-plugin-shortcuts button:focus-visible { outline: 2px solid #d3b4ff; outline-offset: 1px; }
 /* Pins share the header row with the stable chooser entry, with no limit on saved pins. */
 [data-home-navbar] .home-mobile-tools:has(.mobile-plugin-shortcuts:not(:empty)) { flex: 1 1 16rem; }

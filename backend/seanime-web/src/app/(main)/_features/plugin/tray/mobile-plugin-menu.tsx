@@ -156,7 +156,7 @@ export function MobilePluginMenu(props: Props) {
         <div className="mobile-plugin-shortcuts" role="group" aria-label={tr("Pinned plugins", "Angeheftete Plugins")}>
             {pinnedIcons.map(icon => <button type="button" key={icon.extensionId} data-plugin-shortcut={icon.extensionId}
                 aria-label={`${tr("Open", "Öffnen:")} ${icon.extensionName}`} title={icon.extensionName} onClick={() => { close(); select(icon) }}>
-                <PluginIcon icon={icon} /><span>{icon.extensionName}</span>
+                <PluginIcon icon={icon} />
             </button>)}
         </div>
         </div>
