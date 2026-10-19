@@ -72,6 +72,7 @@ async def main():
             return fixture_state['delivered']
         async def get(path): return await page.evaluate("path=>fetch(path).then(r=>r.json())", path)
         async def shot(name):
+            await page.wait_for_timeout(350)
             remote='/sdcard/seanime-home-audit.png'
             subprocess.run([adb,'-s',opt.serial,'shell','screencap','-p',remote],check=True,capture_output=True)
             subprocess.run([adb,'-s',opt.serial,'pull',remote,str(output/name)],check=True,capture_output=True)
@@ -119,9 +120,25 @@ async def main():
             await filter_button.click(); await page.get_by_text('Show all',exact=True).click()
             record('Unwatched filter restores',await filter_button.get_attribute('aria-pressed')=='false')
 
+            # A real Home carousel used to put its arrows above a clipping wrapper.
+            if any(i['type']=='aired-recently' for i in original['data'] or []):
+                section=page.locator('.UI-AppLayoutStack__root').filter(has=page.get_by_role('heading',name='Aired Recently',exact=True))
+                await section.get_by_role('heading').scroll_into_view_if_needed()
+                arrows=section.locator('.UI-Carousel__button')
+                await arrows.first.wait_for()
+                record('Both carousel arrows have reachable full touch surfaces',await arrows.evaluate_all('''es=>es.length===2&&es.every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44&&[[r.width/2,3],[3,r.height/2],[r.width-3,r.height/2],[r.width/2,r.height-3]].every(([x,y])=>(e.disabled||e.contains(document.elementFromPoint(r.x+x,r.y+y))))})'''))
+                await shot('home-carousel-arrows.png')
+                content=section.locator('.UI-Carousel__innerContent')
+                previous=await content.evaluate('e=>getComputedStyle(e).transform')
+                enabled=section.locator('.UI-Carousel__button:not([disabled])').last
+                await enabled.click();await page.wait_for_timeout(650)
+                record('Carousel arrow moves the real row',await content.evaluate('e=>getComputedStyle(e).transform')!=previous)
+                await page.evaluate('window.scrollTo(0,0)')
+
             await page.locator('[data-library-toolbar-switch-view-button]').click()
             modal=page.locator('.home-mobile-settings').first
             await modal.wait_for()
+            await shot('home-customize.png')
             record('Existing section selection is reachable on the phone',await modal.locator('[data-home-mobile-item]').count()==len(original['data'] or [1,2]))
             items = modal.locator('[data-home-mobile-item]')
             initial_ids = await items.evaluate_all("es=>es.map(e=>e.dataset.homeMobileItem)")
@@ -226,6 +243,12 @@ async def main():
             record('200% card text and actions fit their own containers',await page.locator('.home-episode-meta,.home-resume-action').evaluate_all('es=>es.every(e=>e.scrollWidth<=e.clientWidth+1)'))
             await page.locator('[data-home-episode-card]').first.scroll_into_view_if_needed()
             await shot('small-200-percent.png')
+            await page.get_by_role('button',name='Customize',exact=True).click()
+            small_modal=page.locator('.home-mobile-settings').first
+            record('320px / 200% customization remains inside its scroll container',await small_modal.evaluate('e=>e.scrollWidth<=e.clientWidth+1'))
+            record('Large text section actions retain their labels and touch height',await small_modal.locator('.home-mobile-section-actions button').evaluate_all('es=>es.every(e=>e.scrollWidth<=e.clientWidth+1&&e.getBoundingClientRect().height>=44)'))
+            await shot('small-customize-200-percent.png')
+            await page.keyboard.press('Escape')
             await page.evaluate("document.documentElement.style.removeProperty('font-size')")
             await session.send('Emulation.clearDeviceMetricsOverride')
             await page.emulate_media(reduced_motion='no-preference')

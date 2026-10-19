@@ -27,6 +27,8 @@ import React from "react"
 import { BiCog, BiPlus, BiStats, BiTrash } from "react-icons/bi"
 import { IoHomeOutline, IoLibraryOutline } from "react-icons/io5"
 import {
+    LuArrowUp,
+    LuArrowDown,
     LuBookOpen,
     LuCalendar,
     LuCalendarClock,
@@ -198,7 +200,7 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, mobileHome = 
                 onOpenChange={setIsModalOpen}
                 title={<div className="flex items-center gap-2 w-full justify-center">
                     <IoHomeOutline className="size-5" />
-                    Home
+                    {mobileHome ? tr("Customize Home", "Home anpassen") : "Home"}
                 </div>}
                 contentClass={cn(
                     "max-w-5xl sm:rounded-3xl",
@@ -217,11 +219,11 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, mobileHome = 
                 {/*    className="opacity-50 !mt-0"*/}
                 {/*/>*/}
 
-                <div className="space-y-6">
-                    <div>
+                <div className={cn("space-y-6", mobileHome && "home-settings-body")}>
+                    <div className={mobileHome ? "home-library-source" : undefined}>
                         <div className="flex items-center gap-2 mb-4">
                             <LuCirclePlay className="size-5" />
-                            <h4 className="text-lg font-semibold">Anime Library</h4>
+                            <h4 className="text-lg font-semibold">{mobileHome ? tr("Your library", "Deine Bibliothek") : "Anime Library"}</h4>
                         </div>
 
                         <RadioGroup
@@ -255,8 +257,8 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, mobileHome = 
                             }}
                             disabled={isSavingSettings || isSavingTorrentstreamSettings || isSavingDebridSettings}
                             options={[
-                                { label: "Local anime only", value: "local" },
-                                { label: "Local anime + Streaming", value: "stream" },
+                                { label: mobileHome ? tr("On this device", "Auf diesem Gerät") : "Local anime only", value: "local" },
+                                { label: mobileHome ? tr("Device + streaming", "Gerät + Streaming") : "Local anime + Streaming", value: "stream" },
                             ]}
 
                             {...{
@@ -297,15 +299,15 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, mobileHome = 
 
                     {mobileHome && <section className="home-mobile-sections">
                         <h3>{tr("Home sections", "Home-Bereiche")}</h3>
-                        <p>{tr("Changes are saved automatically. Use Up and Down to change the order.", "Änderungen werden automatisch gespeichert. Mit Hoch und Runter änderst du die Reihenfolge.")}</p>
+                        <p>{tr("Saved automatically. Arrange your sections below.", "Automatisch gespeichert. Ordne hier deine Bereiche an.")}</p>
                         {currentItems.map((item, index) => <div className="home-mobile-section" data-home-mobile-item={item.id} data-home-item-type={item.type} key={item.id}>
-                            <h4>{HOME_ITEMS[item.type]?.name || item.type}</h4>
+                            <div className="home-mobile-section-heading"><span className="home-section-symbol" aria-hidden>{React.createElement(HOME_ITEM_ICONS[item.type as keyof typeof HOME_ITEM_ICONS] || LuLayoutPanelLeft)}</span><h4>{HOME_ITEMS[item.type]?.name || item.type}</h4><span className="home-section-position" aria-label={tr("Position", "Position")}>{index + 1}</span></div>
                             <div className="home-mobile-section-actions">
-                                {([-1, 1] as const).map(direction => <Button key={direction} intent="gray-subtle" disabled={isUpdatingHomeItems || (direction < 0 ? index === 0 : index === currentItems.length - 1)} aria-label={`${direction < 0 ? tr("Move up", "Nach oben") : tr("Move down", "Nach unten")}: ${HOME_ITEMS[item.type]?.name}`} onClick={() => {
+                                {([-1, 1] as const).map(direction => <Button key={direction} className="home-reorder-action" intent="gray-subtle" disabled={isUpdatingHomeItems || (direction < 0 ? index === 0 : index === currentItems.length - 1)} aria-label={`${direction < 0 ? tr("Move up", "Nach oben") : tr("Move down", "Nach unten")}: ${HOME_ITEMS[item.type]?.name}`} onClick={() => {
                                     updateHomeItems({ items: normalizeHomeItems(arrayMove(currentItems, index, index + direction)) })
-                                }}>{direction < 0 ? tr("Up", "Hoch") : tr("Down", "Runter")}</Button>)}
-                                {HOME_ITEMS[item.type]?.options && <Button intent="gray-subtle" disabled={isUpdatingHomeItems} onClick={() => setOptionsModalOpen(item.id)}>{tr("Options", "Optionen")}</Button>}
-                                <Button intent="gray-basic" disabled={isUpdatingHomeItems} onClick={() => handleRemoveItem(item.id)} aria-label={`${tr("Remove", "Entfernen")}: ${HOME_ITEMS[item.type]?.name}`}>{tr("Remove", "Entfernen")}</Button>
+                                }}>{direction < 0 ? <LuArrowUp aria-hidden /> : <LuArrowDown aria-hidden />}<span>{direction < 0 ? tr("Up", "Hoch") : tr("Down", "Runter")}</span></Button>)}
+                                {HOME_ITEMS[item.type]?.options && <Button intent="gray-subtle" leftIcon={<BiCog aria-hidden />} disabled={isUpdatingHomeItems} onClick={() => setOptionsModalOpen(item.id)}>{tr("Options", "Optionen")}</Button>}
+                                <Button intent="gray-basic" className="home-remove-action" leftIcon={<BiTrash aria-hidden />} disabled={isUpdatingHomeItems} onClick={() => handleRemoveItem(item.id)} aria-label={`${tr("Remove", "Entfernen")}: ${HOME_ITEMS[item.type]?.name}`}>{tr("Remove", "Entfernen")}</Button>
                             </div>
                         </div>)}
                         <h3>{tr("Add a section", "Bereich hinzufügen")}</h3>
