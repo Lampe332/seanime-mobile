@@ -186,7 +186,8 @@ object Performance {
 
             var scrollTimer = null;
             var scrollHandler = function() {
-                document.body.dataset.scrolling = 'true';
+                // Set once per gesture: rewriting it on every scroll event wakes every body observer.
+                if (!document.body.dataset.scrolling) document.body.dataset.scrolling = 'true';
                 clearTimeout(scrollTimer);
                 scrollTimer = setTimeout(function() {
                     delete document.body.dataset.scrolling;
