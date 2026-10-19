@@ -1,4 +1,9 @@
-import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Command, CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { MobileWorkspace } from "@/components/shared/mobile-workspace"
+import { useIsMobile } from "@/lib/theme/theme-hooks"
+import { useTr } from "@/lib/app-language"
+import { PluginTrayContext, usePluginTray } from "../tray/plugin-tray"
+import "../components/mobile-plugin-runtime.css"
 import { useUpdateEffect } from "@/components/ui/core/hooks"
 import { usePathname, useRouter } from "@/lib/navigation"
 import mousetrap from "mousetrap"
@@ -37,6 +42,9 @@ type CommandItem = {
 export function PluginCommandPalette(props: { extensionId: string, info: PluginCommandPaletteInfo }) {
 
     const { extensionId, info } = props
+    const { isMobile } = useIsMobile()
+    const tr = useTr()
+    const tray = usePluginTray()
 
     const router = useRouter()
     const pathname = usePathname()
@@ -164,6 +172,23 @@ export function PluginCommandPalette(props: { extensionId: string, info: PluginC
         sendCommandPaletteItemSelectedEvent({ itemId: item.id }, extensionId)
     }
 
+
+    if (isMobile) return <MobileWorkspace open={open} onOpenChange={setOpen} title={placeholder || tr("Plugin search", "Plugin-Suche")} className="mobile-plugin-command">
+        <Command value={activeItemId} onValueChange={setActiveItemId}>
+            <CommandInput placeholder={placeholder || ""} aria-label={placeholder || tr("Search", "Suchen")} value={input} onValueChange={setInput} />
+            <CommandList ref={commandListRef}>
+                <PluginProvider registry={registry}>
+                    <PluginTrayContext.Provider value={{ ...tray, trayIcon: { ...tray.trayIcon, extensionId } }}>
+                        {Object.entries(groupedItems).map(([heading, entries]) => <CommandGroup key={heading} heading={heading}>
+                            {entries.map(item => <CommandItem key={item.id} value={item.value} onSelect={() => handleSelect(item)}>
+                                {item.label || <RenderPluginComponents data={item.components} />}
+                            </CommandItem>)}
+                        </CommandGroup>)}
+                    </PluginTrayContext.Provider>
+                </PluginProvider>
+            </CommandList>
+        </Command>
+    </MobileWorkspace>
 
     return (
         <CommandDialog

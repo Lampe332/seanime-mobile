@@ -1,3 +1,6 @@
+import { MobileWorkspace } from "@/components/shared/mobile-workspace"
+import { useIsMobile } from "@/lib/theme/theme-hooks"
+import { tr } from "@/lib/app-language"
 import { Anime_Entry, Anime_Playlist, Anime_PlaylistEpisode, HibikeTorrent_AnimeTorrent } from "@/api/generated/types"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
 import { useCurrentDevicePlaybackSettings } from "@/app/(main)/_atoms/playback.atoms"
@@ -66,7 +69,7 @@ export function usePlaylistManager() {
     const { activeOnDevice } = useMediastreamActiveOnDevice()
 
     function startPlaylist(playlist: Anime_Playlist) {
-        toast.info("Starting playlist...")
+        toast.info(tr("Starting playlist...", "Playlist wird gestartet…"))
         sendMessage({
             type: WSEvents.PLAYLIST,
             payload: {
@@ -341,38 +344,87 @@ export function GlobalPlaylistManager() {
         },
     })
 
+    const { isMobile } = useIsMobile()
+    const ProgressDialog = isMobile ? MobileWorkspace : Modal
     const [confirmProgress, setConfirmProgress] = useAtom(pm_confirmProgressUpdateModalOpen)
 
     if (!currentPlaylist) return null
 
+    const playbackActions = (
+                <div className="flex gap-2">
+                    <IconButton
+                        aria-label={tr("Previous episode", "Vorherige Episode")} icon={<MdSkipPrevious />}
+                        intent="white-subtle"
+                        className="rounded-full"
+                        disabled={!prevPlaylistEpisode || playEpisodeRequestPending}
+                        onClick={() => playEpisode("previous", false)}
+                    />
+                    <div className="flex flex-1"></div>
+                    <Tooltip
+                        className="z-[99999]" trigger={<span>
+                        <IconButton
+                            aria-label={tr("Reopen episode", "Episode erneut öffnen")} icon={<LuRefreshCw />}
+                            intent="gray-basic"
+                            className="rounded-full"
+                            disabled={playEpisodeRequestPending}
+                            onClick={() => reopenEpisode()}
+                        />
+                    </span>}
+                    >
+                        {tr("Reopen episode", "Episode erneut öffnen")}
+                    </Tooltip>
+                    <Tooltip
+                        className="z-[99999]" trigger={<span>
+                        <IconButton
+                            aria-label={tr("Stop playlist", "Playlist stoppen")} icon={<BiX />}
+                            intent="alert-basic"
+                            className="rounded-full"
+                            onClick={() => stopPlaylist()}
+                        />
+                    </span>}
+                    >
+                        {tr("Stop playlist", "Playlist stoppen")}
+                    </Tooltip>
+                    <div className="flex flex-1"></div>
+                    <IconButton
+                        aria-label={tr("Next episode", "Nächste Episode")} icon={<MdSkipNext />}
+                        intent="white-subtle"
+                        className="rounded-full"
+                        disabled={!nextPlaylistEpisode || playEpisodeRequestPending}
+                        onClick={() => playEpisode("next", false)}
+                    />
+                </div>
+    )
+
     return <>
         {animeEntry && <TorrentSearchDrawer entry={animeEntry} isPlaylistDrawer />}
 
-        <Modal
+        <ProgressDialog
             open={confirmProgress !== null}
             onOpenChange={open => {
                 if (!open) {
                     setConfirmProgress(null)
                 }
             }}
-            title="Update progress?"
+            title={tr("Update progress?", "Fortschritt aktualisieren?")}
         >
             <p>
-                Do you want to update the progress of the current episode?
+                {tr("Do you want to update the progress of the current episode?", "Möchtest du den Fortschritt der aktuellen Episode aktualisieren?")}
             </p>
 
             <div className="flex gap-2 mt-4 justify-end">
                 <Button intent="primary" disabled={playEpisodeRequestPending} onClick={() => onConfirmedProgress(true)}>
-                    Yes
+                    {tr("Yes", "Ja")}
                 </Button>
                 <Button intent="white-subtle" disabled={playEpisodeRequestPending} onClick={() => onConfirmedProgress(false)}>
-                    No
+                    {tr("No", "Nein")}
                 </Button>
             </div>
 
-        </Modal>
+        </ProgressDialog>
 
-        {!nativePlayerState.active && <PlaylistManagerPopup position="bottom-right">
+        {!nativePlayerState.active && <PlaylistManagerPopup position="bottom-right" mobileTitle={currentPlaylist.name} mobileFooter={playbackActions}
+            mobileContent={<div className="space-y-2">{currentPlaylist.episodes?.map(ep => <EpisodeItem key={playlist_getEpisodeKey(ep)} episode={ep} />)}</div>}>
             <p className="p-3 text-sm font-semibold">
                 Playlist: {currentPlaylist.name}
             </p>
@@ -384,49 +436,7 @@ export function GlobalPlaylistManager() {
             <div className="p-3 bg-[--paper] relative">
                 <div className="absolute top-[-2rem] h-[2rem] left-0 right-0 bg-gradient-to-t from-[--paper] to-transparent">
                 </div>
-                <div className="flex gap-2">
-                    <IconButton
-                        icon={<MdSkipPrevious />}
-                        intent="white-subtle"
-                        className="rounded-full"
-                        disabled={!prevPlaylistEpisode || playEpisodeRequestPending}
-                        onClick={() => playEpisode("previous", false)}
-                    />
-                    <div className="flex flex-1"></div>
-                    <Tooltip
-                        className="z-[99999]" trigger={<span>
-                        <IconButton
-                            icon={<LuRefreshCw />}
-                            intent="gray-basic"
-                            className="rounded-full"
-                            disabled={playEpisodeRequestPending}
-                            onClick={() => reopenEpisode()}
-                        />
-                    </span>}
-                    >
-                        Reopen episode
-                    </Tooltip>
-                    <Tooltip
-                        className="z-[99999]" trigger={<span>
-                        <IconButton
-                            icon={<BiX />}
-                            intent="alert-basic"
-                            className="rounded-full"
-                            onClick={() => stopPlaylist()}
-                        />
-                    </span>}
-                    >
-                        Stop playlist
-                    </Tooltip>
-                    <div className="flex flex-1"></div>
-                    <IconButton
-                        icon={<MdSkipNext />}
-                        intent="white-subtle"
-                        className="rounded-full"
-                        disabled={!nextPlaylistEpisode || playEpisodeRequestPending}
-                        onClick={() => playEpisode("next", false)}
-                    />
-                </div>
+                {playbackActions}
             </div>
         </PlaylistManagerPopup>}
     </>
@@ -439,7 +449,7 @@ function EpisodeItem({ episode }: { episode: Anime_PlaylistEpisode }) {
     return (
         <div
             className={cn(
-                "px-2.5 py-2 bg-[--background] rounded-md border flex gap-3 relative",
+                "playlist-playing-episode px-2.5 py-2 bg-[--background] rounded-md border flex gap-3 relative",
                 "opacity-50 hover:opacity-70",
                 playlist_isSameEpisode(currentPlaylistEpisode,
                     episode) && "opacity-100 hover:opacity-100 border-[rgba(255,255,255,0.5)] sticky top-0 bottom-0 z-10 shadow-xl",
@@ -462,7 +472,7 @@ function EpisodeItem({ episode }: { episode: Anime_PlaylistEpisode }) {
             </div>
             <div className="max-w-full space-y-1">
                 <p className="text-sm text-[--muted]">{episode.episode?.baseAnime?.title?.userPreferred}</p>
-                <p className="">{episode.episode?.baseAnime?.format !== "MOVIE" ? `Episode ${episode.episode!.episodeNumber}` : "Movie"}</p>
+                <p className="">{episode.episode?.baseAnime?.format !== "MOVIE" ? `${tr("Episode", "Episode")} ${episode.episode!.episodeNumber}` : tr("Movie", "Film")}</p>
 
                 <div>
                     <div className="text-xs text-[--muted] line-clamp-1 tracking-wide">

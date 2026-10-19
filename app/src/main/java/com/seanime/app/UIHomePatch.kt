@@ -121,7 +121,7 @@ object UIHomePatch {
             s.id = '__seanime_modal_styles';
             s.textContent = `
                 /* ── Modal Shell & Top Spacing ── */
-                .UI-Modal__content {
+                .UI-Modal__content:not(.mobile-workspace) {
                     padding: 3.5rem 0.75rem 1rem 0.75rem !important; /* Heavily increased top space */
                     max-height: 100svh !important;
                     overflow-y: auto !important;

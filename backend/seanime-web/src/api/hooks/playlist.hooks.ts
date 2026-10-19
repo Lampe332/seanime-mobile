@@ -5,6 +5,7 @@ import { Anime_Playlist, Anime_PlaylistEpisode } from "@/api/generated/types"
 import { Nullish } from "@/types/common"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { tr } from "@/lib/app-language"
 
 export function useCreatePlaylist() {
     const queryClient = useQueryClient()
@@ -15,7 +16,7 @@ export function useCreatePlaylist() {
         mutationKey: [API_ENDPOINTS.PLAYLIST.CreatePlaylist.key],
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.PLAYLIST.GetPlaylists.key] })
-            toast.success("Playlist created")
+            toast.success(tr("Playlist created", "Playlist erstellt"))
         },
     })
 }
@@ -38,7 +39,7 @@ export function useUpdatePlaylist() {
         mutationKey: [API_ENDPOINTS.PLAYLIST.UpdatePlaylist.key],
         onSuccess: async () => {
             await queryClient.refetchQueries({ queryKey: [API_ENDPOINTS.PLAYLIST.GetPlaylists.key] })
-            toast.success("Playlist updated")
+            toast.success(tr("Playlist updated", "Playlist aktualisiert"))
         },
     })
 }
@@ -52,7 +53,7 @@ export function useDeletePlaylist() {
         mutationKey: [API_ENDPOINTS.PLAYLIST.DeletePlaylist.key],
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.PLAYLIST.GetPlaylists.key] })
-            toast.success("Playlist deleted")
+            toast.success(tr("Playlist deleted", "Playlist gelöscht"))
         },
     })
 }

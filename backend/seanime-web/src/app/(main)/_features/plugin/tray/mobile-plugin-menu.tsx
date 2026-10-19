@@ -19,7 +19,7 @@ export function PluginExtensionIcon() {
     </svg>
 }
 
-function PluginIcon({ icon }: { icon: TrayIcon }) {
+export function PluginIcon({ icon }: { icon: TrayIcon }) {
     const [failed, setFailed] = React.useState(false)
     React.useEffect(() => setFailed(false), [icon.iconUrl])
     return <span className="mobile-plugin-icon" aria-hidden="true">
@@ -36,13 +36,11 @@ const MobilePluginRuntimes = React.memo(function MobilePluginRuntimes({ icons, s
         place="top" width={width} isPinned={!!settings?.pinnedTrayPluginIds?.includes(icon.extensionId)} />)}</div>
 })
 
-function MobilePluginChoices({ icons, close }: { icons: TrayIcon[]; close: () => void }) {
+function MobilePluginChoices({ icons, close, pins, mutation, toggle }: { icons: TrayIcon[]; close: () => void; pins: string[]; mutation: ReturnType<typeof useSetPluginSettingsPinnedTrays>; toggle: (id: string) => void }) {
     const tr = useTr()
     const [query, setQuery] = React.useState("")
     const { data: settings, isLoading, isError, refetch } = useGetPluginSettings()
-    const mutation = useSetPluginSettingsPinnedTrays()
     const select = useSetAtom(__plugin_unpinnedTrayIconClickedAtom)
-    const pins = settings?.pinnedTrayPluginIds || []
     const filtered = icons.filter(icon => icon.extensionName.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
     return <>
         <label className="mobile-plugin-search"><LuSearch aria-hidden="true" />
@@ -68,7 +66,7 @@ function MobilePluginChoices({ icons, close }: { icons: TrayIcon[]; close: () =>
                     <button type="button" className="mobile-plugin-pin" aria-pressed={pinned}
                         aria-label={`${pinned ? tr("Unpin", "Lösen:") : tr("Pin", "Anheften:")} ${icon.extensionName}`}
                         disabled={isLoading || isError || mutation.isPending}
-                        onClick={() => mutation.mutate({ pinnedTrayPluginIds: pinned ? pins.filter(id => id !== icon.extensionId) : [...pins, icon.extensionId] })}>
+                        onClick={() => toggle(icon.extensionId)}>
                         {pinned ? <LuPinOff aria-hidden="true" /> : <LuPin aria-hidden="true" />}
                     </button>
                 </div>
@@ -87,6 +85,23 @@ type Props = {
 
 export function MobilePluginMenu(props: Props) {
     const tr = useTr()
+    const { data: settings } = useGetPluginSettings()
+    const mutation = useSetPluginSettingsPinnedTrays()
+    const [optimisticPins, setOptimisticPins] = React.useState<string[] | null>(null)
+    const pinLock = React.useRef(false)
+    const select = useSetAtom(__plugin_unpinnedTrayIconClickedAtom)
+    const pins = optimisticPins ?? settings?.pinnedTrayPluginIds ?? props.settings?.pinnedTrayPluginIds ?? []
+    const toggle = (id: string) => {
+        if (pinLock.current) return
+        pinLock.current = true
+        const next = [...new Set(pins.includes(id) ? pins.filter(pin => pin !== id) : [...pins, id])]
+        setOptimisticPins(next)
+        mutation.mutate({ pinnedTrayPluginIds: next }, { onSettled: () => { setOptimisticPins(null); pinLock.current = false } })
+    }
+    const pinnedIcons = [...new Set(pins)].flatMap(id => {
+        const icon = props.icons.find(icon => icon.extensionId === id)
+        return icon ? [icon] : []
+    })
     const [open, setOpen] = React.useState(false)
     const openedPlugin = useAtomValue(__plugin_openedTrayPlugin)
     const content = React.useRef<HTMLDivElement>(null)
@@ -115,6 +130,7 @@ export function MobilePluginMenu(props: Props) {
         return () => { viewport?.removeEventListener("resize", resize); window.removeEventListener("seanime:window-insets", resize) }
     }, [open])
     return <>
+        <div className="mobile-plugin-actions">
         <Dialog.Root open={open} onOpenChange={setOpen}>
             <Dialog.Trigger asChild><button ref={trigger} type="button" className="mobile-plugin-trigger" aria-label={tr("Open plugins", "Plugins öffnen")}>
                 <PluginExtensionIcon /><span>Plugins</span>
@@ -128,7 +144,7 @@ export function MobilePluginMenu(props: Props) {
                         <Dialog.Title>Plugins <span>({props.icons.length})</span></Dialog.Title>
                         <Dialog.Close asChild><button type="button" className="mobile-plugin-close" aria-label={tr("Close plugin overview", "Plugin-Übersicht schließen")}><LuX aria-hidden="true" /></button></Dialog.Close>
                     </div>
-                    <MobilePluginChoices icons={props.icons} close={close} />
+                    <MobilePluginChoices icons={props.icons} close={close} pins={pins} mutation={mutation} toggle={toggle} />
                     {!!props.developmentModeExtensions.length && <div className="mobile-plugin-debug">{props.developmentModeExtensions.map(extension => <div key={extension.id}>
                         <span>{extension.id}</span>
                         <button type="button" aria-label={`Debug ${extension.id}`} onClick={() => props.openDebugWindow(extension.id)}><LuSquareTerminal />{props.debugCounts[extension.id] || ""}</button>
@@ -137,6 +153,13 @@ export function MobilePluginMenu(props: Props) {
                 </Dialog.Content>
             </Dialog.Portal>
         </Dialog.Root>
+        <div className="mobile-plugin-shortcuts" role="group" aria-label={tr("Pinned plugins", "Angeheftete Plugins")}>
+            {pinnedIcons.map(icon => <button type="button" key={icon.extensionId} data-plugin-shortcut={icon.extensionId}
+                aria-label={`${tr("Open", "Öffnen:")} ${icon.extensionName}`} title={icon.extensionName} onClick={() => { close(); select(icon) }}>
+                <PluginIcon icon={icon} /><span>{icon.extensionName}</span>
+            </button>)}
+        </div>
+        </div>
         <MobilePluginRuntimes icons={props.icons} settings={props.settings} width={props.width} />
     </>
 }

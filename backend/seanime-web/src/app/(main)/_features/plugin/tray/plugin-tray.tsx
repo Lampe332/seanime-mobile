@@ -1,5 +1,6 @@
 import { PluginProvider, registry, RenderPluginComponents } from "@/app/(main)/_features/plugin/components/registry"
 import { useIsMainTabRef } from "@/app/websocket-provider"
+import { MobileWorkspace } from "@/components/shared/mobile-workspace"
 import { SeaImage } from "@/components/shared/sea-image"
 import { Badge } from "@/components/ui/badge"
 import { IconButton } from "@/components/ui/button"
@@ -11,10 +12,13 @@ import { Vaul, VaulContent } from "@/components/vaul"
 import { getPixelsFromLength } from "@/lib/helpers/css"
 import { useIsMobile } from "@/lib/theme/theme-hooks"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
-import { useAtom, useAtomValue } from "jotai"
+import { useAtom } from "jotai"
 import React from "react"
+import { ErrorBoundary } from "react-error-boundary"
+import { useTr } from "@/lib/app-language"
 import { BiX } from "react-icons/bi"
 import { LuCircleDashed } from "react-icons/lu"
+import "../components/mobile-plugin-adapters.css"
 import {
     Plugin_Server_TrayIconEventPayload,
     usePluginListenTrayBadgeUpdatedEvent,
@@ -26,7 +30,7 @@ import {
     usePluginSendTrayClosedEvent,
     usePluginSendTrayOpenedEvent,
 } from "../generated/plugin-events"
-import { __plugin_hasNavigatedAtom, __plugin_openedTrayPlugin, __plugin_unpinnedTrayIconClickedAtom } from "./plugin-sidebar-tray"
+import { __plugin_openedTrayPlugin, __plugin_unpinnedTrayIconClickedAtom } from "./plugin-sidebar-tray"
 
 /**
  * TrayIcon
@@ -77,6 +81,11 @@ export function usePluginTray() {
 export function PluginTray(props: TrayPluginProps) {
 
     const [open, setOpen] = React.useState(false)
+    const { isMobile } = useIsMobile()
+    // Listen before opening: a click handler may render synchronously, before the
+    // workspace mounts its children. Keep the latest server tree on the tray.
+    const [data, setData] = React.useState<any>(null)
+    usePluginListenTrayUpdatedEvent(setData, props.trayIcon.extensionId)
     const [badgeNumber, setBadgeNumber] = React.useState(0)
     const [badgeIntent, setBadgeIntent] = React.useState("info")
 
@@ -86,7 +95,6 @@ export function PluginTray(props: TrayPluginProps) {
 
     const isMainTabRef = useIsMainTabRef()
 
-    const hasNavigated = useAtomValue(__plugin_hasNavigatedAtom)
 
     const [unpinnedTrayIconClicked, setUnpinnedTrayIconClicked] = useAtom(__plugin_unpinnedTrayIconClickedAtom)
     const [openedTrayPlugin, setOpenedTrayPlugin] = useAtom(__plugin_openedTrayPlugin)
@@ -190,6 +198,14 @@ export function PluginTray(props: TrayPluginProps) {
         ? (designatedWidthPx >= props.width ? `calc(100vw - 30px)` : designatedWidthPx)
         : props.trayIcon.width || "30rem"
 
+    React.useEffect(() => {
+        if (open) setOpenedTrayPlugin(props.trayIcon.extensionId)
+    }, [open, props.trayIcon.extensionId])
+
+    React.useLayoutEffect(() => {
+        if (openedTrayPlugin !== props.trayIcon.extensionId) setOpen(false)
+    }, [openedTrayPlugin, props.trayIcon.extensionId])
+
     if (!props.trayIcon.withContent) {
         return <div className="cursor-pointer">
             {!!tooltipText ? <Tooltip
@@ -204,27 +220,29 @@ export function PluginTray(props: TrayPluginProps) {
         </div>
     }
 
-    React.useEffect(() => {
-        if (open) {
-            setOpenedTrayPlugin(props.trayIcon.extensionId)
-            setTimeout(() => {
-                document.body.style.pointerEvents = "auto"
-            }, 500)
-        }
-    }, [props.trayIcon.isDrawer, open])
-
-    React.useLayoutEffect(() => {
-        if (openedTrayPlugin !== props.trayIcon.extensionId) {
-            setOpen(false)
-        }
-    }, [openedTrayPlugin])
-
-    const { isMobile } = useIsMobile()
-
-
-    // console.log("popoverWidth", popoverWidth)
-    // console.log("designatedWidthPx", designatedWidthPx)
-    // console.log("props.width", props.width)
+    if (isMobile) {
+        return <>
+            <div
+                data-plugin-tray-icon-trigger={props.trayIcon.extensionId}
+                onClick={() => {
+                    setOpenedTrayPlugin(props.trayIcon.extensionId)
+                    setOpen(true)
+                }}
+                className="cursor-pointer"
+            ><TrayIcon /></div>
+            <MobileWorkspace
+                open={open && openedTrayPlugin === props.trayIcon.extensionId}
+                onOpenChange={setOpen}
+                title={<span className="flex min-w-0 items-center gap-2">{props.trayIcon.iconUrl && <img src={props.trayIcon.iconUrl} alt="" className="size-7 shrink-0 rounded-lg object-contain" />}<span className="min-w-0 break-words">{props.trayIcon.extensionName}</span></span>}
+            >
+                <div data-plugin-tray-popover-content={props.trayIcon.extensionId} className="mobile-plugin-runtime">
+                    <PluginTrayProvider props={props}>
+                        <PluginTrayContent open={open} setOpen={setOpen} data={data} {...props} />
+                    </PluginTrayProvider>
+                </div>
+            </MobileWorkspace>
+        </>
+    }
 
     if (props.trayIcon.isDrawer) {
         return (
@@ -282,6 +300,7 @@ export function PluginTray(props: TrayPluginProps) {
                         </div>
                         <PluginTrayProvider props={props}>
                             <PluginTrayContent
+                                data={data}
                                 open={open}
                                 setOpen={setOpen}
                                 {...props}
@@ -330,6 +349,7 @@ export function PluginTray(props: TrayPluginProps) {
                     >
                         <PluginTrayProvider props={props}>
                             <PluginTrayContent
+                                data={data}
                                 open={open}
                                 setOpen={setOpen}
                                 {...props}
@@ -343,6 +363,7 @@ export function PluginTray(props: TrayPluginProps) {
 }
 
 type PluginTrayContentProps = {
+    data: any
     open: boolean
     setOpen: (open: boolean) => void
 } & TrayPluginProps
@@ -351,10 +372,12 @@ function PluginTrayContent(props: PluginTrayContentProps) {
     const {
         trayIcon,
         open,
-        setOpen,
+        data,
     } = props
 
     const { sendRenderTrayEvent } = usePluginSendRenderTrayEvent()
+    const { isMobile } = useIsMobile()
+    const tr = useTr()
 
     React.useEffect(() => {
         if (open) {
@@ -362,23 +385,23 @@ function PluginTrayContent(props: PluginTrayContentProps) {
         }
     }, [open])
 
-    const [data, setData] = React.useState<any>(null)
-
-    usePluginListenTrayUpdatedEvent((data) => {
-        // console.log("tray:updated", extensionID, data)
-        setData(data)
-    }, trayIcon.extensionId)
-
     return (
         <div>
             <div
                 className={cn(
-                    "max-h-[35rem] overflow-y-auto p-3",
+                    isMobile ? "min-w-0" : "max-h-[35rem] overflow-y-auto p-3",
                 )}
             >
 
                 <PluginProvider registry={registry}>
-                    {!!data && data.components ? <RenderPluginComponents data={data.components} /> : <LoadingSpinner />}
+                    <ErrorBoundary resetKeys={[open, trayIcon.extensionId]} fallbackRender={({ error, resetErrorBoundary }) =>
+                        <div role="alert" className="space-y-3 rounded-xl border border-red-400/20 bg-red-400/5 p-3">
+                            <p>{tr("This plugin could not be displayed.", "Dieses Plugin konnte nicht angezeigt werden.")}</p>
+                            <p className="break-words text-sm text-[--muted]">{error instanceof Error ? error.message : String(error)}</p>
+                            <button type="button" className="plugin-runtime-button rounded-lg bg-[--subtle] px-3" onClick={() => { resetErrorBoundary(); sendRenderTrayEvent({}, trayIcon.extensionId) }}>{tr("Try again", "Erneut versuchen")}</button>
+                        </div>}>
+                        {!!data && data.components ? <RenderPluginComponents data={data.components} /> : <div role="status" aria-label={tr("Loading plugin", "Plugin wird geladen")}><LoadingSpinner /></div>}
+                    </ErrorBoundary>
                 </PluginProvider>
 
             </div>

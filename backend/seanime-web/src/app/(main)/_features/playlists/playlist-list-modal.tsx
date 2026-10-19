@@ -12,7 +12,8 @@ import { Carousel, CarouselContent, CarouselDotButtons, CarouselItem } from "@/c
 import { cn } from "@/components/ui/core/styling"
 import { Drawer } from "@/components/ui/drawer"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { useThemeSettings } from "@/lib/theme/theme-hooks"
+import { useIsMobile, useThemeSettings } from "@/lib/theme/theme-hooks"
+import { MobilePlaylists } from "./_components/mobile-playlists"
 import React from "react"
 import { BiEditAlt } from "react-icons/bi"
 import { FaCirclePlay } from "react-icons/fa6"
@@ -22,6 +23,7 @@ import { toast } from "sonner"
 
 export function PlaylistListModal() {
     const ts = useThemeSettings()
+    const { isMobile } = useIsMobile()
     const { isModalOpen, setModalOpen, setSelectedMedia, selectedMedia } = usePlaylistEditorManager()
 
     const { data: _data, isLoading: isLibraryLoading } = useGetLibraryCollection()
@@ -64,7 +66,7 @@ export function PlaylistListModal() {
     const allEntries = libraryCollection?.lists?.flatMap(n => n.entries) ?? []
 
     React.useEffect(() => {
-        if (selectedMedia) {
+        if (selectedMedia && !isLibraryLoading && libraryCollection) {
             if (!allEntries.find(n => n?.mediaId === selectedMedia)) {
                 toast.warning("This anime is not in your library or currently watching collection.")
                 setSelectedMedia(null)
@@ -73,7 +75,9 @@ export function PlaylistListModal() {
                 })
             }
         }
-    }, [selectedMedia, allEntries])
+    }, [selectedMedia, allEntries, isLibraryLoading, libraryCollection])
+
+    if (isMobile) return <MobilePlaylists libraryCollection={libraryCollection} libraryLoading={isLibraryLoading} />
 
     return (
         <>

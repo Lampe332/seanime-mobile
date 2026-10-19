@@ -1,0 +1,50 @@
+/* Only renderer-owned primitives opt into these mobile rules. Plugin-authored
+   HTML, iframes and CSS keep their own contract; no arbitrary DOM is rewritten. */
+@media (max-width: 1023px) {
+    .mobile-plugin-runtime { min-width: 0; overflow-wrap: anywhere; }
+    .plugin-runtime-layout, .plugin-runtime-block, .plugin-runtime-field,
+    .plugin-runtime-tabs, .plugin-runtime-form { min-width: 0; max-width: 100%; }
+    .plugin-runtime-layout[data-plugin-direction="row"] { flex-wrap: wrap; }
+    .plugin-runtime-text { overflow-wrap: anywhere; word-break: normal; }
+    .plugin-runtime-button, .plugin-runtime-form .UI-Button_root {
+        min-height: 44px; height: auto; max-width: 100%; white-space: normal;
+        overflow-wrap: anywhere; line-height: 1.4; padding: .625rem .875rem;
+        touch-action: manipulation;
+    }
+    .plugin-runtime-field .UI-Input__inputContainer,
+    .plugin-runtime-form .UI-Input__inputContainer { min-width: 0; max-width: 100%; }
+    .plugin-runtime-field input, .plugin-runtime-field textarea,
+    .plugin-runtime-form input, .plugin-runtime-form textarea {
+        min-width: 0; max-width: 100%; min-height: 44px; font-size: 1rem;
+        scroll-margin-block: 1rem;
+    }
+    .plugin-runtime-field .UI-Select__root,
+    .plugin-runtime-form .UI-Select__root { min-height: 44px; min-width: 0; max-width: 100%; font-size: 1rem; }
+    .plugin-runtime-select-menu { max-width: calc(100vw - 24px); z-index: 140 !important; }
+    .plugin-runtime-select-item { min-height: 44px; height: auto; white-space: normal; line-height: 1.4; padding-block: .625rem; }
+    .plugin-runtime-field .UI-Switch__container,
+    .plugin-runtime-field .UI-Checkbox__container,
+    .plugin-runtime-form .UI-Switch__container,
+    .plugin-runtime-form .UI-Checkbox__container { min-height: 44px; width: 100%; }
+    .plugin-runtime-field label, .plugin-runtime-form label {
+        min-width: 0; white-space: normal; overflow-wrap: anywhere;
+    }
+    .plugin-runtime-field .UI-Switch__label,
+    .plugin-runtime-field .UI-Checkbox_label,
+    .plugin-runtime-form .UI-Switch__label,
+    .plugin-runtime-form .UI-Checkbox_label { padding-block: .625rem; flex: 1; }
+    .plugin-runtime-tabs-list {
+        display: flex; justify-content: flex-start; overflow-x: auto; max-width: 100%;
+        overscroll-behavior-x: contain; height: auto; min-height: 44px;
+    }
+    .plugin-runtime-tab { flex-shrink: 0; min-height: 44px; }
+    .plugin-runtime-image { max-width: 100%; object-fit: contain; }
+    .plugin-runtime-menu { max-width: calc(100vw - 24px); max-height: 65dvh; overflow-y: auto; z-index: 140 !important; }
+    .plugin-runtime-menu-item { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+    .mobile-plugin-command .mobile-workspace-body { display: flex; overflow: hidden; }
+    .mobile-plugin-command .UI-Command__root { background: transparent; min-width: 0; min-height: 0; }
+    .mobile-plugin-command .UI-Command__input { flex: none; border: 1px solid #bca1eb40; border-radius: .8rem; background: #100d17; }
+    .mobile-plugin-command input { min-height: 44px; min-width: 0; font-size: 1rem; }
+    .mobile-plugin-command .UI-Command__list { flex: 1; min-height: 0; max-height: none; overscroll-behavior: contain; margin-top: .6rem; }
+    .mobile-plugin-command .UI-Command__item { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+}

@@ -1,4 +1,7 @@
 import { Button, IconButton } from "@/components/ui/button"
+import { MobileWorkspace } from "@/components/shared/mobile-workspace"
+import { useIsMobile } from "@/lib/theme/theme-hooks"
+import { tr } from "@/lib/app-language"
 import { cn } from "@/components/ui/core/styling"
 import { __isDesktop__ } from "@/types/constants"
 import React, { useRef, useState } from "react"
@@ -35,6 +38,9 @@ interface PlaylistManagerPopupProps extends React.HTMLAttributes<HTMLDivElement>
     position?: ContainerPosition;
     size?: ContainerSize;
     icon?: React.ReactNode;
+    mobileTitle?: React.ReactNode;
+    mobileContent?: React.ReactNode;
+    mobileFooter?: React.ReactNode;
 }
 
 const PlaylistManagerPopup: React.FC<PlaylistManagerPopupProps> = ({
@@ -43,12 +49,23 @@ const PlaylistManagerPopup: React.FC<PlaylistManagerPopupProps> = ({
     size = "md",
     icon,
     children,
+    mobileTitle,
+    mobileContent,
+    mobileFooter,
     ...props
 }) => {
     const [isOpen, setIsOpen] = useState(false)
+    const { isMobile } = useIsMobile()
     const containerRef = useRef<HTMLDivElement>(null)
 
     const toggleContainer = () => setIsOpen(!isOpen)
+
+    if (isMobile) return <div className="fixed bottom-24 right-4 z-[25]">
+        <MobileWorkspace open={isOpen} onOpenChange={setIsOpen} title={mobileTitle || tr("Playing playlist", "Laufende Playlist")} className="mobile-playing-playlist" footer={mobileFooter}>
+            {mobileContent ?? children}
+        </MobileWorkspace>
+        <PlaylistManagerPopupToggle icon={icon} isOpen={isOpen} toggleContainer={toggleContainer} aria-label={tr("Open playing playlist", "Laufende Playlist öffnen")} />
+    </div>
 
     return (
         <div

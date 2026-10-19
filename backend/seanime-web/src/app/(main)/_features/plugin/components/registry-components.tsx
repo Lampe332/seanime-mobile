@@ -1,3 +1,7 @@
+import { pluginSelectOptions, PluginSelectValue } from "./plugin-select-options"
+import "./mobile-plugin-runtime.css"
+import { MobileWorkspace } from "@/components/shared/mobile-workspace"
+import { useIsMobile } from "@/lib/theme/theme-hooks"
 import { RenderPluginComponents } from "@/app/(main)/_features/plugin/components/registry"
 import { useWebsocketSender } from "@/app/(main)/_hooks/handle-websockets"
 import { Alert } from "@/components/ui/alert"
@@ -148,7 +152,7 @@ export function PluginButton(props: PluginButtonProps) {
             disabled={disabled}
             loading={loading}
             size={size || "sm"}
-            className={className}
+            className={cn(className, "plugin-runtime-button")}
         >
             {label || "Button"}
         </Button>
@@ -293,7 +297,7 @@ export function PluginInput(props: InputProps) {
                 onValueChange={(value) => setValue(value)}
                 onSelect={handleTextSelected}
                 disabled={props.disabled}
-                fieldClass={props.className}
+                fieldClass={cn(props.className, "plugin-runtime-field")}
                 ref={textareaRef}
             />
         )
@@ -310,7 +314,7 @@ export function PluginInput(props: InputProps) {
             onSelect={handleTextSelected}
             disabled={props.disabled}
             size={props.size || "md"}
-            fieldClass={props.className}
+            fieldClass={cn(props.className, "plugin-runtime-field")}
             ref={inputRef}
         />
     )
@@ -321,14 +325,14 @@ export function PluginInput(props: InputProps) {
 interface SelectProps {
     options: Array<{
         label: string
-        value: string
+        value: PluginSelectValue
     }>
     id?: string
     label?: string
     onChange?: string
-    fieldRef?: FieldRef<string>
+    fieldRef?: FieldRef<PluginSelectValue>
     style?: React.CSSProperties
-    value?: string
+    value?: PluginSelectValue
     disabled?: boolean
     size?: "sm" | "md" | "lg"
     className?: string
@@ -338,7 +342,7 @@ export function PluginSelect(props: SelectProps) {
     const { trayIcon } = usePluginTray()
     const { sendEventHandlerTriggeredEvent } = usePluginSendEventHandlerTriggeredEvent()
     const { sendFieldRefSendValueEvent } = usePluginSendFieldRefSendValueEvent()
-    const [value, setValue] = React.useState(props.value || props.fieldRef?.current)
+    const [value, setValue] = React.useState(props.value === "" || props.value === undefined ? props.fieldRef?.current : props.value)
     const debouncedValue = useDebounce(value, 200)
 
     const firstRender = React.useRef(true)
@@ -367,17 +371,21 @@ export function PluginSelect(props: SelectProps) {
         }
     }, trayIcon.extensionId)
 
+    const selection = pluginSelectOptions(props.options, value)
+
     return (
         <Select
             id={props.id}
             label={props.label}
             style={props.style}
-            options={props.options}
-            value={value}
-            onValueChange={(value) => setValue(value)}
+            options={selection.options}
+            contentClass="plugin-runtime-select-menu"
+            itemClass="plugin-runtime-select-item"
+            value={selection.value}
+            onValueChange={(value) => setValue(selection.decode(value))}
             disabled={props.disabled}
             size={props.size || "md"}
-            fieldClass={props.className}
+            fieldClass={cn(props.className, "plugin-runtime-field")}
         />
     )
 }
@@ -438,7 +446,7 @@ export function PluginCheckbox(props: CheckboxProps) {
             onValueChange={(value) => typeof value === "boolean" && setValue(value)}
             disabled={props.disabled}
             size={props.size || "md"}
-            fieldClass={props.className}
+            fieldClass={cn(props.className, "plugin-runtime-field")}
         />
     )
 }
@@ -501,7 +509,7 @@ export function PluginSwitch(props: SwitchProps) {
             onValueChange={(value) => setValue(value)}
             disabled={props.disabled}
             size={props.size || "sm"}
-            fieldClass={props.className}
+            fieldClass={cn(props.className, "plugin-runtime-field")}
         />
     )
 }
@@ -566,7 +574,7 @@ export function PluginRadioGroup(props: RadioGroupProps) {
             onValueChange={(value) => setValue(value)}
             disabled={props.disabled}
             size={props.size || "md"}
-            fieldClass={props.className}
+            fieldClass={cn(props.className, "plugin-runtime-field")}
         />
     )
 }
@@ -585,7 +593,8 @@ interface FlexProps {
 export function PluginFlex({ items = [], direction = "row", gap = 2, style, className }: FlexProps) {
     return (
         <div
-            className={cn("flex", className)}
+            className={cn("flex", className, "plugin-runtime-layout")}
+            data-plugin-direction={direction}
             style={{
                 ...(style || {}),
                 gap: `${gap * 0.25}rem`,
@@ -609,7 +618,7 @@ interface StackProps {
 export function PluginStack({ items = [], style, gap = 2, className }: StackProps) {
     return (
         <div
-            className={cn("flex", className)}
+            className={cn("flex", className, "plugin-runtime-layout")}
             style={{
                 ...(style || {}),
                 gap: `${gap * 0.25}rem`,
@@ -645,7 +654,7 @@ export function PluginDiv({ items = [], style, onClick, className }: DivProps) {
 
     return (
         <div
-            className={cn("relative", className)}
+            className={cn("relative", className, "plugin-runtime-block")}
             style={style}
             onClick={handleClick}
         >
@@ -663,7 +672,7 @@ interface TextProps {
 }
 
 export function PluginText({ text, style, className }: TextProps) {
-    return <p className={cn("w-full break-all", className)} style={style}>{text}</p>
+    return <p className={cn("w-full break-all", className, "plugin-runtime-text")} style={style}>{text}</p>
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -685,6 +694,12 @@ export function PluginModal(props: PluginModalProps) {
     const { sendEventHandlerTriggeredEvent } = usePluginSendEventHandlerTriggeredEvent()
     const { trayIcon } = usePluginTray()
     const [isOpen, setIsOpen] = React.useState(props.open ?? false)
+    const { isMobile } = useIsMobile()
+
+    // The server can open/close a modal after its first render.
+    React.useEffect(() => {
+        if (props.open !== undefined) setIsOpen(props.open)
+    }, [props.open])
 
     function handleOpenChange(open: boolean) {
         setIsOpen(open)
@@ -694,6 +709,21 @@ export function PluginModal(props: PluginModalProps) {
                 event: { open },
             }, trayIcon.extensionId)
         }
+    }
+
+    if (isMobile) {
+        return <MobileWorkspace
+            open={isOpen}
+            onOpenChange={handleOpenChange}
+            title={props.title || trayIcon.extensionName}
+            subtitle={props.description}
+            trigger={props.trigger ? <div className="w-fit"><RenderPluginComponents data={props.trigger} /></div> : undefined}
+            footer={props.footer ? <div className="mobile-plugin-runtime"><RenderPluginComponents data={props.footer} /></div> : undefined}
+        >
+            <div className={cn(props.className, "mobile-plugin-runtime plugin-runtime-block")}>
+                {props.items && <RenderPluginComponents data={props.items} />}
+            </div>
+        </MobileWorkspace>
     }
 
     return (
@@ -725,7 +755,7 @@ export function PluginDropdownMenu(props: PluginDropdownMenuProps) {
     return (
         <DropdownMenu
             trigger={props.trigger ? <div className="w-fit"><RenderPluginComponents data={props.trigger} /></div> : <div />}
-            className={props.className}
+            className={cn(props.className, "plugin-runtime-menu")}
         >
             {props.items && <RenderPluginComponents data={props.items} />}
         </DropdownMenu>
@@ -756,7 +786,7 @@ export function PluginDropdownMenuItem(props: PluginDropdownMenuItemProps) {
         <DropdownMenuItem
             onClick={handleClick}
             disabled={props.disabled}
-            className={props.className}
+            className={cn(props.className, "plugin-runtime-menu-item")}
         >
             {props.item && <RenderPluginComponents data={props.item} />}
         </DropdownMenuItem>
@@ -791,6 +821,21 @@ interface PluginPopoverProps {
 }
 
 export function PluginPopover(props: PluginPopoverProps) {
+    const { isMobile } = useIsMobile()
+    const { trayIcon } = usePluginTray()
+    const [open, setOpen] = React.useState(false)
+    if (isMobile) {
+        return <MobileWorkspace
+            open={open}
+            onOpenChange={setOpen}
+            title={trayIcon.extensionName}
+            trigger={props.trigger ? <div className="w-fit"><RenderPluginComponents data={props.trigger} /></div> : undefined}
+        >
+            <div className={cn(props.className, "mobile-plugin-runtime plugin-runtime-block")}>
+                {props.items && <RenderPluginComponents data={props.items} />}
+            </div>
+        </MobileWorkspace>
+    }
     return (
         <Popover
             trigger={props.trigger ? <RenderPluginComponents data={props.trigger} /> : <div />}
@@ -894,7 +939,7 @@ interface PluginTabsProps {
 
 export function PluginTabs(props: PluginTabsProps) {
     return (
-        <Tabs defaultValue={props.defaultValue} className={props.className}>
+        <Tabs defaultValue={props.defaultValue} className={cn(props.className, "plugin-runtime-tabs")}>
             {props.items && <RenderPluginComponents data={props.items} />}
         </Tabs>
     )
@@ -907,7 +952,7 @@ interface PluginTabsListProps {
 
 export function PluginTabsList(props: PluginTabsListProps) {
     return (
-        <TabsList className={props.className}>
+        <TabsList className={cn(props.className, "plugin-runtime-tabs-list")}>
             {props.items && <RenderPluginComponents data={props.items} />}
         </TabsList>
     )
@@ -921,7 +966,7 @@ interface PluginTabsTriggerProps {
 
 export function PluginTabsTrigger(props: PluginTabsTriggerProps) {
     return (
-        <TabsTrigger value={props.value || ""} className={props.className}>
+        <TabsTrigger value={props.value || ""} className={cn(props.className, "plugin-runtime-tab")}>
             {props.item && <RenderPluginComponents data={props.item} />}
         </TabsTrigger>
     )
@@ -1003,7 +1048,7 @@ export function PluginImg(props: PluginImgProps) {
             width={props.width}
             height={props.height}
             style={props.style}
-            className={props.className}
+            className={cn(props.className, "plugin-runtime-image")}
         />
     )
 }
@@ -1108,7 +1153,7 @@ export function PluginForm({ name, fields: _fields }: FormProps) {
 
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 plugin-runtime-form">
             {!fields?.length ? <LoadingSpinner /> :
                 fields.map((field) => {
                     if (!field.name && field.type !== "submit") return null // Skip fields without names
@@ -1149,6 +1194,8 @@ export function PluginForm({ name, fields: _fields }: FormProps) {
                                             key={field.id}
                                             label={field.label}
                                             name={field.name}
+                                            contentClass="plugin-runtime-select-menu"
+                                            itemClass="plugin-runtime-select-item"
                                             options={field.options?.map(opt => ({
                                                 label: opt.label,
                                                 value: String(opt.value),

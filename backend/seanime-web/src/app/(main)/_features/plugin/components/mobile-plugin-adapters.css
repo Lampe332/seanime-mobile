@@ -1,0 +1,12 @@
+/* Installed Watch Next: its four desktop filters and hover-only Add overlays
+   need a separate touch adaptation. Keep the plugin's nodes and handlers intact. */
+@media (max-width: 1023px) {
+    [data-plugin-tray-popover-content="Watch-Next"] .plugin-runtime-block.grid-cols-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    [data-plugin-tray-popover-content="Watch-Next"] .plugin-runtime-button.group-hover\:opacity-100 {
+        opacity: 1; inset: auto 8px 8px auto; width: auto; height: auto;
+        max-width: calc(100% - 16px); background: #4e367c; border: 1px solid #d2b4ff80;
+        border-radius: .75rem;
+    }
+}
