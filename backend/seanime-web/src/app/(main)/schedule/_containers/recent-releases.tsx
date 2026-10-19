@@ -6,7 +6,8 @@ import { Carousel, CarouselContent, CarouselDotButtons } from "@/components/ui/c
 import { addSeconds, formatDistanceToNow, subDays } from "date-fns"
 import React from "react"
 
-export function RecentReleases() {
+/** `homeMobile`: touch Home neither auto-advances nor starts hover trailers. */
+export function RecentReleases({ homeMobile }: { homeMobile?: boolean } = {}) {
 
     const { data, isLoading } = useAnilistListRecentAiringAnime({
         page: 1,
@@ -34,7 +35,7 @@ export function RecentReleases() {
                     dragFree: true,
                 }}
                 carouselButtonContainerClass="top-[-3.5rem]"
-                autoScroll
+                autoScroll={!homeMobile}
             >
                 <CarouselDotButtons />
                 <CarouselContent className="px-6">
@@ -46,7 +47,7 @@ export function RecentReleases() {
                                 showLibraryBadge
                                 containerClassName="basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0"
                                 hideReleasingBadge
-                                showTrailer
+                                showTrailer={!homeMobile}
                                 type="anime"
                                 overlay={<div className="flex flex-col w-fit absolute right-0 items-end">
                                     <div

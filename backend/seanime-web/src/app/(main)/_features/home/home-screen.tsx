@@ -598,7 +598,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
     if (item.type === "aired-recently") {
         return (
             <PageWrapper className="px-4">
-                <RecentReleases />
+                <RecentReleases homeMobile={props.mobileHome} />
             </PageWrapper>
         )
     }
@@ -606,7 +606,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
     if (item.type === "missed-sequels") {
         return (
             <PageWrapper className="px-4">
-                <DiscoverMissedSequelsSection title="Missed Sequels" />
+                <DiscoverMissedSequelsSection title="Missed Sequels" homeMobile={props.mobileHome} />
             </PageWrapper>
         )
     }

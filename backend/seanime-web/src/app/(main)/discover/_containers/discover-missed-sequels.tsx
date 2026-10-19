@@ -7,7 +7,8 @@ import { useInView } from "motion/react"
 import React from "react"
 
 
-export function DiscoverMissedSequelsSection({ title = "You Might Have Missed" }: { title?: string }) {
+/** `homeMobile`: touch Home neither auto-advances nor starts hover trailers. */
+export function DiscoverMissedSequelsSection({ title = "You Might Have Missed", homeMobile }: { title?: string, homeMobile?: boolean }) {
     const ref = React.useRef(null)
     const isInView = useInView(ref, { once: true })
     const { data, isLoading } = useAnilistListMissedSequels(isInView)
@@ -26,7 +27,7 @@ export function DiscoverMissedSequelsSection({ title = "You Might Have Missed" }
                     align: "start",
                     dragFree: true,
                 }}
-                autoScroll
+                autoScroll={!homeMobile}
             >
                 {/*<CarouselMasks />*/}
                 <CarouselDotButtons />
@@ -38,7 +39,7 @@ export function DiscoverMissedSequelsSection({ title = "You Might Have Missed" }
                                 media={media}
                                 showLibraryBadge
                                 containerClassName="basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0"
-                                showTrailer
+                                showTrailer={!homeMobile}
                                 type="anime"
                             />
                         )
