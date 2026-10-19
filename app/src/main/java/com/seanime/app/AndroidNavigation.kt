@@ -5,7 +5,7 @@ object AndroidNavigation {
         (function() {
             if (window.__seanimeCloseNavigation && window.__seanimeCloseNavigation()) return true;
             // Give an open transient menu first refusal before closing its reader.
-            var transient = document.querySelector('[role="menu"][data-state="open"], [data-radix-popper-content-wrapper] [role="dialog"]');
+            var transient = document.querySelector('.mobile-anime-select[role="listbox"], [role="menu"][data-state="open"], [data-radix-popper-content-wrapper] [role="dialog"]');
             if (transient) {
                 transient.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', code:'Escape', bubbles:true, cancelable:true}));
                 return true;

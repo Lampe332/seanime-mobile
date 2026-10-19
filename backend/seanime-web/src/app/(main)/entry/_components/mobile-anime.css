@@ -1,0 +1,75 @@
+[data-mobile-anime="true"] { color: #eee7f7; background: #100e18; padding-bottom: 1rem; overflow-wrap: anywhere; }
+.mobile-anime-header { padding: .8rem 1rem 1rem; background: linear-gradient(145deg,#282035,#15121c 70%); border-bottom: 1px solid #bba6ff24; }
+.mobile-anime-header-inner { display: grid; gap: .85rem; min-width: 0; }
+.mobile-anime-identity { display: flex; gap: .85rem; align-items: flex-start; min-width: 0; }
+.mobile-anime-cover { width: 80px; height: 112px; flex: none; position: relative; overflow: hidden; border-radius: .8rem; background: #0e0c16; display: grid; place-items: center; color: #bda8d8; }
+.mobile-anime-title { flex: 1; min-width: 0; }
+.mobile-anime-title h1 { font-size: 1.125rem; line-height: 1.4; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.mobile-anime-title p { font-size: .8125rem; color: #bcb4ca; margin-top: .45rem; }
+.mobile-anime-progress { display: flex; flex-wrap: wrap; gap: .5rem .8rem; align-items: center; padding: .7rem .85rem; border: 1px solid #bba6ff24; border-radius: .9rem; background: #100e1866; }
+.mobile-anime-progress > div:first-child { flex: 1; }
+.mobile-anime-progress > div:first-child > span { color: #bcb4ca; font-size: .8125rem; }
+.mobile-anime-progress > div:first-child > div { display: flex; align-items: center; gap: .5rem; }
+.mobile-anime-progress > p { color: #d0c1e0; font-size: .8125rem; }
+.mobile-anime-episodes-link { display: flex; align-items: center; justify-content: space-between; padding: .7rem 1rem; min-height: 48px; border-radius: .85rem; background: #ac88f026; border: 1px solid #bba6ff60; color: #ecdeff; font-weight: 600; }
+.mobile-anime-details { border: 1px solid #bba6ff24; border-radius: .9rem; background: #ffffff04; padding: 0 .8rem; }
+.mobile-anime-details summary, .mobile-episode-options summary { cursor: pointer; min-height: 44px; padding: .65rem 0; font-weight: 600; }
+.mobile-anime-details > p { margin: .5rem 0 .8rem; line-height: 1.6; color: #c7bfd3; font-size: .875rem; }
+.mobile-anime-details [data-anime-meta-section-details] { justify-content: flex-start; gap: .6rem; }
+[data-mobile-anime="true"] [data-anime-meta-section-buttons-row] { justify-content: flex-start; gap: .5rem; }
+[data-mobile-anime="true"] [data-anime-meta-section-after-header] { display: grid; gap: .7rem; margin: 0; }
+[data-mobile-anime="true"] [data-anime-entry-page-tabs-container] { margin: 0; width: 100%; }
+[data-mobile-anime="true"] .UI-StaticTabs__root { width: 100%; gap: .35rem; justify-content: flex-start; }
+[data-mobile-anime="true"] .UI-StaticTabs__trigger { min-height: 44px; height: auto; white-space: normal; font-size: .875rem !important; padding: .55rem .7rem !important; }
+[data-mobile-anime="true"] .UI-StaticTabs__trigger[data-current="true"] { background: #a78bfa24; color: #e0d1ff; border: 1px solid #bba6ff60; }
+[data-mobile-anime="true"] [data-anime-entry-page-content-container] { padding: .85rem 1rem; scroll-margin-top: 1rem; }
+[data-mobile-anime="true"] [data-anime-entry-page-content], [data-mobile-anime="true"] [data-anime-entry-page-online-streaming-view], [data-mobile-anime="true"] [data-anime-entry-page-episode-list-view] { padding-top: 0 !important; }
+[data-mobile-anime="true"] [data-anime-entry-page-online-streaming-view] > div.h-10,
+[data-mobile-anime="true"] [data-anime-entry-page-episode-list-view] > div.h-10 { display: none; }
+[data-mobile-anime="true"] button:not([data-vc-control]), .mobile-anime-dialog button { min-height: 44px; min-width: 44px; }
+[data-mobile-anime="true"] .UI-Button__root { white-space: normal; height: auto; overflow-wrap: anywhere; }
+[data-mobile-anime="true"] button:focus-visible, [data-mobile-anime="true"] a:focus-visible, [data-mobile-anime="true"] summary:focus-visible, .mobile-anime-dialog button:focus-visible { outline: 2px solid #d4b5ff; outline-offset: 2px; }
+.mobile-episode-options { flex: 1; min-width: 0; padding: 0 .8rem; border: 1px solid #bba6ff30; border-radius: .9rem; background: #1b1723; }
+.mobile-episode-options > div { display: flex; flex-wrap: wrap; gap: .65rem; padding-bottom: .85rem; min-width: 0; }
+.mobile-episode-options .UI-Select__root, .mobile-episode-options .UI-Select__trigger { max-width: 100%; min-width: 0; }
+.mobile-episode-options button { max-width: 100%; }
+[data-mobile-episode-layout="true"] [data-vc-element="inline-layout-header"] { gap: .6rem; }
+[data-mobile-episode-layout="true"] [data-vc-element="inline-layout-actions"] { align-items: flex-start; }
+[data-mobile-episode-layout="true"] [data-vc-element="inline-layout-actions-separator"] { display: none; }
+[data-mobile-episode-layout="true"] [data-vc-element="inline-layout-episode-list-container"] { height: auto !important; max-height: none; overflow: visible; }
+[data-mobile-episode-layout="true"] [data-vc-element="inline-layout-episode-list-container"] > div { height: auto !important; overflow: visible !important; }
+[data-mobile-episode-layout="true"] [data-vc-element="inline-layout-episode-list-body"] { padding: 0; margin: 0; }
+[data-mobile-episode-layout="true"] [data-vc-element="inline-layout-player-container"] { aspect-ratio: auto; }
+.mobile-episode-heading { display: grid; gap: .5rem; min-width: 0; }
+.mobile-episode-heading h2 { font-size: 1.0625rem; line-height: 1.45; font-weight: 650; }
+.mobile-episode-heading p { color: #c7bfd3; font-size: .875rem; }
+.mobile-episode-navigation { display: flex; flex-wrap: wrap; gap: .5rem; }
+.mobile-episode-navigation button { flex: 1; }
+.mobile-episode-heading { margin-bottom: .75rem; }
+.mobile-episode-play { width: 100%; background: #8b5fc4 !important; color: #fff !important; border-radius: .85rem; }
+[data-mobile-anime="true"] [data-episode-grid-item] { background: #1b1723; border: 1px solid #bba6ff24; padding: .65rem 3.4rem .65rem .65rem; border-radius: 1rem; }
+[data-mobile-anime="true"] [data-episode-grid-item][data-is-selected="true"] { border-color: #c19af5; background: #2b203e; }
+[data-mobile-anime="true"] [data-episode-grid-item-container] { gap: .65rem; }
+[data-mobile-anime="true"] [data-episode-grid-item-image-container] { width: 80px; height: 64px; border-radius: .6rem; }
+[data-mobile-anime="true"] [data-episode-grid-item-content] { min-width: 0; }
+[data-mobile-anime="true"] [data-episode-grid-item-title] { font-size: .8125rem; line-height: 1.4; }
+[data-mobile-anime="true"] [data-episode-grid-item-episode-title] { font-size: .875rem; line-height: 1.45; }
+[data-mobile-anime="true"] [data-episode-grid-item-episode-description] { display: none; }
+[data-mobile-anime="true"] [data-episode-grid-item-action] { top: .35rem; right: .25rem; z-index: 3; }
+.mobile-episode-target { position: absolute; inset: 0; z-index: 2; border-radius: inherit; text-align: left; background: transparent; }
+.mobile-episode-state { color: #d1b8f5; font-size: .75rem; display: block; margin-top: .25rem; }
+.mobile-anime-dialog.UI-Modal__content { max-width: 42rem; width: calc(100% - 1rem); max-height: calc(100dvh - 1rem); overflow-y: auto; border-radius: 1.25rem; padding: 1rem; background: #1b1723; color: #eee7f7; overflow-wrap: anywhere; }
+.mobile-anime-dialog .UI-Modal__header { text-align: left; padding-right: 2.5rem; }
+.mobile-anime-dialog .UI-Modal__title { line-height: 1.4; }
+.mobile-anime-dialog .UI-Modal__close { top: .5rem; right: .5rem; }
+.mobile-anime-dialog input, .mobile-anime-dialog textarea { max-width: 100%; min-width: 0; }
+.mobile-anime-select { max-width: calc(100vw - 1rem); max-height: 60dvh; background: #211a2d; color: #eee7f7; border: 1px solid #bba6ff60; border-radius: .9rem; }
+.mobile-anime-select [role="option"] { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 359px) {
+    .mobile-anime-header { padding-inline: .65rem; }
+    [data-mobile-anime="true"] [data-anime-entry-page-content-container] { padding-inline: .65rem; }
+    [data-mobile-anime="true"] [data-episode-grid-item-image-container] { width: 56px; height: 56px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-mobile-anime="true"] *, .mobile-anime-dialog * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

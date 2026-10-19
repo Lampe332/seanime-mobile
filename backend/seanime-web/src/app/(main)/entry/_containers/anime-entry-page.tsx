@@ -322,11 +322,12 @@ export function AnimeEntryPage() {
     </>
 
     return (
-        <div data-anime-entry-page data-media={JSON.stringify(animeEntry.media)} data-anime-entry-list-data={JSON.stringify(animeEntry.listData)}>
+        <div data-anime-entry-page data-mobile-anime={IS_ANDROID_APP || undefined} data-media={JSON.stringify(animeEntry.media)} data-anime-entry-list-data={JSON.stringify(animeEntry.listData)}>
             <MetaSection entry={animeEntry} details={animeDetails} detailsLoading={animeDetailsLoading} />
 
             <div
                 data-anime-entry-page-content-container
+                id="anime-episodes"
                 className={cn(
                     "px-4 md:px-8 relative z-[8]",
                     (currentView === "onlinestream" && vc_fullscreen) && "z-[100]",
@@ -405,6 +406,7 @@ export function AnimeEntryPage() {
                                 {/*    <h2 className="text-xl lg:text-3xl flex items-center gap-3">Online streaming</h2>*/}
                                 {/*</div>*/}
                                 <OnlinestreamPage
+                                    key={IS_ANDROID_APP ? animeEntry.mediaId : undefined}
                                     animeEntry={animeEntry}
                                     animeEntryLoading={animeEntryLoading}
                                     hideBackButton

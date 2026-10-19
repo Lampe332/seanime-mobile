@@ -23,6 +23,7 @@ import { useToggle } from "react-use"
 import { z } from "zod"
 
 type AnilistMediaEntryModalProps = {
+    mobileEntry?: boolean
     children?: React.ReactNode
     listData?: Anime_EntryListData | Manga_EntryListData
     media?: AL_BaseAnime | AL_BaseManga
@@ -59,7 +60,7 @@ function IsomorphicPopover(props: PopoverProps & ModalProps & { media?: AL_BaseA
         {...rest}
         title={title}
         titleClass="text-xl"
-        contentClass="max-w-3xl overflow-hidden"
+        contentClass={props.contentClass || "max-w-3xl overflow-hidden"}
     >
         {media?.bannerImage && <div
             data-anilist-media-entry-modal-banner-image-container
@@ -88,7 +89,7 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
     const [open, toggle] = useToggle(false)
     const [repeat, setRepeat] = React.useState<number | "">(0)
 
-    const { children, media, listData, hideButton, type = "anime", forceModal, ...rest } = props
+    const { children, media, listData, hideButton, type = "anime", forceModal, mobileEntry, ...rest } = props
 
     const user = useCurrentUser()
 
@@ -162,6 +163,7 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
             </>}
 
             {!!listData && <IsomorphicPopover
+                contentClass={mobileEntry ? "mobile-anime-dialog" : undefined}
                 forceModal={forceModal}
                 open={open}
                 onOpenChange={o => toggle(o)}
@@ -170,6 +172,7 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
                     {!hideButton && <>
                         {!!listData && <IconButton
                             data-anilist-media-entry-modal-edit-button
+                            aria-label="Edit list, progress and rating"
                             intent="white-subtle"
                             icon={<TbEdit />}
                             rounded

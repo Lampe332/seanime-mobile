@@ -40,7 +40,7 @@ export function OnlinestreamManualMappingModal(props: OnlinestreamManualMappingM
                 title="Manual match"
                 description="Match this anime to a search result from the provider."
                 trigger={children}
-                contentClass="max-w-4xl"
+                contentClass={import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? "mobile-anime-dialog" : "max-w-4xl"}
             >
                 <Content entry={entry} provider={provider} />
             </Modal>

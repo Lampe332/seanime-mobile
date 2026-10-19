@@ -293,7 +293,7 @@ export function MediaPageHeaderDetailsContainer(props: MediaPageHeaderDetailsCon
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-type MediaPageHeaderEntryDetailsProps = {
+export type MediaPageHeaderEntryDetailsProps = {
     children?: React.ReactNode
     coverImage?: string
     color?: string

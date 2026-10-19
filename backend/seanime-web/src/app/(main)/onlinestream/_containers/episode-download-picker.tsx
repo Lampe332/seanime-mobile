@@ -57,7 +57,7 @@ export function EpisodeDownloadPicker({ media, episodes, provider, server, quali
         <Button size="sm" rounded intent="gray-basic" leftIcon={<LuDownload />} disabled={!provider || !all.length} onClick={show} data-download-season>
             {t("Download season / episodes", "Staffel / Folgen herunterladen")}
         </Button>
-        <Modal open={open} onOpenChange={setOpen} title={t("Download episodes", "Folgen herunterladen")}>
+        <Modal open={open} onOpenChange={setOpen} contentClass={import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? "mobile-anime-dialog" : undefined} title={t("Download episodes", "Folgen herunterladen")}>
             <div className="space-y-4" data-episode-download-picker>
                 <div><h3 className="text-lg font-semibold">{media.title?.userPreferred || media.title?.romaji}</h3>
                     <p className="mt-1 text-sm text-[--muted]">{all.length} {t(episodeWord(all.length), all.length === 1 ? "Folge" : "Folgen")} · {dubbed ? "Dub" : t("Original audio", "Originalton")} · {quality || "Auto"}</p>

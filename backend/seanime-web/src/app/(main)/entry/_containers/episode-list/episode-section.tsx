@@ -207,6 +207,7 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
                         length={mainEpisodes.length}
                         renderItem={(index) => (
                             <EpisodeItem
+                                mobileEntry={import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"}
                                 key={mainEpisodes[index].localFile?.path || ""}
                                 episode={mainEpisodes[index]}
                                 media={media}

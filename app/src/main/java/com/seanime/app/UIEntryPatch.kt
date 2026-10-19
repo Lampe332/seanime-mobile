@@ -16,6 +16,7 @@ object UIEntryPatch {
                 window.__seanime_entry_observer = true;
 
                 function isEntryPage() {
+                    if (document.querySelector('[data-mobile-anime="true"]')) return false;
                     return /\/entry\?id=/.test(window.location.href);
                 }
 
@@ -195,6 +196,7 @@ object UIEntryPatch {
                 window.__seanime_moreinfo_init = true;
 
                 function isEntryPage() {
+                    if (document.querySelector('[data-mobile-anime="true"]')) return false;
                     return /\/entry\?id=/.test(window.location.href);
                 }
 

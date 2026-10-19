@@ -11,8 +11,10 @@ import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import React from "react"
 import { AiFillWarning } from "react-icons/ai"
 import { FaCirclePlay } from "react-icons/fa6"
+import { tr } from "@/lib/app-language"
 
 type EpisodeGridItemProps = {
+    mobileEntry?: boolean
     media: AL_BaseAnime,
     children?: React.ReactNode
     action?: React.ReactNode
@@ -46,6 +48,7 @@ export const EpisodeGridItem = React.memo((props: EpisodeGridItemProps & React.C
 
     const {
         children,
+        mobileEntry,
         action,
         image,
         onClick,
@@ -96,6 +99,7 @@ export const EpisodeGridItem = React.memo((props: EpisodeGridItemProps & React.C
             data-episode-number={episodeNumber}
             data-progress-number={progressNumber}
             data-is-watched={isWatched}
+            data-is-selected={isSelected}
             data-description={description}
             data-episode-title={episodeTitle}
             data-title={title}
@@ -112,6 +116,9 @@ export const EpisodeGridItem = React.memo((props: EpisodeGridItemProps & React.C
             )}
             {...rest}
         >
+            {mobileEntry && onClick && <button type="button" className="mobile-episode-target" disabled={disabled}
+                aria-label={`${tr("Play", "Abspielen")}: ${title}${episodeTitle ? ` · ${episodeTitle}` : ""}`}
+                aria-current={isSelected ? "true" : undefined} onClick={onClick} />}
 
             {isFiller && (
                 <Badge
@@ -150,7 +157,7 @@ export const EpisodeGridItem = React.memo((props: EpisodeGridItemProps & React.C
 
                         imageContainerClassName,
                     )}
-                    onClick={onClick}
+                    onClick={mobileEntry ? undefined : onClick}
                 >
                     <div data-episode-grid-item-image-overlay className="absolute z-[1] rounded-[--radius-md] w-full h-full"></div>
                     <div
@@ -255,6 +262,7 @@ export const EpisodeGridItem = React.memo((props: EpisodeGridItemProps & React.C
                         )}
                         >{fileName}</p>}
                     {children && children}
+                    {mobileEntry && <span className="mobile-episode-state">{isSelected ? tr("Selected", "Ausgewählt") : isWatched ? tr("Watched", "Gesehen") : disabled ? tr("Loading", "Lädt") : tr("Available", "Verfügbar")}</span>}
                 </div>
             </div>
 

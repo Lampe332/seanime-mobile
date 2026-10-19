@@ -1,1 +1,0 @@
-"use strict";(self.rspackChunkseanime_web=self.rspackChunkseanime_web||[]).push([[2627],{44035(e,s,n){var a=n(77458);let t=(0,n(58932).uV)("/_main/entry/")({component:a.a9});n.d(s,{},{Route:t})}}]);

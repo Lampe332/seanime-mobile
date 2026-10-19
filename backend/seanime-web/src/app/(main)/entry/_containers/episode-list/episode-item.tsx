@@ -31,7 +31,8 @@ export const EpisodeItemIsolation = createIsolation()
 
 const __metadataModalIsOpenAtom = atom(false)
 
-export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, onPlay, percentageComplete, minutesRemaining, onPlayExternally }: {
+export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, onPlay, percentageComplete, minutesRemaining, onPlayExternally, mobileEntry }: {
+    mobileEntry?: boolean,
     episode: Anime_Episode,
     media: AL_BaseAnime,
     onPlay?: ({ path, mediaId }: { path: string, mediaId: number }) => void,
@@ -64,6 +65,7 @@ export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, o
     return (
         <EpisodeItemIsolation.Provider>
             <EpisodeGridItem
+                mobileEntry={mobileEntry}
                 media={media}
                 image={episode.episodeMetadata?.image}
                 onClick={handleClick}

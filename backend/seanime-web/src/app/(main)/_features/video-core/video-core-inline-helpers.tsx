@@ -142,6 +142,7 @@ export function VideoCoreInlineHelperUpdateProgressButton() {
 const vc_inlineLayoutTheaterMode = atomWithStorage("sea-video-core-theater-mode", false)
 
 export type VideoCoreInlineLayoutProps = {
+    mobileEntry?: boolean
     mediaId?: string | number
     title?: string
     currentEpisodeNumber: number | null
@@ -157,6 +158,7 @@ export type VideoCoreInlineLayoutProps = {
 export function VideoCoreInlineLayout(props: VideoCoreInlineLayoutProps) {
     const {
         mediaId,
+        mobileEntry,
         title,
         hideBackButton,
         leftHeaderActions,
@@ -180,7 +182,7 @@ export function VideoCoreInlineLayout(props: VideoCoreInlineLayoutProps) {
 
     // Sync episode list height with media player container height
     React.useEffect(() => {
-        if (!mediaPlayerContainerRef.current || !contentContainerRef.current || theaterMode) return
+        if (mobileEntry || !mediaPlayerContainerRef.current || !contentContainerRef.current || theaterMode) return
         const updateHeight = () => {
             if (!mediaPlayerContainerRef.current || !contentContainerRef.current) return
             const height = mediaPlayerContainerRef.current.offsetHeight
@@ -242,7 +244,7 @@ export function VideoCoreInlineLayout(props: VideoCoreInlineLayoutProps) {
 
 
     return (
-        <div data-vc-element="inline-layout" className="space-y-4">
+        <div data-vc-element="inline-layout" data-mobile-episode-layout={mobileEntry || undefined} className="space-y-4">
             <div data-vc-element="inline-layout-header" className="flex flex-col lg:flex-row w-full justify-between">
                 {!hideBackButton && <div data-vc-element="inline-layout-go-back" className="flex w-full gap-4 items-center relative">
                     <SeaLink href={`/entry?id=${mediaId}`}>

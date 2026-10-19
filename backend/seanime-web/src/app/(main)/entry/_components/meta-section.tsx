@@ -39,6 +39,7 @@ import { MdOutlineConnectWithoutContact } from "react-icons/md"
 import { SiAnilist } from "react-icons/si"
 import { useNakamaStatus } from "../../_features/nakama/nakama-manager"
 import { PluginAnimePageButtons } from "../../_features/plugin/actions/plugin-actions"
+import { MobileAnimeHeaderShell, MobileAnimeHeaderContainer, MobileAnimeHeaderDetails } from "./mobile-anime-header"
 
 const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
@@ -72,15 +73,19 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
         setView,
     })
 
+    const Header = IS_ANDROID_APP ? MobileAnimeHeaderShell : MediaPageHeader
+    const HeaderContainer = IS_ANDROID_APP ? MobileAnimeHeaderContainer : MediaPageHeaderDetailsContainer
+    const HeaderDetails = IS_ANDROID_APP ? MobileAnimeHeaderDetails : MediaPageHeaderEntryDetails
+
     return (
-        <MediaPageHeader
+        <Header
             backgroundImage={entry.media?.bannerImage}
             coverImage={entry.media?.coverImage?.extraLarge}
         >
 
-            <MediaPageHeaderDetailsContainer>
+            <HeaderContainer>
 
-                <MediaPageHeaderEntryDetails
+                <HeaderDetails
                     coverImage={entry.media?.coverImage?.extraLarge || entry.media?.coverImage?.large}
                     title={entry.media?.title?.userPreferred}
                     color={entry.media?.coverImage?.color}
@@ -174,7 +179,7 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                         </div>
 
                     </div>
-                </MediaPageHeaderEntryDetails>
+                </HeaderDetails>
 
                 <PluginWebviewSlot slot="after-media-entry-details" />
 
@@ -265,9 +270,9 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                 )}
 
 
-            </MediaPageHeaderDetailsContainer>
+            </HeaderContainer>
 
-        </MediaPageHeader>
+        </Header>
 
     )
 

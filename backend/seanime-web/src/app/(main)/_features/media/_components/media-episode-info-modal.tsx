@@ -10,6 +10,7 @@ import { MdInfo } from "react-icons/md"
 import { useWindowSize } from "react-use"
 
 type MediaEpisodeInfoModalProps = {
+    mobileEntry?: boolean
     title?: Nullish<string>
     image?: Nullish<string>
     episodeTitle?: Nullish<string>
@@ -37,7 +38,7 @@ function IsomorphicPopover(props: PopoverProps & ModalProps) {
         {...rest}
         title={title}
         titleClass="text-xl"
-        contentClass="max-w-2xl overflow-hidden"
+        contentClass={props.contentClass || "max-w-2xl overflow-hidden"}
     >
         {children}
     </Modal>
@@ -47,6 +48,7 @@ export function MediaEpisodeInfoModal(props: MediaEpisodeInfoModalProps) {
 
     const {
         title,
+        mobileEntry,
         image,
         episodeTitle,
         airDate,
@@ -62,9 +64,11 @@ export function MediaEpisodeInfoModal(props: MediaEpisodeInfoModalProps) {
     return (
         <>
             <IsomorphicPopover
+                contentClass={mobileEntry ? "mobile-anime-dialog" : undefined}
                 data-media-episode-info-modal
                 trigger={<IconButton
                     icon={<MdInfo />}
+                    aria-label={`${title || "Episode"}: Info`}
                     className="opacity-30 hover:opacity-100 transform-opacity"
                     intent="gray-basic"
                     size="xs"
