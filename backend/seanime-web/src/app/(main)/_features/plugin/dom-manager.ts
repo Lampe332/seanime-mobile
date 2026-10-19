@@ -52,7 +52,8 @@ export function useDOMManager(extensionId: string) {
     const { sendPluginMessage } = useWebsocketSender()
 
     // Store initial element IDs to ensure persistence across rerenders
-    const elementIdsMapRef = useRef<Map<Element, string>>(new Map())
+    // Weak keys: elements handed to a plugin must not outlive their page (e.g. Home cards).
+    const elementIdsMapRef = useRef<WeakMap<Element, string>>(new WeakMap())
     const elementObserversRef = useRef<Map<string, {
         selector: string;
         withInnerHTML?: boolean;
@@ -530,6 +531,15 @@ export function useDOMManager(extensionId: string) {
 
         if (!element) {
             // console.error(`Element with ID ${elementId} not found`)
+            // The target left the page (e.g. Home unmounted): a still-unplaced plugin element
+            // meant for it would otherwise stay in the hidden container forever.
+            const pendingId = action === "appendChild" || action === "append" ? params?.childId
+                : action === "before" || action === "after" ? params?.siblingId : undefined
+            const pending = pendingId && createdElementsRef.current.has(pendingId) ? document.getElementById(pendingId) : null
+            if (pending?.parentElement?.id === "plugin-dom-container") {
+                pending.remove()
+                createdElementsRef.current.delete(pendingId)
+            }
             safeSendPluginMessage(PluginClientEvents.DOMElementUpdated, {
                 elementId,
                 action,
@@ -544,6 +554,8 @@ export function useDOMManager(extensionId: string) {
         // Utility to safely store original value in data-original attribute
         const storeOriginalValue = (el: Element, type: string, key: string, value: any) => {
             if (!(el instanceof HTMLElement)) return
+            // Objects such as a CSSStyleDeclaration serialize to hundreds of keys per element.
+            if (value !== null && typeof value === "object") return
 
             let originalData: Record<string, Record<string, any>> = {}
             if (el.dataset.original) {
@@ -877,7 +889,7 @@ export function useDOMManager(extensionId: string) {
             eventListenersRef.current.clear()
             observedElementsRef.current.clear()
             createdElementsRef.current.clear()
-            elementIdsMapRef.current.clear()
+            elementIdsMapRef.current = new WeakMap()
             intersectionObserversRef.current.clear()
             return
         }
@@ -919,7 +931,7 @@ export function useDOMManager(extensionId: string) {
         eventListenersRef.current.clear()
         observedElementsRef.current.clear()
         createdElementsRef.current.clear()
-        elementIdsMapRef.current.clear()
+        elementIdsMapRef.current = new WeakMap()
 
         // Remove plugin container if it exists and is empty
         const container = document.getElementById("plugin-dom-container")
