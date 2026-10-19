@@ -1,6 +1,7 @@
 import { Updater_Update } from "@/api/generated/types"
 import { useGetChangelog } from "@/api/hooks/releases.hooks"
 import React from "react"
+import { useTr } from "@/lib/app-language"
 import { IS_MOBILE_APP } from "@/lib/app-updates"
 import { AiFillExclamationCircle } from "react-icons/ai"
 
@@ -22,6 +23,7 @@ export function UpdateChangelogBody(props: UpdateChangelogBodyProps) {
         !IS_MOBILE_APP && !!updateData?.release?.version! && !!updateData?.current_version)
 
     const { body } = useUpdateChangelogBody(updateData)
+    const t = useTr()
 
     function RenderLines({ lines }: { lines: string[] }) {
         return <>
@@ -59,9 +61,10 @@ export function UpdateChangelogBody(props: UpdateChangelogBodyProps) {
         <>
             <div className="bg-gray-950/50 rounded-[--radius] p-4 max-h-[70vh] overflow-y-auto halo-2">
                 {body.some(n => n.includes("🚑️")) &&
-                    <p className="text-red-300 font-semibold flex gap-2 items-center">This update includes a critical patch</p>}
+                    <p className="text-red-300 font-semibold flex gap-2 items-center">{IS_MOBILE_APP ? t("This update includes a critical patch", "Dieses Update enthält eine kritische Korrektur") : "This update includes a critical patch"}</p>}
                 <div className="rounded-[--radius] space-y-1">
-                    <h5>What's new?</h5>
+                    <h5>{IS_MOBILE_APP ? t("What’s new", "Was ist neu?") : "What's new?"}</h5>
+                    {IS_MOBILE_APP && !body.length && <p>{t("No release notes provided.", "Keine Releaseinformationen vorhanden.")}</p>}
                     <RenderLines lines={body} />
                 </div>
             </div>

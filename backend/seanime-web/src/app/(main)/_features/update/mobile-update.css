@@ -1,0 +1,47 @@
+/* Shared by the menu portal, sidebar and release dialog. The menu supplies its surface. */
+.mobile-update { --update-accent: rgb(var(--color-brand-300, 199 194 255)); color: #e9e7f0; min-width: 0; margin: 0; padding: 16px; font-size: .875rem; line-height: 1.5; overflow-wrap: anywhere; }
+#__seanime_update_menu_host { border-bottom: 1px solid rgba(199,194,255,.12); margin-bottom: 6px; }
+.mobile-update__header { display: flex; align-items: center; gap: 12px; }
+.mobile-update__icon { display: grid; place-items: center; flex: 0 0 40px; height: 40px; border-radius: 14px; color: var(--update-accent); background: rgba(139,92,246,.12); }
+.mobile-update svg { width: 20px; height: 20px; flex-shrink: 0; }
+.mobile-update__icon svg { width: 24px; height: 24px; }
+.mobile-update__identity { flex: 1; min-width: 0; }
+.mobile-update__identity strong { display: block; font-size: 1rem; line-height: 1.4; font-weight: 650; }
+.mobile-update__versions { display: flex; flex-wrap: wrap; column-gap: 12px; row-gap: 2px; margin-top: 2px; font-size: .8125rem; color: #b5b0c4; }
+.mobile-update__versions b { font-weight: 500; color: #d8d4e4; font-variant-numeric: tabular-nums; }
+.mobile-update__versions .mobile-update__target, .mobile-update__target b { color: var(--update-accent); }
+.mobile-update__status { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; font-weight: 500; }
+.mobile-update__status svg, .mobile-update__spinner { width: 16px; height: 16px; margin-top: .2em; color: var(--update-accent); flex: 0 0 16px; }
+.mobile-update__spinner { display: inline-block; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: mobile-update-spin .8s linear infinite; }
+.mobile-update__hint, .mobile-update__notice, .mobile-update__error { margin: 8px 0 0; color: #b5b0c4; font-size: .8125rem; line-height: 1.55; }
+.mobile-update__notice { margin-top: 12px; }
+.mobile-update[data-update-tone=error] .mobile-update__status, .mobile-update[data-update-tone=error] .mobile-update__status svg { color: #fda4af; }
+.mobile-update__error { color: #fecdd3; padding-inline-start: 10px; border-inline-start: 2px solid rgba(251,113,133,.5); white-space: pre-wrap; }
+.mobile-update__transfer { margin-top: 12px; }
+.mobile-update__transfer progress { display: block; width: 100%; accent-color: var(--update-accent); }
+.mobile-update__bytes { margin: 6px 0 0; color: #b5b0c4; font-size: .75rem; font-variant-numeric: tabular-nums; text-align: end; }
+.mobile-update__actions { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 10px; }
+/* Existing buttons force one line and fixed height. Update actions wrap with enlarged text. */
+.mobile-update .mobile-update__actions button { min-height: 44px; height: auto; max-width: 100%; min-width: 0; padding: 10px 12px; border-radius: 12px; white-space: normal; line-height: 1.45; font: inherit; font-weight: 550; overflow-wrap: anywhere; transition: background-color .15s; }
+.mobile-update .mobile-update__primary { flex: 1 1 100%; background: rgba(97,82,223,.85); border: 1px solid rgba(199,194,255,.25); color: #fff; }
+.mobile-update .mobile-update__primary:hover { background: rgb(97,82,223); }
+.mobile-update .mobile-update__secondary { background: transparent; color: var(--update-accent); border-color: transparent; margin-inline-start: -8px; }
+.mobile-update .mobile-update__secondary:hover { background: rgba(139,92,246,.1); }
+.mobile-update button:focus-visible { outline: 2px solid var(--update-accent); outline-offset: 2px; }
+.mobile-update button:disabled { opacity: .65; }
+/* Native navigation uses 999998; only this overlay must sit above it. Native modal
+   patches force width/padding with !important, so scope the exceptions here. */
+.mobile-update-overlay.UI-Modal__overlay { z-index: 1000000; }
+.mobile-update-dialog.UI-Modal__content { width: calc(100% - 24px) !important; max-width: 36rem !important; margin-block: 12px; padding: 20px !important; gap: 0; border-radius: 24px; background: #12101c; border: 1px solid rgba(199,194,255,.16); max-height: calc(100dvh - 24px) !important; overflow-y: auto; overscroll-behavior: contain; }
+.mobile-update-dialog__title { text-align: start; padding-inline-end: 44px; font-size: 1.125rem; }
+.mobile-update-dialog__close { min-width: 44px; min-height: 44px; top: 8px; right: 8px; }
+.mobile-update-dialog .mobile-update { padding: 20px 0 16px; }
+.mobile-update-dialog .mobile-update__identity strong { font-size: 1.125rem; }
+.mobile-update-dialog .mobile-update__secondary { display: none; }
+.mobile-update-release { min-width: 0; overflow-wrap: anywhere; border-top: 1px solid rgba(199,194,255,.12); padding-top: 16px; }
+.mobile-update-release > div { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; max-height: none; overflow: visible; }
+.mobile-update-release h5 { color: #e9e7f0; font-size: .875rem; margin-bottom: 10px; }
+.mobile-update-release p { font-size: .875rem; line-height: 1.65; color: #bfbaca; }
+@keyframes mobile-update-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .mobile-update *, .mobile-update-dialog, .mobile-update-overlay { animation: none !important; transition: none !important; } }
+@media (max-width: 360px) { .mobile-update { padding: 12px; } .mobile-update-dialog.UI-Modal__content { padding: 16px !important; } }

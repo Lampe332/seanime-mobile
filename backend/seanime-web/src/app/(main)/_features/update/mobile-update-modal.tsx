@@ -11,6 +11,7 @@ import { useTr } from "@/lib/app-language"
 import { updateModalOpenAtom } from "./update-modal"
 import { toast } from "sonner"
 import { UpdateChangelogBody } from "./update-helper"
+import "./mobile-update.css"
 
 /** Both surfaces are rendered by this owner; native DownloadManager remains the durable authority. */
 export function MobileUpdateModal() {
@@ -73,35 +74,57 @@ export function MobileUpdateModal() {
         : download.status === "permission" ? t("Allow installation from this source to continue", "Installation aus dieser Quelle freigeben")
         : download.status === "confirmation" ? t("Android installation confirmation required", "Android-Installationsbestätigung erforderlich")
         : download.status === "complete" ? t("APK verified. Ready to install.", "APK geprüft. Bereit zur Installation.")
+        : starting ? t("Starting update…", "Update wird gestartet…")
         : busy ? `${t("Downloading", "Wird heruntergeladen")} ${percent === undefined ? "…" : `${percent}%`}`
         : isFetching ? t("Searching for updates…", "Suche nach Updates…")
-        : download.status === "failed" || download.status === "error" ? download.error
+        : download.status === "failed" || download.status === "error" ? t("Update interrupted", "Update unterbrochen")
         : error ? t("Could not check for updates. Check your connection and try again.", "Updates konnten nicht geprüft werden. Prüfe deine Verbindung und versuche es erneut.")
         : isLoading ? t("Searching for updates…", "Suche nach Updates…") : version
         ? t("New version available", "Neue Version verfügbar") : data ? t("Up to date", "Auf dem neuesten Stand") : t("Update check unavailable", "Updateprüfung nicht verfügbar")
     const installAction = download.status === "complete" || download.status === "permission" || download.status === "confirmation" || (download.status === "failed" && download.verified)
-    const summary = <section data-app-update-panel className="rounded-2xl border border-brand-300/20 bg-brand-300/5 p-3 my-2 space-y-2 min-w-0" aria-label={t("App update", "App-Update")}>
-        <div className="flex items-start gap-3">
-            <MobileIcon name={complete ? "check" : "update"} className="size-6 shrink-0 text-brand-300 mt-1" />
-            <div className="min-w-0 flex-1">
-                <strong className="block break-words">Seanime Mobile{version ? ` ${version}` : ""}</strong>
-                {data?.current_version && <small className="text-[--muted]">{t("Installed", "Installiert")}: {data.current_version}</small>}
-                <p role="status" className="text-sm break-words" data-download-status={download.status}>
-                    {isFetching && !busy && <span aria-hidden="true" data-update-check-spinner className="inline-block size-4 shrink-0 rounded-full border-2 border-current border-r-transparent align-[-0.15em] animate-spin" style={{ display: "inline-block", width: "1rem", height: "1rem", border: "2px solid currentColor", borderRightColor: "transparent", borderRadius: "50%", animation: "spin .8s linear infinite" }} />}
-                    {status}
-                </p>
+    const failed = download.status === "failed" || download.status === "error"
+    const working = busy || isFetching || isLoading
+    const installedVersion = complete ? download.version : data?.current_version
+    const formatBytes = (bytes: number) => new Intl.NumberFormat(t("en", "de"), { maximumFractionDigits: 1 }).format(bytes / (1024 * 1024)) + " MB"
+    const hint = download.status === "permission" ? t("Allow Seanime Mobile in Android settings, then return here to continue.", "Erlaube Seanime Mobile die Installation in den Android-Einstellungen und kehre anschließend zurück.")
+        : download.status === "confirmation" ? t("Continue in the Android installer. Android or Play Protect may ask you to confirm.", "Fahre im Android-Installer fort. Android oder Play Protect können eine Bestätigung verlangen.")
+        : download.status === "installing" ? t("Waiting for Android. The update is complete only when the installed version changes.", "Warten auf Android. Erst der bestätigte Versionswechsel schließt das Update ab.")
+        : download.status === "verifying" ? t("Checking the download, app version and signature.", "Download, App-Version und Signatur werden geprüft.")
+        : download.status === "preparing" ? t("Preparing the verified APK for Android.", "Die geprüfte APK wird für Android vorbereitet.")
+        : undefined
+    const summary = <section data-app-update-panel data-update-tone={failed || error ? "error" : complete ? "success" : "default"} className="mobile-update" aria-label={t("App update", "App-Update")}>
+        <header className="mobile-update__header">
+            <span className="mobile-update__icon"><MobileIcon name={complete ? "check" : "update"} /></span>
+            <div className="mobile-update__identity">
+                <strong>Seanime Mobile</strong>
+                <div className="mobile-update__versions">
+                    {installedVersion && <span>{t("Installed", "Installiert")}: <b>{installedVersion}</b></span>}
+                    {version && !complete && <span className="mobile-update__target">{t("Available", "Verfügbar")}: <b>{version}</b></span>}
+                </div>
             </div>
+        </header>
+        <div className="mobile-update__status" role="status" aria-live="polite" aria-atomic="true" data-download-status={download.status}>
+            {working ? <span aria-hidden="true" data-update-check-spinner={isFetching && !busy ? "" : undefined} className="mobile-update__spinner" />
+                : <MobileIcon name={failed || error ? "close" : version && !complete ? "update" : "check"} />}
+            <span>{status}</span>
         </div>
-        {download.status === "downloading" && <progress className="w-full accent-violet-400" aria-label={t("Download progress", "Downloadfortschritt")} max={100} value={percent} />}
-        {download.message && busy && <p className="text-sm text-[--muted]">{download.message}</p>}
-        {(version || installAction) && !complete && <p className="text-sm">{t("Installation interrupts playback and running downloads.", "Die Installation unterbricht Wiedergabe und laufende Downloads.")}</p>}
-        <div className="flex flex-wrap gap-2 [&_button]:min-h-12">
-            {version && !complete && !installAction && <Button intent="white" disabled={busy} onClick={start} leftIcon={<MobileIcon name="download" className="size-5" />}>
-                {busy ? t("Downloading…", "Wird heruntergeladen…") : download.status === "error" ? t("Retry download", "Download wiederholen") : t("Download and update", "Herunterladen und aktualisieren")}
+        {download.status === "downloading" && <div className="mobile-update__transfer">
+            <progress aria-label={t("Download progress", "Downloadfortschritt")} max={100} value={percent} />
+            {typeof download.bytes === "number" && <p className="mobile-update__bytes">{formatBytes(download.bytes)}{download.total && download.total > 0 ? ` / ${formatBytes(download.total)}` : ""}</p>}
+        </div>}
+        {hint && <p className="mobile-update__hint">{hint}</p>}
+        {download.message && busy && <p className="mobile-update__hint">{download.message === "Waiting for network / Android download service" ? t("Waiting for network or Android download service.", "Warten auf Netzwerk oder Android-Downloaddienst.") : download.message}</p>}
+        {failed && download.error && <p className="mobile-update__error">{download.error}</p>}
+        {(version || installAction) && !complete && <p className="mobile-update__notice">{t("Installation interrupts playback and running downloads.", "Die Installation unterbricht Wiedergabe und laufende Downloads.")}</p>}
+        <div className="mobile-update__actions">
+            {version && !complete && !installAction && <Button className="mobile-update__primary" intent="primary" disabled={busy} onClick={start} leftIcon={<MobileIcon name="download" />}>
+                {busy ? t("Update in progress…", "Update läuft…") : failed ? t("Retry download", "Download wiederholen") : t("Download and update", "Herunterladen und aktualisieren")}
             </Button>}
-            {installAction && <Button intent="white" disabled={busy} onClick={() => window.AppUpdater?.openDownloadedApk?.()}>{download.status === "confirmation" ? t("Confirm installation", "Installation bestätigen") : t("Install update", "Update installieren")}</Button>}
-            {version && <Button intent="gray-subtle" onClick={() => setOpen(true)}>{t("Update details", "Updateinformationen")}</Button>}
-            {!version && <Button type="button" intent="gray-subtle" disabled={isFetching} onClick={() => void checkAgain()}>
+            {installAction && <Button className="mobile-update__primary" intent="primary" disabled={busy} onClick={() => window.AppUpdater?.openDownloadedApk?.()} leftIcon={<MobileIcon name="update" />}>
+                {download.status === "confirmation" ? t("Confirm installation", "Installation bestätigen") : download.status === "permission" ? t("Allow installation", "Installation erlauben") : t("Install update", "Update installieren")}
+            </Button>}
+            {version && <Button className="mobile-update__secondary" intent="primary-basic" onClick={() => setOpen(true)}>{t("Update details", "Updateinformationen")}</Button>}
+            {!version && <Button className="mobile-update__secondary" type="button" intent="primary-basic" disabled={isFetching} onClick={() => void checkAgain()} leftIcon={<MobileIcon name="refresh" />}>
                 {isFetching ? t("Checking…", "Prüfung läuft…") : error ? t("Try again", "Erneut versuchen") : t("Check again", "Erneut prüfen")}
             </Button>}
         </div>
@@ -109,10 +132,10 @@ export function MobileUpdateModal() {
     return <>
         <div data-app-update-sidebar>{summary}</div>
         {host && createPortal(summary, host)}
-        <Modal open={open && !!version} onOpenChange={close} contentClass="max-w-3xl">
-            <h3>{t("App update", "App-Update")}</h3>
+        <Modal open={open && !!version} onOpenChange={close} title={t("App update", "App-Update")} contentClass="mobile-update-dialog" titleClass="mobile-update-dialog__title" closeClass="mobile-update-dialog__close" overlayClass="mobile-update-overlay"
+            closeButton={<Button intent="primary-basic" aria-label={t("Close update", "Update schließen")}><MobileIcon name="close" className="size-5" /></Button>}>
             {summary}
-            <UpdateChangelogBody updateData={data} />
+            <div className="mobile-update-release"><UpdateChangelogBody updateData={data} /></div>
         </Modal>
     </>
 }

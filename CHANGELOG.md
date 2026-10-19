@@ -2,6 +2,12 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.3 — 19.10.2026 (versionCode 31028)
+
+- ⚡️ Updates: Redesigned the update menu and dialog with clearer versions, compact actions, download size and consistent progress, permission and error states.
+- ⚡️ Updates: Improved text wrapping, reduced-motion support and localized release information headings.
+- 🦺 Updates: Keep the update dialog above the Android navigation menu so its controls remain reachable.
+
 ## 1.9.2 — 18.10.2026 (versionCode 31027)
 
 - 🦺 Update menu: Fixed the menu closing when checking for app updates.

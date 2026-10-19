@@ -104,6 +104,7 @@ with tempfile.TemporaryDirectory(prefix="seanime-mobile-update-test-") as temp_d
         for script in scripts:
             page.evaluate(script.replace("${'$'}", "$"))
         page.wait_for_selector('#__seanime_bottom_nav button[data-nav-id="menu"]')
+        page.add_style_tag(path=str(bundle.with_suffix(".css")))
         page.add_script_tag(path=str(bundle))
         page.wait_for_selector('[data-app-update-sidebar] [role="status"]', state="attached")
 
@@ -203,10 +204,50 @@ with tempfile.TemporaryDirectory(prefix="seanime-mobile-update-test-") as temp_d
         page.locator('#android-floating-menu [data-app-update-panel] button').filter(has_text="Erneut prüfen").click()
         wait_for_request(page, baseline + 7)
         respond(page, {"type":"app", "current_version":"1.9.1", "release":{"version":"1.9.2"}})
-        page.wait_for_selector('#android-floating-menu [data-app-update-panel] strong:text("Seanime Mobile 1.9.2")')
+        page.wait_for_selector('#android-floating-menu [data-app-update-panel] .mobile-update__target:has-text("1.9.2")')
         record("newer version shows the release number and existing download action", "Herunterladen und aktualisieren" in page.locator('#android-floating-menu [data-app-update-panel]').inner_text() and menu.is_visible())
 
         record("Android Back still closes the menu", page.evaluate(back_script.replace("${'$'}", "$")) is True and not menu.is_visible())
+        # Controlled presentation states only; these do not invoke an installer.
+        menu_button.click()
+        menu.wait_for(state="visible")
+        page.evaluate("window.AppUpdater.getDownloadState = () => JSON.stringify(window.__presentationState || {status:'idle'})")
+        states = [
+            ({"status":"downloading","version":"1.9.2","bytes":25000000,"total":67000000}, "Wird heruntergeladen", True),
+            ({"status":"downloading","version":"1.9.2","bytes":0,"message":"Waiting for network / Android download service"}, "Wird heruntergeladen", True),
+            ({"status":"verifying","version":"1.9.2"}, "APK wird geprüft", True),
+            ({"status":"preparing","version":"1.9.2"}, "Installation wird vorbereitet", True),
+            ({"status":"permission","version":"1.9.2","verified":True}, "Installation aus dieser Quelle", False),
+            ({"status":"confirmation","version":"1.9.2","verified":True}, "Android-Installationsbestätigung", False),
+            ({"status":"installing","version":"1.9.2","verified":True}, "Installation angefordert", True),
+            ({"status":"complete","version":"1.9.2"}, "APK geprüft", False),
+            ({"status":"failed","version":"1.9.2","verified":True,"error":"Installation cancelled. You can retry the verified APK."}, "Update unterbrochen", False),
+            ({"status":"error","error":"Download failed (Android 1006). Please retry."}, "Update unterbrochen", False),
+        ]
+        panel = page.locator('#android-floating-menu [data-app-update-panel]')
+        for state, expected, disabled in states:
+            page.evaluate("state => {window.__presentationState=state;document.dispatchEvent(new Event('visibilitychange'))}", state)
+            page.wait_for_function("expected => document.querySelector('#android-floating-menu [role=status]')?.textContent.includes(expected)", arg=expected)
+            record("presentation: " + state["status"], expected in panel.inner_text() and panel.locator('button').first.is_disabled() == disabled)
+            record("menu/dialog share " + state["status"], panel.locator('[role=status]').inner_text() == page.locator('[data-update-dialog] [role=status]').inner_text())
+            if state.get("total"):
+                record("actual bytes and percent", panel.locator('progress').get_attribute('value') == '37' and '23,8 MB / 63,9 MB' in panel.inner_text())
+            if evidence_dir:
+                page.screenshot(path=str(evidence_path / ("presentation-" + state["status"] + ("-waiting" if "message" in state else "") + ".png")), full_page=True)
+        page.emulate_media(reduced_motion="reduce")
+        page.evaluate("window.__presentationState={status:'verifying'};document.dispatchEvent(new Event('visibilitychange'))")
+        page.wait_for_function("document.querySelector('#android-floating-menu [role=status]')?.textContent.includes('APK wird geprüft')")
+        record("reduced motion stops spinner", panel.locator('.mobile-update__spinner').evaluate("e=>getComputedStyle(e).animationName") == "none")
+        page.set_viewport_size({"width":320,"height":640})
+        page.add_style_tag(content="html{font-size:32px}")
+        page.evaluate("window.__presentationState={status:'failed',verified:true,error:'INSTALL_FAILED_ABORTED: '+ 'long-error-detail-'.repeat(20)};document.dispatchEvent(new Event('visibilitychange'))")
+        page.wait_for_function("document.querySelector('#android-floating-menu [role=status]')?.textContent.includes('Update unterbrochen')")
+        record("320px and 200% text actions wrap", panel.evaluate("e=>e.scrollWidth<=e.clientWidth+1 && [...e.querySelectorAll('button')].every(b=>b.getBoundingClientRect().height>=44 && b.scrollWidth<=b.clientWidth+2)"))
+        if evidence_dir:
+            page.screenshot(path=str(evidence_path / 'presentation-small-large-text.png'), full_page=True)
+        page.evaluate("window.__presentationState={status:'installed',version:'1.9.2'};window.AppUpdater.acknowledgeInstalledUpdate=()=>window.__ackCount=(window.__ackCount||0)+1;document.dispatchEvent(new Event('visibilitychange'))")
+        page.wait_for_function("document.querySelector('#android-floating-menu [role=status]')?.textContent.includes('Update erfolgreich installiert')")
+        record("confirmed native installed fixture acknowledges once", page.evaluate("window.__ackCount") == 1)
         record("no JavaScript errors", not errors, errors)
         browser.close()
 
