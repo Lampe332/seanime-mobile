@@ -2,6 +2,11 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.6 — 19.10.2026 (versionCode 31031)
+
+- ⚡️ Home: Replaced the background banner with a compact, image-independent header, integrated Plugins action and subtle static background accents.
+- ⚡️ Plugins: Refined the Home chooser into a compact bottom sheet with separate open and pin targets, clear pinned states and keyboard-aware scrolling.
+
 ## 1.9.5 — 19.10.2026 (versionCode 31030)
 
 - ⚡️ Home: Refined the banner crop and fade, image-led continuation cards and the customization sheet with clearer section controls.

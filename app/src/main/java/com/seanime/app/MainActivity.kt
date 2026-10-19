@@ -194,7 +194,7 @@ class MainActivity : Activity() {
                 right = insets.systemWindowInsetRight
             }
 
-            val js = "window.__seanimeInsets = { top: $top, bottom: $bottom, left: $left, right: $right };"
+            val js = "window.__seanimeInsets = { top: $top, bottom: $bottom, left: $left, right: $right }; window.dispatchEvent(new Event('seanime:window-insets'));"
             view.setPadding(left, top, right, bottom)
             view.post { (view as? WebView)?.evaluateJavascript(js, null) }
             insets

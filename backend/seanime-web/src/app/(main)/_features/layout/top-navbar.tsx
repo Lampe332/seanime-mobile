@@ -1,3 +1,5 @@
+import { useWindowSize } from "@uidotdev/usehooks"
+import { HomeMobileHeader } from "../home/home-mobile-header"
 import { LayoutHeaderBackground } from "@/app/(main)/_features/layout/_components/layout-header-background"
 import { TopMenu } from "@/app/(main)/_features/navigation/top-menu"
 import { OfflineTopMenu } from "@/app/(main)/_features/offline/_components/offline-top-menu"
@@ -31,13 +33,19 @@ export function TopNavbar(props: TopNavbarProps) {
     const serverStatus = useServerStatus()
     const isOffline = serverStatus?.isOffline
     const ts = useThemeSettings()
+    const pathname = usePathname()
+    const { width } = useWindowSize()
+    const mobileHome = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && !!width && width < 1024 && pathname === "/" && !isOffline
+    const NavbarFrame = mobileHome ? HomeMobileHeader : React.Fragment
 
     return (
         <>
             <div
                 data-top-navbar
+                data-home-navbar={mobileHome || undefined}
                 className={cn(
                     "w-full h-[5rem] relative overflow-hidden flex items-center",
+                    mobileHome && "max-lg:h-auto",
                     (ts.hideTopNavbar || __isDesktop__) && "lg:hidden",
                     // __isDesktop__ && "absolute top-0 left-0 z-[-1]"
                 )}
@@ -48,6 +56,7 @@ export function TopNavbar(props: TopNavbarProps) {
                 {/*        style={{ WebkitAppRegion: "drag" } as any}*/}
                 {/*    />*/}
                 {/*)}*/}
+                <NavbarFrame>
                 <div
                     data-top-navbar-content-container
                     className="relative z-10 px-4 w-full flex flex-row md:items-center overflow-x-auto overflow-y-hidden"
@@ -60,11 +69,12 @@ export function TopNavbar(props: TopNavbarProps) {
                         <PlaybackManagerProgressTrackingButton />
                         <ManualProgressTrackingButton />
                         <div data-top-navbar-content-separator className="flex flex-1"></div>
-                        <PluginSidebarTray place="top" />
+                        <PluginSidebarTray place="top" homeMobile={mobileHome} />
                         {!isOffline && <ChapterDownloadsButton />}
                         {/*{!isOffline && <RefreshAnilistButton />}*/}
                     </div>
                 </div>
+                </NavbarFrame>
                 <LayoutHeaderBackground />
             </div>
         </>

@@ -1,0 +1,43 @@
+/* Android scrolls the root element; Radix locks body only. Keep the root offset intact. */
+html:has(.mobile-plugin-sheet[data-state="open"]) { overflow-y: hidden !important; overscroll-behavior: none; }
+.mobile-plugin-trigger { display: inline-flex; align-items: center; justify-content: center; gap: .55rem; min-height: 44px; padding: .65rem .85rem; border: 1px solid #c5a7ff55; border-radius: .9rem; background: #a47add20; color: #eee3ff; font-size: .875rem; font-weight: 600; }
+.mobile-plugin-trigger svg, .mobile-plugin-heading-icon svg { width: 22px; height: 22px; flex: none; }
+.mobile-plugin-trigger:active, .mobile-plugin-trigger[data-state="open"] { background: #ad83ec40; border-color: #d5baff; }
+.mobile-plugin-trigger:focus-visible, .mobile-plugin-sheet button:focus-visible { outline: 2px solid #d3b4ff; outline-offset: 2px; }
+.mobile-plugin-overlay { touch-action: none; position: fixed; inset: 0; z-index: 100; background: #07050db8; animation: none !important; }
+.UI-Modal__content.mobile-plugin-sheet { position: fixed; z-index: 101; inset: auto 0 var(--plugin-keyboard-inset,0px); margin: 0 auto; width: 100% !important; max-width: 32rem !important; height: min(78dvh,42rem); max-height: calc(var(--plugin-viewport-height,100dvh) - max(12px,env(safe-area-inset-top),var(--plugin-safe-top,0px))) !important; display: flex; flex-direction: column; gap: 0; padding: .85rem 1rem max(.75rem,env(safe-area-inset-bottom)) !important; border: 1px solid #bca1eb40; border-bottom: 0; border-radius: 1.5rem 1.5rem 0 0; background: linear-gradient(130deg,#282035,#19151f 40%); overflow: hidden !important; box-shadow: 0 -8px 32px #0004; animation: none !important; outline: none; }
+.mobile-plugin-heading { display: flex; align-items: center; gap: .65rem; flex: none; padding: 0 0 .65rem; }
+.mobile-plugin-heading-icon { display: grid; place-items: center; color: #cdb1fa; width: 40px; height: 40px; border-radius: .8rem; background: #be99f217; }
+.mobile-plugin-heading h2 { flex: 1; min-width: 0; font-size: 1.125rem; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; }
+.mobile-plugin-heading h2 span { color: #b5a6c6; font-size: .8125rem; font-weight: 500; }
+.mobile-plugin-sheet button { -webkit-tap-highlight-color: transparent; }
+.mobile-plugin-close, .mobile-plugin-search button, .mobile-plugin-pin { display: grid; place-items: center; width: 44px; min-width: 44px; min-height: 44px; flex: none; border-radius: .75rem; color: #c5b7d8; }
+.mobile-plugin-close { background: #ffffff08; }
+.mobile-plugin-close svg, .mobile-plugin-search svg, .mobile-plugin-pin svg { width: 20px; height: 20px; flex: none; }
+.mobile-plugin-search { display: flex; align-items: center; gap: .6rem; border: 1px solid #bca1eb30; border-radius: .85rem; background: #100d17; padding: 0 .65rem; margin-bottom: .75rem; min-height: 44px; flex: none; color: #a997c0; }
+.mobile-plugin-search:focus-within { border-color: #c8a6ff; box-shadow: 0 0 0 2px #c8a6ff24; }
+.mobile-plugin-search input { width: 100%; min-width: 0; min-height: 44px; padding: .5rem 0; font-size: 1rem; line-height: 1.4; border: none; outline: none; box-shadow: none !important; color: #f1eafa; background: transparent; }
+.mobile-plugin-search input::placeholder { color: #a193b3; }
+.mobile-plugin-search input::-webkit-search-cancel-button { display: none; }
+.mobile-plugin-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #685576 transparent; padding: 2px 3px 4px; }
+.mobile-plugin-row { display: flex; align-items: center; gap: .25rem; min-width: 0; padding: .25rem 0; border-bottom: 1px solid #b9a3d414; }
+.mobile-plugin-row[data-pinned="true"] { background: #ac80ef0c; border-radius: .8rem; }
+.mobile-plugin-open { display: flex; align-items: center; flex: 1; min-width: 0; min-height: 52px; gap: .7rem; border-radius: .75rem; padding: .4rem .25rem; text-align: left; color: #ede7f5; }
+.mobile-plugin-icon { display: grid; place-items: center; position: relative; width: 36px; height: 36px; flex: none; border: 1px solid #c5b4df24; border-radius: .65rem; background: #ffffff06; color: #bea3e5; overflow: hidden; }
+.mobile-plugin-icon img { width: 28px; height: 28px; object-fit: contain; }
+.mobile-plugin-icon svg { width: 22px; height: 22px; }
+.mobile-plugin-name { min-width: 0; flex: 1; font-size: .875rem; line-height: 1.4; overflow-wrap: anywhere; }
+.mobile-plugin-name small { display: block; font-size: .6875rem; line-height: 1.5; color: #c5a5f4; }
+.mobile-plugin-chevron { width: 16px; height: 16px; flex: none; color: #897a9d; }
+.mobile-plugin-pin { border: 1px solid transparent; }
+.mobile-plugin-pin[aria-pressed="true"] { color: #d8bbff; background: #b184f31c; border-color: #c29bf33a; }
+.mobile-plugin-pin:disabled { opacity: .4; }
+.mobile-plugin-open:active, .mobile-plugin-close:active, .mobile-plugin-pin:active { background: #b89bdd26; }
+.mobile-plugin-empty { display: grid; justify-items: center; gap: .75rem; padding: 2rem .5rem; text-align: center; color: #c3b5d4; font-size: .875rem; }
+.mobile-plugin-empty > svg { width: 32px; height: 32px; color: #b398d7; }
+.mobile-plugin-status { flex: none; padding: .5rem; font-size: .8125rem; color: #d5bfeb; line-height: 1.5; }
+.mobile-plugin-status button { min-height: 44px; padding: .4rem; text-decoration: underline; }
+.mobile-plugin-debug { flex: none; max-height: 20%; overflow-y: auto; }
+.mobile-plugin-debug > div { display: flex; align-items: center; gap: .5rem; }
+.mobile-plugin-debug span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.mobile-plugin-debug button { min-width: 44px; min-height: 44px; }

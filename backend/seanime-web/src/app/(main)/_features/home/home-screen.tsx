@@ -55,7 +55,6 @@ import { MediaEntryCard } from "../media/_components/media-entry-card"
 import { MediaEntryCardSkeleton } from "../media/_components/media-entry-card-skeleton"
 import { MediaEntryPageLoadingDisplay } from "../media/_components/media-entry-page-loading-display"
 
-import { HomeMobileHeader } from "./home-mobile-header"
 import { useTr } from "@/lib/app-language"
 import "./home-mobile.css"
 
@@ -137,14 +136,12 @@ export function HomeScreen() {
 
 
     if (mobileHome && (homeItemsError || (collectionError && !hasEntries))) return <div data-home-screen data-home-mobile="true">
-        <HomeMobileHeader />
         <div className="home-state" role="alert"><h2>{tr("Home could not load", "Startseite konnte nicht geladen werden")}</h2>
             <p>{tr("Your saved layout is still available. Try loading it again.", "Deine gespeicherte Anordnung bleibt erhalten. Versuche es erneut.")}</p>
             <Button onClick={() => { retryHomeItems(); retryCollection() }}>{tr("Try again", "Erneut versuchen")}</Button>
         </div>
     </div>
     if (mobileHome && (isLoading || isLoadingItems)) return <div data-home-screen data-home-mobile="true" aria-busy="true" aria-label={tr("Loading Home", "Startseite wird geladen")}>
-        <HomeMobileHeader />
         <div className="home-state"><Skeleton className="h-8 w-40 mb-4" /><Skeleton className="h-48 rounded-xl" /></div>
     </div>
     if (isLoading || isLoadingItems) return <React.Fragment>
@@ -175,7 +172,6 @@ export function HomeScreen() {
     if (!hasEntries && isAnimeLibraryItemsOnly(homeItems) && !isLoading) {
         return (
             <div data-home-screen="no-entries" data-home-mobile={mobileHome || undefined} className="contents">
-                {mobileHome && <HomeMobileHeader />}
                 <React.Fragment>
                     {!mobileHome && <DiscoverPageHeader />}
                     <div className="h-0 visibility-hidden pointer-events-none opacity-0">
@@ -276,7 +272,6 @@ export function HomeScreen() {
 
     return (
         <div data-home-screen data-home-mobile={mobileHome || undefined} className="contents">
-            {mobileHome && <HomeMobileHeader episode={continueWatchingList[0]} />}
 
             {/*Discover Page Header*/}
             {homeItems[0]?.type === "discover-header" && <React.Fragment>

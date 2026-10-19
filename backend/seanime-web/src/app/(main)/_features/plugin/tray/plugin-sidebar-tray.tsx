@@ -1,3 +1,4 @@
+import { MobilePluginMenu } from "./mobile-plugin-menu"
 import { tr } from "@/lib/app-language"
 import { Extension_Extension, ExtensionRepo_StoredPluginSettingsData } from "@/api/generated/types"
 import {
@@ -329,7 +330,7 @@ const ExtensionList = ({
     )
 }
 
-export function PluginSidebarTray({ place }: { place: "sidebar" | "top" }) {
+export function PluginSidebarTray({ place, homeMobile = false }: { place: "sidebar" | "top"; homeMobile?: boolean }) {
     const { isFeatureDisabled } = useServerDisabledFeatures()
     const { width } = useWindowSize()
     const [trayIcons, setTrayIcons] = useAtom(__plugin_trayIconsAtom)
@@ -411,7 +412,7 @@ export function PluginSidebarTray({ place }: { place: "sidebar" | "top" }) {
 
     usePluginListenTrayOpenEvent((data) => {
         const isMobile = width && width < 1024
-        if (isMobile && place === "top") {
+        if (isMobile && place === "top" && !homeMobile) {
             // Store which extension triggered the open event
             setPendingTrayOpenExtensionId(data.extensionId || "")
             // Scroll to top
@@ -423,7 +424,7 @@ export function PluginSidebarTray({ place }: { place: "sidebar" | "top" }) {
 
     usePluginListenTrayCloseEvent((data) => {
         const isMobile = width && width < 1024
-        if (isMobile && place === "top") {
+        if (isMobile && place === "top" && !homeMobile) {
             setPendingTrayOpenExtensionId(null)
             setTimeout(() => {
                 setMobileExtensionListOpen(false)
@@ -528,7 +529,10 @@ export function PluginSidebarTray({ place }: { place: "sidebar" | "top" }) {
                 settings={pluginSettings}
                 width={width}
             />}
-            {isMobile && place === "top" && <div className="">
+            {isMobile && place === "top" && homeMobile && <MobilePluginMenu icons={trayIcons} settings={pluginSettings} width={width}
+                developmentModeExtensions={developmentModeExtensions || []} debugCounts={debugCounts} openDebugWindow={openDebugWindow}
+                reloadExternalExtension={reloadExternalExtension} isReloadingExtension={isReloadingExtension} />}
+            {isMobile && place === "top" && !homeMobile && <div className="">
                 <Popover
                     open={mobileExtensionListOpen}
                     onOpenChange={setMobileExtensionListOpen}
