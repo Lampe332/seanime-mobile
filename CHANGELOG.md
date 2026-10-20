@@ -2,6 +2,12 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.17 — 20.10.2026 (versionCode 31068)
+
+- 🎉 Downloads: Episodes you started offline appear in a "Continue offline" row and play from where you stopped.
+- ⚡️ Downloads: Redesigned the Downloads tab like Home and the anime and manga pages: running downloads come first with progress and pause / resume, a cover grid with filter counts, and anime and manga pages with one resume / watch action, quiet episode and chapter rows and phone sheets for deleting.
+- ⚡️ Downloads: The Downloads tab and the anime page's "On this phone" list only check for progress while a download is running, instead of every one or two seconds.
+
 ## 1.9.16 — 20.10.2026 (versionCode 31067)
 
 - 🎉 Player: The picture-in-picture window has back 10 s, play/pause and forward 10 s buttons; the play/pause icon follows the video.
