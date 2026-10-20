@@ -22,6 +22,7 @@ export interface MediaCoreMenuProps {
     onOpenSubSectionChange?: (subSection: string | null) => void
     isFullscreen?: boolean
     containerElement?: HTMLElement | null
+    onEscapeKeyDown?: (event: KeyboardEvent) => void
 }
 
 export function MediaCoreMenu(props: MediaCoreMenuProps) {
@@ -38,6 +39,7 @@ export function MediaCoreMenu(props: MediaCoreMenuProps) {
         onOpenSubSectionChange,
         isFullscreen,
         containerElement,
+        onEscapeKeyDown,
     } = props
 
     const t = useRef<NodeJS.Timeout | null>(null)
@@ -90,6 +92,7 @@ export function MediaCoreMenu(props: MediaCoreMenuProps) {
             align="center"
             side="top"
             modal={false}
+            onEscapeKeyDown={onEscapeKeyDown}
             className={cn(
                 "bg-black/85 rounded-xl p-3 backdrop-blur-sm w-[20rem] z-[100]",
                 className,
@@ -181,6 +184,8 @@ export function MediaCoreMenuSubSubmenuBody(props: { children: React.ReactNode; 
 
 export interface MediaCoreMenuOptionProps {
     title: string
+    /** Display text when it differs from the section id in title. */
+    label?: string
     value?: string
     icon: React.ElementType
     children?: React.ReactNode
@@ -190,7 +195,7 @@ export interface MediaCoreMenuOptionProps {
 }
 
 export function MediaCoreMenuOption(props: MediaCoreMenuOptionProps) {
-    const { children, title, icon: Icon, onClick, value, openSection, onOpenSectionChange } = props
+    const { children, title, label = title, icon: Icon, onClick, value, openSection, onOpenSectionChange } = props
 
     function handleClick() {
         if (onClick) {
@@ -213,7 +218,7 @@ export function MediaCoreMenuOption(props: MediaCoreMenuOptionProps) {
                         <Icon className="text-xl" />
                     </span>
                     <span className="w-full flex flex-1 text-sm font-medium">
-                        {title}
+                        {label}
                     </span>
                     {value && (
                         <span className="text-sm font-medium tracking-wide text-[--muted] mr-2">
@@ -236,7 +241,7 @@ export function MediaCoreMenuOption(props: MediaCoreMenuOptionProps) {
                             <LuChevronLeft className="text-lg" />
                         </span>
                         <span className="w-full flex flex-1 text-sm font-medium">
-                            {title}
+                            {label}
                         </span>
                     </button>
 

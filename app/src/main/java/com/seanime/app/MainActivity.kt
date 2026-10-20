@@ -402,6 +402,13 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         UpdateInstaller.onResume(this)
+        if (::pipManager.isInitialized) pipManager.onResume()
+    }
+
+    override fun onStop() {
+        // Closing the picture-in-picture window stops the activity: stop playback with it.
+        if (::pipManager.isInitialized) pipManager.onStop()
+        super.onStop()
     }
 
     override fun onPause() {
@@ -427,6 +434,7 @@ class MainActivity : Activity() {
         offlineBridge.invalidate()
         retryHandler.removeCallbacksAndMessages(null)
         PopupWebViewSheet.dismissFor(this)
+        if (::pipManager.isInitialized) pipManager.destroy()
         if (::webView.isInitialized) {
             webView.stopLoading()
             (webView.parent as? android.view.ViewGroup)?.removeView(webView)

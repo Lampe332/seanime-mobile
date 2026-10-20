@@ -989,7 +989,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                     <div className="mobile-source-pair" role="group" aria-label={tr("Source", "Quelle")}>{providerSelect}{serverSelect}</div>
                     <div className="mobile-source-line">
                         <div className="mobile-source-segment" role="group" aria-label={tr("Audio", "Audio")}>
-                            <button type="button" aria-pressed={!dubbed} onClick={() => { if (dubbed) toggleDubbed() }}>{tr("Subtitles", "Untertitel")}</button>
+                            <button type="button" aria-pressed={!dubbed} aria-label={tr("Subtitles", "Untertitel")} onClick={() => { if (dubbed) toggleDubbed() }}>Sub</button>
                             <button type="button" aria-pressed={dubbed} onClick={() => { if (!dubbed) toggleDubbed() }}>{tr("Dub", "Synchro")}</button>
                         </div>
                         <EpisodeDownloadPicker media={media} episodes={episodes} provider={provider} server={server} quality={quality} dubbed={dubbed} currentEpisode={currentEpisodeNumber} />

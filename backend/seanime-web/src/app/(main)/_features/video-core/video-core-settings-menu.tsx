@@ -44,13 +44,16 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { upath } from "@/lib/helpers/upath"
+import { Translate, useTr } from "@/lib/app-language"
+import "@/components/shared/mobile-surface.css"
+import "./video-core-phone-settings.css"
 import { useAtomValue } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
 import React, { useState } from "react"
 import { HiFastForward } from "react-icons/hi"
 import { ImFileText } from "react-icons/im"
 import { IoCaretForwardCircleOutline } from "react-icons/io5"
-import { LuChevronUp, LuHeading, LuPaintbrush, LuPalette, LuSettings, LuSettings2, LuSparkles, LuTvMinimalPlay, LuVolume2 } from "react-icons/lu"
+import { LuChevronRight, LuChevronUp, LuHeading, LuPaintbrush, LuPalette, LuSettings, LuSettings2, LuSparkles, LuTvMinimalPlay, LuVolume2 } from "react-icons/lu"
 import { MdOutlineAccessTime, MdOutlineSubtitles, MdSpeed } from "react-icons/md"
 import { RiShadowLine } from "react-icons/ri"
 import { TbArrowForwardUp } from "react-icons/tb"
@@ -198,6 +201,13 @@ export function vc_getCaptionStyleLabel<T extends keyof VideoCoreSettings["capti
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
+/** Android phones (smallest screen side under 600 CSS px) get the grouped settings sheet; tablets and desktop keep the list. */
+function isAndroidPhone() {
+    return IS_ANDROID_APP && typeof window !== "undefined" && Math.min(window.screen.width, window.screen.height) < 600
+}
+
 export function VideoCoreSettingsMenu() {
     const serverStatus = useServerStatus()
     const isMobile = useAtomValue(vc_isMobile)
@@ -230,6 +240,15 @@ export function VideoCoreSettingsMenu() {
     const { mutate: openInExplorer, isPending: isOpeningInExplorer } = useOpenInExplorer()
 
     const [settings, setSettings] = useAtom(vc_settings)
+
+    const t = useTr()
+    const isPhone = isMobile && isAndroidPhone()
+    // Section titles stay English ids; phones show them translated.
+    const phoneLabel = (en: string, de: string) => isPhone ? t(en, de) : undefined
+    // Android Back in fullscreen leaves fullscreen natively; the phone sheet must not stay open on the inline player.
+    React.useEffect(() => {
+        if (isPhone) setMenuOpen(open => open === "settings" ? null : open)
+    }, [isFullscreen])
 
     const [editedSubCustomization, setEditedSubCustomization] = useState<VideoCoreSettings["subtitleCustomization"]>(
         settings.subtitleCustomization || vc_initialSettings.subtitleCustomization,
@@ -333,6 +352,17 @@ export function VideoCoreSettingsMenu() {
             )}
             <VideoCoreMenu
                 name="settings"
+                className={isPhone ? "vc-phone-settings" : undefined}
+                // Android Back / Escape steps back one page before it closes the sheet.
+                onEscapeKeyDown={isPhone ? (e: KeyboardEvent) => {
+                    if (openMenuSubSection) {
+                        e.preventDefault()
+                        setOpenMenuSubSection(null)
+                    } else if (openMenuSection) {
+                        e.preventDefault()
+                        setOpenMenuSection(null)
+                    }
+                } : undefined}
                 trigger={<VideoCoreControlButtonIcon
                     icons={[
                         ["default", isMobile ? LuSettings : LuChevronUp],
@@ -343,7 +373,28 @@ export function VideoCoreSettingsMenu() {
                     }}
                 />}
             >
-                <VideoCoreMenuSectionBody>
+                {isPhone ? <VideoCoreMenuSectionBody>
+                    <PhoneSettingsHome
+                        t={t}
+                        open={setOpenMenuSection}
+                        playbackRate={playbackRate}
+                        volumeBoost={volumeBoost}
+                        autoPlay={autoPlay}
+                        setAutoPlay={setAutoPlay}
+                        autoNext={autoNext}
+                        setAutoNext={setAutoNext}
+                        autoSkipOPED={autoSkipOPED}
+                        setAutoSkipOPED={setAutoSkipOPED}
+                        anime4kLabel={currentAnime4kOption?.label}
+                        subtitleDelay={(subtitleManager || mediaCaptionsManager) ? settings.subtitleDelay : null}
+                        subtitleStyles={subtitleManager ? (editedSubCustomization?.enabled ? t("On", "An") : t("Off", "Aus")) : null}
+                        captionStyles={!!mediaCaptionsManager}
+                        openPreferences={() => {
+                            setMenuOpen(null)
+                            setKeybindingsModelOpen(true)
+                        }}
+                    />
+                </VideoCoreMenuSectionBody> : <VideoCoreMenuSectionBody>
                     <VideoCoreMenuTitle>Settings</VideoCoreMenuTitle>
                     <VideoCoreMenuOption title="Playback Speed" icon={MdSpeed} value={`${(playbackRate).toFixed(2)}x`} />
                     <VideoCoreMenuOption title="Volume Boost" icon={LuVolume2} value={formatVolumeBoost(volumeBoost)} />
@@ -367,9 +418,9 @@ export function VideoCoreSettingsMenu() {
                     />}
                     <VideoCoreMenuOption title="Player Appearance" icon={LuTvMinimalPlay} />
                     <VideoCoreMenuOption title="Preferences" icon={LuSettings2} onClick={() => setKeybindingsModelOpen(true)} />
-                </VideoCoreMenuSectionBody>
+                </VideoCoreMenuSectionBody>}
                 <VideoCoreMenuSubmenuBody>
-                    <VideoCoreMenuOption title="Subtitle Styles" icon={MdOutlineSubtitles}>
+                    <VideoCoreMenuOption title="Subtitle Styles" label={phoneLabel("Subtitle styles", "Untertitel-Stil")} icon={MdOutlineSubtitles}>
                         <p className="text-sm text-[--muted] mb-2">Subtitle customization will not override ASS/SSA tracks that contain multiple
                                                                    styles.</p>
                         <VideoCoreSettingSelect
@@ -419,7 +470,7 @@ export function VideoCoreSettingsMenu() {
                             />
                         </>}
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Caption Styles" icon={MdOutlineSubtitles}>
+                    <VideoCoreMenuOption title="Caption Styles" label={phoneLabel("Caption styles", "Stil der Bildunterschriften")} icon={MdOutlineSubtitles}>
                         <p className="text-sm text-[--muted] mb-2">This only applies to non-ASS subtitles.</p>
                         {/*<VideoCoreSettingSelect*/}
                         {/*    options={[*/}
@@ -461,7 +512,7 @@ export function VideoCoreSettingsMenu() {
                         />
                         {/*</>}*/}
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Subtitle Delay" icon={MdOutlineAccessTime}>
+                    <VideoCoreMenuOption title="Subtitle Delay" label={phoneLabel("Subtitle delay", "Untertitel-Versatz")} icon={MdOutlineAccessTime}>
                         <p className="text-sm text-[--muted] mb-2">Positive values delay subtitles, negative values advance them.</p>
                         <div className="flex gap-1.5 items-center mt-3">
                             <Button
@@ -516,7 +567,7 @@ export function VideoCoreSettingsMenu() {
                             value={[-2.0, -1.0, -0.5, 0, 0.5, 0.1, 2.0].includes(editedSubtitleDelay) ? editedSubtitleDelay : null}
                         />
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Playback Speed" icon={MdSpeed}>
+                    <VideoCoreMenuOption title="Playback Speed" label={phoneLabel("Playback speed", "Geschwindigkeit")} icon={MdSpeed}>
                         <p className="text-center font-semibold mt-2 select-none">
                             {(playbackRate).toFixed(2)}x
                         </p>
@@ -594,7 +645,7 @@ export function VideoCoreSettingsMenu() {
                             </Button>
                         </div>
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Volume Boost" icon={LuVolume2}>
+                    <VideoCoreMenuOption title="Volume Boost" label={phoneLabel("Volume boost", "Lautstärke-Boost")} icon={LuVolume2}>
                         <VideoCoreSettingSelect
                             options={VOLUME_BOOST_OPTIONS}
                             onValueChange={(v: number) => {
@@ -640,7 +691,7 @@ export function VideoCoreSettingsMenu() {
                             value={autoSkipOPED ? 1 : 0}
                         />
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Anime4K" icon={LuSparkles}>
+                    <VideoCoreMenuOption title="Anime4K" label={phoneLabel("Anime4K", "Anime4K")} icon={LuSparkles}>
                         <p className="text-[--muted] text-sm mb-2">
                             Real-time sharpening. GPU-intensive.
                         </p>
@@ -659,7 +710,7 @@ export function VideoCoreSettingsMenu() {
                             value={anime4kOption}
                         />
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Player Appearance" icon={LuPaintbrush}>
+                    <VideoCoreMenuOption title="Player Appearance" label={phoneLabel("Player appearance", "Player-Darstellung")} icon={LuPaintbrush}>
                         <Switch
                             label="Show Chapter Markers"
                             side="right"
@@ -827,5 +878,99 @@ export function VideoCoreSettingsMenu() {
                 </VideoCoreMenuSubSubmenuBody>
             </VideoCoreMenu>
         </>
+    )
+}
+
+type PhoneSettingsHomeProps = {
+    t: Translate
+    open: (section: string) => void
+    playbackRate: number
+    volumeBoost: number
+    autoPlay: boolean
+    setAutoPlay: (value: boolean) => void
+    autoNext: boolean
+    setAutoNext: (value: boolean) => void
+    autoSkipOPED: boolean
+    setAutoSkipOPED: (value: boolean) => void
+    anime4kLabel?: string
+    /** null when the stream has no subtitles. */
+    subtitleDelay: number | null
+    subtitleStyles: string | null
+    captionStyles: boolean
+    openPreferences: () => void
+}
+
+/** Android phone: grouped settings, on/off values switch in place, everything else opens its page. */
+function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
+    const { t, open } = props
+    const hasSubtitles = props.subtitleDelay !== null || props.subtitleStyles !== null || props.captionStyles
+    return (
+        <div data-vc-phone-settings="home">
+            <h2 className="vc-phone-title">{t("Player settings", "Player-Einstellungen")}</h2>
+            <div className="vc-phone-groups">
+                <PhoneGroup title={t("Playback", "Wiedergabe")}>
+                    <PhoneLinkRow icon={MdSpeed} label={t("Speed", "Geschwindigkeit")} value={`${props.playbackRate.toFixed(2)}x`} onClick={() => open("Playback Speed")} />
+                    <PhoneSwitchRow icon={IoCaretForwardCircleOutline} label={t("Auto play", "Automatisch abspielen")} checked={props.autoPlay} onChange={props.setAutoPlay} />
+                    <PhoneSwitchRow icon={HiFastForward} label={t("Auto next", "Nächste Folge automatisch")} checked={props.autoNext} onChange={props.setAutoNext} />
+                    <PhoneSwitchRow icon={TbArrowForwardUp} label={t("Skip OP/ED", "OP/ED überspringen")} checked={props.autoSkipOPED} onChange={props.setAutoSkipOPED} />
+                    <PhoneLinkRow icon={LuVolume2} label={t("Volume boost", "Lautstärke-Boost")} value={formatVolumeBoost(props.volumeBoost)} onClick={() => open("Volume Boost")} />
+                </PhoneGroup>
+                {hasSubtitles && <PhoneGroup title={t("Subtitles", "Untertitel")}>
+                    {props.subtitleDelay !== null && <PhoneLinkRow
+                        icon={MdOutlineAccessTime}
+                        label={t("Delay", "Versatz")}
+                        value={`${props.subtitleDelay.toFixed(1)} s`}
+                        onClick={() => open("Subtitle Delay")}
+                    />}
+                    {props.subtitleStyles !== null && <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Style", "Stil")} value={props.subtitleStyles} onClick={() => open("Subtitle Styles")} />}
+                    {props.captionStyles && <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Caption style", "Stil der Bildunterschriften")} onClick={() => open("Caption Styles")} />}
+                </PhoneGroup>}
+                <PhoneGroup title={t("Display", "Darstellung")}>
+                    <PhoneLinkRow icon={LuSparkles} label="Anime4K" value={props.anime4kLabel || t("Off", "Aus")} onClick={() => open("Anime4K")} />
+                    <PhoneLinkRow icon={LuTvMinimalPlay} label={t("Player appearance", "Player-Darstellung")} onClick={() => open("Player Appearance")} />
+                    <PhoneLinkRow icon={LuSettings2} label={t("Preferences", "Einstellungen")} onClick={props.openPreferences} />
+                </PhoneGroup>
+            </div>
+        </div>
+    )
+}
+
+function PhoneGroup(props: { title: string, children: React.ReactNode }) {
+    const id = React.useId()
+    return (
+        <section className="vc-phone-group" aria-labelledby={id}>
+            <h3 id={id} className="vc-phone-group-title">{props.title}</h3>
+            <div className="vc-phone-group-rows">{props.children}</div>
+        </section>
+    )
+}
+
+function PhoneLinkRow(props: { icon: React.ElementType, label: string, value?: string, onClick: () => void }) {
+    const Icon = props.icon
+    return (
+        <button type="button" className="vc-phone-row" data-vc-phone-row="link" onClick={props.onClick}>
+            <Icon className="vc-phone-row-icon" aria-hidden />
+            <span className="vc-phone-row-label">{props.label}</span>
+            {props.value && <span className="vc-phone-row-value">{props.value}</span>}
+            <LuChevronRight className="vc-phone-row-chevron" aria-hidden />
+        </button>
+    )
+}
+
+function PhoneSwitchRow(props: { icon: React.ElementType, label: string, checked: boolean, onChange: (value: boolean) => void }) {
+    const Icon = props.icon
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={props.checked}
+            className="vc-phone-row"
+            data-vc-phone-row="switch"
+            onClick={() => props.onChange(!props.checked)}
+        >
+            <Icon className="vc-phone-row-icon" aria-hidden />
+            <span className="vc-phone-row-label">{props.label}</span>
+            <span className="vc-phone-switch" aria-hidden />
+        </button>
     )
 }

@@ -734,6 +734,19 @@ export function VideoCore(props: VideoCoreProps) {
             setGlobalMiniPlayer(false)
         }
     }, [isMiniPlayer, setGlobalMiniPlayer])
+    // Android picture-in-picture buttons are routed through the player actions so state stays in sync.
+    React.useEffect(() => {
+        if (!videoElement) return
+        const onPipCommand = (event: Event) => {
+            const detail = (event as CustomEvent<{ command: string, seconds?: number, video: HTMLVideoElement, handled: boolean }>).detail
+            if (detail.video !== videoElement) return
+            detail.handled = true
+            if (detail.command === "toggle") action({ type: "togglePlay" })
+            else if (detail.command === "seek") action({ type: "seek", payload: { time: detail.seconds ?? 0 } })
+        }
+        window.addEventListener("seanime:pip-command", onPipCommand)
+        return () => window.removeEventListener("seanime:pip-command", onPipCommand)
+    }, [videoElement, action])
     const [busy, setBusy] = useAtom(vc_busy)
     const [buffering, setBuffering] = useAtom(vc_buffering)
     const duration = useAtomValue(vc_duration)
