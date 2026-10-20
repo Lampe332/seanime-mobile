@@ -204,7 +204,7 @@ export function vc_getCaptionStyleLabel<T extends keyof VideoCoreSettings["capti
 const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 /** Android phones (smallest screen side under 600 CSS px) get the grouped settings sheet; tablets and desktop keep the list. */
-function isAndroidPhone() {
+export function isAndroidPhone() {
     return IS_ANDROID_APP && typeof window !== "undefined" && Math.min(window.screen.width, window.screen.height) < 600
 }
 
@@ -323,6 +323,13 @@ export function VideoCoreSettingsMenu() {
         })
     }
 
+    const handlePreferredLanguageChange = (key: "preferredSubtitleLanguage" | "preferredAudioLanguage", codes: string): void => {
+        const newSettings = { ...settings, [key]: codes }
+        setSettings(newSettings)
+        subtitleManager?.updateSettings(newSettings)
+        mediaCaptionsManager?.updateSettings(newSettings)
+    }
+
     const handleSubtitleDelayChange = (delay: number): void => {
         setEditedSubtitleDelay(delay)
         const newSettings = {
@@ -385,14 +392,10 @@ export function VideoCoreSettingsMenu() {
                         setAutoNext={setAutoNext}
                         autoSkipOPED={autoSkipOPED}
                         setAutoSkipOPED={setAutoSkipOPED}
-                        anime4kLabel={currentAnime4kOption?.label}
+                        languages={phoneLanguageSummary(settings, t)}
                         subtitleDelay={(subtitleManager || mediaCaptionsManager) ? settings.subtitleDelay : null}
                         subtitleStyles={subtitleManager ? (editedSubCustomization?.enabled ? t("On", "An") : t("Off", "Aus")) : null}
                         captionStyles={!!mediaCaptionsManager}
-                        openPreferences={() => {
-                            setMenuOpen(null)
-                            setKeybindingsModelOpen(true)
-                        }}
                     />
                 </VideoCoreMenuSectionBody> : <VideoCoreMenuSectionBody>
                     <VideoCoreMenuTitle>Settings</VideoCoreMenuTitle>
@@ -433,7 +436,8 @@ export function VideoCoreSettingsMenu() {
                         />
                         {editedSubCustomization.enabled && <>
                             <p className="text-[--muted] text-sm my-2">Options</p>
-                            <VideoCoreMenuSubOption
+                            {/* Custom fonts are files in the desktop assets folder; phones cannot place them. */}
+                            {!isPhone && <VideoCoreMenuSubOption
                                 title="Font"
                                 icon={LuHeading}
                                 parentId="Subtitle Styles"
@@ -441,7 +445,7 @@ export function VideoCoreSettingsMenu() {
                                     11) + (!!editedSubCustomization.fontName?.length && editedSubCustomization.fontName?.length > 10
                                     ? "..."
                                     : "")}
-                            />
+                            />}
                             <VideoCoreMenuSubOption
                                 title="Font Size"
                                 icon={VscTextSize}
@@ -653,7 +657,7 @@ export function VideoCoreSettingsMenu() {
                             }}
                             value={VOLUME_BOOST_OPTIONS.some(o => o.value === volumeBoost) ? volumeBoost : null}
                         />
-                        <p className="text-[--muted] text-sm px-2 pt-2">Shift + Up/Down to adjust</p>
+                        {!isPhone && <p className="text-[--muted] text-sm px-2 pt-2">Shift + Up/Down to adjust</p>}
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Auto Play" icon={IoCaretForwardCircleOutline}>
                         <VideoCoreSettingSelect
@@ -710,6 +714,22 @@ export function VideoCoreSettingsMenu() {
                             value={anime4kOption}
                         />
                     </VideoCoreMenuOption>
+                    {isPhone && <VideoCoreMenuOption title="Default Languages" label={t("Languages", "Sprachen")} icon={MdOutlineSubtitles}>
+                        <p className="text-sm text-[--muted] mb-2">{t("Chosen automatically when an episode starts and the stream offers it.",
+                            "Wird beim Start einer Folge automatisch gewählt, wenn der Stream sie anbietet.")}</p>
+                        <p className="vc-phone-page-label">{t("Subtitles", "Untertitel")}</p>
+                        <VideoCoreSettingSelect
+                            options={PHONE_LANGUAGES.map(l => ({ label: t(l.en, l.de), value: l.codes }))}
+                            onValueChange={(v: string) => handlePreferredLanguageChange("preferredSubtitleLanguage", v)}
+                            value={settings.preferredSubtitleLanguage}
+                        />
+                        <p className="vc-phone-page-label">{t("Audio", "Audio")}</p>
+                        <VideoCoreSettingSelect
+                            options={PHONE_LANGUAGES.map(l => ({ label: t(l.en, l.de), value: l.codes }))}
+                            onValueChange={(v: string) => handlePreferredLanguageChange("preferredAudioLanguage", v)}
+                            value={settings.preferredAudioLanguage}
+                        />
+                    </VideoCoreMenuOption>}
                     <VideoCoreMenuOption title="Player Appearance" label={phoneLabel("Player appearance", "Player-Darstellung")} icon={LuPaintbrush}>
                         <Switch
                             label="Show Chapter Markers"
@@ -881,6 +901,21 @@ export function VideoCoreSettingsMenu() {
     )
 }
 
+/** Phone language choices; codes match the defaults and the matching used by the subtitle and audio managers. */
+const PHONE_LANGUAGES = [
+    { en: "Japanese", de: "Japanisch", codes: "jpn,jp,jap,japanese" },
+    { en: "German", de: "Deutsch", codes: "de,ger,deu,german" },
+    { en: "English", de: "Englisch", codes: "en,eng,english" },
+]
+
+function phoneLanguageSummary(settings: VideoCoreSettings, t: Translate) {
+    const name = (codes: string) => {
+        const match = PHONE_LANGUAGES.find(l => l.codes === codes)
+        return match ? t(match.en, match.de) : t("Custom", "Eigene")
+    }
+    return `${name(settings.preferredSubtitleLanguage)} / ${name(settings.preferredAudioLanguage)}`
+}
+
 type PhoneSettingsHomeProps = {
     t: Translate
     open: (section: string) => void
@@ -892,18 +927,16 @@ type PhoneSettingsHomeProps = {
     setAutoNext: (value: boolean) => void
     autoSkipOPED: boolean
     setAutoSkipOPED: (value: boolean) => void
-    anime4kLabel?: string
+    languages: string
     /** null when the stream has no subtitles. */
     subtitleDelay: number | null
     subtitleStyles: string | null
     captionStyles: boolean
-    openPreferences: () => void
 }
 
 /** Android phone: grouped settings, on/off values switch in place, everything else opens its page. */
 function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
     const { t, open } = props
-    const hasSubtitles = props.subtitleDelay !== null || props.subtitleStyles !== null || props.captionStyles
     return (
         <div data-vc-phone-settings="home">
             <h2 className="vc-phone-title">{t("Player settings", "Player-Einstellungen")}</h2>
@@ -915,7 +948,8 @@ function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
                     <PhoneSwitchRow icon={TbArrowForwardUp} label={t("Skip OP/ED", "OP/ED überspringen")} checked={props.autoSkipOPED} onChange={props.setAutoSkipOPED} />
                     <PhoneLinkRow icon={LuVolume2} label={t("Volume boost", "Lautstärke-Boost")} value={formatVolumeBoost(props.volumeBoost)} onClick={() => open("Volume Boost")} />
                 </PhoneGroup>
-                {hasSubtitles && <PhoneGroup title={t("Subtitles", "Untertitel")}>
+                <PhoneGroup title={t("Language & subtitles", "Sprache & Untertitel")}>
+                    <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Languages", "Sprachen")} value={props.languages} onClick={() => open("Default Languages")} />
                     {props.subtitleDelay !== null && <PhoneLinkRow
                         icon={MdOutlineAccessTime}
                         label={t("Delay", "Versatz")}
@@ -924,11 +958,9 @@ function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
                     />}
                     {props.subtitleStyles !== null && <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Style", "Stil")} value={props.subtitleStyles} onClick={() => open("Subtitle Styles")} />}
                     {props.captionStyles && <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Caption style", "Stil der Bildunterschriften")} onClick={() => open("Caption Styles")} />}
-                </PhoneGroup>}
+                </PhoneGroup>
                 <PhoneGroup title={t("Display", "Darstellung")}>
-                    <PhoneLinkRow icon={LuSparkles} label="Anime4K" value={props.anime4kLabel || t("Off", "Aus")} onClick={() => open("Anime4K")} />
                     <PhoneLinkRow icon={LuTvMinimalPlay} label={t("Player appearance", "Player-Darstellung")} onClick={() => open("Player Appearance")} />
-                    <PhoneLinkRow icon={LuSettings2} label={t("Preferences", "Einstellungen")} onClick={props.openPreferences} />
                 </PhoneGroup>
             </div>
         </div>

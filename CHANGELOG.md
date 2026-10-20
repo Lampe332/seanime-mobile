@@ -2,12 +2,14 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
-## 1.9.16 — 20.10.2026 (versionCode 31047)
+## 1.9.16 — 20.10.2026 (versionCode 31048)
 
 - 🎉 Player: The picture-in-picture window has back 10 s, play/pause and forward 10 s buttons; the play/pause icon follows the video.
-- ⚡️ Player: Redesigned the player settings on phones: grouped into Playback, Subtitles and Display, Auto play / Auto next / Skip OP/ED switch directly in the list, and Back returns to the overview from a sub page.
+- 🎉 Player: Phones can pick the default subtitle and audio language (Japanese, German, English) in the player settings.
+- ⚡️ Player: Redesigned the player settings on phones: grouped into Playback, Language & subtitles and Display, Auto play / Auto next / Skip OP/ED switch directly in the list, and Back returns to the overview from a sub page.
 - ⚡️ Anime: The audio toggle reads Sub / Dub.
 - 🦺 Player: Fixed the video continuing to play in the background after closing the picture-in-picture window.
+- 🏗️ Player: Removed desktop-only options from the phone player settings: Anime4K, Preferences (keyboard shortcuts, screenshot folder), custom subtitle font files and keyboard hints.
 
 ## 1.9.15 — 20.10.2026 (versionCode 31044)
 

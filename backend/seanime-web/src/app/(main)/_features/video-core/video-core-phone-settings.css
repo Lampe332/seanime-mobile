@@ -152,3 +152,4 @@
         border-radius: var(--sm-radius-lg) var(--sm-radius-lg) 0 0;
     }
 }
+.vc-phone-settings .vc-phone-page-label { margin: .75rem .75rem .25rem; font-size: .8125rem !important; font-weight: 500; color: var(--sm-text-subtle) !important; }

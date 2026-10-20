@@ -15,6 +15,7 @@ import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.
 import { IconButton } from "@/components/ui/button"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useAtomValue } from "jotai"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-settings-menu"
 import { useSetAtom } from "jotai/react"
 import React from "react"
 import { AiFillInfoCircle } from "react-icons/ai"
@@ -115,7 +116,7 @@ export function VideoCoreSubtitleMenu({ inline, onPreferenceChange }: {
                 }}
             />}
         >
-            <VideoCoreMenuTitle>Subtitles {(!!subtitleManager && !inline) && <Tooltip
+            <VideoCoreMenuTitle>Subtitles {(!!subtitleManager && !inline && !isAndroidPhone()) && <Tooltip
                 trigger={<AiFillInfoCircle className="text-sm" />}
                 className="z-[150]"
                 portalContainer={isFullscreen ? (containerElement ?? undefined) : undefined}
