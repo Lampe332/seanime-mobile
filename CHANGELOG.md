@@ -2,6 +2,12 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.13 — 20.10.2026 (versionCode 31039)
+
+- ⚡️ Anime: Redesigned the anime page in the style of Home with fewer frames, a clear play action, a calmer episode list and horizontal rows for related anime and recommendations.
+- ⚡️ Navigation: Plugins in the top bar is now a quiet icon button on every phone screen.
+- 🦺 Anime: Fixed relation labels covering the dub badge on related anime.
+
 ## 1.9.12 — 20.10.2026 (versionCode 31038)
 
 - 🦺 Home: Fixed sections such as Missed sequels not appearing after adding them in Customize Home; they now show a loading state, an empty note or a retry.
