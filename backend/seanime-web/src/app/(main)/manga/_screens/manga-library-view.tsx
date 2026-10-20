@@ -146,6 +146,8 @@ export function CollectionLists({ collectionList, genres, storedProviders, showS
                 },
             }}
         >
+            {import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && isMangaPage && <h1 className="mt-1 text-[1.75rem] font-bold leading-tight">Manga</h1>}
+            {import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && isMangaPage && !!genres?.length && <GenreSelector genres={genres} className="!my-0" />}
             {lists?.map(collection => {
                 if (!collection.entries?.length) return null
                 return (
@@ -159,7 +161,8 @@ export function CollectionLists({ collectionList, genres, storedProviders, showS
                             isMangaPage={isMangaPage}
                         />
 
-                        {(collection.type === "CURRENT" && !!genres?.length) && <GenreSelector genres={genres} className="!my-0" />}
+                        {/* Android: the genre filter sits once at the top of the page instead of between two lists. */}
+                        {(collection.type === "CURRENT" && !!genres?.length && import.meta.env.SEA_PUBLIC_PLATFORM !== "mobile") && <GenreSelector genres={genres} className="!my-0" />}
                     </React.Fragment>
                 )
             })}

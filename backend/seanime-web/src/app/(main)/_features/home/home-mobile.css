@@ -85,9 +85,10 @@
 [data-home-mobile="true"] .home-discover-feature { margin: .75rem 1rem; padding: 1rem; border-radius: var(--sm-radius); background: var(--sm-surface); }
 [data-home-mobile="true"] .home-discover-feature p { font-size: 1rem; line-height: 1.4; margin: .5rem 0; }
 /* Carousel controls belong inside their section, not above a clipped wrapper. */
-[data-home-mobile="true"] .UI-AppLayoutStack__root:has(> .UI-Carousel__root) > h2 { min-height: 44px; display: flex; align-items: center; padding-right: 6.5rem; }
+[data-home-mobile="true"] .UI-AppLayoutStack__root:has(> .UI-Carousel__root) > h2 { min-height: 44px; display: flex; align-items: center; }
 [data-home-mobile="true"] .UI-AppLayoutStack__root > .UI-Carousel__root { position: static; }
-[data-home-mobile="true"] .UI-AppLayoutStack__root > .UI-Carousel__root > div:has(> .UI-Carousel__button) { top: 0; right: 0; gap: .25rem; }
+/* Phones swipe; the desktop previous / next arrows are not shown. */
+[data-home-mobile="true"] .UI-Carousel__root > div:has(> .UI-Carousel__button) { display: none !important; }
 /* Section carousels start on the shared 1rem gutter (track px-6 minus its -ml-4 offset). */
 [data-home-mobile="true"] .UI-AppLayoutStack__root > .UI-Carousel__root .UI-Carousel__innerContent { padding-left: .5rem !important; padding-right: .5rem !important; }
 [data-home-mobile="true"] .UI-Carousel__button { width: 44px; height: 44px; background: transparent; border: 0; color: var(--sm-text-muted); }
@@ -173,3 +174,7 @@ body .UI-Modal__content.home-mobile-settings { width: calc(100% - 16px) !importa
     .home-info-overlay, .home-info-card { animation: none !important; }
     .home-mobile-settings .home-customize-switch > span, .home-mobile-settings .home-customize-switch > span::after { transition: none; }
 }
+
+/* Section carousels use the same card size as "Currently watching" (about 2.5 cards per screen). */
+[data-home-mobile="true"] .UI-Carousel__root .UI-Carousel__item:has([data-media-entry-card-container]),
+[data-home-mobile="true"] .UI-Carousel__root [data-media-entry-card-container] { flex-basis: min(39vw, 10rem) !important; width: min(39vw, 10rem) !important; max-width: min(39vw, 10rem); }

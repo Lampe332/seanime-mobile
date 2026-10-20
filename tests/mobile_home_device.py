@@ -119,19 +119,19 @@ async def main():
             await filter_button.click(); await page.get_by_text('Show all',exact=True).click()
             record('Unwatched filter restores',await filter_button.get_attribute('aria-pressed')=='false')
 
-            # A real Home carousel used to put its arrows above a clipping wrapper.
+            # Phones swipe Home carousels: the desktop arrows are hidden and the row still scrolls by touch.
             if any(i['type']=='aired-recently' for i in original['data'] or []):
                 section=page.locator('.UI-AppLayoutStack__root').filter(has=page.get_by_role('heading',name='Aired Recently',exact=True))
                 await section.get_by_role('heading').scroll_into_view_if_needed()
-                arrows=section.locator('.UI-Carousel__button')
-                await arrows.first.wait_for()
-                record('Both carousel arrows have reachable full touch surfaces',await arrows.evaluate_all('''es=>es.length===2&&es.every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44&&[[r.width/2,3],[3,r.height/2],[r.width-3,r.height/2],[r.width/2,r.height-3]].every(([x,y])=>(e.disabled||e.contains(document.elementFromPoint(r.x+x,r.y+y))))})'''))
-                await shot('home-carousel-arrows.png')
+                await section.locator('.UI-Carousel__root').first.wait_for()
+                record('Carousel arrows are hidden on the phone',await section.locator('.UI-Carousel__button').evaluate_all('es=>es.every(e=>e.getBoundingClientRect().width===0)'))
+                await shot('home-carousel.png')
                 content=section.locator('.UI-Carousel__innerContent')
                 previous=await content.evaluate('e=>getComputedStyle(e).transform')
-                enabled=section.locator('.UI-Carousel__button:not([disabled])').last
-                await enabled.click();await page.wait_for_timeout(650)
-                record('Carousel arrow moves the real row',await content.evaluate('e=>getComputedStyle(e).transform')!=previous)
+                box=await section.locator('.UI-Carousel__root').first.bounding_box()
+                await page.mouse.move(box['x']+box['width']*.8,box['y']+box['height']/2);await page.mouse.down()
+                await page.mouse.move(box['x']+box['width']*.2,box['y']+box['height']/2,steps=8);await page.mouse.up();await page.wait_for_timeout(650)
+                record('Swiping moves the real row',await content.evaluate('e=>getComputedStyle(e).transform')!=previous)
                 await page.evaluate('window.scrollTo(0,0)')
 
             # A section that is still loading, empty or failed must stay visible instead of rendering nothing.

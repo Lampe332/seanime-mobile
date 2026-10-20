@@ -308,3 +308,6 @@ body:has([data-mobile-manga="true"]) [data-top-navbar] [data-layout-header-backg
 .mobile-chapter-empty-state { display: grid; gap: .25rem; padding: 1.25rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); text-align: center; }
 .mobile-chapter-empty-state p:first-child { font-size: .9375rem; font-weight: 600; color: var(--sm-text); }
 .mobile-chapter-empty-state p + p { font-size: .8125rem; color: var(--sm-text-muted); }
+/* Anime actions: the same row of round filled icon buttons as on manga pages. */
+[data-mobile-anime="true"] [data-anime-meta-section-buttons-row] { gap: .5rem; }
+[data-mobile-anime="true"] [data-anime-meta-section-buttons-row] .UI-IconButton_root { width: 44px; height: 44px; min-width: 44px; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); }

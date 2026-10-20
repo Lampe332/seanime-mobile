@@ -61,3 +61,5 @@ body .UI-Modal__content.mobile-plugin-sheet { position: fixed; z-index: 101; ins
 [data-top-navbar]:not([data-home-navbar]) .mobile-plugin-trigger svg { color: currentColor; }
 [data-top-navbar]:not([data-home-navbar]) .mobile-plugin-trigger:active, [data-top-navbar]:not([data-home-navbar]) .mobile-plugin-trigger[data-state="open"] { background: var(--sm-surface-control); color: var(--sm-text); }
 [data-top-navbar]:not([data-home-navbar]) .mobile-plugin-trigger > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mobile-plugin-hint { margin: -.25rem .25rem .5rem; font-size: .8125rem; line-height: 1.4; color: var(--sm-text-subtle); }
+.mobile-plugin-sheet:focus { outline: none; }

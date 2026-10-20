@@ -47,7 +47,8 @@ export default function Page() {
                     <div
                         data-manga-page-dynamic-banner-spacer
                         className={cn(
-                            !__isDesktop__ && "h-28",
+                            // Android shows a page title right away instead of leaving room for the banner.
+                            !__isDesktop__ && (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? "h-0" : "h-28"),
                             (!__isDesktop__ && ts.hideTopNavbar) && "h-40",
                             __isDesktop__ && "h-40",
                         )}

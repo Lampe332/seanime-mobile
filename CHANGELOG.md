@@ -2,7 +2,7 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
-## 1.9.16 — 20.10.2026 (versionCode 31063)
+## 1.9.16 — 20.10.2026 (versionCode 31067)
 
 - 🎉 Player: The picture-in-picture window has back 10 s, play/pause and forward 10 s buttons; the play/pause icon follows the video.
 - 🎉 Player: Phones can pick the default subtitle and audio language (Japanese, German, English) in the player settings.
@@ -15,6 +15,12 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - ⚡️ Anime: The audio toggle reads Sub / Dub.
 - ⚡️ Anime: Redesigned Manual match (title pre-filled, one search row, large results), the stream cache sheet and the download episodes sheet.
 - ⚡️ Player: Quality, audio and subtitle menus use the phone sheet; Skip opening / ending is a solid button at the bottom right.
+- ⚡️ Menu: Sign out always sits at the bottom of the menu, away from everyday entries.
+- ⚡️ Plugins: The plugin button uses a clear puzzle icon, the plugin list explains pinning, and opening it no longer highlights the close button.
+- ⚡️ Anime: Plugin actions on the anime page appear as one row of round icon buttons, keeping each plugin's own icon.
+- ⚡️ Home: Carousels are swiped without desktop arrows and use the same card size as Currently watching.
+- ⚡️ Navigation: Bottom bar labels are larger and easier to read.
+- ⚡️ Manga: The manga page has a title with the genre filter at the top, and chapter rows no longer repeat the chapter number.
 - 🦺 Player: Fixed the video continuing to play in the background after closing the picture-in-picture window.
 - 🏗️ Anime / Manga: Removed the "Save locally" button; it belonged to the removed desktop offline mode, Downloads replaces it on Android.
 - 🏗️ Player: Removed desktop-only options from the phone player settings: Anime4K, Preferences (keyboard shortcuts, screenshot folder), custom subtitle font files and keyboard hints; the manga reader no longer offers its fullscreen toggle.

@@ -5,19 +5,16 @@ import { Extension_Extension, ExtensionRepo_StoredPluginSettingsData } from "@/a
 import { useGetPluginSettings, useSetPluginSettingsPinnedTrays } from "@/api/hooks/extensions.hooks"
 import { Badge } from "@/components/ui/badge"
 import { useTr } from "@/lib/app-language"
-import { LuPin, LuPinOff, LuSearch, LuX, LuChevronRight, LuRefreshCw, LuSquareTerminal } from "react-icons/lu"
+import { LuPin, LuPinOff, LuPuzzle, LuSearch, LuX, LuChevronRight, LuRefreshCw, LuSquareTerminal } from "react-icons/lu"
 import { PluginTray, TrayIcon } from "./plugin-tray"
 import { __plugin_openedTrayPlugin, __plugin_unpinnedTrayIconClickedAtom } from "./plugin-sidebar-tray"
 import { usePluginListenTrayOpenEvent } from "../generated/plugin-events"
 import "@/components/shared/mobile-surface.css"
 import "./mobile-plugin-menu.css"
 
-/** An extension fitting into an open socket, using the existing 24px/2px icon language. */
+/** A plain puzzle piece: the former socket-with-arrow glyph read as "collapse window". */
 export function PluginExtensionIcon() {
-    return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M9 3H5a2 2 0 0 0-2 2v4h2a3 3 0 1 1 0 6H3v4a2 2 0 0 0 2 2h4v-2a3 3 0 1 1 6 0v2h4a2 2 0 0 0 2-2v-4" />
-        <path d="M16 3v6h6M16 9l6-6" />
-    </svg>
+    return <LuPuzzle aria-hidden="true" />
 }
 
 export function PluginIcon({ icon }: { icon: TrayIcon }) {
@@ -139,12 +136,14 @@ export function MobilePluginMenu(props: Props) {
             <Dialog.Portal>
                 <Dialog.Overlay className="mobile-plugin-overlay UI-Modal__overlay" />
                 <Dialog.Content ref={content} className="mobile-plugin-sheet UI-Modal__content" data-mobile-plugin-overview aria-describedby={undefined}
-                    onOpenAutoFocus={event => { event.preventDefault(); content.current?.querySelector<HTMLButtonElement>('.mobile-plugin-close')?.focus({ preventScroll: true }) }}
+                    // Focus stays inside the sheet without lighting up the close button's focus ring on a touch screen.
+                    onOpenAutoFocus={event => { event.preventDefault(); content.current?.focus({ preventScroll: true }) }}
                     onCloseAutoFocus={event => { event.preventDefault(); trigger.current?.focus({ preventScroll: true }) }}>
                     <div className="mobile-plugin-heading"><span className="mobile-plugin-heading-icon"><PluginExtensionIcon /></span>
                         <Dialog.Title>Plugins <span>({props.icons.length})</span></Dialog.Title>
                         <Dialog.Close asChild><button type="button" className="mobile-plugin-close" aria-label={tr("Close plugin overview", "Plugin-Übersicht schließen")}><LuX aria-hidden="true" /></button></Dialog.Close>
                     </div>
+                    <p className="mobile-plugin-hint">{tr("Pin a plugin to keep it as a shortcut next to the plugin button.", "Angeheftete Plugins erscheinen als Kurzbefehl neben dem Plugin-Knopf.")}</p>
                     <MobilePluginChoices icons={props.icons} close={close} pins={pins} mutation={mutation} toggle={toggle} />
                     {!!props.developmentModeExtensions.length && <div className="mobile-plugin-debug">{props.developmentModeExtensions.map(extension => <div key={extension.id}>
                         <span>{extension.id}</span>

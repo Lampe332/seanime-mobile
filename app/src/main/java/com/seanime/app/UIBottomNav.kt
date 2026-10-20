@@ -69,14 +69,14 @@ object UIBottomNav {
                     gap: 0.22rem;
                     min-width: 0;
                     min-height: 48px;
-                    margin: 4px 2px;
+                    margin: 4px 1px;
                     border-radius: 14px;
                     background: transparent;
                     border: none;
                     color: rgba(255,255,255,0.55);
-                    font-size: 0.64rem;
+                    font-size: 0.6875rem;
                     font-weight: 600;
-                    letter-spacing: 0;
+                    letter-spacing: -0.02em;
                     white-space: nowrap;
                     text-decoration: none;
                     cursor: pointer;
@@ -1088,9 +1088,16 @@ object UIBottomNav {
                     return items;
                 }
 
+                // Signing out is destructive: it always sits at the bottom of the menu, whatever order was saved.
+                // The menu renders this list reversed, so the bottom row is the first array entry.
+                function signOutLast(list) {
+                    return list.filter(function(it) { return it.label === 'Sign out'; })
+                        .concat(list.filter(function(it) { return it.label !== 'Sign out'; }));
+                }
+
                 function applyFloatOrder(snapshot) {
                     var order = loadFloatOrder();
-                    if (!order) return snapshot;
+                    if (!order) return signOutLast(snapshot);
                     var ordered = [];
                     order.forEach(function(lbl) {
                         for (var i = 0; i < snapshot.length; i++) {
@@ -1102,7 +1109,7 @@ object UIBottomNav {
                         ordered.forEach(function(o) { if (o.label === it.label) found = true; });
                         if (!found) ordered.push(it);
                     });
-                    return ordered;
+                    return signOutLast(ordered);
                 }
 
                 function resetToDefaults() {

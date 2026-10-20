@@ -574,8 +574,13 @@ export function ChapterList(props: ChapterListProps) {
                                                     provider: chapter.provider,
                                                     mediaId: Number(mediaId),
                                                 })}>
+                                                {/* Titles that only repeat the number ("Chapter 2") don't get the number again underneath. */}
                                                 <span className="mobile-chapter-title">{chapter.title || `${t("Chapter", "Kapitel")} ${chapter.chapter}`}</span>
-                                                <span className="mobile-chapter-meta">{[`${t("Chapter", "Kapitel")} ${chapter.chapter}`, chapter.scanlator, selectedExtension?.settings?.supportsMultiLanguage ? language : null].filter(Boolean).join(" · ")}</span>
+                                                <span className="mobile-chapter-meta">{[
+                                                    !chapter.title || chapter.title.trim().toLowerCase().replace(/^(chapter|ch\.?|kapitel)\s*/, "") === String(chapter.chapter).toLowerCase()
+                                                        ? null : `${t("Chapter", "Kapitel")} ${chapter.chapter}`,
+                                                    chapter.scanlator, selectedExtension?.settings?.supportsMultiLanguage ? language : null,
+                                                ].filter(Boolean).join(" · ")}</span>
                                             </button>
                                             {canDownload && <button type="button" className="mobile-chapter-action" disabled={isSendingDownloadRequest}
                                                 aria-label={t(`Download chapter ${chapter.chapter}`, `Kapitel ${chapter.chapter} laden`)} onClick={() => downloadChapters([chapter])}>

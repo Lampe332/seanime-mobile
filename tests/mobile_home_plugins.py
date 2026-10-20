@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-plugin-regression-') as temp:
   trigger=page.locator('.mobile-plugin-trigger');sheet=page.locator('[data-mobile-plugin-overview]')
   check('Without pins Home keeps its original compact header row',page.locator('.home-mobile-heading').evaluate('(e)=>{const a=e.getBoundingClientRect(),b=document.querySelector(".home-mobile-tools").getBoundingClientRect();return b.top<a.bottom&&a.top<b.bottom}'))
   trigger.click();sheet.wait_for();check('Open state and accessible dialog',trigger.get_attribute('aria-expanded')=='true' and sheet.get_attribute('role')=='dialog')
-  check('Search does not autofocus or summon the keyboard',page.locator('.mobile-plugin-close').evaluate('e=>e===document.activeElement'))
+  check('Search does not autofocus or summon the keyboard; focus rests on the sheet, not as a ring on the close button',page.evaluate('(()=>{const a=document.activeElement;return a?.matches("[data-mobile-plugin-overview]")&&a.tagName!=="INPUT"})()'))
   check('Broken and missing icons fall back',sheet.locator('.mobile-plugin-icon svg').count()==13)
   renders=page.evaluate('pluginProbe.runtimeRenders');search=page.get_by_role('searchbox');search.fill('plugin 1');check('Search matches',sheet.locator('.mobile-plugin-row').count()==3)
   search.fill('no matches');check('No results status',sheet.get_by_text('No matching plugins',exact=True).is_visible());page.get_by_role('button',name='Clear search').click();check('Clear restores sorted list',sheet.locator('.mobile-plugin-row').count()==13)

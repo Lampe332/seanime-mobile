@@ -1,4 +1,4 @@
-import { LuLibrary, LuLink, LuPuzzle } from "react-icons/lu"
+import { LuLibrary, LuLink, LuListOrdered, LuMusic, LuPuzzle } from "react-icons/lu"
 import { AL_BaseAnime, AL_BaseManga, Anime_Episode, Onlinestream_Episode } from "@/api/generated/types"
 import { Button, ButtonProps, IconButton } from "@/components/ui/button"
 import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu"
@@ -74,6 +74,21 @@ export function PluginAnimePageButtons(props: { media: AL_BaseAnime }) {
     }
 
     if (buttons.length === 0) return null
+
+    // Android: the same row of calm round icons as on manga pages; the plugin's name becomes the accessible label.
+    if (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile") return <>
+        {buttons.map(b => {
+            const name = b.tooltipText || (typeof b.label === "string" ? b.label : "") || "Plugin"
+            // Keep the plugin's own icon (drawn as a background image); text-only buttons get a fitting symbol.
+            const image = b.style?.backgroundImage
+            const Icon = /theme|music|song|opening/i.test(name) ? LuMusic : /order/i.test(name) ? LuListOrdered : LuPuzzle
+            return <button key={b.id} type="button" className="mobile-entry-icon" data-mobile-plugin-action={b.id} aria-label={name} title={name}
+                style={image ? { backgroundImage: image, backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundSize: "20px 20px" } : undefined}
+                onClick={() => handleClick(b)} disabled={b.disabled || b.loading}>
+                {!image && <Icon aria-hidden />}
+            </button>
+        })}
+    </>
 
     return <>
         {buttons.map(b => !b.tooltipText ? (
