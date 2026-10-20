@@ -288,11 +288,21 @@ body .mobile-download-sheet.UI-Modal__content { display: flex; flex-direction: c
 /* Manga: no extra black navbar band; it continues the page tint like the anime page's bar. */
 body:has([data-mobile-manga="true"]) [data-top-navbar] { height: 3.5rem; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .16), rgb(var(--color-brand-500) / .11)); }
 body:has([data-mobile-manga="true"]) [data-top-navbar] [data-layout-header-background], body:has([data-mobile-manga="true"]) [data-top-navbar] [data-layout-header-background-gradient] { display: none; }
-/* Plugin actions as readable chips. */
-.mobile-plugin-action { min-height: 44px; padding: 0 .875rem; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text); font-size: .8125rem; font-weight: 500; }
-.mobile-plugin-action:active { background: var(--sm-surface-control); }
-.mobile-plugin-action:disabled { opacity: .5; }
 /* Manual match results with the source's cover. */
 .mobile-match-results li > button .mobile-match-thumb { flex: none; width: 2.5rem; aspect-ratio: 2 / 3; border-radius: .375rem; object-fit: cover; background: var(--sm-surface-control); }
 .mobile-match-title { flex: 1; min-width: 0; display: grid; gap: .125rem; }
 .mobile-match-title small { font-size: .75rem; color: var(--sm-text-subtle); }
+
+/* Manga actions: one quiet grouped list (plugins, then the menu) instead of floating pills. */
+.mobile-entry-actions { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.mobile-entry-action { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 3rem; padding: .5rem .875rem; background: var(--sm-surface-raised); color: var(--sm-text); text-align: start; font-size: .9375rem; }
+.mobile-entry-action > svg:first-child { flex: none; font-size: 1.125rem; color: var(--sm-text-muted); }
+.mobile-entry-action > span { flex: 1; min-width: 0; }
+.mobile-entry-action > svg:last-child { flex: none; color: var(--sm-text-subtle); }
+.mobile-entry-action:active { background: var(--sm-surface-control); }
+.mobile-entry-action:disabled { opacity: .5; }
+/* Top bar downloads shortcut: a plain icon like the bar's other actions. */
+.mobile-topbar-downloads { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px; color: var(--sm-text-muted); font-size: 1.375rem; }
+.mobile-topbar-downloads:active { background: var(--sm-surface-control); }
+[data-mobile-manga="true"] .mobile-entry-actions { gap: 2px; grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
+[data-mobile-manga="true"] .mobile-entry-actions .mobile-entry-action { min-height: 48px; }

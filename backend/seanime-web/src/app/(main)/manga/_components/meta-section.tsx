@@ -24,7 +24,8 @@ import { getCustomSourceExtensionId, getCustomSourceMediaSiteUrl, isCustomSource
 import { ThemeMediaPageInfoBoxSize, useThemeSettings } from "@/lib/theme/theme-hooks"
 import React from "react"
 import { BiDotsVerticalRounded, BiExtension } from "react-icons/bi"
-import { LuExternalLink } from "react-icons/lu"
+import { LuChevronRight, LuExternalLink } from "react-icons/lu"
+import { useTr } from "@/lib/app-language"
 import { SiAnilist, SiMyanimelist } from "react-icons/si"
 
 const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
@@ -34,6 +35,7 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
 
     const { entry, details, detailsLoading } = props
     const ts = useThemeSettings()
+    const tr = useTr()
 
     if (!entry?.media) return null
 
@@ -120,7 +122,34 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
                 {!detailsInHeader && <Details />}
 
 
-                <div className="w-full flex flex-wrap gap-2 items-center" data-manga-meta-section-buttons-row>
+                {IS_ANDROID_APP && <div className="mobile-entry-actions" data-manga-meta-section-buttons-row>
+                    <PluginMangaPageButtons media={entry.media} />
+                    <DropdownMenu
+                        data-manga-entry-dropdown-menu
+                        trigger={<button type="button" className="mobile-entry-action" data-manga-entry-dropdown-menu-trigger>
+                            <BiDotsVerticalRounded aria-hidden />
+                            <span>{tr("More options", "Weitere Optionen")}</span>
+                            <LuChevronRight aria-hidden />
+                        </button>}
+                    >
+                        {!isCustomSource(entry.mediaId) && <DropdownMenuItem onClick={() => openTab(`https://anilist.co/manga/${entry.mediaId}`)}>
+                            <SiAnilist /> Open on AniList
+                        </DropdownMenuItem>}
+                        {!!entry.media.idMal && <DropdownMenuItem onClick={() => openTab(`https://myanimelist.net/manga/${entry.media?.idMal}`)}>
+                            <SiMyanimelist /> Open on MAL
+                        </DropdownMenuItem>}
+                        {isCustomSource(entry.mediaId) && !!getCustomSourceMediaSiteUrl(entry.media) && <DropdownMenuItem
+                            onClick={() => openTab(getCustomSourceMediaSiteUrl(entry.media)!)}>
+                            <LuExternalLink /> Open in website
+                        </DropdownMenuItem>}
+                        {isCustomSource(entry.mediaId) && <DropdownMenuItem onClick={() => copyToClipboard(entry.mediaId.toString())}>
+                            Copy ID
+                        </DropdownMenuItem>}
+                        <PluginMangaPageDropdownItems media={entry.media} />
+                    </DropdownMenu>
+                </div>}
+
+                {!IS_ANDROID_APP && <div className="w-full flex flex-wrap gap-2 items-center" data-manga-meta-section-buttons-row>
 
                     {ts.mediaPageBannerInfoBoxSize !== ThemeMediaPageInfoBoxSize.Fluid && <div className="flex-1 hidden lg:flex"></div>}
 
@@ -159,7 +188,7 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
                     {!IS_ANDROID_APP && <MediaSyncTrackButton mediaId={entry.mediaId} type="manga" size="md" />}
 
                     <PluginMangaPageButtons media={entry.media} />
-                </div>
+                </div>}
 
             </HeaderContainer>
         </Header>

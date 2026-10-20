@@ -1,3 +1,4 @@
+import { LuChevronRight, LuPuzzle } from "react-icons/lu"
 import { AL_BaseAnime, AL_BaseManga, Anime_Episode, Onlinestream_Episode } from "@/api/generated/types"
 import { Button, ButtonProps, IconButton } from "@/components/ui/button"
 import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu"
@@ -153,9 +154,11 @@ export function PluginMangaPageButtons(props: { media: AL_BaseManga }) {
 
     // Android: a readable text chip instead of an emoji square.
     if (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile") return <>
-        {buttons.map(b => <button key={b.id} type="button" className="mobile-plugin-action" data-mobile-plugin-action={b.id}
+        {buttons.map(b => <button key={b.id} type="button" className="mobile-entry-action" data-mobile-plugin-action={b.id}
             onClick={() => handleClick(b)} disabled={b.disabled || b.loading}>
-            {b.tooltipText || b.label || "Plugin"}
+            <LuPuzzle aria-hidden />
+            <span>{b.tooltipText || b.label || "Plugin"}</span>
+            <LuChevronRight aria-hidden />
         </button>)}
     </>
 
