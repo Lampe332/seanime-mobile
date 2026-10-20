@@ -2,6 +2,11 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.12 — 20.10.2026 (versionCode 31038)
+
+- 🦺 Home: Fixed sections such as Missed sequels not appearing after adding them in Customize Home; they now show a loading state, an empty note or a retry.
+- ⚡️ Home: Added a subtle theme-colour background and accent marks to section headings.
+
 ## 1.9.11 — 20.10.2026 (versionCode 31037)
 
 - 🏗️ Home: Removed the genre filter row from Home.
