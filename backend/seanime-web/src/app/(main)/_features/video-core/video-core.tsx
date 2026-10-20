@@ -89,6 +89,9 @@ import { VideoCoreKeybindingController, VideoCorePreferencesModal } from "@/app/
 import { VideoCorePreviewManager } from "@/app/(main)/_features/video-core/video-core-preview"
 import { VideoCoreResolutionMenu } from "@/app/(main)/_features/video-core/video-core-resolution-menu"
 import { VideoCoreSettingsMenu } from "@/app/(main)/_features/video-core/video-core-settings-menu"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
+import { useTr } from "@/lib/app-language"
+import { LuSkipForward } from "react-icons/lu"
 import { VideoCoreStatsForNerds } from "@/app/(main)/_features/video-core/video-core-stats"
 import { VideoCoreSubtitleMenu, type VideoCoreSubtitleSelection } from "@/app/(main)/_features/video-core/video-core-subtitle-menu"
 import { VideoCoreSubtitleManager } from "@/app/(main)/_features/video-core/video-core-subtitles"
@@ -406,7 +409,13 @@ const PlayerContent = React.memo<PlayerContentProps>(({
 
                         {busy && (
                             <>
-                                {!!skipChapter && !isMiniPlayer && (
+                                {!!skipChapter && !isMiniPlayer && isMobile && isAndroidPhone() && (
+                                    <PhoneSkipButton
+                                        label={skipChapter.label}
+                                        onSkip={() => action({ type: "seekTo", payload: { time: skipChapter.end } })}
+                                    />
+                                )}
+                                {!!skipChapter && !isMiniPlayer && !(isMobile && isAndroidPhone()) && (
                                     <div
                                         data-vc-element="skip-oped-button-container"
                                         data-vc-for="chapter"
@@ -1985,4 +1994,29 @@ function FloatingButtons(props: { part: "video" | "loading", onTerminateStream: 
     }
 
     return <Content />
+}
+
+/** Android phone: a solid, thumb-sized skip action at the bottom right, above the time bar. */
+export function PhoneSkipButton({ label, onSkip }: { label: string, onSkip: () => void }) {
+    const t = useTr()
+    const text = ({
+        "Opening": t("Skip opening", "Opening überspringen"),
+        "Ending": t("Skip ending", "Ending überspringen"),
+        "Recap": t("Skip recap", "Rückblick überspringen"),
+    } as Record<string, string>)[label] ?? `${t("Skip", "Überspringen:")} ${label}`
+    return (
+        <div data-vc-element="skip-oped-button-container" data-vc-for="chapter" className="vc-phone-skip native-player-hide-on-fullscreen">
+            <button
+                type="button"
+                onClick={e => {
+                    e.stopPropagation()
+                    onSkip()
+                }}
+                onPointerDown={e => e.stopPropagation()}
+                onPointerMove={e => e.stopPropagation()}
+            >
+                {text}<LuSkipForward aria-hidden />
+            </button>
+        </div>
+    )
 }

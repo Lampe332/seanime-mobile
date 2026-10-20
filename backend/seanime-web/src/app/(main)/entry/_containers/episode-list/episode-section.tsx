@@ -8,6 +8,7 @@ import { EpisodeListGrid, EpisodeListPaginatedGrid } from "@/app/(main)/entry/_c
 import { useAnimeEntryPageView } from "@/app/(main)/entry/_containers/anime-entry-page"
 import { EpisodeItem } from "@/app/(main)/entry/_containers/episode-list/episode-item"
 import { UndownloadedEpisodeList } from "@/app/(main)/entry/_containers/episode-list/undownloaded-episode-list"
+import { PhoneDownloadedEpisodes, usePhoneDownloadedEpisodes } from "@/app/(main)/entry/_containers/episode-list/phone-downloaded-episodes"
 import { useHandleEpisodeSection } from "@/app/(main)/entry/_lib/handle-episode-section"
 import { useForcePlaybackMethod, useHandlePlayMedia } from "@/app/(main)/entry/_lib/handle-play-media"
 import { episodeCardCarouselItemClass } from "@/components/shared/classnames"
@@ -49,6 +50,10 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
     const { data: watchHistory } = useGetContinuityWatchHistory()
 
     const { inject, remove } = useSeaCommandInject()
+
+    // Android: episodes saved with the phone's download manager count as available here.
+    const phoneDownloads = usePhoneDownloadedEpisodes(entry.mediaId)
+    const phoneDownloadedNumbers = React.useMemo(() => new Set(phoneDownloads.map(episode => Number(episode.episode))), [phoneDownloads])
 
     React.useEffect(() => {
         if (!media) return
@@ -106,6 +111,7 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
 
     if (!!media && ((!entry.listData && !entry._isNakamaEntry) || !entry.libraryData) && !serverStatus?.isOffline) {
         return <div className="space-y-10">
+            <PhoneDownloadedEpisodes episodes={phoneDownloads} />
             {media?.status !== "NOT_YET_RELEASED"
                 ? <h4 className="text-yellow-50 flex items-center gap-2"><IoLibrarySharp /> Not in {entry._isNakamaEntry
                     ? "the Nakama's"
@@ -114,6 +120,7 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
             <div className="overflow-y-auto pt-4 lg:pt-0 space-y-10 overflow-x-hidden">
                 {!entry._isNakamaEntry && <UndownloadedEpisodeList
                     downloadInfo={entry.downloadInfo}
+                    excludeEpisodes={phoneDownloadedNumbers}
                     media={media}
                     watchedProgress={entry.listData?.progress}
                     maxCol={maxCol}
@@ -126,6 +133,7 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
     return (
         <>
             <AppLayoutStack spacing="lg" data-episode-section-stack>
+                <PhoneDownloadedEpisodes episodes={phoneDownloads} />
 
                 {hasInvalidEpisodes && <Alert
                     intent="alert"
@@ -228,6 +236,7 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
 
                     {!serverStatus?.isOffline && !entry._isNakamaEntry && <UndownloadedEpisodeList
                         downloadInfo={entry.downloadInfo}
+                        excludeEpisodes={phoneDownloadedNumbers}
                         media={media}
                         watchedProgress={entry.listData?.progress}
                         maxCol={maxCol}

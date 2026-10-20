@@ -79,6 +79,12 @@ with tempfile.TemporaryDirectory(prefix='seanime-player-settings-') as tmp:
         check('Back on the overview closes the sheet',page.locator('.vc-phone-settings').count()==0)
         sheet=open_sheet(page);page.locator('#outside').tap();page.wait_for_timeout(400)
         check('Tapping beside the sheet closes it',page.locator('.vc-phone-settings').count()==0)
+        skip=page.locator('#skip-player .vc-phone-skip button')
+        geo=skip.evaluate('e=>{const r=e.getBoundingClientRect(),c=e.closest("#skip-player").getBoundingClientRect(),s=getComputedStyle(e);return {h:r.height,right:c.right-r.right,bottom:c.bottom-r.bottom,centre:r.left>c.left+c.width/2,bg:s.backgroundColor,text:e.textContent}}')
+        check('Skip opening: solid 48 dp button at the bottom right of the player',geo['h']>=48 and geo['right']<=16 and geo['bottom']<=64 and geo['centre'] and geo['bg'].startswith('rgba(244, 244, 246') and geo['text']=='Skip opening',geo)
+        if shots: page.locator('#skip-player').screenshot(path=str(shots/'harness-skip-button.png'))
+        skip.tap()
+        check('Tapping skip calls the seek action once',page.evaluate('skips')==1)
         page.close()
 
         page=open_page(800,360);sheet=open_sheet(page)

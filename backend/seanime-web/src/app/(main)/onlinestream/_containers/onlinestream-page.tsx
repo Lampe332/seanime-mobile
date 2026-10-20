@@ -392,6 +392,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
     const [playbackError, setPlaybackError] = React.useState<string | null>(null)
 
     const { mutate: emptyCache, isPending: isEmptyingCache } = useOnlineStreamEmptyCache()
+    const [cacheSheetOpen, setCacheSheetOpen] = React.useState(false)
 
     // get extensions
     const { providerExtensions, providerExtensionOptions } = useHandleOnlinestreamProviderExtensions()
@@ -910,7 +911,27 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         className={IS_ANDROID_APP ? "w-full" : "rounded-full w-fit !px-4"}
         addonClass="rounded-full rounded-r-none"
     />
-    const cachePopover = (
+    const cachePopover = IS_ANDROID_APP ? (
+        <Modal
+            open={cacheSheetOpen}
+            onOpenChange={setCacheSheetOpen}
+            title={tr("Stream cache", "Stream-Cache")}
+            description={tr("Clears the saved sources of this anime. Use it when an episode does not load or stops.",
+                "Leert die gespeicherten Quellen dieses Anime. Hilft, wenn eine Folge nicht lädt oder hängt.")}
+            trigger={<Button intent="gray-basic" size="sm" className="rounded-full" leftIcon={<HiOutlineCog6Tooth className="text-xl" />}>
+                {tr("Cache", "Cache")}
+            </Button>}
+            contentClass="mobile-anime-dialog mobile-download-sheet mobile-cache-sheet"
+        >
+            <div className="mobile-cache-actions" data-mobile-cache-sheet>
+                <button type="button" className="mobile-cache-clear" disabled={isEmptyingCache || !mediaId}
+                    onClick={() => emptyCache({ mediaId: mediaId! }, { onSuccess: () => setCacheSheetOpen(false) })}>
+                    {isEmptyingCache ? tr("Clearing …", "Wird geleert …") : tr("Clear stream cache", "Stream-Cache leeren")}
+                </button>
+                <button type="button" className="mobile-cache-cancel" onClick={() => setCacheSheetOpen(false)}>{tr("Cancel", "Abbrechen")}</button>
+            </div>
+        </Modal>
+    ) : (
         <IsomorphicPopover
             title="Stream"
             trigger={<Button

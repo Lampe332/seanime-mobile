@@ -12,14 +12,16 @@ import React, { startTransition } from "react"
 import { BiCalendarAlt, BiDownload } from "react-icons/bi"
 import { EpisodeItemInfoModalButton } from "./episode-item"
 
-export function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, maxCol }: {
+export function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, maxCol, excludeEpisodes }: {
     downloadInfo: Anime_EntryDownloadInfo | undefined,
+    /** Episode numbers already saved on the Android phone. */
+    excludeEpisodes?: Set<number>
     media: AL_BaseAnime
     watchedProgress?: number
     maxCol?: number
 }) {
 
-    const episodes = downloadInfo?.episodesToDownload
+    const episodes = downloadInfo?.episodesToDownload?.filter(ep => !excludeEpisodes?.has(ep.episodeNumber))
 
     const setTorrentSearchIsOpen = useSetAtom(__torrentSearch_selectionAtom)
     const setTorrentSearchEpisode = useSetAtom(__torrentSearch_selectionEpisodeAtom)

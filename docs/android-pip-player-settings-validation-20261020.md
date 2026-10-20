@@ -1,6 +1,6 @@
 # Android PiP controls, player settings sheet and Sub label — 2026-10-20
 
-Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31048 (31045-31047 were intermediate device builds).
+Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31050 (31045-31049 were intermediate device builds).
 
 ## Changes
 
@@ -10,6 +10,13 @@ Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B /
 - Player settings on Android phones (smallest screen side < 600 CSS px; tablets/desktop keep the old list): grouped Playback / Subtitles / Display, Auto play / Auto next / Skip OP/ED as in-row switches writing the same atoms, 48 dp rows, values in tabular numerals. Portrait: docked bottom sheet; landscape: groups side by side. Sub pages reuse the existing menus with the same rhythm; Escape/Android Back steps back one page, then closes. Opening Preferences closes the sheet. Leaving fullscreen closes the sheet (native Back in fullscreen exits fullscreen first; native back handling was out of scope).
 
 - Follow-up: phone player settings drop what does not work on phones. Anime4K needs WebGPU (`navigator.gpu.requestAdapter()` returns no adapter on the SM-S908B WebView), Preferences is the desktop modal (keyboard shortcuts, screenshot directory, chapter regex, API-key subtitle translation), the custom subtitle font needs a file in the desktop assets folder, plus the "Shift + Up/Down" and drag-and-drop hints. New phone page Languages sets the existing `preferredSubtitleLanguage` / `preferredAudioLanguage` codes (Japanese, German, English) and updates the subtitle managers. Volume boost stays: on the device 150 % drives a running Web Audio gain of 1.5 and Off returns it to 1.
+
+- Second follow-up (phone only):
+  - Local library tab lists episodes saved by the Android download manager (`SeanimeOffline.snapshot`, filtered by media id, refreshed every 2 s and on focus) as "On this phone" rows that play through the existing offline `play` action; those episode numbers are removed from "not in your library". "Manage" opens the anime in Downloads.
+  - Manual match: bottom sheet with current match, one search row pre-filled with the title before its subtitle (the provider answers long titles with an error), dub switch, 48 dp result rows, external link; provider errors show the no-results hint.
+  - Stream cache: bottom sheet with Clear / Cancel; closes after clearing.
+  - Quality, audio and subtitle player menus use the phone sheet (`VideoCoreMenu` applies it on phones).
+  - Skip opening / ending: solid 48 dp pill at the bottom right of the player.
 
 ## Verification
 

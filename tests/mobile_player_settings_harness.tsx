@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useSetAtom } from "jotai"
 import React from "react"
 import { createRoot } from "react-dom/client"
-import { vc_subtitleManager } from "../backend/seanime-web/src/app/(main)/_features/video-core/video-core"
+import { PhoneSkipButton, vc_subtitleManager } from "../backend/seanime-web/src/app/(main)/_features/video-core/video-core"
 import { vc_isMobile } from "../backend/seanime-web/src/app/(main)/_features/video-core/video-core-atoms"
 import { VideoCoreSettingsMenu } from "../backend/seanime-web/src/app/(main)/_features/video-core/video-core-settings-menu"
 
@@ -24,6 +24,9 @@ createRoot(document.getElementById("root")!).render(
         <div id="player" style={{ position: "relative", height: "100vh", background: "#000" }}>
             <div id="outside" style={{ position: "absolute", left: 0, top: 0, width: 80, height: 80 }} />
             <Setup />
+            <div id="skip-player" data-vc-element="container" style={{ position: "absolute", left: 0, right: 0, top: 200, aspectRatio: "16 / 9", background: "#223" }}>
+                <PhoneSkipButton label="Opening" onSkip={() => { w.skips = (w.skips || 0) + 1 }} />
+            </div>
         </div>
     </QueryClientProvider>,
 )

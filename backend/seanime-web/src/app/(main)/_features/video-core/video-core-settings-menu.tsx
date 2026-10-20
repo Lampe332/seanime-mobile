@@ -22,6 +22,7 @@ import {
     VideoCoreMenuTitle,
     VideoCoreSettingSelect,
     VideoCoreSettingTextInput,
+    isAndroidPhone,
 } from "@/app/(main)/_features/video-core/video-core-menu"
 import { videoCorePreferencesModalAtom } from "@/app/(main)/_features/video-core/video-core-preferences"
 import {
@@ -200,13 +201,6 @@ export function vc_getCaptionStyleLabel<T extends keyof VideoCoreSettings["capti
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
-/** Android phones (smallest screen side under 600 CSS px) get the grouped settings sheet; tablets and desktop keep the list. */
-export function isAndroidPhone() {
-    return IS_ANDROID_APP && typeof window !== "undefined" && Math.min(window.screen.width, window.screen.height) < 600
-}
 
 export function VideoCoreSettingsMenu() {
     const serverStatus = useServerStatus()

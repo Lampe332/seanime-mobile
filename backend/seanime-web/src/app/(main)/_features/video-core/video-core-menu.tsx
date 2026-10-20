@@ -11,8 +11,15 @@ import {
     MediaCoreSettingTextInput,
 } from "@/app/(main)/_features/media-core/media-core-menu"
 import { useAtom, useAtomValue } from "jotai"
-import { vc_menuOpen, vc_menuSectionOpen, vc_menuSubSectionOpen, vc_isFullscreen, vc_containerElement } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_menuOpen, vc_menuSectionOpen, vc_menuSubSectionOpen, vc_isFullscreen, vc_containerElement, vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
 import React from "react"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
+/** Android phones (smallest screen side under 600 CSS px) get the phone sheets; tablets and desktop keep the popovers. */
+export function isAndroidPhone() {
+    return IS_ANDROID_APP && typeof window !== "undefined" && Math.min(window.screen.width, window.screen.height) < 600
+}
 
 export const VideoCoreMenuTitle = MediaCoreMenuTitle
 export const VideoCoreMenuBody = MediaCoreMenuBody
@@ -39,10 +46,12 @@ export function VideoCoreMenu(props: any) {
     const [, setOpenSubSection] = useAtom(vc_menuSubSectionOpen)
     const isFullscreen = useAtomValue(vc_isFullscreen)
     const containerElement = useAtomValue(vc_containerElement)
+    const isMobile = useAtomValue(vc_isMobile)
 
     return (
         <MediaCoreMenu
             {...props}
+            className={props.className ?? (isMobile && isAndroidPhone() ? "vc-phone-settings" : undefined)}
             openMenu={openMenu}
             onOpenMenuChange={setOpenMenu}
             onOpenSectionChange={setOpenSection}

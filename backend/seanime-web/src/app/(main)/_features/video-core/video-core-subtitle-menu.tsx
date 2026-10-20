@@ -15,7 +15,7 @@ import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.
 import { IconButton } from "@/components/ui/button"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useAtomValue } from "jotai"
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-settings-menu"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useSetAtom } from "jotai/react"
 import React from "react"
 import { AiFillInfoCircle } from "react-icons/ai"
