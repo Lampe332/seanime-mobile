@@ -8,11 +8,18 @@ import { Carousel, CarouselContent, CarouselDotButtons } from "@/components/ui/c
 import { cn } from "@/components/ui/core/styling"
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { getLibraryCollectionTitle } from "@/lib/server/utils"
+import { atom } from "jotai"
 import { useAtom } from "jotai/react"
 import React from "react"
-import { LuListFilter } from "react-icons/lu"
+import { LuCheck, LuListFilter } from "react-icons/lu"
 import { useTr } from "@/lib/app-language"
 import { Button } from "@/components/ui/button"
+import { Modal } from "@/components/ui/modal"
+import "@/components/shared/mobile-surface.css"
+import "./home-current-filter.css"
+
+/** Android home: genres the "Currently watching" row is narrowed to (all must match). Kept for the session only. */
+const homeCurrentGenresAtom = atom<string[]>([])
 
 export function LibraryCollectionLists({ collectionList, isLoading, streamingMediaIds, showStatuses, type, homeMobile }: {
     homeMobile?: boolean
@@ -119,6 +126,11 @@ export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, 
     const tr = useTr()
 
     const [params, setParams] = useAtom(__mainLibrary_paramsAtom)
+    const [genres, setGenres] = useAtom(homeCurrentGenresAtom)
+    const genreFiltered = homeMobile && isCurrentlyWatching && genres.length > 0
+    const entries = React.useMemo(() => genreFiltered
+        ? list.entries?.filter(entry => genres.every(genre => entry.media?.genres?.includes(genre)))
+        : list.entries, [list.entries, genres, genreFiltered])
 
     if (!!showStatuses && !!list.type && !showStatuses.includes(list.type)) return null
 
@@ -131,7 +143,8 @@ export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, 
                     )}
                 >{homeMobile && isCurrentlyWatching ? tr("Currently watching", "Gerade dabei") : getLibraryCollectionTitle(list.type)}</h2>
                 {type === "grid" && <div className="flex flex-1"></div>}
-                {isCurrentlyWatching && <DropdownMenu
+                {isCurrentlyWatching && homeMobile && <HomeCurrentFilter list={list} />}
+                {isCurrentlyWatching && !homeMobile && <DropdownMenu
                     trigger={homeMobile ? <Button intent="gray-basic" leftIcon={<LuListFilter aria-hidden />} aria-label={tr("Filter currently watching", "Aktuelle Serien filtern")} aria-pressed={!!params.continueWatchingOnly}>{tr("Filter", "Filter")}{params.continueWatchingOnly ? " · 1" : ""}</Button> : <IconButton
                         intent="white-basic"
                         size="xs"
@@ -151,12 +164,16 @@ export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, 
                     </DropdownMenuItem>
                 </DropdownMenu>}
             </div>
+            {genreFiltered && !entries?.length && <p className="home-filter-empty">
+                {tr("No series match these genres.", "Keine Serie passt zu diesen Genres.")}{" "}
+                <button type="button" onClick={() => setGenres([])}>{tr("Reset", "Zurücksetzen")}</button>
+            </p>}
             {type === "grid" && <MediaCardLazyGrid
-                itemCount={list?.entries?.length || 0}
+                itemCount={entries?.length || 0}
                 data-library-collection-list-item-media-card-lazy-grid
                 data-list-type={list.type}
             >
-                {list.entries?.map(entry => {
+                {entries?.map(entry => {
                     return <LibraryCollectionEntryItem key={entry.mediaId} entry={entry} streamingMediaIds={streamingMediaIds} type={type} />
                 })}
             </MediaCardLazyGrid>}
@@ -171,7 +188,7 @@ export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, 
             >
                 <CarouselDotButtons className="-top-2" />
                 <CarouselContent className="px-6">
-                    {list.entries?.map(entry => {
+                    {entries?.map(entry => {
                         return <LibraryCollectionEntryItem key={entry.mediaId} entry={entry} streamingMediaIds={streamingMediaIds} type={type} />
                     })}
                 </CarouselContent>
@@ -179,6 +196,61 @@ export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, 
         </React.Fragment>
     )
 })
+
+/** Android home: filter sheet for "Currently watching" with the unwatched toggle and the genres of the listed series. */
+function HomeCurrentFilter({ list }: { list: Anime_LibraryCollectionList }) {
+    const tr = useTr()
+    const [open, setOpen] = React.useState(false)
+    const [params, setParams] = useAtom(__mainLibrary_paramsAtom)
+    const [genres, setGenres] = useAtom(homeCurrentGenresAtom)
+    const available = React.useMemo(() => {
+        const counts = new Map<string, number>()
+        list.entries?.forEach(entry => entry.media?.genres?.forEach(genre => counts.set(genre, (counts.get(genre) || 0) + 1)))
+        return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    }, [list.entries])
+    const matching = list.entries?.filter(entry => genres.every(genre => entry.media?.genres?.includes(genre))).length ?? 0
+    const active = genres.length + (params.continueWatchingOnly ? 1 : 0)
+    const toggle = (genre: string) => setGenres(current => current.includes(genre) ? current.filter(g => g !== genre) : [...current, genre])
+    return <Modal
+        open={open}
+        onOpenChange={setOpen}
+        title={tr("Filter currently watching", "Aktuelle Serien filtern")}
+        contentClass="mobile-anime-dialog mobile-download-sheet home-filter-sheet"
+        trigger={<Button intent="gray-basic" leftIcon={<LuListFilter aria-hidden />} aria-label={tr("Filter currently watching", "Aktuelle Serien filtern")}
+            aria-pressed={active > 0}>{tr("Filter", "Filter")}{active ? ` · ${active}` : ""}</Button>}
+    >
+        <div className="home-filter" data-home-current-filter>
+            <button type="button" role="switch" aria-checked={!!params.continueWatchingOnly} className="home-filter-switch"
+                onClick={() => setParams(draft => {
+                    draft.continueWatchingOnly = !draft.continueWatchingOnly
+                    return
+                })}>
+                <span>{tr("Unwatched episodes only", "Nur mit ungesehenen Folgen")}</span>
+                <span className="home-filter-toggle" aria-hidden />
+            </button>
+            {!!available.length && <div className="home-filter-genres" role="group" aria-label={tr("Genres", "Genres")}>
+                <p>{tr("Genres", "Genres")}</p>
+                <div>
+                    {available.map(([genre, count]) => <button key={genre} type="button" aria-pressed={genres.includes(genre)} onClick={() => toggle(genre)}>
+                        {genres.includes(genre) && <LuCheck aria-hidden />}{genre}<span>{count}</span>
+                    </button>)}
+                </div>
+            </div>}
+            <div className="home-filter-footer">
+                <button type="button" className="home-filter-reset" disabled={!active} onClick={() => {
+                    setGenres([])
+                    setParams(draft => {
+                        draft.continueWatchingOnly = false
+                        return
+                    })
+                }}>{tr("Reset", "Zurücksetzen")}</button>
+                <button type="button" className="home-filter-apply" onClick={() => setOpen(false)}>
+                    {tr(`Show ${matching} series`, `${matching} Serien anzeigen`)}
+                </button>
+            </div>
+        </div>
+    </Modal>
+}
 
 export const LibraryCollectionEntryItem = React.memo(({ entry, streamingMediaIds, type }: {
     entry: Anime_LibraryCollectionEntry,

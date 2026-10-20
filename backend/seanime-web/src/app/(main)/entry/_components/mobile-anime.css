@@ -182,28 +182,31 @@ body .mobile-download-sheet.UI-Modal__content { display: flex; flex-direction: c
 .mobile-download-sheet .UI-Modal__header, .mobile-download-sheet .UI-Modal__title { padding-right: 44px; }
 .mobile-download-sheet .UI-Modal__title { overflow-wrap: break-word; }
 .mobile-download-sheet [data-episode-download-picker] { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: .75rem; }
-.mobile-download-head { display: grid; gap: .2rem; min-width: 0; }
+.mobile-download-head { flex: none; display: flex; align-items: center; gap: .75rem; min-width: 0; padding: .625rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); }
+.mobile-download-cover { flex: none; width: 2.75rem; aspect-ratio: 2 / 3; border-radius: .5rem; object-fit: cover; }
 .mobile-download-title { font-size: .9375rem; font-weight: 600; color: var(--sm-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
-.mobile-download-meta { font-size: .8125rem; color: var(--sm-text-muted); }
-.mobile-download-hint { font-size: .75rem; color: var(--sm-text-subtle); }
-.mobile-download-presets { flex: none; display: flex; gap: .375rem; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
-.mobile-download-presets button { flex: none; min-height: 48px; padding: 0 1rem; border: 0; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; white-space: nowrap; }
-.mobile-download-presets button[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 650; }
+.mobile-download-meta { margin-top: .125rem; font-size: .8125rem; color: var(--sm-text-muted); }
+.mobile-download-presets { flex: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(5.5rem, 100%), 1fr)); gap: .25rem; padding: .25rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); }
+.mobile-download-presets button { min-height: 48px; padding: .25rem .5rem; border: 0; border-radius: var(--sm-radius-sm); background: transparent; color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; line-height: 1.2; }
+.mobile-download-presets button[aria-pressed="true"] { background: var(--sm-surface-control); color: var(--sm-text); font-weight: 650; }
 .mobile-download-presets button:disabled { opacity: .4; }
-.mobile-download-list { flex: 1 1 auto; min-height: 6rem; overflow-y: auto; overscroll-behavior: contain; margin-inline: -8px; display: grid; align-content: start; }
-.mobile-download-list label { position: relative; display: grid; grid-template-columns: 1.5rem 1.75rem minmax(0, 1fr) auto; align-items: center; gap: .625rem; min-height: 48px; padding: .25rem .5rem; border-radius: var(--sm-radius-sm); cursor: pointer; }
-.mobile-download-list label:active { background: var(--sm-surface-raised); }
+.mobile-download-listhead { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 .5rem; padding-inline: .25rem; font-size: .8125rem; font-weight: 500; color: var(--sm-text-subtle); }
+.mobile-download-listhead button { min-height: 48px; padding: 0 .25rem; font-size: .875rem; color: var(--sm-accent); }
+.mobile-download-listhead button:disabled { color: var(--sm-text-subtle); opacity: .6; }
+.mobile-download-list { flex: 1 1 auto; min-height: 6rem; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: 2px; border-radius: var(--sm-radius); }
+.mobile-download-list label { position: relative; display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) auto; align-items: center; gap: .625rem; min-height: 48px; padding: .25rem .75rem; background: var(--sm-surface-raised); cursor: pointer; }
+.mobile-download-list label:active { background: var(--sm-surface-control); }
 .mobile-download-list label:has(input:focus-visible) { outline: 2px solid var(--sm-accent); outline-offset: -2px; }
-.mobile-download-check { display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 999px; background: var(--sm-surface-control); color: #fff; font-size: .875rem; }
-.mobile-download-list label[data-checked] .mobile-download-check { background: var(--sm-accent-strong); }
+.mobile-download-check { display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: .375rem; box-shadow: inset 0 0 0 1.5px var(--sm-line-strong); color: #fff; font-size: .875rem; }
+.mobile-download-list label[data-checked] .mobile-download-check { background: var(--sm-accent-strong); box-shadow: none; }
 .mobile-download-list label[data-saved] { cursor: default; }
-.mobile-download-list label[data-saved] .mobile-download-check { background: var(--sm-surface-control); color: var(--sm-text-subtle); }
-.mobile-download-number { font-size: .8125rem; font-variant-numeric: tabular-nums; color: var(--sm-text-subtle); text-align: right; }
-.mobile-download-name { font-size: .875rem; color: var(--sm-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.mobile-download-number { font-size: .8125rem; font-variant-numeric: tabular-nums; color: var(--sm-text-subtle); }
+.mobile-download-name { font-size: .9375rem; color: var(--sm-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 .mobile-download-list label[data-saved] .mobile-download-name { color: var(--sm-text-subtle); }
-.mobile-download-saved { font-size: .75rem; color: var(--sm-text-subtle); }
-.mobile-download-footer { flex: none; position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem .75rem; padding-top: .75rem; background: var(--sm-surface); font-size: .8125rem; color: var(--sm-text-muted); }
-.mobile-download-footer [data-download-submit] { flex: 1 1 auto; max-width: 100%; white-space: normal; min-height: 48px; padding-inline: 1.25rem; border: 0; border-radius: 999px; background: var(--sm-accent-strong); color: #fff; font-weight: 650; }
+.mobile-download-saved { padding: .125rem .5rem; border-radius: 999px; background: var(--sm-surface-control); font-size: .75rem; color: var(--sm-text-muted); }
+.mobile-download-footer { flex: none; position: sticky; bottom: 0; z-index: 1; display: grid; gap: .375rem; padding-top: .5rem; background: var(--sm-surface); }
+.mobile-download-hint { flex: none; font-size: .75rem; line-height: 1.4; color: var(--sm-text-subtle); text-align: center; }
+.mobile-download-footer [data-download-submit] { width: 100%; white-space: normal; min-height: 48px; padding-inline: 1.25rem; border: 0; border-radius: 999px; background: var(--sm-accent-strong); color: #fff; font-weight: 650; }
 .mobile-download-footer [data-download-submit]:disabled { background: var(--sm-surface-control); color: var(--sm-text-subtle); }
 .mobile-anime-select { max-width: calc(100vw - 1rem); max-height: 60dvh; background: var(--sm-surface-raised); color: var(--sm-text); border: 1px solid var(--sm-line-strong); border-radius: var(--sm-radius-sm); }
 .mobile-anime-select [role="option"] { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }

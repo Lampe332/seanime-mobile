@@ -925,7 +925,12 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         >
             <div className="mobile-cache-actions" data-mobile-cache-sheet>
                 <button type="button" className="mobile-cache-clear" disabled={isEmptyingCache || !mediaId}
-                    onClick={() => emptyCache({ mediaId: mediaId! }, { onSuccess: () => setCacheSheetOpen(false) })}>
+                    onClick={() => {
+                        // The mutation stays pending until the episode source has been fetched again, which can take long;
+                        // the cache is cleared right away and a toast confirms it, so the sheet closes immediately.
+                        emptyCache({ mediaId: mediaId! })
+                        setCacheSheetOpen(false)
+                    }}>
                     {isEmptyingCache ? tr("Clearing …", "Wird geleert …") : tr("Clear stream cache", "Stream-Cache leeren")}
                 </button>
                 <button type="button" className="mobile-cache-cancel" onClick={() => setCacheSheetOpen(false)}>{tr("Cancel", "Abbrechen")}</button>

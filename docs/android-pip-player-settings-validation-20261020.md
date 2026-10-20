@@ -1,6 +1,6 @@
 # Android PiP controls, player settings sheet and Sub label — 2026-10-20
 
-Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31050 (31045-31049 were intermediate device builds).
+Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31052 (31045-31051 were intermediate device builds).
 
 ## Changes
 
@@ -17,6 +17,8 @@ Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B /
   - Stream cache: bottom sheet with Clear / Cancel; closes after clearing.
   - Quality, audio and subtitle player menus use the phone sheet (`VideoCoreMenu` applies it on phones).
   - Skip opening / ending: solid 48 dp pill at the bottom right of the player.
+
+- Third follow-up (phone only): stream cache sheet closes as soon as clearing starts (the mutation stays pending until the episode source is fetched again; a toast confirms); redesigned download episodes sheet (anime card with cover, segmented Season / From ep. / This episode, "Clear selection", grouped episode rows with checkboxes or a Saved badge, full-width download button); Home "Currently watching" filter is a sheet with the unwatched switch plus genre chips (all selected genres must match, counts per genre, Reset / Show N series). Device: 8/8 incl. genre narrowing 4 -> 3 series and toast after clearing.
 
 ## Verification
 

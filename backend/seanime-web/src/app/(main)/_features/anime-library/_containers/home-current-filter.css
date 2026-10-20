@@ -1,0 +1,26 @@
+/* Android home: filter sheet for "Currently watching". */
+.home-filter { display: grid; grid-template-columns: minmax(0, 1fr); gap: .875rem; min-width: 0; }
+.home-filter-switch {
+    display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 3.25rem;
+    padding: .5rem .875rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); text-align: start; font-size: .9375rem; color: var(--sm-text);
+}
+.home-filter-toggle { position: relative; flex: none; width: 2.375rem; height: 1.375rem; border-radius: 999px; background: var(--sm-surface-control); box-shadow: inset 0 0 0 1px var(--sm-line-strong); }
+.home-filter-toggle::after { content: ""; position: absolute; top: .1875rem; left: .1875rem; width: 1rem; height: 1rem; border-radius: 999px; background: var(--sm-text-muted); transition: transform .15s; }
+.home-filter-switch[aria-checked="true"] .home-filter-toggle { background: var(--sm-accent-strong); box-shadow: none; }
+.home-filter-switch[aria-checked="true"] .home-filter-toggle::after { transform: translateX(1rem); background: #fff; }
+.home-filter-genres > p { margin: 0 .25rem .5rem; font-size: .8125rem; font-weight: 500; color: var(--sm-text-subtle); }
+.home-filter-genres > div { display: flex; flex-wrap: wrap; gap: .5rem; }
+.home-filter-genres button {
+    display: inline-flex; align-items: center; gap: .375rem; min-height: 2.75rem; padding: 0 .875rem; border-radius: 999px;
+    background: var(--sm-surface-raised); color: var(--sm-text); font-size: .875rem;
+}
+.home-filter-genres button span { font-size: .75rem; font-variant-numeric: tabular-nums; color: var(--sm-text-subtle); }
+.home-filter-genres button[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 600; }
+.home-filter-genres button[aria-pressed="true"] span { color: var(--sm-accent); }
+.home-filter-footer { position: sticky; bottom: 0; display: grid; grid-template-columns: auto 1fr; gap: .5rem; padding-top: .5rem; background: var(--sm-surface); }
+.home-filter-footer button { min-height: 3rem; padding: 0 1.125rem; border-radius: 999px; font-size: .9375rem; font-weight: 600; }
+.home-filter-reset { background: var(--sm-surface-raised); color: var(--sm-text); }
+.home-filter-reset:disabled { opacity: .45; }
+.home-filter-apply { background: var(--sm-accent-strong); color: #fff; }
+.home-filter-empty { padding: .75rem 0; font-size: .875rem; color: var(--sm-text-muted); }
+.home-filter-empty button { min-height: 2.75rem; color: var(--sm-accent); font-weight: 600; }
