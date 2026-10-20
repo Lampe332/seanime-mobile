@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.18 — 20.10.2026 (versionCode 31069)
+
+- 🦺 Downloads: Fixed the item count overlapping the Anime / Manga switch and the black band above the Downloads title.
+
 ## 1.9.17 — 20.10.2026 (versionCode 31068)
 
 - 🎉 Downloads: Episodes you started offline appear in a "Continue offline" row and play from where you stopped.
