@@ -4,10 +4,11 @@ import { Modal } from "@/components/ui/modal"
 import { openAndroidDownloads } from "@/lib/android-offline"
 import { useTr } from "@/lib/app-language"
 import React from "react"
-import { LuDownload } from "react-icons/lu"
+import { LuCheck, LuDownload } from "react-icons/lu"
 import { toast } from "sonner"
 
 const episodeWord = (count: number) => count === 1 ? "episode" : "episodes"
+const sameSet = (a: Set<number>, b: number[]) => a.size === b.length && b.every(n => a.has(n))
 
 export function EpisodeDownloadPicker({ media, episodes, provider, server, quality, dubbed, currentEpisode }: {
     media: AL_BaseAnime, episodes?: Onlinestream_Episode[], provider?: string | null, server?: string | null,
@@ -53,31 +54,55 @@ export function EpisodeDownloadPicker({ media, episodes, provider, server, quali
         } catch (error) { toast.error(error instanceof Error ? error.message : t("Episodes could not be queued", "Folgen konnten nicht eingeplant werden")) }
         finally { setBusy(false) }
     }
+    const from = currentEpisode || 1
+    const presets = [
+        { id: "season", label: t("Whole season", "Ganze Staffel"), numbers: available.map(episode => episode.number) },
+        { id: "from", label: t(`From ep. ${from}`, `Ab Folge ${from}`), numbers: available.filter(episode => episode.number >= from).map(episode => episode.number) },
+        ...(currentEpisode !== null ? [{ id: "this", label: t("This episode", "Diese Folge"), numbers: available.some(episode => episode.number === currentEpisode) ? [currentEpisode] : [] }] : []),
+        { id: "none", label: t("None", "Keine"), numbers: [] as number[] },
+    ]
+    const toggle = (number: number) => setSelected(previous => {
+        const next = new Set(previous)
+        if (next.has(number)) next.delete(number); else next.add(number)
+        return next
+    })
     return <>
-        <Button size="sm" rounded intent="gray-basic" leftIcon={<LuDownload />} disabled={!provider || !all.length} onClick={show} data-download-season>
-            {t("Download season / episodes", "Staffel / Folgen herunterladen")}
+        <Button size="sm" rounded intent="gray-basic" leftIcon={<LuDownload />} disabled={!provider || !all.length} onClick={show} data-download-season
+            aria-label={t("Download season / episodes", "Staffel / Folgen herunterladen")}>
+            {t("Download", "Download")}
         </Button>
-        <Modal open={open} onOpenChange={setOpen} contentClass={import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? "mobile-anime-dialog" : undefined} title={t("Download episodes", "Folgen herunterladen")}>
-            <div className="space-y-4" data-episode-download-picker>
-                <div><h3 className="text-lg font-semibold">{media.title?.userPreferred || media.title?.romaji}</h3>
-                    <p className="mt-1 text-sm text-[--muted]">{all.length} {t(episodeWord(all.length), all.length === 1 ? "Folge" : "Folgen")} · {dubbed ? "Dub" : t("Original audio", "Originalton")} · {quality || "Auto"}</p>
-                    <p className="mt-1 text-xs text-[--muted]">{t(`Source: ${provider}. Episodes you already saved are skipped. The queue keeps running when you leave the page.`, `Quelle: ${provider}. Bereits gespeicherte Folgen werden übersprungen. Die Warteschlange bleibt beim Verlassen der Seite erhalten.`)}</p></div>
-                <div className="flex flex-wrap gap-2">
-                    <Button size="sm" intent="gray-basic" onClick={() => setSelected(new Set(available.map(episode => episode.number)))}>{t("Whole season", "Ganze Staffel")}</Button>
-                    <Button size="sm" intent="gray-basic" onClick={() => setSelected(new Set(available.filter(episode => episode.number >= (currentEpisode || 1)).map(episode => episode.number)))}>{t(`From episode ${currentEpisode || 1}`, `Ab Folge ${currentEpisode || 1}`)}</Button>
-                    {currentEpisode !== null && <Button size="sm" intent="gray-basic" disabled={!available.some(episode => episode.number === currentEpisode)} onClick={() => setSelected(new Set([currentEpisode]))}>{t("This episode", "Diese Folge")}</Button>}
-                    <Button size="sm" intent="gray-basic" onClick={() => setSelected(new Set())}>{t("None", "Keine")}</Button>
+        <Modal open={open} onOpenChange={setOpen} contentClass={import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? "mobile-anime-dialog mobile-download-sheet" : undefined} title={t("Download episodes", "Folgen herunterladen")}>
+            <div data-episode-download-picker>
+                <div className="mobile-download-head">
+                    <p className="mobile-download-title">{media.title?.userPreferred || media.title?.romaji}</p>
+                    <p className="mobile-download-meta">{[`${all.length} ${t(episodeWord(all.length), all.length === 1 ? "Folge" : "Folgen")}`, dubbed ? "Dub" : t("Original audio", "Originalton"), provider, quality || "Auto"].filter(Boolean).join(" · ")}</p>
+                    <p className="mobile-download-hint">{t("Saved episodes are skipped. The queue keeps running when you leave.", "Gespeicherte Folgen werden übersprungen. Die Warteschlange läuft beim Verlassen weiter.")}</p>
                 </div>
-                <div className="max-h-[45vh] overflow-y-auto divide-y divide-white/5 rounded-xl border border-white/5">
-                    {all.map(episode => <label key={episode.number} className={`flex min-h-12 items-center gap-3 px-3 py-2 ${existing.has(episode.number) ? "opacity-50" : "cursor-pointer hover:bg-white/5"}`}>
-                        <input type="checkbox" aria-label={t(`Select episode ${episode.number}`, `Folge ${episode.number} auswählen`)} checked={selected.has(episode.number)} disabled={existing.has(episode.number) || busy}
-                            className="h-4 w-4 accent-violet-400" onChange={event => setSelected(previous => { const next = new Set(previous); if (event.target.checked) next.add(episode.number); else next.delete(episode.number); return next })} />
-                        <span className="min-w-0"><span className="block text-sm font-medium">{t("Episode", "Folge")} {episode.number}</span>
-                            <span className="block truncate text-xs text-[--muted]">{existing.has(episode.number) ? t("Already saved / queued", "Bereits gespeichert / eingeplant") : episode.title || episode.metadata?.episodeTitle || ""}</span></span>
-                    </label>)}
+                <div className="mobile-download-presets" role="group" aria-label={t("Quick selection", "Schnellauswahl")}>
+                    {presets.map(preset => <button key={preset.id} type="button" data-download-preset={preset.id}
+                        aria-pressed={sameSet(selected, preset.numbers)} disabled={busy || (preset.id !== "none" && !preset.numbers.length)}
+                        onClick={() => setSelected(new Set(preset.numbers))}>{preset.label}</button>)}
                 </div>
-                <div className="flex items-center justify-between gap-3"><span className="text-xs text-[--muted]">{selected.size} {t("selected", "ausgewählt")}</span>
-                    <Button intent="primary" disabled={!selected.size || busy} onClick={submit}>{busy ? t("Queuing …", "Wird eingeplant …") : t(`Download ${selected.size} ${episodeWord(selected.size)}`, `${selected.size} ${selected.size === 1 ? "Folge" : "Folgen"} herunterladen`)}</Button></div>
+                <ul className="mobile-download-list" aria-label={t("Episodes", "Folgen")}>
+                    {all.map(episode => {
+                        const saved = existing.has(episode.number)
+                        const checked = selected.has(episode.number)
+                        return <li key={episode.number}>
+                            <label data-download-episode={episode.number} data-saved={saved || undefined} data-checked={checked || undefined}>
+                                <input type="checkbox" className="sr-only" aria-label={t(`Select episode ${episode.number}`, `Folge ${episode.number} auswählen`)}
+                                    checked={checked} disabled={saved || busy} onChange={() => toggle(episode.number)} />
+                                <span className="mobile-download-check" aria-hidden>{(checked || saved) && <LuCheck />}</span>
+                                <span className="mobile-download-number">{episode.number}</span>
+                                <span className="mobile-download-name">{episode.title || episode.metadata?.episodeTitle || `${t("Episode", "Folge")} ${episode.number}`}</span>
+                                {saved && <span className="mobile-download-saved">{t("Saved", "Gespeichert")}</span>}
+                            </label>
+                        </li>
+                    })}
+                </ul>
+                <div className="mobile-download-footer">
+                    <span aria-live="polite">{selected.size} {t("selected", "ausgewählt")}</span>
+                    <Button intent="primary" disabled={!selected.size || busy} onClick={submit} data-download-submit>{busy ? t("Queuing …", "Wird eingeplant …") : t(`Download ${selected.size} ${episodeWord(selected.size)}`, `${selected.size} ${selected.size === 1 ? "Folge" : "Folgen"} herunterladen`)}</Button>
+                </div>
             </div>
         </Modal>
     </>
