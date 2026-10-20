@@ -96,6 +96,10 @@ async def main():
             record('Real continuation series and episode numbers', set(map(tuple,shown))==expected, shown)
             record('Mobile Home has no scrolling library header', await page.locator('[data-home-mobile] [data-library-header-container]').count()==0)
             record('Primary resume targets contain no nested links or buttons',await page.locator('[data-home-episode-card] a,[data-home-episode-card] button').count()==0)
+            record('Continue cards have no separate Series details target',await page.locator('.home-resume-tile a,.home-resume-tile button').count()==0 and await page.get_by_text('Series details').count()==0)
+            record('Home header has no frame, motif or sidebar trigger',await page.evaluate("""(()=>{const h=document.querySelector('.home-mobile-header'),s=getComputedStyle(h);return parseFloat(s.borderTopWidth)===0&&s.backgroundImage==='none'&&!document.querySelector('.home-mobile-motif')&&![...document.querySelectorAll('.UI-AppSidebarTrigger__trigger')].some(b=>b.offsetWidth||b.offsetHeight)})()"""))
+            header_actions=page.locator('.home-mobile-header .home-header-action, .home-mobile-header .mobile-plugin-trigger')
+            record('Playlists, Customize and Plugins sit beside the title as labelled 48dp icon actions',await header_actions.evaluate_all("""es=>{const t=document.querySelector('.home-mobile-header h1').getBoundingClientRect();return es.length===3&&es.every(e=>{const r=e.getBoundingClientRect();return r.width>=48&&r.height>=48&&!!e.getAttribute('aria-label')&&r.top<t.bottom&&t.top<r.bottom})}"""))
 
             row = page.locator('.home-resume-row')
             box = await row.bounding_box(); viewport = await page.evaluate('({w:innerWidth,h:innerHeight})')
@@ -151,7 +155,7 @@ async def main():
             await page.wait_for_function('(id)=>document.querySelector("[data-home-mobile-item]")?.getAttribute("data-home-mobile-item")===id',arg=first_id)
             record('Original Home order restores',await items.evaluate_all("es=>es.map(e=>e.dataset.homeMobileItem)")==initial_ids)
             options_before = await get('/api/v1/status/home-items')
-            await items.get_by_role('button',name='Options',exact=True).first.click()
+            await items.get_by_role('button',name=re.compile('^Options:')).first.click()
             await page.get_by_role('button',name='Save',exact=True).click()
             await page.get_by_role('button',name='Save',exact=True).wait_for(state='hidden')
             def normalized_options(value):
@@ -160,31 +164,54 @@ async def main():
                     if item.get('options')=={}:item.pop('options')
                 return value
             record('Existing section options save without losing values',normalized_options(await get('/api/v1/status/home-items'))==normalized_options(options_before))
-            await modal.locator('.home-mobile-available button').first.click()
+            await modal.locator('[data-home-available-item] [role=switch]').first.click()
             await page.wait_for_function('(n)=>document.querySelectorAll("[data-home-mobile-item]").length===n',arg=len(initial_ids)+1)
             record('Existing section picker adds a persisted section',len((await get('/api/v1/status/home-items'))['data'])==len(initial_ids)+1)
-            await items.last.get_by_role('button',name=re.compile('Remove:')).click()
+            await items.last.get_by_role('switch').click()
             await page.wait_for_function('(n)=>document.querySelectorAll("[data-home-mobile-item]").length===n',arg=len(initial_ids))
             record('Added section can be removed without changing the originals',await items.evaluate_all("es=>es.map(e=>e.dataset.homeMobileItem)")==initial_ids)
+            # Every "?" opens its centered explanation; OK, an outside tap and Android Back close only the card.
+            infos=modal.locator('.home-customize-info');info_count=await infos.count();closed=[]
+            for i in range(info_count):
+                await infos.nth(i).scroll_into_view_if_needed();await infos.nth(i).click()
+                card=page.locator('.home-info-card');await card.wait_for()
+                text=await card.locator('p').inner_text()
+                how=('ok','outside','back')[i%3]
+                if how=='ok':await card.get_by_role('button',name='OK').click()
+                elif how=='outside':
+                    await page.wait_for_timeout(300)
+                    subprocess.run([adb,'-s',opt.serial,'shell','input','tap','60','400'],check=True,capture_output=True)
+                else:subprocess.run([adb,'-s',opt.serial,'shell','input','keyevent','4'],check=True,capture_output=True)
+                await card.wait_for(state='detached')
+                closed.append(len(text)>40 and await modal.is_visible())
+                if i==0:
+                    await infos.nth(0).click();await card.wait_for();await page.wait_for_timeout(400);await shot('home-info-card.png')
+                    await card.get_by_role('button',name='OK').click();await card.wait_for(state='detached')
+            record('Every section info card opens with its text and closes via OK, outside tap and Android Back',info_count>=len(initial_ids) and all(closed),info_count)
             await page.keyboard.press('Escape')
 
             await home()
             series_id=shown[0][0]
             # Exercise the real player/entry selection without saving test playback time.
             await fixture('*api/v1/continuity/item',{'data':True})
-            await page.locator('.home-episode-page').first.click()
-            await page.wait_for_url(re.compile(r'/entry\?id='+series_id))
-            record('Secondary details action opens the correct series',True,series_id)
-            await home()
             episode_requests.clear()
-            await page.locator('[data-home-episode-card]').first.click()
+            # A physical tap provides the user activation that fullscreen playback needs.
+            action=await page.locator('.home-resume-action').first.bounding_box()
+            subprocess.run([adb,'-s',opt.serial,'shell','input','tap',str(int((action['x']+action['width']/2)*scale)),str(int((action['y']+action['height']/2)*scale))],check=True,capture_output=True)
             await page.wait_for_url(re.compile(r'/entry\?id='+series_id))
             for _ in range(60):  # source follows the external provider episode list
                 if episode_requests: break
                 await page.wait_for_timeout(250)
             record('Primary continuation uses the existing entry route',True,{'series':series_id,'episode':shown[0][1]})
             record('Continuation requests the correct episode from the existing provider',any(r['mediaId']==int(series_id) and r['episodeNumber']==int(shown[0][1]) for r in episode_requests),episode_requests)
-            await shot('resume-entry.png')
+            await page.wait_for_function('(()=>{const v=document.querySelector("video");return v&&!v.paused&&v.readyState>=3})()',timeout=30000)
+            playback=await page.evaluate('({fullscreen:!!document.fullscreenElement,visible:(()=>{const r=document.querySelector("video").getBoundingClientRect();return r.top<innerHeight&&r.bottom>0})(),time:document.querySelector("video").currentTime})')
+            record('Continue starts playback of that episode in the player',playback['fullscreen'] or playback['visible'],playback)
+            await page.wait_for_timeout(400)
+            await shot('resume-playing.png')
+            await page.evaluate('document.querySelector("video")?.pause()')
+            if playback['fullscreen']:
+                await page.evaluate('document.exitFullscreen()');await page.wait_for_timeout(800)
             await home()
             record('Android Back returns from entry to Home',await page.locator('[data-home-mobile]').count()==1)
             await page.locator('[data-library-collection-list-item-media-card-lazy-grid] [data-media-entry-card-body-link]').first.click()
@@ -245,8 +272,10 @@ async def main():
             await shot('small-200-percent.png')
             await page.get_by_role('button',name='Customize',exact=True).click()
             small_modal=page.locator('.home-mobile-settings').first
+            await small_modal.wait_for();await page.wait_for_timeout(500)  # let the open animation settle before measuring
             record('320px / 200% customization remains inside its scroll container',await small_modal.evaluate('e=>e.scrollWidth<=e.clientWidth+1'))
-            record('Large text section actions retain their labels and touch height',await small_modal.locator('.home-mobile-section-actions button').evaluate_all('es=>es.every(e=>e.scrollWidth<=e.clientWidth+1&&e.getBoundingClientRect().height>=44)'))
+            record('Large text section controls stay inside the sheet with full touch size',await small_modal.locator('.home-customize-row button').evaluate_all('es=>es.every(e=>{const r=e.getBoundingClientRect();return e.scrollWidth<=e.clientWidth+1&&r.height>=44&&r.width>=44&&r.left>=0&&r.right<=innerWidth+1})'))
+            record('320px / 200% sheet title wraps between words only',await small_modal.evaluate('''e=>{const t=e.querySelector('.UI-Modal__title');const w=document.createTreeWalker(t,NodeFilter.SHOW_TEXT);let ok=true;while(w.nextNode()){const n=w.currentNode;const re=/\S+/g;let m;while((m=re.exec(n.data))){const r=document.createRange();r.setStart(n,m.index);r.setEnd(n,m.index+m[0].length);if(r.getClientRects().length>1)ok=false}}return ok}'''))
             await shot('small-customize-200-percent.png')
             await page.keyboard.press('Escape')
             await page.evaluate("document.documentElement.style.removeProperty('font-size')")
@@ -266,6 +295,16 @@ async def main():
             await page.evaluate('window.scrollTo(0,0)')
             final_items=(await get('/api/v1/status/home-items'))['data']
             record('Home configuration survives leaving, returning and reload',[i['id'] for i in final_items]==initial_ids)
+            # The sidebar trigger is gone on every tab; the native Menu tab still opens.
+            for path in ['/lists','/discover','/search','/android-downloads','/entry?id='+series_id,'/']:
+                await page.evaluate('p=>{history.pushState({},"",p);dispatchEvent(new PopStateEvent("popstate"))}',path)
+                await page.wait_for_timeout(2500)
+                await page.evaluate('document.querySelectorAll("video").forEach(v=>v.pause())')
+                record('No sidebar trigger on '+path,await page.locator('.UI-AppSidebarTrigger__trigger').count()==0)
+            await page.locator('#__seanime_bottom_nav [data-nav-id="menu"]').click();await page.wait_for_timeout(600)
+            record('Native Menu tab still opens',await page.locator('#__seanime_bottom_nav [data-nav-id="menu"]').get_attribute('data-menu-open')=='true')
+            await shot('menu-open.png')
+            await page.locator('#__seanime_bottom_nav [data-nav-id="menu"]').click();await page.wait_for_timeout(600)
             record('No uncaught JavaScript exceptions',not errors,errors)
         finally:
             (output/'device-checks.json').write_text(json.dumps(results,indent=2),encoding='utf8')

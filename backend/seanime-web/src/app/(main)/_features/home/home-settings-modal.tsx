@@ -44,6 +44,8 @@ import { MdOutlineVideoLibrary } from "react-icons/md"
 import { TbCarouselHorizontal } from "react-icons/tb"
 import { toast } from "sonner"
 import { useTr } from "@/lib/app-language"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { HOME_SECTION_INFO } from "./home-section-info"
 
 export const __home_settingsModalOpen = atom(false)
 
@@ -208,6 +210,8 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, mobileHome = 
                     // ts.enableBlurringEffects && "bg-gray-950 bg-opacity-80 backdrop-blur-sm firefox:bg-opacity-100 firefox:backdrop-blur-none",
                 )}
                 overlayClass={cn(ts.enableBlurringEffects && "bg-gray-950/70 backdrop-blur-sm")}
+                // Touch: no focus ring on the first control when the sheet opens.
+                onOpenAutoFocus={mobileHome ? e => e.preventDefault() : undefined}
             >
                 {/*<GlowingEffect*/}
                 {/*    variant="classic"*/}
@@ -290,28 +294,60 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, mobileHome = 
 
                         <p className="text-sm text-[--muted] pt-4">
                             {animeLibraryType === "local"
-                                ? "Only anime in your local library will be displayed"
-                                : "All anime in your currently watching list will be included in the library"}
+                                ? (mobileHome ? tr("Only anime in your local library are shown.", "Nur Anime aus deiner lokalen Bibliothek werden angezeigt.") : "Only anime in your local library will be displayed")
+                                : (mobileHome ? tr("All anime you are currently watching are included.", "Alle Anime, die du gerade schaust, sind enthalten.") : "All anime in your currently watching list will be included in the library")}
                         </p>
 
 
                     </div>
 
-                    {mobileHome && <section className="home-mobile-sections">
-                        <h3>{tr("Home sections", "Home-Bereiche")}</h3>
-                        <p>{tr("Saved automatically. Arrange your sections below.", "Automatisch gespeichert. Ordne hier deine Bereiche an.")}</p>
-                        {currentItems.map((item, index) => <div className="home-mobile-section" data-home-mobile-item={item.id} data-home-item-type={item.type} key={item.id}>
-                            <div className="home-mobile-section-heading"><span className="home-section-symbol" aria-hidden>{React.createElement(HOME_ITEM_ICONS[item.type as keyof typeof HOME_ITEM_ICONS] || LuLayoutPanelLeft)}</span><h4>{HOME_ITEMS[item.type]?.name || item.type}</h4><span className="home-section-position" aria-label={tr("Position", "Position")}>{index + 1}</span></div>
-                            <div className="home-mobile-section-actions">
-                                {([-1, 1] as const).map(direction => <Button key={direction} className="home-reorder-action" intent="gray-subtle" disabled={isUpdatingHomeItems || (direction < 0 ? index === 0 : index === currentItems.length - 1)} aria-label={`${direction < 0 ? tr("Move up", "Nach oben") : tr("Move down", "Nach unten")}: ${HOME_ITEMS[item.type]?.name}`} onClick={() => {
-                                    updateHomeItems({ items: normalizeHomeItems(arrayMove(currentItems, index, index + direction)) })
-                                }}>{direction < 0 ? <LuArrowUp aria-hidden /> : <LuArrowDown aria-hidden />}<span>{direction < 0 ? tr("Up", "Hoch") : tr("Down", "Runter")}</span></Button>)}
-                                {HOME_ITEMS[item.type]?.options && <Button intent="gray-subtle" leftIcon={<BiCog aria-hidden />} disabled={isUpdatingHomeItems} onClick={() => setOptionsModalOpen(item.id)}>{tr("Options", "Optionen")}</Button>}
-                                <Button intent="gray-basic" className="home-remove-action" leftIcon={<BiTrash aria-hidden />} disabled={isUpdatingHomeItems} onClick={() => handleRemoveItem(item.id)} aria-label={`${tr("Remove", "Entfernen")}: ${HOME_ITEMS[item.type]?.name}`}>{tr("Remove", "Entfernen")}</Button>
-                            </div>
-                        </div>)}
-                        <h3>{tr("Add a section", "Bereich hinzufügen")}</h3>
-                        <div className="home-mobile-available">{availableItems.toSorted((a,b) => HOME_ITEMS[a].name.localeCompare(HOME_ITEMS[b].name)).map(type => <Button key={type} intent="gray-subtle" disabled={isUpdatingHomeItems} leftIcon={<BiPlus aria-hidden />} onClick={() => handleAddItem(type)}>{HOME_ITEMS[type].name}</Button>)}</div>
+                    {mobileHome && <section className="home-customize" aria-labelledby="home-customize-active">
+                        <div className="home-customize-heading">
+                            <h3 id="home-customize-active">{tr("On your Home", "Auf deiner Startseite")}</h3>
+                            <p>{tr("Changes save automatically.", "Änderungen werden automatisch gespeichert.")}</p>
+                        </div>
+                        <ul className="home-customize-list">
+                            {currentItems.map((item, index) => {
+                                const name = homeSectionName(item.type, tr)
+                                return <li className="home-customize-row" data-home-mobile-item={item.id} data-home-item-type={item.type} key={item.id}>
+                                    <div className="home-customize-main">
+                                        <span className="home-customize-icon" aria-hidden>{React.createElement(HOME_ITEM_ICONS[item.type as keyof typeof HOME_ITEM_ICONS] || LuLayoutPanelLeft)}</span>
+                                        <span className="home-customize-name">{name}{!!item.options?.name && <small>{item.options.name}</small>}</span>
+                                        <HomeSectionInfo type={item.type} name={name} />
+                                        <HomeSectionSwitch checked name={name} disabled={isUpdatingHomeItems} onChange={() => handleRemoveItem(item.id)} />
+                                    </div>
+                                    <div className="home-customize-tools">
+                                        {([-1, 1] as const).map(direction => <button key={direction} type="button" className="home-customize-tool"
+                                            disabled={isUpdatingHomeItems || (direction < 0 ? index === 0 : index === currentItems.length - 1)}
+                                            aria-label={`${direction < 0 ? tr("Move up", "Nach oben") : tr("Move down", "Nach unten")}: ${name}`}
+                                            onClick={() => updateHomeItems({ items: normalizeHomeItems(arrayMove(currentItems, index, index + direction)) })}>
+                                            {direction < 0 ? <LuArrowUp aria-hidden /> : <LuArrowDown aria-hidden />}
+                                        </button>)}
+                                        {HOME_ITEMS[item.type]?.options && <button type="button" className="home-customize-tool home-customize-options" disabled={isUpdatingHomeItems}
+                                            aria-label={`${tr("Options", "Optionen")}: ${name}`} onClick={() => setOptionsModalOpen(item.id)}>
+                                            <BiCog aria-hidden /><span>{tr("Options", "Optionen")}</span>
+                                        </button>}
+                                    </div>
+                                </li>
+                            })}
+                        </ul>
+                        <div className="home-customize-heading">
+                            <h3>{tr("More sections", "Weitere Bereiche")}</h3>
+                            <p>{tr("Turn one on to add it at the end of Home.", "Einschalten fügt den Bereich am Ende der Startseite hinzu.")}</p>
+                        </div>
+                        <ul className="home-customize-list">
+                            {availableItems.toSorted((a, b) => homeSectionName(a, tr).localeCompare(homeSectionName(b, tr))).map(type => {
+                                const name = homeSectionName(type, tr)
+                                return <li className="home-customize-row is-off" data-home-available-item={type} key={type}>
+                                    <div className="home-customize-main">
+                                        <span className="home-customize-icon" aria-hidden>{React.createElement(HOME_ITEM_ICONS[type as keyof typeof HOME_ITEM_ICONS] || LuLayoutPanelLeft)}</span>
+                                        <span className="home-customize-name">{name}</span>
+                                        <HomeSectionInfo type={type} name={name} />
+                                        <HomeSectionSwitch checked={false} name={name} disabled={isUpdatingHomeItems} onChange={() => handleAddItem(type)} />
+                                    </div>
+                                </li>
+                            })}
+                        </ul>
                     </section>}
 
                     <div
@@ -404,6 +440,55 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, mobileHome = 
             )}
         </>
     )
+}
+
+function homeSectionName(type: string, tr: (en: string, de: string) => string) {
+    const info = HOME_SECTION_INFO[type]
+    return info ? tr(info.name[0], info.name[1]) : HOME_ITEMS[type]?.name || type
+}
+
+function HomeSectionSwitch({ checked, name, disabled, onChange }: { checked: boolean, name: string, disabled?: boolean, onChange: () => void }) {
+    return <button type="button" role="switch" aria-checked={checked} aria-label={name} className="home-customize-switch" disabled={disabled} onClick={onChange}>
+        <span aria-hidden />
+    </button>
+}
+
+/** "?" explains what a section adds: a small centered card over a dimmed, blurred backdrop. */
+function HomeSectionInfo({ type, name }: { type: string, name: string }) {
+    const tr = useTr()
+    const [open, setOpen] = React.useState(false)
+    const info = HOME_SECTION_INFO[type]
+    React.useEffect(() => {
+        if (!open) return
+        // Android Back and Escape close only this card, not the Customize sheet underneath.
+        // Window capture runs before the dialogs' document listeners.
+        const back = (event: Event) => {
+            if (event instanceof KeyboardEvent && event.key !== "Escape") return
+            event.preventDefault()
+            event.stopPropagation()
+            setOpen(false)
+        }
+        window.addEventListener("seanime:android-back", back)
+        window.addEventListener("keydown", back, true)
+        return () => {
+            window.removeEventListener("seanime:android-back", back)
+            window.removeEventListener("keydown", back, true)
+        }
+    }, [open])
+    if (!info) return null
+    return <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+        <DialogPrimitive.Trigger asChild>
+            <button type="button" className="home-customize-info" aria-label={`${tr("About", "Info")}: ${name}`}><span aria-hidden>?</span></button>
+        </DialogPrimitive.Trigger>
+        <DialogPrimitive.Portal>
+            <DialogPrimitive.Overlay className="home-info-overlay" />
+            <DialogPrimitive.Content className="home-info-card" data-home-section-info={type}>
+                <DialogPrimitive.Title>{name}</DialogPrimitive.Title>
+                <DialogPrimitive.Description>{tr(info.info[0], info.info[1])}</DialogPrimitive.Description>
+                <DialogPrimitive.Close asChild><button type="button" className="home-info-ok">OK</button></DialogPrimitive.Close>
+            </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
 }
 
 interface SortableHomeItemProps {
@@ -545,6 +630,7 @@ interface HomeItemOptionsModalProps {
 }
 
 function HomeItemOptionsModal({ id, item, isOpen, onClose, onSave, isUpdating, mobileHome }: HomeItemOptionsModalProps) {
+    const tr = useTr()
     const homeItemConfig = HOME_ITEMS[item.type]
     const [formData, setFormData] = React.useState<Record<string, any>>(item.options || {})
 
@@ -573,19 +659,19 @@ function HomeItemOptionsModal({ id, item, isOpen, onClose, onSave, isUpdating, m
         <Modal
             open={isOpen}
             onOpenChange={onClose}
-            title={
+            title={mobileHome ? tr("Options", "Optionen") + ": " + homeSectionName(item.type, tr) :
                 <div className="flex items-center gap-2">
                     <BiCog className="size-5" />
                     Configure {homeItemConfig.name}
                 </div>
             }
-            contentClass={cn("max-w-2xl bg-gray-950 bg-opacity-90 firefox:bg-opacity-100 firefox:backdrop-blur-none sm:rounded-3xl", mobileHome && "home-mobile-settings")}
+            contentClass={cn("max-w-2xl bg-gray-950 bg-opacity-90 firefox:bg-opacity-100 firefox:backdrop-blur-none sm:rounded-3xl", mobileHome && "home-mobile-settings home-mobile-options")}
             overlayClass="bg-black/80"
         >
             <div className="space-y-6">
-                <div className="text-sm text-gray-400">
+                {!mobileHome && <div className="text-sm text-gray-400">
                     Customize the settings for this home item.
-                </div>
+                </div>}
 
                 <div className="space-y-4">
                     {(homeItemConfig.options || []).map((option: any) => (
@@ -598,20 +684,20 @@ function HomeItemOptionsModal({ id, item, isOpen, onClose, onSave, isUpdating, m
                     ))}
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
+                <div className={cn("flex justify-end gap-3 pt-4 border-t border-gray-800", mobileHome && "home-options-actions")}>
                     <Button
                         intent="gray-subtle"
                         onClick={onClose}
                         disabled={isUpdating}
                     >
-                        Cancel
+                        {mobileHome ? tr("Cancel", "Abbrechen") : "Cancel"}
                     </Button>
                     <Button
                         intent="primary"
                         onClick={handleSave}
                         loading={isUpdating}
                     >
-                        Save
+                        {mobileHome ? tr("Save", "Speichern") : "Save"}
                     </Button>
                 </div>
             </div>
@@ -683,11 +769,12 @@ function OptionField({ option, value, onChange }: OptionFieldProps) {
             return (
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-white">{label}</label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-3 bg-gray-900/30 rounded-lg border border-gray-800">
+                    <div className="home-option-chips grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-3 bg-gray-900/30 rounded-lg border border-gray-800">
                         {options.map((opt: any) => (
                             <button
                                 key={opt.value}
                                 type="button"
+                                aria-pressed={selectedValues.includes(opt.value)}
                                 onClick={() => handleMultiSelectChange(opt.value)}
                                 className={cn(
                                     "p-2 text-sm rounded-md border transition-colors text-left",

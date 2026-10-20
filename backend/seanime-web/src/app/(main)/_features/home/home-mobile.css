@@ -103,45 +103,78 @@
     [data-home-mobile="true"] *, [data-home-mobile="true"] *::before, [data-home-mobile="true"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 
-.home-mobile-settings .home-mobile-sections { display: grid; gap: .75rem; }
-.home-mobile-settings .home-mobile-sections h3 { font-size: 1.125rem; font-weight: 650; color: var(--sm-text); }
-.home-mobile-settings .home-mobile-sections p { font-size: .8125rem; color: var(--sm-text-muted); line-height: 1.5; }
-.home-mobile-settings .home-mobile-section { padding: .85rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); border: 1px solid var(--sm-line); min-width: 0; }
-.home-mobile-settings .home-mobile-section h4 { font-size: .9375rem; margin-bottom: .65rem; overflow-wrap: anywhere; }
-.home-mobile-settings .home-mobile-section-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
-.home-mobile-settings button { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
-.home-mobile-settings .home-mobile-available { display: grid; gap: .5rem; }
-.home-mobile-settings .home-mobile-available button { justify-content: flex-start; text-align: left; }
-
-/* A contained sheet and explicit source selection, scoped to the Home dialog. */
-.home-mobile-settings { width: calc(100% - 1rem); max-height: calc(100dvh - 1rem); overflow-y: auto; overscroll-behavior: contain; padding: 1.1rem; border-radius: var(--sm-radius-lg) !important; border: 1px solid var(--sm-line); background: var(--sm-surface); color: var(--sm-text); scrollbar-width: thin; }
-.home-mobile-settings .UI-Modal__header { padding: .5rem 2.75rem 1rem .15rem; text-align: left; }
-.home-mobile-settings .UI-Modal__title > div { justify-content: flex-start; font-size: 1.125rem; color: var(--sm-text); }
-.home-mobile-settings .UI-Modal__close { right: .75rem; top: .75rem; min-width: 44px; min-height: 44px; color: var(--sm-text-muted); border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); }
-.home-mobile-settings .home-library-source { padding: 1rem; border-radius: var(--sm-radius); border: 1px solid var(--sm-line); background: var(--sm-surface-raised); }
-.home-mobile-settings .home-library-source h4 { font-size: .9375rem; }
-.home-mobile-settings .home-library-source > div:first-child { margin-bottom: .85rem; }
-.home-mobile-settings .home-library-source .UI-RadioGroup__itemContainer { padding: .9rem .8rem; padding-right: 2.4rem; border: 1px solid var(--sm-line); background: var(--sm-surface-sunken); border-radius: var(--sm-radius-sm); min-height: 52px; }
-.home-mobile-settings .home-library-source .UI-RadioGroup__itemContainer[data-state="checked"] { border-color: var(--sm-accent-line); background: var(--sm-accent-soft); }
-.home-mobile-settings .home-library-source .UI-Checkbox_itemLabel { text-align: left; letter-spacing: 0; font-size: .875rem; color: var(--sm-text); }
-.home-mobile-settings .home-library-source .UI-RadioGroup__itemContainer[data-state="checked"]::after { content: "✓"; position: absolute; right: .9rem; color: var(--sm-accent); }
-.home-mobile-settings .home-library-source > p { margin-top: .75rem; font-size: .75rem; line-height: 1.5; color: var(--sm-text-muted); }
-.home-mobile-settings .home-mobile-section { padding: .8rem; }
-.home-mobile-settings .home-mobile-section-heading { display: flex; align-items: center; gap: .6rem; margin-bottom: .65rem; min-width: 0; }
-.home-mobile-settings .home-mobile-section-heading h4 { margin: 0; flex: 1; font-size: .875rem; line-height: 1.4; }
-.home-mobile-settings .home-section-symbol { display: grid; place-items: center; background: var(--sm-surface-control); color: var(--sm-text-muted); border-radius: var(--sm-radius-sm); width: 2.25rem; height: 2.25rem; flex-shrink: 0; }
-.home-mobile-settings .home-section-position { color: var(--sm-text-subtle); font-size: .75rem; font-variant-numeric: tabular-nums; }
-.home-mobile-settings .home-mobile-section-actions button { display: inline-flex; flex-direction: row; flex-wrap: wrap; align-items: center; padding: .5rem .7rem; gap: .35rem; font-size: .75rem; border-radius: var(--sm-radius-sm); white-space: normal; overflow-wrap: anywhere; text-align: center; color: var(--sm-text); background: var(--sm-surface-control); border: 1px solid transparent; }
-.home-mobile-settings .home-mobile-section-actions button svg { flex: none; }
-/* Even columns (Up | Down, Options | Remove) instead of a ragged wrap; one column once large text needs it. */
-.home-mobile-settings .home-mobile-section-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); }
-.home-mobile-settings .home-mobile-section-actions button { justify-content: center; width: 100%; }
-.home-mobile-settings .home-mobile-section-actions .home-reorder-action > span { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .35rem; width: auto; max-width: 100%; }
-.home-mobile-settings .home-mobile-section-actions .home-remove-action { grid-column: -2; color: var(--sm-danger); background: transparent; border-color: var(--sm-line); }
-.home-mobile-settings .home-mobile-section-actions button:disabled { opacity: .4; }
-.home-mobile-settings .home-mobile-available button { padding: .65rem .8rem; border: 1px solid var(--sm-line); border-radius: var(--sm-radius-sm); font-size: .8125rem; background: var(--sm-surface-raised); color: var(--sm-text); }
+/* Customize Home: one flat sheet, hairline-separated rows, a switch per section. */
+.home-mobile-settings { width: calc(100% - 16px); max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain; padding: 16px; border-radius: var(--sm-radius-lg) !important; border: 0; background: var(--sm-surface); color: var(--sm-text); scrollbar-width: thin; }
+.home-mobile-settings .UI-Modal__header { padding: .35rem 52px .75rem 0; text-align: left; }
+/* Large text: the title may wrap between words but never inside one. */
+.home-mobile-settings .UI-Modal__title, .home-mobile-settings .UI-Modal__title > div { justify-content: flex-start; font-size: min(1.25rem, 7vw); font-weight: 700; color: var(--sm-text); overflow-wrap: break-word; hyphens: auto; }
+.home-mobile-settings .UI-Modal__title svg { display: none; }
+.home-mobile-settings .UI-Modal__close { right: .5rem; top: .5rem; min-width: 48px; min-height: 48px; color: var(--sm-text-muted); border-radius: 999px; background: transparent; }
+.home-mobile-settings button { white-space: normal; overflow-wrap: anywhere; }
 .home-mobile-settings button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
-/* Override the existing Android modal patch only for the Home variant (`body` outranks its :not()). */
-body .UI-Modal__content.home-mobile-settings { width: calc(100% - 1rem) !important; max-width: 32rem !important; max-height: calc(100dvh - 1rem) !important; padding: 1.1rem !important; }
+.home-mobile-settings .home-settings-body { display: grid; gap: 1.5rem; }
+.home-mobile-settings .home-settings-body > * + * { margin-top: 0 !important; }
+/* Library source as a two-way segmented choice. */
+.home-mobile-settings .home-library-source > div:first-child { margin-bottom: .6rem !important; gap: 0; }
+.home-mobile-settings .home-library-source > div:first-child svg { display: none; }
+.home-mobile-settings .home-library-source h4, .home-mobile-settings .home-customize-heading h3 { font-size: .8125rem; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--sm-text-subtle); }
+.home-mobile-settings .home-library-source .UI-RadioGroup__root > div { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); gap: .25rem !important; padding: .25rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
+.home-mobile-settings .home-library-source .UI-RadioGroup__itemContainer { position: relative; justify-content: center; padding: .6rem .75rem; border: 0 !important; background: transparent !important; border-radius: calc(var(--sm-radius-sm) - .25rem); min-height: 48px; box-shadow: none !important; }
+.home-mobile-settings .home-library-source .UI-RadioGroup__itemContainer[data-state="checked"] { background: var(--sm-surface-control) !important; }
+.home-mobile-settings .home-library-source .UI-Checkbox_itemLabel { text-align: center; letter-spacing: 0; font-size: .875rem; color: var(--sm-text-muted); }
+.home-mobile-settings .home-library-source [data-state="checked"] .UI-Checkbox_itemLabel, .home-mobile-settings .home-library-source .UI-Checkbox_itemLabel[data-state="checked"] { color: var(--sm-text); font-weight: 600; }
 .home-mobile-settings .home-library-source .UI-RadioGroup__item { opacity: 0; }
-.home-mobile-settings .home-library-source .UI-RadioGroup__itemContainer:focus-within { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+.home-mobile-settings .home-library-source .UI-RadioGroup__itemContainer:has(:focus-visible) { outline: 2px solid var(--sm-accent); outline-offset: 1px; }
+.home-mobile-settings .home-library-source > p { margin: 0; padding-top: .6rem !important; font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.home-mobile-settings .home-customize { display: grid; gap: .5rem; min-width: 0; }
+.home-mobile-settings .home-customize-heading { display: grid; gap: .2rem; }
+.home-mobile-settings .home-customize-heading:not(:first-child) { margin-top: 1rem; }
+.home-mobile-settings .home-customize-heading p { font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.home-mobile-settings .home-customize-list { container-type: inline-size; list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sm-line); }
+.home-mobile-settings .home-customize-row { padding: .35rem 0; border-bottom: 1px solid var(--sm-line); min-width: 0; }
+.home-mobile-settings .home-customize-main { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .5rem; min-height: 48px; min-width: 0; }
+.home-mobile-settings .home-customize-icon { display: grid; place-items: center; flex: none; width: 1.25rem; color: var(--sm-text-subtle); }
+.home-mobile-settings .home-customize-icon svg { width: 1.125rem; height: 1.125rem; }
+.home-mobile-settings .home-customize-name { flex: 1 1 8rem; min-width: 0; font-size: .9375rem; font-weight: 550; line-height: 1.35; color: var(--sm-text); overflow-wrap: break-word; }
+.home-mobile-settings .home-customize-row.is-off .home-customize-name { color: var(--sm-text-muted); font-weight: 450; }
+.home-mobile-settings .home-customize-name small { display: block; font-size: .75rem; font-weight: 400; color: var(--sm-text-subtle); }
+.home-mobile-settings .home-customize-info { display: grid; place-items: center; flex: none; width: 48px; height: 48px; margin-left: auto; padding: 0; border: 0; background: transparent; border-radius: 999px; color: var(--sm-text-muted); }
+.home-mobile-settings .home-customize-info > span { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 999px; border: 1px solid var(--sm-line-strong); font-size: .8125rem; font-weight: 650; line-height: 1; }
+.home-mobile-settings .home-customize-info:active > span { background: var(--sm-surface-control); color: var(--sm-text); }
+.home-mobile-settings .home-customize-switch { display: grid; place-items: center; flex: none; min-width: 48px; min-height: 48px; padding: 0 .1rem; border: 0; background: transparent; }
+.home-mobile-settings .home-customize-switch > span { position: relative; display: block; width: 2.75rem; height: 1.625rem; border-radius: 999px; background: var(--sm-surface-control); box-shadow: inset 0 0 0 1px var(--sm-line-strong); transition: background-color .15s ease; }
+.home-mobile-settings .home-customize-switch > span::after { content: ""; position: absolute; top: .1875rem; left: .1875rem; width: 1.25rem; height: 1.25rem; border-radius: 999px; background: var(--sm-text-muted); transition: transform .15s ease; }
+.home-mobile-settings .home-customize-switch[aria-checked="true"] > span { background: var(--sm-accent-strong); box-shadow: none; }
+.home-mobile-settings .home-customize-switch[aria-checked="true"] > span::after { background: #fff; transform: translateX(1.125rem); }
+.home-mobile-settings .home-customize-switch:disabled { opacity: .5; }
+.home-mobile-settings .home-customize-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; padding: 0 0 .25rem 1.75rem; }
+.home-mobile-settings .home-customize-tool { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; min-width: 44px; min-height: 44px; padding: 0 .6rem; border: 0; border-radius: 999px; background: transparent; color: var(--sm-text-muted); font-size: .8125rem; }
+.home-mobile-settings .home-customize-tool svg { width: 1.125rem; height: 1.125rem; flex: none; }
+.home-mobile-settings .home-customize-tool:active { background: var(--sm-surface-control); color: var(--sm-text); }
+.home-mobile-settings .home-customize-tool:disabled { opacity: .3; }
+/* Narrow sheets and large text: drop the decorative icon before squeezing the name. */
+@container (max-width: 18rem) { .home-mobile-settings .home-customize-icon { display: none; } .home-mobile-settings .home-customize-tools { padding-left: 0; } }
+/* Section options: labelled fields, flat chips, full-width actions. */
+.home-mobile-options .space-y-6 > * + * { margin-top: 1.25rem; }
+.home-mobile-options label { font-size: .8125rem !important; font-weight: 600 !important; color: var(--sm-text-muted) !important; }
+.home-mobile-options .home-option-chips { max-height: none !important; padding: 0 !important; border: 0 !important; background: transparent !important; gap: .35rem !important; grid-template-columns: repeat(auto-fill, minmax(min(100%, 8rem), 1fr)) !important; }
+.home-mobile-options .home-option-chips button { min-height: 44px; border: 0; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); color: var(--sm-text-muted); }
+.home-mobile-options .home-option-chips button[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-text); }
+.home-mobile-options .home-options-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); border-color: var(--sm-line) !important; }
+.home-mobile-options .home-options-actions button { min-height: 48px; }
+/* Override the existing Android modal patch only for the Home variant (`body` outranks its :not()). */
+body .UI-Modal__content.home-mobile-settings { width: calc(100% - 16px) !important; max-width: 32rem !important; max-height: calc(100dvh - 16px) !important; padding: 16px !important; }
+
+/* "?" info card: only the fixed overlay blurs; the dialog below stays static. */
+.home-info-overlay { position: fixed; inset: 0; z-index: 60; background: rgb(0 0 0 / .55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.home-info-card { position: fixed; z-index: 61; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(21rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; display: grid; gap: .6rem; padding: 1.25rem; border-radius: var(--sm-radius-lg); background: var(--sm-surface-raised); color: var(--sm-text); box-shadow: 0 16px 48px rgb(0 0 0 / .5); }
+.home-info-card h2 { font-size: 1.0625rem; font-weight: 650; line-height: 1.35; overflow-wrap: break-word; }
+.home-info-card p { font-size: .9375rem; line-height: 1.55; color: var(--sm-text-muted); overflow-wrap: anywhere; }
+.home-info-ok { margin-top: .4rem; min-height: 48px; border-radius: var(--sm-radius-sm); background: var(--sm-accent-strong); color: #fff; font-weight: 650; font-size: .9375rem; }
+.home-info-ok:focus-visible { outline: 2px solid var(--sm-text); outline-offset: 2px; }
+.home-info-overlay[data-state="open"], .home-info-card[data-state="open"] { animation: home-info-in .14s ease-out; }
+@keyframes home-info-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+    .home-info-overlay, .home-info-card { animation: none !important; }
+    .home-mobile-settings .home-customize-switch > span, .home-mobile-settings .home-customize-switch > span::after { transition: none; }
+}
