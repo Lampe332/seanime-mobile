@@ -11,7 +11,6 @@ import { useSetAtom } from "jotai"
 import { useAtom } from "jotai/react"
 import { AnimatePresence } from "motion/react"
 import React from "react"
-import { useTr } from "@/lib/app-language"
 
 
 type LibraryViewProps = {
@@ -76,10 +75,12 @@ export function LibraryView(props: LibraryViewProps) {
     return (
         <>
 
+            {/* Android Home stays minimal: no genre row. */}
             {(
+                !homeMobile &&
                 !ts.disableLibraryScreenGenreSelector &&
                 collectionList.flatMap(n => n.entries)?.length > 2
-            ) && <GenreSelector genres={genres} homeMobile={homeMobile} />}
+            ) && <GenreSelector genres={genres} />}
 
             <PageWrapper key="library-collection-lists" className="px-4 space-y-8 relative z-[4]" data-library-collection-lists-container>
                 <AnimatePresence mode="wait" initial={false}>
@@ -110,9 +111,7 @@ export function LibraryView(props: LibraryViewProps) {
 
 function GenreSelector({
     genres,
-    homeMobile,
-}: { genres: string[], homeMobile?: boolean }) {
-    const tr = useTr()
+}: { genres: string[] }) {
     const [params, setParams] = useAtom(__mainLibrary_paramsInputAtom)
     const setActualParams = useSetAtom(__mainLibrary_paramsAtom)
     const debouncedParams = useDebounce(params, 200)
@@ -122,12 +121,6 @@ function GenreSelector({
     }, [debouncedParams])
 
     if (!genres.length) return null
-
-    if (homeMobile) return <div className="home-genre-row" role="group" aria-label={tr("Filter by genre", "Nach Genre filtern")}>
-        {genres.map(genre => <button type="button" key={genre} aria-pressed={params.genre?.includes(genre) ?? false} onClick={() => setParams(draft => {
-            draft.genre = draft.genre?.includes(genre) ? draft.genre.filter(g => g !== genre) : [...(draft.genre || []), genre]
-        })}>{genre}</button>)}
-    </div>
 
     return (
         <PageWrapper className="space-y-3 lg:space-y-6 relative z-[4]" data-library-genre-selector-container>

@@ -112,12 +112,7 @@ async def main():
             record('Physical horizontal swipe moves the continuation row',await row.evaluate('e=>e.scrollLeft')>20)
             await row.evaluate('e=>e.scrollLeft=0')
 
-            genre = page.locator('.home-genre-row button').filter(has_text='Sci-Fi')
-            if await genre.count():
-                await genre.click(); await page.wait_for_timeout(500)
-                record('Genre filter selects and filters the library',await genre.get_attribute('aria-pressed')=='true' and await page.locator('[data-library-filtered-lists] [data-media-entry-card-container]').count()>0)
-                await genre.click(); await page.wait_for_timeout(500)
-                record('Genre filter clears',await genre.get_attribute('aria-pressed')=='false')
+            record('Home shows no genre filter row',await page.locator('[data-home-mobile] .home-genre-row, [data-home-mobile] [data-library-genre-selector-container]').count()==0)
             filter_button = page.get_by_role('button',name='Filter currently watching')
             await filter_button.click(); await page.get_by_text('Show unwatched only',exact=True).click()
             record('Unwatched filter changes state',await filter_button.get_attribute('aria-pressed')=='true')

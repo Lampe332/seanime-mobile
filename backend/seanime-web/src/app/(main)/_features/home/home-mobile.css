@@ -4,11 +4,12 @@
 [data-home-mobile="true"] { display: block; position: relative; min-width: 0; padding-bottom: 1.5rem; }
 /* One image-independent identity across loading, empty and populated Home. */
 @media (max-width: 1023px) {
-[data-home-navbar] { padding: .75rem 1rem 0; overflow: visible; }
+/* A faint, static theme-colour glow behind the title: no image, blur or scroll work. */
+[data-home-navbar] { padding: .75rem 1rem 0; overflow: visible; background: radial-gradient(120% 140% at 0% 0%, rgb(var(--color-brand-500) / .13), transparent 62%); }
 [data-home-navbar] [data-layout-header-background], [data-home-navbar] [data-layout-header-background-gradient] { display: none; }
 [data-home-navbar] .home-mobile-header { width: 100%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .25rem .75rem; padding: .5rem 0 .25rem; }
 [data-home-navbar] .home-mobile-heading { min-width: 0; }
-[data-home-navbar] .home-mobile-heading > span { display: block; color: var(--sm-text-subtle); font-size: .6875rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
+[data-home-navbar] .home-mobile-heading > span { display: block; color: var(--sm-accent); opacity: .85; font-size: .6875rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
 [data-home-navbar] h1 { font-size: 1.75rem; letter-spacing: -.03em; line-height: 1.15; margin: .15rem 0 0; font-weight: 700; color: var(--sm-text); overflow-wrap: anywhere; }
 [data-home-navbar] .home-mobile-tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; margin-left: auto; min-width: 0; max-width: 100%; }
 [data-home-navbar] .home-mobile-actions { display: flex; align-items: center; }
@@ -27,7 +28,7 @@
 [data-home-mobile="true"] [data-home-toolbar-container] { width: 100%; margin: 0 !important; padding: .25rem 1rem .75rem !important; }
 [data-home-mobile="true"] [data-home-toolbar-container]:not(:has(> :not([data-home-toolbar-spacer]))) { display: none; }
 }
-[data-home-mobile="true"] h2, [data-home-mobile="true"] h3 { font-size: 1.125rem; line-height: 1.4; font-weight: 650; color: var(--sm-text); overflow-wrap: anywhere; }
+[data-home-mobile="true"] h2, [data-home-mobile="true"] h3 { font-size: 1.25rem; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; color: var(--sm-text); overflow-wrap: anywhere; }
 [data-home-mobile="true"] [data-library-toolbar-top-padding],
 [data-home-mobile="true"] [data-custom-library-banner-top-spacer] { display: none !important; }
 [data-home-mobile="true"] [data-home-toolbar-container] { justify-content: flex-start; gap: .5rem; }
@@ -36,15 +37,15 @@
 [data-home-mobile="true"] [data-home-toolbar-container] .home-labeled-action { width: auto; gap: .45rem; padding: .6rem .85rem; font-size: .8125rem; font-weight: 600; background: var(--sm-surface-control); border: 0; color: var(--sm-text); }
 [data-home-mobile="true"] [data-home-toolbar-container] .home-labeled-action:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
 [data-home-mobile="true"] [data-page-wrapper] { padding-top: 0 !important; max-width: 100%; min-width: 0; }
-[data-home-mobile="true"] [data-continue-watching-container] { padding: .75rem 1rem 1.5rem !important; margin: 0 !important; }
+[data-home-mobile="true"] [data-continue-watching-container] { padding: .75rem 1rem .75rem !important; margin: 0 !important; }
 [data-home-mobile="true"] .home-section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; gap: .5rem; }
 [data-home-mobile="true"] .home-section-heading > span { color: var(--sm-text-muted); font-size: .8125rem; }
 /* Continue card: the scene image itself is the card; one play action, no extra frame. */
 [data-home-mobile="true"] .home-resume-row { display: flex; gap: .75rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 0 0 .25rem; scrollbar-width: none; }
-[data-home-mobile="true"] .home-resume-tile { flex: 0 0 min(86vw, 22rem); min-width: 0; scroll-snap-align: start; border-radius: var(--sm-radius); overflow: hidden; }
+[data-home-mobile="true"] .home-resume-tile { flex: 0 0 min(86vw, 22rem); min-width: 0; scroll-snap-align: start; border-radius: var(--sm-radius); overflow: hidden; box-shadow: 0 12px 28px -12px rgb(0 0 0 / .7), inset 0 0 0 1px rgb(255 255 255 / .05); }
 [data-home-mobile="true"] [data-home-episode-card] { display: grid; grid-template-columns: minmax(0,1fr); isolation: isolate; border-radius: var(--sm-radius); outline-offset: -3px; }
 [data-home-mobile="true"] [data-home-episode-card]:focus-visible { outline: 2px solid var(--sm-accent); }
-[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-image-container] { grid-area: 1 / 1; height: 100%; min-height: 12.5rem; aspect-ratio: auto; border-radius: 0; background: var(--sm-surface-control); }
+[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-image-container] { grid-area: 1 / 1; height: 100%; min-height: 13.5rem; aspect-ratio: auto; border-radius: 0; background: var(--sm-surface-control); }
 [data-home-mobile="true"] [data-home-episode-card] [data-episode-card-image] { border-radius: 0; }
 [data-home-mobile="true"] .home-episode-meta { grid-area: 1 / 1; align-self: end; position: relative; z-index: 4; padding: 3.5rem 1rem 1rem; min-width: 0; margin: 0 !important; background: linear-gradient(180deg,transparent,rgb(12 12 14 / .8) 40%,rgb(12 12 14 / .96) 100%); }
 [data-home-mobile="true"] .home-episode-meta > p { font-size: .9375rem; font-weight: 600; line-height: 1.4; color: var(--sm-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
@@ -52,15 +53,6 @@
 [data-home-mobile="true"] .home-resume-action { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; width: fit-content; max-width: 100%; min-height: 44px; padding: .55rem 1.1rem .55rem .9rem; border-radius: 999px; color: #fff; background: var(--sm-accent-strong); margin-top: .75rem; font-size: .8125rem; font-weight: 650; }
 [data-home-mobile="true"] .home-resume-action svg { color: currentColor; }
 [data-home-mobile="true"] [aria-disabled="true"] .home-resume-action { background: var(--sm-surface-control); color: var(--sm-text-muted); }
-/* Genres: small flat chips; only the active one gets the accent tint. */
-[data-home-mobile="true"] [data-library-genre-selector-container] { margin: 0 !important; padding: 0 1rem .5rem !important; }
-[data-home-mobile="true"] .home-genre-row { display: flex; gap: .35rem; overflow-x: auto; overscroll-behavior-x: contain; padding: 0 1rem .75rem; scrollbar-width: none; }
-[data-home-mobile="true"] .home-genre-row button { flex: 0 0 auto; min-height: 40px; border: 0; border-radius: 999px; padding: .35rem .8rem; color: var(--sm-text-muted); background: var(--sm-surface); font-size: .8125rem; }
-[data-home-mobile="true"] .home-genre-row button[aria-pressed="true"] { color: var(--sm-text); background: var(--sm-accent-soft); }
-[data-home-mobile="true"] .home-genre-row button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
-[data-home-mobile="true"] [data-library-genre-selector-container] .UI-StaticTabs__root { padding: .25rem 0; gap: .25rem; margin-left: 0; }
-[data-home-mobile="true"] [data-media-genre-selector-scroll-container], [data-home-mobile="true"] [data-media-genre-selector-scroll-container-end] { display: none; }
-[data-home-mobile="true"] .UI-StaticTabs__trigger { min-height: 44px; height: auto !important; padding: .6rem .85rem !important; }
 [data-home-mobile="true"] [data-library-collection-lists-container] { padding: .25rem 1rem !important; }
 [data-home-mobile="true"] [data-library-collection-list-item-header] { gap: .5rem; margin: 1.25rem 0 .75rem !important; }
 /* Filter: a quiet text action next to the heading. */
@@ -68,12 +60,15 @@
 [data-home-mobile="true"] [data-library-collection-lists] > [data-media-card-grid], [data-home-mobile="true"] [data-library-collection-lists] > [data-media-card-lazy-grid-renderer] { margin-top: .75rem !important; }
 [data-home-mobile="true"] [data-media-card-grid], [data-home-mobile="true"] [data-media-card-lazy-grid] { gap: .75rem !important; }
 [data-home-mobile="true"] [data-media-entry-card-container] { min-width: 0; }
-[data-home-mobile="true"] [data-media-entry-card-title-section-title] { font-size: .8125rem !important; line-height: 1.4; -webkit-line-clamp: 2; color: var(--sm-text); }
+[data-home-mobile="true"] [data-media-entry-card-title-section-title] { font-size: .8125rem !important; font-weight: 550; line-height: 1.4; -webkit-line-clamp: 2; color: var(--sm-text); }
+[data-home-mobile="true"] [data-media-entry-card-body] { border-radius: var(--sm-radius-sm); }
 [data-home-mobile="true"] [data-media-entry-card-title-section-year-season] { font-size: .75rem; display: block; color: var(--sm-text-subtle); overflow-wrap: anywhere; }
 /* Manga lists share the anime lists' 1rem gutter instead of adding their own inset. */
 [data-home-mobile="true"] [data-manga-library-view-collection-lists-container] { padding: .25rem 1rem !important; }
 [data-home-mobile="true"] [data-manga-library-view-collection-lists-container] [data-media-card-grid] { padding-left: 0 !important; padding-right: 0 !important; }
-[data-home-mobile="true"] [data-manga-library-view-collection-list-item-header-container] { margin: 1.25rem 0 .75rem; min-height: 44px; justify-content: space-between; }
+[data-home-mobile="true"] [data-manga-library-view-collection-list-item-header-container] { margin: 1.25rem 0 0 !important; min-height: 44px; justify-content: space-between; }
+/* Cards sit right under their heading, like the anime lists. */
+[data-home-mobile="true"] [data-manga-library-view-collection-list-item-header-container] + [data-media-card-grid] { margin-top: .75rem !important; }
 [data-home-mobile="true"] [data-manga-library-view-collection-list-item-header-container] button { min-width: 44px; min-height: 44px; }
 /* The installed dub plugin supplies a status badge, not a separate card action. */
 [data-home-mobile="true"] .seanime-base-dub-badge { pointer-events: none !important; }
