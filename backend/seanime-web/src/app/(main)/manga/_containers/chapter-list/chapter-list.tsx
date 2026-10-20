@@ -32,6 +32,7 @@ import { LuSearch } from "react-icons/lu"
 import { MdOutlineOfflinePin } from "react-icons/md"
 import { toast } from "sonner"
 import { useTr } from "@/lib/app-language"
+import { mobileMangaReadActionAtom } from "@/app/(main)/entry/_components/mobile-anime-header"
 import { LuCheck, LuChevronDown } from "react-icons/lu"
 
 const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
@@ -334,6 +335,23 @@ export function ChapterList(props: ChapterListProps) {
 
     const [downloadedChapterContainer] = useAtom(manga_downloadedChapterContainerAtom)
 
+    // Android: the header shows this as the page's primary action.
+    const setMobileReadAction = useSetAtom(mobileMangaReadActionAtom)
+    React.useEffect(() => {
+        if (!IS_ANDROID_APP) return
+        setMobileReadAction(readingChapter ? {
+            label: resumeChapter ? t("Resume reading", "Weiterlesen") : entry.listData?.progress ? t("Continue reading", "Weiterlesen") : t("Start reading", "Lesen beginnen"),
+            detail: `${t("Chapter", "Kapitel")} ${readingChapter.chapter}${resumeChapter ? ` · ${t("Page", "Seite")} ${resumeLocation.pageIndex + 1}` : ""}`,
+            onClick: () => setSelectedChapter({
+                chapterId: readingChapter.id,
+                chapterNumber: readingChapter.chapter,
+                provider: readingChapter.provider,
+                mediaId: Number(mediaId),
+            }),
+        } : null)
+    }, [readingChapter, resumeChapter, resumeLocation, entry.listData?.progress, mediaId])
+    React.useEffect(() => () => setMobileReadAction(null), [])
+
     if (providerExtensionsLoading) return <LoadingSpinner />
 
     return (
@@ -353,6 +371,9 @@ export function ChapterList(props: ChapterListProps) {
                         disabled={sourceRefreshRunning}
                         aria-label={t("Source", "Quelle")}
                     />
+                </div>
+                {(selectedExtension?.settings?.supportsMultiLanguage || selectedExtension?.settings?.supportsMultiScanlator) &&
+                    <div className="mobile-source-pair mobile-chapter-filter-pair" role="group" aria-label={t("Chapter filters", "Kapitelfilter")}>
                     {selectedExtension?.settings?.supportsMultiLanguage && <Select
                         options={languageOptions}
                         placeholder={t("All languages", "Alle Sprachen")}
@@ -367,7 +388,7 @@ export function ChapterList(props: ChapterListProps) {
                         onValueChange={v => setSelectedScanlator({ mId: mediaId, scanlators: [v] })}
                         aria-label={t("Scanlator", "Scanlator")}
                     />}
-                </div>
+                </div>}
                 <div className="mobile-source-more">
                     <Button
                         leftIcon={<FaRedo />}
@@ -513,19 +534,6 @@ export function ChapterList(props: ChapterListProps) {
                                 <div className="mobile-episode-heading">
                                     <h2>{t("Chapters", "Kapitel")} <span>{chapterContainer.chapters.length}</span></h2>
                                 </div>
-                                {readingChapter && <button type="button" className="mobile-anime-episodes-link mobile-read-action" data-mobile-read-action
-                                    onClick={() => setSelectedChapter({
-                                        chapterId: readingChapter.id,
-                                        chapterNumber: readingChapter.chapter,
-                                        provider: readingChapter.provider,
-                                        mediaId: Number(mediaId),
-                                    })}>
-                                    <IoBookOutline aria-hidden />
-                                    <span>
-                                        {resumeChapter ? t("Resume reading", "Weiterlesen") : entry.listData?.progress ? t("Continue reading", "Weiterlesen") : t("Start reading", "Lesen beginnen")}
-                                        <small>{t("Chapter", "Kapitel")} {readingChapter.chapter}{resumeChapter ? ` · ${t("Page", "Seite")} ${resumeLocation.pageIndex + 1}` : ""}</small>
-                                    </span>
-                                </button>}
                                 <div className="mobile-chapter-filters">
                                     <div className="mobile-source-segment" role="group" aria-label={t("Show chapters", "Kapitel anzeigen")}>
                                         <button type="button" aria-pressed={showUnreadChapter} onClick={() => { setShowUnreadChapter(true); setMobileVisible(MOBILE_PAGE_SIZE) }}>

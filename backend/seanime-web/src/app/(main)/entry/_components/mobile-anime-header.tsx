@@ -3,8 +3,23 @@ import { MediaPageHeaderEntryDetailsProps, MediaPageHeaderScoreAndProgress } fro
 import { SeaImage } from "@/components/shared/sea-image"
 import { getImageUrl } from "@/lib/server/assets"
 import { tr } from "@/lib/app-language"
+import { atom, useAtomValue } from "jotai"
 import React from "react"
+import { IoBookOutline } from "react-icons/io5"
 import "./mobile-anime.css"
+
+/** Manga: the chapter list publishes its read action (start / continue / resume) for the header. */
+export type MobileReadAction = { label: string, detail?: string, onClick: () => void }
+export const mobileMangaReadActionAtom = atom<MobileReadAction | null>(null)
+
+function MobileMangaReadAction() {
+    const action = useAtomValue(mobileMangaReadActionAtom)
+    if (!action) return null
+    return <button type="button" className="mobile-anime-episodes-link mobile-read-action" data-mobile-read-action onClick={action.onClick}>
+        <IoBookOutline aria-hidden />
+        <span>{action.label}{action.detail && <small>{action.detail}</small>}</span>
+    </button>
+}
 
 // Android owns this header. No banner, scroll subscription or DOM reparenting.
 export function MobileAnimeHeaderShell({ children }: { children?: React.ReactNode, backgroundImage?: string, coverImage?: string }) {
@@ -31,9 +46,9 @@ export function MobileAnimeHeaderDetails(props: MediaPageHeaderEntryDetailsProps
             <AnilistMediaEntryModal mobileEntry listData={listData} media={media} type={type} />
             {listData?.status && <p>{listData.status.replaceAll("_", " ").toLowerCase()}{listData.repeat ? ` · ${listData.repeat} ${manga ? tr("rereads", "Wiederholungen") : tr("rewatches", "Wiederholungen")}` : ""}</p>}
         </div>
-        <a className="mobile-anime-episodes-link" href={manga ? "#manga-chapters" : "#anime-episodes"}>
-            {manga ? tr("Chapters & reading", "Kapitel & Lesen") : tr("Episodes & playback", "Episoden & Wiedergabe")} <span aria-hidden>↓</span>
-        </a>
+        {manga ? <MobileMangaReadAction /> : <a className="mobile-anime-episodes-link" href="#anime-episodes">
+            {tr("Episodes & playback", "Episoden & Wiedergabe")} <span aria-hidden>↓</span>
+        </a>}
         <details className="mobile-anime-details">
             <summary>{manga ? tr("About this manga", "Über diesen Manga") : tr("About this anime", "Über diesen Anime")}</summary>
             <p>{title}</p>

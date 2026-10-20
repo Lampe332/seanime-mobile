@@ -151,6 +151,14 @@ export function PluginMangaPageButtons(props: { media: AL_BaseManga }) {
 
     if (buttons.length === 0) return null
 
+    // Android: a readable text chip instead of an emoji square.
+    if (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile") return <>
+        {buttons.map(b => <button key={b.id} type="button" className="mobile-plugin-action" data-mobile-plugin-action={b.id}
+            onClick={() => handleClick(b)} disabled={b.disabled || b.loading}>
+            {b.tooltipText || b.label || "Plugin"}
+        </button>)}
+    </>
+
     return <>
         {buttons.map(b => !b.tooltipText ? (
             <Button

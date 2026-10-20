@@ -156,7 +156,7 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
                         <PluginMangaPageDropdownItems media={entry.media} />
                     </DropdownMenu>
 
-                    <MediaSyncTrackButton mediaId={entry.mediaId} type="manga" size="md" />
+                    {!IS_ANDROID_APP && <MediaSyncTrackButton mediaId={entry.mediaId} type="manga" size="md" />}
 
                     <PluginMangaPageButtons media={entry.media} />
                 </div>

@@ -1,6 +1,6 @@
 # Android PiP controls, player settings sheet and Sub label — 2026-10-20
 
-Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31053 (31045-31052 were intermediate device builds).
+Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31055 (31045-31054 were intermediate device builds).
 
 ## Changes
 
@@ -21,6 +21,8 @@ Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B /
 - Third follow-up (phone only): stream cache sheet closes as soon as clearing starts (the mutation stays pending until the episode source is fetched again; a toast confirms); redesigned download episodes sheet (anime card with cover, segmented Season / From ep. / This episode, "Clear selection", grouped episode rows with checkboxes or a Saved badge, full-width download button); Home "Currently watching" filter is a sheet with the unwatched switch plus genre chips (all selected genres must match, counts per genre, Reset / Show N series). Device: 8/8 incl. genre narrowing 4 -> 3 series and toast after clearing.
 
 - Manga page (Android): same mobile header as the anime page (`MobileAnimeHeader*` now type-aware: "About this manga", "Chapters & reading" to `#manga-chapters`, rereads), page root carries `data-mobile-anime` (so the native "More info" injection skips it) and `data-mobile-manga`; source / language / scanlator in one grouped block with Refresh source and Manual match as quiet actions; read button with chapter (and page when resuming); Unread / All switch and Downloaded filter; chapter rows (title, chapter · scanlator · language, download / queued / saved) paged by 30 with "Show more"; "Download unread (N)" uses the existing confirmation. Device: 11/11 (no reader opened, no list or download change).
+
+- Manga follow-up: the manga top bar continues the page tint at 56 px (no black band); the header's primary action is the start / continue / resume reading button (published by the chapter list through `mobileMangaReadActionAtom`), the in-list button and the jump link are gone; "Save locally" (desktop offline mode, removed /sync page) is hidden on Android for anime and manga; plugin manga page buttons are text chips; source select on its own row, language / scanlator below; manga manual match uses the anime sheet (pre-filled title, cover rows, preview before saving). The two plugin windows (Manga Source Updates, MangaUpdates Sync by Carloss616) are sandboxed third-party iframes and are not restyled. Device 16/16, anime 31/31.
 
 ## Verification
 

@@ -203,7 +203,7 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                         <AnimeAutoDownloaderButton entry={entry} size="md" />
 
                         {isLibraryView && !entry._isNakamaEntry && !!entry.libraryData && <>
-                            <MediaSyncTrackButton mediaId={entry.mediaId} type="anime" size="md" />
+                            {!IS_ANDROID_APP && <MediaSyncTrackButton mediaId={entry.mediaId} type="anime" size="md" />}
                             <AnimeEntrySilenceToggle mediaId={entry.mediaId} size="md" />
                             <ToggleLockFilesButton
                                 allFilesLocked={entry.libraryData.allFilesLocked}
