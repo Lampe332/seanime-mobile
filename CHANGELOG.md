@@ -2,6 +2,14 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.14 — 20.10.2026 (versionCode 31040)
+
+- ⚡️ Anime: Source, audio (subtitles/dub) and download options are always visible instead of hidden in a collapsible section.
+- ⚡️ Anime: Larger AniList edit button and a cleaner list, progress and rating sheet.
+- ⚡️ Plugins: The top bar of every screen uses the same Plugins menu as Home.
+- 🏗️ Anime: Removed the separate Play / continue button; playback starts from the player.
+- 🏗️ Home: Removed the accent marks before section headings.
+
 ## 1.9.13 — 20.10.2026 (versionCode 31039)
 
 - ⚡️ Anime: Redesigned the anime page in the style of Home with fewer frames, a clear play action, a calmer episode list and horizontal rows for related anime and recommendations.
