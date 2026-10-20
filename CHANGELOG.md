@@ -2,6 +2,15 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.10 — 20.10.2026 (versionCode 31036)
+
+- 🎉 Home: Added a "?" button to every section in Customize Home that explains what the section shows.
+- ⚡️ Home: Simplified Home with fewer frames and buttons; Playlists, Customize and Plugins are now icon buttons beside the title.
+- ⚡️ Home: Redesigned Customize Home with an on/off switch per section, simpler reordering and tidier section options.
+- 🦺 Home: Fixed Continue only opening the series page; it now starts the episode in the player at the saved position.
+- 🏗️ Home: Removed the separate "Series details" link from Continue watching cards.
+- 🏗️ Navigation: Removed the sidebar (☰) button on phones; the Menu tab in the bottom bar is unchanged.
+
 ## 1.9.9 — 20.10.2026 (versionCode 31035)
 
 - ⚡️ Anime: Redesigned the anime details header, episode list and online-stream episode selection for phones.
