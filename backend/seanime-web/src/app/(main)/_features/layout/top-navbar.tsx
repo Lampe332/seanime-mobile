@@ -9,6 +9,7 @@ import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { ChapterDownloadsButton } from "@/app/(main)/manga/_containers/chapter-downloads/chapter-downloads-button"
 import { __manga_chapterDownloadsDrawerIsOpenAtom } from "@/app/(main)/manga/_containers/chapter-downloads/chapter-downloads-drawer"
 import { AppSidebarTrigger } from "@/components/ui/app-layout"
+import { showsSidebarTrigger } from "./sidebar-trigger"
 import { cn } from "@/components/ui/core/styling"
 import { VerticalMenu } from "@/components/ui/vertical-menu"
 import { usePathname } from "@/lib/navigation"
@@ -34,8 +35,9 @@ export function TopNavbar(props: TopNavbarProps) {
     const isOffline = serverStatus?.isOffline
     const ts = useThemeSettings()
     const pathname = usePathname()
-    const { width } = useWindowSize()
+    const { width, height } = useWindowSize()
     const mobileHome = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && !!width && width < 1024 && pathname === "/" && !isOffline
+    const sidebarTrigger = showsSidebarTrigger(import.meta.env.SEA_PUBLIC_PLATFORM, width ?? window.innerWidth, height ?? window.innerHeight)
     const NavbarFrame = mobileHome ? HomeMobileHeader : React.Fragment
 
     return (
@@ -64,7 +66,7 @@ export function TopNavbar(props: TopNavbarProps) {
 
                 >
                     <div data-top-navbar-content className="flex items-center w-full gap-3 z-[90]" style={{ WebkitAppRegion: "no-drag" } as any}>
-                        <AppSidebarTrigger />
+                        {sidebarTrigger && <AppSidebarTrigger />}
                         {!isOffline ? <TopMenu /> : <OfflineTopMenu />}
                         <PlaybackManagerProgressTrackingButton />
                         <ManualProgressTrackingButton />

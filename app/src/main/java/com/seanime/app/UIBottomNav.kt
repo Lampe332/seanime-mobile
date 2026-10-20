@@ -1255,23 +1255,6 @@ object UIBottomNav {
                     if (onComplete) onComplete();
                 }
 
-                // ─────────────────────────────────────────────────────────────
-                // SIDEBAR TRIGGERS
-                // ─────────────────────────────────────────────────────────────
-                function hideSidebarTriggers() {
-                    if (isTablet()) return;
-                    document.querySelectorAll('.UI-AppSidebarTrigger__trigger').forEach(function(btn) {
-                        btn.dataset.hiddenByUs = 'true';
-                        btn.style.setProperty('display', 'none', 'important');
-                    });
-                }
-                function restoreSidebarTriggers() {
-                    document.querySelectorAll('.UI-AppSidebarTrigger__trigger[data-hidden-by-us]').forEach(function(btn) {
-                        delete btn.dataset.hiddenByUs;
-                        btn.style.removeProperty('display');
-                    });
-                }
-
                 function isReaderOpen() { return !!document.querySelector('[data-manga-reader-bar="true"]'); }
                 function isDrawerOpen() {
                     if (document.querySelector('[data-vaul-drawer][data-state="open"]')) return true;
@@ -1283,7 +1266,7 @@ object UIBottomNav {
                 function updateNavVisibility() {
                     var nav = document.getElementById('__seanime_bottom_nav');
                     if (!nav) return;
-                    if (isTablet()) { nav.classList.remove('visible'); restoreSidebarTriggers(); return; }
+                    if (isTablet()) { nav.classList.remove('visible'); return; }
                     if (isReaderOpen() || isDrawerOpen()) {
                         nav.classList.remove('visible');
                     } else if (document.querySelector('.UI-AppSidebar__sidebar')) {
@@ -1294,7 +1277,6 @@ object UIBottomNav {
                     if (isTablet()) return;
                     var nav = document.getElementById('__seanime_bottom_nav');
                     if (nav && !isReaderOpen() && !isDrawerOpen()) nav.classList.add('visible');
-                    hideSidebarTriggers();
                 }
 
                 // ─────────────────────────────────────────────────────────────
@@ -2111,11 +2093,9 @@ object UIBottomNav {
                         if (isTablet()) {
                             var nav = document.getElementById('__seanime_bottom_nav');
                             if (nav) nav.classList.remove('visible');
-                            restoreSidebarTriggers();
                         } else {
                             buildNav();
                             updateNavVisibility();
-                            hideSidebarTriggers();
                         }
                     }, 150);
                 });
