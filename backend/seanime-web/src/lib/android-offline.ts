@@ -17,8 +17,12 @@ export function openAndroidDownloads(kind?: unknown) {
     document.querySelectorAll("video").forEach(video => video.pause())
     window.dispatchEvent(new CustomEvent("seanime-open-downloads", { detail: { kind: kind === "manga" ? "manga" : "anime" } }))
 }
+/** Fired after this app queued a download, so offline lists that do not poll while idle look again. */
+export const OFFLINE_CHANGED_EVENT = "seanime:offline-changed"
+export const notifyOfflineChanged = () => window.dispatchEvent(new Event(OFFLINE_CHANGED_EVENT))
 export function downloadOnAndroid(payload: unknown) {
     if (!window.SeanimeOffline || !window.__seanimeOfflineToken) return false
     window.SeanimeOffline.download(window.__seanimeOfflineToken, JSON.stringify(payload))
+    notifyOfflineChanged()
     return true
 }

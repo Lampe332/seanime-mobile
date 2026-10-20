@@ -1,4 +1,5 @@
-import type { OfflineEpisode } from "@/app/(main)/android-downloads/page"
+import { OfflineEpisode, offlinePollDelay } from "@/app/(main)/android-downloads/offline-library"
+import { OFFLINE_CHANGED_EVENT } from "@/lib/android-offline"
 import { useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import React from "react"
@@ -21,11 +22,17 @@ export function usePhoneDownloadedEpisodes(mediaId: number | undefined) {
     }, [mediaId])
     React.useEffect(() => {
         refresh()
-        // Download progress changes natively; follow it like the Downloads page does.
-        const timer = window.setInterval(refresh, 2000)
         window.addEventListener("focus", refresh)
-        return () => { clearInterval(timer); window.removeEventListener("focus", refresh) }
+        window.addEventListener(OFFLINE_CHANGED_EVENT, refresh)
+        return () => { window.removeEventListener("focus", refresh); window.removeEventListener(OFFLINE_CHANGED_EVENT, refresh) }
     }, [refresh])
+    // Download progress changes natively; follow it only while one of these episodes moves, like the Downloads page.
+    const moving = offlinePollDelay(episodes) !== null
+    React.useEffect(() => {
+        if (!moving) return
+        const timer = window.setInterval(refresh, 2000)
+        return () => clearInterval(timer)
+    }, [moving, refresh])
     return episodes
 }
 
