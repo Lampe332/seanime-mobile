@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.20 — 20.10.2026 (versionCode 31071)
+
+- 🦺 Downloads: With a large system font the cover grid shows two wider cards instead of three cramped ones.
+
 ## 1.9.19 — 20.10.2026 (versionCode 31070)
 
 - ⚡️ Downloads: Paused and failed downloads keep showing how far they got.
