@@ -1,6 +1,6 @@
 # Android PiP controls, player settings sheet and Sub label — 2026-10-20
 
-Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31058 (31045-31057 were intermediate device builds).
+Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31059 (31045-31058 were intermediate device builds).
 
 ## Changes
 
@@ -25,6 +25,8 @@ Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B /
 - Manga follow-up: the manga top bar continues the page tint at 56 px (no black band); the header's primary action is the start / continue / resume reading button (published by the chapter list through `mobileMangaReadActionAtom`), the in-list button and the jump link are gone; "Save locally" (desktop offline mode, removed /sync page) is hidden on Android for anime and manga; plugin manga page buttons are text chips; source select on its own row, language / scanlator below; manga manual match uses the anime sheet (pre-filled title, cover rows, preview before saving). The two plugin windows (Manga Source Updates, MangaUpdates Sync by Carloss616) are sandboxed third-party iframes and are not restyled. Device 16/16, anime 31/31.
 
 - Manga actions: plugin page buttons and the menu (as "More options") form one full-width list of 48 dp rows; the manga top bar Downloads pill is a plain icon that opens Downloads on the Manga tab (same server downloads with the app's reader) instead of the desktop drawer. Device 18/18.
+
+- Manga tabs: "Online reading" and "Downloaded · N" use the anime page's tab bar; the Downloaded tab lists saved / queued chapters as rows (tap reads, trash deletes after confirmation) and replaces the old desktop "Downloaded chapters" table at the page bottom and the Downloaded filter chip. Device 21/21.
 
 ## Verification
 

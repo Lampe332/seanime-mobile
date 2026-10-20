@@ -2,7 +2,8 @@ import { AL_MangaDetailsById_Media, HibikeManga_ChapterDetails, Manga_Entry, Man
 import { useGetMangaSourceRefresh, useStartMangaSourceRefresh } from "@/api/hooks/manga.hooks"
 import { SeaCommandInjectableItem, useSeaCommandInject } from "@/app/(main)/_features/sea-command/use-inject"
 import { ChapterListBulkActions } from "@/app/(main)/manga/_containers/chapter-list/_components/chapter-list-bulk-actions"
-import { DownloadedChapterList, manga_downloadedChapterContainerAtom } from "@/app/(main)/manga/_containers/chapter-list/downloaded-chapter-list"
+import { DownloadedChapterList, manga_downloadedChapterContainerAtom, MobileDownloadedChapters } from "@/app/(main)/manga/_containers/chapter-list/downloaded-chapter-list"
+import { useMangaEntryDownloadedChapters } from "@/app/(main)/manga/_lib/handle-manga-downloads"
 import { MangaManualMappingModal } from "@/app/(main)/manga/_containers/chapter-list/manga-manual-mapping-modal"
 import { ChapterReaderDrawer } from "@/app/(main)/manga/_containers/chapter-reader/chapter-reader-drawer"
 import { __manga_selectedChapterAtom } from "@/app/(main)/manga/_lib/handle-chapter-reader"
@@ -121,6 +122,9 @@ export function ChapterList(props: ChapterListProps) {
     const { inject, remove } = useSeaCommandInject()
     const t = useTr()
     const [mobileVisible, setMobileVisible] = React.useState(MOBILE_PAGE_SIZE)
+    // Android: online chapters and chapters on this device are two tabs, like Local library / Online streaming on anime pages.
+    const [mobileTab, setMobileTab] = React.useState<"online" | "downloaded">("online")
+    const savedChapters = useMangaEntryDownloadedChapters()
 
     /**
      * Function to filter unread chapters
@@ -362,7 +366,16 @@ export function ChapterList(props: ChapterListProps) {
             data-selected-provider={JSON.stringify(selectedProvider)}
         >
 
-            {IS_ANDROID_APP && <section className="mobile-episode-options mobile-chapter-options" aria-label={t("Source & reading options", "Quelle & Leseoptionen")}>
+            {IS_ANDROID_APP && <div className="UI-StaticTabs__root mobile-manga-tabs" role="tablist" aria-label={t("Chapters", "Kapitel")}>
+                {(["online", "downloaded"] as const).map(tab => <button key={tab} type="button" role="tab" className="UI-StaticTabs__trigger"
+                    data-current={mobileTab === tab} aria-selected={mobileTab === tab} data-mobile-manga-tab={tab} onClick={() => setMobileTab(tab)}>
+                    {tab === "online" ? t("Online reading", "Online lesen") : `${t("Downloaded", "Geladen")}${savedChapters.length ? ` · ${savedChapters.length}` : ""}`}
+                </button>)}
+            </div>}
+
+            {IS_ANDROID_APP && mobileTab === "downloaded" && <MobileDownloadedChapters entry={entry} />}
+
+            {IS_ANDROID_APP && mobileTab === "online" && <section className="mobile-episode-options mobile-chapter-options" aria-label={t("Source & reading options", "Quelle & Leseoptionen")}>
                 <div className="mobile-source-pair" role="group" aria-label={t("Source", "Quelle")}>
                     <Select
                         options={providerOptions}
@@ -456,7 +469,7 @@ export function ChapterList(props: ChapterListProps) {
                 </MangaManualMappingModal>
             </div>}
 
-            {!providerExtensionsLoading && !selectedExtension && (
+            {(!IS_ANDROID_APP || mobileTab === "online") && !providerExtensionsLoading && !selectedExtension && (
                 <Alert
                     intent="warning-basic"
                     title={selectedProvider ? "Saved source unavailable" : "No manga source available"}
@@ -511,7 +524,7 @@ export function ChapterList(props: ChapterListProps) {
                 )}
             </ErrorBoundary>
 
-            {chapterContainerLoading ? <LoadingSpinner /> : (
+            {IS_ANDROID_APP && mobileTab === "downloaded" ? null : chapterContainerLoading ? <LoadingSpinner /> : (
                 chapterContainerError ? <LuffyError title="No chapters found">
                     <MangaManualMappingModal entry={entry}>
                         <Button
@@ -543,10 +556,6 @@ export function ChapterList(props: ChapterListProps) {
                                             {t("All", "Alle")}
                                         </button>
                                     </div>
-                                    {selectedProvider !== "local-manga" && <button type="button" className="mobile-chapter-downloaded" aria-pressed={showDownloadedChapters}
-                                        onClick={() => { setShowDownloadedChapters(!showDownloadedChapters); setMobileVisible(MOBILE_PAGE_SIZE) }}>
-                                        {showDownloadedChapters && <LuCheck aria-hidden />}{t("Downloaded", "Geladen")}
-                                    </button>}
                                 </div>
                                 {!chapters.length && <p className="mobile-chapter-empty">{showDownloadedChapters
                                     ? t("No downloaded chapters here.", "Hier sind keine Kapitel geladen.")
@@ -722,10 +731,10 @@ export function ChapterList(props: ChapterListProps) {
                 chapterIdToNumbersMap={chapterIdToNumbersMap}
             />}
 
-            <DownloadedChapterList
+            {!IS_ANDROID_APP && <DownloadedChapterList
                 entry={entry}
                 data={downloadData}
-            />
+            />}
 
             <ConfirmationDialog {...confirmDownloadUnread} />
         </div>

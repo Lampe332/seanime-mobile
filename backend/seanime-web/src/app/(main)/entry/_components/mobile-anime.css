@@ -306,3 +306,8 @@ body:has([data-mobile-manga="true"]) [data-top-navbar] [data-layout-header-backg
 .mobile-topbar-downloads:active { background: var(--sm-surface-control); }
 [data-mobile-manga="true"] .mobile-entry-actions { gap: 2px; grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
 [data-mobile-manga="true"] .mobile-entry-actions .mobile-entry-action { min-height: 48px; }
+/* Manga: Online reading / Downloaded tabs use the anime page's tab bar. */
+.mobile-manga-tabs { display: flex; margin-bottom: .25rem; }
+.mobile-chapter-empty-state { display: grid; gap: .25rem; padding: 1.25rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); text-align: center; }
+.mobile-chapter-empty-state p:first-child { font-size: .9375rem; font-weight: 600; color: var(--sm-text); }
+.mobile-chapter-empty-state p + p { font-size: .8125rem; color: var(--sm-text-muted); }
