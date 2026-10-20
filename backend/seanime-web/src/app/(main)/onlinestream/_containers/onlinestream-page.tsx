@@ -1,6 +1,5 @@
 import { tr } from "@/lib/app-language"
 import { getServerBaseUrl } from "@/api/client/server-url"
-import { downloadOnAndroid, openAndroidDownloads } from "@/lib/android-offline"
 import { EpisodeDownloadPicker } from "./episode-download-picker"
 import { Anime_Entry } from "@/api/generated/types"
 import {
@@ -862,36 +861,6 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         {autoProviderCycler.isTrying ? "Cancel trying" : "Try all available providers"}
     </Button> : null
 
-    const downloadEpisodeButton = (
-        <Button size="sm" rounded intent="primary" disabled={!url || !videoSource || episodeLoading}
-            data-android-download-episode
-            onClick={() => {
-                if (!url || !videoSource) return
-                const queued = downloadOnAndroid({
-                    key: `${mediaId}:${currentEpisodeNumber}:${provider}:${dubbed}:${quality}`,
-                    url, type: overrideStreamType === "hls" || videoSource.type === "m3u8" || isHLSSrc(url) ? "m3u8" : "mp4",
-                    title: media?.title?.userPreferred || media?.title?.romaji || "Anime",
-                    episode: currentEpisodeNumber, mediaId, provider, quality: quality || "Auto",
-                    description: media?.description, genres: media?.genres, year: media?.seasonYear,
-                    format: media?.format, totalEpisodes: media?.episodes, duration: media?.duration, score: media?.meanScore,
-                    coverUrl: media?.coverImage?.extraLarge || media?.coverImage?.large,
-                    bannerUrl: media?.bannerImage,
-                    episodeTitle: currentEpisode?.title || currentEpisode?.metadata?.episodeTitle,
-                    episodeImageUrl: currentEpisode?.image || currentEpisode?.metadata?.episodeMetadata?.image,
-                    episodeDescription: currentEpisode?.description || currentEpisode?.metadata?.episodeMetadata?.summary,
-                    airDate: currentEpisode?.metadata?.episodeMetadata?.airDate,
-                    audioLanguage: dubbed ? "de" : "ja",
-                    subtitles: (subtitleTracks ?? []).filter(sub => !!sub.src).map((sub, index) => ({
-                        url: sub.src, label: sub.label, language: sub.language,
-                        default: sub.default,
-                        mime: /\.(ass|ssa)(?:\?|$)/i.test(videoSource.subtitles?.[index]?.url || sub.src || "") ? "text/x-ssa"
-                            : /\.srt(?:\?|$)/i.test(videoSource.subtitles?.[index]?.url || sub.src || "") ? "application/x-subrip" : "text/vtt",
-                    })),
-                })
-                if (!queued) toast.error(tr("Download feature is still loading. Please try again in a moment.", "Download-Funktion lädt noch. Bitte kurz erneut versuchen."))
-            }}
-        >{tr("Download to phone", "Auf Handy herunterladen")}</Button>
-    )
     const providerSelect = (
         <Select
             aria-label={tr("Provider", "Provider")}
@@ -966,11 +935,6 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
     )
     const parameters = (
         <>
-            {(IS_ANDROID_APP) && <>
-                <EpisodeDownloadPicker media={media} episodes={episodes} provider={provider} server={server} quality={quality} dubbed={dubbed} currentEpisode={currentEpisodeNumber} />
-                {downloadEpisodeButton}
-                <Button size="sm" rounded intent="gray-basic" onClick={openAndroidDownloads}>Downloads</Button>
-            </>}
             {providerSelect}
             {serverSelect}
             {cachePopover}
@@ -1025,9 +989,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                     <div className="mobile-source-row">
                         <span className="mobile-source-label">{tr("Download", "Download")}</span>
                         <div className="mobile-source-controls">
-                            {downloadEpisodeButton}
                             <EpisodeDownloadPicker media={media} episodes={episodes} provider={provider} server={server} quality={quality} dubbed={dubbed} currentEpisode={currentEpisodeNumber} />
-                            <Button size="sm" rounded intent="gray-basic" onClick={openAndroidDownloads}>Downloads</Button>
                         </div>
                     </div>
                     <div className="mobile-source-more">

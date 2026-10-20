@@ -65,6 +65,7 @@ export function EpisodeDownloadPicker({ media, episodes, provider, server, quali
                 <div className="flex flex-wrap gap-2">
                     <Button size="sm" intent="gray-basic" onClick={() => setSelected(new Set(available.map(episode => episode.number)))}>{t("Whole season", "Ganze Staffel")}</Button>
                     <Button size="sm" intent="gray-basic" onClick={() => setSelected(new Set(available.filter(episode => episode.number >= (currentEpisode || 1)).map(episode => episode.number)))}>{t(`From episode ${currentEpisode || 1}`, `Ab Folge ${currentEpisode || 1}`)}</Button>
+                    {currentEpisode !== null && <Button size="sm" intent="gray-basic" disabled={!available.some(episode => episode.number === currentEpisode)} onClick={() => setSelected(new Set([currentEpisode]))}>{t("This episode", "Diese Folge")}</Button>}
                     <Button size="sm" intent="gray-basic" onClick={() => setSelected(new Set())}>{t("None", "Keine")}</Button>
                 </div>
                 <div className="max-h-[45vh] overflow-y-auto divide-y divide-white/5 rounded-xl border border-white/5">
