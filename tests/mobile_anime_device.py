@@ -118,6 +118,7 @@ async def main():
             await session.send('Emulation.setDeviceMetricsOverride', dict(width=320,height=740,deviceScaleFactor=3,mobile=True))
             await page.evaluate('document.documentElement.style.fontSize="200%";scrollTo(0,0)')
             check('320 CSS pixels at 200 percent text has no page overflow', await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'))
+            check('320 CSS pixels at 200 percent text keeps the header content on screen', await page.evaluate('''[...document.querySelectorAll('.mobile-anime-header-inner > *, .mobile-anime-title, .mobile-anime-progress button')].every(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1})'''))
             await shot('anime-320-200.png')
             await page.locator('#episode-2').scroll_into_view_if_needed()
             check('Large text retains separate reachable episode and info targets', await page.locator('#episode-2 .mobile-episode-target').evaluate('e=>{let r=e.getBoundingClientRect();return r.height>=44&&r.width>=44}') and await page.locator('#episode-2 [data-episode-grid-item-action] button').first.evaluate('e=>{let r=e.getBoundingClientRect();return r.height>=43.9&&r.width>=43.9}'))

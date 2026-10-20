@@ -1,7 +1,7 @@
 /* All overrides are opt-in to Android Home. Shared screens keep their styles.
    Surfaces, text and lines use the neutral --sm-* tokens; violet only marks accents.
    Quiet by design: few frames, flat controls, one type scale (1.75 / 1.125 / .9375 / .8125rem). */
-[data-home-mobile="true"] { display: block; position: relative; min-width: 0; padding-bottom: 1.5rem; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .11), transparent 32rem); }
+[data-home-mobile="true"] { display: block; position: relative; min-width: 0; padding-bottom: 1.5rem; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .11) 0, rgb(var(--color-brand-500) / .085) 18%, rgb(var(--color-brand-500) / .055) 40%, rgb(var(--color-brand-500) / .028) 62%, rgb(var(--color-brand-500) / .01) 82%, transparent 100%) top / 100% 40rem no-repeat; }
 /* One image-independent identity across loading, empty and populated Home. */
 @media (max-width: 1023px) {
 /* A faint, static theme-colour tint: header and Home share one vertical gradient (header ends where Home starts), no seam, image, blur or scroll work. */

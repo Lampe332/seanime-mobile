@@ -538,7 +538,7 @@ export function PluginSidebarTray({ place, homeMobile = false }: { place: "sideb
                     onOpenChange={setMobileExtensionListOpen}
                     side="bottom"
                     trigger={<button type="button" aria-label={tr("Open plugins", "Plugins öffnen")}
-                        className="inline-flex h-11 items-center gap-2 rounded-xl bg-black/80 px-3 text-sm font-medium text-white">
+                        className="mobile-top-plugin-trigger">
                         <LuBlocks className="size-5" /><span>Plugins</span>
                     </button>}
                     data-mobile-plugin-overview

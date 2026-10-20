@@ -45,6 +45,7 @@ export function TopNavbar(props: TopNavbarProps) {
             <div
                 data-top-navbar
                 data-home-navbar={mobileHome || undefined}
+                data-entry-navbar={(import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && !!width && width < 1024 && pathname === "/entry") || undefined}
                 className={cn(
                     "w-full h-[5rem] relative overflow-hidden flex items-center",
                     mobileHome && "max-lg:h-auto",
