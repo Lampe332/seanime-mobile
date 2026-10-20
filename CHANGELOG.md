@@ -2,8 +2,9 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
-## 1.9.15 — 20.10.2026 (versionCode 31043)
+## 1.9.15 — 20.10.2026 (versionCode 31044)
 
+- 🎉 Player: On phones, tapping the speaker icon opens a volume slider instead of muting.
 - ⚡️ Anime: Redesigned the download sheet with a short header, quick selection chips, a compact episode list that marks saved episodes and a fixed download button.
 - ⚡️ Anime: Source options are much more compact: provider and server form one group, Subtitles / Dub and Download share a line, and Manual match, Cache and the list/grid toggle are small secondary actions.
 - ⚡️ Anime: Redesigned the AniList list entry sheet with status chips, -/+ buttons for progress and score, dates side by side and a separated remove action.
