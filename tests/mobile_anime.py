@@ -32,5 +32,8 @@ with tempfile.TemporaryDirectory(prefix='seanime-episode-regression-') as tmp:
         check('Long episode description remains scrollable and within viewport',dialog.evaluate('e=>{let r=e.getBoundingClientRect();return r.width<=innerWidth&&e.scrollHeight>e.clientHeight}'))
         page.keyboard.press('Escape');dialog.wait_for(state='hidden')
         check('Repeated close leaves no scroll lock',page.evaluate('document.body.style.overflow!=="hidden"&&document.body.style.pointerEvents!=="none"'))
+        box=cards.first.locator('[data-episode-grid-item-image-container]').bounding_box()
+        page.touchscreen.tap(box['x']+box['width']/2,box['y']+box['height']/2)
+        check('Tapping the thumbnail / play icon selects the episode',page.evaluate('episodeSelections.at(-1)')==1 and cards.first.get_attribute('data-is-selected')=='true')
         browser.close()
 print(json.dumps(checks,indent=2))

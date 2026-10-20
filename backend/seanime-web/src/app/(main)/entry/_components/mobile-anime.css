@@ -93,6 +93,8 @@
 [data-mobile-anime="true"] [data-episode-grid-item][data-is-selected="true"] { background: var(--sm-accent-softer); border-radius: var(--sm-radius-sm); border-bottom-color: transparent; padding-left: .5rem; }
 [data-mobile-anime="true"] [data-episode-grid-item-container] { gap: .75rem; }
 [data-mobile-anime="true"] [data-episode-grid-item-image-container] { width: 96px; height: 56px; border-radius: .5rem; }
+/* The row-wide play target sits underneath the thumbnail; let taps on the picture fall through to it. */
+[data-mobile-anime="true"] [data-episode-grid-item-image-container] { pointer-events: none; }
 [data-mobile-anime="true"] [data-episode-grid-item-content] { min-width: 0; }
 [data-mobile-anime="true"] [data-episode-grid-item-title] { font-size: .75rem; line-height: 1.4; color: var(--sm-text-subtle); }
 [data-mobile-anime="true"] [data-episode-grid-item-episode-title] { font-size: .9375rem; line-height: 1.4; font-weight: 550; color: var(--sm-text); }
