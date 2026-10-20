@@ -500,7 +500,9 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
     }
 
     return (
-        <div ref={rootRef} data-vc-element="control-volume" className="vc-control-volume group/vc-control-volume relative flex items-center justify-center h-full gap-2 text-white">
+        <div ref={rootRef} data-vc-element="control-volume" className={cn("vc-control-volume group/vc-control-volume relative flex items-center justify-center h-full gap-2 text-white",
+            // Fixed anchor width: the icon swap animation briefly renders two icons and would shift the slider mid-drag.
+            usesPanel && "flex-none w-8")}>
             <MediaCoreControlButtonIcon
                 icons={[
                     ["low", LuVolume],
