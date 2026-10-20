@@ -69,7 +69,7 @@ import { BsFillGrid3X3GapFill } from "react-icons/bs"
 import { CgMediaPodcast } from "react-icons/cg"
 import { FaSearch } from "react-icons/fa"
 import { HiOutlineCog6Tooth } from "react-icons/hi2"
-import { LuRefreshCw, LuSpeech } from "react-icons/lu"
+import { LuChevronLeft, LuChevronRight, LuRefreshCw, LuSpeech } from "react-icons/lu"
 import { MdOutlineSubtitles } from "react-icons/md"
 import { toast } from "sonner"
 import { PluginEpisodeGridItemMenuItems } from "../../_features/plugin/actions/plugin-actions"
@@ -1032,10 +1032,9 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                 mediaPlayer={<>
                     {IS_ANDROID_APP && <div className="mobile-episode-heading">
                         <h2>{currentEpisodeNumber !== null ? `${tr("Episode", "Folge")} ${currentEpisodeNumber}` : tr("Episodes", "Episoden")}{currentEpisode?.title ? ` · ${currentEpisode.title}` : ""}</h2>
-                        <p>{media.title?.userPreferred}</p>
                         <div className="mobile-episode-navigation">
-                            <Button intent="gray-basic" disabled={episodeLoading || !episodes?.some(e => e.number === (currentEpisodeNumber ?? 0) - 1)} onClick={() => handlePlayEpisode("previous")}>{tr("Previous episode", "Vorherige Folge")}</Button>
-                            <Button intent="gray-basic" disabled={episodeLoading || !episodes?.some(e => e.number === (currentEpisodeNumber ?? 0) + 1)} onClick={() => handlePlayEpisode("next")}>{tr("Next episode", "Nächste Folge")}</Button>
+                            <IconButton intent="gray-basic" icon={<LuChevronLeft />} aria-label={tr("Previous episode", "Vorherige Folge")} disabled={episodeLoading || !episodes?.some(e => e.number === (currentEpisodeNumber ?? 0) - 1)} onClick={() => handlePlayEpisode("previous")} />
+                            <IconButton intent="gray-basic" icon={<LuChevronRight />} aria-label={tr("Next episode", "Nächste Folge")} disabled={episodeLoading || !episodes?.some(e => e.number === (currentEpisodeNumber ?? 0) + 1)} onClick={() => handlePlayEpisode("next")} />
                         </div>
                     </div>}
                     {!provider ? (

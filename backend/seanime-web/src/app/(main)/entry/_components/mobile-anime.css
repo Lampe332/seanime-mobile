@@ -80,14 +80,13 @@
 [data-mobile-episode-layout="true"] [data-vc-element="inline-layout-player-container"] { aspect-ratio: auto; }
 [data-mobile-anime="true"] [data-onlinestream-video-container] { border: 0; border-radius: var(--sm-radius); box-shadow: 0 12px 28px -14px rgb(0 0 0 / .8); }
 
-/* Current episode: title and quiet previous/next; the player starts playback. */
-.mobile-episode-heading { display: grid; gap: .5rem; min-width: 0; margin: .5rem 0 .75rem; }
-.mobile-episode-heading h2 { font-size: 1.125rem; line-height: 1.4; font-weight: 700; letter-spacing: -.01em; color: var(--sm-text); }
-.mobile-episode-heading p { color: var(--sm-text-muted); font-size: .875rem; }
-.mobile-episode-navigation { display: flex; flex-wrap: wrap; gap: .25rem; }
-.mobile-episode-navigation button { flex: 1; background: transparent !important; border: 0 !important; color: var(--sm-text-muted); border-radius: 999px; }
-.mobile-episode-navigation button:not(:disabled):active { background: var(--sm-surface-control) !important; color: var(--sm-text); }
-.mobile-episode-navigation button:disabled { opacity: .35; }
+/* Current episode: title with compact previous/next beside it; the series title is already in the header. */
+.mobile-episode-heading { display: flex; align-items: center; gap: .5rem; min-width: 0; margin: .25rem 0 .5rem; }
+.mobile-episode-heading h2 { flex: 1 1 auto; min-width: 0; font-size: 1.0625rem; line-height: 1.35; font-weight: 700; letter-spacing: -.01em; color: var(--sm-text); }
+.mobile-episode-navigation { flex: none; display: flex; gap: 2px; border-radius: var(--sm-radius-sm); overflow: hidden; }
+.mobile-episode-navigation button { width: 48px; min-width: 48px !important; height: 48px; min-height: 48px !important; background: var(--sm-surface-raised) !important; border: 0 !important; color: var(--sm-text); border-radius: 0 !important; font-size: 1.25rem; }
+.mobile-episode-navigation button:not(:disabled):active { background: var(--sm-surface-control) !important; }
+.mobile-episode-navigation button:disabled { color: var(--sm-text-subtle); opacity: .45; }
 
 /* Episode list: hairline rows; the selected one gets a soft tint. */
 [data-mobile-anime="true"] [data-episode-grid-item] { background: transparent; border: 0; border-bottom: 1px solid var(--sm-line); padding: .7rem 3.25rem .7rem .25rem; border-radius: 0; }
