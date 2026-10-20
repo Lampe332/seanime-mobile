@@ -41,7 +41,7 @@ async def main():
             await page.screenshot(path=str(out/name))
         async def home():
             await page.locator('#__seanime_bottom_nav [data-nav-id="home"]').click()
-            await page.locator('.home-episode-page').first.wait_for()
+            await page.locator('[data-home-episode-card]').first.wait_for()
         async def pause(): await page.evaluate('document.querySelectorAll("video").forEach(v=>v.pause())')
         async def wait_source():
             await page.wait_for_function('!!document.querySelector("video")?.duration', timeout=60000)
@@ -49,8 +49,8 @@ async def main():
         storage = await page.evaluate('Object.fromEntries(Object.entries(localStorage))')
         try:
             await home()
-            href = await page.locator('.home-episode-page').first.get_attribute('href')
-            await page.locator('.home-episode-page').first.click()
+            # Home no longer has a details link; open the continued series' page directly.
+            href = await page.evaluate("(async()=>{const id=document.querySelector('[data-home-episode-card]').dataset.mediaId;history.pushState({},'','/entry?id='+id);dispatchEvent(new PopStateEvent('popstate'));return '/entry?id='+id})()")
             await page.locator('.mobile-anime-header').wait_for()
             check('Home series details opens the matching anime', href in page.url)
             await wait_source()

@@ -21,9 +21,7 @@ import { atom } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
 import React from "react"
 import { seaCommand_compareMediaTitles } from "../../sea-command/utils"
-import { SeaLink } from "@/components/shared/sea-link"
 import { useTr } from "@/lib/app-language"
-import { LuArrowUpRight } from "react-icons/lu"
 import { resumeHomeEpisode } from "../../home/home-playback"
 
 export const __libraryHeaderEpisodeAtom = atom<Anime_Episode | null>(null)
@@ -38,7 +36,6 @@ export function ContinueWatching({ episodes, isLoading, linkTemplate, withTitle,
 
     const router = useRouter()
     const tr = useTr()
-    const serverStatus = useServerStatus()
     const ts = useThemeSettings()
     const spoilerActive = useContinueWatchingSpoilers(ts)
 
@@ -169,9 +166,6 @@ export function ContinueWatching({ episodes, isLoading, linkTemplate, withTitle,
         {episodes.length ? <div className="home-resume-row">
             {episodes.map(episode => <div className="home-resume-tile" key={`${episode.baseAnime?.id}-${episode.episodeNumber}-${episode.localFile?.path || ""}`}>
                 <_EpisodeCard episode={episode} homeMobile mRef={undefined} overrideLink={linkTemplate} spoilerActive={spoilerActive} watchHistory={watchHistory} />
-                <SeaLink className="home-episode-page" href={serverEntryLink(episode.baseAnime?.id, !!serverStatus?.isOffline)} aria-label={`${tr("Open series", "Serie öffnen")}: ${episode.baseAnime?.title?.userPreferred || ""}`}>
-                    {tr("Series details", "Seriendetails")}<LuArrowUpRight aria-hidden />
-                </SeaLink>
             </div>)}
         </div> : <p className="home-state">{tr("No episodes to continue. Choose a series from your library.", "Keine Folge zum Fortsetzen. Wähle eine Serie aus deiner Bibliothek.")}</p>}
     </section>
@@ -216,8 +210,6 @@ export function ContinueWatching({ episodes, isLoading, linkTemplate, withTitle,
     )
     return null
 }
-
-function serverEntryLink(id: number | undefined, offline: boolean) { return `${offline ? "/offline/entry/anime" : "/entry"}?id=${id || 0}` }
 
 const _EpisodeCard = React.memo(({ episode, mRef, overrideLink, spoilerActive, watchHistory, homeMobile = false }: {
     episode: Anime_Episode,

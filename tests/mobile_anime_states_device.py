@@ -32,7 +32,7 @@ async def main():
   session=await page.context.new_cdp_session(page)
   try:
    for pattern,handler in routes:await page.route(pattern,handler)
-   await page.locator('.home-episode-page').first.click();await page.locator('.mobile-anime-header').wait_for()
+   await page.evaluate("(async()=>{const id=document.querySelector('[data-home-episode-card]').dataset.mediaId;history.pushState({},'','/entry?id='+id);dispatchEvent(new PopStateEvent('popstate'));return '/entry?id='+id})()");await page.locator('.mobile-anime-header').wait_for()
    await page.get_by_role('button',name='Retry source',exact=True).wait_for(timeout=60000)
    check('Failed source has explicit retry with disabled play action',await page.locator('.mobile-episode-play').is_disabled())
    state['source']='empty';before=state['requests'];await page.get_by_role('button',name='Retry source',exact=True).click()
@@ -62,7 +62,7 @@ async def main():
    gate.set();await page.evaluate('document.documentElement.style.fontSize=""');await session.send('Emulation.clearDeviceMetricsOverride')
    for pattern,handler in routes:await page.unroute(pattern,handler)
    await page.evaluate('s=>{for(let k of Object.keys(localStorage)){if(k.startsWith("sea-onlinestream")){if(k in s)localStorage.setItem(k,s[k]);else localStorage.removeItem(k)}}}',storage)
-   await page.locator('#__seanime_bottom_nav [data-nav-id=home]').click();await page.reload();await page.locator('.home-episode-page').first.wait_for()
+   await page.locator('#__seanime_bottom_nav [data-nav-id=home]').click();await page.reload();await page.locator('[data-home-episode-card]').first.wait_for()
    check('Controlled responses removed; original Home restored',not await page.get_by_text('[Controlled test]',exact=False).count())
    await b.close()
 asyncio.run(main())

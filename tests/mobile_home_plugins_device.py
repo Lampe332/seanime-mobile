@@ -33,7 +33,7 @@ async def main():
    if await sheet.is_visible():await page.locator('.mobile-plugin-close').click()
    await page.evaluate('window.scrollTo(0,0)');await page.locator('[data-home-episode-card]').first.wait_for();await shot('final-home.png')
    check('One compact Home heading with no image layer',await page.locator('[data-home-navbar] h1').count()==1 and await page.locator('.home-mobile-header img:visible,.home-mobile-backdrop').count()==0)
-   check('Continuation is early and retains independent details target',await page.get_by_role('heading',name='Continue watching',exact=True).evaluate('e=>e.getBoundingClientRect().top')<240 and await page.locator('.home-resume-row').count()==1 and await page.get_by_text('Series details',exact=True).count()>0)
+   check('Continuation is early and has one play target without a details link',await page.get_by_role('heading',name='Continue watching',exact=True).evaluate('e=>e.getBoundingClientRect().top')<240 and await page.locator('.home-resume-row').count()==1 and await page.get_by_text('Series details',exact=True).count()==0)
    check('Plugin trigger has accessible 44px touch surface and vector icon',await trigger.evaluate('e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44&&!!e.querySelector("svg")&&e.getAttribute("aria-expanded")==="false"}'))
    await trigger.focus();check('Trigger has visible keyboard focus',await trigger.evaluate('e=>e.matches(":focus-visible")&&getComputedStyle(e).outlineStyle!=="none"'))
    await trigger.click();await sheet.wait_for();await page.wait_for_function('document.querySelectorAll(".mobile-plugin-row").length>0');await page.wait_for_timeout(900);await shot('final-plugins.png')

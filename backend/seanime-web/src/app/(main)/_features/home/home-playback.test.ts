@@ -12,7 +12,7 @@ describe("Home resume routing", () => {
         expect(select).toHaveBeenCalledWith(209983, expect.any(Function))
         expect(push).not.toHaveBeenCalled()
         ready!()
-        expect(push).toHaveBeenCalledExactlyOnceWith("/entry?id=209983")
+        expect(push).toHaveBeenCalledExactlyOnceWith("/entry?id=209983&episode=11")
     })
     it("preserves offline routing", () => {
         const push = vi.fn()

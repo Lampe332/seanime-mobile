@@ -9,6 +9,7 @@ import {
     useOnlineStreamEmptyCache,
     useRefreshOnlineStreamEpisodeSource,
 } from "@/api/hooks/onlinestream.hooks"
+import { usePlayNext } from "@/app/(main)/_atoms/playback.atoms"
 import { serverStatusAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { EpisodeGridItem } from "@/app/(main)/_features/anime/_components/episode-grid-item"
 import { MediaEpisodeInfoModal } from "@/app/(main)/_features/media/_components/media-episode-info-modal"
@@ -76,6 +77,10 @@ import { PluginEpisodeGridItemMenuItems } from "../../_features/plugin/actions/p
 import { getMobileInitialEpisode, rememberMobileEpisode } from "../_lib/mobile-episode-selection"
 
 const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
+function getPlayerContainer() {
+    return document.querySelector<HTMLElement>("[data-onlinestream-video-container] [data-vc-element=\"container\"]")
+}
 
 type OnlinestreamPageProps = {
     animeEntry?: Anime_Entry
@@ -739,9 +744,36 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
     }, [episodes, media, animeEntry?.listData, urlEpNumber, currentPlaylist, isWatchPartyPeer, currentEpisodeNumber])
 
 
+    // Home "Continue" requests playback; consume it once the stream is ready.
+    const { playNext, resetPlayNext } = usePlayNext()
+    const resumeRequestedRef = React.useRef(false)
+    const resumeFullscreenTimer = React.useRef<number | undefined>(undefined)
+    React.useEffect(() => () => window.clearInterval(resumeFullscreenTimer.current), [])
+    React.useEffect(() => {
+        if (!IS_ANDROID_APP || !mediaId || playNext !== mediaId) return
+        resetPlayNext()
+        resumeRequestedRef.current = true
+        // Fullscreen needs the tap's user activation, which expires after a few seconds:
+        // request it on the player container (scoped player state is not readable here) as soon as it mounts.
+        let tries = 0
+        window.clearInterval(resumeFullscreenTimer.current)
+        resumeFullscreenTimer.current = window.setInterval(() => {
+            const container = getPlayerContainer()
+            if (container && !document.fullscreenElement) void container.requestFullscreen().catch(() => {})
+            if (container || ++tries > 40) window.clearInterval(resumeFullscreenTimer.current)
+        }, 100)
+    }, [playNext, mediaId])
+
     function onCanPlay() {
         if (IS_ANDROID_APP && currentEpisodeNumber !== null) rememberMobileEpisode(mediaId, currentEpisodeNumber)
         autoProviderCycler.onLoadedMetadata()
+        if (resumeRequestedRef.current) {
+            resumeRequestedRef.current = false
+            const video = playerRef.current
+            if (video?.paused) void video.play().catch(() => {})
+            // Without fullscreen (activation expired) keep playing inline, in view.
+            if (!document.fullscreenElement) video?.scrollIntoView({ block: "center" })
+        }
         if (urlEpNumber) {
             const params = new URLSearchParams(searchParams.toString())
             params.delete("episode")
