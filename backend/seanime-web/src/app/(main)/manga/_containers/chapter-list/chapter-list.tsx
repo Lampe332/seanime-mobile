@@ -31,6 +31,11 @@ import { LuDownload } from "react-icons/lu"
 import { LuSearch } from "react-icons/lu"
 import { MdOutlineOfflinePin } from "react-icons/md"
 import { toast } from "sonner"
+import { useTr } from "@/lib/app-language"
+import { LuCheck, LuChevronDown } from "react-icons/lu"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+const MOBILE_PAGE_SIZE = 30
 
 type ChapterListProps = {
     mediaId: string | null
@@ -113,6 +118,8 @@ export function ChapterList(props: ChapterListProps) {
     } = useMangaDownloadDataUtils(downloadData, downloadDataLoading)
 
     const { inject, remove } = useSeaCommandInject()
+    const t = useTr()
+    const [mobileVisible, setMobileVisible] = React.useState(MOBILE_PAGE_SIZE)
 
     /**
      * Function to filter unread chapters
@@ -337,7 +344,54 @@ export function ChapterList(props: ChapterListProps) {
             data-selected-provider={JSON.stringify(selectedProvider)}
         >
 
-            <div data-chapter-list-header-container className="flex flex-wrap gap-2 items-center">
+            {IS_ANDROID_APP && <section className="mobile-episode-options mobile-chapter-options" aria-label={t("Source & reading options", "Quelle & Leseoptionen")}>
+                <div className="mobile-source-pair" role="group" aria-label={t("Source", "Quelle")}>
+                    <Select
+                        options={providerOptions}
+                        value={selectedProvider || ""}
+                        onValueChange={v => setSelectedProvider({ mId: mediaId, provider: v })}
+                        disabled={sourceRefreshRunning}
+                        aria-label={t("Source", "Quelle")}
+                    />
+                    {selectedExtension?.settings?.supportsMultiLanguage && <Select
+                        options={languageOptions}
+                        placeholder={t("All languages", "Alle Sprachen")}
+                        value={selectedFilters.language}
+                        onValueChange={v => setSelectedLanguage({ mId: mediaId, language: v })}
+                        aria-label={t("Language", "Sprache")}
+                    />}
+                    {selectedExtension?.settings?.supportsMultiScanlator && <Select
+                        options={scanlatorOptions}
+                        placeholder={t("All scanlators", "Alle Scanlator")}
+                        value={selectedFilters.scanlators[0] || ""}
+                        onValueChange={v => setSelectedScanlator({ mId: mediaId, scanlators: [v] })}
+                        aria-label={t("Scanlator", "Scanlator")}
+                    />}
+                </div>
+                <div className="mobile-source-more">
+                    <Button
+                        leftIcon={<FaRedo />}
+                        intent="gray-basic"
+                        size="sm"
+                        onClick={() => {
+                            if (mediaId) startSourceRefresh({ mode: "refresh_selected", mediaIds: [Number(mediaId)] }, {
+                                onSuccess: () => toast.info(t("Source refresh started", "Quellen-Aktualisierung gestartet")),
+                            })
+                        }}
+                        loading={isStartingSourceRefresh || sourceRefreshRunning}
+                        disabled={!preferencesHydrated || !selectedExtension || !sourceRefreshEligible || sourceRefreshRunning}
+                    >
+                        {sourceRefreshRunning ? t("Refreshing …", "Wird aktualisiert …") : t("Refresh source", "Quelle aktualisieren")}
+                    </Button>
+                    <MangaManualMappingModal entry={entry}>
+                        <Button leftIcon={<LuSearch />} intent="gray-basic" size="sm" disabled={!selectedExtension}>
+                            {t("Manual match", "Manuell zuordnen")}
+                        </Button>
+                    </MangaManualMappingModal>
+                </div>
+            </section>}
+
+            {!IS_ANDROID_APP && <div data-chapter-list-header-container className="flex flex-wrap gap-2 items-center">
                 <Select
                     fieldClass="w-fit"
                     options={providerOptions}
@@ -379,7 +433,7 @@ export function ChapterList(props: ChapterListProps) {
                         Manual match
                     </Button>
                 </MangaManualMappingModal>
-            </div>
+            </div>}
 
             {!providerExtensionsLoading && !selectedExtension && (
                 <Alert
@@ -398,7 +452,7 @@ export function ChapterList(props: ChapterListProps) {
                     description={`Could not load chapter filters. Please contact the extension developer: "${error}"`}
                 />}
             >
-                {(selectedExtension?.settings?.supportsMultiLanguage || selectedExtension?.settings?.supportsMultiScanlator) && (
+                {!IS_ANDROID_APP && (selectedExtension?.settings?.supportsMultiLanguage || selectedExtension?.settings?.supportsMultiScanlator) && (
                     <div data-chapter-list-header-filters-container className="flex flex-wrap gap-2 items-center">
                         {selectedExtension?.settings?.supportsMultiScanlator && (
                             <>
@@ -454,7 +508,78 @@ export function ChapterList(props: ChapterListProps) {
                             <LuffyError title="No chapters found"><p>Try another source</p></LuffyError>
                         )}
 
-                        {!!chapterContainer?.chapters?.length && (
+                        {IS_ANDROID_APP && !!chapterContainer?.chapters?.length && (
+                            <div className="mobile-chapters" data-mobile-chapters>
+                                <div className="mobile-episode-heading">
+                                    <h2>{t("Chapters", "Kapitel")} <span>{chapterContainer.chapters.length}</span></h2>
+                                </div>
+                                {readingChapter && <button type="button" className="mobile-anime-episodes-link mobile-read-action" data-mobile-read-action
+                                    onClick={() => setSelectedChapter({
+                                        chapterId: readingChapter.id,
+                                        chapterNumber: readingChapter.chapter,
+                                        provider: readingChapter.provider,
+                                        mediaId: Number(mediaId),
+                                    })}>
+                                    <IoBookOutline aria-hidden />
+                                    <span>
+                                        {resumeChapter ? t("Resume reading", "Weiterlesen") : entry.listData?.progress ? t("Continue reading", "Weiterlesen") : t("Start reading", "Lesen beginnen")}
+                                        <small>{t("Chapter", "Kapitel")} {readingChapter.chapter}{resumeChapter ? ` · ${t("Page", "Seite")} ${resumeLocation.pageIndex + 1}` : ""}</small>
+                                    </span>
+                                </button>}
+                                <div className="mobile-chapter-filters">
+                                    <div className="mobile-source-segment" role="group" aria-label={t("Show chapters", "Kapitel anzeigen")}>
+                                        <button type="button" aria-pressed={showUnreadChapter} onClick={() => { setShowUnreadChapter(true); setMobileVisible(MOBILE_PAGE_SIZE) }}>
+                                            {t("Unread", "Ungelesen")} · {unreadChapters.length}
+                                        </button>
+                                        <button type="button" aria-pressed={!showUnreadChapter} onClick={() => { setShowUnreadChapter(false); setMobileVisible(MOBILE_PAGE_SIZE) }}>
+                                            {t("All", "Alle")}
+                                        </button>
+                                    </div>
+                                    {selectedProvider !== "local-manga" && <button type="button" className="mobile-chapter-downloaded" aria-pressed={showDownloadedChapters}
+                                        onClick={() => { setShowDownloadedChapters(!showDownloadedChapters); setMobileVisible(MOBILE_PAGE_SIZE) }}>
+                                        {showDownloadedChapters && <LuCheck aria-hidden />}{t("Downloaded", "Geladen")}
+                                    </button>}
+                                </div>
+                                {!chapters.length && <p className="mobile-chapter-empty">{showDownloadedChapters
+                                    ? t("No downloaded chapters here.", "Hier sind keine Kapitel geladen.")
+                                    : t("All chapters are read.", "Alle Kapitel sind gelesen.")}</p>}
+                                <ul className="mobile-chapter-list" aria-label={t("Chapters", "Kapitel")}>
+                                    {chapters.slice(0, mobileVisible).map(chapter => {
+                                        const downloaded = isChapterDownloaded(chapter)
+                                        const queued = isChapterQueued(chapter)
+                                        const canDownload = !isChapterLocal(chapter) && !downloaded && !queued
+                                        const language = chapter.language ? LANGUAGES_LIST[chapter.language]?.nativeName || chapter.language : null
+                                        return <li key={chapter.id} data-mobile-chapter={chapter.chapter} data-read={!retainUnreadChapters(chapter) || undefined}>
+                                            <button type="button" className="mobile-chapter-open"
+                                                onClick={() => setSelectedChapter({
+                                                    chapterId: chapter.id,
+                                                    chapterNumber: chapter.chapter,
+                                                    provider: chapter.provider,
+                                                    mediaId: Number(mediaId),
+                                                })}>
+                                                <span className="mobile-chapter-title">{chapter.title || `${t("Chapter", "Kapitel")} ${chapter.chapter}`}</span>
+                                                <span className="mobile-chapter-meta">{[`${t("Chapter", "Kapitel")} ${chapter.chapter}`, chapter.scanlator, selectedExtension?.settings?.supportsMultiLanguage ? language : null].filter(Boolean).join(" · ")}</span>
+                                            </button>
+                                            {canDownload && <button type="button" className="mobile-chapter-action" disabled={isSendingDownloadRequest}
+                                                aria-label={t(`Download chapter ${chapter.chapter}`, `Kapitel ${chapter.chapter} laden`)} onClick={() => downloadChapters([chapter])}>
+                                                <LuDownload aria-hidden />
+                                            </button>}
+                                            {queued && <span className="mobile-chapter-state">{t("Queued", "Eingeplant")}</span>}
+                                            {downloaded && <span className="mobile-chapter-state mobile-chapter-state-saved" aria-label={t("Downloaded", "Geladen")}><MdOutlineOfflinePin aria-hidden /></span>}
+                                        </li>
+                                    })}
+                                </ul>
+                                {chapters.length > mobileVisible && <button type="button" className="mobile-chapter-more" onClick={() => setMobileVisible(v => v + MOBILE_PAGE_SIZE)}>
+                                    <LuChevronDown aria-hidden />{t(`Show more (${chapters.length - mobileVisible})`, `Mehr anzeigen (${chapters.length - mobileVisible})`)}
+                                </button>}
+                                {!downloadDataLoading && !!downloadableUnreadChapters.length && <button type="button" className="mobile-chapter-download-unread"
+                                    disabled={isSendingDownloadRequest} onClick={() => confirmDownloadUnread.open()}>
+                                    <LuDownload aria-hidden />{t(`Download unread (${downloadableUnreadChapters.length})`, `Ungelesene laden (${downloadableUnreadChapters.length})`)}
+                                </button>}
+                            </div>
+                        )}
+
+                        {!IS_ANDROID_APP && !!chapterContainer?.chapters?.length && (
                             <>
                                 <div data-chapter-list-header-container className="flex flex-wrap gap-2 items-center w-full pb-2">
                                     <h2 className="px-1">Chapters</h2>

@@ -9,6 +9,7 @@ import {
     MediaPageHeaderDetailsContainer,
     MediaPageHeaderEntryDetails,
 } from "@/app/(main)/_features/media/_components/media-page-header-components"
+import { MobileAnimeHeaderContainer, MobileAnimeHeaderDetails, MobileAnimeHeaderShell } from "@/app/(main)/entry/_components/mobile-anime-header"
 import { MediaSyncTrackButton } from "@/app/(main)/_features/media/_containers/media-sync-track-button"
 import { PluginMangaPageButtons, PluginMangaPageDropdownItems } from "@/app/(main)/_features/plugin/actions/plugin-actions"
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
@@ -25,6 +26,8 @@ import React from "react"
 import { BiDotsVerticalRounded, BiExtension } from "react-icons/bi"
 import { LuExternalLink } from "react-icons/lu"
 import { SiAnilist, SiMyanimelist } from "react-icons/si"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 
 export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL_MangaDetailsById_Media | undefined, detailsLoading?: boolean }) {
@@ -52,15 +55,21 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
         </>
     )
 
+    // Android uses the same header as the anime page: cover, title, progress, one jump to the chapters.
+    const Header = IS_ANDROID_APP ? MobileAnimeHeaderShell : MediaPageHeader
+    const HeaderContainer = IS_ANDROID_APP ? MobileAnimeHeaderContainer : MediaPageHeaderDetailsContainer
+    const HeaderDetails = IS_ANDROID_APP ? MobileAnimeHeaderDetails : MediaPageHeaderEntryDetails
+    const detailsInHeader = IS_ANDROID_APP || ts.mediaPageBannerInfoBoxSize === ThemeMediaPageInfoBoxSize.Fluid
+
     return (
-        <MediaPageHeader
+        <Header
             backgroundImage={entry.media?.bannerImage}
             coverImage={entry.media?.coverImage?.extraLarge}
         >
 
-            <MediaPageHeaderDetailsContainer>
+            <HeaderContainer>
 
-                <MediaPageHeaderEntryDetails
+                <HeaderDetails
                     coverImage={entry.media?.coverImage?.extraLarge || entry.media?.coverImage?.large}
                     title={entry.media?.title?.userPreferred}
                     englishTitle={entry.media?.title?.english}
@@ -103,12 +112,12 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
                         </Tooltip>}
                     </div>}
                 >
-                    {ts.mediaPageBannerInfoBoxSize === ThemeMediaPageInfoBoxSize.Fluid && <Details />}
-                </MediaPageHeaderEntryDetails>
+                    {detailsInHeader && <Details />}
+                </HeaderDetails>
 
                 <PluginWebviewSlot slot="after-media-entry-details" />
 
-                {ts.mediaPageBannerInfoBoxSize !== ThemeMediaPageInfoBoxSize.Fluid && <Details />}
+                {!detailsInHeader && <Details />}
 
 
                 <div className="w-full flex flex-wrap gap-2 items-center" data-manga-meta-section-buttons-row>
@@ -152,8 +161,8 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
                     <PluginMangaPageButtons media={entry.media} />
                 </div>
 
-            </MediaPageHeaderDetailsContainer>
-        </MediaPageHeader>
+            </HeaderContainer>
+        </Header>
 
     )
 

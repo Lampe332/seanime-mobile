@@ -1,6 +1,6 @@
 # Android PiP controls, player settings sheet and Sub label — 2026-10-20
 
-Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31052 (31045-31051 were intermediate device builds).
+Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31053 (31045-31052 were intermediate device builds).
 
 ## Changes
 
@@ -19,6 +19,8 @@ Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B /
   - Skip opening / ending: solid 48 dp pill at the bottom right of the player.
 
 - Third follow-up (phone only): stream cache sheet closes as soon as clearing starts (the mutation stays pending until the episode source is fetched again; a toast confirms); redesigned download episodes sheet (anime card with cover, segmented Season / From ep. / This episode, "Clear selection", grouped episode rows with checkboxes or a Saved badge, full-width download button); Home "Currently watching" filter is a sheet with the unwatched switch plus genre chips (all selected genres must match, counts per genre, Reset / Show N series). Device: 8/8 incl. genre narrowing 4 -> 3 series and toast after clearing.
+
+- Manga page (Android): same mobile header as the anime page (`MobileAnimeHeader*` now type-aware: "About this manga", "Chapters & reading" to `#manga-chapters`, rereads), page root carries `data-mobile-anime` (so the native "More info" injection skips it) and `data-mobile-manga`; source / language / scanlator in one grouped block with Refresh source and Manual match as quiet actions; read button with chapter (and page when resuming); Unread / All switch and Downloaded filter; chapter rows (title, chapter · scanlator · language, download / queued / saved) paged by 30 with "Show more"; "Download unread (N)" uses the existing confirmation. Device: 11/11 (no reader opened, no list or download change).
 
 ## Verification
 

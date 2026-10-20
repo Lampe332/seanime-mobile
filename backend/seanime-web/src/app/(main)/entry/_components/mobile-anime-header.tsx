@@ -15,24 +15,27 @@ export function MobileAnimeHeaderContainer({ children }: { children?: React.Reac
 }
 export function MobileAnimeHeaderDetails(props: MediaPageHeaderEntryDetailsProps) {
     const { coverImage, title, englishTitle, romajiTitle, startDate, status, description, listData, media, type, progressTotal, children, after } = props
+    const manga = type === "manga"
     return <>
         <div className="mobile-anime-identity">
             <div className="mobile-anime-cover">
-                {coverImage ? <SeaImage src={getImageUrl(coverImage)} alt={title || tr("Anime cover", "Anime-Cover")} fill sizes="96px" className="object-contain" /> : <span aria-label={tr("No cover", "Kein Cover")}>◇</span>}
+                {coverImage ? <SeaImage src={getImageUrl(coverImage)} alt={title || (manga ? tr("Manga cover", "Manga-Cover") : tr("Anime cover", "Anime-Cover"))} fill sizes="96px" className="object-contain" /> : <span aria-label={tr("No cover", "Kein Cover")}>◇</span>}
             </div>
             <div className="mobile-anime-title">
-                <h1>{title || romajiTitle || englishTitle || "Anime"}</h1>
+                <h1>{title || romajiTitle || englishTitle || (manga ? "Manga" : "Anime")}</h1>
                 <p>{[startDate?.year, status?.replaceAll("_", " ").toLowerCase()].filter(Boolean).join(" · ")}</p>
             </div>
         </div>
         <div className="mobile-anime-progress">
             <div><span>{tr("Your progress", "Dein Fortschritt")}</span><div><MediaPageHeaderScoreAndProgress score={listData?.score} progress={listData?.progress} episodes={progressTotal} /></div></div>
             <AnilistMediaEntryModal mobileEntry listData={listData} media={media} type={type} />
-            {listData?.status && <p>{listData.status.replaceAll("_", " ").toLowerCase()}{listData.repeat ? ` · ${listData.repeat} ${tr("rewatches", "Wiederholungen")}` : ""}</p>}
+            {listData?.status && <p>{listData.status.replaceAll("_", " ").toLowerCase()}{listData.repeat ? ` · ${listData.repeat} ${manga ? tr("rereads", "Wiederholungen") : tr("rewatches", "Wiederholungen")}` : ""}</p>}
         </div>
-        <a className="mobile-anime-episodes-link" href="#anime-episodes">{tr("Episodes & playback", "Episoden & Wiedergabe")} <span aria-hidden>↓</span></a>
+        <a className="mobile-anime-episodes-link" href={manga ? "#manga-chapters" : "#anime-episodes"}>
+            {manga ? tr("Chapters & reading", "Kapitel & Lesen") : tr("Episodes & playback", "Episoden & Wiedergabe")} <span aria-hidden>↓</span>
+        </a>
         <details className="mobile-anime-details">
-            <summary>{tr("About this anime", "Über diesen Anime")}</summary>
+            <summary>{manga ? tr("About this manga", "Über diesen Manga") : tr("About this anime", "Über diesen Anime")}</summary>
             <p>{title}</p>
             {englishTitle && englishTitle !== title && <p>{englishTitle}</p>}
             {romajiTitle && romajiTitle !== title && romajiTitle !== englishTitle && <p>{romajiTitle}</p>}

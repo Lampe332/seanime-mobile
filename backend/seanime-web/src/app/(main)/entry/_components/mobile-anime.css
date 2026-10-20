@@ -251,3 +251,36 @@ body .mobile-download-sheet.UI-Modal__content { display: flex; flex-direction: c
 .mobile-cache-clear { background: rgb(242 167 182 / .14); color: var(--sm-danger); }
 .mobile-cache-clear:disabled { opacity: .6; }
 .mobile-cache-cancel { background: var(--sm-surface-raised); color: var(--sm-text); }
+
+/* Manga page: same header and option language as the anime page. */
+[data-mobile-manga="true"] [data-manga-meta-section-buttons-row] { justify-content: flex-start; gap: .25rem; }
+[data-mobile-manga="true"] [data-manga-meta-section-buttons-row] .UI-Button_root, [data-mobile-manga="true"] [data-manga-meta-section-buttons-row] .UI-IconButton_root { background: transparent; border: 0; box-shadow: none; color: var(--sm-text-muted); border-radius: 999px; }
+[data-mobile-manga="true"] [data-manga-meta-section-buttons-row] .UI-IconButton_root:active { background: var(--sm-surface-control); color: var(--sm-text); }
+[data-mobile-manga="true"] [data-manga-meta-section-buttons-container] { justify-content: flex-start; gap: .5rem; }
+[data-mobile-manga="true"] [data-manga-entry-page-content-container] { padding: 1rem; scroll-margin-top: 1rem; }
+[data-mobile-manga="true"] [data-manga-entry-page-content] { padding-top: 0 !important; }
+[data-mobile-manga="true"] [data-manga-entry-page-characters-section-container] { padding-top: 0; }
+.mobile-chapter-options { padding-bottom: .25rem; }
+.mobile-chapters { display: grid; gap: .75rem; min-width: 0; }
+.mobile-episode-heading h2 span { margin-left: .25rem; font-size: .875rem; font-weight: 500; color: var(--sm-text-subtle); }
+.mobile-read-action { gap: .75rem; width: 100%; text-align: left; }
+.mobile-read-action svg { flex: none; font-size: 1.25rem; }
+.mobile-read-action span { display: grid; }
+.mobile-read-action small { font-size: .75rem; font-weight: 500; opacity: .85; }
+.mobile-chapter-filters { display: flex; flex-wrap: wrap; gap: .5rem; }
+.mobile-chapter-downloaded { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 1rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; }
+.mobile-chapter-downloaded[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 600; }
+.mobile-chapter-empty { padding: .5rem .25rem; font-size: .875rem; color: var(--sm-text-muted); }
+.mobile-chapter-list { display: grid; }
+.mobile-chapter-list li { display: flex; align-items: center; gap: .25rem; min-width: 0; border-bottom: 1px solid var(--sm-line); }
+.mobile-chapter-open { flex: 1; min-width: 0; display: grid; gap: .125rem; min-height: 56px; padding: .625rem .25rem; text-align: left; }
+.mobile-chapter-open:active { background: var(--sm-surface-raised); }
+.mobile-chapter-title { font-size: .9375rem; font-weight: 550; line-height: 1.35; color: var(--sm-text); }
+.mobile-chapter-meta { font-size: .75rem; color: var(--sm-text-subtle); }
+.mobile-chapter-list li[data-read] .mobile-chapter-title { color: var(--sm-text-subtle); font-weight: 500; }
+.mobile-chapter-action { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px; color: var(--sm-text-muted); font-size: 1.25rem; }
+.mobile-chapter-action:active { background: var(--sm-surface-control); }
+.mobile-chapter-state { flex: none; padding-inline: .75rem; font-size: .75rem; color: var(--sm-text-subtle); }
+.mobile-chapter-state-saved { display: grid; place-items: center; width: 48px; padding: 0; font-size: 1.375rem; color: var(--sm-accent); }
+.mobile-chapter-more, .mobile-chapter-download-unread { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 48px; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); color: var(--sm-text); font-size: .875rem; font-weight: 600; }
+.mobile-chapter-download-unread { background: transparent; color: var(--sm-accent); }

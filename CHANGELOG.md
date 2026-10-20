@@ -2,13 +2,14 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
-## 1.9.16 — 20.10.2026 (versionCode 31052)
+## 1.9.16 — 20.10.2026 (versionCode 31053)
 
 - 🎉 Player: The picture-in-picture window has back 10 s, play/pause and forward 10 s buttons; the play/pause icon follows the video.
 - 🎉 Player: Phones can pick the default subtitle and audio language (Japanese, German, English) in the player settings.
 - 🎉 Anime: Episodes downloaded to the phone appear under Local library on the anime page and play offline from there.
 - 🎉 Home: Filter for Currently watching can narrow the list by genre.
 - ⚡️ Player: Redesigned the player settings on phones: grouped into Playback, Language & subtitles and Display, Auto play / Auto next / Skip OP/ED switch directly in the list, and Back returns to the overview from a sub page.
+- ⚡️ Manga: Redesigned the manga page like the anime page: compact header with progress and AniList edit, grouped source options, a clear read button, Unread / All switch and a chapter list with download buttons.
 - ⚡️ Anime: The audio toggle reads Sub / Dub.
 - ⚡️ Anime: Redesigned Manual match (title pre-filled, one search row, large results), the stream cache sheet and the download episodes sheet.
 - ⚡️ Player: Quality, audio and subtitle menus use the phone sheet; Skip opening / ending is a solid button at the bottom right.

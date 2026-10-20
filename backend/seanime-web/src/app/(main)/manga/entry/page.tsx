@@ -11,6 +11,8 @@ import { usePathname } from "@/lib/navigation"
 import { useRouter, useSearchParams } from "@/lib/navigation"
 import React from "react"
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
 
 export default function Page() {
     const router = useRouter()
@@ -49,12 +51,14 @@ export default function Page() {
     return (
         <div
             data-manga-entry-page
+            data-mobile-anime={IS_ANDROID_APP || undefined}
+            data-mobile-manga={IS_ANDROID_APP || undefined}
             data-media={JSON.stringify(mangaEntry.media)}
             data-manga-entry-list-data={JSON.stringify(mangaEntry.listData)}
         >
             <MetaSection entry={mangaEntry} details={mangaDetails} detailsLoading={mangaDetailsLoading} />
 
-            <div data-manga-entry-page-content-container className="px-4 md:px-8 relative z-[8]">
+            <div data-manga-entry-page-content-container id="manga-chapters" className="px-4 md:px-8 relative z-[8]">
 
                 <PageWrapper
                     data-manga-entry-page-content
