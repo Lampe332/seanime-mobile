@@ -6,6 +6,7 @@ import { __ignoredFileManagerIsOpen } from "@/app/(main)/_features/anime-library
 import { __scanner_modalIsOpen } from "@/app/(main)/_features/anime-library/_containers/scanner-modal"
 import { __unknownMedia_drawerIsOpen } from "@/app/(main)/_features/anime-library/_containers/unknown-media-manager"
 import { __unmatchedFileManagerIsOpen } from "@/app/(main)/_features/anime-library/_containers/unmatched-file-manager"
+import { __home_mobileActionsSlot } from "@/app/(main)/_features/home/home-mobile-header"
 import { __home_currentView } from "@/app/(main)/_features/home/home-screen"
 import { HomeSettingsButton } from "@/app/(main)/_features/home/home-settings-button"
 import { libraryExplorer_drawerOpenAtom } from "@/app/(main)/_features/library-explorer/library-explorer.atoms"
@@ -20,8 +21,9 @@ import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Tooltip } from "@/components/ui/tooltip"
 import { TORRENT_PROVIDER } from "@/lib/server/settings"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
-import { useAtom, useSetAtom } from "jotai/react"
+import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import React from "react"
+import { createPortal } from "react-dom"
 import { BiCollection, BiDotsVerticalRounded, BiFolder } from "react-icons/bi"
 import { HiExclamation } from "react-icons/hi"
 import { IoHome, IoLibraryOutline, IoLibrarySharp } from "react-icons/io5"
@@ -84,6 +86,10 @@ export function HomeToolbar(props: HomeToolbarProps) {
 
     const hasLibraryPath = !!status?.settings?.library?.libraryPath
 
+    // Android Home shows Playlists and Customize as icon actions beside the title.
+    const headerSlot = useAtomValue(__home_mobileActionsSlot)
+    const inHeader = !!props.mobileHome && !!headerSlot
+
     return (
         <>
             <div className={cn("flex flex-wrap w-full min-w-0 max-w-full justify-end gap-2 p-4 relative z-[10]", className)} data-home-toolbar-container>
@@ -141,7 +147,7 @@ export function HomeToolbar(props: HomeToolbarProps) {
                             Library Explorer
                         </Tooltip>}
 
-                        <Tooltip
+                        {!inHeader && <Tooltip
                             trigger={props.mobileHome ? <Button data-home-toolbar-playlists-button className="home-labeled-action" leftIcon={<MdOutlineVideoLibrary aria-hidden />} onClick={() => setModalOpen(true)}>{tr("Playlists", "Playlists")}</Button> : <IconButton
                                 aria-label="Playlists"
                                 data-home-toolbar-playlists-button
@@ -149,7 +155,7 @@ export function HomeToolbar(props: HomeToolbarProps) {
                                 icon={<MdOutlineVideoLibrary className="text-2xl" />}
                                 onClick={() => setModalOpen(true)}
                             />}
-                        >Playlists</Tooltip>
+                        >Playlists</Tooltip>}
                     </>
                 )}
                 {/*Shows up even when there's no local entries*/}
@@ -187,7 +193,12 @@ export function HomeToolbar(props: HomeToolbarProps) {
                     Resolve hidden media ({unknownGroups.length})
                 </Button>}
 
-                <HomeSettingsButton type="toolbar" labeled={props.mobileHome} />
+                {!inHeader && <HomeSettingsButton type="toolbar" labeled={props.mobileHome} />}
+                {inHeader && createPortal(<>
+                    {hasEntries && <button type="button" className="home-header-action" data-home-toolbar-playlists-button aria-label={tr("Playlists", "Playlists")}
+                        onClick={() => setModalOpen(true)}><MdOutlineVideoLibrary aria-hidden /></button>}
+                    <HomeSettingsButton type="toolbar" icon />
+                </>, headerSlot!)}
 
                 {(!isStreamingOnly && !isNakamaLibrary && hasLibraryPath) &&
                     <DropdownMenu

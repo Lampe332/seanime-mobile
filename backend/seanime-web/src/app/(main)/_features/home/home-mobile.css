@@ -1,5 +1,108 @@
 /* All overrides are opt-in to Android Home. Shared screens keep their styles.
-   Surfaces, text and lines use the neutral --sm-* tokens; violet only marks accents. */
+   Surfaces, text and lines use the neutral --sm-* tokens; violet only marks accents.
+   Quiet by design: few frames, flat controls, one type scale (1.75 / 1.125 / .9375 / .8125rem). */
+[data-home-mobile="true"] { display: block; position: relative; min-width: 0; padding-bottom: 1.5rem; }
+/* One image-independent identity across loading, empty and populated Home. */
+@media (max-width: 1023px) {
+[data-home-navbar] { padding: .75rem 1rem 0; overflow: visible; }
+[data-home-navbar] [data-layout-header-background], [data-home-navbar] [data-layout-header-background-gradient] { display: none; }
+[data-home-navbar] .home-mobile-header { width: 100%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .25rem .75rem; padding: .5rem 0 .25rem; }
+[data-home-navbar] .home-mobile-heading { min-width: 0; }
+[data-home-navbar] .home-mobile-heading > span { display: block; color: var(--sm-text-subtle); font-size: .6875rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
+[data-home-navbar] h1 { font-size: 1.75rem; letter-spacing: -.03em; line-height: 1.15; margin: .15rem 0 0; font-weight: 700; color: var(--sm-text); overflow-wrap: anywhere; }
+[data-home-navbar] .home-mobile-tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; margin-left: auto; min-width: 0; max-width: 100%; }
+[data-home-navbar] .home-mobile-actions { display: flex; align-items: center; }
+[data-home-navbar] .home-mobile-actions:empty { display: none; }
+[data-home-navbar] [data-top-navbar-content-container] { padding: 0; overflow: visible; width: auto; }
+[data-home-navbar] [data-top-navbar-content] { flex-wrap: wrap; gap: 0; justify-content: flex-end; width: auto; }
+[data-home-navbar] [data-top-navbar-content-separator] { display: none; }
+/* Playlists, Customize and Plugins: plain 48dp icon actions without frames. */
+[data-home-navbar] .home-header-action, [data-home-navbar] .mobile-plugin-trigger { display: inline-grid; place-items: center; width: 48px; height: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--sm-text-muted); }
+[data-home-navbar] .home-header-action svg, [data-home-navbar] .mobile-plugin-trigger svg { width: 22px; height: 22px; color: currentColor; }
+[data-home-navbar] .home-header-action:active, [data-home-navbar] .mobile-plugin-trigger:active, [data-home-navbar] .mobile-plugin-trigger[data-state="open"] { background: var(--sm-surface-control); color: var(--sm-text); }
+[data-home-navbar] .home-header-action:focus-visible, [data-home-navbar] .mobile-plugin-trigger:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: -2px; }
+[data-home-navbar] .mobile-plugin-trigger > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+[data-page-wrapper]:has([data-home-mobile="true"]) { padding-top: 0 !important; }
+/* The toolbar row stays only for actions that did not move into the header. */
+[data-home-mobile="true"] [data-home-toolbar-container] { width: 100%; margin: 0 !important; padding: .25rem 1rem .75rem !important; }
+[data-home-mobile="true"] [data-home-toolbar-container]:not(:has(> :not([data-home-toolbar-spacer]))) { display: none; }
+}
+[data-home-mobile="true"] h2, [data-home-mobile="true"] h3 { font-size: 1.125rem; line-height: 1.4; font-weight: 650; color: var(--sm-text); overflow-wrap: anywhere; }
+[data-home-mobile="true"] [data-library-toolbar-top-padding],
+[data-home-mobile="true"] [data-custom-library-banner-top-spacer] { display: none !important; }
+[data-home-mobile="true"] [data-home-toolbar-container] { justify-content: flex-start; gap: .5rem; }
+[data-home-mobile="true"] [data-home-toolbar-spacer] { display: none; }
+[data-home-mobile="true"] [data-home-toolbar-container] button { border-radius: var(--sm-radius-sm); min-height: 44px; white-space: normal; }
+[data-home-mobile="true"] [data-home-toolbar-container] .home-labeled-action { width: auto; gap: .45rem; padding: .6rem .85rem; font-size: .8125rem; font-weight: 600; background: var(--sm-surface-control); border: 0; color: var(--sm-text); }
+[data-home-mobile="true"] [data-home-toolbar-container] .home-labeled-action:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+[data-home-mobile="true"] [data-page-wrapper] { padding-top: 0 !important; max-width: 100%; min-width: 0; }
+[data-home-mobile="true"] [data-continue-watching-container] { padding: .75rem 1rem 1.5rem !important; margin: 0 !important; }
+[data-home-mobile="true"] .home-section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; gap: .5rem; }
+[data-home-mobile="true"] .home-section-heading > span { color: var(--sm-text-muted); font-size: .8125rem; }
+/* Continue card: the scene image itself is the card; one play action, no extra frame. */
+[data-home-mobile="true"] .home-resume-row { display: flex; gap: .75rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 0 0 .25rem; scrollbar-width: none; }
+[data-home-mobile="true"] .home-resume-tile { flex: 0 0 min(86vw, 22rem); min-width: 0; scroll-snap-align: start; border-radius: var(--sm-radius); overflow: hidden; }
+[data-home-mobile="true"] [data-home-episode-card] { display: grid; grid-template-columns: minmax(0,1fr); isolation: isolate; border-radius: var(--sm-radius); outline-offset: -3px; }
+[data-home-mobile="true"] [data-home-episode-card]:focus-visible { outline: 2px solid var(--sm-accent); }
+[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-image-container] { grid-area: 1 / 1; height: 100%; min-height: 12.5rem; aspect-ratio: auto; border-radius: 0; background: var(--sm-surface-control); }
+[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-image] { border-radius: 0; }
+[data-home-mobile="true"] .home-episode-meta { grid-area: 1 / 1; align-self: end; position: relative; z-index: 4; padding: 3.5rem 1rem 1rem; min-width: 0; margin: 0 !important; background: linear-gradient(180deg,transparent,rgb(12 12 14 / .8) 40%,rgb(12 12 14 / .96) 100%); }
+[data-home-mobile="true"] .home-episode-meta > p { font-size: .9375rem; font-weight: 600; line-height: 1.4; color: var(--sm-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+[data-home-mobile="true"] .home-episode-detail { margin-top: .2rem; display: flex; flex-wrap: wrap; gap: .25rem .65rem; font-size: .8125rem; color: var(--sm-text-muted); }
+[data-home-mobile="true"] .home-resume-action { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; width: fit-content; max-width: 100%; min-height: 44px; padding: .55rem 1.1rem .55rem .9rem; border-radius: 999px; color: #fff; background: var(--sm-accent-strong); margin-top: .75rem; font-size: .8125rem; font-weight: 650; }
+[data-home-mobile="true"] .home-resume-action svg { color: currentColor; }
+[data-home-mobile="true"] [aria-disabled="true"] .home-resume-action { background: var(--sm-surface-control); color: var(--sm-text-muted); }
+/* Genres: small flat chips; only the active one gets the accent tint. */
+[data-home-mobile="true"] [data-library-genre-selector-container] { margin: 0 !important; padding: 0 1rem .5rem !important; }
+[data-home-mobile="true"] .home-genre-row { display: flex; gap: .35rem; overflow-x: auto; overscroll-behavior-x: contain; padding: 0 1rem .75rem; scrollbar-width: none; }
+[data-home-mobile="true"] .home-genre-row button { flex: 0 0 auto; min-height: 40px; border: 0; border-radius: 999px; padding: .35rem .8rem; color: var(--sm-text-muted); background: var(--sm-surface); font-size: .8125rem; }
+[data-home-mobile="true"] .home-genre-row button[aria-pressed="true"] { color: var(--sm-text); background: var(--sm-accent-soft); }
+[data-home-mobile="true"] .home-genre-row button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+[data-home-mobile="true"] [data-library-genre-selector-container] .UI-StaticTabs__root { padding: .25rem 0; gap: .25rem; margin-left: 0; }
+[data-home-mobile="true"] [data-media-genre-selector-scroll-container], [data-home-mobile="true"] [data-media-genre-selector-scroll-container-end] { display: none; }
+[data-home-mobile="true"] .UI-StaticTabs__trigger { min-height: 44px; height: auto !important; padding: .6rem .85rem !important; }
+[data-home-mobile="true"] [data-library-collection-lists-container] { padding: .25rem 1rem !important; }
+[data-home-mobile="true"] [data-library-collection-list-item-header] { gap: .5rem; margin: 1.25rem 0 .75rem !important; }
+/* Filter: a quiet text action next to the heading. */
+[data-home-mobile="true"] [data-library-collection-list-item-header] button { width: auto; min-width: 44px; min-height: 44px; font-size: .8125rem; color: var(--sm-text-muted); background: transparent; border: 0; box-shadow: none; }
+[data-home-mobile="true"] [data-library-collection-lists] > [data-media-card-grid], [data-home-mobile="true"] [data-library-collection-lists] > [data-media-card-lazy-grid-renderer] { margin-top: .75rem !important; }
+[data-home-mobile="true"] [data-media-card-grid], [data-home-mobile="true"] [data-media-card-lazy-grid] { gap: .75rem !important; }
+[data-home-mobile="true"] [data-media-entry-card-container] { min-width: 0; }
+[data-home-mobile="true"] [data-media-entry-card-title-section-title] { font-size: .8125rem !important; line-height: 1.4; -webkit-line-clamp: 2; color: var(--sm-text); }
+[data-home-mobile="true"] [data-media-entry-card-title-section-year-season] { font-size: .75rem; display: block; color: var(--sm-text-subtle); overflow-wrap: anywhere; }
+/* Manga lists share the anime lists' 1rem gutter instead of adding their own inset. */
+[data-home-mobile="true"] [data-manga-library-view-collection-lists-container] { padding: .25rem 1rem !important; }
+[data-home-mobile="true"] [data-manga-library-view-collection-lists-container] [data-media-card-grid] { padding-left: 0 !important; padding-right: 0 !important; }
+[data-home-mobile="true"] [data-manga-library-view-collection-list-item-header-container] { margin: 1.25rem 0 .75rem; min-height: 44px; justify-content: space-between; }
+[data-home-mobile="true"] [data-manga-library-view-collection-list-item-header-container] button { min-width: 44px; min-height: 44px; }
+/* The installed dub plugin supplies a status badge, not a separate card action. */
+[data-home-mobile="true"] .seanime-base-dub-badge { pointer-events: none !important; }
+[data-home-mobile="true"] .seanime-base-dub-badge .UI-Badge__root { background: rgb(12 12 14 / .78); color: var(--sm-text); box-shadow: none; cursor: default; font-size: .625rem; font-weight: 600; height: auto; padding: .2rem .4rem; border: 0; }
+[data-home-mobile="true"] .seanime-base-dub-badge svg { display: none; }
+[data-home-mobile="true"] .seanime-base-dub-badge .UI-Badge__root::after { content: "Dub"; }
+/* Carousel cards carry their own episode/airing overlay on the right; keep the dub badge clear of it. */
+[data-home-mobile="true"] .UI-Carousel__root .seanime-dub-badge-wrapper { left: 6px !important; right: auto !important; }
+[data-home-mobile="true"] [data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"] { display: flex !important; flex-wrap: nowrap; overflow-x: auto !important; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 0 0 .75rem !important; scrollbar-width: none; }
+[data-home-mobile="true"] [data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"] > [data-media-entry-card-container] { width: min(39vw, 10rem) !important; flex: 0 0 min(39vw, 10rem); scroll-snap-align: start; }
+[data-home-mobile="true"] [data-home-screen-item-divider] { height: 1.5rem; }
+[data-home-mobile="true"] .home-state { margin: .75rem 1rem; padding: 1.25rem; background: var(--sm-surface); border-radius: var(--sm-radius); line-height: 1.5; }
+[data-home-mobile="true"] .home-state p { color: var(--sm-text-muted); margin: .5rem 0 1rem; }
+[data-home-mobile="true"] .home-discover-feature { margin: .75rem 1rem; padding: 1rem; border-radius: var(--sm-radius); background: var(--sm-surface); }
+[data-home-mobile="true"] .home-discover-feature p { font-size: 1rem; line-height: 1.4; margin: .5rem 0; }
+/* Carousel controls belong inside their section, not above a clipped wrapper. */
+[data-home-mobile="true"] .UI-AppLayoutStack__root:has(> .UI-Carousel__root) > h2 { min-height: 44px; display: flex; align-items: center; padding-right: 6.5rem; }
+[data-home-mobile="true"] .UI-AppLayoutStack__root > .UI-Carousel__root { position: static; }
+[data-home-mobile="true"] .UI-AppLayoutStack__root > .UI-Carousel__root > div:has(> .UI-Carousel__button) { top: 0; right: 0; gap: .25rem; }
+/* Section carousels start on the shared 1rem gutter (track px-6 minus its -ml-4 offset). */
+[data-home-mobile="true"] .UI-AppLayoutStack__root > .UI-Carousel__root .UI-Carousel__innerContent { padding-left: .5rem !important; padding-right: .5rem !important; }
+[data-home-mobile="true"] .UI-Carousel__button { width: 44px; height: 44px; background: transparent; border: 0; color: var(--sm-text-muted); }
+[data-home-mobile="true"] .UI-Carousel__button:disabled { opacity: .3; }
+[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-progress-bar-container] { z-index: 5; }
+[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-progress-bar-container] > div:last-child:not(:first-child) { display: none; }
+@media (prefers-reduced-motion: reduce) {
+    [data-home-mobile="true"] *, [data-home-mobile="true"] *::before, [data-home-mobile="true"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
 .home-mobile-settings .home-mobile-sections { display: grid; gap: .75rem; }
 .home-mobile-settings .home-mobile-sections h3 { font-size: 1.125rem; font-weight: 650; color: var(--sm-text); }
 .home-mobile-settings .home-mobile-sections p { font-size: .8125rem; color: var(--sm-text-muted); line-height: 1.5; }
@@ -9,88 +112,6 @@
 .home-mobile-settings button { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
 .home-mobile-settings .home-mobile-available { display: grid; gap: .5rem; }
 .home-mobile-settings .home-mobile-available button { justify-content: flex-start; text-align: left; }
-/* Static tiled light points: no extra layer or animation. */
-[data-home-mobile="true"] { display: block; position: relative; min-width: 0; padding-bottom: 1.5rem; background-image: radial-gradient(ellipse at 100% 0,rgb(255 255 255 / .035),transparent 68%),radial-gradient(circle,rgb(255 255 255 / .07) .7px,transparent .9px); background-size: 100% 24rem,24px 24px; background-position: right top,12px 8px; background-repeat: no-repeat,repeat; }
-/* One image-independent identity across loading, empty and populated Home. */
-@media (max-width: 1023px) {
-[data-home-navbar] { padding: .75rem 1rem 0; overflow: visible; }
-[data-home-navbar] [data-layout-header-background], [data-home-navbar] [data-layout-header-background-gradient] { display: none; }
-[data-home-navbar] .home-mobile-header { position: relative; isolation: isolate; width: 100%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; padding: 1rem; border: 1px solid var(--sm-line); border-bottom: 0; border-radius: var(--sm-radius-lg) var(--sm-radius-lg) 0 0; background: linear-gradient(115deg,var(--sm-surface-raised),var(--sm-surface) 72%); }
-body:not(:has([data-home-mobile] [data-home-toolbar-container])) [data-home-navbar] .home-mobile-header { border-bottom: 1px solid var(--sm-line); border-radius: var(--sm-radius-lg); }
-[data-home-navbar] .home-mobile-heading { min-width: 0; position: relative; z-index: 1; }
-[data-home-navbar] .home-mobile-heading > span { display: flex; align-items: center; gap: .4rem; color: var(--sm-text-muted); font-size: .6875rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 650; }
-[data-home-navbar] .home-mobile-heading i { width: .45rem; height: .45rem; border-radius: 2px; background: var(--sm-accent); transform: rotate(45deg); }
-[data-home-navbar] h1 { font-size: 1.75rem; letter-spacing: -.035em; line-height: 1.15; margin: .35rem 0 0; font-weight: 700; color: var(--sm-text); overflow-wrap: anywhere; }
-[data-home-navbar] .home-mobile-tools { position: relative; z-index: 1; min-width: 0; max-width: 100%; }
-[data-home-navbar] [data-top-navbar-content-container] { padding: 0; overflow: visible; }
-[data-home-navbar] [data-top-navbar-content] { flex-wrap: wrap; gap: .4rem; justify-content: flex-end; }
-[data-home-navbar] .home-mobile-motif { position: absolute; z-index: -1; right: 0; bottom: 0; width: 11rem; height: 6rem; max-height: 100%; overflow: hidden; stroke: var(--sm-text); stroke-width: 1; opacity: .08; pointer-events: none; }
-[data-page-wrapper]:has([data-home-mobile="true"]) { padding-top: 0 !important; }
-[data-home-mobile="true"] [data-home-toolbar-container] { width: calc(100% - 2rem); margin: 0 1rem .75rem !important; padding: .25rem 1rem 1rem !important; border: 1px solid var(--sm-line); border-top: 0; border-radius: 0 0 var(--sm-radius-lg) var(--sm-radius-lg); background: var(--sm-surface); }
-}
-[data-home-mobile="true"] h2, [data-home-mobile="true"] h3 { font-size: 1.125rem; line-height: 1.4; font-weight: 650; color: var(--sm-text); overflow-wrap: anywhere; }
-[data-home-mobile="true"] [data-library-toolbar-top-padding],
-[data-home-mobile="true"] [data-custom-library-banner-top-spacer] { display: none !important; }
-[data-home-mobile="true"] [data-home-toolbar-container] { justify-content: flex-start; gap: .5rem; }
-[data-home-mobile="true"] [data-home-toolbar-spacer] { display: none; }
-[data-home-mobile="true"] [data-home-toolbar-container] button { border-radius: var(--sm-radius-sm); min-height: 44px; white-space: normal; }
-[data-home-mobile="true"] [data-home-toolbar-container] .home-labeled-action { width: auto; gap: .45rem; padding: .6rem .85rem; font-size: .8125rem; font-weight: 600; background: var(--sm-surface-control); border: 1px solid var(--sm-line); color: var(--sm-text); }
-[data-home-mobile="true"] [data-home-toolbar-container] .home-labeled-action:active { background: var(--sm-accent-soft); border-color: var(--sm-accent-line); }
-[data-home-mobile="true"] [data-home-toolbar-container] .home-labeled-action:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
-[data-home-mobile="true"] [data-page-wrapper] { padding-top: 0 !important; max-width: 100%; min-width: 0; }
-[data-home-mobile="true"] [data-continue-watching-container] { padding: .5rem 1rem 1.25rem !important; margin: 0 !important; }
-[data-home-mobile="true"] .home-section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; gap: .5rem; }
-[data-home-mobile="true"] .home-section-heading > span { color: var(--sm-text-muted); font-size: .75rem; }
-[data-home-mobile="true"] .home-resume-row { display: flex; gap: .75rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 0 0 .5rem; scrollbar-width: thin; }
-[data-home-mobile="true"] .home-resume-tile { flex: 0 0 min(86vw, 22rem); min-width: 0; scroll-snap-align: start; border: 1px solid var(--sm-line); border-radius: var(--sm-radius); background: var(--sm-surface); overflow: hidden; }
-[data-home-mobile="true"] [data-home-episode-card] { display: grid; grid-template-columns: minmax(0,1fr); isolation: isolate; border-radius: var(--sm-radius) var(--sm-radius) 0 0; outline-offset: -3px; }
-[data-home-mobile="true"] [data-home-episode-card]:focus-visible { outline: 2px solid var(--sm-accent); }
-[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-image-container] { grid-area: 1 / 1; height: 100%; min-height: 13rem; aspect-ratio: auto; border-radius: 0; background: var(--sm-surface-control); }
-[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-image] { border-radius: 0; }
-[data-home-mobile="true"] .home-episode-meta { grid-area: 1 / 1; align-self: end; position: relative; z-index: 4; padding: 3rem 1rem 1rem; min-width: 0; margin: 0 !important; background: linear-gradient(180deg,transparent,rgb(12 12 14 / .86) 32%,#0c0c0e 100%); }
-[data-home-mobile="true"] .home-episode-meta > p { font-size: .9375rem; font-weight: 600; line-height: 1.4; color: var(--sm-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-[data-home-mobile="true"] .home-episode-detail { margin-top: .25rem; display: flex; flex-wrap: wrap; gap: .25rem .65rem; font-size: .8125rem; color: var(--sm-text-muted); }
-[data-home-mobile="true"] .home-resume-action { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; width: fit-content; max-width: 100%; min-height: 44px; padding: .55rem .9rem; border: 1px solid var(--sm-accent-line); border-radius: var(--sm-radius-sm); color: var(--sm-text); background: var(--sm-accent-soft); margin-top: .65rem; font-size: .8125rem; font-weight: 600; }
-[data-home-mobile="true"] .home-resume-action svg { color: var(--sm-accent); }
-[data-home-mobile="true"] .home-episode-page { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; min-height: 48px; padding: .6rem 1rem; border-top: 1px solid var(--sm-line); font-size: .8125rem; color: var(--sm-text-muted); gap: .4rem; }
-[data-home-mobile="true"] [data-library-genre-selector-container] { margin: 0 !important; padding: 0 1rem .5rem !important; }
-[data-home-mobile="true"] .home-genre-row { display: flex; gap: .5rem; overflow-x: auto; overscroll-behavior-x: contain; padding: .25rem 1rem .5rem; scrollbar-width: thin; }
-[data-home-mobile="true"] .home-genre-row button { flex: 0 0 auto; min-height: 44px; border: 1px solid var(--sm-line); border-radius: 999px; padding: .5rem .9rem; color: var(--sm-text-muted); background: var(--sm-surface); font-size: .8125rem; }
-[data-home-mobile="true"] .home-genre-row button[aria-pressed="true"] { color: var(--sm-text); background: var(--sm-accent-soft); border-color: var(--sm-accent-line); }
-[data-home-mobile="true"] .home-genre-row button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
-[data-home-mobile="true"] [data-library-genre-selector-container] .UI-StaticTabs__root { padding: .25rem 0; gap: .25rem; margin-left: 0; }
-[data-home-mobile="true"] [data-media-genre-selector-scroll-container], [data-home-mobile="true"] [data-media-genre-selector-scroll-container-end] { display: none; }
-[data-home-mobile="true"] .UI-StaticTabs__trigger { min-height: 44px; height: auto !important; padding: .6rem .85rem !important; }
-[data-home-mobile="true"] [data-library-collection-lists-container] { padding: .25rem 1rem !important; }
-[data-home-mobile="true"] [data-library-collection-list-item-header] { gap: .5rem; margin: 1rem 0 .75rem !important; }
-[data-home-mobile="true"] [data-library-collection-list-item-header] button { width: auto; min-width: 44px; min-height: 44px; font-size: .8125rem; color: var(--sm-text-muted); }
-[data-home-mobile="true"] [data-library-collection-lists] > [data-media-card-grid], [data-home-mobile="true"] [data-library-collection-lists] > [data-media-card-lazy-grid-renderer] { margin-top: .75rem !important; }
-[data-home-mobile="true"] [data-media-card-grid], [data-home-mobile="true"] [data-media-card-lazy-grid] { gap: .75rem !important; }
-[data-home-mobile="true"] [data-media-entry-card-container] { min-width: 0; }
-[data-home-mobile="true"] [data-media-entry-card-title-section-title] { font-size: .8125rem !important; line-height: 1.4; -webkit-line-clamp: 3; color: var(--sm-text); }
-[data-home-mobile="true"] [data-media-entry-card-title-section-year-season] { font-size: .75rem; display: block; color: var(--sm-text-subtle); overflow-wrap: anywhere; }
-/* Manga lists share the anime lists' 1rem gutter instead of adding their own inset. */
-[data-home-mobile="true"] [data-manga-library-view-collection-lists-container] { padding: .25rem 1rem !important; }
-[data-home-mobile="true"] [data-manga-library-view-collection-lists-container] [data-media-card-grid] { padding-left: 0 !important; padding-right: 0 !important; }
-[data-home-mobile="true"] [data-manga-library-view-collection-list-item-header-container] { margin: 1rem 0 .75rem; min-height: 44px; justify-content: space-between; }
-[data-home-mobile="true"] [data-manga-library-view-collection-list-item-header-container] button { min-width: 44px; min-height: 44px; }
-/* The installed dub plugin supplies a status badge, not a separate card action. */
-[data-home-mobile="true"] .seanime-base-dub-badge { pointer-events: none !important; }
-[data-home-mobile="true"] .seanime-base-dub-badge .UI-Badge__root { background: var(--sm-surface-raised); color: var(--sm-text); box-shadow: none; cursor: default; font-size: .625rem; height: auto; padding: .25rem .4rem; border: 1px solid var(--sm-line-strong); }
-[data-home-mobile="true"] .seanime-base-dub-badge svg { display: none; }
-[data-home-mobile="true"] .seanime-base-dub-badge .UI-Badge__root::after { content: "Dub"; }
-/* Carousel cards carry their own episode/airing overlay on the right; keep the dub badge clear of it. */
-[data-home-mobile="true"] .UI-Carousel__root .seanime-dub-badge-wrapper { left: 6px !important; right: auto !important; }
-[data-home-mobile="true"] [data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"] { display: flex !important; flex-wrap: nowrap; overflow-x: auto !important; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 0 0 .75rem !important; }
-[data-home-mobile="true"] [data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"] > [data-media-entry-card-container] { width: min(39vw, 10rem) !important; flex: 0 0 min(39vw, 10rem); scroll-snap-align: start; }
-[data-home-mobile="true"] [data-home-screen-item-divider] { height: 1rem; }
-[data-home-mobile="true"] .home-state { margin: .75rem 1rem; padding: 1.25rem; border: 1px solid var(--sm-line); background: var(--sm-surface); border-radius: var(--sm-radius); line-height: 1.5; }
-[data-home-mobile="true"] .home-state p { color: var(--sm-text-muted); margin: .5rem 0 1rem; }
-[data-home-mobile="true"] .home-discover-feature { margin: .75rem 1rem; padding: 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); border: 1px solid var(--sm-line); }
-[data-home-mobile="true"] .home-discover-feature p { font-size: 1rem; line-height: 1.4; margin: .5rem 0; }
-@media (prefers-reduced-motion: reduce) {
-    [data-home-mobile="true"] *, [data-home-mobile="true"] *::before, [data-home-mobile="true"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
-}
 
 /* A contained sheet and explicit source selection, scoped to the Home dialog. */
 .home-mobile-settings { width: calc(100% - 1rem); max-height: calc(100dvh - 1rem); overflow-y: auto; overscroll-behavior: contain; padding: 1.1rem; border-radius: var(--sm-radius-lg) !important; border: 1px solid var(--sm-line); background: var(--sm-surface); color: var(--sm-text); scrollbar-width: thin; }
@@ -120,16 +141,6 @@ body:not(:has([data-home-mobile] [data-home-toolbar-container])) [data-home-navb
 .home-mobile-settings .home-mobile-section-actions button:disabled { opacity: .4; }
 .home-mobile-settings .home-mobile-available button { padding: .65rem .8rem; border: 1px solid var(--sm-line); border-radius: var(--sm-radius-sm); font-size: .8125rem; background: var(--sm-surface-raised); color: var(--sm-text); }
 .home-mobile-settings button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
-/* Carousel controls belong inside their section, not above a clipped wrapper. */
-[data-home-mobile="true"] .UI-AppLayoutStack__root:has(> .UI-Carousel__root) > h2 { min-height: 44px; display: flex; align-items: center; padding-right: 6.5rem; }
-[data-home-mobile="true"] .UI-AppLayoutStack__root > .UI-Carousel__root { position: static; }
-[data-home-mobile="true"] .UI-AppLayoutStack__root > .UI-Carousel__root > div:has(> .UI-Carousel__button) { top: 0; right: 0; gap: .4rem; }
-/* Section carousels start on the shared 1rem gutter (track px-6 minus its -ml-4 offset). */
-[data-home-mobile="true"] .UI-AppLayoutStack__root > .UI-Carousel__root .UI-Carousel__innerContent { padding-left: .5rem !important; padding-right: .5rem !important; }
-[data-home-mobile="true"] .UI-Carousel__button { width: 44px; height: 44px; background: var(--sm-surface-control); border: 1px solid var(--sm-line); color: var(--sm-text); }
-[data-home-mobile="true"] .UI-Carousel__button:disabled { opacity: .35; }
-[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-progress-bar-container] { z-index: 5; }
-[data-home-mobile="true"] [data-home-episode-card] [data-episode-card-progress-bar-container] > div:last-child:not(:first-child) { display: none; }
 /* Override the existing Android modal patch only for the Home variant (`body` outranks its :not()). */
 body .UI-Modal__content.home-mobile-settings { width: calc(100% - 1rem) !important; max-width: 32rem !important; max-height: calc(100dvh - 1rem) !important; padding: 1.1rem !important; }
 .home-mobile-settings .home-library-source .UI-RadioGroup__item { opacity: 0; }

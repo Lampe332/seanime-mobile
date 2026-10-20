@@ -14,6 +14,7 @@ export const __home_settingsToolbarButtonDiscovered = atomWithStorage("sea-v3-ho
 type HomeSettingsButtonProps = {
     type: "toolbar" | "empty-home"
     labeled?: boolean
+    icon?: boolean
 }
 
 export function HomeSettingsButton(props: HomeSettingsButtonProps) {
@@ -45,6 +46,9 @@ export function HomeSettingsButton(props: HomeSettingsButtonProps) {
     //         </Tooltip>
     //     </>
     // )
+
+    if (props.icon) return <button type="button" data-library-toolbar-switch-view-button className="home-header-action" aria-label={tr("Customize", "Anpassen")}
+        onClick={() => setIsModalOpen(true)}><LuSettings2 aria-hidden /></button>
 
     if (props.labeled) return <Button data-library-toolbar-switch-view-button className="home-labeled-action" leftIcon={<LuSettings2 aria-hidden />} onClick={() => setIsModalOpen(true)}>{tr("Customize", "Anpassen")}</Button>
 
