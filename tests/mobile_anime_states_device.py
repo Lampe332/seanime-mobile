@@ -38,6 +38,7 @@ async def main():
    state['source']='empty';before=state['requests'];await page.get_by_role('button',name='Retry source',exact=True).click()
    await page.get_by_text('No playable source. Select a different server or provider.',exact=True).wait_for()
    check('Retry performs a new request and unavailable source never reports success',state['requests']>before and await page.get_by_text('No playable source. Select a different server or provider.',exact=True).is_visible())
+   await page.locator('#episode-120').wait_for()
    check('Many episodes and missing optional artwork render without invented metadata',await page.locator('[data-episode-grid-item]').count()==120 and await page.locator('.mobile-anime-cover img').count()==0)
    await page.locator('.mobile-anime-details summary').click()
    check('Missing description is explicit',await page.get_by_text('No description available.',exact=True).is_visible())

@@ -24,6 +24,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-download-sheet-') as tmp:
         pressed=lambda:page.evaluate('[...document.querySelectorAll("[data-download-preset][aria-pressed=true]")].map(b=>b.dataset.downloadPreset)')
         check('Saved episodes are marked and cannot be selected',page.locator('[data-download-episode][data-saved]').count()==2 and page.locator('[data-download-episode="1"] input').is_disabled() and 'Saved' in page.locator('[data-download-episode="2"]').inner_text())
         check('Episode saved with other audio stays selectable',not page.locator('[data-download-episode="3"] input').is_disabled())
+        check('Sheet itself does not scroll at phone size; only the episode list does',page.locator('.mobile-download-sheet').evaluate('e=>e.scrollHeight<=e.clientHeight+1'))
         check('Opening preselects the whole unsaved season',selected()==list(range(3,14)) and pressed()==['season'])
         if shots: page.screenshot(path=str(shots/'harness-download-sheet-360.png'))
         page.locator('[data-download-preset="this"]').click()
