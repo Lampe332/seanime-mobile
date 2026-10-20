@@ -10,7 +10,7 @@ import { LuArrowDownToLine, LuCheck, LuPause, LuPlay, LuRefreshCw, LuTrash2 } fr
 import { DownloadsHeader } from "./downloads-header"
 import { OFFLINE_CHANGED_EVENT } from "@/lib/android-offline"
 import {
-    animeKey, canResume, groupEpisodes, isActive, nextEpisode, offlineAsset, OfflineEpisode, offlinePollDelay, startedEpisodes, watchedShare,
+    animeKey, canResume, groupEpisodes, isActive, nextEpisode, offlineAsset, OfflineEpisode, offlinePollDelay, offlineStateLabel, showsProgress, STARTED_MS, startedEpisodes, watchedShare,
 } from "./offline-library"
 import "@/components/shared/mobile-surface.css"
 import "@/app/(main)/entry/_components/mobile-anime.css"
@@ -24,11 +24,7 @@ export const formatSize = (bytes: number) => bytes >= 1024 ** 3 ? `${(bytes / 10
 const clock = (position: number) => `${Math.floor(position / 60000).toString().padStart(2, "0")}:${Math.floor(position / 1000 % 60).toString().padStart(2, "0")}`
 const plain = (value?: string) => (value || "").replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").trim()
 const episodeWord = (count: number, t: Translate) => count === 1 ? t("episode", "Folge") : t("episodes", "Folgen")
-const stateLabel = (episode: OfflineEpisode, t: Translate) => ({
-    ready: t("Available offline", "Offline verfügbar"), paused: t("Paused", "Pausiert"), failed: t("Failed", "Fehlgeschlagen"),
-    downloading: t("Downloading", "Wird geladen"), removing: t("Deleting", "Wird gelöscht"), queued: t("Queued", "In der Warteschlange"),
-    resolving: t("Preparing source", "Quelle wird vorbereitet"),
-})[episode.status]
+const stateLabel = offlineStateLabel
 
 function Artwork({ image, className = "" }: { image?: string, className?: string }) {
     const [failed, setFailed] = React.useState(false)
@@ -64,7 +60,8 @@ export default function Page() {
     const [deleting, setDeleting] = React.useState<OfflineEpisode | null>(null)
     React.useEffect(() => {
         const back = (event: Event) => {
-            if (kind === "manga" && currentChapter) return
+            // The manga list closes its own delete sheet; the reader handles back itself.
+            if (event.defaultPrevented || (kind === "manga" && (currentChapter || document.querySelector("[data-manga-delete-dialog]")))) return
             if (deletingAnime.length) { event.preventDefault(); setDeletingAnime([]) }
             else if (selecting) { event.preventDefault(); setSelecting(false); setSelectedAnime(new Set()) }
             else if (deleting) { event.preventDefault(); setDeleting(null) }
@@ -75,7 +72,7 @@ export default function Page() {
         return () => window.removeEventListener("seanime:android-back", back)
     }, [deleting, selectedKey, selectedManga, currentChapter, kind, selecting, deletingAnime])
     const refresh = React.useCallback(() => {
-        if (!window.SeanimeOffline || !window.__seanimeOfflineToken) return
+        if (!window.SeanimeOffline || !window.__seanimeOfflineToken) return false
         try {
             const value = JSON.parse(window.SeanimeOffline.snapshot(window.__seanimeOfflineToken))
             if (!Array.isArray(value)) throw new Error("Invalid library")
@@ -83,15 +80,23 @@ export default function Page() {
             setEpisodes(previous => JSON.stringify(previous) === JSON.stringify(library) ? previous : library)
             setLoaded(true); setError(false)
         } catch { setError(true) }
+        return true
     }, [])
+    // Selection belongs to the anime overview; switching tab or opening an anime ends it.
+    React.useEffect(() => { setSelecting(false); setSelectedAnime(new Set()) }, [kind, selectedKey])
     // Follow other parts of the app (a download started on an anime page, a deletion in the player).
     React.useEffect(() => {
-        refresh()
+        // On a cold start the bridge token can arrive after the first render; look again until it is there.
+        let wait = 0
+        const first = () => { if (!refresh() && wait < 40) { wait++; timer = window.setTimeout(first, 500) } }
+        let timer = 0
+        first()
         const visible = () => { if (document.visibilityState === "visible") refresh() }
         window.addEventListener("focus", refresh)
         window.addEventListener(OFFLINE_CHANGED_EVENT, refresh)
         document.addEventListener("visibilitychange", visible)
         return () => {
+            clearTimeout(timer)
             window.removeEventListener("focus", refresh); window.removeEventListener(OFFLINE_CHANGED_EVENT, refresh)
             document.removeEventListener("visibilitychange", visible)
         }
@@ -107,8 +112,11 @@ export default function Page() {
     React.useEffect(() => () => followUp.current.forEach(clearTimeout), [])
     const action = (episode: OfflineEpisode, value: string) => {
         if (window.__seanimeOfflineToken) window.SeanimeOffline?.action(window.__seanimeOfflineToken, episode.id, value)
-        // The native state changes shortly after the call; look twice so polling picks it up.
-        if (value !== "play") followUp.current.push(...[200, 1200].map(delay => window.setTimeout(refresh, delay)))
+        // The native state changes shortly after the call (a cold download service takes longer); look a few times so
+        // polling picks it up. One set of checks per burst, so deleting a whole anime does not stack timers.
+        if (value === "play") return
+        followUp.current.forEach(clearTimeout)
+        followUp.current = [200, 1200, 3000].map(delay => window.setTimeout(refresh, delay))
     }
     const groups = groupEpisodes(episodes)
     const selected = groups.find(group => group.key === selectedKey)
@@ -116,6 +124,10 @@ export default function Page() {
     const active = episodes.filter(isActive)
     const counts = { all: groups.length, ready: groups.filter(g => g.episodes.some(e => e.ready)).length, active: groups.filter(g => g.episodes.some(isActive)).length }
     const view = active.length ? filter : "all"
+    // Once nothing is pending the chips disappear; do not jump back to "Active" when the next download starts.
+    React.useEffect(() => { if (!active.length) setFilter("all") }, [active.length])
+    // Anime deleted elsewhere drop out of the selection.
+    const chosen = [...selectedAnime].filter(key => groups.some(group => group.key === key))
     const filtered = groups.filter(group => view === "all" || group.episodes.some(episode => view === "ready" ? episode.ready : isActive(episode)))
     const totalBytes = episodes.reduce((total, episode) => total + episode.bytes, 0)
     const toggle = (key: string) => setSelectedAnime(previous => { const next = new Set(previous); if (next.has(key)) next.delete(key); else next.add(key); return next })
@@ -146,8 +158,8 @@ export default function Page() {
                                 <span className="mdl-row-text">
                                     <span className="mdl-row-kicker">{episode.title}</span>
                                     <span className="mdl-row-title">{t("Episode", "Folge")} {episode.episode}</span>
-                                    {episode.status === "downloading" && <ProgressLine value={episode.progress} label={t(`Episode ${episode.episode} download`, `Download Folge ${episode.episode}`)} />}
-                                    <span className="mdl-row-meta" data-state={episode.status}>{stateLabel(episode, t)}{episode.status === "downloading" ? ` · ${Math.round(episode.progress)} %` : ""}</span>
+                                    {showsProgress(episode) && <ProgressLine value={episode.progress} label={t(`Episode ${episode.episode} download`, `Download Folge ${episode.episode}`)} />}
+                                    <span className="mdl-row-meta" data-state={episode.status}>{stateLabel(episode, t)}{showsProgress(episode) ? ` · ${Math.round(episode.progress)} %` : ""}</span>
                                 </span>
                             </button>
                             <button type="button" className="mdl-icon-button" disabled={episode.status === "removing"} onClick={() => action(episode, canResume(episode) ? "resume" : "pause")}
@@ -179,14 +191,14 @@ export default function Page() {
 
                 <section className="mdl-section" aria-labelledby="mdl-library-title">
                     <div className="mdl-section-head">
-                        <h2 id="mdl-library-title">{selecting ? t(`${selectedAnime.size} anime selected`, `${selectedAnime.size} Anime ausgewählt`) : t("Your anime", "Deine Anime")}</h2>
+                        <h2 id="mdl-library-title">{selecting ? t(`${chosen.length} anime selected`, `${chosen.length} Anime ausgewählt`) : t("Your anime", "Deine Anime")}</h2>
                         {groups.length > 0 && <button type="button" className="mdl-text-action" onClick={() => { setSelecting(!selecting); setSelectedAnime(new Set()) }}>
                             {selecting ? t("Cancel", "Abbrechen") : t("Select", "Auswählen")}</button>}
                     </div>
                     {selecting && <div className="mdl-selection" data-anime-selection>
                         <button type="button" onClick={() => setSelectedAnime(new Set(filtered.map(g => g.key)))}>{t("Select all", "Alle auswählen")}</button>
-                        <button type="button" className="mdl-danger" disabled={!selectedAnime.size} onClick={() => setDeletingAnime([...selectedAnime])}>
-                            {t("Delete selected", "Ausgewählte löschen")} ({selectedAnime.size})</button>
+                        <button type="button" className="mdl-danger" disabled={!chosen.length} onClick={() => setDeletingAnime(chosen)}>
+                            {t("Delete selected", "Ausgewählte löschen")} ({chosen.length})</button>
                     </div>}
                     {active.length > 0 && !selecting && <div className="mdl-chips" role="group" aria-label={t("Filter downloads", "Downloads filtern")}>
                         {([["all", t("All", "Alle")], ["ready", t("Ready", "Bereit")], ["active", t("Active", "Aktiv")]] as const).map(([name, label]) =>
@@ -276,7 +288,7 @@ function AnimeDetail({ episodes, media, onAction, onDelete, onDeleteAll }: {
             </p>
             {next && <button type="button" className="mobile-anime-episodes-link mdl-primary" onClick={() => onAction(next, "play")}>
                 <LuPlay aria-hidden />
-                {next.position > 0 ? t(`Resume episode ${next.episode} at ${clock(next.position)}`, `Folge ${next.episode} bei ${clock(next.position)} fortsetzen`)
+                {next.position >= STARTED_MS ? t(`Resume episode ${next.episode} at ${clock(next.position)}`, `Folge ${next.episode} bei ${clock(next.position)} fortsetzen`)
                     : t(`Watch episode ${next.episode}`, `Folge ${next.episode} ansehen`)}
             </button>}
             {plain(media.description) && <details className="mobile-anime-details"><summary>{t("About this anime", "Über den Anime")}</summary><p>{plain(media.description)}</p></details>}
@@ -287,20 +299,20 @@ function AnimeDetail({ episodes, media, onAction, onDelete, onDeleteAll }: {
                 {episodes.map(episode => {
                     const share = watchedShare(episode)
                     const meta = episode.ready
-                        ? [episode.position > 0 ? t(`at ${clock(episode.position)}`, `bei ${clock(episode.position)}`) : null, episode.duration ? `${episode.duration} ${t("min", "Min.")}` : null, formatSize(episode.bytes)].filter(Boolean).join(" · ")
-                        : `${stateLabel(episode, t)}${episode.status === "downloading" ? ` · ${Math.round(episode.progress)} %` : ""}`
+                        ? [episode.position >= STARTED_MS ? t(`at ${clock(episode.position)}`, `bei ${clock(episode.position)}`) : null, episode.duration ? `${episode.duration} ${t("min", "Min.")}` : null, formatSize(episode.bytes)].filter(Boolean).join(" · ")
+                        : `${stateLabel(episode, t)}${showsProgress(episode) ? ` · ${Math.round(episode.progress)} %` : ""}`
                     return <li key={episode.id} className="mdl-row" data-downloaded-episode data-ready={episode.ready}>
                         <button type="button" className="mdl-row-main" disabled={!episode.ready} onClick={() => onAction(episode, "play")}
                             aria-label={episode.ready ? t(`Play episode ${episode.episode}`, `Folge ${episode.episode} abspielen`) : `${t("Episode", "Folge")} ${episode.episode}`}>
                             <span className="mdl-thumb">
                                 <Artwork image={episode.episodeImageAsset || episode.bannerAsset} className="mdl-fill" />
                                 {episode.ready && <span className="mdl-play" aria-hidden><LuPlay /></span>}
-                                {share !== undefined && share > 0 && <ProgressLine value={share * 100} label={t("Watched", "Gesehen")} />}
+                                {share !== undefined && episode.position >= STARTED_MS && <ProgressLine value={share * 100} label={t("Watched", "Gesehen")} />}
                             </span>
                             <span className="mdl-row-text">
                                 <span className="mdl-row-kicker">{t("Episode", "Folge")} {episode.episode}</span>
                                 <span className="mdl-row-title">{episode.episodeTitle || `${t("Episode", "Folge")} ${episode.episode}`}</span>
-                                {episode.status === "downloading" && <ProgressLine value={episode.progress} label={t(`Episode ${episode.episode} download`, `Download Folge ${episode.episode}`)} />}
+                                {showsProgress(episode) && <ProgressLine value={episode.progress} label={t(`Episode ${episode.episode} download`, `Download Folge ${episode.episode}`)} />}
                                 <span className="mdl-row-meta" data-state={episode.status}>{meta}</span>
                             </span>
                         </button>

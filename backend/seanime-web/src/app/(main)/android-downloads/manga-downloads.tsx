@@ -13,7 +13,7 @@ import React from "react"
 import { LuBookOpen, LuPause, LuPlay, LuRefreshCw, LuTrash2 } from "react-icons/lu"
 import { toast } from "sonner"
 import { DownloadsHeader } from "./downloads-header"
-import { mangaPollDelay, offlineAsset } from "./offline-library"
+import { mangaNextDelay, offlineAsset } from "./offline-library"
 
 type Group = { mediaId: number, media?: AL_BaseManga, queued: Models_ChapterDownloadQueueItem[], downloads: Manga_DownloadListItem["downloadData"] }
 type Art = { coverAsset?: string, bannerAsset?: string }
@@ -43,13 +43,21 @@ export function MangaDownloads({ selectedId }: { selectedId: number }) {
     })())
     const attempts = React.useRef<Record<number, number>>({})
     const kick = React.useRef<() => void>(() => {})
-    React.useEffect(() => { setReader(undefined); setContainers([]) }, [selectedId])
+    React.useEffect(() => { setReader(undefined); setContainers([]); setDeleting(undefined) }, [selectedId])
+    // Android back closes the delete sheet; the page skips its own back step while [data-manga-delete-dialog] is open.
     React.useEffect(() => {
-        let alive = true, inFlight = false, signature = "", timer = 0
+        if (!deleting) return
+        const back = (event: Event) => { event.preventDefault(); setDeleting(undefined) }
+        window.addEventListener("seanime:android-back", back)
+        return () => window.removeEventListener("seanime:android-back", back)
+    }, [deleting])
+    React.useEffect(() => {
+        let alive = true, inFlight = false, again = false, hadQueue = false, signature = "", timer = 0
         // One self-scheduling loop: quick while a chapter loads, slow while chapters wait, idle when the queue is empty.
         const schedule = (delay: number | null) => { clearTimeout(timer); if (alive && delay !== null) timer = window.setTimeout(refresh, delay) }
         async function refresh() {
-            if (inFlight) return
+            // A refresh asked for while one runs (after a delete or a queue change) runs right after it.
+            if (inFlight) { again = true; return }
             inFlight = true
             let delay: number | null = null
             try {
@@ -57,7 +65,7 @@ export function MangaDownloads({ selectedId }: { selectedId: number }) {
                     api.current<Manga_DownloadListItem[]>("/api/v1/manga/downloads", "GET"),
                     api.current<Models_ChapterDownloadQueueItem[]>("/api/v1/manga/download-queue", "GET", undefined, { summary: true }),
                 ])
-                delay = mangaPollDelay(queue)
+                delay = mangaNextDelay(queue, hadQueue); hadQueue = queue.length > 0
                 const map = new Map<number, Group>()
                 downloads.forEach(item => map.set(item.mediaId, { mediaId: item.mediaId, media: item.media, downloads: item.downloadData, queued: [] }))
                 queue.forEach(item => {
@@ -98,7 +106,7 @@ export function MangaDownloads({ selectedId }: { selectedId: number }) {
                     signature = nextSignature
                 }
             } catch { if (alive) { setError(true); delay = 5000 } }
-            finally { inFlight = false; schedule(delay) }
+            finally { inFlight = false; if (again && alive) { again = false; void refresh() } else schedule(delay) }
         }
         kick.current = () => { void refresh() }
         const visible = () => { if (document.visibilityState === "visible") void refresh() }
@@ -216,7 +224,7 @@ export function MangaDownloads({ selectedId }: { selectedId: number }) {
         {reader && selected && <ChapterReaderDrawer entry={{ mediaId: selectedId, media: selected.media }} chapterContainer={reader} chapterIdToNumbersMap={numbers} />}
         <Modal title={t("Delete chapter from phone?", "Kapitel vom Handy löschen?")} open={!!deleting} onOpenChange={open => { if (!open) setDeleting(undefined) }}
             contentClass="mobile-anime-dialog mobile-download-sheet">
-            <div className="mdl-confirm"><p>{title(selected?.media)} · {t("Chapter", "Kapitel")} {deleting?.chapterNumber}</p>
+            <div className="mdl-confirm" data-manga-delete-dialog><p>{title(selected?.media)} · {t("Chapter", "Kapitel")} {deleting?.chapterNumber}</p>
                 <div className="mobile-cache-actions">
                     <button type="button" className="mobile-cache-clear" onClick={async () => {
                         try {

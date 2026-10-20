@@ -17,7 +17,9 @@ w.library = [
     { ...base, id: "dd-2", mediaId: 171018, title: "Dandadan", episode: "2", ready: false, status: "downloading", progress: 42, bytes: 118 * 1024 ** 2, position: 0, coverAsset: key(3), episodeImageAsset: key(21), episodeTitle: "That's a Space Alien, Ain't It?!" },
     { ...base, id: "hm-1", mediaId: 209983, title: "HELL MODE: The Hardcore Gamer Dominates in Another World with Garbage Balancing", episode: "1", ready: false, status: "paused", progress: 12, bytes: 40 * 1024 ** 2, position: 0, coverAsset: key(4) },
 ]
-w.__seanimeOfflineToken = "token"
+// "#late-token": the native shell injects the bridge token only after the page has rendered (cold start).
+if (location.hash === "#late-token") setTimeout(() => { w.__seanimeOfflineToken = "token" }, 1500)
+else w.__seanimeOfflineToken = "token"
 w.SeanimeOffline = {
     snapshot: () => { w.snapshots++; return JSON.stringify(w.library) },
     action: (_t: string, id: string, value: string) => w.actions.push([id, value]),

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { groupEpisodes, mangaPollDelay, nextEpisode, OfflineEpisode, offlinePollDelay, startedEpisodes, watchedShare } from "./offline-library"
+import {
+    groupEpisodes, mangaNextDelay, mangaPollDelay, nextEpisode, OfflineEpisode, offlinePollDelay, offlineStateLabel, showsProgress, startedEpisodes, watchedShare,
+} from "./offline-library"
 
 const episode = (id: string, values: Partial<OfflineEpisode> = {}): OfflineEpisode => ({
     id, mediaId: 1, title: "Frieren", episode: id, ready: true, status: "ready", progress: 100, bytes: 300 * 1024 ** 2, position: 0, ...values,
@@ -24,7 +26,29 @@ describe("android offline library", () => {
         expect(nextEpisode([episode("1"), episode("2", { position: 90000 }), episode("3", { position: 1000 })])?.id).toBe("2")
         expect(nextEpisode([episode("1", { ready: false, status: "downloading", position: 5000 }), episode("2")])?.id).toBe("2")
         expect(nextEpisode([episode("1", { ready: false, status: "queued" })])).toBeUndefined()
-        expect(startedEpisodes([episode("1"), episode("2", { position: 1 }), episode("3", { ready: false, status: "paused", position: 9 })]).map(e => e.id)).toEqual(["2"])
+        expect(startedEpisodes([episode("1"), episode("2", { position: 20000 }), episode("3", { ready: false, status: "paused", position: 90000 })]).map(e => e.id)).toEqual(["2"])
+    })
+    it("ignores episodes only opened for a few seconds", () => {
+        expect(startedEpisodes([episode("1", { position: 3057 })])).toEqual([])
+        expect(nextEpisode([episode("1"), episode("2", { position: 3057 })])?.id).toBe("1")
+    })
+    it("keeps the progress of paused and failed downloads visible", () => {
+        expect(showsProgress(episode("1", { ready: false, status: "paused", progress: 56 }))).toBe(true)
+        expect(showsProgress(episode("1", { ready: false, status: "failed", progress: 12 }))).toBe(true)
+        expect(showsProgress(episode("1", { ready: false, status: "queued", progress: 0 }))).toBe(false)
+        expect(showsProgress(episode("1", { ready: false, status: "removing", progress: 80 }))).toBe(false)
+        expect(showsProgress(episode("1"))).toBe(false)
+    })
+    it("looks once more after the manga queue empties, then idles", () => {
+        expect(mangaNextDelay([], true)).toBe(2000)
+        expect(mangaNextDelay([], false)).toBeNull()
+        expect(mangaNextDelay([{ status: "downloading" }], false)).toBe(2000)
+    })
+    it("labels every native state and survives rows without a title", () => {
+        const t = (en: string) => en
+        expect(offlineStateLabel(episode("1", { ready: false, status: "resolving" }), t as any)).toBe("Preparing source")
+        expect(offlineStateLabel(episode("1", { ready: false, status: "queued" }), t as any)).toBe("Queued")
+        expect(groupEpisodes([episode("1", { title: undefined as any, mediaId: 5 }), episode("2")]).length).toBe(2)
     })
     it("reports the watched share only with a known runtime", () => {
         expect(watchedShare(episode("1", { position: 12 * 60000, duration: 24 }))).toBe(.5)

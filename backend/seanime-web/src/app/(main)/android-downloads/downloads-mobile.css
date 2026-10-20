@@ -40,6 +40,8 @@ body:has([data-mobile-downloads="true"]) [data-top-navbar] [data-layout-header-b
 /* Rows: raised group for things in progress, hairline rows for a saved list (as on the anime page). */
 .mdl-rows { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
 .mdl-row { display: flex; align-items: center; gap: .25rem; min-width: 0; padding-right: .25rem; background: var(--sm-surface-raised); }
+/* The group clips its corners; keep the focus ring inside the row. */
+.mdl-rows button:focus-visible { outline-offset: -2px; }
 .mdl-rows-plain { gap: 0; border-radius: 0; overflow: visible; }
 .mdl-rows-plain .mdl-row { background: transparent; border-bottom: 1px solid var(--sm-line); padding-right: 0; }
 /* Large text: the words move under the picture instead of collapsing into a sliver beside it. */

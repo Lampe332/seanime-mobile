@@ -1,4 +1,4 @@
-import { OfflineEpisode, offlinePollDelay } from "@/app/(main)/android-downloads/offline-library"
+import { OfflineEpisode, offlinePollDelay, offlineStateLabel, showsProgress } from "@/app/(main)/android-downloads/offline-library"
 import { OFFLINE_CHANGED_EVENT } from "@/lib/android-offline"
 import { useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
@@ -13,18 +13,23 @@ const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 export function usePhoneDownloadedEpisodes(mediaId: number | undefined) {
     const [episodes, setEpisodes] = React.useState<OfflineEpisode[]>([])
     const refresh = React.useCallback(() => {
-        if (!IS_ANDROID_APP || !mediaId || !window.SeanimeOffline || !window.__seanimeOfflineToken) return
+        if (!IS_ANDROID_APP || !mediaId) return true
+        if (!window.SeanimeOffline || !window.__seanimeOfflineToken) return false
         try {
             const all = JSON.parse(window.SeanimeOffline.snapshot(window.__seanimeOfflineToken)) as OfflineEpisode[]
             const mine = all.filter(episode => episode.mediaId === mediaId).sort((a, b) => Number(a.episode) - Number(b.episode))
             setEpisodes(previous => JSON.stringify(previous) === JSON.stringify(mine) ? previous : mine)
         } catch { /* The offline bridge is unavailable while the page reloads. */ }
+        return true
     }, [mediaId])
     React.useEffect(() => {
-        refresh()
+        // On a cold start the bridge token can arrive after the first render; look again until it is there.
+        let wait = 0, timer = 0
+        const first = () => { if (!refresh() && wait < 40) { wait++; timer = window.setTimeout(first, 500) } }
+        first()
         window.addEventListener("focus", refresh)
         window.addEventListener(OFFLINE_CHANGED_EVENT, refresh)
-        return () => { window.removeEventListener("focus", refresh); window.removeEventListener(OFFLINE_CHANGED_EVENT, refresh) }
+        return () => { clearTimeout(timer); window.removeEventListener("focus", refresh); window.removeEventListener(OFFLINE_CHANGED_EVENT, refresh) }
     }, [refresh])
     // Download progress changes natively; follow it only while one of these episodes moves, like the Downloads page.
     const moving = offlinePollDelay(episodes) !== null
@@ -70,8 +75,7 @@ export function PhoneDownloadedEpisodes({ episodes }: { episodes: OfflineEpisode
                                 <span className="phone-downloads-state">
                                     {episode.ready
                                         ? t("Saved offline", "Offline gespeichert")
-                                        : episode.status === "paused" ? <><LuPause aria-hidden /> {t("Paused", "Pausiert")}</>
-                                            : `${t("Downloading", "Wird geladen")} · ${Math.round(episode.progress)} %`}
+                                        : <>{episode.status === "paused" && <LuPause aria-hidden />}{offlineStateLabel(episode, t)}{showsProgress(episode) ? ` · ${Math.round(episode.progress)} %` : ""}</>}
                                 </span>
                             </span>
                         </button>
