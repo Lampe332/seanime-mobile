@@ -2,12 +2,13 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
-## 1.9.15 — 20.10.2026 (versionCode 31042)
+## 1.9.15 — 20.10.2026 (versionCode 31043)
 
 - ⚡️ Anime: Redesigned the download sheet with a short header, quick selection chips, a compact episode list that marks saved episodes and a fixed download button.
 - ⚡️ Anime: Source options are much more compact: provider and server form one group, Subtitles / Dub and Download share a line, and Manual match, Cache and the list/grid toggle are small secondary actions.
 - ⚡️ Anime: Redesigned the AniList list entry sheet with status chips, -/+ buttons for progress and score, dates side by side and a separated remove action.
 - 🦺 Anime: Fixed the provider icon showing as a detached block next to the provider picker.
+- 🦺 Anime: Fixed tapping an episode's thumbnail or play icon doing nothing; it now starts the episode like tapping its title.
 - 🏗️ Anime: Removed the separate "Download to phone" and "Downloads" buttons; a single episode is now saved with "This episode" in the download sheet, and downloads stay in the Downloads tab.
 - 🏗️ Anime: Removed the repeated anime title under the current episode; previous / next are now compact arrow buttons.
 
