@@ -2,6 +2,11 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.11 — 20.10.2026 (versionCode 31037)
+
+- 🏗️ Home: Removed the genre filter row from Home.
+- ⚡️ Home: Refined Home styling with clearer section headings, a subtle theme-colour header glow and more even spacing.
+
 ## 1.9.10 — 20.10.2026 (versionCode 31036)
 
 - 🎉 Home: Added a "?" button to every section in Customize Home that explains what the section shows.
