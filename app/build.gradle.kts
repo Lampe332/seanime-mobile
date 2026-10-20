@@ -10,7 +10,7 @@ android {
         applicationId = "com.seanime.app.local"
         minSdk = 21
         targetSdk = 36
-        versionCode = providers.gradleProperty("seanimeBaselineCode").orNull?.toInt() ?: 31060
+        versionCode = providers.gradleProperty("seanimeBaselineCode").orNull?.toInt() ?: 31061
         versionName = providers.gradleProperty("seanimeBaselineVersion").orNull ?: "1.9.16"
         testInstrumentationRunner = providers.gradleProperty("seanimeAuditRunner").orNull
             ?: "com.seanime.app.audit.OfflineInstrumentation"

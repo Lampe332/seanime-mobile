@@ -24,7 +24,7 @@ import { getCustomSourceExtensionId, getCustomSourceMediaSiteUrl, isCustomSource
 import { ThemeMediaPageInfoBoxSize, useThemeSettings } from "@/lib/theme/theme-hooks"
 import React from "react"
 import { BiDotsVerticalRounded, BiExtension } from "react-icons/bi"
-import { LuChevronRight, LuExternalLink } from "react-icons/lu"
+import { LuExternalLink } from "react-icons/lu"
 import { useTr } from "@/lib/app-language"
 import { SiAnilist, SiMyanimelist } from "react-icons/si"
 
@@ -126,10 +126,9 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
                     <PluginMangaPageButtons media={entry.media} />
                     <DropdownMenu
                         data-manga-entry-dropdown-menu
-                        trigger={<button type="button" className="mobile-entry-action" data-manga-entry-dropdown-menu-trigger>
+                        trigger={<button type="button" className="mobile-entry-icon" data-manga-entry-dropdown-menu-trigger
+                            aria-label={tr("More options", "Weitere Optionen")} title={tr("More options", "Weitere Optionen")}>
                             <BiDotsVerticalRounded aria-hidden />
-                            <span>{tr("More options", "Weitere Optionen")}</span>
-                            <LuChevronRight aria-hidden />
                         </button>}
                     >
                         {!isCustomSource(entry.mediaId) && <DropdownMenuItem onClick={() => openTab(`https://anilist.co/manga/${entry.mediaId}`)}>
