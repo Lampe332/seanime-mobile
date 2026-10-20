@@ -50,22 +50,26 @@
 [data-mobile-anime="true"] .UI-Button_root { white-space: normal; height: auto; overflow-wrap: anywhere; }
 [data-mobile-anime="true"] button:focus-visible, [data-mobile-anime="true"] a:focus-visible, [data-mobile-anime="true"] summary:focus-visible, .mobile-anime-dialog button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
 
-/* Sources & playback options: always visible, one labelled row each for source, audio and download. */
-.mobile-episode-options { flex: 1; min-width: 0; display: grid; gap: .25rem; padding: 0 0 .75rem; border-bottom: 1px solid var(--sm-line); }
-.mobile-source-row { display: grid; gap: .4rem; padding: .5rem 0; min-width: 0; }
-.mobile-source-label { font-size: .6875rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; color: var(--sm-text-subtle); }
-.mobile-source-controls { display: flex; flex-wrap: wrap; gap: .5rem; min-width: 0; }
-.mobile-episode-options .UI-Select__root, .mobile-episode-options .UI-Select__trigger { max-width: 100%; min-width: 0; }
+/* Sources & playback options: provider + server as one joined group, audio and download on one line,
+   manual match / cache / list view as quiet secondary actions. No section labels; groups carry aria-labels. */
+.mobile-episode-options { flex: 1; min-width: 0; display: grid; gap: .5rem; padding: 0 0 .75rem; }
 .mobile-episode-options button { max-width: 100%; }
-.mobile-episode-options .mobile-source-controls button[role="combobox"], .mobile-episode-options .mobile-source-controls .UI-Select__trigger { min-height: 44px; border-radius: 999px !important; border-color: transparent !important; background: var(--sm-surface-raised) !important; }
-.mobile-episode-options .mobile-source-controls [class*="addon"], .mobile-episode-options .mobile-source-controls .UI-InputAddon__root { border-color: transparent !important; background: var(--sm-surface-raised) !important; }
-.mobile-source-segment { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; padding: .25rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
-.mobile-source-segment button { min-height: 44px; border: 0; border-radius: calc(var(--sm-radius-sm) - .25rem); background: transparent; color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; }
-.mobile-source-segment button[aria-pressed="true"] { background: var(--sm-surface-control); color: var(--sm-text); font-weight: 650; }
-.mobile-episode-options [data-android-download-episode] { background: var(--sm-accent-strong) !important; color: #fff !important; border: 0 !important; }
-.mobile-episode-options .mobile-source-controls .UI-Button_root:not([data-android-download-episode]), .mobile-source-more .UI-Button_root { background: var(--sm-surface-raised); border: 0; color: var(--sm-text); }
-.mobile-source-more { display: flex; flex-wrap: wrap; gap: .25rem .5rem; padding-top: .25rem; }
-.mobile-source-more .UI-Button_root { background: transparent !important; color: var(--sm-text-muted) !important; }
+.mobile-source-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); gap: 2px; min-width: 0; border-radius: var(--sm-radius-sm); overflow: hidden; }
+.mobile-source-pair .UI-Select__root, .mobile-source-pair .UI-Select__trigger, .mobile-source-pair button[role="combobox"] { width: 100%; max-width: 100%; min-width: 0; }
+.mobile-source-pair button[role="combobox"] { min-height: 48px; border: 0 !important; border-radius: 0 !important; background: var(--sm-surface-raised) !important; color: var(--sm-text); font-size: .875rem; }
+.mobile-source-pair button[role="combobox"]:disabled { opacity: 1; color: var(--sm-text-muted); }
+.mobile-source-pair .UI-InputIcon__root, .mobile-source-pair [class*="InputIcon"] { color: var(--sm-text-subtle); }
+.mobile-source-line { display: flex; flex-wrap: wrap; gap: .5rem; min-width: 0; }
+.mobile-source-segment { flex: 1 1 11rem; display: grid; grid-template-columns: 1fr 1fr; min-width: 0; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
+/* 48px hit area; the pill is drawn inset via content-box. */
+.mobile-source-segment button { min-height: 48px !important; padding: 4px; border: 0; border-radius: var(--sm-radius-sm); background: transparent; background-clip: content-box; color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; }
+.mobile-source-segment button[aria-pressed="true"] { background-color: var(--sm-surface-control); color: var(--sm-text); font-weight: 650; }
+.mobile-source-line [data-download-season] { flex: 0 0 auto; min-height: 48px !important; padding-inline: 1rem; border: 0; border-radius: var(--sm-radius-sm) !important; background: var(--sm-surface-raised); color: var(--sm-text); font-size: .875rem; font-weight: 600; }
+.mobile-source-more { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .25rem; margin-inline: -.5rem; }
+.mobile-source-more .UI-Button_root, .mobile-source-more .UI-IconButton_root { min-height: 48px !important; background: transparent !important; border: 0 !important; color: var(--sm-text-muted) !important; font-size: .8125rem; font-weight: 500; padding-inline: .5rem; }
+.mobile-source-more .UI-Button_root:active, .mobile-source-more .UI-IconButton_root:active { background: var(--sm-surface-raised) !important; }
+.mobile-source-more [data-episode-view-toggle] { margin-left: auto; min-width: 48px; }
+.mobile-source-more [data-episode-view-toggle][aria-pressed="true"] { color: var(--sm-accent) !important; }
 [data-mobile-episode-layout="true"] [data-vc-element="inline-layout-header"] { gap: .6rem; }
 [data-mobile-episode-layout="true"] [data-vc-element="inline-layout-actions"] { align-items: flex-start; }
 [data-mobile-episode-layout="true"] [data-vc-element="inline-layout-actions"] .UI-IconButton_root { background: transparent; border: 0; color: var(--sm-text-muted); border-radius: 999px; }

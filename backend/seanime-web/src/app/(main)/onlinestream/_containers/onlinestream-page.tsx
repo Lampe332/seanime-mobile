@@ -882,9 +882,11 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
             }}
             placeholder="Select provider"
             size="sm"
-            leftAddon={<CgMediaPodcast />}
-            fieldClass="w-fit"
-            className="rounded-full rounded-l-none w-fit"
+            // Android: the icon sits inside the pill; a separate addon renders as a detached square block.
+            leftAddon={IS_ANDROID_APP ? undefined : <CgMediaPodcast />}
+            leftIcon={IS_ANDROID_APP ? <CgMediaPodcast /> : undefined}
+            fieldClass={IS_ANDROID_APP ? "min-w-0" : "w-fit"}
+            className={IS_ANDROID_APP ? "w-full" : "rounded-full rounded-l-none w-fit"}
             addonClass="rounded-full rounded-r-none"
         />
     )
@@ -904,8 +906,8 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
             changeServer(v)
         }}
         disabled={servers.length <= 1}
-        fieldClass="w-fit"
-        className="rounded-full w-fit !px-4"
+        fieldClass={IS_ANDROID_APP ? "min-w-0" : "w-fit"}
+        className={IS_ANDROID_APP ? "w-full" : "rounded-full w-fit !px-4"}
         addonClass="rounded-full rounded-r-none"
     />
     const cachePopover = (
@@ -933,6 +935,15 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
             </Button>
         </IsomorphicPopover>
     )
+    const episodeViewToggle = <IconButton
+        size="sm"
+        intent={episodeViewMode === "list" ? "gray-basic" : "white-subtle"}
+        icon={<BsFillGrid3X3GapFill />}
+        onClick={() => setEpisodeViewMode(prev => prev === "list" ? "grid" : "list")}
+        title={episodeViewMode === "list" ? "Switch to grid view" : "Switch to list view"}
+        aria-pressed={IS_ANDROID_APP ? episodeViewMode === "grid" : undefined}
+        data-episode-view-toggle
+    />
     const parameters = (
         <>
             {providerSelect}
@@ -975,27 +986,19 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                 episodes={episodes}
                 loadingEpisodeList={episodeListLoading}
                 leftHeaderActions={IS_ANDROID_APP ? <section className="mobile-episode-options" aria-label={tr("Sources & playback options", "Quellen & Wiedergabeoptionen")}>
-                    <div className="mobile-source-row">
-                        <span className="mobile-source-label">{tr("Source", "Quelle")}</span>
-                        <div className="mobile-source-controls">{providerSelect}{serverSelect}</div>
-                    </div>
-                    <div className="mobile-source-row">
-                        <span className="mobile-source-label">{tr("Audio", "Audio")}</span>
+                    <div className="mobile-source-pair" role="group" aria-label={tr("Source", "Quelle")}>{providerSelect}{serverSelect}</div>
+                    <div className="mobile-source-line">
                         <div className="mobile-source-segment" role="group" aria-label={tr("Audio", "Audio")}>
                             <button type="button" aria-pressed={!dubbed} onClick={() => { if (dubbed) toggleDubbed() }}>{tr("Subtitles", "Untertitel")}</button>
                             <button type="button" aria-pressed={dubbed} onClick={() => { if (!dubbed) toggleDubbed() }}>{tr("Dub", "Synchro")}</button>
                         </div>
-                    </div>
-                    <div className="mobile-source-row">
-                        <span className="mobile-source-label">{tr("Download", "Download")}</span>
-                        <div className="mobile-source-controls">
-                            <EpisodeDownloadPicker media={media} episodes={episodes} provider={provider} server={server} quality={quality} dubbed={dubbed} currentEpisode={currentEpisodeNumber} />
-                        </div>
+                        <EpisodeDownloadPicker media={media} episodes={episodes} provider={provider} server={server} quality={quality} dubbed={dubbed} currentEpisode={currentEpisodeNumber} />
                     </div>
                     <div className="mobile-source-more">
                         {tryAllProvidersButton}
-                        {animeEntry && provider && <OnlinestreamManualMappingModal entry={animeEntry} provider={provider}><Button intent="gray-basic">{tr("Manual match", "Manuell zuordnen")}</Button></OnlinestreamManualMappingModal>}
+                        {animeEntry && provider && <OnlinestreamManualMappingModal entry={animeEntry} provider={provider}><Button size="sm" intent="gray-basic">{tr("Manual match", "Manuell zuordnen")}</Button></OnlinestreamManualMappingModal>}
                         {cachePopover}
+                        {episodeViewToggle}
                     </div>
                 </section> : <>
                     {parameters}
@@ -1024,13 +1027,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                 </>}
                 rightHeaderActions={<>
                     <VideoCoreInlineHelperUpdateProgressButton />
-                    <IconButton
-                        size="sm"
-                        intent={episodeViewMode === "list" ? "gray-basic" : "white-subtle"}
-                        icon={<BsFillGrid3X3GapFill />}
-                        onClick={() => setEpisodeViewMode(prev => prev === "list" ? "grid" : "list")}
-                        title={episodeViewMode === "list" ? "Switch to grid view" : "Switch to list view"}
-                    />
+                    {!IS_ANDROID_APP && episodeViewToggle}
                 </>}
                 mediaPlayer={<>
                     {IS_ANDROID_APP && <div className="mobile-episode-heading">
