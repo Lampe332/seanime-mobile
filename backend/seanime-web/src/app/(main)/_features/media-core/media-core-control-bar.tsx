@@ -419,11 +419,37 @@ export interface MediaCoreVolumeButtonProps {
     onMuteToggle: () => void
     isMobile: boolean
     isMiniPlayer: boolean
+    /** Mobile: when provided, tapping the icon opens a volume slider instead of muting. */
+    mobilePanelOpen?: boolean
+    onMobilePanelOpenChange?: (open: boolean) => void
 }
 
+const MOBILE_VOLUME_PANEL_IDLE_MS = 3500
+
 export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
-    const { volume, muted, onVolumeChange, onMuteToggle, isMobile, isMiniPlayer } = props
+    const { volume, muted, onVolumeChange, onMuteToggle, isMobile, isMiniPlayer, mobilePanelOpen, onMobilePanelOpenChange } = props
     const [isSliding, setIsSliding] = React.useState(false)
+    const usesPanel = isMobile && !!onMobilePanelOpenChange
+    const rootRef = React.useRef<HTMLDivElement>(null)
+    const idleTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    // Close the mobile panel after a few idle seconds or on a tap outside it.
+    const keepPanelOpen = React.useCallback(() => {
+        if (idleTimer.current) clearTimeout(idleTimer.current)
+        idleTimer.current = setTimeout(() => onMobilePanelOpenChange?.(false), MOBILE_VOLUME_PANEL_IDLE_MS)
+    }, [onMobilePanelOpenChange])
+    React.useEffect(() => {
+        if (!usesPanel || !mobilePanelOpen) return
+        keepPanelOpen()
+        const onOutside = (e: PointerEvent) => {
+            if (rootRef.current && !rootRef.current.contains(e.target as Node)) onMobilePanelOpenChange?.(false)
+        }
+        document.addEventListener("pointerdown", onOutside, true)
+        return () => {
+            document.removeEventListener("pointerdown", onOutside, true)
+            if (idleTimer.current) clearTimeout(idleTimer.current)
+        }
+    }, [usesPanel, mobilePanelOpen, keepPanelOpen, onMobilePanelOpenChange])
 
     function linearToVolume(linear: number): number {
         return Math.pow(linear, 2)
@@ -444,8 +470,10 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
         const x = e.clientX - rect.left
         const width = e.currentTarget.clientWidth
         const linearPosition = Math.max(0, Math.min(1, x / width))
-        const nonLinearVolume = linearToVolume(linearPosition)
+        // Touch is imprecise: snap the first few percent of the mobile slider to silence.
+        const nonLinearVolume = usesPanel && linearPosition < 0.04 ? 0 : linearToVolume(linearPosition)
         onVolumeChange(nonLinearVolume)
+        if (usesPanel) keepPanelOpen()
     }
 
     function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
@@ -472,7 +500,7 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
     }
 
     return (
-        <div data-vc-element="control-volume" className="vc-control-volume group/vc-control-volume flex items-center justify-center h-full gap-2 text-white">
+        <div ref={rootRef} data-vc-element="control-volume" className="vc-control-volume group/vc-control-volume relative flex items-center justify-center h-full gap-2 text-white">
             <MediaCoreControlButtonIcon
                 icons={[
                     ["low", LuVolume],
@@ -487,11 +515,51 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
                                 "low"
                 }
                 className={isMiniPlayer ? "text-[1.3rem]" : "text-2xl"}
-                onClick={onMuteToggle}
+                onClick={usesPanel ? () => onMobilePanelOpenChange?.(!mobilePanelOpen) : onMuteToggle}
                 onWheel={handleWheel}
                 isMobile={isMobile}
                 isMiniPlayer={isMiniPlayer}
             />
+            {usesPanel && mobilePanelOpen && (
+                <div
+                    data-vc-element="control-volume-mobile-panel"
+                    data-vc-gesture-ignore
+                    className="vc-control-volume-mobile-panel absolute top-full right-0 mt-2 z-[20] flex items-center gap-3 h-12 w-52 max-w-[70vw] pl-3 pr-4 rounded-full bg-black/75"
+                    onClick={e => e.stopPropagation()}
+                    onPointerDown={e => e.stopPropagation()}
+                >
+                    <button
+                        type="button"
+                        aria-label={muted ? "Unmute" : "Mute"}
+                        className="flex-none flex items-center justify-center w-8 h-8 text-xl text-white/90"
+                        onClick={() => {
+                            onMuteToggle()
+                            keepPanelOpen()
+                        }}
+                    >
+                        {muted || volume === 0 ? <LuVolumeOff /> : volume >= 0.5 ? <LuVolume2 /> : volume > 0.1 ? <LuVolume1 /> : <LuVolume />}
+                    </button>
+                    <div
+                        role="slider"
+                        aria-label="Volume"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round((muted ? 0 : volumeToLinear(volume)) * 100)}
+                        data-vc-element="control-volume-mobile-slider"
+                        className="relative flex flex-1 h-full items-center cursor-pointer touch-none"
+                        onPointerDown={e => {
+                            handlePointerDown(e)
+                            handleSetVolume(e)
+                        }}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerCancel={handlePointerUp}
+                    >
+                        <div className="absolute h-1.5 w-full bg-white/30 rounded-full" />
+                        <div className="absolute h-1.5 bg-white rounded-full" style={{ width: `${(muted ? 0 : volumeToLinear(volume)) * 100}%` }} />
+                    </div>
+                </div>
+            )}
             {!isMobile && (
                 <div
                     data-vc-element="control-volume-slider-container"

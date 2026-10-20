@@ -1,3 +1,4 @@
+import { vc_menuOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_hoveringControlBar } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_isSwiping } from "@/app/(main)/_features/video-core/video-core-atoms"
@@ -123,6 +124,9 @@ export function VideoCoreVolumeButton() {
     const setMuted = useSetAtom(vc_storedMutedAtom)
     const isMiniPlayer = useAtomValue(vc_miniPlayer)
     const isMobile = useAtomValue(vc_isMobile)
+    // On mobile the button opens a volume slider; it shares the menu slot so the controls stay visible
+    // while it is open and other menus close it.
+    const [menuOpen, setMenuOpen] = useAtom(vc_menuOpen)
 
     const onVolumeChange = React.useCallback((vol: number) => {
         setVolume(vol)
@@ -144,6 +148,8 @@ export function VideoCoreVolumeButton() {
             onMuteToggle={onMuteToggle}
             isMobile={isMobile}
             isMiniPlayer={isMiniPlayer}
+            mobilePanelOpen={menuOpen === "volume"}
+            onMobilePanelOpenChange={open => setMenuOpen(open ? "volume" : null)}
         />
     )
 }

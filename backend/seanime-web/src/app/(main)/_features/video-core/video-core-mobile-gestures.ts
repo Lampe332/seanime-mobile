@@ -45,6 +45,12 @@ export function useVideoCoreMobileGestures({
                 setIsSwiping(false)
                 return
             }
+            // Ignore touches on controls that handle their own drags (e.g. the mobile volume slider)
+            if ((e.target as Element | null)?.closest?.("[data-vc-gesture-ignore]")) {
+                touchStartRef.current = null
+                setIsSwiping(false)
+                return
+            }
 
             const touch = e.touches[0]
             touchStartRef.current = {
