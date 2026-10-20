@@ -14,10 +14,12 @@ import { Popover, PopoverProps } from "@/components/ui/popover"
 import { Tooltip } from "@/components/ui/tooltip"
 import { normalizeDate } from "@/lib/helpers/date"
 import { getImageUrl } from "@/lib/server/assets"
+import { useTr } from "@/lib/app-language"
 import { useWindowSize } from "@uidotdev/usehooks"
 import React, { Fragment } from "react"
-import { useFormContext } from "react-hook-form"
+import { useController, useFormContext } from "react-hook-form"
 import { BiListPlus, BiPlus, BiStar, BiTrash } from "react-icons/bi"
+import { LuMinus, LuPlus } from "react-icons/lu"
 import { TbEdit } from "react-icons/tb"
 import { useToggle } from "react-use"
 import { z } from "zod"
@@ -40,7 +42,21 @@ export const mediaListDataSchema = defineSchema(({ z, presets }) => z.object({
     completedAt: presets.datePicker.nullish(),
 }))
 
-function IsomorphicPopover(props: PopoverProps & ModalProps & { media?: AL_BaseAnime | AL_BaseManga, forceModal?: boolean }) {
+const entryDefaultValues = (listData?: Anime_EntryListData | Manga_EntryListData) => ({
+    status: listData?.status,
+    score: listData?.score ? listData?.score / 10 : undefined, // Returned score is 0-100
+    progress: listData?.progress,
+    startedAt: listData?.startedAt ? (normalizeDate(listData?.startedAt)) : undefined,
+    completedAt: listData?.completedAt ? (normalizeDate(listData?.completedAt)) : undefined,
+})
+
+const progressMaxFor = (media: AL_BaseAnime | AL_BaseManga | undefined, type: "anime" | "manga") => type === "anime"
+    ? (!!(media as AL_BaseAnime)?.nextAiringEpisode?.episode
+        ? (media as AL_BaseAnime)?.nextAiringEpisode?.episode! - 1
+        : ((media as AL_BaseAnime)?.episodes ? (media as AL_BaseAnime).episodes : undefined))
+    : (media as AL_BaseManga)?.chapters
+
+function IsomorphicPopover(props: Omit<PopoverProps, "title"> & ModalProps & { media?: AL_BaseAnime | AL_BaseManga, forceModal?: boolean }) {
     const { title, children, media, forceModal, ...rest } = props
     const { width } = useWindowSize()
 
@@ -163,11 +179,11 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
             </>}
 
             {!!listData && <IsomorphicPopover
-                contentClass={mobileEntry ? "mobile-anime-dialog" : undefined}
+                contentClass={mobileEntry ? "mobile-anime-dialog mobile-anilist-sheet" : undefined}
                 forceModal={forceModal}
                 open={open}
                 onOpenChange={o => toggle(o)}
-                title={media?.title?.userPreferred ?? undefined}
+                title={mobileEntry ? <MobileEntryTitle media={media} /> : (media?.title?.userPreferred ?? undefined)}
                 trigger={<span>
                     {!hideButton && <>
                         {!!listData && <IconButton
@@ -185,7 +201,18 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
                 media={media}
             >
 
-                {open && <Content
+                {open && mobileEntry && <MobileContent
+                    media={media}
+                    listData={listData}
+                    type={type}
+                    repeat={repeat}
+                    setRepeat={setRepeat}
+                    handleSubmit={handleSubmit}
+                    deleteEntry={deleteEntry}
+                    isEditing={isEditing}
+                    isDeleting={isDeleting}
+                />}
+                {open && !mobileEntry && <Content
                     open={open}
                     onToggle={toggle}
                     repeat={repeat}
@@ -243,13 +270,7 @@ function Content(props: AnilistMediaEntryModalProps & {
                     // },
                 )}
                 onError={console.log}
-                defaultValues={{
-                    status: listData?.status,
-                    score: listData?.score ? listData?.score / 10 : undefined, // Returned score is 0-100
-                    progress: listData?.progress,
-                    startedAt: listData?.startedAt ? (normalizeDate(listData?.startedAt)) : undefined,
-                    completedAt: listData?.completedAt ? (normalizeDate(listData?.completedAt)) : undefined,
-                }}
+                defaultValues={entryDefaultValues(listData)}
             >
                 <div className="flex flex-col sm:flex-row gap-4">
                     <StatusField media={media} type={type} />
@@ -270,11 +291,7 @@ function Content(props: AnilistMediaEntryModalProps & {
                             label="Progress"
                             name="progress"
                             min={0}
-                            max={type === "anime" ? (!!(media as AL_BaseAnime)?.nextAiringEpisode?.episode
-                                ? (media as AL_BaseAnime)?.nextAiringEpisode?.episode! - 1
-                                : ((media as AL_BaseAnime)?.episodes
-                                    ? (media as AL_BaseAnime).episodes
-                                    : undefined)) : (media as AL_BaseManga)?.chapters}
+                            max={progressMaxFor(media, type)}
                             formatOptions={{
                                 maximumFractionDigits: 0,
                                 minimumFractionDigits: 0,
@@ -395,4 +412,142 @@ function StatusField({ media, type }: {
             } : undefined,
         ].filter(Boolean)}
     />
+}
+
+/* -------------------------------------------------------------------------------------------------
+ * Android: compact sheet with the same form, schema, defaults and submit handler as the desktop form.
+ * -----------------------------------------------------------------------------------------------*/
+
+function MobileEntryTitle({ media }: { media?: AL_BaseAnime | AL_BaseManga }) {
+    const cover = media?.coverImage?.medium || media?.coverImage?.large
+    return <span className="mobile-anilist-head">
+        {cover && <img src={getImageUrl(cover)} alt="" className="mobile-anilist-cover" />}
+        <span className="mobile-anilist-name">
+            <span className="mobile-anilist-title">{media?.title?.userPreferred}</span>
+            <span className="mobile-anilist-sub">AniList</span>
+        </span>
+    </span>
+}
+
+function MobileContent(props: {
+    media?: AL_BaseAnime | AL_BaseManga
+    listData?: Anime_EntryListData | Manga_EntryListData
+    type: "anime" | "manga"
+    repeat: number | ""
+    setRepeat: (repeat: number | "") => void
+    handleSubmit: (data: z.infer<typeof mediaListDataSchema>) => void
+    deleteEntry: any
+    isEditing: boolean
+    isDeleting: boolean
+}) {
+    const { media, listData, type, repeat, setRepeat, handleSubmit, deleteEntry, isEditing, isDeleting } = props
+    const t = useTr()
+    const released = media?.status !== "NOT_YET_RELEASED"
+    const max = progressMaxFor(media, type)
+    const total = type === "anime" ? (media as AL_BaseAnime)?.episodes : (media as AL_BaseManga)?.chapters
+    if (!listData) return null
+    return <Form
+        data-anilist-media-entry-modal-form
+        schema={mediaListDataSchema}
+        onSubmit={handleSubmit}
+        onError={console.log}
+        defaultValues={entryDefaultValues(listData)}
+        className="mobile-anilist-form"
+    >
+        <MobileStatusChips media={media} type={type} />
+        {released && <>
+            <div className="mobile-anilist-pair">
+                <MobileFormStepper name="progress" label={t("Progress", "Fortschritt")} max={max ?? undefined} suffix={total ? `/ ${total}` : undefined} />
+                <MobileFormStepper name="score" label={t("Score", "Bewertung")} max={10} decimals suffix="/ 10" />
+            </div>
+            <div className="mobile-anilist-pair mobile-anilist-dates">
+                <Field.DatePicker label={t("Start date", "Startdatum")} name="startedAt" />
+                <Field.DatePicker label={t("Completion date", "Enddatum")} name="completedAt" />
+            </div>
+            <div className="mobile-anilist-repeat">
+                <span id="mobile-anilist-repeat-label">{type === "anime" ? t("Total rewatches", "Wiederholungen") : t("Total rereads", "Erneut gelesen")}</span>
+                <Stepper labelId="mobile-anilist-repeat-label" name="repeat" value={repeat === "" ? null : repeat} max={1000} onValue={value => setRepeat(value ?? "")} />
+            </div>
+        </>}
+        <div className="mobile-anilist-actions">
+            <Disclosure type="multiple" defaultValue={["item-2"]}>
+                <DisclosureItem value="item-1" className="mobile-anilist-delete">
+                    <DisclosureTrigger>
+                        <IconButton intent="alert-subtle" icon={<BiTrash />} rounded size="md" aria-label={t("Remove from list", "Aus Liste entfernen")} data-anilist-delete />
+                    </DisclosureTrigger>
+                    <DisclosureContent>
+                        <Button intent="alert-basic" rounded size="md" loading={isDeleting} data-anilist-delete-confirm
+                            onClick={() => deleteEntry({ mediaId: media?.id!, type: type })}>{t("Confirm", "Bestätigen")}</Button>
+                    </DisclosureContent>
+                </DisclosureItem>
+            </Disclosure>
+            <Field.Submit role="save" disableIfInvalid={true} loading={isEditing} disabled={isDeleting}>
+                {t("Save", "Speichern")}
+            </Field.Submit>
+        </div>
+        <PluginWebviewSlot slot="after-media-entry-form" />
+    </Form>
+}
+
+function MobileStatusChips({ media, type }: { media?: AL_BaseAnime | AL_BaseManga, type: "anime" | "manga" }) {
+    const t = useTr()
+    const { setValue } = useFormContext<z.infer<typeof mediaListDataSchema>>()
+    const { field } = useController<z.infer<typeof mediaListDataSchema>, "status">({ name: "status" })
+    const released = media?.status !== "NOT_YET_RELEASED"
+    const options = ([
+        { value: "CURRENT", label: type === "anime" ? t("Watching", "Schaue ich") : t("Reading", "Lese ich") },
+        { value: "COMPLETED", label: t("Completed", "Fertig") },
+        { value: "PLANNING", label: t("Planning", "Geplant") },
+        { value: "PAUSED", label: t("Paused", "Pausiert") },
+        { value: "DROPPED", label: t("Dropped", "Abgebrochen") },
+        { value: "REPEATING", label: type === "anime" ? t("Rewatching", "Schaue erneut") : t("Rereading", "Lese erneut") },
+    ] as { value: AL_MediaListStatus, label: string }[]).filter(option => released || option.value === "PLANNING")
+    // Same side effect as the desktop status select: completing an anime fills its progress.
+    const choose = (status: AL_MediaListStatus) => {
+        setValue("status", status, { shouldDirty: true })
+        const episodes = (media as AL_BaseAnime)?.episodes
+        if (type === "anime" && status === "COMPLETED" && episodes) setValue("progress", episodes, { shouldDirty: true })
+    }
+    return <div className="mobile-anilist-status" role="radiogroup" aria-label={t("Status", "Status")}>
+        {options.map(option => <button key={option.value} type="button" role="radio" aria-checked={field.value === option.value}
+            data-status={option.value} onClick={() => choose(option.value)}>{option.label}</button>)}
+    </div>
+}
+
+function MobileFormStepper({ name, label, max, decimals, suffix }: { name: "progress" | "score", label: string, max?: number, decimals?: boolean, suffix?: string }) {
+    const { field } = useController<z.infer<typeof mediaListDataSchema>, typeof name>({ name })
+    const id = `mobile-anilist-${name}-label`
+    return <div className="mobile-anilist-field">
+        <span id={id}>{label}</span>
+        <Stepper labelId={id} name={name} value={typeof field.value === "number" ? field.value : null} max={max} decimals={decimals} suffix={suffix}
+            onValue={value => field.onChange(value)} />
+    </div>
+}
+
+function Stepper({ value, onValue, min = 0, max, decimals, suffix, labelId, name }: {
+    value: number | null, onValue: (value: number | null) => void, min?: number, max?: number, decimals?: boolean, suffix?: string, labelId: string, name: string
+}) {
+    const t = useTr()
+    const clamp = (n: number) => {
+        const rounded = decimals ? Math.round(n * 10) / 10 : Math.round(n)
+        return Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min, rounded))
+    }
+    const [draft, setDraft] = React.useState(value === null ? "" : String(value))
+    React.useEffect(() => setDraft(value === null ? "" : String(value)), [value])
+    const commit = (text: string) => {
+        setDraft(text)
+        if (text.trim() === "") return onValue(null)
+        const parsed = Number(text.replace(",", "."))
+        if (Number.isFinite(parsed)) onValue(clamp(parsed))
+    }
+    const current = value ?? min
+    return <div className="mobile-anilist-stepper" data-stepper={name}>
+        <button type="button" aria-label={t("Decrease", "Verringern")} disabled={value === null || current <= min} onClick={() => onValue(clamp(Math.ceil(current) - 1))}><LuMinus /></button>
+        <span className="mobile-anilist-value">
+            <input aria-labelledby={labelId} inputMode={decimals ? "decimal" : "numeric"} value={draft} placeholder="–"
+                onChange={event => commit(event.target.value)} onBlur={() => setDraft(value === null ? "" : String(value))} />
+            {suffix && <span aria-hidden>{suffix}</span>}
+        </span>
+        <button type="button" aria-label={t("Increase", "Erhöhen")} disabled={max !== undefined && current >= max} onClick={() => onValue(clamp(value === null ? min + 1 : Math.floor(current) + 1))}><LuPlus /></button>
+    </div>
 }

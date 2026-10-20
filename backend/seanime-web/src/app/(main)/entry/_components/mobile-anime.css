@@ -134,16 +134,45 @@
 .mobile-anime-dialog .UI-Modal__title { line-height: 1.4; }
 .mobile-anime-dialog .UI-Modal__close { top: .5rem; right: .5rem; border-radius: 999px; background: transparent; }
 .mobile-anime-dialog input, .mobile-anime-dialog textarea { max-width: 100%; min-width: 0; }
-/* AniList list entry: status full width, then two even columns; flat fields, one solid Save. */
+/* AniList list entry (Android): cover + one-line title, status chips, -/+ steppers, dates side by side. */
 .mobile-anime-dialog [data-anilist-media-entry-modal-banner-image-container] { display: none; }
+body .mobile-anilist-sheet.UI-Modal__content { grid-template-columns: minmax(0, 1fr); align-self: end; margin-bottom: 8px; width: calc(100% - 16px) !important; max-height: calc(100svh - 16px) !important; padding: 14px 16px 16px !important; gap: 1rem; overflow-y: auto !important; }
+.mobile-anilist-sheet .UI-Modal__header { padding-right: 44px; min-height: 48px; justify-content: center; }
+.mobile-anilist-sheet .UI-Modal__title { font-size: 1rem !important; padding-right: 0; line-height: 1.3; }
+.mobile-anilist-head { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.mobile-anilist-cover { flex: none; width: 36px; height: 52px; object-fit: cover; border-radius: .375rem; background: var(--sm-surface-raised); }
+.mobile-anilist-name { display: grid; min-width: 0; }
+.mobile-anilist-title { font-weight: 650; color: var(--sm-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.mobile-anilist-sub { font-size: .75rem; font-weight: 500; color: var(--sm-text-subtle); }
+.mobile-anilist-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; min-width: 0; }
+.mobile-anilist-form > div { min-width: 0; }
+.mobile-anilist-status { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 6.25rem), 1fr)); gap: .375rem; }
+.mobile-anilist-status button { min-height: 48px !important; padding: .25rem .5rem; border: 0; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); font-size: .8125rem; font-weight: 500; overflow-wrap: normal; }
+.mobile-anilist-status button[aria-checked="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 650; }
+.mobile-anilist-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.25rem), 1fr)); gap: .5rem; }
+.mobile-anilist-field, .mobile-anilist-sheet .UI-BasicField__root { display: grid; gap: .375rem; min-width: 0; }
+.mobile-anilist-field > span, .mobile-anilist-repeat > span, .mobile-anime-dialog.mobile-anilist-sheet .UI-BasicField__fieldLabel { font-size: .8125rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--sm-text-muted); }
+.mobile-anilist-stepper { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; align-items: center; min-height: 48px; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); }
+.mobile-anilist-stepper button { min-width: 48px !important; min-height: 48px !important; display: grid; place-items: center; border: 0; background: transparent; color: var(--sm-text); font-size: 1.125rem; border-radius: var(--sm-radius-sm); }
+.mobile-anilist-stepper button:active { background: var(--sm-surface-control); }
+.mobile-anilist-stepper button:disabled { color: var(--sm-text-subtle); opacity: .4; }
+.mobile-anilist-value { display: flex; align-items: baseline; justify-content: center; gap: .25rem; min-width: 0; font-variant-numeric: tabular-nums; }
+.mobile-anilist-value input { width: 3.25ch; min-width: 0; flex: 0 1 auto; padding: 0; border: 0; background: transparent; text-align: right; color: var(--sm-text); font-size: 1rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.mobile-anilist-value input:focus { outline: none; }
+.mobile-anilist-stepper:focus-within { outline: 2px solid var(--sm-accent); outline-offset: 1px; }
+.mobile-anilist-value > span { font-size: .8125rem; color: var(--sm-text-subtle); white-space: nowrap; }
+.mobile-anilist-sheet .UI-Input__root, .mobile-anilist-sheet .mobile-anilist-dates button { min-height: 48px; font-size: .875rem; padding-inline: .75rem; }
+.mobile-anilist-repeat { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.mobile-anilist-repeat .mobile-anilist-stepper { flex: 0 1 9.5rem; }
+.mobile-anilist-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding-top: .25rem; }
+.mobile-anilist-delete { display: flex; align-items: center; gap: .5rem; }
+.mobile-anilist-delete .UI-IconButton_root { width: 48px; height: 48px; background: transparent !important; color: var(--sm-danger) !important; border: 0 !important; }
+.mobile-anilist-delete .UI-IconButton_root:active { background: rgb(242 167 182 / .12) !important; }
+.mobile-anilist-delete [data-anilist-delete-confirm] { min-height: 48px; background: rgb(242 167 182 / .14) !important; color: var(--sm-danger) !important; border: 0 !important; }
+.mobile-anilist-actions button[type="submit"] { flex: 0 1 10rem; max-width: 100%; margin-left: auto; min-width: 0; white-space: normal; min-height: 48px; border: 0; border-radius: 999px; background: var(--sm-accent-strong); color: #fff; font-weight: 650; }
 .mobile-anime-dialog .UI-Modal__title { font-size: 1.125rem !important; font-weight: 700; padding-right: 2.5rem; }
-.mobile-anime-dialog [data-anilist-media-entry-modal-form] { display: grid; gap: 1rem; }
-.mobile-anime-dialog [data-anilist-media-entry-modal-form] > div.flex-col { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: .9rem 1rem; }
-.mobile-anime-dialog [data-anilist-media-entry-modal-form] > div.flex-col:first-child > :first-child { grid-column: 1 / -1; }
 .mobile-anime-dialog .UI-BasicField__fieldLabel { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; color: var(--sm-text-subtle); }
 .mobile-anime-dialog .UI-Input__root, .mobile-anime-dialog button[role="combobox"] { min-height: 48px; border-color: transparent !important; background: var(--sm-surface-raised) !important; border-radius: var(--sm-radius-sm) !important; }
-.mobile-anime-dialog [data-anilist-media-entry-modal-form] > div.justify-between { margin-top: .25rem !important; padding-top: 1rem; border-top: 1px solid var(--sm-line); gap: .75rem; }
-.mobile-anime-dialog [data-anilist-media-entry-modal-form] button[type="submit"] { min-height: 48px; min-width: 8.5rem; border: 0; border-radius: 999px; background: var(--sm-accent-strong); color: #fff; font-weight: 650; }
 /* Download episodes: bottom sheet with a short head, quick chips, a scrolling list and a fixed footer.
    The native shell forces modal padding/width with !important, hence the body prefix. */
 body .mobile-download-sheet.UI-Modal__content { display: flex; flex-direction: column; gap: .75rem; align-self: end; margin-bottom: 8px; width: calc(100% - 16px) !important; max-height: calc(100svh - 16px) !important; padding: 16px 16px 12px !important; overflow-y: auto !important; }
