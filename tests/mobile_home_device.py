@@ -134,6 +134,13 @@ async def main():
                 record('Carousel arrow moves the real row',await content.evaluate('e=>getComputedStyle(e).transform')!=previous)
                 await page.evaluate('window.scrollTo(0,0)')
 
+            # A section that is still loading, empty or failed must stay visible instead of rendering nothing.
+            if any(i['type']=='missed-sequels' for i in original['data'] or []):
+                await page.locator('[data-discover-missed-sequels-container] h2').wait_for(state='attached',timeout=20000)
+                await page.locator('[data-discover-missed-sequels-container]').scroll_into_view_if_needed()
+                record('Added Missed sequels section shows without a reload',await page.locator('[data-discover-missed-sequels-container] h2').is_visible())
+                await shot('home-missed-sequels.png')
+                await page.evaluate('window.scrollTo(0,0)')
             await page.locator('[data-library-toolbar-switch-view-button]').click()
             modal=page.locator('.home-mobile-settings').first
             await modal.wait_for()

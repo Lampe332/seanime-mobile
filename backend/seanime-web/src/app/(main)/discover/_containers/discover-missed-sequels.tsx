@@ -2,24 +2,41 @@ import { useAnilistListMissedSequels } from "@/api/hooks/anilist.hooks"
 import { MediaEntryCard } from "@/app/(main)/_features/media/_components/media-entry-card"
 import { MediaEntryCardSkeleton } from "@/app/(main)/_features/media/_components/media-entry-card-skeleton"
 import { PageWrapper } from "@/components/shared/page-wrapper"
+import { Button } from "@/components/ui/button"
 import { Carousel, CarouselContent, CarouselDotButtons } from "@/components/ui/carousel"
+import { useTr } from "@/lib/app-language"
 import { useInView } from "motion/react"
 import React from "react"
 
 
-/** `homeMobile`: touch Home neither auto-advances nor starts hover trailers. */
+/**
+ * `homeMobile`: touch Home neither auto-advances nor starts hover trailers. A section the user added
+ * loads right away and stays visible while loading, empty or failed instead of silently rendering nothing.
+ */
 export function DiscoverMissedSequelsSection({ title = "You Might Have Missed", homeMobile }: { title?: string, homeMobile?: boolean }) {
+    const tr = useTr()
     const ref = React.useRef(null)
     const isInView = useInView(ref, { once: true })
-    const { data, isLoading } = useAnilistListMissedSequels(isInView)
+    const { data, isLoading, isError, refetch } = useAnilistListMissedSequels(isInView || !!homeMobile)
 
-    if (!isInView && !data) return <div ref={ref} />
+    if (!homeMobile) {
+        if (!isInView && !data) return <div ref={ref} />
+        if (!data?.length) return null
+    }
 
-    if (!data?.length) return null
+    if (homeMobile && !isLoading && !data?.length) return (
+        <PageWrapper className="space-y-2 z-[5] relative" data-discover-missed-sequels-container>
+            <h2>{tr("Missed sequels", "Verpasste Fortsetzungen")}</h2>
+            {isError ? <div className="home-state" role="alert">
+                <p>{tr("Missed sequels could not load.", "Verpasste Fortsetzungen konnten nicht geladen werden.")}</p>
+                <Button intent="gray-subtle" onClick={() => refetch()}>{tr("Try again", "Erneut versuchen")}</Button>
+            </div> : <p className="home-state" role="status">{tr("No missed sequels right now.", "Gerade keine verpassten Fortsetzungen.")}</p>}
+        </PageWrapper>
+    )
 
     return (
-        <PageWrapper className="space-y-2 z-[5] relative" data-discover-missed-sequels-container>
-            <h2>{title}</h2>
+        <PageWrapper className="space-y-2 z-[5] relative" data-discover-missed-sequels-container aria-busy={isLoading || undefined}>
+            <h2>{homeMobile ? tr("Missed sequels", "Verpasste Fortsetzungen") : title}</h2>
             <Carousel
                 className="w-full max-w-full"
                 gap="xl"
@@ -43,7 +60,7 @@ export function DiscoverMissedSequelsSection({ title = "You Might Have Missed", 
                                 type="anime"
                             />
                         )
-                    }) : [...Array(10).keys()].map((v, idx) => <MediaEntryCardSkeleton key={idx} />)}
+                    }) : [...Array(homeMobile ? 3 : 10).keys()].map((v, idx) => <MediaEntryCardSkeleton key={idx} />)}
                 </CarouselContent>
             </Carousel>
         </PageWrapper>

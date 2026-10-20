@@ -1,11 +1,11 @@
 /* All overrides are opt-in to Android Home. Shared screens keep their styles.
    Surfaces, text and lines use the neutral --sm-* tokens; violet only marks accents.
    Quiet by design: few frames, flat controls, one type scale (1.75 / 1.125 / .9375 / .8125rem). */
-[data-home-mobile="true"] { display: block; position: relative; min-width: 0; padding-bottom: 1.5rem; }
+[data-home-mobile="true"] { display: block; position: relative; min-width: 0; padding-bottom: 1.5rem; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .11), transparent 32rem); }
 /* One image-independent identity across loading, empty and populated Home. */
 @media (max-width: 1023px) {
-/* A faint, static theme-colour glow behind the title: no image, blur or scroll work. */
-[data-home-navbar] { padding: .75rem 1rem 0; overflow: visible; background: radial-gradient(120% 140% at 0% 0%, rgb(var(--color-brand-500) / .13), transparent 62%); }
+/* A faint, static theme-colour tint: header and Home share one vertical gradient (header ends where Home starts), no seam, image, blur or scroll work. */
+[data-home-navbar] { padding: .75rem 1rem 0; overflow: visible; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .16), rgb(var(--color-brand-500) / .11)); }
 [data-home-navbar] [data-layout-header-background], [data-home-navbar] [data-layout-header-background-gradient] { display: none; }
 [data-home-navbar] .home-mobile-header { width: 100%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .25rem .75rem; padding: .5rem 0 .25rem; }
 [data-home-navbar] .home-mobile-heading { min-width: 0; }
@@ -28,6 +28,7 @@
 [data-home-mobile="true"] [data-home-toolbar-container] { width: 100%; margin: 0 !important; padding: .25rem 1rem .75rem !important; }
 [data-home-mobile="true"] [data-home-toolbar-container]:not(:has(> :not([data-home-toolbar-spacer]))) { display: none; }
 }
+[data-home-mobile="true"] h2::before { content: ""; display: inline-block; flex: none; width: .25rem; height: .9em; margin-right: .55rem; border-radius: 999px; background: var(--sm-accent); vertical-align: -.08em; }
 [data-home-mobile="true"] h2, [data-home-mobile="true"] h3 { font-size: 1.25rem; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; color: var(--sm-text); overflow-wrap: anywhere; }
 [data-home-mobile="true"] [data-library-toolbar-top-padding],
 [data-home-mobile="true"] [data-custom-library-banner-top-spacer] { display: none !important; }
