@@ -1,17 +1,21 @@
 /* Android Downloads, same language as Home and the anime / manga pages: neutral --sm-* surfaces, elevation by one
    lightness step, the theme colour only on progress and the one play action. Static styling: no blur or scroll work. */
 [data-mobile-downloads="true"] {
-    max-width: 72rem; margin-inline: auto; padding: 0 1rem 7rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem;
+    max-width: 72rem; margin-inline: auto; padding: 0 1rem 7rem; display: grid !important; grid-template-columns: minmax(0, 1fr); gap: 1.5rem;
     color: var(--sm-text); overflow-wrap: anywhere;
     background: linear-gradient(180deg, rgb(var(--color-brand-500) / .11) 0, rgb(var(--color-brand-500) / .055) 40%, rgb(var(--color-brand-500) / .01) 82%, transparent 100%) top / 100% 32rem no-repeat;
 }
+[data-mobile-downloads="true"][data-page-wrapper] { padding-top: 0 !important; }
+/* No black navbar band: the bar continues the page tint, as on the anime and manga pages. */
+body:has([data-mobile-downloads="true"]) [data-top-navbar] { height: 3.5rem; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .16), rgb(var(--color-brand-500) / .11)); }
+body:has([data-mobile-downloads="true"]) [data-top-navbar] [data-layout-header-background], body:has([data-mobile-downloads="true"]) [data-top-navbar] [data-layout-header-background-gradient] { display: none; }
 [data-mobile-downloads="true"] button { -webkit-tap-highlight-color: transparent; }
 [data-mobile-downloads="true"] button:focus-visible, [data-mobile-downloads="true"] summary:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
 [data-mobile-downloads="true"] button:disabled { cursor: default; }
 .mdl-manga { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
 
 /* Head: back action, title, one line of facts. */
-.mdl-header { display: flex; align-items: center; gap: .5rem; min-height: 3.5rem; padding-top: .75rem; margin-inline: -.5rem 0; }
+.mdl-header { display: flex; align-items: center; gap: .5rem; height: auto; min-height: 3.5rem; padding-top: .25rem; margin-inline: -.5rem 0; }
 .mdl-header-text { min-width: 0; }
 .mdl-header h1 { font-size: min(1.75rem, 11vw); overflow-wrap: normal; line-height: 1.15; letter-spacing: -.03em; font-weight: 700; color: var(--sm-text); }
 .mdl-header p { margin-top: .2rem; font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
@@ -21,7 +25,7 @@
 .mdl-header .mdl-icon-button { color: var(--sm-text); font-size: 1.375rem; }
 
 /* Anime / Manga: the anime page's segmented tab bar. */
-.mdl-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; padding: .25rem; margin-top: -.75rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
+.mdl-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; padding: .25rem; margin-top: -.5rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
 .mdl-tabs button { min-height: 48px; border-radius: calc(var(--sm-radius-sm) - .25rem); font-size: .9375rem; font-weight: 500; color: var(--sm-text-muted); }
 .mdl-tabs button[aria-selected="true"] { background: var(--sm-surface-control); color: var(--sm-text); font-weight: 650; }
 
