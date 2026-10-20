@@ -2,6 +2,16 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.19 — 20.10.2026 (versionCode 31070)
+
+- ⚡️ Downloads: Paused and failed downloads keep showing how far they got.
+- ⚡️ Downloads: "Continue offline" and the resume button skip episodes that were only opened for a few seconds.
+- 🦺 Downloads: Fixed the last finished manga chapter sometimes not appearing until the app was reopened.
+- 🦺 Downloads: Fixed the Back button leaving the "Delete chapter" sheet open while going back to the manga list.
+- 🦺 Downloads: Fixed selection mode staying active after switching tabs, and the "Active" filter turning itself back on.
+- 🦺 Downloads: Fixed the Downloads list and "On this phone" sometimes staying empty right after starting the app.
+- 🦺 Anime: "On this phone" shows queued, preparing and failed episodes with the right status.
+
 ## 1.9.18 — 20.10.2026 (versionCode 31069)
 
 - 🦺 Downloads: Fixed the item count overlapping the Anime / Manga switch and the black band above the Downloads title.
