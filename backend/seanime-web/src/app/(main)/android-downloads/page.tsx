@@ -132,8 +132,19 @@ export default function Page() {
     const totalBytes = episodes.reduce((total, episode) => total + episode.bytes, 0)
     const toggle = (key: string) => setSelectedAnime(previous => { const next = new Set(previous); if (next.has(key)) next.delete(key); else next.add(key); return next })
     const overview = !selectedKey && !selectedManga
+    // Android's font size setting zooms text but not layout lengths; measure it so the cover grid can widen its cards.
+    const root = React.useRef<HTMLDivElement>(null)
+    React.useLayoutEffect(() => {
+        const probe = document.createElement("span")
+        probe.style.cssText = "position:absolute;visibility:hidden;font:16px/1 sans-serif"
+        probe.textContent = "M"
+        document.body.append(probe)
+        const zoom = probe.getBoundingClientRect().height / 16
+        probe.remove()
+        if (zoom > 0) root.current?.style.setProperty("--mdl-text-zoom", zoom.toFixed(2))
+    }, [])
 
-    return <PageWrapper className="mdl-page" data-downloads-page data-mobile-downloads="true">
+    return <PageWrapper ref={root} className="mdl-page" data-downloads-page data-mobile-downloads="true">
         {overview && <>
             <DownloadsHeader backLabel={t("Back to Seanime", "Zurück zu Seanime")} onBack={() => router.push("/")} title="Downloads"
                 facts={kind === "anime" && loaded ? `${groups.length} Anime · ${episodes.length} ${episodeWord(episodes.length, t)} · ${formatSize(totalBytes)}` : t("Saved on your phone", "Auf deinem Handy gespeichert")} />

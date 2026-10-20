@@ -86,8 +86,9 @@ body:has([data-mobile-downloads="true"]) [data-top-navbar] [data-layout-header-b
 .mdl-chips button[aria-pressed="true"] span { color: inherit; }
 
 /* Library grid: Home's cover cards. */
-/* Columns sized in em: Android's system font size zooms text, not rem, so large text gets fewer, wider cards. */
-.mdl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 5.25em), 1fr)); gap: 1rem .75rem; }
+/* Android's system font size zooms text only, not lengths (px, rem or em); the page measures that zoom into
+   --mdl-text-zoom so large text gets fewer, wider cards (3 columns normally, 2 at 200 %). */
+.mdl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(84px * var(--mdl-text-zoom, 1))), 1fr)); gap: 1rem .75rem; }
 .mdl-card { display: grid; align-content: start; gap: .25rem; min-width: 0; text-align: start; border-radius: var(--sm-radius-sm); }
 .mdl-card-cover { position: relative; display: block; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); margin-bottom: .25rem; }
 .mdl-card-cover .mdl-art { font-size: 1.75rem; }
