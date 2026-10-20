@@ -862,108 +862,118 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         {autoProviderCycler.isTrying ? "Cancel trying" : "Try all available providers"}
     </Button> : null
 
+    const downloadEpisodeButton = (
+        <Button size="sm" rounded intent="primary" disabled={!url || !videoSource || episodeLoading}
+            data-android-download-episode
+            onClick={() => {
+                if (!url || !videoSource) return
+                const queued = downloadOnAndroid({
+                    key: `${mediaId}:${currentEpisodeNumber}:${provider}:${dubbed}:${quality}`,
+                    url, type: overrideStreamType === "hls" || videoSource.type === "m3u8" || isHLSSrc(url) ? "m3u8" : "mp4",
+                    title: media?.title?.userPreferred || media?.title?.romaji || "Anime",
+                    episode: currentEpisodeNumber, mediaId, provider, quality: quality || "Auto",
+                    description: media?.description, genres: media?.genres, year: media?.seasonYear,
+                    format: media?.format, totalEpisodes: media?.episodes, duration: media?.duration, score: media?.meanScore,
+                    coverUrl: media?.coverImage?.extraLarge || media?.coverImage?.large,
+                    bannerUrl: media?.bannerImage,
+                    episodeTitle: currentEpisode?.title || currentEpisode?.metadata?.episodeTitle,
+                    episodeImageUrl: currentEpisode?.image || currentEpisode?.metadata?.episodeMetadata?.image,
+                    episodeDescription: currentEpisode?.description || currentEpisode?.metadata?.episodeMetadata?.summary,
+                    airDate: currentEpisode?.metadata?.episodeMetadata?.airDate,
+                    audioLanguage: dubbed ? "de" : "ja",
+                    subtitles: (subtitleTracks ?? []).filter(sub => !!sub.src).map((sub, index) => ({
+                        url: sub.src, label: sub.label, language: sub.language,
+                        default: sub.default,
+                        mime: /\.(ass|ssa)(?:\?|$)/i.test(videoSource.subtitles?.[index]?.url || sub.src || "") ? "text/x-ssa"
+                            : /\.srt(?:\?|$)/i.test(videoSource.subtitles?.[index]?.url || sub.src || "") ? "application/x-subrip" : "text/vtt",
+                    })),
+                })
+                if (!queued) toast.error(tr("Download feature is still loading. Please try again in a moment.", "Download-Funktion lädt noch. Bitte kurz erneut versuchen."))
+            }}
+        >{tr("Download to phone", "Auf Handy herunterladen")}</Button>
+    )
+    const providerSelect = (
+        <Select
+            aria-label={tr("Provider", "Provider")}
+            contentClass={IS_ANDROID_APP ? "mobile-anime-select" : undefined}
+            value={provider || ""}
+            options={[
+                ...providerExtensionOptions,
+                {
+                    value: "add-provider",
+                    label: "Find other providers",
+                },
+            ]}
+            onValueChange={(v) => {
+                if (v === "add-provider") {
+                    router.push(`/extensions?tab=marketplace&type=onlinestream-provider`)
+                    return
+                }
+                changeProvider(v)
+            }}
+            placeholder="Select provider"
+            size="sm"
+            leftAddon={<CgMediaPodcast />}
+            fieldClass="w-fit"
+            className="rounded-full rounded-l-none w-fit"
+            addonClass="rounded-full rounded-r-none"
+        />
+    )
+    const serverSelect = !!servers.length && <Select
+        aria-label={tr("Server", "Server")}
+        contentClass={IS_ANDROID_APP ? "mobile-anime-select" : undefined}
+        size="sm"
+        value={server}
+        options={servers.map((server) => {
+            const status = serverStatuses.find(item => item.server === server)
+            return {
+                label: status?.status === "unavailable" ? `${server} (not directly playable)` : server,
+                value: server,
+            }
+        })}
+        onValueChange={(v) => {
+            changeServer(v)
+        }}
+        disabled={servers.length <= 1}
+        fieldClass="w-fit"
+        className="rounded-full w-fit !px-4"
+        addonClass="rounded-full rounded-r-none"
+    />
+    const cachePopover = (
+        <IsomorphicPopover
+            title="Stream"
+            trigger={<Button
+                intent="gray-basic"
+                size="sm"
+                className="rounded-full"
+                leftIcon={<HiOutlineCog6Tooth className="text-xl" />}
+            >
+                Cache
+            </Button>}
+        >
+            <p className="text-sm text-[--muted]">
+                Empty the cache if you are experiencing issues with the stream.
+            </p>
+            <Button
+                size="sm"
+                intent="alert-subtle"
+                onClick={() => emptyCache({ mediaId: (mediaId!) })}
+                loading={isEmptyingCache}
+            >
+                Empty stream cache
+            </Button>
+        </IsomorphicPopover>
+    )
     const parameters = (
         <>
             {(IS_ANDROID_APP) && <>
                 <EpisodeDownloadPicker media={media} episodes={episodes} provider={provider} server={server} quality={quality} dubbed={dubbed} currentEpisode={currentEpisodeNumber} />
-                <Button size="sm" rounded intent="primary" disabled={!url || !videoSource || episodeLoading}
-                    data-android-download-episode
-                    onClick={() => {
-                        if (!url || !videoSource) return
-                        const queued = downloadOnAndroid({
-                            key: `${mediaId}:${currentEpisodeNumber}:${provider}:${dubbed}:${quality}`,
-                            url, type: overrideStreamType === "hls" || videoSource.type === "m3u8" || isHLSSrc(url) ? "m3u8" : "mp4",
-                            title: media?.title?.userPreferred || media?.title?.romaji || "Anime",
-                            episode: currentEpisodeNumber, mediaId, provider, quality: quality || "Auto",
-                            description: media?.description, genres: media?.genres, year: media?.seasonYear,
-                            format: media?.format, totalEpisodes: media?.episodes, duration: media?.duration, score: media?.meanScore,
-                            coverUrl: media?.coverImage?.extraLarge || media?.coverImage?.large,
-                            bannerUrl: media?.bannerImage,
-                            episodeTitle: currentEpisode?.title || currentEpisode?.metadata?.episodeTitle,
-                            episodeImageUrl: currentEpisode?.image || currentEpisode?.metadata?.episodeMetadata?.image,
-                            episodeDescription: currentEpisode?.description || currentEpisode?.metadata?.episodeMetadata?.summary,
-                            airDate: currentEpisode?.metadata?.episodeMetadata?.airDate,
-                            audioLanguage: dubbed ? "de" : "ja",
-                            subtitles: (subtitleTracks ?? []).filter(sub => !!sub.src).map((sub, index) => ({
-                                url: sub.src, label: sub.label, language: sub.language,
-                                default: sub.default,
-                                mime: /\.(ass|ssa)(?:\?|$)/i.test(videoSource.subtitles?.[index]?.url || sub.src || "") ? "text/x-ssa"
-                                    : /\.srt(?:\?|$)/i.test(videoSource.subtitles?.[index]?.url || sub.src || "") ? "application/x-subrip" : "text/vtt",
-                            })),
-                        })
-                        if (!queued) toast.error(tr("Download feature is still loading. Please try again in a moment.", "Download-Funktion lädt noch. Bitte kurz erneut versuchen."))
-                    }}
-                >{tr("Download to phone", "Auf Handy herunterladen")}</Button>
+                {downloadEpisodeButton}
                 <Button size="sm" rounded intent="gray-basic" onClick={openAndroidDownloads}>Downloads</Button>
             </>}
-            <Select
-                aria-label={tr("Provider", "Provider")}
-                contentClass={IS_ANDROID_APP ? "mobile-anime-select" : undefined}
-                value={provider || ""}
-                options={[
-                    ...providerExtensionOptions,
-                    {
-                        value: "add-provider",
-                        label: "Find other providers",
-                    },
-                ]}
-                onValueChange={(v) => {
-                    if (v === "add-provider") {
-                        router.push(`/extensions?tab=marketplace&type=onlinestream-provider`)
-                        return
-                    }
-                    changeProvider(v)
-                }}
-                placeholder="Select provider"
-                size="sm"
-                leftAddon={<CgMediaPodcast />}
-                fieldClass="w-fit"
-                className="rounded-full rounded-l-none w-fit"
-                addonClass="rounded-full rounded-r-none"
-            />
-            {!!servers.length && <Select
-                aria-label={tr("Server", "Server")}
-                contentClass={IS_ANDROID_APP ? "mobile-anime-select" : undefined}
-                size="sm"
-                value={server}
-                options={servers.map((server) => {
-                    const status = serverStatuses.find(item => item.server === server)
-                    return {
-                        label: status?.status === "unavailable" ? `${server} (not directly playable)` : server,
-                        value: server,
-                    }
-                })}
-                onValueChange={(v) => {
-                    changeServer(v)
-                }}
-                disabled={servers.length <= 1}
-                fieldClass="w-fit"
-                className="rounded-full w-fit !px-4"
-                addonClass="rounded-full rounded-r-none"
-            />}
-            <IsomorphicPopover
-                title="Stream"
-                trigger={<Button
-                    intent="gray-basic"
-                    size="sm"
-                    className="rounded-full"
-                    leftIcon={<HiOutlineCog6Tooth className="text-xl" />}
-                >
-                    Cache
-                </Button>}
-            >
-                <p className="text-sm text-[--muted]">
-                    Empty the cache if you are experiencing issues with the stream.
-                </p>
-                <Button
-                    size="sm"
-                    intent="alert-subtle"
-                    onClick={() => emptyCache({ mediaId: (mediaId!) })}
-                    loading={isEmptyingCache}
-                >
-                    Empty stream cache
-                </Button>
-            </IsomorphicPopover>
+            {providerSelect}
+            {serverSelect}
+            {cachePopover}
         </>
     )
 
@@ -1000,13 +1010,32 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                 hideBackButton={hideBackButton}
                 episodes={episodes}
                 loadingEpisodeList={episodeListLoading}
-                leftHeaderActions={IS_ANDROID_APP ? <details className="mobile-episode-options">
-                    <summary>{tr("Sources & playback options", "Quellen & Wiedergabeoptionen")}{provider ? ` · ${providerExtensionOptions.find(p => p.value === provider)?.label || provider}` : ""}</summary>
-                    <div>{parameters}{tryAllProvidersButton}
-                        {animeEntry && provider && <OnlinestreamManualMappingModal entry={animeEntry} provider={provider}><Button intent="gray-basic">{tr("Manual match", "Manuell zuordnen")}</Button></OnlinestreamManualMappingModal>}
-                        <Button intent="gray-basic" onClick={() => toggleDubbed()}>{dubbed ? tr("Switch to subs", "Zu Untertiteln wechseln") : tr("Switch to dub", "Zu Synchronfassung wechseln")}</Button>
+                leftHeaderActions={IS_ANDROID_APP ? <section className="mobile-episode-options" aria-label={tr("Sources & playback options", "Quellen & Wiedergabeoptionen")}>
+                    <div className="mobile-source-row">
+                        <span className="mobile-source-label">{tr("Source", "Quelle")}</span>
+                        <div className="mobile-source-controls">{providerSelect}{serverSelect}</div>
                     </div>
-                </details> : <>
+                    <div className="mobile-source-row">
+                        <span className="mobile-source-label">{tr("Audio", "Audio")}</span>
+                        <div className="mobile-source-segment" role="group" aria-label={tr("Audio", "Audio")}>
+                            <button type="button" aria-pressed={!dubbed} onClick={() => { if (dubbed) toggleDubbed() }}>{tr("Subtitles", "Untertitel")}</button>
+                            <button type="button" aria-pressed={dubbed} onClick={() => { if (!dubbed) toggleDubbed() }}>{tr("Dub", "Synchro")}</button>
+                        </div>
+                    </div>
+                    <div className="mobile-source-row">
+                        <span className="mobile-source-label">{tr("Download", "Download")}</span>
+                        <div className="mobile-source-controls">
+                            {downloadEpisodeButton}
+                            <EpisodeDownloadPicker media={media} episodes={episodes} provider={provider} server={server} quality={quality} dubbed={dubbed} currentEpisode={currentEpisodeNumber} />
+                            <Button size="sm" rounded intent="gray-basic" onClick={openAndroidDownloads}>Downloads</Button>
+                        </div>
+                    </div>
+                    <div className="mobile-source-more">
+                        {tryAllProvidersButton}
+                        {animeEntry && provider && <OnlinestreamManualMappingModal entry={animeEntry} provider={provider}><Button intent="gray-basic">{tr("Manual match", "Manuell zuordnen")}</Button></OnlinestreamManualMappingModal>}
+                        {cachePopover}
+                    </div>
+                </section> : <>
                     {parameters}
                     {tryAllProvidersButton}
                     {(animeEntry && !!provider) && <OnlinestreamManualMappingModal entry={animeEntry} provider={provider}>
@@ -1045,10 +1074,6 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                     {IS_ANDROID_APP && <div className="mobile-episode-heading">
                         <h2>{currentEpisodeNumber !== null ? `${tr("Episode", "Folge")} ${currentEpisodeNumber}` : tr("Episodes", "Episoden")}{currentEpisode?.title ? ` · ${currentEpisode.title}` : ""}</h2>
                         <p>{media.title?.userPreferred}</p>
-                        <Button className="mobile-episode-play" loading={episodeLoading} disabled={!url || episodeLoading}
-                            onClick={() => { if (playerRef.current?.paused) void playerRef.current.play().catch(() => toast.error(tr("Playback could not start. Try again.", "Wiedergabe konnte nicht starten. Erneut versuchen."))); playerRef.current?.scrollIntoView({ block: "center" }) }}>
-                            {tr("Play / continue", "Abspielen / Fortsetzen")}
-                        </Button>
                         <div className="mobile-episode-navigation">
                             <Button intent="gray-basic" disabled={episodeLoading || !episodes?.some(e => e.number === (currentEpisodeNumber ?? 0) - 1)} onClick={() => handlePlayEpisode("previous")}>{tr("Previous episode", "Vorherige Folge")}</Button>
                             <Button intent="gray-basic" disabled={episodeLoading || !episodes?.some(e => e.number === (currentEpisodeNumber ?? 0) + 1)} onClick={() => handlePlayEpisode("next")}>{tr("Next episode", "Nächste Folge")}</Button>

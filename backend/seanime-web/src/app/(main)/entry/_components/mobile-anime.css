@@ -19,8 +19,10 @@
 .mobile-anime-progress > div:first-child > span { color: var(--sm-text-subtle); font-size: .6875rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
 .mobile-anime-progress > div:first-child > div { display: flex; align-items: center; gap: .5rem; }
 .mobile-anime-progress > p { color: var(--sm-text-muted); font-size: .8125rem; flex-basis: 100%; text-transform: capitalize; }
-.mobile-anime-progress button { background: transparent !important; border: 0 !important; color: var(--sm-text-muted); border-radius: 999px; }
-.mobile-anime-progress button:active { background: var(--sm-surface-control) !important; color: var(--sm-text); }
+/* The AniList edit action: a clear 52px round button. */
+.mobile-anime-progress [data-anilist-media-entry-modal-edit-button] { width: 52px !important; height: 52px !important; min-width: 52px; background: var(--sm-surface-control) !important; border: 0 !important; color: var(--sm-text); border-radius: 999px; }
+.mobile-anime-progress [data-anilist-media-entry-modal-edit-button] svg { width: 24px; height: 24px; }
+.mobile-anime-progress [data-anilist-media-entry-modal-edit-button]:active { background: var(--sm-accent-soft) !important; }
 /* The jump to the episodes is the page's primary action. */
 .mobile-anime-episodes-link { display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .7rem 1.25rem; min-height: 48px; border-radius: 999px; background: var(--sm-accent-strong); color: #fff; font-weight: 650; font-size: .9375rem; }
 .mobile-anime-episodes-link:active { filter: brightness(.92); }
@@ -48,11 +50,22 @@
 [data-mobile-anime="true"] .UI-Button_root { white-space: normal; height: auto; overflow-wrap: anywhere; }
 [data-mobile-anime="true"] button:focus-visible, [data-mobile-anime="true"] a:focus-visible, [data-mobile-anime="true"] summary:focus-visible, .mobile-anime-dialog button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
 
-/* Sources & playback options: a hairline row, not a box. */
-.mobile-episode-options { flex: 1; min-width: 0; padding: 0; border-bottom: 1px solid var(--sm-line); }
-.mobile-episode-options > div { display: flex; flex-wrap: wrap; gap: .65rem; padding-bottom: .85rem; min-width: 0; }
+/* Sources & playback options: always visible, one labelled row each for source, audio and download. */
+.mobile-episode-options { flex: 1; min-width: 0; display: grid; gap: .25rem; padding: 0 0 .75rem; border-bottom: 1px solid var(--sm-line); }
+.mobile-source-row { display: grid; gap: .4rem; padding: .5rem 0; min-width: 0; }
+.mobile-source-label { font-size: .6875rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; color: var(--sm-text-subtle); }
+.mobile-source-controls { display: flex; flex-wrap: wrap; gap: .5rem; min-width: 0; }
 .mobile-episode-options .UI-Select__root, .mobile-episode-options .UI-Select__trigger { max-width: 100%; min-width: 0; }
 .mobile-episode-options button { max-width: 100%; }
+.mobile-episode-options .mobile-source-controls button[role="combobox"], .mobile-episode-options .mobile-source-controls .UI-Select__trigger { min-height: 44px; border-radius: 999px !important; border-color: transparent !important; background: var(--sm-surface-raised) !important; }
+.mobile-episode-options .mobile-source-controls [class*="addon"], .mobile-episode-options .mobile-source-controls .UI-InputAddon__root { border-color: transparent !important; background: var(--sm-surface-raised) !important; }
+.mobile-source-segment { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; padding: .25rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
+.mobile-source-segment button { min-height: 44px; border: 0; border-radius: calc(var(--sm-radius-sm) - .25rem); background: transparent; color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; }
+.mobile-source-segment button[aria-pressed="true"] { background: var(--sm-surface-control); color: var(--sm-text); font-weight: 650; }
+.mobile-episode-options [data-android-download-episode] { background: var(--sm-accent-strong) !important; color: #fff !important; border: 0 !important; }
+.mobile-episode-options .mobile-source-controls .UI-Button_root:not([data-android-download-episode]), .mobile-source-more .UI-Button_root { background: var(--sm-surface-raised); border: 0; color: var(--sm-text); }
+.mobile-source-more { display: flex; flex-wrap: wrap; gap: .25rem .5rem; padding-top: .25rem; }
+.mobile-source-more .UI-Button_root { background: transparent !important; color: var(--sm-text-muted) !important; }
 [data-mobile-episode-layout="true"] [data-vc-element="inline-layout-header"] { gap: .6rem; }
 [data-mobile-episode-layout="true"] [data-vc-element="inline-layout-actions"] { align-items: flex-start; }
 [data-mobile-episode-layout="true"] [data-vc-element="inline-layout-actions"] .UI-IconButton_root { background: transparent; border: 0; color: var(--sm-text-muted); border-radius: 999px; }
@@ -63,19 +76,18 @@
 [data-mobile-episode-layout="true"] [data-vc-element="inline-layout-player-container"] { aspect-ratio: auto; }
 [data-mobile-anime="true"] [data-onlinestream-video-container] { border: 0; border-radius: var(--sm-radius); box-shadow: 0 12px 28px -14px rgb(0 0 0 / .8); }
 
-/* Current episode: title, one solid play action, quiet previous/next. */
+/* Current episode: title and quiet previous/next; the player starts playback. */
 .mobile-episode-heading { display: grid; gap: .5rem; min-width: 0; margin: .5rem 0 .75rem; }
 .mobile-episode-heading h2 { font-size: 1.125rem; line-height: 1.4; font-weight: 700; letter-spacing: -.01em; color: var(--sm-text); }
 .mobile-episode-heading p { color: var(--sm-text-muted); font-size: .875rem; }
-.mobile-episode-play { width: 100%; min-height: 48px; background: var(--sm-accent-strong) !important; color: #fff !important; border: 0 !important; border-radius: 999px; font-weight: 650; }
 .mobile-episode-navigation { display: flex; flex-wrap: wrap; gap: .25rem; }
 .mobile-episode-navigation button { flex: 1; background: transparent !important; border: 0 !important; color: var(--sm-text-muted); border-radius: 999px; }
 .mobile-episode-navigation button:not(:disabled):active { background: var(--sm-surface-control) !important; color: var(--sm-text); }
 .mobile-episode-navigation button:disabled { opacity: .35; }
 
-/* Episode list: hairline rows; the selected one gets an accent bar. */
+/* Episode list: hairline rows; the selected one gets a soft tint. */
 [data-mobile-anime="true"] [data-episode-grid-item] { background: transparent; border: 0; border-bottom: 1px solid var(--sm-line); padding: .7rem 3.25rem .7rem .25rem; border-radius: 0; }
-[data-mobile-anime="true"] [data-episode-grid-item][data-is-selected="true"] { background: var(--sm-accent-softer); box-shadow: inset 3px 0 0 var(--sm-accent); border-radius: var(--sm-radius-sm); border-bottom-color: transparent; padding-left: .75rem; }
+[data-mobile-anime="true"] [data-episode-grid-item][data-is-selected="true"] { background: var(--sm-accent-softer); border-radius: var(--sm-radius-sm); border-bottom-color: transparent; padding-left: .5rem; }
 [data-mobile-anime="true"] [data-episode-grid-item-container] { gap: .75rem; }
 [data-mobile-anime="true"] [data-episode-grid-item-image-container] { width: 96px; height: 56px; border-radius: .5rem; }
 [data-mobile-anime="true"] [data-episode-grid-item-content] { min-width: 0; }
@@ -91,8 +103,6 @@
 [data-mobile-anime="true"] [data-anime-entry-page-online-streaming-view-content] > div > h2,
 [data-mobile-anime="true"] [data-anime-entry-page-episode-list-view] h2[data-media-entry-characters-section-title],
 [data-mobile-anime="true"] [data-media-entry-characters-section-title] { font-size: 1.25rem !important; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; color: var(--sm-text); margin-top: 1.25rem; }
-[data-mobile-anime="true"] [data-anime-entry-page-online-streaming-view-content] > div > h2::before,
-[data-mobile-anime="true"] [data-media-entry-characters-section-title]::before { content: ""; display: inline-block; width: .25rem; height: .9em; margin-right: .55rem; border-radius: 999px; background: var(--sm-accent); vertical-align: -.08em; }
 [data-mobile-anime="true"] [data-media-entry-characters-section-grid] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: .5rem !important; }
 [data-mobile-anime="true"] [data-media-entry-characters-section-grid] > * { min-width: 0; }
 [data-mobile-anime="true"] [data-media-entry-characters-section-grid-item-container] { gap: .6rem !important; padding: .25rem !important; background: transparent !important; border: 0 !important; box-shadow: none !important; }
@@ -121,6 +131,16 @@
 .mobile-anime-dialog .UI-Modal__title { line-height: 1.4; }
 .mobile-anime-dialog .UI-Modal__close { top: .5rem; right: .5rem; border-radius: 999px; background: transparent; }
 .mobile-anime-dialog input, .mobile-anime-dialog textarea { max-width: 100%; min-width: 0; }
+/* AniList list entry: status full width, then two even columns; flat fields, one solid Save. */
+.mobile-anime-dialog [data-anilist-media-entry-modal-banner-image-container] { display: none; }
+.mobile-anime-dialog .UI-Modal__title { font-size: 1.125rem !important; font-weight: 700; padding-right: 2.5rem; }
+.mobile-anime-dialog [data-anilist-media-entry-modal-form] { display: grid; gap: 1rem; }
+.mobile-anime-dialog [data-anilist-media-entry-modal-form] > div.flex-col { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: .9rem 1rem; }
+.mobile-anime-dialog [data-anilist-media-entry-modal-form] > div.flex-col:first-child > :first-child { grid-column: 1 / -1; }
+.mobile-anime-dialog .UI-BasicField__fieldLabel { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; color: var(--sm-text-subtle); }
+.mobile-anime-dialog .UI-Input__root, .mobile-anime-dialog button[role="combobox"] { min-height: 48px; border-color: transparent !important; background: var(--sm-surface-raised) !important; border-radius: var(--sm-radius-sm) !important; }
+.mobile-anime-dialog [data-anilist-media-entry-modal-form] > div.justify-between { margin-top: .25rem !important; padding-top: 1rem; border-top: 1px solid var(--sm-line); gap: .75rem; }
+.mobile-anime-dialog [data-anilist-media-entry-modal-form] button[type="submit"] { min-height: 48px; min-width: 8.5rem; border: 0; border-radius: 999px; background: var(--sm-accent-strong); color: #fff; font-weight: 650; }
 .mobile-anime-select { max-width: calc(100vw - 1rem); max-height: 60dvh; background: var(--sm-surface-raised); color: var(--sm-text); border: 1px solid var(--sm-line-strong); border-radius: var(--sm-radius-sm); }
 .mobile-anime-select [role="option"] { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 359px) {

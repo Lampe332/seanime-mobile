@@ -28,7 +28,6 @@
 [data-home-mobile="true"] [data-home-toolbar-container] { width: 100%; margin: 0 !important; padding: .25rem 1rem .75rem !important; }
 [data-home-mobile="true"] [data-home-toolbar-container]:not(:has(> :not([data-home-toolbar-spacer]))) { display: none; }
 }
-[data-home-mobile="true"] h2::before { content: ""; display: inline-block; flex: none; width: .25rem; height: .9em; margin-right: .55rem; border-radius: 999px; background: var(--sm-accent); vertical-align: -.08em; }
 [data-home-mobile="true"] h2, [data-home-mobile="true"] h3 { font-size: 1.25rem; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; color: var(--sm-text); overflow-wrap: anywhere; }
 [data-home-mobile="true"] [data-library-toolbar-top-padding],
 [data-home-mobile="true"] [data-custom-library-banner-top-spacer] { display: none !important; }
