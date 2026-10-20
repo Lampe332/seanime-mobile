@@ -1,0 +1,144 @@
+/* Android Downloads, same language as Home and the anime / manga pages: neutral --sm-* surfaces, elevation by one
+   lightness step, the theme colour only on progress and the one play action. Static styling: no blur or scroll work. */
+[data-mobile-downloads="true"] {
+    max-width: 72rem; margin-inline: auto; padding: 0 1rem 7rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem;
+    color: var(--sm-text); overflow-wrap: anywhere;
+    background: linear-gradient(180deg, rgb(var(--color-brand-500) / .11) 0, rgb(var(--color-brand-500) / .055) 40%, rgb(var(--color-brand-500) / .01) 82%, transparent 100%) top / 100% 32rem no-repeat;
+}
+[data-mobile-downloads="true"] button { -webkit-tap-highlight-color: transparent; }
+[data-mobile-downloads="true"] button:focus-visible, [data-mobile-downloads="true"] summary:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+[data-mobile-downloads="true"] button:disabled { cursor: default; }
+.mdl-manga { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+
+/* Head: back action, title, one line of facts. */
+.mdl-header { display: flex; align-items: center; gap: .5rem; min-height: 3.5rem; padding-top: .75rem; margin-inline: -.5rem 0; }
+.mdl-header-text { min-width: 0; }
+.mdl-header h1 { font-size: min(1.75rem, 11vw); overflow-wrap: normal; line-height: 1.15; letter-spacing: -.03em; font-weight: 700; color: var(--sm-text); }
+.mdl-header p { margin-top: .2rem; font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mdl-icon-button { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px; color: var(--sm-text-muted); font-size: 1.25rem; }
+.mdl-icon-button:active:not(:disabled) { background: var(--sm-surface-control); color: var(--sm-text); }
+.mdl-icon-button:disabled { opacity: .4; }
+.mdl-header .mdl-icon-button { color: var(--sm-text); font-size: 1.375rem; }
+
+/* Anime / Manga: the anime page's segmented tab bar. */
+.mdl-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; padding: .25rem; margin-top: -.75rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
+.mdl-tabs button { min-height: 48px; border-radius: calc(var(--sm-radius-sm) - .25rem); font-size: .9375rem; font-weight: 500; color: var(--sm-text-muted); }
+.mdl-tabs button[aria-selected="true"] { background: var(--sm-surface-control); color: var(--sm-text); font-weight: 650; }
+
+/* Sections: Home's heading, a quiet count or text action on the right. */
+.mdl-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; min-width: 0; }
+.mdl-section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 .75rem; min-height: 2.25rem; }
+.mdl-section-head h2 { font-size: 1.25rem; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; color: var(--sm-text); }
+.mdl-section-head > span { font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mdl-text-action { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 .25rem; font-size: .9375rem; font-weight: 500; color: var(--sm-accent); }
+.mdl-danger, .mdl-text-action.mdl-danger { color: var(--sm-danger); }
+
+/* Rows: raised group for things in progress, hairline rows for a saved list (as on the anime page). */
+.mdl-rows { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.mdl-row { display: flex; align-items: center; gap: .25rem; min-width: 0; padding-right: .25rem; background: var(--sm-surface-raised); }
+.mdl-rows-plain { gap: 0; border-radius: 0; overflow: visible; }
+.mdl-rows-plain .mdl-row { background: transparent; border-bottom: 1px solid var(--sm-line); padding-right: 0; }
+/* Large text: the words move under the picture instead of collapsing into a sliver beside it. */
+.mdl-row-main { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: .875rem; min-height: 4.5rem; padding: .625rem .75rem; text-align: start; border-radius: inherit; }
+.mdl-rows-plain .mdl-row-main { padding-inline: .25rem; }
+.mdl-row-main:active:not(:disabled) { background: var(--sm-surface-control); }
+.mdl-rows-plain .mdl-row-main:active:not(:disabled) { background: var(--sm-surface-raised); }
+.mdl-row-text { flex: 1 1 6.5rem; min-width: 0; display: grid; gap: .125rem; }
+.mdl-row-kicker { font-size: .75rem; color: var(--sm-text-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.mdl-row-title { font-size: .9375rem; font-weight: 600; line-height: 1.35; color: var(--sm-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mdl-row-meta { font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mdl-row-meta[data-state="failed"], .mdl-row-meta[data-state="errored"] { color: var(--sm-danger); }
+.mdl-row-main:disabled .mdl-row-title { color: var(--sm-text-muted); }
+
+/* Pictures: offline artwork, a neutral tile when none is saved. */
+.mdl-art { position: relative; display: grid; place-items: center; overflow: hidden; background: var(--sm-surface-control); color: var(--sm-text-subtle); font-size: 1.5rem; }
+.mdl-art img { width: 100%; height: 100%; object-fit: cover; }
+.mdl-fill { position: absolute; inset: 0; }
+.mdl-thumb { position: relative; flex: none; width: 6rem; aspect-ratio: 16 / 9; overflow: hidden; border-radius: .5rem; background: var(--sm-surface-control); }
+.mdl-play { position: absolute; inset: 0; margin: auto; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 999px; background: rgb(0 0 0 / .6); color: #fff; font-size: .875rem; }
+.mdl-play svg { margin-left: 2px; }
+
+/* Progress: the one place the theme colour carries data. */
+.mdl-progress { display: block; height: 3px; margin: .25rem 0 .125rem; overflow: hidden; border-radius: 999px; background: var(--sm-line-strong); }
+.mdl-progress > span { display: block; height: 100%; background: var(--sm-accent-strong); transform-origin: left center; transition: transform .3s; }
+.mdl-thumb .mdl-progress, .mdl-continue-image .mdl-progress { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; border-radius: 0; background: rgb(0 0 0 / .55); }
+
+/* Continue offline: wide tiles that play at once. */
+.mdl-continue { display: flex; gap: .75rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; margin-inline: -1rem; padding: 0 1rem .25rem; scrollbar-width: none; }
+.mdl-continue::-webkit-scrollbar { display: none; }
+.mdl-continue-tile { flex: 0 0 min(72vw, 16rem); min-width: 0; display: grid; gap: .25rem; text-align: start; scroll-snap-align: start; scroll-margin-inline: 1rem; }
+.mdl-continue-image { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); margin-bottom: .25rem; }
+.mdl-continue-image .mdl-play { width: 2.75rem; height: 2.75rem; font-size: 1.125rem; }
+.mdl-continue-tile:active .mdl-continue-image { opacity: .85; }
+.mdl-continue-title { font-size: .9375rem; font-weight: 600; line-height: 1.35; color: var(--sm-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+
+/* Filter chips with their counts, the manga page's chip style. */
+.mdl-chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.mdl-chips button { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 1rem; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; }
+.mdl-chips button span { color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.mdl-chips button[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 600; }
+.mdl-chips button[aria-pressed="true"] span { color: inherit; }
+
+/* Library grid: Home's cover cards. */
+.mdl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 6.5rem), 1fr)); gap: 1rem .75rem; }
+.mdl-card { display: grid; align-content: start; gap: .25rem; min-width: 0; text-align: start; border-radius: var(--sm-radius-sm); }
+.mdl-card-cover { position: relative; display: block; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); margin-bottom: .25rem; }
+.mdl-card-cover .mdl-art { font-size: 1.75rem; }
+.mdl-card:active .mdl-card-cover { opacity: .85; }
+.mdl-card-cover[data-picked] { outline: 2px solid var(--sm-accent); outline-offset: -2px; }
+.mdl-card-title { font-size: .8125rem; font-weight: 550; line-height: 1.4; color: var(--sm-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mdl-card .mdl-row-meta { font-size: .75rem; color: var(--sm-text-subtle); }
+.mdl-card-pending { font-size: .75rem; color: var(--sm-accent); }
+.mdl-check { position: absolute; top: .375rem; right: .375rem; display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 999px; background: rgb(12 12 14 / .78); box-shadow: inset 0 0 0 2px rgb(255 255 255 / .7); color: #fff; font-size: 1rem; }
+.mdl-card-cover[data-picked] .mdl-check { background: var(--sm-accent-strong); box-shadow: none; }
+.mdl-selection { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: .5rem; }
+.mdl-selection button, .mdl-secondary { min-height: 48px; padding: .25rem 1rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); color: var(--sm-text); font-size: .9375rem; font-weight: 600; }
+.mdl-selection button.mdl-danger { background: rgb(242 167 182 / .14); color: var(--sm-danger); }
+.mdl-selection button:disabled { opacity: .45; }
+
+/* Object header: the anime page's cover, title and facts line. */
+.mdl-object { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; min-width: 0; }
+.mdl-object-identity { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; min-width: 0; }
+.mdl-object-cover { flex: none; width: 88px; height: 124px; border-radius: var(--sm-radius-sm); font-size: 1.75rem; box-shadow: 0 12px 28px -12px rgb(0 0 0 / .8), inset 0 0 0 1px rgb(255 255 255 / .06); }
+.mdl-object-title { flex: 1 1 10rem; min-width: 0; display: grid; gap: .3rem; }
+.mdl-object-title h1 { font-size: 1.375rem; line-height: 1.25; letter-spacing: -.02em; font-weight: 700; color: var(--sm-text); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.mdl-object-title p { font-size: .8125rem; color: var(--sm-text-muted); text-transform: capitalize; }
+.mdl-object-facts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem .75rem; min-height: 3rem; padding: .625rem 0; border-top: 1px solid var(--sm-line); border-bottom: 1px solid var(--sm-line); font-size: .875rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mdl-object-facts span:first-child { display: inline-flex; align-items: center; gap: .375rem; color: var(--sm-text); font-weight: 600; }
+.mdl-object-facts svg { color: var(--sm-accent); }
+.mdl-primary { width: 100%; }
+.mdl-object .mobile-anime-details { margin-top: -.25rem; }
+.mdl-delete-all { justify-self: start; margin-top: .25rem; }
+
+/* Manga chapters: a quiet read pill at the end of the row. */
+.mdl-chapter-main { min-height: 3.75rem; }
+.mdl-read { flex: none; display: inline-flex; align-items: center; gap: .375rem; min-height: 2.5rem; padding: 0 .875rem; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text); font-size: .875rem; font-weight: 600; }
+.mdl-chapter-main:disabled .mdl-read { opacity: .45; }
+.mdl-queue-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); gap: 2px; overflow: hidden; border-radius: var(--sm-radius-sm); }
+.mdl-queue-actions button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 48px; padding: .25rem .75rem; background: var(--sm-surface-raised); color: var(--sm-text); font-size: .875rem; font-weight: 600; }
+.mdl-queue-actions button:active:not(:disabled) { background: var(--sm-surface-control); }
+.mdl-queue-actions button:disabled { color: var(--sm-text-subtle); }
+
+/* States. */
+.mdl-loading { padding: 3rem 0; text-align: center; font-size: .9375rem; color: var(--sm-text-muted); }
+.mdl-notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem .75rem; padding: .5rem .5rem .5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); font-size: .875rem; color: var(--sm-text); }
+.mdl-notice button { min-height: 48px; padding: 0 .75rem; color: var(--sm-accent); font-weight: 600; }
+.mdl-empty { display: grid; justify-items: center; gap: .375rem; padding: 1.5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); text-align: center; }
+.mdl-empty p:first-child { font-size: .9375rem; font-weight: 600; color: var(--sm-text); }
+.mdl-empty p + p { max-width: 22rem; font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.mdl-empty .mdl-secondary { margin-top: .5rem; background: var(--sm-surface-control); }
+.mdl-confirm { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.mdl-confirm > p { font-size: .9375rem; line-height: 1.5; color: var(--sm-text-muted); }
+.mdl-confirm ul { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius-sm); }
+.mdl-confirm li { display: grid; gap: .125rem; padding: .625rem .875rem; background: var(--sm-surface-raised); font-size: .9375rem; font-weight: 600; }
+.mdl-confirm li span + span { font-size: .8125rem; font-weight: 400; color: var(--sm-text-muted); }
+
+@media (max-width: 359px) {
+    [data-mobile-downloads="true"] { padding-inline: .75rem; }
+    .mdl-continue { margin-inline: -.75rem; padding-inline: .75rem; }
+    .mdl-thumb { width: 4.5rem; }
+    .mdl-row-main { gap: .625rem; padding-inline: .5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-mobile-downloads="true"] * { transition: none !important; }
+}
