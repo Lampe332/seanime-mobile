@@ -524,7 +524,7 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
                 <div
                     data-vc-element="control-volume-mobile-panel"
                     data-vc-gesture-ignore
-                    className="vc-control-volume-mobile-panel absolute top-full right-0 mt-2 z-[20] flex items-center gap-3 h-12 w-52 max-w-[70vw] pl-3 pr-4 rounded-full bg-black/75"
+                    className="vc-control-volume-mobile-panel absolute top-1/2 -translate-y-1/2 right-full mr-1 z-[20] flex items-center gap-3 h-12 w-52 max-w-[65vw] pl-3 pr-4 rounded-full bg-black/75"
                     onClick={e => e.stopPropagation()}
                     onPointerDown={e => e.stopPropagation()}
                 >
