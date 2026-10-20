@@ -48,6 +48,14 @@ import { PiArrowCircleLeftDuotone, PiArrowCircleRightDuotone, PiReadCvLogoLight,
 import { TbArrowAutofitHeight } from "react-icons/tb"
 import { useWindowSize } from "react-use"
 import { toast } from "sonner"
+import { Modal } from "@/components/ui/modal"
+import { Translate, useTr } from "@/lib/app-language"
+import { LuMinus, LuPlus } from "react-icons/lu"
+import "@/components/shared/mobile-surface.css"
+import "@/app/(main)/entry/_components/mobile-anime.css"
+import "./chapter-reader-settings-mobile.css"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 export type ChapterReaderSettingsProps = {
     mediaId: number
@@ -358,6 +366,121 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
             setFullscreen(true)
         }
     }
+
+    const t = useTr()
+
+    // Android: a bottom sheet in the app's style. Same atoms, so every value is stored exactly as before.
+    if (IS_ANDROID_APP) return (
+        <>
+            <IconButton
+                data-chapter-reader-settings-dropdown-menu-trigger
+                icon={<LuSettings />}
+                intent="gray-basic"
+                className="flex h-11 w-11 min-w-11"
+                aria-label={t("Reader settings", "Lese-Einstellungen")}
+                onClick={() => setOpen(true)}
+            />
+            <Modal
+                open={open}
+                onOpenChange={setOpen}
+                title={t("Reader settings", "Lese-Einstellungen")}
+                contentClass="mobile-anime-dialog mobile-download-sheet reader-settings-sheet z-[160]"
+                overlayClass="z-[159]"
+            >
+                <div className="reader-settings" data-mobile-reader-settings>
+                    <ReaderGroup title={t("Reading", "Lesen")}>
+                        <ReaderSegment
+                            label={t("Mode", "Modus")}
+                            value={readingMode}
+                            onChange={handleSetReadingMode}
+                            options={[
+                                { value: MangaReadingMode.LONG_STRIP, label: t("Long strip", "Endlos") },
+                                { value: MangaReadingMode.PAGED, label: t("Single page", "Einzelseite") },
+                                { value: MangaReadingMode.DOUBLE_PAGE, label: t("Double page", "Doppelseite") },
+                            ]}
+                        />
+                        {readingMode !== MangaReadingMode.LONG_STRIP && <ReaderSegment
+                            label={t("Direction", "Richtung")}
+                            value={readingDirection}
+                            onChange={setReadingDirection}
+                            options={[
+                                { value: MangaReadingDirection.LTR, label: t("Left to right", "Links → rechts") },
+                                { value: MangaReadingDirection.RTL, label: t("Right to left", "Rechts → links") },
+                            ]}
+                        />}
+                        {readingMode === MangaReadingMode.DOUBLE_PAGE && <ReaderStepper
+                            t={t}
+                            label={t("Page offset", "Seitenversatz")}
+                            value={doublePageOffset}
+                            display={String(doublePageOffset)}
+                            onChange={setDoublePageOffset}
+                            min={-10}
+                            max={10}
+                            step={1}
+                        />}
+                    </ReaderGroup>
+
+                    <ReaderGroup title={t("Page", "Seite")}>
+                        <ReaderSegment
+                            label={t("Fit", "Anpassen")}
+                            value={pageFit}
+                            onChange={setPageFit}
+                            options={[
+                                { value: MangaPageFit.CONTAIN, label: t("Whole page", "Ganze Seite") },
+                                { value: MangaPageFit.COVER, label: t("Fit width", "Breite") },
+                                { value: MangaPageFit.LARGER, label: t("Overflow", "Überlauf") },
+                                { value: MangaPageFit.TRUE_SIZE, label: t("Original", "Original") },
+                            ]}
+                        />
+                        <ReaderStepper
+                            t={t}
+                            label={t("Zoom", "Zoom")}
+                            value={Math.round(pageZoom * 100)}
+                            display={`${Math.round(pageZoom * 100)} %`}
+                            onChange={value => setZoom(value / 100)}
+                            min={MANGA_PAGE_ZOOM_MIN * 100}
+                            max={MANGA_PAGE_ZOOM_MAX * 100}
+                            step={MANGA_PAGE_ZOOM_STEP * 100}
+                            onReset={pageZoom !== MANGA_PAGE_ZOOM_DEFAULT ? resetZoom : undefined}
+                        />
+                        {pageFit === MangaPageFit.LARGER && readingMode !== MangaReadingMode.DOUBLE_PAGE && <ReaderStepper
+                            t={t}
+                            label={t("Page width", "Seitenbreite")}
+                            value={pageOverflowContainerWidth}
+                            display={`${pageOverflowContainerWidth} %`}
+                            onChange={setPageOverflowContainerWidth}
+                            min={10}
+                            max={100}
+                            step={5}
+                        />}
+                        {readingMode === MangaReadingMode.LONG_STRIP && (pageFit === MangaPageFit.LARGER || pageFit === MangaPageFit.CONTAIN) && <ReaderSwitch
+                            label={t("Same width for all pages", "Alle Seiten gleich breit")}
+                            checked={pageStretch === MangaPageStretch.STRETCH}
+                            onChange={v => setPageStretch(v ? MangaPageStretch.STRETCH : MangaPageStretch.NONE)}
+                        />}
+                        {!isDefaultSettings && <button type="button" className="reader-settings-row reader-settings-reset" onClick={() => {
+                            setPageFit(defaultSettings[readingMode].pageFit)
+                            setPageStretch(defaultSettings[readingMode].pageStretch)
+                        }}>
+                            <FaRedo aria-hidden />{t("Reset page layout for this mode", "Seitenlayout für diesen Modus zurücksetzen")}
+                        </button>}
+                    </ReaderGroup>
+
+                    <ReaderGroup title={t("Display", "Anzeige")}>
+                        <ReaderSwitch label={t("Gap between pages", "Abstand zwischen Seiten")} checked={pageGap} onChange={setPageGap} />
+                        {pageGap && <ReaderSwitch label={t("Shadow in the gap", "Schatten im Abstand")} checked={pageGapShadow} onChange={setPageGapShadow} />}
+                        <ReaderSwitch label={t("Progress bar", "Fortschrittsleiste")} checked={readerProgressBar} onChange={setReaderProgressBar} />
+                        <button type="button" className="reader-settings-row" onClick={() => {
+                            setHideBar(prev => !prev)
+                            setOpen(false)
+                        }}>
+                            <span>{hiddenBar ? t("Show reader controls", "Lese-Steuerung einblenden") : t("Hide reader controls", "Lese-Steuerung ausblenden")}</span>
+                        </button>
+                    </ReaderGroup>
+                </div>
+            </Modal>
+        </>
+    )
 
     return (
         <>
@@ -670,4 +793,46 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
             </Drawer>
         </>
     )
+}
+
+function ReaderGroup(props: { title: string, children: React.ReactNode }) {
+    const id = React.useId()
+    return <section className="reader-settings-group" aria-labelledby={id}>
+        <h3 id={id}>{props.title}</h3>
+        <div className="reader-settings-rows">{props.children}</div>
+    </section>
+}
+
+function ReaderSegment(props: { label: string, value: string, onChange: (value: string) => void, options: { value: string, label: string }[] }) {
+    return <div className="reader-settings-field" role="group" aria-label={props.label}>
+        <span>{props.label}</span>
+        <div className="reader-settings-segment" data-count={props.options.length}>
+            {props.options.map(option => <button key={option.value} type="button" aria-pressed={props.value === option.value}
+                onClick={() => props.onChange(option.value)}>{option.label}</button>)}
+        </div>
+    </div>
+}
+
+function ReaderStepper(props: {
+    t: Translate, label: string, value: number, display: string, onChange: (value: number) => void,
+    min: number, max: number, step: number, onReset?: () => void,
+}) {
+    const { t, value, min, max, step } = props
+    const set = (next: number) => props.onChange(Math.min(max, Math.max(min, Math.round(next * 100) / 100)))
+    return <div className="reader-settings-row reader-settings-stepper">
+        <span>{props.label}</span>
+        {props.onReset && <button type="button" className="reader-settings-link" onClick={props.onReset}>{t("Reset", "Zurücksetzen")}</button>}
+        <div role="group" aria-label={props.label}>
+            <button type="button" aria-label={t(`Decrease ${props.label}`, `${props.label} verringern`)} disabled={value <= min} onClick={() => set(value - step)}><LuMinus aria-hidden /></button>
+            <output aria-live="polite">{props.display}</output>
+            <button type="button" aria-label={t(`Increase ${props.label}`, `${props.label} erhöhen`)} disabled={value >= max} onClick={() => set(value + step)}><LuPlus aria-hidden /></button>
+        </div>
+    </div>
+}
+
+function ReaderSwitch(props: { label: string, checked: boolean, onChange: (value: boolean) => void }) {
+    return <button type="button" role="switch" aria-checked={props.checked} className="reader-settings-row" onClick={() => props.onChange(!props.checked)}>
+        <span>{props.label}</span>
+        <span className="reader-settings-toggle" aria-hidden />
+    </button>
 }

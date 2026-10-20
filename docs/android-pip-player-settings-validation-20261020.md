@@ -1,6 +1,6 @@
 # Android PiP controls, player settings sheet and Sub label — 2026-10-20
 
-Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31059 (31045-31058 were intermediate device builds).
+Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B / R3CT60PD7YA, Android 16, com.seanime.app.local 1.9.15 / 31044. Shipped as 1.9.16 / 31060 (31045-31059 were intermediate device builds).
 
 ## Changes
 
@@ -27,6 +27,8 @@ Baseline: clean ffe313a (1.9.15 / 31044), main == origin/main. Device SM-S908B /
 - Manga actions: plugin page buttons and the menu (as "More options") form one full-width list of 48 dp rows; the manga top bar Downloads pill is a plain icon that opens Downloads on the Manga tab (same server downloads with the app's reader) instead of the desktop drawer. Device 18/18.
 
 - Manga tabs: "Online reading" and "Downloaded · N" use the anime page's tab bar; the Downloaded tab lists saved / queued chapters as rows (tap reads, trash deletes after confirmation) and replaces the old desktop "Downloaded chapters" table at the page bottom and the Downloaded filter chip. Device 21/21.
+
+- Manga reader settings (Android): bottom sheet with Reading (mode, direction only for paged modes, page offset only for double page), Page (fit as 2x2 segments, zoom stepper with reset, page width only for Overflow, "same width for all pages" only where stretch applies, reset page layout) and Display (gap, gap shadow, progress bar, hide reader controls). Same atoms, so per-manga settings and storage are unchanged. Removed on phones: the fullscreen toggle (the app is already edge to edge); keyboard shortcuts were already hidden on phones. Harness `tests/mobile_reader_settings.py` 12/12; device in the real reader 6/6 with localStorage restored exactly.
 
 ## Verification
 
