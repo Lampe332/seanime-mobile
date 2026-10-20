@@ -37,6 +37,9 @@ import { useAtom, useAtomValue } from "jotai/react"
 import React from "react"
 import { BiX } from "react-icons/bi"
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu"
+import { useTr } from "@/lib/app-language"
+import "@/components/shared/mobile-surface.css"
+import "./chapter-reader-settings-mobile.css"
 
 type MangaReaderBarProps = {
     children?: React.ReactNode
@@ -194,8 +197,51 @@ export function MangaReaderBar(props: MangaReaderBarProps) {
     }, [readingMode, paginationMap])
 
     const { allPagesLoaded } = useHandleChapterPageStatus(pageContainer)
+    const t = useTr()
 
     if (!entry) return null
+
+    // Android: one calm bar with equal round buttons and a page slider above it.
+    if (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile") {
+        const reversed = readingDirection === MangaReadingDirection.RTL && readingMode !== MangaReadingMode.LONG_STRIP
+        const pageCount = pageContainer?.pages?.length ?? 0
+        const previous = <button type="button" className="reader-bar-btn" disabled={!previousChapter} aria-label={t("Previous chapter", "Vorheriges Kapitel")}
+            onClick={() => previousChapter && goToChapter("previous")}>{reversed ? <LuChevronRight aria-hidden /> : <LuChevronLeft aria-hidden />}</button>
+        const next = <button type="button" className="reader-bar-btn" disabled={!nextChapter} aria-label={t("Next chapter", "Nächstes Kapitel")}
+            onClick={() => nextChapter && goToChapter("next")}>{reversed ? <LuChevronLeft aria-hidden /> : <LuChevronRight aria-hidden />}</button>
+        return (
+            <>
+                {pageCount > 1 && !hiddenBar && <div className="reader-page-slider" data-reader-page-slider>
+                    <input
+                        type="range"
+                        min={0}
+                        max={pageCount - 1}
+                        step={1}
+                        value={Math.min(currentPageIndex, pageCount - 1)}
+                        dir={reversed ? "rtl" : "ltr"}
+                        aria-label={t("Page", "Seite")}
+                        aria-valuetext={`${currentPageIndex + 1} / ${pageCount}`}
+                        onChange={e => handlePageChange(Number(e.target.value))}
+                    />
+                </div>}
+                <div data-manga-reader-bar id="manga-reader-bar" className={cn("reader-phone-bar", hiddenBar && "is-hidden")}>
+                    <button type="button" className="reader-bar-btn" aria-label={t("Close reader", "Leser schließen")} onClick={() => setSelectedChapter(undefined)}>
+                        <BiX aria-hidden />
+                    </button>
+                    {!!selectedChapter && <div className="reader-bar-chapter" role="group" aria-label={t("Chapter", "Kapitel")}>
+                        {reversed ? next : previous}
+                        <span>{t("Ch.", "Kap.")} {selectedChapter.chapterNumber}</span>
+                        {reversed ? previous : next}
+                    </div>}
+                    <div className="flex-1" />
+                    {pageCount > 0 && <span className="reader-bar-pages" aria-live="polite">
+                        {currentPageIndex + 1}{secondPageText}<span> / {pageCount}</span>
+                    </span>}
+                    <ChapterReaderSettings mediaId={entry.mediaId} />
+                </div>
+            </>
+        )
+    }
 
     return (
         <>

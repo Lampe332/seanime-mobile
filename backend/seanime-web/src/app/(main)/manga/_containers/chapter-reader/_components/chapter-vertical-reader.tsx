@@ -19,6 +19,7 @@ import {
 import { useUpdateEffect } from "@/components/ui/core/hooks"
 import { cn } from "@/components/ui/core/styling"
 import { isMobile } from "@/lib/utils/browser-detection"
+import { __manga_autoHideControlsAtom, __manga_tapToggleControlsAtom } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
 import { atom } from "jotai"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import mousetrap from "mousetrap"
@@ -52,6 +53,12 @@ export function MangaVerticalReader({ pageContainer, initialPageIndex }: MangaVe
     const paginationMap = useAtom(__manga_paginationMapAtom)
 
     const [hiddenBar, setHideBar] = useAtom(__manga_hiddenBarAtom)
+    const tapToggleControls = useAtomValue(__manga_tapToggleControlsAtom)
+    const autoHideControls = useAtomValue(__manga_autoHideControlsAtom)
+    // The scroll listener is bound once; it reads the setting and the last position through refs.
+    const autoHideRef = React.useRef(autoHideControls)
+    autoHideRef.current = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && autoHideControls
+    const lastScrollTop = React.useRef(0)
 
     const kbsPageLeft = useAtomValue(__manga_kbsPageLeft)
     const kbsPageRight = useAtomValue(__manga_kbsPageRight)
@@ -116,6 +123,14 @@ export function MangaVerticalReader({ pageContainer, initialPageIndex }: MangaVe
         if (!!containerRef.current) {
             const scrollTop = containerRef.current.scrollTop
             const scrollHeight = containerRef.current.scrollHeight
+            // Android: hide the controls while reading down, bring them back when scrolling up.
+            const delta = scrollTop - lastScrollTop.current
+            if (autoHideRef.current && Math.abs(delta) > 24) {
+                setHideBar(delta > 0 && scrollTop > 200)
+                lastScrollTop.current = scrollTop
+            } else if (!autoHideRef.current) {
+                lastScrollTop.current = scrollTop
+            }
             const clientHeight = containerRef.current.clientHeight
 
             if (scrollTop > 1000 && !!pageContainer?.pages?.length && (scrollTop + clientHeight >= scrollHeight - 1500)) {
@@ -198,7 +213,7 @@ export function MangaVerticalReader({ pageContainer, initialPageIndex }: MangaVe
                 hiddenBar && "h-full max-h-full",
             )} tabIndex={-1}
             onClick={() => {
-                if (!isMobile()) {
+                if (!isMobile() || (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && tapToggleControls)) {
                     setHideBar(prev => !prev)
                 }
             }}

@@ -2,15 +2,16 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
-## 1.9.16 — 20.10.2026 (versionCode 31061)
+## 1.9.16 — 20.10.2026 (versionCode 31063)
 
 - 🎉 Player: The picture-in-picture window has back 10 s, play/pause and forward 10 s buttons; the play/pause icon follows the video.
 - 🎉 Player: Phones can pick the default subtitle and audio language (Japanese, German, English) in the player settings.
 - 🎉 Anime: Episodes downloaded to the phone appear under Local library on the anime page and play offline from there.
 - 🎉 Home: Filter for Currently watching can narrow the list by genre.
+- 🎉 Manga: The phone reader has a page slider, tap-the-middle to show or hide the controls, and new settings: keep the screen on, background (black / gray / white), brightness, and hiding the controls while scrolling down.
 - ⚡️ Player: Redesigned the player settings on phones: grouped into Playback, Language & subtitles and Display, Auto play / Auto next / Skip OP/ED switch directly in the list, and Back returns to the overview from a sub page.
 - ⚡️ Manga: Redesigned the manga page like the anime page: compact header with progress, AniList edit and the start / continue / resume reading button, grouped source options, Online reading / Downloaded tabs, Unread / All switch, a chapter list with download buttons, plugin actions and the menu as a compact row of icon buttons, the top bar Downloads shortcut opening the Downloads tab on Manga, and the anime page's manual match sheet.
-- ⚡️ Manga: Redesigned the reader settings on phones as a grouped sheet (Reading, Page, Display) with segmented choices, zoom and width steppers and switches; options that only apply to the current mode appear only then.
+- ⚡️ Manga: Redesigned the reader settings on phones as a grouped sheet (Reading, Page, Display) with segmented choices, zoom and width steppers and switches; options that only apply to the current mode appear only then; the reader bar uses equal round buttons with the chapter between its arrows.
 - ⚡️ Anime: The audio toggle reads Sub / Dub.
 - ⚡️ Anime: Redesigned Manual match (title pre-filled, one search row, large results), the stream cache sheet and the download episodes sheet.
 - ⚡️ Player: Quality, audio and subtitle menus use the phone sheet; Skip opening / ending is a solid button at the bottom right.

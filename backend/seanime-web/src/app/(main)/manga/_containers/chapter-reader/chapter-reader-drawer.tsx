@@ -39,6 +39,10 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import mousetrap from "mousetrap"
 import React from "react"
 import { TbLayoutBottombarExpandFilled } from "react-icons/tb"
+import { __manga_keepScreenOnAtom, __manga_readerBackgroundAtom, __manga_readerBrightnessAtom } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+const READER_BACKGROUNDS = { black: "#000", gray: "#1c1c1f", white: "#f4f4f5" }
 import { toast } from "sonner"
 
 type ChapterDrawerProps = {
@@ -123,6 +127,31 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
     const readingDirection = useAtomValue(__manga_readingDirectionAtom)
 
     const [hiddenBar, setHideBar] = useAtom(__manga_hiddenBarAtom)
+    const keepScreenOn = useAtomValue(__manga_keepScreenOnAtom)
+    const readerBackground = useAtomValue(__manga_readerBackgroundAtom)
+    const readerBrightness = useAtomValue(__manga_readerBrightnessAtom)
+
+    // Android: keep the screen on while a chapter is open (Screen Wake Lock); the lock is released when Android
+    // hides the app, so it is requested again whenever the reader becomes visible.
+    React.useEffect(() => {
+        if (!IS_ANDROID_APP || !keepScreenOn || !currentChapter || !("wakeLock" in navigator)) return
+        let lock: { release: () => Promise<void> } | null = null
+        let cancelled = false
+        const request = () => {
+            if (document.visibilityState !== "visible") return
+            ;(navigator as any).wakeLock.request("screen").then((l: any) => {
+                if (cancelled) l.release()
+                else lock = l
+            }).catch(() => {})
+        }
+        request()
+        document.addEventListener("visibilitychange", request)
+        return () => {
+            cancelled = true
+            document.removeEventListener("visibilitychange", request)
+            lock?.release().catch(() => {})
+        }
+    }, [keepScreenOn, !!currentChapter])
 
     // resume locations
     const [resumeLocations, setResumeLocations] = useAtom(__manga_resumeLocationsAtom)
@@ -496,8 +525,12 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
             />
 
 
+            {IS_ANDROID_APP && readerBrightness < 100 && <div data-reader-dim className="fixed inset-0 z-[9] pointer-events-none bg-black"
+                style={{ opacity: (100 - readerBrightness) / 100 }} />}
+
             <div
                 data-chapter-reader-drawer-content
+                style={IS_ANDROID_APP ? { background: READER_BACKGROUNDS[readerBackground] ?? "#000" } : undefined}
                 className={cn(
                     "max-h-[calc(100dvh-3.5rem)] lg:max-h-[calc(100dvh-3rem)] h-full overflow-hidden",
                     hiddenBar && "max-h-dvh",

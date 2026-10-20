@@ -156,6 +156,14 @@ export const __manga_pageStretchAtom = atomWithStorage<string>(MANGA_SETTINGS_AT
 
 export const __manga_readerProgressBarAtom = atomWithStorage<boolean>("sea-manga-reader-progress-bar", false)
 
+/** Android reader comfort settings. */
+export type MangaReaderBackground = "black" | "gray" | "white"
+export const __manga_keepScreenOnAtom = atomWithStorage<boolean>("sea-manga-keep-screen-on", true)
+export const __manga_readerBackgroundAtom = atomWithStorage<MangaReaderBackground>("sea-manga-reader-background", "black")
+export const __manga_readerBrightnessAtom = atomWithStorage<number>("sea-manga-reader-brightness", 100)
+export const __manga_tapToggleControlsAtom = atomWithStorage<boolean>("sea-manga-tap-toggle-controls", true)
+export const __manga_autoHideControlsAtom = atomWithStorage<boolean>("sea-manga-auto-hide-controls", false)
+
 export const __manga_pageGapAtom = atomWithStorage<boolean>(MANGA_SETTINGS_ATOM_KEYS.pageGap, true)
 
 export const __manga_pageGapShadowAtom = atomWithStorage(MANGA_SETTINGS_ATOM_KEYS.pageGapShadow, true)

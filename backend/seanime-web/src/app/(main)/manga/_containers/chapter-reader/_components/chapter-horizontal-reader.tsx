@@ -22,6 +22,7 @@ import {
 } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
 import { cn } from "@/components/ui/core/styling"
 import { isMobile } from "@/lib/utils/browser-detection"
+import { __manga_tapToggleControlsAtom } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import mousetrap from "mousetrap"
 import React from "react"
@@ -45,6 +46,7 @@ export function MangaHorizontalReader({ pageContainer }: MangaHorizontalReaderPr
     const pageZoom = useAtomValue(__manga_pageZoomAtom)
 
     const [hiddenBar, setHideBar] = useAtom(__manga_hiddenBarAtom)
+    const tapToggleControls = useAtomValue(__manga_tapToggleControlsAtom)
 
     const kbsPageLeft = useAtomValue(__manga_kbsPageLeft)
     const kbsPageRight = useAtomValue(__manga_kbsPageRight)
@@ -136,11 +138,11 @@ export function MangaHorizontalReader({ pageContainer }: MangaHorizontalReaderPr
         } else if (clickPercentage >= 60) {
             onPaginate("right")
         } else {
-            if (!isMobile()) {
+            if (!isMobile() || (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && tapToggleControls)) {
                 setHideBar(prev => !prev)
             }
         }
-    }, [onPaginate, pageWrapperRef.current])
+    }, [onPaginate, pageWrapperRef.current, tapToggleControls])
 
     /**
      * Update the current page index when the current map index changes

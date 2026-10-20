@@ -1,8 +1,14 @@
 import { useMangaPageZoomControls } from "@/app/(main)/manga/_lib/handle-chapter-reader"
 import {
     __manga_doublePageOffsetAtom,
+    __manga_autoHideControlsAtom,
     __manga_entryReaderSettings,
     __manga_hiddenBarAtom,
+    __manga_keepScreenOnAtom,
+    __manga_readerBackgroundAtom,
+    __manga_readerBrightnessAtom,
+    __manga_tapToggleControlsAtom,
+    MangaReaderBackground,
     __manga_kbsChapterLeft,
     __manga_kbsChapterRight,
     __manga_kbsPageLeft,
@@ -368,18 +374,19 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
     }
 
     const t = useTr()
+    const [keepScreenOn, setKeepScreenOn] = useAtom(__manga_keepScreenOnAtom)
+    const [readerBackground, setReaderBackground] = useAtom(__manga_readerBackgroundAtom)
+    const [readerBrightness, setReaderBrightness] = useAtom(__manga_readerBrightnessAtom)
+    const [tapToggleControls, setTapToggleControls] = useAtom(__manga_tapToggleControlsAtom)
+    const [autoHideControls, setAutoHideControls] = useAtom(__manga_autoHideControlsAtom)
 
     // Android: a bottom sheet in the app's style. Same atoms, so every value is stored exactly as before.
     if (IS_ANDROID_APP) return (
         <>
-            <IconButton
-                data-chapter-reader-settings-dropdown-menu-trigger
-                icon={<LuSettings />}
-                intent="gray-basic"
-                className="flex h-11 w-11 min-w-11"
-                aria-label={t("Reader settings", "Lese-Einstellungen")}
-                onClick={() => setOpen(true)}
-            />
+            <button type="button" className="reader-bar-btn" data-chapter-reader-settings-dropdown-menu-trigger
+                aria-label={t("Reader settings", "Lese-Einstellungen")} onClick={() => setOpen(true)}>
+                <LuSettings aria-hidden />
+            </button>
             <Modal
                 open={open}
                 onOpenChange={setOpen}
@@ -408,6 +415,10 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
                                 { value: MangaReadingDirection.RTL, label: t("Right to left", "Rechts → links") },
                             ]}
                         />}
+                        <ReaderSwitch label={t("Tap the middle to show or hide controls", "Mitte antippen blendet Steuerung ein/aus")}
+                            checked={tapToggleControls} onChange={setTapToggleControls} />
+                        {readingMode === MangaReadingMode.LONG_STRIP && <ReaderSwitch label={t("Hide controls while scrolling down", "Steuerung beim Runterscrollen ausblenden")}
+                            checked={autoHideControls} onChange={setAutoHideControls} />}
                         {readingMode === MangaReadingMode.DOUBLE_PAGE && <ReaderStepper
                             t={t}
                             label={t("Page offset", "Seitenversatz")}
@@ -467,9 +478,29 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
                     </ReaderGroup>
 
                     <ReaderGroup title={t("Display", "Anzeige")}>
+                        <ReaderSegment
+                            label={t("Background", "Hintergrund")}
+                            value={readerBackground}
+                            onChange={v => setReaderBackground(v as MangaReaderBackground)}
+                            options={[
+                                { value: "black", label: t("Black", "Schwarz") },
+                                { value: "gray", label: t("Gray", "Grau") },
+                                { value: "white", label: t("White", "Weiß") },
+                            ]}
+                        />
+                        <ReaderStepper
+                            t={t}
+                            label={t("Brightness", "Helligkeit")}
+                            value={readerBrightness}
+                            display={`${readerBrightness} %`}
+                            onChange={setReaderBrightness}
+                            min={30}
+                            max={100}
+                            step={10}
+                        />
+                        <ReaderSwitch label={t("Keep the screen on", "Bildschirm anlassen")} checked={keepScreenOn} onChange={setKeepScreenOn} />
                         <ReaderSwitch label={t("Gap between pages", "Abstand zwischen Seiten")} checked={pageGap} onChange={setPageGap} />
                         {pageGap && <ReaderSwitch label={t("Shadow in the gap", "Schatten im Abstand")} checked={pageGapShadow} onChange={setPageGapShadow} />}
-                        <ReaderSwitch label={t("Progress bar", "Fortschrittsleiste")} checked={readerProgressBar} onChange={setReaderProgressBar} />
                         <button type="button" className="reader-settings-row" onClick={() => {
                             setHideBar(prev => !prev)
                             setOpen(false)
