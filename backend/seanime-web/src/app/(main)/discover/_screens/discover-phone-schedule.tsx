@@ -1,20 +1,15 @@
-import { SeaContextMenu } from "@/app/(main)/_features/context-menu/sea-context-menu"
 import { MediaEntryCardAdultVeil } from "@/app/(main)/_features/media/_components/media-entry-card-components"
-import { useMediaPreviewModal } from "@/app/(main)/_features/media/_containers/media-preview-modal"
-import { offlineAware, PhoneEmpty, PhoneLoading, PhoneNotice, PhoneSection } from "@/app/(main)/_features/phone-screen/phone-screen"
-import { PluginMediaCardContextMenuItems } from "@/app/(main)/_features/plugin/actions/plugin-actions"
+import { CoverCardMenuItems, offlineAware, PhoneCardMenu, PhoneEmpty, PhoneLoading, PhoneNotice, PhoneSection } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { Airing, airingTimeLabel, listStatusLabel, scheduleDayTitle, scheduleFacts } from "@/app/(main)/discover/_lib/discover-phone"
 import { DiscoverSchedule, useDiscoverEntry } from "@/app/(main)/discover/_lib/discover-phone-hooks"
 import { SeaImage } from "@/components/shared/sea-image"
 import { SeaLink } from "@/components/shared/sea-link"
-import { ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { appLanguageAtom, Translate, useTr } from "@/lib/app-language"
 import { getImageUrl } from "@/lib/server/assets"
 import { isToday } from "date-fns"
 import { useAtomValue } from "jotai/react"
 import React from "react"
-import { LuEye } from "react-icons/lu"
 
 /** The header's facts line on the schedule tab; nothing when the two weeks are empty (the empty state says so). */
 export function scheduleFactsLine(t: Translate, schedule: DiscoverSchedule) {
@@ -72,31 +67,24 @@ const ScheduleRow = React.memo(function ScheduleRow({ item, german }: { item: Ai
     const t = useTr()
     const media = item.media!
     const serverStatus = useServerStatus()
-    const { setPreviewModalMediaId } = useMediaPreviewModal()
     const status = listStatusLabel(t, "anime", useDiscoverEntry("anime", media.id).listData?.status)
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
     const offline = !!serverStatus?.isOffline
-    return <SeaContextMenu content={<ContextMenuGroup>
-        <ContextMenuLabel className="text-[--muted] line-clamp-1 py-0 my-2">{title}</ContextMenuLabel>
-        {!offline && <ContextMenuItem onClick={() => setPreviewModalMediaId(media.id, "anime")}><LuEye /> {t("Preview", "Vorschau")}</ContextMenuItem>}
-        <PluginMediaCardContextMenuItems for="anime" media={media} />
-    </ContextMenuGroup>}>
-        <ContextMenuTrigger asChild>
-            <SeaLink href={offline ? `/offline/entry/anime?id=${media.id}` : `/entry?id=${media.id}`} className="ps-list-row" data-discover-schedule-row={item.id}
-                data-media-id={media.id} data-media-mal-id={media.idMal ?? undefined} data-media-type="anime">
-                <span className="ps-list-cover">
-                    <SeaImage src={getImageUrl(media.coverImage?.large || media.coverImage?.medium || "")} alt="" fill sizes="3rem" className="ps-cover-image" />
-                    {!!serverStatus?.settings?.anilist?.blurAdultContent && media.isAdult && <MediaEntryCardAdultVeil />}
+    return <PhoneCardMenu content={<CoverCardMenuItems media={media} type="anime" title={title} offline={offline} />}>
+        {trigger => <SeaLink href={offline ? `/offline/entry/anime?id=${media.id}` : `/entry?id=${media.id}`} className="ps-list-row" data-discover-schedule-row={item.id}
+            data-media-id={media.id} data-media-mal-id={media.idMal ?? undefined} data-media-type="anime" {...trigger}>
+            <span className="ps-list-cover">
+                <SeaImage src={getImageUrl(media.coverImage?.large || media.coverImage?.medium || "")} alt="" fill sizes="3rem" className="ps-cover-image" />
+                {!!serverStatus?.settings?.anilist?.blurAdultContent && media.isAdult && <MediaEntryCardAdultVeil />}
+            </span>
+            <span className="ps-list-text">
+                <span className="ps-list-title">{title}</span>
+                <span className="ps-list-meta">
+                    {t(`Episode ${item.episode}`, `Folge ${item.episode}`)}
+                    {!!status && <> · <span className="pd-status">{status}</span></>}
                 </span>
-                <span className="ps-list-text">
-                    <span className="ps-list-title">{title}</span>
-                    <span className="ps-list-meta">
-                        {t(`Episode ${item.episode}`, `Folge ${item.episode}`)}
-                        {!!status && <> · <span className="pd-status">{status}</span></>}
-                    </span>
-                </span>
-                <time className="ps-list-side" dateTime={new Date(item.airingAt * 1000).toISOString()}>{airingTimeLabel(item.airingAt, german)}</time>
-            </SeaLink>
-        </ContextMenuTrigger>
-    </SeaContextMenu>
+            </span>
+            <time className="ps-list-side" dateTime={new Date(item.airingAt * 1000).toISOString()}>{airingTimeLabel(item.airingAt, german)}</time>
+        </SeaLink>}
+    </PhoneCardMenu>
 })

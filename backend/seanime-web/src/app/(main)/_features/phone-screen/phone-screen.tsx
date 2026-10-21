@@ -230,7 +230,8 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard(props: PhoneCov
     </PhoneCardMenu>
 })
 
-function CoverCardMenuItems({ media, type, title, offline, children }: { media: CardMedia, type: "anime" | "manga", title: string, offline?: boolean, children?: React.ReactNode }) {
+/** A card's long-press menu: its title, Preview (online), the extra items, the plugin items. */
+export function CoverCardMenuItems({ media, type, title, offline, children }: { media: CardMedia, type: "anime" | "manga", title: string, offline?: boolean, children?: React.ReactNode }) {
     const t = useTr()
     const { setPreviewModalMediaId } = useMediaPreviewModal()
     return <ContextMenuGroup>

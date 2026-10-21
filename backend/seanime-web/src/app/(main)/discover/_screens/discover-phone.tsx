@@ -1,11 +1,11 @@
 import { AnilistListAnime_Variables } from "@/api/generated/endpoint.types"
 import { AL_BaseAnime, AL_BaseManga, AL_ListAnime, AL_ListManga, AL_ListRecentAnime } from "@/api/generated/types"
-import { SeaContextMenu } from "@/app/(main)/_features/context-menu/sea-context-menu"
-import { useMediaPreviewModal } from "@/app/(main)/_features/media/_containers/media-preview-modal"
 import {
+    CoverCardMenuItems,
     FORMAT_LABELS,
     MEDIA_STATUS_LABELS,
     offlineAware,
+    PhoneCardMenu,
     PhoneChips,
     PhoneCoverCard,
     PhoneEmpty,
@@ -22,7 +22,6 @@ import {
     useLastData,
     useNearViewport,
 } from "@/app/(main)/_features/phone-screen/phone-screen"
-import { PluginMediaCardContextMenuItems } from "@/app/(main)/_features/plugin/actions/plugin-actions"
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { __discord_pageTypeAtom } from "@/app/(main)/discover/_lib/discover.atoms"
@@ -57,7 +56,6 @@ import { DiscoverPhoneSchedule, scheduleFactsLine } from "@/app/(main)/discover/
 import { ADVANCED_SEARCH_MEDIA_GENRES } from "@/app/(main)/search/_lib/advanced-search-constants"
 import { SeaImage } from "@/components/shared/sea-image"
 import { SeaLink } from "@/components/shared/sea-link"
-import { ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { cn } from "@/components/ui/core/styling"
 import { appLanguageAtom, useTr } from "@/lib/app-language"
 import { anilist_getCurrentEpisodes } from "@/lib/helpers/media"
@@ -68,7 +66,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router"
 import { atom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
 import React from "react"
-import { LuCalendarDays, LuEye, LuSearch } from "react-icons/lu"
+import { LuCalendarDays, LuSearch } from "react-icons/lu"
 import "./discover-phone.css"
 
 type Media = AL_BaseAnime | AL_BaseManga
@@ -447,27 +445,20 @@ const FeatureCard = React.memo(function FeatureCard({ media, type }: { media: Me
     const t = useTr()
     const serverStatus = useServerStatus()
     const offline = !!serverStatus?.isOffline
-    const { setPreviewModalMediaId } = useMediaPreviewModal()
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
     const format = media.format && !(type === "manga" && media.format === "MANGA") ? FORMAT_LABELS[media.format] : undefined
     const meta = [seasonYearLabel(t, media), format ? t(...format) : "", scoreLabel(t, media.meanScore)].filter(Boolean).join(" · ")
     const href = offline ? `/offline/entry/${type}?id=${media.id}` : type === "manga" ? `/manga/entry?id=${media.id}` : `/entry?id=${media.id}`
-    return <SeaContextMenu content={<ContextMenuGroup>
-        <ContextMenuLabel className="text-[--muted] line-clamp-1 py-0 my-2">{title}</ContextMenuLabel>
-        {!offline && <ContextMenuItem onClick={() => setPreviewModalMediaId(media.id, type)}><LuEye /> {t("Preview", "Vorschau")}</ContextMenuItem>}
-        <PluginMediaCardContextMenuItems for={type} media={media} />
-    </ContextMenuGroup>}>
-        <ContextMenuTrigger asChild>
-            {/* data-media-entry-card-body: DOM plugins (the dub badge) mark cards through it, as on MediaEntryCard */}
-            <SeaLink href={href} className="ps-feature" data-discover-feature={media.id} data-media-id={media.id} data-media-mal-id={media.idMal ?? undefined}
-                data-media-type={type} data-media-entry-card-body="true" data-cover-fallback={!media.bannerImage || undefined}>
-                <SeaImage src={getImageUrl(media.bannerImage || media.coverImage?.extraLarge || media.coverImage?.large || "")} alt="" fill sizes="22rem"
-                    className="ps-feature-image" />
-                <span className="ps-feature-title">{title}</span>
-                {!!meta && <span className="ps-feature-meta">{meta}</span>}
-            </SeaLink>
-        </ContextMenuTrigger>
-    </SeaContextMenu>
+    return <PhoneCardMenu content={<CoverCardMenuItems media={media} type={type} title={title} offline={offline} />}>
+        {/* data-media-entry-card-body: DOM plugins (the dub badge) mark cards through it, as on MediaEntryCard */}
+        {trigger => <SeaLink href={href} className="ps-feature" data-discover-feature={media.id} data-media-id={media.id} data-media-mal-id={media.idMal ?? undefined}
+            data-media-type={type} data-media-entry-card-body="true" data-cover-fallback={!media.bannerImage || undefined} {...trigger}>
+            <SeaImage src={getImageUrl(media.bannerImage || media.coverImage?.extraLarge || media.coverImage?.large || "")} alt="" fill sizes="22rem"
+                className="ps-feature-image" />
+            <span className="ps-feature-title">{title}</span>
+            {!!meta && <span className="ps-feature-meta">{meta}</span>}
+        </SeaLink>}
+    </PhoneCardMenu>
 })
 
 /**
