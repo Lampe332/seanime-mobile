@@ -1,6 +1,7 @@
 import { Status } from "@/api/generated/types"
 import { useGettingStarted } from "@/api/hooks/settings.hooks"
 import { useSetServerStatus } from "@/app/(main)/_hooks/use-server-status"
+import { MobileGettingStarted } from "@/app/(main)/_features/getting-started/getting-started-mobile"
 import { GlowingEffect } from "@/components/shared/glowing-effect"
 import { LoadingOverlayWithLogo } from "@/components/shared/loading-overlay-with-logo"
 import { Alert } from "@/components/ui/alert"
@@ -86,13 +87,14 @@ const stepVariants = {
 }
 
 const STEPS = [
-    {
+    // Android has no folder picker; local folders can still be added in the settings
+    ...(!IS_ANDROID_APP ? [{
         id: "library",
         title: "Local Anime Library",
         description: "Choose your anime library folder",
         icon: IoLibraryOutline,
         gradient: "from-blue-500 to-cyan-500",
-    },
+    }] : []),
     // Android uses the built-in player, nothing to configure
     ...(!IS_ANDROID_APP ? [{
         id: "player",
@@ -745,7 +747,55 @@ export function GettingStartedPage({ status }: { status: Status }) {
         }
     }
 
-    if (isPending) return <LoadingOverlayWithLogo />
+    const defaultValues = {
+        mediaPlayerHost: "127.0.0.1",
+        vlcPort: 8080,
+        mpcPort: 13579,
+        defaultPlayer: "mpv",
+        vlcPath: vlcDefaultPath,
+        qbittorrentPath: qbittorrentDefaultPath,
+        qbittorrentHost: "127.0.0.1",
+        qbittorrentPort: 8081,
+        transmissionPath: transmissionDefaultPath,
+        transmissionHost: "127.0.0.1",
+        transmissionPort: 9091,
+        mpcPath: "C:/Program Files/MPC-HC/mpc-hc64.exe",
+        torrentProvider: IS_ANDROID_APP ? "" : DEFAULT_TORRENT_PROVIDER,
+        mpvSocket: mpvSocketPath,
+        iinaSocket: iinaSocketPath,
+        enableRichPresence: false,
+        autoScan: false,
+        enableManga: true,
+        // on Android, online streaming is the main way to watch
+        enableOnlinestream: IS_ANDROID_APP,
+        enableAdultContent: false,
+        enableTorrentStreaming: !IS_ANDROID_APP,
+        enableTranscode: false,
+        debridProvider: "none",
+        debridApiKey: "",
+        nakamaUsername: "",
+        enableWatchContinuity: true,
+    }
+
+    if (isPending && !IS_ANDROID_APP) return <LoadingOverlayWithLogo />
+
+    if (!data && IS_ANDROID_APP) return (
+        <Form
+            schema={gettingStartedSchema}
+            onSubmit={data => mutate(getDefaultSettings({
+                ...data,
+                libraryPath: "",
+                torrentProvider: "",
+                defaultTorrentClient: "none",
+                enableTorrentStreaming: false,
+                debridProvider: "none",
+                debridApiKey: "",
+            }))}
+            defaultValues={defaultValues}
+        >
+            <MobileGettingStarted pending={isPending} />
+        </Form>
+    )
 
     if (!data) return (
         <div className="min-h-screen bg-gradient-to-br from-[--paper] via-[--paper] to-[--paper] relative">
@@ -782,35 +832,7 @@ export function GettingStartedPage({ status }: { status: Status }) {
                             nextStep()
                         }
                     }}
-                    defaultValues={{
-                        mediaPlayerHost: "127.0.0.1",
-                        vlcPort: 8080,
-                        mpcPort: 13579,
-                        defaultPlayer: "mpv",
-                        vlcPath: vlcDefaultPath,
-                        qbittorrentPath: qbittorrentDefaultPath,
-                        qbittorrentHost: "127.0.0.1",
-                        qbittorrentPort: 8081,
-                        transmissionPath: transmissionDefaultPath,
-                        transmissionHost: "127.0.0.1",
-                        transmissionPort: 9091,
-                        mpcPath: "C:/Program Files/MPC-HC/mpc-hc64.exe",
-                        torrentProvider: IS_ANDROID_APP ? "" : DEFAULT_TORRENT_PROVIDER,
-                        mpvSocket: mpvSocketPath,
-                        iinaSocket: iinaSocketPath,
-                        enableRichPresence: false,
-                        autoScan: false,
-                        enableManga: true,
-                        // on Android, online streaming is the main way to watch
-                        enableOnlinestream: IS_ANDROID_APP,
-                        enableAdultContent: false,
-                        enableTorrentStreaming: !IS_ANDROID_APP,
-                        enableTranscode: false,
-                        debridProvider: "none",
-                        debridApiKey: "",
-                        nakamaUsername: "",
-                        enableWatchContinuity: true,
-                    }}
+                    defaultValues={defaultValues}
                 >
                     {(f) => (
                         <div className="space-y-8">
