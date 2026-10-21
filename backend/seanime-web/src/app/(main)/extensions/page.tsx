@@ -1,7 +1,9 @@
 import { usePluginWithIssuesCount } from "@/api/hooks/extensions.hooks"
 import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { __extensions_currentPageAtom, ExtensionList } from "@/app/(main)/extensions/_containers/extension-list"
 import { MarketplaceExtensions } from "@/app/(main)/extensions/_containers/marketplace-extensions"
+import { ExtensionsPhone } from "@/app/(main)/extensions/_screens/extensions-phone"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { StaticTabs } from "@/components/ui/tabs"
 import { useSearchParams } from "@/lib/navigation"
@@ -23,6 +25,9 @@ export default function Page() {
             setPage(tab as "installed" | "marketplace")
         }
     }, [searchParams])
+
+    // Android phones get their own screen; tablets and desktop keep the cards
+    if (isAndroidPhone()) return <ExtensionsPhone />
 
     return (
         <>

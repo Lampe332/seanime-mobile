@@ -1,0 +1,223 @@
+/* Android phone Extensions tab, same language as Home, Downloads, the calendar and the Manga tab: neutral --sm-* surfaces,
+   elevation by one lightness step, the theme colour only on the chosen tab, updates and the one main action per block.
+   Amber and rose mark the two kinds of trouble (needs you / failed). */
+[data-mobile-extensions="true"] {
+    --mex-warning: #f0c47e;
+    --mex-danger-fill: #b8435a;
+    max-width: 72rem; margin-inline: auto; padding: 0 1rem 7rem; display: grid !important; grid-template-columns: minmax(0, 1fr); gap: 1.25rem;
+    color: var(--sm-text); overflow-wrap: anywhere;
+    background: linear-gradient(180deg, rgb(var(--color-brand-500) / .11) 0, rgb(var(--color-brand-500) / .055) 40%, rgb(var(--color-brand-500) / .01) 82%, transparent 100%) top / 100% 32rem no-repeat; /* taste-skill-ignore: the shared phone page tint of Home, Downloads, the calendar and Manga */
+}
+/* The native shell sets block layout and a top padding on every page wrapper (UIHomePatch); two attributes outrank it. */
+[data-mobile-extensions="true"][data-page-wrapper] { display: grid !important; padding-top: 0 !important; }
+/* No black navbar band: the bar continues the page tint, as on Downloads, the calendar and Manga. */
+body:has([data-mobile-extensions="true"]) [data-top-navbar] { height: 3.5rem; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .16), rgb(var(--color-brand-500) / .11)); } /* taste-skill-ignore: same navbar tint as Downloads, the calendar and Manga */
+body:has([data-mobile-extensions="true"]) [data-top-navbar] [data-layout-header-background], body:has([data-mobile-extensions="true"]) [data-top-navbar] [data-layout-header-background-gradient] { display: none; }
+[data-mobile-extensions="true"] button, [data-mobile-extensions="true"] a, .mex-sheet button { -webkit-tap-highlight-color: transparent; }
+[data-mobile-extensions="true"] :is(button, a, input, select):focus-visible, .mex-sheet :is(button, a, input, select):focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+
+/* Head: title and plain 48 dp icon actions on one row (the actions wrap below with large text), the facts line under both. */
+.mex-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 .5rem; padding-top: .25rem; }
+.mex-header-text { display: contents; }
+.mex-header h1 { flex: 1 1 auto; min-width: 0; font-size: min(1.75rem, 11vw); line-height: 1.15; letter-spacing: -.03em; font-weight: 700; color: var(--sm-text); overflow-wrap: normal; }
+.mex-header p { order: 3; flex: 1 1 100%; margin-top: .2rem; font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mex-actions-bar { order: 2; display: flex; align-items: center; margin-left: auto; margin-right: -.5rem; }
+.mex-icon-button { position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px; color: var(--sm-text-muted); font-size: 1.375rem; }
+.mex-icon-button:active, .mex-icon-button[data-state="open"] { background: var(--sm-surface-control); color: var(--sm-text); }
+.mex-icon-button:disabled { opacity: .55; }
+.mex-spin { animation: mex-spin 1s linear infinite; }
+@keyframes mex-spin { to { transform: rotate(360deg); } }
+
+/* Installed / Marketplace: Manga's status tabs, the chosen one in the accent. */
+.mex-tabs { display: flex; gap: .5rem; overflow-x: auto; overscroll-behavior-x: contain; margin-inline: -1rem; padding: 0 1rem; scrollbar-width: none; }
+.mex-tabs::-webkit-scrollbar { display: none; }
+.mex-tabs button, .mex-chips button { position: relative; flex: none; display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 1rem; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; white-space: nowrap; overflow-wrap: normal; }
+.mex-tabs button > span:not(.mex-tab-dot), .mex-chips button span { color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.mex-tabs button[aria-selected="true"], .mex-chips button[aria-selected="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 600; }
+.mex-tabs button[aria-selected="true"] > span:not(.mex-tab-dot), .mex-chips button[aria-selected="true"] span { color: inherit; }
+.mex-tabs button:focus-visible, .mex-chips button:focus-visible { outline-offset: -2px; }
+.mex-tab-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--mex-warning); }
+.mex-panel, .mex-market, .mex-market-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; min-width: 0; }
+
+/* Updates: one quiet block with the list of names and the one action. */
+.mex-updates { display: grid; gap: .875rem; padding: 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); }
+.mex-updates h2 { font-size: 1rem; font-weight: 700; color: var(--sm-text); }
+.mex-updates p { margin-top: .25rem; font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+
+/* Search: a filled field with the clear button inside. */
+.mex-search { position: relative; display: block; min-width: 0; }
+.mex-search > svg { position: absolute; top: 50%; left: 1rem; translate: 0 -50%; font-size: 1.125rem; color: var(--sm-text-subtle); pointer-events: none; }
+.mex-search input { width: 100%; min-height: 48px; padding: .5rem 3rem .5rem 2.75rem; border: 0; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text); font-size: .9375rem; appearance: none; -webkit-appearance: none; }
+.mex-search input::placeholder { color: var(--sm-text-subtle); }
+.mex-search input::-webkit-search-cancel-button { display: none; }
+.mex-search-clear { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px; color: var(--sm-text-muted); font-size: 1.125rem; }
+
+/* Sections: Home's heading with a quiet count (or one text action) on the right. */
+.mex-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; min-width: 0; }
+.mex-section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 .75rem; min-height: 2.25rem; }
+.mex-section-head h2 { font-size: 1.25rem; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; color: var(--sm-text); }
+.mex-section-head > span { font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mex-section-head .mex-text-action { margin-right: -.5rem; }
+.mex-section-note { margin-top: -.25rem; font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+
+/* Lists: grouped rows like the settings sheets, one tap target per extension. */
+.mex-list { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.mex-row, .mex-item { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 4.25rem; background: var(--sm-surface-raised); text-align: start; }
+.mex-row { padding: .75rem .75rem .75rem 1rem; }
+.mex-row:active, .mex-row-main:active { background: var(--sm-surface-control); }
+.mex-row:focus-visible, .mex-row-main:focus-visible, .mex-install:focus-visible { outline-offset: -2px; }
+.mex-list[data-dim] :is(.mex-icon, .mex-row-text) { opacity: .6; }
+.mex-row-main { flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; align-items: center; gap: .875rem; padding: .75rem 0 .75rem 1rem; text-align: start; }
+.mex-row-text { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: .125rem; }
+.mex-row-name { font-size: .9375rem; font-weight: 600; line-height: 1.35; color: var(--sm-text); overflow-wrap: anywhere; }
+.mex-row-desc { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.mex-row-desc[data-lines="2"] { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: break-word; }
+.mex-row-meta { font-size: .75rem; color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.mex-flag { font-size: .75rem; font-weight: 650; color: var(--sm-text-muted); }
+.mex-flag[data-tone="accent"] { color: var(--sm-accent); }
+.mex-flag[data-tone="warning"] { color: var(--mex-warning); }
+.mex-flag[data-tone="danger"] { color: var(--sm-danger); }
+.mex-row-chevron { flex: none; font-size: 1.125rem; color: var(--sm-text-subtle); }
+.mex-install { flex: none; display: grid; place-items: center; width: 48px; height: 48px; margin-right: .5rem; border-radius: 999px; background: var(--sm-accent-soft); color: var(--sm-accent); font-size: 1.25rem; }
+.mex-install:active { background: var(--sm-accent-strong); color: #fff; }
+.mex-install:disabled { opacity: .75; }
+.mex-install[data-installed] { background: transparent; color: var(--sm-text-subtle); }
+
+/* Icons: the extension's own picture on a quiet tile, else its first letter. */
+/* With a large system font the tile stops growing at 14 % of the screen, leaving the room to the name. */
+.mex-icon { position: relative; flex: none; display: grid; place-items: center; width: min(2.75rem, 14vw); height: min(2.75rem, 14vw); overflow: hidden; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); color: var(--sm-text-muted); font-size: 1.125rem; font-weight: 700; }
+.mex-icon[data-large] { width: min(3rem, 15vw); height: min(3rem, 15vw); }
+.mex-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Marketplace: the repository as one row with its two actions, then the type chips, search and language. */
+.mex-source { display: flex; align-items: center; gap: .25rem; min-height: 4.25rem; padding: .5rem .5rem .5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); }
+.mex-source-text { flex: 1 1 auto; min-width: 0; display: grid; gap: .0625rem; }
+.mex-source-text > span { font-size: .75rem; color: var(--sm-text-subtle); }
+.mex-source-text strong { font-size: .9375rem; font-weight: 600; color: var(--sm-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.mex-source-text small { font-size: .75rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mex-filters { display: grid; gap: .75rem; min-width: 0; }
+.mex-chips { display: flex; gap: .5rem; overflow-x: auto; overscroll-behavior-x: contain; margin-inline: -1rem; padding: 0 1rem; scrollbar-width: none; }
+.mex-chips::-webkit-scrollbar { display: none; }
+.mex-filter-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+.mex-filter-row .mex-search { flex: 1 1 12rem; }
+.mex-select-wrap { position: relative; display: block; flex: 1 1 9rem; min-width: 0; }
+.mex-select { width: 100%; min-height: 48px; padding: .5rem 2.75rem .5rem 1rem; border: 0; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text); font-size: .9375rem; appearance: none; -webkit-appearance: none; text-overflow: ellipsis; }
+.mex-select-wrap svg { position: absolute; top: 50%; right: 1rem; translate: 0 -50%; font-size: 1.125rem; color: var(--sm-text-muted); pointer-events: none; }
+
+/* Blocks inside the page and the sheets: what needs doing, with its actions underneath. */
+.mex-block { display: grid; gap: .5rem; padding: 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); }
+.mex-block h3 { font-size: 1rem; font-weight: 700; line-height: 1.35; color: var(--sm-text); }
+.mex-block[data-tone="warning"] h3 { color: var(--mex-warning); }
+.mex-block[data-tone="danger"] h3 { color: var(--sm-danger); }
+.mex-block p { font-size: .875rem; line-height: 1.5; color: var(--sm-text-muted); }
+.mex-block-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .375rem; }
+/* Side by side while both labels fit on one line, else one below the other. */
+.mex-block-actions > * { flex: 1 1 max-content; min-width: 0; }
+.mex-block-actions > .mex-primary { flex-grow: 2; }
+.mex-warning { font-size: .8125rem; line-height: 1.5; color: var(--mex-warning) !important; }
+.mex-permissions { display: grid; gap: .5rem; padding: .75rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); font-size: .875rem; line-height: 1.5; }
+.mex-permissions li { display: grid; gap: .0625rem; color: var(--sm-text-muted); }
+.mex-permissions strong { font-weight: 650; color: var(--sm-text); }
+.mex-permissions li[data-kind="warning"] { font-weight: 600; color: var(--mex-warning); }
+.mex-code { max-height: 12rem; overflow: auto; padding: .75rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); color: var(--sm-danger); font: .75rem/1.5 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mex-path { font-size: .75rem !important; color: var(--sm-text-subtle) !important; overflow-wrap: anywhere; }
+
+/* Buttons: one filled pill per block, quiet fills for the rest. */
+.mex-primary, .mex-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 48px; padding: .25rem 1.25rem; border-radius: 999px; font-size: .9375rem; font-weight: 650; text-align: center; }
+.mex-primary { background: rgb(var(--color-brand-500)); color: #fff; }
+.mex-primary:active { background: rgb(var(--color-brand-600)); }
+.mex-primary[data-tone="danger"] { background: var(--mex-danger-fill); }
+.mex-secondary { background: var(--sm-surface-control); color: var(--sm-text); font-weight: 600; }
+.mex-primary:disabled, .mex-secondary:disabled { opacity: .5; }
+.mex-primary svg, .mex-secondary svg { flex: none; font-size: 1.125rem; }
+.mex-text-action { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 .5rem; font-size: .9375rem; font-weight: 600; color: var(--sm-accent); white-space: nowrap; overflow-wrap: normal; }
+
+/* States: the final layout as flat blocks while loading; empty and failed blocks keep the frame and say what to do. */
+.mex-loading { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+.mex-bone { display: block; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); }
+.mex-bone-head { width: 9rem; height: 1.75rem; margin-top: .5rem; }
+.mex-bone-row { height: 4.25rem; }
+.mex-notice { display: grid; gap: .25rem; padding: 1rem 1rem .25rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); font-size: .9375rem; line-height: 1.5; color: var(--sm-text); }
+.mex-notice-actions { display: flex; flex-wrap: wrap; gap: 0 1rem; margin-inline: -.5rem; }
+.mex-empty { display: grid; justify-items: center; gap: .375rem; padding: 1.5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); text-align: center; }
+.mex-empty p:first-child { font-size: .9375rem; font-weight: 600; color: var(--sm-text); }
+.mex-empty p + p { max-width: 22rem; font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.mex-empty .mex-primary, .mex-empty .mex-secondary { margin-top: .5rem; }
+
+/* Menu: the app's dropdown on the phone surfaces. */
+.mex-menu { min-width: 12rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); color: var(--sm-text); }
+.mex-menu [role="menuitem"] { min-height: 48px; gap: .75rem; }
+
+/* Sheets: a bottom sheet like the calendar's and Manga's; `body` outranks the native shell's .UI-Modal__content rules. */
+body .mex-sheet.UI-Modal__content {
+    display: grid !important; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-self: end; margin-bottom: 8px;
+    width: calc(100% - 16px) !important; max-width: 32rem !important; max-height: calc(100svh - 16px) !important; overflow-y: auto !important; overscroll-behavior: contain;
+    padding: 20px 16px 12px !important; border: 0; border-radius: var(--sm-radius-lg); background: var(--sm-surface); color: var(--sm-text); overflow-wrap: anywhere;
+}
+.mex-sheet .UI-Modal__header { text-align: start; padding-right: 3rem; }
+.mex-sheet .UI-Modal__title { font-size: 1.375rem !important; line-height: 1.25; font-weight: 750; letter-spacing: -.02em; overflow-wrap: break-word; }
+.mex-sheet .UI-Modal__close { top: .5rem; right: .5rem; width: 48px; height: 48px; border-radius: 999px; background: transparent; }
+.mex-sheet-title { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.mex-sheet-title > span:last-child { min-width: 0; font-size: 1.25rem; }
+.mex-sheet-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.mex-sheet-body[aria-busy="true"] .mex-actions { opacity: .6; }
+.mex-sheet-meta { margin-top: -.5rem; font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mex-sheet-note { font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.mex-sheet-group { display: grid; gap: .625rem; }
+.mex-sheet-group h3 { font-size: 1rem; font-weight: 700; }
+.mex-description { font-size: .9375rem; line-height: 1.55; color: var(--sm-text); }
+.mex-notes { display: grid; gap: .25rem; }
+.mex-notes h3 { font-size: .875rem; font-weight: 700; }
+.mex-notes p { font-size: .875rem; line-height: 1.5; color: var(--sm-text-muted); white-space: pre-wrap; tab-size: 4; }
+.mex-note { padding: .75rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); font-size: .875rem; line-height: 1.5; color: var(--sm-text-muted); }
+
+/* Action list: grouped rows with an icon, the label and a note, a chevron where the row leads on. */
+.mex-actions { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.mex-action { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 3.25rem; padding: .5rem 1rem; background: var(--sm-surface-raised); text-align: start; font-size: .9375rem; color: var(--sm-text); }
+.mex-action:active { background: var(--sm-surface-control); }
+.mex-action:focus-visible { outline-offset: -2px; }
+.mex-action:disabled { opacity: .55; }
+.mex-action-icon { flex: none; display: grid; place-items: center; width: 1.5rem; font-size: 1.25rem; color: var(--sm-text-muted); }
+.mex-action-text { flex: 1 1 auto; min-width: 0; display: grid; gap: .0625rem; }
+.mex-action-text small { font-size: .8125rem; line-height: 1.4; color: var(--sm-text-muted); }
+.mex-action-chevron { flex: none; font-size: 1.125rem; color: var(--sm-text-subtle); }
+.mex-action[data-tone="danger"], .mex-action[data-tone="danger"] .mex-action-icon { color: var(--sm-danger); }
+.mex-action[data-tone="warning"] small { color: var(--mex-warning); font-weight: 600; }
+
+/* Facts: label left, value right; long IDs and links wrap instead of widening the sheet. */
+.mex-facts { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.mex-facts > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .125rem 1rem; padding: .75rem 1rem; background: var(--sm-surface-raised); }
+.mex-facts dt { font-size: .8125rem; color: var(--sm-text-muted); }
+.mex-facts dd { min-width: 0; margin-left: auto; font-size: .875rem; text-align: end; color: var(--sm-text); overflow-wrap: anywhere; user-select: text; }
+.mex-sheet-actions { position: sticky; bottom: -12px; z-index: 1; display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 -16px -12px; padding: .75rem 16px 12px; background: var(--sm-surface); }
+.mex-sheet-actions > * { flex: 1 1 max-content; min-width: 0; }
+.mex-sheet-actions > .mex-primary { flex-grow: 2; }
+.mex-sheet-actions :is(.mex-primary, .mex-secondary) { min-height: 52px; }
+.mex-installed { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 48px; font-size: .9375rem; font-weight: 600; color: var(--sm-text-muted); }
+
+/* Link fields: a filled input with the paste button inside. */
+.mex-field { display: grid; gap: .375rem; }
+.mex-field label { font-size: .8125rem; font-weight: 600; color: var(--sm-text-muted); }
+.mex-input-wrap { position: relative; display: block; }
+.mex-input-wrap input { width: 100%; min-height: 52px; padding: .5rem 3.5rem .5rem 1rem; border: 0; border-radius: var(--sm-radius); background: var(--sm-surface-raised); color: var(--sm-text); font-size: .9375rem; }
+.mex-input-wrap input::placeholder { color: var(--sm-text-subtle); }
+.mex-input-wrap input[aria-invalid="true"] { box-shadow: inset 0 0 0 1.5px var(--sm-danger); } /* taste-skill-ignore: marks the field with the error */
+.mex-paste { position: absolute; top: 50%; right: .125rem; translate: 0 -50%; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px; color: var(--sm-text-muted); font-size: 1.25rem; }
+.mex-paste:active { background: var(--sm-surface-control); color: var(--sm-text); }
+.mex-field-error { font-size: .8125rem; color: var(--sm-danger); }
+.mex-found { display: grid; gap: .75rem; padding: 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); }
+.mex-found > p { font-size: .875rem; line-height: 1.5; color: var(--sm-text-muted); }
+.mex-found-head, .mex-mini-list li { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.mex-found-head > span, .mex-mini-list li > span:last-child { display: grid; min-width: 0; }
+.mex-found-head strong, .mex-mini-list strong { font-size: .9375rem; font-weight: 600; color: var(--sm-text); }
+.mex-found-head small, .mex-mini-list small { font-size: .75rem; color: var(--sm-text-muted); }
+.mex-mini-list { display: grid; gap: 2px; max-height: 18rem; overflow-y: auto; overscroll-behavior: contain; border-radius: var(--sm-radius); }
+.mex-mini-list li { padding: .625rem 1rem; background: var(--sm-surface-raised); }
+
+@media (max-width: 359px) {
+    [data-mobile-extensions="true"] { padding-inline: .75rem; }
+    .mex-tabs, .mex-chips { margin-inline: -.75rem; padding-inline: .75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mex-spin { animation-duration: 3s; }
+}
