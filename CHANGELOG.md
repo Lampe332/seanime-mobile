@@ -2,6 +2,12 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.25 — 21.10.2026 (versionCode 31076)
+
+- 🎉 Calendar: A week view lists the episodes of the next 7 days on the phone
+- ⚡️ Calendar: Redesigned the phone calendar with filters in a bottom sheet, a cleaner month grid and German date names
+- 🦺 Calendar: "All anime" now shows upcoming episodes for today and future days instead of only already aired ones or an error
+
 ## 1.9.24 — 21.10.2026 (versionCode 31075)
 
 - 🦺 Tutorial: The Manga tab in the last step can be tapped again, followed by a step to install a manga source
