@@ -1321,6 +1321,12 @@ object UIBottomNav {
                                 });
                             }
                         });
+                        // A dialog can be unmounted while still "open" (its page re-renders), without a closing state change.
+                        m.removedNodes.forEach(function(node) {
+                            if (node.nodeType !== 1) return;
+                            if (node.matches('[data-vaul-drawer], .UI-Drawer__content, .UI-Modal__overlay, .UI-Modal__content') ||
+                                node.querySelector('[data-vaul-drawer], .UI-Drawer__content, .UI-Modal__overlay, .UI-Modal__content')) needsCheck = true;
+                        });
                     });
                     if (needsCheck) updateNavVisibility();
                 }).observe(document.body, { childList: true, subtree: true });
