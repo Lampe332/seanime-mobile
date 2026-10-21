@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import type { AL_ListRecentAnime } from "@/api/generated/types"
-import { fetchGlobalScheduleDay } from "./global-schedule"
+import { fetchGlobalScheduleDay, fetchGlobalScheduleRange } from "./global-schedule"
 
 const row = (id: number, mediaId = id, airingAt = new Date("2026-10-15T12:00:00Z").getTime() / 1000) => ({ id, airingAt, episode: 3, media: { id: mediaId, type: "ANIME", format: "TV", episodes: 12, title: { userPreferred: `Anime ${mediaId}` }, coverImage: { large: "cover.jpg" } } })
 const page = (rows: ReturnType<typeof row>[], hasNextPage = false) => ({ Page: { airingSchedules: rows, pageInfo: { hasNextPage } } }) as unknown as AL_ListRecentAnime
@@ -70,6 +70,14 @@ describe("global calendar day", () => {
         const result = await fetchGlobalScheduleDay("2026-10-21", fetch, undefined, true, today.getTime())
         expect(fetch.mock.calls.map(call => call[0].notYetAired)).toEqual([false, true])
         expect(result.map(item => item.mediaId)).toEqual([1, 2])
+    })
+    it("loads a whole range in one pass for the month counts", async () => {
+        const at = (day: number) => new Date(2026, 9, day, 12).getTime() / 1000
+        const fetch = vi.fn().mockResolvedValue(page([row(1, 1, at(3)), row(2, 2, at(3)), row(3, 3, at(20)), row(4, 4, at(40))]))
+        const result = await fetchGlobalScheduleRange(new Date(2026, 9, 1), new Date(2026, 10, 1), fetch, undefined, true, new Date(2026, 11, 1).getTime())
+        expect(fetch).toHaveBeenCalledTimes(1)
+        expect(fetch.mock.calls[0][0]).toMatchObject({ airingAt_greater: new Date(2026, 9, 1).getTime() / 1000 - 1, airingAt_lesser: new Date(2026, 10, 1).getTime() / 1000, notYetAired: false })
+        expect(result.map(item => item.mediaId)).toEqual([1, 2, 3])
     })
     it("treats a page without airing rows as an empty day", async () => {
         const empty = { Page: { pageInfo: { hasNextPage: false } } } as unknown as AL_ListRecentAnime

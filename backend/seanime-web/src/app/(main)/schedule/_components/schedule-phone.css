@@ -57,11 +57,12 @@ body:has([data-mobile-schedule-page="true"]) [data-top-navbar] [data-layout-head
 
 /* All anime: a strip of the seven days. */
 .msc-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; }
-.msc-strip button { display: grid; justify-items: center; gap: .125rem; min-height: 4rem; padding: .5rem 0; border-radius: var(--sm-radius-sm); font-size: .75rem; color: var(--sm-text-muted); }
+.msc-strip button { display: grid; justify-items: center; gap: .125rem; min-height: 4.75rem; padding: .5rem 0; border-radius: var(--sm-radius-sm); font-size: .75rem; color: var(--sm-text-muted); }
 .msc-strip-day { font-size: 1.0625rem; font-weight: 650; color: var(--sm-text); font-variant-numeric: tabular-nums; }
 .msc-strip button[aria-current="date"] .msc-strip-day { color: var(--sm-accent); }
 .msc-strip button[aria-pressed="true"] { background: rgb(var(--color-brand-500)); color: rgb(255 255 255 / .85); }
 .msc-strip button[aria-pressed="true"] .msc-strip-day { color: #fff; }
+.msc-strip button[aria-pressed="true"] .msc-day-count { color: rgb(255 255 255 / .85); }
 
 /* Month grid: days with episodes sit one step lighter; today in the accent, the selected day filled. */
 .msc-month { display: grid; gap: .25rem; }

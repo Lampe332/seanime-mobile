@@ -8,7 +8,11 @@ type PageRequest = { page: number, perPage: number, airingAt_greater: number, ai
 export async function fetchGlobalScheduleDay(date: string, fetchPage: (variables: PageRequest) => Promise<AL_ListRecentAnime | undefined>, signal?: AbortSignal, hideAdult = true, now = Date.now()): Promise<Anime_ScheduleItem[]> {
     const start = startOfDay(parseISO(date))
     if (!isValid(start)) throw new Error(tr("Invalid calendar date", "Ungültiges Kalenderdatum"))
-    const end = addDays(start, 1)
+    return fetchGlobalScheduleRange(start, addDays(start, 1), fetchPage, signal, hideAdult, now)
+}
+
+/** Every airing between two local midnights (end exclusive), e.g. a month grid for its day counts. */
+export async function fetchGlobalScheduleRange(start: Date, end: Date, fetchPage: (variables: PageRequest) => Promise<AL_ListRecentAnime | undefined>, signal?: AbortSignal, hideAdult = true, now = Date.now()): Promise<Anime_ScheduleItem[]> {
     const rows = new Map<number, Anime_ScheduleItem>()
     const seen = new Set<number>()
     // AniList's notYetAired filter splits a day at "now": past days need false, future days true, today both.

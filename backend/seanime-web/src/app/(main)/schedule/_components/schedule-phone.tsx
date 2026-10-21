@@ -10,6 +10,7 @@ import { useAtom, useAtomValue } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import React from "react"
 import { LuCheck, LuChevronLeft, LuChevronRight, LuSlidersHorizontal } from "react-icons/lu"
+import { useGlobalScheduleCounts } from "../_lib/use-global-schedule"
 import type { CalendarDayItem, CalendarEvent, StatusFilter } from "./schedule-calendar"
 import "@/components/shared/mobile-surface.css"
 import "./schedule-phone.css"
@@ -50,6 +51,11 @@ export function PhoneSchedule(props: PhoneScheduleProps) {
 
     const firstDay = addDays(startOfDay(new Date()), weekOffset * 7)
     const week = Array.from({ length: 7 }, (_, i) => addDays(firstDay, i))
+    // All anime loads one day at a time; the grid and the strip get their per-day counts from one range query
+    const gridStart = parseISO(days[0].date)
+    const countsRange = view === "month" ? [gridStart, addDays(parseISO(days[days.length - 1].date), 1)] : [firstDay, addDays(firstDay, 7)]
+    const { data: allCounts, isLoading: countsLoading } = useGlobalScheduleCounts(countsRange[0], countsRange[1], isAllAnime)
+    const countIn = (dates: string[]) => dates.reduce((n, date) => n + (allCounts?.[date] ?? 0), 0)
     const weekEvents = isAllAnime ? [] : week.map(day => ({ day, events: eventsOn(day) }))
     const weekCount = weekEvents.reduce((n, d) => n + d.events.length, 0)
     const monthCount = days.filter(d => d.isCurrentMonth).reduce((n, d) => n + d.events.length, 0)
@@ -59,9 +65,14 @@ export function PhoneSchedule(props: PhoneScheduleProps) {
         : format(day, german ? "EEEE, d. MMMM" : "EEEE, MMMM d", locale)
     const range = `${format(week[0], german ? "d. MMM" : "MMM d", locale)} – ${format(week[6], german ? "d. MMM" : "MMM d", locale)}`
 
-    const facts = isAllAnime ? t("All anime on AniList", "Alle Anime auf AniList")
+    const weekLabel = weekOffset === 0 ? t("next 7 days", "nächste 7 Tage") : range
+    const facts = isAllAnime
+        ? countsLoading ? t("Counting episodes on AniList…", "Folgen auf AniList werden gezählt …")
+            : !allCounts ? t("All anime on AniList", "Alle Anime auf AniList")
+                : view === "week" ? `${episodes(countIn(week.map(d => format(d, "yyyy-MM-dd"))))} · ${weekLabel}`
+                    : `${episodes(countIn(days.filter(d => d.isCurrentMonth).map(d => d.date)))} · ${format(currentDate, "MMMM", locale)}`
         : loading ? t("Loading…", "Lädt …")
-            : view === "week" ? `${episodes(weekCount)} · ${weekOffset === 0 ? t("next 7 days", "nächste 7 Tage") : range}`
+            : view === "week" ? `${episodes(weekCount)} · ${weekLabel}`
                 : `${episodes(monthCount)} · ${format(currentDate, "MMMM", locale)}`
 
     const statusSummary = isAllAnime ? t("All anime, regardless of your list", "Alle Anime, unabhängig von deiner Liste")
@@ -120,7 +131,7 @@ export function PhoneSchedule(props: PhoneScheduleProps) {
             </div>
 
             {isAllAnime ? <>
-                <DayStrip week={week} selectedDate={selectedDate} onSelect={props.onSelectDate} locale={locale} />
+                <DayStrip week={week} selectedDate={selectedDate} onSelect={props.onSelectDate} locale={locale} counts={allCounts} />
                 {status ?? <DayList title={dayTitle(parseISO(selectedDate))} events={eventsOn(parseISO(selectedDate))}
                     indicateWatched={props.indicateWatched} episodes={episodes} />}
             </> : status ?? (weekCount === 0
@@ -137,7 +148,7 @@ export function PhoneSchedule(props: PhoneScheduleProps) {
                 <button type="button" className="msc-icon-button" aria-label={t("Next month", "Nächster Monat")} onClick={() => goMonth(startOfMonth(addMonths(currentDate, 1)))}><LuChevronRight aria-hidden /></button>
                 {!isSameMonth(currentDate, new Date()) && <button type="button" className="msc-text-action" onClick={toToday}>{t("Today", "Heute")}</button>}
             </div>
-            <MonthGrid days={days} selected={selected.date} weekStartsOn={props.weekStartsOn} allAnime={isAllAnime} onSelect={selectDay} />
+            <MonthGrid days={days} selected={selected.date} weekStartsOn={props.weekStartsOn} counts={isAllAnime ? allCounts ?? {} : undefined} onSelect={selectDay} />
             {status ?? <DayList title={dayTitle(parseISO(selected.date))} today={selected.isToday} events={selected.events}
                 indicateWatched={props.indicateWatched} episodes={episodes} showEmpty />}
         </section>}
@@ -146,19 +157,21 @@ export function PhoneSchedule(props: PhoneScheduleProps) {
     </div>
 }
 
-function DayStrip({ week, selectedDate, onSelect, locale }: { week: Date[], selectedDate: string, onSelect: (date: string) => void, locale?: { locale: Locale } }) {
+function DayStrip({ week, selectedDate, onSelect, locale, counts }: { week: Date[], selectedDate: string, onSelect: (date: string) => void, locale?: { locale: Locale }, counts?: Record<string, number> }) {
     return <div className="msc-strip" role="group">
         {week.map(day => {
             const date = format(day, "yyyy-MM-dd")
-            return <button key={date} type="button" aria-pressed={date === selectedDate} aria-current={isToday(day) ? "date" : undefined} onClick={() => onSelect(date)} data-schedule-date={date}>
+            return <button key={date} type="button" aria-pressed={date === selectedDate} aria-current={isToday(day) ? "date" : undefined} onClick={() => onSelect(date)} data-schedule-date={date} data-event-count={counts?.[date]}>
                 <span>{format(day, "EEEEEE", locale)}</span>
                 <span className="msc-strip-day">{format(day, "d")}</span>
+                <span className="msc-day-count">{counts?.[date] || ""}</span>
             </button>
         })}
     </div>
 }
 
-function MonthGrid({ days, selected, weekStartsOn, allAnime, onSelect }: { days: CalendarDayItem[], selected: string, weekStartsOn: number, allAnime: boolean, onSelect: (date: string) => void }) {
+/** `counts` replaces the per-day events for All anime, which loads only the chosen day's episodes. */
+function MonthGrid({ days, selected, weekStartsOn, counts, onSelect }: { days: CalendarDayItem[], selected: string, weekStartsOn: number, counts?: Record<string, number>, onSelect: (date: string) => void }) {
     const t = useTr()
     const names = t("Mo Tu We Th Fr Sa Su", "Mo Di Mi Do Fr Sa So").split(" ")
     const labels = weekStartsOn === 0 ? [names[6], ...names.slice(0, 6)] : names
@@ -166,14 +179,14 @@ function MonthGrid({ days, selected, weekStartsOn, allAnime, onSelect }: { days:
         <div className="msc-weekdays" aria-hidden>{labels.map(label => <span key={label}>{label}</span>)}</div>
         <div className="msc-grid" role="group" aria-label={t("Days of the month", "Tage im Monat")}>
             {days.map(day => {
-                const count = day.events.length
+                const count = counts ? counts[day.date] ?? 0 : day.events.length
                 return <button key={day.date} type="button" onClick={() => onSelect(day.date)}
                     aria-pressed={day.date === selected} aria-current={day.isToday ? "date" : undefined}
-                    aria-label={`${format(parseISO(day.date), "dd.MM.yyyy")}${allAnime ? "" : `, ${count} ${t("episodes", "Folgen")}`}${day.isToday ? t(", today", ", heute") : ""}`}
-                    className={cn("msc-day", !day.isCurrentMonth && "msc-day-outside", count > 0 && !allAnime && "msc-day-busy")}
+                    aria-label={`${format(parseISO(day.date), "dd.MM.yyyy")}, ${count} ${t("episodes", "Folgen")}${day.isToday ? t(", today", ", heute") : ""}`}
+                    className={cn("msc-day", !day.isCurrentMonth && "msc-day-outside", count > 0 && "msc-day-busy")}
                     data-schedule-date={day.date} data-event-count={count}>
                     <span>{Number(day.date.slice(-2))}</span>
-                    {!allAnime && <span className="msc-day-count">{count > 0 ? count : ""}</span>}
+                    <span className="msc-day-count">{count > 0 ? count : ""}</span>
                 </button>
             })}
         </div>
@@ -223,8 +236,8 @@ function FilterSheet(props: PhoneScheduleProps & { open: boolean, onOpenChange: 
                     <button key={value} type="button" role="radio" aria-checked={props.source === value} onClick={() => props.onSource(value)} data-schedule-source={value}>{label}</button>)}
             </div>
 
-            {isAllAnime ? <p className="msc-sheet-note">{t("Every episode AniList knows for a day, regardless of your list. Pick a day to load its airing times.",
-                    "Alle bei AniList erfassten Folgen eines Tages, unabhängig von deiner Liste. Tag wählen, um die Sendezeiten zu laden.")}</p>
+            {isAllAnime ? <p className="msc-sheet-note">{t("Every episode AniList knows, regardless of your list. The calendar shows how many air each day; pick a day to see them.",
+                    "Alle bei AniList erfassten Folgen, unabhängig von deiner Liste. Der Kalender zeigt, wie viele pro Tag laufen; Tag antippen, um sie zu sehen.")}</p>
                 : <div className="msc-sheet-group">
                     <div className="msc-sheet-head">
                         <h3>{t("Statuses", "Status")}</h3>
