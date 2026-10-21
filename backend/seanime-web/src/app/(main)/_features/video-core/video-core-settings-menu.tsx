@@ -562,7 +562,7 @@ export function VideoCoreSettingsMenu() {
                             onValueChange={(v: number) => {
                                 handleSubtitleDelayChange(v)
                             }}
-                            value={[-2.0, -1.0, -0.5, 0, 0.5, 0.1, 2.0].includes(editedSubtitleDelay) ? editedSubtitleDelay : null}
+                            value={[-2.0, -1.0, -0.5, 0, 0.5, 1.0, 2.0].includes(editedSubtitleDelay) ? editedSubtitleDelay : null}
                         />
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Playback Speed" label={phoneLabel("Playback speed", "Geschwindigkeit")} icon={MdSpeed}>
