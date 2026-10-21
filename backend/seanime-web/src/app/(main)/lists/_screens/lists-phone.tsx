@@ -245,6 +245,7 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
     }
 
     const entries = React.useMemo(() => shown.find(list => list.key === status)?.entries ?? [], [shown, status])
+    const gridQuery = React.useMemo(() => JSON.stringify([searchKey, filters]), [searchKey, filters])
     const facts = React.useMemo(() => getListFacts(type, lists, now, unreadOf), [type, lists, now, unreadOf])
     const activeFilters = countActiveFilters(type, filters, showAdult)
     const selectedTab = tabs.find(tab => tab.value === status)
@@ -269,13 +270,13 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
     }, [status, tabs.length])
 
     // Buttons that leave with their state (Reset, a list switch) hand the focus to the chosen tab instead of the page.
-    const chosenTab = () => controlsRef.current?.querySelector<HTMLElement>("[data-lists-status-tabs] [aria-selected=\"true\"]")
-    const focusTabs = () => requestAnimationFrame(() => chosenTab()?.focus())
+    const focusTabs = () => requestAnimationFrame(() => chosenTab(controlsRef.current)?.focus())
     // From the end of a long grid back to the lists: the bottom bar's tab does not scroll up and the pills are not sticky.
-    const toTop = () => {
+    // Stable, so typing in the search does not render the memoized grid again.
+    const toTop = React.useCallback(() => {
         controlsRef.current?.scrollIntoView({ block: "start" })
-        chosenTab()?.focus({ preventScroll: true })
-    }
+        chosenTab(controlsRef.current)?.focus({ preventScroll: true })
+    }, [])
 
     // Long-press actions stay stable for the memoized cards.
     const router = useRouter()
@@ -385,7 +386,7 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
                     </PhoneEmpty>
                     : <div id="pl-grid" role="tabpanel" aria-label={selectedTab ? t(...selectedTab.label) : undefined}>
                         {entries.length > 0
-                            ? <CoverGrid key={`${status}|${sort}`} type={type} status={status} entries={entries} now={now} offline={offline} blurAdult={blurAdult}
+                            ? <CoverGrid key={`${status}|${sort}`} type={type} status={status} query={gridQuery} entries={entries} now={now} offline={offline} blurAdult={blurAdult}
                                 canStream={type === "anime" && hasStreamingEnabled} libraryOf={libraryOf} showUnwatched={type === "anime" && !!ts.showAnimeUnwatchedCount}
                                 unreadOf={unreadOf} onContinue={onContinue} onPlaylist={onPlaylist} onTop={toTop} />
                             // Hits in another list: say where they are and go there; none at all: say so and reset.
@@ -414,6 +415,8 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
     </>
 }
 
+const chosenTab = (controls: HTMLElement | null) => controls?.querySelector<HTMLElement>("[data-lists-status-tabs] [aria-selected=\"true\"]")
+
 /** The active sheet filters by name, for the line above the grid. */
 function activeFilterNames(t: Translate, type: ListType, filters: ListsFilters, showAdult: boolean) {
     const named = (labels: Record<string, [string, string]>, value: string) => t(...(labels[value] ?? [value, value]))
@@ -431,6 +434,8 @@ function activeFilterNames(t: Translate, type: ListType, filters: ListsFilters, 
 type GridProps = {
     type: ListType
     status: string | null
+    /** The search and filters the entries answer; a new one starts again at the first page */
+    query: string
     entries: ListEntry[]
     now: number
     offline: boolean
@@ -447,11 +452,16 @@ type GridProps = {
 
 /**
  * The chosen list as covers, 60 at a time: the next ones render while the end of the grid comes near. A long list keeps only
- * the cards near the screen, as the desktop's lazy grid does.
+ * the cards near the screen, as the desktop's lazy grid does. Memoized, so a keystroke in the search leaves it alone until its
+ * result is there.
  */
-function CoverGrid({ type, status, entries, now, offline, blurAdult, canStream, libraryOf, showUnwatched, unreadOf, onContinue, onPlaylist, onTop }: GridProps) {
+const CoverGrid = React.memo(function CoverGrid({ type, status, query, entries, now, offline, blurAdult, canStream, libraryOf, showUnwatched, unreadOf, onContinue, onPlaylist, onTop }: GridProps) {
     const t = useTr()
-    const [limit, setLimit] = React.useState(PAGE)
+    // A new search or filter shows its hits from the first page again: after a long scroll, each result of a typed search
+    // rendered every page scrolled so far (950 cells), which held the keyboard up to 300 ms at phone speed.
+    const [paging, setPaging] = React.useState({ query, limit: PAGE })
+    if (paging.query !== query) setPaging({ query, limit: PAGE })
+    const limit = paging.query === query ? paging.limit : PAGE
     const endRef = React.useRef<HTMLDivElement>(null)
     const more = limit < entries.length
     // A new observer per page: its first report is where the end is after this page's layout, so a render never chains into the
@@ -459,13 +469,14 @@ function CoverGrid({ type, status, entries, now, offline, blurAdult, canStream, 
     React.useEffect(() => {
         const end = endRef.current
         if (!end || !more) return
-        if (typeof IntersectionObserver === "undefined") return void setLimit(entries.length)
+        const grow = (to: number) => setPaging(current => current.query === query ? { query, limit: Math.max(current.limit, to) } : current)
+        if (typeof IntersectionObserver === "undefined") return void grow(entries.length)
         const observer = new IntersectionObserver(items => {
-            if (items.some(item => item.isIntersecting)) setLimit(current => Math.max(current, limit + PAGE))
+            if (items.some(item => item.isIntersecting)) grow(limit + PAGE)
         }, { rootMargin: "1200px 0px" })
         observer.observe(end)
         return () => observer.disconnect()
-    }, [limit, more, entries.length])
+    }, [limit, more, entries.length, query])
     const keep = useKeepNear()
     const windowed = !!keep && entries.length > PAGE
 
@@ -488,7 +499,7 @@ function CoverGrid({ type, status, entries, now, offline, blurAdult, canStream, 
             <LuArrowUp aria-hidden />{t("Back to top", "Nach oben")}
         </button>}
     </>
-}
+})
 
 type KeepNear = (element: Element, onChange: (near: boolean) => void) => () => void
 

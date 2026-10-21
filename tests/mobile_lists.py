@@ -511,6 +511,12 @@ with tempfile.TemporaryDirectory(prefix='seanime-lists-') as tmp:
               and p.locator('[data-phone-card="1000"]').count()==0 and p.evaluate('parseFloat(document.querySelector("[data-lists-grid] .pl-cell").style.height)')>150)
         p.locator('[data-lists-top]').click();p.wait_for_timeout(500)
         check('Back at the top the first covers return',p.locator('[data-phone-card="1000"]').count()==1)
+        # stress_lists.py: with 950 cells each result of a typed search rendered them all again.
+        p.locator('[data-lists-search]').fill('completed 0');p.wait_for_timeout(400)
+        check('A new search starts at the first page of its hits, not with every page scrolled before',p.evaluate(CELLS)==60
+              and p.evaluate(TITLES)[0]=='Completed 0000')
+        p.locator('[data-lists-search]').fill('');p.wait_for_timeout(400)
+        check('…and so does clearing it',p.evaluate(CELLS)==60 and p.locator('[data-phone-card="1000"]').count()==1)
         p.close()
 
         # A stuck tag search, singular labels, translated refresh errors, duplicate score buckets

@@ -11,6 +11,8 @@ const stubbed = ['@/api/client/requests','@tanstack/react-query','@/api/hooks/an
 '@/app/(main)/_features/anime-library/_containers/custom-library-banner','@/app/(main)/lists/_containers/anilist-collection-lists',
 '@/app/(main)/_features/plugin/actions/plugin-actions','@/app/(main)/_atoms/playback.atoms','@/app/(main)/_features/playlists/lib/playlist-editor-manager',
 '@/app/(main)/manga/_lib/handle-manga-collection','sonner'];
-build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_lists_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
+// --production: React's production build, minified, as the app ships it (stress_lists.py times it).
+const production=process.argv.includes('--production');
+build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_lists_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',minify:production,define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}',...(production?{'process.env.NODE_ENV':'"production"'}:{})},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
 if(stubbed.includes(a.path)&&a.importer!==stub)return {path:stub};
 })}}]}).catch(e=>{console.error(e);process.exit(1)});
