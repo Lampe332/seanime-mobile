@@ -363,6 +363,11 @@ function DiscoverRow<T>({ block, hook, title, qualifier, note, seeAll, row, empt
 }) {
     const t = useTr()
     const hooks = hook ? { [hook]: true } as Record<DataHook, boolean> : undefined
+    const rowRef = React.useRef<HTMLDivElement>(null)
+    // A new genre starts the row at its first cover again; the covers stay mounted (no new mount of every card per tap).
+    React.useLayoutEffect(() => {
+        if (rowRef.current) rowRef.current.scrollLeft = 0
+    }, [qualifier])
     return <PhoneSection id={`pd-${block}`} title={title} count={qualifier} note={note} data-discover-block={block} {...hooks}
         action={seeAll && <SeaLink href={seeAll} className="ps-text-action" aria-label={`${t("See all", "Alle anzeigen")}: ${title}`} data-discover-see-all={block}>
             {t("See all", "Alle anzeigen")}
@@ -376,8 +381,7 @@ function DiscoverRow<T>({ block, hook, title, qualifier, note, seeAll, row, empt
                 : !row.items || (row.stale && !row.items.length) ? <PhoneLoading label={`${title}: ${t("loading", "wird geladen")}`} layout={["cover-row"]} />
                     : !row.items.length ? genre && onClearGenre ? <GenreEmpty onClear={onClearGenre} />
                             : <p className="pd-quiet" data-discover-row-empty>{empty}</p>
-                        // A new genre starts the row at its first cover again.
-                        : <div key={qualifier} className={cn("ps-row", row.stale && "pd-stale")} aria-busy={row.stale || undefined}>{children}</div>}
+                        : <div ref={rowRef} className={cn("ps-row", row.stale && "pd-stale")} aria-busy={row.stale || undefined}>{children}</div>}
     </PhoneSection>
 }
 

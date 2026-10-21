@@ -13,6 +13,8 @@ const stubbed = ['@/api/client/requests','@tanstack/react-router','@/lib/navigat
 '@/app/(main)/discover/_containers/discover-trending','@/app/(main)/discover/_containers/discover-trending-country',
 '@/app/(main)/discover/_containers/discover-trending-movies','@/app/(main)/discover/_containers/discover-upcoming',
 '@/app/(main)/schedule/_containers/recent-releases'];
-build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_discover_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
+// --production: React's production build, minified (frame times as in the app); without it React's warnings stay on.
+const production = process.argv.includes('--production');
+build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_discover_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',minify:production,define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}',...(production?{'process.env.NODE_ENV':'"production"'}:{})},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
 if(stubbed.includes(a.path)&&a.importer!==stub)return {path:stub};
 })}}]}).catch(e=>{console.error(e);process.exit(1)});

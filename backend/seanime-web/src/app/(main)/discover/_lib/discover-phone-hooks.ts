@@ -19,6 +19,12 @@ import React from "react"
  * the phone screen says what failed in the row itself.
  */
 
+/**
+ * A row shown again within this time (tab switches, a genre picked again, back from an entry page) comes from the cache
+ * instead of asking again on every mount; the server keeps these AniList answers for 10 minutes anyway.
+ */
+const ROW_STALE_TIME = 5 * 60_000
+
 export function usePhoneListAnime(variables: AnilistListAnime_Variables, enabled: boolean) {
     return useServerQuery<AL_ListAnime, AnilistListAnime_Variables>({
         endpoint: API_ENDPOINTS.ANILIST.AnilistListAnime.endpoint,
@@ -27,6 +33,7 @@ export function usePhoneListAnime(variables: AnilistListAnime_Variables, enabled
         data: variables,
         enabled,
         muteError: true,
+        staleTime: ROW_STALE_TIME,
     })
 }
 
@@ -38,6 +45,7 @@ export function usePhoneListManga(variables: AnilistListManga_Variables, enabled
         data: variables,
         enabled,
         muteError: true,
+        staleTime: ROW_STALE_TIME,
     })
 }
 
@@ -49,6 +57,7 @@ export function usePhoneRecentAiring(variables: AnilistListRecentAiringAnime_Var
         data: variables,
         enabled,
         muteError: true,
+        staleTime: ROW_STALE_TIME,
     })
 }
 
@@ -59,6 +68,7 @@ export function usePhoneMissedSequels(enabled: boolean) {
         queryKey: [API_ENDPOINTS.ANILIST.AnilistListMissedSequels.key],
         enabled,
         muteError: true,
+        staleTime: ROW_STALE_TIME,
     })
 }
 
