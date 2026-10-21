@@ -306,7 +306,9 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         shot(tp,'tour-repository-390.png')
         tp.locator('[data-tour="marketplace-change-repo"]').click()
         text=tour_at('Paste the repository link')
-        check('Tour: the link step names the paste button',' paste button ' in text)
+        check('Tour: the link step names the paste button and leaves the sheet title visible',' paste button ' in text
+              and tp.evaluate('document.querySelector("[data-tour-card]").getBoundingClientRect().bottom<=document.querySelector(".UI-Modal__content[data-state=open]").getBoundingClientRect().top+1'))
+        shot(tp,'tour-paste-390.png')
         tp.evaluate(f'clip="{REPO}"');tp.locator('#mex-repository + .mex-paste').click();tp.locator('[data-tour="marketplace-repo-save"]').click()
         text=tour_at('Streaming sources')
         check('Tour: the streaming step names the chip as shown','Tap Streaming to see' in text)
