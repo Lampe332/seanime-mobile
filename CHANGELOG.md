@@ -2,6 +2,11 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.22 — 21.10.2026 (versionCode 31073)
+
+- ⚡️ First start: Redesigned setup as a single screen with language, online streaming and manga
+- 🏗️ First start: Removed the anime library folder step, which could not be used on a phone
+
 ## 1.9.21 — 20.10.2026 (versionCode 31072)
 
 - 🦺 Downloads: The cover grid now really switches to two wider cards with a large system font (1.9.20 did not take effect on the phone).
