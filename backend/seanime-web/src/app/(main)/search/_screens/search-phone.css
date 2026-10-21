@@ -1,0 +1,68 @@
+/* Search tab on Android phones: only what the shared phone kit (ps-*) lacks. */
+
+/* The controls above the results read as one block: field, type, sort, active filters. */
+.pq-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; min-width: 0; }
+
+/* Kit fix (candidate): .ps-card's rounded corner plus the paint containment of content-visibility clips the first letter of
+   the line under the title ("Fall 2023") at the bottom-left corner; the cover keeps its own radius. As on My lists. */
+[data-phone-screen="search"] .ps-card { border-radius: 0; }
+/* One line under the title, so the rows stay even; the card's name carries all of it. */
+[data-phone-screen="search"] .ps-card-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pq-local { display: inline-block; margin-right: .25rem; vertical-align: -.125em; }
+
+/* Kit fixes (candidates) for both search fields: one focus mark (the kit's outline, not also the form ring of the global CSS),
+   and a placeholder that ends in "…" instead of being cut, with the clear button's room only while there is text. */
+:is([data-phone-screen="search"], [data-search-filters]) :is(input, select):focus { box-shadow: none; }
+:is([data-phone-screen="search"], [data-search-filters]) .ps-search input { text-overflow: ellipsis; }
+:is([data-phone-screen="search"], [data-search-filters]) .ps-search input:placeholder-shown { padding-right: 1rem; }
+
+/* Chips that keep their width when chosen (SearchChips): the bold label is measured in advance; a multiple choice's check
+   mark sits in the padding, which shifts when it shows. One choice (radios) looks chosen like the kit's pressed chips. */
+.pq-chips > button > span[data-text] { display: inline-grid; color: inherit; }
+.pq-chips > button > span[data-text]::after { content: attr(data-text); height: 0; overflow: hidden; visibility: hidden; font-weight: 600; }
+.pq-chips > [aria-checked="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 600; }
+.pq-chips > [aria-pressed] { position: relative; padding-inline: 1.125rem; }
+.pq-chips > [aria-pressed="true"] { padding-inline: 1.5rem .75rem; }
+.pq-chips > [aria-pressed] > svg { position: absolute; top: 50%; left: .375rem; translate: 0 -50%; }
+.pq-chips > [aria-pressed="false"] > svg { display: none; }
+
+/* Active filters: one row that scrolls sideways (like the sort chips) with "Clear filters" at its end. Unlike the chosen sort
+   they sit on the raised surface with the accent only on their ✕: they are removable, not a choice. */
+.pq-active { display: flex; align-items: center; gap: .5rem; overflow-x: auto; overscroll-behavior-x: contain; margin-inline: -1rem; padding: 0 1rem; scrollbar-width: none; }
+.pq-active::-webkit-scrollbar { display: none; }
+.pq-chip { flex: none; display: inline-flex; align-items: center; gap: .375rem; max-width: 80vw; min-height: 48px; padding: .25rem .75rem .25rem 1rem; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text); font-size: .875rem; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow-wrap: normal; }
+.pq-chip > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.pq-chip > svg { flex: none; font-size: 1rem; color: var(--sm-text-muted); }
+.pq-chip > svg:last-child { color: var(--sm-accent); }
+.pq-chip:active { background: var(--sm-surface-control); }
+.pq-chip:focus-visible { outline-offset: -2px; }
+.pq-active > .ps-text-action { flex: none; margin-left: -.25rem; }
+
+/* The previous results while a new search loads. */
+.pq-grid { transition: opacity .15s ease-out; }
+.pq-grid[aria-busy="true"] { opacity: .45; }
+.pq-foot { display: grid; justify-items: center; gap: .5rem; padding-top: .25rem; }
+.pq-foot > p { font-size: .875rem; line-height: 1.5; text-align: center; color: var(--sm-text-muted); }
+.pq-foot > .ps-secondary { min-width: min(100%, 12rem); }
+.pq-foot > .ps-secondary[aria-disabled="true"] { background: transparent; color: var(--sm-text-muted); font-weight: 500; }
+.pq-sentinel { height: 1px; margin-top: -.75rem; }
+
+/* What a screen reader hears after a search: there for it only. */
+.pq-status { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Back to the controls after a long scroll: a flat 48 dp button above the bottom bar. */
+.pq-top { position: fixed; z-index: 30; right: 1rem; bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px)); display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px; background: var(--sm-surface-control); color: var(--sm-text); font-size: 1.375rem; }
+.pq-top:active { background: var(--sm-line-strong); }
+
+/* Filter sheet: the groups never grow wider than the sheet (one long tag at 200 % text would widen the whole group),
+   a tag longer than the line breaks, short choices ("TV") keep a 48 dp target; "Show all" under the tag chips. */
+[data-search-filters] .ps-sheet-group { grid-template-columns: minmax(0, 1fr); }
+[data-search-filters] .ps-choices > button { min-width: 48px; max-width: 100%; justify-content: center; text-align: start; overflow-wrap: anywhere; }
+.pq-show-all { justify-self: start; margin-left: -.5rem; }
+
+@media (max-width: 359px) {
+    .pq-active { margin-inline: -.75rem; padding-inline: .75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .pq-grid { transition: none; }
+}

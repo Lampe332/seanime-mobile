@@ -1,10 +1,12 @@
 import { AL_MediaFormat, AL_MediaSeason, AL_MediaSort, AL_MediaStatus } from "@/api/generated/types"
 import { useListCustomSourceExtensions } from "@/api/hooks/extensions.hooks.ts"
 import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { AdvancedSearchList } from "@/app/(main)/search/_components/advanced-search-list"
 import { AdvancedSearchOptions } from "@/app/(main)/search/_components/advanced-search-options"
 import { AdvancedSearchPageTitle } from "@/app/(main)/search/_components/advanced-search-page-title"
 import { __advancedSearch_paramsAtom } from "@/app/(main)/search/_lib/advanced-search.atoms"
+import { SearchPhone } from "@/app/(main)/search/_screens/search-phone"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { SeaLink } from "@/components/shared/sea-link"
 import { AppLayoutGrid } from "@/components/ui/app-layout"
@@ -33,8 +35,12 @@ export default function Page() {
 
     const { data: customSources } = useListCustomSourceExtensions()
 
+    // Android phones get their own search, which reads the URL itself (on every change, not only here on mount). Like the
+    // Manga, Extensions and Schedule phone screens it leaves out the CustomLibraryBanner and starts with its own header.
+    const phone = isAndroidPhone()
 
     useMount(() => {
+        if (phone) return
         if (sortingUrlParam || genreUrlParam || statusUrlParam || formatUrlParam || seasonUrlParam || yearUrlParam || typeUrlParam || tagsUrlParam) {
             setParams({
                 active: true,
@@ -53,6 +59,8 @@ export default function Page() {
             })
         }
     })
+
+    if (phone) return <SearchPhone />
 
     return (
         <>
