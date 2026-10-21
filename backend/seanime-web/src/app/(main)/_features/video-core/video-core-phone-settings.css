@@ -152,6 +152,23 @@
         border-radius: var(--sm-radius-lg) var(--sm-radius-lg) 0 0;
     }
 }
+/* Text setting pages: one 48 dp field, Cancel and Apply side by side. 16 px text keeps the WebView from zooming in. */
+.vc-phone-settings .vc-phone-input {
+    width: 100%;
+    min-height: 3rem;
+    margin-top: .5rem;
+    padding: .5rem .75rem;
+    border: 1px solid var(--sm-line-strong);
+    border-radius: var(--sm-radius-sm);
+    background: var(--sm-surface-control);
+    color: var(--sm-text);
+    font-size: 1rem;
+}
+.vc-phone-settings .vc-phone-input:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: -1px; }
+.vc-phone-settings .vc-phone-input[aria-invalid="true"] { border-color: rgb(248 113 113); }
+.vc-phone-settings [data-vc-element="menu-section"] .vc-phone-input-error { margin-top: .375rem; color: rgb(252 165 165); overflow-wrap: anywhere; }
+.vc-phone-settings .vc-phone-editor-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.vc-phone-settings .vc-phone-editor-actions > * { flex: 1 1 8rem; }
 .vc-phone-settings .vc-phone-page-label { margin: .75rem .75rem .25rem; font-size: .8125rem !important; font-weight: 500; color: var(--sm-text-subtle) !important; }
 
 /* Quality, audio and subtitle menus share the phone sheet; their title reads like a sheet heading. */

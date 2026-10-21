@@ -3,7 +3,7 @@ import { useSetAtom } from "jotai"
 import React from "react"
 import { createRoot } from "react-dom/client"
 import { PhoneSkipButton, vc_subtitleManager } from "../backend/seanime-web/src/app/(main)/_features/video-core/video-core"
-import { vc_isMobile } from "../backend/seanime-web/src/app/(main)/_features/video-core/video-core-atoms"
+import { vc_activePlayerId, vc_isMobile } from "../backend/seanime-web/src/app/(main)/_features/video-core/video-core-atoms"
 import { VideoCoreSettingsMenu } from "../backend/seanime-web/src/app/(main)/_features/video-core/video-core-settings-menu"
 
 const w = window as any
@@ -11,8 +11,11 @@ w.subtitleUpdates = 0
 function Setup() {
     const setMobile = useSetAtom(vc_isMobile)
     const setSubtitleManager = useSetAtom(vc_subtitleManager)
+    const setActivePlayer = useSetAtom(vc_activePlayerId)
     React.useLayoutEffect(() => {
         setMobile(true)
+        // A web player (online stream); the native player would hide the libass switch.
+        setActivePlayer("onlinestream")
         setSubtitleManager({ updateSettings: () => { w.subtitleUpdates++ } } as any)
     }, [])
     return <div style={{ position: "absolute", top: 8, right: 8, display: "flex", alignItems: "center", gap: 8 }}>

@@ -11,6 +11,7 @@ import { vc_playbackRate } from "@/app/(main)/_features/video-core/video-core-at
 import { vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_miniPlayer } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_containerElement } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_activePlayerId } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { VideoCoreControlButtonIcon } from "@/app/(main)/_features/video-core/video-core-control-bar"
 import {
     VideoCoreMenu,
@@ -36,9 +37,12 @@ import {
     vc_showChapterMarkersAtom,
     vc_storedPlaybackRateAtom,
     vc_storedVolumeBoostAtom,
+    vc_useLibassRendererAtom,
     VideoCoreSettings,
 } from "@/app/(main)/_features/video-core/video-core.atoms"
 import { formatVolumeBoost, VOLUME_BOOST_OPTIONS } from "@/app/(main)/_features/media-core/media-core-volume-boost"
+import { getSkipPatternError } from "@/app/(main)/_features/media-core/media-core-chapters"
+import { mediaCorePreferencesAtom } from "@/app/(main)/_features/media-core/media-core-preferences"
 import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.utils"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { Button } from "@/components/ui/button"
@@ -234,6 +238,10 @@ export function VideoCoreSettingsMenu() {
     const { mutate: openInExplorer, isPending: isOpeningInExplorer } = useOpenInExplorer()
 
     const [settings, setSettings] = useAtom(vc_settings)
+    const [useLibassRenderer, setUseLibassRenderer] = useAtom(vc_useLibassRendererAtom)
+    const [preferences, setPreferences] = useAtom(mediaCorePreferencesAtom)
+    // The native player never registers as active; the preferences modal hides libass there too.
+    const isWebPlayer = useAtomValue(vc_activePlayerId) !== null
 
     const t = useTr()
     const isPhone = isMobile && isAndroidPhone()
@@ -335,6 +343,20 @@ export function VideoCoreSettingsMenu() {
         mediaCaptionsManager?.updateSettings(newSettings)
     }
 
+    // Same writes as the preferences modal's save.
+    const handleSubtitleBlacklistChange = (blacklist: string): void => {
+        const newSettings = { ...settings, preferredSubtitleBlacklist: blacklist }
+        setSettings(newSettings)
+        subtitleManager?.updateSettings(newSettings)
+        mediaCaptionsManager?.updateSettings(newSettings)
+        setOpenMenuSection(null)
+    }
+
+    const handleSkipPatternsChange = (patterns: string): void => {
+        setPreferences(current => ({ ...current, skipPatterns: patterns.trim() }))
+        setOpenMenuSection(null)
+    }
+
     if (isMiniPlayer) return null
 
     return (
@@ -390,6 +412,10 @@ export function VideoCoreSettingsMenu() {
                         subtitleDelay={(subtitleManager || mediaCaptionsManager) ? settings.subtitleDelay : null}
                         subtitleStyles={subtitleManager ? (editedSubCustomization?.enabled ? t("On", "An") : t("Off", "Aus")) : null}
                         captionStyles={!!mediaCaptionsManager}
+                        useLibassRenderer={isWebPlayer ? useLibassRenderer : null}
+                        setUseLibassRenderer={setUseLibassRenderer}
+                        subtitleBlacklist={settings.preferredSubtitleBlacklist}
+                        skipPatterns={preferences.skipPatterns}
                     />
                 </VideoCoreMenuSectionBody> : <VideoCoreMenuSectionBody>
                     <VideoCoreMenuTitle>Settings</VideoCoreMenuTitle>
@@ -724,6 +750,31 @@ export function VideoCoreSettingsMenu() {
                             value={settings.preferredAudioLanguage}
                         />
                     </VideoCoreMenuOption>}
+                    {isPhone && <VideoCoreMenuOption title="Subtitle Blacklist" label={t("Subtitle blacklist", "Untertitel-Blacklist")} icon={MdOutlineSubtitles}>
+                        <PhoneTextEditor
+                            t={t}
+                            label={t("Subtitle blacklist", "Untertitel-Blacklist")}
+                            help={t("Subtitle tracks with these names are not chosen automatically. Separate names with commas.",
+                                "Untertitelspuren mit diesen Namen werden nicht automatisch gewählt. Namen mit Kommas trennen.")}
+                            placeholder="signs & songs,signs/songs"
+                            value={settings.preferredSubtitleBlacklist}
+                            onApply={handleSubtitleBlacklistChange}
+                            onCancel={() => setOpenMenuSection(null)}
+                        />
+                    </VideoCoreMenuOption>}
+                    {isPhone && <VideoCoreMenuOption title="Skip Patterns" label={t("Skip patterns", "Skip-Muster")} icon={TbArrowForwardUp}>
+                        <PhoneTextEditor
+                            t={t}
+                            label={t("Skip patterns", "Skip-Muster")}
+                            help={t("Extra chapters to skip: comma-separated regular expressions, case is ignored. Opening and ending rules stay active.",
+                                "Weitere Kapitel zum Überspringen: reguläre Ausdrücke mit Kommas getrennt, Groß-/Kleinschreibung egal. Opening- und Ending-Regeln bleiben aktiv.")}
+                            placeholder="^Intro$,^Outro$,^Preview$"
+                            value={preferences.skipPatterns}
+                            validate={getSkipPatternError}
+                            onApply={handleSkipPatternsChange}
+                            onCancel={() => setOpenMenuSection(null)}
+                        />
+                    </VideoCoreMenuOption>}
                     <VideoCoreMenuOption title="Player Appearance" label={phoneLabel("Player appearance", "Player-Darstellung")} icon={LuPaintbrush}>
                         <Switch
                             label="Show Chapter Markers"
@@ -926,6 +977,17 @@ type PhoneSettingsHomeProps = {
     subtitleDelay: number | null
     subtitleStyles: string | null
     captionStyles: boolean
+    /** null on the native player, which does not use the setting. */
+    useLibassRenderer: boolean | null
+    setUseLibassRenderer: (value: boolean) => void
+    subtitleBlacklist: string
+    skipPatterns: string
+}
+
+/** Short summary of a comma-separated list: how many entries it holds. */
+function phoneListSummary(value: string, t: Translate) {
+    const count = value.split(",").filter(entry => entry.trim()).length
+    return count ? String(count) : t("None", "Keine")
 }
 
 /** Android phone: grouped settings, on/off values switch in place, everything else opens its page. */
@@ -940,6 +1002,7 @@ function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
                     <PhoneSwitchRow icon={IoCaretForwardCircleOutline} label={t("Auto play", "Automatisch abspielen")} checked={props.autoPlay} onChange={props.setAutoPlay} />
                     <PhoneSwitchRow icon={HiFastForward} label={t("Auto next", "Nächste Folge automatisch")} checked={props.autoNext} onChange={props.setAutoNext} />
                     <PhoneSwitchRow icon={TbArrowForwardUp} label={t("Skip OP/ED", "OP/ED überspringen")} checked={props.autoSkipOPED} onChange={props.setAutoSkipOPED} />
+                    <PhoneLinkRow icon={TbArrowForwardUp} label={t("Skip patterns", "Skip-Muster")} value={phoneListSummary(props.skipPatterns, t)} onClick={() => open("Skip Patterns")} />
                     <PhoneLinkRow icon={LuVolume2} label={t("Volume boost", "Lautstärke-Boost")} value={formatVolumeBoost(props.volumeBoost)} onClick={() => open("Volume Boost")} />
                 </PhoneGroup>
                 <PhoneGroup title={t("Language & subtitles", "Sprache & Untertitel")}>
@@ -952,9 +1015,22 @@ function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
                     />}
                     {props.subtitleStyles !== null && <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Style", "Stil")} value={props.subtitleStyles} onClick={() => open("Subtitle Styles")} />}
                     {props.captionStyles && <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Caption style", "Stil der Bildunterschriften")} onClick={() => open("Caption Styles")} />}
+                    <PhoneLinkRow
+                        icon={MdOutlineSubtitles}
+                        label={t("Subtitle blacklist", "Untertitel-Blacklist")}
+                        value={phoneListSummary(props.subtitleBlacklist, t)}
+                        onClick={() => open("Subtitle Blacklist")}
+                    />
                 </PhoneGroup>
                 <PhoneGroup title={t("Display", "Darstellung")}>
                     <PhoneLinkRow icon={LuTvMinimalPlay} label={t("Player appearance", "Player-Darstellung")} onClick={() => open("Player Appearance")} />
+                    {/* Like the preferences modal: applies when the player loads the next stream. */}
+                    {props.useLibassRenderer !== null && <PhoneSwitchRow
+                        icon={MdOutlineSubtitles}
+                        label={t("Subtitle renderer: libass", "Untertitel-Renderer: libass")}
+                        checked={props.useLibassRenderer}
+                        onChange={props.setUseLibassRenderer}
+                    />}
                 </PhoneGroup>
             </div>
         </div>
@@ -998,5 +1074,54 @@ function PhoneSwitchRow(props: { icon: React.ElementType, label: string, checked
             <span className="vc-phone-row-label">{props.label}</span>
             <span className="vc-phone-switch" aria-hidden />
         </button>
+    )
+}
+
+/** Phone text setting page: edits a draft, writes only on Apply. Back and Cancel leave the stored value as it was. */
+function PhoneTextEditor(props: {
+    t: Translate
+    label: string
+    help: string
+    placeholder: string
+    value: string
+    validate?: (value: string) => string
+    onApply: (value: string) => void
+    onCancel: () => void
+}) {
+    const { t } = props
+    const [draft, setDraft] = useState(props.value)
+    const error = props.validate?.(draft) || ""
+    const id = React.useId()
+    const apply = () => {
+        if (!error) props.onApply(draft)
+    }
+    return (
+        <div data-vc-phone-settings="editor">
+            <p>{props.help}</p>
+            <input
+                className="vc-phone-input"
+                aria-label={props.label}
+                aria-invalid={!!error}
+                aria-describedby={error ? id : undefined}
+                value={draft}
+                placeholder={props.placeholder}
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="done"
+                onChange={e => setDraft(e.target.value)}
+                // Typing must not reach the player shortcuts.
+                onKeyDown={e => {
+                    e.stopPropagation()
+                    if (e.key === "Enter") apply()
+                }}
+                onInput={e => e.stopPropagation()}
+            />
+            {!!error && <p id={id} role="alert" className="vc-phone-input-error">{error}</p>}
+            <div className="vc-phone-editor-actions">
+                <Button intent="gray-subtle" onClick={props.onCancel}>{t("Cancel", "Abbrechen")}</Button>
+                <Button intent="primary" disabled={!!error} onClick={apply}>{t("Apply", "Übernehmen")}</Button>
+            </div>
+        </div>
     )
 }
