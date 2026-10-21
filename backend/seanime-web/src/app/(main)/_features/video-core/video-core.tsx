@@ -838,6 +838,9 @@ export function VideoCore(props: VideoCoreProps) {
     const onHistoryPop = React.useEffectEvent(() => {
         if (window.history.state?.videoCoreDrawer) {
             if (isMiniPlayer) setIsMiniPlayer(false)
+        } else if (isAndroidPhone()) {
+            // Android phones: Back closes the player, as in other video apps; the minimize button still makes the mini player
+            onTerminateStream()
         } else if (!isMiniPlayer) {
             enterMiniPlayer()
         }
@@ -1794,7 +1797,9 @@ export function VideoCore(props: VideoCoreProps) {
                     open={state.active}
                     onOpenChange={(v) => {
                         if (!v) {
-                            if (!isMiniPlayer) {
+                            if (isAndroidPhone()) {
+                                onTerminateStream()
+                            } else if (!isMiniPlayer) {
                                 enterMiniPlayer()
                             } else {
                                 onTerminateStream()
@@ -1829,6 +1834,11 @@ export function VideoCore(props: VideoCoreProps) {
                     }}
                     onEscapeKeyDown={e => {
                         e.preventDefault()
+                        // Android Back arrives as Escape (the app's back script)
+                        if (isAndroidPhone()) {
+                            onTerminateStream()
+                            return
+                        }
                         if (isMiniPlayer) {
                             if (!isTerminateConfirmOpen) {
                                 openTerminateConfirm()
