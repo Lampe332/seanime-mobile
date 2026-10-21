@@ -2,6 +2,25 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.37 — 21.10.2026 (versionCode 31088)
+
+- 🎉 Settings: New phone settings screen: each area opens in place, every change is saved at once without a Save button, and Back closes sheets and pages first
+- 🎉 Playback: Episodes from your local library play in the app's built-in player
+- 🎉 Playback: One-tap external player presets for VLC, MX Player, mpv and Just Player
+- 🎉 Library: Library folders and the local manga folder can be picked with Android's folder picker
+- 🎉 Player: The phone player menu has the libass renderer, the subtitle blacklist and skip patterns
+- 🎉 Settings: The current server log can be saved as a file through Android's Save dialog
+- ⚡️ Settings: Settings for programs the app cannot run (desktop players, transcoding, Discord, sidebar, keyboard shortcuts, server notifications, Nakama hosting) no longer show on Android
+- ⚡️ Settings: Background and banner images take an https link
+- ⚡️ Settings: Deleting logs and clearing caches ask first; developer tools are folded away under "Developer"
+- 🦺 Settings: Saving the appearance settings no longer stores default values in fields you did not touch
+- 🦺 Settings: "Export local file data" saves the file on Android instead of doing nothing
+- 🦺 Settings: "Apply to this client" appears when only the desktop custom CSS differs
+- 🦺 Settings: Back closes the settings drawer on tablets instead of leaving the page
+- 🦺 Player: The 1.0s subtitle delay preset shows as chosen
+- 🦺 Navigation: The "Reset navigation" dialog follows the app language
+- 🦺 App: Pages no longer send failing auto-downloader requests on Android
+
 ## 1.9.36 — 21.10.2026 (versionCode 31087)
 
 - ⚡️ My lists, Discover, Search: Switching tabs on the phone is quicker, because a card's long-press menu is only built when the card is touched
