@@ -1927,6 +1927,20 @@ object UIBottomNav {
                     return true;
                 }
 
+                // Dialog texts follow the app language the web UI stores (English default); read on every open.
+                function setResetDialogTexts(overlay) {
+                    var german = false;
+                    try { german = JSON.parse(localStorage.getItem('seanime-mobile-language') || '"en"') === 'de'; } catch (e) {}
+                    overlay.querySelector('#__seanime_reset_dialog_title').textContent = german
+                        ? 'Auf Standard zurücksetzen?' : 'Reset to defaults?';
+                    overlay.querySelector('#__seanime_reset_dialog_desc').textContent = german
+                        ? 'Die Standard-Navigation unten wird wiederhergestellt und deine Anpassungen am schwebenden Menü werden zurückgesetzt.'
+                        : 'This will restore the default bottom nav and reset your floating menu customizations.';
+                    var buttons = overlay.querySelectorAll('.__seanime_dialog_btn');
+                    buttons[0].textContent = german ? 'Abbrechen' : 'Cancel';
+                    buttons[1].textContent = german ? 'Ja' : 'Yes';
+                }
+
                 function buildResetDialog() {
                     if (document.getElementById('__seanime_reset_dialog_overlay')) return;
 
@@ -1942,22 +1956,18 @@ object UIBottomNav {
 
                     var title = document.createElement('div');
                     title.id = '__seanime_reset_dialog_title';
-                    title.textContent = 'Reset to defaults?';
 
                     var desc = document.createElement('div');
                     desc.id = '__seanime_reset_dialog_desc';
-                    desc.textContent = 'This will restore the default bottom nav and reset your floating menu customizations.';
 
                     var actions = document.createElement('div');
                     actions.id = '__seanime_reset_dialog_actions';
 
                     var cancelBtn = document.createElement('button');
                     cancelBtn.className = '__seanime_dialog_btn';
-                    cancelBtn.textContent = 'Cancel';
 
                     var yesBtn = document.createElement('button');
                     yesBtn.className = '__seanime_dialog_btn __seanime_dialog_btn_danger';
-                    yesBtn.textContent = 'Yes';
 
                     actions.appendChild(cancelBtn);
                     actions.appendChild(yesBtn);
@@ -1987,6 +1997,7 @@ object UIBottomNav {
                     buildResetDialog();
                     var overlay = document.getElementById('__seanime_reset_dialog_overlay');
                     if (!overlay) return;
+                    setResetDialogTexts(overlay);
                     overlay.classList.add('visible');
                     overlay.querySelector('button').focus();
                 }
