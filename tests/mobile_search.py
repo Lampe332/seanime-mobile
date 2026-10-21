@@ -371,6 +371,8 @@ with tempfile.TemporaryDirectory(prefix='seanime-search-') as tmp:
         p.evaluate('scrollTo(0,1500)');p.wait_for_timeout(300)
         target=p.evaluate('[...document.querySelectorAll("[data-phone-card]")].find(c=>c.getBoundingClientRect().top>120)?.getAttribute("data-phone-card")')
         y=p.evaluate('scrollY');p.locator(f'[data-phone-card="{target}"]').click();p.locator('[data-other-page]').wait_for()
+        # The router scrolls after the page has rendered: wait for it rather than read the position in between (flaky before)
+        p.wait_for_function('scrollY===0',timeout=3000)
         check('A card opens its entry page (the router scrolls it to the top)',p.evaluate('routes').pop()==f'/manga/entry?id={target}' and p.evaluate('scrollY')==0)
         p.evaluate('history.back()');p.locator('[data-phone-card]').first.wait_for();p.wait_for_timeout(500)
         check('Back to the link\'s entry keeps what was changed since (sort Popular stays)',p.evaluate(TEXT,'[data-search-sort] [aria-checked=true]')==['Popular']

@@ -74,6 +74,8 @@ function serve(endpoint: string, request: any) {
 export async function buildSeaQuery({ endpoint, data }: { endpoint: string, data: any }) {
     const request = JSON.parse(JSON.stringify(data ?? {}))
     w.requests.push({ endpoint, ...request })
+    // stress_search.py brings its own AniList (any variables, random delays, failing pages)
+    if (w.synthetic) return w.synthetic(endpoint, request)
     await new Promise(resolve => setTimeout(resolve, w.server.delay))
     return serve(endpoint, request)
 }

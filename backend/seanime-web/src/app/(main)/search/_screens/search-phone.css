@@ -46,6 +46,9 @@
 .pq-foot > .ps-secondary { min-width: min(100%, 12rem); }
 .pq-foot > .ps-secondary[aria-disabled="true"] { background: transparent; color: var(--sm-text-muted); font-weight: 500; }
 .pq-sentinel { height: 1px; margin-top: -.75rem; }
+/* A cover's cell in a long grid: away from the screen an empty box, of the card's last height or else about a card's (as on My lists). */
+.pq-cell { min-width: 0; }
+.pq-cell:empty:not([style]) { aspect-ratio: 10 / 21; }
 
 /* What a screen reader hears after a search: there for it only. */
 .pq-status { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

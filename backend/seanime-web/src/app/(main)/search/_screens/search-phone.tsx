@@ -75,8 +75,43 @@ const searchPhoneAtom = atom<StoredSearch>({ state: SEARCH_DEFAULTS, applied: nu
 const isSearchPath = (pathname: string) => pathname.replace(/\/+$/, "") === "/search"
 /** The router's own key for a history entry (its scroll restoration uses the same). */
 const scrollKey = (location: ParsedLocation) => location.state?.__TSR_key || location.href
+type ScrollPlace = { y: number, cell?: string, top: number }
 /** Where each visit was left, per history entry: Back from an entry page lands on the same results. */
-const scrollPositions = new Map<string, number>()
+const scrollPositions = new Map<string, ScrollPlace>()
+/** The scroll position and the first cover in sight with its place on the screen. */
+const scrollPlace = (): ScrollPlace => {
+    const cell = [...document.querySelectorAll<HTMLElement>("[data-search-cell]")].find(element => element.getBoundingClientRect().bottom > 0)
+    return { y: window.scrollY, cell: cell?.dataset.searchCell, top: cell?.getBoundingClientRect().top ?? 0 }
+}
+/** About a third of a second: covers are drawn a frame or two after they come near, a long grid's cards a frame later. */
+const HOLD_FRAMES = 20
+/**
+ * Back to a scroll position alone lands on other covers: after Back, covers not drawn yet stand in at an estimated height
+ * (content-visibility's 15rem, a long grid's empty cells), a few pixels off per row, screens off deep in the results. The
+ * first cover that was in sight is held where it was while the ones around it are drawn; a touch, wheel or key ends it.
+ */
+function holdPlace(place: ScrollPlace) {
+    const cell = place.cell ? document.querySelector(`[data-search-cell="${place.cell}"]`) : null
+    if (!cell) return
+    const inputs = ["touchstart", "wheel", "keydown", "pointerdown"]
+    let frames = 0
+    const stop = () => {
+        frames = HOLD_FRAMES
+        inputs.forEach(type => window.removeEventListener(type, stop, true))
+    }
+    inputs.forEach(type => window.addEventListener(type, stop, { capture: true, passive: true }))
+    const hold = () => {
+        if (frames++ >= HOLD_FRAMES || !cell.isConnected) return stop()
+        const off = cell.getBoundingClientRect().top - place.top
+        if (Math.abs(off) >= 1) window.scrollBy(0, off)
+        requestAnimationFrame(hold)
+    }
+    hold()
+}
+/** From more than four pages on, the grid keeps only the covers near the screen (as on My lists); shorter results stay whole. */
+const WINDOW_FROM = 4 * SEARCH_PAGE_SIZE
+/** How far above and below the screen covers stay: a fast fling does not reach an empty cell. */
+const KEEP_MARGIN = 1600
 
 /**
  * Android phone Search tab in the Home / Manga language: the search field first, the type, sort chips, the active filters
@@ -327,20 +362,30 @@ function useScrollReturn(ready: boolean) {
     const readyRef = React.useRef(ready)
     readyRef.current = ready
     const restore = React.useCallback(() => {
-        if (target.current === undefined || !rendered.current || !readyRef.current) return
-        window.scrollTo(0, target.current)
+        const place = target.current
+        if (place === undefined || !rendered.current || !readyRef.current) return
+        window.scrollTo(0, place.y)
+        holdPlace(place)
         target.current = undefined
     }, [])
     React.useLayoutEffect(() => {
         const unsubscribeLeave = router.subscribe("onBeforeLoad", ({ fromLocation }) => {
-            if (fromLocation && isSearchPath(fromLocation.pathname)) scrollPositions.set(scrollKey(fromLocation), window.scrollY)
+            if (fromLocation && isSearchPath(fromLocation.pathname)) scrollPositions.set(scrollKey(fromLocation), scrollPlace())
         })
         const unsubscribeRendered = router.subscribe("onRendered", ({ toLocation }) => {
             if (scrollKey(toLocation) !== key) return
             rendered.current = true
             restore()
         })
+        // The router can resolve the location a render before this page mounts and report it rendered before the page listens
+        // (then only the browser's own restoration ran): the place comes back a frame later, after the router's scroll.
+        const resolved = router.state.resolvedLocation
+        const frame = resolved && scrollKey(resolved) === key ? requestAnimationFrame(() => {
+            rendered.current = true
+            restore()
+        }) : 0
         return () => {
+            cancelAnimationFrame(frame)
             unsubscribeLeave()
             unsubscribeRendered()
         }
@@ -413,16 +458,73 @@ const Results = React.memo(function Results({ items, type, stale }: { items: (AL
     const onPlaylist = React.useCallback((mediaId: number) => actions.current.playlist(mediaId), [])
     const onExplorer = React.useCallback((path: string) => actions.current.explorer(path), [])
 
+    // Every cover sits in a cell, so a grid that grows long does not remount its cards when it starts windowing.
+    const keep = useKeepNear()
+    const windowed = !!keep && items.length > WINDOW_FROM
+
     return <div className="ps-grid pq-grid" aria-busy={stale || undefined}>
         {items.map(media => {
             const libraryData = type === "anime" ? libraryEntries.get(media.id)?.libraryData : undefined
             const listData = type === "anime" ? animeListData[String(media.id)] ?? libraryEntries.get(media.id)?.listData : mangaEntries.get(media.id)?.listData
             const unseen = unseenCount(type, media, listData, { anime: showAnimeUnwatchedCount, manga: showMangaUnreadCount, library: libraryData, chapters })
-            return <ResultCard key={media.id} media={media} type={type} offline={offline} blurAdult={blurAdult} listData={listData} libraryData={libraryData}
-                unseen={unseen} onPlaylist={onPlaylist} onExplorer={onExplorer} playlist={type === "anime" && (!!libraryData || (!!listData && hasStreamingEnabled))} />
+            return <GridCell key={media.id} id={media.id} keep={keep} windowed={windowed}>
+                <ResultCard media={media} type={type} offline={offline} blurAdult={blurAdult} listData={listData} libraryData={libraryData}
+                    unseen={unseen} onPlaylist={onPlaylist} onExplorer={onExplorer} playlist={type === "anime" && (!!libraryData || (!!listData && hasStreamingEnabled))} />
+            </GridCell>
         })}
     </div>
 })
+
+type KeepNear = (element: Element, onChange: (near: boolean) => void) => () => void
+
+/** One observer for all cells of a long grid; each cell hears whether it is near the screen (as on My lists). */
+function useKeepNear(): KeepNear | null {
+    const [keep] = React.useState(() => {
+        if (typeof IntersectionObserver === "undefined") return null
+        const listeners = new Map<Element, (near: boolean) => void>()
+        const observer = new IntersectionObserver(items => {
+            for (const item of items) listeners.get(item.target)?.(item.isIntersecting)
+        }, { rootMargin: `${KEEP_MARGIN}px 0px` })
+        const observe: KeepNear = (element, onChange) => {
+            listeners.set(element, onChange)
+            observer.observe(element)
+            return () => {
+                listeners.delete(element)
+                observer.unobserve(element)
+            }
+        }
+        return { observe, observer }
+    })
+    React.useEffect(() => () => keep?.observer.disconnect(), [keep])
+    return keep?.observe ?? null
+}
+
+/**
+ * A cover's place in the grid. In a long grid it holds its card only near the screen, else an empty box of the card's last
+ * height. A cell that arrives near the screen (the next page, the grid after Back) shows its card before the first paint.
+ */
+function GridCell({ id, keep, windowed, children }: { id: number, keep: KeepNear | null, windowed: boolean, children: React.ReactNode }) {
+    const ref = React.useRef<HTMLDivElement>(null)
+    const [near, setNear] = React.useState(!windowed)
+    const height = React.useRef(0)
+    React.useLayoutEffect(() => {
+        if (near) return
+        const box = ref.current!.getBoundingClientRect()
+        if (box.bottom > -KEEP_MARGIN && box.top < window.innerHeight + KEEP_MARGIN) setNear(true)
+    }, [])
+    React.useEffect(() => {
+        if (!windowed || !keep) return
+        return keep(ref.current!, next => {
+            const cell = ref.current
+            if (!next && cell?.firstElementChild) height.current = cell.offsetHeight
+            setNear(next)
+        })
+    }, [keep, windowed])
+    const shown = !windowed || near
+    return <div ref={ref} className="pq-cell" data-search-cell={id} style={!shown && height.current ? { height: height.current } : undefined}>
+        {shown ? children : null}
+    </div>
+}
 
 type ResultCardProps = {
     media: AL_BaseAnime | AL_BaseManga

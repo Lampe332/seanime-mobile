@@ -12,6 +12,8 @@ const stubbed = ['@/api/client/requests','@/components/shared/sea-link','@/compo
 '@/app/(main)/_features/media/_containers/media-preview-modal','@/app/(main)/_features/media/_components/media-entry-card-components',
 '@/app/(main)/_features/plugin/actions/plugin-actions','@/app/(main)/_features/playlists/lib/playlist-editor-manager',
 '@/app/(main)/_features/library-explorer/library-explorer.atoms'];
-build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_search_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
+// A second arg "production" builds React's production mode (stress_search.py measures frames as the app ships)
+const production = process.argv[3] === 'production';
+build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_search_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}',...production?{'process.env.NODE_ENV':'"production"'}:{}},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
 if(stubbed.includes(a.path)&&a.importer!==stub)return {path:stub};
 })}}]}).catch(e=>{console.error(e);process.exit(1)});
