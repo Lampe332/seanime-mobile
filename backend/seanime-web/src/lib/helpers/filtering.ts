@@ -250,7 +250,7 @@ export function filterListEntries<T extends AL_MangaCollection_MediaListCollecti
         arr.sort((a, b) => a?.media?.title?.userPreferred?.localeCompare(b?.media?.title?.userPreferred!) || 0)
     if (getParamValue(params.sorting) === "TITLE_DESC")
         // arr = sortBy(arr, n => n?.media?.title?.userPreferred).reverse()
-        arr.sort((a, b) => b?.media?.title?.userPreferred?.localeCompare(a?.media?.title?.userPreferred!) || 0).reverse()
+        arr.sort((a, b) => b?.media?.title?.userPreferred?.localeCompare(a?.media?.title?.userPreferred!) || 0)
 
     // Sort by release date
     if (getParamValue(params.sorting) === "RELEASE_DATE" || getParamValue(params.sorting) === "RELEASE_DATE_DESC") {
