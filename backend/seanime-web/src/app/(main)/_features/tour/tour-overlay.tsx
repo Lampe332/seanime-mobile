@@ -1,4 +1,5 @@
 import { cn } from "@/components/ui/core/styling"
+import { tr } from "@/lib/app-language"
 import { useAtomValue } from "jotai/react"
 import { AnimatePresence, motion } from "motion/react"
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
@@ -7,6 +8,9 @@ import { tourAtom, TourStep, TourStepPlacement, useTour } from "./tour"
 type Rect = { top: number; left: number; width: number; height: number }
 
 const EMPTY_RECT: Rect = { top: 0, left: 0, width: 0, height: 0 }
+
+// The Android app is used by touch: its tour buttons get 48 dp targets and the app-language labels.
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 // returns a viewport-relative rect with padding applied
 function getElementRect(el: Element, padding: number): Rect {
@@ -215,6 +219,7 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
         const content = (
             <motion.div
                 ref={ref}
+                data-tour-card
                 className={cn(
                     "z-[1000001] pointer-events-auto",
                     "rounded-xl border bg-[--paper] shadow-2xl",
@@ -238,7 +243,7 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
 
                 <div className="p-4 flex flex-col gap-3">
                     {step.title && (
-                        <div className="font-semibold text-base text-gray-100 leading-snug">
+                        <div className="font-semibold text-base text-gray-100 leading-snug" data-tour-title>
                             {step.title}
                         </div>
                     )}
@@ -248,7 +253,7 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
                     </div>
 
                     {!step.hideControls && (
-                        <div className="flex items-center justify-between pt-1 gap-3">
+                        <div className={cn("flex items-center justify-between pt-1 gap-3", IS_ANDROID_APP && "flex-wrap gap-y-1")}>
                             {totalSteps > 1 && (
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
                                     {Array.from({ length: totalSteps }).map((_, i) => (
@@ -271,36 +276,41 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
                                 {!isLastStep && (
                                     <button
                                         onClick={onStop}
+                                        data-tour-skip
                                         className={cn(
                                             "text-xs text-gray-500 hover:text-gray-300 transition-colors",
                                             "px-2 py-1 rounded-md hover:bg-gray-800",
+                                            IS_ANDROID_APP && "min-h-12 min-w-12 px-3 text-sm text-gray-400 rounded-full",
                                         )}
                                     >
-                                        Skip
+                                        {tr("Skip", "Überspringen")}
                                     </button>
                                 )}
 
                                 {showBack && (
                                     <button
                                         onClick={onPrev}
+                                        data-tour-back
                                         className={cn(
                                             "text-sm font-medium text-gray-400 hover:text-gray-200 transition-colors",
                                             "px-3 py-1.5 rounded-lg hover:bg-gray-800",
+                                            IS_ANDROID_APP && "min-h-12 min-w-12 rounded-full",
                                         )}
                                     >
-                                        {step.prevLabel ?? "Back"}
+                                        {step.prevLabel ?? tr("Back", "Zurück")}
                                     </button>
                                 )}
 
                                 {!step.hideNextButton && <button
                                     onClick={onNext}
+                                    data-tour-next
                                     className={cn(
                                         "text-sm font-semibold rounded-lg px-4 py-1.5 transition-all",
                                         "bg-brand-500 hover:bg-brand-600 text-white",
-                                        "shadow-sm shadow-brand-500/20",
+                                        IS_ANDROID_APP ? "min-h-12 px-5 rounded-full" : "shadow-sm shadow-brand-500/20",
                                     )}
                                 >
-                                    {step.nextLabel ?? (isLastStep ? "Done" : "Next")}
+                                    {step.nextLabel ?? (isLastStep ? tr("Done", "Fertig") : tr("Next", "Weiter"))}
                                 </button>}
                             </div>
                         </div>

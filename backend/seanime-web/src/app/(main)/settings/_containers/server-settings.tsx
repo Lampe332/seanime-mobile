@@ -230,7 +230,7 @@ export function ServerSettings(props: ServerSettingsProps) {
                         <p className="font-medium">Setup tutorial</p>
                         <p className="text-sm text-[--muted]">Shows how to add a repository and install a streaming source.</p>
                     </div>
-                    <Button type="button" intent="gray-outline" size="sm" onClick={startMobileTutorial}>
+                    <Button type="button" intent="gray-outline" size="sm" onClick={() => startMobileTutorial()}>
                         Show tutorial
                     </Button>
                 </div>}
