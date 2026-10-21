@@ -38,6 +38,7 @@ ALL=dict(extensions=[ANIMEKAI,HIANIME,MANGAFIRE,LOCAL,SYNC,DISCORD,MANGADEX,NYAA
 UPDATES_ON_CHECK=[dict(extensionID='animekai',version='1.2.0',manifestURI='https://ext.test/animekai.json',payload='// new code'),
     dict(extensionID='mangafire',version='1.2.0',manifestURI='https://ext.test/mangafire.json',payload='// v1.2.0')]
 REPO='https://ext.test/index.json'
+GITHUB_REPO='https://raw.githubusercontent.com/Bas1874/Seanime-Marketplace/refs/heads/main/Marketplace/Main.json'
 NEW=ext('new-source','New Source','onlinestream-provider','1.0.0','newbie','en','','A fresh streaming source')
 MARKET={'':[ext('aiostreams','AIOStreams','plugin','0.10.2','Viren070','multi','','Stream content from AIOStreams'),SWITCHER],
     REPO:[ANIMEKAI,ext('animepahe','AnimePahe','onlinestream-provider','1.0.0','pahe','en','http://ext.test/icons/pahe.png','AnimePahe streams'),
@@ -45,6 +46,7 @@ MARKET={'':[ext('aiostreams','AIOStreams','plugin','0.10.2','Viren070','multi','
         MANGAFIRE,ext('mal-source','MAL Source','custom-source','1.0.0','mal','en','','Browse MyAnimeList'),ext('animetosho','AnimeTosho','anime-torrent-provider'),
         ext('aiostreams','AIOStreams','plugin','0.10.2','Viren070','multi','','Stream content from AIOStreams')],
     '__fetch':[NEW]}
+MARKET[GITHUB_REPO]=MARKET[REPO]
 SERVER=dict(all=ALL,allStatus='ok',checkState=None,checks=0,refetches=0,updatesOnCheck=UPDATES_ON_CHECK,market=MARKET,marketStatus='ok',marketRefetches=[],
     fetchResults={NEW['manifestURI']:NEW,ANIMEKAI['manifestURI']:ANIMEKAI},repository=[ext('repo-a','Repo A','manga-provider'),ext('repo-b','Repo B','onlinestream-provider')])
 INIT='''(()=>{Object.assign(window,{server:%s,calls:[],routes:[],toasts:[],clip:""});
@@ -118,7 +120,8 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         check('Sheet: type and meta, the update first, then actions and facts',page.locator('[data-extension-sheet="animekai"] .mex-sheet-meta').inner_text()=='Streaming source · 1.0.0 · Lampe · English'
               and page.locator('[data-extension-update] h3').inner_text()=='Version 1.2.0 is available'
               and page.evaluate(TEXT,'[data-extension-sheet="animekai"] .mex-action-text > span:first-child')==['Check for updates','Reload','Code','Turn off','Uninstall']
-              and 'animekai' in page.locator('[data-extension-sheet="animekai"] .mex-facts').inner_text())
+              and 'animekai' in page.locator('[data-extension-sheet="animekai"] .mex-facts').inner_text()
+              and page.locator('[data-extension-sheet="animekai"] .mex-facts dd[data-long]').inner_text()=='https://ext.test/animekai.json')
         check('Sheet buttons are at least 48px',page.evaluate(SMALL,'.mex-sheet button')==[])
         shot(page,'extensions-sheet-390.png')
         page.locator('[data-extension-install-update]').click();page.wait_for_timeout(400)
@@ -276,7 +279,8 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         page.close()
 
         # Deep link, states, German
-        p=open_page(query='?tab=marketplace&type=manga-provider',ready='[data-marketplace-row]',storage={'marketplace-url':REPO})
+        p=open_page(query='?tab=marketplace&type=manga-provider',ready='[data-marketplace-row]',storage={'marketplace-url':GITHUB_REPO})
+        check('A GitHub repository is named by owner/repository',p.locator('[data-marketplace-source]').inner_text()=='Bas1874/Seanime-Marketplace')
         check('?tab=marketplace&type= opens the marketplace on that type',p.locator('[data-tab-name="Marketplace"][aria-selected=true]').count()==1
               and p.locator('[data-marketplace-type="manga-provider"][aria-selected=true]').count()==1 and p.locator('[data-marketplace-row]').count()==2)
         p.close()
