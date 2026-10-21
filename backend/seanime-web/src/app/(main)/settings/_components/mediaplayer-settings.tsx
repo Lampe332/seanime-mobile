@@ -4,9 +4,11 @@ import { SettingsCard, SettingsPageHeader } from "@/app/(main)/settings/_compone
 import { SettingsSubmitButton } from "@/app/(main)/settings/_components/settings-submit-button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Alert } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import { Field } from "@/components/ui/form"
 import { Switch } from "@/components/ui/switch"
 import { TextInput } from "@/components/ui/text-input"
+import { ANDROID_PLAYER_PRESETS, androidPlayerLink } from "@/lib/external-player-link/android-player-presets"
 import { getDefaultIinaSocket } from "@/lib/server/settings"
 import React from "react"
 import { useWatch } from "react-hook-form"
@@ -15,6 +17,8 @@ import { HiPlay } from "react-icons/hi"
 import { IoPlayForwardCircleSharp } from "react-icons/io5"
 import { LuCircleArrowOutUpRight, LuMonitorPlay } from "react-icons/lu"
 import { RiSettings3Fill } from "react-icons/ri"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 type MediaplayerSettingsProps = {
     isPending: boolean
@@ -225,6 +229,15 @@ export function ExternalPlayerLinkSettings() {
             />
 
             <SettingsCard>
+                {IS_ANDROID_APP && <div className="flex flex-wrap gap-2" role="group" aria-label="Player app" data-settings-external-player-presets>
+                    {ANDROID_PLAYER_PRESETS.map(preset => {
+                        const link = androidPlayerLink(preset.packageName)
+                        return <Button key={preset.packageName} type="button" size="sm" intent={externalPlayerLink === link ? "primary" : "gray-outline"}
+                            aria-pressed={externalPlayerLink === link} onClick={() => setExternalPlayerLink(link)}>
+                            {preset.name}
+                        </Button>
+                    })}
+                </div>}
                 <div data-settings-external-player-link-scheme>
                     <TextInput
                         label="Custom scheme"
