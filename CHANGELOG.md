@@ -2,6 +2,11 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.38 — 22.10.2026 (versionCode 31089)
+
+- 🎉 Player: Subtitles can be translated from the phone player menu (Google works without a key)
+- ⚡️ Player: Back closes the built-in player on phones instead of shrinking it to a mini player that keeps playing
+
 ## 1.9.37 — 21.10.2026 (versionCode 31088)
 
 - 🎉 Settings: New phone settings screen: each area opens in place, every change is saved at once without a Save button, and Back closes sheets and pages first
