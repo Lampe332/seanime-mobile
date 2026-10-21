@@ -2,6 +2,20 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.33 — 21.10.2026 (versionCode 31084)
+
+- 🎉 Lists: Covers on the phone's My lists, Discover and Search tabs open a menu on long press with preview, continue watching (My lists), add to playlist and plugin actions
+- 🎉 Lists: My lists on the phone searches titles as you type and refreshes your AniList lists from its header
+- 🎉 Discover: Rows on the phone's Discover tab have "See all", which opens Search with the matching filters
+- 🎉 Search: Filters on the phone's Search tab show as chips that can be removed one by one, and more results load as you scroll
+- ⚡️ Lists: Redesigned the phone My lists tab like Home and Manga: Anime, Manga and Stats as tabs, list statuses with counts, covers with progress, new episodes and next airing, all filters and sorting in one sheet, stats as facts and bars
+- ⚡️ Discover: Redesigned the phone Discover tab like Home: a swipeable spotlight, one genre row, rows for trending, aired recently, this and last season, missed sequels, coming soon and movies, a day-by-day schedule and manga, manhwa and manhua
+- ⚡️ Search: Redesigned the phone Search tab: search field, Anime and Manga, sort chips, all filters in one sheet, covers with your list status
+- ⚡️ Lists, Discover, Search: German texts, loading, empty and error states with "Try again" on the phone
+- 🦺 Lists: "Title (Z-A)" sorts from Z to A instead of A to Z
+- 🦺 Search: The minimum score filter now works for anime on the phone
+- 🦺 Search: Opening Search from another link while it is already open applies the new filters on the phone
+
 ## 1.9.32 — 21.10.2026 (versionCode 31083)
 
 - 🦺 Tutorial: The setup tour's hint no longer covers the title of the repository sheet on the phone
