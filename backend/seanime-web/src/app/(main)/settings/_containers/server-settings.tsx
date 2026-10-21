@@ -203,13 +203,14 @@ export function ServerSettings(props: ServerSettingsProps) {
                     </div>}
                 </div>
 
-                <Field.Switch
+                {/* Trailers play on hover of the desktop cards; the Android cards have none */}
+                {!IS_ANDROID_APP && <Field.Switch
                     side="right"
                     name="disableAnimeCardTrailers"
                     label="Disable anime card trailers"
                     help=""
                     icon={<LuImageOff className="" />}
-                />
+                />}
 
             </SettingsCard>
 
@@ -351,7 +352,8 @@ export function ServerSettings(props: ServerSettingsProps) {
                 )}
             </SettingsCard>
 
-            <SettingsCard title="Server">
+            {/* Android: the server is the app itself, its system notifications are no-ops (notify_mobile.go) */}
+            {!IS_ANDROID_APP && <SettingsCard title="Server">
                 <Field.Switch
                     side="right"
                     name="openWebURLOnStart"
@@ -383,9 +385,10 @@ export function ServerSettings(props: ServerSettingsProps) {
                             />
                         </div>)}
                 </div>
-            </SettingsCard>
+            </SettingsCard>}
 
-            <SettingsCard title="Keyboard Shortcuts">
+            {/* The command palette is off on Android (sea-command.tsx) */}
+            {!IS_ANDROID_APP && <SettingsCard title="Keyboard Shortcuts">
                 <div className="space-y-4">
                     {[
                         {
@@ -471,7 +474,7 @@ export function ServerSettings(props: ServerSettingsProps) {
                         )
                     })}
                 </div>
-            </SettingsCard>
+            </SettingsCard>}
 
             {/*<Accordion*/}
             {/*    type="single"*/}

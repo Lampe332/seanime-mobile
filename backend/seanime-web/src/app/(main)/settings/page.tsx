@@ -623,7 +623,7 @@ export default function Page() {
                                             />
 
                                             <div className="flex flex-wrap gap-2 slide-in-from-bottom duration-500 delay-150">
-                                                {!!status?.dataDir && <Button
+                                                {!!status?.dataDir && !IS_ANDROID_APP && <Button
                                                     size="sm"
                                                     intent="gray-outline"
                                                     onClick={() => openInExplorer({

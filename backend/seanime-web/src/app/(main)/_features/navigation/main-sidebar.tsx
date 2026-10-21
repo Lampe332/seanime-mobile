@@ -332,9 +332,12 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
         return () => window.removeEventListener("resize", handleResize)
     }, [])
 
+    // Android: the native "Customize navigation" reads these links, so the web "Unpinned menu items" setting is ignored there
+    const userUnpinned = IS_ANDROID_APP ? undefined : ts.unpinnedMenuItems
+
     const allPinnedItems = React.useMemo(() => {
-        return items.filter(item => !ts.unpinnedMenuItems?.includes(item.id))
-    }, [items, ts.unpinnedMenuItems])
+        return items.filter(item => !userUnpinned?.includes(item.id))
+    }, [items, userUnpinned])
 
     const displayedPinnedItems = React.useMemo(() => {
         return allPinnedItems.filter(item => !autoUnpinnedIds.includes(item.id))
@@ -394,7 +397,7 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
     }, [checkOverflow])
 
     const unpinnedMenuItems = React.useMemo(() => {
-        const manuallyUnpinned = items.filter(item => ts.unpinnedMenuItems?.includes(item.id))
+        const manuallyUnpinned = items.filter(item => userUnpinned?.includes(item.id))
         const forcedUnpinned = items.filter(item => autoUnpinnedIds.includes(item.id))
         const forcedUnpinnedPlugins = pluginWebviewItems.filter(item => autoUnpinnedIds.includes(item.id))
 
@@ -412,7 +415,7 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
                 />,
             } as VerticalMenuItem,
         ]
-    }, [items, ts.unpinnedMenuItems, autoUnpinnedIds, pluginWebviewItems])
+    }, [items, userUnpinned, autoUnpinnedIds, pluginWebviewItems])
 
     return (
         <div>

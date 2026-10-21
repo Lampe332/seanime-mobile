@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button"
 import React from "react"
 import { SettingsCard } from "../_components/settings-card"
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
 type FilecacheSettingsProps = {
     children?: React.ReactNode
 }
@@ -45,9 +47,10 @@ export function FilecacheSettings(props: FilecacheSettingsProps) {
                     <Button intent="warning-subtle" onClick={() => clearBucket({ bucket: "manga" })} disabled={isClearing}>
                         Clear manga cache
                     </Button>
-                    <Button intent="warning-subtle" onClick={() => clearMediastreamCache()} disabled={isClearing}>
+                    {/* Transcoding cache; Android has no transcoding */}
+                    {!IS_ANDROID_APP && <Button intent="warning-subtle" onClick={() => clearMediastreamCache()} disabled={isClearing}>
                         Clear media streaming cache
-                    </Button>
+                    </Button>}
                     <Button intent="warning-subtle" onClick={() => clearBucket({ bucket: "onlinestream" })} disabled={isClearing}>
                         Clear online streaming cache
                     </Button>

@@ -10,6 +10,8 @@ import { CgImport } from "react-icons/cg"
 import { TbDatabaseExport } from "react-icons/tb"
 import { toast } from "sonner"
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
 type DataSettingsProps = {
     children?: React.ReactNode
 }
@@ -69,7 +71,8 @@ export function DataSettings(props: DataSettingsProps) {
                     Export local file data
                 </Button>
 
-                <Modal
+                {/* Import reads a path on the server; Android has no way to pick that file, so it only exports */}
+                {!IS_ANDROID_APP && <Modal
                     title="Import local files"
                     trigger={
                         <Button
@@ -101,7 +104,7 @@ export function DataSettings(props: DataSettingsProps) {
                         disabled={isImportingLocalFiles}
                     >Import</Button>
 
-                </Modal>
+                </Modal>}
             </div>
         </div>
     )

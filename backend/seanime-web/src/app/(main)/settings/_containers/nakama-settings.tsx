@@ -10,6 +10,8 @@ import React, { useState } from "react"
 import { useWatch } from "react-hook-form"
 import { MdOutlineConnectWithoutContact } from "react-icons/md"
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
 type Props = {
     isPending: boolean
     children?: React.ReactNode
@@ -43,7 +45,8 @@ export function NakamaSettings(props: Props) {
     const [tab, setTab] = useState("peer")
 
     React.useLayoutEffect(() => {
-        setTab(serverStatus?.settings?.nakama?.isHost ? "host" : "peer")
+        // Android only connects as a peer: the app's server listens on 127.0.0.1, so no peer could reach a host
+        setTab(serverStatus?.settings?.nakama?.isHost && !IS_ANDROID_APP ? "host" : "peer")
     }, [serverStatus?.settings?.nakama?.isHost])
 
 
@@ -79,14 +82,14 @@ export function NakamaSettings(props: Props) {
                 triggerClass={tabsTriggerClass}
                 listClass={tabsListClass}
             >
-                <TabsList>
+                {!IS_ANDROID_APP && <TabsList>
                     <TabsTrigger value="peer">Connect as a Peer</TabsTrigger>
                     <TabsTrigger value="host">Hosting {serverStatus?.settings?.nakama?.isHost &&
                         <Badge intent="info" className="ml-3">Currently hosting</Badge>}</TabsTrigger>
                     {/*<TabsTrigger value="browser-client">Rendering</TabsTrigger>*/}
-                </TabsList>
+                </TabsList>}
 
-                <TabsContent value="host" className={tabContentClass}>
+                {!IS_ANDROID_APP && <TabsContent value="host" className={tabContentClass}>
 
                     {!serverStatus?.serverHasPassword &&
                         <Alert
@@ -148,11 +151,17 @@ export function NakamaSettings(props: Props) {
                             help="Select anime that you don't want to share with other clients."
                         />
                     </SettingsCard>}
-                </TabsContent>
+                </TabsContent>}
 
                 <TabsContent value="peer" className={tabContentClass}>
                     <SettingsCard>
                         {serverStatus?.settings?.nakama?.isHost && <Alert intent="info" description="Cannot connect to a host while in host mode." />}
+                        {/* A host mode left on from before can still be turned off */}
+                        {IS_ANDROID_APP && serverStatus?.settings?.nakama?.isHost && <Field.Switch
+                            side="right"
+                            name="nakamaIsHost"
+                            label="Enable host mode"
+                        />}
 
                         <div
                             className={cn(

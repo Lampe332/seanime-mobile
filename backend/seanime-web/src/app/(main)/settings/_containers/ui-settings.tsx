@@ -555,13 +555,13 @@ export function UISettings() {
 
                                 <div className="flex flex-col md:flex-row gap-3">
 
-                                    <Field.Textarea
+                                    {!IS_ANDROID_APP && <Field.Textarea
                                         label="Custom CSS"
                                         name="customCSS"
                                         placeholder="Custom CSS"
                                         help="Applied above 1024px screen size."
                                         className="min-h-[500px]"
-                                    />
+                                    />}
 
                                     <Field.Textarea
                                         label="Mobile custom CSS"
@@ -768,7 +768,7 @@ export function UISettings() {
                                     />
                                 </div>
 
-                                <div className="flex gap-2">
+                                {!IS_ANDROID_APP && <div className="flex gap-2">
                                     <Button
                                         size="sm"
                                         intent="gray-outline"
@@ -777,7 +777,7 @@ export function UISettings() {
                                     >
                                         Open assets directory
                                     </Button>
-                                </div>
+                                </div>}
 
                                 <Field.RadioCards
                                     label="Home screen banner type"
@@ -945,7 +945,8 @@ export function UISettings() {
                                     name="showMangaUnreadCount"
                                 />
 
-                                <Field.Switch
+                                {/* Styles the card popup that opens on hover, which touch screens never do */}
+                                {!IS_ANDROID_APP && <Field.Switch
                                     side="right"
                                     label={swLabel(
                                         <SwThumb>
@@ -955,7 +956,7 @@ export function UISettings() {
                                         "Media card glassy background",
                                     )}
                                     name="enableMediaCardBlurredBackground"
-                                />
+                                />}
 
                                 <Field.Switch
                                     side="right"
@@ -1063,6 +1064,8 @@ export function UISettings() {
                                     name="smallerEpisodeCarouselSize"
                                 />
 
+                                {/* Desktop sidebar and top navbar; Android navigates with the native bar and menu */}
+                                {!IS_ANDROID_APP && <>
                                 <Field.Switch
                                     side="right"
                                     label={swLabel(
@@ -1171,6 +1174,7 @@ export function UISettings() {
                                         },
                                     ]}
                                 />
+                                </>}
 
                             </SettingsCard>
 
