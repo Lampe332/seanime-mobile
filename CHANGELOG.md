@@ -2,6 +2,17 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.27 — 21.10.2026 (versionCode 31078)
+
+- 🎉 Manga: The phone Manga tab starts with "Continue reading": manga you are reading, with their chapter progress and new chapters, open the reader where the manga page would continue
+- 🎉 Manga: Completed and Dropped manga appear on the phone Manga tab, next to Reading, Planning and Paused as tabs with counts
+- 🎉 Manga: The library sorting can be changed from the phone Manga tab
+- ⚡️ Manga: Redesigned the phone Manga tab like Home and Downloads: a quiet title with search, source refresh and filter actions, a cover grid with chapter progress and a calm new-chapter badge, and fewer, wider cards with a large system font
+- ⚡️ Manga: Genres, "only new chapters" and the new-chapter badges moved into one filter sheet on phones
+- ⚡️ Manga: Loading, empty and error states on the phone Manga tab keep the page; an error offers to try again or read downloaded chapters instead of jumping back to Home
+- ⚡️ Manga: The source refresh opens as a phone sheet with German texts
+- ⚡️ Manga: Relations and recommendations on the manga page use Home's section headings and German labels
+
 ## 1.9.26 — 21.10.2026 (versionCode 31077)
 
 - ⚡️ Calendar: "All anime" shows how many episodes air on each day in the month grid and the day strip
