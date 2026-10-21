@@ -9,6 +9,9 @@ export function getImageUrl(path: string) {
 }
 
 export function getAssetUrl(path: string) {
+    // A link instead of a file in the assets folder (the Android app cannot add files there)
+    if (/^https?:\/\//i.test(path)) return path
+
     let p = path.replaceAll("\\", "/")
 
     if (p.startsWith("/")) {

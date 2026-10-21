@@ -440,14 +440,17 @@ export function UISettings() {
 
         const prevEnableColorSettings = themeSettings?.enableColorSettings
 
+        // Only the fields that were changed, on top of the stored theme: the form starts from useThemeSettings, which fills empty
+        // fields with their defaults, and sending all of it would store those defaults (accent "#6152df" for "", …)
+        const dirtyFields = (formRef.current?.formState.dirtyFields ?? {}) as Partial<Record<keyof typeof data, unknown>>
+        const changed: Partial<typeof data> = Object.fromEntries(Object.entries(data).filter(([key]) => !!dirtyFields[key as keyof typeof data]))
+        if (changed.libraryScreenCustomBackgroundBlur === "-") changed.libraryScreenCustomBackgroundBlur = ""
+
         mutate({
             theme: {
                 id: 0,
-                ...themeSettings,
-                ...data,
-                libraryScreenCustomBackgroundBlur: data.libraryScreenCustomBackgroundBlur === "-"
-                    ? ""
-                    : data.libraryScreenCustomBackgroundBlur,
+                ...(serverStatus?.themeSettings ?? themeSettings),
+                ...changed,
             },
         }, {
             onSuccess() {
@@ -685,7 +688,7 @@ export function UISettings() {
                                                         mutate({
                                                             theme: {
                                                                 id: 0,
-                                                                ...themeSettings,
+                                                                ...(serverStatus?.themeSettings ?? themeSettings),
                                                                 enableColorSettings: true,
                                                                 backgroundColor: opt.backgroundColor,
                                                                 accentColor: opt.accentColor,
@@ -720,11 +723,13 @@ export function UISettings() {
 
                             <SettingsCard title="Banners & Background">
                                 <div className="flex flex-col md:flex-row gap-3">
+                                    {/* Android cannot put files into the server's assets folder, so images come from a link */}
                                     <Field.Text
-                                        label="Background image path"
+                                        label={IS_ANDROID_APP ? "Background image URL" : "Background image path"}
                                         name="libraryScreenCustomBackgroundImage"
-                                        placeholder="e.g. image.png"
-                                        help="Background image for all pages. Dimmed on non-library screens."
+                                        placeholder={IS_ANDROID_APP ? "https://…" : "e.g. image.png"}
+                                        help={IS_ANDROID_APP ? "Link to an image (https). Background for all pages, dimmed on non-library screens."
+                                            : "Background image for all pages. Dimmed on non-library screens."}
                                     />
 
                                     <Field.Number
@@ -749,10 +754,10 @@ export function UISettings() {
                                 </div>
                                 <div className="flex flex-col md:flex-row gap-3">
                                     <Field.Text
-                                        label="Banner image path"
+                                        label={IS_ANDROID_APP ? "Banner image URL" : "Banner image path"}
                                         name="libraryScreenCustomBannerImage"
-                                        placeholder="e.g. image.gif"
-                                        help="Banner image for all pages."
+                                        placeholder={IS_ANDROID_APP ? "https://…" : "e.g. image.gif"}
+                                        help={IS_ANDROID_APP ? "Link to an image (https). Banner for all pages." : "Banner image for all pages."}
                                     />
                                     <Field.Text
                                         label="Banner position"
