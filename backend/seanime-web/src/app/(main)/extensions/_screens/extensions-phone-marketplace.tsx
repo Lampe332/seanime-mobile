@@ -11,14 +11,21 @@ import { DEFAULT_MARKETPLACE_URL, marketplaceUrlAtom } from "@/app/(main)/extens
 import { ExtensionIcon, focusSheet, MarketplaceSheet, SearchField, Spinner, UrlField } from "@/app/(main)/extensions/_screens/extensions-phone-sheets"
 import { LANGUAGES_LIST } from "@/app/(main)/manga/_lib/language-map"
 import { Modal } from "@/components/ui/modal"
-import { Translate } from "@/lib/app-language"
+import { appLanguageAtom, Translate } from "@/lib/app-language"
 import { useSearchParams } from "@/lib/navigation"
-import { useAtom } from "jotai/react"
+import { atom } from "jotai"
+import { useAtom, useAtomValue } from "jotai/react"
 import React from "react"
-import { LuCheck, LuChevronDown, LuDownload, LuRotateCw } from "react-icons/lu"
+import { LuCheck, LuChevronDown, LuChevronRight, LuDownload, LuRotateCw } from "react-icons/lu"
 import { toast } from "sonner"
 
 const ALL_TYPES = { type: "all", tabName: "All Types", chipEn: "All", chipDe: "Alle" }
+
+/** The marketplace's type filter; the Installed tab's "Add" actions open the marketplace on a type. */
+export const __extensions_marketTypeAtom = atom("all")
+
+/** Rows per type in the overview; "Show all" opens the type's full list. */
+const OVERVIEW_ROWS = 4
 
 function isWebUrl(value: string) {
     try {
@@ -34,8 +41,10 @@ function isWebUrl(value: string) {
  */
 export function MarketplacePhone({ t, installedIds }: { t: Translate, installedIds: Set<string> }) {
     const [url, setUrl] = useAtom(marketplaceUrlAtom)
+    const appLanguage = useAtomValue(appLanguageAtom)
     const { data, isPending, isError, isFetching, refetch } = useGetMarketplaceExtensions(url)
-    const [type, setType] = React.useState("all")
+    const [type, setType] = useAtom(__extensions_marketTypeAtom)
+    const chipsRef = React.useRef<HTMLDivElement>(null)
     const [language, setLanguage] = React.useState("all")
     const [search, setSearch] = React.useState("")
     const [repoOpen, setRepoOpen] = React.useState(false)
@@ -54,12 +63,22 @@ export function MarketplacePhone({ t, installedIds }: { t: Translate, installedI
     const usable = React.useMemo(() => (data ?? []).filter(isPhoneExtension), [data])
     const languages = React.useMemo(() => [...new Set(usable.map(extension => extension.lang?.toLowerCase()).filter(Boolean) as string[])].sort(), [usable])
     // Chip counts follow the language and the search, so a chip never promises what its list won't show.
-    const narrowed = React.useMemo(() => filterMarketplace(usable, { type: "all", language, search }), [usable, language, search])
+    const narrowed = React.useMemo(() => filterMarketplace(usable, { type: "all", language, search }, appLanguage), [usable, language, search, appLanguage])
     const shown = React.useMemo(() => type === "all" ? narrowed : narrowed.filter(extension => extension.type === type), [narrowed, type])
     const groups = PHONE_EXTENSION_TYPES.map(item => ({ ...item, items: shown.filter(extension => extension.type === item.type) })).filter(group => group.items.length > 0)
     const missing = isDefault && !!data ? PHONE_EXTENSION_TYPES.filter(item => item.type === "onlinestream-provider" || item.type === "manga-provider")
         .filter(item => !usable.some(extension => extension.type === item.type)) : []
     const filtered = type !== "all" || language !== "all" || !!search.trim()
+    // Without a type or a search, each type shows its first rows and a way to all of them, so hundreds stay browsable.
+    const overview = type === "all" && !search.trim()
+    // A chosen type the repository has nothing of is not a filter miss: it needs another repository.
+    const typeMissing = type !== "all" && !usable.some(extension => extension.type === type) ? PHONE_EXTENSION_TYPES.find(item => item.type === type) : undefined
+
+    const showType = (next: string) => {
+        setType(next)
+        // From the bottom of a long list, the chosen type starts at its chips again.
+        if ((chipsRef.current?.getBoundingClientRect().top ?? 0) < 0) chipsRef.current?.scrollIntoView({ block: "start" })
+    }
 
     const openRepository = (draft: string) => {
         setRepoDraft(draft)
@@ -91,7 +110,9 @@ export function MarketplacePhone({ t, installedIds }: { t: Translate, installedI
                 aria-label={t("Reload repository", "Repository neu laden")} data-marketplace-reload>
                 <LuRotateCw className={isFetching ? "mex-spin" : undefined} aria-hidden />
             </button>
-            <button ref={changeRef} type="button" className="mex-text-action" data-tour="marketplace-change-repo" onClick={() => openRepository(url)}>
+            {/* The first-run tutorial points at the repository action: this one, or the notice's button when the notice shows. */}
+            <button ref={changeRef} type="button" className="mex-text-action" data-tour={missing.length ? undefined : "marketplace-change-repo"}
+                onClick={() => openRepository(url)} data-marketplace-change>
                 {t("Change", "Ändern")}
             </button>
         </section>
@@ -103,16 +124,18 @@ export function MarketplacePhone({ t, installedIds }: { t: Translate, installedI
             <p>{t("The official repository no longer lists content sources. Find a community repository online and add its link.",
                 "Das offizielle Repository listet keine Inhaltsquellen mehr. Such online nach einem Community-Repository und füge seinen Link hinzu.")}</p>
             <div className="mex-block-actions">
-                <button type="button" className="mex-primary" onClick={() => openRepository("")}>{t("Add repository", "Repository hinzufügen")}</button>
+                <button type="button" className="mex-primary" onClick={() => openRepository("")} data-tour="marketplace-change-repo">
+                    {t("Add repository", "Repository hinzufügen")}
+                </button>
             </div>
         </div>}
 
         {usable.length > 0 && <div className="mex-filters">
-            <div className="mex-chips" role="tablist" aria-label={t("Type", "Art")} data-marketplace-type-tabs>
+            <div ref={chipsRef} className="mex-chips" role="tablist" aria-label={t("Type", "Art")} data-marketplace-type-tabs>
                 {[ALL_TYPES, ...PHONE_EXTENSION_TYPES].map(item => {
                     const count = item.type === "all" ? narrowed.length : narrowed.filter(extension => extension.type === item.type).length
                     return <button key={item.type} type="button" role="tab" aria-selected={type === item.type} aria-controls="mex-market-list"
-                        data-tab-name={item.tabName} data-marketplace-type={item.type} onClick={() => setType(item.type)}>
+                        data-tab-name={item.tabName} data-marketplace-type={item.type} onClick={() => showType(item.type)}>
                         {t(item.chipEn, item.chipDe)}<span>{count}</span>
                     </button>
                 })}
@@ -150,11 +173,16 @@ export function MarketplacePhone({ t, installedIds }: { t: Translate, installedI
                             <p>{t("It has nothing the phone app can use. Try another repository.", "Es enthält nichts, was die Handy-App nutzen kann. Versuch ein anderes Repository.")}</p>
                             <button type="button" className="mex-secondary" onClick={() => openRepository(url)}>{t("Change repository", "Repository ändern")}</button>
                         </div>
-                        : groups.length === 0 ? <div className="mex-empty" data-marketplace-filter-empty>
-                                <p>{t("No extensions match", "Keine Erweiterung passt")}</p>
-                                <p>{t("Try another type, language or search.", "Versuch eine andere Art, Sprache oder Suche.")}</p>
-                                {filtered && <button type="button" className="mex-secondary" onClick={resetFilters}>{t("Reset filters", "Filter zurücksetzen")}</button>}
-                            </div>
+                        : groups.length === 0 ? (typeMissing ? <div className="mex-empty" data-marketplace-type-empty>
+                                    <p>{t(`${typeMissing.noneEn} in this repository`, `${typeMissing.noneDe} in diesem Repository`)}</p>
+                                    <p>{t("Other repositories have them. Add one with its link.", "Andere Repositorys haben sie. Füge eines über seinen Link hinzu.")}</p>
+                                    <button type="button" className="mex-secondary" onClick={() => openRepository(url)}>{t("Change repository", "Repository ändern")}</button>
+                                </div>
+                                : <div className="mex-empty" data-marketplace-filter-empty>
+                                    <p>{t("No extensions match", "Keine Erweiterung passt")}</p>
+                                    <p>{t("Try another type, language or search.", "Versuch eine andere Art, Sprache oder Suche.")}</p>
+                                    {filtered && <button type="button" className="mex-secondary" onClick={resetFilters}>{t("Reset filters", "Filter zurücksetzen")}</button>}
+                                </div>)
                             : groups.map(group => <section key={group.type} className="mex-section" aria-labelledby={`mex-market-${group.type}`} data-marketplace-group={group.type}>
                                 <div className="mex-section-head">
                                     <h2 id={`mex-market-${group.type}`}>{t(group.en, group.de)}</h2>
@@ -163,7 +191,13 @@ export function MarketplacePhone({ t, installedIds }: { t: Translate, installedI
                                 {group.type === "custom-source" && <p className="mex-section-note">{t("Custom sources let you browse media beyond AniList. They don't stream; that needs a streaming source.",
                                     "Eigene Quellen zeigen Titel über AniList hinaus. Sie streamen nicht, dafür braucht es eine Streaming-Quelle.")}</p>}
                                 <ul className="mex-list">
-                                    {group.items.map(extension => <MarketRow key={extension.id} t={t} extension={extension} installed={installedIds.has(extension.id)} onOpen={openSheet} />)}
+                                    {(overview ? group.items.slice(0, OVERVIEW_ROWS) : group.items).map(extension =>
+                                        <MarketRow key={extension.id} t={t} extension={extension} installed={installedIds.has(extension.id)} onOpen={openSheet} />)}
+                                    {overview && group.items.length > OVERVIEW_ROWS && <li>
+                                        <button type="button" className="mex-more" onClick={() => showType(group.type)} data-marketplace-show-all={group.type}>
+                                            {t(`Show all ${group.items.length}`, `Alle ${group.items.length} zeigen`)}<LuChevronRight aria-hidden />
+                                        </button>
+                                    </li>}
                                 </ul>
                             </section>)}
         </div>
@@ -223,7 +257,7 @@ function RepositorySheet(props: {
             <p className="mex-sheet-note">{t("Paste the link to a repository's .json file. Its extensions then appear in the marketplace.",
                 "Füge den Link zur .json-Datei eines Repositorys ein. Seine Erweiterungen erscheinen dann im Marktplatz.")}</p>
             <UrlField t={t} id="mex-repository" label={t("Repository link", "Repository-Link")} value={draft} onChange={props.onDraft}
-                placeholder="https://example.com/index.json" onSubmit={save}
+                placeholder="https://…/index.json" onSubmit={save}
                 error={draft.trim() && !valid ? t("Enter a full link that starts with https://", "Gib einen vollständigen Link mit https:// ein") : undefined} />
             <div className="mex-sheet-actions">
                 <button type="button" className="mex-secondary" onClick={() => props.onSave(DEFAULT_MARKETPLACE_URL)} disabled={props.isDefault} data-marketplace-repo-default>

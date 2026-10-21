@@ -1,17 +1,18 @@
 import { Extension_Extension, Extension_InvalidExtension, ExtensionRepo_AllExtensions } from "@/api/generated/types"
 import { useGetAllExtensions, useInstallExternalExtension } from "@/api/hooks/extensions.hooks"
+import { useStartMobileTutorial } from "@/app/(main)/_features/tour/mobile-tutorial"
 import { __extensions_currentPageAtom } from "@/app/(main)/extensions/_containers/extension-list"
 import { extensionMeta, getInstalledOverview, invalidReasonLabel } from "@/app/(main)/extensions/_lib/extensions-phone"
-import { MarketplacePhone } from "@/app/(main)/extensions/_screens/extensions-phone-marketplace"
+import { __extensions_marketTypeAtom, MarketplacePhone } from "@/app/(main)/extensions/_screens/extensions-phone-marketplace"
 import { AddExtensionSheet, ExtensionIcon, ExtensionSheet, SearchField, Spinner } from "@/app/(main)/extensions/_screens/extensions-phone-sheets"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { SeaLink } from "@/components/shared/sea-link"
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
-import { useAtom } from "jotai/react"
+import { useAtom, useSetAtom } from "jotai/react"
 import React from "react"
-import { LuChevronRight, LuDownload, LuEllipsisVertical, LuFlaskConical, LuPlus, LuRefreshCcw } from "react-icons/lu"
+import { LuChevronRight, LuDownload, LuEllipsisVertical, LuFlaskConical, LuGraduationCap, LuPlus, LuRefreshCcw } from "react-icons/lu"
 import { toast } from "sonner"
 import "@/components/shared/mobile-surface.css"
 import "./extensions-phone.css"
@@ -53,6 +54,7 @@ export function ExtensionsPhone() {
     const t = useTr()
     const router = useRouter()
     const [page, setPage] = useAtom(__extensions_currentPageAtom)
+    const startTutorial = useStartMobileTutorial()
 
     const [withUpdates, setWithUpdates] = React.useState(false)
     const query = useGetAllExtensions(withUpdates)
@@ -116,6 +118,18 @@ export function ExtensionsPhone() {
         setSheetOpen(true)
     }
 
+    // Switching tabs from far down the page starts the other tab at its top.
+    const tabsRef = React.useRef<HTMLDivElement>(null)
+    const showPage = (next: "installed" | "marketplace") => {
+        setPage(next)
+        if ((tabsRef.current?.getBoundingClientRect().top ?? 0) < 0) tabsRef.current?.scrollIntoView({ block: "start" })
+    }
+    const setMarketType = useSetAtom(__extensions_marketTypeAtom)
+    const openMarketplace = (type: string) => {
+        setMarketType(type)
+        showPage("marketplace")
+    }
+
     const facts = loading ? t("Loading extensions…", "Erweiterungen werden geladen …")
         : failed ? t("Not loaded", "Nicht geladen")
             : [
@@ -146,17 +160,20 @@ export function ExtensionsPhone() {
                     <button type="button" className="mex-icon-button" aria-label={t("More actions", "Weitere Aktionen")} data-extensions-menu>
                         <LuEllipsisVertical aria-hidden />
                     </button>}>
+                    <DropdownMenuItem onClick={() => startTutorial({ fromExtensions: true })} data-extensions-tutorial>
+                        <LuGraduationCap aria-hidden /> {t("Setup tour", "Einrichtungs-Tour")}
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push("/extensions/playground")}><LuFlaskConical aria-hidden /> {t("Playground", "Playground")}</DropdownMenuItem>
                 </DropdownMenu>
             </div>
         </header>
 
-        <div className="mex-tabs" role="tablist" aria-label={t("Extensions", "Erweiterungen")} data-extensions-page-tabs>
-            <button type="button" role="tab" aria-selected={installed} aria-controls="mex-panel" data-tab-name="Installed" onClick={() => setPage("installed")}>
+        <div ref={tabsRef} className="mex-tabs" role="tablist" aria-label={t("Extensions", "Erweiterungen")} data-extensions-page-tabs>
+            <button type="button" role="tab" aria-selected={installed} aria-controls="mex-panel" data-tab-name="Installed" onClick={() => showPage("installed")}>
                 {t("Installed", "Installiert")}{!!all && <span>{overview.total}</span>}
                 {overview.attention > 0 && <span className="mex-tab-dot" role="img" aria-label={t("needs attention", "braucht Aufmerksamkeit")} />}
             </button>
-            <button type="button" role="tab" aria-selected={!installed} aria-controls="mex-panel" data-tab-name="Marketplace" onClick={() => setPage("marketplace")}>
+            <button type="button" role="tab" aria-selected={!installed} aria-controls="mex-panel" data-tab-name="Marketplace" onClick={() => showPage("marketplace")}>
                 {t("Marketplace", "Marktplatz")}
             </button>
         </div>
@@ -175,14 +192,7 @@ export function ExtensionsPhone() {
                             <span className="mex-bone mex-bone-head" />
                             {Array.from({ length: 2 }, (_, i) => <span key={i} className="mex-bone mex-bone-row" />)}
                         </div>
-                        : overview.total === 0 ? <div className="mex-empty" data-extensions-empty>
-                                <p>{t("No extensions yet", "Noch keine Erweiterungen")}</p>
-                                <p>{t("Streaming and manga sources come as extensions. Install them from the marketplace or from a link.",
-                                    "Streaming- und Manga-Quellen kommen als Erweiterungen. Installier sie aus dem Marktplatz oder über einen Link.")}</p>
-                                <button type="button" className="mex-primary" onClick={() => setPage("marketplace")}>{t("Open the marketplace", "Marktplatz öffnen")}</button>
-                                <button type="button" className="mex-text-action" onClick={() => setAddOpen(true)}>{t("Add from a link", "Über einen Link hinzufügen")}</button>
-                            </div>
-                            : <>
+                        : <>
                                 {overview.safeUpdates.length > 0 && <section className="mex-updates" aria-labelledby="mex-updates-title" data-extensions-updates>
                                     <div>
                                         <h2 id="mex-updates-title">{overview.safeUpdates.length === 1 ? t("1 update available", "1 Update verfügbar")
@@ -201,8 +211,7 @@ export function ExtensionsPhone() {
 
                                 {(overview.permissions.length > 0 || overview.broken.length > 0) && <section className="mex-section" aria-labelledby="mex-attention-title" data-extensions-attention>
                                     <div className="mex-section-head">
-                                        <h2 id="mex-attention-title">{t("Needs attention", "Braucht Aufmerksamkeit")}</h2>
-                                        <span>{overview.permissions.length + overview.broken.length}</span>
+                                        <h2 id="mex-attention-title">{t("Needs attention", "Braucht Aufmerksamkeit")}<span>{overview.permissions.length + overview.broken.length}</span></h2>
                                     </div>
                                     <ul className="mex-list">
                                         {[...overview.permissions, ...overview.broken].map(item => {
@@ -216,11 +225,22 @@ export function ExtensionsPhone() {
 
                                 {overview.groups.map(group => <section key={group.key} className="mex-section" aria-labelledby={`mex-group-${group.key}`} data-extensions-group={group.key}>
                                     <div className="mex-section-head">
-                                        <h2 id={`mex-group-${group.key}`}>{t(group.en, group.de)}</h2>
+                                        <h2 id={`mex-group-${group.key}`}>{t(group.en, group.de)}<span>{group.items.length}</span></h2>
                                         {group.key === "custom-source" ? <SeaLink href="/custom-sources" className="mex-text-action">{t("Browse", "Durchsuchen")}</SeaLink>
-                                            : <span>{group.items.length}</span>}
+                                            : group.key !== "disabled" && <button type="button" className="mex-text-action" onClick={() => openMarketplace(group.key)}
+                                            data-extensions-add-type={group.key} aria-label={t(`Add ${group.en.toLowerCase()}`, `${group.de} hinzufügen`)}>
+                                            <LuPlus aria-hidden />{t("Add", "Hinzufügen")}
+                                        </button>}
                                     </div>
-                                    <ul className="mex-list" data-dim={group.key === "disabled" || undefined}>
+                                    {group.items.length === 0 && <div className="mex-missing" data-extensions-missing={group.key}>
+                                        <p>{group.key === "onlinestream-provider"
+                                            ? t("No streaming source yet. Episodes can only be streamed with one.", "Noch keine Streaming-Quelle. Ohne sie lassen sich keine Folgen streamen.")
+                                            : t("No manga source yet. Chapters can only be read and downloaded with one.", "Noch keine Manga-Quelle. Ohne sie lassen sich keine Kapitel lesen oder laden.")}</p>
+                                        <button type="button" className="mex-primary" onClick={() => openMarketplace(group.key)}>
+                                            {group.key === "onlinestream-provider" ? t("Find a streaming source", "Streaming-Quelle finden") : t("Find a manga source", "Manga-Quelle finden")}
+                                        </button>
+                                    </div>}
+                                    {group.items.length > 0 && <ul className="mex-list" data-dim={group.key === "disabled" || undefined}>
                                         {group.items.map(extension => {
                                             const update = all?.hasUpdate?.find(item => item.extensionID === extension.id)
                                             const setup = all?.invalidUserConfigExtensions?.some(item => item.id === extension.id)
@@ -228,7 +248,7 @@ export function ExtensionsPhone() {
                                                 flag={setup ? t("Needs setup", "Muss eingerichtet werden") : update ? t(`Update to ${update.version}`, `Update auf ${update.version}`) : undefined}
                                                 tone={setup ? "warning" : update ? "accent" : undefined} />
                                         })}
-                                    </ul>
+                                    </ul>}
                                 </section>)}
 
                                 {nothingFound && <div className="mex-empty" data-extensions-search-empty>

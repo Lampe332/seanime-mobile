@@ -412,7 +412,7 @@ export function AddExtensionSheet(props: {
             <section className="mex-sheet-group" aria-labelledby="mex-add-link-title">
                 <h3 id="mex-add-link-title">{t("From a link", "Über einen Link")}</h3>
                 <UrlField t={t} id="mex-manifest-url" label={t("Link to the extension's manifest (.json)", "Link zum Manifest der Erweiterung (.json)")}
-                    value={manifestUrl} onChange={value => { setManifestUrl(value); resetFound() }} placeholder="https://example.com/extension.json" onSubmit={findManifest} />
+                    value={manifestUrl} onChange={value => { setManifestUrl(value); resetFound() }} placeholder="https://…/manifest.json" onSubmit={findManifest} />
                 {!found && <button type="button" className="mex-secondary" onClick={findManifest} disabled={finding} data-extensions-add-find>
                     {finding && <Spinner />}{t("Find extension", "Erweiterung suchen")}
                 </button>}
@@ -440,7 +440,7 @@ export function AddExtensionSheet(props: {
                 <p className="mex-sheet-note">{t("Lists every extension of a repository, then installs them all at once.",
                     "Zeigt alle Erweiterungen eines Repositorys und installiert sie dann auf einmal.")}</p>
                 <UrlField t={t} id="mex-repository-url" label={t("Link to the repository (.json)", "Link zum Repository (.json)")}
-                    value={repositoryUrl} onChange={value => { setRepositoryUrl(value); resetRepository() }} placeholder="https://example.com/extensions.json"
+                    value={repositoryUrl} onChange={value => { setRepositoryUrl(value); resetRepository() }} placeholder="https://…/index.json"
                     onSubmit={() => loadRepository(false)} />
                 {!repository && <button type="button" className="mex-secondary" onClick={() => loadRepository(false)} disabled={importing} data-extensions-add-list>
                     {importing && <Spinner />}{t("Show extensions", "Erweiterungen zeigen")}

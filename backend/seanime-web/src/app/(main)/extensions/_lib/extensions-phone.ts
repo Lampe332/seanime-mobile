@@ -14,11 +14,12 @@ export const PHONE_EXTENSION_TYPES: {
     en: string, de: string
     chipEn: string, chipDe: string
     oneEn: string, oneDe: string
+    noneEn: string, noneDe: string
 }[] = [
-    { type: "onlinestream-provider", tabName: "Online Streaming", en: "Online streaming", de: "Online-Streaming", chipEn: "Streaming", chipDe: "Streaming", oneEn: "Streaming source", oneDe: "Streaming-Quelle" },
-    { type: "manga-provider", tabName: "Manga", en: "Manga", de: "Manga", chipEn: "Manga", chipDe: "Manga", oneEn: "Manga source", oneDe: "Manga-Quelle" },
-    { type: "plugin", tabName: "Plugins", en: "Plugins", de: "Plugins", chipEn: "Plugins", chipDe: "Plugins", oneEn: "Plugin", oneDe: "Plugin" },
-    { type: "custom-source", tabName: "Custom Sources", en: "Custom sources", de: "Eigene Quellen", chipEn: "Custom sources", chipDe: "Eigene Quellen", oneEn: "Custom source", oneDe: "Eigene Quelle" },
+    { type: "onlinestream-provider", tabName: "Online Streaming", en: "Online streaming", de: "Online-Streaming", chipEn: "Streaming", chipDe: "Streaming", oneEn: "Streaming source", oneDe: "Streaming-Quelle", noneEn: "No streaming sources", noneDe: "Keine Streaming-Quellen" },
+    { type: "manga-provider", tabName: "Manga", en: "Manga", de: "Manga", chipEn: "Manga", chipDe: "Manga", oneEn: "Manga source", oneDe: "Manga-Quelle", noneEn: "No manga sources", noneDe: "Keine Manga-Quellen" },
+    { type: "plugin", tabName: "Plugins", en: "Plugins", de: "Plugins", chipEn: "Plugins", chipDe: "Plugins", oneEn: "Plugin", oneDe: "Plugin", noneEn: "No plugins", noneDe: "Keine Plugins" },
+    { type: "custom-source", tabName: "Custom Sources", en: "Custom sources", de: "Eigene Quellen", chipEn: "Custom sources", chipDe: "Eigene Quellen", oneEn: "Custom source", oneDe: "Eigene Quelle", noneEn: "No custom sources", noneDe: "Keine eigenen Quellen" },
 ]
 
 const phoneTypes = new Set<string>(PHONE_EXTENSION_TYPES.map(item => item.type))
@@ -109,7 +110,13 @@ export type InstalledOverview = {
     attention: number
 }
 
-/** The phone Installed tab: what needs attention, then one group per type and the disabled ones, each sorted by name. */
+/** Types the app needs to stream and to read; their groups stay on the Installed tab when empty, with a way to add one. */
+export const CORE_EXTENSION_TYPES: string[] = ["onlinestream-provider", "manga-provider"]
+
+/**
+ * The phone Installed tab: what needs attention, then one group per type and the disabled ones, each sorted by name.
+ * Streaming and manga keep their (empty) group unless a search is running.
+ */
 export function getInstalledOverview(all: ExtensionRepo_AllExtensions | undefined, term: string): InstalledOverview {
     const enabled = (all?.extensions ?? []).filter(isPhoneExtension)
     const disabled = (all?.disabledExtensions ?? []).filter(isPhoneExtension)
@@ -126,7 +133,7 @@ export function getInstalledOverview(all: ExtensionRepo_AllExtensions | undefine
             ...PHONE_EXTENSION_TYPES.map(({ type, en, de }) => ({ key: type, en, de, items: sortExtensions(enabled.filter(extension => extension.type === type)) })),
             { key: "disabled" as const, en: "Disabled", de: "Deaktiviert", items: sortExtensions(disabled) },
         ].map(group => ({ ...group, items: group.items.filter(extension => matchesExtensionSearch(extension, term)) }))
-            .filter(group => group.items.length > 0),
+            .filter(group => group.items.length > 0 || (!term.trim() && CORE_EXTENSION_TYPES.includes(group.key))),
         total: enabled.length + disabled.length + invalid.length,
         updates: updates.length,
         safeUpdates: updates.filter(update => !all?.unsafeExtensions?.[update.extensionID]),
@@ -136,12 +143,20 @@ export function getInstalledOverview(all: ExtensionRepo_AllExtensions | undefine
 
 export type MarketplaceFilters = { type: string, language: string, search: string }
 
-/** Marketplace entries the phone can use, narrowed by type, content language and search, sorted by name. */
-export function filterMarketplace(extensions: Extension_Extension[] | undefined, filters: MarketplaceFilters) {
-    return sortExtensions((extensions ?? []).filter(isPhoneExtension)
-        .filter(extension => filters.type === "all" || extension.type === filters.type)
-        .filter(extension => filters.language === "all" || extension.lang?.toLowerCase() === filters.language)
-        .filter(extension => matchesExtensionSearch(extension, filters.search)))
+/**
+ * Marketplace entries the phone can use, narrowed by type, content language and search. Extensions in the app's
+ * language come first, then those with several languages, then the rest; each by name.
+ */
+export function filterMarketplace(extensions: Extension_Extension[] | undefined, filters: MarketplaceFilters, appLanguage = "en") {
+    const rank = (extension: Extension_Extension) => {
+        const lang = extension.lang?.toLowerCase()
+        return lang === appLanguage ? 0 : (!lang || lang === "multi") ? 1 : 2
+    }
+    return orderBy((extensions ?? []).filter(isPhoneExtension)
+            .filter(extension => filters.type === "all" || extension.type === filters.type)
+            .filter(extension => filters.language === "all" || extension.lang?.toLowerCase() === filters.language)
+            .filter(extension => matchesExtensionSearch(extension, filters.search)),
+        [rank, extension => extension.name?.toLowerCase(), "id"])
 }
 
 /** Short form of a repository URL: owner/repository on GitHub (its host says nothing), else the host and the file name. */
