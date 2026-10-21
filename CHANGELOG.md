@@ -2,6 +2,17 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.29 — 21.10.2026 (versionCode 31080)
+
+- ⚡️ Extensions: Redesigned the phone Extensions tab like Home and Manga: a quiet title with icon actions, Installed and Marketplace as tabs, updates and extensions that need attention first, then streaming, manga, plugins, custom sources and disabled extensions as lists
+- ⚡️ Extensions: Each extension on the phone opens one sheet with all of its actions (update with its changes, preferences, check for updates, reload, code, documentation, website, turn on/off, uninstall with a confirmation) instead of small icons spread over the card
+- ⚡️ Extensions: Plugin permission requests and load errors are explained in the extension's sheet on the phone, with the requested rights and the error details
+- ⚡️ Extensions: Checking for updates on the phone keeps the list on screen and says how many updates were found; "Update all" reports when it is done
+- ⚡️ Extensions: Redesigned the phone marketplace with the repository and its change action on top, type chips with counts, search and language, and one install button per extension
+- ⚡️ Extensions: Adding extensions from a link or a repository and changing the repository open as phone sheets with a paste button; preferences open as a sheet too
+- ⚡️ Extensions: German texts for the phone Extensions tab
+- ⚡️ Extensions: Extensions without an image icon show their first letter instead of an empty placeholder
+
 ## 1.9.28 — 21.10.2026 (versionCode 31079)
 
 - 🦺 Manga: Closing the filter sheet on the phone Manga tab puts the focus back on the filter button, so TalkBack continues where it was
