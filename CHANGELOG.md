@@ -2,6 +2,13 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.35 — 21.10.2026 (versionCode 31086)
+
+- ⚡️ My lists: Searching and filtering stay fast on the phone after scrolling far into a long list
+- ⚡️ Discover: Switching genres and tabs on the phone is quicker and no longer reloads rows loaded in the last 5 minutes
+- ⚡️ Search: Long result lists on the phone use far less memory while scrolling
+- 🦺 Search: Back from a title deep in the results returns to the same covers on the phone
+
 ## 1.9.34 — 21.10.2026 (versionCode 31085)
 
 - 🦺 Discover: When AniList can't load a chosen genre on the phone, the genre chips stay visible, so "All" is one tap away
