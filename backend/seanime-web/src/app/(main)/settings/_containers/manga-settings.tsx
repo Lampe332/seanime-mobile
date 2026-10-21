@@ -1,6 +1,7 @@
 import { useListMangaProviderExtensions } from "@/api/hooks/extensions.hooks"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { useStoredMangaProviders } from "@/app/(main)/manga/_lib/handle-manga-selected-provider"
+import { AndroidFolderButton } from "@/app/(main)/settings/_components/android-folder-button"
 import { SettingsCard, SettingsPageHeader } from "@/app/(main)/settings/_components/settings-card"
 import { SettingsSubmitButton } from "@/app/(main)/settings/_components/settings-submit-button"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
@@ -119,6 +120,7 @@ export function MangaSettings(props: MangaSettingsProps) {
                     label="Local Source Directory"
                     help="Directory where your manga is stored. This is only used by the local manga provider."
                 />
+                <AndroidFolderButton onPick={path => f.setValue("mangaLocalSourceDirectory", path, { shouldDirty: true })} />
             </SettingsCard>
 
             <ConfirmationDialog {...confirmDialog} />

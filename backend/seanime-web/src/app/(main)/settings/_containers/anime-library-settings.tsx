@@ -1,3 +1,4 @@
+import { AndroidFolderButton } from "@/app/(main)/settings/_components/android-folder-button"
 import { SettingsCard } from "@/app/(main)/settings/_components/settings-card"
 import { SettingsSubmitButton } from "@/app/(main)/settings/_components/settings-submit-button"
 import { DataSettings } from "@/app/(main)/settings/_containers/data-settings"
@@ -20,6 +21,7 @@ export function AnimeLibrarySettings(props: LibrarySettingsProps) {
     const { isPending } = props
 
     const useLegacyMatching = useWatch({ name: "scannerUseLegacyMatching" })
+    const { setValue, getValues } = useFormContext()
 
 
     return (
@@ -33,6 +35,7 @@ export function AnimeLibrarySettings(props: LibrarySettingsProps) {
                     help="Path of the directory where your media files ared located. (Keep the casing consistent)"
                     shouldExist
                 />
+                <AndroidFolderButton onPick={path => setValue("libraryPath", path, { shouldDirty: true })} />
 
                 <Field.MultiDirectorySelector
                     name="libraryPaths"
@@ -41,6 +44,10 @@ export function AnimeLibrarySettings(props: LibrarySettingsProps) {
                     help="Include additional directory paths if your library is spread across multiple locations."
                     shouldExist
                 />
+                <AndroidFolderButton label="Add folder" onPick={path => {
+                    const paths: string[] = getValues("libraryPaths") ?? []
+                    if (!paths.includes(path)) setValue("libraryPaths", [...paths, path], { shouldDirty: true })
+                }} />
             </SettingsCard>
 
             <SettingsCard title="Scanning">
