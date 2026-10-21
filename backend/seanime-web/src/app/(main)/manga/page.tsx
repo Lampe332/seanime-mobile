@@ -1,7 +1,9 @@
 import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
 import { MediaEntryPageLoadingDisplay } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { MangaLibraryHeader } from "@/app/(main)/manga/_components/library-header"
 import { useHandleMangaCollection } from "@/app/(main)/manga/_lib/handle-manga-collection"
+import { MangaLibraryPhone } from "@/app/(main)/manga/_screens/manga-library-phone"
 import { MangaLibraryView } from "@/app/(main)/manga/_screens/manga-library-view"
 import { cn } from "@/components/ui/core/styling"
 import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/theme-hooks"
@@ -10,17 +12,37 @@ import React from "react"
 
 
 export default function Page() {
+    // Android phones get their own library screen; tablets and desktop keep the library view
+    const phone = isAndroidPhone()
     const {
         mangaCollection,
         filteredMangaCollection,
         mangaCollectionLoading,
+        mangaCollectionError,
+        refetchMangaCollection,
+        mangaCollectionLists,
+        rawMangaCollectionLists,
+        latestChapterNumbers,
         storedFilters,
         storedProviders,
         mangaCollectionGenres,
         hasManga,
-    } = useHandleMangaCollection()
+    } = useHandleMangaCollection({ redirectOnError: !phone, keepGenresOnUnreadToggle: phone })
 
     const ts = useThemeSettings()
+
+    if (phone) return (
+        <MangaLibraryPhone
+            lists={mangaCollectionLists}
+            rawLists={rawMangaCollectionLists}
+            loading={mangaCollectionLoading}
+            error={mangaCollectionError}
+            onRetry={() => refetchMangaCollection()}
+            latestChapterNumbers={latestChapterNumbers}
+            storedProviders={storedProviders}
+            storedFilters={storedFilters}
+        />
+    )
 
     if (!mangaCollection || mangaCollectionLoading) return <MediaEntryPageLoadingDisplay />
 

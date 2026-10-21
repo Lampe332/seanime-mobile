@@ -1,0 +1,151 @@
+/* Android phone Manga tab, same language as Home, Downloads and the calendar: neutral --sm-* surfaces, elevation by one
+   lightness step, the theme colour only on reading progress, new chapters, the chosen status and the one reading action. */
+[data-mobile-manga-library="true"] {
+    max-width: 72rem; margin-inline: auto; padding: 0 1rem 7rem; display: grid !important; grid-template-columns: minmax(0, 1fr); gap: 1.5rem;
+    color: var(--sm-text); overflow-wrap: anywhere;
+    background: linear-gradient(180deg, rgb(var(--color-brand-500) / .11) 0, rgb(var(--color-brand-500) / .055) 40%, rgb(var(--color-brand-500) / .01) 82%, transparent 100%) top / 100% 32rem no-repeat; /* taste-skill-ignore: the shared phone page tint of Home, Downloads and the calendar */
+}
+/* The native shell sets block layout and a top padding on every page wrapper (UIHomePatch); two attributes outrank it. */
+[data-mobile-manga-library="true"][data-page-wrapper] { display: grid !important; padding-top: 0 !important; }
+/* No black navbar band: the bar continues the page tint, as on Downloads and the calendar. */
+body:has([data-mobile-manga-library="true"]) [data-top-navbar] { height: 3.5rem; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .16), rgb(var(--color-brand-500) / .11)); } /* taste-skill-ignore: same navbar tint as Downloads and the calendar */
+body:has([data-mobile-manga-library="true"]) [data-top-navbar] [data-layout-header-background], body:has([data-mobile-manga-library="true"]) [data-top-navbar] [data-layout-header-background-gradient] { display: none; }
+[data-mobile-manga-library="true"] button, [data-mobile-manga-library="true"] a { -webkit-tap-highlight-color: transparent; }
+[data-mobile-manga-library="true"] button:focus-visible, [data-mobile-manga-library="true"] a:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+
+/* Head: title and plain 48 dp icon actions on one row (the actions wrap below with large text), the facts line under both. */
+.mml-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 .5rem; padding-top: .25rem; }
+.mml-header-text { display: contents; }
+.mml-header h1 { flex: 1 1 auto; min-width: 0; font-size: min(1.75rem, 11vw); line-height: 1.15; letter-spacing: -.03em; font-weight: 700; color: var(--sm-text); overflow-wrap: normal; }
+.mml-header p { order: 3; flex: 1 1 100%; margin-top: .2rem; font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mml-actions { order: 2; display: flex; align-items: center; margin-left: auto; margin-right: -.5rem; }
+.mml-icon-button { position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px; color: var(--sm-text-muted); font-size: 1.375rem; }
+.mml-icon-button:active, .mml-icon-button[data-state="open"] { background: var(--sm-surface-control); color: var(--sm-text); }
+.mml-dot { position: absolute; top: 11px; right: 11px; width: 8px; height: 8px; border-radius: 999px; background: var(--sm-accent); }
+
+/* Sections: Home's heading with a quiet count on the right. */
+.mml-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; min-width: 0; }
+.mml-section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 .75rem; min-height: 2.25rem; }
+.mml-section-head h2 { font-size: 1.25rem; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; color: var(--sm-text); }
+.mml-section-head > span { font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+
+/* Continue reading: the cover as itself, chapter progress and one reading action per card. */
+.mml-continue { display: flex; gap: .75rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; margin-inline: -1rem; padding: 0 1rem .25rem; scrollbar-width: none; }
+.mml-continue::-webkit-scrollbar { display: none; }
+/* Large text: the words move under the cover instead of collapsing into a sliver beside it. */
+.mml-continue-card { flex: 0 0 min(86vw, 22rem); min-width: 0; display: flex; flex-wrap: wrap; align-items: stretch; gap: .75rem .875rem; padding: .75rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); text-align: start; scroll-snap-align: start; scroll-margin-inline: 1rem; }
+.mml-continue-card:only-child { flex: 1 1 auto; max-width: 32rem; }
+.mml-continue-card:active { background: var(--sm-surface-control); }
+.mml-continue-cover { position: relative; flex: none; align-self: start; width: 5.5rem; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); }
+.mml-continue-text { flex: 1 1 calc(8.5rem * var(--mml-text-zoom, 1)); min-width: 0; display: flex; flex-direction: column; gap: .25rem; overflow-wrap: break-word; }
+.mml-continue-title { font-size: .9375rem; font-weight: 600; line-height: 1.35; color: var(--sm-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mml-continue-meta { font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mml-continue-new { font-size: .8125rem; font-weight: 600; color: var(--sm-accent); font-variant-numeric: tabular-nums; }
+.mml-continue-action { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: .45rem; max-width: 100%; min-height: 44px; padding: .55rem 1.1rem .55rem .9rem; border-radius: 999px; background: rgb(var(--color-brand-500)); color: #fff; font-size: .8125rem; font-weight: 650; }
+.mml-continue-action svg { flex: none; }
+.mml-continue-card:active .mml-continue-action { background: rgb(var(--color-brand-600)); }
+
+/* Progress: the one place the theme colour carries data. */
+.mml-progress { display: block; height: 3px; margin: .25rem 0 .125rem; overflow: hidden; border-radius: 999px; background: var(--sm-line-strong); }
+.mml-progress > span, .mml-card-progress > span { display: block; height: 100%; background: var(--sm-accent-strong); transform-origin: left center; }
+
+/* List status: one row of tabs with counts that scrolls sideways on its own, never the page. */
+.mml-status { display: flex; gap: .5rem; overflow-x: auto; overscroll-behavior-x: contain; margin-inline: -1rem; padding: 0 1rem; scrollbar-width: none; }
+.mml-status::-webkit-scrollbar { display: none; }
+.mml-status button { flex: none; display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 1rem; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; white-space: nowrap; overflow-wrap: normal; }
+.mml-status button span { color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.mml-status button[aria-selected="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 600; }
+.mml-status button[aria-selected="true"] span { color: inherit; }
+.mml-status button:focus-visible { outline-offset: -2px; }
+
+/* Cover grid: Home's and Downloads' cover cards. Android's font size setting zooms text only, not lengths; the page
+   measures that zoom into --mml-text-zoom so large text gets fewer, wider cards (3 columns normally, 2 at 200 % from 360 px). */
+.mml-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, max(100px, calc(78px * var(--mml-text-zoom, 1)))), 1fr)); gap: 1rem .75rem; }
+.mml-card { display: grid; align-content: start; gap: .25rem; min-width: 0; text-align: start; border-radius: var(--sm-radius-sm); content-visibility: auto; contain-intrinsic-size: auto 15rem; }
+.mml-card:focus-visible { outline-offset: 2px; }
+.mml-card-cover { position: relative; display: block; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); margin-bottom: .25rem; }
+.mml-cover-image { object-fit: cover; }
+.mml-card:active .mml-card-cover { opacity: .85; }
+.mml-card-progress { position: absolute; z-index: 5; top: 0; left: 0; right: 0; height: 3px; background: rgb(0 0 0 / .55); }
+.mml-badge { position: absolute; z-index: 5; top: .375rem; right: .375rem; max-width: calc(100% - .75rem); padding: .2rem .45rem; border-radius: 999px; background: rgb(12 12 14 / .82); color: var(--sm-accent); font-size: .6875rem; font-weight: 650; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.mml-card-title { font-size: .8125rem; font-weight: 550; line-height: 1.4; color: var(--sm-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; hyphens: auto; }
+.mml-card-meta { font-size: .75rem; color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+
+/* States: the final layout as flat blocks while loading; empty and failed blocks keep the frame and say what to do. */
+.mml-loading { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+.mml-bone { display: block; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); }
+.mml-bone-head { width: 9rem; height: 1.75rem; margin-top: .25rem; }
+.mml-bone-continue { height: 10.5rem; border-radius: var(--sm-radius); }
+.mml-bone-tabs { width: min(100%, 20rem); height: 48px; border-radius: 999px; }
+.mml-bone-cover { aspect-ratio: 2 / 3; }
+.mml-notice { display: grid; gap: .25rem; padding: 1rem 1rem .25rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); font-size: .9375rem; line-height: 1.5; color: var(--sm-text); }
+.mml-notice-actions { display: flex; flex-wrap: wrap; gap: 0 1rem; margin-inline: -.25rem; }
+.mml-text-action { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 .25rem; font-size: .9375rem; font-weight: 600; color: var(--sm-accent); }
+.mml-empty { display: grid; justify-items: center; gap: .375rem; padding: 1.5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); text-align: center; }
+.mml-empty p:first-child { font-size: .9375rem; font-weight: 600; color: var(--sm-text); }
+.mml-empty p + p { max-width: 22rem; font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.mml-secondary { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: .25rem 1.25rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); color: var(--sm-text); font-size: .9375rem; font-weight: 600; }
+.mml-empty .mml-secondary { margin-top: .5rem; }
+.mml-secondary:disabled { opacity: .45; }
+
+/* Plugin menu: the app's dropdown on the phone surfaces. */
+.mml-menu { min-width: 12rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); color: var(--sm-text); }
+.mml-menu [role="menuitem"] { min-height: 48px; }
+
+/* Filter sheet and source refresh: a bottom sheet like the calendar's; `body` outranks the native shell's .UI-Modal__content rules. */
+body .mml-sheet.UI-Modal__content {
+    display: grid !important; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-self: end; margin-bottom: 8px;
+    width: calc(100% - 16px) !important; max-width: 32rem !important; max-height: calc(100svh - 16px) !important; overflow-y: auto !important; overscroll-behavior: contain;
+    padding: 20px 16px 12px !important; border: 0; border-radius: var(--sm-radius-lg); background: var(--sm-surface); color: var(--sm-text);
+}
+.mml-sheet .UI-Modal__header { text-align: start; padding-right: 3rem; }
+.mml-sheet .UI-Modal__title { font-size: 1.375rem !important; line-height: 1.25; font-weight: 750; letter-spacing: -.02em; overflow-wrap: break-word; }
+.mml-sheet .UI-Modal__close { top: .5rem; right: .5rem; width: 48px; height: 48px; border-radius: 999px; background: transparent; }
+.mml-sheet button, .mml-sheet select { -webkit-tap-highlight-color: transparent; }
+.mml-sheet button:focus-visible, .mml-sheet select:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+.mml-sheet-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+.mml-sheet-group { display: grid; gap: .625rem; }
+.mml-sheet-group h3 { font-size: 1rem; font-weight: 700; }
+.mml-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-block: -.5rem -.25rem; }
+.mml-sheet-note { font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.mml-select-wrap { position: relative; display: block; }
+.mml-select { width: 100%; min-height: 52px; padding: .5rem 3rem .5rem 1rem; border: 0; border-radius: var(--sm-radius); background: var(--sm-surface-raised); color: var(--sm-text); font-size: .9375rem; appearance: none; -webkit-appearance: none; }
+.mml-select:disabled { opacity: .6; }
+.mml-select-wrap svg { position: absolute; top: 50%; right: 1rem; translate: 0 -50%; font-size: 1.125rem; color: var(--sm-text-muted); pointer-events: none; }
+.mml-rows { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.mml-rows button:focus-visible { outline-offset: -2px; }
+.mml-check { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 3.25rem; padding: .625rem 1rem; background: var(--sm-surface-raised); text-align: start; font-size: .9375rem; color: var(--sm-text); }
+.mml-check:active { background: var(--sm-surface-control); }
+.mml-check:disabled { opacity: .6; }
+.mml-check-text { display: grid; gap: .125rem; min-width: 0; }
+.mml-check-text small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
+.mml-toggle { position: relative; flex: none; width: 3rem; height: 1.75rem; border-radius: 999px; background: var(--sm-surface-control); box-shadow: inset 0 0 0 1px var(--sm-line-strong); } /* taste-skill-ignore: inset ring is the track border, as in the calendar sheet */
+.mml-toggle::after { content: ""; position: absolute; top: .25rem; left: .25rem; width: 1.25rem; height: 1.25rem; border-radius: 999px; background: var(--sm-text-muted); transition: transform .15s; }
+.mml-check[aria-checked="true"] .mml-toggle { background: var(--sm-accent-strong); box-shadow: none; } /* taste-skill-ignore: removes the track border when on */
+.mml-check[aria-checked="true"] .mml-toggle::after { transform: translateX(1.25rem); background: #fff; }
+.mml-genres { display: flex; flex-wrap: wrap; gap: .5rem; }
+.mml-genres button { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 .875rem; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; }
+.mml-genres button span { color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.mml-genres button[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 600; }
+.mml-genres button[aria-pressed="true"] span { color: inherit; }
+.mml-sheet-actions { position: sticky; bottom: -12px; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: .5rem; margin: 0 -16px -12px; padding: .75rem 16px 12px; background: var(--sm-surface); }
+.mml-sheet-actions .mml-secondary { min-height: 52px; border-radius: 999px; }
+.mml-primary { min-height: 52px; padding: 0 1rem; border-radius: 999px; background: rgb(var(--color-brand-500)); color: #fff; font-size: 1rem; font-weight: 650; }
+.mml-primary:active { background: rgb(var(--color-brand-600)); }
+
+/* Source refresh in the sheet: grouped mode rows, the chosen one marked in the accent; actions as full-width pills. */
+.mml-refresh-sheet .UI-RadioGroup__itemContainer { min-height: 48px; border: 0 !important; border-radius: var(--sm-radius-sm) !important; background: var(--sm-surface-raised) !important; }
+.mml-refresh-sheet .UI-RadioGroup__itemContainer[data-state="checked"] { background: var(--sm-accent-softer) !important; box-shadow: inset 0 0 0 1.5px var(--sm-accent-line); } /* taste-skill-ignore: inset ring marks the chosen mode */
+.mml-refresh-sheet .UI-Modal__footer { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); gap: .5rem; }
+.mml-refresh-sheet .UI-Modal__footer .UI-Button_root { min-height: 48px; margin: 0; border-radius: 999px; white-space: normal; }
+/* The last footer button is the sheet's action (start, stop, done); the others are quiet fills, not outlines. */
+.mml-refresh-sheet .UI-Modal__footer .UI-Button_root:not(:last-child) { border: 0; background: var(--sm-surface-raised); color: var(--sm-text); }
+
+@media (max-width: 359px) {
+    [data-mobile-manga-library="true"] { padding-inline: .75rem; }
+    .mml-continue, .mml-status { margin-inline: -.75rem; padding-inline: .75rem; }
+    .mml-continue-cover { width: 4.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mml-toggle::after { transition: none; }
+}
