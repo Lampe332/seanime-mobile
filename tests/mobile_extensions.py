@@ -42,7 +42,8 @@ GITHUB_REPO='https://raw.githubusercontent.com/Bas1874/Seanime-Marketplace/refs/
 NEW=ext('new-source','New Source','onlinestream-provider','1.0.0','newbie','en','','A fresh streaming source')
 MARKET={'':[ext('aiostreams','AIOStreams','plugin','0.10.2','Viren070','multi','','Stream content from AIOStreams'),SWITCHER],
     REPO:[ANIMEKAI,ext('animepahe','AnimePahe','onlinestream-provider','1.0.0','pahe','en','http://ext.test/icons/pahe.png','AnimePahe streams'),
-        ext('kaido','Kaido','onlinestream-provider','1.0.0','k','de','','Deutsche Streams'),ext('weebcentral','WeebCentral','manga-provider','1.0.0','wc','en','','Manga from WeebCentral'),
+        ext('kaido','Kaido','onlinestream-provider','1.0.0','k','de','','Deutsche Streams'),ext('anixl','AniXL','onlinestream-provider','2.0.0','xl','en','','AniXL streams'),
+        ext('yugen','Yugen','onlinestream-provider','1.3.0','yg','multi','','Streams in several languages'),ext('weebcentral','WeebCentral','manga-provider','1.0.0','wc','en','','Manga from WeebCentral'),
         MANGAFIRE,ext('mal-source','MAL Source','custom-source','1.0.0','mal','en','','Browse MyAnimeList'),ext('animetosho','AnimeTosho','anime-torrent-provider'),
         ext('aiostreams','AIOStreams','plugin','0.10.2','Viren070','multi','','Stream content from AIOStreams')],
     '__fetch':[NEW]}
@@ -58,6 +59,7 @@ NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>b.textContent||b.getAttribute("aria-label")))'''
 TEXT='(sel=>[...document.querySelectorAll(sel)].map(e=>e.textContent.trim()))'
 OPEN='document.querySelectorAll(".UI-Modal__content[data-state=open]").length'
+HEADS='(sel=>[...document.querySelectorAll(sel)].map(e=>e.firstChild.textContent.trim()))'
 def calls(page,kind=None): return [c for c in page.evaluate('calls') if kind is None or c[0]==kind]
 with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
     bundle=Path(tmp)/'extensions.js'
@@ -92,7 +94,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         check('Tutorial: the Marketplace tab keeps its selector',page.locator('[data-extensions-page-tabs] [data-tab-name="Marketplace"]').count()==1)
         check('Updates block names what can be updated',page.locator('[data-extensions-updates] h2').inner_text()=='1 update available'
               and page.locator('[data-extensions-updates] p').first.inner_text()=='AnimeKai')
-        check('Sections: attention first, content sources before plugins, torrents hidden',page.evaluate(TEXT,'.mex-section-head h2')
+        check('Sections: attention first, content sources before plugins, torrents hidden',page.evaluate(HEADS,'.mex-section-head h2')
               ==['Needs attention','Online streaming','Manga','Plugins','Custom sources','Disabled'] and page.locator('[data-extension-row="nyaa"]').count()==0)
         check('Attention rows say what is wrong',page.evaluate(TEXT,'[data-extensions-attention] .mex-flag')==['Needs your permission','Invalid or incompatible code'])
         check('Rows: update and setup flags, built-in, version · author · language',page.locator('[data-extension-row="animekai"] .mex-flag').inner_text()=='Update to 1.2.0'
@@ -113,6 +115,9 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         check('A search without hits says so',page.locator('[data-extensions-search-empty]').count()==1)
         page.locator('[data-extensions-search-empty] button').click();page.wait_for_timeout(200)
         check('Clearing the search brings every row back',page.locator('[data-extension-row]').count()==10)
+        page.locator('[data-extensions-add-type="onlinestream-provider"]').click();page.locator('[data-marketplace-phone]').wait_for();page.wait_for_timeout(200)
+        check('"Add" in a section opens the marketplace on that type',page.locator('[data-marketplace-type="onlinestream-provider"][aria-selected=true]').count()==1)
+        page.locator('[data-marketplace-type="all"]').click();page.locator('[data-tab-name="Installed"]').click();page.locator('[data-extension-row]').first.wait_for()
 
         # One sheet per extension
         open_row(page,'animekai')
@@ -234,16 +239,21 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         check('Saving switches the repository',page.evaluate('localStorage.getItem("marketplace-url")')==json.dumps(REPO)
               and page.locator('[data-marketplace-source]').inner_text()=='ext.test · index.json' and page.locator('[data-marketplace-missing]').count()==0)
         check('Focus returns to the change button',page.evaluate('document.activeElement?.getAttribute("data-tour")')=='marketplace-change-repo')
-        check('Chips: types with counts, torrents hidden',page.evaluate(TEXT,'[data-marketplace-type-tabs] [role=tab]')==['All7','Streaming3','Manga2','Plugins1','Custom sources1']
+        check('Chips: types with counts, torrents hidden',page.evaluate(TEXT,'[data-marketplace-type-tabs] [role=tab]')==['All9','Streaming5','Manga2','Plugins1','Custom sources1']
               and page.locator('[data-marketplace-row="animetosho"]').count()==0)
         check('Tutorial: type chips keep the desktop tab names',page.locator('[data-marketplace-type-tabs] [data-tab-name="Online Streaming"]').count()==1
               and page.locator('[data-marketplace-type-tabs] [data-tab-name="Manga"]').count()==1)
         check('Installed ones show a check, the others an install button the tutorial finds',page.locator('[data-marketplace-row="animekai"] [data-installed]').count()==1
-              and page.locator('[data-tour-install="onlinestream-provider"]').count()==2 and page.locator('[data-tour-install="manga-provider"]').count()==1)
+              and page.locator('[data-tour-install="onlinestream-provider"]').count()==3 and page.locator('[data-tour-install="manga-provider"]').count()==1)
+        check('Overview: four per type in the app language first, then several languages, then the rest; the rest one tap away',
+              page.evaluate(TEXT,'[data-marketplace-group="onlinestream-provider"] .mex-row-name')==['AnimeKai','AnimePahe','AniXL','Yugen']
+              and page.locator('[data-marketplace-show-all="onlinestream-provider"]').inner_text().strip()=='Show all 5'
+              and page.locator('[data-marketplace-show-all="manga-provider"]').count()==0)
         check('Marketplace rows are at least 48px',page.evaluate(SMALL,'[data-mobile-extensions] button,[data-mobile-extensions] a')==[])
         shot(page,'marketplace-390.png')
-        page.locator('[data-marketplace-type="onlinestream-provider"]').click();page.wait_for_timeout(200)
-        check('A type chip narrows to its group',page.evaluate(TEXT,'.mex-market-list .mex-section-head h2')==['Online streaming'] and page.locator('[data-marketplace-row]').count()==3)
+        page.locator('[data-marketplace-show-all="onlinestream-provider"]').click();page.wait_for_timeout(200)
+        check('A type chip narrows to its group',page.evaluate(HEADS,'.mex-market-list .mex-section-head h2')==['Online streaming'] and page.locator('[data-marketplace-row]').count()==5
+              and page.locator('[data-marketplace-type="onlinestream-provider"][aria-selected=true]').count()==1)
         page.locator('[data-marketplace-row="animepahe"] [data-tour-install]').click();page.wait_for_timeout(400)
         check('Install from the list',calls(page,'install')[-1]==['install',{'manifestUri':'https://ext.test/animepahe.json'}]
               and page.locator('[data-marketplace-row="animepahe"] [data-installed]').count()==1)
@@ -253,7 +263,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         page.locator('[data-marketplace-search]').fill('zzz');page.wait_for_timeout(200)
         check('No match offers to reset the filters',page.locator('[data-marketplace-filter-empty]').count()==1)
         page.locator('[data-marketplace-filter-empty] button').click();page.wait_for_timeout(200)
-        check('Reset brings everything back',page.locator('[data-marketplace-row]').count()==7 and page.locator('[data-marketplace-search]').input_value()=='')
+        check('Reset brings back the overview',page.locator('[data-marketplace-row]').count()==8 and page.locator('[data-marketplace-search]').input_value()=='')
         page.locator('[data-marketplace-row="weebcentral"] .mex-row-main').click();page.locator('[data-marketplace-sheet="weebcentral"]').wait_for();page.wait_for_timeout(300)
         check('Row opens its sheet with the description and the install action',page.locator('[data-marketplace-sheet] .mex-description').inner_text()=='Manga from WeebCentral'
               and page.locator('[data-marketplace-sheet-install]').count()==1)
@@ -278,19 +288,60 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         shot(page,'extensions-sheet-320-200.png')
         page.close()
 
+        # The setup tour walked on the new screen, started from the menu
+        tp=open_page()
+        def tour_at(title):
+            tp.locator('[data-tour-title]',has_text=title).wait_for(timeout=15000);tp.wait_for_timeout(400)
+            return tp.locator('[data-tour-card]').inner_text()
+        tp.locator('[data-extensions-menu]').click();tp.locator('[data-extensions-tutorial]').click()
+        tour_at('Welcome to Seanime Mobile')
+        check('Tour: started on the Extensions tab, the way there is skipped; its buttons are at least 48px',
+              tp.locator('[data-tour-card] [data-tour-next]').inner_text()=='Show me' and tp.evaluate(SMALL,'[data-tour-card] button')==[])
+        shot(tp,'tour-welcome-390.png')
+        tp.locator('[data-tour-next]').click()
+        tour_at('Marketplace');tp.locator('[data-extensions-page-tabs] [data-tab-name="Marketplace"]').click()
+        text=tour_at('Add a repository')
+        check('Tour: the repository step points at "Add repository" while the official repository has no sources',
+              'Tap Add repository' in text and tp.locator('[data-marketplace-missing] [data-tour="marketplace-change-repo"]').count()==1)
+        shot(tp,'tour-repository-390.png')
+        tp.locator('[data-tour="marketplace-change-repo"]').click()
+        text=tour_at('Paste the repository link')
+        check('Tour: the link step names the paste button',' paste button ' in text)
+        tp.evaluate(f'clip="{REPO}"');tp.locator('#mex-repository + .mex-paste').click();tp.locator('[data-tour="marketplace-repo-save"]').click()
+        text=tour_at('Streaming sources')
+        check('Tour: the streaming step names the chip as shown','Tap Streaming to see' in text)
+        tp.locator('[data-marketplace-type-tabs] [data-tab-name="Online Streaming"]').click()
+        text=tour_at('Install a source')
+        check('Tour: the install step points at a download button',' download button ' in text)
+        shot(tp,'tour-install-390.png')
+        tp.locator('[data-tour-install="onlinestream-provider"]').first.click()
+        tour_at('Manga works the same way');tp.locator('[data-marketplace-type-tabs] [data-tab-name="Manga"]').click()
+        tour_at('Install a manga source');tp.locator('[data-tour-install="manga-provider"]').first.click()
+        text=tour_at("You're all set")
+        check('Tour: walked to the end, installing one streaming and one manga source',[c[1]['manifestUri'] for c in calls(tp,'install')]
+              ==['https://ext.test/animepahe.json','https://ext.test/weebcentral.json'] and 'from the ⋮ menu there' in text)
+        tp.locator('[data-tour-next]').click();tp.locator('[data-tour-card]').wait_for(state='detached')
+        check('Tour: Done closes it',tp.locator('[data-tour-card]').count()==0)
+        tp.close()
+
         # Deep link, states, German
         p=open_page(query='?tab=marketplace&type=manga-provider',ready='[data-marketplace-row]',storage={'marketplace-url':GITHUB_REPO})
         check('A GitHub repository is named by owner/repository',p.locator('[data-marketplace-source]').inner_text()=='Bas1874/Seanime-Marketplace')
         check('?tab=marketplace&type= opens the marketplace on that type',p.locator('[data-tab-name="Marketplace"][aria-selected=true]').count()==1
               and p.locator('[data-marketplace-type="manga-provider"][aria-selected=true]').count()==1 and p.locator('[data-marketplace-row]').count()==2)
         p.close()
-        for name,patch,selector in (('loading',dict(allStatus='loading'),'.mex-loading[aria-busy=true]'),('empty',dict(all=dict(extensions=[],disabledExtensions=[],invalidExtensions=[])),'[data-extensions-empty]'),
+        for name,patch,selector in (('loading',dict(allStatus='loading'),'.mex-loading[aria-busy=true]'),('empty',dict(all=dict(extensions=[],disabledExtensions=[],invalidExtensions=[])),'[data-extensions-missing]'),
                                     ('error',dict(allStatus='error'),'[data-extensions-error]'),('market-error',dict(marketStatus='error'),'[data-marketplace-error]')):
             p=open_page(server={**copy.deepcopy(SERVER),**patch},query='?tab=marketplace' if name=='market-error' else '',ready=selector)
             check(f'{name.capitalize()} state keeps the title and the actions',p.locator('h1').inner_text()=='Extensions' and p.locator('[data-extensions-add]').count()==1)
             if name=='empty':
-                p.locator('[data-extensions-empty] .mex-primary').click();p.locator('[data-marketplace-phone]').wait_for()
-                check('Empty: one sentence and the way to the marketplace',p.locator('[data-tab-name="Marketplace"][aria-selected=true]').count()==1)
+                check('Empty: streaming and manga keep their sections and say what is missing',p.evaluate(HEADS,'.mex-section-head h2')==['Online streaming','Manga']
+                      and p.locator('[data-extensions-missing]').count()==2)
+                p.locator('[data-extensions-missing="onlinestream-provider"] .mex-primary').click();p.locator('[data-marketplace-phone]').wait_for()
+                check('Empty: "Find a streaming source" opens the marketplace on streaming',p.locator('[data-tab-name="Marketplace"][aria-selected=true]').count()==1
+                      and p.locator('[data-marketplace-type="onlinestream-provider"][aria-selected=true]').count()==1)
+                check('A repository without streaming sources says so and offers another repository',
+                      p.locator('[data-marketplace-type-empty] p').first.inner_text()=='No streaming sources in this repository')
             if name=='error':
                 p.get_by_role('button',name='Try again').click()
                 check('Error: try again reloads the list',p.evaluate('server.refetches')==1)
@@ -300,7 +351,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         de=open_page(language='de')
         check('German: facts, tabs, sections, flags',de.locator('[data-extensions-facts]').inner_text()=='10 installiert · 1 Update · 3 brauchen Aufmerksamkeit'
               and de.evaluate(TEXT,'[data-extensions-page-tabs] [role=tab]')==['Installiert10','Marktplatz']
-              and de.evaluate(TEXT,'.mex-section-head h2')==['Braucht Aufmerksamkeit','Online-Streaming','Manga','Plugins','Eigene Quellen','Deaktiviert']
+              and de.evaluate(HEADS,'.mex-section-head h2')==['Braucht Aufmerksamkeit','Online-Streaming','Manga','Plugins','Eigene Quellen','Deaktiviert']
               and de.locator('[data-extension-row="animekai"] .mex-flag').inner_text()=='Update auf 1.2.0'
               and de.locator('[data-extension-row="local-manga"] .mex-row-meta').inner_text()=='Integriert')
         de.locator('[data-extension-row="animekai"]').click();de.locator('[data-extension-sheet]').wait_for();de.wait_for_timeout(300)
@@ -309,9 +360,18 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         shot(de,'extensions-sheet-de-390.png')
         back(de);de.locator('[data-tab-name="Marketplace"]').click();de.locator('[data-marketplace-phone]').wait_for();de.wait_for_timeout(300)
         check('German: marketplace',de.locator('[data-marketplace-source]').inner_text()=='Offizielles Repository'
-              and de.locator('[data-tour="marketplace-change-repo"]').inner_text()=='Ändern')
+              and de.locator('[data-marketplace-change]').inner_text()=='Ändern'
+              and de.locator('[data-tour="marketplace-change-repo"]').inner_text()=='Repository hinzufügen')
         shot(de,'marketplace-de-390.png')
         de.close()
+        dm=open_page(language='de',query='?tab=marketplace',ready='[data-marketplace-row]',storage={'marketplace-url':REPO})
+        check('German: sources in German come first',dm.evaluate(TEXT,'[data-marketplace-group="onlinestream-provider"] .mex-row-name')[0]=='Kaido'
+              and dm.locator('[data-marketplace-show-all="onlinestream-provider"]').inner_text().strip()=='Alle 5 zeigen')
+        dm.locator('[data-extensions-menu]').click();dm.locator('[data-extensions-tutorial]').click()
+        dm.locator('[data-tour-title]',has_text='Willkommen bei Seanime Mobile').wait_for();dm.wait_for_timeout(300)
+        check('German: tour texts and buttons',dm.locator('[data-tour-next]').inner_text()=='Zeig es mir' and dm.locator('[data-tour-skip]').inner_text()=='Überspringen')
+        shot(dm,'tour-de-390.png')
+        dm.close()
         browser.close()
 check('No script errors on any page',errors==[])
 print(json.dumps(checks,indent=2))

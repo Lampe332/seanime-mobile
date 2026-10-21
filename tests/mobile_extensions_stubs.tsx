@@ -8,6 +8,9 @@ const subscribe = (listener: () => void) => { listeners.add(listener); return ()
 export const useRouter = () => ({ push: (href: string) => { history.pushState(null, "", href); w.routes.push(href); notify() } })
 export const useSearchParams = () => new URLSearchParams(React.useSyncExternalStore(subscribe, () => location.search))
 export const usePathname = () => React.useSyncExternalStore(subscribe, () => location.pathname)
+// The tour overlay reads the route from TanStack Router; the harness has no router.
+export const useLocation = () => ({ pathname: usePathname(), search: location.search })
+export const useNavigate = () => async ({ to }: { to: string }) => { history.pushState(null, "", to); w.routes.push(to); notify() }
 
 export const SeaLink = React.forwardRef<HTMLAnchorElement, any>(({ href, warmEntryOnViewport, bypassEntryPreloadBudget, resetScroll, onClick, ...props }, ref) =>
     <a ref={ref} href={href} {...props} onClick={event => {
@@ -32,6 +35,9 @@ const without = (list: any[] | undefined, id: string) => (list ?? []).filter((it
 w.serverEmit = emit
 
 export const usePluginWithIssuesCount = () => 0
+// The setup tour asks whether a streaming source exists; the page under test starts it by hand.
+const noProviders = { data: [], isSuccess: true }
+export const useListOnlinestreamProviderExtensions = () => noProviders
 
 export function useGetAllExtensions(withUpdates: boolean) {
     useServer()
