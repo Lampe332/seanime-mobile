@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.26 — 21.10.2026 (versionCode 31077)
+
+- ⚡️ Calendar: "All anime" shows how many episodes air on each day in the month grid and the day strip
+
 ## 1.9.25 — 21.10.2026 (versionCode 31076)
 
 - 🎉 Calendar: A week view lists the episodes of the next 7 days on the phone
