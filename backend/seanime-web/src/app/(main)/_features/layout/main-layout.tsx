@@ -74,9 +74,10 @@ export const MainLayout = ({ children }: { children: React.ReactNode }) => {
             {IS_ANDROID_APP && <MobileTutorialListener />}
 
             <PluginManager />
-            {(__isElectronDesktop__) && (
+            {/* Android: the built-in player for downloaded media (directstream) */}
+            {(__isElectronDesktop__ || IS_ANDROID_APP) && (
                 <React.Suspense fallback={null}>
-                    {serverStatus?.settings?.mediaPlayer?.mpvPrismEnabled ? (
+                    {__isElectronDesktop__ && serverStatus?.settings?.mediaPlayer?.mpvPrismEnabled ? (
                         <MpvCoreLazyWrapper />
                     ) : (
                         <NativePlayerLazyWrapper />

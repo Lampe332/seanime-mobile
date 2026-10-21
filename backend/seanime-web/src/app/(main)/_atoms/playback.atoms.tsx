@@ -38,6 +38,14 @@ export const playbackDownloadedMediaOptions = [
 
 export const __playback_downloadedMediaAtom = atomWithStorage<string>("sea-playback-downloaded-media", PlaybackDownloadedMedia.Default)
 
+/**
+ * Android plays downloaded media in the built-in player unless the external player link is chosen: directstream reads MKV
+ * metadata in Go, while the desktop player and transcoding need programs (mpv, ffmpeg, ffprobe) the app does not ship.
+ */
+export function usesAndroidBuiltInPlayer(downloadedMediaPlayback: string) {
+    return import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && downloadedMediaPlayback !== PlaybackDownloadedMedia.ExternalPlayerLink
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export const enum PlaybackTorrentStreaming {

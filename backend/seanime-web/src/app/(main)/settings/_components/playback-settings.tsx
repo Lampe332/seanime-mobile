@@ -78,7 +78,7 @@ export function PlaybackSettings() {
 
     const downloadedMethod = downloadedMediaPlayback === PlaybackDownloadedMedia.ExternalPlayerLink
         ? PlaybackDownloadedMedia.ExternalPlayerLink
-        : activeOnDevice ? "mediastream" : PlaybackDownloadedMedia.Default
+        : activeOnDevice && !IS_ANDROID_APP ? "mediastream" : PlaybackDownloadedMedia.Default
 
     const engineMethod = serverStatus?.settings?.mediaPlayer?.mpvPrismEnabled ? "mpvcore" : "videocore"
 
@@ -318,7 +318,24 @@ export function PlaybackSettings() {
                     <PlaybackChoiceGroup
                         value={downloadedMethod}
                         onValueChange={handleDownloadedMethodChange}
-                        options={[
+                        columns={IS_ANDROID_APP ? "two" : undefined}
+                        options={IS_ANDROID_APP ? [
+                            // Android: no desktop player or ffmpeg; "Default" plays in the built-in player (usesAndroidBuiltInPlayer)
+                            {
+                                value: PlaybackDownloadedMedia.Default,
+                                title: "Built-in player",
+                                description: "Play files from your library in the app's own player.",
+                                icon: LuPlay,
+                                preview: <VideoCorePreview />,
+                            },
+                            {
+                                value: PlaybackDownloadedMedia.ExternalPlayerLink,
+                                title: "External player link",
+                                description: "Send the stream URL to another app using your custom scheme.",
+                                icon: LuExternalLink,
+                                preview: <ExternalLinkPreview />,
+                            },
+                        ] : [
                             {
                                 value: PlaybackDownloadedMedia.Default,
                                 title: "Desktop media player",

@@ -3,7 +3,7 @@ import { useIsMobile } from "@/lib/theme/theme-hooks"
 import { tr } from "@/lib/app-language"
 import { Anime_Entry, Anime_Playlist, Anime_PlaylistEpisode, HibikeTorrent_AnimeTorrent } from "@/api/generated/types"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
-import { useCurrentDevicePlaybackSettings } from "@/app/(main)/_atoms/playback.atoms"
+import { useCurrentDevicePlaybackSettings, usesAndroidBuiltInPlayer } from "@/app/(main)/_atoms/playback.atoms"
 import { useAutoPlaySelectedTorrent } from "@/app/(main)/_features/autoplay/autoplay"
 import { getBatchSelectionParams } from "@/app/(main)/_features/autoplay/batches.ts"
 import { nativePlayer_stateAtom } from "@/app/(main)/_features/native-player/native-player.atoms"
@@ -79,7 +79,8 @@ export function usePlaylistManager() {
                     dbId: playlist.dbId,
                     localFilePlaybackMethod: __isElectronDesktop__ && electronPlaybackMethod !== "default"
                         ? electronPlaybackMethod
-                        : activeOnDevice ? "transcode" : downloadedMediaPlayback,
+                        : usesAndroidBuiltInPlayer(downloadedMediaPlayback) ? "nativePlayer"
+                            : activeOnDevice ? "transcode" : downloadedMediaPlayback,
                     streamPlaybackMethod: __isElectronDesktop__ && electronPlaybackMethod !== "default"
                         ? electronPlaybackMethod
                         : torrentStreamingPlayback,

@@ -7,6 +7,7 @@ import {
     PlaybackDownloadedMedia,
     useCurrentDevicePlaybackSettings,
     useExternalPlayerLink,
+    usesAndroidBuiltInPlayer,
 } from "@/app/(main)/_atoms/playback.atoms"
 import { useTorrentstreamAutoplay } from "@/app/(main)/_features/autoplay/autoplay"
 import { __mpt_currentExternalPlayerLinkAtom } from "@/app/(main)/_features/progress-tracking/manual-progress-tracking"
@@ -98,7 +99,8 @@ export function useHandlePlayMedia() {
                 mediaId,
                 anidbEpisode,
                 clientId: clientId ?? "",
-                forcePlaybackMethod: forcePlaybackMethod || undefined,
+                // Android has no desktop player for the host's stream
+                forcePlaybackMethod: forcePlaybackMethod || (usesAndroidBuiltInPlayer(downloadedMediaPlayback) ? "nativeplayer" : undefined),
             })
         }
 
@@ -111,6 +113,15 @@ export function useHandlePlayMedia() {
             (!forcePlaybackMethod && electronPlaybackMethod === ElectronPlaybackMethod.NativePlayer) ||
             (forcePlaybackMethod && forcePlaybackMethod === "nativeplayer")
         )) {
+            directstreamPlayLocalFile({ path, clientId: clientId ?? "" })
+            return
+        }
+
+        //
+        // Android built-in player: every method but the external player link (there is no desktop player to force)
+        //
+        if (forcePlaybackMethod ? forcePlaybackMethod !== "externalPlayerLink" && usesAndroidBuiltInPlayer(PlaybackDownloadedMedia.Default)
+            : usesAndroidBuiltInPlayer(downloadedMediaPlayback)) {
             directstreamPlayLocalFile({ path, clientId: clientId ?? "" })
             return
         }
