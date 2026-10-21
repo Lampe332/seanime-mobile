@@ -56,4 +56,23 @@ describe("global calendar day", () => {
         await expect(fetchGlobalScheduleDay("invalid", fetch)).rejects.toThrow("Invalid calendar date")
         expect(fetch).not.toHaveBeenCalled()
     })
+    it("asks for episodes that have not aired yet on a future day", async () => {
+        const fetch = vi.fn().mockResolvedValue(page([row(1, 1, new Date(2026, 9, 24, 12).getTime() / 1000)]))
+        const result = await fetchGlobalScheduleDay("2026-10-24", fetch, undefined, true, new Date(2026, 9, 21, 12).getTime())
+        expect(fetch.mock.calls.map(call => call[0].notYetAired)).toEqual([true])
+        expect(result).toHaveLength(1)
+    })
+    it("merges aired and upcoming episodes for today", async () => {
+        const today = new Date(2026, 9, 21, 12)
+        const fetch = vi.fn()
+            .mockResolvedValueOnce(page([row(1, 1, new Date(2026, 9, 21, 2).getTime() / 1000)]))
+            .mockResolvedValueOnce(page([row(2, 2, new Date(2026, 9, 21, 18).getTime() / 1000)]))
+        const result = await fetchGlobalScheduleDay("2026-10-21", fetch, undefined, true, today.getTime())
+        expect(fetch.mock.calls.map(call => call[0].notYetAired)).toEqual([false, true])
+        expect(result.map(item => item.mediaId)).toEqual([1, 2])
+    })
+    it("treats a page without airing rows as an empty day", async () => {
+        const empty = { Page: { pageInfo: { hasNextPage: false } } } as unknown as AL_ListRecentAnime
+        await expect(fetchGlobalScheduleDay("2026-10-24", async () => empty, undefined, true, new Date(2026, 9, 21).getTime())).resolves.toEqual([])
+    })
 })

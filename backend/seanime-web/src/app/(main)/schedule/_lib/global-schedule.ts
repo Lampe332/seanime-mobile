@@ -5,19 +5,22 @@ import { addDays, isValid, parseISO, startOfDay } from "date-fns"
 type PageRequest = { page: number, perPage: number, airingAt_greater: number, airingAt_lesser: number, notYetAired: boolean, sort: ["TIME"] }
 
 /** AniList uses strict timestamp bounds. Request a whole local day, including midnight. */
-export async function fetchGlobalScheduleDay(date: string, fetchPage: (variables: PageRequest) => Promise<AL_ListRecentAnime | undefined>, signal?: AbortSignal, hideAdult = true): Promise<Anime_ScheduleItem[]> {
+export async function fetchGlobalScheduleDay(date: string, fetchPage: (variables: PageRequest) => Promise<AL_ListRecentAnime | undefined>, signal?: AbortSignal, hideAdult = true, now = Date.now()): Promise<Anime_ScheduleItem[]> {
     const start = startOfDay(parseISO(date))
     if (!isValid(start)) throw new Error(tr("Invalid calendar date", "Ungültiges Kalenderdatum"))
     const end = addDays(start, 1)
     const rows = new Map<number, Anime_ScheduleItem>()
     const seen = new Set<number>()
-    for (let page = 1; ; page++) {
+    // AniList's notYetAired filter splits a day at "now": past days need false, future days true, today both.
+    const phases = end.getTime() <= now ? [false] : start.getTime() >= now ? [true] : [false, true]
+    for (const notYetAired of phases) for (let page = 1; ; page++) {
         signal?.throwIfAborted()
-        const result = await fetchPage({ page, perPage: 50, airingAt_greater: Math.floor(start.getTime() / 1000) - 1, airingAt_lesser: Math.floor(end.getTime() / 1000), notYetAired: false, sort: ["TIME"] })
+        const result = await fetchPage({ page, perPage: 50, airingAt_greater: Math.floor(start.getTime() / 1000) - 1, airingAt_lesser: Math.floor(end.getTime() / 1000), notYetAired, sort: ["TIME"] })
         signal?.throwIfAborted()
-        if (!result?.Page || !Array.isArray(result.Page.airingSchedules)) throw new Error(tr("AniList returned no valid calendar data", "AniList hat keine gültigen Kalenderdaten geliefert"))
+        if (!result?.Page) throw new Error(tr("AniList returned no valid calendar data", "AniList hat keine gültigen Kalenderdaten geliefert"))
         let added = 0
-        for (const row of result.Page.airingSchedules) {
+        // an empty page arrives as null from the Go server
+        for (const row of result.Page.airingSchedules ?? []) {
             if (seen.has(row.id)) continue
             seen.add(row.id); added++
             const media = row.media
