@@ -34,10 +34,13 @@ export const __mangaLibrary_latestChapterNumbersAtom = atomWithImmer<{
 
 /**
  * Get the manga collection
+ * @param options.redirectOnError the phone library shows its own error state instead of leaving for Home
+ * @param options.keepGenresOnUnreadToggle the phone filter sheet keeps the chosen genres when "unread only" changes
  */
-export function useHandleMangaCollection() {
+export function useHandleMangaCollection(options: { redirectOnError?: boolean, keepGenresOnUnreadToggle?: boolean } = {}) {
+    const { redirectOnError = true, keepGenresOnUnreadToggle = false } = options
     const router = useRouter()
-    const { data, isLoading, isError } = useGetMangaCollection()
+    const { data, isLoading, isError, refetch } = useGetMangaCollection()
 
     // const { data: chapterCounts } = useGetMangaChapterCountMap()
     const { data: latestChapterNumbers } = useGetMangaLatestChapterNumbersMap()
@@ -46,7 +49,7 @@ export function useHandleMangaCollection() {
     const { mangaLibraryCollectionDefaultSorting } = useThemeSettings()
 
     React.useEffect(() => {
-        if (isError) {
+        if (isError && redirectOnError) {
             router.push("/")
         }
     }, [isError])
@@ -81,8 +84,17 @@ export function useHandleMangaCollection() {
     }, [])
 
     // Reset params when data changes
+    const resetDataRef = React.useRef<typeof data>(undefined)
     React.useEffect(() => {
         if (!!data) {
+            const sameData = resetDataRef.current === data
+            resetDataRef.current = data
+            if (keepGenresOnUnreadToggle && sameData) {
+                setParams(draft => {
+                    draft.unreadOnly = unreadOnly
+                })
+                return
+            }
             const defaultParams = { ...MANGA_LIBRARY_DEFAULT_PARAMS, unreadOnly }
             setParams(defaultParams)
         }
@@ -107,10 +119,11 @@ export function useHandleMangaCollection() {
         return Array.from(genresSet)?.sort((a, b) => a.localeCompare(b))
     }, [data])
 
-    const sortedCollection = React.useMemo(() => {
-        if (!data || !data.lists) return data
+    // Every status list, filtered and sorted; the views below pick from it
+    const sortedLists = React.useMemo(() => {
+        if (!data || !data.lists) return undefined
 
-        let _lists = data.lists.map(obj => {
+        return data.lists.map(obj => {
             if (!obj) return obj
 
             const newParams = { ...params, sorting: mangaLibraryCollectionDefaultSorting as any }
@@ -128,17 +141,21 @@ export function useHandleMangaCollection() {
                 entries: arr,
             }
         })
+    }, [data, params, storedProviders, storedFilters, latestChapterNumbers, mangaLibraryCollectionDefaultSorting])
+
+    const sortedCollection = React.useMemo(() => {
+        if (!data || !data.lists || !sortedLists) return data
 
         return {
             lists: [
-                _lists.find(n => n.type === "CURRENT"),
-                _lists.find(n => n.type === "PAUSED"),
-                _lists.find(n => n.type === "PLANNING"),
+                sortedLists.find(n => n.type === "CURRENT"),
+                sortedLists.find(n => n.type === "PAUSED"),
+                sortedLists.find(n => n.type === "PLANNING"),
                 // data.lists.find(n => n.type === "COMPLETED"), // DO NOT SHOW THIS LIST IN MANGA VIEW
                 // data.lists.find(n => n.type === "DROPPED"), // DO NOT SHOW THIS LIST IN MANGA VIEW
             ].filter(Boolean),
         } as Manga_Collection
-    }, [data, params, storedProviders, storedFilters, latestChapterNumbers])
+    }, [data, sortedLists])
 
     const filteredCollection = React.useMemo(() => {
         if (!data || !data.lists) return data
@@ -179,6 +196,12 @@ export function useHandleMangaCollection() {
         filteredMangaCollection: filteredCollection,
         mangaCollectionGenres: libraryGenres,
         mangaCollectionLoading: isLoading,
+        mangaCollectionError: isError,
+        refetchMangaCollection: refetch,
+        // Phone library: every status (Completed and Dropped included) filtered and sorted, and as loaded
+        mangaCollectionLists: sortedLists,
+        rawMangaCollectionLists: data?.lists,
+        latestChapterNumbers,
         storedFilters,
         storedProviders,
     }

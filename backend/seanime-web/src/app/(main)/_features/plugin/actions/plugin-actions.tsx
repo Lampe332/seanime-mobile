@@ -380,6 +380,20 @@ type PluginMangaLibraryDropdownMenuItem = {
 }
 
 export function PluginMangaLibraryDropdownItems() {
+    const { items, handleClick } = usePluginMangaLibraryDropdownItems()
+
+    if (items.length === 0) return null
+
+    return <>
+        <DropdownMenuSeparator />
+        {items.map(i => (
+            <DropdownMenuItem key={i.id} onClick={() => handleClick(i)} style={i.style} disabled={i.disabled}>{i.label || "???"}</DropdownMenuItem>
+        ))}
+    </>
+}
+
+/** Items plugins add to the manga library menu; the phone library renders them in its own menu. */
+export function usePluginMangaLibraryDropdownItems() {
     const [items, setItems] = useState<PluginMangaLibraryDropdownMenuItem[]>([])
 
     const { sendActionRenderMangaLibraryDropdownItemsEvent } = usePluginSendActionRenderMangaLibraryDropdownItemsEvent()
@@ -406,14 +420,7 @@ export function PluginMangaLibraryDropdownItems() {
         }, item.extensionId)
     }
 
-    if (items.length === 0) return null
-
-    return <>
-        <DropdownMenuSeparator />
-        {items.map(i => (
-            <DropdownMenuItem key={i.id} onClick={() => handleClick(i)} style={i.style} disabled={i.disabled}>{i.label || "???"}</DropdownMenuItem>
-        ))}
-    </>
+    return { items, handleClick }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
