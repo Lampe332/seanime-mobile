@@ -97,6 +97,14 @@ STATIC=root/'backend/seanime-web/out/static'
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>b.textContent||b.getAttribute("aria-label")))'''
 TEXT='(sel=>[...document.querySelectorAll(sel)].map(e=>e.textContent.trim()))'
+# Android's long press as the WebView fires it: one contextmenu MouseEvent at the finger (dispatch_event's has no point) on
+# a card nothing pressed before. The menu's items, and whether it opens beside the finger (2 px side offset) and level with it.
+FIRST_PRESS='''(async sel=>{const e=document.querySelector(sel);e.scrollIntoView({block:"nearest",inline:"nearest"});const r=e.getBoundingClientRect();
+    const x=Math.round(r.left+r.width/2),y=Math.round(r.top+r.height/3);e.dispatchEvent(new MouseEvent("contextmenu",{bubbles:true,cancelable:true,clientX:x,clientY:y,button:2}));
+    const t0=performance.now();while(!document.querySelector("[data-sea-context-menu-content]")&&performance.now()-t0<3000)await new Promise(f=>requestAnimationFrame(f));
+    await new Promise(f=>setTimeout(f,300));const m=document.querySelector("[data-sea-context-menu-content]"),b=m&&m.getBoundingClientRect();
+    return {items:m?[...m.querySelectorAll("[role=menuitem]")].map(i=>i.textContent.trim()):[],point:[x,y],menu:b&&[b.left,b.top,b.right,b.bottom].map(Math.round),
+        at:!!b&&(Math.abs(b.left-x-2)<=4||Math.abs(b.right-x+2)<=4)&&b.top-4<=y&&y<=b.bottom+4}})'''
 TITLES='[...document.querySelectorAll("[data-lists-grid] .ps-card-title")].map(e=>e.textContent)'
 COLUMNS='new Set([...document.querySelectorAll("[data-phone-card]")].map(c=>Math.round(c.getBoundingClientRect().left))).size'
 OPEN='document.querySelectorAll(".UI-Modal__content[data-state=open]").length'
@@ -219,6 +227,9 @@ with tempfile.TemporaryDirectory(prefix='seanime-lists-') as tmp:
         def long_press(page,id,item='Preview'):
             page.locator(f'[data-lists-grid] [data-phone-card="{id}"]').dispatch_event('contextmenu',dict(clientX=200,clientY=700,button=2))
             page.get_by_role('menuitem',name=item).wait_for()
+        first=page.evaluate(FIRST_PRESS,'[data-lists-grid] [data-phone-card="101"]')
+        check('The first long press on a cover (contextmenu at the finger) opens its menu there, Preview first',first['items'][:1]==['Preview'] and first['at'])
+        back(page)
         long_press(page,101)
         check('Long press: preview, continue, add to playlist and plugin actions',page.evaluate(TEXT,'[role=menuitem]')==['Preview','Continue','Add to playlist']
               and page.locator('[data-plugin-card-items="anime"]').count()==1)

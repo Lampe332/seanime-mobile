@@ -35,6 +35,14 @@ NATIVE_BACK=(root/'app/src/main/java/com/seanime/app/AndroidNavigation.kt').read
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>b.textContent||b.getAttribute("aria-label")))'''
 TEXT='(sel=>[...document.querySelectorAll(sel)].map(e=>e.textContent.trim()))'
+# Android's long press as the WebView fires it: one contextmenu MouseEvent at the finger (dispatch_event's has no point) on
+# a card nothing pressed before. The menu's items, and whether it opens beside the finger (2 px side offset) and level with it.
+FIRST_PRESS='''(async sel=>{const e=document.querySelector(sel);e.scrollIntoView({block:"nearest",inline:"nearest"});const r=e.getBoundingClientRect();
+    const x=Math.round(r.left+r.width/2),y=Math.round(r.top+r.height/3);e.dispatchEvent(new MouseEvent("contextmenu",{bubbles:true,cancelable:true,clientX:x,clientY:y,button:2}));
+    const t0=performance.now();while(!document.querySelector("[data-sea-context-menu-content]")&&performance.now()-t0<3000)await new Promise(f=>requestAnimationFrame(f));
+    await new Promise(f=>setTimeout(f,300));const m=document.querySelector("[data-sea-context-menu-content]"),b=m&&m.getBoundingClientRect();
+    return {items:m?[...m.querySelectorAll("[role=menuitem]")].map(i=>i.textContent.trim()):[],point:[x,y],menu:b&&[b.left,b.top,b.right,b.bottom].map(Math.round),
+        at:!!b&&(Math.abs(b.left-x-2)<=4||Math.abs(b.right-x+2)<=4)&&b.top-4<=y&&y<=b.bottom+4}})'''
 ATTR='(([sel,attr])=>[...document.querySelectorAll(sel)].map(e=>e.getAttribute(attr)))'
 OPEN='document.querySelectorAll(".UI-Modal__content[data-state=open]").length'
 FOCUS='document.activeElement?.hasAttribute'
@@ -314,6 +322,9 @@ with tempfile.TemporaryDirectory(prefix='seanime-search-') as tmp:
         page.locator('.ps-search-clear').click();page.evaluate('document.activeElement.blur()');idle(page)
 
         # Card menu
+        first=page.evaluate(FIRST_PRESS,'[data-phone-card="1003"]')
+        check('The first long press on a cover (contextmenu at the finger) opens its menu there, Preview first',first['items'][:1]==['Preview'] and first['at'],first)
+        back(page)
         page.locator('[data-phone-card="1003"]').dispatch_event('contextmenu',dict(clientX=120,clientY=500,button=2))
         page.get_by_role('menuitem',name='Preview').wait_for();page.wait_for_timeout(400)
         check('Long press: preview, the desktop card\'s playlist and explorer entries, plugin actions',page.evaluate(TEXT,'[role=menu] [role=menuitem]')

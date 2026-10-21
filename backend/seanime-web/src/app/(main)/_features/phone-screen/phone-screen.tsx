@@ -210,34 +210,99 @@ export type PhoneCoverCardProps = {
  */
 export const PhoneCoverCard = React.memo(function PhoneCoverCard(props: PhoneCoverCardProps) {
     const { media, type, offline, blurAdult, progress, badge, tag, meta, metaTone, warm, menuItems, listData, label, className, href, ...data } = props
-    const t = useTr()
-    const { setPreviewModalMediaId } = useMediaPreviewModal()
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
     const link = href ?? (offline ? `/offline/entry/${type}?id=${media.id}` : type === "manga" ? `/manga/entry?id=${media.id}` : `/entry?id=${media.id}`)
-    return <SeaContextMenu content={<ContextMenuGroup>
+    return <PhoneCardMenu content={<CoverCardMenuItems media={media} type={type} title={title} offline={offline}>{menuItems}</CoverCardMenuItems>}>
+        {trigger => <SeaLink href={link} className={cn("ps-card", className)} aria-label={label} data-phone-card={media.id} data-media-id={media.id}
+            data-media-type={type} data-list-data={listData ? JSON.stringify(listData) : undefined} warmEntryOnViewport={warm}
+            bypassEntryPreloadBudget={warm} {...data} {...trigger}>
+            <span className="ps-card-cover">
+                <SeaImage src={getImageUrl(media.coverImage?.large || media.coverImage?.extraLarge || "")} alt="" fill className="ps-cover-image" />
+                {blurAdult && media.isAdult && <MediaEntryCardAdultVeil />}
+                {!!progress && progress.total > 0 && progress.value > 0 &&
+                    <span className="ps-card-progress" aria-hidden><span style={{ transform: `scaleX(${Math.min(1, progress.value / progress.total)})` }} /></span>}
+                {!!badge && <span className="ps-badge" data-phone-badge>{badge}</span>}
+                {!!tag && <span className="ps-tag" data-phone-tag>{tag}</span>}
+            </span>
+            <span className="ps-card-title">{title}</span>
+            {meta != null && meta !== "" && <span className="ps-card-meta" data-tone={metaTone}>{meta}</span>}
+        </SeaLink>}
+    </PhoneCardMenu>
+})
+
+function CoverCardMenuItems({ media, type, title, offline, children }: { media: CardMedia, type: "anime" | "manga", title: string, offline?: boolean, children?: React.ReactNode }) {
+    const t = useTr()
+    const { setPreviewModalMediaId } = useMediaPreviewModal()
+    return <ContextMenuGroup>
         <ContextMenuLabel className="text-[--muted] line-clamp-1 py-0 my-2">{title}</ContextMenuLabel>
         {!offline && <ContextMenuItem onClick={() => setPreviewModalMediaId(media.id, type)}><LuEye /> {t("Preview", "Vorschau")}</ContextMenuItem>}
-        {menuItems}
+        {children}
         <PluginMediaCardContextMenuItems for={type} media={media} />
-    </ContextMenuGroup>}>
-        <ContextMenuTrigger asChild>
-            <SeaLink href={link} className={cn("ps-card", className)} aria-label={label} data-phone-card={media.id} data-media-id={media.id}
-                data-media-type={type} data-list-data={listData ? JSON.stringify(listData) : undefined} warmEntryOnViewport={warm}
-                bypassEntryPreloadBudget={warm} {...data}>
-                <span className="ps-card-cover">
-                    <SeaImage src={getImageUrl(media.coverImage?.large || media.coverImage?.extraLarge || "")} alt="" fill className="ps-cover-image" />
-                    {blurAdult && media.isAdult && <MediaEntryCardAdultVeil />}
-                    {!!progress && progress.total > 0 && progress.value > 0 &&
-                        <span className="ps-card-progress" aria-hidden><span style={{ transform: `scaleX(${Math.min(1, progress.value / progress.total)})` }} /></span>}
-                    {!!badge && <span className="ps-badge" data-phone-badge>{badge}</span>}
-                    {!!tag && <span className="ps-tag" data-phone-tag>{tag}</span>}
-                </span>
-                <span className="ps-card-title">{title}</span>
-                {meta != null && meta !== "" && <span className="ps-card-meta" data-tone={metaTone}>{meta}</span>}
-            </SeaLink>
-        </ContextMenuTrigger>
+    </ContextMenuGroup>
+}
+
+export type PhoneCardMenuTrigger = Pick<React.HTMLAttributes<HTMLElement>, "onPointerDown" | "onPointerMove" | "onPointerUp" | "onPointerCancel" | "onContextMenu">
+
+/** The touch in progress: its long-press timer, the point to open at once the menu is there, and the mounted menu's opener. */
+type CardPress = { timer: number, point: { x: number, y: number } | null, open: ((x: number, y: number) => void) | null }
+
+/**
+ * A card's long-press menu (SeaContextMenu), mounted on the card's first touch or right click: a tab holds over a hundred
+ * cards, and a Radix menu on each took a third of the time of switching to it. The card's element takes `trigger` and stays
+ * the same element when the menu mounts (a tap in progress still lands); the menu opens at the finger through a hidden Radix
+ * trigger, on the contextmenu of a long press or right click, or after 700 ms of a still touch as Radix' own trigger does.
+ */
+export function PhoneCardMenu({ content, children }: { content: React.ReactNode, children: (trigger: PhoneCardMenuTrigger) => React.ReactNode }) {
+    const [mounted, setMounted] = React.useState(false)
+    const press = React.useRef<CardPress>({ timer: 0, point: null, open: null })
+    const openAt = (x: number, y: number) => {
+        if (press.current.open) return press.current.open(x, y)
+        press.current.point = { x, y }
+        setMounted(true)
+    }
+    const clearLongPress = (event: React.PointerEvent) => {
+        if (event.pointerType !== "mouse") window.clearTimeout(press.current.timer)
+    }
+    return <>
+        {children({
+            onPointerDown: event => {
+                if (event.pointerType === "mouse") return
+                setMounted(true)
+                window.clearTimeout(press.current.timer)
+                const { clientX, clientY } = event
+                press.current.timer = window.setTimeout(() => openAt(clientX, clientY), 700)
+            },
+            onPointerMove: clearLongPress,
+            onPointerUp: clearLongPress,
+            onPointerCancel: clearLongPress,
+            onContextMenu: event => {
+                window.clearTimeout(press.current.timer)
+                event.preventDefault()
+                openAt(event.clientX, event.clientY)
+            },
+        })}
+        {mounted && <CardMenu press={press} content={content} />}
+    </>
+}
+
+function CardMenu({ press, content }: { press: React.RefObject<CardPress>, content: React.ReactNode }) {
+    const hidden = React.useRef<HTMLSpanElement>(null)
+    // A passive effect: Radix' anchor (its own effect) is in place before the first point moves it
+    React.useEffect(() => {
+        const state = press.current
+        state.open = (x, y) => void hidden.current?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 2 }))
+        if (state.point) state.open(state.point.x, state.point.y)
+        state.point = null
+        return () => {
+            state.open = null
+            window.clearTimeout(state.timer)
+        }
+    }, [press])
+    // The re-dispatched contextmenu ends at the hidden trigger: the page saw the card's own already
+    return <SeaContextMenu content={content}>
+        <ContextMenuTrigger asChild><span ref={hidden} hidden onContextMenu={event => event.stopPropagation()} /></ContextMenuTrigger>
     </SeaContextMenu>
-})
+}
 
 /** Sheets take focus themselves on open: a focused field would open the keyboard, a focused row would show its ring. */
 export function focusPhoneSheet(event: Event) {
