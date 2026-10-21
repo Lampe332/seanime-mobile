@@ -1,0 +1,201 @@
+/* Shared parts of the Android phone tabs (My lists, Discover, Search), in the language of Home, Manga and Extensions:
+   neutral --sm-* surfaces, elevation by one lightness step, the theme colour only on the chosen tab or chip, progress,
+   new episodes and the one main action of a block. Every screen sets [data-phone-screen] on its PageWrapper. */
+[data-phone-screen] {
+    max-width: 72rem; margin-inline: auto; padding: 0 1rem 7rem; display: grid !important; grid-template-columns: minmax(0, 1fr); gap: 1.5rem;
+    color: var(--sm-text); overflow-wrap: anywhere;
+    background: linear-gradient(180deg, rgb(var(--color-brand-500) / .11) 0, rgb(var(--color-brand-500) / .055) 40%, rgb(var(--color-brand-500) / .01) 82%, transparent 100%) top / 100% 32rem no-repeat; /* taste-skill-ignore: the shared phone page tint of Home, Downloads, Manga and Extensions */
+}
+/* The native shell sets block layout and a top padding on every page wrapper (UIHomePatch); two attributes outrank it. */
+[data-phone-screen][data-page-wrapper] { display: grid !important; padding-top: 0 !important; }
+/* No black navbar band: the bar continues the page tint, as on the other phone tabs. */
+body:has([data-phone-screen]) [data-top-navbar] { height: 3.5rem; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .16), rgb(var(--color-brand-500) / .11)); } /* taste-skill-ignore: same navbar tint as the other phone tabs */
+body:has([data-phone-screen]) [data-top-navbar] [data-layout-header-background], body:has([data-phone-screen]) [data-top-navbar] [data-layout-header-background-gradient] { display: none; }
+[data-phone-screen] :is(button, a, [role="tab"]), .ps-sheet :is(button, a) { -webkit-tap-highlight-color: transparent; }
+[data-phone-screen] :is(button, a, input, select):focus-visible, .ps-sheet :is(button, a, input, select):focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+/* Long-press menus on the covers and the header menus: touch-sized rows. */
+body:has([data-phone-screen]) :is([data-sea-context-menu-content], .ps-menu) [role="menuitem"] { min-height: 48px; gap: .75rem; }
+.ps-menu { min-width: 12rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); color: var(--sm-text); }
+
+/* Head: title and plain 48 dp icon actions on one row (the actions wrap below with large text), the facts line under both. */
+.ps-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 .5rem; padding-top: .25rem; }
+.ps-header-text { display: contents; }
+.ps-header h1 { flex: 1 1 auto; min-width: 0; font-size: min(1.75rem, 11vw); line-height: 1.15; letter-spacing: -.03em; font-weight: 700; color: var(--sm-text); overflow-wrap: normal; }
+.ps-header p { order: 3; flex: 1 1 100%; margin-top: .2rem; font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.ps-actions { order: 2; display: flex; align-items: center; margin-left: auto; margin-right: -.5rem; }
+.ps-icon-button { position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px; color: var(--sm-text-muted); font-size: 1.375rem; }
+.ps-icon-button:active, .ps-icon-button[data-state="open"] { background: var(--sm-surface-control); color: var(--sm-text); }
+.ps-icon-button:disabled { opacity: .5; }
+.ps-dot { position: absolute; top: 11px; right: 11px; width: 8px; height: 8px; border-radius: 999px; background: var(--sm-accent); }
+.ps-spin { animation: ps-spin 1s linear infinite; }
+@keyframes ps-spin { to { transform: rotate(360deg); } }
+
+/* Tabs: pills with counts in one row that scrolls sideways on its own, never the page; the chosen one in the accent. */
+.ps-tabs, .ps-chips { display: flex; gap: .5rem; overflow-x: auto; overscroll-behavior-x: contain; margin-inline: -1rem; padding: 0 1rem; scrollbar-width: none; }
+.ps-tabs::-webkit-scrollbar, .ps-chips::-webkit-scrollbar { display: none; }
+.ps-tabs > button, .ps-chips > button { position: relative; flex: none; display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 1rem; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; white-space: nowrap; overflow-wrap: normal; }
+.ps-tabs > button > span:not(.ps-tab-dot), .ps-chips > button > span { color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.ps-tabs > button[aria-selected="true"], .ps-chips > button[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 600; }
+.ps-tabs > button[aria-selected="true"] > span:not(.ps-tab-dot), .ps-chips > button[aria-pressed="true"] > span { color: inherit; }
+.ps-tabs > button:focus-visible, .ps-chips > button:focus-visible { outline-offset: -2px; }
+.ps-tabs > button:active, .ps-chips > button:active { background: var(--sm-surface-control); }
+.ps-tab-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--sm-accent); }
+/* Segments: two or three equal options on a sunken track (Anime / Manga). */
+.ps-segment { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: .25rem; padding: .25rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
+.ps-segment > button { min-height: 48px; padding: .25rem .5rem; border-radius: calc(var(--sm-radius-sm) - .25rem); color: var(--sm-text-muted); font-size: .9375rem; font-weight: 550; overflow-wrap: normal; }
+.ps-segment > button[aria-selected="true"] { background: var(--sm-surface-control); color: var(--sm-text); font-weight: 650; }
+.ps-segment > button:focus-visible { outline-offset: -2px; }
+
+/* Sections: Home's heading with a quiet count next to it and one text action on the right. */
+.ps-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; min-width: 0; }
+.ps-section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 .75rem; min-height: 2.25rem; }
+.ps-section-head h2 { min-width: 0; font-size: 1.25rem; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; color: var(--sm-text); overflow-wrap: break-word; }
+.ps-section-head h2 > span { margin-left: .5rem; font-size: .875rem; font-weight: 500; letter-spacing: 0; color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.ps-section-head .ps-text-action { margin-right: -.5rem; }
+.ps-section-note { margin-top: -.375rem; font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.ps-text-action { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 .5rem; font-size: .9375rem; font-weight: 600; color: var(--sm-accent); white-space: nowrap; overflow-wrap: normal; }
+.ps-text-action svg { flex: none; font-size: 1.125rem; }
+
+/* Search: a filled pill field with the clear button inside. */
+.ps-search { position: relative; display: block; min-width: 0; }
+.ps-search > svg { position: absolute; top: 50%; left: 1rem; translate: 0 -50%; font-size: 1.125rem; color: var(--sm-text-subtle); pointer-events: none; }
+.ps-search input { width: 100%; min-height: 48px; padding: .5rem 3rem .5rem 2.75rem; border: 0; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text); font-size: 1rem; appearance: none; -webkit-appearance: none; }
+.ps-search input::placeholder { color: var(--sm-text-subtle); }
+.ps-search input::-webkit-search-cancel-button { display: none; }
+.ps-search-clear { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px; color: var(--sm-text-muted); font-size: 1.125rem; }
+
+/* Covers: Home's and Manga's cover cards. Android's font size setting zooms text only, not lengths; PhoneScreen measures
+   that zoom into --ps-text-zoom so large text gets fewer, wider cards (3 columns normally, 2 at 200 % from 360 px). */
+.ps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, max(100px, calc(78px * var(--ps-text-zoom, 1)))), 1fr)); gap: 1rem .75rem; }
+.ps-row { display: flex; gap: .75rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; margin-inline: -1rem; padding: 0 1rem .25rem; scrollbar-width: none; }
+.ps-row::-webkit-scrollbar { display: none; }
+.ps-row > * { flex: 0 0 min(36vw, calc(8.75rem * var(--ps-text-zoom, 1))); scroll-snap-align: start; scroll-margin-inline: 1rem; }
+.ps-card { position: relative; display: grid; align-content: start; gap: .25rem; min-width: 0; text-align: start; border-radius: var(--sm-radius-sm); content-visibility: auto; contain-intrinsic-size: auto 15rem; }
+.ps-card:focus-visible { outline-offset: 2px; }
+.ps-card-cover { position: relative; display: block; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); margin-bottom: .25rem; }
+.ps-cover-image { object-fit: cover; }
+.ps-card:active .ps-card-cover { opacity: .85; }
+.ps-card-progress { position: absolute; z-index: 5; top: 0; left: 0; right: 0; height: 3px; background: rgb(0 0 0 / .55); }
+.ps-card-progress > span, .ps-progress > span { display: block; height: 100%; background: var(--sm-accent-strong); transform-origin: left center; }
+/* Corner marks on the cover: the accent one (new episodes, the user's score) top right, the plain one (progress,
+   episode, time) bottom left; both on a dark pill so they read on any cover. */
+.ps-badge, .ps-tag { position: absolute; z-index: 5; max-width: calc(100% - .75rem); padding: .2rem .45rem; border-radius: 999px; background: rgb(12 12 14 / .82); font-size: .6875rem; font-weight: 650; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.ps-badge { top: .375rem; right: .375rem; color: var(--sm-accent); }
+.ps-tag { bottom: .375rem; left: .375rem; color: var(--sm-text); }
+.ps-card-title { font-size: .8125rem; font-weight: 550; line-height: 1.4; color: var(--sm-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; hyphens: auto; }
+.ps-card-meta { font-size: .75rem; color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.ps-card-meta[data-tone="accent"] { color: var(--sm-accent); font-weight: 600; }
+.ps-progress { display: block; height: 3px; overflow: hidden; border-radius: 999px; background: var(--sm-line-strong); }
+
+/* Feature cards: one wide picture with its title on a neutral scrim, as Home's "Continue watching". */
+.ps-features { display: flex; gap: .75rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; margin-inline: -1rem; padding: 0 1rem .25rem; scrollbar-width: none; }
+.ps-features::-webkit-scrollbar { display: none; }
+.ps-feature { position: relative; flex: 0 0 min(86vw, 22rem); min-height: 13.5rem; display: flex; flex-direction: column; justify-content: flex-end; gap: .375rem; overflow: hidden; padding: 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-control); color: #fff; text-align: start; scroll-snap-align: start; scroll-margin-inline: 1rem; isolation: isolate; }
+.ps-feature:only-child { flex-basis: 100%; }
+.ps-feature-image { z-index: -2; object-fit: cover; }
+.ps-feature::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(0 0 0 / 0) 25%, rgb(0 0 0 / .78) 100%); } /* taste-skill-ignore: the neutral scrim under text on a picture */
+.ps-feature-title { font-size: 1.0625rem; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; }
+.ps-feature-meta { font-size: .8125rem; color: rgb(255 255 255 / .82); font-variant-numeric: tabular-nums; }
+.ps-feature-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .375rem; }
+.ps-feature-actions > * { min-height: 44px; }
+.ps-feature:active { opacity: .92; }
+
+/* Rows: one tap target per line with a small cover, as the calendar's. */
+.ps-list { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.ps-list-row { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 4.75rem; padding: .625rem 1rem .625rem .625rem; background: var(--sm-surface-raised); text-align: start; color: var(--sm-text); }
+.ps-list-row:active { background: var(--sm-surface-control); }
+.ps-list-row:focus-visible { outline-offset: -2px; }
+.ps-list-cover { position: relative; flex: none; width: 2.75rem; aspect-ratio: 2 / 3; overflow: hidden; border-radius: .5rem; background: var(--sm-surface-control); }
+.ps-list-text { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: .125rem; }
+.ps-list-title { font-size: .9375rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ps-list-meta { font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.ps-list-side { flex: none; font-size: .8125rem; font-weight: 600; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+
+/* Facts and bars: label left, value right; a ranked list draws its share as a thin bar under the label. */
+.ps-facts { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.ps-facts > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .125rem 1rem; padding: .75rem 1rem; background: var(--sm-surface-raised); }
+.ps-facts dt { font-size: .875rem; color: var(--sm-text-muted); }
+.ps-facts dd { margin-left: auto; font-size: 1rem; font-weight: 650; text-align: end; color: var(--sm-text); font-variant-numeric: tabular-nums; }
+.ps-facts dd small { display: block; font-size: .75rem; font-weight: 400; color: var(--sm-text-subtle); }
+.ps-bars { display: grid; gap: .75rem; padding: 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); }
+.ps-bars > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .375rem .75rem; align-items: baseline; }
+.ps-bars-label { font-size: .875rem; color: var(--sm-text); }
+.ps-bars-value { font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; text-align: end; }
+.ps-bars-track { grid-column: 1 / -1; height: 6px; overflow: hidden; border-radius: 999px; background: var(--sm-surface-control); }
+.ps-bars-track > span { display: block; height: 100%; border-radius: inherit; background: var(--sm-accent-strong); transform-origin: left center; }
+.ps-bars > li:not(:first-child) .ps-bars-track > span { background: var(--sm-text-subtle); }
+
+/* Buttons: one filled pill per block, quiet fills for the rest. */
+.ps-primary, .ps-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 48px; padding: .25rem 1.25rem; border-radius: 999px; font-size: .9375rem; font-weight: 650; text-align: center; }
+.ps-primary { background: rgb(var(--color-brand-500)); color: #fff; }
+.ps-primary:active { background: rgb(var(--color-brand-600)); }
+.ps-secondary { background: var(--sm-surface-control); color: var(--sm-text); font-weight: 600; }
+.ps-secondary:active { background: var(--sm-line-strong); }
+.ps-primary:disabled, .ps-secondary:disabled { opacity: .5; }
+.ps-primary svg, .ps-secondary svg { flex: none; font-size: 1.125rem; }
+
+/* States: the final layout as flat blocks while loading; empty and failed blocks keep the frame and say what to do. */
+.ps-loading { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+.ps-bone { display: block; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); }
+.ps-bone[data-kind="head"] { width: 9rem; height: 1.75rem; margin-top: .25rem; }
+.ps-bone[data-kind="tabs"] { width: min(100%, 20rem); height: 48px; border-radius: 999px; }
+.ps-bone[data-kind="feature"] { height: 13.5rem; border-radius: var(--sm-radius); }
+.ps-bone[data-kind="row"] { height: 4.75rem; }
+.ps-bone[data-kind="cover"] { aspect-ratio: 2 / 3; }
+.ps-loading .ps-row > .ps-bone { aspect-ratio: 2 / 3; }
+.ps-notice { display: grid; gap: .25rem; padding: 1rem 1rem .25rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); font-size: .9375rem; line-height: 1.5; color: var(--sm-text); }
+.ps-notice-actions { display: flex; flex-wrap: wrap; gap: 0 1rem; margin-inline: -.5rem; }
+.ps-empty { display: grid; justify-items: center; gap: .375rem; padding: 1.5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); text-align: center; }
+.ps-empty > p:first-child { font-size: .9375rem; font-weight: 600; color: var(--sm-text); }
+.ps-empty > p + p { max-width: 22rem; font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.ps-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: .5rem; }
+.ps-more { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 48px; padding: .5rem 1rem; color: var(--sm-text-muted); font-size: .875rem; }
+
+/* Sheets: a bottom sheet like the calendar's and Manga's; `body` outranks the native shell's .UI-Modal__content rules. */
+body .ps-sheet.UI-Modal__content {
+    display: grid !important; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-self: end; margin-bottom: 8px;
+    width: calc(100% - 16px) !important; max-width: 32rem !important; max-height: calc(100svh - 16px) !important; overflow-y: auto !important; overscroll-behavior: contain;
+    padding: 20px 16px 12px !important; border: 0; border-radius: var(--sm-radius-lg); background: var(--sm-surface); color: var(--sm-text); overflow-wrap: anywhere;
+}
+.ps-sheet .UI-Modal__header { text-align: start; padding-right: 3rem; }
+.ps-sheet .UI-Modal__title { font-size: 1.375rem !important; line-height: 1.25; font-weight: 750; letter-spacing: -.02em; overflow-wrap: break-word; }
+.ps-sheet .UI-Modal__close { top: .5rem; right: .5rem; width: 48px; height: 48px; border-radius: 999px; background: transparent; }
+.ps-sheet-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+.ps-sheet-group { display: grid; gap: .625rem; min-width: 0; }
+.ps-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 1.5rem; }
+.ps-sheet-head h3 { font-size: 1rem; font-weight: 700; }
+.ps-sheet-head .ps-text-action { margin-block: -.75rem; margin-right: -.5rem; }
+.ps-sheet-note { font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.ps-select-wrap { position: relative; display: block; min-width: 0; }
+.ps-select { width: 100%; min-height: 52px; padding: .5rem 3rem .5rem 1rem; border: 0; border-radius: var(--sm-radius); background: var(--sm-surface-raised); color: var(--sm-text); font-size: .9375rem; appearance: none; -webkit-appearance: none; text-overflow: ellipsis; }
+.ps-select:disabled { opacity: .6; }
+.ps-select-wrap > svg { position: absolute; top: 50%; right: 1rem; translate: 0 -50%; font-size: 1.125rem; color: var(--sm-text-muted); pointer-events: none; }
+.ps-choices { display: flex; flex-wrap: wrap; gap: .5rem; }
+.ps-choices > button { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; padding: 0 .875rem; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; overflow-wrap: normal; }
+.ps-choices > button > span { color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.ps-choices > button[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 600; }
+.ps-choices > button[aria-pressed="true"] > span { color: inherit; }
+.ps-choices > button:active { background: var(--sm-surface-control); }
+.ps-rows { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.ps-rows button:focus-visible { outline-offset: -2px; }
+.ps-check { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 3.25rem; padding: .625rem 1rem; background: var(--sm-surface-raised); text-align: start; font-size: .9375rem; color: var(--sm-text); }
+.ps-check:active { background: var(--sm-surface-control); }
+.ps-check:disabled { opacity: .6; }
+.ps-check-text { display: grid; gap: .125rem; min-width: 0; }
+.ps-check-text small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
+.ps-toggle { position: relative; flex: none; width: 3rem; height: 1.75rem; border-radius: 999px; background: var(--sm-surface-control); box-shadow: inset 0 0 0 1px var(--sm-line-strong); } /* taste-skill-ignore: inset ring is the track border, as in the other phone sheets */
+.ps-toggle::after { content: ""; position: absolute; top: .25rem; left: .25rem; width: 1.25rem; height: 1.25rem; border-radius: 999px; background: var(--sm-text-muted); transition: transform .15s; }
+.ps-check[aria-checked="true"] .ps-toggle { background: var(--sm-accent-strong); box-shadow: none; } /* taste-skill-ignore: removes the track border when on */
+.ps-check[aria-checked="true"] .ps-toggle::after { transform: translateX(1.25rem); background: #fff; }
+.ps-sheet-actions { position: sticky; bottom: -12px; z-index: 1; display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 -16px -12px; padding: .75rem 16px 12px; background: var(--sm-surface); }
+.ps-sheet-actions > * { flex: 1 1 max-content; min-width: 0; min-height: 52px; }
+.ps-sheet-actions > .ps-primary { flex-grow: 2; }
+
+@media (max-width: 359px) {
+    [data-phone-screen] { padding-inline: .75rem; }
+    .ps-tabs, .ps-chips, .ps-row, .ps-features { margin-inline: -.75rem; padding-inline: .75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ps-toggle::after { transition: none; }
+    .ps-spin { animation-duration: 3s; }
+}
