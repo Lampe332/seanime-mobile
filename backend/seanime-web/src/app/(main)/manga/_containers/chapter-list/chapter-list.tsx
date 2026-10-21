@@ -7,7 +7,8 @@ import { useMangaEntryDownloadedChapters } from "@/app/(main)/manga/_lib/handle-
 import { MangaManualMappingModal } from "@/app/(main)/manga/_containers/chapter-list/manga-manual-mapping-modal"
 import { ChapterReaderDrawer } from "@/app/(main)/manga/_containers/chapter-reader/chapter-reader-drawer"
 import { __manga_selectedChapterAtom } from "@/app/(main)/manga/_lib/handle-chapter-reader"
-import { __manga_resumeLocationsAtom, MANGA_READER_RESUME_MAX_AGE_MS } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
+import { __manga_resumeLocationsAtom } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
+import { __manga_continueIntentAtom, getMangaResumeChapter, isMangaContinueIntentFor } from "@/app/(main)/manga/_lib/manga-continue"
 import { useHandleMangaChapters } from "@/app/(main)/manga/_lib/handle-manga-chapters"
 import { useHandleDownloadMangaChapter } from "@/app/(main)/manga/_lib/handle-manga-downloads"
 import { __manga_preferencesHydratedAtom } from "@/app/(main)/manga/_lib/handle-manga-selected-provider"
@@ -208,13 +209,8 @@ export function ChapterList(props: ChapterListProps) {
     const unreadChapters = React.useMemo(() => chapterContainer?.chapters?.filter(ch => retainUnreadChapters(ch)) ?? [], [chapterContainer, entry])
     const resumeLocations = useAtomValue(__manga_resumeLocationsAtom)
     const resumeLocation = resumeLocations[String(mediaId)]
-    const resumeChapter = React.useMemo(() => {
-        if (!resumeLocation || resumeLocation.provider !== selectedProvider
-            || !Number.isInteger(resumeLocation.pageIndex) || resumeLocation.pageIndex < 0
-            || !Number.isFinite(resumeLocation.updatedAt)
-            || Date.now() - resumeLocation.updatedAt > MANGA_READER_RESUME_MAX_AGE_MS) return undefined
-        return unreadChapters.find(ch => ch.id === resumeLocation.chapterId && ch.provider === resumeLocation.provider)
-    }, [resumeLocation, selectedProvider, unreadChapters])
+    const resumeChapter = React.useMemo(() => getMangaResumeChapter(unreadChapters, resumeLocation, selectedProvider, Date.now()),
+        [resumeLocation, selectedProvider, unreadChapters])
     const readingChapter = resumeChapter || unreadChapters[0]
     const allChapters = React.useMemo(() => chapterContainer?.chapters?.toReversed() ?? [], [chapterContainer])
     const downloadableUnreadChapters = React.useMemo(() => unreadChapters.filter(chapter => {
@@ -355,6 +351,25 @@ export function ChapterList(props: ChapterListProps) {
         } : null)
     }, [readingChapter, resumeChapter, resumeLocation, entry.listData?.progress, mediaId])
     React.useEffect(() => () => setMobileReadAction(null), [])
+
+    // Android: "Continue reading" on the manga library opens the reading chapter once the source has answered.
+    const [continueIntent, setContinueIntent] = useAtom(__manga_continueIntentAtom)
+    React.useEffect(() => {
+        if (!IS_ANDROID_APP || !continueIntent) return
+        // Another manga's or an expired intent never opens the reader here
+        if (!isMangaContinueIntentFor(continueIntent, mediaId, Date.now())) return setContinueIntent(null)
+        // Wait for the saved source (server preferences) and its chapters
+        if (!preferencesHydrated || (!chapterContainer && !chapterContainerError)) return
+        setContinueIntent(null)
+        if (!readingChapter) return
+        setSelectedChapter({
+            chapterId: readingChapter.id,
+            chapterNumber: readingChapter.chapter,
+            provider: readingChapter.provider,
+            mediaId: Number(mediaId),
+        })
+    }, [continueIntent, readingChapter, chapterContainer, chapterContainerError, preferencesHydrated, mediaId])
+    React.useEffect(() => () => setContinueIntent(null), [])
 
     if (providerExtensionsLoading) return <LoadingSpinner />
 
