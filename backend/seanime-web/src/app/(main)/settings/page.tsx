@@ -10,6 +10,7 @@ import { useSaveSettings } from "@/api/hooks/settings.hooks"
 import { useGetTorrentstreamSettings } from "@/api/hooks/torrentstream.hooks"
 import { electronUpdateModalOpenAtom } from "@/app/(main)/_electron/electron-update-modal"
 import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { __issueReport_overlayOpenAtom } from "@/app/(main)/_features/issue-report/issue-report"
 import { updateModalOpenAtom as webUpdateModalOpenAtom } from "@/app/(main)/_features/update/update-modal"
 import { useServerDisabledFeatures, useServerStatus, useSetServerStatus } from "@/app/(main)/_hooks/use-server-status"
@@ -26,6 +27,7 @@ import { MediastreamSettings } from "@/app/(main)/settings/_containers/mediastre
 import { ServerSettings } from "@/app/(main)/settings/_containers/server-settings"
 import { TorrentstreamSettings } from "@/app/(main)/settings/_containers/torrentstream-settings"
 import { UISettings } from "@/app/(main)/settings/_containers/ui-settings"
+import { SettingsPhone } from "@/app/(main)/settings/_screens/settings-phone"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { SeaLink } from "@/components/shared/sea-link"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -88,6 +90,14 @@ const tabContentClass = cn(
 
 
 export default function Page() {
+
+    // Android phones get their own screen; tablets and desktop keep the tabs
+    if (isAndroidPhone()) return <SettingsPhone />
+
+    return <SettingsDesktop />
+}
+
+function SettingsDesktop() {
     const status = useServerStatus()
     const androidAppVersion = getAndroidAppVersion()
     const { isFeatureDisabled, showFeatureWarning } = useServerDisabledFeatures()

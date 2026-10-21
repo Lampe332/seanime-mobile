@@ -1,0 +1,96 @@
+/* Settings on Android phones: only what the shared phone kit (phone-screen.css) lacks. Areas are rows of one list; an area's
+   page groups its settings in raised blocks of rows, every row a touch target of at least 48 dp. */
+
+[data-phone-screen="settings"] { gap: 1.25rem; }
+
+/* The areas: icon, name, what is inside, chevron. */
+.pst-nav { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.pst-nav-row { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 4rem; padding: .75rem 1rem; background: var(--sm-surface-raised); color: var(--sm-text); text-align: start; }
+.pst-nav-row:active { background: var(--sm-surface-control); }
+.pst-nav-row:focus-visible { outline-offset: -2px; }
+.pst-nav-icon { flex: none; font-size: 1.375rem; color: var(--sm-accent); }
+.pst-nav-row > svg:last-child, .pst-row > svg:last-child { flex: none; font-size: 1.125rem; color: var(--sm-text-subtle); }
+
+/* An area's page: Back and its name on one row. */
+.pst-subhead { display: flex; align-items: center; gap: .25rem; margin-left: -.75rem; padding-top: .25rem; }
+.pst-subhead h1 { min-width: 0; font-size: min(1.625rem, max(calc(10vw / var(--ps-text-zoom, 1)), 1rem)); line-height: 1.2; letter-spacing: -.025em; font-weight: 700; overflow-wrap: break-word; }
+.pst-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; min-width: 0; }
+
+/* Groups: a small heading over raised rows. */
+.pst-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; min-width: 0; }
+.pst-group > h2 { padding-inline: .25rem; font-size: .8125rem; font-weight: 650; letter-spacing: .02em; color: var(--sm-text-muted); }
+.pst-group-note { margin-top: -.25rem; padding-inline: .25rem; font-size: .8125rem; line-height: 1.5; color: var(--sm-text-subtle); }
+.pst-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Rows that open something or act: text on the left, the value and a chevron on the right. */
+.pst-row { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 3.25rem; padding: .625rem 1rem; background: var(--sm-surface-raised); color: var(--sm-text); text-align: start; font-size: .9375rem; }
+.pst-row:active { background: var(--sm-surface-control); }
+.pst-row:disabled { opacity: .6; }
+.pst-row[data-tone="danger"] { color: var(--sm-danger); }
+.pst-row-text { flex: 1 1 auto; display: grid; gap: .125rem; min-width: 0; }
+.pst-row-text small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
+.pst-row-value { flex: 0 1 auto; max-width: 55%; min-width: 0; font-size: .875rem; color: var(--sm-text-muted); text-align: end; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; direction: ltr; }
+.pst-expand { transition: transform .15s; }
+.pst-row[aria-expanded="true"] .pst-expand { transform: rotate(180deg); }
+
+/* Sub-settings of the switch above them (spoiler parts, blur of adult covers). */
+.ps-rows > [data-settings-sub] { padding-left: 2rem; }
+
+/* Blocks that sit among the rows: selects, chips, notices, facts. */
+.ps-rows > :is(.pst-select, .pst-chips, .pst-swatches, .ps-notice, .ps-empty, .ps-segment) { border-radius: 0; }
+.pst-select { display: grid; gap: .375rem; padding: .75rem 1rem; background: var(--sm-surface-raised); }
+.pst-select > label { font-size: .9375rem; color: var(--sm-text); }
+.pst-select > small { margin-top: -.25rem; font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
+.pst-select .ps-select { background: var(--sm-surface-control); }
+.ps-rows > .ps-segment { margin: 0; padding: .5rem; background: var(--sm-surface-raised); }
+.ps-rows > .ps-segment > button[aria-selected="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); }
+.pst-chips { padding: .75rem 1rem; background: var(--sm-surface-raised); }
+.pst-chips > button { background: var(--sm-surface-control); }
+.ps-rows > .ps-facts { border-radius: 0; }
+.pst-group > .ps-facts { border-radius: var(--sm-radius); }
+
+/* One of a few: radio rows. */
+.pst-choice-rows { display: grid; gap: 2px; }
+.pst-choice { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 3.5rem; padding: .75rem 1rem; background: var(--sm-surface-raised); color: var(--sm-text); text-align: start; font-size: .9375rem; }
+.pst-choice:active { background: var(--sm-surface-control); }
+.pst-choice:focus-visible { outline-offset: -2px; }
+.pst-radio { position: relative; flex: none; width: 1.375rem; height: 1.375rem; border-radius: 999px; box-shadow: inset 0 0 0 2px var(--sm-text-subtle); } /* taste-skill-ignore: the radio ring */
+.pst-choice[aria-checked="true"] .pst-radio { box-shadow: inset 0 0 0 2px var(--sm-accent-strong); } /* taste-skill-ignore: the radio ring in the accent */
+.pst-choice[aria-checked="true"] .pst-radio::after { content: ""; position: absolute; inset: .3125rem; border-radius: inherit; background: var(--sm-accent-strong); }
+
+/* Colours: presets as named pairs, then Android's colour dialog per colour. */
+.pst-swatches { display: flex; flex-wrap: wrap; gap: .5rem; padding: .75rem 1rem; background: var(--sm-surface-raised); }
+.pst-swatches > button { display: inline-flex; align-items: center; gap: .25rem; min-height: 48px; padding: 0 .875rem 0 .625rem; border-radius: 999px; background: var(--sm-surface-control); color: var(--sm-text-muted); font-size: .875rem; font-weight: 500; overflow-wrap: normal; }
+.pst-swatches > button[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); font-weight: 600; }
+.pst-swatches > button > .pst-swatch:nth-child(2) { margin-right: .375rem; }
+.pst-swatch { flex: none; width: 1.25rem; height: 1.25rem; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--sm-line-strong); } /* taste-skill-ignore: keeps a black swatch visible */
+.pst-colour { display: flex; align-items: center; gap: .75rem; min-height: 3.25rem; padding: .375rem 1rem; background: var(--sm-surface-raised); color: var(--sm-text); font-size: .9375rem; }
+.pst-colour input { flex: none; width: 48px; height: 48px; padding: 0; border: 0; border-radius: var(--sm-radius-sm); background: none; }
+.pst-colour input::-webkit-color-swatch-wrapper { padding: 6px; }
+.pst-colour input::-webkit-color-swatch { border: 0; border-radius: .5rem; }
+
+/* Sheets: a text field, a sentence to confirm, a log. */
+.pst-field { display: grid; gap: .5rem; min-width: 0; }
+.pst-field > label { font-size: .9375rem; font-weight: 600; }
+.pst-field :is(input, textarea) { width: 100%; min-height: 52px; padding: .75rem 1rem; border: 0; border-radius: var(--sm-radius); background: var(--sm-surface-raised); color: var(--sm-text); font-size: 1rem; }
+.pst-field textarea { min-height: 12rem; font-family: ui-monospace, monospace; font-size: .875rem; line-height: 1.5; resize: vertical; }
+.pst-field :is(input, textarea)[aria-invalid="true"] { box-shadow: inset 0 0 0 2px var(--sm-danger); } /* taste-skill-ignore: marks the field with the error */
+.pst-field > small { font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.pst-field > small.pst-error { color: var(--sm-danger); }
+.pst-field > small:empty { display: none; }
+.pst-sheet-text { font-size: .9375rem; line-height: 1.55; color: var(--sm-text-muted); overflow-wrap: anywhere; }
+.pst-wide { width: 100%; }
+.ps-primary.pst-danger { background: var(--sm-danger); color: var(--sm-surface-sunken); }
+.ps-primary.pst-danger:active { opacity: .85; }
+.pst-log { max-height: 55svh; overflow: auto; padding: .75rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); font-family: ui-monospace, monospace; font-size: .75rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* The developer tools inside their folded row. */
+.pst-developer { display: grid; gap: 2px; }
+.pst-developer > .ps-facts { border-radius: 0; }
+
+/* About: Donate as a quiet link at the end (decision D8). */
+.pst-quiet-link { justify-self: center; display: inline-flex; align-items: center; min-height: 48px; padding: 0 1rem; font-size: .875rem; color: var(--sm-text-subtle); text-decoration: underline; text-underline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .pst-expand { transition: none; }
+}
