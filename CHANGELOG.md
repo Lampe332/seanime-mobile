@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.34 — 21.10.2026 (versionCode 31085)
+
+- 🦺 Discover: When AniList can't load a chosen genre on the phone, the genre chips stay visible, so "All" is one tap away
+
 ## 1.9.33 — 21.10.2026 (versionCode 31084)
 
 - 🎉 Lists: Covers on the phone's My lists, Discover and Search tabs open a menu on long press with preview, continue watching (My lists), add to playlist and plugin actions
