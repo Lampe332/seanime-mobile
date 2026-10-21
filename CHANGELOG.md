@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.23 — 21.10.2026 (versionCode 31074)
+
+- ⚡️ AniList: Redesigned the login as a bottom sheet with two clear steps, a paste button and German texts
+
 ## 1.9.22 — 21.10.2026 (versionCode 31073)
 
 - ⚡️ First start: Redesigned setup as a single screen with language, online streaming and manga
