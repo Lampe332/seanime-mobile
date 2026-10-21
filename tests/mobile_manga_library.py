@@ -95,12 +95,15 @@ with tempfile.TemporaryDirectory(prefix='seanime-manga-library-') as tmp:
         check('Filter sheet: sort, two switches, genres with the shown list\'s counts',page.locator('[data-manga-sort]').input_value()=='TITLE'
               and page.locator('[data-manga-filters] [role=switch]').count()==2 and page.evaluate(TEXT,'[data-manga-genre]')[:3]==['Action1','Comedy1','Drama2'])
         check('Sheet buttons are at least 48px',page.evaluate(SMALL,'[data-manga-filters] button')==[])
+        check('The unread switch is named by its label and described by its note',page.evaluate('(b=>[document.getElementById(b.getAttribute("aria-labelledby"))?.textContent,document.getElementById(b.getAttribute("aria-describedby"))?.textContent])(document.querySelector("[data-manga-unread-only]"))')
+              ==['Only manga with new chapters','A list without any keeps showing all its manga.'])
         check('Opening the sheet focuses the sheet, not the sort picker',page.evaluate('document.activeElement?.getAttribute("role")')=='dialog')
         shot(page,'manga-filter-sheet-390.png')
         page.locator('[data-manga-genre="Drama"]').click();page.wait_for_timeout(200)
         check('Genre narrows every list; tab counts and the done button follow',page.evaluate(TEXT,'[data-manga-status]')==['Reading0','Planning0','Completed2','Dropped0']
               and page.locator('[data-manga-filter-done]').inner_text()=='Show 2 manga')
         check('Back closes the sheet first',page.evaluate(BACK));page.locator('[data-manga-filters]').wait_for(state='detached')
+        check('Focus returns to the filter button when the sheet closes',page.evaluate('document.activeElement?.hasAttribute("data-manga-filter-button")'))
         check('Active filter is marked on its button',page.locator('[data-manga-filter-button] .mml-dot').count()==1 and page.evaluate(TEXT,'[data-manga-card] .mml-card-title')==['Berserk','Blue Period'])
         page.locator('[data-manga-status="CURRENT"]').click();page.wait_for_timeout(200)
         check('An emptied list keeps its tab and offers to reset the filter',page.locator('[data-manga-status-empty]').count()==1)

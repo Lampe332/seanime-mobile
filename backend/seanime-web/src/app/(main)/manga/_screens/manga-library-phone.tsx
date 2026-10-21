@@ -71,6 +71,7 @@ export function MangaLibraryPhone(props: MangaLibraryPhoneProps) {
     const [refreshOpen, setRefreshOpen] = React.useState(false)
     const [menuOpen, setMenuOpen] = React.useState(false)
     const refreshButtonRef = React.useRef<HTMLButtonElement>(null)
+    const filterButtonRef = React.useRef<HTMLButtonElement>(null)
 
     const { data: refreshJob } = useGetMangaSourceRefresh()
     const refreshRunning = refreshJob?.status === "running" || refreshJob?.status === "stopping"
@@ -173,7 +174,7 @@ export function MangaLibraryPhone(props: MangaLibraryPhoneProps) {
                     <LuRefreshCcw aria-hidden />
                     {refreshRunning && <span className="mml-dot" aria-hidden />}
                 </button>
-                <button type="button" className="mml-icon-button" onClick={() => setFiltersOpen(true)} data-manga-filter-button
+                <button ref={filterButtonRef} type="button" className="mml-icon-button" onClick={() => setFiltersOpen(true)} data-manga-filter-button
                     aria-label={activeFilters ? `${t("Filter and sort", "Filtern und sortieren")}, ${activeFilters} ${t("active", "aktiv")}` : t("Filter and sort", "Filtern und sortieren")}>
                     <LuSlidersHorizontal aria-hidden />
                     {activeFilters > 0 && <span className="mml-dot" aria-hidden />}
@@ -243,7 +244,7 @@ export function MangaLibraryPhone(props: MangaLibraryPhoneProps) {
         <PluginWebviewSlot slot="manga-screen-bottom" />
 
         <FilterSheet open={filtersOpen} onOpenChange={setFiltersOpen} t={t} rawLists={rawLists} status={status}
-            resultCount={entries.length} onReset={resetFilters} />
+            resultCount={entries.length} onReset={resetFilters} returnFocusRef={filterButtonRef} />
         <MangaSourceRefreshModal open={refreshOpen} onOpenChange={setRefreshOpen} job={refreshJob} returnFocusRef={refreshButtonRef} phone />
     </PageWrapper>
 }
@@ -333,6 +334,7 @@ function FilterSheet(props: {
     status: MangaPhoneStatus | null
     resultCount: number
     onReset: () => void
+    returnFocusRef: React.RefObject<HTMLButtonElement | null>
 }) {
     const { t, rawLists, status } = props
     const ts = useThemeSettings()
@@ -349,8 +351,10 @@ function FilterSheet(props: {
     const setTheme = (patch: Record<string, unknown>) => updateTheme({ theme: { id: 0, ...ts, ...patch } as any })
 
     // The sheet itself takes focus on open: a focused select would show its ring and open the picker for nothing.
+    // On close focus goes back to the filter button (the sheet has no Radix trigger to return to).
     return <Modal title={t("Filter & sort", "Filtern & sortieren")} open={props.open} onOpenChange={props.onOpenChange} contentClass="mml-sheet"
-        onOpenAutoFocus={event => { event.preventDefault(); (event.currentTarget as HTMLElement | null)?.focus() }}>
+        onOpenAutoFocus={event => { event.preventDefault(); (event.currentTarget as HTMLElement | null)?.focus() }}
+        onCloseAutoFocus={event => { event.preventDefault(); props.returnFocusRef.current?.focus() }}>
         <div className="mml-sheet-body" data-manga-filters>
             <div className="mml-sheet-group">
                 <label htmlFor="mml-sort"><h3>{t("Sort by", "Sortieren nach")}</h3></label>
@@ -365,10 +369,11 @@ function FilterSheet(props: {
 
             <div className="mml-rows">
                 <button type="button" role="switch" aria-checked={!!params.unreadOnly} className="mml-check" data-manga-unread-only
+                    aria-labelledby="mml-unread-only-label" aria-describedby="mml-unread-only-note"
                     onClick={() => setParams(draft => { draft.unreadOnly = !draft.unreadOnly })}>
                     <span className="mml-check-text">
-                        <span>{t("Only manga with new chapters", "Nur Manga mit neuen Kapiteln")}</span>
-                        <small>{t("A list without any keeps showing all its manga.", "Eine Liste ohne neue Kapitel zeigt weiter alle Manga.")}</small>
+                        <span id="mml-unread-only-label">{t("Only manga with new chapters", "Nur Manga mit neuen Kapiteln")}</span>
+                        <small id="mml-unread-only-note">{t("A list without any keeps showing all its manga.", "Eine Liste ohne neue Kapitel zeigt weiter alle Manga.")}</small>
                     </span>
                     <span className="mml-toggle" aria-hidden />
                 </button>
