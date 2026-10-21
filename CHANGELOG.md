@@ -2,6 +2,12 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.30 — 21.10.2026 (versionCode 31081)
+
+- ⚡️ Extensions: A repository on GitHub is named by its owner and repository in the phone marketplace
+- ⚡️ Extensions: Long repositories scroll more smoothly in the phone marketplace
+- 🦺 Extensions: The manifest link in an extension's sheet is shown on its own line instead of a ragged right-aligned block
+
 ## 1.9.29 — 21.10.2026 (versionCode 31080)
 
 - ⚡️ Extensions: Redesigned the phone Extensions tab like Home and Manga: a quiet title with icon actions, Installed and Marketplace as tabs, updates and extensions that need attention first, then streaming, manga, plugins, custom sources and disabled extensions as lists
