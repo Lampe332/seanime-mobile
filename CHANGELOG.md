@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.32 — 21.10.2026 (versionCode 31083)
+
+- 🦺 Tutorial: The setup tour's hint no longer covers the title of the repository sheet on the phone
+
 ## 1.9.31 — 21.10.2026 (versionCode 31082)
 
 - 🎉 Extensions: Each type on the phone's Installed tab has an "Add" action that opens the marketplace on that type
