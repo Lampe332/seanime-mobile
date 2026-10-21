@@ -133,17 +133,20 @@ with tempfile.TemporaryDirectory(prefix='seanime-manga-library-') as tmp:
         check('320px / 200% text: no page overflow',page.evaluate(NO_OVERFLOW))
         shot(page,'manga-320-200.png')
         page.close()
-        for hash,selector,name in (('#loading','.mml-loading[aria-busy=true]','loading'),('#empty','[data-manga-library-empty]','empty'),('#error','[data-manga-library-error]','error')):
+        for hash,selector,name in (('#loading','.mml-loading[aria-busy=true]','loading'),('#empty','[data-manga-library-empty]','empty'),('#error','[data-manga-library-error]','error'),
+                                   ('#offline','[data-manga-library-error]','offline')):
             state={'#loading':dict(data=None,isLoading=True,isError=False),'#empty':dict(data=dict(lists=[]),isLoading=False,isError=False),
-                   '#error':dict(data=None,isLoading=False,isError=True)}[hash]
+                   '#error':dict(data=None,isLoading=False,isError=True),'#offline':dict(data=None,isLoading=False,isError=True)}[hash]
             p=browser.new_page(viewport=dict(width=390,height=844),device_scale_factor=3,has_touch=True,is_mobile=True)
             p.add_init_script(INIT);p.add_init_script(f'collectionState={json.dumps(state)}')
+            if name=='offline': p.add_init_script('Object.defineProperty(navigator,"onLine",{get:()=>false})')
             p.route('http://manga.test/manga*',lambda r:r.fulfill(content_type='text/html',body='<html class="dark"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="background:#0c0c0e"><div id="root"></div></body></html>'))
             p.goto('http://manga.test/manga'+hash)
             for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):p.add_style_tag(path=str(css))
             p.add_style_tag(path=str(bundle.with_suffix('.css')));p.add_script_tag(path=str(bundle));p.locator(selector).wait_for();p.wait_for_timeout(300)
             check(f'{name.capitalize()} state keeps the title and the actions',p.locator('h1').inner_text()=='Manga' and p.locator('[data-manga-filter-button]').count()==1)
             if name=='empty': check('Empty: one sentence and the way to find manga',p.locator('[data-manga-library-empty] a').get_attribute('href')=='/discover?type=manga')
+            if name=='offline': check('Offline: the error names the missing connection',p.locator('[data-manga-library-error] p').inner_text().startswith('No internet connection'))
             if name=='error':
                 p.get_by_role('button',name='Try again').click()
                 check('Error: retry reloads, downloads stay reachable, no redirect to Home',p.evaluate('refetches')==1 and p.evaluate('routes')==[]
