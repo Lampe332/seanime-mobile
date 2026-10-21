@@ -1,4 +1,5 @@
 import { useOpenInExplorer } from "@/api/hooks/explorer.hooks"
+import { usePatchSetting } from "@/api/hooks/settings.hooks"
 import { vc_subtitleManager } from "@/app/(main)/_features/video-core/video-core"
 import { vc_mediaCaptionsManager } from "@/app/(main)/_features/video-core/video-core"
 import { anime4kOptions, getAnime4KOptionByValue, vc_anime4kOption } from "@/app/(main)/_features/video-core/video-core-anime-4k"
@@ -58,8 +59,22 @@ import React, { useState } from "react"
 import { HiFastForward } from "react-icons/hi"
 import { ImFileText } from "react-icons/im"
 import { IoCaretForwardCircleOutline } from "react-icons/io5"
-import { LuChevronRight, LuChevronUp, LuHeading, LuPaintbrush, LuPalette, LuSettings, LuSettings2, LuSparkles, LuTvMinimalPlay, LuVolume2 } from "react-icons/lu"
-import { MdOutlineAccessTime, MdOutlineSubtitles, MdSpeed } from "react-icons/md"
+import {
+    LuChevronRight,
+    LuChevronUp,
+    LuCpu,
+    LuHeading,
+    LuKey,
+    LuLink,
+    LuPaintbrush,
+    LuPalette,
+    LuSettings,
+    LuSettings2,
+    LuSparkles,
+    LuTvMinimalPlay,
+    LuVolume2,
+} from "react-icons/lu"
+import { MdOutlineAccessTime, MdOutlineSubtitles, MdSpeed, MdTranslate } from "react-icons/md"
 import { RiShadowLine } from "react-icons/ri"
 import { TbArrowForwardUp } from "react-icons/tb"
 import { VscTextSize } from "react-icons/vsc"
@@ -357,6 +372,48 @@ export function VideoCoreSettingsMenu() {
         setOpenMenuSection(null)
     }
 
+    // Subtitle translation (phone): server settings, defaults as in the preferences modal.
+    const { mutate: patchSetting } = usePatchSetting()
+    const mediaPlayerSettings = serverStatus?.settings?.mediaPlayer
+    const translateEnabled = mediaPlayerSettings?.vcTranslate ?? false
+    const translateProvider = mediaPlayerSettings?.vcTranslateProvider || "google"
+    const translateTarget = mediaPlayerSettings?.vcTranslateTargetLanguage || "en"
+    const translateApiKey = mediaPlayerSettings?.vcTranslateApiKey || ""
+    const translateBaseUrl = mediaPlayerSettings?.vcTranslateBaseUrl || "http://localhost:1234/v1"
+    const translateModel = mediaPlayerSettings?.vcTranslateModel || (translateProvider === "openai" ? "gpt-4o-mini" : "local-model")
+    const translateUsesOpenAI = translateProvider === "openai" || translateProvider === "openai-compatible"
+
+    /** Patches one mediaPlayer value after the other so each request sees the previous one; other settings stay untouched. */
+    const patchMediaPlayer = (changes: [string, string | boolean][], onDone?: () => void): void => {
+        const [change, ...rest] = changes
+        if (!change) return onDone?.()
+        patchSetting({ path: `mediaPlayer.${change[0]}`, value: change[1] }, { onSuccess: () => patchMediaPlayer(rest, onDone) })
+    }
+
+    // Same follow-up as the preferences modal after saving.
+    const updateShouldTranslate = (enabled: boolean, target: string): void => {
+        subtitleManager?.updateShouldTranslate(enabled ? target : null)
+        mediaCaptionsManager?.updateShouldTranslate(enabled ? target : null)
+    }
+
+    const handleTranslateProviderChange = (provider: string): void => {
+        const changes: [string, string | boolean][] = [["vcTranslateProvider", provider]]
+        // The modal saves its prefilled fields with the provider; fill the ones this provider needs.
+        const storedModel = mediaPlayerSettings?.vcTranslateModel || ""
+        if (provider === "openai" && (!storedModel || storedModel === "local-model")) changes.push(["vcTranslateModel", "gpt-4o-mini"])
+        if (provider === "openai-compatible") {
+            if (!mediaPlayerSettings?.vcTranslateBaseUrl) changes.push(["vcTranslateBaseUrl", "http://localhost:1234/v1"])
+            if (!storedModel) changes.push(["vcTranslateModel", "local-model"])
+        }
+        patchMediaPlayer(changes)
+    }
+
+    const handleTranslateModelChange = (model: string): void => {
+        const value = translateProvider === "openai" && (!model || model === "local-model") ? "gpt-4o-mini" : model
+        patchMediaPlayer([["vcTranslateModel", value]])
+        setOpenMenuSubSection(null)
+    }
+
     if (isMiniPlayer) return null
 
     return (
@@ -415,6 +472,7 @@ export function VideoCoreSettingsMenu() {
                         useLibassRenderer={isWebPlayer ? useLibassRenderer : null}
                         setUseLibassRenderer={setUseLibassRenderer}
                         subtitleBlacklist={settings.preferredSubtitleBlacklist}
+                        translation={!mediaPlayerSettings ? null : translateEnabled ? translateLanguageLabel(translateTarget) : t("Off", "Aus")}
                         skipPatterns={preferences.skipPatterns}
                     />
                 </VideoCoreMenuSectionBody> : <VideoCoreMenuSectionBody>
@@ -775,6 +833,53 @@ export function VideoCoreSettingsMenu() {
                             onCancel={() => setOpenMenuSection(null)}
                         />
                     </VideoCoreMenuOption>}
+                    {isPhone && mediaPlayerSettings && <VideoCoreMenuOption
+                        title="Subtitle Translation"
+                        label={t("Translate subtitles", "Untertitel übersetzen")}
+                        icon={MdTranslate}
+                    >
+                        <p className="mb-2">{t("Automatically translates subtitle tracks into the chosen language.",
+                            "Übersetzt Untertitelspuren automatisch in die gewählte Sprache.")}</p>
+                        <PhoneSwitchRow
+                            icon={MdTranslate}
+                            label={t("Translate subtitles", "Untertitel übersetzen")}
+                            checked={translateEnabled}
+                            onChange={v => patchMediaPlayer([["vcTranslate", v]], () => updateShouldTranslate(v, translateTarget))}
+                        />
+                        <p className="vc-phone-page-label">{t("Provider", "Anbieter")}</p>
+                        <VideoCoreSettingSelect
+                            options={TRANSLATE_PROVIDERS}
+                            onValueChange={handleTranslateProviderChange}
+                            value={translateProvider}
+                        />
+                        {translateProvider === "deepl" && <p className="px-2 pt-2">{t("DeepL does not support all target languages.",
+                            "DeepL unterstützt nicht alle Zielsprachen.")}</p>}
+                        {translateProvider === "openai-compatible" && <VideoCoreMenuSubOption
+                            title={t("Base URL", "Basis-URL")}
+                            icon={LuLink}
+                            parentId="Subtitle Translation"
+                            value={phoneShort(translateBaseUrl)}
+                        />}
+                        {translateUsesOpenAI && <VideoCoreMenuSubOption
+                            title={t("Model", "Modell")}
+                            icon={LuCpu}
+                            parentId="Subtitle Translation"
+                            value={phoneShort(translateModel)}
+                        />}
+                        {/* The key itself is never shown, only whether one is stored. */}
+                        {translateProvider !== "google" && <VideoCoreMenuSubOption
+                            title={t("API key", "API-Schlüssel")}
+                            icon={LuKey}
+                            parentId="Subtitle Translation"
+                            value={translateApiKey ? t("Set", "Gesetzt") : t("Not set", "Nicht gesetzt")}
+                        />}
+                        <p className="vc-phone-page-label">{t("Target language", "Zielsprache")}</p>
+                        <VideoCoreSettingSelect
+                            options={TRANSLATE_LANGUAGES}
+                            onValueChange={(v: string) => patchMediaPlayer([["vcTranslateTargetLanguage", v]], () => updateShouldTranslate(translateEnabled, v))}
+                            value={translateTarget}
+                        />
+                    </VideoCoreMenuOption>}
                     <VideoCoreMenuOption title="Player Appearance" label={phoneLabel("Player appearance", "Player-Darstellung")} icon={LuPaintbrush}>
                         <Switch
                             label="Show Chapter Markers"
@@ -940,6 +1045,48 @@ export function VideoCoreSettingsMenu() {
                             value={vc_getCaptionStyle(editedCaptionCustomization, "textShadowColor")}
                         />
                     </VideoCoreMenuSubOption>
+                    {isPhone && <VideoCoreMenuSubOption title={t("Base URL", "Basis-URL")} icon={LuLink} parentId="Subtitle Translation">
+                        <PhoneTextEditor
+                            t={t}
+                            label={t("Base URL", "Basis-URL")}
+                            help={t("OpenAI-compatible /v1 endpoint, e.g. LM Studio or Ollama.", "OpenAI-kompatibler /v1-Endpunkt, z. B. LM Studio oder Ollama.")}
+                            placeholder="http://localhost:1234/v1"
+                            value={translateBaseUrl}
+                            onApply={v => {
+                                patchMediaPlayer([["vcTranslateBaseUrl", v]])
+                                setOpenMenuSubSection(null)
+                            }}
+                            onCancel={() => setOpenMenuSubSection(null)}
+                        />
+                    </VideoCoreMenuSubOption>}
+                    {isPhone && <VideoCoreMenuSubOption title={t("Model", "Modell")} icon={LuCpu} parentId="Subtitle Translation">
+                        <PhoneTextEditor
+                            t={t}
+                            label={t("Model", "Modell")}
+                            help={t("Name of the model that translates.", "Name des Modells, das übersetzt.")}
+                            placeholder={translateProvider === "openai-compatible" ? "local-model" : "gpt-4o-mini"}
+                            value={translateModel}
+                            onApply={handleTranslateModelChange}
+                            onCancel={() => setOpenMenuSubSection(null)}
+                        />
+                    </VideoCoreMenuSubOption>}
+                    {isPhone && <VideoCoreMenuSubOption title={t("API key", "API-Schlüssel")} icon={LuKey} parentId="Subtitle Translation">
+                        <PhoneTextEditor
+                            t={t}
+                            type="password"
+                            label={t("API key", "API-Schlüssel")}
+                            help={translateProvider === "openai-compatible"
+                                ? t("Optional for local servers. Stored on the server.", "Für lokale Server optional. Wird auf dem Server gespeichert.")
+                                : t("Stored on the server.", "Wird auf dem Server gespeichert.")}
+                            placeholder={t("Enter your API key", "API-Schlüssel eingeben")}
+                            value={translateApiKey}
+                            onApply={v => {
+                                patchMediaPlayer([["vcTranslateApiKey", v]])
+                                setOpenMenuSubSection(null)
+                            }}
+                            onCancel={() => setOpenMenuSubSection(null)}
+                        />
+                    </VideoCoreMenuSubOption>}
                 </VideoCoreMenuSubSubmenuBody>
             </VideoCoreMenu>
         </>
@@ -952,6 +1099,79 @@ const PHONE_LANGUAGES = [
     { en: "German", de: "Deutsch", codes: "de,ger,deu,german" },
     { en: "English", de: "Englisch", codes: "en,eng,english" },
 ]
+
+/** Translation providers and target languages: the same lists as the preferences modal. */
+const TRANSLATE_PROVIDERS = [
+    { value: "google", label: "Google Free" },
+    { value: "deepl", label: "DeepL" },
+    { value: "openai", label: "OpenAI" },
+    { value: "openai-compatible", label: "OpenAI Compatible" },
+]
+
+const TRANSLATE_LANGUAGES = [
+    // DeepL
+    { value: "en-US", label: "English (US)" },
+    { value: "en-GB", label: "English (UK)" },
+    { value: "es", label: "Spanish" },
+    { value: "fr", label: "French" },
+    { value: "de", label: "German" },
+    { value: "it", label: "Italian" },
+    { value: "pt-BR", label: "Portuguese (BR)" },
+    { value: "pt-PT", label: "Portuguese (PT)" },
+    { value: "ru", label: "Russian" },
+    { value: "ja", label: "Japanese" },
+    { value: "ko", label: "Korean" },
+    { value: "zh-hans", label: "Chinese (Simplified)" },
+    { value: "zh-hant", label: "Chinese (Traditional)" },
+    { value: "ar", label: "Arabic" },
+    { value: "tr", label: "Turkish" },
+    { value: "pl", label: "Polish" },
+    { value: "nl", label: "Dutch" },
+    { value: "sv", label: "Swedish" },
+    { value: "nb", label: "Norwegian" },
+    { value: "da", label: "Danish" },
+    { value: "fi", label: "Finnish" },
+    { value: "el", label: "Greek" },
+    { value: "cs", label: "Czech" },
+    { value: "hu", label: "Hungarian" },
+    { value: "ro", label: "Romanian" },
+    { value: "id", label: "Indonesian" },
+    { value: "uk", label: "Ukrainian" },
+    { value: "bg", label: "Bulgarian" },
+    { value: "sk", label: "Slovak" },
+    { value: "sl", label: "Slovenian" },
+    { value: "et", label: "Estonian" },
+    { value: "lv", label: "Latvian" },
+    { value: "lt", label: "Lithuanian" },
+    // Not currently supported by DeepL
+    { value: "hi", label: "Hindi" },
+    { value: "bn", label: "Bengali" },
+    { value: "ta", label: "Tamil" },
+    { value: "te", label: "Telugu" },
+    { value: "mr", label: "Marathi" },
+    { value: "kn", label: "Kannada" },
+    { value: "ml", label: "Malayalam" },
+    { value: "pa", label: "Punjabi" },
+    { value: "fa", label: "Persian" },
+    { value: "ur", label: "Urdu" },
+    { value: "sw", label: "Swahili" },
+    { value: "af", label: "Afrikaans" },
+    { value: "ms", label: "Malay" },
+    { value: "hr", label: "Croatian" },
+    { value: "sr", label: "Serbian" },
+    { value: "he", label: "Hebrew" },
+    { value: "th", label: "Thai" },
+    { value: "vi", label: "Vietnamese" },
+]
+
+/** The server default "en" is not in the list; show the stored code then. */
+function translateLanguageLabel(value: string) {
+    return TRANSLATE_LANGUAGES.find(l => l.value === value)?.label ?? value
+}
+
+function phoneShort(value: string) {
+    return value.length > 20 ? `${value.slice(0, 19)}…` : value
+}
 
 function phoneLanguageSummary(settings: VideoCoreSettings, t: Translate) {
     const name = (codes: string) => {
@@ -982,6 +1202,8 @@ type PhoneSettingsHomeProps = {
     setUseLibassRenderer: (value: boolean) => void
     subtitleBlacklist: string
     skipPatterns: string
+    /** Target language or Off; null without server settings. */
+    translation: string | null
 }
 
 /** Short summary of a comma-separated list: how many entries it holds. */
@@ -1021,6 +1243,12 @@ function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
                         value={phoneListSummary(props.subtitleBlacklist, t)}
                         onClick={() => open("Subtitle Blacklist")}
                     />
+                    {props.translation !== null && <PhoneLinkRow
+                        icon={MdTranslate}
+                        label={t("Translate subtitles", "Untertitel übersetzen")}
+                        value={props.translation}
+                        onClick={() => open("Subtitle Translation")}
+                    />}
                 </PhoneGroup>
                 <PhoneGroup title={t("Display", "Darstellung")}>
                     <PhoneLinkRow icon={LuTvMinimalPlay} label={t("Player appearance", "Player-Darstellung")} onClick={() => open("Player Appearance")} />
@@ -1084,6 +1312,7 @@ function PhoneTextEditor(props: {
     help: string
     placeholder: string
     value: string
+    type?: "text" | "password"
     validate?: (value: string) => string
     onApply: (value: string) => void
     onCancel: () => void
@@ -1100,6 +1329,8 @@ function PhoneTextEditor(props: {
             <p>{props.help}</p>
             <input
                 className="vc-phone-input"
+                type={props.type ?? "text"}
+                autoComplete="off"
                 aria-label={props.label}
                 aria-invalid={!!error}
                 aria-describedby={error ? id : undefined}
