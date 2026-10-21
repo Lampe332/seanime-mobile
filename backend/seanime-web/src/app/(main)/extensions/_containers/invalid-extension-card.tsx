@@ -164,6 +164,37 @@ type UnauthorizedExtensionPluginCardProps = {
     isUnsafe?: boolean
 }
 
+/**
+ * Grants a plugin's permissions in two steps: the first request makes the server send a challenge over the websocket,
+ * the second answers it with the code.
+ */
+export function usePluginPermissionGrant(id: string | undefined) {
+    const { mutate: grantPluginPermissions, isPending } = useGrantPluginPermissions()
+    const pendingGrantRef = React.useRef(false)
+
+    useWebsocketMessageListener({
+        type: "grant-plugin-permission-check",
+        onMessage: (message: string) => {
+            // message format: {extensionId}$$${challengeID}:{code}
+            if (!!id && message.startsWith(id) && pendingGrantRef.current) {
+                pendingGrantRef.current = false
+                const token = message.split("$$$")?.[1] || ""
+                grantPluginPermissions({ id, clientId: "CODE:" + token })
+            }
+        },
+    })
+
+    function grant() {
+        if (!id) return toast.error("Extension has no ID")
+        pendingGrantRef.current = true
+        React.startTransition(() => {
+            grantPluginPermissions({ id, clientId: "" })
+        })
+    }
+
+    return { grant, isGranting: isPending }
+}
+
 export function UnauthorizedExtensionPluginCard(props: UnauthorizedExtensionPluginCardProps) {
 
     const {
@@ -173,21 +204,8 @@ export function UnauthorizedExtensionPluginCard(props: UnauthorizedExtensionPlug
         ...rest
     } = props
 
-    const { mutate: grantPluginPermissions, isPending: isGrantingPluginPermissions } = useGrantPluginPermissions()
+    const { grant, isGranting: isGrantingPluginPermissions } = usePluginPermissionGrant(extension.extension?.id)
     const { mutate: reloadExternalExtension, isPending: isReloadingExtension } = useReloadExternalExtension()
-    const pendingGrantRef = React.useRef(false)
-
-    useWebsocketMessageListener({
-        type: "grant-plugin-permission-check",
-        onMessage: (message: string) => {
-            // message format: {extensionId}$$${challengeID}:{code}
-            if (message.startsWith(extension.extension?.id) && pendingGrantRef.current) {
-                pendingGrantRef.current = false
-                const token = message.split("$$$")?.[1] || ""
-                grantPluginPermissions({ id: extension.extension?.id ?? "", clientId: "CODE:" + token })
-            }
-        },
-    })
 
     return (
         <div
@@ -272,13 +290,7 @@ export function UnauthorizedExtensionPluginCard(props: UnauthorizedExtensionPlug
                             intent="warning-subtle"
                             leftIcon={<LuShieldCheck className="size-5" />}
                             className="w-full"
-                            onClick={() => {
-                                if (!extension.extension?.id) return toast.error("Extension has no ID")
-                                pendingGrantRef.current = true
-                                React.startTransition(() => {
-                                    grantPluginPermissions({ id: extension.extension?.id ?? "", clientId: "" })
-                                })
-                            }}
+                            onClick={grant}
                             loading={isGrantingPluginPermissions}
                         >
                             Grant permissions

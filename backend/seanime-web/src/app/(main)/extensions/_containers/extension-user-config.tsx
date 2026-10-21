@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/modal"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { TextInput } from "@/components/ui/text-input"
+import { Translate, useTr } from "@/lib/app-language"
 import { atomWithImmer } from "jotai-immer"
 import { useAtom } from "jotai/react"
 import React from "react"
@@ -17,6 +18,8 @@ type ExtensionUserConfigModalProps = {
     children?: React.ReactElement
     extension: Extension_Extension
     userConfigError?: Extension_InvalidExtension | undefined
+    /** Android phone Extensions tab: bottom sheet in the app language; desktop keeps the English dialog */
+    phone?: boolean
 }
 
 export function ExtensionUserConfigModal(props: ExtensionUserConfigModalProps) {
@@ -25,19 +28,24 @@ export function ExtensionUserConfigModal(props: ExtensionUserConfigModalProps) {
         children,
         extension,
         userConfigError,
+        phone,
         ...rest
     } = props
+
+    const appLanguage = useTr()
+    const t: Translate = (en, de) => phone ? appLanguage(en, de) : en
 
     return (
         <>
             <Modal
-                contentClass="max-w-3xl"
+                contentClass={phone ? "mex-sheet" : "max-w-3xl"}
                 trigger={children}
-                title="Preferences"
+                title={t("Preferences", "Einstellungen")}
+                onOpenAutoFocus={phone ? event => { event.preventDefault(); (event.currentTarget as HTMLElement | null)?.focus() } : undefined}
                 // size="xl"
                 // contentClass="space-y-4"
             >
-                <Content extension={extension} userConfigError={userConfigError} />
+                <Content extension={extension} userConfigError={userConfigError} t={t} />
             </Modal>
         </>
     )
@@ -45,7 +53,7 @@ export function ExtensionUserConfigModal(props: ExtensionUserConfigModalProps) {
 
 const userConfigFormValuesAtom = atomWithImmer<Record<string, string>>({})
 
-function Content({ extension, userConfigError }: { extension: Extension_Extension, userConfigError?: Extension_InvalidExtension | undefined }) {
+function Content({ extension, userConfigError, t }: { extension: Extension_Extension, userConfigError?: Extension_InvalidExtension | undefined, t: Translate }) {
 
     const { data: extUserConfig, isLoading } = useGetExtensionUserConfig(extension.id)
 
@@ -90,7 +98,7 @@ function Content({ extension, userConfigError }: { extension: Extension_Extensio
                     {extension.name}
                 </p>
                 <div className="text-sm text-[--muted]">
-                    You can edit the preferences for this extension here.
+                    {t("You can edit the preferences for this extension here.", "Hier änderst du die Einstellungen dieser Erweiterung.")}
                 </div>
             </div>
 
@@ -98,7 +106,7 @@ function Content({ extension, userConfigError }: { extension: Extension_Extensio
                 <Alert
                     intent="warning"
                     description={userConfigError.reason.includes("user config is missing")
-                        ? "Fill out the required configuration options."
+                        ? t("Fill out the required configuration options.", "Fülle die nötigen Einstellungen aus.")
                         : userConfigError.reason}
                 />
             )}
@@ -114,7 +122,7 @@ function Content({ extension, userConfigError }: { extension: Extension_Extensio
                                 draft[field.name] = v
                                 return
                             })}
-                            help={!!field.default ? `Default: ${field.default}` : undefined}
+                            help={!!field.default ? `${t("Default", "Standard")}: ${field.default}` : undefined}
                         />
                     )
                 }
@@ -128,7 +136,7 @@ function Content({ extension, userConfigError }: { extension: Extension_Extensio
                                 draft[field.name] = v ? "true" : "false"
                                 return
                             })}
-                            help={!!field.default ? `Default: ${field.default}` : undefined}
+                            help={!!field.default ? `${t("Default", "Standard")}: ${field.default}` : undefined}
                         />
                     )
                 }
@@ -143,7 +151,7 @@ function Content({ extension, userConfigError }: { extension: Extension_Extensio
                                 return
                             })}
                             options={field.options}
-                            help={!!field.default ? `Default: ${field.options.find(n => n.value === field.default)?.label ?? "N/A"}` : undefined}
+                            help={!!field.default ? `${t("Default", "Standard")}: ${field.options.find(n => n.value === field.default)?.label ?? "N/A"}` : undefined}
                         />
                     )
                 }
@@ -156,7 +164,7 @@ function Content({ extension, userConfigError }: { extension: Extension_Extensio
                     onClick={handleSave}
                     className={cn(!!userConfigError && "animate-pulse")}
                 >
-                    Save
+                    {t("Save", "Speichern")}
                 </Button>
                 <div className="flex flex-1"></div>
             </div>
