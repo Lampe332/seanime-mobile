@@ -110,6 +110,8 @@ function getMobileTutorialSteps({ fromExtensions = false } = {}): TourStep[] {
                 </div>
             ),
             placement: "top",
+            // the repository sheet slides up from the bottom; measured mid-way, the card would cover its title
+            prepare: () => new Promise((r) => setTimeout(r, 450)),
             spotlightPadding: 4,
             allowTargetInteraction: true,
             advanceOnSelectorClick: "[data-tour=\"marketplace-repo-save\"]",
