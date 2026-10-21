@@ -570,6 +570,16 @@ with tempfile.TemporaryDirectory(prefix='seanime-discover-') as tmp:
         asked=len(requests(p,MISSED_API));p.locator('[data-discover-block="missed"] [data-discover-row-error] button').click();p.wait_for_timeout(300)
         check('Try again on a failed row asks that row again',len(requests(p,MISSED_API))==asked+1)
         p.close()
+        # AniList goes down after the first screen loaded (seen on the emulator): a genre without cache must not trap the user
+        p=open_page(script=f'failWhen=["{RECENT_API}"]',ready='[data-discover-block="trending"] [data-phone-card]')
+        p.evaluate('failWhen=["/api/"]');p.locator('[data-discover-genres] [data-chip="Action"]').click()
+        p.locator('[data-discover-tab-error]').wait_for()
+        check('A genre that fails keeps the genre chips above the notice, so All is one tap away',p.locator('[data-discover-genres]').count()==1
+              and p.locator('[data-discover-genres] [aria-pressed=true]').inner_text().strip()=='Action')
+        p.locator('[data-discover-genres] [data-chip="all"]').click();p.wait_for_timeout(600)
+        check('Back to All shows the titles that already loaded, although the requests still fail',p.locator('[data-discover-tab-error]').count()==0
+              and p.evaluate(cards('trending'))==ROW)
+        p.close()
         # A later schedule page fails: the complete days stay, with a notice for the rest
         paged=copy.deepcopy(FIXTURES)
         paged.update(scheduleMore=False,schedule=[SCHED1,[SCHED2[0],SCHED2[1],airing(322,media(332,'Late Show'),3,day=4,hour=9,minute=0)],

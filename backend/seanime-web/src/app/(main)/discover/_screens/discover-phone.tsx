@@ -155,10 +155,14 @@ function AnimeTab() {
     const clearGenre = () => setGenre(null)
 
     // AniList, the server or the connection is down when both rows of the first screen fail: one notice, not a wall of them.
-    if (unavailable(trending) && unavailable(recent)) return <TabNotice offline={trending.offline || recent.offline} retry={() => {
-        trending.retry()
-        recent.retry()
-    }} />
+    // With a genre chosen the chips stay, so "All" (often still cached) is one tap away.
+    if (unavailable(trending) && unavailable(recent)) return <>
+        {!!genre && <GenreChips genre={genre} onChange={setGenre} />}
+        <TabNotice offline={trending.offline || recent.offline} retry={() => {
+            trending.retry()
+            recent.retry()
+        }} />
+    </>
 
     const [seasonEn, seasonDe] = SEASON_LABELS[seasons.current.season]
     const [lastEn, lastDe] = SEASON_LABELS[seasons.previous.season]
