@@ -10,12 +10,15 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.DocumentsContract
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.webkit.*
 import android.widget.FrameLayout
 import android.widget.Toast
+import org.json.JSONObject
 import java.net.URISyntaxException
 
 class MainActivity : Activity() {
@@ -37,6 +40,8 @@ class MainActivity : Activity() {
     private val retryHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val retryLoad = Runnable { webView.loadUrl(pendingUrl) }
     private val REQUEST_CODE_NOTIFICATIONS = 101
+    private val REQUEST_CODE_FOLDER = 301
+    private var folderPickRequestId: String? = null
 
     private val LOCAL_HOST = "127.0.0.1"
     private val androidAppVersion by lazy {
@@ -55,6 +60,67 @@ class MainActivity : Activity() {
         fun readClipboard(): String {
             val clip = (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).primaryClip ?: return ""
             return if (clip.itemCount > 0) clip.getItemAt(0).coerceToText(this@MainActivity).toString() else ""
+        }
+
+        /** Settings folder fields: answers with a "seanime-folder-picked" window event carrying the same requestId. */
+        @JavascriptInterface
+        fun pickFolder(requestId: String) = runOnUiThread { startFolderPicker(requestId) }
+    }
+
+    private fun startFolderPicker(requestId: String) {
+        if (isFinishing || isDestroyed) return
+        // The Go backend reads plain paths, which needs "All files access" rather than the tree grant.
+        val hasFileAccess = if (Build.VERSION.SDK_INT >= 30) Environment.isExternalStorageManager()
+            else Build.VERSION.SDK_INT < 23 || checkSelfPermission("android.permission.READ_EXTERNAL_STORAGE") == PackageManager.PERMISSION_GRANTED
+        if (!hasFileAccess) {
+            openFileAccessSettings()
+            dispatchFolderPicked(requestId, error = "permission")
+            return
+        }
+        folderPickRequestId?.let { dispatchFolderPicked(it, error = "cancelled") }
+        folderPickRequestId = requestId
+        try {
+            startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), REQUEST_CODE_FOLDER)
+        } catch (_: ActivityNotFoundException) {
+            folderPickRequestId = null
+            dispatchFolderPicked(requestId, error = "cancelled")
+            Toast.makeText(this, "No folder picker is available", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun onFolderPicked(resultCode: Int, data: Intent?) {
+        val requestId = folderPickRequestId ?: return
+        folderPickRequestId = null
+        val tree = data?.data
+        if (resultCode != RESULT_OK || tree == null) {
+            dispatchFolderPicked(requestId, error = "cancelled")
+            return
+        }
+        val path = if (tree.authority == "com.android.externalstorage.documents") {
+            primaryStoragePath(DocumentsContract.getTreeDocumentId(tree))
+        } else null
+        if (path == null) dispatchFolderPicked(requestId, error = "not-primary")
+        else dispatchFolderPicked(requestId, path = path)
+    }
+
+    private fun dispatchFolderPicked(requestId: String, path: String? = null, error: String? = null) {
+        val detail = JSONObject().put("requestId", requestId)
+        if (path != null) detail.put("path", path)
+        if (error != null) detail.put("error", error)
+        val js = "window.dispatchEvent(new CustomEvent('seanime-folder-picked', {detail: $detail}));"
+        runOnUiThread { if (::webView.isInitialized && !isDestroyed) webView.evaluateJavascript(js, null) }
+    }
+
+    private fun openFileAccessSettings() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.parse("package:$packageName")))
+            } catch (_: ActivityNotFoundException) {
+                startActivity(Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+            }
+        } else if (Build.VERSION.SDK_INT >= 23) {
+            requestPermissions(arrayOf("android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE"), 102)
         }
     }
 
@@ -432,6 +498,7 @@ class MainActivity : Activity() {
     @Deprecated("WebView file callbacks use the platform Activity result API")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (UpdateInstaller.onActivityResult(requestCode, resultCode)) return
+        if (requestCode == REQUEST_CODE_FOLDER) { onFolderPicked(resultCode, data); return }
         if (!fileTransfer.onActivityResult(requestCode, resultCode, data)) {
             super.onActivityResult(requestCode, resultCode, data)
         }
@@ -482,4 +549,12 @@ class MainActivity : Activity() {
         prefs.edit().putBoolean("notifications_requested", true).apply()
         requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), REQUEST_CODE_NOTIFICATIONS)
     }
+}
+
+/** Tree document id of the primary volume ("primary:Anime/Show") as a plain path; null for other volumes. */
+internal fun primaryStoragePath(treeDocumentId: String): String? {
+    val volume = treeDocumentId.substringBefore(':', "")
+    if (volume != "primary") return null
+    val relative = treeDocumentId.substringAfter(':').trim('/')
+    return if (relative.isEmpty()) "/storage/emulated/0" else "/storage/emulated/0/$relative"
 }
