@@ -23,6 +23,8 @@ import { AiOutlineArrowLeft, AiOutlineArrowRight } from "react-icons/ai"
 import { BiCog } from "react-icons/bi"
 import { FaCheck, FaFlag } from "react-icons/fa6"
 import { __anilist_userAnimeListDataAtom } from "../../_atoms/anilist.atoms"
+import { isAndroidPhone } from "../../_features/video-core/video-core-menu"
+import { PhoneSchedule } from "./schedule-phone"
 
 type CalendarParams = {
     indicateWatchedEpisodes: boolean
@@ -30,7 +32,8 @@ type CalendarParams = {
 }
 
 const MAX_EVENT_COUNT = 4
-const STATUS_FILTERS: { value: AL_MediaListStatus, en: string, de: string }[] = [
+export type StatusFilter = { value: AL_MediaListStatus, en: string, de: string }
+const STATUS_FILTERS: StatusFilter[] = [
     { value: "CURRENT", en: "Watching", de: "Schaue ich" }, { value: "PLANNING", en: "Planning", de: "Geplant" },
     { value: "PAUSED", en: "Paused", de: "Pausiert" }, { value: "COMPLETED", en: "Completed", de: "Abgeschlossen" },
     { value: "DROPPED", en: "Dropped", de: "Abgebrochen" }, { value: "REPEATING", en: "Rewatching", de: "Schaue erneut" },
@@ -115,6 +118,25 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
         return entry.progress >= episodeNumber
     }
 
+    const eventsOn = React.useCallback((day: Date): CalendarEvent[] => {
+        let events = schedule?.filter(item => isSameLocalDay(new Date(item.dateTime!), day) && isStatusIncluded(item.mediaId))?.map(item => {
+            return {
+                id: String(item.mediaId) + "-" + String(item.episodeNumber) + "-" + String(item.dateTime),
+                name: item.title,
+                time: format(new Date(item.dateTime!), "HH:mm"),
+                datetime: item.dateTime!,
+                href: `/entry?id=${item.mediaId}`,
+                image: item.image,
+                episode: item.episodeNumber || 1,
+                isSeasonFinale: item.isSeasonFinale && !item.isMovie,
+                isMovie: item.isMovie,
+                isWatched: isEpisodeWatched(item.mediaId, item.episodeNumber),
+            }
+        }) ?? []
+        events = sortBy(events, (e) => e.episode)
+        return sortBy(events, (e) => e.datetime)
+    }, [schedule, calendarParams, anilistListData, isUserSchedule])
+
     const days = React.useMemo(() => {
         const startOfCurrentMonth = startOfMonth(currentDate)
         const endOfCurrentMonth = endOfMonth(currentDate)
@@ -126,35 +148,27 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
         let day = startOfCalendar
 
         while (day <= endOfCalendar) {
-            let events = schedule?.filter(item => isSameLocalDay(new Date(item.dateTime!), day) && isStatusIncluded(item.mediaId))?.map(item => {
-                return {
-                    id: String(item.mediaId) + "-" + String(item.episodeNumber) + "-" + String(item.dateTime),
-                    name: item.title,
-                    time: format(new Date(item.dateTime!), "HH:mm"),
-                    datetime: item.dateTime!,
-                    href: `/entry?id=${item.mediaId}`,
-                    image: item.image,
-                    episode: item.episodeNumber || 1,
-                    isSeasonFinale: item.isSeasonFinale && !item.isMovie,
-                    isMovie: item.isMovie,
-                    isWatched: isEpisodeWatched(item.mediaId, item.episodeNumber),
-                }
-            }) ?? []
-            events = sortBy(events, (e) => e.episode)
-            events = sortBy(events, (e) => e.datetime)
-
             daysArray.push({
                 date: format(day, "yyyy-MM-dd"),
                 isCurrentMonth: isSameMonth(day, currentDate),
                 isToday: isToday(day),
                 isSelected: false,
-                events: events,
+                events: eventsOn(day),
             })
             day = addDays(day, 1)
         }
         return daysArray
-    }, [currentDate, weekStartsOn, schedule, calendarParams, anilistListData, isUserSchedule])
+    }, [currentDate, weekStartsOn, eventsOn])
 
+    if (!items && isAndroidPhone()) return <PhoneSchedule
+        days={days} eventsOn={eventsOn} isAllAnime={isAllAnime} source={source} onSource={setSource}
+        statuses={calendarParams.listStatuses} onStatuses={next => setCalendarParams(draft => { draft.listStatuses = next })}
+        statusFilters={STATUS_FILTERS} indicateWatched={calendarParams.indicateWatchedEpisodes}
+        onIndicateWatched={v => setCalendarParams(draft => { draft.indicateWatchedEpisodes = v })}
+        weekStartsOn={weekStartsOn} onWeekStartsOn={setWeekStartsOn}
+        currentDate={currentDate} onMonth={setCurrentDate} selectedDate={selectedDate} onSelectDate={setSelectedDate}
+        loading={!!scheduleLoading} error={!!scheduleError} onRetry={refetch}
+    />
 
     return (
         <>
@@ -301,7 +315,7 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
     )
 }
 
-type CalendarEvent = {
+export type CalendarEvent = {
     id: string
     name: string
     time: string
@@ -314,7 +328,7 @@ type CalendarEvent = {
     isWatched: boolean
 }
 
-type CalendarDayItem = {
+export type CalendarDayItem = {
     date: string
     isCurrentMonth: boolean
     isToday: boolean
