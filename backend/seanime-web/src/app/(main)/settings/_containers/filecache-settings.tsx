@@ -1,4 +1,5 @@
 import { useClearFileCacheMediastreamVideoFiles, useGetFileCacheTotalSize, useRemoveFileCacheBucket } from "@/api/hooks/filecache.hooks"
+import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { Button } from "@/components/ui/button"
 import React from "react"
 import { SettingsCard } from "../_components/settings-card"
@@ -29,6 +30,17 @@ export function FilecacheSettings(props: FilecacheSettingsProps) {
 
     const isClearing = _isClearing || _isClearing2
 
+    const [bucket, setBucket] = React.useState<"manga" | "onlinestream">("manga")
+    const clearDialog = useConfirmationDialog({
+        title: bucket === "manga" ? "Clear manga cache" : "Clear online streaming cache",
+        description: bucket === "manga"
+            ? "Cached chapter lists and pages will be fetched again from the sources."
+            : "Cached episode lists and stream links will be fetched again from the sources.",
+        actionText: "Clear",
+        actionIntent: "warning",
+        onConfirm: () => clearBucket({ bucket }),
+    })
+
     return (
         <div className="space-y-4">
             <div className="flex gap-2 items-center">
@@ -44,18 +56,20 @@ export function FilecacheSettings(props: FilecacheSettingsProps) {
 
             <SettingsCard>
                 <div className="flex gap-2 flex-wrap items-center">
-                    <Button intent="warning-subtle" onClick={() => clearBucket({ bucket: "manga" })} disabled={isClearing}>
+                    <Button intent="warning-subtle" onClick={() => { setBucket("manga"); clearDialog.open() }} disabled={isClearing}>
                         Clear manga cache
                     </Button>
                     {/* Transcoding cache; Android has no transcoding */}
                     {!IS_ANDROID_APP && <Button intent="warning-subtle" onClick={() => clearMediastreamCache()} disabled={isClearing}>
                         Clear media streaming cache
                     </Button>}
-                    <Button intent="warning-subtle" onClick={() => clearBucket({ bucket: "onlinestream" })} disabled={isClearing}>
+                    <Button intent="warning-subtle" onClick={() => { setBucket("onlinestream"); clearDialog.open() }} disabled={isClearing}>
                         Clear online streaming cache
                     </Button>
                 </div>
             </SettingsCard>
+
+            <ConfirmationDialog {...clearDialog} />
 
 
             {/*<SettingsCard title="TVDB" description="Episode image metadata fetched from TVDB.">*/}

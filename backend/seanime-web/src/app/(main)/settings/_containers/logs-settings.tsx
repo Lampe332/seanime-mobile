@@ -11,6 +11,7 @@ import {
 } from "@/api/hooks/status.hooks"
 import { useHandleCopyLatestLogs } from "@/app/(main)/_hooks/logs"
 import { useServerDisabledFeatures, useServerStatus } from "@/app/(main)/_hooks/use-server-status.ts"
+import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { DataGrid, defineDataGridColumns } from "@/components/ui/datagrid"
@@ -50,6 +51,19 @@ export function LogsSettings(props: LogsSettingsProps) {
     const { data: filenames, isLoading } = useGetLogFilenames()
 
     const { mutate: deleteLogs, isPending: isDeleting } = useDeleteLogs()
+
+    const deleteDialog = useConfirmationDialog({
+        title: "Delete logs",
+        description: `Delete ${selectedFilenames.length === 1 ? "the selected log file" : `${selectedFilenames.length} log files`}? This cannot be undone.`,
+        actionText: "Delete",
+        actionIntent: "alert",
+        onConfirm: () => deleteLogs({ filenames: selectedFilenames.map(f => f.name) }, {
+            onSuccess: () => {
+                setSelectedFilenames([])
+                setRowSelection({})
+            },
+        }),
+    })
 
     const filenamesObj = React.useMemo(() => {
         return filenames?.map(f => ({ name: f })) ?? []
@@ -129,12 +143,7 @@ export function LogsSettings(props: LogsSettingsProps) {
                 {selectedFilenames.length > 0 && (
                     <div className="flex items-center space-x-2">
                         <Button
-                            onClick={() => deleteLogs({ filenames: selectedFilenames.map(f => f.name) }, {
-                                onSuccess: () => {
-                                    setSelectedFilenames([])
-                                    setRowSelection({})
-                                },
-                            })}
+                            onClick={() => deleteDialog.open()}
                             intent="alert"
                             loading={isDeleting}
                             size="sm"
@@ -175,6 +184,8 @@ export function LogsSettings(props: LogsSettingsProps) {
                     className=""
                 />
             </SettingsCard>
+
+            <ConfirmationDialog {...deleteDialog} />
 
             <MemoryProfilingSettings />
         </>
