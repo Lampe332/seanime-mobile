@@ -2,6 +2,7 @@ package com.seanime.app
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -48,6 +49,13 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun setLanguage(language: String) = AppLanguage.set(this@MainActivity, language)
+
+        /** WebView blocks navigator.clipboard.readText; the AniList login pastes its token through this. */
+        @JavascriptInterface
+        fun readClipboard(): String {
+            val clip = (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).primaryClip ?: return ""
+            return if (clip.itemCount > 0) clip.getItemAt(0).coerceToText(this@MainActivity).toString() else ""
+        }
     }
 
     inner class OrientationBridge {

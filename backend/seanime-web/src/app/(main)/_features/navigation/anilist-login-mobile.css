@@ -1,0 +1,36 @@
+/* Android AniList login: a bottom sheet in the Downloads / first-start language. `body` prefix beats the native
+   shell's .UI-Modal__content rules (padding-top, width) of the same specificity. */
+body .anilist-login-sheet.UI-Modal__content {
+    display: grid !important; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-self: end; margin-bottom: 8px;
+    width: calc(100% - 16px) !important; max-width: 32rem; max-height: calc(100svh - 16px) !important; overflow-y: auto !important;
+    padding: 20px 16px 12px !important; border: 0; border-radius: var(--sm-radius-lg); background: var(--sm-surface); color: var(--sm-text); overflow-wrap: anywhere;
+}
+.anilist-login-sheet .UI-Modal__header { text-align: start; padding-right: 3rem; }
+.anilist-login-sheet .UI-Modal__title { font-size: 1.375rem !important; line-height: 1.25; font-weight: 750; letter-spacing: -.02em; }
+.anilist-login-sheet .UI-Modal__close { top: .5rem; right: .5rem; width: 48px; height: 48px; border-radius: 999px; background: transparent; }
+
+.alm { display: grid; gap: 1.25rem; }
+.alm button, .alm a { -webkit-tap-highlight-color: transparent; }
+.alm button:focus-visible, .alm a:focus-visible, .alm textarea:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+.alm-lead { font-size: 1rem; line-height: 1.5; color: var(--sm-text-muted); }
+
+/* Two steps in one raised group; the order is the list's own. */
+.alm-steps { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); list-style: none; padding: 0; margin: 0; }
+.alm-steps li { display: grid; gap: .75rem; padding: 1rem; background: var(--sm-surface-raised); }
+.alm-steps li > p, .alm-steps label { font-size: .9375rem; line-height: 1.45; font-weight: 600; color: var(--sm-text); }
+
+.alm-open { display: inline-flex; align-items: center; justify-content: center; gap: .625rem; min-height: 48px; padding: 0 1.25rem; border-radius: 999px; background: #fff; color: #0b1622; font-size: .9375rem; font-weight: 650; }
+.alm-open svg { width: 1.375rem; height: 1.375rem; }
+.alm-open:active { background: #dfe3e8; }
+
+.alm-field { display: grid; gap: .5rem; }
+.alm-field textarea { width: 100%; min-width: 0; min-height: 5.5rem; resize: none; padding: .75rem; border: 0; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); color: var(--sm-text); font-size: .875rem; line-height: 1.4; word-break: break-all; }
+.alm-field textarea::placeholder { color: var(--sm-text-subtle); }
+.alm-paste { justify-self: start; min-height: 48px; padding: 0 .25rem; font-size: .9375rem; font-weight: 600; color: var(--sm-accent); }
+.alm-steps .alm-hint { font-weight: 400; font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
+
+.alm-actions { display: grid; gap: .25rem; }
+.alm-primary { min-height: 52px; border-radius: 999px; background: rgb(var(--color-brand-500)); color: #fff; font-size: 1rem; font-weight: 650; }
+.alm-primary:active:not(:disabled) { background: rgb(var(--color-brand-600)); }
+.alm-primary:disabled { background: var(--sm-surface-control); color: var(--sm-text-subtle); }
+.alm-later { min-height: 48px; font-size: .9375rem; font-weight: 500; color: var(--sm-text-muted); }

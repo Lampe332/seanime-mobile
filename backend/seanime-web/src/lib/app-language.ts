@@ -8,7 +8,7 @@ const STORAGE_KEY = "seanime-mobile-language"
 
 declare global {
     interface Window {
-        SeanimeAndroid?: { getAppVersion(): string, setLanguage?(language: string): void }
+        SeanimeAndroid?: { getAppVersion(): string, setLanguage?(language: string): void, readClipboard?(): string }
     }
 }
 

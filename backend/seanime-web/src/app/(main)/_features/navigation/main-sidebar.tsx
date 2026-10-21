@@ -3,6 +3,7 @@ import { openAndroidDownloads } from "@/lib/android-offline"
 import { useLogout } from "@/api/hooks/auth.hooks"
 import { useGetExtensionUpdateData as useGetExtensionUpdateData, usePluginWithIssuesCount } from "@/api/hooks/extensions.hooks"
 import { isLoginModalOpenAtom } from "@/app/(main)/_atoms/server-status.atoms"
+import { MobileAnilistLogin } from "@/app/(main)/_features/navigation/anilist-login-mobile"
 import { useSyncIsActive } from "@/app/(main)/_atoms/sync.atoms"
 import { ElectronUpdateModal } from "@/app/(main)/_electron/electron-update-modal"
 import { SidebarNavbar } from "@/app/(main)/_features/layout/top-navbar"
@@ -670,7 +671,9 @@ function SidebarUser({ isCollapsed, expandedSidebar, onLogout }: { isCollapsed: 
                 </DropdownMenu>
             </div>}
 
-            <Modal
+            {IS_ANDROID_APP && <MobileAnilistLogin open={!!(loginModal && user?.isSimulated)} onOpenChange={setLoginModal} />}
+
+            {!IS_ANDROID_APP && <Modal
                 title="Log in with AniList"
                 description="Using an AniList account is recommended."
                 open={loginModal && user?.isSimulated}
@@ -718,7 +721,7 @@ function SidebarUser({ isCollapsed, expandedSidebar, onLogout }: { isCollapsed: 
                     </Form>
 
                 </div>
-            </Modal>
+            </Modal>}
 
             <ConfirmationDialog {...confirmSignOut} />
         </>
