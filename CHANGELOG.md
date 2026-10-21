@@ -2,6 +2,15 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.31 — 21.10.2026 (versionCode 31082)
+
+- 🎉 Extensions: Each type on the phone's Installed tab has an "Add" action that opens the marketplace on that type
+- 🎉 Extensions: The setup tour can be started from the Extensions tab's ⋮ menu
+- ⚡️ Extensions: Online streaming and Manga stay on the phone's Installed tab when no source is installed, saying what is missing with a button to find one
+- ⚡️ Extensions: The phone marketplace shows four extensions per type with "Show all", so large repositories stay browsable; extensions in the app language come first
+- ⚡️ Extensions: A type a repository has nothing of says so in the phone marketplace, with a way to change the repository
+- ⚡️ Tutorial: The setup tour names the buttons of the new Extensions tab, is available in German and has larger buttons on the phone
+
 ## 1.9.30 — 21.10.2026 (versionCode 31081)
 
 - ⚡️ Extensions: A repository on GitHub is named by its owner and repository in the phone marketplace
