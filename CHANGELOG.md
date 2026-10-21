@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.28 — 21.10.2026 (versionCode 31079)
+
+- 🦺 Manga: Closing the filter sheet on the phone Manga tab puts the focus back on the filter button, so TalkBack continues where it was
+
 ## 1.9.27 — 21.10.2026 (versionCode 31078)
 
 - 🎉 Manga: The phone Manga tab starts with "Continue reading": manga you are reading, with their chapter progress and new chapters, open the reader where the manga page would continue
