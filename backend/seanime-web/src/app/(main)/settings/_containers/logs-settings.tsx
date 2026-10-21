@@ -10,8 +10,10 @@ import {
     useGetMemoryStats,
 } from "@/api/hooks/status.hooks"
 import { useHandleCopyLatestLogs } from "@/app/(main)/_hooks/logs"
+import { fileTimestamp, useSaveServerFile } from "@/app/(main)/_hooks/use-save-server-file"
 import { useServerDisabledFeatures, useServerStatus } from "@/app/(main)/_hooks/use-server-status.ts"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { DataGrid, defineDataGridColumns } from "@/components/ui/datagrid"
@@ -34,6 +36,8 @@ import { VscDebugAlt } from "react-icons/vsc"
 import { toast } from "sonner"
 import { __issueReport_overlayOpenAtom } from "../../_features/issue-report/issue-report"
 import { SettingsCard } from "../_components/settings-card"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 type LogsSettingsProps = {}
 
@@ -82,6 +86,22 @@ export function LogsSettings(props: LogsSettingsProps) {
 
     const { mutate: openInExplorer, isPending: isOpening } = useOpenInExplorer()
     const { handleCopyLatestLogs } = useHandleCopyLatestLogs()
+    const saveServerFile = useSaveServerFile()
+    const [isSavingLog, setIsSavingLog] = React.useState(false)
+
+    // Android has no file manager to open the logs directory in; the current log goes through the "Save as" dialog instead
+    async function handleSaveLatestLog() {
+        setIsSavingLog(true)
+        try {
+            await saveServerFile("/api/v1/logs/latest", `seanime-${fileTimestamp()}.log`, { text: true })
+        }
+        catch {
+            toast.error("Couldn't fetch logs")
+        }
+        finally {
+            setIsSavingLog(false)
+        }
+    }
 
     const setIssueRecorderOpen = useSetAtom(__issueReport_overlayOpenAtom)
 
@@ -106,7 +126,16 @@ export function LogsSettings(props: LogsSettingsProps) {
                     >
                         Copy current server logs
                     </Button>
-                    {!!serverStatus?.dataDir && <Button
+                    {IS_ANDROID_APP && <Button
+                        size="sm"
+                        intent="gray-outline"
+                        onClick={handleSaveLatestLog}
+                        loading={isSavingLog}
+                        leftIcon={<FiDownload />}
+                    >
+                        Save current log
+                    </Button>}
+                    {!!serverStatus?.dataDir && !IS_ANDROID_APP && <Button
                         size="sm"
                         intent="gray-outline"
                         onClick={() => openInExplorer({
@@ -187,7 +216,14 @@ export function LogsSettings(props: LogsSettingsProps) {
 
             <ConfirmationDialog {...deleteDialog} />
 
-            <MemoryProfilingSettings />
+            {/* Developer tools stay folded away on Android */}
+            {IS_ANDROID_APP ? <Accordion type="single" collapsible className="border rounded-[--radius-md]" triggerClass="dark:bg-[--paper]"
+                contentClass="!pt-2 dark:bg-[--paper]" data-settings-developer>
+                <AccordionItem value="developer">
+                    <AccordionTrigger className="bg-gray-900 rounded-[--radius-md]">Developer</AccordionTrigger>
+                    <AccordionContent><MemoryProfilingSettings /></AccordionContent>
+                </AccordionItem>
+            </Accordion> : <MemoryProfilingSettings />}
         </>
     )
 }

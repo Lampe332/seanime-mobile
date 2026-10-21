@@ -1,5 +1,6 @@
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { useImportLocalFiles } from "@/api/hooks/localfiles.hooks"
+import { fileTimestamp, useSaveServerFile } from "@/app/(main)/_hooks/use-save-server-file"
 import { useServerHMACAuth } from "@/app/(main)/_hooks/use-server-status"
 import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
@@ -37,8 +38,19 @@ export function DataSettings(props: DataSettingsProps) {
     }
 
     const { getHMACTokenQueryParam } = useServerHMACAuth()
+    const saveServerFile = useSaveServerFile()
 
     const handleExportLocalFiles = React.useCallback(async () => {
+        // A new tab does nothing in the Android app; the file goes through the "Save as" dialog instead
+        if (IS_ANDROID_APP) {
+            try {
+                await saveServerFile("/api/v1/library/local-files/dump", `seanime-localfiles-${fileTimestamp()}.json`)
+            }
+            catch {
+                toast.error("Failed to export local file data")
+            }
+            return
+        }
         try {
             const endpoint = "/api/v1/library/local-files/dump"
             const tokenQuery = await getHMACTokenQueryParam(endpoint)
@@ -47,7 +59,7 @@ export function DataSettings(props: DataSettingsProps) {
         catch (error) {
             toast.error("Failed to generate export token")
         }
-    }, [getHMACTokenQueryParam])
+    }, [getHMACTokenQueryParam, saveServerFile])
 
     return (
         <div className="space-y-4">
