@@ -78,6 +78,8 @@ import { LocalSettings } from "./_containers/local-settings"
 import { NakamaSettings } from "./_containers/nakama-settings"
 
 const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+/** Tabs of desktop-only features (torrents, desktop players, transcoding, Discord); a deep link to one opens Online Streaming. */
+const ANDROID_HIDDEN_TABS = ["torrent", "torrent-client", "torrentstream", "debrid", "media-player", "mediastream", "discord"]
 
 
 const tabContentClass = cn(
@@ -99,7 +101,7 @@ export default function Page() {
 
     const [tab, setTab] = useAtom(__settings_tabAtom)
     React.useEffect(() => {
-        if ((IS_ANDROID_APP) && ["torrent", "torrent-client", "torrentstream"].includes(tab)) setTab("onlinestream")
+        if ((IS_ANDROID_APP) && ANDROID_HIDDEN_TABS.includes(tab)) setTab("onlinestream")
     }, [tab])
     const formRef = React.useRef<UseFormReturn<any>>(null)
 
@@ -224,20 +226,20 @@ export default function Page() {
                                         className="group"
                                     ><LuCirclePlay className="text-base mr-2 transition-transform duration-200" /> Video Playback</TabsTrigger>
 
-                                    <TabsTrigger
+                                    {!IS_ANDROID_APP && <TabsTrigger
                                         value="media-player"
                                         className="group"
-                                    ><LuMonitorPlay className="text-base mr-2 transition-transform duration-200" /> Desktop Media Player</TabsTrigger>
+                                    ><LuMonitorPlay className="text-base mr-2 transition-transform duration-200" /> Desktop Media Player</TabsTrigger>}
                                     <TabsTrigger
                                         value="external-player-link"
                                         className="group"
                                     ><LuCircleArrowOutUpRight className="text-base mr-2 transition-transform duration-200" /> External Player
                                                                                                                               Link</TabsTrigger>
-                                    <TabsTrigger
+                                    {!IS_ANDROID_APP && <TabsTrigger
                                         value="mediastream"
                                         className="relative group"
                                     ><LuTabletSmartphone className="text-base mr-2 transition-transform duration-200" /> Transcoding / Direct
-                                                                                                                         Play</TabsTrigger>
+                                                                                                                         Play</TabsTrigger>}
                                 </Card>
 
                                 {/*<div className="text-sm lg:text-[--foreground] py-1.5 px-3 tracking-wide font-medium hidden lg:block">*/}
@@ -283,10 +285,10 @@ export default function Page() {
                                         value="nakama"
                                         className="group relative"
                                     ><MdOutlineConnectWithoutContact className="text-base mr-2 transition-transform duration-200" /> Nakama</TabsTrigger>
-                                    <TabsTrigger
+                                    {!IS_ANDROID_APP && <TabsTrigger
                                         value="discord"
                                         className="group"
-                                    ><FaDiscord className="text-base mr-2 transition-transform duration-200" /> Discord</TabsTrigger>
+                                    ><FaDiscord className="text-base mr-2 transition-transform duration-200" /> Discord</TabsTrigger>}
                                 </Card>
 
                                 {/*<div className="text-sm lg:text-[--foreground] py-1.5 px-3 tracking-wide font-medium hidden lg:block">*/}
@@ -738,7 +740,7 @@ export default function Page() {
 
                                     </TabsContent>
 
-                                    <TabsContent value="discord" className={tabContentClass}>
+                                    {!IS_ANDROID_APP && <TabsContent value="discord" className={tabContentClass}>
 
                                         <SettingsPageHeader
                                             title="Discord"
@@ -750,7 +752,7 @@ export default function Page() {
 
                                         <SettingsSubmitButton isPending={isPending} />
 
-                                    </TabsContent>
+                                    </TabsContent>}
 
                                     {!(IS_ANDROID_APP) && <TabsContent value="torrent" className={tabContentClass}>
 
@@ -809,9 +811,9 @@ export default function Page() {
 
                                     </TabsContent>}
 
-                                    <TabsContent value="media-player" className={tabContentClass}>
+                                    {!IS_ANDROID_APP && <TabsContent value="media-player" className={tabContentClass}>
                                         <MediaplayerSettings isPending={isPending} />
-                                    </TabsContent>
+                                    </TabsContent>}
 
 
                                     <TabsContent value="external-player-link" className={tabContentClass}>
@@ -1011,11 +1013,11 @@ export default function Page() {
 
                          </TabsContent> */}
 
-                        <TabsContent value="mediastream" className={tabContentClass}>
+                        {!IS_ANDROID_APP && <TabsContent value="mediastream" className={tabContentClass}>
 
                             <MediastreamSettings />
 
-                        </TabsContent>
+                        </TabsContent>}
 
                         <TabsContent value="ui" className={tabContentClass}>
 

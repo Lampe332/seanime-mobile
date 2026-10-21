@@ -293,6 +293,18 @@ export function PlaybackSettings() {
                 </SettingsCard>
             )}
 
+            {/* Android hides the Desktop Media Player tab, where this switch lives on desktop */}
+            {IS_ANDROID_APP && <SettingsCard title="Playback">
+                <Switch
+                    side="right"
+                    label="Automatically play next episode"
+                    help="If enabled, Seanime will play the next episode after a delay when the current episode is completed."
+                    value={serverStatus?.settings?.library?.autoPlayNextEpisode ?? false}
+                    onValueChange={v => patchSetting({ path: "library.autoPlayNextEpisode", value: v })}
+                    disabled={isPatching}
+                />
+            </SettingsCard>}
+
             <SettingsCard
                 title="Downloaded Media"
                 description="Choose how to play anime files stored on your device."
