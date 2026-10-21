@@ -1,0 +1,76 @@
+/* My lists on Android phones: only what the shared phone kit (phone-screen.css) lacks. */
+
+/* The list switch, the search and the status pills read as one block above the grid; "Back to top" returns here. */
+.pl-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; min-width: 0; scroll-margin-top: .75rem; }
+
+/* Kit fix (candidate): Android's text zoom multiplies the title after min(), so the 11vw cap ran past the width (56 px,
+   two lines at 320 px). Divided by the measured zoom it holds again, and at 10vw "Meine Listen" keeps the two actions on its
+   row at 320 px with 200 % text; the floor keeps rem-based large text readable. */
+[data-phone-screen="lists"] .ps-header h1 { font-size: min(1.75rem, max(calc(10vw / var(--ps-text-zoom, 1)), 1rem)); }
+
+/* Kit fix (candidate for phone-screen.css): .ps-card's rounded corner plus the paint containment of content-visibility clips the
+   first letters of the line under the title ("Fall 2023", "Ep 7 …") at the bottom-left corner; the cover keeps its own radius. */
+[data-phone-screen="lists"] .ps-card { border-radius: 0; }
+
+/* Kit fix (candidate): with large text the segment's labels no longer fit their parts and run into each other at 320 px;
+   here the parts keep equal widths while they fit and wrap to a second row when they do not. The labels sit centred, so the
+   narrower side padding only matters where space is short: Anime | Manga then keep one row beside the stats at 320 px. */
+[data-phone-screen="lists"] .ps-segment { display: flex; flex-wrap: wrap; }
+[data-phone-screen="lists"] .ps-segment > button { flex: 1 1 0; min-width: max-content; padding-inline: .25rem; }
+
+/* Anime | Manga with the stats switch beside it, on the same sunken track; a pressed switch takes the accent. */
+.pl-switch { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.pl-switch > .ps-segment { flex: 1 1 auto; min-width: 0; }
+.pl-switch > .ps-icon-button { width: 56px; height: 56px; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
+[data-phone-screen="lists"] .ps-icon-button[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); }
+
+/* Focusing the search scrolls it to the top, so the hits show above the keyboard. */
+.pl-search { display: block; min-width: 0; scroll-margin-top: .75rem; }
+
+/* Active filters stay in sight above the grid, by name and with their reset. */
+.pl-active { display: flex; align-items: center; gap: .5rem; min-width: 0; margin-block: -.375rem; }
+.pl-active > p { flex: 1 1 auto; min-width: 0; font-size: .8125rem; color: var(--sm-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.pl-active > .ps-text-action { flex: none; margin-right: -.5rem; }
+
+/* Long lists: a cell holds its cover while near the screen, else the cover's height (an estimate before the first visit). */
+.pl-cell { min-width: 0; }
+.pl-cell:empty { aspect-ratio: 10 / 21; }
+
+/* Titles with local files: a library mark top left on the cover, the desktop card's library badge. */
+[data-phone-screen="lists"] .ps-card[data-in-library] .ps-card-cover::before,
+[data-phone-screen="lists"] .ps-card[data-in-library] .ps-card-cover::after {
+    content: ""; position: absolute; z-index: 5; top: .375rem; left: .375rem; width: 1.5rem; height: 1.5rem; border-radius: 999px;
+}
+[data-phone-screen="lists"] .ps-card[data-in-library] .ps-card-cover::before { background: rgb(12 12 14 / .82); }
+[data-phone-screen="lists"] .ps-card[data-in-library] .ps-card-cover::after {
+    background: var(--sm-text);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m16 6 4 14M12 6v14M8 8v12M4 4v16'/%3E%3C/svg%3E") center / .875rem no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m16 6 4 14M12 6v14M8 8v12M4 4v16'/%3E%3C/svg%3E") center / .875rem no-repeat;
+}
+
+/* The grid's end: coming near it renders the next covers; a long grid ends with the way back up. */
+.pl-grid-end { display: block; height: 1px; }
+.pl-to-top { display: flex; margin: .5rem auto 0; }
+
+/* Sheet: what the counts mean and the reset above the groups, so the footer keeps one button. */
+.pl-sheet-intro { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 .75rem; margin-top: -.5rem; }
+.pl-sheet-intro > p { flex: 1 1 12rem; }
+.pl-sheet-intro > .ps-text-action { margin-right: -.5rem; }
+/* Chips without hits in the shown list: their own, quieter row (they still filter the other lists). */
+.pl-chip-groups { display: grid; gap: .5rem; min-width: 0; }
+.pl-chips-quiet > button:not([aria-pressed="true"]) { background: var(--sm-surface-sunken); color: var(--sm-text-subtle); }
+/* Kit candidate: the native select under a label that wraps, so a long sort stays readable with large text. */
+.ps-select-wrap.pl-select { display: grid; }
+.pl-select > .pl-select-text {
+    grid-area: 1 / 1; display: flex; align-items: center; min-height: 52px; padding: .625rem 3rem .625rem 1rem; border-radius: var(--sm-radius);
+    background: var(--sm-surface-raised); color: var(--sm-text); font-size: .9375rem; line-height: 1.35; overflow-wrap: anywhere;
+}
+.pl-select > .ps-select { grid-area: 1 / 1; height: 100%; opacity: 0; }
+.pl-select:has(> .ps-select:focus-visible) > .pl-select-text { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+
+/* Stats: facts, highlights and ranked bars; a bar can carry a detail line (hours, chapters, average score). The accent marks
+   the largest bar (the kit marks the first, which in lists by score or year is not the largest). */
+.pl-stats { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; min-width: 0; }
+.pl-bars-meta { grid-column: 1 / -1; margin-top: -.125rem; font-size: .75rem; line-height: 1.4; color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+[data-phone-screen="lists"] .pl-bars > li:not([data-max]) .ps-bars-track > span { background: var(--sm-text-subtle); }
+[data-phone-screen="lists"] .pl-bars > li[data-max] .ps-bars-track > span { background: var(--sm-accent-strong); }
