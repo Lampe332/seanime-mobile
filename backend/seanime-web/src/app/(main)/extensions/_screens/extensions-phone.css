@@ -62,6 +62,8 @@ body:has([data-mobile-extensions="true"]) [data-top-navbar] [data-layout-header-
 
 /* Lists: grouped rows like the settings sheets, one tap target per extension. */
 .mex-list { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+/* Repositories list hundreds of extensions; rows off screen skip rendering. */
+.mex-market-list .mex-list > li { content-visibility: auto; contain-intrinsic-size: auto 5.5rem; }
 .mex-row, .mex-item { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 4.25rem; background: var(--sm-surface-raised); text-align: start; }
 .mex-row { padding: .75rem .75rem .75rem 1rem; }
 .mex-row:active, .mex-row-main:active { background: var(--sm-surface-control); }
@@ -189,6 +191,8 @@ body .mex-sheet.UI-Modal__content {
 .mex-facts > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .125rem 1rem; padding: .75rem 1rem; background: var(--sm-surface-raised); }
 .mex-facts dt { font-size: .8125rem; color: var(--sm-text-muted); }
 .mex-facts dd { min-width: 0; margin-left: auto; font-size: .875rem; text-align: end; color: var(--sm-text); overflow-wrap: anywhere; user-select: text; }
+/* Links and long IDs get their own line, read from the left. */
+.mex-facts dd[data-long] { flex-basis: 100%; margin-left: 0; text-align: start; font-size: .8125rem; line-height: 1.5; }
 .mex-sheet-actions { position: sticky; bottom: -12px; z-index: 1; display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 -16px -12px; padding: .75rem 16px 12px; background: var(--sm-surface); }
 .mex-sheet-actions > * { flex: 1 1 max-content; min-width: 0; }
 .mex-sheet-actions > .mex-primary { flex-grow: 2; }

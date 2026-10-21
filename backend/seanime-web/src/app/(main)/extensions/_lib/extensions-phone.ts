@@ -144,12 +144,14 @@ export function filterMarketplace(extensions: Extension_Extension[] | undefined,
         .filter(extension => matchesExtensionSearch(extension, filters.search)))
 }
 
-/** Short form of a repository URL: its host and the file name. */
+/** Short form of a repository URL: owner/repository on GitHub (its host says nothing), else the host and the file name. */
 export function shortRepositoryUrl(url: string) {
     try {
         const parsed = new URL(url)
-        const file = parsed.pathname.split("/").filter(Boolean).pop()
-        return file ? `${parsed.host} · ${decodeURIComponent(file)}` : parsed.host
+        const parts = parsed.pathname.split("/").filter(Boolean).map(decodeURIComponent)
+        if (["raw.githubusercontent.com", "github.com"].includes(parsed.host) && parts.length >= 2) return `${parts[0]}/${parts[1]}`
+        const file = parts.at(-1)
+        return file ? `${parsed.host} · ${file}` : parsed.host
     } catch {
         return url
     }

@@ -115,7 +115,7 @@ function FactList({ extension, t }: { extension: Extension_Extension, t: Transla
         [t("Manifest", "Manifest"), builtin ? "" : extension.manifestURI],
     ]
     return <dl className="mex-facts">
-        {facts.filter(([, value]) => !!value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+        {facts.filter(([, value]) => !!value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd data-long={value.length > 28 || undefined}>{value}</dd></div>)}
     </dl>
 }
 
