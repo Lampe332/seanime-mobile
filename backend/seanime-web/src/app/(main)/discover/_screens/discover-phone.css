@@ -1,0 +1,59 @@
+/* Android phone Discover (pd-): only what the shared phone kit (phone-screen.css) does not have. */
+
+/* The tab panel and the schedule's days stack like the page; a section that hides itself leaves no gap. */
+.pd-panel, .pd-days { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; min-width: 0; }
+.pd-panel > :empty { display: none; }
+.pd-block { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+
+/* A row keeps the last genre's covers, dimmed, until the new genre arrives. */
+.pd-stale { opacity: .5; transition: opacity .2s; }
+.pd-quiet { font-size: .875rem; line-height: 1.5; color: var(--sm-text-muted); }
+
+/* The segment: all tabs side by side, or one per line once the longest label ("Sendeplan" 4.85rem, "Schedule" 4.27rem in
+   Inter at 100 %, plus the padding) no longer fits its share; never two plus one. (label - share) * 999 jumps the
+   minimum from the share to the full width. A slimmer padding keeps three columns at 115 % on a 360 px phone. */
+[data-discover-tabs].ps-segment {
+    --pd-tab-label: calc(4.9rem * var(--ps-text-zoom, 1) + .5rem);
+    --pd-share: calc((100% - .6rem) / 3);
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(var(--pd-share), calc((var(--pd-tab-label) - var(--pd-share)) * 999))), 1fr));
+}
+[data-discover-tabs][data-language="en"].ps-segment { --pd-tab-label: calc(4.35rem * var(--ps-text-zoom, 1) + .5rem); }
+[data-discover-tabs][data-tab-count="2"].ps-segment { --pd-share: calc((100% - .35rem) / 2); }
+[data-discover-tabs].ps-segment > button { padding-inline: .25rem; }
+
+/* Short text actions keep a 48 dp target; one that wraps under its heading (large text) stays at the line's end. */
+[data-phone-screen="discover"] .ps-text-action { min-width: 48px; justify-content: center; }
+[data-phone-screen="discover"] .ps-section-head > .ps-text-action { margin-left: auto; }
+
+/* Large text: covers widen with the text (up to most of the screen) instead of squeezing titles into 36vw; unchanged at
+   100 %. Spotlight and schedule titles get more lines before they are cut (they stack under the picture then). */
+[data-phone-screen="discover"] .ps-row > * {
+    flex-basis: min(calc(100% - 3rem), max(min(36vw, calc(8.75rem * var(--ps-text-zoom, 1))), calc(7rem * var(--ps-text-zoom, 1))));
+}
+[data-discover-feature] .ps-feature-title, [data-discover-schedule-row] .ps-list-title { -webkit-line-clamp: 4; }
+/* A cover in place of a banner shows its upper part (faces, logo) rather than the middle band. */
+[data-cover-fallback] .ps-feature-image { object-position: center 20%; }
+
+/* Schedule: today in the accent as in the calendar; the user's list status in the accent (also on aired covers). */
+[data-discover-block="schedule-day"][data-today] .ps-section-head h2 { color: var(--sm-accent); }
+.pd-status { color: var(--sm-accent); font-weight: 600; }
+/* Large text: an episode row wraps (title under the cover, time on its own line) instead of squeezing the title. */
+[data-discover-schedule-row] { flex-wrap: wrap; }
+[data-discover-schedule-row] > .ps-list-text { flex: 1 1 calc(8rem * var(--ps-text-zoom, 1)); }
+[data-discover-schedule-row] > .ps-list-side { margin-left: auto; }
+
+/* The dub badge plugin marks cards through [data-media-entry-card-body]: a quiet "Dub" pill top left as on Home, clear of
+   the accent badge top right; a tap goes to the card. */
+[data-phone-screen="discover"] .seanime-dub-badge-wrapper { top: .375rem !important; left: .375rem !important; right: auto !important; pointer-events: none !important; }
+[data-phone-screen="discover"] .ps-feature .seanime-dub-badge-wrapper { top: .75rem !important; left: .75rem !important; }
+[data-phone-screen="discover"] .seanime-base-dub-badge .UI-Badge__root {
+    height: auto; padding: .2rem .45rem; border: 0; border-radius: 999px; background: rgb(12 12 14 / .82); color: var(--sm-text); box-shadow: none;
+    cursor: default; font-size: .6875rem; font-weight: 650; line-height: 1.25;
+}
+[data-phone-screen="discover"] .seanime-base-dub-badge svg { display: none; }
+[data-phone-screen="discover"] .seanime-base-dub-badge .UI-Badge__root::after { content: "Dub"; }
+
+@media (prefers-reduced-motion: reduce) {
+    .pd-stale { transition: none; }
+}

@@ -1,4 +1,5 @@
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { DiscoverPageHeader } from "@/app/(main)/discover/_components/discover-page-header"
 import { DiscoverAiringSchedule } from "@/app/(main)/discover/_containers/discover-airing-schedule"
@@ -9,6 +10,7 @@ import { DiscoverTrendingCountry } from "@/app/(main)/discover/_containers/disco
 import { DiscoverTrendingMovies } from "@/app/(main)/discover/_containers/discover-trending-movies"
 import { DiscoverUpcoming } from "@/app/(main)/discover/_containers/discover-upcoming"
 import { __discord_pageTypeAtom } from "@/app/(main)/discover/_lib/discover.atoms"
+import { DiscoverPhone } from "@/app/(main)/discover/_screens/discover-phone"
 import { RecentReleases } from "@/app/(main)/schedule/_containers/recent-releases"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { StaticTabs } from "@/components/ui/tabs"
@@ -32,6 +34,9 @@ export default function Page() {
             setPageType(searchType as any)
         }
     }, [searchParams])
+
+    // Android phones get their own screen; tablets and desktop keep the hero and carousels
+    if (isAndroidPhone()) return <DiscoverPhone />
 
     return (
         <>
