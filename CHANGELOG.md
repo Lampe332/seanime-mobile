@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.36 — 21.10.2026 (versionCode 31087)
+
+- ⚡️ My lists, Discover, Search: Switching tabs on the phone is quicker, because a card's long-press menu is only built when the card is touched
+
 ## 1.9.35 — 21.10.2026 (versionCode 31086)
 
 - ⚡️ My lists: Searching and filtering stay fast on the phone after scrolling far into a long list
