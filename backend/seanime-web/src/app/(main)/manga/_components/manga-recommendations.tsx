@@ -2,8 +2,21 @@ import { AL_MangaDetailsById_Media, Manga_Entry, Nullish } from "@/api/generated
 import { MediaCardGrid } from "@/app/(main)/_features/media/_components/media-card-grid"
 import { MediaEntryCard } from "@/app/(main)/_features/media/_components/media-entry-card"
 import { MediaEntryDetailsSkeleton } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
+import { Translate, useTr } from "@/lib/app-language"
 import capitalize from "lodash/capitalize"
 import React from "react"
+
+const RELATION_DE: Record<string, string> = {
+    ADAPTATION: "Adaption", SOURCE: "Vorlage", ALTERNATIVE: "Alternative", SPIN_OFF: "Spin-off", SIDE_STORY: "Nebengeschichte",
+    SEQUEL: "Fortsetzung", PREQUEL: "Vorgeschichte", PARENT: "Hauptgeschichte", SUMMARY: "Zusammenfassung", COMPILATION: "Zusammenschnitt",
+    CONTAINS: "Enthält", CHARACTER: "Gleiche Figuren", OTHER: "Sonstiges",
+}
+
+function relationLabel(relationType: string | undefined, isMovie: boolean, t: Translate) {
+    const type = relationType || ""
+    return `${t(capitalize(type).replace("_", " "), RELATION_DE[type] ?? capitalize(type).replace("_", " "))}${isMovie ? t(" (Movie)", " (Film)") : ""}`
+}
 
 type MangaRecommendationsProps = {
     entry: Nullish<Manga_Entry>
@@ -27,6 +40,11 @@ export function MangaRecommendations(props: MangaRecommendationsProps) {
 
     const recommendations = details?.recommendations?.edges?.map(edge => edge?.node?.mediaRecommendation)?.filter(Boolean)?.slice(0, 6) || []
 
+    // Android phones: headings and relation labels in the app language; tablets and desktop keep the English texts
+    const appLanguage = useTr()
+    const phone = isAndroidPhone()
+    const t: Translate = (en, de) => phone ? appLanguage(en, de) : en
+
     if (loading && !details) return <MediaEntryDetailsSkeleton isMangaPage showCharacters={false} />
     if (!entry || !details) return null
 
@@ -34,7 +52,7 @@ export function MangaRecommendations(props: MangaRecommendationsProps) {
         <div className="space-y-4 animate-in fade-in-0 duration-200" data-manga-recommendations-container>
             {!!anime?.length && (
                 <>
-                    <h2>Relations</h2>
+                    <h2>{t("Relations", "Als Anime")}</h2>
                     <MediaCardGrid maxCol={maxCol}>
                         {anime?.toSorted((a, b) => (a.node?.format === "TV" && b.node?.format !== "TV")
                             ? -1
@@ -46,7 +64,8 @@ export function MangaRecommendations(props: MangaRecommendationsProps) {
                                     showTrailer
                                     overlay={<p
                                         className="font-semibold text-white bg-gray-950 z-[-1] absolute right-0 w-fit px-4 py-1.5 text-center !bg-opacity-90 text-sm lg:text-base rounded-none rounded-bl-lg"
-                                    >{capitalize(edge.relationType || "").replace("_", " ")}{edge?.node?.format === "MOVIE" ? " (Movie)" : ""}</p>}
+                                        data-manga-relation-label
+                                    >{relationLabel(edge.relationType, edge?.node?.format === "MOVIE", t)}</p>}
                                     type="anime"
                                 />
                             </div>
@@ -55,7 +74,7 @@ export function MangaRecommendations(props: MangaRecommendationsProps) {
                 </>
             )}
             {recommendations.length > 0 && <>
-                <h2>Recommendations</h2>
+                <h2>{t("Recommendations", "Empfehlungen")}</h2>
                 <MediaCardGrid maxCol={maxCol}>
                     {recommendations.map(media => {
                         return <div key={media.id} className="col-span-1">

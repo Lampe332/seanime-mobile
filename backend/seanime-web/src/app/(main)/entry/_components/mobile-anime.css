@@ -260,6 +260,8 @@ body .mobile-download-sheet.UI-Modal__content { display: flex; flex-direction: c
 [data-mobile-manga="true"] [data-manga-entry-page-content-container] { padding: 1rem; scroll-margin-top: 1rem; }
 [data-mobile-manga="true"] [data-manga-entry-page-content] { padding-top: 0 !important; }
 [data-mobile-manga="true"] [data-manga-entry-page-characters-section-container] { padding-top: 0; }
+/* Relations and recommendations: Home's section headings, like Characters above them. */
+[data-mobile-manga="true"] [data-manga-recommendations-container] > h2 { font-size: 1.25rem !important; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; color: var(--sm-text); margin-top: 1.25rem; }
 .mobile-chapter-options { padding-bottom: .25rem; }
 .mobile-chapters { display: grid; gap: .75rem; min-width: 0; }
 .mobile-episode-heading h2 span { margin-left: .25rem; font-size: .875rem; font-weight: 500; color: var(--sm-text-subtle); }
