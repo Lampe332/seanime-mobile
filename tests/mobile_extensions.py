@@ -108,6 +108,9 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         check('Every button and link is at least 48px',page.evaluate(SMALL,'[data-mobile-extensions] button,[data-mobile-extensions] a')==[])
         check('390px: no page overflow',page.evaluate(NO_OVERFLOW))
         shot(page,'extensions-390.png')
+        # Marketplace+ (a plugin) hangs a desktop filter bar in front of every input this selector matches
+        MPLUS='document.querySelectorAll(\'input[placeholder*="extensions"]:not([data-mplus-ui])\').length'
+        check('Marketplace+ plugin finds no search field to hang its desktop bar on',page.locator('[data-extensions-search]').count()==1 and page.evaluate(MPLUS)==0)
 
         page.locator('[data-extensions-search]').fill('manga');page.wait_for_timeout(200)
         check('Search narrows every group by name, description and ID',page.evaluate(TEXT,'[data-extension-row] .mex-row-name')==['Local','MangaFire','MangaDex Source'])
@@ -117,6 +120,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         check('Clearing the search brings every row back',page.locator('[data-extension-row]').count()==10)
         page.locator('[data-extensions-add-type="onlinestream-provider"]').click();page.locator('[data-marketplace-phone]').wait_for();page.wait_for_timeout(200)
         check('"Add" in a section opens the marketplace on that type',page.locator('[data-marketplace-type="onlinestream-provider"][aria-selected=true]').count()==1)
+        check('Marketplace: the plugin finds no search field either',page.evaluate(MPLUS)==0)
         page.locator('[data-marketplace-type="all"]').click();page.locator('[data-tab-name="Installed"]').click();page.locator('[data-extension-row]').first.wait_for()
 
         # One sheet per extension

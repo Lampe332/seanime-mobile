@@ -74,10 +74,13 @@ export function SearchField({ t, value, onChange, placeholder, label, ...data }:
     /** Accessible name when the placeholder is shortened */
     label?: string
 } & Record<`data-${string}`, string>) {
+    // data-mplus-ui: the Marketplace+ plugin skips inputs with this mark. It would otherwise put its desktop
+    // filter bar in front of the field, and that bar only filters desktop extension cards, not these rows.
     return <span className="mex-search">
         <LuSearch aria-hidden />
         <input type="search" value={value} placeholder={placeholder} aria-label={label || placeholder} enterKeyHint="search" autoComplete="off" autoCorrect="off"
-            spellCheck={false} onChange={event => onChange(event.target.value)} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur() }} {...data} />
+            spellCheck={false} onChange={event => onChange(event.target.value)} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur() }}
+            data-mplus-ui="" {...data} />
         {!!value && <button type="button" className="mex-search-clear" onClick={() => onChange("")} aria-label={t("Clear search", "Suche leeren")}><LuX aria-hidden /></button>}
     </span>
 }
