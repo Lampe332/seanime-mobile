@@ -9,15 +9,18 @@ func TestShouldDisableAndroidTorrentRoute(t *testing.T) {
 		path string
 		want bool
 	}{
-		{name: "android torrent search", goos: "android", path: "/api/v1/torrent/search", want: true},
-		{name: "android torrent streaming", goos: "android", path: "/api/v1/torrentstream/start", want: true},
-		{name: "android debrid", goos: "android", path: "/api/v1/debrid/torrents", want: true},
+		{name: "android torrent search", goos: "android", path: "/api/v1/torrent/search", want: false},
+		{name: "android torrent streaming", goos: "android", path: "/api/v1/torrentstream/start", want: false},
+		{name: "android built-in torrent client", goos: "android", path: "/api/v1/torrent-client/download", want: false},
+		{name: "android debrid", goos: "android", path: "/api/v1/debrid/torrents", want: false},
+		{name: "android debrid stream", goos: "android", path: "/api/v1/debrid/stream/start", want: false},
+		{name: "android torrent file download", goos: "android", path: "/api/v1/download-torrent-file", want: false},
+		{name: "android auto select profile", goos: "android", path: "/api/v1/auto-select/profile", want: false},
+		{name: "android torrent provider listing", goos: "android", path: "/api/v1/extensions/list/anime-torrent-provider", want: false},
 		{name: "android auto downloader", goos: "android", path: "/api/v1/auto-downloader/run", want: true},
-		{name: "android torrent file download", goos: "android", path: "/api/v1/download-torrent-file", want: true},
-		{name: "android auto select profile", goos: "android", path: "/api/v1/auto-select/profile", want: true},
+		{name: "android auto downloader settings", goos: "android", path: "/api/v1/settings/auto-downloader", want: true},
 		{name: "android Nakama torrent stream", goos: "android", path: "/api/v1/nakama/host/torrentstream/stream", want: true},
 		{name: "android Nakama debrid stream", goos: "android", path: "/api/v1/nakama/host/debridstream/stream", want: true},
-		{name: "android torrent provider listing", goos: "android", path: "/api/v1/extensions/list/anime-torrent-provider", want: true},
 		{name: "android direct online download remains available", goos: "android", path: "/api/v1/directstream/download", want: false},
 		{name: "desktop torrent features remain available", goos: "windows", path: "/api/v1/torrent/search", want: false},
 	}

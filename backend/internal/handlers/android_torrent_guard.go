@@ -2,16 +2,14 @@ package handlers
 
 import "strings"
 
+// Torrent search, torrent streaming, the built-in torrent client and debrid run on Android.
+// What stays off: the auto-downloader (background polling and downloads drain the battery)
+// and hosting torrent or debrid streams for Nakama peers from a phone.
 var androidTorrentAPIPrefixes = [...]string{
-	"/api/v1/torrent",
-	"/api/v1/debrid",
 	"/api/v1/auto-downloader",
-	"/api/v1/auto-select",
-	"/api/v1/download-torrent-file",
+	"/api/v1/settings/auto-downloader",
 	"/api/v1/nakama/host/torrentstream",
 	"/api/v1/nakama/host/debridstream",
-	"/api/v1/settings/auto-downloader",
-	"/api/v1/extensions/list/anime-torrent-provider",
 }
 
 func shouldDisableAndroidTorrentRoute(goos, path string) bool {

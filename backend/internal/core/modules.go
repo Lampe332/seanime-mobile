@@ -480,12 +480,13 @@ func (a *App) InitOrRefreshModules() {
 
 	a.Settings = settings // Store settings instance in app
 	if runtime.GOOS == "android" {
-		// Torrent configuration may exist in a database copied from desktop. Keep it
-		// inert on Android and avoid starting clients or background downloads.
+		// Torrents run on Android through the built-in client; there is no desktop client to open
+		// and no background auto-downloader (battery).
 		if settings.Library != nil {
-			settings.Library.TorrentProvider = torrent.ProviderNone
-			settings.Library.AutoSelectTorrentProvider = ""
 			settings.Library.OpenTorrentClientOnStart = false
+		}
+		if settings.Torrent != nil {
+			settings.Torrent.Default = torrent_client.SeanimeClient
 		}
 		if settings.AutoDownloader != nil {
 			settings.AutoDownloader.Enabled = false
@@ -532,13 +533,11 @@ func (a *App) InitOrRefreshModules() {
 			go a.AutoScanner.SetSettings(*settings.Library)
 		}
 
-		if runtime.GOOS != "android" {
-			// Update the torrent manager settings (thread safe)
-			go a.TorrentRepository.SetSettings(&torrent.RepositorySettings{
-				DefaultAnimeProvider: settings.Library.TorrentProvider,
-				AutoSelectProvider:   settings.Library.AutoSelectTorrentProvider,
-			})
-		}
+		// Update the torrent manager settings (thread safe)
+		go a.TorrentRepository.SetSettings(&torrent.RepositorySettings{
+			DefaultAnimeProvider: settings.Library.TorrentProvider,
+			AutoSelectProvider:   settings.Library.AutoSelectTorrentProvider,
+		})
 
 		if a.LibraryExplorer != nil {
 			// Update the library paths for the library explorer (thread safe)
@@ -614,7 +613,7 @@ func (a *App) InitOrRefreshModules() {
 	// |       Torrents      |
 	// +---------------------+
 
-	if settings.Torrent != nil && runtime.GOOS != "android" {
+	if settings.Torrent != nil {
 		// Init qBittorrent
 		qbit := qbittorrent.NewClient(&qbittorrent.NewClientOptions{
 			Logger:   a.Logger,
@@ -681,7 +680,7 @@ func (a *App) InitOrRefreshModules() {
 			TorrentRepository:      a.TorrentRepository,
 			Provider:               settings.Torrent.Default,
 			MetadataProviderRef:    a.MetadataProviderRef,
-			IsBuiltinClientEnabled: a.FeatureFlags.BuiltinTorrentClient,
+			IsBuiltinClientEnabled: a.FeatureFlags.BuiltinTorrentClient || runtime.GOOS == "android", // the only client a phone has
 		})
 
 		a.TorrentClientRepository.InitActiveTorrentCount(settings.Torrent.ShowActiveTorrentCount, a.WSEventManager)
@@ -829,11 +828,6 @@ func (a *App) InitOrRefreshTorrentstreamSettings() {
 		}
 	}
 
-	if runtime.GOOS == "android" {
-		// A prior desktop configuration must not start a torrent client or stream server.
-		settings.Enabled = false
-	}
-
 	err := a.TorrentstreamRepository.InitModules(settings, a.Config.Server.Host, a.Config.Server.Port)
 	if err != nil && settings.Enabled {
 		a.Logger.Error().Err(err).Msg("app: Failed to initialize Torrent streaming module")
@@ -876,12 +870,6 @@ func (a *App) InitOrRefreshDebridSettings() {
 			return
 		}
 	}
-	if runtime.GOOS == "android" {
-		settings.Enabled = false
-		settings.Provider = ""
-		settings.ApiKey = ""
-	}
-
 	a.SecondarySettings.Debrid = settings
 
 	err := a.DebridClientRepository.InitializeProvider(settings)

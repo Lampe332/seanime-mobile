@@ -1,7 +1,6 @@
 package core
 
 import (
-	"runtime"
 	"seanime/internal/extension"
 	"seanime/internal/extension_repo"
 	manga_providers "seanime/internal/manga/providers"
@@ -49,10 +48,7 @@ func LoadExtensions(extensionRepository *extension_repo.Repository, logger *zero
 
 	// Load external extensions
 	//extensionRepository.ReloadExternalExtensions()
-	extensionTypes := []extension.Type{extension.TypeMangaProvider, extension.TypeOnlinestreamProvider, extension.TypePlugin}
-	if runtime.GOOS != "android" {
-		extensionTypes = append(extensionTypes, extension.TypeAnimeTorrentProvider)
-	}
+	extensionTypes := []extension.Type{extension.TypeMangaProvider, extension.TypeOnlinestreamProvider, extension.TypePlugin, extension.TypeAnimeTorrentProvider}
 	extensionRepository.LoadOnlyWrapper(extensionTypes, func() {
 		extensionRepository.ReloadExternalExtensions()
 	})
