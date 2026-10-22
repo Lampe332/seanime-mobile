@@ -2,6 +2,14 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.4 — 22.10.2026 (versionCode 31099)
+
+- 🎉 Torrents: Stream episodes from torrents in the app's own player, picked from a phone torrent search (provider, episode or title, resolution, whole seasons, best releases)
+- 🎉 Torrents: Download torrents into the library folder with the app's own torrent client; Downloads has a Torrents tab with progress, pause and resume, and removing a torrent with or without its files
+- 🎉 Debrid: Stream torrents through TorBox, Real-Debrid, AllDebrid or Premiumize
+- 🎉 Settings: A "Torrents & debrid" section for the torrent provider, torrent streaming, download limits and the debrid service, which reports a key it cannot use
+- 🎉 Extensions: Torrent providers can be installed from the marketplace and appear with the other sources
+
 ## 2.0.0 — 22.10.2026 (versionCode 31095)
 
 - 🏗️ Release: Public release of every change since 1.8.4, listed below from 1.8.6 to 1.9.43
