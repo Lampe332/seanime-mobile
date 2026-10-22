@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.0 — 22.10.2026 (versionCode 31095)
+
+- 🏗️ Release: Public release of every change since 1.8.4, listed below from 1.8.6 to 1.9.43
+
 ## 1.9.43 — 22.10.2026 (versionCode 31094)
 
 - 🦺 Plugins: Fixed unchecked checkboxes in plugin windows being nearly invisible on the dark sheet
