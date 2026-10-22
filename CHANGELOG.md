@@ -2,6 +2,11 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.39 — 22.10.2026 (versionCode 31090)
+
+- 🦺 Settings: Changing "Load anime pages ahead" or turning custom colours off keeps the open settings area instead of jumping back to the list
+- 🦺 Settings: The cache-only switch turns off on its own once AniList answers again, as the server does, instead of staying on
+
 ## 1.9.38 — 22.10.2026 (versionCode 31089)
 
 - 🎉 Player: Subtitles can be translated from the phone player menu (Google works without a key)
