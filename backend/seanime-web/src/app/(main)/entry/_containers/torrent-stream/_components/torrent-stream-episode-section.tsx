@@ -129,6 +129,7 @@ export function TorrentStreamEpisodeSection(props: TorrentStreamEpisodeSectionPr
                 renderItem={(index) => {
                     const episode = episodeCollection?.episodes?.[index]
                     return (<EpisodeGridItem
+                            mobileEntry={import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"}
                             key={episode?.episodeNumber + (episode?.displayTitle || "")}
                             media={episode?.baseAnime as any}
                             title={episode?.displayTitle || episode?.baseAnime?.title?.userPreferred || ""}

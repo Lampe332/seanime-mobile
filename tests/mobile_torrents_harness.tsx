@@ -12,6 +12,7 @@ import {
 import { TorrentSearchPhone } from "../backend/seanime-web/src/app/(main)/entry/_containers/torrent-search/torrent-search-phone"
 import { StreamControlsPhone } from "../backend/seanime-web/src/app/(main)/entry/_containers/torrent-stream/_components/stream-controls-phone"
 import { TorrentDownloads } from "../backend/seanime-web/src/app/(main)/android-downloads/torrent-downloads"
+import { TorrentStreamPage } from "../backend/seanime-web/src/app/(main)/entry/_containers/torrent-stream/torrent-stream-page"
 import "../backend/seanime-web/src/components/shared/mobile-surface.css"
 import "../backend/seanime-web/src/app/(main)/entry/_components/mobile-anime.css"
 import "../backend/seanime-web/src/app/(main)/android-downloads/downloads-mobile.css"
@@ -35,7 +36,12 @@ function Page() {
         store.set(__torrentSearch_selectionAtom, type as any)
     }
     const [auto, setAuto] = React.useState(false)
-    if (w.screen === "downloads") return <div data-mobile-downloads="true" className="mdl-page"><TorrentDownloads /></div>
+    if (w.harnessView === "downloads") return <div data-mobile-downloads="true" className="mdl-page"><TorrentDownloads /></div>
+    // The Torrent source as the anime page shows it: its episode list, and the search sheet an episode tap opens
+    if (w.harnessView === "source") return <div data-mobile-anime="true" style={{ padding: 16 }}>
+        <TorrentStreamPage entry={entry} />
+        <TorrentSearchPhone entry={entry} />
+    </div>
     return <div data-mobile-anime="true" style={{ padding: 16 }}>
         <div data-anime-meta-section-buttons-row style={{ display: "flex" }}><AnimeEntryPhoneMenu entry={entry} /></div>
         <StreamControlsPhone kind="torrent" autoSelect={auto} onAutoSelect={setAuto} batchName={w.batchName} onForgetBatch={() => w.forgot = true}

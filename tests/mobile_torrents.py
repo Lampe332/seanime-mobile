@@ -39,8 +39,12 @@ LIST=[dict(name='[Erai-raws] Sousou no Frieren (01-28) [1080p] [Batch]',hash='h2
            eta='2h 10m',status='downloading',contentPath=f'{LIBRARY}/Sousou no Frieren',peers=55,ratio=0,queueIndex=0,forceStart=False,sequential=False,error=''),
       dict(name='[SubsPlease] Sousou no Frieren - 05 (1080p) [ABC123].mkv',hash='h1',seeds=200,upSpeed='40 KB/s',downSpeed='0 B/s',progress=1,size='1.4 GiB',
            eta='N/A',status='seeding',contentPath=f'{LIBRARY}/Sousou no Frieren',peers=12,ratio=.3,queueIndex=1,forceStart=False,sequential=False,error='')]
-SERVER=dict(status=STATUS,entry=ENTRY,providers=[PROVIDER('nyaa','Nyaa'),PROVIDER('animetosho','AnimeTosho')],torrents=TORRENTS,cached={'h1':{'cachedFiles':{}}},list=LIST)
-INIT='''(()=>{Object.assign(window,{server:%s,screen:%s,routes:[],requests:[],toasts:[],batchName:%s,mappingError:%s})})()'''
+COVER='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"/>'
+EPISODES=dict(hasMappingError=False,episodes=[dict(episodeNumber=n,progressNumber=n,aniDBEpisode=str(n),displayTitle=f'Episode {n}',episodeTitle=f'Chapter {n}',type='main',
+    baseAnime=ENTRY['media'],episodeMetadata=dict(image=COVER,length=24,isFiller=False)) for n in range(1,5)])
+SERVER=dict(status=STATUS,entry=ENTRY,providers=[PROVIDER('nyaa','Nyaa'),PROVIDER('animetosho','AnimeTosho')],torrents=TORRENTS,cached={'h1':{'cachedFiles':{}}},list=LIST,
+    episodes=EPISODES)
+INIT='''(()=>{Object.assign(window,{server:%s,harnessView:%s,routes:[],requests:[],toasts:[],batchName:%s,mappingError:%s})})()'''
 STATIC=root/'backend/seanime-web/out/static'
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 SHEET='.UI-Modal__content[data-state=open]'
@@ -54,7 +58,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-torrents-') as tmp:
     with sync_playwright() as pw:
         browser=pw.chromium.launch(headless=True)
         def open_page(screen='entry',width=390,height=844,language=None,html_style='',server=None,batch=None,mapping=False):
-            page=browser.new_page(viewport=dict(width=width,height=height),device_scale_factor=3,has_touch=True,is_mobile=True)
+            page=browser.new_page(viewport=dict(width=width,height=height),screen=dict(width=width,height=height),device_scale_factor=3,has_touch=True,is_mobile=True)
             page.on('pageerror',lambda e:errors.append(str(e)[:300]))
             page.add_init_script(INIT%(json.dumps(server or copy.deepcopy(SERVER)),json.dumps(screen),json.dumps(batch),json.dumps(mapping)))
             if language: page.add_init_script(f'localStorage.setItem("seanime-mobile-language",JSON.stringify("{language}"))')
@@ -190,6 +194,18 @@ with tempfile.TemporaryDirectory(prefix='seanime-torrents-') as tmp:
         n=len(reqs(page,'POST','/api/v1/torrent/search'))
         page.locator('[data-torrent-error] button').click();page.wait_for_timeout(600)
         check('Try again searches again',len(reqs(page,'POST','/api/v1/torrent/search'))>n)
+        page.close()
+
+        # The Torrent source: a tap on an episode (a real touch) opens the search for it
+        page=open_page(screen='source');page.wait_for_timeout(800)
+        targets=page.locator('[data-torrent-stream-page] .mobile-episode-target')
+        check('Torrent source on a phone: the phone switch, not the desktop switches',page.locator('[data-torrent-stream-page] [data-stream-controls-phone]').count()==1
+              and page.locator('[data-torrent-stream-page-content-actions-container]').count()==0)
+        check('Torrent source: every episode is one large tap target',targets.count()>=4 and all(b['height']>=48 for b in [targets.nth(i).bounding_box() for i in range(targets.count())]))
+        targets.nth(1).tap();page.wait_for_timeout(1200)
+        check('Tapping an episode opens the torrent search for that episode',page.locator('[data-torrent-search-phone=torrent]').count()==1
+              and page.locator('[data-torrent-context]').inner_text()=='Episode 2' and reqs(page,'POST','/api/v1/torrent/search')[-1]['episodeNumber']==2)
+        shot(page,'torrents-source-tap-390.png')
         page.close()
 
         # Downloads › Torrents

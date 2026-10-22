@@ -26,7 +26,7 @@ export const useWebsocketMessageListener = () => {}
 export const useWebsocketPluginMessageListener = () => {}
 export const useIsMainTab = () => true
 export const useIsMainTabRef = () => ({ current: true })
-export const useWebsocketSender = () => ({ sendMessage: () => {} })
+export const useWebsocketSender = () => ({ sendMessage: () => {}, sendPluginMessage: () => {} })
 export const useWebsocketSendEvent = () => ({ sendEvent: () => {} })
 
 export function useAnimeEntryPageView() {
@@ -66,6 +66,10 @@ function respond(method: string, endpoint: string, body: any): any {
         case "GET /api/v1/torrentstream/batch-history":
         case "POST /api/v1/torrentstream/batch-history":
             return null
+        case "GET /api/v1/anime/episode-collection/154587":
+            return s.episodes
+        case "GET /api/v1/continuity/history":
+            return {}
     }
     throw new Error(`No fixture for ${route}`)
 }
