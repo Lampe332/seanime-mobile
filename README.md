@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.png" alt="Seanime Mobile: anime and manga, all on your phone" width="100%">
+  <img src="docs/images/readme/banner.png" alt="Seanime Mobile: anime and manga, all on your phone" width="100%">
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
 
 <table>
   <tr>
-    <td width="42%" align="center"><img src="docs/images/demo.gif" alt="Moving between Home, Discover, Search and My lists" width="300"></td>
+    <td width="42%" align="center"><img src="docs/images/readme/demo.gif" alt="Moving between Home, Discover, Search and My lists" width="300"></td>
     <td>
       <h3>At a glance</h3>
       <ul>
@@ -82,9 +82,9 @@
 
 ## 📸 Screenshots
 
-<p align="center"><img src="docs/images/gallery-discover.png" alt="Home, Discover, Search and the long-press preview" width="100%"></p>
-<p align="center"><img src="docs/images/gallery-watch.png" alt="Anime page, Downloads, Calendar and My lists" width="100%"></p>
-<p align="center"><img src="docs/images/gallery-more.png" alt="Manga page, playback settings, Settings and Plugins" width="100%"></p>
+<p align="center"><img src="docs/images/readme/gallery-discover.png" alt="Home, Discover, Search and the long-press preview" width="100%"></p>
+<p align="center"><img src="docs/images/readme/gallery-watch.png" alt="Anime page, Downloads, Calendar and My lists" width="100%"></p>
+<p align="center"><img src="docs/images/readme/gallery-more.png" alt="Manga page, playback settings, Settings and Plugins" width="100%"></p>
 
 ## 📲 Install
 
