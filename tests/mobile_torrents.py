@@ -187,6 +187,14 @@ with tempfile.TemporaryDirectory(prefix='seanime-torrents-') as tmp:
         check('The notice opens the library settings',page.evaluate('routes')[-1]=='/settings?tab=library')
         page.close()
 
+        # Settings still on "none" (earlier Android versions stored it) with one provider: the phone searches that provider
+        s=copy.deepcopy(SERVER);s['providers']=[PROVIDER('nyaa','Nyaa')];s['status']['settings']['library']['torrentProvider']='none'
+        page=open_page(server=s);search(page,'torrentstream-select',5)
+        last=reqs(page,'POST','/api/v1/torrent/search')
+        check('"none" stored, one provider: it is searched and its torrents are listed',bool(last) and last[-1]['provider']=='nyaa'
+              and page.locator('[data-torrent-row]').count()==3 and page.locator('[data-torrent-provider]').count()==0)
+        page.close()
+
         # No provider, no results, provider error
         s=copy.deepcopy(SERVER);s['providers']=[]
         page=open_page(server=s);search(page,'torrentstream-select',5)

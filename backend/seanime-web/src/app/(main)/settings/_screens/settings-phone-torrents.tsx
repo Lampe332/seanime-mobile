@@ -129,7 +129,11 @@ export function SettingsTorrentsSection({ t, onOpen }: { t: Translate, onOpen: (
     </>
 }
 
-/** The search provider for torrents, from the installed torrent provider extensions (as on the desktop page: "main" ones). */
+/**
+ * The search provider for torrents, from the installed torrent provider extensions (as on the desktop page: "main" ones).
+ * There is no "None" on phones: the torrent search searches the first installed provider when the stored one is "none"
+ * (earlier Android versions stored it themselves) or no longer installed, and that is the provider shown here.
+ */
 function ProvidersGroup({ t }: { t: Translate }) {
     const save = useSaveSetting()
     const router = useRouter()
@@ -137,9 +141,9 @@ function ProvidersGroup({ t }: { t: Translate }) {
     const { data: extensions, isLoading } = useAnimeListTorrentProviderExtensions()
     const providers = (extensions ?? []).filter(extension => extension?.settings?.type === "main")
         .map(extension => ({ value: extension.id, label: extension.name })).sort((a, b) => a.label.localeCompare(b.label))
-    const value = stored && stored !== "none" ? stored : "none"
-    const options = [...providers, { value: "none", label: t("None", "Keiner") }]
-    const shown = options.some(option => option.value === value) ? options : [...options, { value, label: t(`Not installed (${value})`, `Nicht installiert (${value})`) }]
+    const searched = (extensions ?? []).find(extension => extension.id === stored) ?? extensions?.[0]
+    const value = searched?.id ?? ""
+    const shown = providers.some(option => option.value === value) || !searched ? providers : [...providers, { value, label: searched.name }]
 
     return <SettingsGroup id="torrents-providers" title={t("Torrent providers", "Torrent-Anbieter")}>
         {!isLoading && !providers.length

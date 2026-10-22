@@ -11,6 +11,8 @@ import { useAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import React, { startTransition } from "react"
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
 type TorrentSearchHookProps = {
     hasEpisodesToDownload: boolean
     shouldLookForBatches: boolean
@@ -49,7 +51,9 @@ export function useHandleTorrentSearch(props: TorrentSearchHookProps) {
 
     // Get the selected provider extension
     const defaultProviderExtension = React.useMemo(() => {
-        if (serverStatus?.settings?.library?.torrentProvider === TORRENT_PROVIDER.NONE) {
+        // Phones search with the first installed provider when none is chosen: earlier Android versions stored "none"
+        // themselves (no torrents on phones), and without a provider installed the phone shows no torrent search at all
+        if (serverStatus?.settings?.library?.torrentProvider === TORRENT_PROVIDER.NONE && !IS_ANDROID_APP) {
             return undefined
         }
 

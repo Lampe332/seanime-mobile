@@ -354,11 +354,11 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
         TORRENT_DESKTOP_ONLY=['Port','Host','Stream URL','IPv6','Slow seeding','accelerated startup','Cache directory','Auto Downloader','qBittorrent','Transmission']
         page=open_page();open_section(page,'torrents')
         check('Torrents: providers, streaming, downloads, Debrid in order',page.evaluate(GROUPS)==['torrents-providers','torrents-streaming','torrents-downloads','torrents-debrid'])
-        check('Providers: installed main providers sorted, then None (special ones left out), None chosen',
-              page.evaluate(TEXT,'#pst-torrent-provider option')==['AnimeTosho','Nyaa','None'] and page.locator('#pst-torrent-provider').input_value()=='none'
+        check('Providers: installed main providers sorted (special ones left out); "none" stored shows the provider searched, the first installed',
+              page.evaluate(TEXT,'#pst-torrent-provider option')==['AnimeTosho','Nyaa'] and page.locator('#pst-torrent-provider').input_value()=='nyaa'
               and page.locator('[data-settings-no-providers]').count()==0)
-        page.select_option('#pst-torrent-provider','nyaa');page.wait_for_timeout(400)
-        check('Provider saves at once through settings/path',last(page,'PATCH','/api/v1/settings/path')=={'path':'library.torrentProvider','value':'nyaa'})
+        page.select_option('#pst-torrent-provider','animetosho');page.wait_for_timeout(400)
+        check('Provider saves at once through settings/path',last(page,'PATCH','/api/v1/settings/path')=={'path':'library.torrentProvider','value':'animetosho'})
         check('Streaming off: only its switch, the data note above it',page.locator('[data-torrentstream-field]').count()==1
               and "connection's data" in page.locator('[data-settings-group="torrents-streaming"] .pst-group-note').inner_text())
         page.locator('[data-torrentstream-field="enabled"]').click()
@@ -439,7 +439,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
               and page.locator('[data-settings-debrid-key]').count()==0 and page.evaluate('server.status.debridSettings.enabled') is False
               and page.evaluate('server.status.torrentstreamSettings.enabled') is False)
         page.reload_app();open_section(page,'torrents')
-        check('After a reload the torrent values are still there',page.locator('#pst-torrent-provider').input_value()=='nyaa'
+        check('After a reload the torrent values are still there',page.locator('#pst-torrent-provider').input_value()=='animetosho'
               and page.locator('#pst-download-limit').input_value()=='2048' and checked(page,'[data-torrentstream-field="enabled"]')=='false')
         back(page);open_section(page,'seanime')
         check('Both off: the stored default source stays visible as turned off',page.evaluate(TEXT,'#pst-default-source option')[-1]=='Torrent streaming (turned off)'
