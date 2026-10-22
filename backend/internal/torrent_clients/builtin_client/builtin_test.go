@@ -192,3 +192,92 @@ func TestRemovePausedTorrent(t *testing.T) {
 	_, err = os.Stat(mockFolderPath)
 	require.True(t, os.IsNotExist(err))
 }
+
+// Three 300-byte files in 256-byte pieces: pieces 1 and 2 span the middle file and its neighbours.
+func openPartsTestTorrent(t *testing.T) (dir string, store *classicFileStorage, impl storage.TorrentImpl, info *metainfo.Info, data []byte) {
+	dir = t.TempDir()
+	info = &metainfo.Info{
+		Name:        "Season",
+		PieceLength: 256,
+		Files:       []metainfo.FileInfo{{Path: []string{"01.mkv"}, Length: 300}, {Path: []string{"02.mkv"}, Length: 300}, {Path: []string{"03.mkv"}, Length: 300}},
+		Pieces:      make([]byte, 4*metainfo.HashSize),
+	}
+	data = make([]byte, 900)
+	for i := range data {
+		data[i] = byte(i % 251)
+	}
+	store = newClassicFileStorage(dir, storage.NewMapPieceCompletion()).(*classicFileStorage)
+	var err error
+	impl, err = store.OpenTorrent(context.Background(), info, metainfo.Hash{1})
+	require.NoError(t, err)
+	return
+}
+
+func writePieces(t *testing.T, impl storage.TorrentImpl, info *metainfo.Info, data []byte, pieces ...int) {
+	for _, index := range pieces {
+		piece := info.Piece(index)
+		_, err := impl.Piece(piece).WriteAt(data[piece.Offset():piece.Offset()+piece.Length()], 0)
+		require.NoError(t, err)
+	}
+}
+
+func TestClassicStorageKeepsUnwantedShareInPartFile(t *testing.T) {
+	dir, store, impl, info, data := openPartsTestTorrent(t)
+	store.SetUnwanted(map[int]bool{1: true})
+
+	writePieces(t, impl, info, data, 0, 1, 2, 3)
+
+	_, err := os.Stat(filepath.Join(dir, "Season", "02.mkv"))
+	require.True(t, os.IsNotExist(err), "no half episode next to the wanted ones")
+	for _, name := range []string{"01.mkv", "03.mkv"} {
+		stat, err := os.Stat(filepath.Join(dir, "Season", name))
+		require.NoError(t, err)
+		require.EqualValues(t, 300, stat.Size())
+	}
+	buf := make([]byte, 256)
+	_, err = impl.Piece(info.Piece(1)).ReadAt(buf, 0)
+	require.NoError(t, err)
+	require.Equal(t, data[256:512], buf, "a shared piece reads back whole for verification and seeding")
+}
+
+func TestClassicStorageMovesEarlyWritesWhenDeselected(t *testing.T) {
+	dir, store, impl, info, data := openPartsTestTorrent(t)
+	writePieces(t, impl, info, data, 1) // before the selection arrived
+
+	store.SetUnwanted(map[int]bool{1: true})
+
+	_, err := os.Stat(filepath.Join(dir, "Season", "02.mkv"))
+	require.True(t, os.IsNotExist(err))
+	buf := make([]byte, 256)
+	_, err = impl.Piece(info.Piece(1)).ReadAt(buf, 0)
+	require.NoError(t, err)
+	require.Equal(t, data[256:512], buf)
+}
+
+func TestClassicStorageKeepsCompleteFileWhenDeselected(t *testing.T) {
+	dir, store, impl, info, data := openPartsTestTorrent(t)
+	writePieces(t, impl, info, data, 0, 1, 2, 3)
+	for index := 0; index < 4; index++ {
+		require.NoError(t, impl.Piece(info.Piece(index)).MarkComplete())
+	}
+
+	store.SetUnwanted(map[int]bool{1: true})
+
+	stat, err := os.Stat(filepath.Join(dir, "Season", "02.mkv"))
+	require.NoError(t, err, "an episode already on disk stays in the library")
+	require.EqualValues(t, 300, stat.Size())
+}
+
+func TestClassicStorageRestoresPartWhenWantedAgain(t *testing.T) {
+	dir, store, impl, info, data := openPartsTestTorrent(t)
+	store.SetUnwanted(map[int]bool{1: true})
+	writePieces(t, impl, info, data, 1)
+
+	store.SetUnwanted(map[int]bool{})
+
+	content, err := os.ReadFile(filepath.Join(dir, "Season", "02.mkv"))
+	require.NoError(t, err)
+	require.Equal(t, data[300:512], content[:212], "the bytes written for the shared piece are back in the real file")
+	_, err = os.Stat(filepath.Join(dir, classicPartsDirName, metainfo.Hash{1}.HexString(), "1.part"))
+	require.True(t, os.IsNotExist(err))
+}

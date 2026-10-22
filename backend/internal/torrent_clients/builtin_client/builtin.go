@@ -19,6 +19,7 @@ import (
 	g "github.com/anacrolix/generics"
 	alog "github.com/anacrolix/log"
 	anacrolix "github.com/anacrolix/torrent"
+	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
@@ -411,6 +412,7 @@ func (c *Client) addPersisted(item *models.LocalTorrent) (*anacrolix.Torrent, er
 	c.mu.Lock()
 	c.torrents[item.Hash] = entry
 	c.mu.Unlock()
+	c.syncUnwanted(entry)
 	return t, nil
 }
 
@@ -459,6 +461,11 @@ func (c *Client) RemoveTorrent(hash string, deleteFiles bool) error {
 		}
 	}
 	c.removeRuntime(hash)
+	if hashValue := metainfo.NewHashFromHex(hash); entry.model.Destination != "" {
+		parts := classicPartsDir(entry.model.Destination, hashValue)
+		_ = os.RemoveAll(parts)
+		_ = os.Remove(filepath.Dir(parts)) // only when no other torrent keeps parts there
+	}
 	if len(paths) > 0 || root != "" {
 		if deleteErr := removeTorrentFiles(paths, root); deleteErr != nil {
 			c.logger.Warn().Err(deleteErr).Str("hash", hash).Msg("builtin torrent: some files or directories could not be removed from disk")
@@ -568,9 +575,8 @@ func (c *Client) setPaused(hash string, paused bool) error {
 		entry.model.ForceStart = false
 		t := entry.torrent
 		closer := entry.storageCloser
-		if t != nil {
-			entry.model.Length = t.Length()
-			entry.model.Completed = t.BytesCompleted()
+		if t != nil && t.Info() != nil {
+			entry.model.Length, entry.model.Completed = wantedBytes(t, entry.filePriorities)
 		}
 		entry.torrent = nil
 		entry.storageCloser = nil
@@ -767,6 +773,7 @@ func (c *Client) SetFilePriority(hash string, index, priority int) error {
 	if err != nil {
 		return err
 	}
+	c.syncUnwanted(entry)
 	applyFilePriorities(entry, entry.torrent)
 	return c.database.UpdateLocalTorrent(entry.model.Hash, map[string]interface{}{"file_priorities": entry.model.FilePriorities})
 }
@@ -1007,8 +1014,7 @@ func (c *Client) snapshotEntryA(entry *torrentEntry, allowed map[string]bool) To
 	if entry.torrent != nil {
 		stats = entry.torrent.Stats()
 		if entry.torrent.Info() != nil {
-			length = entry.torrent.Length()
-			completed = entry.torrent.BytesCompleted()
+			length, completed = wantedBytes(entry.torrent, c.filePrioritiesSnapshot(entry))
 
 			entry.model.Length = length
 			entry.model.Completed = completed
@@ -1093,7 +1099,7 @@ func (c *Client) allowedEntriesLocked() map[string]bool {
 		if entry.getWriteError() != nil {
 			continue
 		}
-		if length := entry.torrent.Length(); length > 0 && entry.torrent.BytesCompleted() >= length {
+		if length, completed := wantedBytes(entry.torrent, entry.filePriorities); length > 0 && completed >= length {
 			allowed[entry.model.Hash] = true
 			continue
 		}
@@ -1244,6 +1250,41 @@ func pieceWanted(entry *torrentEntry, t *anacrolix.Torrent, piece int) bool {
 		}
 	}
 	return false
+}
+
+// wantedBytes is the size and the downloaded part of the files the user wants (no priority 0), so a torrent with
+// deselected files ("only the missing episodes") reaches 100 % and counts as done. Callers pass a map they may read.
+func wantedBytes(t *anacrolix.Torrent, priorities map[int]int) (length, completed int64) {
+	if t.Info() == nil {
+		return 0, 0
+	}
+	for index, file := range t.Files() {
+		if priority, explicitlySet := priorities[index]; explicitlySet && priority == 0 {
+			continue
+		}
+		length += file.Length()
+		completed += file.BytesCompleted()
+	}
+	if length == 0 {
+		return t.Length(), t.BytesCompleted()
+	}
+	return length, completed
+}
+
+// syncUnwanted hands the deselected files to the storage, which keeps their share of shared pieces in part files.
+func (c *Client) syncUnwanted(entry *torrentEntry) {
+	c.mu.RLock()
+	store, _ := entry.storageCloser.(*classicFileStorage)
+	unwanted := make(map[int]bool)
+	for index, priority := range entry.filePriorities {
+		if priority == 0 {
+			unwanted[index] = true
+		}
+	}
+	c.mu.RUnlock()
+	if store != nil {
+		store.SetUnwanted(unwanted)
+	}
 }
 
 func (c *Client) filePrioritiesSnapshot(entry *torrentEntry) map[int]int {

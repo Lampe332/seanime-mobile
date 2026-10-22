@@ -7,7 +7,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/segments"
@@ -17,18 +19,33 @@ import (
 const (
 	classicStorageDirPerm  os.FileMode = 0755
 	classicStorageFilePerm os.FileMode = 0644
+	// Hidden folder in the destination for the parts of unwanted files (see classicTorrent.filePath)
+	classicPartsDirName = ".seanime-parts"
 )
 
 type classicFileStorage struct {
 	baseDir string
 	pc      storage.PieceCompletion
+
+	mu       sync.Mutex
+	unwanted map[int]bool
+	opened   *classicTorrent
 }
 
 type classicTorrent struct {
-	hash  metainfo.Hash
-	files []classicFile
-	index segments.Index
-	pc    storage.PieceCompletion
+	hash     metainfo.Hash
+	info     *metainfo.Info
+	files    []classicFile
+	index    segments.Index
+	pc       storage.PieceCompletion
+	partsDir string
+
+	// Files the user does not want (priority 0). A piece that spans a wanted and an unwanted file still has to be stored
+	// whole to be verified; the unwanted share goes to a part file, so no half episode lands next to the wanted ones
+	// (and in the library). kept: unwanted files already complete on disk, which stay where they are.
+	mu       sync.RWMutex
+	unwanted map[int]bool
+	kept     map[int]bool
 }
 
 type classicFile struct {
@@ -72,15 +89,114 @@ func (s *classicFileStorage) OpenTorrent(_ context.Context, info *metainfo.Info,
 	}
 
 	t := &classicTorrent{
-		hash:  hash,
-		files: files,
-		index: info.FileSegmentsIndex(),
-		pc:    s.pc,
+		hash:     hash,
+		info:     info,
+		files:    files,
+		index:    info.FileSegmentsIndex(),
+		pc:       s.pc,
+		partsDir: classicPartsDir(s.baseDir, hash),
+		unwanted: map[int]bool{},
+		kept:     map[int]bool{},
 	}
+	s.mu.Lock()
+	s.opened = t
+	unwanted := s.unwanted
+	s.mu.Unlock()
+	t.setUnwanted(unwanted)
 	return storage.TorrentImpl{
 		Piece: t.Piece,
 		Close: t.Close,
 	}, nil
+}
+
+func classicPartsDir(baseDir string, hash metainfo.Hash) string {
+	return filepath.Join(baseDir, classicPartsDirName, hash.HexString())
+}
+
+// SetUnwanted tells the storage which files the user does not want (file priority 0), before or after the torrent opened.
+func (s *classicFileStorage) SetUnwanted(unwanted map[int]bool) {
+	s.mu.Lock()
+	s.unwanted = unwanted
+	t := s.opened
+	s.mu.Unlock()
+	if t != nil {
+		t.setUnwanted(unwanted)
+	}
+}
+
+// setUnwanted moves what this torrent already wrote of a newly unwanted file into its part file (a complete file stays),
+// and a part file back to the real path when the file is wanted again, so verified pieces keep their data.
+func (t *classicTorrent) setUnwanted(unwanted map[int]bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for i := range t.files {
+		was, now := t.unwanted[i], unwanted[i]
+		switch {
+		case now && !was:
+			if t.fileCompleteLocked(i) {
+				t.kept[i] = true
+				continue
+			}
+			if _, err := os.Stat(t.files[i].path); err == nil {
+				if err := os.MkdirAll(t.partsDir, classicStorageDirPerm); err == nil {
+					_ = os.Rename(t.files[i].path, t.partPath(i))
+				}
+			}
+		case !now && was:
+			if !t.kept[i] {
+				if _, err := os.Stat(t.files[i].path); errors.Is(err, os.ErrNotExist) {
+					_ = os.MkdirAll(filepath.Dir(t.files[i].path), classicStorageDirPerm)
+					_ = os.Rename(t.partPath(i), t.files[i].path)
+				}
+				_ = os.Remove(t.partPath(i))
+			}
+			delete(t.kept, i)
+		}
+	}
+	t.unwanted = make(map[int]bool, len(unwanted))
+	for i, v := range unwanted {
+		if v {
+			t.unwanted[i] = true
+		}
+	}
+}
+
+// fileCompleteLocked reports whether every piece of file i is verified and the file is on disk at its full length.
+func (t *classicTorrent) fileCompleteLocked(i int) bool {
+	files := t.info.UpvertedFiles()
+	if i < 0 || i >= len(files) || t.info.PieceLength <= 0 {
+		return false
+	}
+	stat, err := os.Stat(t.files[i].path)
+	if err != nil || stat.Size() < files[i].Length {
+		return false
+	}
+	if files[i].Length == 0 {
+		return true
+	}
+	first := files[i].TorrentOffset / t.info.PieceLength
+	last := (files[i].TorrentOffset + files[i].Length - 1) / t.info.PieceLength
+	for piece := first; piece <= last; piece++ {
+		c, err := t.pc.Get(metainfo.PieceKey{InfoHash: t.hash, Index: int(piece)})
+		if err != nil || !c.Ok || !c.Complete {
+			return false
+		}
+	}
+	return true
+}
+
+func (t *classicTorrent) partPath(i int) string {
+	return filepath.Join(t.partsDir, strconv.Itoa(i)+".part")
+}
+
+// filePath is where file i's bytes live: its own path, or its part file while it is unwanted.
+func (t *classicTorrent) filePath(i int) string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	if t.unwanted[i] && !t.kept[i] {
+		return t.partPath(i)
+	}
+	return t.files[i].path
 }
 
 func classicTorrentFilePath(baseDir string, info *metainfo.Info, file *metainfo.FileInfo) (string, error) {
@@ -145,7 +261,7 @@ func (t *classicTorrent) readAt(b []byte, off int64) (int, error) {
 		if i < 0 || i >= len(t.files) {
 			return read, fmt.Errorf("file index %d is out of range", i)
 		}
-		n, err := readClassicStorageFile(t.files[i].path, b[:int(extent.Length)], extent.Start)
+		n, err := readClassicStorageFile(t.filePath(i), b[:int(extent.Length)], extent.Start)
 		read += n
 		b = b[n:]
 		if err != nil {
@@ -167,7 +283,7 @@ func (t *classicTorrent) writeAt(b []byte, off int64) (int, error) {
 		if i < 0 || i >= len(t.files) {
 			return written, fmt.Errorf("file index %d is out of range", i)
 		}
-		n, err := writeClassicStorageFile(t.files[i].path, b[:int(extent.Length)], extent.Start)
+		n, err := writeClassicStorageFile(t.filePath(i), b[:int(extent.Length)], extent.Start)
 		written += n
 		b = b[n:]
 		if err != nil {
@@ -279,7 +395,7 @@ func (p *classicPiece) filesComplete() (bool, error) {
 		if i < 0 || i >= len(p.t.files) {
 			return false, fmt.Errorf("file index %d is out of range", i)
 		}
-		stat, err := os.Stat(p.t.files[i].path)
+		stat, err := os.Stat(p.t.filePath(i))
 		if errors.Is(err, os.ErrNotExist) {
 			return false, nil
 		}
@@ -299,7 +415,7 @@ func (p *classicPiece) sync() error {
 		if i < 0 || i >= len(p.t.files) {
 			return fmt.Errorf("file index %d is out of range", i)
 		}
-		path := p.t.files[i].path
+		path := p.t.filePath(i)
 		if _, ok := seen[path]; ok {
 			continue
 		}
