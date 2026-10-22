@@ -11,6 +11,7 @@ const nested = n("modal", { title: "AnimeThemes settings", trigger: n("button", 
     n("select", { label: "Default Provider", value: "", fieldRef: { __ID: "provider", current: "themes" }, options: [{ label: "AnimeThemes", value: "themes" }, { label: "AniSongDB", value: "song" }] }),
     n("select", { label: "Initial Volume", value: "", fieldRef: { __ID: "volume", current: .7 }, options: [{ label: "0%", value: 0 }, { label: "25%", value: .25 }, { label: "100%", value: 1 }] }, "volume"),
     n("switch", { label: "Autoplay first OP", fieldRef: { __ID: "autoplay", current: true } }),
+    n("checkbox", { label: "Show skip data notification", fieldRef: { __ID: "notify", current: false } }),
     n("button", { label: "Save settings", onClick: "save-settings" }),
 ] }, "settings")
 const items = [field, n("tabs", { defaultValue: "history", items: [n("tabs-list", { items: ["history", "schedule", "marketplace"].map(value => n("tabs-trigger", { value, item: n("text", { text: value }) }, value)) }), n("tabs-content", { value: "history", items: [nested, ...Array.from({ length: 28 }, (_, i) => n("button", { label: `History episode ${i + 1}`, onClick: `episode-${i + 1}` }, `history-${i}`))] }), n("tabs-content", { value: "schedule", items: [n("text", { text: "Schedule settings" })] }), n("tabs-content", { value: "marketplace", items: [n("text", { text: "Marketplace settings" })] })] })]

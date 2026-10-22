@@ -33,6 +33,9 @@
     .plugin-runtime-field .UI-Checkbox_label,
     .plugin-runtime-form .UI-Switch__label,
     .plugin-runtime-form .UI-Checkbox_label { padding-block: .625rem; flex: 1; }
+    /* The desktop unchecked box is gray-700 with a gray-700 border: next to invisible on the dark sheet */
+    .plugin-runtime-field .UI-Checkbox__root[role=checkbox][data-state=unchecked],
+    .plugin-runtime-form .UI-Checkbox__root[role=checkbox][data-state=unchecked] { border: 2px solid rgb(255 255 255 / .5); background: transparent; }
     .plugin-runtime-tabs-list {
         display: flex; justify-content: flex-start; overflow-x: auto; max-width: 100%;
         overscroll-behavior-x: contain; height: auto; min-height: 44px;
