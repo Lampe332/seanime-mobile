@@ -1,92 +1,89 @@
 <p align="center">
-  <img src="docs/images/readme/banner.png" alt="Seanime Mobile: anime and manga, all on your phone" width="100%">
+  <img src="docs/images/readme/banner.c7eab1e9.png" alt="Seanime Mobile: anime and manga on Android, with the whole Seanime server running on your phone" width="100%">
 </p>
 
 <p align="center">
   <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><img src="https://img.shields.io/github/v/release/Lampe332/seanime-mobile?style=for-the-badge&color=8b75ff&label=Version" alt="Latest version"></a>
-  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><img src="https://img.shields.io/github/downloads/Lampe332/seanime-mobile/total?style=for-the-badge&color=8b75ff&label=Downloads" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/Android-5.0%2B-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Android 5.0+">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-555?style=for-the-badge" alt="GPL-3.0"></a>
 </p>
 
-<p align="center">
-  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><b>⬇️ Download the APK</b></a>
-  &nbsp;·&nbsp; <a href="#-features">Features</a>
-  &nbsp;·&nbsp; <a href="#-install">Install</a>
-  &nbsp;·&nbsp; <a href="#-first-start">First start</a>
-  &nbsp;·&nbsp; <a href="#-faq">FAQ</a>
-  &nbsp;·&nbsp; <a href="CHANGELOG.md">Changelog</a>
-</p>
+<p align="center"><a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><b>Download the latest APK</b></a> &nbsp;·&nbsp; <a href="CHANGELOG.md">Changelog</a></p>
 
----
-
-**Seanime Mobile** puts [Seanime](https://github.com/5rahim/seanime) on your Android phone. The complete Seanime server runs inside the app, and every screen is built for touch, so you need no PC and no server of your own. Stream anime through extensions, download whole seasons for offline viewing, read manga and keep your AniList lists in sync, all from one app.
+**Seanime Mobile** puts [Seanime](https://github.com/5rahim/seanime) on your Android phone. Seanime is normally a server you run on a computer and open in a browser; here the whole server runs inside the app, and every screen is rebuilt for touch. Stream anime through extensions, download whole seasons for offline viewing, read manga and keep your AniList lists in sync, without a PC.
 
 <table>
   <tr>
-    <td width="42%" align="center"><img src="docs/images/readme/demo.gif" alt="Moving between Home, Discover, Search and My lists" width="300"></td>
+    <td width="42%" align="center"><img src="docs/images/readme/demo.514d6c16.gif" alt="Moving between Home, Discover, Search and My lists" width="300"></td>
     <td>
       <h3>At a glance</h3>
       <ul>
-        <li>📺 <b>Stream</b> with Sub or Dub, in the built-in player or an external one</li>
-        <li>⬇️ <b>Download</b> a whole season and watch it offline</li>
-        <li>📚 <b>Read manga</b> online or offline, with progress tracking</li>
-        <li>🔄 <b>AniList sync</b> for lists, progress and scores</li>
-        <li>📁 <b>Your own files</b> play from folders on your phone</li>
-        <li>🧩 <b>Extensions and plugins</b> from the Seanime ecosystem</li>
-        <li>🔔 <b>Updates itself</b> when a new version is out</li>
-        <li>🌐 <b>English and German</b></li>
+        <li><b>Stream</b> with Sub or Dub, in the built-in player or an external one</li>
+        <li><b>Download</b> a whole season and watch it offline</li>
+        <li><b>Read manga</b> online or offline, with progress tracking</li>
+        <li><b>AniList sync</b> for lists, progress and scores</li>
+        <li><b>Your own files</b> play from folders on your phone</li>
+        <li><b>Extensions and plugins</b> from the Seanime ecosystem</li>
+        <li><b>Updates itself</b> when a new version is out</li>
+        <li><b>English and German</b></li>
       </ul>
     </td>
   </tr>
 </table>
 
-## ✨ Features
+## Good to know before you install
 
-### 📺 Watch
+- **No sources included.** The app ships without streaming or manga sources; you add them from a community extension repository ([First start](#first-start), step 4). This project does not link to any.
+- **Android on ARM only.** Android 5.0 or newer on a 64-bit or 32-bit ARM phone. There is no iOS version.
+- **Not the official app.** Seanime Mobile is an independent, open-source fork of Seanime, licensed under the GPL-3.0.
+- **No torrents.** Torrent, debrid and auto-downloader features are turned off on Android.
+
+## Features
+
+### Watch
 - Stream episodes through online streaming extensions; pick the source, the server and Sub or Dub on the anime page.
 - The built-in player has picture-in-picture with back 10 s, play/pause and forward 10 s, a volume slider, skip opening / ending and your default audio and subtitle language.
 - Subtitles can be translated from the player menu (Google works without a key).
 - Prefer another player? Hand episodes to **VLC, MX Player, mpv or Just Player** with one tap.
 - **Continue watching** on Home resumes the episode where you stopped.
 
-### ⬇️ Download and watch offline
+### Download and watch offline
 - Download a whole season or single episodes from the anime page.
 - Everything you saved is in the **Downloads** tab; episodes you started offline wait in a **Continue offline** row.
 - Downloaded episodes also show on their anime page and play without a connection.
 
-### 📚 Read manga
+### Read manga
 - The Manga tab starts with **Continue reading**: chapter progress and new chapters at a glance, every list status as a tab.
 - The reader has a page slider, tap-to-hide controls, brightness, a black, gray or white background and keep-screen-on.
 - Download chapters to read them offline.
 
-### 🔍 Discover and organise
+### Discover and organise
 - **Discover**: a seasonal spotlight, trending and top rows, each with "See all".
 - **Search**: filters show as chips you can remove one by one, and more results load as you scroll.
 - **Long-press any cover** for a quick preview, playlists and plugin actions.
 - **My lists** with search, every AniList status and your stats; changes sync to AniList.
 - **Calendar** with the next 7 days or the whole month.
 
-### 📁 Your own library
+### Your own library
 - Pick folders with Android's folder picker; the scanner matches your files to AniList.
 - Local episodes play in the built-in player. Browse the library's folders and fix matches right on the phone.
 
-### 🧩 Extensions and plugins
+### Extensions and plugins
 - Install streaming and manga sources and plugins from community repositories.
 - Plugin windows are laid out for touch, and you can pin your favourite plugins.
 
-### 📱 Made for phones
+### Made for phones
 - Bottom sheets instead of desktop dialogs, large touch targets and the Android Back button everywhere.
 - A bottom bar you can rearrange: Home, My Lists, Discover, Search, Menu and Downloads.
 - Settings save instantly; options for programs a phone cannot run are hidden.
 
-## 📸 Screenshots
+## Screenshots
 
-<p align="center"><img src="docs/images/readme/gallery-discover.png" alt="Home, Discover, Search and the long-press preview" width="100%"></p>
-<p align="center"><img src="docs/images/readme/gallery-watch.png" alt="Anime page, Downloads, Calendar and My lists" width="100%"></p>
-<p align="center"><img src="docs/images/readme/gallery-more.png" alt="Manga page, playback settings, Settings and Plugins" width="100%"></p>
+<p align="center"><img src="docs/images/readme/gallery-browse.fb4e0408.png" alt="Home, Discover, Search and the long-press preview" width="100%"></p>
+<p align="center"><img src="docs/images/readme/gallery-watch.34e366a2.png" alt="Anime page, Downloads, Calendar and My lists" width="100%"></p>
+<p align="center"><img src="docs/images/readme/gallery-more.b15558c0.png" alt="Manga page, playback settings, Settings and Plugins" width="100%"></p>
 
-## 📲 Install
+## Install
 
 1. On your phone, open the **[latest release](https://github.com/Lampe332/seanime-mobile/releases/latest)** and download `Seanime-Mobile-x.y.z.apk` under *Assets*.
 2. Open the downloaded file. The first time, Android asks you to allow **Install unknown apps** for your browser or file manager; allow it and go back.
@@ -100,7 +97,7 @@
 ### Updates
 The app checks this repository for new releases when it starts. When one is out, tap **Download and update**; the app verifies the download and Android asks you to confirm the install. Your data and downloads stay. You can turn the check off under *Settings → About → Look for new versions*, or run it yourself with *Check for updates now*.
 
-## 🚀 First start
+## First start
 
 1. **Welcome screen.** Choose English or Deutsch, decide whether you want online streaming and manga, and tap **Start Seanime**.
 2. **Permissions.** Android asks once about file access: **Allow file access** if you want to play your own files, or **Use streaming** without it. On Android 13 and newer it also asks to show notifications, for download progress and updates.
@@ -113,18 +110,12 @@ The app checks this repository for new releases when it starts. When one is out,
    Run the tour again any time from *Settings → App → Show the setup tutorial* or the ⋮ menu on the Extensions screen. This project does not link to any sources and has nothing to do with their content.
 5. **Start watching.** Open an anime, tap **Episodes & playback** and pick an episode, or tap **Download** to save it for later.
 
-## ❓ FAQ
-
-<details>
-<summary><b>Is this the official Seanime app?</b></summary>
-
-No. Seanime Mobile is an independent, open-source fork that runs the Seanime server and interface on Android. Seanime itself is made by [5rahim](https://github.com/5rahim/seanime).
-</details>
+## FAQ
 
 <details>
 <summary><b>The pages say "No content yet"</b></summary>
 
-That is expected on a fresh install. Connect AniList to see your lists and the catalog, and install a streaming or manga source to watch and read ([First start](#-first-start), step 4). The pages fill up right away; no restart needed.
+That is expected on a fresh install. Connect AniList to see your lists and the catalog, and install a streaming or manga source to watch and read ([First start](#first-start), step 4). The pages fill up right away; no restart needed.
 </details>
 
 <details>
@@ -146,12 +137,6 @@ In the app's private storage. You find them in the **Downloads** tab, and Androi
 </details>
 
 <details>
-<summary><b>Are torrents or debrid services supported?</b></summary>
-
-No. Torrent, debrid and auto-downloader features are turned off in the Android version. Downloads come from streaming sources.
-</details>
-
-<details>
 <summary><b>Can I switch the language?</b></summary>
 
 Yes: *Settings → App → Language* switches between English and German.
@@ -159,7 +144,7 @@ Yes: *Settings → App → Language* switches between English and German.
 
 Found a bug or have an idea? [Open an issue](https://github.com/Lampe332/seanime-mobile/issues) and include your phone model, Android version and app version (*Settings → About*).
 
-## 🛠️ Build it yourself
+## Build it yourself
 
 The repository holds the complete source: the Android app (Kotlin), the Seanime server (Go) and the interface (React). Step-by-step instructions are in **[docs/BUILD.md](docs/BUILD.md)**.
 
@@ -171,7 +156,7 @@ tests/          Phone UI tests (Python and Playwright)
 Build.ps1       Full release build including the backend
 ```
 
-## 🙏 Credits and license
+## Credits and license
 
 - [**Seanime**](https://github.com/5rahim/seanime) by 5rahim: server and web interface
 - [**Seanime Android**](https://github.com/Pal-droid/Seanime-Android) by Pal-droid: the original Android port ([original README](docs/upstream/README.md))
