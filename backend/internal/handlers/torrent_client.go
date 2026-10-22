@@ -129,7 +129,7 @@ func (h *Handler) HandleTorrentClientAction(c echo.Context) error {
 			return err
 		}
 		OpenDirInExplorer(b.Dir)
-	case "pause-all", "resume-all", "force-start", "queue-up", "queue-down", "move-storage", "recheck", "reannounce", "add-tracker", "remove-tracker", "set-file-priority", "set-sequential", "rename", "set-limits", "add-magnet":
+	case "pause-all", "resume-all", "force-start", "queue-up", "queue-down", "move-storage", "recheck", "reannounce", "add-tracker", "remove-tracker", "set-file-priority", "set-sequential", "rename", "set-limits", "add-magnet", "remove-keep-files":
 		client := h.App.TorrentClientRepository.GetSeanimeClient()
 		if h.App.TorrentClientRepository.GetProvider() != torrent_client.SeanimeClient || client == nil {
 			return h.RespondWithError(c, errors.New("action is only available for the Seanime torrent client"))
@@ -170,6 +170,9 @@ func (h *Handler) HandleTorrentClientAction(c echo.Context) error {
 			client.SetLimits(b.DownloadLimit, b.UploadLimit)
 		case "add-magnet":
 			_, err = client.AddMagnet(b.Magnet, b.Dir)
+		case "remove-keep-files":
+			// "remove" deletes the downloaded files too; a finished episode should stay in the library
+			err = client.RemoveTorrent(b.Hash, false)
 		}
 		if err != nil {
 			return h.RespondWithError(c, err)
