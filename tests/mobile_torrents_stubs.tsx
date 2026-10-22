@@ -50,9 +50,12 @@ function respond(method: string, endpoint: string, body: any): any {
                 previews: body.type === "smart" ? s.torrents.map((torrent: any) => ({ torrent })) : [],
                 debridInstantAvailability: s.cached,
             }
+        case "POST /api/v1/torrent-client/download":
+            // a refused request as axios hands it over: the server's message under response.data.error
+            if (s.downloadError) throw Object.assign(new Error(s.downloadError), { response: { data: { error: s.downloadError } } })
+            return true
         case "POST /api/v1/torrentstream/start":
         case "POST /api/v1/debrid/stream/start":
-        case "POST /api/v1/torrent-client/download":
             return true
         case "GET /api/v1/torrent-client/list":
             return s.list

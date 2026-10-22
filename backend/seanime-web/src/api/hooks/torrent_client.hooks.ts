@@ -1,4 +1,4 @@
-import { useServerMutation, useServerQuery } from "@/api/client/requests"
+import { SeaError, useServerMutation, useServerQuery } from "@/api/client/requests"
 import {
     TorrentClientAction_Variables,
     TorrentClientAddMagnetFromRule_Variables,
@@ -107,7 +107,8 @@ export function useGetBuiltInTorrentDetails(hash: string | undefined) {
     })
 }
 
-export function useTorrentClientDownload(onSuccess?: () => void) {
+/** onError replaces the default error toast (the phone words it itself) */
+export function useTorrentClientDownload(onSuccess?: () => void, onError?: (error: SeaError) => void) {
     return useServerMutation<boolean, TorrentClientDownload_Variables>({
         endpoint: API_ENDPOINTS.TORRENT_CLIENT.TorrentClientDownload.endpoint,
         method: API_ENDPOINTS.TORRENT_CLIENT.TorrentClientDownload.methods[0],
@@ -116,6 +117,7 @@ export function useTorrentClientDownload(onSuccess?: () => void) {
             toast.success("Download started")
             onSuccess?.()
         },
+        ...(onError ? { onError } : {}),
     })
 }
 

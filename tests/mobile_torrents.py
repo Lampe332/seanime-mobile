@@ -143,6 +143,18 @@ with tempfile.TemporaryDirectory(prefix='seanime-torrents-') as tmp:
         page.locator('[data-torrent-download-start]').click();page.wait_for_timeout(500)
         dl=reqs(page,'POST','/api/v1/torrent-client/download')[-1]
         check('Only the missing episodes are downloaded from the batch',dl['smartSelect']=={'enabled':True,'missingEpisodeNumbers':[1,2,3,5]} and dl['torrents'][0]['infoHash']=='h2')
+        # A batch without every missing episode: the server refuses the pick; the sheet stays and says how to go on
+        page.evaluate("server.downloadError='failed to select files, could not find the right season files'")
+        search(page,'download')
+        page.locator('[data-torrent-row="h2"]').click();page.locator('[data-torrent-continue]').click();page.wait_for_timeout(500)
+        routes_before=len(page.evaluate('routes'))
+        page.locator('[data-torrent-download-start]').click();page.wait_for_timeout(500)
+        check('Smart pick refused: plain words, the sheet stays for "Everything in the torrent"',page.evaluate('toasts')[-1]==['error',
+              'This torrent doesn\'t hold every missing episode. Choose "Everything in the torrent" or another torrent.']
+              and page.locator('[data-torrent-download-sheet]').count()==1 and len(page.evaluate('routes'))==routes_before)
+        page.evaluate("server.downloadError=null")
+        for _ in range(2):  # the download sheet goes back to the search, then the search closes
+            page.keyboard.press('Escape');page.wait_for_timeout(400)
 
         # The More sheet
         page.locator('[data-anime-entry-dropdown-menu-trigger]').click();page.wait_for_timeout(450)

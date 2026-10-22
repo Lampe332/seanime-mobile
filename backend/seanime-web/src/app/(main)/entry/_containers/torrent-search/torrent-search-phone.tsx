@@ -27,6 +27,7 @@ import { useRouter } from "@/lib/navigation"
 import { subDays, subMonths } from "date-fns"
 import { useAtom } from "jotai/react"
 import React from "react"
+import { toast } from "sonner"
 import "./torrent-search-phone.css"
 
 const RESOLUTIONS = ["1080", "720", "480"]
@@ -233,7 +234,7 @@ function TorrentDownloadSheet({ entry, torrents, t, onBack, onDone }: {
     const { mutate, isPending } = useTorrentClientDownload(() => {
         onDone()
         router.push("/android-downloads?kind=torrents")
-    })
+    }, failure => toast.error(downloadError(String(failure.response?.data?.error ?? failure.message ?? ""), t)))
 
     function start() {
         if (!torrents?.length || !media || !destination) return
@@ -278,6 +279,19 @@ function TorrentDownloadSheet({ entry, torrents, t, onBack, onDone }: {
             </PhoneSheetGroup>
         </>}
     </PhoneSheet>
+}
+
+/** "Only the episodes you are missing" needs a torrent that holds all of them, from one season; the sheet stays open to pick another way. */
+function downloadError(reason: string, t: Translate) {
+    if (/could not find the right season files/i.test(reason)) {
+        return t("This torrent doesn't hold every missing episode. Choose \"Everything in the torrent\" or another torrent.",
+            "Dieser Torrent enthält nicht alle fehlenden Folgen. Wähle „Alles im Torrent“ oder einen anderen Torrent.")
+    }
+    if (/can't tell seasons apart/i.test(reason)) {
+        return t("This torrent mixes seasons. Choose \"Everything in the torrent\" or another torrent.",
+            "Dieser Torrent mischt Staffeln. Wähle „Alles im Torrent“ oder einen anderen Torrent.")
+    }
+    return reason
 }
 
 function torrentMeta(torrent: HibikeTorrent_AnimeTorrent, t: Translate, cached: boolean) {
