@@ -86,7 +86,7 @@ body:
     attributes:
       label: App Version
       description: What version of the Android Seanime app are you running?
-      placeholder: "e.g., 1.0.0, or 'Latest from main branch'"
+      placeholder: "e.g., 2.0.0 (Settings → About)"
     validations:
       required: true
 
