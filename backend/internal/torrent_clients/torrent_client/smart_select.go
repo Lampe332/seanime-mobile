@@ -8,6 +8,7 @@ import (
 	"seanime/internal/platforms/platform"
 	torrent_analyzer "seanime/internal/torrents/analyzer"
 	"seanime/internal/util"
+	"strings"
 	"time"
 )
 
@@ -31,16 +32,15 @@ func (r *Repository) DeselectAndDownload(p *DeselectAndDownloadParams) error {
 		return errors.New("no file indices provided")
 	}
 
-	providerExtension, ok := r.torrentRepository.GetAnimeProviderExtension(p.Torrent.Provider)
-	if !ok {
+	if _, ok := r.torrentRepository.GetAnimeProviderExtension(p.Torrent.Provider); !ok && !hasOwnMagnet(p.Torrent) {
 		r.logger.Error().Str("provider", p.Torrent.Provider).Msg("torrent client: provider extension not found (simple select)")
 		return errors.New("provider extension not found")
 	}
 
 	if p.ShouldAddTorrent {
 		r.logger.Info().Msg("torrent client: adding torrent (simple select)")
-		// Get magnet
-		magnet, err := providerExtension.GetProvider().GetTorrentMagnetLink(p.Torrent)
+		// Get magnet: the search result's own first, the provider only when it has none (same as a plain download)
+		magnet, err := r.torrentRepository.ResolveMagnetLink(p.Torrent)
 		if err != nil {
 			return err
 		}
@@ -69,6 +69,12 @@ func (r *Repository) DeselectAndDownload(p *DeselectAndDownloadParams) error {
 	return nil
 }
 
+// hasOwnMagnet reports whether a search result carries its magnet, so no provider extension is needed to find one
+// (the first two cases of torrent.Repository.ResolveMagnetLink).
+func hasOwnMagnet(t *hibiketorrent.AnimeTorrent) bool {
+	return strings.HasPrefix(strings.ToLower(t.MagnetLink), "magnet:?") || strings.HasPrefix(strings.ToLower(t.Link), "magnet:?")
+}
+
 type (
 	SmartSelectParams struct {
 		Torrent          *hibiketorrent.AnimeTorrent
@@ -94,8 +100,7 @@ func (r *Repository) SmartSelect(p *SmartSelectParams) error {
 		return errors.New("media or anilist client wrapper is nil")
 	}
 
-	providerExtension, ok := r.torrentRepository.GetAnimeProviderExtension(p.Torrent.Provider)
-	if !ok {
+	if _, ok := r.torrentRepository.GetAnimeProviderExtension(p.Torrent.Provider); !ok && !hasOwnMagnet(p.Torrent) {
 		r.logger.Error().Str("provider", p.Torrent.Provider).Msg("torrent client: provider extension not found (smart select)")
 		return errors.New("provider extension not found")
 	}
@@ -111,8 +116,8 @@ func (r *Repository) SmartSelect(p *SmartSelectParams) error {
 
 	if p.ShouldAddTorrent {
 		r.logger.Info().Msg("torrent client: adding torrent (smart select)")
-		// Get magnet
-		magnet, err := providerExtension.GetProvider().GetTorrentMagnetLink(p.Torrent)
+		// Get magnet: the search result's own first, the provider only when it has none (same as a plain download)
+		magnet, err := r.torrentRepository.ResolveMagnetLink(p.Torrent)
 		if err != nil {
 			return err
 		}

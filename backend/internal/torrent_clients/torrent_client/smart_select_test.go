@@ -219,6 +219,21 @@ func TestSmartSelectValidation(t *testing.T) {
 		require.EqualError(t, err, "provider extension not found")
 	})
 
+	t.Run("own magnet needs no provider", func(t *testing.T) {
+		repo := newEmptyClientRepository()
+		torrent := testTorrent("missing-provider")
+		torrent.MagnetLink = "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567"
+
+		err := repo.SmartSelect(&torrent_client.SmartSelectParams{
+			Torrent:        torrent,
+			Media:          mediaWithEpisodes(1),
+			PlatformRef:    presentPlatformRef(),
+			EpisodeNumbers: []int{1},
+		})
+
+		require.EqualError(t, err, "smart select is not supported for movies or single-episode series")
+	})
+
 	t.Run("movie or single episode", func(t *testing.T) {
 		repo := newClientRepositoryWithProvider("provider")
 
