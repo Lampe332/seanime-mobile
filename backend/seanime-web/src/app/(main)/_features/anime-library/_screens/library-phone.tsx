@@ -9,6 +9,7 @@ import { __ignoredFileManagerIsOpen } from "@/app/(main)/_features/anime-library
 import { __scanner_isScanningAtom, __scanner_modalIsOpen } from "@/app/(main)/_features/anime-library/_containers/scanner-modal"
 import { __unknownMedia_drawerIsOpen } from "@/app/(main)/_features/anime-library/_containers/unknown-media-manager"
 import { __unmatchedFileManagerIsOpen } from "@/app/(main)/_features/anime-library/_containers/unmatched-file-manager"
+import { libraryExplorer_drawerOpenAtom } from "@/app/(main)/_features/library-explorer/library-explorer.atoms"
 import {
     FORMAT_LABELS,
     PhoneEmpty,
@@ -29,7 +30,7 @@ import { Translate, useTr } from "@/lib/app-language"
 import { upath } from "@/lib/helpers/upath"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import React from "react"
-import { LuChevronLeft, LuChevronRight, LuEyeOff, LuFileQuestion, LuFileX, LuFolderOpen, LuFolderSync, LuFolderX, LuLock, LuLockOpen } from "react-icons/lu"
+import { LuChevronLeft, LuChevronRight, LuEyeOff, LuFileQuestion, LuFileX, LuFolderOpen, LuFolderSync, LuFolderTree, LuFolderX, LuLock, LuLockOpen } from "react-icons/lu"
 import { TbReportSearch } from "react-icons/tb"
 import { toast } from "sonner"
 import "./library-phone.css"
@@ -121,6 +122,7 @@ export function LibraryPhoneSheet() {
     const setUnmatched = useSetAtom(__unmatchedFileManagerIsOpen)
     const setUnknown = useSetAtom(__unknownMedia_drawerIsOpen)
     const setIgnored = useSetAtom(__ignoredFileManagerIsOpen)
+    const setExplorer = useSetAtom(libraryExplorer_drawerOpenAtom)
     const userMedia = useAtomValue(__anilist_userAnimeMediaAtom)
     const { unmatchedFiles, unknownGroups, ignoredFiles, stats, hasEntries } = useLibraryQueues()
 
@@ -209,6 +211,8 @@ export function LibraryPhoneSheet() {
 
         {!!folders.length && <PhoneSheetGroup title={t("All files", "Alle Dateien")} data-library-group="files">
             <div className="ps-rows">
+                <PhoneRow icon={<LuFolderTree />} label={t("Folders and files", "Ordner und Dateien")} note={t("Each file with its anime and state", "Jede Datei mit Anime und Status")}
+                    chevron data-library-open="explorer" onClick={() => openQueue(setExplorer)} />
                 <PhoneRow icon={<LuFileX />} label={t("Ignored files", "Ignorierte Dateien")} value={ignoredFiles.length} chevron data-library-open="ignored"
                     onClick={() => openQueue(setIgnored)} />
                 <PhoneRow icon={<LuLock />} label={t("Lock all files", "Alle Dateien sperren")} note={t("Scans keep their anime", "Scans behalten ihren Anime")}
@@ -228,10 +232,14 @@ export function LibraryPhoneSheet() {
  * Unmatched files: one folder at a time, its files to pick, the anime from suggestions or a search (an AniList ID works
  * too), then Match or Ignore for the picked files.
  */
-export function UnmatchedPhoneSheet({ unmatchedGroups }: { unmatchedGroups: Anime_UnmatchedGroup[] }) {
+export function UnmatchedPhoneSheet({ unmatchedGroups, onDone }: { unmatchedGroups: Anime_UnmatchedGroup[], /** Called when the sheet closes */ onDone?: () => void }) {
     const t = useTr()
     const serverStatus = useServerStatus()
-    const [open, setOpen] = useAtom(__unmatchedFileManagerIsOpen)
+    const [open, setOpenAtom] = useAtom(__unmatchedFileManagerIsOpen)
+    const setOpen = (value: boolean) => {
+        setOpenAtom(value)
+        if (!value) onDone?.()
+    }
     const library = serverStatus?.settings?.library
     const folders = [library?.libraryPath, ...(library?.libraryPaths ?? [])].filter((path): path is string => !!path)
     const [page, setPage] = React.useState(0)

@@ -1,0 +1,9 @@
+/* The library explorer on phones: only what the phone kit (phone-screen.css) lacks. */
+body .ps-sheet.plx-sheet.UI-Modal__content { min-height: min(40rem, 86svh); align-content: start; }
+.plx-folder { display: flex; align-items: center; gap: .25rem; min-width: 0; padding: .25rem .25rem .25rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); }
+.plx-folder:has(> .ps-icon-button:first-child) { padding-left: .25rem; }
+.plx-folder-text { flex: 1 1 auto; display: grid; gap: .125rem; min-width: 0; padding-block: .5rem; }
+.plx-folder-text p { font-size: .9375rem; font-weight: 600; overflow-wrap: anywhere; }
+.plx-folder-text small { font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.plx-back { margin: -.5rem 0 -.25rem -.5rem; }
+.ps-facts dd.plx-path { flex: 1 1 100%; margin-left: 0; text-align: start; font-size: .875rem; font-weight: 500; overflow-wrap: anywhere; }

@@ -68,7 +68,9 @@ with tempfile.TemporaryDirectory(prefix='seanime-medialinks-') as tmp:
         check('Rows: title, length and filler, watched up to the progress',rows==[['Episode 1','24 min',True],['Episode 2','24 min',True],['Episode 3','24 min · Filler',False]])
         check('48px targets, no overflow, no desktop grid',small(page)==[] and page.evaluate(NO_OVERFLOW) and page.locator('[data-episode-list-grid]').count()==0)
         shot(page,'medialinks-390.png')
-        page.locator(f'[data-medialinks-episode="{A}/Frieren - 03.mkv"]').click();page.wait_for_timeout(900)
+        page.locator(f'[data-medialinks-episode="{A}/Frieren - 03.mkv"]').click()
+        # The link is built asynchronously (tokens, subtitles); wait for it and for the tracking request
+        page.wait_for_function('tabs.length>0 && requests.some(r=>r[1]==="/api/v1/playback-manager/manual-tracking/start")',timeout=8000);page.wait_for_timeout(200)
         tabs=page.evaluate('tabs')
         check('A tap opens the episode in the external player and starts tracking',len(tabs)==1 and tabs[0].startswith('intent://') and 'org.videolan.vlc' in tabs[0]
               and 'Frieren%20-%2003.mkv' in tabs[0] and reqs(page,'POST','/api/v1/playback-manager/manual-tracking/start')[-1]['episodeNumber']==3)

@@ -30,8 +30,12 @@ export const openTab = (url: string) => { w.tabs.push(url) }
 
 export const useMediaPreviewModal = () => ({ setPreviewModalMediaId: (id: number, type: string) => w.previews.push([id, type]) })
 export const PluginMediaCardContextMenuItems = () => null
+export const PluginAnimePageButtons = () => null, PluginMangaPageButtons = () => null, PluginMangaPageDropdownItems = () => null
+export const PluginAnimeLibraryDropdownItems = () => null, PluginMangaLibraryDropdownItems = () => null, PluginEpisodeCardContextMenuItems = () => null
+export const PluginEpisodeGridItemMenuItems = () => null, PluginAnimePageDropdownItems = () => null
+export const usePluginMangaLibraryDropdownItems = () => ({ items: [], handleClick: () => {} })
+export const usePluginAnimePageDropdownItems = () => ({ items: [], handleClick: () => {} })
 export const CustomLibraryBanner = () => <div data-desktop-banner />
-export const useLibraryExplorer = () => ({ openDirInLibraryExplorer: (path: string) => w.explorer.push(path) })
 export const useSeaCommand = () => ({ setSeaCommandInput: (v: string) => w.command.push(v), setSeaCommandOpen: (v: boolean) => w.command.push(v) })
 export const useSeaCommandSearchSelectMedia = () => ({ searchAndSelectMedia: () => {}, selectedAnime: null, onAcknowledgeSelection: () => {} })
 export const useSeaCommandInject = () => ({ inject: () => {}, remove: () => {} })
@@ -75,6 +79,7 @@ function respond(method: string, endpoint: string, body: any): any {
         case "POST /api/v1/library/explorer/file-tree/refresh":
         case "POST /api/v1/library/local-files":
         case "DELETE /api/v1/library/empty-directories":
+        case "DELETE /api/v1/library/local-files":
             return true
         case "PATCH /api/v1/library/local-files": {
             if (body.action === "ignore") c.ignoredLocalFiles = [...c.ignoredLocalFiles, ...takeFiles(body.paths).map((lf: any) => ({ ...lf, ignored: true }))]
@@ -94,6 +99,8 @@ function respond(method: string, endpoint: string, body: any): any {
         case "PATCH /api/v1/library/anime-entry/bulk-action":
             c.unknownGroups = c.unknownGroups.filter((g: any) => g.mediaId !== body.mediaId)
             return []
+        case "GET /api/v1/library/explorer/file-tree":
+            return s.fileTree ?? { root: null, localFiles: {} }
         case "GET /api/v1/library/scan-summaries":
             return s.scanSummaries ?? []
         case "POST /api/v1/playback-manager/manual-tracking/start":

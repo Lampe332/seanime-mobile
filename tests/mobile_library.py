@@ -32,7 +32,17 @@ MEDIA={154587:anime(154587,'Sousou no Frieren','TV',2023,28),21:anime(21,'One Pi
     16498:anime(16498,'Shingeki no Kyojin','TV',2013,25),145064:anime(145064,'Jujutsu Kaisen 2nd Season','TV',2023,23)}
 STATUS=dict(version='3.10.4',os='android',isOffline=False,user=dict(viewer=dict(name='Nick'),isSimulated=False),themeSettings=dict(id=1),
     settings=dict(library=dict(libraryPath=f'{A}',libraryPaths=['/storage/emulated/0/Download/Seanime'],autoScan=False),anilist=dict(enableAdultContent=False)))
-SERVER=dict(status=STATUS,collection=COLLECTION,media={str(k):v for k,v in MEDIA.items()},suggestions={FRIEREN:[154587]},userMedia=[MEDIA[16498]])
+COLLECTION['lists'][0]['entries'][0]['media']=dict(id=16498,title=dict(userPreferred='Shingeki no Kyojin'))
+# The library explorer's file tree: Frieren without an anime, One Piece matched, AoT locked, a clip ignored at the root
+def fnode(path,size=350_000_000): return dict(name=path.split('/')[-1],path=path,normalizedPath=path.lower(),kind='file',size=size)
+def dnode(path,children,count,matched): return dict(name=path.split('/')[-1],path=path,normalizedPath=path.lower(),kind='directory',children=children,localFileCount=count,matchedLocalFileCount=matched)
+def tlf(path,media=0,ep=0,locked=False,ignored=False): return dict(path=path,name=path.split('/')[-1],parsedInfo=dict(original=path.split('/')[-1]),mediaId=media,locked=locked,ignored=ignored,metadata=dict(episode=ep,aniDBEpisode='',type='main'))
+TREE_FILES={f'{FRIEREN}/Frieren - 01.mkv':tlf(f'{FRIEREN}/Frieren - 01.mkv'),f'{FRIEREN}/Frieren - 02.mkv':tlf(f'{FRIEREN}/Frieren - 02.mkv'),
+    f'{A}/One Piece/OP 1000.mkv':tlf(f'{A}/One Piece/OP 1000.mkv',21,1000),f'{A}/AoT/AoT 01.mkv':tlf(f'{A}/AoT/AoT 01.mkv',16498,1,locked=True),
+    f'{A}/clip.mp4':tlf(f'{A}/clip.mp4',ignored=True)}
+FILE_TREE=dict(root=dnode(A,[dnode(f'{A}/AoT',[fnode(f'{A}/AoT/AoT 01.mkv')],1,1),dnode(f'{A}/One Piece',[fnode(f'{A}/One Piece/OP 1000.mkv')],1,1),
+    dnode(FRIEREN,[fnode(f'{FRIEREN}/Frieren - 01.mkv'),fnode(f'{FRIEREN}/Frieren - 02.mkv')],2,0),fnode(f'{A}/clip.mp4',12_000_000)],4,2),localFiles=TREE_FILES)
+SERVER=dict(status=STATUS,collection=COLLECTION,media={str(k):v for k,v in MEDIA.items()},suggestions={FRIEREN:[154587]},userMedia=[MEDIA[16498]],fileTree=FILE_TREE)
 INIT='''(()=>{Object.assign(window,{server:%s,routes:[],requests:[],toasts:[],previews:[],command:[],completed:0})})()'''
 NATIVE_BACK=(root/'app/src/main/java/com/seanime/app/AndroidNavigation.kt').read_text(encoding='utf-8').split('"""')[1].strip()
 STATIC=root/'backend/seanime-web/out/static'
@@ -219,6 +229,62 @@ with tempfile.TemporaryDirectory(prefix='seanime-library-') as tmp:
         tap(page,'[data-library-status-refresh]',600)
         check('Watcher: Refresh opens the library sheet and the status goes',page.locator('[data-library-phone-sheet]').count()==1 and ch.count()==0)
         back(page)
+        page.close()
+
+        # Library explorer: folders one level at a time, filters, search, a file's jobs
+        page=open_page()
+        tap(page,'[data-library-phone-action]',600)
+        tap(page,f'{SHEET} [data-library-open=explorer]',900)
+        check('Explorer: from the library sheet, one sheet titled Library files, not the desktop tree',page.evaluate(SHEETS)==1
+              and page.locator(f'{SHEET} .UI-Modal__title').inner_text()=='Library files' and page.locator('text=can only be rendered on larger screens').count()==0)
+        check('Root: the library folder with its counts',' '.join(page.locator('[data-explorer-folder] .plx-folder-text').inner_text().split())=='Anime 4 files · 2 with an anime'
+              and page.locator('[data-explorer-up]').count()==0)
+        rows=page.evaluate('[...document.querySelectorAll("[data-explorer-children] > .ps-action")].map(r=>[r.dataset.explorerDir?"dir":"file",r.querySelector(".ps-action-text > span").textContent,r.querySelector("small")?.textContent,r.dataset.tone||""])')
+        check('Folders first by name, then files; folders without an anime in the attention tone',rows==[['dir','AoT','1 file',''],['dir','One Piece','1 file',''],
+              ['dir','Sousou no Frieren','2 files · 2 without an anime','attention'],['file','clip.mp4','Ignored','']])
+        check('Filters with counts',page.evaluate('[...document.querySelectorAll("[data-explorer-filters] button")].map(b=>b.textContent)')==['No anime2','Ignored1','Not locked1'])
+        check('Explorer: 48px targets, no overflow',small(page)==[] and page.evaluate(NO_OVERFLOW))
+        shot(page,'explorer-root-390.png')
+        tap(page,f'[data-explorer-dir="{FRIEREN}"]',300)
+        check('A folder opens one level down with Up',page.locator('[data-explorer-folder]').get_attribute('data-explorer-folder')==FRIEREN and page.locator('[data-explorer-up]').count()==1
+              and page.evaluate('[...document.querySelectorAll("[data-explorer-file]")].map(r=>r.querySelector("small").textContent)')==['No anime','No anime'])
+        shot(page,'explorer-folder-390.png')
+        tap(page,'[data-explorer-up]',300)
+        check('Up returns to the library folder',page.locator('[data-explorer-folder]').get_attribute('data-explorer-folder')==A)
+        tap(page,'[data-explorer-filters] [data-chip=unmatched]',300)
+        check('No anime: every such file in the library, with its folder',page.evaluate('[...document.querySelectorAll("[data-explorer-flat] [data-explorer-file]")].map(r=>r.querySelector("small").textContent)')
+              ==['No anime · Sousou no Frieren','No anime · Sousou no Frieren'])
+        tap(page,'[data-explorer-filters] [data-chip=unmatched]',300)
+        page.locator('[data-explorer-search]').fill('op 1000');page.wait_for_timeout(300)
+        check('Search: a file by name, with its anime and episode',page.evaluate('[...document.querySelectorAll("[data-explorer-flat] [data-explorer-file]")].map(r=>r.querySelector("small").textContent)')
+              ==['AniList ID 21 · Episode 1000 · One Piece'])
+        page.locator('[data-explorer-search]').fill('');page.wait_for_timeout(200)
+        tap(page,f'[data-explorer-dir="{A}/AoT"]',300);tap(page,f'[data-explorer-file="{A}/AoT/AoT 01.mkv"]',300)
+        facts=page.locator('[data-explorer-file-facts]').inner_text()
+        check('A file: its anime, episode, state, size and folder',page.locator(f'{SHEET} .UI-Modal__title').inner_text()=='AoT 01.mkv' and 'Shingeki no Kyojin' in facts
+              and 'Locked' in facts and '333.8 MB' in facts and f'{A}/AoT' in facts)
+        check('A matched, locked file: unmatch, unlock, ignore, delete',page.evaluate('[...document.querySelectorAll("[data-explorer-action]")].map(r=>r.dataset.explorerAction)')==['unmatch','unlock','ignore','delete'])
+        check('File view: 48px targets, no overflow',small(page)==[] and page.evaluate(NO_OVERFLOW))
+        shot(page,'explorer-file-390.png')
+        tap(page,'[data-explorer-action=unlock]',500)
+        check('Unlock: that file',reqs(page,'PATCH','/api/v1/library/local-files')[-1]==dict(paths=[f'{A}/AoT/AoT 01.mkv'],action='unlock'))
+        tap(page,'[data-explorer-action=delete]',300)
+        check('Delete asks first',page.locator(f'{SHEET} .UI-Modal__title').inner_text()=='Delete this file?' and reqs(page,'DELETE','/api/v1/library/local-files')==[])
+        tap(page,'[data-explorer-delete-confirm]',600)
+        check('Delete: that file, back to its folder',reqs(page,'DELETE','/api/v1/library/local-files')==[dict(paths=[f'{A}/AoT/AoT 01.mkv'])] and page.locator('[data-explorer-folder]').count()==1)
+        tap(page,'[data-explorer-up]',200);tap(page,f'[data-explorer-dir="{FRIEREN}"]',200);tap(page,f'[data-explorer-file="{FRIEREN}/Frieren - 01.mkv"]',300)
+        check('A file without an anime offers Match first',page.evaluate('[...document.querySelectorAll("[data-explorer-action]")].map(r=>r.dataset.explorerAction)')==['match','lock','ignore','delete'])
+        tap(page,'[data-explorer-action=match]',1000)
+        check('Match opens the unmatched sheet for that file alone',page.evaluate(SHEETS)==1 and page.locator('[data-library-unmatched]').count()==1
+              and page.evaluate('[...document.querySelectorAll("[data-unmatched-file]")].length')==1)
+        tap(page,'[data-unmatched-choice="154587"]',200);tap(page,'[data-unmatched-match]',900)
+        check('Matched: back on the file in the explorer',reqs(page,'POST','/api/v1/library/anime-entry/manual-match')[-1]==dict(paths=[f'{FRIEREN}/Frieren - 01.mkv'],mediaId=154587)
+              and page.locator('[data-explorer-file-view]').count()==1)
+        tap(page,'[data-explorer-file-back]',300)
+        check('Back to the folder from a file',page.locator('[data-explorer-folder]').get_attribute('data-explorer-folder')==FRIEREN)
+        check('Back closes the explorer',back(page) and page.evaluate(SHEETS)==0)
+        page.evaluate(f'openExplorerAt({json.dumps(A + "/One Piece/")})');page.wait_for_timeout(900)
+        check('Open in library explorer: at the anime\'s folder',page.locator('[data-explorer-folder]').get_attribute('data-explorer-folder')==f'{A}/One Piece')
         page.close()
 
         # No folder: the sheet says where to set one
