@@ -42,6 +42,30 @@ const TAB_SECTIONS: Record<string, SettingsSectionId> = {
 }
 
 /**
+ * The open area is remembered for this history entry (by its router key): switching the preload mode swaps the router (main.tsx) and
+ * turning custom colours off reloads the app, and the page should come back on the same area. A new visit to /settings has a new key
+ * and opens the list. Kept out of history.state, since writing it there makes the router load the page again.
+ */
+const SECTION_KEY = "sea-settings-section:"
+
+function historyKey() {
+    const key = window.history.state?.__TSR_key ?? window.history.state?.key
+    return key ? SECTION_KEY + key : null
+}
+
+function sectionInHistory(): SettingsSectionId | null {
+    const key = historyKey()
+    if (!key) return null
+    try {
+        const id = sessionStorage.getItem(key)
+        return SECTIONS.find(item => item.id === id)?.id ?? null
+    }
+    catch {
+        return null
+    }
+}
+
+/**
  * Android phone settings: a list of areas, each opening its page in the same screen. Every change saves at once (no Save button
  * at the end of a long page, nothing lost on leaving); Android Back closes an open sheet first, then the page, then the screen.
  * Only settings that work in the app are here: desktop players, transcoding, torrents, Discord, sidebar and keyboard settings
@@ -52,11 +76,22 @@ export function SettingsPhone() {
     const status = useServerStatus()
     const router = useRouter()
     const searchParams = useSearchParams()
-    const [section, setSection] = React.useState<SettingsSectionId | null>(() => TAB_SECTIONS[searchParams.get("tab") ?? ""] ?? null)
+    const [section, setSection] = React.useState<SettingsSectionId | null>(() => TAB_SECTIONS[searchParams.get("tab") ?? ""] ?? sectionInHistory())
     const [sheets, setSheets] = React.useState(0)
     const countSheets = React.useCallback((delta: number) => setSheets(open => Math.max(0, open + delta)), [])
     const rows = React.useRef(new Map<SettingsSectionId, HTMLButtonElement>())
-    const returnTo = React.useRef<SettingsSectionId | null>(null)
+    const returnTo = React.useRef<SettingsSectionId | null>(section)
+
+    // Again after the deep link's replace, which gives the entry a new key
+    React.useEffect(() => {
+        const key = historyKey()
+        if (!key) return
+        try {
+            if (section) sessionStorage.setItem(key, section)
+            else sessionStorage.removeItem(key)
+        }
+        catch {}
+    }, [section, searchParams])
 
     // A deep link opens its page once; the address goes back to /settings, as on the desktop page
     React.useEffect(() => {

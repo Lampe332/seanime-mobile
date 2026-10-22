@@ -348,6 +348,16 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
         check('Back 3 leaves the screen',back(page) is False)
         page.close()
 
+        # The open area survives a remount or reload of the same history entry (the preload mode swaps the router, colours off reloads)
+        page=open_page()
+        page.evaluate("history.replaceState({__TSR_key:'entry-1'},'')")
+        open_section(page,'ui');page.reload_app()
+        check('A reload of the same history entry comes back on the open area',page.evaluate(SECTION)=='ui')
+        check('Back from that area returns to the list',back(page) and page.evaluate(SECTION)=='home')
+        open_section(page,'ui');page.evaluate("history.replaceState({__TSR_key:'entry-2'},'')");page.reload_app()
+        check('A new visit to /settings (a new history entry) opens the list',page.evaluate(SECTION)=='home')
+        page.close()
+
         # Deep links
         page=open_page(path='/settings?tab=external-player-link')
         check('?tab=external-player-link opens Playback and the address goes back to /settings',page.evaluate(SECTION)=='playback'
