@@ -27,6 +27,8 @@ with tempfile.TemporaryDirectory(prefix='seanime-downloads-') as tmp:
         page.locator('[data-downloaded-anime]').first.wait_for();page.wait_for_timeout(300)
         check('Overview: title, facts from the rows and one card per anime',page.locator('h1').inner_text()=='Downloads' and page.locator('[data-downloaded-anime]').count()==3
               and page.locator('.mdl-header p').inner_text().startswith('3 Anime · 6 episodes ·'))
+        check('Sizes keep number and unit together (no-break space)',page.evaluate(r"""() => { const t = document.body.innerText
+              return /\d (GB|MB)/.test(t) && !/\d (GB|MB)/.test(t) }"""))
         active=page.locator('[data-active-downloads] .mdl-row')
         check('Downloads in progress come first with progress and their own pause / resume',active.count()==2 and page.locator('[aria-label="Pause episode 2"]').count()==1
               and page.locator('[aria-label="Resume episode 1"]').count()==1 and page.locator('[data-active-downloads] [role=progressbar]').first.get_attribute('aria-valuenow')=='42')

@@ -19,8 +19,9 @@ import "./downloads-mobile.css"
 export type { OfflineEpisode }
 export { animeKey, groupEpisodes }
 
-export const formatSize = (bytes: number) => bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toLocaleString(getAppLanguage(), { maximumFractionDigits: 1 })} GB`
-    : `${(bytes / 1024 ** 2).toLocaleString(getAppLanguage(), { maximumFractionDigits: 0 })} MB`
+// No-break space: a narrow card must not leave the unit alone on the next line ("1.4" / "GB")
+export const formatSize = (bytes: number) => bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toLocaleString(getAppLanguage(), { maximumFractionDigits: 1 })} GB`
+    : `${(bytes / 1024 ** 2).toLocaleString(getAppLanguage(), { maximumFractionDigits: 0 })} MB`
 const clock = (position: number) => `${Math.floor(position / 60000).toString().padStart(2, "0")}:${Math.floor(position / 1000 % 60).toString().padStart(2, "0")}`
 const plain = (value?: string) => (value || "").replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").trim()
 const episodeWord = (count: number, t: Translate) => count === 1 ? t("episode", "Folge") : t("episodes", "Folgen")
