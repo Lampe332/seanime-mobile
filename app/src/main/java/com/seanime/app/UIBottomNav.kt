@@ -970,6 +970,11 @@ object UIBottomNav {
                     else menuBtn.removeAttribute('data-active');
                 }
 
+                // Texts of the menu's own rows and its edit mode follow the app language the web UI stores (English default).
+                function navText(en, de) {
+                    try { return JSON.parse(localStorage.getItem('seanime-mobile-language') || '"en"') === 'de' ? de : en; } catch (e) { return en; }
+                }
+
                 // Last rows of the menu: customize navigation + reset navigation.
                 function makeActionRow(id, label, ariaLabel, svg, danger, onClick) {
                     var row = document.createElement('div');
@@ -1002,9 +1007,9 @@ object UIBottomNav {
                     divider.setAttribute('role', 'separator');
                     menu.appendChild(divider);
                     if (withCustomize) {
-                        menu.appendChild(makeActionRow('__seanime_wrench_btn', 'Navigation anpassen', 'Customize navigation', SVG_WRENCH, false, toggleEditMode));
+                        menu.appendChild(makeActionRow('__seanime_wrench_btn', navText('Customize navigation', 'Navigation anpassen'), navText('Customize navigation', 'Navigation anpassen'), SVG_WRENCH, false, toggleEditMode));
                     }
-                    menu.appendChild(makeActionRow('__seanime_reset_btn', 'Navigation zur\u00fccksetzen', 'Reset navigation', SVG_RESET, true, showResetDialog));
+                    menu.appendChild(makeActionRow('__seanime_reset_btn', navText('Reset navigation', 'Navigation zur\u00fccksetzen'), navText('Reset navigation', 'Navigation zur\u00fccksetzen'), SVG_RESET, true, showResetDialog));
                 }
 
                 function navItemToFloatPill(navItem) {
@@ -1401,7 +1406,7 @@ object UIBottomNav {
                     var cnt = document.getElementById('__seanime_edit_count');
                     if (!cnt) return;
                     cnt.classList.remove('is-warn');
-                    cnt.textContent = 'In der Leiste: ' + navCount() + '/' + MAX_NAV_ITEMS;
+                    cnt.textContent = navText('In the bar: ', 'In der Leiste: ') + navCount() + '/' + MAX_NAV_ITEMS;
                 }
 
                 // Short message in the panel header; optional row pulses so the cause is visible.
@@ -1490,12 +1495,12 @@ object UIBottomNav {
                     title.className = 'seanime-edit-title';
                     title.setAttribute('role', 'heading');
                     title.setAttribute('aria-level', '2');
-                    title.textContent = 'Navigation anpassen';
+                    title.textContent = navText('Customize navigation', 'Navigation anpassen');
                     var done = document.createElement('button');
                     done.id = '__seanime_edit_done_btn';
                     done.className = 'seanime-edit-done';
                     done.type = 'button';
-                    done.textContent = 'Fertig';
+                    done.textContent = navText('Done', 'Fertig');
                     done.addEventListener('click', function(e) { e.stopPropagation(); exitEditMode(); });
                     headRow.appendChild(title);
                     headRow.appendChild(done);
@@ -1505,7 +1510,8 @@ object UIBottomNav {
                     count.setAttribute('aria-live', 'polite');
                     var hint = document.createElement('div');
                     hint.className = 'seanime-edit-hint';
-                    hint.textContent = 'Tippe einen Eintrag, um ihn in die Leiste zu holen oder zurück ins Menü zu geben. Maximal ' + MAX_NAV_ITEMS + ' in der Leiste. Ziehen ordnet die Reihenfolge.';
+                    hint.textContent = navText('Tap an item to move it into the bar or back into the menu. Up to ' + MAX_NAV_ITEMS + ' in the bar. Drag to reorder.',
+                        'Tippe einen Eintrag, um ihn in die Leiste zu holen oder zurück ins Menü zu geben. Maximal ' + MAX_NAV_ITEMS + ' in der Leiste. Ziehen ordnet die Reihenfolge.');
                     head.appendChild(headRow);
                     head.appendChild(count);
                     head.appendChild(hint);
@@ -1521,20 +1527,20 @@ object UIBottomNav {
                     secBar.dataset.section = 'bar';
                     var barTitle = document.createElement('div');
                     barTitle.className = 'seanime-edit-sec-title';
-                    barTitle.textContent = 'In der Leiste';
+                    barTitle.textContent = navText('In the bar', 'In der Leiste');
                     secBar.appendChild(barTitle);
 
                     NAV_ITEMS.filter(function(it) { return it.placement === 'nav'; }).forEach(function(item) {
                         var row = makeEditRow('bar', item.label, item.isMenu ? SVG_HAMBURGER : item.svg, isActive(item));
                         row.dataset.navId = item.id;
                         if (item.isMenu || item.immovableToFloat) {
-                            row.setAttribute('aria-label', item.label + ' – bleibt immer in der Leiste');
+                            row.setAttribute('aria-label', item.label + navText(' – always stays in the bar', ' – bleibt immer in der Leiste'));
                             var fixed = document.createElement('span');
                             fixed.className = 'seanime-edit-fixed';
                             fixed.textContent = 'Fest';
                             row.appendChild(fixed);
                         } else {
-                            row.setAttribute('aria-label', item.label + ' – zurück ins Menü geben');
+                            row.setAttribute('aria-label', item.label + navText(' – move back to the menu', ' – zurück ins Menü geben'));
                             var check = document.createElement('span');
                             check.className = 'seanime-edit-check';
                             check.setAttribute('aria-hidden', 'true');
@@ -1562,14 +1568,14 @@ object UIBottomNav {
                     secMenu.dataset.section = 'menu';
                     var menuTitle = document.createElement('div');
                     menuTitle.className = 'seanime-edit-sec-title';
-                    menuTitle.textContent = 'Im Menü';
+                    menuTitle.textContent = navText('In the menu', 'Im Menü');
                     secMenu.appendChild(menuTitle);
 
                     var reversed = floatSidebarItems.slice().reverse();
                     if (!reversed.length) {
                         var empty = document.createElement('div');
                         empty.className = 'seanime-edit-sec-empty';
-                        empty.textContent = 'Keine weiteren Einträge im Menü.';
+                        empty.textContent = navText('No more items in the menu.', 'Keine weiteren Einträge im Menü.');
                         secMenu.appendChild(empty);
                     }
                     reversed.forEach(function(item) {
@@ -1578,9 +1584,9 @@ object UIBottomNav {
                         var hidden = !!hiddenMap[item.label];
                         if (hidden) {
                             row.setAttribute('data-hidden', 'true');
-                            row.querySelector('.float-nav-tooltip').textContent = item.label + ' (ausgeblendet)';
+                            row.querySelector('.float-nav-tooltip').textContent = item.label + navText(' (hidden)', ' (ausgeblendet)');
                         }
-                        row.setAttribute('aria-label', item.label + ' – in die Leiste holen');
+                        row.setAttribute('aria-label', item.label + navText(' – move into the bar', ' – in die Leiste holen'));
                         attachRowHandle(row, function() { startRowDrag(row, 'menurow', null, item); });
                         row.addEventListener('click', function(e) {
                             e.stopPropagation();
@@ -1872,7 +1878,7 @@ object UIBottomNav {
                     if (!sidebarItem) return false;
                     if (isAndroidRemovedOfflineItem(sidebarItem)) return false;
                     if (navCount() >= MAX_NAV_ITEMS) {
-                        showEditNotice('Leiste ist voll (' + MAX_NAV_ITEMS + '/' + MAX_NAV_ITEMS + ')', rowEl);
+                        showEditNotice(navText('The bar is full (', 'Leiste ist voll (') + MAX_NAV_ITEMS + '/' + MAX_NAV_ITEMS + ')', rowEl);
                         return false;
                     }
                     var existing = null;
@@ -1916,7 +1922,7 @@ object UIBottomNav {
                     if (!navItem) return false;
                     if (navItem.isMenu || navItem.immovableToFloat) {
                         var menuRow = document.querySelector('#android-floating-menu .float-nav-item[data-nav-id="' + navItem.id + '"]');
-                        showEditNotice('Menü bleibt immer in der Leiste', menuRow);
+                        showEditNotice(navText('Menu always stays in the bar', 'Menü bleibt immer in der Leiste'), menuRow);
                         return false;
                     }
                     navItem.placement = 'float';
