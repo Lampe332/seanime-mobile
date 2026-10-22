@@ -10,6 +10,9 @@ import {
 import { PhoneEmpty, PhoneField, PhonePick, PhoneRow, PhoneSheet, PhoneSheetGroup } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { usePluginAnimePageDropdownItems } from "@/app/(main)/_features/plugin/actions/plugin-actions"
 import { useAnimeEntryPageView } from "@/app/(main)/entry/_containers/anime-entry-page"
+import { __torrentSearch_selectionAtom } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
+import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
+import { useSetAtom } from "jotai"
 import { IconButton } from "@/components/ui/button"
 import { copyToClipboard } from "@/lib/helpers/browser"
 import { Translate, useTr } from "@/lib/app-language"
@@ -17,7 +20,7 @@ import { upath } from "@/lib/helpers/upath"
 import { isCustomSource } from "@/lib/server/utils"
 import React from "react"
 import { BiDotsVerticalRounded } from "react-icons/bi"
-import { LuArrowUpRight, LuCopy, LuFileMinus, LuGlobe, LuListChecks, LuPuzzle, LuTrash2 } from "react-icons/lu"
+import { LuArrowUpRight, LuCopy, LuFileMinus, LuGlobe, LuListChecks, LuMagnet, LuPuzzle, LuTrash2 } from "react-icons/lu"
 import { toast } from "sonner"
 
 /**
@@ -46,6 +49,9 @@ export function AnimeEntryPhoneMenu({ entry, details }: { entry: Anime_Entry, de
     const { items: pluginItems, handleClick: runPlugin } = usePluginAnimePageDropdownItems(entry.media)
     const hasFiles = isLibraryView && !!entry.libraryData && !entry._isNakamaEntry && !!entry.localFiles?.length
     const files = entry.localFiles?.length ?? 0
+    const { data: torrentProviders } = useAnimeListTorrentProviderExtensions()
+    const openTorrentSearch = useSetAtom(__torrentSearch_selectionAtom)
+    const canDownloadTorrent = !!torrentProviders?.length && entry.media?.status !== "NOT_YET_RELEASED" && !entry._isNakamaEntry
 
     // One sheet at a time: the menu closes before the next one opens, so Back always returns to the page
     const go = (next: View) => {
@@ -72,6 +78,9 @@ export function AnimeEntryPhoneMenu({ entry, details }: { entry: Anime_Entry, de
                 <div className="ps-rows">
                     <PhoneRow icon={<LuListChecks />} label={t("Filler and specials", "Filler und Specials")} chevron data-entry-open="metadata"
                         note={t("Mark filler episodes, link specials to their series", "Filler-Folgen markieren, Specials ihrer Serie zuordnen")} onClick={() => go("metadata")} />
+                    {canDownloadTorrent && <PhoneRow icon={<LuMagnet />} label={t("Download a torrent", "Torrent herunterladen")} chevron data-entry-open="torrent-download"
+                        note={t("Into your library folder, with the app's own torrent client", "In deinen Bibliotheksordner, mit dem Torrent-Client der App")}
+                        onClick={() => { setView(null); setTimeout(() => openTorrentSearch("download"), 150) }} />}
                 </div>
             </PhoneSheetGroup>
             {hasFiles && <PhoneSheetGroup title={t("Files on this phone", "Dateien auf diesem Handy")} note={plural(t, files, ["file", "files"], ["Datei", "Dateien"])}>

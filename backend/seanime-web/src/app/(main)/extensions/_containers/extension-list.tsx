@@ -36,7 +36,7 @@ export const __extensions_currentPageAtom = atom<"installed" | "marketplace">("i
 
 export const EXTENSION_TYPE = {
     "plugin": "Plugin",
-    ...(!IS_ANDROID_APP ? { "anime-torrent-provider": "Anime Torrent Provider" } : {}),
+    "anime-torrent-provider": "Anime Torrent Provider",
     "manga-provider": "Manga Provider",
     "onlinestream-provider": "Online Streaming Provider",
     "custom-source": "Custom Source",
@@ -95,10 +95,8 @@ export function ExtensionList(props: ExtensionListProps) {
     ]
 
     const enabledExtensions = orderExtensions(allExtensions?.extensions ?? [])
-        .filter(extension => !(IS_ANDROID_APP) || extension.type !== "anime-torrent-provider")
         .filter(matchesSearchTerm)
     const disabledExtensions = orderExtensions(allExtensions?.disabledExtensions ?? [])
-        .filter(extension => !(IS_ANDROID_APP) || extension.type !== "anime-torrent-provider")
         .filter(matchesSearchTerm)
 
     const pluginExtensions = enabledExtensions.filter(n => n.type === "plugin")
@@ -108,11 +106,9 @@ export function ExtensionList(props: ExtensionListProps) {
     const customSourceExtensions = enabledExtensions.filter(n => n.type === "custom-source")
 
     const nonvalidExtensions = (allExtensions?.invalidExtensions ?? []).filter(n => n.code !== "plugin_permissions_not_granted")
-        .filter(n => !(IS_ANDROID_APP) || n.extension.type !== "anime-torrent-provider")
         .filter(matchesInvalidExtensionSearchTerm)
         .sort((a, b) => a.id.localeCompare(b.id))
     const pluginPermissionsNotGrantedExtensions = (allExtensions?.invalidExtensions ?? []).filter(n => n.code === "plugin_permissions_not_granted")
-        .filter(n => !(IS_ANDROID_APP) || n.extension.type !== "anime-torrent-provider")
         .filter(matchesInvalidExtensionSearchTerm)
         .sort((a, b) => a.id.localeCompare(b.id))
 

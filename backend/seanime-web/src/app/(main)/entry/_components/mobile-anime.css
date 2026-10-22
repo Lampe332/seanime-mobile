@@ -43,9 +43,18 @@
 [data-mobile-anime="true"] .UI-StaticTabs__trigger[data-current="true"] { background: var(--sm-surface-control); color: var(--sm-text); font-weight: 600; }
 
 [data-mobile-anime="true"] [data-anime-entry-page-content-container] { padding: 1rem; scroll-margin-top: 1rem; }
-[data-mobile-anime="true"] [data-anime-entry-page-content], [data-mobile-anime="true"] [data-anime-entry-page-online-streaming-view], [data-mobile-anime="true"] [data-anime-entry-page-episode-list-view] { padding-top: 0 !important; }
+[data-mobile-anime="true"] [data-anime-entry-page-content], [data-mobile-anime="true"] [data-anime-entry-page-online-streaming-view], [data-mobile-anime="true"] [data-anime-entry-page-episode-list-view],
+[data-mobile-anime="true"] [data-anime-entry-page-torrent-stream-view], [data-mobile-anime="true"] [data-anime-entry-page-debrid-stream-view] { padding-top: 0 !important; }
 [data-mobile-anime="true"] [data-anime-entry-page-online-streaming-view] > div.h-10,
-[data-mobile-anime="true"] [data-anime-entry-page-episode-list-view] > div.h-10 { display: none; }
+[data-mobile-anime="true"] [data-anime-entry-page-episode-list-view] > div.h-10,
+[data-mobile-anime="true"] [data-anime-entry-page-torrent-stream-view] > div.h-10,
+[data-mobile-anime="true"] [data-anime-entry-page-debrid-stream-view] > div.h-10 { display: none; }
+
+/* Torrent and debrid sources: the auto-select switch, the remembered batch, the missing-data note */
+[data-mobile-anime="true"] .ssc { display: grid; gap: .75rem; margin-top: 1rem; }
+[data-mobile-anime="true"] .ssc-batch { display: flex; align-items: center; gap: .75rem; padding: .5rem .5rem .5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); }
+[data-mobile-anime="true"] .ssc-batch p { display: grid; gap: .125rem; flex: 1; min-width: 0; margin: 0; font-size: .9375rem; color: var(--sm-text); }
+[data-mobile-anime="true"] .ssc-batch small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: .8125rem; color: var(--sm-text-muted); overflow-wrap: anywhere; }
 [data-mobile-anime="true"] button:not([data-vc-control]), .mobile-anime-dialog button { min-height: 44px; min-width: 44px; }
 [data-mobile-anime="true"] .UI-Button_root { white-space: normal; height: auto; overflow-wrap: anywhere; }
 [data-mobile-anime="true"] button:focus-visible, [data-mobile-anime="true"] a:focus-visible, [data-mobile-anime="true"] summary:focus-visible, .mobile-anime-dialog button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }

@@ -23,6 +23,9 @@ import { DebridStreamPage } from "@/app/(main)/entry/_containers/debrid-stream/d
 import { ENTRY_VIEW_SHELL_TRANSITION, ENTRY_VIEW_TRANSITION } from "@/app/(main)/entry/_containers/entry-view-transition"
 import { EpisodeSection } from "@/app/(main)/entry/_containers/episode-list/episode-section"
 import { __torrentSearch_selectionAtom, TorrentSearchDrawer } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
+import { TorrentSearchPhone } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-phone"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
+import { useTr } from "@/lib/app-language"
 import { TorrentStreamPage } from "@/app/(main)/entry/_containers/torrent-stream/torrent-stream-page"
 import { OnlinestreamPage } from "@/app/(main)/onlinestream/_containers/onlinestream-page"
 import { PageWrapper } from "@/components/shared/page-wrapper"
@@ -59,9 +62,9 @@ function isBuiltInAnimeEntryViewAvailable(view: string, serverStatus: ReturnType
         case "library":
             return true
         case "debridstream":
-            return !(IS_ANDROID_APP) && !!serverStatus?.debridSettings?.enabled
+            return !!serverStatus?.debridSettings?.enabled
         case "torrentstream":
-            return !(IS_ANDROID_APP) && !!serverStatus?.torrentstreamSettings?.enabled
+            return !!serverStatus?.torrentstreamSettings?.enabled
         case "onlinestream":
             return !!serverStatus?.settings?.library?.enableOnlinestream
         default:
@@ -262,12 +265,12 @@ export function AnimeEntryPage() {
                     {
                         id: "torrentstream",
                         description: "Torrent streaming",
-                        show: !(IS_ANDROID_APP) && serverStatus?.torrentstreamSettings?.enabled && currentView !== "torrentstream",
+                        show: serverStatus?.torrentstreamSettings?.enabled && currentView !== "torrentstream",
                     },
                     {
                         id: "debridstream",
                         description: "Debrid streaming",
-                        show: !(IS_ANDROID_APP) && serverStatus?.debridSettings?.enabled && currentView !== "debridstream",
+                        show: serverStatus?.debridSettings?.enabled && currentView !== "debridstream",
                     },
                     {
                         id: "onlinestream",
@@ -283,7 +286,7 @@ export function AnimeEntryPage() {
                     onSelect: () => setView(item.id as any),
                     shouldShow: () => !!item.show,
                 })),
-                ...(!(IS_ANDROID_APP) ? [{
+                {
                     id: "download",
                     value: "download",
                     render: () => <div>Download torrents</div>,
@@ -291,7 +294,7 @@ export function AnimeEntryPage() {
                     data: "download torrents",
                     onSelect: () => setTorrentSearchDrawer("download"),
                     shouldShow: () => currentView === "library",
-                }] : []),
+                },
                 ...pluginEpisodeTabs.tabs.map(tab => ({
                     id: tab.viewId,
                     value: tab.viewId,
@@ -359,14 +362,14 @@ export function AnimeEntryPage() {
                             />
                         </PageWrapper>}
 
-                        {!(IS_ANDROID_APP) && currentView === "torrentstream" &&
+                        {currentView === "torrentstream" &&
                             <TorrentStreamPage
                                 key="torrent-streaming-episodes"
                                 entry={animeEntry}
                                 bottomSection={bottomSection}
                             />}
 
-                        {!(IS_ANDROID_APP) && currentView === "debridstream" &&
+                        {currentView === "debridstream" &&
                             <DebridStreamPage
                                 key="debrid-streaming-episodes"
                                 entry={animeEntry}
@@ -421,7 +424,7 @@ export function AnimeEntryPage() {
                 </PageWrapper>
             </div>
 
-            {!(IS_ANDROID_APP) && <TorrentSearchDrawer entry={animeEntry} />}
+            {isAndroidPhone() ? <TorrentSearchPhone entry={animeEntry} /> : <TorrentSearchDrawer entry={animeEntry} />}
         </div>
     )
 }
@@ -442,6 +445,7 @@ export function EntrySectionTabs(props: EntrySectionTabs) {
     } = props
 
     const serverStatus = useServerStatus()
+    const t = useTr()
 
     const {
         currentView,
@@ -459,12 +463,14 @@ export function EntrySectionTabs(props: EntrySectionTabs) {
         !entry ||
         entry.media?.status === "NOT_YET_RELEASED") return null
 
-    if (
-        ((IS_ANDROID_APP) || !serverStatus?.torrentstreamSettings?.enabled) &&
-        ((IS_ANDROID_APP) || !serverStatus?.debridSettings?.enabled) &&
-        !serverStatus?.settings?.library?.enableOnlinestream &&
-        pluginTabs.length === 0
-    ) return null
+    const torrentstreamOn = !!serverStatus?.torrentstreamSettings?.enabled
+    const debridstreamOn = !!serverStatus?.debridSettings?.enabled
+    const onlinestreamOn = !!serverStatus?.settings?.library?.enableOnlinestream
+
+    if (!torrentstreamOn && !debridstreamOn && !onlinestreamOn && pluginTabs.length === 0) return null
+
+    // Phones split the row evenly: from three sources on, short names keep each tab on one line
+    const short = IS_ANDROID_APP && 1 + Number(torrentstreamOn) + Number(debridstreamOn) + Number(onlinestreamOn) + pluginTabs.length > 2
 
     return (
         <>
@@ -478,21 +484,21 @@ export function EntrySectionTabs(props: EntrySectionTabs) {
                     pillClass="border-transparent"
                     iconClass="size-5 hidden data-[current=true]:block"
                     items={[
-                        { name: "Local library", iconType: IoLibraryOutline, isCurrent: isLibraryView, onClick: () => setView("library") },
-                        ...(!(IS_ANDROID_APP) && serverStatus?.torrentstreamSettings?.enabled ? [{
-                            name: "Torrent streaming",
+                        { name: short ? t("Library", "Bibliothek") : "Local library", iconType: IoLibraryOutline, isCurrent: isLibraryView, onClick: () => setView("library") },
+                        ...(torrentstreamOn ? [{
+                            name: short ? "Torrent" : "Torrent streaming",
                             iconType: PiMonitorPlayDuotone,
                             isCurrent: isTorrentStreamingView,
                             onClick: () => setView("torrentstream"),
                         }] : []),
-                        ...(!(IS_ANDROID_APP) && serverStatus?.debridSettings?.enabled ? [{
-                            name: "Debrid streaming",
+                        ...(debridstreamOn ? [{
+                            name: short ? "Debrid" : "Debrid streaming",
                             iconType: HiOutlineServerStack,
                             isCurrent: isDebridStreamingView,
                             onClick: () => setView("debridstream"),
                         }] : []),
-                        ...(serverStatus?.settings?.library?.enableOnlinestream ? [{
-                            name: "Online streaming",
+                        ...(onlinestreamOn ? [{
+                            name: short ? "Online" : "Online streaming",
                             iconType: FiGlobe,
                             isCurrent: isOnlineStreamingView,
                             onClick: () => setView("onlinestream"),

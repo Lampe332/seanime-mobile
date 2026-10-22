@@ -3,8 +3,8 @@ import { LANGUAGES_LIST } from "@/app/(main)/manga/_lib/language-map"
 import type { Translate } from "@/lib/app-language"
 import orderBy from "lodash/orderBy"
 
-/** Extension types the phone app can use; anime torrents need the desktop app. */
-export type PhoneExtensionType = "onlinestream-provider" | "manga-provider" | "plugin" | "custom-source"
+/** Extension types the phone app can use. */
+export type PhoneExtensionType = "onlinestream-provider" | "manga-provider" | "anime-torrent-provider" | "plugin" | "custom-source"
 
 /** Content sources first: on a phone they are what extensions are installed for. */
 export const PHONE_EXTENSION_TYPES: {
@@ -18,6 +18,7 @@ export const PHONE_EXTENSION_TYPES: {
 }[] = [
     { type: "onlinestream-provider", tabName: "Online Streaming", en: "Online streaming", de: "Online-Streaming", chipEn: "Streaming", chipDe: "Streaming", oneEn: "Streaming source", oneDe: "Streaming-Quelle", noneEn: "No streaming sources", noneDe: "Keine Streaming-Quellen" },
     { type: "manga-provider", tabName: "Manga", en: "Manga", de: "Manga", chipEn: "Manga", chipDe: "Manga", oneEn: "Manga source", oneDe: "Manga-Quelle", noneEn: "No manga sources", noneDe: "Keine Manga-Quellen" },
+    { type: "anime-torrent-provider", tabName: "Anime Torrents", en: "Anime torrents", de: "Anime-Torrents", chipEn: "Torrents", chipDe: "Torrents", oneEn: "Torrent provider", oneDe: "Torrent-Anbieter", noneEn: "No torrent providers", noneDe: "Keine Torrent-Anbieter" },
     { type: "plugin", tabName: "Plugins", en: "Plugins", de: "Plugins", chipEn: "Plugins", chipDe: "Plugins", oneEn: "Plugin", oneDe: "Plugin", noneEn: "No plugins", noneDe: "Keine Plugins" },
     { type: "custom-source", tabName: "Custom Sources", en: "Custom sources", de: "Eigene Quellen", chipEn: "Custom sources", chipDe: "Eigene Quellen", oneEn: "Custom source", oneDe: "Eigene Quelle", noneEn: "No custom sources", noneDe: "Keine eigenen Quellen" },
 ]

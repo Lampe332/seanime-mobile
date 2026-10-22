@@ -157,7 +157,7 @@ export function MarketplaceExtensions(props: MarketplaceExtensionsProps) {
 
         return [
             { type: "onlinestream-provider", label: "online streaming" },
-            ...(!(IS_ANDROID_APP) ? [{ type: "anime-torrent-provider", label: "torrent streaming" }] : []),
+            { type: "anime-torrent-provider", label: "torrent streaming" },
             { type: "manga-provider", label: "manga" },
         ].filter(item => !marketplaceExtensions.some(ext => ext.type === item.type))
             .map(item => item.label)
@@ -165,7 +165,7 @@ export function MarketplaceExtensions(props: MarketplaceExtensionsProps) {
 
     // Group extensions by type
     const pluginExtensions = filteredExtensions.filter(n => n.type === "plugin")
-    const animeTorrentExtensions = (IS_ANDROID_APP) ? [] : filteredExtensions.filter(n => n.type === "anime-torrent-provider")
+    const animeTorrentExtensions = filteredExtensions.filter(n => n.type === "anime-torrent-provider")
     const mangaExtensions = filteredExtensions.filter(n => n.type === "manga-provider")
     const onlinestreamExtensions = filteredExtensions.filter(n => n.type === "onlinestream-provider")
     const customSources = filteredExtensions.filter(n => n.type === "custom-source")
@@ -380,12 +380,12 @@ export function MarketplaceExtensions(props: MarketplaceExtensionsProps) {
                             onClick: () => setFilterType("plugin"),
                             // iconType: LuBlocks,
                         },
-                        ...(!(IS_ANDROID_APP) ? [{
+                        {
                             name: "Anime Torrents",
                             isCurrent: filterType === "anime-torrent-provider",
                             onClick: () => setFilterType("anime-torrent-provider"),
                             // iconType: RiFolderDownloadFill,
-                        }] : []),
+                        },
                         {
                             name: "Manga",
                             isCurrent: filterType === "manga-provider",
@@ -504,9 +504,7 @@ export function MarketplaceExtensions(props: MarketplaceExtensionsProps) {
                             trigger={
                                 <AiOutlineExclamationCircle className="text-[1.2rem] transition-opacity opacity-45 hover:opacity-90 cursor-pointer" />}
                         >
-                            {(IS_ANDROID_APP)
-                                ? "Custom sources do not provide streaming. Online streaming providers are needed for this."
-                                : "Custom sources do not provide any streaming features. Torrent and online streaming providers are needed for this."}
+                            Custom sources do not provide any streaming features. Torrent and online streaming providers are needed for this.
                         </Popover></h3>
                         <p className="text-[--muted] text-sm">
                             Custom sources let you browse media beyond what AniList provides.

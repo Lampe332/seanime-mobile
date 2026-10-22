@@ -1,0 +1,17 @@
+/* Torrent search sheet on phones (tsp-). Rows read like the extension rows: the release name first, then one line of facts. */
+.tsp { display: grid; gap: 1.25rem; min-width: 0; }
+.tsp-context { margin: 0; font-size: .9375rem; color: var(--sm-text-muted); }
+.tsp-field { display: grid; gap: .375rem; min-width: 0; }
+.tsp-field > span { font-size: .875rem; font-weight: 600; color: var(--sm-text); }
+.tsp .ps-sheet-group { display: grid; gap: .75rem; min-width: 0; }
+
+.tsp-list, .tsp-chosen { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--sm-radius); }
+.tsp-row, .tsp-chosen > li { display: grid; gap: .25rem; width: 100%; min-height: 3.5rem; padding: .75rem 1rem; text-align: start; background: var(--sm-surface-raised); color: var(--sm-text); }
+.tsp-row:active { background: var(--sm-surface-control); }
+.tsp-row:focus-visible { outline-offset: -2px; }
+.tsp-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: .9375rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.tsp-row small, .tsp-chosen small, .tsp .ps-pick small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); overflow-wrap: anywhere; }
+.tsp .ps-pick .ps-pick-text { min-width: 0; }
+
+.tsp-path { margin: 0; padding: .75rem 1rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-raised); font-size: .875rem; line-height: 1.45; color: var(--sm-text); overflow-wrap: anywhere; }
+.tsp-actions { margin-top: -.5rem; }

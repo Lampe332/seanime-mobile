@@ -11,6 +11,8 @@ import {
     __torrentSearch_selectionEpisodeAtom,
 } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
 import { TorrentStreamEpisodeSection } from "@/app/(main)/entry/_containers/torrent-stream/_components/torrent-stream-episode-section"
+import { StreamControlsPhone } from "@/app/(main)/entry/_containers/torrent-stream/_components/stream-controls-phone"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { ForcePlaybackMethod, useForcePlaybackMethod } from "@/app/(main)/entry/_lib/handle-play-media"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { PageWrapper } from "@/components/shared/page-wrapper"
@@ -278,7 +280,11 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
                     {/*    <h2 className="text-xl lg:text-3xl flex items-center gap-3">Debrid streaming</h2>*/}
                     {/*</div>*/}
 
-                    <div
+                    {isAndroidPhone() && <StreamControlsPhone kind="debrid" autoSelect={autoSelect} onAutoSelect={setAutoSelect}
+                        batchName={usePreviousBatch ? batchHistory?.torrent?.name : undefined} onForgetBatch={() => confirmPreviousBatchAction.open()}
+                        forgetting={isDeletingBatchHistory} mappingError={!!episodeCollection?.hasMappingError} />}
+
+                    {!isAndroidPhone() && <div
                         className="flex flex-col flex-wrap lg:flex-nowrap items-start md:items-center md:flex-row gap-2 md:gap-6 2xl:py-0 lg:h-12"
                         data-debrid-stream-page-content-actions-container
                     >
@@ -337,9 +343,9 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </div>}
 
-                    {episodeCollection?.hasMappingError && (
+                    {!isAndroidPhone() && episodeCollection?.hasMappingError && (
                         <div data-debrid-stream-page-no-metadata-message-container>
                             <p className="text-red-200 opacity-50">
                                 No metadata info available for this anime. You may need to manually select the file to stream.

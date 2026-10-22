@@ -1,6 +1,8 @@
 import { __manga_selectedChapterAtom } from "@/app/(main)/manga/_lib/handle-chapter-reader"
 import { useAtomValue } from "jotai"
 import { MangaDownloads } from "./manga-downloads"
+import { TorrentDownloads } from "./torrent-downloads"
+import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { Modal } from "@/components/ui/modal"
 import { useRouter, useSearchParams } from "@/lib/navigation"
@@ -48,7 +50,10 @@ export default function Page() {
     const currentChapter = useAtomValue(__manga_selectedChapterAtom)
     const router = useRouter()
     const search = useSearchParams()
-    const kind = search.get("kind") === "manga" ? "manga" : "anime"
+    const kind = search.get("kind") === "manga" ? "manga" : search.get("kind") === "torrents" ? "torrents" : "anime"
+    // Torrents get a tab once the app can find them (a torrent provider is installed) or one is already there
+    const { data: torrentProviders } = useAnimeListTorrentProviderExtensions()
+    const showTorrents = kind === "torrents" || !!torrentProviders?.length
     const selectedManga = Number(search.get("manga")) || 0
     const selectedKey = kind === "anime" ? search.get("anime") : null
     const [episodes, setEpisodes] = React.useState<OfflineEpisode[]>([])
@@ -148,13 +153,15 @@ export default function Page() {
     return <PageWrapper ref={root} className="mdl-page" data-downloads-page data-mobile-downloads="true">
         {overview && <>
             <DownloadsHeader backLabel={t("Back to Seanime", "Zurück zu Seanime")} onBack={() => router.push("/")} title="Downloads"
-                facts={kind === "anime" && loaded ? `${groups.length} Anime · ${episodes.length} ${episodeWord(episodes.length, t)} · ${formatSize(totalBytes)}` : t("Saved on your phone", "Auf deinem Handy gespeichert")} />
+                facts={kind === "anime" && loaded ? `${groups.length} Anime · ${episodes.length} ${episodeWord(episodes.length, t)} · ${formatSize(totalBytes)}`
+                    : kind === "torrents" ? t("Saved to your library folder", "In deinem Bibliotheksordner gespeichert") : t("Saved on your phone", "Auf deinem Handy gespeichert")} />
             <div className="mdl-tabs" role="tablist" aria-label={t("Download type", "Download-Typ")}>
-                {[{ value: "anime", label: "Anime" }, { value: "manga", label: "Manga" }].map(tab => <button key={tab.value} type="button" role="tab" aria-selected={kind === tab.value}
-                    onClick={() => router.push(tab.value === "manga" ? "/android-downloads?kind=manga" : "/android-downloads")}>{tab.label}</button>)}
+                {[{ value: "anime", label: "Anime" }, { value: "manga", label: "Manga" }, ...(showTorrents ? [{ value: "torrents", label: "Torrents" }] : [])]
+                    .map(tab => <button key={tab.value} type="button" role="tab" aria-selected={kind === tab.value} data-downloads-tab={tab.value}
+                        onClick={() => router.push(tab.value === "anime" ? "/android-downloads" : `/android-downloads?kind=${tab.value}`)}>{tab.label}</button>)}
             </div>
         </>}
-        {kind === "manga" ? <MangaDownloads selectedId={selectedManga} /> : <>
+        {kind === "torrents" ? <TorrentDownloads /> : kind === "manga" ? <MangaDownloads selectedId={selectedManga} /> : <>
             {selectedKey && <DownloadsHeader backLabel={t("Back to anime overview", "Zurück zur Anime-Übersicht")} onBack={() => router.push("/android-downloads")} />}
             {error && <div role="alert" className="mdl-notice">{t("Downloads could not be loaded.", "Downloads konnten nicht geladen werden.")}
                 <button type="button" onClick={refresh}>{t("Try again", "Erneut versuchen")}</button></div>}

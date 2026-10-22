@@ -17,6 +17,8 @@ import { useAtomValue, useSetAtom } from "jotai"
 import { useAtom } from "jotai/react"
 import React from "react"
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
 type DebridStreamSelectionProps = {
     torrent: HibikeTorrent_AnimeTorrent
     mediaId: number
@@ -50,6 +52,7 @@ export function useHandleStartDebridStream() {
 
     const getPlaybackType = React.useCallback((forcePlaybackMethod?: ForcePlaybackMethod) => {
         if (
+            (!forcePlaybackMethod && IS_ANDROID_APP) || // no desktop player to hand the stream to: the app's own player plays it
             (!forcePlaybackMethod && __isElectronDesktop__ && electronPlaybackMethod === ElectronPlaybackMethod.NativePlayer) ||
             (forcePlaybackMethod && forcePlaybackMethod === "nativeplayer")
         ) {
