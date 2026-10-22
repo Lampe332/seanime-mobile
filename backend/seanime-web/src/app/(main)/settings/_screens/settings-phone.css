@@ -84,6 +84,17 @@
 .ps-primary.pst-danger:active { opacity: .85; }
 .pst-log { max-height: 55svh; overflow: auto; padding: .75rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); font-family: ui-monospace, monospace; font-size: .75rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 
+/* Torrents & debrid: the debrid API key (typed into an empty field, saved with its own button) and notices with an action. */
+.pst-key { display: grid; gap: .5rem; min-width: 0; padding: .75rem 1rem; background: var(--sm-surface-raised); }
+.pst-key > label { font-size: .9375rem; color: var(--sm-text); }
+.pst-key > input { width: 100%; min-height: 52px; padding: .75rem 1rem; border: 0; border-radius: var(--sm-radius); background: var(--sm-surface-control); color: var(--sm-text); font-size: 1rem; }
+.pst-key > input::placeholder { color: var(--sm-text-subtle); }
+.pst-key > input[aria-invalid="true"] { box-shadow: inset 0 0 0 2px var(--sm-danger); } /* taste-skill-ignore: marks the key the provider refused */
+.pst-key > small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
+.pst-key > .ps-primary { justify-self: start; max-width: 100%; }
+.pst-notice-detail { display: block; margin-top: .25rem; font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); overflow-wrap: anywhere; }
+.pst-page .ps-notice .ps-text-action { white-space: normal; text-align: start; }
+
 /* The developer tools inside their folded row. */
 .pst-developer { display: grid; gap: 2px; }
 .pst-developer > .ps-facts { border-radius: 0; }

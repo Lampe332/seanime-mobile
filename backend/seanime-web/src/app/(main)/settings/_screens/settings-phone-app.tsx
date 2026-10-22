@@ -78,24 +78,33 @@ export function SettingsAppSection({ t }: { t: Translate }) {
     </>
 }
 
-/** Default episode source: as on the desktop page, without torrent and Debrid streaming. */
+/** Default episode source: as on the desktop page; torrent and Debrid streaming once they are turned on (Torrents & debrid). */
 function DefaultSourceSelect({ t }: { t: Translate }) {
     const save = useSaveSetting()
-    const stored = useSettingValue("library.defaultPlaybackSource", "")
+    const status = useServerStatus()
+    const stored = useSettingValue<string>("library.defaultPlaybackSource", "")
     const onlinestream = useSettingValue("library.enableOnlinestream", false)
+    const torrentstream = !!status?.torrentstreamSettings?.enabled
+    const debridstream = !!status?.debridSettings?.enabled
     const { data: episodeTabs } = useListAnimeEntryEpisodeTabExtensions()
     const options = React.useMemo(() => [
         { value: "-", label: t("Automatic", "Automatisch") },
         { value: "library", label: t("Local library", "Lokale Bibliothek") },
         ...(onlinestream ? [{ value: "onlinestream", label: t("Online streaming", "Online-Streaming") }] : []),
+        ...(torrentstream ? [{ value: "torrentstream", label: t("Torrent streaming", "Torrent-Streaming") }] : []),
+        ...(debridstream ? [{ value: "debridstream", label: t("Debrid streaming", "Debrid-Streaming") }] : []),
         ...Array.from(new Map((episodeTabs ?? []).map(ext => [`ext:${ext.id}`, {
             value: `ext:${ext.id}`,
             label: ext.tabName ? `${ext.tabName} (${ext.name})` : ext.name,
         }])).values()).sort((a, b) => a.label.localeCompare(b.label)),
-    ], [episodeTabs, onlinestream, t])
+    ], [episodeTabs, onlinestream, torrentstream, debridstream, t])
     const value = stored || "-"
-    const shown = value.startsWith("ext:") && !options.some(option => option.value === value)
-        ? [...options, { value, label: t("Unavailable plugin", "Nicht verfügbares Plugin") }] : options
+    const missing = !options.some(option => option.value === value)
+    const shown = !missing ? options
+        : value.startsWith("ext:") ? [...options, { value, label: t("Unavailable plugin", "Nicht verfügbares Plugin") }]
+            : value === "torrentstream" ? [...options, { value, label: t("Torrent streaming (turned off)", "Torrent-Streaming (ausgeschaltet)") }]
+                : value === "debridstream" ? [...options, { value, label: t("Debrid streaming (turned off)", "Debrid-Streaming (ausgeschaltet)") }]
+                    : options
     return <SelectRow id="pst-default-source" label={t("Default episode source", "Standard-Quelle für Folgen")}
         note={t("Used when you open an anime.", "Wird beim Öffnen eines Anime benutzt.")} value={value} options={shown}
         onChange={next => void save("library.defaultPlaybackSource", next === "-" ? "" : next)} data-setting="library.defaultPlaybackSource" />

@@ -8,19 +8,10 @@ import { useSetAtom } from "jotai/react"
 import React from "react"
 import { toast } from "sonner"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
+// Torrent search, torrent streaming, the built-in client and debrid run on Android too (the server forces the built-in client
+// there), so the status is passed on as the server sends it.
 export function useServerStatus() {
-    const status = useAtomValue(serverStatusAtom)
-    // The Android app uses HTTP/HLS downloads instead of external PC torrent clients.
-    return React.useMemo(() => !status || !(IS_ANDROID_APP) ? status : ({
-        ...status,
-        torrentstreamSettings: status.torrentstreamSettings ? { ...status.torrentstreamSettings, enabled: false } : undefined,
-        settings: status.settings ? { ...status.settings,
-            library: status.settings.library ? { ...status.settings.library, torrentProvider: TORRENT_PROVIDER.NONE } : undefined,
-            torrent: status.settings.torrent ? { ...status.settings.torrent, defaultTorrentClient: "none" } : undefined,
-        } : undefined,
-    }), [status])
+    return useAtomValue(serverStatusAtom)
 }
 
 export function useSetServerStatus() {

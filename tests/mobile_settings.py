@@ -1,5 +1,5 @@
 """Settings on Android phones: the area list and every area's page (App, Appearance, Playback, Local library, Online
-streaming, Manga, Nakama, Logs & cache, About), instant saving per row (PATCH /settings/path, the theme as the stored theme
+streaming, Torrents & debrid, Manga, Nakama, Logs & cache, About), instant saving per row (PATCH /settings/path, the theme as the stored theme
 plus the change, device-only values in localStorage) that survives a reload, rollback with a toast when saving fails, saves
 in a row that do not undo each other, confirmations before anything that cannot be undone, text sheets with validation,
 the folder picker bridge, deep links (?tab=), Android Back (sheet, then page, then the screen), desktop-only settings
@@ -11,7 +11,7 @@ import tempfile, subprocess, json, sys, copy
 root=Path(__file__).resolve().parents[1]
 shots=Path(sys.argv[1]) if len(sys.argv)>1 else None
 if shots: shots.mkdir(parents=True,exist_ok=True)
-checks=[];errors=[];warnings=[]
+checks=[];errors=[];warnings=[];console_all=[]
 def check(name,ok):
     checks.append(dict(name=name,passed=bool(ok)));assert ok,name
 def shot(page,name,full=True):
@@ -35,12 +35,20 @@ STATUS=dict(version='3.10.4',versionName='Hakumei',os='android',isOffline=False,
     settings=dict(library=LIBRARY,anilist=dict(hideAudienceScore=False,enableAdultContent=False,blurAdultContent=False,disableCacheLayer=False),
         manga=dict(defaultMangaProvider='',mangaAutoUpdateProgress=False,mangaLocalSourceDirectory=''),
         nakama=dict(enabled=False,username='',isHost=False,hostPassword='',remoteServerURL='',remoteServerPassword='',includeNakamaAnimeLibrary=False),
-        mediaPlayer=dict(defaultPlayer='mpv'),torrent=dict(),discord=dict(),notifications=dict()))
+        mediaPlayer=dict(defaultPlayer='mpv'),torrent=dict(defaultTorrentClient='seanime',seanimeDownloadLimit=0,seanimeUploadLimit=0,seanimeMaxActiveDownloads=3),
+        discord=dict(),notifications=dict()),
+    torrentstreamSettings=dict(id=1,enabled=False,autoSelect=False,preferredResolution='',disableIPV6=False,downloadDir='',addToLibrary=False,torrentClientHost='',
+        torrentClientPort=43213,streamingServerHost='',streamingServerPort=43214,includeInLibrary=False,streamUrlAddress='',slowSeeding=False,preloadNextStream=False,
+        disableAcceleratedStartup=False),
+    debridSettings=dict(id=1,enabled=False,provider='',apiKey='',includeDebridStreamInLibrary=False,streamAutoSelect=False,streamPreferredResolution=''))
 SERVER=dict(status=STATUS,apiWorking=False,cacheSize='4.3 MiB',logContent='2026-10-21 12:00:00 |INF| app started\n2026-10-21 12:00:01 |WRN| cache-only mode',
     logFiles=['seanime-2026-10-21_10-00-00.log','seanime-2026-10-20_09-00-00.log','2026-10-21_10-05-00-scan.log'],
     memory=dict(alloc=1,totalAlloc=52428800,sys=1,heapAlloc=1,heapSys=33554432,heapInuse=20971520,numGoroutine=42,numGC=17),
     mangaProviders=[dict(id='dipland-mangafire',name='MangaFire'),dict(id='local-manga',name='Local')],episodeTabs=[],
-    storedProviders={'117460':'local-manga'})
+    storedProviders={'117460':'local-manga'},validDebridKey='good-key-123',
+    torrentProviders=[dict(id='nyaa',name='Nyaa',lang='en',settings=dict(type='main',canSmartSearch=True,supportsAdult=False)),
+        dict(id='animetosho',name='AnimeTosho',lang='en',settings=dict(type='main',canSmartSearch=True,supportsAdult=False)),
+        dict(id='nyaa-sukebei',name='Sukebei',lang='en',settings=dict(type='special',canSmartSearch=False,supportsAdult=True))])
 INIT='''(()=>{const stored=sessionStorage.getItem("settings-fixture");Object.assign(window,{server:stored?JSON.parse(stored):%s,routes:[],requests:[],toasts:[],clipboard:[],
     tabs:[],saves:[],updateModal:[],issueRecorder:[],mangaSources:[],tutorial:0,updateChecks:0});
     window.SeanimeAndroid={getAppVersion:()=>"1.9.37",setLanguage:l=>{window.nativeLanguage=l},pickFolder:id=>{window.picks=(window.picks||0)+1;setTimeout(()=>
@@ -56,7 +64,7 @@ TEXT='(sel=>[...document.querySelectorAll(sel)].map(e=>e.textContent.trim()))'
 OPEN_SHEETS='document.querySelectorAll(".UI-Modal__content[data-state=open]").length'
 SECTION='document.querySelector("[data-phone-screen=settings]")?.dataset.settingsSection'
 H1='document.querySelector("[data-phone-screen=settings] h1")?.textContent'
-SECTIONS=['seanime','ui','playback','library','onlinestream','manga','nakama','logs','about']
+SECTIONS=['seanime','ui','playback','library','onlinestream','torrents','manga','nakama','logs','about']
 # Desktop-only settings (§5.1, the verify results V2-V4) that must not reach the phone screen.
 DESKTOP_ONLY=['Desktop media player','Transcoding','Direct Play','Discord','Open Data directory','Open data directory','assets directory','Keyboard',
     'command palette','Torrent','Debrid','Expand sidebar','sidebar transparency','top navbar','Unpinned','Import local','logs directory',
@@ -80,6 +88,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
             page=browser.new_page(viewport=dict(width=width,height=height),device_scale_factor=3,has_touch=True,is_mobile=True)
             page.on('pageerror',lambda e:errors.append(str(e)[:300]))
             page.on('console',lambda m:warnings.append(m.text[:300]) if m.type=='error' else None)
+            page.on('console',lambda m:console_all.append(m.text))
             page.add_init_script(INIT%json.dumps(server or copy.deepcopy(SERVER)))
             if language: page.add_init_script(f'localStorage.setItem("seanime-mobile-language",JSON.stringify("{language}"))')
             for key,value in (storage or {}).items(): page.add_init_script(f'if(!sessionStorage.getItem("seeded-{key}")){{sessionStorage.setItem("seeded-{key}","1");localStorage.setItem({json.dumps(key)},{json.dumps(json.dumps(value))})}}')
@@ -110,7 +119,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
               and page.evaluate(H1)=='Settings' and page.evaluate(SECTION)=='home')
         check('Facts: the server and app versions',page.locator('[data-phone-facts]').inner_text()=='Seanime 3.10.4 · App 1.9.37')
         check('Areas in order, each with a summary',page.evaluate('[...document.querySelectorAll("[data-settings-open]")].map(b=>b.dataset.settingsOpen)')==SECTIONS
-              and page.evaluate(TEXT,'[data-settings-open] .pst-row-text > span')==['App','Appearance','Playback','Local library','Online streaming','Manga','Nakama','Logs & cache','About']
+              and page.evaluate(TEXT,'[data-settings-open] .pst-row-text > span')==['App','Appearance','Playback','Local library','Online streaming','Torrents & debrid','Manga','Nakama','Logs & cache','About']
               and all(page.evaluate(TEXT,'[data-settings-open] small')))
         check('Home: every target at least 48px, no overflow',small(page)==[] and page.evaluate(NO_OVERFLOW))
         shot(page,'settings-home-390.png')
@@ -122,7 +131,8 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
             check(f'{id}: page with Back and its title, no Save button',page.evaluate(SECTION)==id and page.locator('[data-settings-back]').count()==1
                   and page.get_by_role('button',name='Save',exact=True).count()==0)
             check(f'{id}: every target at least 48px, no overflow',small(page)==[] and page.evaluate(NO_OVERFLOW))
-            found=[word for word in DESKTOP_ONLY if word.lower() in text.lower()]
+            # The torrents area is about torrents and Debrid; its desktop-only parts are checked below (TORRENT_DESKTOP_ONLY)
+            found=[word for word in DESKTOP_ONLY if word.lower() in text.lower() and not (id=='torrents' and word in ('Torrent','Debrid'))]
             check(f'{id}: no desktop-only setting ({found})',found==[])
             shot(page,f'settings-{id}-390.png')
             check(f'{id}: Back returns to the list with the focus on the area',back(page) and page.evaluate(SECTION)=='home'
@@ -339,6 +349,134 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
         check('Record an issue opens the recorder on Home',page.evaluate('issueRecorder')==[True] and page.evaluate('routes')[-1]==['push','/'])
         page.close()
 
+        # Torrents & debrid
+        GROUPS='[...document.querySelectorAll("[data-settings-page] [data-settings-group]")].map(e=>e.dataset.settingsGroup)'
+        TORRENT_DESKTOP_ONLY=['Port','Host','Stream URL','IPv6','Slow seeding','accelerated startup','Cache directory','Auto Downloader','qBittorrent','Transmission']
+        page=open_page();open_section(page,'torrents')
+        check('Torrents: providers, streaming, downloads, Debrid in order',page.evaluate(GROUPS)==['torrents-providers','torrents-streaming','torrents-downloads','torrents-debrid'])
+        check('Providers: installed main providers sorted, then None (special ones left out), None chosen',
+              page.evaluate(TEXT,'#pst-torrent-provider option')==['AnimeTosho','Nyaa','None'] and page.locator('#pst-torrent-provider').input_value()=='none'
+              and page.locator('[data-settings-no-providers]').count()==0)
+        page.select_option('#pst-torrent-provider','nyaa');page.wait_for_timeout(400)
+        check('Provider saves at once through settings/path',last(page,'PATCH','/api/v1/settings/path')=={'path':'library.torrentProvider','value':'nyaa'})
+        check('Streaming off: only its switch, the data note above it',page.locator('[data-torrentstream-field]').count()==1
+              and "connection's data" in page.locator('[data-settings-group="torrents-streaming"] .pst-group-note').inner_text())
+        page.locator('[data-torrentstream-field="enabled"]').click()
+        flipped=checked(page,'[data-torrentstream-field="enabled"]');page.wait_for_timeout(500)
+        sent=last(page,'PATCH','/api/v1/torrentstream/settings')['settings']
+        check('Turning streaming on saves at once: the stored row plus enabled through PATCH /torrentstream/settings',flipped=='true'
+              and sent['enabled'] is True and sent['torrentClientPort']==43213 and sent['id']==1 and count(page,'PATCH','/api/v1/settings/path')==1)
+        check('Streaming on: auto-select, preload and lists appear; resolution only with auto-select',
+              page.evaluate('[...document.querySelectorAll("[data-torrentstream-field]")].map(e=>e.dataset.torrentstreamField)')==['enabled','autoSelect','preloadNextStream','includeInLibrary']
+              and page.locator('#pst-torrentstream-resolution').count()==0)
+        page.locator('[data-torrentstream-field="autoSelect"]').click();page.wait_for_timeout(400)
+        check('Resolution choices',page.evaluate(TEXT,'#pst-torrentstream-resolution option')==['Highest','1080p','720p','480p'])
+        page.select_option('#pst-torrentstream-resolution','720');page.wait_for_timeout(400)
+        page.locator('[data-torrentstream-field="preloadNextStream"]').click();page.wait_for_timeout(400)
+        ts=page.evaluate('server.status.torrentstreamSettings')
+        check('Auto-select, resolution and preload stored, the rest of the row untouched',ts['enabled'] is True and ts['autoSelect'] is True
+              and ts['preferredResolution']=='720' and ts['preloadNextStream'] is True and ts['torrentClientPort']==43213 and ts['streamUrlAddress']=='')
+        found=[word for word in TORRENT_DESKTOP_ONLY if word.lower() in page_text(page).lower()]
+        check(f'No desktop-only torrent setting ({found})',found==[])
+        check('Downloads: no library folder yet, so a notice with a way there',page.locator('[data-settings-no-library-folder]').count()==1
+              and 'local library folder' in page.locator('[data-settings-group="torrents-downloads"] .pst-group-note').inner_text())
+        check('Limit choices: Unlimited first, KB/s and MB/s',page.evaluate(TEXT,'#pst-download-limit option')[:3]==['Unlimited','512 KB/s','1 MB/s'])
+        page.select_option('#pst-download-limit','2048');page.wait_for_timeout(400)
+        page.select_option('#pst-upload-limit','256');page.wait_for_timeout(400)
+        page.select_option('#pst-active-downloads','2');page.wait_for_timeout(400)
+        check('Download limit, upload limit and active downloads save as numbers',page.evaluate('server.status.settings.torrent')=={'defaultTorrentClient':'seanime',
+              'seanimeDownloadLimit':2048,'seanimeUploadLimit':256,'seanimeMaxActiveDownloads':2}
+              and last(page,'PATCH','/api/v1/settings/path')=={'path':'torrent.seanimeMaxActiveDownloads','value':2})
+        check('Debrid off: only its switch',page.locator('[data-debrid-field]').count()==1 and page.locator('[data-settings-debrid-key]').count()==0)
+        page.locator('[data-debrid-field="enabled"]').click();page.wait_for_timeout(400)
+        check('Debrid on: providers the server accepts, no key field before a provider',page.evaluate(TEXT,'#pst-debrid-provider option')
+              ==['None','TorBox','Real-Debrid','AllDebrid','Premiumize'] and page.locator('[data-settings-debrid-key]').count()==0
+              and last(page,'PATCH','/api/v1/debrid/settings')['settings']['enabled'] is True)
+        page.select_option('#pst-debrid-provider','torbox');page.wait_for_timeout(400)
+        check('Provider saved; the key field is an empty password field and Save key waits for a key',page.evaluate('server.status.debridSettings.provider')=='torbox'
+              and page.locator('[data-settings-debrid-key-input]').get_attribute('type')=='password' and page.locator('[data-settings-debrid-key-input]').input_value()==''
+              and page.locator('[data-settings-debrid-key-save]').is_disabled() and count(page,'GET','/api/v1/debrid/torrents')==0)
+        page.locator('[data-settings-debrid-key-input]').fill('bad-key-999');page.locator('[data-settings-debrid-key-save]').click()
+        page.locator('[data-settings-debrid-error]').wait_for();page.wait_for_timeout(300)
+        detail=page.locator('[data-settings-debrid-error-detail]').inner_text()
+        check('Save key: PATCH /debrid/settings with the key, then the key is checked with the provider',last(page,'PATCH','/api/v1/debrid/settings')['settings']['apiKey']=='bad-key-999'
+              and count(page,'GET','/api/v1/debrid/torrents')==1)
+        check('A refused key: the error stays in the section with the server message, the key blanked out',
+              'TorBox did not accept the API key' in page.locator('[data-settings-debrid-error]').inner_text() and 'code 403' in detail and '•••' in detail
+              and page.locator('[data-settings-debrid-key-input]').get_attribute('aria-invalid')=='true')
+        check('The key is never shown: field emptied, not in the page text, not in the console',page.locator('[data-settings-debrid-key-input]').input_value()==''
+              and 'bad-key-999' not in page_text(page) and not [m for m in console_all if 'bad-key-999' in m])
+        check('Torrents with the error and every group open: 48px, no overflow',small(page)==[] and page.evaluate(NO_OVERFLOW))
+        shot(page,'settings-torrents-error-390.png')
+        page.locator('[data-settings-debrid-key-input]').fill('good-key-123');page.locator('[data-settings-debrid-key-input]').press('Enter')
+        page.wait_for_timeout(800)
+        check('A good key (Enter saves too): the error goes, the field says it is connected',page.locator('[data-settings-debrid-error]').count()==0
+              and page.locator('[data-settings-debrid-key]').get_attribute('data-key-state')=='ok'
+              and 'Connected to TorBox.' in page.locator('[data-settings-debrid-key] small').inner_text() and 'good-key-123' not in page_text(page))
+        page.locator('[data-debrid-field="streamAutoSelect"]').click();page.wait_for_timeout(400)
+        page.select_option('#pst-debrid-resolution','1080');page.wait_for_timeout(400)
+        db=page.evaluate('server.status.debridSettings')
+        check('Debrid auto-select and resolution stored, the saved key kept',db['streamAutoSelect'] is True and db['streamPreferredResolution']=='1080' and db['apiKey']=='good-key-123')
+        checks_before=count(page,'GET','/api/v1/debrid/torrents')
+        back(page);open_section(page,'torrents');page.wait_for_timeout(400)
+        check('Opening the area checks the stored key again',count(page,'GET','/api/v1/debrid/torrents')==checks_before+1
+              and page.locator('[data-settings-debrid-key]').get_attribute('data-key-state')=='ok')
+        shot(page,'settings-torrents-390.png')
+        page.locator('[data-settings-open-library]').click();page.wait_for_timeout(300)
+        check('The notice opens Local library',page.evaluate(SECTION)=='library')
+        page.locator('[data-setting="library.libraryPath"]').click();page.locator('[data-settings-pick-folder]').click();page.wait_for_timeout(400)
+        page.locator('[data-text-apply]').click();page.wait_for_timeout(400)
+        back(page);open_section(page,'torrents')
+        check('With a library folder the notice is gone',page.locator('[data-settings-no-library-folder]').count()==0)
+        back(page);open_section(page,'seanime')
+        check('Default episode source offers torrent and Debrid streaming once they are on',page.evaluate(TEXT,'#pst-default-source option')
+              ==['Automatic','Local library','Online streaming','Torrent streaming','Debrid streaming'])
+        page.select_option('#pst-default-source','torrentstream');page.wait_for_timeout(400)
+        check('Torrent streaming as the default source saves',last(page,'PATCH','/api/v1/settings/path')=={'path':'library.defaultPlaybackSource','value':'torrentstream'})
+        back(page);open_section(page,'torrents')
+        page.locator('[data-debrid-field="enabled"]').click();page.locator('[data-torrentstream-field="enabled"]').click();page.wait_for_timeout(700)
+        check('Turning them off hides what depends on them',page.locator('[data-debrid-field]').count()==1 and page.locator('[data-torrentstream-field]').count()==1
+              and page.locator('[data-settings-debrid-key]').count()==0 and page.evaluate('server.status.debridSettings.enabled') is False
+              and page.evaluate('server.status.torrentstreamSettings.enabled') is False)
+        page.reload_app();open_section(page,'torrents')
+        check('After a reload the torrent values are still there',page.locator('#pst-torrent-provider').input_value()=='nyaa'
+              and page.locator('#pst-download-limit').input_value()=='2048' and checked(page,'[data-torrentstream-field="enabled"]')=='false')
+        back(page);open_section(page,'seanime')
+        check('Both off: the stored default source stays visible as turned off',page.evaluate(TEXT,'#pst-default-source option')[-1]=='Torrent streaming (turned off)'
+              and page.locator('#pst-default-source').input_value()=='torrentstream')
+        page.close()
+
+        server=copy.deepcopy(SERVER);server['torrentProviders']=[]
+        page=open_page(server=server);open_section(page,'torrents')
+        check('No providers installed: a note instead of the select, with a way to Extensions',page.locator('[data-settings-no-providers]').count()==1
+              and page.locator('#pst-torrent-provider').count()==0 and 'Extensions' in page.locator('[data-settings-no-providers]').inner_text())
+        page.locator('[data-settings-open-extensions]').click();page.wait_for_timeout(200)
+        check('Open Extensions goes to the Extensions screen',page.evaluate('routes')[-1]==['push','/extensions'])
+        page.close()
+        for tab in ('torrent','torrent-client','torrentstream','debrid'):
+            page=open_page(path=f'/settings?tab={tab}')
+            check(f'?tab={tab} opens Torrents & debrid',page.evaluate(SECTION)=='torrents' and page.evaluate('location.pathname+location.search')=='/settings')
+            page.close()
+
+        # Every torrent part open (Debrid with a refused key) in German and at 320px with 200 % text
+        full=copy.deepcopy(SERVER)
+        full['status']['torrentstreamSettings'].update(enabled=True,autoSelect=True)
+        full['status']['debridSettings'].update(enabled=True,provider='realdebrid',apiKey='bad-key-999',streamAutoSelect=True)
+        de=open_page(language='de',server=copy.deepcopy(full));open_section(de,'torrents');de.locator('[data-settings-debrid-error]').wait_for()
+        check('German torrents: title, groups, notices, key field',de.evaluate(H1)=='Torrents & Debrid'
+              and de.evaluate(TEXT,'[data-settings-page] .pst-group > h2')==['Torrent-Anbieter','Torrents streamen','Downloads','Debrid']
+              and 'Real-Debrid hat den API-Schlüssel nicht angenommen' in de.locator('[data-settings-debrid-error]').inner_text()
+              and de.locator('[data-settings-debrid-key-save]').inner_text()=='Schlüssel speichern'
+              and de.evaluate(TEXT,'#pst-download-limit option')[0]=='Unbegrenzt' and de.evaluate(TEXT,'#pst-torrentstream-resolution option')[0]=='Höchste'
+              and 'Lokale Bibliothek öffnen' in de.locator('[data-settings-no-library-folder]').inner_text())
+        check('German torrents: 48px, no overflow',small(de)==[] and de.evaluate(NO_OVERFLOW))
+        shot(de,'settings-torrents-de-390.png')
+        de.close()
+        big=open_page(width=320,height=640,html_style=TEXT_ZOOM,server=copy.deepcopy(full));open_section(big,'torrents');big.locator('[data-settings-debrid-error]').wait_for()
+        check('320px, 200% text, every torrent part open: no overflow, 48px',big.evaluate(NO_OVERFLOW) and small(big)==[])
+        shot(big,'settings-torrents-320-200.png')
+        big.close()
+
         # Back chain with a sheet: sheet, then page, then the screen
         page=open_page();open_section(page,'nakama')
         page.locator('[data-setting="nakama.username"]').click();page.locator('[data-settings-text-sheet]').wait_for();page.wait_for_timeout(300)
@@ -370,7 +508,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
         # German
         de=open_page(language='de')
         check('German: title and areas',de.evaluate(H1)=='Einstellungen' and de.evaluate(TEXT,'[data-settings-open] .pst-row-text > span')
-              ==['App','Darstellung','Wiedergabe','Lokale Bibliothek','Online-Streaming','Manga','Nakama','Logs & Cache','Über'])
+              ==['App','Darstellung','Wiedergabe','Lokale Bibliothek','Online-Streaming','Torrents & Debrid','Manga','Nakama','Logs & Cache','Über'])
         for id in SECTIONS:
             open_section(de,id)
             check(f'German {id}: 48px, no overflow',small(de)==[] and de.evaluate(NO_OVERFLOW))
@@ -383,7 +521,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
         # 320 px with 200 % text
         big=open_page(width=320,height=640,html_style=TEXT_ZOOM)
         check('320px, 200% text: list without overflow, 48px',big.evaluate(NO_OVERFLOW) and small(big)==[])
-        for id in ('seanime','ui','library','logs'):
+        for id in ('seanime','ui','library','torrents','logs'):
             open_section(big,id)
             check(f'320px, 200% text {id}: no overflow, 48px',big.evaluate(NO_OVERFLOW) and small(big)==[])
             if id=='seanime': shot(big,'settings-seanime-320-200.png')

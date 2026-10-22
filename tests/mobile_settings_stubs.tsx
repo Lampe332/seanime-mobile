@@ -70,6 +70,8 @@ function setPath(target: any, path: string, value: unknown) {
     node[keys[keys.length - 1]] = value
 }
 
+const seaError = (message: string) => Object.assign(new Error(message), { response: { status: 500, data: { error: message } } })
+
 /** The server's answer to one request; changes are stored at once (and survive a reload). */
 function respond(method: string, endpoint: string, body: any): any {
     const s = w.server
@@ -110,6 +112,21 @@ function respond(method: string, endpoint: string, body: any): any {
             return s.mangaProviders
         case "GET /api/v1/extensions/list/anime-entry-episode-tabs":
             return s.episodeTabs
+        case "GET /api/v1/extensions/list/anime-torrent-provider":
+            return s.torrentProviders ?? []
+        case "PATCH /api/v1/torrentstream/settings":
+            s.status.torrentstreamSettings = { ...body.settings, id: 1, updatedAt: `t${Date.now()}` }
+            return s.status.torrentstreamSettings
+        case "PATCH /api/v1/debrid/settings":
+            s.status.debridSettings = { ...body.settings, id: 1, updatedAt: `t${Date.now()}` }
+            return s.status.debridSettings
+        case "GET /api/v1/debrid/torrents": {
+            // As the server answers: no provider after a failed sign-in, else the provider's own error for a wrong key
+            const debrid = s.status.debridSettings
+            if (!debrid?.enabled || !debrid.provider) throw seaError("debrid: Provider not set")
+            if (debrid.apiKey !== s.validDebridKey) throw seaError(`torbox: Failed to get torrents: request failed: code 403, body: {"detail":"Invalid API key ${debrid.apiKey}"}`)
+            return []
+        }
     }
     if (method === "GET" && endpoint.startsWith("/api/v1/log/")) return `${decodeURIComponent(endpoint.slice(12))}\n2026-10-21 12:00:00 |INF| server started`
     throw new Error(`No fixture for ${route}`)

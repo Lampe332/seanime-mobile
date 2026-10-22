@@ -9,6 +9,7 @@ import { SettingsLibrarySection } from "@/app/(main)/settings/_screens/settings-
 import { SettingsLogsSection } from "@/app/(main)/settings/_screens/settings-phone-logs"
 import { SettingsMangaSection, SettingsNakamaSection, SettingsOnlinestreamSection } from "@/app/(main)/settings/_screens/settings-phone-more"
 import { SettingsPlaybackSection } from "@/app/(main)/settings/_screens/settings-phone-playback"
+import { SettingsTorrentsSection } from "@/app/(main)/settings/_screens/settings-phone-torrents"
 import { SettingsUISection } from "@/app/(main)/settings/_screens/settings-phone-ui"
 import { getAndroidAppVersion } from "@/lib/android-app"
 import { Translate, useTr } from "@/lib/app-language"
@@ -17,11 +18,11 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useSetAtom } from "jotai"
 import React from "react"
 import { IconType } from "react-icons"
-import { LuArrowLeft, LuBookKey, LuBookOpen, LuChevronRight, LuCirclePlay, LuGlobe, LuInfo, LuLibrary, LuPalette, LuUsers, LuWandSparkles } from "react-icons/lu"
+import { LuArrowLeft, LuBookKey, LuBookOpen, LuChevronRight, LuCirclePlay, LuGlobe, LuInfo, LuLibrary, LuMagnet, LuPalette, LuUsers, LuWandSparkles } from "react-icons/lu"
 import { toast } from "sonner"
 import "./settings-phone.css"
 
-export type SettingsSectionId = "seanime" | "ui" | "playback" | "library" | "onlinestream" | "manga" | "nakama" | "logs" | "about"
+export type SettingsSectionId = "seanime" | "ui" | "playback" | "library" | "onlinestream" | "torrents" | "manga" | "nakama" | "logs" | "about"
 
 const SECTIONS: { id: SettingsSectionId, icon: IconType, title: [string, string], summary: [string, string] }[] = [
     { id: "seanime", icon: LuWandSparkles, title: ["App", "App"], summary: ["Episodes, spoilers, language, extensions, metadata", "Folgen, Spoiler, Sprache, Erweiterungen, Metadaten"] },
@@ -29,6 +30,7 @@ const SECTIONS: { id: SettingsSectionId, icon: IconType, title: [string, string]
     { id: "playback", icon: LuCirclePlay, title: ["Playback", "Wiedergabe"], summary: ["Player for your files, external player, next episode", "Player für deine Dateien, externer Player, nächste Folge"] },
     { id: "library", icon: LuLibrary, title: ["Local library", "Lokale Bibliothek"], summary: ["Folders, scanning, export", "Ordner, Scannen, Export"] },
     { id: "onlinestream", icon: LuGlobe, title: ["Online streaming", "Online-Streaming"], summary: ["Streaming and your anime lists", "Streaming und deine Anime-Listen"] },
+    { id: "torrents", icon: LuMagnet, title: ["Torrents & debrid", "Torrents & Debrid"], summary: ["Providers, torrent streaming, downloads, debrid", "Anbieter, Torrent-Streaming, Downloads, Debrid"] },
     { id: "manga", icon: LuBookOpen, title: ["Manga", "Manga"], summary: ["Reading progress, default source, local folder", "Lesefortschritt, Standardquelle, lokaler Ordner"] },
     { id: "nakama", icon: LuUsers, title: ["Nakama", "Nakama"], summary: ["Connect to a Nakama host", "Mit einem Nakama-Host verbinden"] },
     { id: "logs", icon: LuBookKey, title: ["Logs & cache", "Logs & Cache"], summary: ["Server logs, cache, recording an issue", "Server-Logs, Cache, Fehler aufzeichnen"] },
@@ -38,7 +40,8 @@ const SECTIONS: { id: SettingsSectionId, icon: IconType, title: [string, string]
 /** ?tab= of the desktop page (links, tours) to the phone section that holds it; tabs of hidden features open the list. */
 const TAB_SECTIONS: Record<string, SettingsSectionId> = {
     seanime: "seanime", local: "seanime", ui: "ui", playback: "playback", "external-player-link": "playback", "media-player": "playback",
-    mediastream: "playback", library: "library", onlinestream: "onlinestream", manga: "manga", nakama: "nakama", logs: "logs", about: "about",
+    mediastream: "playback", library: "library", onlinestream: "onlinestream", torrent: "torrents", "torrent-client": "torrents",
+    torrentstream: "torrents", debrid: "torrents", manga: "manga", nakama: "nakama", logs: "logs", about: "about",
 }
 
 /**
@@ -68,8 +71,8 @@ function sectionInHistory(): SettingsSectionId | null {
 /**
  * Android phone settings: a list of areas, each opening its page in the same screen. Every change saves at once (no Save button
  * at the end of a long page, nothing lost on leaving); Android Back closes an open sheet first, then the page, then the screen.
- * Only settings that work in the app are here: desktop players, transcoding, torrents, Discord, sidebar and keyboard settings
- * stay on the desktop page.
+ * Only settings that work in the app are here: desktop players, transcoding, the auto-downloader, Discord, sidebar and keyboard
+ * settings stay on the desktop page.
  */
 export function SettingsPhone() {
     const t = useTr()
@@ -135,7 +138,7 @@ export function SettingsPhone() {
                             <h1>{t(...current.title)}</h1>
                         </header>
                         <div className="pst-page" data-settings-page={current.id}>
-                            <SectionContent id={current.id} t={t} />
+                            <SectionContent id={current.id} t={t} onOpen={open} />
                         </div>
                     </>
                     : <>
@@ -161,7 +164,7 @@ function versionLine(version?: string) {
     return [version ? `Seanime ${version}` : "", app ? `App ${app}` : ""].filter(Boolean).join(" · ")
 }
 
-function SectionContent({ id, t }: { id: SettingsSectionId, t: Translate }) {
+function SectionContent({ id, t, onOpen }: { id: SettingsSectionId, t: Translate, onOpen: (id: SettingsSectionId) => void }) {
     switch (id) {
         case "seanime":
             return <SettingsAppSection t={t} />
@@ -173,6 +176,8 @@ function SectionContent({ id, t }: { id: SettingsSectionId, t: Translate }) {
             return <SettingsLibrarySection t={t} />
         case "onlinestream":
             return <SettingsOnlinestreamSection t={t} />
+        case "torrents":
+            return <SettingsTorrentsSection t={t} onOpen={onOpen} />
         case "manga":
             return <SettingsMangaSection t={t} />
         case "nakama":
