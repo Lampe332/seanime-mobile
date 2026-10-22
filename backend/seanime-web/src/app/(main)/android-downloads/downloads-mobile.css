@@ -149,7 +149,6 @@ body:has([data-mobile-downloads="true"]) [data-top-navbar] [data-layout-header-b
 }
 /* Torrents tab: the app's own torrent client */
 .mdl-torrents { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; min-width: 0; }
-.mdl-torrent-icon.mdl-thumb { width: 3rem; aspect-ratio: 1; font-size: 1.25rem; }
 .mdl-torrent-name { overflow-wrap: anywhere; }
 .mdl-torrent-path { font-size: .875rem; font-weight: 500; text-align: start; overflow-wrap: anywhere; }
 .mdl-torrent-actions { margin-top: 1rem; overflow: hidden; border-radius: var(--sm-radius); }

@@ -22,4 +22,12 @@ export const ChapterReaderDrawer = () => <div data-chapter-reader-drawer-content
 export const useHandleMangaDownloadData = () => {}
 export const __manga_selectedChapterAtom = atom<any>(undefined)
 export const useQueryClient = () => ({ invalidateQueries: async () => {} })
+export const usePathname = () => location.pathname
+// The Torrents tab's hooks: no torrent provider installed, so the tab stays hidden here (tests/mobile_torrents.py covers it)
+const idle = { data: undefined, isLoading: false, isError: false, isFetching: false, refetch: async () => {} }
+export const useQuery = () => idle
+export const useMutation = () => ({ mutate: () => {}, mutateAsync: async () => {}, isPending: false })
+export const useServerQuery = (options: any) => options?.endpoint === "/api/v1/extensions/list/anime-torrent-provider" ? { ...idle, data: [] } : idle
+export const useServerMutation = () => ({ mutate: () => {}, mutateAsync: async () => {}, isPending: false })
+export const buildSeaQuery = async () => null
 export const assetKey = h

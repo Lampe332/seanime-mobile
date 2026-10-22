@@ -3,7 +3,7 @@ import { useGetActiveTorrentList, useTorrentClientAction } from "@/api/hooks/tor
 import { PhoneSheet } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { Translate, useTr } from "@/lib/app-language"
 import React from "react"
-import { LuMagnet, LuPause, LuPlay } from "react-icons/lu"
+import { LuPause, LuPlay } from "react-icons/lu"
 
 const STATUS: Record<string, [string, string]> = {
     downloading: ["Downloading", "Wird geladen"],
@@ -63,7 +63,6 @@ export function TorrentDownloads() {
                 <ul className="mdl-rows">
                     {group.rows.map(torrent => <li key={torrent.hash} className="mdl-row" data-torrent-hash={torrent.hash}>
                         <button type="button" className="mdl-row-main" onClick={() => setOpenHash(torrent.hash)}>
-                            <span className="mdl-art mdl-thumb mdl-torrent-icon" aria-hidden><LuMagnet /></span>
                             <span className="mdl-row-text">
                                 <span className="mdl-row-title mdl-torrent-name">{torrent.name}</span>
                                 {group.key === "active" && <span className="mdl-progress" role="progressbar" aria-label={t(`${torrent.name} download`, `Download ${torrent.name}`)}

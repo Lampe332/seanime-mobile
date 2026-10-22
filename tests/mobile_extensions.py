@@ -88,14 +88,14 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         # Installed list
         check('Phone screen replaces the desktop page',page.locator('h1').inner_text()=='Extensions' and page.locator('[data-desktop-banner]').count()==0
               and page.get_by_text('Manage your plugins and content providers.').count()==0)
-        check('Facts: installed, updates, what needs attention',page.locator('[data-extensions-facts]').inner_text()=='10 installed · 1 update · 3 need attention')
-        check('Tabs: Installed chosen with its count and an attention dot',page.evaluate(TEXT,'[data-extensions-page-tabs] [role=tab]')==['Installed10','Marketplace']
+        check('Facts: installed, updates, what needs attention',page.locator('[data-extensions-facts]').inner_text()=='11 installed · 1 update · 3 need attention')
+        check('Tabs: Installed chosen with its count and an attention dot',page.evaluate(TEXT,'[data-extensions-page-tabs] [role=tab]')==['Installed11','Marketplace']
               and page.locator('[data-tab-name="Installed"][aria-selected=true] .mex-tab-dot').count()==1)
         check('Tutorial: the Marketplace tab keeps its selector',page.locator('[data-extensions-page-tabs] [data-tab-name="Marketplace"]').count()==1)
         check('Updates block names what can be updated',page.locator('[data-extensions-updates] h2').inner_text()=='1 update available'
               and page.locator('[data-extensions-updates] p').first.inner_text()=='AnimeKai')
-        check('Sections: attention first, content sources before plugins, torrents hidden',page.evaluate(HEADS,'.mex-section-head h2')
-              ==['Needs attention','Online streaming','Manga','Plugins','Custom sources','Disabled'] and page.locator('[data-extension-row="nyaa"]').count()==0)
+        check('Sections: attention first, content sources (torrent providers too) before plugins',page.evaluate(HEADS,'.mex-section-head h2')
+              ==['Needs attention','Online streaming','Manga','Anime torrents','Plugins','Custom sources','Disabled'] and page.locator('[data-extension-row="nyaa"]').count()==1)
         check('Attention rows say what is wrong',page.evaluate(TEXT,'[data-extensions-attention] .mex-flag')==['Needs your permission','Invalid or incompatible code'])
         check('Rows: update and setup flags, built-in, version · author · language',page.locator('[data-extension-row="animekai"] .mex-flag').inner_text()=='Update to 1.2.0'
               and page.locator('[data-extension-row="anilist-sync"] .mex-flag').inner_text()=='Needs setup'
@@ -117,7 +117,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         page.locator('[data-extensions-search]').fill('zzz');page.wait_for_timeout(200)
         check('A search without hits says so',page.locator('[data-extensions-search-empty]').count()==1)
         page.locator('[data-extensions-search-empty] button').click();page.wait_for_timeout(200)
-        check('Clearing the search brings every row back',page.locator('[data-extension-row]').count()==10)
+        check('Clearing the search brings every row back',page.locator('[data-extension-row]').count()==11)
         page.locator('[data-extensions-add-type="onlinestream-provider"]').click();page.locator('[data-marketplace-phone]').wait_for();page.wait_for_timeout(200)
         check('"Add" in a section opens the marketplace on that type',page.locator('[data-marketplace-type="onlinestream-provider"][aria-selected=true]').count()==1)
         check('Marketplace: the plugin finds no search field either',page.evaluate(MPLUS)==0)
@@ -189,7 +189,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
               and page.locator('[data-extension-row]').count()>0)
         page.wait_for_timeout(700)
         check('The check result is announced and counted',['success','2 updates available'] in page.evaluate('toasts')
-              and page.locator('[data-extensions-facts]').inner_text()=='9 installed · 2 updates · 2 need attention')
+              and page.locator('[data-extensions-facts]').inner_text()=='10 installed · 2 updates · 2 need attention')
         page.locator('[data-extensions-update-all]').click();page.wait_for_timeout(1000)
         check('Update all installs every safe update one after another',calls(page,'install')[-2:]==[['install',{'manifestUri':'https://ext.test/animekai.json'}],
               ['install',{'manifestUri':'https://ext.test/mangafire.json'}]] and page.evaluate('toasts')[-1]==['success','2 extensions updated']
@@ -243,8 +243,8 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
         check('Saving switches the repository',page.evaluate('localStorage.getItem("marketplace-url")')==json.dumps(REPO)
               and page.locator('[data-marketplace-source]').inner_text()=='ext.test · index.json' and page.locator('[data-marketplace-missing]').count()==0)
         check('Focus returns to the change button',page.evaluate('document.activeElement?.getAttribute("data-tour")')=='marketplace-change-repo')
-        check('Chips: types with counts, torrents hidden',page.evaluate(TEXT,'[data-marketplace-type-tabs] [role=tab]')==['All9','Streaming5','Manga2','Plugins1','Custom sources1']
-              and page.locator('[data-marketplace-row="animetosho"]').count()==0)
+        check('Chips: types with counts, torrent providers included',page.evaluate(TEXT,'[data-marketplace-type-tabs] [role=tab]')==['All10','Streaming5','Manga2','Torrents1','Plugins1','Custom sources1']
+              and page.locator('[data-marketplace-row="animetosho"]').count()==1)
         check('Tutorial: type chips keep the desktop tab names',page.locator('[data-marketplace-type-tabs] [data-tab-name="Online Streaming"]').count()==1
               and page.locator('[data-marketplace-type-tabs] [data-tab-name="Manga"]').count()==1)
         check('Installed ones show a check, the others an install button the tutorial finds',page.locator('[data-marketplace-row="animekai"] [data-installed]').count()==1
@@ -263,11 +263,11 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
               and page.locator('[data-marketplace-row="animepahe"] [data-installed]').count()==1)
         page.locator('[data-marketplace-type="all"]').click();page.locator('[data-marketplace-language]').select_option('de');page.wait_for_timeout(200)
         check('Language narrows the list and the chip counts follow',page.evaluate(TEXT,'[data-marketplace-row] .mex-row-name')==['Kaido']
-              and page.evaluate(TEXT,'[data-marketplace-type-tabs] [role=tab]')==['All1','Streaming1','Manga0','Plugins0','Custom sources0'])
+              and page.evaluate(TEXT,'[data-marketplace-type-tabs] [role=tab]')==['All1','Streaming1','Manga0','Torrents0','Plugins0','Custom sources0'])
         page.locator('[data-marketplace-search]').fill('zzz');page.wait_for_timeout(200)
         check('No match offers to reset the filters',page.locator('[data-marketplace-filter-empty]').count()==1)
         page.locator('[data-marketplace-filter-empty] button').click();page.wait_for_timeout(200)
-        check('Reset brings back the overview',page.locator('[data-marketplace-row]').count()==8 and page.locator('[data-marketplace-search]').input_value()=='')
+        check('Reset brings back the overview',page.locator('[data-marketplace-row]').count()==9 and page.locator('[data-marketplace-search]').input_value()=='')
         page.locator('[data-marketplace-row="weebcentral"] .mex-row-main').click();page.locator('[data-marketplace-sheet="weebcentral"]').wait_for();page.wait_for_timeout(300)
         check('Row opens its sheet with the description and the install action',page.locator('[data-marketplace-sheet] .mex-description').inner_text()=='Manga from WeebCentral'
               and page.locator('[data-marketplace-sheet-install]').count()==1)
@@ -355,9 +355,9 @@ with tempfile.TemporaryDirectory(prefix='seanime-extensions-') as tmp:
                 check('Marketplace error offers to retry or change the repository',p.locator('[data-marketplace-error] button').count()==2)
             shot(p,f'extensions-{name}-390.png');p.close()
         de=open_page(language='de')
-        check('German: facts, tabs, sections, flags',de.locator('[data-extensions-facts]').inner_text()=='10 installiert · 1 Update · 3 brauchen Aufmerksamkeit'
-              and de.evaluate(TEXT,'[data-extensions-page-tabs] [role=tab]')==['Installiert10','Marktplatz']
-              and de.evaluate(HEADS,'.mex-section-head h2')==['Braucht Aufmerksamkeit','Online-Streaming','Manga','Plugins','Eigene Quellen','Deaktiviert']
+        check('German: facts, tabs, sections, flags',de.locator('[data-extensions-facts]').inner_text()=='11 installiert · 1 Update · 3 brauchen Aufmerksamkeit'
+              and de.evaluate(TEXT,'[data-extensions-page-tabs] [role=tab]')==['Installiert11','Marktplatz']
+              and de.evaluate(HEADS,'.mex-section-head h2')==['Braucht Aufmerksamkeit','Online-Streaming','Manga','Anime-Torrents','Plugins','Eigene Quellen','Deaktiviert']
               and de.locator('[data-extension-row="animekai"] .mex-flag').inner_text()=='Update auf 1.2.0'
               and de.locator('[data-extension-row="local-manga"] .mex-row-meta').inner_text()=='Integriert')
         de.locator('[data-extension-row="animekai"]').click();de.locator('[data-extension-sheet]').wait_for();de.wait_for_timeout(300)

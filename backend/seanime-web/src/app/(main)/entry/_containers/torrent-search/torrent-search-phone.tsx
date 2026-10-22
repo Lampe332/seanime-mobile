@@ -12,7 +12,6 @@ import {
     PhoneSelect,
     PhoneSheet,
     PhoneSheetGroup,
-    PhoneSwitch,
     PhoneTabs,
 } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
@@ -110,6 +109,10 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, onDownload }: {
 
     const settings = selectedProviderExtension?.settings
     const canSmart = !!settings?.canSmartSearch
+    const flags = [
+        ...(settings?.smartSearchFilters?.includes("batch") ? [{ value: "batch", label: t("Whole season", "Ganze Staffel") }] : []),
+        ...(settings?.smartSearchFilters?.includes("bestReleases") ? [{ value: "best", label: t("Best releases", "Beste Releases") }] : []),
+    ]
     const smart = searchType === Torrent_SearchType.SMART
     const debridOn = !!serverStatus?.debridSettings?.enabled
     const cached = debridOn ? data?.debridInstantAvailability ?? {} : {}
@@ -165,13 +168,9 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, onDownload }: {
             {smart && <PhoneChips label={t("Resolution", "Auflösung")} variant="wrap" data-torrent-resolution
                 chips={[{ value: "", label: t("Any", "Alle") }, ...RESOLUTIONS.map(value => ({ value, label: `${value}p` }))]}
                 selected={[smartSearchResolution]} onToggle={value => setSmartSearchResolution(value)} />}
-            {smart && <div className="ps-rows">
-                {settings?.smartSearchFilters?.includes("batch") && <PhoneSwitch label={t("Whole season", "Ganze Staffel")}
-                    note={t("Batch torrents with every episode", "Batch-Torrents mit allen Folgen")} checked={smartSearchBatch}
-                    onChange={setSmartSearchBatch} data-torrent-batch />}
-                {settings?.smartSearchFilters?.includes("bestReleases") && <PhoneSwitch label={t("Best releases only", "Nur beste Releases")}
-                    checked={smartSearchBest} onChange={setSmartSearchBest} data-torrent-best />}
-            </div>}
+            {smart && flags.length > 0 && <PhoneChips label={t("Filters", "Filter")} variant="wrap" showCheck data-torrent-flags chips={flags}
+                selected={[smartSearchBatch ? "batch" : "", smartSearchBest ? "best" : ""].filter(Boolean)}
+                onToggle={value => value === "batch" ? setSmartSearchBatch(!smartSearchBatch) : setSmartSearchBest(!smartSearchBest)} />}
         </PhoneSheetGroup>
 
         {warnings.extensionDoesNotSupportAdult && <PhoneNotice text={t("This provider does not search adult titles.", "Dieser Anbieter sucht keine Titel für Erwachsene.")} />}
