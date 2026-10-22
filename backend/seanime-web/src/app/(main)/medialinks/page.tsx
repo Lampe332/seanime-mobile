@@ -6,7 +6,9 @@ import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_conta
 import { EpisodeGridItem } from "@/app/(main)/_features/anime/_components/episode-grid-item"
 import { MediaEpisodeInfoModal } from "@/app/(main)/_features/media/_components/media-episode-info-modal"
 import { __mpt_currentExternalPlayerLinkAtom } from "@/app/(main)/_features/progress-tracking/manual-progress-tracking"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { EpisodeListGrid } from "@/app/(main)/entry/_components/episode-list-grid"
+import { MedialinksPhone } from "@/app/(main)/medialinks/_screens/medialinks-phone"
 import { useMediastreamCurrentFile } from "@/app/(main)/mediastream/_lib/mediastream.atoms"
 import { clientIdAtom } from "@/app/websocket-provider"
 import { SeaLink } from "@/components/shared/sea-link"
@@ -144,6 +146,9 @@ export default function Page() {
     const episodes = React.useMemo(() => {
         return [...mainEpisodes, ...specialEpisodes, ...ncEpisodes]
     }, [mainEpisodes, specialEpisodes, ncEpisodes])
+
+    // Android phones get their own screen; the playback above stays the same
+    if (isAndroidPhone()) return <MedialinksPhone entry={animeEntry} loading={animeEntryLoading} onPlay={setFilePath} />
 
     if (animeEntryLoading) return <LoadingSpinner />
 

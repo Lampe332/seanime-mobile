@@ -25,6 +25,9 @@ export const SeaLink = React.forwardRef<HTMLAnchorElement, any>(({ href, warmEnt
         w.routes.push(href)
     }} />)
 
+export const copyToClipboard = async (text: string) => { w.clipboard.push(text) }
+export const openTab = (url: string) => { w.tabs.push(url) }
+
 export const useMediaPreviewModal = () => ({ setPreviewModalMediaId: (id: number, type: string) => w.previews.push([id, type]) })
 export const PluginMediaCardContextMenuItems = () => null
 export const CustomLibraryBanner = () => <div data-desktop-banner />
@@ -32,6 +35,9 @@ export const useLibraryExplorer = () => ({ openDirInLibraryExplorer: (path: stri
 export const useSeaCommand = () => ({ setSeaCommandInput: (v: string) => w.command.push(v), setSeaCommandOpen: (v: boolean) => w.command.push(v) })
 export const useSeaCommandSearchSelectMedia = () => ({ searchAndSelectMedia: () => {}, selectedAnime: null, onAcknowledgeSelection: () => {} })
 export const useSeaCommandInject = () => ({ inject: () => {}, remove: () => {} })
+
+export const useWebsocketSender = () => ({ sendMessage: (message: any) => { w.wsSent = [...(w.wsSent ?? []), message] } })
+export const useWebsocketPluginMessageListener = () => {}
 
 // Websocket messages: dispatchEvent(new CustomEvent("ws", {detail: {type, payload}}))
 export function useWebsocketMessageListener<T>({ type, onMessage }: { type: string, onMessage: (data: T) => void }) {
@@ -90,12 +96,16 @@ function respond(method: string, endpoint: string, body: any): any {
             return []
         case "GET /api/v1/library/scan-summaries":
             return s.scanSummaries ?? []
+        case "POST /api/v1/playback-manager/manual-tracking/start":
+        case "POST /api/v1/playback-manager/sync-current-progress":
+        case "POST /api/v1/playback-manager/manual-tracking/cancel":
+            return true
         case "GET /api/v1/library/missing-episodes":
         case "GET /api/v1/auto-downloader/items":
             return null
     }
     const entry = route.match(/^GET \/api\/v1\/library\/anime-entry\/(\d+)$/)
-    if (entry) return media(Number(entry[1])) ? { mediaId: Number(entry[1]), media: media(Number(entry[1])) } : null
+    if (entry) return s.entries?.[entry[1]] ?? (media(Number(entry[1])) ? { mediaId: Number(entry[1]), media: media(Number(entry[1])) } : null)
     throw new Error(`No fixture for ${route}`)
 }
 

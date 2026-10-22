@@ -1,10 +1,13 @@
 import { usePlaybackCancelManualTracking, usePlaybackStartManualTracking, usePlaybackSyncCurrentProgress } from "@/api/hooks/playback_manager.hooks"
+import { PhoneSheet } from "@/app/(main)/_features/phone-screen/phone-screen"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { SeaImage } from "@/components/shared/sea-image"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { Modal } from "@/components/ui/modal"
 import { openTab } from "@/lib/helpers/browser"
+import { useTr } from "@/lib/app-language"
 import { WSEvents } from "@/lib/server/ws-events"
 import { atom, useAtomValue } from "jotai"
 import { useAtom } from "jotai/react"
@@ -105,6 +108,35 @@ export function ManualProgressTracking() {
             setIsWatching(false)
         },
     })
+
+    const t = useTr()
+    const busy = isSyncing || isStarting || isCanceling
+
+    // Phones: a sheet with the episode, "watched" as the one action and the way back to the player
+    if (isAndroidPhone()) return (
+        <PhoneSheet title={t("Playing in your player", "Läuft in deinem Player")} open={showModal && isWatching} onOpenChange={v => setShowModal(v)}
+            data-manual-progress-tracking-modal
+            footer={<>
+                <button type="button" className="ps-secondary" disabled={busy} onClick={() => cancelManualTracking()} data-mpt-stop>{t("Stop tracking", "Nicht mehr verfolgen")}</button>
+                <button type="button" className="ps-primary" disabled={busy || !state} onClick={() => syncProgress()} data-mpt-sync>
+                    {state ? t(`Episode ${state.episodeNumber} watched`, `Folge ${state.episodeNumber} gesehen`) : t("Mark watched", "Als gesehen markieren")}
+                </button>
+            </>}>
+            {state && <div className="ps-list" data-manual-progress-tracking-modal-content>
+                <div className="ps-list-row">
+                    <span className="ps-list-cover">{!!state.mediaCoverImage && <SeaImage src={state.mediaCoverImage} alt="" fill sizes="3rem" className="object-cover" />}</span>
+                    <span className="ps-list-text">
+                        <span className="ps-list-title">{state.mediaTitle}</span>
+                        <span className="ps-list-meta">{t(`Episode ${state.episodeNumber}`, `Folge ${state.episodeNumber}`)}{state.mediaTotalEpisodes > 0 ? ` / ${state.mediaTotalEpisodes}` : ""}</span>
+                    </span>
+                </div>
+            </div>}
+            <p className="ps-sheet-note">{t("When you have watched it, mark it here and your AniList progress moves on.",
+                "Wenn du sie gesehen hast, markiere sie hier, dann geht dein AniList-Fortschritt weiter.")}</p>
+            {!!currentExternalPlayerLink && <button type="button" className="ps-text-action" onClick={() => openTab(currentExternalPlayerLink)} data-mpt-reopen>
+                {t("Open the player again", "Player wieder öffnen")}</button>}
+        </PhoneSheet>
+    )
 
     return (
         <>

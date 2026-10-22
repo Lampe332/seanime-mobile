@@ -1,0 +1,11 @@
+/* The external player's page on phones: only what the phone kit (phone-screen.css) lacks. Episode rows carry a 16:9
+   thumbnail, as the anime page's episode list. */
+.pml-row { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 4.75rem; padding: .625rem 1rem .625rem .625rem; background: var(--sm-surface-raised); color: var(--sm-text); text-align: start; }
+.pml-row:active { background: var(--sm-surface-control); }
+.pml-row:focus-visible { outline-offset: -2px; }
+.pml-row[aria-current="true"] { background: var(--sm-accent-softer); }
+.pml-thumb { position: relative; flex: none; width: 6.5rem; aspect-ratio: 16 / 9; overflow: hidden; border-radius: .5rem; background: var(--sm-surface-control); }
+.pml-watched { position: absolute; z-index: 2; right: .25rem; bottom: .25rem; display: grid; place-items: center; width: 1.25rem; height: 1.25rem; border-radius: 999px; background: rgb(12 12 14 / .82); color: var(--sm-accent); font-size: .875rem; }
+.pml-episode-title { font-size: .8125rem; line-height: 1.4; color: var(--sm-text); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.pml-playing { color: var(--sm-accent); font-weight: 600; }
+.pml-open { flex: none; font-size: 1.125rem; color: var(--sm-text-subtle); }
