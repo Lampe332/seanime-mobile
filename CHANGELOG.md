@@ -2,6 +2,11 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.43 — 22.10.2026 (versionCode 31094)
+
+- 🦺 Plugins: Fixed unchecked checkboxes in plugin windows being nearly invisible on the dark sheet
+- 🦺 Downloads: Fixed sizes breaking between the number and the unit on narrow cards
+
 ## 1.9.42 — 22.10.2026 (versionCode 31093)
 
 - 🦺 Extensions: Fixed the Marketplace+ plugin's desktop filter bar breaking the phone extensions screen with a white author field over the other controls
