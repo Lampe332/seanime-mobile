@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.42 — 22.10.2026 (versionCode 31093)
+
+- 🦺 Extensions: Fixed the Marketplace+ plugin's desktop filter bar breaking the phone extensions screen with a white author field over the other controls
+
 ## 1.9.41 — 22.10.2026 (versionCode 31092)
 
 - 🎉 Library: Browse the library's folders and files on phones, with each file's anime and state, filters for files without an anime, ignored or not locked, and per-file match, unmatch, lock, ignore and delete
