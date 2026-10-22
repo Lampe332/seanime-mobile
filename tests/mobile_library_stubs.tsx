@@ -27,6 +27,8 @@ export const SeaLink = React.forwardRef<HTMLAnchorElement, any>(({ href, warmEnt
 
 export const useMediaPreviewModal = () => ({ setPreviewModalMediaId: (id: number, type: string) => w.previews.push([id, type]) })
 export const PluginMediaCardContextMenuItems = () => null
+export const CustomLibraryBanner = () => <div data-desktop-banner />
+export const useLibraryExplorer = () => ({ openDirInLibraryExplorer: (path: string) => w.explorer.push(path) })
 export const useSeaCommand = () => ({ setSeaCommandInput: (v: string) => w.command.push(v), setSeaCommandOpen: (v: boolean) => w.command.push(v) })
 export const useSeaCommandSearchSelectMedia = () => ({ searchAndSelectMedia: () => {}, selectedAnime: null, onAcknowledgeSelection: () => {} })
 export const useSeaCommandInject = () => ({ inject: () => {}, remove: () => {} })
@@ -86,6 +88,8 @@ function respond(method: string, endpoint: string, body: any): any {
         case "PATCH /api/v1/library/anime-entry/bulk-action":
             c.unknownGroups = c.unknownGroups.filter((g: any) => g.mediaId !== body.mediaId)
             return []
+        case "GET /api/v1/library/scan-summaries":
+            return s.scanSummaries ?? []
         case "GET /api/v1/library/missing-episodes":
         case "GET /api/v1/auto-downloader/items":
             return null

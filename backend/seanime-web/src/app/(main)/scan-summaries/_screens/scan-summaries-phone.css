@@ -1,0 +1,39 @@
+/* Scan summaries on phones: only what the phone kit (phone-screen.css) lacks. Errors take the danger tone, warnings the
+   accent; everything else stays neutral. */
+
+.pss-tools { display: grid; gap: .5rem; }
+
+/* Anime found: a cover row that opens its files, then a link to the anime. */
+.pss-groups, .pss-files { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.pss-group { display: grid; gap: 2px; }
+.pss-group-head { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 4.75rem; padding: .625rem 1rem .625rem .625rem; background: var(--sm-surface-raised); color: var(--sm-text); text-align: start; }
+.pss-group-head:active, .pss-file-head:active { background: var(--sm-surface-control); }
+.pss-group-head:focus-visible, .pss-file-head:focus-visible { outline-offset: -2px; }
+.pss-group-body { display: grid; gap: 2px; padding-left: .75rem; background: var(--sm-surface); }
+.pss-open { justify-self: start; margin-left: .25rem; }
+.pss-flags { display: flex; flex-wrap: wrap; gap: .125rem .75rem; font-size: .8125rem; font-weight: 600; }
+.pss-flags [data-level="error"] { color: var(--sm-danger); }
+.pss-flags [data-level="warning"] { color: var(--sm-accent); }
+.pss-expand { flex: none; font-size: 1.125rem; color: var(--sm-text-subtle); transition: transform .15s; }
+[aria-expanded="true"] > .pss-expand { transform: rotate(180deg); }
+
+/* A file: its name and state, then what was read from the name and the scanner's notes. */
+.pss-file { display: grid; background: var(--sm-surface-raised); }
+.pss-file-head { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 3.5rem; padding: .625rem 1rem; color: var(--sm-text); text-align: start; font-size: .9375rem; }
+.pss-file-head .ps-action-text > span { overflow-wrap: anywhere; }
+.pss-file-icon { flex: none; font-size: 1.25rem; color: var(--sm-text-muted); }
+.pss-file[data-level="error"] .pss-file-icon, .pss-file[data-level="error"] .pss-file-head small { color: var(--sm-danger); }
+.pss-file[data-level="warning"] .pss-file-icon, .pss-file[data-level="warning"] .pss-file-head small { color: var(--sm-accent); }
+.pss-file-body { display: grid; gap: .75rem; padding: 0 1rem 1rem 3.125rem; }
+.pss-path { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); overflow-wrap: anywhere; }
+.pss-read { display: grid; gap: .375rem; }
+.pss-read > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 1rem; font-size: .8125rem; line-height: 1.45; }
+.pss-read dt { color: var(--sm-text-muted); }
+.pss-read dd { color: var(--sm-text); text-align: end; overflow-wrap: anywhere; }
+.pss-logs { display: grid; gap: .375rem; font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); overflow-wrap: anywhere; }
+.pss-logs [data-level="error"] { color: var(--sm-danger); }
+.pss-logs [data-level="warning"] { color: var(--sm-accent); }
+
+@media (prefers-reduced-motion: reduce) {
+    .pss-expand { transition: none; }
+}

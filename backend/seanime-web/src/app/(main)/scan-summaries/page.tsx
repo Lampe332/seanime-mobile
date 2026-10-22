@@ -2,6 +2,8 @@ import { Anime_LocalFile, Summary_ScanSummaryFile, Summary_ScanSummaryLog } from
 import { useGetScanSummaries } from "@/api/hooks/scan_summary.hooks"
 import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
 import { useLibraryExplorer } from "@/app/(main)/_features/library-explorer/library-explorer.atoms"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
+import { ScanSummariesPhone } from "@/app/(main)/scan-summaries/_screens/scan-summaries-phone"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { SeaImage } from "@/components/shared/sea-image"
 import { SeaLink } from "@/components/shared/sea-link"
@@ -23,6 +25,12 @@ import { TbListSearch } from "react-icons/tb"
 
 
 export default function Page() {
+    // Android phones get their own screen; tablets and desktop keep this page
+    if (isAndroidPhone()) return <ScanSummariesPhone />
+    return <ScanSummariesDesktop />
+}
+
+function ScanSummariesDesktop() {
 
     const [selectedSummaryId, setSelectedSummaryId] = React.useState<string | undefined | null>(undefined)
     const [searchQuery, setSearchQuery] = React.useState("")
