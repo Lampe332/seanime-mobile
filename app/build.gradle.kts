@@ -10,8 +10,8 @@ android {
         applicationId = "com.seanime.app.local"
         minSdk = 21
         targetSdk = 36
-        versionCode = providers.gradleProperty("seanimeBaselineCode").orNull?.toInt() ?: 31099
-        versionName = providers.gradleProperty("seanimeBaselineVersion").orNull ?: "2.0.4"
+        versionCode = providers.gradleProperty("seanimeBaselineCode").orNull?.toInt() ?: 31100
+        versionName = providers.gradleProperty("seanimeBaselineVersion").orNull ?: "2.0.5"
         testInstrumentationRunner = providers.gradleProperty("seanimeAuditRunner").orNull
             ?: "com.seanime.app.audit.OfflineInstrumentation"
         ndk { abiFilters += setOf("arm64-v8a", "armeabi-v7a") }

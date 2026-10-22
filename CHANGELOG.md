@@ -2,7 +2,7 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
-## 2.0.4 — 22.10.2026 (versionCode 31099)
+## 2.0.5 — 22.10.2026 (versionCode 31100)
 
 - 🎉 Torrents: Stream episodes from torrents in the app's own player, picked from a phone torrent search (provider, episode or title, resolution, whole seasons, best releases)
 - 🎉 Torrents: Download torrents into the library folder with the app's own torrent client; Downloads has a Torrents tab with progress, pause and resume, and removing a torrent with or without its files
