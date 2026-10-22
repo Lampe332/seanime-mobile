@@ -2,6 +2,21 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 1.9.41 — 22.10.2026 (versionCode 31092)
+
+- 🎉 Library: Browse the library's folders and files on phones, with each file's anime and state, filters for files without an anime, ignored or not locked, and per-file match, unmatch, lock, ignore and delete
+- ⚡️ Library: Scanning, unmatched files, hidden anime, ignored files and the jobs on all files are phone sheets behind one "Local library" action on Home; files waiting for an anime show as rows under the header
+- ⚡️ Library: Scan progress and the folder watcher show above the bottom bar instead of covering it
+- ⚡️ Scan summaries: Phone screen with the newest scan, older scans in a picker, the files without an anime and the anime found, each file's parsed name and scanner notes
+- ⚡️ Anime: "More" on the anime page is a phone sheet with AniList, AniDB and MyAnimeList, filler and specials, unmatching or deleting picked files and plugin actions
+- ⚡️ Cards: The long-press preview is a phone sheet with the cover, facts, list state, synopsis, trailer and a way to the page
+- ⚡️ External player: Phone screen with the downloaded episodes and a sheet to mark the tracked episode as watched
+- ⚡️ Custom sources: Phone screen with the source, Anime / Manga, title search, cover grid and pages
+- ⚡️ Errors: Error and empty states, the missing-page screen and the playground's screen-size note use the phone design
+- 🦺 Cards: Long-press menus open as an action sheet above the bottom bar instead of being cut off at the screen edge
+- 🦺 Navigation: The menu's "Customize navigation" and "Reset navigation" rows and the edit mode follow the app language instead of always being German
+- 🦺 Issue recorder: Its panel sits above the bottom bar instead of beside a desktop sidebar that phones don't have
+
 ## 1.9.39 — 22.10.2026 (versionCode 31090)
 
 - 🦺 Settings: Changing "Load anime pages ahead" or turning custom colours off keeps the open settings area instead of jumping back to the list
