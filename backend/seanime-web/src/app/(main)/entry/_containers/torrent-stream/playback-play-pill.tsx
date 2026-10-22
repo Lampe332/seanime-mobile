@@ -7,6 +7,7 @@ import { PlaybackManager_PlaybackState } from "@/app/(main)/_features/progress-t
 import { vc_currentTime, vc_globalMiniPlayerAtom, vc_miniPlayer, vc_videoElement } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { useWebsocketSender } from "@/app/(main)/_hooks/handle-websockets"
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
+import { toastDebridStreamFailure } from "@/app/(main)/_features/native-player/stream-start-error"
 import { clientIdAtom } from "@/app/websocket-provider"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { cn } from "@/components/ui/core/styling"
@@ -246,7 +247,7 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
                 if (data.status === "failed") {
                     setDebridState(null)
                     setAutoSelectState(null)
-                    toast.error(data.message)
+                    toastDebridStreamFailure(data.message)
                     setShowMediaPlayerLoading(false)
                     return
                 }
@@ -286,7 +287,7 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
                 if (data.status === "failed") {
                     setDebridState(null)
                     setAutoSelectState(null)
-                    toast.error(data.message)
+                    toastDebridStreamFailure(data.message)
                     setShowMediaPlayerLoading(false)
                     return
                 }

@@ -31,7 +31,7 @@ describe("stream start errors on phones", () => {
         const store = createStore()
         store.set(nativePlayer_stateAtom, draft => { draft.active = true })
         toastStreamStartError(failure("timeout waiting for torrent info"), en, store)
-        expect(toast.error).toHaveBeenCalledWith("Nobody is sharing this torrent right now. Choose one with more seeders.")
+        expect(toast.error).toHaveBeenCalledWith("Nobody is sharing this torrent right now. Choose one with more seeders.", { id: "stream-start-error" })
     })
 
     it("stays quiet once the user left the player with Back", () => {

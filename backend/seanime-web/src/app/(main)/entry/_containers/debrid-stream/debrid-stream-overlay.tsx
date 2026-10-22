@@ -2,6 +2,7 @@ import { DebridClient_StreamState } from "@/api/generated/types"
 import { useDebridCancelStream } from "@/api/hooks/debrid.hooks"
 import { PlaybackManager_PlaybackState } from "@/app/(main)/_features/progress-tracking/_lib/playback-manager.types"
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
+import { toastDebridStreamFailure } from "@/app/(main)/_features/native-player/stream-start-error"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Button } from "@/components/ui/button"
@@ -51,7 +52,7 @@ export function DebridStreamOverlay() {
                 }
                 if (data.status === "failed") {
                     setState(null)
-                    toast.error(data.message)
+                    toastDebridStreamFailure(data.message)
                     setShowMediaPlayerLoading(false)
                     return
                 }

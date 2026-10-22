@@ -1,7 +1,12 @@
 import { nativePlayer_stateAtom } from "@/app/(main)/_features/native-player/native-player.atoms"
-import { Translate } from "@/lib/app-language"
+import { tr, Translate } from "@/lib/app-language"
 import { toast } from "sonner"
 import type { createStore } from "jotai"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
+/** One message per failed start: the request's error and the debrid state event say the same thing. */
+const STREAM_START_TOAST = "stream-start-error"
 
 /**
  * Why a torrent or debrid stream could not start, in words a phone user can act on. The server's reasons are technical;
@@ -34,5 +39,14 @@ export function streamStartError(reason: string, t: Translate) {
 export function toastStreamStartError(error: { response?: { data?: { error?: unknown } }, message?: string }, t: Translate,
     store: ReturnType<typeof createStore>) {
     if (!store.get(nativePlayer_stateAtom).active) return
-    toast.error(streamStartError(String(error.response?.data?.error ?? error.message ?? ""), t))
+    toast.error(streamStartError(String(error.response?.data?.error ?? error.message ?? ""), t), { id: STREAM_START_TOAST })
+}
+
+/** A failed debrid stream as the server's state event reports it; on phones in the same words and the same toast as above. */
+export function toastDebridStreamFailure(message: string) {
+    if (!IS_ANDROID_APP) {
+        toast.error(message)
+        return
+    }
+    toast.error(streamStartError(message, tr), { id: STREAM_START_TOAST })
 }
