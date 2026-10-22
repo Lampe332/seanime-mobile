@@ -1,4 +1,4 @@
-import { useServerMutation, useServerQuery } from "@/api/client/requests"
+import { SeaError, useServerMutation, useServerQuery } from "@/api/client/requests"
 import {
     DeleteTorrentstreamBatchHistory_Variables,
     GetTorrentstreamBatchHistory_Variables,
@@ -33,13 +33,15 @@ export function useSaveTorrentstreamSettings() {
     })
 }
 
-export function useTorrentstreamStartStream() {
+/** onError replaces the default error toast (the phone words it itself) */
+export function useTorrentstreamStartStream(onError?: (error: SeaError) => void) {
     return useServerMutation<boolean, TorrentstreamStartStream_Variables>({
         endpoint: API_ENDPOINTS.TORRENTSTREAM.TorrentstreamStartStream.endpoint,
         method: API_ENDPOINTS.TORRENTSTREAM.TorrentstreamStartStream.methods[0],
         mutationKey: [API_ENDPOINTS.TORRENTSTREAM.TorrentstreamStartStream.key],
         onSuccess: async () => {
         },
+        ...(onError ? { onError } : {}),
     })
 }
 

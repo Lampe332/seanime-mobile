@@ -1,4 +1,4 @@
-import { useServerMutation, useServerQuery } from "@/api/client/requests"
+import { SeaError, useServerMutation, useServerQuery } from "@/api/client/requests"
 import {
     DebridAddTorrents_Variables,
     DebridCancelDownload_Variables,
@@ -152,13 +152,15 @@ export function useDebridGetTorrentFilePreviews(variables: Partial<DebridGetTorr
     })
 }
 
-export function useDebridStartStream() {
+/** onError replaces the default error toast (the phone words it itself) */
+export function useDebridStartStream(onError?: (error: SeaError) => void) {
     return useServerMutation<boolean, DebridStartStream_Variables>({
         endpoint: API_ENDPOINTS.DEBRID.DebridStartStream.endpoint,
         method: API_ENDPOINTS.DEBRID.DebridStartStream.methods[0],
         mutationKey: [API_ENDPOINTS.DEBRID.DebridStartStream.key],
         onSuccess: async () => {
         },
+        ...(onError ? { onError } : {}),
     })
 }
 

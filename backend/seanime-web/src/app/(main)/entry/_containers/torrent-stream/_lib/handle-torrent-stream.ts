@@ -7,6 +7,7 @@ import {
     useExternalPlayerLink,
 } from "@/app/(main)/_atoms/playback.atoms"
 import { useAutoPlaySelectedTorrent, useTorrentstreamAutoplay } from "@/app/(main)/_features/autoplay/autoplay"
+import { toastStreamStartError } from "@/app/(main)/_features/native-player/stream-start-error"
 import { getBatchSelectionParams } from "@/app/(main)/_features/autoplay/batches.ts"
 import { usePlaylistManager } from "@/app/(main)/_features/playlists/_containers/global-playlist-manager"
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
@@ -22,11 +23,12 @@ import {
 } from "@/app/(main)/entry/_containers/torrent-stream/torrent-stream-page"
 import { ForcePlaybackMethod, useForcePlaybackMethod } from "@/app/(main)/entry/_lib/handle-play-media"
 import { clientIdAtom } from "@/app/websocket-provider"
+import { useTr } from "@/lib/app-language"
 import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
 import { __isElectronDesktop__ } from "@/types/constants"
 import { useQueryClient } from "@tanstack/react-query"
-import { useAtomValue } from "jotai"
+import { useAtomValue, useStore } from "jotai"
 import { useSetAtom } from "jotai/react"
 import React from "react"
 
@@ -50,7 +52,9 @@ type AutoSelectTorrentStreamProps = {
 
 export function useHandleStartTorrentStream() {
 
-    const { mutate, isPending } = useTorrentstreamStartStream()
+    const t = useTr()
+    const store = useStore()
+    const { mutate, isPending } = useTorrentstreamStartStream(IS_ANDROID_APP ? error => toastStreamStartError(error, t, store) : undefined)
     const qc = useQueryClient()
 
     const setLoadingState = useSetAtom(__torrentstream__loadingStateAtom)

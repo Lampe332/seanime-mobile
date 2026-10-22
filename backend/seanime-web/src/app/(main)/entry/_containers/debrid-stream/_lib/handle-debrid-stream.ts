@@ -6,14 +6,16 @@ import {
     useCurrentDevicePlaybackSettings,
     useExternalPlayerLink,
 } from "@/app/(main)/_atoms/playback.atoms"
+import { toastStreamStartError } from "@/app/(main)/_features/native-player/stream-start-error"
 import { __debridStream_currentSessionAutoSelectAtom } from "@/app/(main)/entry/_containers/debrid-stream/debrid-stream-page"
 import { __debridstream_stateAtom } from "@/app/(main)/entry/_containers/torrent-stream/playback-play-pill"
 import { ForcePlaybackMethod, useForcePlaybackMethod } from "@/app/(main)/entry/_lib/handle-play-media"
 import { clientIdAtom } from "@/app/websocket-provider"
+import { useTr } from "@/lib/app-language"
 import { logger } from "@/lib/helpers/debug"
 import { __isElectronDesktop__ } from "@/types/constants"
 import { useQueryClient } from "@tanstack/react-query"
-import { useAtomValue, useSetAtom } from "jotai"
+import { useAtomValue, useSetAtom, useStore } from "jotai"
 import { useAtom } from "jotai/react"
 import React from "react"
 
@@ -37,7 +39,9 @@ type DebridStreamAutoSelectProps = {
 
 export function useHandleStartDebridStream() {
 
-    const { mutate, isPending } = useDebridStartStream()
+    const t = useTr()
+    const store = useStore()
+    const { mutate, isPending } = useDebridStartStream(IS_ANDROID_APP ? error => toastStreamStartError(error, t, store) : undefined)
     const qc = useQueryClient()
 
     const { torrentStreamingPlayback, electronPlaybackMethod } = useCurrentDevicePlaybackSettings()

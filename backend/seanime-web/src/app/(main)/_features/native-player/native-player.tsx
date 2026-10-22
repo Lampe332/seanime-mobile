@@ -11,6 +11,7 @@ import { vc_miniPlayer } from "@/app/(main)/_features/video-core/video-core-atom
 import { vc_videoElement } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { VideoCoreLifecycleState } from "@/app/(main)/_features/video-core/video-core.atoms"
 import { clientIdAtom } from "@/app/websocket-provider"
+import { useTr } from "@/lib/app-language"
 import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
 import { useQueryClient } from "@tanstack/react-query"
@@ -21,13 +22,17 @@ import { useWebsocketMessageListener, useWebsocketSender } from "../../_hooks/ha
 import { useSkipData } from "../video-core/_lib/aniskip"
 import { getSubtitleEvents, isSubtitleBatchCurrent } from "./native-player-subtitles"
 import { nativePlayer_stateAtom } from "./native-player.atoms"
+import { streamStartError } from "./stream-start-error"
 
 const log = logger("NATIVE PLAYER")
 
 // minimum interval between subtitle event flushes
 const SUBTITLE_FLUSH_INTERVAL_MS = 300
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
 export function NativePlayer() {
+    const t = useTr()
     const qc = useQueryClient()
     const clientId = useAtomValue(clientIdAtom)
     const { sendMessage } = useWebsocketSender()
@@ -189,7 +194,8 @@ export function NativePlayer() {
                         break
                     }
                     setState(draft => {
-                        draft.loadingState = "An error occurred while loading the stream: " + ((payload as string) || "Unknown error")
+                        draft.loadingState = IS_ANDROID_APP ? streamStartError(payload as string, t)
+                            : "An error occurred while loading the stream: " + ((payload as string) || "Unknown error")
                         draft.playbackError = payload as string
                         draft.playbackInfo = null
                         return

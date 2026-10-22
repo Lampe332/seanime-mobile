@@ -8,7 +8,7 @@ import { useAtomValue } from "jotai"
 import { useEffect } from "react"
 import { toast } from "sonner"
 
-type SeaError = AxiosError<{ error: string }>
+export type SeaError = AxiosError<{ error: string }>
 
 let authRedirectInProgress = false
 
