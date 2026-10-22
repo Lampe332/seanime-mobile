@@ -100,6 +100,14 @@ function respond(method: string, endpoint: string, body: any): any {
         case "POST /api/v1/playback-manager/sync-current-progress":
         case "POST /api/v1/playback-manager/manual-tracking/cancel":
             return true
+        case "GET /api/v1/extensions/list/custom-source":
+            return s.customSources ?? []
+        case "POST /api/v1/custom-source/provider/list/anime":
+        case "POST /api/v1/custom-source/provider/list/manga": {
+            const kind = endpoint.endsWith("anime") ? "anime" : "manga"
+            const all = (s.customMedia?.[body.provider]?.[kind] ?? []).filter((m: any) => !body.search || m.title.userPreferred.toLowerCase().includes(body.search.toLowerCase()))
+            return { media: all.slice((body.page - 1) * body.perPage, body.page * body.perPage), totalPages: Math.max(1, Math.ceil(all.length / body.perPage)) }
+        }
         case "GET /api/v1/library/missing-episodes":
         case "GET /api/v1/auto-downloader/items":
             return null

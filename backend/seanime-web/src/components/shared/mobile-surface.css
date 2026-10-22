@@ -37,3 +37,14 @@
 [data-phone-menu] .UI-ContextMenu__item > svg { margin-right: 0; font-size: 1.25rem; color: var(--sm-text-muted); }
 [data-phone-menu] .UI-ContextMenu__label { padding: .625rem .75rem .375rem; font-size: .8125rem; line-height: 1.4; color: var(--sm-text-muted); white-space: normal; overflow: visible; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
 [data-phone-menu] .UI-ContextMenu__separator { margin-block: .25rem; background: var(--sm-line); }
+
+/* Error and empty states (LuffyError) on Android phones, in the phone kit's empty block. */
+.luffy-phone { margin: 1rem; }
+.luffy-phone-text { max-width: 22rem; font-size: .8125rem; line-height: 1.5; color: var(--sm-text-muted); }
+.luffy-phone-text :is(p, span) { color: inherit; }
+
+/* The issue recorder on Android phones: its option above its panel, the running recording's dot in the danger tone. */
+.issue-phone-option { position: fixed; z-index: 8990; left: 1rem; right: 1rem; bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px) + 4.75rem); max-width: 32rem; margin-inline: auto; overflow: hidden; border-radius: var(--sm-radius); box-shadow: 0 12px 32px rgb(0 0 0 / .5); } /* taste-skill-ignore: floats with the panel */
+.issue-phone-recording { color: var(--sm-danger); font-weight: 650; font-variant-numeric: tabular-nums; }
+.issue-phone-textarea { width: 100%; padding: .75rem 1rem; border: 0; border-radius: var(--sm-radius); background: var(--sm-surface-raised); color: var(--sm-text); font-size: 1rem; line-height: 1.5; resize: none; }
+.issue-phone-textarea:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 0; }

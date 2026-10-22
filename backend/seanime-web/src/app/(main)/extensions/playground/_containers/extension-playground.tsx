@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { TextInput } from "@/components/ui/text-input"
 import { Textarea } from "@/components/ui/textarea"
 import { useDebounce } from "@/hooks/use-debounce"
+import { useTr } from "@/lib/app-language"
 import { copyToClipboard } from "@/lib/helpers/browser"
 import { autocompletion } from "@codemirror/autocomplete"
 import { javascript } from "@codemirror/lang-javascript"
@@ -157,6 +158,7 @@ export function ExtensionPlayground(props: ExtensionPlaygroundProps) {
         onCodeChange,
     } = props
 
+    const tr = useTr()
     const { data: response, mutate: runCode, isPending: isRunning } = useRunExtensionPlaygroundCode()
 
     const [selectedFunction, setSelectedFunction] = React.useState(Functions.AnimeTorrentProviderSearch)
@@ -343,8 +345,8 @@ export function ExtensionPlayground(props: ExtensionPlaygroundProps) {
                 </div>
 
                 <div className="block lg:hidden">
-                    <LuffyError title="Oops!">
-                        Your screen size is too small.
+                    <LuffyError title={tr("The playground needs a larger screen", "Der Playground braucht einen größeren Bildschirm")}>
+                        {tr("Write and test extension code in Seanime on a computer or tablet.", "Schreib und teste Erweiterungs-Code in Seanime am Computer oder Tablet.")}
                     </LuffyError>
                 </div>
 

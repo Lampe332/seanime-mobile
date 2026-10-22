@@ -3,6 +3,8 @@ import { useListCustomSourceExtensions } from "@/api/hooks/extensions.hooks"
 import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
 import { MediaCardLazyGrid } from "@/app/(main)/_features/media/_components/media-card-grid"
 import { MediaEntryCard } from "@/app/(main)/_features/media/_components/media-entry-card"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
+import { CustomSourcesPhone } from "@/app/(main)/custom-sources/_screens/custom-sources-phone"
 import { __customSources_paramsAtom, __customSources_providerAtom } from "@/app/(main)/custom-sources/custom-sources.atom"
 import { LuffyError } from "@/components/shared/luffy-error"
 import { PageWrapper } from "@/components/shared/page-wrapper"
@@ -22,6 +24,12 @@ import { FiSearch } from "react-icons/fi"
 import { MdDataSaverOn } from "react-icons/md"
 
 export default function Page() {
+    // Android phones get their own screen; tablets and desktop keep this page
+    if (isAndroidPhone()) return <CustomSourcesPhone />
+    return <CustomSourcesDesktop />
+}
+
+function CustomSourcesDesktop() {
 
     const router = useRouter()
     const urlParams = useSearchParams()

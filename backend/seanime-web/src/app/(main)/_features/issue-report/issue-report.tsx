@@ -2,11 +2,14 @@ import { getServerBaseUrl } from "@/api/client/server-url"
 import { Report_ClickLog, Report_ConsoleLog, Report_NetworkLog, Report_ReactQueryLog } from "@/api/generated/types"
 import { useSaveIssueReport } from "@/api/hooks/report.hooks"
 import { WebSocketContext } from "@/app/(main)/_atoms/websocket.atoms"
+import { PhoneFloat, PhoneSheet, PhoneSwitch } from "@/app/(main)/_features/phone-screen/phone-screen"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useServerHMACAuth } from "@/app/(main)/_hooks/use-server-status"
 import { IconButton } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/components/ui/core/styling"
 import { Tooltip } from "@/components/ui/tooltip"
+import { useTr } from "@/lib/app-language"
 import { usePathname, useRouter } from "@/lib/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { atom } from "jotai"
@@ -725,6 +728,12 @@ export function IssueReport() {
     }
 
 
+    // Phones: a panel above the bottom bar instead of the card beside the desktop sidebar; the note and the screenshot in a sheet
+    if (isAndroidPhone()) return open ? <IssueRecorderPhone isRecording={isRecording} recordLocalFiles={recordLocalFiles} onRecordLocalFiles={setRecordLocalFiles}
+        onStart={handleStartRecording} onClose={() => setOpen(false)} elapsed={formatElapsed(recordingElapsed)} events={eventCount} screenshots={screenshots.length}
+        description={description} onDescription={setDescription} onScreenshot={handleTakeScreenshot} onStop={handleStopRecording}
+        onCancel={() => setRecording(false)} saving={isPending || isDownloadingReport} /> : null
+
     return (
         <>
             {open && <div
@@ -866,4 +875,66 @@ export function IssueReport() {
             </div>}
         </>
     )
+}
+
+function IssueRecorderPhone(props: {
+    isRecording: boolean
+    recordLocalFiles: boolean
+    onRecordLocalFiles: (value: boolean) => void
+    onStart: () => void
+    onClose: () => void
+    elapsed: string
+    events: number
+    screenshots: number
+    description: string
+    onDescription: (value: string) => void
+    onScreenshot: () => void
+    onStop: () => void
+    onCancel: () => void
+    saving: boolean
+}) {
+    const t = useTr()
+    const [noteOpen, setNoteOpen] = React.useState(false)
+    if (!props.isRecording) return <>
+        <PhoneFloat text={t("Record an issue", "Fehler aufzeichnen")} detail={t("Then do what goes wrong; Stop saves a report", "Dann tu, was schiefgeht; Stopp speichert einen Bericht")}
+            data-issue-recorder="ready">
+            <button type="button" className="ps-text-action" onClick={props.onClose} data-issue-recorder-close>{t("Close", "Schließen")}</button>
+            <button type="button" className="ps-text-action" onClick={props.onStart} data-issue-recorder-start>{t("Start", "Starten")}</button>
+        </PhoneFloat>
+        <div className="issue-phone-option"><PhoneSwitch label={t("Include library scan logs", "Bibliotheks-Scanlogs einbeziehen")} checked={props.recordLocalFiles}
+            onChange={props.onRecordLocalFiles} data-issue-recorder-scan-logs /></div>
+    </>
+    return <>
+        <PhoneFloat text={<span className="issue-phone-recording">{t("Recording", "Aufnahme")} · {props.elapsed}</span>}
+            detail={[props.events === 1 ? t("1 event", "1 Ereignis") : t(`${props.events} events`, `${props.events} Ereignisse`), props.screenshots ? t(`${props.screenshots} screenshots`, `${props.screenshots} Screenshots`) : "",
+                props.description ? t("note added", "Notiz dabei") : ""].filter(Boolean).join(" · ")} data-issue-recorder="recording">
+            <button type="button" className="ps-text-action" onClick={() => setNoteOpen(true)} data-issue-recorder-note>{t("Note", "Notiz")}</button>
+            <button type="button" className="ps-text-action" onClick={props.onStop} disabled={props.saving} data-issue-recorder-stop>
+                {props.saving ? t("Saving…", "Speichert…") : t("Stop", "Stopp")}</button>
+        </PhoneFloat>
+        <PhoneSheet title={t("Note and screenshot", "Notiz und Screenshot")} open={noteOpen} onOpenChange={setNoteOpen} data-issue-recorder-sheet
+            footer={<>
+                <button type="button" className="ps-secondary" onClick={() => {
+                    setNoteOpen(false)
+                    props.onCancel()
+                }} data-issue-recorder-cancel>{t("Discard recording", "Aufnahme verwerfen")}</button>
+                <button type="button" className="ps-primary" onClick={() => setNoteOpen(false)}>{t("Done", "Fertig")}</button>
+            </>}>
+            <div className="ps-field">
+                <label htmlFor="issue-phone-note">{t("What goes wrong?", "Was geht schief?")}</label>
+                <textarea id="issue-phone-note" className="issue-phone-textarea" rows={4} value={props.description} onChange={event => props.onDescription(event.target.value)}
+                    placeholder={t("What you did and what happened", "Was du getan hast und was passiert ist")} data-issue-recorder-description />
+            </div>
+            <div className="ps-rows">
+                <button type="button" className="ps-action" onClick={() => {
+                    setNoteOpen(false)
+                    setTimeout(props.onScreenshot, 400)
+                }} data-issue-recorder-screenshot>
+                    <span className="ps-action-text"><span>{t("Attach a screenshot", "Screenshot anhängen")}</span>
+                        <small>{t("Of the page behind this sheet", "Von der Seite hinter diesem Fenster")}</small></span>
+                    {props.screenshots > 0 && <span className="ps-action-value">{props.screenshots}</span>}
+                </button>
+            </div>
+        </PhoneSheet>
+    </>
 }

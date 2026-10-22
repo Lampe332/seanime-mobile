@@ -232,6 +232,8 @@ body .ps-sheet.UI-Modal__content {
 .ps-float { position: fixed; z-index: 8990; left: 1rem; right: 1rem; bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px) + .75rem); max-width: 32rem; margin-inline: auto;
     display: flex; align-items: center; gap: .75rem; min-height: 3.5rem; padding: .5rem .5rem .5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-control); color: var(--sm-text);
     box-shadow: 0 12px 32px rgb(0 0 0 / .5); font-size: .875rem; line-height: 1.4; } /* taste-skill-ignore: it floats above the page, like a menu */
+/* An open sheet or dialog covers the page; the status waits under it instead of lying on its actions. */
+body:has(.UI-Modal__content[data-state="open"]) :is(.ps-float, .issue-phone-option) { display: none; }
 .ps-float-text { flex: 1 1 auto; display: grid; gap: .125rem; min-width: 0; }
 .ps-float-text small { font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
 .ps-float .ps-text-action { flex: none; }
