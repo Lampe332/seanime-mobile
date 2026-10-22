@@ -36,7 +36,7 @@ STATUS=dict(version='3.10.4',os='android',isOffline=False,user=dict(viewer=dict(
     settings=dict(library=dict(libraryPath=LIBRARY,torrentProvider='nyaa',enableOnlinestream=True),torrent=dict(defaultTorrentClient='seanime')),
     torrentstreamSettings=dict(enabled=True,autoSelect=False),debridSettings=dict(enabled=True,provider='torbox'))
 LIST=[dict(name='[Erai-raws] Sousou no Frieren (01-28) [1080p] [Batch]',hash='h2',seeds=40,upSpeed='120 KB/s',downSpeed='3.4 MB/s',progress=.42,size='38.2 GiB',
-           eta='2h 10m',status='downloading',contentPath=f'{LIBRARY}/Sousou no Frieren',peers=55,ratio=0,queueIndex=0,forceStart=False,sequential=False,error=''),
+           eta='2 hours left',status='downloading',contentPath=f'{LIBRARY}/Sousou no Frieren',peers=55,ratio=0,queueIndex=0,forceStart=False,sequential=False,error=''),
       dict(name='[SubsPlease] Sousou no Frieren - 05 (1080p) [ABC123].mkv',hash='h1',seeds=200,upSpeed='40 KB/s',downSpeed='0 B/s',progress=1,size='1.4 GiB',
            eta='N/A',status='seeding',contentPath=f'{LIBRARY}/Sousou no Frieren',peers=12,ratio=.3,queueIndex=1,forceStart=False,sequential=False,error='')]
 COVER='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"/>'
@@ -213,7 +213,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-torrents-') as tmp:
         check('Torrents tab: downloading and done in their own groups',page.evaluate(TEXT,'[data-torrent-group] h2')==['Downloading','Done'])
         active=page.locator('[data-torrent-group=active] [data-torrent-hash]')
         check('A download shows progress, size, speed and time left',active.count()==1 and active.locator('[role=progressbar]').get_attribute('aria-valuenow')=='42'
-              and active.locator('.mdl-row-meta').inner_text()=='42 % · 38.2 GiB · ↓ 3.4 MB/s · 2h 10m')
+              and active.locator('.mdl-row-meta').inner_text()=='42 % · 38.2 GiB · ↓ 3.4 MB/s · 2 hours left')
         check('A finished one says it is done and shared',page.locator('[data-torrent-group=done] .mdl-row-meta').inner_text()=='Done · sharing · 1.4 GiB')
         check('Rows and buttons are at least 48px',page.evaluate(SMALL,'[data-torrent-downloads] button')==[])
         shot(page,'torrents-tab-390.png')

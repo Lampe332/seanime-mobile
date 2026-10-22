@@ -290,26 +290,27 @@ function useKeyCheck(stored: Models_DebridSettings | undefined) {
     })
     const ready = !!stored?.enabled && !!stored.provider && !!stored.apiKey
     const key = stored?.apiKey ?? ""
-    const run = React.useCallback(async () => {
+    const run = React.useCallback(() => {
         const id = ++latest.current
         if (!ready) {
             setResult({ state: "idle" })
             return
         }
         setResult({ state: "checking" })
-        try {
-            await mutateAsync()
-            if (id === latest.current) setResult({ state: "ok" })
-        }
-        catch (error: any) {
-            if (id !== latest.current) return
-            const message = String(error?.response?.data?.error ?? "")
-            const detail = (key.length >= 4 ? message.split(key).join("•••") : message).slice(0, 240)
-            setResult({ state: "failed", detail })
-        }
+        // then() instead of try/catch: the React Compiler renames a catch binding without its uses, so the
+        // handler threw a ReferenceError and the check stayed on "checking"
+        mutateAsync().then(
+            () => { if (id === latest.current) setResult({ state: "ok" }) },
+            (failure: unknown) => { if (id === latest.current) setResult({ state: "failed", detail: keyCheckDetail(failure, key) }) },
+        )
     }, [ready, key, mutateAsync])
-    React.useEffect(() => { void run() }, [ready, stored?.provider, key])
+    React.useEffect(() => { run() }, [ready, stored?.provider, key])
     return { result, run }
+}
+
+function keyCheckDetail(failure: unknown, key: string) {
+    const message = String((failure as any)?.response?.data?.error ?? "")
+    return (key.length >= 4 ? message.split(key).join("•••") : message).slice(0, 240)
 }
 
 /** The key is typed into an empty password field and saved with its own button; the stored key is never put back on screen. */

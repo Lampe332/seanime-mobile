@@ -99,7 +99,7 @@ export function TorrentDownloads() {
                     <div><dt>{t("State", "Status")}</dt><dd>{statusLabel(open, t)}</dd></div>
                     <div><dt>{t("Progress", "Fortschritt")}</dt><dd>{Math.round(open.progress * 100)} % · {open.size}</dd></div>
                     {open.status === "downloading" && <div><dt>{t("Speed", "Tempo")}</dt><dd>↓ {open.downSpeed} · ↑ {open.upSpeed}</dd></div>}
-                    {open.status === "downloading" && open.eta !== "N/A" && <div><dt>{t("Time left", "Restzeit")}</dt><dd>{open.eta}</dd></div>}
+                    {open.status === "downloading" && !!etaLabel(open.eta, t) && <div><dt>{t("Time left", "Restzeit")}</dt><dd>{etaLabel(open.eta, t, false)}</dd></div>}
                     <div><dt>{t("Peers", "Peers")}</dt><dd>{open.peers} · {t(`${open.seeds} seeders`, `${open.seeds} Seeder`)}</dd></div>
                     {!!open.contentPath && <div><dt>{t("Saved to", "Speicherort")}</dt><dd className="mdl-torrent-path">{open.contentPath}</dd></div>}
                     {!!open.error && <div><dt>{t("Error", "Fehler")}</dt><dd>{open.error}</dd></div>}
@@ -121,10 +121,20 @@ export function TorrentDownloads() {
     </div>
 }
 
+/** The server's English "3 hours left" / "1 minutes left" / "No ETA" as a short phrase in the app language. */
+export function etaLabel(eta: string, t: Translate, withLeft = true) {
+    const m = eta.match(/^(\d+) (hour|minute|second)s? left$/)
+    if (!m) return ""
+    const n = Number(m[1])
+    const en = { hour: n === 1 ? "1 hour" : `${n} hours`, minute: n === 1 ? "1 minute" : `${n} minutes`, second: `${n} s` }[m[2] as "hour" | "minute" | "second"]
+    const de = { hour: `${n} Std.`, minute: `${n} Min.`, second: `${n} s` }[m[2] as "hour" | "minute" | "second"]
+    return withLeft ? t(`${en} left`, `noch ${de}`) : t(en, de)
+}
+
 function rowMeta(torrent: TorrentClient_Torrent, t: Translate) {
     if (torrent.status === "seeding") return [statusLabel(torrent, t), torrent.size].join(" · ")
     if (torrent.status === "downloading") {
-        return [`${Math.round(torrent.progress * 100)} %`, torrent.size, `↓ ${torrent.downSpeed}`, torrent.eta !== "N/A" ? torrent.eta : ""].filter(Boolean).join(" · ")
+        return [`${Math.round(torrent.progress * 100)} %`, torrent.size, `↓ ${torrent.downSpeed}`, etaLabel(torrent.eta, t)].filter(Boolean).join(" · ")
     }
     return [statusLabel(torrent, t), `${Math.round(torrent.progress * 100)} %`, torrent.size].join(" · ")
 }
