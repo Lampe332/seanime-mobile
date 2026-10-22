@@ -2,7 +2,9 @@ import { Anime_UnknownGroup } from "@/api/generated/types"
 import { useAddUnknownMedia } from "@/api/hooks/anime_collection.hooks"
 import { useAnimeEntryBulkAction } from "@/api/hooks/anime_entries.hooks"
 import { useListCustomSourceExtensions } from "@/api/hooks/extensions.hooks"
+import { HiddenMediaPhoneSheet } from "@/app/(main)/_features/anime-library/_screens/library-phone"
 import { useMediaPreviewModal } from "@/app/(main)/_features/media/_containers/media-preview-modal"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Button } from "@/components/ui/button"
 import { Drawer } from "@/components/ui/drawer"
@@ -22,7 +24,7 @@ type UnknownMediaManagerProps = {
     onActionComplete?: () => void
 }
 
-export function UnknownMediaManager(props: UnknownMediaManagerProps) {
+function UnknownMediaManagerDesktop(props: UnknownMediaManagerProps) {
 
     const { unknownGroups, onActionComplete } = props
 
@@ -172,4 +174,10 @@ export function UnknownMediaManager(props: UnknownMediaManagerProps) {
         </Drawer>
     )
 
+}
+
+/** Android phones get the library's phone sheet; tablets and desktop keep this one. */
+export function UnknownMediaManager(props: UnknownMediaManagerProps) {
+    if (isAndroidPhone()) return <HiddenMediaPhoneSheet {...props} />
+    return <UnknownMediaManagerDesktop {...props} />
 }

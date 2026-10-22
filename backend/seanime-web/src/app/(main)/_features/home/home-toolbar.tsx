@@ -6,6 +6,7 @@ import { __ignoredFileManagerIsOpen } from "@/app/(main)/_features/anime-library
 import { __scanner_modalIsOpen } from "@/app/(main)/_features/anime-library/_containers/scanner-modal"
 import { __unknownMedia_drawerIsOpen } from "@/app/(main)/_features/anime-library/_containers/unknown-media-manager"
 import { __unmatchedFileManagerIsOpen } from "@/app/(main)/_features/anime-library/_containers/unmatched-file-manager"
+import { LibraryPhoneAction, LibraryPhoneAttention } from "@/app/(main)/_features/anime-library/_screens/library-phone"
 import { __home_mobileActionsSlot } from "@/app/(main)/_features/home/home-mobile-header"
 import { __home_currentView } from "@/app/(main)/_features/home/home-screen"
 import { HomeSettingsButton } from "@/app/(main)/_features/home/home-settings-button"
@@ -86,9 +87,22 @@ export function HomeToolbar(props: HomeToolbarProps) {
 
     const hasLibraryPath = !!status?.settings?.library?.libraryPath
 
-    // Android Home shows Playlists and Customize as icon actions beside the title.
+    // Android Home shows Playlists, the local library and Customize as icon actions beside the title.
     const headerSlot = useAtomValue(__home_mobileActionsSlot)
     const inHeader = !!props.mobileHome && !!headerSlot
+
+    // Phones: the library's queues as rows under the header; scanning and the file jobs live in the library sheet.
+    if (inHeader) return (
+        <>
+            {!isNakamaLibrary && hasLibraryPath && <LibraryPhoneAttention />}
+            {createPortal(<>
+                {hasEntries && <button type="button" className="home-header-action" data-home-toolbar-playlists-button aria-label={tr("Playlists", "Playlists")}
+                    onClick={() => setModalOpen(true)}><MdOutlineVideoLibrary aria-hidden /></button>}
+                {!isNakamaLibrary && hasLibraryPath && <LibraryPhoneAction />}
+                <HomeSettingsButton type="toolbar" icon />
+            </>, headerSlot!)}
+        </>
+    )
 
     return (
         <>
@@ -193,12 +207,7 @@ export function HomeToolbar(props: HomeToolbarProps) {
                     Resolve hidden media ({unknownGroups.length})
                 </Button>}
 
-                {!inHeader && <HomeSettingsButton type="toolbar" labeled={props.mobileHome} />}
-                {inHeader && createPortal(<>
-                    {hasEntries && <button type="button" className="home-header-action" data-home-toolbar-playlists-button aria-label={tr("Playlists", "Playlists")}
-                        onClick={() => setModalOpen(true)}><MdOutlineVideoLibrary aria-hidden /></button>}
-                    <HomeSettingsButton type="toolbar" icon />
-                </>, headerSlot!)}
+                <HomeSettingsButton type="toolbar" labeled={props.mobileHome} />
 
                 {(!isStreamingOnly && !isNakamaLibrary && hasLibraryPath) &&
                     <DropdownMenu

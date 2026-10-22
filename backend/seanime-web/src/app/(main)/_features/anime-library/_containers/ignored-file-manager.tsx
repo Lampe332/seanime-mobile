@@ -1,6 +1,8 @@
 import { Anime_LocalFile } from "@/api/generated/types"
 import { useOpenInExplorer } from "@/api/hooks/explorer.hooks"
 import { useUpdateLocalFiles } from "@/api/hooks/localfiles.hooks"
+import { IgnoredFilesPhoneSheet } from "@/app/(main)/_features/anime-library/_screens/library-phone"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { LuffyError } from "@/components/shared/luffy-error"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Button } from "@/components/ui/button"
@@ -19,7 +21,7 @@ type IgnoredFileManagerProps = {
     files: Anime_LocalFile[]
 }
 
-export function IgnoredFileManager(props: IgnoredFileManagerProps) {
+function IgnoredFileManagerDesktop(props: IgnoredFileManagerProps) {
 
     const { files } = props
 
@@ -132,4 +134,10 @@ export function IgnoredFileManager(props: IgnoredFileManagerProps) {
         </Drawer>
     )
 
+}
+
+/** Android phones get the library's phone sheet; tablets and desktop keep this one. */
+export function IgnoredFileManager(props: IgnoredFileManagerProps) {
+    if (isAndroidPhone()) return <IgnoredFilesPhoneSheet files={props.files} />
+    return <IgnoredFileManagerDesktop {...props} />
 }

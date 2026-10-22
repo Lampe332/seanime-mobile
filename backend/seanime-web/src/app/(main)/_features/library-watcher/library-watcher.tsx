@@ -1,5 +1,7 @@
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { __scanner_modalIsOpen } from "@/app/(main)/_features/anime-library/_containers/scanner-modal"
+import { LibraryPhoneStatus } from "@/app/(main)/_features/anime-library/_screens/library-phone"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
@@ -101,6 +103,13 @@ export function LibraryWatcher(props: LibraryWatcherProps) {
         fileAdded.off()
         fileRemoved.off()
     }
+
+    // Phones: one status above the bottom bar, not a card over it
+    if (isAndroidPhone()) return <LibraryPhoneStatus progress={autoScanning.active && progress > 0 ? progress : undefined} autoScanning changed={!!fileEvent}
+        onRefresh={() => {
+            handleCancel()
+            setScannerModalOpen(true)
+        }} onDismiss={handleCancel} />
 
     if (autoScanning.active && progress > 0) {
         return (

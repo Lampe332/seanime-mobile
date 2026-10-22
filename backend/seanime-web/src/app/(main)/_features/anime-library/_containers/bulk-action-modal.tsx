@@ -1,5 +1,6 @@
 import { useLocalFileBulkAction, useRemoveEmptyDirectories } from "@/api/hooks/localfiles.hooks"
 import { useSeaCommandInject } from "@/app/(main)/_features/sea-command/use-inject"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Button } from "@/components/ui/button"
@@ -11,7 +12,7 @@ import { toast } from "sonner"
 
 export const __bulkAction_modalAtomIsOpen = atom<boolean>(false)
 
-export function BulkActionModal() {
+function BulkActionModalDesktop() {
 
     const [isOpen, setIsOpen] = useAtom(__bulkAction_modalAtomIsOpen)
 
@@ -133,4 +134,10 @@ export function BulkActionModal() {
         </Modal>
     )
 
+}
+
+/** Phones run the bulk actions from the local library sheet (library-phone.tsx). */
+export function BulkActionModal() {
+    if (isAndroidPhone()) return null
+    return <BulkActionModalDesktop />
 }

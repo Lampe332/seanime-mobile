@@ -3,8 +3,10 @@ import { useAnimeEntryManualMatch, useFetchAnimeEntrySuggestions } from "@/api/h
 import { useOpenInExplorer } from "@/api/hooks/explorer.hooks"
 import { useListCustomSourceExtensions } from "@/api/hooks/extensions.hooks"
 import { useUpdateLocalFiles } from "@/api/hooks/localfiles.hooks"
+import { UnmatchedPhoneSheet } from "@/app/(main)/_features/anime-library/_screens/library-phone"
 import { useSeaCommand } from "@/app/(main)/_features/sea-command/sea-command"
 import { useSeaCommandSearchSelectMedia } from "@/app/(main)/_features/sea-command/sea-command-search"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { SeaImage } from "@/components/shared/sea-image"
 import { SeaLink } from "@/components/shared/sea-link"
 import { AppLayoutStack } from "@/components/ui/app-layout"
@@ -31,7 +33,7 @@ type UnmatchedFileManagerProps = {
     unmatchedGroups: Anime_UnmatchedGroup[]
 }
 
-export function UnmatchedFileManager(props: UnmatchedFileManagerProps) {
+function UnmatchedFileManagerDesktop(props: UnmatchedFileManagerProps) {
 
     const { unmatchedGroups } = props
 
@@ -407,4 +409,10 @@ export function UnmatchedFileManager(props: UnmatchedFileManagerProps) {
         </Drawer>
     )
 
+}
+
+/** Android phones get the library's phone sheet; tablets and desktop keep this one. */
+export function UnmatchedFileManager(props: UnmatchedFileManagerProps) {
+    if (isAndroidPhone()) return <UnmatchedPhoneSheet unmatchedGroups={props.unmatchedGroups} />
+    return <UnmatchedFileManagerDesktop {...props} />
 }

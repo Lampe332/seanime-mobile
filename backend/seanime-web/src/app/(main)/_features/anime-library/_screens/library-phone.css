@@ -1,0 +1,36 @@
+/* The local library on phones: only what the phone kit (phone-screen.css) lacks. */
+
+/* Home: the queues as rows under the header, and the header action's mark while one waits. */
+[data-home-navbar] [data-library-phone-action] { position: relative; }
+.plib-dot { position: absolute; top: 11px; right: 11px; width: 8px; height: 8px; border-radius: 999px; background: var(--sm-accent); }
+.plib-attention { margin: 0 1rem .75rem; }
+
+/* Sheets with lists grow to most of the screen at once, so rows arriving do not move the sheet. */
+body .ps-sheet.plib-tall.UI-Modal__content { min-height: min(40rem, 82svh); align-content: start; }
+
+/* The library's folders: one per line, full length. */
+.ps-facts dd.plib-path { display: grid; gap: .125rem; font-size: .875rem; font-weight: 500; overflow-wrap: anywhere; text-align: start; margin-left: 0; flex: 1 1 100%; }
+
+/* Unmatched files: the folder with Previous / Next beside it. */
+.plib-folder { display: flex; align-items: center; gap: .25rem; min-width: 0; padding: .5rem .25rem .5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-raised); }
+.plib-folder-text { flex: 1 1 auto; display: grid; gap: .125rem; min-width: 0; }
+.plib-folder-text p { font-size: .9375rem; font-weight: 600; overflow-wrap: anywhere; }
+.plib-folder-text small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); overflow-wrap: anywhere; }
+
+/* Hidden anime: one block per anime, its files on demand, its two actions below. */
+.plib-hidden { display: grid; gap: 2px; overflow: hidden; border-radius: var(--sm-radius); }
+.plib-hidden-head { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 4.75rem; padding: .625rem 1rem .625rem .625rem; background: var(--sm-surface-raised); color: var(--sm-text); text-align: start; font-size: .9375rem; }
+.plib-hidden-head:active { background: var(--sm-surface-control); }
+.plib-hidden-head:focus-visible { outline-offset: -2px; }
+.plib-expand { transition: transform .15s; }
+.plib-hidden-head[aria-expanded="true"] .plib-expand { transform: rotate(90deg); }
+.plib-files { display: grid; gap: .375rem; padding: .75rem 1rem; background: var(--sm-surface-raised); font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); overflow-wrap: anywhere; }
+.plib-hidden-actions { display: flex; flex-wrap: wrap; gap: .5rem; padding: .5rem; background: var(--sm-surface-raised); }
+.plib-hidden-actions > * { flex: 1 1 max-content; }
+.ps-secondary.plib-accent { background: var(--sm-accent-soft); color: var(--sm-accent); }
+
+.ps-primary.plib-danger { background: var(--sm-danger); color: #1a1a1d; }
+
+@media (prefers-reduced-motion: reduce) {
+    .plib-expand { transition: none; }
+}

@@ -1,7 +1,9 @@
 import { useScanLocalFiles } from "@/api/hooks/scan.hooks"
 import { __anilist_userAnimeMediaAtom } from "@/app/(main)/_atoms/anilist.atoms"
+import { LibraryPhoneSheet } from "@/app/(main)/_features/anime-library/_screens/library-phone"
 
 import { useSeaCommandInject } from "@/app/(main)/_features/sea-command/use-inject"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Button } from "@/components/ui/button"
@@ -21,7 +23,7 @@ export const __scanner_modalIsOpen = atom(false)
 export const __scanner_isScanningAtom = atom(false)
 
 
-export function ScannerModal() {
+function ScannerModalDesktop() {
     const serverStatus = useServerStatus()
     const ts = useThemeSettings()
     const [isOpen, setOpen] = useAtom(__scanner_modalIsOpen)
@@ -191,4 +193,10 @@ export function ScannerModal() {
         </>
     )
 
+}
+
+/** Android phones get the library's phone sheet; tablets and desktop keep this one. */
+export function ScannerModal() {
+    if (isAndroidPhone()) return <LibraryPhoneSheet />
+    return <ScannerModalDesktop />
 }

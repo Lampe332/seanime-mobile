@@ -190,12 +190,50 @@ body .ps-sheet.UI-Modal__content {
 .ps-sheet-actions { position: sticky; bottom: -12px; z-index: 1; display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 -16px -12px; padding: .75rem 16px 12px; background: var(--sm-surface); }
 .ps-sheet-actions > * { flex: 1 1 max-content; min-width: 0; min-height: 52px; }
 .ps-sheet-actions > .ps-primary { flex-grow: 2; }
+.ps-sheet-text { font-size: .9375rem; line-height: 1.55; color: var(--sm-text); }
+
+/* Action rows, as the settings' rows: an icon, what it does with a note, a count or value, a chevron when it opens more. */
+.ps-action { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 3.5rem; padding: .625rem 1rem; background: var(--sm-surface-raised); color: var(--sm-text); text-align: start; font-size: .9375rem; }
+.ps-action:active { background: var(--sm-surface-control); }
+.ps-action:disabled { opacity: .6; }
+.ps-action:focus-visible { outline-offset: -2px; }
+.ps-action-icon { flex: none; font-size: 1.25rem; color: var(--sm-text-muted); }
+.ps-action[data-tone="attention"] .ps-action-icon { color: var(--sm-accent); }
+.ps-action[data-tone="danger"], .ps-action[data-tone="danger"] .ps-action-icon { color: var(--sm-danger); }
+.ps-action-text { flex: 1 1 auto; display: grid; gap: .125rem; min-width: 0; }
+.ps-action-text small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
+.ps-action-value { flex: none; max-width: 45%; font-size: .875rem; font-weight: 600; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; text-align: end; overflow-wrap: anywhere; }
+.ps-action[data-tone="attention"] .ps-action-value { color: var(--sm-accent); }
+.ps-action-chevron { flex: none; font-size: 1.125rem; color: var(--sm-text-subtle); }
+/* Pick rows: a box (several) or a ring (one) on the left; the chosen one carries the accent. */
+.ps-pick { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 3.25rem; padding: .625rem 1rem; background: var(--sm-surface-raised); color: var(--sm-text); text-align: start; font-size: .9375rem; }
+.ps-pick:active { background: var(--sm-surface-control); }
+.ps-pick:focus-visible { outline-offset: -2px; }
+.ps-pick-mark { position: relative; flex: none; width: 1.375rem; height: 1.375rem; border-radius: .375rem; box-shadow: inset 0 0 0 2px var(--sm-text-subtle); color: #fff; } /* taste-skill-ignore: the box outline */
+.ps-pick[role="radio"] .ps-pick-mark { border-radius: 999px; }
+.ps-pick[aria-checked="true"] .ps-pick-mark { background: var(--sm-accent-strong); box-shadow: none; } /* taste-skill-ignore: removes the outline when chosen */
+.ps-pick[aria-checked="true"] .ps-pick-mark > svg { position: absolute; inset: .1875rem; width: 1rem; height: 1rem; }
+.ps-pick[role="radio"][aria-checked="true"] .ps-pick-mark { background: transparent; box-shadow: inset 0 0 0 2px var(--sm-accent-strong); } /* taste-skill-ignore: the radio ring in the accent */
+.ps-pick[role="radio"][aria-checked="true"] .ps-pick-mark::after { content: ""; position: absolute; inset: .3125rem; border-radius: inherit; background: var(--sm-accent-strong); }
+.ps-pick-text { flex: 1 1 auto; display: grid; gap: .125rem; min-width: 0; }
+.ps-pick-text small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.ps-pick-cover { position: relative; flex: none; width: 2.75rem; aspect-ratio: 2 / 3; overflow: hidden; border-radius: .5rem; background: var(--sm-surface-control); }
+
+/* A status that floats above the bottom bar (a scan running, a change found), never over it. */
+.ps-float { position: fixed; z-index: 8990; left: 1rem; right: 1rem; bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px) + .75rem); max-width: 32rem; margin-inline: auto;
+    display: flex; align-items: center; gap: .75rem; min-height: 3.5rem; padding: .5rem .5rem .5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-control); color: var(--sm-text);
+    box-shadow: 0 12px 32px rgb(0 0 0 / .5); font-size: .875rem; line-height: 1.4; } /* taste-skill-ignore: it floats above the page, like a menu */
+.ps-float-text { flex: 1 1 auto; display: grid; gap: .125rem; min-width: 0; }
+.ps-float-text small { font-size: .8125rem; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
+.ps-float .ps-text-action { flex: none; }
+.ps-float-bar { position: absolute; left: 1rem; right: 1rem; bottom: 0; height: 3px; overflow: hidden; border-radius: 999px; background: var(--sm-line-strong); }
+.ps-float-bar > span { display: block; height: 100%; background: var(--sm-accent-strong); transform-origin: left center; transition: transform .3s; }
 
 @media (max-width: 359px) {
     [data-phone-screen] { padding-inline: .75rem; }
     .ps-tabs, .ps-chips, .ps-row, .ps-features { margin-inline: -.75rem; padding-inline: .75rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .ps-toggle::after { transition: none; }
+    .ps-toggle::after, .ps-float-bar > span { transition: none; }
     .ps-spin { animation-duration: 3s; }
 }

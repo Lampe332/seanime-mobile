@@ -1,0 +1,13 @@
+const path = require('node:path');
+const {createRequire} = require('node:module');
+const web = path.resolve(__dirname, '../backend/seanime-web');
+const {build} = createRequire(path.join(web,'package.json'))('esbuild');
+const stub = path.join(__dirname,'mobile_library_stubs.tsx');
+// The real library containers, phone sheets and query hooks (react-query stays real); the server, router, links, images,
+// websocket events, toasts, media preview, command palette and plugin items are fixtures.
+const stubbed = ['@/api/client/requests','@/lib/navigation','sonner','@/components/shared/sea-image','@/components/shared/sea-link',
+'@/app/(main)/_hooks/handle-websockets','@/app/(main)/_features/media/_containers/media-preview-modal','@/app/(main)/_features/plugin/actions/plugin-actions',
+'@/app/(main)/_features/sea-command/sea-command','@/app/(main)/_features/sea-command/sea-command-search','@/app/(main)/_features/sea-command/use-inject'];
+build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_library_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
+if(stubbed.includes(a.path)&&a.importer!==stub)return {path:stub};
+})}}]}).catch(e=>{console.error(e);process.exit(1)});

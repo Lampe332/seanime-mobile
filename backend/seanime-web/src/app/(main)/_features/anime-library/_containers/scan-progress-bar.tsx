@@ -1,4 +1,6 @@
 import { __scanner_isScanningAtom } from "@/app/(main)/_features/anime-library/_containers/scanner-modal"
+import { LibraryPhoneStatus } from "@/app/(main)/_features/anime-library/_screens/library-phone"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { PageWrapper } from "@/components/shared/page-wrapper"
@@ -40,6 +42,9 @@ export function ScanProgressBar() {
     })
 
     if (!isScanning) return null
+
+    // Phones: one status above the bottom bar, not a card over it
+    if (isAndroidPhone()) return <LibraryPhoneStatus progress={progress} status={status} />
 
     return (
         <>

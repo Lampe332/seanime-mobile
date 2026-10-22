@@ -12,7 +12,7 @@ import { Modal } from "@/components/ui/modal"
 import { Translate, useTr } from "@/lib/app-language"
 import { getImageUrl } from "@/lib/server/assets"
 import React from "react"
-import { LuCheck, LuChevronDown, LuEye, LuSearch, LuX } from "react-icons/lu"
+import { LuCheck, LuChevronDown, LuChevronRight, LuEye, LuSearch, LuX } from "react-icons/lu"
 import "@/components/shared/mobile-surface.css"
 import "./phone-screen.css"
 
@@ -381,6 +381,62 @@ export function PhoneSwitch({ label, note, checked, onChange, disabled, ...data 
         </span>
         <span className="ps-toggle" aria-hidden />
     </button>
+}
+
+/**
+ * A row that acts or opens something; group several in <div className="ps-rows">. "attention" marks a queue that needs the
+ * user (unmatched files), "danger" an action that removes something.
+ */
+export function PhoneRow({ icon, label, note, value, chevron, tone, href, onClick, disabled, ...data }: {
+    icon?: React.ReactNode
+    label: React.ReactNode
+    note?: React.ReactNode
+    value?: React.ReactNode
+    chevron?: boolean
+    tone?: "attention" | "danger"
+    href?: string
+    onClick?: () => void
+    disabled?: boolean
+} & DataAttributes) {
+    const inner = <>
+        {!!icon && <span className="ps-action-icon" aria-hidden>{icon}</span>}
+        <span className="ps-action-text"><span>{label}</span>{!!note && <small>{note}</small>}</span>
+        {value != null && value !== "" && <span className="ps-action-value">{value}</span>}
+        {chevron && <LuChevronRight className="ps-action-chevron" aria-hidden />}
+    </>
+    if (href) return <SeaLink href={href} className="ps-action" data-tone={tone} {...data}>{inner}</SeaLink>
+    return <button type="button" className="ps-action" data-tone={tone} disabled={disabled} onClick={onClick} {...data}>{inner}</button>
+}
+
+/** A row with a box (role checkbox) or a ring (role radio, inside role="radiogroup"); `media` sits before the text. */
+export function PhonePick({ role = "checkbox", label, note, checked, onChange, media, disabled, ...data }: {
+    role?: "checkbox" | "radio"
+    label: React.ReactNode
+    note?: React.ReactNode
+    checked: boolean
+    onChange: () => void
+    media?: React.ReactNode
+    disabled?: boolean
+} & DataAttributes) {
+    return <button type="button" role={role} aria-checked={checked} className="ps-pick" disabled={disabled} onClick={onChange} {...data}>
+        <span className="ps-pick-mark" aria-hidden>{role === "checkbox" && checked && <LuCheck />}</span>
+        {media}
+        <span className="ps-pick-text"><span>{label}</span>{!!note && <small>{note}</small>}</span>
+    </button>
+}
+
+/** A status above the bottom bar: what is going on, a detail, one text action and an optional progress (0-100). */
+export function PhoneFloat({ text, detail, progress, children, ...data }: {
+    text: React.ReactNode
+    detail?: React.ReactNode
+    progress?: number
+    children?: React.ReactNode
+} & DataAttributes) {
+    return <div className="ps-float" role="status" {...data}>
+        <span className="ps-float-text"><span>{text}</span>{!!detail && <small>{detail}</small>}</span>
+        {children}
+        {progress != null && <span className="ps-float-bar" aria-hidden><span style={{ transform: `scaleX(${Math.max(0, Math.min(100, progress)) / 100})` }} /></span>}
+    </div>
 }
 
 type BoneKind = "head" | "tabs" | "feature" | "row" | "cover-row" | "grid"
