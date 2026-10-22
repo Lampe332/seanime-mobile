@@ -3,7 +3,7 @@ import { PhoneEmpty, PhoneHeader, PhoneIconLink, PhoneLoading, PhoneScreen, Phon
 import { SeaImage } from "@/components/shared/sea-image"
 import { Translate, useTr } from "@/lib/app-language"
 import React from "react"
-import { LuArrowLeft, LuCheck, LuExternalLink } from "react-icons/lu"
+import { LuCheck, LuExternalLink, LuInfo } from "react-icons/lu"
 import "./medialinks-phone.css"
 
 /**
@@ -46,7 +46,7 @@ export function MedialinksPhone({ entry, loading, onPlay }: {
     return <PhoneScreen screen="medialinks">
         <PhoneHeader title={entry?.media?.title?.userPreferred || t("External player", "Externer Player")}
             facts={t("A tap opens the episode in your external player", "Ein Tipp öffnet die Folge in deinem externen Player")}>
-            {!!entry && <PhoneIconLink href={`/entry?id=${entry.mediaId}`} label={t("Back to the anime", "Zurück zum Anime")} data-medialinks-back><LuArrowLeft aria-hidden /></PhoneIconLink>}
+            {!!entry && <PhoneIconLink href={`/entry?id=${entry.mediaId}`} label={t("The anime's page", "Seite des Anime")} data-medialinks-back><LuInfo aria-hidden /></PhoneIconLink>}
         </PhoneHeader>
         {loading ? <PhoneLoading label={t("Loading episodes", "Folgen werden geladen")} layout={["row", "row", "row", "row"]} />
             : !episodes.length ? <PhoneEmpty title={t("No downloaded episodes", "Keine heruntergeladenen Folgen")}

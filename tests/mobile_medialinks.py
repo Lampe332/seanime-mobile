@@ -60,9 +60,9 @@ with tempfile.TemporaryDirectory(prefix='seanime-medialinks-') as tmp:
         def small(page): return page.evaluate(SMALL,TARGETS)
 
         page=open_page()
-        check('Phone screen: the anime as title, what a tap does, Back to the anime',page.locator('h1').inner_text()=='Sousou no Frieren'
+        check("Phone screen: the anime as title, what a tap does, a way to the anime's page",page.locator('h1').inner_text()=='Sousou no Frieren'
               and page.locator('[data-phone-facts]').inner_text()=='A tap opens the episode in your external player'
-              and page.locator('[data-medialinks-back]').get_attribute('href')=='/entry?id=154587')
+              and page.locator('[data-medialinks-back]').get_attribute('href')=='/entry?id=154587' and page.locator('[data-medialinks-back]').get_attribute('aria-label')=="The anime's page")
         check('Sections: episodes, specials, openings and endings',page.evaluate('[...document.querySelectorAll("[data-medialinks-section]")].map(s=>s.dataset.medialinksSection)')==['main','special','nc'])
         rows=page.evaluate('[...document.querySelectorAll("[data-medialinks-section=main] .pml-row")].map(r=>[r.querySelector(".ps-list-title").textContent,r.querySelector(".ps-list-meta").textContent,!!r.querySelector(".pml-watched")])')
         check('Rows: title, length and filler, watched up to the progress',rows==[['Episode 1','24 min',True],['Episode 2','24 min',True],['Episode 3','24 min · Filler',False]])
