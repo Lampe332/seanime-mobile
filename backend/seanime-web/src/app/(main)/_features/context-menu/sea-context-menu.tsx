@@ -1,7 +1,9 @@
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { ContextMenuContent } from "@/components/ui/context-menu"
 import { ContextMenu } from "@radix-ui/react-context-menu"
 import React from "react"
+import "@/components/shared/mobile-surface.css"
 
 export type SeaContextMenuProps = {
     content: React.ReactNode
@@ -29,7 +31,8 @@ export const SeaContextMenu = React.memo((props: SeaContextMenuProps) => {
             {children}
 
             {(((serverStatus?.isOffline && availableWhenOffline) || !serverStatus?.isOffline) && !hideMenuIf) &&
-                <ContextMenuContent className="max-w-xs" data-sea-context-menu-content>
+                <ContextMenuContent className="max-w-xs" data-sea-context-menu-content data-phone-menu={isAndroidPhone() || undefined}
+                    collisionPadding={16}>
                     {content}
                 </ContextMenuContent>}
         </ContextMenu>

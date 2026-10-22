@@ -42,7 +42,7 @@ FIRST_PRESS='''(async sel=>{const e=document.querySelector(sel);e.scrollIntoView
     const t0=performance.now();while(!document.querySelector("[data-sea-context-menu-content]")&&performance.now()-t0<3000)await new Promise(f=>requestAnimationFrame(f));
     await new Promise(f=>setTimeout(f,300));const m=document.querySelector("[data-sea-context-menu-content]"),b=m&&m.getBoundingClientRect();
     return {items:m?[...m.querySelectorAll("[role=menuitem]")].map(i=>i.textContent.trim()):[],point:[x,y],menu:b&&[b.left,b.top,b.right,b.bottom].map(Math.round),
-        at:!!b&&(Math.abs(b.left-x-2)<=4||Math.abs(b.right-x+2)<=4)&&b.top-4<=y&&y<=b.bottom+4}})'''
+        at:!!b&&Math.abs(b.left-16)<=1&&Math.abs(b.right-(innerWidth-16))<=1&&b.bottom<=innerHeight-76-11}})'''
 ATTR='(([sel,attr])=>[...document.querySelectorAll(sel)].map(e=>e.getAttribute(attr)))'
 OPEN='document.querySelectorAll(".UI-Modal__content[data-state=open]").length'
 FOCUS='document.activeElement?.hasAttribute'
@@ -323,7 +323,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-search-') as tmp:
 
         # Card menu
         first=page.evaluate(FIRST_PRESS,'[data-phone-card="1003"]')
-        check('The first long press on a cover (contextmenu at the finger) opens its menu there, Preview first',first['items'][:1]==['Preview'] and first['at'],first)
+        check('The first long press on a cover (contextmenu) opens its menu as an action sheet above the bottom bar, Preview first',first['items'][:1]==['Preview'] and first['at'],first)
         back(page)
         page.locator('[data-phone-card="1003"]').dispatch_event('contextmenu',dict(clientX=120,clientY=500,button=2))
         page.get_by_role('menuitem',name='Preview').wait_for();page.wait_for_timeout(400)

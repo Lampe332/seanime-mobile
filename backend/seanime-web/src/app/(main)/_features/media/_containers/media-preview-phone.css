@@ -1,0 +1,11 @@
+/* The long-press preview on phones: only what the phone kit (phone-screen.css) lacks. */
+.mpp-head { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; min-width: 0; }
+.mpp-cover { position: relative; flex: none; width: 6.5rem; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); }
+.mpp-text { flex: 1 1 11rem; display: grid; gap: .375rem; min-width: 0; padding-top: .125rem; overflow-wrap: break-word; } /* below the cover once large text leaves it too little room */
+.mpp-facts { font-size: .875rem; line-height: 1.45; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+.mpp-status { font-size: .9375rem; font-weight: 650; color: var(--sm-accent); font-variant-numeric: tabular-nums; }
+.mpp-genres { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-subtle); }
+.mpp-synopsis { display: grid; justify-items: start; gap: .25rem; }
+.mpp-synopsis > p { font-size: .9375rem; line-height: 1.6; color: var(--sm-text); white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.mpp-synopsis > p[data-open="true"] { display: block; -webkit-line-clamp: none; overflow: visible; }
+.mpp-synopsis > .ps-text-action { margin-left: -.5rem; }

@@ -10,6 +10,8 @@ import {
     MediaEntryGenresList,
 } from "@/app/(main)/_features/media/_components/media-entry-metadata-components"
 import { MediaPageHeaderEntryDetails } from "@/app/(main)/_features/media/_components/media-page-header-components"
+import { MediaPreviewPhoneSheet } from "@/app/(main)/_features/media/_containers/media-preview-phone"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useHasDebridService, useHasTorrentProvider, useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { RelationsRecommendationsSection } from "@/app/(main)/entry/_components/relations-recommendations-section"
 import { EpisodeSection } from "@/app/(main)/entry/_containers/episode-list/episode-section"
@@ -72,6 +74,9 @@ export function MediaPreviewModal(props: AnimePreviewModalProps) {
     React.useEffect(() => {
         setInfo(undefined)
     }, [pathname])
+
+    // Phones: a sheet with the essentials and the page one tap away
+    if (isAndroidPhone()) return <MediaPreviewPhoneSheet info={info} onClose={() => setInfo(undefined)} />
 
     return (
         <>

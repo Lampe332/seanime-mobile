@@ -3,6 +3,7 @@ import { useOpenAnimeEntryInExplorer } from "@/api/hooks/anime_entries.hooks"
 import { useStartDefaultMediaPlayer } from "@/api/hooks/mediaplayer.hooks"
 import { useLibraryExplorer } from "@/app/(main)/_features/library-explorer/library-explorer.atoms"
 import { PluginAnimePageDropdownItems } from "@/app/(main)/_features/plugin/actions/plugin-actions"
+import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { useAnimeEntryPageView } from "@/app/(main)/entry/_containers/anime-entry-page"
 import {
@@ -14,6 +15,7 @@ import {
     AnimeEntryDownloadFilesModal,
 } from "@/app/(main)/entry/_containers/entry-actions/anime-entry-download-files-modal"
 import { __metadataManager_isOpenAtom, AnimeEntryMetadataManager } from "@/app/(main)/entry/_containers/entry-actions/anime-entry-metadata-manager"
+import { AnimeEntryPhoneMenu } from "@/app/(main)/entry/_containers/entry-actions/anime-entry-phone-menu"
 import {
     __animeEntryUnmatchFilesModalIsOpenAtom,
     AnimeEntryUnmatchFilesModal,
@@ -31,6 +33,12 @@ import { MdOutlineRemoveDone } from "react-icons/md"
 import { SiMyanimelist } from "react-icons/si"
 
 export function AnimeEntryDropdownMenu({ entry, details }: { entry: Anime_Entry, details?: AL_AnimeDetailsById_Media }) {
+    // Android phones get the phone kit's sheets; tablets and desktop keep the dropdown
+    if (isAndroidPhone()) return <AnimeEntryPhoneMenu entry={entry} details={details} />
+    return <AnimeEntryDropdownMenuDesktop entry={entry} details={details} />
+}
+
+function AnimeEntryDropdownMenuDesktop({ entry, details }: { entry: Anime_Entry, details?: AL_AnimeDetailsById_Media }) {
 
     const serverStatus = useServerStatus()
     const setIsMetadataManagerOpen = useSetAtom(__metadataManager_isOpenAtom)

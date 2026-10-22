@@ -131,7 +131,7 @@ FIRST_PRESS='''(async sel=>{const e=document.querySelector(sel);e.scrollIntoView
     const t0=performance.now();while(!document.querySelector("[data-sea-context-menu-content]")&&performance.now()-t0<3000)await new Promise(f=>requestAnimationFrame(f));
     await new Promise(f=>setTimeout(f,300));const m=document.querySelector("[data-sea-context-menu-content]"),b=m&&m.getBoundingClientRect();
     return {items:m?[...m.querySelectorAll("[role=menuitem]")].map(i=>i.textContent.trim()):[],point:[x,y],menu:b&&[b.left,b.top,b.right,b.bottom].map(Math.round),
-        at:!!b&&(Math.abs(b.left-x-2)<=4||Math.abs(b.right-x+2)<=4)&&b.top-4<=y&&y<=b.bottom+4}})'''
+        at:!!b&&Math.abs(b.left-16)<=1&&Math.abs(b.right-(innerWidth-16))<=1&&b.bottom<=innerHeight-76-11}})'''
 HEADS='[...document.querySelectorAll("[data-discover-block] .ps-section-head h2")].map(e=>e.firstChild.textContent.trim())'
 BLOCKS='[...document.querySelectorAll("[data-discover-block]")].map(e=>e.getAttribute("data-discover-block"))'
 FEATURES='[...document.querySelectorAll("[data-discover-feature]")].map(e=>+e.dataset.discoverFeature)'
@@ -311,7 +311,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-discover-') as tmp:
         check('A spotlight card opens its entry page',page.evaluate('routes').pop()==['push','/entry?id=102'])
         go_back(page)
         first=page.evaluate(FIRST_PRESS,card('trending',108))
-        check('The first long press on a cover (contextmenu at the finger) opens its menu there, Preview first',first['items'][:1]==['Preview'] and first['at'])
+        check('The first long press on a cover (contextmenu) opens its menu as an action sheet above the bottom bar, Preview first',first['items'][:1]==['Preview'] and first['at'])
         back(page)
         long_press(page,card('trending',108))
         check('Long press on a cover: Preview and the plugin card actions',page.locator('[data-plugin-card-items="anime"]').count()==1

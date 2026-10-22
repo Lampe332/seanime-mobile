@@ -425,6 +425,24 @@ export function PhonePick({ role = "checkbox", label, note, checked, onChange, m
     </button>
 }
 
+/** A labelled field; `numeric` brings up the number pad and keeps only digits. */
+export function PhoneField({ id, label, note, value, onChange, placeholder, numeric, ...data }: {
+    id: string
+    label: string
+    note?: React.ReactNode
+    value: string
+    onChange: (value: string) => void
+    placeholder?: string
+    numeric?: boolean
+} & DataAttributes) {
+    return <div className="ps-field">
+        <label htmlFor={id}>{label}</label>
+        <input id={id} value={value} placeholder={placeholder} autoComplete="off" spellCheck={false} aria-describedby={note ? `${id}-note` : undefined}
+            inputMode={numeric ? "numeric" : undefined} onChange={event => onChange(numeric ? event.target.value.replace(/\D/g, "") : event.target.value)} {...data} />
+        {!!note && <small id={`${id}-note`}>{note}</small>}
+    </div>
+}
+
 /** A status above the bottom bar: what is going on, a detail, one text action and an optional progress (0-100). */
 export function PhoneFloat({ text, detail, progress, children, ...data }: {
     text: React.ReactNode

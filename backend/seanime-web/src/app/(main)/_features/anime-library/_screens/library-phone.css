@@ -29,8 +29,6 @@ body .ps-sheet.plib-tall.UI-Modal__content { min-height: min(40rem, 82svh); alig
 .plib-hidden-actions > * { flex: 1 1 max-content; }
 .ps-secondary.plib-accent { background: var(--sm-accent-soft); color: var(--sm-accent); }
 
-.ps-primary.plib-danger { background: var(--sm-danger); color: #1a1a1d; }
-
 @media (prefers-reduced-motion: reduce) {
     .plib-expand { transition: none; }
 }

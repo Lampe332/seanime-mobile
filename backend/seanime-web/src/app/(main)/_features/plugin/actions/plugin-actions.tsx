@@ -566,6 +566,21 @@ type PluginAnimePageDropdownMenuItem = {
 }
 
 export function PluginAnimePageDropdownItems(props: { media: AL_BaseAnime }) {
+    const { items, handleClick } = usePluginAnimePageDropdownItems(props.media)
+
+    if (items.length === 0) return null
+
+    return <>
+        <DropdownMenuSeparator />
+        {items.map(i => (
+            <DropdownMenuItem key={i.id} onClick={() => handleClick(i)} style={i.style} disabled={i.disabled}>{i.label || "???"}</DropdownMenuItem>
+        ))}
+    </>
+
+}
+
+/** The anime page's plugin menu items and their click, for menus that are not a dropdown (the phone's sheet). */
+export function usePluginAnimePageDropdownItems(media: AL_BaseAnime | undefined) {
     const [items, setItems] = useState<PluginAnimePageDropdownMenuItem[]>([])
 
     const { sendActionRenderAnimePageDropdownItemsEvent } = usePluginSendActionRenderAnimePageDropdownItemsEvent()
@@ -589,18 +604,10 @@ export function PluginAnimePageDropdownItems(props: { media: AL_BaseAnime }) {
         sendActionClickedEvent({
             actionId: item.id,
             event: {
-                media: props.media,
+                media: media,
             },
         }, item.extensionId)
     }
 
-    if (items.length === 0) return null
-
-    return <>
-        <DropdownMenuSeparator />
-        {items.map(i => (
-            <DropdownMenuItem key={i.id} onClick={() => handleClick(i)} style={i.style} disabled={i.disabled}>{i.label || "???"}</DropdownMenuItem>
-        ))}
-    </>
-
+    return { items, handleClick }
 }

@@ -153,7 +153,7 @@ export function LibraryPhoneSheet() {
     if (confirmRemove) return <PhoneSheet title={t("Remove empty folders?", "Leere Ordner entfernen?")} open={open} onOpenChange={setOpen} data-library-phone-confirm
         footer={<>
             <button type="button" className="ps-secondary" onClick={() => setConfirmRemove(false)}>{t("Cancel", "Abbrechen")}</button>
-            <button type="button" className="ps-primary plib-danger" data-library-confirm-remove disabled={removing}
+            <button type="button" className="ps-primary" data-tone="danger" data-library-confirm-remove disabled={removing}
                 onClick={() => removeEmpty(undefined, { onSuccess: () => setConfirmRemove(false) })}>{t("Remove", "Entfernen")}</button>
         </>}>
         <p className="ps-sheet-text">{t("Every folder in your library folders that holds no files is deleted from this phone.",

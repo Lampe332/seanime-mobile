@@ -312,4 +312,4 @@ body:has([data-mobile-manga="true"]) [data-top-navbar] [data-layout-header-backg
 .mobile-chapter-empty-state p + p { font-size: .8125rem; color: var(--sm-text-muted); }
 /* Anime actions: the same row of round filled icon buttons as on manga pages. */
 [data-mobile-anime="true"] [data-anime-meta-section-buttons-row] { gap: .5rem; }
-[data-mobile-anime="true"] [data-anime-meta-section-buttons-row] .UI-IconButton_root { width: 44px; height: 44px; min-width: 44px; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); }
+[data-mobile-anime="true"] [data-anime-meta-section-buttons-row] .UI-IconButton_root { width: 48px; height: 48px; min-width: 48px; border-radius: 999px; background: var(--sm-surface-raised); color: var(--sm-text-muted); }
