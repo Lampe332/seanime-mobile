@@ -188,6 +188,11 @@ func New(opts *NewClientOptions) (*Client, error) {
 		cfg.DisableIPv6 = true
 		cfg.NoDefaultPortForwarding = true
 	}
+	if runtime.GOOS == "android" {
+		// The web-seed request timer panics when a torrent that uses web seeds is removed while it fires
+		// (panicif in updateWebseedRequestsAndResetTimer), which takes the whole server down.
+		cfg.DisableWebseeds = true
+	}
 	if opts.MaxConnections > 0 {
 		cfg.EstablishedConnsPerTorrent = opts.MaxConnections
 	}

@@ -106,6 +106,11 @@ func (c *Client) initializeClient() error {
 		cfg.DisableIPv6 = true
 		cfg.NoDefaultPortForwarding = true
 	}
+	if runtime.GOOS == "android" {
+		// The web-seed request timer panics when a torrent that uses web seeds is closed while it fires
+		// (panicif in updateWebseedRequestsAndResetTimer), which takes the whole server down on stop/drop.
+		cfg.DisableWebseeds = true
+	}
 	cfg.Logger = alog.Logger{}.FilterLevel(alog.Never)
 
 	// TEST ONLY: Limit download speed to 1mb/s
