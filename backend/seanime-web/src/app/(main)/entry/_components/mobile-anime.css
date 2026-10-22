@@ -39,8 +39,11 @@
 [data-mobile-anime="true"] [data-anime-meta-section-after-header] { display: grid; gap: .75rem; margin: 0; }
 [data-mobile-anime="true"] [data-anime-entry-page-tabs-container] { margin: 0; width: 100%; }
 [data-mobile-anime="true"] .UI-StaticTabs__root { width: 100%; gap: .25rem; justify-content: stretch; padding: .25rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); }
-[data-mobile-anime="true"] .UI-StaticTabs__trigger { flex: 1 1 0; justify-content: center; min-height: 44px; height: auto; white-space: normal; font-size: .875rem !important; padding: .55rem .7rem !important; border: 0 !important; border-radius: calc(var(--sm-radius-sm) - .25rem); color: var(--sm-text-muted); background: transparent; }
+[data-mobile-anime="true"] .UI-StaticTabs__trigger { flex: 1 1 0; justify-content: center; min-height: 44px; height: auto; white-space: normal; overflow-wrap: normal; font-size: .875rem !important; padding: .55rem .7rem !important; border: 0 !important; border-radius: calc(var(--sm-radius-sm) - .25rem); color: var(--sm-text-muted); background: transparent; }
 [data-mobile-anime="true"] .UI-StaticTabs__trigger[data-current="true"] { background: var(--sm-surface-control); color: var(--sm-text); font-weight: 600; }
+/* Four sources (Library, Torrent, Debrid, Online) leave no room for the current tab's icon: without it, and with no breaks inside words,
+   a tab is never narrower than its label ("Bibliothek" widens its tab; the page itself breaks anywhere) */
+[data-mobile-anime="true"] [data-anime-entry-page-tabs-container] .UI-StaticTabs__trigger :is(svg, img) { display: none; }
 
 [data-mobile-anime="true"] [data-anime-entry-page-content-container] { padding: 1rem; scroll-margin-top: 1rem; }
 [data-mobile-anime="true"] [data-anime-entry-page-content], [data-mobile-anime="true"] [data-anime-entry-page-online-streaming-view], [data-mobile-anime="true"] [data-anime-entry-page-episode-list-view],

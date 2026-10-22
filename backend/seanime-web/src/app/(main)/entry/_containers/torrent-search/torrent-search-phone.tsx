@@ -115,7 +115,8 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, onDownload }: {
     ]
     const smart = searchType === Torrent_SearchType.SMART
     const debridOn = !!serverStatus?.debridSettings?.enabled
-    const cached = debridOn ? data?.debridInstantAvailability ?? {} : {}
+    // Only the debrid stream uses the debrid cache; the built-in client and torrent streaming download from peers
+    const cached = debridOn && kind === "debrid" ? data?.debridInstantAvailability ?? {} : {}
 
     const torrents = React.useMemo(() => {
         const list = smart ? (data?.previews ?? []).map(preview => preview.torrent).filter((item): item is HibikeTorrent_AnimeTorrent => !!item) : data?.torrents ?? []

@@ -122,6 +122,8 @@ with tempfile.TemporaryDirectory(prefix='seanime-torrents-') as tmp:
         check('Download: own title and the missing episodes',page.locator(f'{SHEET} .UI-Modal__title').inner_text()=='Download a torrent'
               and page.locator('[data-torrent-context]').inner_text()=='Missing episodes: 1–3, 5')
         check('Download: rows are check boxes, no action until one is picked',page.locator('[data-torrent-row][role=checkbox]').count()==3 and page.locator('[data-torrent-continue]').count()==0)
+        check('Download: no "Cached" (the debrid cache plays no part in the app\'s own client)',
+              'Cached' not in page.locator(SHEET).inner_text() and 'Cached torrents start at once.' not in page.locator(SHEET).inner_text())
         page.locator('[data-torrent-row="h1"]').click();page.locator('[data-torrent-row="h3"]').click();page.wait_for_timeout(200)
         check('Download: the action counts the picks',page.locator('[data-torrent-continue]').inner_text()=='Continue with 2')
         page.locator('[data-torrent-continue]').click();page.wait_for_timeout(500)
