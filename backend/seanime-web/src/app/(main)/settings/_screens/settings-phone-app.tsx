@@ -140,7 +140,10 @@ function LocalAccountGroup({ t, isSimulated }: { t: Translate, isSimulated: bool
     </SettingsGroup>
 }
 
-/** Cache-only mode: the server's own state, switched by its toggle endpoint. */
+/**
+ * Cache-only mode: the server's own state, switched by its toggle endpoint. The server checks AniList every 10 seconds and leaves
+ * cache-only mode once AniList answers (cachelayer.go), so the switch asks again as often to show that.
+ */
 function CacheOnlySwitch({ t }: { t: Translate }) {
     const queryClient = useQueryClient()
     const { data: apiWorking, isLoading } = useServerQuery<boolean>({
@@ -148,6 +151,7 @@ function CacheOnlySwitch({ t }: { t: Translate }) {
         method: API_ENDPOINTS.ANILIST.GetAnilistCacheLayerStatus.methods[0],
         queryKey: [API_ENDPOINTS.ANILIST.GetAnilistCacheLayerStatus.key],
         gcTime: 0,
+        refetchInterval: 10_000,
     })
     const { mutate: toggle, isPending } = useServerMutation<boolean>({
         endpoint: API_ENDPOINTS.ANILIST.ToggleAnilistCacheLayerStatus.endpoint,
@@ -157,7 +161,7 @@ function CacheOnlySwitch({ t }: { t: Translate }) {
         onError: () => { toast.error(t("The setting could not be saved. Try again.", "Die Einstellung konnte nicht gespeichert werden. Versuch es noch einmal.")) },
     })
     return <PhoneSwitch label={t("Cache-only mode", "Nur Zwischenspeicher")} checked={apiWorking === false} disabled={isLoading || isPending}
-        note={t("Uses cached AniList data and sends no requests. The app turns this on by itself when AniList fails.",
-            "Nutzt gespeicherte AniList-Daten und stellt keine Anfragen. Die App schaltet das selbst ein, wenn AniList ausfällt.")}
+        note={t("Uses cached AniList data and sends no requests. Turns on by itself when AniList fails and off again once AniList answers.",
+            "Nutzt gespeicherte AniList-Daten und stellt keine Anfragen. Schaltet sich ein, wenn AniList ausfällt, und wieder aus, sobald AniList antwortet.")}
         onChange={() => toggle()} data-settings-cache-only data-settings-sub />
 }
