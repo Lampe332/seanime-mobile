@@ -2,6 +2,12 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.24 — 23.10.2026 (versionCode 31119)
+
+- ⚡️ Plugins: The plugin list looks like the app's other sheets: as tall as its plugins, the app's search field, the plugins as one group of rows and round pin buttons
+- ⚡️ Plugins: A plugin's window fits its content and the app: one scroll instead of a box scrolling inside the window, cards and fields in the app's style, no line under the title
+- ⚡️ Tablets: The plugin list and plugin windows open beside the navigation rail, next to the plugin button
+
 ## 2.0.22 — 23.10.2026 (versionCode 31117)
 
 - ⚡️ Tablets: One smooth background tint from the top of the screen on every screen, without visible steps
