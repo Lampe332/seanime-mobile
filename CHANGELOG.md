@@ -2,6 +2,12 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.12 — 23.10.2026 (versionCode 31107)
+
+- 🎉 Anime pages: Choose under More → Tabs which streaming tabs (Torrent, Debrid, Online) your phone shows
+- ⚡️ Nakama: The settings say what it is for (streaming from your PC or home server), show whether the phone reached the host, and a tap connects again
+- 🦺 Nakama: With the host's library on, anime downloaded to the phone stay in the library and play from the phone
+
 ## 2.0.10 — 22.10.2026 (versionCode 31105)
 
 - 🎉 Torrents: Stream episodes from torrents in the app's own player, picked from a phone torrent search (provider, episode or title, resolution, whole seasons, best releases)
