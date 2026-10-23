@@ -10,7 +10,7 @@
 
 <p align="center"><a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><b>Download the latest APK</b></a> &nbsp;·&nbsp; <a href="CHANGELOG.md">Changelog</a></p>
 
-**Seanime Mobile** puts [Seanime](https://github.com/5rahim/seanime) on your Android phone. Seanime is normally a server you run on a computer and open in a browser; here the whole server runs inside the app, and every screen is rebuilt for touch. Stream anime through extensions, download whole seasons for offline viewing, read manga and keep your AniList lists in sync, without a PC.
+**Seanime Mobile** puts [Seanime](https://github.com/5rahim/seanime) on your Android phone. Seanime is normally a server you run on a computer and open in a browser; here the whole server runs inside the app, and every screen is rebuilt for touch. Stream anime through extensions or torrents, download whole seasons for offline viewing, play the library of Seanime on your PC or home server, read manga and keep your AniList lists in sync, without needing a PC.
 
 <table>
   <tr>
@@ -20,6 +20,8 @@
       <ul>
         <li><b>Stream</b> with Sub or Dub, in the built-in player or an external one</li>
         <li><b>Download</b> a whole season and watch it offline</li>
+        <li><b>Torrents and debrid</b>: stream or download torrents, or stream through a debrid service</li>
+        <li><b>Home server</b>: play the library of Seanime on your PC</li>
         <li><b>Read manga</b> online or offline, with progress tracking</li>
         <li><b>AniList sync</b> for lists, progress and scores</li>
         <li><b>Your own files</b> play from folders on your phone</li>
@@ -33,10 +35,10 @@
 
 ## Good to know before you install
 
-- **No sources included.** The app ships without streaming or manga sources; you add them from a community extension repository ([First start](#first-start), step 4). This project does not link to any.
+- **No sources included.** The app ships without streaming, torrent or manga sources; you add them from a community extension repository ([First start](#first-start), step 4). This project does not link to any.
 - **Android on ARM only.** Android 5.0 or newer on a 64-bit or 32-bit ARM phone. There is no iOS version.
 - **Not the official app.** Seanime Mobile is an independent, open-source fork of Seanime, licensed under the GPL-3.0.
-- **No torrents.** Torrent, debrid and auto-downloader features are turned off on Android.
+- **Torrents are up to you.** Torrent streaming and downloads only work with torrent providers you install yourself, and they use your connection, mobile data included. The auto-downloader is not available on Android.
 
 ## Features
 
@@ -51,6 +53,18 @@
 - Download a whole season or single episodes from the anime page.
 - Everything you saved is in the **Downloads** tab; episodes you started offline wait in a **Continue offline** row.
 - Downloaded episodes also show on their anime page and play without a connection.
+
+### Torrents and debrid
+- Stream episodes from torrents in the built-in player. Search your torrent provider by episode or title, filter by resolution, or let the app pick the best release.
+- Download torrents into your library folder with the app's own torrent client: one episode, a whole season, or only the episodes you are missing. Downloads continue in the background and after a restart.
+- **Downloads → Torrents** shows progress and speed; pause, resume, or remove a torrent with or without its files.
+- Stream through **TorBox, Real-Debrid, AllDebrid or Premiumize** with your own account.
+- Only use some of it? Choose which tabs (Torrent, Debrid, Online) anime pages show under **⋮ → Tabs**.
+
+### Stream from your PC or home server
+- Already run Seanime on a computer or home server? Connect the app with **Nakama** and play that library over Wi-Fi, or over the internet if you make the server reachable.
+- The server's anime join the episodes on your phone; nothing is copied, and what you downloaded to the phone stays.
+- The settings show whether the phone is connected, and it reconnects by itself when the server comes back. ([How to set it up](#faq))
 
 ### Read manga
 - The Manga tab starts with **Continue reading**: chapter progress and new chapters at a glance, every list status as a tab.
@@ -82,6 +96,7 @@
 <p align="center"><img src="docs/images/readme/gallery-browse.fb4e0408.png" alt="Home, Discover, Search and the long-press preview" width="100%"></p>
 <p align="center"><img src="docs/images/readme/gallery-watch.34e366a2.png" alt="Anime page, Downloads, Calendar and My lists" width="100%"></p>
 <p align="center"><img src="docs/images/readme/gallery-more.b15558c0.png" alt="Manga page, playback settings, Settings and Plugins" width="100%"></p>
+<p align="center"><img src="docs/images/readme/gallery-stream.6eeb9250.png" alt="Torrent search, a torrent download, Downloads with the Torrents tab and Nakama connected to a home server" width="100%"></p>
 
 ## Install
 
@@ -105,7 +120,7 @@ The app checks this repository for new releases when it starts. When one is out,
 4. **Add sources.** Seanime Mobile ships **without** streaming or manga sources, and the official marketplace only contains plugins. A short tour starts on its own and shows you how to add a community repository:
    1. *Menu → Extensions* → **Marketplace** tab → **Change**.
    2. Paste the repository link (an address that ends in `.json`) and tap **Save**.
-   3. Install a streaming source, then a manga source.
+   3. Install a streaming source, then a manga source. For torrents, also install a torrent provider; it then appears under *Settings → Torrents & debrid*.
 
    Run the tour again any time from *Settings → App → Show the setup tutorial* or the ⋮ menu on the Extensions screen. This project does not link to any sources and has nothing to do with their content.
 5. **Start watching.** Open an anime, tap **Episodes & playback** and pick an episode, or tap **Download** to save it for later.
@@ -133,7 +148,17 @@ An update must be signed with the same key as the installed app, which is the ca
 <details>
 <summary><b>Where are my downloads stored?</b></summary>
 
-In the app's private storage. You find them in the **Downloads** tab, and Android removes them when you uninstall the app.
+Episodes from streaming sources are saved in the app's private storage. You find them in the **Downloads** tab, and Android removes them when you uninstall the app. Torrent downloads go into your library folder (*Settings → Library*) and stay there; they show under **Downloads → Torrents** and in your library.
+</details>
+
+<details>
+<summary><b>How do I stream from my PC or home server?</b></summary>
+
+1. On the computer or server, open Seanime → *Settings → Nakama*: **Enable Nakama**, **Enable host mode**, set a **Passcode** and turn on **Share local anime library**.
+2. In the app, open *Settings → Nakama*: turn **Nakama** on, enter the **Host address** (the computer's IP address and port, like `192.168.1.20:43211`) and the **Host passcode**, and turn on **Use the host's anime library**.
+3. The row below says **Connected to …**, and the server's anime appear in your library. Open one and tap an episode.
+
+Phone and computer need to be in the same network, unless you make the server reachable from outside, for example through a VPN like Tailscale.
 </details>
 
 <details>
