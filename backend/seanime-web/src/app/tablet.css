@@ -156,7 +156,10 @@ html[data-edition="tablet"] .pst-pane-title { font-size: 1.375rem; line-height: 
     html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-identity { flex-direction: column; align-items: flex-start; align-self: start; margin-bottom: 1rem; }
     html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-title { flex: none; }
     html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-cover { width: 11rem; }
-    html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-episodes-link { display: none; }
+    /* The anime page's "Episodes & playback" link only scrolls to the episodes, which now sit beside it; the manga page's
+       "Continue reading" opens the next chapter and stays */
+    html[data-edition="tablet"] [data-anime-entry-page] .mobile-anime-episodes-link { display: none; }
+    html[data-edition="tablet"] [data-manga-entry-page] .mobile-anime-episodes-link { justify-self: stretch; width: 100%; min-width: 0; }
     html[data-edition="tablet"] [data-mobile-anime] > .tablet-entry-more { grid-column: 1 / -1; padding-inline: 0; }
 
     /* Anime: the header's parts join the page's grid: identity, progress, About and actions down the left column; the view
