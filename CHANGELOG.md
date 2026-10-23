@@ -2,6 +2,16 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.22 — 23.10.2026 (versionCode 31117)
+
+- ⚡️ Tablets: One smooth background tint from the top of the screen on every screen, without visible steps
+- ⚡️ Tablets: The layout follows the tablet's width instead of its orientation, so small, 4:3 and large tablets and split-screen windows each get the layout they have room for
+- ⚡️ Tablets: The plugin button sits at the foot of the navigation rail and the empty bar above each screen is gone
+- ⚡️ Tablets: Bigger covers in grids and rows
+- ⚡️ Manga: Long-strip reading on tablets shows the pages in a readable column instead of squeezing each page to the screen's height
+- 🦺 Manga: The manga downloads button no longer sticks out over the page and the reader on tablets
+- 🦺 Manga: No empty gap between the title and the reading progress on tablets
+
 ## 2.0.21 — 23.10.2026 (versionCode 31116)
 
 - ⚡️ Tablets: The tablet edition is laid out for a tablet in landscape and portrait
