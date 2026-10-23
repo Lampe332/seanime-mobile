@@ -1,4 +1,4 @@
-import { useServerMutation, useServerQuery } from "../client/requests"
+import { SeaError, useServerMutation, useServerQuery } from "../client/requests"
 import {
     NakamaCreateWatchParty_Variables,
     NakamaJoinWatchParty_Variables,
@@ -52,7 +52,7 @@ export function useNakamaRemoveStaleConnections() {
     })
 }
 
-export function useNakamaPlayVideo() {
+export function useNakamaPlayVideo(onError?: (error: SeaError) => void) {
     return useServerMutation<boolean, NakamaPlayVideo_Variables>({
         endpoint: API_ENDPOINTS.NAKAMA.NakamaPlayVideo.endpoint,
         method: API_ENDPOINTS.NAKAMA.NakamaPlayVideo.methods[0],
@@ -60,6 +60,7 @@ export function useNakamaPlayVideo() {
         onSuccess: async () => {
 
         },
+        ...(onError ? { onError } : {}),
     })
 }
 

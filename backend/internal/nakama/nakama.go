@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"seanime/internal/database/models"
 	debrid_client "seanime/internal/debrid/client"
 	"seanime/internal/directstream"
@@ -232,7 +233,7 @@ func NewManager(opts *NewManagerOptions) *Manager {
 		cancel:                  cancel,
 		messageHandlers:         make(map[MessageType]func(*Message, string) error),
 		cleanups:                make([]func(), 0),
-		reqClient:               req.C(),
+		reqClient:               newHostClient(),
 		serverHost:              opts.ServerHost,
 		serverPort:              opts.ServerPort,
 		settings:                &models.NakamaSettings{},
@@ -390,12 +391,27 @@ func (m *Manager) SetSettings(settings *models.NakamaSettings) {
 	// }
 }
 
+// newHostClient gives the host 10 s to accept a request and 10 s to start its answer, so a host gone to sleep shows at once
+// (req's default waited two minutes and held the library that long); reading the answer may take longer, as a big library
+// does over a slow home upload.
+func newHostClient() *req.Client {
+	c := req.C().SetDial((&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext)
+	c.GetTransport().SetResponseHeaderTimeout(10 * time.Second)
+	return c
+}
+
 func (m *Manager) GetHostBaseServerURL() string {
-	url := m.settings.RemoteServerURL
-	if strings.HasSuffix(url, "/") {
-		url = strings.TrimSuffix(url, "/")
+	return NormalizeHostURL(m.settings.RemoteServerURL)
+}
+
+// NormalizeHostURL is the host address without a trailing slash, with http:// added when it was typed without a scheme
+// ("192.168.1.20:43211"), which url.Parse cannot read as a host
+func NormalizeHostURL(raw string) string {
+	u := strings.TrimSpace(raw)
+	if u != "" && !strings.Contains(u, "://") {
+		u = "http://" + u
 	}
-	return url
+	return strings.TrimSuffix(u, "/")
 }
 
 func (m *Manager) Stop() {
@@ -661,14 +677,7 @@ func (m *Manager) ReconnectToHost() error {
 		return errors.New("no host connection configured")
 	}
 
-	// Check if already reconnecting
-	m.hostMu.Lock()
-	if m.reconnecting {
-		m.hostMu.Unlock()
-		return errors.New("reconnection already in progress")
-	}
-	m.hostMu.Unlock()
-
+	// An attempt still running (a host that does not answer takes up to a minute) is cancelled and started over
 	m.logger.Info().Msg("nakama: Manual reconnection to host requested")
 
 	// Disconnect current connection if exists

@@ -54,16 +54,14 @@ func (m *Manager) connectToHost() {
 
 	// Create new context for this connection attempt
 	m.hostConnectionCtx, m.hostConnectionCancel = context.WithCancel(m.ctx)
+	connCtx := m.hostConnectionCtx
 
-	// Prevent multiple concurrent connection attempts
-	if m.reconnecting {
-		m.hostMu.Unlock()
-		return
-	}
+	// An attempt still running belongs to the cancelled context and stops; this one is for the current settings.
+	// Returning here instead left a host address entered during an attempt unused until something else reconnected.
 	m.reconnecting = true
 	m.hostMu.Unlock()
 
-	go m.connectToHostAsync()
+	go m.connectToHostAsync(connCtx)
 }
 
 // isRoomURL checks if the URL is a Seanime Rooms URL
@@ -104,21 +102,19 @@ func (m *Manager) disconnectFromHost() {
 }
 
 // connectToHostAsync handles the actual connection logic with retries
-func (m *Manager) connectToHostAsync() {
+func (m *Manager) connectToHostAsync(connCtx context.Context) {
 	defer func() {
 		m.hostMu.Lock()
-		m.reconnecting = false
+		// A newer attempt owns the flag once this one was cancelled
+		if m.hostConnectionCtx == connCtx {
+			m.reconnecting = false
+		}
 		m.hostMu.Unlock()
 	}()
 
 	if m.settings == nil || !m.settings.Enabled || m.settings.RemoteServerURL == "" || m.settings.RemoteServerPassword == "" {
 		return
 	}
-
-	// Get the connection context
-	m.hostMu.RLock()
-	connCtx := m.hostConnectionCtx
-	m.hostMu.RUnlock()
 
 	if connCtx == nil {
 		return
@@ -163,11 +159,31 @@ func (m *Manager) connectToHostAsync() {
 	select {
 	case <-connCtx.Done():
 		m.logger.Info().Msg("nakama: Connection attempts cancelled")
+		return
 	default:
 		m.logger.Error().Msg("nakama: Failed to connect to host after all retries")
 		m.wsEventManager.SendEvent(events.ErrorToast, "Failed to connect to Nakama host after multiple attempts.")
 	}
+
+	// Then once a minute until the host answers or the settings change: a home server switched off for the night is found
+	// again without a tap
+	for {
+		select {
+		case <-connCtx.Done():
+			return
+		case <-m.ctx.Done():
+			return
+		case <-time.After(slowRetryDelay):
+		}
+		if err := m.attemptHostConnection(connCtx); err == nil {
+			m.logger.Info().Msg("nakama: Successfully connected to host")
+			return
+		}
+	}
 }
+
+// slowRetryDelay is the wait between connection attempts once the quick retries are used up
+const slowRetryDelay = time.Minute
 
 // attemptHostConnection makes a single connection attempt to the host
 func (m *Manager) attemptHostConnection(connCtx context.Context) error {
@@ -187,7 +203,7 @@ func (m *Manager) attemptHostConnection(connCtx context.Context) error {
 // attemptDirectConnection makes a direct H2P connection to a Seanime host
 func (m *Manager) attemptDirectConnection(connCtx context.Context) error {
 	// Parse URL
-	u, err := url.Parse(m.settings.RemoteServerURL)
+	u, err := url.Parse(m.GetHostBaseServerURL())
 	if err != nil {
 		return err
 	}
@@ -302,6 +318,12 @@ func (m *Manager) attemptDirectConnection(connCtx context.Context) error {
 
 	// Set the connection and cancel any existing reconnection timer
 	m.hostMu.Lock()
+	// The settings changed while this attempt ran: its connection is for the previous host
+	if connCtx.Err() != nil {
+		m.hostMu.Unlock()
+		_ = conn.Close()
+		return connCtx.Err()
+	}
 	if m.hostConnection != nil && m.hostConnection.reconnectTimer != nil {
 		m.hostConnection.reconnectTimer.Stop()
 	}
@@ -436,7 +458,10 @@ func (m *Manager) handleHostConnection(hostConn *HostConnection) {
 		if shouldReconnect {
 			m.reconnecting = true
 			hostConn.reconnectTimer = time.AfterFunc(10*time.Second, func() {
-				m.connectToHostAsync()
+				m.hostMu.RLock()
+				connCtx := m.hostConnectionCtx
+				m.hostMu.RUnlock()
+				m.connectToHostAsync(connCtx)
 			})
 		}
 		m.hostMu.Unlock()

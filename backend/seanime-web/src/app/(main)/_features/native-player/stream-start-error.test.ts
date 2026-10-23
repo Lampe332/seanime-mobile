@@ -27,6 +27,12 @@ describe("stream start errors on phones", () => {
         expect(streamStartError("no files found in the torrent", en)).toBe("This torrent has no video to play. Choose another one.")
     })
 
+    it("says the Nakama host doesn't answer instead of the request that failed", () => {
+        expect(streamStartError("cannot access host's anime library: Get \"http://192.168.1.20:43211/api/v1/nakama/host/anime/library/shared\": timeout", en))
+            .toBe("The Nakama host doesn't answer. Check that it is on and in the same network.")
+        expect(streamStartError("not connected to host", de)).toBe("Der Nakama-Host antwortet nicht. Prüfe, ob er an ist und im selben Netz.")
+    })
+
     it("shows the reason while the player is open", () => {
         const store = createStore()
         store.set(nativePlayer_stateAtom, draft => { draft.active = true })

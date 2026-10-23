@@ -426,8 +426,7 @@ func (h *Handler) HandleNakamaProxyStream(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "type is required")
 	}
 
-	hostServerUrl := h.App.Settings.GetNakama().RemoteServerURL
-	hostServerUrl = strings.TrimSuffix(hostServerUrl, "/")
+	hostServerUrl := nakama.NormalizeHostURL(h.App.Settings.GetNakama().RemoteServerURL)
 
 	if streamType == "debrid" {
 		// Get the debrid stream URL from the host

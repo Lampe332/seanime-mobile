@@ -1,13 +1,29 @@
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
+import { tr } from "@/lib/app-language"
 import { WSEvents } from "@/lib/server/ws-events"
 import { toast } from "sonner"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
+/** The server's Nakama messages in the phone's language and in words a phone user can act on; others as they come. */
+export function phoneToastText(message: string) {
+    if (!IS_ANDROID_APP) return message
+    switch (message) {
+        case "Sending stream to player...":
+            return tr("Sending stream to player…", "Stream wird an den Player gesendet …")
+        case "Failed to connect to Nakama host after multiple attempts.":
+            return tr("Can't reach the Nakama host. The app keeps trying once a minute.",
+                "Der Nakama-Host ist nicht erreichbar. Die App versucht es jede Minute weiter.")
+    }
+    return message
+}
 
 export function useMiscEventListeners() {
 
     useWebsocketMessageListener<string>({
         type: WSEvents.INFO_TOAST, onMessage: data => {
             if (!!data) {
-                toast.info(data)
+                toast.info(phoneToastText(data))
             }
         },
     })
@@ -31,7 +47,7 @@ export function useMiscEventListeners() {
     useWebsocketMessageListener<string>({
         type: WSEvents.ERROR_TOAST, onMessage: data => {
             if (!!data) {
-                toast.error(data)
+                toast.error(phoneToastText(data))
             }
         },
     })

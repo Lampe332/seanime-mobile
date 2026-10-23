@@ -29,6 +29,11 @@ export function streamStartError(reason: string, t: Translate) {
     if (/no files found in the torrent/i.test(reason)) {
         return t("This torrent has no video to play. Choose another one.", "Dieser Torrent enthält kein Video. Wähle einen anderen.")
     }
+    // A Nakama host gone to sleep or switched off between opening the page and the tap
+    if (/cannot access host's anime library|not connected to host/i.test(reason)) {
+        return t("The Nakama host doesn't answer. Check that it is on and in the same network.",
+            "Der Nakama-Host antwortet nicht. Prüfe, ob er an ist und im selben Netz.")
+    }
     return reason
 }
 

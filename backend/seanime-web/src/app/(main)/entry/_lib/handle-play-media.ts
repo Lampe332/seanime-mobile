@@ -19,9 +19,13 @@ import { openTab } from "@/lib/helpers/browser"
 import { logger } from "@/lib/helpers/debug"
 import { useRouter } from "@/lib/navigation"
 import { __isElectronDesktop__ } from "@/types/constants"
+import { streamStartError } from "@/app/(main)/_features/native-player/stream-start-error"
+import { tr } from "@/lib/app-language"
 import { useAtomValue, useSetAtom } from "jotai"
 import React from "react"
 import { toast } from "sonner"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 export function useHandlePlayMedia() {
     const router = useRouter()
@@ -40,7 +44,10 @@ export function useHandlePlayMedia() {
 
     // Play using desktop external player
     const { mutate: playVideo } = usePlaybackPlayVideo()
-    const { mutate: playNakamaVideo } = useNakamaPlayVideo()
+    // Phones say in plain words that the host doesn't answer, not which request to it failed
+    const { mutate: playNakamaVideo } = useNakamaPlayVideo(IS_ANDROID_APP
+        ? error => toast.error(streamStartError(String(error.response?.data?.error ?? error.message ?? ""), tr))
+        : undefined)
 
     const { mutate: directstreamPlayLocalFile } = useDirectstreamPlayLocalFile()
 

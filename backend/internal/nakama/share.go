@@ -57,6 +57,24 @@ func (m *Manager) generateHMACToken(endpoint string) (string, error) {
 	return hmacAuth.GenerateToken(endpoint)
 }
 
+// hostUnreachable drops the host connection when a request to the host could not get through. A host gone to sleep keeps
+// the websocket open for up to a minute, and every page would wait for the request timeout until then; without the
+// connection the next pages load at once from this device's own library and the usual reconnection takes over.
+func (m *Manager) hostUnreachable(ctx context.Context, err error) {
+	// The page was left, the host did not fail
+	if ctx.Err() != nil || errors.Is(err, context.Canceled) {
+		return
+	}
+	m.hostMu.RLock()
+	hostConn := m.hostConnection
+	m.hostMu.RUnlock()
+	if hostConn == nil {
+		return
+	}
+	m.logger.Warn().Err(err).Msg("nakama: Host did not answer, dropping the connection")
+	hostConn.Close()
+}
+
 func (m *Manager) GetHostAnimeLibraryFiles(ctx context.Context, mId ...int) (lfs []*anime.LocalFile, customSourceMap NakamaCustomSourceMap, hydrated bool) {
 	if !m.settings.Enabled || !m.settings.IncludeNakamaAnimeLibrary || !m.IsConnectedToHost() || m.IsRoomConnection() {
 		return nil, nil, false
@@ -77,6 +95,7 @@ func (m *Manager) GetHostAnimeLibraryFiles(ctx context.Context, mId ...int) (lfs
 			SetHeader("X-Seanime-Nakama-Token", m.settings.RemoteServerPassword).
 			Get(m.GetHostBaseServerURL() + "/api/v1/nakama/host/anime/library/files/" + strconv.Itoa(mId[0]))
 		if err != nil {
+			m.hostUnreachable(ctx, err)
 			return nil, nil, false
 		}
 	} else {
@@ -85,6 +104,7 @@ func (m *Manager) GetHostAnimeLibraryFiles(ctx context.Context, mId ...int) (lfs
 			SetHeader("X-Seanime-Nakama-Token", m.settings.RemoteServerPassword).
 			Get(m.GetHostBaseServerURL() + "/api/v1/nakama/host/anime/library/files")
 		if err != nil {
+			m.hostUnreachable(ctx, err)
 			return nil, nil, false
 		}
 	}
@@ -119,6 +139,7 @@ func (m *Manager) GetHostAnimeLibrary(ctx context.Context) (ac *NakamaAnimeLibra
 		SetHeader("X-Seanime-Nakama-Token", m.settings.RemoteServerPassword).
 		Get(m.GetHostBaseServerURL() + "/api/v1/nakama/host/anime/library")
 	if err != nil {
+		m.hostUnreachable(ctx, err)
 		return nil, false
 	}
 
@@ -160,10 +181,13 @@ func (m *Manager) PlayHostAnimeLibraryFile(path string, userAgent string, client
 		SetHeader("X-Seanime-Nakama-Token", m.settings.RemoteServerPassword).
 		Get(m.GetHostBaseServerURL() + "/api/v1/nakama/host/anime/library/shared")
 	if err != nil {
+		m.wsEventManager.SendEvent(events.HideIndefiniteLoader, "nakama-file")
+		m.hostUnreachable(context.Background(), err)
 		return fmt.Errorf("cannot access host's anime library: %w", err)
 	}
 
 	if !response.IsSuccessState() {
+		m.wsEventManager.SendEvent(events.HideIndefiniteLoader, "nakama-file")
 		body := response.Bytes()
 		code := response.StatusCode
 		return fmt.Errorf("cannot access host's anime library: %d, %s", code, string(body))

@@ -140,6 +140,8 @@ export function NakamaManager() {
     function refetchNakamaLibrary() {
         refetchStatus()
         queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
+        // An open anime page gets the host's episodes (or loses them) without leaving it
+        queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key] })
     }
 
     useWebsocketMessageListener({
