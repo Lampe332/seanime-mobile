@@ -2,6 +2,16 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.26 — 23.10.2026 (versionCode 31121)
+
+- 🦺 Home: Anime and manga carousels added in Customize Home show the top-rated titles until you name them, instead of "missing some required options"
+- 🦺 Home: The local anime library section shows your local anime as rows (or a short note when there are none) instead of the desktop filter bar
+- 🦺 Home: Manga lists on tablets use normal-sized covers instead of two covers filling the screen
+- ⚡️ Home: Every list on Home (My Lists, manga, the local library) is one swipeable row, so long lists no longer make Home endless
+- ⚡️ Home: Local library numbers sit under a heading in one group; the Discover banner shows its title's picture; a centered title without text no longer leaves a gap
+- ⚡️ Home: Customize Home says when a section needs a text or only shows as the first section
+- ⚡️ Tablets: Upcoming episodes sit side by side and cover grids outside Home use tablet-sized covers
+
 ## 2.0.25 — 23.10.2026 (versionCode 31120)
 
 - ⚡️ Home: Customize Home uses normal headings instead of small capitals and shows the sections as one group of rows
