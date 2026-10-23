@@ -2,6 +2,16 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.21 — 23.10.2026 (versionCode 31116)
+
+- ⚡️ Tablets: The tablet edition is laid out for a tablet in landscape and portrait
+  - A navigation rail on the left with the app's mark replaces the bottom bar; the menu opens beside it
+  - Settings show the list of areas and the open area side by side
+  - Anime and manga pages put the cover, progress and actions on the left and episodes or chapters on the right; characters, relations and recommendations run across the page underneath
+  - The calendar shows its days in two columns, Extensions its kinds side by side
+  - Sheets open from the right in landscape; dialogs and tab switches keep phone proportions instead of the full tablet width
+  - The rail stays in place while a sheet is open, so the page beside it does not jump
+
 ## 2.0.19 — 23.10.2026 (versionCode 31114)
 
 - 🎉 Tablets: A tablet edition (`Seanime-Mobile-Tablet-X.Y.Z.apk`) shows the phone app on tablets: the same screens, bottom bar, sheets and player instead of the desktop layout, in landscape and portrait; the bar and the menu keep phone proportions in the middle of the screen
