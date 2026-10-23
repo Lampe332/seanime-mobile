@@ -52,6 +52,7 @@ import { MangaLibraryView } from "../../manga/_screens/manga-library-view"
 import { ScheduleCalendar } from "../../schedule/_components/schedule-calendar"
 import { RecentReleases } from "../../schedule/_containers/recent-releases"
 import { UpcomingEpisodes } from "../../schedule/_containers/upcoming-episodes.tsx"
+import { Anime_LibraryCollectionStats } from "@/api/generated/types"
 import { MediaEntryCard } from "../media/_components/media-entry-card"
 import { MediaEntryCardSkeleton } from "../media/_components/media-entry-card-skeleton"
 import { MediaEntryPageLoadingDisplay } from "../media/_components/media-entry-page-loading-display"
@@ -59,6 +60,8 @@ import { MediaEntryPageLoadingDisplay } from "../media/_components/media-entry-p
 import { useTr } from "@/lib/app-language"
 import "@/components/shared/mobile-surface.css"
 import "./home-mobile.css"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 export const __home_currentView = atom<"base" | "detailed">("base")
 
@@ -506,6 +509,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
 
 
     if (item.type === "centered-title") {
+        if (IS_ANDROID_APP && !item.options?.text) return null
         return (
             <>
                 <h2 data-home-screen-centered-title={item.options?.text} className="text-center text-3xl lg:text-4xl font-bold py-4">
@@ -630,6 +634,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
     }
 
     if (item.type === "local-anime-library-stats") {
+        if (IS_ANDROID_APP) return <LocalLibraryStatsPhone stats={data?.stats} isNakamaLibrary={isNakamaLibrary} />
         return (
             <PageWrapper>
                 <div
@@ -726,13 +731,30 @@ function MangaLibrary(props: { libraryCollectionProps: HandleLibraryCollectionPr
     </>
 }
 
+/** Android: the local library's numbers as one group under a heading, in the app's surfaces. */
+function LocalLibraryStatsPhone({ stats, isNakamaLibrary }: { stats?: Anime_LibraryCollectionStats, isNakamaLibrary: boolean }) {
+    const tr = useTr()
+    const facts: [string, React.ReactNode][] = [
+        ...(isNakamaLibrary ? [] : [[tr("Size", "Größe"), stats?.totalSize] as [string, React.ReactNode]]),
+        [tr("Files", "Dateien"), stats?.totalFiles],
+        [tr("Entries", "Einträge"), stats?.totalEntries],
+        [tr("TV shows", "Serien"), stats?.totalShows],
+        [tr("Movies", "Filme"), stats?.totalMovies],
+        [tr("Specials", "Specials"), stats?.totalSpecials],
+    ]
+    return <section className="home-stats" data-detailed-library-view-stats-container>
+        <h2>{tr("Local library", "Lokale Bibliothek")}</h2>
+        <dl>{facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? "–"}</dd></div>)}</dl>
+    </section>
+}
+
 function LibraryUpcomingEpisodes(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem }) {
     const { libraryCollectionProps, item } = props
     const { hasEntries } = libraryCollectionProps
 
     if (!hasEntries) return null
 
-    return <PageWrapper className="space-y-0 px-4">
+    return <PageWrapper className="space-y-0 px-4" data-home-upcoming>
         <UpcomingEpisodes />
     </PageWrapper>
 }
@@ -886,6 +908,9 @@ function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
     const ref = React.useRef(null)
 
     const options = item.options as Record<string, any> | undefined
+    const tr = useTr()
+    // Android: a carousel without a name shows the top-rated list instead of an error
+    const name = options?.name || (IS_ANDROID_APP ? tr("Top rated anime", "Top bewertete Anime") : "")
 
     const isInView = useInView(ref, { once: true })
 
@@ -900,11 +925,11 @@ function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
         status: (!!options?.status?.length && Array.isArray(options.status)) ? options.status as any : ["RELEASING", "FINISHED"],
         isAdult: options?.isAdult || undefined,
         countryOfOrigin: options?.countryOfOrigin || undefined,
-    }, !!options?.name && isInView)
+    }, !!name && isInView)
 
     return (
-        <PageWrapper className="space-y-0 px-4" ref={ref}>
-            <h2>{options?.name || "Anime Carousel"}</h2>
+        <PageWrapper className="space-y-0 px-4" ref={ref} data-home-carousel>
+            <h2>{name || "Anime Carousel"}</h2>
             {(!isLoading && !data && isInView) ? <InvalidHomeItem item={item} /> : <Carousel
                 className="w-full max-w-full"
                 gap="xl"
@@ -912,10 +937,10 @@ function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
                     align: "start",
                     dragFree: true,
                 }}
-                autoScroll
+                autoScroll={!IS_ANDROID_APP}
             >
                 {/*<CarouselMasks />*/}
-                <CarouselDotButtons className="-top-2" />
+                {!IS_ANDROID_APP && <CarouselDotButtons className="-top-2" />}
                 <CarouselContent className="px-6">
                     {!!data ? data?.Page?.media?.filter(Boolean)?.sort((a, b) => b.meanScore! - a.meanScore!).map(media => {
                         return (
@@ -924,7 +949,7 @@ function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
                                 media={media}
                                 showLibraryBadge
                                 containerClassName="basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0"
-                                showTrailer
+                                showTrailer={!IS_ANDROID_APP}
                                 type="anime"
                             />
                         )
@@ -942,14 +967,21 @@ function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
                     </>}
                 </CarouselContent>
             </Carousel>}
-            {(!isLoading && !!data?.Page && !data.Page?.media?.length && isInView) &&
-                <PageWrapper className="rounded-xl bg-gray-900 border-2 border-dashed border-orange-400 p-4 !my-4">
-                    <p className="text-sm font-medium text-gray-400">
-                        Nothing was fetched, please update your options.
-                    </p>
-                </PageWrapper>}
+            {(!isLoading && !!data?.Page && !data.Page?.media?.length && isInView) && <NothingFetched />}
         </PageWrapper>
     )
+}
+
+function NothingFetched() {
+    const tr = useTr()
+    if (IS_ANDROID_APP) return <div className="home-state">
+        <p>{tr("Nothing matches this section's options. Change them in Customize Home.", "Nichts passt zu den Optionen dieses Bereichs. Ändere sie unter „Home anpassen“.")}</p>
+    </div>
+    return <PageWrapper className="rounded-xl bg-gray-900 border-2 border-dashed border-orange-400 p-4 !my-4">
+        <p className="text-sm font-medium text-gray-400">
+            Nothing was fetched, please update your options.
+        </p>
+    </PageWrapper>
 }
 
 function MyLists(props: { item: Models_HomeItem }) {
@@ -1013,6 +1045,9 @@ function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
     const ref = React.useRef(null)
 
     const options = item.options as Record<string, any> | undefined
+    const tr = useTr()
+    // Android: a carousel without a name shows the top-rated list instead of an error
+    const name = options?.name || (IS_ANDROID_APP ? tr("Top rated manga", "Top bewertete Manga") : "")
 
     const isInView = useInView(ref, { once: true })
 
@@ -1026,13 +1061,13 @@ function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
         status: (!!options?.status?.length && Array.isArray(options.status)) ? options.status as any : ["RELEASING", "FINISHED"],
         isAdult: options?.isAdult || undefined,
         countryOfOrigin: options?.countryOfOrigin || undefined,
-    }, !!options?.name && isInView)
+    }, !!name && isInView)
 
     // if (!isLoading && !data && !isInView) return <InvalidHomeItem item={item} />
 
     return (
-        <PageWrapper className="space-y-0 px-4" ref={ref}>
-            <h2>{options?.name || "Manga Carousel"}</h2>
+        <PageWrapper className="space-y-0 px-4" ref={ref} data-home-carousel>
+            <h2>{name || "Manga Carousel"}</h2>
             {(!isLoading && !data && isInView) ? <InvalidHomeItem item={item} /> : <Carousel
                 className="w-full max-w-full"
                 gap="xl"
@@ -1040,10 +1075,10 @@ function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
                     align: "start",
                     dragFree: true,
                 }}
-                autoScroll
+                autoScroll={!IS_ANDROID_APP}
             >
                 {/*<CarouselMasks />*/}
-                <CarouselDotButtons className="-top-2" />
+                {!IS_ANDROID_APP && <CarouselDotButtons className="-top-2" />}
                 <CarouselContent className="px-6">
                     {!!data ? data?.Page?.media?.filter(Boolean)?.sort((a, b) => b.meanScore! - a.meanScore!).map(media => {
                         return (
@@ -1068,20 +1103,20 @@ function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
                     </>}
                 </CarouselContent>
             </Carousel>}
-            {(!isLoading && !!data?.Page && !data.Page?.media?.length && isInView) &&
-                <PageWrapper className="rounded-xl bg-gray-900 border-2 border-dashed border-orange-400 p-4 !my-4">
-                    <p className="text-sm font-medium text-gray-400">
-                        Nothing was fetched, please update your options.
-                    </p>
-                </PageWrapper>}
+            {(!isLoading && !!data?.Page && !data.Page?.media?.length && isInView) && <NothingFetched />}
         </PageWrapper>
     )
 }
 
 function InvalidHomeItem(props: { item: Models_HomeItem }) {
     const { item } = props
+    const tr = useTr()
 
     const schema = HOME_ITEMS[item.type]
+
+    if (IS_ANDROID_APP) return <div className="home-state">
+        <p>{tr("This section needs its options. Set them in Customize Home.", "Dieser Bereich braucht seine Optionen. Lege sie unter „Home anpassen“ fest.")}</p>
+    </div>
 
     return (
         <PageWrapper className="rounded-xl bg-gray-900 border-2 border-dashed border-orange-400 p-4 !my-4">

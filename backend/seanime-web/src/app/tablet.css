@@ -98,6 +98,12 @@ html[data-edition="tablet"] body .UI-Modal__content:not(.mobile-workspace) { max
     html[data-edition="tablet"] :is(.ps-grid, .mml-grid, .mdl-grid) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.75rem), 1fr)); gap: 1.25rem 1rem; }
     html[data-edition="tablet"] .ps-row > * { flex-basis: 9.5rem; }
 
+    /* Grids of covers outside Home (relations, search, lists) fill the width with tablet-sized covers instead of two giant ones */
+    html[data-edition="tablet"] :is([data-media-card-grid], [data-media-card-lazy-grid]) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.75rem), 1fr)) !important; }
+    /* Home: upcoming episodes as cards side by side, the featured title at a tablet ratio */
+    html[data-edition="tablet"] [data-home-upcoming] .UI-Carousel__item { flex-basis: min(100%, 22rem) !important; }
+    html[data-edition="tablet"] [data-home-mobile="true"] .home-discover-card { aspect-ratio: 21 / 9; max-height: 22rem; }
+
     /* ── Anime and manga pages: a bigger cover and title ── */
     html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-cover { width: 8.5rem; height: auto; aspect-ratio: 23 / 33; }
     html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-cover img { width: 100%; height: 100%; object-fit: cover; }
@@ -138,6 +144,8 @@ html[data-edition="tablet"] .pst-pane-title { font-size: 1.375rem; line-height: 
 
 /* ── Calendar: the days side by side ── */
 @media (min-width: 720px) {
+    html[data-edition="tablet"] [data-home-mobile="true"] .home-stats dl { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    html[data-edition="tablet"] [data-home-mobile="true"] .home-stats dl > div:last-child { grid-column: auto; }
     html[data-edition="tablet"] .msc-section { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--tablet-gutter); align-items: start; }
     html[data-edition="tablet"] .msc-section > :not([data-schedule-day]) { grid-column: 1 / -1; }
 }

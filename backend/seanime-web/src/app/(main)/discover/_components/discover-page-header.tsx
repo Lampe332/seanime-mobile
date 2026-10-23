@@ -443,10 +443,18 @@ export function DiscoverPageHeader({ playTrailer, homeMobile = false }: { playTr
         setTrailerLoaded(false)
     }
 
+    // Android Home: the trending title as a picture card that opens its preview
     if (homeMobile) return <section className="home-discover-feature" aria-label={tr("Featured", "Im Fokus")}>
-        {randomTrending ? <><h2>{tr("Featured", "Im Fokus")}</h2><p>{randomTrending.title?.userPreferred}</p>
-            <Button intent="primary-subtle" onClick={() => setPreviewModalMediaId(randomTrending.id, pageType === "manga" ? "manga" : "anime")}>{tr("Preview", "Vorschau")}</Button>
-        </> : <Skeleton className="h-24 rounded-xl" />}
+        {randomTrending ? <button type="button" className="home-discover-card"
+            onClick={() => setPreviewModalMediaId(randomTrending.id, pageType === "manga" ? "manga" : "anime")}>
+            {!!(randomTrending.bannerImage || randomTrending.coverImage?.extraLarge) &&
+                <img src={randomTrending.bannerImage || randomTrending.coverImage?.extraLarge} alt="" loading="lazy" decoding="async" />}
+            <span className="home-discover-card-text">
+                <span className="home-discover-card-meta">{tr("Trending now", "Gerade im Trend")}</span>
+                <strong>{randomTrending.title?.userPreferred}</strong>
+                <span className="home-discover-card-action">{tr("Preview", "Vorschau")}</span>
+            </span>
+        </button> : <Skeleton className="h-48 rounded-xl" />}
     </section>
 
     if (!randomTrending) return <div>

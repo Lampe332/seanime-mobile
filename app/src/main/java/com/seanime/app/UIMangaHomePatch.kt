@@ -34,11 +34,12 @@ object UIMangaHomePatch {
                 '[data-manga-library-view-collection-lists-container="true"] [data-media-card-grid="true"]::-webkit-scrollbar {',
                 '    display: none !important;',
                 '}',
+                // the card size of the other Home rows: 38vw on a phone, never wider than 10rem (a tablet's 38vw is a giant cover)
                 '[data-manga-library-view-collection-lists-container="true"] [data-media-card-grid="true"] > div {',
-                '    flex: 0 0 38vw !important;',
-                '    max-width: 38vw !important;',
-                '    min-width: 38vw !important;',
-                '    width: 38vw !important;',
+                '    flex: 0 0 min(38vw, 10rem) !important;',
+                '    max-width: min(38vw, 10rem) !important;',
+                '    min-width: min(38vw, 10rem) !important;',
+                '    width: min(38vw, 10rem) !important;',
                 '    scroll-snap-align: start !important;',
                 '}'
             ].join('\n');

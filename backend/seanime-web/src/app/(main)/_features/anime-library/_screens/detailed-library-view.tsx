@@ -32,6 +32,7 @@ import { TextInput } from "@/components/ui/text-input"
 import { useDebounce } from "@/hooks/use-debounce"
 import { ANIME_COLLECTION_SORTING_OPTIONS } from "@/lib/helpers/filtering"
 import { getLibraryCollectionTitle } from "@/lib/server/utils"
+import { useTr } from "@/lib/app-language"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { getYear } from "date-fns"
 import { useSetAtom } from "jotai"
@@ -44,6 +45,8 @@ import { FiSearch } from "react-icons/fi"
 import { LuCalendar, LuLeaf, LuTags } from "react-icons/lu"
 import { MdPersonalVideo } from "react-icons/md"
 import { RiSignalTowerLine } from "react-icons/ri"
+
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 type LibraryViewProps = {
     collectionList: Anime_LibraryCollectionList[]
@@ -92,6 +95,9 @@ export function DetailedLibraryView(props: LibraryViewProps) {
     if (isLoading) return <LoadingSpinner />
 
     if (!hasEntries) return null
+
+    // Android Home: the local anime as swipeable rows under their list names, without the library page's filters
+    if (isHomeItem && IS_ANDROID_APP) return <LocalLibraryHomePhone lists={libraryCollectionList} streamingMediaIds={streamingMediaIds} />
 
     return (
         <PageWrapper className="px-4 space-y-8 relative z-[4]" data-detailed-library-view-container>
@@ -165,6 +171,23 @@ export function DetailedLibraryView(props: LibraryViewProps) {
             {selectedList === "all" && <MergedLibraryCollectionList entries={libraryEntries} streamingMediaIds={streamingMediaIds} type={type} />}
         </PageWrapper>
     )
+}
+
+function LocalLibraryHomePhone({ lists, streamingMediaIds }: { lists: Anime_LibraryCollectionList[], streamingMediaIds: number[] }) {
+    const tr = useTr()
+    const filled = lists.filter(list => !!list.entries?.length)
+    if (!filled.length) return <section className="home-state" data-detailed-library-view-container>
+        <h2>{tr("Anime on this device", "Anime auf diesem Gerät")}</h2>
+        <p>{tr("Nothing here yet. Episodes you download or keep in a library folder show up here.", "Noch nichts da. Folgen, die du lädst oder in einem Bibliotheksordner hast, erscheinen hier.")}</p>
+    </section>
+    return <section className="home-local-library" data-detailed-library-view-container>
+        {filled.map(list => <React.Fragment key={list.type}>
+            <h2>{getLibraryCollectionTitle(list.type)} <span>{tr("on this device", "auf diesem Gerät")}</span></h2>
+            <MediaCardLazyGrid itemCount={list.entries?.length || 0}>
+                {list.entries?.map(entry => <LibraryCollectionEntryItem key={entry.mediaId} entry={entry} streamingMediaIds={streamingMediaIds} type="grid" />)}
+            </MediaCardLazyGrid>
+        </React.Fragment>)}
+    </section>
 }
 
 const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, type }: {

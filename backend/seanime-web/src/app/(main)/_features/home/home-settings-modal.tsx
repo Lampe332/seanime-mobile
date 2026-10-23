@@ -312,7 +312,10 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, mobileHome = 
                                 return <li className="home-customize-row" data-home-mobile-item={item.id} data-home-item-type={item.type} key={item.id}>
                                     <div className="home-customize-main">
                                         <span className="home-customize-icon" aria-hidden>{React.createElement(HOME_ITEM_ICONS[item.type as keyof typeof HOME_ITEM_ICONS] || LuLayoutPanelLeft)}</span>
-                                        <span className="home-customize-name">{name}{!!item.options?.name && <small>{item.options.name}</small>}</span>
+                                        <span className="home-customize-name">{name}{!!item.options?.name && <small>{item.options.name}</small>}
+                                            {item.type === "centered-title" && !item.options?.text && <small>{tr("Add its text in Options", "Text unter Optionen eintragen")}</small>}
+                                            {(item.type === "discover-header" || item.type === "anime-continue-watching-header") && index > 0 &&
+                                                <small>{tr("Shows only as the first section", "Erscheint nur ganz oben")}</small>}</span>
                                         <HomeSectionInfo type={item.type} name={name} />
                                         <HomeSectionSwitch checked name={name} disabled={isUpdatingHomeItems} onChange={() => handleRemoveItem(item.id)} />
                                     </div>
