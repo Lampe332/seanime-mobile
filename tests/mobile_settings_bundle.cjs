@@ -16,6 +16,6 @@ const desktop = /^(@\/app\/\(main\)\/settings\/|\.\/)_(containers|components)\/(
 build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_settings_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
 if(a.importer===stub)return;
 const importer=a.importer.replace(/\\/g,'/');
-if(stubbed.includes(a.path)||(importer.includes('/app/(main)/settings/')&&scoped.includes(a.path))
+if(stubbed.includes(a.path)||(a.path==='../client/requests'&&importer.includes('/src/api/hooks/'))||(importer.includes('/app/(main)/settings/')&&scoped.includes(a.path))
     ||(importer.endsWith('/settings/page.tsx')&&desktop.test(a.path)))return {path:stub};
 })}}]}).catch(e=>{console.error(e);process.exit(1)});

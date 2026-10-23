@@ -32,7 +32,7 @@ const SECTIONS: { id: SettingsSectionId, icon: IconType, title: [string, string]
     { id: "onlinestream", icon: LuGlobe, title: ["Online streaming", "Online-Streaming"], summary: ["Streaming and your anime lists", "Streaming und deine Anime-Listen"] },
     { id: "torrents", icon: LuMagnet, title: ["Torrents & debrid", "Torrents & Debrid"], summary: ["Providers, torrent streaming, downloads, debrid", "Anbieter, Torrent-Streaming, Downloads, Debrid"] },
     { id: "manga", icon: LuBookOpen, title: ["Manga", "Manga"], summary: ["Reading progress, default source, local folder", "Lesefortschritt, Standardquelle, lokaler Ordner"] },
-    { id: "nakama", icon: LuUsers, title: ["Nakama", "Nakama"], summary: ["Connect to a Nakama host", "Mit einem Nakama-Host verbinden"] },
+    { id: "nakama", icon: LuUsers, title: ["Nakama", "Nakama"], summary: ["Stream from your PC or home server", "Vom PC oder Home-Server streamen"] },
     { id: "logs", icon: LuBookKey, title: ["Logs & cache", "Logs & Cache"], summary: ["Server logs, cache, recording an issue", "Server-Logs, Cache, Fehler aufzeichnen"] },
     { id: "about", icon: LuInfo, title: ["About", "Über"], summary: ["Version and updates", "Version und Updates"] },
 ]

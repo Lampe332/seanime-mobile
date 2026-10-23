@@ -1,4 +1,6 @@
 import { useListMangaProviderExtensions } from "@/api/hooks/extensions.hooks"
+import { useNakamaReconnectToHost } from "@/api/hooks/nakama.hooks"
+import { useNakamaStatus } from "@/app/(main)/_features/nakama/nakama-manager"
 import { PhoneNotice } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { useStoredMangaProviders } from "@/app/(main)/manga/_lib/handle-manga-selected-provider"
 import {
@@ -93,11 +95,13 @@ export function SettingsNakamaSection({ t }: { t: Translate }) {
     const url = useSettingValue("nakama.remoteServerURL", "")
     const passcode = useSettingValue("nakama.remoteServerPassword", "")
     const isHost = useSettingValue("nakama.isHost", false)
+    const enabled = useSettingValue("nakama.enabled", false)
     const notSet = t("Not set", "Nicht gesetzt")
 
     return <>
         <SettingsGroup id="nakama" title={t("Nakama", "Nakama")}
-            note={t("Watch together and use another Seanime's library.", "Gemeinsam schauen und die Bibliothek eines anderen Seanime nutzen.")}>
+            note={t("Stream the anime library of Seanime on your PC or home server, or watch together.",
+                "Die Anime-Bibliothek von Seanime auf deinem PC oder Home-Server streamen oder gemeinsam schauen.")}>
             <SettingSwitch path="nakama.enabled" label={t("Nakama", "Nakama")} />
             <TextSettingRow t={t} label={t("Name", "Name")} value={username} empty={t("Random", "Zufällig")} placeholder={t("Your name", "Dein Name")}
                 note={t("How others see you. Empty gives a random ID.", "So sehen dich andere. Leer ergibt eine zufällige ID.")}
@@ -116,7 +120,26 @@ export function SettingsNakamaSection({ t }: { t: Translate }) {
             <TextSettingRow t={t} label={t("Host passcode", "Host-Passwort")} value={passcode} empty={notSet} type="password" display={() => "••••••"}
                 onApply={value => void save("nakama.remoteServerPassword", value)} data-setting="nakama.remoteServerPassword" />
             <SettingSwitch path="nakama.includeNakamaAnimeLibrary" disabled={isHost} label={t("Use the host's anime library", "Anime-Bibliothek des Hosts nutzen")}
-                note={t("When the host shares it, it becomes your library.", "Wenn der Host sie teilt, wird sie zu deiner Bibliothek.")} />
+                note={t("When the host shares it, its anime join your library. Episodes on this phone stay.",
+                    "Wenn der Host sie teilt, kommen seine Anime zu deiner Bibliothek dazu. Folgen auf diesem Handy bleiben.")} />
+            {enabled && !!url && !isHost && <NakamaConnectionRow t={t} />}
         </SettingsGroup>
     </>
+}
+
+/** Whether the phone reached the host; a tap connects again, for example after the host was switched off. */
+function NakamaConnectionRow({ t }: { t: Translate }) {
+    const status = useNakamaStatus()
+    const { mutate: reconnect, isPending } = useNakamaReconnectToHost()
+    const connected = !!status?.isConnectedToHost
+    const host = status?.hostConnectionStatus?.username
+    // The state is the row's title: a value beside a two-line note would be cut off
+    const label = isPending ? t("Connecting…", "Verbinde …")
+        : connected ? host ? t(`Connected to ${host}`, `Verbunden mit ${host}`) : t("Connected", "Verbunden")
+        : t("Not connected", "Nicht verbunden")
+    return <LinkRow label={label} disabled={isPending} onClick={() => reconnect({})}
+        note={connected ? t("Tap to connect again.", "Tippe, um neu zu verbinden.")
+            : t("Check the address, the passcode and that the host is running. Tap to try again.",
+                "Prüfe Adresse, Passwort und ob der Host läuft. Tippe für einen neuen Versuch.")}
+        data-nakama-connection={connected ? "connected" : "offline"} />
 }

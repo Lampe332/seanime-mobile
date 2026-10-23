@@ -26,7 +26,9 @@ import (
 func (h *Handler) getAnimeEntry(c echo.Context, lfs []*anime.LocalFile, mId int) (*anime.Entry, error) {
 	// Get the host anime library files
 	nakamaLfs, customSourceMap, hydratedFromNakama := h.App.NakamaManager.GetHostAnimeLibraryFiles(c.Request().Context(), mId)
-	if hydratedFromNakama && nakamaLfs != nil {
+	// An anime the host does not have keeps this device's own files, so episodes downloaded here stay playable
+	hydratedFromNakama = hydratedFromNakama && len(nakamaLfs) > 0
+	if hydratedFromNakama {
 		lfs = nakamaLfs
 		// for each local file, if it's matched to a custom source, convert the ID using the local extension identifier
 		// this is needed because the custom source media ID returned by the host will not match the local one

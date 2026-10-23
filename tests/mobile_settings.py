@@ -301,6 +301,18 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
               and 's3cret' not in page_text(page) and page.locator('[data-setting="nakama.remoteServerPassword"] .pst-row-value').inner_text()=='••••••'
               and page.locator('[data-setting="nakama.remoteServerPassword"] input').count()==0)
         check('No host mode on a phone that never hosted',page.locator(SWITCH%'nakama.isHost').count()==0)
+        check('No connection row while Nakama is off',page.locator('[data-nakama-connection]').count()==0)
+        page.locator(SWITCH%'nakama.enabled').click();page.wait_for_timeout(300)
+        page.locator('[data-setting="nakama.remoteServerURL"]').click();page.locator('[data-text-input]').fill('http://192.168.1.20:43211');page.locator('[data-text-apply]').click();page.wait_for_timeout(400)
+        conn=page.locator('[data-nakama-connection]')
+        check('Nakama on with a host: the connection says not connected and how to fix it',conn.get_attribute('data-nakama-connection')=='offline'
+              and 'Not connected' in conn.inner_text() and 'passcode' in conn.inner_text())
+        page.evaluate("setNakamaStatus({isHost:false,isConnectedToHost:true,connectionMode:'direct',hostConnectionStatus:{connected:true,authenticated:true,url:'',peerId:'p1',username:'HomeServer',connectionMode:'direct'}})")
+        page.wait_for_timeout(200)
+        check('Connected to the host by its name',conn.get_attribute('data-nakama-connection')=='connected' and 'Connected to HomeServer' in conn.inner_text())
+        conn.click();page.wait_for_timeout(400)
+        check('A tap connects again',count(page,'POST','/api/v1/nakama/reconnect')==1)
+        page.evaluate("setNakamaStatus(null)")
         back(page);open_section(page,'about')
         check('About: versions, update check switch (on = checking)',page.evaluate(TEXT,'[data-settings-versions] dd')==['1.9.37','3.10.4 Hakumei']
               and checked(page,SWITCH%'library.disableUpdateCheck')=='true')

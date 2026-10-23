@@ -36,6 +36,8 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 	originalAnimeCollection := animeCollection
 
 	var lfs []*anime.LocalFile
+	// Anime whose files come from the Nakama host
+	hostMediaIds := make(map[int]struct{})
 	// If using Nakama's library, fetch it
 	nakamaLibrary, fromNakama := h.App.NakamaManager.GetHostAnimeLibrary(c.Request().Context())
 	if fromNakama {
@@ -158,6 +160,22 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 			}
 		}
 
+		// The host's library joins this device's own: anime the host does not have keep the files downloaded here
+		for _, lf := range lfs {
+			if lf.MediaId > 0 {
+				hostMediaIds[lf.MediaId] = struct{}{}
+			}
+		}
+		ownLfs, _, err := db_bridge.GetLocalFiles(h.App.Database)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
+		for _, lf := range ownLfs {
+			if _, fromHost := hostMediaIds[lf.MediaId]; !fromHost || lf.MediaId == 0 {
+				lfs = append(lfs, lf)
+			}
+		}
+
 	} else {
 		lfs, _, err = db_bridge.GetLocalFiles(h.App.Database)
 		if err != nil {
@@ -205,11 +223,19 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 	// Add and remove necessary metadata when hydrating from Nakama
 	if fromNakama {
 		for _, ep := range libraryCollection.ContinueWatchingList {
-			ep.IsNakamaEpisode = true
+			if ep.BaseAnime == nil {
+				continue
+			}
+			if _, fromHost := hostMediaIds[ep.BaseAnime.ID]; fromHost {
+				ep.IsNakamaEpisode = true
+			}
 		}
 		for _, list := range libraryCollection.Lists {
 			for _, entry := range list.Entries {
 				if entry.EntryLibraryData == nil {
+					continue
+				}
+				if _, fromHost := hostMediaIds[entry.MediaId]; !fromHost {
 					continue
 				}
 				entry.NakamaEntryLibraryData = &anime.NakamaEntryLibraryData{

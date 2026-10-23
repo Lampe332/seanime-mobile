@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { getDefaultStore } from "jotai"
 import Page from "../backend/seanime-web/src/app/(main)/settings/page"
 import { serverStatusAtom } from "../backend/seanime-web/src/app/(main)/_atoms/server-status.atoms"
+import { nakamaStatusAtom } from "../backend/seanime-web/src/app/(main)/_features/nakama/nakama-manager"
 import "../backend/seanime-web/src/components/shared/mobile-surface.css"
 
 // The real /settings page with the server status the app's layout loads and react-query's defaults (no retries, no
@@ -12,4 +13,6 @@ const w = window as any
 getDefaultStore().set(serverStatusAtom, w.server.status)
 const client = new QueryClient({ defaultOptions: { queries: { retry: 0, refetchOnWindowFocus: false } } })
 w.queryClient = client
+// What the server would push over the websocket about the Nakama host
+w.setNakamaStatus = (status: unknown) => getDefaultStore().set(nakamaStatusAtom, status as any)
 createRoot(document.getElementById("root")!).render(<QueryClientProvider client={client}><Page /></QueryClientProvider>)
