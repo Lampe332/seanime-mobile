@@ -6,6 +6,8 @@ const phoneWidthQueries = {
     postcssPlugin: "seanime-phone-width-queries",
     AtRule: {
         media(atRule) {
+            // tablet.css lays the phone screens out by the tablet's real width
+            if (/tablet\.css$/.test(atRule.source?.input.file ?? "")) return
             atRule.params = atRule.params.replace(/\((min|max)-width:\s*([\d.]+)(px|rem|em)\)/g, (query, bound, value, unit) => {
                 const px = Number(value) * (unit === "px" ? 1 : 16)
                 if (px <= PHONE_LAYOUT_WIDTH) return query

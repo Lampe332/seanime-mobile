@@ -12,7 +12,7 @@ import { SettingsPlaybackSection } from "@/app/(main)/settings/_screens/settings
 import { SettingsTorrentsSection } from "@/app/(main)/settings/_screens/settings-phone-torrents"
 import { SettingsUISection } from "@/app/(main)/settings/_screens/settings-phone-ui"
 import { getAndroidAppVersion } from "@/lib/android-app"
-import { IS_TABLET_EDITION } from "@/lib/edition"
+import { useTabletTwoPanes } from "@/lib/edition"
 import { Translate, useTr } from "@/lib/app-language"
 import { useRouter, useSearchParams } from "@/lib/navigation"
 import { useQueryClient } from "@tanstack/react-query"
@@ -115,8 +115,9 @@ export function SettingsPhone() {
         window.scrollTo({ top: 0 })
     }
     const close = React.useCallback(() => setSection(null), [])
-    // The tablet edition shows the list and the open area side by side, so Back leaves the screen
-    usePhoneBack(!IS_TABLET_EDITION && section !== null && sheets === 0, close)
+    // A tablet with room for two panes shows the list and the open area side by side, so Back leaves the screen
+    const twoPanes = useTabletTwoPanes()
+    usePhoneBack(!twoPanes && section !== null && sheets === 0, close)
 
     // Back on the list puts the focus (and the scroll) on the area that was open
     React.useEffect(() => {
@@ -125,12 +126,12 @@ export function SettingsPhone() {
         returnTo.current = null
     }, [section])
 
-    const shown = section ?? (IS_TABLET_EDITION ? SECTIONS[0].id : null)
+    const shown = section ?? (twoPanes ? SECTIONS[0].id : null)
     const current = SECTIONS.find(item => item.id === shown)
 
     const nav = <nav className="pst-nav" aria-label={t("Settings areas", "Einstellungsbereiche")} data-settings-nav>
         {SECTIONS.map(item => <button key={item.id} type="button" className="pst-nav-row" data-settings-open={item.id}
-            aria-current={IS_TABLET_EDITION && item.id === shown ? "page" : undefined}
+            aria-current={twoPanes && item.id === shown ? "page" : undefined}
             ref={el => { if (el) rows.current.set(item.id, el); else rows.current.delete(item.id) }} onClick={() => open(item.id)}>
             <item.icon className="pst-nav-icon" aria-hidden />
             <span className="pst-row-text">
@@ -145,7 +146,7 @@ export function SettingsPhone() {
         <PhoneScreen screen="settings" data-settings-section={shown ?? "home"}>
             {!status?.settings
                 ? <PhoneLoading label={t("Loading settings", "Einstellungen werden geladen")} layout={["head", "row", "row", "row", "row"]} />
-                : IS_TABLET_EDITION && current
+                : twoPanes && current
                     ? <>
                         <PhoneHeader title={t("Settings", "Einstellungen")} facts={versionLine(status.version)} />
                         <div className="pst-panes" data-settings-panes>
