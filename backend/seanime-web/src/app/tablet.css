@@ -1,0 +1,119 @@
+/* Tablet edition (SEA_PUBLIC_EDITION=tablet sets html[data-edition="tablet"]): the phone screens laid out for a tablet.
+   Every rule is scoped to that attribute, so the phone edition never matches one. No width media queries here: the
+   tablet build resolves them as on a phone (postcss.config.cjs); orientation queries tell landscape from portrait. */
+
+html[data-edition="tablet"] { --tablet-rail: 5.5rem; --tablet-gutter: 1.5rem; }
+
+/* ── Shell: the phone's bottom bar (UIBottomNav.kt) becomes a navigation rail on the left ── */
+html[data-edition="tablet"] #__seanime_bottom_nav {
+    top: 0; right: auto; bottom: 0; left: 0; width: var(--tablet-rail); height: auto;
+    flex-direction: column; justify-content: flex-start; align-items: center; gap: .25rem;
+    padding: calc(env(safe-area-inset-top, 0px) + 4.75rem) 0 calc(env(safe-area-inset-bottom, 0px) + 1rem);
+    border-top: 0; border-right: 1px solid rgba(255, 255, 255, .07);
+    background: #09090e; backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+/* The app's mark heads the rail */
+html[data-edition="tablet"] #__seanime_bottom_nav::before {
+    content: ""; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 1.25rem); left: calc(50% - 1.25rem);
+    width: 2.5rem; height: 2.5rem; border-radius: .75rem; background: url("../../public/seanime-logo.png") center / cover no-repeat;
+}
+html[data-edition="tablet"] #__seanime_bottom_nav :is(a, button) { flex: none; width: 4.5rem; height: 4rem; border-radius: 1rem; }
+
+/* Content sits beside the rail while the rail shows; nothing waits for a bottom bar any more */
+html[data-edition="tablet"] body:has(#__seanime_bottom_nav.visible) #root { padding-left: var(--tablet-rail); }
+html[data-edition="tablet"] [data-main-layout-content="true"] { padding-bottom: 2rem !important; }
+
+/* Floating things: the menu opens beside the rail, statuses and long-press sheets float at the bottom of the content */
+html[data-edition="tablet"] #android-floating-menu {
+    left: calc(var(--tablet-rail) + .75rem) !important; right: auto !important; bottom: 1rem !important;
+    width: 22rem !important; max-height: calc(100dvh - 2rem); transform-origin: 0 100%;
+}
+html[data-edition="tablet"] body:has(#__seanime_bottom_nav.visible) .ps-float,
+html[data-edition="tablet"] body:has(#__seanime_bottom_nav.visible) .issue-phone-option { left: calc(var(--tablet-rail) + 1rem); }
+html[data-edition="tablet"] .ps-float { bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem); }
+html[data-edition="tablet"] .issue-phone-option { bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem); }
+html[data-edition="tablet"] [data-radix-popper-content-wrapper]:has(> [data-phone-menu]) {
+    inset: auto 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem) calc(var(--tablet-rail) + 1rem) !important;
+}
+
+/* ── Controls: a segmented control is as wide as its options, not the whole tablet ── */
+html[data-edition="tablet"] .ps-segment { width: min(100%, 26rem); justify-self: start; }
+html[data-edition="tablet"] .msc-tabs { width: min(100%, 26rem); justify-self: start; }
+
+/* ── Calendar: the days side by side ── */
+html[data-edition="tablet"] .msc-section { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--tablet-gutter); align-items: start; }
+html[data-edition="tablet"] .msc-section > :not([data-schedule-day]) { grid-column: 1 / -1; }
+
+/* ── Anime and manga pages: a bigger cover and title; in landscape the title on the left, episodes or chapters on the right ── */
+html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-cover { width: 8.5rem; height: auto; aspect-ratio: 23 / 33; }
+html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-cover img { width: 100%; height: 100%; object-fit: cover; }
+html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-title h1 { font-size: 1.75rem; }
+html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-episodes-link { justify-self: start; min-width: 18rem; }
+
+@media (orientation: landscape) {
+    html[data-edition="tablet"] [data-mobile-anime] { display: grid; grid-template-columns: 20rem minmax(0, 1fr); column-gap: 2.5rem; padding: 1rem var(--tablet-gutter) 0; }
+    html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-identity { flex-direction: column; align-items: flex-start; align-self: start; margin-bottom: 1rem; }
+    html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-cover { width: 11rem; }
+    html[data-edition="tablet"] [data-mobile-anime] .mobile-anime-episodes-link { display: none; }
+
+    /* Anime: the header's parts join the page's grid: identity, progress, About and actions down the left column; the view
+       tabs head the right column and the episodes follow right under them (they span into the flexible last row). */
+    html[data-edition="tablet"] [data-anime-entry-page][data-mobile-anime] { grid-template-rows: repeat(5, auto) 1fr; }
+    html[data-edition="tablet"] [data-anime-entry-page] :is(.mobile-anime-header, .mobile-anime-header-inner, [data-anime-meta-section-after-header]) { display: contents; }
+    html[data-edition="tablet"] [data-anime-entry-page] .mobile-anime-identity { grid-column: 1; grid-row: 1 / 3; }
+    html[data-edition="tablet"] [data-anime-entry-page] .mobile-anime-progress { grid-column: 1; grid-row: 3; }
+    html[data-edition="tablet"] [data-anime-entry-page] .mobile-anime-details { grid-column: 1; grid-row: 4; }
+    html[data-edition="tablet"] [data-anime-entry-page] [data-anime-meta-section-buttons-row] { grid-column: 1; grid-row: 5; align-self: start; margin-top: 1rem; }
+    html[data-edition="tablet"] [data-anime-entry-page] [data-anime-entry-page-tabs-container] { grid-column: 2; grid-row: 1; margin: 0; }
+    html[data-edition="tablet"] [data-anime-entry-page] > [data-anime-entry-page-content-container] { grid-column: 2; grid-row: 2 / -1; min-width: 0; padding: 1rem 0 0; }
+
+    /* Manga: its tabs live with the chapters, so the whole header is the left column and stays in view while the chapters scroll */
+    html[data-edition="tablet"] [data-manga-entry-page] > .mobile-anime-header { position: sticky; top: 1rem; align-self: start; padding: 0; }
+    html[data-edition="tablet"] [data-manga-entry-page] > [data-manga-entry-page-content-container] { min-width: 0; padding: 0; }
+}
+
+html[data-edition="tablet"] .pl-switch > .ps-segment { flex: 0 1 26rem; }
+html[data-edition="tablet"] .mdl-tabs { width: min(100%, 26rem); justify-self: start; }
+
+/* ── Anime page: characters, relations and recommendations across the whole page, under the anime and its episodes ── */
+html[data-edition="tablet"] .tablet-entry-more { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding: 1.5rem var(--tablet-gutter) 2rem; }
+@media (orientation: landscape) {
+    html[data-edition="tablet"] [data-mobile-anime] > .tablet-entry-more { grid-column: 1 / -1; padding-inline: 0; }
+}
+
+/* ── Settings: the areas on the left, the open area beside them (settings-phone.tsx renders both on the tablet) ── */
+html[data-edition="tablet"] .pst-panes { display: grid; grid-template-columns: 19rem minmax(0, 1fr); gap: 2rem; align-items: start; }
+html[data-edition="tablet"] .pst-panes > .pst-nav { position: sticky; top: 1rem; }
+html[data-edition="tablet"] .pst-panes .pst-nav-row { min-height: 3.75rem; }
+html[data-edition="tablet"] .pst-panes .pst-nav-row > svg:last-child { display: none; }
+html[data-edition="tablet"] .pst-panes .pst-nav-row[aria-current="page"] { background: var(--sm-surface-control); }
+html[data-edition="tablet"] .pst-panes .pst-nav-row[aria-current="page"] .pst-row-text > span { font-weight: 650; }
+html[data-edition="tablet"] .pst-pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; min-width: 0; }
+html[data-edition="tablet"] .pst-pane-title { font-size: 1.375rem; line-height: 1.25; font-weight: 700; letter-spacing: -.02em; color: var(--sm-text); }
+@media (orientation: portrait) {
+    html[data-edition="tablet"] .pst-panes { grid-template-columns: 14rem minmax(0, 1fr); gap: 1.25rem; }
+    html[data-edition="tablet"] .pst-panes .pst-row-text small { display: none; }
+}
+
+/* ── Extensions, landscape: the kinds of extension side by side ── */
+html[data-edition="tablet"] [data-mobile-extensions="true"] { max-width: none; padding-bottom: 2rem; }
+@media (orientation: landscape) {
+    html[data-edition="tablet"] .mex-panel:has(> .mex-section + .mex-section) { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--tablet-gutter); align-items: start; }
+    html[data-edition="tablet"] .mex-panel:has(> .mex-section + .mex-section) > :not(.mex-section) { grid-column: 1 / -1; }
+}
+
+/* ── Sheets and dialogs cover the page and the rail; the rail stays in place underneath (UIBottomNav.kt keeps it shown) ── */
+html[data-edition="tablet"] body:has(.UI-Modal__overlay[data-state="open"]) #__seanime_bottom_nav { z-index: 40; }
+
+/* No dialog is wider than a phone's sheet would be on a tablet (the native shell sets them to the full width) */
+html[data-edition="tablet"] body .UI-Modal__content:not(.mobile-workspace) { max-width: min(32rem, calc(100vw - 2rem)) !important; }
+
+/* In landscape the phone's bottom sheets open as a side sheet on the right, the full height of the screen */
+@media (orientation: landscape) {
+    html[data-edition="tablet"] body :is(.ps-sheet, .mex-sheet, .mml-sheet, .msc-sheet, .mobile-download-sheet, .mobile-match-sheet, .mobile-cache-sheet, .home-filter-sheet, .home-mobile-settings, .reader-settings-sheet, .anilist-login-sheet).UI-Modal__content {
+        justify-self: end; align-self: stretch; align-content: start; margin: 0 !important;
+        width: min(30rem, 100%) !important; max-width: 30rem !important; height: 100dvh; max-height: 100dvh !important; overflow-y: auto !important;
+        padding-top: calc(env(safe-area-inset-top, 0px) + 1.5rem) !important; border-radius: var(--sm-radius-lg) 0 0 var(--sm-radius-lg);
+        --tw-enter-scale: 1; --tw-exit-scale: 1; --tw-enter-translate-x: 2rem; --tw-exit-translate-x: 2rem;
+    }
+}

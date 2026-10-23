@@ -12,6 +12,7 @@ import { SettingsPlaybackSection } from "@/app/(main)/settings/_screens/settings
 import { SettingsTorrentsSection } from "@/app/(main)/settings/_screens/settings-phone-torrents"
 import { SettingsUISection } from "@/app/(main)/settings/_screens/settings-phone-ui"
 import { getAndroidAppVersion } from "@/lib/android-app"
+import { IS_TABLET_EDITION } from "@/lib/edition"
 import { Translate, useTr } from "@/lib/app-language"
 import { useRouter, useSearchParams } from "@/lib/navigation"
 import { useQueryClient } from "@tanstack/react-query"
@@ -114,7 +115,8 @@ export function SettingsPhone() {
         window.scrollTo({ top: 0 })
     }
     const close = React.useCallback(() => setSection(null), [])
-    usePhoneBack(section !== null && sheets === 0, close)
+    // The tablet edition shows the list and the open area side by side, so Back leaves the screen
+    usePhoneBack(!IS_TABLET_EDITION && section !== null && sheets === 0, close)
 
     // Back on the list puts the focus (and the scroll) on the area that was open
     React.useEffect(() => {
@@ -123,12 +125,39 @@ export function SettingsPhone() {
         returnTo.current = null
     }, [section])
 
-    const current = SECTIONS.find(item => item.id === section)
+    const shown = section ?? (IS_TABLET_EDITION ? SECTIONS[0].id : null)
+    const current = SECTIONS.find(item => item.id === shown)
+
+    const nav = <nav className="pst-nav" aria-label={t("Settings areas", "Einstellungsbereiche")} data-settings-nav>
+        {SECTIONS.map(item => <button key={item.id} type="button" className="pst-nav-row" data-settings-open={item.id}
+            aria-current={IS_TABLET_EDITION && item.id === shown ? "page" : undefined}
+            ref={el => { if (el) rows.current.set(item.id, el); else rows.current.delete(item.id) }} onClick={() => open(item.id)}>
+            <item.icon className="pst-nav-icon" aria-hidden />
+            <span className="pst-row-text">
+                <span>{t(...item.title)}</span>
+                <small>{t(...item.summary)}</small>
+            </span>
+            <LuChevronRight aria-hidden />
+        </button>)}
+    </nav>
 
     return <SheetCountContext.Provider value={countSheets}>
-        <PhoneScreen screen="settings" data-settings-section={section ?? "home"}>
+        <PhoneScreen screen="settings" data-settings-section={shown ?? "home"}>
             {!status?.settings
                 ? <PhoneLoading label={t("Loading settings", "Einstellungen werden geladen")} layout={["head", "row", "row", "row", "row"]} />
+                : IS_TABLET_EDITION && current
+                    ? <>
+                        <PhoneHeader title={t("Settings", "Einstellungen")} facts={versionLine(status.version)} />
+                        <div className="pst-panes" data-settings-panes>
+                            {nav}
+                            <section className="pst-pane" aria-labelledby="pst-pane-title">
+                                <h2 id="pst-pane-title" className="pst-pane-title">{t(...current.title)}</h2>
+                                <div className="pst-page" data-settings-page={current.id}>
+                                    <SectionContent id={current.id} t={t} onOpen={open} />
+                                </div>
+                            </section>
+                        </div>
+                    </>
                 : current
                     ? <>
                         <header className="pst-subhead">
@@ -143,17 +172,7 @@ export function SettingsPhone() {
                     </>
                     : <>
                         <PhoneHeader title={t("Settings", "Einstellungen")} facts={versionLine(status.version)} />
-                        <nav className="pst-nav" aria-label={t("Settings areas", "Einstellungsbereiche")} data-settings-nav>
-                            {SECTIONS.map(item => <button key={item.id} type="button" className="pst-nav-row" data-settings-open={item.id}
-                                ref={el => { if (el) rows.current.set(item.id, el); else rows.current.delete(item.id) }} onClick={() => open(item.id)}>
-                                <item.icon className="pst-nav-icon" aria-hidden />
-                                <span className="pst-row-text">
-                                    <span>{t(...item.title)}</span>
-                                    <small>{t(...item.summary)}</small>
-                                </span>
-                                <LuChevronRight aria-hidden />
-                            </button>)}
-                        </nav>
+                        {nav}
                     </>}
         </PhoneScreen>
     </SheetCountContext.Provider>

@@ -4,17 +4,6 @@ import android.webkit.WebView
 
 object UIBottomNav {
 
-    /** Tablet edition: the phone's bar and menu at phone proportions, centred instead of stretched across the tablet. */
-    private const val TABLET_CSS = """
-                #__seanime_bottom_nav { justify-content: center; }
-                #__seanime_bottom_nav a,
-                #__seanime_bottom_nav button { flex: 0 1 7.5rem; }
-                #android-floating-menu {
-                    left: max(0.5rem, calc(50% - 16rem)) !important;
-                    right: max(0.5rem, calc(50% - 16rem)) !important;
-                }
-    """
-
     fun inject(webView: WebView) {
         MobileIcons.inject(webView)
         injectBottomNavStyles(webView)
@@ -659,7 +648,6 @@ object UIBottomNav {
                     border-radius: 12px;
                     box-shadow: 0 8px 24px rgba(0,0,0,0.6);
                 }
-                ${if (Edition.TABLET) TABLET_CSS else ""}
             `;
             document.head.appendChild(s);
         })();
@@ -1283,6 +1271,8 @@ object UIBottomNav {
                 function isDrawerOpen() {
                     if (document.querySelector('[data-vaul-drawer][data-state="open"]')) return true;
                     if (document.querySelector('.UI-Drawer__content[data-state="open"]')) return true;
+                    // Tablet edition: the rail stays under a sheet's overlay, so the page beside it does not jump
+                    if (${Edition.TABLET}) return false;
                     if (document.querySelector('.UI-Modal__overlay[data-state="open"]')) return true;
                     if (document.querySelector('.UI-Modal__content[data-state="open"]')) return true;
                     return false;
