@@ -221,6 +221,7 @@ One APK serves both. At start the web app checks the screen: when its smaller si
 - A tablet shows the phone screens. `isAndroidPhone()` is true on every Android device, and `layoutWidth()` reports a phone width to the width breakpoints in JavaScript.
 - `postcss.config.cjs` keeps every width media query above 430 px for phones (scoped to `:not([data-layout="tablet"])`) and adds a copy that resolves it for tablets as on a phone held upright. `:where()` keeps the specificity, so the cascade does not change on either.
 - `src/app/tablet.css` lays the phone screens out for the tablet by its real width (navigation rail, two panes, side sheets). Every rule is scoped to `html[data-layout="tablet"]`.
+- The activity handles size changes itself (`configChanges`), so a foldable opened or closed keeps the page. `reloadOnScreenClassChange()` reloads it when the screen crosses 600 px (after a playing video pauses), and the web app and the native injections decide again. A display size (density) change recreates the activity anyway.
 
 ---
 

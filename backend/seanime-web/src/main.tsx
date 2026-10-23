@@ -2,7 +2,7 @@ import { useIsSimulatedUser } from "@/app/(main)/_hooks/use-server-status"
 import { ClientProviders, queryClient, store } from "@/app/client-providers"
 import "./app/globals.css"
 import "./app/tablet.css"
-import { IS_TABLET_UI } from "@/lib/tablet-ui"
+import { IS_TABLET_UI, reloadOnScreenClassChange } from "@/lib/tablet-ui"
 import { __navigationPreloadModeAtom, getActualNavigationPreloadMode, NavigationPreloadMode } from "@/lib/navigation-preload-settings"
 import { __isElectronDesktop__ } from "@/types/constants"
 import { createRouter, RouterProvider } from "@tanstack/react-router"
@@ -154,6 +154,7 @@ function RootErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 // }
 // Tablet layout: app/tablet.css lays the phone screens out for a tablet under this attribute
 if (IS_TABLET_UI) document.documentElement.dataset.layout = "tablet"
+reloadOnScreenClassChange()
 ReactDOM.createRoot(document.getElementById("root")!, {
     onUncaughtError: (error, errorInfo) => {
         console.error("[Root] Uncaught renderer error", error, errorInfo)
