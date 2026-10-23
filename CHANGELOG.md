@@ -2,6 +2,13 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.25 — 23.10.2026 (versionCode 31120)
+
+- ⚡️ Home: Customize Home uses normal headings instead of small capitals and shows the sections as one group of rows
+- ⚡️ Playlists: The playlists window looks like the app's other sheets: as tall as its content, a round close button and a rounded main button
+- ⚡️ Messages: Notifications use the app's dark surface with a coloured icon instead of a green, red or blue block
+- ⚡️ Tablets: Playlists open from the right like the other sheets
+
 ## 2.0.24 — 23.10.2026 (versionCode 31119)
 
 - ⚡️ Plugins: The plugin list looks like the app's other sheets: as tall as its plugins, the app's search field, the plugins as one group of rows and round pin buttons
