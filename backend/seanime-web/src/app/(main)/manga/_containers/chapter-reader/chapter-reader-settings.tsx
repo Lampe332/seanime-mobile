@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { useMangaPageZoomControls } from "@/app/(main)/manga/_lib/handle-chapter-reader"
 import {
     __manga_doublePageOffsetAtom,
@@ -188,7 +189,7 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
     const [readerProgressBar, setReaderProgressBar] = useAtom(__manga_readerProgressBarAtom)
     const [hiddenBar, setHideBar] = useAtom(__manga_hiddenBarAtom)
 
-    const { width } = useWindowSize()
+    const width = layoutWidth(useWindowSize().width)
     const isMobile = width < 950
 
     const defaultSettings = React.useMemo(() => {

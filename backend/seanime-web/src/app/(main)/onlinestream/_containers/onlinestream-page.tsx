@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { tr } from "@/lib/app-language"
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { EpisodeDownloadPicker } from "./episode-download-picker"
@@ -1216,7 +1217,7 @@ function IsomorphicPopover
 (
     props: PopoverProps & ModalProps) {
     const { title, children, ...rest } = props
-    const { width } = useWindowSize()
+    const width = layoutWidth(useWindowSize().width)
 
     if (width && width > 1024) {
         return <Popover

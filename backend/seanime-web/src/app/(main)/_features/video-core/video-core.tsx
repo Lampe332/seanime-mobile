@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { useHandleCurrentMediaContinuity } from "@/api/hooks/continuity.hooks"
@@ -699,7 +700,7 @@ export function VideoCore(props: VideoCoreProps) {
         dispatchTranslateSubtitleTrackEvent,
     } = useVideoCoreSetupEvents(props.id, state, onTerminateStream, setPluginSkipDataOverride, currentSkipDataRef)
 
-    const { width: windowWidth } = useWindowSize()
+    const windowWidth = layoutWidth(useWindowSize().width)
     const [isMobilePlayer, setIsMobilePlayer] = useAtom(vc_isMobile)
     React.useEffect(() => {
         setIsMobilePlayer(windowWidth < 1024)

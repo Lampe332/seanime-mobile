@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { cva, VariantProps } from "class-variance-authority"
 import * as React from "react"
 import { AppLayoutAnatomy } from "."
@@ -168,7 +169,7 @@ export const AppSidebarProvider: React.FC<AppSidebarProviderProps> = ({
     const [isBelowBreakpoint, setIsBelowBreakpoint] = React.useState<boolean>(false)
 
     React.useEffect(() => {
-        const handleResize = () => setIsBelowBreakpoint(window.innerWidth < 1024) // lg breakpoint
+        const handleResize = () => setIsBelowBreakpoint(layoutWidth(window.innerWidth) < 1024) // lg breakpoint
         handleResize()
         window.addEventListener("resize", handleResize)
         return () => window.removeEventListener("resize", handleResize)

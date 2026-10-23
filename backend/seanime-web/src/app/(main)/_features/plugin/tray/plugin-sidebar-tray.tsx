@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { MobilePluginMenu } from "./mobile-plugin-menu"
 import { tr } from "@/lib/app-language"
 import { Extension_Extension, ExtensionRepo_StoredPluginSettingsData } from "@/api/generated/types"
@@ -334,7 +335,7 @@ export function PluginSidebarTray({ place, homeMobile: _homeMobile = false }: { 
     // Android uses the Home plugin menu (same icon, sheet and pinned plugins) on every screen.
     const homeMobile = _homeMobile || import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
     const { isFeatureDisabled } = useServerDisabledFeatures()
-    const { width } = useWindowSize()
+    const width = layoutWidth(useWindowSize().width)
     const [trayIcons, setTrayIcons] = useAtom(__plugin_trayIconsAtom)
 
     const [hasNavigated, setHasNavigated] = useAtom(__plugin_hasNavigatedAtom)

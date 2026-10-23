@@ -10,15 +10,16 @@ import {
     MediaCoreSettingSelect,
     MediaCoreSettingTextInput,
 } from "@/app/(main)/_features/media-core/media-core-menu"
+import { IS_TABLET_EDITION } from "@/lib/edition"
 import { useAtom, useAtomValue } from "jotai"
 import { vc_menuOpen, vc_menuSectionOpen, vc_menuSubSectionOpen, vc_isFullscreen, vc_containerElement, vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
 import React from "react"
 
 const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
-/** Android phones (smallest screen side under 600 CSS px) get the phone sheets; tablets and desktop keep the popovers. */
+/** Android phones (smallest screen side under 600 CSS px) and the tablet edition get the phone sheets; tablets and desktop keep the popovers. */
 export function isAndroidPhone() {
-    return IS_ANDROID_APP && typeof window !== "undefined" && Math.min(window.screen.width, window.screen.height) < 600
+    return IS_ANDROID_APP && (IS_TABLET_EDITION || (typeof window !== "undefined" && Math.min(window.screen.width, window.screen.height) < 600))
 }
 
 export const VideoCoreMenuTitle = MediaCoreMenuTitle

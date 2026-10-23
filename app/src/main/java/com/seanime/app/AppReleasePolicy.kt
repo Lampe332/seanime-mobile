@@ -23,12 +23,15 @@ object AppReleasePolicy {
         return 0
     }
 
-    fun select(current: String, releases: List<Release>): Update? {
+    /** Each edition updates only from its own APK: Seanime-Mobile-X.Y.Z.apk or Seanime-Mobile-Tablet-X.Y.Z.apk. */
+    val ASSET_PREFIX = if (Edition.TABLET) "Seanime-Mobile-Tablet-" else "Seanime-Mobile-"
+
+    fun select(current: String, releases: List<Release>, assetPrefix: String = ASSET_PREFIX): Update? {
         if (version(current) == null) return null
         return releases.mapNotNull { release ->
             if (release.draft || release.prerelease || version(release.tag) == null || compare(release.tag, current) <= 0) return@mapNotNull null
             val version = release.tag.removePrefix("v")
-            val name = "Seanime-Mobile-$version.apk"
+            val name = "$assetPrefix$version.apk"
             val expected = "https://github.com/$REPOSITORY/releases/download/${release.tag}/$name"
             val asset = release.assets.firstOrNull { it.name == name && it.url == expected && URI(it.url).scheme == "https" }
                 ?: return@mapNotNull null

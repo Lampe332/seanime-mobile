@@ -126,7 +126,7 @@ object VideoControlInjector {
                     '  background: rgba(0,0,0,0.22);',
                     '}',
                     '.__seanime-mobile-control svg { pointer-events: none; }',
-                    '@media (min-width: 1024px) { .__seanime-mobile-controls { display: none !important; } }'
+                    '@media (min-width: ${if (Edition.TABLET) "100000px" else "1024px"}) { .__seanime-mobile-controls { display: none !important; } }'
                 ].join('\n');
                 (document.head || document.documentElement).appendChild(style);
             }

@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { Nullish } from "@/api/generated/types"
 import { SeaImage } from "@/components/shared/sea-image"
 import { IconButton } from "@/components/ui/button"
@@ -23,7 +24,7 @@ type MediaEpisodeInfoModalProps = {
 
 function IsomorphicPopover(props: PopoverProps & ModalProps) {
     const { title, children, ...rest } = props
-    const { width } = useWindowSize()
+    const width = layoutWidth(useWindowSize().width)
 
     if (width && width > 1024) {
         return <Popover

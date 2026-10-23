@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { useSeaCommand } from "@/app/(main)/_features/sea-command/sea-command.tsx"
 import { SeaImage } from "@/components/shared/sea-image"
 import { useRouter } from "@/lib/navigation"
@@ -527,7 +528,7 @@ export function useChangelogTourListener() {
     const [seenChangelog, setSeenChangelog] = useAtom(seenChangelogAtom)
     const { start } = useTour()
     const tours = useSetupTour()
-    const { width } = useWindowSize()
+    const width = layoutWidth(useWindowSize().width)
     const isMobile = width < 768
 
     const toursRef = React.useRef(tours)

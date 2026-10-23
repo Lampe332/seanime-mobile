@@ -4,6 +4,17 @@ import android.webkit.WebView
 
 object UIBottomNav {
 
+    /** Tablet edition: the phone's bar and menu at phone proportions, centred instead of stretched across the tablet. */
+    private const val TABLET_CSS = """
+                #__seanime_bottom_nav { justify-content: center; }
+                #__seanime_bottom_nav a,
+                #__seanime_bottom_nav button { flex: 0 1 7.5rem; }
+                #android-floating-menu {
+                    left: max(0.5rem, calc(50% - 16rem)) !important;
+                    right: max(0.5rem, calc(50% - 16rem)) !important;
+                }
+    """
+
     fun inject(webView: WebView) {
         MobileIcons.inject(webView)
         injectBottomNavStyles(webView)
@@ -648,6 +659,7 @@ object UIBottomNav {
                     border-radius: 12px;
                     box-shadow: 0 8px 24px rgba(0,0,0,0.6);
                 }
+                ${if (Edition.TABLET) TABLET_CSS else ""}
             `;
             document.head.appendChild(s);
         })();
@@ -662,7 +674,7 @@ object UIBottomNav {
             window.__seanime_bottomnav_init = true;
 
             var TABLET_BREAKPOINT = 768;
-            function isTablet() { return Math.min(window.innerWidth, window.innerHeight) >= TABLET_BREAKPOINT; }
+            function isTablet() { return ${if (Edition.TABLET) "false" else "Math.min(window.innerWidth, window.innerHeight) >= TABLET_BREAKPOINT"}; }
 
             if (isTablet()) {
                 window.addEventListener('resize', function() {

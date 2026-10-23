@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { CloseButton } from "@/components/ui/button"
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "@/components/ui/core/styling"
 import { __isDesktop__ } from "@/types/constants"
@@ -198,7 +199,7 @@ export function MediaCoreDrawer(props: DrawerProps) {
     const draggableAreaRef = React.useRef<HTMLDivElement>(null)
 
     const getInitialPosition = React.useCallback(() => {
-        const width = window.innerWidth >= 1024 ? 400 : 300
+        const width = layoutWidth(window.innerWidth) >= 1024 ? 400 : 300
         const height = width * (9 / 16)
 
         const rightBoundary = window.innerWidth - width - PADDING
@@ -378,7 +379,7 @@ export function MediaCoreDrawer(props: DrawerProps) {
 
         const element = contentRef.current
         const currentPosition = (position.x === 0 && position.y === 0) ? getInitialPosition() : position
-        const miniWidth = window.innerWidth >= 1024 ? 400 : 300
+        const miniWidth = layoutWidth(window.innerWidth) >= 1024 ? 400 : 300
         const miniHeight = miniWidth * (9 / 16)
         const didToggleMiniPlayer = prevMiniPlayerRef.current !== miniPlayer
 

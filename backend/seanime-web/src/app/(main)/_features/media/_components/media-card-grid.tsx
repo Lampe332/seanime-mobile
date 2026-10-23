@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { LuffyError } from "@/components/shared/luffy-error"
 import { cn } from "@/components/ui/core/styling"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -113,7 +114,7 @@ export function MediaCardLazyGridRenderer({
     const _colClasses = colClasses.map(n => ({ min: n.min, cols: n.cols > maxCol ? maxCol : n.cols }))
 
     // Determine initial columns based on window width
-    const initialColumns = _colClasses.find(c => window.innerWidth >= c.min)?.cols ?? 8
+    const initialColumns = _colClasses.find(c => layoutWidth(window.innerWidth) >= c.min)?.cols ?? 8
 
     // Initialize visible indices with first row
     React.useEffect(() => {

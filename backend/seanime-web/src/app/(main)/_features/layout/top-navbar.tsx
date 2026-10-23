@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { useWindowSize } from "@uidotdev/usehooks"
 import { HomeMobileHeader } from "../home/home-mobile-header"
 import { LayoutHeaderBackground } from "@/app/(main)/_features/layout/_components/layout-header-background"
@@ -35,7 +36,8 @@ export function TopNavbar(props: TopNavbarProps) {
     const isOffline = serverStatus?.isOffline
     const ts = useThemeSettings()
     const pathname = usePathname()
-    const { width, height } = useWindowSize()
+    const { width: windowWidth, height } = useWindowSize()
+    const width = layoutWidth(windowWidth)
     const mobileHome = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && !!width && width < 1024 && pathname === "/" && !isOffline
     const sidebarTrigger = showsSidebarTrigger(import.meta.env.SEA_PUBLIC_PLATFORM, width ?? window.innerWidth, height ?? window.innerHeight)
     const NavbarFrame = mobileHome ? HomeMobileHeader : React.Fragment

@@ -214,6 +214,16 @@ adb install -r app\build\outputs\apk\release\app-release.apk
 
 Both apps use the same local server port (`127.0.0.1:43211`). Stop the normal app first, otherwise the test copy connects to its server. Remove it afterwards with `adb uninstall com.seanime.app.local.fresh`.
 
+### Tablet edition
+
+The tablet edition is the same app (same package, same signature) that shows the phone UI on tablets. Three switches make it, all off by default, so a normal build stays the phone edition:
+
+1. Build the UI with `SEA_PUBLIC_PLATFORM=mobile` and `SEA_PUBLIC_EDITION=tablet`. `isAndroidPhone()` and every width breakpoint (`layoutWidth()` in `src/lib/edition.ts`) then pick the phone layout, and `postcss.config.cjs` turns width media queries above 430 px into the phone result.
+2. Embed that bundle into the Go backend as usual, but write `libseanime.so` into a separate folder (with `libc++_shared.so` copied next to it), so the tracked phone libraries in `app/src/main/jniLibs` stay untouched.
+3. Build the APK with `-PseanimeEdition=tablet -PseanimeJniLibs=<that folder>` (`BuildConfig.EDITION`, `Edition.TABLET`).
+
+Publish it as `Seanime-Mobile-Tablet-<versionName>.apk`: the tablet edition only offers updates from that asset name, the phone edition only from `Seanime-Mobile-<versionName>.apk`.
+
 ---
 
 ## How the app is put together

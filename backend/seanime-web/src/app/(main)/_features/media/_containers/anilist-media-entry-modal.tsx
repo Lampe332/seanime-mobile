@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { AL_BaseAnime, AL_BaseManga, AL_MediaListStatus, Anime_EntryListData, Manga_EntryListData } from "@/api/generated/types"
 import { useDeleteAnilistListEntry, useEditAnilistListEntry } from "@/api/hooks/anilist.hooks"
 import { useUpdateAnimeEntryRepeat } from "@/api/hooks/anime_entries.hooks"
@@ -58,7 +59,7 @@ const progressMaxFor = (media: AL_BaseAnime | AL_BaseManga | undefined, type: "a
 
 function IsomorphicPopover(props: Omit<PopoverProps, "title"> & ModalProps & { media?: AL_BaseAnime | AL_BaseManga, forceModal?: boolean }) {
     const { title, children, media, forceModal, ...rest } = props
-    const { width } = useWindowSize()
+    const width = layoutWidth(useWindowSize().width)
 
     if ((width && width > 1024) && !forceModal) {
         return <Popover

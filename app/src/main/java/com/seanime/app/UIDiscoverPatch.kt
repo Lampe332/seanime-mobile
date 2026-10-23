@@ -19,7 +19,7 @@ object UIDiscoverPatch {
             var s = document.createElement('style');
             s.id = '__seanime_discover_patch_styles';
             s.textContent = `
-                @media (max-width: 767px) {
+                @media (max-width: ${if (Edition.TABLET) "100000px" else "767px"}) {
 
                     /* ── Card container ── */
                     [data-media-entry-card-container="true"][class*="basis-[200px]"],
@@ -64,7 +64,7 @@ object UIDiscoverPatch {
             var CARD_WIDTH = '160px';
 
             function isMobile() {
-                return window.innerWidth <= MOBILE_MAX;
+                return ${if (Edition.TABLET) "true" else "window.innerWidth <= MOBILE_MAX"};
             }
 
             function patchElement(el) {

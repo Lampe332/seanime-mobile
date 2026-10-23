@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { AL_BaseAnime, AL_BaseManga, AL_MediaStatus, Anime_EntryListData, Manga_EntryListData, Nullish } from "@/api/generated/types"
 import { TRANSPARENT_SIDEBAR_BANNER_IMG_STYLE } from "@/app/(main)/_features/custom-ui/styles"
 import { AnilistMediaEntryModal } from "@/app/(main)/_features/media/_containers/anilist-media-entry-modal"
@@ -232,7 +233,7 @@ export function MediaPageHeaderDetailsContainer(props: MediaPageHeaderDetailsCon
 
     const ts = useThemeSettings()
     const { y } = useWindowScroll()
-    const { width } = useWindowSize()
+    const width = layoutWidth(useWindowSize().width)
 
     return (
         <>

@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { AL_ListRecentAnime_Page_AiringSchedules, Anime_ScheduleItem, Models_HomeItem } from "@/api/generated/types"
 import { useAnilistListAnime, useAnilistListRecentAiringAnime } from "@/api/hooks/anilist.hooks"
 import { useGetLibraryCollection } from "@/api/hooks/anime_collection.hooks"
@@ -67,7 +68,7 @@ export function HomeScreen() {
     const serverStatus = useServerStatus()
     const { data: _homeItems, isLoading: isLoadingItems, isError: homeItemsError, refetch: retryHomeItems } = useGetHomeItems()
 
-    const { width } = useWindowSize()
+    const width = layoutWidth(useWindowSize().width)
     const mobileHome = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && width < 1024
     const tr = useTr()
     const { isError: collectionError, refetch: retryCollection } = useGetLibraryCollection()

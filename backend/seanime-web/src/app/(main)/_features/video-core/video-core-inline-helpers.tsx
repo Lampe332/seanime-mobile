@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { AL_BaseAnime } from "@/api/generated/types"
 import { useUpdateAnimeEntryProgress } from "@/api/hooks/anime_entries.hooks"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
@@ -171,7 +172,7 @@ export function VideoCoreInlineLayout(props: VideoCoreInlineLayoutProps) {
     } = props
 
     const [theaterMode, setTheaterMode] = useAtom(vc_inlineLayoutTheaterMode)
-    const { width } = useWindowSize()
+    const width = layoutWidth(useWindowSize().width)
 
     // Scroll to selected episode element when the episode list changes (on mount)
     const episodeListContainerRef = React.useRef<HTMLDivElement>(null)

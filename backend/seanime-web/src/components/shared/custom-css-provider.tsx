@@ -1,3 +1,4 @@
+import { layoutWidth } from "@/lib/edition"
 import { useAtom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import React, { useEffect, useState } from "react"
@@ -11,7 +12,7 @@ const customCSSAtom = atomWithStorage("sea-custom-css", {
 export function CustomCSSProvider({ children }: { children?: React.ReactNode }) {
     const [customCSS, setCustomCSS] = useAtom(customCSSAtom)
     const [mounted, setMounted] = useState(false)
-    const { width } = useWindowSize()
+    const width = layoutWidth(useWindowSize().width)
 
     const isMobile = width < 1024
 
