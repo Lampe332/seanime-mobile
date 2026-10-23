@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { LuffyError } from "@/components/shared/luffy-error"
 import { cn } from "@/components/ui/core/styling"
 import { Skeleton } from "@/components/ui/skeleton"

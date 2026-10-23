@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { tr } from "@/lib/app-language"
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { EpisodeDownloadPicker } from "./episode-download-picker"

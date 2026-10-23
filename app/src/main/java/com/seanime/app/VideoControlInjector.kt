@@ -126,7 +126,8 @@ object VideoControlInjector {
                     '  background: rgba(0,0,0,0.22);',
                     '}',
                     '.__seanime-mobile-control svg { pointer-events: none; }',
-                    '@media (min-width: ${if (Edition.TABLET) "100000px" else "1024px"}) { .__seanime-mobile-controls { display: none !important; } }'
+                    // a tablet keeps the phone controls (the web app's lib/tablet-ui.ts rule)
+                    '@media (min-width: ' + (Math.min(screen.width, screen.height) >= 600 ? '100000px' : '1024px') + ') { .__seanime-mobile-controls { display: none !important; } }'
                 ].join('\n');
                 (document.head || document.documentElement).appendChild(style);
             }

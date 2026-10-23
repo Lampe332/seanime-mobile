@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { useWindowSize } from "@uidotdev/usehooks"
 import { HomeMobileHeader } from "../home/home-mobile-header"
 import { LayoutHeaderBackground } from "@/app/(main)/_features/layout/_components/layout-header-background"

@@ -1,7 +1,7 @@
 import { Anime_Entry } from "@/api/generated/types"
 import { useGetAnilistAnimeDetails } from "@/api/hooks/anilist.hooks"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
-import { IS_TABLET_EDITION } from "@/lib/edition"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { useListAnimeEntryEpisodeTabExtensions } from "@/api/hooks/extensions.hooks"
 import { MediaEntryCharactersSection } from "@/app/(main)/_features/media/_components/media-entry-characters-section"
 import { MediaEntryPageLoadingDisplay } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
@@ -334,7 +334,7 @@ export function AnimeEntryPage() {
         <RelationsRecommendationsSection entry={animeEntry} details={animeDetails} loading={animeDetailsLoading} />
     </>
     // The tablet edition shows characters and relations across the whole page, under the anime and its episodes
-    const bottomSection = IS_TABLET_EDITION ? null : moreSection
+    const bottomSection = IS_TABLET_UI ? null : moreSection
 
     return (
         <div data-anime-entry-page data-mobile-anime={IS_ANDROID_APP || undefined} data-media={JSON.stringify(animeEntry.media)} data-anime-entry-list-data={JSON.stringify(animeEntry.listData)}>
@@ -436,7 +436,7 @@ export function AnimeEntryPage() {
                 </PageWrapper>
             </div>
 
-            {IS_TABLET_EDITION && <div className="tablet-entry-more" data-tablet-entry-more>{moreSection}</div>}
+            {IS_TABLET_UI && <div className="tablet-entry-more" data-tablet-entry-more>{moreSection}</div>}
 
             {isAndroidPhone() ? <TorrentSearchPhone entry={animeEntry} /> : <TorrentSearchDrawer entry={animeEntry} />}
         </div>

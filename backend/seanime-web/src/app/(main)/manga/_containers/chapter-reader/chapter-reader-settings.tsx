@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { useMangaPageZoomControls } from "@/app/(main)/manga/_lib/handle-chapter-reader"
 import {
     __manga_doublePageOffsetAtom,

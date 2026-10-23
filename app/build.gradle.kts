@@ -10,23 +10,16 @@ android {
         applicationId = "com.seanime.app.local"
         minSdk = 21
         targetSdk = 36
-        versionCode = providers.gradleProperty("seanimeBaselineCode").orNull?.toInt() ?: 31122
-        versionName = providers.gradleProperty("seanimeBaselineVersion").orNull ?: "2.0.27"
+        versionCode = providers.gradleProperty("seanimeBaselineCode").orNull?.toInt() ?: 31123
+        versionName = providers.gradleProperty("seanimeBaselineVersion").orNull ?: "2.0.28"
         testInstrumentationRunner = providers.gradleProperty("seanimeAuditRunner").orNull
             ?: "com.seanime.app.audit.OfflineInstrumentation"
         ndk { abiFilters += setOf("arm64-v8a", "armeabi-v7a") }
         // -PseanimeAppIdSuffix=.fresh installs a separate copy next to the real app (fresh-install testing)
         providers.gradleProperty("seanimeAppIdSuffix").orNull?.let { applicationIdSuffix = it }
-        // -PseanimeEdition=tablet builds the tablet edition: same package, phone UI on tablet screens
-        val edition = providers.gradleProperty("seanimeEdition").orNull ?: "phone"
-        require(edition == "phone" || edition == "tablet") { "seanimeEdition must be phone or tablet" }
-        buildConfigField("String", "EDITION", "\"$edition\"")
     }
 
-    buildFeatures { buildConfig = true }
-
-    // The tablet edition embeds its own web bundle, so its backend libraries come from a separate folder.
-    sourceSets["main"].jniLibs.setSrcDirs(listOf(providers.gradleProperty("seanimeJniLibs").orNull ?: "src/main/jniLibs"))
+    sourceSets["main"].jniLibs.srcDirs("src/main/jniLibs")
     sourceSets["main"].assets.srcDir("../backend/seanime-web/src/lib/mobile-icons")
     testBuildType = "release"
 

@@ -661,8 +661,9 @@ object UIBottomNav {
             if (window.__seanime_bottomnav_init) return;
             window.__seanime_bottomnav_init = true;
 
-            var TABLET_BREAKPOINT = 768;
-            function isTablet() { return ${if (Edition.TABLET) "false" else "Math.min(window.innerWidth, window.innerHeight) >= TABLET_BREAKPOINT"}; }
+            // Phones and tablets both get the bar; on a tablet (the web app's lib/tablet-ui.ts rule) tablet.css makes it a rail
+            var TABLET_UI = Math.min(screen.width, screen.height) >= 600;
+            function isTablet() { return false; }
 
             if (isTablet()) {
                 window.addEventListener('resize', function() {
@@ -1271,8 +1272,8 @@ object UIBottomNav {
                 function isDrawerOpen() {
                     if (document.querySelector('[data-vaul-drawer][data-state="open"]')) return true;
                     if (document.querySelector('.UI-Drawer__content[data-state="open"]')) return true;
-                    // Tablet edition: the rail stays under a sheet's overlay, so the page beside it does not jump
-                    if (${Edition.TABLET}) return false;
+                    // Tablet: the rail stays under a sheet's overlay, so the page beside it does not jump
+                    if (TABLET_UI) return false;
                     if (document.querySelector('.UI-Modal__overlay[data-state="open"]')) return true;
                     if (document.querySelector('.UI-Modal__content[data-state="open"]')) return true;
                     return false;

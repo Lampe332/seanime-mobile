@@ -3,7 +3,7 @@ streaming, Torrents & debrid, Manga, Nakama, Logs & cache, About), instant savin
 plus the change, device-only values in localStorage) that survives a reload, rollback with a toast when saving fails, saves
 in a row that do not undo each other, confirmations before anything that cannot be undone, text sheets with validation,
 the folder picker bridge, deep links (?tab=), Android Back (sheet, then page, then the screen), desktop-only settings
-absent, German texts, 48px targets, no overflow at 390px and at 320px with 200% text, the desktop page on tablets.
+absent, German texts, 48px targets, no overflow at 390px and at 320px with 200% text, the tablet layout on tablets.
 Optional arg: screenshot dir."""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -540,9 +540,10 @@ with tempfile.TemporaryDirectory(prefix='seanime-settings-') as tmp:
             back(big)
         big.close()
 
-        # Tablet: the desktop page
-        tab=open_page(width=800,height=1280,ready='[data-desktop-settings]')
-        check('Tablet (shorter side 800px): the desktop page, no phone screen',tab.locator('[data-phone-screen]').count()==0 and tab.locator('[data-desktop-settings]').count()>0)
+        # Tablet: the phone screen, laid out for a tablet by app/tablet.css
+        tab=open_page(width=800,height=1280)
+        check('Tablet (shorter side 800px): the phone screen, no desktop page',tab.locator('[data-phone-screen="settings"]').count()==1
+              and tab.locator('[data-desktop-settings]').count()==0)
         tab.close()
         browser.close()
 check('No script errors on any page',errors==[])

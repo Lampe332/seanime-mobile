@@ -2,6 +2,11 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.28 — 23.10.2026 (versionCode 31123)
+
+- 🎉 Tablets: The app picks its layout from the screen when it starts: the tablet layout (navigation rail, two-pane settings, side sheets) on tablets, the phone layout on phones
+- 🏗️ Tablets: One APK for phones and tablets; there is no separate tablet APK any more
+
 ## 2.0.27 — 23.10.2026 (versionCode 31122)
 
 - 🦺 Tablets: Manga pages show "Continue reading" with the next chapter again in landscape

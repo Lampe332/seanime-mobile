@@ -214,15 +214,13 @@ adb install -r app\build\outputs\apk\release\app-release.apk
 
 Both apps use the same local server port (`127.0.0.1:43211`). Stop the normal app first, otherwise the test copy connects to its server. Remove it afterwards with `adb uninstall com.seanime.app.local.fresh`.
 
-### Tablet edition
+### Phones and tablets
 
-The tablet edition is the same app (same package, same signature) that shows the phone UI on tablets. Three switches make it, all off by default, so a normal build stays the phone edition:
+One APK serves both. At start the web app checks the screen: when its smaller side is 600 CSS px or more (the Android sw600dp rule), it is a tablet (`IS_TABLET_UI` in `src/lib/tablet-ui.ts`), and `main.tsx` sets `html[data-layout="tablet"]`. The native injections use the same rule (`UIBottomNav.kt`, `UIDiscoverPatch.kt`, `VideoControlInjector.kt`).
 
-1. Build the UI with `SEA_PUBLIC_PLATFORM=mobile` and `SEA_PUBLIC_EDITION=tablet`. `isAndroidPhone()` and every width breakpoint (`layoutWidth()` in `src/lib/edition.ts`) then pick the phone layout, and `postcss.config.cjs` turns width media queries above 430 px into the phone result. `main.tsx` sets `html[data-edition="tablet"]`, and `src/app/tablet.css` (every rule scoped to that attribute) lays the phone screens out for a tablet by its real width, which `postcss.config.cjs` leaves alone in that file: navigation rail from 600px, two-pane settings from 720px (`useTabletTwoPanes()`), two-column anime and manga pages and side sheets from 1000px.
-2. Embed that bundle into the Go backend as usual, but write `libseanime.so` into a separate folder (with `libc++_shared.so` copied next to it), so the tracked phone libraries in `app/src/main/jniLibs` stay untouched.
-3. Build the APK with `-PseanimeEdition=tablet -PseanimeJniLibs=<that folder>` (`BuildConfig.EDITION`, `Edition.TABLET`).
-
-Publish it as `Seanime-Mobile-Tablet-<versionName>.apk`: the tablet edition only offers updates from that asset name, the phone edition only from `Seanime-Mobile-<versionName>.apk`.
+- A tablet shows the phone screens. `isAndroidPhone()` is true on every Android device, and `layoutWidth()` reports a phone width to the width breakpoints in JavaScript.
+- `postcss.config.cjs` keeps every width media query above 430 px for phones (scoped to `:not([data-layout="tablet"])`) and adds a copy that resolves it for tablets as on a phone held upright. `:where()` keeps the specificity, so the cascade does not change on either.
+- `src/app/tablet.css` lays the phone screens out for the tablet by its real width (navigation rail, two panes, side sheets). Every rule is scoped to `html[data-layout="tablet"]`.
 
 ---
 

@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { cva, VariantProps } from "class-variance-authority"
 import * as React from "react"
 import { AppLayoutAnatomy } from "."

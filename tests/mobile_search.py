@@ -495,9 +495,10 @@ with tempfile.TemporaryDirectory(prefix='seanime-search-') as tmp:
         check('German: loading more',de.locator('[data-search-loading-more]').inner_text()=='Weitere Ergebnisse werden geladen …')
         de.close()
 
-        # Tablets and desktop keep the desktop page
-        d=open_page(width=1280,height=800,ready='[data-desktop-search-list]')
-        check('Wider screens keep the desktop page',d.locator('[data-phone-screen]').count()==0 and d.locator('[data-desktop-search-options]').count()==1 and d.get_by_text('Discover series').count()==1)
+        # Tablets: the phone screen, laid out for a tablet by app/tablet.css
+        d=open_page(width=1280,height=800)
+        check('Tablet (landscape): the phone screen, no desktop page',d.locator('[data-phone-screen="search"]').count()==1
+              and d.locator('[data-desktop-search-list],[data-desktop-search-options]').count()==0)
         d.close()
         browser.close()
 check('No script errors on any page',errors==[],errors)

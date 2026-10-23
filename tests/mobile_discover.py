@@ -672,11 +672,10 @@ with tempfile.TemporaryDirectory(prefix='seanime-discover-') as tmp:
         shot(de,'discover-schedule-de-320-200.png')
         de.close()
 
-        # Tablets keep the desktop page
-        tb=open_page(width=800,height=1280,ready='[data-desktop-discover-header]')
-        check('Tablet: the desktop page with its hero, tabs and rows',tb.locator('[data-discover-phone]').count()==0
-              and tb.locator('[data-discover-page-container]').count()==1 and tb.locator('[data-discover-page-header-tabs-container]').count()==1
-              and tb.locator('[data-desktop-discover-header]').count()==1 and tb.locator('[data-desktop-discover-row="trending"]').count()==1)
+        # Tablets: the phone screen, laid out for a tablet by app/tablet.css
+        tb=open_page(width=800,height=1280)
+        check('Tablet: the phone screen, no desktop hero or rows',tb.locator('[data-discover-phone]').count()==1
+              and tb.locator('[data-desktop-discover-header],[data-desktop-discover-row]').count()==0)
         shot(tb,'discover-tablet-800.png')
         tb.close()
         browser.close()

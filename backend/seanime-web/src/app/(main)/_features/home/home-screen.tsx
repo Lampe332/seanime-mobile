@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { AL_ListRecentAnime_Page_AiringSchedules, Anime_ScheduleItem, Models_HomeItem } from "@/api/generated/types"
 import { useAnilistListAnime, useAnilistListRecentAiringAnime } from "@/api/hooks/anilist.hooks"
 import { useGetLibraryCollection } from "@/api/hooks/anime_collection.hooks"

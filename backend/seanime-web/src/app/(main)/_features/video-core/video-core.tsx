@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { useHandleCurrentMediaContinuity } from "@/api/hooks/continuity.hooks"

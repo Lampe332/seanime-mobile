@@ -12,7 +12,7 @@ import { SettingsPlaybackSection } from "@/app/(main)/settings/_screens/settings
 import { SettingsTorrentsSection } from "@/app/(main)/settings/_screens/settings-phone-torrents"
 import { SettingsUISection } from "@/app/(main)/settings/_screens/settings-phone-ui"
 import { getAndroidAppVersion } from "@/lib/android-app"
-import { useTabletTwoPanes } from "@/lib/edition"
+import { useTabletTwoPanes } from "@/lib/tablet-ui"
 import { Translate, useTr } from "@/lib/app-language"
 import { useRouter, useSearchParams } from "@/lib/navigation"
 import { useQueryClient } from "@tanstack/react-query"

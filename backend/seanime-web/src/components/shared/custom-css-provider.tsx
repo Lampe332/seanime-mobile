@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { useAtom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import React, { useEffect, useState } from "react"

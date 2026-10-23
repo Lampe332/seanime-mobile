@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { Nullish } from "@/api/generated/types"
 import { SeaImage } from "@/components/shared/sea-image"
 import { IconButton } from "@/components/ui/button"

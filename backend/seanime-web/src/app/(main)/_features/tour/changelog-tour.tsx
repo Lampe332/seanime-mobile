@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { useSeaCommand } from "@/app/(main)/_features/sea-command/sea-command.tsx"
 import { SeaImage } from "@/components/shared/sea-image"
 import { useRouter } from "@/lib/navigation"

@@ -16,10 +16,12 @@ object UIDiscoverPatch {
             if (!window.location.pathname.startsWith('/discover')) return;
             if (document.getElementById('__seanime_discover_patch_styles')) return;
 
+            // a tablet shows the phone screens (the web app's lib/tablet-ui.ts rule): the phone card styles always apply
+            var TABLET_UI = Math.min(screen.width, screen.height) >= 600;
             var s = document.createElement('style');
             s.id = '__seanime_discover_patch_styles';
             s.textContent = `
-                @media (max-width: ${if (Edition.TABLET) "100000px" else "767px"}) {
+                @media (max-width: ${'$'}{TABLET_UI ? "100000px" : "767px"}) {
 
                     /* ── Card container ── */
                     [data-media-entry-card-container="true"][class*="basis-[200px]"],
@@ -63,8 +65,9 @@ object UIDiscoverPatch {
             var MOBILE_MAX = 767;
             var CARD_WIDTH = '160px';
 
+            var TABLET_UI = Math.min(screen.width, screen.height) >= 600;
             function isMobile() {
-                return ${if (Edition.TABLET) "true" else "window.innerWidth <= MOBILE_MAX"};
+                return TABLET_UI || window.innerWidth <= MOBILE_MAX;
             }
 
             function patchElement(el) {

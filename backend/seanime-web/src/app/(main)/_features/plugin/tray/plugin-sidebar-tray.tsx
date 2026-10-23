@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { MobilePluginMenu } from "./mobile-plugin-menu"
 import { tr } from "@/lib/app-language"
 import { Extension_Extension, ExtensionRepo_StoredPluginSettingsData } from "@/api/generated/types"

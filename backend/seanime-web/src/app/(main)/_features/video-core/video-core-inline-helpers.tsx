@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { AL_BaseAnime } from "@/api/generated/types"
 import { useUpdateAnimeEntryProgress } from "@/api/hooks/anime_entries.hooks"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"

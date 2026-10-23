@@ -1,4 +1,4 @@
-import { layoutWidth } from "@/lib/edition"
+import { layoutWidth } from "@/lib/tablet-ui"
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { AL_BaseAnime, Anime_Episode, Anime_LocalFileType } from "@/api/generated/types"
 import { useUpdateLocalFileData } from "@/api/hooks/localfiles.hooks"
