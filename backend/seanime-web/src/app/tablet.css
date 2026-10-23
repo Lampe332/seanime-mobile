@@ -66,6 +66,15 @@ html[data-edition="tablet"] body .UI-Modal__content:not(.mobile-workspace) { max
     html[data-edition="tablet"] .mobile-plugin-shortcuts { flex-direction: column; flex: none; overflow: visible; min-width: 0; padding: 0; }
     html[data-edition="tablet"] body:not(:has(#__seanime_bottom_nav.visible)) .mobile-plugin-actions { display: none; }
     html[data-edition="tablet"] body:has(.UI-Modal__overlay[data-state="open"]) .mobile-plugin-actions { z-index: 40; }
+    /* Plugins open beside the rail, next to its plugin button: the overview and each plugin's window */
+    html[data-edition="tablet"] body .UI-Modal__content.mobile-plugin-sheet {
+        left: calc(var(--tablet-rail) + .75rem); right: auto; bottom: calc(var(--plugin-keyboard-inset, 0px) + 1rem); margin: 0;
+        width: min(26rem, calc(100vw - var(--tablet-rail) - 1.5rem)) !important;
+    }
+    html[data-edition="tablet"] .UI-Modal__content.mobile-workspace:has(.mobile-plugin-runtime) {
+        left: calc(var(--tablet-rail) + .75rem); right: auto; bottom: calc(var(--workspace-bottom, 0px) + 1rem); margin: 0;
+        width: min(32rem, calc(100vw - var(--tablet-rail) - 1.5rem)) !important; max-height: calc(100dvh - 2rem) !important;
+    }
     /* The rail shows the app's mark; Home's small "Seanime" over its title would repeat it */
     html[data-edition="tablet"] .home-mobile-heading > span { display: none; }
 

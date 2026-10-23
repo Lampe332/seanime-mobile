@@ -1,5 +1,6 @@
 /* Only renderer-owned primitives opt into these mobile rules. Plugin-authored
-   HTML, iframes and CSS keep their own contract; no arbitrary DOM is rewritten. */
+   HTML, iframes and CSS keep their own contract; no arbitrary DOM is rewritten.
+   The last block gives those primitives the phone kit's look inside the app's plugin windows. */
 @media (max-width: 1023px) {
     .mobile-plugin-runtime { min-width: 0; overflow-wrap: anywhere; }
     .plugin-runtime-layout, .plugin-runtime-block, .plugin-runtime-field,
@@ -50,4 +51,30 @@
     .mobile-plugin-command input { min-height: 44px; min-width: 0; font-size: 1rem; }
     .mobile-plugin-command .UI-Command__list { flex: 1; min-height: 0; max-height: none; overscroll-behavior: contain; margin-top: .6rem; }
     .mobile-plugin-command .UI-Command__item { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+
+    /* ── The app's look for the primitives a plugin window renders ── */
+    /* A fixed-height scroll box inside the window (a Stack with an inline height and overflow) flows instead: the window
+       itself scrolls, so there is one scroll and no second scrollbar */
+    .mobile-plugin-runtime :is(.plugin-runtime-layout, .plugin-runtime-block):is([style*="overflow"][style*="scroll"], [style*="overflow"][style*="auto"]) {
+        height: auto !important; max-height: none !important; overflow-y: visible !important;
+    }
+    /* Outlined boxes (a plugin's cards) become the kit's raised surfaces, separated by tone instead of a line */
+    .mobile-plugin-runtime :is(.plugin-runtime-layout, .plugin-runtime-block)[class~="border"] {
+        border-color: transparent !important; border-radius: var(--sm-radius) !important; background-color: var(--sm-surface-raised) !important;
+    }
+    .mobile-plugin-runtime :is(.plugin-runtime-layout, .plugin-runtime-block)[class~="border"]:active { background-color: var(--sm-surface-control) !important; }
+    .mobile-plugin-runtime :is(.plugin-runtime-layout, .plugin-runtime-block):is([class~="border-b"], [class~="border-t"]):not([class~="border"]) { border-color: var(--sm-line) !important; }
+    /* Fields as on the app's own screens: no outline, a raised surface, 48px */
+    .mobile-plugin-runtime :is(.UI-Input__root, .UI-Textarea__root, .UI-Select__root, .UI-NumberInput__root) {
+        min-height: 48px; border-color: transparent !important; border-radius: var(--sm-radius) !important; background-color: var(--sm-surface-raised) !important; box-shadow: none !important;
+    }
+    .mobile-plugin-runtime :is(.UI-Input__root, .UI-Textarea__root):focus { outline: 2px solid var(--sm-accent); outline-offset: 0; }
+    /* Text buttons as the kit's pills; icon buttons stay round */
+    .mobile-plugin-runtime .plugin-runtime-button:not([class~="rounded-full"]) { border-radius: 999px; }
+    .mobile-plugin-runtime .plugin-runtime-button { font-weight: 600; }
+    /* Switches at the size of the app's own */
+    .mobile-plugin-runtime .UI-Switch__root { width: 3.25rem; height: 2rem; border-color: transparent; }
+    .mobile-plugin-runtime .UI-Switch__thumb { width: 1.5rem; height: 1.5rem; }
+    .mobile-plugin-runtime .UI-Switch__thumb[data-state="unchecked"] { --tw-translate-x: .25rem; }
+    .mobile-plugin-runtime .UI-Switch__thumb[data-state="checked"] { --tw-translate-x: 1.5rem; }
 }

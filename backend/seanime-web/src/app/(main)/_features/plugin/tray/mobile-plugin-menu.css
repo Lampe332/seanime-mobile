@@ -6,36 +6,36 @@ html:has(.mobile-plugin-sheet[data-state="open"]) { overflow-y: hidden !importan
 .mobile-plugin-trigger:active, .mobile-plugin-trigger[data-state="open"] { background: var(--sm-accent-soft); border-color: var(--sm-accent-line); }
 .mobile-plugin-trigger:focus-visible, .mobile-plugin-sheet button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
 .mobile-plugin-overlay { touch-action: none; position: fixed; inset: 0; z-index: 100; background: var(--sm-scrim); animation: none !important; }
-/* `body` outranks the native modal patch (.UI-Modal__content:not(.mobile-workspace)), which
-   otherwise replaces this sheet's padding, overflow and keyboard-aware max-height. */
-body .UI-Modal__content.mobile-plugin-sheet { position: fixed; z-index: 101; inset: auto 0 var(--plugin-keyboard-inset,0px); margin: 0 auto; width: 100% !important; max-width: 32rem !important; height: min(78dvh,42rem); max-height: calc(var(--plugin-viewport-height,100dvh) - max(12px,env(safe-area-inset-top),var(--plugin-safe-top,0px))) !important; display: flex; flex-direction: column; gap: 0; padding: .85rem 1rem max(.75rem,env(safe-area-inset-bottom)) !important; border: 1px solid var(--sm-line); border-bottom: 0; border-radius: var(--sm-radius-lg) var(--sm-radius-lg) 0 0; background: var(--sm-surface); color: var(--sm-text); overflow: hidden !important; box-shadow: var(--sm-shadow); animation: none !important; outline: none; }
-.mobile-plugin-heading { display: flex; align-items: center; gap: .65rem; flex: none; padding: 0 0 .75rem; }
-.mobile-plugin-heading-icon { display: grid; place-items: center; color: var(--sm-accent); width: 40px; height: 40px; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); }
-.mobile-plugin-heading h2 { flex: 1; min-width: 0; font-size: 1.125rem; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; }
-.mobile-plugin-heading h2 span { color: var(--sm-text-subtle); font-size: .8125rem; font-weight: 500; }
+/* The plugin overview in the phone kit's sheet language: a floating sheet as tall as its plugins, the title as on every sheet,
+   a pill search field and the plugins as one group of rows. `body` outranks the native modal patch
+   (.UI-Modal__content:not(.mobile-workspace)), which otherwise replaces this sheet's padding, overflow and keyboard-aware max-height. */
+body .UI-Modal__content.mobile-plugin-sheet { position: fixed; z-index: 101; inset: auto .5rem calc(var(--plugin-keyboard-inset,0px) + .5rem); margin: 0 auto; width: auto !important; max-width: 32rem !important; height: auto; max-height: calc(var(--plugin-viewport-height,100dvh) - max(12px,env(safe-area-inset-top),var(--plugin-safe-top,0px)) - 1rem) !important; display: flex; flex-direction: column; gap: 0; padding: 20px 16px max(12px,env(safe-area-inset-bottom)) !important; border: 0; border-radius: var(--sm-radius-lg); background: var(--sm-surface); color: var(--sm-text); overflow: hidden !important; box-shadow: 0 12px 32px rgb(0 0 0 / .5); animation: none !important; outline: none; } /* taste-skill-ignore: the sheet floats */
+.mobile-plugin-heading { display: flex; align-items: flex-start; gap: .5rem; flex: none; padding: 0 0 .25rem; }
+.mobile-plugin-heading-icon { display: none; }
+.mobile-plugin-heading h2 { flex: 1; min-width: 0; padding-top: .25rem; font-size: 1.375rem; font-weight: 750; line-height: 1.25; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.mobile-plugin-heading h2 span { margin-left: .375rem; color: var(--sm-text-subtle); font-size: .875rem; font-weight: 500; letter-spacing: 0; font-variant-numeric: tabular-nums; }
 .mobile-plugin-sheet button { -webkit-tap-highlight-color: transparent; }
-.mobile-plugin-close, .mobile-plugin-search button, .mobile-plugin-pin { display: grid; place-items: center; width: 44px; min-width: 44px; min-height: 44px; flex: none; border-radius: var(--sm-radius-sm); color: var(--sm-text-muted); }
-.mobile-plugin-close { background: var(--sm-surface-control); }
+.mobile-plugin-close, .mobile-plugin-search button, .mobile-plugin-pin { display: grid; place-items: center; width: 48px; min-width: 48px; min-height: 48px; flex: none; border-radius: 999px; color: var(--sm-text-muted); background: transparent; }
+.mobile-plugin-close { margin: -.75rem -.5rem 0 0; }
 .mobile-plugin-close svg, .mobile-plugin-search svg, .mobile-plugin-pin svg { width: 20px; height: 20px; flex: none; }
-.mobile-plugin-search { display: flex; align-items: center; gap: .6rem; border: 1px solid var(--sm-line-strong); border-radius: var(--sm-radius-sm); background: var(--sm-surface-sunken); padding: 0 .65rem; margin-bottom: .75rem; min-height: 44px; flex: none; color: var(--sm-text-subtle); }
-.mobile-plugin-search:focus-within { border-color: var(--sm-accent-line); box-shadow: 0 0 0 2px var(--sm-accent-softer); }
-.mobile-plugin-search input { width: 100%; min-width: 0; min-height: 44px; padding: .5rem 0; font-size: 1rem; line-height: 1.4; border: none; outline: none; box-shadow: none !important; color: var(--sm-text); background: transparent; }
+.mobile-plugin-search { display: flex; align-items: center; gap: .5rem; border: 0; border-radius: 999px; background: var(--sm-surface-raised); padding: 0 0 0 1rem; margin-bottom: 1rem; min-height: 48px; flex: none; color: var(--sm-text-subtle); }
+.mobile-plugin-search:focus-within { outline: 2px solid var(--sm-accent); outline-offset: 0; }
+.mobile-plugin-search input { width: 100%; min-width: 0; min-height: 48px; padding: .5rem 0; font-size: 1rem; line-height: 1.4; border: none; outline: none; box-shadow: none !important; color: var(--sm-text); background: transparent; }
 .mobile-plugin-search input::placeholder { color: var(--sm-text-subtle); }
 .mobile-plugin-search input::-webkit-search-cancel-button { display: none; }
-.mobile-plugin-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #4a4a50 transparent; padding: 2px 3px 4px; }
-.mobile-plugin-row { display: flex; align-items: center; gap: .25rem; min-width: 0; padding: .25rem 0; border-bottom: 1px solid var(--sm-line); }
-.mobile-plugin-row[data-pinned="true"] { background: var(--sm-accent-softer); border-radius: var(--sm-radius-sm); }
-.mobile-plugin-open { display: flex; align-items: center; flex: 1; min-width: 0; min-height: 52px; gap: .75rem; border-radius: var(--sm-radius-sm); padding: .4rem .25rem; text-align: left; color: var(--sm-text); }
-.mobile-plugin-icon { display: grid; place-items: center; position: relative; width: 36px; height: 36px; flex: none; border: 1px solid var(--sm-line); border-radius: .65rem; background: var(--sm-surface-raised); color: var(--sm-text-muted); overflow: hidden; }
-.mobile-plugin-icon img { width: 28px; height: 28px; object-fit: contain; }
+.mobile-plugin-list { flex: 0 1 auto; min-height: 0; display: grid; align-content: start; gap: 2px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; border-radius: var(--sm-radius); }
+.mobile-plugin-row { display: flex; align-items: center; gap: .25rem; min-width: 0; padding: 0 .25rem 0 0; background: var(--sm-surface-raised); }
+.mobile-plugin-open { display: flex; align-items: center; flex: 1; min-width: 0; min-height: 4rem; gap: .875rem; padding: .625rem .5rem .625rem .75rem; text-align: left; color: var(--sm-text); }
+.mobile-plugin-icon { display: grid; place-items: center; position: relative; width: 40px; height: 40px; flex: none; border: 0; border-radius: .75rem; background: var(--sm-surface-control); color: var(--sm-text-muted); overflow: hidden; }
+.mobile-plugin-icon img { width: 30px; height: 30px; object-fit: contain; }
 .mobile-plugin-icon svg { width: 22px; height: 22px; }
-.mobile-plugin-name { min-width: 0; flex: 1; font-size: .875rem; line-height: 1.4; overflow-wrap: anywhere; }
-.mobile-plugin-name small { display: block; font-size: .6875rem; line-height: 1.5; color: var(--sm-accent); }
-.mobile-plugin-chevron { width: 16px; height: 16px; flex: none; color: var(--sm-text-subtle); }
-.mobile-plugin-pin { border: 1px solid transparent; }
-.mobile-plugin-pin[aria-pressed="true"] { color: var(--sm-accent); background: var(--sm-accent-soft); border-color: var(--sm-accent-line); }
+.mobile-plugin-name { min-width: 0; flex: 1; font-size: .9375rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.mobile-plugin-name small { display: block; margin-top: .125rem; font-size: .8125rem; font-weight: 500; line-height: 1.4; color: var(--sm-text-muted); }
+.mobile-plugin-chevron { width: 18px; height: 18px; flex: none; color: var(--sm-text-subtle); }
+.mobile-plugin-pin[aria-pressed="true"] { color: var(--sm-accent); }
 .mobile-plugin-pin:disabled { opacity: .4; }
-.mobile-plugin-open:active, .mobile-plugin-close:active, .mobile-plugin-pin:active { background: var(--sm-surface-control); }
+.mobile-plugin-open:active, .mobile-plugin-row:has(.mobile-plugin-open:active) { background: var(--sm-surface-control); }
+.mobile-plugin-close:active, .mobile-plugin-pin:active, .mobile-plugin-search button:active { background: var(--sm-surface-control); }
 .mobile-plugin-empty { display: grid; justify-items: center; gap: .75rem; padding: 2rem .5rem; text-align: center; color: var(--sm-text-muted); font-size: .875rem; }
 .mobile-plugin-empty > svg { width: 32px; height: 32px; color: var(--sm-text-subtle); }
 .mobile-plugin-status { flex: none; padding: .5rem; font-size: .8125rem; color: var(--sm-text-muted); line-height: 1.5; }
