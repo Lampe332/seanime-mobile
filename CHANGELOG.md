@@ -2,6 +2,14 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.17 — 23.10.2026 (versionCode 31112)
+
+- 🦺 Messages: A message that shows up where you last touched (like over the player) no longer stays until the next tap
+- ⚡️ Nakama: An open anime page shows the host's episodes as soon as the host connects; its messages in your language
+- 🦺 Nakama: A host address typed without http:// (like 192.168.1.20:43211) connects
+- 🦺 Nakama: Changing the host address or passcode connects to the new host right away, also while the app still tries the previous one; "Connect again" starts over instead of failing
+- 🦺 Nakama: A host that was switched off is found again by itself (once a minute); a host gone to sleep no longer holds the library for two minutes, after one short wait the phone's own library shows; playing from a host that doesn't answer says so in plain words and no longer leaves the loading circle
+
 ## 2.0.12 — 23.10.2026 (versionCode 31107)
 
 - 🎉 Anime pages: Choose under More → Tabs which streaming tabs (Torrent, Debrid, Online) your phone shows
