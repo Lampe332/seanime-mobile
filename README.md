@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/readme/banner.2f2dcf35.png" alt="Seanime Mobile: the built-in player playing an episode in landscape" width="100%">
+  <img src="docs/images/readme/banner.62632125.png" alt="Seanime Mobile: anime and manga on Android, with Discover, Home and the manga reader on three phones" width="100%">
 </p>
 
 <p align="center">
