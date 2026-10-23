@@ -44,10 +44,12 @@ with tempfile.TemporaryDirectory(prefix='seanime-entry-more-') as tmp:
     subprocess.run(['node',str(root/'tests/mobile_entry_more_bundle.cjs'),str(bundle)],check=True,cwd=root)
     with sync_playwright() as pw:
         browser=pw.chromium.launch(headless=True)
-        def open_page(width=390,height=844,language=None,view='library',entry=154587,html_style=''):
+        def open_page(width=390,height=844,language=None,view='library',entry=154587,html_style='',status=None):
             page=browser.new_page(viewport=dict(width=width,height=height),device_scale_factor=3,has_touch=True,is_mobile=True)
             page.on('pageerror',lambda e:errors.append(str(e)[:300]))
-            page.add_init_script(INIT%(json.dumps(copy.deepcopy(SERVER)),json.dumps(view),json.dumps(entry)))
+            server=copy.deepcopy(SERVER)
+            if status: server['status']=status
+            page.add_init_script(INIT%(json.dumps(server),json.dumps(view),json.dumps(entry)))
             if language: page.add_init_script(f'localStorage.setItem("seanime-mobile-language",JSON.stringify("{language}"))')
             page.route('http://more.test/static/font/**',lambda r:r.fulfill(path=str(STATIC/'font'/r.request.url.split('/')[-1])))
             html=f'<html class="dark" lang="en" style="{html_style}"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="background:#0c0c0e"><div id="root"></div></body></html>'
@@ -168,6 +170,27 @@ with tempfile.TemporaryDirectory(prefix='seanime-entry-more-') as tmp:
         tap(page,'[data-metadata-parent-remove]',600)
         check('Unlink removes it',reqs(page,'DELETE','/api/v1/metadata/parent')==[dict(mediaId=999)])
         check('Specials: 48px targets, no overflow',small(page)==[] and page.evaluate(NO_OVERFLOW))
+        page.close()
+
+        # Tabs: the streaming tabs this phone shows on anime pages
+        page=open_page(status={**STATUS,'torrentstreamSettings':dict(enabled=True),'debridSettings':dict(enabled=True),'settings':dict(library=dict(enableOnlinestream=True))})
+        tap(page,'[data-anime-entry-dropdown-menu-trigger]')
+        groups=page.evaluate('[...document.querySelectorAll(".UI-Modal__content[data-state=open] .ps-sheet-head h3")].map(h=>h.textContent)')
+        tabs=lambda:page.evaluate('[...document.querySelectorAll("[data-entry-tab]")].map(b=>[b.dataset.entryTab,b.getAttribute("aria-checked")])')
+        hidden=lambda:page.evaluate('JSON.parse(localStorage.getItem("sea-anime-entry-hidden-views")||"[]")')
+        check('Tabs: last group, one switch per streaming source the server has on, all shown',groups[-1]=='Tabs'
+              and tabs()==[['torrentstream','true'],['debridstream','true'],['onlinestream','true']] and 'library tab always stays' in page.locator('[data-entry-tabs]').inner_text())
+        tap(page,'[data-entry-tab=torrentstream]',200);tap(page,'[data-entry-tab=debridstream]',200)
+        check('Tabs: torrent and debrid off, kept on this phone',tabs()==[['torrentstream','false'],['debridstream','false'],['onlinestream','true']]
+              and hidden()==['torrentstream','debridstream'])
+        shot(page,'more-tabs-390.png')
+        tap(page,'[data-entry-tab=torrentstream]',200)
+        check('Tabs: torrent back on',hidden()==['debridstream'] and page.evaluate(SHEETS)==1)
+        check('Tabs: 48px targets, no overflow',small(page)==[] and page.evaluate(NO_OVERFLOW))
+        page.close()
+        page=open_page(status={**STATUS,'torrentstreamSettings':dict(enabled=True)})
+        tap(page,'[data-anime-entry-dropdown-menu-trigger]')
+        check('Tabs: only the sources that are on',tabs()==[['torrentstream','true']])
         page.close()
 
         # German, 320px with 200% text

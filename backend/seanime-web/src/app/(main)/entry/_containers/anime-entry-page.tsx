@@ -22,6 +22,7 @@ import { RelationsRecommendationsSection } from "@/app/(main)/entry/_components/
 import { DebridStreamPage } from "@/app/(main)/entry/_containers/debrid-stream/debrid-stream-page"
 import { ENTRY_VIEW_SHELL_TRANSITION, ENTRY_VIEW_TRANSITION } from "@/app/(main)/entry/_containers/entry-view-transition"
 import { EpisodeSection } from "@/app/(main)/entry/_containers/episode-list/episode-section"
+import { __anime_hiddenEntryViewsAtom } from "@/app/(main)/entry/_lib/hidden-entry-views"
 import { __torrentSearch_selectionAtom, TorrentSearchDrawer } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
 import { TorrentSearchPhone } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-phone"
 import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
@@ -46,18 +47,20 @@ const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 export const __anime_entryPageViewAtom = atom<string>("library")
 
-function getAutomaticAnimeEntryView(entry: Anime_Entry | undefined, serverStatus: ReturnType<typeof useServerStatus>) {
+function getAutomaticAnimeEntryView(entry: Anime_Entry | undefined, serverStatus: ReturnType<typeof useServerStatus>, hidden: string[]) {
+    const available = (view: string) => isBuiltInAnimeEntryViewAvailable(view, serverStatus, hidden)
     if ((IS_ANDROID_APP)) {
-        return serverStatus?.settings?.library?.enableOnlinestream && !entry?.libraryData ? "onlinestream" : "library"
+        return available("onlinestream") && !entry?.libraryData ? "onlinestream" : "library"
     }
     if (entry?.libraryData) return "library"
-    if (serverStatus?.debridSettings?.enabled) return "debridstream"
-    if (serverStatus?.torrentstreamSettings?.enabled) return "torrentstream"
-    if (serverStatus?.settings?.library?.enableOnlinestream) return "onlinestream"
+    if (available("debridstream")) return "debridstream"
+    if (available("torrentstream")) return "torrentstream"
+    if (available("onlinestream")) return "onlinestream"
     return "library"
 }
 
-function isBuiltInAnimeEntryViewAvailable(view: string, serverStatus: ReturnType<typeof useServerStatus>) {
+function isBuiltInAnimeEntryViewAvailable(view: string, serverStatus: ReturnType<typeof useServerStatus>, hidden: string[]) {
+    if (view !== "library" && hidden.includes(view)) return false
     switch (view) {
         case "library":
             return true
@@ -128,6 +131,7 @@ export function AnimeEntryPage() {
     const vc_fullscreen = useAtomValue(vc_isFullscreen)
 
     const { currentView, setView } = useAnimeEntryPageView()
+    const hiddenViews = useAtomValue(__anime_hiddenEntryViewsAtom)
     const switchedView = React.useRef(false)
 
     const pluginEpisodeTabs = usePluginAnimeEntryEpisodeTabs({
@@ -179,7 +183,7 @@ export function AnimeEntryPage() {
 
             if (switchedView.current) return
 
-            const automaticView = getAutomaticAnimeEntryView(animeEntry, serverStatus)
+            const automaticView = getAutomaticAnimeEntryView(animeEntry, serverStatus, hiddenViews)
             let nextView = ""
 
             if (tab) {
@@ -189,7 +193,7 @@ export function AnimeEntryPage() {
                     if (registeredEpisodeTabExtensionIds.has(pluginId)) {
                         nextView = getPluginEpisodeTabViewId(pluginId)
                     }
-                } else if (isBuiltInAnimeEntryViewAvailable(tab, serverStatus)) {
+                } else if (isBuiltInAnimeEntryViewAvailable(tab, serverStatus, hiddenViews)) {
                     nextView = tab
             }
         }
@@ -202,7 +206,7 @@ export function AnimeEntryPage() {
                     if (registeredEpisodeTabExtensionIds.has(pluginId)) {
                         nextView = getPluginEpisodeTabViewId(pluginId)
                     }
-                } else if (defaultSource && isBuiltInAnimeEntryViewAvailable(defaultSource, serverStatus)) {
+                } else if (defaultSource && isBuiltInAnimeEntryViewAvailable(defaultSource, serverStatus, hiddenViews)) {
                     nextView = defaultSource
                 }
             }
@@ -216,7 +220,12 @@ export function AnimeEntryPage() {
 
         },
         [animeEntry, animeEntryLoading, mediaId, serverStatus, tab, registeredEpisodeTabExtensions, registeredEpisodeTabExtensionsFetched,
-            registeredEpisodeTabExtensionIds])
+            registeredEpisodeTabExtensionIds, hiddenViews])
+
+    // A tab hidden while it is open gives way to the page's usual one
+    React.useEffect(() => {
+        if (hiddenViews.includes(currentView)) setView(getAutomaticAnimeEntryView(animeEntry, serverStatus, hiddenViews))
+    }, [currentView, hiddenViews, animeEntry, serverStatus])
 
     React.useEffect(() => {
             if (!currentView.startsWith("episodeTab:")) return
@@ -225,7 +234,7 @@ export function AnimeEntryPage() {
             const pluginId = getPluginEpisodeTabExtensionId(currentView)
             if (!pluginId) return
 
-            const automaticView = getAutomaticAnimeEntryView(animeEntry, serverStatus)
+            const automaticView = getAutomaticAnimeEntryView(animeEntry, serverStatus, hiddenViews)
             if (registeredEpisodeTabExtensions && !registeredEpisodeTabExtensionIds.has(pluginId)) {
                 setView(automaticView)
                 return
@@ -236,7 +245,7 @@ export function AnimeEntryPage() {
             }
         },
         [currentView, animeEntry, serverStatus, registeredEpisodeTabExtensions, registeredEpisodeTabExtensionIds,
-            pluginEpisodeTabs.renderedExtensionIds, pluginEpisodeTabs.selectedTab])
+            pluginEpisodeTabs.renderedExtensionIds, pluginEpisodeTabs.selectedTab, hiddenViews])
 
     React.useEffect(() => {
         if (!pathname.startsWith("/entry")) return
@@ -445,6 +454,7 @@ export function EntrySectionTabs(props: EntrySectionTabs) {
     } = props
 
     const serverStatus = useServerStatus()
+    const hiddenViews = useAtomValue(__anime_hiddenEntryViewsAtom)
     const t = useTr()
 
     const {
@@ -463,9 +473,9 @@ export function EntrySectionTabs(props: EntrySectionTabs) {
         !entry ||
         entry.media?.status === "NOT_YET_RELEASED") return null
 
-    const torrentstreamOn = !!serverStatus?.torrentstreamSettings?.enabled
-    const debridstreamOn = !!serverStatus?.debridSettings?.enabled
-    const onlinestreamOn = !!serverStatus?.settings?.library?.enableOnlinestream
+    const torrentstreamOn = isBuiltInAnimeEntryViewAvailable("torrentstream", serverStatus, hiddenViews)
+    const debridstreamOn = isBuiltInAnimeEntryViewAvailable("debridstream", serverStatus, hiddenViews)
+    const onlinestreamOn = isBuiltInAnimeEntryViewAvailable("onlinestream", serverStatus, hiddenViews)
 
     if (!torrentstreamOn && !debridstreamOn && !onlinestreamOn && pluginTabs.length === 0) return null
 

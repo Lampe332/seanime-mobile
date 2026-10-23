@@ -7,12 +7,14 @@ import {
     useRemoveFillerData,
     useSaveMediaMetadataParent,
 } from "@/api/hooks/metadata.hooks"
-import { PhoneEmpty, PhoneField, PhonePick, PhoneRow, PhoneSheet, PhoneSheetGroup } from "@/app/(main)/_features/phone-screen/phone-screen"
+import { PhoneEmpty, PhoneField, PhonePick, PhoneRow, PhoneSheet, PhoneSheetGroup, PhoneSwitch } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { usePluginAnimePageDropdownItems } from "@/app/(main)/_features/plugin/actions/plugin-actions"
+import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { useAnimeEntryPageView } from "@/app/(main)/entry/_containers/anime-entry-page"
+import { __anime_hiddenEntryViewsAtom } from "@/app/(main)/entry/_lib/hidden-entry-views"
 import { __torrentSearch_selectionAtom } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
 import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
-import { useSetAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import { IconButton } from "@/components/ui/button"
 import { copyToClipboard } from "@/lib/helpers/browser"
 import { Translate, useTr } from "@/lib/app-language"
@@ -25,7 +27,8 @@ import { toast } from "sonner"
 
 /**
  * The anime page's "More" on Android phones: the anime elsewhere (AniList, AniDB, MyAnimeList), filler episodes and
- * specials metadata, the plugins' actions, and for anime in the local library unmatching or deleting some of its files.
+ * specials metadata, the plugins' actions, for anime in the local library unmatching or deleting some of its files, and
+ * which streaming tabs anime pages show on this phone.
  * Each opens a sheet of the phone kit instead of the desktop dropdown and its centred modals. Downloading files to the
  * browser is left out: on a phone they already are on the device.
  */
@@ -52,6 +55,13 @@ export function AnimeEntryPhoneMenu({ entry, details }: { entry: Anime_Entry, de
     const { data: torrentProviders } = useAnimeListTorrentProviderExtensions()
     const openTorrentSearch = useSetAtom(__torrentSearch_selectionAtom)
     const canDownloadTorrent = !!torrentProviders?.length && entry.media?.status !== "NOT_YET_RELEASED" && !entry._isNakamaEntry
+    const serverStatus = useServerStatus()
+    const [hiddenViews, setHiddenViews] = useAtom(__anime_hiddenEntryViewsAtom)
+    const tabs = [
+        { view: "torrentstream", label: t("Torrent streaming", "Torrent-Streaming"), on: !!serverStatus?.torrentstreamSettings?.enabled },
+        { view: "debridstream", label: t("Debrid streaming", "Debrid-Streaming"), on: !!serverStatus?.debridSettings?.enabled },
+        { view: "onlinestream", label: t("Online streaming", "Online-Streaming"), on: !!serverStatus?.settings?.library?.enableOnlinestream },
+    ].filter(tab => tab.on)
 
     // One sheet at a time: the menu closes before the next one opens, so Back always returns to the page
     const go = (next: View) => {
@@ -98,6 +108,13 @@ export function AnimeEntryPhoneMenu({ entry, details }: { entry: Anime_Entry, de
                             setView(null)
                             runPlugin(item)
                         }} />)}
+                </div>
+            </PhoneSheetGroup>}
+            {tabs.length > 0 && <PhoneSheetGroup title={t("Tabs", "Tabs")} data-entry-tabs
+                note={t("For every anime page on this phone. The library tab always stays.", "Für jede Anime-Seite auf diesem Handy. Der Bibliothek-Tab bleibt immer.")}>
+                <div className="ps-rows">
+                    {tabs.map(tab => <PhoneSwitch key={tab.view} label={tab.label} checked={!hiddenViews.includes(tab.view)} data-entry-tab={tab.view}
+                        onChange={shown => setHiddenViews(list => shown ? list.filter(view => view !== tab.view) : [...list, tab.view])} />)}
                 </div>
             </PhoneSheetGroup>}
         </PhoneSheet>
