@@ -2,6 +2,11 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.19 — 23.10.2026 (versionCode 31114)
+
+- 🎉 Tablets: A tablet edition (`Seanime-Mobile-Tablet-X.Y.Z.apk`) shows the phone app on tablets: the same screens, bottom bar, sheets and player instead of the desktop layout, in landscape and portrait; the bar and the menu keep phone proportions in the middle of the screen
+- 🏗️ Updates: Each edition only installs updates made for it (phone or tablet APK)
+
 ## 2.0.17 — 23.10.2026 (versionCode 31112)
 
 - 🦺 Messages: A message that shows up where you last touched (like over the player) no longer stays until the next tap
