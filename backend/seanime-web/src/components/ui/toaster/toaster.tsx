@@ -77,7 +77,29 @@ export const ToasterAnatomy = defineStyleAnatomy({
 
 export type ToasterProps = React.ComponentProps<typeof Sonner>
 
+const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+
+/**
+ * After a touch, Android sends mouse events to whatever appears under the finger's last spot. Sonner takes them for
+ * hovering and keeps its toasts until the next touch elsewhere, and the player's back button sits where toasts appear.
+ * The app has no mouse, so they never reach the toaster (swipes and taps are pointer and click events and still do).
+ */
+function useNoHoverOnTouch() {
+    React.useEffect(() => {
+        if (!IS_ANDROID_APP) return
+        const inToaster = (node: EventTarget | null) => !!(node as Element | null)?.closest?.("[data-sonner-toaster]")
+        // React makes its mouseenter from a mouseover on the toaster and from a mouseout towards it
+        const block = (event: Event) => {
+            if (event.type === "mouseout" ? inToaster((event as MouseEvent).relatedTarget) : inToaster(event.target)) event.stopPropagation()
+        }
+        const types = ["mouseover", "mousemove", "mouseout"]
+        types.forEach(type => window.addEventListener(type, block, true))
+        return () => types.forEach(type => window.removeEventListener(type, block, true))
+    }, [])
+}
+
 export const Toaster = ({ position = "top-right", ...props }: ToasterProps) => {
+    useNoHoverOnTouch()
 
     const allProps = React.useMemo(() => ({
         position,
