@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.27 — 23.10.2026 (versionCode 31122)
+
+- 🦺 Tablets: Manga pages show "Continue reading" with the next chapter again in landscape
+
 ## 2.0.26 — 23.10.2026 (versionCode 31121)
 
 - 🦺 Home: Anime and manga carousels added in Customize Home show the top-rated titles until you name them, instead of "missing some required options"
