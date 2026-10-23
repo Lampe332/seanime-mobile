@@ -48,3 +48,14 @@
 .issue-phone-recording { color: var(--sm-danger); font-weight: 650; font-variant-numeric: tabular-nums; }
 .issue-phone-textarea { width: 100%; padding: .75rem 1rem; border: 0; border-radius: var(--sm-radius); background: var(--sm-surface-raised); color: var(--sm-text); font-size: 1rem; line-height: 1.5; resize: none; }
 .issue-phone-textarea:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 0; }
+
+/* Toasts on Android (toaster.tsx adds sm-toast): the app's raised surface and type, the type shown by the icon's colour
+   instead of a green, red or blue block; the doubled class outranks the toaster's Tailwind type colours. */
+.sm-toast.sm-toast { border: 0 !important; border-radius: var(--sm-radius) !important; background: var(--sm-surface-control) !important; color: var(--sm-text) !important;
+    box-shadow: 0 12px 32px rgb(0 0 0 / .45) !important; backdrop-filter: none !important; font-size: .875rem; line-height: 1.4; } /* taste-skill-ignore: toasts float */
+.sm-toast.sm-toast [data-description] { color: var(--sm-text-muted) !important; }
+.sm-toast [data-icon] { color: var(--sm-text-muted); }
+.sm-toast[data-type="success"] [data-icon] { color: #6fd39a; }
+.sm-toast[data-type="error"] [data-icon] { color: var(--sm-danger); }
+.sm-toast[data-type="warning"] [data-icon] { color: #f0c47e; }
+.sm-toast[data-type="info"] [data-icon] { color: var(--sm-accent); }

@@ -170,6 +170,12 @@ html[data-edition="tablet"] .pst-pane-title { font-size: 1.375rem; line-height: 
     html[data-edition="tablet"] .mex-panel:has(> .mex-section + .mex-section) { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--tablet-gutter); align-items: start; }
     html[data-edition="tablet"] .mex-panel:has(> .mex-section + .mex-section) > :not(.mex-section) { grid-column: 1 / -1; }
 
+    /* ── Workspaces that are not a plugin's window (playlists) open as a side sheet like the other sheets ── */
+    html[data-edition="tablet"] .UI-Modal__content.mobile-workspace:not(:has(.mobile-plugin-runtime)) {
+        inset: 0 0 0 auto; margin: 0; width: min(30rem, 100%) !important; height: 100dvh; max-height: 100dvh !important;
+        border-radius: var(--sm-radius-lg) 0 0 var(--sm-radius-lg);
+    }
+
     /* ── Sheets open as a side sheet on the right, the full height of the screen ── */
     html[data-edition="tablet"] body :is(.ps-sheet, .mex-sheet, .mml-sheet, .msc-sheet, .mobile-download-sheet, .mobile-match-sheet, .mobile-cache-sheet, .home-filter-sheet,
         .home-mobile-settings, .reader-settings-sheet, .anilist-login-sheet).UI-Modal__content {

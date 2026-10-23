@@ -11,11 +11,14 @@ html:has(.mobile-workspace[data-state="open"]) { overflow-y: hidden !important; 
 .mobile-workspace-footer { flex: none; padding: .75rem 1rem max(.75rem,env(safe-area-inset-bottom)); background: var(--sm-surface-raised); border-top: 1px solid var(--sm-line); }
 .mobile-workspace button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
 .mobile-workspace-close:active,.mobile-workspace-back:active { background: var(--sm-line-strong); }
-/* Plugin windows (a plugin's tray or modal) in the phone kit's sheet language: a floating sheet as tall as its content,
-   the plugin's name as the title without a rule under it, a round close button */
-.UI-Modal__content.mobile-workspace:has(.mobile-plugin-runtime) { inset: auto .5rem calc(var(--workspace-bottom,0px) + .5rem); width: auto !important; height: auto; max-height: calc(var(--workspace-height,100dvh) - max(8px,env(safe-area-inset-top),var(--workspace-top,0px)) - 1rem) !important; border-radius: var(--sm-radius-lg); box-shadow: 0 12px 32px rgb(0 0 0 / .5); } /* taste-skill-ignore: the sheet floats */
-.mobile-workspace:has(.mobile-plugin-runtime) .mobile-workspace-header { padding: 1rem .5rem .25rem 1rem; border-bottom: 0; }
-.mobile-workspace:has(.mobile-plugin-runtime) .mobile-workspace-identity h2 { font-size: 1.25rem; font-weight: 750; line-height: 1.3; letter-spacing: -.015em; }
-.mobile-workspace:has(.mobile-plugin-runtime) .mobile-workspace-close { width: 48px; height: 48px; margin-top: -.25rem; border-radius: 999px; background: transparent; }
-.mobile-workspace:has(.mobile-plugin-runtime) .mobile-workspace-body { padding: .75rem 1rem 1.25rem; scrollbar-width: none; }
-.mobile-workspace:has(.mobile-plugin-runtime) .mobile-workspace-body::-webkit-scrollbar { display: none; }
+/* Workspaces (a plugin's window, playlists) in the phone kit's sheet language: a floating sheet as tall as its content,
+   the title without a rule under it, round header buttons, the footer's action on the sheet itself. Margins in px: with
+   large text and the keyboard open every rem counts twice. */
+.UI-Modal__content.mobile-workspace { inset: auto 8px calc(var(--workspace-bottom,0px) + 8px); width: auto !important; height: auto; max-height: calc(var(--workspace-height,100dvh) - max(8px,env(safe-area-inset-top),var(--workspace-top,0px)) - 16px) !important; border-radius: var(--sm-radius-lg); box-shadow: 0 12px 32px rgb(0 0 0 / .5); } /* taste-skill-ignore: the sheet floats */
+.mobile-workspace .mobile-workspace-header { padding: 12px 8px 4px 16px; border-bottom: 0; }
+.mobile-workspace .mobile-workspace-identity h2 { font-size: 1.125rem; font-weight: 750; line-height: 1.3; letter-spacing: -.015em; }
+.mobile-workspace .mobile-workspace-close { width: 48px; height: 48px; margin-top: -.25rem; border-radius: 999px; background: transparent; }
+.mobile-workspace .mobile-workspace-body { padding: .75rem 1rem 1.25rem; scrollbar-width: none; }
+.mobile-workspace .mobile-workspace-body::-webkit-scrollbar { display: none; }
+.mobile-workspace .mobile-workspace-back { width: 48px; height: 48px; border-radius: 999px; background: transparent; }
+.mobile-workspace .mobile-workspace-footer { padding: .75rem 1rem max(1rem, env(safe-area-inset-bottom)); border-top: 0; background: var(--sm-surface); }

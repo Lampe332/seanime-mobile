@@ -107,7 +107,8 @@ export const Toaster = ({ position = "top-right", ...props }: ToasterProps) => {
         className: cn(ToasterAnatomy.toaster()),
         toastOptions: {
             classNames: {
-                toast: cn(ToasterAnatomy.toast()),
+                // Android: the app's raised surface with a coloured icon (mobile-surface.css) instead of a coloured block
+                toast: cn(ToasterAnatomy.toast(), import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && "sm-toast"),
                 description: cn(ToasterAnatomy.description()),
                 actionButton: cn(ToasterAnatomy.actionButton()),
                 cancelButton: cn(ToasterAnatomy.cancelButton()),
