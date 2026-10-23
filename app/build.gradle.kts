@@ -47,10 +47,6 @@ android {
         release {
             signingConfig = signingConfigs.findByName("localRelease")
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
         }
     }
 

@@ -99,11 +99,6 @@ class WidgetCache(context: Context) {
         return prefs.getString(KEY_ERROR, null)
     }
 
-    fun clearError() {
-        editor.remove(KEY_ERROR)
-        editor.apply()
-    }
-
     fun hasValidCache(): Boolean {
         val timestamp = prefs.getLong(KEY_CACHE_TIMESTAMP, 0)
         return prefs.contains(KEY_CACHE_DATA) &&

@@ -176,8 +176,4 @@ class SeanimeService : Service() {
         // Keep the channel ID stable so a user's disabled category stays disabled.
         notificationManager.createNotificationChannel(channel)
     }
-
-    companion object {
-        const val ACTION_NOTIFICATION_PERMISSION_GRANTED = "com.seanime.app.NOTIFICATION_PERMISSION_GRANTED"
-    }
 }
