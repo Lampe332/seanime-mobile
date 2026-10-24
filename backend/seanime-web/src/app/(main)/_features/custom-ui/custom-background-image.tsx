@@ -37,7 +37,7 @@ export function CustomBackgroundImage(props: CustomBackgroundImageProps) {
                     <div
                         data-custom-background-image-cover
                         className={cn(
-                            "fixed w-full h-full inset-0 z-[-1] bg-no-repeat bg-cover bg-center transition-opacity duration-1000 scroll-locked-offset-fixed",
+                            "fixed w-full h-full inset-0 z-[-1] bg-no-repeat bg-cover bg-center transition-opacity duration-1000",
                             className,
                         )}
                         style={{
