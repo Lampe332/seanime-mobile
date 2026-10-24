@@ -50,7 +50,7 @@ object UIHomePatch {
                 }
 
                 /* ── Top navbar ── */
-                [data-top-menu="true"], [data-top-navbar-content-separator="true"] {
+                [data-top-navbar-content-separator="true"] {
                     display: none !important;
                 }
 
