@@ -119,9 +119,3 @@ func (d *EfficientDice) generateNgrams(s string, buffer *[]uint64, countMap map[
 		countMap[hash]++
 	}
 }
-
-func CompareStrings(a, b string) float64 {
-	d := GetEfficientDice()
-	defer PutEfficientDice(d)
-	return d.Compare(a, b)
-}

@@ -32,11 +32,6 @@ func Configure(tokenCheck func() bool, extensionCheck func() bool) {
 	hasExtension.Store(&extensionCheck)
 }
 
-// Enabled reports whether the gate applies on this platform.
-func Enabled() bool {
-	return enabled.Load()
-}
-
 // Locked reports whether AniList content must be withheld right now.
 func Locked() bool {
 	if !enabled.Load() {

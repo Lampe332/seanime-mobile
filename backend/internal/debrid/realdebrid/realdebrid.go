@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -99,17 +98,6 @@ func NewRealDebrid(logger *zerolog.Logger) debrid.Provider {
 	}
 }
 
-func NewRealDebridT(logger *zerolog.Logger) *RealDebrid {
-	return &RealDebrid{
-		baseUrl: "https://api.real-debrid.com/rest/1.0",
-		apiKey:  mo.None[string](),
-		client: &http.Client{
-			Timeout: time.Second * 30,
-		},
-		logger: logger,
-	}
-}
-
 func (t *RealDebrid) GetSettings() debrid.Settings {
 	return debrid.Settings{
 		ID:   "realdebrid",
@@ -166,22 +154,6 @@ func (t *RealDebrid) Authenticate(apiKey string) error {
 	return nil
 }
 
-//	{
-//	   "string": { // First hash
-//	       "string": [ // hoster, ex: "rd"
-//	           // All file IDs variants
-//	           {
-//	               "int": { // file ID, you must ask all file IDs from this array on /selectFiles to get instant downloading
-//	                   "filename": "string",
-//	                   "filesize": int
-//	               },
-//	           },
-type instantAvailabilityResponse map[string]map[string][]map[int]instantAvailabilityFile
-type instantAvailabilityFile struct {
-	Filename string `json:"filename"`
-	Filesize int64  `json:"filesize"`
-}
-
 func (t *RealDebrid) GetInstantAvailability(hashes []string) map[string]debrid.TorrentItemInstantAvailability {
 
 	t.logger.Trace().Strs("hashes", hashes).Msg("realdebrid: Checking instant availability")
@@ -195,89 +167,6 @@ func (t *RealDebrid) GetInstantAvailability(hashes []string) map[string]debrid.T
 	// Devnote: Endpoint doesn't exist anymore
 	//return t.getInstantAvailabilityT(hashes, 3, 100)
 	return availability
-}
-
-func (t *RealDebrid) getInstantAvailabilityT(hashes []string, retries int, limit int) (ret map[string]debrid.TorrentItemInstantAvailability) {
-
-	ret = make(map[string]debrid.TorrentItemInstantAvailability)
-
-	var hashBatches [][]string
-
-	for i := 0; i < len(hashes); i += limit {
-		end := i + limit
-		if end > len(hashes) {
-			end = len(hashes)
-		}
-		hashBatches = append(hashBatches, hashes[i:end])
-	}
-
-	for _, batch := range hashBatches {
-
-		hashParams := ""
-		for _, hash := range batch {
-			hashParams += "/" + hash
-		}
-
-		resp, err := t.doQuery("GET", t.baseUrl+"/torrents/instantAvailability"+hashParams, nil, "application/json")
-		if err != nil {
-			t.logger.Error().Err(err).Msg("realdebrid: Failed to get instant availability")
-			return
-		}
-
-		//fmt.Println(string(resp))
-
-		var instantAvailability instantAvailabilityResponse
-		err = json.Unmarshal(resp, &instantAvailability)
-		if err != nil {
-			if limit != 1 && retries > 0 {
-				t.logger.Warn().Msg("realdebrid: Retrying instant availability request")
-				return t.getInstantAvailabilityT(hashes, retries-1, int(math.Ceil(float64(limit)/10)))
-			} else {
-				t.logger.Error().Err(err).Msg("realdebrid: Failed to parse instant availability")
-				return
-			}
-		}
-
-		for hash, hosters := range instantAvailability {
-			currentHash := ""
-			for _, _hash := range hashes {
-				if strings.EqualFold(hash, _hash) {
-					currentHash = _hash
-					break
-				}
-			}
-
-			if currentHash == "" {
-				continue
-			}
-
-			avail := debrid.TorrentItemInstantAvailability{
-				CachedFiles: make(map[string]*debrid.CachedFile),
-			}
-
-			for hoster, hosterI := range hosters {
-				if hoster != "rd" {
-					continue
-				}
-
-				for _, hosterFiles := range hosterI {
-					for fileId, file := range hosterFiles {
-						avail.CachedFiles[strconv.Itoa(fileId)] = &debrid.CachedFile{
-							Name: file.Filename,
-							Size: file.Filesize,
-						}
-					}
-				}
-			}
-
-			if len(avail.CachedFiles) > 0 {
-				ret[currentHash] = avail
-			}
-		}
-
-	}
-
-	return
 }
 
 func (t *RealDebrid) AddTorrent(opts debrid.AddTorrentOptions) (string, error) {

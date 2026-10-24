@@ -36,20 +36,6 @@ func (w *GlobalWSEventManagerWrapper) SendEvent(t string, payload interface{}) {
 	w.WSEventManager.SendEvent(t, payload)
 }
 
-func (w *GlobalWSEventManagerWrapper) SendEventTo(clientId string, t string, payload interface{}, noLog ...bool) {
-	if w.WSEventManager == nil {
-		return
-	}
-	w.WSEventManager.SendEventTo(clientId, t, payload, noLog...)
-}
-
-func (w *GlobalWSEventManagerWrapper) GetClientIds() []string {
-	if w.WSEventManager == nil {
-		return nil
-	}
-	return w.WSEventManager.GetClientIds()
-}
-
 type (
 	// WSEventManager holds the websocket connection instance.
 	// It is attached to the App instance, so it is available to other handlers.

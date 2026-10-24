@@ -120,13 +120,3 @@ func (p *NativePlayer) sendPlayerEventTo(clientId string, t string, payload inte
 		})
 	}
 }
-
-func (p *NativePlayer) sendPlayerEvent(t string, payload interface{}) {
-	p.wsEventManager.SendEvent(string(events.NativePlayerEventType), struct {
-		Type    string      `json:"type"`
-		Payload interface{} `json:"payload"`
-	}{
-		Type:    t,
-		Payload: payload,
-	})
-}

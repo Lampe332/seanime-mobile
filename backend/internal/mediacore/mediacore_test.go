@@ -17,6 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testTargetSecondary is a second, test-only playback target used to exercise multi-backend coordination.
+const testTargetSecondary player.Target = "secondary"
+
 type mockBackend struct {
 	target      player.Target
 	eventsCh    chan player.Event
@@ -64,11 +67,11 @@ func (m *mockBackend) GetSkipData() (*player.SkipData, bool) {
 }
 
 func TestCoordinatorRoutingAndStaleRejection(t *testing.T) {
-	mbMpv := newMockBackend(player.TargetMpvCore)
+	mbMpv := newMockBackend(testTargetSecondary)
 	mbVc := newMockBackend(player.TargetVideoCore)
 
 	backends := map[player.Target]Backend{
-		player.TargetMpvCore:   mbMpv,
+		testTargetSecondary:   mbMpv,
 		player.TargetVideoCore: mbVc,
 	}
 
@@ -86,10 +89,10 @@ func TestCoordinatorRoutingAndStaleRejection(t *testing.T) {
 	require.Empty(t, sess.PlaybackID)
 
 	// mpvcore, client-1
-	coordinator.OpenAndAwait(player.TargetMpvCore, "client-1", "Opening...")
+	coordinator.OpenAndAwait(testTargetSecondary, "client-1", "Opening...")
 	sess, ok = coordinator.GetActiveSession()
 	require.False(t, ok) // session shouldnt be active
-	require.Equal(t, player.TargetMpvCore, sess.Target)
+	require.Equal(t, testTargetSecondary, sess.Target)
 	require.Equal(t, "client-1", sess.ClientID)
 	require.Empty(t, sess.PlaybackID)
 
@@ -109,7 +112,7 @@ func TestCoordinatorRoutingAndStaleRejection(t *testing.T) {
 	mbMpv.eventsCh <- &player.PlaybackLoadedEvent{
 		BaseEvent: player.BaseEvent{
 			Session: player.SessionKey{
-				Target:     player.TargetMpvCore,
+				Target:     testTargetSecondary,
 				ClientID:   "client-1",
 				PlaybackID: "play-1",
 			},
@@ -118,7 +121,7 @@ func TestCoordinatorRoutingAndStaleRejection(t *testing.T) {
 			ClientID: "client-1",
 			PlaybackInfo: &player.PlaybackInfo{
 				ID:           "play-1",
-				Target:       player.TargetMpvCore,
+				Target:       testTargetSecondary,
 				PlaybackType: player.PlaybackTypeLocalFile,
 			},
 		},
@@ -143,7 +146,7 @@ func TestCoordinatorRoutingAndStaleRejection(t *testing.T) {
 	mbMpv.eventsCh <- &player.StatusEvent{
 		BaseEvent: player.BaseEvent{
 			Session: player.SessionKey{
-				Target:     player.TargetMpvCore,
+				Target:     testTargetSecondary,
 				ClientID:   "client-1",
 				PlaybackID: "play-1",
 			},
@@ -167,7 +170,7 @@ func TestCoordinatorRoutingAndStaleRejection(t *testing.T) {
 	mbMpv.eventsCh <- &player.StatusEvent{
 		BaseEvent: player.BaseEvent{
 			Session: player.SessionKey{
-				Target:     player.TargetMpvCore,
+				Target:     testTargetSecondary,
 				ClientID:   "client-1",
 				PlaybackID: "stale-2",
 			},
@@ -179,7 +182,7 @@ func TestCoordinatorRoutingAndStaleRejection(t *testing.T) {
 	mbMpv.eventsCh <- &player.StatusEvent{
 		BaseEvent: player.BaseEvent{
 			Session: player.SessionKey{
-				Target:     player.TargetMpvCore,
+				Target:     testTargetSecondary,
 				ClientID:   "client-1",
 				PlaybackID: "play-1",
 			},
@@ -201,27 +204,27 @@ func TestCoordinatorRoutingAndStaleRejection(t *testing.T) {
 }
 
 func TestCoordinatorStaleCommandRejection(t *testing.T) {
-	mbMpv := newMockBackend(player.TargetMpvCore)
+	mbMpv := newMockBackend(testTargetSecondary)
 
 	coordinator := NewCoordinator(NewCoordinatorOptions{
 		Logger: new(zerolog.Nop()),
 		Backends: map[player.Target]Backend{
-			player.TargetMpvCore: mbMpv,
+			testTargetSecondary: mbMpv,
 		},
 	})
 	defer coordinator.Close()
 
-	coordinator.Watch(player.TargetMpvCore, "client-1", &player.PlaybackInfo{ID: "play-1"})
+	coordinator.Watch(testTargetSecondary, "client-1", &player.PlaybackInfo{ID: "play-1"})
 
 	err := coordinator.Execute(player.SessionKey{
-		Target:     player.TargetMpvCore,
+		Target:     testTargetSecondary,
 		ClientID:   "client-1",
 		PlaybackID: "play-1",
 	}, player.Command{Type: player.CommandPause})
 	require.NoError(t, err)
 
 	err = coordinator.Execute(player.SessionKey{
-		Target:     player.TargetMpvCore,
+		Target:     testTargetSecondary,
 		ClientID:   "client-1",
 		PlaybackID: "stale-session",
 	}, player.Command{Type: player.CommandPause})
@@ -245,17 +248,17 @@ func TestCoordinatorRestoresContinuityBeforeWatch(t *testing.T) {
 		Kind:          continuity.MediastreamKind,
 	}))
 
-	backend := newMockBackend(player.TargetMpvCore)
+	backend := newMockBackend(testTargetSecondary)
 	coordinator := NewCoordinator(NewCoordinatorOptions{
 		Logger:            logger,
 		ContinuityManager: continuityManager,
 		Backends: map[player.Target]Backend{
-			player.TargetMpvCore: backend,
+			testTargetSecondary: backend,
 		},
 	})
 	defer coordinator.Close()
 
-	coordinator.Watch(player.TargetMpvCore, "client-1", &player.PlaybackInfo{
+	coordinator.Watch(testTargetSecondary, "client-1", &player.PlaybackInfo{
 		ID:      "play-1",
 		Media:   &anilist.BaseAnime{ID: 42},
 		Episode: &anime.Episode{EpisodeNumber: 3},
@@ -276,19 +279,19 @@ func TestCoordinatorPersistsContinuityOnPause(t *testing.T) {
 	})
 	continuityManager.SetSettings(&continuity.Settings{WatchContinuityEnabled: true})
 
-	backend := newMockBackend(player.TargetMpvCore)
+	backend := newMockBackend(testTargetSecondary)
 	coordinator := NewCoordinator(NewCoordinatorOptions{
 		Logger:            logger,
 		ContinuityManager: continuityManager,
 		Backends: map[player.Target]Backend{
-			player.TargetMpvCore: backend,
+			testTargetSecondary: backend,
 		},
 	})
 	defer coordinator.Close()
 	coordinator.SetupSharedEffects()
-	coordinator.OpenAndAwait(player.TargetMpvCore, "client-1", "Opening...")
+	coordinator.OpenAndAwait(testTargetSecondary, "client-1", "Opening...")
 
-	session := player.SessionKey{Target: player.TargetMpvCore, ClientID: "client-1", PlaybackID: "play-1"}
+	session := player.SessionKey{Target: testTargetSecondary, ClientID: "client-1", PlaybackID: "play-1"}
 	backend.eventsCh <- &player.PlaybackLoadedEvent{
 		BaseEvent: player.BaseEvent{Session: session},
 		State: player.PlaybackState{

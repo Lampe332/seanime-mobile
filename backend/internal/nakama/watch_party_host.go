@@ -65,7 +65,7 @@ func (wpm *WatchPartyManager) CreateWatchParty(options *CreateWatchOptions) (*Wa
 		IsReady:         true,
 		LastSeen:        time.Now(),
 		Latency:         0,
-		UseDenshiPlayer: wpm.manager.GetUseDenshiPlayer(),
+		UseDenshiPlayer: false, // wire field kept for desktop peers; the Android app never uses Denshi
 	}
 
 	wpm.currentSession = mo.Some(session)
@@ -394,14 +394,9 @@ func (wpm *WatchPartyManager) listenToPlaybackAsHost() {
 				case *player.PlaybackLoadedEvent, *player.LoadedMetadataEvent, *player.StatusEvent:
 					if target == player.TargetVideoCore {
 						wpm.manager.genericPlayer.SetType(WatchPartyVideoCore)
-					} else if target == player.TargetMpvCore {
-						wpm.manager.genericPlayer.SetType(WatchPartyMpvCore)
 					}
 				}
 				if target == player.TargetVideoCore && !wpm.manager.genericPlayer.isVideoCore() {
-					continue
-				}
-				if target == player.TargetMpvCore && !wpm.manager.genericPlayer.isMpvCore() {
 					continue
 				}
 

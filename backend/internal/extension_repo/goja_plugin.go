@@ -16,7 +16,6 @@ import (
 	gojautil "seanime/internal/util/goja"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/dop251/goja"
 	"github.com/dop251/goja/parser"
@@ -441,17 +440,6 @@ func normalizeException(err error) error {
 	}
 
 	return err
-}
-
-// handlePromiseResult waits for a promise to resolve and returns the appropriate error
-func (p *GojaPlugin) handlePromiseResult(promise *goja.Promise) error {
-	// force stop after 30 seconds
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	_ = gojautil.WaitForPromise(ctx, promise)
-
-	return nil
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

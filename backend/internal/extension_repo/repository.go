@@ -465,21 +465,6 @@ func (r *Repository) GetExtensionBank() *extension.UnifiedBank {
 	return r.extensionBankRef.Get()
 }
 
-func (r *Repository) GetMangaProviderExtensionByID(id string) (extension.MangaProviderExtension, bool) {
-	ext, found := extension.GetExtension[extension.MangaProviderExtension](r.extensionBankRef.Get(), id)
-	return ext, found
-}
-
-func (r *Repository) GetOnlinestreamProviderExtensionByID(id string) (extension.OnlinestreamProviderExtension, bool) {
-	ext, found := extension.GetExtension[extension.OnlinestreamProviderExtension](r.extensionBankRef.Get(), id)
-	return ext, found
-}
-
-func (r *Repository) GetAnimeTorrentProviderExtensionByID(id string) (extension.AnimeTorrentProviderExtension, bool) {
-	ext, found := extension.GetExtension[extension.AnimeTorrentProviderExtension](r.extensionBankRef.Get(), id)
-	return ext, found
-}
-
 func (r *Repository) GetCustomSourceExtensionByID(id string) (extension.CustomSourceExtension, bool) {
 	ext, found := extension.GetExtension[extension.CustomSourceExtension](r.extensionBankRef.Get(), id)
 	return ext, found

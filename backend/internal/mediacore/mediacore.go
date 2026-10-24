@@ -681,8 +681,6 @@ func (c *Coordinator) populatePluginFields(state *player.PlaybackState) {
 			state.PlayerType = "web"
 		case player.RendererNative:
 			state.PlayerType = "native"
-		case player.RendererMpv:
-			state.PlayerType = "mpv"
 		default:
 			state.PlayerType = string(state.PlaybackInfo.Renderer)
 		}

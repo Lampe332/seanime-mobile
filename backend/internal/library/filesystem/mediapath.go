@@ -83,31 +83,6 @@ func SeparateFilePathS(path string, potentialPrefixes []string) *SeparatedFilePa
 	}
 }
 
-// GetMediaFilePathsFromDir returns a slice of strings containing the paths of all the media files in a directory.
-// DEPRECATED: Use GetMediaFilePathsFromDirS instead.
-func GetMediaFilePathsFromDir(dirPath string) ([]string, error) {
-	filePaths := make([]string, 0)
-
-	err := filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		ext := strings.ToLower(filepath.Ext(path))
-
-		if !d.IsDir() && util.IsValidVideoExtension(ext) {
-			filePaths = append(filePaths, path)
-		}
-		return nil
-	})
-
-	if err != nil {
-		return nil, errors.New("could not traverse the local directory")
-	}
-
-	return filePaths, nil
-}
-
 // GetMediaFilePathsFromDirS returns a slice of strings containing the paths of all the video files in a directory.
 // Unlike GetMediaFilePathsFromDir, it follows symlinks.
 func GetMediaFilePathsFromDirS(oDirPath string) ([]string, error) {

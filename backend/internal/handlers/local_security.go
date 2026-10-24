@@ -316,19 +316,6 @@ func (h *Handler) guardPrivilegedExtensionManagement(c echo.Context) error {
 	return respondWithAbort(c, http.StatusForbidden, errPrivilegedExecutionDenied)
 }
 
-// guardPrivilegedMediastreamSettingsMutation ensures that mutations to privileged mediastream settings are only allowed by trusted or authorized sources.
-func (h *Handler) guardPrivilegedMediastreamSettingsMutation(c echo.Context, prev *models.MediastreamSettings, next *models.MediastreamSettings) error {
-	if h == nil || h.App == nil || h.App.Config == nil {
-		return nil
-	}
-
-	if canMutatePrivilegedMediastreamSettings(c.Request(), h.App.Config.Server.Password, prev, next) {
-		return nil
-	}
-
-	return respondWithAbort(c, http.StatusForbidden, errPrivilegedExecutionDenied)
-}
-
 // canMutatePrivilegedSettings determines if privileged settings modifications can proceed based on request origin, server password, and settings changes.
 func canMutatePrivilegedSettings(req *http.Request, serverPassword string, prev *models.Settings, nextMedia *models.MediaPlayerSettings, nextTorrent *models.TorrentSettings) bool {
 	if security.IsStrict() && !isRequestFromTrustedLocal(req) && privilegedSettingsChanged(prev, nextMedia, nextTorrent) {
@@ -340,23 +327,6 @@ func canMutatePrivilegedSettings(req *http.Request, serverPassword string, prev 
 	}
 
 	if !privilegedSettingsChanged(prev, nextMedia, nextTorrent) {
-		return true
-	}
-
-	return false
-}
-
-// canMutatePrivilegedMediastreamSettings determines if privileged mediastream settings can be modified based on request trust and setting changes.
-func canMutatePrivilegedMediastreamSettings(req *http.Request, serverPassword string, prev *models.MediastreamSettings, next *models.MediastreamSettings) bool {
-	if security.IsStrict() && !isRequestFromTrustedLocal(req) && privilegedMediastreamSettingsChanged(prev, next) {
-		return false
-	}
-
-	if isTrustedRequest(req, serverPassword) {
-		return true
-	}
-
-	if !privilegedMediastreamSettingsChanged(prev, next) {
 		return true
 	}
 
@@ -412,19 +382,6 @@ func (h *Handler) guardPrivilegedTorrentClient(c echo.Context, settings *models.
 	}
 
 	if isTrustedRequest(c.Request(), h.App.Config.Server.Password) || !isPrivilegedTorrentClient(settings) {
-		return nil
-	}
-
-	return respondWithAbort(c, http.StatusForbidden, errPrivilegedExecutionDenied)
-}
-
-// guardPrivilegedMediastream ensures that privileged mediastream actions are restricted to trusted requests or server password authorization.
-func (h *Handler) guardPrivilegedMediastream(c echo.Context, settings *models.MediastreamSettings) error {
-	if h == nil || h.App == nil || h.App.Config == nil {
-		return nil
-	}
-
-	if isTrustedRequest(c.Request(), h.App.Config.Server.Password) || !isPrivilegedMediastream(settings) {
 		return nil
 	}
 
@@ -816,23 +773,6 @@ func translateEndpointChanged(prevMedia *models.MediaPlayerSettings, nextMedia *
 	return false
 }
 
-// privilegedMediastreamSettingsChanged checks if privileged mediastream settings differ between the previous and the next configuration.
-func privilegedMediastreamSettingsChanged(prev *models.MediastreamSettings, next *models.MediastreamSettings) bool {
-	if next == nil {
-		return false
-	}
-
-	if prev == nil {
-		return isPrivilegedMediastream(next)
-	}
-
-	if prev.FfmpegPath != next.FfmpegPath || prev.FfprobePath != next.FfprobePath {
-		return true
-	}
-
-	return isCustomHwAccel(next) && (prev.TranscodeHwAccel != next.TranscodeHwAccel || prev.TranscodeHwAccelCustomSettings != next.TranscodeHwAccelCustomSettings)
-}
-
 func isPrivilegedMediaPlayer(settings *models.Settings) bool {
 	media := settings.GetMediaPlayer()
 
@@ -861,18 +801,6 @@ func isPrivilegedTorrentClient(settings *models.Settings) bool {
 	default:
 		return false
 	}
-}
-
-func isPrivilegedMediastream(settings *models.MediastreamSettings) bool {
-	if settings == nil {
-		return false
-	}
-
-	return isCustomHwAccel(settings) || hasCustomExecutablePath(settings.FfmpegPath, defaultFFmpegPaths()...) || hasCustomExecutablePath(settings.FfprobePath, defaultFFprobePaths()...)
-}
-
-func isCustomHwAccel(settings *models.MediastreamSettings) bool {
-	return settings.TranscodeHwAccel == "custom"
 }
 
 // hasCustomExecutablePath checks if the given path differs from the provided default executable paths. Returns true if a custom path is detected, false otherwise.
@@ -945,32 +873,6 @@ func defaultTransmissionPaths() []string {
 		}
 	default:
 		return []string{"transmission-qt"}
-	}
-}
-
-func defaultFFmpegPaths() []string {
-	switch runtime.GOOS {
-	case "windows":
-		return []string{"ffmpeg.exe", "ffmpeg"}
-	case "linux":
-		return []string{"/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg", "ffmpeg"}
-	case "darwin":
-		return []string{"/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "ffmpeg"}
-	default:
-		return []string{"ffmpeg"}
-	}
-}
-
-func defaultFFprobePaths() []string {
-	switch runtime.GOOS {
-	case "windows":
-		return []string{"ffprobe.exe", "ffprobe"}
-	case "linux":
-		return []string{"/usr/bin/ffprobe", "/usr/local/bin/ffprobe", "ffprobe"}
-	case "darwin":
-		return []string{"/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe", "ffprobe"}
-	default:
-		return []string{"ffprobe"}
 	}
 }
 

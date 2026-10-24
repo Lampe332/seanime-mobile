@@ -18,7 +18,6 @@ type WatchPartyGenericPlayerType string
 const (
 	WatchPartyPlaybackManager WatchPartyGenericPlayerType = "playbackmanager"
 	WatchPartyVideoCore       WatchPartyGenericPlayerType = "videocore"
-	WatchPartyMpvCore         WatchPartyGenericPlayerType = "mpvcore"
 )
 
 // WatchPartyGenericPlayer is a player-agnostic interface for controlling
@@ -64,10 +63,6 @@ func (m *WatchPartyGenericPlayer) isPlaybackManager() bool {
 
 func (m *WatchPartyGenericPlayer) isVideoCore() bool {
 	return m.getCurrentType() == WatchPartyVideoCore
-}
-
-func (m *WatchPartyGenericPlayer) isMpvCore() bool {
-	return m.getCurrentType() == WatchPartyMpvCore
 }
 
 func (m *WatchPartyGenericPlayer) Reset() {
@@ -342,17 +337,12 @@ func (m *WatchPartyGenericPlayer) Subscribe(id string) *WatchPartyPlaybackSubscr
 			case *player.PlaybackLoadedEvent, *player.LoadedMetadataEvent, *player.StatusEvent:
 				if target == player.TargetVideoCore {
 					m.SetType(WatchPartyVideoCore)
-				} else if target == player.TargetMpvCore {
-					m.SetType(WatchPartyMpvCore)
 				}
 			}
 			if m.isPlaybackManager() {
 				continue
 			}
 			if target == player.TargetVideoCore && !m.isVideoCore() {
-				continue
-			}
-			if target == player.TargetMpvCore && !m.isMpvCore() {
 				continue
 			}
 

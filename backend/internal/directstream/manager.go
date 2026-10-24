@@ -16,7 +16,6 @@ import (
 	"seanime/internal/util/result"
 	"seanime/internal/videocore"
 	"sync"
-	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/samber/mo"
@@ -154,30 +153,3 @@ func (m *Manager) GetHMACTokenQueryParam(endpoint string, symbol string) string 
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-func (m *Manager) getAnime(ctx context.Context, mediaId int) (*anilist.BaseAnime, error) {
-	media, ok := m.animeCache.Get(mediaId)
-	if ok {
-		return media, nil
-	}
-
-	// Find in anime collection
-	animeCollection, ok := m.animeCollection.Get()
-	if ok {
-		media, ok := animeCollection.FindAnime(mediaId)
-		if ok {
-			return media, nil
-		}
-	}
-
-	// Find in platform
-	media, err := m.platformRef.Get().GetAnime(ctx, mediaId)
-	if err != nil {
-		return nil, err
-	}
-
-	// Cache
-	m.animeCache.SetT(mediaId, media, 1*time.Hour)
-
-	return media, nil
-}

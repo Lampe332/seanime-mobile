@@ -28,25 +28,6 @@ func GetPlaylists(db *db.Database) ([]*anime.Playlist, error) {
 	return playlists, nil
 }
 
-func GetPlaylistsWithoutEpisodes(db *db.Database) ([]*anime.Playlist, error) {
-	var res []*models.Playlist
-	err := db.Gorm().Find(&res).Error
-	if err != nil {
-		return nil, err
-	}
-
-	playlists := make([]*anime.Playlist, 0)
-	for _, p := range res {
-		var eps []*anime.PlaylistEpisode
-		if err := json.Unmarshal(p.Value, &eps); err == nil {
-			playlist := anime.NewPlaylist(p.Name)
-			playlist.DbId = p.ID
-			playlists = append(playlists, playlist)
-		}
-	}
-	return playlists, nil
-}
-
 func SavePlaylist(db *db.Database, playlist *anime.Playlist) error {
 	data, err := json.Marshal(playlist.Episodes)
 	if err != nil {

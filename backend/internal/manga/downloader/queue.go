@@ -1,8 +1,6 @@
 package chapter_downloader
 
 import (
-	"github.com/goccy/go-json"
-	"github.com/rs/zerolog"
 	"seanime/internal/database/db"
 	"seanime/internal/database/models"
 	"seanime/internal/events"
@@ -10,6 +8,9 @@ import (
 	"seanime/internal/util"
 	"sync"
 	"time"
+
+	"github.com/goccy/go-json"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -210,14 +211,3 @@ func (q *Queue) runNext() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-func (q *Queue) GetCurrent() (qi *QueueInfo, ok bool) {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-
-	if q.current == nil {
-		return nil, false
-	}
-
-	return q.current, true
-}

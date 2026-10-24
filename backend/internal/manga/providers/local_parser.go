@@ -124,14 +124,6 @@ func (l *Lexer) current() rune {
 	return rune(l.input[l.position])
 }
 
-// peek returns the next character without advancing
-func (l *Lexer) peek() rune {
-	if l.position+1 >= len(l.input) {
-		return 0
-	}
-	return rune(l.input[l.position+1])
-}
-
 // advance moves to the next character
 func (l *Lexer) advance() {
 	l.position++

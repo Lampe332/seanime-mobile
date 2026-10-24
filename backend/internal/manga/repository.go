@@ -124,37 +124,6 @@ func (r *Repository) EmptyMangaCache(mediaId int) (err error) {
 	return
 }
 
-func ParseChapterContainerFileName(filename string) (provider string, bucketType bucketType, mediaId int, ok bool) {
-	filename = strings.TrimSuffix(filename, ".json")
-	filename = strings.TrimSuffix(filename, ".cache")
-	filename = strings.TrimSuffix(filename, ".txt")
-	parts := strings.Split(filename, "_")
-	if len(parts) != 4 {
-		return "", "", 0, false
-	}
-
-	provider = parts[1]
-	var err error
-	mediaId, err = strconv.Atoi(parts[3])
-	if err != nil {
-		return "", "", 0, false
-	}
-
-	switch parts[2] {
-	case "chapters":
-		bucketType = bucketTypeChapter
-	case "pages":
-		bucketType = bucketTypePage
-	case "page-dimensions":
-		bucketType = bucketTypePageDimensions
-	default:
-		return "", "", 0, false
-	}
-
-	ok = true
-	return
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func getImageNaturalSize(url string) (int, int, error) {

@@ -150,13 +150,6 @@ func FormatETA(etaInSeconds int) string {
 	}
 }
 
-func Pluralize(count int, singular, plural string) string {
-	if count == 1 {
-		return singular
-	}
-	return plural
-}
-
 // NormalizePath normalizes a path by converting it to lowercase and replacing backslashes with forward slashes
 // Warning: Do not use the returned string for anything filesystem related, only for comparison
 func NormalizePath(path string) (ret string) {
@@ -209,37 +202,6 @@ func IsBase64(s string) bool {
 	// 6. Try to decode - this is the final verification
 	_, err := base64.StdEncoding.DecodeString(s)
 	return err == nil
-}
-
-var snakecaseSplitRegex = regexp.MustCompile(`[\W_]+`)
-
-func Snakecase(str string) string {
-	var result strings.Builder
-
-	// split at any non word character and underscore
-	words := snakecaseSplitRegex.Split(str, -1)
-
-	for _, word := range words {
-		if word == "" {
-			continue
-		}
-
-		if result.Len() > 0 {
-			result.WriteString("_")
-		}
-
-		for i, c := range word {
-			if unicode.IsUpper(c) && i > 0 &&
-				// is not a following uppercase character
-				!unicode.IsUpper(rune(word[i-1])) {
-				result.WriteString("_")
-			}
-
-			result.WriteRune(c)
-		}
-	}
-
-	return strings.ToLower(result.String())
 }
 
 // randomStringWithAlphabet generates a cryptographically random string

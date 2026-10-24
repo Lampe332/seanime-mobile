@@ -490,11 +490,6 @@ func (scn *Scanner) Scan(ctx context.Context) (lfs []*anime.LocalFile, err error
 	return localFiles, nil
 }
 
-// InLibrariesOnly removes files are not under the library paths
-func (scn *Scanner) InLibrariesOnly(lfs []*anime.LocalFile) {
-
-}
-
 func (scn *Scanner) GetShelvedLocalFiles() []*anime.LocalFile {
 	return scn.shelvedLocalFiles
 }

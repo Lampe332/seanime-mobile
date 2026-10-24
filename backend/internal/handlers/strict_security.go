@@ -52,18 +52,6 @@ func (h *Handler) guardStrictSettingsMutation(c echo.Context, prev *models.Setti
 	return respondWithAbort(c, http.StatusForbidden, errStrictLocalOnlyDenied)
 }
 
-func (h *Handler) guardStrictMediastreamRootMutation(c echo.Context, prev *models.MediastreamSettings, next *models.MediastreamSettings) error {
-	if !security.IsStrict() || c == nil || isRequestFromTrustedLocal(c.Request()) {
-		return nil
-	}
-
-	if !mediastreamRootsChanged(prev, next) {
-		return nil
-	}
-
-	return respondWithAbort(c, http.StatusForbidden, errStrictLocalOnlyDenied)
-}
-
 func (h *Handler) guardStrictTorrentstreamRootMutation(c echo.Context, prev *models.TorrentstreamSettings, next *models.TorrentstreamSettings) error {
 	if !security.IsStrict() || c == nil || isRequestFromTrustedLocal(c.Request()) {
 		return nil
@@ -187,19 +175,6 @@ func mangaSourceChanged(prev *models.MangaSettings, next *models.MangaSettings) 
 	return normalizeStrictPath(prevPath) != normalizeStrictPath(nextPath)
 }
 
-func mediastreamRootsChanged(prev *models.MediastreamSettings, next *models.MediastreamSettings) bool {
-	prevPath := ""
-	nextPath := ""
-	if prev != nil {
-		prevPath = prev.PreTranscodeLibraryDir
-	}
-	if next != nil {
-		nextPath = next.PreTranscodeLibraryDir
-	}
-
-	return normalizeStrictPath(prevPath) != normalizeStrictPath(nextPath)
-}
-
 func torrentstreamRootsChanged(prev *models.TorrentstreamSettings, next *models.TorrentstreamSettings) bool {
 	prevPath := ""
 	nextPath := ""
@@ -211,15 +186,6 @@ func torrentstreamRootsChanged(prev *models.TorrentstreamSettings, next *models.
 	}
 
 	return normalizeStrictPath(prevPath) != normalizeStrictPath(nextPath)
-}
-
-func usesExternalMediaPlayer(settings *models.Settings) bool {
-	switch settings.GetMediaPlayer().Default {
-	case "vlc", "mpc-hc", "mpv", "iina":
-		return true
-	default:
-		return false
-	}
 }
 
 func usesExternalTorrentClient(settings *models.Settings) bool {

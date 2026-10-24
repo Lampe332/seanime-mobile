@@ -33,34 +33,6 @@ func PatchAnimeCollectionEntry(collection *AnimeCollection, mediaID int, patch A
 	return collection
 }
 
-func EnsureAnimeCollectionEntry(collection *AnimeCollection, mediaID int, patch AnimeCollectionEntryPatch, client AnilistClient) *AnimeCollection {
-	if collection == nil {
-		panic("anilist: anime collection is nil")
-	}
-	if _, currentList := findAnimeCollectionEntry(collection, mediaID); currentList != nil {
-		return collection
-	}
-	if client == nil {
-		panic(fmt.Sprintf("anilist: cannot add anime %d without a client", mediaID))
-	}
-	if patch.Status == nil {
-		panic(fmt.Sprintf("anilist: cannot add anime %d without a status", mediaID))
-	}
-
-	baseAnime, err := client.BaseAnimeByID(context.Background(), &mediaID)
-	if err != nil {
-		panic(err)
-	}
-
-	entry := &AnimeCollection_MediaListCollection_Lists_Entries{
-		Media: baseAnime.GetMedia(),
-	}
-	list := ensureAnimeStatusList(collection, *patch.Status)
-	list.Entries = append(list.Entries, entry)
-
-	return PatchAnimeCollectionEntry(collection, mediaID, patch)
-}
-
 func PatchAnimeCollectionWithRelationsEntry(collection *AnimeCollectionWithRelations, mediaID int, patch AnimeCollectionEntryPatch) *AnimeCollectionWithRelations {
 	if collection == nil {
 		panic("anilist: anime collection with relations is nil")

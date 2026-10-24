@@ -219,26 +219,6 @@ func (d *Downloader) DownloadChapter(opts DownloadChapterOptions) error {
 	})
 }
 
-// DeleteChapter is called by the client to delete a downloaded chapter.
-func (d *Downloader) DeleteChapter(provider string, mediaId int, chapterId string, chapterNumber string) (err error) {
-	err = d.chapterDownloader.DeleteChapter(chapter_downloader.DownloadID{
-		Provider:      provider,
-		MediaId:       mediaId,
-		ChapterId:     chapterId,
-		ChapterNumber: chapterNumber,
-	})
-	if err != nil {
-		return err
-	}
-
-	permBucket := getPermanentChapterContainerCacheBucket(provider, mediaId)
-	_ = d.filecacher.DeletePerm(permBucket, chapterId)
-
-	d.hydrateMediaMap()
-
-	return nil
-}
-
 // DeleteChapters is called by the client to delete downloaded chapters.
 func (d *Downloader) DeleteChapters(ids []chapter_downloader.DownloadID) (err error) {
 	for _, id := range ids {

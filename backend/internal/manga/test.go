@@ -6,14 +6,7 @@ import (
 	"seanime/internal/extension"
 	"seanime/internal/testutil"
 	"seanime/internal/util"
-	"testing"
 )
-
-func NewTestRepository(t *testing.T, db *db.Database) *Repository {
-	t.Helper()
-
-	return NewTestRepositoryWithEnv(testutil.NewTestEnv(t), db)
-}
 
 func NewTestRepositoryWithEnv(env *testutil.TestEnv, db *db.Database) *Repository {
 	logger := env.Logger()

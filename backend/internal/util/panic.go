@@ -2,9 +2,10 @@ package util
 
 import (
 	"errors"
-	"github.com/rs/zerolog/log"
 	"runtime/debug"
 	"sync"
+
+	"github.com/rs/zerolog/log"
 )
 
 var printLock = sync.Mutex{}
@@ -57,17 +58,5 @@ func HandlePanicInModuleThenS(module string, f func(stackTrace string)) {
 	if r := recover(); r != nil {
 		str := printRuntimeError(r, module)
 		f(str)
-	}
-}
-
-func Recover() {
-	if r := recover(); r != nil {
-		printRuntimeError(r, "")
-	}
-}
-
-func RecoverInModule(module string) {
-	if r := recover(); r != nil {
-		printRuntimeError(r, module)
 	}
 }

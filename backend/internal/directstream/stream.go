@@ -352,14 +352,6 @@ func (m *Manager) shouldStopOpeningLocked(clientId string) bool {
 	return m.preparingClientID == clientId && m.preparationCanceled
 }
 
-func (m *Manager) discardCurrentStreamLocked(stream Stream) {
-	if currentStream, ok := m.currentStream.Get(); ok && currentStream == stream {
-		m.currentStream = mo.None[Stream]()
-		m.playbackCtx = nil
-		m.playbackCtxCancelFunc = nil
-	}
-}
-
 // loadStream loads a new stream and keeps the control paths responsive while metadata is being prepared.
 func (m *Manager) loadStream(stream Stream) {
 	if !m.UpdateOpenStep(stream.ClientId(), "Loading stream...") {
@@ -768,10 +760,6 @@ func overrideHeaders(dst http.Header, src http.Header) {
 			dst.Add(key, value)
 		}
 	}
-}
-
-func (m *Manager) getContentTypeAndLength(url string) (string, int64, error) {
-	return m.getContentTypeAndLengthWithHeaders(url, nil)
 }
 
 func (m *Manager) getContentTypeAndLengthWithHeaders(url string, headers http.Header) (string, int64, error) {

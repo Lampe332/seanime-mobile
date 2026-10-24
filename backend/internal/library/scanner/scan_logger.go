@@ -100,16 +100,6 @@ func (sl *ScanLogger) Done() error {
 	return sl.logFile.Close()
 }
 
-func (sl *ScanLogger) Close() {
-	if sl.logFile == nil {
-		return
-	}
-	err := sl.logFile.Sync()
-	if err != nil {
-		return
-	}
-}
-
 type ThreadSafeWriteSyncer struct {
 	w  *bytes.Buffer
 	mu *sync.Mutex

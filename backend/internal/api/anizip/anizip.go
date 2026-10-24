@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"seanime/internal/hook"
-	"seanime/internal/util/result"
 	"strconv"
 
 	"github.com/goccy/go-json"
@@ -54,18 +53,6 @@ type (
 )
 
 //----------------------------------------------------------------------------------------------------------------------
-
-type Cache struct {
-	*result.Cache[string, *Media]
-}
-
-func NewCache() *Cache {
-	return &Cache{result.NewCache[string, *Media]()}
-}
-
-func GetCacheKey(from string, id int) string {
-	return from + strconv.Itoa(id)
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -131,24 +118,4 @@ func FetchAniZipMedia(from string, id int) (*Media, error) {
 	}
 
 	return event.Media, nil
-}
-
-// FetchAniZipMediaC is the same as FetchAniZipMedia but uses a cache.
-// If the media is found in the cache, it will be returned.
-// If the media is not found in the cache, it will be fetched and then added to the cache.
-func FetchAniZipMediaC(from string, id int, cache *Cache) (*Media, error) {
-
-	cacheV, ok := cache.Get(GetCacheKey(from, id))
-	if ok {
-		return cacheV, nil
-	}
-
-	media, err := FetchAniZipMedia(from, id)
-	if err != nil {
-		return nil, err
-	}
-
-	cache.Set(GetCacheKey(from, id), media)
-
-	return media, nil
 }

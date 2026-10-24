@@ -187,65 +187,9 @@ func (e *SimpleEntry) FindNextEpisode() (*Episode, bool) {
 	return ep, true
 }
 
-func (e *SimpleEntry) FindLatestEpisode() (*Episode, bool) {
-	// If there are no episodes, return nil
-	eps, ok := e.FindMainEpisodes()
-	if !ok {
-		return nil, false
-	}
-	// Get the episode with the highest progress number
-	latest := eps[0]
-	for _, ep := range eps {
-		if ep.GetProgressNumber() > latest.GetProgressNumber() {
-			latest = ep
-		}
-	}
-	return latest, true
-}
-
-func (e *SimpleEntry) FindLatestLocalFile() (*LocalFile, bool) {
-	lfs, ok := e.FindMainLocalFiles()
-	// If there are no local files, return nil
-	if !ok {
-		return nil, false
-	}
-	// Get the local file with the highest episode number
-	latest := lfs[0]
-	for _, lf := range lfs {
-		if lf.GetEpisodeNumber() > latest.GetEpisodeNumber() {
-			latest = lf
-		}
-	}
-	return latest, true
-}
-
-func (e *SimpleEntry) FindMainLocalFiles() ([]*LocalFile, bool) {
-	if e.LocalFiles == nil {
-		return nil, false
-	}
-	if len(e.LocalFiles) == 0 {
-		return nil, false
-	}
-	lfs := make([]*LocalFile, 0)
-	for _, lf := range e.LocalFiles {
-		if lf.IsMain() {
-			lfs = append(lfs, lf)
-		}
-	}
-	if len(lfs) == 0 {
-		return nil, false
-	}
-	return lfs, true
-}
-
 func (e *SimpleEntry) FindListData() (*EntryListData, bool) {
 	if e.EntryListData == nil {
 		return nil, false
 	}
 	return e.EntryListData, true
-}
-
-func (e *SimpleEntry) IsInAnimeCollection() bool {
-	_, ok := e.FindListData()
-	return ok
 }

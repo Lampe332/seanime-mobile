@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/goccy/go-json"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 )
@@ -39,15 +38,6 @@ type SubtitleEvent struct {
 	ExtraData   map[string]string `json:"extraData,omitempty"`
 
 	HeadPos int64 `json:"-"` // Position in the stream
-}
-
-// GetSubtitleEventKey stringifies the subtitle event to serve as a key
-func GetSubtitleEventKey(se *SubtitleEvent) string {
-	marshaled, err := json.Marshal(se)
-	if err != nil {
-		return ""
-	}
-	return string(marshaled)
 }
 
 // MetadataParser parses Matroska metadata from a file.

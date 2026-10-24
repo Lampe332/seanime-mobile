@@ -68,40 +68,6 @@ func serveContentRange(w http.ResponseWriter, r *http.Request, ctx context.Conte
 	_, _ = copyWithContext(ctx, w, reader, ra.Length)
 }
 
-func serveTorrent(w http.ResponseWriter, r *http.Request, ctx context.Context, reader io.ReadSeekCloser, name string, size int64, contentType string, ra httputil.Range) {
-	stopReader := context.AfterFunc(ctx, func() {
-		_ = reader.Close()
-	})
-	defer stopReader()
-
-	w.Header().Set("Accept-Ranges", "bytes")
-	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Cache-Control", "no-store")
-
-	// Validate range
-	if ra.Start >= size || ra.Start < 0 || ra.Length <= 0 {
-		w.Header().Set("Content-Range", fmt.Sprintf("bytes */%d", size))
-		http.Error(w, "Range Not Satisfiable", http.StatusRequestedRangeNotSatisfiable)
-		return
-	}
-
-	if _, err := reader.Seek(ra.Start, io.SeekStart); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Set response headers for partial content
-	w.Header().Set("Content-Range", ra.ContentRange(size))
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", ra.Length))
-	w.WriteHeader(http.StatusPartialContent)
-	if flusher, ok := w.(http.Flusher); ok {
-		flusher.Flush()
-	}
-
-	_, _ = copyWithContext(ctx, w, reader, ra.Length)
-}
-
 // copyWithContext copies n bytes from src to dst, respecting context cancellation
 func copyWithContext(ctx context.Context, dst io.Writer, src io.Reader, n int64) (int64, error) {
 	// Use a reasonably sized buffer
@@ -163,50 +129,4 @@ func copyWithContext(ctx context.Context, dst io.Writer, src io.Reader, n int64)
 
 func isThumbnailRequest(r *http.Request) bool {
 	return r.URL.Query().Get("thumbnail") == "true"
-}
-
-func copyWithFlush(ctx context.Context, w http.ResponseWriter, rdr io.Reader, totalBytes int64) {
-	const flushThreshold = 1 * 1024 * 1024 // 1MiB
-	buf := make([]byte, 32*1024)           // 32KiB buffer
-	var written int64
-	var sinceLastFlush int64
-	flusher, _ := w.(http.Flusher)
-
-	for written < totalBytes {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		// B) Decide how many bytes to read this iteration
-		toRead := int64(len(buf))
-		if totalBytes-written < toRead {
-			toRead = totalBytes - written
-		}
-
-		lr := io.LimitReader(rdr, toRead)
-		nr, readErr := lr.Read(buf)
-		if nr > 0 {
-			nw, writeErr := w.Write(buf[:nr])
-			written += int64(nw)
-			sinceLastFlush += int64(nw)
-
-			if flusher != nil && sinceLastFlush >= flushThreshold {
-				flusher.Flush()
-				sinceLastFlush = 0
-			}
-			if writeErr != nil {
-				return
-			}
-			if nw < nr {
-				// Client closed or truncated write
-				return
-			}
-		}
-		if readErr != nil {
-			// EOF or any other read error → stop streaming
-			return
-		}
-	}
 }

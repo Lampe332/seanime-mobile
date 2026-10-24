@@ -15,10 +15,6 @@ func IsIOS() bool {
 	return runtime.GOOS == "ios"
 }
 
-func IsAndroid() bool {
-	return runtime.GOOS == "android"
-}
-
 func InitIOSDocumentsDir() (string, error) {
 	if !IsIOS() {
 		return "", nil

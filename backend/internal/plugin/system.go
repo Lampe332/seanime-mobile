@@ -49,17 +49,6 @@ type AsyncCmd struct {
 	vm         *goja.Runtime
 }
 
-type CmdHelper struct {
-	cmd *exec.Cmd
-
-	stdout io.ReadCloser
-	stderr io.ReadCloser
-
-	appContext *AppContextImpl
-	scheduler  *gojautil.Scheduler
-	vm         *goja.Runtime
-}
-
 // BindSystem binds the system module to the Goja runtime.
 // Permissions needed: system + allowlist
 func (a *AppContextImpl) BindSystem(vm *goja.Runtime, logger *zerolog.Logger, ext *extension.Extension, scheduler *gojautil.Scheduler) {
@@ -1049,10 +1038,6 @@ func (c *AsyncCmd) Run(callback goja.Callable) error {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-func (c *CmdHelper) Run(callback goja.Callable) error {
-	return nil
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

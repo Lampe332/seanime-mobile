@@ -17,7 +17,6 @@ import (
 	"seanime/internal/util"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/imroc/req/v3"
 )
@@ -42,20 +41,6 @@ type (
 		CustomSourceMap NakamaCustomSourceMap `json:"customSourceMap"`
 	}
 )
-
-// generateHMACToken generates an HMAC token for stream authentication
-func (m *Manager) generateHMACToken(endpoint string) (string, error) {
-	// Use the Nakama password as the base secret - HostPassword for hosts, RemoteServerPassword for peers
-	var secret string
-	if m.settings.IsHost {
-		secret = m.settings.HostPassword
-	} else {
-		secret = m.settings.RemoteServerPassword
-	}
-
-	hmacAuth := util.NewHMACAuth(secret, 24*time.Hour)
-	return hmacAuth.GenerateToken(endpoint)
-}
 
 // hostUnreachable drops the host connection when a request to the host could not get through. A host gone to sleep keeps
 // the websocket open for up to a minute, and every page would wait for the request timeout until then; without the
@@ -211,11 +196,7 @@ func (m *Manager) PlayHostAnimeLibraryFile(path string, userAgent string, client
 
 	playbackMethod := forcePlaybackMethod
 	if playbackMethod == "" {
-		if m.GetUseDenshiPlayer() {
-			playbackMethod = "nativeplayer"
-		} else {
-			playbackMethod = "playbackmanager"
-		}
+		playbackMethod = "playbackmanager"
 	}
 
 	// Playback Manager
@@ -256,7 +237,7 @@ func (m *Manager) PlayHostAnimeLibraryFile(path string, userAgent string, client
 			return err
 		}
 
-		m.registerDenshiStreamReadyCallback("nakama-file")
+		m.registerNativeStreamReadyCallback("nakama-file")
 	}
 
 	return nil
@@ -289,49 +270,30 @@ func (m *Manager) PlayHostAnimeStream(streamType WatchPartyStreamType, userAgent
 	}
 
 	// Playback Manager
-	if !m.GetUseDenshiPlayer() {
-		err := m.playbackManager.StartStreamingUsingMediaPlayer(windowTitle, &playbackmanager.StartPlayingOptions{
-			Payload:   ret,
-			UserAgent: userAgent,
-			ClientId:  clientId,
-		}, media, aniDBEpisode)
-		if err != nil {
-			m.wsEventManager.SendEvent(events.HideIndefiniteLoader, "nakama-stream")
-			go m.playbackManager.UnsubscribeFromPlaybackStatus("nakama-stream")
-			return err
-		}
-
-		m.playbackManager.RegisterMediaPlayerCallback(func(event playbackmanager.PlaybackEvent) bool {
-			switch event.(type) {
-			case playbackmanager.StreamStartedEvent, playbackmanager.StreamStoppedEvent:
-				m.wsEventManager.SendEvent(events.HideIndefiniteLoader, "nakama-stream")
-				return false
-			}
-			return true
-		})
-	} else {
-		// Native Player
-		err := m.directstreamManager.PlayNakamaStream(context.Background(), directstream.PlayNakamaStreamOptions{
-			StreamUrl:          ret,
-			MediaId:            media.ID,
-			AnidbEpisode:       aniDBEpisode,
-			Media:              media,
-			NakamaHostPassword: m.settings.RemoteServerPassword,
-			ClientId:           clientId,
-		})
-		if err != nil {
-			m.wsEventManager.SendEvent(events.HideIndefiniteLoader, "nakama-stream")
-			go m.playbackManager.UnsubscribeFromPlaybackStatus("nakama-stream")
-			return err
-		}
-
-		m.registerDenshiStreamReadyCallback("nakama-stream")
+	err := m.playbackManager.StartStreamingUsingMediaPlayer(windowTitle, &playbackmanager.StartPlayingOptions{
+		Payload:   ret,
+		UserAgent: userAgent,
+		ClientId:  clientId,
+	}, media, aniDBEpisode)
+	if err != nil {
+		m.wsEventManager.SendEvent(events.HideIndefiniteLoader, "nakama-stream")
+		go m.playbackManager.UnsubscribeFromPlaybackStatus("nakama-stream")
+		return err
 	}
+
+	m.playbackManager.RegisterMediaPlayerCallback(func(event playbackmanager.PlaybackEvent) bool {
+		switch event.(type) {
+		case playbackmanager.StreamStartedEvent, playbackmanager.StreamStoppedEvent:
+			m.wsEventManager.SendEvent(events.HideIndefiniteLoader, "nakama-stream")
+			return false
+		}
+		return true
+	})
 
 	return nil
 }
 
-func (m *Manager) registerDenshiStreamReadyCallback(loaderID string) {
+func (m *Manager) registerNativeStreamReadyCallback(loaderID string) {
 	if m.mediacoreCoordinator == nil {
 		return
 	}

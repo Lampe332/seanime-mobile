@@ -488,13 +488,6 @@ func NewPluginExtension(ext *Extension) PluginExtension {
 	}
 }
 
-func AsPluginExtension(ext BaseExtension) (PluginExtension, bool) {
-	if ext, ok := ext.(PluginExtension); ok {
-		return ext, true
-	}
-	return nil, false
-}
-
 func (m *PluginExtensionImpl) GetPermissionHash() string {
 	if m.ext.Plugin == nil {
 		return ""

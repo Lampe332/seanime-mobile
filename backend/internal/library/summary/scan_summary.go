@@ -192,22 +192,6 @@ func (l *ScanSummaryLogger) LogFailedMatch(lf *anime.LocalFile, reason string) {
 	l.logType(LogFailedMatch, lf, msg)
 }
 
-func (l *ScanSummaryLogger) LogMatchValidated(lf *anime.LocalFile, mediaId int) {
-	if l == nil {
-		return
-	}
-	msg := fmt.Sprintf("Match validated for media %d", mediaId)
-	l.logType(LogMatchValidated, lf, msg)
-}
-
-func (l *ScanSummaryLogger) LogUnmatched(lf *anime.LocalFile, reason string) {
-	if l == nil {
-		return
-	}
-	msg := fmt.Sprintf("Unmatched: %s", reason)
-	l.logType(LogUnmatched, lf, msg)
-}
-
 func (l *ScanSummaryLogger) LogFileNotMatched(lf *anime.LocalFile, reason string) {
 	if l == nil {
 		return
@@ -278,14 +262,6 @@ func (l *ScanSummaryLogger) LogMetadataEpisodeZero(lf *anime.LocalFile, episode 
 	}
 	msg := fmt.Sprintf("Marked as main episode. Episode %d. AniDB episode set to %s assuming AniDB does not include episode 0 in the episode count.", episode, aniDBEpisode)
 	l.logType(LogMetadataEpisodeZero, lf, msg)
-}
-
-func (l *ScanSummaryLogger) LogMetadataHydrated(lf *anime.LocalFile, mediaId int) {
-	if l == nil {
-		return
-	}
-	msg := fmt.Sprintf("Metadata hydrated for media %d", mediaId)
-	l.logType(LogMetadataHydrated, lf, msg)
 }
 
 func (l *ScanSummaryLogger) LogDebug(lf *anime.LocalFile, message string) {

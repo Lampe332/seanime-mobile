@@ -157,81 +157,11 @@ func (is *InSight) Start() {
 	}()
 }
 
-func (is *InSight) startPolling() {
-	is.stopPolling()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	is.mu.Lock()
-	is.cancelPolling = cancel
-	is.mu.Unlock()
-
-	go func() {
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-
-		idleCount := 0
-		maxIdleChecks := 10 // Stop after 20 seconds of no new events
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				foundNew := is.checkStreamingEvents()
-				if foundNew {
-					idleCount = 0
-				} else {
-					idleCount++
-				}
-
-				if idleCount >= maxIdleChecks {
-					is.logger.Debug().Msg("insight: Polling stopped due to inactivity")
-					return
-				}
-			}
-		}
-	}()
-}
-
 func (is *InSight) stopPolling() {
 	if is.cancelPolling != nil {
 		is.cancelPolling()
 		is.cancelPolling = nil
 	}
-}
-
-func (is *InSight) checkStreamingEvents() bool {
-	if is.vc.playbackMkvEvents == nil {
-		return false
-	}
-
-	foundNew := false
-
-	is.vc.playbackMkvEvents.Range(func(trackNumber uint64, events []*mkvparser.SubtitleEvent) bool {
-		is.mu.Lock()
-		lastCount, ok := is.processedCounts[int(trackNumber)]
-		if !ok {
-			is.processedCounts[int(trackNumber)] = 0
-			lastCount = 0
-		}
-		is.mu.Unlock()
-
-		currentCount := len(events)
-		if currentCount > lastCount {
-			foundNew = true
-			if len(events) > lastCount {
-				newEvents := events[lastCount:]
-				is.Analyze(newEvents)
-
-				is.mu.Lock()
-				is.processedCounts[int(trackNumber)] = currentCount
-				is.mu.Unlock()
-			}
-		}
-		return true
-	})
-
-	return foundNew
 }
 
 type animeCharactersResponse struct {

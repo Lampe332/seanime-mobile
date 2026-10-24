@@ -138,13 +138,6 @@ func filterByExistingIDs(media []*anime.NormalizedMedia, existingMediaIDs map[in
 	return result
 }
 
-// ClearCache clears the normalized media cache
-func ClearCache() {
-	normalizedMediaCacheMu.Lock()
-	normalizedMediaCache = nil
-	normalizedMediaCacheMu.Unlock()
-}
-
 // convertEntryToNormalizedMedia converts an animeEntry to NormalizedMedia.
 // Returns nil if the entry has no anilist id.
 func convertEntryToNormalizedMedia(e *animeEntry) *anime.NormalizedMedia {

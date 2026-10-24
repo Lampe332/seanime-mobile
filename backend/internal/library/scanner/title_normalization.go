@@ -342,19 +342,6 @@ func tokenize(s string) []string {
 	return result
 }
 
-// stripRomanNumerals removes standalone roman numeral words from a normalized title string.
-// e.g. "overlord iii" → "overlord", "attack on titan" → "attack on titan"
-func stripRomanNumerals(s string) string {
-	tokens := strings.Fields(s)
-	result := tokens[:0]
-	for _, t := range tokens {
-		if _, ok := romanToNumber[t]; !ok {
-			result = append(result, t)
-		}
-	}
-	return strings.Join(result, " ")
-}
-
 // formatWords are the tokens we strip when building CleanBaseTitle.
 var formatWords = map[string]struct{}{
 	"ova": {}, "ona": {}, "oad": {}, "oav": {}, "sp": {}, "special": {}, "specials": {},
@@ -485,36 +472,6 @@ func IsNoiseWord(word string) bool {
 	return isNoise
 }
 
-// TokenMatchRatio calculates the ratio of matching tokens between two token sets.
-func TokenMatchRatio(tokensA, tokensB []string) float64 {
-	if len(tokensA) == 0 || len(tokensB) == 0 {
-		return 0.0
-	}
-
-	// Create a set of tokensB for O(1) lookup
-	setB := getTokenSet()
-	defer putTokenSet(setB)
-	for _, t := range tokensB {
-		setB[t] = struct{}{}
-	}
-
-	// Count matches
-	matches := 0
-	for _, t := range tokensA {
-		if _, found := setB[t]; found {
-			matches++
-		}
-	}
-
-	// Return ratio based on the smaller set (more lenient for subset matching)
-	minLen := len(tokensA)
-	if len(tokensB) < minLen {
-		minLen = len(tokensB)
-	}
-
-	return float64(matches) / float64(minLen)
-}
-
 // WeightedTokenMatchRatio calculates match ratio with noise words weighted less.
 func WeightedTokenMatchRatio(tokensA, tokensB []string) float64 {
 	if len(tokensA) == 0 || len(tokensB) == 0 {
@@ -584,16 +541,6 @@ func ContainsAllTokens(subset, superset []string) bool {
 		}
 	}
 	return true
-}
-
-func RemoveNonAlphanumeric(s string) string {
-	var result strings.Builder
-	for _, r := range s {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
-			result.WriteRune(r)
-		}
-	}
-	return result.String()
 }
 
 // HasStrongMatch returns true if there is a match between tokens that is not a year token or a noise word.

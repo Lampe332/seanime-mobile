@@ -711,154 +711,6 @@ func TestScreenshotDirMutation(t *testing.T) {
 	}
 }
 
-func TestCanMutatePrivilegedMediastreamSettings(t *testing.T) {
-	prev := &models.MediastreamSettings{
-		FfmpegPath:  "ffmpeg",
-		FfprobePath: "ffprobe",
-	}
-
-	tests := []struct {
-		name           string
-		origin         string
-		reqHost        string
-		remoteAddr     string
-		secureMode     string
-		serverPassword string
-		next           *models.MediastreamSettings
-		want           bool
-	}{
-		{
-			name:    "allows unrelated mediastream changes without trusted origin",
-			origin:  "https://evil.example",
-			reqHost: "192.168.1.10:43211",
-			next: &models.MediastreamSettings{
-				TranscodeEnabled: true,
-				FfmpegPath:       "ffmpeg",
-				FfprobePath:      "ffprobe",
-			},
-			want: true,
-		},
-		{
-			name:       "allows trusted local origin when ffmpeg path changes",
-			origin:     "http://127.0.0.1:43211",
-			reqHost:    "127.0.0.1:43211",
-			remoteAddr: "127.0.0.1:51111",
-			next: &models.MediastreamSettings{
-				FfmpegPath:  "/tmp/ffmpeg-wrapper",
-				FfprobePath: "ffprobe",
-			},
-			want: true,
-		},
-		{
-			name:       "allows spoofed trusted local origin when ffmpeg path changes by default",
-			origin:     "http://127.0.0.1:43211",
-			reqHost:    "127.0.0.1:43211",
-			remoteAddr: "203.0.113.10:51111",
-			next: &models.MediastreamSettings{
-				FfmpegPath:  "/tmp/ffmpeg-wrapper",
-				FfprobePath: "ffprobe",
-			},
-			want: true,
-		},
-		{
-			name:       "rejects spoofed trusted local origin when ffmpeg path changes in hardened mode",
-			origin:     "http://127.0.0.1:43211",
-			reqHost:    "127.0.0.1:43211",
-			remoteAddr: "203.0.113.10:51111",
-			secureMode: security.SecureModeHardened,
-			next: &models.MediastreamSettings{
-				FfmpegPath:  "/tmp/ffmpeg-wrapper",
-				FfprobePath: "ffprobe",
-			},
-			want: false,
-		},
-		{
-			name:    "rejects untrusted origin when ffprobe path changes",
-			origin:  "https://evil.example",
-			reqHost: "192.168.1.10:43211",
-			next: &models.MediastreamSettings{
-				FfmpegPath:  "ffmpeg",
-				FfprobePath: "/tmp/ffprobe-wrapper",
-			},
-			want: false,
-		},
-		{
-			name:    "rejects untrusted origin when hwaccel switches to custom",
-			origin:  "https://evil.example",
-			reqHost: "192.168.1.10:43211",
-			next: &models.MediastreamSettings{
-				FfmpegPath:                     "ffmpeg",
-				FfprobePath:                    "ffprobe",
-				TranscodeHwAccel:               "custom",
-				TranscodeHwAccelCustomSettings: `{"name":"custom","encodeFlags":["-f","mpegts"]}`,
-			},
-			want: false,
-		},
-		{
-			name:    "allows untrusted origin when hwaccel is not custom",
-			origin:  "https://evil.example",
-			reqHost: "192.168.1.10:43211",
-			next: &models.MediastreamSettings{
-				FfmpegPath:       "ffmpeg",
-				FfprobePath:      "ffprobe",
-				TranscodeHwAccel: "nvidia",
-			},
-			want: true,
-		},
-		{
-			name:           "allows authenticated mediastream writes without trusted origin",
-			origin:         "https://evil.example",
-			reqHost:        "192.168.1.10:43211",
-			serverPassword: "configured",
-			next: &models.MediastreamSettings{
-				FfmpegPath:  "/tmp/ffmpeg-wrapper",
-				FfprobePath: "/tmp/ffprobe-wrapper",
-			},
-			want: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// remote sites should not be able to repoint ffmpeg or ffprobe on passwordless servers.
-			security.SetSecureMode(tt.secureMode)
-			t.Cleanup(func() {
-				security.SetSecureMode("")
-			})
-
-			req := httptest.NewRequest(http.MethodPatch, "/api/v1/mediastream/settings", nil)
-			req.Host = tt.reqHost
-			if tt.remoteAddr != "" {
-				req.RemoteAddr = tt.remoteAddr
-			}
-			if tt.origin != "" {
-				req.Header.Set("Origin", tt.origin)
-			}
-
-			assert.Equal(t, tt.want, canMutatePrivilegedMediastreamSettings(req, tt.serverPassword, prev, tt.next))
-		})
-	}
-
-	t.Run("rejects authenticated public clients in strict mode", func(t *testing.T) {
-		security.SetSecureMode(security.SecureModeStrict)
-		t.Cleanup(func() {
-			security.SetSecureMode("")
-		})
-
-		req := httptest.NewRequest(http.MethodPatch, "/api/v1/mediastream/settings", nil)
-		req.Host = "127.0.0.1:43211"
-		req.RemoteAddr = "203.0.113.10:51111"
-		req.Header.Set("Origin", "http://127.0.0.1:43211")
-
-		next := &models.MediastreamSettings{
-			FfmpegPath:  "/tmp/ffmpeg-wrapper",
-			FfprobePath: "ffprobe",
-		}
-
-		assert.False(t, canMutatePrivilegedMediastreamSettings(req, "configured", prev, next))
-	})
-}
-
 func TestCanUsePrivilegedExtensionManagement(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -1238,14 +1090,9 @@ func TestUsesPrivilegedCommandSettings(t *testing.T) {
 				QBittorrentPath: "/Applications/qbittorrent.app/Contents/MacOS/qbittorrent",
 			},
 		}
-		mediastreamSettings := &models.MediastreamSettings{
-			FfmpegPath:  "ffmpeg",
-			FfprobePath: "ffprobe",
-		}
 
 		assert.False(t, isPrivilegedMediaPlayer(settings))
 		assert.False(t, isPrivilegedTorrentClient(settings))
-		assert.False(t, isPrivilegedMediastream(mediastreamSettings))
 	})
 
 	t.Run("detects custom paths and custom args", func(t *testing.T) {
@@ -1261,24 +1108,8 @@ func TestUsesPrivilegedCommandSettings(t *testing.T) {
 				QBittorrentPath: "/tmp/qbit-wrapper",
 			},
 		}
-		mediastreamSettings := &models.MediastreamSettings{
-			FfmpegPath:  "/tmp/ffmpeg-wrapper",
-			FfprobePath: "/tmp/ffprobe-wrapper",
-		}
 
 		assert.True(t, isPrivilegedMediaPlayer(settings))
 		assert.True(t, isPrivilegedTorrentClient(settings))
-		assert.True(t, isPrivilegedMediastream(mediastreamSettings))
-	})
-
-	t.Run("detects custom hwaccel profiles", func(t *testing.T) {
-		mediastreamSettings := &models.MediastreamSettings{
-			FfmpegPath:                     "ffmpeg",
-			FfprobePath:                    "ffprobe",
-			TranscodeHwAccel:               "custom",
-			TranscodeHwAccelCustomSettings: `{"name":"custom","encodeFlags":["-f","mpegts"]}`,
-		}
-
-		assert.True(t, isPrivilegedMediastream(mediastreamSettings))
 	})
 }

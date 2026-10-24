@@ -78,17 +78,3 @@ func (m *RWMutexMap) Range(f func(key, value interface{}) (shouldContinue bool))
 		}
 	}
 }
-
-// MapInterface is the interface Map implements.
-type MapInterface interface {
-	Load(interface{}) (interface{}, bool)
-	Store(key, value interface{})
-	LoadOrStore(key, value interface{}) (actual interface{}, loaded bool)
-	LoadAndDelete(key interface{}) (value interface{}, loaded bool)
-	Delete(interface{})
-	Range(func(key, value interface{}) (shouldContinue bool))
-}
-
-func NewRWMutexMap() MapInterface {
-	return &RWMutexMap{}
-}

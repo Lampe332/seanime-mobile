@@ -63,15 +63,6 @@ func IsSubdirectory(parent, child string) bool {
 	return isStrictDescendantPath(parentPath, childPath)
 }
 
-func IsSubdirectoryOfAny(dirs []string, child string) bool {
-	for _, dir := range dirs {
-		if IsSubdirectory(dir, child) {
-			return true
-		}
-	}
-	return false
-}
-
 func IsSameDir(dir1, dir2 string) bool {
 	normalizedDir1, err := normalizeComparablePath(dir1)
 	if err != nil {

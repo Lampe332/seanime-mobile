@@ -182,14 +182,6 @@ func FixtureRelPath(path string) string {
 	return filepath.FromSlash(cleaned)
 }
 
-func NormalizeTestPath(path string) string {
-	if resolved, err := filepath.EvalSymlinks(path); err == nil {
-		return filepath.Clean(resolved)
-	}
-
-	return filepath.Clean(path)
-}
-
 func sanitizeTestName(name string) string {
 	if name == "" {
 		return defaultTestDatabaseName

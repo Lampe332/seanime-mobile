@@ -1,42 +1,10 @@
 package parallel
 
 import (
-	"github.com/samber/lo"
-	"seanime/internal/util/limiter"
 	"sync"
+
+	"github.com/samber/lo"
 )
-
-// EachTask iterates over elements of collection and invokes the task function for each element.
-// `task` is called in parallel.
-func EachTask[T any](collection []T, task func(item T, index int)) {
-	var wg sync.WaitGroup
-
-	for i, item := range collection {
-		wg.Add(1)
-		go func(_item T, _i int) {
-			defer wg.Done()
-			task(_item, _i)
-		}(item, i)
-	}
-
-	wg.Wait()
-}
-
-// EachTaskL is the same as EachTask, but takes a pointer to limiter.Limiter.
-func EachTaskL[T any](collection []T, rl *limiter.Limiter, task func(item T, index int)) {
-	var wg sync.WaitGroup
-
-	for i, item := range collection {
-		wg.Add(1)
-		go func(_item T, _i int) {
-			defer wg.Done()
-			rl.Wait()
-			task(_item, _i)
-		}(item, i)
-	}
-
-	wg.Wait()
-}
 
 type SettledResults[T comparable, R any] struct {
 	Collection []T

@@ -517,10 +517,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 
 }
 
-func (h *Handler) JSON(c echo.Context, code int, i interface{}) error {
-	return c.JSON(code, i)
-}
-
 func (h *Handler) RespondWithData(c echo.Context, data interface{}) error {
 	return c.JSON(200, NewDataResponse(data))
 }

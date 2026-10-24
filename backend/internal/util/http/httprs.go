@@ -44,36 +44,6 @@ type HttpReadSeeker struct {
 	rateLimiter *limiter.Limiter
 }
 
-// NewHttpReadSeeker creates a new HttpReadSeeker from an http.Response
-func NewHttpReadSeeker(resp *http.Response) *HttpReadSeeker {
-	url := ""
-	headers := http.Header{}
-	if resp.Request != nil {
-		url = resp.Request.URL.String()
-		headers = resp.Request.Header.Clone()
-	}
-
-	size := int64(-1)
-	if resp.ContentLength > 0 {
-		size = resp.ContentLength
-	}
-
-	return &HttpReadSeeker{
-		url:        url,
-		client:     http.DefaultClient,
-		resp:       resp,
-		headers:    headers,
-		offset:     0,
-		size:       size,
-		readBuf:    nil,
-		readOffset: 0,
-	}
-}
-
-func NewHttpReadSeekerFromURL(url string) (*HttpReadSeeker, error) {
-	return NewHttpReadSeekerFromURLWithHeaders(url, nil)
-}
-
 func overrideHeaders(dst http.Header, src http.Header) {
 	if len(src) == 0 {
 		return
@@ -85,21 +55,6 @@ func overrideHeaders(dst http.Header, src http.Header) {
 			dst.Add(key, value)
 		}
 	}
-}
-
-func NewHttpReadSeekerFromURLWithHeaders(url string, headers http.Header) (*HttpReadSeeker, error) {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("httprs: failed to create request for URL %s: %w", url, err)
-	}
-	overrideHeaders(req.Header, headers)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("httprs: failed to get URL %s: %w", url, err)
-	}
-
-	return NewHttpReadSeeker(resp), nil
 }
 
 // NewLazyHttpReadSeekerFromURLWithHeaders creates an HTTP read seeker without opening the response.

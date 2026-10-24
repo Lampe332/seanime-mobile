@@ -144,7 +144,7 @@ func (s *BaseStream) sendSubtitleEvents(ctx context.Context, stream Stream, even
 	target := s.manager.currentPlaybackTarget
 	s.manager.playbackMu.Unlock()
 	if target != PlaybackTargetVideoCore || s.manager.nativePlayer == nil {
-		// MpvCore lets libmpv demux and render embedded subtitles directly.
+		// Nothing to forward outside native VideoCore playback.
 		return true
 	}
 

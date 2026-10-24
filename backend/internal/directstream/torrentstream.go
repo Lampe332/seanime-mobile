@@ -69,11 +69,6 @@ func (s *TorrentStream) openCompletedFile() (io.ReadSeekCloser, bool) {
 	return reader, true
 }
 
-func (s *TorrentStream) hasCompletedFile() bool {
-	_, ok := s.completedFilePath()
-	return ok
-}
-
 func (s *TorrentStream) newReader(ctx context.Context) io.ReadSeekCloser {
 	if reader, ok := s.openCompletedFile(); ok {
 		return reader

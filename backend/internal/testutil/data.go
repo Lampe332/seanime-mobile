@@ -116,11 +116,6 @@ func configDir() string {
 	return filepath.Join(ProjectRoot(), "test")
 }
 
-// DataPath returns the absolute path to a JSON file in test/data.
-func DataPath(name string) string {
-	return filepath.Join(ProjectRoot(), "test", "data", name+".json")
-}
-
 // TestDataPath returns the absolute path to a JSON file in test/testdata.
 func TestDataPath(name string) string {
 	return filepath.Join(ProjectRoot(), "test", "testdata", name+".json")
@@ -244,35 +239,11 @@ func Anilist() SkipFunc {
 	}
 }
 
-func AnilistMutation() SkipFunc {
-	return func(t testing.TB, cfg *Config) {
-		t.Helper()
-		if !cfg.Flags.EnableAnilistMutationTests {
-			t.Skip("anilist mutation tests disabled")
-		}
-		if cfg.Provider.AnilistJwt == "" {
-			t.Skip("anilist mutation tests require anilist_jwt")
-		}
-	}
-}
-
 func MyAnimeList() SkipFunc {
 	return func(t testing.TB, cfg *Config) {
 		t.Helper()
 		if !cfg.Flags.EnableMalTests {
 			t.Skip("mal tests disabled")
-		}
-	}
-}
-
-func MyAnimeListMutation() SkipFunc {
-	return func(t testing.TB, cfg *Config) {
-		t.Helper()
-		if !cfg.Flags.EnableMalMutationTests {
-			t.Skip("mal mutation tests disabled")
-		}
-		if cfg.Provider.MalJwt == "" {
-			t.Skip("mal mutation tests require mal_jwt")
 		}
 	}
 }
@@ -285,24 +256,6 @@ func MediaPlayer() SkipFunc {
 		}
 		if cfg.Provider.MpvPath == "" {
 			t.Skip("media player tests require mpv_path")
-		}
-	}
-}
-
-func TorrentClient() SkipFunc {
-	return func(t testing.TB, cfg *Config) {
-		t.Helper()
-		if !cfg.Flags.EnableTorrentClientTests {
-			t.Skip("torrent client tests disabled")
-		}
-	}
-}
-
-func Torrentstream() SkipFunc {
-	return func(t testing.TB, cfg *Config) {
-		t.Helper()
-		if !cfg.Flags.EnableTorrentstreamTests {
-			t.Skip("torrentstream tests disabled")
 		}
 	}
 }

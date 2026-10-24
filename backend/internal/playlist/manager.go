@@ -81,7 +81,6 @@ const (
 
 const (
 	SystemPlayer       = "system"
-	MpvCorePlayer      = "mpvcore"
 	NativePlayer       = "native"
 	ExternalPlayerLink = "externalPlayerLink"
 	Transcode          = "transcode"
@@ -374,11 +373,7 @@ func (m *Manager) startPlaylist(playlist *anime.Playlist, options *startPlaylist
 					}
 				}
 			case event := <-mediacoreSubscriber.Events():
-				key := event.GetSessionKey()
-				playerType := MpvCorePlayer
-				if key.Target == player.TargetVideoCore {
-					playerType = NativePlayer
-				}
+				playerType := NativePlayer
 
 				switch event.(type) {
 				case *player.LoadedMetadataEvent:
@@ -473,24 +468,6 @@ func (m *Manager) playNextEpisode() {
 	m.playEpisode(episode)
 
 	m.prepareNextEpisode()
-}
-
-func (m *Manager) hasNextEpisode() bool {
-	data, ok := m.currentPlaylistData.Get()
-	if !ok {
-		return false
-	}
-
-	var found bool
-	for _, playlistEp := range data.playlist.Episodes {
-		if playlistEp.IsCompleted {
-			continue
-		}
-		found = true
-		break
-	}
-
-	return found
 }
 
 func (m *Manager) markCurrentAsCompleted() {
@@ -802,18 +779,4 @@ func (m *Manager) ReopenEpisode() {
 func (e *ClientEvent) UnmarshalAs(dest interface{}) error {
 	marshaled, _ := json.Marshal(e.Payload)
 	return json.Unmarshal(marshaled, dest)
-}
-
-func (m *Manager) isSameEpisode(a *anime.Episode, b *anime.Episode) bool {
-	if a == nil || b == nil {
-		return false
-	}
-
-	// If one file is a local file, use progress number for comparison
-	if a.LocalFile != nil || b.LocalFile != nil {
-		return a.BaseAnime.ID == b.BaseAnime.ID && a.ProgressNumber == b.ProgressNumber
-	}
-
-	// Otherwise, use AniDB episode number for comparison
-	return a.BaseAnime.ID == b.BaseAnime.ID && a.AniDBEpisode == b.AniDBEpisode
 }

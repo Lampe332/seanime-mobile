@@ -491,27 +491,6 @@ func (d *PgsDecoder) GetObject(objectID uint16) *PgsObject {
 	return d.objects[objectID]
 }
 
-// GetPgsSegmentTypeName returns the name of a PGS segment type for logging
-func GetPgsSegmentTypeName(data []byte) string {
-	if len(data) < 1 {
-		return "UNKNOWN"
-	}
-	switch data[0] {
-	case SegPDS:
-		return "PDS (Palette Definition)"
-	case SegODS:
-		return "ODS (Object Definition)"
-	case SegPCS:
-		return "PCS (Presentation Composition)"
-	case SegWDS:
-		return "WDS (Window Definition)"
-	case SegEND:
-		return "END (End of Display Set)"
-	default:
-		return fmt.Sprintf("UNKNOWN (0x%02X)", data[0])
-	}
-}
-
 // ListPgsSegments returns a list of all segment types in a PGS packet
 func ListPgsSegments(packet []byte) []string {
 	var segments []string

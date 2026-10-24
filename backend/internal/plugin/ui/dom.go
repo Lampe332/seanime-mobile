@@ -1140,26 +1140,6 @@ func (d *DOMManager) appendElement(parentID, childId string) {
 	})
 }
 
-func (d *DOMManager) appendChildElement(parentID, childId string) {
-	d.ctx.SendEventToClient(ServerDOMManipulateEvent, &ServerDOMManipulateEventPayload{
-		ElementId: parentID,
-		Action:    "appendChild",
-		Params: map[string]interface{}{
-			"childId": childId,
-		},
-	})
-}
-
-func (d *DOMManager) removeChildElement(parentID, childId string) {
-	d.ctx.SendEventToClient(ServerDOMManipulateEvent, &ServerDOMManipulateEventPayload{
-		ElementId: parentID,
-		Action:    "removeChild",
-		Params: map[string]interface{}{
-			"childId": childId,
-		},
-	})
-}
-
 func (d *DOMManager) insertElementBefore(elementId, siblingId string) {
 	d.ctx.SendEventToClient(ServerDOMManipulateEvent, &ServerDOMManipulateEventPayload{
 		ElementId: elementId,

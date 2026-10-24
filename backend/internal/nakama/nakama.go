@@ -80,11 +80,6 @@ type Manager struct {
 
 	previousPath string // latest file streamed by the peer - real path on the host
 
-	// Client settings
-	clientId        string
-	useDenshiPlayer bool         // Whether this client uses Denshi player
-	clientMu        sync.RWMutex // Mutex for client settings
-
 	isOfflineRef *util.Ref[bool]
 }
 
@@ -241,7 +236,6 @@ func NewManager(opts *NewManagerOptions) *Manager {
 		debridClientRepository:  opts.DebridClientRepository,
 		previousPath:            "",
 		mediacoreCoordinator:    opts.MediacoreCoordinator,
-		useDenshiPlayer:         false,
 		directstreamManager:     opts.DirectStreamManager,
 		isOfflineRef:            opts.IsOfflineRef,
 		connectionMode:          ConnectionModeDirect, // Default to direct mode
@@ -269,21 +263,8 @@ func NewManager(opts *NewManagerOptions) *Manager {
 					continue
 				}
 
-				// Store the client's UseDenshiPlayer setting
-				// This will be used to know which player to use when starting a stream
-				m.clientMu.Lock()
-				//m.clientId = payload.ClientId
-				m.useDenshiPlayer = payload.UseDenshiPlayer
-				m.clientMu.Unlock()
-				if m.useDenshiPlayer {
-					if m.directstreamManager.GetPlaybackTarget() == directstream.PlaybackTargetVideoCore {
-						m.genericPlayer.SetDefaultType(WatchPartyVideoCore)
-					} else {
-						m.genericPlayer.SetDefaultType(WatchPartyMpvCore)
-					}
-				} else {
-					m.genericPlayer.SetDefaultType(WatchPartyPlaybackManager)
-				}
+				// The Android web UI never uses the Denshi player (useDenshiPlayer is always false).
+				m.genericPlayer.SetDefaultType(WatchPartyPlaybackManager)
 
 				currSession, _ := m.GetWatchPartyManager().GetCurrentSession()
 
@@ -568,13 +549,6 @@ func (m *Manager) GetConnectedPeers() []string {
 	})
 
 	return peers
-}
-
-// GetUseDenshiPlayer returns whether this client uses Denshi player
-func (m *Manager) GetUseDenshiPlayer() bool {
-	m.clientMu.RLock()
-	defer m.clientMu.RUnlock()
-	return m.useDenshiPlayer
 }
 
 // IsConnectedToHost returns whether this instance is connected to a host

@@ -131,15 +131,6 @@ func (h *HMACAuth) GenerateQueryParam(endpoint string, symbol string) (string, e
 	return fmt.Sprintf("%stoken=%s", symbol, token), nil
 }
 
-// ValidateQueryParam extracts and validates token from query parameter
-func (h *HMACAuth) ValidateQueryParam(tokenParam string, endpoint string) (*TokenClaims, error) {
-	if tokenParam == "" {
-		return nil, fmt.Errorf("no token provided")
-	}
-
-	return h.ValidateToken(tokenParam, endpoint)
-}
-
 // splitToken splits a token string by the last dot separator
 func splitToken(token string) []string {
 	// Find the last dot to split claims from signature
@@ -149,31 +140,4 @@ func splitToken(token string) []string {
 		}
 	}
 	return []string{token}
-}
-
-func (h *HMACAuth) GetTokenExpiry(token string) (time.Time, error) {
-	parts := splitToken(token)
-	if len(parts) != 2 {
-		return time.Time{}, fmt.Errorf("invalid token format")
-	}
-
-	claimsJSON, err := base64URLDecode(parts[0])
-	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to decode claims: %w", err)
-	}
-
-	var claims TokenClaims
-	if err := json.Unmarshal(claimsJSON, &claims); err != nil {
-		return time.Time{}, fmt.Errorf("failed to unmarshal claims: %w", err)
-	}
-
-	return time.Unix(claims.ExpiresAt, 0), nil
-}
-
-func (h *HMACAuth) IsTokenExpired(token string) bool {
-	expiry, err := h.GetTokenExpiry(token)
-	if err != nil {
-		return true
-	}
-	return time.Now().After(expiry)
 }

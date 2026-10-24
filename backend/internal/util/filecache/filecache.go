@@ -213,32 +213,6 @@ func (c *Cacher) Delete(bucket Bucket, key string) error {
 	return store.saveToFile()
 }
 
-func DeleteIf[T any](c *Cacher, bucket Bucket, cond func(key string, value T) bool) error {
-	store, err := c.getStore(bucket.name)
-	if err != nil {
-		return err
-	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-
-	for key, item := range store.data {
-		itemVal, err := json.Marshal(item.Value)
-		if err != nil {
-			return err
-		}
-		var out T
-		err = json.Unmarshal(itemVal, &out)
-		if err != nil {
-			return err
-		}
-		if cond(key, out) {
-			delete(store.data, key)
-		}
-	}
-
-	return store.saveToFile()
-}
-
 // Empty empties the given bucket.
 func (c *Cacher) Empty(bucket Bucket) error {
 	store, err := c.getStore(bucket.name)

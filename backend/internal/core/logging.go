@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"seanime/internal/util"
-	"seanime/internal/util/crashlog"
 	"sort"
 	"strings"
 	"time"
@@ -51,7 +50,6 @@ func (a *App) InitLogging() {
 	log.Logger = *a.Logger
 	golog.SetOutput(a.Logger)
 	util.SetupLoggerSignalHandling(logFile)
-	crashlog.GlobalCrashLogger.SetLogDir(a.Config.Logs.Dir)
 
 	a.OnFlushLogs = func() {
 		util.WriteGlobalLogBufferToFile(logFile)

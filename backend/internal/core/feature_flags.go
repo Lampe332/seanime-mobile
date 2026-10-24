@@ -113,11 +113,6 @@ func NewFeatureManager(logger *zerolog.Logger, flags SeanimeFlags) *FeatureManag
 	return ret
 }
 
-func (m *FeatureManager) IsEnabled(key FeatureKey) bool {
-	_, ok := m.disabledFeatures[key]
-	return !ok
-}
-
 func (m *FeatureManager) IsDisabled(key FeatureKey) bool {
 	_, ok := m.disabledFeatures[key]
 	return ok
@@ -125,10 +120,6 @@ func (m *FeatureManager) IsDisabled(key FeatureKey) bool {
 
 func (m *FeatureManager) HasDisabledFeatures() bool {
 	return len(m.DisabledFeatures) > 0
-}
-
-func (m *FeatureManager) GetDisabledFeatureMap() map[FeatureKey]bool {
-	return m.disabledFeatures
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

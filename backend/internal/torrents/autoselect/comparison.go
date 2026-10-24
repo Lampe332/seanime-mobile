@@ -456,11 +456,6 @@ func (s *AutoSelect) smartCachedPrioritization(
 	return result
 }
 
-func (s *AutoSelect) calculateScore(c *candidate, profile *anime.AutoSelectProfile) int {
-	priority, bonus := s.calculateScoreBreakdown(c, profile)
-	return priority + bonus
-}
-
 func (s *AutoSelect) calculateScoreBreakdown(c *candidate, profile *anime.AutoSelectProfile) (priority int, bonus int) {
 	parsed := c.parsed
 	t := c.torrent

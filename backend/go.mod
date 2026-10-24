@@ -28,7 +28,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/gqlgo/gqlgenc v0.33.1
-	github.com/huin/goupnp v1.3.0
 	github.com/imroc/req/v3 v3.61.0
 	github.com/kr/pretty v0.3.1
 	github.com/labstack/echo/v4 v4.15.4
@@ -45,7 +44,6 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/ziflex/lecho/v3 v3.11.1
 	go.uber.org/atomic v1.11.0
-	golang.org/x/crypto v0.56.0
 	golang.org/x/image v0.45.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/term v0.45.0
@@ -169,6 +167,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	golang.org/x/crypto v0.56.0 // indirect
 	golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6 // indirect
 	golang.org/x/mobile v0.0.0-20260602190626-68735029466e // indirect
 	golang.org/x/mod v0.38.0 // indirect

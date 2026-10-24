@@ -1,15 +1,10 @@
 package util
 
 import (
-	"fmt"
 	"os/exec"
 	"runtime"
 	"strings"
 )
-
-func GetMemAddrStr(v interface{}) string {
-	return fmt.Sprintf("%p", v)
-}
 
 func ProgramIsRunning(name string) bool {
 	var cmd *exec.Cmd

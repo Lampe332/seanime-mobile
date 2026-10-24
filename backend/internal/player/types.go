@@ -12,7 +12,6 @@ type Target string
 
 const (
 	TargetVideoCore Target = "videocore"
-	TargetMpvCore   Target = "mpvcore"
 )
 
 type Renderer string
@@ -20,7 +19,6 @@ type Renderer string
 const (
 	RendererWeb    Renderer = "web"
 	RendererNative Renderer = "native"
-	RendererMpv    Renderer = "mpv"
 )
 
 type PlaybackType string

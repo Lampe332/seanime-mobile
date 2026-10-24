@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"seanime/internal/customsource"
-	"seanime/internal/directstream"
 	"seanime/internal/events"
 	"seanime/internal/player"
 	"seanime/internal/torrentstream"
@@ -150,7 +149,7 @@ func (wpm *WatchPartyManager) sendStatusToHost(peerId string) {
 		PlaybackStatus:  playbackStatus,
 		IsBuffering:     isBuffering,
 		BufferHealth:    bufferHealth,
-		UseDenshiPlayer: wpm.manager.GetUseDenshiPlayer(),
+		UseDenshiPlayer: false, // wire field kept for desktop hosts; the Android app never uses Denshi
 		Timestamp:       time.Now(),
 	})
 }
@@ -409,15 +408,7 @@ func (wpm *WatchPartyManager) handleWatchPartyStateChangedEvent(payload *WatchPa
 		wpm.logger.Debug().Int("mediaId", payload.Session.CurrentMediaInfo.MediaId).Msg("nakama: Starting watch party media")
 
 		if payload.Session.CurrentMediaInfo.StreamType != WatchPartyStreamTypeOnlinestream {
-			if wpm.manager.GetUseDenshiPlayer() {
-				if wpm.manager.directstreamManager.GetPlaybackTarget() == directstream.PlaybackTargetVideoCore {
-					wpm.manager.genericPlayer.SetType(WatchPartyVideoCore)
-				} else {
-					wpm.manager.genericPlayer.SetType(WatchPartyMpvCore)
-				}
-			} else {
-				wpm.manager.genericPlayer.SetType(WatchPartyPlaybackManager)
-			}
+			wpm.manager.genericPlayer.SetType(WatchPartyPlaybackManager)
 		}
 
 		switch payload.Session.CurrentMediaInfo.StreamType {
@@ -435,11 +426,7 @@ func (wpm *WatchPartyManager) handleWatchPartyStateChangedEvent(payload *WatchPa
 			}
 			// Overwrite the player used and client ID
 			payload.Session.CurrentMediaInfo.TorrentStreamParams.ClientId = wpm.clientId
-			if wpm.manager.GetUseDenshiPlayer() {
-				payload.Session.CurrentMediaInfo.TorrentStreamParams.PlaybackType = torrentstream.PlaybackTypeNativePlayer
-			} else {
-				payload.Session.CurrentMediaInfo.TorrentStreamParams.PlaybackType = torrentstream.PlaybackTypeExternal
-			}
+			payload.Session.CurrentMediaInfo.TorrentStreamParams.PlaybackType = torrentstream.PlaybackTypeExternal
 			payload.Session.CurrentMediaInfo.TorrentStreamParams.SetMedia(media)
 
 			wpm.logger.Debug().Interface("params", payload.Session.CurrentMediaInfo.TorrentStreamParams).Msg("nakama: Starting torrent stream")

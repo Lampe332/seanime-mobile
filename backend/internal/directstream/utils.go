@@ -3,7 +3,6 @@ package directstream
 import (
 	"context"
 	"net/url"
-	"path/filepath"
 	"seanime/internal/mkvparser"
 )
 
@@ -26,11 +25,6 @@ func getAttachmentByName(ctx context.Context, stream Stream, filename string) (*
 	}
 
 	return attachment, true
-}
-
-func isEbmlExtension(filename string) bool {
-	ext := filepath.Ext(filename)
-	return ext == ".mkv" || ext == ".m4v" || ext == ".mp4"
 }
 
 func isEbmlContent(mimeType string) bool {

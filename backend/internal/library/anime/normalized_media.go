@@ -5,7 +5,6 @@ import (
 	"seanime/internal/api/anilist"
 	"seanime/internal/util/comparison"
 	"seanime/internal/util/limiter"
-	"seanime/internal/util/result"
 
 	"github.com/samber/lo"
 )
@@ -53,10 +52,6 @@ type NormalizedMediaNextAiringEpisode struct {
 	AiringAt        int
 	TimeUntilAiring int
 	Episode         int
-}
-
-type NormalizedMediaCache struct {
-	*result.Cache[int, *NormalizedMedia]
 }
 
 func NewNormalizedMedia(m *anilist.BaseAnime) *NormalizedMedia {
@@ -174,10 +169,6 @@ func FetchNormalizedMedia(anilistClient anilist.AnilistClient, l *limiter.Limite
 	*m = *NewNormalizedMedia(complete.GetMedia().ToBaseAnime())
 	m.fetched = true
 	return nil
-}
-
-func NewNormalizedMediaCache() *NormalizedMediaCache {
-	return &NormalizedMediaCache{result.NewCache[int, *NormalizedMedia]()}
 }
 
 // Helper methods

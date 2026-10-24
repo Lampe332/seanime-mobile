@@ -62,51 +62,6 @@ func FindBestMatchWithLevenshtein(v *string, vals []*string) (*LevenshteinResult
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// JaroWinklerResult is a struct that holds a string and its JaroWinkler distance compared to another string.
-type JaroWinklerResult struct {
-	OriginalValue *string
-	Value         *string
-	Rating        float64
-}
-
-// CompareWithJaroWinkler compares a string to a slice of strings and returns a slice of JaroWinklerResult containing the JaroWinkler distance for each string.
-func CompareWithJaroWinkler(v *string, vals []*string) []*JaroWinklerResult {
-
-	jw := metrics.NewJaroWinkler()
-	jw.CaseSensitive = false
-
-	res := make([]*JaroWinklerResult, len(vals))
-
-	for _, val := range vals {
-		res = append(res, &JaroWinklerResult{
-			OriginalValue: v,
-			Value:         val,
-			Rating:        jw.Compare(*v, *val),
-		})
-	}
-
-	return res
-}
-
-// FindBestMatchWithJaroWinkler returns the best match from a slice of strings as a reference to a JaroWinklerResult.
-// It also returns a boolean indicating whether the best match was found.
-func FindBestMatchWithJaroWinkler(v *string, vals []*string) (*JaroWinklerResult, bool) {
-	res := CompareWithJaroWinkler(v, vals)
-
-	if len(res) == 0 {
-		return nil, false
-	}
-
-	var bestResult *JaroWinklerResult
-	for _, result := range res {
-		if bestResult == nil || result.Rating > bestResult.Rating {
-			bestResult = result
-		}
-	}
-
-	return bestResult, true
-}
-
 //----------------------------------------------------------------------------------------------------------------------
 
 // JaccardResult is a struct that holds a string and its Jaccard distance compared to another string.

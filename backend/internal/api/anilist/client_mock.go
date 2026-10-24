@@ -171,18 +171,6 @@ func loadJSONFixture(path string, out interface{}) (bool, error) {
 	return true, nil
 }
 
-func requireJSONFixture(path string, out interface{}) error {
-	loaded, err := loadJSONFixture(path, out)
-	if err != nil {
-		return err
-	}
-	if !loaded {
-		return fmt.Errorf("missing required AniList fixture: %s", path)
-	}
-
-	return nil
-}
-
 func maybeWriteJSONFixture(path string, value interface{}, logger *zerolog.Logger) error {
 	if !testutil.ShouldRecordAnilistFixtures() {
 		if logger != nil {

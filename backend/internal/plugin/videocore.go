@@ -20,7 +20,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// the API is called VideoCore but controls MediaCore (VideoCore+MpvCore)
+// the API is called VideoCore but controls MediaCore
 
 type VideoCore struct {
 	ctx                 *AppContextImpl
@@ -109,20 +109,6 @@ func (a *AppContextImpl) BindVideoCoreToContextObj(vm *goja.Runtime, obj *goja.O
 	_ = obj.Set("videoCore", vcObj)
 }
 
-func (p *VideoCore) getDenshiClientId() string {
-	wsEventManager, ok := p.ctx.WSEventManager().Get()
-	if ok {
-		ids := wsEventManager.GetClientIds()
-		for _, id := range ids {
-			platform := wsEventManager.GetClientPlatform(id)
-			if platform == "denshi" {
-				return id
-			}
-		}
-	}
-	return ""
-}
-
 func (p *VideoCore) playStream(streamUrl string, anidbEpisode string, media *anilist.BaseAnime) goja.Value {
 	promise, resolve, reject := p.vm.NewPromise()
 
@@ -138,10 +124,7 @@ func (p *VideoCore) playStream(streamUrl string, anidbEpisode string, media *ani
 	}
 
 	go func() {
-		clientId := p.getDenshiClientId()
-
 		opts := directstream.PlayUrlStreamOptions{
-			ClientId:     clientId,
 			StreamUrl:    streamUrl,
 			AnidbEpisode: anidbEpisode,
 			Media:        media,
@@ -181,8 +164,6 @@ func (p *VideoCore) playLocalFile(path string) goja.Value {
 	}
 
 	go func() {
-		clientId := p.getDenshiClientId()
-
 		lfs, _, err := db_bridge.GetLocalFiles(db)
 		if err != nil {
 			p.scheduler.ScheduleAsync(func() error {
@@ -193,7 +174,6 @@ func (p *VideoCore) playLocalFile(path string) goja.Value {
 		}
 
 		playErr := dsManager.PlayLocalFile(context.Background(), directstream.PlayLocalFileOptions{
-			ClientId:   clientId,
 			Path:       path,
 			LocalFiles: lfs,
 		})
@@ -270,35 +250,9 @@ func (p *VideoCore) convertEventToJSObject(event player.Event) goja.Value {
 		}
 	}
 
-	if playerType == "" || playerType == "web" || playerType == "native" || playerType == "mpv" {
-		if session.Target == "mpvcore" {
-			playerType = "mpv"
-		} else {
-			wsEventManager, ok := p.ctx.WSEventManager().Get()
-			if ok && clientId != "" {
-				platform := wsEventManager.GetClientPlatform(clientId)
-				if platform == "denshi" {
-					playerType = "native"
-				} else {
-					playerType = "web"
-				}
-			} else {
-				if session.Target == "videocore" {
-					// default to web if not explicitly denshi client
-					playerType = "web"
-				}
-			}
-		}
-	}
-
-	// map playerType format
-	switch playerType {
-	case "web":
+	// The served web UI always reports the "mobile" platform, so videocore playback is reported as "web".
+	if playerType == "" || playerType == "native" {
 		playerType = "web"
-	case "native":
-		playerType = "native"
-	case "mpv":
-		playerType = "mpv"
 	}
 
 	base := baseVideoEvent{
@@ -870,24 +824,11 @@ func (p *VideoCore) getPlaybackState() goja.Value {
 				state.PlayerType = "web"
 			case player.RendererNative:
 				state.PlayerType = "native"
-			case player.RendererMpv:
-				state.PlayerType = "mpv"
 			default:
 				state.PlayerType = string(state.PlaybackInfo.Renderer)
 			}
 		} else {
-			// fallback if playback info is nil
-			wsEventManager, ok := p.ctx.WSEventManager().Get()
-			if ok && state.ClientID != "" {
-				platform := wsEventManager.GetClientPlatform(state.ClientID)
-				if platform == "denshi" {
-					state.PlayerType = "native"
-				} else {
-					state.PlayerType = "web"
-				}
-			} else {
-				state.PlayerType = "web"
-			}
+			state.PlayerType = "web"
 		}
 	}
 
@@ -952,8 +893,6 @@ func (p *VideoCore) getCurrentPlayerType() string {
 		return "web"
 	case player.RendererNative:
 		return "native"
-	case player.RendererMpv:
-		return "mpv"
 	default:
 		return string(info.Renderer)
 	}

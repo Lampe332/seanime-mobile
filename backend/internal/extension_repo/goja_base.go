@@ -181,11 +181,6 @@ func (g *gojaProviderBase) unmarshalValue(value any, target interface{}) error {
 	return json.Unmarshal(data, target)
 }
 
-// waitForPromise waits for a promise to resolve and returns the result
-func (g *gojaProviderBase) waitForPromise(value any) (any, error) {
-	return g.awaitAndExportValue(context.Background(), value)
-}
-
 func (g *gojaProviderBase) awaitAndExportValue(ctx context.Context, value any) (any, error) {
 	if ctx == nil {
 		ctx = context.Background()
