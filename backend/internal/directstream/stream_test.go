@@ -10,7 +10,6 @@ import (
 	"seanime/internal/library/anime"
 	"seanime/internal/mediacore"
 	"seanime/internal/mkvparser"
-	"seanime/internal/mpvcore"
 	"seanime/internal/nativeplayer"
 	"seanime/internal/player"
 	"seanime/internal/util"
@@ -85,49 +84,13 @@ func TestServeContentRange(t *testing.T) {
 	require.True(t, rec.Flushed)
 }
 
-func TestDirectStreamPlaybackTargetsRemainIndependent(t *testing.T) {
-	logger := util.NewLogger()
-	ws := events.NewMockWSEventManager(logger)
-	videoCore := videocore.New(videocore.NewVideoCoreOptions{WsEventManager: ws, Logger: logger})
-	nativePlayer := nativeplayer.New(nativeplayer.NewNativePlayerOptions{
-		WsEventManager: ws,
-		Logger:         logger,
-		VideoCore:      videoCore,
-	})
-	mpvCore := mpvcore.New(mpvcore.NewMpvCoreOptions{WsEventManager: ws, Logger: logger})
+func TestDirectStreamOpensVideoCore(t *testing.T) {
+	manager, ws, _ := newDirectstreamTestManager(t)
 
-	vcAdapter := videocore.NewAdapter(videoCore, nativePlayer)
-	mcAdapter := mpvcore.NewAdapter(mpvCore)
-	coordinator := mediacore.NewCoordinator(mediacore.NewCoordinatorOptions{
-		Logger:       logger,
-		IsOfflineRef: util.NewRef(false),
-		Backends: map[player.Target]mediacore.Backend{
-			player.TargetVideoCore: vcAdapter,
-			player.TargetMpvCore:   mcAdapter,
-		},
-	})
-
-	manager := NewManager(NewManagerOptions{
-		Logger:               logger,
-		WSEventManager:       ws,
-		NativePlayer:         nativePlayer,
-		VideoCore:            videoCore,
-		MediacoreCoordinator: coordinator,
-	})
-	t.Cleanup(videoCore.Shutdown)
-	t.Cleanup(mpvCore.Shutdown)
-	t.Cleanup(func() {
-		_ = coordinator.Close()
-	})
-
-	manager.SetPlaybackTarget(PlaybackTargetVideoCore)
+	require.Equal(t, PlaybackTargetVideoCore, manager.GetPlaybackTarget())
 	require.True(t, manager.BeginOpen("client", "video-core", nil))
 	require.Equal(t, string(events.NativePlayerEventType), ws.Events()[len(ws.Events())-1].Type)
 	require.True(t, manager.CloseOpen("client"))
-
-	manager.SetPlaybackTarget(PlaybackTargetMpvCore)
-	require.True(t, manager.BeginOpen("client", "mpv-core", nil))
-	require.Equal(t, string(events.MpvCoreEventType), ws.Events()[len(ws.Events())-1].Type)
 }
 
 func (s *testStream) Type() player.PlaybackType {
@@ -258,47 +221,56 @@ func (s *eventStream) GetSubtitleEventCache() *result.Map[string, *mkvparser.Sub
 func (s *eventStream) OnSubtitleFileUploaded(string, string) {}
 func (s *eventStream) GetBaseStream() *BaseStream            { return nil }
 
-func newDirectstreamMpvTestManager(t *testing.T) (*Manager, *events.MockWSEventManager, *mediacore.Coordinator) {
+func newDirectstreamTestManager(t *testing.T) (*Manager, *events.MockWSEventManager, *mediacore.Coordinator) {
 	t.Helper()
 	logger := util.NewLogger()
 	ws := events.NewMockWSEventManager(logger)
-	mpvCore := mpvcore.New(mpvcore.NewMpvCoreOptions{
+	videoCore := videocore.New(videocore.NewVideoCoreOptions{WsEventManager: ws, Logger: logger})
+	nativePlayer := nativeplayer.New(nativeplayer.NewNativePlayerOptions{
 		WsEventManager: ws,
 		Logger:         logger,
+		VideoCore:      videoCore,
 	})
-	mcAdapter := mpvcore.NewAdapter(mpvCore)
 	coordinator := mediacore.NewCoordinator(mediacore.NewCoordinatorOptions{
 		Logger:       logger,
 		IsOfflineRef: util.NewRef(false),
 		Backends: map[player.Target]mediacore.Backend{
-			player.TargetMpvCore: mcAdapter,
+			player.TargetVideoCore: videocore.NewAdapter(videoCore, nativePlayer),
 		},
 	})
 	manager := NewManager(NewManagerOptions{
 		Logger:               logger,
 		WSEventManager:       ws,
+		NativePlayer:         nativePlayer,
+		VideoCore:            videoCore,
 		MediacoreCoordinator: coordinator,
 	})
-	manager.SetPlaybackTarget(PlaybackTargetMpvCore)
 	t.Cleanup(func() {
 		_ = coordinator.Close()
-		mpvCore.Shutdown()
+		videoCore.Shutdown()
 	})
 	return manager, ws, coordinator
 }
 
-func activateMpvPlayback(t *testing.T, ws *events.MockWSEventManager, core *mediacore.Coordinator, clientID, playbackID string) {
+func activateVideoCorePlayback(t *testing.T, ws *events.MockWSEventManager, core *mediacore.Coordinator, clientID, playbackID string) {
 	t.Helper()
-	core.Watch(player.TargetMpvCore, clientID, &player.PlaybackInfo{ID: playbackID, PlaybackType: player.PlaybackTypeTorrent})
+	core.Watch(player.TargetVideoCore, clientID, &player.PlaybackInfo{ID: playbackID, PlaybackType: player.PlaybackTypeTorrent})
 	ws.MockSendClientEvent(&events.WebsocketClientEvent{
 		ClientID: clientID,
-		Type:     events.MpvCoreEventType,
+		Type:     events.VideoCoreEventType,
 		Payload: map[string]interface{}{
 			"clientId": clientID,
-			"type":     mpvcore.ClientEventPlaybackLoaded,
+			"type":     videocore.PlayerEventVideoLoaded,
 			"payload": map[string]interface{}{
-				"id":       playbackID,
-				"clientId": clientID,
+				"state": map[string]interface{}{
+					"clientId":   clientID,
+					"playerType": videocore.NativePlayer,
+					"playbackInfo": map[string]interface{}{
+						"id":           playbackID,
+						"playbackType": videocore.PlaybackTypeTorrent,
+						"episode":      map[string]interface{}{},
+					},
+				},
 			},
 		},
 	})
@@ -308,17 +280,18 @@ func activateMpvPlayback(t *testing.T, ws *events.MockWSEventManager, core *medi
 	}, time.Second, 10*time.Millisecond)
 }
 
-func sendMpvTerminated(ws *events.MockWSEventManager, clientID, playbackID string) {
+func sendVideoCoreTerminated(ws *events.MockWSEventManager, clientID, playbackID string) {
 	ws.MockSendClientEvent(&events.WebsocketClientEvent{
 		ClientID: clientID,
-		Type:     events.MpvCoreEventType,
+		Type:     events.VideoCoreEventType,
 		Payload: map[string]interface{}{
 			"clientId": clientID,
-			"type":     mpvcore.ClientEventTerminated,
+			"type":     videocore.PlayerEventVideoTerminated,
 			"payload": map[string]interface{}{
 				"id":           playbackID,
 				"clientId":     clientID,
-				"playbackType": mpvcore.PlaybackTypeTorrent,
+				"playerType":   videocore.NativePlayer,
+				"playbackType": videocore.PlaybackTypeTorrent,
 			},
 		},
 	})
@@ -409,7 +382,7 @@ func TestStartSubtitleStreamPClosesReaderWhenParserMissing(t *testing.T) {
 }
 
 func TestListenToPlayerEventsTerminatesWithoutWaitingForPlaybackInfo(t *testing.T) {
-	manager, ws, core := newDirectstreamMpvTestManager(t)
+	manager, ws, core := newDirectstreamTestManager(t)
 
 	stream := &blockingStream{
 		clientID:       "player-client",
@@ -420,13 +393,13 @@ func TestListenToPlayerEventsTerminatesWithoutWaitingForPlaybackInfo(t *testing.
 	manager.currentStream = mo.Some[Stream](stream)
 	manager.currentPlaybackId = "blocked"
 	manager.currentPlaybackClient = "player-client"
-	core.Watch(player.TargetMpvCore, "player-client", &player.PlaybackInfo{ID: "blocked", PlaybackType: player.PlaybackTypeTorrent})
+	core.Watch(player.TargetVideoCore, "player-client", &player.PlaybackInfo{ID: "blocked", PlaybackType: player.PlaybackTypeTorrent})
 
 	t.Cleanup(func() {
 		close(stream.loadPlaybackCh)
 	})
 
-	sendMpvTerminated(ws, "player-client", "blocked")
+	sendVideoCoreTerminated(ws, "player-client", "blocked")
 
 	select {
 	case <-stream.terminatedCh:
@@ -438,7 +411,7 @@ func TestListenToPlayerEventsTerminatesWithoutWaitingForPlaybackInfo(t *testing.
 // ensures that if a new stream is started while the previous stream is still loading playback info,
 // the previous stream will be terminated without waiting for the playback info to finish loading
 func TestStream_beginOpenTerminatesPreviousStream(t *testing.T) {
-	manager, _, _ := newDirectstreamMpvTestManager(t)
+	manager, _, _ := newDirectstreamTestManager(t)
 
 	stream := &prevTerminateStream{
 		manager:      manager,
@@ -468,7 +441,7 @@ func TestStream_beginOpenTerminatesPreviousStream(t *testing.T) {
 
 // the old player's terminate event can arrive after the new stream starts opening
 func TestStream_beginOpenIgnoresReplacedPlaybackTermination(t *testing.T) {
-	manager, ws, core := newDirectstreamMpvTestManager(t)
+	manager, ws, core := newDirectstreamTestManager(t)
 
 	previousStream := &eventStream{
 		clientID:     "player-client",
@@ -479,7 +452,7 @@ func TestStream_beginOpenIgnoresReplacedPlaybackTermination(t *testing.T) {
 	manager.currentPlaybackId = "previous-playback-id"
 	manager.currentPlaybackClient = "player-client"
 
-	activateMpvPlayback(t, ws, core, "player-client", "previous-playback-id")
+	activateVideoCorePlayback(t, ws, core, "player-client", "previous-playback-id")
 
 	require.True(t, manager.BeginOpen("player-client", "opening", nil))
 	nextStream := &blockingStream{
@@ -500,7 +473,7 @@ func TestStream_beginOpenIgnoresReplacedPlaybackTermination(t *testing.T) {
 		t.Fatal("expected new stream to start loading")
 	}
 
-	sendMpvTerminated(ws, "player-client", "previous-playback-id")
+	sendVideoCoreTerminated(ws, "player-client", "previous-playback-id")
 
 	select {
 	case <-nextStream.terminatedCh:
@@ -514,7 +487,7 @@ func TestStream_beginOpenIgnoresReplacedPlaybackTermination(t *testing.T) {
 }
 
 func TestStream_closeOpenReturnsWhileLoadPlaybackInfoIsBlocked(t *testing.T) {
-	manager, _, _ := newDirectstreamMpvTestManager(t)
+	manager, _, _ := newDirectstreamTestManager(t)
 
 	stream := &blockingStream{
 		clientID:       "player-client",
@@ -551,7 +524,7 @@ func TestStream_closeOpenReturnsWhileLoadPlaybackInfoIsBlocked(t *testing.T) {
 }
 
 func TestStream_listenToPlayerEventsIgnoresStalePlaybackTermination(t *testing.T) {
-	manager, ws, core := newDirectstreamMpvTestManager(t)
+	manager, ws, core := newDirectstreamTestManager(t)
 
 	stream := &eventStream{
 		clientID:     "player-client",
@@ -562,8 +535,8 @@ func TestStream_listenToPlayerEventsIgnoresStalePlaybackTermination(t *testing.T
 	manager.currentPlaybackId = "current-playback-id"
 	manager.currentPlaybackClient = "player-client"
 
-	activateMpvPlayback(t, ws, core, "player-client", "current-playback-id")
-	sendMpvTerminated(ws, "player-client", "stale-playback-id")
+	activateVideoCorePlayback(t, ws, core, "player-client", "current-playback-id")
+	sendVideoCoreTerminated(ws, "player-client", "stale-playback-id")
 
 	select {
 	case <-stream.terminatedCh:
@@ -571,7 +544,7 @@ func TestStream_listenToPlayerEventsIgnoresStalePlaybackTermination(t *testing.T
 	case <-time.After(250 * time.Millisecond):
 	}
 
-	sendMpvTerminated(ws, "player-client", "current-playback-id")
+	sendVideoCoreTerminated(ws, "player-client", "current-playback-id")
 
 	select {
 	case <-stream.terminatedCh:

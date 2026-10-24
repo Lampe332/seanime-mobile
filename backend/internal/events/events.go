@@ -5,7 +5,6 @@ type WebsocketClientEventType string
 const (
 	NativePlayerEventType WebsocketClientEventType = "native-player"
 	VideoCoreEventType    WebsocketClientEventType = "videocore"
-	MpvCoreEventType      WebsocketClientEventType = "mpvcore"
 	NakamaEventType       WebsocketClientEventType = "nakama"
 	PluginEvent           WebsocketClientEventType = "plugin"
 	PlaylistEvent         WebsocketClientEventType = "playlist"

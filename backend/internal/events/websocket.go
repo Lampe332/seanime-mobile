@@ -1,11 +1,9 @@
 package events
 
 import (
-	"os"
 	"seanime/internal/util"
 	"seanime/internal/util/result"
 	"sync"
-	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
@@ -20,7 +18,6 @@ type WSEventManagerInterface interface {
 	SubscribeToClientEvents(id string) *ClientEventSubscriber
 	SubscribeToClientNativePlayerEvents(id string) *ClientEventSubscriber
 	SubscribeToClientVideoCoreEvents(id string) *ClientEventSubscriber
-	SubscribeToClientMpvCoreEvents(id string) *ClientEventSubscriber
 	SubscribeToClientNakamaEvents(id string) *ClientEventSubscriber
 	SubscribeToClientPlaylistEvents(id string) *ClientEventSubscriber
 	UnsubscribeFromClientEvents(id string)
@@ -59,13 +56,11 @@ type (
 	WSEventManager struct {
 		Conns                              []*WSConn
 		Logger                             *zerolog.Logger
-		hasHadConnection                   bool
 		mu                                 sync.Mutex
 		eventMu                            sync.RWMutex
 		clientEventSubscribers             *result.Map[string, *ClientEventSubscriber]
 		clientNativePlayerEventSubscribers *result.Map[string, *ClientEventSubscriber]
 		clientVideoCoreEventSubscribers    *result.Map[string, *ClientEventSubscriber]
-		clientMpvCoreEventSubscribers      *result.Map[string, *ClientEventSubscriber]
 		nakamaEventSubscribers             *result.Map[string, *ClientEventSubscriber]
 		playlistEventSubscribers           *result.Map[string, *ClientEventSubscriber]
 	}
@@ -96,7 +91,6 @@ func NewWSEventManager(logger *zerolog.Logger) *WSEventManager {
 		clientEventSubscribers:             result.NewMap[string, *ClientEventSubscriber](),
 		clientNativePlayerEventSubscribers: result.NewMap[string, *ClientEventSubscriber](),
 		clientVideoCoreEventSubscribers:    result.NewMap[string, *ClientEventSubscriber](),
-		clientMpvCoreEventSubscribers:      result.NewMap[string, *ClientEventSubscriber](),
 		nakamaEventSubscribers:             result.NewMap[string, *ClientEventSubscriber](),
 		playlistEventSubscribers:           result.NewMap[string, *ClientEventSubscriber](),
 	}
@@ -106,51 +100,12 @@ func NewWSEventManager(logger *zerolog.Logger) *WSEventManager {
 	return ret
 }
 
-// ExitIfNoConnsAsDesktopSidecar monitors the websocket connection as a desktop sidecar.
-// It checks for a connection every 5 seconds. If a connection is lost, it starts a countdown a waits for 15 seconds.
-// If a connection is not established within 15 seconds, it will exit the app.
-func (m *WSEventManager) ExitIfNoConnsAsDesktopSidecar() {
-	go func() {
-		defer util.HandlePanicInModuleThen("events/ExitIfNoConnsAsDesktopSidecar", func() {})
-
-		m.Logger.Info().Msg("ws: Monitoring connection as desktop sidecar")
-		// Create a ticker to check connection every 5 seconds
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
-
-		// Track connection loss time
-		var connectionLostTime time.Time
-		exitTimeout := 10 * time.Second
-
-		for range ticker.C {
-			// Check WebSocket connection status
-			if len(m.Conns) == 0 && m.hasHadConnection {
-				// If not connected and first detection of connection loss
-				if connectionLostTime.IsZero() {
-					m.Logger.Warn().Msg("ws: No connection detected. Starting countdown...")
-					connectionLostTime = time.Now()
-				}
-
-				// Check if connection has been lost for more than 15 seconds
-				if time.Since(connectionLostTime) > exitTimeout {
-					m.Logger.Warn().Msg("ws: No connection detected for 10 seconds. Exiting...")
-					os.Exit(1)
-				}
-			} else {
-				// Connection is active, reset connection lost time
-				connectionLostTime = time.Time{}
-			}
-		}
-	}()
-}
-
 func (m *WSEventManager) AddConn(id string, conn *websocket.Conn, platform ...string) {
 	clientPlatform := ""
 	if len(platform) > 0 {
 		clientPlatform = platform[0]
 	}
 
-	m.hasHadConnection = true
 	m.Conns = append(m.Conns, &WSConn{
 		ID:       id,
 		Platform: clientPlatform,
@@ -292,8 +247,6 @@ func (m *WSEventManager) OnClientEvent(event *WebsocketClientEvent) {
 		m.clientNativePlayerEventSubscribers.Range(onEvent)
 	case VideoCoreEventType:
 		m.clientVideoCoreEventSubscribers.Range(onEvent)
-	case MpvCoreEventType:
-		m.clientMpvCoreEventSubscribers.Range(onEvent)
 	case NakamaEventType:
 		m.nakamaEventSubscribers.Range(onEvent)
 	case PlaylistEvent:
@@ -327,14 +280,6 @@ func (m *WSEventManager) SubscribeToClientVideoCoreEvents(id string) *ClientEven
 	return subscriber
 }
 
-func (m *WSEventManager) SubscribeToClientMpvCoreEvents(id string) *ClientEventSubscriber {
-	subscriber := &ClientEventSubscriber{
-		Channel: make(chan *WebsocketClientEvent, 100),
-	}
-	m.clientMpvCoreEventSubscribers.Set(id, subscriber)
-	return subscriber
-}
-
 func (m *WSEventManager) SubscribeToClientNakamaEvents(id string) *ClientEventSubscriber {
 	subscriber := &ClientEventSubscriber{
 		Channel: make(chan *WebsocketClientEvent, 100),
@@ -363,7 +308,6 @@ func (m *WSEventManager) UnsubscribeFromClientEvents(id string) {
 		m.clientEventSubscribers,
 		m.clientNativePlayerEventSubscribers,
 		m.clientVideoCoreEventSubscribers,
-		m.clientMpvCoreEventSubscribers,
 		m.nakamaEventSubscribers,
 		m.playlistEventSubscribers,
 	}

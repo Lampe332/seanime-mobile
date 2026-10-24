@@ -25,7 +25,6 @@ import (
 	"seanime/internal/mediaplayers/mpchc"
 	"seanime/internal/mediaplayers/mpv"
 	"seanime/internal/mediaplayers/vlc"
-	"seanime/internal/mpvcore"
 	"seanime/internal/nakama"
 	"seanime/internal/nativeplayer"
 	"seanime/internal/notifier"
@@ -43,7 +42,6 @@ import (
 	"seanime/internal/util"
 	"seanime/internal/videocore"
 
-	"github.com/cli/browser"
 	"github.com/rs/zerolog"
 )
 
@@ -205,23 +203,6 @@ func (a *App) initModulesOnce() {
 	})
 
 	// +---------------------+
-	// |       MpvCore       |
-	// +---------------------+
-
-	a.MpvCore = mpvcore.New(mpvcore.NewMpvCoreOptions{
-		WsEventManager:      a.WSEventManager,
-		Logger:              a.Logger,
-		ContinuityManager:   a.ContinuityManager,
-		MetadataProviderRef: a.MetadataProviderRef,
-		DiscordPresence:     a.DiscordPresence,
-		PlatformRef:         a.AnilistPlatformRef,
-		RefreshAnimeCollectionFunc: func() {
-			_, _ = a.RefreshAnimeCollection()
-		},
-		IsOfflineRef: a.IsOfflineRef(),
-	})
-
-	// +---------------------+
 	// |    Native Player    |
 	// +---------------------+
 
@@ -236,7 +217,6 @@ func (a *App) initModulesOnce() {
 	// +-----------------------+
 
 	vcAdapter := videocore.NewAdapter(a.VideoCore, a.NativePlayer)
-	mcAdapter := mpvcore.NewAdapter(a.MpvCore)
 
 	a.MediacoreCoordinator = mediacore.NewCoordinator(mediacore.NewCoordinatorOptions{
 		Logger:              a.Logger,
@@ -250,7 +230,6 @@ func (a *App) initModulesOnce() {
 		IsOfflineRef: a.IsOfflineRef(),
 		Backends: map[player.Target]mediacore.Backend{
 			player.TargetVideoCore: vcAdapter,
-			player.TargetMpvCore:   mcAdapter,
 		},
 	})
 
@@ -475,20 +454,10 @@ func (a *App) InitOrRefreshModules() {
 
 	notifier.GlobalNotifier.SetSettings(a.Config.Data.AppDataDir, a.Settings.GetNotifications(), a.Logger)
 
-	// Refresh updater settings
 	if settings.Library != nil {
 		plugin.GlobalAppContext.SetModulesPartial(plugin.AppContextModules{
 			AnimeLibraryPaths: a.Database.AllLibraryPathsFromSettings(settings),
 		})
-
-		if a.Updater != nil {
-			a.Updater.SetEnabled(!settings.Library.DisableUpdateCheck)
-			if settings.Library.UpdateChannel != "" {
-				a.Updater.UpdateChannel = settings.Library.UpdateChannel
-			} else {
-				a.Updater.UpdateChannel = "github"
-			}
-		}
 
 		// Refresh auto scanner settings (thread safe)
 		if a.AutoScanner != nil {
@@ -546,12 +515,6 @@ func (a *App) InitOrRefreshModules() {
 			AutoUpdateProgress:  a.Settings.GetLibrary().AutoUpdateProgress,
 		})
 
-		playbackTarget := directstream.PlaybackTargetVideoCore
-		if a.Settings.GetMediaPlayer().MpvPrismEnabled {
-			playbackTarget = directstream.PlaybackTargetMpvCore
-		}
-		a.DirectStreamManager.SetPlaybackTarget(playbackTarget)
-
 		a.TorrentstreamRepository.SetMediaPlayerRepository(a.MediaPlayerRepository)
 
 		plugin.GlobalAppContext.SetModulesPartial(plugin.AppContextModules{
@@ -563,9 +526,6 @@ func (a *App) InitOrRefreshModules() {
 
 	if a.VideoCore != nil {
 		a.VideoCore.SetSettings(settings)
-	}
-	if a.MpvCore != nil {
-		a.MpvCore.SetSettings(settings)
 	}
 	if a.MediacoreCoordinator != nil {
 		a.MediacoreCoordinator.SetSettings(settings)
@@ -861,16 +821,6 @@ func (a *App) performActionsOnce() {
 	go func() {
 		if a.Settings == nil || a.Settings.Library == nil {
 			return
-		}
-
-		if a.Settings.GetLibrary().OpenWebURLOnStart {
-			// Open the web URL
-			err := browser.OpenURL(a.Config.GetServerURI("127.0.0.1"))
-			if err != nil {
-				a.Logger.Warn().Err(err).Msg("app: Failed to open web URL, please open it manually in your browser")
-			} else {
-				a.Logger.Info().Msg("app: Opened web URL")
-			}
 		}
 
 		if a.Settings.GetLibrary().RefreshLibraryOnStart {

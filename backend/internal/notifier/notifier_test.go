@@ -49,7 +49,7 @@ func TestNotify(t *testing.T) {
 		n.SetSettings(cfg.Path.DataDir, &models.NotificationSettings{}, nil)
 
 		called := make(chan struct{}, 1)
-		n.push = func(title, message, icon string) error {
+		n.push = func(title, message string) error {
 			require.Equal(t, "Seanime: Debrid", title)
 			require.Equal(t, "downloaded", message)
 			called <- struct{}{}
@@ -70,7 +70,7 @@ func TestNotify(t *testing.T) {
 		n.SetSettings(cfg.Path.DataDir, &models.NotificationSettings{DisableNotifications: true}, nil)
 
 		var calls atomic.Int32
-		n.push = func(title, message, icon string) error {
+		n.push = func(title, message string) error {
 			calls.Add(1)
 			return nil
 		}

@@ -169,8 +169,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 
 	v1.POST("/open-in-explorer", h.HandleOpenInExplorer)
 
-	v1.POST("/media-player/start", h.HandleStartDefaultMediaPlayer)
-
 	//
 	// AniList
 	//
@@ -291,17 +289,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.POST("/download-torrent-file", h.HandleDownloadTorrentFile)
 
 	//
-	// Updates
-	//
-
-	v1.GET("/latest-update", h.HandleGetLatestUpdate)
-	v1.GET("/changelog", h.HandleGetChangelog)
-	v1.POST("/install-update", h.HandleInstallLatestUpdate)
-	v1.POST("/download-release", h.HandleDownloadRelease)
-	v1.POST("/download-mac-denshi-update", h.HandleDownloadMacDenshiUpdate)
-	v1.POST("/check-for-updates", h.HandleCheckForUpdates)
-
-	//
 	// Theme
 	//
 
@@ -417,9 +404,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 
 	v1Discord := v1.Group("/discord")
 	v1Discord.POST("/presence/manga", h.HandleSetDiscordMangaActivity)
-	v1Discord.POST("/presence/legacy-anime", h.HandleSetDiscordLegacyAnimeActivity)
-	v1Discord.POST("/presence/anime", h.HandleSetDiscordAnimeActivityWithProgress)
-	v1Discord.POST("/presence/anime-update", h.HandleUpdateDiscordAnimeActivityWithProgress)
 	v1Discord.POST("/presence/cancel", h.HandleCancelDiscordActivity)
 
 	//
@@ -442,7 +426,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	//
 	v1.GET("/videocore/insight/character/:malId", h.HandleVideoCoreInSightGetCharacterDetails)
 	v1.POST("/videocore/screenshot", h.HandleVideoCoreSaveScreenshot)
-	v1.GET("/mpvcore/insight/character/:malId", h.HandleMpvCoreInSightGetCharacterDetails)
 
 	//
 	// Torrent stream

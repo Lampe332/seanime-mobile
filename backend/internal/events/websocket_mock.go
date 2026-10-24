@@ -13,7 +13,6 @@ type (
 		Logger                  *zerolog.Logger
 		ClientEventSubscribers  *result.Map[string, *ClientEventSubscriber]
 		videoCoreSubscribers    *result.Map[string, *ClientEventSubscriber]
-		mpvCoreSubscribers      *result.Map[string, *ClientEventSubscriber]
 		nativePlayerSubscribers *result.Map[string, *ClientEventSubscriber]
 		mu                      sync.Mutex
 		sentEvents              []MockWSEvent
@@ -30,7 +29,6 @@ func NewMockWSEventManager(logger *zerolog.Logger) *MockWSEventManager {
 		Logger:                  logger,
 		ClientEventSubscribers:  result.NewMap[string, *ClientEventSubscriber](),
 		videoCoreSubscribers:    result.NewMap[string, *ClientEventSubscriber](),
-		mpvCoreSubscribers:      result.NewMap[string, *ClientEventSubscriber](),
 		nativePlayerSubscribers: result.NewMap[string, *ClientEventSubscriber](),
 	}
 }
@@ -91,14 +89,6 @@ func (m *MockWSEventManager) SubscribeToClientVideoCoreEvents(id string) *Client
 	return subscriber
 }
 
-func (m *MockWSEventManager) SubscribeToClientMpvCoreEvents(id string) *ClientEventSubscriber {
-	subscriber := &ClientEventSubscriber{
-		Channel: make(chan *WebsocketClientEvent),
-	}
-	m.mpvCoreSubscribers.Set(id, subscriber)
-	return subscriber
-}
-
 func (m *MockWSEventManager) SubscribeToClientNativePlayerEvents(id string) *ClientEventSubscriber {
 	subscriber := &ClientEventSubscriber{
 		Channel: make(chan *WebsocketClientEvent),
@@ -126,7 +116,6 @@ func (m *MockWSEventManager) SubscribeToClientPlaylistEvents(id string) *ClientE
 func (m *MockWSEventManager) UnsubscribeFromClientEvents(id string) {
 	m.ClientEventSubscribers.Delete(id)
 	m.videoCoreSubscribers.Delete(id)
-	m.mpvCoreSubscribers.Delete(id)
 	m.nativePlayerSubscribers.Delete(id)
 }
 
@@ -137,8 +126,6 @@ func (m *MockWSEventManager) MockSendClientEvent(event *WebsocketClientEvent) {
 	switch event.Type {
 	case VideoCoreEventType:
 		subscribers = m.videoCoreSubscribers
-	case MpvCoreEventType:
-		subscribers = m.mpvCoreSubscribers
 	case NativePlayerEventType:
 		subscribers = m.nativePlayerSubscribers
 	}

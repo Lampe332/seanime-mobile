@@ -108,13 +108,6 @@ func (s *TorrentStream) newSubtitleReader() io.ReadSeekCloser {
 
 func (s *TorrentStream) LoadContentType() string {
 	s.contentTypeOnce.Do(func() {
-		if !s.shouldProcessMediaOnServer() {
-			s.contentType = loadContentType(s.file.DisplayPath())
-			if s.contentType == "" {
-				s.contentType = "application/octet-stream"
-			}
-			return
-		}
 		r := s.newMetadataReader()
 		defer r.Close()
 		s.contentType = loadContentType(s.file.DisplayPath(), r)
@@ -158,8 +151,7 @@ func (s *TorrentStream) LoadPlaybackInfo() (ret *player.PlaybackInfo, err error)
 		}
 
 		// VideoCore needs server-side MKV metadata and subtitle extraction.
-		// MpvCore reads the proxied torrent bytes and lets libmpv demux them.
-		if s.shouldProcessMediaOnServer() && isEbmlContent(s.LoadContentType()) {
+		if isEbmlContent(s.LoadContentType()) {
 			reader := s.newMetadataReader()
 			defer reader.Close()
 			parser := mkvparser.NewMetadataParser(reader, s.logger)

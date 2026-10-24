@@ -162,9 +162,7 @@ func (s *httpBaseStream) loadPlaybackInfo(streamType player.PlaybackType) (ret *
 		}
 
 		// VideoCore needs server-side MKV metadata and subtitle extraction.
-		// MpvCore only needs the byte proxy; libmpv probes and demuxes the stream.
-		if s.shouldProcessMediaOnServer() &&
-			(isEbmlContent(s.LoadContentType()) || s.LoadContentType() == "application/octet-stream" || s.LoadContentType() == "application/force-download") {
+		if isEbmlContent(s.LoadContentType()) || s.LoadContentType() == "application/octet-stream" || s.LoadContentType() == "application/force-download" {
 			reader, readErr := s.newMetadataReader()
 			if readErr != nil {
 				err = fmt.Errorf("failed to create reader for stream url: %w", readErr)

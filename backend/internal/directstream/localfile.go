@@ -125,13 +125,10 @@ func (s *LocalFileStream) LoadPlaybackInfo() (ret *player.PlaybackInfo, err erro
 			LocalFile:         s.localFile,
 		}
 
-		if s.shouldProcessMediaOnServer() {
-			playbackInfo.SubtitleTracks = s.loadLocalSubtitleTracks()
-		}
+		playbackInfo.SubtitleTracks = s.loadLocalSubtitleTracks()
 
 		// VideoCore needs server-side MKV metadata and subtitle extraction.
-		// MpvCore lets libmpv probe the local file directly.
-		if s.shouldProcessMediaOnServer() && isEbmlContent(s.LoadContentType()) {
+		if isEbmlContent(s.LoadContentType()) {
 
 			parserKey := util.Base64EncodeStr(s.localFile.Path)
 

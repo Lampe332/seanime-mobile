@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (a *App) InitLogging(updateMode bool) {
+func (a *App) InitLogging() {
 	// Create logs directory if it doesn't exist
 	if util.IsMobile() {
 		if err := os.MkdirAll(a.Config.Logs.Dir, 0700); err != nil {
@@ -58,14 +58,12 @@ func (a *App) InitLogging(updateMode bool) {
 		_ = logFile.Sync()
 	}
 
-	if !updateMode {
-		go func() {
-			for {
-				util.WriteGlobalLogBufferToFile(logFile)
-				time.Sleep(5 * time.Second)
-			}
-		}()
-	}
+	go func() {
+		for {
+			util.WriteGlobalLogBufferToFile(logFile)
+			time.Sleep(5 * time.Second)
+		}
+	}()
 }
 
 func TrimLogEntries(dir string, logger *zerolog.Logger) {

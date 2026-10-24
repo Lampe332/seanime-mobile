@@ -17,7 +17,6 @@ const (
 	clientIdTokenPrefix     = "client-id:"
 
 	ClientPlatformWeb    = "web"
-	ClientPlatformDenshi = "denshi"
 	ClientPlatformMobile = "mobile"
 )
 
@@ -25,8 +24,6 @@ func normalizeClientPlatform(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case ClientPlatformWeb:
 		return ClientPlatformWeb
-	case ClientPlatformDenshi:
-		return ClientPlatformDenshi
 	case ClientPlatformMobile:
 		return ClientPlatformMobile
 	default:

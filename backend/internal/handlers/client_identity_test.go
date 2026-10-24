@@ -116,9 +116,9 @@ func newUntrustedClientIDRequest(method string, path string) *http.Request {
 func TestClientAppPlatform(t *testing.T) {
 	t.Run("accepts normalized header platform", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/status", nil)
-		req.Header.Set(clientPlatformHeader, " DensHi ")
+		req.Header.Set(clientPlatformHeader, " MoBiLe ")
 
-		assert.Equal(t, ClientPlatformDenshi, getClientPlatformFromRequest(req))
+		assert.Equal(t, ClientPlatformMobile, getClientPlatformFromRequest(req))
 	})
 
 	t.Run("accepts websocket query platform", func(t *testing.T) {

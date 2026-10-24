@@ -12,6 +12,7 @@ import (
 	"seanime/internal/core"
 	"seanime/internal/database/models"
 	"seanime/internal/report"
+	"seanime/internal/updater"
 	"seanime/internal/user"
 	"seanime/internal/util"
 	"seanime/internal/util/result"
@@ -42,8 +43,7 @@ type Status struct {
 	TorrentstreamSettings *models.TorrentstreamSettings `json:"torrentstreamSettings"`
 	DebridSettings        *models.DebridSettings        `json:"debridSettings"`
 	AnilistClientID       string                        `json:"anilistClientId"`
-	Updating              bool                          `json:"updating"`         // If true, a new screen will be displayed
-	IsDesktopSidecar      bool                          `json:"isDesktopSidecar"` // The server is running as a desktop sidecar
+	Updating              bool                          `json:"updating"` // Read by the web UI; the Android app never self-updates the server
 	FeatureFlags          core.FeatureFlags             `json:"featureFlags"`
 	DisabledFeatures      []core.FeatureKey             `json:"disabledFeatures"`
 	ServerReady           bool                          `json:"serverReady"`
@@ -126,7 +126,6 @@ func (h *Handler) NewStatus(c echo.Context) *Status {
 		DebridSettings:        h.App.SecondarySettings.Debrid,
 		AnilistClientID:       h.App.Config.Anilist.ClientID,
 		Updating:              false,
-		IsDesktopSidecar:      h.App.IsDesktopSidecar,
 		FeatureFlags:          h.App.FeatureFlags,
 		ServerReady:           h.App.ServerReady,
 		ServerHasPassword:     h.App.Config.Server.Password != "",
@@ -384,25 +383,12 @@ func (h *Handler) HandleGetLatestLogContent(c echo.Context) error {
 // HandleGetAnnouncements
 //
 //	@summary returns the server announcements.
-//	@desc This returns the announcements for the server.
+//	@desc The Android app has no server-side announcement feed, so this is always empty (null).
 //	@route /api/v1/announcements [POST]
 //	@returns []updater.Announcement
 func (h *Handler) HandleGetAnnouncements(c echo.Context) error {
-	type body struct {
-		Platform string `json:"platform"`
-	}
-
-	var b body
-	if err := c.Bind(&b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	settings, _ := h.App.Database.GetSettings()
-
-	announcements := h.App.Updater.GetAnnouncements(h.App.Version, b.Platform, settings)
-
+	var announcements []updater.Announcement
 	return h.RespondWithData(c, announcements)
-
 }
 
 type MemoryStatsResponse struct {

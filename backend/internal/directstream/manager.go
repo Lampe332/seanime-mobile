@@ -127,18 +127,9 @@ func NewManager(options NewManagerOptions) *Manager {
 type PlaybackTarget string
 
 const (
+	// PlaybackTargetVideoCore is the in-app web player, the only playback target of the Android app.
 	PlaybackTargetVideoCore PlaybackTarget = "videocore"
-	PlaybackTargetMpvCore   PlaybackTarget = "mpvcore"
 )
-
-func (m *Manager) SetPlaybackTarget(target PlaybackTarget) {
-	if target != PlaybackTargetVideoCore && target != PlaybackTargetMpvCore {
-		return
-	}
-	m.playbackMu.Lock()
-	m.defaultPlaybackTarget = target
-	m.playbackMu.Unlock()
-}
 
 func (m *Manager) GetPlaybackTarget() PlaybackTarget {
 	m.playbackMu.Lock()

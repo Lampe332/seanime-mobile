@@ -34,7 +34,6 @@ import (
 	"seanime/internal/mediaplayers/mpchc"
 	"seanime/internal/mediaplayers/mpv"
 	"seanime/internal/mediaplayers/vlc"
-	"seanime/internal/mpvcore"
 	"seanime/internal/nakama"
 	"seanime/internal/nativeplayer"
 	"seanime/internal/onlinestream"
@@ -47,7 +46,6 @@ import (
 	"seanime/internal/torrent_clients/torrent_client"
 	"seanime/internal/torrents/torrent"
 	"seanime/internal/torrentstream"
-	"seanime/internal/updater"
 	"seanime/internal/user"
 	"seanime/internal/util"
 	"seanime/internal/util/filecache"
@@ -113,7 +111,6 @@ type (
 			Iina  *iina.Iina
 		}
 		MediaPlayerRepository *mediaplayer.Repository
-		MpvCore               *mpvcore.MpvCore
 
 		// Manga services
 		MangaRepository *manga.Repository
@@ -124,8 +121,6 @@ type (
 
 		// Utilities
 		FileCacher       *filecache.Cacher
-		Updater          *updater.Updater
-		SelfUpdater      *updater.SelfUpdater
 		ReportRepository *report.Repository
 
 		// Integrations
@@ -155,7 +150,6 @@ type (
 		TotalLibrarySize uint64
 		LibraryDir       string
 		AnilistCacheDir  string
-		IsDesktopSidecar bool
 		Flags            SeanimeFlags
 
 		// Internal state
@@ -187,7 +181,7 @@ func (a *App) WithEpisodeAvailability(episodes []*anime.Episode) []*anime.Episod
 }
 
 // NewApp creates a new server instance
-func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
+func NewApp(configOpts *ConfigOptions) *App {
 
 	var app *App
 
@@ -238,11 +232,6 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 	logger.Info().Msgf("app: Data directory: %s", cfg.Data.AppDataDir)
 	logger.Info().Msgf("app: Working directory: %s", cfg.Data.WorkingDir)
 
-	// Log if running in desktop sidecar mode
-	if configOpts.Flags.IsDesktopSidecar {
-		logger.Info().Msg("app: Desktop sidecar mode enabled")
-	}
-
 	// Initialize database connection
 	database, err := db.NewDatabase(cfg.Data.AppDataDir, cfg.Database.Name, logger)
 	if err != nil {
@@ -273,11 +262,6 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 
 	// Initialize WebSocket event manager for real-time communication
 	wsEventManager := events.NewWSEventManager(logger)
-
-	// Exit if no WebSocket connections in desktop sidecar mode
-	if configOpts.Flags.IsDesktopSidecar {
-		wsEventManager.ExitIfNoConnsAsDesktopSidecar()
-	}
 
 	// Initialize DNS-over-HTTPS service in background
 	go doh.HandleDoH(cfg.Server.DoHUrl, logger)
@@ -389,7 +373,6 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 		AnilistCacheDir:               anilistCacheDir,
 		Logger:                        logger,
 		Version:                       constants.Version,
-		Updater:                       updater.New(constants.Version, logger, wsEventManager),
 		FileCacher:                    fileCacher,
 		OnlinestreamRepository:        onlinestreamRepository,
 		MetadataProviderRef:           metadataProviderRef,
@@ -410,7 +393,6 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 		DirectStreamManager:           nil, // Initialized in App.initModulesOnce
 		NativePlayer:                  nil, // Initialized in App.initModulesOnce
 		VideoCore:                     nil, // Initialized in App.initModulesOnce
-		MpvCore:                       nil, // Initialized in App.initModulesOnce
 		MediacoreCoordinator:          nil, // Initialized in App.initModulesOnce
 		NakamaManager:                 nil, // Initialized in App.initModulesOnce
 		LibraryExplorer:               nil, // Initialized in App.initModulesOnce
@@ -419,14 +401,12 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 		DiscordPresence:               nil, // Initialized in App.InitOrRefreshModules
 		previousVersion:               previousVersion,
 		FeatureFlags:                  NewFeatureFlags(cfg, logger),
-		IsDesktopSidecar:              configOpts.Flags.IsDesktopSidecar,
 		SecondarySettings: struct {
 			Mediastream   *models.MediastreamSettings
 			Torrentstream *models.TorrentstreamSettings
 			Debrid        *models.DebridSettings
 			DummyDebrid   *models.DummyDebridSettings
 		}{Mediastream: nil, Torrentstream: nil, Debrid: nil, DummyDebrid: nil},
-		SelfUpdater:                     selfupdater,
 		moduleMu:                        sync.Mutex{},
 		OnRefreshAnilistCollectionFuncs: result.NewMap[string, func()](),
 		HookManager:                     hookManager,
@@ -495,10 +475,6 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 		OnlinestreamRepository:  app.OnlinestreamRepository,
 		TorrentstreamRepository: app.TorrentstreamRepository,
 	})
-
-	if !app.IsOffline() {
-		go app.Updater.FetchAnnouncements()
-	}
 
 	// Android: AniList content stays hidden until the user added a token or a (non built-in) extension
 	contentgate.Configure(

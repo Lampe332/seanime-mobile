@@ -92,8 +92,8 @@ func (m *Manager) BeginOpen(clientId string, step string, onCancel func()) bool 
 }
 
 func (m *Manager) BeginOpenWithTarget(clientId string, step string, onCancel func(), target PlaybackTarget) bool {
-	if target != PlaybackTargetVideoCore && target != PlaybackTargetMpvCore {
-		target = PlaybackTargetMpvCore
+	if target != PlaybackTargetVideoCore {
+		target = PlaybackTargetVideoCore
 	}
 	// if there's a current stream, stop it
 	m.playbackMu.Lock()
@@ -376,7 +376,7 @@ func (m *Manager) loadStream(stream Stream) {
 
 	m.playbackMu.Lock()
 	target := m.preparingTarget
-	if target != PlaybackTargetVideoCore && target != PlaybackTargetMpvCore {
+	if target != PlaybackTargetVideoCore {
 		target = m.defaultPlaybackTarget
 	}
 	m.currentStream = mo.Some(stream)
@@ -384,9 +384,6 @@ func (m *Manager) loadStream(stream Stream) {
 	m.playbackCtxCancelFunc = cancel
 	m.clearCurrentPlaybackIdentityLocked()
 	m.playbackMu.Unlock()
-	if setter, ok := stream.(interface{ setPlaybackTarget(PlaybackTarget) }); ok {
-		setter.setPlaybackTarget(target)
-	}
 
 	if target == PlaybackTargetVideoCore {
 		m.Logger.Debug().Msgf("directstream: Loading content type")
@@ -598,7 +595,6 @@ type BaseStream struct {
 	playbackInfoErr        error
 	playbackInfoOnce       sync.Once
 	playbackCancelFunc     context.CancelFunc
-	playbackTarget         PlaybackTarget
 	subtitleEventCache     *result.Map[string, *mkvparser.SubtitleEvent]
 	subtitleSendMu         sync.Mutex
 	subtitleSentEvents     map[string]struct{}
@@ -660,14 +656,6 @@ func (s *BaseStream) ClientId() string {
 
 func (s *BaseStream) setPlaybackCancelFunc(cancel context.CancelFunc) {
 	s.playbackCancelFunc = cancel
-}
-
-func (s *BaseStream) setPlaybackTarget(target PlaybackTarget) {
-	s.playbackTarget = target
-}
-
-func (s *BaseStream) shouldProcessMediaOnServer() bool {
-	return s.playbackTarget != PlaybackTargetMpvCore
 }
 
 func (s *BaseStream) Terminate() {
