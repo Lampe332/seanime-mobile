@@ -1,34 +1,16 @@
-import { layoutWidth } from "@/lib/tablet-ui"
-import { useAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { atomWithStorage } from "jotai/utils"
-import React, { useEffect, useState } from "react"
-import { useWindowSize } from "react-use"
 
 const customCSSAtom = atomWithStorage("sea-custom-css", {
     customCSS: "",
     mobileCustomCSS: "",
 }, undefined, { getOnInit: true })
 
-export function CustomCSSProvider({ children }: { children?: React.ReactNode }) {
-    const [customCSS, setCustomCSS] = useAtom(customCSSAtom)
-    const [mounted, setMounted] = useState(false)
-    const width = layoutWidth(useWindowSize().width)
+// The app only offers the mobile custom CSS; customCSS is the desktop field of the shared theme settings.
+export function CustomCSSProvider() {
+    const { mobileCustomCSS } = useAtomValue(customCSSAtom)
 
-    const isMobile = width < 1024
-
-    const usedCSS = React.useMemo(() => isMobile ? customCSS.mobileCustomCSS : customCSS.customCSS, [isMobile, customCSS])
-
-    useEffect(() => {
-        setMounted(true)
-    }, [])
-
-    return (
-        <>
-            {mounted && usedCSS && (
-                <style id="sea-custom-css" dangerouslySetInnerHTML={{ __html: usedCSS }} />
-            )}
-        </>
-    )
+    return mobileCustomCSS ? <style id="sea-custom-css" dangerouslySetInnerHTML={{ __html: mobileCustomCSS }} /> : null
 }
 
 export function useCustomCSS() {

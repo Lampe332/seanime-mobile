@@ -18,7 +18,6 @@ import {
 } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
 import { useUpdateEffect } from "@/components/ui/core/hooks"
 import { cn } from "@/components/ui/core/styling"
-import { isMobile } from "@/lib/utils/browser-detection"
 import { __manga_autoHideControlsAtom, __manga_tapToggleControlsAtom } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
 import { atom } from "jotai"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
@@ -213,7 +212,7 @@ export function MangaVerticalReader({ pageContainer, initialPageIndex }: MangaVe
                 hiddenBar && "h-full max-h-full",
             )} tabIndex={-1}
             onClick={() => {
-                if (!isMobile() || tapToggleControls) {
+                if (tapToggleControls) {
                     setHideBar(prev => !prev)
                 }
             }}
@@ -225,7 +224,7 @@ export function MangaVerticalReader({ pageContainer, initialPageIndex }: MangaVe
                     pageZoom !== 1 ? "overflow-x-auto" : "overflow-x-hidden",
                     hiddenBar && "h-dvh",
                     pageGap && "space-y-4",
-                    isMobile() && "hide-scrollbar",
+                    "hide-scrollbar",
                 )}
                 ref={containerRef}
                 onPointerDown={cancelRestore}

@@ -1,12 +1,18 @@
-import type { Anime_PlaylistEpisode } from "@/api/generated/types"
+import type { Anime_PlaylistEpisode, Nullish } from "@/api/generated/types"
 
 export const MAX_PLAYLIST_EPISODES = 200
 
 // Match the existing playlist identity, including special episode numbers.
-export function samePlaylistEpisode(a: Anime_PlaylistEpisode, b: Anime_PlaylistEpisode) {
+export function samePlaylistEpisode(a: Nullish<Anime_PlaylistEpisode>, b: Nullish<Anime_PlaylistEpisode>) {
+    if (!a || !b) return false
     return a.episode?.aniDBEpisode === b.episode?.aniDBEpisode
         && a.episode?.baseAnime?.id === b.episode?.baseAnime?.id
         && a.episode?.episodeNumber === b.episode?.episodeNumber
+}
+
+export function playlistEpisodeKey(a: Anime_PlaylistEpisode) {
+    return a.episode?.aniDBEpisode + String(a.episode?.baseAnime?.id) + String(a.episode?.episodeNumber) + String(a.episode?.progressNumber) + String(
+        a.episode?.localFile?.path)
 }
 
 export function togglePlaylistEpisode(current: Anime_PlaylistEpisode[], episode: Anime_PlaylistEpisode) {

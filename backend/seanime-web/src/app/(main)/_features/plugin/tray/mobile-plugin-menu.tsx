@@ -27,11 +27,8 @@ function PluginIcon({ icon }: { icon: TrayIcon }) {
 
 // Outside the sheet: closing the chooser must not unmount the selected plugin.
 // Query state lives in Choices and does not rerender these plugin runtimes.
-const MobilePluginRuntimes = React.memo(function MobilePluginRuntimes({ icons, settings, width }: {
-    icons: TrayIcon[]; settings?: ExtensionRepo_StoredPluginSettingsData; width: number | null
-}) {
-    return <div hidden aria-hidden="true" data-mobile-plugin-runtimes>{icons.map(icon => <PluginTray key={icon.extensionId} trayIcon={icon}
-        place="top" width={width} isPinned={!!settings?.pinnedTrayPluginIds?.includes(icon.extensionId)} />)}</div>
+const MobilePluginRuntimes = React.memo(function MobilePluginRuntimes({ icons }: { icons: TrayIcon[] }) {
+    return <div hidden aria-hidden="true" data-mobile-plugin-runtimes>{icons.map(icon => <PluginTray key={icon.extensionId} trayIcon={icon} />)}</div>
 })
 
 function MobilePluginChoices({ icons, close, pins, mutation, toggle }: { icons: TrayIcon[]; close: () => void; pins: string[]; mutation: ReturnType<typeof useSetPluginSettingsPinnedTrays>; toggle: (id: string) => void }) {
@@ -76,7 +73,7 @@ function MobilePluginChoices({ icons, close, pins, mutation, toggle }: { icons: 
 }
 
 type Props = {
-    icons: TrayIcon[]; settings?: ExtensionRepo_StoredPluginSettingsData; width: number | null
+    icons: TrayIcon[]; settings?: ExtensionRepo_StoredPluginSettingsData
     developmentModeExtensions: Extension_Extension[]; debugCounts: Record<string, number>
     openDebugWindow: (id: string) => void; reloadExternalExtension: (params: { id: string }) => void; isReloadingExtension: boolean
 }
@@ -160,6 +157,6 @@ export function MobilePluginMenu(props: Props) {
             </button>)}
         </div>
         </div>
-        <MobilePluginRuntimes icons={props.icons} settings={props.settings} width={props.width} />
+        <MobilePluginRuntimes icons={props.icons} />
     </>
 }

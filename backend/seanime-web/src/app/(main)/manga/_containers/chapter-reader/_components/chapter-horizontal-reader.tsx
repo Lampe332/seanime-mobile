@@ -21,7 +21,6 @@ import {
     MangaReadingMode,
 } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
 import { cn } from "@/components/ui/core/styling"
-import { isMobile } from "@/lib/utils/browser-detection"
 import { __manga_tapToggleControlsAtom } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import mousetrap from "mousetrap"
@@ -138,7 +137,7 @@ export function MangaHorizontalReader({ pageContainer }: MangaHorizontalReaderPr
         } else if (clickPercentage >= 60) {
             onPaginate("right")
         } else {
-            if (!isMobile() || tapToggleControls) {
+            if (tapToggleControls) {
                 setHideBar(prev => !prev)
             }
         }

@@ -1,14 +1,10 @@
-import { layoutWidth } from "@/lib/tablet-ui"
 import { Nullish } from "@/api/generated/types"
 import { SeaImage } from "@/components/shared/sea-image"
 import { IconButton } from "@/components/ui/button"
 import { Modal, ModalProps } from "@/components/ui/modal"
-import { Popover, PopoverProps } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
-import React from "react"
 import { AiFillWarning } from "react-icons/ai"
 import { MdInfo } from "react-icons/md"
-import { useWindowSize } from "react-use"
 
 type MediaEpisodeInfoModalProps = {
     mobileEntry?: boolean
@@ -22,27 +18,12 @@ type MediaEpisodeInfoModalProps = {
     filename?: Nullish<string>
 }
 
-function IsomorphicPopover(props: PopoverProps & ModalProps) {
-    const { title, children, ...rest } = props
-    const width = layoutWidth(useWindowSize().width)
-
-    if (width && width > 1024) {
-        return <Popover
-            {...rest}
-            className="max-w-xl !w-full overflow-clip min-w-[400px] min-h-[9rem]"
-        >
-            {children}
-        </Popover>
-    }
-
+function EpisodeInfoDialog(props: ModalProps) {
     return <Modal
-        {...rest}
-        title={title}
+        {...props}
         titleClass="text-xl"
         contentClass={props.contentClass || "max-w-2xl overflow-hidden"}
-    >
-        {children}
-    </Modal>
+    />
 }
 
 export function MediaEpisodeInfoModal(props: MediaEpisodeInfoModalProps) {
@@ -64,7 +45,7 @@ export function MediaEpisodeInfoModal(props: MediaEpisodeInfoModalProps) {
 
     return (
         <>
-            <IsomorphicPopover
+            <EpisodeInfoDialog
                 contentClass={mobileEntry ? "mobile-anime-dialog" : undefined}
                 data-media-episode-info-modal
                 trigger={<IconButton
@@ -118,7 +99,7 @@ export function MediaEpisodeInfoModal(props: MediaEpisodeInfoModalProps) {
                     </>}
                 </div>
 
-            </IsomorphicPopover>
+            </EpisodeInfoDialog>
         </>
     )
 }

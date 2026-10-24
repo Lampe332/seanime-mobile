@@ -31,7 +31,6 @@ import { MdOutlineConnectWithoutContact } from "react-icons/md"
 import { RiListCheck3 } from "react-icons/ri"
 import { TbReportSearch } from "react-icons/tb"
 import { nakamaModalOpenAtom, useNakamaStatus } from "../nakama/nakama-manager"
-import { PluginSidebarTray } from "../plugin/tray/plugin-sidebar-tray"
 
 function getAnilistGifAvatarCandidate(avatar?: { large?: string, medium?: string }) {
     const source = avatar?.large || avatar?.medium
@@ -372,7 +371,6 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
                 handleExpandSidebar={() => { }}
                 handleUnexpandedSidebar={() => { }}
             />
-            <PluginSidebarTray place="sidebar" />
 
         </div>
     )

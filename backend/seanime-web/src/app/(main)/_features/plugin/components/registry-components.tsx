@@ -1,7 +1,6 @@
 import { pluginSelectOptions, PluginSelectValue } from "./plugin-select-options"
 import "./mobile-plugin-runtime.css"
 import { MobileWorkspace } from "@/components/shared/mobile-workspace"
-import { useIsMobile } from "@/lib/theme/theme-hooks"
 import { RenderPluginComponents } from "@/app/(main)/_features/plugin/components/registry"
 import { useWebsocketSender } from "@/app/(main)/_hooks/handle-websockets"
 import { Alert } from "@/components/ui/alert"
@@ -12,8 +11,6 @@ import { cn } from "@/components/ui/core/styling"
 import { DatePicker } from "@/components/ui/date-picker"
 import { DropdownMenu, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { Modal } from "@/components/ui/modal"
-import { Popover } from "@/components/ui/popover"
 import { RadioGroup } from "@/components/ui/radio-group"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
@@ -694,7 +691,6 @@ export function PluginModal(props: PluginModalProps) {
     const { sendEventHandlerTriggeredEvent } = usePluginSendEventHandlerTriggeredEvent()
     const { trayIcon } = usePluginTray()
     const [isOpen, setIsOpen] = React.useState(props.open ?? false)
-    const { isMobile } = useIsMobile()
 
     // The server can open/close a modal after its first render.
     React.useEffect(() => {
@@ -711,34 +707,18 @@ export function PluginModal(props: PluginModalProps) {
         }
     }
 
-    if (isMobile) {
-        return <MobileWorkspace
-            open={isOpen}
-            onOpenChange={handleOpenChange}
-            title={props.title || trayIcon.extensionName}
-            subtitle={props.description}
-            trigger={props.trigger ? <div className="w-fit"><RenderPluginComponents data={props.trigger} /></div> : undefined}
-            footer={props.footer ? <div className="mobile-plugin-runtime"><RenderPluginComponents data={props.footer} /></div> : undefined}
-        >
-            <div className={cn(props.className, "mobile-plugin-runtime plugin-runtime-block")}>
-                {props.items && <RenderPluginComponents data={props.items} />}
-            </div>
-        </MobileWorkspace>
-    }
-
-    return (
-        <Modal
-            trigger={props.trigger ? <div className="w-fit"><RenderPluginComponents data={props.trigger} /></div> : undefined}
-            title={props.title}
-            description={props.description}
-            open={isOpen}
-            onOpenChange={handleOpenChange}
-            footer={props.footer ? <RenderPluginComponents data={props.footer} /> : undefined}
-            contentClass={props.className}
-        >
+    return <MobileWorkspace
+        open={isOpen}
+        onOpenChange={handleOpenChange}
+        title={props.title || trayIcon.extensionName}
+        subtitle={props.description}
+        trigger={props.trigger ? <div className="w-fit"><RenderPluginComponents data={props.trigger} /></div> : undefined}
+        footer={props.footer ? <div className="mobile-plugin-runtime"><RenderPluginComponents data={props.footer} /></div> : undefined}
+    >
+        <div className={cn(props.className, "mobile-plugin-runtime plugin-runtime-block")}>
             {props.items && <RenderPluginComponents data={props.items} />}
-        </Modal>
-    )
+        </div>
+    </MobileWorkspace>
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -821,29 +801,18 @@ interface PluginPopoverProps {
 }
 
 export function PluginPopover(props: PluginPopoverProps) {
-    const { isMobile } = useIsMobile()
     const { trayIcon } = usePluginTray()
     const [open, setOpen] = React.useState(false)
-    if (isMobile) {
-        return <MobileWorkspace
-            open={open}
-            onOpenChange={setOpen}
-            title={trayIcon.extensionName}
-            trigger={props.trigger ? <div className="w-fit"><RenderPluginComponents data={props.trigger} /></div> : undefined}
-        >
-            <div className={cn(props.className, "mobile-plugin-runtime plugin-runtime-block")}>
-                {props.items && <RenderPluginComponents data={props.items} />}
-            </div>
-        </MobileWorkspace>
-    }
-    return (
-        <Popover
-            trigger={props.trigger ? <RenderPluginComponents data={props.trigger} /> : <div />}
-            className={props.className}
-        >
+    return <MobileWorkspace
+        open={open}
+        onOpenChange={setOpen}
+        title={trayIcon.extensionName}
+        trigger={props.trigger ? <div className="w-fit"><RenderPluginComponents data={props.trigger} /></div> : undefined}
+    >
+        <div className={cn(props.className, "mobile-plugin-runtime plugin-runtime-block")}>
             {props.items && <RenderPluginComponents data={props.items} />}
-        </Popover>
-    )
+        </div>
+    </MobileWorkspace>
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

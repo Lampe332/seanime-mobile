@@ -1,8 +1,5 @@
-import { layoutWidth } from "@/lib/tablet-ui"
 import { Models_Theme } from "@/api/generated/types"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
-import React from "react"
-import { useWindowSize } from "react-use"
 
 export const enum ThemeLibraryScreenBannerType {
     Dynamic = "dynamic",
@@ -202,9 +199,4 @@ function getThemeValue(key: string, settings: ThemeSettings | undefined | null):
             // For any other type, return the value
             return val
     }
-}
-
-export function useIsMobile(): { isMobile: boolean } {
-    const width = layoutWidth(useWindowSize().width)
-    return { isMobile: React.useMemo(() => width < 1024, [width < 1024]) }
 }

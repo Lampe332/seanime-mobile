@@ -1,6 +1,5 @@
-import { Command, CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { MobileWorkspace } from "@/components/shared/mobile-workspace"
-import { useIsMobile } from "@/lib/theme/theme-hooks"
 import { useTr } from "@/lib/app-language"
 import { PluginTrayContext, usePluginTray } from "../tray/plugin-tray"
 import "../components/mobile-plugin-runtime.css"
@@ -42,7 +41,6 @@ type CommandItem = {
 export function PluginCommandPalette(props: { extensionId: string, info: PluginCommandPaletteInfo }) {
 
     const { extensionId, info } = props
-    const { isMobile } = useIsMobile()
     const tr = useTr()
     const tray = usePluginTray()
 
@@ -60,8 +58,6 @@ export function PluginCommandPalette(props: { extensionId: string, info: PluginC
     const { sendCommandPaletteOpenedEvent } = usePluginSendCommandPaletteOpenedEvent()
     const { sendCommandPaletteClosedEvent } = usePluginSendCommandPaletteClosedEvent()
     const { sendCommandPaletteItemSelectedEvent } = usePluginSendCommandPaletteItemSelectedEvent()
-
-    // const parsedCommandProps = useSeaCommand_ParseCommand(input)
 
     // Register the keyboard shortcut
     React.useEffect(() => {
@@ -168,12 +164,10 @@ export function PluginCommandPalette(props: { extensionId: string, info: PluginC
     }, [items, input])
 
     function handleSelect(item: CommandItem) {
-        // setInput("")
         sendCommandPaletteItemSelectedEvent({ itemId: item.id }, extensionId)
     }
 
-
-    if (isMobile) return <MobileWorkspace open={open} onOpenChange={setOpen} title={placeholder || tr("Plugin search", "Plugin-Suche")} className="mobile-plugin-command">
+    return <MobileWorkspace open={open} onOpenChange={setOpen} title={placeholder || tr("Plugin search", "Plugin-Suche")} className="mobile-plugin-command">
         <Command value={activeItemId} onValueChange={setActiveItemId}>
             <CommandInput placeholder={placeholder || ""} aria-label={placeholder || tr("Search", "Suchen")} value={input} onValueChange={setInput} />
             <CommandList ref={commandListRef}>
@@ -189,46 +183,4 @@ export function PluginCommandPalette(props: { extensionId: string, info: PluginC
             </CommandList>
         </Command>
     </MobileWorkspace>
-
-    return (
-        <CommandDialog
-            open={open}
-            onOpenChange={setOpen}
-            commandProps={{
-                value: activeItemId,
-                onValueChange: setActiveItemId,
-            }}
-            overlayClass="bg-black/30"
-            contentClass="max-w-2xl"
-            commandClass="h-[300px]"
-        >
-            <CommandInput
-                placeholder={placeholder || ""}
-                value={input}
-                onValueChange={setInput}
-            />
-            <CommandList className="mb-2" ref={commandListRef}>
-
-                <PluginProvider registry={registry}>
-                    {Object.entries(groupedItems).map(([heading, items]) => (
-                        <CommandGroup key={heading} heading={heading}>
-                            {items.map(item => (
-                                <CommandItem
-                                    key={item.id}
-                                    value={item.value}
-                                    onSelect={() => {
-                                        handleSelect(item)
-                                    }}
-                                    className="block"
-                                >
-                                    {!!item.label ? item.label : <RenderPluginComponents data={item.components} />}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    ))}
-                </PluginProvider>
-
-            </CommandList>
-        </CommandDialog>
-    )
 }

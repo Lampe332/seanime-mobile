@@ -1,5 +1,4 @@
 import { MobileWorkspace } from "@/components/shared/mobile-workspace"
-import { useIsMobile } from "@/lib/theme/theme-hooks"
 import { tr } from "@/lib/app-language"
 import { Anime_Entry, Anime_Playlist, Anime_PlaylistEpisode, HibikeTorrent_AnimeTorrent } from "@/api/generated/types"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
@@ -8,7 +7,7 @@ import { useAutoPlaySelectedTorrent } from "@/app/(main)/_features/autoplay/auto
 import { getBatchSelectionParams } from "@/app/(main)/_features/autoplay/batches.ts"
 import { nativePlayer_stateAtom } from "@/app/(main)/_features/native-player/native-player.atoms"
 import { PlaylistManagerPopup } from "@/app/(main)/_features/playlists/_components/global-playlist-popup"
-import { playlist_getEpisodeKey, playlist_isSameEpisode } from "@/app/(main)/_features/playlists/_components/playlist-editor"
+import { playlistEpisodeKey, samePlaylistEpisode } from "@/app/(main)/_features/playlists/lib/mobile-playlist-state"
 import { useWebsocketMessageListener, useWebsocketSender } from "@/app/(main)/_hooks/handle-websockets"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { useHandleStartDebridStream } from "@/app/(main)/entry/_containers/debrid-stream/_lib/handle-debrid-stream"
@@ -28,7 +27,6 @@ import { imageShimmer } from "@/components/shared/image-helpers"
 import { SeaImage } from "@/components/shared/sea-image"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
-import { Modal } from "@/components/ui/modal"
 import { Tooltip } from "@/components/ui/tooltip"
 import { logger } from "@/lib/helpers/debug"
 import { useRouter } from "@/lib/navigation"
@@ -149,7 +147,7 @@ export function usePlaylistManager() {
         }
     }
 
-    const currentPlaylistEpisodeIndex = currentPlaylist?.episodes?.findIndex(n => playlist_isSameEpisode(n, currentPlaylistEpisode)) ?? -1
+    const currentPlaylistEpisodeIndex = currentPlaylist?.episodes?.findIndex(n => samePlaylistEpisode(n, currentPlaylistEpisode)) ?? -1
 
     const nextPlaylistEpisode = currentPlaylist?.episodes?.[currentPlaylistEpisodeIndex + 1]
     const prevPlaylistEpisode = currentPlaylist?.episodes?.[currentPlaylistEpisodeIndex - 1]
@@ -340,8 +338,6 @@ export function GlobalPlaylistManager() {
         },
     })
 
-    const { isMobile } = useIsMobile()
-    const ProgressDialog = isMobile ? MobileWorkspace : Modal
     const [confirmProgress, setConfirmProgress] = useAtom(pm_confirmProgressUpdateModalOpen)
 
     if (!currentPlaylist) return null
@@ -395,7 +391,7 @@ export function GlobalPlaylistManager() {
     return <>
         {animeEntry && <TorrentSearchDrawer entry={animeEntry} isPlaylistDrawer />}
 
-        <ProgressDialog
+        <MobileWorkspace
             open={confirmProgress !== null}
             onOpenChange={open => {
                 if (!open) {
@@ -417,23 +413,10 @@ export function GlobalPlaylistManager() {
                 </Button>
             </div>
 
-        </ProgressDialog>
+        </MobileWorkspace>
 
-        {!nativePlayerState.active && <PlaylistManagerPopup position="bottom-right" mobileTitle={currentPlaylist.name} mobileFooter={playbackActions}
-            mobileContent={<div className="space-y-2">{currentPlaylist.episodes?.map(ep => <EpisodeItem key={playlist_getEpisodeKey(ep)} episode={ep} />)}</div>}>
-            <p className="p-3 text-sm font-semibold">
-                Playlist: {currentPlaylist.name}
-            </p>
-            <div className="p-3 space-y-2 overflow-auto">
-                <div className="space-y-2 relative">
-                    {currentPlaylist.episodes?.map(ep => <EpisodeItem key={playlist_getEpisodeKey(ep)} episode={ep} />)}
-                </div>
-            </div>
-            <div className="p-3 bg-[--paper] relative">
-                <div className="absolute top-[-2rem] h-[2rem] left-0 right-0 bg-gradient-to-t from-[--paper] to-transparent">
-                </div>
-                {playbackActions}
-            </div>
+        {!nativePlayerState.active && <PlaylistManagerPopup title={currentPlaylist.name} footer={playbackActions}>
+            <div className="space-y-2">{currentPlaylist.episodes?.map(ep => <EpisodeItem key={playlistEpisodeKey(ep)} episode={ep} />)}</div>
         </PlaylistManagerPopup>}
     </>
 }
@@ -447,8 +430,7 @@ function EpisodeItem({ episode }: { episode: Anime_PlaylistEpisode }) {
             className={cn(
                 "playlist-playing-episode px-2.5 py-2 bg-[--background] rounded-md border flex gap-3 relative",
                 "opacity-50 hover:opacity-70",
-                playlist_isSameEpisode(currentPlaylistEpisode,
-                    episode) && "opacity-100 hover:opacity-100 border-[rgba(255,255,255,0.5)] sticky top-0 bottom-0 z-10 shadow-xl",
+                samePlaylistEpisode(currentPlaylistEpisode, episode) && "opacity-100 hover:opacity-100 border-[rgba(255,255,255,0.5)] sticky top-0 bottom-0 z-10 shadow-xl",
             )}
         >
             <div className="size-20 aspect-square flex-none rounded-md overflow-hidden relative transition bg-[--background]">

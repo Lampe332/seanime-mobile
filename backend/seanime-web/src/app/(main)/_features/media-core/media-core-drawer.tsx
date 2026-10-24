@@ -1,4 +1,3 @@
-import { layoutWidth } from "@/lib/tablet-ui"
 import { CloseButton } from "@/components/ui/button"
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "@/components/ui/core/styling"
 import type * as DialogPrimitive from "@radix-ui/react-dialog"
@@ -7,6 +6,8 @@ import { cva, VariantProps } from "class-variance-authority"
 import * as React from "react"
 import { RemoveScrollBar } from "react-remove-scroll-bar"
 import { Drawer as VaulPrimitive } from "vaul"
+
+const MINI_PLAYER_WIDTH = 300
 
 /* -------------------------------------------------------------------------------------------------
  * Anatomy
@@ -197,7 +198,7 @@ export function MediaCoreDrawer(props: DrawerProps) {
     const draggableAreaRef = React.useRef<HTMLDivElement>(null)
 
     const getInitialPosition = React.useCallback(() => {
-        const width = layoutWidth(window.innerWidth) >= 1024 ? 400 : 300
+        const width = MINI_PLAYER_WIDTH
         const height = width * (9 / 16)
 
         const rightBoundary = window.innerWidth - width - PADDING
@@ -377,7 +378,7 @@ export function MediaCoreDrawer(props: DrawerProps) {
 
         const element = contentRef.current
         const currentPosition = (position.x === 0 && position.y === 0) ? getInitialPosition() : position
-        const miniWidth = layoutWidth(window.innerWidth) >= 1024 ? 400 : 300
+        const miniWidth = MINI_PLAYER_WIDTH
         const miniHeight = miniWidth * (9 / 16)
         const didToggleMiniPlayer = prevMiniPlayerRef.current !== miniPlayer
 
@@ -499,7 +500,7 @@ export function MediaCoreDrawer(props: DrawerProps) {
                         DrawerAnatomy.content({ size, side: "player" }),
                         contentClass,
                         "w-full h-full transition-all duration-300 overflow-hidden fixed transform-gpu [contain:layout_paint_style]",
-                        miniPlayer && "aspect-video w-[300px] lg:w-[400px] h-auto rounded-lg shadow-xl will-change-[transform,opacity]",
+                        miniPlayer && "aspect-video w-[300px] h-auto rounded-lg shadow-xl will-change-[transform,opacity]",
                         isHidden && "ring-2 ring-brand-300",
                     )}
                     ref={contentRef}

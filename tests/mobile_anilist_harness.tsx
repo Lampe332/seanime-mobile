@@ -8,6 +8,6 @@ const listData: any = { status: "CURRENT", progress: 10, score: 75, repeat: 0, s
 const manga: any = { id: 5, status: "RELEASING", chapters: 40, title: { userPreferred: "Controlled manga" }, coverImage: {} }
 createRoot(document.getElementById("root")!).render(<div data-mobile-anime="true" style={{ padding: 16 }}>
     <div id="mobile"><AnilistMediaEntryModal mobileEntry listData={listData} media={media} type="anime" /></div>
-    <div id="desktop"><AnilistMediaEntryModal listData={listData} media={media} type="anime" forceModal /></div>
+    <div id="desktop"><AnilistMediaEntryModal listData={listData} media={media} type="anime" /></div>
     <div id="manga"><AnilistMediaEntryModal mobileEntry listData={{ ...listData, repeat: 2 }} media={manga} type="manga" /></div>
 </div>)

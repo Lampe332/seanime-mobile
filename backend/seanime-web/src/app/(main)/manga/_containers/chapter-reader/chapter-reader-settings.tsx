@@ -1,4 +1,3 @@
-import { layoutWidth } from "@/lib/tablet-ui"
 import { useMangaPageZoomControls } from "@/app/(main)/manga/_lib/handle-chapter-reader"
 import {
     __manga_doublePageOffsetAtom,
@@ -32,8 +31,6 @@ import { useAtom } from "jotai/react"
 import React from "react"
 import { FaRedo } from "react-icons/fa"
 import { LuSettings } from "react-icons/lu"
-import { useWindowSize } from "react-use"
-import { toast } from "sonner"
 import { Modal } from "@/components/ui/modal"
 import { Translate, useTr } from "@/lib/app-language"
 import { LuMinus, LuPlus } from "react-icons/lu"
@@ -56,7 +53,6 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
 
     const [readingDirection, setReadingDirection] = useAtom(__manga_readingDirectionAtom)
     const [readingMode, setReadingMode] = useAtom(__manga_readingModeAtom)
-    const androidReader = typeof (window as any).OrientationBridge?.setLandscape === "function"
     const [pageFit, setPageFit] = useAtom(__manga_pageFitAtom)
     const [pageStretch, setPageStretch] = useAtom(__manga_pageStretchAtom)
     const [pageGap, setPageGap] = useAtom(__manga_pageGapAtom)
@@ -67,42 +63,11 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
     //---
     const [hiddenBar, setHideBar] = useAtom(__manga_hiddenBarAtom)
 
-    const width = layoutWidth(useWindowSize().width)
-    const isMobile = width < 950
-
-    const defaultSettings = React.useMemo(() => {
-        if (isMobile) {
-            return {
-                [MangaReadingMode.LONG_STRIP]: {
-                    pageFit: MangaPageFit.COVER,
-                    pageStretch: MangaPageStretch.NONE,
-                },
-                [MangaReadingMode.PAGED]: {
-                    pageFit: MangaPageFit.CONTAIN,
-                    pageStretch: MangaPageStretch.NONE,
-                },
-                [MangaReadingMode.DOUBLE_PAGE]: {
-                    pageFit: MangaPageFit.CONTAIN,
-                    pageStretch: MangaPageStretch.NONE,
-                },
-            }
-        } else {
-            return {
-                [MangaReadingMode.LONG_STRIP]: {
-                    pageFit: MangaPageFit.LARGER,
-                    pageStretch: MangaPageStretch.NONE,
-                },
-                [MangaReadingMode.PAGED]: {
-                    pageFit: MangaPageFit.CONTAIN,
-                    pageStretch: MangaPageStretch.NONE,
-                },
-                [MangaReadingMode.DOUBLE_PAGE]: {
-                    pageFit: MangaPageFit.CONTAIN,
-                    pageStretch: MangaPageStretch.NONE,
-                },
-            }
-        }
-    }, [isMobile])
+    const defaultSettings = {
+        [MangaReadingMode.LONG_STRIP]: { pageFit: MangaPageFit.COVER, pageStretch: MangaPageStretch.NONE },
+        [MangaReadingMode.PAGED]: { pageFit: MangaPageFit.CONTAIN, pageStretch: MangaPageStretch.NONE },
+        [MangaReadingMode.DOUBLE_PAGE]: { pageFit: MangaPageFit.CONTAIN, pageStretch: MangaPageStretch.NONE },
+    }
 
     /**
      * Remember settings for current media
@@ -147,26 +112,6 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
         pageFit === defaultSettings[readingMode].pageFit &&
         pageStretch === defaultSettings[readingMode].pageStretch
 
-    /**
-     * Disabled double page on small screens
-     */
-    React.useEffect(() => {
-        if (readingMode === MangaReadingMode.DOUBLE_PAGE && width < 950 && !androidReader) {
-            setReadingMode(prev => {
-                toast.error("Double page mode is not supported on small screens.")
-                return MangaReadingMode.LONG_STRIP
-            })
-        }
-    }, [width, readingMode, androidReader])
-
-    function handleSetReadingMode(mode: string) {
-        if (mode === MangaReadingMode.DOUBLE_PAGE && width < 950 && !androidReader) {
-            toast.error("Double page mode is not supported on small screens.")
-            return
-        }
-        setReadingMode(mode)
-    }
-
     const [open, setOpen] = useAtom(__manga__readerSettingsDrawerOpen)
     const t = useTr()
     const [keepScreenOn, setKeepScreenOn] = useAtom(__manga_keepScreenOnAtom)
@@ -194,7 +139,7 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
                         <ReaderSegment
                             label={t("Mode", "Modus")}
                             value={readingMode}
-                            onChange={handleSetReadingMode}
+                            onChange={setReadingMode}
                             options={[
                                 { value: MangaReadingMode.LONG_STRIP, label: t("Long strip", "Endlos") },
                                 { value: MangaReadingMode.PAGED, label: t("Single page", "Einzelseite") },

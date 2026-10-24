@@ -24,14 +24,11 @@ export function usePluginSendFieldRefSendValueEvent() { return { sendFieldRefSen
 export function usePluginSendFormSubmittedEvent() { return { sendFormSubmittedEvent: sender("form-submit") } }
 export function useIsMainTabRef() { return React.useRef(true) }
 export function useWebsocketSender() { return { sendPluginMessage: sender("message") } }
-export function useIsMobile() { return { isMobile: true } }
 export function useTr() { return (en: string) => en }
 export const appLanguageAtom = atom<"en" | "de">("en")
 export function tr(en: string) { return en }
 export function useServerStatus() { return { data: {} } }
 export function SeaImage({ src, alt }: any) { return <img src={src} alt={alt} /> }
-export function Vaul({children}:any) { return children }
-export function VaulContent({children}:any) { return children }
 
 export function usePluginListenModalUpdatedEvent(cb:Function) { listen("modal",cb) }
 export function usePluginSendModalClosedEvent() { return {sendModalClosedEvent:sender("modal-closed")} }

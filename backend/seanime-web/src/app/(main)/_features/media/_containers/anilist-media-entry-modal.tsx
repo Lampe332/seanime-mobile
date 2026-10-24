@@ -1,4 +1,3 @@
-import { layoutWidth } from "@/lib/tablet-ui"
 import { AL_BaseAnime, AL_BaseManga, AL_MediaListStatus, Anime_EntryListData, Manga_EntryListData } from "@/api/generated/types"
 import { useDeleteAnilistListEntry, useEditAnilistListEntry } from "@/api/hooks/anilist.hooks"
 import { useUpdateAnimeEntryRepeat } from "@/api/hooks/anime_entries.hooks"
@@ -11,12 +10,10 @@ import { Disclosure, DisclosureContent, DisclosureItem, DisclosureTrigger } from
 import { defineSchema, Field, Form } from "@/components/ui/form"
 import { Modal, ModalProps } from "@/components/ui/modal"
 import { NumberInput } from "@/components/ui/number-input"
-import { Popover, PopoverProps } from "@/components/ui/popover"
 import { Tooltip } from "@/components/ui/tooltip"
 import { normalizeDate } from "@/lib/helpers/date"
 import { getImageUrl } from "@/lib/server/assets"
 import { useTr } from "@/lib/app-language"
-import { useWindowSize } from "@uidotdev/usehooks"
 import React from "react"
 import { useController, useFormContext } from "react-hook-form"
 import { BiListPlus, BiPlus, BiStar, BiTrash } from "react-icons/bi"
@@ -32,7 +29,6 @@ type AnilistMediaEntryModalProps = {
     media?: AL_BaseAnime | AL_BaseManga
     hideButton?: boolean
     type?: "anime" | "manga"
-    forceModal?: boolean
 }
 
 const mediaListDataSchema = defineSchema(({ z, presets }) => z.object({
@@ -57,21 +53,8 @@ const progressMaxFor = (media: AL_BaseAnime | AL_BaseManga | undefined, type: "a
         : ((media as AL_BaseAnime)?.episodes ? (media as AL_BaseAnime).episodes : undefined))
     : (media as AL_BaseManga)?.chapters
 
-function IsomorphicPopover(props: Omit<PopoverProps, "title"> & ModalProps & { media?: AL_BaseAnime | AL_BaseManga, forceModal?: boolean }) {
-    const { title, children, media, forceModal, ...rest } = props
-    const width = layoutWidth(useWindowSize().width)
-
-    if ((width && width > 1024) && !forceModal) {
-        return <Popover
-            {...rest}
-            className="max-w-5xl !w-full overflow-hidden rounded-2xl"
-        >
-            <p className="mb-4 font-semibold text-center px-6 line-clamp-1">
-                {media?.title?.userPreferred}
-            </p>
-            {children}
-        </Popover>
-    }
+function EntryDialog(props: ModalProps & { media?: AL_BaseAnime | AL_BaseManga }) {
+    const { title, children, media, ...rest } = props
 
     return <Modal
         {...rest}
@@ -105,7 +88,7 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
     const [open, toggle] = useToggle(false)
     const [repeat, setRepeat] = React.useState<number | "">(0)
 
-    const { children, media, listData, hideButton, type = "anime", forceModal, mobileEntry, ...rest } = props
+    const { children, media, listData, hideButton, type = "anime", mobileEntry, ...rest } = props
 
     const user = useCurrentUser()
 
@@ -177,9 +160,8 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
                 </Tooltip>}
             </>}
 
-            {!!listData && <IsomorphicPopover
+            {!!listData && <EntryDialog
                 contentClass={mobileEntry ? "mobile-anime-dialog mobile-anilist-sheet" : undefined}
-                forceModal={forceModal}
                 open={open}
                 onOpenChange={o => toggle(o)}
                 title={mobileEntry ? <MobileEntryTitle media={media} /> : (media?.title?.userPreferred ?? undefined)}
@@ -223,7 +205,7 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
                     {...props}
                 />}
 
-            </IsomorphicPopover>}
+            </EntryDialog>}
         </>
     )
 
@@ -245,7 +227,6 @@ function Content(props: AnilistMediaEntryModalProps & {
         listData,
         hideButton,
         type = "anime",
-        forceModal,
         open,
         onToggle,
         repeat,
