@@ -25,61 +25,21 @@ const CarouselAnatomy = defineStyleAnatomy({
         "flex",
     ], {
         variants: {
-            gap: { none: null, sm: null, md: null, lg: null, xl: null },
-            orientation: { horizontal: null, vertical: null },
+            gap: { none: "ml-0", sm: "-ml-2", md: "-ml-4", lg: "-ml-6", xl: "-ml-8" },
         },
-        compoundVariants: [
-            { gap: "none", orientation: "horizontal", className: "ml-0" },
-            { gap: "sm", orientation: "horizontal", className: "-ml-2" },
-            { gap: "md", orientation: "horizontal", className: "-ml-4" },
-            { gap: "lg", orientation: "horizontal", className: "-ml-6" },
-            { gap: "xl", orientation: "horizontal", className: "-ml-8" },
-            /**/
-            { gap: "none", orientation: "vertical", className: "-mt-0 flex-col" },
-            { gap: "sm", orientation: "vertical", className: "-mt-2 flex-col" },
-            { gap: "md", orientation: "vertical", className: "-mt-4 flex-col" },
-            { gap: "lg", orientation: "vertical", className: "-mt-6 flex-col" },
-            { gap: "xl", orientation: "vertical", className: "-mt-8 flex-col" },
-        ],
     }),
     item: cva([
         "UI-Carousel__item",
         "min-w-0 shrink-0 grow-0 basis-full",
     ], {
         variants: {
-            gap: { none: null, sm: null, md: null, lg: null, xl: null },
-            orientation: { horizontal: null, vertical: null },
+            gap: { none: "pl-0", sm: "pl-2", md: "pl-4", lg: "pl-6", xl: "pl-8" },
         },
-        compoundVariants: [
-            { gap: "none", orientation: "horizontal", className: "pl-0" },
-            { gap: "sm", orientation: "horizontal", className: "pl-2" },
-            { gap: "md", orientation: "horizontal", className: "pl-4" },
-            { gap: "lg", orientation: "horizontal", className: "pl-6" },
-            { gap: "xl", orientation: "horizontal", className: "pl-8" },
-            /**/
-            { gap: "none", orientation: "vertical", className: "pt-0" },
-            { gap: "sm", orientation: "vertical", className: "pt-2" },
-            { gap: "md", orientation: "vertical", className: "pt-4" },
-            { gap: "lg", orientation: "vertical", className: "pt-6" },
-            { gap: "xl", orientation: "vertical", className: "pt-8" },
-        ],
     }),
     button: cva([
         "UI-Carousel__button",
         "rounded-full z-[10]",
-    ], {
-        variants: {
-            placement: { previous: null, next: null },
-            orientation: { horizontal: null, vertical: null },
-        },
-        compoundVariants: [
-            { placement: "previous", orientation: "horizontal", className: "" },
-            { placement: "next", orientation: "horizontal", className: "" },
-
-            { placement: "previous", orientation: "vertical", className: "-top-12 left-1/2 -translate-x-1/2 rotate-90" },
-            { placement: "next", orientation: "vertical", className: "-bottom-12 left-1/2 -translate-x-1/2 rotate-90" },
-        ],
-    }),
+    ]),
     chevronIcon: cva([
         "UI-Carousel__chevronIcon",
         "size-6",
@@ -102,18 +62,10 @@ function useCarousel() {
     return context
 }
 
-export type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
-export type CarouselOptions = UseCarouselParameters[0]
-export type CarouselPlugin = UseCarouselParameters[1]
-
 export type CarouselProps = {
-    opts?: CarouselOptions
-    plugins?: CarouselPlugin
-    orientation?: "horizontal" | "vertical"
+    opts?: Parameters<typeof useEmblaCarousel>[0]
     gap?: "none" | "sm" | "md" | "lg" | "xl"
-    setApi?: (api: EmblaCarouselType) => void
     autoScroll?: boolean
-    autoScrollDelay?: number
     carouselButtonContainerClass?: string
 }
 
@@ -129,33 +81,24 @@ type CarouselContextProps = {
 export const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & CarouselProps>((props, ref) => {
 
     const {
-        orientation = "horizontal",
         opts,
         gap = "md",
-        setApi,
-        plugins,
         className,
         children,
         autoScroll,
-        autoScrollDelay = 5000,
         carouselButtonContainerClass,
         ...rest
     } = props
 
     const ts = useThemeSettings()
 
-    const _plugins = React.useMemo(() => {
-        return [
-            ...(plugins || []),
-            ...((autoScroll && !ts.disableCarouselAutoScroll) ? [AutoScroll({
-                delay: autoScrollDelay,
-                stopOnMouseEnter: true,
-                stopOnInteraction: false,
-            })] : []),
-        ]
-    }, [plugins, autoScroll, ts.disableCarouselAutoScroll])
+    const plugins = React.useMemo(() => (autoScroll && !ts.disableCarouselAutoScroll) ? [AutoScroll({
+        delay: 5000,
+        stopOnMouseEnter: true,
+        stopOnInteraction: false,
+    })] : [], [autoScroll, ts.disableCarouselAutoScroll])
 
-    const [carouselRef, api] = useEmblaCarousel({ ...opts, axis: orientation === "horizontal" ? "x" : "y" }, _plugins)
+    const [carouselRef, api] = useEmblaCarousel(opts, plugins)
     const [canScrollPrev, setCanScrollPrev] = React.useState(false)
     const [canScrollNext, setCanScrollNext] = React.useState(false)
 
@@ -190,12 +133,6 @@ export const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
     const localRef = React.useRef<HTMLDivElement>(null)
 
     React.useEffect(() => {
-        if (!api || !setApi) return
-
-        setApi(api)
-    }, [api, setApi])
-
-    React.useEffect(() => {
         if (!api) return
 
         onSelect(api)
@@ -203,7 +140,8 @@ export const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
         api.on("select", onSelect)
 
         return () => {
-            api?.off("select", onSelect)
+            api.off("reInit", onSelect)
+            api.off("select", onSelect)
         }
     }, [api, onSelect])
 
@@ -224,18 +162,10 @@ export const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
         let cooldownTimeout: any = null
         let lastDirection = 0
 
+        // touchpad or mouse on a tablet: a horizontal swipe (or alt + wheel) moves one snap
         const handleWheel = (e: WheelEvent) => {
-            const isVertical = orientation === "vertical"
-            let isScrollIntent = false
-            let delta = 0
-
-            if (isVertical) {
-                isScrollIntent = Math.abs(e.deltaY) > Math.abs(e.deltaX) && !e.altKey
-                delta = e.deltaY
-            } else {
-                isScrollIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.altKey
-                delta = e.deltaX !== 0 ? e.deltaX : (e.altKey ? e.deltaY : 0)
-            }
+            const isScrollIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.altKey
+            const delta = e.deltaX !== 0 ? e.deltaX : (e.altKey ? e.deltaY : 0)
 
             if (!isScrollIntent || delta === 0) return
 
@@ -279,7 +209,7 @@ export const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
             container.removeEventListener("wheel", handleWheel)
             if (cooldownTimeout) clearTimeout(cooldownTimeout)
         }
-    }, [api, orientation])
+    }, [api])
 
     return (
         <__CarouselContext.Provider
@@ -288,7 +218,6 @@ export const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
                 api: api,
                 opts,
                 gap,
-                orientation: orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
                 scrollPrev,
                 scrollNext,
                 canScrollPrev,
@@ -311,19 +240,7 @@ export const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
 })
 Carousel.displayName = "Carousel"
 
-type CarouselButtonsProps = {
-    children?: React.ReactNode
-    containerClass?: string
-}
-
-function CarouselButtons(props: CarouselButtonsProps) {
-
-    const {
-        children,
-        containerClass,
-        ...rest
-    } = props
-
+function CarouselButtons({ containerClass }: { containerClass?: string }) {
     const { scrollSnaps } = useDotButton()
 
     return (
@@ -346,13 +263,13 @@ export type CarouselContentProps = React.ComponentPropsWithoutRef<"div"> & {
 
 export const CarouselContent = React.forwardRef<HTMLDivElement, CarouselContentProps>((props, ref) => {
     const { className, contentClass, ...rest } = props
-    const { carouselRef, orientation, gap } = useCarousel()
+    const { carouselRef, gap } = useCarousel()
 
     return (
         <div ref={carouselRef} className={cn(CarouselAnatomy.content(), contentClass)}>
             <div
                 ref={ref}
-                className={cn(CarouselAnatomy.innerContent({ orientation, gap }), className)}
+                className={cn(CarouselAnatomy.innerContent({ gap }), className)}
                 {...rest}
             />
         </div>
@@ -368,14 +285,14 @@ export type CarouselItemProps = React.ComponentPropsWithoutRef<"div">
 
 export const CarouselItem = React.forwardRef<HTMLDivElement, CarouselItemProps>((props, ref) => {
     const { className, ...rest } = props
-    const { orientation, gap } = useCarousel()
+    const { gap } = useCarousel()
 
     return (
         <div
             ref={ref}
             role="group"
             aria-roledescription="slide"
-            className={cn(CarouselAnatomy.item({ orientation, gap }), className)}
+            className={cn(CarouselAnatomy.item({ gap }), className)}
             {...rest}
         />
     )
@@ -390,13 +307,13 @@ export type CarouselButtonProps = React.ComponentProps<typeof IconButton> & { ch
 
 const CarouselPrevious = React.forwardRef<HTMLButtonElement, CarouselButtonProps>((props, ref) => {
     const { className, chevronIconClass, intent = "gray-outline", ...rest } = props
-    const { orientation, scrollPrev, canScrollPrev } = useCarousel()
+    const { scrollPrev, canScrollPrev } = useCarousel()
 
     return (
         <IconButton
             ref={ref}
             intent={intent}
-            className={CarouselAnatomy.button({ orientation, placement: "previous" })}
+            className={CarouselAnatomy.button()}
             disabled={!canScrollPrev}
             onClick={scrollPrev}
             icon={<svg
@@ -423,13 +340,13 @@ CarouselPrevious.displayName = "CarouselPrevious"
 
 const CarouselNext = React.forwardRef<HTMLButtonElement, CarouselButtonProps>((props, ref) => {
     const { className, chevronIconClass, intent = "gray-outline", ...rest } = props
-    const { orientation, scrollNext, canScrollNext } = useCarousel()
+    const { scrollNext, canScrollNext } = useCarousel()
 
     return (
         <IconButton
             ref={ref}
             intent={intent}
-            className={CarouselAnatomy.button({ orientation, placement: "next" })}
+            className={CarouselAnatomy.button()}
             disabled={!canScrollNext}
             onClick={scrollNext}
             icon={<svg
@@ -449,10 +366,6 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, CarouselButtonProps>((p
     )
 })
 CarouselNext.displayName = "CarouselNext"
-
-/* -------------------------------------------------------------------------------------------------
- *
- * -----------------------------------------------------------------------------------------------*/
 
 type UseDotButtonType = {
     selectedIndex: number
@@ -489,6 +402,11 @@ const useDotButton = (): UseDotButtonType => {
         emblaApi.on("reInit", onInit)
         emblaApi.on("reInit", onSelect)
         emblaApi.on("select", onSelect)
+        return () => {
+            emblaApi.off("reInit", onInit)
+            emblaApi.off("reInit", onSelect)
+            emblaApi.off("select", onSelect)
+        }
     }, [emblaApi, onInit, onSelect])
 
     return {
@@ -508,7 +426,6 @@ const DotButton = (props: React.ComponentPropsWithoutRef<"div">) => {
             )}
             onClick={onClick}
         >
-            {/* {children} */}
             <div
                 className={cn(
                     "cursor-pointer w-full lg:h-2 lg:group-hover/dot-button:h-3 transition-all duration-300 rounded-full bg-gray-600 dark:bg-opacity-50",
@@ -569,10 +486,7 @@ export const CarouselDotButtons = (props: { className?: string, flag?: any }) =>
                 <DotButton
                     key={index}
                     onClick={() => onDotButtonClick(index)}
-                    className={cn(
-                        { "bg-white": index === selectedIndex },
-                        { "size-4 [&:nth-child(odd)]:hidden": scrollSnaps.length > 30 },
-                    )}
+                    className={cn(index === selectedIndex && "bg-white")}
                 />
             ))}
         </div>
