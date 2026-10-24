@@ -8,7 +8,7 @@ import zipfile
 root = Path(__file__).resolve().parents[1]
 kotlin = root / "app/src/main/java/com/seanime/app"
 assert not (kotlin / "UIHosterPlayerPatch.kt").exists()
-assert "UIHosterPlayerPatch" not in (kotlin / "UIPatches.kt").read_text(encoding="utf-8")
+assert not any("UIHosterPlayerPatch" in file.read_text(encoding="utf-8") for file in kotlin.rglob("*.kt"))
 nav = (kotlin / "UIBottomNav.kt").read_text(encoding="utf-8")
 for selector, declarations in re.findall(r"([^{}]+)\{([^{}]*)\}", nav):
     if "float-nav-tooltip" in selector or "button span" in selector:
