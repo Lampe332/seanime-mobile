@@ -7,6 +7,7 @@ import {
     __torrentSearch_selectionAtom,
     __torrentSearch_selectionEpisodeAtom,
 } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
+import { useTr } from "@/lib/app-language"
 import { useSetAtom } from "jotai"
 import React, { startTransition } from "react"
 import { BiCalendarAlt, BiDownload } from "react-icons/bi"
@@ -21,6 +22,7 @@ export function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, 
     maxCol?: number
 }) {
 
+    const t = useTr()
     const episodes = downloadInfo?.episodesToDownload?.filter(ep => !excludeEpisodes?.has(ep.episodeNumber))
 
     const setTorrentSearchIsOpen = useSetAtom(__torrentSearch_selectionAtom)
@@ -28,18 +30,15 @@ export function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, 
 
     const { hasTorrentProvider } = useHasTorrentProvider()
 
-    const text = hasTorrentProvider ? (downloadInfo?.rewatch
-            ? "You have not downloaded the following:"
-            : "You have not watched nor downloaded the following:") :
-        "The following episodes are not in your library:"
+    const text = !hasTorrentProvider ? t("The following episodes are not in your library:", "Diese Episoden sind nicht in deiner Bibliothek:")
+        : downloadInfo?.rewatch ? t("You have not downloaded the following:", "Das hast du noch nicht heruntergeladen:")
+            : t("You have not watched nor downloaded the following:", "Das hast du weder gesehen noch heruntergeladen:")
 
     if (!episodes?.length) return null
 
     return (
         <div className="space-y-4" data-undownloaded-episode-list>
-            <p className={""}>
-                {text}
-            </p>
+            <p>{text}</p>
             <EpisodeListGrid maxCol={maxCol}>
                 {episodes?.sort((a, b) => a.episodeNumber - b.episodeNumber).slice(0, 28).map((ep, idx) => {
                     if (!ep.episode) return null
@@ -78,15 +77,15 @@ export function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, 
                             <div data-undownloaded-episode-list-episode-metadata-container className="mt-1">
                                 <p data-undownloaded-episode-list-episode-metadata-text className="flex gap-1 items-center text-sm text-[--muted]">
                                     <BiCalendarAlt /> {episode.episodeMetadata?.airDate
-                                    ? `Aired on ${new Date(episode.episodeMetadata?.airDate).toLocaleDateString()}`
-                                    : "Aired"}
+                                    ? `${t("Aired on", "Ausgestrahlt am")} ${new Date(episode.episodeMetadata?.airDate).toLocaleDateString()}`
+                                    : t("Aired", "Ausgestrahlt")}
                                 </p>
                             </div>
                         </EpisodeGridItem>
                     )
                 })}
             </EpisodeListGrid>
-            {episodes.length > 28 && <h3>And more...</h3>}
+            {episodes.length > 28 && <h3>{t("And more...", "Und mehr …")}</h3>}
         </div>
     )
 

@@ -2,35 +2,19 @@ import { cn } from "@/components/ui/core/styling"
 import { Pagination, PaginationEllipsis, PaginationItem, PaginationTrigger } from "@/components/ui/pagination"
 import React, { useState } from "react"
 
-type EpisodeListGridProps = {
-    children?: React.ReactNode
-    maxCol?: number
+const GRID_CLASS = "grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 min-[2000px]:grid-cols-4 gap-4"
+
+function gridClass(maxCol?: number) {
+    return cn(
+        GRID_CLASS,
+        maxCol === 3 && "min-[2000px]:grid-cols-3",
+        maxCol === 2 && "2xl:grid-cols-2 min-[2000px]:grid-cols-2",
+        maxCol === 1 && "lg:grid-cols-1 2xl:grid-cols-1 min-[2000px]:grid-cols-1",
+    )
 }
 
-export function EpisodeListGrid(props: EpisodeListGridProps) {
-
-    const {
-        children,
-        maxCol,
-        ...rest
-    } = props
-
-
-    return (
-        <div
-            className={cn(
-                "grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 min-[2000px]:grid-cols-4",
-                maxCol === 3 && "min-[2000px]:grid-cols-3",
-                maxCol === 2 && "lg:grid-cols-2 2xl:grid-cols-2 min-[2000px]:grid-cols-2",
-                maxCol === 1 && "lg:grid-cols-1 2xl:grid-cols-1 min-[2000px]:grid-cols-1",
-                "gap-4",
-            )}
-            {...rest}
-            data-episode-list-grid
-        >
-            {children}
-        </div>
-    )
+export function EpisodeListGrid({ children, maxCol }: { children?: React.ReactNode, maxCol?: number }) {
+    return <div className={gridClass(maxCol)} data-episode-list-grid>{children}</div>
 }
 
 type EpisodeListPaginatedGridProps = {
@@ -130,16 +114,7 @@ export function EpisodeListPaginatedGrid(props: EpisodeListPaginatedGridProps) {
 
     return (
         <>
-            <div
-                className={cn(
-                    "grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 min-[2000px]:grid-cols-4",
-                    maxCol === 3 && "min-[2000px]:grid-cols-3",
-                    maxCol === 2 && "lg:grid-cols-2 2xl:grid-cols-2 min-[2000px]:grid-cols-2",
-                    maxCol === 1 && "lg:grid-cols-1 2xl:grid-cols-1 min-[2000px]:grid-cols-1",
-                    "gap-4",
-                )}
-                data-episode-list-grid
-            >
+            <div className={gridClass(maxCol)} data-episode-list-grid>
                 {currentItems}
             </div>
 

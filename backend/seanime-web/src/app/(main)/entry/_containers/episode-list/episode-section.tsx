@@ -1,4 +1,4 @@
-import { AL_AnimeDetailsById_Media, Anime_Entry, Anime_Episode } from "@/api/generated/types"
+import { Anime_Entry, Anime_Episode } from "@/api/generated/types"
 import { getEpisodeMinutesRemaining, getEpisodePercentageComplete, useGetContinuityWatchHistory } from "@/api/hooks/continuity.hooks"
 import { EpisodeCard } from "@/app/(main)/_features/anime/_components/episode-card"
 
@@ -14,19 +14,15 @@ import { episodeCardCarouselItemClass } from "@/components/shared/classnames"
 import { Alert } from "@/components/ui/alert"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Carousel, CarouselContent, CarouselDotButtons, CarouselItem } from "@/components/ui/carousel"
+import { tr, useTr } from "@/lib/app-language"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import React from "react"
 import { IoLibrarySharp } from "react-icons/io5"
 
-type EpisodeSectionProps = {
-    entry: Anime_Entry
-    details: AL_AnimeDetailsById_Media | undefined
-    bottomSection: React.ReactNode
-    hideCarousel?: boolean
-    maxCol?: number
-}
+const MAX_COL = 4
 
-export function EpisodeSection({ entry, details, bottomSection, hideCarousel, maxCol = 4 }: EpisodeSectionProps) {
+export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, bottomSection: React.ReactNode }) {
+    const t = useTr()
     const ts = useThemeSettings()
     const { currentView } = useAnimeEntryPageView()
 
@@ -52,7 +48,6 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
     React.useEffect(() => {
         if (!media) return
 
-        // Combine all episode types
         const allEpisodes = [
             { ...episodesToWatch?.[0], type: "next" as const },
             ...mainEpisodes.map(ep => ({ ...ep, type: "main" as const })),
@@ -65,9 +60,9 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
                 data: episode,
                 id: `${episode.type}-${episode.localFile?.path || ""}-${episode.episodeNumber}`,
                 value: `${episode.episodeNumber}`,
-                heading: episode.type === "next" ? "Next Episode" :
-                    episode.type === "special" ? "Specials" :
-                        episode.type === "other" ? "Others" : "Episodes",
+                heading: episode.type === "next" ? tr("Next Episode", "Nächste Episode") :
+                    episode.type === "special" ? tr("Specials", "Specials") :
+                        episode.type === "other" ? tr("Others", "Sonstiges") : tr("Episodes", "Episoden"),
                 priority: episode.type === "next" ? 2 :
                     episode.type === "main" ? 1 : 0,
                 render: () => (
@@ -97,27 +92,21 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
 
     if (!media) return null
 
-    // if (!!media && entry._isNakamaEntry && !entry.listData && !!entry.libraryData) {
-    //     return <div className="space-y-10">
-    //         <h4 className="text-yellow-50 flex items-center gap-2"><IoLibrarySharp /> Add this anime to your library to see its episodes</h4>
-    //     </div>
-    // }
-
-    if (!!media && ((!entry.listData && !entry._isNakamaEntry) || !entry.libraryData)) {
+    if ((!entry.listData && !entry._isNakamaEntry) || !entry.libraryData) {
         return <div className="space-y-10">
             <PhoneDownloadedEpisodes episodes={phoneDownloads} />
             {media?.status !== "NOT_YET_RELEASED"
-                ? <h4 className="text-yellow-50 flex items-center gap-2"><IoLibrarySharp /> Not in {entry._isNakamaEntry
-                    ? "the Nakama's"
-                    : "your"} library</h4>
-                : <h5 className="text-yellow-50">Not yet released</h5>}
-            <div className="overflow-y-auto pt-4 lg:pt-0 space-y-10 overflow-x-hidden">
+                ? <h4 className="text-yellow-50 flex items-center gap-2"><IoLibrarySharp /> {entry._isNakamaEntry
+                    ? t("Not in the Nakama's library", "Nicht in der Nakama-Bibliothek")
+                    : t("Not in your library", "Nicht in deiner Bibliothek")}</h4>
+                : <h5 className="text-yellow-50">{t("Not yet released", "Noch nicht erschienen")}</h5>}
+            <div className="overflow-y-auto pt-4 space-y-10 overflow-x-hidden">
                 {!entry._isNakamaEntry && <UndownloadedEpisodeList
                     downloadInfo={entry.downloadInfo}
                     excludeEpisodes={phoneDownloadedNumbers}
                     media={media}
                     watchedProgress={entry.listData?.progress}
-                    maxCol={maxCol}
+                    maxCol={MAX_COL}
                 />}
                 {bottomSection}
             </div>
@@ -131,11 +120,10 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
 
                 {hasInvalidEpisodes && <Alert
                     intent="alert"
-                    description="Some episodes are invalid. Update the metadata to fix this."
+                    description={t("Some episodes are invalid. Update the metadata to fix this.", "Einige Episoden sind ungültig. Aktualisiere die Metadaten, um das zu beheben.")}
                 />}
 
-
-                {(episodesToWatch.length > 0 && !hideCarousel) && (
+                {episodesToWatch.length > 0 && (
                     <>
                         <Carousel
                             className="w-full max-w-full"
@@ -190,7 +178,7 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
 
                 <div className="space-y-10" data-episode-list-stack>
                     <EpisodeListPaginatedGrid
-                        maxCol={maxCol}
+                        maxCol={MAX_COL}
                         length={mainEpisodes.length}
                         renderItem={(index) => (
                             <EpisodeItem
@@ -212,12 +200,12 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
                         excludeEpisodes={phoneDownloadedNumbers}
                         media={media}
                         watchedProgress={entry.listData?.progress}
-                        maxCol={maxCol}
+                        maxCol={MAX_COL}
                     />}
 
                     {specialEpisodes.length > 0 && <>
-                        <h2>Specials</h2>
-                        <EpisodeListGrid data-episode-list-specials maxCol={maxCol}>
+                        <h2>{t("Specials", "Specials")}</h2>
+                        <EpisodeListGrid data-episode-list-specials maxCol={MAX_COL}>
                             {specialEpisodes.map(episode => (
                                 <EpisodeItem
                                     key={episode.localFile?.path || ""}
@@ -231,8 +219,8 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
                     </>}
 
                     {ncEpisodes.length > 0 && <>
-                        <h2>Others</h2>
-                        <EpisodeListGrid data-episode-list-others maxCol={maxCol}>
+                        <h2>{t("Others", "Sonstiges")}</h2>
+                        <EpisodeListGrid data-episode-list-others maxCol={MAX_COL}>
                             {ncEpisodes.map(episode => (
                                 <EpisodeItem
                                     key={episode.localFile?.path || ""}
