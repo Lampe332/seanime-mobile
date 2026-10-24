@@ -11,6 +11,6 @@ const stubbed = ['@/api/client/requests','@/lib/navigation','sonner','@/lib/help
 '@/app/(main)/_features/anime-library/_containers/custom-library-banner'];
 // argv[3]: another harness entry with the same boundaries (mobile_scan_summaries_harness.tsx, mobile_medialinks_harness.tsx)
 const entry=process.argv[3]||'mobile_library_harness.tsx';
-build({absWorkingDir:web,entryPoints:[path.join(__dirname,entry)],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
+build({absWorkingDir:web,entryPoints:[path.join(__dirname,entry)],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
 if(stubbed.includes(a.path)&&a.importer!==stub)return {path:stub};
 })}}]}).catch(e=>{console.error(e);process.exit(1)});

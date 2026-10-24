@@ -13,7 +13,7 @@ const scoped = ['@/api/hooks/releases.hooks','@/app/(main)/_features/update/upda
 '@/app/(main)/_features/anime-library/_containers/custom-library-banner'];
 // The desktop page's containers, as page.tsx imports them
 const desktop = /^(@\/app\/\(main\)\/settings\/|\.\/)_(containers|components)\/(?!settings-page\.atoms|android-folder-button)/;
-build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_settings_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
+build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_settings_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
 if(a.importer===stub)return;
 const importer=a.importer.replace(/\\/g,'/');
 if(stubbed.includes(a.path)||(a.path==='../client/requests'&&importer.includes('/src/api/hooks/'))||(importer.includes('/app/(main)/settings/')&&scoped.includes(a.path))

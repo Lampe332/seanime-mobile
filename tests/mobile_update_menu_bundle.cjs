@@ -28,7 +28,6 @@ build({
     platform: "browser",
     format: "iife",
     jsx: "automatic",
-    define: { "import.meta.env.SEA_PUBLIC_PLATFORM": '"mobile"' },
     plugins: [{
         name: "mobile-update-test-stubs",
         setup(builder) {

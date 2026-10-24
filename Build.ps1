@@ -37,7 +37,6 @@ if ($RebuildBackend) {
     $env:GOMODCACHE = Join-Path $env:GOPATH 'pkg\mod'
     $env:GOCACHE = Join-Path $ToolchainRoot 'go-cache'
     $env:npm_config_cache = Join-Path $ToolchainRoot 'npm-cache'
-    $env:SEA_PUBLIC_PLATFORM = 'mobile'
     Push-Location (Join-Path $buildRoot 'backend\seanime-web')
     try {
         & npm.cmd ci --no-audit --no-fund

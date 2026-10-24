@@ -11,6 +11,6 @@ const stubbed = ['@/api/client/requests','@tanstack/react-query','@/api/hooks/ex
 '@/app/(main)/manga/_components/library-header','@/app/(main)/manga/_screens/manga-library-view',
 '@/app/(main)/_features/plugin/actions/plugin-actions','@/app/(main)/_features/plugin/webview/plugin-webviews','@/app/(main)/_features/sea-command/use-inject',
 '@/app/(main)/_features/sea-command/_components/command-utils','@/app/(main)/_features/sea-command/utils'];
-build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_manga_library_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
+build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_manga_library_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',define:{'import.meta.env':'{}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
 if(stubbed.includes(a.path)&&a.importer!==stub)return {path:stub};
 })}}]}).catch(e=>{console.error(e);process.exit(1)});

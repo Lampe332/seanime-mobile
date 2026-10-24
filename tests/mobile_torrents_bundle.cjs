@@ -10,7 +10,7 @@ const stubbed = ['@/api/client/requests','@/lib/navigation','sonner','@/componen
 // Stubbed only for the More sheet: the page's view and the plugins' items (everything else keeps the real modules)
 const scoped = ['@/app/(main)/entry/_containers/anime-entry-page','@/app/(main)/_features/plugin/actions/plugin-actions'];
 const menu = /entry-actions\/anime-entry-phone-menu\.tsx$/;
-build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_torrents_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{"SEA_PUBLIC_PLATFORM":"mobile"}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
+build({absWorkingDir:web,entryPoints:[path.join(__dirname,'mobile_torrents_harness.tsx')],outfile:process.argv[2],bundle:true,platform:'browser',format:'iife',jsx:'automatic',logLevel:'error',define:{'import.meta.env':'{}'},nodePaths:[path.join(web,'node_modules')],plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},a=>{
 if(a.importer===stub)return;
 if(stubbed.includes(a.path)||(scoped.includes(a.path)&&menu.test(a.importer.replace(/\\/g,'/'))))return {path:stub};
 })}}]}).catch(e=>{console.error(e);process.exit(1)});
