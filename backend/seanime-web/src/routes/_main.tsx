@@ -19,14 +19,9 @@ function Layout() {
         window.addEventListener("seanime-open-downloads", open)
         return () => window.removeEventListener("seanime-open-downloads", open)
     }, [navigate])
-    const [host, setHost] = React.useState<string>("")
-
-    React.useEffect(() => {
-        setHost(window?.location?.host || "")
-    }, [])
 
     return (
-        <ServerDataWrapper host={host}>
+        <ServerDataWrapper>
             <MainLayout>
                 <div data-main-layout-container className="h-auto">
                     <TopNavbar />
