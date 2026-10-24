@@ -48,7 +48,6 @@ type Status struct {
 	DisabledFeatures      []core.FeatureKey             `json:"disabledFeatures"`
 	ServerReady           bool                          `json:"serverReady"`
 	ServerHasPassword     bool                          `json:"serverHasPassword"`
-	ShowChangelogTour     string                        `json:"showChangelogTour"`
 	// ContentLocked is true on Android until the user added an AniList token or an extension (see contentgate).
 	ContentLocked bool `json:"contentLocked"`
 }
@@ -130,7 +129,6 @@ func (h *Handler) NewStatus(c echo.Context) *Status {
 		ServerReady:           h.App.ServerReady,
 		ServerHasPassword:     h.App.Config.Server.Password != "",
 		DisabledFeatures:      h.App.FeatureManager.DisabledFeatures,
-		ShowChangelogTour:     h.App.ShowTour,
 		ContentLocked:         contentgate.Locked(),
 	}
 
