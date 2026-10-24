@@ -27877,9 +27877,9 @@
         "name": "SecondarySettings",
         "jsonName": "SecondarySettings",
         "goType": "INTERNAL_App_SecondarySettings",
-        "inlineStructType": "struct{\nMediastream models.MediastreamSettings\nTorrentstream models.TorrentstreamSettings\nDebrid models.DebridSettings\nDummyDebrid models.DummyDebridSettings}",
+        "inlineStructType": "struct{\nMediastream models.MediastreamSettings\nTorrentstream models.TorrentstreamSettings\nDebrid models.DebridSettings}",
         "typescriptType": "INTERNAL_App_SecondarySettings",
-        "usedTypescriptType": "{ Mediastream: MediastreamSettings; Torrentstream: TorrentstreamSettings; Debrid: DebridSettings; DummyDebrid: DummyDebridSettings; }",
+        "usedTypescriptType": "{ Mediastream: MediastreamSettings; Torrentstream: TorrentstreamSettings; Debrid: DebridSettings; }",
         "usedStructName": "core.App_SecondarySettings",
         "required": true,
         "public": true,
@@ -28150,17 +28150,6 @@
         "required": false,
         "public": true,
         "comments": []
-      },
-      {
-        "name": "DummyDebrid",
-        "jsonName": "DummyDebrid",
-        "goType": "models.DummyDebridSettings",
-        "typescriptType": "Models_DummyDebridSettings",
-        "usedTypescriptType": "Models_DummyDebridSettings",
-        "usedStructName": "models.DummyDebridSettings",
-        "required": false,
-        "public": true,
-        "comments": []
       }
     ],
     "comments": []
@@ -28317,9 +28306,9 @@
         "name": "Experimental",
         "jsonName": "Experimental",
         "goType": "INTERNAL_Config_Experimental",
-        "inlineStructType": "struct{\nBuiltinTorrentClient bool\nDummyDebrid bool}",
+        "inlineStructType": "struct{\nBuiltinTorrentClient bool}",
         "typescriptType": "INTERNAL_Config_Experimental",
-        "usedTypescriptType": "{ BuiltinTorrentClient: boolean; DummyDebrid: boolean; }",
+        "usedTypescriptType": "{ BuiltinTorrentClient: boolean; }",
         "usedStructName": "core.Config_Experimental",
         "required": true,
         "public": true,
@@ -28699,15 +28688,6 @@
         "required": true,
         "public": true,
         "comments": []
-      },
-      {
-        "name": "DummyDebrid",
-        "jsonName": "DummyDebrid",
-        "goType": "bool",
-        "typescriptType": "boolean",
-        "required": true,
-        "public": true,
-        "comments": []
       }
     ],
     "comments": []
@@ -28852,26 +28832,8 @@
         "required": true,
         "public": true,
         "comments": []
-      },
-      {
-        "name": "DummyDebrid",
-        "jsonName": "dummyDebrid",
-        "goType": "bool",
-        "typescriptType": "boolean",
-        "required": true,
-        "public": true,
-        "comments": []
       }
     ],
-    "comments": []
-  },
-  {
-    "filepath": "../internal/core/feature_flags.go",
-    "filename": "feature_flags.go",
-    "name": "ExperimentalFeatureFlags",
-    "formattedName": "INTERNAL_ExperimentalFeatureFlags",
-    "package": "core",
-    "fields": [],
     "comments": []
   },
   {
@@ -33672,15 +33634,6 @@
         "comments": []
       },
       {
-        "name": "dummyDebridEnabled",
-        "jsonName": "dummyDebridEnabled",
-        "goType": "bool",
-        "typescriptType": "boolean",
-        "required": true,
-        "public": false,
-        "comments": []
-      },
-      {
         "name": "playbackManager",
         "jsonName": "playbackManager",
         "goType": "playbackmanager.PlaybackManager",
@@ -33842,15 +33795,6 @@
         "goType": "",
         "typescriptType": "any",
         "required": false,
-        "public": true,
-        "comments": []
-      },
-      {
-        "name": "DummyDebridEnabled",
-        "jsonName": "DummyDebridEnabled",
-        "goType": "bool",
-        "typescriptType": "boolean",
-        "required": true,
         "public": true,
         "comments": []
       }
@@ -34656,80 +34600,6 @@
         "typescriptType": "string",
         "required": true,
         "public": true,
-        "comments": []
-      }
-    ],
-    "comments": []
-  },
-  {
-    "filepath": "../internal/debrid/dummy/dummy.go",
-    "filename": "dummy.go",
-    "name": "Dummy",
-    "formattedName": "Dummy",
-    "package": "dummy",
-    "fields": [
-      {
-        "name": "logger",
-        "jsonName": "logger",
-        "goType": "zerolog.Logger",
-        "typescriptType": "Logger",
-        "usedTypescriptType": "Logger",
-        "usedStructName": "zerolog.Logger",
-        "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "settingsProvider",
-        "jsonName": "settingsProvider",
-        "goType": "SettingsProvider",
-        "typescriptType": "SettingsProvider",
-        "usedTypescriptType": "SettingsProvider",
-        "usedStructName": "dummy.SettingsProvider",
-        "required": true,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "mu",
-        "jsonName": "mu",
-        "goType": "sync.Mutex",
-        "typescriptType": "Mutex",
-        "usedTypescriptType": "Mutex",
-        "usedStructName": "sync.Mutex",
-        "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "server",
-        "jsonName": "server",
-        "goType": "http.Server",
-        "typescriptType": "Server",
-        "usedTypescriptType": "Server",
-        "usedStructName": "http.Server",
-        "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "baseURL",
-        "jsonName": "baseURL",
-        "goType": "string",
-        "typescriptType": "string",
-        "required": true,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "items",
-        "jsonName": "items",
-        "goType": "map[string]debrid.TorrentItem",
-        "typescriptType": "Record\u003cstring, Debrid_TorrentItem\u003e",
-        "usedTypescriptType": "Debrid_TorrentItem",
-        "usedStructName": "debrid.TorrentItem",
-        "required": false,
-        "public": false,
         "comments": []
       }
     ],
@@ -36261,15 +36131,6 @@
         "comments": []
       },
       {
-        "name": "currentStreamEpisodeCollection",
-        "jsonName": "currentStreamEpisodeCollection",
-        "goType": "",
-        "typescriptType": "any",
-        "required": true,
-        "public": false,
-        "comments": []
-      },
-      {
         "name": "settings",
         "jsonName": "settings",
         "goType": "Settings",
@@ -36295,15 +36156,6 @@
         "goType": "",
         "typescriptType": "any",
         "required": true,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "animeCache",
-        "jsonName": "animeCache",
-        "goType": "",
-        "typescriptType": "any",
-        "required": false,
         "public": false,
         "comments": []
       },
@@ -36511,17 +36363,6 @@
     "formattedName": "Directstream_Nakama",
     "package": "directstream",
     "fields": [
-      {
-        "name": "torrent",
-        "jsonName": "torrent",
-        "goType": "hibiketorrent.AnimeTorrent",
-        "typescriptType": "HibikeTorrent_AnimeTorrent",
-        "usedTypescriptType": "HibikeTorrent_AnimeTorrent",
-        "usedStructName": "hibiketorrent.AnimeTorrent",
-        "required": false,
-        "public": false,
-        "comments": []
-      },
       {
         "name": "streamReadyCh",
         "jsonName": "streamReadyCh",
@@ -51646,17 +51487,6 @@
         "comments": []
       },
       {
-        "name": "manualTrackingPlaybackState",
-        "jsonName": "manualTrackingPlaybackState",
-        "goType": "PlaybackState",
-        "typescriptType": "PlaybackManager_PlaybackState",
-        "usedTypescriptType": "PlaybackManager_PlaybackState",
-        "usedStructName": "playbackmanager.PlaybackState",
-        "required": true,
-        "public": false,
-        "comments": []
-      },
-      {
         "name": "currentManualTrackingState",
         "jsonName": "currentManualTrackingState",
         "goType": "",
@@ -54249,7 +54079,7 @@
       }
     ],
     "comments": [
-      " ScanLogger is a custom logger struct for scanning operations."
+      " ScanLogger buffers the log of one scan and writes it to a file when the scan is done."
     ]
   },
   {
@@ -56026,15 +55856,6 @@
         "comments": []
       },
       {
-        "name": "chapterDownloadedCh",
-        "jsonName": "chapterDownloadedCh",
-        "goType": "",
-        "typescriptType": "any",
-        "required": true,
-        "public": false,
-        "comments": []
-      },
-      {
         "name": "readingDownloadDir",
         "jsonName": "readingDownloadDir",
         "goType": "bool",
@@ -56350,17 +56171,6 @@
         "typescriptType": "Events_WSEventManagerInterface",
         "usedTypescriptType": "Events_WSEventManagerInterface",
         "usedStructName": "events.WSEventManagerInterface",
-        "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "database",
-        "jsonName": "database",
-        "goType": "db.Database",
-        "typescriptType": "DB_Database",
-        "usedTypescriptType": "DB_Database",
-        "usedStructName": "db.Database",
         "required": false,
         "public": false,
         "comments": []
@@ -57572,17 +57382,6 @@
         "typescriptType": "Logger",
         "usedTypescriptType": "Logger",
         "usedStructName": "zerolog.Logger",
-        "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "mu",
-        "jsonName": "mu",
-        "goType": "sync.Mutex",
-        "typescriptType": "Mutex",
-        "usedTypescriptType": "Mutex",
-        "usedStructName": "sync.Mutex",
         "required": false,
         "public": false,
         "comments": []
@@ -60959,15 +60758,6 @@
         "usedTypescriptType": "Continuity_Manager",
         "usedStructName": "continuity.Manager",
         "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "playerInUse",
-        "jsonName": "playerInUse",
-        "goType": "string",
-        "typescriptType": "string",
-        "required": true,
         "public": false,
         "comments": []
       },
@@ -66117,29 +65907,6 @@
         ]
       },
       {
-        "name": "lastPlayState",
-        "jsonName": "lastPlayState",
-        "goType": "bool",
-        "typescriptType": "boolean",
-        "required": true,
-        "public": false,
-        "comments": [
-          " Last known play/pause state to detect rapid changes"
-        ]
-      },
-      {
-        "name": "lastPlayStateTime",
-        "jsonName": "lastPlayStateTime",
-        "goType": "time.Time",
-        "typescriptType": "string",
-        "usedStructName": "time.Time",
-        "required": false,
-        "public": false,
-        "comments": [
-          " When we last changed play state"
-        ]
-      },
-      {
         "name": "sequenceMu",
         "jsonName": "sequenceMu",
         "goType": "sync.Mutex",
@@ -67786,17 +67553,6 @@
         "comments": []
       },
       {
-        "name": "seekedEventCancelFunc",
-        "jsonName": "seekedEventCancelFunc",
-        "goType": "context.CancelFunc",
-        "typescriptType": "CancelFunc",
-        "usedTypescriptType": "CancelFunc",
-        "usedStructName": "context.CancelFunc",
-        "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
         "name": "logger",
         "jsonName": "logger",
         "goType": "zerolog.Logger",
@@ -69095,24 +68851,6 @@
         "comments": []
       },
       {
-        "name": "isOffline",
-        "jsonName": "isOffline",
-        "goType": "bool",
-        "typescriptType": "boolean",
-        "required": true,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "offlinePlatformEnabled",
-        "jsonName": "offlinePlatformEnabled",
-        "goType": "bool",
-        "typescriptType": "boolean",
-        "required": true,
-        "public": false,
-        "comments": []
-      },
-      {
         "name": "helper",
         "jsonName": "helper",
         "goType": "shared_platform.PlatformHelper",
@@ -70036,30 +69774,6 @@
         "public": false,
         "comments": [
           " used to protect access to collections"
-        ]
-      },
-      {
-        "name": "lastAnimeCollectionRefetchTime",
-        "jsonName": "lastAnimeCollectionRefetchTime",
-        "goType": "time.Time",
-        "typescriptType": "string",
-        "usedStructName": "time.Time",
-        "required": false,
-        "public": false,
-        "comments": [
-          " used to prevent refetching too many times"
-        ]
-      },
-      {
-        "name": "lastMangaCollectionRefetchTime",
-        "jsonName": "lastMangaCollectionRefetchTime",
-        "goType": "time.Time",
-        "typescriptType": "string",
-        "usedStructName": "time.Time",
-        "required": false,
-        "public": false,
-        "comments": [
-          " used to prevent refetching too many times"
         ]
       },
       {
@@ -71953,26 +71667,6 @@
         "usedTypescriptType": "Bool",
         "usedStructName": "atomic.Bool",
         "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "currentPlaybackCtx",
-        "jsonName": "currentPlaybackCtx",
-        "goType": "context.Context",
-        "typescriptType": "Context",
-        "usedTypescriptType": "Context",
-        "usedStructName": "context.Context",
-        "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "currentPlaybackCancel",
-        "jsonName": "currentPlaybackCancel",
-        "goType": "",
-        "typescriptType": "any",
-        "required": true,
         "public": false,
         "comments": []
       },
@@ -83111,19 +82805,6 @@
         ]
       },
       {
-        "name": "selectedFiles",
-        "jsonName": "selectedFiles",
-        "goType": "[]File",
-        "typescriptType": "Array\u003cFile\u003e",
-        "usedTypescriptType": "File",
-        "usedStructName": "torrent_analyzer.File",
-        "required": false,
-        "public": false,
-        "comments": [
-          " Hydrated after findCorrespondingFiles is called"
-        ]
-      },
-      {
         "name": "media",
         "jsonName": "media",
         "goType": "anilist.CompleteAnime",
@@ -85121,15 +84802,6 @@
         "usedTypescriptType": "DB_Database",
         "usedStructName": "db.Database",
         "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "onEpisodeCollectionChanged",
-        "jsonName": "onEpisodeCollectionChanged",
-        "goType": "",
-        "typescriptType": "any",
-        "required": true,
         "public": false,
         "comments": []
       },
@@ -87353,15 +87025,6 @@
         "usedTypescriptType": "VideoCore_VideoCore",
         "usedStructName": "videocore.VideoCore",
         "required": false,
-        "public": false,
-        "comments": []
-      },
-      {
-        "name": "currentPosition",
-        "jsonName": "currentPosition",
-        "goType": "int64",
-        "typescriptType": "number",
-        "required": true,
         "public": false,
         "comments": []
       },

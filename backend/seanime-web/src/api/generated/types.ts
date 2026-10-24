@@ -1920,7 +1920,6 @@ export type Continuity_WatchHistoryItemResponse = {
  */
 export type INTERNAL_FeatureFlags = {
     builtinTorrentClient: boolean
-    dummyDebrid: boolean
 }
 
 /**
