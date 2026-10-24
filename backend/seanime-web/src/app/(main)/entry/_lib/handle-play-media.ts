@@ -187,7 +187,6 @@ export function useForcePlaybackMethod() {
         Promise.resolve().then(() => {
             cb?.()
             // devnote: don't, this resets playback method before user selects a torrent
-            // __forcePlaybackMethodStore.set(undefined)
             queueRef.current.shift()
             processingRef.current = false
             processQueue()

@@ -17,7 +17,6 @@ export function useHandleMangaProviderExtensions(mId: string | null) {
             // The provider should default to "DEFAULT_MANGA_PROVIDER" if it's the first time loading the entry
             const isProviderAvailable = providerExtensions.some(provider => provider.id === selectedProvider[mId])
 
-            // Fall back to the first provider if the selected provider is not available
             if (!isProviderAvailable && providerExtensions.length > 0) {
                 setSelectedProvider({
                     ...selectedProvider,

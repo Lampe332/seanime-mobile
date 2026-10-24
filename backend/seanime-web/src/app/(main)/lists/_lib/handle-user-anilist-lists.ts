@@ -17,7 +17,7 @@ const MYLISTS_DEFAULT_PARAMS: CollectionParams<"anime"> | CollectionParams<"mang
 
 const __myListsSearch_paramsAtom = atomWithImmer<CollectionParams<"anime"> | CollectionParams<"manga">>(MYLISTS_DEFAULT_PARAMS)
 
-export const __myLists_selectedTypeAtom = atomWithImmer<"anime" | "manga" | "stats">("anime")
+const __myLists_selectedTypeAtom = atomWithImmer<"anime" | "manga" | "stats">("anime")
 
 export function useHandleUserAnilistLists(debouncedSearchInput: string, type?: "anime" | "manga") {
 

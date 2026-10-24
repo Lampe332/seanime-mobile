@@ -49,7 +49,6 @@ export const TorrentPreviewList = React.memo((
         searchAcrossProviders,
         isSpoiler,
     }: TorrentPreviewList) => {
-    // Use hooks for sorting and filtering
     const { sortField, sortDirection, handleSortChange } = useTorrentSorting()
     const { filters, handleFilterChange } = useTorrentFiltering()
     const { data: extensions } = useAnimeListTorrentProviderExtensions()
@@ -65,10 +64,8 @@ export const TorrentPreviewList = React.memo((
         return <LuffyError title="Nothing found" />
     }
 
-    // Apply filters using the generic helper
     const filteredPreviews = filterItems(previews, torrentMetadata, filters)
 
-    // Sort the previews based on current sort settings using the generic helper
     const sortedPreviews = sortItems(filteredPreviews, sortField, sortDirection)
 
     return (
@@ -91,7 +88,6 @@ export const TorrentPreviewList = React.memo((
                 <TorrentList>
                     {sortedPreviews.filter(Boolean).map(item => {
                         if (!item.torrent) return null
-                        // const isReleasedBeforeMedia = differenceInCalendarYears(mediaReleaseDate, item.torrent.date) > 2
                         return (
                             <TorrentListItem
                                 key={item.torrent.infoHash}

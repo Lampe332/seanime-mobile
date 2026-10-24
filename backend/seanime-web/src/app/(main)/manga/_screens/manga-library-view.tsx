@@ -460,7 +460,6 @@ function GenreSelector({
     return (
         <MediaGenreSelector
             className={cn(className)}
-            // className="bg-gray-950 border p-0 rounded-xl mx-auto"
             staticTabsClass=""
             items={[
                 ...genres.map(genre => ({

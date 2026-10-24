@@ -215,7 +215,6 @@ const TorrentPreviewItem = memo((props: TorrentPreviewItemProps) => {
                     "border-brand-200": isSelected,
                     "hover:border-gray-500": !isSelected,
                     "border-red-700": isInvalid,
-                    // "opacity-50": isWatched && !isSelected,
                 }, className,
             )}
             tabIndex={0}
@@ -260,9 +259,6 @@ const TorrentPreviewItem = memo((props: TorrentPreviewItemProps) => {
                     ></div>
                 </div>}
 
-            {/*<div*/}
-            {/*    className="absolute w-[calc(100%_-_179px)] h-full bg-[--background] top-0 left-[179px]"*/}
-            {/*></div>*/}
 
             <div
                 data-torrent-preview-item-content
@@ -298,7 +294,6 @@ const TorrentPreviewItem = memo((props: TorrentPreviewItemProps) => {
                         className={cn(
                             "z-[1] font-medium truncate flex items-center max-w-full w-fit px-0 py-1 rounded-[--radius-md] text-[.9rem]",
                             "border-transparent bg-transparent",
-                            // "group-hover/torrent-preview-item:bg-gray-950/50 group-hover/torrent-preview-item:text-white",
                         )}
                         data-torrent-preview-item-release-group
                     >

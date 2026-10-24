@@ -70,8 +70,6 @@ export function useHandleMangaChapters(
         mediaId,
         selectedExtension,
         selectedProvider,
-        // languageOptions.map(n => n.value),
-        // scanlatorOptions.map(n => n.value),
         !chapterContainerLoading,
     )
 
@@ -97,7 +95,6 @@ export function useHandleMangaChapters(
         }
     }, [chapterContainer, selectedExtension, selectedFilters])
 
-    // Filter language options based on scanlator
     const languageOptions = React.useMemo(() => {
         return uniqBy(_languageOptions.filter(lang => {
             if (!!selectedFilters?.scanlators?.[0]?.length) {
@@ -108,7 +105,6 @@ export function useHandleMangaChapters(
             ?.filter(n => typeof n.label === "string" && typeof n.value === "string")
     }, [_languageOptions, selectedFilters])
 
-    // Filter scanlator options based on language
     const scanlatorOptions = React.useMemo(() => {
         return uniqBy(_scanlatorOptions.filter(scanlator => {
             if (!!selectedFilters?.language?.length) {

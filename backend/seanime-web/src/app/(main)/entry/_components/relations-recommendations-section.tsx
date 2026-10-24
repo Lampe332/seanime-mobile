@@ -46,7 +46,6 @@ export function RelationsRecommendationsSection(props: RelationsRecommendationsS
 
     return (
         <div className="space-y-4 animate-in fade-in-0 duration-200">
-            {/*{(!!sourceManga || relations.length > 0 || recommendations.length > 0) && <Separator />}*/}
             {(!!sourceManga || relations.length > 0) && (
                 <>
                     <h2>Relations</h2>

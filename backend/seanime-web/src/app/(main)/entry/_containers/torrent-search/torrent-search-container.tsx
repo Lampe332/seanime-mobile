@@ -269,7 +269,6 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
                         <div className="w-[200px]" data-torrent-search-container-param-container-provider-select-container>
                             <Select
                                 name="torrentProvider"
-                                // leftAddon="Torrent Provider"
                                 value={selectedProviderExtension?.id ?? TORRENT_PROVIDER.NONE}
                                 onValueChange={setSelectedProviderExtensionId}
                                 leftIcon={<LuFileSearch />}
@@ -282,7 +281,6 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
                             data-torrent-search-container-param-container-smart-search-switch-container
                         >
                             <Switch
-                                // side="right"
                                 label="Smart search"
                                 moreHelp={selectedProviderExtension?.settings?.canSmartSearch
                                     ? "Automated search based on given parameters."
@@ -308,11 +306,8 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
                             />
                         </div>
 
-                        {/*{<div*/}
-                        {/*    className="h-10 rounded-[--radius] px-2 flex items-center"*/}
                         {/*    data-torrent-search-container-param-container-adult-switch-container*/}
                         {/*>*/}
-                        {/*    <Switch*/}
                         {/*        // side="right"*/}
                         {/*        label="Adult"*/}
                         {/*        moreHelp="If enabled, the adult content flag will be passed to the provider."*/}
@@ -320,7 +315,6 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
                         {/*        onValueChange={setIsAdult}*/}
                         {/*        containerClass="flex-row-reverse gap-1"*/}
                         {/*    />*/}
-                        {/*</div>}*/}
                     </div>
 
                     {hasProviderSelected && searchAcrossProviders && <div
@@ -569,7 +563,6 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
                                         includedSpecialProviders={data?.includedSpecialProviders}
                                         searchAcrossProviders={searchAcrossProviders}
                                         isSpoiler={spoiler.isSpoiler}
-                                        // animeMetadata={data?.animeMetadata}
                                     />
                                 </>
                             )}

@@ -52,7 +52,6 @@ export function TorrentSeedersBadge({ seeders }: { seeders: number }) {
         <Badge
             data-torrent-item-seeders-badge
             className="rounded-[--radius-md] border-transparent bg-transparent px-0 gap-1 font-normal opacity-80"
-            // intent={(seeders) > 4 ? (seeders) > 19 ? "primary" : "success" : "gray"}
             intent={"gray"}
             leftIcon={<Icon
                 className={cn(
@@ -79,7 +78,6 @@ export function TorrentParsedMetadata({ metadata }: { metadata: Habari_Metadata 
     if (!metadata) return null
 
     const hasDubs = metadata?.subtitles?.some(n => n.toLocaleLowerCase().includes("dub"))
-    // const hasSubs = metadata?.subtitles?.some(n => n.toLocaleLowerCase().includes("sub"))
     const hasMultiSubs = metadata?.subtitles?.some(n => n.toLocaleLowerCase().includes("multi"))
 
     const languages = !!metadata?.language?.length ? [...new Set(metadata?.language)] : []
@@ -131,7 +129,6 @@ export function TorrentParsedMetadata({ metadata }: { metadata: Habari_Metadata 
                     key={term}
                     className="rounded-md border-transparent bg-[--subtle] text-[.8rem] px-1"
                 >
-                    {/* <LuAudioWaveform className="text-lg text-[--blue]" /> {term} */}
                     <LiaMicrophoneSolid className="text-lg text-[--rose]" /> {term.toLowerCase().includes("dual")
                     ? "Original + Dub"
                     : startCase(term)}

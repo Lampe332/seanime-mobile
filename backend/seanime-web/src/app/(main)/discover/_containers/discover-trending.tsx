@@ -34,7 +34,6 @@ export function DiscoverTrending() {
     // Random number between 0 and 12
     const [randomNumber, setRandomNumber] = useState(0)
 
-    // Update the atom when randomNumber changes
     useEffect(() => {
         setAnimeRandomNumber(randomNumber)
     }, [randomNumber])

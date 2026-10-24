@@ -17,7 +17,6 @@ import { autocompletion } from "@codemirror/autocomplete"
 import { javascript } from "@codemirror/lang-javascript"
 import { StreamLanguage } from "@codemirror/language"
 import { go } from "@codemirror/legacy-modes/mode/go"
-// import { vscodeKeymap } from "@replit/codemirror-vscode-keymap"
 import { vscodeDark } from "@uiw/codemirror-theme-vscode"
 import CodeMirror, { EditorView } from "@uiw/react-codemirror"
 import { withImmer } from "jotai-immer"
@@ -364,7 +363,6 @@ export function ExtensionPlayground(props: ExtensionPlaygroundProps) {
                                                 theme={vscodeDark}
                                                 extensions={[
                                                     autocompletion({ defaultKeymap: false }),
-                                                    // keymap.of(vscodeKeymap),
                                                     javascript({ typescript: language === "typescript" }),
                                                     StreamLanguage.define(go),
                                                     EditorView.theme({
@@ -384,7 +382,6 @@ export function ExtensionPlayground(props: ExtensionPlaygroundProps) {
                                     <div className="flex w-full h-full p-2">
                                         <div className="w-full">
                                             <div className="bg-gray-950 rounded-md border max-w-full overflow-x-auto h-full">
-                                                {/* <p className="font-semibold mb-2 p-2 border-b text-sm">Console</p> */}
                                                 <pre className="h-full whitespace-pre-wrap break-all">
                                                     {response?.logs?.split("\n")?.filter(l => l.trim() !== "").map((l, i) => (
                                                         <p

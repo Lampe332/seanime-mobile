@@ -7,7 +7,7 @@ import { serverStatusAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { PhoneNotice, PhoneSwitch } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import type { SettingsSectionId } from "@/app/(main)/settings/_screens/settings-phone"
-import { SelectOption, SelectRow, SettingsGroup, useSaveSetting, useSettingValue } from "@/app/(main)/settings/_screens/settings-phone-kit"
+import { DataAttributes, enqueue, SelectOption, SelectRow, SettingsGroup, useSaveSetting, useSettingValue } from "@/app/(main)/settings/_screens/settings-phone-kit"
 import { Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { useQueryClient } from "@tanstack/react-query"
@@ -25,21 +25,12 @@ import { toast } from "sonner"
 
 type Kind = "torrentstream" | "debrid"
 type Row<K extends Kind> = K extends "torrentstream" ? Models_TorrentstreamSettings : Models_DebridSettings
-type DataAttributes = { [key: `data-${string}`]: string | number | boolean | undefined }
 
 const STATUS_FIELD = { torrentstream: "torrentstreamSettings", debrid: "debridSettings" } as const
 const SAVE = { torrentstream: API_ENDPOINTS.TORRENTSTREAM.SaveTorrentstreamSettings, debrid: API_ENDPOINTS.DEBRID.SaveDebridSettings }
 
 /** Values being saved, by "<kind>:<field>" */
 const pendingAtom = atom<Record<string, unknown>>({})
-
-/** One save at a time: each request sends the whole row, so two at once could undo each other. */
-let saveQueue: Promise<unknown> = Promise.resolve()
-function enqueue<T>(job: () => Promise<T>): Promise<T> {
-    const next = saveQueue.then(job, job)
-    saveQueue = next.catch(() => undefined)
-    return next
-}
 
 /** Saves fields of the torrent streaming or debrid row on top of the stored row; resolves to the stored row, or null. */
 function useSaveRow<K extends Kind>(kind: K) {

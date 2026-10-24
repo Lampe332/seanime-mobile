@@ -335,7 +335,6 @@ export function useHydrateMangaPaginationMap(pageContainer?: Manga_PageContainer
             map.forEach((value, key) => {
                 _map[key] = value
             })
-            // Set the pagination map to the newly created map
             setPaginationMap(_map)
             map.clear()
         }
@@ -353,7 +352,6 @@ export function useHydrateMangaPaginationMap(pageContainer?: Manga_PageContainer
                 break
             }
         }
-        // Set the current map index to the map index to scroll to
         setCurrentMapIndex(mapIndexToScroll)
 
     }, [pageContainer?.pages, readingMode, selectedChapter, doublePageOffset])
@@ -512,7 +510,6 @@ export function useMangaReaderZoomWheel(containerRef: React.RefObject<HTMLElemen
             }
         }
 
-        // Set the state
         setZoom(newZoom, true)
     }, [pageZoom, setZoom, containerRef])
 

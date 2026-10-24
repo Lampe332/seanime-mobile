@@ -53,7 +53,6 @@ export function useExternalPlayerLinkListener() {
                     clientId: clientId || "",
                 })
 
-                // Get the server to start asking the progress
                 startManualTracking({
                     mediaId: data.mediaId,
                     episodeNumber: data.episodeNumber,

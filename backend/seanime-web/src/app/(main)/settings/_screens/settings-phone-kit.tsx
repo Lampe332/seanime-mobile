@@ -21,7 +21,7 @@ import { toast } from "sonner"
  * value while it saves and falls back to the stored one with a toast when saving fails.
  */
 
-type DataAttributes = { [key: `data-${string}`]: string | number | boolean | undefined }
+export type DataAttributes = { [key: `data-${string}`]: string | number | boolean | undefined }
 
 /** Values being saved, by "settings:<path>" or "theme:<field>" */
 const pendingAtom = atom<Record<string, unknown>>({})
@@ -31,7 +31,7 @@ const pendingAtom = atom<Record<string, unknown>>({})
  * undo each other; theme saves send the whole theme as well.
  */
 let saveQueue: Promise<unknown> = Promise.resolve()
-function enqueue<T>(job: () => Promise<T>): Promise<T> {
+export function enqueue<T>(job: () => Promise<T>): Promise<T> {
     const next = saveQueue.then(job, job)
     saveQueue = next.catch(() => undefined)
     return next

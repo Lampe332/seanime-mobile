@@ -37,11 +37,8 @@ export function getDefaultDestination(entry: Anime_Entry, libraryPath?: string):
 
 export function sanitizeDirectoryName(input: string): string {
     const disallowedChars = /[<>:"/\\|?*\x00-\x1F]/g // Pattern for disallowed characters
-    // Replace disallowed characters with an underscore
     const sanitized = input.replace(disallowedChars, " ")
-    // Remove leading/trailing spaces and dots (periods) which are not allowed
     const trimmed = sanitized.trim().replace(/^\.+|\.+$/g, "").replace(/\s+/g, " ")
-    // Ensure the directory name is not empty after sanitization
     return trimmed || "Untitled"
 }
 
@@ -94,7 +91,6 @@ export function TorrentDownloadFileSelection({ entry }: { entry: Anime_Entry }) 
         router.push("/android-downloads?kind=torrents")
     })
 
-    // Convert file paths to file previews format
     const filePreviews = React.useMemo(() => {
         if (!filepaths) return []
         return filepaths.map((path, index) => ({
@@ -107,12 +103,6 @@ export function TorrentDownloadFileSelection({ entry }: { entry: Anime_Entry }) 
     }, [filepaths])
 
     // Select all files by default when file previews are loaded
-    // React.useEffect(() => {
-    //     if (filePreviews.length > 0 && selectedFileIndices.length === 0) {
-    //         const allIndices = filePreviews.map(file => file.index)
-    //         setSelectedFileIndices(allIndices)
-    //     }
-    // }, [filePreviews, selectedFileIndices.length])
 
     const deselectedIndices = React.useMemo(() => {
         if (!filepaths) return []

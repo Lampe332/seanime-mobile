@@ -7,7 +7,7 @@ import { AppLayoutStack } from "@/components/ui/app-layout"
 import { cn } from "@/components/ui/core/styling"
 import { Vaul, VaulContent } from "@/components/vaul"
 import { usePathname, useRouter, useSearchParams } from "@/lib/navigation"
-import { useThemeSettings } from "@/lib/theme/theme-hooks"
+import { useTr } from "@/lib/app-language"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
 import React, { useEffect } from "react"
@@ -25,8 +25,6 @@ export type TorrentSelectionType =
 export function TorrentSearchDrawer(props: { entry: Anime_Entry, isPlaylistDrawer?: boolean }) {
 
     const { entry, isPlaylistDrawer } = props
-    const ts = useThemeSettings()
-
     const [selectionType, setSelection] = useAtom(__torrentSearch_selectionAtom)
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -46,28 +44,6 @@ export function TorrentSearchDrawer(props: { entry: Anime_Entry, isPlaylistDrawe
     const { onTorrentValidated } = useTorrentSearchSelection({ entry, type: selectionType })
 
     if (currentPlaylist && !isPlaylistDrawer) return null
-
-    // if (layoutType === "modal") return (
-    //     <Modal
-    //         open={selectionType !== undefined}
-    //         onOpenChange={() => setSelection(undefined)}
-    //         // size="xl"
-    //         contentClass="max-w-5xl bg-gray-950 bg-opacity-75 firefox:bg-opacity-100 sm:rounded-xl"
-    //         title={`${entry?.media?.title?.userPreferred || "Anime"}`}
-    //         titleClass="max-w-[500px] text-ellipsis truncate"
-    //         data-torrent-search-drawer
-    //         overlayClass="bg-gray-950/70 backdrop-blur-sm"
-    //         onInteractOutside={e => {if (isPlaylistDrawer) e.preventDefault()}}
-    //     >
-    //
-    //         <AppLayoutStack className="relative z-[1]" data-torrent-search-drawer-content>
-    //             {selectionType === "download" && <EpisodeList episodes={entry.downloadInfo?.episodesToDownload} />}
-    //             {!!selectionType && <TorrentSearchContainer type={selectionType} entry={entry} />}
-    //         </AppLayoutStack>
-    //
-    //         <TorrentConfirmationContinueButton type={selectionType || "download"} onTorrentValidated={onTorrentValidated} />
-    //     </Modal>
-    // )
 
     return (
         <Vaul
@@ -89,7 +65,6 @@ export function TorrentSearchDrawer(props: { entry: Anime_Entry, isPlaylistDrawe
                     </AppLayoutStack>
 
                     <TorrentConfirmationContinueButton type={selectionType || "download"} onTorrentValidated={onTorrentValidated} />
-                    <TorrentConfirmationContinueButton type={selectionType || "download"} onTorrentValidated={onTorrentValidated} />
                 </div>
             </VaulContent>
         </Vaul>
@@ -99,14 +74,14 @@ export function TorrentSearchDrawer(props: { entry: Anime_Entry, isPlaylistDrawe
 
 
 function EpisodeList({ episodes }: { episodes: Anime_EntryDownloadEpisode[] | undefined }) {
-
+    const t = useTr()
     if (!episodes || !episodes.length) return null
 
-    const missingEpisodes = episodes.sort((a, b) => a.episodeNumber - b.episodeNumber)
+    const missingEpisodes = [...episodes].sort((a, b) => a.episodeNumber - b.episodeNumber)
 
     return (
         <div className="space-y-2" data-torrent-search-drawer-episode-list>
-            <p><span className="font-semibold">Missing episode{missingEpisodes.length > 1 ? "s" : ""}</span>: {missingEpisodes.slice(0, 5)
+            <p><span className="font-semibold">{missingEpisodes.length > 1 ? t("Missing episodes", "Fehlende Episoden") : t("Missing episode", "Fehlende Episode")}</span>: {missingEpisodes.slice(0, 5)
                 .map(n => n.episodeNumber)
                 .join(", ")}{missingEpisodes.length > 5
                 ? `, ..., ${missingEpisodes[missingEpisodes.length - 1].episodeNumber}`

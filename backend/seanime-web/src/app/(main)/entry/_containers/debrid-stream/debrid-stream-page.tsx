@@ -46,11 +46,9 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
 
     const serverStatus = useServerStatus()
 
-    // State to manage auto-select setting
     const [autoSelect, setAutoSelect] = React.useState(serverStatus?.debridSettings?.streamAutoSelect ?? false)
     const [autoSelectFile] = useAtom(__debridStream_autoSelectFileAtom)
 
-    // Sync the auto-select setting with the current session
     const [, setCurrentSessionAutoSelect] = useAtom(__debridStream_currentSessionAutoSelectAtom)
     React.useEffect(() => {
         setCurrentSessionAutoSelect(autoSelect)
@@ -62,23 +60,18 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
     const { data: episodeCollection, isLoading } = useGetAnimeEpisodeCollection(entry.mediaId)
 
     React.useLayoutEffect(() => {
-        // Set auto-select to the server status value
         if (!episodeCollection?.hasMappingError) {
             setAutoSelect(serverStatus?.debridSettings?.streamAutoSelect ?? false)
         } else {
-            // Fall back to manual select if no download info (no Animap data)
             setAutoSelect(false)
         }
     }, [serverStatus?.torrentstreamSettings?.autoSelect, episodeCollection])
 
-    // Atoms to control the torrent search drawer state
     const [, setTorrentSearchDrawerOpen] = useAtom(__torrentSearch_selectionAtom)
     const [, setTorrentSearchEpisode] = useAtom(__torrentSearch_selectionEpisodeAtom)
 
-    // Stores the episode that was clicked
     const { setTorrentSearchStreamEpisode } = useTorrentSearchSelectedStreamEpisode()
 
-    // Function to handle playing the next episode on mount
     function handlePlayNextEpisodeOnMount(episode: Anime_Episode) {
         if (autoSelect) {
             handleAutoSelect(entry, episode)
@@ -87,12 +80,10 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
         }
     }
 
-    // Hook to handle starting the debrid stream
     const { handleAutoSelectStream, handleStreamSelection } = useHandleStartDebridStream()
 
     const { forcePlaybackMethodFn } = useForcePlaybackMethod()
 
-    // Hook to manage debrid stream autoplay information
     const { setDebridstreamAutoplayInfo } = useDebridstreamAutoplay()
     const { mutate: deleteBatchHistory, isPending: isDeletingBatchHistory } = useDeleteTorrentstreamBatchHistory()
 
@@ -124,7 +115,6 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
         onCancel: handleDisablePreviousBatch,
     })
 
-    // Function to set the debrid stream autoplay info
     // It checks if there is a next episode and if it has aniDBEpisode
     // If so, it sets the autoplay info
     // Otherwise, it resets the autoplay info
@@ -145,21 +135,17 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
         }
     }
 
-    // Function to handle auto-selecting an episode
     function handleAutoSelect(entry: Anime_Entry, episode: Anime_Episode | undefined) {
         if (!episode || !episode.aniDBEpisode || !episodeCollection?.episodes) return
-        // Start the debrid stream
         handleAutoSelectStream({
             mediaId: entry.mediaId,
             episodeNumber: episode.episodeNumber,
             aniDBEpisode: episode.aniDBEpisode,
         })
 
-        // Set the debrid stream autoplay info
         handleSetDebridstreamAutoplayInfo(episode)
     }
 
-    // Function to handle episode click events
     const handleEpisodeClick = (episode: Anime_Episode, forcePlaybackMethod?: ForcePlaybackMethod) => {
         if (!episode || !episode.aniDBEpisode) return
 
@@ -240,7 +226,6 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
                     // If auto-select file is enabled, open the debrid stream select drawer
                     if (autoSelectFile) {
                         setTorrentSearchDrawerOpen("debridstream-select")
-                        // Set the debrid stream autoplay info
                         handleSetDebridstreamAutoplayInfo(episode)
                     } else {
                         // Otherwise, open the debrid stream select file drawer
@@ -251,7 +236,6 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
             }
 
             if (selectedDebridService !== DEBRID_SERVICE.TORBOX) {
-                // Set the debrid stream autoplay info
                 handleSetDebridstreamAutoplayInfo(episode)
             }
         }
@@ -270,9 +254,6 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
             >
                 <div className="h-10 lg:h-0" />
                 <AppLayoutStack data-debrid-stream-page>
-                    {/*<div className="absolute right-0 top-[-3rem]" data-debrid-stream-page-title-container>*/}
-                    {/*    <h2 className="text-xl lg:text-3xl flex items-center gap-3">Debrid streaming</h2>*/}
-                    {/*</div>*/}
 
                     <StreamControlsPhone kind="debrid" autoSelect={autoSelect} onAutoSelect={setAutoSelect}
                         batchName={usePreviousBatch ? batchHistory?.torrent?.name : undefined} onForgetBatch={() => confirmPreviousBatchAction.open()}

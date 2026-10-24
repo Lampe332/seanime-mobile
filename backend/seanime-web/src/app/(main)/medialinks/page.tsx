@@ -66,7 +66,6 @@ export default function Page() {
         // On mount, when the anime entry is loaded, and the file path is set, play the media file
         if (animeEntry && filePath) {
             const handleMediaPlay = async () => {
-                // Get the episode
                 const episode = animeEntry?.episodes?.find(ep => ep.localFile?.path === filePath)
                 logger("MEDIALINKS").info("Filepath", filePath, "Episode", episode)
 

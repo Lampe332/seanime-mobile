@@ -39,7 +39,6 @@ export function DiscoverTrendingCountry({ country, forDiscoverHeader }: { countr
 
     const [randomNumber, setRandomNumber] = useState(0)
 
-    // Update the atom when randomNumber changes
     useEffect(() => {
         setMangaRandomNumber(randomNumber)
     }, [randomNumber])

@@ -20,6 +20,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip } from "@/components/ui/tooltip"
 import { Vaul, VaulContent } from "@/components/vaul"
+import { useTr } from "@/lib/app-language"
 import { openTab } from "@/lib/helpers/browser"
 import { useRouter } from "@/lib/navigation"
 import { TORRENT_CLIENT } from "@/lib/server/settings"
@@ -178,8 +179,6 @@ export function TorrentDownloadModal({ onToggleTorrent, media, entry }: {
         <Vaul
             open={isConfirmationModalOpen}
             onOpenChange={() => setConfirmationModalOpen(false)}
-            // contentClass="max-w-3xl"
-            // title="Choose the destination"
             data-torrent-confirmation-modal
         >
             <VaulContent
@@ -342,6 +341,7 @@ export function TorrentConfirmationContinueButton({ type, onTorrentValidated }: 
 
     const st = useAtomValue(__torrentSearch_selectedTorrentsAtom)
     const setter = useSetAtom(confirmationModalOpenAtom)
+    const t = useTr()
 
     if (st.length === 0) return null
 
@@ -360,8 +360,7 @@ export function TorrentConfirmationContinueButton({ type, onTorrentValidated }: 
             }}
             leftIcon={type === "download" ? <LuDownload /> : <LuPlay />}
         >
-            {type === "download" ? "Download" : "Stream"}
-            {type === "download" ? ` (${st.length})` : ""}
+            {type === "download" ? `${t("Download", "Herunterladen")} (${st.length})` : t("Stream", "Streamen")}
         </Button>
     )
 

@@ -412,7 +412,6 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         if (!streamToLoad || !providerExtensionOptions?.length) return
         log.info("Watch party stream to load", { streamToLoad })
         if (streamToLoad.mediaId !== mediaId) {
-            // redirectToStream(streamToLoad)
             return
         }
 

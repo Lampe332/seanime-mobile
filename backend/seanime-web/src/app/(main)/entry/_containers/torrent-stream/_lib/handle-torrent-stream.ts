@@ -86,7 +86,6 @@ export function useHandleStartTorrentStream() {
             preload: params.preload,
         }, {
             onSuccess: () => {
-                // setLoadingState(null)
             },
             onError: () => {
                 setLoadingState(null)

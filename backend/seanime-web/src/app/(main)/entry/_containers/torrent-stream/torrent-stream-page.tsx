@@ -56,11 +56,9 @@ export function TorrentStreamPage(props: TorrentStreamPageProps) {
     const { data: episodeCollection, isLoading } = useGetAnimeEpisodeCollection(entry.mediaId)
 
     React.useLayoutEffect(() => {
-        // Set auto-select to the server status value
         if (!episodeCollection?.hasMappingError) {
             setAutoSelect(serverStatus?.torrentstreamSettings?.autoSelect ?? false)
         } else {
-            // Fall back to manual select if no download info (no Animap data)
             setAutoSelect(false)
         }
     }, [serverStatus?.torrentstreamSettings?.autoSelect, episodeCollection])
@@ -68,7 +66,6 @@ export function TorrentStreamPage(props: TorrentStreamPageProps) {
     const setTorrentSearchSelection = useSetAtom(__torrentSearch_selectionAtom)
     const setTorrentSearchEpisode = useSetAtom(__torrentSearch_selectionEpisodeAtom)
 
-    // Stores the episode that was clicked
     const { setTorrentSearchStreamEpisode } = useTorrentSearchSelectedStreamEpisode()
 
 
@@ -109,7 +106,6 @@ export function TorrentStreamPage(props: TorrentStreamPageProps) {
         onCancel: handleDisablePreviousBatch,
     })
 
-    // Function to set the torrent stream autoplay info
     // It checks if there is a next episode and if it has aniDBEpisode
     // If so, it sets the autoplay info
     // Otherwise, it resets the autoplay info
@@ -132,14 +128,12 @@ export function TorrentStreamPage(props: TorrentStreamPageProps) {
 
     function handleAutoSelect(entry: Anime_Entry, episode: Anime_Episode | undefined) {
         if (isPending || !episode || !episode.aniDBEpisode || !episodeCollection?.episodes) return
-        // Start the torrent stream
         handleAutoSelectStream({
             mediaId: entry.mediaId,
             episodeNumber: episode.episodeNumber,
             aniDBEpisode: episode.aniDBEpisode,
         })
 
-        // Set the torrent stream autoplay info
         handleSetTorrentstreamAutoplayInfo(episode)
     }
 
@@ -156,7 +150,6 @@ export function TorrentStreamPage(props: TorrentStreamPageProps) {
      * - If auto-select is enabled, send the streaming request
      * - If auto-select is disabled, open the torrent drawer
      */
-        // const setTorrentStreamLoader = useSetTorrentStreamLoader()
     const handleEpisodeClick = (episode: Anime_Episode, forcePlaybackMethod?: ForcePlaybackMethod) => {
             if (isPending) return
 
@@ -232,17 +225,14 @@ export function TorrentStreamPage(props: TorrentStreamPageProps) {
                             }
                         })
                     }
-                    // Set the torrent stream autoplay info
                     handleSetTorrentstreamAutoplayInfo(episode)
 
                 }
             })
-            // toast.info("Starting torrent stream...")
         }
 
     const { inject, remove } = useSeaCommandInject()
 
-    // Inject episodes into command palette when they're loaded
     React.useEffect(() => {
         if (!episodeCollection?.episodes?.length) return
 
@@ -286,9 +276,6 @@ export function TorrentStreamPage(props: TorrentStreamPageProps) {
             >
                 <div className="h-10 lg:h-0" />
                 <AppLayoutStack data-torrent-stream-page>
-                    {/*<div className="absolute right-0 top-[-3rem]" data-torrent-stream-page-title-container>*/}
-                    {/*    <h2 className="text-xl lg:text-3xl flex items-center gap-3">Torrent streaming</h2>*/}
-                    {/*</div>*/}
 
                     <StreamControlsPhone kind="torrent" autoSelect={autoSelect} onAutoSelect={setAutoSelect}
                         batchName={usePreviousBatch ? batchHistory?.torrent?.name : undefined} onForgetBatch={() => confirmPreviousBatchAction.open()}

@@ -61,15 +61,12 @@ export const TorrentTable = memo((
         searchAcrossProviders,
         isSpoiler,
     }: TorrentTable) => {
-    // Use hooks for sorting and filtering
     const { sortField, sortDirection, handleSortChange } = useTorrentSorting()
     const { filters, handleFilterChange } = useTorrentFiltering()
     const { data: extensions } = useAnimeListTorrentProviderExtensions()
 
-    // Apply filters using the generic helper
     const filteredTorrents = filterItems(torrents, torrentMetadata, filters)
 
-    // Sort the torrents after filtering using the generic helper
     const sortedTorrents = sortItems(filteredTorrents, sortField, sortDirection)
 
     return (

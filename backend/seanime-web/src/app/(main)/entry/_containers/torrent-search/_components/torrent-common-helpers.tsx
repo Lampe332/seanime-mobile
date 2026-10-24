@@ -10,11 +10,9 @@ import { LiaMicrophoneSolid } from "react-icons/lia"
 import { PiChatCircleDotsDuotone } from "react-icons/pi"
 import { TbArrowsSort, TbFilter, TbSortAscending, TbSortDescending } from "react-icons/tb"
 
-// Define sort types
 export type SortField = "seeders" | "size" | "date" | "resolution" | null
 export type SortDirection = "asc" | "desc" | null
 
-// Define filter types
 export type TorrentFilters = {
     multiSubs: boolean,
     dubbed: boolean,
@@ -29,7 +27,6 @@ export type TorrentFilters = {
     audioFlac: boolean,
 }
 
-// Helper to get sort icon for a field
 const getSortIcon = (sortField: SortField, field: SortField, sortDirection: SortDirection) => {
     if (sortField !== field) return <TbArrowsSort className="opacity-50 text-lg" />
     return sortDirection === "asc" ?
@@ -41,7 +38,6 @@ const getFilterIcon = (active: boolean) => {
     return active ? <TbFilter className="text-brand-200 animate-bounce text-lg" /> : <TbFilter className="opacity-50 text-lg" />
 }
 
-// Sort handler function
 const handleSort = (
     field: SortField,
     sortField: SortField,
@@ -64,7 +60,6 @@ const handleSort = (
     }
 }
 
-// Helper functions for checking torrent properties
 const hasTorrentMultiSubs = (metadata: Torrent_TorrentMetadata | undefined): boolean => {
     if (!metadata) return false
     return !!metadata.metadata?.subtitles?.some(n => n.toLocaleLowerCase().includes("multi"))
@@ -117,7 +112,6 @@ const hasAudioTerm = (term: string, metadata: Torrent_TorrentMetadata | undefine
     }
 }
 
-// Generic interface for torrent-like objects
 interface TorrentLike {
     seeders?: number
     size?: number
@@ -126,7 +120,6 @@ interface TorrentLike {
     infoHash?: string
 }
 
-// Generic interface for preview-like objects
 interface PreviewLike {
     torrent?: {
         seeders?: number
@@ -137,7 +130,6 @@ interface PreviewLike {
     }
 }
 
-// Generic sort function that works with both torrent types
 export function sortItems<T extends TorrentLike | PreviewLike>(
     items: T[],
     sortField: SortField,
@@ -186,7 +178,6 @@ function anyFilterActive(filters: TorrentFilters) {
     return Object.values(filters).some(value => value === true)
 }
 
-// Generic filter function that works with both torrent types
 export function filterItems<T extends TorrentLike | PreviewLike>(
     items: T[],
     torrentMetadata: Record<string, Torrent_TorrentMetadata> | undefined,
@@ -203,7 +194,6 @@ export function filterItems<T extends TorrentLike | PreviewLike>(
 
         const metadata = torrentMetadata[torrent.infoHash]
 
-        // Apply filters
         if (filters.multiSubs && !hasTorrentMultiSubs(metadata)) return false
         if (filters.videoHevc && !hasVideoTerm("hevc", metadata)) return false
         if (filters.videoAvc && !hasVideoTerm("avc", metadata)) return false
@@ -223,7 +213,6 @@ export function filterItems<T extends TorrentLike | PreviewLike>(
 const sortAtom = atomWithStorage<SortField>("sea-torrent-list-sort", "seeders", undefined, { getOnInit: true })
 const sortDirectionAtom = atomWithStorage<SortDirection>("sea-torrent-list-sort-direction", "desc", undefined, { getOnInit: true })
 
-// Hook for managing sorting state
 export function useTorrentSorting() {
     const [sortField, setSortField] = useAtom(sortAtom)
     const [sortDirection, setSortDirection] = useAtom(sortDirectionAtom)
@@ -239,7 +228,6 @@ export function useTorrentSorting() {
     }
 }
 
-// Hook for managing filtering state
 export function useTorrentFiltering() {
     const [filters, setFilters] = useState<TorrentFilters>({
         multiSubs: false,
@@ -273,7 +261,6 @@ export function useTorrentFiltering() {
     }
 }
 
-// UI Component for filter and sort controls
 export const TorrentFilterSortControls: React.FC<{
     resultCount: number,
     sortField: SortField,
@@ -317,10 +304,6 @@ export const TorrentFilterSortControls: React.FC<{
                             value={filters.multiSubs}
                             onValueChange={(value) => onFilterChange("multiSubs", value)}
                         />
-                        {/*<Checkbox*/}
-                        {/*    label={<div className="flex items-center gap-1">*/}
-                        {/*        <LiaMicrophoneSolid className="text-lg text-[--rose]" /> Dual Audio*/}
-                        {/*    </div>}*/}
                         {/*    value={filters.dualAudio}*/}
                         {/*    onValueChange={(value) => onFilterChange("dualAudio", value)}*/}
                         {/*/>*/}

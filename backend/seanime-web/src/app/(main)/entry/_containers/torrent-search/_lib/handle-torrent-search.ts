@@ -46,7 +46,6 @@ export function useHandleTorrentSearch(props: TorrentSearchHookProps) {
 
     const { data: providerExtensions } = useAnimeListTorrentProviderExtensions()
 
-    // Get the selected provider extension
     const defaultProviderExtension = React.useMemo(() => {
         // Phones search with the first installed provider when none is chosen: earlier Android versions stored "none"
         // themselves (no torrents on phones), and without a provider installed the phone shows no torrent search at all
@@ -60,12 +59,10 @@ export function useHandleTorrentSearch(props: TorrentSearchHookProps) {
     // Gives the ability to change the selected provider extension
     const [selectedProviderExtensionId, setSelectedProviderExtensionId] = React.useState(defaultProviderExtension?.id || "none")
 
-    // Update the selected provider only when the default provider changes
     React.useLayoutEffect(() => {
         setSelectedProviderExtensionId(defaultProviderExtension?.id || "none")
     }, [defaultProviderExtension?.id])
 
-    // Get the selected provider extension
     const selectedProviderExtension = React.useMemo(() => {
         return providerExtensions?.find(ext => ext.id === selectedProviderExtensionId)
     }, [selectedProviderExtensionId, providerExtensions])
@@ -85,7 +82,6 @@ export function useHandleTorrentSearch(props: TorrentSearchHookProps) {
     const [searchAcrossProviders, setSearchAcrossProviders] = useAtom(__torrentSearch_searchAcrossProvidersAtom)
     const [extraProviderIds, setExtraProviderIds] = useAtom(__torrentSearch_extraProviderIdsAtom)
     const [smartSearchBatch, setSmartSearchBatch] = React.useState<boolean>(shouldLookForBatches || false)
-    // const [smartSearchEpisode, setSmartSearchEpisode] = React.useState<number>(downloadInfo?.episodesToDownload?.[0]?.episode?.episodeNumber || 1)
     const [smartSearchResolution, setSmartSearchResolution] = React.useState("")
     const [smartSearchBest, setSmartSearchBest] = React.useState(false)
     const {
@@ -231,9 +227,6 @@ export function useHandleTorrentSearch(props: TorrentSearchHookProps) {
         }
     }, [soughtEpisode])
 
-    // const data = React.useMemo(() => isAdult ? _nsfw_data : _data, [_data, _nsfw_data])
-    // const isLoading = React.useMemo(() => isAdult ? _nsfw_isLoading : _isLoading, [_isLoading, _nsfw_isLoading])
-    // const isFetching = React.useMemo(() => isAdult ? _nsfw_isFetching : _isFetching, [_isFetching, _nsfw_isFetching])
 
     React.useEffect(() => {
         logger("TORRENT SEARCH").info({ warnings })

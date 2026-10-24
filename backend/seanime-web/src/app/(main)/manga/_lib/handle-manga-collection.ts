@@ -42,7 +42,6 @@ export function useHandleMangaCollection(options: { redirectOnError?: boolean, k
     const router = useRouter()
     const { data, isLoading, isError, refetch } = useGetMangaCollection()
 
-    // const { data: chapterCounts } = useGetMangaChapterCountMap()
     const { data: latestChapterNumbers } = useGetMangaLatestChapterNumbersMap()
     const { data: _extensions } = useListMangaProviderExtensions()
 
@@ -151,8 +150,6 @@ export function useHandleMangaCollection(options: { redirectOnError?: boolean, k
                 sortedLists.find(n => n.type === "CURRENT"),
                 sortedLists.find(n => n.type === "PAUSED"),
                 sortedLists.find(n => n.type === "PLANNING"),
-                // data.lists.find(n => n.type === "COMPLETED"), // DO NOT SHOW THIS LIST IN MANGA VIEW
-                // data.lists.find(n => n.type === "DROPPED"), // DO NOT SHOW THIS LIST IN MANGA VIEW
             ].filter(Boolean),
         } as Manga_Collection
     }, [data, sortedLists])
@@ -176,8 +173,6 @@ export function useHandleMangaCollection(options: { redirectOnError?: boolean, k
                 _lists.find(n => n.type === "CURRENT"),
                 _lists.find(n => n.type === "PAUSED"),
                 _lists.find(n => n.type === "PLANNING"),
-                // data.lists.find(n => n.type === "COMPLETED"), // DO NOT SHOW THIS LIST IN MANGA VIEW
-                // data.lists.find(n => n.type === "DROPPED"), // DO NOT SHOW THIS LIST IN MANGA VIEW
             ].filter(Boolean),
         } as Manga_Collection
     }, [data, params])

@@ -11,7 +11,6 @@ import React from "react"
 
 const __torrentSearch_streamingSelectedEpisodeAtom = atom<Anime_Episode | null>(null)
 
-// Stores the currently selected episode for torrent stream
 export function useTorrentSearchSelectedStreamEpisode() {
     const [value, setter] = useAtom(__torrentSearch_streamingSelectedEpisodeAtom)
 
@@ -29,7 +28,6 @@ export function useTorrentSearchSelection({ type = "download", entry }: { type: 
 
     // Currently selected torrents
     const [selectedTorrents, setSelectedTorrents] = useAtom(__torrentSearch_selectedTorrentsAtom)
-    // Get the currently selected episode
     const { torrentSearchStreamEpisode } = useTorrentSearchSelectedStreamEpisode()
     // Sets the selected torrent for file selection
     const setTorrentstreamSelectedTorrent = useSetAtom(__torrentSearch_fileSelectionTorrentAtom)

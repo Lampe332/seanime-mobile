@@ -126,7 +126,6 @@ export function TorrentstreamFileSelectionModal({ entry }: { entry: Anime_Entry 
                     setSelectedFileIdx(-1)
                 }
             }}
-            // size="xl"
         >
             <VaulContent className="max-w-5xl mx-auto">
                 <AppLayoutStack className="mt-4 p-3 lg:p-6">
