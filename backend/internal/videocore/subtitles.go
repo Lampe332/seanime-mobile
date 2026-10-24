@@ -120,7 +120,7 @@ func (vc *VideoCore) GenerateMkvSubtitleTrack(opts GenerateSubtitleFileOptions) 
 	case ".txt":
 		from = mkvparser.SubtitleTypeUnknown
 	default:
-		err = errors.New("unsupported subtitle format")
+		return nil, errors.New("unsupported subtitle format")
 	}
 	vc.logger.Debug().
 		Str("filename", filename).

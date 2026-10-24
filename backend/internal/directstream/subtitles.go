@@ -3,7 +3,6 @@ package directstream
 import (
 	"cmp"
 	"context"
-	"errors"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -673,7 +672,8 @@ func (s *BaseStream) OnSubtitleFileUploaded(filename string, content string) {
 		case ".txt":
 			from = mkvparser.SubtitleTypeUnknown
 		default:
-			err = errors.New("unsupported subtitle format")
+			s.manager.wsEventManager.SendEventTo(s.clientId, events.ErrorToast, "Failed to convert subtitle file: unsupported subtitle format")
+			return
 		}
 		s.logger.Debug().
 			Str("filename", filename).
