@@ -11,10 +11,10 @@ function App() {
     return <div style={{ background: "#333", padding: 40, display: "flex", justifyContent: "flex-end", height: 300 }}>
         <div id="outside" style={{ position: "absolute", left: 0, bottom: 0, width: 80, height: 80 }} />
         <div style={{ height: 48 }}>
-            <MediaCoreVolumeButton volume={volume} muted={muted} isMobile isMiniPlayer={false}
+            <MediaCoreVolumeButton volume={volume} muted={muted} isMiniPlayer={false}
                 onVolumeChange={v => { w.volumeEvents.push(v); setVolume(v); setMuted(v === 0) }}
                 onMuteToggle={() => setMuted(m => !m)}
-                mobilePanelOpen={open} onMobilePanelOpenChange={setOpen} />
+                panelOpen={open} onPanelOpenChange={setOpen} />
         </div>
     </div>
 }

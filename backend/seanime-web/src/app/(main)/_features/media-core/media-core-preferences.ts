@@ -11,12 +11,10 @@ export interface MediaCorePreferences {
     playbackRate: number
     autoSkip: boolean
     skipPatterns: string
-    showStats: boolean
-    chapterMarkers: boolean
     timestampMode: "elapsed" | "remaining"
 }
 
-export const mediaCoreDefaultPreferences: MediaCorePreferences = {
+const mediaCoreDefaultPreferences: MediaCorePreferences = {
     version: 2,
     autoPlay: true,
     autoNext: true,
@@ -26,8 +24,6 @@ export const mediaCoreDefaultPreferences: MediaCorePreferences = {
     playbackRate: 1.0,
     autoSkip: false,
     skipPatterns: "",
-    showStats: false,
-    chapterMarkers: true,
     timestampMode: "elapsed",
 }
 
@@ -88,8 +84,6 @@ const customStorage = {
             playbackRate: getLegacyValue("sea-video-core-playback-rate", "sea-mpv-core-playback-rate", mediaCoreDefaultPreferences.playbackRate),
             autoSkip: getLegacyValue("sea-video-core-auto-skip-op-ed", "sea-mpv-core-auto-skip", mediaCoreDefaultPreferences.autoSkip),
             skipPatterns: mediaCoreDefaultPreferences.skipPatterns,
-            showStats: getLegacyValue("sea-video-core-show-stats-for-nerds", "sea-mpv-core-show-stats", mediaCoreDefaultPreferences.showStats),
-            chapterMarkers: getLegacyValue("sea-video-core-chapter-markers", "sea-mpv-core-chapter-markers", mediaCoreDefaultPreferences.chapterMarkers),
             timestampMode: getLegacyValue<"elapsed" | "remaining">("sea-video-core-timestamp-type", "dummy-nonexistent-key", mediaCoreDefaultPreferences.timestampMode),
         }
 

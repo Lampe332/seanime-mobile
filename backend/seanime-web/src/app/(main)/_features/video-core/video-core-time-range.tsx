@@ -4,7 +4,6 @@ import { mediaCorePreferencesAtom } from "@/app/(main)/_features/media-core/medi
 import { useNakamaWatchParty } from "@/app/(main)/_features/nakama/nakama-manager"
 import { vc_previewManager } from "@/app/(main)/_features/video-core/video-core"
 import { VideoCoreChapterCue } from "@/app/(main)/_features/video-core/video-core"
-import { vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_isSwiping } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_swipeSeekTime } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_duration } from "@/app/(main)/_features/video-core/video-core-atoms"
@@ -18,8 +17,8 @@ import { vc_previousPausedState } from "@/app/(main)/_features/video-core/video-
 import { vc_lastKnownProgress } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_skipChapter } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_showOverlayFeedback } from "@/app/(main)/_features/video-core/video-core-overlay-display"
-import { VIDEOCORE_PREVIEW_CAPTURE_INTERVAL_SECONDS, VIDEOCORE_PREVIEW_THUMBNAIL_SIZE } from "@/app/(main)/_features/video-core/video-core-preview"
-import { vc_autoSkipOPEDAtom, vc_highlightOPEDChaptersAtom, vc_showChapterMarkersAtom } from "@/app/(main)/_features/video-core/video-core.atoms"
+import { VIDEOCORE_PREVIEW_CAPTURE_INTERVAL_SECONDS } from "@/app/(main)/_features/video-core/video-core-preview"
+import { vc_autoSkipOPEDAtom, vc_highlightOPEDChaptersAtom } from "@/app/(main)/_features/video-core/video-core.atoms"
 import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.utils"
 import { atom, useAtomValue } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
@@ -37,8 +36,7 @@ export interface VideoCoreTimeRangeProps {
     chapterCues: VideoCoreChapterCue[]
 }
 
-const CHAPTER_GAP = 3
-const MOBILE_PREVIEW_THUMBNAIL_SIZE = 140
+const PREVIEW_THUMBNAIL_WIDTH = 140
 const PREVIEW_REQUEST_DELAY_MS = 80
 const STALE_PREVIEW_GRACE_MS = 100
 const PREVIEW_TOOLTIP_GUTTER = 8
@@ -51,7 +49,6 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
     const { isPeer: isWatchPartyPeer } = useNakamaWatchParty()
 
     const videoElement = useAtomValue(vc_videoElement)
-    const isMobile = useAtomValue(vc_isMobile)
     const isSwiping = useAtomValue(vc_isSwiping)
     const swipeSeekTime = useAtomValue(vc_swipeSeekTime)
 
@@ -62,7 +59,6 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
     const [seeking, setSeeking] = useAtom(vc_seeking)
     const [previouslyPaused, setPreviouslyPaused] = useAtom(vc_previousPausedState)
     const action = useSetAtom(vc_dispatchAction)
-    const showChapterMarkers = useAtomValue(vc_showChapterMarkersAtom)
     const highlightOPEDChapters = useAtomValue(vc_highlightOPEDChaptersAtom)
     const autoSkipIntroOutro = useAtomValue(vc_autoSkipOPEDAtom)
     const showOverlayFeedback = useSetAtom(vc_showOverlayFeedback)
@@ -267,7 +263,6 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
     const previewRequestTimeoutRef = React.useRef<number | null>(null)
     const stalePreviewClearTimeoutRef = React.useRef<number | null>(null)
 
-    const previewWidth = isMobile ? MOBILE_PREVIEW_THUMBNAIL_SIZE : VIDEOCORE_PREVIEW_THUMBNAIL_SIZE
     const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0
 
     const setPreview = React.useCallback((thumbnail: string | null) => {
@@ -351,12 +346,12 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
     }, [targetProgress, chapters])
 
     const previewX = React.useMemo(() => {
-        if (timeRangeWidth <= 0) return previewWidth / 2
+        if (timeRangeWidth <= 0) return PREVIEW_THUMBNAIL_WIDTH / 2
         const x = (targetProgress / 100) * timeRangeWidth
-        if (!Number.isFinite(x)) return previewWidth / 2
-        if (timeRangeWidth <= previewWidth) return timeRangeWidth / 2
-        return Math.max(previewWidth / 2, Math.min(timeRangeWidth - previewWidth / 2, x))
-    }, [targetProgress, timeRangeWidth, previewWidth])
+        if (!Number.isFinite(x)) return PREVIEW_THUMBNAIL_WIDTH / 2
+        if (timeRangeWidth <= PREVIEW_THUMBNAIL_WIDTH) return timeRangeWidth / 2
+        return Math.max(PREVIEW_THUMBNAIL_WIDTH / 2, Math.min(timeRangeWidth - PREVIEW_THUMBNAIL_WIDTH / 2, x))
+    }, [targetProgress, timeRangeWidth])
 
     const tooltipX = React.useMemo(() => {
         if (timeRangeWidth <= 0) return 0
@@ -406,19 +401,10 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
         }, PREVIEW_REQUEST_DELAY_MS)
     }, [cancelStalePreviewClear, previewManager, safeDuration, setPreview])
 
-    const handleTimeRangePreview = React.useCallback((event: Event) => {
-        if (!safeDuration || !timeRangeElement) return
+    const handleTimeRangePreview = React.useCallback((event: TouchEvent) => {
+        if (!safeDuration || !timeRangeElement || !event.touches.length) return
 
-        let clientX: number
-        if (event instanceof TouchEvent && event.touches.length > 0) {
-            clientX = event.touches[0].clientX
-        } else if (event instanceof MouseEvent) {
-            clientX = event.clientX
-        } else {
-            return
-        }
-
-        pendingClientXRef.current = clientX
+        pendingClientXRef.current = event.touches[0].clientX
         if (previewRafRef.current !== null) return
 
         previewRafRef.current = window.requestAnimationFrame(() => {
@@ -447,32 +433,13 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
     React.useEffect(() => {
         if (!timeRangeElement) return
 
-        const handleMouseLeave = () => {
-            clearPreview()
-        }
-
-        const handleTouchEnd = () => {
-            clearPreview()
-        }
-
-        if (isMobile) {
-            timeRangeElement.addEventListener("touchmove", handleTimeRangePreview, { passive: true })
-            timeRangeElement.addEventListener("touchend", handleTouchEnd)
-        } else {
-            timeRangeElement.addEventListener("mouseleave", handleMouseLeave)
-            timeRangeElement.addEventListener("mousemove", handleTimeRangePreview)
-        }
-
+        timeRangeElement.addEventListener("touchmove", handleTimeRangePreview, { passive: true })
+        timeRangeElement.addEventListener("touchend", clearPreview)
         return () => {
-            if (isMobile) {
-                timeRangeElement.removeEventListener("touchmove", handleTimeRangePreview)
-                timeRangeElement.removeEventListener("touchend", handleTouchEnd)
-            } else {
-                timeRangeElement.removeEventListener("mouseleave", handleMouseLeave)
-                timeRangeElement.removeEventListener("mousemove", handleTimeRangePreview)
-            }
+            timeRangeElement.removeEventListener("touchmove", handleTimeRangePreview)
+            timeRangeElement.removeEventListener("touchend", clearPreview)
         }
-    }, [clearPreview, handleTimeRangePreview, timeRangeElement, isMobile])
+    }, [clearPreview, handleTimeRangePreview, timeRangeElement])
 
     React.useEffect(() => {
         if (!isSwiping) {
@@ -490,12 +457,11 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
             bufferedPercentage={bufferedPercentage}
             seekingTargetProgress={seekingTargetProgress}
             chapters={chapters}
-            showChapterMarkers={showChapterMarkers}
             highlightChapters={highlightOPEDChapters}
             skipChapters={skipChapters}
             showPreview={showPreview}
             showThumbnail={showThumbnail}
-            previewWidth={previewWidth}
+            previewWidth={PREVIEW_THUMBNAIL_WIDTH}
             previewX={previewX}
             tooltipX={tooltipX}
             chapterLabel={chapterLabel}
@@ -507,11 +473,7 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
             onPointerMove={handlePointerMove}
             onPointerLeave={handlePointerLeave}
             onPointerCancel={handlePointerCancel}
-            isMobile={isMobile}
             duration={duration}
-            onMarkerClick={(time) => {
-                action({ type: "seekTo", payload: { time } })
-            }}
         />
     )
 }

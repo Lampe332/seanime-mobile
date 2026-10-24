@@ -1,4 +1,3 @@
-import { layoutWidth } from "@/lib/tablet-ui"
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { useHandleCurrentMediaContinuity } from "@/api/hooks/continuity.hooks"
@@ -12,9 +11,7 @@ import { vc_anime4kOption, VideoCoreAnime4K } from "@/app/(main)/_features/video
 import { Anime4KOption, VideoCoreAnime4KManager } from "@/app/(main)/_features/video-core/video-core-anime-4k-manager"
 import { vc_menuOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_menuSectionOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_hoveringControlBar } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_activePlayerId } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_isSwiping } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_swipeSeekTime } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_videoSize } from "@/app/(main)/_features/video-core/video-core-atoms"
@@ -46,11 +43,9 @@ import { vc_skipChapter } from "@/app/(main)/_features/video-core/video-core-ato
 import { VideoCoreAudioManager } from "@/app/(main)/_features/video-core/video-core-audio"
 import { VideoCoreAudioMenu } from "@/app/(main)/_features/video-core/video-core-audio-menu"
 import {
-    VideoCoreControlBar,
     VideoCoreFullscreenButton,
     VideoCoreMobileControlBar,
     VideoCorePipButton,
-    VideoCorePlayButton,
     VideoCoreTimestamp,
     VideoCoreVolumeButton,
 } from "@/app/(main)/_features/video-core/video-core-control-bar"
@@ -66,9 +61,6 @@ import {
     vc_hlsSetAudioTrack,
     vc_hlsSetQuality,
 } from "@/app/(main)/_features/video-core/video-core-hls"
-import { vc_inSight_data } from "@/app/(main)/_features/video-core/video-core-in-sight"
-import { vc_inSight_open } from "@/app/(main)/_features/video-core/video-core-in-sight"
-import { VideoCoreInSight } from "@/app/(main)/_features/video-core/video-core-in-sight"
 import { useVideoCoreIOSFullscreenSubtitles } from "@/app/(main)/_features/video-core/video-core-ios-fullscreen-subtitles"
 import { MediaCaptionsManager } from "@/app/(main)/_features/video-core/video-core-media-captions"
 import { vc_mediaSessionManager, VideoCoreMediaSessionManager } from "@/app/(main)/_features/video-core/video-core-media-session"
@@ -85,25 +77,21 @@ import {
     vc_playlistState,
     VideoCorePlaylistControl,
 } from "@/app/(main)/_features/video-core/video-core-playlist"
-import { VideoCoreKeybindingController, VideoCorePreferencesModal } from "@/app/(main)/_features/video-core/video-core-preferences"
+import { VideoCoreKeybindingController } from "@/app/(main)/_features/video-core/video-core-keybindings"
 import { VideoCorePreviewManager } from "@/app/(main)/_features/video-core/video-core-preview"
 import { VideoCoreResolutionMenu } from "@/app/(main)/_features/video-core/video-core-resolution-menu"
 import { VideoCoreSettingsMenu } from "@/app/(main)/_features/video-core/video-core-settings-menu"
 import { useTr } from "@/lib/app-language"
 import { LuSkipForward } from "react-icons/lu"
-import { VideoCoreStatsForNerds } from "@/app/(main)/_features/video-core/video-core-stats"
 import { VideoCoreSubtitleMenu, type VideoCoreSubtitleSelection } from "@/app/(main)/_features/video-core/video-core-subtitle-menu"
 import { VideoCoreSubtitleManager } from "@/app/(main)/_features/video-core/video-core-subtitles"
 import { vc_timeRangeElement, VideoCoreTimeRange } from "@/app/(main)/_features/video-core/video-core-time-range"
-import { VideoCoreTopPlaybackInfo, VideoCoreTopSection } from "@/app/(main)/_features/video-core/video-core-top-section"
-import { VideoCoreWatchPartyChat } from "@/app/(main)/_features/video-core/video-core-watch-party-chat"
 import {
     vc_autoNextAtom,
     vc_autoPlayVideoAtom,
     vc_autoSkipOPEDAtom,
     vc_beautifyImageAtom,
     vc_settings,
-    vc_showStatsForNerdsAtom,
     vc_storedMutedAtom,
     vc_storedPlaybackRateAtom,
     vc_storedVolumeAtom,
@@ -126,7 +114,6 @@ import {
     __torrentSearch_selectionAtom,
     __torrentSearch_selectionEpisodeAtom,
 } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
-import { PlaybackPlayPill } from "@/app/(main)/entry/_containers/torrent-stream/playback-play-pill"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { logger } from "@/lib/helpers/debug"
@@ -140,7 +127,7 @@ import { flushSync } from "react-dom"
 import { BiExpand, BiX } from "react-icons/bi"
 import { FiMinimize2 } from "react-icons/fi"
 import { RemoveScrollBar } from "react-remove-scroll-bar"
-import { useUnmount, useUpdateEffect, useWindowSize } from "react-use"
+import { useUnmount, useUpdateEffect } from "react-use"
 import { VideoCoreScreenshotDirPrompt } from "./video-core-screenshot-prompt"
 
 const log = logger("VIDEO CORE")
@@ -248,7 +235,6 @@ export function VideoCoreProvider(props: { id: string, children: React.ReactNode
                 vc_lastKnownProgress,
                 vc_skipChapter,
                 vc_dispatchAction,
-                vc_hoveringControlBar,
                 vc_menuOpen,
                 vc_menuSectionOpen,
                 vc_showOverlayFeedback,
@@ -263,7 +249,6 @@ export function VideoCoreProvider(props: { id: string, children: React.ReactNode
                 vc_hlsCurrentAudioTrack,
                 vc_hlsSetAudioTrack,
                 vc_isSwiping,
-                vc_isMobile,
                 vc_swipeSeekTime,
             ]}
         >
@@ -341,10 +326,8 @@ const PlayerContent = React.memo<PlayerContentProps>(({
     onHlsQualityChange,
     onSubtitlePreferenceChange,
 }) => {
-    const isMobile = useAtomValue(vc_isMobile)
     const isMiniPlayer = useAtomValue(vc_miniPlayer)
     const busy = useAtomValue(vc_busy)
-    const paused = useAtomValue(vc_paused)
     const buffering = useAtomValue(vc_buffering)
     const settings = useAtomValue(vc_settings)
     const beautifyImage = useAtomValue(vc_beautifyImageAtom)
@@ -355,7 +338,6 @@ const PlayerContent = React.memo<PlayerContentProps>(({
     const action = useSetAtom(vc_dispatchAction)
     const [autoPlay] = useAtom(vc_autoPlayVideoAtom)
     const [muted] = useAtom(vc_storedMutedAtom)
-    const showStats = useAtomValue(vc_showStatsForNerdsAtom)
 
     return (
         <>
@@ -385,48 +367,15 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                             endingEndTime={aniSkipData?.ed?.interval?.endTime}
                         />
 
-                        {showStats && !isMobile && (
-                            <VideoCoreStatsForNerds
-                                playbackInfo={state.playbackInfo}
-                                videoRef={videoRef}
-                            />
-                        )}
-
                         <VideoCoreOverlayDisplay />
 
                         <MediaCoreBufferingOverlay buffering={buffering} />
 
-                        {busy && (
-                            <>
-                                {!!skipChapter && !isMiniPlayer && isMobile && (
-                                    <PhoneSkipButton
-                                        label={skipChapter.label}
-                                        onSkip={() => action({ type: "seekTo", payload: { time: skipChapter.end } })}
-                                    />
-                                )}
-                                {!!skipChapter && !isMiniPlayer && !isMobile && (
-                                    <div
-                                        data-vc-element="skip-oped-button-container"
-                                        data-vc-for="chapter"
-                                        className={cn(
-                                            "absolute bottom-28 z-[60] native-player-hide-on-fullscreen",
-                                            skipChapter.side === "left" ? "left-5" : "right-5",
-                                        )}
-                                    >
-                                        <Button
-                                            size="sm"
-                                            intent="gray-basic"
-                                            onClick={e => {
-                                                e.stopPropagation()
-                                                action({ type: "seekTo", payload: { time: skipChapter.end } })
-                                            }}
-                                            onPointerMove={e => e.stopPropagation()}
-                                        >
-                                            Skip {skipChapter.label}
-                                        </Button>
-                                    </div>
-                                )}
-                            </>
+                        {busy && !!skipChapter && !isMiniPlayer && (
+                            <PhoneSkipButton
+                                label={skipChapter.label}
+                                onSkip={() => action({ type: "seekTo", payload: { time: skipChapter.end } })}
+                            />
                         )}
 
                         <div
@@ -485,24 +434,6 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                             </video>
                         </div>
 
-                        {!isMobile && <VideoCoreInSight />}
-
-                        {!isMobile && <VideoCoreTopSection inline={inline}>
-                            <VideoCoreTopPlaybackInfo state={state} />
-                            {!inline && (
-                                <div
-                                    data-vc-element="floating-buttons-container"
-                                    className={cn(
-                                        "opacity-0",
-                                        "transition-opacity duration-200 ease-in-out",
-                                        (busy || paused) && "opacity-100",
-                                    )}
-                                >
-                                    <FloatingButtons part="video" onTerminateStream={onTerminateStream} />
-                                </div>
-                            )}
-                        </VideoCoreTopSection>}
-
                         {isPip && (
                             <div
                                 data-vc-element="pip-overlay"
@@ -520,31 +451,9 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                             </div>
                         )}
 
-                        {!isMobile ? <VideoCoreControlBar
+                        <VideoCoreMobileControlBar
                             timeRange={<VideoCoreTimeRange chapterCues={chapterCues ?? []} />}
-                        >
-                            <VideoCorePlayButton />
-                            <VideoCorePlaylistControl />
-                            <VideoCoreVolumeButton />
-                            <VideoCoreTimestamp />
-                            <div className="flex flex-1" data-vc-element="control-bar-separator" />
-                            {!inline && <PlaybackPlayPill isNativePlayerComponent="control-bar" show={!isMiniPlayer} />}
-                            <VideoCoreWatchPartyChat />
-                            <VideoCoreSettingsMenu />
-                            <VideoCoreResolutionMenu
-                                state={state}
-                                onVideoSourceChange={onVideoSourceChange}
-                                onHlsQualityChange={onHlsQualityChange}
-                            />
-                            <VideoCoreSubtitleMenu inline={inline} onPreferenceChange={onSubtitlePreferenceChange} />
-                            <VideoCoreAudioMenu />
-                            <VideoCorePipButton />
-                            <VideoCoreFullscreenButton />
-                        </VideoCoreControlBar> : <VideoCoreMobileControlBar
-                            timeRange={<VideoCoreTimeRange chapterCues={chapterCues ?? []} />}
-                            topLeftSection={<>
-                                <VideoCorePlaylistControl />
-                            </>}
+                            topLeftSection={<VideoCorePlaylistControl />}
                             topRightSection={<>
                                 <VideoCoreSettingsMenu />
                                 <VideoCoreResolutionMenu
@@ -557,13 +466,9 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                                 <VideoCorePipButton />
                                 <VideoCoreVolumeButton />
                             </>}
-                            bottomRightSection={<>
-                                <VideoCoreFullscreenButton />
-                            </>}
-                            bottomLeftSection={<>
-                                <VideoCoreTimestamp />
-                            </>}
-                        />}
+                            bottomRightSection={<VideoCoreFullscreenButton />}
+                            bottomLeftSection={<VideoCoreTimestamp />}
+                        />
                     </>
                 ) : (
                     <MediaCoreLoadingOverlay
@@ -571,7 +476,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                         isMiniPlayer={isMiniPlayer}
                         inline={inline}
                         fullscreen={fullscreen}
-                        terminateButton={<FloatingButtons part="loading" onTerminateStream={onTerminateStream} />}
+                        terminateButton={<LoadingFloatingButtons onTerminateStream={onTerminateStream} />}
                     />
                 )}
             </div>
@@ -677,12 +582,6 @@ export function VideoCore(props: VideoCoreProps) {
         dispatchTranslateSubtitleTrackEvent,
     } = useVideoCoreSetupEvents(props.id, state, onTerminateStream, setPluginSkipDataOverride, currentSkipDataRef)
 
-    const windowWidth = layoutWidth(useWindowSize().width)
-    const [isMobilePlayer, setIsMobilePlayer] = useAtom(vc_isMobile)
-    React.useEffect(() => {
-        setIsMobilePlayer(windowWidth < 1024)
-    }, [windowWidth < 1024])
-
     const [videoElement, setVideoElement] = useAtom(vc_videoElement)
     const setRealVideoSize = useSetAtom(vc_realVideoSize)
     useVideoCoreBindings(videoElement, state.playbackInfo)
@@ -707,8 +606,6 @@ export function VideoCore(props: VideoCoreProps) {
     const setIsFullscreen = useSetAtom(vc_isFullscreen)
     const [mediaSessionManager, setMediaSessionManager] = useAtom(vc_mediaSessionManager)
     const action = useSetAtom(vc_dispatchAction)
-    const setInSightOpen = useSetAtom(vc_inSight_open)
-    const setInSightData = useSetAtom(vc_inSight_data)
 
     // States
     const qc = useQueryClient()
@@ -948,8 +845,6 @@ export function VideoCore(props: VideoCoreProps) {
                 fullscreenManager.destroy()
                 setFullscreenManager(null)
             }
-            setInSightOpen(false)
-            setInSightData(null)
             // setIsFullscreen(false)
             if (mediaSessionManager) {
                 mediaSessionManager.setVideo(null)
@@ -964,8 +859,6 @@ export function VideoCore(props: VideoCoreProps) {
         if (!!state.playbackInfo?.id && (!currentPlaybackRef.current || state.playbackInfo.id !== currentPlaybackRef.current)) {
             hasSoughtRef.current = false
             isFirstError.current = true
-            setInSightOpen(false)
-            setInSightData(null)
             log.info("New stream loaded", state.playbackInfo)
             setStreamType(state.playbackInfo.streamType)
             vc_logGeneralInfo(videoRef.current)
@@ -1644,7 +1537,6 @@ export function VideoCore(props: VideoCoreProps) {
         return (
             <ScopeProvider atoms={[__torrentSearch_selectionAtom, __torrentSearch_selectionEpisodeAtom, __torrentSearch_selectedTorrentsAtom]}>
                 <VideoCoreAnime4K />
-                <VideoCorePreferencesModal isWebPlayer={props.id !== "native-player"} />
                 <VideoCoreScreenshotDirPrompt />
                 {fullscreen && <RemoveScrollBar />}
                 <div
@@ -1697,7 +1589,6 @@ export function VideoCore(props: VideoCoreProps) {
             <ScopeProvider atoms={[__torrentSearch_selectionAtom, __torrentSearch_selectionEpisodeAtom, __torrentSearch_selectedTorrentsAtom]}>
 
                 <VideoCoreAnime4K />
-                <VideoCorePreferencesModal isWebPlayer={props.id !== "native-player"} />
                 <VideoCoreScreenshotDirPrompt />
                 {state.active && !isMiniPlayer && <RemoveScrollBar />}
 
@@ -1777,98 +1668,64 @@ export function VideoCore(props: VideoCoreProps) {
     )
 }
 
-function FloatingButtons(props: { part: "video" | "loading", onTerminateStream: () => void }) {
-    const { part, onTerminateStream } = props
+function LoadingFloatingButtons(props: { onTerminateStream: () => void }) {
     const fullscreen = useAtomValue(vc_isFullscreen)
     const [isMiniPlayer, setIsMiniPlayer] = useAtom(vc_miniPlayer)
     const fullscreenManager = useAtomValue(vc_fullscreenManager)
 
-    if (fullscreen && part === "video") return null
-    const Content = () => (
-        <>
+    return (
+        <div
+            data-vc-element="loading-floating-buttons-container"
+            data-vc-for="loading"
+            className={cn(
+                "absolute top-8 w-full z-[100]",
+                isMiniPlayer && "top-0",
+            )}
+        >
             {fullscreen ? (
-                <>
-                    <IconButton
-                        data-vc-element="floating-button-exit-fullscreen"
-                        data-vc-for={part}
-                        icon={<FiMinimize2 className="text-2xl" />}
-                        intent="gray-basic"
-                        className="rounded-full absolute top-0 flex-none right-4 z-[999]"
-                        onClick={() => {
-                            fullscreenManager?.exitFullscreen()
-                        }}
-                    />
-                </>
+                <IconButton
+                    data-vc-element="floating-button-exit-fullscreen"
+                    data-vc-for="loading"
+                    icon={<FiMinimize2 className="text-2xl" />}
+                    intent="gray-basic"
+                    className="rounded-full absolute top-0 flex-none right-4 z-[999]"
+                    onClick={() => fullscreenManager?.exitFullscreen()}
+                />
+            ) : !isMiniPlayer ? (
+                <IconButton
+                    data-vc-element="floating-button-miniplayer"
+                    data-vc-for="loading"
+                    icon={<FiMinimize2 className="text-2xl" />}
+                    intent="gray-basic"
+                    className="rounded-full absolute top-0 flex-none right-4 z-[999]"
+                    onClick={() => startVideoCoreMiniPlayerTransition(() => setIsMiniPlayer(true))}
+                />
             ) : (
                 <>
-                    {!isMiniPlayer && <>
-                        <IconButton
-                            data-vc-element="floating-button-miniplayer"
-                            data-vc-for={part}
-                            icon={<FiMinimize2 className="text-2xl" />}
-                            intent="gray-basic"
-                            className="rounded-full absolute top-0 flex-none right-4 z-[999]"
-                            onClick={() => {
-                                startVideoCoreMiniPlayerTransition(() => {
-                                    setIsMiniPlayer(true)
-                                })
-                            }}
-                        />
-                    </>}
-
-                    {isMiniPlayer && <>
-                        <IconButton
-                            data-vc-element="floating-button-expand"
-                            data-vc-for={part}
-                            type="button"
-                            intent="gray"
-                            size="sm"
-                            className={cn(
-                                "rounded-full text-2xl flex-none absolute z-[999] right-4 top-4 pointer-events-auto bg-black/30 hover:bg-black/40",
-                                isMiniPlayer && "text-xl",
-                            )}
-                            icon={<BiExpand />}
-                            onClick={() => {
-                                setIsMiniPlayer(false)
-                            }}
-                        />
-                        <IconButton
-                            data-vc-element="floating-button-terminate"
-                            data-vc-for={part}
-                            type="button"
-                            intent="alert-subtle"
-                            size="sm"
-                            className={cn(
-                                "rounded-full text-2xl flex-none absolute z-[999] left-4 top-4 pointer-events-auto",
-                                isMiniPlayer && "text-xl",
-                            )}
-                            icon={<BiX />}
-                            onClick={() => {
-                                onTerminateStream()
-                            }}
-                        />
-                    </>}
+                    <IconButton
+                        data-vc-element="floating-button-expand"
+                        data-vc-for="loading"
+                        type="button"
+                        intent="gray"
+                        size="sm"
+                        className="rounded-full text-xl flex-none absolute z-[999] right-4 top-4 pointer-events-auto bg-black/30 hover:bg-black/40"
+                        icon={<BiExpand />}
+                        onClick={() => setIsMiniPlayer(false)}
+                    />
+                    <IconButton
+                        data-vc-element="floating-button-terminate"
+                        data-vc-for="loading"
+                        type="button"
+                        intent="alert-subtle"
+                        size="sm"
+                        className="rounded-full text-xl flex-none absolute z-[999] left-4 top-4 pointer-events-auto"
+                        icon={<BiX />}
+                        onClick={props.onTerminateStream}
+                    />
                 </>
             )}
-        </>
+        </div>
     )
-
-    if (part === "loading") {
-        return (
-            <div
-                data-vc-element="loading-floating-buttons-container"
-                data-vc-for={part}
-                className={cn(
-                    "absolute top-8 w-full z-[100]",
-                    isMiniPlayer && "top-0",
-                )}
-            >
-                <Content />
-            </div>
-        )
-    }
-
-    return <Content />
 }
 
 /** Android phone: a solid, thumb-sized skip action at the bottom right, above the time bar. */

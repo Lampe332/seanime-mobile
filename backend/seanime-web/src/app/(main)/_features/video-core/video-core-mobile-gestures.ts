@@ -1,4 +1,3 @@
-import { vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_isSwiping } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_swipeSeekTime } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_duration } from "@/app/(main)/_features/video-core/video-core-atoms"
@@ -24,15 +23,13 @@ export function useVideoCoreMobileGestures({
 }: UseVideoCoreMobileGestures) {
     const [isSwiping, setIsSwiping] = useAtom(vc_isSwiping)
     const setSwipeSeekTime = useSetAtom(vc_swipeSeekTime)
-    const isMobile = useAtomValue(vc_isMobile)
     const isFullscreen = useAtomValue(vc_isFullscreen)
     const duration = useAtomValue(vc_duration)
     const timeRangeElement = useAtomValue(vc_timeRangeElement)
     const touchStartRef = useRef<{ x: number; y: number; time: number; currentTime: number } | null>(null)
 
     useEffect(() => {
-        // Only enable on mobile and when not in fullscreen
-        if (!isMobile || isFullscreen || !containerElement || !videoElement || duration <= 1) {
+        if (isFullscreen || !containerElement || !videoElement || duration <= 1) {
             return
         }
 
@@ -143,6 +140,6 @@ export function useVideoCoreMobileGestures({
             containerElement.removeEventListener("touchend", handleTouchEnd)
             containerElement.removeEventListener("touchcancel", handleTouchCancel)
         }
-    }, [videoElement, containerElement, isMobile, isFullscreen, isSwiping, setIsSwiping, setSwipeSeekTime, duration, onSeek, timeRangeElement])
+    }, [videoElement, containerElement, isFullscreen, isSwiping, setIsSwiping, setSwipeSeekTime, duration, onSeek, timeRangeElement])
 }
 

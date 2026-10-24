@@ -1,7 +1,5 @@
 import { cn } from "@/components/ui/core/styling"
-import { Drawer } from "@/components/ui/drawer"
 import { Popover } from "@/components/ui/popover"
-import { TextInput } from "@/components/ui/text-input"
 import { Tooltip } from "@/components/ui/tooltip"
 import { motion } from "motion/react"
 import React, { useRef } from "react"
@@ -15,7 +13,6 @@ export interface MediaCoreMenuProps {
     children?: React.ReactNode
     className?: string
     sideOffset?: number
-    isDrawer?: boolean
     openMenu: string | null
     onOpenMenuChange: (menu: string | null) => void
     onOpenSectionChange?: (section: string | null) => void
@@ -32,7 +29,6 @@ export function MediaCoreMenu(props: MediaCoreMenuProps) {
         className,
         name,
         sideOffset = 4,
-        isDrawer,
         openMenu,
         onOpenMenuChange,
         onOpenSectionChange,
@@ -56,29 +52,6 @@ export function MediaCoreMenu(props: MediaCoreMenuProps) {
             }
         }
     }, [openMenu])
-
-    if (isDrawer) {
-        return (
-            <Drawer
-                data-vc-element="menu-drawer"
-                open={openMenu === name}
-                onOpenChange={v => {
-                    onOpenMenuChange(v ? name : null)
-                }}
-                trigger={<div>{trigger}</div>}
-                allowOutsideInteraction={true}
-                contentClass={cn(
-                    "bg-black/85 rounded-xl p-3 backdrop-blur-sm w-[20rem] z-[100]",
-                    className,
-                )}
-                portalContainer={isFullscreen ? containerElement || undefined : undefined}
-            >
-                <div className="h-auto" data-vc-element="menu-drawer-body">
-                    {children}
-                </div>
-            </Drawer>
-        )
-    }
 
     return (
         <Popover
@@ -385,22 +358,6 @@ export function MediaCoreSettingSelect(props: MediaCoreSettingSelectProps) {
                     </div>
                 </div>
             ))}
-        </div>
-    )
-}
-
-export interface MediaCoreSettingTextInputProps {
-    value: string
-    onValueChange: (value: string) => void
-    label?: string
-    help?: string
-}
-
-export function MediaCoreSettingTextInput(props: MediaCoreSettingTextInputProps) {
-    const { value, onValueChange, label, help } = props
-    return (
-        <div className="block" data-vc-element="setting-text-input">
-            <TextInput label={label} value={value} onValueChange={onValueChange} help={help} />
         </div>
     )
 }

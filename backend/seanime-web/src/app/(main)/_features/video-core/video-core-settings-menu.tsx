@@ -1,17 +1,12 @@
-import { useOpenInExplorer } from "@/api/hooks/explorer.hooks"
 import { usePatchSetting } from "@/api/hooks/settings.hooks"
 import { vc_subtitleManager } from "@/app/(main)/_features/video-core/video-core"
 import { vc_mediaCaptionsManager } from "@/app/(main)/_features/video-core/video-core"
-import { anime4kOptions, getAnime4KOptionByValue, vc_anime4kOption } from "@/app/(main)/_features/video-core/video-core-anime-4k"
-import { Anime4KOption } from "@/app/(main)/_features/video-core/video-core-anime-4k-manager"
 import { vc_menuOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_menuSectionOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_menuSubSectionOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_playbackRate } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_miniPlayer } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_containerElement } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_activePlayerId } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { VideoCoreControlButtonIcon } from "@/app/(main)/_features/video-core/video-core-control-bar"
 import {
@@ -21,11 +16,8 @@ import {
     VideoCoreMenuSubmenuBody,
     VideoCoreMenuSubOption,
     VideoCoreMenuSubSubmenuBody,
-    VideoCoreMenuTitle,
     VideoCoreSettingSelect,
-    VideoCoreSettingTextInput,
 } from "@/app/(main)/_features/video-core/video-core-menu"
-import { videoCorePreferencesModalAtom } from "@/app/(main)/_features/video-core/video-core-preferences"
 import {
     vc_autoNextAtom,
     vc_autoPlayVideoAtom,
@@ -34,7 +26,6 @@ import {
     vc_highlightOPEDChaptersAtom,
     vc_initialSettings,
     vc_settings,
-    vc_showChapterMarkersAtom,
     vc_storedPlaybackRateAtom,
     vc_storedVolumeBoostAtom,
     vc_useLibassRendererAtom,
@@ -48,7 +39,6 @@ import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { upath } from "@/lib/helpers/upath"
 import { Translate, useTr } from "@/lib/app-language"
 import "@/components/shared/mobile-surface.css"
 import "./video-core-phone-settings.css"
@@ -60,7 +50,6 @@ import { ImFileText } from "react-icons/im"
 import { IoCaretForwardCircleOutline } from "react-icons/io5"
 import {
     LuChevronRight,
-    LuChevronUp,
     LuCpu,
     LuHeading,
     LuKey,
@@ -68,8 +57,6 @@ import {
     LuPaintbrush,
     LuPalette,
     LuSettings,
-    LuSettings2,
-    LuSparkles,
     LuTvMinimalPlay,
     LuVolume2,
 } from "react-icons/lu"
@@ -221,23 +208,15 @@ function vc_getCaptionStyleLabel<T extends keyof VideoCoreSettings["captionCusto
 
 export function VideoCoreSettingsMenu() {
     const serverStatus = useServerStatus()
-    const isMobile = useAtomValue(vc_isMobile)
     const action = useSetAtom(vc_dispatchAction)
     const isMiniPlayer = useAtomValue(vc_miniPlayer)
     const playbackRate = useAtomValue(vc_playbackRate)
     const setPlaybackRate = useSetAtom(vc_storedPlaybackRateAtom)
     const [volumeBoost, setVolumeBoost] = useAtom(vc_storedVolumeBoostAtom)
     const isFullscreen = useAtomValue(vc_isFullscreen)
-    const containerElement = useAtomValue(vc_containerElement)
     const subtitleManager = useAtomValue(vc_subtitleManager)
     const mediaCaptionsManager = useAtomValue(vc_mediaCaptionsManager)
 
-    const [anime4kOption, setAnime4kOption] = useAtom(vc_anime4kOption)
-    const currentAnime4kOption = getAnime4KOptionByValue(anime4kOption)
-
-    const [, setKeybindingsModelOpen] = useAtom(videoCorePreferencesModalAtom)
-
-    const [showChapterMarkers, setShowChapterMarkers] = useAtom(vc_showChapterMarkersAtom)
     const [highlightOPEDChapters, setHighlightOPEDChapters] = useAtom(vc_highlightOPEDChaptersAtom)
     const [beautifyImage, setBeautifyImage] = useAtom(vc_beautifyImageAtom)
     const [autoNext, setAutoNext] = useAtom(vc_autoNextAtom)
@@ -248,21 +227,16 @@ export function VideoCoreSettingsMenu() {
     const [openMenuSection, setOpenMenuSection] = useAtom(vc_menuSectionOpen)
     const [openMenuSubSection, setOpenMenuSubSection] = useAtom(vc_menuSubSectionOpen)
 
-    const { mutate: openInExplorer, isPending: isOpeningInExplorer } = useOpenInExplorer()
-
     const [settings, setSettings] = useAtom(vc_settings)
     const [useLibassRenderer, setUseLibassRenderer] = useAtom(vc_useLibassRendererAtom)
     const [preferences, setPreferences] = useAtom(mediaCorePreferencesAtom)
-    // The native player never registers as active; the preferences modal hides libass there too.
+    // The native player never registers as active and does not use libass.
     const isWebPlayer = useAtomValue(vc_activePlayerId) !== null
 
     const t = useTr()
-    const isPhone = isMobile
-    // Section titles stay English ids; phones show them translated.
-    const phoneLabel = (en: string, de: string) => isPhone ? t(en, de) : undefined
-    // Android Back in fullscreen leaves fullscreen natively; the phone sheet must not stay open on the inline player.
+    // Android Back in fullscreen leaves fullscreen natively; the sheet must not stay open on the inline player.
     React.useEffect(() => {
-        if (isPhone) setMenuOpen(open => open === "settings" ? null : open)
+        setMenuOpen(open => open === "settings" ? null : open)
     }, [isFullscreen])
 
     const [editedSubCustomization, setEditedSubCustomization] = useState<VideoCoreSettings["subtitleCustomization"]>(
@@ -274,8 +248,6 @@ export function VideoCoreSettingsMenu() {
     )
 
     const [editedSubtitleDelay, setEditedSubtitleDelay] = useState(settings.subtitleDelay ?? 0)
-
-    const [subFontName, setSubFontName] = useState<string>(editedSubCustomization?.fontName || "")
 
     React.useEffect(() => {
         if (openMenuSection === "Subtitle Styles") {
@@ -356,7 +328,6 @@ export function VideoCoreSettingsMenu() {
         mediaCaptionsManager?.updateSettings(newSettings)
     }
 
-    // Same writes as the preferences modal's save.
     const handleSubtitleBlacklistChange = (blacklist: string): void => {
         const newSettings = { ...settings, preferredSubtitleBlacklist: blacklist }
         setSettings(newSettings)
@@ -370,7 +341,7 @@ export function VideoCoreSettingsMenu() {
         setOpenMenuSection(null)
     }
 
-    // Subtitle translation (phone): server settings, defaults as in the preferences modal.
+    // Subtitle translation lives in the server settings; empty values fall back to these defaults.
     const { mutate: patchSetting } = usePatchSetting()
     const mediaPlayerSettings = serverStatus?.settings?.mediaPlayer
     const translateEnabled = mediaPlayerSettings?.vcTranslate ?? false
@@ -388,7 +359,7 @@ export function VideoCoreSettingsMenu() {
         patchSetting({ path: `mediaPlayer.${change[0]}`, value: change[1] }, { onSuccess: () => patchMediaPlayer(rest, onDone) })
     }
 
-    // Same follow-up as the preferences modal after saving.
+    // Point the running subtitle managers at the new target.
     const updateShouldTranslate = (enabled: boolean, target: string): void => {
         subtitleManager?.updateShouldTranslate(enabled ? target : null)
         mediaCaptionsManager?.updateShouldTranslate(enabled ? target : null)
@@ -396,7 +367,7 @@ export function VideoCoreSettingsMenu() {
 
     const handleTranslateProviderChange = (provider: string): void => {
         const changes: [string, string | boolean][] = [["vcTranslateProvider", provider]]
-        // The modal saves its prefilled fields with the provider; fill the ones this provider needs.
+        // Store the defaults this provider needs along with it.
         const storedModel = mediaPlayerSettings?.vcTranslateModel || ""
         if (provider === "openai" && (!storedModel || storedModel === "local-model")) changes.push(["vcTranslateModel", "gpt-4o-mini"])
         if (provider === "openai-compatible") {
@@ -430,9 +401,8 @@ export function VideoCoreSettingsMenu() {
             )}
             <VideoCoreMenu
                 name="settings"
-                className={isPhone ? "vc-phone-settings" : undefined}
                 // Android Back / Escape steps back one page before it closes the sheet.
-                onEscapeKeyDown={isPhone ? (e: KeyboardEvent) => {
+                onEscapeKeyDown={(e: KeyboardEvent) => {
                     if (openMenuSubSection) {
                         e.preventDefault()
                         setOpenMenuSubSection(null)
@@ -440,18 +410,15 @@ export function VideoCoreSettingsMenu() {
                         e.preventDefault()
                         setOpenMenuSection(null)
                     }
-                } : undefined}
+                }}
                 trigger={<VideoCoreControlButtonIcon
-                    icons={[
-                        ["default", isMobile ? LuSettings : LuChevronUp],
-                    ]}
+                    icons={[["default", LuSettings]]}
                     state="default"
-                    className={isMobile ? "text-xl" : ""}
-                    onClick={() => {
-                    }}
+                    className="text-xl"
+                    onClick={() => {}}
                 />}
             >
-                {isPhone ? <VideoCoreMenuSectionBody>
+                <VideoCoreMenuSectionBody>
                     <PhoneSettingsHome
                         t={t}
                         open={setOpenMenuSection}
@@ -473,33 +440,9 @@ export function VideoCoreSettingsMenu() {
                         translation={!mediaPlayerSettings ? null : translateEnabled ? translateLanguageLabel(translateTarget) : t("Off", "Aus")}
                         skipPatterns={preferences.skipPatterns}
                     />
-                </VideoCoreMenuSectionBody> : <VideoCoreMenuSectionBody>
-                    <VideoCoreMenuTitle>Settings</VideoCoreMenuTitle>
-                    <VideoCoreMenuOption title="Playback Speed" icon={MdSpeed} value={`${(playbackRate).toFixed(2)}x`} />
-                    <VideoCoreMenuOption title="Volume Boost" icon={LuVolume2} value={formatVolumeBoost(volumeBoost)} />
-                    <VideoCoreMenuOption title="Auto Play" icon={IoCaretForwardCircleOutline} value={autoPlay ? "On" : "Off"} />
-                    <VideoCoreMenuOption title="Auto Next" icon={HiFastForward} value={autoNext ? "On" : "Off"} />
-                    <VideoCoreMenuOption title="Skip OP/ED" icon={TbArrowForwardUp} value={autoSkipOPED ? "On" : "Off"} />
-                    <VideoCoreMenuOption title="Anime4K" icon={LuSparkles} value={currentAnime4kOption?.label || "Off"} />
-                    {(subtitleManager || mediaCaptionsManager) && <VideoCoreMenuOption
-                        title="Subtitle Delay"
-                        icon={MdOutlineAccessTime}
-                        value={`${settings.subtitleDelay.toFixed(1)}s`}
-                    />}
-                    {subtitleManager && <VideoCoreMenuOption
-                        title="Subtitle Styles"
-                        icon={MdOutlineSubtitles}
-                        value={editedSubCustomization?.enabled ? `On${!!editedSubCustomization?.fontName ? ", Font" : ""}` : "Off"}
-                    />}
-                    {mediaCaptionsManager && <VideoCoreMenuOption
-                        title="Caption Styles"
-                        icon={MdOutlineSubtitles}
-                    />}
-                    <VideoCoreMenuOption title="Player Appearance" icon={LuTvMinimalPlay} />
-                    <VideoCoreMenuOption title="Preferences" icon={LuSettings2} onClick={() => setKeybindingsModelOpen(true)} />
-                </VideoCoreMenuSectionBody>}
+                </VideoCoreMenuSectionBody>
                 <VideoCoreMenuSubmenuBody>
-                    <VideoCoreMenuOption title="Subtitle Styles" label={phoneLabel("Subtitle styles", "Untertitel-Stil")} icon={MdOutlineSubtitles}>
+                    <VideoCoreMenuOption title="Subtitle Styles" label={t("Subtitle styles", "Untertitel-Stil")} icon={MdOutlineSubtitles}>
                         <p className="text-sm text-[--muted] mb-2">Subtitle customization will not override ASS/SSA tracks that contain multiple
                                                                    styles.</p>
                         <VideoCoreSettingSelect
@@ -512,16 +455,6 @@ export function VideoCoreSettingsMenu() {
                         />
                         {editedSubCustomization.enabled && <>
                             <p className="text-[--muted] text-sm my-2">Options</p>
-                            {/* Custom fonts are files in the desktop assets folder; phones cannot place them. */}
-                            {!isPhone && <VideoCoreMenuSubOption
-                                title="Font"
-                                icon={LuHeading}
-                                parentId="Subtitle Styles"
-                                value={!editedSubCustomization.fontName ? "Default" : editedSubCustomization.fontName?.slice(0,
-                                    11) + (!!editedSubCustomization.fontName?.length && editedSubCustomization.fontName?.length > 10
-                                    ? "..."
-                                    : "")}
-                            />}
                             <VideoCoreMenuSubOption
                                 title="Font Size"
                                 icon={VscTextSize}
@@ -550,7 +483,7 @@ export function VideoCoreSettingsMenu() {
                             />
                         </>}
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Caption Styles" label={phoneLabel("Caption styles", "Stil der Bildunterschriften")} icon={MdOutlineSubtitles}>
+                    <VideoCoreMenuOption title="Caption Styles" label={t("Caption styles", "Stil der Bildunterschriften")} icon={MdOutlineSubtitles}>
                         <p className="text-sm text-[--muted] mb-2">This only applies to non-ASS subtitles.</p>
                         {/*<VideoCoreSettingSelect*/}
                         {/*    options={[*/}
@@ -592,7 +525,7 @@ export function VideoCoreSettingsMenu() {
                         />
                         {/*</>}*/}
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Subtitle Delay" label={phoneLabel("Subtitle delay", "Untertitel-Versatz")} icon={MdOutlineAccessTime}>
+                    <VideoCoreMenuOption title="Subtitle Delay" label={t("Subtitle delay", "Untertitel-Versatz")} icon={MdOutlineAccessTime}>
                         <p className="text-sm text-[--muted] mb-2">Positive values delay subtitles, negative values advance them.</p>
                         <div className="flex gap-1.5 items-center mt-3">
                             <Button
@@ -647,7 +580,7 @@ export function VideoCoreSettingsMenu() {
                             value={[-2.0, -1.0, -0.5, 0, 0.5, 1.0, 2.0].includes(editedSubtitleDelay) ? editedSubtitleDelay : null}
                         />
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Playback Speed" label={phoneLabel("Playback speed", "Geschwindigkeit")} icon={MdSpeed}>
+                    <VideoCoreMenuOption title="Playback Speed" label={t("Playback speed", "Geschwindigkeit")} icon={MdSpeed}>
                         <p className="text-center font-semibold mt-2 select-none">
                             {(playbackRate).toFixed(2)}x
                         </p>
@@ -725,7 +658,7 @@ export function VideoCoreSettingsMenu() {
                             </Button>
                         </div>
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Volume Boost" label={phoneLabel("Volume boost", "Lautstärke-Boost")} icon={LuVolume2}>
+                    <VideoCoreMenuOption title="Volume Boost" label={t("Volume boost", "Lautstärke-Boost")} icon={LuVolume2}>
                         <VideoCoreSettingSelect
                             options={VOLUME_BOOST_OPTIONS}
                             onValueChange={(v: number) => {
@@ -733,64 +666,8 @@ export function VideoCoreSettingsMenu() {
                             }}
                             value={VOLUME_BOOST_OPTIONS.some(o => o.value === volumeBoost) ? volumeBoost : null}
                         />
-                        {!isPhone && <p className="text-[--muted] text-sm px-2 pt-2">Shift + Up/Down to adjust</p>}
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Auto Play" icon={IoCaretForwardCircleOutline}>
-                        <VideoCoreSettingSelect
-                            options={[
-                                { label: "On", value: 1 },
-                                { label: "Off", value: 0 },
-                            ]}
-                            onValueChange={(v: number) => {
-                                setAutoPlay(!!v)
-                            }}
-                            value={autoPlay ? 1 : 0}
-                        />
-                    </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Auto Next" icon={HiFastForward}>
-                        <VideoCoreSettingSelect
-                            options={[
-                                { label: "On", value: 1 },
-                                { label: "Off", value: 0 },
-                            ]}
-                            onValueChange={(v: number) => {
-                                setAutoNext(!!v)
-                            }}
-                            value={autoNext ? 1 : 0}
-                        />
-                    </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Skip OP/ED" icon={TbArrowForwardUp}>
-                        <VideoCoreSettingSelect
-                            options={[
-                                { label: "On", value: 1 },
-                                { label: "Off", value: 0 },
-                            ]}
-                            onValueChange={(v: number) => {
-                                setAutoSkipOPED(!!v)
-                            }}
-                            value={autoSkipOPED ? 1 : 0}
-                        />
-                    </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Anime4K" label={phoneLabel("Anime4K", "Anime4K")} icon={LuSparkles}>
-                        <p className="text-[--muted] text-sm mb-2">
-                            Real-time sharpening. GPU-intensive.
-                        </p>
-                        <VideoCoreSettingSelect
-                            isFullscreen={isFullscreen}
-                            containerElement={containerElement}
-                            options={anime4kOptions.map(option => ({
-                                label: `${option.label}`,
-                                value: option.value,
-                                moreInfo: option.performance === "heavy" ? "Heavy" : undefined,
-                                description: option.description,
-                            }))}
-                            onValueChange={(value: Anime4KOption) => {
-                                setAnime4kOption(value)
-                            }}
-                            value={anime4kOption}
-                        />
-                    </VideoCoreMenuOption>
-                    {isPhone && <VideoCoreMenuOption title="Default Languages" label={t("Languages", "Sprachen")} icon={MdOutlineSubtitles}>
+                    <VideoCoreMenuOption title="Default Languages" label={t("Languages", "Sprachen")} icon={MdOutlineSubtitles}>
                         <p className="text-sm text-[--muted] mb-2">{t("Chosen automatically when an episode starts and the stream offers it.",
                             "Wird beim Start einer Folge automatisch gewählt, wenn der Stream sie anbietet.")}</p>
                         <p className="vc-phone-page-label">{t("Subtitles", "Untertitel")}</p>
@@ -805,8 +682,8 @@ export function VideoCoreSettingsMenu() {
                             onValueChange={(v: string) => handlePreferredLanguageChange("preferredAudioLanguage", v)}
                             value={settings.preferredAudioLanguage}
                         />
-                    </VideoCoreMenuOption>}
-                    {isPhone && <VideoCoreMenuOption title="Subtitle Blacklist" label={t("Subtitle blacklist", "Untertitel-Blacklist")} icon={MdOutlineSubtitles}>
+                    </VideoCoreMenuOption>
+                    <VideoCoreMenuOption title="Subtitle Blacklist" label={t("Subtitle blacklist", "Untertitel-Blacklist")} icon={MdOutlineSubtitles}>
                         <PhoneTextEditor
                             t={t}
                             label={t("Subtitle blacklist", "Untertitel-Blacklist")}
@@ -817,8 +694,8 @@ export function VideoCoreSettingsMenu() {
                             onApply={handleSubtitleBlacklistChange}
                             onCancel={() => setOpenMenuSection(null)}
                         />
-                    </VideoCoreMenuOption>}
-                    {isPhone && <VideoCoreMenuOption title="Skip Patterns" label={t("Skip patterns", "Skip-Muster")} icon={TbArrowForwardUp}>
+                    </VideoCoreMenuOption>
+                    <VideoCoreMenuOption title="Skip Patterns" label={t("Skip patterns", "Skip-Muster")} icon={TbArrowForwardUp}>
                         <PhoneTextEditor
                             t={t}
                             label={t("Skip patterns", "Skip-Muster")}
@@ -830,8 +707,8 @@ export function VideoCoreSettingsMenu() {
                             onApply={handleSkipPatternsChange}
                             onCancel={() => setOpenMenuSection(null)}
                         />
-                    </VideoCoreMenuOption>}
-                    {isPhone && mediaPlayerSettings && <VideoCoreMenuOption
+                    </VideoCoreMenuOption>
+                    {mediaPlayerSettings && <VideoCoreMenuOption
                         title="Subtitle Translation"
                         label={t("Translate subtitles", "Untertitel übersetzen")}
                         icon={MdTranslate}
@@ -878,15 +755,7 @@ export function VideoCoreSettingsMenu() {
                             value={translateTarget}
                         />
                     </VideoCoreMenuOption>}
-                    <VideoCoreMenuOption title="Player Appearance" label={phoneLabel("Player appearance", "Player-Darstellung")} icon={LuPaintbrush}>
-                        <Switch
-                            label="Show Chapter Markers"
-                            side="right"
-                            fieldClass="hover:bg-transparent hover:border-transparent px-0 ml-0 w-full"
-                            size="sm"
-                            value={showChapterMarkers}
-                            onValueChange={setShowChapterMarkers}
-                        />
+                    <VideoCoreMenuOption title="Player Appearance" label={t("Player appearance", "Player-Darstellung")} icon={LuPaintbrush}>
                         <Switch
                             label="Highlight Skipped Chapters"
                             side="right"
@@ -906,37 +775,6 @@ export function VideoCoreSettingsMenu() {
                     </VideoCoreMenuOption>
                 </VideoCoreMenuSubmenuBody>
                 <VideoCoreMenuSubSubmenuBody>
-                    <VideoCoreMenuSubOption title="Font" icon={VscTextSize} parentId="Subtitle Styles">
-                        <div className="">
-                            <p className="text-sm mb-2">Custom Font</p>
-                            <p className="text-sm text-[--muted] mb-2">
-                                Place the font file in the <span
-                                className="text-indigo-300 cursor-pointer underline underline-offset-2"
-                                onClick={() => {
-                                    openInExplorer({ path: upath.normalize(`${serverStatus?.dataDir}/assets`) })
-                                }}
-                            >Seanime assets directory</span>. The file name must match
-                                the font name exactly.
-                            </p>
-                            <div className="space-y-2">
-                                <VideoCoreSettingTextInput
-                                    label="File Name"
-                                    value={subFontName ?? ""}
-                                    onValueChange={(v: string) => setSubFontName(v)}
-                                    help="Example: Noto Sans JP.woff2"
-                                />
-                                <div className="flex w-full">
-                                    <Button
-                                        size="sm" intent="gray-subtle" onClick={() => {
-                                        handleSubtitleCustomizationChange("fontName", subFontName)
-                                    }}
-                                    >
-                                        Save
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </VideoCoreMenuSubOption>
                     <VideoCoreMenuSubOption title="Font Size" icon={LuHeading} parentId="Subtitle Styles">
                         <p className="text-[--muted] text-sm mb-2">Font Size</p>
                         <VideoCoreSettingSelect
@@ -1043,7 +881,7 @@ export function VideoCoreSettingsMenu() {
                             value={vc_getCaptionStyle(editedCaptionCustomization, "textShadowColor")}
                         />
                     </VideoCoreMenuSubOption>
-                    {isPhone && <VideoCoreMenuSubOption title={t("Base URL", "Basis-URL")} icon={LuLink} parentId="Subtitle Translation">
+                    <VideoCoreMenuSubOption title={t("Base URL", "Basis-URL")} icon={LuLink} parentId="Subtitle Translation">
                         <PhoneTextEditor
                             t={t}
                             label={t("Base URL", "Basis-URL")}
@@ -1056,8 +894,8 @@ export function VideoCoreSettingsMenu() {
                             }}
                             onCancel={() => setOpenMenuSubSection(null)}
                         />
-                    </VideoCoreMenuSubOption>}
-                    {isPhone && <VideoCoreMenuSubOption title={t("Model", "Modell")} icon={LuCpu} parentId="Subtitle Translation">
+                    </VideoCoreMenuSubOption>
+                    <VideoCoreMenuSubOption title={t("Model", "Modell")} icon={LuCpu} parentId="Subtitle Translation">
                         <PhoneTextEditor
                             t={t}
                             label={t("Model", "Modell")}
@@ -1067,8 +905,8 @@ export function VideoCoreSettingsMenu() {
                             onApply={handleTranslateModelChange}
                             onCancel={() => setOpenMenuSubSection(null)}
                         />
-                    </VideoCoreMenuSubOption>}
-                    {isPhone && <VideoCoreMenuSubOption title={t("API key", "API-Schlüssel")} icon={LuKey} parentId="Subtitle Translation">
+                    </VideoCoreMenuSubOption>
+                    <VideoCoreMenuSubOption title={t("API key", "API-Schlüssel")} icon={LuKey} parentId="Subtitle Translation">
                         <PhoneTextEditor
                             t={t}
                             type="password"
@@ -1084,7 +922,7 @@ export function VideoCoreSettingsMenu() {
                             }}
                             onCancel={() => setOpenMenuSubSection(null)}
                         />
-                    </VideoCoreMenuSubOption>}
+                    </VideoCoreMenuSubOption>
                 </VideoCoreMenuSubSubmenuBody>
             </VideoCoreMenu>
         </>
@@ -1098,7 +936,7 @@ const PHONE_LANGUAGES = [
     { en: "English", de: "Englisch", codes: "en,eng,english" },
 ]
 
-/** Translation providers and target languages: the same lists as the preferences modal. */
+/** Translation providers and target languages. */
 const TRANSLATE_PROVIDERS = [
     { value: "google", label: "Google Free" },
     { value: "deepl", label: "DeepL" },
@@ -1250,7 +1088,7 @@ function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
                 </PhoneGroup>
                 <PhoneGroup title={t("Display", "Darstellung")}>
                     <PhoneLinkRow icon={LuTvMinimalPlay} label={t("Player appearance", "Player-Darstellung")} onClick={() => open("Player Appearance")} />
-                    {/* Like the preferences modal: applies when the player loads the next stream. */}
+                    {/* Applies when the player loads the next stream. */}
                     {props.useLibassRenderer !== null && <PhoneSwitchRow
                         icon={MdOutlineSubtitles}
                         label={t("Subtitle renderer: libass", "Untertitel-Renderer: libass")}

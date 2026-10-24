@@ -5,7 +5,7 @@ import { cn } from "@/components/ui/core/styling"
 import { TextInput } from "@/components/ui/text-input"
 import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
-import { atom, useAtom, useAtomValue } from "jotai"
+import { atom, useAtom } from "jotai"
 import React from "react"
 import { BiChevronDown, BiChevronUp } from "react-icons/bi"
 import { HiOutlineChatBubbleLeftRight } from "react-icons/hi2"
@@ -23,9 +23,8 @@ type ChatMessage = {
 const log = logger("NAKAMA WATCH PARTY CHAT")
 
 const watchPartyChat_chatMessagesAtom = atom<ChatMessage[]>([])
-export const watchPartyChat_chatMinimizedAtom = atom<boolean>(true)
-export const watchPartyChat_unreadCountAtom = atom<number>(5) // TODO set to 0
-export const watchPartyChat_isPlayerAtom = atom<boolean>(false)
+const watchPartyChat_chatMinimizedAtom = atom<boolean>(true)
+const watchPartyChat_unreadCountAtom = atom<number>(5) // TODO set to 0
 
 export function NakamaWatchPartyChatProvider() {
     const { watchPartySession, isParticipant, currentUserPeerId } = useNakamaWatchParty()
@@ -58,17 +57,7 @@ export function NakamaWatchPartyChatProvider() {
     return null
 }
 
-export function NakamaWatchPartyChat(props: { layout?: "fixed" | "videocore" }) {
-    const { layout = "fixed" } = props
-    const isPlayer = useAtomValue(watchPartyChat_isPlayerAtom)
-    // if it's currently shown in the player, don't display the fixed version
-    if (layout === "fixed" && isPlayer) return null
-
-    return <Content layout={layout} />
-}
-
-function Content(props: { layout: "fixed" | "videocore" }) {
-    const { layout } = props
+export function NakamaWatchPartyChat() {
     const { watchPartySession, isParticipant, currentUserPeerId } = useNakamaWatchParty()
     const [messages, setMessages] = useAtom(watchPartyChat_chatMessagesAtom)
     const [minimized, setMinimized] = useAtom(watchPartyChat_chatMinimizedAtom)
@@ -121,23 +110,6 @@ function Content(props: { layout: "fixed" | "videocore" }) {
 
     // Don't show chat if there's no session or user is not a participant
     if (!watchPartySession || !isParticipant) return null
-
-    if (layout === "videocore") {
-        return (
-            <ChatContent
-                messages={messages}
-                currentUserPeerId={currentUserPeerId}
-                messagesEndRef={messagesEndRef}
-                chatContainerRef={chatContainerRef}
-                inputValue={inputValue}
-                setInputValue={setInputValue}
-                handleKeyPress={handleKeyPress}
-                isSending={isSending}
-                inputRef={inputRef}
-                handleSendMessage={handleSendMessage}
-            />
-        )
-    }
 
     return (
         <div

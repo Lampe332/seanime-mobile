@@ -7,7 +7,6 @@ export const vc_menuSectionOpen = atom<string | null>(null)
 export const vc_menuSubSectionOpen = atom<string | null>(null)
 
 export const vc_activePlayerId = atom<string | null>(null)
-export const vc_isMobile = atom(false)
 export const vc_isSwiping = atom(false) // Mobile swipe state
 export const vc_swipeSeekTime = atom<number | null>(null) // Mobile swipe seek time
 export const vc_videoSize = atom({ width: 1, height: 1 })
@@ -43,11 +42,7 @@ export const vc_ended = atom(false)
 export const vc_paused = atom(true)
 export const vc_miniPlayer = atom(false)
 
-export const vc_hoveringControlBar = atom(false)
-
-export const vc_cursorBusy = derive([vc_hoveringControlBar, vc_menuOpen], (f1, f2) => {
-    return f1 || !!f2
-})
+export const vc_cursorBusy = derive([vc_menuOpen], menuOpen => !!menuOpen)
 export const vc_cursorPosition = atom({ x: 0, y: 0 })
 export const vc_busy = atom(true)
 export const vc_videoElement = atom<HTMLVideoElement | null>(null)

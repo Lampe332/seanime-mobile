@@ -2,9 +2,7 @@ import { SeaImage as Image } from "@/components/shared/sea-image"
 import { cn } from "@/components/ui/core/styling"
 import { AnimatePresence, motion } from "motion/react"
 import React from "react"
-import { FaDiamond } from "react-icons/fa6"
 import { LuChevronLeft, LuChevronRight, LuVolume, LuVolume1, LuVolume2, LuVolumeOff } from "react-icons/lu"
-import { RiPauseLargeLine, RiPlayLargeLine } from "react-icons/ri"
 import { RxEnterFullScreen, RxExitFullScreen } from "react-icons/rx"
 import { TbPictureInPicture, TbPictureInPictureOff } from "react-icons/tb"
 
@@ -21,215 +19,12 @@ export function formatTime(seconds: number) {
     return `${sign}${minutes}:${secs.toString().padStart(2, "0")}`
 }
 
-const CONTROL_BAR_MAIN_HEIGHT = 48
-const CONTROL_BAR_MAIN_HEIGHT_MINI = 28
 const CHAPTER_GAP = 3
-
-export interface MediaCoreControlBarViewProps {
-    paused: boolean
-    isMiniPlayer: boolean
-    cursorBusy: boolean
-    hoveringControlBar: boolean
-    onHoveringControlBarChange?: (hovering: boolean) => void
-    containerElement: HTMLDivElement | null
-    isMobile: boolean
-    timeRange: React.ReactNode
-    children?: React.ReactNode
-}
-
-export function MediaCoreControlBarView(props: MediaCoreControlBarViewProps) {
-    const {
-        paused,
-        isMiniPlayer,
-        cursorBusy,
-        hoveringControlBar,
-        onHoveringControlBarChange,
-        containerElement,
-        isMobile,
-        timeRange,
-        children,
-    } = props
-
-    const mainSectionHeight = isMiniPlayer ? CONTROL_BAR_MAIN_HEIGHT_MINI : CONTROL_BAR_MAIN_HEIGHT
-    const [cursorPosition, setCursorPosition] = React.useState<"outside" | "approaching" | "hover">("outside")
-    const cursorPositionRef = React.useRef(cursorPosition)
-    const containerRectRef = React.useRef<DOMRect | null>(null)
-
-    React.useEffect(() => {
-        cursorPositionRef.current = cursorPosition
-    }, [cursorPosition])
-
-    const setCursorPositionC = React.useEffectEvent((nextPosition: "outside" | "approaching" | "hover") => {
-        if (cursorPositionRef.current === nextPosition) return
-        cursorPositionRef.current = nextPosition
-        setCursorPosition(nextPosition)
-    })
-
-    const showOnlyTimeRange = isMobile ? false : (
-        (!paused && cursorPosition === "approaching") ||
-        (paused && cursorPosition === "outside") ||
-        (paused && cursorPosition === "approaching")
-    )
-
-    const controlBarTranslateY = isMobile ? (
-        (paused || cursorBusy || hoveringControlBar) ? 0 : 300
-    ) : (
-        (cursorBusy || hoveringControlBar) ? 0 : (
-            showOnlyTimeRange ? mainSectionHeight : (
-                cursorPosition === "hover" ? 0 : 300
-            )
-        )
-    )
-
-    const hideShadow = isMobile ? !paused : (
-        isMiniPlayer ? !paused : (cursorPosition !== "hover" && !cursorBusy)
-    )
-
-    const hideControlBar = isMobile ? (!paused && !cursorBusy && !hoveringControlBar) : (
-        !showOnlyTimeRange && !cursorBusy && !hoveringControlBar
-    )
-
-    React.useEffect(() => {
-        if (isMobile || !containerElement) return
-
-        const handlePointerMove = (e: PointerEvent) => {
-            const rect = containerElement.getBoundingClientRect()
-            containerRectRef.current = rect
-            const y = e.clientY - rect.top
-            const registerThreshold = !isMiniPlayer ? 150 : 100
-            const showOnlyTimeRangeOffset = 50
-
-            if (y >= rect.height - registerThreshold && y < rect.height - registerThreshold + showOnlyTimeRangeOffset) {
-                setCursorPositionC("approaching")
-            } else if (y < rect.height - registerThreshold) {
-                setCursorPositionC("outside")
-            } else {
-                setCursorPositionC("hover")
-            }
-        }
-
-        const handlePointerLeave = () => {
-            containerRectRef.current = null
-            setCursorPositionC("outside")
-        }
-
-        const updateContainerRect = () => {
-            containerRectRef.current = containerElement.getBoundingClientRect()
-        }
-
-        updateContainerRect()
-        const resizeObserver = new ResizeObserver(updateContainerRect)
-        resizeObserver.observe(containerElement)
-
-        containerElement.addEventListener("pointerenter", updateContainerRect)
-        containerElement.addEventListener("pointermove", handlePointerMove)
-        containerElement.addEventListener("pointerleave", handlePointerLeave)
-        containerElement.addEventListener("pointercancel", handlePointerLeave)
-        window.addEventListener("resize", updateContainerRect)
-
-        return () => {
-            resizeObserver.disconnect()
-            containerElement.removeEventListener("pointerenter", updateContainerRect)
-            containerElement.removeEventListener("pointermove", handlePointerMove)
-            containerElement.removeEventListener("pointerleave", handlePointerLeave)
-            containerElement.removeEventListener("pointercancel", handlePointerLeave)
-            window.removeEventListener("resize", updateContainerRect)
-            containerRectRef.current = null
-        }
-    }, [containerElement, isMobile, isMiniPlayer])
-
-    React.useLayoutEffect(() => {
-        if (!containerElement || isMobile) return
-        const captionsOverlay = containerElement.querySelector("#video-core-captions-wrapper") as HTMLElement
-        if (!captionsOverlay) return
-        if (controlBarTranslateY === 0 || showOnlyTimeRange) {
-            captionsOverlay.style.setProperty("--tw-translate-y", `-${showOnlyTimeRange ? 20 : 50}px`, "important")
-        } else {
-            captionsOverlay.style.setProperty("--tw-translate-y", "0%")
-        }
-        return () => {
-            captionsOverlay.style.removeProperty("--tw-translate-y")
-        }
-    }, [controlBarTranslateY, containerElement, isMobile, showOnlyTimeRange])
-
-    return (
-        <>
-            <div
-                data-vc-element="control-bar-gradient-bottom"
-                className={cn(
-                    "pointer-events-none absolute bottom-0 left-0 right-0 w-full z-[5] h-28 transition-opacity duration-300 opacity-0",
-                    "bg-gradient-to-t to-transparent",
-                    !isMiniPlayer ? "from-black/40" : "from-black/80 via-black/40",
-                    isMiniPlayer && "h-20",
-                    !hideShadow && "opacity-100",
-                )}
-            />
-            {!isMiniPlayer && (
-                <div
-                    data-vc-element="control-bar-time-range-bottom-gradient"
-                    className={cn(
-                        "pointer-events-none absolute bottom-0 left-0 right-0 w-full z-[5] h-14 transition-opacity duration-400 opacity-0",
-                        "bg-gradient-to-t to-transparent",
-                        !isMiniPlayer ? "from-black/40" : "from-black/60",
-                        isMiniPlayer && "h-10",
-                        (showOnlyTimeRange && paused && hideShadow) && "opacity-100",
-                    )}
-                />
-            )}
-            <div
-                data-vc-element="control-bar"
-                data-vc-state-visible={!hideControlBar}
-                className={cn(
-                    "absolute left-0 bottom-0 right-0 flex flex-col text-white",
-                    "transition-[opacity,transform] duration-300 opacity-0",
-                    "z-[10] h-28 transform-gpu will-change-[opacity,transform]",
-                    !hideControlBar && "opacity-100",
-                )}
-                style={{
-                    transform: `translateY(${controlBarTranslateY}px)`,
-                }}
-                onPointerEnter={() => {
-                    if (!isMobile) onHoveringControlBarChange?.(true)
-                }}
-                onPointerLeave={() => {
-                    if (!isMobile) onHoveringControlBarChange?.(false)
-                }}
-                onPointerCancel={() => {
-                    if (!isMobile) onHoveringControlBarChange?.(false)
-                }}
-            >
-                <div
-                    data-vc-element="control-bar-wrapper"
-                    className={cn(
-                        "absolute bottom-0 w-full",
-                        isMobile ? "px-2" : "px-4",
-                    )}
-                >
-                    {timeRange}
-
-                    <div
-                        data-vc-element="control-bar-main-section"
-                        className={cn(
-                            "z-[100] relative transform-gpu duration-100 flex items-center",
-                            isMobile ? "pb-1" : "pb-2",
-                        )}
-                        style={{
-                            height: `${mainSectionHeight}px`,
-                        } as React.CSSProperties}
-                    >
-                        {children}
-                    </div>
-                </div>
-            </div>
-        </>
-    )
-}
 
 export interface MediaCoreMobileControlBarViewProps {
     paused: boolean
     isMiniPlayer: boolean
     cursorBusy: boolean
-    seeking: boolean
     isSwiping: boolean
     timeRange: React.ReactNode
     topLeftSection?: React.ReactNode
@@ -243,7 +38,6 @@ export function MediaCoreMobileControlBarView(props: MediaCoreMobileControlBarVi
         paused,
         isMiniPlayer,
         cursorBusy,
-        seeking,
         isSwiping,
         timeRange,
         topLeftSection,
@@ -346,12 +140,10 @@ export interface MediaCoreControlButtonIconProps {
     onClick: () => void
     onWheel?: (e: React.WheelEvent<HTMLButtonElement>) => void
     children?: React.ReactNode
-    isMobile: boolean
-    isMiniPlayer: boolean
 }
 
 export function MediaCoreControlButtonIcon(props: MediaCoreControlButtonIconProps) {
-    const { icons, state, className, iconClass, onClick, onWheel, children, isMobile, isMiniPlayer } = props
+    const { icons, state, className, iconClass, onClick, onWheel, children } = props
 
     return (
         <button
@@ -360,8 +152,7 @@ export function MediaCoreControlButtonIcon(props: MediaCoreControlButtonIconProp
             data-vc-state={state}
             className={cn(
                 "vc-control-button flex items-center justify-center transition-opacity relative h-full focus-visible:outline-none focus:outline-none focus-visible:opacity-50",
-                isMobile ? "px-1 text-2xl" : "px-2 text-3xl hover:opacity-80",
-                isMiniPlayer && !isMobile && "text-2xl",
+                "px-1 text-2xl",
                 className,
             )}
             onClick={onClick}
@@ -392,64 +183,42 @@ export function MediaCoreControlButtonIcon(props: MediaCoreControlButtonIconProp
     )
 }
 
-export function MediaCorePlayButton(props: {
-    paused: boolean
-    onTogglePlay: () => void
-    isMobile: boolean
-    isMiniPlayer: boolean
-}) {
-    return (
-        <MediaCoreControlButtonIcon
-            icons={[
-                ["playing", RiPauseLargeLine],
-                ["paused", RiPlayLargeLine],
-            ]}
-            state={props.paused ? "paused" : "playing"}
-            onClick={props.onTogglePlay}
-            isMobile={props.isMobile}
-            isMiniPlayer={props.isMiniPlayer}
-        />
-    )
-}
-
 export interface MediaCoreVolumeButtonProps {
     volume: number
     muted: boolean
     onVolumeChange: (vol: number) => void
     onMuteToggle: () => void
-    isMobile: boolean
     isMiniPlayer: boolean
-    /** Mobile: when provided, tapping the icon opens a volume slider instead of muting. */
-    mobilePanelOpen?: boolean
-    onMobilePanelOpenChange?: (open: boolean) => void
+    /** Tapping the icon opens a volume slider next to it. */
+    panelOpen: boolean
+    onPanelOpenChange: (open: boolean) => void
 }
 
-const MOBILE_VOLUME_PANEL_IDLE_MS = 3500
+const VOLUME_PANEL_IDLE_MS = 3500
 
 export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
-    const { volume, muted, onVolumeChange, onMuteToggle, isMobile, isMiniPlayer, mobilePanelOpen, onMobilePanelOpenChange } = props
+    const { volume, muted, onVolumeChange, onMuteToggle, isMiniPlayer, panelOpen, onPanelOpenChange } = props
     const [isSliding, setIsSliding] = React.useState(false)
-    const usesPanel = isMobile && !!onMobilePanelOpenChange
     const rootRef = React.useRef<HTMLDivElement>(null)
     const idleTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    // Close the mobile panel after a few idle seconds or on a tap outside it.
+    // Close the panel after a few idle seconds or on a tap outside it.
     const keepPanelOpen = React.useCallback(() => {
         if (idleTimer.current) clearTimeout(idleTimer.current)
-        idleTimer.current = setTimeout(() => onMobilePanelOpenChange?.(false), MOBILE_VOLUME_PANEL_IDLE_MS)
-    }, [onMobilePanelOpenChange])
+        idleTimer.current = setTimeout(() => onPanelOpenChange(false), VOLUME_PANEL_IDLE_MS)
+    }, [onPanelOpenChange])
     React.useEffect(() => {
-        if (!usesPanel || !mobilePanelOpen) return
+        if (!panelOpen) return
         keepPanelOpen()
         const onOutside = (e: PointerEvent) => {
-            if (rootRef.current && !rootRef.current.contains(e.target as Node)) onMobilePanelOpenChange?.(false)
+            if (rootRef.current && !rootRef.current.contains(e.target as Node)) onPanelOpenChange(false)
         }
         document.addEventListener("pointerdown", onOutside, true)
         return () => {
             document.removeEventListener("pointerdown", onOutside, true)
             if (idleTimer.current) clearTimeout(idleTimer.current)
         }
-    }, [usesPanel, mobilePanelOpen, keepPanelOpen, onMobilePanelOpenChange])
+    }, [panelOpen, keepPanelOpen, onPanelOpenChange])
 
     function linearToVolume(linear: number): number {
         return Math.pow(linear, 2)
@@ -470,10 +239,9 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
         const x = e.clientX - rect.left
         const width = e.currentTarget.clientWidth
         const linearPosition = Math.max(0, Math.min(1, x / width))
-        // Touch is imprecise: snap the first few percent of the mobile slider to silence.
-        const nonLinearVolume = usesPanel && linearPosition < 0.04 ? 0 : linearToVolume(linearPosition)
-        onVolumeChange(nonLinearVolume)
-        if (usesPanel) keepPanelOpen()
+        // Touch is imprecise: snap the first few percent of the slider to silence.
+        onVolumeChange(linearPosition < 0.04 ? 0 : linearToVolume(linearPosition))
+        keepPanelOpen()
     }
 
     function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
@@ -492,17 +260,15 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
         }
     }
 
-    function handleWheel(e: React.WheelEvent<HTMLButtonElement | HTMLDivElement>) {
+    function handleWheel(e: React.WheelEvent<HTMLButtonElement>) {
         e.stopPropagation()
         const delta = -e.deltaY / 1000
-        const newVolume = Math.max(0, Math.min(1, volume + delta))
-        onVolumeChange(newVolume)
+        onVolumeChange(Math.max(0, Math.min(1, volume + delta)))
     }
 
     return (
-        <div ref={rootRef} data-vc-element="control-volume" className={cn("vc-control-volume group/vc-control-volume relative flex items-center justify-center h-full gap-2 text-white",
-            // Fixed anchor width: the icon swap animation briefly renders two icons and would shift the slider mid-drag.
-            usesPanel && "flex-none w-8")}>
+        // Fixed anchor width: the icon swap animation briefly renders two icons and would shift the slider mid-drag.
+        <div ref={rootRef} data-vc-element="control-volume" className="vc-control-volume group/vc-control-volume relative flex items-center justify-center h-full gap-2 text-white flex-none w-8">
             <MediaCoreControlButtonIcon
                 icons={[
                     ["low", LuVolume],
@@ -517,12 +283,10 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
                                 "low"
                 }
                 className={isMiniPlayer ? "text-[1.3rem]" : "text-2xl"}
-                onClick={usesPanel ? () => onMobilePanelOpenChange?.(!mobilePanelOpen) : onMuteToggle}
+                onClick={() => onPanelOpenChange(!panelOpen)}
                 onWheel={handleWheel}
-                isMobile={isMobile}
-                isMiniPlayer={isMiniPlayer}
             />
-            {usesPanel && mobilePanelOpen && (
+            {panelOpen && (
                 <div
                     data-vc-element="control-volume-mobile-panel"
                     data-vc-gesture-ignore
@@ -562,63 +326,18 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
                     </div>
                 </div>
             )}
-            {!isMobile && (
-                <div
-                    data-vc-element="control-volume-slider-container"
-                    className="vc-control-volume-slider-container relative w-0 flex group-hover/vc-control-volume:w-[6rem] h-6 transition-[width] duration-300"
-                >
-                    <div
-                        data-vc-element="control-volume-slider"
-                        className="vc-control-volume-slider flex h-full w-full relative items-center rounded-full cursor-pointer transition-[width,background-color] duration-300"
-                        onPointerDown={handlePointerDown}
-                        onPointerMove={handlePointerMove}
-                        onPointerUp={handlePointerUp}
-                        onPointerCancel={handlePointerUp}
-                        onWheel={handleWheel}
-                    >
-                        <div
-                            data-vc-element="control-volume-slider-progress"
-                            className="vc-control-volume-slider-progress h-1.5 absolute bg-white rounded-full"
-                            style={{
-                                width: `${volumeToLinear(volume) * 100}%`,
-                            }}
-                        />
-                        <div
-                            data-vc-element="control-volume-slider-background"
-                            className="vc-control-volume-slider-progress h-1.5 w-full absolute bg-white/20 rounded-full"
-                        />
-                    </div>
-                    <div className="w-4" />
-                </div>
-            )}
         </div>
     )
 }
 
-export function MediaCoreNextButton(props: { onClick: () => void; isMobile: boolean; isMiniPlayer: boolean }) {
+export function MediaCoreNextButton(props: { onClick: () => void; isMiniPlayer: boolean }) {
     if (props.isMiniPlayer) return null
-    return (
-        <MediaCoreControlButtonIcon
-            icons={[["default", LuChevronRight]]}
-            state="default"
-            onClick={props.onClick}
-            isMobile={props.isMobile}
-            isMiniPlayer={props.isMiniPlayer}
-        />
-    )
+    return <MediaCoreControlButtonIcon icons={[["default", LuChevronRight]]} state="default" onClick={props.onClick} />
 }
 
-export function MediaCorePreviousButton(props: { onClick: () => void; isMobile: boolean; isMiniPlayer: boolean }) {
+export function MediaCorePreviousButton(props: { onClick: () => void; isMiniPlayer: boolean }) {
     if (props.isMiniPlayer) return null
-    return (
-        <MediaCoreControlButtonIcon
-            icons={[["default", LuChevronLeft]]}
-            state="default"
-            onClick={props.onClick}
-            isMobile={props.isMobile}
-            isMiniPlayer={props.isMiniPlayer}
-        />
-    )
+    return <MediaCoreControlButtonIcon icons={[["default", LuChevronLeft]]} state="default" onClick={props.onClick} />
 }
 
 export interface MediaCoreTimestampProps {
@@ -626,11 +345,10 @@ export interface MediaCoreTimestampProps {
     duration: number
     timestampMode: "elapsed" | "remaining"
     onTimestampModeToggle: () => void
-    isMobile: boolean
 }
 
 export function MediaCoreTimestamp(props: MediaCoreTimestampProps) {
-    const { currentTime, duration, timestampMode, onTimestampModeToggle, isMobile } = props
+    const { currentTime, duration, timestampMode, onTimestampModeToggle } = props
 
     if (duration <= 1 || isNaN(duration)) return null
 
@@ -642,10 +360,7 @@ export function MediaCoreTimestamp(props: MediaCoreTimestampProps) {
         <p
             data-vc-element="timestamp"
             data-vc-timestamp-type={timestampMode}
-            className={cn(
-                "tabular-nums font-medium opacity-100 cursor-pointer text-white",
-                isMobile ? "text-xs" : "text-sm hover:opacity-80",
-            )}
+            className="tabular-nums font-medium opacity-100 cursor-pointer text-white text-xs"
             onClick={onTimestampModeToggle}
         >
             {timestampMode === "remaining" ? "-" : ""}
@@ -657,7 +372,6 @@ export function MediaCoreTimestamp(props: MediaCoreTimestampProps) {
 export function MediaCorePipButton(props: {
     isPip: boolean
     onTogglePip: () => void
-    isMobile: boolean
     isMiniPlayer: boolean
 }) {
     if (props.isMiniPlayer) return null
@@ -669,8 +383,6 @@ export function MediaCorePipButton(props: {
             ]}
             state={props.isPip ? "pip" : "default"}
             onClick={props.onTogglePip}
-            isMobile={props.isMobile}
-            isMiniPlayer={props.isMiniPlayer}
         />
     )
 }
@@ -678,8 +390,6 @@ export function MediaCorePipButton(props: {
 export function MediaCoreFullscreenButton(props: {
     isFullscreen: boolean
     onToggleFullscreen: () => void
-    isMobile: boolean
-    isMiniPlayer: boolean
 }) {
     return (
         <MediaCoreControlButtonIcon
@@ -689,8 +399,6 @@ export function MediaCoreFullscreenButton(props: {
             ]}
             state={props.isFullscreen ? "fullscreen" : "default"}
             onClick={props.onToggleFullscreen}
-            isMobile={props.isMobile}
-            isMiniPlayer={props.isMiniPlayer}
         />
     )
 }
@@ -713,7 +421,6 @@ export interface MediaCoreTimeRangeViewProps {
     bufferedPercentage: number
     seekingTargetProgress: number
     chapters: MediaCoreTimeRangeChapter[]
-    showChapterMarkers: boolean
     highlightChapters?: boolean
     skipChapters?: MediaCoreTimeRangeChapter[]
     showPreview: boolean
@@ -730,8 +437,6 @@ export interface MediaCoreTimeRangeViewProps {
     onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void
     onPointerLeave: (e: React.PointerEvent<HTMLDivElement>) => void
     onPointerCancel: (e: React.PointerEvent<HTMLDivElement>) => void
-    onMarkerClick?: (time: number) => void
-    isMobile: boolean
     duration: number
 }
 
@@ -742,7 +447,6 @@ export function MediaCoreTimeRangeView(props: MediaCoreTimeRangeViewProps) {
         bufferedPercentage,
         seekingTargetProgress,
         chapters,
-        showChapterMarkers,
         highlightChapters = true,
         skipChapters = [],
         showPreview,
@@ -759,8 +463,6 @@ export function MediaCoreTimeRangeView(props: MediaCoreTimeRangeViewProps) {
         onPointerMove,
         onPointerLeave,
         onPointerCancel,
-        onMarkerClick,
-        isMobile,
         duration,
     } = props
 
@@ -789,7 +491,7 @@ export function MediaCoreTimeRangeView(props: MediaCoreTimeRangeViewProps) {
                     className="absolute left-0 bottom-full aspect-video overflow-hidden rounded-md bg-black border border-white/50 pointer-events-none will-change-transform [contain:layout_paint_style]"
                     style={{
                         width: previewWidth,
-                        transform: `translate3d(${previewX - previewWidth / 2}px, ${isMobile ? "-64%" : "-54%"}, 0)`,
+                        transform: `translate3d(${previewX - previewWidth / 2}px, -64%, 0)`,
                     }}
                 >
                     {!!previewThumbnailUrl && (
@@ -831,11 +533,9 @@ export function MediaCoreTimeRangeView(props: MediaCoreTimeRangeViewProps) {
                     progressPercentage={progressPercentage}
                     bufferedPercentage={bufferedPercentage}
                     chapter={chapter}
-                    showMarker={i < chapters.length - 1 && showChapterMarkers && !isMobile}
                     duration={duration}
                     seekingTargetProgress={seekingTargetProgress}
                     highlighted={highlightChapters && skipChapters.includes(chapter)}
-                    onMarkerClick={onMarkerClick}
                 />
             ))}
         </div>
@@ -853,13 +553,11 @@ function MediaCoreTimeRangeSegment(props: {
         start: number
         end: number
     }
-    showMarker: boolean
     duration: number
     seekingTargetProgress: number
     highlighted: boolean
-    onMarkerClick?: (time: number) => void
 }) {
-    const { idx, chapter, progressPercentage, bufferedPercentage, showMarker, duration, seekingTargetProgress, highlighted, onMarkerClick } = props
+    const { idx, chapter, progressPercentage, bufferedPercentage, duration, seekingTargetProgress, highlighted } = props
     const focused = !!seekingTargetProgress && chapter.percentageOffset <= seekingTargetProgress && chapter.percentageOffset + chapter.width >= seekingTargetProgress
 
     function getChapterBarPosition(chapter: any, percentage: number) {
@@ -923,26 +621,6 @@ function MediaCoreTimeRangeSegment(props: {
                     )}
                 />
             </div>
-            {showMarker && (
-                <button
-                    data-vc-element="time-range-chapter-marker"
-                    type="button"
-                    onPointerDown={e => e.stopPropagation()}
-                    onPointerUp={e => e.stopPropagation()}
-                    onClick={e => {
-                        e.stopPropagation()
-                        onMarkerClick?.(chapter.start + (chapter.end - chapter.start))
-                    }}
-                    className="absolute top-0 right-0 size-4 flex items-center justify-center -translate-y-1/2 translate-x-1/2 cursor-pointer z-[20]"
-                    style={{
-                        right: `-${CHAPTER_GAP / 2}px`,
-                    }}
-                    aria-label={`Seek to end of chapter ${idx + 1}`}
-                    tabIndex={-1}
-                >
-                    <FaDiamond className="size-2.5 text-white/20 hover:text-white/100 transition-colors duration-100" />
-                </button>
-            )}
         </div>
     )
 }

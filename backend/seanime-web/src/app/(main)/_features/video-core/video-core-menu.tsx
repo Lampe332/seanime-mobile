@@ -8,10 +8,9 @@ import {
     MediaCoreMenuOption,
     MediaCoreMenuSubOption,
     MediaCoreSettingSelect,
-    MediaCoreSettingTextInput,
 } from "@/app/(main)/_features/media-core/media-core-menu"
 import { useAtom, useAtomValue } from "jotai"
-import { vc_menuOpen, vc_menuSectionOpen, vc_menuSubSectionOpen, vc_isFullscreen, vc_containerElement, vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_menuOpen, vc_menuSectionOpen, vc_menuSubSectionOpen, vc_isFullscreen, vc_containerElement } from "@/app/(main)/_features/video-core/video-core-atoms"
 import React from "react"
 
 export const VideoCoreMenuTitle = MediaCoreMenuTitle
@@ -39,12 +38,11 @@ export function VideoCoreMenu(props: any) {
     const [, setOpenSubSection] = useAtom(vc_menuSubSectionOpen)
     const isFullscreen = useAtomValue(vc_isFullscreen)
     const containerElement = useAtomValue(vc_containerElement)
-    const isMobile = useAtomValue(vc_isMobile)
 
     return (
         <MediaCoreMenu
             {...props}
-            className={props.className ?? (isMobile ? "vc-phone-settings" : undefined)}
+            className={props.className ?? "vc-phone-settings"}
             openMenu={openMenu}
             onOpenMenuChange={setOpenMenu}
             onOpenSectionChange={setOpenSection}
@@ -80,4 +78,3 @@ export function VideoCoreMenuSubOption(props: any) {
 }
 
 export const VideoCoreSettingSelect = MediaCoreSettingSelect
-export const VideoCoreSettingTextInput = MediaCoreSettingTextInput

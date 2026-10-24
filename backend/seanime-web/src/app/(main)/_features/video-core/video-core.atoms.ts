@@ -120,8 +120,6 @@ export interface VideoCoreKeybindings {
     increaseSpeed: { key: string; value: number }
     decreaseSpeed: { key: string; value: number }
     takeScreenshot: { key: string }
-    openInSight: { key: string }
-    statsForNerds: { key: string }
 }
 
 export const vc_defaultKeybindings: VideoCoreKeybindings = {
@@ -143,8 +141,6 @@ export const vc_defaultKeybindings: VideoCoreKeybindings = {
     increaseSpeed: { key: "BracketRight", value: 0.1 },
     decreaseSpeed: { key: "BracketLeft", value: 0.1 },
     takeScreenshot: { key: "KeyI" },
-    openInSight: { key: "KeyH" },
-    statsForNerds: { key: "KeyZ" },
 }
 
 const vc_keybindingsRaw = atomWithStorage<Partial<VideoCoreKeybindings>>("sea-video-core-keybindings",
@@ -168,14 +164,6 @@ export const vc_keybindingsAtom = atom(
 
 export const vc_useLibassRendererAtom = atomWithStorage("sea-video-core-use-libass-renderer", true, undefined, { getOnInit: true })
 
-export const vc_showChapterMarkersAtom = atom(
-    (get) => get(mediaCorePreferencesAtom).chapterMarkers,
-    (get, set, newValue: boolean | ((prev: boolean) => boolean)) => {
-        const current = get(mediaCorePreferencesAtom)
-        const next = typeof newValue === "function" ? newValue(current.chapterMarkers) : newValue
-        set(mediaCorePreferencesAtom, { ...current, chapterMarkers: next })
-    }
-)
 export const vc_highlightOPEDChaptersAtom = atomWithStorage("sea-video-core-highlight-op-ed-chapters", true, undefined, { getOnInit: true })
 export const vc_beautifyImageAtom = atomWithStorage("sea-video-core-increase-saturation", false, undefined, { getOnInit: true })
 export const vc_autoNextAtom = atom(
@@ -232,13 +220,5 @@ export const vc_storedPlaybackRateAtom = atom(
         const current = get(mediaCorePreferencesAtom)
         const next = typeof newValue === "function" ? newValue(current.playbackRate) : newValue
         set(mediaCorePreferencesAtom, { ...current, playbackRate: next })
-    }
-)
-export const vc_showStatsForNerdsAtom = atom(
-    (get) => get(mediaCorePreferencesAtom).showStats,
-    (get, set, newValue: boolean | ((prev: boolean) => boolean)) => {
-        const current = get(mediaCorePreferencesAtom)
-        const next = typeof newValue === "function" ? newValue(current.showStats) : newValue
-        set(mediaCorePreferencesAtom, { ...current, showStats: next })
     }
 )
