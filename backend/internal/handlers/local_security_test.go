@@ -1189,24 +1189,6 @@ func TestHandleDirectorySelectorStrictMode(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 }
 
-func TestHandleTestDumpStrictMode(t *testing.T) {
-	t.Cleanup(func() {
-		security.SetSecureMode("")
-	})
-
-	security.SetSecureMode(security.SecureModeStrict)
-	h := &Handler{App: &core.App{Config: &core.Config{}}}
-	e := echo.New()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/test-dump", strings.NewReader(`{"dir":"/tmp","userName":"test"}`))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	err := h.HandleTestDump(c)
-	assert.ErrorIs(t, err, errGuardResponseWritten)
-	assert.Equal(t, http.StatusForbidden, rec.Code)
-}
-
 func TestRequestMatchescontextClientId(t *testing.T) {
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/events", nil)

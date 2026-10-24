@@ -39,12 +39,3 @@ func (db *Database) InsertMalInfo(info *models.Mal) (*models.Mal, error) {
 	}
 	return info, nil
 }
-
-func (db *Database) DeleteMalInfo() error {
-	err := db.gormdb.Delete(&models.Mal{}, 1).Error
-
-	if err != nil {
-		return err
-	}
-	return nil
-}

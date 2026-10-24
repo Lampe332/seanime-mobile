@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"net/http"
-	"path/filepath"
 	"seanime/internal/api/anilist"
 	"seanime/internal/api/metadata"
 	"seanime/internal/database/models"
@@ -14,21 +12,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 )
-
-// HandleGetDebridSettings
-//
-//	@summary get debrid settings.
-//	@desc This returns the debrid settings.
-//	@returns models.DebridSettings
-//	@route /api/v1/debrid/settings [GET]
-func (h *Handler) HandleGetDebridSettings(c echo.Context) error {
-	debridSettings, found := h.App.Database.GetDebridSettings()
-	if !found {
-		return h.RespondWithError(c, errors.New("debrid settings not found"))
-	}
-
-	return h.RespondWithData(c, debridSettings)
-}
 
 // HandleSaveDebridSettings
 //
@@ -54,62 +37,6 @@ func (h *Handler) HandleSaveDebridSettings(c echo.Context) error {
 	}
 
 	h.App.InitOrRefreshDebridSettings()
-
-	return h.RespondWithData(c, settings)
-}
-
-// HandleGetDummyDebridSettings
-//
-//	@summary get dummy debrid settings.
-//	@desc This returns the dummy debrid settings.
-//	@returns models.DummyDebridSettings
-//	@route /api/v1/debrid/dummy/settings [GET]
-func (h *Handler) HandleGetDummyDebridSettings(c echo.Context) error {
-	if !h.App.FeatureFlags.DummyDebrid {
-		return h.RespondWithStatusError(c, http.StatusNotFound, errors.New("dummy debrid is disabled"))
-	}
-
-	settings, found := h.App.Database.GetDummyDebridSettings()
-	if !found {
-		h.App.InitOrRefreshDummyDebridSettings()
-		settings, found = h.App.Database.GetDummyDebridSettings()
-		if !found {
-			return h.RespondWithError(c, errors.New("dummy debrid settings not found"))
-		}
-	}
-
-	return h.RespondWithData(c, settings)
-}
-
-// HandleSaveDummyDebridSettings
-//
-//	@summary save dummy debrid settings.
-//	@desc This saves the dummy debrid settings.
-//	@returns models.DummyDebridSettings
-//	@route /api/v1/debrid/dummy/settings [PATCH]
-func (h *Handler) HandleSaveDummyDebridSettings(c echo.Context) error {
-	if !h.App.FeatureFlags.DummyDebrid {
-		return h.RespondWithStatusError(c, http.StatusNotFound, errors.New("dummy debrid is disabled"))
-	}
-
-	type body struct {
-		Settings models.DummyDebridSettings `json:"settings"`
-	}
-
-	var b body
-	if err := c.Bind(&b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	settings, err := h.App.Database.UpsertDummyDebridSettings(&b.Settings)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	h.App.SecondarySettings.DummyDebrid = settings
-	if debridSettings, found := h.App.Database.GetDebridSettings(); found && debridSettings.Enabled && debridSettings.Provider == "dummy" {
-		h.App.InitOrRefreshDebridSettings()
-	}
 
 	return h.RespondWithData(c, settings)
 }
@@ -181,111 +108,6 @@ func (h *Handler) HandleDebridAddTorrents(c echo.Context) error {
 	return h.RespondWithData(c, true)
 }
 
-// HandleDebridDownloadTorrent
-//
-//	@summary download torrent from debrid.
-//	@desc Manually downloads a torrent from the debrid service locally.
-//	@returns bool
-//	@route /api/v1/debrid/torrents/download [POST]
-func (h *Handler) HandleDebridDownloadTorrent(c echo.Context) error {
-
-	type body struct {
-		TorrentItem debrid.TorrentItem `json:"torrentItem"`
-		Destination string             `json:"destination"`
-	}
-
-	var b body
-	if err := c.Bind(&b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	if err := h.guardStrictLocalOnlyAction(c); err != nil {
-		return err
-	}
-
-	if err := h.guardStrictFilesystemPath(c, b.Destination); err != nil {
-		return err
-	}
-
-	if !filepath.IsAbs(b.Destination) {
-		return h.RespondWithError(c, errors.New("destination must be an absolute path"))
-	}
-
-	if err := h.guardStrictFilesystemPath(c, b.Destination); err != nil {
-		return err
-	}
-
-	// Download the torrent locally
-	err := h.App.DebridClientRepository.DownloadTorrent(b.TorrentItem, b.Destination)
-	if err != nil {
-		if errors.Is(err, debrid_client.ErrDownloadAlreadyActive) {
-			return h.RespondWithData(c, true)
-		}
-		return h.RespondWithError(c, err)
-	}
-
-	// Remove the torrent from the database after the local download starts
-	// This prevents the auto downloader from starting a duplicate download
-	_ = h.App.Database.DeleteDebridTorrentItemByTorrentItemId(b.TorrentItem.ID)
-
-	return h.RespondWithData(c, true)
-}
-
-// HandleDebridCancelDownload
-//
-//	@summary cancel download from debrid.
-//	@desc This cancels a download from the debrid service.
-//	@returns bool
-//	@route /api/v1/debrid/torrents/cancel [POST]
-func (h *Handler) HandleDebridCancelDownload(c echo.Context) error {
-
-	type body struct {
-		ItemID string `json:"itemID"`
-	}
-
-	var b body
-	if err := c.Bind(&b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	err := h.App.DebridClientRepository.CancelDownload(b.ItemID)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	return h.RespondWithData(c, true)
-}
-
-// HandleDebridDeleteTorrent
-//
-//	@summary remove torrent from debrid.
-//	@desc This removes a torrent from the debrid service.
-//	@returns bool
-//	@route /api/v1/debrid/torrent [DELETE]
-func (h *Handler) HandleDebridDeleteTorrent(c echo.Context) error {
-
-	type body struct {
-		TorrentItem debrid.TorrentItem `json:"torrentItem"`
-	}
-
-	var b body
-	if err := c.Bind(&b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	provider, err := h.App.DebridClientRepository.GetProvider()
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	err = provider.DeleteTorrent(b.TorrentItem.ID)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	return h.RespondWithData(c, true)
-}
-
 // HandleDebridGetTorrents
 //
 //	@summary get torrents from debrid.
@@ -331,40 +153,6 @@ func (h *Handler) HandleDebridGetTorrents(c echo.Context) error {
 	}
 
 	return h.RespondWithData(c, torrents)
-}
-
-// HandleDebridGetTorrentInfo
-//
-//	@summary get torrent info from debrid.
-//	@desc This gets the torrent info from the debrid service.
-//	@returns debrid.TorrentInfo
-//	@route /api/v1/debrid/torrents/info [POST]
-func (h *Handler) HandleDebridGetTorrentInfo(c echo.Context) error {
-	type body struct {
-		Torrent hibiketorrent.AnimeTorrent `json:"torrent"`
-	}
-
-	var b body
-	if err := c.Bind(&b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	magnet, err := h.App.TorrentRepository.ResolveMagnetLink(&b.Torrent)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	b.Torrent.MagnetLink = magnet
-
-	torrentInfo, err := h.App.DebridClientRepository.GetTorrentInfo(debrid.GetTorrentInfoOptions{
-		MagnetLink: b.Torrent.MagnetLink,
-		InfoHash:   b.Torrent.InfoHash,
-	})
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	return h.RespondWithData(c, torrentInfo)
 }
 
 // HandleDebridGetTorrentFilePreviews

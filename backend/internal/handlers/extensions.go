@@ -153,20 +153,6 @@ func (h *Handler) HandleUpdateExtensionCode(c echo.Context) error {
 	return h.RespondWithData(c, true)
 }
 
-// HandleReloadExternalExtensions
-//
-//	@summary reloads the external extensions.
-//	@route /api/v1/extensions/external/reload [POST]
-//	@returns bool
-func (h *Handler) HandleReloadExternalExtensions(c echo.Context) error {
-	if err := h.guardPrivilegedExtensionManagement(c); err != nil {
-		return err
-	}
-
-	h.App.ExtensionRepository.ReloadExternalExtensions()
-	return h.RespondWithData(c, true)
-}
-
 // HandleReloadExternalExtension
 //
 //	@summary reloads the external extension with the given ID.

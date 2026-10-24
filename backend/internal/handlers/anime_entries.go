@@ -198,50 +198,6 @@ func (h *Handler) HandleAnimeEntryBulkAction(c echo.Context) error {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// HandleOpenAnimeEntryInExplorer
-//
-//	@summary opens the directory of a media entry in the file explorer.
-//	@desc This finds a common directory for all media entry local files and opens it in the file explorer.
-//	@desc Returns 'true' whether the operation was successful or not, errors are ignored.
-//	@route /api/v1/library/anime-entry/open-in-explorer [POST]
-//	@returns bool
-func (h *Handler) HandleOpenAnimeEntryInExplorer(c echo.Context) error {
-
-	type body struct {
-		MediaId int `json:"mediaId"`
-	}
-
-	p := new(body)
-	if err := c.Bind(p); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	if err := h.guardPrivilegedLocalExecution(c); err != nil {
-		return err
-	}
-
-	// Get all the local files
-	lfs, _, err := db_bridge.GetLocalFiles(h.App.Database)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	lf, found := lo.Find(lfs, func(i *anime.LocalFile) bool {
-		return i.MediaId == p.MediaId
-	})
-	if !found {
-		return h.RespondWithError(c, errors.New("local file not found"))
-	}
-
-	dir := filepath.Dir(lf.GetNormalizedPath())
-	OpenDirInExplorer(dir)
-
-	return h.RespondWithData(c, true)
-
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
 var (
 	entriesSuggestionsCache = result.NewCache[string, []*anilist.BaseAnime]()
 )

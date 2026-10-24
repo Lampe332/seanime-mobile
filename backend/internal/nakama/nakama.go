@@ -526,34 +526,6 @@ func (m *Manager) SendMessage(msgType MessageType, payload interface{}) error {
 	return lastError
 }
 
-// SendMessageToPeer sends a message to a specific peer by their PeerID
-func (m *Manager) SendMessageToPeer(peerID string, msgType MessageType, payload interface{}) error {
-	if !m.settings.IsHost {
-		return errors.New("only hosts can send messages to peers")
-	}
-
-	// Find peer by PeerID
-	var targetConn *PeerConnection
-	m.peerConnections.Range(func(id string, conn *PeerConnection) bool {
-		if conn.PeerId == peerID {
-			targetConn = conn
-			return false // Stop iteration
-		}
-		return true
-	})
-
-	if targetConn == nil {
-		return errors.New("peer not found: " + peerID)
-	}
-
-	message := &Message{
-		Type:      msgType,
-		Payload:   payload,
-		Timestamp: time.Now(),
-	}
-
-	return targetConn.SendMessage(message)
-}
 
 // SendMessageToHost sends a message to the host (when acting as peer)
 func (m *Manager) SendMessageToHost(msgType MessageType, payload interface{}) error {

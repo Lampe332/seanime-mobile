@@ -578,29 +578,6 @@ func (r *Repository) StopStream(fromNativePlayer ...bool) error {
 	return nil
 }
 
-func (r *Repository) DropTorrent() error {
-	r.streamActionMu.Lock()
-	defer r.streamActionMu.Unlock()
-
-	r.logger.Info().Msg("torrentstream: Dropping last torrent")
-
-	if r.client.torrentClient.IsAbsent() {
-		return nil
-	}
-
-	for _, t := range r.client.torrentClient.MustGet().Torrents() {
-		infoHash := t.InfoHash()
-		t.Drop()
-		r.client.removeTorrentFiles(infoHash)
-	}
-
-	r.mediaPlayerRepository.Stop()
-
-	r.logger.Info().Msg("torrentstream: Dropped last torrent")
-
-	return nil
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (r *Repository) GetMediaInfoFromOptions(ctx context.Context, opts *StartStreamOptions) (media *anilist.CompleteAnime, animeMetadata *metadata.AnimeMetadata, err error) {

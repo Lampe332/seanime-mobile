@@ -6,19 +6,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// HandleGetTheme
-//
-//	@summary returns the theme settings.
-//	@route /api/v1/theme [GET]
-//	@returns models.Theme
-func (h *Handler) HandleGetTheme(c echo.Context) error {
-	theme, err := h.App.Database.GetTheme()
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-	return h.RespondWithData(c, theme)
-}
-
 // HandleUpdateTheme
 //
 //	@summary updates the theme settings.

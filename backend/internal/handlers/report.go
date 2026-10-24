@@ -5,8 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"path/filepath"
 	"seanime/internal/database/db_bridge"
 	"seanime/internal/library/anime"
 	"seanime/internal/report"
@@ -134,64 +132,4 @@ func (h *Handler) HandleDownloadIssueReport(c echo.Context) error {
 	c.Response().Header().Set("Content-Type", "application/zip")
 
 	return c.Stream(200, "application/zip", buffer)
-}
-
-// HandleDecompressIssueReport
-//
-//	@summary accepts a zip file, decompresses it and returns the issue report JSON.
-//	@route /api/v1/report/issue/decompress [POST]
-//	@returns report.IssueReport
-func (h *Handler) HandleDecompressIssueReport(c echo.Context) error {
-
-	// Read form file
-	fileHeader, err := c.FormFile("file")
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	src, err := fileHeader.Open()
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-	defer src.Close()
-
-	// Read file content into a buffer
-	buf := new(bytes.Buffer)
-	if _, err := io.Copy(buf, src); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	// Open zip archive from the buffer
-	r, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
-	if err != nil {
-		return h.RespondWithError(c, fmt.Errorf("failed to open zip archive: %w", err))
-	}
-
-	// Find issue report json
-	var reportFile *zip.File
-	for _, f := range r.File {
-		if filepath.Ext(f.Name) == ".json" {
-			reportFile = f
-			break
-		}
-	}
-
-	if reportFile == nil {
-		return h.RespondWithError(c, fmt.Errorf("no json file found in zip archive"))
-	}
-
-	// Open report file
-	rc, err := reportFile.Open()
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-	defer rc.Close()
-
-	// Decode json
-	var issueReport report.IssueReport
-	if err := json.NewDecoder(rc).Decode(&issueReport); err != nil {
-		return h.RespondWithError(c, fmt.Errorf("failed to decode issue report: %w", err))
-	}
-
-	return h.RespondWithData(c, issueReport)
 }

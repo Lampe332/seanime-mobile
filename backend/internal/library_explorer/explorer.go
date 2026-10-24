@@ -1,7 +1,6 @@
 package library_explorer
 
 import (
-	"fmt"
 	"seanime/internal/api/anilist"
 	"seanime/internal/database/db"
 	"seanime/internal/platforms/platform"
@@ -73,27 +72,6 @@ func (l *LibraryExplorer) GetFileTree() (*FileTreeJSON, error) {
 		Root:       tree.Root.toJSON(l),
 		LocalFiles: localFileMap,
 	}, nil
-}
-
-// LoadDirectoryChildren is no longer needed since we build the complete tree upfront
-// This method is kept for API compatibility but does nothing
-func (l *LibraryExplorer) LoadDirectoryChildren(dirPath string) error {
-	// Validate that the path is within our library paths for security
-	isValidPath := false
-	for _, libraryPath := range l.libraryPaths {
-		if dirPath == libraryPath || util.IsSubdirectory(libraryPath, dirPath) {
-			isValidPath = true
-			break
-		}
-	}
-
-	if !isValidPath {
-		return fmt.Errorf("path %s is not within library directories", dirPath)
-	}
-
-	// Since we now build the complete tree upfront, this is a no-op
-	// The tree is already complete when built
-	return nil
 }
 
 // findNodeByPath recursively searches for a node with the given path

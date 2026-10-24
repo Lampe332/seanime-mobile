@@ -129,8 +129,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	imageProxy := &util.ImageProxy{}
 	v1.GET("/image-proxy", imageProxy.ProxyImage)
 
-	v1.GET("/internal/docs", h.HandleGetDocs)
-
 	v1.GET("/proxy", h.VideoProxy)
 	v1.HEAD("/proxy", h.VideoProxy)
 
@@ -156,15 +154,12 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.POST("/auth/logout", h.HandleLogout)
 
 	// Settings
-	v1.GET("/settings", h.HandleGetSettings)
 	v1.PATCH("/settings", h.HandleSaveSettings)
 	v1.PATCH("/settings/path", h.HandlePatchSetting)
 	v1.POST("/start", h.HandleGettingStarted)
 	v1.PATCH("/settings/media-player", h.HandleSaveMediaPlayerSettings)
 
 	// Other
-	v1.POST("/test-dump", h.HandleTestDump)
-
 	v1.POST("/directory-selector", h.HandleDirectorySelector)
 
 	v1.POST("/open-in-explorer", h.HandleOpenInExplorer)
@@ -179,7 +174,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1Anilist.POST("/collection", h.HandleGetAnimeCollection)
 
 	v1Anilist.GET("/collection/raw", h.HandleGetRawAnimeCollection)
-	v1Anilist.POST("/collection/raw", h.HandleGetRawAnimeCollection)
 	v1Anilist.GET("/collection/raw/tags", h.HandleGetRawAnimeCollectionTags)
 
 	v1Anilist.GET("/media-details/:id", h.HandleGetAnilistAnimeDetails)
@@ -203,14 +197,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1Anilist.POST("/cache-layer/status", h.HandleToggleAnilistCacheLayerStatus)
 
 	//
-	// MAL
-	//
-
-	v1.POST("/mal/auth", h.HandleMALAuth)
-
-	v1.POST("/mal/logout", h.HandleMALLogout)
-
-	//
 	// Library
 	//
 
@@ -220,14 +206,12 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 
 	v1Library.DELETE("/empty-directories", h.HandleRemoveEmptyDirectories)
 
-	v1Library.GET("/local-files", h.HandleGetLocalFiles)
 	v1Library.POST("/local-files", h.HandleLocalFileBulkAction)
 	v1Library.PATCH("/local-files", h.HandleUpdateLocalFiles)
 	v1Library.DELETE("/local-files", h.HandleDeleteLocalFiles)
 	v1Library.GET("/local-files/dump", h.HandleDumpLocalFilesToFile)
 	v1Library.POST("/local-files/import", h.HandleImportLocalFiles)
 	v1Library.PATCH("/local-file", h.HandleUpdateLocalFileData)
-	v1Library.PATCH("/local-files/super-update", h.HandleSuperUpdateLocalFiles)
 
 	v1Library.GET("/collection", h.HandleGetLibraryCollection)
 	v1Library.GET("/schedule", h.HandleGetAnimeCollectionSchedule)
@@ -241,7 +225,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1Library.POST("/anime-entry/suggestions", h.HandleFetchAnimeEntrySuggestions)
 	v1Library.POST("/anime-entry/manual-match", h.HandleAnimeEntryManualMatch)
 	v1Library.PATCH("/anime-entry/bulk-action", h.HandleAnimeEntryBulkAction)
-	v1Library.POST("/anime-entry/open-in-explorer", h.HandleOpenAnimeEntryInExplorer)
 	v1Library.POST("/anime-entry/update-progress", h.HandleUpdateAnimeEntryProgress)
 	v1Library.POST("/anime-entry/update-repeat", h.HandleUpdateAnimeEntryRepeat)
 	v1Library.GET("/anime-entry/silence/:id", h.HandleGetAnimeEntrySilenceStatus)
@@ -256,7 +239,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 
 	v1LibraryExplorer.GET("/file-tree", h.HandleGetLibraryExplorerFileTree)
 	v1LibraryExplorer.POST("/file-tree/refresh", h.HandleRefreshLibraryExplorerFileTree)
-	v1LibraryExplorer.POST("/directory-children", h.HandleLoadLibraryExplorerDirectoryChildren)
 
 	//
 	// Anime
@@ -292,7 +274,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	// Theme
 	//
 
-	v1.GET("/theme", h.HandleGetTheme)
 	v1.PATCH("/theme", h.HandleUpdateTheme)
 
 	//
@@ -350,9 +331,7 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	//
 
 	v1Manga := v1.Group("/manga")
-	v1Manga.POST("/anilist/collection", h.HandleGetAnilistMangaCollection)
 	v1Manga.GET("/anilist/collection/raw", h.HandleGetRawAnilistMangaCollection)
-	v1Manga.POST("/anilist/collection/raw", h.HandleGetRawAnilistMangaCollection)
 	v1Manga.GET("/anilist/collection/raw/tags", h.HandleGetRawAnilistMangaCollectionTags)
 	v1Manga.POST("/anilist/list", h.HandleAnilistListManga)
 	v1Manga.GET("/collection", h.HandleGetMangaCollection)
@@ -363,7 +342,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1Manga.GET("/source-refresh", h.HandleGetMangaSourceRefresh)
 	v1Manga.DELETE("/source-refresh", h.HandleStopMangaSourceRefresh)
 	v1Manga.GET("/latest-chapter-numbers", h.HandleGetMangaLatestChapterNumbersMap)
-	v1Manga.POST("/refetch-chapter-containers", h.HandleRefetchMangaChapterContainers)
 	v1Manga.GET("/entry/:id", h.HandleGetMangaEntry)
 	v1Manga.GET("/entry/:id/details", h.HandleGetMangaEntryDetails)
 	v1Manga.DELETE("/entry/cache", h.HandleEmptyMangaEntryCache)
@@ -430,11 +408,9 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	//
 	// Torrent stream
 	//
-	v1.GET("/torrentstream/settings", h.HandleGetTorrentstreamSettings)
 	v1.PATCH("/torrentstream/settings", h.HandleSaveTorrentstreamSettings)
 	v1.POST("/torrentstream/start", h.HandleTorrentstreamStartStream)
 	v1.POST("/torrentstream/stop", h.HandleTorrentstreamStopStream)
-	v1.POST("/torrentstream/drop", h.HandleTorrentstreamDropTorrent)
 	v1.POST("/torrentstream/torrent-file-previews", h.HandleGetTorrentstreamTorrentFilePreviews)
 	v1.POST("/torrentstream/batch-history", h.HandleGetTorrentstreamBatchHistory)
 	v1.POST("/torrentstream/batch-history/delete", h.HandleDeleteTorrentstreamBatchHistory)
@@ -451,7 +427,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1Extensions.POST("/external/install-repository", h.HandleInstallExternalExtensionRepository)
 	v1Extensions.POST("/external/uninstall", h.HandleUninstallExternalExtension)
 	v1Extensions.POST("/external/edit-payload", h.HandleUpdateExtensionCode)
-	v1Extensions.POST("/external/reload", h.HandleReloadExternalExtensions)
 	v1Extensions.POST("/external/reload", h.HandleReloadExternalExtension)
 	v1Extensions.POST("/external/disabled", h.HandleSetExternalExtensionDisabled)
 	v1Extensions.POST("/all", h.HandleGetAllExtensions)
@@ -489,16 +464,9 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	// Debrid
 	//
 
-	v1.GET("/debrid/settings", h.HandleGetDebridSettings)
 	v1.PATCH("/debrid/settings", h.HandleSaveDebridSettings)
-	v1.GET("/debrid/dummy/settings", h.HandleGetDummyDebridSettings)
-	v1.PATCH("/debrid/dummy/settings", h.HandleSaveDummyDebridSettings)
 	v1.POST("/debrid/torrents", h.HandleDebridAddTorrents)
-	v1.POST("/debrid/torrents/download", h.HandleDebridDownloadTorrent)
-	v1.POST("/debrid/torrents/cancel", h.HandleDebridCancelDownload)
-	v1.DELETE("/debrid/torrent", h.HandleDebridDeleteTorrent)
 	v1.GET("/debrid/torrents", h.HandleDebridGetTorrents)
-	v1.POST("/debrid/torrents/info", h.HandleDebridGetTorrentInfo)
 	v1.POST("/debrid/torrents/file-previews", h.HandleDebridGetTorrentFilePreviews)
 	v1.POST("/debrid/stream/start", h.HandleDebridStartStream)
 	v1.POST("/debrid/stream/cancel", h.HandleDebridCancelStream)
@@ -509,7 +477,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 
 	v1.POST("/report/issue", h.HandleSaveIssueReport)
 	v1.GET("/report/issue/download", h.HandleDownloadIssueReport)
-	v1.POST("/report/issue/decompress", h.HandleDecompressIssueReport)
 
 	//
 	// Nakama
@@ -517,7 +484,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 
 	v1Nakama := v1.Group("/nakama")
 	v1Nakama.GET("/ws", h.HandleNakamaWebSocket)
-	v1Nakama.POST("/message", h.HandleSendNakamaMessage)
 	v1Nakama.POST("/reconnect", h.HandleNakamaReconnectToHost)
 	v1Nakama.POST("/cleanup", h.HandleNakamaRemoveStaleConnections)
 	v1Nakama.GET("/room/available", h.HandleNakamaRoomsAvailable)

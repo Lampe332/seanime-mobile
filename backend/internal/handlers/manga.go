@@ -148,41 +148,15 @@ func (h *Handler) HandleStopMangaSourceRefresh(c echo.Context) error {
 	return h.RespondWithData(c, job)
 }
 
-// HandleGetAnilistMangaCollection
-//
-//	@summary returns the user's AniList manga collection.
-//	@route /api/v1/manga/anilist/collection [GET]
-//	@returns anilist.MangaCollection
-func (h *Handler) HandleGetAnilistMangaCollection(c echo.Context) error {
-
-	type body struct {
-		BypassCache bool `json:"bypassCache"`
-	}
-
-	var b body
-	if err := c.Bind(&b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	collection, err := h.App.GetMangaCollection(b.BypassCache)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	return h.RespondWithData(c, collection)
-}
-
 // HandleGetRawAnilistMangaCollection
 //
 //	@summary returns the user's AniList manga collection.
-//	@route /api/v1/manga/anilist/collection/raw [GET,POST]
+//	@route /api/v1/manga/anilist/collection/raw [GET]
 //	@returns anilist.MangaCollection
 func (h *Handler) HandleGetRawAnilistMangaCollection(c echo.Context) error {
 
-	bypassCache := c.Request().Method == "POST"
-
 	// Get the user's anilist collection
-	mangaCollection, err := h.App.GetRawMangaCollection(bypassCache)
+	mangaCollection, err := h.App.GetRawMangaCollection(false)
 	if err != nil {
 		return h.RespondWithError(c, err)
 	}
@@ -328,34 +302,6 @@ func (h *Handler) HandleGetMangaLatestChapterNumbersMap(c echo.Context) error {
 	}
 
 	return h.RespondWithData(c, ret)
-}
-
-// HandleRefetchMangaChapterContainers
-//
-//	@summary refetches the chapter containers for all manga entries previously cached.
-//	@route /api/v1/manga/refetch-chapter-containers [POST]
-//	@returns bool
-func (h *Handler) HandleRefetchMangaChapterContainers(c echo.Context) error {
-
-	type body struct {
-		SelectedProviderMap map[int]string `json:"selectedProviderMap"`
-	}
-
-	var b body
-	if err := c.Bind(&b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	mangaCollection, err := h.App.GetMangaCollection(false)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-	err = h.App.MangaRepository.RefreshChapterContainers(mangaCollection, b.SelectedProviderMap)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	return nil
 }
 
 // HandleEmptyMangaEntryCache

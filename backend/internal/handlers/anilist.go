@@ -48,15 +48,13 @@ func (h *Handler) HandleGetAnimeCollection(c echo.Context) error {
 // HandleGetRawAnimeCollection
 //
 //	@summary returns the user's AniList anime collection without filtering out custom lists.
-//	@desc Calling GET will return the cached anime collection.
+//	@desc Returns the cached anime collection.
 //	@returns anilist.AnimeCollection
-//	@route /api/v1/anilist/collection/raw [GET,POST]
+//	@route /api/v1/anilist/collection/raw [GET]
 func (h *Handler) HandleGetRawAnimeCollection(c echo.Context) error {
 
-	bypassCache := c.Request().Method == "POST"
-
 	// Get the user's anilist collection
-	animeCollection, err := h.App.GetRawAnimeCollection(bypassCache)
+	animeCollection, err := h.App.GetRawAnimeCollection(false)
 	if err != nil {
 		return h.RespondWithError(c, err)
 	}

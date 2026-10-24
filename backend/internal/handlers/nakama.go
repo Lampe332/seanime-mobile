@@ -36,48 +36,6 @@ func (h *Handler) HandleNakamaWebSocket(c echo.Context) error {
 	return nil
 }
 
-// HandleSendNakamaMessage
-//
-//	@summary sends a custom message through Nakama.
-//	@desc This allows sending custom messages to connected peers or the host.
-//	@route /api/v1/nakama/message [POST]
-//	@returns nakama.MessageResponse
-func (h *Handler) HandleSendNakamaMessage(c echo.Context) error {
-	type body struct {
-		MessageType string      `json:"messageType"`
-		Payload     interface{} `json:"payload"`
-		PeerID      string      `json:"peerId,omitempty"` // If specified, send to specific peer (host only)
-	}
-
-	var b body
-	if err := c.Bind(&b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	var err error
-	if b.PeerID != "" && h.App.Settings.GetNakama().IsHost {
-		// Send to specific peer
-		err = h.App.NakamaManager.SendMessageToPeer(b.PeerID, nakama.MessageType(b.MessageType), b.Payload)
-	} else if h.App.Settings.GetNakama().IsHost {
-		// Send to all peers
-		err = h.App.NakamaManager.SendMessage(nakama.MessageType(b.MessageType), b.Payload)
-	} else {
-		// Send to host
-		err = h.App.NakamaManager.SendMessageToHost(nakama.MessageType(b.MessageType), b.Payload)
-	}
-
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	response := &nakama.MessageResponse{
-		Success: true,
-		Message: "Message sent successfully",
-	}
-
-	return h.RespondWithData(c, response)
-}
-
 // HandleGetNakamaAnimeLibrary
 //
 //	@summary shares the local anime collection with Nakama clients.

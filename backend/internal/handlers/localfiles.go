@@ -7,7 +7,6 @@ import (
 	"seanime/internal/database/db_bridge"
 	"seanime/internal/library/anime"
 	"seanime/internal/library/filesystem"
-	"seanime/internal/library_explorer"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -15,25 +14,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 )
-
-// HandleGetLocalFiles
-//
-//	@summary returns all local files.
-//	@desc Reminder that local files are scanned from the library path.
-//	@route /api/v1/library/local-files [GET]
-//	@returns []anime.LocalFile
-func (h *Handler) HandleGetLocalFiles(c echo.Context) error {
-	if err := h.guardStrictLocalOnlyAction(c); err != nil {
-		return err
-	}
-
-	lfs, _, err := db_bridge.GetLocalFiles(h.App.Database)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	return h.RespondWithData(c, lfs)
-}
 
 func (h *Handler) HandleDumpLocalFilesToFile(c echo.Context) error {
 	if err := h.guardStrictLocalOnlyAction(c); err != nil {
@@ -210,36 +190,6 @@ func (h *Handler) HandleUpdateLocalFileData(c echo.Context) error {
 	anime.ClearMissingEpisodesCache()
 
 	return h.RespondWithData(c, retLfs)
-}
-
-// HandleSuperUpdateLocalFiles
-//
-//	@summary updates local files with the given paths.
-//	@desc The client should refetch the entire library collection and media entry.
-//	@route /api/v1/library/local-files/super-update [PATCH]
-//	@returns bool
-func (h *Handler) HandleSuperUpdateLocalFiles(c echo.Context) error {
-	if err := h.guardStrictLocalOnlyAction(c); err != nil {
-		return err
-	}
-
-	type body struct {
-		Files []*library_explorer.SuperUpdateFileOptions `json:"files"`
-	}
-
-	b := new(body)
-	if err := c.Bind(b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-	// Super update the files
-	err := h.App.LibraryExplorer.SuperUpdateFiles(b.Files)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	anime.ClearMissingEpisodesCache()
-
-	return h.RespondWithData(c, true)
 }
 
 // HandleUpdateLocalFiles

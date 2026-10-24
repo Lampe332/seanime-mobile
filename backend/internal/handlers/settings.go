@@ -4,8 +4,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
-	"seanime/internal/database/db"
 	"seanime/internal/database/models"
 	"seanime/internal/torrents/torrent"
 	"seanime/internal/util"
@@ -15,40 +13,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 )
-
-// HandleGetSettings
-//
-//	@summary returns the app settings.
-//	@route /api/v1/settings [GET]
-//	@returns models.Settings
-func (h *Handler) HandleGetSettings(c echo.Context) error {
-
-	settings, err := h.App.Database.GetSettings()
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-	if settings.ID == 0 {
-		return h.RespondWithError(c, errors.New(runtime.GOOS))
-	}
-
-	clientSettings := db.CloneSettings(settings)
-	db.VirtualizeSettingsPaths(clientSettings)
-	if runtime.GOOS == "android" {
-		if clientSettings.Library != nil {
-			clientSettings.Library.TorrentProvider = torrent.ProviderNone
-			clientSettings.Library.AutoSelectTorrentProvider = ""
-			clientSettings.Library.OpenTorrentClientOnStart = false
-		}
-		clientSettings.Torrent = &models.TorrentSettings{}
-		if clientSettings.AutoDownloader != nil {
-			clientSettings.AutoDownloader.Enabled = false
-			clientSettings.AutoDownloader.Provider = ""
-			clientSettings.AutoDownloader.UseDebrid = false
-		}
-	}
-
-	return h.RespondWithData(c, clientSettings)
-}
 
 // HandleGettingStarted
 //

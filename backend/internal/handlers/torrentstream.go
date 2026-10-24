@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"os"
 	"seanime/internal/api/anilist"
 	"seanime/internal/api/metadata"
@@ -13,21 +12,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 )
-
-// HandleGetTorrentstreamSettings
-//
-//	@summary get torrentstream settings.
-//	@desc This returns the torrentstream settings.
-//	@returns models.TorrentstreamSettings
-//	@route /api/v1/torrentstream/settings [GET]
-func (h *Handler) HandleGetTorrentstreamSettings(c echo.Context) error {
-	torrentstreamSettings, found := h.App.Database.GetTorrentstreamSettings()
-	if !found {
-		return h.RespondWithError(c, errors.New("torrent streaming settings not found"))
-	}
-
-	return h.RespondWithData(c, torrentstreamSettings)
-}
 
 // HandleSaveTorrentstreamSettings
 //
@@ -189,23 +173,6 @@ func (h *Handler) HandleTorrentstreamStartStream(c echo.Context) error {
 func (h *Handler) HandleTorrentstreamStopStream(c echo.Context) error {
 
 	err := h.App.TorrentstreamRepository.StopStream()
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	return h.RespondWithData(c, true)
-}
-
-// HandleTorrentstreamDropTorrent
-//
-//	@summary drops a torrent stream.
-//	@desc This stops the entire streaming process and drops the torrent completely.
-//	@desc This is made to be used to force drop a torrent.
-//	@returns bool
-//	@route /api/v1/torrentstream/drop [POST]
-func (h *Handler) HandleTorrentstreamDropTorrent(c echo.Context) error {
-
-	err := h.App.TorrentstreamRepository.DropTorrent()
 	if err != nil {
 		return h.RespondWithError(c, err)
 	}

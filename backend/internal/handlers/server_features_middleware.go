@@ -50,8 +50,6 @@ func (h *Handler) FeaturesMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			{"/api/v1/filecache", h.App.FeatureManager.IsDisabled(core.UpdateSettings), Empty, Empty},
 			// account
 			{"/api/v1/auth", h.App.FeatureManager.IsDisabled(core.ManageAccount), UpdateMethods, Empty},
-			{"/api/v1/mal/auth", h.App.FeatureManager.IsDisabled(core.ManageAccount), UpdateMethods, Empty},
-			{"/api/v1/mal/logout", h.App.FeatureManager.IsDisabled(core.ManageAccount), UpdateMethods, Empty},
 			// lists
 			{"/api/v1/anilist/list-entry", h.App.FeatureManager.IsDisabled(core.ManageLists), UpdateMethods, Empty},
 			{"/api/v1/library/anime-entry/update-progress", h.App.FeatureManager.IsDisabled(core.ManageLists), UpdateMethods, Empty},
@@ -60,7 +58,6 @@ func (h *Handler) FeaturesMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			// refresh metadata
 			{"/api/v1/anilist/cache-layer/status", h.App.FeatureManager.IsDisabled(core.RefreshMetadata), UpdateMethods, Empty},
 			{"/api/v1/library/scan", h.App.FeatureManager.IsDisabled(core.RefreshMetadata), UpdateMethods, Empty},
-			{"/api/v1/manga/refetch-chapter-containers", h.App.FeatureManager.IsDisabled(core.RefreshMetadata), UpdateMethods, Empty},
 			// playlists
 			{"/api/v1/playlist", h.App.FeatureManager.IsDisabled(core.ManagePlaylist), UpdateMethods, Empty},
 			{"/api/v1/playback-manager/start-playlist", h.App.FeatureManager.IsDisabled(core.ManagePlaylist), UpdateMethods, Empty},
@@ -86,9 +83,8 @@ func (h *Handler) FeaturesMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			{"/api/v1/nakama", h.App.FeatureManager.IsDisabled(core.ManageNakama), UpdateMethods, Empty},
 			// open in explorer
 			{"/api/v1/open-in-explorer", h.App.FeatureManager.IsDisabled(core.OpenInExplorer), Empty, Empty},
-			{"/api/v1/library/anime-entry/open-in-explorer", h.App.FeatureManager.IsDisabled(core.OpenInExplorer), UpdateMethods, Empty},
 			// debrid
-			{"/api/v1/debrid", h.App.FeatureManager.IsDisabled(core.ManageDebrid), UpdateMethods, []string{"/api/v1/debrid/settings", "/api/v1/debrid/torrents/info", "/api/v1/debrid/torrents/file-previews"}},
+			{"/api/v1/debrid", h.App.FeatureManager.IsDisabled(core.ManageDebrid), UpdateMethods, []string{"/api/v1/debrid/settings", "/api/v1/debrid/torrents/file-previews"}},
 			{"/api/v1/debrid/stream", h.App.FeatureManager.IsDisabled(core.DebridStreaming), UpdateMethods, Empty},
 			// home items
 			{"/api/v1/status/home-items", h.App.FeatureManager.IsDisabled(core.ManageHomeScreen), UpdateMethods, Empty},
