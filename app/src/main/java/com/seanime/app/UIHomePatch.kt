@@ -68,31 +68,6 @@ object UIHomePatch {
                     overflow: hidden !important;
                 }
 
-                [data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"][data-view-mode="grid"] [data-media-card-grid="true"] {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    flex-wrap: nowrap !important;
-                    overflow-x: auto !important;
-                    overflow-y: hidden !important;
-                    -webkit-overflow-scrolling: touch !important;
-                    scroll-snap-type: x mandatory !important;
-                    gap: 0.65rem !important;
-                    padding: 0.5rem 1rem 1.5rem 1rem !important;
-                    width: auto !important;
-                    max-width: 100% !important;
-                    scrollbar-width: none !important;
-                }
-                
-                [data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"][data-view-mode="grid"] [data-media-card-grid="true"]::-webkit-scrollbar {
-                    display: none !important;
-                }
-
-                [data-library-collection-list-item-media-card-lazy-grid][data-list-type="CURRENT"][data-view-mode="grid"] [data-media-entry-card-container="true"] {
-                    flex: 0 0 auto !important;
-                    width: 135px !important;
-                    scroll-snap-align: start !important;
-                }
-
                 /* ── Card UI tweaks ── */
                 [data-episode-card-subtitle="true"] { font-size: 0.78rem !important; }
                 [data-episode-card-title="true"] { font-size: 0.92rem !important; width: 100% !important; }

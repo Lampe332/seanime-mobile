@@ -14,22 +14,16 @@ import java.util.UUID
 /** Token is injected into the trusted main document only, never into provider iframes. */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class OfflineBridge(private val activity: Activity) {
-    private var mainView: WebView? = null
     @Volatile private var token: String? = null
     fun invalidate() { token = null }
     fun inject(view: WebView) {
         val uri = android.net.Uri.parse(view.url ?: "")
         if (uri.scheme != "http" || uri.host != "127.0.0.1" || uri.port != 43211) return
         val next = UUID.randomUUID().toString()
-        mainView = view
         EpisodeDownloads.get(activity)
         EpisodeBatchQueue.get(activity).start()
         token = next
         view.evaluateJavascript("window.__seanimeOfflineToken = ${JSONObject.quote(next)};", null)
-    }
-    @JavascriptInterface fun open(value: String) {
-        if (value != token) return
-        activity.runOnUiThread { if (value == token && !activity.isDestroyed) mainView?.evaluateJavascript("window.dispatchEvent(new Event('seanime-open-downloads'));", null) }
     }
     @JavascriptInterface fun snapshot(value: String): String {
         if (value != token) return "[]"

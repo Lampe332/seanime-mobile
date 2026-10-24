@@ -661,19 +661,8 @@ object UIBottomNav {
             if (window.__seanime_bottomnav_init) return;
             window.__seanime_bottomnav_init = true;
 
-            // Phones and tablets both get the bar; on a tablet (the web app's lib/tablet-ui.ts rule) tablet.css makes it a rail
-            var TABLET_UI = Math.min(screen.width, screen.height) >= 600;
-            function isTablet() { return false; }
-
-            if (isTablet()) {
-                window.addEventListener('resize', function() {
-                    if (!isTablet()) {
-                        window.__seanime_bottomnav_init = false;
-                        setTimeout(function() { if (!window.__seanime_bottomnav_init) initNav(); }, 150);
-                    }
-                });
-                return;
-            }
+            // Phones and tablets both get the bar; on a tablet (html[data-layout="tablet"], set by the web app) tablet.css makes it a rail
+            var TABLET_UI = document.documentElement.dataset.layout === 'tablet';
 
             initNav();
 
@@ -1076,7 +1065,6 @@ object UIBottomNav {
                         if (btn.style.display === 'none' && !btn.dataset.hiddenByUs) return;
                         var label = btn.getAttribute('data-vertical-menu-item-button');
                         var svgEl = btn.querySelector('svg');
-                        if (label === 'Update available') return;
                         if (label && !seen(label, null) && !inNav(label, null)) {
                             items.push({ type: 'button', label: label, svg: iconFor({label:label}) || window.__seanimeIcons.clean(svgEl ? svgEl.outerHTML : '') });
                             markSeen(label, null);
@@ -1153,9 +1141,8 @@ object UIBottomNav {
                 // FLOATING MENU — normal (non-edit) open/close
                 // ─────────────────────────────────────────────────────────────
                 function navigateViaApp(href) {
-                    if (href === '/android-downloads' && window.SeanimeOffline && window.__seanimeOfflineToken) {
-                        document.querySelectorAll('video').forEach(function(video) { video.pause(); });
-                        window.SeanimeOffline.open(window.__seanimeOfflineToken);
+                    if (href === '/android-downloads') {
+                        window.dispatchEvent(new Event('seanime-open-downloads'));  // routes/_main.tsx pauses playback and opens the page
                         return;
                     }
                     var target = new URL(href, window.location.origin);
@@ -1281,7 +1268,6 @@ object UIBottomNav {
                 function updateNavVisibility() {
                     var nav = document.getElementById('__seanime_bottom_nav');
                     if (!nav) return;
-                    if (isTablet()) { nav.classList.remove('visible'); return; }
                     if (isReaderOpen() || isDrawerOpen()) {
                         nav.classList.remove('visible');
                     } else if (document.querySelector('.UI-AppSidebar__sidebar')) {
@@ -1289,7 +1275,6 @@ object UIBottomNav {
                     }
                 }
                 function showNav() {
-                    if (isTablet()) return;
                     var nav = document.getElementById('__seanime_bottom_nav');
                     if (nav && !isReaderOpen() && !isDrawerOpen()) nav.classList.add('visible');
                 }
@@ -1540,7 +1525,7 @@ object UIBottomNav {
                             row.setAttribute('aria-label', item.label + navText(' – always stays in the bar', ' – bleibt immer in der Leiste'));
                             var fixed = document.createElement('span');
                             fixed.className = 'seanime-edit-fixed';
-                            fixed.textContent = 'Fest';
+                            fixed.textContent = navText('Fixed', 'Fest');
                             row.appendChild(fixed);
                         } else {
                             row.setAttribute('aria-label', item.label + navText(' – move back to the menu', ' – zurück ins Menü geben'));
@@ -2037,8 +2022,7 @@ object UIBottomNav {
                     if (!dragState) return;
                     clearDropTargets();
                     if (dragState.ghost && dragState.ghost.parentNode) dragState.ghost.parentNode.removeChild(dragState.ghost);
-                    if (dragState.originEl)   dragState.originEl.style.opacity  = '';
-                    if (dragState.originIcon) dragState.originIcon.style.opacity = '';
+                    if (dragState.originEl) dragState.originEl.style.opacity = '';
                     dragState = null;
                 }, { passive: true });
 
@@ -2046,7 +2030,6 @@ object UIBottomNav {
                 // INITIAL BUILD
                 // ═════════════════════════════════════════════════════════════
                 function buildNav() {
-                    if (isTablet()) return;
                     if (document.getElementById('__seanime_bottom_nav')) return;
 
                     if (!document.getElementById('android-floating-menu')) {
@@ -2123,13 +2106,8 @@ object UIBottomNav {
                     if (resizeThrottle) return;
                     resizeThrottle = setTimeout(function() {
                         resizeThrottle = null;
-                        if (isTablet()) {
-                            var nav = document.getElementById('__seanime_bottom_nav');
-                            if (nav) nav.classList.remove('visible');
-                        } else {
-                            buildNav();
-                            updateNavVisibility();
-                        }
+                        buildNav();
+                        updateNavVisibility();
                     }, 150);
                 });
 
@@ -2145,7 +2123,6 @@ object UIBottomNav {
                         if (navVisThrottle) return;
                         navVisThrottle = setTimeout(function() {
                             navVisThrottle = null;
-                            if (isTablet()) return;
                             menuBtn = null;
                             buildNav();
                         }, 50);
