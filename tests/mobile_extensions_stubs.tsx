@@ -128,9 +128,13 @@ export const useGrantPluginPermissions = () => useFakeMutation("grant", ({ id, c
 })
 export const useGetExtensionPayload = (_id: string) => ({ data: "export function init() {}", isLoading: false })
 export const useUpdateExtensionCode = () => useFakeMutation("edit-code", () => true)
+// Same object per extension, like react-query: the preferences form re-reads saved values when the data changes
+const userConfigs = new Map<string, any>()
 export const useGetExtensionUserConfig = (id: string) => {
     const extension = s().all.extensions.find((item: any) => item.id === id)
-    return { data: { userConfig: extension?.userConfig, savedUserConfig: { version: 1, values: {} } }, isLoading: false }
+    let data = userConfigs.get(id)
+    if (data?.userConfig !== extension?.userConfig) userConfigs.set(id, data = { userConfig: extension?.userConfig, savedUserConfig: { version: 1, values: {} } })
+    return { data, isLoading: false }
 }
 export const useSaveExtensionUserConfig = () => useFakeMutation("save-config", () => true)
 
