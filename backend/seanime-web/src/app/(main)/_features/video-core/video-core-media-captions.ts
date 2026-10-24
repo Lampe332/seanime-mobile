@@ -502,17 +502,11 @@ export class MediaCaptionsManager extends EventTarget {
 
         this.overlayElement.style.setProperty("--overlay-padding", "3%")
 
-        // if (custom.fontFamily) {
-        //     this.overlayElement.style.setProperty("--media-font-family", custom.fontFamily)
-        // }
         const fontSize = vc_getCaptionStyle(custom, "fontSize")
         if (fontSize) {
             // Override the calculated font size and recalculate all dependent values
             const newFontSize = `calc(var(--overlay-height) / 100 * ${fontSize})`
             this.overlayElement.style.setProperty("--cue-font-size", newFontSize)
-            // this.overlayElement.style.setProperty("--cue-line-height", `calc(${newFontSize} * 1.2)`)
-            // this.overlayElement.style.setProperty("--cue-padding-x", `calc(${newFontSize} * 0.6)`)
-            // this.overlayElement.style.setProperty("--cue-padding-y", `calc(${newFontSize} * 0.4)`)
         }
         const textColor = vc_getCaptionStyle(custom, "textColor")
         if (textColor) {
@@ -529,9 +523,6 @@ export class MediaCaptionsManager extends EventTarget {
             const b = parseInt(hex.substring(4, 6), 16)
             this.overlayElement.style.setProperty("--cue-bg-color", `rgba(${r}, ${g}, ${b}, ${opacity})`)
         }
-        // if (custom.bold !== undefined) {
-        //     this.overlayElement.style.setProperty("--cue-font-weight", custom.bold ? "bold" : "normal")
-        // }
         const textShadow = vc_getCaptionStyle(custom, "textShadow")
         const textShadowColor = vc_getCaptionStyle(custom, "textShadowColor")
         if (textShadow !== undefined) {

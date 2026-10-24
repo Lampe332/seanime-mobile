@@ -122,7 +122,7 @@ export interface VideoCoreKeybindings {
     takeScreenshot: { key: string }
 }
 
-export const vc_defaultKeybindings: VideoCoreKeybindings = {
+const vc_defaultKeybindings: VideoCoreKeybindings = {
     seekForward: { key: "KeyD", value: 30 },
     seekBackward: { key: "KeyA", value: 30 },
     seekForwardFine: { key: "ArrowRight", value: 2 },

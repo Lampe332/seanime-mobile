@@ -45,7 +45,7 @@ import { TbCloudPlus } from "react-icons/tb"
 import { toast } from "sonner"
 
 export const nakamaModalOpenAtom = atom(false)
-export const nakamaStatusAtom = atom<Nakama_NakamaStatus | null | undefined>(undefined)
+const nakamaStatusAtom = atom<Nakama_NakamaStatus | null | undefined>(undefined)
 
 export function useNakamaStatus() {
     return useAtomValue(nakamaStatusAtom)
@@ -254,7 +254,6 @@ export function NakamaManager() {
     useWebsocketMessageListener({
         type: WSEvents.NAKAMA_ROOM_RECONNECTED,
         onMessage: (data: { roomId: string }) => {
-            // toast.success("Reconnected to room")
             refetchStatus()
         },
     })
@@ -622,44 +621,6 @@ function WatchPartyCreation({
             {isHost && (
                 <div className="p-4 border rounded-lg bg-gray-950">
                     <div className="space-y-4">
-                        {/* <div className="space-y-3">
-                         <div className="flex items-center justify-between">
-                         <label className="text-sm font-medium">Allow participant control</label>
-                         <Switch
-                         value={settings.allowParticipantControl}
-                         onValueChange={(checked: boolean) =>
-                         onSettingsChange({ ...settings, allowParticipantControl: checked })
-                         }
-                         />
-                         </div>
-
-                         <div className="space-y-2">
-                         <label className="text-sm font-medium">Sync threshold (seconds)</label>
-                         <NumberInput
-                         value={settings.syncThreshold}
-                         onValueChange={(value) =>
-                         onSettingsChange({ ...settings, syncThreshold: value || 3.0 })
-                         }
-                         min={1}
-                         max={10}
-                         step={0.5}
-                         />
-                         <p className="text-xs text-[--muted]">How far out of sync before forcing synchronization</p>
-                         </div>
-
-                         <div className="space-y-2">
-                         <label className="text-sm font-medium">Max buffer wait time (seconds)</label>
-                         <NumberInput
-                         value={settings.maxBufferWaitTime}
-                         onValueChange={(value) =>
-                         onSettingsChange({ ...settings, maxBufferWaitTime: value || 10 })
-                         }
-                         min={5}
-                         max={60}
-                         />
-                         <p className="text-xs text-[--muted]">Maximum time to wait for peers to buffer</p>
-                         </div>
-                         </div> */}
 
                         <Button
                             onClick={onCreateWatchParty}
@@ -759,41 +720,12 @@ function WatchPartySessionView({ session, isHost, onLeave, isLeaving, isRoom }: 
                         disabled={isLeaving}
                         size="sm"
                         intent="alert-basic"
-                        // leftIcon={isHost ? <MdStop /> : <MdExitToApp />}
                     >
                         {isLeaving ? "Leaving..." : isHost ? "Stop" : "Leave"}
                     </Button>
                 </div>
             </div>
 
-            {/* <SettingsCard title="Session Details">
-             <div className="space-y-3">
-             <div className="flex items-center justify-between">
-             <span className="text-sm text-[--muted]">Session ID:</span>
-             <span className="font-mono text-xs">{session.id}</span>
-             </div>
-
-             <div className="flex items-center justify-between">
-             <span className="text-sm text-[--muted]">Created:</span>
-             <span className="text-sm">{session.createdAt ? new Date(session.createdAt).toLocaleString() : "Unknown"}</span>
-             </div>
-
-             {session.currentMediaInfo && (
-             <>
-             <div className="flex items-center justify-between">
-             <span className="text-sm text-[--muted]">Current Media:</span>
-             <span className="text-sm">Episode {session.currentMediaInfo.episodeNumber}</span>
-             </div>
-             <div className="flex items-center justify-between">
-             <span className="text-sm text-[--muted]">Stream Type:</span>
-             <Badge className="">
-             {session.currentMediaInfo.streamType}
-             </Badge>
-             </div>
-             </>
-             )}
-             </div>
-             </SettingsCard> */}
 
             <h5>Participants ({participantCount})</h5>
             <div className="p-4 border rounded-lg bg-gray-950">
@@ -855,24 +787,6 @@ function WatchPartySessionView({ session, isHost, onLeave, isLeaving, isRoom }: 
                 </div>
             </div>
 
-            {/* <SettingsCard title="Settings">
-             <div className="space-y-2">
-             <div className="flex items-center justify-between">
-             <span className="text-sm text-[--muted]">Participant Control:</span>
-             <span className="text-sm">
-             {session.settings?.allowParticipantControl ? "Enabled" : "Disabled"}
-             </span>
-             </div>
-             <div className="flex items-center justify-between">
-             <span className="text-sm text-[--muted]">Sync Threshold:</span>
-             <span className="text-sm">{session.settings?.syncThreshold}s</span>
-             </div>
-             <div className="flex items-center justify-between">
-             <span className="text-sm text-[--muted]">Max Buffer Wait:</span>
-             <span className="text-sm">{session.settings?.maxBufferWaitTime}s</span>
-             </div>
-             </div>
-             </SettingsCard> */}
         </div>
     )
 }

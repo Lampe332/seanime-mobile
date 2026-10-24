@@ -61,7 +61,6 @@ import {
     vc_hlsSetAudioTrack,
     vc_hlsSetQuality,
 } from "@/app/(main)/_features/video-core/video-core-hls"
-import { useVideoCoreIOSFullscreenSubtitles } from "@/app/(main)/_features/video-core/video-core-ios-fullscreen-subtitles"
 import { MediaCaptionsManager } from "@/app/(main)/_features/video-core/video-core-media-captions"
 import { vc_mediaSessionManager, VideoCoreMediaSessionManager } from "@/app/(main)/_features/video-core/video-core-media-session"
 import { useVideoCoreMobileGestures } from "@/app/(main)/_features/video-core/video-core-mobile-gestures"
@@ -106,7 +105,6 @@ import {
     useVideoCoreBindings,
     vc_createChapterCues,
     vc_createChaptersFromAniSkip,
-    vc_logGeneralInfo,
 } from "@/app/(main)/_features/video-core/video-core.utils"
 import { useServerHMACAuth, useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { __torrentSearch_selectedTorrentsAtom } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-container"
@@ -140,7 +138,7 @@ type ViewTransitionDocument = Document & {
     }
 }
 
-export function startVideoCoreMiniPlayerTransition(update: () => void) {
+function startVideoCoreMiniPlayerTransition(update: () => void) {
     if (typeof document === "undefined" || typeof window === "undefined") {
         update()
         return
@@ -507,7 +505,6 @@ export interface VideoCoreProps {
     onError?: (error: string) => void
     onStalled?: (reason: string) => void
     onPlaybackRateChange?: () => void
-    // onFileUploaded: (data: { name: string, content: string }) => void
     onVideoSourceChange?: ((source: VideoCore_VideoSource) => void) | undefined
     hlsPreferredQuality?: string
     onHlsQualityChange?: (quality: string) => void
@@ -845,7 +842,6 @@ export function VideoCore(props: VideoCoreProps) {
                 fullscreenManager.destroy()
                 setFullscreenManager(null)
             }
-            // setIsFullscreen(false)
             if (mediaSessionManager) {
                 mediaSessionManager.setVideo(null)
                 mediaSessionManager.destroy()
@@ -861,7 +857,6 @@ export function VideoCore(props: VideoCoreProps) {
             isFirstError.current = true
             log.info("New stream loaded", state.playbackInfo)
             setStreamType(state.playbackInfo.streamType)
-            vc_logGeneralInfo(videoRef.current)
             dispatchVideoLoadedEvent()
         }
     }, [state.playbackInfo?.id, waitForWatchHistory, shouldWaitForWatchHistory])
@@ -932,18 +927,12 @@ export function VideoCore(props: VideoCoreProps) {
 
         if (!state.playbackInfo) return // shouldn't happen
 
-        // setHasUpdatedProgress(false)
 
         currentPlaybackRef.current = state.playbackInfo.id
 
         /*
          * Event or file tracks using libass renderer
          */
-        // const hasLibassRendererTracks = state.playbackInfo?.subtitleTracks?.some(t => t.useLibassRenderer)
-        // // Initialize the subtitle manager if the stream is MKV or has useLibassRenderer tracks
-        // if (!!state.playbackInfo?.mkvMetadata || hasLibassRendererTracks) {
-        //
-        // }
 
         /*
          * File subtitle tracks that don't use libass renderer
@@ -1205,22 +1194,6 @@ export function VideoCore(props: VideoCoreProps) {
         }
         return
 
-        // if (e.type === "click") {
-        //     if (!debouncedMenuOpen) {
-        //         togglePlay()
-        //     }
-        //     setTimeout(() => {
-        //         setBusy(false)
-        //     }, 100)
-        // }
-        //
-        // if (e.type === "contextmenu") {
-        //     const now = Date.now()
-        //     if (lastClickTime.current && now - lastClickTime.current < 500) {
-        //         fullscreenManager?.toggleFullscreen()
-        //     }
-        //     lastClickTime.current = now
-        // }
     }
 
     const handleDoubleClick = (e: React.SyntheticEvent<HTMLVideoElement>) => {
@@ -1309,9 +1282,6 @@ export function VideoCore(props: VideoCoreProps) {
         if (!hasSoughtRef.current) {
             if (!state.playbackInfo || !videoRef.current) return
             hasSoughtRef.current = true
-            // if (autoPlay) {
-            //     videoRef.current.play().catch()
-            // }
 
             // Do nothing if the stream is not seekable
             if (isWatchPartyParticipant) return
@@ -1403,11 +1373,6 @@ export function VideoCore(props: VideoCoreProps) {
             mediaSessionManager.deactivate()
         }
     }, [mediaSessionManager, videoRef.current, state.playbackInfo, state.active, playEpisode])
-
-    // Handle iOS fullscreen subtitles
-    useVideoCoreIOSFullscreenSubtitles({
-        videoElement: videoRef.current,
-    })
 
     // Handle mobile gestures
     useVideoCoreMobileGestures({
@@ -1605,8 +1570,6 @@ export function VideoCore(props: VideoCoreProps) {
                     }}
                     borderToBorder
                     miniPlayer={isMiniPlayer}
-                    size={isMiniPlayer ? "md" : "full"}
-                    side={isMiniPlayer ? "right" : "bottom"}
                     contentClass={cn(
                         "p-0 m-0",
                         !isMiniPlayer && "h-full",

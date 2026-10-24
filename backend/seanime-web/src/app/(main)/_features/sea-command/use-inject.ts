@@ -25,24 +25,6 @@ export type SeaCommandInjectable = {
 }
 
 const injectablesAtom = atom<Record<string, SeaCommandInjectable>>({})
-// useSeaCommandInject
-// Example:
-// const { inject, remove } = useSeaCommandInject()
-// React.useEffect(() => {
-//     inject("continue-watching", {
-//         items: episodes.map(episode => ({
-//             data: episode,
-//             id: `${episode.type}-${episode.localFile?.path || ""}-${episode.episodeNumber}`,
-//             value: `${episode.episodeNumber}`,
-//             heading: "Continue Watching",
-//         })),
-//         priority: 100,
-//     })
-//
-//     return () => {
-//         remove("continue-watching")
-//     }
-// }, [episodes])
 
 export function useSeaCommandInjectables() {
     return useAtomValue(injectablesAtom)

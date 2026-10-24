@@ -98,11 +98,7 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, homeItems: _h
 
             if (newItems.length !== homeItems.length) {
                 setCurrentItems(newItems)
-                updateHomeItems({ items: newItems }, {
-                    onSuccess: () => {
-                        console.log("Home items updated")
-                    },
-                })
+                updateHomeItems({ items: newItems })
             }
         }, 500)
 
@@ -193,15 +189,6 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, homeItems: _h
                 // Touch: no focus ring on the first control when the sheet opens.
                 onOpenAutoFocus={e => e.preventDefault()}
             >
-                {/*<GlowingEffect*/}
-                {/*    variant="classic"*/}
-                {/*    spread={40}*/}
-                {/*    glow={true}*/}
-                {/*    disabled={false}*/}
-                {/*    proximity={64}*/}
-                {/*    inactiveZone={0.01}*/}
-                {/*    className="opacity-50 !mt-0"*/}
-                {/*/>*/}
 
                 <div className={cn("space-y-6", "home-settings-body")}>
                     <div className="home-library-source">
@@ -262,14 +249,6 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, homeItems: _h
                                     "border border-transparent data-[state=checked]:border-[--border] data-[state=checked]:ring-offset-0",
                                 ),
                             }}
-                            // value={pageFit}
-                            // onValueChange={(value) => setPageFit(value)}
-                            // help={<>
-                            //     <p>'Contain': Fit Height</p>
-                            //     <p>'Overflow': Height overflow</p>
-                            //     <p>'Cover': Fit Width</p>
-                            //     <p>'True Size': No scaling, raw sizes</p>
-                            // </>}
                         />
 
                         <p className="text-sm text-[--muted] pt-4">
@@ -556,12 +535,6 @@ function OptionField({ option, value, onChange }: OptionFieldProps) {
                             </button>
                         ))}
                     </div>
-                    {/*{selectedValues.length > 0 && (*/}
-                    {/*    <div className="text-xs text-gray-400">*/}
-                    {/*        {selectedValues.length} selected: {selectedValues.slice(0, 3).join(", ")}*/}
-                    {/*        {selectedValues.length > 3 && ` +${selectedValues.length - 3} more`}*/}
-                    {/*    </div>*/}
-                    {/*)}*/}
                 </div>
             )
 

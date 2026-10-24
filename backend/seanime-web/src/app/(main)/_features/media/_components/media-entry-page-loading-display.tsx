@@ -54,8 +54,6 @@ export function MediaEntryPageLoadingDisplay() {
                     <Skeleton className="h-7 w-16 rounded-xl opacity-80" />
                     <Skeleton className="h-8 w-8 rounded-xl opacity-70" />
                     <Skeleton className="h-8 w-8 rounded-xl opacity-70" />
-                    {/* <Skeleton className="h-8 w-8 rounded-xl opacity-60" />
-                     <Skeleton className="h-8 w-8 rounded-xl opacity-60" /> */}
                 </div>
 
                 {/* tabs: Library / Torrent / Debrid / Online */}

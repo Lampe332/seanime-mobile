@@ -86,24 +86,3 @@ export const VideoCoreAnime4K = () => {
 
     return null
 }
-
-export const anime4kOptions: { value: Anime4KOption; label: string; description: string; performance: "light" | "medium" | "heavy" }[] = [
-    { value: "off", label: "Off", description: "Disabled", performance: "light" },
-    { value: "mode-a", label: "Mode A", description: "Removes compression artifacts then upscales", performance: "light" },
-    { value: "mode-b", label: "Mode B", description: "Gentle artifact removal then upscales", performance: "light" },
-    { value: "mode-c", label: "Mode C", description: "Upscales with denoising then upscales again", performance: "light" },
-    { value: "mode-aa", label: "Mode A+A", description: "Enhanced restoration for better quality", performance: "medium" },
-    { value: "mode-bb", label: "Mode B+B", description: "Double soft restoration", performance: "medium" },
-    { value: "mode-ca", label: "Mode C+A", description: "Denoising + restoration hybrid", performance: "medium" },
-    { value: "cnn-2x-medium", label: "CNN 2x M", description: "Balanced speed and quality", performance: "medium" },
-    { value: "cnn-2x-very-large", label: "CNN 2x VL", description: "High quality neural network", performance: "heavy" },
-    { value: "denoise-cnn-2x-very-large", label: "Denoise CNN 2x VL", description: "Removes noise while upscaling", performance: "heavy" },
-    { value: "cnn-2x-ultra-large", label: "CNN 2x UL", description: "Maximum CNN quality", performance: "heavy" },
-    { value: "gan-3x-large", label: "GAN 3x L", description: "Generative adversarial network for perceptual quality", performance: "heavy" },
-    { value: "gan-4x-ultra-large", label: "GAN 4x UL", description: "Maximum upscaling with GAN technology", performance: "heavy" },
-]
-
-export const getAnime4KOptionByValue = (value: Anime4KOption) => {
-    return anime4kOptions.find(option => option.value === value)
-}
-

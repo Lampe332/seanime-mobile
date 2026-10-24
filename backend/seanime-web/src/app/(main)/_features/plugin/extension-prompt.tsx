@@ -144,11 +144,6 @@ export function ExtensionPrompt() {
                         {title}
                     </p>
 
-                    {/* {!!prompt.resource && (
-                     <p className="mt-3 text-base leading-snug">
-                     {prompt.resource}
-                     </p>
-                     )} */}
 
                     {!!prompt.details?.length && (
                         <div className="mt-5 max-h-32 overflow-y-auto rounded-xl border bg-[--paper] p-3 text-sm max-w-full space-y-1.5 select-text">

@@ -222,10 +222,6 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
             name: "Search",
             href: "/search",
             isCurrent: pathname === "/search",
-            // onClick: () => {
-            //     ctx.setOpen(false)
-            //     setGlobalSearchIsOpen(true)
-            // },
         },
         ...(!!serverStatus?.settings?.library?.libraryPath) ? [{
             id: "scan-summaries",
@@ -416,13 +412,6 @@ function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogo
                 onLinkItemClick={() => ctx.setOpen(false)}
                 isSidebar
                 items={[
-                    // {
-                    //     iconType: RiSlashCommands2,
-                    //     name: "Command palette",
-                    //     onClick: () => {
-                    //         setSeaCommandOpen(true)
-                    //     }
-                    // },
                     ...serverStatus?.settings?.nakama?.enabled ? [{
                         iconType: MdOutlineConnectWithoutContact,
                         iconClass: "size-6",

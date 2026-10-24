@@ -35,7 +35,6 @@ export function LibraryWatcher(props: LibraryWatcherProps) {
     useWebsocketMessageListener<string>({
         type: WSEvents.LIBRARY_WATCHER_FILE_ADDED,
         onMessage: data => {
-            console.log("Library watcher", data)
             if (!serverStatus?.settings?.library?.autoScan) { // Only show the notification if auto scan is disabled
                 fileAdded.on()
                 setFileEvent(data)
@@ -46,7 +45,6 @@ export function LibraryWatcher(props: LibraryWatcherProps) {
     useWebsocketMessageListener<string>({
         type: WSEvents.LIBRARY_WATCHER_FILE_REMOVED,
         onMessage: data => {
-            console.log("Library watcher", data)
             if (!serverStatus?.settings?.library?.autoScan) { // Only show the notification if auto scan is disabled
                 fileRemoved.on()
                 setFileEvent(data)

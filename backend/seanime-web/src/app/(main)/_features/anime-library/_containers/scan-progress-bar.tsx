@@ -23,7 +23,6 @@ export function ScanProgressBar() {
     useWebsocketMessageListener<number>({
         type: WSEvents.SCAN_PROGRESS,
         onMessage: data => {
-            console.log("Scan progress", data)
             setProgress(data)
         },
     })
@@ -31,7 +30,6 @@ export function ScanProgressBar() {
     useWebsocketMessageListener<string>({
         type: WSEvents.SCAN_STATUS,
         onMessage: data => {
-            console.log("Scan status", data)
             setStatus(data)
         },
     })

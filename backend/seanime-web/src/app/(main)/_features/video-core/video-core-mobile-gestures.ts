@@ -62,7 +62,6 @@ export function useVideoCoreMobileGestures({
 
         const handleTouchMove = (e: TouchEvent) => {
             if (!touchStartRef.current || e.touches.length !== 1) return
-            // e.preventDefault()
 
             const touch = e.touches[0]
             const deltaX = touch.clientX - touchStartRef.current.x

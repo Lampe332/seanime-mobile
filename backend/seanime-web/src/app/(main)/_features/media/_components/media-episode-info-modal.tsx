@@ -56,8 +56,6 @@ export function MediaEpisodeInfoModal(props: MediaEpisodeInfoModalProps) {
                     size="xs"
                 />}
                 title={title || "Episode"}
-                // contentClass="max-w-2xl"
-                // titleClass="text-xl"
             >
 
                 {image && <div

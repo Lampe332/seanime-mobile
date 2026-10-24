@@ -16,7 +16,6 @@ export const DETAILED_LIBRARY_DEFAULT_PARAMS: CollectionParams<"anime"> = {
     sorting: "TITLE",
 }
 
-// export const __library_paramsAtom = atomWithStorage("sea-library-sorting-params", DETAILED_LIBRARY_DEFAULT_PARAMS, undefined, { getOnInit: true })
 export const __library_paramsAtom = atomWithImmer(DETAILED_LIBRARY_DEFAULT_PARAMS)
 
 export const __library_selectedListAtom = atomWithStorage<string>("sea-detailed-library-selected-list", "-")

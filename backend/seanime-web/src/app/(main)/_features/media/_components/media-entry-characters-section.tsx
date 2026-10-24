@@ -34,7 +34,6 @@ export function MediaEntryCharactersSection(props: RelationsRecommendationsSecti
 
     return (
         <div className="space-y-4 animate-in fade-in-0 duration-200">
-            {/*{!isMangaPage && <Separator />}*/}
 
             <h2 data-media-entry-characters-section-title>Characters</h2>
 

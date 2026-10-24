@@ -193,7 +193,6 @@ export function VideoCoreKeybindingController(props: {
                 const percentage = digit * 10
                 const seekTime = Math.max(0, Math.min(video.duration, (video.duration * percentage) / 100))
                 seekTo(seekTime)
-                // showOverlayFeedback({ message: `${percentage}%` })
                 return
             }
 
@@ -246,13 +245,11 @@ export function VideoCoreKeybindingController(props: {
                 video.dispatchEvent(new Event("seeked"))
             } else if (e.code === keybindings.seekForwardFine.key) {
                 e.preventDefault()
-                // if (!canSeek()) return
                 video.dispatchEvent(new Event("seeking"))
                 seek(keybindings.seekForwardFine.value)
                 video.dispatchEvent(new Event("seeked"))
             } else if (e.code === keybindings.seekBackwardFine.key) {
                 e.preventDefault()
-                // if (!canSeek()) return
                 video.dispatchEvent(new Event("seeking"))
                 seek(-keybindings.seekBackwardFine.value)
                 video.dispatchEvent(new Event("seeked"))

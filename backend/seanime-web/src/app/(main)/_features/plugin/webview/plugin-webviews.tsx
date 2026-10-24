@@ -312,9 +312,6 @@ export function PluginWebviewSlot({ slot }: PluginWebviewSlotProps) {
                     iframeWebviews.delete(webviewId)
                 }
             })
-            // setTimeout(() => {
-            //     sendWebviewMountedEvent({ slot: slot })
-            // }, 500)
         },
     })
 
@@ -510,7 +507,6 @@ function WebviewIframe({ webview, onUpdatePosition, onClose }: WebviewIframeProp
 
 
     const position = webview.position || defaultPosition
-    // const size = webview.preservedSize
 
     const customStyle = React.useMemo(() => {
         return options.style?.split(";")?.reduce((acc, rule) => {

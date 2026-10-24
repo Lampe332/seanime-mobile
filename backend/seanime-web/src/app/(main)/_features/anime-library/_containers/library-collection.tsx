@@ -67,7 +67,6 @@ export function LibraryCollectionFilteredLists({ collectionList, isLoading, stre
     type: "carousel" | "grid"
 }) {
 
-    // const params = useAtomValue(__mainLibrary_paramsAtom)
 
     const filteredCollectionList = React.useMemo(() => {
         return collectionList.filter(collection => {

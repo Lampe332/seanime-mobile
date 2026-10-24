@@ -199,13 +199,6 @@ export function PluginAnimeEntryEpisodeTabContent(props: {
     return <>
         <div className="h-10" />
 
-        {/* {episodeCollection.hasMappingError && (
-         <div data-plugin-anime-entry-episode-tab-no-metadata-message-container>
-         <p className="text-red-200 opacity-50">
-         No metadata info available for this anime. Episode mapping may be incomplete.
-         </p>
-         </div>
-         )} */}
 
         <TorrentStreamEpisodeSection
             contextType={`episodeTab:${tab.extensionId}`}

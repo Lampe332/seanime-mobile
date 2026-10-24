@@ -485,15 +485,7 @@ export function VideoCoreSettingsMenu() {
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Caption Styles" label={t("Caption styles", "Stil der Bildunterschriften")} icon={MdOutlineSubtitles}>
                         <p className="text-sm text-[--muted] mb-2">This only applies to non-ASS subtitles.</p>
-                        {/*<VideoCoreSettingSelect*/}
-                        {/*    options={[*/}
-                        {/*        { label: "On", value: 1 },*/}
-                        {/*        { label: "Off", value: 0 },*/}
                         {/*    ]}*/}
-                        {/*    onValueChange={(v: number) => handleCaptionCustomizationChange("enabled", v === 1)}*/}
-                        {/*    value={editedCaptionCustomization.enabled ? 1 : 0}*/}
-                        {/*/>*/}
-                        {/*{editedCaptionCustomization.enabled && <>*/}
                         <p className="text-[--muted] text-sm my-2">Options</p>
                         <VideoCoreMenuSubOption
                             title="Font Size"
@@ -501,7 +493,6 @@ export function VideoCoreSettingsMenu() {
                             parentId="Caption Styles"
                             value={vc_getCaptionStyleLabel(settings.captionCustomization, "fontSize")}
                         />
-                        {/*<VideoCoreMenuSubOption title="Font Family" icon={LuHeading} parentId="Caption Styles" />*/}
                         <VideoCoreMenuSubOption
                             title="Text Color"
                             icon={LuPalette}
@@ -515,7 +506,6 @@ export function VideoCoreSettingsMenu() {
                             value={`${vc_getCaptionStyleLabel(settings.captionCustomization,
                                 "backgroundOpacity")}, ${vc_getCaptionStyleLabel(settings.captionCustomization, "backgroundColor")}`}
                         />
-                        {/*<VideoCoreMenuSubOption title="Outline" icon={ImFileText} parentId="Caption Styles" />*/}
                         <VideoCoreMenuSubOption
                             title="Shadow"
                             icon={RiShadowLine}
@@ -523,7 +513,6 @@ export function VideoCoreSettingsMenu() {
                             value={`${vc_getCaptionStyleLabel(settings.captionCustomization,
                                 "textShadow")}, ${vc_getCaptionStyleLabel(settings.captionCustomization, "textShadowColor")}`}
                         />
-                        {/*</>}*/}
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Subtitle Delay" label={t("Subtitle delay", "Untertitel-Versatz")} icon={MdOutlineAccessTime}>
                         <p className="text-sm text-[--muted] mb-2">Positive values delay subtitles, negative values advance them.</p>
@@ -825,27 +814,14 @@ export function VideoCoreSettingsMenu() {
                         />
                     </VideoCoreMenuSubOption>
                     <VideoCoreMenuSubOption title="Font Size" icon={VscTextSize} parentId="Caption Styles">
-                        {/*<p className="text-[--muted] text-sm mb-2">Font size as percentage of video height</p>*/}
                         <VideoCoreSettingSelect
                             options={CAPTION_STYLES_FONT_SIZE_OPTIONS}
                             onValueChange={(v: number) => handleCaptionCustomizationChange("fontSize", v)}
                             value={vc_getCaptionStyle(editedCaptionCustomization, "fontSize")}
                         />
                     </VideoCoreMenuSubOption>
-                    {/*<VideoCoreMenuSubOption title="Font Family" icon={LuHeading} parentId="Caption Styles">*/}
                     {/*    /!*<p className="text-[--muted] text-sm mb-2">Font family for captions</p>*!/*/}
-                    {/*    <VideoCoreSettingSelect*/}
-                    {/*        options={[*/}
-                    {/*            { label: "Inter", value: "Inter, Arial, sans-serif" },*/}
-                    {/*            { label: "Arial", value: "Arial, sans-serif" },*/}
-                    {/*            { label: "Courier", value: "Courier New, monospace" },*/}
-                    {/*            { label: "Georgia", value: "Georgia, serif" },*/}
-                    {/*            { label: "Times", value: "Times New Roman, serif" },*/}
                     {/*        ]}*/}
-                    {/*        onValueChange={(v: string) => handleCaptionCustomizationChange("fontFamily", v)}*/}
-                    {/*        value={editedCaptionCustomization.fontFamily ?? "Inter, Arial, sans-serif"}*/}
-                    {/*    />*/}
-                    {/*</VideoCoreMenuSubOption>*/}
                     <VideoCoreMenuSubOption title="Text Color" icon={LuPalette} parentId="Caption Styles">
                         <VideoCoreSettingSelect
                             options={CAPTION_STYLES_COLOR_OPTIONS}

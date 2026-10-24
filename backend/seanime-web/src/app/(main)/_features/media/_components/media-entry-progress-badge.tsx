@@ -13,7 +13,6 @@ type MediaEntryProgressBadgeProps = {
 export const MediaEntryProgressBadge = (props: MediaEntryProgressBadgeProps) => {
     const { progress, progressTotal, forceShowTotal, forceShowProgress, top } = props
 
-    // if (!progress) return null
 
     return (
         <Badge

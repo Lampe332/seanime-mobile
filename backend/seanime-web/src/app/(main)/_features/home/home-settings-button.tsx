@@ -22,29 +22,6 @@ export function HomeSettingsButton(props: HomeSettingsButtonProps) {
     const [discoveredOnce, setDiscoveredOnce] = useAtom(__home_settingsToolbarButtonDiscovered)
     const [isModalOpen, setIsModalOpen] = useAtom(__home_settingsModalOpen)
 
-    // if(type === "toolbar" && !discoveredOnce) return (
-    //     <>
-    //         <Tooltip
-    //             open
-    //             className="bg-fuchsia-500/100 flex gap-2 items-center font-semibold"
-    //             sideOffset={5}
-    //             trigger={<IconButton
-    //                 data-library-toolbar-switch-view-button
-    //                 intent="white-subtle"
-    //                 icon={<BsHouseGear className="text-2xl" />}
-    //                 className={cn(
-    //                     "animate-bounce",
-    //                 )}
-    //                 onClick={() => {
-    //                     setDiscoveredOnce(true)
-    //                     setIsModalOpen(true)
-    //                 }}
-    //             />}
-    //         >
-    //             <LuSparkles /> New
-    //         </Tooltip>
-    //     </>
-    // )
 
     if (props.icon) return <button type="button" data-library-toolbar-switch-view-button className="home-header-action" aria-label={tr("Customize", "Anpassen")}
         onClick={() => setIsModalOpen(true)}><LuSettings2 aria-hidden /></button>

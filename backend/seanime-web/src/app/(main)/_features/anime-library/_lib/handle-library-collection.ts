@@ -89,25 +89,6 @@ export function useHandleLibraryCollection() {
     const sortedCollection = React.useMemo(() => {
         if (!data || !data.lists) return []
 
-        // Stream
-        // if (data.stream) {
-        //     // Add to current list
-        //     let currentList = data.lists.find(n => n.type === "CURRENT")
-        //     if (currentList) {
-        //         let entries = [...(currentList.entries ?? [])]
-        //         for (let anime of (data.stream.anime ?? [])) {
-        //             if (!entries.some(e => e.mediaId === anime.id)) {
-        //                 entries.push({
-        //                     media: anime,
-        //                     mediaId: anime.id,
-        //                     listData: data.stream.listData?.[anime.id],
-        //                     libraryData: undefined,
-        //                 })
-        //             }
-        //         }
-        //         data.lists.find(n => n.type === "CURRENT")!.entries = entries
-        //     }
-        // }
 
         let _lists = data.lists.map(obj => {
             if (!obj) return obj
@@ -137,7 +118,6 @@ export function useHandleLibraryCollection() {
             // Reset `continueWatchingOnly` to false if it's about to make the list disappear
             if (arr.length === 0 && sortingParams.continueWatchingOnly) {
 
-                // TODO: Add a toast to notify the user that the list is empty
                 sortingParams = {
                     ...sortingParams,
                     continueWatchingOnly: false, // Override

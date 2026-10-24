@@ -207,16 +207,6 @@ export function SeaCommand() {
                     />
 
                     {/*Page items*/}
-                    {/* <SeaCommandHandler
-                     type="anime-entry"
-                     shouldShow={ctx => !ctx.command.isCommand && ctx.params.page === "anime-entry"}
-                     render={() => <SeaCommandAnimeEntry />}
-                     /> */}
-                    {/* <SeaCommandHandler
-                     type="anime-library"
-                     shouldShow={ctx => !ctx.command.isCommand && ctx.params.page === "anime-library"}
-                     render={() => <SeaCommandAnimeLibrary />}
-                     /> */}
 
                     {/*Suggestions*/}
                     <SeaCommandHandler

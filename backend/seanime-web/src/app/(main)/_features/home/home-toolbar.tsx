@@ -189,17 +189,7 @@ export function HomeToolbar(props: HomeToolbarProps) {
                         />}
                     >
 
-                        {/*<DropdownMenuItem*/}
                         {/*    data-home-toolbar-open-library-explorer-button*/}
-                        {/*    disabled={!hasLibraryPath}*/}
-                        {/*    className={cn("cursor-pointer", { "!text-[--muted]": !hasLibraryPath })}*/}
-                        {/*    onClick={() => {*/}
-                        {/*        setLibraryExplorerDrawerOpen(true)*/}
-                        {/*    }}*/}
-                        {/*>*/}
-                        {/*    <LuFolderTree />*/}
-                        {/*    <span>Library explorer</span>*/}
-                        {/*</DropdownMenuItem>*/}
 
                         <DropdownMenuItem
                             data-home-toolbar-search-library
@@ -243,7 +233,6 @@ export function HomeToolbar(props: HomeToolbarProps) {
                         <DropdownMenuItem
                             data-home-toolbar-ignored-files-button
                             onClick={() => setIgnoredFileManagerOpen(true)}
-                            // disabled={!hasEntries}
                             className={cn({ "!text-[--muted]": !hasEntries })}
                         >
                             <TbFileSad />
@@ -253,14 +242,12 @@ export function HomeToolbar(props: HomeToolbarProps) {
                         <SeaLink href="/scan-summaries">
                             <DropdownMenuItem
                                 data-home-toolbar-scan-summaries-button
-                                // className={cn({ "!text-[--muted]": !hasEntries })}
                             >
                                 <TbReportSearch />
                                 <span>Scan summaries</span>
                             </DropdownMenuItem>
                         </SeaLink>
 
-                        {/*{!(isStreamingOnly || isNakamaLibrary) && <PlayRandomEpisodeButton />}*/}
 
                         <PluginAnimeLibraryDropdownItems />
                     </DropdownMenu>}

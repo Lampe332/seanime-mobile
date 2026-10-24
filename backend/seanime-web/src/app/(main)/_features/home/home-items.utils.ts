@@ -464,4 +464,3 @@ export const HOME_ITEMS = {
 
 export const HOME_ITEM_IDS = Object.keys(HOME_ITEMS) as (keyof typeof HOME_ITEMS)[]
 
-// export type HomeItemID = (keyof typeof HOME_ITEMS)

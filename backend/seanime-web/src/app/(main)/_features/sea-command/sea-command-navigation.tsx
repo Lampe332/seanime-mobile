@@ -165,7 +165,6 @@ export function SeaCommandNavigation() {
     const filteredPages = pages.filter(page => page.flag.startsWith(command))
 
 
-    // if (!input.startsWith("/")) return null
 
 
     return (
@@ -221,7 +220,6 @@ export function SeaCommandNavigation() {
             )}
             {(command !== "back" && command !== "forward") && (
                 <CommandGroup heading="Navigation">
-                    {/* {command === "" && ( */}
                     <>
                         <CommandItem
                             onSelect={() => {
@@ -244,7 +242,6 @@ export function SeaCommandNavigation() {
                             <span>Go forward</span>
                         </CommandItem>
                     </>
-                    {/* )} */}
                 </CommandGroup>
             )}
         </>

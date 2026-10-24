@@ -100,12 +100,6 @@ export function DetailedLibraryView(props: LibraryViewProps) {
     return (
         <PageWrapper className="px-4 space-y-8 relative z-[4]" data-detailed-library-view-container>
 
-            {/* <div
-             className={cn(
-             "absolute top-[-20rem] left-0 w-full h-[30rem] bg-gradient-to-t from-[--background] to-transparent z-[-1]",
-             TRANSPARENT_SIDEBAR_BANNER_IMG_STYLE,
-             )}
-             /> */}
 
             {!isHomeItem && <div className="flex flex-col md:flex-row gap-4 justify-between" data-detailed-library-view-header-container>
                 <div className="flex gap-4 items-center relative w-fit">
@@ -276,7 +270,6 @@ const LibraryCollectionEntryItem = React.memo(({ entry, streamingMediaIds, type 
             withAudienceScore={false}
             type="anime"
             containerClassName={type === "carousel" ? "basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0" : undefined}
-            // showLibraryBadge={!!streamingMediaIds?.length && !streamingMediaIds.includes(entry.mediaId)}
         />
     )
 })
@@ -347,7 +340,6 @@ function SearchOptions() {
                         return
                     })}
                     fieldLabelClass="hidden"
-                    // disabled={!!params.title && params.title.length > 0}
                 />
                 <Select
                     leftAddon={

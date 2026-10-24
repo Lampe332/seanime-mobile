@@ -1,6 +1,5 @@
 import { HomeMobileHeader } from "../home/home-mobile-header"
 import { LayoutHeaderBackground } from "@/app/(main)/_features/layout/_components/layout-header-background"
-import { TopMenu } from "@/app/(main)/_features/navigation/top-menu"
 import { ManualProgressTrackingButton } from "@/app/(main)/_features/progress-tracking/manual-progress-tracking"
 import { PlaybackManagerProgressTrackingButton } from "@/app/(main)/_features/progress-tracking/playback-manager-progress-tracking"
 import { ChapterDownloadsButton } from "@/app/(main)/manga/_containers/chapter-downloads/chapter-downloads-button"
@@ -48,7 +47,6 @@ export function TopNavbar(props: TopNavbarProps) {
                     className="relative z-10 px-4 w-full flex flex-row md:items-center overflow-x-auto overflow-y-hidden"
                 >
                     <div data-top-navbar-content className="flex items-center w-full gap-3 z-[90]">
-                        <TopMenu />
                         <PlaybackManagerProgressTrackingButton />
                         <ManualProgressTrackingButton />
                         <div data-top-navbar-content-separator className="flex flex-1"></div>
@@ -89,9 +87,6 @@ export function SidebarNavbar(props: SidebarNavbarProps) {
 
     return (
         <div data-sidebar-navbar className="flex flex-col gap-1">
-            {/*<div data-sidebar-navbar-spacer className="px-4 lg:py-1">*/}
-            {/*    <Separator className="px-4" />*/}
-            {/*</div>*/}
             <VerticalMenu
                 data-sidebar-navbar-vertical-menu
                 className="px-4"

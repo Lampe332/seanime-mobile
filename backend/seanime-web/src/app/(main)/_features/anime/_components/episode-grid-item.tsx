@@ -87,7 +87,6 @@ export const EpisodeGridItem = React.memo((props: EpisodeGridItemProps & React.C
         spoilerActive,
     })
 
-    // const missingImage = [media?.bannerImage, media?.coverImage?.large, media?.coverImage?.extraLarge]?.filter(Boolean)?.includes(image || "")
     const missingImage = false
 
     return <>
@@ -183,7 +182,6 @@ export const EpisodeGridItem = React.memo((props: EpisodeGridItemProps & React.C
                         )}
                     >
                         <div className="bg-gray-900/70 px-3 py-2 rounded-lg text-center">
-                            {/*{topTitle !== title && <p className="line-clamp-1 text-[--muted]">{topTitle}</p>}*/}
                             <p className="text-md tracking-wide line-clamp-1">{title}</p>
                         </div>
                     </div>}
@@ -216,14 +214,11 @@ export const EpisodeGridItem = React.memo((props: EpisodeGridItemProps & React.C
                     {isInvalid && <p data-episode-grid-item-invalid-metadata className="flex gap-2 text-red-300 items-center"><AiFillWarning
                         className="text-lg text-red-500"
                     /> Unidentified</p>}
-                    {/*{isInvalid &&*/}
-                    {/*    <p data-episode-grid-item-invalid-metadata className="flex gap-2 text-red-200 text-sm items-center">No metadata found</p>}*/}
 
                     <p
                         className={cn(
                             !episodeTitle && "text-lg font-semibold",
                             !!episodeTitle && "transition line-clamp-2 text-base text-[--muted]",
-                            // { "opacity-50 group-hover/episode-list-item:opacity-100": isWatched },
                         )}
                         data-episode-grid-item-title
                     >

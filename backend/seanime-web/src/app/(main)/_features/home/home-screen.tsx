@@ -89,7 +89,6 @@ export function HomeScreen() {
 
     const ts = useThemeSettings()
 
-    // const homeItems = !isNakamaLibrary ? (!!_homeItems?.length ? _homeItems : DEFAULT_HOME_ITEMS) : DEFAULT_HOME_ITEMS
     const [view, setView] = useAtom(__home_currentView)
     const [discoverHeaderType, setDiscoverHeaderType] = useAtom(__home_discoverHeaderType)
     const [discoverPageType, setDiscoverPageType] = useAtom(__discord_pageTypeAtom)
@@ -142,7 +141,6 @@ export function HomeScreen() {
             <div data-home-screen="no-entries" data-home-mobile="true" className="contents">
                 <React.Fragment>
                     <div className="h-0 visibility-hidden pointer-events-none opacity-0">
-                        {/*{discoverHeaderType === "anime" && <DiscoverTrending />}*/}
                         {discoverHeaderType === "manga" && <DiscoverTrendingCountry country="JP" forDiscoverHeader />}
                     </div>
                 </React.Fragment>
@@ -602,7 +600,6 @@ function MangaLibrary(props: { libraryCollectionProps: HandleLibraryCollectionPr
             <MangaLibraryView
                 collection={mangaCollection}
                 filteredCollection={filteredMangaCollection}
-                // genres={mangaCollectionGenres}
                 genres={[]}
                 storedProviders={storedProviders}
                 hasManga={hasManga}
@@ -938,7 +935,6 @@ function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
         countryOfOrigin: options?.countryOfOrigin || undefined,
     }, !!name && isInView)
 
-    // if (!isLoading && !data && !isInView) return <InvalidHomeItem item={item} />
 
     return (
         <PageWrapper className="space-y-0 px-4" ref={ref} data-home-carousel>

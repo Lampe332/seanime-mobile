@@ -68,24 +68,10 @@ function Content(props: ContentProps) {
                     loading="lazy" // Lazy load the iframe
                     referrerPolicy="strict-origin-when-cross-origin"
                 />
-                {/*<video*/}
-                {/*    src={`https://yewtu.be/latest_version?id=${animeDetails?.trailer?.id}&itag=18`}*/}
-                {/*    className={cn(*/}
                 {/*        "w-full h-full absolute left-0",*/}
-                {/*    )}*/}
                 {/*    playsInline*/}
-                {/*    preload="none"*/}
                 {/*    loop*/}
                 {/*    autoPlay*/}
-                {/*    muted={muted}*/}
-                {/*    onLoadedData={() => setLoaded(true)}*/}
-                {/*/>*/}
-                {/*{<IconButton*/}
-                {/*    intent="white-basic"*/}
-                {/*    className="absolute bottom-4 left-4"*/}
-                {/*    icon={muted ? <FaVolumeMute /> : <FaVolumeHigh />}*/}
-                {/*    onClick={() => setMuted(p => !p)}*/}
-                {/*/>}*/}
             </div>
         </>
     )

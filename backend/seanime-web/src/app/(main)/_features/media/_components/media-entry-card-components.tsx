@@ -178,7 +178,6 @@ export const MediaEntryCardHoverPopup = React.memo((props: MediaEntryCardHoverPo
     } = props
 
     const ts = useThemeSettings()
-    // const markBorderRenderingArtifacts = useAtomValue(__ui_fixBorderRenderingArtifacts)
     const markBorderRenderingArtifacts = true
 
     return (
@@ -200,36 +199,11 @@ export const MediaEntryCardHoverPopup = React.memo((props: MediaEntryCardHoverPo
             )}
             {...rest}
         >
-            {/*<GlowingEffect*/}
-            {/*    spread={50}*/}
-            {/*    glow={true}*/}
-            {/*    disabled={false}*/}
-            {/*    proximity={100}*/}
-            {/*    inactiveZone={0.01}*/}
-            {/*    // movementDuration={4}*/}
-            {/*    className="opacity-15"*/}
-            {/*/>*/}
-            {/*{(ts.enableMediaCardBlurredBackground && !!coverImage) &&*/}
-            {/*    <div*/}
             {/*        data-media-entry-card-hover-popup-image-container*/}
-            {/*        className="absolute top-0 left-0 w-full h-full rounded-[--radius] overflow-hidden"*/}
-            {/*    >*/}
-            {/*        <SeaImage*/}
             {/*            data-media-entry-card-hover-popup-image*/}
-            {/*            src={getImageUrl(coverImage || "")}*/}
-            {/*            alt={"cover image"}*/}
             {/*            fill*/}
-            {/*            placeholder={imageShimmer(700, 475)}*/}
-            {/*            quality={100}*/}
-            {/*            sizes="20rem"*/}
-            {/*            className="object-cover object-center transition opacity-20"*/}
-            {/*        />*/}
 
-            {/*        <div*/}
             {/*            data-media-entry-card-hover-popup-image-blur-overlay*/}
-            {/*            className="absolute top-0 w-full h-full backdrop-blur-xl z-[0]"*/}
-            {/*        ></div>*/}
-            {/*    </div>}*/}
 
             {shouldRenderPopup && (
                 <>
@@ -363,7 +337,6 @@ export function MediaEntryCardHoverPopupTitleSection(props: MediaEntryCardHoverP
                     data-media-entry-card-hover-popup-title-section-year-season
                     className="justify-center text-sm text-[--muted] flex w-full gap-1 items-center"
                 >
-                    {/*{startCase(format || "")} - <BiCalendarAlt /> {capitalize(season ?? "")} {year}*/}
                     <BiCalendarAlt /> {capitalize(season ?? "")} {year}{(format !== "TV" && format !== "MANGA") && ` - ${format || ""}`}
                 </p>
             </div>}
@@ -390,14 +363,9 @@ export function AnimeEntryCardNextAiring(props: AnimeEntryCardNextAiringProps) {
     return (
         <>
             <div data-anime-entry-card-next-airing-container className="flex gap-1 items-center justify-center">
-                {/*<p className="text-xs min-[2000px]:text-md">Next episode:</p>*/}
                 <p data-anime-entry-card-next-airing className="text-justify font-normal text-xs min-[2000px]:text-md">
                     Episode <span className="font-semibold">{nextAiring?.episode}</span> {formatDistanceToNow(addSeconds(new Date(),
                     nextAiring?.timeUntilAiring), { addSuffix: true })}
-                    {/*<Badge*/}
-                    {/*    size="sm"*/}
-                    {/*    className="bg-transparent rounded-[--radius]"*/}
-                    {/*>{nextAiring?.episode}</Badge>*/}
                 </p>
             </div>
         </>

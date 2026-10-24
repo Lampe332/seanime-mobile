@@ -55,7 +55,4 @@ export function AnimeEntryCardUnwatchedBadge(props: AnimeEntryCardUnwatchedBadge
         </div>
     )
 
-    // return (
-    //     <MediaEntryProgressBadge progress={progress} progressTotal={progressTotal} {...rest} />
-    // )
 }

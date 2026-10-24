@@ -117,7 +117,6 @@ export function EpisodeCard(props: EpisodeCardProps) {
     const showTotalEpisodes = React.useMemo(() => !!progressTotal && progressTotal > 1, [progressTotal])
     const offset = React.useMemo(() => hasDiscrepancy ? 1 : 0, [hasDiscrepancy])
 
-    // const missingImage = fallbackImage?.includes(image || "")
     const missingImage = false
 
     const isSingleContainer = !homeMobile && (ts.useLegacyEpisodeCard || forceSingleContainer)
@@ -325,13 +324,10 @@ export function EpisodeCard(props: EpisodeCardProps) {
                             )}
                         >
                             <div className="bg-gray-900/70 px-3 py-2 rounded-lg text-center">
-                                {/*{topTitle !== title && <p className="line-clamp-1 text-[--muted]">{topTitle}</p>}*/}
                                 <p className="text-2xl tracking-wide">{title}</p>
                             </div>
                         </div>}
 
-                        {/*{isInvalid &&*/}
-                        {/*    <p data-episode-card-invalid-metadata className="text-red-300 opacity-50 absolute left-2 bottom-2 z-[2]">No metadata*/}
                         {/*                                                                                                             found</p>}*/}
                     </div>
                     {(showAnimeInfo && !isSingleContainer) ? <div data-episode-card-anime-info-container className="flex gap-3 items-center">

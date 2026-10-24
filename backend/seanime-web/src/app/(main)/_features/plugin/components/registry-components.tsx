@@ -1135,8 +1135,6 @@ export function PluginForm({ name, fields: _fields }: FormProps) {
                                     label={field.label}
                                     placeholder={field.placeholder}
                                     {...form.register(field.name)}
-                                    // value={form.watch(field.name)}
-                                    // onValueChange={(value) => form.setValue(field.name, value)}
                                 />
                             )
                         case "number":
@@ -1147,8 +1145,6 @@ export function PluginForm({ name, fields: _fields }: FormProps) {
                                     label={field.label}
                                     placeholder={field.placeholder}
                                     {...form.register(field.name)}
-                                    // value={form.watch(field.name)}
-                                    // onValueChange={(value) => form.setValue(field.name, Number(value))}
                                 />
                             )
                         case "select":

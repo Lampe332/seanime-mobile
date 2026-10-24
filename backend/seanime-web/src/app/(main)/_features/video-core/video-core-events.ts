@@ -104,9 +104,6 @@ export function useVideoCoreSetupEvents(id: string,
     const showOverlayFeedback = useSetAtom(vc_showOverlayFeedback)
     const { playEpisode: playPlaylistEpisode, playlistState } = useVideoCorePlaylist()
 
-    // React.useEffect(() => {
-    //     log.trace(activePlayer, id)
-    // })
 
     // Check if the current player is the active one
     // For native player, activePlayer should be null
@@ -410,7 +407,6 @@ export function useVideoCoreSetupEvents(id: string,
         const player = videoElement
 
         const interval = setInterval(() => {
-            // log.trace("Sending video status")
             sendEvent<VideoCoreStatusEventPayload>("video-status", {
                 id: state.playbackInfo?.id || "",
                 clientId: clientId,

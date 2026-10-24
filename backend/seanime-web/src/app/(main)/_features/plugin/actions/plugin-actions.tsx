@@ -387,7 +387,6 @@ export function PluginEpisodeCardContextMenuItems(props: { episode: Anime_Episod
     // Listen for the action to render the episode card context menu items
     usePluginListenActionRenderEpisodeCardContextMenuItemsEvent((event, extensionId) => {
         setItems(p => {
-            console.log(p)
             const otherItems = p.filter(i => i.extensionId !== extensionId && (i.type === props.type || i.type === undefined))
             const extItems = event.items.filter((i: PluginEpisodeCardContextMenuItem) => i.type === props.type || i.type === undefined)
                 .map((i: Record<string, any>) => ({ ...i, extensionId } as PluginEpisodeCardContextMenuItem))

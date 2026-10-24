@@ -317,8 +317,6 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
                                 link={link}
                                 bypassEntryPreloadBudget={shouldBypassPreloadBudget}
                                 onClick={onClick}
-                                // onHover={() => setHoveringTitle(true)}
-                                // onHoverLeave={() => setHoveringTitle(false)}
                             />
 
                             <div className="py-1 flex items-center justify-center w-full gap-2">
@@ -362,20 +360,11 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
                             {(listData?.status && listData?.status !== "CURRENT") &&
                                 <p className="text-center text-xs text-[--muted] w-full">
                                     {capitalize(listData?.status ?? "")}
-                                    {/*{listData?.status === "CURRENT" ? type === "anime" ? "Watching" : "Reading"*/}
                                     {/*    : capitalize(listData?.status ?? "")}*/}
                                 </p>}
 
 
-                            {/*{hoveringTitle && <div>*/}
-                            {/*    <p*/}
                             {/*        data-media-entry-card-hover-popup-title-section-year-season*/}
-                            {/*        className="justify-center text-center text-xs text-[--muted] flex w-full gap-1 items-center px-4 leading-0 line-clamp-2"*/}
-                            {/*    >*/}
-                            {/*        {(media.title?.english && media.title?.userPreferred !== media.title?.english) ? `${startCase(media.title?.english)}` : null}*/}
-                            {/*        {(media.title?.romaji && media.title?.userPreferred !== media.title?.romaji) ? `${startCase(media.title?.romaji)}` : null}*/}
-                            {/*    </p>*/}
-                            {/*</div>}*/}
 
                         </MediaEntryCardHoverPopupBody>
 
@@ -422,7 +411,6 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
                         progress={listData?.progress}
                         progressTotal={progressTotal}
                         forceShowTotal={type === "manga"}
-                        // forceShowProgress={listData?.status === "CURRENT"}
                         top={!hideUnseenCountBadge ? <>
 
                             {(type === "anime" && (listData?.status === "CURRENT" || listData?.status === "REPEATING")) && (

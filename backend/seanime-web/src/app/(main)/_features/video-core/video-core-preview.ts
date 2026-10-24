@@ -193,7 +193,6 @@ export class VideoCorePreviewManager {
         }
 
         this.captureThrottleTimeout = window.setTimeout(async () => {
-            // log.info("Capturing preview for segment", segmentIndex)
             if (!this.previewCache.has(segmentIndex) && !this.inFlightPromises.has(segmentIndex)) {
                 const promise = this.captureFrameFromCurrentVideo(segmentIndex)
                 this.inFlightPromises.set(segmentIndex, promise)

@@ -175,7 +175,6 @@ export function PlaybackManagerProgressTracking() {
                     startAutoplay(state, nextEpisodeToPlay || undefined, "local")
                 }
             }
-            // setState(null)
         },
     })
 
@@ -245,24 +244,7 @@ export function PlaybackManagerProgressTracking() {
         syncProgress()
     }
 
-    // React.useEffect(() => {
-    //     mousetrap.bind("esc", () => {
-    //         cancelAutoPlay()
-    //         setShowModal(false)
-    //         setShowAutoPlayCountdownModal(false)
-    //         setIsTracking(false)
-    //         setIsCompleted(false)
-    //         setState(null)
-    //         setWillAutoPlay(false)
-    //         resetTorrentstreamAutoplayInfo()
-    //         resetDebridstreamAutoplayInfo()
-    //         clearTimers()
-    //     })
 
-    //     return () => {
-    //         mousetrap.unbind("esc")
-    //     }
-    // }, [])
 
     return (
         <>
@@ -280,7 +262,6 @@ export function PlaybackManagerProgressTracking() {
                     {state.mediaCoverImage && <div className="size-16 rounded-full relative mx-auto overflow-hidden mb-3">
                         <SeaImage src={state.mediaCoverImage} alt="cover image" fill className="object-cover object-center" />
                     </div>}
-                    {/*<p className="text-[--muted]">Currently watching</p>*/}
                     <div data-progress-tracking-title>
                         <h3 className="text-lg font-medium line-clamp-1">{state?.mediaTitle}</h3>
                         <p className="text-2xl font-bold">Episode {state?.episodeNumber}

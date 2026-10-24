@@ -76,40 +76,12 @@ export function AutoplayCountdownModal({
             <div className="text-center space-y-4">
                 <div className="rounded-[--radius-md] text-center">
                     <h3 className="text-5xl font-bold">{countdown}</h3>
-                    {/* <p className="text-[--muted] text-sm mt-1">
-                     {countdown === 1 ? "second" : "seconds"}
-                     </p> */}
                 </div>
 
-                {/*<div className="space-y-2">*/}
-                {/*    {episodeInfo.image && (*/}
-                {/*        <div className="size-16 rounded-full relative mx-auto overflow-hidden">*/}
-                {/*            <SeaImage*/}
-                {/*                src={episodeInfo.image}*/}
-                {/*                alt="episode thumbnail"*/}
                 {/*                fill*/}
-                {/*                className="object-cover object-center"*/}
-                {/*                placeholder={imageShimmer(64, 64)}*/}
-                {/*            />*/}
-                {/*        </div>*/}
-                {/*    )}*/}
 
-                {/*    <div>*/}
-                {/*        <h4 className="font-medium text-lg line-clamp-1">*/}
-                {/*            {episodeInfo.title}*/}
-                {/*        </h4>*/}
 
-                {/*        {episodeInfo.episodeTitle && (*/}
-                {/*            <p className="text-[--muted] text-sm line-clamp-2">*/}
-                {/*                {episodeInfo.episodeTitle}*/}
-                {/*            </p>*/}
-                {/*        )}*/}
 
-                {/*        <p className="text-xs text-[--muted] mt-1">*/}
-                {/*            {getStreamingTypeLabel()}*/}
-                {/*        </p>*/}
-                {/*    </div>*/}
-                {/*</div>*/}
 
                 <div className="flex gap-2 pt-2">
                     <Button

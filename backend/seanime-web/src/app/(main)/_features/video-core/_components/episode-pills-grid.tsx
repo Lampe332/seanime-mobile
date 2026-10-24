@@ -50,14 +50,6 @@ export function EpisodePillsGrid({
                     return (
                         <motion.button
                             key={episode.number}
-                            // initial={{ scale: 0.95, opacity: 0 }}
-                            // animate={{ scale: 1, opacity: 1 }}
-                            // whileHover={{ scale: disabled ? 1 : 1.02 }}
-                            // whileTap={{ scale: disabled ? 1 : 0.98 }}
-                            // transition={{
-                            //     duration: 0.15,
-                            //     // delay: episode.number * 0.005
-                            // }}
                             onClick={() => !disabled && onEpisodeSelect(episode.number, getEpisodeId(episode))}
                             disabled={disabled}
                             title={episode.title || `Episode ${episode.number}`}
@@ -99,11 +91,6 @@ export function EpisodePillsGrid({
                                 />
                             )}
 
-                            {/* {isWatched && !isSelected && (
-                             <div
-                             className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full bg-[--brand]"
-                             />
-                             )} */}
                         </motion.button>
                     )
                 })}

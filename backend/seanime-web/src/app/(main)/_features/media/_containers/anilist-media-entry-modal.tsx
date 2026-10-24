@@ -245,9 +245,6 @@ function Content(props: AnilistMediaEntryModalProps & {
                 schema={mediaListDataSchema}
                 onSubmit={handleSubmit}
                 className={cn(
-                    // {
-                    //     "mt-8": !!media?.bannerImage,
-                    // },
                 )}
                 onError={console.log}
                 defaultValues={entryDefaultValues(listData)}
