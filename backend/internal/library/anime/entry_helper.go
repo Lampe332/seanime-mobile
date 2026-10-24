@@ -94,12 +94,6 @@ func (e *Entry) FindMainEpisodes() ([]*Episode, bool) {
 	if e.Episodes == nil {
 		return nil, false
 	}
-	eps := make([]*Episode, 0)
-	for _, ep := range e.Episodes {
-		if ep.IsMain() {
-			eps = append(eps, ep)
-		}
-	}
 	return e.Episodes, true
 }
 
@@ -163,12 +157,6 @@ func (e *SimpleEntry) GetCurrentProgress() int {
 func (e *SimpleEntry) FindMainEpisodes() ([]*Episode, bool) {
 	if e.Episodes == nil {
 		return nil, false
-	}
-	eps := make([]*Episode, 0)
-	for _, ep := range e.Episodes {
-		if ep.IsMain() {
-			eps = append(eps, ep)
-		}
 	}
 	return e.Episodes, true
 }

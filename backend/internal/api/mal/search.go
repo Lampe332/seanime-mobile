@@ -141,12 +141,6 @@ func AdvancedSearchWithMAL(title string) (*SearchResultAnime, error) {
 	t1, foundT1 := lo.Find(suggestions, func(n *SearchResultAnime) bool {
 		nTitle := strings.ToLower(n.Name)
 
-		_tsub := tparts[0]
-		if len(tparts) > 1 {
-			_tsub += " " + tparts[1]
-		}
-		_tsub = strings.TrimSpace(_tsub)
-
 		re := regexp.MustCompile(`\b(film|movie|season|part|(s\d{2}e?))\b`)
 
 		return strings.HasPrefix(nTitle, tsub) && n.Payload.MediaType == "TV" && !re.MatchString(nTitle)

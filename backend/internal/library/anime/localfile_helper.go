@@ -408,20 +408,9 @@ func (f *LocalFile) GetTitleVariations() []*string {
 		}
 	}
 
-	// All base titles combined for raw title addition and candidate lookup
-	baseTitles := make([]string, 0, len(primaryTitles)+len(extraTitles))
-	baseTitles = append(baseTitles, primaryTitles...)
-	baseTitles = append(baseTitles, extraTitles...)
-
-	// Add primary titles as raw base title variations
-	for _, t := range primaryTitles {
-		titleVariations = append(titleVariations, t)
-	}
-	// Add parent folder titles (far away titles)
-	// We'll optionally penalize them later during scoring to avoid false positives.
-	for _, t := range extraTitles {
-		titleVariations = append(titleVariations, t)
-	}
+	titleVariations = append(titleVariations, primaryTitles...)
+	// Parent folder titles are penalized later during scoring to avoid false positives.
+	titleVariations = append(titleVariations, extraTitles...)
 
 	// Part variations (only from primary titles, not parent folder titles)
 	if part > 0 {

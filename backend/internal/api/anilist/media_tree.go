@@ -79,20 +79,12 @@ func (m *CompleteAnime) FetchMediaTree(rel FetchMediaTreeRelation, anilistClient
 		return nil
 	}
 
-	doneCh := make(chan struct{})
-	processEdges(edges, rel, anilistClient, rl, tree, cache, doneCh)
-
-	for {
-		select {
-		case <-doneCh:
-			return nil
-		default:
-		}
-	}
+	processEdges(edges, rel, anilistClient, rl, tree, cache)
+	return nil
 }
 
 // processEdges fetches the next node(s) for each edge in parallel.
-func processEdges(edges []*CompleteAnime_Relations_Edges, rel FetchMediaTreeRelation, anilistClient AnilistClient, rl *limiter.Limiter, tree *CompleteAnimeRelationTree, cache *CompleteAnimeCache, doneCh chan struct{}) {
+func processEdges(edges []*CompleteAnime_Relations_Edges, rel FetchMediaTreeRelation, anilistClient AnilistClient, rl *limiter.Limiter, tree *CompleteAnimeRelationTree, cache *CompleteAnimeCache) {
 	var wg sync.WaitGroup
 	wg.Add(len(edges))
 
@@ -107,10 +99,6 @@ func processEdges(edges []*CompleteAnime_Relations_Edges, rel FetchMediaTreeRela
 	}
 
 	wg.Wait()
-
-	go func() {
-		close(doneCh)
-	}()
 }
 
 func processEdge(edge *CompleteAnime_Relations_Edges, rel FetchMediaTreeRelation, anilistClient AnilistClient, rl *limiter.Limiter, tree *CompleteAnimeRelationTree, cache *CompleteAnimeCache) {
