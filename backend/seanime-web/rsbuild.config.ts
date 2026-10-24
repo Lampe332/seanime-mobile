@@ -9,8 +9,6 @@ import path from "path"
 
 const { publicVars } = loadEnv({ prefixes: ["SEA_"] })
 
-const isElectronDesktop = process.env.SEA_PUBLIC_DESKTOP === "electron"
-const distPath = isElectronDesktop ? "out-denshi" : "out"
 
 export default defineConfig({
     plugins: [
@@ -82,7 +80,7 @@ export default defineConfig({
         cleanDistPath: true,
         sourceMap: !!process.env.RSDOCTOR,
         distPath: {
-            root: distPath,
+            root: "out",
         },
         filename: {
             js: process.env.NODE_ENV === "production" ? "[name].[contenthash:8].js" : "[name].js",

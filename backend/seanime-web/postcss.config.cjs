@@ -1,4 +1,3 @@
-const isAndroidApp = process.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 /*
  * Android: one app for phones and tablets. A tablet (main.tsx sets html[data-layout="tablet"], lib/tablet-ui.ts) shows the
@@ -71,6 +70,6 @@ module.exports = {
     plugins: [
         require("tailwindcss"),
         require("autoprefixer"),
-        ...(isAndroidApp ? [phoneAndTabletWidthQueries] : []),
+        phoneAndTabletWidthQueries,
     ],
 }
