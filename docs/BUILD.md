@@ -216,7 +216,7 @@ Both apps use the same local server port (`127.0.0.1:43211`). Stop the normal ap
 
 ### Phones and tablets
 
-One APK serves both. At start the web app checks the screen: when its smaller side is 600 CSS px or more (the Android sw600dp rule), it is a tablet (`IS_TABLET_UI` in `src/lib/tablet-ui.ts`), and `main.tsx` sets `html[data-layout="tablet"]`. The native injections use the same rule (`UIBottomNav.kt`, `VideoControlInjector.kt`).
+One APK serves both. At start the web app checks the screen: when its smaller side is 600 CSS px or more (the Android sw600dp rule), it is a tablet (`IS_TABLET_UI` in `src/lib/tablet-ui.ts`), and `main.tsx` sets `html[data-layout="tablet"]`. The native injections (`UIBottomNav.kt`, `VideoControlInjector.kt`) read that attribute.
 
 - A tablet shows the phone screens. `isAndroidPhone()` is true on every Android device, and `layoutWidth()` reports a phone width to the width breakpoints in JavaScript.
 - `postcss.config.cjs` keeps every width media query above 430 px for phones (scoped to `:not([data-layout="tablet"])`) and adds a copy that resolves it for tablets as on a phone held upright. `:where()` keeps the specificity, so the cascade does not change on either.

@@ -26,7 +26,6 @@ object VideoControlInjector {
             var patchedTopBar = null;
             var patchedBottomBar = null;
             var patchedVideo = null;
-            var mobileControls = null;
 
             var lastClickTime = 0;
             var lastClickSide = null;
@@ -126,8 +125,8 @@ object VideoControlInjector {
                     '  background: rgba(0,0,0,0.22);',
                     '}',
                     '.__seanime-mobile-control svg { pointer-events: none; }',
-                    // a tablet keeps the phone controls (the web app's lib/tablet-ui.ts rule)
-                    '@media (min-width: ' + (Math.min(screen.width, screen.height) >= 600 ? '100000px' : '1024px') + ') { .__seanime-mobile-controls { display: none !important; } }'
+                    // a tablet keeps the phone controls (html[data-layout="tablet"], set by the web app)
+                    '@media (min-width: ' + (document.documentElement.dataset.layout === 'tablet' ? '100000px' : '1024px') + ') { .__seanime-mobile-controls { display: none !important; } }'
                 ].join('\n');
                 (document.head || document.documentElement).appendChild(style);
             }
@@ -186,7 +185,6 @@ object VideoControlInjector {
                     }, true);
                     container.appendChild(controls);
                 }
-                mobileControls = controls;
                 syncPlayButton();
                 return controls;
             }
@@ -253,7 +251,7 @@ object VideoControlInjector {
                 if (!el || !el.closest) return false;
                 if (isProgressBarTarget(el)) return true;
                 return !!el.closest(
-                    '[data-seanime-mobile-controls], [data-seanime-mobile-control], ' +
+                    '[data-seanime-mobile-control], ' +
                     '[data-vc-element="control-button"], button, a, input, select, textarea, ' +
                     '[role="button"], [role="menuitem"], [role="menu"], [data-radix-popper-content-wrapper]'
                 );
@@ -516,6 +514,9 @@ object VideoControlInjector {
             }
 
             function watchBar(el, hideValue) {
+                // one observer per bar: a route change re-patches the same nodes, and the flag below only works for one
+                if (el.__seanimeWatched) return;
+                el.__seanimeWatched = true;
                 new MutationObserver(function(mutations) {
                     mutations.forEach(function(m) {
                         if (m.attributeName !== 'style') return;
@@ -585,7 +586,6 @@ object VideoControlInjector {
                     patchedVideo.removeEventListener('ended', syncPlayButton);
                 }
                 patchedVideo = null;
-                mobileControls = null;
                 firstPatch = true;
                 setTimeout(patchPlayer, 500);
             }
