@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 const native = vi.hoisted(() => ({ check: vi.fn() }))
-vi.mock("@/lib/app-updates", () => ({ checkAppUpdate: native.check, knownAppUpdate: () => undefined }))
+vi.mock("@/lib/app-updates", () => ({ APP_UPDATE_QUERY_KEY: "app-update", checkAppUpdate: native.check, knownAppUpdate: () => undefined }))
 vi.mock("@/api/client/requests", () => ({
     useServerQuery: () => { throw new Error("Unexpected desktop API request") },
     useServerMutation: () => { throw new Error("Unexpected desktop API mutation") },

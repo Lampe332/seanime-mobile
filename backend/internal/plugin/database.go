@@ -158,7 +158,7 @@ func (d *Database) saveLocalFiles(filesToSave []*anime.LocalFile) error {
 
 	ws, ok := d.ctx.wsEventManager.Get()
 	if ok {
-		ws.SendEvent(events.InvalidateQueries, []string{events.GetLocalFilesEndpoint, events.GetAnimeEntryEndpoint, events.GetLibraryCollectionEndpoint, events.GetMissingEpisodesEndpoint})
+		ws.SendEvent(events.InvalidateQueries, []string{events.GetAnimeEntryEndpoint, events.GetLibraryCollectionEndpoint, events.GetMissingEpisodesEndpoint})
 	}
 
 	return nil
@@ -177,7 +177,7 @@ func (d *Database) insertLocalFiles(files []*anime.LocalFile) ([]*anime.LocalFil
 
 	ws, ok := d.ctx.wsEventManager.Get()
 	if ok {
-		ws.SendEvent(events.InvalidateQueries, []string{events.GetLocalFilesEndpoint, events.GetAnimeEntryEndpoint, events.GetLibraryCollectionEndpoint, events.GetMissingEpisodesEndpoint})
+		ws.SendEvent(events.InvalidateQueries, []string{events.GetAnimeEntryEndpoint, events.GetLibraryCollectionEndpoint, events.GetMissingEpisodesEndpoint})
 	}
 
 	return lfs, nil
@@ -292,7 +292,7 @@ func (d *Database) updateAutoDownloaderRule(id uint, rule *anime.AutoDownloaderR
 
 	ws, ok := d.ctx.wsEventManager.Get()
 	if ok {
-		ws.SendEvent(events.InvalidateQueries, []string{events.GetAutoDownloaderRulesEndpoint, events.GetAutoDownloaderItemsEndpoint, events.GetAnimeEntryEndpoint})
+		ws.SendEvent(events.InvalidateQueries, []string{events.GetAnimeEntryEndpoint})
 	}
 
 	return nil
@@ -311,7 +311,7 @@ func (d *Database) insertAutoDownloaderRule(rule *anime.AutoDownloaderRule) erro
 
 	ws, ok := d.ctx.wsEventManager.Get()
 	if ok {
-		ws.SendEvent(events.InvalidateQueries, []string{events.GetAutoDownloaderRulesEndpoint, events.GetAutoDownloaderRulesByAnimeEndpoint, events.GetAutoDownloaderRuleEndpoint, events.GetAutoDownloaderItemsEndpoint, events.GetAnimeEntryEndpoint})
+		ws.SendEvent(events.InvalidateQueries, []string{events.GetAnimeEntryEndpoint})
 	}
 
 	return nil
@@ -330,7 +330,7 @@ func (d *Database) deleteAutoDownloaderRule(id uint) error {
 
 	ws, ok := d.ctx.wsEventManager.Get()
 	if ok {
-		ws.SendEvent(events.InvalidateQueries, []string{events.GetAutoDownloaderRulesEndpoint, events.GetAutoDownloaderRulesByAnimeEndpoint, events.GetAutoDownloaderRuleEndpoint, events.GetAutoDownloaderItemsEndpoint, events.GetAnimeEntryEndpoint})
+		ws.SendEvent(events.InvalidateQueries, []string{events.GetAnimeEntryEndpoint})
 	}
 
 	return nil
@@ -379,11 +379,6 @@ func (d *Database) insertAutoDownloaderProfile(profile *anime.AutoDownloaderProf
 		return err
 	}
 
-	ws, ok := d.ctx.wsEventManager.Get()
-	if ok {
-		ws.SendEvent(events.InvalidateQueries, []string{events.GetAutoDownloaderProfilesEndpoint, events.GetAutoDownloaderProfileEndpoint})
-	}
-
 	return nil
 }
 
@@ -397,11 +392,6 @@ func (d *Database) updateAutoDownloaderProfile(id uint, profile *anime.AutoDownl
 		return err
 	}
 
-	ws, ok := d.ctx.wsEventManager.Get()
-	if ok {
-		ws.SendEvent(events.InvalidateQueries, []string{events.GetAutoDownloaderProfilesEndpoint, events.GetAutoDownloaderProfileEndpoint})
-	}
-
 	return nil
 }
 
@@ -413,11 +403,6 @@ func (d *Database) deleteAutoDownloaderProfile(id uint) error {
 
 	if err := db_bridge.DeleteAutoDownloaderProfile(db, id); err != nil {
 		return err
-	}
-
-	ws, ok := d.ctx.wsEventManager.Get()
-	if ok {
-		ws.SendEvent(events.InvalidateQueries, []string{events.GetAutoDownloaderProfilesEndpoint, events.GetAutoDownloaderProfileEndpoint})
 	}
 
 	return nil
@@ -480,7 +465,7 @@ func (d *Database) insertAutoDownloaderItem(item *models.AutoDownloaderItem) err
 
 	ws, ok := d.ctx.wsEventManager.Get()
 	if ok {
-		ws.SendEvent(events.InvalidateQueries, []string{events.GetAutoDownloaderRulesEndpoint, events.GetAutoDownloaderRulesByAnimeEndpoint, events.GetAutoDownloaderRuleEndpoint, events.GetAutoDownloaderItemsEndpoint, events.GetAnimeEntryEndpoint})
+		ws.SendEvent(events.InvalidateQueries, []string{events.GetAnimeEntryEndpoint})
 	}
 
 	return nil
@@ -499,7 +484,7 @@ func (d *Database) deleteAutoDownloaderItem(id uint) error {
 
 	ws, ok := d.ctx.wsEventManager.Get()
 	if ok {
-		ws.SendEvent(events.InvalidateQueries, []string{events.GetAutoDownloaderRulesEndpoint, events.GetAutoDownloaderRulesByAnimeEndpoint, events.GetAutoDownloaderRuleEndpoint, events.GetAutoDownloaderItemsEndpoint, events.GetAnimeEntryEndpoint})
+		ws.SendEvent(events.InvalidateQueries, []string{events.GetAnimeEntryEndpoint})
 	}
 
 	return nil

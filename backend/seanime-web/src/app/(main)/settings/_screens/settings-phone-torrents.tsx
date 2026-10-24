@@ -29,7 +29,6 @@ type DataAttributes = { [key: `data-${string}`]: string | number | boolean | und
 
 const STATUS_FIELD = { torrentstream: "torrentstreamSettings", debrid: "debridSettings" } as const
 const SAVE = { torrentstream: API_ENDPOINTS.TORRENTSTREAM.SaveTorrentstreamSettings, debrid: API_ENDPOINTS.DEBRID.SaveDebridSettings }
-const GET_KEY = { torrentstream: API_ENDPOINTS.TORRENTSTREAM.GetTorrentstreamSettings.key, debrid: API_ENDPOINTS.DEBRID.GetDebridSettings.key }
 
 /** Values being saved, by "<kind>:<field>" */
 const pendingAtom = atom<Record<string, unknown>>({})
@@ -72,7 +71,6 @@ function useSaveRow<K extends Kind>(kind: K) {
                 store.set(serverStatusAtom, next)
                 qc.setQueryData([API_ENDPOINTS.STATUS.GetStatus.key], next)
             }
-            void qc.invalidateQueries({ queryKey: [GET_KEY[kind]] })
             return (saved ?? null) as Row<K> | null
         }
         catch {

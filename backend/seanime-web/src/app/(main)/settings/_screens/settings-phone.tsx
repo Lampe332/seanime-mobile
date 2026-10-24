@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from "@/api/generated/endpoints"
+import { APP_UPDATE_QUERY_KEY } from "@/lib/app-updates"
 import { useCheckForUpdates } from "@/api/hooks/releases.hooks"
 import { PhoneHeader, PhoneIconButton, PhoneLoading, PhoneScreen, usePhoneBack } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { updateModalOpenAtom as webUpdateModalOpenAtom } from "@/app/(main)/_features/update/update-modal"
@@ -231,7 +231,7 @@ function SettingsAboutSection({ t }: { t: Translate }) {
                 disabled={checking} data-settings-check-updates onClick={() => checkForUpdates(undefined, {
                     onSuccess: data => {
                         if (data?.release) {
-                            queryClient.setQueryData([API_ENDPOINTS.RELEASES.GetLatestUpdate.key], data)
+                            queryClient.setQueryData([APP_UPDATE_QUERY_KEY], data)
                             setUpdateModalOpen(true)
                         } else {
                             toast.success(t("You are running the latest version", "Du nutzt die neueste Version"))

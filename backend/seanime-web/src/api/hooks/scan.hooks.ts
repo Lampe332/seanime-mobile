@@ -19,7 +19,6 @@ export function useScanLocalFiles(onSuccess?: () => void) {
             toast.success("Library scanned")
             refreshLibraryExplorerTree()
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetMissingEpisodes.key] })
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.AUTO_DOWNLOADER.GetAutoDownloaderItems.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key] })
             onSuccess?.()
         },

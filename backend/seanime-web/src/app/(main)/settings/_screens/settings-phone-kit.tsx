@@ -76,7 +76,6 @@ export function useSaveSetting() {
                 qc.setQueryData([API_ENDPOINTS.STATUS.GetStatus.key], status)
             }
             for (const key of [
-                API_ENDPOINTS.SETTINGS.GetSettings.key,
                 API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key,
                 API_ENDPOINTS.ANIME_ENTRIES.GetMissingEpisodes.key,
             ]) void qc.invalidateQueries({ queryKey: [key] })

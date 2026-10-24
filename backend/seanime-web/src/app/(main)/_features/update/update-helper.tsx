@@ -1,10 +1,10 @@
-import { Updater_Update } from "@/api/generated/types"
+import type { AppUpdate } from "@/lib/app-updates"
 import React from "react"
 import { useTr } from "@/lib/app-language"
 import { AiFillExclamationCircle } from "react-icons/ai"
 
 type UpdateChangelogBodyProps = {
-    updateData: Updater_Update | undefined
+    updateData: AppUpdate | undefined
     children?: React.ReactNode
 }
 
@@ -66,7 +66,7 @@ export function UpdateChangelogBody(props: UpdateChangelogBodyProps) {
     )
 }
 
-function useUpdateChangelogBody(updateData: Updater_Update | undefined) {
+function useUpdateChangelogBody(updateData: AppUpdate | undefined) {
     const body = React.useMemo(() => {
         if (!updateData || !updateData.release) return []
         let body = updateData.release.body

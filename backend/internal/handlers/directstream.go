@@ -15,8 +15,8 @@ import (
 // HandleDirectstreamPlayLocalFile
 //
 //	@summary request local file stream.
-//	@desc This requests a local file stream and returns the media container to start the playback.
-//	@returns mediastream.MediaContainer
+//	@desc This requests a local file stream and starts the playback.
+//	@returns nil
 //	@route /api/v1/directstream/play/localfile [POST]
 func (h *Handler) HandleDirectstreamPlayLocalFile(c echo.Context) error {
 	if err := h.guardMediaConsumption(c); err != nil {

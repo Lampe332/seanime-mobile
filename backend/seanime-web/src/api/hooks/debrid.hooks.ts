@@ -12,7 +12,6 @@ export function useSaveDebridSettings() {
         method: API_ENDPOINTS.DEBRID.SaveDebridSettings.methods[0],
         mutationKey: [API_ENDPOINTS.DEBRID.SaveDebridSettings.key],
         onSuccess: async () => {
-            await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.DEBRID.GetDebridSettings.key] })
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
         },
     })

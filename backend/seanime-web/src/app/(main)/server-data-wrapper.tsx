@@ -58,7 +58,6 @@ export function ServerDataWrapper(props: ServerDataWrapperProps) {
         type: WSEvents.SETTINGS_CHANGED,
         onMessage: () => {
             logger("Data Wrapper").info("Settings changed, refetching server status")
-            void queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.SETTINGS.GetSettings.key] })
             refetch()
         },
     })

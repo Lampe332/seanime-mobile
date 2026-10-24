@@ -1,5 +1,5 @@
 import { useServerMutation, useServerQuery } from "@/api/client/requests"
-import { AnilistListManga_Variables, GetAnilistMangaCollection_Variables, GetMangaEntryChapters_Variables, GetMangaEntryPages_Variables, GetMangaMapping_Variables, MangaManualMapping_Variables, MangaManualSearch_Variables, PreviewMangaMapping_Variables, RemoveMangaMapping_Variables, StartMangaSourceRefresh_Variables, UpdateMangaProgress_Variables } from "@/api/generated/endpoint.types"
+import { AnilistListManga_Variables, GetMangaEntryChapters_Variables, GetMangaEntryPages_Variables, GetMangaMapping_Variables, MangaManualMapping_Variables, MangaManualSearch_Variables, PreviewMangaMapping_Variables, RemoveMangaMapping_Variables, StartMangaSourceRefresh_Variables, UpdateMangaProgress_Variables } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { AL_ListManga, AL_MangaCollection, AL_MangaDetailsById_Media, HibikeManga_SearchResult, Manga_ChapterContainer, Manga_Collection, Manga_Entry, Manga_MangaLatestChapterNumberItem, Manga_MangaPreferences, Manga_MangaSourceRefreshJob, Manga_MappingPreview, Manga_MappingResponse, Manga_PageContainer, Nullish } from "@/api/generated/types"
 import { getEntryPreloadStaleTime } from "@/lib/entry-preloader"
@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 export function useGetRawAnilistMangaCollection() {
-    return useServerQuery<AL_MangaCollection, GetAnilistMangaCollection_Variables>({
+    return useServerQuery<AL_MangaCollection>({
         endpoint: API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.endpoint,
         method: API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.methods[0],
         queryKey: [API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.key],

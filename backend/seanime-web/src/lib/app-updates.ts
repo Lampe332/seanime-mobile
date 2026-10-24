@@ -1,4 +1,11 @@
-import type { Updater_Update } from "@/api/generated/types"
+export const APP_UPDATE_QUERY_KEY = "RELEASES-get-latest-update"
+
+/** What AppUpdater.kt reports; release is missing when the app is up to date. */
+export type AppUpdate = {
+    type: string
+    current_version?: string
+    release?: { version: string, tag_name: string, name: string, body: string, html_url: string, released: boolean }
+}
 
 declare global {
     interface Window {
@@ -29,10 +36,10 @@ function nativeRequest<T>(eventName: string, method: "checkForUpdates" | "downlo
     })
 }
 
-export async function checkAppUpdate(): Promise<Updater_Update> {
+export async function checkAppUpdate(): Promise<AppUpdate> {
     // Builds without the app bridge never fall back to desktop release feeds.
     if (!window.AppUpdater?.checkForUpdates) throw new Error("App updater unavailable")
-    return (await nativeRequest<{ update: Updater_Update }>("seanime-app-update", "checkForUpdates", 60_000)).update
+    return (await nativeRequest<{ update: AppUpdate }>("seanime-app-update", "checkForUpdates", 60_000)).update
 }
 
 export type AppDownloadState = {
@@ -51,7 +58,7 @@ export function downloadAppUpdate(): Promise<AppDownloadState> {
     return downloadRequest
 }
 
-export function knownAppUpdate(): Updater_Update | undefined {
-    try { return (JSON.parse(window.AppUpdater?.getKnownUpdate?.() || "null") as Updater_Update | null) || undefined }
+export function knownAppUpdate(): AppUpdate | undefined {
+    try { return (JSON.parse(window.AppUpdater?.getKnownUpdate?.() || "null") as AppUpdate | null) || undefined }
     catch { return undefined }
 }

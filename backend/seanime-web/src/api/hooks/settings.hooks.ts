@@ -17,7 +17,6 @@ export function useGettingStarted() {
         method: API_ENDPOINTS.SETTINGS.GettingStarted.methods[0],
         mutationKey: [API_ENDPOINTS.SETTINGS.GettingStarted.key],
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.SETTINGS.GetSettings.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
             setLoginModalOpen(true)
         },
@@ -32,7 +31,6 @@ export function useSaveSettings() {
         method: API_ENDPOINTS.SETTINGS.SaveSettings.methods[0],
         mutationKey: [API_ENDPOINTS.SETTINGS.SaveSettings.key],
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.SETTINGS.GetSettings.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetMissingEpisodes.key] })
@@ -53,10 +51,8 @@ export function usePatchSetting() {
             if (data) {
                 setServerStatus(data)
                 queryClient.setQueryData([API_ENDPOINTS.STATUS.GetStatus.key], data)
-                queryClient.setQueryData([API_ENDPOINTS.SETTINGS.GetSettings.key], data.settings)
             }
 
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.SETTINGS.GetSettings.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetMissingEpisodes.key] })
@@ -72,7 +68,6 @@ export function useSaveMediaPlayerSettings() {
         method: API_ENDPOINTS.SETTINGS.SaveMediaPlayerSettings.methods[0],
         mutationKey: [API_ENDPOINTS.SETTINGS.SaveMediaPlayerSettings.key],
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.SETTINGS.GetSettings.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
         },
     })
