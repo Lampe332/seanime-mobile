@@ -9,7 +9,6 @@ import type {
     AL_MediaSeason,
     AL_MediaSort,
     AL_MediaStatus,
-    Anime_AutoDownloaderRule,
     Anime_AutoSelectProfile,
     Anime_LocalFileMetadata,
     Anime_PlaylistEpisode,
@@ -17,21 +16,16 @@ import type {
     Continuity_UpdateWatchHistoryItemOptions,
     DebridClient_CancelStreamOptions,
     DebridClient_StreamPlaybackType,
-    Debrid_TorrentItem,
     HibikeTorrent_AnimeTorrent,
     HibikeTorrent_BatchEpisodeFiles,
-    LibraryExplorer_SuperUpdateFileOptions,
     Manga_MangaSourceRefreshMode,
-    Mediastream_StreamType,
     Models_AnilistSettings,
     Models_DebridSettings,
     Models_DiscordSettings,
-    Models_DummyDebridSettings,
     Models_HomeItem,
     Models_LibrarySettings,
     Models_MangaSettings,
     Models_MediaPlayerSettings,
-    Models_MediastreamSettings,
     Models_NakamaSettings,
     Models_NotificationSettings,
     Models_Theme,
@@ -216,17 +210,6 @@ export type AnimeEntryBulkAction_Variables = {
 /**
  * - Filepath: internal/handlers/anime_entries.go
  * - Filename: anime_entries.go
- * - Endpoint: /api/v1/library/anime-entry/open-in-explorer
- * @description
- * Route opens the directory of a media entry in the file explorer.
- */
-export type OpenAnimeEntryInExplorer_Variables = {
-    mediaId: number
-}
-
-/**
- * - Filepath: internal/handlers/anime_entries.go
- * - Filename: anime_entries.go
  * - Endpoint: /api/v1/library/anime-entry/suggestions
  * @description
  * Route returns a list of media suggestions for files in the given directory.
@@ -314,124 +297,6 @@ export type Login_Variables = {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// auto_downloader
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/handlers/auto_downloader.go
- * - Filename: auto_downloader.go
- * - Endpoint: /api/v1/auto-downloader/run/simulation
- * @description
- * Route runs the AutoDownloader in simulation mode and returns the results.
- */
-export type RunAutoDownloaderSimulation_Variables = {
-    ruleIds: Array<number>
-}
-
-/**
- * - Filepath: internal/handlers/auto_downloader.go
- * - Filename: auto_downloader.go
- * - Endpoint: /api/v1/auto-downloader/rule/{id}
- * @description
- * Route returns the rule with the given DB id.
- */
-export type GetAutoDownloaderRule_Variables = {
-    /**
-     *  The DB id of the rule
-     */
-    id: number
-}
-
-/**
- * - Filepath: internal/handlers/auto_downloader.go
- * - Filename: auto_downloader.go
- * - Endpoint: /api/v1/auto-downloader/rule/anime/{id}
- * @description
- * Route returns the rules with the given media id.
- */
-export type GetAutoDownloaderRulesByAnime_Variables = {
-    /**
-     *  The AniList anime id of the rules
-     */
-    id: number
-}
-
-/**
- * - Filepath: internal/handlers/auto_downloader.go
- * - Filename: auto_downloader.go
- * - Endpoint: /api/v1/auto-downloader/rule
- * @description
- * Route creates a new rule.
- */
-export type CreateAutoDownloaderRule_Variables = {
-    rule: Anime_AutoDownloaderRule
-}
-
-/**
- * - Filepath: internal/handlers/auto_downloader.go
- * - Filename: auto_downloader.go
- * - Endpoint: /api/v1/auto-downloader/rule
- * @description
- * Route updates a rule.
- */
-export type UpdateAutoDownloaderRule_Variables = {
-    rule?: Anime_AutoDownloaderRule
-}
-
-/**
- * - Filepath: internal/handlers/auto_downloader.go
- * - Filename: auto_downloader.go
- * - Endpoint: /api/v1/auto-downloader/rule/{id}
- * @description
- * Route deletes a rule.
- */
-export type DeleteAutoDownloaderRule_Variables = {
-    /**
-     *  The DB id of the rule
-     */
-    id: number
-}
-
-/**
- * - Filepath: internal/handlers/auto_downloader.go
- * - Filename: auto_downloader.go
- * - Endpoint: /api/v1/auto-downloader/profile/{id}
- * @description
- * Route returns the profile with the given DB id.
- */
-export type GetAutoDownloaderProfile_Variables = {
-    /**
-     *  The DB id of the profile
-     */
-    id: number
-}
-
-/**
- * - Filepath: internal/handlers/auto_downloader.go
- * - Filename: auto_downloader.go
- * - Endpoint: /api/v1/auto-downloader/profile/{id}
- * @description
- * Route deletes a profile.
- */
-export type DeleteAutoDownloaderProfile_Variables = {
-    /**
-     *  The DB id of the profile
-     */
-    id: number
-}
-
-/**
- * - Filepath: internal/handlers/auto_downloader.go
- * - Filename: auto_downloader.go
- * - Endpoint: /api/v1/auto-downloader/item
- * @description
- * Route delete a queued item.
- */
-export type DeleteAutoDownloaderItem_Variables = {
-    id: number
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // continuity
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -510,17 +375,6 @@ export type SaveDebridSettings_Variables = {
 /**
  * - Filepath: internal/handlers/debrid.go
  * - Filename: debrid.go
- * - Endpoint: /api/v1/debrid/dummy/settings
- * @description
- * Route save dummy debrid settings.
- */
-export type SaveDummyDebridSettings_Variables = {
-    settings: Models_DummyDebridSettings
-}
-
-/**
- * - Filepath: internal/handlers/debrid.go
- * - Filename: debrid.go
  * - Endpoint: /api/v1/debrid/torrents
  * @description
  * Route add torrent to debrid.
@@ -529,51 +383,6 @@ export type DebridAddTorrents_Variables = {
     torrents: Array<HibikeTorrent_AnimeTorrent>
     media?: AL_BaseAnime
     destination: string
-}
-
-/**
- * - Filepath: internal/handlers/debrid.go
- * - Filename: debrid.go
- * - Endpoint: /api/v1/debrid/torrents/download
- * @description
- * Route download torrent from debrid.
- */
-export type DebridDownloadTorrent_Variables = {
-    torrentItem: Debrid_TorrentItem
-    destination: string
-}
-
-/**
- * - Filepath: internal/handlers/debrid.go
- * - Filename: debrid.go
- * - Endpoint: /api/v1/debrid/torrents/cancel
- * @description
- * Route cancel download from debrid.
- */
-export type DebridCancelDownload_Variables = {
-    itemID: string
-}
-
-/**
- * - Filepath: internal/handlers/debrid.go
- * - Filename: debrid.go
- * - Endpoint: /api/v1/debrid/torrent
- * @description
- * Route remove torrent from debrid.
- */
-export type DebridDeleteTorrent_Variables = {
-    torrentItem: Debrid_TorrentItem
-}
-
-/**
- * - Filepath: internal/handlers/debrid.go
- * - Filename: debrid.go
- * - Endpoint: /api/v1/debrid/torrents/info
- * @description
- * Route get torrent info from debrid.
- */
-export type DebridGetTorrentInfo_Variables = {
-    torrent: HibikeTorrent_AnimeTorrent
 }
 
 /**
@@ -682,58 +491,6 @@ export type SetDiscordMangaActivity_Variables = {
     chapter: string
 }
 
-/**
- * - Filepath: internal/handlers/discord.go
- * - Filename: discord.go
- * - Endpoint: /api/v1/discord/presence/legacy-anime
- * @description
- * Route sets anime activity for discord rich presence.
- */
-export type SetDiscordLegacyAnimeActivity_Variables = {
-    mediaId: number
-    title: string
-    image: string
-    isMovie: boolean
-    episodeNumber: number
-}
-
-/**
- * - Filepath: internal/handlers/discord.go
- * - Filename: discord.go
- * - Endpoint: /api/v1/discord/presence/anime
- * @description
- * Route sets anime activity for discord rich presence with progress.
- */
-export type SetDiscordAnimeActivityWithProgress_Variables = {
-    mediaId: number
-    title: string
-    image: string
-    isMovie: boolean
-    episodeNumber: number
-    progress: number
-    duration: number
-    totalEpisodes?: number
-    currentEpisodeCount?: number
-    episodeTitle?: string
-}
-
-/**
- * - Filepath: internal/handlers/discord.go
- * - Filename: discord.go
- * - Endpoint: /api/v1/discord/presence/anime-update
- * @description
- * Route updates the anime activity for discord rich presence with progress.
- */
-export type UpdateDiscordAnimeActivityWithProgress_Variables = {
-    progress: number
-    duration: number
-    paused: boolean
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// docs
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // download
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -750,30 +507,6 @@ export type DownloadTorrentFile_Variables = {
     destination: string
     media?: AL_BaseAnime
     clientId: string
-}
-
-/**
- * - Filepath: internal/handlers/download.go
- * - Filename: download.go
- * - Endpoint: /api/v1/download-release
- * @description
- * Route downloads selected release asset to the destination folder.
- */
-export type DownloadRelease_Variables = {
-    download_url: string
-    destination: string
-}
-
-/**
- * - Filepath: internal/handlers/download.go
- * - Filename: download.go
- * - Endpoint: /api/v1/download-mac-denshi-update
- * @description
- * Route downloads, extracts, and installs macOS update, then closes the app
- */
-export type DownloadMacDenshiUpdate_Variables = {
-    download_url: string
-    version: string
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -952,83 +685,9 @@ export type RemoveFileCacheBucket_Variables = {
 // library_explorer
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/**
- * - Filepath: internal/handlers/library_explorer.go
- * - Filename: library_explorer.go
- * - Endpoint: /api/v1/library/explorer/directory-children
- * @description
- * Route loads the children of a specific directory into the file tree.
- */
-export type LoadLibraryExplorerDirectoryChildren_Variables = {
-    directoryPath: string
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // local
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/handlers/local.go
- * - Filename: local.go
- * - Endpoint: /api/v1/local/offline
- * @description
- * Route sets the offline mode.
- */
-export type SetOfflineMode_Variables = {
-    enabled: boolean
-}
-
-/**
- * - Filepath: internal/handlers/local.go
- * - Filename: local.go
- * - Endpoint: /api/v1/local/track
- * @description
- * Route adds one or multiple media to be tracked for offline sync.
- */
-export type LocalAddTrackedMedia_Variables = {
-    media: Array<{ mediaId: number; type: string; }>
-}
-
-/**
- * - Filepath: internal/handlers/local.go
- * - Filename: local.go
- * - Endpoint: /api/v1/local/track
- * @description
- * Route remove media from being tracked for offline sync.
- */
-export type LocalRemoveTrackedMedia_Variables = {
-    mediaId: number
-    type: string
-}
-
-/**
- * - Filepath: internal/handlers/local.go
- * - Filename: local.go
- * - Endpoint: /api/v1/local/track/{id}/{type}
- * @description
- * Route checks if media is being tracked for offline sync.
- */
-export type LocalGetIsMediaTracked_Variables = {
-    /**
-     *  AniList anime media ID
-     */
-    id: number
-    /**
-     *  Type of media (anime/manga)
-     */
-    type: string
-}
-
-/**
- * - Filepath: internal/handlers/local.go
- * - Filename: local.go
- * - Endpoint: /api/v1/local/updated
- * @description
- * Route sets the flag to determine if there are local changes that need to be synced with AniList.
- */
-export type LocalSetHasLocalChanges_Variables = {
-    updated: boolean
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // local_security
@@ -1078,17 +737,6 @@ export type UpdateLocalFileData_Variables = {
 /**
  * - Filepath: internal/handlers/localfiles.go
  * - Filename: localfiles.go
- * - Endpoint: /api/v1/library/local-files/super-update
- * @description
- * Route updates local files with the given paths.
- */
-export type SuperUpdateLocalFiles_Variables = {
-    files: Array<LibraryExplorer_SuperUpdateFileOptions>
-}
-
-/**
- * - Filepath: internal/handlers/localfiles.go
- * - Filename: localfiles.go
  * - Endpoint: /api/v1/library/local-files
  * @description
  * Route updates local files with the given paths.
@@ -1111,35 +759,6 @@ export type DeleteLocalFiles_Variables = {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// mal
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/handlers/mal.go
- * - Filename: mal.go
- * - Endpoint: /api/v1/mal/auth
- * @description
- * Route fetches the access and refresh tokens for the given code.
- */
-export type MALAuth_Variables = {
-    code: string
-    state: string
-    code_verifier: string
-}
-
-/**
- * - Filepath: internal/handlers/mal.go
- * - Filename: mal.go
- * - Endpoint: /api/v1/mal/list-entry/progress
- * @description
- * Route updates the progress of a MAL list entry.
- */
-export type EditMALListEntryProgress_Variables = {
-    mediaId?: number
-    progress?: number
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // manga
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1153,17 +772,6 @@ export type EditMALListEntryProgress_Variables = {
 export type StartMangaSourceRefresh_Variables = {
     mode: Manga_MangaSourceRefreshMode
     mediaIds?: Array<number>
-}
-
-/**
- * - Filepath: internal/handlers/manga.go
- * - Filename: manga.go
- * - Endpoint: /api/v1/manga/anilist/collection
- * @description
- * Route returns the user's AniList manga collection.
- */
-export type GetAnilistMangaCollection_Variables = {
-    bypassCache: boolean
 }
 
 /**
@@ -1192,17 +800,6 @@ export type GetMangaEntryDetails_Variables = {
      *  AniList manga media ID
      */
     id: number
-}
-
-/**
- * - Filepath: internal/handlers/manga.go
- * - Filename: manga.go
- * - Endpoint: /api/v1/manga/refetch-chapter-containers
- * @description
- * Route refetches the chapter containers for all manga entries previously cached.
- */
-export type RefetchMangaChapterContainers_Variables = {
-    selectedProviderMap: Record<number, string>
 }
 
 /**
@@ -1395,57 +992,7 @@ export type DeleteMangaDownloadedChapters_Variables = {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// manual_dump
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// mediaplayer
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // mediastream
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/handlers/mediastream.go
- * - Filename: mediastream.go
- * - Endpoint: /api/v1/mediastream/settings
- * @description
- * Route save mediastream settings.
- */
-export type SaveMediastreamSettings_Variables = {
-    settings: Models_MediastreamSettings
-}
-
-/**
- * - Filepath: internal/handlers/mediastream.go
- * - Filename: mediastream.go
- * - Endpoint: /api/v1/mediastream/request
- * @description
- * Route request media stream.
- */
-export type RequestMediastreamMediaContainer_Variables = {
-    path: string
-    streamType: Mediastream_StreamType
-    audioStreamIndex: number
-    clientId: string
-}
-
-/**
- * - Filepath: internal/handlers/mediastream.go
- * - Filename: mediastream.go
- * - Endpoint: /api/v1/mediastream/preload
- * @description
- * Route preloads media stream for playback.
- */
-export type PreloadMediastreamMediaContainer_Variables = {
-    path: string
-    streamType: Mediastream_StreamType
-    audioStreamIndex: number
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// mediastream_test
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1513,39 +1060,8 @@ export type DeleteMediaMetadataParent_Variables = {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// mpvcore
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/handlers/mpvcore.go
- * - Filename: mpvcore.go
- * - Endpoint: /api/v1/mpvcore/insight/character/{malId}
- * @description
- * Route returns the character details for MpvCore InSight.
- */
-export type MpvCoreInSightGetCharacterDetails_Variables = {
-    /**
-     *  The MAL character ID
-     */
-    malId: number
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // nakama
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/handlers/nakama.go
- * - Filename: nakama.go
- * - Endpoint: /api/v1/nakama/message
- * @description
- * Route sends a custom message through Nakama.
- */
-export type SendNakamaMessage_Variables = {
-    messageType: string
-    payload: any
-    peerId?: string
-}
 
 /**
  * - Filepath: internal/handlers/nakama.go
@@ -1789,21 +1305,6 @@ export type GetPlaylistEpisodes_Variables = {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// releases
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/handlers/releases.go
- * - Filename: releases.go
- * - Endpoint: /api/v1/install-update
- * @description
- * Route installs the latest update.
- */
-export type InstallLatestUpdate_Variables = {
-    fallback_destination: string
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // report
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1915,23 +1416,6 @@ export type PatchSetting_Variables = {
 /**
  * - Filepath: internal/handlers/settings.go
  * - Filename: settings.go
- * - Endpoint: /api/v1/settings/auto-downloader
- * @description
- * Route updates the auto-downloader settings.
- */
-export type SaveAutoDownloaderSettings_Variables = {
-    provider: string
-    interval: number
-    enabled: boolean
-    downloadAutomatically: boolean
-    enableEnhancedQueries: boolean
-    enableSeasonCheck: boolean
-    useDebrid: boolean
-}
-
-/**
- * - Filepath: internal/handlers/settings.go
- * - Filename: settings.go
  * - Endpoint: /api/v1/settings/media-player
  * @description
  * Route updates the media player settings.
@@ -1953,17 +1437,6 @@ export type SaveMediaPlayerSettings_Variables = {
  */
 export type DeleteLogs_Variables = {
     filenames: Array<string>
-}
-
-/**
- * - Filepath: internal/handlers/status.go
- * - Filename: status.go
- * - Endpoint: /api/v1/announcements
- * @description
- * Route returns the server announcements.
- */
-export type GetAnnouncements_Variables = {
-    platform: string
 }
 
 /**
@@ -2046,19 +1519,6 @@ export type TorrentClientDownload_Variables = {
     smartSelect: { enabled: boolean; missingEpisodeNumbers: Array<number>; }
     deselect?: { enabled: boolean; indices: Array<number>; }
     media?: AL_BaseAnime
-}
-
-/**
- * - Filepath: internal/handlers/torrent_client.go
- * - Filename: torrent_client.go
- * - Endpoint: /api/v1/torrent-client/rule-magnet
- * @description
- * Route adds magnets to the torrent client based on the AutoDownloader item.
- */
-export type TorrentClientAddMagnetFromRule_Variables = {
-    magnetUrl: string
-    ruleId: number
-    queuedItemId: number
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

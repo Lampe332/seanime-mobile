@@ -362,13 +362,6 @@ export type AL_AnimeDetailsById_Media_Trailer = {
 }
 
 /**
- * - Filepath: internal/api/anilist/collection_helper.go
- * - Filename: collection_helper.go
- * - Package: anilist
- */
-export type AL_AnimeListEntry = AL_AnimeCollection_MediaListCollection_Lists_Entries
-
-/**
  * - Filepath: internal/api/anilist/stats.go
  * - Filename: stats.go
  * - Package: anilist
@@ -1017,13 +1010,6 @@ export type AL_MangaDetailsById_Media_Relations_Edges = {
 }
 
 /**
- * - Filepath: internal/api/anilist/manga.go
- * - Filename: manga.go
- * - Package: anilist
- */
-export type AL_MangaListEntry = AL_MangaCollection_MediaListCollection_Lists_Entries
-
-/**
  * - Filepath: internal/api/anilist/stats.go
  * - Filename: stats.go
  * - Package: anilist
@@ -1330,90 +1316,6 @@ export type AL_UserStudioStats_Studio = {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Anime
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/library/anime/autodownloader_types.go
- * - Filename: autodownloader_types.go
- * - Package: anime
- */
-export type Anime_AutoDownloaderCondition = {
-    id: string
-    term: string
-    isRegex: boolean
-    action: Anime_AutoDownloaderProfileRuleFormatAction
-    /**
-     * Only used if Action == "score"
-     */
-    score: number
-}
-
-/**
- * - Filepath: internal/library/anime/autodownloader_types.go
- * - Filename: autodownloader_types.go
- * - Package: anime
- */
-export type Anime_AutoDownloaderProfile = {
-    dbId: number
-    name: string
-    global: boolean
-    releaseGroups?: Array<string>
-    resolutions?: Array<string>
-    conditions?: Array<Anime_AutoDownloaderCondition>
-    minimumScore: number
-    minSeeders?: number
-    minSize?: string
-    maxSize?: string
-    delayMinutes: number
-    skipDelayScore: number
-    providers?: Array<string>
-}
-
-/**
- * - Filepath: internal/library/anime/autodownloader_types.go
- * - Filename: autodownloader_types.go
- * - Package: anime
- */
-export type Anime_AutoDownloaderProfileRuleFormatAction = "score" | "block" | "require"
-
-/**
- * - Filepath: internal/library/anime/autodownloader_types.go
- * - Filename: autodownloader_types.go
- * - Package: anime
- */
-export type Anime_AutoDownloaderRule = {
-    dbId: number
-    enabled: boolean
-    mediaId: number
-    destination: string
-    profileId?: number
-    releaseGroups?: Array<string>
-    resolutions?: Array<string>
-    episodeNumbers?: Array<number>
-    episodeType: Anime_AutoDownloaderRuleEpisodeType
-    comparisonTitle: string
-    titleComparisonType: Anime_AutoDownloaderRuleTitleComparisonType
-    additionalTerms?: Array<string>
-    excludeTerms?: Array<string>
-    minSeeders: number
-    minSize: string
-    maxSize: string
-    customEpisodeNumberAbsoluteOffset?: number
-    providers?: Array<string>
-}
-
-/**
- * - Filepath: internal/library/anime/autodownloader_types.go
- * - Filename: autodownloader_types.go
- * - Package: anime
- */
-export type Anime_AutoDownloaderRuleEpisodeType = "recent" | "selected"
-
-/**
- * - Filepath: internal/library/anime/autodownloader_types.go
- * - Filename: autodownloader_types.go
- * - Package: anime
- */
-export type Anime_AutoDownloaderRuleTitleComparisonType = "contains" | "likely"
 
 /**
  * - Filepath: internal/library/anime/autoselect_types.go
@@ -1891,27 +1793,6 @@ export type Anime_UpcomingEpisodes = {
 export type Anime_WatchType = "localfile" | "debrid" | "torrent" | "nakama" | "online"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Autodownloader
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/library/autodownloader/autodownloader.go
- * - Filename: autodownloader.go
- * - Package: autodownloader
- */
-export type AutoDownloader_SimulationResult = {
-    ruleId: number
-    mediaId: number
-    episode: number
-    link: string
-    hash: string
-    torrentName: string
-    score: number
-    extensionId: string
-    isDelayed: boolean
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Autoselect
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2090,22 +1971,6 @@ export type INTERNAL_FeatureKey = "ManageOfflineMode" |
 export type Debrid_CachedFile = {
     size: number
     name: string
-}
-
-/**
- * - Filepath: internal/debrid/debrid/debrid.go
- * - Filename: debrid.go
- * - Package: debrid
- */
-export type Debrid_TorrentInfo = {
-    /**
-     * ID of the torrent if added to the debrid service
-     */
-    id?: string
-    name: string
-    hash: string
-    size: number
-    files?: Array<Debrid_TorrentItemFile>
 }
 
 /**
@@ -2694,17 +2559,6 @@ export type ExtensionRepo_UpdateData = {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * - Filepath: internal/handlers/docs.go
- * - Filename: docs.go
- * - Package: handlers
- */
-export type ApiDocsGroup = {
-    filename: string
-    name: string
-    handlers?: Array<RouteHandler>
-}
-
-/**
  * - Filepath: internal/handlers/directory_selector.go
  * - Filename: directory_selector.go
  * - Package: handlers
@@ -2725,28 +2579,6 @@ export type DirectorySelectorResponse = {
     basePath: string
     suggestions?: Array<DirectoryInfo>
     content?: Array<DirectoryInfo>
-}
-
-/**
- * - Filepath: internal/handlers/download.go
- * - Filename: download.go
- * - Package: handlers
- */
-export type DownloadReleaseResponse = {
-    destination: string
-    error?: string
-}
-
-/**
- * - Filepath: internal/handlers/mal.go
- * - Filename: mal.go
- * - Package: handlers
- */
-export type MalAuthResponse = {
-    access_token: string
-    refresh_token: string
-    expires_in: number
-    token_type: string
 }
 
 /**
@@ -2882,61 +2714,6 @@ export type MemoryStatsResponse = {
 }
 
 /**
- * - Filepath: internal/handlers/docs.go
- * - Filename: docs.go
- * - Package: handlers
- */
-export type RouteHandler = {
-    name: string
-    trimmedName: string
-    comments?: Array<string>
-    filepath: string
-    filename: string
-    api?: RouteHandlerApi
-}
-
-/**
- * - Filepath: internal/handlers/docs.go
- * - Filename: docs.go
- * - Package: handlers
- */
-export type RouteHandlerApi = {
-    summary: string
-    descriptions?: Array<string>
-    endpoint: string
-    methods?: Array<string>
-    params?: Array<RouteHandlerParam>
-    bodyFields?: Array<RouteHandlerParam>
-    returns: string
-    returnGoType: string
-    returnTypescriptType: string
-}
-
-/**
- * - Filepath: internal/handlers/docs.go
- * - Filename: docs.go
- * - Package: handlers
- */
-export type RouteHandlerParam = {
-    name: string
-    jsonName: string
-    /**
-     * e.g., []models.User
-     */
-    goType: string
-    /**
-     * e.g., models.User
-     */
-    usedStructType: string
-    /**
-     * e.g., Array<User>
-     */
-    typescriptType: string
-    required: boolean
-    descriptions?: Array<string>
-}
-
-/**
  * - Filepath: internal/handlers/status.go
  * - Filename: status.go
  * - Package: handlers
@@ -2961,21 +2738,13 @@ export type Status = {
     debridSettings?: Models_DebridSettings
     anilistClientId: string
     /**
-     * If true, a new screen will be displayed
+     * Read by the web UI; the Android app never self-updates the server
      */
     updating: boolean
-    /**
-     * The server is running as a desktop sidecar
-     */
-    isDesktopSidecar: boolean
     featureFlags?: INTERNAL_FeatureFlags
     disabledFeatures?: Array<INTERNAL_FeatureKey>
     serverReady: boolean
     serverHasPassword: boolean
-    showChangelogTour: string
-    /**
-     * ContentLocked is true on Android until the user added an AniList token or an extension (see contentgate).
-     */
     contentLocked: boolean
 }
 
@@ -3226,55 +2995,6 @@ export type LibraryExplorer_FileTreeNodeJSON = {
  * - Package: library_explorer
  */
 export type LibraryExplorer_NodeKind = "directory" | "file"
-
-/**
- * - Filepath: internal/library_explorer/superupdate.go
- * - Filename: superupdate.go
- * - Package: library_explorer
- */
-export type LibraryExplorer_SuperUpdateFileOptions = {
-    path: string
-    newName?: string
-    metadata?: Anime_LocalFileMetadata
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Local
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/local/sync.go
- * - Filename: sync.go
- * - Package: local
- */
-export type Local_QueueMediaTask = {
-    mediaId: number
-    image: string
-    title: string
-    type: string
-}
-
-/**
- * - Filepath: internal/local/sync.go
- * - Filename: sync.go
- * - Package: local
- */
-export type Local_QueueState = {
-    animeTasks?: Record<number, Local_QueueMediaTask>
-    mangaTasks?: Record<number, Local_QueueMediaTask>
-}
-
-/**
- * - Filepath: internal/local/manager.go
- * - Filename: manager.go
- * - Package: local
- */
-export type Local_TrackedMediaItem = {
-    mediaId: number
-    type: string
-    animeEntry?: AL_AnimeListEntry
-    mangaEntry?: AL_MangaListEntry
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Manga
@@ -3558,36 +3278,6 @@ export type Manga_ProviderDownloadMapChapterInfo = {
     chapterId: string
     chapterNumber: string
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Mediastream
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/mediastream/playback.go
- * - Filename: playback.go
- * - Package: mediastream
- */
-export type Mediastream_MediaContainer = {
-    filePath: string
-    hash: string
-    /**
-     * Tells the frontend how to play the media.
-     */
-    streamType: Mediastream_StreamType
-    /**
-     * The relative endpoint to stream the media.
-     */
-    streamUrl: string
-    mediaInfo?: MediaInfo
-}
-
-/**
- * - Filepath: internal/mediastream/playback.go
- * - Filename: playback.go
- * - Package: mediastream
- */
-export type Mediastream_StreamType = "transcode" | "optimized" | "direct"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Metadata
@@ -3914,28 +3604,6 @@ export type Models_AnilistSettings = {
  * - Filename: models.go
  * - Package: models
  */
-export type Models_AutoDownloaderItem = {
-    ruleId: number
-    mediaId: number
-    episode: number
-    link: string
-    hash: string
-    magnet: string
-    torrentName: string
-    downloaded: boolean
-    isDelayed: boolean
-    delayUntil?: string
-    score: number
-    id: number
-    createdAt?: string
-    updatedAt?: string
-}
-
-/**
- * - Filepath: internal/database/models/models.go
- * - Filename: models.go
- * - Package: models
- */
 export type Models_AutoDownloaderSettings = {
     provider: string
     interval: number
@@ -3996,49 +3664,6 @@ export type Models_DiscordSettings = {
     richPresenceShowAniListMediaButton: boolean
     richPresenceShowAniListProfileButton: boolean
     richPresenceUseMediaTitleStatus: boolean
-}
-
-/**
- * - Filepath: internal/database/models/models.go
- * - Filename: models.go
- * - Package: models
- */
-export type Models_DummyDebridFile = {
-    id: string
-    path: string
-    name: string
-    episodeNumber: number
-    localFilePath: string
-    size?: number
-}
-
-/**
- * - Filepath: ..\internal\database\models\models.go
- * - Filename: models.go
- * - Package: models
- */
-export type Models_DummyDebridFiles = Array<Models_DummyDebridFile>
-
-/**
- * - Filepath: internal/database/models/models.go
- * - Filename: models.go
- * - Package: models
- */
-export type Models_DummyDebridSettings = {
-    enabled: boolean
-    profileName: string
-    fallbackFilePath: string
-    files: Models_DummyDebridFiles
-    cached: boolean
-    readyDelayMs: number
-    progressIntervalMs: number
-    firstByteDelayMs: number
-    bandwidthBytesPerSecond: number
-    chunkSize: number
-    jitterMs: number
-    id: number
-    createdAt?: string
-    updatedAt?: string
 }
 
 /**
@@ -4390,131 +4015,6 @@ export type Models_TorrentstreamSettings = {
     createdAt?: string
     updatedAt?: string
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Mpvcore
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/mpvcore/types.go
- * - Filename: types.go
- * - Package: mpvcore
- */
-export type MpvCore_ClientEventType = "playback-loaded" |
-    "loaded-metadata" |
-    "can-play" |
-    "paused" |
-    "resumed" |
-    "status" |
-    "seeked" |
-    "completed" |
-    "ended" |
-    "player-error" |
-    "terminated" |
-    "fullscreen-changed" |
-    "pip-changed" |
-    "audio-track-changed" |
-    "subtitle-track-changed" |
-    "playlist-state" |
-    "skip-data"
-
-/**
- * - Filepath: internal/mpvcore/insight.go
- * - Filename: insight.go
- * - Package: mpvcore
- */
-export type MpvCore_InSightCharacter = {
-    mal_id: number
-    url: string
-    images: MpvCore_InSightCharacter_Images
-    name: string
-    role: string
-    favorites: number
-}
-
-/**
- * - Filepath: internal/mpvcore/insight.go
- * - Filename: insight.go
- * - Package: mpvcore
- */
-export type MpvCore_InSightCharacterDetails = {
-    mal_id: number
-    url: string
-    images: MpvCore_InSightCharacterDetails_Images
-    name: string
-    name_kanji: string
-    nicknames?: Array<string>
-    favorites: number
-    about: string
-}
-
-/**
- * - Filepath: internal/mpvcore/insight.go
- * - Filename: insight.go
- * - Package: mpvcore
- */
-export type MpvCore_InSightCharacterDetails_Images = {
-    jpg: { image_url: string; }
-    webp: { image_url: string; small_image_url: string; }
-}
-
-/**
- * - Filepath: internal/mpvcore/insight.go
- * - Filename: insight.go
- * - Package: mpvcore
- */
-export type MpvCore_InSightCharacter_Images = {
-    jpg: { image_url: string; }
-    webp: { image_url: string; small_image_url: string; }
-}
-
-/**
- * - Filepath: internal/mpvcore/insight.go
- * - Filename: insight.go
- * - Package: mpvcore
- */
-export type MpvCore_InSightData = {
-    characters?: Array<MpvCore_InSightCharacter>
-    suggestions?: Array<MpvCore_InSightSegment>
-}
-
-/**
- * - Filepath: internal/mpvcore/insight.go
- * - Filename: insight.go
- * - Package: mpvcore
- */
-export type MpvCore_InSightSegment = {
-    characterId: number
-    startTime: number
-    endTime: number
-}
-
-/**
- * - Filepath: internal/mpvcore/types.go
- * - Filename: types.go
- * - Package: mpvcore
- */
-export type MpvCore_ServerEvent = "open-and-await" |
-    "abort-open" |
-    "watch" |
-    "stream-error" |
-    "pause" |
-    "resume" |
-    "seek" |
-    "seek-to" |
-    "terminate" |
-    "set-fullscreen" |
-    "set-pip" |
-    "set-audio-track" |
-    "set-subtitle-track" |
-    "add-subtitle-track" |
-    "show-message" |
-    "get-status" |
-    "get-playlist" |
-    "get-skip-data" |
-    "set-skip-data" |
-    "play-playlist-episode" |
-    "in-sight-data"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Nakama
@@ -5042,7 +4542,7 @@ export type Player_PlaylistState = {
  * - Filename: types.go
  * - Package: player
  */
-export type Player_Renderer = "web" | "native" | "mpv"
+export type Player_Renderer = "web" | "native"
 
 /**
  * - Filepath: internal/player/types.go
@@ -5097,7 +4597,7 @@ export type Player_SubtitleTrack = {
  * - Filename: types.go
  * - Package: player
  */
-export type Player_Target = "videocore" | "mpvcore"
+export type Player_Target = "videocore"
 
 /**
  * - Filepath: internal/player/types.go
@@ -5574,153 +5074,6 @@ export type Torrentstream_TorrentStatus = {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Updater
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/updater/announcement.go
- * - Filename: announcement.go
- * - Package: updater
- */
-export type Updater_Announcement = {
-    /**
-     * Unique identifier for tracking
-     */
-    id: string
-    /**
-     * Title for dialogs/banners
-     */
-    title?: string
-    /**
-     * The message to display
-     */
-    message: string
-    /**
-     * The type of announcement
-     */
-    type: Updater_AnnouncementType
-    /**
-     * Severity level
-     */
-    severity: Updater_AnnouncementSeverity
-    /**
-     * Date of the announcement
-     */
-    date: any
-    /**
-     * Can user dismiss it
-     */
-    notDismissible: boolean
-    /**
-     * Advanced targeting
-     */
-    conditions?: Updater_AnnouncementConditions
-    /**
-     * Action buttons
-     */
-    actions?: Array<Updater_AnnouncementAction>
-    priority: number
-}
-
-/**
- * - Filepath: internal/updater/announcement.go
- * - Filename: announcement.go
- * - Package: updater
- */
-export type Updater_AnnouncementAction = {
-    label: string
-    url: string
-    type: string
-}
-
-/**
- * - Filepath: internal/updater/announcement.go
- * - Filename: announcement.go
- * - Package: updater
- */
-export type Updater_AnnouncementConditions = {
-    /**
-     * ["windows", "darwin", "linux"]
-     */
-    os?: Array<string>
-    /**
-     * ["web", "denshi"]
-     */
-    platform?: Array<string>
-    /**
-     * e.g. "<= 2.9.0", "2.9.0"
-     */
-    versionConstraint?: string
-    /**
-     * JSON path to check in user settings
-     */
-    userSettingsPath?: string
-    /**
-     * Expected values at that path
-     */
-    userSettingsValue?: Array<string>
-}
-
-/**
- * - Filepath: internal/updater/announcement.go
- * - Filename: announcement.go
- * - Package: updater
- */
-export type Updater_AnnouncementSeverity = "info" | "warning" | "error" | "critical"
-
-/**
- * - Filepath: internal/updater/announcement.go
- * - Filename: announcement.go
- * - Package: updater
- */
-export type Updater_AnnouncementType = "toast" | "dialog" | "banner"
-
-/**
- * - Filepath: internal/updater/check.go
- * - Filename: check.go
- * - Package: updater
- */
-export type Updater_Release = {
-    url: string
-    html_url: string
-    node_id: string
-    tag_name: string
-    name: string
-    body: string
-    published_at: string
-    released: boolean
-    version: string
-    assets?: Array<Updater_ReleaseAsset>
-}
-
-/**
- * - Filepath: internal/updater/check.go
- * - Filename: check.go
- * - Package: updater
- */
-export type Updater_ReleaseAsset = {
-    url: string
-    id: number
-    node_id: string
-    name: string
-    content_type: string
-    uploaded: boolean
-    size: number
-    browser_download_url: string
-}
-
-/**
- * - Filepath: internal/updater/updater.go
- * - Filename: updater.go
- * - Package: updater
- */
-export type Updater_Update = {
-    release?: Updater_Release
-    current_version?: string
-    type: string
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // User
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -6075,108 +5428,5 @@ export type VideoCore_VideoSubtitleTrack = {
     type?: string
     default?: boolean
     useLibassRenderer?: boolean
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Videofile
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * - Filepath: internal/mediastream/videofile/info.go
- * - Filename: info.go
- * - Package: videofile
- */
-export type Audio = {
-    index: number
-    title?: string
-    language?: string
-    codec: string
-    mimeCodec?: string
-    isDefault: boolean
-    isForced: boolean
-    channels: number
-}
-
-/**
- * - Filepath: internal/mediastream/videofile/info.go
- * - Filename: info.go
- * - Package: videofile
- */
-export type Chapter = {
-    startTime: number
-    endTime: number
-    name: string
-}
-
-/**
- * - Filepath: internal/mediastream/videofile/info.go
- * - Filename: info.go
- * - Package: videofile
- */
-export type MediaInfo = {
-    sha: string
-    path: string
-    extension: string
-    mimeCodec?: string
-    size: number
-    duration: number
-    container?: string
-    video?: Video
-    videos?: Array<Video>
-    audios?: Array<Audio>
-    subtitles?: Array<Subtitle>
-    fonts?: Array<string>
-    chapters?: Array<Chapter>
-}
-
-/**
- * - Filepath: internal/mediastream/videofile/video_quality.go
- * - Filename: video_quality.go
- * - Package: videofile
- */
-export type Quality = "240p" |
-    "360p" |
-    "480p" |
-    "720p" |
-    "1080p" |
-    "1440p" |
-    "4k" |
-    "8k" |
-    "original"
-
-/**
- * - Filepath: internal/mediastream/videofile/info.go
- * - Filename: info.go
- * - Package: videofile
- */
-export type Subtitle = {
-    index: number
-    title?: string
-    language?: string
-    codec: string
-    extension?: string
-    isDefault: boolean
-    isForced: boolean
-    isExternal: boolean
-    link?: string
-}
-
-/**
- * - Filepath: internal/mediastream/videofile/info.go
- * - Filename: info.go
- * - Package: videofile
- */
-export type Video = {
-    codec: string
-    mimeCodec?: string
-    language?: string
-    quality: Quality
-    width: number
-    height: number
-    bitrate: number
-    pixFmt: string
-    colorSpace: string
-    colorTransfer: string
-    colorPrimaries: string
 }
 
