@@ -59,7 +59,7 @@ const SCRIPT_CHECKS = [
     { code: "el", re: /[\u0370-\u03FF]/ },        // Greek
     { code: "hi", re: /[\u0900-\u097F]/ },        // Devanagari
     { code: "bn", re: /[\u0980-\u09FF]/ },        // Bengali
-    { code: "vi", re: /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/ }, // Viet specific
+    { code: "vi", re: /[ạảầấậẩẫăằắặẳẵẹẻẽềếệểễịỉĩọỏồốộổỗơờớợởỡụủũưừứựửữỳỵỷỹđ]/ }, // Vietnamese only, not the accents it shares with French/Spanish/Portuguese
 ]
 
 const HAS_NON_ASCII = /[^\u0000-\u007f]/
