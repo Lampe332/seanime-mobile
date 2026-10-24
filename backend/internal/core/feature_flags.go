@@ -124,34 +124,16 @@ func (m *FeatureManager) HasDisabledFeatures() bool {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-type (
-	FeatureFlags struct {
-		BuiltinTorrentClient bool `json:"builtinTorrentClient"`
-		DummyDebrid          bool `json:"dummyDebrid"`
-	}
+type FeatureFlags struct {
+	BuiltinTorrentClient bool `json:"builtinTorrentClient"`
+}
 
-	ExperimentalFeatureFlags struct {
-	}
-)
-
-// NewFeatureFlags initializes the feature flags
 func NewFeatureFlags(cfg *Config, logger *zerolog.Logger) FeatureFlags {
 	ff := FeatureFlags{
 		BuiltinTorrentClient: cfg.Experimental.BuiltinTorrentClient,
-		DummyDebrid:          cfg.Experimental.DummyDebrid,
 	}
-
-	checkExperimentalFeatureFlags(&ff, cfg, logger)
-
-	return ff
-}
-
-func checkExperimentalFeatureFlags(ff *FeatureFlags, cfg *Config, logger *zerolog.Logger) {
-
 	if ff.BuiltinTorrentClient {
 		logger.Warn().Msg("app: [Feature flag] 'Built-in Torrent Client' experimental feature is enabled")
 	}
-	if ff.DummyDebrid {
-		logger.Warn().Msg("app: [Feature flag] 'Dummy Debrid' experimental feature is enabled")
-	}
+	return ff
 }
