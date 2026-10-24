@@ -12,6 +12,7 @@ import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.widget.Toast
+import com.seanime.app.AppLanguage.tr
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -47,8 +48,8 @@ class WebFileTransfer(private val activity: Activity) {
                                     ?: error("Could not open the selected file")
                             }
                         } finally { connection.disconnect() }
-                        message("File saved")
-                    } catch (_: Exception) { message("Download failed. Please try again.") }
+                        message(tr("File saved", "Datei gespeichert"))
+                    } catch (_: Exception) { message(tr("Download failed. Please try again.", "Download fehlgeschlagen. Bitte erneut versuchen.")) }
                 }
             }
         }
@@ -85,7 +86,7 @@ class WebFileTransfer(private val activity: Activity) {
     inner class ExportBridge {
         @JavascriptInterface
         fun failed(token: String) {
-            if (token == exportToken) message("Export failed or exceeds the 25 MiB mobile export limit.")
+            if (token == exportToken) message(tr("Export failed or exceeds the 25 MiB mobile export limit.", "Export fehlgeschlagen oder größer als das Limit von 25 MiB."))
         }
 
         @JavascriptInterface
@@ -95,7 +96,7 @@ class WebFileTransfer(private val activity: Activity) {
                 val comma = dataUrl.indexOf(',')
                 if (comma < 0 || !dataUrl.substring(0,comma).endsWith(";base64")) return
                 Base64.decode(dataUrl.substring(comma + 1), Base64.DEFAULT).takeIf { it.size <= maxBlobBytes } ?: return
-            } catch (_: IllegalArgumentException) { message("Invalid export data"); return }
+            } catch (_: IllegalArgumentException) { message(tr("Invalid export data", "Ungültige Exportdaten")); return }
             activity.runOnUiThread {
                 if (token != exportToken || destroyed) return@runOnUiThread
                 askSave(filename, mime.ifBlank { "application/octet-stream" }) { destination ->
@@ -103,8 +104,8 @@ class WebFileTransfer(private val activity: Activity) {
                         try {
                             activity.contentResolver.openOutputStream(destination)?.use { it.write(bytes) }
                                 ?: error("Could not open the selected file")
-                            message("File saved")
-                        } catch (_: Exception) { message("Could not save this file") }
+                            message(tr("File saved", "Datei gespeichert"))
+                        } catch (_: Exception) { message(tr("Could not save this file", "Datei konnte nicht gespeichert werden")) }
                     }
                 }
             }
@@ -116,20 +117,20 @@ class WebFileTransfer(private val activity: Activity) {
         chooser = callback
         try { activity.startActivityForResult(params.createIntent(), openRequest) }
         catch (_: ActivityNotFoundException) {
-            chooser?.onReceiveValue(null); chooser = null; message("No file picker is available")
+            chooser?.onReceiveValue(null); chooser = null; message(tr("No file picker is available", "Keine Dateiauswahl verfügbar"))
         }
         return true
     }
 
     private fun askSave(filename: String, mime: String, writer: (Uri) -> Unit) {
         if (destroyed || activity.isFinishing || activity.isDestroyed) return
-        if (pendingSave != null) { message("Finish or cancel the current file export first"); return }
+        if (pendingSave != null) { message(tr("Finish or cancel the current file export first", "Aktuellen Export zuerst abschließen oder abbrechen")); return }
         pendingSave = writer
         val name = filename.substringAfterLast('/').substringAfterLast('\\').take(180).ifBlank { "seanime-export" }
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
             .setType(mime).putExtra(Intent.EXTRA_TITLE, name)
         try { activity.startActivityForResult(intent, saveRequest) }
-        catch (_: ActivityNotFoundException) { pendingSave = null; message("No file picker is available") }
+        catch (_: ActivityNotFoundException) { pendingSave = null; message(tr("No file picker is available", "Keine Dateiauswahl verfügbar")) }
     }
 
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
