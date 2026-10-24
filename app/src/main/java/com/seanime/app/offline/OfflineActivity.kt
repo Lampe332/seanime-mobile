@@ -254,11 +254,9 @@ class OfflineActivity : Activity() {
     private fun refresh() {
         val all = store.all()
         val mains = all.filter { !it.request.id.contains(":sub:") }.sortedByDescending { it.startTimeMs }
-        val readyCount = mains.count { store.ready(it.request.id) }
-        val totalBytes = mains.sumOf { download ->
-            all.filter { it.request.id == download.request.id || it.request.id.startsWith("${download.request.id}:sub:") }
-                .sumOf { it.bytesDownloaded }
-        }
+        val readyIds = mains.map { it.request.id }.filter { store.ready(it, all) }.toSet()
+        val readyCount = readyIds.size
+        val totalBytes = mains.sumOf { main -> store.group(main.request.id, all).sumOf { it.bytesDownloaded } }
         summary.text = tr("$readyCount ${if (readyCount == 1) "episode" else "episodes"} ready offline\n${formatSize(totalBytes)} saved · ${mains.size - readyCount} pending", "$readyCount ${if (readyCount == 1) "Folge offline bereit" else "Folgen offline bereit"}\n${formatSize(totalBytes)} gespeichert · ${mains.size - readyCount} ausstehend")
         summary.setLineSpacing(dp(5).toFloat(), 1f)
 
@@ -271,7 +269,7 @@ class OfflineActivity : Activity() {
             rows.addView(emptyState(), LinearLayout.LayoutParams(-1, -2))
             return
         }
-        val visible = mains.filter { filter == "all" || (filter == "ready") == store.ready(it.request.id) }
+        val visible = mains.filter { filter == "all" || (filter == "ready") == (it.request.id in readyIds) }
         if (visible.isEmpty()) {
             rows.addView(panel(24).apply {
                 addView(label(if (filter == "ready") tr("No episode ready yet", "Noch keine Folge bereit") else tr("Everything downloaded", "Alles heruntergeladen"), 17f, Color.WHITE, true))
@@ -279,16 +277,17 @@ class OfflineActivity : Activity() {
             })
         }
         var previousTitle = ""
-        val sorted = visible.sortedWith(compareBy<Download> { store.metadata(it).optString("title") }
-            .thenBy { store.metadata(it).optString("episode").toDoubleOrNull() ?: 0.0 })
+        val metadataOf = visible.associate { it.request.id to store.metadata(it) }
+        val sorted = visible.sortedWith(compareBy<Download> { metadataOf.getValue(it.request.id).optString("title") }
+            .thenBy { metadataOf.getValue(it.request.id).optString("episode").toDoubleOrNull() ?: 0.0 })
         sorted.forEachIndexed { index, download ->
             val id = download.request.id
-            val metadata = store.metadata(download)
-            val group = all.filter { it.request.id == id || it.request.id.startsWith("$id:sub:") }
-            val ready = store.ready(id)
+            val metadata = metadataOf.getValue(id)
+            val group = store.group(id, all)
+            val ready = id in readyIds
             val failed = group.any { it.state == Download.STATE_FAILED }
             val paused = group.any { it.stopReason != 0 }
-            val mb = group.sumOf { it.bytesDownloaded } / (1024.0 * 1024.0)
+            val size = formatSize(group.sumOf { it.bytesDownloaded })
             val progressValue = download.percentDownloaded.takeIf { it >= 0 }?.toInt()
             val status = when {
                 ready -> tr("Ready offline", "Offline bereit")
@@ -348,7 +347,7 @@ class OfflineActivity : Activity() {
                 ellipsize = android.text.TextUtils.TruncateAt.END
             }
             statusRow.addView(pill, LinearLayout.LayoutParams(-2, -2))
-            val amount = if (!ready && progressValue != null) "$progressValue% · ${formatSize((mb * 1024 * 1024).toLong())}" else formatSize((mb * 1024 * 1024).toLong())
+            val amount = if (!ready && progressValue != null) "$progressValue% · $size" else size
             statusRow.addView(label(amount, 11f, MUTED).apply { gravity = Gravity.END or Gravity.CENTER_VERTICAL; setPadding(dp(6), 0, 0, 0) }, LinearLayout.LayoutParams(0, -2, 1f))
             card.addView(statusRow)
 
@@ -455,7 +454,8 @@ class OfflineActivity : Activity() {
             host.addView(OfflinePlayerView(this, exo, if (episode.isBlank()) title else tr("$title · Episode $episode", "$title · Folge $episode"),
                 { setFullscreen(!fullscreen) }, { back() }), FrameLayout.LayoutParams(-1, -1))
         }
-        val next = store.all().filter { !it.request.id.contains(":sub:") && store.ready(it.request.id) &&
+        val all = store.all()
+        val next = all.filter { !it.request.id.contains(":sub:") && store.ready(it.request.id, all) &&
             store.metadata(it).optString("title") == title &&
             (store.metadata(it).optString("episode").toDoubleOrNull() ?: -1.0) > (episode.toDoubleOrNull() ?: Double.MAX_VALUE) }
             .minByOrNull { store.metadata(it).optString("episode").toDoubleOrNull() ?: Double.MAX_VALUE }

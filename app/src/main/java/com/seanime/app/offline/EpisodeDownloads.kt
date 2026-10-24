@@ -42,10 +42,12 @@ class EpisodeDownloads private constructor(private val context: Context) {
         buildList { while (cursor.moveToNext()) add(cursor.download) }
     }
 
-    fun group(id: String): List<Download> = all().filter { it.request.id == id || it.request.id.startsWith("$id:sub:") }
+    /** Pass [all] when checking many ids: every [all] call reads the whole download index. */
+    fun group(id: String, all: List<Download> = all()): List<Download> =
+        all.filter { it.request.id == id || it.request.id.startsWith("$id:sub:") }
 
-    fun ready(id: String): Boolean {
-        val rows = group(id)
+    fun ready(id: String, all: List<Download> = all()): Boolean {
+        val rows = group(id, all)
         val main = rows.find { it.request.id == id } ?: return false
         val expected = metadata(main).optJSONArray("subtitles")?.length() ?: 0
         return rows.size == expected + 1 && rows.all { it.state == Download.STATE_COMPLETED }

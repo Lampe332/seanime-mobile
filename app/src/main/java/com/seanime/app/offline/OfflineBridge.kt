@@ -28,14 +28,15 @@ class OfflineBridge(private val activity: Activity) {
     @JavascriptInterface fun snapshot(value: String): String {
         if (value != token) return "[]"
         val store = EpisodeDownloads.get(activity)
+        val library = OfflineLibrary.get(activity)
+        val positions = activity.getSharedPreferences("offline-playback", Activity.MODE_PRIVATE)
         val all = store.all()
-        OfflineLibrary.get(activity).ensure(all)
+        library.ensure(all)
         val list = JSONArray()
         all.filter { !it.request.id.contains(":sub:") }.forEach { download ->
             val id = download.request.id
-            val group = all.filter { it.request.id == id || it.request.id.startsWith("$id:sub:") }
-            val metadata = store.metadata(download)
-            val ready = group.size == (metadata.optJSONArray("subtitles")?.length() ?: 0) + 1 && group.all { it.state == Download.STATE_COMPLETED }
+            val group = store.group(id, all)
+            val ready = store.ready(id, all)
             val status = when {
                 download.state == Download.STATE_REMOVING -> "removing"
                 ready -> "ready"
@@ -43,16 +44,17 @@ class OfflineBridge(private val activity: Activity) {
                 group.any { it.stopReason != 0 } -> "paused"
                 else -> "downloading"
             }
-            list.put(metadata.put("id", id).put("status", status).put("ready", ready)
+            list.put(store.metadata(download).put("id", id).put("status", status).put("ready", ready)
                 .put("bytes", group.sumOf { it.bytesDownloaded }).put("progress", download.percentDownloaded.toInt().coerceIn(0, 100))
-                .put("position", activity.getSharedPreferences("offline-playback", Activity.MODE_PRIVATE).getLong(id, 0)))
+                .put("position", positions.getLong(id, 0)))
         }
         val realIds = all.map { it.request.id }.toSet()
         EpisodeBatchQueue.get(activity).snapshot().filter { it.optString("id") !in realIds }.forEach {
-            list.put(OfflineLibrary.get(activity).merge(it.optString("id"), it))
+            list.put(library.merge(it.optString("id"), it))
         }
         return list.toString()
     }
+    private fun failure(message: String) = JSONObject().put("error", message).toString()
     @JavascriptInterface fun action(value: String, id: String, action: String) {
         if (value != token || !Regex("[a-f0-9]{32}").matches(id)) return
         activity.runOnUiThread {
