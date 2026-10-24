@@ -1,7 +1,7 @@
 package discordrpc_client
 
 import (
-	"fmt"
+	"errors"
 	"github.com/goccy/go-json"
 	"seanime/internal/discordrpc/ipc"
 )
@@ -22,7 +22,7 @@ func (c *Client) Close() {
 // New sends a handshake in the socket and returns an error or nil and an instance of Client
 func New(clientId string) (*Client, error) {
 	if clientId == "" {
-		return nil, fmt.Errorf("no clientId set")
+		return nil, errors.New("no clientId set")
 	}
 
 	payload, err := json.Marshal(handshake{"1", clientId})
@@ -48,7 +48,7 @@ func New(clientId string) (*Client, error) {
 	}
 
 	if responseBody.Code > 1000 {
-		return nil, fmt.Errorf(responseBody.Message)
+		return nil, errors.New(responseBody.Message)
 	}
 
 	return c, nil
