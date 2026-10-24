@@ -70,10 +70,10 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>((pr
         rightIcon: props1.rightIcon,
     })
 
-    const handleOnChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const handleOnChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         onValueChange?.(e.target.value)
         onChange?.(e)
-    }, [])
+    }
 
     return (
         <BasicField {...basicFieldProps}>

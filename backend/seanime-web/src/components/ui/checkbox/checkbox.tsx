@@ -123,10 +123,10 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>((prop
 
     const [_value, _setValue] = React.useState<boolean | "indeterminate">(controlledValue ?? defaultValue ?? false)
 
-    const handleOnValueChange = React.useCallback((value: boolean) => {
+    const handleOnValueChange = (value: boolean) => {
         _setValue(value)
         onValueChange?.(value)
-    }, [])
+    }
 
     React.useEffect(() => {
         if (!defaultValue || !isFirst.current) {

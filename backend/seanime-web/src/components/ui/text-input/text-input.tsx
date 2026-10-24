@@ -53,10 +53,10 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>((pro
     const isPasswordInput = type === "password"
     const actualType = isPasswordInput ? (showPassword ? "text" : "password") : type
 
-    const handleOnChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         onValueChange?.(e.target.value)
         onChange?.(e)
-    }, [])
+    }
 
     const togglePasswordVisibility = React.useCallback(() => {
         setShowPassword(prev => !prev)

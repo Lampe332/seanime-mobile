@@ -144,10 +144,10 @@ export const RadioGroup = React.forwardRef<HTMLButtonElement, RadioGroupProps>((
 
     const [_value, _setValue] = React.useState<string | undefined>(controlledValue ?? defaultValue)
 
-    const handleOnValueChange = React.useCallback((value: string) => {
+    const handleOnValueChange = (value: string) => {
         _setValue(value)
         onValueChange?.(value)
-    }, [])
+    }
 
     React.useEffect(() => {
         if (!defaultValue || !isFirst.current) {

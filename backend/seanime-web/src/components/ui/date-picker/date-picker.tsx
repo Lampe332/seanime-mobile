@@ -132,10 +132,10 @@ export const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>((
 
     const weekStartOn = useAtomValue(weekStartsOnAtom)
 
-    const handleOnSelect = React.useCallback((date: Date | undefined) => {
+    const handleOnSelect = (date: Date | undefined) => {
         setDate(date)
         onValueChange?.(date)
-    }, [])
+    }
 
     React.useEffect(() => {
         if (!defaultValue || !isFirst.current) {

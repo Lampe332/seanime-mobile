@@ -125,14 +125,14 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>((props, r
 
     const [_value, _setValue] = React.useState<boolean | undefined>(controlledValue ?? defaultValue ?? false)
 
-    const handleOnValueChange = React.useCallback((value: boolean) => {
+    const handleOnValueChange = (value: boolean) => {
         _setValue(value)
         onValueChange?.(value)
-    }, [])
+    }
 
     React.useEffect(() => {
         if (!defaultValue || !isFirst.current) {
-            _setValue(controlledValue)
+            _setValue(controlledValue ?? false)
         }
         isFirst.current = false
     }, [controlledValue])
@@ -143,8 +143,6 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>((props, r
             id={basicFieldProps.id}
             fieldClass={cn(
                 "w-fit",
-                // side === "right" && "w-full group/switch transition-all duration-200 hover:bg-gray-600/10 rounded-[--radius] p-2
-                // w-[calc(100%_+_1rem)] -ml-2 border border-transparent hover:border-[--subtle]",
                 side === "right" && "w-full group/switch py-0.5",
                 basicFieldProps.fieldClass,
             )}
@@ -161,7 +159,6 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>((props, r
                     data-error={!!basicFieldProps.error}
                     checked={_value}
                     onCheckedChange={handleOnValueChange}
-                    defaultChecked={defaultValue}
                     {...rest}
                 >
                     <SwitchPrimitive.Thumb className={cn(SwitchAnatomy.thumb({ size }), thumbClass)} />
