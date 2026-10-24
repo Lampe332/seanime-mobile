@@ -246,7 +246,7 @@ export function HomeScreen() {
 
             <div
                 className={cn(
-                    "h-12 lg:hidden",
+                    "h-12",
                 )}
                 data-library-toolbar-top-padding
             ></div>

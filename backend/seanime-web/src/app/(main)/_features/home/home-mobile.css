@@ -3,7 +3,6 @@
    Quiet by design: few frames, flat controls, one type scale (1.75 / 1.125 / .9375 / .8125rem). */
 [data-home-mobile="true"] { display: block; position: relative; min-width: 0; padding-bottom: 1.5rem; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .11) 0, rgb(var(--color-brand-500) / .085) 18%, rgb(var(--color-brand-500) / .055) 40%, rgb(var(--color-brand-500) / .028) 62%, rgb(var(--color-brand-500) / .01) 82%, transparent 100%) top / 100% 40rem no-repeat; }
 /* One image-independent identity across loading, empty and populated Home. */
-@media (max-width: 1023px) {
 /* A faint, static theme-colour tint: header and Home share one vertical gradient (header ends where Home starts), no seam, image, blur or scroll work. */
 [data-home-navbar] { padding: .75rem 1rem 0; overflow: visible; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .16), rgb(var(--color-brand-500) / .11)); }
 [data-home-navbar] [data-layout-header-background], [data-home-navbar] [data-layout-header-background-gradient] { display: none; }
@@ -27,7 +26,6 @@
 /* The toolbar row stays only for actions that did not move into the header. */
 [data-home-mobile="true"] [data-home-toolbar-container] { width: 100%; margin: 0 !important; padding: .25rem 1rem .75rem !important; }
 [data-home-mobile="true"] [data-home-toolbar-container]:not(:has(> :not([data-home-toolbar-spacer]))) { display: none; }
-}
 [data-home-mobile="true"] h2, [data-home-mobile="true"] h3 { font-size: 1.25rem; line-height: 1.35; font-weight: 700; letter-spacing: -.015em; color: var(--sm-text); overflow-wrap: anywhere; }
 [data-home-mobile="true"] [data-library-toolbar-top-padding],
 [data-home-mobile="true"] [data-custom-library-banner-top-spacer] { display: none !important; }

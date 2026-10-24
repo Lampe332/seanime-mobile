@@ -1,7 +1,6 @@
 /* Only renderer-owned primitives opt into these mobile rules. Plugin-authored
    HTML, iframes and CSS keep their own contract; no arbitrary DOM is rewritten.
    The last block gives those primitives the phone kit's look inside the app's plugin windows. */
-@media (max-width: 1023px) {
     .mobile-plugin-runtime { min-width: 0; overflow-wrap: anywhere; }
     .plugin-runtime-layout, .plugin-runtime-block, .plugin-runtime-field,
     .plugin-runtime-tabs, .plugin-runtime-form { min-width: 0; max-width: 100%; }
@@ -77,4 +76,3 @@
     .mobile-plugin-runtime .UI-Switch__thumb { width: 1.5rem; height: 1.5rem; }
     .mobile-plugin-runtime .UI-Switch__thumb[data-state="unchecked"] { --tw-translate-x: .25rem; }
     .mobile-plugin-runtime .UI-Switch__thumb[data-state="checked"] { --tw-translate-x: 1.5rem; }
-}

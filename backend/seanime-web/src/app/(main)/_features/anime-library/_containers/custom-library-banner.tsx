@@ -54,11 +54,6 @@ export function CustomLibraryBanner(props: CustomLibraryBannerProps) {
                     (!ts.libraryScreenCustomBackgroundImage && dimmed) && "opacity-5", // If the user has scrolled down, dim the banner
                 )}
             >
-                {(!ts.disableSidebarTransparency && !discrete) && <div
-                    data-custom-library-banner-top-gradient
-                    className="hidden lg:block h-full absolute z-[2] w-[20rem] opacity-70 left-0 top-0 bg-gradient bg-gradient-to-r from-[var(--background)] to-transparent"
-                />}
-
                 <div
                     data-custom-library-banner-bottom-gradient
                     className="w-full z-[3] absolute bottom-[-5rem] h-[5rem] bg-gradient-to-b from-[--background] via-transparent via-100% to-transparent"

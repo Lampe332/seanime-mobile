@@ -24,7 +24,6 @@ export function TopNavbar(props: TopNavbarProps) {
         ...rest
     } = props
 
-    const ts = useThemeSettings()
     const pathname = usePathname()
     const mobileHome = pathname === "/"
     const NavbarFrame = mobileHome ? HomeMobileHeader : React.Fragment
@@ -37,8 +36,7 @@ export function TopNavbar(props: TopNavbarProps) {
                 data-entry-navbar={pathname === "/entry" || undefined}
                 className={cn(
                     "w-full h-[5rem] relative overflow-hidden flex items-center",
-                    mobileHome && "max-lg:h-auto",
-                    ts.hideTopNavbar && "lg:hidden",
+                    mobileHome && "h-auto",
                 )}
             >
                 <NavbarFrame>

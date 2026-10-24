@@ -194,7 +194,7 @@ export const MediaEntryCardHoverPopup = React.memo((props: MediaEntryCardHoverPo
                 "h-[105%] w-[100%] -top-[5%] rounded-[0.7rem] transition ease-in-out",
                 "transform-gpu will-change-[opacity,transform] [contain:layout_paint_style]",
                 "focus-visible:ring-2 ring-brand-400 focus-visible:outline-0",
-                "hidden lg:block", // Hide on small screens
+                "hidden", // desktop hover popup; touch screens never show it
                 markBorderRenderingArtifacts && "w-[103%] -left-[1.5%]",
             )}
             {...rest}
