@@ -20,13 +20,11 @@ import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Tooltip } from "@/components/ui/tooltip"
-import { TORRENT_PROVIDER } from "@/lib/server/settings"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import React from "react"
 import { createPortal } from "react-dom"
 import { BiCollection, BiDotsVerticalRounded, BiFolder } from "react-icons/bi"
-import { HiExclamation } from "react-icons/hi"
 import { IoHome, IoLibraryOutline, IoLibrarySharp } from "react-icons/io5"
 import { LuSearch } from "react-icons/lu"
 import { LuFolderSearch, LuFolderSync, LuFolderTree } from "react-icons/lu"
@@ -34,8 +32,6 @@ import { MdOutlineConnectWithoutContact, MdOutlineVideoLibrary } from "react-ico
 import { TbFileSad, TbReportSearch } from "react-icons/tb"
 import { PluginAnimeLibraryDropdownItems } from "../plugin/actions/plugin-actions"
 import { useTr } from "@/lib/app-language"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 export type HomeToolbarProps = {
     collectionList: Anime_LibraryCollectionList[]
@@ -63,7 +59,6 @@ export function HomeToolbar(props: HomeToolbarProps) {
         className,
     } = props
 
-    const serverStatus = useServerStatus()
     const tr = useTr()
     const ts = useThemeSettings()
     const setBulkActionIsOpen = useSetAtom(__bulkAction_modalAtomIsOpen)
@@ -115,23 +110,6 @@ export function HomeToolbar(props: HomeToolbarProps) {
                 >
                     {nakamaStatus?.hostConnectionStatus?.username}'s Library
                 </Tooltip>}
-                {!IS_ANDROID_APP && (!isExtensionsLoading && !allExtensions?.extensions?.some(n => n.type === "anime-torrent-provider") && serverStatus?.settings?.library?.torrentProvider !== TORRENT_PROVIDER.NONE) &&
-                    <SeaLink href="/extensions?tab=marketplace&type=anime-torrent-provider">
-                        <span>
-                            <Tooltip
-                                trigger={<Button
-                                    data-home-toolbar-missing-extensions-button
-                                    className="animate-bounce"
-                                    intent={"warning"}
-                                    leftIcon={<HiExclamation className="text-2xl" />}
-                                >
-                                    Add missing extensions
-                                </Button>}
-                            >
-                                No torrent providers installed.
-                            </Tooltip>
-                        </span>
-                    </SeaLink>}
                 {(hasEntries) && (
                     <>
                         {(!isStreamingOnly && !isNakamaLibrary) && <Tooltip

@@ -1,4 +1,3 @@
-import { IS_MOBILE_APP } from "@/lib/app-updates"
 import { MobileIcon, mobileIconFor } from "@/lib/mobile-icons"
 import { SeaLink } from "@/components/shared/sea-link"
 import { cva, VariantProps } from "class-variance-authority"
@@ -234,7 +233,7 @@ export const VerticalMenu = React.forwardRef<HTMLDivElement, VerticalMenuProps>(
                     item.className,
                 )}
             >
-                {IS_MOBILE_APP && mobileIconFor(item) ? <MobileIcon name={mobileIconFor(item)!} className={cn(VerticalMenuAnatomy.itemIcon({size, collapsed, isSidebar}), itemIconClass, item.iconClass)} /> : item.iconType && <item.iconType
+                {mobileIconFor(item) ? <MobileIcon name={mobileIconFor(item)!} className={cn(VerticalMenuAnatomy.itemIcon({size, collapsed, isSidebar}), itemIconClass, item.iconClass)} /> : item.iconType && <item.iconType
                     className={cn(
                         VerticalMenuAnatomy.itemIcon({ size, collapsed, isSidebar }),
                         itemIconClass,

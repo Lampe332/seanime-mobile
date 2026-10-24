@@ -1,6 +1,4 @@
-import { __isElectronDesktop__ } from "../../types/constants"
-
-export const PAGE_TRANSITION = __isElectronDesktop__ ? {} : {
+export const PAGE_TRANSITION = {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: 6 },

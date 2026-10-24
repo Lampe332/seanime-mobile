@@ -3,7 +3,6 @@ import { useDirectstreamPlayLocalFile } from "@/api/hooks/directstream.hooks"
 import { useNakamaPlayVideo } from "@/api/hooks/nakama.hooks"
 import { usePlaybackPlayVideo, usePlaybackStartManualTracking } from "@/api/hooks/playback_manager.hooks"
 import {
-    ElectronPlaybackMethod,
     PlaybackDownloadedMedia,
     useCurrentDevicePlaybackSettings,
     useExternalPlayerLink,
@@ -18,14 +17,11 @@ import { ExternalPlayerLink } from "@/lib/external-player-link/external-player-l
 import { openTab } from "@/lib/helpers/browser"
 import { logger } from "@/lib/helpers/debug"
 import { useRouter } from "@/lib/navigation"
-import { __isElectronDesktop__ } from "@/types/constants"
 import { streamStartError } from "@/app/(main)/_features/native-player/stream-start-error"
 import { tr } from "@/lib/app-language"
 import { useAtomValue, useSetAtom } from "jotai"
 import React from "react"
 import { toast } from "sonner"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 export function useHandlePlayMedia() {
     const router = useRouter()
@@ -38,16 +34,15 @@ export function useHandlePlayMedia() {
     const { mutate: startManualTracking, isPending: isStarting } = usePlaybackStartManualTracking()
     const setCurrentExternalPlayerLink = useSetAtom(__mpt_currentExternalPlayerLinkAtom)
 
-    const { downloadedMediaPlayback, electronPlaybackMethod } = useCurrentDevicePlaybackSettings()
+    const { downloadedMediaPlayback } = useCurrentDevicePlaybackSettings()
     const { externalPlayerLink } = useExternalPlayerLink()
     const { getHMACTokenQueryParam: getServerHMACTokenQueryParam } = useServerHMACAuth()
 
     // Play using desktop external player
     const { mutate: playVideo } = usePlaybackPlayVideo()
     // Phones say in plain words that the host doesn't answer, not which request to it failed
-    const { mutate: playNakamaVideo } = useNakamaPlayVideo(IS_ANDROID_APP
-        ? error => toast.error(streamStartError(String(error.response?.data?.error ?? error.message ?? ""), tr))
-        : undefined)
+    const { mutate: playNakamaVideo } = useNakamaPlayVideo(
+        error => toast.error(streamStartError(String(error.response?.data?.error ?? error.message ?? ""), tr)))
 
     const { mutate: directstreamPlayLocalFile } = useDirectstreamPlayLocalFile()
 
@@ -114,17 +109,6 @@ export function useHandlePlayMedia() {
         logger("PLAY MEDIA").info("Playing media file", path)
 
         //
-        // Electron native player
-        //
-        if (__isElectronDesktop__ && (
-            (!forcePlaybackMethod && electronPlaybackMethod === ElectronPlaybackMethod.NativePlayer) ||
-            (forcePlaybackMethod && forcePlaybackMethod === "nativeplayer")
-        )) {
-            directstreamPlayLocalFile({ path, clientId: clientId ?? "" })
-            return
-        }
-
-        //
         // Android built-in player: every method but the external player link (there is no desktop player to force)
         //
         if (forcePlaybackMethod ? forcePlaybackMethod !== "externalPlayerLink" && usesAndroidBuiltInPlayer(PlaybackDownloadedMedia.Default)
@@ -164,7 +148,6 @@ export function useHandlePlayMedia() {
     }
 
     return {
-        isUsingNativePlayer: __isElectronDesktop__ && electronPlaybackMethod === ElectronPlaybackMethod.NativePlayer,
         playMediaFile,
     }
 }

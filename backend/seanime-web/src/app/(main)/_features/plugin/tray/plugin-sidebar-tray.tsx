@@ -8,7 +8,6 @@ import {
     useReloadExternalExtension,
     useSetPluginSettingsPinnedTrays,
 } from "@/api/hooks/extensions.hooks"
-import { WebSocketContext } from "@/app/(main)/_atoms/websocket.atoms"
 import { DebugLogEntry } from "@/app/(main)/_features/plugin/tray/plugin-debug-window.tsx"
 import { maxDebugLogs } from "@/app/(main)/_features/plugin/tray/plugin-debug-window.tsx"
 import { PluginDebugWindow } from "@/app/(main)/_features/plugin/tray/plugin-debug-window.tsx"
@@ -28,7 +27,7 @@ import { useAtom } from "jotai/react"
 import { atom } from "jotai/vanilla"
 import React from "react"
 import { LuSquareTerminal } from "react-icons/lu"
-import { LuBlocks, LuCircleDashed, LuCircuitBoard, LuComponent, LuRefreshCw } from "react-icons/lu"
+import { LuCircleDashed, LuCircuitBoard, LuComponent, LuRefreshCw } from "react-icons/lu"
 import { TbPinned, TbPinnedFilled } from "react-icons/tb"
 import {
     usePluginListenDebugClearEvent,
@@ -331,9 +330,7 @@ const ExtensionList = ({
     )
 }
 
-export function PluginSidebarTray({ place, homeMobile: _homeMobile = false }: { place: "sidebar" | "top"; homeMobile?: boolean }) {
-    // Android uses the Home plugin menu (same icon, sheet and pinned plugins) on every screen.
-    const homeMobile = _homeMobile || import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
+export function PluginSidebarTray({ place }: { place: "sidebar" | "top" }) {
     const { isFeatureDisabled } = useServerDisabledFeatures()
     const width = layoutWidth(useWindowSize().width)
     const [trayIcons, setTrayIcons] = useAtom(__plugin_trayIconsAtom)
@@ -342,11 +339,6 @@ export function PluginSidebarTray({ place, homeMobile: _homeMobile = false }: { 
     const pathname = usePathname()
 
     const { data: pluginSettings } = useGetPluginSettings()
-
-    const [mobileExtensionListOpen, setMobileExtensionListOpen] = React.useState(false)
-    const [pendingTrayOpenExtensionId, setPendingTrayOpenExtensionId] = React.useState<string | null>(null)
-
-    const socket = React.useContext(WebSocketContext)
 
     const firstRender = React.useRef(true)
     React.useEffect(() => {
@@ -408,57 +400,6 @@ export function PluginSidebarTray({ place, homeMobile: _homeMobile = false }: { 
             return changed ? next : prev
         })
     }, "")
-
-    /**
-     * Handling mobile programmatic tray open/close
-     */
-
-    usePluginListenTrayOpenEvent((data) => {
-        const isMobile = width && width < 1024
-        if (isMobile && place === "top" && !homeMobile) {
-            // Store which extension triggered the open event
-            setPendingTrayOpenExtensionId(data.extensionId || "")
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: "smooth" })
-            // Open the mobile extension list
-            setMobileExtensionListOpen(true)
-        }
-    }, "")
-
-    usePluginListenTrayCloseEvent((data) => {
-        const isMobile = width && width < 1024
-        if (isMobile && place === "top" && !homeMobile) {
-            setPendingTrayOpenExtensionId(null)
-            setTimeout(() => {
-                setMobileExtensionListOpen(false)
-            }, 300)
-        }
-    }, "")
-
-    // Re-send the tray open event after the extension list is opened and rendered.
-    // This is necessary because the first tray open event is ignored since the tray is not rendered yet.
-    React.useEffect(() => {
-        if (mobileExtensionListOpen && pendingTrayOpenExtensionId && socket) {
-            // Small delay to ensure the PluginTray components are rendered
-            const timeout = setTimeout(() => {
-                // Re-send the tray open event now that the extension list is open
-                const fakeEvent = new MessageEvent("message", {
-                    data: JSON.stringify({
-                        type: "plugin",
-                        payload: {
-                            type: "tray:open",
-                            extensionId: pendingTrayOpenExtensionId,
-                            payload: {
-                                extensionId: pendingTrayOpenExtensionId,
-                            },
-                        },
-                    }),
-                })
-                socket.dispatchEvent(fakeEvent)
-            }, 100)
-            return () => clearTimeout(timeout)
-        }
-    }, [mobileExtensionListOpen, pendingTrayOpenExtensionId, socket])
 
     // End
 
@@ -532,42 +473,10 @@ export function PluginSidebarTray({ place, homeMobile: _homeMobile = false }: { 
                 settings={pluginSettings}
                 width={width}
             />}
-            {isMobile && place === "top" && homeMobile && <MobilePluginMenu icons={trayIcons} settings={pluginSettings} width={width}
+            {/* Android uses the Home plugin menu (same icon, sheet and pinned plugins) on every screen. */}
+            {isMobile && place === "top" && <MobilePluginMenu icons={trayIcons} settings={pluginSettings} width={width}
                 developmentModeExtensions={developmentModeExtensions || []} debugCounts={debugCounts} openDebugWindow={openDebugWindow}
                 reloadExternalExtension={reloadExternalExtension} isReloadingExtension={isReloadingExtension} />}
-            {isMobile && place === "top" && !homeMobile && <div className="">
-                <Popover
-                    open={mobileExtensionListOpen}
-                    onOpenChange={setMobileExtensionListOpen}
-                    side="bottom"
-                    trigger={<button type="button" aria-label={tr("Open plugins", "Plugins öffnen")}
-                        className="inline-flex h-11 items-center gap-2 rounded-xl bg-black/80 px-3 text-sm font-medium text-white">
-                        <LuBlocks className="size-5" /><span>Plugins</span>
-                    </button>}
-                    data-mobile-plugin-overview
-                    align="start"
-                    collisionPadding={16}
-                    className="rounded-2xl p-3 overflow-y-auto overscroll-contain bg-[--background] max-w-[calc(100vw-32px)] max-h-[80dvh]"
-                    style={{ width: Math.min(384, (width || 384) - 32) }}
-                >
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                        <h2 className="text-lg font-semibold">Plugins <span className="text-sm text-[--muted]">({trayIcons.length})</span></h2>
-                        <button type="button" aria-label={tr("Close plugin overview", "Plugin-Übersicht schließen")} onClick={() => setMobileExtensionListOpen(false)}
-                            className="flex h-11 w-11 items-center justify-center rounded-lg text-xl">×</button>
-                    </div>
-                    <ExtensionList
-                        place={place}
-                        developmentModeExtensions={developmentModeExtensions || []}
-                        debugCounts={debugCounts}
-                        isReloadingExtension={isReloadingExtension}
-                        openDebugWindow={openDebugWindow}
-                        reloadExternalExtension={reloadExternalExtension}
-                        trayIcons={trayIcons}
-                        settings={pluginSettings}
-                        width={width}
-                    />
-                </Popover>
-            </div>}
             {openDebugWindows.map((extensionId, index) => {
                 const extension = developmentModeExtensions?.find(extension => extension.id === extensionId)
                 return <PluginDebugWindow

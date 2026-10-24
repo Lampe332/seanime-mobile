@@ -1,22 +1,10 @@
-import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
-import { MediaEntryPageLoadingDisplay } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
-import { MangaLibraryHeader } from "@/app/(main)/manga/_components/library-header"
 import { useHandleMangaCollection } from "@/app/(main)/manga/_lib/handle-manga-collection"
 import { MangaLibraryPhone } from "@/app/(main)/manga/_screens/manga-library-phone"
-import { MangaLibraryView } from "@/app/(main)/manga/_screens/manga-library-view"
-import { cn } from "@/components/ui/core/styling"
-import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/theme-hooks"
-import { __isDesktop__ } from "@/types/constants"
 import React from "react"
 
 
 export default function Page() {
-    // Android phones get their own library screen; tablets and desktop keep the library view
-    const phone = isAndroidPhone()
     const {
-        mangaCollection,
-        filteredMangaCollection,
         mangaCollectionLoading,
         mangaCollectionError,
         refetchMangaCollection,
@@ -25,13 +13,9 @@ export default function Page() {
         latestChapterNumbers,
         storedFilters,
         storedProviders,
-        mangaCollectionGenres,
-        hasManga,
-    } = useHandleMangaCollection({ redirectOnError: !phone, keepGenresOnUnreadToggle: phone })
+    } = useHandleMangaCollection({ redirectOnError: false, keepGenresOnUnreadToggle: true })
 
-    const ts = useThemeSettings()
-
-    if (phone) return (
+    return (
         <MangaLibraryPhone
             lists={mangaCollectionLists}
             rawLists={rawMangaCollectionLists}
@@ -42,50 +26,5 @@ export default function Page() {
             storedProviders={storedProviders}
             storedFilters={storedFilters}
         />
-    )
-
-    if (!mangaCollection || mangaCollectionLoading) return <MediaEntryPageLoadingDisplay />
-
-    return (
-        <div
-            data-manga-page-container
-            data-stored-filters={JSON.stringify(storedFilters)}
-            data-stored-providers={JSON.stringify(storedProviders)}
-        >
-            {(
-                (!!ts.libraryScreenCustomBannerImage && ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Custom)
-            ) && (
-                <>
-                    <CustomLibraryBanner isLibraryScreen />
-                    <div
-                        data-manga-page-custom-banner-spacer
-                        className={cn("h-14")}
-                    ></div>
-                </>
-            )}
-            {ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Dynamic && (
-                <>
-                    <MangaLibraryHeader manga={mangaCollection?.lists?.flatMap(l => l.entries)?.flatMap(e => e?.media)?.filter(Boolean) || []} />
-                    <div
-                        data-manga-page-dynamic-banner-spacer
-                        className={cn(
-                            // Android shows a page title right away instead of leaving room for the banner.
-                            !__isDesktop__ && (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? "h-0" : "h-28"),
-                            (!__isDesktop__ && ts.hideTopNavbar) && "h-40",
-                            __isDesktop__ && "h-40",
-                        )}
-                    ></div>
-                </>
-            )}
-
-            <MangaLibraryView
-                genres={mangaCollectionGenres}
-                collection={mangaCollection}
-                filteredCollection={filteredMangaCollection}
-                storedProviders={storedProviders}
-                hasManga={hasManga}
-                isMangaPage
-            />
-        </div>
     )
 }

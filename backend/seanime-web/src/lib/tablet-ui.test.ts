@@ -3,18 +3,16 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 describe("phone or tablet layout from the screen", () => {
     afterEach(() => {
         vi.useRealTimers()
-        vi.unstubAllEnvs()
         vi.unstubAllGlobals()
         vi.resetModules()
     })
 
-    async function load(width: number, height: number, platform = "mobile") {
+    async function load(width: number, height: number) {
         vi.useFakeTimers()
         const listeners: Record<string, () => void> = {}
         const screen = { width, height }
         const videos: { paused: boolean, ended: boolean }[] = []
         const reload = vi.fn()
-        vi.stubEnv("SEA_PUBLIC_PLATFORM", platform)
         vi.stubGlobal("window", {
             screen,
             location: { reload },
@@ -38,7 +36,6 @@ describe("phone or tablet layout from the screen", () => {
         expect((await load(599, 960)).ui.IS_TABLET_UI).toBe(false)
         expect((await load(600, 960)).ui.IS_TABLET_UI).toBe(true)
         expect((await load(1280, 800)).ui.IS_TABLET_UI).toBe(true)
-        expect((await load(1280, 800, "web")).ui.IS_TABLET_UI).toBe(false)
     })
 
     it("decides again when a foldable opens or closes, not when the device turns", async () => {
@@ -75,10 +72,5 @@ describe("phone or tablet layout from the screen", () => {
         phone.videos[0].paused = true
         phone.listeners["document pause"]()
         expect(phone.reload).toHaveBeenCalledTimes(1)
-    })
-
-    it("does not watch the screen outside the Android app", async () => {
-        const web = await load(1280, 800, "web")
-        expect(Object.keys(web.listeners)).toEqual([])
     })
 })

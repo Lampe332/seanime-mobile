@@ -1,9 +1,8 @@
 import { LuLibrary, LuLink, LuListOrdered, LuMusic, LuPuzzle } from "react-icons/lu"
 import { AL_BaseAnime, AL_BaseManga, Anime_Episode, Onlinestream_Episode } from "@/api/generated/types"
-import { Button, ButtonProps, IconButton } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/button"
 import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu"
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import { Tooltip } from "@/components/ui/tooltip"
 import React, { useEffect, useState } from "react"
 import { BiDotsHorizontal } from "react-icons/bi"
 import {
@@ -76,7 +75,7 @@ export function PluginAnimePageButtons(props: { media: AL_BaseAnime }) {
     if (buttons.length === 0) return null
 
     // Android: the same row of calm round icons as on manga pages; the plugin's name becomes the accessible label.
-    if (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile") return <>
+    return <>
         {buttons.map(b => {
             const name = b.tooltipText || (typeof b.label === "string" ? b.label : "") || "Plugin"
             // Keep the plugin's own icon (drawn as a background image); text-only buttons get a fitting symbol.
@@ -88,36 +87,6 @@ export function PluginAnimePageButtons(props: { media: AL_BaseAnime }) {
                 {!image && <Icon aria-hidden />}
             </button>
         })}
-    </>
-
-    return <>
-        {buttons.map(b => !b.tooltipText ? (
-            <Button
-                key={b.id}
-                intent={b.intent as ButtonProps["intent"] || "gray-subtle"}
-                onClick={() => handleClick(b)}
-                style={b.style}
-                loading={b.loading}
-                disabled={b.disabled}
-            >{b.label || "???"}</Button>
-        ) : (
-            <Tooltip
-                key={b.id} trigger={
-                <div>
-                    <Button
-                        key={b.id}
-                        intent={b.intent as ButtonProps["intent"] || "gray-subtle"}
-                        onClick={() => handleClick(b)}
-                        style={b.style}
-                        loading={b.loading}
-                        disabled={b.disabled}
-                    >{b.label || "???"}</Button>
-                </div>
-            }
-            >
-                {b.tooltipText || "???"}
-            </Tooltip>
-        ))}
     </>
 }
 
@@ -168,7 +137,7 @@ export function PluginMangaPageButtons(props: { media: AL_BaseManga }) {
     if (buttons.length === 0) return null
 
     // Android: a readable text chip instead of an emoji square.
-    if (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile") return <>
+    return <>
         {buttons.map(b => {
             const name = b.tooltipText || b.label || "Plugin"
             // A calm line icon instead of the plugin's emoji; known purposes get a matching symbol.
@@ -178,36 +147,6 @@ export function PluginMangaPageButtons(props: { media: AL_BaseManga }) {
                 <Icon aria-hidden />
             </button>
         })}
-    </>
-
-    return <>
-        {buttons.map(b => !b.tooltipText ? (
-            <Button
-                key={b.id}
-                intent={b.intent as ButtonProps["intent"] || "gray-subtle"}
-                onClick={() => handleClick(b)}
-                style={b.style}
-                loading={b.loading}
-                disabled={b.disabled}
-            >{b.label || "???"}</Button>
-        ) : (
-            <Tooltip
-                key={b.id} trigger={
-                <div>
-                    <Button
-                        key={b.id}
-                        intent={b.intent as ButtonProps["intent"] || "gray-subtle"}
-                        onClick={() => handleClick(b)}
-                        style={b.style}
-                        loading={b.loading}
-                        disabled={b.disabled}
-                    >{b.label || "???"}</Button>
-                </div>
-            }
-            >
-                {b.tooltipText || "???"}
-            </Tooltip>
-        ))}
     </>
 }
 

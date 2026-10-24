@@ -1,6 +1,5 @@
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { logger } from "@/lib/helpers/debug"
-import { __isDesktop__ } from "@/types/constants"
 
 const log = logger("EXTERNAL PLAYER LINK")
 
@@ -85,15 +84,6 @@ export class ExternalPlayerLink {
             link = link.replace("{formattedTitle}", this._cleanTitle(title ?? ""))
         }
         log.info("Formatted external player link", link)
-        if (__isDesktop__) {
-            let retUrl = link.replace("{url}", url)
-            if (link.startsWith("intent://")) {
-                // e.g. "intent://localhost:43214/stream/...#Intent;package=org.videolan.vlc;scheme=http;end"
-                retUrl = retUrl.replace("intent://http://", "intent://").replace("intent://https://", "intent://")
-            }
-            return retUrl
-        }
-
         // e.g. "mpv://http://localhost:43214/stream/..."
         // e.g. "intent://http://localhost:43214/stream/...#Intent;package=org.videolan.vlc;scheme=http;end"
         let retUrl = link.replace("{url}", url)

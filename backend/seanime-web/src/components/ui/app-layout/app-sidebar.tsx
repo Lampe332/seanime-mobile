@@ -73,7 +73,6 @@ export const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>((pro
                 ref={ref}
                 className={cn(
                     AppSidebarAnatomy.sidebar(),
-                    // __isDesktop__ && "pt-4",
                     className,
                 )}
                 {...rest}

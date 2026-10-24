@@ -23,7 +23,6 @@ import { AiOutlineArrowLeft, AiOutlineArrowRight } from "react-icons/ai"
 import { BiCog } from "react-icons/bi"
 import { FaCheck, FaFlag } from "react-icons/fa6"
 import { __anilist_userAnimeListDataAtom } from "../../_atoms/anilist.atoms"
-import { isAndroidPhone } from "../../_features/video-core/video-core-menu"
 import { PhoneSchedule } from "./schedule-phone"
 
 type CalendarParams = {
@@ -160,7 +159,7 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
         return daysArray
     }, [currentDate, weekStartsOn, eventsOn])
 
-    if (!items && isAndroidPhone()) return <PhoneSchedule
+    if (!items) return <PhoneSchedule
         days={days} eventsOn={eventsOn} isAllAnime={isAllAnime} source={source} onSource={setSource}
         statuses={calendarParams.listStatuses} onStatuses={next => setCalendarParams(draft => { draft.listStatuses = next })}
         statusFilters={STATUS_FILTERS} indicateWatched={calendarParams.indicateWatchedEpisodes}

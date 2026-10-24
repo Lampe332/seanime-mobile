@@ -13,12 +13,9 @@ import { VideoCoreMenu, VideoCoreMenuBody, VideoCoreMenuTitle, VideoCoreSettingS
 import { NormalizedTrackInfo } from "@/app/(main)/_features/video-core/video-core-subtitles"
 import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.utils"
 import { IconButton } from "@/components/ui/button"
-import { Tooltip } from "@/components/ui/tooltip"
 import { useAtomValue } from "jotai"
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useSetAtom } from "jotai/react"
 import React from "react"
-import { AiFillInfoCircle } from "react-icons/ai"
 import { LuCaptions, LuPaintbrush } from "react-icons/lu"
 
 export type VideoCoreSubtitleSelection = {
@@ -116,13 +113,7 @@ export function VideoCoreSubtitleMenu({ inline, onPreferenceChange }: {
                 }}
             />}
         >
-            <VideoCoreMenuTitle>Subtitles {(!!subtitleManager && !inline && !isAndroidPhone()) && <Tooltip
-                trigger={<AiFillInfoCircle className="text-sm" />}
-                className="z-[150]"
-                portalContainer={isFullscreen ? (containerElement ?? undefined) : undefined}
-            >
-                You can add subtitles by dragging and dropping files onto the player.
-            </Tooltip>}
+            <VideoCoreMenuTitle>Subtitles{" "}
                 <IconButton
                     intent="gray-link" size="xs"
                     onClick={() => {

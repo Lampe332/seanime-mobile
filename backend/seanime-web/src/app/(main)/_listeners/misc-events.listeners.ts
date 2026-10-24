@@ -3,11 +3,8 @@ import { tr } from "@/lib/app-language"
 import { WSEvents } from "@/lib/server/ws-events"
 import { toast } from "sonner"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 /** The server's Nakama messages in the phone's language and in words a phone user can act on; others as they come. */
 export function phoneToastText(message: string) {
-    if (!IS_ANDROID_APP) return message
     switch (message) {
         case "Sending stream to player...":
             return tr("Sending stream to player…", "Stream wird an den Player gesendet …")

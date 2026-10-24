@@ -3,8 +3,6 @@ import { tr, Translate } from "@/lib/app-language"
 import { toast } from "sonner"
 import type { createStore } from "jotai"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 /** One message per failed start: the request's error and the debrid state event say the same thing. */
 const STREAM_START_TOAST = "stream-start-error"
 
@@ -49,9 +47,5 @@ export function toastStreamStartError(error: { response?: { data?: { error?: unk
 
 /** A failed debrid stream as the server's state event reports it; on phones in the same words and the same toast as above. */
 export function toastDebridStreamFailure(message: string) {
-    if (!IS_ANDROID_APP) {
-        toast.error(message)
-        return
-    }
     toast.error(streamStartError(message, tr), { id: STREAM_START_TOAST })
 }

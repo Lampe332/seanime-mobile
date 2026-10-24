@@ -7,8 +7,6 @@ import React from "react"
 import { useServerStatus } from "../../_hooks/use-server-status"
 import { tourHelpers, TourStep, useTour } from "./tour"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 const OPEN_MODAL = ".UI-Modal__content[data-state=\"open\"]"
 
 export const mobileTutorialSeenAtom = atomWithStorage<boolean>("sea-mobile-tutorial-seen", false, undefined, { getOnInit: true })
@@ -229,7 +227,7 @@ export function MobileTutorialListener() {
     const loginModalOpen = useAtomValue(isLoginModalOpenAtom)
 
     const hasStreamingSource = isSuccess && !!streamingExtensions?.length
-    const ready = IS_ANDROID_APP && !seen && isSuccess && !hasStreamingSource && !loginModalOpen
+    const ready = !seen && isSuccess && !hasStreamingSource && !loginModalOpen
         && !!serverStatus?.settings && !!serverStatus?.user
 
     React.useEffect(() => {

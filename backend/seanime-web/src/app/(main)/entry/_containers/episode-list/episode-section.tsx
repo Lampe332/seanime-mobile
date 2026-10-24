@@ -9,16 +9,14 @@ import { EpisodeItem } from "@/app/(main)/entry/_containers/episode-list/episode
 import { UndownloadedEpisodeList } from "@/app/(main)/entry/_containers/episode-list/undownloaded-episode-list"
 import { PhoneDownloadedEpisodes, usePhoneDownloadedEpisodes } from "@/app/(main)/entry/_containers/episode-list/phone-downloaded-episodes"
 import { useHandleEpisodeSection } from "@/app/(main)/entry/_lib/handle-episode-section"
-import { useForcePlaybackMethod, useHandlePlayMedia } from "@/app/(main)/entry/_lib/handle-play-media"
+import { useHandlePlayMedia } from "@/app/(main)/entry/_lib/handle-play-media"
 import { episodeCardCarouselItemClass } from "@/components/shared/classnames"
 import { Alert } from "@/components/ui/alert"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Carousel, CarouselContent, CarouselDotButtons, CarouselItem } from "@/components/ui/carousel"
-import { ContextMenuItem } from "@/components/ui/context-menu"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import React from "react"
 import { IoLibrarySharp } from "react-icons/io5"
-import { LuTvMinimalPlay } from "react-icons/lu"
 
 type EpisodeSectionProps = {
     entry: Anime_Entry
@@ -41,9 +39,7 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
         ncEpisodes,
     } = useHandleEpisodeSection({ entry })
 
-    const { playMediaFile, isUsingNativePlayer } = useHandlePlayMedia()
-
-    const { forcePlaybackMethodFn } = useForcePlaybackMethod()
+    const { playMediaFile } = useHandlePlayMedia()
 
     const { data: watchHistory } = useGetContinuityWatchHistory()
 
@@ -183,21 +179,6 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
                                                 image: episode.baseAnime?.coverImage?.medium,
                                                 title: episode?.baseAnime?.title?.userPreferred,
                                             }}
-                                            additionalContextMenuItems={<>
-                                                {isUsingNativePlayer && <ContextMenuItem
-                                                    onClick={() => {
-                                                        forcePlaybackMethodFn("playbackmanager", () => {
-                                                            playMediaFile({
-                                                                path: episode.localFile?.path ?? "",
-                                                                mediaId: entry.mediaId,
-                                                                episode: episode,
-                                                            })
-                                                        })
-                                                    }}
-                                                >
-                                                    <LuTvMinimalPlay /> Play externally
-                                                </ContextMenuItem>}
-                                            </>}
                                         />
                                     </CarouselItem>
                                 ))}
@@ -213,19 +194,13 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
                         length={mainEpisodes.length}
                         renderItem={(index) => (
                             <EpisodeItem
-                                mobileEntry={import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"}
+                                mobileEntry
                                 key={mainEpisodes[index].localFile?.path || ""}
                                 episode={mainEpisodes[index]}
                                 media={media}
                                 isWatched={!!entry.listData?.progress && entry.listData.progress >= mainEpisodes[index].progressNumber}
                                 watchedProgress={entry.listData?.progress}
                                 onPlay={({ path, mediaId }) => playMediaFile({ path, mediaId, episode: mainEpisodes[index] })}
-                                onPlayExternally={!isUsingNativePlayer ? undefined : ({ path, mediaId }) => forcePlaybackMethodFn("playbackmanager",
-                                    () => playMediaFile({
-                                        path,
-                                        mediaId,
-                                        episode: mainEpisodes[index],
-                                    }))}
                                 percentageComplete={getEpisodePercentageComplete(watchHistory, entry.mediaId, mainEpisodes[index].episodeNumber)}
                                 minutesRemaining={getEpisodeMinutesRemaining(watchHistory, entry.mediaId, mainEpisodes[index].episodeNumber)}
                             />
@@ -250,13 +225,6 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
                                     media={media}
                                     watchedProgress={entry.listData?.progress}
                                     onPlay={({ path, mediaId }) => playMediaFile({ path, mediaId, episode: episode })}
-                                    onPlayExternally={!isUsingNativePlayer ? undefined : ({ path, mediaId }) => forcePlaybackMethodFn(
-                                        "playbackmanager",
-                                        () => playMediaFile({
-                                            path,
-                                            mediaId,
-                                            episode: episode,
-                                        }))}
                                 />
                             ))}
                         </EpisodeListGrid>
@@ -272,13 +240,6 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
                                     media={media}
                                     watchedProgress={entry.listData?.progress}
                                     onPlay={({ path, mediaId }) => playMediaFile({ path, mediaId, episode: episode })}
-                                    onPlayExternally={!isUsingNativePlayer ? undefined : ({ path, mediaId }) => forcePlaybackMethodFn(
-                                        "playbackmanager",
-                                        () => playMediaFile({
-                                            path,
-                                            mediaId,
-                                            episode: episode,
-                                        }))}
                                 />
                             ))}
                         </EpisodeListGrid>

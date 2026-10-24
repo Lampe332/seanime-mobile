@@ -7,20 +7,14 @@ import { PluginEpisodeGridItemMenuItems } from "@/app/(main)/_features/plugin/ac
 import { EpisodeListPaginatedGrid } from "@/app/(main)/entry/_components/episode-list-grid"
 import { usePlayNextVideoOnMount } from "@/app/(main)/entry/_lib/handle-play-on-mount"
 import { episodeCardCarouselItemClass } from "@/components/shared/classnames"
-import { IconButton } from "@/components/ui/button"
 import { Carousel, CarouselContent, CarouselDotButtons, CarouselItem } from "@/components/ui/carousel"
-import { ContextMenuItem } from "@/components/ui/context-menu"
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import React, { useMemo } from "react"
-import { BiDotsHorizontal } from "react-icons/bi"
-import { LuTvMinimalPlay } from "react-icons/lu"
 
 type TorrentStreamEpisodeSectionProps = {
     entry: Anime_Entry
     episodeCollection: Anime_EpisodeCollection | undefined
     onEpisodeClick: (episode: Anime_Episode) => void
-    onPlayExternallyEpisodeClick?: (episode: Anime_Episode) => void
     onPlayNextEpisodeOnMount: (episode: Anime_Episode) => void
     bottomSection?: React.ReactNode
     contextType: "torrentstream" | "debridstream" | string // used for plugin context menu item filtering
@@ -35,7 +29,6 @@ export function TorrentStreamEpisodeSection(props: TorrentStreamEpisodeSectionPr
         onEpisodeClick,
         onPlayNextEpisodeOnMount,
         bottomSection,
-        onPlayExternallyEpisodeClick,
         contextType,
         ...rest
     } = props
@@ -110,13 +103,6 @@ export function TorrentStreamEpisodeSection(props: TorrentStreamEpisodeSectionPr
                                     image: episode.baseAnime?.coverImage?.medium,
                                     title: episode?.baseAnime?.title?.userPreferred,
                                 }}
-                                additionalContextMenuItems={<>
-                                    {onPlayExternallyEpisodeClick && <ContextMenuItem
-                                        onClick={() => onPlayExternallyEpisodeClick(episode)}
-                                    >
-                                        <LuTvMinimalPlay /> Play externally
-                                    </ContextMenuItem>}
-                                </>}
                             />
                         </CarouselItem>
                     ))}
@@ -129,7 +115,7 @@ export function TorrentStreamEpisodeSection(props: TorrentStreamEpisodeSectionPr
                 renderItem={(index) => {
                     const episode = episodeCollection?.episodes?.[index]
                     return (<EpisodeGridItem
-                            mobileEntry={import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"}
+                            mobileEntry
                             key={episode?.episodeNumber + (episode?.displayTitle || "")}
                             media={episode?.baseAnime as any}
                             title={episode?.displayTitle || episode?.baseAnime?.title?.userPreferred || ""}
@@ -157,28 +143,7 @@ export function TorrentStreamEpisodeSection(props: TorrentStreamEpisodeSectionPr
                                     isInvalid={episode?.isInvalid}
                                 />
 
-                                {!!onPlayExternallyEpisodeClick ? <DropdownMenu
-                                    trigger={
-                                        <IconButton
-                                            icon={<BiDotsHorizontal />}
-                                            intent="gray-basic"
-                                            size="xs"
-                                        />
-                                    }
-                                >
-
-                                    {onPlayExternallyEpisodeClick && <DropdownMenuItem
-                                        onClick={() => {
-                                            onPlayExternallyEpisodeClick(episode as Anime_Episode)
-                                        }}
-                                    >
-                                        <LuTvMinimalPlay />
-                                        Play externally
-                                    </DropdownMenuItem>}
-                                    <PluginEpisodeGridItemMenuItems isDropdownMenu={false} type={contextType} episode={episode as Anime_Episode} />
-                                </DropdownMenu> : (
-                                    <PluginEpisodeGridItemMenuItems isDropdownMenu={true} type={contextType} episode={episode as Anime_Episode} />
-                                )}
+                                <PluginEpisodeGridItemMenuItems isDropdownMenu={true} type={contextType} episode={episode as Anime_Episode} />
 
                             </>}
                         />

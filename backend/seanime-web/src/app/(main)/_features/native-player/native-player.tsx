@@ -29,8 +29,6 @@ const log = logger("NATIVE PLAYER")
 // minimum interval between subtitle event flushes
 const SUBTITLE_FLUSH_INTERVAL_MS = 300
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 export function NativePlayer() {
     const t = useTr()
     const qc = useQueryClient()
@@ -194,8 +192,7 @@ export function NativePlayer() {
                         break
                     }
                     setState(draft => {
-                        draft.loadingState = IS_ANDROID_APP ? streamStartError(payload as string, t)
-                            : "An error occurred while loading the stream: " + ((payload as string) || "Unknown error")
+                        draft.loadingState = streamStartError(payload as string, t)
                         draft.playbackError = payload as string
                         draft.playbackInfo = null
                         return

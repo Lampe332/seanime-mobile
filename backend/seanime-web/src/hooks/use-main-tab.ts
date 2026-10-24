@@ -1,13 +1,11 @@
 import { websocketAtom } from "@/app/(main)/_atoms/websocket.atoms"
 import { logger } from "@/lib/helpers/debug"
-import { __isElectronDesktop__ } from "@/types/constants"
 import { useAtomValue } from "jotai"
 import { useEffect, useRef, useState } from "react"
 
 const log = logger("TAB")
 const CHANNEL_NAME = "main-tab-election"
 const TAB_ID = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-const IS_DESKTOP = __isElectronDesktop__
 
 export function useMainTab(): boolean {
     const [isMainTab, setIsMainTab] = useState(false)
@@ -29,7 +27,7 @@ export function useMainTab(): boolean {
                 if (socket?.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({
                         type: "main-tab-claim",
-                        payload: { tabId: TAB_ID, isDesktop: IS_DESKTOP },
+                        payload: { tabId: TAB_ID, isDesktop: false },
                     }))
                 }
             }
@@ -38,11 +36,6 @@ export function useMainTab(): boolean {
         // web tabs -> web tabs
         const handleBroadcastMessage = (event: MessageEvent) => {
             if (event.data.type === "claim" && event.data.tabId !== TAB_ID) {
-                // Desktop is isolated so it shouldn't receive claims from the broadcast channel
-                // tldr this shouldn't happen but just in case, ignore claim
-                if (IS_DESKTOP) {
-                    return
-                }
                 // Another tab claimed main, we yield
                 setIsMainTab(false)
                 log.warn("Yielded")
@@ -56,8 +49,7 @@ export function useMainTab(): boolean {
                 if (
                     data.type === "main-tab-claim"
                     && data.payload?.tabId !== TAB_ID
-                    && (IS_DESKTOP || data.payload?.isDesktop) // Yield only if we're the desktop tab or the desktop tab claimed main
-                    && !(IS_DESKTOP && data.payload?.isDesktop) // Don't yield if we're desktop and another desktop tab claimed main
+                    && data.payload?.isDesktop // Yield only if the desktop tab claimed main
                 ) {
                     setIsMainTab(false)
                     log.warn("Yielded")

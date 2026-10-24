@@ -2,14 +2,6 @@ import { AL_BaseManga, Manga_PageContainer } from "@/api/generated/types"
 import { ___manga_scrollSignalAtom } from "@/app/(main)/manga/_containers/chapter-reader/_components/chapter-vertical-reader"
 import {
     ChapterReaderSettings,
-    MANGA_PAGE_FIT_ICONS,
-    MANGA_PAGE_FIT_OPTIONS,
-    MANGA_PAGE_STRETCH_ICONS,
-    MANGA_PAGE_STRETCH_OPTIONS,
-    MANGA_READING_DIRECTION_ICONS,
-    MANGA_READING_DIRECTION_OPTIONS,
-    MANGA_READING_MODE_ICONS,
-    MANGA_READING_MODE_OPTIONS,
 } from "@/app/(main)/manga/_containers/chapter-reader/chapter-reader-settings"
 import { __manga_selectedChapterAtom, MangaReader_SelectedChapter, useHandleChapterPageStatus } from "@/app/(main)/manga/_lib/handle-chapter-reader"
 import {
@@ -23,15 +15,10 @@ import {
     __manga_readerProgressBarAtom,
     __manga_readingDirectionAtom,
     __manga_readingModeAtom,
-    MangaPageStretch,
     MangaReadingDirection,
     MangaReadingMode,
 } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
-import { Badge } from "@/components/ui/badge"
-import { IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
-import { Popover } from "@/components/ui/popover"
-import { Select } from "@/components/ui/select"
 import { useSetAtom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
 import React from "react"
@@ -66,95 +53,10 @@ export function MangaReaderBar(props: MangaReaderBarProps) {
 
     const [currentPageIndex, setCurrentPageIndex] = useAtom(__manga_currentPageIndexAtom)
     const paginationMap = useAtomValue(__manga_paginationMapAtom)
-    const pageFit = useAtomValue(__manga_pageFitAtom)
-    const pageStretch = useAtomValue(__manga_pageStretchAtom)
-    const pageZoom = useAtomValue(__manga_pageZoomAtom)
     const readingMode = useAtomValue(__manga_readingModeAtom)
     const readingDirection = useAtomValue(__manga_readingDirectionAtom)
-    const readerProgressBar = useAtomValue(__manga_readerProgressBarAtom)
 
     const hiddenBar = useAtomValue(__manga_hiddenBarAtom)
-
-    const ChapterNavButton = React.useCallback(({ dir }: { dir: "left" | "right" }) => {
-        const reversed = (readingDirection === MangaReadingDirection.RTL && (readingMode === MangaReadingMode.PAGED || readingMode === MangaReadingMode.DOUBLE_PAGE))
-        if (reversed) {
-            if (dir === "left") {
-                return (
-                    <IconButton
-                        icon={<LuChevronLeft />}
-                        rounded
-                        intent="white-outline"
-                        size="sm"
-                        onClick={() => {
-                            if (nextChapter && entry) {
-                                goToChapter("next")
-                            }
-                        }}
-                        disabled={!nextChapter}
-                        aria-label="Next chapter"
-                        title="Next chapter"
-                        className="border-transparent h-11 w-11 min-w-11 lg:h-8 lg:w-8 lg:min-w-0"
-                    />
-                )
-            } else {
-                return (
-                    <IconButton
-                        icon={<LuChevronRight />}
-                        rounded
-                        intent="gray-outline"
-                        size="sm"
-                        onClick={() => {
-                            if (previousChapter && entry) {
-                                goToChapter("previous")
-                            }
-                        }}
-                        disabled={!previousChapter}
-                        aria-label="Previous chapter"
-                        title="Previous chapter"
-                        className="border-transparent h-11 w-11 min-w-11 lg:h-8 lg:w-8 lg:min-w-0"
-                    />
-                )
-            }
-        } else {
-            if (dir === "left") {
-                return (
-                    <IconButton
-                        icon={<LuChevronLeft />}
-                        rounded
-                        intent="gray-outline"
-                        size="sm"
-                        onClick={() => {
-                            if (previousChapter && entry) {
-                                goToChapter("previous")
-                            }
-                        }}
-                        disabled={!previousChapter}
-                        aria-label="Previous chapter"
-                        title="Previous chapter"
-                        className="border-transparent h-11 w-11 min-w-11 lg:h-8 lg:w-8 lg:min-w-0"
-                    />
-                )
-            } else {
-                return (
-                    <IconButton
-                        icon={<LuChevronRight />}
-                        rounded
-                        intent="white-outline"
-                        size="sm"
-                        onClick={() => {
-                            if (nextChapter && entry) {
-                                goToChapter("next")
-                            }
-                        }}
-                        disabled={!nextChapter}
-                        aria-label="Next chapter"
-                        title="Next chapter"
-                        className="border-transparent h-11 w-11 min-w-11 lg:h-8 lg:w-8 lg:min-w-0"
-                    />
-                )
-            }
-        }
-    }, [selectedChapter, nextChapter, previousChapter, readingDirection, readingMode])
 
     /**
      * Format the second part of pagination text
@@ -196,204 +98,47 @@ export function MangaReaderBar(props: MangaReaderBarProps) {
         }
     }, [readingMode, paginationMap])
 
-    const { allPagesLoaded } = useHandleChapterPageStatus(pageContainer)
+    useHandleChapterPageStatus(pageContainer)
     const t = useTr()
 
     if (!entry) return null
 
     // Android: one calm bar with equal round buttons and a page slider above it.
-    if (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile") {
-        const reversed = readingDirection === MangaReadingDirection.RTL && readingMode !== MangaReadingMode.LONG_STRIP
-        const pageCount = pageContainer?.pages?.length ?? 0
-        const previous = <button type="button" className="reader-bar-btn" disabled={!previousChapter} aria-label={t("Previous chapter", "Vorheriges Kapitel")}
-            onClick={() => previousChapter && goToChapter("previous")}>{reversed ? <LuChevronRight aria-hidden /> : <LuChevronLeft aria-hidden />}</button>
-        const next = <button type="button" className="reader-bar-btn" disabled={!nextChapter} aria-label={t("Next chapter", "Nächstes Kapitel")}
-            onClick={() => nextChapter && goToChapter("next")}>{reversed ? <LuChevronLeft aria-hidden /> : <LuChevronRight aria-hidden />}</button>
-        return (
-            <>
-                {pageCount > 1 && !hiddenBar && <div className="reader-page-slider" data-reader-page-slider>
-                    <input
-                        type="range"
-                        min={0}
-                        max={pageCount - 1}
-                        step={1}
-                        value={Math.min(currentPageIndex, pageCount - 1)}
-                        dir={reversed ? "rtl" : "ltr"}
-                        aria-label={t("Page", "Seite")}
-                        aria-valuetext={`${currentPageIndex + 1} / ${pageCount}`}
-                        onChange={e => handlePageChange(Number(e.target.value))}
-                    />
-                </div>}
-                <div data-manga-reader-bar id="manga-reader-bar" className={cn("reader-phone-bar", hiddenBar && "is-hidden")}>
-                    <button type="button" className="reader-bar-btn" aria-label={t("Close reader", "Leser schließen")} onClick={() => setSelectedChapter(undefined)}>
-                        <BiX aria-hidden />
-                    </button>
-                    {!!selectedChapter && <div className="reader-bar-chapter" role="group" aria-label={t("Chapter", "Kapitel")}>
-                        {reversed ? next : previous}
-                        <span>{t("Ch.", "Kap.")} {selectedChapter.chapterNumber}</span>
-                        {reversed ? previous : next}
-                    </div>}
-                    <div className="flex-1" />
-                    {pageCount > 0 && <span className="reader-bar-pages" aria-live="polite">
-                        {currentPageIndex + 1}{secondPageText}<span> / {pageCount}</span>
-                    </span>}
-                    <ChapterReaderSettings mediaId={entry.mediaId} />
-                </div>
-            </>
-        )
-    }
-
+    const reversed = readingDirection === MangaReadingDirection.RTL && readingMode !== MangaReadingMode.LONG_STRIP
+    const pageCount = pageContainer?.pages?.length ?? 0
+    const previous = <button type="button" className="reader-bar-btn" disabled={!previousChapter} aria-label={t("Previous chapter", "Vorheriges Kapitel")}
+        onClick={() => previousChapter && goToChapter("previous")}>{reversed ? <LuChevronRight aria-hidden /> : <LuChevronLeft aria-hidden />}</button>
+    const next = <button type="button" className="reader-bar-btn" disabled={!nextChapter} aria-label={t("Next chapter", "Nächstes Kapitel")}
+        onClick={() => nextChapter && goToChapter("next")}>{reversed ? <LuChevronLeft aria-hidden /> : <LuChevronRight aria-hidden />}</button>
     return (
         <>
-            {(pageContainer && readerProgressBar && allPagesLoaded) && <div
-                data-manga-reader-bar-container
-                className={cn(
-                    "bottom-12 w-full fixed z-10 hidden lg:block group/bp",
-                    hiddenBar && "bottom-0",
-                )}
-            >
-                <div data-manga-reader-bar-inner-container className="flex max-w-full items-center">
-                    {pageContainer.pages?.map((_, index) => (
-                        <div
-                            key={index}
-                            data-manga-reader-bar-pagination
-                            className={cn(
-                                "w-full h-6 cursor-pointer",
-                                "transition-all duration-200 bg-gradient-to-t via-transparent from-transparent from-10% to-transparent hover:from-gray-800",
-                                index === currentPageIndex && "from-gray-800",
-                                index < currentPageIndex && "from-[--subtle] from-5%",
-                            )}
-                            onClick={() => handlePageChange(index)}
-                        >
-                            <p
-                                className={cn(
-                                    "w-full h-full flex items-center rounded-t-md justify-center text-transparent group-hover/bp:text-[--muted] transition",
-                                    "hover:text-white hover:bg-gray-800",
-                                    index === currentPageIndex && "text-white hover:text-white group-hover/bp:text-white",
-                                )}
-                            >{index + 1}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>}
-
-
-            <div
-                data-manga-reader-bar
-                className={cn(
-                    "fixed bottom-0 w-full h-14 lg:h-12 gap-2 lg:gap-4 flex items-center px-2 lg:px-4 z-[10] bg-[var(--background)] transition-transform",
-                    hiddenBar && "translate-y-60",
-                )} id="manga-reader-bar"
-            >
-
-                <IconButton
-                    icon={<BiX />}
-                    rounded
-                    intent="gray-outline"
-                    size="xs"
-                    aria-label="Close reader"
-                    title="Close reader"
-                    className="h-11 w-11 min-w-11 lg:h-auto lg:w-auto lg:min-w-0"
-                    onClick={() => setSelectedChapter(undefined)}
+            {pageCount > 1 && !hiddenBar && <div className="reader-page-slider" data-reader-page-slider>
+                <input
+                    type="range"
+                    min={0}
+                    max={pageCount - 1}
+                    step={1}
+                    value={Math.min(currentPageIndex, pageCount - 1)}
+                    dir={reversed ? "rtl" : "ltr"}
+                    aria-label={t("Page", "Seite")}
+                    aria-valuetext={`${currentPageIndex + 1} / ${pageCount}`}
+                    onChange={e => handlePageChange(Number(e.target.value))}
                 />
-
-                <h4 data-manga-reader-bar-title className="lg:flex gap-1 items-center hidden">
-                    <span className="max-w-[180px] text-ellipsis truncate block">{entry?.media?.title?.userPreferred}</span>
-                </h4>
-
-                {!!selectedChapter &&
-                    <div data-manga-reader-bar-chapter-nav-container className="flex gap-1 lg:gap-3 items-center flex-none whitespace-nowrap text-sm lg:text-base">
-                        <ChapterNavButton dir="left" />
-                        <span className="hidden md:inline-block">Chapter </span>
-                        {`${selectedChapter?.chapterNumber}`}
-                        <ChapterNavButton dir="right" />
-                    </div>}
-
-                <div data-manga-reader-bar-spacer className="flex flex-1"></div>
-
-                <div data-manga-reader-bar-page-container className="flex items-center gap-2">
-
-                    {pageContainer && <Popover
-                        trigger={
-                            <Badge
-                                size="lg"
-                                className="w-fit min-h-11 lg:min-h-0 cursor-pointer rounded-[--radius-md] z-[5] flex bg-gray-950 items-center bottom-2 focus-visible:outline-none"
-                                aria-label="Jump to page"
-                                title="Jump to page"
-                                tabIndex={-1}
-                                data-manga-reader-bar-page-container-badge
-                            >
-                                {!!(currentPageIndex + 1) && (
-                                    <p className="">
-                                        {currentPageIndex + 1}{secondPageText}
-                                        <span className="text-[--muted]"> / {pageContainer?.pages?.length}</span>
-                                    </p>
-                                )}
-                            </Badge>
-                        }
-                    >
-                        <Select
-                            data-manga-reader-bar-page-container-select
-                            options={pageContainer.pages?.map((_, index) => ({ label: String(index + 1), value: String(index) })) ?? []}
-                            value={String(currentPageIndex)}
-                            onValueChange={e => {
-                                handlePageChange(Number(e))
-                            }}
-                        />
-                    </Popover>}
-
-                    <div data-manga-reader-bar-info-container className="hidden lg:flex">
-                        <Popover
-                            modal={true}
-                            tabIndex={-1}
-                            trigger={
-                                <IconButton
-                                    icon={<span className="flex items-center gap-1">
-                                        {MANGA_READING_MODE_ICONS[readingMode]}
-                                        {MANGA_PAGE_FIT_ICONS[pageFit]}
-                                        {pageStretch !== MangaPageStretch.NONE && MANGA_PAGE_STRETCH_ICONS[pageStretch]}
-                                        {readingMode !== MangaReadingMode.LONG_STRIP && MANGA_READING_DIRECTION_ICONS[readingDirection]}
-                                    </span>}
-                                    intent="gray-basic"
-                                    className="opacity-50 outline-0 w-fit px-2 focus-visible:outline-0 focus-visible:ring-0 ml-2"
-                                    tabIndex={-1}
-                                />
-                            }
-                            className="text-[--muted] space-y-1"
-                        >
-                            <div data-manga-reader-bar-info-container-provider className="hidden lg:block">
-                                <p className="text-[--muted] text-sm">{selectedChapter?.provider}</p>
-                            </div>
-                            <div data-manga-reader-bar-info-container-mode className="flex items-center gap-1">
-                                <span className="text-white w-6">m:</span>
-                                {MANGA_READING_MODE_OPTIONS.find((option) => option.value === readingMode)?.label}
-                            </div>
-                            <div data-manga-reader-bar-info-container-fit className="flex items-center gap-1">
-                                <span className="text-white w-6">f:</span>
-                                {MANGA_PAGE_FIT_OPTIONS.find((option) => option.value === pageFit)?.label}
-                            </div>
-                            <div data-manga-reader-bar-info-container-zoom className="flex items-center gap-1">
-                                <span className="text-white w-6">z:</span>
-                                <span>{Math.round(pageZoom * 100)}%</span>
-                            </div>
-                            {pageStretch !== MangaPageStretch.NONE &&
-                                <div data-manga-reader-bar-info-container-stretch className="flex items-center gap-1">
-                                    <span className="text-white w-6">s:</span>
-                                    {MANGA_PAGE_STRETCH_OPTIONS.find((option) => option.value === pageStretch)?.label}
-                                </div>}
-                            {readingMode !== MangaReadingMode.LONG_STRIP && (
-                                <div data-manga-reader-bar-info-container-direction className="flex items-center gap-1">
-                                    <span className="text-white w-6">d:</span>
-                                    <span>{MANGA_READING_DIRECTION_OPTIONS.find((option) => option.value === readingDirection)?.label}</span>
-                                </div>
-                            )}
-                        </Popover>
-                    </div>
-
-
-                    <ChapterReaderSettings mediaId={entry.mediaId} />
-
-                </div>
+            </div>}
+            <div data-manga-reader-bar id="manga-reader-bar" className={cn("reader-phone-bar", hiddenBar && "is-hidden")}>
+                <button type="button" className="reader-bar-btn" aria-label={t("Close reader", "Leser schließen")} onClick={() => setSelectedChapter(undefined)}>
+                    <BiX aria-hidden />
+                </button>
+                {!!selectedChapter && <div className="reader-bar-chapter" role="group" aria-label={t("Chapter", "Kapitel")}>
+                    {reversed ? next : previous}
+                    <span>{t("Ch.", "Kap.")} {selectedChapter.chapterNumber}</span>
+                    {reversed ? previous : next}
+                </div>}
+                <div className="flex-1" />
+                {pageCount > 0 && <span className="reader-bar-pages" aria-live="polite">
+                    {currentPageIndex + 1}{secondPageText}<span> / {pageCount}</span>
+                </span>}
+                <ChapterReaderSettings mediaId={entry.mediaId} />
             </div>
         </>
     )

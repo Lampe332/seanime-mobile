@@ -1,6 +1,4 @@
-import { ElectronSidebarPaddingMacOS } from "@/app/(main)/_electron/electron-padding"
 import { vc_globalMiniPlayerAtom, vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { __isDesktop__, __isElectronDesktop__ } from "@/types/constants"
 import { cva, VariantProps } from "class-variance-authority"
 import { useAtomValue } from "jotai/react"
 import * as React from "react"
@@ -176,7 +174,6 @@ export const AppLayout = React.forwardRef<HTMLDivElement, AppLayoutProps>((props
             ref={ref}
             className={cn(
                 AppLayoutAnatomy.root({ withSidebar, sidebarSize: ctx.size || sidebarSize }),
-                __isDesktop__ && "pt-4 select-none",
                 className,
             )}
             {...rest}
@@ -240,7 +237,6 @@ export const AppLayoutSidebar = React.forwardRef<HTMLElement, AppLayoutSidebarPr
             className={cn(AppLayoutSidebarAnatomy.root(), className, (vcIsFullscreen && !vcIsMiniplayer) && "lg:hidden")}
             {...rest}
         >
-            {__isElectronDesktop__ && <ElectronSidebarPaddingMacOS />}
             {children}
         </aside>
     )

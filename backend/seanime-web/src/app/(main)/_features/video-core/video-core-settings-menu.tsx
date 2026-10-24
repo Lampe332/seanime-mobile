@@ -24,7 +24,6 @@ import {
     VideoCoreMenuTitle,
     VideoCoreSettingSelect,
     VideoCoreSettingTextInput,
-    isAndroidPhone,
 } from "@/app/(main)/_features/video-core/video-core-menu"
 import { videoCorePreferencesModalAtom } from "@/app/(main)/_features/video-core/video-core-preferences"
 import {
@@ -259,7 +258,7 @@ export function VideoCoreSettingsMenu() {
     const isWebPlayer = useAtomValue(vc_activePlayerId) !== null
 
     const t = useTr()
-    const isPhone = isMobile && isAndroidPhone()
+    const isPhone = isMobile
     // Section titles stay English ids; phones show them translated.
     const phoneLabel = (en: string, de: string) => isPhone ? t(en, de) : undefined
     // Android Back in fullscreen leaves fullscreen natively; the phone sheet must not stay open on the inline player.

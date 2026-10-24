@@ -28,8 +28,6 @@ import React from "react"
 import { BiCopy, BiTerminal } from "react-icons/bi"
 import { toast } from "sonner"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 type Params = {
     animeTorrentProvider: {
         mediaId: number
@@ -310,7 +308,6 @@ export function ExtensionPlayground(props: ExtensionPlaygroundProps) {
                             value={type as string}
                             intent="filled"
                             options={[
-                                ...(!IS_ANDROID_APP ? [{ value: "anime-torrent-provider", label: "Anime Torrent Provider" }] : []),
                                 { value: "manga-provider", label: "Manga Provider" },
                                 { value: "onlinestream-provider", label: "Online Streaming Provider" },
                             ]}

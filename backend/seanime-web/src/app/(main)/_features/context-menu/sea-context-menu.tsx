@@ -1,4 +1,3 @@
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { ContextMenuContent } from "@/components/ui/context-menu"
 import { ContextMenu } from "@radix-ui/react-context-menu"
 import React from "react"
@@ -26,7 +25,7 @@ export const SeaContextMenu = React.memo((props: SeaContextMenuProps) => {
             {children}
 
             {!hideMenuIf &&
-                <ContextMenuContent className="max-w-xs" data-sea-context-menu-content data-phone-menu={isAndroidPhone() || undefined}
+                <ContextMenuContent className="max-w-xs" data-sea-context-menu-content data-phone-menu
                     collisionPadding={16}>
                     {content}
                 </ContextMenuContent>}

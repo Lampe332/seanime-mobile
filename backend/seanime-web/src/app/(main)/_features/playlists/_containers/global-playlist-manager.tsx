@@ -34,7 +34,6 @@ import { logger } from "@/lib/helpers/debug"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { WSEvents } from "@/lib/server/ws-events"
-import { __isElectronDesktop__ } from "@/types/constants"
 import { atom, useAtomValue } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
 import React from "react"
@@ -65,7 +64,7 @@ export function usePlaylistManager() {
     const [confirmOpen, setConfirmOpen] = useAtom(pm_confirmProgressUpdateModalOpen)
     const [playEpisodeRequestPending, setPlayEpisodeRequestPending] = useAtom(pm_playEpisodeRequestPending)
 
-    const { downloadedMediaPlayback, torrentStreamingPlayback, electronPlaybackMethod } = useCurrentDevicePlaybackSettings()
+    const { downloadedMediaPlayback, torrentStreamingPlayback } = useCurrentDevicePlaybackSettings()
     const { activeOnDevice } = useMediastreamActiveOnDevice()
 
     function startPlaylist(playlist: Anime_Playlist) {
@@ -77,13 +76,9 @@ export function usePlaylistManager() {
                 payload: {
                     clientId: clientId,
                     dbId: playlist.dbId,
-                    localFilePlaybackMethod: __isElectronDesktop__ && electronPlaybackMethod !== "default"
-                        ? electronPlaybackMethod
-                        : usesAndroidBuiltInPlayer(downloadedMediaPlayback) ? "nativePlayer"
-                            : activeOnDevice ? "transcode" : downloadedMediaPlayback,
-                    streamPlaybackMethod: __isElectronDesktop__ && electronPlaybackMethod !== "default"
-                        ? electronPlaybackMethod
-                        : torrentStreamingPlayback,
+                    localFilePlaybackMethod: usesAndroidBuiltInPlayer(downloadedMediaPlayback) ? "nativePlayer"
+                        : activeOnDevice ? "transcode" : downloadedMediaPlayback,
+                    streamPlaybackMethod: torrentStreamingPlayback,
                 },
             },
         })

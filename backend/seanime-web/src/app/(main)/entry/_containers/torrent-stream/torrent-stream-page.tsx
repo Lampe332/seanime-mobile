@@ -14,22 +14,16 @@ import {
 } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
 import { TorrentStreamEpisodeSection } from "@/app/(main)/entry/_containers/torrent-stream/_components/torrent-stream-episode-section"
 import { StreamControlsPhone } from "@/app/(main)/entry/_containers/torrent-stream/_components/stream-controls-phone"
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useHandleStartTorrentStream } from "@/app/(main)/entry/_containers/torrent-stream/_lib/handle-torrent-stream"
 import { ForcePlaybackMethod, useForcePlaybackMethod } from "@/app/(main)/entry/_lib/handle-play-media"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { AppLayoutStack } from "@/components/ui/app-layout"
-import { IconButton } from "@/components/ui/button"
-import { Popover } from "@/components/ui/popover"
-import { Switch } from "@/components/ui/switch"
 import { logger } from "@/lib/helpers/debug"
 import { atom } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import React from "react"
-import { AiOutlineExclamationCircle } from "react-icons/ai"
-import { BiX } from "react-icons/bi"
 import { StreamPageSkeleton } from "../../_components/stream-page-skeleton"
 
 type TorrentStreamPageProps = {
@@ -54,7 +48,7 @@ export function TorrentStreamPage(props: TorrentStreamPageProps) {
 
     const [autoSelect, setAutoSelect] = useAtom(__torrentStream_currentSessionAutoSelectAtom)
 
-    const [autoSelectFile, setAutoSelectFile] = useAtom(__torrentStream_autoSelectFileAtom)
+    const [autoSelectFile] = useAtom(__torrentStream_autoSelectFileAtom)
 
     /**
      * Get all episodes to watch
@@ -81,7 +75,7 @@ export function TorrentStreamPage(props: TorrentStreamPageProps) {
     /**
      * Handle auto-select
      */
-    const { handleAutoSelectStream, handleStreamSelection, isPending, isUsingNativePlayer } = useHandleStartTorrentStream()
+    const { handleAutoSelectStream, handleStreamSelection, isPending } = useHandleStartTorrentStream()
     const { setTorrentstreamAutoplayInfo } = useTorrentstreamAutoplay()
     const { mutate: deleteBatchHistory, isPending: isDeletingBatchHistory } = useDeleteTorrentstreamBatchHistory()
 
@@ -296,88 +290,15 @@ export function TorrentStreamPage(props: TorrentStreamPageProps) {
                     {/*    <h2 className="text-xl lg:text-3xl flex items-center gap-3">Torrent streaming</h2>*/}
                     {/*</div>*/}
 
-                    {isAndroidPhone() && <StreamControlsPhone kind="torrent" autoSelect={autoSelect} onAutoSelect={setAutoSelect}
+                    <StreamControlsPhone kind="torrent" autoSelect={autoSelect} onAutoSelect={setAutoSelect}
                         batchName={usePreviousBatch ? batchHistory?.torrent?.name : undefined} onForgetBatch={() => confirmPreviousBatchAction.open()}
-                        forgetting={isDeletingBatchHistory} mappingError={!!episodeCollection?.hasMappingError} />}
-
-                    {!isAndroidPhone() && <div
-                        className="flex flex-col flex-wrap lg:flex-nowrap items-start md:items-center md:flex-row gap-2 md:gap-6 2xl:py-0 lg:h-12"
-                        data-torrent-stream-page-content-actions-container
-                    >
-                        <Switch
-                            label="Auto-select"
-                            value={autoSelect}
-                            onValueChange={v => {
-                                setAutoSelect(v)
-                            }}
-                            // moreHelp="Automatically select the best torrent and file to stream"
-                            fieldClass="w-fit flex-none"
-                        />
-
-                        {!autoSelect && !usePreviousBatch && (
-                            <Switch
-                                label="Auto-select file"
-                                value={autoSelectFile}
-                                onValueChange={v => {
-                                    setAutoSelectFile(v)
-                                }}
-                                moreHelp="The episode file will be automatically selected from your chosen batch torrent"
-                                fieldClass="w-fit flex-none"
-                                disabled={!autoSelect && usePreviousBatch}
-                            />
-                        )}
-
-                        {(!autoSelect && usePreviousBatch && batchHistory) && (
-                            <div className="relative w-full xl:max-w-[20rem] group/torrent-stream-batch-history">
-                                <div className="rounded-full max-w-[20rem]">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex flex-none items-center justify-center">
-                                            <IconButton
-                                                intent="alert-subtle"
-                                                icon={<BiX />}
-                                                size="xs"
-                                                onClick={() => confirmPreviousBatchAction.open()}
-                                                disabled={isDeletingBatchHistory}
-                                                className="rounded-full"
-                                            />
-                                        </div>
-                                        <div className="flex-1 flex items-center gap-2">
-                                            <div className="flex items-center flex-none gap-1">Auto-selecting from previous torrent
-                                                <Popover
-                                                    className="text-sm"
-                                                    trigger={
-                                                        <AiOutlineExclamationCircle className="transition-opacity opacity-45 hover:opacity-90 cursor-pointer" />}
-                                                >
-                                                    {batchHistory.torrent?.name}
-                                                </Popover>
-                                            </div>
-                                            <p className="line-clamp-1 text-[--muted] text-xs tracking-wide w-0 transition-all duration-300 ease-in-out group-hover/torrent-stream-batch-history:w-[20rem]">
-
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>}
-
-                    {!isAndroidPhone() && episodeCollection?.hasMappingError && (
-                        <div data-torrent-stream-page-no-metadata-message-container>
-                            <p className="text-red-200 opacity-50">
-                                No metadata info available for this anime. You may need to manually select the file to stream.
-                            </p>
-                        </div>
-
-                    )}
+                        forgetting={isDeletingBatchHistory} mappingError={!!episodeCollection?.hasMappingError} />
 
                     <TorrentStreamEpisodeSection
                         contextType="torrentstream"
                         episodeCollection={episodeCollection}
                         entry={entry}
                         onEpisodeClick={handleEpisodeClick}
-                        onPlayExternallyEpisodeClick={!isUsingNativePlayer ? undefined : (episode) => {
-                            handleEpisodeClick(episode, "playbackmanager")
-                        }}
                         onPlayNextEpisodeOnMount={handlePlayNextEpisodeOnMount}
                         bottomSection={bottomSection}
                     />

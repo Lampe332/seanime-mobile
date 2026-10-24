@@ -40,8 +40,6 @@ import { NakamaWatchPartyChat, NakamaWatchPartyChatProvider } from "../nakama/na
 import { RateLimitLoader } from "../rate-limit-loader"
 import { TopIndefiniteLoader } from "../top-indefinite-loader"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 const NativePlayerLazyWrapper = React.lazy(() => import("@/app/(main)/_features/native-player/native-player-lazy-wrapper"))
 
 export const MainLayout = ({ children }: { children: React.ReactNode }) => {
@@ -63,7 +61,7 @@ export const MainLayout = ({ children }: { children: React.ReactNode }) => {
             <IssueReport />
             <ErrorExplainer />
             <SeaCommand />
-            {IS_ANDROID_APP && <MobileTutorialListener />}
+            <MobileTutorialListener />
 
             <PluginManager />
             {/* the built-in player for downloaded media and streams (directstream) */}

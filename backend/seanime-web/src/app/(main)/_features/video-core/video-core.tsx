@@ -89,7 +89,6 @@ import { VideoCoreKeybindingController, VideoCorePreferencesModal } from "@/app/
 import { VideoCorePreviewManager } from "@/app/(main)/_features/video-core/video-core-preview"
 import { VideoCoreResolutionMenu } from "@/app/(main)/_features/video-core/video-core-resolution-menu"
 import { VideoCoreSettingsMenu } from "@/app/(main)/_features/video-core/video-core-settings-menu"
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useTr } from "@/lib/app-language"
 import { LuSkipForward } from "react-icons/lu"
 import { VideoCoreStatsForNerds } from "@/app/(main)/_features/video-core/video-core-stats"
@@ -130,10 +129,7 @@ import {
 import { PlaybackPlayPill } from "@/app/(main)/entry/_containers/torrent-stream/playback-play-pill"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
-import { Modal } from "@/components/ui/modal"
-import { useDisclosure } from "@/hooks/use-disclosure"
 import { logger } from "@/lib/helpers/debug"
-import { __isDesktop__, __isElectronDesktop__ } from "@/types/constants"
 import { useQueryClient } from "@tanstack/react-query"
 import { ErrorData } from "hls.js"
 import { atom } from "jotai"
@@ -405,13 +401,13 @@ const PlayerContent = React.memo<PlayerContentProps>(({
 
                         {busy && (
                             <>
-                                {!!skipChapter && !isMiniPlayer && isMobile && isAndroidPhone() && (
+                                {!!skipChapter && !isMiniPlayer && isMobile && (
                                     <PhoneSkipButton
                                         label={skipChapter.label}
                                         onSkip={() => action({ type: "seekTo", payload: { time: skipChapter.end } })}
                                     />
                                 )}
-                                {!!skipChapter && !isMiniPlayer && !(isMobile && isAndroidPhone()) && (
+                                {!!skipChapter && !isMiniPlayer && !isMobile && (
                                     <div
                                         data-vc-element="skip-oped-button-container"
                                         data-vc-for="chapter"
@@ -765,69 +761,21 @@ export function VideoCore(props: VideoCoreProps) {
     const isFirstError = React.useRef(true)
     const shouldDispatchTerminatedOnUnmount = React.useRef(false)
     const [activePlayer, setActivePlayer] = useAtom(vc_activePlayerId)
-    const pendingMiniPlayerTransitionRef = React.useRef(false)
-    const {
-        isOpen: isTerminateConfirmOpen,
-        open: openTerminateConfirm,
-        close: closeTerminateConfirm,
-    } = useDisclosure(false)
-
-    const startMiniPlayerTransition = React.useCallback(() => {
-        startVideoCoreMiniPlayerTransition(() => {
-            setIsMiniPlayer(true)
-        })
-    }, [setIsMiniPlayer])
-
-    const enterMiniPlayer = React.useCallback(() => {
-        if (isMiniPlayer) return
-
-        if (fullscreen) {
-            if (!fullscreenManager) {
-                startMiniPlayerTransition()
-                return
-            }
-
-            pendingMiniPlayerTransitionRef.current = true
-            fullscreenManager.exitFullscreen()
-            return
-        }
-
-        startMiniPlayerTransition()
-    }, [fullscreen, fullscreenManager, isMiniPlayer, startMiniPlayerTransition])
 
     React.useEffect(() => {
         setIsMiniPlayer(false)
     }, [])
 
-    React.useLayoutEffect(() => {
-        if (!pendingMiniPlayerTransitionRef.current || fullscreen) return
-
-        pendingMiniPlayerTransitionRef.current = false
-        const frame = window.requestAnimationFrame(startMiniPlayerTransition)
-
-        return () => {
-            window.cancelAnimationFrame(frame)
-        }
-    }, [fullscreen, startMiniPlayerTransition])
-
     React.useEffect(() => {
         setPluginSkipDataOverride(undefined)
     }, [state.playbackInfo?.id])
 
-    useUpdateEffect(() => {
-        if ((!isMiniPlayer || !state.active) && isTerminateConfirmOpen) {
-            closeTerminateConfirm()
-        }
-    }, [isMiniPlayer, state.active, isTerminateConfirmOpen, closeTerminateConfirm])
-
     const onHistoryPop = React.useEffectEvent(() => {
         if (window.history.state?.videoCoreDrawer) {
             if (isMiniPlayer) setIsMiniPlayer(false)
-        } else if (isAndroidPhone()) {
-            // Android phones: Back closes the player, as in other video apps; the minimize button still makes the mini player
+        } else {
+            // Back closes the player, as in other video apps; the minimize button still makes the mini player
             onTerminateStream()
-        } else if (!isMiniPlayer) {
-            enterMiniPlayer()
         }
     })
 
@@ -845,24 +793,6 @@ export function VideoCore(props: VideoCoreProps) {
         }
     }, [state.active, inline])
 
-    React.useEffect(() => {
-        if (!__isElectronDesktop__ || !window.electron?.on) return
-
-        const pausePlayback = () => {
-            if (videoRef.current && !videoRef.current.paused && !videoRef.current.ended) {
-                videoRef.current.pause()
-            }
-        }
-
-        const removeMinimizedListener = window.electron.on("window:minimized", pausePlayback)
-        const removeHiddenListener = window.electron.on("window:hidden", pausePlayback)
-
-        return () => {
-            removeMinimizedListener?.()
-            removeHiddenListener?.()
-        }
-    }, [])
-
     // Track if this player should dispatch terminated event on unmount
     React.useEffect(() => {
         shouldDispatchTerminatedOnUnmount.current = (activePlayer === props.id && !!state.playbackInfo)
@@ -877,7 +807,6 @@ export function VideoCore(props: VideoCoreProps) {
     })
 
     function onTerminateStream() {
-        closeTerminateConfirm()
         _onTerminateStream?.()
         dispatchTerminatedEvent()
     }
@@ -1782,13 +1711,7 @@ export function VideoCore(props: VideoCoreProps) {
                     open={state.active}
                     onOpenChange={(v) => {
                         if (!v) {
-                            if (isAndroidPhone()) {
-                                onTerminateStream()
-                            } else if (!isMiniPlayer) {
-                                enterMiniPlayer()
-                            } else {
-                                onTerminateStream()
-                            }
+                            onTerminateStream()
                         } else {
                             React.startTransition(() => {
                                 videoRef?.current?.focus?.()
@@ -1810,7 +1733,6 @@ export function VideoCore(props: VideoCoreProps) {
                     hideCloseButton
                     closeClass={cn(
                         "z-[99]",
-                        __isDesktop__ && !isMiniPlayer && "top-8",
                         isMiniPlayer && "left-4",
                     )}
                     data-native-player-drawer
@@ -1820,18 +1742,7 @@ export function VideoCore(props: VideoCoreProps) {
                     onEscapeKeyDown={e => {
                         e.preventDefault()
                         // Android Back arrives as Escape (the app's back script)
-                        if (isAndroidPhone()) {
-                            onTerminateStream()
-                            return
-                        }
-                        if (isMiniPlayer) {
-                            if (!isTerminateConfirmOpen) {
-                                openTerminateConfirm()
-                            }
-                            return
-                        }
-
-                        enterMiniPlayer()
+                        onTerminateStream()
                     }}
                 >
                     <PlayerContent
@@ -1866,31 +1777,6 @@ export function VideoCore(props: VideoCoreProps) {
                         onSubtitlePreferenceChange={onSubtitlePreferenceChange}
                     />
                 </VideoCoreDrawer>
-
-                <Modal
-                    title="Terminate stream?"
-                    description="Press Esc again or choose terminate to stop playback."
-                    titleClass="text-center"
-                    open={isTerminateConfirmOpen && isMiniPlayer}
-                    onOpenChange={open => {
-                        if (!open) {
-                            closeTerminateConfirm()
-                        }
-                    }}
-                    onEscapeKeyDown={e => {
-                        e.preventDefault()
-                        onTerminateStream()
-                    }}
-                >
-                    <div className="flex gap-2 justify-center items-center">
-                        <Button intent="warning-subtle" onClick={onTerminateStream}>
-                            Terminate stream
-                        </Button>
-                        <Button intent="white" onClick={closeTerminateConfirm}>
-                            Keep playing
-                        </Button>
-                    </div>
-                </Modal>
 
             </ScopeProvider>
         </>

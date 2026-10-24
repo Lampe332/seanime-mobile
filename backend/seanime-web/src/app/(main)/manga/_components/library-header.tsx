@@ -4,7 +4,6 @@ import { SeaImage } from "@/components/shared/sea-image"
 import { cn } from "@/components/ui/core/styling"
 import { getImageUrl } from "@/lib/server/assets"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
-import { __isDesktop__ } from "@/types/constants"
 import { atom, useAtomValue } from "jotai"
 import { useSetAtom } from "jotai/react"
 import { AnimatePresence, motion } from "motion/react"
@@ -76,8 +75,6 @@ export function MangaLibraryHeader({ manga }: { manga: AL_BaseManga[] }) {
                     "LIB_HEADER_CONTAINER __header h-[25rem] z-[1] top-0 w-full absolute group/library-header",
                     // Make it not fixed when the user scrolls down if a background image is set
                     !ts.libraryScreenCustomBackgroundImage && "fixed",
-                    !!ts.libraryScreenCustomBackgroundImage && __isDesktop__ && "top-[-2rem]",
-                    !ts.libraryScreenCustomBackgroundImage && __isDesktop__ && "h-[22rem]",
                 )}
             >
                 <div

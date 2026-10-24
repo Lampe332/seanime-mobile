@@ -1,14 +1,13 @@
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { serverAuthTokenAtom, serverStatusAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { websocketAtom, WebSocketContext } from "@/app/(main)/_atoms/websocket.atoms"
-import { ElectronRestartServerPrompt } from "@/app/(main)/_electron/electron-restart-server-prompt"
 import { ExtensionPrompt } from "@/app/(main)/_features/plugin/extension-prompt"
 import { __openDrawersAtom } from "@/components/ui/drawer"
 import { useMainTab } from "@/hooks/use-main-tab"
 import { logger } from "@/lib/helpers/debug"
 import { getClientId, getClientIdentity, getClientIdProof, setClientIdentity, subscribeToClientIdentity } from "@/lib/server/client-id"
 import { WSEvents } from "@/lib/server/ws-events"
-import { __clientPlatform__, __isElectronDesktop__ } from "@/types/constants"
+import { __clientPlatform__ } from "@/types/constants"
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import React, { useRef } from "react"
 import { RemoveScrollBar } from "react-remove-scroll-bar"
@@ -50,7 +49,6 @@ export function WebsocketProvider({ children }: { children: React.ReactNode }) {
         <>
             <WebsocketManagement />
             <ManageOpenDrawers />
-            {__isElectronDesktop__ && <ElectronRestartServerPrompt />}
             <WebSocketContext.Provider value={socket}>
                 <ExtensionPrompt />
                 {children}
@@ -195,9 +193,7 @@ function WebsocketManagement() {
                 if (clientIdProof) {
                     queryParams.set("proof", clientIdProof)
                 }
-                if (__clientPlatform__) {
-                    queryParams.set("platform", __clientPlatform__)
-                }
+                queryParams.set("platform", __clientPlatform__)
                 if (serverAuthTokenRef.current) {
                     queryParams.set("token", serverAuthTokenRef.current)
                 }

@@ -1,7 +1,6 @@
 import { layoutWidth } from "@/lib/tablet-ui"
 import { CloseButton } from "@/components/ui/button"
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "@/components/ui/core/styling"
-import { __isDesktop__ } from "@/types/constants"
 import type * as DialogPrimitive from "@radix-ui/react-dialog"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { cva, VariantProps } from "class-variance-authority"
@@ -22,7 +21,6 @@ export const DrawerAnatomy = defineStyleAnatomy({
         "fixed z-50 w-full",
         "transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-500 data-[state=open]:duration-500",
         "focus:outline-none focus-visible:outline-none outline-none",
-        __isDesktop__ && "select-none",
     ], {
         variants: {
             side: {
@@ -521,7 +519,6 @@ export function MediaCoreDrawer(props: DrawerProps) {
                             <VaulPrimitive.Title
                                 className={cn(
                                     DrawerAnatomy.title(),
-                                    __isDesktop__ && "relative",
                                     titleClass,
                                 )}
                             >

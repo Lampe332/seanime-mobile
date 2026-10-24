@@ -34,14 +34,12 @@ import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { Drawer } from "@/components/ui/drawer"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { __isDesktop__ } from "@/types/constants"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import mousetrap from "mousetrap"
 import React from "react"
 import { TbLayoutBottombarExpandFilled } from "react-icons/tb"
 import { __manga_keepScreenOnAtom, __manga_readerBackgroundAtom, __manga_readerBrightnessAtom } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 const READER_BACKGROUNDS = { black: "#000", gray: "#1c1c1f", white: "#f4f4f5" }
 import { toast } from "sonner"
 
@@ -134,7 +132,7 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
     // Android: keep the screen on while a chapter is open (Screen Wake Lock); the lock is released when Android
     // hides the app, so it is requested again whenever the reader becomes visible.
     React.useEffect(() => {
-        if (!IS_ANDROID_APP || !keepScreenOn || !currentChapter || !("wakeLock" in navigator)) return
+        if (!keepScreenOn || !currentChapter || !("wakeLock" in navigator)) return
         let lock: { release: () => Promise<void> } | null = null
         let cancelled = false
         const request = () => {
@@ -478,21 +476,14 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
                 data-chapter-reader-drawer-progress-container
                 className={cn(
                     "fixed left-0 w-full z-[6] opacity-0 transition-opacity hidden duration-500",
-                    !__isDesktop__ && "top-0 justify-center",
-                    __isDesktop__ && cn(
-                        "bottom-12",
-                        hiddenBar && "bottom-0 justify-left",
-                    ),
+                    "top-0 justify-center",
                     (shouldUpdateProgress && isLastPage && !pageContainerLoading && !pageContainerError) && "flex opacity-100",
                 )}
                 tabIndex={-1}
             >
                 <Button
                     onClick={() => handleUpdateProgress()}
-                    className={cn(
-                        !__isDesktop__ && "rounded-tl-none rounded-tr-none",
-                        __isDesktop__ && "rounded-bl-none rounded-br-none rounded-tl-none",
-                    )}
+                    className="rounded-tl-none rounded-tr-none"
                     size="md"
                     intent="success"
                     loading={isUpdatingProgress}
@@ -525,12 +516,12 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
             />
 
 
-            {IS_ANDROID_APP && readerBrightness < 100 && <div data-reader-dim className="fixed inset-0 z-[9] pointer-events-none bg-black"
+            {readerBrightness < 100 && <div data-reader-dim className="fixed inset-0 z-[9] pointer-events-none bg-black"
                 style={{ opacity: (100 - readerBrightness) / 100 }} />}
 
             <div
                 data-chapter-reader-drawer-content
-                style={IS_ANDROID_APP ? { background: READER_BACKGROUNDS[readerBackground] ?? "#000" } : undefined}
+                style={{ background: READER_BACKGROUNDS[readerBackground] ?? "#000" }}
                 className={cn(
                     "max-h-[calc(100dvh-3.5rem)] lg:max-h-[calc(100dvh-3rem)] h-full overflow-hidden",
                     hiddenBar && "max-h-dvh",

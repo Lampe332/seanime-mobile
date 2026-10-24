@@ -1,11 +1,6 @@
 import { HibikeTorrent_AnimeTorrent, HibikeTorrent_BatchEpisodeFiles } from "@/api/generated/types"
 import { useTorrentstreamStartStream } from "@/api/hooks/torrentstream.hooks"
-import {
-    ElectronPlaybackMethod,
-    PlaybackTorrentStreaming,
-    useCurrentDevicePlaybackSettings,
-    useExternalPlayerLink,
-} from "@/app/(main)/_atoms/playback.atoms"
+import { useExternalPlayerLink } from "@/app/(main)/_atoms/playback.atoms"
 import { useAutoPlaySelectedTorrent, useTorrentstreamAutoplay } from "@/app/(main)/_features/autoplay/autoplay"
 import { toastStreamStartError } from "@/app/(main)/_features/native-player/stream-start-error"
 import { getBatchSelectionParams } from "@/app/(main)/_features/autoplay/batches.ts"
@@ -26,13 +21,10 @@ import { clientIdAtom } from "@/app/websocket-provider"
 import { useTr } from "@/lib/app-language"
 import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
-import { __isElectronDesktop__ } from "@/types/constants"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAtomValue, useStore } from "jotai"
 import { useSetAtom } from "jotai/react"
 import React from "react"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 type ManualTorrentStreamSelectionProps = {
     torrent: HibikeTorrent_AnimeTorrent
@@ -54,12 +46,11 @@ export function useHandleStartTorrentStream() {
 
     const t = useTr()
     const store = useStore()
-    const { mutate, isPending } = useTorrentstreamStartStream(IS_ANDROID_APP ? error => toastStreamStartError(error, t, store) : undefined)
+    const { mutate, isPending } = useTorrentstreamStartStream(error => toastStreamStartError(error, t, store))
     const qc = useQueryClient()
 
     const setLoadingState = useSetAtom(__torrentstream__loadingStateAtom)
     const setIsLoaded = useSetAtom(__torrentstream__isLoadedAtom)
-    const { torrentStreamingPlayback, electronPlaybackMethod } = useCurrentDevicePlaybackSettings()
     const { externalPlayerLink } = useExternalPlayerLink()
     const clientId = useAtomValue(clientIdAtom)
 
@@ -68,21 +59,15 @@ export function useHandleStartTorrentStream() {
     const { resetForcePlaybackMethod, getForcePlaybackMethod } = useForcePlaybackMethod()
 
     const getPlaybackType = React.useCallback((forcePlaybackMethod?: ForcePlaybackMethod) => {
-        if (
-            (!forcePlaybackMethod && IS_ANDROID_APP) || // no desktop player to hand the stream to: the app's own player plays it
-            (!forcePlaybackMethod && __isElectronDesktop__ && electronPlaybackMethod === ElectronPlaybackMethod.NativePlayer) ||
-            (forcePlaybackMethod && forcePlaybackMethod === "nativeplayer")
-        ) {
+        // no desktop player to hand the stream to: the app's own player plays it
+        if (!forcePlaybackMethod || forcePlaybackMethod === "nativeplayer") {
             return "nativeplayer"
         }
-        if (!!externalPlayerLink?.length && (
-            (!forcePlaybackMethod && torrentStreamingPlayback === PlaybackTorrentStreaming.ExternalPlayerLink) ||
-            (forcePlaybackMethod && forcePlaybackMethod === "externalPlayerLink")
-        )) {
+        if (!!externalPlayerLink?.length && forcePlaybackMethod === "externalPlayerLink") {
             return "externalPlayerLink"
         }
         return "default"
-    }, [externalPlayerLink, torrentStreamingPlayback, electronPlaybackMethod])
+    }, [externalPlayerLink])
 
     const handleStreamSelection = (params: ManualTorrentStreamSelectionProps) => {
         const forcePlaybackMethod = getForcePlaybackMethod()
@@ -135,7 +120,6 @@ export function useHandleStartTorrentStream() {
     }
 
     return {
-        isUsingNativePlayer: __isElectronDesktop__ && electronPlaybackMethod === ElectronPlaybackMethod.NativePlayer,
         handleStreamSelection,
         handleAutoSelectStream,
         isPending,

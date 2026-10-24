@@ -26,8 +26,6 @@ import { RiFolderDownloadFill } from "react-icons/ri"
 import { TbReload } from "react-icons/tb"
 import { toast } from "sonner"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 type ExtensionListProps = {
     children?: React.ReactNode
 }

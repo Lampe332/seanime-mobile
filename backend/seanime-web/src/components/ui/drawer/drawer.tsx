@@ -1,4 +1,3 @@
-import { __isDesktop__ } from "@/types/constants"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { cva, VariantProps } from "class-variance-authority"
 import { atom } from "jotai"
@@ -50,7 +49,6 @@ export const DrawerAnatomy = defineStyleAnatomy({
         "fixed z-50 w-full gap-4 bg-[--paper] p-6 shadow-lg overflow-y-auto",
         "transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-500 data-[state=open]:duration-500",
         "focus:outline-none focus-visible:outline-none",
-        __isDesktop__ && "select-none",
     ], {
         variants: {
             side: {
@@ -234,18 +232,9 @@ export function Drawer(props: DrawerProps) {
                 <VaulPrimitive.Content
                     className={cn(
                         DrawerAnatomy.content({ size, side: drawerSide }),
-                        // __isDesktop__ && "pt-12",
                         !mangaReader && "lg:m-[10px] rounded-xl scroll-mt-2",
                         contentClass,
                     )}
-                    style={{
-                        marginTop: (__isDesktop__ && !mangaReader) ? "30px" : undefined,
-                        height: (
-                            __isDesktop__
-                            && !mangaReader
-                            && (side === "left" || side === "right")
-                        ) ? "calc(100dvh - 50px)" : undefined,
-                    }}
                     onOpenAutoFocus={onOpenAutoFocus}
                     onCloseAutoFocus={onCloseAutoFocus}
                     onEscapeKeyDown={onEscapeKeyDown}
@@ -262,7 +251,6 @@ export function Drawer(props: DrawerProps) {
                             <VaulPrimitive.Title
                                 className={cn(
                                     DrawerAnatomy.title(),
-                                    __isDesktop__ && "relative",
                                     titleClass,
                                 )}
                             >
@@ -285,7 +273,6 @@ export function Drawer(props: DrawerProps) {
                     {!hideCloseButton && <VaulPrimitive.Close
                         className={cn(
                             DrawerAnatomy.close(),
-                            // __isDesktop__ && "!top-10 !right-4",
                             closeClass,
                         )}
                         asChild

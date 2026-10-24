@@ -20,7 +20,6 @@ import { createIsolation } from "jotai-scope"
 import React, { memo } from "react"
 import { AiFillWarning } from "react-icons/ai"
 import { BiDotsHorizontal, BiLockOpenAlt } from "react-icons/bi"
-import { LuTvMinimalPlay } from "react-icons/lu"
 import { MdInfo, MdOutlineOndemandVideo, MdOutlineRemoveDone } from "react-icons/md"
 import { RiEdit2Line } from "react-icons/ri"
 import { VscVerified } from "react-icons/vsc"
@@ -32,12 +31,11 @@ export const EpisodeItemIsolation = createIsolation()
 
 const __metadataModalIsOpenAtom = atom(false)
 
-export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, onPlay, percentageComplete, minutesRemaining, onPlayExternally, mobileEntry }: {
+export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, onPlay, percentageComplete, minutesRemaining, mobileEntry }: {
     mobileEntry?: boolean,
     episode: Anime_Episode,
     media: AL_BaseAnime,
     onPlay?: ({ path, mediaId }: { path: string, mediaId: number }) => void,
-    onPlayExternally?: ({ path, mediaId }: { path: string, mediaId: number }) => void,
     isWatched?: boolean
     watchedProgress?: number
     percentageComplete?: number
@@ -124,15 +122,6 @@ export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, o
                         >
                             <MdOutlineOndemandVideo />
                             Copy stream URL
-                        </DropdownMenuItem>}
-
-                        {onPlayExternally && <DropdownMenuItem
-                            onClick={() => {
-                                onPlayExternally({ path: episode.localFile?.path ?? "", mediaId: media.id })
-                            }}
-                        >
-                            <LuTvMinimalPlay />
-                            Play externally
                         </DropdownMenuItem>}
 
 

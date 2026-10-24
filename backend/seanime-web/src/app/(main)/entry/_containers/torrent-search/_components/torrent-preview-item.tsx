@@ -209,7 +209,6 @@ const TorrentPreviewItem = memo((props: TorrentPreviewItemProps) => {
             data-link={link}
             className={cn(
                 "border p-3 pr-12 rounded-lg relative transition group/torrent-preview-item overflow-hidden",
-                // !__isElectronDesktop__ && "lg:hover:scale-[1.01]",
                 "max-w-full bg-[--background]",
                 isSelected && "sticky top-2 bottom-2 z-10",
                 {

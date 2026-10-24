@@ -101,11 +101,11 @@ export function useHandleDownloadMangaChapter(mediaId: string | undefined | null
                     mediaId: Number(mediaId),
                     provider: selectedProvider,
                     chapterIds: chapters.map(ch => ch.id),
-                    startNow: import.meta.env.SEA_PUBLIC_PLATFORM === "mobile",
+                    startNow: true,
                 }, {
                     onSuccess: () => {
-                        toast.success(import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? tr("Downloading chapters", "Kapitel werden heruntergeladen") : "Chapters added to download queue", {
-                            action: import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? { label: "Downloads", onClick: () => openAndroidDownloads("manga") } : undefined,
+                        toast.success(tr("Downloading chapters", "Kapitel werden heruntergeladen"), {
+                            action: { label: "Downloads", onClick: () => openAndroidDownloads("manga") },
                         })
                     },
                 })

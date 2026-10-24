@@ -46,8 +46,6 @@ import { LuCalendar, LuLeaf, LuTags } from "react-icons/lu"
 import { MdPersonalVideo } from "react-icons/md"
 import { RiSignalTowerLine } from "react-icons/ri"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 type LibraryViewProps = {
     collectionList: Anime_LibraryCollectionList[]
     continueWatchingList: Anime_Episode[]
@@ -97,7 +95,7 @@ export function DetailedLibraryView(props: LibraryViewProps) {
     if (!hasEntries) return null
 
     // Android Home: the local anime as swipeable rows under their list names, without the library page's filters
-    if (isHomeItem && IS_ANDROID_APP) return <LocalLibraryHomePhone lists={libraryCollectionList} streamingMediaIds={streamingMediaIds} />
+    if (isHomeItem) return <LocalLibraryHomePhone lists={libraryCollectionList} streamingMediaIds={streamingMediaIds} />
 
     return (
         <PageWrapper className="px-4 space-y-8 relative z-[4]" data-detailed-library-view-container>

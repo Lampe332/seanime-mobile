@@ -7,13 +7,11 @@ import { LuArrowDownToLine, LuChevronRight, LuPause, LuPlay } from "react-icons/
 import "@/components/shared/mobile-surface.css"
 import "./phone-downloaded-episodes.css"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 /** Episodes of this anime saved on the phone by the Android download manager (not part of the Seanime library scan). */
 export function usePhoneDownloadedEpisodes(mediaId: number | undefined) {
     const [episodes, setEpisodes] = React.useState<OfflineEpisode[]>([])
     const refresh = React.useCallback(() => {
-        if (!IS_ANDROID_APP || !mediaId) return true
+        if (!mediaId) return true
         if (!window.SeanimeOffline || !window.__seanimeOfflineToken) return false
         try {
             const all = JSON.parse(window.SeanimeOffline.snapshot(window.__seanimeOfflineToken)) as OfflineEpisode[]

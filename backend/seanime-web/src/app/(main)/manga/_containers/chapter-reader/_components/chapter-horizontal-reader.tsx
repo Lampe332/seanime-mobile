@@ -138,7 +138,7 @@ export function MangaHorizontalReader({ pageContainer }: MangaHorizontalReaderPr
         } else if (clickPercentage >= 60) {
             onPaginate("right")
         } else {
-            if (!isMobile() || (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && tapToggleControls)) {
+            if (!isMobile() || tapToggleControls) {
                 setHideBar(prev => !prev)
             }
         }

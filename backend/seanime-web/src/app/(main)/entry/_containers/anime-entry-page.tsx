@@ -24,9 +24,8 @@ import { DebridStreamPage } from "@/app/(main)/entry/_containers/debrid-stream/d
 import { ENTRY_VIEW_SHELL_TRANSITION, ENTRY_VIEW_TRANSITION } from "@/app/(main)/entry/_containers/entry-view-transition"
 import { EpisodeSection } from "@/app/(main)/entry/_containers/episode-list/episode-section"
 import { __anime_hiddenEntryViewsAtom } from "@/app/(main)/entry/_lib/hidden-entry-views"
-import { __torrentSearch_selectionAtom, TorrentSearchDrawer } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
+import { __torrentSearch_selectionAtom } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
 import { TorrentSearchPhone } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-phone"
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useTr } from "@/lib/app-language"
 import { TorrentStreamPage } from "@/app/(main)/entry/_containers/torrent-stream/torrent-stream-page"
 import { OnlinestreamPage } from "@/app/(main)/onlinestream/_containers/onlinestream-page"
@@ -44,20 +43,11 @@ import { IoLibraryOutline } from "react-icons/io5"
 import { PiMonitorPlayDuotone } from "react-icons/pi"
 import { useUnmount } from "react-use"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 export const __anime_entryPageViewAtom = atom<string>("library")
 
 function getAutomaticAnimeEntryView(entry: Anime_Entry | undefined, serverStatus: ReturnType<typeof useServerStatus>, hidden: string[]) {
     const available = (view: string) => isBuiltInAnimeEntryViewAvailable(view, serverStatus, hidden)
-    if ((IS_ANDROID_APP)) {
-        return available("onlinestream") && !entry?.libraryData ? "onlinestream" : "library"
-    }
-    if (entry?.libraryData) return "library"
-    if (available("debridstream")) return "debridstream"
-    if (available("torrentstream")) return "torrentstream"
-    if (available("onlinestream")) return "onlinestream"
-    return "library"
+    return available("onlinestream") && !entry?.libraryData ? "onlinestream" : "library"
 }
 
 function isBuiltInAnimeEntryViewAvailable(view: string, serverStatus: ReturnType<typeof useServerStatus>, hidden: string[]) {
@@ -337,7 +327,7 @@ export function AnimeEntryPage() {
     const bottomSection = IS_TABLET_UI ? null : moreSection
 
     return (
-        <div data-anime-entry-page data-mobile-anime={IS_ANDROID_APP || undefined} data-media={JSON.stringify(animeEntry.media)} data-anime-entry-list-data={JSON.stringify(animeEntry.listData)}>
+        <div data-anime-entry-page data-mobile-anime data-media={JSON.stringify(animeEntry.media)} data-anime-entry-list-data={JSON.stringify(animeEntry.listData)}>
             <MetaSection entry={animeEntry} details={animeDetails} detailsLoading={animeDetailsLoading} />
 
             <div
@@ -421,7 +411,7 @@ export function AnimeEntryPage() {
                                 {/*    <h2 className="text-xl lg:text-3xl flex items-center gap-3">Online streaming</h2>*/}
                                 {/*</div>*/}
                                 <OnlinestreamPage
-                                    key={IS_ANDROID_APP ? animeEntry.mediaId : undefined}
+                                    key={animeEntry.mediaId}
                                     animeEntry={animeEntry}
                                     animeEntryLoading={animeEntryLoading}
                                     hideBackButton
@@ -438,7 +428,7 @@ export function AnimeEntryPage() {
 
             {IS_TABLET_UI && <div className="tablet-entry-more" data-tablet-entry-more>{moreSection}</div>}
 
-            {isAndroidPhone() ? <TorrentSearchPhone entry={animeEntry} /> : <TorrentSearchDrawer entry={animeEntry} />}
+            <TorrentSearchPhone entry={animeEntry} />
         </div>
     )
 }
@@ -485,7 +475,7 @@ export function EntrySectionTabs(props: EntrySectionTabs) {
     if (!torrentstreamOn && !debridstreamOn && !onlinestreamOn && pluginTabs.length === 0) return null
 
     // Phones split the row evenly: from three sources on, short names keep each tab on one line
-    const short = IS_ANDROID_APP && 1 + Number(torrentstreamOn) + Number(debridstreamOn) + Number(onlinestreamOn) + pluginTabs.length > 2
+    const short = 1 + Number(torrentstreamOn) + Number(debridstreamOn) + Number(onlinestreamOn) + pluginTabs.length > 2
 
     return (
         <>

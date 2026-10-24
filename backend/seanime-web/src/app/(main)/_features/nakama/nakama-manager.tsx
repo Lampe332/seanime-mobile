@@ -33,7 +33,6 @@ import { Tooltip } from "@/components/ui/tooltip"
 import { copyToClipboard } from "@/lib/helpers/browser"
 import { WSEvents } from "@/lib/server/ws-events"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
-import { __isElectronDesktop__ } from "@/types/constants"
 import { useQueryClient } from "@tanstack/react-query"
 import { atom, useAtom, useAtomValue } from "jotai"
 import React from "react"
@@ -44,7 +43,6 @@ import { LuClipboard, LuPopcorn } from "react-icons/lu"
 import { MdAdd, MdCleaningServices, MdOutlineConnectWithoutContact, MdPlayArrow, MdRefresh } from "react-icons/md"
 import { TbCloudPlus } from "react-icons/tb"
 import { toast } from "sonner"
-import { ElectronPlaybackMethod, useCurrentDevicePlaybackSettings } from "../../_atoms/playback.atoms"
 
 export const nakamaModalOpenAtom = atom(false)
 export const nakamaStatusAtom = atom<Nakama_NakamaStatus | null | undefined>(undefined)
@@ -112,23 +110,20 @@ export function NakamaManager() {
         maxBufferWaitTime: 10,
     })
 
-    const { electronPlaybackMethod } = useCurrentDevicePlaybackSettings()
-
     function refetchStatus() {
         sendMessage({
             type: WSEvents.NAKAMA_STATUS_REQUESTED,
             payload: {
                 // Tell the server whether this client is using the native player
-                useDenshiPlayer: __isElectronDesktop__ && electronPlaybackMethod === ElectronPlaybackMethod.NativePlayer,
+                useDenshiPlayer: false,
                 clientId: clientId || "",
             },
         })
     }
 
     React.useEffect(() => {
-        // When the playback method changes, update the status
         refetchStatus()
-    }, [electronPlaybackMethod])
+    }, [])
 
     useWebsocketMessageListener({
         type: WSEvents.NAKAMA_STATUS,

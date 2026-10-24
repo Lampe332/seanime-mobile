@@ -3,7 +3,6 @@ import { MobileWorkspace } from "@/components/shared/mobile-workspace"
 import { useIsMobile } from "@/lib/theme/theme-hooks"
 import { tr } from "@/lib/app-language"
 import { cn } from "@/components/ui/core/styling"
-import { __isDesktop__ } from "@/types/constants"
 import React, { useRef, useState } from "react"
 import { BiX } from "react-icons/bi"
 import { RiPlayList2Fill } from "react-icons/ri"
@@ -79,7 +78,6 @@ const PlaylistManagerPopup: React.FC<PlaylistManagerPopupProps> = ({
                     containerConfig.containerPositions[position],
                     containerConfig.dimensions[size],
                     isOpen ? containerConfig.states.open : containerConfig.states.closed,
-                    __isDesktop__ && "pt-8 sm:pt-0",
                     className,
                 )}
             >
@@ -89,7 +87,6 @@ const PlaylistManagerPopup: React.FC<PlaylistManagerPopupProps> = ({
                     size="sm"
                     className={cn(
                         "absolute top-2 right-2 sm:hidden rounded-full",
-                        __isDesktop__ && "top-8",
                     )}
                     onClick={toggleContainer}
                     icon={<BiX className="h-6 w-6" />}

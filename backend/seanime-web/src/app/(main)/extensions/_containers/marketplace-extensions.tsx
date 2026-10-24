@@ -35,8 +35,6 @@ import { MdDataSaverOn } from "react-icons/md"
 import { RiFolderDownloadFill } from "react-icons/ri"
 import { toast } from "sonner"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 type MarketplaceExtensionsProps = {
     children?: React.ReactNode
 }

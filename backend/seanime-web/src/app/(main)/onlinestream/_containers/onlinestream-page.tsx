@@ -1,4 +1,3 @@
-import { layoutWidth } from "@/lib/tablet-ui"
 import { tr } from "@/lib/app-language"
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { EpisodeDownloadPicker } from "./episode-download-picker"
@@ -52,13 +51,11 @@ import {
 import { useOnlinestreamAutoProviderCycler } from "@/app/(main)/onlinestream/_lib/use-onlinestream-auto-provider-cycler"
 import { LuffyError } from "@/components/shared/luffy-error"
 import { Button, IconButton } from "@/components/ui/button"
-import { Modal, ModalProps } from "@/components/ui/modal"
-import { Popover, PopoverProps } from "@/components/ui/popover"
+import { Modal } from "@/components/ui/modal"
 import { Select } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { logger, useLatestFunction } from "@/lib/helpers/debug"
 import { usePathname, useRouter, useSearchParams } from "@/lib/navigation"
-import { useWindowSize } from "@uidotdev/usehooks"
 import { AxiosError } from "axios"
 import { useAtom, useAtomValue } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
@@ -68,15 +65,12 @@ import { AnimatePresence, motion } from "motion/react"
 import React from "react"
 import { BsFillGrid3X3GapFill } from "react-icons/bs"
 import { CgMediaPodcast } from "react-icons/cg"
-import { FaSearch } from "react-icons/fa"
 import { HiOutlineCog6Tooth } from "react-icons/hi2"
-import { LuChevronLeft, LuChevronRight, LuRefreshCw, LuSpeech } from "react-icons/lu"
-import { MdOutlineSubtitles } from "react-icons/md"
+import { LuChevronLeft, LuChevronRight, LuRefreshCw } from "react-icons/lu"
 import { toast } from "sonner"
 import { PluginEpisodeGridItemMenuItems } from "../../_features/plugin/actions/plugin-actions"
 import { getMobileInitialEpisode, rememberMobileEpisode } from "../_lib/mobile-episode-selection"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 function getPlayerContainer() {
     return document.querySelector<HTMLElement>("[data-onlinestream-video-container] [data-vc-element=\"container\"]")
@@ -483,7 +477,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         currentEpisodeNumber,
         sourceDubbed,
         !!mediaId && currentEpisodeNumber !== null && isEpisodeListFetched
-            && (!IS_ANDROID_APP || initializedMobileMedia === mediaId && !!episodes?.some(e => e.number === currentEpisodeNumber)),
+            && initializedMobileMedia === mediaId && !!episodes?.some(e => e.number === currentEpisodeNumber),
     )
     const { mutateAsync: refreshEpisodeSource } = useRefreshOnlineStreamEpisodeSource()
 
@@ -726,7 +720,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
             return
         }
 
-        if (!!media && !!episodes?.length && (firstRenderRef.current || IS_ANDROID_APP && !episodes.some(e => e.number === currentEpisodeNumber))) {
+        if (!!media && !!episodes?.length && (firstRenderRef.current || !episodes.some(e => e.number === currentEpisodeNumber))) {
             const episodeNumberFromURL = urlEpNumber ? Number(urlEpNumber) : undefined
             const progress = animeEntry?.listData?.progress ?? 0
             let episodeNumber = 1
@@ -734,9 +728,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
             if (episodeToWatch) {
                 episodeNumber = episodeToWatch.number
             }
-            const initialEpisode = IS_ANDROID_APP
-                ? getMobileInitialEpisode(mediaId, episodes.map(e => e.number), progress, episodeNumberFromURL)
-                : episodeNumberFromURL || episodeNumber || 1
+            const initialEpisode = getMobileInitialEpisode(mediaId, episodes.map(e => e.number), progress, episodeNumberFromURL)
             setSelectedEpisodeNumber(initialEpisode ?? null)
             setInitializedMobileMedia(mediaId)
             log.info("Setting episode number to", episodeNumberFromURL || episodeNumber || 1)
@@ -751,7 +743,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
     const resumeFullscreenTimer = React.useRef<number | undefined>(undefined)
     React.useEffect(() => () => window.clearInterval(resumeFullscreenTimer.current), [])
     React.useEffect(() => {
-        if (!IS_ANDROID_APP || !mediaId || playNext !== mediaId) return
+        if (!mediaId || playNext !== mediaId) return
         resetPlayNext()
         resumeRequestedRef.current = true
         // Fullscreen needs the tap's user activation, which expires after a few seconds:
@@ -766,7 +758,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
     }, [playNext, mediaId])
 
     function onCanPlay() {
-        if (IS_ANDROID_APP && currentEpisodeNumber !== null) rememberMobileEpisode(mediaId, currentEpisodeNumber)
+        if (currentEpisodeNumber !== null) rememberMobileEpisode(mediaId, currentEpisodeNumber)
         autoProviderCycler.onLoadedMetadata()
         if (resumeRequestedRef.current) {
             resumeRequestedRef.current = false
@@ -809,8 +801,8 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
     })
 
     const handlePlayEpisode = useLatestFunction((which: "next" | "previous") => {
-        if (IS_ANDROID_APP && (episodeLoading || selectionLock.current !== null)) return
-        if (IS_ANDROID_APP && currentEpisodeNumber !== null && !currentPlaylist) {
+        if (episodeLoading || selectionLock.current !== null) return
+        if (currentEpisodeNumber !== null && !currentPlaylist) {
             const target = currentEpisodeNumber + (which === "next" ? 1 : -1)
             if (!episodes?.some(e => e.number === target)) return
             selectionLock.current = target
@@ -866,7 +858,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
     const providerSelect = (
         <Select
             aria-label={tr("Provider", "Provider")}
-            contentClass={IS_ANDROID_APP ? "mobile-anime-select" : undefined}
+            contentClass="mobile-anime-select"
             value={provider || ""}
             options={[
                 ...providerExtensionOptions,
@@ -885,16 +877,15 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
             placeholder="Select provider"
             size="sm"
             // Android: the icon sits inside the pill; a separate addon renders as a detached square block.
-            leftAddon={IS_ANDROID_APP ? undefined : <CgMediaPodcast />}
-            leftIcon={IS_ANDROID_APP ? <CgMediaPodcast /> : undefined}
-            fieldClass={IS_ANDROID_APP ? "min-w-0" : "w-fit"}
-            className={IS_ANDROID_APP ? "w-full" : "rounded-full rounded-l-none w-fit"}
+            leftIcon={<CgMediaPodcast />}
+            fieldClass="min-w-0"
+            className="w-full"
             addonClass="rounded-full rounded-r-none"
         />
     )
     const serverSelect = !!servers.length && <Select
         aria-label={tr("Server", "Server")}
-        contentClass={IS_ANDROID_APP ? "mobile-anime-select" : undefined}
+        contentClass="mobile-anime-select"
         size="sm"
         value={server}
         options={servers.map((server) => {
@@ -908,11 +899,11 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
             changeServer(v)
         }}
         disabled={servers.length <= 1}
-        fieldClass={IS_ANDROID_APP ? "min-w-0" : "w-fit"}
-        className={IS_ANDROID_APP ? "w-full" : "rounded-full w-fit !px-4"}
+        fieldClass="min-w-0"
+        className="w-full"
         addonClass="rounded-full rounded-r-none"
     />
-    const cachePopover = IS_ANDROID_APP ? (
+    const cachePopover = (
         <Modal
             open={cacheSheetOpen}
             onOpenChange={setCacheSheetOpen}
@@ -937,30 +928,6 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                 <button type="button" className="mobile-cache-cancel" onClick={() => setCacheSheetOpen(false)}>{tr("Cancel", "Abbrechen")}</button>
             </div>
         </Modal>
-    ) : (
-        <IsomorphicPopover
-            title="Stream"
-            trigger={<Button
-                intent="gray-basic"
-                size="sm"
-                className="rounded-full"
-                leftIcon={<HiOutlineCog6Tooth className="text-xl" />}
-            >
-                Cache
-            </Button>}
-        >
-            <p className="text-sm text-[--muted]">
-                Empty the cache if you are experiencing issues with the stream.
-            </p>
-            <Button
-                size="sm"
-                intent="alert-subtle"
-                onClick={() => emptyCache({ mediaId: (mediaId!) })}
-                loading={isEmptyingCache}
-            >
-                Empty stream cache
-            </Button>
-        </IsomorphicPopover>
     )
     const episodeViewToggle = <IconButton
         size="sm"
@@ -968,16 +935,9 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         icon={<BsFillGrid3X3GapFill />}
         onClick={() => setEpisodeViewMode(prev => prev === "list" ? "grid" : "list")}
         title={episodeViewMode === "list" ? "Switch to grid view" : "Switch to list view"}
-        aria-pressed={IS_ANDROID_APP ? episodeViewMode === "grid" : undefined}
+        aria-pressed={episodeViewMode === "grid"}
         data-episode-view-toggle
     />
-    const parameters = (
-        <>
-            {providerSelect}
-            {serverSelect}
-            {cachePopover}
-        </>
-    )
 
     if (!media || animeEntryLoading) return <div data-onlinestream-page-loading-container className="space-y-4">
         <div className="flex gap-4 items-center relative">
@@ -1005,14 +965,14 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                 url={url}
             />
             <VideoCoreInlineLayout
-                mobileEntry={IS_ANDROID_APP}
+                mobileEntry
                 mediaId={mediaId ? Number(mediaId) : undefined}
                 currentEpisodeNumber={currentEpisodeNumber}
                 title={media?.title?.userPreferred}
                 hideBackButton={hideBackButton}
                 episodes={episodes}
                 loadingEpisodeList={episodeListLoading}
-                leftHeaderActions={IS_ANDROID_APP ? <section className="mobile-episode-options" aria-label={tr("Sources & playback options", "Quellen & Wiedergabeoptionen")}>
+                leftHeaderActions={<section className="mobile-episode-options" aria-label={tr("Sources & playback options", "Quellen & Wiedergabeoptionen")}>
                     <div className="mobile-source-pair" role="group" aria-label={tr("Source", "Quelle")}>{providerSelect}{serverSelect}</div>
                     <div className="mobile-source-line">
                         <div className="mobile-source-segment" role="group" aria-label={tr("Audio", "Audio")}>
@@ -1027,49 +987,23 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                         {cachePopover}
                         {episodeViewToggle}
                     </div>
-                </section> : <>
-                    {parameters}
-                    {tryAllProvidersButton}
-                    {(animeEntry && !!provider) && <OnlinestreamManualMappingModal entry={animeEntry} provider={provider}>
-                        <Button
-                            size="sm"
-                            intent="gray-basic"
-                            className="rounded-full"
-                            leftIcon={<FaSearch className="" />}
-                        >
-                            Manual match
-                        </Button>
-                    </OnlinestreamManualMappingModal>}
-                    <Button
-                        className=""
-                        rounded
-                        intent="gray-basic"
-                        size="sm"
-                        leftIcon={!dubbed ? <LuSpeech className="text-xl" /> : <MdOutlineSubtitles className="text-xl" />}
-                        onClick={() => toggleDubbed()}
-                    >
-                        {dubbed ? "Switch to subs" : "Switch to dub"}
-                    </Button>
-                    <div className="hidden lg:flex flex-1"></div>
-                </>}
+                </section>}
                 rightHeaderActions={<>
                     <VideoCoreInlineHelperUpdateProgressButton />
-                    {!IS_ANDROID_APP && episodeViewToggle}
                 </>}
                 mediaPlayer={<>
-                    {IS_ANDROID_APP && <div className="mobile-episode-heading">
+                    <div className="mobile-episode-heading">
                         <h2>{currentEpisodeNumber !== null ? `${tr("Episode", "Folge")} ${currentEpisodeNumber}` : tr("Episodes", "Episoden")}{currentEpisode?.title ? ` · ${currentEpisode.title}` : ""}</h2>
                         <div className="mobile-episode-navigation">
                             <IconButton intent="gray-basic" icon={<LuChevronLeft />} aria-label={tr("Previous episode", "Vorherige Folge")} disabled={episodeLoading || !episodes?.some(e => e.number === (currentEpisodeNumber ?? 0) - 1)} onClick={() => handlePlayEpisode("previous")} />
                             <IconButton intent="gray-basic" icon={<LuChevronRight />} aria-label={tr("Next episode", "Nächste Folge")} disabled={episodeLoading || !episodes?.some(e => e.number === (currentEpisodeNumber ?? 0) + 1)} onClick={() => handlePlayEpisode("next")} />
                         </div>
-                    </div>}
+                    </div>
                     {!provider ? (
                     <div className="flex items-center flex-col justify-center w-full h-full">
                         <LuffyError title="No provider selected" />
-                        {!IS_ANDROID_APP && <div className="flex gap-2">{parameters}</div>}
                     </div>
-                ) : isEpisodeListError ? <div role="alert"><LuffyError title="Provider error">Could not fetch episode list from provider.</LuffyError><Button onClick={() => retryEpisodeList()}>{tr("Retry", "Erneut versuchen")}</Button></div> : IS_ANDROID_APP && !episodeListLoading && !episodes?.length ? <p role="status">{tr("No episodes available from this provider. Choose another source above.", "Bei diesem Provider sind keine Folgen verfügbar. Wähle oben eine andere Quelle.")}</p> : (
+                ) : isEpisodeListError ? <div role="alert"><LuffyError title="Provider error">Could not fetch episode list from provider.</LuffyError><Button onClick={() => retryEpisodeList()}>{tr("Retry", "Erneut versuchen")}</Button></div> : !episodeListLoading && !episodes?.length ? <p role="status">{tr("No episodes available from this provider. Choose another source above.", "Bei diesem Provider sind keine Folgen verfügbar. Wähle oben eine andere Quelle.")}</p> : (
                     <>
                         <VideoCoreProvider id="onlinestream">
                             <div data-onlinestream-video-container className="w-full aspect-video mx-auto border rounded-lg overflow-hidden">
@@ -1112,7 +1046,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                                             },
                                             disableRestoreFromContinuity: !!nakamaStatus?.currentWatchPartySession,
                                         } : null,
-                                        playbackError: IS_ANDROID_APP && !episodeLoading && episodeSource && !videoSource
+                                        playbackError: !episodeLoading && episodeSource && !videoSource
                                             ? tr("No playable source. Choose another server or provider.", "Keine abspielbare Quelle. Anderen Server oder Provider wählen.") : isErrorEpisodeSource
                                             ? (errorEpisodeSource as AxiosError<{ error: string }>)?.response?.data?.error ?? null
                                             : playbackError,
@@ -1139,8 +1073,8 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                         </VideoCoreProvider>
                     </>
                 )}
-                    {IS_ANDROID_APP && !episodeLoading && episodeSource && !videoSource && <p role="status">{tr("No playable source. Select a different server or provider.", "Keine abspielbare Quelle. Wähle einen anderen Server oder Provider.")}</p>}
-                    {IS_ANDROID_APP && (isErrorEpisodeSource || playbackError || !episodeLoading && episodeSource && !videoSource) && <Button disabled={episodeLoading} onClick={() => retryEpisodeSource()}>{tr("Retry source", "Quelle erneut laden")}</Button>}
+                    {!episodeLoading && episodeSource && !videoSource && <p role="status">{tr("No playable source. Select a different server or provider.", "Keine abspielbare Quelle. Wähle einen anderen Server oder Provider.")}</p>}
+                    {(isErrorEpisodeSource || playbackError || !episodeLoading && episodeSource && !videoSource) && <Button disabled={episodeLoading} onClick={() => retryEpisodeSource()}>{tr("Retry source", "Quelle erneut laden")}</Button>}
                 </>}
                 episodeList={<>
                     <AnimatePresence mode="wait" initial={false}>
@@ -1156,10 +1090,10 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                                 {episodes?.filter(Boolean)?.sort((a, b) => a!.number - b!.number)?.map((episode, idx) => {
                                     return (
                                         <EpisodeGridItem
-                                            mobileEntry={IS_ANDROID_APP}
+                                            mobileEntry
                                             key={idx + (episode.title || "") + episode.number}
                                             id={`episode-${String(episode.number)}`}
-                                            onClick={() => IS_ANDROID_APP ? selectMobileEpisode(episode.number) : setSelectedEpisodeNumber(episode.number)}
+                                            onClick={() => selectMobileEpisode(episode.number)}
                                             title={media.format === "MOVIE" ? "Complete movie" : `Episode ${episode.number}`}
                                             episodeTitle={episode.title}
                                             description={episode.description ?? undefined}
@@ -1175,7 +1109,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                                             progressNumber={episode.number}
                                             action={<>
                                                 <MediaEpisodeInfoModal
-                                                    mobileEntry={IS_ANDROID_APP}
+                                                    mobileEntry
                                                     title={media.format === "MOVIE" ? "Complete movie" : `Episode ${episode.number}`}
                                                     image={episode?.image}
                                                     episodeTitle={episode.title}
@@ -1199,7 +1133,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                                     isFiller: ep.isFiller,
                                 })) || []}
                                 currentEpisodeNumber={currentEpisodeNumber}
-                                onEpisodeSelect={IS_ANDROID_APP ? selectMobileEpisode : setSelectedEpisodeNumber}
+                                onEpisodeSelect={selectMobileEpisode}
                                 progress={progress}
                                 disabled={episodeLoading}
                                 getEpisodeId={(ep) => `episode-${ep.number}`}
@@ -1210,29 +1144,4 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
             />
         </>
     )
-}
-
-
-function IsomorphicPopover
-(
-    props: PopoverProps & ModalProps) {
-    const { title, children, ...rest } = props
-    const width = layoutWidth(useWindowSize().width)
-
-    if (width && width > 1024) {
-        return <Popover
-            {...rest}
-            className="max-w-xl !w-full overflow-hidden space-y-2"
-        >
-            {children}
-        </Popover>
-    }
-
-    return <Modal
-        {...rest}
-        title={title}
-        contentClass={IS_ANDROID_APP ? "mobile-anime-dialog" : undefined}
-    >
-        {children}
-    </Modal>
 }

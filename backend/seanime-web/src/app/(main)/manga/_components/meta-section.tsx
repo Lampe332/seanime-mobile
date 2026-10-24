@@ -4,13 +4,7 @@ import {
     MediaEntryAudienceScore,
     MediaEntryGenresList,
 } from "@/app/(main)/_features/media/_components/media-entry-metadata-components"
-import {
-    MediaPageHeader,
-    MediaPageHeaderDetailsContainer,
-    MediaPageHeaderEntryDetails,
-} from "@/app/(main)/_features/media/_components/media-page-header-components"
 import { MobileAnimeHeaderContainer, MobileAnimeHeaderDetails, MobileAnimeHeaderShell } from "@/app/(main)/entry/_components/mobile-anime-header"
-import { MediaSyncTrackButton } from "@/app/(main)/_features/media/_containers/media-sync-track-button"
 import { PluginMangaPageButtons, PluginMangaPageDropdownItems } from "@/app/(main)/_features/plugin/actions/plugin-actions"
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
 import { SeaLink } from "@/components/shared/sea-link"
@@ -27,8 +21,6 @@ import { BiDotsVerticalRounded, BiExtension } from "react-icons/bi"
 import { LuExternalLink } from "react-icons/lu"
 import { useTr } from "@/lib/app-language"
 import { SiAnilist, SiMyanimelist } from "react-icons/si"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 
 export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL_MangaDetailsById_Media | undefined, detailsLoading?: boolean }) {
@@ -58,20 +50,16 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
     )
 
     // Android uses the same header as the anime page: cover, title, progress, one jump to the chapters.
-    const Header = IS_ANDROID_APP ? MobileAnimeHeaderShell : MediaPageHeader
-    const HeaderContainer = IS_ANDROID_APP ? MobileAnimeHeaderContainer : MediaPageHeaderDetailsContainer
-    const HeaderDetails = IS_ANDROID_APP ? MobileAnimeHeaderDetails : MediaPageHeaderEntryDetails
-    const detailsInHeader = IS_ANDROID_APP || ts.mediaPageBannerInfoBoxSize === ThemeMediaPageInfoBoxSize.Fluid
 
     return (
-        <Header
+        <MobileAnimeHeaderShell
             backgroundImage={entry.media?.bannerImage}
             coverImage={entry.media?.coverImage?.extraLarge}
         >
 
-            <HeaderContainer>
+            <MobileAnimeHeaderContainer>
 
-                <HeaderDetails
+                <MobileAnimeHeaderDetails
                     coverImage={entry.media?.coverImage?.extraLarge || entry.media?.coverImage?.large}
                     title={entry.media?.title?.userPreferred}
                     englishTitle={entry.media?.title?.english}
@@ -114,15 +102,12 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
                         </Tooltip>}
                     </div>}
                 >
-                    {detailsInHeader && <Details />}
-                </HeaderDetails>
+                    <Details />
+                </MobileAnimeHeaderDetails>
 
                 <PluginWebviewSlot slot="after-media-entry-details" />
 
-                {!detailsInHeader && <Details />}
-
-
-                {IS_ANDROID_APP && <div className="mobile-entry-actions" data-manga-meta-section-buttons-row>
+                <div className="mobile-entry-actions" data-manga-meta-section-buttons-row>
                     <PluginMangaPageButtons media={entry.media} />
                     <DropdownMenu
                         data-manga-entry-dropdown-menu
@@ -146,51 +131,10 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
                         </DropdownMenuItem>}
                         <PluginMangaPageDropdownItems media={entry.media} />
                     </DropdownMenu>
-                </div>}
+                </div>
 
-                {!IS_ANDROID_APP && <div className="w-full flex flex-wrap gap-2 items-center" data-manga-meta-section-buttons-row>
-
-                    {ts.mediaPageBannerInfoBoxSize !== ThemeMediaPageInfoBoxSize.Fluid && <div className="flex-1 hidden lg:flex"></div>}
-
-                    <DropdownMenu
-                        data-manga-entry-dropdown-menu
-                        trigger={<IconButton
-                            data-manga-entry-dropdown-menu-trigger
-                            icon={<BiDotsVerticalRounded />}
-                            intent="gray-subtle"
-                            size="md"
-                        />}
-                    >
-                        {!isCustomSource(entry.mediaId) && <DropdownMenuItem
-                            onClick={() => openTab(`https://anilist.co/manga/${entry.mediaId}`)}
-                        >
-                            <SiAnilist /> Open on AniList
-                        </DropdownMenuItem>}
-                        {!!entry.media.idMal && <DropdownMenuItem
-                            onClick={() => openTab(`https://myanimelist.net/manga/${entry.media?.idMal}`)}
-                        >
-                            <SiMyanimelist /> Open on MAL
-                        </DropdownMenuItem>}
-                        {isCustomSource(entry.mediaId) && !!getCustomSourceMediaSiteUrl(entry.media) && <DropdownMenuItem
-                            onClick={() => openTab(getCustomSourceMediaSiteUrl(entry.media)!)}
-                        >
-                            <LuExternalLink /> Open in website
-                        </DropdownMenuItem>}
-                        {isCustomSource(entry.mediaId) && <DropdownMenuItem
-                            onClick={() => copyToClipboard(entry.mediaId.toString())}
-                        >
-                            Copy ID
-                        </DropdownMenuItem>}
-                        <PluginMangaPageDropdownItems media={entry.media} />
-                    </DropdownMenu>
-
-                    {!IS_ANDROID_APP && <MediaSyncTrackButton mediaId={entry.mediaId} type="manga" size="md" />}
-
-                    <PluginMangaPageButtons media={entry.media} />
-                </div>}
-
-            </HeaderContainer>
-        </Header>
+            </MobileAnimeHeaderContainer>
+        </MobileAnimeHeaderShell>
 
     )
 

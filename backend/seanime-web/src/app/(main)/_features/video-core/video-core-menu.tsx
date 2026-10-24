@@ -14,13 +14,6 @@ import { useAtom, useAtomValue } from "jotai"
 import { vc_menuOpen, vc_menuSectionOpen, vc_menuSubSectionOpen, vc_isFullscreen, vc_containerElement, vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
 import React from "react"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
-/** The Android app: phones and tablets both get the phone sheets (tablets lay them out with app/tablet.css); desktop keeps the popovers. */
-export function isAndroidPhone() {
-    return IS_ANDROID_APP && typeof window !== "undefined"
-}
-
 export const VideoCoreMenuTitle = MediaCoreMenuTitle
 export const VideoCoreMenuBody = MediaCoreMenuBody
 
@@ -51,7 +44,7 @@ export function VideoCoreMenu(props: any) {
     return (
         <MediaCoreMenu
             {...props}
-            className={props.className ?? (isMobile && isAndroidPhone() ? "vc-phone-settings" : undefined)}
+            className={props.className ?? (isMobile ? "vc-phone-settings" : undefined)}
             openMenu={openMenu}
             onOpenMenuChange={setOpenMenu}
             onOpenSectionChange={setOpenSection}

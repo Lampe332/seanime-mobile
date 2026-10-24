@@ -10,7 +10,6 @@ type Rect = { top: number; left: number; width: number; height: number }
 const EMPTY_RECT: Rect = { top: 0, left: 0, width: 0, height: 0 }
 
 // The Android app is used by touch: its tour buttons get 48 dp targets and the app-language labels.
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 // returns a viewport-relative rect with padding applied
 function getElementRect(el: Element, padding: number): Rect {
@@ -253,7 +252,7 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
                     </div>
 
                     {!step.hideControls && (
-                        <div className={cn("flex items-center justify-between pt-1 gap-3", IS_ANDROID_APP && "flex-wrap gap-y-1")}>
+                        <div className={cn("flex items-center justify-between pt-1 gap-3", "flex-wrap gap-y-1")}>
                             {totalSteps > 1 && (
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
                                     {Array.from({ length: totalSteps }).map((_, i) => (
@@ -280,7 +279,7 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
                                         className={cn(
                                             "text-xs text-gray-500 hover:text-gray-300 transition-colors",
                                             "px-2 py-1 rounded-md hover:bg-gray-800",
-                                            IS_ANDROID_APP && "min-h-12 min-w-12 px-3 text-sm text-gray-400 rounded-full",
+                                            "min-h-12 min-w-12 px-3 text-sm text-gray-400 rounded-full",
                                         )}
                                     >
                                         {tr("Skip", "Überspringen")}
@@ -294,7 +293,7 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
                                         className={cn(
                                             "text-sm font-medium text-gray-400 hover:text-gray-200 transition-colors",
                                             "px-3 py-1.5 rounded-lg hover:bg-gray-800",
-                                            IS_ANDROID_APP && "min-h-12 min-w-12 rounded-full",
+                                            "min-h-12 min-w-12 rounded-full",
                                         )}
                                     >
                                         {step.prevLabel ?? tr("Back", "Zurück")}
@@ -307,7 +306,7 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
                                     className={cn(
                                         "text-sm font-semibold rounded-lg px-4 py-1.5 transition-all",
                                         "bg-brand-500 hover:bg-brand-600 text-white",
-                                        IS_ANDROID_APP ? "min-h-12 px-5 rounded-full" : "shadow-sm shadow-brand-500/20",
+                                        "min-h-12 px-5 rounded-full",
                                     )}
                                 >
                                     {step.nextLabel ?? (isLastStep ? tr("Done", "Fertig") : tr("Next", "Weiter"))}

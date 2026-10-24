@@ -71,7 +71,7 @@ export function EpisodeDownloadPicker({ media, episodes, provider, server, quali
             aria-label={t("Download season / episodes", "Staffel / Folgen herunterladen")}>
             {t("Download", "Download")}
         </Button>
-        <Modal open={open} onOpenChange={setOpen} contentClass={import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" ? "mobile-anime-dialog mobile-download-sheet" : undefined} title={t("Download episodes", "Folgen herunterladen")}>
+        <Modal open={open} onOpenChange={setOpen} contentClass="mobile-anime-dialog mobile-download-sheet" title={t("Download episodes", "Folgen herunterladen")}>
             <div data-episode-download-picker>
                 <div className="mobile-download-head">
                     {!!(media.coverImage?.large || media.coverImage?.medium) && <img src={media.coverImage?.large || media.coverImage?.medium} alt="" className="mobile-download-cover" />}

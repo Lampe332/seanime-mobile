@@ -57,7 +57,7 @@ export function MangaVerticalReader({ pageContainer, initialPageIndex }: MangaVe
     const autoHideControls = useAtomValue(__manga_autoHideControlsAtom)
     // The scroll listener is bound once; it reads the setting and the last position through refs.
     const autoHideRef = React.useRef(autoHideControls)
-    autoHideRef.current = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && autoHideControls
+    autoHideRef.current = autoHideControls
     const lastScrollTop = React.useRef(0)
 
     const kbsPageLeft = useAtomValue(__manga_kbsPageLeft)
@@ -213,7 +213,7 @@ export function MangaVerticalReader({ pageContainer, initialPageIndex }: MangaVe
                 hiddenBar && "h-full max-h-full",
             )} tabIndex={-1}
             onClick={() => {
-                if (!isMobile() || (import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && tapToggleControls)) {
+                if (!isMobile() || tapToggleControls) {
                     setHideBar(prev => !prev)
                 }
             }}

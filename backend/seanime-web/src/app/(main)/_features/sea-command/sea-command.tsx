@@ -1,17 +1,9 @@
 import { SeaCommandActions } from "@/app/(main)/_features/sea-command/sea-command-actions"
 import { SeaCommandSearch } from "@/app/(main)/_features/sea-command/sea-command-search"
 import { SeaCommandSpoilers } from "@/app/(main)/_features/sea-command/sea-command-spoilers"
-import {
-    __seaCommand_torrentMagnetEpisodeNumberAtom,
-    __seaCommand_torrentMagnetLinkAtom,
-    __seaCommand_torrentMagnetMediaIdAtom,
-    __seaCommand_torrentMagnetStepAtom,
-    isMagnetLink,
-    SeaCommandTorrentMagnet,
-} from "@/app/(main)/_features/sea-command/sea-command-torrent-magnet.tsx"
 import { SeaCommand_ParsedCommandProps, useSeaCommand_ParseCommand } from "@/app/(main)/_features/sea-command/utils"
 import { CommandDialog, CommandInput, CommandList } from "@/components/ui/command"
-import { usePathname, useRouter, useSearchParams } from "@/lib/navigation"
+import { usePathname, useRouter } from "@/lib/navigation"
 import { atom } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
@@ -21,8 +13,6 @@ import { SeaCommandHandler } from "./config"
 import { SeaCommandInjectables } from "./sea-command-injectables"
 import { SeaCommandList } from "./sea-command-list"
 import { SeaCommandNavigation, SeaCommandUserMediaNavigation } from "./sea-command-navigation"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 export const __seaCommand_shortcuts = atomWithStorage<string[]>("sea-command-shortcuts", ["meta+j", "q"], undefined, { getOnInit: true })
 
@@ -70,28 +60,16 @@ export function useSeaCommand() {
     }
 }
 
-function isEditableTarget(target: EventTarget | null) {
-    if (!(target instanceof HTMLElement)) return false
-    if (target.isContentEditable) return true
-
-    return !!target.closest("input, textarea, select, [contenteditable='true'], [role='textbox']")
-}
-
 export function SeaCommand() {
 
     const router = useRouter()
     const pathname = usePathname()
-    const searchParams = useSearchParams()
 
     const [open, setOpen] = useAtom(__seaCommand_isOpen)
     const [input, setInput] = useAtom(__seaCommand_input)
     const [activeItemId, setActiveItemId] = React.useState("")
 
     const [shortcuts, setShortcuts] = useAtom(__seaCommand_shortcuts)
-    const setMagnetStep = useSetAtom(__seaCommand_torrentMagnetStepAtom)
-    const setMagnetLink = useSetAtom(__seaCommand_torrentMagnetLinkAtom)
-    const setMagnetMediaId = useSetAtom(__seaCommand_torrentMagnetMediaIdAtom)
-    const setMagnetEpisodeNumber = useSetAtom(__seaCommand_torrentMagnetEpisodeNumberAtom)
 
     const parsedCommandProps = useSeaCommand_ParseCommand(input)
 
@@ -153,37 +131,6 @@ export function SeaCommand() {
         return () => cl()
     }, [input, pathname])
 
-    React.useEffect(() => {
-        const handlePaste = (event: ClipboardEvent) => {
-            if (IS_ANDROID_APP) return
-            if (isEditableTarget(event.target)) return
-
-            const value = event.clipboardData?.getData("text/plain")?.trim()
-            if (!value || !isMagnetLink(value)) return
-
-            event.preventDefault()
-
-            const mediaId = pathname.startsWith("/entry") ? Number(searchParams.get("id")) : NaN
-            const hasMediaId = Number.isFinite(mediaId) && mediaId > 0
-
-            setMagnetLink(value)
-            setMagnetMediaId(hasMediaId ? mediaId : null)
-            setMagnetEpisodeNumber(null)
-            setMagnetStep(hasMediaId ? "episode" : "select-anime")
-            setInput("/magnet ")
-
-            React.startTransition(() => {
-                setOpen(true)
-            })
-        }
-
-        document.addEventListener("paste", handlePaste)
-
-        return () => {
-            document.removeEventListener("paste", handlePaste)
-        }
-    }, [pathname, searchParams, setInput])
-
     return (
         <SeaCommandContext.Provider
             value={{
@@ -240,16 +187,9 @@ export function SeaCommand() {
                         render={() => <SeaCommandUserMediaNavigation />}
                     />
                     <SeaCommandHandler
-                        shouldShow={ctx => (!IS_ANDROID_APP && (
-                            ctx.command.command === "magnet"
-                        ))}
-                        render={() => <SeaCommandTorrentMagnet />}
-                    />
-                    <SeaCommandHandler
                         shouldShow={ctx => (
                             ctx.command.command === "logs"
                             || ctx.command.command === "issue"
-                            || (!IS_ANDROID_APP && ctx.command.command === "droptorrent")
                             || ctx.command.command === "reload"
                             || ctx.command.command === "devtool"
                         )}

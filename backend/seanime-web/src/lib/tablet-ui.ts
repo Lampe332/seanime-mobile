@@ -6,7 +6,7 @@ import React from "react"
  * screen, not the window, so a split-screen window keeps the tablet rules (they fall back to the phone bar below 600px).
  * The native side uses the same rule (UIBottomNav.kt, VideoControlInjector.kt).
  */
-export const IS_TABLET_UI = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && typeof window !== "undefined" && isTabletScreen()
+export const IS_TABLET_UI = typeof window !== "undefined" && isTabletScreen()
 
 function isTabletScreen() {
     return Math.min(window.screen.width, window.screen.height) >= 600
@@ -18,7 +18,6 @@ function isTabletScreen() {
  * size changes itself, so nothing else reloads it. A playing video is not cut off: the reload waits until it pauses.
  */
 export function reloadOnScreenClassChange() {
-    if (import.meta.env.SEA_PUBLIC_PLATFORM !== "mobile") return
     const check = () => {
         if (isTabletScreen() === IS_TABLET_UI) return
         if (Array.from(document.querySelectorAll("video")).some(video => !video.paused && !video.ended)) return

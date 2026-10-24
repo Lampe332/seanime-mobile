@@ -2,8 +2,6 @@ import { CommandGroup, CommandItem, CommandShortcut } from "@/components/ui/comm
 import { usePathname, useSearchParams } from "@/lib/navigation"
 import { useSeaCommandContext } from "./sea-command"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 // renders when "/" is typed
 export function SeaCommandList() {
 
@@ -36,11 +34,6 @@ export function SeaCommandList() {
             show: true,
         },
         {
-            command: "magnet",
-            description: "Stream or download via magnet link",
-            show: !IS_ANDROID_APP,
-        },
-        {
             command: "logs",
             description: "Copy the current logs",
             show: true,
@@ -49,11 +42,6 @@ export function SeaCommandList() {
             command: "issue",
             description: "Record an issue",
             show: true,
-        },
-        {
-            command: "droptorrent",
-            description: "Drop current torrentstream torrent",
-            show: !IS_ANDROID_APP && input.startsWith("/d"),
         },
         {
             command: "reload",

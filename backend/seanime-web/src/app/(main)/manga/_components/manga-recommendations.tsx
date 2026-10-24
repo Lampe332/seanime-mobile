@@ -2,7 +2,6 @@ import { AL_MangaDetailsById_Media, Manga_Entry, Nullish } from "@/api/generated
 import { MediaCardGrid } from "@/app/(main)/_features/media/_components/media-card-grid"
 import { MediaEntryCard } from "@/app/(main)/_features/media/_components/media-entry-card"
 import { MediaEntryDetailsSkeleton } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { Translate, useTr } from "@/lib/app-language"
 import capitalize from "lodash/capitalize"
 import React from "react"
@@ -40,10 +39,8 @@ export function MangaRecommendations(props: MangaRecommendationsProps) {
 
     const recommendations = details?.recommendations?.edges?.map(edge => edge?.node?.mediaRecommendation)?.filter(Boolean)?.slice(0, 6) || []
 
-    // Android phones: headings and relation labels in the app language; tablets and desktop keep the English texts
-    const appLanguage = useTr()
-    const phone = isAndroidPhone()
-    const t: Translate = (en, de) => phone ? appLanguage(en, de) : en
+    // Headings and relation labels in the app language
+    const t = useTr()
 
     if (loading && !details) return <MediaEntryDetailsSkeleton isMangaPage showCharacters={false} />
     if (!entry || !details) return null

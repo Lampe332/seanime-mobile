@@ -1,8 +1,7 @@
 import { AL_MangaDetailsById_Media, HibikeManga_ChapterDetails, Manga_Entry, Manga_MediaDownloadData } from "@/api/generated/types"
 import { useGetMangaSourceRefresh, useStartMangaSourceRefresh } from "@/api/hooks/manga.hooks"
 import { SeaCommandInjectableItem, useSeaCommandInject } from "@/app/(main)/_features/sea-command/use-inject"
-import { ChapterListBulkActions } from "@/app/(main)/manga/_containers/chapter-list/_components/chapter-list-bulk-actions"
-import { DownloadedChapterList, manga_downloadedChapterContainerAtom, MobileDownloadedChapters } from "@/app/(main)/manga/_containers/chapter-list/downloaded-chapter-list"
+import { manga_downloadedChapterContainerAtom, MobileDownloadedChapters } from "@/app/(main)/manga/_containers/chapter-list/downloaded-chapter-list"
 import { useMangaEntryDownloadedChapters } from "@/app/(main)/manga/_lib/handle-manga-downloads"
 import { MangaManualMappingModal } from "@/app/(main)/manga/_containers/chapter-list/manga-manual-mapping-modal"
 import { ChapterReaderDrawer } from "@/app/(main)/manga/_containers/chapter-reader/chapter-reader-drawer"
@@ -14,21 +13,15 @@ import { useHandleDownloadMangaChapter } from "@/app/(main)/manga/_lib/handle-ma
 import { __manga_preferencesHydratedAtom } from "@/app/(main)/manga/_lib/handle-manga-selected-provider"
 import { getChapterNumberFromChapter, useMangaChapterListRowSelection, useMangaDownloadDataUtils } from "@/app/(main)/manga/_lib/handle-manga-utils"
 import { LANGUAGES_LIST } from "@/app/(main)/manga/_lib/language-map"
-import { monochromeCheckboxClasses } from "@/components/shared/classnames"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { LuffyError } from "@/components/shared/luffy-error"
 import { Alert } from "@/components/ui/alert"
-import { Button, IconButton } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { DataGrid, defineDataGridColumns } from "@/components/ui/datagrid"
+import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Select } from "@/components/ui/select"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import React from "react"
-import { ErrorBoundary } from "react-error-boundary"
 import { FaRedo } from "react-icons/fa"
-import { GiOpenBook } from "react-icons/gi"
-import { IoBookOutline, IoLibrary } from "react-icons/io5"
 import { LuDownload } from "react-icons/lu"
 import { LuSearch } from "react-icons/lu"
 import { MdOutlineOfflinePin } from "react-icons/md"
@@ -37,7 +30,6 @@ import { useTr } from "@/lib/app-language"
 import { mobileMangaReadActionAtom } from "@/app/(main)/entry/_components/mobile-anime-header"
 import { LuCheck, LuChevronDown } from "react-icons/lu"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 const MOBILE_PAGE_SIZE = 30
 
 type ChapterListProps = {
@@ -96,7 +88,7 @@ export function ChapterList(props: ChapterListProps) {
     }, [chapterContainer?.chapters])
 
     const [showUnreadChapter, setShowUnreadChapter] = React.useState(false)
-    const [showDownloadedChapters, setShowDownloadedChapters] = React.useState(false)
+    const [showDownloadedChapters] = React.useState(false)
 
     /**
      * Set selected chapter
@@ -136,75 +128,6 @@ export function ChapterList(props: ChapterListProps) {
         const chapterNumber = chapterIdToNumbersMap.get(chapter.id)
         return !!chapterNumber && chapterNumber > entry.listData?.progress
     }, [chapterIdToNumbersMap, chapterContainer, entry])
-
-    /**
-     * Chapter columns
-     */
-    const columns = React.useMemo(() => defineDataGridColumns<HibikeManga_ChapterDetails>(() => [
-        {
-            accessorKey: "title",
-            header: "Name",
-            size: 90,
-        },
-        ...(selectedExtension?.settings?.supportsMultiScanlator ? [{
-            id: "scanlator",
-            header: "Scanlator",
-            size: 30,
-            accessorFn: (row: any) => row.scanlator,
-            enableSorting: true,
-            cell: ({ getValue }: any) => <span className="text-sm text-[--muted]">{getValue()}</span>,
-        }] : []),
-        ...(selectedExtension?.settings?.supportsMultiLanguage ? [{
-            id: "language",
-            header: "Language",
-            size: 40,
-            accessorFn: (row: any) => LANGUAGES_LIST[row.language]?.nativeName || row.language,
-            enableSorting: true,
-            cell: ({ getValue }: any) => <span className="text-sm text-[--muted]">{getValue()}</span>,
-        }] : []),
-        {
-            id: "number",
-            header: "Number",
-            size: 10,
-            enableSorting: true,
-            accessorFn: (row) => {
-                return chapterIdToNumbersMap.get(row.id)
-            },
-        },
-        {
-            id: "_actions",
-            size: 10,
-            enableSorting: false,
-            enableGlobalFilter: false,
-            cell: ({ row }) => {
-                return (
-                    <div className="flex justify-end gap-2 items-center w-full">
-                        {(!isChapterLocal(row.original) && !isChapterDownloaded(row.original) && !isChapterQueued(row.original)) && <IconButton
-                            intent="gray-basic"
-                            size="sm"
-                            disabled={isSendingDownloadRequest}
-                            onClick={() => downloadChapters([row.original])}
-                            icon={<LuDownload className="text-xl" />}
-                            className="opacity-50 hover:opacity-100"
-                        />}
-                        {isChapterQueued(row.original) && <p className="text-[--muted]">Queued</p>}
-                        {isChapterDownloaded(row.original) && <p className="text-[--green] px-1"><MdOutlineOfflinePin className="text-2xl" /></p>}
-                        <IconButton
-                            intent="gray-subtle"
-                            size="md"
-                            onClick={() => setSelectedChapter({
-                                chapterId: row.original.id,
-                                chapterNumber: row.original.chapter,
-                                provider: row.original.provider,
-                                mediaId: Number(mediaId),
-                            })}
-                            icon={<GiOpenBook />}
-                        />
-                    </div>
-                )
-            },
-        },
-    ]), [chapterIdToNumbersMap, selectedExtension, isSendingDownloadRequest, isChapterDownloaded, downloadData, mediaId])
 
     const unreadChapters = React.useMemo(() => chapterContainer?.chapters?.filter(ch => retainUnreadChapters(ch)) ?? [], [chapterContainer, entry])
     const resumeLocations = useAtomValue(__manga_resumeLocationsAtom)
@@ -248,10 +171,6 @@ export function ChapterList(props: ChapterListProps) {
     ])
 
     const {
-        rowSelectedChapters,
-        onRowSelectionChange,
-        rowSelection,
-        setRowSelection,
         resetRowSelection,
         // setSelectedChapters,
     } = useMangaChapterListRowSelection()
@@ -338,7 +257,6 @@ export function ChapterList(props: ChapterListProps) {
     // Android: the header shows this as the page's primary action.
     const setMobileReadAction = useSetAtom(mobileMangaReadActionAtom)
     React.useEffect(() => {
-        if (!IS_ANDROID_APP) return
         setMobileReadAction(readingChapter ? {
             label: resumeChapter ? t("Resume reading", "Weiterlesen") : entry.listData?.progress ? t("Continue reading", "Weiterlesen") : t("Start reading", "Lesen beginnen"),
             detail: `${t("Chapter", "Kapitel")} ${readingChapter.chapter}${resumeChapter ? ` · ${t("Page", "Seite")} ${resumeLocation.pageIndex + 1}` : ""}`,
@@ -355,7 +273,7 @@ export function ChapterList(props: ChapterListProps) {
     // Android: "Continue reading" on the manga library opens the reading chapter once the source has answered.
     const [continueIntent, setContinueIntent] = useAtom(__manga_continueIntentAtom)
     React.useEffect(() => {
-        if (!IS_ANDROID_APP || !continueIntent) return
+        if (!continueIntent) return
         // Another manga's or an expired intent never opens the reader here
         if (!isMangaContinueIntentFor(continueIntent, mediaId, Date.now())) return setContinueIntent(null)
         // Wait for the saved source (server preferences) and its chapters
@@ -381,16 +299,16 @@ export function ChapterList(props: ChapterListProps) {
             data-selected-provider={JSON.stringify(selectedProvider)}
         >
 
-            {IS_ANDROID_APP && <div className="UI-StaticTabs__root mobile-manga-tabs" role="tablist" aria-label={t("Chapters", "Kapitel")}>
+            <div className="UI-StaticTabs__root mobile-manga-tabs" role="tablist" aria-label={t("Chapters", "Kapitel")}>
                 {(["online", "downloaded"] as const).map(tab => <button key={tab} type="button" role="tab" className="UI-StaticTabs__trigger"
                     data-current={mobileTab === tab} aria-selected={mobileTab === tab} data-mobile-manga-tab={tab} onClick={() => setMobileTab(tab)}>
                     {tab === "online" ? t("Online reading", "Online lesen") : `${t("Downloaded", "Geladen")}${savedChapters.length ? ` · ${savedChapters.length}` : ""}`}
                 </button>)}
-            </div>}
+            </div>
 
-            {IS_ANDROID_APP && mobileTab === "downloaded" && <MobileDownloadedChapters entry={entry} />}
+            {mobileTab === "downloaded" && <MobileDownloadedChapters entry={entry} />}
 
-            {IS_ANDROID_APP && mobileTab === "online" && <section className="mobile-episode-options mobile-chapter-options" aria-label={t("Source & reading options", "Quelle & Leseoptionen")}>
+            {mobileTab === "online" && <section className="mobile-episode-options mobile-chapter-options" aria-label={t("Source & reading options", "Quelle & Leseoptionen")}>
                 <div className="mobile-source-pair" role="group" aria-label={t("Source", "Quelle")}>
                     <Select
                         options={providerOptions}
@@ -440,51 +358,7 @@ export function ChapterList(props: ChapterListProps) {
                 </div>
             </section>}
 
-            {!IS_ANDROID_APP && <div data-chapter-list-header-container className="flex flex-wrap gap-2 items-center">
-                <Select
-                    fieldClass="w-fit"
-                    options={providerOptions}
-                    value={selectedProvider || ""}
-                    onValueChange={v => setSelectedProvider({
-                        mId: mediaId,
-                        provider: v,
-                    })}
-                    leftAddon="Source"
-                    size="sm"
-                    disabled={sourceRefreshRunning}
-                />
-
-                <Button
-                    leftIcon={<FaRedo />}
-                    intent="gray-outline"
-                    onClick={() => {
-                        if (mediaId) {
-                            startSourceRefresh({ mode: "refresh_selected", mediaIds: [Number(mediaId)] }, {
-                                onSuccess: () => toast.info("Source refresh started"),
-                            })
-                        }
-                    }}
-                    loading={isStartingSourceRefresh || sourceRefreshRunning}
-                    disabled={!preferencesHydrated || !selectedExtension || !sourceRefreshEligible || sourceRefreshRunning}
-                    title={!sourceRefreshEligible ? "Source refresh is available for current and re-reading manga" : undefined}
-                    size="sm"
-                >
-                    {sourceRefreshRunning ? "Refresh running" : "Refresh source"}
-                </Button>
-
-                <MangaManualMappingModal entry={entry}>
-                    <Button
-                        leftIcon={<LuSearch className="text-lg" />}
-                        intent="gray-outline"
-                        size="sm"
-                        disabled={!selectedExtension}
-                    >
-                        Manual match
-                    </Button>
-                </MangaManualMappingModal>
-            </div>}
-
-            {(!IS_ANDROID_APP || mobileTab === "online") && !providerExtensionsLoading && !selectedExtension && (
+            {mobileTab === "online" && !providerExtensionsLoading && !selectedExtension && (
                 <Alert
                     intent="warning-basic"
                     title={selectedProvider ? "Saved source unavailable" : "No manga source available"}
@@ -494,52 +368,7 @@ export function ChapterList(props: ChapterListProps) {
                 />
             )}
 
-            <ErrorBoundary
-                fallbackRender={({ error }) => <Alert
-                    intent="alert"
-                    title="Client side error"
-                    description={`Could not load chapter filters. Please contact the extension developer: "${error}"`}
-                />}
-            >
-                {!IS_ANDROID_APP && (selectedExtension?.settings?.supportsMultiLanguage || selectedExtension?.settings?.supportsMultiScanlator) && (
-                    <div data-chapter-list-header-filters-container className="flex flex-wrap gap-2 items-center">
-                        {selectedExtension?.settings?.supportsMultiScanlator && (
-                            <>
-                                <Select
-                                    fieldClass="w-full sm:w-64"
-                                    options={scanlatorOptions}
-                                    placeholder="All"
-                                    value={selectedFilters.scanlators[0] || ""}
-                                    onValueChange={v => setSelectedScanlator({
-                                        mId: mediaId,
-                                        scanlators: [v],
-                                    })}
-                                    leftAddon="Scanlator"
-                                    // intent="filled"
-                                    // size="sm"
-                                />
-                            </>
-                        )}
-                        {selectedExtension?.settings?.supportsMultiLanguage && (
-                            <Select
-                                fieldClass="w-full sm:w-64"
-                                options={languageOptions}
-                                placeholder="All"
-                                value={selectedFilters.language}
-                                onValueChange={v => setSelectedLanguage({
-                                    mId: mediaId,
-                                    language: v,
-                                })}
-                                leftAddon="Language"
-                                // intent="filled"
-                                // size="sm"
-                            />
-                        )}
-                    </div>
-                )}
-            </ErrorBoundary>
-
-            {IS_ANDROID_APP && mobileTab === "downloaded" ? null : chapterContainerLoading ? <LoadingSpinner /> : (
+            {mobileTab === "downloaded" ? null : chapterContainerLoading ? <LoadingSpinner /> : (
                 chapterContainerError ? <LuffyError title="No chapters found">
                     <MangaManualMappingModal entry={entry}>
                         <Button
@@ -557,7 +386,7 @@ export function ChapterList(props: ChapterListProps) {
                             <LuffyError title="No chapters found"><p>Try another source</p></LuffyError>
                         )}
 
-                        {IS_ANDROID_APP && !!chapterContainer?.chapters?.length && (
+                        {!!chapterContainer?.chapters?.length && (
                             <div className="mobile-chapters" data-mobile-chapters>
                                 <div className="mobile-episode-heading">
                                     <h2>{t("Chapters", "Kapitel")} <span>{chapterContainer.chapters.length}</span></h2>
@@ -615,132 +444,6 @@ export function ChapterList(props: ChapterListProps) {
                                 </button>}
                             </div>
                         )}
-
-                        {!IS_ANDROID_APP && !!chapterContainer?.chapters?.length && (
-                            <>
-                                <div data-chapter-list-header-container className="flex flex-wrap gap-2 items-center w-full pb-2">
-                                    <h2 className="px-1">Chapters</h2>
-                                    <div className="flex flex-1"></div>
-                                    <div>
-                                        {readingChapter && <Button
-                                            intent="white"
-                                            rounded
-                                            leftIcon={<IoBookOutline />}
-                                            className="h-auto min-h-11 max-w-full py-2"
-                                            onClick={() => {
-                                                setSelectedChapter({
-                                                    chapterId: readingChapter.id,
-                                                    chapterNumber: readingChapter.chapter,
-                                                    provider: readingChapter.provider,
-                                                    mediaId: Number(mediaId),
-                                                })
-                                            }}
-                                        >
-                                            <span className="text-left">
-                                                <span className="block">{resumeChapter ? "Resume reading" : entry.listData?.progress ? "Continue reading" : "Start reading"}</span>
-                                                {resumeChapter && <span className="block text-xs opacity-70">Chapter {resumeChapter.chapter} · Page {resumeLocation.pageIndex + 1}</span>}
-                                            </span>
-                                        </Button>}
-                                    </div>
-                                </div>
-
-                                {/* <ChapterListTable
-                                 chapters={chapters}
-                                 rowSelection={rowSelection}
-                                 setRowSelection={setRowSelection}
-                                 setSelectedChapters={setSelectedChapters}
-                                 onChapterClick={(chapter) => {
-                                 setSelectedChapter({
-                                 chapterId: chapter.id,
-                                 chapterNumber: chapter.chapter,
-                                 provider: chapter.provider,
-                                 mediaId: Number(mediaId),
-                                 })
-                                 }}
-                                 onDownloadChapter={(chapter) => downloadChapters([chapter])}
-                                 isChapterQueued={isChapterQueued}
-                                 isChapterDownloaded={isChapterDownloaded}
-                                 isChapterLocal={isChapterLocal}
-                                 /> */}
-
-                                <div data-chapter-list-bulk-actions-container className="space-y-4 rounded-2xl border bg-[--paper] p-4">
-
-                                    <div data-chapter-list-bulk-actions-checkboxes-container className="flex flex-wrap items-center gap-4">
-                                        <Checkbox
-                                            label="Show unread"
-                                            value={showUnreadChapter}
-                                            onValueChange={v => setShowUnreadChapter(v as boolean)}
-                                            fieldClass="w-fit"
-                                            {...monochromeCheckboxClasses}
-                                        />
-                                        {selectedProvider !== "local-manga" && <Checkbox
-                                            label={<span className="flex gap-2 items-center"><IoLibrary /> Show downloaded</span>}
-                                            value={showDownloadedChapters}
-                                            onValueChange={v => setShowDownloadedChapters(v as boolean)}
-                                            fieldClass="w-fit"
-                                            {...monochromeCheckboxClasses}
-                                        />}
-                                        {/*{!downloadDataLoading && !!downloadableUnreadChapters.length && (
-                                         <Button
-                                         intent="gray-outline"
-                                         size="sm"
-                                         leftIcon={<LuDownload />}
-                                         loading={isSendingDownloadRequest}
-                                         onClick={() => confirmDownloadUnread.open()}
-                                         >
-                                         Download unread ({downloadableUnreadChapters.length})
-                                         </Button>
-                                         )}*/}
-                                    </div>
-
-                                    <ChapterListBulkActions
-                                        rowSelectedChapters={rowSelectedChapters}
-                                        onDownloadSelected={chapters => {
-                                            downloadChapters(chapters)
-                                            resetRowSelection()
-                                        }}
-                                    />
-
-                                    <DataGrid<HibikeManga_ChapterDetails>
-                                        columns={columns}
-                                        data={chapters}
-                                        rowCount={chapters.length}
-                                        isLoading={chapterContainerLoading}
-                                        rowSelectionPrimaryKey="id"
-                                        enableRowSelection={row => (!isChapterDownloaded(row.original) && !isChapterQueued(row.original))}
-                                        initialState={{
-                                            pagination: {
-                                                pageIndex: 0,
-                                                pageSize: 10,
-                                            },
-                                        }}
-                                        state={{
-                                            rowSelection,
-                                        }}
-                                        hideColumns={[
-                                            {
-                                                below: 800,
-                                                hide: ["number"],
-                                            },
-                                            {
-                                                below: 600,
-                                                hide: ["scanlator", "language"],
-                                            },
-                                        ]}
-                                        onRowSelect={onRowSelectionChange}
-                                        onRowSelectionChange={setRowSelection}
-                                        className=""
-                                        tableClass="table-fixed lg:table-fixed"
-                                        tableBodyClass="border-0"
-                                        tdClass="border-[rgba(255,255,255,0.05)]"
-                                        // tableBodyClass="divide-0 space-y-2"
-                                        // trClass="p-3 border-0 bg-[--paper] rounded-lg"
-                                        // tdClass="p-3 border-0 rounded-lg"
-                                    />
-                                </div>
-                            </>
-                        )}
-
                     </>
                 )
             )}
@@ -749,11 +452,6 @@ export function ChapterList(props: ChapterListProps) {
                 entry={entry}
                 chapterContainer={chapterContainer || downloadedChapterContainer!}
                 chapterIdToNumbersMap={chapterIdToNumbersMap}
-            />}
-
-            {!IS_ANDROID_APP && <DownloadedChapterList
-                entry={entry}
-                data={downloadData}
             />}
 
             <ConfirmationDialog {...confirmDownloadUnread} />

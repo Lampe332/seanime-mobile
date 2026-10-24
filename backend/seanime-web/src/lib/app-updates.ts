@@ -1,6 +1,5 @@
 import type { Updater_Update } from "@/api/generated/types"
 
-export const IS_MOBILE_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 declare global {
     interface Window {
         AppUpdater?: { checkForUpdates?(requestId: string): void, downloadUpdate?(requestId: string): void, getKnownUpdate?(): string, getDownloadState?(): string, openDownloadedApk?(): void, acknowledgeInstalledUpdate?(): void }

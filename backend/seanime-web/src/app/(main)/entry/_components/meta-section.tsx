@@ -7,27 +7,19 @@ import {
     MediaEntryAudienceScore,
     MediaEntryGenresList,
 } from "@/app/(main)/_features/media/_components/media-entry-metadata-components"
-import {
-    MediaPageHeader,
-    MediaPageHeaderDetailsContainer,
-    MediaPageHeaderEntryDetails,
-} from "@/app/(main)/_features/media/_components/media-page-header-components"
-import { MediaSyncTrackButton } from "@/app/(main)/_features/media/_containers/media-sync-track-button"
 import { usePluginAnimeEntryEpisodeTabsListener } from "@/app/(main)/_features/plugin/plugin-entry-episode-tabs.tsx"
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
-import { useHasDebridService, useHasTorrentProvider, useServerStatus } from "@/app/(main)/_hooks/use-server-status"
+import { useHasTorrentProvider } from "@/app/(main)/_hooks/use-server-status"
 import { NextAiringEpisode } from "@/app/(main)/entry/_components/next-airing-episode"
 import { EntrySectionTabs, useAnimeEntryPageView } from "@/app/(main)/entry/_containers/anime-entry-page"
 import { AnimeEntryDropdownMenu } from "@/app/(main)/entry/_containers/entry-actions/anime-entry-dropdown-menu"
 import { AnimeEntrySilenceToggle } from "@/app/(main)/entry/_containers/entry-actions/anime-entry-silence-toggle"
-import { TorrentSearchButton } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-button"
 import { SeaLink } from "@/components/shared/sea-link"
 import { Badge } from "@/components/ui/badge"
 import { Button, ButtonProps, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip } from "@/components/ui/tooltip"
-import { TORRENT_CLIENT } from "@/lib/server/settings"
 import { getCustomSourceExtensionId, getCustomSourceMediaSiteUrl, isCustomSource } from "@/lib/server/utils"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import React from "react"
@@ -39,8 +31,6 @@ import { SiAnilist } from "react-icons/si"
 import { useNakamaStatus } from "../../_features/nakama/nakama-manager"
 import { PluginAnimePageButtons } from "../../_features/plugin/actions/plugin-actions"
 import { MobileAnimeHeaderShell, MobileAnimeHeaderContainer, MobileAnimeHeaderDetails } from "./mobile-anime-header"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 export function AnimeMetaActionButton({ className, ...rest }: ButtonProps) {
     const ts = useThemeSettings()
@@ -55,7 +45,6 @@ export function AnimeMetaActionButton({ className, ...rest }: ButtonProps) {
 }
 
 export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetailsById_Media | undefined, detailsLoading?: boolean }) {
-    const serverStatus = useServerStatus()
     const { entry, details, detailsLoading } = props
     const ts = useThemeSettings()
     const nakamaStatus = useNakamaStatus()
@@ -63,7 +52,6 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
     if (!entry.media) return null
 
     const { hasTorrentProvider } = useHasTorrentProvider()
-    const { hasDebridService } = useHasDebridService()
     const { currentView, setView, isLibraryView } = useAnimeEntryPageView()
 
     const pluginEpisodeTabs = usePluginAnimeEntryEpisodeTabsListener({
@@ -72,19 +60,15 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
         setView,
     })
 
-    const Header = IS_ANDROID_APP ? MobileAnimeHeaderShell : MediaPageHeader
-    const HeaderContainer = IS_ANDROID_APP ? MobileAnimeHeaderContainer : MediaPageHeaderDetailsContainer
-    const HeaderDetails = IS_ANDROID_APP ? MobileAnimeHeaderDetails : MediaPageHeaderEntryDetails
-
     return (
-        <Header
+        <MobileAnimeHeaderShell
             backgroundImage={entry.media?.bannerImage}
             coverImage={entry.media?.coverImage?.extraLarge}
         >
 
-            <HeaderContainer>
+            <MobileAnimeHeaderContainer>
 
-                <HeaderDetails
+                <MobileAnimeHeaderDetails
                     coverImage={entry.media?.coverImage?.extraLarge || entry.media?.coverImage?.large}
                     title={entry.media?.title?.userPreferred}
                     color={entry.media?.coverImage?.color}
@@ -178,7 +162,7 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                         </div>
 
                     </div>
-                </HeaderDetails>
+                </MobileAnimeHeaderDetails>
 
                 <PluginWebviewSlot slot="after-media-entry-details" />
 
@@ -201,7 +185,6 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
 
 
                         {isLibraryView && !entry._isNakamaEntry && !!entry.libraryData && <>
-                            {!IS_ANDROID_APP && <MediaSyncTrackButton mediaId={entry.mediaId} type="anime" size="md" />}
                             <AnimeEntrySilenceToggle mediaId={entry.mediaId} size="md" />
                             <ToggleLockFilesButton
                                 allFilesLocked={entry.libraryData.allFilesLocked}
@@ -209,23 +192,6 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                                 size="md"
                             />
                         </>}
-
-                        {(
-                            entry.media.status !== "NOT_YET_RELEASED"
-                            && !(IS_ANDROID_APP)
-                            && (
-                                serverStatus?.settings?.torrent?.defaultTorrentClient !== TORRENT_CLIENT.NONE
-                                || hasDebridService
-                            )
-                            && !entry._isNakamaEntry
-                        ) && (
-                            <TorrentSearchButton
-                                entry={entry}
-                                onClick={() => {
-                                    if (currentView !== "library") setView("library")
-                                }}
-                            />
-                        )}
 
                         {entry._isNakamaEntry && currentView === "library" &&
                             <div className="flex items-center gap-2 h-10 px-4 border rounded-md flex-none">
@@ -268,9 +234,9 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                 )}
 
 
-            </HeaderContainer>
+            </MobileAnimeHeaderContainer>
 
-        </Header>
+        </MobileAnimeHeaderShell>
 
     )
 

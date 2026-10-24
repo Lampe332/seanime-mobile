@@ -1,21 +1,14 @@
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { __scanner_modalIsOpen } from "@/app/(main)/_features/anime-library/_containers/scanner-modal"
 import { LibraryPhoneStatus } from "@/app/(main)/_features/anime-library/_screens/library-phone"
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
-import { PageWrapper } from "@/components/shared/page-wrapper"
-import { Button, CloseButton } from "@/components/ui/button"
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Spinner } from "@/components/ui/loading-spinner"
 import { useBoolean } from "@/hooks/use-disclosure"
 import { WSEvents } from "@/lib/server/ws-events"
 import { useQueryClient } from "@tanstack/react-query"
 import { useSetAtom } from "jotai/react"
 import React, { useState } from "react"
-import { BiSolidBinoculars } from "react-icons/bi"
-import { FiSearch } from "react-icons/fi"
 import { toast } from "sonner"
 
 type LibraryWatcherProps = {
@@ -105,57 +98,9 @@ export function LibraryWatcher(props: LibraryWatcherProps) {
     }
 
     // Phones: one status above the bottom bar, not a card over it
-    if (isAndroidPhone()) return <LibraryPhoneStatus progress={autoScanning.active && progress > 0 ? progress : undefined} autoScanning changed={!!fileEvent}
+    return <LibraryPhoneStatus progress={autoScanning.active && progress > 0 ? progress : undefined} autoScanning changed={!!fileEvent}
         onRefresh={() => {
             handleCancel()
             setScannerModalOpen(true)
         }} onDismiss={handleCancel} />
-
-    if (autoScanning.active && progress > 0) {
-        return (
-            <div className="z-50 fixed bottom-4 right-4">
-                <PageWrapper>
-                    <Card className="w-fit max-w-[400px]">
-                        <CardHeader>
-                            <CardDescription className="flex items-center gap-2 text-base">
-                                <Spinner className="size-6" /> {progress}% Refreshing your library...
-                            </CardDescription>
-                        </CardHeader>
-                    </Card>
-                </PageWrapper>
-            </div>
-        )
-    } else if (!!fileEvent) {
-        return (
-            <div className="z-50 fixed bottom-4 right-4">
-                <PageWrapper>
-                    <Card className="w-full max-w-[400px] min-h-[150px] relative">
-                        <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <BiSolidBinoculars className="text-brand-400" />
-                                Library watcher
-                            </CardTitle>
-                            <CardDescription className="flex items-center gap-2 text-base">
-                                A change has been detected in your library, refresh your entries.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardFooter>
-                            <Button
-                                intent="primary-outline"
-                                leftIcon={<FiSearch />}
-                                size="sm"
-                                onClick={() => setScannerModalOpen(true)}
-                                className="rounded-full"
-                            >
-                                Scan your library
-                            </Button>
-                        </CardFooter>
-                        <CloseButton className="absolute top-2 right-2" onClick={handleCancel} />
-                    </Card>
-                </PageWrapper>
-            </div>
-        )
-    }
-
-    return null
 }

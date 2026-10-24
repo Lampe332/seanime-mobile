@@ -1,9 +1,7 @@
-import { ElectronYoutubeEmbed } from "@/app/(main)/_electron/electron-embed"
 import { LuffyError } from "@/components/shared/luffy-error"
 import { cn } from "@/components/ui/core/styling"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Modal } from "@/components/ui/modal"
-import { __isElectronDesktop__ } from "@/types/constants"
 import React from "react"
 
 type PlaylistsModalProps = {
@@ -61,8 +59,7 @@ export function Content(props: ContentProps) {
                     !loaded && "hidden",
                 )}
             >
-                {__isElectronDesktop__ && <ElectronYoutubeEmbed trailerId={trailerId} />}
-                {!__isElectronDesktop__ && <iframe
+                <iframe
                     {...({ credentialless: "true" } as any)}
                     src={`https://www.youtube.com/embed/${trailerId}`}
                     title="YouTube Video"
@@ -70,7 +67,7 @@ export function Content(props: ContentProps) {
                     allowFullScreen
                     loading="lazy" // Lazy load the iframe
                     referrerPolicy="strict-origin-when-cross-origin"
-                />}
+                />
                 {/*<video*/}
                 {/*    src={`https://yewtu.be/latest_version?id=${animeDetails?.trailer?.id}&itag=18`}*/}
                 {/*    className={cn(*/}

@@ -16,7 +16,6 @@ import { useRouter } from "@/lib/navigation"
 import { getAssetUrl } from "@/lib/server/assets"
 import { useContinueWatchingSpoilers } from "@/lib/theme/anime-spoilers"
 import { ThemeLibraryScreenBannerType, ThemeMediaPageBannerSize, ThemeMediaPageBannerType, useThemeSettings } from "@/lib/theme/theme-hooks"
-import { __isDesktop__ } from "@/types/constants"
 import { atom, useAtomValue } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
 import { AnimatePresence, motion } from "motion/react"
@@ -67,9 +66,6 @@ function HeaderCarouselDots({ totalEpisodes, currentIndex, onIndexChange, classN
         <div
             className={cn(
                 "hidden lg:flex items-center gap-2 z-[10] pl-8 max-w-[20rem] flex-wrap top-[4.5rem]",
-                // ts.hideTopNavbar && !__isDesktop__ && "top-[4rem]",
-                // (ts.hideTopNavbar || __isDesktop__) && "top-[1.5rem]",
-                // ts.mediaPageBannerSize === ThemeMediaPageBannerSize.Small && (__isDesktop__ || ts.hideTopNavbar) && "top-[0.6rem]",
                 className,
             )}
         >
@@ -130,8 +126,6 @@ function MediaMetadata({ episode, episodes, onHoverChange }: MediaMetadataProps)
                 ts.hideTopNavbar && "top-[4rem]",
                 // ts.mediaPageBannerSize === ThemeMediaPageBannerSize.Small && "top-[4rem]",
                 // (ts.mediaPageBannerSize === ThemeMediaPageBannerSize.Small && ts.hideTopNavbar) && "top-[2rem]",
-                (__isDesktop__ && ts.mediaPageBannerSize === ThemeMediaPageBannerSize.Small) && "top-[0rem]",
-                (__isDesktop__ && ts.mediaPageBannerSize !== ThemeMediaPageBannerSize.Small) && "top-[2rem]",
             )}
             data-media-id={anime.id}
             data-media-mal-id={anime.idMal}
@@ -270,8 +264,6 @@ function EpisodeCardSidebar({ episode, isTransitioning }: EpisodeCardSidebarProp
                 ts.hideTopNavbar && "top-[4rem]",
                 // ts.mediaPageBannerSize === ThemeMediaPageBannerSize.Small && "top-[4rem]",
                 // (ts.mediaPageBannerSize === ThemeMediaPageBannerSize.Small && ts.hideTopNavbar) && "top-[2rem]",
-                (__isDesktop__ && ts.mediaPageBannerSize === ThemeMediaPageBannerSize.Small) && "top-[1rem]",
-                (__isDesktop__ && ts.mediaPageBannerSize !== ThemeMediaPageBannerSize.Small) && "top-[3rem]",
             )}
         >
             <div className="p-6 w-fit">
@@ -357,7 +349,6 @@ function BannerImage({ episode, isTransitioning, shouldBlurBanner }: BannerImage
                 "lg:h-[35rem] w-full flex-none object-cover object-center top-0 bg-[--background] absolute",
                 !ts.libraryScreenCustomBackgroundImage && "fixed",
                 !ts.disableSidebarTransparency && TRANSPARENT_SIDEBAR_BANNER_IMG_STYLE,
-                __isDesktop__ && "top-[-2rem]",
                 ts.mediaPageBannerSize === ThemeMediaPageBannerSize.Small && "lg:h-[30rem]",
             )}
         >

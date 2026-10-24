@@ -4,8 +4,6 @@ import { useLogout } from "@/api/hooks/auth.hooks"
 import { useGetExtensionUpdateData as useGetExtensionUpdateData, usePluginWithIssuesCount } from "@/api/hooks/extensions.hooks"
 import { isLoginModalOpenAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { MobileAnilistLogin } from "@/app/(main)/_features/navigation/anilist-login-mobile"
-import { useSyncIsActive } from "@/app/(main)/_atoms/sync.atoms"
-import { ElectronUpdateModal } from "@/app/(main)/_electron/electron-update-modal"
 import { SidebarNavbar } from "@/app/(main)/_features/layout/top-navbar"
 import { usePluginSidebarItems } from "@/app/(main)/_features/plugin/webview/plugin-sidebar"
 import { useSeaCommand } from "@/app/(main)/_features/sea-command/sea-command"
@@ -13,37 +11,27 @@ import { UpdateModal } from "@/app/(main)/_features/update/update-modal"
 import { useMissingEpisodeCount } from "@/app/(main)/_hooks/missing-episodes-loader"
 import { useCurrentUser, useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
-import { SeaLink } from "@/components/shared/sea-link"
 import { AppSidebar, useAppSidebarContext } from "@/components/ui/app-layout"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { defineSchema, Field, Form } from "@/components/ui/form"
-import { HoverCard } from "@/components/ui/hover-card"
-import { Modal } from "@/components/ui/modal"
 import { VerticalMenu, VerticalMenuItem } from "@/components/ui/vertical-menu"
 import { openTab } from "@/lib/helpers/browser"
-import { usePathname, useRouter } from "@/lib/navigation"
-import { ANILIST_OAUTH_URL, ANILIST_PIN_URL } from "@/lib/server/config"
+import { usePathname } from "@/lib/navigation"
+import { ANILIST_OAUTH_URL } from "@/lib/server/config"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
-import { __isDesktop__, __isElectronDesktop__ } from "@/types/constants"
 import { useAtom } from "jotai"
 import React from "react"
 import { BiChevronRight, BiExtension, BiLogIn, BiLogOut } from "react-icons/bi"
 import { FiLogIn, FiSearch } from "react-icons/fi"
 import { IoCloudOfflineOutline, IoHomeOutline } from "react-icons/io5"
 import { LuBookOpen, LuCalendar, LuCompass, LuRefreshCw, LuSettings } from "react-icons/lu"
-import { MdArrowForward } from "react-icons/md"
-import { MdArrowBack } from "react-icons/md"
 import { MdOutlineConnectWithoutContact } from "react-icons/md"
 import { RiListCheck3 } from "react-icons/ri"
 import { TbReportSearch } from "react-icons/tb"
 import { nakamaModalOpenAtom, useNakamaStatus } from "../nakama/nakama-manager"
 import { PluginSidebarTray } from "../plugin/tray/plugin-sidebar-tray"
-
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
 function getAnilistGifAvatarCandidate(avatar?: { large?: string, medium?: string }) {
     const source = avatar?.large || avatar?.medium
@@ -161,7 +149,6 @@ export function MainSidebar() {
 function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean, containerRef: React.RefObject<HTMLDivElement | null> }) {
     const ctx = useAppSidebarContext()
     const ts = useThemeSettings()
-    const router = useRouter()
     const pathname = usePathname()
     const serverStatus = useServerStatus()
 
@@ -176,14 +163,14 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
 
     // Items
     const items = React.useMemo(() => [
-        ...((IS_ANDROID_APP) ? [{
+        {
             id: "android-downloads",
             iconType: IoCloudOfflineOutline,
             name: "Downloads",
             href: "/android-downloads",
             isCurrent: pathname === "/android-downloads",
             onClick: (event?: React.MouseEvent) => { event?.preventDefault(); openAndroidDownloads() },
-        }] : []),
+        },
         {
             id: "home",
             iconType: IoHomeOutline,
@@ -268,16 +255,10 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
         return () => window.removeEventListener("resize", handleResize)
     }, [])
 
-    // Android: the native "Customize navigation" reads these links, so the web "Unpinned menu items" setting is ignored there
-    const userUnpinned = IS_ANDROID_APP ? undefined : ts.unpinnedMenuItems
-
-    const allPinnedItems = React.useMemo(() => {
-        return items.filter(item => !userUnpinned?.includes(item.id))
-    }, [items, userUnpinned])
-
+    // The native "Customize navigation" reads these links, so the web "Unpinned menu items" setting is ignored
     const displayedPinnedItems = React.useMemo(() => {
-        return allPinnedItems.filter(item => !autoUnpinnedIds.includes(item.id))
-    }, [allPinnedItems, autoUnpinnedIds])
+        return items.filter(item => !autoUnpinnedIds.includes(item.id))
+    }, [items, autoUnpinnedIds])
 
     const displayedPluginItems = React.useMemo(() => {
         return pluginWebviewItems.filter((item: any) => !autoUnpinnedIds.includes(item.id))
@@ -333,11 +314,10 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
     }, [checkOverflow])
 
     const unpinnedMenuItems = React.useMemo(() => {
-        const manuallyUnpinned = items.filter(item => userUnpinned?.includes(item.id))
         const forcedUnpinned = items.filter(item => autoUnpinnedIds.includes(item.id))
         const forcedUnpinnedPlugins = pluginWebviewItems.filter(item => autoUnpinnedIds.includes(item.id))
 
-        const allHidden = [...manuallyUnpinned, ...forcedUnpinnedPlugins, ...forcedUnpinned]
+        const allHidden = [...forcedUnpinnedPlugins, ...forcedUnpinned]
 
         if (allHidden.length === 0) return []
 
@@ -351,16 +331,11 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
                 />,
             } as VerticalMenuItem,
         ]
-    }, [items, userUnpinned, autoUnpinnedIds, pluginWebviewItems])
+    }, [items, autoUnpinnedIds, pluginWebviewItems])
 
     return (
         <div>
-            <div
-                className={cn(
-                    "mb-4 p-4 pb-0 flex justify-center w-full",
-                    __isDesktop__ && "mt-2",
-                )}
-            >
+            <div className="mb-4 p-4 pb-0 flex justify-center w-full">
                 <img
                     src="/seanime-logo.png"
                     alt="logo"
@@ -387,7 +362,7 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
                         },
                     },
                 ]}
-                subContentClass={cn((ts.hideTopNavbar || __isDesktop__) && "border-transparent !border-b-0")}
+                subContentClass={cn(ts.hideTopNavbar && "border-transparent !border-b-0")}
                 onLinkItemClick={() => ctx.setOpen(false)}
                 isSidebar
             />
@@ -397,31 +372,6 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
                 handleExpandSidebar={() => { }}
                 handleUnexpandedSidebar={() => { }}
             />
-            {__isDesktop__ && <div className="w-full flex justify-center px-4">
-                <HoverCard
-                    side="right"
-                    sideOffset={-8}
-                    className="bg-transparent border-none"
-                    trigger={<IconButton
-                        intent="gray-basic"
-                        className="!text-[--muted] hover:!text-[--foreground] rounded-full"
-                        icon={<MdArrowBack />}
-                        onClick={() => {
-                            router.back()
-                        }}
-                    />}
-                >
-                    <IconButton
-                        icon={<MdArrowForward />}
-                        intent="gray-subtle"
-                        className="opacity-50 hover:opacity-100 rounded-full"
-                        onClick={() => {
-                            router.forward()
-                        }}
-                    />
-                </HoverCard>
-            </div>}
-
             <PluginSidebarTray place="sidebar" />
 
         </div>
@@ -429,11 +379,7 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
 }
 
 function SidebarUpdates({ isCollapsed }: { isCollapsed: boolean }) {
-    return (
-        !__isDesktop__ ? <UpdateModal collapsed={isCollapsed} /> :
-            __isElectronDesktop__ ? <ElectronUpdateModal collapsed={isCollapsed} /> :
-                null
-    )
+    return <UpdateModal collapsed={isCollapsed} />
 }
 
 function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogout: () => void }) {
@@ -445,9 +391,6 @@ function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogo
     // Extensions
     const { data: updateData } = useGetExtensionUpdateData()
     const pluginWithIssuesCount = usePluginWithIssuesCount()
-
-    // Sync
-    const { syncIsActive } = useSyncIsActive()
 
     // Nakama
     const [nakamaModalOpen, setNakamaModalOpen] = useAtom(nakamaModalOpenAtom)
@@ -516,20 +459,6 @@ function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogo
                             </Badge>
                             : undefined,
                     },
-                    ...(!IS_ANDROID_APP ? [{
-                        iconType: IoCloudOfflineOutline,
-                        name: "Offline",
-                        href: "/sync",
-                        isCurrent: pathname.includes("/sync"),
-                        addon: (syncIsActive)
-                            ? <Badge
-                                className="absolute right-0 top-0 bg-blue-500" size="sm"
-                                intent="alert-solid"
-                            >
-                                1
-                            </Badge>
-                            : undefined,
-                    }] : []),
                     {
                         iconType: LuSettings,
                         name: "Settings",
@@ -553,12 +482,10 @@ function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogo
 function SidebarUser({ isCollapsed, expandedSidebar, onLogout }: { isCollapsed: boolean, expandedSidebar: boolean, onLogout: () => void }) {
     const ctx = useAppSidebarContext()
     const user = useCurrentUser()
-    const router = useRouter()
     const avatarSrc = useResolvedAnilistAvatarSrc(user?.viewer?.avatar)
 
     const [dropdownOpen, setDropdownOpen] = React.useState(false)
     const [loginModal, setLoginModal] = useAtom(isLoginModalOpenAtom)
-    const [loggingIn, setLoggingIn] = React.useState(false)
 
     // Sign out
     const confirmSignOut = useConfirmationDialog({
@@ -610,57 +537,7 @@ function SidebarUser({ isCollapsed, expandedSidebar, onLogout }: { isCollapsed: 
                 </DropdownMenu>
             </div>}
 
-            {IS_ANDROID_APP && <MobileAnilistLogin open={!!(loginModal && user?.isSimulated)} onOpenChange={setLoginModal} />}
-
-            {!IS_ANDROID_APP && <Modal
-                title="Log in with AniList"
-                description="Using an AniList account is recommended."
-                open={loginModal && user?.isSimulated}
-                onOpenChange={(v) => setLoginModal(v)}
-                overlayClass="bg-opacity-95 bg-gray-950"
-                contentClass="border"
-            >
-                <div className="mt-5 text-center space-y-4">
-
-                    <SeaLink
-                        href={ANILIST_PIN_URL}
-                        target="_blank"
-                    >
-                        <Button
-                            leftIcon={<svg
-                                xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="24" height="24"
-                                viewBox="0 0 24 24" role="img"
-                            >
-                                <path
-                                    d="M6.361 2.943 0 21.056h4.942l1.077-3.133H11.4l1.052 3.133H22.9c.71 0 1.1-.392 1.1-1.101V17.53c0-.71-.39-1.101-1.1-1.101h-6.483V4.045c0-.71-.392-1.102-1.101-1.102h-2.422c-.71 0-1.101.392-1.101 1.102v1.064l-.758-2.166zm2.324 5.948 1.688 5.018H7.144z"
-                                />
-                            </svg>}
-                            intent="white"
-                            size="md"
-                        >Get AniList token</Button>
-                    </SeaLink>
-
-                    <Form
-                        schema={defineSchema(({ z }) => z.object({
-                            token: z.string().min(1, "Token is required"),
-                        }))}
-                        onSubmit={data => {
-                            setLoggingIn(true)
-                            router.push("/auth/callback#access_token=" + data.token.trim())
-                            setLoginModal(false)
-                            setLoggingIn(false)
-                        }}
-                    >
-                        <Field.Textarea
-                            name="token"
-                            label="Enter the token"
-                            fieldClass="px-4"
-                        />
-                        <Field.Submit showLoadingOverlayOnSuccess loading={loggingIn}>Continue</Field.Submit>
-                    </Form>
-
-                </div>
-            </Modal>}
+            <MobileAnilistLogin open={!!(loginModal && user?.isSimulated)} onOpenChange={setLoginModal} />
 
             <ConfirmationDialog {...confirmSignOut} />
         </>

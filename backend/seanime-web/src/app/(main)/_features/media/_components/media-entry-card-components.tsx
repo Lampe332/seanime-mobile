@@ -1,7 +1,6 @@
 import { AL_BaseManga_Title } from "@/api/generated/types"
 import { AL_BaseAnime_Title } from "@/api/generated/types"
 import { AL_BaseAnime_NextAiringEpisode, AL_MediaListStatus, AL_MediaStatus } from "@/api/generated/types"
-import { ElectronYoutubeEmbed } from "@/app/(main)/_electron/electron-embed"
 import { MediaCardBodyBottomGradient } from "@/app/(main)/_features/custom-ui/item-bottom-gradients"
 import { MediaEntryProgressBadge } from "@/app/(main)/_features/media/_components/media-entry-progress-badge"
 import { imageShimmer } from "@/components/shared/image-helpers"
@@ -12,7 +11,6 @@ import { cn } from "@/components/ui/core/styling"
 import { Tooltip } from "@/components/ui/tooltip"
 import { getImageUrl } from "@/lib/server/assets"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
-import { __isElectronDesktop__ } from "@/types/constants"
 import { addSeconds, formatDistanceToNow } from "date-fns"
 import { atom, useAtom } from "jotai"
 import capitalize from "lodash/capitalize"
@@ -700,13 +698,7 @@ export const MediaEntryCardHoverPopupBanner = memo(({
                     !trailerLoaded && "hidden",
                 )}
             >
-                {__isElectronDesktop__ && <ElectronYoutubeEmbed
-                    isCompact
-                    trailerId={`${trailerId}`}
-                    onLoad={() => setTimeout(() => setTrailerLoaded(true), 1500)}
-                    onError={() => setTrailerEnabled(false)}
-                />}
-                {!__isElectronDesktop__ && <iframe
+                <iframe
                     data-media-entry-card-hover-popup-banner-trailer
                     {...({ credentialless: "true" } as any)}
                     src={`https://www.youtube-nocookie.com/embed/${trailerId}?autoplay=1&controls=0&mute=1&disablekb=1&loop=1&vq=medium&playlist=${trailerId}&cc_lang_pref=ja&enablejsapi=true`}
@@ -720,7 +712,7 @@ export const MediaEntryCardHoverPopupBanner = memo(({
                     // muted
                     onLoad={() => setTimeout(() => setTrailerLoaded(true), 1000)}
                     onError={() => setTrailerEnabled(false)}
-                />}
+                />
             </div>}
 
             {<div

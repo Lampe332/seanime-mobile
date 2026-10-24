@@ -9,8 +9,6 @@ import { CommandHelperText, CommandItemMedia } from "./_components/command-utils
 import { useSeaCommandContext } from "./sea-command"
 import { seaCommand_compareMediaTitles } from "./utils"
 
-const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
-
 // only rendered when typing "/anime", "/library" or "/manga"
 export function SeaCommandUserMediaNavigation() {
 
