@@ -10,8 +10,6 @@ import { SidebarNavbar } from "@/app/(main)/_features/layout/top-navbar"
 import { usePluginSidebarItems } from "@/app/(main)/_features/plugin/webview/plugin-sidebar"
 import { useSeaCommand } from "@/app/(main)/_features/sea-command/sea-command"
 import { UpdateModal } from "@/app/(main)/_features/update/update-modal"
-import { useAutoDownloaderQueueCount } from "@/app/(main)/_hooks/autodownloader-queue-count"
-import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { useMissingEpisodeCount } from "@/app/(main)/_hooks/missing-episodes-loader"
 import { useCurrentUser, useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
@@ -29,22 +27,18 @@ import { VerticalMenu, VerticalMenuItem } from "@/components/ui/vertical-menu"
 import { openTab } from "@/lib/helpers/browser"
 import { usePathname, useRouter } from "@/lib/navigation"
 import { ANILIST_OAUTH_URL, ANILIST_PIN_URL } from "@/lib/server/config"
-import { TORRENT_CLIENT, TORRENT_PROVIDER } from "@/lib/server/settings"
-import { WSEvents } from "@/lib/server/ws-events"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { __isDesktop__, __isElectronDesktop__ } from "@/types/constants"
 import { useAtom } from "jotai"
 import React from "react"
 import { BiChevronRight, BiExtension, BiLogIn, BiLogOut } from "react-icons/bi"
 import { FiLogIn, FiSearch } from "react-icons/fi"
-import { HiOutlineServerStack } from "react-icons/hi2"
 import { IoCloudOfflineOutline, IoHomeOutline } from "react-icons/io5"
-import { LuBookOpen, LuCalendar, LuCompass, LuRefreshCw, LuRss, LuSettings } from "react-icons/lu"
+import { LuBookOpen, LuCalendar, LuCompass, LuRefreshCw, LuSettings } from "react-icons/lu"
 import { MdArrowForward } from "react-icons/md"
 import { MdArrowBack } from "react-icons/md"
 import { MdOutlineConnectWithoutContact } from "react-icons/md"
 import { RiListCheck3 } from "react-icons/ri"
-import { SiBittorrent, SiQbittorrent, SiTransmission } from "react-icons/si"
 import { TbReportSearch } from "react-icons/tb"
 import { nakamaModalOpenAtom, useNakamaStatus } from "../nakama/nakama-manager"
 import { PluginSidebarTray } from "../plugin/tray/plugin-sidebar-tray"
@@ -176,16 +170,6 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
 
     // Data
     const missingEpisodeCount = useMissingEpisodeCount()
-    const autoDownloaderQueueCount = useAutoDownloaderQueueCount()
-
-    // Torrents
-    const [activeTorrentCount, setActiveTorrentCount] = React.useState({ downloading: 0, paused: 0, seeding: 0 })
-    useWebsocketMessageListener<{ downloading: number, paused: number, seeding: number }>({
-        type: WSEvents.ACTIVE_TORRENT_COUNT_UPDATED,
-        onMessage: data => {
-            setActiveTorrentCount(data)
-        },
-    })
 
     // Refresh AniList
     const { mutate: refreshAC, isPending: isRefreshingAC } = useRefreshAnimeCollection()
@@ -257,34 +241,6 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
             //     setGlobalSearchIsOpen(true)
             // },
         },
-        ...(
-            !(IS_ANDROID_APP)
-            && serverStatus?.settings?.library?.torrentProvider !== TORRENT_PROVIDER.NONE
-            && serverStatus?.settings?.torrent?.defaultTorrentClient !== TORRENT_CLIENT.NONE)
-            ? [{
-                id: "torrent-list",
-                iconType: serverStatus?.settings?.torrent?.defaultTorrentClient === TORRENT_CLIENT.QBITTORRENT
-                    ? SiQbittorrent
-                    : serverStatus?.settings?.torrent?.defaultTorrentClient === TORRENT_CLIENT.SEANIME ? SiBittorrent : SiTransmission,
-                name: (activeTorrentCount.seeding === 0 || !serverStatus?.settings?.torrent?.showActiveTorrentCount)
-                    ? "Torrent list"
-                    : `Torrent list (${activeTorrentCount.seeding} seeding)`,
-                href: serverStatus?.settings?.torrent?.defaultTorrentClient === TORRENT_CLIENT.SEANIME ? "/torrent-client" : "/torrent-list",
-                isCurrent: pathname === "/torrent-list" || pathname === "/torrent-client",
-                addon: ((activeTorrentCount.downloading + activeTorrentCount.paused) > 0 && serverStatus?.settings?.torrent?.showActiveTorrentCount)
-                    ? <Badge
-                        className="absolute right-0 top-0 bg-green-500" size="sm"
-                        intent="alert-solid"
-                    >{activeTorrentCount.downloading + activeTorrentCount.paused}</Badge>
-                    : undefined,
-            }] : [],
-        ...(!(IS_ANDROID_APP) && serverStatus?.debridSettings?.enabled && !!serverStatus?.debridSettings?.provider) ? [{
-            id: "debrid",
-            iconType: HiOutlineServerStack,
-            name: "Debrid",
-            href: "/debrid",
-            isCurrent: pathname === "/debrid",
-        }] : [],
         ...(!!serverStatus?.settings?.library?.libraryPath) ? [{
             id: "scan-summaries",
             iconType: TbReportSearch,
@@ -292,31 +248,11 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
             href: "/scan-summaries",
             isCurrent: pathname === "/scan-summaries",
         }] : [],
-        ...(!(IS_ANDROID_APP) && serverStatus?.settings?.library?.torrentProvider !== TORRENT_PROVIDER.NONE && !!serverStatus?.settings?.library?.libraryPath) ? [{
-            id: "auto-downloader",
-            iconType: LuRss,
-            name: "Auto Downloader",
-            href: "/auto-downloader",
-            isCurrent: pathname === "/auto-downloader",
-            addon: autoDownloaderQueueCount > 0 ? <Badge
-                className="absolute right-0 top-0 bg-red-400" size="sm"
-                intent="alert-solid"
-            >{autoDownloaderQueueCount}</Badge> : undefined,
-        }] : [],
     ], [
         pathname,
         missingEpisodeCount,
         serverStatus?.settings?.library?.enableManga,
-        serverStatus?.settings?.library?.torrentProvider,
-        serverStatus?.settings?.torrent?.defaultTorrentClient,
-        serverStatus?.settings?.torrent?.showActiveTorrentCount,
-        serverStatus?.debridSettings?.enabled,
-        serverStatus?.debridSettings?.provider,
         serverStatus?.settings?.library?.libraryPath,
-        activeTorrentCount.seeding,
-        activeTorrentCount.downloading,
-        activeTorrentCount.paused,
-        autoDownloaderQueueCount,
     ])
 
     // Plugins

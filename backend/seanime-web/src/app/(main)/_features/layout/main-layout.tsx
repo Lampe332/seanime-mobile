@@ -22,7 +22,6 @@ import { useMangaCollectionLoader } from "@/app/(main)/_hooks/manga-collection-l
 import { useMissingEpisodesLoader } from "@/app/(main)/_hooks/missing-episodes-loader"
 import { useAnimeCollectionListener } from "@/app/(main)/_listeners/anilist-collection.listeners"
 import { useAuthEventListeners } from "@/app/(main)/_listeners/auth.listeners.ts"
-import { useAutoDownloaderItemListener } from "@/app/(main)/_listeners/autodownloader.listeners"
 import { useExtensionListener } from "@/app/(main)/_listeners/extensions.listeners"
 import { useExternalPlayerLinkListener } from "@/app/(main)/_listeners/external-player-link.listeners"
 import { useMangaListener } from "@/app/(main)/_listeners/manga.listeners"
@@ -111,7 +110,6 @@ function Loader() {
     /**
      * Websocket listeners
      */
-    useAutoDownloaderItemListener()
     useAnimeCollectionListener()
     useMiscEventListeners()
     useExtensionListener()

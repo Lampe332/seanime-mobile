@@ -93,7 +93,7 @@ export function TorrentDownloadModal({ onToggleTorrent, media, entry }: {
     const { mutate, isPending } = useTorrentClientDownload(() => {
         setConfirmationModalOpen(false)
         setTorrentDrawerIsOpen(undefined)
-        router.push("/torrent-list")
+        router.push("/android-downloads?kind=torrents")
     })
 
     // download torrent file
@@ -118,7 +118,7 @@ export function TorrentDownloadModal({ onToggleTorrent, media, entry }: {
     const { mutate: debridAddTorrents, isPending: isDownloadingDebrid } = useDebridAddTorrents(() => {
         setConfirmationModalOpen(false)
         setTorrentDrawerIsOpen(undefined)
-        router.push("/debrid")
+        router.push("/android-downloads?kind=torrents")
     })
 
     const isDisabled = isPending || isDownloadingFiles || isDownloadingDebrid

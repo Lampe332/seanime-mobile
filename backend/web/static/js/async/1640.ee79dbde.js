@@ -1,0 +1,1 @@
+"use strict";(self.rspackChunkseanime_web=self.rspackChunkseanime_web||[]).push([[1640],{17403(e,s,n){var a=n(72361),r=n(58932),d=n(82799);let o=(0,r.uV)("/_main/debrid/")({component:()=>(0,a.jsx)(d.C,{to:"/android-downloads",search:{kind:"torrents"},replace:!0})});n.d(s,{},{Route:o})}}]);

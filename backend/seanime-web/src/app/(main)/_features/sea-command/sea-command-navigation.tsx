@@ -153,20 +153,6 @@ export function SeaCommandNavigation() {
             flag: "lists",
             show: !serverStatus?.isOffline,
         },
-        ...(!IS_ANDROID_APP ? [
-            {
-                name: "Auto Downloader",
-                href: "/auto-downloader",
-                flag: "auto-downloader",
-                show: !serverStatus?.isOffline,
-            },
-            {
-                name: "Torrent list",
-                href: "/torrent-list",
-                flag: "torrent-list",
-                show: !serverStatus?.isOffline,
-            },
-        ] : []),
         {
             name: "Scan summaries",
             href: "/scan-summaries",

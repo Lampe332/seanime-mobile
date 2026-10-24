@@ -91,7 +91,7 @@ export function TorrentDownloadFileSelection({ entry }: { entry: Anime_Entry }) 
     const { mutate, isPending } = useTorrentClientDownload(() => {
         setFileSelection(undefined)
         setTorrentDrawerIsOpen(undefined)
-        router.push("/torrent-list")
+        router.push("/android-downloads?kind=torrents")
     })
 
     // Convert file paths to file previews format

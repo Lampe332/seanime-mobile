@@ -66,9 +66,9 @@ export function PluginManager() {
         if (!isMainTabRef.current) return
         if ([
             "/entry", "/lists", "/search", "/manga",
-            "/settings", "/auto-downloader", "/debrid", "/torrent-list",
+            "/settings", "/debrid",
             "/schedule", "/extensions", "/sync", "/discover",
-            "/scan-summaries", "/webview", "/torrent-client",
+            "/scan-summaries", "/webview",
 
         ].some(path => event.path.startsWith(path))) {
             router.push(event.path)

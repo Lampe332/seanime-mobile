@@ -123,7 +123,7 @@ export function SeaCommandTorrentMagnet() {
     const { handleStreamSelection: startTorrentStream } = useHandleStartTorrentStream()
     const { handleStreamSelection: startDebridStream } = useHandleStartDebridStream()
     const { mutate: downloadTorrent } = useTorrentClientDownload(() => {
-        router.push("/torrent-list")
+        router.push("/android-downloads?kind=torrents")
     })
 
     const setTorrentSearchSelection = useSetAtom(__torrentSearch_selectionAtom)

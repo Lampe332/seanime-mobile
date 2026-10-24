@@ -1,5 +1,4 @@
 import { AL_AnimeDetailsById_Media, Anime_Entry } from "@/api/generated/types"
-import { AnimeAutoDownloaderButton } from "@/app/(main)/_features/anime-library/_containers/anime-auto-downloader-button"
 import { ToggleLockFilesButton } from "@/app/(main)/_features/anime-library/_containers/toggle-lock-files-button"
 import { TrailerModal } from "@/app/(main)/_features/anime/_components/trailer-modal"
 import { AnimeEntryStudio } from "@/app/(main)/_features/media/_components/anime-entry-studio"
@@ -200,7 +199,6 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
 
                         <AnimeEntryDropdownMenu entry={entry} details={details} />
 
-                        <AnimeAutoDownloaderButton entry={entry} size="md" />
 
                         {isLibraryView && !entry._isNakamaEntry && !!entry.libraryData && <>
                             {!IS_ANDROID_APP && <MediaSyncTrackButton mediaId={entry.mediaId} type="anime" size="md" />}
