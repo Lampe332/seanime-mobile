@@ -1,31 +1,16 @@
 import { usePlayNext } from "@/app/(main)/_atoms/playback.atoms"
-import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
-import { usePathname, useRouter, useSearchParams } from "@/lib/navigation"
 import React from "react"
 
-export function usePlayNextVideoOnMount({ onPlay }: { onPlay: () => void }, enabled: boolean = true) {
-
-    const serverStatus = useServerStatus()
-    const router = useRouter()
-    const pathname = usePathname()
-    const searchParams = useSearchParams()
-
+/** Plays the next episode when "Continue" opened this anime; the request is meant for one media only. */
+export function usePlayNextVideoOnMount({ mediaId, onPlay }: { mediaId: number, onPlay: () => void }, enabled: boolean = true) {
     const { playNext, resetPlayNext } = usePlayNext()
 
     React.useEffect(() => {
-        if (!enabled) return
-
-        // Automatically play the next episode if param is present in URL
+        if (!enabled || playNext !== mediaId) return
         const t = setTimeout(() => {
-            if (playNext) {
-                resetPlayNext()
-                onPlay()
-            }
+            resetPlayNext()
+            onPlay()
         }, 500)
-
         return () => clearTimeout(t)
-    }, [pathname, playNext, serverStatus, onPlay, enabled])
-
-    return null
-
+    }, [playNext, mediaId, onPlay, enabled])
 }

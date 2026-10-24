@@ -10,6 +10,7 @@ export function useHandleEpisodeSection(props: { entry: Anime_Entry }) {
     const { playMediaFile } = useHandlePlayMedia()
 
     usePlayNextVideoOnMount({
+        mediaId: entry.mediaId,
         onPlay: () => {
             if (entry.nextEpisode) {
                 playMediaFile({ path: entry.nextEpisode.localFile?.path ?? "", mediaId: entry.mediaId, episode: entry.nextEpisode })

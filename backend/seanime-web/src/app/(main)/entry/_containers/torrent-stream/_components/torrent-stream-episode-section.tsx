@@ -30,15 +30,10 @@ export function TorrentStreamEpisodeSection(props: TorrentStreamEpisodeSectionPr
         onPlayNextEpisodeOnMount,
         bottomSection,
         contextType,
-        ...rest
     } = props
 
     const { data: watchHistory } = useGetContinuityWatchHistory()
 
-
-    /**
-     * Organize episodes to watch
-     */
     const episodesToWatch = useMemo(() => {
         if (!episodeCollection?.episodes) return []
         let ret = [...episodeCollection?.episodes]
@@ -49,10 +44,8 @@ export function TorrentStreamEpisodeSection(props: TorrentStreamEpisodeSectionPr
         return ret
     }, [episodeCollection?.episodes, entry.nextEpisode, entry.listData?.progress])
 
-    /**
-     * Play next episode on mount if requested
-     */
     usePlayNextVideoOnMount({
+        mediaId: entry.mediaId,
         onPlay: () => {
             onPlayNextEpisodeOnMount(episodesToWatch[0])
         },
@@ -83,7 +76,6 @@ export function TorrentStreamEpisodeSection(props: TorrentStreamEpisodeSectionPr
                                 image={episode.episodeMetadata?.image || episode.baseAnime?.bannerImage || episode.baseAnime?.coverImage?.extraLarge}
                                 topTitle={episode.episodeTitle || episode?.baseAnime?.title?.userPreferred}
                                 title={episode.displayTitle}
-                                // meta={episode.episodeMetadata?.airDate ?? undefined}
                                 isInvalid={episode.isInvalid}
                                 progressTotal={episode.baseAnime?.episodes}
                                 watchedProgress={entry.listData?.progress}
