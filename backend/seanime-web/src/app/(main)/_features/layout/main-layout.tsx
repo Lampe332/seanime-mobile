@@ -35,7 +35,6 @@ import { MangaPreferencesSync, MangaSourceRefreshSync } from "@/app/(main)/manga
 import { LoadingOverlayWithLogo } from "@/components/shared/loading-overlay-with-logo"
 import { AppLayout, AppLayoutContent, AppLayoutSidebar, AppSidebarProvider } from "@/components/ui/app-layout"
 import { usePathname, useRouter } from "@/lib/navigation"
-import { __isElectronDesktop__ } from "@/types/constants"
 import React from "react"
 import { useServerStatus } from "../../_hooks/use-server-status"
 import { useInvalidateQueriesListener } from "../../_listeners/invalidate-queries.listeners"
@@ -47,12 +46,9 @@ import { TopIndefiniteLoader } from "../top-indefinite-loader"
 
 const IS_ANDROID_APP = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile"
 
-const MpvCoreLazyWrapper =React.lazy(() => import("@/app/(main)/_features/mpv-core/mpv-core-lazy-wrapper"))
 const NativePlayerLazyWrapper = React.lazy(() => import("@/app/(main)/_features/native-player/native-player-lazy-wrapper"))
 
 export const MainLayout = ({ children }: { children: React.ReactNode }) => {
-    const serverStatus = useServerStatus()
-
     return (
         <>
             <Loader />
@@ -74,16 +70,10 @@ export const MainLayout = ({ children }: { children: React.ReactNode }) => {
             {IS_ANDROID_APP && <MobileTutorialListener />}
 
             <PluginManager />
-            {/* Android: the built-in player for downloaded media (directstream) */}
-            {(__isElectronDesktop__ || IS_ANDROID_APP) && (
-                <React.Suspense fallback={null}>
-                    {__isElectronDesktop__ && serverStatus?.settings?.mediaPlayer?.mpvPrismEnabled ? (
-                        <MpvCoreLazyWrapper />
-                    ) : (
-                        <NativePlayerLazyWrapper />
-                    )}
-                </React.Suspense>
-            )}
+            {/* the built-in player for downloaded media and streams (directstream) */}
+            <React.Suspense fallback={null}>
+                <NativePlayerLazyWrapper />
+            </React.Suspense>
             <NakamaManager />
             <NakamaWatchPartyChatProvider />
             <NakamaWatchPartyChat />

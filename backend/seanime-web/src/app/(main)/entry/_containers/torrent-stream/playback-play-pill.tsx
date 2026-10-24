@@ -1,7 +1,6 @@
 import { DebridClient_StreamState, StreamAutoSelectStatusPayload, Torrentstream_TorrentStatus } from "@/api/generated/types"
 import { useDebridCancelStream } from "@/api/hooks/debrid.hooks"
 import { useTorrentstreamStopStream } from "@/api/hooks/torrentstream.hooks"
-import { mc_currentTime, mpvCore_stateAtom } from "@/app/(main)/_features/mpv-core/mpv-core.atoms"
 import { nativePlayer_stateAtom } from "@/app/(main)/_features/native-player/native-player.atoms"
 import { PlaybackManager_PlaybackState } from "@/app/(main)/_features/progress-tracking/_lib/playback-manager.types"
 import { vc_currentTime, vc_globalMiniPlayerAtom, vc_miniPlayer, vc_videoElement } from "@/app/(main)/_features/video-core/video-core-atoms"
@@ -40,11 +39,9 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
     isNativePlayerComponent?: "control-bar" | "top-section" | "overlay",
     show?: boolean
 }) {
-    const [mpvCoreState, setMpvCoreState] = useAtom(mpvCore_stateAtom)
     const [nativePlayerState, setNativePlayerState] = useAtom(nativePlayer_stateAtom)
     const videoElement = useAtomValue(vc_videoElement)
     const setMiniPlayer = useSetAtom(vc_miniPlayer)
-    const builtInPlayerActive = mpvCoreState.active || nativePlayerState.active
     const clientId = useAtomValue(clientIdAtom)
     const { sendMessage } = useWebsocketSender()
 
@@ -103,39 +100,6 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
     }, [showMediaPlayerLoading])
 
     const handleStopStream = React.useCallback(() => {
-            if (mpvCoreState.active && clientId) {
-                const playbackId = mpvCoreState.playbackInfo?.id || ""
-                const playbackType = mpvCoreState.playbackInfo?.playbackType || ""
-
-                setMpvCoreState(draft => {
-                    draft.playbackInfo = null
-                    draft.playbackError = null
-                    draft.loadingState = "Ending stream..."
-                    draft.miniPlayer = false
-                })
-
-                setTimeout(() => {
-                    setMpvCoreState(draft => {
-                        draft.active = false
-                    })
-                }, 700)
-
-                sendMessage({
-                    type: WSEvents.MPVCORE,
-                    payload: {
-                        clientId,
-                        type: "terminated",
-                        payload: {
-                            id: playbackId,
-                            clientId,
-                            playbackType,
-                        },
-                    },
-                })
-
-                return
-            }
-
             if (nativePlayerState.active && clientId) {
                 const playbackId = nativePlayerState.playbackInfo?.id || ""
                 const playbackType = nativePlayerState.playbackInfo?.streamType || ""
@@ -175,7 +139,7 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
 
             stopTorrent()
         },
-        [clientId, mpvCoreState, nativePlayerState, sendMessage, setMiniPlayer, setMpvCoreState, setNativePlayerState, stopTorrent, videoElement,
+        [clientId, nativePlayerState, sendMessage, setMiniPlayer, setNativePlayerState, stopTorrent, videoElement,
             debridState, cancelDebrid, setDebridState])
 
     useWebsocketMessageListener({
@@ -323,14 +287,14 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
     })
 
     useEffect(() => {
-        if (mpvCoreState.active || nativePlayerState.active) {
+        if (nativePlayerState.active) {
             setDebridState(null)
         }
-    }, [mpvCoreState.active, nativePlayerState.active])
+    }, [nativePlayerState.active])
 
     // Inline native player control-bar formatting
     if (isNativePlayerComponent) {
-        if (isNativePlayerComponent === "control-bar" && isLoaded && (mpvCoreState.active || nativePlayerState.active) && status) {
+        if (isNativePlayerComponent === "control-bar" && isLoaded && nativePlayerState.active && status) {
             return (
                 <div className={cn("relative justify-left w-fit top-0 h-full flex items-center px-2 truncate", show === false && "hidden")}>
                     <div className="flex-wrap w-fit h-14 flex gap-3 items-center text-sm pointer-events-auto text-[--foreground]">
@@ -365,15 +329,13 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
 
     // Determine active player states
     const videoCoreMiniPlayer = useAtomValue(vc_globalMiniPlayerAtom)
-    const isMiniPlayer = (mpvCoreState.active && mpvCoreState.miniPlayer) || (nativePlayerState.active && videoCoreMiniPlayer)
-    const isExpandedPlayerActive = (mpvCoreState.active && !mpvCoreState.miniPlayer) || (nativePlayerState.active && !videoCoreMiniPlayer)
+    const isExpandedPlayerActive = nativePlayerState.active && !videoCoreMiniPlayer
 
-    const mpvCurrentTime = useAtomValue(mc_currentTime)
     const videoCoreCurrentTime = useAtomValue(vc_currentTime)
-    const isPlayerLoading = (mpvCoreState.active && !!mpvCoreState.loadingState) || (nativePlayerState.active && !!nativePlayerState.loadingState)
+    const isPlayerLoading = nativePlayerState.active && !!nativePlayerState.loadingState
 
     // Hide the floating pill if the player is active in expanded (fullscreen) mode and the media has started playing
-    const shouldHideFloating = isExpandedPlayerActive && (mediaPlayerStartedPlaying || mpvCurrentTime > 0 || videoCoreCurrentTime > 0 || !isPlayerLoading)
+    const shouldHideFloating = isExpandedPlayerActive && (mediaPlayerStartedPlaying || videoCoreCurrentTime > 0 || !isPlayerLoading)
     const showFloatingPill = isActive && !shouldHideFloating
 
     // Reset mediaPlayerStartedPlaying to false when loading/selecting starts
