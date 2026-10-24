@@ -8,10 +8,10 @@ Guide for contributors to Seanime Mobile, the Android app that bundles the Seani
 |---|---|
 | `app/` | Android app (Kotlin): WebView shell, `SeanimeService`, offline player, downloads, in-app updater |
 | `app/src/main/jniLibs/<abi>/libseanime.so` | Prebuilt Go backend, packaged as an executable native library |
-| `backend/` | Seanime server (Go) |
+| `backend/` | Seanime server (Go), an Android-only fork of Seanime 3.10.4 |
 | `backend/seanime-web/` | React UI, embedded into `backend/web` by the release build |
 | `tests/` | Python/Playwright UI harnesses and helpers |
-| `docs/` | Build guide, validation notes, upstream documentation |
+| `docs/` | Build guide, README images, the original Android port's README |
 | `Build.ps1` | Release build script (Windows/PowerShell) |
 | `CHANGELOG.md` | App changelog |
 
@@ -19,14 +19,14 @@ Guide for contributors to Seanime Mobile, the Android app that bundles the Seani
 
 See **[docs/BUILD.md](docs/BUILD.md)**. Kotlin-only changes need just the Android SDK (`.\gradlew.bat :app:assembleDebug`); UI or backend changes need `.\Build.ps1 -RebuildBackend`.
 
-## Phone UI
+## UI
 
-The UI lives in `backend/seanime-web/src`. Phone screens:
+The UI lives in `backend/seanime-web/src` and only targets the Android app, on phones and tablets:
 
-- detect the phone layout with `isAndroidPhone()` from `app/(main)/_features/video-core/video-core-menu`,
-- build on the shared phone kit in `app/(main)/_features/phone-screen` (`phone-screen.tsx`, `phone-screen.css`).
+- screens build on the shared phone kit in `app/(main)/_features/phone-screen` (`phone-screen.tsx`, `phone-screen.css`),
+- a tablet (smaller screen side of 600 CSS px or more) gets `html[data-layout="tablet"]` from `src/lib/tablet-ui.ts`, and `src/app/tablet.css` lays the same screens out for its width.
 
-Reuse the phone kit instead of adding screen-specific styling, and keep desktop behavior unchanged when `isAndroidPhone()` is false.
+Reuse the phone kit instead of adding screen-specific styling. The Kotlin injections (`UIBottomNav.kt`, `UIHomePatch.kt`, `VideoControlInjector.kt`) read data attributes and classes of the React DOM, so check them before renaming one.
 
 ## Checks
 
@@ -43,7 +43,7 @@ UI harnesses in `tests/` need Python with Playwright (`python -m pip install pla
 python tests/<name>.py [screenshot-dir]
 ```
 
-Most harnesses (`mobile_*.py` with a matching `mobile_*_bundle.cjs`) bundle the real page with stubs via esbuild, load it in headless Chromium and save screenshots to the optional directory. A few scripts differ: `mobile_navigation.py` takes an optional repository root instead, and `*_device.py` scripts need a connected phone.
+Most harnesses (`mobile_*.py` with a matching `mobile_*_bundle.cjs`) bundle the real page with stubs via esbuild, load it in headless Chromium and save screenshots to the optional directory. They take the app's CSS from a local `npm run build` (`backend/seanime-web/out`) or, without one, from the committed `backend/web` (`tests/web_build.py`). A few scripts differ: `mobile_navigation.py` takes an optional repository root instead, and `*_device.py` scripts need a connected phone.
 
 Before a pull request, also run `.\gradlew.bat :app:lintRelease` for Kotlin changes.
 
@@ -51,8 +51,8 @@ Before a pull request, also run `.\gradlew.bat :app:lintRelease` for Kotlin chan
 
 `app/build.gradle.kts` defines the version:
 
-- `versionCode` defaults to the literal fallback (currently `31095`), overridable with `-PseanimeBaselineCode=...`.
-- `versionName` defaults to the literal fallback (currently `2.0.0`), overridable with `-PseanimeBaselineVersion=...`.
+- `versionCode` defaults to its literal fallback, overridable with `-PseanimeBaselineCode=...`.
+- `versionName` defaults to its literal fallback, overridable with `-PseanimeBaselineVersion=...`.
 
 `Build.ps1` names its output after the literal `versionName` fallback, so bump both literals for a release. `versionCode` must always increase.
 

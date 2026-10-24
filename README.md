@@ -159,7 +159,7 @@ The repository holds the complete source: the Android app (Kotlin), the Seanime 
 ```
 app/            Android app: Kotlin, WebView, player, downloads, updater
 backend/        Seanime server (Go) and the web interface (backend/seanime-web, React)
-docs/           Build guide, README images, upstream documentation, development notes
+docs/           Build guide, README images, the original Android port's README
 tests/          Phone UI tests (Python and Playwright)
 Build.ps1       Full release build including the backend
 ```

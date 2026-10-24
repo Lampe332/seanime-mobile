@@ -1,6 +1,6 @@
 # Building Seanime Mobile
 
-Step-by-step guide for Windows 10/11 (PowerShell). Applies to app 2.0.0 (versionCode 31095) with Seanime backend 3.10.4.
+Step-by-step guide for Windows 10/11 (PowerShell). The backend is an Android-only fork of Seanime 3.10.4.
 
 There are two ways to build:
 
@@ -118,7 +118,7 @@ The script:
 
 Without `-RebuildBackend` only steps 1, 4 and 5 run. Node.js and `npm` must be on `PATH` for step 2.
 
-`<versionName>` is read from the default value in `app/build.gradle.kts` (currently `2.0.0`), so the output is `Seanime-Mobile-2.0.0.apk`.
+`<versionName>` is read from the default value in `app/build.gradle.kts`, so the output is `Seanime-Mobile-<versionName>.apk`.
 
 `Build.ps1` always produces a **signed** release and therefore needs a signing key (next section).
 
@@ -218,7 +218,7 @@ Both apps use the same local server port (`127.0.0.1:43211`). Stop the normal ap
 
 One APK serves both. At start the web app checks the screen: when its smaller side is 600 CSS px or more (the Android sw600dp rule), it is a tablet (`IS_TABLET_UI` in `src/lib/tablet-ui.ts`), and `main.tsx` sets `html[data-layout="tablet"]`. The native injections (`UIBottomNav.kt`, `VideoControlInjector.kt`) read that attribute.
 
-- A tablet shows the phone screens. `isAndroidPhone()` is true on every Android device, and `layoutWidth()` reports a phone width to the width breakpoints in JavaScript.
+- The web UI has only phone screens, and a tablet shows them too: `layoutWidth()` reports a phone width to the width breakpoints in JavaScript.
 - `postcss.config.cjs` keeps every width media query above 430 px for phones (scoped to `:not([data-layout="tablet"])`) and adds a copy that resolves it for tablets as on a phone held upright. `:where()` keeps the specificity, so the cascade does not change on either.
 - `src/app/tablet.css` lays the phone screens out for the tablet by its real width (navigation rail, two panes, side sheets). Every rule is scoped to `html[data-layout="tablet"]`.
 - The activity handles size changes itself (`configChanges`), so a foldable opened or closed keeps the page. `reloadOnScreenClassChange()` reloads it when the screen crosses 600 px (after a playing video pauses), and the web app and the native injections decide again. A display size (density) change recreates the activity anyway.
@@ -241,7 +241,7 @@ One APK serves both. At start the web app checks the screen: when its smaller si
 └─────────────────────────────────────────────┘
 ```
 
-`libseanime.so` is not a JNI module but an executable Go program (PIE). Android extracts it from the APK (`useLegacyPackaging = true`) and `SeanimeService` starts it from `nativeLibraryDir`. More details: [upstream/DEVELOPMENT.md](upstream/DEVELOPMENT.md).
+`libseanime.so` is not a JNI module but an executable Go program (PIE). Android extracts it from the APK (`useLegacyPackaging = true`) and `SeanimeService` starts it from `nativeLibraryDir`.
 
 ## Troubleshooting
 
