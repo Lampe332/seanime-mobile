@@ -126,6 +126,9 @@
 [data-mobile-anime="true"] [data-media-entry-characters-section-grid-item-image-container] { width: 3rem !important; height: 3rem !important; min-width: 3rem !important; border-radius: 999px !important; overflow: hidden; }
 [data-mobile-anime="true"] [data-media-entry-characters-section-grid-item-content] p { font-size: .8125rem !important; line-height: 1.35 !important; overflow-wrap: anywhere; }
 [data-mobile-anime="true"] [data-media-entry-characters-section-grid-item-content] p + p { font-size: .75rem !important; color: var(--sm-text-subtle); }
+[data-mobile-anime="true"] [data-media-entry-characters-section-grid-item-content] p.text-lg { font-size: .8rem !important; line-height: 1.1rem !important; }
+[data-mobile-anime="true"] [data-media-entry-characters-section-grid-item-content] p.text-sm { font-size: .7rem !important; }
+[data-mobile-anime="true"] [data-media-entry-characters-section-grid-item-content] p.text-xs { font-size: .65rem !important; }
 [data-mobile-anime="true"] [data-media-card-grid] { display: flex !important; flex-wrap: nowrap; gap: .75rem !important; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding-bottom: .5rem; scrollbar-width: none; }
 [data-mobile-anime="true"] [data-media-card-grid] > * { flex: 0 0 min(39vw, 10rem); min-width: 0; scroll-snap-align: start; }
 [data-mobile-anime="true"] [data-media-entry-card-body] { border-radius: var(--sm-radius-sm); }

@@ -1237,3 +1237,7 @@ media-preview-chapter-display {
 [data-app-update-panel] progress:indeterminate { background: linear-gradient(90deg, transparent, #a78bfa, transparent); background-size: 200% 100%; animation: app-update-progress 1.4s linear infinite; }
 @keyframes app-update-progress { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { [data-app-update-panel] progress:indeterminate { animation: none; } }
+
+/* The app shows no ranking, genre, score or studio badges and no description toggle on media pages and previews. */
+[data-anime-meta-section-rankings-container="true"], [data-media-entry-genres-list="true"], [data-media-entry-audience-score="true"],
+[data-anime-entry-studio-badge="true"], [data-media-page-header-details-description-trigger="true"] { display: none !important; }

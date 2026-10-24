@@ -7,7 +7,5 @@ object UIPatches {
     fun inject(webView: WebView) {
         UIBottomNav.inject(webView)
         UIHomePatch.inject(webView)
-        UIMangaHomePatch.inject(webView)
-        UIEntryPatch.inject(webView)
     }
 }
