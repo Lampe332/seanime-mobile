@@ -88,11 +88,6 @@ declare namespace $ui {
         externalPlayerLink: ExternalPlayerLink
 
         /**
-         * Auto Downloader
-         */
-        autoDownloader: AutoDownloader
-
-        /**
          * Filler Manager
          */
         fillerManager: FillerManager
@@ -2034,23 +2029,6 @@ declare namespace $ui {
         skipIgnoredFiles?: boolean
     }
 
-    interface AutoDownloaderRunCheckOptions {
-        isSimulation?: boolean
-        ruleIds?: number[]
-    }
-
-    interface AutoDownloaderSimulationResult {
-        ruleId: number
-        mediaId: number
-        episode: number
-        link: string
-        hash: string
-        torrentName: string
-        score: number
-        extensionId: string
-        isDelayed: boolean
-    }
-
     type TorrentstreamPlaybackType = "default" | "externalPlayerLink" | "nativeplayer" | "none" | "noneAndAwait"
 
     interface TorrentstreamAnimeTorrentFile {
@@ -2285,44 +2263,6 @@ declare namespace $ui {
          * @param episodeNumber - The episode number (used for the modal)
          */
         open(url: string, mediaId: number, episodeNumber: number): void
-    }
-
-    interface AutoDownloader {
-        /**
-         * Run the auto downloader if it is enabled.
-         * This is a non-blocking call.
-         */
-        run(isSimulation?: boolean): void
-
-        /**
-         * Run the auto downloader immediately.
-         */
-        runNow(): void
-
-        /**
-         * Run a focused auto downloader check and return the simulation results.
-         */
-        runCheck(options?: AutoDownloaderRunCheckOptions): Promise<AutoDownloaderSimulationResult[]>
-
-        /**
-         * Gets the simulation results from the last run.
-         */
-        getSimulationResults(): AutoDownloaderSimulationResult[]
-
-        /**
-         * Clears the stored simulation results.
-         */
-        clearSimulationResults(): void
-
-        /**
-         * Gets the auto downloader settings.
-         */
-        getSettings(): $app.Models_AutoDownloaderSettings | undefined
-
-        /**
-         * Whether the auto downloader is enabled.
-         */
-        isEnabled(): boolean
     }
 
     interface FillerManager {

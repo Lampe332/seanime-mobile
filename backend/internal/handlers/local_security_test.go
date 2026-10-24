@@ -1104,21 +1104,6 @@ func TestMediaConsumptionHandlersDoNotUseStrictLocalOnlyBoundary(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 	})
-
-	t.Run("mediastream request falls through to binding for authenticated hosted requests", func(t *testing.T) {
-		// hosted playback requests should hit normal request validation instead of a strict local-only block.
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/mediastream/request", strings.NewReader(`{"path":`))
-		req.Host = "demo.example"
-		req.RemoteAddr = "203.0.113.10:51111"
-		req.Header.Set("Origin", "https://demo.example")
-		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
-
-		err := h.HandleRequestMediastreamMediaContainer(c)
-		assert.NoError(t, err)
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
-	})
 }
 
 func TestShouldRestrictSensitiveLocalInfo(t *testing.T) {

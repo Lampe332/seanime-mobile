@@ -12,14 +12,12 @@ import (
 	"seanime/internal/events"
 	"seanime/internal/extension"
 	"seanime/internal/extension_repo/prompt"
-	"seanime/internal/library/autodownloader"
 	"seanime/internal/library/autoscanner"
 	"seanime/internal/library/fillermanager"
 	"seanime/internal/library/playbackmanager"
 	"seanime/internal/manga"
 	"seanime/internal/mediacore"
 	"seanime/internal/mediaplayers/mediaplayer"
-	"seanime/internal/mediastream"
 	"seanime/internal/onlinestream"
 	"seanime/internal/platforms/platform"
 	"seanime/internal/torrent_clients/torrent_client"
@@ -52,10 +50,8 @@ type AppContextModules struct {
 	DebridClientRepository          *debrid_client.Repository
 	ContinuityManager               *continuity.Manager
 	AutoScanner                     *autoscanner.AutoScanner
-	AutoDownloader                  *autodownloader.AutoDownloader
 	FileCacher                      *filecache.Cacher
 	OnlinestreamRepository          *onlinestream.Repository
-	MediastreamRepository           *mediastream.Repository
 	TorrentstreamRepository         *torrentstream.Repository
 	FillerManager                   *fillermanager.FillerManager
 	VideoCore                       *videocore.VideoCore
@@ -182,9 +178,6 @@ type AppContext interface {
 	// BindFillerManagerToContextObj binds 'fillerManager' to the UI context object
 	BindFillerManagerToContextObj(vm *goja.Runtime, obj *goja.Object, logger *zerolog.Logger, ext *extension.Extension, scheduler *gojautil.Scheduler)
 
-	// BindAutoDownloaderToContextObj binds 'autoDownloader' to the UI context object
-	BindAutoDownloaderToContextObj(vm *goja.Runtime, obj *goja.Object, logger *zerolog.Logger, ext *extension.Extension, scheduler *gojautil.Scheduler)
-
 	// BindAutoScannerToContextObj binds 'autoScanner' to the UI context object
 	BindAutoScannerToContextObj(vm *goja.Runtime, obj *goja.Object, logger *zerolog.Logger, ext *extension.Extension, scheduler *gojautil.Scheduler)
 
@@ -228,11 +221,9 @@ type AppContextImpl struct {
 	torrentClientRepository         mo.Option[*torrent_client.Repository]
 	debridClientRepository          mo.Option[*debrid_client.Repository]
 	torrentstreamRepository         mo.Option[*torrentstream.Repository]
-	mediastreamRepository           mo.Option[*mediastream.Repository]
 	onlinestreamRepository          mo.Option[*onlinestream.Repository]
 	continuityManager               mo.Option[*continuity.Manager]
 	autoScanner                     mo.Option[*autoscanner.AutoScanner]
-	autoDownloader                  mo.Option[*autodownloader.AutoDownloader]
 	fileCacher                      mo.Option[*filecache.Cacher]
 	onRefreshAnilistAnimeCollection mo.Option[func()]
 	onRefreshAnilistMangaCollection mo.Option[func()]
@@ -264,11 +255,9 @@ func NewAppContext() AppContext {
 		torrentClientRepository:         mo.None[*torrent_client.Repository](),
 		debridClientRepository:          mo.None[*debrid_client.Repository](),
 		torrentstreamRepository:         mo.None[*torrentstream.Repository](),
-		mediastreamRepository:           mo.None[*mediastream.Repository](),
 		onlinestreamRepository:          mo.None[*onlinestream.Repository](),
 		continuityManager:               mo.None[*continuity.Manager](),
 		autoScanner:                     mo.None[*autoscanner.AutoScanner](),
-		autoDownloader:                  mo.None[*autodownloader.AutoDownloader](),
 		fileCacher:                      mo.None[*filecache.Cacher](),
 		onRefreshAnilistAnimeCollection: mo.None[func()](),
 		onRefreshAnilistMangaCollection: mo.None[func()](),
@@ -401,16 +390,8 @@ func (a *AppContextImpl) SetModulesPartial(modules AppContextModules) {
 		a.autoSelect = mo.Some(modules.TorrentstreamRepository.GetAutoSelect())
 	}
 
-	if modules.MediastreamRepository != nil {
-		a.mediastreamRepository = mo.Some(modules.MediastreamRepository)
-	}
-
 	if modules.OnlinestreamRepository != nil {
 		a.onlinestreamRepository = mo.Some(modules.OnlinestreamRepository)
-	}
-
-	if modules.AutoDownloader != nil {
-		a.autoDownloader = mo.Some(modules.AutoDownloader)
 	}
 
 	if modules.AutoScanner != nil {

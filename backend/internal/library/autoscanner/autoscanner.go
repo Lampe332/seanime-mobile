@@ -9,7 +9,6 @@ import (
 	"seanime/internal/database/db_bridge"
 	"seanime/internal/database/models"
 	"seanime/internal/events"
-	"seanime/internal/library/autodownloader"
 	"seanime/internal/library/scanner"
 	"seanime/internal/library/summary"
 	"seanime/internal/notifier"
@@ -35,8 +34,7 @@ type (
 		platformRef         *util.Ref[platform.Platform]
 		logger              *zerolog.Logger
 		wsEventManager      events.WSEventManagerInterface
-		db                  *db.Database                   // Database instance is required to update the local files.
-		autoDownloader      *autodownloader.AutoDownloader // AutoDownloader instance is required to refresh queue.
+		db                  *db.Database // Database instance is required to update the local files.
 		metadataProviderRef *util.Ref[metadata_provider.Provider]
 		logsDir             string
 		scanning            atomic.Bool
@@ -49,7 +47,6 @@ type (
 		Logger              *zerolog.Logger
 		WSEventManager      events.WSEventManagerInterface
 		Enabled             bool
-		AutoDownloader      *autodownloader.AutoDownloader
 		WaitTime            time.Duration
 		MetadataProviderRef *util.Ref[metadata_provider.Provider]
 		LogsDir             string
@@ -75,7 +72,6 @@ func New(opts *NewAutoScannerOptions) *AutoScanner {
 		logger:              opts.Logger,
 		wsEventManager:      opts.WSEventManager,
 		db:                  opts.Database,
-		autoDownloader:      opts.AutoDownloader,
 		metadataProviderRef: opts.MetadataProviderRef,
 		logsDir:             opts.LogsDir,
 		onRefreshCollection: opts.OnRefreshCollection,
@@ -338,9 +334,6 @@ func (as *AutoScanner) scan() {
 	if err != nil {
 		as.logger.Error().Err(err).Msg("autoscanner: failed to insert scan summary")
 	}
-
-	// Refresh the queue
-	go as.autoDownloader.CleanUpDownloadedItems()
 
 	if as.onRefreshCollection != nil {
 		go as.onRefreshCollection()

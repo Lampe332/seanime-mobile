@@ -221,8 +221,6 @@ func (c *Context) createAndBindContextObject(vm *goja.Runtime) {
 	plugin.GlobalAppContext.BindContinuityToContextObj(vm, obj, c.logger, c.ext, c.scheduler)
 	// Bind filler manager
 	plugin.GlobalAppContext.BindFillerManagerToContextObj(vm, obj, c.logger, c.ext, c.scheduler)
-	// Bind auto downloader
-	plugin.GlobalAppContext.BindAutoDownloaderToContextObj(vm, obj, c.logger, c.ext, c.scheduler)
 	// Bind auto scanner
 	plugin.GlobalAppContext.BindAutoScannerToContextObj(vm, obj, c.logger, c.ext, c.scheduler)
 	// Bind auto select profile helpers

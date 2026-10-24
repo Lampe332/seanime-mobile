@@ -366,66 +366,6 @@ func (h *Handler) HandlePatchSetting(c echo.Context) error {
 	return h.RespondWithData(c, status)
 }
 
-// HandleSaveAutoDownloaderSettings
-//
-//	@summary updates the auto-downloader settings.
-//	@route /api/v1/settings/auto-downloader [PATCH]
-//	@returns bool
-func (h *Handler) HandleSaveAutoDownloaderSettings(c echo.Context) error {
-
-	type body struct {
-		Provider              string `json:"provider"`
-		Interval              int    `json:"interval"`
-		Enabled               bool   `json:"enabled"`
-		DownloadAutomatically bool   `json:"downloadAutomatically"`
-		EnableEnhancedQueries bool   `json:"enableEnhancedQueries"`
-		EnableSeasonCheck     bool   `json:"enableSeasonCheck"`
-		UseDebrid             bool   `json:"useDebrid"`
-	}
-
-	var b body
-
-	if err := c.Bind(&b); err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	currSettings, err := h.App.Database.GetSettings()
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	// Validation
-	if b.Interval < 15 {
-		return h.RespondWithError(c, errors.New("interval must be at least 15 minutes"))
-	}
-
-	autoDownloaderSettings := &models.AutoDownloaderSettings{
-		Provider:              b.Provider,
-		Interval:              b.Interval,
-		Enabled:               b.Enabled,
-		DownloadAutomatically: b.DownloadAutomatically,
-		EnableEnhancedQueries: b.EnableEnhancedQueries,
-		EnableSeasonCheck:     b.EnableSeasonCheck,
-		UseDebrid:             b.UseDebrid,
-	}
-
-	currSettings.AutoDownloader = autoDownloaderSettings
-	currSettings.BaseModel = models.BaseModel{
-		ID:        1,
-		UpdatedAt: time.Now(),
-	}
-
-	_, err = h.App.Database.UpsertSettings(currSettings)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	// Update Auto Downloader settings
-	h.App.AutoDownloader.SetSettings(autoDownloaderSettings)
-
-	return h.RespondWithData(c, true)
-}
-
 // HandleSaveMediaPlayerSettings
 //
 //	@summary updates the media player settings.

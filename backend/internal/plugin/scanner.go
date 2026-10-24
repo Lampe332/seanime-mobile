@@ -45,7 +45,6 @@ func (a *AppContextImpl) BindScannerToContextObj(vm *goja.Runtime, obj *goja.Obj
 			goja_bindings.PanicThrowErrorString(vm, "ws event manager not set")
 		}
 
-		autoDownloader, _ := a.autoDownloader.Get()
 		refreshAnimeCollection, _ := a.onRefreshAnilistAnimeCollection.Get()
 
 		go func() {
@@ -158,9 +157,6 @@ func (a *AppContextImpl) BindScannerToContextObj(vm *goja.Runtime, obj *goja.Obj
 
 			_ = db_bridge.InsertScanSummary(database, scanSummaryLogger.GenerateSummary())
 
-			if autoDownloader != nil {
-				go autoDownloader.CleanUpDownloadedItems()
-			}
 			if refreshAnimeCollection != nil {
 				go refreshAnimeCollection()
 			}

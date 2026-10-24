@@ -21,7 +21,6 @@ import (
 	"seanime/internal/extension_repo"
 	"seanime/internal/hook"
 	"seanime/internal/library/anime"
-	"seanime/internal/library/autodownloader"
 	"seanime/internal/library/autoscanner"
 	"seanime/internal/library/fillermanager"
 	"seanime/internal/library/playbackmanager"
@@ -35,13 +34,11 @@ import (
 	"seanime/internal/mediaplayers/mpchc"
 	"seanime/internal/mediaplayers/mpv"
 	"seanime/internal/mediaplayers/vlc"
-	"seanime/internal/mediastream"
 	"seanime/internal/mpvcore"
 	"seanime/internal/nakama"
 	"seanime/internal/nativeplayer"
 	"seanime/internal/onlinestream"
 	"seanime/internal/platforms/anilist_platform"
-	"seanime/internal/platforms/offline_platform"
 	"seanime/internal/platforms/platform"
 	"seanime/internal/platforms/simulated_platform"
 	"seanime/internal/playlist"
@@ -84,12 +81,10 @@ type (
 		// API clients and providers
 		AnilistClientRef    *util.Ref[anilist.AnilistClient]
 		AnilistPlatformRef  *util.Ref[platform.Platform]
-		OfflinePlatformRef  *util.Ref[platform.Platform]
 		MetadataProviderRef *util.Ref[metadata_provider.Provider]
 
 		// Library
 		FillerManager       *fillermanager.FillerManager
-		AutoDownloader      *autodownloader.AutoDownloader
 		AutoScanner         *autoscanner.AutoScanner
 		PlaybackManager     *playbackmanager.PlaybackManager
 		episodeAvailability episodeAvailability
@@ -105,7 +100,6 @@ type (
 		// Streaming
 		DirectStreamManager     *directstream.Manager
 		OnlinestreamRepository  *onlinestream.Repository
-		MediastreamRepository   *mediastream.Repository
 		TorrentstreamRepository *torrentstream.Repository
 
 		// Players
@@ -125,7 +119,7 @@ type (
 		MangaRepository *manga.Repository
 		MangaDownloader *manga.Downloader
 
-		// Offline and local account
+		// Local account (lists of the simulated platform)
 		LocalManager local.Manager
 
 		// Utilities
@@ -315,9 +309,6 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 		ExtensionBankRef: extensionBankRef,
 	})
 
-	// Set initial metadata provider (will change if offline mode is enabled)
-	activeMetadataProvider := metadataProvider
-
 	// Initialize manga repository
 	mangaRepository := manga.NewRepository(&manga.NewRepositoryOptions{
 		Logger:           logger,
@@ -338,33 +329,17 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 	})
 
 	activePlatformRef := util.NewRef[platform.Platform](anilistPlatform)
-	metadataProviderRef := util.NewRef[metadata_provider.Provider](activeMetadataProvider)
+	metadataProviderRef := util.NewRef[metadata_provider.Provider](metadataProvider)
 
-	// Initialize sync manager for offline/online synchronization
+	// Initialize the local account manager (lists of the simulated platform)
 	localManager, err := local.NewManager(&local.NewManagerOptions{
-		LocalDir:            cfg.Offline.Dir,
-		AssetDir:            cfg.Offline.AssetDir,
-		Logger:              logger,
-		MetadataProviderRef: metadataProviderRef,
-		MangaRepository:     mangaRepository,
-		Database:            database,
-		WSEventManager:      wsEventManager,
-		IsOffline:           cfg.Server.Offline,
-		AnilistPlatformRef:  activePlatformRef,
+		LocalDir:           cfg.Offline.Dir,
+		Logger:             logger,
+		WSEventManager:     wsEventManager,
+		AnilistPlatformRef: activePlatformRef,
 	})
 	if err != nil {
-		logger.Fatal().Err(err).Msgf("app: Failed to initialize sync manager")
-	}
-
-	// Use local metadata provider if in offline mode
-	if cfg.Server.Offline {
-		activeMetadataProvider = localManager.GetOfflineMetadataProvider()
-	}
-
-	// Initialize local platform for offline operations
-	offlinePlatform, err := offline_platform.NewOfflinePlatform(localManager, anilistCWRef, logger)
-	if err != nil {
-		logger.Fatal().Err(err).Msgf("app: Failed to initialize local platform")
+		logger.Fatal().Err(err).Msgf("app: Failed to initialize local account manager")
 	}
 
 	// Initialize simulated platform for unauthenticated operations
@@ -373,17 +348,12 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 		logger.Fatal().Err(err).Msgf("app: Failed to initialize simulated platform")
 	}
 
-	// Change active platform if offline mode is enabled
-	if cfg.Server.Offline {
-		logger.Warn().Msg("app: Offline mode is active, using offline platform")
-		activePlatformRef.Set(offlinePlatform)
-	} else if !anilistCWRef.Get().IsAuthenticated() {
+	if !anilistCWRef.Get().IsAuthenticated() {
 		logger.Warn().Msg("app: Anilist client is not authenticated, using simulated platform")
 		activePlatformRef.Set(simulatedPlatform)
 	}
 
 	isOfflineRef := util.NewRef(cfg.Server.Offline)
-	offlinePlatformRef := util.NewRef[platform.Platform](offlinePlatform)
 
 	// Update plugin context with new modules
 	plugin.GlobalAppContext.SetModulesPartial(plugin.AppContextModules{
@@ -414,7 +384,6 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 		Database:                      database,
 		AnilistClientRef:              anilistCWRef,
 		AnilistPlatformRef:            activePlatformRef,
-		OfflinePlatformRef:            offlinePlatformRef,
 		LocalManager:                  localManager,
 		WSEventManager:                wsEventManager,
 		AnilistCacheDir:               anilistCacheDir,
@@ -434,9 +403,7 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 		MangaDownloader:               nil, // Initialized in App.initModulesOnce
 		PlaybackManager:               nil, // Initialized in App.initModulesOnce
 		episodeAvailability:           nil, // Initialized in App.initModulesOnce
-		AutoDownloader:                nil, // Initialized in App.initModulesOnce
 		AutoScanner:                   nil, // Initialized in App.initModulesOnce
-		MediastreamRepository:         nil, // Initialized in App.initModulesOnce
 		TorrentstreamRepository:       nil, // Initialized in App.initModulesOnce
 		ContinuityManager:             nil, // Initialized in App.initModulesOnce
 		DebridClientRepository:        nil, // Initialized in App.initModulesOnce
@@ -522,12 +489,10 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 	plugin.GlobalAppContext.SetModulesPartial(plugin.AppContextModules{
 		ContinuityManager:       app.ContinuityManager,
 		AutoScanner:             app.AutoScanner,
-		AutoDownloader:          app.AutoDownloader,
 		FileCacher:              app.FileCacher,
 		TorrentRepository:       app.TorrentRepository,
 		DebridClientRepository:  app.DebridClientRepository,
 		OnlinestreamRepository:  app.OnlinestreamRepository,
-		MediastreamRepository:   app.MediastreamRepository,
 		TorrentstreamRepository: app.TorrentstreamRepository,
 	})
 

@@ -3,11 +3,9 @@ package handlers
 import "strings"
 
 // Torrent search, torrent streaming, the built-in torrent client and debrid run on Android.
-// What stays off: the auto-downloader (background polling and downloads drain the battery)
-// and hosting torrent or debrid streams for Nakama peers from a phone.
+// What stays off: hosting torrent or debrid streams for Nakama peers from a phone.
+// (The auto-downloader was removed from the server.)
 var androidTorrentAPIPrefixes = [...]string{
-	"/api/v1/auto-downloader",
-	"/api/v1/settings/auto-downloader",
 	"/api/v1/nakama/host/torrentstream",
 	"/api/v1/nakama/host/debridstream",
 }

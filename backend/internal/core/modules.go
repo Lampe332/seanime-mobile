@@ -14,7 +14,6 @@ import (
 	discordrpc_presence "seanime/internal/discordrpc/presence"
 	"seanime/internal/events"
 	"seanime/internal/library/anime"
-	"seanime/internal/library/autodownloader"
 	"seanime/internal/library/autoscanner"
 	"seanime/internal/library/fillermanager"
 	"seanime/internal/library/playbackmanager"
@@ -26,7 +25,6 @@ import (
 	"seanime/internal/mediaplayers/mpchc"
 	"seanime/internal/mediaplayers/mpv"
 	"seanime/internal/mediaplayers/vlc"
-	"seanime/internal/mediastream"
 	"seanime/internal/mpvcore"
 	"seanime/internal/nakama"
 	"seanime/internal/nativeplayer"
@@ -36,9 +34,7 @@ import (
 	"seanime/internal/playlist"
 	"seanime/internal/plugin"
 	seanime_torrent "seanime/internal/torrent_clients/builtin_client"
-	"seanime/internal/torrent_clients/qbittorrent"
 	"seanime/internal/torrent_clients/torrent_client"
-	"seanime/internal/torrent_clients/transmission"
 	"seanime/internal/torrents/autoselect"
 	torrent_availability "seanime/internal/torrents/availability"
 	"seanime/internal/torrents/torrent"
@@ -265,21 +261,6 @@ func (a *App) initModulesOnce() {
 	a.MediacoreCoordinator.SetupSharedEffects()
 
 	// +---------------------+
-	// |    Media Stream     |
-	// +---------------------+
-
-	a.MediastreamRepository = mediastream.NewRepository(&mediastream.NewRepositoryOptions{
-		Logger:               a.Logger,
-		WSEventManager:       a.WSEventManager,
-		FileCacher:           a.FileCacher,
-		MediacoreCoordinator: a.MediacoreCoordinator,
-	})
-
-	a.AddCleanupFunction(func() {
-		a.MediastreamRepository.OnCleanup()
-	})
-
-	// +---------------------+
 	// |   Direct Stream     |
 	// +---------------------+
 
@@ -349,24 +330,6 @@ func (a *App) initModulesOnce() {
 	})
 
 	// +---------------------+
-	// |   Auto Downloader   |
-	// +---------------------+
-
-	a.AutoDownloader = autodownloader.New(&autodownloader.NewAutoDownloaderOptions{
-		Logger:                  a.Logger,
-		TorrentClientRepository: a.TorrentClientRepository,
-		TorrentRepository:       a.TorrentRepository,
-		Database:                a.Database,
-		WSEventManager:          a.WSEventManager,
-		MetadataProviderRef:     a.MetadataProviderRef,
-		DebridClientRepository:  a.DebridClientRepository,
-		IsOfflineRef:            a.IsOfflineRef(),
-	})
-
-	// This is run in a goroutine
-	a.AutoDownloader.Start()
-
-	// +---------------------+
 	// |    Auto Scanner     |
 	// +---------------------+
 
@@ -376,7 +339,6 @@ func (a *App) initModulesOnce() {
 		Logger:              a.Logger,
 		WSEventManager:      a.WSEventManager,
 		Enabled:             false, // Will be set in InitOrRefreshModules
-		AutoDownloader:      a.AutoDownloader,
 		MetadataProviderRef: a.MetadataProviderRef,
 		LogsDir:             a.Config.Logs.Dir,
 		OnRefreshCollection: func() {
@@ -614,41 +576,6 @@ func (a *App) InitOrRefreshModules() {
 	// +---------------------+
 
 	if settings.Torrent != nil {
-		// Init qBittorrent
-		qbit := qbittorrent.NewClient(&qbittorrent.NewClientOptions{
-			Logger:   a.Logger,
-			Username: settings.Torrent.QBittorrentUsername,
-			Password: settings.Torrent.QBittorrentPassword,
-			Port:     settings.Torrent.QBittorrentPort,
-			Host:     settings.Torrent.QBittorrentHost,
-			Path:     settings.Torrent.QBittorrentPath,
-			Tags:     settings.Torrent.QBittorrentTags,
-			Category: settings.Torrent.QBittorrentCategory,
-		})
-		// Login to qBittorrent
-		go func() {
-			if settings.Torrent.Default == "qbittorrent" {
-				err = qbit.Login()
-				if err != nil {
-					a.Logger.Error().Err(err).Msg("app: Failed to login to qBittorrent")
-				} else {
-					a.Logger.Info().Msg("app: Logged in to qBittorrent")
-				}
-			}
-		}()
-		// Init Transmission
-		trans, err := transmission.New(&transmission.NewTransmissionOptions{
-			Logger:   a.Logger,
-			Username: settings.Torrent.TransmissionUsername,
-			Password: settings.Torrent.TransmissionPassword,
-			Port:     settings.Torrent.TransmissionPort,
-			Host:     settings.Torrent.TransmissionHost,
-			Path:     settings.Torrent.TransmissionPath,
-		})
-		if err != nil && settings.Torrent.TransmissionUsername != "" && settings.Torrent.TransmissionPassword != "" { // Only log error if username and password are set
-			a.Logger.Error().Err(err).Msg("app: Failed to initialize transmission client")
-		}
-
 		// Shutdown torrent client first
 		if a.TorrentClientRepository != nil {
 			a.TorrentClientRepository.Shutdown()
@@ -673,39 +600,23 @@ func (a *App) InitOrRefreshModules() {
 
 		// Torrent Client Repository
 		a.TorrentClientRepository = torrent_client.NewRepository(&torrent_client.NewRepositoryOptions{
-			Logger:                 a.Logger,
-			QbittorrentClient:      qbit,
-			Transmission:           trans,
-			SeanimeClient:          builtInClient,
-			TorrentRepository:      a.TorrentRepository,
-			Provider:               settings.Torrent.Default,
-			MetadataProviderRef:    a.MetadataProviderRef,
-			IsBuiltinClientEnabled: a.FeatureFlags.BuiltinTorrentClient || runtime.GOOS == "android", // the only client a phone has
+			Logger:              a.Logger,
+			SeanimeClient:       builtInClient,
+			TorrentRepository:   a.TorrentRepository,
+			Provider:            settings.Torrent.Default,
+			MetadataProviderRef: a.MetadataProviderRef,
 		})
 
 		a.TorrentClientRepository.InitActiveTorrentCount(settings.Torrent.ShowActiveTorrentCount, a.WSEventManager)
 
-		// Set AutoDownloader qBittorrent client
-		a.AutoDownloader.SetTorrentClientRepository(a.TorrentClientRepository)
-
 		plugin.GlobalAppContext.SetModulesPartial(plugin.AppContextModules{
 			TorrentClientRepository: a.TorrentClientRepository,
-			AutoDownloader:          a.AutoDownloader,
 		})
 	} else if settings.Torrent == nil {
 		a.Logger.Warn().Msg("app: Did not initialize torrent client module, no settings found")
 	} else if a.TorrentClientRepository != nil {
 		a.TorrentClientRepository.Shutdown()
 		a.TorrentClientRepository = nil
-	}
-
-	// +---------------------+
-	// |   AutoDownloader    |
-	// +---------------------+
-
-	// Update Auto Downloader
-	if settings.AutoDownloader != nil {
-		go a.AutoDownloader.SetSettings(settings.AutoDownloader)
 	}
 
 	// +---------------------+
@@ -751,8 +662,8 @@ func (a *App) InitOrRefreshModules() {
 
 }
 
-// InitOrRefreshMediastreamSettings will initialize or refresh the mediastream settings.
-// It is called after the App instance is created and after settings are updated.
+// InitOrRefreshMediastreamSettings loads the mediastream settings (status, plugin settings API).
+// The transcoder they configured was removed; the settings row is kept for existing databases and plugins.
 func (a *App) InitOrRefreshMediastreamSettings() {
 
 	var settings *models.MediastreamSettings
@@ -771,23 +682,10 @@ func (a *App) InitOrRefreshMediastreamSettings() {
 			PreTranscodeEnabled: false,
 		})
 		if err != nil {
-			a.Logger.Error().Err(err).Msg("app: Failed to initialize mediastream module")
+			a.Logger.Error().Err(err).Msg("app: Failed to initialize mediastream settings")
 			return
 		}
 	}
-
-	a.MediastreamRepository.InitializeModules(settings, a.Config.Cache.Dir, a.Config.Cache.TranscodeDir)
-
-	// Cleanup cache
-	go func() {
-		if settings.TranscodeEnabled {
-			// If transcoding is enabled, trim files
-			_ = a.FileCacher.TrimMediastreamVideoFiles()
-		} else {
-			// If transcoding is disabled, clear all files
-			_ = a.FileCacher.ClearMediastreamVideoFiles()
-		}
-	}()
 
 	a.SecondarySettings.Mediastream = settings
 }

@@ -17,8 +17,6 @@ func TestShouldDisableAndroidTorrentRoute(t *testing.T) {
 		{name: "android torrent file download", goos: "android", path: "/api/v1/download-torrent-file", want: false},
 		{name: "android auto select profile", goos: "android", path: "/api/v1/auto-select/profile", want: false},
 		{name: "android torrent provider listing", goos: "android", path: "/api/v1/extensions/list/anime-torrent-provider", want: false},
-		{name: "android auto downloader", goos: "android", path: "/api/v1/auto-downloader/run", want: true},
-		{name: "android auto downloader settings", goos: "android", path: "/api/v1/settings/auto-downloader", want: true},
 		{name: "android Nakama torrent stream", goos: "android", path: "/api/v1/nakama/host/torrentstream/stream", want: true},
 		{name: "android Nakama debrid stream", goos: "android", path: "/api/v1/nakama/host/debridstream/stream", want: true},
 		{name: "android direct online download remains available", goos: "android", path: "/api/v1/directstream/download", want: false},

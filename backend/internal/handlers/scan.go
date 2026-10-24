@@ -120,8 +120,6 @@ func (h *Handler) HandleScanLocalFiles(c echo.Context) error {
 	// Save the scan summary
 	_ = db_bridge.InsertScanSummary(h.App.Database, scanSummaryLogger.GenerateSummary())
 
-	go h.App.AutoDownloader.CleanUpDownloadedItems()
-
 	go h.App.RefreshAnimeCollection()
 
 	go h.App.UpdateLibrarySize(true)

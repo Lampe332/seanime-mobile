@@ -45,7 +45,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 		"/icons",
 		"/events",
 		"/api/v1/image-proxy",
-		"/api/v1/mediastream/transcode/",
 		"/api/v1/torrent-client/list",
 		"/api/v1/proxy",
 		"/api/v1/directstream/stream",
@@ -161,27 +160,7 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.PATCH("/settings", h.HandleSaveSettings)
 	v1.PATCH("/settings/path", h.HandlePatchSetting)
 	v1.POST("/start", h.HandleGettingStarted)
-	v1.PATCH("/settings/auto-downloader", h.HandleSaveAutoDownloaderSettings)
 	v1.PATCH("/settings/media-player", h.HandleSaveMediaPlayerSettings)
-
-	// Auto Downloader
-	v1.POST("/auto-downloader/run", h.HandleRunAutoDownloader)
-	v1.POST("/auto-downloader/run/simulation", h.HandleRunAutoDownloaderSimulation)
-	v1.GET("/auto-downloader/rule/:id", h.HandleGetAutoDownloaderRule)
-	v1.GET("/auto-downloader/rule/anime/:id", h.HandleGetAutoDownloaderRulesByAnime)
-	v1.GET("/auto-downloader/rules", h.HandleGetAutoDownloaderRules)
-	v1.POST("/auto-downloader/rule", h.HandleCreateAutoDownloaderRule)
-	v1.PATCH("/auto-downloader/rule", h.HandleUpdateAutoDownloaderRule)
-	v1.DELETE("/auto-downloader/rule/:id", h.HandleDeleteAutoDownloaderRule)
-
-	v1.GET("/auto-downloader/items", h.HandleGetAutoDownloaderItems)
-	v1.DELETE("/auto-downloader/item", h.HandleDeleteAutoDownloaderItem)
-
-	v1.GET("/auto-downloader/profiles", h.HandleGetAutoDownloaderProfiles)
-	v1.GET("/auto-downloader/profile/:id", h.HandleGetAutoDownloaderProfile)
-	v1.POST("/auto-downloader/profile", h.HandleCreateAutoDownloaderProfile)
-	v1.PATCH("/auto-downloader/profile", h.HandleUpdateAutoDownloaderProfile)
-	v1.DELETE("/auto-downloader/profile/:id", h.HandleDeleteAutoDownloaderProfile)
 
 	// Other
 	v1.POST("/test-dump", h.HandleTestDump)
@@ -296,7 +275,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.GET("/torrent-client/details", h.HandleGetBuiltInTorrentDetails)
 	v1.POST("/torrent-client/action", h.HandleTorrentClientAction)
 	v1.POST("/torrent-client/get-files", h.HandleTorrentClientGetFiles)
-	v1.POST("/torrent-client/rule-magnet", h.HandleTorrentClientAddMagnetFromRule)
 
 	//
 	// Auto Select
@@ -432,8 +410,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1FileCache := v1.Group("/filecache")
 	v1FileCache.GET("/total-size", h.HandleGetFileCacheTotalSize)
 	v1FileCache.DELETE("/bucket", h.HandleRemoveFileCacheBucket)
-	v1FileCache.GET("/mediastream/videofiles/total-size", h.HandleGetFileCacheMediastreamVideoFilesTotalSize)
-	v1FileCache.DELETE("/mediastream/videofiles", h.HandleClearFileCacheMediastreamVideoFiles)
 
 	//
 	// Discord
@@ -449,17 +425,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	//
 	// Media Stream
 	//
-	v1.GET("/mediastream/settings", h.HandleGetMediastreamSettings)
-	v1.PATCH("/mediastream/settings", h.HandleSaveMediastreamSettings)
-	v1.POST("/mediastream/request", h.HandleRequestMediastreamMediaContainer)
-	v1.POST("/mediastream/preload", h.HandlePreloadMediastreamMediaContainer)
-	// Transcode
-	v1.POST("/mediastream/shutdown-transcode", h.HandleMediastreamShutdownTranscodeStream)
-	v1.GET("/mediastream/transcode/*", h.HandleMediastreamTranscode)
-	v1.GET("/mediastream/subs/*", h.HandleMediastreamGetSubtitles)
-	v1.GET("/mediastream/att/*", h.HandleMediastreamGetAttachments)
-	v1.GET("/mediastream/direct", h.HandleMediastreamDirectPlay)
-	v1.HEAD("/mediastream/direct", h.HandleMediastreamDirectPlay)
 	v1.GET("/mediastream/file", h.HandleMediastreamFile)
 	v1.GET("/mediastream/local-subtitles", h.HandleMediastreamLocalSubtitles)
 
@@ -535,19 +500,7 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	// Sync
 	//
 	v1Local := v1.Group("/local")
-	v1Local.GET("/track", h.HandleLocalGetTrackedMediaItems)
-	v1Local.POST("/track", h.HandleLocalAddTrackedMedia)
-	v1Local.DELETE("/track", h.HandleLocalRemoveTrackedMedia)
-	v1Local.GET("/track/:id/:type", h.HandleLocalGetIsMediaTracked)
-	v1Local.POST("/local", h.HandleLocalSyncData)
-	v1Local.GET("/queue", h.HandleLocalGetSyncQueueState)
-	v1Local.POST("/anilist", h.HandleLocalSyncAnilistData)
-	v1Local.POST("/updated", h.HandleLocalSetHasLocalChanges)
-	v1Local.GET("/updated", h.HandleLocalGetHasLocalChanges)
-	v1Local.GET("/storage/size", h.HandleLocalGetLocalStorageSize)
 	v1Local.POST("/sync-simulated-to-anilist", h.HandleLocalSyncSimulatedDataToAnilist)
-
-	v1Local.POST("/offline", h.HandleSetOfflineMode)
 
 	//
 	// Debrid
