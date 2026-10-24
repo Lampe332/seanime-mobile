@@ -111,7 +111,7 @@ object UIBottomNav {
                     background: rgba(139,92,246,0.28);
                 }
 
-                /* ── 7 entries: slightly smaller icons/labels, side gutter, nothing clipped ── */
+                /* 7 entries: slightly smaller icons/labels, side gutter, nothing clipped */
                 #__seanime_bottom_nav[data-nav-count="7"] {
                     padding-left: max(6px, env(safe-area-inset-left, 0px));
                     padding-right: max(6px, env(safe-area-inset-right, 0px));
@@ -136,7 +136,7 @@ object UIBottomNav {
                     }
                 }
 
-                /* ── Drag handle on nav items ── */
+                /* Drag handle on nav items */
                 .seanime-nav-drag-handle {
                     position: absolute;
                     top: 2px;
@@ -168,14 +168,14 @@ object UIBottomNav {
                     height: 20px !important;
                 }
 
-                /* ── Nav drop target highlight ── */
+                /* Nav drop target highlight */
                 #__seanime_bottom_nav a.seanime-drop-target,
                 #__seanime_bottom_nav button.seanime-drop-target {
                     background: rgba(255,255,255,0.1);
                     border-radius: 8px;
                 }
 
-                /* ── Floating menu ── */
+                /* Floating menu */
                 #android-floating-menu {
                     left: 0.5rem !important;
                     right: 0.5rem !important;
@@ -217,7 +217,7 @@ object UIBottomNav {
                     opacity: 1 !important;
                     transform: none !important;
                 }
-                /* ── Edit mode: calm full-height panel, the bar stays visible below ── */
+                /* Edit mode: calm full-height panel, the bar stays visible below */
                 #android-floating-menu.seanime-edit-mode {
                     top: 3rem !important;
                     bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px)) !important;
@@ -448,7 +448,7 @@ object UIBottomNav {
                     color: #fff;
                 }
 
-                /* ── Menu action rows (customize / reset) ── */
+                /* Menu action rows (customize / reset) */
                 #android-floating-menu .float-nav-divider {
                     flex: 0 0 auto;
                     height: 1px;
@@ -470,7 +470,7 @@ object UIBottomNav {
                     color: #f87171;
                 }
 
-                /* ── Reset dialog ── */
+                /* Reset dialog */
                 #__seanime_reset_dialog_overlay {
                     position: fixed;
                     inset: 0;
@@ -549,7 +549,7 @@ object UIBottomNav {
                     background: rgba(239,68,68,0.22);
                 }
 
-                /* ── Float drag handle ── */
+                /* Float drag handle */
                 .float-drag-handle {
                     position: absolute;
                     top: 2px;
@@ -570,18 +570,18 @@ object UIBottomNav {
                     display: flex;
                 }
 
-                /* ── Float drop target highlight ── */
+                /* Float drop target highlight */
                 .float-nav-item.seanime-float-drop-target .float-nav-icon {
                     background: rgba(255,255,255,0.2) !important;
                     border-color: rgba(255,255,255,0.4) !important;
                 }
 
-                /* ── Float hidden state ── */
+                /* Float hidden state */
                 .float-nav-item[data-hidden="true"] .float-nav-icon {
                     opacity: 0.3;
                 }
 
-                /* ── Landscape phones: slimmer bar and menu ── */
+                /* Landscape phones: slimmer bar and menu */
                 @media (orientation: landscape) and (max-height: 600px) {
                     [data-main-layout-content="true"] {
                         padding-bottom: 4.25rem !important;
@@ -619,7 +619,7 @@ object UIBottomNav {
                     .seanime-edit-hint { margin-top: 2px; }
                 }
 
-                /* ── Drag ghost clone ── */
+                /* Drag ghost clone */
                 .seanime-drag-ghost--row {
                     display: flex;
                     align-items: center;
@@ -648,6 +648,21 @@ object UIBottomNav {
                     border-radius: 12px;
                     box-shadow: 0 8px 24px rgba(0,0,0,0.6);
                 }
+
+                /* Base of the menu rows and of their drag ghosts */
+                .float-nav-item { display: flex; align-items: center; justify-content: center; position: relative; width: 100%; }
+                .float-nav-tooltip { position: absolute; right: 64px; color: white; font-size: 13px; font-weight: 500; padding: 0; white-space: nowrap; pointer-events: none; }
+                .float-nav-icon {
+                    width: 44px !important;
+                    height: 44px !important;
+                    border-radius: 12px;
+                    background: rgba(25,25,25,0.9);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    display: grid !important;
+                    place-items: center !important;
+                    color: #a0a0a0;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+                }
             `;
             document.head.appendChild(s);
         })();
@@ -667,21 +682,12 @@ object UIBottomNav {
             initNav();
 
             function initNav() {
-                if (window.__seanime_bottomnav_init && document.getElementById('__seanime_bottom_nav')) return;
-                window.__seanime_bottomnav_init = true;
-
-                // ─────────────────────────────────────────────────────────────
-                // STORAGE KEYS
-                // ─────────────────────────────────────────────────────────────
                 var LS_NAV_ORDER     = '__seanime_nav_order';
                 var LS_NAV_PLACEMENT = '__seanime_nav_placement';
                 var LS_NAV_ITEMS     = '__seanime_nav_items_full';
                 var LS_FLOAT_HIDDEN  = '__seanime_float_hidden';
                 var LS_FLOAT_ORDER   = '__seanime_float_order';
 
-                // ─────────────────────────────────────────────────────────────
-                // SVG CONSTANTS — defined once so they are always available
-                // ─────────────────────────────────────────────────────────────
                 var icon = window.__seanimeIcons.svg;
                 var iconFor = window.__seanimeIcons.forItem;
                 var SVG_HAMBURGER = icon('menu');
@@ -693,60 +699,17 @@ object UIBottomNav {
                 // Maximum number of entries in the bottom bar (the Menu button counts).
                 var MAX_NAV_ITEMS = 7;
 
-                // ─────────────────────────────────────────────────────────────
-                // NAV ITEM DEFINITIONS
-                // ─────────────────────────────────────────────────────────────
                 var DEFAULT_NAV_ITEMS = [
-                    {
-                        id: 'home',
-                        href: '/',
-                        label: 'Home',
-                        matchExact: true,
-                        placement: 'nav',
-                        svg: icon('home')
-                    },
-                    {
-                        id: 'lists',
-                        href: '/lists',
-                        label: 'My Lists',
-                        matchExact: false,
-                        placement: 'nav',
-                        svg: icon('lists')
-                    },
-                    {
-                        id: 'discover',
-                        href: '/discover',
-                        label: 'Discover',
-                        matchExact: false,
-                        placement: 'nav',
-                        svg: icon('discover')
-                    },
-                    {
-                        id: 'search',
-                        href: '/search',
-                        label: 'Search',
-                        matchExact: false,
-                        placement: 'nav',
-                        svg: icon('search')
-                    },
-                    {
-                        id: 'menu',
-                        label: 'Menu',
-                        isMenu: true,
-                        immovableToFloat: true,
-                        placement: 'nav',
-                        svg: SVG_HAMBURGER
-                    }
+                    { id: 'home', href: '/', label: 'Home', matchExact: true, placement: 'nav', svg: icon('home') },
+                    { id: 'lists', href: '/lists', label: 'My Lists', matchExact: false, placement: 'nav', svg: icon('lists') },
+                    { id: 'discover', href: '/discover', label: 'Discover', matchExact: false, placement: 'nav', svg: icon('discover') },
+                    { id: 'search', href: '/search', label: 'Search', matchExact: false, placement: 'nav', svg: icon('search') },
+                    { id: 'menu', label: 'Menu', isMenu: true, immovableToFloat: true, placement: 'nav', svg: SVG_HAMBURGER }
                 ];
 
-                // ─────────────────────────────────────────────────────────────
-                // PERSISTENCE HELPERS
-                // ─────────────────────────────────────────────────────────────
+                // Persistence
                 function normalizeNavItem(it) {
                     if (!it || !it.id) return null;
-                    // For the menu item, always use the SVG constants so they
-                    // survive localStorage round-trips intact.
-                    var isMenu = !!it.isMenu;
                     return {
                         id: it.id,
                         href: it.href !== undefined ? it.href : null,
@@ -754,7 +717,7 @@ object UIBottomNav {
                         matchExact: !!it.matchExact,
                         placement: it.placement || 'nav',
                         svg: iconFor(it) || window.__seanimeIcons.clean(it.svg),
-                        isMenu: isMenu,
+                        isMenu: !!it.isMenu,
                         immovableToFloat: !!it.immovableToFloat,
                         isSidebarItem: !!it.isSidebarItem,
                         sidebarType: it.sidebarType || null
@@ -763,15 +726,9 @@ object UIBottomNav {
 
                 function navigationPath(href) {
                     if (!href || href === '#') return '';
-                    try {
-                        var path = new URL(String(href), window.location.href).pathname;
-                        while (path.length > 1 && path.charAt(path.length - 1) === '/') path = path.slice(0, -1);
-                        return path;
-                    } catch (e) {
-                        var path = String(href).split(/[?#]/)[0];
-                        while (path.length > 1 && path.charAt(path.length - 1) === '/') path = path.slice(0, -1);
-                        return path;
-                    }
+                    var path;
+                    try { path = new URL(String(href), window.location.href).pathname; } catch (e) { path = String(href).split(/[?#]/)[0]; }
+                    return path.replace(/(.)\/+${'$'}/, '${'$'}1');
                 }
                 function isAndroidRemovedOfflineItem(item) {
                     return !!item && navigationPath(item.href) === '/sync';
@@ -799,22 +756,22 @@ object UIBottomNav {
                             });
                         }
                         var savedOrder = JSON.parse(localStorage.getItem(LS_NAV_ORDER) || 'null');
-                        if (Array.isArray(savedOrder)) {
-                            var ordered = [];
-                            savedOrder.forEach(function(id) {
-                                for (var i = 0; i < items.length; i++) {
-                                    if (items[i].id === id) { ordered.push(items[i]); break; }
-                                }
-                            });
-                            items.forEach(function(it) {
-                                var found = false;
-                                ordered.forEach(function(o) { if (o.id === it.id) found = true; });
-                                if (!found) ordered.push(it);
-                            });
-                            items = ordered;
-                        }
+                        if (Array.isArray(savedOrder)) items = inSavedOrder(items, savedOrder, 'id');
                     } catch(e) {}
                     return items;
+                }
+
+                // The entries named in the saved order first, in that order, then the rest.
+                function inSavedOrder(list, order, key) {
+                    var ordered = [];
+                    order.forEach(function(value) {
+                        for (var i = 0; i < list.length; i++) {
+                            if (list[i][key] === value) { ordered.push(list[i]); break; }
+                        }
+                    });
+                    return ordered.concat(list.filter(function(it) {
+                        return !ordered.some(function(o) { return o[key] === it[key]; });
+                    }));
                 }
 
                 function saveNavState() {
@@ -886,21 +843,18 @@ object UIBottomNav {
                 }
                 migrateStoredOfflineNavigation();
 
-                // ─────────────────────────────────────────────────────────────
-                // STATE
-                // ─────────────────────────────────────────────────────────────
-                function ensureAndroidDownloadsItem(items) {
-                    if (items.some(function(item) { return item.id === 'android-downloads' || navigationPath(item.href) === '/android-downloads'; })) return;
-                    items.push({ id: 'android-downloads', href: '/android-downloads', label: 'Downloads',
-                        matchExact: true, placement: 'nav',
-                        svg: icon('download') });
+                // Every bar state has the Downloads entry, and icons always come from the shared catalogue.
+                function prepareNavItems(items) {
+                    if (!items.some(function(item) { return item.id === 'android-downloads' || navigationPath(item.href) === '/android-downloads'; })) {
+                        items.push({ id: 'android-downloads', href: '/android-downloads', label: 'Downloads', matchExact: true, placement: 'nav', svg: icon('download') });
+                    }
+                    items.forEach(function(it) { it.svg = iconFor(it) || window.__seanimeIcons.clean(it.svg); });
+                    return items;
                 }
 
-                var NAV_ITEMS = loadNavItems().filter(function(item) {
+                var NAV_ITEMS = prepareNavItems(loadNavItems().filter(function(item) {
                     return !/^\/(torrent-list|torrent-client|auto-downloader)(\/|${'$'})/.test(item.href || '');
-                });
-                ensureAndroidDownloadsItem(NAV_ITEMS);
-                NAV_ITEMS.forEach(function(it) { it.svg = iconFor(it) || window.__seanimeIcons.clean(it.svg); });
+                }));
                 var menuOpen  = false;
                 var editMode  = false;
                 var menuBtn   = null;
@@ -928,18 +882,15 @@ object UIBottomNav {
                     NAV_ITEMS = out;
                 })();
                 function navCount() {
-                    var n = 0;
-                    NAV_ITEMS.forEach(function(it) { if (it.placement === 'nav') n++; });
-                    return n;
+                    return NAV_ITEMS.filter(function(it) { return it.placement === 'nav'; }).length;
                 }
 
-                // floatSidebarItems: ordered list of sidebar items shown in float panel
-                // Each: { label, href, type, svg, isCurrent }
+                // The menu's entries in display order: { type, label, href, svg, isCurrent }
                 var floatSidebarItems = [];
+                function refreshFloatItems() { floatSidebarItems = applyFloatOrder(snapshotSidebarItems()); }
 
                 function getItem(id) {
-                    for (var i = 0; i < NAV_ITEMS.length; i++) { if (NAV_ITEMS[i].id === id) return NAV_ITEMS[i]; }
-                    return null;
+                    return NAV_ITEMS.find(function(it) { return it.id === id; }) || null;
                 }
                 function isActive(item) {
                     if (item.isMenu) return false;
@@ -948,9 +899,6 @@ object UIBottomNav {
                     return path === item.href || path.indexOf(item.href + '/') === 0;
                 }
                 function suppressDefault(e) { e.preventDefault(); }
-
-                // Returns the svg string for the hamburger icon — always reliable.
-                function getMenuSvg() { return SVG_HAMBURGER; }
 
                 // Menu tab: same hamburger icon open or closed; the open state is the active pill.
                 function setMenuBtnOpen(open) {
@@ -965,41 +913,64 @@ object UIBottomNav {
                     try { return JSON.parse(localStorage.getItem('seanime-mobile-language') || '"en"') === 'de' ? de : en; } catch (e) { return en; }
                 }
 
-                // Last rows of the menu: customize navigation + reset navigation.
-                function makeActionRow(id, label, ariaLabel, svg, danger, onClick) {
-                    var row = document.createElement('div');
-                    row.id = id;
-                    row.className = 'float-nav-item float-nav-action' + (danger ? ' float-nav-action--danger' : '');
+                // Menu rows act as buttons: focusable and activated with Enter or Space.
+                function asButton(row) {
                     row.setAttribute('role', 'button');
                     row.setAttribute('tabindex', '0');
-                    row.setAttribute('aria-label', ariaLabel);
                     row.addEventListener('keydown', function(e) {
                         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); row.click(); }
                     });
-
+                    return row;
+                }
+                function rowText(label) {
                     var text = document.createElement('span');
                     text.className = 'float-nav-tooltip';
                     text.textContent = label;
+                    return text;
+                }
+                // Entry icons are drawn at 22px, whatever size their source svg declares.
+                function fitIcon(container) {
+                    var svgEl = container.querySelector('svg');
+                    if (!svgEl) return;
+                    svgEl.setAttribute('width', '22');
+                    svgEl.setAttribute('height', '22');
+                    svgEl.style.cssText = 'width:22px!important;height:22px!important;display:block!important;margin:0!important;';
+                }
+                function iconTile(svg) {
+                    var iconWrap = document.createElement('div');
+                    iconWrap.className = 'float-nav-icon';
+                    iconWrap.innerHTML = svg || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
+                    fitIcon(iconWrap);
+                    return iconWrap;
+                }
 
+                // Last rows of the menu: customize navigation + reset navigation.
+                function makeActionRow(id, label, svg, danger, onClick) {
+                    var row = asButton(document.createElement('div'));
+                    row.id = id;
+                    row.className = 'float-nav-item float-nav-action' + (danger ? ' float-nav-action--danger' : '');
+                    row.setAttribute('aria-label', label);
                     var iconWrap = document.createElement('div');
                     iconWrap.className = 'float-nav-icon';
                     iconWrap.innerHTML = svg;
-
-                    row.appendChild(text);
+                    row.appendChild(rowText(label));
                     row.appendChild(iconWrap);
                     row.addEventListener('contextmenu', suppressDefault);
                     row.addEventListener('click', function(e) { e.stopPropagation(); onClick(); });
                     return row;
                 }
+                function divider() {
+                    var el = document.createElement('div');
+                    el.className = 'float-nav-divider';
+                    el.setAttribute('role', 'separator');
+                    return el;
+                }
                 function appendMenuActions(menu, withCustomize) {
-                    var divider = document.createElement('div');
-                    divider.className = 'float-nav-divider';
-                    divider.setAttribute('role', 'separator');
-                    menu.appendChild(divider);
+                    menu.appendChild(divider());
                     if (withCustomize) {
-                        menu.appendChild(makeActionRow('__seanime_wrench_btn', navText('Customize navigation', 'Navigation anpassen'), navText('Customize navigation', 'Navigation anpassen'), SVG_WRENCH, false, toggleEditMode));
+                        menu.appendChild(makeActionRow('__seanime_wrench_btn', navText('Customize navigation', 'Navigation anpassen'), SVG_WRENCH, false, toggleEditMode));
                     }
-                    menu.appendChild(makeActionRow('__seanime_reset_btn', navText('Reset navigation', 'Navigation zur\u00fccksetzen'), navText('Reset navigation', 'Navigation zur\u00fccksetzen'), SVG_RESET, true, showResetDialog));
+                    menu.appendChild(makeActionRow('__seanime_reset_btn', navText('Reset navigation', 'Navigation zur\u00fccksetzen'), SVG_RESET, true, showResetDialog));
                 }
 
                 function navItemToFloatPill(navItem) {
@@ -1012,10 +983,7 @@ object UIBottomNav {
                     };
                 }
 
-                // ─────────────────────────────────────────────────────────────
-                // Helper: labels (lower-case) and hrefs that are currently in the
-                // bottom nav (excludes the menu button itself)
-                // ─────────────────────────────────────────────────────────────
+                // Labels (lower-case) and hrefs of the bar entries, without the Menu button.
                 function getNavLookup() {
                     var labels = new Set();
                     var hrefs = new Set();
@@ -1029,9 +997,7 @@ object UIBottomNav {
                     return { labels: labels, hrefs: hrefs };
                 }
 
-                // ─────────────────────────────────────────────────────────────
-                // SIDEBAR SNAPSHOT (with automatic removal of items already in nav)
-                // ─────────────────────────────────────────────────────────────
+                // Menu entries: the sidebar's items without those already in the bar.
                 function snapshotSidebarItems() {
                     var items = [];
                     var existing = {};
@@ -1050,7 +1016,7 @@ object UIBottomNav {
 
                     // First, collect all sidebar items with duplicate prevention
                     document.querySelectorAll('.UI-AppSidebar__sidebar a[data-vertical-menu-item-link]').forEach(function(a) {
-                        if (a.style.display === 'none' && !a.dataset.hiddenByUs) return;
+                        if (a.style.display === 'none') return;
                         var label = a.getAttribute('data-vertical-menu-item-link');
                         var href  = a.getAttribute('href');
                         if (isAndroidRemovedOfflineItem({ href: href })) return;
@@ -1062,7 +1028,7 @@ object UIBottomNav {
                         }
                     });
                     document.querySelectorAll('.UI-AppSidebar__sidebar button[data-vertical-menu-item-button]').forEach(function(btn) {
-                        if (btn.style.display === 'none' && !btn.dataset.hiddenByUs) return;
+                        if (btn.style.display === 'none') return;
                         var label = btn.getAttribute('data-vertical-menu-item-button');
                         var svgEl = btn.querySelector('svg');
                         if (label && !seen(label, null) && !inNav(label, null)) {
@@ -1091,55 +1057,26 @@ object UIBottomNav {
 
                 function applyFloatOrder(snapshot) {
                     var order = loadFloatOrder();
-                    if (!order) return signOutLast(snapshot);
-                    var ordered = [];
-                    order.forEach(function(lbl) {
-                        for (var i = 0; i < snapshot.length; i++) {
-                            if (snapshot[i].label === lbl) { ordered.push(snapshot[i]); break; }
-                        }
-                    });
-                    snapshot.forEach(function(it) {
-                        var found = false;
-                        ordered.forEach(function(o) { if (o.label === it.label) found = true; });
-                        if (!found) ordered.push(it);
-                    });
-                    return signOutLast(ordered);
+                    return signOutLast(order ? inSavedOrder(snapshot, order, 'label') : snapshot);
                 }
 
                 function resetToDefaults() {
-                    if (editMode) {
-                        editMode = false;
-                        var editNav  = document.getElementById('__seanime_bottom_nav');
-                        var editMenu = document.getElementById('android-floating-menu');
-                        if (editNav)  editNav.classList.remove('seanime-edit-mode');
-                        if (editMenu) { editMenu.classList.remove('seanime-edit-mode'); editMenu.style.display = 'none'; editMenu.innerHTML = ''; }
-                    }
-                    try {
-                        localStorage.removeItem(LS_NAV_ORDER);
-                        localStorage.removeItem(LS_NAV_PLACEMENT);
-                        localStorage.removeItem(LS_NAV_ITEMS);
-                        localStorage.removeItem(LS_FLOAT_HIDDEN);
-                        localStorage.removeItem(LS_FLOAT_ORDER);
-                    } catch(e) {}
-
-                    NAV_ITEMS = DEFAULT_NAV_ITEMS.map(function(d) { return Object.assign({}, d); });
-                    ensureAndroidDownloadsItem(NAV_ITEMS);
-                NAV_ITEMS.forEach(function(it) { it.svg = iconFor(it) || window.__seanimeIcons.clean(it.svg); });
+                    if (editMode) exitEditMode();
+                    NAV_ITEMS = prepareNavItems(DEFAULT_NAV_ITEMS.map(function(d) { return Object.assign({}, d); }));
                     saveNavState();
-
                     saveFloatHidden({});
-                    saveFloatOrder([]);
-
-                    var snapshot = snapshotSidebarItems();
-                    floatSidebarItems = applyFloatOrder(snapshot);
+                    saveFloatOrder(null);
+                    refreshFloatItems();
                     refreshNavBar();
-
                     if (menuOpen) closeMenu();
                 }
 
-                // ─────────────────────────────────────────────────────────────
-                // FLOATING MENU — normal (non-edit) open/close
-                // ─────────────────────────────────────────────────────────────
+                // Menu
+                function clickSidebarButton(label) {
+                    var button = document.querySelector('.UI-AppSidebar__sidebar button[data-vertical-menu-item-button="' + label.replace(/"/g, '\\"') + '"]');
+                    if (button) button.click();
+                }
+
                 function navigateViaApp(href) {
                     if (href === '/android-downloads') {
                         window.dispatchEvent(new Event('seanime-open-downloads'));  // routes/_main.tsx pauses playback and opens the page
@@ -1161,8 +1098,7 @@ object UIBottomNav {
                     var menu = document.getElementById('android-floating-menu');
                     if (!menu) return;
 
-                    var snapshot = snapshotSidebarItems();
-                    floatSidebarItems = applyFloatOrder(snapshot);
+                    refreshFloatItems();
                     var hiddenMap = loadFloatHidden();
 
                     menu.innerHTML = '';
@@ -1174,47 +1110,20 @@ object UIBottomNav {
                     var visible = floatSidebarItems.slice().reverse().filter(function(it) { return !hiddenMap[it.label]; });
 
                     visible.forEach(function(item) {
-                        var row = document.createElement('div');
+                        var row = asButton(document.createElement('div'));
                         row.className = 'float-nav-item' + (item.isCurrent ? ' float-nav-item--current' : '');
-                        row.setAttribute('role', 'button');
-                        row.setAttribute('tabindex', '0');
                         row.setAttribute('aria-label', item.label);
-                        row.addEventListener('keydown', function(e) {
-                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); row.click(); }
-                        });
-
-                        var tooltip = document.createElement('span');
-                        tooltip.className = 'float-nav-tooltip';
-                        tooltip.textContent = item.label;
-
-                        var iconWrap = document.createElement('div');
-                        iconWrap.className = 'float-nav-icon' + (item.isCurrent ? ' float-nav-icon--active' : '');
-                        iconWrap.innerHTML = item.svg || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
-                        var svgEl = iconWrap.querySelector('svg');
-                        if (svgEl) {
-                            svgEl.setAttribute('width', '22');
-                            svgEl.setAttribute('height', '22');
-                            svgEl.style.cssText = 'width:22px!important;height:22px!important;display:block!important;margin:0!important;';
-                        }
-
-                        row.appendChild(tooltip);
-                        row.appendChild(iconWrap);
+                        row.appendChild(rowText(item.label));
+                        row.appendChild(iconTile(item.svg));
                         menu.appendChild(row);
 
                         row.addEventListener('click', function(e) {
                             e.stopPropagation();
                             if (editMode) return;
-                            if (item.type === 'link' && (
-                                window.location.pathname === item.href ||
-                                window.location.pathname.indexOf(item.href + '/') === 0
-                            )) { closeMenu(); return; }
+                            if (item.type === 'link' && isActive(item)) { closeMenu(); return; }
                             closeMenu(function() {
-                                if (item.type === 'link') {
-                                    navigateViaApp(item.href);
-                                } else {
-                                    var t = document.querySelector('.UI-AppSidebar__sidebar button[data-vertical-menu-item-button="' + item.label.replace(/"/g, '\\"') + '"]');
-                                    if (t) t.click();
-                                }
+                                if (item.type === 'link') navigateViaApp(item.href);
+                                else clickSidebarButton(item.label);
                             });
                         });
                     });
@@ -1274,61 +1183,31 @@ object UIBottomNav {
                         nav.classList.add('visible');
                     }
                 }
-                function showNav() {
-                    var nav = document.getElementById('__seanime_bottom_nav');
-                    if (nav && !isReaderOpen() && !isDrawerOpen()) nav.classList.add('visible');
-                }
-
-                // ─────────────────────────────────────────────────────────────
-                // DRAWER OBSERVERS
-                // ─────────────────────────────────────────────────────────────
-                var drawerAttrObs = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(m) {
-                        if (m.attributeName === 'data-state' &&
-                            (m.target.hasAttribute('data-vaul-drawer') ||
-                             m.target.classList.contains('UI-Drawer__content') ||
-                             m.target.classList.contains('UI-Modal__overlay') ||
-                             m.target.classList.contains('UI-Modal__content'))) {
-                            updateNavVisibility();
-                        }
-                    });
-                });
-                function observeExistingDrawers() {
-                    document.querySelectorAll('[data-vaul-drawer], .UI-Drawer__content, .UI-Modal__overlay, .UI-Modal__content').forEach(function(el) {
-                        drawerAttrObs.observe(el, { attributes: true, attributeFilter: ['data-state'] });
-                    });
-                }
+                // The bar hides under open sheets and the manga reader. Only sheets are observed for data-state.
+                var SHEETS = '[data-vaul-drawer], .UI-Drawer__content, .UI-Modal__overlay, .UI-Modal__content';
+                var sheetStateObserver = new MutationObserver(updateNavVisibility);
+                function watchSheet(el) { sheetStateObserver.observe(el, { attributes: true, attributeFilter: ['data-state'] }); }
                 new MutationObserver(function(mutations) {
                     var needsCheck = false;
                     mutations.forEach(function(m) {
                         m.addedNodes.forEach(function(node) {
                             if (node.nodeType !== 1) return;
-                            if (node.hasAttribute('data-vaul-drawer') || node.classList.contains('UI-Drawer__content') || node.classList.contains('UI-Modal__overlay') || node.classList.contains('UI-Modal__content')) {
-                                drawerAttrObs.observe(node, { attributes: true, attributeFilter: ['data-state'] });
-                                needsCheck = true;
-                            }
-                            if (node.querySelectorAll) {
-                                node.querySelectorAll('[data-vaul-drawer], .UI-Drawer__content, .UI-Modal__overlay, .UI-Modal__content').forEach(function(c) {
-                                    drawerAttrObs.observe(c, { attributes: true, attributeFilter: ['data-state'] });
-                                    needsCheck = true;
-                                });
-                            }
+                            if (node.matches(SHEETS)) { watchSheet(node); needsCheck = true; }
+                            node.querySelectorAll(SHEETS).forEach(function(c) { watchSheet(c); needsCheck = true; });
                         });
                         // A dialog can be unmounted while still "open" (its page re-renders), without a closing state change.
                         m.removedNodes.forEach(function(node) {
-                            if (node.nodeType !== 1) return;
-                            if (node.matches('[data-vaul-drawer], .UI-Drawer__content, .UI-Modal__overlay, .UI-Modal__content') ||
-                                node.querySelector('[data-vaul-drawer], .UI-Drawer__content, .UI-Modal__overlay, .UI-Modal__content')) needsCheck = true;
+                            if (node.nodeType === 1 && (node.matches(SHEETS) || node.querySelector(SHEETS))) needsCheck = true;
                         });
                     });
                     if (needsCheck) updateNavVisibility();
                 }).observe(document.body, { childList: true, subtree: true });
-                observeExistingDrawers();
+                document.querySelectorAll(SHEETS).forEach(watchSheet);
 
                 function waitForReady() {
-                    if (document.querySelector('.UI-AppSidebar__sidebar')) { showNav(); return; }
+                    if (document.querySelector('.UI-AppSidebar__sidebar')) { updateNavVisibility(); return; }
                     var obs = new MutationObserver(function() {
-                        if (document.querySelector('.UI-AppSidebar__sidebar')) { obs.disconnect(); showNav(); }
+                        if (document.querySelector('.UI-AppSidebar__sidebar')) { obs.disconnect(); updateNavVisibility(); }
                     });
                     obs.observe(document.body, { childList: true, subtree: true });
                 }
@@ -1345,28 +1224,17 @@ object UIBottomNav {
                     if (menuOpen) closeMenu();
                 }
 
-                // ═════════════════════════════════════════════════════════════
-                // EDIT MODE
-                // ═════════════════════════════════════════════════════════════
+                // Edit mode
                 function enterEditMode() {
                     editMode = true;
-
+                    // The open menu becomes the edit panel.
                     if (menuOpen) {
                         menuOpen = false;
-                        var menu = document.getElementById('android-floating-menu');
-                        if (menu) {
-                            menu.style.display = 'flex';
-                            menu.style.pointerEvents = 'auto';
-                        }
                         setMenuBtnOpen(false);
                     }
-
                     var nav = document.getElementById('__seanime_bottom_nav');
                     if (nav) nav.classList.add('seanime-edit-mode');
-
-                    var snapshot = snapshotSidebarItems();
-                    floatSidebarItems = applyFloatOrder(snapshot);
-
+                    refreshFloatItems();
                     buildEditFloatPanel();
                 }
 
@@ -1412,56 +1280,48 @@ object UIBottomNav {
                 }
 
                 function makeEditRow(section, label, svgStr, isCurrent) {
-                    var row = document.createElement('div');
+                    var row = asButton(document.createElement('div'));
                     row.className = 'float-nav-item' + (isCurrent ? ' float-nav-item--current' : '');
                     row.dataset.section = section;
-                    row.setAttribute('role', 'button');
-                    row.setAttribute('tabindex', '0');
-                    row.addEventListener('keydown', function(e) {
-                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); row.click(); }
-                    });
-
-                    var iconWrap = document.createElement('div');
-                    iconWrap.className = 'float-nav-icon';
-                    iconWrap.innerHTML = svgStr || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
-                    var svgEl = iconWrap.querySelector('svg');
-                    if (svgEl) {
-                        svgEl.setAttribute('width', '22');
-                        svgEl.setAttribute('height', '22');
-                        svgEl.style.cssText = 'width:22px!important;height:22px!important;display:block!important;margin:0!important;';
-                    }
-
-                    var text = document.createElement('span');
-                    text.className = 'float-nav-tooltip';
-                    text.textContent = label;
-
-                    row.appendChild(iconWrap);
-                    row.appendChild(text);
+                    row.appendChild(iconTile(svgStr));
+                    row.appendChild(rowText(label));
                     row.addEventListener('contextmenu', suppressDefault);
                     return row;
                 }
 
-                function attachRowHandle(row, startDrag) {
+                // Drag handle of a bar tile or panel row; dragging starts on touch, in edit mode only.
+                function dragHandle(className, startDrag) {
                     var handle = document.createElement('div');
-                    handle.className = 'float-drag-handle';
+                    handle.className = className;
                     handle.innerHTML = SVG_GRIP;
                     handle.setAttribute('aria-hidden', 'true');
                     handle.addEventListener('contextmenu', suppressDefault);
-                    handle.addEventListener('click', function(e) { e.stopPropagation(); });
                     handle.addEventListener('touchstart', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        if (!editMode) return;
-                        startDrag();
+                        if (editMode) startDrag(e.touches[0]);
                     }, { passive: false });
+                    return handle;
+                }
+                function attachRowHandle(row, startDrag) {
+                    var handle = dragHandle('float-drag-handle', startDrag);
+                    handle.addEventListener('click', function(e) { e.stopPropagation(); });
                     row.appendChild(handle);
                 }
 
-                // ─────────────────────────────────────────────────────────────
-                // BUILD EDIT FLOAT PANEL
-                // Header (title, counter, hint, Done) + two sections: bar / menu.
-                // Tap = move between bar and menu, drag handle = reorder / place.
-                // ─────────────────────────────────────────────────────────────
+                function editSection(name, title) {
+                    var section = document.createElement('div');
+                    section.className = 'seanime-edit-sec';
+                    section.dataset.section = name;
+                    var heading = document.createElement('div');
+                    heading.className = 'seanime-edit-sec-title';
+                    heading.textContent = title;
+                    section.appendChild(heading);
+                    return section;
+                }
+
+                // Edit panel: header (title, counter, hint, Done) and the sections bar / menu.
+                // Tapping moves an entry between bar and menu, the drag handle reorders or places it.
                 function buildEditFloatPanel() {
                     var menu = document.getElementById('android-floating-menu');
                     if (!menu) return;
@@ -1509,15 +1369,7 @@ object UIBottomNav {
                     scroll.className = 'seanime-edit-scroll';
                     menu.appendChild(scroll);
 
-                    // Section: in the bar
-                    var secBar = document.createElement('div');
-                    secBar.className = 'seanime-edit-sec';
-                    secBar.dataset.section = 'bar';
-                    var barTitle = document.createElement('div');
-                    barTitle.className = 'seanime-edit-sec-title';
-                    barTitle.textContent = navText('In the bar', 'In der Leiste');
-                    secBar.appendChild(barTitle);
-
+                    var secBar = editSection('bar', navText('In the bar', 'In der Leiste'));
                     NAV_ITEMS.filter(function(it) { return it.placement === 'nav'; }).forEach(function(item) {
                         var row = makeEditRow('bar', item.label, item.isMenu ? SVG_HAMBURGER : item.svg, isActive(item));
                         row.dataset.navId = item.id;
@@ -1544,21 +1396,10 @@ object UIBottomNav {
                         secBar.appendChild(row);
                     });
                     scroll.appendChild(secBar);
+                    scroll.appendChild(divider());
 
-                    var sep = document.createElement('div');
-                    sep.className = 'float-nav-divider';
-                    sep.setAttribute('role', 'separator');
-                    scroll.appendChild(sep);
-
-                    // Section: in the menu (same order as the regular menu)
-                    var secMenu = document.createElement('div');
-                    secMenu.className = 'seanime-edit-sec';
-                    secMenu.dataset.section = 'menu';
-                    var menuTitle = document.createElement('div');
-                    menuTitle.className = 'seanime-edit-sec-title';
-                    menuTitle.textContent = navText('In the menu', 'Im Menü');
-                    secMenu.appendChild(menuTitle);
-
+                    // Same order as the regular menu
+                    var secMenu = editSection('menu', navText('In the menu', 'Im Menü'));
                     var reversed = floatSidebarItems.slice().reverse();
                     if (!reversed.length) {
                         var empty = document.createElement('div');
@@ -1591,9 +1432,7 @@ object UIBottomNav {
                     updateEditCount();
                 }
 
-                // ─────────────────────────────────────────────────────────────
-                // BUILD / REFRESH NAV BAR
-                // ─────────────────────────────────────────────────────────────
+                // Bar
                 function refreshNavBar() {
                     var nav = document.getElementById('__seanime_bottom_nav');
                     if (!nav) return;
@@ -1609,8 +1448,7 @@ object UIBottomNav {
                             el.setAttribute('data-nav-id', 'menu');
                             el.setAttribute('data-menu-open', menuOpen ? 'true' : 'false');
                             if (menuOpen) el.setAttribute('data-active', 'true');
-                            // Always use the constant SVG so it's correct on first render
-                            el.innerHTML = getMenuSvg() + '<span>' + item.label + '</span>';
+                            el.innerHTML = SVG_HAMBURGER + '<span>' + item.label + '</span>';
                             menuBtn = el;
 
                             el.addEventListener('click', function(e) {
@@ -1625,12 +1463,7 @@ object UIBottomNav {
                             el.setAttribute('data-nav-id', item.id);
                             el.setAttribute('data-active', 'false');
                             el.innerHTML = item.svg + '<span>' + item.label + '</span>';
-                            var svgEl = el.querySelector('svg');
-                            if (svgEl) {
-                                svgEl.setAttribute('width', '22');
-                                svgEl.setAttribute('height', '22');
-                                svgEl.style.cssText = 'width:22px!important;height:22px!important;display:block!important;margin:0!important;';
-                            }
+                            fitIcon(el);
 
                             el.addEventListener('click', function(e) {
                                 if (editMode) { e.preventDefault(); e.stopPropagation(); return; }
@@ -1638,8 +1471,7 @@ object UIBottomNav {
                                     e.preventDefault();
                                     navigateViaApp(item.href);
                                 } else if (item.sidebarType === 'button') {
-                                    var t = document.querySelector('.UI-AppSidebar__sidebar button[data-vertical-menu-item-button="' + item.label.replace(/"/g, '\\"') + '"]');
-                                    if (t) t.click();
+                                    clickSidebarButton(item.label);
                                 }
                             });
 
@@ -1651,38 +1483,15 @@ object UIBottomNav {
                             el.innerHTML = item.svg + '<span>' + item.label + '</span>';
 
                             el.addEventListener('click', function(e) {
-                                if (editMode) { e.preventDefault(); e.stopPropagation(); return; }
-                                if (window.location.pathname === item.href ||
-                                    (!item.matchExact && window.location.pathname.indexOf(item.href + '/') === 0)) {
-                                    e.preventDefault();
-                                    if (menuOpen) closeMenu();
-                                    return;
-                                }
                                 e.preventDefault();
-                                navigateViaApp(item.href);
+                                if (editMode) { e.stopPropagation(); return; }
+                                if (!isActive(item)) navigateViaApp(item.href);
                                 if (menuOpen) closeMenu();
                             });
                         }
 
                         el.addEventListener('contextmenu', suppressDefault);
-
-                        var handle = document.createElement('div');
-                        handle.className = 'seanime-nav-drag-handle';
-                        handle.innerHTML = SVG_GRIP;
-                        handle.setAttribute('aria-hidden', 'true');
-                        el.appendChild(handle);
-
-                        handle.addEventListener('contextmenu', suppressDefault);
-                        (function(capturedEl, capturedItem) {
-                            handle.addEventListener('touchstart', function(e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (!editMode) return;
-                                var t = e.touches[0];
-                                startNavDrag(capturedEl, capturedItem, t.clientX, t.clientY);
-                            }, { passive: false });
-                        })(el, item);
-
+                        el.appendChild(dragHandle('seanime-nav-drag-handle', function() { startNavDrag(el, item); }));
                         nav.appendChild(el);
                     });
 
@@ -1691,9 +1500,7 @@ object UIBottomNav {
                     updateActiveState();
                 }
 
-                // ═════════════════════════════════════════════════════════════
-                // DRAG & DROP
-                // ═════════════════════════════════════════════════════════════
+                // Drag & drop
                 var dragState = null;
 
                 function createGhost(sourceEl) {
@@ -1722,15 +1529,13 @@ object UIBottomNav {
                     if (!nav) return null;
                     var best = null;
                     nav.querySelectorAll('a, button').forEach(function(el) {
-                        var r = el.getBoundingClientRect();
-                        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) best = el;
+                        if (inRect(el.getBoundingClientRect(), x, y)) best = el;
                     });
                     return best;
                 }
                 function isOverNav(x, y) {
                     var nav = document.getElementById('__seanime_bottom_nav');
-                    if (!nav) return false;
-                    return inRect(nav.getBoundingClientRect(), x, y);
+                    return !!nav && inRect(nav.getBoundingClientRect(), x, y);
                 }
                 function inRect(r, x, y) { return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; }
                 function editScrollEl() {
@@ -1762,7 +1567,7 @@ object UIBottomNav {
                     return null;
                 }
 
-                function startNavDrag(navEl, item, cx, cy) {
+                function startNavDrag(navEl, item) {
                     var ghost = createGhost(navEl);
                     navEl.style.opacity = '0.3';
                     dragState = { type: 'nav', item: item, originEl: navEl, ghost: ghost, moved: false };
@@ -1786,13 +1591,19 @@ object UIBottomNav {
                     }
                 }
 
-                function onDragEnd(cx, cy) {
-                    if (!dragState) return;
+                // Removes the ghost and highlights; returns the finished drag.
+                function endDrag() {
                     var ds = dragState;
                     dragState = null;
                     clearDropTargets();
                     if (ds.ghost && ds.ghost.parentNode) ds.ghost.parentNode.removeChild(ds.ghost);
                     if (ds.originEl) ds.originEl.style.opacity = '';
+                    return ds;
+                }
+
+                function onDragEnd(cx, cy) {
+                    if (!dragState) return;
+                    var ds = endDrag();
                     if (!ds.moved) return;
 
                     var t = dropTargetAt(cx, cy);
@@ -1815,18 +1626,11 @@ object UIBottomNav {
                     }
                 }
 
-                // ─────────────────────────────────────────────────────────────
-                // REORDER / ADD / REMOVE LOGIC
-                // ─────────────────────────────────────────────────────────────
                 function afterNavChange() {
                     saveNavState();
                     saveFloatOrder(floatSidebarItems.map(function(it) { return it.label; }));
                     refreshNavBar();
-                    if (editMode) {
-                        var nav = document.getElementById('__seanime_bottom_nav');
-                        if (nav) nav.classList.add('seanime-edit-mode');
-                        buildEditFloatPanel();
-                    }
+                    if (editMode) buildEditFloatPanel();
                 }
 
                 function reorderNavItems(idA, idB) {
@@ -1921,18 +1725,15 @@ object UIBottomNav {
                     return true;
                 }
 
-                // Dialog texts follow the app language the web UI stores (English default); read on every open.
+                // The texts are set on every open, so they follow a language change.
                 function setResetDialogTexts(overlay) {
-                    var german = false;
-                    try { german = JSON.parse(localStorage.getItem('seanime-mobile-language') || '"en"') === 'de'; } catch (e) {}
-                    overlay.querySelector('#__seanime_reset_dialog_title').textContent = german
-                        ? 'Auf Standard zurücksetzen?' : 'Reset to defaults?';
-                    overlay.querySelector('#__seanime_reset_dialog_desc').textContent = german
-                        ? 'Die Standard-Navigation unten wird wiederhergestellt und deine Anpassungen am schwebenden Menü werden zurückgesetzt.'
-                        : 'This will restore the default bottom nav and reset your floating menu customizations.';
+                    overlay.querySelector('#__seanime_reset_dialog_title').textContent = navText('Reset to defaults?', 'Auf Standard zurücksetzen?');
+                    overlay.querySelector('#__seanime_reset_dialog_desc').textContent = navText(
+                        'This will restore the default bottom nav and reset your floating menu customizations.',
+                        'Die Standard-Navigation unten wird wiederhergestellt und deine Anpassungen am schwebenden Menü werden zurückgesetzt.');
                     var buttons = overlay.querySelectorAll('.__seanime_dialog_btn');
-                    buttons[0].textContent = german ? 'Abbrechen' : 'Cancel';
-                    buttons[1].textContent = german ? 'Ja' : 'Yes';
+                    buttons[0].textContent = navText('Cancel', 'Abbrechen');
+                    buttons[1].textContent = navText('Yes', 'Ja');
                 }
 
                 function buildResetDialog() {
@@ -2004,9 +1805,6 @@ object UIBottomNav {
                     if (reset) reset.focus();
                 }
 
-                // ═════════════════════════════════════════════════════════════
-                // GLOBAL TOUCH EVENTS
-                // ═════════════════════════════════════════════════════════════
                 document.addEventListener('touchmove', function(e) {
                     if (!dragState) return;
                     e.preventDefault();
@@ -2019,16 +1817,10 @@ object UIBottomNav {
                     onDragEnd(t.clientX, t.clientY);
                 }, { passive: true });
                 document.addEventListener('touchcancel', function() {
-                    if (!dragState) return;
-                    clearDropTargets();
-                    if (dragState.ghost && dragState.ghost.parentNode) dragState.ghost.parentNode.removeChild(dragState.ghost);
-                    if (dragState.originEl) dragState.originEl.style.opacity = '';
-                    dragState = null;
+                    if (dragState) endDrag();
                 }, { passive: true });
 
-                // ═════════════════════════════════════════════════════════════
-                // INITIAL BUILD
-                // ═════════════════════════════════════════════════════════════
+                // Runs again whenever the bar was removed from the page.
                 function buildNav() {
                     if (document.getElementById('__seanime_bottom_nav')) return;
 
@@ -2039,48 +1831,30 @@ object UIBottomNav {
                         document.body.appendChild(floatMenu);
                     }
 
-                    if (!document.getElementById('__seanime_float_item_styles')) {
-                        var fs = document.createElement('style');
-                        fs.id  = '__seanime_float_item_styles';
-                        fs.textContent = [
-                            '.float-nav-item{display:flex;align-items:center;justify-content:center;position:relative;width:100%;}',
-                            '.float-nav-tooltip{position:absolute;right:64px;color:white;font-size:13px;font-weight:500;padding:0;white-space:nowrap;pointer-events:none;}',
-                            '.float-nav-icon{width:44px!important;height:44px!important;border-radius:12px;background:rgba(25,25,25,0.9);border:1px solid rgba(255,255,255,0.1);display:grid!important;place-items:center!important;color:#a0a0a0;box-shadow:0 4px 10px rgba(0,0,0,0.4);}',
-                            '.float-nav-icon--active{background:rgba(255,255,255,0.15);color:white;border-color:rgba(255,255,255,0.3);}'
-                        ].join('');
-                        document.head.appendChild(fs);
-                    }
-
                     var nav = document.createElement('nav');
                     nav.id = '__seanime_bottom_nav';
                     nav.addEventListener('contextmenu', suppressDefault);
                     document.body.appendChild(nav);
 
                     refreshNavBar();
-
-                    document.addEventListener('click', function(e) {
-                        if (editMode) {
-                            var nav2    = document.getElementById('__seanime_bottom_nav');
-                            var float2  = document.getElementById('android-floating-menu');
-                            var dialog2 = document.getElementById('__seanime_reset_dialog_overlay');
-                            if (nav2    && nav2.contains(e.target))    return;
-                            if (float2  && float2.contains(e.target))  return;
-                            if (dialog2 && dialog2.contains(e.target)) return;
-                            exitEditMode();
-                            return;
-                        }
-                        if (menuOpen) {
-                            var floatMenu = document.getElementById('android-floating-menu');
-                            if (floatMenu && floatMenu.contains(e.target)) return;
-                            closeMenu();
-                        }
-                    });
-
                     buildResetDialog();
                     waitForReady();
                 }
 
                 buildNav();
+
+                // A tap outside leaves edit mode or closes the menu.
+                document.addEventListener('click', function(e) {
+                    function inside(id) {
+                        var el = document.getElementById(id);
+                        return !!el && el.contains(e.target);
+                    }
+                    if (editMode) {
+                        if (!inside('__seanime_bottom_nav') && !inside('android-floating-menu') && !inside('__seanime_reset_dialog_overlay')) exitEditMode();
+                    } else if (menuOpen && !inside('android-floating-menu')) {
+                        closeMenu();
+                    }
+                });
 
                 window.__seanimeCloseNavigation = function() {
                     var reset = document.getElementById('__seanime_reset_dialog_overlay');
@@ -2111,11 +1885,12 @@ object UIBottomNav {
                     }, 150);
                 });
 
+                function onRouteChange() { setTimeout(function() { updateActiveState(); updateNavVisibility(); }, 50); }
                 var _push = history.pushState.bind(history);
-                history.pushState = function() { _push.apply(history, arguments); setTimeout(updateActiveState, 50); setTimeout(updateNavVisibility, 50); };
+                history.pushState = function() { _push.apply(history, arguments); onRouteChange(); };
                 var _replace = history.replaceState.bind(history);
-                history.replaceState = function() { _replace.apply(history, arguments); setTimeout(updateActiveState, 50); setTimeout(updateNavVisibility, 50); };
-                window.addEventListener('popstate', function() { setTimeout(updateActiveState, 50); setTimeout(updateNavVisibility, 50); });
+                history.replaceState = function() { _replace.apply(history, arguments); onRouteChange(); };
+                window.addEventListener('popstate', onRouteChange);
 
                 var navVisThrottle = null;
                 new MutationObserver(function() {
