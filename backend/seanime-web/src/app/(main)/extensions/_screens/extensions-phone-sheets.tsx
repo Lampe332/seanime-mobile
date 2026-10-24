@@ -1,15 +1,16 @@
 import { Extension_Extension, Extension_InvalidExtension, ExtensionRepo_UpdateData } from "@/api/generated/types"
 import {
     useFetchExternalExtensionData,
+    useGrantPluginPermissions,
     useInstallExternalExtension,
     useInstallExternalExtensionRepository,
     useReloadExternalExtension,
     useSetExternalExtensionDisabled,
     useUninstallExternalExtension,
 } from "@/api/hooks/extensions.hooks"
+import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { ExtensionCodeModal } from "@/app/(main)/extensions/_containers/extension-code"
 import { ExtensionUserConfigModal } from "@/app/(main)/extensions/_containers/extension-user-config"
-import { usePluginPermissionGrant } from "@/app/(main)/extensions/_containers/invalid-extension-card"
 import {
     extensionLanguageLabel,
     extensionMeta,
@@ -45,6 +46,37 @@ import {
     LuX,
 } from "react-icons/lu"
 import { toast } from "sonner"
+
+/**
+ * Grants a plugin's permissions in two steps: the first request makes the server send a challenge over the websocket,
+ * the second answers it with the code.
+ */
+function usePluginPermissionGrant(id: string | undefined) {
+    const { mutate: grantPluginPermissions, isPending } = useGrantPluginPermissions()
+    const pendingGrantRef = React.useRef(false)
+
+    useWebsocketMessageListener({
+        type: "grant-plugin-permission-check",
+        onMessage: (message: string) => {
+            // message format: {extensionId}$$${challengeID}:{code}
+            if (!!id && message.startsWith(id) && pendingGrantRef.current) {
+                pendingGrantRef.current = false
+                const token = message.split("$$$")?.[1] || ""
+                grantPluginPermissions({ id, clientId: "CODE:" + token })
+            }
+        },
+    })
+
+    function grant() {
+        if (!id) return toast.error("Extension has no ID")
+        pendingGrantRef.current = true
+        React.startTransition(() => {
+            grantPluginPermissions({ id, clientId: "" })
+        })
+    }
+
+    return { grant, isGranting: isPending }
+}
 
 /** Sheets take focus themselves on open: a focused field would open the keyboard, a focused row would show its ring. */
 export function focusSheet(event: Event) {

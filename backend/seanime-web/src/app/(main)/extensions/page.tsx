@@ -1,4 +1,4 @@
-import { __extensions_currentPageAtom } from "@/app/(main)/extensions/_containers/extension-list"
+import { __extensions_currentPageAtom } from "@/app/(main)/extensions/_lib/marketplace.atoms"
 import { ExtensionsPhone } from "@/app/(main)/extensions/_screens/extensions-phone"
 import { useSearchParams } from "@/lib/navigation"
 import { useSetAtom } from "jotai"

@@ -1,7 +1,7 @@
 import { Extension_Extension, Extension_InvalidExtension, ExtensionRepo_AllExtensions } from "@/api/generated/types"
 import { useGetAllExtensions, useInstallExternalExtension } from "@/api/hooks/extensions.hooks"
 import { useStartMobileTutorial } from "@/app/(main)/_features/tour/mobile-tutorial"
-import { __extensions_currentPageAtom } from "@/app/(main)/extensions/_containers/extension-list"
+import { __extensions_currentPageAtom } from "@/app/(main)/extensions/_lib/marketplace.atoms"
 import { extensionMeta, getInstalledOverview, invalidReasonLabel } from "@/app/(main)/extensions/_lib/extensions-phone"
 import { __extensions_marketTypeAtom, MarketplacePhone } from "@/app/(main)/extensions/_screens/extensions-phone-marketplace"
 import { AddExtensionSheet, ExtensionIcon, ExtensionSheet, SearchField, Spinner } from "@/app/(main)/extensions/_screens/extensions-phone-sheets"
