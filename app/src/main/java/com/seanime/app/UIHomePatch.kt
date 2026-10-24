@@ -42,12 +42,6 @@ object UIHomePatch {
                 }
 
                 /* ── Banner: shrink on mobile ── */
-                [data-library-header-container="true"] {
-                    height: 14rem !important;
-                }
-                [data-library-header-banner-bottom-gradient="true"] {
-                    height: 8rem !important;
-                }
                 [data-layout-header-background-gradient="true"] {
                     height: 4rem !important;
                 }

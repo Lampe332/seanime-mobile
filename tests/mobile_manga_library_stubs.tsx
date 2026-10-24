@@ -54,7 +54,6 @@ export const useMediaPreviewModal = () => ({ setPreviewModalMediaId: (id: number
 export const MediaEntryCardAdultVeil = () => <div data-adult-veil style={{ position: "absolute", inset: 0, zIndex: 4, background: "#111" }} />
 export const MediaEntryPageLoadingDisplay = () => <div data-desktop-loading />
 export const CustomLibraryBanner = () => null
-export const MangaLibraryHeader = () => null
 export const MangaLibraryView = () => <div data-desktop-library />
 
 export const PluginMediaCardContextMenuItems = () => <div data-plugin-card-items>Plugin card action</div>

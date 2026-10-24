@@ -8,13 +8,11 @@ import { PluginMangaLibraryDropdownItems } from "@/app/(main)/_features/plugin/a
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
 import { SeaCommandInjectableItem, useSeaCommandInject } from "@/app/(main)/_features/sea-command/use-inject"
 import { seaCommand_compareMediaTitles } from "@/app/(main)/_features/sea-command/utils"
-import { __mangaLibraryHeaderImageAtom, __mangaLibraryHeaderMangaAtom } from "@/app/(main)/manga/_components/library-header"
 import { MangaSourceRefreshModal } from "@/app/(main)/manga/_components/manga-source-refresh-modal"
 import { __mangaLibrary_paramsAtom, __mangaLibrary_paramsInputAtom } from "@/app/(main)/manga/_lib/handle-manga-collection"
 import { LuffyError } from "@/components/shared/luffy-error"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { SeaLink } from "@/components/shared/sea-link"
-import { TextGenerateEffect } from "@/components/shared/text-generate-effect"
 import { Button, IconButton } from "@/components/ui/button"
 import { Carousel, CarouselContent, CarouselDotButtons } from "@/components/ui/carousel"
 import { cn } from "@/components/ui/core/styling"
@@ -23,9 +21,9 @@ import { Tooltip } from "@/components/ui/tooltip"
 import { useDebounce } from "@/hooks/use-debounce"
 import { useRouter } from "@/lib/navigation"
 import { getMangaCollectionTitle } from "@/lib/server/utils"
-import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/theme-hooks"
+import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useSetAtom } from "jotai"
-import { useAtom, useAtomValue } from "jotai/react"
+import { useAtom } from "jotai/react"
 import { AnimatePresence } from "motion/react"
 import React, { memo } from "react"
 import { BiDotsVerticalRounded } from "react-icons/bi"
@@ -254,8 +252,6 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
 }) => {
 
     const ts = useThemeSettings()
-    const [currentHeaderImage, setCurrentHeaderImage] = useAtom(__mangaLibraryHeaderImageAtom)
-    const headerManga = useAtomValue(__mangaLibraryHeaderMangaAtom)
     const [params, setParams] = useAtom(__mangaLibrary_paramsAtom)
     const router = useRouter()
 
@@ -266,14 +262,6 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
     const sourceRefreshRunning = sourceRefreshJob?.status === "running" || sourceRefreshJob?.status === "stopping"
 
     const { inject, remove } = useSeaCommandInject()
-
-    React.useEffect(() => {
-        if (list.type === "CURRENT") {
-            if (currentHeaderImage === null && list.entries?.[0]?.media?.bannerImage) {
-                setCurrentHeaderImage(list.entries?.[0]?.media?.bannerImage)
-            }
-        }
-    }, [])
 
     // Inject command for currently reading manga
     React.useEffect(() => {
@@ -408,26 +396,9 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
 
             </div>
 
-            {(list.type === "CURRENT" && ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Dynamic && headerManga && withTitle) &&
-                <TextGenerateEffect
-                    data-manga-library-view-collection-list-item-header-media-title
-                    words={headerManga?.title?.userPreferred || ""}
-                    className="w-full text-xl lg:text-5xl lg:max-w-[50%] h-[3.2rem] !mt-1 line-clamp-1 truncate text-ellipsis hidden lg:block pb-1"
-                />
-            }
-
             {type === "grid" && <MediaCardLazyGrid itemCount={list.entries?.length ?? 0}>
                 {list.entries?.map(entry => {
-                    return <div
-                        key={entry.media?.id}
-                        onMouseEnter={() => {
-                            if (list.type === "CURRENT" && entry.media?.bannerImage) {
-                                React.startTransition(() => {
-                                    setCurrentHeaderImage(entry.media?.bannerImage!)
-                                })
-                            }
-                        }}
-                    >
+                    return <div key={entry.media?.id}>
                         <MediaEntryCard
                             media={entry.media!}
                             listData={entry.listData}
@@ -455,13 +426,6 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
                             className={type === "carousel"
                                 ? "relative basis-[200px] col-span-1 place-content-stretch flex-none md:basis-[250px] mx-2 mt-8 mb-0"
                                 : undefined}
-                            onMouseEnter={() => {
-                                if (list.type === "CURRENT" && entry.media?.bannerImage) {
-                                    React.startTransition(() => {
-                                        setCurrentHeaderImage(entry.media?.bannerImage!)
-                                    })
-                                }
-                            }}
                         >
                             <MediaEntryCard
                                 key={entry.media?.id}
