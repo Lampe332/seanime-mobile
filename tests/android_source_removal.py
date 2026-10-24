@@ -17,7 +17,7 @@ removed = ("Enable offline mode", "Select media to save", "No tracked media", "A
 for file in (root / "backend/web").rglob("*.js"):
     source = file.read_text(encoding="utf-8")
     assert not any(term in source for term in removed), file
-assert "Enable offline mode" in (root / "backend/seanime-web/src/app/(main)/sync/page.tsx").read_text(encoding="utf-8")
+assert not (root / "backend/seanime-web/src/app/(main)/sync").exists()
 assert 'to="/android-downloads" replace' in (root / "backend/seanime-web/src/mobile/legacy-sync-redirect.tsx").read_text(encoding="utf-8")
 for file in (root / "app/src/main/jniLibs").glob("*/libseanime.so"):
     data = file.read_bytes()
@@ -31,4 +31,4 @@ for file in (root / "app/src/main/jniLibs").glob("*/libseanime.so"):
                 if name.endswith(".dex"):
                     assert b"UIHosterPlayerPatch" not in apk.read(name), "old DOM patch still packaged"
     print("PASS:", file.parent.name, hashlib.sha256(data).hexdigest())
-print("PASS: text paint declarations and launcher patch removed; old sync UI absent from Android web/native payload; desktop source retained")
+print("PASS: text paint declarations and launcher patch removed; old sync UI absent from Android web/native payload and source")

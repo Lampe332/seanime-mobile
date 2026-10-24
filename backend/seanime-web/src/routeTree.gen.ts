@@ -12,16 +12,11 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MainRouteImport } from './routes/_main'
-import { Route as SplashscreenIndexRouteImport } from './routes/splashscreen/index'
 import { Route as MainIndexRouteImport } from './routes/_main/index'
-import { Route as MainTestRouteImport } from './routes/_main/test'
-import { Route as MainErrorTestRouteImport } from './routes/_main/error-test'
-import { Route as SplashscreenCrashIndexRouteImport } from './routes/splashscreen/crash/index'
 import { Route as PublicAuthIndexRouteImport } from './routes/public/auth/index'
 import { Route as MainSettingsIndexRouteImport } from './routes/_main/settings/index'
 import { Route as MainSearchIndexRouteImport } from './routes/_main/search/index'
 import { Route as MainOfflineIndexRouteImport } from './routes/_main/offline/index'
-import { Route as MainMediastreamIndexRouteImport } from './routes/_main/mediastream/index'
 import { Route as MainMedialinksIndexRouteImport } from './routes/_main/medialinks/index'
 import { Route as MainExtensionsIndexRouteImport } from './routes/_main/extensions/index'
 import { Route as MainEntryIndexRouteImport } from './routes/_main/entry/index'
@@ -33,9 +28,6 @@ import { Route as MainAuthCallbackIndexRouteImport } from './routes/_main/auth/c
 import { Route as MainOfflineEntryMangaIndexRouteImport } from './routes/_main/offline/entry/manga/index'
 import { Route as MainOfflineEntryAnimeIndexRouteImport } from './routes/_main/offline/entry/anime/index'
 
-const ScanLogViewerIndexLazyRouteImport = createFileRoute('/scan-log-viewer/')()
-const IssueReportIndexLazyRouteImport = createFileRoute('/issue-report/')()
-const DocsIndexLazyRouteImport = createFileRoute('/docs/')()
 const MainWebviewIndexLazyRouteImport = createFileRoute('/_main/webview/')()
 const MainSyncIndexLazyRouteImport = createFileRoute('/_main/sync/')()
 const MainScheduleIndexLazyRouteImport = createFileRoute('/_main/schedule/')()
@@ -56,43 +48,9 @@ const MainRoute = MainRouteImport.update({
   id: '/_main',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ScanLogViewerIndexLazyRoute = ScanLogViewerIndexLazyRouteImport.update({
-  id: '/scan-log-viewer/',
-  path: '/scan-log-viewer/',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() =>
-  import('./routes/scan-log-viewer/index.lazy').then((d) => d.Route),
-)
-const IssueReportIndexLazyRoute = IssueReportIndexLazyRouteImport.update({
-  id: '/issue-report/',
-  path: '/issue-report/',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() =>
-  import('./routes/issue-report/index.lazy').then((d) => d.Route),
-)
-const DocsIndexLazyRoute = DocsIndexLazyRouteImport.update({
-  id: '/docs/',
-  path: '/docs/',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import('./routes/docs/index.lazy').then((d) => d.Route))
-const SplashscreenIndexRoute = SplashscreenIndexRouteImport.update({
-  id: '/splashscreen/',
-  path: '/splashscreen/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MainIndexRoute = MainIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => MainRoute,
-} as any)
-const MainTestRoute = MainTestRouteImport.update({
-  id: '/test',
-  path: '/test',
-  getParentRoute: () => MainRoute,
-} as any)
-const MainErrorTestRoute = MainErrorTestRouteImport.update({
-  id: '/error-test',
-  path: '/error-test',
   getParentRoute: () => MainRoute,
 } as any)
 const MainWebviewIndexLazyRoute = MainWebviewIndexLazyRouteImport.update({
@@ -145,11 +103,6 @@ const MainDebridIndexLazyRoute = MainDebridIndexLazyRouteImport.update({
 } as any).lazy(() =>
   import('./routes/_main/debrid/index.lazy').then((d) => d.Route),
 )
-const SplashscreenCrashIndexRoute = SplashscreenCrashIndexRouteImport.update({
-  id: '/splashscreen/crash/',
-  path: '/splashscreen/crash/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PublicAuthIndexRoute = PublicAuthIndexRouteImport.update({
   id: '/public/auth/',
   path: '/public/auth/',
@@ -174,13 +127,6 @@ const MainOfflineIndexRoute = MainOfflineIndexRouteImport.update({
   path: '/offline/',
   getParentRoute: () => MainRoute,
 } as any)
-const MainMediastreamIndexRoute = MainMediastreamIndexRouteImport.update({
-  id: '/mediastream/',
-  path: '/mediastream/',
-  getParentRoute: () => MainRoute,
-} as any).lazy(() =>
-  import('./routes/_main/mediastream/index.lazy').then((d) => d.Route),
-)
 const MainMedialinksIndexRoute = MainMedialinksIndexRouteImport.update({
   id: '/medialinks/',
   path: '/medialinks/',
@@ -275,24 +221,16 @@ const MainOfflineEntryAnimeIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof MainIndexRoute
-  '/error-test': typeof MainErrorTestRoute
-  '/test': typeof MainTestRoute
-  '/splashscreen/': typeof SplashscreenIndexRoute
-  '/docs/': typeof DocsIndexLazyRoute
-  '/issue-report/': typeof IssueReportIndexLazyRoute
-  '/scan-log-viewer/': typeof ScanLogViewerIndexLazyRoute
   '/android-downloads/': typeof MainAndroidDownloadsIndexRoute
   '/custom-sources/': typeof MainCustomSourcesIndexRoute
   '/discover/': typeof MainDiscoverIndexRoute
   '/entry/': typeof MainEntryIndexRoute
   '/extensions/': typeof MainExtensionsIndexRoute
   '/medialinks/': typeof MainMedialinksIndexRoute
-  '/mediastream/': typeof MainMediastreamIndexRoute
   '/offline/': typeof MainOfflineIndexRoute
   '/search/': typeof MainSearchIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
   '/public/auth/': typeof PublicAuthIndexRoute
-  '/splashscreen/crash/': typeof SplashscreenCrashIndexRoute
   '/debrid/': typeof MainDebridIndexLazyRoute
   '/lists/': typeof MainListsIndexLazyRoute
   '/manga/': typeof MainMangaIndexLazyRoute
@@ -308,25 +246,17 @@ export interface FileRoutesByFullPath {
   '/offline/entry/manga/': typeof MainOfflineEntryMangaIndexRoute
 }
 export interface FileRoutesByTo {
-  '/error-test': typeof MainErrorTestRoute
-  '/test': typeof MainTestRoute
   '/': typeof MainIndexRoute
-  '/splashscreen': typeof SplashscreenIndexRoute
-  '/docs': typeof DocsIndexLazyRoute
-  '/issue-report': typeof IssueReportIndexLazyRoute
-  '/scan-log-viewer': typeof ScanLogViewerIndexLazyRoute
   '/android-downloads': typeof MainAndroidDownloadsIndexRoute
   '/custom-sources': typeof MainCustomSourcesIndexRoute
   '/discover': typeof MainDiscoverIndexRoute
   '/entry': typeof MainEntryIndexRoute
   '/extensions': typeof MainExtensionsIndexRoute
   '/medialinks': typeof MainMedialinksIndexRoute
-  '/mediastream': typeof MainMediastreamIndexRoute
   '/offline': typeof MainOfflineIndexRoute
   '/search': typeof MainSearchIndexRoute
   '/settings': typeof MainSettingsIndexRoute
   '/public/auth': typeof PublicAuthIndexRoute
-  '/splashscreen/crash': typeof SplashscreenCrashIndexRoute
   '/debrid': typeof MainDebridIndexLazyRoute
   '/lists': typeof MainListsIndexLazyRoute
   '/manga': typeof MainMangaIndexLazyRoute
@@ -344,25 +274,17 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_main': typeof MainRouteWithChildren
-  '/_main/error-test': typeof MainErrorTestRoute
-  '/_main/test': typeof MainTestRoute
   '/_main/': typeof MainIndexRoute
-  '/splashscreen/': typeof SplashscreenIndexRoute
-  '/docs/': typeof DocsIndexLazyRoute
-  '/issue-report/': typeof IssueReportIndexLazyRoute
-  '/scan-log-viewer/': typeof ScanLogViewerIndexLazyRoute
   '/_main/android-downloads/': typeof MainAndroidDownloadsIndexRoute
   '/_main/custom-sources/': typeof MainCustomSourcesIndexRoute
   '/_main/discover/': typeof MainDiscoverIndexRoute
   '/_main/entry/': typeof MainEntryIndexRoute
   '/_main/extensions/': typeof MainExtensionsIndexRoute
   '/_main/medialinks/': typeof MainMedialinksIndexRoute
-  '/_main/mediastream/': typeof MainMediastreamIndexRoute
   '/_main/offline/': typeof MainOfflineIndexRoute
   '/_main/search/': typeof MainSearchIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/public/auth/': typeof PublicAuthIndexRoute
-  '/splashscreen/crash/': typeof SplashscreenCrashIndexRoute
   '/_main/debrid/': typeof MainDebridIndexLazyRoute
   '/_main/lists/': typeof MainListsIndexLazyRoute
   '/_main/manga/': typeof MainMangaIndexLazyRoute
@@ -381,24 +303,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/error-test'
-    | '/test'
-    | '/splashscreen/'
-    | '/docs/'
-    | '/issue-report/'
-    | '/scan-log-viewer/'
     | '/android-downloads/'
     | '/custom-sources/'
     | '/discover/'
     | '/entry/'
     | '/extensions/'
     | '/medialinks/'
-    | '/mediastream/'
     | '/offline/'
     | '/search/'
     | '/settings/'
     | '/public/auth/'
-    | '/splashscreen/crash/'
     | '/debrid/'
     | '/lists/'
     | '/manga/'
@@ -414,25 +328,17 @@ export interface FileRouteTypes {
     | '/offline/entry/manga/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/error-test'
-    | '/test'
     | '/'
-    | '/splashscreen'
-    | '/docs'
-    | '/issue-report'
-    | '/scan-log-viewer'
     | '/android-downloads'
     | '/custom-sources'
     | '/discover'
     | '/entry'
     | '/extensions'
     | '/medialinks'
-    | '/mediastream'
     | '/offline'
     | '/search'
     | '/settings'
     | '/public/auth'
-    | '/splashscreen/crash'
     | '/debrid'
     | '/lists'
     | '/manga'
@@ -449,25 +355,17 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_main'
-    | '/_main/error-test'
-    | '/_main/test'
     | '/_main/'
-    | '/splashscreen/'
-    | '/docs/'
-    | '/issue-report/'
-    | '/scan-log-viewer/'
     | '/_main/android-downloads/'
     | '/_main/custom-sources/'
     | '/_main/discover/'
     | '/_main/entry/'
     | '/_main/extensions/'
     | '/_main/medialinks/'
-    | '/_main/mediastream/'
     | '/_main/offline/'
     | '/_main/search/'
     | '/_main/settings/'
     | '/public/auth/'
-    | '/splashscreen/crash/'
     | '/_main/debrid/'
     | '/_main/lists/'
     | '/_main/manga/'
@@ -485,12 +383,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   MainRoute: typeof MainRouteWithChildren
-  SplashscreenIndexRoute: typeof SplashscreenIndexRoute
-  DocsIndexLazyRoute: typeof DocsIndexLazyRoute
-  IssueReportIndexLazyRoute: typeof IssueReportIndexLazyRoute
-  ScanLogViewerIndexLazyRoute: typeof ScanLogViewerIndexLazyRoute
   PublicAuthIndexRoute: typeof PublicAuthIndexRoute
-  SplashscreenCrashIndexRoute: typeof SplashscreenCrashIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -502,53 +395,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/scan-log-viewer/': {
-      id: '/scan-log-viewer/'
-      path: '/scan-log-viewer'
-      fullPath: '/scan-log-viewer/'
-      preLoaderRoute: typeof ScanLogViewerIndexLazyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/issue-report/': {
-      id: '/issue-report/'
-      path: '/issue-report'
-      fullPath: '/issue-report/'
-      preLoaderRoute: typeof IssueReportIndexLazyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/': {
-      id: '/docs/'
-      path: '/docs'
-      fullPath: '/docs/'
-      preLoaderRoute: typeof DocsIndexLazyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/splashscreen/': {
-      id: '/splashscreen/'
-      path: '/splashscreen'
-      fullPath: '/splashscreen/'
-      preLoaderRoute: typeof SplashscreenIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_main/': {
       id: '/_main/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof MainIndexRouteImport
-      parentRoute: typeof MainRoute
-    }
-    '/_main/test': {
-      id: '/_main/test'
-      path: '/test'
-      fullPath: '/test'
-      preLoaderRoute: typeof MainTestRouteImport
-      parentRoute: typeof MainRoute
-    }
-    '/_main/error-test': {
-      id: '/_main/error-test'
-      path: '/error-test'
-      fullPath: '/error-test'
-      preLoaderRoute: typeof MainErrorTestRouteImport
       parentRoute: typeof MainRoute
     }
     '/_main/webview/': {
@@ -600,13 +451,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainDebridIndexLazyRouteImport
       parentRoute: typeof MainRoute
     }
-    '/splashscreen/crash/': {
-      id: '/splashscreen/crash/'
-      path: '/splashscreen/crash'
-      fullPath: '/splashscreen/crash/'
-      preLoaderRoute: typeof SplashscreenCrashIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/public/auth/': {
       id: '/public/auth/'
       path: '/public/auth'
@@ -633,13 +477,6 @@ declare module '@tanstack/react-router' {
       path: '/offline'
       fullPath: '/offline/'
       preLoaderRoute: typeof MainOfflineIndexRouteImport
-      parentRoute: typeof MainRoute
-    }
-    '/_main/mediastream/': {
-      id: '/_main/mediastream/'
-      path: '/mediastream'
-      fullPath: '/mediastream/'
-      preLoaderRoute: typeof MainMediastreamIndexRouteImport
       parentRoute: typeof MainRoute
     }
     '/_main/medialinks/': {
@@ -730,8 +567,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface MainRouteChildren {
-  MainErrorTestRoute: typeof MainErrorTestRoute
-  MainTestRoute: typeof MainTestRoute
   MainIndexRoute: typeof MainIndexRoute
   MainAndroidDownloadsIndexRoute: typeof MainAndroidDownloadsIndexRoute
   MainCustomSourcesIndexRoute: typeof MainCustomSourcesIndexRoute
@@ -739,7 +574,6 @@ interface MainRouteChildren {
   MainEntryIndexRoute: typeof MainEntryIndexRoute
   MainExtensionsIndexRoute: typeof MainExtensionsIndexRoute
   MainMedialinksIndexRoute: typeof MainMedialinksIndexRoute
-  MainMediastreamIndexRoute: typeof MainMediastreamIndexRoute
   MainOfflineIndexRoute: typeof MainOfflineIndexRoute
   MainSearchIndexRoute: typeof MainSearchIndexRoute
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute
@@ -759,8 +593,6 @@ interface MainRouteChildren {
 }
 
 const MainRouteChildren: MainRouteChildren = {
-  MainErrorTestRoute: MainErrorTestRoute,
-  MainTestRoute: MainTestRoute,
   MainIndexRoute: MainIndexRoute,
   MainAndroidDownloadsIndexRoute: MainAndroidDownloadsIndexRoute,
   MainCustomSourcesIndexRoute: MainCustomSourcesIndexRoute,
@@ -768,7 +600,6 @@ const MainRouteChildren: MainRouteChildren = {
   MainEntryIndexRoute: MainEntryIndexRoute,
   MainExtensionsIndexRoute: MainExtensionsIndexRoute,
   MainMedialinksIndexRoute: MainMedialinksIndexRoute,
-  MainMediastreamIndexRoute: MainMediastreamIndexRoute,
   MainOfflineIndexRoute: MainOfflineIndexRoute,
   MainSearchIndexRoute: MainSearchIndexRoute,
   MainSettingsIndexRoute: MainSettingsIndexRoute,
@@ -792,12 +623,7 @@ const MainRouteWithChildren = MainRoute._addFileChildren(MainRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   MainRoute: MainRouteWithChildren,
-  SplashscreenIndexRoute: SplashscreenIndexRoute,
-  DocsIndexLazyRoute: DocsIndexLazyRoute,
-  IssueReportIndexLazyRoute: IssueReportIndexLazyRoute,
-  ScanLogViewerIndexLazyRoute: ScanLogViewerIndexLazyRoute,
   PublicAuthIndexRoute: PublicAuthIndexRoute,
-  SplashscreenCrashIndexRoute: SplashscreenCrashIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

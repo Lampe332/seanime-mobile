@@ -4,7 +4,6 @@ import { serverAuthTokenAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { GettingStartedPage } from "@/app/(main)/_features/getting-started/getting-started-page"
 import { useServerStatus, useSetServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { LoadingOverlayWithLogo } from "@/components/shared/loading-overlay-with-logo"
-import { LuffyError } from "@/components/shared/luffy-error"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -125,14 +124,6 @@ export function ServerDataWrapper(props: ServerDataWrapperProps) {
                 Seanime is currently updating. Refresh the page once the update is complete and the connection has been reestablished.
             </p>
         </div>
-    }
-
-    /**
-     * Check feature flag routes
-     */
-
-    if (!currentServerStatus.mediastreamSettings?.transcodeEnabled && pathname.startsWith("/mediastream")) {
-        return <LuffyError title="Transcoding not enabled" />
     }
 
     if (!currentServerStatus.user && host === "127.0.0.1:43211" && !__isDesktop__) {
