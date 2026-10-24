@@ -1,32 +1,26 @@
+import { useTr } from "@/lib/app-language"
 import { layoutWidth } from "@/lib/tablet-ui"
-import { cva, VariantProps } from "class-variance-authority"
+import { cva } from "class-variance-authority"
 import * as React from "react"
-import { AppLayoutAnatomy } from "."
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "../core/styling"
-import { Drawer, DrawerProps } from "../drawer"
+import { Drawer } from "../drawer"
 
 /* -------------------------------------------------------------------------------------------------
  * Context
  * -----------------------------------------------------------------------------------------------*/
 
-export const __AppSidebarContext = React.createContext<{
+const __AppSidebarContext = React.createContext<{
     open: boolean,
     setOpen: (open: boolean) => void,
-    size: VariantProps<typeof AppLayoutAnatomy.root>["sidebarSize"]
-    setSize: (size: VariantProps<typeof AppLayoutAnatomy.root>["sidebarSize"]) => void,
     isBelowBreakpoint: boolean,
 }>({
     open: false,
     setOpen: () => {},
-    setSize: () => {},
-    size: "md",
     isBelowBreakpoint: false,
 })
 
 export function useAppSidebarContext() {
-    const ctx = React.useContext(__AppSidebarContext)
-    if (!ctx) throw new Error("useAppSidebarContext must be used within a AppSidebarProvider")
-    return ctx
+    return React.useContext(__AppSidebarContext)
 }
 
 /* -------------------------------------------------------------------------------------------------
@@ -53,9 +47,7 @@ export const AppSidebarTriggerAnatomy = defineStyleAnatomy({
  * AppSidebar
  * -----------------------------------------------------------------------------------------------*/
 
-export type AppSidebarProps = React.ComponentPropsWithoutRef<"div"> & ComponentAnatomy<typeof AppSidebarAnatomy> & {
-    mobileDrawerProps?: Partial<DrawerProps>
-}
+export type AppSidebarProps = React.ComponentPropsWithoutRef<"div"> & ComponentAnatomy<typeof AppSidebarAnatomy>
 
 export const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>((props, ref) => {
 
@@ -108,6 +100,7 @@ export const AppSidebarTrigger = React.forwardRef<HTMLButtonElement, AppSidebarT
     } = props
 
     const ctx = React.useContext(__AppSidebarContext)
+    const t = useTr()
 
     return (
         <button
@@ -116,7 +109,7 @@ export const AppSidebarTrigger = React.forwardRef<HTMLButtonElement, AppSidebarT
             onClick={() => ctx.setOpen(!ctx.open)}
             {...rest}
         >
-            <span className="sr-only">Open main menu</span>
+            <span className="sr-only">{t("Open main menu", "Hauptmenü öffnen")}</span>
             {ctx.open ? (
                 <svg
                     xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -149,21 +142,9 @@ AppSidebarTrigger.displayName = "AppSidebarTrigger"
  * AppSidebarProvider
  * -----------------------------------------------------------------------------------------------*/
 
-export type AppSidebarProviderProps = {
-    children?: React.ReactNode,
-    open?: boolean,
-    onOpenChange?: (open: boolean) => void,
-    onSizeChange?: (size: VariantProps<typeof AppLayoutAnatomy.root>["sidebarSize"]) => void,
-}
-
-export const AppSidebarProvider: React.FC<AppSidebarProviderProps> = ({
-    children,
-    onOpenChange,
-    onSizeChange,
-}) => {
+export const AppSidebarProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
 
     const [open, setOpen] = React.useState(false)
-    const [size, setSize] = React.useState<VariantProps<typeof AppLayoutAnatomy.root>["sidebarSize"]>(undefined)
 
     const [isBelowBreakpoint, setIsBelowBreakpoint] = React.useState<boolean>(false)
 
@@ -172,24 +153,10 @@ export const AppSidebarProvider: React.FC<AppSidebarProviderProps> = ({
         handleResize()
         window.addEventListener("resize", handleResize)
         return () => window.removeEventListener("resize", handleResize)
-    }, [isBelowBreakpoint])
+    }, [])
 
     return (
-        <__AppSidebarContext.Provider
-            value={{
-                open,
-                setOpen: (open: boolean) => {
-                    onOpenChange?.(open)
-                    setOpen(open)
-                },
-                setSize: (size: VariantProps<typeof AppLayoutAnatomy.root>["sidebarSize"]) => {
-                    onSizeChange?.(size)
-                    setSize(size)
-                },
-                size: size,
-                isBelowBreakpoint,
-            }}
-        >
+        <__AppSidebarContext.Provider value={{ open, setOpen, isBelowBreakpoint }}>
             {children}
         </__AppSidebarContext.Provider>
     )

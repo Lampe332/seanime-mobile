@@ -2,7 +2,6 @@ import { vc_globalMiniPlayerAtom, vc_isFullscreen } from "@/app/(main)/_features
 import { cva, VariantProps } from "class-variance-authority"
 import { useAtomValue } from "jotai/react"
 import * as React from "react"
-import { __AppSidebarContext } from "."
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "../core/styling"
 
 /* -------------------------------------------------------------------------------------------------
@@ -21,22 +20,13 @@ export const AppLayoutAnatomy = defineStyleAnatomy({
             },
             sidebarSize: {
                 slim: "sidebar-slim",
-                sm: "sidebar-sm",
-                md: "sidebar-md",
-                lg: "sidebar-lg",
-                xl: "sidebar-xl",
             },
         },
         defaultVariants: {
             withSidebar: false,
-            sidebarSize: "md",
         },
         compoundVariants: [
             { withSidebar: true, sidebarSize: "slim", className: "lg:[&>.appLayout]:pl-20" },
-            { withSidebar: true, sidebarSize: "sm", className: "lg:[&>.appLayout]:pl-48" },
-            { withSidebar: true, sidebarSize: "md", className: "lg:[&>.appLayout]:pl-64" },
-            { withSidebar: true, sidebarSize: "lg", className: "lg:[&>.appLayout]:pl-[20rem]" },
-            { withSidebar: true, sidebarSize: "xl", className: "lg:[&>.appLayout]:pl-[25rem]" },
         ],
     }),
 })
@@ -46,10 +36,6 @@ const AppLayoutSidebarAnatomy = defineStyleAnatomy({
         "UI-AppLayoutSidebar__root z-50",
         "hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col grow-0 shrink-0 basis-0",
         "group-[.sidebar-slim]/appLayout:w-20",
-        "group-[.sidebar-sm]/appLayout:w-48",
-        "group-[.sidebar-md]/appLayout:w-64",
-        "group-[.sidebar-lg]/appLayout:w-[20rem]",
-        "group-[.sidebar-xl]/appLayout:w-[25rem]",
     ]),
 })
 
@@ -97,13 +83,11 @@ export const AppLayout = React.forwardRef<HTMLDivElement, AppLayoutProps>((props
         ...rest
     } = props
 
-    const ctx = React.useContext(__AppSidebarContext)
-
     return (
         <div
             ref={ref}
             className={cn(
-                AppLayoutAnatomy.root({ withSidebar, sidebarSize: ctx.size || sidebarSize }),
+                AppLayoutAnatomy.root({ withSidebar, sidebarSize }),
                 className,
             )}
             {...rest}
