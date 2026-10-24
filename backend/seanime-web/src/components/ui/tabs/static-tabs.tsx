@@ -98,110 +98,36 @@ export const StaticTabs = React.forwardRef<HTMLElement, StaticTabsProps>((props,
             role="navigation"
             {...rest}
         >
-            {items.map((tab) => !!tab.href ? (
-                <SeaLink
-                    key={tab.name}
-                    href={tab.href ?? "#"}
-                    className={cn(
-                        StaticTabsAnatomy.trigger(),
-                        overrideClass,
-                        triggerClass,
-                        isAnimated && "relative z-0",
+            {items.map(tab => {
+                const content = <>
+                    {tab.icon ?? (tab.iconType && <tab.iconType
+                        className={cn(StaticTabsAnatomy.icon(), iconClass)}
+                        aria-hidden="true"
+                        data-current={tab.isCurrent}
+                    />)}
+                    <span>{tab.name}</span>
+                    {tab.addon}
+                </>
+                const children = isAnimated ? <>
+                    <span className="relative z-10 inline-flex items-center">{content}</span>
+                    {tab.isCurrent && (
+                        <motion.span
+                            layoutId={layoutId}
+                            className={cn("absolute inset-0 -z-10 border", activeBg, activeBorder, roundedClass, pillClass)}
+                            transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                        />
                     )}
-                    aria-current={tab.isCurrent ? "page" : undefined}
-                    data-current={tab.isCurrent}
-                    data-tab-name={tab.name}
-                >
-                    {isAnimated ? (
-                        <>
-                            <span className="relative z-10 inline-flex items-center">
-                                {tab.icon ?? (tab.iconType && <tab.iconType
-                                    className={cn(
-                                        StaticTabsAnatomy.icon(),
-                                        iconClass,
-                                    )}
-                                    aria-hidden="true"
-                                    data-current={tab.isCurrent}
-                                />)}
-                                <span>{tab.name}</span>
-                                {tab.addon}
-                            </span>
-                            {tab.isCurrent && (
-                                <motion.span
-                                    layoutId={layoutId}
-                                    className={cn("absolute inset-0 -z-10 border", activeBg, activeBorder, roundedClass, pillClass)}
-                                    transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                                />
-                            )}
-                        </>
-                    ) : (
-                        <>
-                            {tab.icon ?? (tab.iconType && <tab.iconType
-                                className={cn(
-                                    StaticTabsAnatomy.icon(),
-                                    iconClass,
-                                )}
-                                aria-hidden="true"
-                                data-current={tab.isCurrent}
-                            />)}
-                            <span>{tab.name}</span>
-                            {tab.addon}
-                        </>
-                    )}
-                </SeaLink>
-            ) : (
-                <div
-                    key={tab.name}
-                    className={cn(
-                        StaticTabsAnatomy.trigger(),
-                        "cursor-pointer",
-                        overrideClass,
-                        triggerClass,
-                        isAnimated && "relative z-0",
-                    )}
-                    aria-current={tab.isCurrent ? "page" : undefined}
-                    data-current={tab.isCurrent}
-                    data-tab-name={tab.name}
-                    onClick={tab.onClick}
-                >
-                    {isAnimated ? (
-                        <>
-                            <span className="relative z-10 inline-flex items-center">
-                                {tab.icon ?? (tab.iconType && <tab.iconType
-                                    className={cn(
-                                        StaticTabsAnatomy.icon(),
-                                        iconClass,
-                                    )}
-                                    aria-hidden="true"
-                                    data-current={tab.isCurrent}
-                                />)}
-                                <span>{tab.name}</span>
-                                {tab.addon}
-                            </span>
-                            {tab.isCurrent && (
-                                <motion.span
-                                    layoutId={layoutId}
-                                    className={cn("absolute inset-0 -z-10 border", activeBg, activeBorder, roundedClass, pillClass)}
-                                    transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                                />
-                            )}
-                        </>
-                    ) : (
-                        <>
-                            {tab.icon ?? (tab.iconType && <tab.iconType
-                                className={cn(
-                                    StaticTabsAnatomy.icon(),
-                                    iconClass,
-                                )}
-                                aria-hidden="true"
-                                data-current={tab.isCurrent}
-                            />)}
-                            <span>{tab.name}</span>
-                            {tab.addon}
-                        </>
-                    )}
-                </div>
-            ))}
+                </> : content
+                const triggerProps = {
+                    className: cn(StaticTabsAnatomy.trigger(), overrideClass, triggerClass, isAnimated && "relative z-0"),
+                    "aria-current": tab.isCurrent ? "page" as const : undefined,
+                    "data-current": tab.isCurrent,
+                    "data-tab-name": tab.name,
+                }
+                return tab.href
+                    ? <SeaLink key={tab.name} href={tab.href} {...triggerProps}>{children}</SeaLink>
+                    : <button key={tab.name} type="button" {...triggerProps} onClick={tab.onClick}>{children}</button>
+            })}
         </nav>
     )
 
