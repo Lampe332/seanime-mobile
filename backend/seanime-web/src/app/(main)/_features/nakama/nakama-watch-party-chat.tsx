@@ -5,7 +5,7 @@ import { cn } from "@/components/ui/core/styling"
 import { TextInput } from "@/components/ui/text-input"
 import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
-import { atom, useAtom } from "jotai"
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import React from "react"
 import { BiChevronDown, BiChevronUp } from "react-icons/bi"
 import { HiOutlineChatBubbleLeftRight } from "react-icons/hi2"
@@ -24,35 +24,30 @@ const log = logger("NAKAMA WATCH PARTY CHAT")
 
 const watchPartyChat_chatMessagesAtom = atom<ChatMessage[]>([])
 const watchPartyChat_chatMinimizedAtom = atom<boolean>(true)
-const watchPartyChat_unreadCountAtom = atom<number>(5) // TODO set to 0
+const watchPartyChat_unreadCountAtom = atom<number>(0)
 
 export function NakamaWatchPartyChatProvider() {
-    const { watchPartySession, isParticipant, currentUserPeerId } = useNakamaWatchParty()
-    const [messages, setMessages] = useAtom(watchPartyChat_chatMessagesAtom)
-    const [minimized, setMinimized] = useAtom(watchPartyChat_chatMinimizedAtom)
-    const [unreadCount, setUnreadCount] = useAtom(watchPartyChat_unreadCountAtom)
+    const { watchPartySession, currentUserPeerId } = useNakamaWatchParty()
+    const setMessages = useSetAtom(watchPartyChat_chatMessagesAtom)
+    const minimized = useAtomValue(watchPartyChat_chatMinimizedAtom)
+    const setUnreadCount = useSetAtom(watchPartyChat_unreadCountAtom)
 
-    // Listen for chat messages
     useWebsocketMessageListener<ChatMessage>({
         type: WSEvents.NAKAMA_WATCH_PARTY_CHAT_MESSAGE,
         onMessage: (data) => {
             setMessages(prev => [...prev, data])
-
-            // Track own messages by storing the peerId when sending
-            // If minimized and not own message, increment unread count
             if (minimized && data.peerId !== currentUserPeerId) {
                 setUnreadCount(prev => prev + 1)
             }
         },
     })
 
-    // Clear messages when session ends
     React.useEffect(() => {
         if (!watchPartySession) {
             setMessages([])
             setUnreadCount(0)
         }
-    }, [watchPartySession, setMessages])
+    }, [watchPartySession, setMessages, setUnreadCount])
 
     return null
 }
