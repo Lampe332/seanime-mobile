@@ -3,7 +3,6 @@ import { getEpisodeMinutesRemaining, getEpisodePercentageComplete, useGetContinu
 import { EpisodeCard } from "@/app/(main)/_features/anime/_components/episode-card"
 
 import { useSeaCommandInject } from "@/app/(main)/_features/sea-command/use-inject"
-import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { EpisodeListGrid, EpisodeListPaginatedGrid } from "@/app/(main)/entry/_components/episode-list-grid"
 import { useAnimeEntryPageView } from "@/app/(main)/entry/_containers/anime-entry-page"
 import { EpisodeItem } from "@/app/(main)/entry/_containers/episode-list/episode-item"
@@ -31,7 +30,6 @@ type EpisodeSectionProps = {
 
 export function EpisodeSection({ entry, details, bottomSection, hideCarousel, maxCol = 4 }: EpisodeSectionProps) {
     const ts = useThemeSettings()
-    const serverStatus = useServerStatus()
     const { currentView } = useAnimeEntryPageView()
 
     const {
@@ -109,7 +107,7 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
     //     </div>
     // }
 
-    if (!!media && ((!entry.listData && !entry._isNakamaEntry) || !entry.libraryData) && !serverStatus?.isOffline) {
+    if (!!media && ((!entry.listData && !entry._isNakamaEntry) || !entry.libraryData)) {
         return <div className="space-y-10">
             <PhoneDownloadedEpisodes episodes={phoneDownloads} />
             {media?.status !== "NOT_YET_RELEASED"
@@ -234,7 +232,7 @@ export function EpisodeSection({ entry, details, bottomSection, hideCarousel, ma
                         )}
                     />
 
-                    {!serverStatus?.isOffline && !entry._isNakamaEntry && <UndownloadedEpisodeList
+                    {!entry._isNakamaEntry && <UndownloadedEpisodeList
                         downloadInfo={entry.downloadInfo}
                         excludeEpisodes={phoneDownloadedNumbers}
                         media={media}

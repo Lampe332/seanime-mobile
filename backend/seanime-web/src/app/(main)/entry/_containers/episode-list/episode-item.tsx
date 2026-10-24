@@ -42,7 +42,6 @@ export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, o
     watchedProgress?: number
     percentageComplete?: number
     minutesRemaining?: number
-    isOffline?: boolean
 }) => {
 
     const { updateLocalFile, isPending } = useUpdateLocalFileData()

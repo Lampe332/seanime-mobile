@@ -156,14 +156,8 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
 
     const showTrailer = React.useMemo(() => _showTrailer && !libraryData && !mediaIsAdult, [_showTrailer, libraryData, mediaIsAdult])
 
-    const MANGA_LINK = React.useMemo(() =>
-            serverStatus?.isOffline ? `/offline/entry/manga?id=${mediaId}` : `/manga/entry?id=${mediaId}`,
-        [serverStatus?.isOffline, mediaId],
-    )
-    const ANIME_LINK = React.useMemo(() =>
-            serverStatus?.isOffline ? `/offline/entry/anime?id=${mediaId}` : `/entry?id=${mediaId}`,
-        [serverStatus?.isOffline, mediaId],
-    )
+    const MANGA_LINK = `/manga/entry?id=${mediaId}`
+    const ANIME_LINK = `/entry?id=${mediaId}`
 
     const link = React.useMemo(() => {
         return type === "anime" ? ANIME_LINK : MANGA_LINK
@@ -263,11 +257,11 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
                     <ContextMenuLabel className="text-[--muted] line-clamp-1 py-0 my-2">
                         {media.title?.userPreferred}
                     </ContextMenuLabel>
-                    {!serverStatus?.isOffline && <ContextMenuItem
+                    <ContextMenuItem
                         onClick={handlePreviewClick}
                     >
                         <LuEye /> Preview
-                    </ContextMenuItem>}
+                    </ContextMenuItem>
                     {((libraryData || nakamaLibraryData || (listData && hasStreamingEnabled)) && type === "anime") && <ContextMenuItem
                         onClick={handleAddToPlaylistClick}
                     >

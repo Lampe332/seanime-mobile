@@ -3,10 +3,8 @@ import { useWindowSize } from "@uidotdev/usehooks"
 import { HomeMobileHeader } from "../home/home-mobile-header"
 import { LayoutHeaderBackground } from "@/app/(main)/_features/layout/_components/layout-header-background"
 import { TopMenu } from "@/app/(main)/_features/navigation/top-menu"
-import { OfflineTopMenu } from "@/app/(main)/_features/offline/_components/offline-top-menu"
 import { ManualProgressTrackingButton } from "@/app/(main)/_features/progress-tracking/manual-progress-tracking"
 import { PlaybackManagerProgressTrackingButton } from "@/app/(main)/_features/progress-tracking/playback-manager-progress-tracking"
-import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { ChapterDownloadsButton } from "@/app/(main)/manga/_containers/chapter-downloads/chapter-downloads-button"
 import { __manga_chapterDownloadsDrawerIsOpenAtom } from "@/app/(main)/manga/_containers/chapter-downloads/chapter-downloads-drawer"
 import { AppSidebarTrigger } from "@/components/ui/app-layout"
@@ -32,13 +30,11 @@ export function TopNavbar(props: TopNavbarProps) {
         ...rest
     } = props
 
-    const serverStatus = useServerStatus()
-    const isOffline = serverStatus?.isOffline
     const ts = useThemeSettings()
     const pathname = usePathname()
     const { width: windowWidth, height } = useWindowSize()
     const width = layoutWidth(windowWidth)
-    const mobileHome = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && !!width && width < 1024 && pathname === "/" && !isOffline
+    const mobileHome = import.meta.env.SEA_PUBLIC_PLATFORM === "mobile" && !!width && width < 1024 && pathname === "/"
     const sidebarTrigger = showsSidebarTrigger(import.meta.env.SEA_PUBLIC_PLATFORM, width ?? window.innerWidth, height ?? window.innerHeight)
     const NavbarFrame = mobileHome ? HomeMobileHeader : React.Fragment
 
@@ -70,13 +66,12 @@ export function TopNavbar(props: TopNavbarProps) {
                 >
                     <div data-top-navbar-content className="flex items-center w-full gap-3 z-[90]" style={{ WebkitAppRegion: "no-drag" } as any}>
                         {sidebarTrigger && <AppSidebarTrigger />}
-                        {!isOffline ? <TopMenu /> : <OfflineTopMenu />}
+                        <TopMenu />
                         <PlaybackManagerProgressTrackingButton />
                         <ManualProgressTrackingButton />
                         <div data-top-navbar-content-separator className="flex flex-1"></div>
                         <PluginSidebarTray place="top" homeMobile={mobileHome} />
-                        {!isOffline && <ChapterDownloadsButton />}
-                        {/*{!isOffline && <RefreshAnilistButton />}*/}
+                        <ChapterDownloadsButton />
                     </div>
                 </div>
                 </NavbarFrame>
@@ -102,7 +97,6 @@ export function SidebarNavbar(props: SidebarNavbarProps) {
         ...rest
     } = props
 
-    const serverStatus = useServerStatus()
     const ts = useThemeSettings()
     const pathname = usePathname()
 
@@ -116,7 +110,7 @@ export function SidebarNavbar(props: SidebarNavbarProps) {
             {/*<div data-sidebar-navbar-spacer className="px-4 lg:py-1">*/}
             {/*    <Separator className="px-4" />*/}
             {/*</div>*/}
-            {!serverStatus?.isOffline && <VerticalMenu
+            <VerticalMenu
                 data-sidebar-navbar-vertical-menu
                 className="px-4"
                 collapsed={isCollapsed}
@@ -135,7 +129,7 @@ export function SidebarNavbar(props: SidebarNavbarProps) {
                         },
                     ] : []),
                 ]}
-            />}
+            />
             <div data-sidebar-navbar-playback-manager-progress-tracking-button className="flex justify-center">
                 <PlaybackManagerProgressTrackingButton asSidebarButton />
             </div>

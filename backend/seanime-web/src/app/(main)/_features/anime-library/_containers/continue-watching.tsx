@@ -5,7 +5,6 @@ import { __libraryHeaderImageAtom } from "@/app/(main)/_features/anime-library/_
 import { EpisodeCard } from "@/app/(main)/_features/anime/_components/episode-card"
 import { EpisodeTorrentAvailabilityBadge } from "@/app/(main)/_features/anime/_components/episode-torrent-availability-badge"
 import { useSeaCommandInject } from "@/app/(main)/_features/sea-command/use-inject"
-import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { episodeCardCarouselItemClass } from "@/components/shared/classnames"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { SeaImage } from "@/components/shared/sea-image"
@@ -219,7 +218,6 @@ const _EpisodeCard = React.memo(({ episode, mRef, overrideLink, spoilerActive, w
     watchHistory: Continuity_WatchHistory | undefined
     homeMobile?: boolean
 }) => {
-    const serverStatus = useServerStatus()
     const router = useRouter()
     const setHeaderImage = useSetAtom(__libraryHeaderImageAtom)
     const setHeaderEpisode = useSetAtom(__libraryHeaderEpisodeAtom)
@@ -284,16 +282,12 @@ const _EpisodeCard = React.memo(({ episode, mRef, overrideLink, spoilerActive, w
             mRef={mRef}
             onClick={() => {
                 if (homeMobile) {
-                    resumeHomeEpisode(episode, !!serverStatus?.isOffline, setPlayNext, url => router.push(url), overrideLink)
+                    resumeHomeEpisode(episode, setPlayNext, url => router.push(url), overrideLink)
                     return
                 }
                 if (!overrideLink) {
                     setPlayNext(episode.baseAnime?.id, () => {
-                        if (!serverStatus?.isOffline) {
-                            router.push(`/entry?id=${episode.baseAnime?.id}`)
-                        } else {
-                            router.push(`/offline/entry/anime?id=${episode.baseAnime?.id}`)
-                        }
+                        router.push(`/entry?id=${episode.baseAnime?.id}`)
                     })
                 } else {
                     setPlayNext(episode.baseAnime?.id, () => {

@@ -7,7 +7,6 @@ export const CONTENT_GATE_ALLOWED_PATHS = [
     "/extensions",
     "/auth",
     "/android-downloads",
-    "/offline",
     "/sync",
 ]
 

@@ -3,7 +3,7 @@ import { isContentGateAllowedPath } from "./content-gate-paths"
 
 describe("content gate paths", () => {
     it("keeps setup pages reachable", () => {
-        for (const p of ["/settings", "/extensions", "/extensions/playground", "/auth/callback", "/android-downloads", "/offline/entry/anime"]) {
+        for (const p of ["/settings", "/extensions", "/extensions/playground", "/auth/callback", "/android-downloads", "/sync"]) {
             expect(isContentGateAllowedPath(p)).toBe(true)
         }
     })

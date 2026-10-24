@@ -31,11 +31,8 @@ import { useTorrentStreamListener } from "@/app/(main)/entry/_containers/torrent
 import { PlaybackPlayPill } from "@/app/(main)/entry/_containers/torrent-stream/playback-play-pill"
 import { ChapterDownloadsDrawer } from "@/app/(main)/manga/_containers/chapter-downloads/chapter-downloads-drawer"
 import { MangaPreferencesSync, MangaSourceRefreshSync } from "@/app/(main)/manga/_lib/manga-preferences-sync"
-import { LoadingOverlayWithLogo } from "@/components/shared/loading-overlay-with-logo"
 import { AppLayout, AppLayoutContent, AppLayoutSidebar, AppSidebarProvider } from "@/components/ui/app-layout"
-import { usePathname, useRouter } from "@/lib/navigation"
 import React from "react"
-import { useServerStatus } from "../../_hooks/use-server-status"
 import { useInvalidateQueriesListener } from "../../_listeners/invalidate-queries.listeners"
 import { Announcements } from "../announcements"
 import { NakamaManager } from "../nakama/nakama-manager"
@@ -120,31 +117,6 @@ function Loader() {
     useTorrentStreamListener()
     useChangelogTourListener()
     useAuthEventListeners()
-
-    const serverStatus = useServerStatus()
-    const router = useRouter()
-    const pathname = usePathname()
-
-    const [hasNavigated, setHasNavigated] = React.useState(false)
-
-    // dumb fix for duplicated player
-    const prevPathname = React.useRef(pathname)
-    React.useEffect(() => {
-        if (prevPathname.current !== pathname && pathname !== "/") {
-            setHasNavigated(true)
-        }
-        prevPathname.current = pathname
-    }, [pathname])
-
-    React.useEffect(() => {
-        if (!serverStatus?.isOffline && pathname.startsWith("/offline")) {
-            router.push("/")
-        }
-    }, [serverStatus?.isOffline, pathname])
-
-    if (serverStatus?.isOffline) {
-        return <LoadingOverlayWithLogo />
-    }
 
     return null
 }

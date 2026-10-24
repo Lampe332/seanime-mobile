@@ -1,7 +1,6 @@
 import { useGetAnimeCollection } from "@/api/hooks/anilist.hooks"
 import { useGetMangaCollection } from "@/api/hooks/manga.hooks"
 import { useLibraryCollection } from "@/app/(main)/_hooks/anime-library-collection-loader.ts"
-import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { CommandGroup, CommandItem, CommandShortcut } from "@/components/ui/command"
 import { useRouter } from "@/lib/navigation"
 import React from "react"
@@ -110,7 +109,6 @@ export function SeaCommandUserMediaNavigation() {
 
 export function SeaCommandNavigation() {
 
-    const serverStatus = useServerStatus()
 
     const { input, select, command: { isCommand, command, args } } = useSeaCommandContext()
 
@@ -121,55 +119,46 @@ export function SeaCommandNavigation() {
             name: "Home",
             href: "/",
             flag: "home",
-            show: !serverStatus?.isOffline,
         },
         {
             name: "Schedule",
             href: "/schedule",
             flag: "schedule",
-            show: !serverStatus?.isOffline,
         },
         {
             name: "Settings",
             href: "/settings",
             flag: "settings",
-            show: !serverStatus?.isOffline,
         },
         {
             name: "Manga",
             href: "/manga",
             flag: "manga",
-            show: !serverStatus?.isOffline,
         },
         {
             name: "Discover",
             href: "/discover",
             flag: "discover",
-            show: !serverStatus?.isOffline,
         },
         {
             name: "My lists",
             href: "/lists",
             flag: "lists",
-            show: !serverStatus?.isOffline,
         },
         {
             name: "Scan summaries",
             href: "/scan-summaries",
             flag: "scan-summaries",
-            show: !serverStatus?.isOffline,
         },
         {
             name: "Extensions",
             href: "/extensions",
             flag: "extensions",
-            show: !serverStatus?.isOffline,
         },
         {
             name: "Advanced search",
             href: "/search",
             flag: "search",
-            show: !serverStatus?.isOffline,
         },
     ]
 
@@ -216,7 +205,7 @@ export function SeaCommandNavigation() {
             {isCommand && filteredPages.length > 0 && args.length === 0 && (
                 <CommandGroup heading="Screens">
                     <>
-                        {filteredPages.filter(page => page.show).map(page => (
+                        {filteredPages.map(page => (
                             <CommandItem
                                 key={page.flag}
                                 onSelect={() => {

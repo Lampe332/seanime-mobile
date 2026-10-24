@@ -230,7 +230,7 @@ export function MobileTutorialListener() {
 
     const hasStreamingSource = isSuccess && !!streamingExtensions?.length
     const ready = IS_ANDROID_APP && !seen && isSuccess && !hasStreamingSource && !loginModalOpen
-        && !!serverStatus?.settings && !!serverStatus?.user && !serverStatus?.isOffline
+        && !!serverStatus?.settings && !!serverStatus?.user
 
     React.useEffect(() => {
         if (!seen && hasStreamingSource) setSeen(true)

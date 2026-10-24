@@ -226,6 +226,8 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 	if err != nil {
 		logger.Fatal().Err(err).Msgf("app: Failed to initialize config")
 	}
+	// The app has no offline-mode screens (it keeps downloads natively), so a config from an old version must not start in it.
+	cfg.Server.Offline = false
 
 	// Compute SHA-256 hash of the server password
 	serverPasswordHash := ""

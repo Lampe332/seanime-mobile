@@ -180,9 +180,8 @@ type CardMedia = AL_BaseAnime | AL_BaseManga
 export type PhoneCoverCardProps = {
     media: CardMedia
     type: "anime" | "manga"
-    /** Defaults to the entry page, or its offline twin */
+    /** Defaults to the entry page */
     href?: string
-    offline?: boolean
     blurAdult?: boolean
     /** Thin bar on top of the cover */
     progress?: { value: number, total: number }
@@ -209,10 +208,10 @@ export type PhoneCoverCardProps = {
  * offers from 1024 px on.
  */
 export const PhoneCoverCard = React.memo(function PhoneCoverCard(props: PhoneCoverCardProps) {
-    const { media, type, offline, blurAdult, progress, badge, tag, meta, metaTone, warm, menuItems, listData, label, className, href, ...data } = props
+    const { media, type, blurAdult, progress, badge, tag, meta, metaTone, warm, menuItems, listData, label, className, href, ...data } = props
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
-    const link = href ?? (offline ? `/offline/entry/${type}?id=${media.id}` : type === "manga" ? `/manga/entry?id=${media.id}` : `/entry?id=${media.id}`)
-    return <PhoneCardMenu content={<CoverCardMenuItems media={media} type={type} title={title} offline={offline}>{menuItems}</CoverCardMenuItems>}>
+    const link = href ?? (type === "manga" ? `/manga/entry?id=${media.id}` : `/entry?id=${media.id}`)
+    return <PhoneCardMenu content={<CoverCardMenuItems media={media} type={type} title={title}>{menuItems}</CoverCardMenuItems>}>
         {trigger => <SeaLink href={link} className={cn("ps-card", className)} aria-label={label} data-phone-card={media.id} data-media-id={media.id}
             data-media-type={type} data-list-data={listData ? JSON.stringify(listData) : undefined} warmEntryOnViewport={warm}
             bypassEntryPreloadBudget={warm} {...data} {...trigger}>
@@ -230,13 +229,13 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard(props: PhoneCov
     </PhoneCardMenu>
 })
 
-/** A card's long-press menu: its title, Preview (online), the extra items, the plugin items. */
-export function CoverCardMenuItems({ media, type, title, offline, children }: { media: CardMedia, type: "anime" | "manga", title: string, offline?: boolean, children?: React.ReactNode }) {
+/** A card's long-press menu: its title, Preview, the extra items, the plugin items. */
+export function CoverCardMenuItems({ media, type, title, children }: { media: CardMedia, type: "anime" | "manga", title: string, children?: React.ReactNode }) {
     const t = useTr()
     const { setPreviewModalMediaId } = useMediaPreviewModal()
     return <ContextMenuGroup>
         <ContextMenuLabel className="text-[--muted] line-clamp-1 py-0 my-2">{title}</ContextMenuLabel>
-        {!offline && <ContextMenuItem onClick={() => setPreviewModalMediaId(media.id, type)}><LuEye /> {t("Preview", "Vorschau")}</ContextMenuItem>}
+        <ContextMenuItem onClick={() => setPreviewModalMediaId(media.id, type)}><LuEye /> {t("Preview", "Vorschau")}</ContextMenuItem>
         {children}
         <PluginMediaCardContextMenuItems for={type} media={media} />
     </ContextMenuGroup>

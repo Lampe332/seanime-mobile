@@ -59,7 +59,6 @@ export function MangaLibraryPhone(props: MangaLibraryPhoneProps) {
     const router = useRouter()
     const ts = useThemeSettings()
     const serverStatus = useServerStatus()
-    const offline = !!serverStatus?.isOffline
     const blurAdult = !!serverStatus?.settings?.anilist?.blurAdultContent
     const showUnread = !!ts.showMangaUnreadCount
 
@@ -146,10 +145,9 @@ export function MangaLibraryPhone(props: MangaLibraryPhoneProps) {
     }, [rawReading])
 
     const continueReading = React.useCallback((mediaId: number) => {
-        if (offline) return router.push(`/offline/entry/manga?id=${mediaId}`)
         setContinueIntent({ mediaId, at: Date.now() })
         router.push(`/manga/entry?id=${mediaId}`)
-    }, [offline])
+    }, [])
 
     const resetFilters = () => setParams(draft => {
         draft.genre = []
@@ -228,7 +226,7 @@ export function MangaLibraryPhone(props: MangaLibraryPhoneProps) {
                                 {entries.length > 0 ? <div className="mml-grid" data-manga-grid={status}>
                                         {entries.map(entry => {
                                             const state = unreadOf(entry)
-                                            return <MangaCard key={entry.mediaId} entry={entry} offline={offline} blurAdult={blurAdult}
+                                            return <MangaCard key={entry.mediaId} entry={entry} blurAdult={blurAdult}
                                                 latest={state.latest} fresh={showUnread && state.known ? state.unread : 0} />
                                         })}
                                     </div>
@@ -285,7 +283,6 @@ function ContinueCard({ item, blurAdult, t, onContinue }: { item: MangaContinueI
 
 type CardProps = {
     entry: Manga_CollectionEntry
-    offline: boolean
     blurAdult: boolean
     /** Newest chapter of the saved source, if known */
     latest: number | null
@@ -294,7 +291,7 @@ type CardProps = {
 }
 
 /** Cover card for the grid; long-press keeps the desktop card's menu (preview and plugin actions). */
-const MangaCard = React.memo(function MangaCard({ entry, offline, blurAdult, latest, fresh }: CardProps) {
+const MangaCard = React.memo(function MangaCard({ entry, blurAdult, latest, fresh }: CardProps) {
     const t = useTr()
     const media = entry.media
     const { setPreviewModalMediaId } = useMediaPreviewModal()
@@ -304,10 +301,10 @@ const MangaCard = React.memo(function MangaCard({ entry, offline, blurAdult, lat
     const total = Math.max(media.chapters ?? 0, latest ?? 0)
     const meta = progress > 0 ? `${t("Ch.", "Kap.")} ${progress}${total ? ` / ${total}` : ""}`
         : media.chapters ? `${media.chapters} ${t("chapters", "Kapitel")}` : media.startDate?.year ? String(media.startDate.year) : ""
-    const link = offline ? `/offline/entry/manga?id=${entry.mediaId}` : `/manga/entry?id=${entry.mediaId}`
+    const link = `/manga/entry?id=${entry.mediaId}`
     return <SeaContextMenu content={<ContextMenuGroup>
         <ContextMenuLabel className="text-[--muted] line-clamp-1 py-0 my-2">{title}</ContextMenuLabel>
-        {!offline && <ContextMenuItem onClick={() => setPreviewModalMediaId(media.id, "manga")}><LuEye /> {t("Preview", "Vorschau")}</ContextMenuItem>}
+        <ContextMenuItem onClick={() => setPreviewModalMediaId(media.id, "manga")}><LuEye /> {t("Preview", "Vorschau")}</ContextMenuItem>
         <PluginMediaCardContextMenuItems for="manga" media={media} />
     </ContextMenuGroup>}>
         <ContextMenuTrigger asChild>

@@ -16,7 +16,6 @@ import { Route as MainIndexRouteImport } from './routes/_main/index'
 import { Route as PublicAuthIndexRouteImport } from './routes/public/auth/index'
 import { Route as MainSettingsIndexRouteImport } from './routes/_main/settings/index'
 import { Route as MainSearchIndexRouteImport } from './routes/_main/search/index'
-import { Route as MainOfflineIndexRouteImport } from './routes/_main/offline/index'
 import { Route as MainMedialinksIndexRouteImport } from './routes/_main/medialinks/index'
 import { Route as MainExtensionsIndexRouteImport } from './routes/_main/extensions/index'
 import { Route as MainEntryIndexRouteImport } from './routes/_main/entry/index'
@@ -25,8 +24,6 @@ import { Route as MainCustomSourcesIndexRouteImport } from './routes/_main/custo
 import { Route as MainAndroidDownloadsIndexRouteImport } from './routes/_main/android-downloads/index'
 import { Route as MainMangaEntryIndexRouteImport } from './routes/_main/manga/entry/index'
 import { Route as MainAuthCallbackIndexRouteImport } from './routes/_main/auth/callback/index'
-import { Route as MainOfflineEntryMangaIndexRouteImport } from './routes/_main/offline/entry/manga/index'
-import { Route as MainOfflineEntryAnimeIndexRouteImport } from './routes/_main/offline/entry/anime/index'
 
 const MainWebviewIndexLazyRouteImport = createFileRoute('/_main/webview/')()
 const MainSyncIndexLazyRouteImport = createFileRoute('/_main/sync/')()
@@ -37,9 +34,6 @@ const MainScanSummariesIndexLazyRouteImport = createFileRoute(
 const MainMangaIndexLazyRouteImport = createFileRoute('/_main/manga/')()
 const MainListsIndexLazyRouteImport = createFileRoute('/_main/lists/')()
 const MainDebridIndexLazyRouteImport = createFileRoute('/_main/debrid/')()
-const MainOfflineMangaIndexLazyRouteImport = createFileRoute(
-  '/_main/offline/manga/',
-)()
 const MainExtensionsPlaygroundIndexLazyRouteImport = createFileRoute(
   '/_main/extensions/playground/',
 )()
@@ -122,11 +116,6 @@ const MainSearchIndexRoute = MainSearchIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/_main/search/index.lazy').then((d) => d.Route),
 )
-const MainOfflineIndexRoute = MainOfflineIndexRouteImport.update({
-  id: '/offline/',
-  path: '/offline/',
-  getParentRoute: () => MainRoute,
-} as any)
 const MainMedialinksIndexRoute = MainMedialinksIndexRouteImport.update({
   id: '/medialinks/',
   path: '/medialinks/',
@@ -168,14 +157,6 @@ const MainAndroidDownloadsIndexRoute =
     path: '/android-downloads/',
     getParentRoute: () => MainRoute,
   } as any)
-const MainOfflineMangaIndexLazyRoute =
-  MainOfflineMangaIndexLazyRouteImport.update({
-    id: '/offline/manga/',
-    path: '/offline/manga/',
-    getParentRoute: () => MainRoute,
-  } as any).lazy(() =>
-    import('./routes/_main/offline/manga/index.lazy').then((d) => d.Route),
-  )
 const MainExtensionsPlaygroundIndexLazyRoute =
   MainExtensionsPlaygroundIndexLazyRouteImport.update({
     id: '/extensions/playground/',
@@ -198,26 +179,6 @@ const MainAuthCallbackIndexRoute = MainAuthCallbackIndexRouteImport.update({
   path: '/auth/callback/',
   getParentRoute: () => MainRoute,
 } as any)
-const MainOfflineEntryMangaIndexRoute =
-  MainOfflineEntryMangaIndexRouteImport.update({
-    id: '/offline/entry/manga/',
-    path: '/offline/entry/manga/',
-    getParentRoute: () => MainRoute,
-  } as any).lazy(() =>
-    import('./routes/_main/offline/entry/manga/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
-const MainOfflineEntryAnimeIndexRoute =
-  MainOfflineEntryAnimeIndexRouteImport.update({
-    id: '/offline/entry/anime/',
-    path: '/offline/entry/anime/',
-    getParentRoute: () => MainRoute,
-  } as any).lazy(() =>
-    import('./routes/_main/offline/entry/anime/index.lazy').then(
-      (d) => d.Route,
-    ),
-  )
 
 export interface FileRoutesByFullPath {
   '/': typeof MainIndexRoute
@@ -227,7 +188,6 @@ export interface FileRoutesByFullPath {
   '/entry/': typeof MainEntryIndexRoute
   '/extensions/': typeof MainExtensionsIndexRoute
   '/medialinks/': typeof MainMedialinksIndexRoute
-  '/offline/': typeof MainOfflineIndexRoute
   '/search/': typeof MainSearchIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
   '/public/auth/': typeof PublicAuthIndexRoute
@@ -241,9 +201,6 @@ export interface FileRoutesByFullPath {
   '/auth/callback/': typeof MainAuthCallbackIndexRoute
   '/manga/entry/': typeof MainMangaEntryIndexRoute
   '/extensions/playground/': typeof MainExtensionsPlaygroundIndexLazyRoute
-  '/offline/manga/': typeof MainOfflineMangaIndexLazyRoute
-  '/offline/entry/anime/': typeof MainOfflineEntryAnimeIndexRoute
-  '/offline/entry/manga/': typeof MainOfflineEntryMangaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof MainIndexRoute
@@ -253,7 +210,6 @@ export interface FileRoutesByTo {
   '/entry': typeof MainEntryIndexRoute
   '/extensions': typeof MainExtensionsIndexRoute
   '/medialinks': typeof MainMedialinksIndexRoute
-  '/offline': typeof MainOfflineIndexRoute
   '/search': typeof MainSearchIndexRoute
   '/settings': typeof MainSettingsIndexRoute
   '/public/auth': typeof PublicAuthIndexRoute
@@ -267,9 +223,6 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof MainAuthCallbackIndexRoute
   '/manga/entry': typeof MainMangaEntryIndexRoute
   '/extensions/playground': typeof MainExtensionsPlaygroundIndexLazyRoute
-  '/offline/manga': typeof MainOfflineMangaIndexLazyRoute
-  '/offline/entry/anime': typeof MainOfflineEntryAnimeIndexRoute
-  '/offline/entry/manga': typeof MainOfflineEntryMangaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -281,7 +234,6 @@ export interface FileRoutesById {
   '/_main/entry/': typeof MainEntryIndexRoute
   '/_main/extensions/': typeof MainExtensionsIndexRoute
   '/_main/medialinks/': typeof MainMedialinksIndexRoute
-  '/_main/offline/': typeof MainOfflineIndexRoute
   '/_main/search/': typeof MainSearchIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/public/auth/': typeof PublicAuthIndexRoute
@@ -295,9 +247,6 @@ export interface FileRoutesById {
   '/_main/auth/callback/': typeof MainAuthCallbackIndexRoute
   '/_main/manga/entry/': typeof MainMangaEntryIndexRoute
   '/_main/extensions/playground/': typeof MainExtensionsPlaygroundIndexLazyRoute
-  '/_main/offline/manga/': typeof MainOfflineMangaIndexLazyRoute
-  '/_main/offline/entry/anime/': typeof MainOfflineEntryAnimeIndexRoute
-  '/_main/offline/entry/manga/': typeof MainOfflineEntryMangaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -309,7 +258,6 @@ export interface FileRouteTypes {
     | '/entry/'
     | '/extensions/'
     | '/medialinks/'
-    | '/offline/'
     | '/search/'
     | '/settings/'
     | '/public/auth/'
@@ -323,9 +271,6 @@ export interface FileRouteTypes {
     | '/auth/callback/'
     | '/manga/entry/'
     | '/extensions/playground/'
-    | '/offline/manga/'
-    | '/offline/entry/anime/'
-    | '/offline/entry/manga/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -335,7 +280,6 @@ export interface FileRouteTypes {
     | '/entry'
     | '/extensions'
     | '/medialinks'
-    | '/offline'
     | '/search'
     | '/settings'
     | '/public/auth'
@@ -349,9 +293,6 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/manga/entry'
     | '/extensions/playground'
-    | '/offline/manga'
-    | '/offline/entry/anime'
-    | '/offline/entry/manga'
   id:
     | '__root__'
     | '/_main'
@@ -362,7 +303,6 @@ export interface FileRouteTypes {
     | '/_main/entry/'
     | '/_main/extensions/'
     | '/_main/medialinks/'
-    | '/_main/offline/'
     | '/_main/search/'
     | '/_main/settings/'
     | '/public/auth/'
@@ -376,9 +316,6 @@ export interface FileRouteTypes {
     | '/_main/auth/callback/'
     | '/_main/manga/entry/'
     | '/_main/extensions/playground/'
-    | '/_main/offline/manga/'
-    | '/_main/offline/entry/anime/'
-    | '/_main/offline/entry/manga/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -472,13 +409,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainSearchIndexRouteImport
       parentRoute: typeof MainRoute
     }
-    '/_main/offline/': {
-      id: '/_main/offline/'
-      path: '/offline'
-      fullPath: '/offline/'
-      preLoaderRoute: typeof MainOfflineIndexRouteImport
-      parentRoute: typeof MainRoute
-    }
     '/_main/medialinks/': {
       id: '/_main/medialinks/'
       path: '/medialinks'
@@ -521,13 +451,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainAndroidDownloadsIndexRouteImport
       parentRoute: typeof MainRoute
     }
-    '/_main/offline/manga/': {
-      id: '/_main/offline/manga/'
-      path: '/offline/manga'
-      fullPath: '/offline/manga/'
-      preLoaderRoute: typeof MainOfflineMangaIndexLazyRouteImport
-      parentRoute: typeof MainRoute
-    }
     '/_main/extensions/playground/': {
       id: '/_main/extensions/playground/'
       path: '/extensions/playground'
@@ -549,20 +472,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainAuthCallbackIndexRouteImport
       parentRoute: typeof MainRoute
     }
-    '/_main/offline/entry/manga/': {
-      id: '/_main/offline/entry/manga/'
-      path: '/offline/entry/manga'
-      fullPath: '/offline/entry/manga/'
-      preLoaderRoute: typeof MainOfflineEntryMangaIndexRouteImport
-      parentRoute: typeof MainRoute
-    }
-    '/_main/offline/entry/anime/': {
-      id: '/_main/offline/entry/anime/'
-      path: '/offline/entry/anime'
-      fullPath: '/offline/entry/anime/'
-      preLoaderRoute: typeof MainOfflineEntryAnimeIndexRouteImport
-      parentRoute: typeof MainRoute
-    }
   }
 }
 
@@ -574,7 +483,6 @@ interface MainRouteChildren {
   MainEntryIndexRoute: typeof MainEntryIndexRoute
   MainExtensionsIndexRoute: typeof MainExtensionsIndexRoute
   MainMedialinksIndexRoute: typeof MainMedialinksIndexRoute
-  MainOfflineIndexRoute: typeof MainOfflineIndexRoute
   MainSearchIndexRoute: typeof MainSearchIndexRoute
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute
   MainDebridIndexLazyRoute: typeof MainDebridIndexLazyRoute
@@ -587,9 +495,6 @@ interface MainRouteChildren {
   MainAuthCallbackIndexRoute: typeof MainAuthCallbackIndexRoute
   MainMangaEntryIndexRoute: typeof MainMangaEntryIndexRoute
   MainExtensionsPlaygroundIndexLazyRoute: typeof MainExtensionsPlaygroundIndexLazyRoute
-  MainOfflineMangaIndexLazyRoute: typeof MainOfflineMangaIndexLazyRoute
-  MainOfflineEntryAnimeIndexRoute: typeof MainOfflineEntryAnimeIndexRoute
-  MainOfflineEntryMangaIndexRoute: typeof MainOfflineEntryMangaIndexRoute
 }
 
 const MainRouteChildren: MainRouteChildren = {
@@ -600,7 +505,6 @@ const MainRouteChildren: MainRouteChildren = {
   MainEntryIndexRoute: MainEntryIndexRoute,
   MainExtensionsIndexRoute: MainExtensionsIndexRoute,
   MainMedialinksIndexRoute: MainMedialinksIndexRoute,
-  MainOfflineIndexRoute: MainOfflineIndexRoute,
   MainSearchIndexRoute: MainSearchIndexRoute,
   MainSettingsIndexRoute: MainSettingsIndexRoute,
   MainDebridIndexLazyRoute: MainDebridIndexLazyRoute,
@@ -614,9 +518,6 @@ const MainRouteChildren: MainRouteChildren = {
   MainMangaEntryIndexRoute: MainMangaEntryIndexRoute,
   MainExtensionsPlaygroundIndexLazyRoute:
     MainExtensionsPlaygroundIndexLazyRoute,
-  MainOfflineMangaIndexLazyRoute: MainOfflineMangaIndexLazyRoute,
-  MainOfflineEntryAnimeIndexRoute: MainOfflineEntryAnimeIndexRoute,
-  MainOfflineEntryMangaIndexRoute: MainOfflineEntryMangaIndexRoute,
 }
 
 const MainRouteWithChildren = MainRoute._addFileChildren(MainRouteChildren)

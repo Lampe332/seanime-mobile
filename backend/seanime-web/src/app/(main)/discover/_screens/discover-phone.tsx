@@ -444,12 +444,11 @@ function Spotlight({ items, type, loading, stale }: { items: Media[], type: Medi
 const FeatureCard = React.memo(function FeatureCard({ media, type }: { media: Media, type: MediaType }) {
     const t = useTr()
     const serverStatus = useServerStatus()
-    const offline = !!serverStatus?.isOffline
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
     const format = media.format && !(type === "manga" && media.format === "MANGA") ? FORMAT_LABELS[media.format] : undefined
     const meta = [seasonYearLabel(t, media), format ? t(...format) : "", scoreLabel(t, media.meanScore)].filter(Boolean).join(" · ")
-    const href = offline ? `/offline/entry/${type}?id=${media.id}` : type === "manga" ? `/manga/entry?id=${media.id}` : `/entry?id=${media.id}`
-    return <PhoneCardMenu content={<CoverCardMenuItems media={media} type={type} title={title} offline={offline} />}>
+    const href = type === "manga" ? `/manga/entry?id=${media.id}` : `/entry?id=${media.id}`
+    return <PhoneCardMenu content={<CoverCardMenuItems media={media} type={type} title={title} />}>
         {/* data-media-entry-card-body: DOM plugins (the dub badge) mark cards through it, as on MediaEntryCard */}
         {trigger => <SeaLink href={href} className="ps-feature" data-discover-feature={media.id} data-media-id={media.id} data-media-mal-id={media.idMal ?? undefined}
             data-media-type={type} data-media-entry-card-body="true" data-cover-fallback={!media.bannerImage || undefined} {...trigger}>
@@ -493,7 +492,7 @@ const DiscoverCover = React.memo(function DiscoverCover({ media, type, tag, afte
     const badge = fresh > 0 ? t(`${fresh} new`, `${fresh} neu`) : libraryData?.mainFileCount ? t("In library", "In Bibliothek") : undefined
     const release = releaseMark && media.status && (media.status === "RELEASING" || media.status === "NOT_YET_RELEASED") ? t(...MEDIA_STATUS_LABELS[media.status]) : undefined
     const meta = after ? <>{!!status && <><span className="pd-status">{status}</span> · </>}{after}</> : status || fallback
-    return <PhoneCoverCard media={media} type={type} offline={!!serverStatus?.isOffline} blurAdult={!!serverStatus?.settings?.anilist?.blurAdultContent}
+    return <PhoneCoverCard media={media} type={type} blurAdult={!!serverStatus?.settings?.anilist?.blurAdultContent}
         badge={badge} tag={tag ?? release} meta={meta} metaTone={!after && status ? "accent" : undefined} listData={listData} warm={!!listData}
         label={after ? [title, tag, status, after].filter(Boolean).join(", ") : undefined}
         progress={listData?.progress && listData.status !== "COMPLETED" ? { value: listData.progress, total: total ?? 0 } : undefined}

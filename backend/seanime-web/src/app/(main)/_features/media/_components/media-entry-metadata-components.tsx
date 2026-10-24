@@ -28,54 +28,27 @@ export function MediaEntryGenresList(props: MediaEntryGenresListProps) {
         ...rest
     } = props
 
-    const serverStatus = useServerStatus()
-
     if (!genres) return null
 
-    if (serverStatus?.isOffline) {
-        return (
-            <>
-                <div
-                    data-media-entry-genres-list-container
-                    className={cn("items-center flex flex-wrap justify-center lg:justify-start gap-2 md:gap-3", className)}
-                >
-                    {genres?.map(genre => {
-                        return <Badge
-                            key={genre!}
-                            className={cn(
-                                "hover:opacity-100 transition-all px-0 border-transparent bg-transparent hover:bg-transparent dark:text-[--muted] dark:hover:text-[--foreground]")}
-                            size="lg"
-                            data-media-entry-genres-list-item
-                        >
-                            {genre}
-                        </Badge>
-                    })}
-                </div>
-            </>
-        )
-    } else {
-        return (
-            <>
-                <div
-                    data-media-entry-genres-list
-                    className={cn("items-center flex flex-wrap justify-center lg:justify-start gap-2 md:gap-3", className)}
-                >
-                    {genres?.map(genre => {
-                        return <SeaLink href={`/search?genre=${genre}&sorting=TRENDING_DESC${type === "manga" ? "&format=MANGA" : ""}`} key={genre!}>
-                            <Badge
-                                className={cn(
-                                    "hover:opacity-100 transition-all px-0 border-transparent bg-transparent hover:bg-transparent dark:text-[--muted] dark:hover:text-[--foreground]")}
-                                size="lg"
-                                data-media-entry-genres-list-item
-                            >
-                                {genre}
-                            </Badge>
-                        </SeaLink>
-                    })}
-                </div>
-            </>
-        )
-    }
+    return (
+        <div
+            data-media-entry-genres-list
+            className={cn("items-center flex flex-wrap justify-center lg:justify-start gap-2 md:gap-3", className)}
+        >
+            {genres?.map(genre => {
+                return <SeaLink href={`/search?genre=${genre}&sorting=TRENDING_DESC${type === "manga" ? "&format=MANGA" : ""}`} key={genre!}>
+                    <Badge
+                        className={cn(
+                            "hover:opacity-100 transition-all px-0 border-transparent bg-transparent hover:bg-transparent dark:text-[--muted] dark:hover:text-[--foreground]")}
+                        size="lg"
+                        data-media-entry-genres-list-item
+                    >
+                        {genre}
+                    </Badge>
+                </SeaLink>
+            })}
+        </div>
+    )
 }
 
 type MediaEntryAudienceScoreProps = {
@@ -145,8 +118,6 @@ export function AnimeEntryRankings(props: AnimeEntryRankingsProps) {
         ...rest
     } = props
 
-    const serverStatus = useServerStatus()
-
     const seasonMostPopular = rankings?.find(r => (!!r?.season || !!r?.year) && r?.type === "POPULAR" && r.rank <= 10)
     const allTimeHighestRated = rankings?.find(r => !!r?.allTime && r?.type === "RATED" && r.rank <= 100)
     const seasonHighestRated = rankings?.find(r => (!!r?.season || !!r?.year) && r?.type === "RATED" && r.rank <= 5)
@@ -158,12 +129,8 @@ export function AnimeEntryRankings(props: AnimeEntryRankingsProps) {
     }, [])
 
     const Link = React.useCallback((props: { children: React.ReactNode, href: string }) => {
-        if (serverStatus?.isOffline) {
-            return <>{props.children}</>
-        }
-
         return <SeaLink href={props.href}>{props.children}</SeaLink>
-    }, [serverStatus])
+    }, [])
 
     if (!rankings) return null
 

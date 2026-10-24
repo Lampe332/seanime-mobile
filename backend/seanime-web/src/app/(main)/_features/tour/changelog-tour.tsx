@@ -539,7 +539,6 @@ export function useChangelogTourListener() {
 
     React.useEffect(() => {
         if (!serverStatus?.showChangelogTour) return
-        if (serverStatus.isOffline) return
         if (isMobile) return
         if (started.current) return
 
@@ -563,7 +562,7 @@ export function useChangelogTourListener() {
         return () => {
             if (timeout.current) clearTimeout(timeout.current)
         }
-    }, [serverStatus?.showChangelogTour, serverStatus?.isOffline, seenChangelog, start, setSeenChangelog, isMobile])
+    }, [serverStatus?.showChangelogTour, seenChangelog, start, setSeenChangelog, isMobile])
 
     return null
 }

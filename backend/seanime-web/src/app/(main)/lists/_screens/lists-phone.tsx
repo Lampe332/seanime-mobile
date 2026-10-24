@@ -188,7 +188,6 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
     const ts = useThemeSettings()
     const showAdult = !!serverStatus?.settings?.anilist?.enableAdultContent
     const blurAdult = !!serverStatus?.settings?.anilist?.blurAdultContent
-    const offline = !!serverStatus?.isOffline
     const animeQuery = useGetRawAnimeCollection()
     const mangaQuery = useGetRawAnilistMangaCollection()
     const animeTags = useGetRawAnimeCollectionTags()
@@ -282,11 +281,11 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
     const router = useRouter()
     const { setPlayNext } = usePlayNext()
     const { selectMediaAndOpenEditor } = usePlaylistEditorManager()
-    const latest = React.useRef({ router, setPlayNext, selectMediaAndOpenEditor, offline })
-    latest.current = { router, setPlayNext, selectMediaAndOpenEditor, offline }
+    const latest = React.useRef({ router, setPlayNext, selectMediaAndOpenEditor })
+    latest.current = { router, setPlayNext, selectMediaAndOpenEditor }
     const onContinue = React.useCallback((mediaId: number) => {
-        const { router, setPlayNext, offline } = latest.current
-        setPlayNext(mediaId, () => router.push(offline ? `/offline/entry/anime?id=${mediaId}` : `/entry?id=${mediaId}`))
+        const { router, setPlayNext } = latest.current
+        setPlayNext(mediaId, () => router.push(`/entry?id=${mediaId}`))
     }, [])
     const onPlaylist = React.useCallback((mediaId: number) => latest.current.selectMediaAndOpenEditor(mediaId), [])
 
@@ -386,7 +385,7 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
                     </PhoneEmpty>
                     : <div id="pl-grid" role="tabpanel" aria-label={selectedTab ? t(...selectedTab.label) : undefined}>
                         {entries.length > 0
-                            ? <CoverGrid key={`${status}|${sort}`} type={type} status={status} query={gridQuery} entries={entries} now={now} offline={offline} blurAdult={blurAdult}
+                            ? <CoverGrid key={`${status}|${sort}`} type={type} status={status} query={gridQuery} entries={entries} now={now} blurAdult={blurAdult}
                                 canStream={type === "anime" && hasStreamingEnabled} libraryOf={libraryOf} showUnwatched={type === "anime" && !!ts.showAnimeUnwatchedCount}
                                 unreadOf={unreadOf} onContinue={onContinue} onPlaylist={onPlaylist} onTop={toTop} />
                             // Hits in another list: say where they are and go there; none at all: say so and reset.
@@ -438,7 +437,6 @@ type GridProps = {
     query: string
     entries: ListEntry[]
     now: number
-    offline: boolean
     blurAdult: boolean
     canStream: boolean
     libraryOf: Map<number, LibraryInfo>
@@ -455,7 +453,7 @@ type GridProps = {
  * the cards near the screen, as the desktop's lazy grid does. Memoized, so a keystroke in the search leaves it alone until its
  * result is there.
  */
-const CoverGrid = React.memo(function CoverGrid({ type, status, query, entries, now, offline, blurAdult, canStream, libraryOf, showUnwatched, unreadOf, onContinue, onPlaylist, onTop }: GridProps) {
+const CoverGrid = React.memo(function CoverGrid({ type, status, query, entries, now, blurAdult, canStream, libraryOf, showUnwatched, unreadOf, onContinue, onPlaylist, onTop }: GridProps) {
     const t = useTr()
     // A new search or filter shows its hits from the first page again: after a long scroll, each result of a typed search
     // rendered every page scrolled so far (950 cells), which held the keyboard up to 300 ms at phone speed.
@@ -486,7 +484,7 @@ const CoverGrid = React.memo(function CoverGrid({ type, status, query, entries, 
                 const media = entry.media!
                 const library = type === "anime" ? libraryOf.get(media.id) : undefined
                 const reading = entry.status === "CURRENT" || entry.status === "REPEATING"
-                const card = <ListCard key={media.id} type={type} entry={entry} offline={offline} blurAdult={blurAdult}
+                const card = <ListCard key={media.id} type={type} entry={entry} blurAdult={blurAdult}
                     // Only covers of running shows need the clock ("Ep 7 in 2 h").
                     now={type === "anime" && (media as AL_BaseAnime).nextAiringEpisode ? now : 0}
                     playlist={type === "anime" && (canStream || !!library)} library={library} showUnwatched={showUnwatched}
@@ -544,7 +542,6 @@ type CardProps = {
     type: ListType
     entry: ListEntry
     now: number
-    offline: boolean
     blurAdult: boolean
     playlist: boolean
     library: LibraryInfo | undefined
@@ -559,7 +556,7 @@ type CardProps = {
  * One cover: progress bar and tag; as badge the new episodes of a running show, unread chapters, the theme's unwatched count or
  * the user's score; the next airing, release status or season under the title.
  */
-const ListCard = React.memo(function ListCard({ type, entry, now, offline, blurAdult, playlist, library, showUnwatched, unread, onContinue, onPlaylist }: CardProps) {
+const ListCard = React.memo(function ListCard({ type, entry, now, blurAdult, playlist, library, showUnwatched, unread, onContinue, onPlaylist }: CardProps) {
     const t = useTr()
     const media = entry.media!
     const info = getCardInfo(type, entry, now)
@@ -582,7 +579,7 @@ const ListCard = React.memo(function ListCard({ type, entry, now, offline, blurA
     </> : undefined
 
     // data-media-mal-id as on MediaEntryCard, for DOM plugins (MAL sync and the like).
-    return <PhoneCoverCard media={media} type={type} offline={offline} blurAdult={blurAdult} warm progress={info.progress} badge={badge} tag={info.tag}
+    return <PhoneCoverCard media={media} type={type} blurAdult={blurAdult} warm progress={info.progress} badge={badge} tag={info.tag}
         meta={cardMeta(t, info.meta, media)} menuItems={menuItems} listData={listData} data-media-mal-id={media.idMal} data-in-library={library?.local || undefined}
         label={cardLabel(t, type, entry, info, { unread, unwatched: info.fresh > 0 ? 0 : unwatched, local: !!library?.local })} />
 })

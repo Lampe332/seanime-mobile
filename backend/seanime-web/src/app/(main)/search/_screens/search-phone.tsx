@@ -438,7 +438,6 @@ function ActiveFilters({ t, chips, onRemove, onClear }: {
 /** The cover grid with what the collections know about each result (list status, progress, score, local files); typing does not redraw it. */
 const Results = React.memo(function Results({ items, type, stale }: { items: (AL_BaseAnime | AL_BaseManga)[], type: SearchType, stale: boolean }) {
     const serverStatus = useServerStatus()
-    const offline = !!serverStatus?.isOffline
     const blurAdult = !!serverStatus?.settings?.anilist?.blurAdultContent
     const { hasStreamingEnabled } = useHasTorrentOrDebridInclusion()
     const { showAnimeUnwatchedCount, showMangaUnreadCount } = useThemeSettings()
@@ -468,7 +467,7 @@ const Results = React.memo(function Results({ items, type, stale }: { items: (AL
             const listData = type === "anime" ? animeListData[String(media.id)] ?? libraryEntries.get(media.id)?.listData : mangaEntries.get(media.id)?.listData
             const unseen = unseenCount(type, media, listData, { anime: showAnimeUnwatchedCount, manga: showMangaUnreadCount, library: libraryData, chapters })
             return <GridCell key={media.id} id={media.id} keep={keep} windowed={windowed}>
-                <ResultCard media={media} type={type} offline={offline} blurAdult={blurAdult} listData={listData} libraryData={libraryData}
+                <ResultCard media={media} type={type} blurAdult={blurAdult} listData={listData} libraryData={libraryData}
                     unseen={unseen} onPlaylist={onPlaylist} onExplorer={onExplorer} playlist={type === "anime" && (!!libraryData || (!!listData && hasStreamingEnabled))} />
             </GridCell>
         })}
@@ -529,7 +528,6 @@ function GridCell({ id, keep, windowed, children }: { id: number, keep: KeepNear
 type ResultCardProps = {
     media: AL_BaseAnime | AL_BaseManga
     type: SearchType
-    offline: boolean
     blurAdult: boolean
     listData: Anime_EntryListData | Manga_EntryListData | undefined
     libraryData: Anime_EntryLibraryData | undefined
@@ -545,7 +543,7 @@ type ResultCardProps = {
  * list status and year in the accent, else season or form and year, with a mark for local files; the desktop card's menu
  * entries on long press.
  */
-const ResultCard = React.memo(function ResultCard({ media, type, offline, blurAdult, listData, libraryData, unseen, playlist, onPlaylist, onExplorer }: ResultCardProps) {
+const ResultCard = React.memo(function ResultCard({ media, type, blurAdult, listData, libraryData, unseen, playlist, onPlaylist, onExplorer }: ResultCardProps) {
     const t = useTr()
     const local = !!libraryData?.mainFileCount
     const facts = resultCardFacts(t, type, media, listData, { unseen, local })
@@ -557,7 +555,7 @@ const ResultCard = React.memo(function ResultCard({ media, type, offline, blurAd
         {!!libraryPath && <ContextMenuItem onClick={() => onExplorer(libraryPath)}><LuFolderTree /> {t("Open in library explorer", "Im Bibliotheks-Explorer öffnen")}</ContextMenuItem>}
     </> : undefined
     // data-media-mal-id as on MediaEntryCard, for DOM plugins (MAL sync and the like).
-    return <PhoneCoverCard media={media} type={type} offline={offline} blurAdult={blurAdult} progress={progress} badge={facts.badge} tag={facts.tag}
+    return <PhoneCoverCard media={media} type={type} blurAdult={blurAdult} progress={progress} badge={facts.badge} tag={facts.tag}
         meta={local ? <><LuLibrary className="pq-local" aria-hidden data-search-local />{facts.meta}</> : facts.meta} metaTone={facts.onList ? "accent" : undefined}
         label={facts.label} menuItems={menuItems} listData={listData} data-media-mal-id={media.idMal} />
 })

@@ -69,9 +69,8 @@ const ScheduleRow = React.memo(function ScheduleRow({ item, german }: { item: Ai
     const serverStatus = useServerStatus()
     const status = listStatusLabel(t, "anime", useDiscoverEntry("anime", media.id).listData?.status)
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
-    const offline = !!serverStatus?.isOffline
-    return <PhoneCardMenu content={<CoverCardMenuItems media={media} type="anime" title={title} offline={offline} />}>
-        {trigger => <SeaLink href={offline ? `/offline/entry/anime?id=${media.id}` : `/entry?id=${media.id}`} className="ps-list-row" data-discover-schedule-row={item.id}
+    return <PhoneCardMenu content={<CoverCardMenuItems media={media} type="anime" title={title} />}>
+        {trigger => <SeaLink href={`/entry?id=${media.id}`} className="ps-list-row" data-discover-schedule-row={item.id}
             data-media-id={media.id} data-media-mal-id={media.idMal ?? undefined} data-media-type="anime" {...trigger}>
             <span className="ps-list-cover">
                 <SeaImage src={getImageUrl(media.coverImage?.large || media.coverImage?.medium || "")} alt="" fill sizes="3rem" className="ps-cover-image" />

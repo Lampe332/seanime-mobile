@@ -182,20 +182,16 @@ export function EpisodeCard(props: EpisodeCardProps) {
                     </ContextMenuLabel>
 
                     {pathname !== "/entry" && <>
-                        {!serverStatus?.isOffline && <ContextMenuItem
+                        <ContextMenuItem
                             onClick={() => {
                                 setPreviewModalMediaId(anime?.id || 0, "anime")
                             }}
                         >
                             <LuEye /> Preview
-                        </ContextMenuItem>}
+                        </ContextMenuItem>
                         <ContextMenuItem
                             onClick={() => {
-                                if (!serverStatus?.isOffline) {
-                                    router.push(`/entry?id=${anime?.id}`)
-                                } else {
-                                    router.push(`/offline/entry/anime?id=${anime?.id}`)
-                                }
+                                router.push(`/entry?id=${anime?.id}`)
                             }}
                         >
                             <LuDock /> Open page

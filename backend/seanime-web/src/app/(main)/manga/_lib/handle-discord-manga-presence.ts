@@ -14,7 +14,6 @@ export function useDiscordMangaPresence(entry: { media?: AL_BaseManga } | undefi
     const { mutate: cancelActivity } = useCancelDiscordActivity()
 
     React.useEffect(() => {
-        if (serverStatus?.isOffline) return
         if (
             serverStatus?.settings?.discord?.enableRichPresence &&
             serverStatus?.settings?.discord?.enableMangaRichPresence

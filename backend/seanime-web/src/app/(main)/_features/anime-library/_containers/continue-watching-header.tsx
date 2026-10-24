@@ -5,7 +5,6 @@ import { EpisodeCard } from "@/app/(main)/_features/anime/_components/episode-ca
 import { TRANSPARENT_SIDEBAR_BANNER_IMG_STYLE } from "@/app/(main)/_features/custom-ui/styles"
 import { MediaEntryAudienceScore } from "@/app/(main)/_features/media/_components/media-entry-metadata-components"
 import { useMediaPreviewModal } from "@/app/(main)/_features/media/_containers/media-preview-modal"
-import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { imageShimmer } from "@/components/shared/image-helpers"
 import { SeaImage } from "@/components/shared/sea-image"
 import { SeaLink } from "@/components/shared/sea-link"
@@ -254,17 +253,12 @@ function EpisodeCardSidebar({ episode, isTransitioning }: EpisodeCardSidebarProp
     const ts = useThemeSettings()
     const spoilerActive = useContinueWatchingSpoilers(ts)
     const router = useRouter()
-    const serverStatus = useServerStatus()
     const { setPlayNext } = usePlayNext()
     const { data: watchHistory } = useGetContinuityWatchHistory()
 
     const handleEpisodeClick = () => {
         setPlayNext(episode.baseAnime?.id, () => {
-            if (!serverStatus?.isOffline) {
-                router.push(`/entry?id=${episode.baseAnime?.id}`)
-            } else {
-                router.push(`/offline/entry/anime?id=${episode.baseAnime?.id}`)
-            }
+            router.push(`/entry?id=${episode.baseAnime?.id}`)
         })
     }
 
