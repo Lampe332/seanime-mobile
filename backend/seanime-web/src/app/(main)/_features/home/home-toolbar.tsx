@@ -43,7 +43,6 @@ export type HomeToolbarProps = {
     isStreamingOnly: boolean
     isNakamaLibrary: boolean
     className?: string
-    mobileHome?: boolean
 }
 
 export function HomeToolbar(props: HomeToolbarProps) {
@@ -84,10 +83,10 @@ export function HomeToolbar(props: HomeToolbarProps) {
 
     // Android Home shows Playlists, the local library and Customize as icon actions beside the title.
     const headerSlot = useAtomValue(__home_mobileActionsSlot)
-    const inHeader = !!props.mobileHome && !!headerSlot
 
     // Phones: the library's queues as rows under the header; scanning and the file jobs live in the library sheet.
-    if (inHeader) return (
+    // Until the header's slot is mounted the toolbar renders inline below.
+    if (headerSlot) return (
         <>
             {!isNakamaLibrary && hasLibraryPath && <LibraryPhoneAttention />}
             {createPortal(<>
@@ -95,7 +94,7 @@ export function HomeToolbar(props: HomeToolbarProps) {
                     onClick={() => setModalOpen(true)}><MdOutlineVideoLibrary aria-hidden /></button>}
                 {!isNakamaLibrary && hasLibraryPath && <LibraryPhoneAction />}
                 <HomeSettingsButton type="toolbar" icon />
-            </>, headerSlot!)}
+            </>, headerSlot)}
         </>
     )
 
@@ -139,15 +138,9 @@ export function HomeToolbar(props: HomeToolbarProps) {
                             Library Explorer
                         </Tooltip>}
 
-                        {!inHeader && <Tooltip
-                            trigger={props.mobileHome ? <Button data-home-toolbar-playlists-button className="home-labeled-action" leftIcon={<MdOutlineVideoLibrary aria-hidden />} onClick={() => setModalOpen(true)}>{tr("Playlists", "Playlists")}</Button> : <IconButton
-                                aria-label="Playlists"
-                                data-home-toolbar-playlists-button
-                                intent={"white-subtle"}
-                                icon={<MdOutlineVideoLibrary className="text-2xl" />}
-                                onClick={() => setModalOpen(true)}
-                            />}
-                        >Playlists</Tooltip>}
+                        <Tooltip
+                            trigger={<Button data-home-toolbar-playlists-button className="home-labeled-action" leftIcon={<MdOutlineVideoLibrary aria-hidden />} onClick={() => setModalOpen(true)}>{tr("Playlists", "Playlists")}</Button>}
+                        >Playlists</Tooltip>
                     </>
                 )}
                 {/*Shows up even when there's no local entries*/}
@@ -185,7 +178,7 @@ export function HomeToolbar(props: HomeToolbarProps) {
                     Resolve hidden media ({unknownGroups.length})
                 </Button>}
 
-                <HomeSettingsButton type="toolbar" labeled={props.mobileHome} />
+                <HomeSettingsButton type="toolbar" labeled />
 
                 {(!isStreamingOnly && !isNakamaLibrary && hasLibraryPath) &&
                     <DropdownMenu

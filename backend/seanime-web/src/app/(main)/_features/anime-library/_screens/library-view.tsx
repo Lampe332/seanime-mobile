@@ -1,20 +1,15 @@
 import { AL_MediaListStatus, Anime_Episode, Anime_LibraryCollectionList } from "@/api/generated/types"
 import { LibraryCollectionFilteredLists, LibraryCollectionLists } from "@/app/(main)/_features/anime-library/_containers/library-collection"
-import { __mainLibrary_paramsAtom, __mainLibrary_paramsInputAtom } from "@/app/(main)/_features/anime-library/_lib/handle-library-collection"
-import { MediaGenreSelector } from "@/app/(main)/_features/media/_components/media-genre-selector"
+import { __mainLibrary_paramsAtom } from "@/app/(main)/_features/anime-library/_lib/handle-library-collection"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { cn } from "@/components/ui/core/styling"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useDebounce } from "@/hooks/use-debounce"
-import { useThemeSettings } from "@/lib/theme/theme-hooks"
-import { useSetAtom } from "jotai"
 import { useAtom } from "jotai/react"
 import { AnimatePresence } from "motion/react"
 import React from "react"
 
 
 type LibraryViewProps = {
-    homeMobile?: boolean
     genres: string[]
     collectionList: Anime_LibraryCollectionList[]
     filteredCollectionList: Anime_LibraryCollectionList[]
@@ -26,6 +21,7 @@ type LibraryViewProps = {
     type?: "carousel" | "grid"
 }
 
+/** Android Home's anime library section. It stays minimal: no genre row. */
 export function LibraryView(props: LibraryViewProps) {
 
     const {
@@ -38,11 +34,8 @@ export function LibraryView(props: LibraryViewProps) {
         streamingMediaIds,
         showStatuses,
         type = "grid",
-        homeMobile,
         ...rest
     } = props
-
-    const ts = useThemeSettings()
 
     const [params, setParams] = useAtom(__mainLibrary_paramsAtom)
 
@@ -73,73 +66,27 @@ export function LibraryView(props: LibraryViewProps) {
     </React.Fragment>
 
     return (
-        <>
-
-            {/* Android Home stays minimal: no genre row. */}
-            {(
-                !homeMobile &&
-                !ts.disableLibraryScreenGenreSelector &&
-                collectionList.flatMap(n => n.entries)?.length > 2
-            ) && <GenreSelector genres={genres} />}
-
-            <PageWrapper key="library-collection-lists" className="px-4 space-y-8 relative z-[4]" data-library-collection-lists-container>
-                <AnimatePresence mode="wait" initial={false}>
-                    {!params.genre?.length ?
-                        <LibraryCollectionLists
-                            homeMobile={homeMobile}
-                            key="library-collection-lists"
-                            collectionList={collectionList}
-                            isLoading={isLoading}
-                            streamingMediaIds={streamingMediaIds}
-                            showStatuses={showStatuses}
-                            type={type}
-                        />
-                        : <LibraryCollectionFilteredLists
-                            key="library-filtered-lists"
-                            collectionList={filteredCollectionList}
-                            isLoading={isLoading}
-                            streamingMediaIds={streamingMediaIds}
-                            showStatuses={showStatuses}
-                            type={type}
-                        />
-                    }
-                </AnimatePresence>
-            </PageWrapper>
-        </>
-    )
-}
-
-function GenreSelector({
-    genres,
-}: { genres: string[] }) {
-    const [params, setParams] = useAtom(__mainLibrary_paramsInputAtom)
-    const setActualParams = useSetAtom(__mainLibrary_paramsAtom)
-    const debouncedParams = useDebounce(params, 200)
-
-    React.useEffect(() => {
-        setActualParams(params)
-    }, [debouncedParams])
-
-    if (!genres.length) return null
-
-    return (
-        <PageWrapper className="space-y-3 lg:space-y-6 relative z-[4]" data-library-genre-selector-container>
-            <MediaGenreSelector
-                items={[
-                    ...genres.map(genre => ({
-                        name: genre,
-                        isCurrent: params!.genre?.includes(genre) ?? false,
-                        onClick: () => setParams(draft => {
-                            if (draft.genre?.includes(genre)) {
-                                draft.genre = draft.genre?.filter(g => g !== genre)
-                            } else {
-                                draft.genre = [...(draft.genre || []), genre]
-                            }
-                            return
-                        }),
-                    })),
-                ]}
-            />
+        <PageWrapper key="library-collection-lists" className="px-4 space-y-8 relative z-[4]" data-library-collection-lists-container>
+            <AnimatePresence mode="wait" initial={false}>
+                {!params.genre?.length ?
+                    <LibraryCollectionLists
+                        key="library-collection-lists"
+                        collectionList={collectionList}
+                        isLoading={isLoading}
+                        streamingMediaIds={streamingMediaIds}
+                        showStatuses={showStatuses}
+                        type={type}
+                    />
+                    : <LibraryCollectionFilteredLists
+                        key="library-filtered-lists"
+                        collectionList={filteredCollectionList}
+                        isLoading={isLoading}
+                        streamingMediaIds={streamingMediaIds}
+                        showStatuses={showStatuses}
+                        type={type}
+                    />
+                }
+            </AnimatePresence>
         </PageWrapper>
     )
 }

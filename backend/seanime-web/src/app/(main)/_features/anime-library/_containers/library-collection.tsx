@@ -21,8 +21,8 @@ import "./home-current-filter.css"
 /** Android home: genres the "Currently watching" row is narrowed to (all must match). Kept for the session only. */
 const homeCurrentGenresAtom = atom<string[]>([])
 
-export function LibraryCollectionLists({ collectionList, isLoading, streamingMediaIds, showStatuses, type, homeMobile }: {
-    homeMobile?: boolean
+/** Android Home's library rows (Home is the only place that renders them). */
+export function LibraryCollectionLists({ collectionList, isLoading, streamingMediaIds, showStatuses, type }: {
     collectionList: Anime_LibraryCollectionList[],
     isLoading: boolean,
     streamingMediaIds: number[],
@@ -46,7 +46,7 @@ export function LibraryCollectionLists({ collectionList, isLoading, streamingMed
             {collectionList.map(collection => {
                 if (!collection.entries?.length) return null
                 return <LibraryCollectionListItem
-                    homeMobile={homeMobile}
+                    homeMobile
                     key={collection.type}
                     list={collection}
                     streamingMediaIds={streamingMediaIds}
@@ -115,6 +115,7 @@ export function LibraryCollectionFilteredLists({ collectionList, isLoading, stre
 }
 
 export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, showStatuses, type, homeMobile }: {
+    /** Home's rows (LibraryCollectionLists); the detailed library view leaves it off */
     homeMobile?: boolean
     list: Anime_LibraryCollectionList,
     streamingMediaIds: number[],
@@ -145,7 +146,7 @@ export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, 
                 {type === "grid" && <div className="flex flex-1"></div>}
                 {isCurrentlyWatching && homeMobile && <HomeCurrentFilter list={list} />}
                 {isCurrentlyWatching && !homeMobile && <DropdownMenu
-                    trigger={homeMobile ? <Button intent="gray-basic" leftIcon={<LuListFilter aria-hidden />} aria-label={tr("Filter currently watching", "Aktuelle Serien filtern")} aria-pressed={!!params.continueWatchingOnly}>{tr("Filter", "Filter")}{params.continueWatchingOnly ? " · 1" : ""}</Button> : <IconButton
+                    trigger={<IconButton
                         intent="white-basic"
                         size="xs"
                         className="mt-1"
@@ -160,7 +161,7 @@ export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, 
                             })
                         }}
                     >
-                        {homeMobile ? (params.continueWatchingOnly ? tr("Show all", "Alle anzeigen") : tr("Show unwatched only", "Nur ungesehene anzeigen")) : (params.continueWatchingOnly ? "Show all" : "Show unwatched only")}
+                        {params.continueWatchingOnly ? "Show all" : "Show unwatched only"}
                     </DropdownMenuItem>
                 </DropdownMenu>}
             </div>

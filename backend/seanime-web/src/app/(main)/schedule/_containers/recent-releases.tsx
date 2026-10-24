@@ -4,10 +4,9 @@ import { MediaEntryCardSkeleton } from "@/app/(main)/_features/media/_components
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Carousel, CarouselContent, CarouselDotButtons } from "@/components/ui/carousel"
 import { addSeconds, formatDistanceToNow, subDays } from "date-fns"
-import React from "react"
 
-/** `homeMobile`: touch Home neither auto-advances nor starts hover trailers. */
-export function RecentReleases({ homeMobile }: { homeMobile?: boolean } = {}) {
+/** Android Home: touch Home neither auto-advances nor starts hover trailers. */
+export function RecentReleases() {
 
     const { data, isLoading } = useAnilistListRecentAiringAnime({
         page: 1,
@@ -35,7 +34,7 @@ export function RecentReleases({ homeMobile }: { homeMobile?: boolean } = {}) {
                     dragFree: true,
                 }}
                 carouselButtonContainerClass="top-[-3.5rem]"
-                autoScroll={!homeMobile}
+                autoScroll={false}
             >
                 <CarouselDotButtons />
                 <CarouselContent className="px-6">
@@ -47,7 +46,7 @@ export function RecentReleases({ homeMobile }: { homeMobile?: boolean } = {}) {
                                 showLibraryBadge
                                 containerClassName="basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0"
                                 hideReleasingBadge
-                                showTrailer={!homeMobile}
+                                showTrailer={false}
                                 type="anime"
                                 overlay={<div className="flex flex-col w-fit absolute right-0 items-end">
                                     <div

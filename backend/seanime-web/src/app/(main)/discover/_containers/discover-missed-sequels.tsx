@@ -5,26 +5,17 @@ import { PageWrapper } from "@/components/shared/page-wrapper"
 import { Button } from "@/components/ui/button"
 import { Carousel, CarouselContent, CarouselDotButtons } from "@/components/ui/carousel"
 import { useTr } from "@/lib/app-language"
-import { useInView } from "motion/react"
-import React from "react"
 
 
 /**
- * `homeMobile`: touch Home neither auto-advances nor starts hover trailers. A section the user added
+ * Android Home: touch Home neither auto-advances nor starts hover trailers. A section the user added
  * loads right away and stays visible while loading, empty or failed instead of silently rendering nothing.
  */
-export function DiscoverMissedSequelsSection({ title = "You Might Have Missed", homeMobile }: { title?: string, homeMobile?: boolean }) {
+export function DiscoverMissedSequelsSection() {
     const tr = useTr()
-    const ref = React.useRef(null)
-    const isInView = useInView(ref, { once: true })
-    const { data, isLoading, isError, refetch } = useAnilistListMissedSequels(isInView || !!homeMobile)
+    const { data, isLoading, isError, refetch } = useAnilistListMissedSequels(true)
 
-    if (!homeMobile) {
-        if (!isInView && !data) return <div ref={ref} />
-        if (!data?.length) return null
-    }
-
-    if (homeMobile && !isLoading && !data?.length) return (
+    if (!isLoading && !data?.length) return (
         <PageWrapper className="space-y-2 z-[5] relative" data-discover-missed-sequels-container>
             <h2>{tr("Missed sequels", "Verpasste Fortsetzungen")}</h2>
             {isError ? <div className="home-state" role="alert">
@@ -36,7 +27,7 @@ export function DiscoverMissedSequelsSection({ title = "You Might Have Missed", 
 
     return (
         <PageWrapper className="space-y-2 z-[5] relative" data-discover-missed-sequels-container aria-busy={isLoading || undefined}>
-            <h2>{homeMobile ? tr("Missed sequels", "Verpasste Fortsetzungen") : title}</h2>
+            <h2>{tr("Missed sequels", "Verpasste Fortsetzungen")}</h2>
             <Carousel
                 className="w-full max-w-full"
                 gap="xl"
@@ -44,11 +35,11 @@ export function DiscoverMissedSequelsSection({ title = "You Might Have Missed", 
                     align: "start",
                     dragFree: true,
                 }}
-                autoScroll={!homeMobile}
+                autoScroll={false}
             >
                 {/*<CarouselMasks />*/}
                 <CarouselDotButtons />
-                <CarouselContent className="px-6" ref={ref}>
+                <CarouselContent className="px-6">
                     {!isLoading ? data?.filter(Boolean).map(media => {
                         return (
                             <MediaEntryCard
@@ -56,11 +47,11 @@ export function DiscoverMissedSequelsSection({ title = "You Might Have Missed", 
                                 media={media}
                                 showLibraryBadge
                                 containerClassName="basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0"
-                                showTrailer={!homeMobile}
+                                showTrailer={false}
                                 type="anime"
                             />
                         )
-                    }) : [...Array(homeMobile ? 3 : 10).keys()].map((v, idx) => <MediaEntryCardSkeleton key={idx} />)}
+                    }) : [...Array(3).keys()].map((v, idx) => <MediaEntryCardSkeleton key={idx} />)}
                 </CarouselContent>
             </Carousel>
         </PageWrapper>

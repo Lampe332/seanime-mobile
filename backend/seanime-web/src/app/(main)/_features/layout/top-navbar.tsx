@@ -33,7 +33,7 @@ export function TopNavbar(props: TopNavbarProps) {
     const pathname = usePathname()
     const { width: windowWidth, height } = useWindowSize()
     const width = layoutWidth(windowWidth)
-    const mobileHome = !!width && width < 1024 && pathname === "/"
+    const mobileHome = pathname === "/"
     const sidebarTrigger = showsSidebarTrigger(width ?? window.innerWidth, height ?? window.innerHeight)
     const NavbarFrame = mobileHome ? HomeMobileHeader : React.Fragment
 

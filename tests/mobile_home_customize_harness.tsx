@@ -8,5 +8,5 @@ import '../backend/seanime-web/src/app/(main)/_features/home/home-mobile.css'
 const store=createStore()
 ;(window as any).openCustomize=()=>store.set(__home_settingsModalOpen,true)
 ;(window as any).isCustomizeOpen=()=>store.get(__home_settingsModalOpen)
-function Harness(){const s=useProbeState();return <HomeSettingsModal isNakamaLibrary={false} mobileHome homeItems={s.items}/>}
+function Harness(){const s=useProbeState();return <HomeSettingsModal isNakamaLibrary={false} homeItems={s.items}/>}
 createRoot(document.getElementById('root')!).render(<Provider store={store}><Harness/></Provider>)

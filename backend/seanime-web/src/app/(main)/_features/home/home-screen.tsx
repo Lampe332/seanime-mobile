@@ -1,14 +1,10 @@
-import { layoutWidth } from "@/lib/tablet-ui"
 import { AL_ListRecentAnime_Page_AiringSchedules, Anime_ScheduleItem, Models_HomeItem } from "@/api/generated/types"
 import { useAnilistListAnime, useAnilistListRecentAiringAnime } from "@/api/hooks/anilist.hooks"
 import { useGetLibraryCollection } from "@/api/hooks/anime_collection.hooks"
 import { useAnilistListManga } from "@/api/hooks/manga.hooks"
 import { useGetHomeItems } from "@/api/hooks/status.hooks"
 import { __anilist_userAnimeMediaAtom } from "@/app/(main)/_atoms/anilist.atoms"
-import { LibraryHeader } from "@/app/(main)/_features/anime-library/_components/library-header"
 import { ContinueWatching } from "@/app/(main)/_features/anime-library/_containers/continue-watching"
-import { ContinueWatchingHeader } from "@/app/(main)/_features/anime-library/_containers/continue-watching-header"
-import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
 import { IgnoredFileManager } from "@/app/(main)/_features/anime-library/_containers/ignored-file-manager"
 import { __scanner_modalIsOpen } from "@/app/(main)/_features/anime-library/_containers/scanner-modal"
 import { UnknownMediaManager } from "@/app/(main)/_features/anime-library/_containers/unknown-media-manager"
@@ -23,7 +19,6 @@ import { HomeToolbar } from "@/app/(main)/_features/home/home-toolbar"
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
 import { DiscoverMissedSequelsSection } from "@/app/(main)/discover/_containers/discover-missed-sequels"
 import { useHandleUserAnilistLists } from "@/app/(main)/lists/_lib/handle-user-anilist-lists"
-import { MangaLibraryHeader } from "@/app/(main)/manga/_components/library-header"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { SeaLink } from "@/components/shared/sea-link"
 import { Button } from "@/components/ui/button"
@@ -40,7 +35,6 @@ import React from "react"
 import { FiSearch } from "react-icons/fi"
 import { LiaPlayCircle } from "react-icons/lia"
 import { LuPlus } from "react-icons/lu"
-import { useWindowSize } from "react-use"
 import { useServerStatus } from "../../_hooks/use-server-status"
 import { DiscoverPageHeader } from "../../discover/_components/discover-page-header"
 import { DiscoverTrending } from "../../discover/_containers/discover-trending"
@@ -68,8 +62,6 @@ export function HomeScreen() {
     const serverStatus = useServerStatus()
     const { data: _homeItems, isLoading: isLoadingItems, isError: homeItemsError, refetch: retryHomeItems } = useGetHomeItems()
 
-    const width = layoutWidth(useWindowSize().width)
-    const mobileHome = width < 1024
     const tr = useTr()
     const { isError: collectionError, refetch: retryCollection } = useGetLibraryCollection()
 
@@ -92,9 +84,8 @@ export function HomeScreen() {
         isNakamaLibrary,
     } = useHandleLibraryCollection()
 
-    const {
-        mangaCollection,
-    } = useHandleMangaCollection()
+    // Keeps the manga collection (and its chapter-number atoms) loaded while Home is open
+    useHandleMangaCollection()
 
     const ts = useThemeSettings()
 
@@ -106,8 +97,8 @@ export function HomeScreen() {
 
     const homeItems = React.useMemo(() => {
         let ret = !!_homeItems?.length ? _homeItems : DEFAULT_HOME_ITEMS
-        // replace anime-continue-watching-header with anime-continue-watching on mobile
-        if (width < 1024 && ret[0]?.type === "anime-continue-watching-header") {
+        // Android Home has no header banner: a leading anime-continue-watching-header shows as anime-continue-watching
+        if (ret[0]?.type === "anime-continue-watching-header") {
             if (ret.find(n => n.type === "anime-continue-watching")) {
                 // remove any other anime continue watching
                 ret = ret.filter(n => n.type !== "anime-continue-watching")
@@ -123,7 +114,7 @@ export function HomeScreen() {
             })
         }
         return ret
-    }, [_homeItems, width < 1024])
+    }, [_homeItems])
 
     React.useEffect(() => {
         setDiscoverPageType(discoverPageType)
@@ -137,45 +128,20 @@ export function HomeScreen() {
         : "local"
 
 
-    if (mobileHome && (homeItemsError || (collectionError && !hasEntries))) return <div data-home-screen data-home-mobile="true">
+    if (homeItemsError || (collectionError && !hasEntries)) return <div data-home-screen data-home-mobile="true">
         <div className="home-state" role="alert"><h2>{tr("Home could not load", "Startseite konnte nicht geladen werden")}</h2>
             <p>{tr("Your saved layout is still available. Try loading it again.", "Deine gespeicherte Anordnung bleibt erhalten. Versuche es erneut.")}</p>
             <Button onClick={() => { retryHomeItems(); retryCollection() }}>{tr("Try again", "Erneut versuchen")}</Button>
         </div>
     </div>
-    if (mobileHome && (isLoading || isLoadingItems)) return <div data-home-screen data-home-mobile="true" aria-busy="true" aria-label={tr("Loading Home", "Startseite wird geladen")}>
+    if (isLoading || isLoadingItems) return <div data-home-screen data-home-mobile="true" aria-busy="true" aria-label={tr("Loading Home", "Startseite wird geladen")}>
         <div className="home-state"><Skeleton className="h-8 w-40 mb-4" /><Skeleton className="h-48 rounded-xl" /></div>
     </div>
-    if (isLoading || isLoadingItems) return <React.Fragment>
-        <div className="p-4 space-y-4 relative z-[4]">
-            <Skeleton className="h-12 w-full max-w-lg relative" />
-            <div
-                className={cn(
-                    "grid h-[22rem] min-[2000px]:h-[24rem] grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7 min-[2000px]:grid-cols-8 gap-4",
-                )}
-            >
-                {[1, 2, 3, 4, 5, 6, 7, 8]?.map((_, idx) => {
-                    return <Skeleton
-                        key={idx} className={cn(
-                        "h-[22rem] min-[2000px]:h-[24rem] col-span-1 aspect-[6/7] flex-none rounded-[--radius-md] relative overflow-hidden",
-                        "[&:nth-child(8)]:hidden min-[2000px]:[&:nth-child(8)]:block",
-                        "[&:nth-child(7)]:hidden 2xl:[&:nth-child(7)]:block",
-                        "[&:nth-child(6)]:hidden xl:[&:nth-child(6)]:block",
-                        "[&:nth-child(5)]:hidden xl:[&:nth-child(5)]:block",
-                        "[&:nth-child(4)]:hidden lg:[&:nth-child(4)]:block",
-                        "[&:nth-child(3)]:hidden md:[&:nth-child(3)]:block",
-                    )}
-                    />
-                })}
-            </div>
-        </div>
-    </React.Fragment>
 
     if (!hasEntries && isAnimeLibraryItemsOnly(homeItems) && !isLoading) {
         return (
-            <div data-home-screen="no-entries" data-home-mobile={mobileHome || undefined} className="contents">
+            <div data-home-screen="no-entries" data-home-mobile="true" className="contents">
                 <React.Fragment>
-                    {!mobileHome && <DiscoverPageHeader />}
                     <div className="h-0 visibility-hidden pointer-events-none opacity-0">
                         {/*{discoverHeaderType === "anime" && <DiscoverTrending />}*/}
                         {discoverHeaderType === "manga" && <DiscoverTrendingCountry country="JP" forDiscoverHeader />}
@@ -183,7 +149,6 @@ export function HomeScreen() {
                 </React.Fragment>
 
                 <HomeToolbar
-                    mobileHome={mobileHome}
                     collectionList={libraryCollectionList}
                     unmatchedLocalFiles={unmatchedLocalFiles}
                     ignoredLocalFiles={ignoredLocalFiles}
@@ -193,7 +158,7 @@ export function HomeScreen() {
                     isStreamingOnly={isStreamingOnly}
                     isNakamaLibrary={isNakamaLibrary}
                     className={cn(
-                        (homeItems[0]?.type === "discover-header" || homeItems[0]?.type === "anime-continue-watching-header") && "!mt-[-4rem] !mb-[-1rem]",
+                        homeItems[0]?.type === "discover-header" && "!mt-[-4rem] !mb-[-1rem]",
                     )}
                 />
 
@@ -256,7 +221,7 @@ export function HomeScreen() {
 
                 <div data-home-screen-item-divider className="h-8" />
 
-                <HomeSettingsModal emptyLibrary isNakamaLibrary={isNakamaLibrary} mobileHome={mobileHome} homeItems={_homeItems} itemsLoading={isLoadingItems} />
+                <HomeSettingsModal emptyLibrary isNakamaLibrary={isNakamaLibrary} homeItems={_homeItems} />
 
                 <UnmatchedFileManager
                     unmatchedGroups={unmatchedGroups}
@@ -272,28 +237,16 @@ export function HomeScreen() {
     }
 
     return (
-        <div data-home-screen data-home-mobile={mobileHome || undefined} className="contents">
+        <div data-home-screen data-home-mobile="true" className="contents">
 
             {/*Discover Page Header*/}
             {homeItems[0]?.type === "discover-header" && <React.Fragment>
-                <DiscoverPageHeader homeMobile={mobileHome} />
+                <DiscoverPageHeader />
                 <div className="h-0 visibility-hidden pointer-events-none opacity-0">
                     {discoverHeaderType === "anime" && <DiscoverTrending />}
                     {discoverHeaderType === "manga" && <DiscoverTrendingCountry country="JP" forDiscoverHeader />}
                 </div>
             </React.Fragment>}
-
-            {/*Continue Watching Header*/}
-            {homeItems[0]?.type === "anime-continue-watching-header" && <React.Fragment>
-                <ContinueWatchingHeader episodes={continueWatchingList} />
-            </React.Fragment>}
-
-            {/*Manga Library Header*/}
-            {(!mobileHome && ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Dynamic && homeItems[0]?.type === "manga-library") && (
-                <>
-                    <MangaLibraryHeader manga={mangaCollection?.lists?.flatMap(l => l.entries)?.flatMap(e => e?.media)?.filter(Boolean) || []} />
-                </>
-            )}
 
             <div
                 className={cn(
@@ -301,7 +254,7 @@ export function HomeScreen() {
                 )}
                 data-library-toolbar-top-padding
             ></div>
-            {(homeItems[0]?.type !== "anime-continue-watching-header" && homeItems[0]?.type === "anime-continue-watching") && <div
+            {homeItems[0]?.type === "anime-continue-watching" && <div
                 className={cn(
                     "lg:h-16 hidden",
                 )}
@@ -320,7 +273,6 @@ export function HomeScreen() {
             ></div>}
 
             <HomeToolbar
-                mobileHome={mobileHome}
                 collectionList={libraryCollectionList}
                 unmatchedLocalFiles={unmatchedLocalFiles}
                 ignoredLocalFiles={ignoredLocalFiles}
@@ -330,15 +282,14 @@ export function HomeScreen() {
                 isStreamingOnly={isStreamingOnly}
                 isNakamaLibrary={isNakamaLibrary}
                 className={cn(
-                    (homeItems[0]?.type === "discover-header" || (homeItems[0]?.type === "anime-continue-watching-header" && !!continueWatchingList.length)) && "!mt-[-4rem] !mb-[-1rem]",
+                    homeItems[0]?.type === "discover-header" && "!mt-[-4rem] !mb-[-1rem]",
                 )}
             />
 
-            {/*Custom Library Banner*/}
+            {/*Custom Library Banner spacer (hidden by home-mobile.css)*/}
             {(!!ts.libraryScreenCustomBannerImage
                 && ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Custom
                 && homeItems[0]?.type !== "discover-header"
-                && homeItems[0]?.type !== "anime-continue-watching-header"
             ) && <div
                 data-custom-library-banner-top-spacer
                 className={cn(
@@ -348,23 +299,6 @@ export function HomeScreen() {
             ></div>}
 
             <PluginWebviewSlot slot="after-home-screen-toolbar" />
-
-            {(
-                !mobileHome && hasEntries &&
-                ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Custom
-                && homeItems[0]?.type !== "discover-header"
-                && homeItems[0]?.type !== "anime-continue-watching-header"
-            ) && <CustomLibraryBanner isLibraryScreen isHomeScreen />}
-
-            {(!mobileHome && hasEntries && homeItems.findIndex(n => n.type === "anime-continue-watching") !== -1) && ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Dynamic &&
-                <div
-                    className={cn(
-                        homeItems[0]?.type !== "anime-continue-watching" ? "visibility-hidden pointer-events-none opacity-0 !mt-0" : "contents !mt-0",
-                    )}
-                >
-                    <LibraryHeader list={continueWatchingList} />
-                </div>}
-
 
             {!isLoading && <AnimatePresence mode="wait">
                 {view === "base" && <PageWrapper
@@ -387,7 +321,6 @@ export function HomeScreen() {
                                 ) && <div data-home-screen-item-divider={index} className="h-8" />}
                                 <HomeScreenItem
                                     item={item}
-                                    mobileHome={mobileHome}
                                     index={homeItems.findIndex(n => n.id === item.id)}
                                     libraryCollectionProps={{
                                         libraryGenres,
@@ -437,7 +370,7 @@ export function HomeScreen() {
                 </PageWrapper>}
             </AnimatePresence>}
 
-            <HomeSettingsModal isNakamaLibrary={isNakamaLibrary} mobileHome={mobileHome} homeItems={_homeItems} itemsLoading={isLoadingItems} />
+            <HomeSettingsModal isNakamaLibrary={isNakamaLibrary} homeItems={_homeItems} />
 
             <UnmatchedFileManager
                 unmatchedGroups={unmatchedGroups}
@@ -455,7 +388,6 @@ export function HomeScreen() {
 export type HomeScreenItemProps = {
     item: Models_HomeItem
     libraryCollectionProps: HandleLibraryCollectionProps
-    mobileHome?: boolean
     index: number
 }
 
@@ -520,8 +452,6 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
                 <ContinueWatching
                     episodes={continueWatchingList}
                     isLoading={isLoading}
-                    withTitle={index === 0}
-                    homeMobile={props.mobileHome}
                 />
             </>
         )
@@ -531,7 +461,6 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
         return (
             <>
                 <LibraryView
-                    homeMobile={props.mobileHome}
                     genres={libraryGenres}
                     collectionList={libraryCollectionList}
                     filteredCollectionList={filteredLibraryCollectionList}
@@ -599,7 +528,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
     if (item.type === "aired-recently") {
         return (
             <PageWrapper className="px-4">
-                <RecentReleases homeMobile={props.mobileHome} />
+                <RecentReleases />
             </PageWrapper>
         )
     }
@@ -607,7 +536,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
     if (item.type === "missed-sequels") {
         return (
             <PageWrapper className="px-4">
-                <DiscoverMissedSequelsSection title="Missed Sequels" homeMobile={props.mobileHome} />
+                <DiscoverMissedSequelsSection />
             </PageWrapper>
         )
     }
