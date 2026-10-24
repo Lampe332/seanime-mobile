@@ -100,7 +100,7 @@ class OfflineBridge(private val activity: Activity) {
             try {
                 Toast.makeText(activity, tr("Preparing download …", "Download wird vorbereitet …"), Toast.LENGTH_SHORT).show()
                 EpisodeDownloads.get(activity).enqueue(JSONObject(data)) { error ->
-                    if (!activity.isDestroyed) Toast.makeText(activity, error ?: "Download gestartet. Fortschritt unter Downloads.", Toast.LENGTH_LONG).show()
+                    if (!activity.isDestroyed) Toast.makeText(activity, error ?: tr("Download started. See Downloads for progress.", "Download gestartet. Fortschritt unter Downloads."), Toast.LENGTH_LONG).show()
                 }
             } catch (_: Exception) { Toast.makeText(activity, tr("Invalid download source", "Ungültige Download-Quelle"), Toast.LENGTH_LONG).show() }
         }
