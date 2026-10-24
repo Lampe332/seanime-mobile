@@ -178,7 +178,9 @@ class EpisodeBatchQueue private constructor(private val context: Context) {
         } finally { connection.disconnect() }
     }
     companion object {
-        fun idFor(key: String) = MessageDigest.getInstance("SHA-256").digest(key.toByteArray()).joinToString("") { "%02x".format(it) }.take(32)
+        fun sha256(text: String) = MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
+        /** Download id of a job key; [EpisodeDownloads.enqueue] derives the same id, which links a job to its download. */
+        fun idFor(key: String) = sha256(key).take(32)
         @Volatile private var instance: EpisodeBatchQueue? = null
         fun get(context: Context): EpisodeBatchQueue = instance ?: synchronized(this) {
             instance ?: EpisodeBatchQueue(context.applicationContext).also { instance = it }

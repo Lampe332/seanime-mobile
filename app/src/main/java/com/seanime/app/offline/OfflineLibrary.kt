@@ -11,7 +11,6 @@ import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
-import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
@@ -23,14 +22,12 @@ class OfflineLibrary private constructor(private val context: Context) {
     private val worker = Executors.newSingleThreadExecutor()
     private val attempts = ConcurrentHashMap<String, Long>()
     private val removed = java.util.Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
-    private val mangaAttempts = ConcurrentHashMap<String, Long>()
     private val fields = listOf("description", "genres", "year", "format", "totalEpisodes", "duration", "score",
         "coverUrl", "bannerUrl", "episodeImageUrl", "episodeTitle", "episodeDescription", "airDate")
 
     fun details(id: String): JSONObject = try { JSONObject(preferences.getString(id, "{}") ?: "{}") } catch (_: Exception) { JSONObject() }
     fun captureManga(id: String, payload: JSONObject) {
-        if (details(id).optString("coverAsset").isNotBlank() || System.currentTimeMillis() - (mangaAttempts[id] ?: 0) < 60000) return
-        mangaAttempts[id] = System.currentTimeMillis()
+        if (details(id).optString("coverAsset").isNotBlank() || System.currentTimeMillis() - (attempts[id] ?: 0) < 60000) return
         // Manga metadata comes from the existing manga backend, never the anime endpoint.
         val copy = JSONObject(payload.toString()).put("mediaId", 0).put("metadataSaved", true)
         capture(id, copy)
@@ -133,7 +130,7 @@ class OfflineLibrary private constructor(private val context: Context) {
     }
     private fun json(url: String) = JSONObject(String(bytes(url, 4 * 1024 * 1024), Charsets.UTF_8))
     private fun saveArtwork(url: String): String {
-        val name = MessageDigest.getInstance("SHA-256").digest(url.toByteArray()).joinToString("") { "%02x".format(it) } + ".jpg"
+        val name = EpisodeBatchQueue.sha256(url) + ".jpg"
         artworkFile(name)?.let { return name }
         val raw = bytes(url, 8 * 1024 * 1024)
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

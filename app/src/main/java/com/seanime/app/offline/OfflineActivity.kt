@@ -27,8 +27,6 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.ui.PlayerView
-import java.util.Locale
 import kotlin.math.roundToInt
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -47,7 +45,6 @@ class OfflineActivity : Activity() {
     private var playerDetails: ScrollView? = null
     private var fullscreen = false
     private var playerInsets: android.view.WindowInsets? = null
-    private var playerError: TextView? = null
     private val tick = object : Runnable {
         override fun run() {
             if (isFinishing || isDestroyed) return
@@ -388,8 +385,8 @@ class OfflineActivity : Activity() {
         }
     }
 
-    private fun formatMb(bytes: Long): String = String.format(AppLanguage.locale, "%.1f", bytes / (1024.0 * 1024.0))
-    private fun formatSize(bytes: Long): String = if (bytes >= 1024L * 1024 * 1024) String.format(AppLanguage.locale, "%.2f GB", bytes / (1024.0 * 1024 * 1024)) else "${formatMb(bytes)} MB"
+    private fun formatSize(bytes: Long): String = if (bytes >= 1024L * 1024 * 1024) String.format(AppLanguage.locale, "%.2f GB", bytes / (1024.0 * 1024 * 1024))
+        else String.format(AppLanguage.locale, "%.1f MB", bytes / (1024.0 * 1024))
 
     private fun play(download: Download) {
         stopPlayer()
@@ -436,7 +433,6 @@ class OfflineActivity : Activity() {
             info.addView(label(plain.toString(), 13f, MUTED).apply { setPadding(0, dp(16), 0, 0); setLineSpacing(dp(4).toFloat(), 1f) })
         }
         val status = label("", 13f, RED).apply { setPadding(0, dp(14), 0, dp(8)); visibility = View.GONE }
-        playerError = status
         info.addView(status)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         player = ExoPlayer.Builder(this).setMediaSourceFactory(DefaultMediaSourceFactory(store.offlineDataSource())).build().also { exo ->
@@ -517,7 +513,7 @@ class OfflineActivity : Activity() {
     }
     private fun stopPlayer() {
         savePosition(); player?.release(); player = null; playingId = null
-        playerRoot = null; playerHost = null; playerDetails = null; playerError = null
+        playerRoot = null; playerHost = null; playerDetails = null
         fullscreen = false
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         if (Build.VERSION.SDK_INT >= 30) window.decorView.windowInsetsController?.show(android.view.WindowInsets.Type.systemBars())

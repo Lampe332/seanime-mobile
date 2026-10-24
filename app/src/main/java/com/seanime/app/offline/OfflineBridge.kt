@@ -20,7 +20,7 @@ class OfflineBridge(private val activity: Activity) {
         val uri = android.net.Uri.parse(view.url ?: "")
         if (uri.scheme != "http" || uri.host != "127.0.0.1" || uri.port != 43211) return
         val next = UUID.randomUUID().toString()
-        EpisodeDownloads.get(activity)
+        EpisodeDownloads.get(activity) // Media3's DownloadManager must be created on the main thread, before any bridge call
         EpisodeBatchQueue.get(activity).start()
         token = next
         view.evaluateJavascript("window.__seanimeOfflineToken = ${JSONObject.quote(next)};", null)
@@ -70,14 +70,14 @@ class OfflineBridge(private val activity: Activity) {
         }
     }
     @JavascriptInterface fun batch(value: String, data: String): String {
-        if (value != token || data.length > 600000) return "{\"error\":\"${tr("Invalid request", "Ungültige Anfrage")}\"}"
+        if (value != token || data.length > 600000) return failure(tr("Invalid request", "Ungültige Anfrage"))
         // Submit runs on main because Media3's manager is main-thread owned.
         val done = java.util.concurrent.CountDownLatch(1)
-        var response = "{\"error\":\"${tr("App not ready", "App nicht bereit")}\"}"
+        var response = failure(tr("App not ready", "App nicht bereit"))
         activity.runOnUiThread {
             try {
                 if (value == token && !activity.isDestroyed) response = JSONObject().put("added", EpisodeBatchQueue.get(activity).submit(JSONObject(data))).toString()
-            } catch (_: Exception) { response = "{\"error\":\"${tr("Episodes could not be queued", "Folgen konnten nicht eingeplant werden")}\"}" }
+            } catch (_: Exception) { response = failure(tr("Episodes could not be queued", "Folgen konnten nicht eingeplant werden")) }
             finally { done.countDown() }
         }
         done.await(20, java.util.concurrent.TimeUnit.SECONDS)

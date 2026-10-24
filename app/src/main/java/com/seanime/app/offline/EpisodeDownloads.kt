@@ -22,7 +22,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
-import java.security.MessageDigest
 import java.util.concurrent.Executors
 
 /** Persistent download index and non-evicting media cache, shared by service and player. */
@@ -59,8 +58,7 @@ class EpisodeDownloads private constructor(private val context: Context) {
     fun enqueue(payload: JSONObject, result: (String?) -> Unit) {
         val url = payload.optString("url")
         if (!validUri(url)) { result(tr("This source cannot be downloaded.", "Diese Quelle kann nicht heruntergeladen werden.")); return }
-        val id = MessageDigest.getInstance("SHA-256").digest(payload.getString("key").toByteArray())
-            .joinToString("") { "%02x".format(it) }.take(32)
+        val id = EpisodeBatchQueue.idFor(payload.getString("key"))
         if (preparing.contains(id) || ready(id)) { result(tr("This episode is already saved or being prepared.", "Diese Folge ist bereits gespeichert oder wird vorbereitet.")); return }
         if (context.filesDir.usableSpace < 256L * 1024 * 1024) {
             result(tr("Less than 256 MB free. Please free up storage first.", "Weniger als 256 MB frei. Bitte zuerst Speicher freigeben.")); return
@@ -111,10 +109,11 @@ class EpisodeDownloads private constructor(private val context: Context) {
     }
 
     fun pause(id: String, paused: Boolean) {
-        group(id).forEach { DownloadService.sendSetStopReason(context, EpisodeDownloadService::class.java,
+        val rows = group(id)
+        rows.forEach { DownloadService.sendSetStopReason(context, EpisodeDownloadService::class.java,
             it.request.id, if (paused) 1 else Download.STOP_REASON_NONE, false) }
         if (!paused) {
-            group(id).filter { it.state == Download.STATE_FAILED }.forEach {
+            rows.filter { it.state == Download.STATE_FAILED }.forEach {
                 DownloadService.sendAddDownload(context, EpisodeDownloadService::class.java, it.request, false)
             }
             DownloadService.sendResumeDownloads(context, EpisodeDownloadService::class.java, false)
