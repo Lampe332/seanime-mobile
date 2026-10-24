@@ -45,7 +45,8 @@ import { TbCloudPlus } from "react-icons/tb"
 import { toast } from "sonner"
 
 export const nakamaModalOpenAtom = atom(false)
-const nakamaStatusAtom = atom<Nakama_NakamaStatus | null | undefined>(undefined)
+// exported for tests/mobile_settings_harness.tsx
+export const nakamaStatusAtom = atom<Nakama_NakamaStatus | null | undefined>(undefined)
 
 export function useNakamaStatus() {
     return useAtomValue(nakamaStatusAtom)
