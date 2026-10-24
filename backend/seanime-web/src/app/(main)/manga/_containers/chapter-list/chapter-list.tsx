@@ -11,7 +11,7 @@ import { __manga_continueIntentAtom, getMangaResumeChapter, isMangaContinueInten
 import { useHandleMangaChapters } from "@/app/(main)/manga/_lib/handle-manga-chapters"
 import { useHandleDownloadMangaChapter } from "@/app/(main)/manga/_lib/handle-manga-downloads"
 import { __manga_preferencesHydratedAtom } from "@/app/(main)/manga/_lib/handle-manga-selected-provider"
-import { getChapterNumberFromChapter, useMangaChapterListRowSelection, useMangaDownloadDataUtils } from "@/app/(main)/manga/_lib/handle-manga-utils"
+import { getChapterNumberFromChapter, useMangaDownloadDataUtils } from "@/app/(main)/manga/_lib/handle-manga-utils"
 import { LANGUAGES_LIST } from "@/app/(main)/manga/_lib/language-map"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { LuffyError } from "@/components/shared/luffy-error"
@@ -28,7 +28,7 @@ import { MdOutlineOfflinePin } from "react-icons/md"
 import { toast } from "sonner"
 import { useTr } from "@/lib/app-language"
 import { mobileMangaReadActionAtom } from "@/app/(main)/entry/_components/mobile-anime-header"
-import { LuCheck, LuChevronDown } from "react-icons/lu"
+import { LuChevronDown } from "react-icons/lu"
 
 const MOBILE_PAGE_SIZE = 30
 
@@ -72,7 +72,6 @@ export function ChapterList(props: ChapterListProps) {
         chapterContainerLoading,
         chapterContainerError,
     } = useHandleMangaChapters(mediaId)
-
 
     // Keep track of chapter numbers as integers
     // This is used to filter the chapters
@@ -169,15 +168,6 @@ export function ChapterList(props: ChapterListProps) {
     }, [
         showUnreadChapter, unreadChapters, allChapters, showDownloadedChapters, downloadData, selectedExtension,
     ])
-
-    const {
-        resetRowSelection,
-        // setSelectedChapters,
-    } = useMangaChapterListRowSelection()
-
-    React.useEffect(() => {
-        resetRowSelection()
-    }, [])
 
     // Inject chapter list command
     React.useEffect(() => {

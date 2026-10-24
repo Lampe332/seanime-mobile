@@ -39,9 +39,9 @@ import {
     usePluginSendListTrayIconsEvent,
 } from "../generated/plugin-events"
 
-export const __plugin_trayIconsAtom = atom<TrayIcon[]>([])
+const __plugin_trayIconsAtom = atom<TrayIcon[]>([])
 
-export const __plugin_hasNavigatedAtom = atom<boolean>(false)
+const __plugin_hasNavigatedAtom = atom<boolean>(false)
 
 export const __plugin_unpinnedTrayIconClickedAtom = atom<TrayIcon | null>(null)
 

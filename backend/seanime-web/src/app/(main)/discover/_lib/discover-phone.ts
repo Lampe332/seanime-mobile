@@ -29,7 +29,7 @@ export function discoverSeasons(date: Date): { current: SeasonYear, previous: Se
 }
 
 /** A Search URL from the row's query, in the parameter order Search links use elsewhere; empty values are left out. */
-export function searchLink(params: Record<string, string | number | null | undefined>) {
+function searchLink(params: Record<string, string | number | null | undefined>) {
     const search = new URLSearchParams()
     for (const [key, value] of Object.entries(params)) {
         if (value != null && value !== "") search.set(key, String(value))
@@ -64,7 +64,7 @@ export function scheduleWindow(now: number) {
 export type Airing = AL_ListRecentAnime_Page_AiringSchedules
 
 /** The desktop rows' filter: Japanese anime for a general audience, no TV shorts. */
-export function isListedAiring(item: Airing | null | undefined): item is Airing {
+function isListedAiring(item: Airing | null | undefined): item is Airing {
     const media = item?.media
     return !!media && media.isAdult === false && media.type === "ANIME" && media.countryOfOrigin === "JP" && media.format !== "TV_SHORT"
 }
@@ -205,7 +205,7 @@ export function listStatusLabel(t: Translate, type: "anime" | "manga", status: A
 }
 
 /** The 18 genres of the genre chips (Search's list) with German names; AniList still gets the English value. */
-export const GENRE_LABELS: Record<string, [string, string]> = {
+const GENRE_LABELS: Record<string, [string, string]> = {
     "Action": ["Action", "Action"], "Adventure": ["Adventure", "Abenteuer"], "Comedy": ["Comedy", "Komödie"], "Drama": ["Drama", "Drama"],
     "Ecchi": ["Ecchi", "Ecchi"], "Fantasy": ["Fantasy", "Fantasy"], "Horror": ["Horror", "Horror"], "Mahou Shoujo": ["Mahou Shoujo", "Mahou Shoujo"],
     "Mecha": ["Mecha", "Mecha"], "Music": ["Music", "Musik"], "Mystery": ["Mystery", "Mystery"], "Psychological": ["Psychological", "Psychologisch"],

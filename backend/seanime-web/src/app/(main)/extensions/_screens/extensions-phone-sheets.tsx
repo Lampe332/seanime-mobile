@@ -357,7 +357,7 @@ export function MarketplaceSheet(props: {
 }
 
 /** Text from the clipboard: the app's native bridge, else the WebView's own clipboard API (usually blocked). */
-export async function readClipboardText() {
+async function readClipboardText() {
     try {
         const native = window.SeanimeAndroid?.readClipboard
         return ((native ? native() : await navigator.clipboard.readText()) || "").trim()

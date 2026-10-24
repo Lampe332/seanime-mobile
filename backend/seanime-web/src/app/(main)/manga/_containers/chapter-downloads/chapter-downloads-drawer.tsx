@@ -15,7 +15,6 @@ import { ProgressBar } from "@/components/ui/progress-bar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
-import React from "react"
 import { MdClear } from "react-icons/md"
 import { PiWarningOctagonDuotone } from "react-icons/pi"
 import { TbWorldDownload } from "react-icons/tb"
@@ -59,7 +58,7 @@ type ChapterDownloadQueueProps = {
     mangaCollection: Manga_Collection | undefined
 }
 
-export function ChapterDownloadQueue(props: ChapterDownloadQueueProps) {
+function ChapterDownloadQueue(props: ChapterDownloadQueueProps) {
 
     const {
         mangaCollection,
@@ -204,7 +203,7 @@ export function ChapterDownloadQueue(props: ChapterDownloadQueueProps) {
 
 type ChapterDownloadListProps = {}
 
-export function ChapterDownloadList(props: ChapterDownloadListProps) {
+function ChapterDownloadList(props: ChapterDownloadListProps) {
 
     const {} = props
 

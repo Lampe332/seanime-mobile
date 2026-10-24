@@ -4,12 +4,11 @@ import { useTr } from "@/lib/app-language"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
-import React from "react"
 import { LuSettings2 } from "react-icons/lu"
 
 // by default, the button will be highlighted until the user clicks it for the first time
 // this is not applied to the empty home page
-export const __home_settingsToolbarButtonDiscovered = atomWithStorage("sea-v3-home-settings-toolbar-button-discovered", false)
+const __home_settingsToolbarButtonDiscovered = atomWithStorage("sea-v3-home-settings-toolbar-button-discovered", false)
 
 type HomeSettingsButtonProps = {
     type: "toolbar" | "empty-home"
@@ -68,6 +67,5 @@ export function HomeSettingsButton(props: HomeSettingsButtonProps) {
             </Tooltip>
         </>
     )
-
 
 }

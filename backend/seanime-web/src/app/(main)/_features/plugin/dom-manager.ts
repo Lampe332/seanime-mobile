@@ -31,7 +31,7 @@ type ElementToDOMElementOptions = {
 
 const generatedIds = new WeakMap<Element, string>()
 
-export function isGeneratedIdMutation(element: Element, attributeName: string | null) {
+function isGeneratedIdMutation(element: Element, attributeName: string | null) {
     if (attributeName !== "id") return false
 
     const id = generatedIds.get(element)
@@ -42,7 +42,6 @@ export function isGeneratedIdMutation(element: Element, attributeName: string | 
     generatedIds.delete(element)
     return false
 }
-
 
 /**
  * DOM Manager for plugins

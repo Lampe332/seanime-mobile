@@ -274,7 +274,7 @@ export function ConfirmSheet({ t, open, onOpenChange, title, text, action, dange
 }
 
 /** Edits a text value in a sheet; Apply saves, Cancel and Back keep the stored value. */
-export function TextSheet({ t, open, onOpenChange, title, label, note, value, placeholder, type = "text", multiline, validate, onApply, extra, returnFocusRef, ...data }: {
+function TextSheet({ t, open, onOpenChange, title, label, note, value, placeholder, type = "text", multiline, validate, onApply, extra, returnFocusRef, ...data }: {
     t: Translate
     open: boolean
     onOpenChange: (open: boolean) => void

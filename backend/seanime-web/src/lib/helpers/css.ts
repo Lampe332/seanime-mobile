@@ -3,7 +3,7 @@ const MILLIMETRES_PER_INCH = 25.4
 const POINTS_PER_INCH = 72
 const PICAS_PER_INCH = 6
 
-export function getStyle(
+function getStyle(
     element: HTMLElement,
     property: keyof CSSStyleDeclaration,
 ): string {

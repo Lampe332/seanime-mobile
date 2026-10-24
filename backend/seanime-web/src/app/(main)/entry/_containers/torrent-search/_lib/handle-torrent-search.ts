@@ -24,8 +24,8 @@ export const enum Torrent_SearchType {
     SIMPLE = "simple",
 }
 
-export const __torrentSearch_searchAcrossProvidersAtom = atomWithStorage("sea-torrent-search-across-providers", false, undefined, { getOnInit: true })
-export const __torrentSearch_extraProviderIdsAtom = atomWithStorage<string[]>("sea-torrent-search-extra-provider-ids",
+const __torrentSearch_searchAcrossProvidersAtom = atomWithStorage("sea-torrent-search-across-providers", false, undefined, { getOnInit: true })
+const __torrentSearch_extraProviderIdsAtom = atomWithStorage<string[]>("sea-torrent-search-extra-provider-ids",
     [],
     undefined,
     { getOnInit: true })

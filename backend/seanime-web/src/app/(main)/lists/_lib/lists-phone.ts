@@ -22,7 +22,7 @@ type Media = AL_BaseAnime | AL_BaseManga
 /** A status list or a custom list as the phone shows it; `key` is the status or "custom:<name>". */
 export type PhoneList = { key: string, status: string | null, name: string, custom: boolean, entries: ListEntry[] }
 
-export const LIST_STATUSES = ["CURRENT", "REPEATING", "PLANNING", "PAUSED", "COMPLETED", "DROPPED"] as const
+const LIST_STATUSES = ["CURRENT", "REPEATING", "PLANNING", "PAUSED", "COMPLETED", "DROPPED"] as const
 
 const STATUS_LABELS: Record<string, Record<ListType, [string, string]>> = {
     CURRENT: { anime: ["Watching", "Schaue ich"], manga: ["Reading", "Lese ich"] },
@@ -137,7 +137,7 @@ export function airedEpisodes(media: AL_BaseAnime | null | undefined, now: numbe
 }
 
 /** Aired episodes not watched yet: the desktop card's unwatched count (without local files). */
-export function unwatchedEpisodes(media: AL_BaseAnime | null | undefined, progress: number | null | undefined, now: number) {
+function unwatchedEpisodes(media: AL_BaseAnime | null | undefined, progress: number | null | undefined, now: number) {
     const aired = airedEpisodes(media, now)
     return aired == null ? 0 : Math.max(0, aired - (progress ?? 0))
 }
@@ -147,7 +147,7 @@ export function newEpisodes(media: AL_BaseAnime | null | undefined, progress: nu
     return media?.status === "RELEASING" ? unwatchedEpisodes(media, progress, now) : 0
 }
 
-export function nextAiring(media: AL_BaseAnime | null | undefined, now: number): { episode: number, inMs: number } | null {
+function nextAiring(media: AL_BaseAnime | null | undefined, now: number): { episode: number, inMs: number } | null {
     const next = media?.nextAiringEpisode
     if (!next?.episode || !next.airingAt) return null
     const inMs = next.airingAt * 1000 - now

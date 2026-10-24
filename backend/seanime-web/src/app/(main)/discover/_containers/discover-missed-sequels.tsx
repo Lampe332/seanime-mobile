@@ -37,7 +37,6 @@ export function DiscoverMissedSequelsSection() {
                 }}
                 autoScroll={false}
             >
-                {/*<CarouselMasks />*/}
                 <CarouselDotButtons />
                 <CarouselContent className="px-6">
                     {!isLoading ? data?.filter(Boolean).map(media => {

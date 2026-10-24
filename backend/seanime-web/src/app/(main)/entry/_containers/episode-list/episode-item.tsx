@@ -17,7 +17,7 @@ import { getImageUrl } from "@/lib/server/assets"
 import { useWindowSize } from "@uidotdev/usehooks"
 import { atom } from "jotai"
 import { createIsolation } from "jotai-scope"
-import React, { memo } from "react"
+import { memo } from "react"
 import { AiFillWarning } from "react-icons/ai"
 import { BiDotsHorizontal, BiLockOpenAlt } from "react-icons/bi"
 import { MdInfo, MdOutlineOndemandVideo, MdOutlineRemoveDone } from "react-icons/md"
@@ -27,7 +27,7 @@ import { useCopyToClipboard } from "react-use"
 import { toast } from "sonner"
 import { z } from "zod"
 
-export const EpisodeItemIsolation = createIsolation()
+const EpisodeItemIsolation = createIsolation()
 
 const __metadataModalIsOpenAtom = atom(false)
 
@@ -124,7 +124,6 @@ export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, o
                             Copy stream URL
                         </DropdownMenuItem>}
 
-
                         {!episode._isNakamaEpisode && <>
                             <PluginEpisodeGridItemMenuItems isDropdownMenu={false} type="library" episode={episode} />
 
@@ -158,8 +157,7 @@ export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, o
 
 })
 
-
-export const localFileMetadataSchema = defineSchema(({ z }) => z.object({
+const localFileMetadataSchema = defineSchema(({ z }) => z.object({
     episode: z.number().min(0),
     aniDBEpisode: z.string().transform(value => value.toUpperCase()),
     type: z.string().min(0),

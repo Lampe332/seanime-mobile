@@ -14,15 +14,13 @@ import { atomWithImmer } from "jotai-immer"
 import { useAtomValue, useSetAtom } from "jotai/react"
 import React from "react"
 
-export const MAIN_LIBRARY_DEFAULT_PARAMS: CollectionParams<"anime"> = {
+const MAIN_LIBRARY_DEFAULT_PARAMS: CollectionParams<"anime"> = {
     ...DEFAULT_ANIME_COLLECTION_PARAMS,
     sorting: "TITLE", // Will be set to default sorting on mount
     continueWatchingOnly: false,
 }
 
 export const __mainLibrary_paramsAtom = atomWithImmer<CollectionParams<"anime">>(MAIN_LIBRARY_DEFAULT_PARAMS)
-
-export const __mainLibrary_paramsInputAtom = atomWithImmer<CollectionParams<"anime">>(MAIN_LIBRARY_DEFAULT_PARAMS)
 
 export function useHandleLibraryCollection() {
     const serverStatus = useServerStatus()
@@ -209,7 +207,6 @@ export function useHandleLibraryCollection() {
         if (!data?.continueWatchingList) return []
 
         let list = [...data.continueWatchingList]
-
 
         if (data.stream) {
             for (let entry of (data.stream.continueWatchingList ?? [])) {

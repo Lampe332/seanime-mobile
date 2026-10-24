@@ -1,10 +1,5 @@
-export type MediaCoreChapter = {
-    label: string | null
-    start: number
-    end: number
-}
 
-export function getChapterType(name: string | null | undefined) {
+function getChapterType(name: string | null | undefined) {
     if (!name) return false
     if (/opening$|^opening\s|^op$/mi.test(name)) return "Opening"
     if (/ending$|^ending\s|^ed$|^credits/mi.test(name)) return "Ending"
@@ -13,7 +8,7 @@ export function getChapterType(name: string | null | undefined) {
     return false
 }
 
-export function introIsOpening(chapters: Array<{ label: string | null }>) {
+function introIsOpening(chapters: Array<{ label: string | null }>) {
     const types = chapters.map(chapter => getChapterType(chapter.label)).filter(Boolean)
     return types.includes("Intro") && !types.includes("Opening")
 }
@@ -22,7 +17,7 @@ type SkipOptions = {
     guardIntro?: boolean
 }
 
-export function getDefaultSkipChapters<T extends { label: string | null }>(chapters: T[], options: SkipOptions = {}) {
+function getDefaultSkipChapters<T extends { label: string | null }>(chapters: T[], options: SkipOptions = {}) {
     let opening: T | null = null
     let ending: T | null = null
     const usesIntro = options.guardIntro !== false && introIsOpening(chapters)

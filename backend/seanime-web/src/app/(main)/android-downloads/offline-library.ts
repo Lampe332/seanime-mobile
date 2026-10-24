@@ -53,7 +53,7 @@ export function watchedShare(episode: OfflineEpisode) {
  * Poll the native snapshot every second only while something moves. Paused, failed and saved episodes change
  * only through actions on this page (which refresh themselves) or elsewhere in the app (caught by focus / visibility).
  */
-export const OFFLINE_ACTIVE_POLL_MS = 1000
+const OFFLINE_ACTIVE_POLL_MS = 1000
 const moving = new Set<OfflineEpisode["status"]>(["downloading", "queued", "resolving", "removing"])
 /** Manga chapters come from the server queue: quick while one loads, slow while others wait, idle otherwise. */
 export const mangaPollDelay = (queue: { status: string }[]) => queue.some(item => item.status === "downloading") ? 2000

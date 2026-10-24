@@ -7,7 +7,7 @@ import { usePluginListenCommandPaletteInfoEvent, usePluginSendListCommandPalette
 import { PluginCommandPalette, PluginCommandPaletteInfo } from "./plugin-command-palette"
 
 
-export const __plugin_commandPalettesAtom = atom<PluginCommandPaletteInfo[]>([])
+const __plugin_commandPalettesAtom = atom<PluginCommandPaletteInfo[]>([])
 
 export function PluginCommandPalettes() {
     const [commandPalettes, setCommandPalettes] = useAtom(__plugin_commandPalettesAtom)

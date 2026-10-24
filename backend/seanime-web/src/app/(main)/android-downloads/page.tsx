@@ -18,11 +18,8 @@ import "@/components/shared/mobile-surface.css"
 import "@/app/(main)/entry/_components/mobile-anime.css"
 import "./downloads-mobile.css"
 
-export type { OfflineEpisode }
-export { animeKey, groupEpisodes }
-
 // No-break space: a narrow card must not leave the unit alone on the next line ("1.4" / "GB")
-export const formatSize = (bytes: number) => bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toLocaleString(getAppLanguage(), { maximumFractionDigits: 1 })} GB`
+const formatSize = (bytes: number) => bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toLocaleString(getAppLanguage(), { maximumFractionDigits: 1 })} GB`
     : `${(bytes / 1024 ** 2).toLocaleString(getAppLanguage(), { maximumFractionDigits: 0 })} MB`
 const clock = (position: number) => `${Math.floor(position / 60000).toString().padStart(2, "0")}:${Math.floor(position / 1000 % 60).toString().padStart(2, "0")}`
 const plain = (value?: string) => (value || "").replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").trim()
@@ -39,7 +36,7 @@ function Artwork({ image, className = "" }: { image?: string, className?: string
 }
 
 /** Thin bar in the accent: download progress or how far an episode was watched. */
-export function ProgressLine({ value, label }: { value: number, label: string }) {
+function ProgressLine({ value, label }: { value: number, label: string }) {
     return <span className="mdl-progress" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value)}>
         <span style={{ transform: `scaleX(${Math.min(100, Math.max(0, value)) / 100})` }} />
     </span>

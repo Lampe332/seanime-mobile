@@ -99,7 +99,7 @@ const colClasses = [
     { min: 2000, cols: 8 },
 ]
 
-export function MediaCardLazyGridRenderer({
+function MediaCardLazyGridRenderer({
     children,
     itemCount,
     maxCol = 8,

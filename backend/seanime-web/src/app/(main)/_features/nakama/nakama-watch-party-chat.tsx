@@ -12,7 +12,6 @@ import { HiOutlineChatBubbleLeftRight } from "react-icons/hi2"
 import { IoSend } from "react-icons/io5"
 import { useNakamaWatchParty } from "./nakama-manager"
 
-
 type ChatMessage = {
     peerId: string
     username: string
@@ -23,7 +22,7 @@ type ChatMessage = {
 
 const log = logger("NAKAMA WATCH PARTY CHAT")
 
-export const watchPartyChat_chatMessagesAtom = atom<ChatMessage[]>([])
+const watchPartyChat_chatMessagesAtom = atom<ChatMessage[]>([])
 export const watchPartyChat_chatMinimizedAtom = atom<boolean>(true)
 export const watchPartyChat_unreadCountAtom = atom<number>(5) // TODO set to 0
 export const watchPartyChat_isPlayerAtom = atom<boolean>(false)

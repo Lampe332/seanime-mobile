@@ -69,7 +69,6 @@ export const CommandDialogAnatomy = defineStyleAnatomy({
     ]),
 })
 
-
 /* -------------------------------------------------------------------------------------------------
  * Command
  * -----------------------------------------------------------------------------------------------*/
@@ -236,28 +235,6 @@ export const CommandGroup = React.forwardRef<HTMLDivElement, CommandGroupProps>(
     )
 })
 CommandGroup.displayName = "CommandGroup"
-
-/* -------------------------------------------------------------------------------------------------
- * CommandSeparator
- * -----------------------------------------------------------------------------------------------*/
-
-export type CommandSeparatorProps =
-    React.ComponentPropsWithoutRef<typeof CommandPrimitive.Separator>
-
-export const CommandSeparator = React.forwardRef<HTMLDivElement, CommandSeparatorProps>((props, ref) => {
-    const { className, ...rest } = props
-
-    const { separatorClass } = React.useContext(__CommandAnatomyContext)
-
-    return (
-        <CommandPrimitive.Separator
-            ref={ref}
-            className={cn(CommandAnatomy.separator(), separatorClass, className)}
-            {...rest}
-        />
-    )
-})
-CommandSeparator.displayName = "CommandSeparator"
 
 /* -------------------------------------------------------------------------------------------------
  * CommandItem

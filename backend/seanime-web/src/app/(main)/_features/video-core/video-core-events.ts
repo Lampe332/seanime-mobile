@@ -50,7 +50,6 @@ export type VideoCoreStatusEventPayload = {
     paused: boolean
 }
 
-
 export type VideoCoreFullscreenEventPayload = {
     fullscreen: boolean
 }
@@ -224,7 +223,6 @@ export function useVideoCoreSetupEvents(id: string,
         }
     }, [isActivePlayer, state, pipManager])
 
-
     // anime4k events
     React.useLayoutEffect(() => {
         if (!isActivePlayer || !anime4kManager) return
@@ -359,7 +357,6 @@ export function useVideoCoreSetupEvents(id: string,
         const v = videoElement
         if (!v) return
 
-
         const error = v.error || value
         let msg = value || "Unknown error"
         let detailedInfo = ""
@@ -392,14 +389,12 @@ export function useVideoCoreSetupEvents(id: string,
             })
         }
 
-
         const fullErrorMessage = detailedInfo ? `${msg}\n\n${detailedInfo}` : msg
 
         log.error("Media error", fullErrorMessage)
 
         sendEvent<VideoCoreErrorEventPayload>("video-error", { error: fullErrorMessage })
     }
-
 
     function dispatchVideoLoadedEvent() {
         if (!state.playbackInfo || !clientId) return
@@ -780,7 +775,7 @@ export function useVideoCoreSetupEvents(id: string,
     }
 }
 
-export function useVideoCoreEvents() {
+function useVideoCoreEvents() {
     const { sendMessage } = useWebsocketSender()
     const clientId = useAtomValue(clientIdAtom)
 

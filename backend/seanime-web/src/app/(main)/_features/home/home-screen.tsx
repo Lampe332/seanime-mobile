@@ -56,7 +56,7 @@ import "./home-mobile.css"
 
 export const __home_currentView = atom<"base" | "detailed">("base")
 
-export const __home_discoverHeaderType = atomWithStorage<"anime" | "manga">("sea-home-discover-header-type", "anime", undefined, { getOnInit: true })
+const __home_discoverHeaderType = atomWithStorage<"anime" | "manga">("sea-home-discover-header-type", "anime", undefined, { getOnInit: true })
 
 export function HomeScreen() {
     const serverStatus = useServerStatus()
@@ -126,7 +126,6 @@ export function HomeScreen() {
         ?
         "stream"
         : "local"
-
 
     if (homeItemsError || (collectionError && !hasEntries)) return <div data-home-screen data-home-mobile="true">
         <div className="home-state" role="alert"><h2>{tr("Home could not load", "Startseite konnte nicht geladen werden")}</h2>
@@ -212,7 +211,6 @@ export function HomeScreen() {
                             </p>
                         </div>}
                     </>}
-
 
                 </div>
 
@@ -391,7 +389,7 @@ export type HomeScreenItemProps = {
     index: number
 }
 
-export function HomeScreenItem(props: HomeScreenItemProps) {
+function HomeScreenItem(props: HomeScreenItemProps) {
     const { item: _item, index } = props
     const {
         libraryGenres,
@@ -408,7 +406,6 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
         isStreamingOnly,
         isNakamaLibrary,
     } = props.libraryCollectionProps
-
 
     const ts = useThemeSettings()
 
@@ -429,11 +426,9 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
 
     const { data } = useGetLibraryCollection({ enabled: item?.type === "local-anime-library-stats" })
 
-
     if (!schema || !item) return <div>
         Item not found
     </div>
-
 
     if (item.type === "centered-title") {
         if (!item.options?.text) return null
@@ -647,7 +642,6 @@ function LibraryUpcomingEpisodes(props: { libraryCollectionProps: HandleLibraryC
     </PageWrapper>
 }
 
-
 function AnimeScheduleCalendar(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem }) {
     const { libraryCollectionProps, item } = props
     const {} = libraryCollectionProps
@@ -827,7 +821,6 @@ function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
                 }}
                 autoScroll={false}
             >
-                {/*<CarouselMasks />*/}
                 <CarouselContent className="px-6">
                     {!!data ? data?.Page?.media?.filter(Boolean)?.sort((a, b) => b.meanScore! - a.meanScore!).map(media => {
                         return (
@@ -959,7 +952,6 @@ function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
                 }}
                 autoScroll={false}
             >
-                {/*<CarouselMasks />*/}
                 <CarouselContent className="px-6">
                     {!!data ? data?.Page?.media?.filter(Boolean)?.sort((a, b) => b.meanScore! - a.meanScore!).map(media => {
                         return (

@@ -2,6 +2,7 @@ import { DirectorySelector, DirectorySelectorProps } from "@/components/shared/d
 import { MediaExclusionSelector, MediaExclusionSelectorProps } from "@/components/shared/media-exclusion-selector"
 import { IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
+import { mergeRefs } from "@/components/ui/core/utils"
 import { useDebounce } from "@/hooks/use-debounce"
 import { colord } from "colord"
 import React, { forwardRef, useMemo } from "react"
@@ -26,7 +27,6 @@ import { Textarea, TextareaProps } from "../textarea"
 import { useFormSchema } from "./form"
 import { createPolymorphicComponent } from "./polymorphic-component"
 import { SubmitField } from "./submit-field"
-
 
 /**
  * Add the BasicField types to any Field
@@ -57,7 +57,7 @@ export type FieldProps = React.ComponentPropsWithRef<"div">
  * </Controller>
  * @param InputComponent
  */
-export function withControlledInput<T extends FieldBaseProps>(InputComponent: React.FC<T>) {
+function withControlledInput<T extends FieldBaseProps>(InputComponent: React.FC<T>) {
     return forwardRef<FieldProps, T>(
         (inputProps, ref) => {
             const { control, formState, ...context } = useFormContext()
@@ -119,7 +119,6 @@ const withUncontrolledInput = <T extends FieldBaseProps>(InputComponent: React.F
     )
 }
 
-
 const TextInputField = React.memo(withControlledInput(forwardRef<HTMLInputElement, FieldComponent<TextInputProps>>(
     (props, ref) => {
         return <TextInput
@@ -159,7 +158,6 @@ const DateRangePickerField = React.memo(withControlledInput(forwardRef<HTMLButto
         ref={ref}
     />
 })))
-
 
 const NativeSelectField = React.memo(withControlledInput(forwardRef<HTMLSelectElement, FieldComponent<NativeSelectProps>>(
     (props, ref) => {
@@ -206,7 +204,6 @@ const ColorPickerField = React.memo(withControlledInput(forwardRef<HTMLInputElem
             }
             valueRef.current = value
         }, [validColorRef.current, value])
-
 
         useUpdateEffect(() => {
             if (controller.field.value !== valueRef.current) {
@@ -257,7 +254,6 @@ const NumberField = React.memo(withControlledInput(forwardRef<HTMLInputElement, 
     },
 )))
 
-
 const ComboboxField = React.memo(withControlledInput(forwardRef<HTMLButtonElement, FieldComponent<ComboboxProps>>(
     ({ onChange, ...props }, ref) => {
         return <Combobox
@@ -298,7 +294,6 @@ const CheckboxGroupField = React.memo(withControlledInput(forwardRef<HTMLInputEl
     },
 )))
 
-
 const RadioGroupField = React.memo(withControlledInput(forwardRef<HTMLButtonElement, FieldComponent<RadioGroupProps>>(
     ({ onChange, ...props }, ref) => {
         return <RadioGroup
@@ -308,7 +303,6 @@ const RadioGroupField = React.memo(withControlledInput(forwardRef<HTMLButtonElem
         />
     },
 )))
-
 
 const RadioCardsField = React.memo(withControlledInput(forwardRef<HTMLButtonElement, FieldComponent<RadioGroupProps & {
     radioGroupStackClass?: string
@@ -419,7 +413,6 @@ const MultiDirectorySelectorField = React.memo(withControlledInput(forwardRef<HT
             setPaths(defaultValue)
         }, [])
 
-
         React.useEffect(() => {
             controller.field.onChange(paths.filter(p => p))
         }, [paths])
@@ -529,41 +522,14 @@ Field.displayName = "Field"
  * Utils
  * -----------------------------------------------------------------------------------------------*/
 
-export const getFormError = (name: string, formState: FormState<{ [x: string]: any }>) => {
+const getFormError = (name: string, formState: FormState<{ [x: string]: any }>) => {
     return get(formState.errors, name)
 }
 
-export type ReactRef<T> = React.RefCallback<T> | React.MutableRefObject<T>
+type ReactRef<T> = React.RefCallback<T> | React.MutableRefObject<T>
 
-export function assignRef<T = any>(
-    ref: ReactRef<T> | null | undefined,
-    value: T,
-) {
-    if (ref == null) return
-
-    if (typeof ref === "function") {
-        ref(value)
-        return
-    }
-
-    try {
-        ref.current = value
-    }
-    catch (error) {
-        throw new Error(`Cannot assign value '${value}' to ref '${ref}'`)
-    }
-}
-
-export function mergeRefs<T>(...refs: (ReactRef<T> | null | undefined)[]) {
-    return (node: T | null) => {
-        refs.forEach((ref) => {
-            assignRef(ref, node)
-        })
-    }
-}
-
-export function useMergeRefs<T>(...refs: (ReactRef<T> | null | undefined)[]) {
-    return useMemo(() => mergeRefs(...refs), refs)
+function useMergeRefs<T>(...refs: (ReactRef<T> | null | undefined)[]) {
+    return useMemo(() => mergeRefs(refs), refs)
 }
 
 type Args<T extends Function> = T extends (...args: infer R) => any ? R : never

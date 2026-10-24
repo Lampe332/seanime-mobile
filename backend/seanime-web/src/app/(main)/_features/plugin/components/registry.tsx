@@ -67,7 +67,6 @@ export const registry: ComponentRegistry = new Map([
     ["img", PluginImg],
 ] as any)
 
-
 ////////////////////////////
 
 interface RenderPluginComponentsProps {
@@ -125,7 +124,6 @@ export function RenderPluginComponents({
     )
 }
 
-
 // Type for component props
 export type BaseComponentProps = Record<string, any>
 
@@ -137,14 +135,6 @@ export interface PluginComponent<T extends BaseComponentProps = BaseComponentPro
     key?: string
 }
 
-// Type for nested components
-export interface PluginComponentWithChildren<T extends BaseComponentProps = BaseComponentProps>
-    extends PluginComponent<T> {
-    props: T & {
-        items?: PluginComponent[]
-    }
-}
-
 // Type for component renderer function
 export type ComponentRenderer<T extends BaseComponentProps = BaseComponentProps> = React.ComponentType<T>
 
@@ -154,7 +144,7 @@ export type ComponentRegistry = Map<string, ComponentRenderer>
 // Create context for the registry
 const PluginContext = createContext<ComponentRegistry | null>(null)
 
-export function usePluginRegistry() {
+function usePluginRegistry() {
     const context = useContext(PluginContext)
     if (!context) {
         throw new Error("usePluginRegistry must be used within a PluginProvider")

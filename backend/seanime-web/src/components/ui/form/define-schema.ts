@@ -1,11 +1,9 @@
-import { z as zod, ZodType } from "zod"
+import { z as zod } from "zod"
 import { schemaPresets } from "./schema-presets"
 
 /* -------------------------------------------------------------------------------------------------
  * Helper type
  * -----------------------------------------------------------------------------------------------*/
-
-export type InferType<S extends ZodType<any, any, any>> = zod.infer<S>
 
 /* -------------------------------------------------------------------------------------------------
  * Helper functions

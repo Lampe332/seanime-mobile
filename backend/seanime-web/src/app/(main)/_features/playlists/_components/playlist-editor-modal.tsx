@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { DangerZone } from "@/components/ui/form"
 import { Modal } from "@/components/ui/modal"
 import { TextInput } from "@/components/ui/text-input"
+import { useTr } from "@/lib/app-language"
 import React from "react"
 import { toast } from "sonner"
 
@@ -22,6 +23,7 @@ export function PlaylistEditorModal(props: PlaylistEditorModalProps) {
         trigger,
     } = props
 
+    const t = useTr()
     const [isOpen, setIsOpen] = React.useState(false)
     const [name, setName] = React.useState(playlist?.name ?? "")
     const [episodes, setEpisodes] = React.useState<Anime_PlaylistEpisode[]>([])
@@ -106,7 +108,7 @@ export function PlaylistEditorModal(props: PlaylistEditorModalProps) {
                 </div>
 
                 {isUpdate && <DangerZone
-                    actionText="Delete playlist" onDelete={() => {
+                    actionText={t("Delete playlist", "Playlist löschen")} onDelete={() => {
                     if (isUpdate && !!playlist) {
                         deletePlaylist({ dbId: playlist.dbId }, {
                             onSuccess: () => {

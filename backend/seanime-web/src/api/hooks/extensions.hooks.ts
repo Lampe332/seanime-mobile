@@ -129,17 +129,6 @@ export function useUpdateExtensionCode() {
     })
 }
 
-export function useReloadExternalExtensions() {
-    return useServerMutation<boolean>({
-        endpoint: API_ENDPOINTS.EXTENSIONS.ReloadExternalExtensions.endpoint,
-        method: API_ENDPOINTS.EXTENSIONS.ReloadExternalExtensions.methods[0],
-        mutationKey: [API_ENDPOINTS.EXTENSIONS.ReloadExternalExtensions.key],
-        onSuccess: async () => {
-
-        },
-    })
-}
-
 export function useListExtensionData() {
     return useServerQuery<Array<Extension_Extension>>({
         endpoint: API_ENDPOINTS.EXTENSIONS.ListExtensionData.endpoint,

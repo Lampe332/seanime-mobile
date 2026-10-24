@@ -103,32 +103,6 @@ const PlaylistManagerPopup: React.FC<PlaylistManagerPopupProps> = ({
 
 PlaylistManagerPopup.displayName = "PlaylistManagerPopup"
 
-const PlaylistManagerPopupHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
-    className,
-    ...props
-}) => (
-    <div
-        className={cn("flex items-center justify-between p-4 border-b", className)}
-        {...props}
-    />
-)
-
-PlaylistManagerPopupHeader.displayName = "PlaylistManagerPopupHeader"
-
-const PlaylistManagerPopupBody: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
-    className,
-    ...props
-}) => <div className={cn("flex-grow overflow-y-auto", className)} {...props} />
-
-PlaylistManagerPopupBody.displayName = "PlaylistManagerPopupBody"
-
-const PlaylistManagerPopupFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
-    className,
-    ...props
-}) => <div className={cn("border-t p-4", className)} {...props} />
-
-PlaylistManagerPopupFooter.displayName = "PlaylistManagerPopupFooter"
-
 interface PlaylistManagerPopupToggleProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     icon?: React.ReactNode;
@@ -168,7 +142,4 @@ PlaylistManagerPopupToggle.displayName = "PlaylistManagerPopupToggle"
 
 export {
     PlaylistManagerPopup,
-    PlaylistManagerPopupHeader,
-    PlaylistManagerPopupBody,
-    PlaylistManagerPopupFooter,
 }

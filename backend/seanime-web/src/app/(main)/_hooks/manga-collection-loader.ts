@@ -1,6 +1,6 @@
 import { useGetMangaCollection } from "@/api/hooks/manga.hooks"
 import { mangaCollectionAtom } from "@/app/(main)/_atoms/manga-collection.atoms"
-import { useAtomValue, useSetAtom } from "jotai/react"
+import { useSetAtom } from "jotai/react"
 import React from "react"
 
 /**
@@ -20,8 +20,4 @@ export function useMangaCollectionLoader() {
     }, [data, status])
 
     return null
-}
-
-export function useMangaCollection() {
-    return useAtomValue(mangaCollectionAtom)
 }

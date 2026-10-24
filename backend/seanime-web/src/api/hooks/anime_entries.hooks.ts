@@ -1,13 +1,5 @@
 import { useServerMutation, useServerQuery } from "@/api/client/requests"
-import {
-    AnimeEntryBulkAction_Variables,
-    AnimeEntryManualMatch_Variables,
-    FetchAnimeEntrySuggestions_Variables,
-    OpenAnimeEntryInExplorer_Variables,
-    ToggleAnimeEntrySilenceStatus_Variables,
-    UpdateAnimeEntryProgress_Variables,
-    UpdateAnimeEntryRepeat_Variables,
-} from "@/api/generated/endpoint.types"
+import { AnimeEntryBulkAction_Variables, AnimeEntryManualMatch_Variables, FetchAnimeEntrySuggestions_Variables, ToggleAnimeEntrySilenceStatus_Variables, UpdateAnimeEntryProgress_Variables, UpdateAnimeEntryRepeat_Variables } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { AL_BaseAnime, Anime_Entry, Anime_LocalFile, Anime_MissingEpisodes, Anime_UpcomingEpisodes, Nullish } from "@/api/generated/types"
 import { getEntryPreloadStaleTime } from "@/lib/entry-preloader"
@@ -36,17 +28,6 @@ export function useAnimeEntryBulkAction(id?: Nullish<number>, onSuccess?: () => 
             queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key, String(id)] })
             queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.LIBRARY_EXPLORER.GetLibraryExplorerFileTree.key] })
             onSuccess?.()
-        },
-    })
-}
-
-export function useOpenAnimeEntryInExplorer() {
-    return useServerMutation<boolean, OpenAnimeEntryInExplorer_Variables>({
-        endpoint: API_ENDPOINTS.ANIME_ENTRIES.OpenAnimeEntryInExplorer.endpoint,
-        method: API_ENDPOINTS.ANIME_ENTRIES.OpenAnimeEntryInExplorer.methods[0],
-        mutationKey: [API_ENDPOINTS.ANIME_ENTRIES.OpenAnimeEntryInExplorer.key],
-        onSuccess: async () => {
-
         },
     })
 }

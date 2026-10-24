@@ -33,7 +33,7 @@ export const enum TorrentStreamEvents {
 export const __torrentstream__loadingStateAtom = atom<string | null>(null)
 export const __torrentstream__isLoadedAtom = atom<boolean>(false)
 export const __debridstream_stateAtom = atom<DebridClient_StreamState | null>(null)
-export const playPillMinimizedAtom = atom<boolean>(true)
+const playPillMinimizedAtom = atom<boolean>(true)
 
 export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
     isNativePlayerComponent?: "control-bar" | "top-section" | "overlay",

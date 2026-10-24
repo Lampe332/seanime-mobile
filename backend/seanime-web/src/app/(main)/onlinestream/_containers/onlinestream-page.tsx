@@ -71,7 +71,6 @@ import { toast } from "sonner"
 import { PluginEpisodeGridItemMenuItems } from "../../_features/plugin/actions/plugin-actions"
 import { getMobileInitialEpisode, rememberMobileEpisode } from "../_lib/mobile-episode-selection"
 
-
 function getPlayerContainer() {
     return document.querySelector<HTMLElement>("[data-onlinestream-video-container] [data-vc-element=\"container\"]")
 }
@@ -85,7 +84,7 @@ type OnlinestreamPageProps = {
 const log = logger("ONLINESTREAM")
 
 // Episode view mode atom
-export const __onlineStream_episodeViewModeAtom = atomWithStorage<"list" | "grid">("sea-onlinestream-episode-view-mode", "list")
+const __onlineStream_episodeViewModeAtom = atomWithStorage<"list" | "grid">("sea-onlinestream-episode-view-mode", "list")
 
 function isValidVideoSourceType(type: string | null | undefined) {
     if (!type) return false
@@ -398,7 +397,6 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
     const nakamaStatus = useNakamaStatus()
     const { isPeer: isWatchPartyPeer } = useNakamaWatchParty()
     const { streamToLoad, onLoadedStream, removeParamsFromUrl, redirectToStream } = useNakamaOnlineStreamWatchParty()
-
 
     // Stream URL
     const [url, setUrl] = React.useState<string | null>(null)
@@ -735,7 +733,6 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
             firstRenderRef.current = false
         }
     }, [episodes, media, animeEntry?.listData, urlEpNumber, currentPlaylist, isWatchPartyPeer, currentEpisodeNumber])
-
 
     // Home "Continue" requests playback; consume it once the stream is ready.
     const { playNext, resetPlayNext } = usePlayNext()

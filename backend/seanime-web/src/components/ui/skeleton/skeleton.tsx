@@ -6,7 +6,7 @@ import { cn, defineStyleAnatomy } from "../core/styling"
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
 
-export const SkeletonAnatomy = defineStyleAnatomy({
+const SkeletonAnatomy = defineStyleAnatomy({
     root: cva([
         "UI-Skeleton__root",
         "animate-pulse rounded-[--radius-md] bg-[--subtle] w-full h-12",

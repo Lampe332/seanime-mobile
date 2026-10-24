@@ -1,49 +1,10 @@
 import { SeaError, useServerMutation, useServerQuery } from "@/api/client/requests"
-import {
-    TorrentClientAction_Variables,
-    TorrentClientAddMagnetFromRule_Variables,
-    TorrentClientDownload_Variables,
-    TorrentClientGetFiles_Variables,
-} from "@/api/generated/endpoint.types"
+import { TorrentClientAction_Variables, TorrentClientDownload_Variables, TorrentClientGetFiles_Variables } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { HibikeTorrent_AnimeTorrent, Nullish, TorrentClient_Torrent } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
 import React from "react"
 import { toast } from "sonner"
-
-export type BuiltInTorrentFile = {
-    index: number
-    path: string
-    length: number
-    completed: number
-    progress: number
-    priority: number
-}
-
-export type BuiltInTorrentDetails = {
-    torrent: {
-        name: string
-        hash: string
-        destination: string
-        paused: boolean
-        queued: boolean
-        forceStart: boolean
-        sequential: boolean
-        queueIndex: number
-        length: number
-        completed: number
-        downSpeed: number
-        upSpeed: number
-        seeds: number
-        peers: number
-        downloaded: number
-        uploaded: number
-        addedAt: string
-    }
-    files: Array<BuiltInTorrentFile>
-    trackers: Array<string>
-    peers: Array<{ address: string, client: string }>
-}
 
 export function useGetActiveTorrentList(enabled: boolean, category: string, sort: string) {
     const query = React.useMemo(() => {
@@ -96,17 +57,6 @@ export function useTorrentClientAction(onSuccess?: (variables: TorrentClientActi
     })
 }
 
-export function useGetBuiltInTorrentDetails(hash: string | undefined) {
-    return useServerQuery<BuiltInTorrentDetails>({
-        endpoint: `/api/v1/torrent-client/details?hash=${encodeURIComponent(hash ?? "")}`,
-        method: "GET",
-        queryKey: ["torrent-client-details", hash],
-        refetchInterval: 1500,
-        gcTime: 0,
-        enabled: !!hash,
-    })
-}
-
 /** onError replaces the default error toast (the phone words it itself) */
 export function useTorrentClientDownload(onSuccess?: () => void, onError?: (error: SeaError) => void) {
     return useServerMutation<boolean, TorrentClientDownload_Variables>({
@@ -118,20 +68,6 @@ export function useTorrentClientDownload(onSuccess?: () => void, onError?: (erro
             onSuccess?.()
         },
         ...(onError ? { onError } : {}),
-    })
-}
-
-export function useTorrentClientAddMagnetFromRule() {
-    const queryClient = useQueryClient()
-
-    return useServerMutation<boolean, TorrentClientAddMagnetFromRule_Variables>({
-        endpoint: API_ENDPOINTS.TORRENT_CLIENT.TorrentClientAddMagnetFromRule.endpoint,
-        method: API_ENDPOINTS.TORRENT_CLIENT.TorrentClientAddMagnetFromRule.methods[0],
-        mutationKey: [API_ENDPOINTS.TORRENT_CLIENT.TorrentClientAddMagnetFromRule.key],
-        onSuccess: async () => {
-            toast.success("Download started")
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.AUTO_DOWNLOADER.GetAutoDownloaderItems.key] })
-        },
     })
 }
 

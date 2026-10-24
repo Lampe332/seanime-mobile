@@ -1,8 +1,5 @@
 // window.SeanimeAndroid is declared in app-language.ts.
 
-/** Error codes of `pickAndroidFolder()`; the native side reports the first three. */
-export type AndroidFolderPickError = "cancelled" | "not-primary" | "permission" | "unavailable" | "timeout"
-
 const EVENT_NAME = "seanime-folder-picked"
 const TIMEOUT = 10 * 60_000
 let nextRequest = 0

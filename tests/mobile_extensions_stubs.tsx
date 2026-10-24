@@ -111,7 +111,6 @@ export const useSetExternalExtensionDisabled = () => useFakeMutation("disable", 
     return true
 })
 export const useReloadExternalExtension = () => useFakeMutation("reload", () => true)
-export const useReloadExternalExtensions = () => useFakeMutation("reload-all", () => true)
 export const useFetchExternalExtensionData = (_id?: string | null) => useFakeMutation("fetch", ({ manifestUri }: any) => s().fetchResults[manifestUri])
 export const useInstallExternalExtensionRepository = () => useFakeMutation("repository", ({ install }: any) => {
     if (install) replaceAll({ extensions: [...(s().all.extensions ?? []), ...s().repository] })

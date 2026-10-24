@@ -7,7 +7,7 @@ import * as React from "react"
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
 
-export const SeparatorAnatomy = {
+const SeparatorAnatomy = {
     root: cva([
         "UI-Separator__root",
         "shrink-0 bg-[--border]",

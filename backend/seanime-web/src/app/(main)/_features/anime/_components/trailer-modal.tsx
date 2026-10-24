@@ -39,7 +39,7 @@ type ContentProps = {
     trailerId?: string | null
 }
 
-export function Content(props: ContentProps) {
+function Content(props: ContentProps) {
 
     const {
         trailerId,

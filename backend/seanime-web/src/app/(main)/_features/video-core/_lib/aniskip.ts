@@ -5,14 +5,6 @@ import { normalizeAniSkipData } from "./aniskip.utils"
  * @link https://github.com/lexesjan/typescript-aniskip-extension/blob/main/src/api/aniskip-http-client/aniskip-http-client.types.ts
  * -----------------------------------------------------------------------------------------------*/
 
-export const SKIP_TYPE_NAMES: Record<AniSkipType, string> = {
-    op: "Opening",
-    ed: "Ending",
-    "mixed-op": "Mixed opening",
-    "mixed-ed": "Mixed ending",
-    recap: "Recap",
-} as const
-
 export const SKIP_TYPES = [
     "op",
     "ed",

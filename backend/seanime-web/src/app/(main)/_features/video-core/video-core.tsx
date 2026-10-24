@@ -145,8 +145,6 @@ import { VideoCoreScreenshotDirPrompt } from "./video-core-screenshot-prompt"
 
 const log = logger("VIDEO CORE")
 
-export const VIDEOCORE_DEBUG_ELEMENTS = false
-
 const DELAY_BEFORE_NOT_BUSY = 1_000 //ms
 
 type ViewTransitionDocument = Document & {
@@ -361,7 +359,6 @@ const PlayerContent = React.memo<PlayerContentProps>(({
 
     return (
         <>
-
 
             <MediaCoreErrorOverlay playbackError={state.playbackError} isMiniPlayer={isMiniPlayer} onClose={onTerminateStream} />
 
@@ -845,7 +842,6 @@ export function VideoCore(props: VideoCoreProps) {
         qc.invalidateQueries({ queryKey: [API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistoryItem.key] })
 
     }, [state.playbackInfo?.id])
-
 
     // Re-focus the video element when playback info changes
     React.useEffect(() => {
@@ -1602,7 +1598,6 @@ export function VideoCore(props: VideoCoreProps) {
         }
     }, [state.active])
 
-
     // Exit fullscreen and clean up fullscreen manager when the entire component is unmounted
     React.useEffect(() => {
         return () => {
@@ -1705,7 +1700,6 @@ export function VideoCore(props: VideoCoreProps) {
                 <VideoCorePreferencesModal isWebPlayer={props.id !== "native-player"} />
                 <VideoCoreScreenshotDirPrompt />
                 {state.active && !isMiniPlayer && <RemoveScrollBar />}
-
 
                 <VideoCoreDrawer
                     open={state.active}

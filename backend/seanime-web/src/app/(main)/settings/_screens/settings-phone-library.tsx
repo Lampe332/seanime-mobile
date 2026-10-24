@@ -17,7 +17,7 @@ import { LuFolderOpen } from "react-icons/lu"
 import { toast } from "sonner"
 
 /** Opens the system folder picker; the path or the reason goes to the caller and a toast. */
-export function usePickFolder(t: Translate) {
+function usePickFolder(t: Translate) {
     const [picking, setPicking] = React.useState(false)
     const pick = React.useCallback(async (): Promise<string | null> => {
         setPicking(true)

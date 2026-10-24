@@ -37,13 +37,13 @@ const hlsLog = logger("VIDEO CORE HLS")
 const MAX_MEDIA_ERROR_RECOVERY_ATTEMPTS = 2
 
 
-export const HLS_VIDEO_EXTENSIONS = /\.(m3u8)($|\?)/i
+const HLS_VIDEO_EXTENSIONS = /\.(m3u8)($|\?)/i
 
 export function isHLSSrc(src: string): boolean {
     return HLS_VIDEO_EXTENSIONS.test(src)
 }
 
-export const NATIVE_VIDEO_EXTENSIONS = /\.(mp4|avi|3gp|ogg)($|\?)/i
+const NATIVE_VIDEO_EXTENSIONS = /\.(mp4|avi|3gp|ogg)($|\?)/i
 
 export function isNativeVideoExtension(src: string): boolean {
     return NATIVE_VIDEO_EXTENSIONS.test(src)
@@ -323,7 +323,7 @@ export function useVideoCoreHls({
     }, [currentAudioTrack, audioManager])
 }
 
-export const HLSMimeTypes = ["application/vnd.apple.mpegurl", "audio/mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "video/x-mpegurl",
+const HLSMimeTypes = ["application/vnd.apple.mpegurl", "audio/mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "video/x-mpegurl",
     "video/mpegurl", "application/mpegurl"]
 
 export async function isProbablyHls(url: string): Promise<"hls" | "unknown"> {

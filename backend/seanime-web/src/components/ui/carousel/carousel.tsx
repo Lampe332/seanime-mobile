@@ -2,7 +2,7 @@ import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { cva } from "class-variance-authority"
 import { EmblaCarouselType } from "embla-carousel"
 import AutoScroll from "embla-carousel-autoplay"
-import useEmblaCarousel, { UseEmblaCarouselType } from "embla-carousel-react"
+import useEmblaCarousel from "embla-carousel-react"
 import * as React from "react"
 import { IconButton } from "../button"
 import { cn, defineStyleAnatomy } from "../core/styling"
@@ -11,7 +11,7 @@ import { cn, defineStyleAnatomy } from "../core/styling"
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
 
-export const CarouselAnatomy = defineStyleAnatomy({
+const CarouselAnatomy = defineStyleAnatomy({
     root: cva([
         "UI-Carousel__root",
         "relative",
@@ -90,9 +90,9 @@ export const CarouselAnatomy = defineStyleAnatomy({
  * Carousel
  * -----------------------------------------------------------------------------------------------*/
 
-export const __CarouselContext = React.createContext<CarouselContextProps | null>(null)
+const __CarouselContext = React.createContext<CarouselContextProps | null>(null)
 
-export function useCarousel() {
+function useCarousel() {
     const context = React.useContext(__CarouselContext)
 
     if (!context) {
@@ -102,11 +102,9 @@ export function useCarousel() {
     return context
 }
 
-export type CarouselApi = UseEmblaCarouselType[1]
 export type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
 export type CarouselOptions = UseCarouselParameters[0]
 export type CarouselPlugin = UseCarouselParameters[1]
-
 
 export type CarouselProps = {
     opts?: CarouselOptions
@@ -318,7 +316,7 @@ type CarouselButtonsProps = {
     containerClass?: string
 }
 
-export function CarouselButtons(props: CarouselButtonsProps) {
+function CarouselButtons(props: CarouselButtonsProps) {
 
     const {
         children,
@@ -337,7 +335,6 @@ export function CarouselButtons(props: CarouselButtonsProps) {
         </>
     )
 }
-
 
 /* -------------------------------------------------------------------------------------------------
  * CarouselContent
@@ -391,7 +388,7 @@ CarouselItem.displayName = "CarouselItem"
 
 export type CarouselButtonProps = React.ComponentProps<typeof IconButton> & { chevronIconClass?: string }
 
-export const CarouselPrevious = React.forwardRef<HTMLButtonElement, CarouselButtonProps>((props, ref) => {
+const CarouselPrevious = React.forwardRef<HTMLButtonElement, CarouselButtonProps>((props, ref) => {
     const { className, chevronIconClass, intent = "gray-outline", ...rest } = props
     const { orientation, scrollPrev, canScrollPrev } = useCarousel()
 
@@ -424,7 +421,7 @@ CarouselPrevious.displayName = "CarouselPrevious"
  * CarouselNext
  * -----------------------------------------------------------------------------------------------*/
 
-export const CarouselNext = React.forwardRef<HTMLButtonElement, CarouselButtonProps>((props, ref) => {
+const CarouselNext = React.forwardRef<HTMLButtonElement, CarouselButtonProps>((props, ref) => {
     const { className, chevronIconClass, intent = "gray-outline", ...rest } = props
     const { orientation, scrollNext, canScrollNext } = useCarousel()
 
@@ -463,8 +460,7 @@ type UseDotButtonType = {
     onDotButtonClick: (index: number) => void
 }
 
-
-export const useDotButton = (): UseDotButtonType => {
+const useDotButton = (): UseDotButtonType => {
     const { api: emblaApi } = useCarousel()
     const [selectedIndex, setSelectedIndex] = React.useState(0)
     const [scrollSnaps, setScrollSnaps] = React.useState<number[]>([])
@@ -520,7 +516,6 @@ const DotButton = (props: React.ComponentPropsWithoutRef<"div">) => {
         </div>
     )
 }
-
 
 export const CarouselDotButtons = (props: { className?: string, flag?: any }) => {
 
@@ -581,20 +576,5 @@ export const CarouselDotButtons = (props: { className?: string, flag?: any }) =>
                 />
             ))}
         </div>
-    )
-}
-
-
-export const CarouselMasks = () => {
-
-    const ts = useThemeSettings()
-
-    if (!!ts.libraryScreenCustomBackgroundImage) return null
-
-    return (
-        <>
-            <div className="absolute hidden md:block left-0 h-full w-8 bg-gradient-to-r from-[--background] to-transparent z-[1]" />
-            <div className="absolute hidden md:block right-0 h-full w-8 bg-gradient-to-l from-[--background] to-transparent z-[1]" />
-        </>
     )
 }

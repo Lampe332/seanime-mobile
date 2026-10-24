@@ -37,11 +37,11 @@ const STATUS_FILTERS: StatusFilter[] = [
     { value: "PAUSED", en: "Paused", de: "Pausiert" }, { value: "COMPLETED", en: "Completed", de: "Abgeschlossen" },
     { value: "DROPPED", en: "Dropped", de: "Abgebrochen" }, { value: "REPEATING", en: "Rewatching", de: "Schaue erneut" },
 ]
-export const calendarSourceAtom = atomWithStorage<"list" | "all">("sea-calendar-source", "list")
+const calendarSourceAtom = atomWithStorage<"list" | "all">("sea-calendar-source", "list")
 
 export const weekStartsOnAtom = atomWithStorage("sea-calendar-week-starts-on", 1)
-export const calendarDisableAnimations = atomWithStorage("sea-calendar-disable-animations", false)
-export const calendarParamsAtom = atomWithStorage("sea-release-calendar-params", {
+const calendarDisableAnimations = atomWithStorage("sea-calendar-disable-animations", false)
+const calendarParamsAtom = atomWithStorage("sea-release-calendar-params", {
     indicateWatchedEpisodes: true,
     listStatuses: ["PLANNING", "CURRENT", "COMPLETED", "PAUSED"] as AL_MediaListStatus[],
 })
@@ -62,7 +62,6 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
     const t = useTr()
     const anilistListData = useAtomValue(__anilist_userAnimeListDataAtom)
 
-
     // State for the current displayed month
     const [currentDate, setCurrentDate] = React.useState(new Date())
     const [selectedDate, setSelectedDate] = React.useState(() => format(new Date(), "yyyy-MM-dd"))
@@ -75,7 +74,6 @@ export function ScheduleCalendar(props: ScheduleCalendarProps) {
     const scheduleError = !items && (isAllAnime ? globalQuery.isError : personalQuery.isError)
     const refetch = () => isAllAnime ? globalQuery.refetch() : personalQuery.refetch()
     const isUserSchedule = !items && !isAllAnime
-
 
     const [calendarParams, setCalendarParams] = useImmerAtom(calendarParamsAtom)
     const [animationsDisabled, setAnimationDisabled] = useAtom(calendarDisableAnimations)

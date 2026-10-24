@@ -180,7 +180,7 @@ export function VideoCoreSubtitleMenu({ inline, onPreferenceChange }: {
     )
 }
 
-export function getSubtitleTrackType(codecID: string) {
+function getSubtitleTrackType(codecID: string) {
     switch (codecID) {
         case "S_TEXT/ASS":
             return "ASS"

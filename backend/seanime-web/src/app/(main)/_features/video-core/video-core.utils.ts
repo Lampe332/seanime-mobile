@@ -1,5 +1,5 @@
 import { MKVParser_ChapterInfo } from "@/api/generated/types"
-import { getChapterType, getDefaultSkipChapters, introIsOpening } from "@/app/(main)/_features/media-core/media-core-chapters"
+import { formatTime } from "@/app/(main)/_features/media-core/media-core-control-bar"
 import { normalizeAniSkipData } from "@/app/(main)/_features/video-core/_lib/aniskip.utils"
 import { VideoCoreChapterCue } from "@/app/(main)/_features/video-core/video-core"
 import { vc_videoElement } from "@/app/(main)/_features/video-core/video-core-atoms"
@@ -15,7 +15,6 @@ import { vc_timeRanges } from "@/app/(main)/_features/video-core/video-core-atom
 import { vc_ended } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_paused } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_showOverlayFeedback } from "@/app/(main)/_features/video-core/video-core-overlay-display"
-import { VideoCoreTimeRangeChapter } from "@/app/(main)/_features/video-core/video-core-time-range"
 import { VideoCore_VideoPlaybackInfo } from "@/app/(main)/_features/video-core/video-core.atoms"
 import { atom } from "jotai"
 import { useSetAtom } from "jotai/react"
@@ -37,7 +36,7 @@ export const vc_dispatchAction = atom(null, (get, set, action: { type: VideoCore
                 videoElement.currentTime = t
                 set(vc_currentTime, t)
                 if (action.payload.flashTime) {
-                    set(vc_showOverlayFeedback, { message: `${vc_formatTime(t)} / ${vc_formatTime(duration)}`, type: "message" })
+                    set(vc_showOverlayFeedback, { message: `${formatTime(t)} / ${formatTime(duration)}`, type: "message" })
                 }
                 break
             case "seek":
@@ -47,7 +46,7 @@ export const vc_dispatchAction = atom(null, (get, set, action: { type: VideoCore
                 videoElement.currentTime = t
                 set(vc_currentTime, t)
                 if (action.payload.flashTime) {
-                    set(vc_showOverlayFeedback, { message: `${vc_formatTime(t)} / ${vc_formatTime(duration)}`, type: "message" })
+                    set(vc_showOverlayFeedback, { message: `${formatTime(t)} / ${formatTime(duration)}`, type: "message" })
                 }
                 break
             case "togglePlay":
@@ -181,7 +180,7 @@ export const vc_createChapterCues = (chapters: Array<MKVParser_ChapterInfo> | un
     }))).filter(c => c.startTime !== undefined && c.endTime !== undefined && c.startTime <= duration && c.endTime <= duration)
 }
 
-export const vc_fillChapterCues = (chapters: VideoCoreChapterCue[]): VideoCoreChapterCue[] => {
+const vc_fillChapterCues = (chapters: VideoCoreChapterCue[]): VideoCoreChapterCue[] => {
     if (!chapters || chapters.length === 0) {
         return []
     }
@@ -215,47 +214,6 @@ export const vc_fillChapterCues = (chapters: VideoCoreChapterCue[]): VideoCoreCh
     }
 
     return out
-}
-
-export const vc_createChapterVTT = (chapters: Array<MKVParser_ChapterInfo> | undefined, duration: number) => {
-    if (!chapters || chapters.length === 0 || duration === 0) {
-        return ""
-    }
-
-    let vttContent = "WEBVTT\n\n"
-
-    chapters.forEach((chapter, index) => {
-        const startTime = chapter.start
-        const endTime = chapter.end ? chapter.end : (chapters[index + 1]?.start ? chapters[index + 1].start : duration)
-
-        const formatTime = (seconds: number) => {
-            const hours = Math.floor(seconds / 3600)
-            const minutes = Math.floor((seconds % 3600) / 60)
-            const secs = (seconds % 60).toFixed(3)
-            return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.padStart(6, "0")}`
-        }
-
-        vttContent += `${index + 1}\n`
-        vttContent += `${formatTime(startTime)} --> ${formatTime(endTime)}\n`
-        vttContent += `${chapter.text || ``}\n\n`
-    })
-
-    return vttContent
-}
-
-export function vc_getChapterType(name: string | null | undefined) {
-    return getChapterType(name)
-}
-
-export function vc_introIsOpening(chapters: VideoCoreTimeRangeChapter[]) {
-    return introIsOpening(chapters)
-}
-
-export function vc_getOPEDChapters(chapters: VideoCoreTimeRangeChapter[]): {
-    opening: VideoCoreTimeRangeChapter | null;
-    ending: VideoCoreTimeRangeChapter | null
-} {
-    return getDefaultSkipChapters(chapters)
 }
 
 export function isSubtitleFile(filename: string) {
@@ -386,18 +344,6 @@ export function vc_createChaptersFromAniSkip(
     return chapters.sort((a, b) => a.start - b.start)
 }
 
-export const vc_formatTime = (seconds: number) => {
-    const sign = seconds < 0 ? "-" : ""
-    const absSeconds = Math.abs(seconds)
-    const hours = Math.floor(absSeconds / 3600)
-    const minutes = Math.floor((absSeconds % 3600) / 60)
-    const secs = Math.floor(absSeconds % 60)
-
-    if (hours > 0) {
-        return `${sign}${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-    }
-    return `${sign}${minutes}:${secs.toString().padStart(2, "0")}`
-}
 
 export const vc_logGeneralInfo = (video: HTMLVideoElement | null) => {
     if (!video) return

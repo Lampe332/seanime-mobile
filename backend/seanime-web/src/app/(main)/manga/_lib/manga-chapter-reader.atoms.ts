@@ -12,7 +12,7 @@ export type MangaReaderResumeLocation = {
     updatedAt: number
 }
 
-export const MANGA_READER_RESUME_MAX_ENTRIES = 250
+const MANGA_READER_RESUME_MAX_ENTRIES = 250
 export const MANGA_READER_RESUME_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 90
 
 export function cleanupMangaResumeLocations(locations: Record<string, MangaReaderResumeLocation>) {
@@ -69,14 +69,14 @@ export const __manga_entryReaderSettings = atomWithStorage<Record<string, Record
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const MANGA_KBS_ATOM_KEYS = {
+const MANGA_KBS_ATOM_KEYS = {
     kbsChapterLeft: "sea-manga-chapter-left",
     kbsChapterRight: "sea-manga-chapter-right",
     kbsPageLeft: "sea-manga-page-left",
     kbsPageRight: "sea-manga-page-right",
 }
 
-export const MANGA_DEFAULT_KBS = {
+const MANGA_DEFAULT_KBS = {
     [MANGA_KBS_ATOM_KEYS.kbsChapterLeft]: "[",
     [MANGA_KBS_ATOM_KEYS.kbsChapterRight]: "]",
     [MANGA_KBS_ATOM_KEYS.kbsPageLeft]: "left",

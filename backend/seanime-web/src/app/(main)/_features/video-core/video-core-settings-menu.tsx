@@ -110,7 +110,7 @@ const SUBTITLE_STYLES_SHADOW_DEPTH_OPTIONS = [
     { label: "Large", value: 3 },
 ]
 
-export const SUBTITLE_STYLES_BACK_COLOR_OPACITY_OPTIONS = [
+const SUBTITLE_STYLES_BACK_COLOR_OPACITY_OPTIONS = [
     { label: "100%", value: 0 },
     { label: "80%", value: 64 },
     { label: "70%", value: 77 },
@@ -119,7 +119,7 @@ export const SUBTITLE_STYLES_BACK_COLOR_OPACITY_OPTIONS = [
     { label: "0%", value: 255 },
 ]
 
-export const vc_subtitleStylesDefaults: VideoCoreSettings["subtitleCustomization"] = {
+const vc_subtitleStylesDefaults: VideoCoreSettings["subtitleCustomization"] = {
     enabled: false,
     fontName: "",
     fontSize: SUBTITLE_STYLES_FONT_SIZE_OPTIONS[1].value,
@@ -137,7 +137,7 @@ export function vc_getSubtitleStyle<T extends keyof VideoCoreSettings["subtitleC
     return settings?.[key] ?? vc_subtitleStylesDefaults[key] as any
 }
 
-export function vc_getSubtitleStyleLabel<T extends keyof VideoCoreSettings["subtitleCustomization"]>(settings: VideoCoreSettings["subtitleCustomization"] | undefined,
+function vc_getSubtitleStyleLabel<T extends keyof VideoCoreSettings["subtitleCustomization"]>(settings: VideoCoreSettings["subtitleCustomization"] | undefined,
     key: T,
 ): string {
     switch (key) {
@@ -157,24 +157,23 @@ export function vc_getSubtitleStyleLabel<T extends keyof VideoCoreSettings["subt
     return ""
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const CAPTION_STYLES_FONT_SIZE_OPTIONS = [
+const CAPTION_STYLES_FONT_SIZE_OPTIONS = [
     { label: "Small", value: 4 },
     { label: "Medium", value: 5 },
     { label: "Large", value: 5.7 },
     { label: "Extra Large", value: 6.1 },
 ]
 
-export const CAPTION_STYLES_TEXT_SHADOW_OPTIONS = [
+const CAPTION_STYLES_TEXT_SHADOW_OPTIONS = [
     { label: "None", value: 0 },
     { label: "Small", value: 2 },
     { label: "Medium", value: 4 },
     { label: "Large", value: 6 },
 ]
 
-export const CAPTION_STYLES_BACKGROUND_OPACITY_OPTIONS = [
+const CAPTION_STYLES_BACKGROUND_OPACITY_OPTIONS = [
     { label: "0%", value: 0 },
     { label: "25%", value: 0.25 },
     { label: "50%", value: 0.5 },
@@ -183,9 +182,9 @@ export const CAPTION_STYLES_BACKGROUND_OPACITY_OPTIONS = [
     { label: "100%", value: 1 },
 ]
 
-export const CAPTION_STYLES_COLOR_OPTIONS = SUBTITLE_STYLES_COLOR_OPTIONS
+const CAPTION_STYLES_COLOR_OPTIONS = SUBTITLE_STYLES_COLOR_OPTIONS
 
-export const vc_captionsStylesDefaults: VideoCoreSettings["captionCustomization"] = {
+const vc_captionsStylesDefaults: VideoCoreSettings["captionCustomization"] = {
     fontSize: CAPTION_STYLES_FONT_SIZE_OPTIONS[1].value,
     textColor: CAPTION_STYLES_COLOR_OPTIONS[0].value,
     backgroundColor: SUBTITLE_STYLES_COLOR_OPTIONS[1].value,
@@ -200,7 +199,7 @@ export function vc_getCaptionStyle<T extends keyof VideoCoreSettings["captionCus
     return settings?.[key] ?? vc_captionsStylesDefaults[key] as any
 }
 
-export function vc_getCaptionStyleLabel<T extends keyof VideoCoreSettings["captionCustomization"]>(settings: VideoCoreSettings["captionCustomization"] | undefined,
+function vc_getCaptionStyleLabel<T extends keyof VideoCoreSettings["captionCustomization"]>(settings: VideoCoreSettings["captionCustomization"] | undefined,
     key: T,
 ): string {
     switch (key) {

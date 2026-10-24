@@ -1,6 +1,5 @@
 import { cn } from "@/components/ui/core/styling"
 import { atom, useAtom } from "jotai"
-import React from "react"
 
 type MangaReaderFlashAction = {
     id: string
@@ -8,8 +7,8 @@ type MangaReaderFlashAction = {
     timestamp: number
 }
 
-export const manga_flashAction = atom<MangaReaderFlashAction | null>(null)
-export const manga_flashActionTimeout = atom<ReturnType<typeof setTimeout> | null>(null)
+const manga_flashAction = atom<MangaReaderFlashAction | null>(null)
+const manga_flashActionTimeout = atom<ReturnType<typeof setTimeout> | null>(null)
 
 export const manga_doFlashAction = atom(null, (get, set, payload: { message: string, duration?: number }) => {
     const id = Date.now().toString()
@@ -44,11 +43,5 @@ export function MangaReaderActionDisplay() {
             </div>
         </div>
     )
-}
-
-export function useMangaReaderFlashAction() {
-    const [, flashAction] = useAtom(manga_doFlashAction)
-
-    return { flashAction }
 }
 

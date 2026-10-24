@@ -65,7 +65,7 @@ function Cover({ src }: { src?: string }) {
 }
 
 /** Counts the Home action and the sheet show: files without an anime, anime missing from AniList, ignored files. */
-export function useLibraryQueues() {
+function useLibraryQueues() {
     const { data } = useGetLibraryCollection()
     return {
         unmatchedFiles: data?.unmatchedLocalFiles?.length ?? 0,

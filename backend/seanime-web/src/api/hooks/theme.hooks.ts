@@ -1,18 +1,9 @@
-import { useServerMutation, useServerQuery } from "@/api/client/requests"
+import { useServerMutation } from "@/api/client/requests"
 import { UpdateTheme_Variables } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Models_Theme } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-
-export function useGetTheme() {
-    return useServerQuery<Models_Theme>({
-        endpoint: API_ENDPOINTS.THEME.GetTheme.endpoint,
-        method: API_ENDPOINTS.THEME.GetTheme.methods[0],
-        queryKey: [API_ENDPOINTS.THEME.GetTheme.key],
-        enabled: true,
-    })
-}
 
 export function useUpdateTheme() {
     const queryClient = useQueryClient()

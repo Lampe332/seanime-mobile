@@ -7,7 +7,7 @@ import { cn, defineStyleAnatomy } from "../core/styling"
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
 
-export const TooltipAnatomy = defineStyleAnatomy({
+const TooltipAnatomy = defineStyleAnatomy({
     root: cva([
         "UI-Tooltip__root",
         "z-50 overflow-hidden rounded-xl px-3 py-1.5 text-sm shadow-md animate-in fade-in-50",
@@ -100,4 +100,4 @@ Tooltip.displayName = "Tooltip"
  * TooltipProvider
  * -----------------------------------------------------------------------------------------------*/
 
-export const TooltipProvider = TooltipPrimitive.Provider
+const TooltipProvider = TooltipPrimitive.Provider

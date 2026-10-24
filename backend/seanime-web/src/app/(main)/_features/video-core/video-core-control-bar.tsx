@@ -31,7 +31,6 @@ import {
 } from "@/app/(main)/_features/media-core/media-core-control-bar"
 import { useAtomValue, atom } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
-import { atomWithStorage } from "jotai/utils"
 import { mediaCorePreferencesAtom } from "@/app/(main)/_features/media-core/media-core-preferences"
 import React from "react"
 
@@ -180,7 +179,7 @@ export function VideoCorePreviousButton({ onClick }: { onClick: () => void }) {
     )
 }
 
-export const vc_timestampType = atom(
+const vc_timestampType = atom(
     (get) => get(mediaCorePreferencesAtom).timestampMode,
     (get, set, newValue: "elapsed" | "remaining" | ((prev: "elapsed" | "remaining") => "elapsed" | "remaining")) => {
         const current = get(mediaCorePreferencesAtom)

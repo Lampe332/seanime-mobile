@@ -293,7 +293,6 @@ const SearchInput = () => {
         setDebouncedInput(inputValue)
     }, [debouncedInput])
 
-
     return (
         <div className="w-full md:w-[300px]">
             <TextInput
@@ -308,7 +307,7 @@ const SearchInput = () => {
     )
 }
 
-export function SearchOptions() {
+function SearchOptions() {
 
     const serverStatus = useServerStatus()
     const [params, setParams] = useAtom(__library_paramsAtom)

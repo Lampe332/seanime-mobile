@@ -13,11 +13,11 @@ import "@/components/shared/mobile-surface.css"
 import "./mobile-plugin-menu.css"
 
 /** A plain puzzle piece: the former socket-with-arrow glyph read as "collapse window". */
-export function PluginExtensionIcon() {
+function PluginExtensionIcon() {
     return <LuPuzzle aria-hidden="true" />
 }
 
-export function PluginIcon({ icon }: { icon: TrayIcon }) {
+function PluginIcon({ icon }: { icon: TrayIcon }) {
     const [failed, setFailed] = React.useState(false)
     React.useEffect(() => setFailed(false), [icon.iconUrl])
     return <span className="mobile-plugin-icon" aria-hidden="true">

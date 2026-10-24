@@ -305,7 +305,7 @@ function CardMenu({ press, content }: { press: React.RefObject<CardPress>, conte
 }
 
 /** Sheets take focus themselves on open: a focused field would open the keyboard, a focused row would show its ring. */
-export function focusPhoneSheet(event: Event) {
+function focusPhoneSheet(event: Event) {
     event.preventDefault()
     ;(event.currentTarget as HTMLElement | null)?.focus()
 }
@@ -536,11 +536,6 @@ export function useNearViewport<T extends Element>(rootMargin = "300px", once = 
         return () => observer.disconnect()
     }, [rootMargin, once, near])
     return [ref, near] as const
-}
-
-/** Season of a month (1-12) as AniList names it. */
-export function seasonOfMonth(month: number): "WINTER" | "SPRING" | "SUMMER" | "FALL" {
-    return month <= 3 ? "WINTER" : month <= 6 ? "SPRING" : month <= 9 ? "SUMMER" : "FALL"
 }
 
 export const SEASON_LABELS: Record<string, [string, string]> = {

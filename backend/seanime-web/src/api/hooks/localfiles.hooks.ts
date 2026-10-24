@@ -1,24 +1,9 @@
-import { useServerMutation, useServerQuery } from "@/api/client/requests"
-import {
-    DeleteLocalFiles_Variables,
-    ImportLocalFiles_Variables,
-    LocalFileBulkAction_Variables,
-    UpdateLocalFileData_Variables,
-    UpdateLocalFiles_Variables,
-} from "@/api/generated/endpoint.types"
+import { useServerMutation } from "@/api/client/requests"
+import { DeleteLocalFiles_Variables, LocalFileBulkAction_Variables, UpdateLocalFileData_Variables, UpdateLocalFiles_Variables } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Anime_LocalFile } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-
-export function useGetLocalFiles() {
-    return useServerQuery<Array<Anime_LocalFile>>({
-        endpoint: API_ENDPOINTS.LOCALFILES.GetLocalFiles.endpoint,
-        method: API_ENDPOINTS.LOCALFILES.GetLocalFiles.methods[0],
-        queryKey: [API_ENDPOINTS.LOCALFILES.GetLocalFiles.key],
-        enabled: true,
-    })
-}
 
 export function useLocalFileBulkAction() {
     const qc = useQueryClient()
@@ -105,22 +90,6 @@ export function useRemoveEmptyDirectories() {
         mutationKey: [API_ENDPOINTS.LOCALFILES.RemoveEmptyDirectories.key],
         onSuccess: async () => {
             toast.success("Empty directories removed")
-        },
-    })
-}
-
-export function useImportLocalFiles() {
-    const qc = useQueryClient()
-
-    return useServerMutation<boolean, ImportLocalFiles_Variables>({
-        endpoint: API_ENDPOINTS.LOCALFILES.ImportLocalFiles.endpoint,
-        method: API_ENDPOINTS.LOCALFILES.ImportLocalFiles.methods[0],
-        mutationKey: [API_ENDPOINTS.LOCALFILES.ImportLocalFiles.key],
-        onSuccess: async () => {
-            await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
-            await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key] })
-            qc.invalidateQueries({ queryKey: [API_ENDPOINTS.LIBRARY_EXPLORER.GetLibraryExplorerFileTree.key] })
-            toast.success("Local files imported")
         },
     })
 }

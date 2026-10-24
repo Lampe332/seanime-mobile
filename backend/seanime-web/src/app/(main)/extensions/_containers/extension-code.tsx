@@ -145,7 +145,7 @@ interface Props {
     language: string;
 }
 
-export const UnifiedDiff = ({ oldCode, currentCode, language }: Props) => {
+const UnifiedDiff = ({ oldCode, currentCode, language }: Props) => {
     const normalizedOldCode = useMemo(() => normalizeDiffCode(oldCode), [oldCode])
     const normalizedCurrentCode = useMemo(() => normalizeDiffCode(currentCode), [currentCode])
     const extensions = useMemo(() => [

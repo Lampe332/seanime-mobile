@@ -1,8 +1,6 @@
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { HibikeManga_ChapterDetails, Manga_MediaDownloadData } from "@/api/generated/types"
 import { useServerHMACAuth, useServerStatus } from "@/app/(main)/_hooks/use-server-status"
-import { DataGridRowSelectedEvent } from "@/components/ui/datagrid/use-datagrid-row-selection"
-import { RowSelectionState } from "@tanstack/react-table"
 import React from "react"
 
 export function getChapterNumberFromChapter(chapter: string): number {
@@ -94,25 +92,4 @@ export function useMangaDownloadDataUtils(data: Manga_MediaDownloadData | undefi
         isChapterLocal,
     }
 
-}
-
-export function useMangaChapterListRowSelection() {
-
-    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
-
-    const [selectedChapters, setSelectedChapters] = React.useState<HibikeManga_ChapterDetails[]>([])
-
-    const onSelectChange = React.useCallback((event: DataGridRowSelectedEvent<HibikeManga_ChapterDetails>) => {
-        setSelectedChapters(event.data)
-    }, [])
-    return {
-        rowSelection, setRowSelection,
-        rowSelectedChapters: selectedChapters,
-        onRowSelectionChange: onSelectChange,
-        resetRowSelection: () => {
-            setRowSelection({})
-            setSelectedChapters([])
-        },
-        setSelectedChapters,
-    }
 }

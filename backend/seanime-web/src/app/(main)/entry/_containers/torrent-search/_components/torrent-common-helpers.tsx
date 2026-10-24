@@ -30,19 +30,19 @@ export type TorrentFilters = {
 }
 
 // Helper to get sort icon for a field
-export const getSortIcon = (sortField: SortField, field: SortField, sortDirection: SortDirection) => {
+const getSortIcon = (sortField: SortField, field: SortField, sortDirection: SortDirection) => {
     if (sortField !== field) return <TbArrowsSort className="opacity-50 text-lg" />
     return sortDirection === "asc" ?
         <TbSortAscending className="text-brand-200 text-lg" /> :
         <TbSortDescending className="text-brand-200 text-lg" />
 }
 
-export const getFilterIcon = (active: boolean) => {
+const getFilterIcon = (active: boolean) => {
     return active ? <TbFilter className="text-brand-200 animate-bounce text-lg" /> : <TbFilter className="opacity-50 text-lg" />
 }
 
 // Sort handler function
-export const handleSort = (
+const handleSort = (
     field: SortField,
     sortField: SortField,
     sortDirection: SortDirection,
@@ -65,23 +65,23 @@ export const handleSort = (
 }
 
 // Helper functions for checking torrent properties
-export const hasTorrentMultiSubs = (metadata: Torrent_TorrentMetadata | undefined): boolean => {
+const hasTorrentMultiSubs = (metadata: Torrent_TorrentMetadata | undefined): boolean => {
     if (!metadata) return false
     return !!metadata.metadata?.subtitles?.some(n => n.toLocaleLowerCase().includes("multi"))
 }
 
-export const hasTorrentDualAudio = (metadata: Torrent_TorrentMetadata | undefined): boolean => {
+const hasTorrentDualAudio = (metadata: Torrent_TorrentMetadata | undefined): boolean => {
     if (!metadata) return false
     return !!metadata.metadata?.audio_term?.some(term =>
         term.toLowerCase().includes("dual") || term.toLowerCase().includes("multi"))
 }
 
-export const hasTorrentDubbed = (metadata: Torrent_TorrentMetadata | undefined): boolean => {
+const hasTorrentDubbed = (metadata: Torrent_TorrentMetadata | undefined): boolean => {
     if (!metadata) return false
     return !!metadata.metadata?.subtitles?.some(n => n.toLocaleLowerCase().includes("dub"))
 }
 
-export const hasVideoTerm = (term: string, metadata: Torrent_TorrentMetadata | undefined): boolean => {
+const hasVideoTerm = (term: string, metadata: Torrent_TorrentMetadata | undefined): boolean => {
     if (!metadata) return false
     const terms = metadata.metadata?.video_term?.map(n => n.toLocaleLowerCase())
     switch (term.toLocaleLowerCase()) {
@@ -96,7 +96,7 @@ export const hasVideoTerm = (term: string, metadata: Torrent_TorrentMetadata | u
     }
 }
 
-export const hasAudioTerm = (term: string, metadata: Torrent_TorrentMetadata | undefined): boolean => {
+const hasAudioTerm = (term: string, metadata: Torrent_TorrentMetadata | undefined): boolean => {
     if (!metadata) return false
     const terms = metadata.metadata?.audio_term?.map(n => n.toLocaleLowerCase())
     switch (term.toLocaleLowerCase()) {

@@ -1,13 +1,11 @@
 import { GettingStarted_Variables } from "@/api/generated/endpoint.types"
 import { z } from "zod"
 
-export const DEFAULT_TORRENT_PROVIDER = ""
+const DEFAULT_TORRENT_PROVIDER = ""
 
-export const DEFAULT_TORRENT_CLIENT = "qbittorrent"
+const DEFAULT_TORRENT_CLIENT = "qbittorrent"
 
-export const DEFAULT_DOH_PROVIDER = ""
-
-export const DEFAULT_MPV_TYPE = "socket"
+const DEFAULT_DOH_PROVIDER = ""
 
 export const enum TORRENT_CLIENT {
     SEANIME = "seanime",
@@ -27,14 +25,14 @@ export const enum DEBRID_SERVICE {
     PREMIUMIZE = "premiumize",
 }
 
-export const _gettingStartedSchema = z.object({
+const _gettingStartedSchema = z.object({
     enableTranscode: z.boolean().optional().default(false),
     enableTorrentStreaming: z.boolean().optional().default(false),
     debridProvider: z.string().optional().default("none"),
     debridApiKey: z.string().optional().default(""),
 })
 
-export const settingsSchema = z.object({
+const settingsSchema = z.object({
     libraryPath: z.string().optional().default(""),
     defaultPlayer: z.string(),
     torrentProvider: z.string().default(DEFAULT_TORRENT_PROVIDER),
@@ -264,7 +262,6 @@ export const getDefaultSettings = (data: z.infer<typeof gettingStartedSchema>): 
     debridProvider: data.debridProvider,
     debridApiKey: data.debridApiKey,
 })
-
 
 export function useDefaultSettingsPaths() {
 

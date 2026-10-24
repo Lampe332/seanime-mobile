@@ -114,7 +114,7 @@ export function LibraryCollectionFilteredLists({ collectionList, isLoading, stre
 
 }
 
-export const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, showStatuses, type, homeMobile }: {
+const LibraryCollectionListItem = React.memo(({ list, streamingMediaIds, showStatuses, type, homeMobile }: {
     /** Home's rows (LibraryCollectionLists); the detailed library view leaves it off */
     homeMobile?: boolean
     list: Anime_LibraryCollectionList,
@@ -253,7 +253,7 @@ function HomeCurrentFilter({ list }: { list: Anime_LibraryCollectionList }) {
     </Modal>
 }
 
-export const LibraryCollectionEntryItem = React.memo(({ entry, streamingMediaIds, type }: {
+const LibraryCollectionEntryItem = React.memo(({ entry, streamingMediaIds, type }: {
     entry: Anime_LibraryCollectionEntry,
     streamingMediaIds: number[],
     type: "carousel" | "grid"

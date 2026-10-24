@@ -69,7 +69,7 @@ export const vc_initialSettings: VideoCoreSettings = {
 }
 
 // Wrapped atom for backward compatibility
-export const vc_settingsRaw = atomWithStorage<Partial<VideoCoreSettings>>("sea-video-core-settings",
+const vc_settingsRaw = atomWithStorage<Partial<VideoCoreSettings>>("sea-video-core-settings",
     vc_initialSettings,
     undefined,
     { getOnInit: true })

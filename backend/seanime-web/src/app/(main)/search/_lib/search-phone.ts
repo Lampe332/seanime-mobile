@@ -59,7 +59,7 @@ type SortOption = SearchOption<SearchSort> & {
     suffix?: [string, string]
 }
 
-export const SEARCH_SORTS: SortOption[] = [
+const SEARCH_SORTS: SortOption[] = [
     { value: "SCORE_DESC", en: "Highest score", de: "Beste Wertung", title: ["Highest rated", "Bestbewertete"] },
     { value: "TRENDING_DESC", en: "Trending", de: "Im Trend", title: ["Trending", "Angesagte"] },
     { value: "POPULARITY_DESC", en: "Popular", de: "Beliebt", title: ["Popular", "Beliebte"] },
@@ -140,7 +140,7 @@ function label(t: Translate, options: SearchOption[], value: string) {
     return option ? t(option.en, option.de) : value
 }
 
-export const genreLabel = (t: Translate, genre: string) => label(t, SEARCH_GENRES, genre)
+const genreLabel = (t: Translate, genre: string) => label(t, SEARCH_GENRES, genre)
 
 /** A list status as a short cover badge, in the words the Manga, My lists and Discover tabs use. */
 export function listStatusLabel(t: Translate, type: SearchType, status: AL_MediaListStatus | null | undefined) {
@@ -249,12 +249,12 @@ export function toggleValue(values: string[], value: string) {
 }
 
 /** Adult titles only while the server allows adult content (it ignores the flag otherwise). */
-export function adultOn(state: SearchPhoneState, adultAllowed: boolean) {
+function adultOn(state: SearchPhoneState, adultAllowed: boolean) {
     return adultAllowed && state.adult
 }
 
 /** Tags that are sent: adult tags only with adult titles on. */
-export function sentTags(state: SearchPhoneState, adultAllowed: boolean) {
+function sentTags(state: SearchPhoneState, adultAllowed: boolean) {
     return adultOn(state, adultAllowed) ? state.tags : state.tags.filter(tag => !isAdultTag(tag))
 }
 
@@ -478,7 +478,7 @@ export function searchAnnouncement(t: Translate, type: SearchType, loaded: numbe
 
 /* ---------------------------------------------------- Tags ---------------------------------------------------- */
 
-export const SEARCH_TAGS_SHOWN = 30
+const SEARCH_TAGS_SHOWN = 30
 
 /**
  * Tag chips of the filter sheet: the selected ones first (always, so they can be undone), then the matches of the

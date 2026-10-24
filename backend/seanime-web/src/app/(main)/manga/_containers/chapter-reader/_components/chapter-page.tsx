@@ -121,7 +121,7 @@ export function ChapterPage(props: ChapterPageProps) {
     )
 }
 
-export const IMAGE_STATUS = {
+const IMAGE_STATUS = {
     LOADING: "loading",
     RETRYING: "retrying",
     LOADED: "loaded",

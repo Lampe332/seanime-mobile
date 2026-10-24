@@ -83,7 +83,7 @@ export function isExtensionIconUrl(url: string | undefined) {
     return !!url && /\.(png|jpe?g|avif|webp|ico)(\?.*)?$/i.test(url)
 }
 
-export function matchesExtensionSearch(extension: Extension_Extension | undefined, term: string) {
+function matchesExtensionSearch(extension: Extension_Extension | undefined, term: string) {
     const needle = term.trim().toLowerCase()
     if (!needle) return true
     return [extension?.name, extension?.description, extension?.id].some(value => value?.toLowerCase().includes(needle))
@@ -112,7 +112,7 @@ export type InstalledOverview = {
 }
 
 /** Types the app needs to stream and to read; their groups stay on the Installed tab when empty, with a way to add one. */
-export const CORE_EXTENSION_TYPES: string[] = ["onlinestream-provider", "manga-provider"]
+const CORE_EXTENSION_TYPES: string[] = ["onlinestream-provider", "manga-provider"]
 
 /**
  * The phone Installed tab: what needs attention, then one group per type and the disabled ones, each sorted by name.

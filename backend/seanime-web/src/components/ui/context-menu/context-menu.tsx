@@ -7,7 +7,7 @@ import { cn, ComponentAnatomy, defineStyleAnatomy } from "../core/styling"
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
 
-export const ContextMenuAnatomy = defineStyleAnatomy({
+const ContextMenuAnatomy = defineStyleAnatomy({
     subTrigger: cva([
         "UI-ContextMenu__subTrigger",
         "focus:bg-[--subtle] data-[state=open]:bg-[--subtle]",
@@ -60,72 +60,7 @@ export const ContextMenuAnatomy = defineStyleAnatomy({
     ]),
 })
 
-/* -------------------------------------------------------------------------------------------------
- * ContextMenu
- * -----------------------------------------------------------------------------------------------*/
-
 const __ContextMenuAnatomyContext = React.createContext<ComponentAnatomy<typeof ContextMenuAnatomy> & { className?: string }>({})
-
-export type ContextMenuProps =
-    ComponentAnatomy<typeof ContextMenuAnatomy> &
-    React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Root> &
-    React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Content> & {
-    /**
-     * Interaction with outside elements will be enabled and other elements will be visible to screen readers.
-     */
-    allowOutsideInteraction?: boolean
-    /**
-     * The trigger element that is always visible and is used to open the menu.
-     */
-    trigger?: React.ReactNode
-}
-
-export const ContextMenu = React.forwardRef<HTMLDivElement, ContextMenuProps>((props, ref) => {
-    const {
-        children,
-        trigger,
-        // Root
-        onOpenChange,
-        dir,
-        allowOutsideInteraction,
-        className,
-        subContentClass,
-        subTriggerClass,
-        shortcutClass,
-        itemClass,
-        labelClass,
-        separatorClass,
-        groupClass,
-        ...rest
-    } = props
-
-    return (
-        <__ContextMenuAnatomyContext.Provider
-            value={{
-                className,
-                subContentClass,
-                subTriggerClass,
-                shortcutClass,
-                itemClass,
-                labelClass,
-                separatorClass,
-                groupClass,
-            }}
-        >
-            <ContextMenuPrimitive.Root
-                dir={dir}
-                modal={!allowOutsideInteraction}
-                {...rest}
-            >
-
-                {children}
-
-            </ContextMenuPrimitive.Root>
-        </__ContextMenuAnatomyContext.Provider>
-    )
-})
-
-ContextMenu.displayName = "ContextMenu"
 
 /* -------------------------------------------------------------------------------------------------
  * ContextMenuTrigger
@@ -140,7 +75,6 @@ export const ContextMenuTrigger = React.forwardRef<HTMLDivElement, ContextMenuTr
 
     return <ContextMenuPrimitive.Trigger ref={ref} className={cn(triggerClass, className)} {...rest} />
 })
-
 
 /* -------------------------------------------------------------------------------------------------
  * ContextMenuContent
@@ -185,100 +119,6 @@ export const ContextMenuGroup = React.forwardRef<HTMLDivElement, ContextMenuGrou
 })
 
 ContextMenuGroup.displayName = "ContextMenuGroup"
-
-/* -------------------------------------------------------------------------------------------------
- * ContextMenuSub
- * -----------------------------------------------------------------------------------------------*/
-
-export type ContextMenuSubProps =
-    Pick<ComponentAnatomy<typeof ContextMenuAnatomy>, "subTriggerClass"> &
-    Pick<React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Sub>, "defaultOpen" | "open" | "onOpenChange"> &
-    React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubContent> & {
-    /**
-     * The content of the default trigger element that will open the sub menu.
-     *
-     * By default, the trigger will be an item with a right chevron icon.
-     */
-    triggerContent?: React.ReactNode
-    /**
-     * Props to pass to the default trigger element that will open the sub menu.
-     */
-    triggerProps?: React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubTrigger>
-    triggerInset?: boolean
-}
-
-export const ContextMenuSub = React.forwardRef<HTMLDivElement, ContextMenuSubProps>((props, ref) => {
-    const {
-        children,
-        triggerContent,
-        triggerProps,
-        triggerInset,
-        // Sub
-        defaultOpen,
-        open,
-        onOpenChange,
-        // SubContent
-        sideOffset = 8,
-        className,
-        subTriggerClass,
-        ...rest
-    } = props
-
-    const { subTriggerClass: _subTriggerClass, subContentClass } = React.useContext(__ContextMenuAnatomyContext)
-
-    return (
-        <ContextMenuPrimitive.Sub
-            {...rest}
-        >
-            <ContextMenuPrimitive.SubTrigger
-                className={cn(
-                    ContextMenuAnatomy.item(),
-                    ContextMenuAnatomy.subTrigger(),
-                    triggerInset && "pl-8",
-                    _subTriggerClass,
-                    subTriggerClass,
-                    className,
-                )}
-                {...triggerProps}
-            >
-                {triggerContent}
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={cn(
-                        ContextMenuAnatomy.shortcut(),
-                        "w-4 h-4 ml-auto",
-                    )}
-                >
-                    <path d="m9 18 6-6-6-6" />
-                </svg>
-            </ContextMenuPrimitive.SubTrigger>
-
-            <ContextMenuPrimitive.Portal>
-                <ContextMenuPrimitive.SubContent
-                    ref={ref}
-                    sideOffset={sideOffset}
-                    className={cn(
-                        ContextMenuAnatomy.subContent(),
-                        subContentClass,
-                        className,
-                    )}
-                    {...rest}
-                >
-                    {children}
-                </ContextMenuPrimitive.SubContent>
-            </ContextMenuPrimitive.Portal>
-        </ContextMenuPrimitive.Sub>
-    )
-})
-
-ContextMenuSub.displayName = "ContextMenuSub"
-
 
 /* -------------------------------------------------------------------------------------------------
  * ContextMenuItem
@@ -358,26 +198,4 @@ export const ContextMenuSeparator = React.forwardRef<HTMLDivElement, ContextMenu
 })
 
 ContextMenuSeparator.displayName = "ContextMenuSeparator"
-
-/* -------------------------------------------------------------------------------------------------
- * ContextMenuShortcut
- * -----------------------------------------------------------------------------------------------*/
-
-export type ContextMenuShortcutProps = React.HTMLAttributes<HTMLSpanElement>
-
-export const ContextMenuShortcut = React.forwardRef<HTMLSpanElement, ContextMenuShortcutProps>((props, ref) => {
-    const { className, ...rest } = props
-
-    const { shortcutClass } = React.useContext(__ContextMenuAnatomyContext)
-
-    return (
-        <span
-            ref={ref}
-            className={cn(ContextMenuAnatomy.shortcut(), shortcutClass, className)}
-            {...rest}
-        />
-    )
-})
-
-ContextMenuShortcut.displayName = "ContextMenuShortcut"
 

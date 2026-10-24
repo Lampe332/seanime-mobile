@@ -58,7 +58,7 @@ export function useGetOnlineStreamEpisodeSource(id: Nullish<string | number>,
     })
 }
 
-export function __getOnlineStreamEpisodeSourceQueryKey(id: Nullish<string | number>,
+function __getOnlineStreamEpisodeSourceQueryKey(id: Nullish<string | number>,
     provider: Nullish<string>,
     episodeNumber: Nullish<number>,
     dubbed: boolean,

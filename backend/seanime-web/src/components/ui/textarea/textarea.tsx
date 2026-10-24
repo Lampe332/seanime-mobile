@@ -8,7 +8,7 @@ import { extractInputPartProps, InputAddon, InputAnatomy, InputContainer, InputI
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
 
-export const TextareaAnatomy = defineStyleAnatomy({
+const TextareaAnatomy = defineStyleAnatomy({
     root: cva([
         "UI-Textarea__root",
         "w-full p-2",

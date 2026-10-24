@@ -17,10 +17,6 @@ export function useMissingEpisodeCount() {
     return useAtomValue(missingEpisodeCountAtom)
 }
 
-export function useMissingEpisodes() {
-    return useAtomValue(missingEpisodesAtom)
-}
-
 export function useHasMissingEpisodes(mediaId: number, enabled: boolean = true) {
     const missingEpisodesAtom = React.useMemo(() => {
         if (!enabled) {

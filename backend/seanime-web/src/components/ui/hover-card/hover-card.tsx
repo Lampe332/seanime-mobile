@@ -7,7 +7,7 @@ import { cn, defineStyleAnatomy } from "../core/styling"
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
 
-export const HoverCardAnatomy = defineStyleAnatomy({
+const HoverCardAnatomy = defineStyleAnatomy({
     root: cva([
         "UI-HoverCard__root",
         "z-50 w-64 rounded-xl text-sm border bg-[--paper] p-4 shadow-sm outline-none",

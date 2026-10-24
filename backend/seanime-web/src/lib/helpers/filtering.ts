@@ -34,7 +34,6 @@ type BaseCollectionSorting =
     | "CREATED_AT_DESC"
     | "UPDATED_AT_DESC"
 
-
 type CollectionSorting<T extends CollectionType> = BaseCollectionSorting | (T extends "anime" ?
     "PROGRESS_DESC"
     | "PROGRESS"
@@ -44,7 +43,6 @@ type CollectionSorting<T extends CollectionType> = BaseCollectionSorting | (T ex
     "PROGRESS"
     | "PROGRESS_DESC"
     : never)
-
 
 type ContinueWatchingSorting =
     "AIRDATE"
@@ -78,7 +76,6 @@ export const CONTINUE_WATCHING_SORTING_OPTIONS = [
     { label: "Date added (newest first)", value: "CREATED_AT_DESC" },
     { label: "Last updated", value: "UPDATED_AT_DESC" },
 ]
-
 
 export const COLLECTION_SORTING_OPTIONS = [
     { label: "Highest score", value: "SCORE_DESC" },
@@ -132,7 +129,6 @@ export type CollectionParams<T extends CollectionType> = {
     continueWatchingOnly: boolean
 } : never)
 
-
 export const DEFAULT_COLLECTION_PARAMS: CollectionParams<"anime"> = {
     sorting: "SCORE_DESC",
     genre: null,
@@ -157,19 +153,6 @@ export const DEFAULT_ANIME_COLLECTION_PARAMS: CollectionParams<"anime"> = {
     continueWatchingOnly: false,
 }
 
-export const DEFAULT_MANGA_COLLECTION_PARAMS: CollectionParams<"manga"> = {
-    sorting: "SCORE_DESC",
-    genre: null,
-    tags: null,
-    status: null,
-    format: null,
-    season: null,
-    year: null,
-    isAdult: false,
-    unreadOnly: false,
-}
-
-
 function getParamValue<T extends any>(value: T | ""): any {
     if (value === "") return undefined
     if (Array.isArray(value) && value.filter(Boolean).length === 0) return undefined
@@ -177,7 +160,6 @@ function getParamValue<T extends any>(value: T | ""): any {
     if (value === null) return undefined
     return value
 }
-
 
 export function filterEntriesByTitle<T extends { media?: AL_BaseAnime | AL_BaseManga }[] | null | undefined>(arr: T, input: string): T {
     // @ts-expect-error
@@ -470,7 +452,6 @@ export function filterAnimeCollectionEntries<T extends Anime_LibraryCollectionEn
     return arr
 }
 
-
 /** */
 export function filterMangaCollectionEntries<T extends Anime_LibraryCollectionEntry[]>(
     entries: T | null | undefined,
@@ -482,7 +463,6 @@ export function filterMangaCollectionEntries<T extends Anime_LibraryCollectionEn
 ) {
     let arr = filterCollectionEntries("manga", entries, params, showAdultContent)
     if (!latestChapterNumbers || !storedProviders || !storedProviderFilters) return params.unreadOnly ? [] : arr
-
 
     if (params.unreadOnly) {
         arr = arr.filter(n => {
@@ -564,7 +544,6 @@ export function sortContinueWatchingEntries(
     if (sorting === "START_DATE_DESC")
         arr = sortBy(arr, n => libraryEntries?.find(e => e.media?.id === n.baseAnime?.id)?.listData?.startedAt || new Date(1000, 1, 1).toISOString())
             .reverse()
-
 
     // Sort by last watched
     if (sorting === "LAST_WATCHED")

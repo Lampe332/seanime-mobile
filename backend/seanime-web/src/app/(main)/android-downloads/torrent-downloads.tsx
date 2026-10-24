@@ -122,7 +122,7 @@ export function TorrentDownloads() {
 }
 
 /** The server's English "3 hours left" / "1 minutes left" / "No ETA" as a short phrase in the app language. */
-export function etaLabel(eta: string, t: Translate, withLeft = true) {
+function etaLabel(eta: string, t: Translate, withLeft = true) {
     const m = eta.match(/^(\d+) (hour|minute|second)s? left$/)
     if (!m) return ""
     const n = Number(m[1])

@@ -1,34 +1,7 @@
 import { SeaError, useServerMutation, useServerQuery } from "../client/requests"
-import {
-    NakamaCreateWatchParty_Variables,
-    NakamaJoinWatchParty_Variables,
-    NakamaPlayVideo_Variables,
-    NakamaSendChatMessage_Variables,
-    SendNakamaMessage_Variables,
-} from "../generated/endpoint.types"
+import { NakamaCreateWatchParty_Variables, NakamaJoinWatchParty_Variables, NakamaPlayVideo_Variables, NakamaSendChatMessage_Variables } from "../generated/endpoint.types"
 import { API_ENDPOINTS } from "../generated/endpoints"
 import { Nakama_MessageResponse } from "../generated/types"
-
-export function useNakamaWebSocket() {
-    return useServerQuery<boolean>({
-        endpoint: API_ENDPOINTS.NAKAMA.NakamaWebSocket.endpoint,
-        method: API_ENDPOINTS.NAKAMA.NakamaWebSocket.methods[0],
-        queryKey: [API_ENDPOINTS.NAKAMA.NakamaWebSocket.key],
-        enabled: true,
-    })
-}
-
-
-export function useSendNakamaMessage() {
-    return useServerMutation<Nakama_MessageResponse, SendNakamaMessage_Variables>({
-        endpoint: API_ENDPOINTS.NAKAMA.SendNakamaMessage.endpoint,
-        method: API_ENDPOINTS.NAKAMA.SendNakamaMessage.methods[0],
-        mutationKey: [API_ENDPOINTS.NAKAMA.SendNakamaMessage.key],
-        onSuccess: async () => {
-
-        },
-    })
-}
 
 export function useNakamaReconnectToHost() {
     return useServerMutation<Nakama_MessageResponse, {}>({

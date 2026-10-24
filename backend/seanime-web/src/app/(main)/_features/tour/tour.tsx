@@ -78,12 +78,6 @@ const INITIAL_STATE: TourState = {
 
 export const tourAtom = atom<TourState>(INITIAL_STATE)
 
-export const currentTourStepAtom = atom<TourStep | null>((get) => {
-    const { steps, currentIndex, active } = get(tourAtom)
-    if (!active) return null
-    return steps[currentIndex] ?? null
-})
-
 export function useTour() {
     const [state, setTour] = useAtom(tourAtom)
     const navigate = useNavigate()

@@ -66,8 +66,7 @@ export function UpdateChangelogBody(props: UpdateChangelogBodyProps) {
     )
 }
 
-
-export function useUpdateChangelogBody(updateData: Updater_Update | undefined) {
+function useUpdateChangelogBody(updateData: Updater_Update | undefined) {
     const body = React.useMemo(() => {
         if (!updateData || !updateData.release) return []
         let body = updateData.release.body

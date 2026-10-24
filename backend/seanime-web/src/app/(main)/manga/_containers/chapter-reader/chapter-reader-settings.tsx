@@ -30,13 +30,8 @@ import {
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
 import React from "react"
-import { AiOutlineColumnHeight, AiOutlineColumnWidth } from "react-icons/ai"
-import { FaRedo, FaRegImage } from "react-icons/fa"
-import { GiResize } from "react-icons/gi"
+import { FaRedo } from "react-icons/fa"
 import { LuSettings } from "react-icons/lu"
-import { MdMenuBook, MdOutlinePhotoSizeSelectLarge } from "react-icons/md"
-import { PiArrowCircleLeftDuotone, PiArrowCircleRightDuotone, PiReadCvLogoLight, PiScrollDuotone } from "react-icons/pi"
-import { TbArrowAutofitHeight } from "react-icons/tb"
 import { useWindowSize } from "react-use"
 import { toast } from "sonner"
 import { Modal } from "@/components/ui/modal"
@@ -49,86 +44,6 @@ import "./chapter-reader-settings-mobile.css"
 export type ChapterReaderSettingsProps = {
     mediaId: number
 }
-
-export const MANGA_READING_MODE_ICONS = {
-    [MangaReadingMode.LONG_STRIP]: <PiScrollDuotone className="text-xl" />,
-    [MangaReadingMode.PAGED]: <PiReadCvLogoLight className="text-xl" />,
-    [MangaReadingMode.DOUBLE_PAGE]: <MdMenuBook className="text-xl" />,
-}
-
-export const MANGA_READING_MODE_OPTIONS = [
-    {
-        value: MangaReadingMode.LONG_STRIP,
-        label: <span className="flex gap-2 items-center"><PiScrollDuotone className="text-xl" /> <span>Long Strip</span></span>,
-    },
-    {
-        value: MangaReadingMode.PAGED,
-        label: <span className="flex gap-2 items-center"><PiReadCvLogoLight className="text-xl" /> <span>Single Page</span></span>,
-    },
-    {
-        value: MangaReadingMode.DOUBLE_PAGE,
-        label: <span className="flex gap-2 items-center"><MdMenuBook className="text-xl" /> <span>Double Page</span></span>,
-    },
-]
-
-export const MANGA_READING_DIRECTION_ICONS = {
-    [MangaReadingDirection.LTR]: <PiArrowCircleRightDuotone className="text-2xl" />,
-    [MangaReadingDirection.RTL]: <PiArrowCircleLeftDuotone className="text-2xl" />,
-}
-
-export const MANGA_READING_DIRECTION_OPTIONS = [
-    {
-        value: MangaReadingDirection.LTR,
-        label: <span className="flex gap-2 items-center"><span>Left to Right</span> <PiArrowCircleRightDuotone className="text-2xl" /></span>,
-    },
-    {
-        value: MangaReadingDirection.RTL,
-        label: <span className="flex gap-2 items-center"><PiArrowCircleLeftDuotone className="text-2xl" /> <span>Right to Left</span></span>,
-    },
-]
-
-export const MANGA_PAGE_FIT_ICONS = {
-    [MangaPageFit.CONTAIN]: <AiOutlineColumnHeight className="text-xl" />,
-    [MangaPageFit.LARGER]: <TbArrowAutofitHeight className="text-xl" />,
-    [MangaPageFit.COVER]: <AiOutlineColumnWidth className="text-xl" />,
-    [MangaPageFit.TRUE_SIZE]: <FaRegImage className="text-xl" />,
-}
-
-export const MANGA_PAGE_FIT_OPTIONS = [
-    {
-        value: MangaPageFit.CONTAIN,
-        label: <span className="flex gap-2 items-center"><AiOutlineColumnHeight className="text-xl" /> <span>Contain</span></span>,
-    },
-    {
-        value: MangaPageFit.LARGER,
-        label: <span className="flex gap-2 items-center"><TbArrowAutofitHeight className="text-xl" /> <span>Overflow</span></span>,
-    },
-    {
-        value: MangaPageFit.COVER,
-        label: <span className="flex gap-2 items-center"><AiOutlineColumnWidth className="text-xl" /> <span>Cover</span></span>,
-    },
-    {
-        value: MangaPageFit.TRUE_SIZE,
-        label: <span className="flex gap-2 items-center"><FaRegImage className="text-xl" /> <span>True size</span></span>,
-    },
-]
-
-export const MANGA_PAGE_STRETCH_ICONS = {
-    [MangaPageStretch.NONE]: <MdOutlinePhotoSizeSelectLarge className="text-xl" />,
-    [MangaPageStretch.STRETCH]: <GiResize className="text-xl" />,
-}
-
-export const MANGA_PAGE_STRETCH_OPTIONS = [
-    {
-        value: MangaPageStretch.NONE,
-        label: <span className="flex gap-2 items-center"><MdOutlinePhotoSizeSelectLarge className="text-xl" /> <span>None</span></span>,
-    },
-    {
-        value: MangaPageStretch.STRETCH,
-        label: <span className="flex gap-2 items-center"><GiResize className="text-xl" /> <span>Stretch</span></span>,
-    },
-]
-
 
 export const __manga__readerSettingsDrawerOpen = atom(false)
 

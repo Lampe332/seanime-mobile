@@ -101,7 +101,6 @@ export function DiscoverTrending() {
             autoScroll
         >
             <GenreSelector />
-            {/*<CarouselMasks />*/}
             <CarouselDotButtons />
             <CarouselContent className="px-6">
                 {!isLoading ? data?.Page?.media?.filter(Boolean).map(media => {

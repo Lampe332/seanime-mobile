@@ -7,7 +7,7 @@ import * as React from "react"
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
 
-export const SliderAnatomy = {
+const SliderAnatomy = {
     root: cva([
         "UI-Slider__root",
         "relative shrink grow flex items-center",

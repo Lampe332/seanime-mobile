@@ -1,25 +1,11 @@
-import { useServerMutation, useServerQuery } from "@/api/client/requests"
-import { GetContinuityWatchHistoryItem_Variables, UpdateContinuityWatchHistoryItem_Variables } from "@/api/generated/endpoint.types"
+import { useServerQuery } from "@/api/client/requests"
+import { GetContinuityWatchHistoryItem_Variables } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Continuity_WatchHistory, Continuity_WatchHistoryItemResponse, Nullish } from "@/api/generated/types"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { logger } from "@/lib/helpers/debug"
-import { useQueryClient } from "@tanstack/react-query"
-import React from "react"
 
-export function useUpdateContinuityWatchHistoryItem() {
-    const qc = useQueryClient()
-    return useServerMutation<boolean, UpdateContinuityWatchHistoryItem_Variables>({
-        endpoint: API_ENDPOINTS.CONTINUITY.UpdateContinuityWatchHistoryItem.endpoint,
-        method: API_ENDPOINTS.CONTINUITY.UpdateContinuityWatchHistoryItem.methods[0],
-        mutationKey: [API_ENDPOINTS.CONTINUITY.UpdateContinuityWatchHistoryItem.key],
-        onSuccess: async () => {
-            await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistory.key] })
-        },
-    })
-}
-
-export function useGetContinuityWatchHistoryItem(mediaId: Nullish<number | string>) {
+function useGetContinuityWatchHistoryItem(mediaId: Nullish<number | string>) {
     const serverStatus = useServerStatus()
     return useServerQuery<Continuity_WatchHistoryItemResponse, GetContinuityWatchHistoryItem_Variables>({
         endpoint: API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistoryItem.endpoint.replace("{id}", String(mediaId)),
@@ -56,49 +42,6 @@ export function getEpisodeMinutesRemaining(history: Nullish<Continuity_WatchHist
     const ratio = item.currentTime / item.duration
     if (ratio >= 0.9 || ratio < 0.05) return 0
     return Math.round((item.duration - item.currentTime) / 60)
-}
-
-export function useHandleContinuityWithMediaPlayer(playerRef: React.RefObject<HTMLVideoElement>,
-    episodeNumber: Nullish<number>,
-    mediaId: Nullish<number | string>,
-) {
-    const serverStatus = useServerStatus()
-    const qc = useQueryClient()
-
-    React.useEffect(() => {
-        (async () => {
-            await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistory.key] })
-            await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistoryItem.key] })
-        })()
-    }, [episodeNumber ?? 0])
-
-    const { mutate: updateWatchHistory } = useUpdateContinuityWatchHistoryItem()
-
-    function handleUpdateWatchHistory() {
-        if (!serverStatus?.settings?.library?.enableWatchContinuity) return
-
-        const duration = playerRef.current?.duration ?? Number.NaN
-        const currentTime = playerRef.current?.currentTime ?? Number.NaN
-
-        if (Number.isFinite(duration) && duration > 0 && Number.isFinite(currentTime) && currentTime > 0) {
-            logger("CONTINUITY").info("Watch history updated", {
-                currentTime: currentTime,
-                duration: duration,
-            })
-
-            updateWatchHistory({
-                options: {
-                    currentTime: currentTime,
-                    duration: duration,
-                    mediaId: Number(mediaId),
-                    episodeNumber: episodeNumber ?? 0,
-                    kind: "onlinestream",
-                },
-            })
-        }
-    }
-
-    return { handleUpdateWatchHistory }
 }
 
 export function useHandleCurrentMediaContinuity(mediaId: Nullish<number | string>) {

@@ -16,13 +16,12 @@ import { AnimeEntryDropdownMenu } from "@/app/(main)/entry/_containers/entry-act
 import { AnimeEntrySilenceToggle } from "@/app/(main)/entry/_containers/entry-actions/anime-entry-silence-toggle"
 import { SeaLink } from "@/components/shared/sea-link"
 import { Badge } from "@/components/ui/badge"
-import { Button, ButtonProps, IconButton } from "@/components/ui/button"
+import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip } from "@/components/ui/tooltip"
 import { getCustomSourceExtensionId, getCustomSourceMediaSiteUrl, isCustomSource } from "@/lib/server/utils"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
-import React from "react"
 import { BiExtension } from "react-icons/bi"
 import { IoInformationCircle } from "react-icons/io5"
 import { LuExternalLink } from "react-icons/lu"
@@ -31,18 +30,6 @@ import { SiAnilist } from "react-icons/si"
 import { useNakamaStatus } from "../../_features/nakama/nakama-manager"
 import { PluginAnimePageButtons } from "../../_features/plugin/actions/plugin-actions"
 import { MobileAnimeHeaderShell, MobileAnimeHeaderContainer, MobileAnimeHeaderDetails } from "./mobile-anime-header"
-
-export function AnimeMetaActionButton({ className, ...rest }: ButtonProps) {
-    const ts = useThemeSettings()
-    return <Button
-        className={cn(
-            "w-fit",
-            className,
-        )}
-        {...rest}
-        // intent="gray-outline"
-    />
-}
 
 export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetailsById_Media | undefined, detailsLoading?: boolean }) {
     const { entry, details, detailsLoading } = props
@@ -136,7 +123,6 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
 
                         <MediaEntryAudienceScore meanScore={entry.media?.meanScore} badgeClass="bg-transparent border-transparent px-0" />
 
-
                         {(detailsLoading && !details) ? <Skeleton className="h-6 w-36 rounded-full opacity-70" /> : !isCustomSource(entry.mediaId) ?
                             <AnimeEntryStudio studios={details?.studios} /> : (
                                 <Badge
@@ -183,7 +169,6 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
 
                         <AnimeEntryDropdownMenu entry={entry} details={details} />
 
-
                         {isLibraryView && !entry._isNakamaEntry && !!entry.libraryData && <>
                             <AnimeEntrySilenceToggle mediaId={entry.mediaId} size="md" />
                             <ToggleLockFilesButton
@@ -219,7 +204,6 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                     <span className="block text-[--muted]">Please check the schedule online for more information.</span>
                 </p>}
 
-
                 {(!entry.anidbId || entry.anidbId === 0) && !isCustomSource(entry.mediaId) && entry.media?.status !== "NOT_YET_RELEASED" && (
                     <p
                         className={cn(
@@ -232,7 +216,6 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                         Episode metadata retrieval not available for this entry.
                     </p>
                 )}
-
 
             </MobileAnimeHeaderContainer>
 

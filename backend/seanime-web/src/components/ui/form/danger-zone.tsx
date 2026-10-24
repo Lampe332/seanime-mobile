@@ -1,10 +1,10 @@
+import { useTr } from "@/lib/app-language"
 import { cva } from "class-variance-authority"
 import * as React from "react"
 import { Button } from "../button"
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "../core/styling"
 import { LoadingOverlay } from "../loading-spinner"
 import { Modal } from "../modal"
-import locales from "./locales.json"
 
 /* -------------------------------------------------------------------------------------------------
  * Anatomy
@@ -55,7 +55,6 @@ export type DangerZoneProps = React.ComponentPropsWithRef<"div"> & ComponentAnat
      * @default true
      **/
     showLoadingOverlayOnDelete?: boolean
-    locale?: "fr" | "en"
 }
 
 export const DangerZone = React.forwardRef<HTMLDivElement, DangerZoneProps>((props, ref) => {
@@ -65,7 +64,6 @@ export const DangerZone = React.forwardRef<HTMLDivElement, DangerZoneProps>((pro
         actionText,
         onDelete,
         className,
-        locale = "en",
         showLoadingOverlayOnDelete = true,
         titleClass,
         iconClass,
@@ -74,6 +72,8 @@ export const DangerZone = React.forwardRef<HTMLDivElement, DangerZoneProps>((pro
         dialogActionClass,
         ...rest
     } = props
+
+    const t = useTr()
 
     const [isOpen, setIsOpen] = React.useState(false)
 
@@ -92,10 +92,10 @@ export const DangerZone = React.forwardRef<HTMLDivElement, DangerZoneProps>((pro
                     </svg>
                 </span>
                 <div>
-                    <h2 className={cn(DangerZoneAnatomy.title(), titleClass)}>{locales["dangerZone"]["name"][locale]}</h2>
+                    <h2 className={cn(DangerZoneAnatomy.title(), titleClass)}>{t("Danger Zone", "Gefahrenzone")}</h2>
                     <p className=""><span
                         className="font-semibold"
-                    >{actionText}</span>. {locales["dangerZone"]["irreversible_action"][locale]}
+                    >{actionText}</span>. {t("This action is irreversible.", "Diese Aktion kann nicht rückgängig gemacht werden.")}
                     </p>
                     <Button
                         size="sm"
@@ -109,16 +109,16 @@ export const DangerZone = React.forwardRef<HTMLDivElement, DangerZoneProps>((pro
                             </svg>
                         </span>}
                         onClick={() => setIsOpen(true)}
-                    >{locales["dangerZone"]["delete"][locale]}</Button>
+                    >{t("Delete", "Löschen")}</Button>
                 </div>
             </div>
 
             <Modal open={isOpen} onOpenChange={open => setIsOpen(open)} contentClass="gap-2">
                 <h3 className={cn(DangerZoneAnatomy.dialogTitle(), dialogTitleClass)}>
-                    {locales["dangerZone"]["confirm_delete"][locale]}
+                    {t("Are you sure you want to confirm this action ?", "Möchtest du diese Aktion wirklich ausführen?")}
                 </h3>
                 <div className={cn(DangerZoneAnatomy.dialogBody(), dialogBodyClass)}>
-                    {locales["dangerZone"]["irreversible_action"][locale]}
+                    {t("This action is irreversible.", "Diese Aktion kann nicht rückgängig gemacht werden.")}
                 </div>
 
                 <div className={cn(DangerZoneAnatomy.dialogAction(), dialogActionClass)}>
@@ -128,12 +128,12 @@ export const DangerZone = React.forwardRef<HTMLDivElement, DangerZoneProps>((pro
                         showLoadingOverlayOnDelete && setBlockScreen(true)
                         onDelete && onDelete()
                     }}
-                    >{locales["dangerZone"]["delete"][locale]}</Button>
+                    >{t("Delete", "Löschen")}</Button>
                     <Button
                         intent="gray-outline"
                         size="sm"
                         onClick={() => setIsOpen(false)}
-                    >{locales["dangerZone"]["cancel"][locale]}</Button>
+                    >{t("Cancel", "Abbrechen")}</Button>
                 </div>
             </Modal>
         </>

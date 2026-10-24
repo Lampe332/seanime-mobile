@@ -14,13 +14,6 @@ export function useDebounce<T>(value: T, delay?: number): T {
     return debouncedValue
 }
 
-export function useDebounceWithSet<T>(value: T, delay?: number): [T, T, React.Dispatch<React.SetStateAction<T>>] {
-    const [actualValue, setActualValue] = useState<T>(value)
-    const debouncedValue = useDebounce(actualValue, delay)
-
-    return [actualValue, debouncedValue, setActualValue]
-}
-
 export function useDebounceWithTrigger<T>(initialValue: T, delay?: number): {
     value: T
     debouncedValue: T

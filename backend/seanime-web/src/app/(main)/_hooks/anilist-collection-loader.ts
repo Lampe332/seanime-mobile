@@ -46,10 +46,6 @@ export function useAnimeCollectionLoader() {
     return null
 }
 
-export function useAnilistUserAnime() {
-    return useAtomValue(__anilist_userAnimeMediaAtom)
-}
-
 export function useAnilistUserAnimeListData(mId: Nullish<number | string>, enabled: boolean = true): Anime_EntryListData | undefined {
     const mediaId = String(mId)
     const listDataAtom = React.useMemo(() => {

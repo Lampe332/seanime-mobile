@@ -6,7 +6,7 @@ import { cn, defineStyleAnatomy } from "../core/styling"
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
 
-export const CardAnatomy = defineStyleAnatomy({
+const CardAnatomy = defineStyleAnatomy({
     root: cva([
         "UI-Card__root",
         "rounded-xl border bg-[--paper] shadow-sm",
@@ -50,94 +50,4 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>((props, ref) => 
     )
 })
 Card.displayName = "Card"
-
-/* -------------------------------------------------------------------------------------------------
- * CardHeader
- * -----------------------------------------------------------------------------------------------*/
-
-export type CardHeaderProps = React.ComponentPropsWithoutRef<"div">
-
-export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>((props, ref) => {
-    const { className, ...rest } = props
-    return (
-        <div
-            ref={ref}
-            className={cn(CardAnatomy.header(), className)}
-            {...rest}
-        />
-    )
-})
-CardHeader.displayName = "CardHeader"
-
-/* -------------------------------------------------------------------------------------------------
- * CardTitle
- * -----------------------------------------------------------------------------------------------*/
-
-export type CardTitleProps = React.ComponentPropsWithoutRef<"h3">
-
-export const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>((props, ref) => {
-    const { className, ...rest } = props
-    return (
-        <h3
-            ref={ref}
-            className={cn(CardAnatomy.title(), className)}
-            {...rest}
-        />
-    )
-})
-CardTitle.displayName = "CardTitle"
-
-/* -------------------------------------------------------------------------------------------------
- * CardDescription
- * -----------------------------------------------------------------------------------------------*/
-
-export type CardDescriptionProps = React.ComponentPropsWithoutRef<"p">
-
-export const CardDescription = React.forwardRef<HTMLParagraphElement, CardDescriptionProps>((props, ref) => {
-    const { className, ...rest } = props
-    return (
-        <p
-            ref={ref}
-            className={cn(CardAnatomy.description(), className)}
-            {...rest}
-        />
-    )
-})
-CardDescription.displayName = "CardDescription"
-
-/* -------------------------------------------------------------------------------------------------
- * CardContent
- * -----------------------------------------------------------------------------------------------*/
-
-export type CardContentProps = React.ComponentPropsWithoutRef<"div">
-
-export const CardContent = React.forwardRef<HTMLDivElement, CardContentProps>((props, ref) => {
-    const { className, ...rest } = props
-    return (
-        <div
-            ref={ref}
-            className={cn(CardAnatomy.content(), className)}
-            {...rest}
-        />
-    )
-})
-CardContent.displayName = "CardContent"
-
-/* -------------------------------------------------------------------------------------------------
- * CardFooter
- * -----------------------------------------------------------------------------------------------*/
-
-export type CardFooterProps = React.ComponentPropsWithoutRef<"div">
-
-export const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>((props, ref) => {
-    const { className, ...rest } = props
-    return (
-        <div
-            ref={ref}
-            className={cn(CardAnatomy.footer(), className)}
-            {...rest}
-        />
-    )
-})
-CardFooter.displayName = "CardFooter"
 

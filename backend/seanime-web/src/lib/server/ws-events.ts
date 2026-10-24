@@ -83,7 +83,3 @@ export const enum WSEvents {
     PLAYLIST = "playlist",
     SETTINGS_CHANGED = "settings-changed",
 }
-
-export const enum WebviewEvents {
-    ANIME_ENTRY_PAGE_VIEWED = "anime-entry-page-viewed",
-}

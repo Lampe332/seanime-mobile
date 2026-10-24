@@ -1,50 +1,10 @@
 import { useServerMutation, useServerQuery } from "@/api/client/requests"
-import {
-    AnilistListManga_Variables,
-    EmptyMangaEntryCache_Variables,
-    GetAnilistMangaCollection_Variables,
-    GetMangaEntryChapters_Variables,
-    GetMangaEntryPages_Variables,
-    GetMangaMapping_Variables,
-    MangaManualMapping_Variables,
-    MangaManualSearch_Variables,
-    PreviewMangaMapping_Variables,
-    RefetchMangaChapterContainers_Variables,
-    RemoveMangaMapping_Variables,
-    StartMangaSourceRefresh_Variables,
-    UpdateMangaProgress_Variables,
-} from "@/api/generated/endpoint.types"
+import { AnilistListManga_Variables, GetAnilistMangaCollection_Variables, GetMangaEntryChapters_Variables, GetMangaEntryPages_Variables, GetMangaMapping_Variables, MangaManualMapping_Variables, MangaManualSearch_Variables, PreviewMangaMapping_Variables, RemoveMangaMapping_Variables, StartMangaSourceRefresh_Variables, UpdateMangaProgress_Variables } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
-import {
-    AL_ListManga,
-    AL_MangaCollection,
-    AL_MangaDetailsById_Media,
-    HibikeManga_SearchResult,
-    Manga_ChapterContainer,
-    Manga_Collection,
-    Manga_Entry,
-    Manga_MangaEntryPreference,
-    Manga_MangaLatestChapterNumberItem,
-    Manga_MangaPreferences,
-    Manga_MangaSourceRefreshJob,
-    Manga_MappingPreview,
-    Manga_MappingResponse,
-    Manga_PageContainer,
-    Nullish,
-} from "@/api/generated/types"
+import { AL_ListManga, AL_MangaCollection, AL_MangaDetailsById_Media, HibikeManga_SearchResult, Manga_ChapterContainer, Manga_Collection, Manga_Entry, Manga_MangaLatestChapterNumberItem, Manga_MangaPreferences, Manga_MangaSourceRefreshJob, Manga_MappingPreview, Manga_MappingResponse, Manga_PageContainer, Nullish } from "@/api/generated/types"
 import { getEntryPreloadStaleTime } from "@/lib/entry-preloader"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-
-export function useGetAnilistMangaCollection() {
-    return useServerQuery<AL_MangaCollection, GetAnilistMangaCollection_Variables>({
-        endpoint: API_ENDPOINTS.MANGA.GetAnilistMangaCollection.endpoint,
-        method: API_ENDPOINTS.MANGA.GetAnilistMangaCollection.methods[0],
-        queryKey: [API_ENDPOINTS.MANGA.GetAnilistMangaCollection.key],
-        enabled: true,
-    })
-}
-
 
 export function useGetRawAnilistMangaCollection() {
     return useServerQuery<AL_MangaCollection, GetAnilistMangaCollection_Variables>({
@@ -73,15 +33,6 @@ export function useGetMangaCollection() {
     })
 }
 
-export type PatchMangaPreference_Variables = {
-    provider?: string
-    filter?: {
-        provider: string
-        scanlators: string[]
-        language: string
-    }
-}
-
 export function useGetMangaPreferences() {
     return useServerQuery<Manga_MangaPreferences>({
         endpoint: API_ENDPOINTS.MANGA.GetMangaPreferences.endpoint,
@@ -96,14 +47,6 @@ export function useImportMangaPreferences() {
         endpoint: API_ENDPOINTS.MANGA.ImportMangaPreferences.endpoint,
         method: API_ENDPOINTS.MANGA.ImportMangaPreferences.methods[0],
         mutationKey: [API_ENDPOINTS.MANGA.ImportMangaPreferences.key],
-    })
-}
-
-export function usePatchMangaPreference(mediaId: Nullish<string | number>) {
-    return useServerMutation<Manga_MangaEntryPreference, PatchMangaPreference_Variables>({
-        endpoint: API_ENDPOINTS.MANGA.PatchMangaPreference.endpoint.replace("{mediaId}", String(mediaId)),
-        method: API_ENDPOINTS.MANGA.PatchMangaPreference.methods[0],
-        mutationKey: [API_ENDPOINTS.MANGA.PatchMangaPreference.key, String(mediaId)],
     })
 }
 
@@ -158,20 +101,6 @@ export function useGetMangaEntryDetails(id: Nullish<string | number>) {
         queryKey: [API_ENDPOINTS.MANGA.GetMangaEntryDetails.key, String(id)],
         enabled: !!id,
         staleTime: getEntryPreloadStaleTime("manga", id),
-    })
-}
-
-export function useEmptyMangaEntryCache() {
-    const queryClient = useQueryClient()
-
-    return useServerMutation<boolean, EmptyMangaEntryCache_Variables>({
-        endpoint: API_ENDPOINTS.MANGA.EmptyMangaEntryCache.endpoint,
-        method: API_ENDPOINTS.MANGA.EmptyMangaEntryCache.methods[0],
-        mutationKey: [API_ENDPOINTS.MANGA.EmptyMangaEntryCache.key],
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntryChapters.key] })
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntryPages.key] })
-        },
     })
 }
 
@@ -282,35 +211,11 @@ export function useRemoveMangaMapping() {
     })
 }
 
-export function useGetMangaEntryDownloadedChapters(mId: Nullish<string | number>) {
-    return useServerQuery<Array<Manga_ChapterContainer>>({
-        endpoint: API_ENDPOINTS.MANGA.GetMangaEntryDownloadedChapters.endpoint.replace("{id}", String(mId)),
-        method: API_ENDPOINTS.MANGA.GetMangaEntryDownloadedChapters.methods[0],
-        queryKey: [API_ENDPOINTS.MANGA.GetMangaEntryDownloadedChapters.key, String(mId)],
-    })
-}
-
 export function useGetMangaLatestChapterNumbersMap() {
     return useServerQuery<Record<number, Array<Manga_MangaLatestChapterNumberItem>>>({
         endpoint: API_ENDPOINTS.MANGA.GetMangaLatestChapterNumbersMap.endpoint,
         method: API_ENDPOINTS.MANGA.GetMangaLatestChapterNumbersMap.methods[0],
         queryKey: [API_ENDPOINTS.MANGA.GetMangaLatestChapterNumbersMap.key],
         enabled: true,
-    })
-}
-
-export function useRefetchMangaChapterContainers() {
-    const queryClient = useQueryClient()
-
-    return useServerMutation<boolean, RefetchMangaChapterContainers_Variables>({
-        endpoint: API_ENDPOINTS.MANGA.RefetchMangaChapterContainers.endpoint,
-        method: API_ENDPOINTS.MANGA.RefetchMangaChapterContainers.methods[0],
-        mutationKey: [API_ENDPOINTS.MANGA.RefetchMangaChapterContainers.key],
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaLatestChapterNumbersMap.key] })
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntryChapters.key] })
-            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntryPages.key] })
-            toast.success("Sources refreshed")
-        },
     })
 }

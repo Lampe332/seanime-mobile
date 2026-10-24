@@ -735,7 +735,6 @@ export interface MediaCoreTimeRangeViewProps {
     duration: number
 }
 
-
 export function MediaCoreTimeRangeView(props: MediaCoreTimeRangeViewProps) {
     const {
         seeking,

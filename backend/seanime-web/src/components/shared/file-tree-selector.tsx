@@ -36,7 +36,7 @@ export type FileTreeNode = {
     children?: FileTreeNode[]
 }
 
-export const buildFileTree = (filePreviews: any[]): FileTreeNode => {
+const buildFileTree = (filePreviews: any[]): FileTreeNode => {
     const root: FileTreeNode = {
         name: "root",
         type: "directory",

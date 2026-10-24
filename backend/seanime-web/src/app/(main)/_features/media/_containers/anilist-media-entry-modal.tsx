@@ -17,7 +17,7 @@ import { normalizeDate } from "@/lib/helpers/date"
 import { getImageUrl } from "@/lib/server/assets"
 import { useTr } from "@/lib/app-language"
 import { useWindowSize } from "@uidotdev/usehooks"
-import React, { Fragment } from "react"
+import React from "react"
 import { useController, useFormContext } from "react-hook-form"
 import { BiListPlus, BiPlus, BiStar, BiTrash } from "react-icons/bi"
 import { LuMinus, LuPlus } from "react-icons/lu"
@@ -35,7 +35,7 @@ type AnilistMediaEntryModalProps = {
     forceModal?: boolean
 }
 
-export const mediaListDataSchema = defineSchema(({ z, presets }) => z.object({
+const mediaListDataSchema = defineSchema(({ z, presets }) => z.object({
     status: z.custom<AL_MediaListStatus>().nullish(),
     score: z.number().min(0).max(100).nullish(),
     progress: z.number().min(0).nullish(),
@@ -101,7 +101,6 @@ function IsomorphicPopover(props: Omit<PopoverProps, "title"> & ModalProps & { m
     </Modal>
 }
 
-
 export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
     const [open, toggle] = useToggle(false)
     const [repeat, setRepeat] = React.useState<number | "">(0)
@@ -148,7 +147,6 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
             type: type,
         })
     }, [repeat, listData?.repeat, media?.id, type, mutate, mutateRepeat])
-
 
     if (!user) return null
 

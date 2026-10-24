@@ -12,7 +12,7 @@ import { Drawer as VaulPrimitive } from "vaul"
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
 
-export const DrawerAnatomy = defineStyleAnatomy({
+const DrawerAnatomy = defineStyleAnatomy({
     overlay: cva([
         "UI-Drawer__overlay",
     ]),

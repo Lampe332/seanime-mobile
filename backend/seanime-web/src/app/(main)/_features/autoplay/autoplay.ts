@@ -14,7 +14,7 @@ import { toast } from "sonner"
 import { getBatchSelectionParams } from "./batches.ts"
 
 const __autoplay_countdownAtom = atom(5)
-export const __autoplay_nextEpisodeAtom = atom<Anime_Episode | null>(null)
+const __autoplay_nextEpisodeAtom = atom<Anime_Episode | null>(null)
 const __autoplay_streamingTypeAtom = atom<"local" | "torrent" | "debrid" | null>(null)
 
 export interface AutoplayState {
@@ -123,7 +123,6 @@ export function useTorrentstreamAutoplay() {
 
     }
 
-
     return {
         torrentstreamAutoplayInfo: info?.type === "torrentstream" ? info : null,
         hasNextTorrentstreamEpisode: !!info && info.type === "torrentstream",
@@ -189,7 +188,6 @@ export function useDebridstreamAutoplay() {
 
         toast.info("Requesting next episode")
     }
-
 
     return {
         debridstreamAutoplayInfo: info?.type === "debridstream" ? info : null,

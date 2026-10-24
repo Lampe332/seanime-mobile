@@ -14,7 +14,7 @@ type EntryPreloadOptions = {
     bypassBudget?: boolean
 }
 
-export const ENTRY_PRELOAD_STALE_TIME = 10 * 1000
+const ENTRY_PRELOAD_STALE_TIME = 10 * 1000
 const ENTRY_PRELOAD_GC_TIME = 90 * 1000
 // dense grids and viewport preloading can surface a lot of entry cards at once
 const TOKEN_CAPACITY = 10

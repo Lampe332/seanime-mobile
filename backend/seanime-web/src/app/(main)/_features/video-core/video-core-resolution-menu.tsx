@@ -5,11 +5,9 @@ import { VideoCoreControlButtonIcon } from "@/app/(main)/_features/video-core/vi
 import { vc_hlsCurrentQuality, vc_hlsQualityLevels, vc_hlsSetQuality } from "@/app/(main)/_features/video-core/video-core-hls"
 import { VideoCoreMenu, VideoCoreMenuBody, VideoCoreMenuTitle, VideoCoreSettingSelect } from "@/app/(main)/_features/video-core/video-core-menu"
 import { VideoCore_VideoSource, VideoCoreLifecycleState } from "@/app/(main)/_features/video-core/video-core.atoms"
-import { atom, useAtomValue } from "jotai"
+import { useAtomValue } from "jotai"
 import React from "react"
 import { LuFilm } from "react-icons/lu"
-
-export const vc_videoSources = atom<VideoCore_VideoSource[]>([])
 
 export function VideoCoreResolutionMenu({ state, onVideoSourceChange, onHlsQualityChange }: {
     state: VideoCoreLifecycleState,

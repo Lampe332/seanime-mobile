@@ -1,10 +1,8 @@
 import { cn } from "@/components/ui/core/styling"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
-import React from "react"
 
 const __errorExplainer_overlayOpenAtom = atom(false)
-const __errorExplainer_errorAtom = atom<string | null>(null)
 
 export function ErrorExplainer() {
     const [open, setOpen] = useAtom(__errorExplainer_overlayOpenAtom)
@@ -31,20 +29,4 @@ export function ErrorExplainer() {
             </div>}
         </>
     )
-}
-
-export function useErrorExplainer() {
-    const [error, setError] = useAtom(__errorExplainer_errorAtom)
-
-    const explaination = React.useMemo(() => {
-        if (!error) return null
-
-        if (error.includes("could not open and play video")) {
-
-        }
-
-        return ""
-    }, [error])
-
-    return { error, setError }
 }

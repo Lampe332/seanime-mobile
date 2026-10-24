@@ -11,15 +11,6 @@ import { Models_TorrentstreamSettings, Nullish, Torrentstream_BatchHistoryRespon
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
-export function useGetTorrentstreamSettings(enabled = true) {
-    return useServerQuery<Models_TorrentstreamSettings>({
-        endpoint: API_ENDPOINTS.TORRENTSTREAM.GetTorrentstreamSettings.endpoint,
-        method: API_ENDPOINTS.TORRENTSTREAM.GetTorrentstreamSettings.methods[0],
-        queryKey: [API_ENDPOINTS.TORRENTSTREAM.GetTorrentstreamSettings.key],
-        enabled,
-    })
-}
-
 export function useSaveTorrentstreamSettings() {
     const qc = useQueryClient()
     return useServerMutation<Models_TorrentstreamSettings, SaveTorrentstreamSettings_Variables>({
@@ -52,17 +43,6 @@ export function useTorrentstreamStopStream() {
         mutationKey: [API_ENDPOINTS.TORRENTSTREAM.TorrentstreamStopStream.key],
         onSuccess: async () => {
             toast.success("Stream stopped")
-        },
-    })
-}
-
-export function useTorrentstreamDropTorrent() {
-    return useServerMutation<boolean>({
-        endpoint: API_ENDPOINTS.TORRENTSTREAM.TorrentstreamDropTorrent.endpoint,
-        method: API_ENDPOINTS.TORRENTSTREAM.TorrentstreamDropTorrent.methods[0],
-        mutationKey: [API_ENDPOINTS.TORRENTSTREAM.TorrentstreamDropTorrent.key],
-        onSuccess: async () => {
-            toast.success("Torrent dropped")
         },
     })
 }
