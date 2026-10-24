@@ -64,10 +64,6 @@ export const AlertAnatomy = defineStyleAnatomy({
             intent: "info-basic",
         },
     }),
-    closeButton: cva([
-        "UI-Alert__closeButton",
-        "flex-none self-start text-lg hover:opacity-80 active:opacity-100 transition-opacity duration-150 cursor-pointer h-5 w-5 ml-4 opacity-50 dark:text-gray-400 dark:hover:text-gray-200",
-    ]),
 })
 
 /* -------------------------------------------------------------------------------------------------
@@ -91,14 +87,6 @@ export type AlertProps = React.ComponentPropsWithRef<"div"> &
      * - `iconClass` does not apply to custom icons
      */
     icon?: React.ReactNode
-    /**
-     * If true, a close button will be rendered
-     */
-    isClosable?: boolean
-    /**
-     * Callback invoked when the close button is clicked
-     */
-    onClose?: () => void
 }
 
 export const Alert = React.forwardRef<HTMLDivElement, AlertProps>((props, ref) => {
@@ -108,15 +96,12 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>((props, ref) =
         className,
         title,
         description,
-        isClosable,
-        onClose,
         intent = "info-basic",
         iconClass,
         detailsContainerClass,
         textContainerClass,
         titleClass,
         descriptionClass,
-        closeButtonClass,
         icon,
         ...rest
     } = props
@@ -206,21 +191,6 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>((props, ref) =
                     </div>}
                 </div>
             </div>
-            {onClose && <button className={cn(AlertAnatomy.closeButton(), closeButtonClass)} onClick={onClose}>
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                >
-                    <line x1="18" x2="6" y1="6" y2="18"></line>
-                    <line x1="6" x2="18" y1="6" y2="18"></line>
-                </svg>
-            </button>}
         </div>
     )
 

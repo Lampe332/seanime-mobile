@@ -8,19 +8,6 @@ import { cn, ComponentAnatomy, defineStyleAnatomy } from "../core/styling"
  * -----------------------------------------------------------------------------------------------*/
 
 export const DropdownMenuAnatomy = defineStyleAnatomy({
-    subTrigger: cva([
-        "UI-DropdownMenu__subTrigger",
-        "focus:bg-[--subtle] data-[state=open]:bg-[--subtle]",
-    ]),
-    subContent: cva([
-        "UI-DropdownMenu__subContent",
-        "z-50 min-w-[12rem] overflow-hidden rounded-xl border bg-[--paper-lighter] p-2 text-[--foreground] shadow-sm",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-95",
-        "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
-        "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-    ]),
     root: cva([
         "UI-DropdownMenu__root",
         "z-50 min-w-[15rem] overflow-hidden rounded-xl border bg-[--paper-lighter] p-1 text-[--foreground] shadow-sm",
@@ -37,9 +24,6 @@ export const DropdownMenuAnatomy = defineStyleAnatomy({
         "data-[disabled]:opacity-50",
         "[&>svg]:mr-2 [&>svg]:text-lg",
     ]),
-    group: cva([
-        "UI-DropdownMenu__group",
-    ]),
     label: cva([
         "UI-DropdownMenu__label",
         "px-2 py-1.5 text-sm font-semibold text-[--muted]",
@@ -47,10 +31,6 @@ export const DropdownMenuAnatomy = defineStyleAnatomy({
     separator: cva([
         "UI-DropdownMenu__separator",
         "-mx-1 my-1 h-px bg-[--border]",
-    ]),
-    shortcut: cva([
-        "UI-DropdownMenu__shortcut",
-        "ml-auto text-xs tracking-widest opacity-60",
     ]),
 })
 
@@ -87,27 +67,15 @@ export const DropdownMenu = React.forwardRef<HTMLDivElement, DropdownMenuProps>(
         // Content
         sideOffset = 4,
         className,
-        subContentClass,
-        subTriggerClass,
-        shortcutClass,
         itemClass,
         labelClass,
         separatorClass,
-        groupClass,
         ...rest
     } = props
 
     return (
         <__DropdownMenuAnatomyContext.Provider
-            value={{
-                subContentClass,
-                subTriggerClass,
-                shortcutClass,
-                itemClass,
-                labelClass,
-                separatorClass,
-                groupClass,
-            }}
+            value={{ itemClass, labelClass, separatorClass }}
         >
             <DropdownMenuPrimitive.Root
                 defaultOpen={defaultOpen}
