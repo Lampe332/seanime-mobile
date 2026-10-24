@@ -12,7 +12,6 @@ import { IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tooltip } from "@/components/ui/tooltip"
 import { copyToClipboard, openTab } from "@/lib/helpers/browser"
 import { getCustomSourceExtensionId, getCustomSourceMediaSiteUrl, isCustomSource } from "@/lib/server/utils"
 import { ThemeMediaPageInfoBoxSize, useThemeSettings } from "@/lib/theme/theme-hooks"
@@ -31,31 +30,9 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
 
     if (!entry?.media) return null
 
-    const Details = () => (
-        <>
-            <div
-                className={cn(
-                    "flex gap-2 flex-wrap items-center",
-                    ts.mediaPageBannerInfoBoxSize === ThemeMediaPageInfoBoxSize.Fluid && "justify-center lg:justify-start lg:max-w-[65vw]",
-                )}
-            >
-                <MediaEntryAudienceScore meanScore={entry.media?.meanScore} badgeClass="bg-transparent border-transparent px-0" />
-
-                {(detailsLoading && !details) ? <Skeleton className="h-6 w-52 rounded-full opacity-60" /> :
-                    <MediaEntryGenresList genres={details?.genres} type="manga" />}
-            </div>
-
-            <AnimeEntryRankings rankings={details?.rankings} />
-        </>
-    )
-
-    // Android uses the same header as the anime page: cover, title, progress, one jump to the chapters.
-
+    // Same header as the anime page: cover, title, progress, one jump to the chapters
     return (
-        <MobileAnimeHeaderShell
-            backgroundImage={entry.media?.bannerImage}
-            coverImage={entry.media?.coverImage?.extraLarge}
-        >
+        <MobileAnimeHeaderShell>
 
             <MobileAnimeHeaderContainer>
 
@@ -75,34 +52,35 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
                     type="manga"
                     after={<div className="w-full flex flex-wrap gap-4 items-center" data-manga-meta-section-buttons-container>
 
-                        {isCustomSource(entry.mediaId) && (
-                            <Tooltip
-                                trigger={<div>
-                                    <SeaLink href={`/custom-sources?provider=${getCustomSourceExtensionId(entry.media)}`}>
-                                        <IconButton size="sm" intent="gray-link" className="px-0" icon={<BiExtension className="text-lg" />} />
-                                    </SeaLink>
-                                </div>}
-                            >
-                                Custom source
-                            </Tooltip>
-                        )}
-
-                        {!isCustomSource(entry.mediaId) && <SeaLink href={`https://anilist.co/manga/${entry.mediaId}`} target="_blank">
-                            <IconButton size="sm" intent="gray-link" className="px-0" icon={<SiAnilist className="text-lg" />} />
+                        {isCustomSource(entry.mediaId) && <SeaLink href={`/custom-sources?provider=${getCustomSourceExtensionId(entry.media)}`}>
+                            <IconButton size="sm" intent="gray-link" className="px-0" icon={<BiExtension className="text-lg" />}
+                                aria-label={tr("Custom source", "Eigene Quelle")} />
                         </SeaLink>}
 
-                        {isCustomSource(entry.mediaId) && !!getCustomSourceMediaSiteUrl(entry.media) && <Tooltip
-                            trigger={<div>
-                                <SeaLink href={getCustomSourceMediaSiteUrl(entry.media)!} target="_blank">
-                                    <IconButton size="sm" intent="gray-link" className="px-0" icon={<LuExternalLink className="text-lg" />} />
-                                </SeaLink>
-                            </div>}
-                        >
-                            Open in website
-                        </Tooltip>}
+                        {!isCustomSource(entry.mediaId) && <SeaLink href={`https://anilist.co/manga/${entry.mediaId}`} target="_blank">
+                            <IconButton size="sm" intent="gray-link" className="px-0" icon={<SiAnilist className="text-lg" />} aria-label="AniList" />
+                        </SeaLink>}
+
+                        {isCustomSource(entry.mediaId) && !!getCustomSourceMediaSiteUrl(entry.media) &&
+                            <SeaLink href={getCustomSourceMediaSiteUrl(entry.media)!} target="_blank">
+                                <IconButton size="sm" intent="gray-link" className="px-0" icon={<LuExternalLink className="text-lg" />}
+                                    aria-label={tr("Open in website", "Auf der Website öffnen")} />
+                            </SeaLink>}
                     </div>}
                 >
-                    <Details />
+                    <div
+                        className={cn(
+                            "flex gap-2 flex-wrap items-center",
+                            ts.mediaPageBannerInfoBoxSize === ThemeMediaPageInfoBoxSize.Fluid && "justify-center lg:justify-start lg:max-w-[65vw]",
+                        )}
+                    >
+                        <MediaEntryAudienceScore meanScore={entry.media?.meanScore} badgeClass="bg-transparent border-transparent px-0" />
+
+                        {(detailsLoading && !details) ? <Skeleton className="h-6 w-52 rounded-full opacity-60" /> :
+                            <MediaEntryGenresList genres={details?.genres} type="manga" />}
+                    </div>
+
+                    <AnimeEntryRankings rankings={details?.rankings} />
                 </MobileAnimeHeaderDetails>
 
                 <PluginWebviewSlot slot="after-media-entry-details" />
@@ -117,17 +95,17 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
                         </button>}
                     >
                         {!isCustomSource(entry.mediaId) && <DropdownMenuItem onClick={() => openTab(`https://anilist.co/manga/${entry.mediaId}`)}>
-                            <SiAnilist /> Open on AniList
+                            <SiAnilist /> {tr("Open on AniList", "Auf AniList öffnen")}
                         </DropdownMenuItem>}
                         {!!entry.media.idMal && <DropdownMenuItem onClick={() => openTab(`https://myanimelist.net/manga/${entry.media?.idMal}`)}>
-                            <SiMyanimelist /> Open on MAL
+                            <SiMyanimelist /> {tr("Open on MAL", "Auf MAL öffnen")}
                         </DropdownMenuItem>}
                         {isCustomSource(entry.mediaId) && !!getCustomSourceMediaSiteUrl(entry.media) && <DropdownMenuItem
                             onClick={() => openTab(getCustomSourceMediaSiteUrl(entry.media)!)}>
-                            <LuExternalLink /> Open in website
+                            <LuExternalLink /> {tr("Open in website", "Auf der Website öffnen")}
                         </DropdownMenuItem>}
                         {isCustomSource(entry.mediaId) && <DropdownMenuItem onClick={() => copyToClipboard(entry.mediaId.toString())}>
-                            Copy ID
+                            {tr("Copy ID", "ID kopieren")}
                         </DropdownMenuItem>}
                         <PluginMangaPageDropdownItems media={entry.media} />
                     </DropdownMenu>

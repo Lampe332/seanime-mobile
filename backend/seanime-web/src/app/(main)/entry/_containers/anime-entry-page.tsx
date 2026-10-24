@@ -21,7 +21,7 @@ import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { MetaSection } from "@/app/(main)/entry/_components/meta-section"
 import { RelationsRecommendationsSection } from "@/app/(main)/entry/_components/relations-recommendations-section"
 import { DebridStreamPage } from "@/app/(main)/entry/_containers/debrid-stream/debrid-stream-page"
-import { ENTRY_VIEW_SHELL_TRANSITION, ENTRY_VIEW_TRANSITION } from "@/app/(main)/entry/_containers/entry-view-transition"
+import { ENTRY_VIEW_TRANSITION } from "@/app/(main)/entry/_containers/entry-view-transition"
 import { EpisodeSection } from "@/app/(main)/entry/_containers/episode-list/episode-section"
 import { __anime_hiddenEntryViewsAtom } from "@/app/(main)/entry/_lib/hidden-entry-views"
 import { __torrentSearch_selectionAtom } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
@@ -76,35 +76,13 @@ function getPluginSourceId(source: string | null | undefined) {
 export function useAnimeEntryPageView() {
     const [currentView, setView] = useAtom(__anime_entryPageViewAtom)
 
-    const isLibraryView = currentView === "library"
-    const isTorrentStreamingView = currentView === "torrentstream"
-    const isDebridStreamingView = currentView === "debridstream"
-    const isOnlineStreamingView = currentView === "onlinestream"
-    const isPluginEpisodeTabView = currentView.startsWith("episodeTab:")
-
-    function toggleTorrentStreamingView() {
-        setView(p => p === "torrentstream" ? "library" : "torrentstream")
-    }
-
-    function toggleDebridStreamingView() {
-        setView(p => p === "debridstream" ? "library" : "debridstream")
-    }
-
-    function toggleOnlineStreamingView() {
-        setView(p => p === "onlinestream" ? "library" : "onlinestream")
-    }
-
     return {
         currentView,
         setView,
-        isLibraryView,
-        isTorrentStreamingView,
-        isDebridStreamingView,
-        isOnlineStreamingView,
-        isPluginEpisodeTabView,
-        toggleTorrentStreamingView,
-        toggleDebridStreamingView,
-        toggleOnlineStreamingView,
+        isLibraryView: currentView === "library",
+        isTorrentStreamingView: currentView === "torrentstream",
+        isDebridStreamingView: currentView === "debridstream",
+        isOnlineStreamingView: currentView === "onlinestream",
     }
 }
 
@@ -136,15 +114,7 @@ export function AnimeEntryPage() {
     }, [registeredEpisodeTabExtensions])
 
     React.useLayoutEffect(() => {
-        if (!animeEntry) return
-        try {
-            if (animeEntry?.media?.title?.userPreferred) {
-                document.title = `${animeEntry?.media?.title?.userPreferred} | Seanime`
-            }
-            // switchedView.current = false
-        }
-        catch {
-        }
+        if (animeEntry?.media?.title?.userPreferred) document.title = `${animeEntry.media.title.userPreferred} | Seanime`
     }, [animeEntry])
 
     const mediaIdRef = React.useRef(mediaId)
@@ -160,57 +130,47 @@ export function AnimeEntryPage() {
             return
         }
 
-            if (!serverStatus?.settings) return
+        if (!serverStatus?.settings) return
 
-        if (
-            !animeEntryLoading &&
-            animeEntry &&
-            animeEntry?.media?.status === "NOT_YET_RELEASED"
-        ) {
+        if (animeEntry?.media?.status === "NOT_YET_RELEASED") {
             switchedView.current = true
             setView("library")
             return
         }
 
-            if (switchedView.current) return
+        if (switchedView.current) return
 
-            const automaticView = getAutomaticAnimeEntryView(animeEntry, serverStatus, hiddenViews)
-            let nextView = ""
+        const automaticView = getAutomaticAnimeEntryView(animeEntry, serverStatus, hiddenViews)
+        let nextView = ""
 
-            if (tab) {
-                const pluginId = getPluginSourceId(tab)
-                if (pluginId) {
-                    if (!registeredEpisodeTabExtensions && !registeredEpisodeTabExtensionsFetched) return
-                    if (registeredEpisodeTabExtensionIds.has(pluginId)) {
-                        nextView = getPluginEpisodeTabViewId(pluginId)
-                    }
-                } else if (isBuiltInAnimeEntryViewAvailable(tab, serverStatus, hiddenViews)) {
-                    nextView = tab
+        if (tab) {
+            const pluginId = getPluginSourceId(tab)
+            if (pluginId) {
+                if (!registeredEpisodeTabExtensions && !registeredEpisodeTabExtensionsFetched) return
+                if (registeredEpisodeTabExtensionIds.has(pluginId)) {
+                    nextView = getPluginEpisodeTabViewId(pluginId)
+                }
+            } else if (isBuiltInAnimeEntryViewAvailable(tab, serverStatus, hiddenViews)) {
+                nextView = tab
             }
         }
 
-            if (!nextView) {
-                const defaultSource = serverStatus?.settings?.library?.defaultPlaybackSource || ""
-                const pluginId = getPluginSourceId(defaultSource)
-                if (pluginId) {
-                    if (!registeredEpisodeTabExtensions && !registeredEpisodeTabExtensionsFetched) return
-                    if (registeredEpisodeTabExtensionIds.has(pluginId)) {
-                        nextView = getPluginEpisodeTabViewId(pluginId)
-                    }
-                } else if (defaultSource && isBuiltInAnimeEntryViewAvailable(defaultSource, serverStatus, hiddenViews)) {
-                    nextView = defaultSource
+        if (!nextView) {
+            const defaultSource = serverStatus?.settings?.library?.defaultPlaybackSource || ""
+            const pluginId = getPluginSourceId(defaultSource)
+            if (pluginId) {
+                if (!registeredEpisodeTabExtensions && !registeredEpisodeTabExtensionsFetched) return
+                if (registeredEpisodeTabExtensionIds.has(pluginId)) {
+                    nextView = getPluginEpisodeTabViewId(pluginId)
                 }
+            } else if (defaultSource && isBuiltInAnimeEntryViewAvailable(defaultSource, serverStatus, hiddenViews)) {
+                nextView = defaultSource
             }
+        }
 
-            switchedView.current = true
-            setView(nextView || automaticView)
-
-        // return () => {
-        //     switchedView.current = false
-        // }
-
-        },
-        [animeEntry, animeEntryLoading, mediaId, serverStatus, tab, registeredEpisodeTabExtensions, registeredEpisodeTabExtensionsFetched,
+        switchedView.current = true
+        setView(nextView || automaticView)
+    }, [animeEntry, animeEntryLoading, mediaId, serverStatus, tab, registeredEpisodeTabExtensions, registeredEpisodeTabExtensionsFetched,
             registeredEpisodeTabExtensionIds, hiddenViews])
 
     // A tab hidden while it is open gives way to the page's usual one
@@ -219,23 +179,22 @@ export function AnimeEntryPage() {
     }, [currentView, hiddenViews, animeEntry, serverStatus])
 
     React.useEffect(() => {
-            if (!currentView.startsWith("episodeTab:")) return
-            if (!serverStatus?.settings) return
+        if (!currentView.startsWith("episodeTab:")) return
+        if (!serverStatus?.settings) return
 
-            const pluginId = getPluginEpisodeTabExtensionId(currentView)
-            if (!pluginId) return
+        const pluginId = getPluginEpisodeTabExtensionId(currentView)
+        if (!pluginId) return
 
-            const automaticView = getAutomaticAnimeEntryView(animeEntry, serverStatus, hiddenViews)
-            if (registeredEpisodeTabExtensions && !registeredEpisodeTabExtensionIds.has(pluginId)) {
-                setView(automaticView)
-                return
-            }
+        const automaticView = getAutomaticAnimeEntryView(animeEntry, serverStatus, hiddenViews)
+        if (registeredEpisodeTabExtensions && !registeredEpisodeTabExtensionIds.has(pluginId)) {
+            setView(automaticView)
+            return
+        }
 
-            if (pluginEpisodeTabs.renderedExtensionIds.includes(pluginId) && !pluginEpisodeTabs.selectedTab) {
-                setView(automaticView)
-            }
-        },
-        [currentView, animeEntry, serverStatus, registeredEpisodeTabExtensions, registeredEpisodeTabExtensionIds,
+        if (pluginEpisodeTabs.renderedExtensionIds.includes(pluginId) && !pluginEpisodeTabs.selectedTab) {
+            setView(automaticView)
+        }
+    }, [currentView, animeEntry, serverStatus, registeredEpisodeTabExtensions, registeredEpisodeTabExtensionIds,
             pluginEpisodeTabs.renderedExtensionIds, pluginEpisodeTabs.selectedTab, hiddenViews])
 
     React.useEffect(() => {
@@ -246,7 +205,6 @@ export function AnimeEntryPage() {
         }
     }, [animeEntry, animeEntryLoading, pathname, mediaId])
 
-    // Reset view when unmounting
     useUnmount(() => {
         setView("library")
     })
@@ -344,7 +302,7 @@ export function AnimeEntryPage() {
                         "relative 2xl:order-first pb-10 lg:min-h-[calc(100vh-10rem)]",
                         (currentView === "onlinestream" && vc_fullscreen) && "z-[100]",
                     )}
-                    {...ENTRY_VIEW_SHELL_TRANSITION}
+                    {...ENTRY_VIEW_TRANSITION}
                 >
                     <PluginWebviewSlot slot="before-anime-entry-episode-list" />
 
@@ -357,11 +315,7 @@ export function AnimeEntryPage() {
                             {...ENTRY_VIEW_TRANSITION}
                         >
                             <div className="h-10" />
-                            <EpisodeSection
-                                entry={animeEntry}
-                                details={animeDetails}
-                                bottomSection={bottomSection}
-                            />
+                            <EpisodeSection entry={animeEntry} bottomSection={bottomSection} />
                         </PageWrapper>}
 
                         {currentView === "torrentstream" &&
@@ -404,12 +358,6 @@ export function AnimeEntryPage() {
                         >
                             <div className="h-10 lg:h-0" />
                             <div className="space-y-4" data-anime-entry-page-online-streaming-view-content>
-                                {/*<div*/}
-                                {/*    className="absolute right-0 top-[-0.5rem] lg:top-[-3rem]"*/}
-                                {/*    data-anime-entry-page-online-streaming-view-content-title-container*/}
-                                {/*>*/}
-                                {/*    <h2 className="text-xl lg:text-3xl flex items-center gap-3">Online streaming</h2>*/}
-                                {/*</div>*/}
                                 <OnlinestreamPage
                                     key={animeEntry.mediaId}
                                     animeEntry={animeEntry}
@@ -433,21 +381,7 @@ export function AnimeEntryPage() {
     )
 }
 
-type EntrySectionTabs = {
-    children?: React.ReactNode
-    entry: Anime_Entry
-    pluginTabs?: PluginAnimeEntryEpisodeTab[]
-}
-
-export function EntrySectionTabs(props: EntrySectionTabs) {
-
-    const {
-        children,
-        entry,
-        pluginTabs = [],
-        ...rest
-    } = props
-
+export function EntrySectionTabs({ entry, pluginTabs = [] }: { entry: Anime_Entry, pluginTabs?: PluginAnimeEntryEpisodeTab[] }) {
     const serverStatus = useServerStatus()
     const hiddenViews = useAtomValue(__anime_hiddenEntryViewsAtom)
     const t = useTr()
@@ -457,11 +391,8 @@ export function EntrySectionTabs(props: EntrySectionTabs) {
         isLibraryView,
         setView,
         isTorrentStreamingView,
-        toggleTorrentStreamingView,
         isDebridStreamingView,
-        toggleDebridStreamingView,
         isOnlineStreamingView,
-        toggleOnlineStreamingView,
     } = useAnimeEntryPageView()
 
     if (
@@ -489,21 +420,21 @@ export function EntrySectionTabs(props: EntrySectionTabs) {
                     pillClass="border-transparent"
                     iconClass="size-5 hidden data-[current=true]:block"
                     items={[
-                        { name: short ? t("Library", "Bibliothek") : "Local library", iconType: IoLibraryOutline, isCurrent: isLibraryView, onClick: () => setView("library") },
+                        { name: short ? t("Library", "Bibliothek") : t("Local library", "Lokale Bibliothek"), iconType: IoLibraryOutline, isCurrent: isLibraryView, onClick: () => setView("library") },
                         ...(torrentstreamOn ? [{
-                            name: short ? "Torrent" : "Torrent streaming",
+                            name: short ? "Torrent" : t("Torrent streaming", "Torrent-Streaming"),
                             iconType: PiMonitorPlayDuotone,
                             isCurrent: isTorrentStreamingView,
                             onClick: () => setView("torrentstream"),
                         }] : []),
                         ...(debridstreamOn ? [{
-                            name: short ? "Debrid" : "Debrid streaming",
+                            name: short ? "Debrid" : t("Debrid streaming", "Debrid-Streaming"),
                             iconType: HiOutlineServerStack,
                             isCurrent: isDebridStreamingView,
                             onClick: () => setView("debridstream"),
                         }] : []),
                         ...(onlinestreamOn ? [{
-                            name: short ? "Online" : "Online streaming",
+                            name: short ? "Online" : t("Online streaming", "Online-Streaming"),
                             iconType: FiGlobe,
                             isCurrent: isOnlineStreamingView,
                             onClick: () => setView("onlinestream"),

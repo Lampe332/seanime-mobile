@@ -5,7 +5,7 @@ import { getDefaultStore } from "jotai"
 import { serverStatusAtom } from "../backend/seanime-web/src/app/(main)/_atoms/server-status.atoms"
 import { SeaContextMenu } from "../backend/seanime-web/src/app/(main)/_features/context-menu/sea-context-menu"
 import { MediaPreviewModal, useMediaPreviewModal } from "../backend/seanime-web/src/app/(main)/_features/media/_containers/media-preview-modal"
-import { AnimeEntryDropdownMenu } from "../backend/seanime-web/src/app/(main)/entry/_containers/entry-actions/anime-entry-dropdown-menu"
+import { AnimeEntryPhoneMenu } from "../backend/seanime-web/src/app/(main)/entry/_containers/entry-actions/anime-entry-phone-menu"
 import { ContextMenuItem, ContextMenuLabel, ContextMenuTrigger } from "../backend/seanime-web/src/components/ui/context-menu"
 import "../backend/seanime-web/src/components/shared/mobile-surface.css"
 import "../backend/seanime-web/src/app/(main)/entry/_components/mobile-anime.css"
@@ -20,7 +20,7 @@ function Page() {
     const entry = w.server.anime[w.entryId]
     const { setPreviewModalMediaId } = useMediaPreviewModal()
     return <div data-mobile-anime="true" style={{ padding: 16 }}>
-        <div data-anime-meta-section-buttons-row style={{ display: "flex" }}><AnimeEntryDropdownMenu entry={entry} details={w.server.details} /></div>
+        <div data-anime-meta-section-buttons-row style={{ display: "flex" }}><AnimeEntryPhoneMenu entry={entry} details={w.server.details} /></div>
         <SeaContextMenu content={<>
             <ContextMenuLabel className="line-clamp-1">HELL MODE: The Hardcore Gamer Dominates in Another World with Garbage Balancing</ContextMenuLabel>
             <ContextMenuItem onClick={() => setPreviewModalMediaId(w.previewId, w.previewType)} data-menu-preview>Preview</ContextMenuItem>

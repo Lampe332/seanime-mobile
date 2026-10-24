@@ -1,5 +1,7 @@
 import { AnilistMediaEntryModal } from "@/app/(main)/_features/media/_containers/anilist-media-entry-modal"
 import { MediaPageHeaderEntryDetailsProps, MediaPageHeaderScoreAndProgress } from "@/app/(main)/_features/media/_components/media-page-header-components"
+import { MEDIA_STATUS_LABELS } from "@/app/(main)/_features/phone-screen/phone-screen"
+import { listStatusLabel } from "@/app/(main)/discover/_lib/discover-phone"
 import { SeaImage } from "@/components/shared/sea-image"
 import { getImageUrl } from "@/lib/server/assets"
 import { tr } from "@/lib/app-language"
@@ -9,7 +11,7 @@ import { IoBookOutline } from "react-icons/io5"
 import "./mobile-anime.css"
 
 /** Manga: the chapter list publishes its read action (start / continue / resume) for the header. */
-export type MobileReadAction = { label: string, detail?: string, onClick: () => void }
+type MobileReadAction = { label: string, detail?: string, onClick: () => void }
 export const mobileMangaReadActionAtom = atom<MobileReadAction | null>(null)
 
 function MobileMangaReadAction() {
@@ -22,7 +24,7 @@ function MobileMangaReadAction() {
 }
 
 // Android owns this header. No banner, scroll subscription or DOM reparenting.
-export function MobileAnimeHeaderShell({ children }: { children?: React.ReactNode, backgroundImage?: string, coverImage?: string }) {
+export function MobileAnimeHeaderShell({ children }: { children?: React.ReactNode }) {
     return <header className="mobile-anime-header">{children}</header>
 }
 export function MobileAnimeHeaderContainer({ children }: { children?: React.ReactNode }) {
@@ -38,13 +40,13 @@ export function MobileAnimeHeaderDetails(props: MediaPageHeaderEntryDetailsProps
             </div>
             <div className="mobile-anime-title">
                 <h1>{title || romajiTitle || englishTitle || (manga ? "Manga" : "Anime")}</h1>
-                <p>{[startDate?.year, status?.replaceAll("_", " ").toLowerCase()].filter(Boolean).join(" · ")}</p>
+                <p>{[startDate?.year, status && MEDIA_STATUS_LABELS[status] ? tr(...MEDIA_STATUS_LABELS[status]) : status].filter(Boolean).join(" · ")}</p>
             </div>
         </div>
         <div className="mobile-anime-progress">
             <div><span>{tr("Your progress", "Dein Fortschritt")}</span><div><MediaPageHeaderScoreAndProgress score={listData?.score} progress={listData?.progress} episodes={progressTotal} /></div></div>
             <AnilistMediaEntryModal mobileEntry listData={listData} media={media} type={type} />
-            {listData?.status && <p>{listData.status.replaceAll("_", " ").toLowerCase()}{listData.repeat ? ` · ${listData.repeat} ${manga ? tr("rereads", "Wiederholungen") : tr("rewatches", "Wiederholungen")}` : ""}</p>}
+            {listData?.status && <p>{listStatusLabel(tr, manga ? "manga" : "anime", listData.status)}{listData.repeat ? ` · ${listData.repeat} ${manga ? tr("rereads", "Wiederholungen") : tr("rewatches", "Wiederholungen")}` : ""}</p>}
         </div>
         {manga ? <MobileMangaReadAction /> : <a className="mobile-anime-episodes-link" href="#anime-episodes">
             {tr("Episodes & playback", "Episoden & Wiedergabe")} <span aria-hidden>↓</span>

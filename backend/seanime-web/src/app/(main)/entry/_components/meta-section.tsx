@@ -9,19 +9,17 @@ import {
 } from "@/app/(main)/_features/media/_components/media-entry-metadata-components"
 import { usePluginAnimeEntryEpisodeTabsListener } from "@/app/(main)/_features/plugin/plugin-entry-episode-tabs.tsx"
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
-import { useHasTorrentProvider } from "@/app/(main)/_hooks/use-server-status"
 import { NextAiringEpisode } from "@/app/(main)/entry/_components/next-airing-episode"
 import { EntrySectionTabs, useAnimeEntryPageView } from "@/app/(main)/entry/_containers/anime-entry-page"
-import { AnimeEntryDropdownMenu } from "@/app/(main)/entry/_containers/entry-actions/anime-entry-dropdown-menu"
+import { AnimeEntryPhoneMenu } from "@/app/(main)/entry/_containers/entry-actions/anime-entry-phone-menu"
 import { AnimeEntrySilenceToggle } from "@/app/(main)/entry/_containers/entry-actions/anime-entry-silence-toggle"
 import { SeaLink } from "@/components/shared/sea-link"
 import { Badge } from "@/components/ui/badge"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tooltip } from "@/components/ui/tooltip"
+import { useTr } from "@/lib/app-language"
 import { getCustomSourceExtensionId, getCustomSourceMediaSiteUrl, isCustomSource } from "@/lib/server/utils"
-import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { BiExtension } from "react-icons/bi"
 import { IoInformationCircle } from "react-icons/io5"
 import { LuExternalLink } from "react-icons/lu"
@@ -33,12 +31,8 @@ import { MobileAnimeHeaderShell, MobileAnimeHeaderContainer, MobileAnimeHeaderDe
 
 export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetailsById_Media | undefined, detailsLoading?: boolean }) {
     const { entry, details, detailsLoading } = props
-    const ts = useThemeSettings()
+    const t = useTr()
     const nakamaStatus = useNakamaStatus()
-
-    if (!entry.media) return null
-
-    const { hasTorrentProvider } = useHasTorrentProvider()
     const { currentView, setView, isLibraryView } = useAnimeEntryPageView()
 
     const pluginEpisodeTabs = usePluginAnimeEntryEpisodeTabsListener({
@@ -47,11 +41,10 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
         setView,
     })
 
+    if (!entry.media) return null
+
     return (
-        <MobileAnimeHeaderShell
-            backgroundImage={entry.media?.bannerImage}
-            coverImage={entry.media?.coverImage?.extraLarge}
-        >
+        <MobileAnimeHeaderShell>
 
             <MobileAnimeHeaderContainer>
 
@@ -78,31 +71,20 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                             )}
                         >
 
-                            {isCustomSource(entry.mediaId) && (
-                                <Tooltip
-                                    trigger={<div>
-                                        <SeaLink href={`/custom-sources?provider=${getCustomSourceExtensionId(entry.media)}`}>
-                                            <IconButton size="sm" intent="gray-link" className="px-0" icon={<BiExtension className="text-lg" />} />
-                                        </SeaLink>
-                                    </div>}
-                                >
-                                    Custom source
-                                </Tooltip>
-                            )}
-
-                            {!isCustomSource(entry.mediaId) && <SeaLink href={`https://anilist.co/anime/${entry.mediaId}`} target="_blank">
-                                <IconButton size="sm" intent="gray-link" className="px-0" icon={<SiAnilist className="text-lg" />} />
+                            {isCustomSource(entry.mediaId) && <SeaLink href={`/custom-sources?provider=${getCustomSourceExtensionId(entry.media)}`}>
+                                <IconButton size="sm" intent="gray-link" className="px-0" icon={<BiExtension className="text-lg" />}
+                                    aria-label={t("Custom source", "Eigene Quelle")} />
                             </SeaLink>}
 
-                            {isCustomSource(entry.mediaId) && !!getCustomSourceMediaSiteUrl(entry.media) && <Tooltip
-                                trigger={<div>
-                                    <SeaLink href={getCustomSourceMediaSiteUrl(entry.media)!} target="_blank">
-                                        <IconButton size="sm" intent="gray-link" className="px-0" icon={<LuExternalLink className="text-lg" />} />
-                                    </SeaLink>
-                                </div>}
-                            >
-                                Open in website
-                            </Tooltip>}
+                            {!isCustomSource(entry.mediaId) && <SeaLink href={`https://anilist.co/anime/${entry.mediaId}`} target="_blank">
+                                <IconButton size="sm" intent="gray-link" className="px-0" icon={<SiAnilist className="text-lg" />} aria-label="AniList" />
+                            </SeaLink>}
+
+                            {isCustomSource(entry.mediaId) && !!getCustomSourceMediaSiteUrl(entry.media) &&
+                                <SeaLink href={getCustomSourceMediaSiteUrl(entry.media)!} target="_blank">
+                                    <IconButton size="sm" intent="gray-link" className="px-0" icon={<LuExternalLink className="text-lg" />}
+                                        aria-label={t("Open in website", "Auf der Website öffnen")} />
+                                </SeaLink>}
 
                             {!!entry?.media?.trailer?.id && <TrailerModal
                                 trailerId={entry?.media?.trailer?.id} trigger={
@@ -167,7 +149,7 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                         )}
                     >
 
-                        <AnimeEntryDropdownMenu entry={entry} details={details} />
+                        <AnimeEntryPhoneMenu entry={entry} details={details} />
 
                         {isLibraryView && !entry._isNakamaEntry && !!entry.libraryData && <>
                             <AnimeEntrySilenceToggle mediaId={entry.mediaId} size="md" />
@@ -181,7 +163,7 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                         {entry._isNakamaEntry && currentView === "library" &&
                             <div className="flex items-center gap-2 h-10 px-4 border rounded-md flex-none">
                                 <MdOutlineConnectWithoutContact className="size-6 animate-pulse text-[--blue]" />
-                                <span className="text-sm tracking-wide">Shared by {nakamaStatus?.hostConnectionStatus?.username}</span>
+                                <span className="text-sm tracking-wide">{t("Shared by", "Geteilt von")} {nakamaStatus?.hostConnectionStatus?.username}</span>
                             </div>}
 
                         <PluginAnimePageButtons media={entry.media!} />
@@ -200,8 +182,10 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                     )}
                     data-anime-meta-section-inaccurate-schedule-message
                 >
-                    <span className="block">Could not retrieve accurate scheduling information for this show.</span>
-                    <span className="block text-[--muted]">Please check the schedule online for more information.</span>
+                    <span className="block">{t("Could not retrieve accurate scheduling information for this show.",
+                        "Für diese Serie gibt es keinen genauen Sendeplan.")}</span>
+                    <span className="block text-[--muted]">{t("Please check the schedule online for more information.",
+                        "Genaueres findest du im Sendeplan im Internet.")}</span>
                 </p>}
 
                 {(!entry.anidbId || entry.anidbId === 0) && !isCustomSource(entry.mediaId) && entry.media?.status !== "NOT_YET_RELEASED" && (
@@ -213,7 +197,7 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                         data-anime-meta-section-no-metadata-message
                     >
                         <IoInformationCircle />
-                        Episode metadata retrieval not available for this entry.
+                        {t("Episode metadata retrieval not available for this entry.", "Für diesen Eintrag gibt es keine Episoden-Metadaten.")}
                     </p>
                 )}
 
