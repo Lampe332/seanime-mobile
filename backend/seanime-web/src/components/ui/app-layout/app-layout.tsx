@@ -1,6 +1,4 @@
-import { vc_globalMiniPlayerAtom, vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { cva, VariantProps } from "class-variance-authority"
-import { useAtomValue } from "jotai/react"
 import * as React from "react"
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "../core/styling"
 
@@ -25,18 +23,12 @@ export const AppLayoutAnatomy = defineStyleAnatomy({
         defaultVariants: {
             withSidebar: false,
         },
-        compoundVariants: [
-            { withSidebar: true, sidebarSize: "slim", className: "lg:[&>.appLayout]:pl-20" },
-        ],
     }),
 })
 
+// The native nav replaces the sidebar at every width; UIBottomNav.kt still reads its links from this DOM.
 const AppLayoutSidebarAnatomy = defineStyleAnatomy({
-    root: cva([
-        "UI-AppLayoutSidebar__root z-50",
-        "hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col grow-0 shrink-0 basis-0",
-        "group-[.sidebar-slim]/appLayout:w-20",
-    ]),
+    root: cva(["UI-AppLayoutSidebar__root hidden"]),
 })
 
 const AppLayoutContentAnatomy = defineStyleAnatomy({
@@ -114,13 +106,10 @@ export const AppLayoutSidebar = React.forwardRef<HTMLElement, AppLayoutSidebarPr
         ...rest
     } = props
 
-    const vcIsFullscreen = useAtomValue(vc_isFullscreen)
-    const vcIsMiniplayer = useAtomValue(vc_globalMiniPlayerAtom)
-
     return (
         <aside
             ref={ref}
-            className={cn(AppLayoutSidebarAnatomy.root(), className, (vcIsFullscreen && !vcIsMiniplayer) && "lg:hidden")}
+            className={cn(AppLayoutSidebarAnatomy.root(), className)}
             {...rest}
         >
             {children}

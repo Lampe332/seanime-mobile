@@ -1,4 +1,3 @@
-import { TRANSPARENT_SIDEBAR_BANNER_IMG_STYLE } from "@/app/(main)/_features/custom-ui/styles"
 import { cn } from "@/components/ui/core/styling"
 import { getAssetUrl } from "@/lib/server/assets"
 import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/theme-hooks"
@@ -53,8 +52,6 @@ export function CustomLibraryBanner(props: CustomLibraryBannerProps) {
                     discrete && "opacity-20",
                     !!ts.libraryScreenCustomBackgroundImage && "absolute", // If there's a background image, make the banner absolute
                     (!ts.libraryScreenCustomBackgroundImage && dimmed) && "opacity-5", // If the user has scrolled down, dim the banner
-                    !ts.disableSidebarTransparency && TRANSPARENT_SIDEBAR_BANNER_IMG_STYLE,
-                    !ts.disableSidebarTransparency ? "scroll-locked-offset-width" : "scroll-locked-offset-fixed",
                 )}
             >
                 {(!ts.disableSidebarTransparency && !discrete) && <div
@@ -73,7 +70,6 @@ export function CustomLibraryBanner(props: CustomLibraryBannerProps) {
                     transition={{ duration: 1, delay: 0.2 }}
                     className={cn(
                         "h-[30rem] z-[0] w-full flex-none absolute top-0 overflow-hidden",
-                        "scroll-locked-offset",
                     )}
                     data-custom-library-banner-inner-container
                 >
@@ -88,7 +84,6 @@ export function CustomLibraryBanner(props: CustomLibraryBannerProps) {
                         data-custom-library-banner-image
                         className={cn(
                             "CUSTOM_LIB_BANNER_IMG z-[1] absolute inset-0 w-full h-full bg-cover bg-no-repeat transition-opacity duration-1000",
-                            "scroll-locked-offset",
                         )}
                         style={{
                             backgroundImage: `url(${HIDE_IMAGES ? "/no-cover.png" : image})`,

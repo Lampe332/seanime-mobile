@@ -1,4 +1,3 @@
-import { TRANSPARENT_SIDEBAR_BANNER_IMG_STYLE } from "@/app/(main)/_features/custom-ui/styles"
 import { cn } from "@/components/ui/core/styling"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
@@ -12,12 +11,7 @@ export function MediaEntryPageLoadingDisplay() {
         <div data-media-entry-page-loading-display className="relative min-h-[31rem] overflow-hidden">
             {showBannerSkeleton && (
                 <div className="__header h-[30rem] fixed left-0 top-0 w-full">
-                    <div
-                        className={cn(
-                            "h-[30rem] w-full flex-none object-cover object-center absolute top-0 overflow-hidden",
-                            !ts.disableSidebarTransparency && TRANSPARENT_SIDEBAR_BANNER_IMG_STYLE,
-                        )}
-                    >
+                    <div className="h-[30rem] w-full flex-none object-cover object-center absolute top-0 overflow-hidden">
                         <div className="w-full absolute z-[1] top-0 h-[12rem] bg-gradient-to-b from-[--background] to-transparent via" />
                         <Skeleton className="h-full absolute w-full rounded-none opacity-70" />
                         <div className="w-full absolute bottom-0 h-[22rem] bg-gradient-to-t from-[--background] via-[--background]/80 via-30% to-transparent" />
