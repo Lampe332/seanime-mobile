@@ -176,9 +176,7 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
                     window.__androidPiPActive = true;
                     if (window.__seanimePiPVideo) return;
                     
-                    const pill = document.getElementById('android-floating-pill');
                     const menu = document.getElementById('android-floating-menu');
-                    if (pill) pill.style.setProperty('display', 'none', 'important');
                     if (menu) menu.style.setProperty('display', 'none', 'important');
                     
                     let style = document.getElementById('pip-overlay-style') || document.createElement('style');
@@ -214,15 +212,12 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
                     `;
                     document.head.appendChild(style);
 
-                    // Move video directly to body
                     const video = document.querySelector('video');
                     if (video) {
                         window.__seanimePiPVideo = video;
-                        // Store original position
                         video.__pipOriginalParent = video.parentElement;
                         video.__pipOriginalNextSibling = video.nextSibling;
-                        
-                        // Move directly to body
+
                         if (video.parentElement !== document.body) {
                             document.body.appendChild(video);
                         }
@@ -257,7 +252,6 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
                     delete window.__seanimePiPControls;
                     delete window.__seanimePiPCommand;
 
-                    // Restore video to its original position in the DOM
                     const video = window.__seanimePiPVideo;
                     try {
                         if (video && video.__pipOriginalParent) {
@@ -281,32 +275,16 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
                         document.getElementById('pip-overlay-style')?.remove();
                     }
 
-                    // Remove PiP styles completely
-                    const style = document.getElementById('pip-overlay-style');
-                    if (style) {
-                        style.innerHTML = '';
-                        style.remove();
-                    }
-                    
-                    // Restore pill
-                    const pill = document.getElementById('android-floating-pill');
-                    if (pill) {
-                        pill.style.removeProperty('display');
-                        pill.style.display = 'grid';
-                    }
-                    
                     // Reset viewport zoom
                     const viewport = document.querySelector('meta[name="viewport"]');
                     if (viewport) {
                         viewport.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover');
                     }
                     
-                    // Reset document scroll
                     window.scrollTo(0, 0);
                     document.documentElement.scrollTop = 0;
                     document.body.scrollTop = 0;
                     
-                    // Trigger layout recalculation after a small delay
                     setTimeout(() => {
                         window.dispatchEvent(new Event('resize'));
                     }, 100);
