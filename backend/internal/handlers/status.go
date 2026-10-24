@@ -12,7 +12,6 @@ import (
 	"seanime/internal/core"
 	"seanime/internal/database/models"
 	"seanime/internal/report"
-	"seanime/internal/updater"
 	"seanime/internal/user"
 	"seanime/internal/util"
 	"seanime/internal/util/result"
@@ -376,17 +375,6 @@ func (h *Handler) HandleGetLatestLogContent(c echo.Context) error {
 	})
 
 	return h.RespondWithData(c, content)
-}
-
-// HandleGetAnnouncements
-//
-//	@summary returns the server announcements.
-//	@desc The Android app has no server-side announcement feed, so this is always empty (null).
-//	@route /api/v1/announcements [POST]
-//	@returns []updater.Announcement
-func (h *Handler) HandleGetAnnouncements(c echo.Context) error {
-	var announcements []updater.Announcement
-	return h.RespondWithData(c, announcements)
 }
 
 type MemoryStatsResponse struct {

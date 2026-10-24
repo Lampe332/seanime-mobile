@@ -1,18 +1,15 @@
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import {
-    usePlaybackCancelCurrentPlaylist,
-    usePlaybackPlaylistNext,
     usePlaybackPlayNextEpisode,
     usePlaybackSyncCurrentProgress,
 } from "@/api/hooks/playback_manager.hooks"
 import { useAutoplay, useNextEpisodeResolver } from "@/app/(main)/_features/autoplay/autoplay"
 import { usePlaylistManager } from "@/app/(main)/_features/playlists/_containers/global-playlist-manager"
 import { AutoplayCountdownModal } from "@/app/(main)/_features/progress-tracking/_components/autoplay-countdown-modal"
-import { PlaybackManager_PlaybackState, PlaybackManager_PlaylistState } from "@/app/(main)/_features/progress-tracking/_lib/playback-manager.types"
+import { PlaybackManager_PlaybackState } from "@/app/(main)/_features/progress-tracking/_lib/playback-manager.types"
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
-import { imageShimmer } from "@/components/shared/image-helpers"
 import { SeaImage } from "@/components/shared/sea-image"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
@@ -26,7 +23,6 @@ import { useAtom } from "jotai/react"
 import mousetrap from "mousetrap"
 import React from "react"
 import { BiSolidSkipNextCircle } from "react-icons/bi"
-import { MdCancel } from "react-icons/md"
 import { PiPopcornFill } from "react-icons/pi"
 import { toast } from "sonner"
 
@@ -103,7 +99,6 @@ export function PlaybackManagerProgressTracking() {
     const shouldBeDisplayed = isTracking || isCompleted
 
     const [state, setState] = React.useState<PlaybackManager_PlaybackState | null>(null)
-    const [playlistState, setPlaylistState] = React.useState<PlaybackManager_PlaylistState | null>(null)
 
     const { state: autoplayState, startAutoplay, cancelAutoplay } = useAutoplay()
 
@@ -116,10 +111,6 @@ export function PlaybackManagerProgressTracking() {
     const { currentPlaylist } = usePlaylistManager()
 
     const { mutate: syncProgress, isPending } = usePlaybackSyncCurrentProgress()
-
-    const { mutate: playlistNext, isSuccess: submittedPlaylistNext } = usePlaybackPlaylistNext([playlistState?.current?.name])
-
-    const { mutate: stopPlaylist, isSuccess: submittedStopPlaylist } = usePlaybackCancelCurrentPlaylist([playlistState?.current?.name])
 
     const {
         mutate: playNextEpisodeAction,
@@ -217,24 +208,6 @@ export function PlaybackManagerProgressTracking() {
         },
     })
 
-    useWebsocketMessageListener<PlaybackManager_PlaylistState | null>({
-        type: WSEvents.PLAYBACK_MANAGER_PLAYLIST_STATE,
-        onMessage: data => {
-            setPlaylistState(data)
-        },
-    })
-
-
-    const confirmPlayNext = useConfirmationDialog({
-        title: "Play next episode",
-        description: "Are you sure you want to play the next episode?",
-        actionText: "Confirm",
-        actionIntent: "success",
-        onConfirm: () => {
-            if (!submittedPlaylistNext) playlistNext()
-        },
-    })
-
     // Progress update keyboard shortcuts
     React.useEffect(() => {
         mousetrap.bind("u", () => {
@@ -246,11 +219,8 @@ export function PlaybackManagerProgressTracking() {
         mousetrap.bind("space", () => {
             if (!isPending && state?.completionPercentage && state?.completionPercentage > 0.7) {
                 cancelAutoplay()
-                if (state?.canPlayNext && !playlistState) {
+                if (state?.canPlayNext) {
                     playNextEpisodeAction()
-                }
-                if (!!playlistState?.next) {
-                    playlistNext()
                 }
             }
         })
@@ -259,7 +229,7 @@ export function PlaybackManagerProgressTracking() {
             mousetrap.unbind("u")
             mousetrap.unbind("space")
         }
-    }, [state?.completionPercentage && state?.completionPercentage > 0.7, state?.canPlayNext, !!playlistState?.next, cancelAutoplay])
+    }, [state?.completionPercentage && state?.completionPercentage > 0.7, state?.canPlayNext, cancelAutoplay])
 
     const confirmNextEpisode = useConfirmationDialog({
         title: "Play next episode",
@@ -270,17 +240,6 @@ export function PlaybackManagerProgressTracking() {
             if (!submittedNextEpisode) playNextEpisodeAction()
         },
     })
-
-    const confirmStopPlaylist = useConfirmationDialog({
-        title: "Play next",
-        actionText: "Confirm",
-        actionIntent: "alert",
-        description: "Are you sure you want to stop the playlist? It will be deleted.",
-        onConfirm: () => {
-            if (!submittedStopPlaylist) stopPlaylist()
-        },
-    })
-
 
     function handleUpdateProgress() {
         syncProgress()
@@ -294,7 +253,6 @@ export function PlaybackManagerProgressTracking() {
     //         setIsTracking(false)
     //         setIsCompleted(false)
     //         setState(null)
-    //         setPlaylistState(null)
     //         setWillAutoPlay(false)
     //         resetTorrentstreamAutoplayInfo()
     //         resetDebridstreamAutoplayInfo()
@@ -361,7 +319,6 @@ export function PlaybackManagerProgressTracking() {
                     !!state?.completionPercentage
                     && state?.completionPercentage > 0.7
                     && state?.canPlayNext
-                    && !playlistState
                 ) && <div data-progress-tracking-play-next-episode-button className="flex gap-2 justify-center items-center">
                     <Button
                         intent="gray-subtle"
@@ -377,71 +334,6 @@ export function PlaybackManagerProgressTracking() {
                         Play next episode
                     </Button>
                 </div>}
-                {!!playlistState?.next && (
-                    <div data-progress-tracking-playlist className="border rounded-[--radius-md] p-4 text-center relative overflow-hidden">
-                        <div className="space-y-3">
-                            <div>
-                                <h4 className="text-lg font-medium text-center text-[--muted] mb-2 uppercase tracking-wide">Playlist</h4>
-                                {!!playlistState.remaining &&
-                                    <p
-                                        data-progress-tracking-playlist-remaining
-                                        className="text-[--muted]"
-                                    >{playlistState.remaining} episode{playlistState.remaining > 1 ? "s" : ""} after this
-                                                               one</p>}
-                                <p
-                                    data-progress-tracking-playlist-next
-                                    className="text-center truncate line-clamp-1"
-                                >Next: <span className="font-semibold">{playlistState?.next?.name}</span>
-                                </p>
-                            </div>
-                            <div
-                                data-progress-tracking-playlist-next-episode-button
-                                className={cn(
-                                    "w-full rounded-[--radius-md] relative overflow-hidden",
-                                    submittedPlaylistNext ? "opacity-50 pointer-events-none" : "cursor-pointer",
-                                )}
-                                onClick={() => {
-                                    if (!submittedPlaylistNext) {
-                                        cancelAutoplay()
-                                        confirmPlayNext.open()
-                                    }
-                                }}
-                            >
-                                {(playlistState.next?.mediaImage) && <SeaImage
-                                    data-progress-tracking-playlist-next-episode-button-image
-                                    src={playlistState.next?.mediaImage || ""}
-                                    placeholder={imageShimmer(700, 475)}
-                                    sizes="10rem"
-                                    fill
-                                    alt=""
-                                    className="object-center object-cover z-[1]"
-                                />}
-                                <div
-                                    data-progress-tracking-playlist-next-episode-button-container
-                                    className="inset-0 relative z-[2] bg-black border bg-opacity-70 hover:bg-opacity-80 transition flex flex-col gap-2 items-center justify-center p-4"
-                                >
-                                    <p data-progress-tracking-playlist-next-episode-button-text className="flex gap-2 items-center">
-                                        <BiSolidSkipNextCircle className="block text-2xl" /> Play next</p>
-                                </div>
-                            </div>
-                            <div data-progress-tracking-playlist-next-episode-button-stop-button-container className="absolute -top-0.5 right-2">
-                                <IconButton
-                                    intent="alert-subtle"
-                                    onClick={() => {
-                                        if (!submittedStopPlaylist) {
-                                            cancelAutoplay()
-                                            confirmStopPlaylist.open()
-                                        }
-                                    }}
-                                    size="sm"
-                                    disabled={submittedPlaylistNext}
-                                    loading={submittedStopPlaylist}
-                                    icon={<MdCancel />}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                )}
             </Modal>
 
             <AutoplayCountdownModal
@@ -449,8 +341,6 @@ export function PlaybackManagerProgressTracking() {
                 onCancel={cancelAutoplay}
             />
 
-            <ConfirmationDialog {...confirmPlayNext} />
-            <ConfirmationDialog {...confirmStopPlaylist} />
             <ConfirmationDialog {...confirmNextEpisode} />
         </>
     )

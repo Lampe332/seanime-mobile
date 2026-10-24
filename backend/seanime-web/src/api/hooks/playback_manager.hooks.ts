@@ -32,28 +32,6 @@ export function usePlaybackPlayNextEpisode(...keys: any) {
     })
 }
 
-export function usePlaybackCancelCurrentPlaylist(...keys: any) {
-    return useServerMutation<boolean>({
-        endpoint: API_ENDPOINTS.PLAYBACK_MANAGER.PlaybackCancelCurrentPlaylist.endpoint,
-        method: API_ENDPOINTS.PLAYBACK_MANAGER.PlaybackCancelCurrentPlaylist.methods[0],
-        mutationKey: [API_ENDPOINTS.PLAYBACK_MANAGER.PlaybackCancelCurrentPlaylist.key, ...keys],
-        onSuccess: async () => {
-            toast.info("Cancelling playlist")
-        },
-    })
-}
-
-export function usePlaybackPlaylistNext(...keys: any) {
-    return useServerMutation<boolean>({
-        endpoint: API_ENDPOINTS.PLAYBACK_MANAGER.PlaybackPlaylistNext.endpoint,
-        method: API_ENDPOINTS.PLAYBACK_MANAGER.PlaybackPlaylistNext.methods[0],
-        mutationKey: [API_ENDPOINTS.PLAYBACK_MANAGER.PlaybackPlaylistNext.key, ...keys],
-        onSuccess: async () => {
-            toast.info("Loading next file")
-        },
-    })
-}
-
 export function usePlaybackPlayVideo() {
     return useServerMutation<boolean, PlaybackPlayVideo_Variables>({
         endpoint: API_ENDPOINTS.PLAYBACK_MANAGER.PlaybackPlayVideo.endpoint,

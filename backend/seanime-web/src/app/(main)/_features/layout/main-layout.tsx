@@ -25,7 +25,6 @@ import { useExtensionListener } from "@/app/(main)/_listeners/extensions.listene
 import { useExternalPlayerLinkListener } from "@/app/(main)/_listeners/external-player-link.listeners"
 import { useMangaListener } from "@/app/(main)/_listeners/manga.listeners"
 import { useMiscEventListeners } from "@/app/(main)/_listeners/misc-events.listeners"
-import { useSyncListener } from "@/app/(main)/_listeners/sync.listeners"
 import { useTorrentStreamListener } from "@/app/(main)/entry/_containers/torrent-stream/_lib/handle-torrent-stream"
 import { PlaybackPlayPill } from "@/app/(main)/entry/_containers/torrent-stream/playback-play-pill"
 import { ChapterDownloadsDrawer } from "@/app/(main)/manga/_containers/chapter-downloads/chapter-downloads-drawer"
@@ -33,7 +32,6 @@ import { MangaPreferencesSync, MangaSourceRefreshSync } from "@/app/(main)/manga
 import { AppLayout, AppLayoutContent, AppLayoutSidebar, AppSidebarProvider } from "@/components/ui/app-layout"
 import React from "react"
 import { useInvalidateQueriesListener } from "../../_listeners/invalidate-queries.listeners"
-import { Announcements } from "../announcements"
 import { NakamaManager } from "../nakama/nakama-manager"
 import { NakamaWatchPartyChat, NakamaWatchPartyChatProvider } from "../nakama/nakama-watch-party-chat"
 import { RateLimitLoader } from "../rate-limit-loader"
@@ -72,7 +70,6 @@ export const MainLayout = ({ children }: { children: React.ReactNode }) => {
             <NakamaWatchPartyChat />
             <TopIndefiniteLoader />
             <RateLimitLoader />
-            <Announcements />
             <LibraryExplorerDrawer />
             <PluginWebviewSlot slot="fixed" />
 
@@ -109,7 +106,6 @@ function Loader() {
     useExtensionListener()
     useMangaListener()
     useExternalPlayerLinkListener()
-    useSyncListener()
     useInvalidateQueriesListener()
     useTorrentStreamListener()
     useAuthEventListeners()

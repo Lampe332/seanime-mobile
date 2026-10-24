@@ -1,7 +1,7 @@
 import { useServerMutation, useServerQuery } from "@/api/client/requests"
-import { GetAnnouncements_Variables, UpdateHomeItems_Variables } from "@/api/generated/endpoint.types"
+import { UpdateHomeItems_Variables } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
-import { Models_HomeItem, Status, Updater_Announcement } from "@/api/generated/types"
+import { Models_HomeItem, Status } from "@/api/generated/types"
 import { copyToClipboard } from "@/lib/helpers/browser"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -38,13 +38,6 @@ export function useGetLatestLogContent() {
     })
 }
 
-export function useGetAnnouncements() {
-    return useServerMutation<Array<Updater_Announcement>, GetAnnouncements_Variables>({
-        endpoint: API_ENDPOINTS.STATUS.GetAnnouncements.endpoint,
-        method: API_ENDPOINTS.STATUS.GetAnnouncements.methods[0],
-        mutationKey: [API_ENDPOINTS.STATUS.GetAnnouncements.key],
-    })
-}
 
 // Memory profiling hooks
 

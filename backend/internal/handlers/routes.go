@@ -147,8 +147,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.GET("/memory/cpu", h.HandleGetCPUProfile)
 	v1.POST("/memory/gc", h.HandleForceGC)
 
-	v1.POST("/announcements", h.HandleGetAnnouncements)
-
 	// Auth
 	v1.POST("/auth/login", h.HandleLogin)
 	v1.POST("/auth/logout", h.HandleLogout)
@@ -281,9 +279,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	//
 
 	v1.POST("/playback-manager/sync-current-progress", h.HandlePlaybackSyncCurrentProgress)
-	v1.POST("/playback-manager/start-playlist", h.HandlePlaybackStartPlaylist)
-	v1.POST("/playback-manager/playlist-next", h.HandlePlaybackPlaylistNext)
-	v1.POST("/playback-manager/cancel-playlist", h.HandlePlaybackCancelCurrentPlaylist)
 	v1.POST("/playback-manager/next-episode", h.HandlePlaybackPlayNextEpisode)
 	v1.GET("/playback-manager/next-episode", h.HandlePlaybackGetNextEpisode)
 	v1.POST("/playback-manager/autoplay-next-episode", h.HandlePlaybackAutoPlayNextEpisode)

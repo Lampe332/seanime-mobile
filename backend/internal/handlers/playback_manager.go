@@ -136,69 +136,6 @@ func (h *Handler) HandlePlaybackAutoPlayNextEpisode(c echo.Context) error {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// HandlePlaybackStartPlaylist
-//
-//	@summary starts playing a playlist.
-//	@desc The client should refetch playlists.
-//	@route /api/v1/playback-manager/start-playlist [POST]
-//	@returns bool
-func (h *Handler) HandlePlaybackStartPlaylist(c echo.Context) error {
-
-	//type body struct {
-	//	DbId uint `json:"dbId"`
-	//}
-	//
-	//var b body
-	//if err := c.Bind(&b); err != nil {
-	//	return h.RespondWithError(c, err)
-	//}
-	//
-	//// Get playlist
-	//playlist, err := db_bridge.GetLegacyPlaylist(h.App.Database, b.DbId)
-	//if err != nil {
-	//	return h.RespondWithError(c, err)
-	//}
-	//
-	//err = h.App.PlaybackManager.StartPlaylist(playlist)
-	//if err != nil {
-	//	return h.RespondWithError(c, err)
-	//}
-
-	return h.RespondWithData(c, true)
-}
-
-// HandlePlaybackCancelCurrentPlaylist
-//
-//	@summary ends the current playlist.
-//	@desc This will stop the current playlist. This is non-blocking.
-//	@route /api/v1/playback-manager/cancel-playlist [POST]
-//	@returns bool
-func (h *Handler) HandlePlaybackCancelCurrentPlaylist(c echo.Context) error {
-
-	//err := h.App.PlaybackManager.CancelCurrentPlaylist()
-	//if err != nil {
-	//	return h.RespondWithError(c, err)
-	//}
-
-	return h.RespondWithData(c, true)
-}
-
-// HandlePlaybackPlaylistNext
-//
-//	@summary moves to the next item in the current playlist.
-//	@desc This is non-blocking so the client should prevent multiple calls until the next status is received.
-//	@route /api/v1/playback-manager/playlist-next [POST]
-//	@returns bool
-func (h *Handler) HandlePlaybackPlaylistNext(c echo.Context) error {
-
-	//err := h.App.PlaybackManager.RequestNextPlaylistFile()
-	//if err != nil {
-	//	return h.RespondWithError(c, err)
-	//}
-
-	return h.RespondWithData(c, true)
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // HandlePlaybackStartManualTracking

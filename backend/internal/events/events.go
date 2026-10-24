@@ -27,7 +27,6 @@ const (
 	RefreshedAnilistMangaCollection = "refreshed-anilist-manga-collection" // The manga collection has been refreshed
 	LibraryWatcherFileAdded         = "library-watcher-file-added"         // A new file has been added to the library
 	LibraryWatcherFileRemoved       = "library-watcher-file-removed"       // A file has been removed from the library
-	AutoDownloaderItemAdded         = "auto-downloader-item-added"         // An item has been added to the auto downloader queue
 
 	AutoScanStarted   = "auto-scan-started"   // The auto scan has started
 	AutoScanCompleted = "auto-scan-completed" // The auto scan has stopped
@@ -37,7 +36,6 @@ const (
 	PlaybackManagerProgressVideoCompleted      = "playback-manager-progress-video-completed"       // The video progress has been completed
 	PlaybackManagerProgressPlaybackState       = "playback-manager-progress-playback-state"        // Dispatches the current playback state
 	PlaybackManagerProgressUpdated             = "playback-manager-progress-updated"               // Signals that the progress has been updated
-	PlaybackManagerPlaylistState               = "playback-manager-playlist-state"                 // Dispatches the current playlist state
 	PlaybackManagerManualTrackingPlaybackState = "playback-manager-manual-tracking-playback-state" // Dispatches the current playback state
 	PlaybackManagerManualTrackingStopped       = "playback-manager-manual-tracking-stopped"        // The manual tracking has been stopped
 
@@ -48,16 +46,10 @@ const (
 	WarningToast = "warning-toast"
 	SuccessToast = "success-toast"
 
-	CheckForUpdates       = "check-for-updates"
-	CheckForAnnouncements = "check-for-announcements"
-
 	RefreshedMangaDownloadData  = "refreshed-manga-download-data"
 	ChapterDownloadQueueUpdated = "chapter-download-queue-updated"
-	OfflineSnapshotCreated      = "offline-snapshot-created"
 	MangaPreferencesUpdated     = "manga-preferences-updated"
 	MangaSourceRefreshUpdated   = "manga-source-refresh-job-updated"
-
-	MediastreamShutdownStream = "mediastream-shutdown-stream"
 
 	ExtensionsReloaded      = "extensions-reloaded"
 	ExtensionUpdatesFound   = "extension-updates-found"
@@ -68,10 +60,6 @@ const (
 	ExtensionPromptResponse = "extension-prompt-response"
 
 	ActiveTorrentCountUpdated = "active-torrent-count-updated"
-
-	SyncLocalQueueState = "sync-local-queue-state"
-	SyncLocalFinished   = "sync-local-finished"
-	SyncAnilistFinished = "sync-anilist-finished"
 
 	TorrentStreamState = "torrentstream-state"
 
