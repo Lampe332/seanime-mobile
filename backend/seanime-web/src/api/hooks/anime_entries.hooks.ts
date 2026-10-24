@@ -78,7 +78,7 @@ export function useGetAnimeEntrySilenceStatus(id: Nullish<string | number>) {
     const { data, ...rest } = useServerQuery({
         endpoint: API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntrySilenceStatus.endpoint.replace("{id}", String(id)),
         method: API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntrySilenceStatus.methods[0],
-        queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntrySilenceStatus.key],
+        queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntrySilenceStatus.key, String(id)],
         enabled: !!id,
     })
 

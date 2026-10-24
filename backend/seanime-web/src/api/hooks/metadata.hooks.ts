@@ -44,7 +44,7 @@ export function useGetMediaMetadataParent(id: number) {
     return useServerQuery<Models_MediaMetadataParent>({
         endpoint: API_ENDPOINTS.METADATA.GetMediaMetadataParent.endpoint.replace("{id}", String(id)),
         method: API_ENDPOINTS.METADATA.GetMediaMetadataParent.methods[0],
-        queryKey: [API_ENDPOINTS.METADATA.GetMediaMetadataParent.key],
+        queryKey: [API_ENDPOINTS.METADATA.GetMediaMetadataParent.key, String(id)],
         enabled: true,
     })
 }

@@ -33,7 +33,6 @@ export function useTorrentClientAction(onSuccess?: (variables: TorrentClientActi
         mutationKey: [API_ENDPOINTS.TORRENT_CLIENT.TorrentClientAction.key],
         onSuccess: async (data, variables) => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.TORRENT_CLIENT.GetActiveTorrentList.key] })
-            await queryClient.invalidateQueries({ queryKey: ["torrent-client-details"] })
 
             if (variables.action === "set-limits") {
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
