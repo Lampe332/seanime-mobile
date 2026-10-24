@@ -31,9 +31,8 @@ type (
 		mediaMap   *MediaMap // Refreshed on start and after each download
 		mediaMapMu sync.RWMutex
 
-		chapterDownloadedCh chan chapter_downloader.DownloadID
-		readingDownloadDir  bool
-		isOfflineRef        *util.Ref[bool]
+		readingDownloadDir bool
+		isOfflineRef       *util.Ref[bool]
 	}
 
 	// MediaMap is created after reading the download directory.

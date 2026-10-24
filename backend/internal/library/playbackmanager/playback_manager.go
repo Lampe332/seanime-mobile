@@ -89,11 +89,10 @@ type (
 		currentStreamAniDbEpisode mo.Option[string]
 
 		// \/ Manual progress tracking (non-integrated external player)
-		manualTrackingCtx           context.Context
-		manualTrackingCtxCancel     context.CancelFunc
-		manualTrackingPlaybackState PlaybackState
-		currentManualTrackingState  mo.Option[*ManualTrackingState]
-		manualTrackingWg            sync.WaitGroup
+		manualTrackingCtx          context.Context
+		manualTrackingCtxCancel    context.CancelFunc
+		currentManualTrackingState mo.Option[*ManualTrackingState]
+		manualTrackingWg           sync.WaitGroup
 
 		isOfflineRef    *util.Ref[bool]
 		animeCollection mo.Option[*anilist.AnimeCollection]

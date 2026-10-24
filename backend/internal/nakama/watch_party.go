@@ -124,9 +124,6 @@ type WatchPartyManager struct {
 	lastPositionTime  time.Time  // When we last updated the position
 	stallCount        int        // Number of consecutive stalls detected
 
-	lastPlayState     bool      // Last known play/pause state to detect rapid changes
-	lastPlayStateTime time.Time // When we last changed play state
-
 	// Sequence-based message ordering
 	sequenceMu     sync.Mutex // Mutex for sequence number operations
 	sendSequence   uint64     // Current sequence number for outgoing messages

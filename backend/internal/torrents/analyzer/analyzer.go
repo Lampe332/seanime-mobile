@@ -29,9 +29,8 @@ type (
 
 	// Analysis contains the results of the analysis.
 	Analysis struct {
-		files         []*File // Hydrated after scanFiles is called
-		selectedFiles []*File // Hydrated after findCorrespondingFiles is called
-		media         *anilist.CompleteAnime
+		files []*File // Hydrated after scanFiles is called
+		media *anilist.CompleteAnime
 	}
 
 	// File represents a torrent file and contains its metadata.

@@ -27,8 +27,6 @@ const (
 
 	colorBold     = 1
 	colorDarkGray = 90
-
-	unknownLevel = "???"
 )
 
 // Stores logs from all loggers. Used to write logs to a file when WriteGlobalLogBufferToFile is called.

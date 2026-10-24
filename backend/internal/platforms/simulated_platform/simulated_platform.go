@@ -37,8 +37,6 @@ type SimulatedPlatform struct {
 	mangaCollection                *anilist.MangaCollection
 	mu                             sync.RWMutex
 	collectionMu                   sync.RWMutex // used to protect access to collections
-	lastAnimeCollectionRefetchTime time.Time    // used to prevent refetching too many times
-	lastMangaCollectionRefetchTime time.Time    // used to prevent refetching too many times
 	helper                         *shared_platform.PlatformHelper
 	db                             *db.Database
 	refreshRateLimit               *limiter.Limiter

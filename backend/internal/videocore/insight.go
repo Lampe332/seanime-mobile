@@ -24,7 +24,6 @@ type InSight struct {
 	logger *zerolog.Logger
 	vc     *VideoCore
 
-	currentPosition       int64
 	inSightData           *InSightData
 	mu                    sync.RWMutex
 	characters            []*InSightCharacter

@@ -21,19 +21,17 @@ import (
 
 type (
 	AnilistPlatform struct {
-		logger                 *zerolog.Logger
-		username               mo.Option[string]
-		anilistClient          anilist.AnilistClient
-		useFixtureCollections  bool
-		animeCollection        mo.Option[*anilist.AnimeCollection]
-		rawAnimeCollection     mo.Option[*anilist.AnimeCollection]
-		mangaCollection        mo.Option[*anilist.MangaCollection]
-		rawMangaCollection     mo.Option[*anilist.MangaCollection]
-		isOffline              bool
-		offlinePlatformEnabled bool
-		helper                 *shared_platform.PlatformHelper
-		db                     *db.Database
-		extensionBankRef       *util.Ref[*extension.UnifiedBank]
+		logger                *zerolog.Logger
+		username              mo.Option[string]
+		anilistClient         anilist.AnilistClient
+		useFixtureCollections bool
+		animeCollection       mo.Option[*anilist.AnimeCollection]
+		rawAnimeCollection    mo.Option[*anilist.AnimeCollection]
+		mangaCollection       mo.Option[*anilist.MangaCollection]
+		rawMangaCollection    mo.Option[*anilist.MangaCollection]
+		helper                *shared_platform.PlatformHelper
+		db                    *db.Database
+		extensionBankRef      *util.Ref[*extension.UnifiedBank]
 	}
 )
 

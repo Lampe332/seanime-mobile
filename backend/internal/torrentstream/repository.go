@@ -13,7 +13,6 @@ import (
 	"seanime/internal/directstream"
 	"seanime/internal/events"
 	hibiketorrent "seanime/internal/extension/hibike/torrent"
-	"seanime/internal/library/anime"
 	"seanime/internal/library/playbackmanager"
 	"seanime/internal/mediacore"
 	"seanime/internal/mediaplayers/mediaplayer"
@@ -55,8 +54,6 @@ type (
 		mediacoreCoordinator            *mediacore.Coordinator
 		logger                          *zerolog.Logger
 		db                              *db.Database
-
-		onEpisodeCollectionChanged func(ec *anime.EpisodeCollection)
 
 		previousStreamOptions mo.Option[*StartStreamOptions]
 		preloadedStream       mo.Option[*preloadedStream]

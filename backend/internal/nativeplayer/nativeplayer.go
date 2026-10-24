@@ -1,7 +1,6 @@
 package nativeplayer
 
 import (
-	"context"
 	"seanime/internal/api/anilist"
 	"seanime/internal/events"
 	"seanime/internal/library/anime"
@@ -62,9 +61,8 @@ type (
 	// NativePlayer is the built-in HTML5 video player in Seanime.
 	// There can only be one instance of this player at a time.
 	NativePlayer struct {
-		wsEventManager        events.WSEventManagerInterface
-		videoCore             VideoCoreDelegate
-		seekedEventCancelFunc context.CancelFunc
+		wsEventManager events.WSEventManagerInterface
+		videoCore      VideoCoreDelegate
 
 		logger *zerolog.Logger
 	}

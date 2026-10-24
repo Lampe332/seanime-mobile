@@ -20,8 +20,6 @@ import (
 
 var errPrivilegedExecutionDenied = errors.New("this action requires either a server password or a trusted local origin")
 
-var errStrictModeDenied = errors.New("this action is disabled when secure mode is strict")
-
 var errStrictLocalOnlyDenied = errors.New("this action requires a trusted local origin when secure mode is strict")
 
 var errStrictFilesystemPathDenied = errors.New("this path is not allowed when secure mode is strict")

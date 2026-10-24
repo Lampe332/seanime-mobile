@@ -7,7 +7,6 @@ import (
 	"seanime/internal/continuity"
 	discordrpc_presence "seanime/internal/discordrpc/presence"
 	"seanime/internal/events"
-	"seanime/internal/library/anime"
 	"seanime/internal/mediacore"
 	"seanime/internal/mkvparser"
 	"seanime/internal/nativeplayer"
@@ -64,13 +63,11 @@ type (
 
 		// \/ Stream playback
 		// This is set by [SetStreamEpisodeCollection]
-		currentStreamEpisodeCollection mo.Option[*anime.EpisodeCollection]
 
 		settings *Settings
 
 		isOfflineRef    *util.Ref[bool]
 		animeCollection mo.Option[*anilist.AnimeCollection]
-		animeCache      *result.Cache[int, *anilist.BaseAnime]
 
 		parserCache *result.Cache[string, *mkvparser.MetadataParser]
 		//playbackStatusSubscribers *result.Map[string, *PlaybackStatusSubscriber]

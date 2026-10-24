@@ -14,7 +14,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 
 	// "github.com/gen2brain/go-fitz"
 	"github.com/rs/zerolog"
@@ -29,7 +28,6 @@ type Local struct {
 	dir    string // Directory to scan for manga
 	logger *zerolog.Logger
 
-	mu                 sync.Mutex
 	currentChapterPath string
 	currentZipCloser   io.Closer
 	currentPages       *result.Map[string, *loadedPage]

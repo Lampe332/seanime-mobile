@@ -117,9 +117,6 @@ type (
 		isStartingPlaylist   atomic.Bool
 		isLoadingNextEpisode atomic.Bool
 
-		currentPlaybackCtx    context.Context
-		currentPlaybackCancel func()
-
 		state      atomic.Value
 		playerType atomic.Value
 

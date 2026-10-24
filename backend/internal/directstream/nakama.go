@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"seanime/internal/api/anilist"
-	hibiketorrent "seanime/internal/extension/hibike/torrent"
 	"seanime/internal/library/anime"
 	"seanime/internal/mkvparser"
 	"seanime/internal/player"
@@ -21,7 +20,6 @@ var _ Stream = (*Nakama)(nil)
 // Nakama is a stream that is a torrent.
 type Nakama struct {
 	httpBaseStream
-	torrent       *hibiketorrent.AnimeTorrent
 	streamReadyCh chan struct{} // Closed by the initiator when the stream is ready
 }
 

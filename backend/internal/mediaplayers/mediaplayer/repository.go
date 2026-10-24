@@ -40,7 +40,6 @@ type (
 		Iina                  *iina.Iina
 		wsEventManager        events.WSEventManagerInterface
 		continuityManager     *continuity.Manager
-		playerInUse           string
 		completionThreshold   float64
 		mu                    sync.RWMutex
 		isRunning             bool

@@ -37,7 +37,6 @@ type (
 	Downloader struct {
 		logger         *zerolog.Logger
 		wsEventManager events.WSEventManagerInterface
-		database       *db.Database
 		downloadDir    string
 		mu             sync.Mutex
 		downloadMu     sync.Mutex
