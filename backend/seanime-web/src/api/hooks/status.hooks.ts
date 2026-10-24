@@ -13,7 +13,7 @@ export function useGetStatus() {
         queryKey: [API_ENDPOINTS.STATUS.GetStatus.key],
         enabled: true,
         retryDelay: 1000,
-        // Fixes macOS desktop app startup issue
+        // the server may still be starting when the WebView loads
         retry: 6,
     })
 }
