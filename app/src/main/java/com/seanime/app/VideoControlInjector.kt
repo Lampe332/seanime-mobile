@@ -5,12 +5,6 @@ import android.webkit.WebView
 object VideoControlInjector {
 
     fun inject(view: WebView) {
-        injectPlayerBehavior(view)
-    }
-
-    // ── Behavior (show/hide, double-tap seek) ─────────────────────────────────
-
-    private fun injectPlayerBehavior(view: WebView) {
         val js = """
         (function() {
             if (window.__seanimeControlPatchActive) return;

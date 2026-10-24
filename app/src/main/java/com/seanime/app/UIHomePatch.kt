@@ -91,7 +91,7 @@ object UIHomePatch {
             s.textContent = `
                 /* ── Modal Shell & Top Spacing ── */
                 .UI-Modal__content:not(.mobile-workspace) {
-                    padding: 3.5rem 0.75rem 1rem 0.75rem !important; /* Heavily increased top space */
+                    padding: 3.5rem 0.75rem 1rem 0.75rem !important;
                     max-height: 100svh !important;
                     overflow-y: auto !important;
                     overflow-x: hidden !important; 
@@ -124,7 +124,7 @@ object UIHomePatch {
                     align-items: flex-start !important;
                     gap: 0.75rem !important;
                     width: 100% !important;
-                    overflow: hidden !important; /* Required for ellipsis child */
+                    overflow: hidden !important;
                 }
 
                 .UI-Modal__content [data-media-page-header-entry-details-cover-image-container="true"] {
@@ -133,10 +133,10 @@ object UIHomePatch {
                     flex-shrink: 0 !important;
                 }
 
-                /* Fixed Title Truncation */
+                /* Title truncation */
                 .UI-Modal__content [data-media-page-header-entry-details-title-container="true"] {
                     flex: 1 1 auto !important;
-                    min-width: 0 !important; /* CRITICAL for flex ellipsis */
+                    min-width: 0 !important;
                     overflow: hidden !important;
                 }
 
@@ -168,16 +168,16 @@ object UIHomePatch {
                     display: none !important;
                 }
 
-                /* Fix squarish look and miniaturization IN MODAL ONLY */
+                /* Poster cards in the modal */
                 .UI-Modal__content [data-media-card-grid="true"] > * {
                     flex: 0 0 auto !important;
-                    width: 125px !important; /* Slightly bigger */
+                    width: 125px !important;
                     max-width: 125px !important;
                     scroll-snap-align: start !important;
                 }
 
                 .UI-Modal__content .media-entry-card__body {
-                    aspect-ratio: 2/3 !important; /* Proper vertical poster ratio */
+                    aspect-ratio: 2/3 !important;
                 }
 
                 /* Action buttons list */

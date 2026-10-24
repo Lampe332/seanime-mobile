@@ -36,9 +36,6 @@ object AppUpdater {
         monitor()
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    fun inject(webView: WebView) = Unit
-
     private fun emit(event: String, requestId: String, data: JSONObject) {
         data.put("requestId", requestId)
         handler.post {
