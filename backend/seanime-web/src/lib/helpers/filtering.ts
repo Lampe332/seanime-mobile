@@ -141,17 +141,7 @@ export const DEFAULT_COLLECTION_PARAMS: CollectionParams<"anime"> = {
     continueWatchingOnly: false,
 }
 
-export const DEFAULT_ANIME_COLLECTION_PARAMS: CollectionParams<"anime"> = {
-    sorting: "SCORE_DESC",
-    genre: null,
-    tags: null,
-    status: null,
-    format: null,
-    season: null,
-    year: null,
-    isAdult: false,
-    continueWatchingOnly: false,
-}
+export const DEFAULT_ANIME_COLLECTION_PARAMS = DEFAULT_COLLECTION_PARAMS
 
 function getParamValue<T extends any>(value: T | ""): any {
     if (value === "") return undefined
@@ -177,6 +167,40 @@ export function filterEntriesByTitle<T extends { media?: AL_BaseAnime | AL_BaseM
     return arr
 }
 
+/** Filters and sorts that only read the media, shared by AniList list entries and library entries. */
+function filterAndSortByMedia<T extends { media?: AL_BaseAnime | AL_BaseManga }>(
+    entries: T[],
+    params: CollectionParams<CollectionType>,
+    showAdultContent: boolean | undefined,
+    mediaTagMap: Record<number, Array<string>> | null | undefined,
+) {
+    const year = Number(params.year)
+    let arr = entries.filter(n => (!params.isAdult || n.media?.isAdult)
+        && (showAdultContent || !n.media?.isAdult)
+        && (!params.format || n.media?.format === params.format)
+        && (!params.season || n.media?.season === params.season)
+        && (!params.status || n.media?.status === params.status)
+        && (!params.year || (n.media as AL_BaseAnime)?.seasonYear === year || n.media?.startDate?.year === year)
+        && (!params.genre?.length || params.genre.every(genre => n.media?.genres?.includes(genre)))
+        && (!params.tags?.length || !mediaTagMap || params.tags.every(tag => (mediaTagMap[n.media?.id!] ?? []).includes(tag))))
+
+    // Initial sort by name
+    arr = sortBy(arr, n => n?.media?.title?.userPreferred).reverse()
+
+    const sorting = getParamValue(params.sorting)
+    if (sorting === "TITLE")
+        arr.sort((a, b) => a?.media?.title?.userPreferred?.localeCompare(b?.media?.title?.userPreferred!) || 0)
+    if (sorting === "TITLE_DESC")
+        arr.sort((a, b) => b?.media?.title?.userPreferred?.localeCompare(a?.media?.title?.userPreferred!) || 0)
+
+    if (sorting === "RELEASE_DATE" || sorting === "RELEASE_DATE_DESC") {
+        arr = sortBy(arr.filter(n => !!n.media?.startDate?.year && !!n.media.startDate.month),
+            n => new Date(n.media!.startDate!.year!, n.media!.startDate!.month! - 1))
+        if (sorting === "RELEASE_DATE_DESC") arr.reverse()
+    }
+    return arr
+}
+
 export function filterListEntries<T extends AL_MangaCollection_MediaListCollection_Lists_Entries[] | AL_AnimeCollection_MediaListCollection_Lists_Entries[], V extends CollectionType>(
     type: V,
     entries: T | null | undefined,
@@ -185,103 +209,45 @@ export function filterListEntries<T extends AL_MangaCollection_MediaListCollecti
     mediaTagMap?: Record<number, Array<string>> | null,
 ) {
     if (!entries) return []
-    let arr = [...entries]
-
-    // Filter by isAdult
-    if (!!arr && params.isAdult) arr = arr.filter(n => n.media?.isAdult)
-
-    // Filter by showAdultContent
-    if (!showAdultContent) arr = arr.filter(n => !n.media?.isAdult)
-
-    // Filter by format
-    if (!!arr && !!params.format) arr = arr.filter(n => n.media?.format === params.format)
-
-    // Filter by season
-    if (!!arr && !!params.season) arr = arr.filter(n => n.media?.season === params.season)
-
-    // Filter by status
-    if (!!arr && !!params.status) arr = arr.filter(n => n.media?.status === params.status)
-
-    // Filter by year
-    if (!!arr && !!params.year) arr = arr.filter(n => (n.media as AL_BaseAnime)?.seasonYear ?
-        ((n.media as AL_BaseAnime)?.seasonYear === Number(params.year) || n.media?.startDate?.year === Number(params.year))
-        : n.media?.startDate?.year === Number(params.year))
-
-    // Filter by genre
-    if (!!arr && !!params.genre?.length) {
-        arr = arr.filter(n => {
-            return params.genre?.every(genre => n.media?.genres?.includes(genre))
-        })
-    }
-
-    if (!!arr && !!params.tags?.length && !!mediaTagMap) {
-        arr = arr.filter(n => {
-            const mediaId = n.media?.id
-            const tags = mediaId ? (mediaTagMap[mediaId] ?? []) : []
-
-            return params.tags?.every(tag => tags.includes(tag))
-        })
-    }
-
-    // Initial sort by name
-    arr = sortBy(arr, n => n?.media?.title?.userPreferred).reverse()
-
-    // Sort by title
-    if (getParamValue(params.sorting) === "TITLE")
-        // arr = sortBy(arr, n => n?.media?.title?.userPreferred)
-        arr.sort((a, b) => a?.media?.title?.userPreferred?.localeCompare(b?.media?.title?.userPreferred!) || 0)
-    if (getParamValue(params.sorting) === "TITLE_DESC")
-        // arr = sortBy(arr, n => n?.media?.title?.userPreferred).reverse()
-        arr.sort((a, b) => b?.media?.title?.userPreferred?.localeCompare(a?.media?.title?.userPreferred!) || 0)
-
-    // Sort by release date
-    if (getParamValue(params.sorting) === "RELEASE_DATE" || getParamValue(params.sorting) === "RELEASE_DATE_DESC") {
-        arr = arr?.filter(n => n.media?.startDate && !!n.media.startDate.year && !!n.media.startDate.month)
-    }
-    if (getParamValue(params.sorting) === "RELEASE_DATE")
-        arr = sortBy(arr, n => new Date(n?.media?.startDate?.year!, n?.media?.startDate?.month! - 1))
-    if (getParamValue(params.sorting) === "RELEASE_DATE_DESC")
-        arr = sortBy(arr, n => new Date(n?.media?.startDate?.year!, n?.media?.startDate?.month! - 1)).reverse()
+    let arr = filterAndSortByMedia<T[number]>(entries, params, showAdultContent, mediaTagMap)
+    const sorting = getParamValue(params.sorting)
 
     // Sort by list dates
-    if (getParamValue(params.sorting) === "CREATED_AT_DESC")
+    if (sorting === "CREATED_AT_DESC")
         arr = sortBy(arr, n => n.createdAt ?? 0).reverse()
-    if (getParamValue(params.sorting) === "UPDATED_AT_DESC")
+    if (sorting === "UPDATED_AT_DESC")
         arr = sortBy(arr, n => n.updatedAt ?? 0).reverse()
 
     // Sort by score
-    if (getParamValue(params.sorting) === "SCORE")
+    if (sorting === "SCORE")
         arr = sortBy(arr, n => n?.score || 999999)
-    if (getParamValue(params.sorting) === "SCORE_DESC")
+    if (sorting === "SCORE_DESC")
         arr = sortBy(arr, n => n?.score || 0).reverse()
 
-    if (getParamValue(params.sorting) === "AUDIENCE_SCORE")
+    if (sorting === "AUDIENCE_SCORE")
         arr = sortBy(arr, n => n?.media?.meanScore || 999999)
-    if (getParamValue(params.sorting) === "AUDIENCE_SCORE_DESC")
+    if (sorting === "AUDIENCE_SCORE_DESC")
         arr = sortBy(arr, n => n?.media?.meanScore || 0).reverse()
 
     // Sort by start date
-    // if (getParamValue(params.sorting) === "START_DATE" || getParamValue(params.sorting) === "START_DATE_DESC") {
-    //     arr = arr?.filter(n => n.startedAt && !!n.startedAt.year && !!n.startedAt.month && !!n.startedAt.day)
-    // }
-    if (getParamValue(params.sorting) === "START_DATE")
+    if (sorting === "START_DATE")
         arr = sortBy(arr, n => new Date(n?.startedAt?.year || 9999, (n?.startedAt?.month || 1) - 1, n?.startedAt?.day || 1))
-    if (getParamValue(params.sorting) === "START_DATE_DESC")
+    if (sorting === "START_DATE_DESC")
         arr = sortBy(arr, n => new Date(n?.startedAt?.year || 1000, (n?.startedAt?.month || 1) - 1, n?.startedAt?.day || 1)).reverse()
 
     // Sort by end date
-    if (getParamValue(params.sorting) === "END_DATE" || getParamValue(params.sorting) === "END_DATE_DESC") {
+    if (sorting === "END_DATE" || sorting === "END_DATE_DESC") {
         arr = arr?.filter(n => n.completedAt && !!n.completedAt.year && !!n.completedAt.month && !!n.completedAt.day)
     }
-    if (getParamValue(params.sorting) === "END_DATE")
+    if (sorting === "END_DATE")
         arr = sortBy(arr, n => new Date(n?.completedAt?.year!, n?.completedAt?.month! - 1, n?.completedAt?.day))
-    if (getParamValue(params.sorting) === "END_DATE_DESC")
+    if (sorting === "END_DATE_DESC")
         arr = sortBy(arr, n => new Date(n?.completedAt?.year!, n?.completedAt?.month! - 1, n?.completedAt?.day)).reverse()
 
     // Sort by progress
-    if (getParamValue(params.sorting) === "PROGRESS")
+    if (sorting === "PROGRESS")
         arr = sortBy(arr, n => n?.progress || 0)
-    if (getParamValue(params.sorting) === "PROGRESS_DESC")
+    if (sorting === "PROGRESS_DESC")
         arr = sortBy(arr, n => n?.progress || 0).reverse()
 
     return arr
@@ -295,104 +261,45 @@ export function filterCollectionEntries<T extends Anime_LibraryCollectionEntry[]
     mediaTagMap?: Record<number, Array<string>> | null,
 ) {
     if (!entries) return []
-    let arr = [...entries]
-
-    // Filter by isAdult
-    if (!!arr && params.isAdult) arr = arr.filter(n => n.media?.isAdult)
-
-    // Filter by showAdultContent
-    if (!showAdultContent) arr = arr.filter(n => !n.media?.isAdult)
-
-    // Filter by format
-    if (!!arr && !!params.format) arr = arr.filter(n => n.media?.format === params.format)
-
-    // Filter by season
-    if (!!arr && !!params.season) arr = arr.filter(n => n.media?.season === params.season)
-
-    // Filter by status
-    if (!!arr && !!params.status) arr = arr.filter(n => n.media?.status === params.status)
-
-    // Filter by year
-    if (!!arr && !!params.year) arr = arr.filter(n => n.media?.seasonYear === Number(params.year) || n.media?.startDate?.year === Number(params.year))
-
-    // Filter by genre
-    if (!!arr && !!params.genre?.length) {
-        arr = arr.filter(n => {
-            return params.genre?.every(genre => n.media?.genres?.includes(genre))
-        })
-    }
-
-    if (!!arr && !!params.tags?.length && !!mediaTagMap) {
-        arr = arr.filter(n => {
-            const mediaId = n.media?.id
-            const tags = mediaId ? (mediaTagMap[mediaId] ?? []) : []
-
-            return params.tags?.every(tag => tags.includes(tag))
-        })
-    }
-
-    // Initial sort by name
-    arr = sortBy(arr, n => n?.media?.title?.userPreferred).reverse()
-
-    // Sort by title
-    if (getParamValue(params.sorting) === "TITLE")
-        // arr = sortBy(arr, n => n?.media?.title?.userPreferred)
-        arr.sort((a, b) => a?.media?.title?.userPreferred?.localeCompare(b?.media?.title?.userPreferred!) || 0)
-    if (getParamValue(params.sorting) === "TITLE_DESC")
-        // arr = sortBy(arr, n => n?.media?.title?.userPreferred).reverse()
-        arr.sort((a, b) => b?.media?.title?.userPreferred?.localeCompare(a?.media?.title?.userPreferred!) || 0).reverse()
-
-    // Sort by release date
-    if (getParamValue(params.sorting) === "RELEASE_DATE" || getParamValue(params.sorting) === "RELEASE_DATE_DESC") {
-        arr = arr?.filter(n => n.media?.startDate && !!n.media.startDate.year && !!n.media.startDate.month)
-    }
-    if (getParamValue(params.sorting) === "RELEASE_DATE")
-        arr = sortBy(arr, n => new Date(n?.media?.startDate?.year!, n?.media?.startDate?.month! - 1))
-    if (getParamValue(params.sorting) === "RELEASE_DATE_DESC")
-        arr = sortBy(arr, n => new Date(n?.media?.startDate?.year!, n?.media?.startDate?.month! - 1)).reverse()
+    let arr = filterAndSortByMedia<T[number]>(entries, params, showAdultContent, mediaTagMap)
+    const sorting = getParamValue(params.sorting)
 
     // Sort by list dates
-    if (getParamValue(params.sorting) === "CREATED_AT_DESC")
+    if (sorting === "CREATED_AT_DESC")
         arr = sortBy(arr, n => n.listData?.createdAt ?? 0).reverse()
-    if (getParamValue(params.sorting) === "UPDATED_AT_DESC")
+    if (sorting === "UPDATED_AT_DESC")
         arr = sortBy(arr, n => n.listData?.updatedAt ?? 0).reverse()
 
     // Sort by score
-    if (getParamValue(params.sorting) === "SCORE")
-        arr = sortBy(arr, n => {
-            return n?.listData?.score || 999999
-        })
-    if (getParamValue(params.sorting) === "SCORE_DESC")
+    if (sorting === "SCORE")
+        arr = sortBy(arr, n => n?.listData?.score || 999999)
+    if (sorting === "SCORE_DESC")
         arr = sortBy(arr, n => n?.listData?.score || 0).reverse()
 
     // Sort by start date
-    // if (getParamValue(params.sorting) === "START_DATE" || getParamValue(params.sorting) === "START_DATE_DESC") {
-    //     arr = arr?.filter(n => !!n.listData?.startedAt)
-    // }
-    if (getParamValue(params.sorting) === "START_DATE")
+    if (sorting === "START_DATE")
         arr = sortBy(arr, n => new Date(n?.listData?.startedAt ?? new Date(9999, 1, 1).toISOString()))
-    if (getParamValue(params.sorting) === "START_DATE_DESC")
+    if (sorting === "START_DATE_DESC")
         arr = sortBy(arr, n => new Date(n?.listData?.startedAt ?? new Date(1000, 1, 1).toISOString())).reverse()
 
     // Sort by end date
-    if (getParamValue(params.sorting) === "END_DATE" || getParamValue(params.sorting) === "END_DATE_DESC") {
+    if (sorting === "END_DATE" || sorting === "END_DATE_DESC") {
         arr = arr?.filter(n => !!n.listData?.completedAt)
     }
-    if (getParamValue(params.sorting) === "END_DATE")
+    if (sorting === "END_DATE")
         arr = sortBy(arr, n => new Date(n?.listData?.completedAt!))
-    if (getParamValue(params.sorting) === "END_DATE_DESC")
+    if (sorting === "END_DATE_DESC")
         arr = sortBy(arr, n => new Date(n?.listData?.completedAt!)).reverse()
 
     // Sort by progress
-    if (getParamValue(params.sorting) === "PROGRESS")
+    if (sorting === "PROGRESS")
         arr = sortBy(arr, n => n?.listData?.progress || 0)
-    if (getParamValue(params.sorting) === "PROGRESS_DESC")
+    if (sorting === "PROGRESS_DESC")
         arr = sortBy(arr, n => n?.listData?.progress || 0).reverse()
 
     return arr
 }
 
-/** */
 export function filterAnimeCollectionEntries<T extends Anime_LibraryCollectionEntry[]>(
     entries: T | null | undefined,
     params: CollectionParams<"anime">,
@@ -420,9 +327,6 @@ export function filterAnimeCollectionEntries<T extends Anime_LibraryCollectionEn
 
     // Sort by unwatched episodes
     if (getParamValue(params.sorting) === "UNWATCHED_EPISODES") {
-        // arr = sortBy(arr,
-        //     n => !!n.libraryData?.mainFileCount ? n.libraryData?.unwatchedCount : (anilist_getUnwatchedCount(n.media, n.listData?.progress) ||
-        // 99999))
         arr = sortBy(arr,
             n => !!n.libraryData?.mainFileCount ? n.libraryData?.unwatchedCount : (
                 !!n.nakamaLibraryData?.mainFileCount ? n.nakamaLibraryData?.unwatchedCount : (anilist_getUnwatchedCount(n.media,
@@ -430,9 +334,6 @@ export function filterAnimeCollectionEntries<T extends Anime_LibraryCollectionEn
             ))
     }
     if (getParamValue(params.sorting) === "UNWATCHED_EPISODES_DESC") {
-        // arr = sortBy(arr,
-        //     n => !!n.libraryData?.mainFileCount ? n.libraryData?.unwatchedCount : anilist_getUnwatchedCount(n.media,
-        // n.listData?.progress)).reverse()
         arr = sortBy(arr,
             n => !!n.libraryData?.mainFileCount ? n.libraryData?.unwatchedCount : (
                 !!n.nakamaLibraryData?.mainFileCount ? n.nakamaLibraryData?.unwatchedCount : (anilist_getUnwatchedCount(n.media,
@@ -452,7 +353,6 @@ export function filterAnimeCollectionEntries<T extends Anime_LibraryCollectionEn
     return arr
 }
 
-/** */
 export function filterMangaCollectionEntries<T extends Anime_LibraryCollectionEntry[]>(
     entries: T | null | undefined,
     params: CollectionParams<"manga">,
