@@ -3,7 +3,6 @@ import { cva } from "class-variance-authority"
 import * as React from "react"
 import { Button } from "../button"
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "../core/styling"
-import { LoadingOverlay } from "../loading-spinner"
 import { Modal } from "../modal"
 
 /* -------------------------------------------------------------------------------------------------
@@ -50,11 +49,6 @@ export type DangerZoneProps = React.ComponentPropsWithRef<"div"> & ComponentAnat
      * Callback fired when the delete button is clicked.
      */
     onDelete?: () => void
-    /**
-     * If true, a loading overlay will be shown when the delete button is clicked.
-     * @default true
-     **/
-    showLoadingOverlayOnDelete?: boolean
 }
 
 export const DangerZone = React.forwardRef<HTMLDivElement, DangerZoneProps>((props, ref) => {
@@ -64,7 +58,6 @@ export const DangerZone = React.forwardRef<HTMLDivElement, DangerZoneProps>((pro
         actionText,
         onDelete,
         className,
-        showLoadingOverlayOnDelete = true,
         titleClass,
         iconClass,
         dialogBodyClass,
@@ -77,12 +70,8 @@ export const DangerZone = React.forwardRef<HTMLDivElement, DangerZoneProps>((pro
 
     const [isOpen, setIsOpen] = React.useState(false)
 
-    const [blockScreen, setBlockScreen] = React.useState<boolean>(false)
-
     return (
         <>
-            <LoadingOverlay hide={!blockScreen} />
-
             <div ref={ref} className={cn(DangerZoneAnatomy.root(), className)} {...rest}>
                 <span className={cn(DangerZoneAnatomy.icon(), iconClass)}>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
@@ -125,8 +114,7 @@ export const DangerZone = React.forwardRef<HTMLDivElement, DangerZoneProps>((pro
                     <Button
                         intent="alert" size="sm" onClick={() => {
                         setIsOpen(false)
-                        showLoadingOverlayOnDelete && setBlockScreen(true)
-                        onDelete && onDelete()
+                        onDelete?.()
                     }}
                     >{t("Delete", "Löschen")}</Button>
                     <Button
