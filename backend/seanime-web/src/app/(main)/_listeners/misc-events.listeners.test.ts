@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-describe("server toasts on phones", () => {
+// The first test pays the cold import of the listener module, which takes over 5 s while the whole suite runs.
+describe("server toasts on phones", { timeout: 30_000 }, () => {
     afterEach(() => {
         vi.unstubAllEnvs()
         vi.unstubAllGlobals()
