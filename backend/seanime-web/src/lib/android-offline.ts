@@ -1,9 +1,8 @@
 import "@/lib/app-language"
-/** Android-only capabilities. Desktop and ordinary web clients keep their existing behavior. */
+/** The native download and offline-player bridge (OfflineBridge.kt). */
 declare global {
     interface Window {
         SeanimeOffline?: {
-            open(token: string): void
             download(token: string, payload: string): void
             snapshot(token: string): string
             action(token: string, id: string, action: string): void

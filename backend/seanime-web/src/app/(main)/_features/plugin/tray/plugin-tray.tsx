@@ -233,7 +233,7 @@ export function PluginTray(props: TrayPluginProps) {
             <MobileWorkspace
                 open={open && openedTrayPlugin === props.trayIcon.extensionId}
                 onOpenChange={setOpen}
-                title={<span className="flex min-w-0 items-center gap-2">{props.trayIcon.iconUrl && <img src={props.trayIcon.iconUrl} alt="" className="size-7 shrink-0 rounded-lg object-contain" />}<span className="min-w-0 break-words">{props.trayIcon.extensionName}</span></span>}
+                title={<span className="flex min-w-0 items-center gap-2">{props.trayIcon.iconUrl && <img loading="lazy" decoding="async" src={props.trayIcon.iconUrl} alt="" className="size-7 shrink-0 rounded-lg object-contain" />}<span className="min-w-0 break-words">{props.trayIcon.extensionName}</span></span>}
             >
                 <div data-plugin-tray-popover-content={props.trayIcon.extensionId} className="mobile-plugin-runtime">
                     <PluginTrayProvider props={props}>

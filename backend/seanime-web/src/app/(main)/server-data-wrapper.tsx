@@ -117,7 +117,7 @@ export function ServerDataWrapper(props: ServerDataWrapperProps) {
     if (currentServerStatus.updating) {
         return <div className="container max-w-3xl py-10">
             <div className="mb-4 flex justify-center w-full">
-                <img src="/seanime-logo.png" alt="logo" className="w-14 h-auto" />
+                <img loading="lazy" decoding="async" src="/seanime-logo.png" alt="logo" className="w-14 h-auto" />
             </div>
             <p className="text-center text-lg">
                 Seanime is currently updating. Refresh the page once the update is complete and the connection has been reestablished.
@@ -131,7 +131,7 @@ export function ServerDataWrapper(props: ServerDataWrapperProps) {
                 <AppLayoutStack>
                     <div className="text-center space-y-4">
                         <div className="mb-4 flex justify-center w-full">
-                            <img src="/seanime-logo.png" alt="logo" className="w-24 h-auto" />
+                            <img loading="lazy" decoding="async" src="/seanime-logo.png" alt="logo" className="w-24 h-auto" />
                         </div>
                         <h3>Welcome!</h3>
                         <Button
@@ -162,7 +162,7 @@ export function ServerDataWrapper(props: ServerDataWrapperProps) {
                 <AppLayoutStack>
                     <div className="text-center space-y-4">
                         <div className="mb-4 flex justify-center w-full">
-                            <img src="/seanime-logo.png" alt="logo" className="w-24 h-auto" />
+                            <img loading="lazy" decoding="async" src="/seanime-logo.png" alt="logo" className="w-24 h-auto" />
                         </div>
                         <h3>Welcome!</h3>
                         <a

@@ -1114,3 +1114,8 @@ media-preview-chapter-display {
 /* The app shows no ranking, genre, score or studio badges and no description toggle on media pages and previews. */
 [data-anime-meta-section-rankings-container="true"], [data-media-entry-genres-list="true"], [data-media-entry-audience-score="true"],
 [data-anime-entry-studio-badge="true"], [data-media-page-header-details-description-trigger="true"] { display: none !important; }
+
+/* With reduced motion requested, every animation and transition finishes at once. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}

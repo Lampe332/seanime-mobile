@@ -30,7 +30,7 @@ export function MobileGettingStarted({ pending }: { pending: boolean }) {
 
     return <div className="gsm" data-mobile-getting-started>
         <header className="gsm-head">
-            <img src="/seanime-logo.png" alt="" className="gsm-logo" />
+            <img loading="lazy" decoding="async" src="/seanime-logo.png" alt="" className="gsm-logo" />
             <h1>{t("Welcome to Seanime", "Willkommen bei Seanime")}</h1>
             <p>{t("Choose what the app shows. You can change all of this later in Settings.",
                 "Wähle, was die App zeigt. Alles lässt sich später in den Einstellungen ändern.")}</p>

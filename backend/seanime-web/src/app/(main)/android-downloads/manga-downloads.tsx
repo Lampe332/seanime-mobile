@@ -186,7 +186,7 @@ export function MangaDownloads({ selectedId }: { selectedId: number }) {
             <section className="mdl-object">
                 <div className="mdl-object-identity">
                     <span className="mdl-art mdl-object-cover">{offlineAsset(art[selectedId]?.coverAsset)
-                        ? <img src={offlineAsset(art[selectedId]?.coverAsset)} alt={t("Manga cover", "Manga-Cover")} decoding="async" /> : <LuBookOpen aria-hidden />}</span>
+                        ? <img loading="lazy" src={offlineAsset(art[selectedId]?.coverAsset)} alt={t("Manga cover", "Manga-Cover")} decoding="async" /> : <LuBookOpen aria-hidden />}</span>
                     <div className="mdl-object-title">
                         <h1>{title(selected.media) || `Manga ${selectedId}`}</h1>
                         {selected.media?.genres?.length ? <p>{selected.media.genres.slice(0, 4).join(" · ")}</p> : null}

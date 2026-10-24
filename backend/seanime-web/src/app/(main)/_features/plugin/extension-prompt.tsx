@@ -121,7 +121,7 @@ export function ExtensionPrompt() {
                             <Icon className="size-8" />
                         </div>
                         {!!prompt.extension?.icon && (
-                            <img
+                            <img loading="lazy" decoding="async"
                                 src={prompt.extension.icon}
                                 alt=""
                                 className="size-7 rounded-xl bg-transparent object-cover shadow-md absolute -bottom-2 -right-2"

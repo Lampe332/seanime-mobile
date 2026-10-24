@@ -422,7 +422,7 @@ function StatusField({ media, type }: {
 function MobileEntryTitle({ media }: { media?: AL_BaseAnime | AL_BaseManga }) {
     const cover = media?.coverImage?.medium || media?.coverImage?.large
     return <span className="mobile-anilist-head">
-        {cover && <img src={getImageUrl(cover)} alt="" className="mobile-anilist-cover" />}
+        {cover && <img loading="lazy" decoding="async" src={getImageUrl(cover)} alt="" className="mobile-anilist-cover" />}
         <span className="mobile-anilist-name">
             <span className="mobile-anilist-title">{media?.title?.userPreferred}</span>
             <span className="mobile-anilist-sub">AniList</span>

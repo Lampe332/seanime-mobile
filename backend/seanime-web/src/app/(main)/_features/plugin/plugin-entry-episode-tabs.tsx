@@ -226,7 +226,7 @@ export function PluginAnimeEntryTabIcon(props: { icon?: string, className?: stri
     }
 
     if (icon.startsWith("http://") || icon.startsWith("https://") || icon.startsWith("data:image/") || icon.startsWith("/")) {
-        return <img
+        return <img loading="lazy" decoding="async"
             src={icon}
             alt=""
             className={cn("inline-block size-4 rounded-sm object-contain", className)}

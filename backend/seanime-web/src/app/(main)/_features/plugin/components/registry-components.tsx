@@ -1042,7 +1042,7 @@ interface PluginImgProps {
 
 export function PluginImg(props: PluginImgProps) {
     return (
-        <img
+        <img loading="lazy" decoding="async"
             src={props.src}
             alt={props.alt || ""}
             width={props.width}

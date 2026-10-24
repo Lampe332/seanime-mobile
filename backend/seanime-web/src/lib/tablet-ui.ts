@@ -4,7 +4,7 @@ import React from "react"
  * Tablet layout: the Android app on a screen whose smaller side is 600 CSS px or more (the Android sw600dp rule) shows the
  * phone screens laid out for a tablet (app/tablet.css under html[data-layout="tablet"]). Decided at page load from the
  * screen, not the window, so a split-screen window keeps the tablet rules (they fall back to the phone bar below 600px).
- * The native side uses the same rule (UIBottomNav.kt, VideoControlInjector.kt).
+ * The native injections (UIBottomNav.kt, VideoControlInjector.kt) read that html attribute.
  */
 export const IS_TABLET_UI = typeof window !== "undefined" && isTabletScreen()
 

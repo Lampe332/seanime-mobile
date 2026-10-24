@@ -351,7 +351,6 @@ class MainActivity : Activity() {
                 retryHandler.removeCallbacks(retryLoad)
                 if (view != null) retryCountMap[view] = 0
 
-                Performance.injectRuntimeOptimizations(webView)
                 pipManager.injectHijacker()
                 VideoControlInjector.inject(webView)
                 UIPatches.inject(webView)

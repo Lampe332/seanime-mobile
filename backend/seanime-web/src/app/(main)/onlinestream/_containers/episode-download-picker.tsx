@@ -74,7 +74,7 @@ export function EpisodeDownloadPicker({ media, episodes, provider, server, quali
         <Modal open={open} onOpenChange={setOpen} contentClass="mobile-anime-dialog mobile-download-sheet" title={t("Download episodes", "Folgen herunterladen")}>
             <div data-episode-download-picker>
                 <div className="mobile-download-head">
-                    {!!(media.coverImage?.large || media.coverImage?.medium) && <img src={media.coverImage?.large || media.coverImage?.medium} alt="" className="mobile-download-cover" />}
+                    {!!(media.coverImage?.large || media.coverImage?.medium) && <img loading="lazy" decoding="async" src={media.coverImage?.large || media.coverImage?.medium} alt="" className="mobile-download-cover" />}
                     <div className="min-w-0">
                         <p className="mobile-download-title">{media.title?.userPreferred || media.title?.romaji}</p>
                         <p className="mobile-download-meta">{[`${all.length} ${t(episodeWord(all.length), all.length === 1 ? "Folge" : "Folgen")}`, dubbed ? "Dub" : t("Original audio", "Originalton"), provider, quality || "Auto"].filter(Boolean).join(" · ")}</p>

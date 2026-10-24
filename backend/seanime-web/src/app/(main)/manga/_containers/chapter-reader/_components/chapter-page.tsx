@@ -95,7 +95,7 @@ export function ChapterPage(props: ChapterPageProps) {
                     >
                         <IconButton intent="white" icon={<FaRedo id="retry-icon" />} onClick={retry} id="retry-button" tabIndex={-1} />
                     </div>}
-                {isReady && <img
+                {isReady && <img loading="lazy" decoding="async"
                     data-chapter-page-image
                     data-page-index={index}
                     src={pageUrl}

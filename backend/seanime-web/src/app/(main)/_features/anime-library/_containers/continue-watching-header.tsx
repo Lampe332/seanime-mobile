@@ -284,7 +284,7 @@ function EpisodeCardSidebar({ episode, isTransitioning }: EpisodeCardSidebarProp
                     className="2xl:w-[500px] xl:w-[400px] lg:w-[300px] rounded-xl overflow-hidden"
                 >
                     {/* <div className="w-[160%] h-[120%] -left-[30%] -top-0 opacity-50 absolute z-[1]">
-                     <img src="/radial-shadow.png" alt="radial shadow" className="w-full h-full object-contain" />
+                     <img loading="lazy" decoding="async" src="/radial-shadow.png" alt="radial shadow" className="w-full h-full object-contain" />
                      </div> */}
                     <EpisodeCard
                         episode={episode}
