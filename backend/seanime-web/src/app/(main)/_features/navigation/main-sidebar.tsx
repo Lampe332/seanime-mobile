@@ -6,16 +6,13 @@ import { isLoginModalOpenAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { MobileAnilistLogin } from "@/app/(main)/_features/navigation/anilist-login-mobile"
 import { SidebarNavbar } from "@/app/(main)/_features/layout/top-navbar"
 import { usePluginSidebarItems } from "@/app/(main)/_features/plugin/webview/plugin-sidebar"
-import { useSeaCommand } from "@/app/(main)/_features/sea-command/sea-command"
-import { UpdateModal } from "@/app/(main)/_features/update/update-modal"
+import { MobileUpdateModal } from "@/app/(main)/_features/update/mobile-update-modal"
 import { useMissingEpisodeCount } from "@/app/(main)/_hooks/missing-episodes-loader"
 import { useCurrentUser, useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { AppSidebar, useAppSidebarContext } from "@/components/ui/app-layout"
-import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/components/ui/core/styling"
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { VerticalMenu, VerticalMenuItem } from "@/components/ui/vertical-menu"
 import { openTab } from "@/lib/helpers/browser"
 import { usePathname } from "@/lib/navigation"
@@ -23,7 +20,7 @@ import { ANILIST_OAUTH_URL } from "@/lib/server/config"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useAtom } from "jotai"
 import React from "react"
-import { BiChevronRight, BiExtension, BiLogIn, BiLogOut } from "react-icons/bi"
+import { BiChevronRight, BiExtension, BiLogOut } from "react-icons/bi"
 import { FiLogIn, FiSearch } from "react-icons/fi"
 import { IoCloudOfflineOutline, IoHomeOutline } from "react-icons/io5"
 import { LuBookOpen, LuCalendar, LuCompass, LuRefreshCw, LuSettings } from "react-icons/lu"
@@ -32,127 +29,38 @@ import { RiListCheck3 } from "react-icons/ri"
 import { TbReportSearch } from "react-icons/tb"
 import { nakamaModalOpenAtom, useNakamaStatus } from "../nakama/nakama-manager"
 
-function getAnilistGifAvatarCandidate(avatar?: { large?: string, medium?: string }) {
-    const source = avatar?.large || avatar?.medium
-    if (!source || source.endsWith(".gif")) return undefined
-
-    try {
-        const url = new URL(source)
-        if (!url.hostname.endsWith(".anilist.co")) return undefined
-        if (!url.pathname.includes("/file/anilistcdn/user/avatar/")) return undefined
-
-        const gifPath = url.pathname
-            .replace("/medium/", "/large/")
-            .replace(/\.(jpe?g|png|webp)$/i, ".gif")
-
-        if (gifPath === url.pathname) return undefined
-        url.pathname = gifPath
-        return url.toString()
-    }
-    catch {
-        return undefined
-    }
-}
-
-function useResolvedAnilistAvatarSrc(avatar?: { large?: string, medium?: string }) {
-    const fallbackSrc = avatar?.medium || avatar?.large
-    const gifCandidate = React.useMemo(() => getAnilistGifAvatarCandidate(avatar), [avatar?.large, avatar?.medium])
-    const [src, setSrc] = React.useState(fallbackSrc)
-
-    React.useEffect(() => {
-        setSrc(fallbackSrc)
-        if (!gifCandidate) return
-
-        let cancelled = false
-        const image = new Image()
-        image.onload = () => {
-            if (!cancelled) setSrc(gifCandidate)
-        }
-        image.onerror = () => {
-            if (!cancelled) setSrc(fallbackSrc)
-        }
-        image.src = gifCandidate
-
-        return () => {
-            cancelled = true
-        }
-    }, [fallbackSrc, gifCandidate])
-
-    return src
-}
-
+// Hidden at every width: UIBottomNav.kt builds the native nav and menu from these links and buttons.
 export function MainSidebar() {
-
-    const ctx = useAppSidebarContext()
-    const ts = useThemeSettings()
-
-    const [expandedSidebar, setExpandSidebar] = React.useState(false)
-    const isCollapsed = ts.expandSidebarOnHover ? (!ctx.isBelowBreakpoint && !expandedSidebar) : !ctx.isBelowBreakpoint
-
     const containerRef = React.useRef<HTMLDivElement>(null)
-
-    // Logout
     const { mutate: logout } = useLogout()
 
-
-    const handleExpandSidebar = () => {
-        if (!ctx.isBelowBreakpoint && ts.expandSidebarOnHover) {
-            setExpandSidebar(true)
-        }
-    }
-    const handleUnexpandedSidebar = () => {
-        if (expandedSidebar && ts.expandSidebarOnHover) {
-            setExpandSidebar(false)
-        }
-    }
-
     return (
-        <>
-            <AppSidebar
-                ref={containerRef}
-                className={cn(
-                    "group/main-sidebar h-full flex flex-col justify-between transition-gpu w-full transition-[width] duration-300 overflow-x-hidden",
-                    // Enable scrolling but hide the scrollbar
-                    "overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']",
-                    (!ctx.isBelowBreakpoint && expandedSidebar) && "w-[260px]",
-                    (!ctx.isBelowBreakpoint && !ts.disableSidebarTransparency) && "bg-transparent",
-                    (!ctx.isBelowBreakpoint && !ts.disableSidebarTransparency && ts.expandSidebarOnHover && expandedSidebar) && "bg-[--background] rounded-tr-xl rounded-br-xl border-[--border]",
-                )}
-                onMouseEnter={handleExpandSidebar}
-                onMouseLeave={handleUnexpandedSidebar}
-            >
-                {(!ctx.isBelowBreakpoint && ts.expandSidebarOnHover && ts.disableSidebarTransparency) && <div
-                    className={cn(
-                        "fixed h-full translate-x-0 w-[50px] bg-gradient bg-gradient-to-r via-[--background] from-[--background] to-transparent",
-                        "group-hover/main-sidebar:translate-x-[250px] transition opacity-0 duration-300 group-hover/main-sidebar:opacity-100",
-                    )}
-                ></div>}
+        <AppSidebar
+            ref={containerRef}
+            className={cn(
+                "h-full flex flex-col justify-between w-full overflow-x-hidden",
+                // Enable scrolling but hide the scrollbar
+                "overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']",
+            )}
+        >
+            <SidebarNavigation containerRef={containerRef} />
 
-                <SidebarNavigation
-                    isCollapsed={isCollapsed}
-                    containerRef={containerRef}
-                />
-
-                <div className="flex w-full gap-2 flex-col px-4 shrink-0 pb-2">
-                    <SidebarUpdates isCollapsed={isCollapsed} />
-                    <SidebarFooter isCollapsed={isCollapsed} onLogout={logout} />
-                    <SidebarUser expandedSidebar={expandedSidebar} onLogout={logout} isCollapsed={isCollapsed} />
-                </div>
-            </AppSidebar>
-        </>
+            <div className="flex w-full gap-2 flex-col px-4 shrink-0 pb-2">
+                <MobileUpdateModal />
+                <SidebarFooter onLogout={logout} />
+                <SidebarUser />
+            </div>
+        </AppSidebar>
     )
-
 }
 
 
-function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean, containerRef: React.RefObject<HTMLDivElement | null> }) {
+function SidebarNavigation({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) {
     const ctx = useAppSidebarContext()
     const ts = useThemeSettings()
     const pathname = usePathname()
     const serverStatus = useServerStatus()
 
-    // Commands
-    const { setSeaCommandOpen } = useSeaCommand()
 
     // Data
     const missingEpisodeCount = useMissingEpisodeCount()
@@ -339,7 +247,6 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
             </div>
             <VerticalMenu
                 className="px-4"
-                collapsed={isCollapsed}
                 itemClass="relative"
                 itemChevronClass="hidden"
                 itemIconClass="transition-transform group-data-[state=open]/verticalMenu_parentItem:rotate-90"
@@ -362,21 +269,13 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
                 isSidebar
             />
 
-            <SidebarNavbar
-                isCollapsed={isCollapsed}
-                handleExpandSidebar={() => { }}
-                handleUnexpandedSidebar={() => { }}
-            />
+            <SidebarNavbar />
 
         </div>
     )
 }
 
-function SidebarUpdates({ isCollapsed }: { isCollapsed: boolean }) {
-    return <UpdateModal collapsed={isCollapsed} />
-}
-
-function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogout: () => void }) {
+function SidebarFooter({ onLogout }: { onLogout: () => void }) {
     const ctx = useAppSidebarContext()
     const pathname = usePathname()
     const serverStatus = useServerStatus()
@@ -405,10 +304,7 @@ function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogo
     return (
         <div>
             <VerticalMenu
-                collapsed={isCollapsed}
                 itemClass="relative"
-                onMouseEnter={() => { }}
-                onMouseLeave={() => { }}
                 onLinkItemClick={() => ctx.setOpen(false)}
                 isSidebar
                 items={[
@@ -452,13 +348,11 @@ function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogo
                         href: "/settings",
                         isCurrent: pathname === ("/settings"),
                     },
-                    ...(ctx.isBelowBreakpoint ? [
-                        {
-                            iconType: user?.isSimulated ? FiLogIn : BiLogOut,
-                            name: user?.isSimulated ? "Sign in" : "Sign out",
-                            onClick: user?.isSimulated ? () => setLoginModal(true) : confirmSignOut.open,
-                        },
-                    ] : []),
+                    {
+                        iconType: user?.isSimulated ? FiLogIn : BiLogOut,
+                        name: user?.isSimulated ? "Sign in" : "Sign out",
+                        onClick: user?.isSimulated ? () => setLoginModal(true) : confirmSignOut.open,
+                    },
                 ]}
             />
             <ConfirmationDialog {...confirmSignOut} />
@@ -466,29 +360,16 @@ function SidebarFooter({ isCollapsed, onLogout }: { isCollapsed: boolean, onLogo
     )
 }
 
-function SidebarUser({ isCollapsed, expandedSidebar, onLogout }: { isCollapsed: boolean, expandedSidebar: boolean, onLogout: () => void }) {
+function SidebarUser() {
     const ctx = useAppSidebarContext()
     const user = useCurrentUser()
-    const avatarSrc = useResolvedAnilistAvatarSrc(user?.viewer?.avatar)
-
-    const [dropdownOpen, setDropdownOpen] = React.useState(false)
     const [loginModal, setLoginModal] = useAtom(isLoginModalOpenAtom)
-
-    // Sign out
-    const confirmSignOut = useConfirmationDialog({
-        title: "Sign out",
-        description: "Are you sure you want to sign out?",
-        onConfirm: () => {
-            onLogout()
-        },
-    })
 
     return (
         <>
             {!user && (
                 <div>
                     <VerticalMenu
-                        collapsed={isCollapsed}
                         itemClass="relative"
                         onLinkItemClick={() => ctx.setOpen(false)}
                         isSidebar
@@ -502,31 +383,8 @@ function SidebarUser({ isCollapsed, expandedSidebar, onLogout }: { isCollapsed: 
                     />
                 </div>
             )}
-            {!!user && <div className="flex w-full gap-2 flex-col">
-                <DropdownMenu
-                    trigger={<div
-                        className={cn(
-                            "w-full flex p-2 pt-1 items-center space-x-3",
-                            { "hidden": ctx.isBelowBreakpoint },
-                        )}
-                    >
-                        <Avatar size="sm" className="cursor-pointer" src={avatarSrc || undefined} />
-                        {expandedSidebar && <p className="truncate text-sm text-[--muted]">{user?.viewer?.name}</p>}
-                    </div>}
-                    open={dropdownOpen}
-                    onOpenChange={setDropdownOpen}
-                >
-                    {!user.isSimulated ? <DropdownMenuItem onClick={confirmSignOut.open}>
-                        <BiLogOut /> Sign out
-                    </DropdownMenuItem> : <DropdownMenuItem onClick={() => setLoginModal(true)}>
-                        <BiLogIn /> Log in with AniList
-                    </DropdownMenuItem>}
-                </DropdownMenu>
-            </div>}
 
             <MobileAnilistLogin open={!!(loginModal && user?.isSimulated)} onOpenChange={setLoginModal} />
-
-            <ConfirmationDialog {...confirmSignOut} />
         </>
     )
 }

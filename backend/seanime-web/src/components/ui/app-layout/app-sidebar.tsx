@@ -1,4 +1,3 @@
-import { layoutWidth } from "@/lib/tablet-ui"
 import { cva } from "class-variance-authority"
 import * as React from "react"
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "../core/styling"
@@ -11,11 +10,9 @@ import { Drawer } from "../drawer"
 const __AppSidebarContext = React.createContext<{
     open: boolean,
     setOpen: (open: boolean) => void,
-    isBelowBreakpoint: boolean,
 }>({
     open: false,
     setOpen: () => {},
-    isBelowBreakpoint: false,
 })
 
 export function useAppSidebarContext() {
@@ -83,17 +80,8 @@ export const AppSidebarProvider: React.FC<{ children?: React.ReactNode }> = ({ c
 
     const [open, setOpen] = React.useState(false)
 
-    const [isBelowBreakpoint, setIsBelowBreakpoint] = React.useState<boolean>(false)
-
-    React.useEffect(() => {
-        const handleResize = () => setIsBelowBreakpoint(layoutWidth(window.innerWidth) < 1024) // lg breakpoint
-        handleResize()
-        window.addEventListener("resize", handleResize)
-        return () => window.removeEventListener("resize", handleResize)
-    }, [])
-
     return (
-        <__AppSidebarContext.Provider value={{ open, setOpen, isBelowBreakpoint }}>
+        <__AppSidebarContext.Provider value={{ open, setOpen }}>
             {children}
         </__AppSidebarContext.Provider>
     )

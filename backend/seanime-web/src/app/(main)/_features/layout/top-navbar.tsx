@@ -62,21 +62,7 @@ export function TopNavbar(props: TopNavbarProps) {
 }
 
 
-type SidebarNavbarProps = {
-    isCollapsed: boolean
-    handleExpandSidebar: () => void
-    handleUnexpandedSidebar: () => void
-}
-
-export function SidebarNavbar(props: SidebarNavbarProps) {
-
-    const {
-        isCollapsed,
-        handleExpandSidebar,
-        handleUnexpandedSidebar,
-        ...rest
-    } = props
-
+export function SidebarNavbar() {
     const ts = useThemeSettings()
     const pathname = usePathname()
 
@@ -90,10 +76,7 @@ export function SidebarNavbar(props: SidebarNavbarProps) {
             <VerticalMenu
                 data-sidebar-navbar-vertical-menu
                 className="px-4"
-                collapsed={isCollapsed}
                 itemClass="relative"
-                onMouseEnter={handleExpandSidebar}
-                onMouseLeave={handleUnexpandedSidebar}
                 isSidebar
                 items={[
                     ...(isMangaPage ? [
