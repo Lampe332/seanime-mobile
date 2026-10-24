@@ -13,7 +13,6 @@ import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-
 import { ManualProgressTracking } from "@/app/(main)/_features/progress-tracking/manual-progress-tracking"
 import { PlaybackManagerProgressTracking } from "@/app/(main)/_features/progress-tracking/playback-manager-progress-tracking"
 import { SeaCommand } from "@/app/(main)/_features/sea-command/sea-command"
-import { useChangelogTourListener } from "@/app/(main)/_features/tour/changelog-tour.tsx"
 import { MobileTutorialListener } from "@/app/(main)/_features/tour/mobile-tutorial"
 
 import { useAnimeCollectionLoader } from "@/app/(main)/_hooks/anilist-collection-loader"
@@ -113,7 +112,6 @@ function Loader() {
     useSyncListener()
     useInvalidateQueriesListener()
     useTorrentStreamListener()
-    useChangelogTourListener()
     useAuthEventListeners()
 
     return null
