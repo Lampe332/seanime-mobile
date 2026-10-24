@@ -8,7 +8,7 @@ const stub = path.join(__dirname,'mobile_lists_stubs.tsx');
 const stubbed = ['@/api/client/requests','@tanstack/react-query','@/api/hooks/anilist.hooks','@/api/hooks/manga.hooks',
 '@/app/(main)/_hooks/use-server-status','@/lib/navigation','@/lib/server/assets','@/components/shared/sea-image','@/components/shared/sea-link',
 '@/app/(main)/_features/media/_containers/media-preview-modal','@/app/(main)/_features/media/_components/media-entry-card-components',
-'@/app/(main)/_features/anime-library/_containers/custom-library-banner','@/app/(main)/lists/_containers/anilist-collection-lists',
+'@/app/(main)/_features/anime-library/_containers/custom-library-banner',
 '@/app/(main)/_features/plugin/actions/plugin-actions','@/app/(main)/_atoms/playback.atoms','@/app/(main)/_features/playlists/lib/playlist-editor-manager',
 '@/app/(main)/manga/_lib/handle-manga-collection','sonner'];
 // --production: React's production build, minified, as the app ships it (stress_lists.py times it).

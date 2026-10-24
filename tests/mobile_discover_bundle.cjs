@@ -8,10 +8,9 @@ const stub = path.join(__dirname,'mobile_discover_stubs.tsx');
 const stubbed = ['@/api/client/requests','@tanstack/react-router','@/lib/navigation','@/components/shared/sea-link','@/components/shared/sea-image','@/lib/server/assets',
 '@/app/(main)/_features/media/_containers/media-preview-modal','@/app/(main)/_features/media/_components/media-entry-card-components',
 '@/app/(main)/_features/plugin/actions/plugin-actions','@/app/(main)/_features/plugin/webview/plugin-webviews',
-'@/app/(main)/discover/_components/discover-page-header','@/app/(main)/discover/_containers/discover-airing-schedule',
-'@/app/(main)/discover/_containers/discover-missed-sequels','@/app/(main)/discover/_containers/discover-popular',
+'@/app/(main)/discover/_components/discover-page-header',
+'@/app/(main)/discover/_containers/discover-missed-sequels',
 '@/app/(main)/discover/_containers/discover-trending','@/app/(main)/discover/_containers/discover-trending-country',
-'@/app/(main)/discover/_containers/discover-trending-movies','@/app/(main)/discover/_containers/discover-upcoming',
 '@/app/(main)/schedule/_containers/recent-releases'];
 // --production: React's production build, minified (frame times as in the app); without it React's warnings stay on.
 const production = process.argv.includes('--production');

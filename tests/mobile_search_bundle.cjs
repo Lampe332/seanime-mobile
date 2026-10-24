@@ -7,8 +7,7 @@ const stub = path.join(__dirname,'mobile_search_stubs.tsx');
 // the desktop search parts and the card menu's preview / plugin / playlist / explorer hooks are fixtures.
 const stubbed = ['@/api/client/requests','@/components/shared/sea-link','@/components/shared/sea-image',
 '@/lib/server/assets','@/api/hooks/extensions.hooks','@/api/hooks/extensions.hooks.ts','@/app/(main)/_hooks/use-server-status',
-'@/app/(main)/_features/anime-library/_containers/custom-library-banner','@/app/(main)/search/_components/advanced-search-list',
-'@/app/(main)/search/_components/advanced-search-options','@/app/(main)/search/_components/advanced-search-page-title',
+'@/app/(main)/_features/anime-library/_containers/custom-library-banner',
 '@/app/(main)/_features/media/_containers/media-preview-modal','@/app/(main)/_features/media/_components/media-entry-card-components',
 '@/app/(main)/_features/plugin/actions/plugin-actions','@/app/(main)/_features/playlists/lib/playlist-editor-manager',
 '@/app/(main)/_features/library-explorer/library-explorer.atoms'];
