@@ -3,6 +3,7 @@ import { useGetExtensionPayload, useUpdateExtensionCode } from "@/api/hooks/exte
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Modal } from "@/components/ui/modal"
+import { useTr } from "@/lib/app-language"
 import { javascript } from "@codemirror/lang-javascript"
 import { StreamLanguage } from "@codemirror/language"
 import { go } from "@codemirror/legacy-modes/mode/go"
@@ -20,8 +21,6 @@ type ExtensionCodeModalProps = {
 }
 
 export function ExtensionCodeModal(props: ExtensionCodeModalProps) {
-
-
     return (
         <Modal
             contentClass="max-w-5xl"
@@ -30,8 +29,6 @@ export function ExtensionCodeModal(props: ExtensionCodeModalProps) {
             onInteractOutside={e => {
                 if (!props.readOnly) e.preventDefault()
             }}
-            // size="xl"
-            // contentClass="space-y-4"
         >
             <Content {...props} />
         </Modal>
@@ -44,6 +41,7 @@ function Content(props: ExtensionCodeModalProps) {
         readOnly,
         diff,
     } = props
+    const t = useTr()
 
     const [code, setCode] = React.useState("")
 
@@ -88,12 +86,12 @@ function Content(props: ExtensionCodeModalProps) {
                     {extension.name}
                 </p>
                 {!readOnly && !diff && <div className="text-sm text-[--muted]">
-                    You can edit the code of the extension here.
+                    {t("You can edit the code of the extension here.", "Hier kannst du den Code der Erweiterung bearbeiten.")}
                 </div>}
             </div>
             {!readOnly && <div className="flex">
                 <Button intent="white" loading={isPending} onClick={handleSave}>
-                    Save
+                    {t("Save", "Speichern")}
                 </Button>
                 <div className="flex flex-1"></div>
             </div>}

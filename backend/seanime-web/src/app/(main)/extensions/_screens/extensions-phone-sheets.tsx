@@ -267,7 +267,7 @@ export function ExtensionSheet(props: ExtensionSheetProps) {
             <AboutText extension={extension} t={t} />
 
             <div className="mex-actions" role="group" aria-label={t("Actions", "Aktionen")}>
-                {!!extension.userConfig && !invalid && <ExtensionUserConfigModal phone extension={extension} userConfigError={userConfigError}>
+                {!!extension.userConfig && !invalid && <ExtensionUserConfigModal extension={extension} userConfigError={userConfigError}>
                     <ActionRow icon={<LuSettings2 />} label={t("Preferences", "Einstellungen")} data-extension-action="preferences"
                         note={userConfigError ? t("Needs setup before it can be used", "Muss eingerichtet werden") : undefined} tone={userConfigError ? "warning" : undefined} />
                 </ExtensionUserConfigModal>}

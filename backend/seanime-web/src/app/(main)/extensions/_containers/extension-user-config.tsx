@@ -10,48 +10,27 @@ import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { TextInput } from "@/components/ui/text-input"
 import { Translate, useTr } from "@/lib/app-language"
-import { atomWithImmer } from "jotai-immer"
-import { useAtom } from "jotai/react"
 import React from "react"
 
 type ExtensionUserConfigModalProps = {
     children?: React.ReactElement
     extension: Extension_Extension
     userConfigError?: Extension_InvalidExtension | undefined
-    /** Android phone Extensions tab: bottom sheet in the app language; desktop keeps the English dialog */
-    phone?: boolean
 }
 
-export function ExtensionUserConfigModal(props: ExtensionUserConfigModalProps) {
-
-    const {
-        children,
-        extension,
-        userConfigError,
-        phone,
-        ...rest
-    } = props
-
-    const appLanguage = useTr()
-    const t: Translate = (en, de) => phone ? appLanguage(en, de) : en
-
+export function ExtensionUserConfigModal({ children, extension, userConfigError }: ExtensionUserConfigModalProps) {
+    const t = useTr()
     return (
-        <>
-            <Modal
-                contentClass={phone ? "mex-sheet" : "max-w-3xl"}
-                trigger={children}
-                title={t("Preferences", "Einstellungen")}
-                onOpenAutoFocus={phone ? event => { event.preventDefault(); (event.currentTarget as HTMLElement | null)?.focus() } : undefined}
-                // size="xl"
-                // contentClass="space-y-4"
-            >
-                <Content extension={extension} userConfigError={userConfigError} t={t} />
-            </Modal>
-        </>
+        <Modal
+            contentClass="mex-sheet"
+            trigger={children}
+            title={t("Preferences", "Einstellungen")}
+            onOpenAutoFocus={event => { event.preventDefault(); (event.currentTarget as HTMLElement | null)?.focus() }}
+        >
+            <Content extension={extension} userConfigError={userConfigError} t={t} />
+        </Modal>
     )
 }
-
-const userConfigFormValuesAtom = atomWithImmer<Record<string, string>>({})
 
 function Content({ extension, userConfigError, t }: { extension: Extension_Extension, userConfigError?: Extension_InvalidExtension | undefined, t: Translate }) {
 
@@ -59,23 +38,15 @@ function Content({ extension, userConfigError, t }: { extension: Extension_Exten
 
     const { mutate: saveExtUserConfig, isPending } = useSaveExtensionUserConfig()
 
-    const [userConfigFormValues, setUserConfigFormValues] = useAtom(userConfigFormValuesAtom)
+    // Per extension: the form starts from what this extension saved, never from another one's typed values
+    const [userConfigFormValues, setUserConfigFormValues] = React.useState<Record<string, string>>({})
+    const setValue = (name: string, value: string) => setUserConfigFormValues(prev => ({ ...prev, [name]: value }))
 
     React.useLayoutEffect(() => {
-        if (extUserConfig) {
-            for (const field of extUserConfig.userConfig?.fields || []) {
-                if (extUserConfig.savedUserConfig?.values && field.name in extUserConfig.savedUserConfig?.values) {
-                    setUserConfigFormValues(draft => {
-                        draft[field.name] = extUserConfig.savedUserConfig?.values?.[field.name] || field.default || ""
-                        return
-                    })
-                }
-            }
-        }
+        if (extUserConfig) setUserConfigFormValues({ ...extUserConfig.savedUserConfig?.values })
     }, [extUserConfig])
 
     function handleSave() {
-        console.log("Saving user config", userConfigFormValues)
         let values: Record<string, string> = {}
         for (const field of extUserConfig?.userConfig?.fields || []) {
             values[field.name] = userConfigFormValues[field.name] || field.default || ""
@@ -118,10 +89,7 @@ function Content({ extension, userConfigError, t }: { extension: Extension_Exten
                             key={field.name}
                             label={field.label}
                             value={userConfigFormValues[field.name] || field.default}
-                            onValueChange={v => setUserConfigFormValues(draft => {
-                                draft[field.name] = v
-                                return
-                            })}
+                            onValueChange={v => setValue(field.name, v)}
                             help={!!field.default ? `${t("Default", "Standard")}: ${field.default}` : undefined}
                         />
                     )
@@ -132,10 +100,7 @@ function Content({ extension, userConfigError, t }: { extension: Extension_Exten
                             key={field.name}
                             label={field.label}
                             value={userConfigFormValues[field.name] ? userConfigFormValues[field.name] === "true" : field.default === "true"}
-                            onValueChange={v => setUserConfigFormValues(draft => {
-                                draft[field.name] = v ? "true" : "false"
-                                return
-                            })}
+                            onValueChange={v => setValue(field.name, v ? "true" : "false")}
                             help={!!field.default ? `${t("Default", "Standard")}: ${field.default}` : undefined}
                         />
                     )
@@ -146,10 +111,7 @@ function Content({ extension, userConfigError, t }: { extension: Extension_Exten
                             key={field.name}
                             label={field.label}
                             value={userConfigFormValues[field.name] || field.default}
-                            onValueChange={v => setUserConfigFormValues(draft => {
-                                draft[field.name] = v
-                                return
-                            })}
+                            onValueChange={v => setValue(field.name, v)}
                             options={field.options}
                             help={!!field.default ? `${t("Default", "Standard")}: ${field.options.find(n => n.value === field.default)?.label ?? "N/A"}` : undefined}
                         />
