@@ -103,14 +103,10 @@ export function subscribeToClientIdentity(callback: (identity: ClientIdentity) =
 }
 
 function createClientId(): string {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    // randomUUID needs a secure context; a browser on the LAN address only has getRandomValues
+    if (typeof crypto.randomUUID === "function") {
         return crypto.randomUUID()
     }
-
-    if (typeof crypto === "undefined" || typeof crypto.getRandomValues !== "function") {
-        return `seanime-${Math.random().toString(16).slice(2)}-${Date.now().toString(16)}`
-    }
-
     return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (char: string) =>
         (Number(char) ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (Number(char) / 4)))).toString(16),
     )

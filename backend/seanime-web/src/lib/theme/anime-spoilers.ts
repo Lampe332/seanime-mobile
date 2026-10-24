@@ -21,7 +21,7 @@ type EpisodeSpoilerStateOptions = {
     spoilerActive?: boolean
 }
 
-export const __animeSpoilers_unhiddenMediaAtom = atomWithStorage<Record<string, true>>("sea-anime-spoilers-unhidden-media",
+const __animeSpoilers_unhiddenMediaAtom = atomWithStorage<Record<string, true>>("sea-anime-spoilers-unhidden-media",
     {},
     undefined,
     { getOnInit: true })

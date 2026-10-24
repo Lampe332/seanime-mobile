@@ -19,69 +19,15 @@ export const enum ThemeMediaPageBannerType {
     Hide = "hide",
 }
 
-export const ThemeMediaPageBannerTypeOptions = [
-    {
-        value: ThemeMediaPageBannerType.Default as string, label: "Default",
-        description: "Always show a banner image. If not available, the cover image will be used instead.",
-    },
-    {
-        value: ThemeMediaPageBannerType.BlurWhenUnavailable as string, label: "Blur when unavailable",
-        description: "Show the banner image if available. If not available, the cover image will be used and blurred.",
-    },
-    {
-        value: ThemeMediaPageBannerType.DimWhenUnavailable as string, label: "Dim if unavailable",
-        description: "Show the banner image if available. If not available, the banner will be dimmed.",
-    },
-    {
-        value: ThemeMediaPageBannerType.HideWhenUnavailable as string, label: "Hide if unavailable",
-        description: "Show the banner image if available. If not available, the banner will be hidden.",
-    },
-    {
-        value: ThemeMediaPageBannerType.Dim as string, label: "Dim",
-        description: "Always dim the banner image.",
-    },
-    {
-        value: ThemeMediaPageBannerType.Blur as string, label: "Blur",
-        description: "Always blur the banner image.",
-    },
-    {
-        value: ThemeMediaPageBannerType.Hide as string, label: "Hide",
-        description: "Always hide the banner image.",
-    },
-]
-
 export const enum ThemeMediaPageBannerSize {
     Default = "default", // block height
     Small = "small",
 }
 
-export const ThemeMediaPageBannerSizeOptions = [
-    {
-        value: ThemeMediaPageBannerSize.Default as string, label: "Large",
-        description: "Fill a large portion of the screen.",
-    },
-    {
-        value: ThemeMediaPageBannerSize.Small as string, label: "Smaller",
-        description: "Use a smaller banner size, displaying more of the image.",
-    },
-]
-
 export const enum ThemeMediaPageInfoBoxSize {
-    // Default = "default",
     Fluid = "fluid",
     Boxed = "boxed",
 }
-
-export const ThemeMediaPageInfoBoxSizeOptions = [
-    {
-        value: ThemeMediaPageInfoBoxSize.Fluid as string, label: "Fluid",
-        // description: "Full-width info box with rearrangement of elements.",
-    },
-    {
-        value: ThemeMediaPageInfoBoxSize.Boxed as string, label: "Boxed",
-        // description: "Display the media banner as a box",
-    },
-]
 
 export type ThemeSettings = Omit<Models_Theme, "id">
 export const THEME_DEFAULT_VALUES: ThemeSettings = {
