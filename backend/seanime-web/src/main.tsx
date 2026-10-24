@@ -1,4 +1,5 @@
 import { useIsSimulatedUser } from "@/app/(main)/_hooks/use-server-status"
+import { tr } from "@/lib/app-language"
 import { ClientProviders, queryClient, store } from "@/app/client-providers"
 import "./app/globals.css"
 import "./app/tablet.css"
@@ -61,10 +62,8 @@ function RootErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
     return (
         <div className="min-h-screen bg-[#0c0c0c] text-white flex items-center justify-center p-6">
             <div className="w-full max-w-lg rounded-2xl border bg-black/60 p-6 text-center backdrop-blur-sm space-y-4">
-                <LuffyError
-                    title="Client error"
-                >
-                    Seanime encountered an unexpected error. Please try again.
+                <LuffyError title={tr("Client error", "Fehler in der App")}>
+                    {tr("Seanime encountered an unexpected error. Please try again.", "In Seanime ist ein unerwarteter Fehler aufgetreten. Bitte versuche es erneut.")}
                 </LuffyError>
 
                 {!!(error as Error)?.message && (
@@ -80,7 +79,7 @@ function RootErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
                         className="rounded-full"
                         onClick={resetErrorBoundary}
                     >
-                        Retry
+                        {tr("Retry", "Erneut versuchen")}
                     </Button>
                     <Button
                         type="button"
@@ -88,7 +87,7 @@ function RootErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
                         className="rounded-full"
                         onClick={() => window.location.reload()}
                     >
-                        Reload
+                        {tr("Reload", "Neu laden")}
                     </Button>
                 </div>
             </div>
@@ -96,14 +95,11 @@ function RootErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
     )
 }
 
-// if (import.meta.env.DEV) {
-//     const script = document.createElement("script")
-//     script.src = "https://unpkg.com/react-scan/dist/auto.global.js"
-//     script.crossOrigin = "anonymous"
-//     document.head.appendChild(script)
-// }
 // Tablet layout: app/tablet.css lays the phone screens out for a tablet under this attribute
 if (IS_TABLET_UI) document.documentElement.dataset.layout = "tablet"
+// Dark only: Tailwind's dark: variants key off this class
+document.documentElement.classList.add("dark")
+document.documentElement.style.colorScheme = "dark"
 reloadOnScreenClassChange()
 ReactDOM.createRoot(document.getElementById("root")!, {
     onUncaughtError: (error, errorInfo) => {

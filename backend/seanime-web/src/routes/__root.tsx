@@ -18,7 +18,6 @@ export const Route = createRootRouteWithContext<{
         <Template>
             <CustomBackgroundImage />
             <Outlet />
-            {/*<TanStackRouterDevtools />*/}
         </Template>
     ),
     pendingComponent: LoadingOverlayWithLogo,
