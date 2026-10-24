@@ -6,6 +6,8 @@ import { __openDrawersAtom } from "@/components/ui/drawer"
 import { useMainTab } from "@/hooks/use-main-tab"
 import { logger } from "@/lib/helpers/debug"
 import { getClientId, getClientIdentity, getClientIdProof, setClientIdentity, subscribeToClientIdentity } from "@/lib/server/client-id"
+import type { SeaWebsocketEvent } from "@/lib/server/queries.types"
+import { decodeWebsocketMessage } from "@/lib/server/websocket-message"
 import { WSEvents } from "@/lib/server/ws-events"
 import { __clientPlatform__ } from "@/types/constants"
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
@@ -22,7 +24,6 @@ export function uuidv4(): string {
 }
 
 export const websocketConnectedAtom = atom(false)
-export const websocketConnectionErrorCountAtom = atom(0)
 
 export const clientIdAtom = atom<string | null>(null)
 
@@ -65,11 +66,9 @@ function ManageOpenDrawers() {
 
 function WebsocketManagement() {
     const [socket, setSocket] = useAtom(websocketAtom)
-    const [isConnected, setIsConnected] = useAtom(websocketConnectedAtom)
-    const setConnectionErrorCount = useSetAtom(websocketConnectionErrorCountAtom)
+    const setIsConnected = useSetAtom(websocketConnectedAtom)
 
-    // Password set, user not yet logged in → ws connection fails (401), reconnect loop retries. Once the user logs in, serverAuthTokenRef updates,
-    // next reconnect succeeds.
+    // A password-protected server rejects the socket without a token, so connecting waits for the login
     const serverAuthToken = useAtomValue(serverAuthTokenAtom)
     const serverStatus = useAtomValue(serverStatusAtom)
     const serverAuthTokenRef = React.useRef(serverAuthToken)
@@ -90,18 +89,16 @@ function WebsocketManagement() {
         setMainTab(isMainTab)
     }, [isMainTab])
 
-    // Refs to manage connection state
     const heartbeatRef = React.useRef<NodeJS.Timeout | null>(null)
     const pingIntervalRef = React.useRef<NodeJS.Timeout | null>(null)
     const reconnectTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+    const errorCountRef = React.useRef(0)
     const lastPongRef = React.useRef<number>(Date.now())
     const socketRef = React.useRef<WebSocket | null>(null)
     const clientIdRef = React.useRef<string>("")
     const clientIdProofRef = React.useRef<string>("")
     const connectWebSocketRef = React.useRef<(() => void) | null>(null)
     const clearAllIntervalsRef = React.useRef<(() => void) | null>(null)
-    const wasDisconnected = React.useRef<boolean>(false)
-    const initialConnection = React.useRef<boolean>(true)
 
     React.useEffect(() => {
         const updateClientIdentity = ({ clientId, clientIdProof }: { clientId: string, clientIdProof: string }) => {
@@ -114,28 +111,6 @@ function WebsocketManagement() {
         updateClientIdentity(getClientIdentity())
         return subscribeToClientIdentity(updateClientIdentity)
     }, [setClientId])
-
-    // Effect to handle page reload on reconnection
-    /* React.useEffect(() => {
-     // If we're connected now and were previously disconnected (not the first connection)
-     if (isConnected && wasDisconnected.current && !initialConnection.current) {
-     logger("WebsocketProvider").info("Connection re-established, reloading page")
-     // Add a small delay to allow for other components to process the connection status
-     setTimeout(() => {
-     window.location.reload()
-     }, 100)
-     }
-
-     // Update the wasDisconnected ref when connection status changes
-     if (!isConnected && !initialConnection.current) {
-     wasDisconnected.current = true
-     }
-
-     // After first connection, set initialConnection to false
-     if (isConnected && initialConnection.current) {
-     initialConnection.current = false
-     }
-     }, [isConnected]) */
 
     useEffectOnce(() => {
         function initClientIdentity() {
@@ -169,127 +144,91 @@ function WebsocketManagement() {
                 return
             }
 
-            // Clear existing connection attempts
             clearAllIntervals()
-
-            // Close any existing socket
-            if (socketRef.current && socketRef.current.readyState !== WebSocket.CLOSED) {
-                try {
-                    socketRef.current.close()
-                }
-                catch (e) {
-                    // Ignore errors on closing
-                }
-            }
+            socketRef.current?.close()
 
             const wsUrl = `${document.location.protocol == "https:" ? "wss" : "ws"}://${getServerBaseUrl(true)}/events`
             const { clientId, clientIdProof } = initClientIdentity()
+            const queryParams = new URLSearchParams()
+            if (clientId) {
+                queryParams.set("id", clientId)
+            }
+            if (clientIdProof) {
+                queryParams.set("proof", clientIdProof)
+            }
+            queryParams.set("platform", __clientPlatform__)
+            if (serverAuthTokenRef.current) {
+                queryParams.set("token", serverAuthTokenRef.current)
+            }
 
+            let ws: WebSocket
             try {
-                const queryParams = new URLSearchParams()
-                if (clientId) {
-                    queryParams.set("id", clientId)
-                }
-                if (clientIdProof) {
-                    queryParams.set("proof", clientIdProof)
-                }
-                queryParams.set("platform", __clientPlatform__)
-                if (serverAuthTokenRef.current) {
-                    queryParams.set("token", serverAuthTokenRef.current)
-                }
-                const query = queryParams.toString()
-                socketRef.current = new WebSocket(query ? `${wsUrl}?${query}` : wsUrl)
-
-                // Reset the last pong timestamp whenever we connect
-                lastPongRef.current = Date.now()
-
-                socketRef.current.addEventListener("open", () => {
-                    logger("WebsocketProvider").info("WebSocket connection opened")
-                    setIsConnected(true)
-                    setConnectionErrorCount(0)
-
-                    // Start heartbeat interval to detect silent disconnections
-                    heartbeatRef.current = setInterval(() => {
-                        const timeSinceLastPong = Date.now() - lastPongRef.current
-
-                        // If no pong received for 45 seconds (3 missed pings), consider connection dead
-                        if (timeSinceLastPong > 45000) {
-                            logger("WebsocketProvider").error(`No pong response for ${Math.round(timeSinceLastPong / 1000)}s, reconnecting`)
-                            reconnectSocket()
-                            return
-                        }
-
-                        if (socketRef.current?.readyState !== WebSocket.OPEN) {
-                            logger("WebsocketProvider").error("Heartbeat check failed, reconnecting")
-                            reconnectSocket()
-                        }
-                    }, 15000) // check every 15 seconds
-
-                    // Implement a ping mechanism to keep the connection alive
-                    // Start the ping interval slightly offset from the heartbeat to avoid race conditions
-                    setTimeout(() => {
-                        pingIntervalRef.current = setInterval(() => {
-                            if (socketRef.current?.readyState === WebSocket.OPEN) {
-                                try {
-                                    const timestamp = Date.now()
-                                    // Send a ping message to keep the connection alive
-                                    socketRef.current?.send(JSON.stringify({
-                                        type: "ping",
-                                        payload: { timestamp },
-                                    }))
-                                }
-                                catch (e) {
-                                    logger("WebsocketProvider").error("Failed to send ping", e)
-                                    reconnectSocket()
-                                }
-                            } else {
-                                logger("WebsocketProvider").error("Failed to send ping, WebSocket not open", socketRef.current?.readyState)
-                                // reconnectSocket()
-                            }
-                        }, 15000) // ping every 15 seconds
-                    }, 5000) // Start ping interval 5 seconds after heartbeat to offset them
-                })
-
-                // Add message handler for pong responses
-                socketRef.current?.addEventListener("message", (event) => {
-                    try {
-                        const data = JSON.parse(event.data) as { type: string; payload?: any }
-                        if (data.type === WSEvents.CLIENT_IDENTITY) {
-                            const nextClientId = typeof data.payload?.clientId === "string" ? data.payload.clientId : ""
-                            const nextProof = typeof data.payload?.proof === "string" ? data.payload.proof : ""
-                            if (nextClientId) {
-                                setClientIdentity(nextClientId, nextProof)
-                            }
-                            return
-                        }
-
-                        if (data.type === "pong") {
-                            // Update the last pong timestamp
-                            lastPongRef.current = Date.now()
-                            // For debugging purposes
-                            // logger("WebsocketProvider").info("Pong received, timestamp updated", lastPongRef.current)
-                        }
-                    }
-                    catch (e) {
-                    }
-                })
-
-                socketRef.current?.addEventListener("close", (event) => {
-                    logger("WebsocketProvider").info(`WebSocket connection closed: ${event.code} ${event.reason}`)
-                    handleDisconnection()
-                })
-
-                socketRef.current?.addEventListener("error", (event) => {
-                    logger("WebsocketProvider").error("WebSocket encountered an error:", event)
-                    reconnectSocket()
-                })
-
-                setSocket(socketRef.current)
+                ws = new WebSocket(`${wsUrl}?${queryParams}`)
             }
-            catch (e) {
-                logger("WebsocketProvider").error("Failed to create WebSocket connection:", e)
+            catch {
+                logger("WebsocketProvider").error("Failed to create WebSocket connection")
                 handleDisconnection()
+                return
             }
+            socketRef.current = ws
+            lastPongRef.current = Date.now()
+
+            // A replaced socket still fires its events later; they must not tear down its successor
+            ws.addEventListener("open", () => {
+                if (socketRef.current !== ws) return
+                logger("WebsocketProvider").info("WebSocket connection opened")
+                setIsConnected(true)
+                errorCountRef.current = 0
+
+                // Three missed pongs mean the connection died silently
+                heartbeatRef.current = setInterval(() => {
+                    const timeSinceLastPong = Date.now() - lastPongRef.current
+                    if (timeSinceLastPong > 45000) {
+                        logger("WebsocketProvider").error(`No pong response for ${Math.round(timeSinceLastPong / 1000)}s, reconnecting`)
+                        reconnectSocket()
+                    } else if (ws.readyState !== WebSocket.OPEN) {
+                        logger("WebsocketProvider").error("Heartbeat check failed, reconnecting")
+                        reconnectSocket()
+                    }
+                }, 15000)
+
+                pingIntervalRef.current = setInterval(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: "ping", payload: { timestamp: Date.now() } }))
+                    }
+                }, 15000)
+            })
+
+            ws.addEventListener("message", (event) => {
+                let data: SeaWebsocketEvent<any>
+                try {
+                    data = decodeWebsocketMessage(event)
+                }
+                catch {
+                    return
+                }
+                if (data.type === WSEvents.CLIENT_IDENTITY) {
+                    const nextClientId = typeof data.payload?.clientId === "string" ? data.payload.clientId : ""
+                    const nextProof = typeof data.payload?.proof === "string" ? data.payload.proof : ""
+                    if (nextClientId) {
+                        setClientIdentity(nextClientId, nextProof)
+                    }
+                } else if (data.type === "pong") {
+                    lastPongRef.current = Date.now()
+                }
+            })
+
+            ws.addEventListener("close", (event) => {
+                logger("WebsocketProvider").info(`WebSocket connection closed: ${event.code} ${event.reason}`)
+                if (socketRef.current === ws) handleDisconnection()
+            })
+
+            ws.addEventListener("error", (event) => {
+                logger("WebsocketProvider").error("WebSocket encountered an error:", event)
+                if (socketRef.current === ws) reconnectSocket()
+            })
+
+            setSocket(ws)
         }
 
         connectWebSocketRef.current = connectWebSocket
@@ -301,14 +240,7 @@ function WebsocketManagement() {
         }
 
         function reconnectSocket() {
-            if (socketRef.current) {
-                try {
-                    socketRef.current.close()
-                }
-                catch (e) {
-                    // Ignore errors on closing
-                }
-            }
+            socketRef.current?.close()
             handleDisconnection()
         }
 
@@ -316,41 +248,24 @@ function WebsocketManagement() {
             if (shouldPauseForAuthRef.current) {
                 return
             }
-
-            // Reconnect after a delay with exponential backoff
-            setConnectionErrorCount(count => {
-                const newCount = count + 1
-                // Calculate backoff time (1s, 2s, max 3s)
-                const backoffTime = Math.min(Math.pow(2, Math.min(newCount - 1, 10)) * 1000, 3000)
-
-                logger("WebsocketProvider").info(`Reconnecting in ${backoffTime}ms (attempt ${newCount})`)
-
-                reconnectTimeoutRef.current = setTimeout(() => {
-                    connectWebSocket()
-                }, backoffTime)
-
-                return newCount
-            })
+            errorCountRef.current++
+            // 1 s, 2 s, then every 3 s
+            const backoffTime = Math.min(2 ** (errorCountRef.current - 1) * 1000, 3000)
+            logger("WebsocketProvider").info(`Reconnecting in ${backoffTime}ms (attempt ${errorCountRef.current})`)
+            reconnectTimeoutRef.current = setTimeout(connectWebSocket, backoffTime)
         }
 
         if (!shouldPauseForAuthRef.current && (!socket || socket.readyState === WebSocket.CLOSED)) {
-            // If the socket is not set or the connection is closed, initiate a new connection
             connectWebSocket()
         }
 
         return () => {
             connectWebSocketRef.current = null
             clearAllIntervalsRef.current = null
-            if (socketRef.current) {
-                try {
-                    socketRef.current.close()
-                }
-                catch (e) {
-                    // Ignore errors on closing
-                }
-            }
+            const ws = socketRef.current
+            socketRef.current = null
+            ws?.close()
             setIsConnected(false)
-            // Cleanup all intervals on unmount
             clearAllIntervals()
         }
     })
@@ -358,14 +273,9 @@ function WebsocketManagement() {
     React.useEffect(() => {
         if (shouldPauseForAuth) {
             clearAllIntervalsRef.current?.()
-            if (socketRef.current) {
-                try {
-                    socketRef.current.close()
-                }
-                catch {
-                }
-            }
+            const ws = socketRef.current
             socketRef.current = null
+            ws?.close()
             setSocket(null)
             setIsConnected(false)
             return

@@ -1,20 +1,16 @@
-import { serverAuthTokenAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { WebSocketContext } from "@/app/(main)/_atoms/websocket.atoms"
-import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { websocketConnectedAtom } from "@/app/websocket-provider"
 import { logger } from "@/lib/helpers/debug"
 import { SeaWebsocketEvent, SeaWebsocketPluginEvent } from "@/lib/server/queries.types"
 import { WSEvents } from "@/lib/server/ws-events"
 import { copyWebsocketPayload, decodeWebsocketMessage } from "@/lib/server/websocket-message"
-import { useAtom, useAtomValue } from "jotai"
+import { useAtom } from "jotai"
 import { useContext, useEffect, useRef } from "react"
-import useUpdateEffect from "react-use/lib/useUpdateEffect"
 
 export function useWebsocketSender() {
     const socket = useContext(WebSocketContext)
     const [isConnected] = useAtom(websocketConnectedAtom)
 
-    // Store message queue in a ref so it persists across rerenders and socket changes
     const messageQueue = useRef<SeaWebsocketEvent<any>[]>([])
     const processingQueueRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -24,20 +20,12 @@ export function useWebsocketSender() {
     const MAX_PLUGIN_BATCH_SIZE = 20
     const PLUGIN_BATCH_FLUSH_INTERVAL = 10 // ms
 
-    // Keep a local latest reference to socket to ensure we're using the most recent one
     const latestSocketRef = useRef<WebSocket | null>(null)
 
-    // Update the socket ref whenever the socket changes
     useEffect(() => {
         latestSocketRef.current = socket
-
-        // Log socket changes
-        // logger("WebsocketSender").info(`Socket updated: ${socket ? getReadyStateString(socket.readyState) : "null"}`)
-
-        // When socket becomes available and open, immediately process any queued messages
         if (socket && socket.readyState === WebSocket.OPEN && messageQueue.current.length > 0) {
-            // logger("WebsocketSender").info(`New socket connected with ${messageQueue.current.length} queued messages, processing immediately`)
-            setTimeout(() => processQueue(), 100) // Small delay to ensure socket is fully established
+            setTimeout(() => processQueue(), 100)
         }
     }, [socket])
 
@@ -59,24 +47,14 @@ export function useWebsocketSender() {
 
         if (pluginEventBatchRef.current.length === 0) return
 
-        // Create a copy of the current batch
         const events = [...pluginEventBatchRef.current]
         pluginEventBatchRef.current = []
 
-        // Deduplicate events by type, extension ID, and payload
         const deduplicatedEvents = events.filter((event, index, self) => {
             return index === self.findIndex((t) => (t.type === event.type && t.extensionId === event.extensionId && JSON.stringify(t.payload) === JSON.stringify(
-                    event.payload)),
-                // ||(event.type === PluginClientEvents.DOMElementUpdated && t.type === event.type && t.extensionId === event.extensionId)
-            )
+                event.payload)))
         })
-        // const deduplicatedEvents = events
 
-        // if (events.length !== deduplicatedEvents.length) {
-        //     logger("WebsocketSender").info(`Deduplicated ${events.length - deduplicatedEvents.length} events from batch of ${events.length}`)
-        // }
-
-        // If only one event, send it directly without batching
         if (deduplicatedEvents.length === 1) {
             const event = deduplicatedEvents[0]
             sendMessage({
@@ -90,7 +68,6 @@ export function useWebsocketSender() {
             return
         }
 
-        // Send the batch
         sendMessage({
             type: "plugin",
             payload: {
@@ -120,23 +97,19 @@ export function useWebsocketSender() {
     }
 
     function sendMessage<TData>(data: SeaWebsocketEvent<TData>) {
-        // Always use the latest socket reference
         const currentSocket = latestSocketRef.current
 
         if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
             try {
-                const message = JSON.stringify(data)
-                currentSocket.send(message)
-                // logger("WebsocketSender").info(`Sent message of type ${data.type}`);
+                currentSocket.send(JSON.stringify(data))
                 return true
             }
-            catch (e) {
-                // logger("WebsocketSender").error(`Failed to send message of type ${data.type}`, e)
+            catch {
                 messageQueue.current.push(data)
                 return false
             }
         } else {
-            if (messageQueue.current.length < 500) { // Limit queue size to prevent memory issues
+            if (messageQueue.current.length < 500) {
                 messageQueue.current.push(data)
                 logger("WebsocketSender")
                     .info(`Queued message of type ${data.type}, queue size: ${messageQueue.current.length}, socket state: ${currentSocket
@@ -146,13 +119,11 @@ export function useWebsocketSender() {
                 logger("WebsocketSender").warning(`Message queue full (500), dropping message of type ${data.type}`)
             }
 
-            // Always ensure queue processor is running
             ensureQueueProcessorIsRunning()
             return false
         }
     }
 
-    // Add a plugin event to the batch
     function addPluginEventToBatch(type: string, payload: any, extensionId?: string) {
         pluginEventBatchRef.current.push({
             type,
@@ -160,14 +131,12 @@ export function useWebsocketSender() {
             extensionId,
         })
 
-        // If this is the first event, start the timer
         if (pluginEventBatchRef.current.length === 1) {
             pluginBatchTimerRef.current = setTimeout(() => {
                 flushPluginEventBatch()
             }, PLUGIN_BATCH_FLUSH_INTERVAL)
         }
 
-        // If we've reached the max batch size, flush immediately
         if (pluginEventBatchRef.current.length >= MAX_PLUGIN_BATCH_SIZE) {
             flushPluginEventBatch()
         }
@@ -180,79 +149,56 @@ export function useWebsocketSender() {
     }
 
     function processQueue() {
-        // Clear any existing processor
         if (processingQueueRef.current) {
             clearTimeout(processingQueueRef.current)
             processingQueueRef.current = null
         }
 
-        // Always use the latest socket reference
         const currentSocket = latestSocketRef.current
 
-        // Process the queue if socket is connected
         if (currentSocket && currentSocket.readyState === WebSocket.OPEN && messageQueue.current.length > 0) {
-            // logger("WebsocketSender").info(`Processing ${messageQueue.current.length} queued messages`)
-
-            // Create a copy of the queue to avoid modification issues during iteration
             const queueCopy = [...messageQueue.current]
             const successfulMessages: number[] = []
 
-            // Try to send all queued messages
             queueCopy.forEach((message, index) => {
                 try {
-                    const messageStr = JSON.stringify(message)
-                    currentSocket.send(messageStr)
+                    currentSocket.send(JSON.stringify(message))
                     successfulMessages.push(index)
-                    // logger("WebsocketSender").info(`Successfully sent queued message of type ${message.type}`);
                 }
-                catch (e) {
-                    // logger("WebsocketSender").error(`Failed to send queued message of type ${message.type}`, e);
+                catch {
                 }
             })
 
-            // Remove successfully sent messages
             if (successfulMessages.length > 0) {
-                // Create a new array without the successfully sent messages
                 messageQueue.current = queueCopy.filter((_, index) => !successfulMessages.includes(index))
-                // logger("WebsocketSender").info(`Sent ${successfulMessages.length}/${queueCopy.length} queued messages,
-                // ${messageQueue.current.length} remaining`)
             }
-        } else {
-            // const reason = !currentSocket ? "no socket" :
-            //                currentSocket.readyState !== WebSocket.OPEN ? `socket not open (${getReadyStateString(currentSocket.readyState)})` :
-            //                "no messages in queue";
-            // logger("WebsocketSender").info(`Skipped queue processing: ${reason}`);
         }
 
-        // Always schedule next run if there are messages or socket isn't ready
+        // Keep retrying every second while messages wait or the socket is down
         const shouldReschedule = messageQueue.current.length > 0 || !currentSocket || currentSocket.readyState !== WebSocket.OPEN
 
         if (shouldReschedule) {
             processingQueueRef.current = setTimeout(() => {
                 processQueue()
-            }, 1000) // Process every second for faster recovery
+            }, 1000)
         } else {
             processingQueueRef.current = null
         }
     }
 
-    // Process queue whenever connection status changes
     useEffect(() => {
         if (isConnected && latestSocketRef.current?.readyState === WebSocket.OPEN) {
-            // logger("WebsocketSender").info(`Connection reestablished, processing message queue (${messageQueue.current.length} messages)`)
-            // Force immediate processing with a small delay to ensure everything is ready
             setTimeout(() => processQueue(), 100)
         }
 
         return () => {
+            // Flush first: while disconnected the flush queues the batch and restarts the processor, which is cleared right after
+            if (pluginEventBatchRef.current.length > 0) {
+                flushPluginEventBatch()
+            }
             if (processingQueueRef.current) {
                 clearTimeout(processingQueueRef.current)
                 processingQueueRef.current = null
-            }
-
-            // Flush any batched events before unmounting
-            if (pluginEventBatchRef.current.length > 0) {
-                flushPluginEventBatch()
             }
         }
     }, [isConnected])
@@ -260,19 +206,10 @@ export function useWebsocketSender() {
     return {
         sendMessage,
         sendPluginMessage: (type: string, payload: any, extensionId?: string) => {
-            // Use batching for plugin messages
             addPluginEventToBatch(type, payload, extensionId)
             return true
         },
     }
-}
-
-export function useWebsocketSendEffect<TData>(data: SeaWebsocketEvent<TData>, ...deps: any[]) {
-    const { sendMessage } = useWebsocketSender()
-
-    useUpdateEffect(() => {
-        sendMessage(data)
-    }, [...deps])
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -284,24 +221,18 @@ export type WebSocketMessageListener<TData> = {
 
 export function useWebsocketMessageListener<TData = unknown>({ type, onMessage, deps }: WebSocketMessageListener<TData> & { deps?: any[] }) {
     const socket = useContext(WebSocketContext)
-    const status = useServerStatus()
-    const password = useAtomValue(serverAuthTokenAtom)
 
     useEffect(() => {
         if (socket) {
             const messageHandler = (event: MessageEvent) => {
-                if (status?.serverHasPassword && !password) {
-                    logger("Websocket").warning("Unauthenticated, skipping message")
-                    return
-                }
                 try {
                     const parsed = decodeWebsocketMessage<TData>(event)
                     if (!!parsed.type && parsed.type === type) {
                         onMessage(copyWebsocketPayload(parsed.payload))
                     }
                 }
-                catch (e) {
-                    logger("Websocket").error("Error parsing message", e)
+                catch {
+                    logger("Websocket").error(`Error handling message ${type}`)
                 }
             }
 
@@ -333,14 +264,8 @@ export function useWebsocketPluginMessageListener<TData = unknown>({ type, exten
                     if (!!parsed.type && parsed.type === "plugin") {
                         const message = parsed.payload as SeaWebsocketPluginEvent<TData>
 
-
-                        // Handle batch events
                         if (message.type === "plugin:batch-events" && message.payload && (message.payload as any).events) {
-                            // Extract and process each event in the batch
-                            const batchPayload = message.payload as any
-                            const events = batchPayload.events || []
-
-                            // Process each event in the batch
+                            const events = (message.payload as any).events || []
                             for (const event of events) {
                                 if (event.type === type &&
                                     (!extensionId || extensionId === event.extensionId || extensionId === "")) {
@@ -350,15 +275,14 @@ export function useWebsocketPluginMessageListener<TData = unknown>({ type, exten
                             return
                         }
 
-                        // Handle regular events
                         if (message.type === type &&
                             (!extensionId || extensionId === message.extensionId || extensionId === "")) {
                             onMessage(copyWebsocketPayload(message.payload as TData), message.extensionId)
                         }
                     }
                 }
-                catch (e) {
-                    logger("Websocket").error("Error parsing plugin message", e)
+                catch {
+                    logger("Websocket").error(`Error handling plugin message ${type}`)
                 }
             }
 
