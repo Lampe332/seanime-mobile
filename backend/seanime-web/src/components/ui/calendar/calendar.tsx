@@ -33,15 +33,6 @@ export const CalendarAnatomy = defineStyleAnatomy({
         "UI-Calendar__nav",
         "absolute top-0 flex w-full justify-between",
     ]),
-    // buttonPrevious: cva([
-    //     "UI-Calendar__buttonPrevious",
-    //     ButtonAnatomy.root({ size: "sm", intent: "gray-basic" }),
-
-    // ]),
-    // buttonNext: cva([
-    //     "UI-Calendar__buttonNext",
-    //     ButtonAnatomy.root({ size: "sm", intent: "gray-basic" }),
-    // ]),
     chevron: cva([
         "UI-Calendar__chevron",
         ButtonAnatomy.root({ size: "sm", intent: "gray-basic" }),
@@ -66,7 +57,6 @@ export const CalendarAnatomy = defineStyleAnatomy({
     day: cva([
         "UI-Calendar__day",
         "h-9 w-9 text-center text-sm p-0 relative",
-        "[&:has([aria-selected].range_end)]:rounded-r-[--radius]",
         "[&:has([aria-selected].outside)]:bg-[--subtle]/50",
         "[&:has([aria-selected])]:bg-[--subtle]",
         "first:[&:has([aria-selected])]:rounded-l-[--radius]",
@@ -76,9 +66,6 @@ export const CalendarAnatomy = defineStyleAnatomy({
     dayButton: cva([
         "UI-Calendar__dayButton",
         "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
-    ]),
-    range_end: cva([
-        "UI-Calendar__range_end",
     ]),
     selected: cva([
         "UI-Calendar__selected",
@@ -98,11 +85,6 @@ export const CalendarAnatomy = defineStyleAnatomy({
     disabled: cva([
         "UI-Calendar__disabled",
         "text-[--muted] opacity-30",
-    ]),
-    range_middle: cva([
-        "UI-Calendar__range_middle",
-        "aria-selected:bg-[--subtle]",
-        "aria-selected:text-[--foreground]",
     ]),
     hidden: cva([
         "UI-Calendar__hidden",
@@ -135,12 +117,10 @@ export function Calendar(props: CalendarProps) {
         weekClass,
         dayClass,
         dayButtonClass,
-        range_endClass,
         selectedClass,
         todayClass,
         outsideClass,
         disabledClass,
-        range_middleClass,
         hiddenClass,
         ...rest
     } = props
@@ -163,12 +143,10 @@ export function Calendar(props: CalendarProps) {
                 week: cn(CalendarAnatomy.week(), weekClass),
                 day: cn(CalendarAnatomy.day(), dayClass),
                 day_button: cn(CalendarAnatomy.dayButton(), dayButtonClass),
-                range_end: cn(CalendarAnatomy.range_end(), range_endClass),
                 selected: cn(CalendarAnatomy.selected(), selectedClass),
                 today: cn(CalendarAnatomy.today(), todayClass),
                 outside: cn(CalendarAnatomy.outside(), outsideClass),
                 disabled: cn(CalendarAnatomy.disabled(), disabledClass),
-                range_middle: cn(CalendarAnatomy.range_middle(), range_middleClass),
                 hidden: cn(CalendarAnatomy.hidden(), hiddenClass),
                 ...classNames,
             }}

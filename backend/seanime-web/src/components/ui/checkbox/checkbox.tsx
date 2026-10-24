@@ -2,7 +2,6 @@ import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
 import { cva, VariantProps } from "class-variance-authority"
 import * as React from "react"
 import { BasicField, BasicFieldOptions, extractBasicFieldProps } from "../basic-field"
-import { __CheckboxGroupContext } from "../checkbox"
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "../core/styling"
 import { mergeRefs } from "../core/utils"
 import { hiddenInputStyles } from "../input"
@@ -118,10 +117,6 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>((prop
         ...rest
     }, { label, ...basicFieldProps }] = extractBasicFieldProps<CheckboxProps>(props, React.useId())
 
-    const groupContext = React.useContext(__CheckboxGroupContext)
-
-    const _size = groupContext?.group_size ?? size
-
     const isFirst = React.useRef(true)
 
     const buttonRef = React.useRef<HTMLButtonElement>(null)
@@ -156,7 +151,7 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>((prop
                 <CheckboxPrimitive.Root
                     ref={mergeRefs([buttonRef, ref])}
                     id={basicFieldProps.id}
-                    className={cn(CheckboxAnatomy.root({ size: _size }), className)}
+                    className={cn(CheckboxAnatomy.root({ size }), className)}
                     disabled={basicFieldProps.disabled || basicFieldProps.readonly}
                     data-error={!!basicFieldProps.error}
                     data-disabled={basicFieldProps.disabled}
@@ -172,7 +167,7 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>((prop
                             viewBox="0 0 16 16"
                             stroke="currentColor"
                             fill="currentColor"
-                            className={cn(CheckboxAnatomy.checkIcon({ size: _size }), checkIconClass)}
+                            className={cn(CheckboxAnatomy.checkIcon({ size }), checkIconClass)}
                         >
                             <path
                                 d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"
@@ -185,7 +180,7 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>((prop
                             fill="none"
                             stroke="currentColor"
                             strokeWidth="3"
-                            className={cn(CheckboxAnatomy.checkIcon({ size: _size }), checkIconClass)}
+                            className={cn(CheckboxAnatomy.checkIcon({ size }), checkIconClass)}
                         >
                             <line x1="5" x2="19" y1="12" y2="12" />
                         </svg>}
@@ -193,7 +188,7 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>((prop
                 </CheckboxPrimitive.Root>
                 {!!label &&
                     <label
-                        className={cn(CheckboxAnatomy.label({ size: _size }), labelClass)}
+                        className={cn(CheckboxAnatomy.label({ size }), labelClass)}
                         htmlFor={basicFieldProps.id}
                         data-disabled={basicFieldProps.disabled}
                         data-checked={_value === true}

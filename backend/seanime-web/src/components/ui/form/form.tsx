@@ -6,22 +6,6 @@ import { cn } from "../core/styling"
 import { isEmpty } from "../core/utils"
 import { getZodDefaults } from "./zod-resolver"
 
-/* -------------------------------------------------------------------------------------------------
- * Context
- * -----------------------------------------------------------------------------------------------*/
-
-/**
- * @internal
- */
-const __FormSchemaContext = React.createContext<{
-    shape: z.ZodRawShape,
-    schema: z.ZodObject<z.ZodRawShape>
-} | undefined>(undefined)
-
-export const useFormSchema = (): { shape: z.ZodRawShape, schema: z.ZodObject<z.ZodRawShape> } => {
-    return React.useContext(__FormSchemaContext)!
-}
-
 export type SubmitHandler<T> = (data: T, event?: React.BaseSyntheticEvent) => any
 export type SubmitErrorHandler<TFieldValues extends FieldValues> = (errors: FieldErrors<TFieldValues>, event?: React.BaseSyntheticEvent) => any
 
@@ -125,17 +109,15 @@ export const Form = <Schema extends z.ZodObject<z.ZodRawShape>>(props: FormProps
 
     return (
         <FormProvider {...methods}>
-            <__FormSchemaContext.Provider value={{ schema, shape: schema.shape }}>
-                <form
-                    ref={formRef}
-                    onSubmit={handleSubmit(onSubmit, onError)}
-                    {...rest}
-                >
-                    <div className={cn("w-full space-y-3", stackClass)}>
-                        {runIfFn(children, methods)}
-                    </div>
-                </form>
-            </__FormSchemaContext.Provider>
+            <form
+                ref={formRef}
+                onSubmit={handleSubmit(onSubmit, onError)}
+                {...rest}
+            >
+                <div className={cn("w-full space-y-3", stackClass)}>
+                    {runIfFn(children, methods)}
+                </div>
+            </form>
         </FormProvider>
     )
 
