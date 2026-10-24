@@ -15,44 +15,16 @@ export const TabsAnatomy = defineStyleAnatomy({
     list: cva([
         "UI-Tabs__list",
         "inline-flex items-center justify-center w-full",
-    ], {
-        variants: {
-            variant: {
-                underline: "h-12 border-b border-[--border]",
-                pill: "w-full flex flex-wrap md:flex-nowrap bg-[--paper] p-1 border rounded-xl h-fit",
-                none: "",
-            },
-        },
-        defaultVariants: {
-            variant: "underline",
-        },
-    }),
+        "w-full flex flex-wrap md:flex-nowrap bg-[--paper] p-1 border rounded-xl h-fit",
+    ]),
     trigger: cva([
         "UI-Tabs__trigger appearance-none shadow-none",
         "inline-flex h-full items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-[--background]",
         "transition-all focus-visible:outline-none focus-visible:ring-1 ring-offset-1 ring-offset-[--background] focus-visible:ring-white/40",
         "disabled:pointer-events-none disabled:opacity-50",
-    ], {
-        variants: {
-            variant: {
-                underline: [
-                    "px-3 py-1.5 border-transparent border-b-2 -mb-px text-[--muted]",
-                    "data-[state=active]:border-[--brand] data-[state=active]:text-[--foreground]",
-                ],
-                pill: [
-                    "text-base px-6 h-auto py-2 rounded-[--radius-md] w-fit md:w-full border-none text-[--muted]",
-                    "data-[state=active]:bg-[--subtle] data-[state=active]:text-white dark:hover:text-white",
-                ],
-                none: [
-                    "px-3 py-1.5 border-transparent border-b-2 -mb-px text-[--muted]",
-                    "data-[state=active]:border-[--brand] data-[state=active]:text-[--foreground]",
-                ],
-            },
-        },
-        defaultVariants: {
-            variant: "underline",
-        },
-    }),
+        "text-base px-6 h-auto py-2 rounded-[--radius-md] w-fit md:w-full border-none text-[--muted]",
+        "data-[state=active]:bg-[--subtle] data-[state=active]:text-white dark:hover:text-white",
+    ]),
     content: cva([
         "UI-Tabs__content",
         "focus-visible:outline-none",
@@ -89,14 +61,11 @@ function getJustifyClass(classes?: string): string {
 interface TabsContextValue extends ComponentAnatomy<typeof TabsAnatomy> {
     activeTab?: string
     layoutId?: string
-    variant?: "underline" | "pill" | "none"
 }
 
 const __TabsAnatomyContext = React.createContext<TabsContextValue>({})
 
-export type TabsProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> & ComponentAnatomy<typeof TabsAnatomy> & {
-    variant?: "underline" | "pill" | "none"
-}
+export type TabsProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> & ComponentAnatomy<typeof TabsAnatomy>
 
 export const Tabs = React.forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
     const {
@@ -104,7 +73,6 @@ export const Tabs = React.forwardRef<HTMLDivElement, TabsProps>((props, ref) => 
         listClass,
         triggerClass,
         contentClass,
-        variant = "pill",
         value: valueProp,
         defaultValue,
         onValueChange,
@@ -137,7 +105,6 @@ export const Tabs = React.forwardRef<HTMLDivElement, TabsProps>((props, ref) => 
                 contentClass,
                 activeTab,
                 layoutId,
-                variant,
             }}
         >
             <TabsPrimitive.Root
@@ -158,20 +125,17 @@ Tabs.displayName = "Tabs"
  * TabsList
  * -----------------------------------------------------------------------------------------------*/
 
-export type TabsListProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & {
-    variant?: "underline" | "pill" | "none"
-}
+export type TabsListProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 
 export const TabsList = React.forwardRef<HTMLDivElement, TabsListProps>((props, ref) => {
-    const { className, variant: variantProp, ...rest } = props
+    const { className, ...rest } = props
 
-    const { listClass, variant: contextVariant } = React.useContext(__TabsAnatomyContext)
-    const variant = variantProp ?? contextVariant
+    const { listClass } = React.useContext(__TabsAnatomyContext)
 
     return (
         <TabsPrimitive.List
             ref={ref}
-            className={cn(TabsAnatomy.list({ variant }), listClass, className)}
+            className={cn(TabsAnatomy.list(), listClass, className)}
             {...rest}
         />
     )
@@ -184,30 +148,16 @@ TabsList.displayName = "TabsList"
  * TabsTrigger
  * -----------------------------------------------------------------------------------------------*/
 
-export type TabsTriggerProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> & {
-    variant?: "underline" | "pill" | "none"
-}
+export type TabsTriggerProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
 
 export const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>((props, ref) => {
-    const { className, variant: variantProp, ...rest } = props
+    const { className, ...rest } = props
 
-    const { triggerClass, activeTab, layoutId, variant: contextVariant } = React.useContext(__TabsAnatomyContext)
-    const variant = variantProp ?? contextVariant
-    const isReducedMotion = useReducedMotion()
-
+    const { triggerClass, activeTab, layoutId } = React.useContext(__TabsAnatomyContext)
+    const isAnimated = !useReducedMotion()
     const isActive = activeTab === rest.value
-    const isAnimated = !isReducedMotion && variant !== "none"
 
-    const mergedClasses = cn(TabsAnatomy.trigger({ variant }), triggerClass, className)
-
-    // Override active background / border when layout animations are enabled
-    const overrideClass = isAnimated
-        ? variant === "underline"
-            ? "data-[state=active]:border-transparent"
-            : variant === "pill"
-                ? "data-[state=active]:bg-transparent"
-                : ""
-        : ""
+    const mergedClasses = cn(TabsAnatomy.trigger(), triggerClass, className)
 
     const activeBgClass = React.useMemo(() => getActiveBgClass(mergedClasses), [mergedClasses])
     const roundedClass = React.useMemo(() => getRoundedClass(mergedClasses), [mergedClasses])
@@ -218,9 +168,10 @@ export const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>
             ref={ref}
             data-tab-trigger={rest.value}
             className={cn(
-                TabsAnatomy.trigger({ variant }),
+                TabsAnatomy.trigger(),
                 triggerClass,
-                overrideClass,
+                // the moving pill below draws the active background
+                isAnimated && "data-[state=active]:bg-transparent",
                 className,
                 isAnimated && "relative z-0",
             )}
@@ -231,14 +182,7 @@ export const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>
                     <span className={cn("relative z-10 w-full h-full inline-flex items-center", justifyClass)}>
                         {props.children}
                     </span>
-                    {isActive && variant === "underline" && (
-                        <motion.span
-                            layoutId={layoutId}
-                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-[--brand] z-10"
-                            transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                        />
-                    )}
-                    {isActive && variant === "pill" && (
+                    {isActive && (
                         <motion.span
                             layoutId={layoutId}
                             className={cn("absolute inset-0 -z-10", activeBgClass, roundedClass)}
