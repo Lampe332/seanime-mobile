@@ -527,14 +527,7 @@ class MainActivity : Activity() {
         android.app.AlertDialog.Builder(this)
             .setTitle("Local media library")
             .setMessage("Allow file access so Seanime can scan and download media in shared storage. You can also use streaming without this permission.")
-            .setPositiveButton("Allow file access") { _, _ ->
-                if (Build.VERSION.SDK_INT >= 30) {
-                    startActivity(Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                        Uri.parse("package:$packageName")))
-                } else if (Build.VERSION.SDK_INT >= 23) {
-                    requestPermissions(arrayOf("android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE"), 102)
-                }
-            }
+            .setPositiveButton("Allow file access") { _, _ -> openFileAccessSettings() }
             .setNegativeButton("Use streaming", null)
             .setOnDismissListener { requestNotificationAccess() }
             .show()
