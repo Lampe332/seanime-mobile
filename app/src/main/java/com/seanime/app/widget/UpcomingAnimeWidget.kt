@@ -3,14 +3,15 @@ package com.seanime.app.widget
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import android.content.ComponentName
 import android.view.View
 import android.widget.RemoteViews
+import com.seanime.app.MainActivity
 import com.seanime.app.R
 import com.seanime.app.SeanimeService
 
@@ -24,53 +25,33 @@ class UpcomingAnimeWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         val cache = WidgetCache(context)
         for (id in appWidgetIds) {
-            if (!cache.hasValidCache() || cache.isLoading()) {
-                refreshWidget(context, appWidgetManager, id)
-            } else {
-                updateWidget(context, appWidgetManager, id)
-            }
+            if (!cache.hasValidCache() || cache.isLoading()) refreshWidget(context, appWidgetManager, id)
+            else updateWidget(context, appWidgetManager, id)
         }
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-
-        if (ACTION_REFRESH == intent.action) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 
-                AppWidgetManager.INVALID_APPWIDGET_ID)
-            
-            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                // Clear cache to force refresh
-                val cache = WidgetCache(context)
-                cache.clearCache()
-                
-                // Start server and refresh
-                refreshWidget(context, appWidgetManager, appWidgetId)
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        when (intent.action) {
+            ACTION_REFRESH -> {
+                val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+                if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                    WidgetCache(context).clearCache()
+                    refreshWidget(context, appWidgetManager, appWidgetId)
+                }
             }
-        } else if (ACTION_DATA_UPDATED == intent.action) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val ids = appWidgetManager.getAppWidgetIds(ComponentName(context, UpcomingAnimeWidget::class.java))
-            for (id in ids) {
-                updateWidget(context, appWidgetManager, id)
-            }
+            ACTION_DATA_UPDATED -> appWidgetManager.getAppWidgetIds(ComponentName(context, UpcomingAnimeWidget::class.java))
+                .forEach { updateWidget(context, appWidgetManager, it) }
         }
     }
 
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
         val views = RemoteViews(context.packageName, R.layout.widget_layout)
         val cache = WidgetCache(context)
-
-        // Check for error first
         val error = cache.getError()
-        if (error != null) {
-            // Show error in loading text
-            views.setTextViewText(R.id.loading_text, "Error: $error")
-            views.setViewVisibility(R.id.loading_text, View.VISIBLE)
-            views.setViewVisibility(R.id.anime_list_view, View.INVISIBLE)
-        } else if (cache.isLoading() || !cache.hasValidCache()) {
-            // Show loading state
-            views.setTextViewText(R.id.loading_text, "Nothing here yet")
+        if (error != null || cache.isLoading() || !cache.hasValidCache()) {
+            views.setTextViewText(R.id.loading_text, if (error != null) "Error: $error" else "Nothing here yet")
             views.setViewVisibility(R.id.loading_text, View.VISIBLE)
             // Keep the ListView around so RemoteViewsService still runs and can fetch.
             views.setViewVisibility(R.id.anime_list_view, View.INVISIBLE)
@@ -79,48 +60,30 @@ class UpcomingAnimeWidget : AppWidgetProvider() {
             views.setViewVisibility(R.id.anime_list_view, View.VISIBLE)
         }
 
-        // Set up refresh button click
-        val refreshIntent = Intent(context, UpcomingAnimeWidget::class.java).apply {
-            action = ACTION_REFRESH
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-        }
-        val refreshPI = PendingIntent.getBroadcast(
-            context,
-            appWidgetId,
-            refreshIntent,
-            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        views.setOnClickPendingIntent(R.id.refresh_button, refreshPI)
+        val refreshIntent = Intent(context, UpcomingAnimeWidget::class.java)
+            .setAction(ACTION_REFRESH).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+        views.setOnClickPendingIntent(R.id.refresh_button, PendingIntent.getBroadcast(context, appWidgetId, refreshIntent,
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
 
-        // Adapter for the list
-        val serviceIntentList = Intent(context, AnimeListService::class.java)
-        serviceIntentList.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-        serviceIntentList.data = Uri.parse(serviceIntentList.toUri(Intent.URI_INTENT_SCHEME))
-        views.setRemoteAdapter(R.id.anime_list_view, serviceIntentList)
+        val listIntent = Intent(context, AnimeListService::class.java).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+        listIntent.data = Uri.parse(listIntent.toUri(Intent.URI_INTENT_SCHEME))
+        views.setRemoteAdapter(R.id.anime_list_view, listIntent)
 
-        // Click Template (Opens the link in browser/app)
-        val clickIntent = Intent(context, com.seanime.app.MainActivity::class.java).apply {
-            action = Intent.ACTION_VIEW
-        }
-        val clickPI = PendingIntent.getActivity(
-            context,
-            0,
-            clickIntent,
-            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        views.setPendingIntentTemplate(R.id.anime_list_view, clickPI)
+        // Each row fills in its seanime://entry link (AnimeListFactory.getViewAt).
+        val openIntent = Intent(context, MainActivity::class.java).setAction(Intent.ACTION_VIEW)
+        views.setPendingIntentTemplate(R.id.anime_list_view, PendingIntent.getActivity(context, 0, openIntent,
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
 
         appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.anime_list_view)
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
     private fun refreshWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        // Start server binary
         val serviceIntent = Intent(context, SeanimeService::class.java)
         try {
             if (android.os.Build.VERSION.SDK_INT >= 26) context.startForegroundService(serviceIntent)
             else context.startService(serviceIntent)
-        } catch (e: IllegalStateException) {
+        } catch (_: IllegalStateException) {
             // Periodic widget updates are not exempt from Android's background-start limit.
             WidgetCache(context).setError("Open Seanime to start the local server, then refresh the widget.")
             updateWidget(context, appWidgetManager, appWidgetId)
@@ -128,14 +91,10 @@ class UpcomingAnimeWidget : AppWidgetProvider() {
         }
 
         WidgetCache(context).setLoading(true)
-
-        // Bind adapter immediately (so the factory can start working) while showing loading.
+        // Bind the adapter right away so the factory starts fetching while the widget shows the loading text.
         updateWidget(context, appWidgetManager, appWidgetId)
-
-        // Force a dataset refresh right away.
         appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.anime_list_view)
-
-        // Also retry shortly after to cover slow server boot.
+        // Again shortly after, for a slow server boot.
         Handler(Looper.getMainLooper()).postDelayed({
             appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.anime_list_view)
         }, 2000)

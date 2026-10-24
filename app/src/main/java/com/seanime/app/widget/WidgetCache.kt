@@ -1,107 +1,55 @@
 package com.seanime.app.widget
 
 import android.content.Context
-import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 
 class WidgetCache(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("widget_cache", Context.MODE_PRIVATE)
-    private val editor = prefs.edit()
-    
+    private val prefs = context.getSharedPreferences("widget_cache", Context.MODE_PRIVATE)
+
     companion object {
         private const val KEY_CACHE_DATA = "anime_cache_data"
         private const val KEY_CACHE_TIMESTAMP = "cache_timestamp"
         private const val KEY_IS_LOADING = "is_loading"
         private const val KEY_ERROR = "error_message"
-        private const val CACHE_DURATION = 30 * 60 * 1000L // 30 minutes in milliseconds
+        private const val CACHE_DURATION = 30 * 60 * 1000L
     }
-    
+
     fun saveCacheData(animeEntries: List<AnimeListFactory.AnimeEntry>) {
-        try {
-            val jsonArray = JSONArray()
-            for (entry in animeEntries) {
-                val jsonEntry = JSONObject().apply {
-                    put("title", entry.title)
-                    put("episode", entry.episode)
-                    put("timeUntil", entry.timeUntil)
-                    put("mediaId", entry.mediaId)
-                    put("coverUrl", entry.coverUrl)
-                }
-                jsonArray.put(jsonEntry)
-            }
-            
-            editor.putString(KEY_CACHE_DATA, jsonArray.toString())
-            editor.putLong(KEY_CACHE_TIMESTAMP, System.currentTimeMillis())
-            editor.putBoolean(KEY_IS_LOADING, false)
-            editor.remove(KEY_ERROR)
-            editor.apply()
-        } catch (e: Exception) {
-            e.printStackTrace()
+        val array = JSONArray()
+        animeEntries.forEach {
+            array.put(JSONObject().put("title", it.title).put("episode", it.episode).put("timeUntil", it.timeUntil)
+                .put("mediaId", it.mediaId).put("coverUrl", it.coverUrl))
         }
+        prefs.edit().putString(KEY_CACHE_DATA, array.toString()).putLong(KEY_CACHE_TIMESTAMP, System.currentTimeMillis())
+            .putBoolean(KEY_IS_LOADING, false).remove(KEY_ERROR).apply()
     }
-    
-    fun getCacheData(): List<AnimeListFactory.AnimeEntry> {
-        try {
-            val cacheData = prefs.getString(KEY_CACHE_DATA, null)
-            val timestamp = prefs.getLong(KEY_CACHE_TIMESTAMP, 0)
-            
-            if (cacheData != null && (System.currentTimeMillis() - timestamp) < CACHE_DURATION) {
-                val jsonArray = JSONArray(cacheData)
-                val entries = mutableListOf<AnimeListFactory.AnimeEntry>()
-                
-                for (i in 0 until jsonArray.length()) {
-                    val jsonEntry = jsonArray.getJSONObject(i)
-                    val entry = AnimeListFactory.AnimeEntry(
-                        jsonEntry.getString("title"),
-                        jsonEntry.getInt("episode"),
-                        jsonEntry.getLong("timeUntil"),
-                        jsonEntry.getInt("mediaId"),
-                        jsonEntry.optString("coverUrl", ""),
-                        null // Thumbnail will be loaded on demand
-                    )
-                    entries.add(entry)
-                }
-                
-                return entries
+
+    /** Thumbnails are not cached; the list loads them on demand. */
+    fun getCacheData(): List<AnimeListFactory.AnimeEntry> = try {
+        if (!hasValidCache()) emptyList() else {
+            val array = JSONArray(prefs.getString(KEY_CACHE_DATA, null))
+            (0 until array.length()).map { i ->
+                val entry = array.getJSONObject(i)
+                AnimeListFactory.AnimeEntry(entry.getString("title"), entry.getInt("episode"), entry.getLong("timeUntil"),
+                    entry.getInt("mediaId"), entry.optString("coverUrl", ""), null)
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
-        
-        return emptyList()
-    }
-    
-    fun setLoading(isLoading: Boolean) {
-        editor.putBoolean(KEY_IS_LOADING, isLoading)
-        editor.apply()
-    }
-    
-    fun isLoading(): Boolean {
-        return prefs.getBoolean(KEY_IS_LOADING, false)
-    }
-    
-    fun clearCache() {
-        editor.remove(KEY_CACHE_DATA)
-        editor.remove(KEY_CACHE_TIMESTAMP)
-        editor.remove(KEY_IS_LOADING)
-        editor.remove(KEY_ERROR)
-        editor.apply()
+    } catch (e: Exception) {
+        e.printStackTrace()
+        emptyList()
     }
 
-    fun setError(message: String) {
-        editor.putString(KEY_ERROR, message)
-        editor.putBoolean(KEY_IS_LOADING, false)
-        editor.apply()
-    }
+    fun setLoading(isLoading: Boolean) = prefs.edit().putBoolean(KEY_IS_LOADING, isLoading).apply()
 
-    fun getError(): String? {
-        return prefs.getString(KEY_ERROR, null)
-    }
+    fun isLoading(): Boolean = prefs.getBoolean(KEY_IS_LOADING, false)
 
-    fun hasValidCache(): Boolean {
-        val timestamp = prefs.getLong(KEY_CACHE_TIMESTAMP, 0)
-        return prefs.contains(KEY_CACHE_DATA) &&
-               (System.currentTimeMillis() - timestamp) < CACHE_DURATION
-    }
+    fun clearCache() = prefs.edit().remove(KEY_CACHE_DATA).remove(KEY_CACHE_TIMESTAMP).remove(KEY_IS_LOADING).remove(KEY_ERROR).apply()
+
+    fun setError(message: String) = prefs.edit().putString(KEY_ERROR, message).putBoolean(KEY_IS_LOADING, false).apply()
+
+    fun getError(): String? = prefs.getString(KEY_ERROR, null)
+
+    fun hasValidCache(): Boolean =
+        prefs.contains(KEY_CACHE_DATA) && System.currentTimeMillis() - prefs.getLong(KEY_CACHE_TIMESTAMP, 0) < CACHE_DURATION
 }
