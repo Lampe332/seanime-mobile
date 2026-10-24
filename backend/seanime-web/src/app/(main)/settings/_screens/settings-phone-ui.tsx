@@ -227,7 +227,7 @@ function CustomCSSGroup({ t }: { t: Translate }) {
         note={t("If it breaks the screen, remove it here or clear the app's storage.", "Falls es die Anzeige zerstört, entferne es hier oder lösche den Speicher der App.")}>
         <TextSettingRow t={t} label={t("Custom CSS for phones", "Eigenes CSS für Handys")} value={mobileCSS} empty={t("None", "Keins")} multiline
             display={value => t(`${value.split("\n").length} lines`, `${value.split("\n").length} Zeilen`)} placeholder=".class { … }"
-            note={t("Applies below 1024 px width, on every phone that applies it.", "Gilt unter 1024 px Breite, auf jedem Handy, das es übernimmt.")}
+            note={t("Applies on every phone that takes it over.", "Gilt auf jedem Handy, das es übernimmt.")}
             onApply={async value => {
                 if (await save({ mobileCustomCSS: value })) setCustomCSS({ customCSS: stored.customCSS, mobileCustomCSS: value })
             }} data-theme-field="mobileCustomCSS" />
