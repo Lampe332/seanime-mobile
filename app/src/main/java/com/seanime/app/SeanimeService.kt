@@ -17,11 +17,19 @@ class SeanimeService : Service() {
 
     @Volatile private var process: Process? = null
     @Volatile private var stopping = false
-    private val CHANNEL_ID = "seanime_channel"
-    private val NOTIF_ID = 1
-    private val ACTION_STOP_SERVICE = "STOP_SEANIME_SERVICE"
-    private lateinit var notificationManager: NotificationManager
     private var lastStatus: String = "Starting local server"
+
+    private companion object {
+        const val CHANNEL_ID = "seanime_channel"
+        const val NOTIF_ID = 1
+        const val ACTION_STOP_SERVICE = "STOP_SEANIME_SERVICE"
+    }
+
+    // A widget refresh can start this service without the app UI, which is where the language is usually loaded.
+    override fun onCreate() {
+        super.onCreate()
+        AppLanguage.init(this)
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP_SERVICE) {
@@ -30,7 +38,6 @@ class SeanimeService : Service() {
         }
 
         stopping = false
-        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannel()
 
         promoteToForeground(lastStatus)
@@ -52,7 +59,6 @@ class SeanimeService : Service() {
         val openIntent = PendingIntent.getActivity(this, 1, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
-        AppLanguage.init(this)
         val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, CHANNEL_ID) else Notification.Builder(this)
         return builder
             .setContentTitle("Seanime")
@@ -84,42 +90,22 @@ class SeanimeService : Service() {
         }
     }
 
-    private fun prepareBinary(): File? {
-        try {
-            val sourceBinary = File(applicationInfo.nativeLibraryDir, "libseanime.so")
-            if (!sourceBinary.exists()) {
-                promoteToForeground("Error: Binary missing in native lib dir")
-                return null
-            }
-            
-            // Android 10+ forbids executing files from the writable app data directory.
-            // PackageManager extracts the executable from the APK into this read-only directory.
-            return sourceBinary
-        } catch (e: Exception) {
-            promoteToForeground("Error: Failed to prepare binary")
-            return null
-        }
-    }
-
     private fun startBinary() {
         process?.let {
             try { it.exitValue() } catch (_: IllegalThreadStateException) { return }
         }
         try {
-            val binaryPath = prepareBinary()
-            if (binaryPath == null) {
-                promoteToForeground("Error: Binary preparation failed")
-                return
-            }
-
-            if (!binaryPath.exists()) {
-                promoteToForeground("Error: Binary missing after preparation")
+            // Android 10+ forbids executing files from the writable app data directory.
+            // PackageManager extracts the executable from the APK into this read-only directory.
+            val binary = File(applicationInfo.nativeLibraryDir, "libseanime.so")
+            if (!binary.exists()) {
+                promoteToForeground("Error: Binary missing in native lib dir")
                 return
             }
 
             promoteToForeground("Starting local server")
 
-            val pb = ProcessBuilder(binaryPath.absolutePath, "--datadir", filesDir.absolutePath,
+            val pb = ProcessBuilder(binary.absolutePath, "--datadir", filesDir.absolutePath,
                 "--host", "127.0.0.1", "--port", "43211")
                 .directory(filesDir)
                 .redirectErrorStream(true)
@@ -167,13 +153,12 @@ class SeanimeService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT < 26) return
-        AppLanguage.init(this)
         val channel = NotificationChannel(CHANNEL_ID, "Seanime Server", NotificationManager.IMPORTANCE_LOW)
         channel.description = AppLanguage.tr("Optional notice for background playback and downloads", "Optionaler Hinweis für Wiedergabe und Downloads im Hintergrund")
         channel.setSound(null, null)
         channel.enableVibration(false)
         channel.setShowBadge(false)
         // Keep the channel ID stable so a user's disabled category stays disabled.
-        notificationManager.createNotificationChannel(channel)
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
     }
 }

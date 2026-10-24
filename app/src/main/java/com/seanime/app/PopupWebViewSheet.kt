@@ -7,7 +7,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
-import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
@@ -16,16 +15,18 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.FrameLayout.LayoutParams
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import java.net.URI
 
+/** External links open in this bottom sheet instead of replacing the app's own page. */
 object PopupWebViewSheet {
     private var activeDialog: Dialog? = null
 
@@ -46,123 +47,80 @@ object PopupWebViewSheet {
         dialog.setOwnerActivity(activity)
         activeDialog = dialog
 
-        val dp = activity.resources.displayMetrics.density
+        val density = activity.resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
         val screenH = activity.resources.displayMetrics.heightPixels
+        val match = ViewGroup.LayoutParams.MATCH_PARENT
+        val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
 
-        // ── Root scrim ──────────────────────────────────────────────────────
-        val root = FrameLayout(activity)
-        root.setBackgroundColor(Color.parseColor("#99000000"))
-
-        // ── Card ────────────────────────────────────────────────────────────
-        val card = FrameLayout(activity)
-        val cardLp = FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            (screenH * 0.88).toInt()
-        )
-        cardLp.gravity = Gravity.BOTTOM
-        card.layoutParams = cardLp
-
-        val cardBg = GradientDrawable()
-        cardBg.setColor(Color.parseColor("#0f0f14"))
-        val r = (24 * dp)
-        cardBg.cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
-        cardBg.setStroke(1, Color.parseColor("#1a1a2e"))
-        card.background = cardBg
-
-        // ── Drag handle ─────────────────────────────────────────────────────
-        val handle = View(activity)
-        val handleLp = FrameLayout.LayoutParams((48 * dp).toInt(), (4 * dp).toInt())
-        handleLp.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        handleLp.topMargin = (10 * dp).toInt()
-        handle.layoutParams = handleLp
-        val handleBg = GradientDrawable()
-        handleBg.setColor(Color.parseColor("#44ffffff"))
-        handleBg.cornerRadius = 99f
-        handle.background = handleBg
-
-        // ── Top bar ─────────────────────────────────────────────────────────
-        val topBarH = (52 * dp).toInt()
-        val topBarTopMargin = (24 * dp).toInt()
-        val topBar = FrameLayout(activity)
-        val topBarLp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, topBarH)
-        topBarLp.topMargin = topBarTopMargin
-        topBar.layoutParams = topBarLp
-
-        // Host label (centred)
-        val urlLabel = TextView(activity)
-        urlLabel.text = hostFrom(url)
-        urlLabel.setTextColor(Color.parseColor("#88ffffff"))
-        urlLabel.textSize = 13f
-        urlLabel.typeface = Typeface.DEFAULT
-        urlLabel.maxLines = 1
-        urlLabel.ellipsize = TextUtils.TruncateAt.MIDDLE
-        val urlLp = FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        urlLp.gravity = Gravity.CENTER
-        urlLabel.layoutParams = urlLp
-
-        // Close button
-        val closeBtn = TextView(activity)
-        closeBtn.text = "✕"
-        closeBtn.setTextColor(Color.parseColor("#88ffffff"))
-        closeBtn.textSize = 17f
-        closeBtn.contentDescription = "Close external page"
-        closeBtn.gravity = Gravity.CENTER
-        val closeLp = FrameLayout.LayoutParams(
-            (48 * dp).toInt(),
-            (48 * dp).toInt()
-        )
-        closeLp.gravity = Gravity.CENTER_VERTICAL or Gravity.END
-        closeLp.rightMargin = (20 * dp).toInt()
-        closeBtn.layoutParams = closeLp
-        closeBtn.setOnClickListener { dismissWithAnim(dialog, card, screenH) }
-
-        topBar.addView(urlLabel)
-        topBar.addView(closeBtn)
-
-        // ── Divider ─────────────────────────────────────────────────────────
-        val dividerTopMargin = topBarTopMargin + topBarH
-        val divider = View(activity)
-        val dividerLp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1)
-        dividerLp.topMargin = dividerTopMargin
-        divider.layoutParams = dividerLp
-        divider.setBackgroundColor(Color.parseColor("#1affffff"))
-
-        // ── Progress bar ────────────────────────────────────────────────────
-        val progressH = (3 * dp).toInt()
-        val progress = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal)
-        val progressLp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, progressH)
-        progressLp.topMargin = dividerTopMargin + 1
-        progress.layoutParams = progressLp
-        progress.max = 100
-
-        // Fix deprecation warning: use PorterDuffColorFilter with colorFilter setter
-        val progressColor = Color.parseColor("#818cf8")
-        progress.progressDrawable?.colorFilter = PorterDuffColorFilter(progressColor, PorterDuff.Mode.SRC_IN)
-
-        // ── Popup WebView ───────────────────────────────────────────────────
-        val contentTopMargin = dividerTopMargin + 1 + progressH
-        val popupWebView = WebView(activity)
-        val wvLp = FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
-        )
-        wvLp.topMargin = contentTopMargin
-        popupWebView.layoutParams = wvLp
-        popupWebView.setBackgroundColor(Color.parseColor("#0f0f14"))
-        popupWebView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            loadWithOverviewMode = true
-            useWideViewPort = true
-            setSupportZoom(true)
-            builtInZoomControls = true
-            displayZoomControls = false
-            cacheMode = WebSettings.LOAD_DEFAULT
+        val root = FrameLayout(activity).apply { setBackgroundColor(Color.parseColor("#99000000")) }
+        val card = FrameLayout(activity).apply {
+            layoutParams = LayoutParams(match, (screenH * 0.88).toInt()).apply { gravity = Gravity.BOTTOM }
+            val radius = 24 * density
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#0f0f14"))
+                cornerRadii = floatArrayOf(radius, radius, radius, radius, 0f, 0f, 0f, 0f)
+                setStroke(1, Color.parseColor("#1a1a2e"))
+            }
+        }
+        val handle = View(activity).apply {
+            layoutParams = LayoutParams(dp(48), dp(4)).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                topMargin = dp(10)
+            }
+            background = GradientDrawable().apply { setColor(Color.parseColor("#44ffffff")); cornerRadius = 99f }
         }
 
+        val topBarTop = dp(24)
+        val topBarHeight = dp(52)
+        val topBar = FrameLayout(activity).apply { layoutParams = LayoutParams(match, topBarHeight).apply { topMargin = topBarTop } }
+        val hostLabel = TextView(activity).apply {
+            text = hostFrom(url)
+            setTextColor(Color.parseColor("#88ffffff"))
+            textSize = 13f
+            typeface = android.graphics.Typeface.DEFAULT
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.MIDDLE
+            layoutParams = LayoutParams(wrap, wrap).apply { gravity = Gravity.CENTER }
+        }
+        val closeButton = TextView(activity).apply {
+            text = "✕"
+            setTextColor(Color.parseColor("#88ffffff"))
+            textSize = 17f
+            contentDescription = "Close external page"
+            gravity = Gravity.CENTER
+            layoutParams = LayoutParams(dp(48), dp(48)).apply {
+                gravity = Gravity.CENTER_VERTICAL or Gravity.END
+                rightMargin = dp(20)
+            }
+            setOnClickListener { dismissWithAnim(dialog, card, screenH) }
+        }
+        topBar.addView(hostLabel)
+        topBar.addView(closeButton)
+
+        val dividerTop = topBarTop + topBarHeight
+        val divider = View(activity).apply {
+            layoutParams = LayoutParams(match, 1).apply { topMargin = dividerTop }
+            setBackgroundColor(Color.parseColor("#1affffff"))
+        }
+        val progressHeight = dp(3)
+        val progress = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
+            layoutParams = LayoutParams(match, progressHeight).apply { topMargin = dividerTop + 1 }
+            max = 100
+            progressDrawable?.colorFilter = PorterDuffColorFilter(Color.parseColor("#818cf8"), PorterDuff.Mode.SRC_IN)
+        }
+
+        val popupWebView = WebView(activity).apply {
+            layoutParams = LayoutParams(match, match).apply { topMargin = dividerTop + 1 + progressHeight }
+            setBackgroundColor(Color.parseColor("#0f0f14"))
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.loadWithOverviewMode = true
+            settings.useWideViewPort = true
+            settings.setSupportZoom(true)
+            settings.builtInZoomControls = true
+            settings.displayZoomControls = false
+        }
         popupWebView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val uri = request?.url ?: return false
@@ -186,29 +144,24 @@ object PopupWebViewSheet {
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                 super.onPageStarted(view, url, favicon)
-                activity.runOnUiThread {
-                    urlLabel.text = hostFrom(url ?: "")
-                    progress.visibility = View.VISIBLE
-                    progress.progress = 0
-                }
+                hostLabel.text = hostFrom(url ?: "")
+                progress.visibility = View.VISIBLE
+                progress.progress = 0
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                activity.runOnUiThread { progress.visibility = View.GONE }
+                progress.visibility = View.GONE
             }
         }
-
-        popupWebView.webChromeClient = object : android.webkit.WebChromeClient() {
+        popupWebView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                activity.runOnUiThread {
-                    progress.progress = newProgress
-                    if (newProgress >= 100) progress.visibility = View.GONE
-                }
+                progress.progress = newProgress
+                if (newProgress >= 100) progress.visibility = View.GONE
             }
         }
-
         popupWebView.loadUrl(url)
+
         backAction = {
             if (popupWebView.canGoBack()) popupWebView.goBack()
             else dismissWithAnim(dialog, card, screenH)
@@ -221,28 +174,23 @@ object PopupWebViewSheet {
             backAction = null
         }
 
-        // ── Assemble ─────────────────────────────────────────────────────────
         card.addView(handle)
         card.addView(topBar)
         card.addView(divider)
         card.addView(progress)
         card.addView(popupWebView)
         root.addView(card)
-
         root.setOnClickListener { dismissWithAnim(dialog, card, screenH) }
-        card.setOnClickListener { /* consume – don't let taps reach scrim */ }
+        card.setOnClickListener { } // taps on the card must not reach the scrim
 
         dialog.setContentView(root)
         dialog.window?.apply {
-            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            setLayout(match, match)
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             statusBarColor = Color.TRANSPARENT
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                setDecorFitsSystemWindows(false)
-            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) setDecorFitsSystemWindows(false)
         }
 
-        // ── Slide-up entrance ────────────────────────────────────────────────
         card.translationY = screenH.toFloat()
         dialog.show()
         if (Build.VERSION.SDK_INT >= 33) {
@@ -250,11 +198,7 @@ object PopupWebViewSheet {
                 android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT
             ) { backAction?.invoke() }
         }
-        card.animate()
-            .translationY(0f)
-            .setDuration(320)
-            .setInterpolator(DecelerateInterpolator(2f))
-            .start()
+        card.animate().translationY(0f).setDuration(320).setInterpolator(DecelerateInterpolator(2f)).start()
     }
 
     private fun dismissWithAnim(dialog: Dialog, card: FrameLayout, screenH: Int) {
@@ -268,7 +212,7 @@ object PopupWebViewSheet {
 
     private fun hostFrom(url: String): String = try {
         URI(url).host ?: url
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         url
     }
 }
