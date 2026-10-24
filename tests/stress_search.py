@@ -5,6 +5,7 @@ and the JS heap through 25 pages of endless scrolling; races typing, sort and ty
 answers that arrive out of order; a failure storm while scrolling; the card menu and the filter sheet with Android Back;
 overflow and 48px targets. Prints the numbers and the checks; exits 1 when a check fails. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 from PIL import Image, ImageColor, ImageDraw
 import tempfile, subprocess, json, sys, io
@@ -169,9 +170,9 @@ with tempfile.TemporaryDirectory(prefix='seanime-search-stress-') as tmp:
             page.add_init_script('Object.assign(stress,%s)'%json.dumps(dict(minDelay=delays[0],maxDelay=delays[1],failRate=fail,pages=pages)))
             page.route('http://search.test/cover/**',lambda r:r.fulfill(content_type='image/jpeg',body=jpeg(int(r.request.url.split('/')[-1].split('.')[0])%360)))
             page.route('http://search.test/search*',lambda r:r.fulfill(content_type='text/html',body=SHELL))
-            page.route('http://search.test/static/**',lambda r:r.fulfill(path=str(root/'backend/seanime-web/out'/r.request.url.split('search.test/')[1])))
+            page.route('http://search.test/static/**',lambda r:r.fulfill(path=str(WEB/r.request.url.split('search.test/')[1])))
             page.goto(f'http://search.test/search{query}')
-            for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):page.add_style_tag(path=str(css))
+            for css in (WEB/'static/css').rglob('*.css'):page.add_style_tag(path=str(css))
             page.add_style_tag(path=str(bundle.with_suffix('.css')));page.add_script_tag(path=str(bundle))
             page.locator('[data-phone-card]').first.wait_for(timeout=60000);settle(page,300)
             return page,cdp

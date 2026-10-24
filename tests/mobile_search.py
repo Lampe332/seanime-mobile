@@ -6,6 +6,7 @@ endless loading with one "Load more" button, status announcements, URL params on
 results and scroll position, Back to another page with the same params, loading / empty / error states, German texts, 48px
 targets, 390px and 320px with 200% text, Android Back through the native script. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys, copy
 root=Path(__file__).resolve().parents[1]
@@ -75,7 +76,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-search-') as tmp:
             page.route('http://search.test/cover/**',lambda r:r.fulfill(content_type='image/svg+xml',body=SVG.format(h=int(r.request.url.split('/')[-1].split('.')[0])*47%360)))
             page.route(f'http://search.test{path}*',lambda r:r.fulfill(content_type='text/html',body=SHELL))
             page.goto(f'http://search.test{path}{query}')
-            for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):page.add_style_tag(path=str(css))
+            for css in (WEB/'static/css').rglob('*.css'):page.add_style_tag(path=str(css))
             page.add_style_tag(path=str(bundle.with_suffix('.css')));page.add_script_tag(path=str(bundle))
             page.locator(ready).first.wait_for();page.wait_for_timeout(400)
             return page

@@ -1,5 +1,6 @@
 """AniList list entry sheet on Android: same mutation payload as the desktop form, chips, steppers, manga labels. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys
 root=Path(__file__).resolve().parents[1]
@@ -15,7 +16,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-anilist-sheet-') as tmp:
         page=browser.new_page(viewport=dict(width=360,height=780),device_scale_factor=3,has_touch=True,is_mobile=True)
         page.route('http://anime.test/**',lambda r:r.fulfill(content_type='text/html',body='<html class="dark"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div></body></html>'))
         page.goto('http://anime.test/')
-        for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):page.add_style_tag(path=str(css))
+        for css in (WEB/'static/css').rglob('*.css'):page.add_style_tag(path=str(css))
         page.add_style_tag(path=str(bundle.with_suffix('.css')));page.add_script_tag(path=str(bundle))
         errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.on('console',lambda m:errors.append(m.text) if m.type=='error' else None)
         dialog=page.get_by_role('dialog')

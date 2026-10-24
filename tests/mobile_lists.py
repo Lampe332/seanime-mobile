@@ -4,6 +4,7 @@ chapters), paging and unloading of long grids, card links and long-press menu (p
 sheet, AniList refresh, stats, Android Back through the native back script, loading / empty / error states, German texts, 48px
 targets, 390px, Android text zoom and 320px with 200% text. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys, time, copy
 root=Path(__file__).resolve().parents[1]
@@ -93,7 +94,7 @@ NATIVE_BACK=(root/'app/src/main/java/com/seanime/app/AndroidNavigation.kt').read
 SVG='<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="200" height="300" fill="hsl({h} 35% 32%)"/><circle cx="130" cy="110" r="46" fill="hsl({h} 45% 55%)"/></svg>'
 # Android's font size setting zooms text only, not lengths; mobile Chromium's text-size-adjust does the same.
 TEXT_ZOOM='-webkit-text-size-adjust:200%;text-size-adjust:200%'
-STATIC=root/'backend/seanime-web/out/static'
+STATIC=WEB/'static'
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>b.textContent||b.getAttribute("aria-label")))'''
 TEXT='(sel=>[...document.querySelectorAll(sel)].map(e=>e.textContent.trim()))'

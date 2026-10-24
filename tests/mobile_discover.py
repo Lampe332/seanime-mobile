@@ -8,6 +8,7 @@ schedule loaded page by page (a failed later page keeps the days so far), the ma
 Back to Discover restoring the page and row positions, Android Back through the native back script, loading / empty /
 error / offline states, German texts, 48px targets, 390px and 320px with 200% text. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 from datetime import datetime, timedelta
 import tempfile, subprocess, json, sys, copy
@@ -181,7 +182,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-discover-') as tmp:
             page.route(f'{HOST}/banner/**',lambda r:r.fulfill(content_type='image/svg+xml',body=BANNER))
             page.route(f'{HOST}/discover*',lambda r:r.fulfill(content_type='text/html',body=HTML))
             page.goto(f'{HOST}/discover'+query)
-            for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):page.add_style_tag(path=str(css))
+            for css in (WEB/'static/css').rglob('*.css'):page.add_style_tag(path=str(css))
             page.add_style_tag(path=str(bundle.with_suffix('.css')));page.add_script_tag(path=str(bundle))
             page.locator(ready).first.wait_for();page.wait_for_timeout(600)
             return page

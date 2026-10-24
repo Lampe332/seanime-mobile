@@ -1,5 +1,6 @@
 """Mobile player volume: tapping the speaker opens a slider instead of muting; dragging sets the volume. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys
 root=Path(__file__).resolve().parents[1]
@@ -15,7 +16,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-volume-') as tmp:
         page=browser.new_page(viewport=dict(width=360,height=400),device_scale_factor=3,has_touch=True,is_mobile=True)
         page.route('http://anime.test/**',lambda r:r.fulfill(content_type='text/html',body='<html class="dark"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div></body></html>'))
         page.goto('http://anime.test/')
-        for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):page.add_style_tag(path=str(css))
+        for css in (WEB/'static/css').rglob('*.css'):page.add_style_tag(path=str(css))
         page.add_script_tag(path=str(bundle))
         state=lambda:page.evaluate('volumeState')
         icon=page.locator('[data-vc-element="control-volume"] > button').first;icon.wait_for()

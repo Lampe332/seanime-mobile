@@ -4,6 +4,7 @@ files sheet (folders, suggestions, search, AniList ID, picked files, Match and I
 unmatch), ignored files, the bulk modal gone, scan progress and the library watcher above the bottom bar, Android Back,
 German texts, 48px targets and no overflow at 390px and at 320px with 200% text. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys, copy
 root=Path(__file__).resolve().parents[1]
@@ -45,7 +46,7 @@ FILE_TREE=dict(root=dnode(A,[dnode(f'{A}/AoT',[fnode(f'{A}/AoT/AoT 01.mkv')],1,1
 SERVER=dict(status=STATUS,collection=COLLECTION,media={str(k):v for k,v in MEDIA.items()},suggestions={FRIEREN:[154587]},userMedia=[MEDIA[16498]],fileTree=FILE_TREE)
 INIT='''(()=>{Object.assign(window,{server:%s,routes:[],requests:[],toasts:[],previews:[],command:[],completed:0})})()'''
 NATIVE_BACK=(root/'app/src/main/java/com/seanime/app/AndroidNavigation.kt').read_text(encoding='utf-8').split('"""')[1].strip()
-STATIC=root/'backend/seanime-web/out/static'
+STATIC=WEB/'static'
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 TARGETS=':is(button,a,select,input,[role=switch],[role=radio],[role=checkbox])'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>(b.textContent||b.getAttribute("aria-label")||b.tagName).trim().slice(0,40)))'''

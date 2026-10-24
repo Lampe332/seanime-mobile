@@ -6,6 +6,7 @@ the folder picker bridge, deep links (?tab=), Android Back (sheet, then page, th
 absent, German texts, 48px targets, no overflow at 390px and at 320px with 200% text, the tablet layout on tablets.
 Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys, copy
 root=Path(__file__).resolve().parents[1]
@@ -56,7 +57,7 @@ INIT='''(()=>{const stored=sessionStorage.getItem("settings-fixture");Object.ass
 # AndroidNavigation.backScript: what the app runs when the Android Back button is pressed.
 NATIVE_BACK=(root/'app/src/main/java/com/seanime/app/AndroidNavigation.kt').read_text(encoding='utf-8').split('"""')[1].strip()
 TEXT_ZOOM='-webkit-text-size-adjust:200%;text-size-adjust:200%'
-STATIC=root/'backend/seanime-web/out/static'
+STATIC=WEB/'static'
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 TARGETS=':is(button,a,select,input,textarea,[role=switch],[role=tab],[role=radio])'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>(b.textContent||b.getAttribute("aria-label")||b.tagName).trim().slice(0,40)))'''

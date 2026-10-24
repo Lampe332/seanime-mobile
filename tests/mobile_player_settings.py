@@ -1,5 +1,6 @@
 """Android phone player settings sheet: grouped rows, inline switches write the same stored values, back steps one page, text pages apply or cancel. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys
 root=Path(__file__).resolve().parents[1]
@@ -28,7 +29,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-player-settings-') as tmp:
             page.goto('http://anime.test/')
             page.evaluate('localStorage.setItem("sea-media-core-preferences",JSON.stringify({version:2,autoPlay:true,autoNext:true,autoSkip:false,playbackRate:1,volumeBoost:1}));localStorage.setItem("seanime-mobile-language",JSON.stringify("'+lang+'"))')
             page.reload()
-            for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):page.add_style_tag(path=str(css))
+            for css in (WEB/'static/css').rglob('*.css'):page.add_style_tag(path=str(css))
             page.add_style_tag(path=str(bundle.with_suffix('.css')));page.add_script_tag(path=str(bundle))
             page.locator('#player button').first.wait_for()
             return page

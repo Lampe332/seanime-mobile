@@ -4,6 +4,7 @@ player through its link and starts progress tracking; the opened one marked), th
 "watched" as the one action, stop, the player again), the empty state, German texts, 48px targets and no overflow at
 390px and at 320px with 200% text. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys, copy
 root=Path(__file__).resolve().parents[1]
@@ -30,7 +31,7 @@ SERVER=dict(status=STATUS,collection=dict(lists=[],unmatchedLocalFiles=[],unmatc
 LINK='intent://{url}#Intent;package=org.videolan.vlc;type=video/*;S.title={mediaTitle};end'
 INIT='''(()=>{Object.assign(window,{server:%s,routes:[],requests:[],toasts:[],tabs:[],clipboard:[],previews:[],command:[],explorer:[],completed:0});
     localStorage.setItem("sea-playback-external-player-link",JSON.stringify(%s))})()'''
-STATIC=root/'backend/seanime-web/out/static'
+STATIC=WEB/'static'
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 SHEET='.UI-Modal__content[data-state=open]'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>(b.textContent||b.getAttribute("aria-label")||b.tagName).trim().slice(0,40)))'''

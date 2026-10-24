@@ -1,6 +1,7 @@
 """Downloads tab (Android phones): anime overview, polling only while a download moves, anime detail, deletion, selection,
 manga tab, 48px targets, 320px / 200% text. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys
 root=Path(__file__).resolve().parents[1]
@@ -22,7 +23,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-downloads-') as tmp:
         page.route('http://dl.test/__android_offline/**',lambda r:r.fulfill(content_type='image/svg+xml',body=SVG.format(h=int(r.request.url[-8:-4],16)*37%360)))
         page.route('http://dl.test/android-downloads*',lambda r:r.fulfill(content_type='text/html',body='<html class="dark" lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="background:#0c0c0e"><div id="root"></div></body></html>'))
         page.goto('http://dl.test/android-downloads')
-        for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):page.add_style_tag(path=str(css))
+        for css in (WEB/'static/css').rglob('*.css'):page.add_style_tag(path=str(css))
         page.add_style_tag(path=str(bundle.with_suffix('.css')));page.add_script_tag(path=str(bundle))
         page.locator('[data-downloaded-anime]').first.wait_for();page.wait_for_timeout(300)
         check('Overview: title, facts from the rows and one card per anime',page.locator('h1').inner_text()=='Downloads' and page.locator('[data-downloaded-anime]').count()==3

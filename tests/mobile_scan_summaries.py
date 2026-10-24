@@ -3,6 +3,7 @@ older scans in a native picker, files without an anime and the anime found (file
 warnings), a file's parsed name and scanner notes on demand, the filename search, the empty state with the scanner,
 German texts, 48px targets and no overflow at 390px and at 320px with 200% text. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys, copy
 root=Path(__file__).resolve().parents[1]
@@ -33,7 +34,7 @@ STATUS=dict(version='3.10.4',os='android',user=dict(viewer=dict(name='Nick'),isS
 SERVER=dict(status=STATUS,collection=dict(lists=[],unmatchedLocalFiles=[],unmatchedGroups=[],unknownGroups=[],ignoredLocalFiles=[]),media={},suggestions={},
     scanSummaries=[dict(createdAt='2026-10-20T09:00:00Z',scanSummary=OLD),dict(createdAt='2026-10-22T10:30:00Z',scanSummary=NEW)])
 INIT='''(()=>{Object.assign(window,{server:%s,routes:[],requests:[],toasts:[],previews:[],command:[],explorer:[],completed:0})})()'''
-STATIC=root/'backend/seanime-web/out/static'
+STATIC=WEB/'static'
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>(b.textContent||b.getAttribute("aria-label")||b.tagName).trim().slice(0,40)))'''
 TARGETS='[data-phone-screen] :is(button,a,select,input)'

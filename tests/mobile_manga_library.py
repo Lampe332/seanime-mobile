@@ -2,6 +2,7 @@
 filter / sort sheet, Back, plugin menu and card menu, source refresh sheet, loading / empty / error states, German texts,
 48px targets, grid columns with a large system font, 320px. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys, time
 root=Path(__file__).resolve().parents[1]
@@ -52,7 +53,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-manga-library-') as tmp:
             page.route('http://manga.test/cover/**',lambda r:r.fulfill(content_type='image/svg+xml',body=SVG.format(h=int(r.request.url.split('/')[-1].split('.')[0])*47%360)))
             page.route('http://manga.test/manga*',lambda r:r.fulfill(content_type='text/html',body='<html class="dark" lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="background:#0c0c0e"><div id="root"></div></body></html>'))
             page.goto('http://manga.test/manga'+hash)
-            for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):page.add_style_tag(path=str(css))
+            for css in (WEB/'static/css').rglob('*.css'):page.add_style_tag(path=str(css))
             page.add_style_tag(path=str(bundle.with_suffix('.css')));page.add_script_tag(path=str(bundle))
             page.locator('[data-mobile-manga-library]').wait_for();page.wait_for_timeout(700)
             return page
@@ -142,7 +143,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-manga-library-') as tmp:
             if name=='offline': p.add_init_script('Object.defineProperty(navigator,"onLine",{get:()=>false})')
             p.route('http://manga.test/manga*',lambda r:r.fulfill(content_type='text/html',body='<html class="dark"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="background:#0c0c0e"><div id="root"></div></body></html>'))
             p.goto('http://manga.test/manga'+hash)
-            for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):p.add_style_tag(path=str(css))
+            for css in (WEB/'static/css').rglob('*.css'):p.add_style_tag(path=str(css))
             p.add_style_tag(path=str(bundle.with_suffix('.css')));p.add_script_tag(path=str(bundle));p.locator(selector).wait_for();p.wait_for_timeout(300)
             check(f'{name.capitalize()} state keeps the title and the actions',p.locator('h1').inner_text()=='Manga' and p.locator('[data-manga-filter-button]').count()==1)
             if name=='empty': check('Empty: one sentence and the way to find manga',p.locator('[data-manga-library-empty] a').get_attribute('href')=='/discover?type=manga')

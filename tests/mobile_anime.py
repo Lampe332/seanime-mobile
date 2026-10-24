@@ -1,5 +1,6 @@
 """Production React/Radix episode targets and info modal; isolated read-only data."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json
 root=Path(__file__).resolve().parents[1]
@@ -14,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-episode-regression-') as tmp:
         page=browser.new_page(viewport=dict(width=320,height=740),has_touch=True,is_mobile=True)
         page.route('http://anime.test/**',lambda r:r.fulfill(content_type='text/html',body='<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div></body></html>'))
         page.goto('http://anime.test/')
-        for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):page.add_style_tag(path=str(css))
+        for css in (WEB/'static/css').rglob('*.css'):page.add_style_tag(path=str(css))
         page.add_style_tag(path=str(bundle.with_suffix('.css')));page.add_script_tag(path=str(bundle))
         cards=page.locator('[data-episode-grid-item]');cards.first.wait_for()
         cards.nth(1).locator('.mobile-episode-target').focus();page.keyboard.press('Enter')

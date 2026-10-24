@@ -7,6 +7,7 @@ setup), live search latency and its final result, the filter & sort sheet under 
 long-press menu, Android Back, overflow and 48px targets. Timings vary with the machine's load; the checks do not.
 Optional arg: output dir (metrics.json, screenshots)."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys, time, random, zlib, struct, colorsys
 root=Path(__file__).resolve().parents[1]
@@ -211,7 +212,7 @@ def cover_png(hue,width=230,height=345):
     chunk=lambda kind,data:struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data))
     return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',width,height,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(rows))+chunk(b'IEND',b'')
 COVERS=[cover_png(i*15) for i in range(24)]
-STATIC=root/'backend/seanime-web/out/static'
+STATIC=WEB/'static'
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>b.textContent||b.getAttribute("aria-label")))'''
 TEXT='(sel=>[...document.querySelectorAll(sel)].map(e=>e.textContent.trim()))'

@@ -7,6 +7,7 @@ menus, overflow and 48px targets. The numbers come from React's production build
 development build, so React's warnings count as errors there. Reuses mobile_discover_bundle.cjs and its stubs.
 Optional args: screenshot dir, random seed."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 from urllib.parse import urlencode
 from datetime import datetime
@@ -161,9 +162,9 @@ with tempfile.TemporaryDirectory(prefix='seanime-discover-stress-') as tmp:
             page.route(f'{HOST}/cover/**',lambda r:r.fulfill(content_type='image/svg+xml',body=cover_svg(int(r.request.url.split('/')[-1].split('.')[0]))))
             page.route(f'{HOST}/banner/**',lambda r:r.fulfill(content_type='image/svg+xml',body=banner_svg(int(r.request.url.split('/')[-1].split('.')[0]))))
             page.route(f'{HOST}/discover*',lambda r:r.fulfill(content_type='text/html',body=HTML))
-            page.route(f'{HOST}/static/**',lambda r:r.fulfill(path=str(root/'backend/seanime-web/out'/r.request.url.removeprefix(HOST+'/').split('?')[0])))
+            page.route(f'{HOST}/static/**',lambda r:r.fulfill(path=str(WEB/r.request.url.removeprefix(HOST+'/').split('?')[0])))
             page.goto(f'{HOST}/discover'+query)
-            for css in (root/'backend/seanime-web/out/static/css').rglob('*.css'):page.add_style_tag(path=str(css))
+            for css in (WEB/'static/css').rglob('*.css'):page.add_style_tag(path=str(css))
             page.add_style_tag(path=str(bundle.with_suffix('.css')))
             if marks: page.evaluate('m=>{__recStart();__mark(m)}',marks)
             page.add_script_tag(path=str(bundle))

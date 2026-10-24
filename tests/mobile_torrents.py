@@ -5,6 +5,7 @@ no provider / no results / provider errors, "Download a torrent" in the anime pa
 select, remembered batch, missing episode data) and the Downloads tab's torrents (progress, pause / resume, removing with
 or without files); German texts, 48px targets, no overflow at 390px and at 320px with 200% text. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys, copy, datetime
 root=Path(__file__).resolve().parents[1]
@@ -45,7 +46,7 @@ EPISODES=dict(hasMappingError=False,episodes=[dict(episodeNumber=n,progressNumbe
 SERVER=dict(status=STATUS,entry=ENTRY,providers=[PROVIDER('nyaa','Nyaa'),PROVIDER('animetosho','AnimeTosho')],torrents=TORRENTS,cached={'h1':{'cachedFiles':{}}},list=LIST,
     episodes=EPISODES)
 INIT='''(()=>{Object.assign(window,{server:%s,harnessView:%s,routes:[],requests:[],toasts:[],batchName:%s,mappingError:%s})})()'''
-STATIC=root/'backend/seanime-web/out/static'
+STATIC=WEB/'static'
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 SHEET='.UI-Modal__content[data-state=open]'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>(b.textContent||b.getAttribute("aria-label")||b.tagName).trim().slice(0,40)))'''

@@ -4,6 +4,7 @@ empty block (title, text, Try again; no Luffy picture), and the issue recorder a
 switch, Start, the running recording with its note sheet); German texts, 48px targets, no overflow at 390px and at 320px
 with 200% text. Optional arg: screenshot dir."""
 from pathlib import Path
+from web_build import WEB
 from playwright.sync_api import sync_playwright
 import tempfile, subprocess, json, sys, copy
 root=Path(__file__).resolve().parents[1]
@@ -23,7 +24,7 @@ STATUS=dict(version='3.10.4',os='android',isOffline=False,user=dict(viewer=dict(
 SERVER=dict(status=STATUS,collection=dict(lists=[],unmatchedLocalFiles=[],unmatchedGroups=[],unknownGroups=[],ignoredLocalFiles=[]),media={},suggestions={},
     customSources=SOURCES,customMedia=MEDIA)
 INIT='''(()=>{Object.assign(window,{server:%s,view:%s,routes:[],requests:[],toasts:[],tabs:[],clipboard:[],previews:[],command:[],explorer:[],completed:0})})()'''
-STATIC=root/'backend/seanime-web/out/static'
+STATIC=WEB/'static'
 NO_OVERFLOW='document.documentElement.scrollWidth<=innerWidth+1'
 SHEET='.UI-Modal__content[data-state=open]'
 SMALL='''(sel=>[...document.querySelectorAll(sel)].filter(b=>{const r=b.getBoundingClientRect();return r.width>0&&(r.height<47.9||r.width<47.9)}).map(b=>(b.textContent||b.getAttribute("aria-label")||b.tagName).trim().slice(0,40)))'''
