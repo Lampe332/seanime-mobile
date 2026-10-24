@@ -22,44 +22,21 @@ function fontSize(element?: HTMLElement | null): string {
 
 function parse(providedLength?: string | null): [number, string] {
     const length = providedLength || "0"
-
-    // Check if it's a calc expression
-    if (length.trim().startsWith("calc(")) {
-        return parseCalc(length)
-    }
-
     const value = Number.parseFloat(length)
     const match = length.match(/[\d-.]+(\w+)$/)
     const unit = match?.[1] ?? ""
     return [value, unit.toLowerCase()]
 }
 
-function parseCalc(calcExpression: string): [number, string] {
-    // For calc expressions, we'll return a placeholder value and unit
-    // The actual calculation will be done in evaluateCalcExpression
-    return [0, "calc"]
-}
-
 function evaluateCalcExpression(calcExpression: string, element?: HTMLElement | null): number {
-    // Extract the content inside calc()
     const content = calcExpression.replace(/^calc\(\s*/, "").replace(/\s*\)$/, "")
+    const pixelExpression = content.replace(/(-?[\d.]+[a-z%]+)/g, match => getPixelsFromLength(match, element).toString())
 
-    // Replace all CSS length values with their pixel equivalents
-    const pixelExpression = content.replace(/(-?[\d.]+[a-z%]+)/g, (match) => {
-        // Skip if it's already a number without unit
-        if (!isNaN(Number(match))) return match
-
-        return getPixelsFromLength(match, element).toString()
-    })
+    // The width comes from plugins: only plain arithmetic may reach Function()
+    if (!/^[\d.+\-*/()\s]+$/.test(pixelExpression)) return 0
 
     try {
-        // Safely evaluate the mathematical expression with all units converted to pixels
-        // First normalize the expression to handle CSS math operators
-        const normalizedExpression = pixelExpression
-            .replace(/\s+/g, " ")           // Normalize whitespace
-            .replace(/\s*([+\-*/()])\s*/g, "$1") // Remove spaces around operators
-
-        return Function(`'use strict'; return (${normalizedExpression})`)()
+        return Function(`'use strict'; return (${pixelExpression})`)()
     }
     catch (error) {
         console.error("Error evaluating calc() expression:", error)
@@ -68,7 +45,6 @@ function evaluateCalcExpression(calcExpression: string, element?: HTMLElement | 
 }
 
 export function getPixelsFromLength(length: string, element?: HTMLElement | null): number {
-    // If the length is a calc expression, we need to evaluate each part
     if (length.trim().startsWith("calc(")) {
         return evaluateCalcExpression(length, element)
     }
@@ -104,10 +80,10 @@ export function getPixelsFromLength(length: string, element?: HTMLElement | null
             return (value * PIXELS_PER_INCH) / PICAS_PER_INCH
 
         case "vh":
-            return (value * view.innerHeight || root.clientWidth) / 100
+            return value * (view.innerHeight || root.clientHeight) / 100
 
         case "vw":
-            return (value * view.innerWidth || root.clientHeight) / 100
+            return value * (view.innerWidth || root.clientWidth) / 100
 
         case "vmin":
             return (
