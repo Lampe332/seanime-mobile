@@ -5,7 +5,6 @@ import { getDefaultStore } from "jotai"
 import { useGetLibraryCollection } from "../backend/seanime-web/src/api/hooks/anime_collection.hooks"
 import { __anilist_userAnimeMediaAtom } from "../backend/seanime-web/src/app/(main)/_atoms/anilist.atoms"
 import { serverStatusAtom } from "../backend/seanime-web/src/app/(main)/_atoms/server-status.atoms"
-import { BulkActionModal } from "../backend/seanime-web/src/app/(main)/_features/anime-library/_containers/bulk-action-modal"
 import { IgnoredFileManager } from "../backend/seanime-web/src/app/(main)/_features/anime-library/_containers/ignored-file-manager"
 import { ScanProgressBar } from "../backend/seanime-web/src/app/(main)/_features/anime-library/_containers/scan-progress-bar"
 import { __scanner_isScanningAtom, ScannerModal } from "../backend/seanime-web/src/app/(main)/_features/anime-library/_containers/scanner-modal"
@@ -19,8 +18,8 @@ import "../backend/seanime-web/src/components/shared/mobile-surface.css"
 import "../backend/seanime-web/src/app/(main)/_features/home/home-mobile.css"
 
 // The real library containers as Home and the layout mount them on a phone: the header action and the queue rows in
-// Android Home's header, the scanner, the three queue managers fed from the library collection query, the bulk action
-// modal, the scan progress, the library watcher and the library explorer. window.server is the fixture server; a fake bottom bar marks where
+// Android Home's header, the scanner, the three queue managers fed from the library collection query,
+// the scan progress, the library watcher and the library explorer. window.server is the fixture server; a fake bottom bar marks where
 // the app's native one sits.
 const w = window as any
 const store = getDefaultStore()
@@ -45,7 +44,6 @@ function Home() {
         <UnmatchedFileManager unmatchedGroups={data?.unmatchedGroups ?? []} />
         <UnknownMediaManager unknownGroups={data?.unknownGroups ?? []} onActionComplete={() => w.completed++} />
         <IgnoredFileManager files={data?.ignoredLocalFiles ?? []} />
-        <BulkActionModal />
         <ScannerModal />
         <ScanProgressBar />
         <LibraryWatcher />

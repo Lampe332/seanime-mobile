@@ -2,28 +2,17 @@ import { getServerBaseUrl } from "@/api/client/server-url"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
 import { usePlaybackStartManualTracking } from "@/api/hooks/playback_manager.hooks"
 import { useExternalPlayerLink } from "@/app/(main)/_atoms/playback.atoms"
-import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
-import { EpisodeGridItem } from "@/app/(main)/_features/anime/_components/episode-grid-item"
-import { MediaEpisodeInfoModal } from "@/app/(main)/_features/media/_components/media-episode-info-modal"
 import { __mpt_currentExternalPlayerLinkAtom } from "@/app/(main)/_features/progress-tracking/manual-progress-tracking"
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
-import { EpisodeListGrid } from "@/app/(main)/entry/_components/episode-list-grid"
 import { MedialinksPhone } from "@/app/(main)/medialinks/_screens/medialinks-phone"
 import { useMediastreamCurrentFile } from "@/app/(main)/mediastream/_lib/mediastream.atoms"
 import { clientIdAtom } from "@/app/websocket-provider"
-import { SeaLink } from "@/components/shared/sea-link"
-import { AppLayoutStack } from "@/components/ui/app-layout"
-import { IconButton } from "@/components/ui/button"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { ExternalPlayerLink } from "@/lib/external-player-link/external-player-link"
 import { openTab } from "@/lib/helpers/browser"
 import { logger } from "@/lib/helpers/debug"
-import { useRouter, useSearchParams } from "@/lib/navigation"
+import { useSearchParams } from "@/lib/navigation"
 import { useAtomValue, useSetAtom } from "jotai"
 import React from "react"
-import { AiOutlineArrowLeft } from "react-icons/ai"
 import { toast } from "sonner"
-import { PluginEpisodeGridItemMenuItems } from "../_features/plugin/actions/plugin-actions"
 import { useServerHMACAuth } from "../_hooks/use-server-status"
 
 type LocalSubtitleFile = {
@@ -33,7 +22,6 @@ type LocalSubtitleFile = {
 export default function Page() {
 
     const clientId = useAtomValue(clientIdAtom)
-    const router = useRouter()
     const searchParams = useSearchParams()
     const mediaId = searchParams.get("id")
     const { data: animeEntry, isLoading: animeEntryLoading } = useGetAnimeEntry(mediaId)
@@ -131,85 +119,6 @@ export default function Page() {
         }
     }, [animeEntry, filePath, externalPlayerLink, getHMACTokenQueryParam, encodePath])
 
-    const mainEpisodes = React.useMemo(() => {
-        return animeEntry?.episodes?.filter(ep => ep.type === "main") ?? []
-    }, [animeEntry?.episodes])
-
-    const specialEpisodes = React.useMemo(() => {
-        return animeEntry?.episodes?.filter(ep => ep.type === "special") ?? []
-    }, [animeEntry?.episodes])
-
-    const ncEpisodes = React.useMemo(() => {
-        return animeEntry?.episodes?.filter(ep => ep.type === "nc") ?? []
-    }, [animeEntry?.episodes])
-
-    const episodes = React.useMemo(() => {
-        return [...mainEpisodes, ...specialEpisodes, ...ncEpisodes]
-    }, [mainEpisodes, specialEpisodes, ncEpisodes])
-
-    // Android phones get their own screen; the playback above stays the same
-    if (isAndroidPhone()) return <MedialinksPhone entry={animeEntry} loading={animeEntryLoading} onPlay={setFilePath} />
-
-    if (animeEntryLoading) return <LoadingSpinner />
-
-    return (
-        <>
-            <CustomLibraryBanner discrete />
-
-            <AppLayoutStack className="px-4 lg:px-8 z-[5]">
-
-                <div className="flex flex-col lg:flex-row gap-2 w-full justify-between">
-                    <div className="flex gap-4 items-center relative w-full">
-                        <SeaLink href={`/entry?id=${animeEntry?.mediaId}`}>
-                            <IconButton icon={<AiOutlineArrowLeft />} rounded intent="white-outline" size="md" />
-                        </SeaLink>
-                        <h3 className="max-w-full lg:max-w-[50%] text-ellipsis truncate">{animeEntry?.media?.title?.userPreferred}</h3>
-                    </div>
-                </div>
-
-                <EpisodeListGrid>
-                    {episodes.map((episode) => (
-                        <EpisodeGridItem
-                            key={episode.localFile?.path || ""}
-                            id={`episode-${String(episode.episodeNumber)}`}
-                            media={episode?.baseAnime as any}
-                            title={episode?.displayTitle || episode?.baseAnime?.title?.userPreferred || ""}
-                            image={episode?.episodeMetadata?.image || episode?.baseAnime?.coverImage?.large}
-                            episodeTitle={episode?.episodeTitle}
-                            fileName={episode?.localFile?.parsedInfo?.original}
-                            onClick={() => {
-                                if (episode.localFile?.path) {
-                                    setFilePath(episode.localFile?.path)
-                                }
-                            }}
-                            description={episode?.episodeMetadata?.summary || episode?.episodeMetadata?.overview}
-                            isWatched={!!animeEntry?.listData?.progress && (animeEntry.listData?.progress >= episode?.progressNumber)}
-                            isFiller={episode.episodeMetadata?.isFiller}
-                            isSelected={episode.localFile?.path === filePath}
-                            length={episode.episodeMetadata?.length}
-                            className="flex-none w-full"
-                            episodeNumber={episode.episodeNumber}
-                            progressNumber={episode.progressNumber}
-                            action={<>
-                                <MediaEpisodeInfoModal
-                                    title={episode.displayTitle}
-                                    image={episode.episodeMetadata?.image}
-                                    episodeTitle={episode.episodeTitle}
-                                    airDate={episode.episodeMetadata?.airDate}
-                                    length={episode.episodeMetadata?.length}
-                                    summary={episode.episodeMetadata?.summary || episode.episodeMetadata?.overview}
-                                    isInvalid={episode.isInvalid}
-                                    filename={episode.localFile?.parsedInfo?.original}
-                                />
-
-                                <PluginEpisodeGridItemMenuItems isDropdownMenu={true} type="medialinks" episode={episode} />
-                            </>}
-                        />
-                    ))}
-                </EpisodeListGrid>
-
-            </AppLayoutStack>
-        </>
-    )
+    return <MedialinksPhone entry={animeEntry} loading={animeEntryLoading} onPlay={setFilePath} />
 
 }

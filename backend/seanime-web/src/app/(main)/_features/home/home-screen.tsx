@@ -6,7 +6,6 @@ import { useAnilistListManga } from "@/api/hooks/manga.hooks"
 import { useGetHomeItems } from "@/api/hooks/status.hooks"
 import { __anilist_userAnimeMediaAtom } from "@/app/(main)/_atoms/anilist.atoms"
 import { LibraryHeader } from "@/app/(main)/_features/anime-library/_components/library-header"
-import { BulkActionModal } from "@/app/(main)/_features/anime-library/_containers/bulk-action-modal"
 import { ContinueWatching } from "@/app/(main)/_features/anime-library/_containers/continue-watching"
 import { ContinueWatchingHeader } from "@/app/(main)/_features/anime-library/_containers/continue-watching-header"
 import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
@@ -270,7 +269,6 @@ export function HomeScreen() {
                 <IgnoredFileManager
                     files={ignoredLocalFiles}
                 />
-                <BulkActionModal />
             </div>
         )
     }
@@ -452,7 +450,6 @@ export function HomeScreen() {
             <IgnoredFileManager
                 files={ignoredLocalFiles}
             />
-            <BulkActionModal />
         </div>
     )
 }

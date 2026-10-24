@@ -3,21 +3,13 @@ import { Report_ClickLog, Report_ConsoleLog, Report_NetworkLog, Report_ReactQuer
 import { useSaveIssueReport } from "@/api/hooks/report.hooks"
 import { WebSocketContext } from "@/app/(main)/_atoms/websocket.atoms"
 import { PhoneFloat, PhoneSheet, PhoneSwitch } from "@/app/(main)/_features/phone-screen/phone-screen"
-import { isAndroidPhone } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useServerHMACAuth } from "@/app/(main)/_hooks/use-server-status"
-import { IconButton } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { cn } from "@/components/ui/core/styling"
-import { Tooltip } from "@/components/ui/tooltip"
 import { useTr } from "@/lib/app-language"
 import { usePathname, useRouter } from "@/lib/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
 import React, { useCallback, useContext, useRef } from "react"
-import { BiCamera, BiNote, BiX } from "react-icons/bi"
-import { PiRecordFill, PiStopCircleFill } from "react-icons/pi"
-import { VscDebugAlt } from "react-icons/vsc"
 import { toast } from "sonner"
 
 export const __issueReport_overlayOpenAtom = atom<boolean>(false)
@@ -106,7 +98,6 @@ export function IssueReport() {
     const [screenshots, setScreenshots] = useAtom(__issueReport_screenshotsAtom)
     const [recordLocalFiles, setRecordLocalFiles] = React.useState(false)
     const [description, setDescription] = React.useState("")
-    const [showDescriptionInput, setShowDescriptionInput] = React.useState(false)
     const [recordingElapsed, setRecordingElapsed] = React.useState(0)
 
     // rrweb recording state
@@ -140,7 +131,6 @@ export function IssueReport() {
             setNavigationLogs([])
             setScreenshots([])
             setDescription("")
-            setShowDescriptionInput(false)
             setRecordingElapsed(0)
 
             // Stop rrweb recording
@@ -728,153 +718,11 @@ export function IssueReport() {
     }
 
 
-    // Phones: a panel above the bottom bar instead of the card beside the desktop sidebar; the note and the screenshot in a sheet
-    if (isAndroidPhone()) return open ? <IssueRecorderPhone isRecording={isRecording} recordLocalFiles={recordLocalFiles} onRecordLocalFiles={setRecordLocalFiles}
+    // A panel above the bottom bar; the note and the screenshot in a sheet
+    return open ? <IssueRecorderPhone isRecording={isRecording} recordLocalFiles={recordLocalFiles} onRecordLocalFiles={setRecordLocalFiles}
         onStart={handleStartRecording} onClose={() => setOpen(false)} elapsed={formatElapsed(recordingElapsed)} events={eventCount} screenshots={screenshots.length}
         description={description} onDescription={setDescription} onScreenshot={handleTakeScreenshot} onStop={handleStopRecording}
         onCancel={() => setRecording(false)} saving={isPending || isDownloadingReport} /> : null
-
-    return (
-        <>
-            {open && <div
-                className={cn(
-                    "issue-reporter-ui",
-                    "fixed z-[100] bottom-8 w-fit left-20 h-fit flex",
-                    "transition-all duration-300 select-none",
-                    !isRecording && "hover:translate-y-[-2px]",
-                    isRecording && "justify-end",
-                )}
-            >
-                <div
-                    className={cn(
-                        "rounded-xl border shadow-2xl shadow-black/50 backdrop-blur-sm",
-                        "transition-colors duration-300",
-                        isRecording
-                            ? "p-3 bg-gray-950/95 border-red-900/50"
-                            : "p-4 bg-gray-900/95 border-[--border] text-white",
-                    )}
-                >
-                    {!isRecording ? <div className="space-y-3 min-w-[280px]">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-brand-900/30">
-                                <VscDebugAlt className="text-xl text-[--brand]" />
-                            </div>
-                            <div>
-                                <p className="font-semibold text-sm text-gray-100">Issue Recorder</p>
-                            </div>
-                            <div className="ml-auto">
-                                <IconButton
-                                    intent="gray-basic"
-                                    size="xs"
-                                    icon={<BiX />}
-                                    onClick={() => setOpen(false)}
-                                />
-                            </div>
-                        </div>
-                        <div className="border-t border-[--border] pt-2 space-y-2">
-                            <Checkbox
-                                label="Include library scanner logs"
-                                value={recordLocalFiles}
-                                onValueChange={v => typeof v === "boolean" && setRecordLocalFiles(v)}
-                                size="md"
-                            />
-                        </div>
-                        <div className="flex justify-end">
-                            <button
-                                onClick={handleStartRecording}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 transition-colors text-sm font-medium text-white"
-                            >
-                                <PiRecordFill className="text-white animate-pulse" />
-                                Start Recording
-                            </button>
-                        </div>
-                    </div> : <div className="space-y-3 min-w-[320px]">
-
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                                <div className="absolute inset-0 w-3 h-3 rounded-full bg-red-500 animate-ping opacity-50" />
-                            </div>
-                            <span className="text-sm font-semibold text-red-400">Recording</span>
-                            <span className="text-xs text-gray-400 tabular-nums font-mono bg-gray-800 px-1.5 py-0.5 rounded">
-                                {formatElapsed(recordingElapsed)}
-                            </span>
-                            <div className="ml-auto flex items-center gap-2">
-                                <span className="text-xs text-gray-500 tabular-nums">{eventCount} events</span>
-                                {screenshots.length > 0 && (
-                                    <span className="text-xs text-gray-500">{screenshots.length} imgs</span>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-1.5">
-                            <button
-                                onClick={handleTakeScreenshot}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
-                                        bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors border border-gray-700"
-                            >
-                                <BiCamera className="text-sm" />
-                                Attach screenshot
-                            </button>
-                            <Tooltip
-                                trigger={
-                                    <button
-                                        onClick={() => setShowDescriptionInput(!showDescriptionInput)}
-                                        className={cn(
-                                            "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors border",
-                                            description
-                                                ? "bg-brand-900/30 border-brand-700/50 text-brand-300"
-                                                : "bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700",
-                                        )}
-                                    >
-                                        <BiNote className="text-sm" />
-                                        {description ? "Edit note" : "Add note"}
-                                    </button>
-                                }
-                                className="z-[101]"
-                            >
-                                Add a description of what you're experiencing
-                            </Tooltip>
-                        </div>
-
-                        {showDescriptionInput && (
-                            <textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Describe the issue you're experiencing..."
-                                className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm text-gray-200
-                                    placeholder-gray-500 resize-none focus:outline-none focus:border-brand-500 transition-colors"
-                                rows={3}
-                            />
-                        )}
-
-                        <div className="flex items-center gap-2 pt-1 border-t border-gray-800">
-                            <button
-                                onClick={handleStopRecording}
-                                disabled={isPending || isDownloadingReport}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500
-                                    transition-colors text-sm font-medium text-white flex-1 justify-center disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                                <PiStopCircleFill className="text-lg" />
-                                {isPending || isDownloadingReport ? "Saving..." : "Stop & Save"}
-                            </button>
-                            <Tooltip
-                                trigger={<IconButton
-                                    intent="gray-basic"
-                                    size="sm"
-                                    icon={<BiX />}
-                                    onClick={() => setRecording(false)}
-                                />}
-                                className="z-[101]"
-                            >
-                                Cancel recording
-                            </Tooltip>
-                        </div>
-                    </div>}
-                </div>
-            </div>}
-        </>
-    )
 }
 
 function IssueRecorderPhone(props: {

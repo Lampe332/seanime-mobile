@@ -18,13 +18,6 @@ export function getMangaCollectionTitle(type?: string) {
     }
 }
 
-export function formatDateAndTimeShort(date: string) {
-    return new Date(date).toLocaleString(undefined, {
-        dateStyle: "short",
-        timeStyle: "short",
-    })
-}
-
 export function isCustomSource(mId: number | null | undefined) {
     if (mId === null || mId === undefined) return false
     return mId >= 0x80000000
