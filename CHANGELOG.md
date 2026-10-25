@@ -2,6 +2,31 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.30 — 25.10.2026 (versionCode 31125)
+
+- ⚡️ Performance: Cover lists scroll more smoothly because cards no longer each get their own GPU layer
+- ⚡️ Offline: The offline screens read the download list once per refresh instead of several times per episode
+- 🦺 Navigation: The bottom bar no longer goes missing when the page reloads while the app is still starting
+- 🦺 Wide phones: A phone in landscape with the smallest display size keeps the phone layout instead of a desktop sidebar, a clipped Home header and desktop plugin widgets
+- 🦺 Player: Wide phones keep the phone player controls
+- 🦺 Player: An episode you left after 90 % starts from the beginning instead of a few seconds before the end
+- 🦺 Player: The next episode only starts by itself for the anime you are watching
+- 🦺 Player: Audio and subtitle tracks named in Portuguese or Spanish count for your preferred language
+- 🦺 Player: The controls hide again after you reopen the player
+- 🦺 Player: Uploading a subtitle file in an unsupported format shows an error
+- 🦺 Library: "Title (Z-A)" sorts from Z to A
+- 🦺 Extensions: A value typed into one extension's preferences no longer shows up in another extension
+- 🦺 Plugins: A plugin's tray width can no longer run code in the app
+- 🦺 AniList: Signing in no longer ends with "Invalid token" when the connection drops during login
+- 🦺 Connection: Reconnecting to the app's server no longer closes the new connection again
+- 🦺 Anime: Opening a second anime no longer shows the first one's metadata settings
+- 🦺 Downloads: Torrent and debrid links open the Downloads tab instead of an empty page
+- 🦺 Nakama: The watch party chat no longer starts with 5 unread messages
+- 🦺 First start: Phones without the all-files access screen no longer crash on the first start
+- 🦺 Settings: Deleting something in the danger zone no longer leaves a loading screen on top
+- 🦺 Language: File import and export messages and the "download started" message follow the app language
+- 🏗️ App: About 78,000 lines of unused code are gone, most of it desktop screens the app never showed
+
 ## 2.0.29 — 23.10.2026 (versionCode 31124)
 
 - 🦺 Foldables: Opening or closing a foldable switches between the phone and the tablet layout instead of keeping the layout the app started with; while a video plays, the switch waits until you pause it
