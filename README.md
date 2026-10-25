@@ -14,6 +14,8 @@
 
 If you already run Seanime at home, the app can also play that library over Wi-Fi.
 
+Seanime Mobile carries on Pal-droid's [Seanime Android](https://github.com/Pal-droid/Seanime-Android) port, which is archived and stopped at Seanime 3.5.2. This app runs the current Seanime 3.10.4.
+
 New versions come out often. The newest is always on the [releases page](https://github.com/Lampe332/seanime-mobile/releases/latest), and the app tells you when there is one. Tested on a Samsung Galaxy S22 Ultra.
 
 <table>
@@ -142,6 +144,12 @@ Episodes from streaming sources live in the app's private storage. You find them
 3. The row below says **Connected to …**, and the server's anime appear in your library. Open one and tap an episode.
 
 Phone and computer need to be on the same network, unless you make the server reachable from outside, for example through a VPN like Tailscale.
+</details>
+
+<details>
+<summary><b>How is this different from Seanime Tenji?</b></summary>
+
+[Tenji](https://seanime.app/docs/tenji) is the official Seanime app for phones. It is a client, so it needs a Seanime server: either on your computer, or the official [Seanime Server (Mobile)](https://seanime.app/docs/mobile-server) as a second app on the phone (Android 8 or newer). Seanime Mobile is a single app with the server and the interface in one APK, and it runs on Android 5.0 or newer. If you prefer the official route, use Tenji.
 </details>
 
 <details>
