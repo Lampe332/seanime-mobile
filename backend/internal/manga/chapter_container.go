@@ -139,6 +139,7 @@ func (r *Repository) GetMangaChapterContainer(opts *GetMangaChapterContainerOpti
 	mangaLatestChapterNumberMap.Delete(ChapterCountMapCacheKey)
 
 	var mangaId string
+	var chapterList []*hibikemanga.ChapterDetails
 
 	// +---------------------+
 	// |      Database       |
@@ -208,24 +209,47 @@ func (r *Repository) GetMangaChapterContainer(opts *GetMangaChapterContainerOpti
 		bestRes := GetBestSearchResult(searchRes)
 
 		mangaId = bestRes.ID
+
+		// Providers can list the same title twice (MangaFire keeps an old duplicate of Overgeared with only a few
+		// unofficial chapters), and their order changes over time. Among equally rated duplicates, take the fullest.
+		if tied := TiedBestSearchResults(searchRes, bestRes); len(tied) > 1 {
+			for _, res := range tied {
+				if opts.beforeProviderCall != nil {
+					if err := opts.beforeProviderCall(); err != nil {
+						return nil, err
+					}
+				}
+				resChapters, err := providerExtension.GetProvider().FindChapters(res.ID)
+				if err != nil {
+					r.logger.Warn().Err(err).Str("mangaId", res.ID).Msg("manga: Failed to get chapters of duplicate result")
+					continue
+				}
+				if len(resChapters) > len(chapterList) {
+					mangaId, chapterList = res.ID, resChapters
+				}
+			}
+			r.logger.Debug().Str("mangaId", mangaId).Int("duplicates", len(tied)).Msg("manga: Picked duplicate result with the most chapters")
+		}
 	}
 
 	// +---------------------+
 	// |    Get chapters     |
 	// +---------------------+
 
-	if opts.beforeProviderCall != nil {
-		if err := opts.beforeProviderCall(); err != nil {
-			return nil, err
+	if len(chapterList) == 0 {
+		if opts.beforeProviderCall != nil {
+			if err := opts.beforeProviderCall(); err != nil {
+				return nil, err
+			}
 		}
-	}
-	chapterList, err := providerExtension.GetProvider().FindChapters(mangaId)
-	if err != nil {
-		r.logger.Error().Err(err).Msg("manga: Failed to get chapters")
-		if opts.skipCache {
-			return nil, fmt.Errorf("%w, %w", ErrNoChapters, err)
+		chapterList, err = providerExtension.GetProvider().FindChapters(mangaId)
+		if err != nil {
+			r.logger.Error().Err(err).Msg("manga: Failed to get chapters")
+			if opts.skipCache {
+				return nil, fmt.Errorf("%w, %w", ErrNoChapters, err)
+			}
+			return nil, ErrNoChapters
 		}
-		return nil, ErrNoChapters
 	}
 
 	// Overwrite the provider just in case
@@ -472,6 +496,23 @@ func GetBestSearchResult(searchRes []*hibikemanga.SearchResult) *hibikemanga.Sea
 		}
 	}
 	return bestRes
+}
+
+// TiedBestSearchResults returns up to 3 distinct results with the same rating and title as bestRes, in search order.
+func TiedBestSearchResults(searchRes []*hibikemanga.SearchResult, bestRes *hibikemanga.SearchResult) []*hibikemanga.SearchResult {
+	var tied []*hibikemanga.SearchResult
+	seen := map[string]bool{}
+	for _, res := range searchRes {
+		if len(tied) == 3 {
+			break
+		}
+		if seen[res.ID] || res.SearchRating != bestRes.SearchRating || !strings.EqualFold(strings.TrimSpace(res.Title), strings.TrimSpace(bestRes.Title)) {
+			continue
+		}
+		seen[res.ID] = true
+		tied = append(tied, res)
+	}
+	return tied
 }
 
 // HydrateSearchResultSearchRating rates the search results based on the provided title
