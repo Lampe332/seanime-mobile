@@ -331,13 +331,7 @@ class MainActivity : Activity() {
                 if (pageLoadFailed) return
                 retryHandler.removeCallbacks(retryLoad)
                 retries = 0
-
-                pipManager.injectHijacker()
-                VideoControlInjector.inject(webView)
-                UIBottomNav.inject(webView)
-                UIHomePatch.inject(webView)
-                fileTransfer.injectExports(webView)
-                offlineBridge.inject(webView)
+                injectWhenReady(0)
             }
         }
 
@@ -379,6 +373,27 @@ class MainActivity : Activity() {
             retryHandler.postDelayed(retryLoad, 1000)
         } else {
             pendingUrl = restored.currentItem?.url ?: pendingUrl
+        }
+    }
+
+    /**
+     * When a reload interrupts a load, that load's finish callback can arrive while the next document has no body
+     * yet. The injections would then mark themselves done in a page they could not build (no navigation bar, no
+     * player controls), so they wait for the body.
+     */
+    private fun injectWhenReady(attempt: Int) {
+        webView.evaluateJavascript("!!document.body") { ready ->
+            if (isDestroyed) return@evaluateJavascript
+            if (ready != "true") {
+                if (attempt < 50) webView.postDelayed({ injectWhenReady(attempt + 1) }, 100)
+                return@evaluateJavascript
+            }
+            pipManager.injectHijacker()
+            VideoControlInjector.inject(webView)
+            UIBottomNav.inject(webView)
+            UIHomePatch.inject(webView)
+            fileTransfer.injectExports(webView)
+            offlineBridge.inject(webView)
         }
     }
 
