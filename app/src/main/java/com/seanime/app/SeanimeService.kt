@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
@@ -17,18 +19,32 @@ class SeanimeService : Service() {
 
     @Volatile private var process: Process? = null
     @Volatile private var stopping = false
+    @Volatile private var portRetries = 0
     private var lastStatus: String = "Starting local server"
 
     private companion object {
         const val CHANNEL_ID = "seanime_channel"
         const val NOTIF_ID = 1
         const val ACTION_STOP_SERVICE = "STOP_SEANIME_SERVICE"
+        const val MAX_PORT_RETRIES = 10
+    }
+
+    // All Android users (profiles) share one loopback interface, so a server left running in a profile the
+    // user switched away from keeps 127.0.0.1:43211 and the app in the new profile cannot start its own.
+    private val userBackgroundReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            Log.i("SeanimeService", "User switched away from this profile; stopping local server")
+            stopSelf()
+        }
     }
 
     // A widget refresh can start this service without the app UI, which is where the language is usually loaded.
     override fun onCreate() {
         super.onCreate()
         AppLanguage.init(this)
+        val filter = IntentFilter(Intent.ACTION_USER_BACKGROUND)
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(userBackgroundReceiver, filter, RECEIVER_NOT_EXPORTED)
+        else registerReceiver(userBackgroundReceiver, filter)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -124,13 +140,27 @@ class SeanimeService : Service() {
 
             Thread {
                 try {
+                    var portBusy = false
                     started.inputStream.bufferedReader().use { reader ->
-                        reader.forEachLine { Log.i("SeanimeBackend", it) }
+                        reader.forEachLine {
+                            Log.i("SeanimeBackend", it)
+                            if (it.contains("address already in use")) portBusy = true
+                            if (it.contains("server-ready")) portRetries = 0
+                        }
                     }
                     val exitCode = started.waitFor()
                     if (!stopping && process === started) {
                         process = null
-                        promoteToForeground("Server stopped (exit $exitCode). Open Seanime to restart.")
+                        // Right after a profile switch the other profile's server may still be shutting down.
+                        if (portBusy && portRetries < MAX_PORT_RETRIES) {
+                            portRetries++
+                            promoteToForeground("Port 43211 busy, retry $portRetries/$MAX_PORT_RETRIES")
+                            Thread.sleep(1000)
+                            if (!stopping) startBinary()
+                        } else {
+                            promoteToForeground(if (portBusy) "Error: port 43211 is used by Seanime in another profile"
+                                else "Server stopped (exit $exitCode). Open Seanime to restart.")
+                        }
                     }
                 } catch (e: Exception) {
                     if (!stopping) Log.e("SeanimeService", "Backend output monitor failed", e)
@@ -144,6 +174,7 @@ class SeanimeService : Service() {
 
     override fun onDestroy() {
         stopping = true
+        unregisterReceiver(userBackgroundReceiver)
         process?.destroy()
         process = null
         super.onDestroy()
