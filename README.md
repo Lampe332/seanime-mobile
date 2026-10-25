@@ -41,7 +41,7 @@ New versions come out often. The newest is always on the [releases page](https:/
 ## Good to know before you install
 
 - **No sources included.** The app ships without streaming, torrent or manga sources. You add them from a community extension repository ([First start](#first-start), step 4); this project does not link to any.
-- **Android on ARM only.** Android 5.0 or newer on a 64-bit or 32-bit ARM phone. There is no iOS version.
+- **Android on ARM only.** Android 5.0 or newer on a 64-bit or 32-bit ARM phone or tablet. There is no iOS version.
 - **Not the official app.** Seanime Mobile is an independent, open-source fork of Seanime under the GPL-3.0.
 - **Torrents are up to you.** They only work with torrent providers you install yourself, and they use your connection, mobile data included. The auto-downloader is not available on Android.
 
@@ -83,6 +83,10 @@ The Manga tab starts with *Continue reading*. The reader has a page slider, tap-
 - Install streaming and manga sources and plugins from community repositories. Plugin windows are laid out for touch, and favourites can be pinned.
 - Bottom sheets instead of desktop dialogs, the Android Back button everywhere, and a bottom bar you can rearrange.
 - Settings save instantly. Options for programs a phone cannot run are hidden.
+
+### Phones and tablets
+
+One APK covers both. The app looks at the screen when it starts: a phone gets the phone layout, a tablet gets a navigation rail on the left, settings in two panes, sheets that slide in from the side, and anime and manga pages with the cover on the left and the episodes or chapters on the right. Open or close a foldable and the layout follows; a video that is playing keeps going until you pause it.
 
 ## Install
 
