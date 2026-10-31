@@ -1,5 +1,4 @@
 import { prefersReducedMotion } from "@/lib/motion"
-import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { HIDE_IMAGES } from "@/types/constants"
 import React, { forwardRef, useEffect, useLayoutEffect, useRef, useState } from "react"
 
@@ -119,9 +118,9 @@ const Image = forwardRef<HTMLImageElement, _ImageProps>((
     // A picture that is not there yet when its frame is drawn fades in once it arrives; one from the memory cache is
     // complete at once and simply shows (a revisited screen does not fade its covers again).
     const fadeIn = useRef(false)
-    // Tablet: such a picture stays hidden (an inline opacity, no layer per cover) until its load event starts the fade. The
-    // WebView there drew a picture that arrived while its screen was built a frame before that event ran, so it flashed
-    // in fully, vanished and faded in.
+    // Such a picture stays hidden (an inline opacity, no layer per cover) until its load event starts the fade. The WebView
+    // drew a picture that arrived while its screen was built a frame before that event ran, so it flashed in fully, vanished
+    // and faded in (tablet and phone).
     const held = useRef(false)
     const show = (img: HTMLImageElement) => {
         if (!held.current) return
@@ -137,7 +136,7 @@ const Image = forwardRef<HTMLImageElement, _ImageProps>((
     useLayoutEffect(() => {
         const img = imgRef.current
         fadeIn.current = !!img && !(img.complete && img.naturalWidth > 0)
-        if (!IS_TABLET_UI || !img) return
+        if (!img) return
         show(img)
         if (fadeIn.current && !prefersReducedMotion() && !document.documentElement.hasAttribute("data-entry-cover-transition")) {
             held.current = true
