@@ -158,6 +158,14 @@ body .ps-sheet.UI-Modal__content {
     width: calc(100% - 16px) !important; max-width: 32rem !important; max-height: calc(100svh - 16px) !important; overflow-y: auto !important; overscroll-behavior: contain;
     padding: 20px 16px 12px !important; border: 0; border-radius: var(--sm-radius-lg); background: var(--sm-surface); color: var(--sm-text); overflow-wrap: anywhere;
 }
+/* Bottom sheets rise from the bottom edge instead of zooming in the middle (the modal's animate-in/out read these);
+   tablet.css turns the travel sideways for its side sheets. */
+body :is(.ps-sheet, .mex-sheet, .mml-sheet, .msc-sheet, .mobile-download-sheet, .mobile-anilist-sheet).UI-Modal__content {
+    --tw-enter-scale: 1; --tw-exit-scale: 1; --tw-enter-translate-y: 2rem; --tw-exit-translate-y: 1.5rem;
+    animation-duration: 240ms; animation-timing-function: cubic-bezier(.32, .72, 0, 1);
+}
+/* Closing answers at once: quicker, and fast at the start (an ease-in would hold the sheet still under the finger). */
+body :is(.ps-sheet, .mex-sheet, .mml-sheet, .msc-sheet, .mobile-download-sheet, .mobile-anilist-sheet).UI-Modal__content[data-state="closed"] { animation-duration: 160ms; animation-timing-function: cubic-bezier(.23, 1, .32, 1); }
 .ps-sheet .UI-Modal__header { text-align: start; padding-right: 3rem; }
 .ps-sheet .UI-Modal__title { font-size: 1.375rem !important; line-height: 1.25; font-weight: 750; letter-spacing: -.02em; overflow-wrap: break-word; }
 .ps-sheet .UI-Modal__close { top: .5rem; right: .5rem; width: 48px; height: 48px; border-radius: 999px; background: transparent; }
@@ -184,8 +192,9 @@ body .ps-sheet.UI-Modal__content {
 .ps-check:disabled { opacity: .6; }
 .ps-check-text { display: grid; gap: .125rem; min-width: 0; }
 .ps-check-text small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
-.ps-toggle { position: relative; flex: none; width: 3rem; height: 1.75rem; border-radius: 999px; background: var(--sm-surface-control); box-shadow: inset 0 0 0 1px var(--sm-line-strong); } /* taste-skill-ignore: inset ring is the track border, as in the other phone sheets */
-.ps-toggle::after { content: ""; position: absolute; top: .25rem; left: .25rem; width: 1.25rem; height: 1.25rem; border-radius: 999px; background: var(--sm-text-muted); transition: transform .15s; }
+.ps-toggle { position: relative; flex: none; width: 3rem; height: 1.75rem; border-radius: 999px; background: var(--sm-surface-control); box-shadow: inset 0 0 0 1px var(--sm-line-strong); transition: background-color 180ms ease; } /* taste-skill-ignore: inset ring is the track border, as in the other phone sheets */
+/* The knob slides and changes colour in the same 180 ms, so the track does not flip to the accent before it arrives. */
+.ps-toggle::after { content: ""; position: absolute; top: .25rem; left: .25rem; width: 1.25rem; height: 1.25rem; border-radius: 999px; background: var(--sm-text-muted); transition: transform 180ms cubic-bezier(.23, 1, .32, 1), background-color 180ms ease; }
 .ps-check[aria-checked="true"] .ps-toggle { background: var(--sm-accent-strong); box-shadow: none; } /* taste-skill-ignore: removes the track border when on */
 .ps-check[aria-checked="true"] .ps-toggle::after { transform: translateX(1.25rem); background: #fff; }
 .ps-sheet-actions { position: sticky; bottom: -12px; z-index: 1; display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 -16px -12px; padding: .75rem 16px 12px; background: var(--sm-surface); }
@@ -229,7 +238,7 @@ body .ps-sheet.UI-Modal__content {
 .ps-field input:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 0; }
 
 /* A status that floats above the bottom bar (a scan running, a change found), never over it. */
-.ps-float { position: fixed; z-index: 8990; left: 1rem; right: 1rem; bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px) + .75rem); max-width: 32rem; margin-inline: auto;
+.ps-float { position: fixed; z-index: 8990; left: 1rem; right: 1rem; bottom: calc(var(--sm-nav-h) + env(safe-area-inset-bottom, 0px) + .75rem); max-width: 32rem; margin-inline: auto;
     display: flex; align-items: center; gap: .75rem; min-height: 3.5rem; padding: .5rem .5rem .5rem 1rem; border-radius: var(--sm-radius); background: var(--sm-surface-control); color: var(--sm-text);
     box-shadow: 0 12px 32px rgb(0 0 0 / .5); font-size: .875rem; line-height: 1.4; } /* taste-skill-ignore: it floats above the page, like a menu */
 /* An open sheet or dialog covers the page; the status waits under it instead of lying on its actions. */
@@ -240,11 +249,31 @@ body:has(.UI-Modal__content[data-state="open"]) :is(.ps-float, .issue-phone-opti
 .ps-float-bar { position: absolute; left: 1rem; right: 1rem; bottom: 0; height: 3px; overflow: hidden; border-radius: 999px; background: var(--sm-line-strong); }
 .ps-float-bar > span { display: block; height: 100%; background: var(--sm-accent-strong); transform-origin: left center; transition: transform .3s; }
 
+/* Press: what you hold as one object (covers, cards, pills, buttons) gives a little under the finger and springs back;
+   full-width rows only take the darker fill above. */
+:is(.ps-card, .ps-feature, .ps-icon-button, .ps-primary, .ps-secondary, .ps-text-action, .ps-tabs > button, .ps-chips > button, .ps-choices > button, .ps-segment > button) {
+    transition: transform 160ms cubic-bezier(.23, 1, .32, 1);
+}
+/* Fills: the pressed fill comes at once and fades out on release; a pill or chip that becomes chosen fades to its accent
+   instead of flipping (not the segments: their bubble glides, segment-glide.ts) */
+:is(.ps-tabs > button, .ps-chips > button, .ps-choices > button, .ps-icon-button, .ps-secondary) {
+    transition: transform 160ms cubic-bezier(.23, 1, .32, 1), background-color 160ms ease, color 160ms ease;
+}
+:is(.ps-tabs > button, .ps-chips > button, .ps-choices > button, .ps-icon-button, .ps-secondary):active { transition-duration: 160ms, 0s, 0s; }
+:is(.ps-check, .ps-action, .ps-pick, .ps-list-row) { transition: background-color 200ms ease; }
+:is(.ps-check, .ps-action, .ps-pick, .ps-list-row):active { transition-duration: 0s; }
+:is(.ps-card, .ps-icon-button, .ps-primary, .ps-secondary, .ps-text-action, .ps-tabs > button, .ps-chips > button, .ps-choices > button, .ps-segment > button):active:not(:disabled) { transform: scale(.97); }
+.ps-feature:active { transform: scale(.985); }
+
 @media (max-width: 359px) {
     [data-phone-screen] { padding-inline: .75rem; }
     .ps-tabs, .ps-chips, .ps-row, .ps-features { margin-inline: -.75rem; padding-inline: .75rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .ps-toggle::after, .ps-float-bar > span { transition: none; }
+    .ps-toggle, .ps-toggle::after, .ps-float-bar > span, :is(.ps-check, .ps-action, .ps-pick, .ps-list-row) { transition: none; }
+    :is(.ps-card, .ps-feature, .ps-icon-button, .ps-primary, .ps-secondary, .ps-text-action, .ps-tabs > button, .ps-chips > button, .ps-choices > button, .ps-segment > button) { transition: none; transform: none !important; }
     .ps-spin { animation-duration: 3s; }
+    body :is(.ps-sheet, .mex-sheet, .mml-sheet, .msc-sheet, .mobile-download-sheet, .mobile-anilist-sheet).UI-Modal__content { --tw-enter-translate-y: 0; --tw-exit-translate-y: 0; }
+    /* tablet.css sends its side sheets in sideways with more weight; without motion they only fade there too. */
+    html[data-layout="tablet"] body .UI-Modal__content.UI-Modal__content.UI-Modal__content { --tw-enter-translate-x: 0; --tw-exit-translate-x: 0; }
 }

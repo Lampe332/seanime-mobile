@@ -51,7 +51,7 @@ export function PhoneDownloadedEpisodes({ episodes }: { episodes: OfflineEpisode
     return (
         <section className="phone-downloads" aria-labelledby="phone-downloads-title" data-phone-downloaded-episodes>
             <div className="phone-downloads-head">
-                <h2 id="phone-downloads-title">{t("On this phone", "Auf diesem Handy")}</h2>
+                <h2 id="phone-downloads-title">{t("On this device", "Auf diesem Gerät")}</h2>
                 <button type="button" onClick={() => router.push(`/android-downloads?anime=${encodeURIComponent(`media-${episodes[0].mediaId}`)}`)}>
                     {t("Manage", "Verwalten")}<LuChevronRight aria-hidden />
                 </button>

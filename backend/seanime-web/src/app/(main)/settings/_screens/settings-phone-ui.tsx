@@ -73,9 +73,9 @@ export function SettingsUISection({ t }: { t: Translate }) {
             <ThemeSwitch field="disableCarouselAutoScroll" label={t("Stop carousels from scrolling by themselves", "Karussells nicht selbst weiterlaufen lassen")} />
             <ThemeSwitch field="smallerEpisodeCarouselSize" label={t("Smaller episode cards in carousels", "Kleinere Folgenkarten in Karussells")} />
             <ThemeSwitch field="enableBlurringEffects" label={t("Blur effects", "Unschärfe-Effekte")}
-                note={t("Can slow down some phones.", "Kann manche Handys verlangsamen.")} />
+                note={t("Can slow down some devices.", "Kann manche Geräte verlangsamen.")} />
             <ThemeSwitch field="enableMediaPageBlurredBackground" label={t("Blurred background on anime pages", "Verwischter Hintergrund auf Anime-Seiten")}
-                note={t("Can slow down some phones.", "Kann manche Handys verlangsamen.")} />
+                note={t("Can slow down some devices.", "Kann manche Geräte verlangsamen.")} />
         </SettingsGroup>
         <PreloadGroup t={t} />
         <CustomCSSGroup t={t} />
@@ -204,7 +204,7 @@ function PreloadGroup({ t }: { t: Translate }) {
     return <SettingsGroup id="ui-preload" title={t("Loading pages", "Seiten laden")}>
         <SelectRow id="pst-preload" label={t("Load anime pages ahead", "Anime-Seiten vorab laden")} disabled={simulated} value={simulated ? "disable" : mode}
             note={simulated ? t("Off without an AniList account, because of AniList's request limits.", "Ohne AniList-Konto aus, wegen der Anfragegrenzen von AniList.")
-                : t("Only on this phone. Loading ahead reaches AniList's request limit sooner.", "Nur auf diesem Handy. Vorab laden erreicht die Anfragegrenze von AniList schneller.")}
+                : t("Only on this device. Loading ahead reaches AniList's request limit sooner.", "Nur auf diesem Gerät. Vorab laden erreicht die Anfragegrenze von AniList schneller.")}
             options={[
                 { value: "disable", label: t("Off", "Aus") },
                 { value: "default", label: t("When touched", "Bei Berührung") },
@@ -225,14 +225,14 @@ function CustomCSSGroup({ t }: { t: Translate }) {
     const differs = stored.customCSS !== customCSS.customCSS || stored.mobileCustomCSS !== customCSS.mobileCustomCSS
     return <SettingsGroup id="ui-css" title={t("Custom CSS", "Eigenes CSS")}
         note={t("If it breaks the screen, remove it here or clear the app's storage.", "Falls es die Anzeige zerstört, entferne es hier oder lösche den Speicher der App.")}>
-        <TextSettingRow t={t} label={t("Custom CSS for phones", "Eigenes CSS für Handys")} value={mobileCSS} empty={t("None", "Keins")} multiline
+        <TextSettingRow t={t} label={t("Custom CSS for phones and tablets", "Eigenes CSS für Handy und Tablet")} value={mobileCSS} empty={t("None", "Keins")} multiline
             display={value => t(`${value.split("\n").length} lines`, `${value.split("\n").length} Zeilen`)} placeholder=".class { … }"
-            note={t("Applies on every phone that takes it over.", "Gilt auf jedem Handy, das es übernimmt.")}
+            note={t("Applies on every device that takes it over.", "Gilt auf jedem Gerät, das es übernimmt.")}
             onApply={async value => {
                 if (await save({ mobileCustomCSS: value })) setCustomCSS({ customCSS: stored.customCSS, mobileCustomCSS: value })
             }} data-theme-field="mobileCustomCSS" />
-        {differs && <LinkRow label={t("Apply to this phone", "Auf diesem Handy übernehmen")}
-            note={t("This phone uses a different CSS than the one stored on the server.", "Dieses Handy nutzt ein anderes CSS als das auf dem Server gespeicherte.")}
+        {differs && <LinkRow label={t("Apply to this device", "Auf diesem Gerät übernehmen")}
+            note={t("This device uses a different CSS than the one stored on the server.", "Dieses Handy nutzt ein anderes CSS als das auf dem Server gespeicherte.")}
             onClick={() => setCustomCSS(stored)} data-settings-apply-css />}
     </SettingsGroup>
 }

@@ -10,6 +10,7 @@ import { PlaybackManager_PlaybackState } from "@/app/(main)/_features/progress-t
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
+import { useTr } from "@/lib/app-language"
 import { SeaImage } from "@/components/shared/sea-image"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
@@ -76,6 +77,7 @@ export function PlaybackManagerProgressTrackingButton({ asSidebarButton }: Props
 }
 
 export function PlaybackManagerProgressTracking() {
+    const tr = useTr()
     const serverStatus = useServerStatus()
     const qc = useQueryClient()
 
@@ -231,9 +233,9 @@ export function PlaybackManagerProgressTracking() {
     }, [state?.completionPercentage && state?.completionPercentage > 0.7, state?.canPlayNext, cancelAutoplay])
 
     const confirmNextEpisode = useConfirmationDialog({
-        title: "Play next episode",
-        description: "Are you sure you want to play the next episode?",
-        actionText: "Confirm",
+        title: tr("Play next episode", "Nächste Folge abspielen"),
+        description: tr("Are you sure you want to play the next episode?", "Möchtest du die nächste Folge abspielen?"),
+        actionText: tr("Play", "Abspielen"),
         actionIntent: "success",
         onConfirm: () => {
             if (!submittedNextEpisode) playNextEpisodeAction()

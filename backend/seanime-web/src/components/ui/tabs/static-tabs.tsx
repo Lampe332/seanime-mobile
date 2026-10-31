@@ -112,6 +112,7 @@ export const StaticTabs = React.forwardRef<HTMLElement, StaticTabsProps>((props,
                     <span className="relative z-10 inline-flex items-center">{content}</span>
                     {tab.isCurrent && (
                         <motion.span
+                            data-static-tab-indicator
                             layoutId={layoutId}
                             className={cn("absolute inset-0 -z-10 border", activeBg, activeBorder, roundedClass, pillClass)}
                             transition={{ type: "spring", stiffness: 500, damping: 38 }}

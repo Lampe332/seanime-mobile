@@ -26,7 +26,7 @@ import "./settings-phone.css"
 export type SettingsSectionId = "seanime" | "ui" | "playback" | "library" | "onlinestream" | "torrents" | "manga" | "nakama" | "logs" | "about"
 
 const SECTIONS: { id: SettingsSectionId, icon: IconType, title: [string, string], summary: [string, string] }[] = [
-    { id: "seanime", icon: LuWandSparkles, title: ["App", "App"], summary: ["Episodes, spoilers, language, extensions, metadata", "Folgen, Spoiler, Sprache, Erweiterungen, Metadaten"] },
+    { id: "seanime", icon: LuWandSparkles, title: ["App", "App"], summary: ["Episodes, language, extensions, navigation, account", "Folgen, Sprache, Erweiterungen, Navigation, Konto"] },
     { id: "ui", icon: LuPalette, title: ["Appearance", "Darstellung"], summary: ["Colours, background image, sorting, cards", "Farben, Hintergrundbild, Sortierung, Karten"] },
     { id: "playback", icon: LuCirclePlay, title: ["Playback", "Wiedergabe"], summary: ["Player for your files, external player, next episode", "Player für deine Dateien, externer Player, nächste Folge"] },
     { id: "library", icon: LuLibrary, title: ["Local library", "Lokale Bibliothek"], summary: ["Folders, scanning, export", "Ordner, Scannen, Export"] },
@@ -129,7 +129,9 @@ export function SettingsPhone() {
     const shown = section ?? (twoPanes ? SECTIONS[0].id : null)
     const current = SECTIONS.find(item => item.id === shown)
 
-    const nav = <nav className="pst-nav" aria-label={t("Settings areas", "Einstellungsbereiche")} data-settings-nav>
+    // The list coming back from an area slides in from the start side (motion.css); returnTo is set until it is shown
+    const nav = <nav className="pst-nav" aria-label={t("Settings areas", "Einstellungsbereiche")} data-settings-nav
+        data-settings-return={!twoPanes && section === null && returnTo.current ? "" : undefined}>
         {SECTIONS.map(item => <button key={item.id} type="button" className="pst-nav-row" data-settings-open={item.id}
             aria-current={twoPanes && item.id === shown ? "page" : undefined}
             ref={el => { if (el) rows.current.set(item.id, el); else rows.current.delete(item.id) }} onClick={() => open(item.id)}>
@@ -151,7 +153,8 @@ export function SettingsPhone() {
                         <PhoneHeader title={t("Settings", "Einstellungen")} facts={versionLine(status.version)} />
                         <div className="pst-panes" data-settings-panes>
                             {nav}
-                            <section className="pst-pane" aria-labelledby="pst-pane-title">
+                            {/* Keyed by area: the new area's title and groups glide in beside the list (motion.css) */}
+                            <section key={current.id} className="pst-pane" aria-labelledby="pst-pane-title">
                                 <h2 id="pst-pane-title" className="pst-pane-title">{t(...current.title)}</h2>
                                 <div className="pst-page" data-settings-page={current.id}>
                                     <SectionContent id={current.id} t={t} onOpen={open} />

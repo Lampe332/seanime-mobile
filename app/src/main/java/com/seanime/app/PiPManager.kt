@@ -15,13 +15,19 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import java.util.UUID
 
-class PiPManager(private val activity: Activity, private val webView: WebView) {
+/** [isCasting]: while a TV plays the video, leaving the app does not open picture-in-picture. */
+class PiPManager(private val activity: Activity, private val webView: WebView, private val isCasting: () -> Boolean) {
 
     private val controlAction = activity.packageName + ".PIP_CONTROL"
     // Before Android 13 runtime receivers cannot be private; the per-process token rejects foreign broadcasts.
     private val controlToken = UUID.randomUUID().toString()
     private var playing = true
     private var receiverRegistered = false
+    // From the player (SeanimeMedia): whether a video plays, and its shape.
+    private var mediaPlaying = false
+    private var aspect = PiPControls.aspectRatio(0, 0)
+    private var ownLaunch = false
+    private var autoEnterApplied: Boolean? = null
 
     private val controlReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -49,11 +55,78 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
             RemoteAction(Icon.createWithResource(activity, icon), title, title, pending)
         }
         val builder = PictureInPictureParams.Builder()
-            .setAspectRatio(Rational(16, 9))
+            .setAspectRatio(Rational(aspect.first, aspect.second))
             .setActions(actions)
-        // Video content: avoid the cross-fade of a blurry snapshot while the window resizes.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) builder.setSeamlessResizeEnabled(false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Video content: avoid the cross-fade of a blurry snapshot while the window resizes.
+            builder.setSeamlessResizeEnabled(false)
+            builder.setAutoEnterEnabled(autoEnter())
+        }
         return builder.build()
+    }
+
+    private fun autoEnter() = mediaPlaying && !ownLaunch && !isCasting()
+
+    /** The player reports playback; a playing video goes to picture-in-picture when the user leaves the app. */
+    fun onMediaState(isPlaying: Boolean) {
+        mediaPlaying = isPlaying
+        if (playing != isPlaying) {
+            // also the play/pause button of a picture-in-picture window
+            playing = isPlaying
+            updateParams()
+        } else {
+            refreshAutoEnter()
+        }
+    }
+
+    fun setVideoSize(width: Int, height: Int) {
+        val next = PiPControls.aspectRatio(width, height)
+        if (next == aspect) return
+        aspect = next
+        updateParams()
+    }
+
+    /** Set while the app opens another screen or app, cleared when it is back in front. */
+    fun setOwnLaunch(launching: Boolean) {
+        ownLaunch = launching
+        refreshAutoEnter()
+    }
+
+    /** Android 12+ enters by itself from the params; only their auto-enter flag needs to follow the state. */
+    fun refreshAutoEnter() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || autoEnterApplied == autoEnter()) return
+        updateParams()
+    }
+
+    /** Android 8 to 11 have no auto-enter: Home or recents ask for picture-in-picture here. */
+    fun onUserLeaveHint() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) return
+        if (!autoEnter() || activity.isInPictureInPictureMode) return
+        playing = true
+        enter()
+    }
+
+    private fun updateParams() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        // Before Android 12 the params only matter for a picture-in-picture window that is already open.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !activity.isInPictureInPictureMode) return
+        try {
+            activity.setPictureInPictureParams(buildParams())
+            autoEnterApplied = autoEnter()
+        } catch (_: IllegalStateException) {
+            // the activity is being destroyed
+        }
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
+    private fun enter() {
+        setReceiverRegistered(true)
+        val entered = try {
+            activity.enterPictureInPictureMode(buildParams())
+        } catch (_: IllegalStateException) {
+            false
+        }
+        if (!entered && !activity.isInPictureInPictureMode) setReceiverRegistered(false)
     }
 
     private fun setReceiverRegistered(register: Boolean) {
@@ -72,12 +145,20 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
         receiverRegistered = register
     }
 
-    fun destroy() = setReceiverRegistered(false)
+    fun destroy() {
+        setReceiverRegistered(false)
+        // The params outlive this manager when the WebView is rebuilt.
+        mediaPlaying = false
+        refreshAutoEnter()
+    }
 
     // Set while a PiP window exists; expanding resumes the activity, closing the window only stops it.
     private var pipSession = false
 
-    fun onResume() { pipSession = false }
+    fun onResume() {
+        pipSession = false
+        setOwnLaunch(false)
+    }
 
     fun onStop() {
         if (!pipSession) return
@@ -96,10 +177,7 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
             activity.runOnUiThread {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     playing = isPlaying
-                    setReceiverRegistered(true)
-                    if (!activity.enterPictureInPictureMode(buildParams()) && !activity.isInPictureInPictureMode) {
-                        setReceiverRegistered(false)
-                    }
+                    enter()
                 }
             }
         }
@@ -171,6 +249,8 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
     fun onPiPModeChanged(isInPictureInPictureMode: Boolean) {
         if (isInPictureInPictureMode) {
             pipSession = true
+            // Android 12+ may have entered on its own (auto-enter), without enterPiP.
+            setReceiverRegistered(true)
             webView.evaluateJavascript("""
                 (function() {
                     window.__androidPiPActive = true;
@@ -221,6 +301,8 @@ class PiPManager(private val activity: Activity, private val webView: WebView) {
                         if (video.parentElement !== document.body) {
                             document.body.appendChild(video);
                         }
+                        // a paused video draws nothing after the move; a seek to the same spot paints its frame again
+                        if (video.paused && video.readyState >= 2) video.currentTime = video.currentTime;
 
                         // PiP window buttons: the player handles them when mounted, otherwise the video directly.
                         window.__seanimePiPCommand = function(command, seconds) {

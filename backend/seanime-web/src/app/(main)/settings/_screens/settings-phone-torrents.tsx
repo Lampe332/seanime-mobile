@@ -8,6 +8,7 @@ import { PhoneNotice, PhoneSwitch } from "@/app/(main)/_features/phone-screen/ph
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import type { SettingsSectionId } from "@/app/(main)/settings/_screens/settings-phone"
 import { DataAttributes, enqueue, SelectOption, SelectRow, SettingsGroup, useSaveSetting, useSettingValue } from "@/app/(main)/settings/_screens/settings-phone-kit"
+import { AutoSelectGroup } from "@/app/(main)/settings/_screens/settings-phone-auto-select"
 import { Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { useQueryClient } from "@tanstack/react-query"
@@ -113,6 +114,7 @@ export function SettingsTorrentsSection({ t, onOpen }: { t: Translate, onOpen: (
     return <>
         <ProvidersGroup t={t} />
         <StreamingGroup t={t} />
+        <AutoSelectGroup t={t} />
         <DownloadsGroup t={t} onOpen={onOpen} />
         <DebridGroup t={t} />
     </>

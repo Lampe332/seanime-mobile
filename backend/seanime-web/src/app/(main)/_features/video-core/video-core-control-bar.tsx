@@ -12,7 +12,9 @@ import { vc_fullscreenManager } from "@/app/(main)/_features/video-core/video-co
 import { vc_pip } from "@/app/(main)/_features/video-core/video-core-pip"
 import { vc_pipManager } from "@/app/(main)/_features/video-core/video-core-pip"
 import { vc_storedMutedAtom, vc_storedVolumeAtom } from "@/app/(main)/_features/video-core/video-core.atoms"
+import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.utils"
 import {
+    MediaCoreCenterControlsView,
     MediaCoreMobileControlBarView,
     MediaCoreVolumeButton,
     MediaCoreNextButton,
@@ -36,7 +38,6 @@ export function VideoCoreMobileControlBar(props: {
     bottomRightSection: React.ReactNode
 }) {
     const paused = useAtomValue(vc_paused)
-    const isMiniPlayer = useAtomValue(vc_miniPlayer)
     const cursorBusy = useAtomValue(vc_cursorBusy)
     const isSwiping = useAtomValue(vc_isSwiping)
 
@@ -44,9 +45,26 @@ export function VideoCoreMobileControlBar(props: {
         <MediaCoreMobileControlBarView
             {...props}
             paused={paused}
-            isMiniPlayer={isMiniPlayer}
             cursorBusy={cursorBusy}
             isSwiping={isSwiping}
+        />
+    )
+}
+
+export function VideoCoreCenterControls() {
+    const paused = useAtomValue(vc_paused)
+    const isMiniPlayer = useAtomValue(vc_miniPlayer)
+    const action = useSetAtom(vc_dispatchAction)
+
+    if (isMiniPlayer) return null
+
+    return (
+        <MediaCoreCenterControlsView
+            paused={paused}
+            seekBackSeconds={5}
+            seekForwardSeconds={10}
+            onTogglePlay={() => action({ type: "togglePlay" })}
+            onSeek={seconds => action({ type: "seek", payload: { time: seconds } })}
         />
     )
 }

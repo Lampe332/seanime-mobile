@@ -41,6 +41,43 @@ func TestSubtitleOffsetForTimeFallsBackToMetadataDuration(t *testing.T) {
 	require.Equal(t, subtitleBackoffBytes, subtitleOffsetForTime(playbackInfo, 50, 0))
 }
 
+func TestSubtitleOffsetForTimeReachesBackForActiveLines(t *testing.T) {
+	// a seek lands while a long line (sign, song) that began before the preroll is still on screen
+	cues := []*mkvparser.CueInfo{
+		{Time: 0, Position: 100, Track: 1},
+		{Time: 1e9, Position: 100, Track: 3, Duration: 29e9}, // 1s-30s, still active at 20s
+		{Time: 2e9, Position: 100, Track: 3, Duration: 3e9},  // 2s-5s, over before 20s
+		{Time: 5e9, Position: 500, Track: 1},
+		{Time: 10e9, Position: 1000, Track: 1},
+		{Time: 15e9, Position: 1500, Track: 1},
+		{Time: 20e9, Position: 2000, Track: 1},
+	}
+	playbackInfo := &player.PlaybackInfo{
+		ContentLength: 10_000,
+		MkvMetadata:   &mkvparser.Metadata{Cues: cues},
+	}
+
+	require.Equal(t, int64(100), subtitleOffsetForTime(playbackInfo, 20, 0))
+
+	// once the long line has ended, only the preroll applies
+	cues[1].Duration = 5e9
+	require.Equal(t, int64(1000), subtitleOffsetForTime(playbackInfo, 20, 0))
+}
+
+func TestSubtitleOffsetForTimeCapsLookback(t *testing.T) {
+	// a line spanning the whole episode must not make every seek read from the start
+	playbackInfo := &player.PlaybackInfo{
+		ContentLength: 10_000,
+		MkvMetadata: &mkvparser.Metadata{Cues: []*mkvparser.CueInfo{
+			{Time: 0, Position: 100, Track: 3, Duration: 1500e9},
+			{Time: 590e9, Position: 5900, Track: 1},
+			{Time: 600e9, Position: 6000, Track: 1},
+		}},
+	}
+
+	require.Equal(t, int64(5900), subtitleOffsetForTime(playbackInfo, 605, 0))
+}
+
 func TestSubtitleOffsetForTimeClampsNearEnd(t *testing.T) {
 	// leaves enough room for the subtitle parser backoff near eof
 	playbackInfo := &player.PlaybackInfo{ContentLength: subtitleBackoffBytes * 2}

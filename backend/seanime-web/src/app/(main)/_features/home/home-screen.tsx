@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button"
 import { Carousel, CarouselContent } from "@/components/ui/carousel"
 import { cn } from "@/components/ui/core/styling"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useReveal } from "@/lib/motion"
 import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/theme-hooks"
 import { addDays } from "date-fns/addDays"
 import { atom, useAtomValue, useSetAtom } from "jotai"
@@ -132,9 +133,7 @@ export function HomeScreen() {
             <Button onClick={() => { retryHomeItems(); retryCollection() }}>{tr("Try again", "Erneut versuchen")}</Button>
         </div>
     </div>
-    if (isLoading || isLoadingItems) return <div data-home-screen data-home-mobile="true" aria-busy="true" aria-label={tr("Loading Home", "Startseite wird geladen")}>
-        <div className="home-state"><Skeleton className="h-8 w-40 mb-4" /><Skeleton className="h-48 rounded-xl" /></div>
-    </div>
+    if (isLoading || isLoadingItems) return <HomeLoading label={tr("Loading Home", "Startseite wird geladen")} />
 
     if (!hasEntries && isAnimeLibraryItemsOnly(homeItems) && !isLoading) {
         return (
@@ -160,7 +159,7 @@ export function HomeScreen() {
                 />
 
                 <div className="text-center space-y-6 py-10 z-[10] relative">
-                    <h2>Your home screen is empty</h2>
+                    <h2>{tr("Your home screen is empty", "Deine Startseite ist leer")}</h2>
 
                     {!!serverStatus?.settings?.library?.libraryPath && <>
                         <Button
@@ -170,7 +169,7 @@ export function HomeScreen() {
                             rounded
                             onClick={() => setScannerModalOpen(true)}
                         >
-                            Scan your anime library
+                            {tr("Scan your anime library", "Anime-Bibliothek scannen")}
                         </Button>
                     </>}
 
@@ -182,7 +181,7 @@ export function HomeScreen() {
                                 size="lg"
                                 rounded
                             >
-                                Add series to your collection
+                                {tr("Add series to your collection", "Serien zu deiner Sammlung hinzufügen")}
                             </Button>
                         </SeaLink>
                     </>}
@@ -197,22 +196,22 @@ export function HomeScreen() {
                                 setHomeSettingsModalOpen(true)
                             }}
                         >
-                            Add currently watched series to the library
+                            {tr("Add currently watched series to the library", "Aktuell geschaute Serien zur Bibliothek hinzufügen")}
                         </Button>}
 
                         {animeLibraryType === "stream" && <div className="p-4 border w-fit mx-auto border-dashed rounded-xl">
                             <p>
-                                No series are currently being watched
+                                {tr("No series are currently being watched", "Du schaust gerade keine Serien")}
                             </p>
                             <p className="text-[--muted]">
-                                Add series to your 'Currently watching' list to get started
+                                {tr("Add series to your \"Currently watching\" list to get started", "Setze Serien auf deine Liste „Schaue ich gerade“, um loszulegen")}
                             </p>
                         </div>}
                     </>}
 
                 </div>
 
-                <h3>Trending Right Now</h3>
+                <h3>{tr("Trending right now", "Gerade beliebt")}</h3>
                 <DiscoverTrending />
 
                 <div data-home-screen-item-divider className="h-8" />
@@ -385,6 +384,14 @@ export type HomeScreenItemProps = {
     item: Models_HomeItem
     libraryCollectionProps: HandleLibraryCollectionProps
     index: number
+}
+
+/** Home while its layout and library load; when Home replaces it, Home fades in and its first covers cascade (lib/motion.ts). */
+function HomeLoading({ label }: { label: string }) {
+    const ref = useReveal<HTMLDivElement>()
+    return <div ref={ref} data-home-screen data-home-mobile="true" aria-busy="true" aria-label={label}>
+        <div className="home-state"><Skeleton className="h-8 w-40 mb-4" /><Skeleton className="h-48 rounded-xl" /></div>
+    </div>
 }
 
 function HomeScreenItem(props: HomeScreenItemProps) {

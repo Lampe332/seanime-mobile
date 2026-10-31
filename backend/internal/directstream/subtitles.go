@@ -44,6 +44,8 @@ type subtitleRequest struct {
 const (
 	subtitleBackoffBytes   int64 = 1024 * 1024
 	streamDedupWindowBytes       = 1024 * 1024
+	// subtitleMaxLookback caps how far (seconds) a seek reads back for lines that are still on screen
+	subtitleMaxLookback = 300.0
 )
 
 type subtitleFlushConfig struct {
@@ -246,8 +248,19 @@ func subtitleOffsetForTime(playbackInfo *player.PlaybackInfo, currentTime float6
 			i = len(playbackInfo.MkvMetadata.Cues) - 1
 		}
 
-		cue := playbackInfo.MkvMetadata.Cues[i]
-		return int64(cue.Position)
+		cues := playbackInfo.MkvMetadata.Cues
+		offset := int64(cues[i].Position)
+
+		// Lines still on screen at currentTime can start before the preroll (signs, songs).
+		// Subtitle cues carry their block duration, so start at the earliest one that is still active.
+		currentTimeNs := uint64(currentTime * 1e9)
+		lookbackNs := uint64(math.Max(currentTime-subtitleMaxLookback, 0) * 1e9)
+		for _, cue := range cues[:i] {
+			if cue.Time >= lookbackNs && cue.Duration > 0 && cue.Time+cue.Duration > currentTimeNs {
+				offset = min(offset, int64(cue.Position))
+			}
+		}
+		return offset
 	}
 
 	effectiveDuration := duration

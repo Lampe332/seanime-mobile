@@ -19,7 +19,9 @@ import { IconButton } from "@/components/ui/button"
 import { copyToClipboard } from "@/lib/helpers/browser"
 import { Translate, useTr } from "@/lib/app-language"
 import { upath } from "@/lib/helpers/upath"
+import { useRouter } from "@/lib/navigation"
 import { isCustomSource } from "@/lib/server/utils"
+import { TabletLabel } from "@/lib/tablet-ui"
 import React from "react"
 import { BiDotsVerticalRounded } from "react-icons/bi"
 import { LuArrowUpRight, LuCopy, LuFileMinus, LuGlobe, LuListChecks, LuMagnet, LuPuzzle, LuTrash2 } from "react-icons/lu"
@@ -28,7 +30,7 @@ import { toast } from "sonner"
 /**
  * The anime page's "More" on Android phones: the anime elsewhere (AniList, AniDB, MyAnimeList), filler episodes and
  * specials metadata, the plugins' actions, for anime in the local library unmatching or deleting some of its files, and
- * which streaming tabs anime pages show on this phone.
+ * which streaming tabs anime pages show on this phone (a tab whose feature is off links to its setting).
  * Each opens a sheet of the phone kit instead of the desktop dropdown and its centred modals. Downloading files to the
  * browser is left out: on a phone they already are on the device.
  */
@@ -36,7 +38,7 @@ import { toast } from "sonner"
 type View = "menu" | "metadata" | "unmatch" | "delete" | null
 const plural = (t: Translate, n: number, en: [string, string], de: [string, string]) => `${n} ${n === 1 ? t(en[0], de[0]) : t(en[1], de[1])}`
 
-function ExternalRow({ href, label, note }: { href: string, label: string, note: string }) {
+export function ExternalRow({ href, label, note }: { href: string, label: string, note: string }) {
     return <a href={href} target="_blank" rel="noreferrer" className="ps-action" data-entry-link={label}>
         <LuGlobe className="ps-action-icon" aria-hidden />
         <span className="ps-action-text"><span>{label}</span><small>{note}</small></span>
@@ -57,11 +59,13 @@ export function AnimeEntryPhoneMenu({ entry, details }: { entry: Anime_Entry, de
     const canDownloadTorrent = !!torrentProviders?.length && entry.media?.status !== "NOT_YET_RELEASED" && !entry._isNakamaEntry
     const serverStatus = useServerStatus()
     const [hiddenViews, setHiddenViews] = useAtom(__anime_hiddenEntryViewsAtom)
+    const router = useRouter()
+    // A tab whose feature is off in the settings has nothing to show; its row opens that setting instead
     const tabs = [
-        { view: "torrentstream", label: t("Torrent streaming", "Torrent-Streaming"), on: !!serverStatus?.torrentstreamSettings?.enabled },
-        { view: "debridstream", label: t("Debrid streaming", "Debrid-Streaming"), on: !!serverStatus?.debridSettings?.enabled },
-        { view: "onlinestream", label: t("Online streaming", "Online-Streaming"), on: !!serverStatus?.settings?.library?.enableOnlinestream },
-    ].filter(tab => tab.on)
+        { view: "torrentstream", settingsTab: "torrentstream", label: t("Torrent streaming", "Torrent-Streaming"), on: !!serverStatus?.torrentstreamSettings?.enabled },
+        { view: "debridstream", settingsTab: "debrid", label: t("Debrid streaming", "Debrid-Streaming"), on: !!serverStatus?.debridSettings?.enabled },
+        { view: "onlinestream", settingsTab: "onlinestream", label: t("Online streaming", "Online-Streaming"), on: !!serverStatus?.settings?.library?.enableOnlinestream },
+    ]
 
     // One sheet at a time: the menu closes before the next one opens, so Back always returns to the page
     const go = (next: View) => {
@@ -71,7 +75,8 @@ export function AnimeEntryPhoneMenu({ entry, details }: { entry: Anime_Entry, de
     const close = (open: boolean) => { if (!open) setView(null) }
 
     return <>
-        <IconButton ref={trigger} data-anime-entry-dropdown-menu-trigger icon={<BiDotsVerticalRounded />} intent="gray-subtle" size="md"
+        <IconButton ref={trigger} data-anime-entry-dropdown-menu-trigger intent="gray-subtle" size="md"
+            icon={<><BiDotsVerticalRounded /><TabletLabel>{t("More", "Mehr")}</TabletLabel></>}
             aria-label={t("More for this anime", "Mehr zu diesem Anime")} aria-haspopup="dialog" onClick={() => setView("menu")} />
 
         <PhoneSheet title={t("More", "Mehr")} open={view === "menu"} onOpenChange={close} returnFocusRef={trigger} data-entry-phone-menu>
@@ -93,12 +98,12 @@ export function AnimeEntryPhoneMenu({ entry, details }: { entry: Anime_Entry, de
                         onClick={() => { setView(null); setTimeout(() => openTorrentSearch("download"), 150) }} />}
                 </div>
             </PhoneSheetGroup>
-            {hasFiles && <PhoneSheetGroup title={t("Files on this phone", "Dateien auf diesem Handy")} note={plural(t, files, ["file", "files"], ["Datei", "Dateien"])}>
+            {hasFiles && <PhoneSheetGroup title={t("Files on this device", "Dateien auf diesem Gerät")} note={plural(t, files, ["file", "files"], ["Datei", "Dateien"])}>
                 <div className="ps-rows">
                     <PhoneRow icon={<LuFileMinus />} label={t("Unmatch files", "Zuordnung lösen")} chevron data-entry-open="unmatch"
                         note={t("They go back to the unmatched files", "Sie kommen zurück zu den Dateien ohne Anime")} onClick={() => go("unmatch")} />
                     <PhoneRow icon={<LuTrash2 />} tone="danger" label={t("Delete files", "Dateien löschen")} chevron data-entry-open="delete"
-                        note={t("Removes them from this phone", "Entfernt sie von diesem Handy")} onClick={() => go("delete")} />
+                        note={t("Removes them from this device", "Entfernt sie von diesem Gerät")} onClick={() => go("delete")} />
                 </div>
             </PhoneSheetGroup>}
             {pluginItems.length > 0 && <PhoneSheetGroup title={t("Plugins", "Plugins")}>
@@ -110,13 +115,19 @@ export function AnimeEntryPhoneMenu({ entry, details }: { entry: Anime_Entry, de
                         }} />)}
                 </div>
             </PhoneSheetGroup>}
-            {tabs.length > 0 && <PhoneSheetGroup title={t("Tabs", "Tabs")} data-entry-tabs
-                note={t("For every anime page on this phone. The library tab always stays.", "Für jede Anime-Seite auf diesem Handy. Der Bibliothek-Tab bleibt immer.")}>
+            <PhoneSheetGroup title={t("Tabs", "Tabs")} data-entry-tabs
+                note={t("For every anime page on this device. The library tab always stays.", "Für jede Anime-Seite auf diesem Gerät. Der Bibliothek-Tab bleibt immer.")}>
                 <div className="ps-rows">
-                    {tabs.map(tab => <PhoneSwitch key={tab.view} label={tab.label} checked={!hiddenViews.includes(tab.view)} data-entry-tab={tab.view}
-                        onChange={shown => setHiddenViews(list => shown ? list.filter(view => view !== tab.view) : [...list, tab.view])} />)}
+                    {tabs.map(tab => tab.on
+                        ? <PhoneSwitch key={tab.view} label={tab.label} checked={!hiddenViews.includes(tab.view)} data-entry-tab={tab.view}
+                            onChange={shown => setHiddenViews(list => shown ? list.filter(view => view !== tab.view) : [...list, tab.view])} />
+                        : <PhoneRow key={tab.view} label={tab.label} note={t("Off in the settings. Tap to turn it on.", "In den Einstellungen aus. Tippen zum Einschalten.")}
+                            chevron data-entry-tab-settings={tab.view} onClick={() => {
+                                setView(null)
+                                router.push(`/settings?tab=${tab.settingsTab}`)
+                            }} />)}
                 </div>
-            </PhoneSheetGroup>}
+            </PhoneSheetGroup>
         </PhoneSheet>
 
         <MetadataPhoneSheet t={t} entry={entry} details={details} open={view === "metadata"} onOpenChange={close} returnFocusRef={trigger} />
@@ -208,9 +219,9 @@ function FilesPhoneSheet({ t, entry, mode, open, onOpenChange, returnFocusRef }:
             </button>
         </>}>
         <p className="ps-sheet-text">{mode === "delete"
-            ? t("The files are deleted from this phone. This can't be undone.", "Die Dateien werden von diesem Handy gelöscht. Das lässt sich nicht rückgängig machen.")
-            : t("The files stay on this phone and wait under unmatched files until you pick an anime for them.",
-                "Die Dateien bleiben auf diesem Handy und warten bei den Dateien ohne Anime, bis du ihnen einen Anime zuordnest.")}</p>
+            ? t("The files are deleted from this device. This can't be undone.", "Die Dateien werden von diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen.")
+            : t("The files stay on this device and wait under unmatched files until you pick an anime for them.",
+                "Die Dateien bleiben auf diesem Gerät und warten bei den Dateien ohne Anime, bis du ihnen einen Anime zuordnest.")}</p>
     </PhoneSheet>
 
     return <PhoneSheet title={mode === "delete" ? t("Delete files", "Dateien löschen") : t("Unmatch files", "Zuordnung lösen")} open={open} onOpenChange={onOpenChange}

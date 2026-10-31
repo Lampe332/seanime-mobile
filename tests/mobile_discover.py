@@ -206,8 +206,8 @@ with tempfile.TemporaryDirectory(prefix='seanime-discover-') as tmp:
         check('Phone screen replaces the desktop page',page.locator('h1').inner_text()=='Discover'
               and page.locator('[data-desktop-discover-header],[data-desktop-discover-row]').count()==0)
         check('Facts: the current season',page.locator('[data-phone-facts]').inner_text()==f'{SEASON_EN[CUR[0]]} {CUR[1]} season')
-        check('Header actions: search anime and the calendar',page.locator('[data-discover-search]').get_attribute('href')=='/search'
-              and page.locator('[data-discover-search]').get_attribute('aria-label')=='Search anime' and page.locator('[data-discover-calendar]').get_attribute('href')=='/schedule')
+        check('Header without search and calendar buttons (Search is in the navigation, the calendar is the Schedule tab)',
+              page.locator('[data-discover-search],[data-discover-calendar]').count()==0 and page.locator('[data-phone-screen="discover"] .ps-header .ps-actions').count()==0)
         check('Segment: Anime, Schedule, Manga with their tab names, Anime chosen, a full-sentence label',page.evaluate(TEXT,'[data-discover-tabs] [role=tab]')==['Anime','Schedule','Manga']
               and page.evaluate('[...document.querySelectorAll("[data-discover-tabs] [role=tab]")].map(e=>e.dataset.tabName)')==['Anime','Schedule','Manga']
               and page.locator('[data-discover-tabs].ps-segment [data-tab-name="Anime"][aria-selected=true]').count()==1
@@ -422,8 +422,8 @@ with tempfile.TemporaryDirectory(prefix='seanime-discover-') as tmp:
         check('Facts: episodes in the next two weeks',page.locator('[data-phone-facts]').inner_text()=='5 episodes in the next 2 weeks')
         check('Days: later today, tomorrow, then weekday and date; empty days left out',page.evaluate(HEADS)==[day_title(0),day_title(1),day_title(2),day_title(3)]
               and page.evaluate(TEXT,'[data-discover-block="schedule-day"] h2 span')==['2','1','1','1'])
-        check('Today is marked; the calendar is one entry in the header, not again on the first day',page.locator('[data-discover-block="schedule-day"][data-today]').count()==1
-              and page.locator('[data-discover-calendar-link]').count()==0 and page.locator('[data-discover-calendar]').get_attribute('href')=='/schedule')
+        check('Today is marked; no extra calendar link on the first day',page.locator('[data-discover-block="schedule-day"][data-today]').count()==1
+              and page.locator('[data-discover-calendar-link]').count()==0)
         check('Rows by time; adult, non-Japanese, shorts, non-anime, repeated and out-of-range episodes left out',
               page.evaluate('[...document.querySelectorAll("[data-discover-schedule-row]")].map(e=>+e.dataset.discoverScheduleRow)')==[302,301,303,304,321])
         check('Row: the schedule\'s own episode, the list status, the time, the MAL id',page.locator('[data-discover-schedule-row="301"] .ps-list-meta').inner_text()=='Episode 5 · Watching'
@@ -436,7 +436,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-discover-') as tmp:
         check('Schedule asks page by page from today 00:00 for 14 days, not yet aired, by time, and stops once the two weeks are in',
               [r for r in requests(page,RECENT_API,'notYetAired')]==[{'page':p,'perPage':50,'airingAt_greater':midnight,'airingAt_lesser':two_weeks,'notYetAired':True,'sort':['TIME']} for p in (1,2)])
         check('Schedule keeps the desktop hooks',page.locator('.pd-panel[data-discover-page-schedule-container] [data-discover-airing-schedule-container]').count()==1)
-        check('Header keeps search and calendar on the schedule',page.locator('[data-discover-search]').count()==1 and page.locator('[data-discover-calendar]').count()==1)
+        check('Header stays without search and calendar on the schedule',page.locator('[data-discover-search],[data-discover-calendar]').count()==0)
         check('Schedule buttons and links are at least 48px',page.evaluate(SMALL,'[data-discover-phone] button,[data-discover-phone] a')==[])
         check('Schedule at 390px: no page overflow',page.evaluate(NO_OVERFLOW))
         shot(page,'discover-schedule-390.png')
@@ -453,8 +453,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-discover-') as tmp:
         tab(page,'Manga');page.locator('[data-discover-block="manga-jp"] [data-phone-card]').first.wait_for()
         check('Manga tab: chosen, URL follows, facts',page.locator('[data-tab-name="Manga"][aria-selected=true]').count()==1
               and page.evaluate('routes').pop()==['replace','/discover?type=manga'] and page.locator('[data-phone-facts]').inner_text()=='Trending manga, manhwa and manhua')
-        check('Manga header: search manga, no calendar',page.locator('[data-discover-search]').get_attribute('href')=='/search?type=manga'
-              and page.locator('[data-discover-search]').get_attribute('aria-label')=='Search manga' and page.locator('[data-discover-calendar]').count()==0)
+        check('Manga header: no search or calendar button',page.locator('[data-discover-search],[data-discover-calendar]').count()==0)
         check('Manga spotlight: the first five trending manga, announced ones too (as the desktop hero), manga entry links, no "Manga" in the meta',
               page.evaluate('[...document.querySelectorAll("[data-discover-feature]")].map(e=>e.getAttribute("href"))')==[f'/manga/entry?id={i}' for i in range(501,506)]
               and page.locator('[data-discover-feature="501"] .ps-feature-meta').inner_text()=='2016 · 81%')
@@ -663,8 +662,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-discover-') as tmp:
         tab(de,'Manga');de.locator('[data-discover-block="manga-jp"] [data-phone-card]').first.wait_for();scroll_through(de)
         check('German: manga',de.evaluate(HEADS)==['Angesagte Manga','Angesagte Manhwa','Angesagte Manhua']
               and de.locator('[data-phone-facts]').inner_text()=='Angesagte Manga, Manhwa und Manhua'
-              and de.locator(card('manga-jp',507,'.ps-card-meta')).text_content()=='Lese ich'
-              and de.locator('[data-discover-search]').get_attribute('aria-label')=='Manga suchen')
+              and de.locator(card('manga-jp',507,'.ps-card-meta')).text_content()=='Lese ich')
         de.set_viewport_size(dict(width=320,height=720));de.evaluate('document.documentElement.style.fontSize="200%"');de.wait_for_timeout(300)
         tab(de,'Schedule')
         check('German at 320px with 200% text: no overflow, tab labels inside their tabs, rows not squeezed',de.evaluate(NO_OVERFLOW)

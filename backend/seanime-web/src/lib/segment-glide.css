@@ -1,0 +1,15 @@
+/* segment-glide.ts: the travelling bubble sits under the labels of its switch; the switch is its positioning box. */
+:is(.ps-segment, .mobile-source-segment, .mdl-tabs, .msc-tabs, .reader-settings-segment, [data-mobile-anime] .UI-StaticTabs__root) { position: relative; isolation: isolate; }
+:is(.ps-segment, .mobile-source-segment, .mdl-tabs, .msc-tabs, .reader-settings-segment, [data-mobile-anime] .UI-StaticTabs__root) > :not([data-segment-glide]) {
+    position: relative; z-index: 1;
+    /* the label brightens while the bubble travels to it, the press keeps its quick give */
+    transition: transform 160ms cubic-bezier(.23, 1, .32, 1), color 200ms ease;
+}
+[data-segment-glide] { position: absolute; z-index: 0; box-sizing: border-box; pointer-events: none; }
+/* The bottom bar / tablet rail is fixed already (its own positioning box); only its entries need to sit above the pill. */
+#__seanime_bottom_nav > :not([data-segment-glide]) { z-index: 1; }
+#__seanime_bottom_nav > [data-segment-glide-target] { background-color: transparent !important; }
+:is(.ps-segment, .mobile-source-segment, .mdl-tabs, .msc-tabs, .reader-settings-segment, [data-mobile-anime] .UI-StaticTabs__root) > [data-segment-glide-target] { background-color: transparent !important; }
+@media (prefers-reduced-motion: reduce) {
+    :is(.ps-segment, .mobile-source-segment, .mdl-tabs, .msc-tabs, .reader-settings-segment, [data-mobile-anime] .UI-StaticTabs__root) > * { transition: none; }
+}

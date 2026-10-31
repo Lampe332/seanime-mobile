@@ -97,6 +97,8 @@ type MatroskaParser struct {
 	segmentTopPos uint64
 	cuesPos       uint64
 	cuesTopPos    uint64
+	// Segment-relative positions from the SeekHead, by element ID
+	seekPositions map[uint32]uint64
 
 	// Flags
 	noSeeking bool
@@ -169,6 +171,7 @@ func NewMatroskaParser(r io.ReadSeeker, noSeeking bool, elementsToParse ...uint3
 		reader:          NewEBMLReader(r),
 		noSeeking:       noSeeking,
 		elementsToParse: make(map[uint32]struct{}),
+		seekPositions:   make(map[uint32]uint64),
 	}
 
 	if len(elementsToParse) > 0 {
@@ -176,6 +179,10 @@ func NewMatroskaParser(r io.ReadSeeker, noSeeking bool, elementsToParse ...uint3
 			parser.elementsToParse[id] = struct{}{}
 		}
 	}
+
+	// Remember where reading starts: the header probe reads a whole element,
+	// which at a cluster offset would swallow the first cluster
+	startPos, startPosErr := r.Seek(0, io.SeekCurrent)
 
 	// Try to parse header and segment
 	headerErr := parser.parseHeader()
@@ -202,6 +209,12 @@ func NewMatroskaParser(r io.ReadSeeker, noSeeking bool, elementsToParse ...uint3
 		parser.tags = make([]*Tag, 0)
 		parser.cues = make([]*Cue, 0)
 		parser.attachments = make([]*Attachment, 0)
+
+		if headerErr != nil && !noSeeking && startPosErr == nil {
+			if _, err := parser.reader.Seek(startPos, io.SeekStart); err != nil {
+				return nil, fmt.Errorf("failed to seek back to start position: %w", err)
+			}
+		}
 
 		// Set segment to unknown size since we're starting mid-stream
 		currentPos := parser.reader.Position()
@@ -259,6 +272,9 @@ func NewMatroskaParser(r io.ReadSeeker, noSeeking bool, elementsToParse ...uint3
 	//}
 
 	if headerErr == nil && segmentErr == nil {
+		if !noSeeking {
+			parser.parseElementsAfterClusters()
+		}
 		if parser.shouldParseElement(IDCues) && parser.cuesPos > 0 && len(parser.cues) == 0 {
 			currentPos := parser.reader.Position()
 			if _, err := parser.reader.Seek(int64(parser.segmentPos+parser.cuesPos), io.SeekStart); err == nil {
@@ -275,6 +291,45 @@ func NewMatroskaParser(r io.ReadSeeker, noSeeking bool, elementsToParse ...uint3
 	}
 
 	return parser, nil
+}
+
+// parseElementsAfterClusters reads metadata that some muxers write after the clusters, such as Tracks behind a
+// Void placeholder at the start. The initial scan stops at the first cluster, so these are only reachable
+// through the SeekHead. Elements that were already found are left as they are.
+func (mp *MatroskaParser) parseElementsAfterClusters() {
+	elements := []struct {
+		id      uint32
+		missing bool
+		parse   func(uint64) error
+	}{
+		{IDTracks, len(mp.tracks) == 0, mp.parseTracks},
+		{IDChapters, len(mp.chapters) == 0, mp.parseChapters},
+		{IDAttachments, len(mp.attachments) == 0, mp.parseAttachments},
+		{IDTags, len(mp.tags) == 0, mp.parseTags},
+	}
+
+	currentPos := mp.reader.Position()
+	// The first SeekHead can point to a second one (often at the end) that lists the rest
+	if pos, ok := mp.seekPositions[IDSeekHead]; ok && len(mp.tracks) == 0 {
+		if _, err := mp.reader.Seek(int64(mp.segmentPos+pos), io.SeekStart); err == nil {
+			if id, size, err := mp.reader.ReadElementHeader(); err == nil && id == IDSeekHead {
+				_ = mp.parseSeekHead(size)
+			}
+		}
+	}
+	for _, element := range elements {
+		pos, ok := mp.seekPositions[element.id]
+		if !ok || !element.missing || !mp.shouldParseElement(element.id) {
+			continue
+		}
+		if _, err := mp.reader.Seek(int64(mp.segmentPos+pos), io.SeekStart); err != nil {
+			continue
+		}
+		if id, size, err := mp.reader.ReadElementHeader(); err == nil && id == element.id {
+			_ = element.parse(size)
+		}
+	}
+	_, _ = mp.reader.Seek(currentPos, io.SeekStart)
 }
 
 // parseHeader parses the EBML header from the Matroska file.
@@ -400,7 +455,7 @@ func (mp *MatroskaParser) parseSegmentChildren() error {
 
 		switch id {
 		case IDSeekHead:
-			if mp.shouldParseElement(IDCues) {
+			if mp.shouldParseElement(IDCues) || mp.shouldParseElement(IDTracks) {
 				if err = mp.parseSeekHead(size); err != nil {
 					mp.cuesPos = 0
 				}
@@ -569,6 +624,7 @@ func (mp *MatroskaParser) parseSeekHead(size uint64) error {
 				}
 			}
 
+			mp.seekPositions[seekID] = seekPos
 			if seekID == IDCues {
 				mp.cuesPos = seekPos
 			}
@@ -674,6 +730,7 @@ func (mp *MatroskaParser) parseTracks(size uint64) error {
 	if size > 256*1024*1024 {
 		return fmt.Errorf("tracks size %d is too large", size)
 	}
+	tracksStart := mp.reader.Position()
 	data := make([]byte, size)
 	n, err := io.ReadFull(mp.reader.r, data)
 	if err != nil {
@@ -700,6 +757,14 @@ func (mp *MatroskaParser) parseTracks(size uint64) error {
 		trackInfo, errParseTrackEntry := mp.parseTrackEntry(element.Data)
 		if errParseTrackEntry != nil {
 			return fmt.Errorf("failed to parse track entry: %w", errParseTrackEntry)
+		}
+		// From the entry's data to the file
+		entryStart := tracksStart + childReader.pos - int64(len(element.Data))
+		if trackInfo.TypeOffset > 0 {
+			trackInfo.TypeOffset += entryStart
+		}
+		if trackInfo.CodecIDOffset > 0 {
+			trackInfo.CodecIDOffset += entryStart
 		}
 		mp.tracks = append(mp.tracks, trackInfo)
 	}
@@ -768,6 +833,10 @@ func (mp *MatroskaParser) parseTrackEntry(data []byte) (*TrackInfo, error) {
 			track.UID = element.ReadUInt()
 		case IDTrackType:
 			track.Type = uint8(element.ReadUInt())
+			if len(element.Data) == 1 {
+				// Relative to the entry's data here; parseTracks makes it a file offset
+				track.TypeOffset = childReader.pos - 1
+			}
 		case IDTrackName:
 			track.Name = element.ReadString()
 		case IDLanguage:
@@ -778,6 +847,9 @@ func (mp *MatroskaParser) parseTrackEntry(data []byte) (*TrackInfo, error) {
 			track.LanguageIETF = element.ReadString()
 		case IDCodecID:
 			track.CodecID = element.ReadString()
+			if len(element.Data) > 0 {
+				track.CodecIDOffset = childReader.pos - int64(len(element.Data))
+			}
 		case IDCodecPriv:
 			track.CodecPrivate = element.ReadBytes()
 		case IDVideo:

@@ -10,6 +10,13 @@ object AndroidNavigation {
                 transient.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', code:'Escape', bubbles:true, cancelable:true}));
                 return true;
             }
+            // then a video that fills the screen leaves fullscreen: through the player when it has one (it shrinks back;
+            // its in-page fullscreen is no browser fullscreen), otherwise the browser's
+            if (window.__seanimeExitFullscreen && window.__seanimeExitFullscreen()) return true;
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen();
+                return true;
+            }
             var event = new Event('seanime:android-back', {cancelable:true});
             if (!window.dispatchEvent(event)) return true;
             var menuButton = document.querySelector('#__seanime_bottom_nav button[data-menu-open="true"]');

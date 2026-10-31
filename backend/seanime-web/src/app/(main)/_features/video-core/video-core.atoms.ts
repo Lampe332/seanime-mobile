@@ -166,6 +166,11 @@ export const vc_useLibassRendererAtom = atomWithStorage("sea-video-core-use-liba
 
 export const vc_highlightOPEDChaptersAtom = atomWithStorage("sea-video-core-highlight-op-ed-chapters", true, undefined, { getOnInit: true })
 export const vc_beautifyImageAtom = atomWithStorage("sea-video-core-increase-saturation", false, undefined, { getOnInit: true })
+/** How the picture fills the player: whole picture, zoomed to fill (crops the edges) or stretched */
+export type VideoCoreFit = "contain" | "cover" | "fill"
+export const vc_videoFitAtom = atomWithStorage<VideoCoreFit>("sea-video-core-video-fit", "contain", undefined, { getOnInit: true })
+/** Sleep timer: pause at this time (ms since epoch) or when the episode ends; null when off. Not kept across app starts. */
+export const vc_sleepTimerAtom = atom<number | "episode" | null>(null)
 export const vc_autoNextAtom = atom(
     (get) => get(mediaCorePreferencesAtom).autoNext,
     (get, set, newValue: boolean | ((prev: boolean) => boolean)) => {

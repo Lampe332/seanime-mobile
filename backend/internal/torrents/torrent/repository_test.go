@@ -297,6 +297,30 @@ func TestSearchCacheTTL(t *testing.T) {
 	require.Equal(t, 30*time.Minute, searchCacheTTL(result, AnimeSearchOptions{Media: finished, Type: AnimeSearchTypeSimple}))
 }
 
+func TestSearchAnimeDoesNotWaitForSlowExtraProviders(t *testing.T) {
+	metadataCache.Clear()
+	previous := extraProviderTimeout
+	extraProviderTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { extraProviderTimeout = previous })
+
+	main := newStubAnimeProvider(hibiketorrent.AnimeProviderSettings{Type: hibiketorrent.AnimeProviderTypeMain})
+	main.searchResults = []*hibiketorrent.AnimeTorrent{{Name: "[Main] Example Show - 01 (1080p).mkv", InfoHash: "main-hash", Seeders: 3}}
+	slow := newStubAnimeProvider(hibiketorrent.AnimeProviderSettings{Type: hibiketorrent.AnimeProviderTypeMain})
+	slow.searchResults = []*hibiketorrent.AnimeTorrent{{Name: "[Slow] Example Show - 01 (1080p).mkv", InfoHash: "slow-hash", Seeders: 9}}
+	slow.delay = time.Second
+
+	repo := newTorrentRepositoryForTests(map[string]*stubAnimeProvider{"main": main, "slow": slow}, testmocks.NewFakeMetadataProviderBuilder().Build())
+	media := testmocks.NewBaseAnimeBuilder(100, "Example Show").WithEpisodes(12).Build()
+
+	start := time.Now()
+	result, err := repo.SearchAnime(context.Background(), AnimeSearchOptions{Provider: "main,slow", Type: AnimeSearchTypeSimple, Media: media, Query: "Example Show"})
+
+	require.NoError(t, err)
+	require.Less(t, time.Since(start), 500*time.Millisecond)
+	require.Len(t, result.Torrents, 1)
+	require.Equal(t, "main-hash", result.Torrents[0].InfoHash)
+}
+
 func TestSearchAnimeSmartSearchesRequestedProviders(t *testing.T) {
 	metadataCache.Clear()
 	// extra providers are only searched when they are explicitly requested
@@ -467,6 +491,8 @@ type stubAnimeProvider struct {
 	smartResults  []*hibiketorrent.AnimeTorrent
 	searchErr     error
 	smartErr      error
+	// how long a search takes
+	delay time.Duration
 
 	mu            sync.Mutex
 	searchCalls   int
@@ -480,6 +506,7 @@ func newStubAnimeProvider(settings hibiketorrent.AnimeProviderSettings) *stubAni
 }
 
 func (s *stubAnimeProvider) Search(opts hibiketorrent.AnimeSearchOptions) ([]*hibiketorrent.AnimeTorrent, error) {
+	time.Sleep(s.delay)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.searchCalls++

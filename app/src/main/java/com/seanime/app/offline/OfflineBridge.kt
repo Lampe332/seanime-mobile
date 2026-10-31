@@ -64,7 +64,7 @@ class OfflineBridge(private val activity: Activity) {
             when (action) {
                 "play" -> if (store.ready(id)) activity.startActivity(Intent(activity, OfflineActivity::class.java).putExtra("downloadId", id))
                 "pause" -> store.pause(id, true)
-                "resume" -> store.pause(id, false)
+                "resume" -> store.retry(id)
                 "remove" -> store.remove(id)
             }
         }

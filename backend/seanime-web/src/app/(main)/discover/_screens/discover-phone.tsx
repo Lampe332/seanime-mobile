@@ -10,7 +10,6 @@ import {
     PhoneCoverCard,
     PhoneEmpty,
     PhoneHeader,
-    PhoneIconLink,
     PhoneLoading,
     PhoneNotice,
     PhoneScreen,
@@ -66,7 +65,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router"
 import { atom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
 import React from "react"
-import { LuCalendarDays, LuSearch } from "react-icons/lu"
+import { useSwap } from "@/lib/motion"
 import "./discover-phone.css"
 
 type Media = AL_BaseAnime | AL_BaseManga
@@ -95,6 +94,8 @@ export function DiscoverPhone() {
     React.useEffect(() => { firstRender.current = false }, [])
     const tab = pickDiscoverTab(firstRender.current ? urlType ?? pageType : pageType, mangaEnabled)
     const schedule = useDiscoverSchedule(tab === "schedule")
+    const panelRef = React.useRef<HTMLDivElement>(null)
+    useSwap(panelRef, tab)
     const { current } = React.useMemo(() => discoverSeasons(new Date()), [])
     useDiscoverScrollMemory(useLocation({ select: location => location.pathname === "/discover" ? location.state?.__TSR_key ?? location.state?.key ?? null : undefined }))
 
@@ -117,19 +118,12 @@ export function DiscoverPhone() {
     const panelHook = { [`data-discover-page-${tab}-container`]: true } as Record<DataHook, boolean>
 
     return <PhoneScreen screen="discover" data-discover-phone="true" data-discover-page-container>
-        <PhoneHeader title={t("Discover", "Entdecken")} facts={facts}>
-            <PhoneIconLink href={tab === "manga" ? "/search?type=manga" : "/search"} data-discover-search
-                label={tab === "manga" ? t("Search manga", "Manga suchen") : t("Search anime", "Anime suchen")}>
-                <LuSearch aria-hidden />
-            </PhoneIconLink>
-            {tab !== "manga" && <PhoneIconLink href="/schedule" label={t("Open calendar", "Kalender öffnen")} data-discover-calendar>
-                <LuCalendarDays aria-hidden />
-            </PhoneIconLink>}
-        </PhoneHeader>
+        {/* No search or calendar buttons: Search sits in the navigation and the calendar is the Schedule tab right below */}
+        <PhoneHeader title={t("Discover", "Entdecken")} facts={facts} />
         <PhoneTabs variant="segment" label={t("What do you want to discover?", "Was möchtest du entdecken?")} tabs={tabs} value={tab} onChange={selectTab}
             controls="pd-panel" data-discover-tabs data-tab-count={tabs.length} data-language={language} data-discover-page-header-tabs-container />
         <PluginWebviewSlot slot="after-discover-screen-header" />
-        <div id="pd-panel" className="pd-panel" role="tabpanel" aria-label={tabs.find(item => item.value === tab)?.label} {...panelHook}>
+        <div ref={panelRef} id="pd-panel" className="pd-panel" role="tabpanel" aria-label={tabs.find(item => item.value === tab)?.label} {...panelHook}>
             {tab === "anime" ? <AnimeTab /> : tab === "schedule" ? <DiscoverPhoneSchedule schedule={schedule} /> : <MangaTab />}
         </div>
     </PhoneScreen>

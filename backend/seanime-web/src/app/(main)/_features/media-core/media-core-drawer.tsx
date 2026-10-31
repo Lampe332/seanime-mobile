@@ -9,6 +9,17 @@ import { Drawer as VaulPrimitive } from "vaul"
 
 const MINI_PLAYER_WIDTH = 300
 
+/** Room for the phone's bottom navigation and gesture bar, so the mini player is never parked under them */
+function phoneBottomInset() {
+    if (window.innerWidth >= 1024) return 0
+    const probe = document.createElement("div")
+    probe.style.cssText = "position:fixed;visibility:hidden;height:calc(var(--sm-nav-h, 0px) + env(safe-area-inset-bottom, 0px))"
+    document.body.appendChild(probe)
+    const height = probe.offsetHeight
+    probe.remove()
+    return height
+}
+
 /* -------------------------------------------------------------------------------------------------
  * Anatomy
  * -----------------------------------------------------------------------------------------------*/
@@ -171,7 +182,7 @@ export function MediaCoreDrawer(props: DrawerProps) {
         const height = width * (9 / 16)
 
         const rightBoundary = window.innerWidth - width - PADDING
-        const bottomBoundary = window.innerHeight - height - PADDING
+        const bottomBoundary = window.innerHeight - height - PADDING - phoneBottomInset()
 
         return { x: rightBoundary, y: bottomBoundary }
     }, [])
@@ -191,10 +202,11 @@ export function MediaCoreDrawer(props: DrawerProps) {
         const height = contentRef.current.offsetHeight || 0
 
         return {
-            leftBoundary: 80 + PADDING,
+            // Phones and tablets have no side bar on the left
+            leftBoundary: (window.innerWidth >= 1024 ? 80 : 0) + PADDING,
             rightBoundary: window.innerWidth - width - PADDING,
             topBoundary: PADDING,
-            bottomBoundary: window.innerHeight - height - PADDING,
+            bottomBoundary: window.innerHeight - height - PADDING - phoneBottomInset(),
             width,
             height,
         }
@@ -217,13 +229,13 @@ export function MediaCoreDrawer(props: DrawerProps) {
     React.useEffect(() => {
         if (!miniPlayer || !contentRef.current) return
 
-        const handleMouseDown = (e: MouseEvent) => {
+        const handleMouseDown = (e: PointerEvent) => {
             setIsDragging(true)
             dragStartPos.current = { x: e.clientX, y: e.clientY }
             elementStartPos.current = { x: position.x, y: position.y }
         }
 
-        const handleMouseMove = (e: MouseEvent) => {
+        const handleMouseMove = (e: PointerEvent) => {
             if (!isDragging || !contentRef.current) return
 
             const deltaX = e.clientX - dragStartPos.current.x
@@ -254,7 +266,8 @@ export function MediaCoreDrawer(props: DrawerProps) {
             setPosition({ x: boundedX, y: boundedY })
         }
 
-        const handleMouseUp = (e: MouseEvent) => {
+        const handleMouseUp = (e: PointerEvent) => {
+            if (!isDragging) return
             setIsDragging(false)
 
             if (isHidden) {
@@ -305,14 +318,18 @@ export function MediaCoreDrawer(props: DrawerProps) {
             setPosition({ x: nearestCorner.x, y: nearestCorner.y })
         }
 
-        draggableAreaRef.current?.addEventListener("mousedown", handleMouseDown)
-        window.addEventListener("mousemove", handleMouseMove)
-        window.addEventListener("mouseup", handleMouseUp)
+        // Pointer events: mouse and finger alike
+        const area = draggableAreaRef.current
+        area?.addEventListener("pointerdown", handleMouseDown)
+        window.addEventListener("pointermove", handleMouseMove)
+        window.addEventListener("pointerup", handleMouseUp)
+        window.addEventListener("pointercancel", handleMouseUp)
 
         return () => {
-            draggableAreaRef.current?.removeEventListener("mousedown", handleMouseDown)
-            window.removeEventListener("mousemove", handleMouseMove)
-            window.removeEventListener("mouseup", handleMouseUp)
+            area?.removeEventListener("pointerdown", handleMouseDown)
+            window.removeEventListener("pointermove", handleMouseMove)
+            window.removeEventListener("pointerup", handleMouseUp)
+            window.removeEventListener("pointercancel", handleMouseUp)
         }
     }, [miniPlayer, isDragging, position, calculateBoundaries, isHidden])
 
@@ -505,7 +522,7 @@ export function MediaCoreDrawer(props: DrawerProps) {
                     {miniPlayer && <div
                         ref={draggableAreaRef}
                         data-vc-element="drawer-miniplayer-draggable-area"
-                        className="vc-drawer-draggable-area absolute inset-0 z-[6]"
+                        className="vc-drawer-draggable-area absolute inset-0 z-[6] touch-none"
                     />}
 
                     {children}

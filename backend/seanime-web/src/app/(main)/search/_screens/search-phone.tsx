@@ -53,6 +53,7 @@ import { SeaLink } from "@/components/shared/sea-link"
 import { ContextMenuItem } from "@/components/ui/context-menu"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Translate, useTr } from "@/lib/app-language"
+import { TabletLabel } from "@/lib/tablet-ui"
 import { useSearchParams } from "@/lib/navigation"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useInfiniteQuery } from "@tanstack/react-query"
@@ -60,6 +61,7 @@ import { ParsedLocation, useLocation, useRouter } from "@tanstack/react-router"
 import { atom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
 import React from "react"
+import { useSwap } from "@/lib/motion"
 import { LuArrowUp, LuFolderTree, LuLibrary, LuListPlus, LuLoaderCircle, LuSlidersHorizontal, LuStar, LuX } from "react-icons/lu"
 import "./search-phone.css"
 
@@ -297,15 +299,17 @@ export function SearchPhone() {
             <PhoneIconButton ref={filterButtonRef} onClick={() => onSheetChange(true)} dot={chips.length > 0} data-search-filter-button
                 label={chips.length ? `${t("Filters", "Filter")}, ${chips.length} ${t("active", "aktiv")}` : t("Filters", "Filter")}>
                 <LuSlidersHorizontal aria-hidden />
+                <TabletLabel>{t("Filter", "Filter")}</TabletLabel>
             </PhoneIconButton>
         </PhoneHeader>
 
         <div ref={controlsRef} className="pq-controls">
-            <PhoneSearchField t={t} value={input} onChange={onInput} onSubmit={() => commitTitle(input)} inputRef={inputRef} data-search-field
-                placeholder={state.type === "anime" ? t("Search anime", "Anime suchen") : t("Search manga", "Manga suchen")} />
+            {/* Anime / manga first, then the field, as on My lists */}
             <PhoneTabs variant="segment" label={t("Search in", "Suchen in")} value={state.type} data-search-type-tabs
                 tabs={[{ value: "anime", label: "Anime" }, { value: "manga", label: "Manga" }]}
                 onChange={type => update(current => switchSearchType(current, type as SearchType))} />
+            <PhoneSearchField t={t} value={input} onChange={onInput} onSubmit={() => commitTitle(input)} inputRef={inputRef} data-search-field
+                placeholder={state.type === "anime" ? t("Search anime", "Anime suchen") : t("Search manga", "Manga suchen")} />
             <SearchChips variant="row" label={t("Sort by", "Sortieren nach")} selected={[state.sort]} data-search-sort
                 chips={searchSorts(state.type).map(sort => ({ value: sort.value, label: t(sort.en, sort.de) }))}
                 onSelect={sort => update(current => ({ ...current, sort: sort as SearchSort }))} />
@@ -461,7 +465,11 @@ const Results = React.memo(function Results({ items, type, stale }: { items: (AL
     const keep = useKeepNear()
     const windowed = !!keep && items.length > WINDOW_FROM
 
-    return <div className="ps-grid pq-grid" aria-busy={stale || undefined}>
+    // New results rise in where the dimmed old ones were; more of the same list (scrolling on) does not move the grid
+    const gridRef = React.useRef<HTMLDivElement>(null)
+    useSwap(gridRef, stale ? null : items[0]?.id, !stale)
+
+    return <div ref={gridRef} className="ps-grid pq-grid" aria-busy={stale || undefined}>
         {items.map(media => {
             const libraryData = type === "anime" ? libraryEntries.get(media.id)?.libraryData : undefined
             const listData = type === "anime" ? animeListData[String(media.id)] ?? libraryEntries.get(media.id)?.listData : mangaEntries.get(media.id)?.listData

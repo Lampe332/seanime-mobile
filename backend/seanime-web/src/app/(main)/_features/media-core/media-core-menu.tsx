@@ -6,6 +6,8 @@ import React, { useRef } from "react"
 import { AiFillInfoCircle } from "react-icons/ai"
 import { LuCheck, LuChevronLeft, LuChevronRight } from "react-icons/lu"
 import { MediaCoreSelectOption } from "./media-core.types"
+import { menuText } from "./media-core-texts"
+import { useTr } from "@/lib/app-language"
 
 export interface MediaCoreMenuProps {
     name: string
@@ -163,12 +165,15 @@ export interface MediaCoreMenuOptionProps {
     icon: React.ElementType
     children?: React.ReactNode
     onClick?: () => void
+    /** Section the back row returns to, for a page opened from another page; the first page by default. */
+    backTo?: string
     openSection: string | null
     onOpenSectionChange: (section: string | null) => void
 }
 
 export function MediaCoreMenuOption(props: MediaCoreMenuOptionProps) {
-    const { children, title, label = title, icon: Icon, onClick, value, openSection, onOpenSectionChange } = props
+    const { children, title, label = title, icon: Icon, onClick, value, backTo, openSection, onOpenSectionChange } = props
+    const t = useTr()
 
     function handleClick() {
         if (onClick) {
@@ -191,11 +196,11 @@ export function MediaCoreMenuOption(props: MediaCoreMenuOptionProps) {
                         <Icon className="text-xl" />
                     </span>
                     <span className="w-full flex flex-1 text-sm font-medium">
-                        {label}
+                        {menuText(label, t)}
                     </span>
                     {value && (
                         <span className="text-sm font-medium tracking-wide text-[--muted] mr-2">
-                            {value}
+                            {menuText(value, t)}
                         </span>
                     )}
                     <LuChevronRight className="text-lg" />
@@ -208,13 +213,13 @@ export function MediaCoreMenuOption(props: MediaCoreMenuOptionProps) {
                         data-vc-element="menu-section-close"
                         role="button"
                         className="w-full pb-2 h-10 mb-2 flex items-center justify-between rounded-lg transition-colors border-b"
-                        onClick={() => onOpenSectionChange(null)}
+                        onClick={() => onOpenSectionChange(backTo ?? null)}
                     >
                         <span className="w-8 flex justify-start items-center h-full">
                             <LuChevronLeft className="text-lg" />
                         </span>
                         <span className="w-full flex flex-1 text-sm font-medium">
-                            {label}
+                            {menuText(label, t)}
                         </span>
                     </button>
 
@@ -249,6 +254,7 @@ export function MediaCoreMenuSubOption(props: MediaCoreMenuSubOptionProps) {
         openSubSection,
         onOpenSubSectionChange,
     } = props
+    const t = useTr()
 
     const itemId = `${parentId}::${title}`
 
@@ -273,11 +279,11 @@ export function MediaCoreMenuSubOption(props: MediaCoreMenuSubOptionProps) {
                         <Icon className="text-xl" />
                     </span>
                     <span className="w-full flex flex-1 text-sm font-medium">
-                        {title}
+                        {menuText(title, t)}
                     </span>
                     {value && (
                         <span className="text-sm font-medium tracking-wide text-[--muted] mr-2">
-                            {value}
+                            {menuText(value, t)}
                         </span>
                     )}
                     <LuChevronRight className="text-lg" />
@@ -296,7 +302,7 @@ export function MediaCoreMenuSubOption(props: MediaCoreMenuSubOptionProps) {
                             <LuChevronLeft className="text-lg" />
                         </span>
                         <span className="w-full flex flex-1 text-sm font-medium">
-                            {title}
+                            {menuText(title, t)}
                         </span>
                     </button>
 
@@ -317,6 +323,7 @@ export interface MediaCoreSettingSelectProps {
 
 export function MediaCoreSettingSelect(props: MediaCoreSettingSelectProps) {
     const { options, value, onValueChange, isFullscreen, containerElement } = props
+    const t = useTr()
     return (
         <div className="block" data-vc-element="setting-select">
             {options.map(option => (
@@ -334,7 +341,7 @@ export function MediaCoreSettingSelect(props: MediaCoreSettingSelectProps) {
                     </span>
                     <div data-vc-element="setting-select-option-body" className="flex-wrap flex flex-1 gap-2 items-center">
                         <span data-vc-element="setting-select-option-label" className="w-fit flex-none text-sm font-medium line-clamp-2">
-                            {option.label}
+                            {menuText(option.label, t)}
                         </span>
                         <span className="flex-1" data-vc-element="setting-select-option-separator"></span>
                         {(option.moreInfo || option.description) && (

@@ -2,7 +2,6 @@ package com.seanime.app.offline
 
 import com.seanime.app.AppLanguage.tr
 import android.content.Context
-import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -88,8 +87,8 @@ class EpisodeBatchQueue private constructor(private val context: Context) {
             try {
                 while (true) {
                     val job = snapshot().firstOrNull { it.optString("status") == "queued" } ?: break
-                    @Suppress("DEPRECATION")
-                    val online = (context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager).activeNetworkInfo?.isConnected == true
+                    // also waits for Wi-Fi when downloads are limited to it: resolved source links expire
+                    val online = EpisodeDownloads.networkAllowed(context)
                     val store = EpisodeDownloads.get(context)
                     val active = store.all().count { !it.request.id.contains(":sub:") && it.state in listOf(Download.STATE_QUEUED, Download.STATE_DOWNLOADING) }
                     if (!online || active >= 2) { Thread.sleep(1500); continue }
@@ -156,8 +155,8 @@ class EpisodeBatchQueue private constructor(private val context: Context) {
             val raw = sub.optString("url")
             if (!EpisodeDownloads.validUri(raw)) continue
             val ext = Uri.parse(raw).path.orEmpty().lowercase()
-            subs.put(JSONObject().put("url", url(raw)).put("language", sub.optString("language", "de"))
-                .put("label", sub.optString("language", tr("Subtitles", "Untertitel"))).put("default", sub.optBoolean("isDefault"))
+            subs.put(JSONObject().put("url", url(raw)).put("language", sub.optString("language"))
+                .put("label", sub.optString("language").ifBlank { tr("Subtitles", "Untertitel") }).put("default", sub.optBoolean("isDefault"))
                 .put("mime", when { ext.endsWith(".ass") || ext.endsWith(".ssa") -> "text/x-ssa"; ext.endsWith(".srt") -> "application/x-subrip"; else -> "text/vtt" }))
         }
         return JSONObject(job.toString()).put("url", url(source.getString("url")))

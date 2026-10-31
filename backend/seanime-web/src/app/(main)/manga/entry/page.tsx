@@ -1,6 +1,7 @@
 import { useGetMangaEntry, useGetMangaEntryDetails } from "@/api/hooks/manga.hooks"
 import { MediaEntryCharactersSection } from "@/app/(main)/_features/media/_components/media-entry-characters-section"
 import { MediaEntryPageLoadingDisplay } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
+import { MediaEntryLoadError } from "@/app/(main)/_features/media/_components/media-entry-load-error"
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
 import { MangaRecommendations } from "@/app/(main)/manga/_components/manga-recommendations"
 import { MetaSection } from "@/app/(main)/manga/_components/meta-section"
@@ -17,7 +18,7 @@ export default function Page() {
     const pathname = usePathname()
     const searchParams = useSearchParams()
     const mediaId = pathname.startsWith("/manga/entry") ? searchParams.get("id") : null
-    const { data: mangaEntry, isLoading: mangaEntryLoading } = useGetMangaEntry(mediaId)
+    const { data: mangaEntry, isLoading: mangaEntryLoading, isError: mangaEntryFailed, error: mangaEntryError, refetch: retryMangaEntry, isFetching: mangaEntryFetching } = useGetMangaEntry(mediaId)
     const { data: mangaDetails, isLoading: mangaDetailsLoading } = useGetMangaEntryDetails(mediaId)
 
     /**
@@ -29,10 +30,10 @@ export default function Page() {
         if (!pathname.startsWith("/manga/entry")) return
         if (!mediaId) {
             router.push("/")
-        } else if ((!mangaEntryLoading && !mangaEntry)) {
+        } else if (!mangaEntryLoading && !mangaEntry && !mangaEntryFailed) {
             router.push("/")
         }
-    }, [mangaEntry, pathname, mangaEntryLoading])
+    }, [mangaEntry, pathname, mangaEntryLoading, mangaEntryFailed])
 
     React.useEffect(() => {
         try {
@@ -44,6 +45,7 @@ export default function Page() {
         }
     }, [mangaEntry])
 
+    if (!mangaEntry && mangaEntryFailed) return <MediaEntryLoadError error={mangaEntryError} onRetry={() => retryMangaEntry()} retrying={mangaEntryFetching} />
     if (!mangaEntry || mangaEntryLoading) return <MediaEntryPageLoadingDisplay />
 
     return (

@@ -23,9 +23,12 @@ import {
     vc_autoPlayVideoAtom,
     vc_autoSkipOPEDAtom,
     vc_beautifyImageAtom,
+    vc_videoFitAtom,
+    VideoCoreFit,
     vc_highlightOPEDChaptersAtom,
     vc_initialSettings,
     vc_settings,
+    vc_sleepTimerAtom,
     vc_storedPlaybackRateAtom,
     vc_storedVolumeBoostAtom,
     vc_useLibassRendererAtom,
@@ -56,7 +59,10 @@ import {
     LuLink,
     LuPaintbrush,
     LuPalette,
+    LuRatio,
     LuSettings,
+    LuSlidersHorizontal,
+    LuTimer,
     LuTvMinimalPlay,
     LuVolume2,
 } from "react-icons/lu"
@@ -213,12 +219,14 @@ export function VideoCoreSettingsMenu() {
     const playbackRate = useAtomValue(vc_playbackRate)
     const setPlaybackRate = useSetAtom(vc_storedPlaybackRateAtom)
     const [volumeBoost, setVolumeBoost] = useAtom(vc_storedVolumeBoostAtom)
+    const [sleepTimer, setSleepTimer] = useAtom(vc_sleepTimerAtom)
     const isFullscreen = useAtomValue(vc_isFullscreen)
     const subtitleManager = useAtomValue(vc_subtitleManager)
     const mediaCaptionsManager = useAtomValue(vc_mediaCaptionsManager)
 
     const [highlightOPEDChapters, setHighlightOPEDChapters] = useAtom(vc_highlightOPEDChaptersAtom)
     const [beautifyImage, setBeautifyImage] = useAtom(vc_beautifyImageAtom)
+    const [videoFit, setVideoFit] = useAtom(vc_videoFitAtom)
     const [autoNext, setAutoNext] = useAtom(vc_autoNextAtom)
     const [autoPlay, setAutoPlay] = useAtom(vc_autoPlayVideoAtom)
     const [autoSkipOPED, setAutoSkipOPED] = useAtom(vc_autoSkipOPEDAtom)
@@ -333,12 +341,12 @@ export function VideoCoreSettingsMenu() {
         setSettings(newSettings)
         subtitleManager?.updateSettings(newSettings)
         mediaCaptionsManager?.updateSettings(newSettings)
-        setOpenMenuSection(null)
+        setOpenMenuSection(ADVANCED)
     }
 
     const handleSkipPatternsChange = (patterns: string): void => {
         setPreferences(current => ({ ...current, skipPatterns: patterns.trim() }))
-        setOpenMenuSection(null)
+        setOpenMenuSection(ADVANCED)
     }
 
     // Subtitle translation lives in the server settings; empty values fall back to these defaults.
@@ -408,13 +416,12 @@ export function VideoCoreSettingsMenu() {
                         setOpenMenuSubSection(null)
                     } else if (openMenuSection) {
                         e.preventDefault()
-                        setOpenMenuSection(null)
+                        setOpenMenuSection(ADVANCED_PAGES.includes(openMenuSection) ? ADVANCED : null)
                     }
                 }}
                 trigger={<VideoCoreControlButtonIcon
                     icons={[["default", LuSettings]]}
                     state="default"
-                    className="text-xl"
                     onClick={() => {}}
                 />}
             >
@@ -423,7 +430,9 @@ export function VideoCoreSettingsMenu() {
                         t={t}
                         open={setOpenMenuSection}
                         playbackRate={playbackRate}
+                        videoFit={videoFitLabel(videoFit, t)}
                         volumeBoost={volumeBoost}
+                        sleepTimer={sleepTimerSummary(sleepTimer, t)}
                         autoPlay={autoPlay}
                         setAutoPlay={setAutoPlay}
                         autoNext={autoNext}
@@ -436,12 +445,19 @@ export function VideoCoreSettingsMenu() {
                         captionStyles={!!mediaCaptionsManager}
                         useLibassRenderer={isWebPlayer ? useLibassRenderer : null}
                         setUseLibassRenderer={setUseLibassRenderer}
-                        subtitleBlacklist={settings.preferredSubtitleBlacklist}
-                        translation={!mediaPlayerSettings ? null : translateEnabled ? translateLanguageLabel(translateTarget) : t("Off", "Aus")}
-                        skipPatterns={preferences.skipPatterns}
                     />
                 </VideoCoreMenuSectionBody>
                 <VideoCoreMenuSubmenuBody>
+                    <VideoCoreMenuOption title={ADVANCED} label={t("Advanced", "Erweitert")} icon={LuSlidersHorizontal}>
+                        <div className="vc-phone-group-rows" data-vc-phone-settings="advanced">
+                            <PhoneLinkRow icon={TbArrowForwardUp} label={t("Skip patterns", "Skip-Muster")} value={phoneListSummary(preferences.skipPatterns, t)}
+                                onClick={() => setOpenMenuSection("Skip Patterns")} />
+                            <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Subtitle blacklist", "Untertitel-Blacklist")}
+                                value={phoneListSummary(settings.preferredSubtitleBlacklist, t)} onClick={() => setOpenMenuSection("Subtitle Blacklist")} />
+                            {mediaPlayerSettings && <PhoneLinkRow icon={MdTranslate} label={t("Translate subtitles", "Untertitel übersetzen")}
+                                value={translateEnabled ? translateLanguageLabel(translateTarget) : t("Off", "Aus")} onClick={() => setOpenMenuSection("Subtitle Translation")} />}
+                        </div>
+                    </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Subtitle Styles" label={t("Subtitle styles", "Untertitel-Stil")} icon={MdOutlineSubtitles}>
                         <p className="text-sm text-[--muted] mb-2">Subtitle customization will not override ASS/SSA tracks that contain multiple
                                                                    styles.</p>
@@ -454,7 +470,7 @@ export function VideoCoreSettingsMenu() {
                             value={editedSubCustomization.enabled ? 1 : 0}
                         />
                         {editedSubCustomization.enabled && <>
-                            <p className="text-[--muted] text-sm my-2">Options</p>
+                            <p className="text-[--muted] text-sm my-2">{t("Options", "Optionen")}</p>
                             <VideoCoreMenuSubOption
                                 title="Font Size"
                                 icon={VscTextSize}
@@ -486,7 +502,7 @@ export function VideoCoreSettingsMenu() {
                     <VideoCoreMenuOption title="Caption Styles" label={t("Caption styles", "Stil der Bildunterschriften")} icon={MdOutlineSubtitles}>
                         <p className="text-sm text-[--muted] mb-2">This only applies to non-ASS subtitles.</p>
                         {/*    ]}*/}
-                        <p className="text-[--muted] text-sm my-2">Options</p>
+                        <p className="text-[--muted] text-sm my-2">{t("Options", "Optionen")}</p>
                         <VideoCoreMenuSubOption
                             title="Font Size"
                             icon={VscTextSize}
@@ -569,6 +585,13 @@ export function VideoCoreSettingsMenu() {
                             value={[-2.0, -1.0, -0.5, 0, 0.5, 1.0, 2.0].includes(editedSubtitleDelay) ? editedSubtitleDelay : null}
                         />
                     </VideoCoreMenuOption>
+                    <VideoCoreMenuOption title="Picture Fit" label={t("Picture", "Bildformat")} icon={LuRatio}>
+                        <VideoCoreSettingSelect
+                            options={(["contain", "cover", "fill"] as const).map(fit => ({ label: videoFitLabel(fit, t), value: fit }))}
+                            onValueChange={(v: VideoCoreFit) => setVideoFit(v)}
+                            value={videoFit}
+                        />
+                    </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Playback Speed" label={t("Playback speed", "Geschwindigkeit")} icon={MdSpeed}>
                         <p className="text-center font-semibold mt-2 select-none">
                             {(playbackRate).toFixed(2)}x
@@ -578,14 +601,14 @@ export function VideoCoreSettingsMenu() {
                                 className="px-1 pl-4 pr-4 !text-xs flex-1"
                                 intent="gray-subtle"
                                 size="sm"
-                                aria-label="Decrease playback speed"
+                                aria-label={t("Decrease playback speed", "Langsamer")}
                                 disabled={playbackRate <= 0.25}
                                 onClick={() => setPlaybackRate(Math.max(0.25, Math.round((playbackRate - 0.05) * 100) / 100))}
                             >
                                 -
                             </Button>
                             <Slider
-                                aria-label="Playback speed"
+                                aria-label={t("Playback speed", "Geschwindigkeit")}
                                 value={[playbackRate]}
                                 defaultValue={[1]}
                                 min={0.25}
@@ -597,7 +620,7 @@ export function VideoCoreSettingsMenu() {
                                 className="px-1 pl-4 pr-4 !text-xs flex-1"
                                 intent="gray-subtle"
                                 size="sm"
-                                aria-label="Increase playback speed"
+                                aria-label={t("Increase playback speed", "Schneller")}
                                 disabled={playbackRate >= 2}
                                 onClick={() => setPlaybackRate(Math.min(2, Math.round((playbackRate + 0.05) * 100) / 100))}
                             >
@@ -656,6 +679,18 @@ export function VideoCoreSettingsMenu() {
                             value={VOLUME_BOOST_OPTIONS.some(o => o.value === volumeBoost) ? volumeBoost : null}
                         />
                     </VideoCoreMenuOption>
+                    <VideoCoreMenuOption title="Sleep Timer" label={t("Sleep timer", "Sleep-Timer")} icon={LuTimer}>
+                        <p className="text-sm text-[--muted] mb-2">{t("Pauses playback after the chosen time.", "Pausiert die Wiedergabe nach der gewählten Zeit.")}</p>
+                        <VideoCoreSettingSelect
+                            options={[
+                                { label: t("Off", "Aus"), value: 0 },
+                                ...SLEEP_TIMER_MINUTES.map(minutes => ({ label: `${minutes} min`, value: minutes })),
+                                { label: t("End of episode", "Ende der Folge"), value: -1 },
+                            ]}
+                            onValueChange={(v: number) => setSleepTimer(v === 0 ? null : v === -1 ? "episode" : Date.now() + v * 60_000)}
+                            value={sleepTimer === null ? 0 : sleepTimer === "episode" ? -1 : null}
+                        />
+                    </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Default Languages" label={t("Languages", "Sprachen")} icon={MdOutlineSubtitles}>
                         <p className="text-sm text-[--muted] mb-2">{t("Chosen automatically when an episode starts and the stream offers it.",
                             "Wird beim Start einer Folge automatisch gewählt, wenn der Stream sie anbietet.")}</p>
@@ -672,7 +707,7 @@ export function VideoCoreSettingsMenu() {
                             value={settings.preferredAudioLanguage}
                         />
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Subtitle Blacklist" label={t("Subtitle blacklist", "Untertitel-Blacklist")} icon={MdOutlineSubtitles}>
+                    <VideoCoreMenuOption title="Subtitle Blacklist" label={t("Subtitle blacklist", "Untertitel-Blacklist")} icon={MdOutlineSubtitles} backTo={ADVANCED}>
                         <PhoneTextEditor
                             t={t}
                             label={t("Subtitle blacklist", "Untertitel-Blacklist")}
@@ -681,10 +716,10 @@ export function VideoCoreSettingsMenu() {
                             placeholder="signs & songs,signs/songs"
                             value={settings.preferredSubtitleBlacklist}
                             onApply={handleSubtitleBlacklistChange}
-                            onCancel={() => setOpenMenuSection(null)}
+                            onCancel={() => setOpenMenuSection(ADVANCED)}
                         />
                     </VideoCoreMenuOption>
-                    <VideoCoreMenuOption title="Skip Patterns" label={t("Skip patterns", "Skip-Muster")} icon={TbArrowForwardUp}>
+                    <VideoCoreMenuOption title="Skip Patterns" label={t("Skip patterns", "Skip-Muster")} icon={TbArrowForwardUp} backTo={ADVANCED}>
                         <PhoneTextEditor
                             t={t}
                             label={t("Skip patterns", "Skip-Muster")}
@@ -694,13 +729,14 @@ export function VideoCoreSettingsMenu() {
                             value={preferences.skipPatterns}
                             validate={getSkipPatternError}
                             onApply={handleSkipPatternsChange}
-                            onCancel={() => setOpenMenuSection(null)}
+                            onCancel={() => setOpenMenuSection(ADVANCED)}
                         />
                     </VideoCoreMenuOption>
                     {mediaPlayerSettings && <VideoCoreMenuOption
                         title="Subtitle Translation"
                         label={t("Translate subtitles", "Untertitel übersetzen")}
                         icon={MdTranslate}
+                        backTo={ADVANCED}
                     >
                         <p className="mb-2">{t("Automatically translates subtitle tracks into the chosen language.",
                             "Übersetzt Untertitelspuren automatisch in die gewählte Sprache.")}</p>
@@ -998,6 +1034,7 @@ type PhoneSettingsHomeProps = {
     open: (section: string) => void
     playbackRate: number
     volumeBoost: number
+    sleepTimer: string
     autoPlay: boolean
     setAutoPlay: (value: boolean) => void
     autoNext: boolean
@@ -1012,10 +1049,28 @@ type PhoneSettingsHomeProps = {
     /** null on the native player, which does not use the setting. */
     useLibassRenderer: boolean | null
     setUseLibassRenderer: (value: boolean) => void
-    subtitleBlacklist: string
-    skipPatterns: string
-    /** Target language or Off; null without server settings. */
-    translation: string | null
+    videoFit: string
+}
+
+/** Fit keeps the whole picture, zoom fills a wide phone screen by cropping the edges, stretch distorts it */
+function videoFitLabel(fit: VideoCoreFit, t: Translate) {
+    if (fit === "cover") return t("Zoom to fill", "Zoomen (füllen)")
+    if (fit === "fill") return t("Stretch", "Strecken")
+    return t("Fit", "Anpassen")
+}
+
+const SLEEP_TIMER_MINUTES = [15, 30, 45, 60, 90]
+
+/** The Advanced page: rarely needed settings (patterns, a blacklist, a translation service), kept off the first page. */
+const ADVANCED = "Advanced"
+const ADVANCED_PAGES = ["Skip Patterns", "Subtitle Blacklist", "Subtitle Translation"]
+
+/** "Off", "End of episode" or the minutes left */
+function sleepTimerSummary(timer: number | "episode" | null, t: Translate) {
+    if (timer === null) return t("Off", "Aus")
+    if (timer === "episode") return t("End of episode", "Ende der Folge")
+    const minutes = Math.max(Math.ceil((timer - Date.now()) / 60_000), 1)
+    return t(`${minutes} min left`, `noch ${minutes} min`)
 }
 
 /** Short summary of a comma-separated list: how many entries it holds. */
@@ -1033,11 +1088,12 @@ function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
             <div className="vc-phone-groups">
                 <PhoneGroup title={t("Playback", "Wiedergabe")}>
                     <PhoneLinkRow icon={MdSpeed} label={t("Speed", "Geschwindigkeit")} value={`${props.playbackRate.toFixed(2)}x`} onClick={() => open("Playback Speed")} />
+                    <PhoneLinkRow icon={LuRatio} label={t("Picture", "Bildformat")} value={props.videoFit} onClick={() => open("Picture Fit")} />
                     <PhoneSwitchRow icon={IoCaretForwardCircleOutline} label={t("Auto play", "Automatisch abspielen")} checked={props.autoPlay} onChange={props.setAutoPlay} />
                     <PhoneSwitchRow icon={HiFastForward} label={t("Auto next", "Nächste Folge automatisch")} checked={props.autoNext} onChange={props.setAutoNext} />
                     <PhoneSwitchRow icon={TbArrowForwardUp} label={t("Skip OP/ED", "OP/ED überspringen")} checked={props.autoSkipOPED} onChange={props.setAutoSkipOPED} />
-                    <PhoneLinkRow icon={TbArrowForwardUp} label={t("Skip patterns", "Skip-Muster")} value={phoneListSummary(props.skipPatterns, t)} onClick={() => open("Skip Patterns")} />
                     <PhoneLinkRow icon={LuVolume2} label={t("Volume boost", "Lautstärke-Boost")} value={formatVolumeBoost(props.volumeBoost)} onClick={() => open("Volume Boost")} />
+                    <PhoneLinkRow icon={LuTimer} label={t("Sleep timer", "Sleep-Timer")} value={props.sleepTimer} onClick={() => open("Sleep Timer")} />
                 </PhoneGroup>
                 <PhoneGroup title={t("Language & subtitles", "Sprache & Untertitel")}>
                     <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Languages", "Sprachen")} value={props.languages} onClick={() => open("Default Languages")} />
@@ -1049,18 +1105,6 @@ function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
                     />}
                     {props.subtitleStyles !== null && <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Style", "Stil")} value={props.subtitleStyles} onClick={() => open("Subtitle Styles")} />}
                     {props.captionStyles && <PhoneLinkRow icon={MdOutlineSubtitles} label={t("Caption style", "Stil der Bildunterschriften")} onClick={() => open("Caption Styles")} />}
-                    <PhoneLinkRow
-                        icon={MdOutlineSubtitles}
-                        label={t("Subtitle blacklist", "Untertitel-Blacklist")}
-                        value={phoneListSummary(props.subtitleBlacklist, t)}
-                        onClick={() => open("Subtitle Blacklist")}
-                    />
-                    {props.translation !== null && <PhoneLinkRow
-                        icon={MdTranslate}
-                        label={t("Translate subtitles", "Untertitel übersetzen")}
-                        value={props.translation}
-                        onClick={() => open("Subtitle Translation")}
-                    />}
                 </PhoneGroup>
                 <PhoneGroup title={t("Display", "Darstellung")}>
                     <PhoneLinkRow icon={LuTvMinimalPlay} label={t("Player appearance", "Player-Darstellung")} onClick={() => open("Player Appearance")} />
@@ -1071,6 +1115,8 @@ function PhoneSettingsHome(props: PhoneSettingsHomeProps) {
                         checked={props.useLibassRenderer}
                         onChange={props.setUseLibassRenderer}
                     />}
+                    {/* Skip patterns, subtitle blacklist and translation: rarely needed, on their own page */}
+                    <PhoneLinkRow icon={LuSlidersHorizontal} label={t("Advanced", "Erweitert")} onClick={() => open(ADVANCED)} />
                 </PhoneGroup>
             </div>
         </div>

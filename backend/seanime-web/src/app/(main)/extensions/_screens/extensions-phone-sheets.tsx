@@ -21,7 +21,7 @@ import {
     sortExtensions,
 } from "@/app/(main)/extensions/_lib/extensions-phone"
 import { Modal } from "@/components/ui/modal"
-import { Translate } from "@/lib/app-language"
+import { Translate, tr } from "@/lib/app-language"
 import { openTab } from "@/lib/helpers/browser"
 import { useRouter } from "@/lib/navigation"
 import capitalize from "lodash/capitalize"
@@ -68,7 +68,7 @@ function usePluginPermissionGrant(id: string | undefined) {
     })
 
     function grant() {
-        if (!id) return toast.error("Extension has no ID")
+        if (!id) return toast.error(tr("Extension has no ID", "Die Erweiterung hat keine ID"))
         pendingGrantRef.current = true
         React.startTransition(() => {
             grantPluginPermissions({ id, clientId: "" })

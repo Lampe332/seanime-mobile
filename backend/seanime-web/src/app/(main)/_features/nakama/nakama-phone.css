@@ -1,0 +1,51 @@
+/* Nakama on Android phones and tablets: the sheet's few own parts and the watch party chat, in the --sm-* language of the
+   other sheets (phone-screen.css). */
+
+/* A row that only tells (a connected device, a participant): no press state */
+.nk-static:active { background: var(--sm-surface-raised); }
+.nk-count { margin-left: .5rem; font-size: .875rem; font-weight: 500; color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.nk-me { color: var(--sm-text-muted); font-weight: 400; }
+.nk-buffering { color: var(--sm-danger); }
+.nk-people { margin-top: -.375rem; }
+
+/* Chat button: floats above the bottom bar (on a tablet beside the rail), a dot of the accent with the unread count */
+.nakama-chat-fab {
+    position: fixed; z-index: 40; left: 1rem; bottom: calc(var(--sm-nav-h, 0px) + env(safe-area-inset-bottom, 0px) + 1rem);
+    display: inline-flex; align-items: center; gap: .5rem; min-height: 52px; padding: 0 1.25rem 0 1rem; border-radius: 999px;
+    background: var(--sm-surface-control); color: var(--sm-text); font-size: .9375rem; font-weight: 650;
+    box-shadow: 0 12px 32px rgb(0 0 0 / .5); -webkit-tap-highlight-color: transparent; /* taste-skill-ignore: it floats above the page, like .ps-float */
+}
+.nakama-chat-fab > svg { flex: none; font-size: 1.25rem; }
+.nakama-chat-fab:active { background: var(--sm-line-strong); }
+.nakama-chat-fab:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+.nakama-chat-unread { min-width: 1.375rem; height: 1.375rem; padding: 0 .375rem; border-radius: 999px; background: var(--sm-accent-strong); color: #fff;
+    font-size: .75rem; font-weight: 700; line-height: 1.375rem; text-align: center; font-variant-numeric: tabular-nums; }
+/* An open sheet covers the page; the button waits under it */
+body:has(.UI-Modal__content[data-state="open"]) .nakama-chat-fab { display: none; }
+
+/* Chat sheet: the messages scroll, the field stays at the foot */
+.nk-chat { display: flex; flex-direction: column; height: min(60dvh, 34rem); min-height: 16rem; }
+.nk-chat-messages { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: .5rem; padding-bottom: .75rem; }
+.nk-chat-empty { margin: auto; padding: 1.5rem 1rem; text-align: center; font-size: .9375rem; color: var(--sm-text-muted); }
+.nk-msg { display: grid; gap: .125rem; max-width: 85%; padding: .5rem .875rem .625rem; border-radius: var(--sm-radius) var(--sm-radius) var(--sm-radius) .375rem;
+    background: var(--sm-surface-raised); align-self: flex-start; }
+.nk-msg[data-own="true"] { align-self: flex-end; border-radius: var(--sm-radius) var(--sm-radius) .375rem var(--sm-radius); background: var(--sm-accent-soft); }
+.nk-msg-head { display: flex; align-items: baseline; gap: .5rem; font-size: .8125rem; }
+.nk-msg-head > b { font-weight: 650; color: var(--sm-text); }
+.nk-msg[data-own="true"] .nk-msg-head > b { color: var(--sm-accent); }
+.nk-msg-head > time { color: var(--sm-text-subtle); font-variant-numeric: tabular-nums; }
+.nk-msg > p { font-size: .9375rem; line-height: 1.45; color: var(--sm-text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.nk-chat-form { display: flex; align-items: center; gap: .5rem; padding-top: .25rem; }
+.nk-chat-form input { flex: 1 1 auto; min-width: 0; min-height: 48px; padding: .5rem 1.125rem; border: 0; border-radius: 999px; background: var(--sm-surface-raised);
+    color: var(--sm-text); font-size: 1rem; appearance: none; -webkit-appearance: none; }
+.nk-chat-form input::placeholder { color: var(--sm-text-subtle); }
+.nk-chat-form input:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 0; }
+.nk-chat-form .ps-primary { flex: none; width: 48px; padding: 0; }
+
+@media (min-width: 600px) {
+    html[data-layout="tablet"] .nakama-chat-fab { left: calc(var(--tablet-rail) + 1rem); bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem); }
+}
+/* On a tablet the sheet runs the screen's full height (tablet.css): the chat fills it */
+@media (min-width: 1000px) {
+    html[data-layout="tablet"] .nk-chat { height: calc(100dvh - env(safe-area-inset-top, 0px) - 7rem); }
+}

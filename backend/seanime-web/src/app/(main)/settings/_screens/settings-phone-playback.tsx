@@ -13,8 +13,8 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
     const preset = androidPlayerPresetOf(externalPlayerLink)
 
     return <>
-        <SettingsGroup id="playback-files" title={t("Files on this phone", "Dateien auf diesem Handy")}
-            note={t("How episodes from your local library play. Only on this phone.", "Wie Folgen aus deiner lokalen Bibliothek abspielen. Nur auf diesem Handy.")}>
+        <SettingsGroup id="playback-files" title={t("Files on this device", "Dateien auf diesem Gerät")}
+            note={t("How episodes from your local library play. Only on this device.", "Wie Folgen aus deiner lokalen Bibliothek abspielen. Nur auf diesem Gerät.")}>
             <div role="radiogroup" aria-label={t("Player for files", "Player für Dateien")} className="pst-choice-rows" data-settings-file-player>
                 <ChoiceRow checked={!external} onSelect={() => setDownloadedMediaPlayback(PlaybackDownloadedMedia.Default)} value="builtin"
                     label={t("Built-in player", "Eingebauter Player")}
@@ -31,7 +31,7 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
         </SettingsGroup>
 
         <SettingsGroup id="playback-external" title={t("External player", "Externer Player")}
-            note={t("Used for files when chosen above, and in the episode menu. Only on this phone.", "Für Dateien, wenn oben gewählt, und im Folgenmenü. Nur auf diesem Handy.")}>
+            note={t("Used for files when chosen above, and in the episode menu. Only on this device.", "Für Dateien, wenn oben gewählt, und im Folgenmenü. Nur auf diesem Gerät.")}>
             {external && !externalPlayerLink && <PhoneNotice text={t("Choose a player app first.", "Wähle zuerst eine Player-App.")} data-settings-external-missing />}
             <PhoneChips label={t("Player app", "Player-App")} variant="wrap" showCheck className="pst-chips" data-settings-external-presets
                 chips={ANDROID_PLAYER_PRESETS.map(item => ({ value: item.packageName, label: item.name }))}

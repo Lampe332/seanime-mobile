@@ -35,6 +35,8 @@ const (
 
 var (
 	metadataCache = result.NewBoundedCache[string, *TorrentMetadata](100)
+	// How long extra providers of a multi-provider search may take
+	extraProviderTimeout = 15 * time.Second
 )
 
 type (
@@ -203,14 +205,28 @@ func (r *Repository) searchAnime(ctx context.Context, opts AnimeSearchOptions, f
 		}
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(providers))
 	providerResults := make([][]*hibiketorrent.AnimeTorrent, len(providers))
 	providerErrors := make([]error, len(providers))
+	providerFinished := make([]bool, len(providers))
+	providerDone := make([]chan struct{}, len(providers))
+	// Answers that come after the search moved on are dropped
+	var resultsMu sync.Mutex
+	collected := false
+	finish := func(i int, res []*hibiketorrent.AnimeTorrent, err error) {
+		resultsMu.Lock()
+		defer resultsMu.Unlock()
+		if collected || providerFinished[i] {
+			return
+		}
+		providerResults[i], providerErrors[i], providerFinished[i] = res, err, true
+	}
 	for i, provider := range providers {
+		providerDone[i] = make(chan struct{})
 		go func(i int, provider extension.AnimeTorrentProviderExtension) {
+			defer close(providerDone[i])
+			// a search that ended without an answer (cancelled, unknown type) found nothing
+			defer finish(i, nil, nil)
 			defer util.HandlePanicInModuleThen("torrents/torrent/SearchAnime", func() {})
-			defer wg.Done()
 
 			isMain := i == 0
 			r.logger.Debug().Str("provider", provider.GetID()).Str("type", string(opts.Type)).Str("query", opts.Query).Msg("torrent search: Searching for anime torrents")
@@ -219,7 +235,7 @@ func (r *Repository) searchAnime(ctx context.Context, opts AnimeSearchOptions, f
 			searchType := opts.Type
 			query := opts.Query
 			if isMain && opts.Type == AnimeSearchTypeSmart && !canSmartSearch {
-				providerErrors[i] = fmt.Errorf("provider %s does not support smart search", provider.GetID())
+				finish(i, nil, fmt.Errorf("provider %s does not support smart search", provider.GetID()))
 				return
 			}
 			if !isMain && opts.Type == AnimeSearchTypeSmart && !canSmartSearch {
@@ -248,12 +264,12 @@ func (r *Repository) searchAnime(ctx context.Context, opts AnimeSearchOptions, f
 					BestReleases:  opts.BestReleases,
 				})
 				if err != nil {
-					providerErrors[i] = err
+					finish(i, nil, err)
 					return
 				}
 
 				r.logger.Debug().Str("provider", provider.GetID()).Int("found", len(res)).Msg("torrent search: Found torrents")
-				providerResults[i] = res
+				finish(i, res, nil)
 
 				return
 			case AnimeSearchTypeSimple:
@@ -269,21 +285,50 @@ func (r *Repository) searchAnime(ctx context.Context, opts AnimeSearchOptions, f
 					Query: query,
 				})
 				if err != nil {
-					providerErrors[i] = err
+					finish(i, nil, err)
 					return
 				}
 
 				r.logger.Debug().Str("provider", provider.GetID()).Int("found", len(res)).Msg("torrent search: Found torrents")
-				providerResults[i] = res
+				finish(i, res, nil)
 
 				return
 			}
 
 		}(i, provider)
 	}
-	wg.Wait()
 
-	if providerErrors[0] != nil {
+	// One slow extra provider must not hold up the search: past extraProviderTimeout it goes on with the answers it has.
+	// The main provider (the first) is always waited for.
+	deadline := time.NewTimer(extraProviderTimeout)
+	defer deadline.Stop()
+	<-providerDone[0]
+waitExtras:
+	for i := 1; i < len(providers); i++ {
+		select {
+		case <-providerDone[i]:
+		case <-deadline.C:
+			break waitExtras
+		}
+	}
+	resultsMu.Lock()
+	collected = true
+	for i, ok := range providerFinished {
+		if !ok {
+			providerErrors[i] = fmt.Errorf("provider %s took longer than %s", providers[i].GetID(), extraProviderTimeout)
+		}
+	}
+	resultsMu.Unlock()
+
+	// With several providers, one that fails or times out must not hide the others' results
+	failed := 0
+	for i, err := range providerErrors {
+		if err != nil {
+			failed++
+			r.logger.Warn().Err(err).Str("provider", providers[i].GetID()).Msg("torrent search: Provider failed")
+		}
+	}
+	if failed == len(providers) {
 		return nil, providerErrors[0]
 	}
 
@@ -303,9 +348,7 @@ func (r *Repository) searchAnime(ctx context.Context, opts AnimeSearchOptions, f
 	bestReleases := make([]*hibiketorrent.AnimeTorrent, 0)
 	other := make([]*hibiketorrent.AnimeTorrent, 0)
 	for _, t := range torrents {
-		if t.InfoHash == "" { // make sure it's never empty
-			t.InfoHash = t.Name
-		}
+		t.InfoHash = normalizeInfoHash(t) // never empty
 		if t.IsBestRelease {
 			bestReleases = append(bestReleases, t)
 		} else {
@@ -314,12 +357,11 @@ func (r *Repository) searchAnime(ctx context.Context, opts AnimeSearchOptions, f
 	}
 	torrents = append(bestReleases, other...)
 
-	torrents = lo.UniqBy(torrents, func(t *hibiketorrent.AnimeTorrent) string {
-		return t.InfoHash
-	})
+	torrents = dedupeTorrents(torrents)
 
 	// Parse all torrents
 	torrentMetadata := make(map[string]*TorrentMetadata)
+	wg := sync.WaitGroup{}
 	wg.Add(len(torrents))
 	mu := sync.Mutex{}
 	for _, t := range torrents {

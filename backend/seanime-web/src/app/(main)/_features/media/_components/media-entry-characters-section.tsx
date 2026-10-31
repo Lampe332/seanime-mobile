@@ -4,6 +4,7 @@ import { imageShimmer } from "@/components/shared/image-helpers"
 import { SeaImage } from "@/components/shared/sea-image"
 import { SeaLink } from "@/components/shared/sea-link"
 import { cn } from "@/components/ui/core/styling"
+import { useTr } from "@/lib/app-language"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import React from "react"
 import { BiSolidHeart } from "react-icons/bi"
@@ -15,6 +16,7 @@ type RelationsRecommendationsSectionProps = {
 }
 
 export function MediaEntryCharactersSection(props: RelationsRecommendationsSectionProps) {
+    const t = useTr()
 
     const {
         details,
@@ -35,7 +37,7 @@ export function MediaEntryCharactersSection(props: RelationsRecommendationsSecti
     return (
         <div className="space-y-4 animate-in fade-in-0 duration-200">
 
-            <h2 data-media-entry-characters-section-title>Characters</h2>
+            <h2 data-media-entry-characters-section-title>{t("Characters", "Figuren")}</h2>
 
             <div
                 data-media-entry-characters-section-grid
@@ -77,7 +79,7 @@ export function MediaEntryCharactersSection(props: RelationsRecommendationsSecti
                                 {(edge?.node?.image?.large) && <SeaImage
                                     data-media-entry-characters-section-grid-item-image
                                     src={edge?.node?.image?.large || ""}
-                                    alt="episode image"
+                                    alt={edge?.node?.name?.full || t("Character", "Figur")}
                                     fill
                                     quality={60}
                                     placeholder={imageShimmer(700, 475)}
@@ -99,11 +101,11 @@ export function MediaEntryCharactersSection(props: RelationsRecommendationsSecti
                                 </SeaLink>
 
                                 {edge?.node?.age && <p data-media-entry-characters-section-grid-item-content-age className="text-sm">
-                                    {edge?.node?.age} years old
+                                    {edge?.node?.age} {t("years old", "Jahre alt")}
                                 </p>}
 
                                 <p data-media-entry-characters-section-grid-item-content-role className="text-[--muted] text-xs">
-                                    {edge?.role}
+                                    {edge?.role === "MAIN" ? t("Main", "Hauptfigur") : edge?.role === "SUPPORTING" ? t("Supporting", "Nebenfigur") : edge?.role === "BACKGROUND" ? t("Background", "Hintergrund") : edge?.role}
                                 </p>
 
                                 {edge?.node?.isFavourite && <div data-media-entry-characters-section-grid-item-content-favourite>

@@ -995,12 +995,13 @@ Style: Default, Roboto Medium,24,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0
             Duration: event.duration,
             Style: event.extraData?.style ? this.eventTracks[event.trackNumber]?.styles?.[event.extraData?.style ?? "Default"] : 1,
             Name: event.extraData?.name ?? "",
-            MarginL: event.extraData?.marginL ? Number(event.extraData.marginL) : 0,
-            MarginR: event.extraData?.marginR ? Number(event.extraData.marginR) : 0,
-            MarginV: event.extraData?.marginV ? Number(event.extraData.marginV) : 0,
+            // The server's keys are lowercase (mkvparser ssaKeys); per-event margins position signs and typesetting
+            MarginL: event.extraData?.marginl ? Number(event.extraData.marginl) : 0,
+            MarginR: event.extraData?.marginr ? Number(event.extraData.marginr) : 0,
+            MarginV: event.extraData?.marginv ? Number(event.extraData.marginv) : 0,
             Effect: event.extraData?.effect ?? "",
             Text: event.text,
-            ReadOrder: event.extraData?.readOrder ? Number(event.extraData.readOrder) : 1,
+            ReadOrder: event.extraData?.readorder ? Number(event.extraData.readorder) : 1,
             Layer: event.extraData?.layer ? Number(event.extraData.layer) : 0,
             // index is based on the order of the events in the record
             // _index: index,

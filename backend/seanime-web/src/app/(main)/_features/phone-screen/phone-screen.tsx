@@ -10,6 +10,7 @@ import { ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuTrigger
 import { cn } from "@/components/ui/core/styling"
 import { Modal } from "@/components/ui/modal"
 import { Translate, useTr } from "@/lib/app-language"
+import { useReveal } from "@/lib/motion"
 import { getImageUrl } from "@/lib/server/assets"
 import React from "react"
 import { LuCheck, LuChevronDown, LuChevronRight, LuEye, LuSearch, LuX } from "react-icons/lu"
@@ -458,9 +459,10 @@ export function PhoneFloat({ text, detail, progress, children, ...data }: {
 
 type BoneKind = "head" | "tabs" | "feature" | "row" | "cover-row" | "grid"
 
-/** Loading: the final layout as flat blocks, read out once as "Loading …". */
+/** Loading: the final layout as flat blocks, read out once as "Loading …"; the content that replaces it fades in (useReveal). */
 export function PhoneLoading({ label, layout }: { label: string, layout: BoneKind[] }) {
-    return <div className="ps-loading" aria-busy="true" role="status" aria-label={label}>
+    const ref = useReveal<HTMLDivElement>()
+    return <div ref={ref} className="ps-loading" aria-busy="true" role="status" aria-label={label}>
         {layout.map((kind, index) => kind === "grid"
             ? <div key={index} className="ps-grid">{Array.from({ length: 6 }, (_, i) => <span key={i} className="ps-bone" data-kind="cover" />)}</div>
             : kind === "cover-row"

@@ -1,6 +1,7 @@
 import { cva } from "class-variance-authority"
 import * as React from "react"
-import { Toaster as Sonner } from "sonner"
+import { Toaster as Sonner, useSonner } from "sonner"
+import { haptic } from "@/lib/feedback"
 import { cn, defineStyleAnatomy } from "../core/styling"
 
 /* -------------------------------------------------------------------------------------------------
@@ -95,8 +96,19 @@ function useNoHoverOnTouch() {
     }, [])
 }
 
+/** An error toast gives the app's "reject" haptic once when it appears. */
+function useErrorHaptic() {
+    const { toasts } = useSonner()
+    const seen = React.useRef(new Set<string | number>())
+    React.useEffect(() => {
+        if (toasts.some(toast => toast.type === "error" && !seen.current.has(toast.id))) haptic("reject")
+        seen.current = new Set(toasts.map(toast => toast.id))
+    }, [toasts])
+}
+
 export const Toaster = ({ position = "top-right", ...props }: ToasterProps) => {
     useNoHoverOnTouch()
+    useErrorHaptic()
 
     const allProps = React.useMemo(() => ({
         position,

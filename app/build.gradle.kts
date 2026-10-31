@@ -10,8 +10,8 @@ android {
         applicationId = "com.seanime.app.local"
         minSdk = 21
         targetSdk = 36
-        versionCode = providers.gradleProperty("seanimeBaselineCode").orNull?.toInt() ?: 31125
-        versionName = providers.gradleProperty("seanimeBaselineVersion").orNull ?: "2.0.30"
+        versionCode = providers.gradleProperty("seanimeBaselineCode").orNull?.toInt() ?: 31126
+        versionName = providers.gradleProperty("seanimeBaselineVersion").orNull ?: "2.0.31"
         testInstrumentationRunner = providers.gradleProperty("seanimeAuditRunner").orNull
             ?: "com.seanime.app.audit.OfflineInstrumentation"
         ndk { abiFilters += setOf("arm64-v8a", "armeabi-v7a") }
@@ -61,4 +61,8 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.8.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.8.1")
     implementation("androidx.media3:media3-ui:1.8.1")
+    // FFmpeg audio decoders (AC3, E-AC3, DTS, TrueHD …) for the app's own players; the WebView and many devices have none
+    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1")
+    // Google TV / Chromecast casting with Google's default receiver
+    implementation("com.google.android.gms:play-services-cast-framework:22.1.0")
 }

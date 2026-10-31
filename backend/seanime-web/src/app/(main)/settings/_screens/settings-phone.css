@@ -30,7 +30,6 @@
 .pst-row-text { flex: 1 1 auto; display: grid; gap: .125rem; min-width: 0; }
 .pst-row-text small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
 .pst-row-value { flex: 0 1 auto; max-width: 55%; min-width: 0; font-size: .875rem; color: var(--sm-text-muted); text-align: end; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; direction: ltr; }
-.pst-expand { transition: transform .15s; }
 .pst-row[aria-expanded="true"] .pst-expand { transform: rotate(180deg); }
 
 /* Sub-settings of the switch above them (spoiler parts, blur of adult covers). */
@@ -69,6 +68,27 @@
 .pst-colour input::-webkit-color-swatch-wrapper { padding: 6px; }
 .pst-colour input::-webkit-color-swatch { border: 0; border-radius: .5rem; }
 
+/* Auto-select profile: chips under their label as a block among rows; a chosen chip carries its priority as a number in front. */
+.pas-picker { display: grid; gap: .625rem; padding: .875rem 1rem 1rem; background: var(--sm-surface-raised); }
+.pas-label { font-size: .9375rem; font-weight: 600; color: var(--sm-text); }
+.pas-picker > small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
+.pas-picker .ps-choices > button { background: var(--sm-surface-control); color: var(--sm-text); }
+.pas-picker .ps-choices > button[aria-pressed="true"] { background: var(--sm-accent-soft); color: var(--sm-accent); }
+.pas-picker .ps-choices > button > span { order: -1; display: grid; place-items: center; min-width: 1.375rem; height: 1.375rem; margin-left: -.375rem; padding: 0 .25rem;
+    border-radius: 999px; background: var(--sm-accent-strong); color: #fff !important; font-size: .75rem; font-weight: 700; }
+/* Free entries: the field and its add button on one line, the entries as chips that remove themselves */
+.pas-tokens { display: grid; gap: .5rem; min-width: 0; }
+.pas-tokens > label { font-size: .875rem; font-weight: 600; color: var(--sm-text); }
+.pas-tokens > small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
+.pas-token-field { display: flex; gap: .5rem; min-width: 0; }
+.pas-token-field input { flex: 1 1 auto; min-width: 0; min-height: 52px; padding: .5rem 1rem; border: 0; border-radius: var(--sm-radius); background: var(--sm-surface-raised);
+    color: var(--sm-text); font-size: 1rem; appearance: none; -webkit-appearance: none; }
+.pas-token-field input::placeholder { color: var(--sm-text-subtle); }
+.pas-token-field input:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 0; }
+.pas-token-field .ps-secondary { flex: none; min-height: 52px; padding-inline: 1rem 1.125rem; }
+.pas-tokens .ps-choices > button { color: var(--sm-text); }
+.pas-tokens .ps-choices > button > svg { flex: none; margin-right: -.25rem; font-size: 1rem; color: var(--sm-text-muted); }
+
 /* Sheets: a text field, a sentence to confirm, a log. */
 .pst-field { display: grid; gap: .5rem; min-width: 0; }
 .pst-field > label { font-size: .9375rem; font-weight: 600; }
@@ -102,6 +122,11 @@
 /* About: Donate as a quiet link at the end (decision D8). */
 .pst-quiet-link { justify-self: center; display: inline-flex; align-items: center; min-height: 48px; padding: 0 1rem; font-size: .875rem; color: var(--sm-text-subtle); text-decoration: underline; text-underline-offset: 3px; }
 
+/* Pressed fills come at once and fade out on release, as the phone kit's rows; the expand chevron turns with the drawer curve */
+:is(.pst-nav-row, .pst-row, .pst-choice) { transition: background-color 200ms ease; }
+:is(.pst-nav-row, .pst-row, .pst-choice):active { transition-duration: 0s; }
+.pst-expand { transition: transform 200ms cubic-bezier(.32, .72, 0, 1); }
+
 @media (prefers-reduced-motion: reduce) {
-    .pst-expand { transition: none; }
+    .pst-expand, :is(.pst-nav-row, .pst-row, .pst-choice) { transition: none; }
 }

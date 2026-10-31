@@ -53,3 +53,12 @@ export function useTabletTwoPanes() {
         () => false,
     )
 }
+
+/**
+ * A short word beside an icon button's icon on a tablet, which has the room (app/tablet.css shows it from 600px). Phones and
+ * the desktop keep the bare icon; the button's aria-label stays its name, so the word is hidden from screen readers.
+ */
+export function TabletLabel({ children }: { children: string }) {
+    if (!IS_TABLET_UI) return null
+    return React.createElement("span", { className: "tablet-label", "aria-hidden": true }, children)
+}

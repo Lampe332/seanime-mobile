@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Finding TVs to cast to (SSDP) -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
@@ -34,12 +36,26 @@
         <receiver android:name=".UpdateReplacedReceiver" android:exported="false">
             <intent-filter><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter>
         </receiver>
+        <receiver android:name=".MediaSessionBridge$MediaActionReceiver" android:exported="false" />
+        <meta-data android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="com.seanime.app.cast.CastOptionsProvider" />
+        <!-- New-episode alarm; exported only for the boot broadcast, it never reads intent data -->
+        <receiver android:name=".notify.AiringReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
+        <!-- singleTask: one instance (one WebView, one player); widget, notification, shortcut and link intents reach it in
+             onNewIntent instead of stacking a second copy into the calling app's task. All configuration changes are handled
+             in place: the WebView must not reload (the theme is fixed dark, the language comes from the web settings). -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:supportsPictureInPicture="true"
-            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboard|keyboardHidden|uiMode|density|fontScale|locale|layoutDirection">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -50,11 +66,31 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="seanime" android:host="entry" />
+                <data android:scheme="seanime" android:host="open" />
+            </intent-filter>
+
+            <!-- "Open with Seanime" for anime pages; Android only opens them directly once allowed in the app's link settings -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="anilist.co" />
+                <data android:host="myanimelist.net" />
+                <data android:pathPrefix="/anime/" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
 
         <activity android:name=".offline.OfflineActivity" android:exported="false" android:theme="@style/Theme.Seanime.Offline"
-            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation" />
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboard|keyboardHidden|uiMode|density|fontScale|locale|layoutDirection" />
+        <activity android:name=".offline.StreamPlayerActivity" android:exported="false" android:theme="@style/Theme.Seanime.Offline"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboard|keyboardHidden|uiMode|density|fontScale|locale|layoutDirection" />
         <service android:name=".offline.EpisodeDownloadService" android:exported="false"
             android:foregroundServiceType="dataSync">
             <intent-filter>

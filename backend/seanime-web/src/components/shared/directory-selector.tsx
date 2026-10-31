@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select } from "@/components/ui/select"
 import { TextInput, TextInputProps } from "@/components/ui/text-input"
 import { useBoolean } from "@/hooks/use-disclosure"
+import { useTr } from "@/lib/app-language"
 import { upath } from "@/lib/helpers/upath"
 import React from "react"
 import { BiCheck, BiFolderOpen, BiFolderPlus, BiX } from "react-icons/bi"
@@ -97,6 +98,7 @@ export const DirectorySelector = React.memo(React.forwardRef<HTMLInputElement, D
     }, [isLoading, data, input, shouldExist, prevState.current])
 
     const [librarySelectionOpen, setLibrarySelectionOpen] = React.useState(false)
+    const t = useTr()
 
     return (
         <>
@@ -111,10 +113,10 @@ export const DirectorySelector = React.memo(React.forwardRef<HTMLInputElement, D
                                 <Popover
                                     open={librarySelectionOpen}
                                     onOpenChange={setLibrarySelectionOpen}
-                                    className="w-[400px] p-2 ml-[30px]"
+                                    className="w-[min(400px,calc(100vw-24px))] p-2 ml-[30px]"
                                     sideOffset={-4}
                                     trigger={<Button size="sm" intent="gray-link" leftIcon={<HiMiniChevronUpDown />} className="!text-[--muted]">
-                                        Change library
+                                        {t("Change library", "Bibliothek wechseln")}
                                     </Button>}
                                 >
                                     <Select
@@ -157,7 +159,7 @@ export const DirectorySelector = React.memo(React.forwardRef<HTMLInputElement, D
                         checkDirectoryExists()
                     }
                 }}
-                title="Select a directory"
+                title={t("Select a folder", "Ordner auswählen")}
                 contentClass="mt-4 space-y-2 max-w-4xl"
             >
                 <div className="flex gap-2 items-center">

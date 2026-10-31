@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { atom, useAtomValue } from "jotai"
 import { useAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
+import { successFeedback } from "@/lib/feedback"
 import React from "react"
 import { AiOutlineArrowLeft } from "react-icons/ai"
 import { TbLayoutSidebarRightCollapse, TbLayoutSidebarRightExpand } from "react-icons/tb"
@@ -119,6 +120,8 @@ export function VideoCoreInlineHelperUpdateProgressButton() {
         }, {
             onSuccess: () => {
                 setHasUpdateProgress(true)
+                // the app keeps the sound silent while the episode plays
+                successFeedback()
             },
         })
     }

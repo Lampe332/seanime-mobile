@@ -1,7 +1,6 @@
 package com.seanime.app.offline
 
 import android.app.AlertDialog
-import com.seanime.app.AppLanguage
 import com.seanime.app.AppLanguage.tr
 import android.content.Context
 import android.graphics.Color
@@ -24,7 +23,10 @@ import androidx.media3.ui.PlayerView
 import java.util.Locale
 import kotlin.math.roundToInt
 
-/** Seanime's mobile control arrangement over the cache-only native decoder. */
+/**
+ * Seanime's mobile control arrangement over the native decoder. [badge] marks the source (OFFLINE for downloads);
+ * with [playNext], the end of the video counts down to [nextLabel] like the web player does.
+ */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class OfflinePlayerView(
     context: Context,
@@ -32,6 +34,9 @@ class OfflinePlayerView(
     title: String,
     private val fullscreen: () -> Unit,
     private val exit: () -> Unit,
+    badge: String? = null,
+    private val nextLabel: String? = null,
+    private val playNext: (() -> Unit)? = null,
 ) : FrameLayout(context) {
     private val handler = Handler(Looper.getMainLooper())
     private val controls = FrameLayout(context)
@@ -45,6 +50,17 @@ class OfflinePlayerView(
     private var dialog: AlertDialog? = null
     private var visible = true
     private var lastPlaying: Boolean? = null
+    private val upNext = LinearLayout(context)
+    private val upNextText: TextView
+    private var countdown = 0
+    private val countdownTick = object : Runnable {
+        override fun run() {
+            if (countdown <= 0) { cancelNext(); playNext?.invoke(); return }
+            upNextText.text = tr("Up next: $nextLabel in $countdown s", "Gleich: $nextLabel in $countdown s")
+            countdown--
+            handler.postDelayed(this, 1000)
+        }
+    }
     private val hide = Runnable { if (exo.isPlaying && !scrubbing && !menuOpen) showControls(false) }
     private val update = object : Runnable {
         override fun run() {
@@ -67,7 +83,10 @@ class OfflinePlayerView(
             if (!isPlaying) showControls(true) else scheduleHide()
         }
         override fun onPlaybackStateChanged(playbackState: Int) {
-            if (playbackState == Player.STATE_ENDED) showControls(true)
+            if (playbackState == Player.STATE_ENDED) {
+                showControls(true)
+                if (playNext != null && countdown == 0 && upNext.visibility != View.VISIBLE) startNext()
+            } else cancelNext()
         }
     }
     private fun dp(v: Int) = (v * resources.displayMetrics.density).roundToInt()
@@ -145,7 +164,7 @@ class OfflinePlayerView(
             maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         }, LinearLayout.LayoutParams(0, -2, 1f))
-        top.addView(caption("OFFLINE", 9f).apply { setTextColor(0xFF65DEB0.toInt()); setPadding(dp(8), 0, dp(8), 0) })
+        if (badge != null) top.addView(caption(badge, 9f).apply { setTextColor(0xFF65DEB0.toInt()); setPadding(dp(8), 0, dp(8), 0) })
         controls.addView(top, LayoutParams(-1, dp(46), Gravity.TOP))
         val center = LinearLayout(context).apply { gravity = Gravity.CENTER }
         center.addView(button("−5", tr("Back 5 seconds", "5 Sekunden zurück"), 52) { skip(-5) })
@@ -179,12 +198,14 @@ class OfflinePlayerView(
                 }
             })
         }
-        bottom.addView(seek, LinearLayout.LayoutParams(-1, dp(28)))
+        // a thin bar, but a finger-sized touch target
+        bottom.addView(seek, LinearLayout.LayoutParams(-1, dp(48)))
         val tools = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
         time = caption("00:00 / 00:00", 11f)
         tools.addView(time, LinearLayout.LayoutParams(0, dp(44), 1f))
         speed = button("1.0×", tr("Playback speed", "Wiedergabetempo")) { speedMenu() }.apply { textSize = 12f }
         tools.addView(speed)
+        tools.addView(button(tr("Audio", "Ton"), tr("Audio track", "Tonspur")) { audioMenu() }.apply { textSize = 12f })
         tools.addView(button("CC", tr("Subtitles", "Untertitel")) { subtitleMenu() }.apply { textSize = 12f })
         tools.addView(button("", tr("Toggle fullscreen", "Vollbild umschalten")) { fullscreen() }.apply { icon(this, "fullscreen") })
         bottom.addView(tools)
@@ -194,6 +215,37 @@ class OfflinePlayerView(
             setBackgroundColor(0xB3000000.toInt()); setPadding(dp(12), dp(8), dp(12), dp(8))
         }
         addView(feedback, LayoutParams(-2, -2, Gravity.CENTER_HORIZONTAL or Gravity.TOP).apply { topMargin = dp(48) })
+
+        upNext.apply {
+            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL; visibility = View.GONE
+            setPadding(dp(16), dp(12), dp(16), dp(8))
+            background = GradientDrawable().apply { setColor(0xE6000000.toInt()); cornerRadius = dp(14).toFloat() }
+        }
+        upNextText = caption("", 14f).apply { gravity = Gravity.CENTER; setTypeface(typeface, android.graphics.Typeface.BOLD) }
+        upNext.addView(upNextText)
+        val choices = LinearLayout(context).apply { gravity = Gravity.CENTER }
+        choices.addView(button(tr("Play now", "Jetzt abspielen"), tr("Play the next episode now", "Nächste Folge jetzt abspielen")) {
+            countdown = 0; handler.removeCallbacks(countdownTick); countdownTick.run()
+        }.apply { textSize = 13f; layoutParams = LinearLayout.LayoutParams(-2, dp(44)); setPadding(dp(12), 0, dp(12), 0) })
+        choices.addView(button(tr("Cancel", "Abbrechen"), tr("Stay on this episode", "Bei dieser Folge bleiben")) { cancelNext() }
+            .apply { textSize = 13f; layoutParams = LinearLayout.LayoutParams(-2, dp(44)); setPadding(dp(12), 0, dp(12), 0) })
+        upNext.addView(choices)
+        addView(upNext, LayoutParams(-2, -2, Gravity.CENTER))
+    }
+
+    /** 5 seconds, then the next downloaded episode; cancelled by the button or by seeking back into the video. */
+    private fun startNext() {
+        countdown = 5
+        upNext.visibility = View.VISIBLE
+        controls.visibility = View.INVISIBLE
+        handler.removeCallbacks(countdownTick)
+        countdownTick.run()
+    }
+
+    private fun cancelNext() {
+        handler.removeCallbacks(countdownTick)
+        countdown = 0
+        if (upNext.visibility == View.VISIBLE) { upNext.visibility = View.GONE; showControls(true) }
     }
 
     private fun skip(seconds: Int) {
@@ -222,6 +274,22 @@ class OfflinePlayerView(
             exo.setPlaybackSpeed(values[it])
         }
     }
+    private fun audioMenu() {
+        val tracks = exo.currentTracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
+            .flatMap { group -> (0 until group.length).filter { group.isTrackSupported(it) }.map { group to it } }
+        if (tracks.isEmpty()) {
+            choose(tr("Audio track", "Tonspur"), arrayOf(tr("No audio track", "Keine Tonspur")), 0) {}; return
+        }
+        val labels = tracks.mapIndexed { n, (group, index) ->
+            val format = group.getTrackFormat(index)
+            OfflinePolicy.trackName(format.label, format.language, format.channelCount, tr("Track ${n + 1}", "Spur ${n + 1}"))
+        }.toTypedArray()
+        choose(tr("Audio track", "Tonspur"), labels, tracks.indexOfFirst { (group, index) -> group.isTrackSelected(index) }) { index ->
+            val (group, track) = tracks[index]
+            exo.trackSelectionParameters = exo.trackSelectionParameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+                .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, track)).build()
+        }
+    }
     private fun subtitleMenu() {
         val tracks = exo.currentTracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
             .flatMap { group -> (0 until group.length).filter { group.isTrackSupported(it) }.map { group to it } }
@@ -230,7 +298,7 @@ class OfflinePlayerView(
         }
         val labels = arrayOf(tr("Off", "Aus")) + tracks.map { (group, index) ->
             val format = group.getTrackFormat(index)
-            format.label ?: format.language?.let { Locale.forLanguageTag(it).getDisplayLanguage(AppLanguage.locale) } ?: tr("Subtitles", "Untertitel")
+            OfflinePolicy.trackName(format.label, format.language, 0, tr("Subtitles", "Untertitel"))
         }
         val selected = if (exo.trackSelectionParameters.disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)) 0
             else tracks.indexOfFirst { (group, index) -> group.isTrackSelected(index) } + 1

@@ -1,6 +1,7 @@
 import { usePathname } from "@/lib/navigation"
 import { openAndroidDownloads } from "@/lib/android-offline"
 import { useTr } from "@/lib/app-language"
+import { TabletLabel } from "@/lib/tablet-ui"
 import React from "react"
 import { LuFolderDown } from "react-icons/lu"
 
@@ -19,13 +20,14 @@ export function ChapterDownloadsButton(props: ChapterDownloadsButtonProps) {
 
     const t = useTr()
 
-    if (!pathname.startsWith("/manga")) return null
+    // The manga library has its own head with actions; there the button floated above the title
+    if (!pathname.startsWith("/manga") || /^\/manga\/?$/.test(pathname)) return null
 
     // Android: the Downloads tab already lists manga chapters with its own reader and queue.
     return (
         <button type="button" className="mobile-topbar-downloads" aria-label={t("Manga downloads", "Manga-Downloads")}
             onClick={() => openAndroidDownloads("manga")}>
-            <LuFolderDown aria-hidden />
+            <LuFolderDown aria-hidden /><TabletLabel>{t("Downloads", "Downloads")}</TabletLabel>
         </button>
     )
 }

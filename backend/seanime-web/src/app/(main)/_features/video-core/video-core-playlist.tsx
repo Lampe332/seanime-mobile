@@ -375,6 +375,24 @@ function PlaylistEpisodeHoverCard({ episode, children }: { episode?: Anime_Episo
     )
 }
 
+/** Top bar: which anime and episode is playing (media-core-controls.css shows it only where the bar has room). */
+export function VideoCoreTitle() {
+    const episode = useAtomValue(vc_playlistState)?.currentEpisode
+    if (!episode) return null
+
+    const anime = episode.baseAnime?.title?.userPreferred
+    const episodeLine = [episode.displayTitle, episode.episodeTitle !== episode.displayTitle && episode.episodeTitle]
+        .filter(Boolean)
+        .join(" · ")
+
+    return (
+        <div data-vc-element="title" className="vc-title">
+            {!!anime && <p className="vc-title-anime">{anime}</p>}
+            <p className="vc-title-episode">{episodeLine}</p>
+        </div>
+    )
+}
+
 export function VideoCorePlaylistControl() {
     const { animeEntry, hasNextEpisode, hasPreviousEpisode, playEpisode } = useVideoCorePlaylist()
 

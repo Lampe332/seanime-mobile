@@ -19,7 +19,10 @@ import { toast } from "sonner"
 
 type MangaManualMappingModalProps = {
     entry: Manga_Entry
-    children: React.ReactElement
+    /** The button that opens it; without one, open and onOpenChange control it (the chapter list's "More" sheet) */
+    children?: React.ReactElement
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
 }
 
 export function MangaManualMappingModal(props: MangaManualMappingModalProps) {
@@ -27,7 +30,8 @@ export function MangaManualMappingModal(props: MangaManualMappingModalProps) {
     const {
         children,
         entry,
-        ...rest
+        open,
+        onOpenChange,
     } = props
 
     const t = useTr()
@@ -39,6 +43,8 @@ export function MangaManualMappingModal(props: MangaManualMappingModalProps) {
             title={t("Manual match", "Manuell zuordnen")}
             description={t("Pick the matching title from the selected source.", "Wähle den passenden Titel der gewählten Quelle.")}
             trigger={children}
+            open={open}
+            onOpenChange={onOpenChange}
             contentClass="mobile-anime-dialog mobile-download-sheet mobile-match-sheet"
         >
             <MobileContent entry={entry} />

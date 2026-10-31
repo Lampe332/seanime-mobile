@@ -1,7 +1,8 @@
 import { useServerMutation, useServerQuery } from "@/api/client/requests"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
+import { useLogout } from "@/api/hooks/auth.hooks"
 import { useListAnimeEntryEpisodeTabExtensions } from "@/api/hooks/extensions.hooks"
-import { PhoneSwitch, PhoneTabs } from "@/app/(main)/_features/phone-screen/phone-screen"
+import { PhoneRow, PhoneSwitch, PhoneTabs } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { useStartMobileTutorial } from "@/app/(main)/_features/tour/mobile-tutorial"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import {
@@ -21,6 +22,71 @@ import { useAtom } from "jotai"
 import React from "react"
 import { toast } from "sonner"
 
+/** New-episode notifications are kept by the Android app, not in the server settings; hidden outside the app. */
+function AiringNotificationsSetting({ t }: { t: Translate }) {
+    const bridge = typeof window !== "undefined" ? window.SeanimeAndroid : undefined
+    const [enabled, setEnabled] = React.useState(() => !!bridge?.getAiringNotifications?.())
+    if (!bridge?.getAiringNotifications) return null
+
+    const test = () => {
+        if (bridge.testAiringNotification?.() === "permission") {
+            toast.info(t("Allow notifications for Seanime first.", "Erlaube zuerst Benachrichtigungen für Seanime."))
+        } else {
+            toast.success(t("Test notification sent", "Testbenachrichtigung gesendet"))
+        }
+    }
+
+    return <>
+        <PhoneSwitch label={t("Notify about new episodes", "Neue Folgen melden")} data-setting="airing-notifications"
+            note={t("For the anime you are watching, shortly after an episode airs.", "Für die Anime, die du schaust, kurz nachdem eine Folge ausgestrahlt wurde.")}
+            checked={enabled} onChange={value => {
+                bridge.setAiringNotifications?.(value)
+                setEnabled(value)
+            }} />
+        {enabled && <PhoneRow label={t("Send a test notification", "Testbenachrichtigung senden")} onClick={test} data-setting="airing-test" />}
+    </>
+}
+
+/** Episode downloads of the Android app can wait for Wi-Fi; torrents ask before they start on mobile data either way. */
+function WifiOnlyDownloadsSetting({ t }: { t: Translate }) {
+    const bridge = typeof window !== "undefined" ? window.SeanimeAndroid : undefined
+    const [enabled, setEnabled] = React.useState(() => !!bridge?.getDownloadsWifiOnly?.())
+    if (!bridge?.getDownloadsWifiOnly) return null
+
+    return <PhoneSwitch label={t("Download only on Wi-Fi", "Nur im WLAN herunterladen")} data-setting="downloads-wifi-only"
+        note={t("Episode downloads wait for Wi-Fi instead of using mobile data.", "Folgen-Downloads warten auf WLAN, statt mobile Daten zu verbrauchen.")}
+        checked={enabled} onChange={value => {
+            bridge.setDownloadsWifiOnly?.(value)
+            setEnabled(value)
+        }} />
+}
+
+/** Touch feedback of the Android app (Feedback.kt); vibration only on devices that have a motor. Hidden outside the app. */
+function FeedbackGroup({ t }: { t: Translate }) {
+    const bridge = typeof window !== "undefined" ? window.SeanimeAndroid : undefined
+    const [haptics, setHaptics] = React.useState(() => !!bridge?.getHaptics?.())
+    const [sounds, setSounds] = React.useState(() => !!bridge?.getSounds?.())
+    if (!bridge?.getSounds) return null
+
+    return <SettingsGroup id="app-feedback" title={t("Feedback", "Feedback")}>
+        {!!bridge.hasVibrator?.() && <PhoneSwitch label={t("Vibration", "Vibration")} data-setting="feedback-haptics"
+            note={t("A short tick for switches, long presses and finished actions.", "Ein kurzes Ticken bei Schaltern, langem Drücken und erledigten Aktionen.")}
+            checked={haptics} onChange={value => {
+                bridge.setHaptics?.(value)
+                setHaptics(value)
+            }} />}
+        <PhoneSwitch label={t("Sounds", "Töne")} data-setting="feedback-sounds"
+            note={t("A quiet sound when a download starts, an episode is marked as watched or you join a watch party. Never while something plays.",
+                "Ein leiser Ton, wenn ein Download startet, eine Folge als gesehen markiert wird oder du einer Watch Party beitrittst. Nie während etwas läuft.")}
+            checked={sounds} onChange={value => {
+                bridge.setSounds?.(value)
+                setSounds(value)
+                // turning it on plays the sound once, so its volume is known
+                if (value) bridge.playSound?.("success")
+            }} />
+    </SettingsGroup>
+}
+
 /** App: episodes, anime, language, extensions, local account, metadata. */
 export function SettingsAppSection({ t }: { t: Translate }) {
     const status = useServerStatus()
@@ -37,6 +103,8 @@ export function SettingsAppSection({ t }: { t: Translate }) {
             <SettingSwitch path="library.enableWatchContinuity" label={t("Watch history", "Wiedergabeverlauf")}
                 note={t("Remembers where you stopped and resumes there.", "Merkt sich, wo du aufgehört hast, und setzt dort fort.")} />
             <DefaultSourceSelect t={t} />
+            <AiringNotificationsSetting t={t} />
+            <WifiOnlyDownloadsSetting t={t} />
         </SettingsGroup>
 
         <SettingsGroup id="app-anime" title={t("Anime", "Anime")}>
@@ -58,6 +126,8 @@ export function SettingsAppSection({ t }: { t: Translate }) {
 
         <LanguageGroup t={t} />
 
+        <FeedbackGroup t={t} />
+
         <SettingsGroup id="app-extensions" title={t("Extensions", "Erweiterungen")}>
             <SettingSwitch path="library.enableExtensionSecureMode" label={t("Secure mode", "Sicherer Modus")}
                 note={t("Asks before an extension does something sensitive, even with permission.", "Fragt nach, bevor eine Erweiterung etwas Heikles tut, auch mit Berechtigung.")} />
@@ -75,7 +145,36 @@ export function SettingsAppSection({ t }: { t: Translate }) {
             <SettingSwitch path="library.useFallbackMetadataProvider" label={t("Fallback episode metadata", "Ersatzquelle für Folgendaten")}
                 note={t("Loads episode details from another source.", "Lädt Folgendetails aus einer anderen Quelle.")} />
         </SettingsGroup>
+
+        <NavigationGroup t={t} />
+        {!isSimulated && !!status?.user && <AccountGroup t={t} />}
     </>
+}
+
+type NativeNavigation = { customize: () => void, reset: () => void }
+
+/** The app's own bar and menu (UIBottomNav.kt); only inside the Android app, which provides window.__seanimeNavigation. */
+function NavigationGroup({ t }: { t: Translate }) {
+    const navigation = typeof window !== "undefined" ? (window as Window & { __seanimeNavigation?: NativeNavigation }).__seanimeNavigation : undefined
+    if (!navigation) return null
+    return <SettingsGroup id="app-navigation" title={t("Navigation", "Navigation")}
+        note={t("Which entries sit in the bar and which in the menu.", "Welche Einträge in der Leiste und welche im Menü stehen.")}>
+        <LinkRow label={t("Customize navigation", "Navigation anpassen")} onClick={() => navigation.customize()} data-settings-customize-navigation />
+        <LinkRow label={t("Reset navigation", "Navigation zurücksetzen")} tone="danger" onClick={() => navigation.reset()} data-settings-reset-navigation />
+    </SettingsGroup>
+}
+
+/** Signing out of AniList; the app falls back to the local account. */
+function AccountGroup({ t }: { t: Translate }) {
+    const [confirm, setConfirm] = React.useState(false)
+    const row = React.useRef<HTMLButtonElement>(null)
+    const { mutate: logout, isPending } = useLogout()
+    return <SettingsGroup id="app-account" title={t("Account", "Konto")}>
+        <LinkRow ref={row} label={t("Sign out", "Abmelden")} tone="danger" disabled={isPending} onClick={() => setConfirm(true)} data-settings-sign-out />
+        <ConfirmSheet t={t} open={confirm} onOpenChange={setConfirm} returnFocusRef={row} title={t("Sign out?", "Abmelden?")}
+            text={t("Are you sure you want to sign out?", "Möchtest du dich wirklich abmelden?")}
+            action={t("Sign out", "Abmelden")} danger onConfirm={() => logout()} data-settings-sign-out-confirm />
+    </SettingsGroup>
 }
 
 /** Default episode source: as on the desktop page; torrent and Debrid streaming once they are turned on (Torrents & debrid). */

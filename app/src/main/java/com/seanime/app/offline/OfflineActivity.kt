@@ -27,6 +27,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.scheduler.Requirements
 import kotlin.math.roundToInt
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -44,6 +45,9 @@ class OfflineActivity : Activity() {
     private var playerHost: FrameLayout? = null
     private var playerDetails: ScrollView? = null
     private var fullscreen = false
+    // what the fullscreen button's landscape lock replaced; the list itself turns freely
+    private var orientationBeforeFullscreen: Int? = null
+    private var listColumns = 0
     private var playerInsets: android.view.WindowInsets? = null
     private val tick = object : Runnable {
         override fun run() {
@@ -174,8 +178,11 @@ class OfflineActivity : Activity() {
         background = rounded(SURFACE, 18, BORDER)
     }
 
+    /** One column on phones, a grid from 600 dp width (tablets, landscape foldables). */
+    private fun columns(): Int = resources.configuration.screenWidthDp.let { if (it < 600) 1 else (it / 320).coerceIn(2, 4) }
+
     private fun showList() {
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        listColumns = columns()
         lastRows = ""
         val root = rootColumn()
         root.addView(header({ finish() }, "Downloads", tr("Your anime. Always with you.", "Deine Anime. Immer dabei.")))
@@ -273,6 +280,15 @@ class OfflineActivity : Activity() {
                 addView(label(if (filter == "ready") tr("Finished downloads show up here automatically.", "Fertige Downloads erscheinen hier automatisch.") else tr("Your saved episodes are under “Ready”.", "Deine gespeicherten Folgen findest du unter „Bereit“."), 13f, MUTED).apply { setPadding(0, dp(10), 0, 0) })
             })
         }
+        val failedIds = mains.map { it.request.id }.filter { id -> id !in readyIds && store.group(id, all).any { it.state == Download.STATE_FAILED } }
+        if (failedIds.isNotEmpty() && filter != "ready") {
+            rows.addView(actionButton(tr("Retry failed (${failedIds.size})", "Fehlgeschlagene wiederholen (${failedIds.size})"), primary = true) {
+                failedIds.forEach { store.retry(it) }
+                lastRows = ""
+            }, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(14) })
+        }
+        val columns = listColumns
+        var line: LinearLayout? = null
         var previousTitle = ""
         val metadataOf = visible.associate { it.request.id to store.metadata(it) }
         val sorted = visible.sortedWith(compareBy<Download> { metadataOf.getValue(it.request.id).optString("title") }
@@ -291,7 +307,9 @@ class OfflineActivity : Activity() {
                 failed -> tr("Download failed", "Download fehlgeschlagen")
                 paused -> tr("Paused", "Pausiert")
                 download.state == Download.STATE_REMOVING -> tr("Deleting", "Wird gelöscht")
-                store.manager.isWaitingForRequirements -> tr("Waiting for internet", "Wartet auf Internet")
+                store.manager.isWaitingForRequirements ->
+                    if ((store.manager.notMetRequirements and Requirements.NETWORK_UNMETERED) != 0) tr("Waiting for Wi-Fi", "Wartet auf WLAN")
+                    else tr("Waiting for internet", "Wartet auf Internet")
                 download.state == Download.STATE_COMPLETED -> tr("Saving subtitles", "Untertitel werden gespeichert")
                 else -> tr("Downloading", "Wird heruntergeladen")
             }
@@ -314,6 +332,7 @@ class OfflineActivity : Activity() {
                     setPadding(dp(2), dp(if (index == 0) 2 else 14), 0, dp(12))
                 })
                 previousTitle = title
+                line = null
             }
             val card = panel(14)
             val info = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
@@ -347,6 +366,9 @@ class OfflineActivity : Activity() {
             val amount = if (!ready && progressValue != null) "$progressValue% · $size" else size
             statusRow.addView(label(amount, 11f, MUTED).apply { gravity = Gravity.END or Gravity.CENTER_VERTICAL; setPadding(dp(6), 0, 0, 0) }, LinearLayout.LayoutParams(0, -2, 1f))
             card.addView(statusRow)
+            if (failed) card.addView(label(OfflinePolicy.failureText(store.failure(id) ?: OfflinePolicy.Failure.UNKNOWN), 12f, 0xFFFFB3B8.toInt()).apply {
+                setPadding(dp(2), dp(8), 0, 0); setLineSpacing(dp(2).toFloat(), 1f)
+            })
 
             val progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
                 progressTintList = ColorStateList.valueOf(if (ready) GREEN else PRIMARY)
@@ -363,11 +385,12 @@ class OfflineActivity : Activity() {
             val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
             val actionText = when {
                 ready -> if (position > 0) tr("▶  Continue", "▶  Weiterschauen") else tr("▶  Watch", "▶  Ansehen")
-                paused || failed -> tr("Resume", "Fortsetzen")
+                failed -> tr("Retry", "Erneut versuchen")
+                paused -> tr("Resume", "Fortsetzen")
                 else -> tr("Pause", "Pausieren")
             }
             val primaryAction = actionButton(actionText, primary = ready) {
-                if (ready) play(download) else store.pause(id, !(paused || failed)).also { lastRows = "" }
+                if (ready) play(download) else { if (paused || failed) store.retry(id) else store.pause(id, true); lastRows = "" }
             }
             actions.addView(primaryAction, LinearLayout.LayoutParams(0, dp(48), 1f))
             actions.addView(View(this), LinearLayout.LayoutParams(dp(8), 1))
@@ -381,7 +404,15 @@ class OfflineActivity : Activity() {
             }
             actions.addView(deleteAction, LinearLayout.LayoutParams(dp(92), dp(48)))
             card.addView(actions)
-            rows.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+            if (columns == 1) {
+                rows.addView(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+            } else {
+                val row = line?.takeIf { it.childCount < columns } ?: LinearLayout(this).apply { weightSum = columns.toFloat() }.also {
+                    rows.addView(it, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10); leftMargin = -dp(5); rightMargin = -dp(5) })
+                    line = it
+                }
+                row.addView(card, LinearLayout.LayoutParams(0, -2, 1f).apply { leftMargin = dp(5); rightMargin = dp(5) })
+            }
         }
     }
 
@@ -435,7 +466,14 @@ class OfflineActivity : Activity() {
         val status = label("", 13f, RED).apply { setPadding(0, dp(14), 0, dp(8)); visibility = View.GONE }
         info.addView(status)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        player = ExoPlayer.Builder(this).setMediaSourceFactory(DefaultMediaSourceFactory(store.offlineDataSource())).build().also { exo ->
+        val all = store.all()
+        val next = all.filter { !it.request.id.contains(":sub:") && store.ready(it.request.id, all) &&
+            store.metadata(it).optString("title") == title &&
+            (store.metadata(it).optString("episode").toDoubleOrNull() ?: -1.0) > (episode.toDoubleOrNull() ?: Double.MAX_VALUE) }
+            .minByOrNull { store.metadata(it).optString("episode").toDoubleOrNull() ?: Double.MAX_VALUE }
+        val nextEpisode = next?.let { store.metadata(it).optString("episode") }
+        player = ExoPlayer.Builder(this, StreamPlayerActivity.renderers(this))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(store.offlineDataSource())).build().also { exo ->
             exo.setAudioAttributes(androidx.media3.common.AudioAttributes.DEFAULT, true)
             exo.addListener(object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
@@ -448,13 +486,9 @@ class OfflineActivity : Activity() {
             exo.seekTo(getSharedPreferences("offline-playback", MODE_PRIVATE).getLong(download.request.id, 0))
             exo.prepare(); exo.playWhenReady = true
             host.addView(OfflinePlayerView(this, exo, if (episode.isBlank()) title else tr("$title · Episode $episode", "$title · Folge $episode"),
-                { setFullscreen(!fullscreen) }, { back() }), FrameLayout.LayoutParams(-1, -1))
+                { setFullscreen(!fullscreen) }, { back() }, "OFFLINE",
+                nextEpisode?.let { tr("Episode $it", "Folge $it") }, next?.let { { playNext(it) } }), FrameLayout.LayoutParams(-1, -1))
         }
-        val all = store.all()
-        val next = all.filter { !it.request.id.contains(":sub:") && store.ready(it.request.id, all) &&
-            store.metadata(it).optString("title") == title &&
-            (store.metadata(it).optString("episode").toDoubleOrNull() ?: -1.0) > (episode.toDoubleOrNull() ?: Double.MAX_VALUE) }
-            .minByOrNull { store.metadata(it).optString("episode").toDoubleOrNull() ?: Double.MAX_VALUE }
         if (next != null) {
             info.addView(View(this), LinearLayout.LayoutParams(1, dp(24)))
             info.addView(label(tr("UP NEXT", "ALS NÄCHSTES"), 10f, MUTED, true))
@@ -466,10 +500,25 @@ class OfflineActivity : Activity() {
         applyPlayerLayout()
     }
 
+    /** The countdown at the end of an episode: the next one, in fullscreen if this one was. */
+    private fun playNext(download: Download) {
+        val wasFullscreen = fullscreen
+        play(download)
+        if (wasFullscreen) setFullscreen(true)
+    }
+
     private fun setFullscreen(enabled: Boolean) {
         fullscreen = enabled
-        requestedOrientation = if (enabled) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        if (enabled) {
+            if (orientationBeforeFullscreen == null) orientationBeforeFullscreen = requestedOrientation
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else restoreOrientation()
         applyPlayerLayout()
+    }
+
+    private fun restoreOrientation() {
+        requestedOrientation = orientationBeforeFullscreen ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        orientationBeforeFullscreen = null
     }
     @Suppress("DEPRECATION")
     private fun applyPlayerLayout() {
@@ -499,6 +548,8 @@ class OfflineActivity : Activity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         if (player != null) applyPlayerLayout()
+        // turning a tablet changes the grid
+        else if (::rows.isInitialized && listColumns != columns()) showList()
     }
     override fun onSaveInstanceState(outState: Bundle) {
         savePosition(); playingId?.let { outState.putString("playingId", it) }
@@ -515,7 +566,7 @@ class OfflineActivity : Activity() {
         savePosition(); player?.release(); player = null; playingId = null
         playerRoot = null; playerHost = null; playerDetails = null
         fullscreen = false
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        restoreOrientation()
         if (Build.VERSION.SDK_INT >= 30) window.decorView.windowInsetsController?.show(android.view.WindowInsets.Type.systemBars())
         else {
             @Suppress("DEPRECATION")

@@ -39,6 +39,8 @@ type UseOnlinestreamAutoProviderCyclerProps = {
     setServer: (server: string | undefined) => void
     setSelectedEpisodeNumber: (episodeNumber: number) => void
     setUrl: (url: string | null) => void
+    /** Builds the stream URL again from the current source, also when a refresh returned the same source. */
+    reloadStream: () => void
     setPlaybackError: (error: string | null) => void
     refreshEpisodeSource: (variables: RefreshEpisodeSourceVariables) => Promise<Onlinestream_EpisodeSource | undefined>
 }
@@ -77,6 +79,7 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
         setServer,
         setSelectedEpisodeNumber,
         setUrl,
+        reloadStream,
         setPlaybackError,
         refreshEpisodeSource,
     } = props
@@ -86,6 +89,8 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
     const [refreshing, setRefreshing] = React.useState(false)
     const trialRef = React.useRef<TrialState | null>(null)
     const playbackTimeRef = React.useRef(0)
+    /** The current stream answered (metadata/canplay). Reset for every new URL. */
+    const streamReadyRef = React.useRef(false)
     const refreshingRef = React.useRef(false)
     const refreshedSourcesRef = React.useRef(new Set<string>())
     const activeCandidateRef = React.useRef("")
@@ -217,8 +222,10 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
                 goToNextCandidate(reason)
                 return
             }
-            setUrl(null)
+            // The refreshed source is often identical (same object after the cache update), which would not rebuild
+            // the URL and left the player on "Loading stream" for good.
             setPlaybackError(null)
+            reloadStream()
         }).catch(() => {
             if (activeCandidateRef.current === refreshKey) {
                 goToNextCandidate(reason)
@@ -234,6 +241,7 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
     })
 
     const onLoadedMetadata = useLatestFunction(() => {
+        streamReadyRef.current = true
         setPlaybackError(null)
     })
 
@@ -457,12 +465,20 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
     ])
 
     React.useEffect(() => {
+        streamReadyRef.current = false
+    }, [url])
+
+    React.useEffect(() => {
         if (trial || detectedFailure || refreshing || !url) return
         if (episodeSourceLoading || isEpisodeSourceError) return
 
         const startedAt = playbackTimeRef.current
         const timeout = window.setTimeout(() => {
-            if (playbackTimeRef.current <= startedAt) {
+            // Only a stream that never answered has timed out. One that loaded and waits paused (the page just opened
+            // with autoplay held back, or the viewer paused it) is fine: reloading it threw the player back to
+            // "Loading stream" 20 s after opening, whatever the viewer was doing (e.g. going fullscreen). Stalls and
+            // errors of a loaded stream still reach onPlaybackError through onStalled/onError.
+            if (playbackTimeRef.current <= startedAt && !streamReadyRef.current) {
                 onPlaybackError("playback timeout")
             }
         }, PLAYBACK_TIMEOUT_MS)

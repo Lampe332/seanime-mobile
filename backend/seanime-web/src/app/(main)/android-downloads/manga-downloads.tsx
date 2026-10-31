@@ -180,6 +180,9 @@ export function MangaDownloads({ selectedId }: { selectedId: number }) {
             </div> : <div className="mdl-empty">
                 <p>{t("Your manga to go", "Deine Manga für unterwegs")}</p>
                 <p>{t("Download chapters on a manga page. They show up here with cover and offline reader.", "Lade Kapitel auf einer Manga-Seite herunter. Sie erscheinen hier mit Cover und Offline-Reader.")}</p>
+                <button type="button" className="mdl-secondary" onClick={() => router.push("/search?type=manga")} data-downloads-find-manga>
+                    {t("Search manga", "Manga suchen")}
+                </button>
             </div>}
         </section>}
         {selected && <>

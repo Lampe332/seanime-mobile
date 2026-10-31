@@ -1,0 +1,65 @@
+/* Cast panel (vc-cast-): a dark sheet over the player with big, thumb-sized rows and controls. */
+.vc-cast-backdrop { position: absolute; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; padding: 1rem;
+    background: rgb(0 0 0 / .55); }
+.vc-cast-panel { display: grid; gap: 1rem; width: min(28rem, 100%); max-height: calc(100% - 1rem); overflow-y: auto; padding: 1.25rem;
+    border-radius: 1.25rem; background: rgb(22 21 30 / .97); color: #fff; box-shadow: 0 18px 50px rgb(0 0 0 / .6); }
+.vc-cast-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.vc-cast-head h2 { margin: 0; font-size: 1.125rem; font-weight: 700; }
+
+.vc-cast-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: 999px;
+    background: rgb(255 255 255 / .08); color: #fff; }
+.vc-cast-icon svg { width: 1.25rem; height: 1.25rem; }
+.vc-cast-icon:active { background: rgb(255 255 255 / .16); }
+
+.vc-cast-wait { display: flex; align-items: center; gap: .75rem; min-height: 3.5rem; font-size: .9375rem; color: rgb(255 255 255 / .8); }
+.vc-cast-spinner { width: 1.25rem; height: 1.25rem; border-radius: 999px; border: 2px solid rgb(255 255 255 / .2); border-top-color: var(--sm-accent, #8b7cf6);
+    animation: vc-cast-spin .8s linear infinite; }
+@keyframes vc-cast-spin { to { transform: rotate(360deg); } }
+
+.vc-cast-devices { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: .875rem; }
+.vc-cast-devices button, .vc-cast-now { display: flex; align-items: center; gap: .875rem; width: 100%; min-height: 4rem; padding: .75rem 1rem;
+    text-align: start; background: rgb(255 255 255 / .06); color: #fff; }
+.vc-cast-devices button:active { background: rgb(255 255 255 / .12); }
+.vc-cast-devices button > svg { width: 1.25rem; height: 1.25rem; color: rgb(255 255 255 / .5); flex-shrink: 0; }
+.vc-cast-now { border-radius: .875rem; }
+.vc-cast-device-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; flex-shrink: 0;
+    border-radius: .75rem; background: rgb(139 124 246 / .18); color: var(--sm-accent, #a99cff); }
+.vc-cast-device-icon svg { width: 1.375rem; height: 1.375rem; }
+.vc-cast-device-text { display: grid; gap: .125rem; min-width: 0; flex: 1; }
+.vc-cast-device-text strong { font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+.vc-cast-device-text small { font-size: .8125rem; color: rgb(255 255 255 / .6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.vc-cast-empty { display: grid; justify-items: center; gap: .5rem; padding: 1rem .5rem; text-align: center; }
+.vc-cast-empty > svg { width: 2.25rem; height: 2.25rem; color: rgb(255 255 255 / .45); }
+.vc-cast-empty strong { font-size: 1rem; }
+.vc-cast-empty p { margin: 0; font-size: .8125rem; line-height: 1.5; color: rgb(255 255 255 / .65); }
+
+.vc-cast-primary, .vc-cast-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; min-height: 3rem;
+    padding: 0 1rem; border-radius: 999px; font-size: .9375rem; font-weight: 600; }
+.vc-cast-primary { background: rgb(244 244 246); color: #111114; }
+.vc-cast-primary:active { background: #fff; }
+.vc-cast-secondary { background: rgb(255 255 255 / .08); color: #fff; }
+.vc-cast-secondary:active { background: rgb(255 255 255 / .16); }
+.vc-cast-primary svg, .vc-cast-secondary svg { width: 1.125rem; height: 1.125rem; }
+
+.vc-cast-remote { display: grid; gap: 1rem; }
+.vc-cast-seek input { width: 100%; accent-color: var(--sm-accent, #8b7cf6); height: 1.75rem; }
+.vc-cast-times { display: flex; justify-content: space-between; font-size: .8125rem; font-variant-numeric: tabular-nums; color: rgb(255 255 255 / .7); }
+.vc-cast-buttons { display: flex; align-items: center; justify-content: center; gap: 1.5rem; }
+.vc-cast-round { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; border-radius: 999px;
+    background: rgb(255 255 255 / .08); color: #fff; }
+.vc-cast-round svg { width: 1.75rem; height: 1.75rem; }
+.vc-cast-round small { position: absolute; font-size: .625rem; font-weight: 700; }
+.vc-cast-round:active, .vc-cast-play:active { transform: scale(.96); }
+.vc-cast-play { display: inline-flex; align-items: center; justify-content: center; width: 4.5rem; height: 4.5rem; border-radius: 999px;
+    background: rgb(244 244 246); color: #111114; }
+.vc-cast-play svg { width: 2rem; height: 2rem; }
+.vc-cast-volume { display: flex; align-items: center; justify-content: center; gap: 1rem; font-size: .875rem; font-variant-numeric: tabular-nums; }
+.vc-cast-note { margin: 0; text-align: center; font-size: .875rem; color: rgb(255 255 255 / .75); }
+.vc-cast-error { margin: 0; font-size: .875rem; color: #ff8a8a; }
+
+/* While a TV plays: a pill over the paused player, tapping it opens the remote */
+.vc-cast-pill { position: absolute; top: calc(var(--vc-pad-safe-t, 0px) + 4rem); left: 50%; transform: translateX(-50%); z-index: 61; display: inline-flex;
+    align-items: center; gap: .5rem; min-height: 2.75rem; padding: 0 1rem; border-radius: 999px; background: rgb(22 21 30 / .92); color: #fff;
+    font-size: .875rem; font-weight: 600; box-shadow: 0 4px 16px rgb(0 0 0 / .4); }
+.vc-cast-pill svg { width: 1.125rem; height: 1.125rem; }

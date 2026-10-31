@@ -1,5 +1,6 @@
 import { getServerBaseUrl } from "@/api/client/server-url"
 import { AL_BaseAnime, Anime_Episode, Anime_LocalFileType } from "@/api/generated/types"
+import { useUpdateAnimeEntryProgress } from "@/api/hooks/anime_entries.hooks"
 import { useUpdateLocalFileData } from "@/api/hooks/localfiles.hooks"
 import { useExternalPlayerLink } from "@/app/(main)/_atoms/playback.atoms"
 import { EpisodeGridItem } from "@/app/(main)/_features/anime/_components/episode-grid-item"
@@ -12,13 +13,14 @@ import { defineSchema, Field, Form } from "@/components/ui/form"
 import { Modal } from "@/components/ui/modal"
 import { Separator } from "@/components/ui/separator"
 import { useTr } from "@/lib/app-language"
+import { successFeedback } from "@/lib/feedback"
 import { getImageUrl } from "@/lib/server/assets"
 import { atom } from "jotai"
 import { createIsolation } from "jotai-scope"
-import { memo } from "react"
+import React, { memo } from "react"
 import { AiFillWarning } from "react-icons/ai"
 import { BiDotsHorizontal, BiLockOpenAlt } from "react-icons/bi"
-import { MdInfo, MdOutlineOndemandVideo, MdOutlineRemoveDone } from "react-icons/md"
+import { MdDoneAll, MdInfo, MdInfoOutline, MdOutlineOndemandVideo, MdOutlineRemoveDone } from "react-icons/md"
 import { RiEdit2Line } from "react-icons/ri"
 import { VscVerified } from "react-icons/vsc"
 import { useCopyToClipboard } from "react-use"
@@ -28,6 +30,7 @@ import { z } from "zod"
 const EpisodeItemIsolation = createIsolation()
 
 const __metadataModalIsOpenAtom = atom(false)
+const __infoModalIsOpenAtom = atom(false)
 
 export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, onPlay, percentageComplete, minutesRemaining, mobileEntry }: {
     mobileEntry?: boolean,
@@ -43,6 +46,7 @@ export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, o
     const t = useTr()
     const { updateLocalFile, isPending } = useUpdateLocalFileData()
     const [, copyToClipboard] = useCopyToClipboard()
+    const { mutate: updateProgress, isPending: isUpdatingProgress } = useUpdateAnimeEntryProgress(media.id, episode.progressNumber, false)
 
     const { getHMACTokenQueryParam } = useServerHMACAuth()
 
@@ -101,10 +105,31 @@ export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, o
                                 icon={<BiDotsHorizontal />}
                                 intent="gray-basic"
                                 size="xs"
+                                aria-label={t("Episode options", "Optionen der Folge")}
                             />
                         }
                     >
+                        {/* Sets the list progress to this episode, as the player's "Update progress" does */}
+                        {!isWatched && episode.progressNumber > 0 && <DropdownMenuItem
+                            disabled={isUpdatingProgress}
+                            onClick={() => updateProgress({
+                                episodeNumber: episode.progressNumber,
+                                mediaId: media.id,
+                                totalEpisodes: media.episodes || 0,
+                                malId: media.idMal || undefined,
+                            }, {
+                                onSuccess: () => {
+                                    toast.success(t("Marked as watched", "Als gesehen markiert"))
+                                    successFeedback()
+                                },
+                            })}
+                        >
+                            <MdDoneAll />
+                            {t("Mark as watched", "Als gesehen markieren")}
+                        </DropdownMenuItem>}
+                        {episode.localFile && <InfoModalButton />}
                         {!episode._isNakamaEpisode && <MetadataModalButton />}
+                        {!episode._isNakamaEpisode && <PluginEpisodeGridItemMenuItems isDropdownMenu={false} type="library" episode={episode} />}
                         {episode.localFile && <DropdownMenuItem
                             onClick={async () => {
                                 if (!episode._isNakamaEpisode) {
@@ -124,8 +149,6 @@ export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, o
                         </DropdownMenuItem>}
 
                         {!episode._isNakamaEpisode && <>
-                            <PluginEpisodeGridItemMenuItems isDropdownMenu={false} type="library" episode={episode} />
-
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                                 className="text-[--orange]"
@@ -143,14 +166,12 @@ export const EpisodeItem = memo(({ episode, media, isWatched, watchedProgress, o
                             </DropdownMenuItem>
                         </>}
                     </DropdownMenu>
-
-                    {(!!episode.episodeMetadata && (episode.type === "main" || episode.type === "special")) && !!episode.episodeMetadata?.anidbId &&
-                        <EpisodeItemInfoModalButton episode={episode} />}
                 </>}
             />
             <MetadataModal
                 episode={episode}
             />
+            {episode.localFile && <InfoModal episode={episode} />}
         </EpisodeItemIsolation.Provider>
     )
 
@@ -228,6 +249,21 @@ function MetadataModal({ episode }: { episode: Anime_Episode }) {
     )
 }
 
+/** "File info" in the episode's menu: the file name and the episode's details, instead of the name under every title. */
+function InfoModalButton() {
+    const t = useTr()
+    const [, setIsOpen] = EpisodeItemIsolation.useAtom(__infoModalIsOpenAtom)
+    return <DropdownMenuItem onClick={() => setIsOpen(true)}>
+        <MdInfoOutline />
+        {t("File info", "Dateiinfo")}
+    </DropdownMenuItem>
+}
+
+function InfoModal({ episode }: { episode: Anime_Episode }) {
+    const [isOpen, setIsOpen] = EpisodeItemIsolation.useAtom(__infoModalIsOpenAtom)
+    return <EpisodeInfoModal episode={episode} open={isOpen} onOpenChange={setIsOpen} />
+}
+
 function MetadataModalButton() {
     const t = useTr()
     const [, setIsOpen] = EpisodeItemIsolation.useAtom(__metadataModalIsOpenAtom)
@@ -239,16 +275,26 @@ function MetadataModalButton() {
 
 export function EpisodeItemInfoModalButton({ episode }: { episode: Anime_Episode }) {
     const t = useTr()
+    return <EpisodeInfoModal episode={episode} trigger={<IconButton
+        icon={<MdInfo />}
+        className="opacity-30 hover:opacity-100 transform-opacity"
+        intent="gray-basic"
+        size="xs"
+        aria-label={t("Episode info", "Infos zur Folge")}
+    />} />
+}
+
+function EpisodeInfoModal({ episode, trigger, open, onOpenChange }: {
+    episode: Anime_Episode, trigger?: React.ReactElement, open?: boolean, onOpenChange?: (open: boolean) => void
+}) {
+    const t = useTr()
     return <Modal
         title={episode.displayTitle}
         titleClass="text-xl"
         contentClass="max-w-2xl overflow-hidden"
-        trigger={<IconButton
-            icon={<MdInfo />}
-            className="opacity-30 hover:opacity-100 transform-opacity"
-            intent="gray-basic"
-            size="xs"
-        />}
+        trigger={trigger}
+        open={open}
+        onOpenChange={onOpenChange}
     >
 
         {episode.episodeMetadata?.image && <div
@@ -280,8 +326,8 @@ export function EpisodeItemInfoModalButton({ episode }: { episode: Anime_Episode
                     ?.replace(/source:.*/gi, "") || t("No summary", "Keine Zusammenfassung")}
             </p>
             <Separator />
-            <p className="text-[--muted] line-clamp-2 tracking-wide text-sm">
-                {episode.localFile?.parsedInfo?.original}
+            <p className="text-[--muted] line-clamp-2 tracking-wide text-sm" data-episode-info-file-name>
+                {episode.localFile?.name || episode.localFile?.parsedInfo?.original}
             </p>
             {
                 (!!episode.episodeMetadata?.anidbId) && <>

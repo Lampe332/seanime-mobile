@@ -1,6 +1,5 @@
 import { useRefreshAnimeCollection } from "@/api/hooks/anilist.hooks"
 import { openAndroidDownloads } from "@/lib/android-offline"
-import { useLogout } from "@/api/hooks/auth.hooks"
 import { useGetExtensionUpdateData as useGetExtensionUpdateData, usePluginWithIssuesCount } from "@/api/hooks/extensions.hooks"
 import { isLoginModalOpenAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { MobileAnilistLogin } from "@/app/(main)/_features/navigation/anilist-login-mobile"
@@ -9,7 +8,6 @@ import { usePluginSidebarItems } from "@/app/(main)/_features/plugin/webview/plu
 import { MobileUpdateModal } from "@/app/(main)/_features/update/mobile-update-modal"
 import { useMissingEpisodeCount } from "@/app/(main)/_hooks/missing-episodes-loader"
 import { useCurrentUser, useServerStatus } from "@/app/(main)/_hooks/use-server-status"
-import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { AppSidebar, useAppSidebarContext } from "@/components/ui/app-layout"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/components/ui/core/styling"
@@ -20,7 +18,7 @@ import { ANILIST_OAUTH_URL } from "@/lib/server/config"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useAtom } from "jotai"
 import React from "react"
-import { BiChevronRight, BiExtension, BiLogOut } from "react-icons/bi"
+import { BiChevronRight, BiExtension } from "react-icons/bi"
 import { FiLogIn, FiSearch } from "react-icons/fi"
 import { IoCloudOfflineOutline, IoHomeOutline } from "react-icons/io5"
 import { LuBookOpen, LuCalendar, LuCompass, LuRefreshCw, LuSettings } from "react-icons/lu"
@@ -32,7 +30,6 @@ import { nakamaModalOpenAtom, useNakamaStatus } from "../nakama/nakama-manager"
 // Hidden at every width: UIBottomNav.kt builds the native nav and menu from these links and buttons.
 export function MainSidebar() {
     const containerRef = React.useRef<HTMLDivElement>(null)
-    const { mutate: logout } = useLogout()
 
     return (
         <AppSidebar
@@ -47,7 +44,7 @@ export function MainSidebar() {
 
             <div className="flex w-full gap-2 flex-col px-4 shrink-0 pb-2">
                 <MobileUpdateModal />
-                <SidebarFooter onLogout={logout} />
+                <SidebarFooter />
                 <SidebarUser />
             </div>
         </AppSidebar>
@@ -275,7 +272,7 @@ function SidebarNavigation({ containerRef }: { containerRef: React.RefObject<HTM
     )
 }
 
-function SidebarFooter({ onLogout }: { onLogout: () => void }) {
+function SidebarFooter() {
     const ctx = useAppSidebarContext()
     const pathname = usePathname()
     const serverStatus = useServerStatus()
@@ -289,14 +286,6 @@ function SidebarFooter({ onLogout }: { onLogout: () => void }) {
     const [nakamaModalOpen, setNakamaModalOpen] = useAtom(nakamaModalOpenAtom)
     const nakamaStatus = useNakamaStatus()
 
-    // Sign out
-    const confirmSignOut = useConfirmationDialog({
-        title: "Sign out",
-        description: "Are you sure you want to sign out?",
-        onConfirm: () => {
-            onLogout()
-        },
-    })
     // Login
     const [loginModal, setLoginModal] = useAtom(isLoginModalOpenAtom)
 
@@ -348,14 +337,14 @@ function SidebarFooter({ onLogout }: { onLogout: () => void }) {
                         href: "/settings",
                         isCurrent: pathname === ("/settings"),
                     },
-                    {
-                        iconType: user?.isSimulated ? FiLogIn : BiLogOut,
-                        name: user?.isSimulated ? "Sign in" : "Sign out",
-                        onClick: user?.isSimulated ? () => setLoginModal(true) : confirmSignOut.open,
-                    },
+                    // Signing out sits in Settings › App › Account, away from the everyday menu entries
+                    ...user?.isSimulated ? [{
+                        iconType: FiLogIn,
+                        name: "Sign in",
+                        onClick: () => setLoginModal(true),
+                    }] : [],
                 ]}
             />
-            <ConfirmationDialog {...confirmSignOut} />
         </div>
     )
 }

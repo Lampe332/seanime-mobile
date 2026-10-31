@@ -17,8 +17,8 @@ export function MobileGettingStarted({ pending }: { pending: boolean }) {
         {
             name: "enableOnlinestream",
             title: t("Online streaming", "Online-Streaming"),
-            text: t("Watch episodes from online sources and download them to this phone.",
-                "Folgen aus Online-Quellen schauen und aufs Handy laden."),
+            text: t("Watch episodes from online sources and download them to this device.",
+                "Folgen aus Online-Quellen schauen und aufs Gerät laden."),
         },
         {
             name: "enableManga",

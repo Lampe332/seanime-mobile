@@ -1,9 +1,11 @@
+import "@/app/(main)/_features/media-core/media-core-controls.css"
+import "@/components/shared/mobile-surface.css"
 import { SeaImage as Image } from "@/components/shared/sea-image"
 import { cn } from "@/components/ui/core/styling"
-import { AnimatePresence, motion } from "motion/react"
+import { tr } from "@/lib/app-language"
+import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import React from "react"
-import { LuChevronLeft, LuChevronRight, LuVolume, LuVolume1, LuVolume2, LuVolumeOff } from "react-icons/lu"
-import { RxEnterFullScreen, RxExitFullScreen } from "react-icons/rx"
+import { LuMaximize, LuMinimize, LuSkipBack, LuSkipForward, LuVolume, LuVolume1, LuVolume2, LuVolumeOff } from "react-icons/lu"
 import { TbPictureInPicture, TbPictureInPictureOff } from "react-icons/tb"
 
 export function formatTime(seconds: number) {
@@ -23,7 +25,6 @@ const CHAPTER_GAP = 3
 
 export interface MediaCoreMobileControlBarViewProps {
     paused: boolean
-    isMiniPlayer: boolean
     cursorBusy: boolean
     isSwiping: boolean
     timeRange: React.ReactNode
@@ -33,10 +34,10 @@ export interface MediaCoreMobileControlBarViewProps {
     bottomRightSection?: React.ReactNode
 }
 
+/** Top and bottom bars of the Android player; sizes and spacing come from media-core-controls.css. */
 export function MediaCoreMobileControlBarView(props: MediaCoreMobileControlBarViewProps) {
     const {
         paused,
-        isMiniPlayer,
         cursorBusy,
         isSwiping,
         timeRange,
@@ -61,43 +62,19 @@ export function MediaCoreMobileControlBarView(props: MediaCoreMobileControlBarVi
         }
     }, [isSwiping])
 
-    const showShadow = paused || cursorBusy
     const bottomSectionTranslateY = (paused || cursorBusy) ? 0 : 300
 
     return (
         <>
-            <div
-                data-vc-element="mobile-control-bar-gradient-bottom"
-                className={cn(
-                    "vc-mobile-control-bar-bottom-gradient pointer-events-none absolute bottom-0 left-0 right-0 w-full z-[10] h-28 transition-opacity duration-300 opacity-0",
-                    "bg-gradient-to-t to-transparent",
-                    !isMiniPlayer ? "from-black/40" : "from-black/80 via-black/40",
-                    "h-20",
-                    (showShadow || isSwiping) && "opacity-100",
-                )}
-            />
-            <div
-                data-vc-element="mobile-control-bar-gradient-top"
-                className={cn(
-                    "vc-mobile-control-bar-top-gradient pointer-events-none absolute top-0 left-0 right-0 w-full z-[10] h-28 transition-opacity duration-300 opacity-0",
-                    "bg-gradient-to-b to-transparent",
-                    !isMiniPlayer ? "from-black/40" : "from-black/80 via-black/40",
-                    "h-20",
-                    (showShadow) && "opacity-100",
-                )}
-            />
-
             {/*Top Section*/}
             <div
                 data-vc-element="mobile-control-bar-top-section"
-                className={cn(
-                    "vc-mobile-control-bar-top-section absolute transition-transform left-0 right-0 top-0 w-full z-[11] transform-gpu px-2 pt-3",
-                )}
+                className="vc-mobile-control-bar-top-section vc-bar vc-bar--top"
                 style={{
                     transform: `translateY(${-bottomSectionTranslateY}px)`,
                 }}
             >
-                <div data-vc-element="mobile-control-bar-top-content" className="transform-gpu duration-100 flex items-center">
+                <div data-vc-element="mobile-control-bar-top-content" className="vc-bar-row">
                     {topLeftSection}
                     <div className="flex flex-1" />
                     {topRightSection}
@@ -108,8 +85,8 @@ export function MediaCoreMobileControlBarView(props: MediaCoreMobileControlBarVi
             <div
                 data-vc-element="mobile-control-bar-bottom-section"
                 className={cn(
-                    "vc-mobile-control-bar-bottom-section absolute transition-transform left-0 right-0 bottom-0 w-full z-[11] transform-gpu px-2",
-                    isSwiping && "transition-none",
+                    "vc-mobile-control-bar-bottom-section vc-bar vc-bar--bottom",
+                    isSwiping && "vc-bar--swiping",
                 )}
                 style={{
                     transform: isSwiping ? "translateY(0px)" : `translateY(${bottomSectionTranslateY}px)`,
@@ -118,7 +95,7 @@ export function MediaCoreMobileControlBarView(props: MediaCoreMobileControlBarVi
                 <div
                     data-vc-element="mobile-control-bar-bottom-content"
                     className={cn(
-                        "transform-gpu duration-100 flex items-center",
+                        "vc-bar-row",
                         (isSwiping || isSwipingDebounced) && "hidden",
                     )}
                 >
@@ -150,11 +127,7 @@ export function MediaCoreControlButtonIcon(props: MediaCoreControlButtonIconProp
             role="button"
             data-vc-element="control-button"
             data-vc-state={state}
-            className={cn(
-                "vc-control-button flex items-center justify-center transition-opacity relative h-full focus-visible:outline-none focus:outline-none focus-visible:opacity-50",
-                "px-1 text-2xl",
-                className,
-            )}
+            className={cn("vc-control-button focus:outline-none", className)}
             onClick={onClick}
             onWheel={onWheel}
         >
@@ -195,9 +168,14 @@ export interface MediaCoreVolumeButtonProps {
 }
 
 const VOLUME_PANEL_IDLE_MS = 3500
+const EASE_OUT = [0.23, 1, 0.32, 1] as const
+// Closed, only the round end under the speaker (about one button of the 13rem pill) is left; open, the whole pill.
+const VOLUME_PANEL_CLOSED = "inset(0% 0% 0% 79% round 999px)"
+const VOLUME_PANEL_OPEN = "inset(0% 0% 0% 0% round 999px)"
 
 export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
-    const { volume, muted, onVolumeChange, onMuteToggle, isMiniPlayer, panelOpen, onPanelOpenChange } = props
+    const { volume, muted, onVolumeChange, onMuteToggle, panelOpen, onPanelOpenChange } = props
+    const reduceMotion = useReducedMotion()
     const [isSliding, setIsSliding] = React.useState(false)
     const rootRef = React.useRef<HTMLDivElement>(null)
     const idleTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -268,7 +246,7 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
 
     return (
         // Fixed anchor width: the icon swap animation briefly renders two icons and would shift the slider mid-drag.
-        <div ref={rootRef} data-vc-element="control-volume" className="vc-control-volume group/vc-control-volume relative flex items-center justify-center h-full gap-2 text-white flex-none w-8">
+        <div ref={rootRef} data-vc-element="control-volume" className="vc-control-volume group/vc-control-volume">
             <MediaCoreControlButtonIcon
                 icons={[
                     ["low", LuVolume],
@@ -282,22 +260,29 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
                             volume > 0.1 ? "mid" :
                                 "low"
                 }
-                className={isMiniPlayer ? "text-[1.3rem]" : "text-2xl"}
                 onClick={() => onPanelOpenChange(!panelOpen)}
                 onWheel={handleWheel}
             />
-            {panelOpen && (
-                <div
+            <AnimatePresence>{panelOpen && (
+                <motion.div
+                    key="panel"
                     data-vc-element="control-volume-mobile-panel"
                     data-vc-gesture-ignore
-                    className="vc-control-volume-mobile-panel absolute top-1/2 -translate-y-1/2 right-full mr-1 z-[20] flex items-center gap-3 h-12 w-52 max-w-[65vw] pl-3 pr-4 rounded-full bg-black/75"
+                    className="vc-control-volume-mobile-panel vc-volume-panel"
+                    // Grows out of the speaker: the pill opens leftwards from the icon's end, slides down from it and fades in.
+                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, clipPath: VOLUME_PANEL_CLOSED, transform: "translateY(-6px)" }}
+                    animate={reduceMotion ? { opacity: 1 } : { opacity: 1, clipPath: VOLUME_PANEL_OPEN, transform: "translateY(0px)" }}
+                    exit={reduceMotion
+                        ? { opacity: 0, pointerEvents: "none", transition: { duration: 0.12 } }
+                        : { opacity: 0, clipPath: VOLUME_PANEL_CLOSED, transform: "translateY(-4px)", pointerEvents: "none", transition: { duration: 0.15, ease: EASE_OUT } }}
+                    transition={{ duration: 0.22, ease: EASE_OUT }}
                     onClick={e => e.stopPropagation()}
                     onPointerDown={e => e.stopPropagation()}
                 >
                     <button
                         type="button"
-                        aria-label={muted ? "Unmute" : "Mute"}
-                        className="flex-none flex items-center justify-center w-8 h-8 text-xl text-white/90"
+                        aria-label={muted ? tr("Unmute", "Ton an") : tr("Mute", "Stumm")}
+                        className="flex-none flex items-center justify-center w-11 h-11 text-xl text-white/90"
                         onClick={() => {
                             onMuteToggle()
                             keepPanelOpen()
@@ -307,7 +292,7 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
                     </button>
                     <div
                         role="slider"
-                        aria-label="Volume"
+                        aria-label={tr("Volume", "Lautstärke")}
                         aria-valuemin={0}
                         aria-valuemax={100}
                         aria-valuenow={Math.round((muted ? 0 : volumeToLinear(volume)) * 100)}
@@ -321,23 +306,99 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
                         onPointerUp={handlePointerUp}
                         onPointerCancel={handlePointerUp}
                     >
-                        <div className="absolute h-1.5 w-full bg-white/30 rounded-full" />
-                        <div className="absolute h-1.5 bg-white rounded-full" style={{ width: `${(muted ? 0 : volumeToLinear(volume)) * 100}%` }} />
+                        <div className="vc-volume-panel-track" />
+                        <div className="vc-volume-panel-fill" style={{ width: `${(muted ? 0 : volumeToLinear(volume)) * 100}%` }} />
+                        <div className="vc-volume-panel-thumb" style={{ left: `${(muted ? 0 : volumeToLinear(volume)) * 100}%` }} />
                     </div>
-                </div>
-            )}
+                </motion.div>
+            )}</AnimatePresence>
         </div>
     )
 }
 
 export function MediaCoreNextButton(props: { onClick: () => void; isMiniPlayer: boolean }) {
     if (props.isMiniPlayer) return null
-    return <MediaCoreControlButtonIcon icons={[["default", LuChevronRight]]} state="default" onClick={props.onClick} />
+    return <MediaCoreControlButtonIcon icons={[["default", LuSkipForward]]} state="default" iconClass="fill-current" onClick={props.onClick} />
 }
 
 export function MediaCorePreviousButton(props: { onClick: () => void; isMiniPlayer: boolean }) {
     if (props.isMiniPlayer) return null
-    return <MediaCoreControlButtonIcon icons={[["default", LuChevronLeft]]} state="default" onClick={props.onClick} />
+    return <MediaCoreControlButtonIcon icons={[["default", LuSkipBack]]} state="default" iconClass="fill-current" onClick={props.onClick} />
+}
+
+// Material "replay" / "forward" arrows; the seconds sit inside the ring
+const CENTER_SEEK_BACK_PATH = "M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
+const CENTER_SEEK_FORWARD_PATH = "M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2z"
+
+export interface MediaCoreCenterControlsViewProps {
+    paused: boolean
+    seekBackSeconds: number
+    seekForwardSeconds: number
+    onTogglePlay: () => void
+    onSeek: (seconds: number) => void
+}
+
+/**
+ * Centre of the Android player: back, play/pause, forward. VideoControlInjector.kt shows and hides it together with the
+ * bars by toggling `__seanime-visible` on this id; `data-seanime-mobile-control` tells its tap handling these are buttons.
+ */
+export function MediaCoreCenterControlsView(props: MediaCoreCenterControlsViewProps) {
+    const { paused, seekBackSeconds, seekForwardSeconds, onTogglePlay, onSeek } = props
+
+    return (
+        <div id="__seanime-mobile-controls" data-vc-element="center-controls" className="vc-center">
+            <MediaCoreCenterSeekButton seconds={-seekBackSeconds} onSeek={onSeek} />
+            <button
+                type="button"
+                data-seanime-mobile-control
+                data-vc-element="center-play"
+                aria-label={paused ? tr("Play", "Abspielen") : tr("Pause", "Pause")}
+                className="vc-center-button vc-center-button--play"
+                onClick={e => {
+                    e.stopPropagation()
+                    onTogglePlay()
+                }}
+            >
+                {/* A new key per state: the new symbol settles in instead of snapping over the old one. */}
+                <svg key={paused ? "play" : "pause"} className="vc-center-play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    {paused
+                        ? <path d="M8.5 5.65v12.7a1 1 0 0 0 1.53.85l10.16-6.35a1 1 0 0 0 0-1.7L10.03 4.8a1 1 0 0 0-1.53.85z" />
+                        : <><rect x="6" y="5" width="4.25" height="14" rx="1.25" /><rect x="13.75" y="5" width="4.25" height="14" rx="1.25" /></>}
+                </svg>
+            </button>
+            <MediaCoreCenterSeekButton seconds={seekForwardSeconds} onSeek={onSeek} />
+        </div>
+    )
+}
+
+function MediaCoreCenterSeekButton({ seconds, onSeek }: { seconds: number, onSeek: (seconds: number) => void }) {
+    // every tap gets a new key, which restarts the short turn of the arrow
+    const [taps, setTaps] = React.useState(0)
+    const back = seconds < 0
+
+    return (
+        <button
+            type="button"
+            data-seanime-mobile-control
+            data-vc-element={back ? "center-seek-back" : "center-seek-forward"}
+            aria-label={back ? tr(`Back ${-seconds} seconds`, `${-seconds} Sekunden zurück`) : tr(`Forward ${seconds} seconds`, `${seconds} Sekunden vor`)}
+            className="vc-center-button"
+            onClick={e => {
+                e.stopPropagation()
+                onSeek(seconds)
+                setTaps(n => n + 1)
+            }}
+        >
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path
+                    key={taps}
+                    d={back ? CENTER_SEEK_BACK_PATH : CENTER_SEEK_FORWARD_PATH}
+                    className={cn(taps > 0 && (back ? "vc-center-turn-back" : "vc-center-turn-forward"))}
+                />
+                <text x="12" y="15.4" textAnchor="middle" className="vc-center-seek-number">{Math.abs(seconds)}</text>
+            </svg>
+        </button>
+    )
 }
 
 export interface MediaCoreTimestampProps {
@@ -360,11 +421,14 @@ export function MediaCoreTimestamp(props: MediaCoreTimestampProps) {
         <p
             data-vc-element="timestamp"
             data-vc-timestamp-type={timestampMode}
-            className="tabular-nums font-medium opacity-100 cursor-pointer text-white text-xs"
+            className="vc-timestamp cursor-pointer"
             onClick={onTimestampModeToggle}
         >
-            {timestampMode === "remaining" ? "-" : ""}
-            {formatTime(Math.max(0, Math.min(duration, timeToShow)))} / {formatTime(duration)}
+            <span>
+                {timestampMode === "remaining" ? "-" : ""}
+                {formatTime(Math.max(0, Math.min(duration, timeToShow)))}
+            </span>
+            <span className="vc-timestamp-total">/ {formatTime(duration)}</span>
         </p>
     )
 }
@@ -394,8 +458,8 @@ export function MediaCoreFullscreenButton(props: {
     return (
         <MediaCoreControlButtonIcon
             icons={[
-                ["default", RxEnterFullScreen],
-                ["fullscreen", RxExitFullScreen],
+                ["default", LuMaximize],
+                ["fullscreen", LuMinimize],
             ]}
             state={props.isFullscreen ? "fullscreen" : "default"}
             onClick={props.onToggleFullscreen}
@@ -471,14 +535,14 @@ export function MediaCoreTimeRangeView(props: MediaCoreTimeRangeViewProps) {
             ref={timeRangeRef}
             data-vc-element="time-range"
             data-vc-seeking-target-state={seeking}
-            className="w-full relative group/vc-time-range z-[2] flex h-8 cursor-pointer outline-none touch-none select-none [contain:layout_style] text-white"
+            className="vc-time-range relative group/vc-time-range z-[2] flex cursor-pointer outline-none touch-none select-none [contain:layout_style] text-white"
             role="slider"
             tabIndex={0}
             aria-valuemin={0}
             aria-valuenow={progressPercentage}
             aria-valuetext={`${Math.round(progressPercentage)}%`}
             aria-orientation="horizontal"
-            aria-label="Video playback time"
+            aria-label={tr("Playback time", "Wiedergabezeit")}
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
             onPointerLeave={onPointerLeave}
@@ -538,6 +602,12 @@ export function MediaCoreTimeRangeView(props: MediaCoreTimeRangeViewProps) {
                     highlighted={highlightChapters && skipChapters.includes(chapter)}
                 />
             ))}
+
+            <div
+                data-vc-element="time-range-thumb"
+                className="vc-time-thumb"
+                style={{ left: `${duration > 1 ? Math.max(0, Math.min(100, progressPercentage)) : 0}%` }}
+            />
         </div>
     )
 }
@@ -579,8 +649,8 @@ function MediaCoreTimeRangeSegment(props: {
             <div
                 data-vc-element="time-range-chapter"
                 className={cn(
-                    "relative h-1 transition-transform transform-gpu origin-center will-change-transform flex items-center justify-center overflow-hidden rounded-lg",
-                    focused && "scale-y-[2]",
+                    "vc-time-chapter relative transition-transform transform-gpu origin-center will-change-transform flex items-center justify-center overflow-hidden rounded-lg",
+                    focused && "scale-y-[1.75]",
                 )}
                 style={{
                     width: idx > 0 ? `calc(100% - ${CHAPTER_GAP / 2}px)` : `100%`,
@@ -590,7 +660,7 @@ function MediaCoreTimeRangeSegment(props: {
                 <div
                     data-vc-element="time-range-chapter-bar"
                     data-vc-for="progress"
-                    className="bg-white absolute w-full h-full left-0 transform-gpu z-[10]"
+                    className="vc-time-progress absolute w-full h-full left-0 transform-gpu z-[10]"
                     style={{
                         "--tw-translate-x": duration > 1 ? `${getChapterBarPosition(chapter, progressPercentage)}%` : "-100%",
                     } as React.CSSProperties}
@@ -606,7 +676,7 @@ function MediaCoreTimeRangeSegment(props: {
                 <div
                     data-vc-element="time-range-chapter-bar"
                     data-vc-for="buffer"
-                    className="bg-white/10 absolute w-full h-full left-0 transform-gpu z-[8]"
+                    className="bg-white/25 absolute w-full h-full left-0 transform-gpu z-[8]"
                     style={{
                         "--tw-translate-x": duration > 1 ? `${getChapterBarPosition(chapter, bufferedPercentage)}%` : "-100%",
                     } as React.CSSProperties}
@@ -616,8 +686,8 @@ function MediaCoreTimeRangeSegment(props: {
                     data-vc-for="main"
                     data-vc-highlighted-state={highlighted}
                     className={cn(
-                        "bg-white/20 absolute left-0 w-full h-full z-[1]",
-                        highlighted && "bg-blue-300/50",
+                        "bg-white/25 absolute left-0 w-full h-full z-[1]",
+                        highlighted && "bg-amber-200/55",
                     )}
                 />
             </div>

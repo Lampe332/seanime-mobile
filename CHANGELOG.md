@@ -2,6 +2,61 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.31 — 31.10.2026 (versionCode 31126)
+
+- 🎉 Cast: Play an episode on a TV in your Wi-Fi (DLNA, tested with LG webOS) with a remote in the player
+  - The audio and subtitle tracks you picked go along, and switching them on the phone switches them on the TV
+  - "Continue on this device" picks up where the TV is, and "Next episode" plays the next one on the TV
+  - Google Cast (Google TV, Chromecast) is included without subtitles and is untested on a real device
+- 🎉 Player: "Play in app player" plays episodes with AC3, DTS or TrueHD audio that the built-in player can't decode
+- 🎉 Player: Picture fit with Fit, Zoom to fill and Stretch
+- 🎉 Player: Sleep timer, and a 5-second countdown before the next episode that you can cancel
+- 🎉 Player: Swipe up or down for brightness and volume, hold for 2× speed
+- 🎉 Player: The audio and subtitle language you pick is remembered for each anime
+- 🎉 Player: Lock screen and notification controls, with previous and next episode
+- 🎉 Player: Picture-in-picture starts by itself when you leave a playing video, in the video's shape
+- 🎉 Player: Switch audio tracks in MKV files from your library or a Nakama host
+- 🎉 Player: Subtitles inside MP4 files are shown
+- 🎉 Notifications: New-episode notifications for the anime you are watching
+- 🎉 App: Launcher shortcuts, AniList and MyAnimeList links, and sharing text to the app opens a search
+- 🎉 Torrents: The torrent sheet searches several providers at once and filters by language, 10-bit, 2160p, codec, source and size, with a search inside the results and sorting
+- 🎉 Torrents: Auto-select profile in Settings → Torrents (release groups, languages, codecs, exclusions)
+- 🎉 Debrid: Download a torrent through your debrid service from the torrent sheet
+- 🎉 Downloads: "Download only on Wi-Fi", notifications when a download finishes or fails, and "Retry failed"
+- 🎉 Downloads: Torrents ask before they start on mobile data
+- 🎉 Offline player: Audio track menu, and the next downloaded episode plays after a short countdown
+- 🎉 Manga: Pinch and double-tap to zoom, swipe to turn pages
+- 🎉 Manga: Sort chapters, jump to a chapter, and an automatic single or double page on tablets
+- 🎉 Nakama: The watch party chat is available on phones and tablets
+- 🎉 Pull to refresh on Home, Discover, Schedule, My lists, Manga and Downloads
+- 🎉 Feedback: Haptics for switches, jumps and errors, and a quiet sound when a download starts or an episode is marked as watched (Settings → App → Feedback)
+- ⚡️ Animations: Fullscreen grows out of the player and shrinks back, sheets and menus open from where you tapped, tabs and the navigation highlight slide, and covers open into their page
+- ⚡️ Animations: Settings, lists, search results and loading screens fade and slide in
+- ⚡️ Nakama: The Nakama window is a sheet like the rest of the app
+- ⚡️ Anime and manga pages: "More" opens a sheet, the episode menu offers "Mark as watched" and "File info", and the manga source has labelled fields
+- ⚡️ Navigation: The menu is shorter. Sign out and the navigation options moved to Settings → App
+- ⚡️ Player: Rarely used options moved to "Advanced" in the player settings, and the volume slider no longer covers the other buttons
+- ⚡️ Tablets: Header buttons show a short label, and the schedule uses the full width
+- ⚡️ Torrents: Duplicate results are gone, unknown seeders are marked, and a slow provider no longer holds up the others
+- ⚡️ Language: The player, menus, error messages, Nakama and manga screens follow the app language
+- ⚡️ App: Back on Home moves the app to the background instead of closing it
+- 🦺 Nakama: A host's shared library no longer hides your streaming and AniList entries
+- 🦺 Player: MKV files with their tracks at the end of the file show their subtitles and audio tracks again
+- 🦺 Player: Long subtitle lines show up after seeking, and WebVTT subtitles in MKV and WebM files work
+- 🦺 Player: HEVC episodes no longer fail after a few episodes in a row
+- 🦺 Player: Opening an anime page no longer starts playing by itself
+- 🦺 Player: Back in fullscreen closes an open menu first, then fullscreen
+- 🦺 Online streaming: An episode paused on the page no longer reloads after 20 seconds and gets stuck on "Loading stream"
+- 🦺 Anime and manga pages: Without a connection the page shows an error with "Try again" instead of going back to Home
+- 🦺 App: A crashed web view reloads the page instead of closing the app
+- 🦺 App: Plugging in a keyboard or changing dark mode or font size no longer reloads the app
+- 🦺 App: Taps on a notification, the widget or a shortcut open in the running app instead of a second copy
+- 🦺 Widget: The widget keeps its list when the app's server is not running
+- 🦺 Manga: A provider that lists a title twice shows the entry with the most chapters
+- 🦺 Android profiles: Switching profiles frees the app's local server port
+- ⬆️ Updated dependencies
+  - Added the FFmpeg audio decoder and the Google Cast framework
+
 ## 2.0.30 — 25.10.2026 (versionCode 31125)
 
 - ⚡️ Performance: Cover lists scroll more smoothly because cards no longer each get their own GPU layer

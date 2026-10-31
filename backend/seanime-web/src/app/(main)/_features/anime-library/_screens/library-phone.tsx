@@ -27,6 +27,7 @@ import { SeaImage } from "@/components/shared/sea-image"
 import { SeaLink } from "@/components/shared/sea-link"
 import { useDebounce } from "@/hooks/use-debounce"
 import { Translate, useTr } from "@/lib/app-language"
+import { TabletLabel } from "@/lib/tablet-ui"
 import { upath } from "@/lib/helpers/upath"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import React from "react"
@@ -87,6 +88,7 @@ export function LibraryPhoneAction() {
         aria-label={waiting ? t(`Local library, ${waiting} need attention`, `Lokale Bibliothek, ${waiting} brauchen dich`) : t("Local library", "Lokale Bibliothek")}
         onClick={() => setOpen(true)}>
         <LuFolderOpen aria-hidden />
+        <TabletLabel>{t("Library", "Bibliothek")}</TabletLabel>
         {waiting > 0 && <span className="plib-dot" aria-hidden />}
     </button>
 }
@@ -158,8 +160,8 @@ export function LibraryPhoneSheet() {
             <button type="button" className="ps-primary" data-tone="danger" data-library-confirm-remove disabled={removing}
                 onClick={() => removeEmpty(undefined, { onSuccess: () => setConfirmRemove(false) })}>{t("Remove", "Entfernen")}</button>
         </>}>
-        <p className="ps-sheet-text">{t("Every folder in your library folders that holds no files is deleted from this phone.",
-            "Jeder Ordner in deinen Bibliotheksordnern, der keine Dateien enthält, wird von diesem Handy gelöscht.")}</p>
+        <p className="ps-sheet-text">{t("Every folder in your library folders that holds no files is deleted from this device.",
+            "Jeder Ordner in deinen Bibliotheksordnern, der keine Dateien enthält, wird von diesem Gerät gelöscht.")}</p>
     </PhoneSheet>
 
     return <PhoneSheet title={t("Local library", "Lokale Bibliothek")} open={open} onOpenChange={setOpen} data-library-phone-sheet

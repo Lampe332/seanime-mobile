@@ -3,6 +3,7 @@ import { MediaCardGrid } from "@/app/(main)/_features/media/_components/media-ca
 import { MediaEntryCard } from "@/app/(main)/_features/media/_components/media-entry-card"
 import { MediaEntryDetailsSkeleton } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
+import { Translate, useTr } from "@/lib/app-language"
 import capitalize from "lodash/capitalize"
 import React from "react"
 
@@ -14,7 +15,30 @@ type RelationsRecommendationsSectionProps = {
     maxCol?: number
 }
 
+const RELATION_LABELS: Record<string, [string, string]> = {
+    ADAPTATION: ["Adaptation", "Adaption"],
+    PREQUEL: ["Prequel", "Vorgänger"],
+    SEQUEL: ["Sequel", "Fortsetzung"],
+    PARENT: ["Parent story", "Hauptgeschichte"],
+    SIDE_STORY: ["Side story", "Nebengeschichte"],
+    CHARACTER: ["Same characters", "Gleiche Figuren"],
+    SUMMARY: ["Summary", "Zusammenfassung"],
+    ALTERNATIVE: ["Alternative", "Alternative"],
+    SPIN_OFF: ["Spin-off", "Spin-off"],
+    OTHER: ["Other", "Sonstiges"],
+    SOURCE: ["Source", "Vorlage"],
+    COMPILATION: ["Compilation", "Zusammenschnitt"],
+    CONTAINS: ["Contains", "Enthält"],
+}
+
+/** The relation as a label; a type this list does not know keeps its English form. */
+function relationLabel(t: Translate, type: string | null | undefined) {
+    const known = RELATION_LABELS[type ?? ""]
+    return known ? t(known[0], known[1]) : capitalize(type || "").replace("_", " ")
+}
+
 export function RelationsRecommendationsSection(props: RelationsRecommendationsSectionProps) {
+    const t = useTr()
 
     const {
         entry,
@@ -48,14 +72,14 @@ export function RelationsRecommendationsSection(props: RelationsRecommendationsS
         <div className="space-y-4 animate-in fade-in-0 duration-200">
             {(!!sourceManga || relations.length > 0) && (
                 <>
-                    <h2>Relations</h2>
+                    <h2>{t("Relations", "Verwandte Titel")}</h2>
                     <MediaCardGrid maxCol={maxCol}>
                         {!!sourceManga && <div className="col-span-1">
                             <MediaEntryCard
                                 media={sourceManga!}
                                 overlay={<p
                                     className="font-semibold text-white bg-gray-950 z-[-1] absolute right-0 w-fit px-4 py-1.5 text-center !bg-opacity-90 text-sm lg:text-base rounded-none rounded-bl-lg"
-                                >Manga</p>}
+                                >{t("Manga", "Manga")}</p>}
                                 type="manga"
                             /></div>}
                         {relations.slice(0, 4).map(edge => {
@@ -65,8 +89,8 @@ export function RelationsRecommendationsSection(props: RelationsRecommendationsS
                                     overlay={<p
                                         className="font-semibold text-white bg-gray-950 z-[-1] absolute right-0 w-fit px-4 py-1.5 text-center !bg-opacity-90 text-sm lg:text-base rounded-none rounded-bl-lg"
                                     >{edge.node?.format === "MOVIE"
-                                        ? capitalize(edge.relationType || "").replace("_", " ") + " (Movie)"
-                                        : capitalize(edge.relationType || "").replace("_", " ")}</p>}
+                                        ? `${relationLabel(t, edge.relationType)} (${t("Movie", "Film")})`
+                                        : relationLabel(t, edge.relationType)}</p>}
                                     showLibraryBadge
                                     showTrailer
                                     type="anime"
@@ -77,7 +101,7 @@ export function RelationsRecommendationsSection(props: RelationsRecommendationsS
                 </>
             )}
             {recommendations.length > 0 && <>
-                <h2>Recommendations</h2>
+                <h2>{t("Recommendations", "Empfehlungen")}</h2>
                 <MediaCardGrid maxCol={maxCol}>
                     {recommendations.map(media => {
                         return <div key={media.id} className="col-span-1">

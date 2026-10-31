@@ -190,6 +190,11 @@ func (s *httpBaseStream) loadPlaybackInfo(streamType player.PlaybackType) (ret *
 
 			playbackInfo.MkvMetadata = metadata
 			playbackInfo.MkvMetadataParser = mo.Some(parser)
+		} else if isMp4Content(contentType) {
+			if reader, readErr := s.newMetadataReader(); readErr == nil {
+				playbackInfo.SubtitleTracks = loadMp4SubtitleTracks(reader, 0, s.logger)
+				_ = reader.Close()
+			}
 		}
 
 		s.playbackInfo = &playbackInfo

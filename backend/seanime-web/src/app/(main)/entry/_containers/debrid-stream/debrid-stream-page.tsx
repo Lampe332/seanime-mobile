@@ -14,6 +14,7 @@ import { TorrentStreamEpisodeSection } from "@/app/(main)/entry/_containers/torr
 import { StreamControlsPhone } from "@/app/(main)/entry/_containers/torrent-stream/_components/stream-controls-phone"
 import { ForcePlaybackMethod, useForcePlaybackMethod } from "@/app/(main)/entry/_lib/handle-play-media"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
+import { useTr } from "@/lib/app-language"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { logger } from "@/lib/helpers/debug"
@@ -106,11 +107,13 @@ export function DebridStreamPage(props: DebridStreamPageProps) {
         deleteBatchHistory({ mediaId: entry.mediaId })
     }
 
+    const tr = useTr()
     const confirmPreviousBatchAction = useConfirmationDialog({
-        title: "Disable previous torrent",
-        description: "Disable using the saved previous batch for now, or delete the saved history entirely.",
-        actionText: "Delete history",
-        cancelText: "Disable only",
+        title: tr("Disable previous torrent", "Vorherigen Torrent nicht nutzen"),
+        description: tr("Disable using the saved previous batch for now, or delete the saved history entirely.",
+            "Den gespeicherten Batch vorerst nicht nutzen oder den gespeicherten Verlauf ganz löschen."),
+        actionText: tr("Delete history", "Verlauf löschen"),
+        cancelText: tr("Disable only", "Nur nicht nutzen"),
         onConfirm: handleDeletePreviousBatch,
         onCancel: handleDisablePreviousBatch,
     })

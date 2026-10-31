@@ -3,6 +3,8 @@ import { LuffyError } from "@/components/shared/luffy-error"
 import { cn } from "@/components/ui/core/styling"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Button } from "@/components/ui/button"
+import { playerErrorText, playerLoadingText } from "@/app/(main)/_features/media-core/media-core-texts"
+import { useTr } from "@/lib/app-language"
 import React from "react"
 import { ImSpinner2 } from "react-icons/im"
 import { PiSpinnerDuotone } from "react-icons/pi"
@@ -25,9 +27,13 @@ export function MediaCoreErrorOverlay(props: {
     playbackError: string | null
     isMiniPlayer: boolean
     onClose?: () => void
+    /** Loads the video again where it stopped */
+    onRetry?: () => void
 }) {
-    const { playbackError, isMiniPlayer, onClose } = props
+    const { playbackError, isMiniPlayer, onClose, onRetry } = props
+    const t = useTr()
     if (!playbackError) return null
+    const title = t("Playback error", "Wiedergabefehler")
 
     return (
         <div
@@ -36,23 +42,26 @@ export function MediaCoreErrorOverlay(props: {
         >
             <div className="text-white text-center" data-vc-element="playback-error-content">
                 {!isMiniPlayer ? (
-                    <LuffyError title="Playback Error" imageContainerClass="size-[3.5rem] lg:size-[8rem]" />
+                    <LuffyError title={title} imageContainerClass="size-[3.5rem] lg:size-[8rem]" />
                 ) : (
                     <h1 data-vc-element="playback-error-title" className={cn("text-2xl font-bold", isMiniPlayer && "text-lg")}>
-                        Playback Error
+                        {title}
                     </h1>
                 )}
                 <p
                     data-vc-element="playback-error-message"
                     className={cn("text-base text-white/50 max-w-xl mx-auto mt-2", isMiniPlayer && "text-sm max-w-lg")}
                 >
-                    {playbackError || "An error occurred while playing the stream. Please try again later."}
+                    {playerErrorText(playbackError, t)}
                 </p>
-                {onClose && (
-                    <div className="mt-6">
-                        <Button intent="warning-subtle" size={isMiniPlayer ? "sm" : "md"} onClick={onClose}>
-                            Close Player
-                        </Button>
+                {(onRetry || onClose) && (
+                    <div className="mt-6 flex flex-wrap justify-center gap-2">
+                        {onRetry && <Button intent="white" size={isMiniPlayer ? "sm" : "md"} className={cn(!isMiniPlayer && "min-h-11")} onClick={onRetry}>
+                            {t("Try again", "Erneut versuchen")}
+                        </Button>}
+                        {onClose && <Button intent="warning-subtle" size={isMiniPlayer ? "sm" : "md"} className={cn(!isMiniPlayer && "min-h-11")} onClick={onClose}>
+                            {t("Close player", "Player schließen")}
+                        </Button>}
                     </div>
                 )}
             </div>
@@ -68,6 +77,7 @@ export function MediaCoreLoadingOverlay(props: {
     terminateButton?: React.ReactNode
 }) {
     const { loadingState, isMiniPlayer, inline, fullscreen, terminateButton } = props
+    const t = useTr()
     if (!loadingState) return null
 
     return (
@@ -78,7 +88,7 @@ export function MediaCoreLoadingOverlay(props: {
             {(!inline || fullscreen) && terminateButton}
             
             <LoadingSpinner
-                title={loadingState || "Loading..."}
+                title={playerLoadingText(loadingState, t)}
                 spinner={<ImSpinner2 className="size-20 text-white animate-spin" />}
                 containerClass="z-[1]"
             />

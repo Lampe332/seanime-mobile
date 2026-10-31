@@ -5,21 +5,20 @@ import {
     MediaEntryGenresList,
 } from "@/app/(main)/_features/media/_components/media-entry-metadata-components"
 import { MobileAnimeHeaderContainer, MobileAnimeHeaderDetails, MobileAnimeHeaderShell } from "@/app/(main)/entry/_components/mobile-anime-header"
-import { PluginMangaPageButtons, PluginMangaPageDropdownItems } from "@/app/(main)/_features/plugin/actions/plugin-actions"
+import { PluginMangaPageButtons } from "@/app/(main)/_features/plugin/actions/plugin-actions"
+import { MangaEntryPhoneMenu } from "@/app/(main)/manga/_components/manga-entry-phone-menu"
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
 import { SeaLink } from "@/components/shared/sea-link"
 import { IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
-import { copyToClipboard, openTab } from "@/lib/helpers/browser"
 import { getCustomSourceExtensionId, getCustomSourceMediaSiteUrl, isCustomSource } from "@/lib/server/utils"
 import { ThemeMediaPageInfoBoxSize, useThemeSettings } from "@/lib/theme/theme-hooks"
 import React from "react"
-import { BiDotsVerticalRounded, BiExtension } from "react-icons/bi"
+import { BiExtension } from "react-icons/bi"
 import { LuExternalLink } from "react-icons/lu"
 import { useTr } from "@/lib/app-language"
-import { SiAnilist, SiMyanimelist } from "react-icons/si"
+import { SiAnilist } from "react-icons/si"
 
 
 export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL_MangaDetailsById_Media | undefined, detailsLoading?: boolean }) {
@@ -87,28 +86,7 @@ export function MetaSection(props: { entry: Manga_Entry | undefined, details: AL
 
                 <div className="mobile-entry-actions" data-manga-meta-section-buttons-row>
                     <PluginMangaPageButtons media={entry.media} />
-                    <DropdownMenu
-                        data-manga-entry-dropdown-menu
-                        trigger={<button type="button" className="mobile-entry-icon" data-manga-entry-dropdown-menu-trigger
-                            aria-label={tr("More options", "Weitere Optionen")} title={tr("More options", "Weitere Optionen")}>
-                            <BiDotsVerticalRounded aria-hidden />
-                        </button>}
-                    >
-                        {!isCustomSource(entry.mediaId) && <DropdownMenuItem onClick={() => openTab(`https://anilist.co/manga/${entry.mediaId}`)}>
-                            <SiAnilist /> {tr("Open on AniList", "Auf AniList öffnen")}
-                        </DropdownMenuItem>}
-                        {!!entry.media.idMal && <DropdownMenuItem onClick={() => openTab(`https://myanimelist.net/manga/${entry.media?.idMal}`)}>
-                            <SiMyanimelist /> {tr("Open on MAL", "Auf MAL öffnen")}
-                        </DropdownMenuItem>}
-                        {isCustomSource(entry.mediaId) && !!getCustomSourceMediaSiteUrl(entry.media) && <DropdownMenuItem
-                            onClick={() => openTab(getCustomSourceMediaSiteUrl(entry.media)!)}>
-                            <LuExternalLink /> {tr("Open in website", "Auf der Website öffnen")}
-                        </DropdownMenuItem>}
-                        {isCustomSource(entry.mediaId) && <DropdownMenuItem onClick={() => copyToClipboard(entry.mediaId.toString())}>
-                            {tr("Copy ID", "ID kopieren")}
-                        </DropdownMenuItem>}
-                        <PluginMangaPageDropdownItems media={entry.media} />
-                    </DropdownMenu>
+                    <MangaEntryPhoneMenu entry={entry} />
                 </div>
 
             </MobileAnimeHeaderContainer>

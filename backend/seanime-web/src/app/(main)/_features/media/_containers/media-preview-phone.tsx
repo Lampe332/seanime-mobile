@@ -1,7 +1,8 @@
-import { AL_BaseAnime, AL_BaseManga, Nullish } from "@/api/generated/types"
+import { AL_BaseAnime, AL_BaseManga, Anime_EntryListData, Manga_EntryListData, Nullish } from "@/api/generated/types"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
 import { useGetMangaEntry } from "@/api/hooks/manga.hooks"
 import { FORMAT_LABELS, MEDIA_STATUS_LABELS, PhoneSheet, seasonYearLabel } from "@/app/(main)/_features/phone-screen/phone-screen"
+import { AnilistMediaEntryModal } from "@/app/(main)/_features/media/_containers/anilist-media-entry-modal"
 import { SeaImage } from "@/components/shared/sea-image"
 import { SeaLink } from "@/components/shared/sea-link"
 import { Translate, useTr } from "@/lib/app-language"
@@ -30,10 +31,12 @@ function synopsis(html?: string) {
     return (doc.body.textContent ?? "").replace(/\n{3,}/g, "\n\n").trim()
 }
 
-function Preview({ t, type, media, listStatus, progress, loading, onClose }: {
+function Preview({ t, type, media, listData, listStatus, progress, loading, onClose }: {
     t: Translate
     type: "anime" | "manga"
     media: Nullish<AL_BaseAnime | AL_BaseManga>
+    /** Status, progress and score on the list, to change them right here */
+    listData?: Anime_EntryListData | Manga_EntryListData
     listStatus?: string
     progress?: number
     loading: boolean
@@ -70,6 +73,7 @@ function Preview({ t, type, media, listStatus, progress, loading, onClose }: {
             </button>}
         </div>}
         <div className="ps-sheet-actions">
+            <AnilistMediaEntryModal mobileEntry listData={listData} media={media} type={type} />
             {!!trailer && <a href={trailer} target="_blank" rel="noreferrer" className="ps-secondary" data-preview-trailer>{t("Trailer", "Trailer")}<LuArrowUpRight aria-hidden /></a>}
             <SeaLink href={type === "anime" ? `/entry?id=${media.id}` : `/manga/entry?id=${media.id}`} className="ps-primary" onClick={onClose} data-preview-open>
                 {t("Open page", "Seite öffnen")}
@@ -86,7 +90,7 @@ export function MediaPreviewPhoneSheet({ info, onClose }: { info: { mediaId: num
     const media = entry.data?.media
     const title = media?.title?.userPreferred || media?.title?.english || media?.title?.romaji || t("Preview", "Vorschau")
     return <PhoneSheet title={title} open={!!info} onOpenChange={open => !open && onClose()} className="mpp-sheet" data-media-preview-phone>
-        {!!info && <Preview key={`${info.type}-${info.mediaId}`} t={t} type={info.type} media={media} listStatus={entry.data?.listData?.status}
+        {!!info && <Preview key={`${info.type}-${info.mediaId}`} t={t} type={info.type} media={media} listData={entry.data?.listData} listStatus={entry.data?.listData?.status}
             progress={entry.data?.listData?.progress} loading={entry.isLoading} onClose={onClose} />}
     </PhoneSheet>
 }

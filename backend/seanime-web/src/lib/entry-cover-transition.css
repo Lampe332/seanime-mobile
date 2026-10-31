@@ -1,0 +1,17 @@
+/* entry-cover-transition.ts: the cover flies with the drawer curve and keeps its rounded corners; the pages cross-fade
+   under it, the old one a little quicker so the two pages never read as one. */
+html[data-entry-cover-transition]::view-transition-group(entry-cover) {
+    animation-duration: 340ms;
+    animation-timing-function: cubic-bezier(.32, .72, 0, 1);
+    border-radius: var(--sm-radius-sm, .75rem);
+    overflow: hidden;
+    z-index: 2;
+}
+html[data-entry-cover-transition]::view-transition-old(entry-cover),
+html[data-entry-cover-transition]::view-transition-new(entry-cover) {
+    height: 100%;
+    object-fit: cover;
+    animation-duration: 340ms;
+}
+html[data-entry-cover-transition]::view-transition-old(root) { animation-duration: 130ms; animation-timing-function: ease-out; }
+html[data-entry-cover-transition]::view-transition-new(root) { animation-duration: 260ms; animation-delay: 60ms; animation-fill-mode: both; animation-timing-function: cubic-bezier(.23, 1, .32, 1); }

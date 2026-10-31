@@ -7,6 +7,7 @@ import { __manga_chapterDownloadsDrawerIsOpenAtom } from "@/app/(main)/manga/_co
 import { cn } from "@/components/ui/core/styling"
 import { VerticalMenu } from "@/components/ui/vertical-menu"
 import { usePathname } from "@/lib/navigation"
+import { useRouterState } from "@tanstack/react-router"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useSetAtom } from "jotai/react"
 import React from "react"
@@ -24,7 +25,9 @@ export function TopNavbar(props: TopNavbarProps) {
         ...rest
     } = props
 
-    const pathname = usePathname()
+    // The page on screen (the rendered matches), not the one being loaded: during a navigation the old page stays until the
+    // new one is ready, and its bar stays with it (a /settings pathname under Home flashed Home's actions without its title)
+    const pathname = useRouterState({ select: state => state.matches[state.matches.length - 1]?.pathname ?? state.location.pathname })
     const mobileHome = pathname === "/"
     const NavbarFrame = mobileHome ? HomeMobileHeader : React.Fragment
 

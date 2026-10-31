@@ -70,7 +70,7 @@
 [data-home-mobile="true"] [data-manga-library-view-collection-list-item-header-container] button { min-width: 44px; min-height: 44px; }
 /* The installed dub plugin supplies a status badge, not a separate card action. */
 [data-home-mobile="true"] .seanime-base-dub-badge { pointer-events: none !important; }
-[data-home-mobile="true"] .seanime-base-dub-badge .UI-Badge__root { background: rgb(12 12 14 / .78); color: var(--sm-text); box-shadow: none; cursor: default; font-size: .625rem; font-weight: 600; height: auto; padding: .2rem .4rem; border: 0; }
+[data-home-mobile="true"] .seanime-base-dub-badge .UI-Badge__root { background: rgb(12 12 14 / .78); color: var(--sm-text); box-shadow: none; cursor: default; font-size: .6875rem; font-weight: 600; height: auto; padding: .2rem .4rem; border: 0; }
 [data-home-mobile="true"] .seanime-base-dub-badge svg { display: none; }
 [data-home-mobile="true"] .seanime-base-dub-badge .UI-Badge__root::after { content: "Dub"; }
 /* Carousel cards carry their own episode/airing overlay on the right; keep the dub badge clear of it. */
@@ -90,7 +90,7 @@
 [data-home-mobile="true"] .home-discover-card-text { grid-area: 1 / 1; align-self: end; position: relative; z-index: 1; display: grid; justify-items: start; gap: .25rem; padding: 3rem 1rem 1rem; background: linear-gradient(180deg, transparent, rgb(12 12 14 / .82) 45%, rgb(12 12 14 / .94)); }
 [data-home-mobile="true"] .home-discover-card-text strong { font-size: 1.125rem; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 [data-home-mobile="true"] .home-discover-card-meta { font-size: .8125rem; color: var(--sm-text-muted); }
-[data-home-mobile="true"] .home-discover-card-action { margin-top: .5rem; display: inline-flex; align-items: center; min-height: 40px; padding: 0 1rem; border-radius: 999px; background: var(--sm-accent-strong); color: #fff; font-size: .8125rem; font-weight: 650; }
+[data-home-mobile="true"] .home-discover-card-action { margin-top: .5rem; display: inline-flex; align-items: center; min-height: 44px; padding: 0 1rem; border-radius: 999px; background: var(--sm-accent-strong); color: #fff; font-size: .8125rem; font-weight: 650; }
 [data-home-mobile="true"] .home-discover-card:active .home-discover-card-action { filter: brightness(.92); }
 [data-home-mobile="true"] .home-discover-card:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
 /* Carousels (anime and manga): the heading on the shared gutter, cards right under it like the other rows. */
@@ -124,6 +124,10 @@
 [data-home-mobile="true"] .UI-Carousel__button:disabled { opacity: .3; }
 [data-home-mobile="true"] [data-home-episode-card] [data-episode-card-progress-bar-container] { z-index: 5; }
 [data-home-mobile="true"] [data-home-episode-card] [data-episode-card-progress-bar-container] > div:last-child:not(:first-child) { display: none; }
+/* Progress on the cover as the dark pill of the other screens' cards (.ps-tag): the desktop corner was too faint on bright covers */
+[data-home-mobile="true"] [data-media-entry-card-body-progress-badge-container] { left: .375rem; bottom: .375rem; }
+[data-home-mobile="true"] [data-media-entry-progress-badge] { padding: .2rem .45rem !important; border-radius: 999px !important; background: rgb(12 12 14 / .82) !important;
+    font-size: .6875rem !important; font-weight: 650; line-height: 1.25; letter-spacing: 0; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) {
     [data-home-mobile="true"] *, [data-home-mobile="true"] *::before, [data-home-mobile="true"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
@@ -167,10 +171,10 @@
 .home-mobile-settings .home-customize-info > span { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 999px; background: var(--sm-surface-control); font-size: .8125rem; font-weight: 650; line-height: 1; }
 .home-mobile-settings .home-customize-info:active > span { background: var(--sm-surface-control); color: var(--sm-text); }
 .home-mobile-settings .home-customize-switch { display: grid; place-items: center; flex: none; min-width: 48px; min-height: 48px; padding: 0 .1rem; border: 0; background: transparent; }
-.home-mobile-settings .home-customize-switch > span { position: relative; display: block; width: 2.75rem; height: 1.625rem; border-radius: 999px; background: var(--sm-surface-control); box-shadow: inset 0 0 0 1px var(--sm-line-strong); transition: background-color .15s ease; }
-.home-mobile-settings .home-customize-switch > span::after { content: ""; position: absolute; top: .1875rem; left: .1875rem; width: 1.25rem; height: 1.25rem; border-radius: 999px; background: var(--sm-text-muted); transition: transform .15s ease; }
+.home-mobile-settings .home-customize-switch > span { position: relative; display: block; width: 3rem; height: 1.75rem; border-radius: 999px; background: var(--sm-surface-control); box-shadow: inset 0 0 0 1px var(--sm-line-strong); transition: background-color .15s ease; }
+.home-mobile-settings .home-customize-switch > span::after { content: ""; position: absolute; top: .25rem; left: .25rem; width: 1.25rem; height: 1.25rem; border-radius: 999px; background: var(--sm-text-muted); transition: transform .15s ease; }
 .home-mobile-settings .home-customize-switch[aria-checked="true"] > span { background: var(--sm-accent-strong); box-shadow: none; }
-.home-mobile-settings .home-customize-switch[aria-checked="true"] > span::after { background: #fff; transform: translateX(1.125rem); }
+.home-mobile-settings .home-customize-switch[aria-checked="true"] > span::after { background: #fff; transform: translateX(1.25rem); }
 .home-mobile-settings .home-customize-switch:disabled { opacity: .5; }
 .home-mobile-settings .home-customize-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; padding: 0 0 .25rem 1.75rem; }
 .home-mobile-settings .home-customize-tool { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; min-width: 44px; min-height: 44px; padding: 0 .6rem; border: 0; border-radius: 999px; background: transparent; color: var(--sm-text-muted); font-size: .8125rem; }

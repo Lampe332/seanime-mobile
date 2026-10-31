@@ -54,6 +54,7 @@ export function useVideoCoreHls({
     streamUrl,
     streamType,
     preferredQuality,
+    suppressAutoPlay,
     onFatalError,
     onStalled,
     onMediaDetached,
@@ -62,12 +63,15 @@ export function useVideoCoreHls({
     streamUrl: string | undefined
     streamType?: string
     preferredQuality?: string
+    suppressAutoPlay?: boolean
     onMediaDetached?: () => void
     onFatalError?: (error: ErrorData) => void
     onStalled?: (error: ErrorData) => void
 }) {
     const hlsRef = useRef<Hls | null>(null)
     const preferredQualityRef = useRef(preferredQuality)
+    const suppressAutoPlayRef = useRef(suppressAutoPlay)
+    suppressAutoPlayRef.current = suppressAutoPlay
 
     useEffect(() => {
         preferredQualityRef.current = preferredQuality
@@ -253,7 +257,7 @@ export function useVideoCoreHls({
                     setCurrentAudioTrack(-1)
                 }
 
-                if (autoPlay) {
+                if (autoPlay && !suppressAutoPlayRef.current) {
                     videoElement.play().catch(err => {
                         hlsLog.error("Failed to autoplay", err)
                     })

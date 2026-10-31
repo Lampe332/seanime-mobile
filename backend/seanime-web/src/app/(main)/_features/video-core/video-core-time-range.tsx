@@ -1,4 +1,5 @@
 import { getSkipChapters, getSkipLabel } from "@/app/(main)/_features/media-core/media-core-chapters"
+import { tr } from "@/lib/app-language"
 import { MediaCoreTimeRangeView } from "@/app/(main)/_features/media-core/media-core-control-bar"
 import { mediaCorePreferencesAtom } from "@/app/(main)/_features/media-core/media-core-preferences"
 import { useNakamaWatchParty } from "@/app/(main)/_features/nakama/nakama-manager"
@@ -40,6 +41,7 @@ const PREVIEW_THUMBNAIL_WIDTH = 140
 const PREVIEW_REQUEST_DELAY_MS = 80
 const STALE_PREVIEW_GRACE_MS = 100
 const PREVIEW_TOOLTIP_GUTTER = 8
+const TOUCH_SLOP_PX = 10
 
 export const vc_timeRangeElement = atom<HTMLDivElement | null>(null)
 
@@ -145,7 +147,7 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
         if (autoSkipIntroOutro && !restoreProgressTo) {
             setSkipChapter(null)
             action({ type: "seekTo", payload: { time: chapter.end } })
-            showOverlayFeedback({ message: `Skipped ${label}`, duration: 1000 })
+            showOverlayFeedback({ message: tr(`Skipped ${label}`, `${label} übersprungen`), duration: 1000 })
             return
         }
 
@@ -160,7 +162,39 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
         ))
     }, [currentTime, autoSkipIntroOutro, skipChapters, duration, restoreProgressTo, isWatchPartyPeer])
 
-    // start seeking
+    // A touch only starts scrubbing once it moves sideways. A swipe up from the bottom edge (Android Home) or in from a side
+    // (Back) that starts on the bar must not move the video; Android cancels the touch when it takes the gesture over.
+    const touchStartRef = React.useRef<{ pointerId: number, x: number, y: number } | null>(null)
+    const scrubbingRef = React.useRef(false)
+
+    function resetSeekingTarget() {
+        if (seekingTargetProgressRef.current !== 0) {
+            seekingTargetProgressRef.current = 0
+            setSeekingTargetProgress(0)
+        }
+    }
+
+    function startScrubbing() {
+        if (!videoElement) return
+        scrubbingRef.current = true
+        setSeeking(true)
+
+        if (isWatchPartyPeer) return
+
+        setPreviouslyPaused(videoElement.paused)
+        if (!videoElement.paused) videoElement.pause()
+        videoElement.dispatchEvent(new Event("seeking"))
+    }
+
+    function releaseTouch(e: React.PointerEvent<HTMLDivElement>) {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId)
+        }
+        touchStartRef.current = null
+        rangeRectRef.current = null
+    }
+
+    // start seeking (mouse at once, touch once it moves sideways)
     function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
         e.stopPropagation()
         if (!videoElement) return
@@ -170,14 +204,14 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
         }
         e.currentTarget.setPointerCapture(e.pointerId)
         rangeRectRef.current = e.currentTarget.getBoundingClientRect()
-        setSeeking(true)
 
-        if (isWatchPartyPeer) return
+        if (e.pointerType === "touch") {
+            touchStartRef.current = { pointerId: e.pointerId, x: e.clientX, y: e.clientY }
+            return
+        }
 
-        setPreviouslyPaused(videoElement.paused)
-        if (!videoElement.paused) videoElement.pause()
+        startScrubbing()
         handlePointerMove(e)
-        videoElement?.dispatchEvent(new Event("seeking"))
     }
 
     // stop seeking
@@ -188,10 +222,21 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
         if (e.pointerType === "touch") {
             e.preventDefault()
         }
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-            e.currentTarget.releasePointerCapture(e.pointerId)
+
+        // a touch that never moved sideways is a tap: jump to where it landed
+        if (touchStartRef.current?.pointerId === e.pointerId) {
+            const target = getPointerProgress(e)
+            releaseTouch(e)
+            resetSeekingTarget()
+            if (!isWatchPartyPeer) {
+                action({ type: "seekTo", payload: { time: (duration * target) / 100 } })
+            }
+            return
         }
-        rangeRectRef.current = null
+
+        releaseTouch(e)
+        if (!scrubbingRef.current) return
+        scrubbingRef.current = false
         setSeeking(false)
         if (!isWatchPartyPeer) {
             action({ type: "seekTo", payload: { time: (duration * seekingTargetProgressRef.current) / 100 } })
@@ -199,17 +244,16 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
         if (!previouslyPaused) videoElement?.play()?.catch()
     }
 
-    // handle interrupted touch/pointer
+    // Android took the touch over (Home or Back gesture): leave the video where it was
     function handlePointerCancel(e: React.PointerEvent<HTMLDivElement>) {
         if (!videoElement) return
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-            e.currentTarget.releasePointerCapture(e.pointerId)
-        }
-        rangeRectRef.current = null
-        if (seeking) {
+        releaseTouch(e)
+        resetSeekingTarget()
+        if (scrubbingRef.current) {
+            scrubbingRef.current = false
             setSeeking(false)
-            action({ type: "seekTo", payload: { time: (duration * seekingTargetProgressRef.current) / 100 } })
-            if (!previouslyPaused) videoElement?.play()?.catch()
+            setProgressPercentage(duration > 0 ? (videoElement.currentTime / duration) * 100 : 0)
+            if (!isWatchPartyPeer && !previouslyPaused) videoElement.play()?.catch()
         }
     }
 
@@ -234,8 +278,25 @@ export function VideoCoreTimeRange(props: VideoCoreTimeRangeProps) {
 
     // move progress
     function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+        const touchStart = touchStartRef.current
+        if (touchStart?.pointerId === e.pointerId) {
+            const dx = e.clientX - touchStart.x
+            const dy = e.clientY - touchStart.y
+            if (Math.abs(dy) > TOUCH_SLOP_PX && Math.abs(dy) > Math.abs(dx)) {
+                // an upward or downward swipe is not meant for the bar
+                releaseTouch(e)
+                resetSeekingTarget()
+                return
+            }
+            if (Math.abs(dx) < TOUCH_SLOP_PX) return
+            touchStartRef.current = null
+            startScrubbing()
+        }
+        // hovering the bar previews a time for mice; a touch only does while it scrubs
+        if (e.pointerType === "touch" && !scrubbingRef.current) return
+
         const target = getPointerProgress(e)
-        if (seeking) {
+        if (seeking || scrubbingRef.current) {
             if (e.pointerType === "touch") {
                 e.preventDefault()
             }

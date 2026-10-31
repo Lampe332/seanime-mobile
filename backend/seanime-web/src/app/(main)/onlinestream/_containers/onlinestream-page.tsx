@@ -49,7 +49,7 @@ import {
     OnlinestreamAudioTrackPreference,
 } from "@/app/(main)/onlinestream/_lib/onlinestream.atoms"
 import { useOnlinestreamAutoProviderCycler } from "@/app/(main)/onlinestream/_lib/use-onlinestream-auto-provider-cycler"
-import { LuffyError } from "@/components/shared/luffy-error"
+import { PhoneEmpty } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { Button, IconButton } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
 import { Select } from "@/components/ui/select"
@@ -66,7 +66,7 @@ import React from "react"
 import { BsFillGrid3X3GapFill } from "react-icons/bs"
 import { CgMediaPodcast } from "react-icons/cg"
 import { HiOutlineCog6Tooth } from "react-icons/hi2"
-import { LuChevronLeft, LuChevronRight, LuRefreshCw } from "react-icons/lu"
+import { LuChevronLeft, LuChevronRight, LuPuzzle, LuRefreshCw } from "react-icons/lu"
 import { toast } from "sonner"
 import { PluginEpisodeGridItemMenuItems } from "../../_features/plugin/actions/plugin-actions"
 import { getMobileInitialEpisode, rememberMobileEpisode } from "../_lib/mobile-episode-selection"
@@ -400,6 +400,8 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
 
     // Stream URL
     const [url, setUrl] = React.useState<string | null>(null)
+    // Bumped to build the stream URL again from an unchanged source (after a source refresh)
+    const [streamReload, setStreamReload] = React.useState(0)
     const [subtitleTracks, setSubtitleTracks] = React.useState<VideoCore_VideoPlaybackInfo["subtitleTracks"]>()
 
     React.useEffect(() => {
@@ -418,7 +420,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         // Check if we have the provider
         if (!providerExtensionOptions.some(p => p.value === streamToLoad.provider)) {
             log.warning("Provider not found in options", { providerExtensionOptions, provider: streamToLoad.provider })
-            toast.error("Watch Party: The provider used by the host is not installed.")
+            toast.error(tr("Watch party: the provider the host uses is not installed.", "Watch Party: Der Provider des Hosts ist nicht installiert."))
             return
         }
 
@@ -435,6 +437,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         setServer(streamToLoad.server)
         setQuality(streamToLoad.quality)
         setSelectedEpisodeNumber(streamToLoad.episodeNumber)
+        setPageOpenEpisode(null)
 
         onLoadedStream()
 
@@ -482,8 +485,17 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
     const episodeLoading = isLoadingEpisodeSource || isFetchingEpisodeSource
     const selectionLock = React.useRef<number | null>(null)
     React.useEffect(() => { if (!episodeLoading) selectionLock.current = null }, [episodeLoading])
+    // Opening the page only shows the episode it picked; "Continue", an episode tap or the next episode play
+    const [pageOpenEpisode, setPageOpenEpisode] = React.useState<number | null>(null)
     const selectMobileEpisode = (number: number) => {
+        // Tapping the episode the page opened on starts it
+        if (number === currentEpisodeNumber && number === pageOpenEpisode) {
+            setPageOpenEpisode(null)
+            void playerRef.current?.play().catch(() => {})
+            return
+        }
         if (episodeLoading || selectionLock.current === number || currentEpisodeNumber === number) return
+        setPageOpenEpisode(null)
         selectionLock.current = number
         rememberMobileEpisode(mediaId, number)
         setSelectedEpisodeNumber(number)
@@ -510,6 +522,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         setServer,
         setSelectedEpisodeNumber,
         setUrl,
+        reloadStream: () => setStreamReload(n => n + 1),
         setPlaybackError,
         refreshEpisodeSource,
     })
@@ -661,7 +674,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                 })
             }
         })()
-    }, [videoSource, server, dubbed, provider, selectedServerStatus])
+    }, [videoSource, server, dubbed, provider, selectedServerStatus, streamReload])
 
     const { currentPlaylist, playEpisode: playPlaylistEpisode, nextPlaylistEpisode, prevPlaylistEpisode } = usePlaylistManager()
 
@@ -727,6 +740,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
             }
             const initialEpisode = getMobileInitialEpisode(mediaId, episodes.map(e => e.number), progress, episodeNumberFromURL)
             setSelectedEpisodeNumber(initialEpisode ?? null)
+            setPageOpenEpisode(initialEpisode ?? null)
             setInitializedMobileMedia(mediaId)
             log.info("Setting episode number to", episodeNumberFromURL || episodeNumber || 1)
             firstRenderRef.current = false
@@ -742,6 +756,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         if (!mediaId || playNext !== mediaId) return
         resetPlayNext()
         resumeRequestedRef.current = true
+        setPageOpenEpisode(null)
         // Fullscreen needs the tap's user activation, which expires after a few seconds:
         // request it on the player container (scoped player state is not readable here) as soon as it mounts.
         let tries = 0
@@ -772,6 +787,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
 
     const goToNextEpisode = useLatestFunction(() => {
         if (currentEpisodeNumber === null) return
+        setPageOpenEpisode(null)
         if (currentPlaylist) {
             playPlaylistEpisode("next", true)
             return
@@ -784,6 +800,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
 
     const goToPreviousEpisode = useLatestFunction(() => {
         if (currentEpisodeNumber === null) return
+        setPageOpenEpisode(null)
         if (currentPlaylist) {
             playPlaylistEpisode("previous", true)
             return
@@ -848,7 +865,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         leftIcon={<LuRefreshCw className={autoProviderCycler.isTrying ? "text-xl animate-spin" : "text-xl"} />}
         onClick={() => autoProviderCycler.isTrying ? autoProviderCycler.cancel() : autoProviderCycler.tryAllProviders()}
     >
-        {autoProviderCycler.isTrying ? "Cancel trying" : "Try all available providers"}
+        {autoProviderCycler.isTrying ? tr("Cancel trying", "Abbrechen") : tr("Try all available providers", "Alle verfügbaren Provider probieren")}
     </Button> : null
 
     const providerSelect = (
@@ -860,7 +877,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                 ...providerExtensionOptions,
                 {
                     value: "add-provider",
-                    label: "Find other providers",
+                    label: tr("Find other providers", "Weitere Provider finden"),
                 },
             ]}
             onValueChange={(v) => {
@@ -870,7 +887,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                 }
                 changeProvider(v)
             }}
-            placeholder="Select provider"
+            placeholder={tr("Select provider", "Provider wählen")}
             size="sm"
             // Android: the icon sits inside the pill; a separate addon renders as a detached square block.
             leftIcon={<CgMediaPodcast />}
@@ -930,7 +947,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
         intent={episodeViewMode === "list" ? "gray-basic" : "white-subtle"}
         icon={<BsFillGrid3X3GapFill />}
         onClick={() => setEpisodeViewMode(prev => prev === "list" ? "grid" : "list")}
-        title={episodeViewMode === "list" ? "Switch to grid view" : "Switch to list view"}
+        title={episodeViewMode === "list" ? tr("Switch to grid view", "Zur Rasteransicht wechseln") : tr("Switch to list view", "Zur Listenansicht wechseln")}
         aria-pressed={episodeViewMode === "grid"}
         data-episode-view-toggle
     />
@@ -995,11 +1012,16 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                             <IconButton intent="gray-basic" icon={<LuChevronRight />} aria-label={tr("Next episode", "Nächste Folge")} disabled={episodeLoading || !episodes?.some(e => e.number === (currentEpisodeNumber ?? 0) + 1)} onClick={() => handlePlayEpisode("next")} />
                         </div>
                     </div>
-                    {!provider ? (
-                    <div className="flex items-center flex-col justify-center w-full h-full">
-                        <LuffyError title="No provider selected" />
-                    </div>
-                ) : isEpisodeListError ? <div role="alert"><LuffyError title="Provider error">Could not fetch episode list from provider.</LuffyError><Button onClick={() => retryEpisodeList()}>{tr("Retry", "Erneut versuchen")}</Button></div> : !episodeListLoading && !episodes?.length ? <p role="status">{tr("No episodes available from this provider. Choose another source above.", "Bei diesem Provider sind keine Folgen verfügbar. Wähle oben eine andere Quelle.")}</p> : (
+                    {!provider ? <PhoneEmpty title={tr("No streaming provider", "Kein Streaming-Anbieter")} data-onlinestream-no-provider
+                        text={tr("Install a streaming provider under Extensions to watch here.", "Installiere unter Erweiterungen einen Streaming-Anbieter, um hier zu schauen.")}>
+                        <button type="button" className="ps-primary" onClick={() => router.push("/extensions?tab=marketplace&type=onlinestream-provider")} data-onlinestream-open-extensions>
+                            <LuPuzzle aria-hidden />{tr("Open Extensions", "Erweiterungen öffnen")}
+                        </button>
+                    </PhoneEmpty> : isEpisodeListError ? <div role="alert"><PhoneEmpty title={tr("Provider error", "Anbieter-Fehler")}
+                        text={tr("Could not fetch the episode list from the provider.", "Die Folgenliste konnte nicht vom Anbieter geladen werden.")}>
+                        <button type="button" className="ps-primary" onClick={() => retryEpisodeList()}><LuRefreshCw aria-hidden />{tr("Try again", "Erneut versuchen")}</button>
+                    </PhoneEmpty></div> : !episodeListLoading && !episodes?.length ? <div role="status"><PhoneEmpty title={tr("No episodes from this provider", "Keine Folgen bei diesem Anbieter")}
+                        text={tr("Choose another source above.", "Wähle oben eine andere Quelle.")} /></div> : (
                     <>
                         <VideoCoreProvider id="onlinestream">
                             <div data-onlinestream-video-container className="w-full aspect-video mx-auto border rounded-lg overflow-hidden">
@@ -1046,7 +1068,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                                             ? tr("No playable source. Choose another server or provider.", "Keine abspielbare Quelle. Anderen Server oder Provider wählen.") : isErrorEpisodeSource
                                             ? (errorEpisodeSource as AxiosError<{ error: string }>)?.response?.data?.error ?? null
                                             : playbackError,
-                                        loadingState: !url ? "Loading stream" : null,
+                                        loadingState: !url ? tr("Loading stream", "Stream wird geladen") : null,
                                     }}
                                     inline
                                     aniSkipData={aniSkipData}
@@ -1055,6 +1077,9 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                                     onError={v => onFatalError(v)}
                                     onStalled={v => autoProviderCycler.onPlaybackStalled(v)}
                                     onPlayEpisode={handlePlayEpisode}
+                                    suppressAutoPlay={currentEpisodeNumber !== null && currentEpisodeNumber === pageOpenEpisode}
+                                    // Once it plays, reloads of the episode (quality, server) resume playing again
+                                    onPlay={() => setPageOpenEpisode(null)}
                                     onVideoSourceChange={changeQuality}
                                     hlsPreferredQuality={quality}
                                     onHlsQualityChange={setQuality}
@@ -1062,7 +1087,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                                     onHlsFatalError={(err) => onFatalError(`HLS error: ${err.error.message}`)}
                                     onTerminateStream={() => {
                                         setUrl(null)
-                                        setPlaybackError("Stream terminated")
+                                        setPlaybackError(tr("Stream terminated", "Stream beendet"))
                                     }}
                                 />
                             </div>
@@ -1090,7 +1115,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                                             key={idx + (episode.title || "") + episode.number}
                                             id={`episode-${String(episode.number)}`}
                                             onClick={() => selectMobileEpisode(episode.number)}
-                                            title={media.format === "MOVIE" ? "Complete movie" : `Episode ${episode.number}`}
+                                            title={media.format === "MOVIE" ? tr("Complete movie", "Ganzer Film") : `${tr("Episode", "Folge")} ${episode.number}`}
                                             episodeTitle={episode.title}
                                             description={episode.description ?? undefined}
                                             image={episode.image}
@@ -1106,7 +1131,7 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
                                             action={<>
                                                 <MediaEpisodeInfoModal
                                                     mobileEntry
-                                                    title={media.format === "MOVIE" ? "Complete movie" : `Episode ${episode.number}`}
+                                                    title={media.format === "MOVIE" ? tr("Complete movie", "Ganzer Film") : `${tr("Episode", "Folge")} ${episode.number}`}
                                                     image={episode?.image}
                                                     episodeTitle={episode.title}
                                                     summary={episode?.description}

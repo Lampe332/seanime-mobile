@@ -152,7 +152,7 @@ export function LibraryExplorerPhone() {
                         },
                     })}>{t("Delete", "Löschen")}</button>
             </>}>
-            <p className="ps-sheet-text">{t(`${file.name} is deleted from this phone. This can't be undone.`, `${file.name} wird von diesem Handy gelöscht. Das lässt sich nicht rückgängig machen.`)}</p>
+            <p className="ps-sheet-text">{t(`${file.name} is deleted from this device. This can't be undone.`, `${file.name} wird von diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen.`)}</p>
         </PhoneSheet>
         return <>
             <PhoneSheet title={file.name} open={open && !matchGroup} onOpenChange={setOpen} className="plx-sheet" data-explorer-file-view>

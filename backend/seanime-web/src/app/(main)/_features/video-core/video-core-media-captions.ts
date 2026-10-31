@@ -123,7 +123,8 @@ export class MediaCaptionsManager extends EventTarget {
     constructor(options: MediaCaptionsManagerOptions) {
         super()
         this.videoElement = options.videoElement
-        this.tracks = options.tracks
+        // Copies, playback info tracks are frozen and loadFn caches the converted content on them
+        this.tracks = options.tracks.map(track => ({ ...track }))
         this.settings = options.settings
         this.captionCustomization = options.settings.captionCustomization
         this.subtitleDelay = options.settings.subtitleDelay ?? 0
@@ -259,7 +260,8 @@ export class MediaCaptionsManager extends EventTarget {
     }
 
     // This is used for adding subtitles from the server
-    public addCaptionTrack(track: MediaCaptionsTrackInfo & { index: number }) {
+    public addCaptionTrack(frozenTrack: MediaCaptionsTrackInfo & { index: number }) {
+        const track = { ...frozenTrack }
         // Check if the added track is a translation
         const translatingTrack = this.translatedTracks.get(track.index)
         let isTranslated = false

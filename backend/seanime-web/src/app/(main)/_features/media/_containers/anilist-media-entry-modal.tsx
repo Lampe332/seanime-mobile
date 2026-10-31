@@ -14,6 +14,7 @@ import { Tooltip } from "@/components/ui/tooltip"
 import { normalizeDate } from "@/lib/helpers/date"
 import { getImageUrl } from "@/lib/server/assets"
 import { useTr } from "@/lib/app-language"
+import { TabletLabel } from "@/lib/tablet-ui"
 import React from "react"
 import { useController, useFormContext } from "react-hook-form"
 import { BiListPlus, BiPlus, BiStar, BiTrash } from "react-icons/bi"
@@ -91,6 +92,7 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
     const { children, media, listData, hideButton, type = "anime", mobileEntry, ...rest } = props
 
     const user = useCurrentUser()
+    const tr = useTr()
 
     const { mutate, isPending: isEditing, isSuccess, reset } = useEditAnilistListEntry(media?.id, type)
     const { mutate: mutateRepeat, isPending: _isPending2 } = useUpdateAnimeEntryRepeat(media?.id)
@@ -169,9 +171,9 @@ export const AnilistMediaEntryModal = (props: AnilistMediaEntryModalProps) => {
                     {!hideButton && <>
                         {!!listData && <IconButton
                             data-anilist-media-entry-modal-edit-button
-                            aria-label="Edit list, progress and rating"
+                            aria-label={tr("Edit list, progress and rating", "Liste, Fortschritt und Wertung bearbeiten")}
                             intent="white-subtle"
-                            icon={<TbEdit />}
+                            icon={mobileEntry ? <><TbEdit /><TabletLabel>{tr("Edit", "Bearbeiten")}</TabletLabel></> : <TbEdit />}
                             rounded
                             size="sm"
                             loading={isEditing || isDeleting}

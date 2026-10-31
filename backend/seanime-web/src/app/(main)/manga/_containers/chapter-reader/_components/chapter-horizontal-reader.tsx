@@ -1,6 +1,11 @@
 import { Manga_PageContainer } from "@/api/generated/types"
 import { ChapterPage } from "@/app/(main)/manga/_containers/chapter-reader/_components/chapter-page"
-import { useHandleChapterPageStatus, useHydrateMangaPaginationMap, useMangaReaderZoomWheel } from "@/app/(main)/manga/_lib/handle-chapter-reader"
+import {
+    useEffectiveReadingMode,
+    useHandleChapterPageStatus,
+    useHydrateMangaPaginationMap,
+    useMangaReaderZoomWheel,
+} from "@/app/(main)/manga/_lib/handle-chapter-reader"
 import {
     __manga_currentPageIndexAtom,
     __manga_currentPaginationMapIndexAtom,
@@ -15,13 +20,14 @@ import {
     __manga_pageZoomAtom,
     __manga_paginationMapAtom,
     __manga_readingDirectionAtom,
-    __manga_readingModeAtom,
     MangaPageFit,
     MangaReadingDirection,
     MangaReadingMode,
 } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
 import { cn } from "@/components/ui/core/styling"
 import { __manga_tapToggleControlsAtom } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
+import { pageStepToSide } from "@/app/(main)/manga/_lib/reader-gestures"
+import { useReaderGestures } from "@/app/(main)/manga/_lib/use-reader-gestures"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import mousetrap from "mousetrap"
 import React from "react"
@@ -35,7 +41,7 @@ export function MangaHorizontalReader({ pageContainer }: MangaHorizontalReaderPr
     const containerRef = React.useRef<HTMLDivElement>(null)
     const pageWrapperRef = React.useRef<HTMLDivElement>(null)
 
-    const readingMode = useAtomValue(__manga_readingModeAtom)
+    const readingMode = useEffectiveReadingMode()
     const setIsLastPage = useSetAtom(__manga_isLastPageAtom)
     const readingDirection = useAtomValue(__manga_readingDirectionAtom)
     const pageFit = useAtomValue(__manga_pageFitAtom)
@@ -119,18 +125,14 @@ export function MangaHorizontalReader({ pageContainer }: MangaHorizontalReaderPr
     }, [kbsPageLeft, kbsPageRight, paginationMap, readingDirection])
 
     /**
-     * Function to handle page navigation when the user clicks on the left or right side of the page
+     * Tap zones: the outer parts of the page turn it, the middle shows or hides the controls
      */
-    const onPageWrapperClick = React.useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        if (!pageWrapperRef.current) return
+    const onTapAt = React.useCallback((clientX: number) => {
+        if (!containerRef.current) return
 
-        if ((e.target as HTMLElement).id === "retry-button") return
-        if ((e.target as HTMLElement).id === "retry-icon") return
-
-        const { clientX } = e.nativeEvent
-        const divWidth = pageWrapperRef.current.offsetWidth
-        const clickPosition = clientX - pageWrapperRef.current.getBoundingClientRect().left
-        const clickPercentage = (clickPosition / divWidth) * 100
+        // the container, not the page wrapper: the wrapper moves while a gesture zoom is active
+        const box = containerRef.current.getBoundingClientRect()
+        const clickPercentage = ((clientX - box.left) / box.width) * 100
 
         if (clickPercentage <= 40) {
             onPaginate("left")
@@ -141,7 +143,36 @@ export function MangaHorizontalReader({ pageContainer }: MangaHorizontalReaderPr
                 setHideBar(prev => !prev)
             }
         }
-    }, [onPaginate, pageWrapperRef.current, tapToggleControls])
+    }, [onPaginate, tapToggleControls])
+
+    /**
+     * Touch gestures: swipe turns the page, pinch / double tap zoom, a finger moves the zoomed page
+     */
+    const gestures = useReaderGestures({
+        containerRef,
+        contentRef: pageWrapperRef,
+        direction: readingDirection,
+        settingZoomed: pageZoom !== 1,
+        onSwipe: step => onPaginate(pageStepToSide(step, readingDirection)),
+        onTap: onTapAt,
+    })
+
+    // Every page starts unzoomed
+    React.useEffect(() => {
+        gestures.reset()
+    }, [currentMapIndex, pageContainer?.pages])
+
+    /**
+     * Mouse clicks use the tap zones; touch taps come through the gestures (so a double tap does not turn the page first)
+     */
+    const onPageWrapperClick = React.useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        if (gestures.shouldIgnoreClick()) return
+
+        if ((e.target as HTMLElement).id === "retry-button") return
+        if ((e.target as HTMLElement).id === "retry-icon") return
+
+        onTapAt(e.nativeEvent.clientX)
+    }, [onTapAt, gestures.shouldIgnoreClick])
 
     /**
      * Update the current page index when the current map index changes
@@ -159,6 +190,9 @@ export function MangaHorizontalReader({ pageContainer }: MangaHorizontalReaderPr
     const currentPages = React.useMemo(() => paginationMap[currentMapIndex], [currentMapIndex, paginationMap])
     // Two pages are currently displayed
     const twoPages = readingMode === MangaReadingMode.DOUBLE_PAGE && currentPages?.length === 2
+    // A vertical drag scrolls pages taller than the screen; otherwise the gestures get every touch
+    const scrollsVertically = pageFit === MangaPageFit.COVER || pageFit === MangaPageFit.TRUE_SIZE || pageFit === MangaPageFit.LARGER
+    const touchAction = gestures.zoomed ? "none" : pageZoom !== 1 ? "pan-x pan-y" : scrollsVertically ? "pan-y" : "none"
     // Show shadows
     const showShadows = twoPages && pageGap && !(pageFit === MangaPageFit.COVER || pageFit === MangaPageFit.TRUE_SIZE) && pageGapShadow
 
@@ -168,6 +202,8 @@ export function MangaHorizontalReader({ pageContainer }: MangaHorizontalReaderPr
             className={cn(
                 "h-[calc(100dvh-var(--manga-controls-height,3rem))] w-full px-4 select-none relative focus-visible:outline-none",
                 hiddenBar && "h-dvh max-h-full",
+                // a pinched page is moved by the gestures, not scrolled
+                gestures.zoomed && "!overflow-hidden",
                 pageZoom !== 1 ? "overflow-auto" : cn(
                     "overflow-x-hidden",
                     (pageFit === MangaPageFit.COVER || pageFit === MangaPageFit.TRUE_SIZE || pageFit === MangaPageFit.LARGER)
@@ -180,6 +216,7 @@ export function MangaHorizontalReader({ pageContainer }: MangaHorizontalReaderPr
             )}
             ref={containerRef}
             tabIndex={-1}
+            style={{ touchAction: touchAction }}
         >
             {/*<div className="absolute w-full h-full right-8 flex z-[5] cursor-pointer" tabIndex={-1}>*/}
             {/*    <div className="h-full w-full flex flex-1 focus-visible:outline-none" onClick={() => onPaginate("left")} tabIndex={-1} />*/}

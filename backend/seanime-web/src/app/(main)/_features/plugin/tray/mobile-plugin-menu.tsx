@@ -124,6 +124,8 @@ export function MobilePluginMenu(props: Props) {
         window.addEventListener("seanime:window-insets", resize)
         return () => { viewport?.removeEventListener("resize", resize); window.removeEventListener("seanime:window-insets", resize) }
     }, [open])
+    // Nothing to open or pin: the button would only lead to an empty "No plugins available" sheet.
+    if (!props.icons.length && !props.developmentModeExtensions.length) return <MobilePluginRuntimes icons={props.icons} />
     return <>
         <div className="mobile-plugin-actions">
         <Dialog.Root open={open} onOpenChange={setOpen}>

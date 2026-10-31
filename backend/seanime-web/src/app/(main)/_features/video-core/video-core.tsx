@@ -43,6 +43,7 @@ import { vc_skipChapter } from "@/app/(main)/_features/video-core/video-core-ato
 import { VideoCoreAudioManager } from "@/app/(main)/_features/video-core/video-core-audio"
 import { VideoCoreAudioMenu } from "@/app/(main)/_features/video-core/video-core-audio-menu"
 import {
+    VideoCoreCenterControls,
     VideoCoreFullscreenButton,
     VideoCoreMobileControlBar,
     VideoCorePipButton,
@@ -63,7 +64,6 @@ import {
 } from "@/app/(main)/_features/video-core/video-core-hls"
 import { MediaCaptionsManager } from "@/app/(main)/_features/video-core/video-core-media-captions"
 import { vc_mediaSessionManager, VideoCoreMediaSessionManager } from "@/app/(main)/_features/video-core/video-core-media-session"
-import { useVideoCoreMobileGestures } from "@/app/(main)/_features/video-core/video-core-mobile-gestures"
 import { vc_overlayFeedback } from "@/app/(main)/_features/video-core/video-core-overlay-display"
 import { vc_overlayFeedbackTimeout } from "@/app/(main)/_features/video-core/video-core-overlay-display"
 import { vc_showOverlayFeedback } from "@/app/(main)/_features/video-core/video-core-overlay-display"
@@ -75,21 +75,27 @@ import {
     useVideoCorePlaylistSetup,
     vc_playlistState,
     VideoCorePlaylistControl,
+    VideoCoreTitle,
 } from "@/app/(main)/_features/video-core/video-core-playlist"
 import { VideoCoreKeybindingController } from "@/app/(main)/_features/video-core/video-core-keybindings"
 import { VideoCorePreviewManager } from "@/app/(main)/_features/video-core/video-core-preview"
 import { VideoCoreResolutionMenu } from "@/app/(main)/_features/video-core/video-core-resolution-menu"
 import { VideoCoreSettingsMenu } from "@/app/(main)/_features/video-core/video-core-settings-menu"
 import { useTr } from "@/lib/app-language"
+import { withAnimeTracks } from "@/app/(main)/_features/video-core/video-core-anime-tracks"
+import { VideoCoreCastButton, VideoCoreCastLayer } from "@/app/(main)/_features/video-core/video-core-cast"
 import { LuSkipForward } from "react-icons/lu"
+import { toast } from "sonner"
 import { VideoCoreSubtitleMenu, type VideoCoreSubtitleSelection } from "@/app/(main)/_features/video-core/video-core-subtitle-menu"
 import { VideoCoreSubtitleManager } from "@/app/(main)/_features/video-core/video-core-subtitles"
 import { vc_timeRangeElement, VideoCoreTimeRange } from "@/app/(main)/_features/video-core/video-core-time-range"
 import {
     vc_autoNextAtom,
+    vc_sleepTimerAtom,
     vc_autoPlayVideoAtom,
     vc_autoSkipOPEDAtom,
     vc_beautifyImageAtom,
+    vc_videoFitAtom,
     vc_settings,
     vc_storedMutedAtom,
     vc_storedPlaybackRateAtom,
@@ -177,6 +183,10 @@ export const vc_mediaCaptionsManager = atom<MediaCaptionsManager | null>(null)
 export const vc_audioManager = atom<VideoCoreAudioManager | null>(null)
 export const vc_previewManager = atom<VideoCorePreviewManager | null>(null)
 export const vc_anime4kManager = atom<VideoCoreAnime4KManager | null>(null)
+
+// Seconds until auto next starts the next episode; null while no countdown runs
+const vc_nextCountdown = atom<number | null>(null)
+const AUTO_NEXT_SECONDS = 5
 
 export function VideoCoreProvider(props: { id: string, children: React.ReactNode }) {
     const { children } = props
@@ -287,10 +297,14 @@ interface PlayerContentProps {
     handleWaiting: (e: React.SyntheticEvent<HTMLVideoElement>) => void
     handleCanPlay: (e: React.SyntheticEvent<HTMLVideoElement>) => void
     handleStalled: (e: React.SyntheticEvent<HTMLVideoElement>) => void
+    /** The <video> element's own error, shown when the server reports none */
+    videoError: string | null
+    onRetryVideo: (() => void) | undefined
     onTerminateStream: () => void
     onVideoSourceChange: ((source: VideoCore_VideoSource) => void) | undefined
     onHlsQualityChange: ((quality: string) => void) | undefined
     onSubtitlePreferenceChange: ((selection: VideoCoreSubtitleSelection) => void) | undefined
+    suppressAutoPlay: boolean
 }
 
 const PlayerContent = React.memo<PlayerContentProps>(({
@@ -319,19 +333,24 @@ const PlayerContent = React.memo<PlayerContentProps>(({
     handleWaiting,
     handleCanPlay,
     handleStalled,
+    videoError,
+    onRetryVideo,
     onTerminateStream,
     onVideoSourceChange,
     onHlsQualityChange,
     onSubtitlePreferenceChange,
+    suppressAutoPlay,
 }) => {
     const isMiniPlayer = useAtomValue(vc_miniPlayer)
     const busy = useAtomValue(vc_busy)
     const buffering = useAtomValue(vc_buffering)
     const settings = useAtomValue(vc_settings)
     const beautifyImage = useAtomValue(vc_beautifyImageAtom)
+    const videoFit = useAtomValue(vc_videoFitAtom)
     const isPip = useAtomValue(vc_pip)
     const fullscreen = useAtomValue(vc_isFullscreen)
     const skipChapter = useAtomValue(vc_skipChapter)
+    const [nextCountdown, setNextCountdown] = useAtom(vc_nextCountdown)
     const pipManager = useAtomValue(vc_pipManager)
     const action = useSetAtom(vc_dispatchAction)
     const [autoPlay] = useAtom(vc_autoPlayVideoAtom)
@@ -340,10 +359,14 @@ const PlayerContent = React.memo<PlayerContentProps>(({
     return (
         <>
 
-            <MediaCoreErrorOverlay playbackError={state.playbackError} isMiniPlayer={isMiniPlayer} onClose={onTerminateStream} />
+            <MediaCoreErrorOverlay playbackError={state.playbackError ?? videoError} isMiniPlayer={isMiniPlayer} onClose={onTerminateStream}
+                onRetry={state.playbackError ? undefined : onRetryVideo} />
 
             <div
                 data-vc-element="container"
+                data-vc-fullscreen={fullscreen}
+                data-vc-inline={!!inline}
+                data-vc-mini={isMiniPlayer}
                 ref={combineContainerRef}
                 className={cn(
                     "relative w-full h-full bg-black overflow-clip flex items-center justify-center",
@@ -369,12 +392,18 @@ const PlayerContent = React.memo<PlayerContentProps>(({
 
                         <MediaCoreBufferingOverlay buffering={buffering} />
 
-                        {busy && !!skipChapter && !isMiniPlayer && (
+                        {busy && !!skipChapter && !isMiniPlayer && nextCountdown === null && (
                             <PhoneSkipButton
                                 label={skipChapter.label}
                                 onSkip={() => action({ type: "seekTo", payload: { time: skipChapter.end } })}
                             />
                         )}
+
+                        {nextCountdown !== null && !isMiniPlayer && (
+                            <PhoneNextCountdown seconds={nextCountdown} onPlay={() => setNextCountdown(0)} onCancel={() => setNextCountdown(null)} />
+                        )}
+
+                        {!isMiniPlayer && <VideoCoreCastLayer />}
 
                         <div
                             data-vc-element="inner-container"
@@ -403,7 +432,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                                 onWaiting={handleWaiting}
                                 onCanPlay={handleCanPlay}
                                 onStalled={handleStalled}
-                                autoPlay={autoPlay}
+                                autoPlay={autoPlay && !suppressAutoPlay}
                                 muted={muted}
                                 playsInline
                                 controls={false}
@@ -412,7 +441,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                                     outline: "none",
                                     width: "100%",
                                     height: "100%",
-                                    objectFit: "contain",
+                                    objectFit: videoFit,
                                     objectPosition: "center",
                                     filter: (settings.videoEnhancement.enabled && beautifyImage)
                                         ? `contrast(${settings.videoEnhancement.contrast}) saturate(${settings.videoEnhancement.saturation}) brightness(${settings.videoEnhancement.brightness})`
@@ -449,9 +478,14 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                             </div>
                         )}
 
+                        <VideoCoreCenterControls />
+
                         <VideoCoreMobileControlBar
                             timeRange={<VideoCoreTimeRange chapterCues={chapterCues ?? []} />}
-                            topLeftSection={<VideoCorePlaylistControl />}
+                            topLeftSection={<>
+                                <VideoCorePlaylistControl />
+                                <VideoCoreTitle />
+                            </>}
                             topRightSection={<>
                                 <VideoCoreSettingsMenu />
                                 <VideoCoreResolutionMenu
@@ -461,6 +495,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                                 />
                                 <VideoCoreSubtitleMenu inline={inline} onPreferenceChange={onSubtitlePreferenceChange} />
                                 <VideoCoreAudioMenu />
+                                <VideoCoreCastButton />
                                 <VideoCorePipButton />
                                 <VideoCoreVolumeButton />
                             </>}
@@ -515,6 +550,8 @@ export interface VideoCoreProps {
     onSubtitlePreferenceChange?: (selection: VideoCoreSubtitleSelection) => void
     onChangePlaybackType?: (type: VideoCore_VideoPlaybackInfo["streamType"]) => void
     inline?: boolean
+    // Load without starting, despite the auto play setting (a page that only shows the player)
+    suppressAutoPlay?: boolean
     mRef?: React.MutableRefObject<HTMLVideoElement | null>
 }
 
@@ -548,6 +585,7 @@ export function VideoCore(props: VideoCoreProps) {
         onSubtitlePreferenceChange,
         onPlayEpisode,
         onChangePlaybackType,
+        suppressAutoPlay = false,
         mRef,
     } = props
     const serverStatus = useServerStatus()
@@ -638,6 +676,8 @@ export function VideoCore(props: VideoCoreProps) {
     const setSkipChapter = useSetAtom(vc_skipChapter)
 
     const [autoNext] = useAtom(vc_autoNextAtom)
+    const [sleepTimer, setSleepTimer] = useAtom(vc_sleepTimerAtom)
+    const tr = useTr()
     const [autoPlay] = useAtom(vc_autoPlayVideoAtom)
     const [autoSkipOpeningOutro] = useAtom(vc_autoSkipOPEDAtom)
     const [volume] = useAtom(vc_storedVolumeAtom)
@@ -650,6 +690,7 @@ export function VideoCore(props: VideoCoreProps) {
     const { mutate: convertSubs } = useDirectstreamConvertSubs()
 
     const isFirstError = React.useRef(true)
+    const [videoError, setVideoError] = React.useState<string | null>(null)
     const shouldDispatchTerminatedOnUnmount = React.useRef(false)
     const [activePlayer, setActivePlayer] = useAtom(vc_activePlayerId)
 
@@ -769,6 +810,18 @@ export function VideoCore(props: VideoCoreProps) {
         setContainerElement(instance)
     }, [setContainerElement])
 
+    // A replaced <video> stays referenced and keeps its decoder until its source is dropped. Phones and tablets
+    // only have a few hardware decoders, so after some episodes a new stream would fail with a decode error.
+    React.useEffect(() => {
+        const element = videoElement
+        return () => {
+            if (!element || element.isConnected) return
+            element.pause()
+            element.removeAttribute("src")
+            element.load()
+        }
+    }, [videoElement])
+
     // actions
     function togglePlay() {
         if (videoRef?.current?.paused) {
@@ -816,6 +869,7 @@ export function VideoCore(props: VideoCoreProps) {
             cancelDiscordActivity()
             hasSoughtRef.current = false
             isFirstError.current = true
+            setVideoError(null)
             if (videoRef.current) {
                 videoRef.current.pause()
                 videoRef.current.removeAttribute("src")
@@ -855,6 +909,7 @@ export function VideoCore(props: VideoCoreProps) {
         if (!!state.playbackInfo?.id && (!currentPlaybackRef.current || state.playbackInfo.id !== currentPlaybackRef.current)) {
             hasSoughtRef.current = false
             isFirstError.current = true
+            setVideoError(null)
             log.info("New stream loaded", state.playbackInfo)
             setStreamType(state.playbackInfo.streamType)
             dispatchVideoLoadedEvent()
@@ -868,7 +923,16 @@ export function VideoCore(props: VideoCoreProps) {
         }
     }, [state.playbackInfo?.id, activePlayer])
 
-    const streamUrl = state?.playbackInfo?.streamUrl?.replace?.("{{SERVER_URL}}", getServerBaseUrl())
+    // Without the audioTracks API, another audio track means reloading the stream with ?audioTrack=<number>;
+    // the position and play state are restored once the new stream has its metadata
+    const [streamAudioTrack, setStreamAudioTrack] = React.useState<{ playbackId: string, track: number } | null>(null)
+    const streamAudioTrackNumber = streamAudioTrack && streamAudioTrack.playbackId === state.playbackInfo?.id ? streamAudioTrack.track : null
+    const pendingAudioSwitchRef = React.useRef<{ time: number, paused: boolean } | null>(null)
+
+    const baseStreamUrl = state?.playbackInfo?.streamUrl?.replace?.("{{SERVER_URL}}", getServerBaseUrl())
+    const streamUrl = baseStreamUrl && streamAudioTrackNumber !== null && !baseStreamUrl.includes(".m3u8")
+        ? `${baseStreamUrl}${baseStreamUrl.includes("?") ? "&" : "?"}audioTrack=${streamAudioTrackNumber}`
+        : baseStreamUrl
 
     // Initialize HLS
     useVideoCoreHls({
@@ -876,6 +940,7 @@ export function VideoCore(props: VideoCoreProps) {
         streamUrl: streamUrl,
         streamType: streamType,
         preferredQuality: hlsPreferredQuality,
+        suppressAutoPlay: suppressAutoPlay,
         onMediaDetached: onHlsMediaDetached,
         onFatalError: onHlsFatalError,
         onStalled: err => onStalled?.(`HLS stalled: ${err.error?.message || err.details}`),
@@ -926,9 +991,21 @@ export function VideoCore(props: VideoCoreProps) {
         videoCompletedRef.current = false
 
         if (!state.playbackInfo) return // shouldn't happen
+        // tracks picked for this anime before win over the global defaults
+        const animeSettings = withAnimeTracks(settings, state.playbackInfo.media?.id)
 
 
         currentPlaybackRef.current = state.playbackInfo.id
+
+        // Back to where the audio track was switched
+        const pendingAudioSwitch = pendingAudioSwitchRef.current
+        if (pendingAudioSwitch) {
+            pendingAudioSwitchRef.current = null
+            if (pendingAudioSwitch.time > 0) v.currentTime = pendingAudioSwitch.time
+            // pause() also stops the element's autoplay, which would start a paused video again
+            if (pendingAudioSwitch.paused) v.pause()
+            else v.play().catch(() => {})
+        }
 
         /*
          * Event or file tracks using libass renderer
@@ -951,7 +1028,7 @@ export function VideoCore(props: VideoCoreProps) {
                     translateTargetLang: serverStatus?.settings?.mediaPlayer?.vcTranslate
                         ? serverStatus?.settings?.mediaPlayer?.vcTranslateTargetLanguage
                         : null,
-                    settings: settings,
+                    settings: animeSettings,
                     fetchAndConvertToVTT: (url?: string, content?: string) => {
                         return new Promise((resolve, reject) => {
                             convertSubs({ url: url ?? "", content: content ?? "", to: "vtt" }, {
@@ -985,7 +1062,7 @@ export function VideoCore(props: VideoCoreProps) {
                     translateTargetLang: serverStatus?.settings?.mediaPlayer?.vcTranslate
                         ? serverStatus?.settings?.mediaPlayer?.vcTranslateTargetLanguage
                         : null,
-                    settings: settings,
+                    settings: animeSettings,
                     fetchAndConvertToASS: (url?: string, content?: string) => {
                         return new Promise((resolve, reject) => {
                             convertSubs({ url: url ?? "", content: content ?? "", to: "ass" }, {
@@ -1011,7 +1088,7 @@ export function VideoCore(props: VideoCoreProps) {
             setAudioManager(new VideoCoreAudioManager({
                 videoElement: v!,
                 playbackInfo: state.playbackInfo,
-                settings: settings,
+                settings: animeSettings,
                 onError: (error) => {
                     log.error("Audio manager error", error)
                     onError?.(error)
@@ -1021,13 +1098,21 @@ export function VideoCore(props: VideoCoreProps) {
                 hlsCurrentAudioTrack: hlsCurrentAudioTrack,
             }))
         } else if (!!state.playbackInfo?.mkvMetadata) {
+            const playbackId = state.playbackInfo.id
             setAudioManager(new VideoCoreAudioManager({
                 videoElement: v!,
                 playbackInfo: state.playbackInfo,
-                settings: settings,
+                settings: animeSettings,
                 onError: (error) => {
                     log.error("Audio manager error", error)
                     onError?.(error)
+                },
+                streamAudioTrack: streamAudioTrackNumber,
+                onStreamAudioTrackChange: (track) => {
+                    const video = videoRef.current
+                    // A second switch while the stream reloads keeps the position of the first
+                    pendingAudioSwitchRef.current ??= video ? { time: video.currentTime, paused: video.paused } : null
+                    setStreamAudioTrack({ playbackId, track })
                 },
             }))
         }
@@ -1037,7 +1122,7 @@ export function VideoCore(props: VideoCoreProps) {
             if (p) p.destroy()
             return new VideoCoreAnime4KManager({
                 videoElement: v!,
-                settings: settings,
+                settings: animeSettings,
                 onFallback: (message) => {
                     showOverlayFeedback({ message, duration: 2000 })
                 },
@@ -1084,6 +1169,9 @@ export function VideoCore(props: VideoCoreProps) {
                     videoRef.current.pause()
                 }
             })
+
+            manager.on("media-next-request", () => playEpisodeRef.current("next"))
+            manager.on("media-previous-request", () => playEpisodeRef.current("previous"))
 
             manager.on("media-seek-request", (event: Event) => {
                 const { seekTime } = (event as CustomEvent).detail
@@ -1132,20 +1220,55 @@ export function VideoCore(props: VideoCoreProps) {
         }
     }
 
-    const { playEpisode, isGlobalPlaylistActive } = useVideoCorePlaylist()
+    const { playEpisode, isGlobalPlaylistActive, hasNextEpisode, hasPreviousEpisode } = useVideoCorePlaylist()
+    // the media notification's buttons outlive renders; they always reach the current playlist
+    const playEpisodeRef = React.useRef(playEpisode)
+    playEpisodeRef.current = playEpisode
+    React.useEffect(() => {
+        mediaSessionManager?.setQueue(hasNextEpisode, hasPreviousEpisode)
+    }, [mediaSessionManager, hasNextEpisode, hasPreviousEpisode])
+    const [nextCountdown, setNextCountdown] = useAtom(vc_nextCountdown)
     const handleEnded = (e: React.SyntheticEvent<HTMLVideoElement>) => {
         log.info("Video ended")
         subtitleManager?.pgsRenderer?.stop()
         onEnded?.()
+        if (sleepTimer === "episode") {
+            setSleepTimer(null)
+            toast.info(tr("Sleep timer: stopped after this episode", "Sleep-Timer: nach dieser Folge gestoppt"))
+            return
+        }
         if (autoNext && !isWatchPartyParticipant) {
             if (props.id === "native-player" && isGlobalPlaylistActive) {
                 log.info("Skipping frontend auto next for native global playlist")
                 return
             }
-            // videoRef?.current?.pause()
-            playEpisode("next")
+            if (hasNextEpisode) setNextCountdown(AUTO_NEXT_SECONDS)
+            else playEpisode("next")
         }
     }
+    React.useEffect(() => {
+        if (nextCountdown === null) return
+        if (nextCountdown <= 0) {
+            setNextCountdown(null)
+            playEpisode("next")
+            return
+        }
+        const timer = setTimeout(() => setNextCountdown(seconds => seconds === null ? null : seconds - 1), 1000)
+        return () => clearTimeout(timer)
+    }, [nextCountdown])
+    // Sleep timer: pause once the time is up
+    React.useEffect(() => {
+        if (typeof sleepTimer !== "number") return
+        const timer = setTimeout(() => {
+            videoRef.current?.pause()
+            setSleepTimer(null)
+            toast.info(tr("Sleep timer: paused", "Sleep-Timer: pausiert"))
+        }, Math.max(sleepTimer - Date.now(), 0))
+        return () => clearTimeout(timer)
+    }, [sleepTimer])
+    // Another episode, playing on (seeking back) or closing the player ends the countdown
+    React.useEffect(() => setNextCountdown(null), [state.playbackInfo?.id])
+    React.useEffect(() => () => setNextCountdown(null), [])
 
     const [debouncedMenuOpen, setDebouncedMenuOpen] = React.useState(false)
     const menuOpen = useAtomValue(vc_menuOpen)
@@ -1202,6 +1325,7 @@ export function VideoCore(props: VideoCoreProps) {
 
     const handlePlay = (e: React.SyntheticEvent<HTMLVideoElement>) => {
         // log.info("Video resumed")
+        setNextCountdown(null)
         onPlay?.()
     }
 
@@ -1243,8 +1367,22 @@ export function VideoCore(props: VideoCoreProps) {
         }
 
         const error = `Video playback error occurred. (Code: ${(e.currentTarget.error && e.currentTarget.error.code) || "unknown"})`
+        if (e.currentTarget.error?.code !== MediaError.MEDIA_ERR_ABORTED) setVideoError(error)
         onError?.(error)
         dispatchVideoErrorEvent(error)
+    }
+
+    // A stream that broke off (Wi-Fi gone, decoder hiccup) loads again where it stopped
+    function retryVideo() {
+        const video = videoRef.current
+        if (!video) return
+        const time = video.currentTime
+        setVideoError(null)
+        video.addEventListener("loadedmetadata", () => {
+            video.currentTime = time
+            video.play().catch(() => {})
+        }, { once: true })
+        video.load()
     }
 
     const handleWaiting = (e: React.SyntheticEvent<HTMLVideoElement>) => {
@@ -1254,7 +1392,7 @@ export function VideoCore(props: VideoCoreProps) {
     function restoreSeekTime(time: number, showMessage: boolean, paused?: boolean) {
         if (!videoRef.current) return
         if (anime4kOption === "off" || anime4kManager?.canvas !== null) {
-            if (showMessage) showOverlayFeedback({ message: "Progress restored", duration: 1500 })
+            if (showMessage) showOverlayFeedback({ message: tr("Progress restored", "Fortschritt wiederhergestellt"), duration: 1500 })
             videoRef.current.currentTime = time
             if (paused && !videoRef.current.paused) {
                 videoRef.current.pause()
@@ -1263,7 +1401,7 @@ export function VideoCore(props: VideoCoreProps) {
             }
         } else if (anime4kOption !== ("off" as Anime4KOption)) {
             videoRef.current.pause()
-            if (showMessage) showOverlayFeedback({ message: "Restoring progress", duration: 1500 })
+            if (showMessage) showOverlayFeedback({ message: tr("Restoring progress", "Fortschritt wird wiederhergestellt"), duration: 1500 })
             anime4kManager.registerOnCanvasCreatedOnce(() => {
                 if (!videoRef.current) return
                 videoRef.current.currentTime = time
@@ -1308,7 +1446,7 @@ export function VideoCore(props: VideoCoreProps) {
                     // action({ type: "seekTo", payload: { time: state.playbackInfo.initialState.currentTime } })
                     restoreSeekTime(state.playbackInfo.initialState.currentTime, false, state.playbackInfo.initialState.paused)
                 }
-            } else if (autoPlay) {
+            } else if (autoPlay && !suppressAutoPlay) {
                 videoRef.current.play().catch()
             }
         }
@@ -1373,17 +1511,6 @@ export function VideoCore(props: VideoCoreProps) {
             mediaSessionManager.deactivate()
         }
     }, [mediaSessionManager, videoRef.current, state.playbackInfo, state.active, playEpisode])
-
-    // Handle mobile gestures
-    useVideoCoreMobileGestures({
-        videoElement: videoRef.current,
-        containerElement: containerRef.current,
-        onSeek: (time) => {
-            if (videoRef.current) {
-                videoRef.current.currentTime = time
-            }
-        },
-    })
 
     // container events
     const setNotBusyTimeout = React.useRef<NodeJS.Timeout | null>(null)
@@ -1504,12 +1631,13 @@ export function VideoCore(props: VideoCoreProps) {
                 <VideoCoreAnime4K />
                 <VideoCoreScreenshotDirPrompt />
                 {fullscreen && <RemoveScrollBar />}
+                {/* Keeps its place in the page while the player is fullscreen (the browser lifts the player above the
+                    page), so the page underneath does not move and the player has a place to shrink back into. */}
                 <div
                     data-vc-element="inline-container"
                     className={cn(
                         "relative w-full h-full",
                         inlineClassName,
-                        fullscreen && "fixed z-[99999] inset-0",
                     )}
                 >
                     <PlayerContent
@@ -1538,10 +1666,13 @@ export function VideoCore(props: VideoCoreProps) {
                         handleWaiting={handleWaiting}
                         handleCanPlay={handleCanPlay}
                         handleStalled={handleStalled}
+                        videoError={videoError}
+                        onRetryVideo={streamType === "hls" ? undefined : retryVideo}
                         onTerminateStream={onTerminateStream}
                         onVideoSourceChange={onVideoSourceChange}
                         onHlsQualityChange={onHlsQualityChange}
                         onSubtitlePreferenceChange={onSubtitlePreferenceChange}
+                        suppressAutoPlay={suppressAutoPlay}
                     />
                 </div>
             </ScopeProvider>
@@ -1619,10 +1750,13 @@ export function VideoCore(props: VideoCoreProps) {
                         handleWaiting={handleWaiting}
                         handleCanPlay={handleCanPlay}
                         handleStalled={handleStalled}
+                        videoError={videoError}
+                        onRetryVideo={streamType === "hls" ? undefined : retryVideo}
                         onTerminateStream={onTerminateStream}
                         onVideoSourceChange={onVideoSourceChange}
                         onHlsQualityChange={onHlsQualityChange}
                         onSubtitlePreferenceChange={onSubtitlePreferenceChange}
+                        suppressAutoPlay={suppressAutoPlay}
                     />
                 </VideoCoreDrawer>
 
@@ -1687,6 +1821,27 @@ function LoadingFloatingButtons(props: { onTerminateStream: () => void }) {
                     />
                 </>
             )}
+        </div>
+    )
+}
+
+/** Auto next: the next episode starts after a short countdown, which can be skipped or cancelled. Sits where the skip action does. */
+function PhoneNextCountdown({ seconds, onPlay, onCancel }: { seconds: number, onPlay: () => void, onCancel: () => void }) {
+    const t = useTr()
+    const stop = (e: React.SyntheticEvent) => e.stopPropagation()
+    return (
+        <div data-vc-element="next-countdown" className="vc-phone-skip vc-phone-next" onPointerDown={stop} onPointerMove={stop}>
+            <p aria-live="polite">{t(`Next episode in ${seconds} s`, `Nächste Folge in ${seconds} s`)}</p>
+            <div>
+                <button type="button" onClick={e => {
+                    stop(e)
+                    onCancel()
+                }}>{t("Cancel", "Abbrechen")}</button>
+                <button type="button" onClick={e => {
+                    stop(e)
+                    onPlay()
+                }}>{t("Play now", "Jetzt abspielen")}<LuSkipForward aria-hidden /></button>
+            </div>
         </div>
     )
 }

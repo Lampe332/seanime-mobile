@@ -11,9 +11,14 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.widget.RemoteViews
+import com.seanime.app.AppLanguage
+import com.seanime.app.AppLanguage.tr
 import com.seanime.app.MainActivity
 import com.seanime.app.R
 import com.seanime.app.SeanimeService
+import com.seanime.app.notify.AiringNotifier
+import java.text.SimpleDateFormat
+import java.util.Date
 
 class UpcomingAnimeWidget : AppWidgetProvider() {
 
@@ -37,7 +42,7 @@ class UpcomingAnimeWidget : AppWidgetProvider() {
             ACTION_REFRESH -> {
                 val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
                 if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                    WidgetCache(context).clearCache()
+                    WidgetCache(context).clearError()
                     refreshWidget(context, appWidgetManager, appWidgetId)
                 }
             }
@@ -47,17 +52,27 @@ class UpcomingAnimeWidget : AppWidgetProvider() {
     }
 
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
+        AppLanguage.init(context)
         val views = RemoteViews(context.packageName, R.layout.widget_layout)
+        views.setTextViewText(R.id.widget_title, tr("Upcoming anime", "Demnächst"))
         val cache = WidgetCache(context)
         val error = cache.getError()
-        if (error != null || cache.isLoading() || !cache.hasValidCache()) {
-            views.setTextViewText(R.id.loading_text, if (error != null) "Error: $error" else "Nothing here yet")
+        if (cache.getCacheData().isNotEmpty()) {
+            // A failed or pending refresh keeps the last list, marked with its time.
+            val outdated = error != null || !cache.hasValidCache()
+            views.setTextViewText(R.id.loading_text, tr("As of ${time(cache.savedAt())}", "Stand ${time(cache.savedAt())}"))
+            views.setViewVisibility(R.id.loading_text, if (outdated) View.VISIBLE else View.GONE)
+            views.setViewVisibility(R.id.anime_list_view, View.VISIBLE)
+        } else {
+            views.setTextViewText(R.id.loading_text, when {
+                cache.isLoading() -> tr("Loading …", "Wird geladen …")
+                error != null -> error
+                cache.savedAt() > 0 -> tr("No upcoming episodes on your list", "Keine anstehenden Folgen auf deiner Liste")
+                else -> tr("Nothing here yet", "Noch nichts da")
+            })
             views.setViewVisibility(R.id.loading_text, View.VISIBLE)
             // Keep the ListView around so RemoteViewsService still runs and can fetch.
             views.setViewVisibility(R.id.anime_list_view, View.INVISIBLE)
-        } else {
-            views.setViewVisibility(R.id.loading_text, View.GONE)
-            views.setViewVisibility(R.id.anime_list_view, View.VISIBLE)
         }
 
         val refreshIntent = Intent(context, UpcomingAnimeWidget::class.java)
@@ -78,16 +93,27 @@ class UpcomingAnimeWidget : AppWidgetProvider() {
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
+    /** HH:mm, with the date when it is not from today. */
+    private fun time(millis: Long): String {
+        val today = SimpleDateFormat("yyyyMMdd", AppLanguage.locale).let { it.format(Date(millis)) == it.format(Date()) }
+        val pattern = if (today) "HH:mm" else tr("MMM d, HH:mm", "dd.MM., HH:mm")
+        return SimpleDateFormat(pattern, AppLanguage.locale).format(Date(millis))
+    }
+
     private fun refreshWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        val serviceIntent = Intent(context, SeanimeService::class.java)
-        try {
-            if (android.os.Build.VERSION.SDK_INT >= 26) context.startForegroundService(serviceIntent)
-            else context.startService(serviceIntent)
-        } catch (_: IllegalStateException) {
-            // Periodic widget updates are not exempt from Android's background-start limit.
-            WidgetCache(context).setError("Open Seanime to start the local server, then refresh the widget.")
-            updateWidget(context, appWidgetManager, appWidgetId)
-            return
+        // The list comes from AniList; the local server only tells the user name, which the app remembers.
+        if (AiringNotifier.knownUser(context) == null) {
+            val serviceIntent = Intent(context, SeanimeService::class.java)
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= 26) context.startForegroundService(serviceIntent)
+                else context.startService(serviceIntent)
+            } catch (_: IllegalStateException) {
+                // Periodic widget updates are not exempt from Android's background-start limit.
+                AppLanguage.init(context)
+                WidgetCache(context).setError(tr("Open Seanime once, then refresh the widget.", "Seanime einmal öffnen, dann das Widget aktualisieren."))
+                updateWidget(context, appWidgetManager, appWidgetId)
+                return
+            }
         }
 
         WidgetCache(context).setLoading(true)

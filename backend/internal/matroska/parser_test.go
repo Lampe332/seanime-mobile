@@ -763,14 +763,19 @@ func TestParseCueTrackPositions(t *testing.T) {
 		buf.Write([]byte{0xF0, 0x81, 0x32})
 		// CueBlockNumber: 1
 		buf.Write([]byte{0x53, 0x78, 0x81, 0x01})
+		// CueDuration: 2500 ticks
+		buf.Write([]byte{0xB2, 0x82, 0x09, 0xC4})
 
-		parser := &MatroskaParser{}
+		parser := &MatroskaParser{fileInfo: &SegmentInfo{TimecodeScale: 1000000}}
 
 		cue, err := parser.parseCueTrackPositions(buf.Bytes())
 		if err != nil {
 			t.Fatalf("parseCueTrackPositions() failed: %v", err)
 		}
 
+		if cue.Duration != 2500*1000000 {
+			t.Errorf("Expected cue duration 2.5s, got %d", cue.Duration)
+		}
 		if cue.Track != 3 {
 			t.Errorf("Expected cue track 3, got %d", cue.Track)
 		}
@@ -3022,6 +3027,34 @@ func createMockMatroskaFileTwoClusters() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func TestNewMatroskaParser_StartAtClusterKeepsFirstCluster(t *testing.T) {
+	// subtitle seeks start the parser directly at a cluster offset
+	data, err := createMockMatroskaFileTwoClusters()
+	if err != nil {
+		t.Fatalf("failed to build mock: %v", err)
+	}
+	clusterPos := bytes.Index(data, []byte{0x1F, 0x43, 0xB6, 0x75})
+	r := bytes.NewReader(data)
+	if _, err = r.Seek(int64(clusterPos), io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+
+	p, err := NewMatroskaParser(r, false)
+	if err != nil {
+		t.Fatalf("NewMatroskaParser failed: %v", err)
+	}
+	pkt, err := p.ReadPacket()
+	if err != nil {
+		t.Fatalf("ReadPacket failed: %v", err)
+	}
+	if string(pkt.Data) != "f1" {
+		t.Errorf("expected the first cluster's block, got %q", pkt.Data)
+	}
+	if pkt.FilePos < uint64(clusterPos) {
+		t.Errorf("expected an absolute file position, got %d", pkt.FilePos)
+	}
+}
+
 func TestReadPacket_MultiClusters_AndSkipUnknown(t *testing.T) {
 	data, err := createMockMatroskaFileTwoClusters()
 	if err != nil {
@@ -3053,6 +3086,91 @@ func TestReadPacket_MultiClusters_AndSkipUnknown(t *testing.T) {
 	// Then EOF
 	if pkt3, errReadPacket := p.ReadPacket(); errReadPacket != io.EOF || pkt3 != nil {
 		t.Errorf("Expected EOF after two packets, got pkt=%v err=%v", pkt3, errReadPacket)
+	}
+}
+
+// Some muxers reserve a Void at the start and write Tracks after the clusters; only the SeekHead points to them.
+func TestNewMatroskaParser_TracksAfterClusters(t *testing.T) {
+	element := func(id []byte, payload []byte) []byte {
+		out := append([]byte{}, id...)
+		out = append(out, vintEncode(uint64(len(payload)))...)
+		return append(out, payload...)
+	}
+
+	info := element([]byte{0x15, 0x49, 0xA9, 0x66}, []byte{0x2A, 0xD7, 0xB1, 0x83, 0x0F, 0x42, 0x40})
+	void := element([]byte{0xEC}, make([]byte, 16))
+	cluster := element([]byte{0x1F, 0x43, 0xB6, 0x75}, append([]byte{0xE7, 0x81, 0x00},
+		element([]byte{0xA3}, []byte{0x81, 0x00, 0x00, 0x80, 'f', '1'})...))
+	trackEntry, _ := createMockTrackEntry(1, TypeVideo, "V_TEST", "TestVideo", "und")
+	tracks := element([]byte{0x16, 0x54, 0xAE, 0x6B}, element([]byte{0xAE}, trackEntry))
+
+	seekHead := func(tracksPos uint64) []byte {
+		pos := make([]byte, 8)
+		binary.BigEndian.PutUint64(pos, tracksPos)
+		seek := append(element([]byte{0x53, 0xAB}, []byte{0x16, 0x54, 0xAE, 0x6B}), element([]byte{0x53, 0xAC}, pos)...)
+		return element([]byte{0x11, 0x4D, 0x9B, 0x74}, element([]byte{0x4D, 0xBB}, seek))
+	}
+	tracksPos := uint64(len(seekHead(0)) + len(info) + len(void) + len(cluster))
+
+	segment := bytes.Join([][]byte{seekHead(tracksPos), info, void, cluster, tracks}, nil)
+	data := element([]byte{0x1A, 0x45, 0xDF, 0xA3}, []byte{0x42, 0x82, 0x88, 'm', 'a', 't', 'r', 'o', 's', 'k', 'a'})
+	data = append(data, element([]byte{0x18, 0x53, 0x80, 0x67}, segment)...)
+
+	p, err := NewMatroskaParser(bytes.NewReader(data), false, IDSegmentInfo, IDTracks, IDCues)
+	if err != nil {
+		t.Fatalf("NewMatroskaParser failed: %v", err)
+	}
+	if p.GetNumTracks() != 1 || p.GetTrackInfo(0).CodecID != "V_TEST" {
+		t.Fatalf("Expected the track written after the cluster, got %d tracks", p.GetNumTracks())
+	}
+	if offset := p.GetTrackInfo(0).TypeOffset; offset <= 0 || data[offset] != TypeVideo {
+		t.Fatalf("Expected TypeOffset to point at the TrackType byte, got %d", offset)
+	}
+	if offset := p.GetTrackInfo(0).CodecIDOffset; offset <= 0 || string(data[offset:offset+6]) != "V_TEST" {
+		t.Fatalf("Expected CodecIDOffset to point at the CodecID, got %d", offset)
+	}
+	// Reading packets still starts at the first cluster
+	pkt, err := p.ReadPacket()
+	if err != nil || string(pkt.Data) != "f1" {
+		t.Fatalf("Expected first packet f1, got pkt=%v err=%v", pkt, err)
+	}
+}
+
+// The first SeekHead only points to a second SeekHead at the end, which lists the Tracks.
+func TestNewMatroskaParser_TracksBehindSecondSeekHead(t *testing.T) {
+	element := func(id []byte, payload []byte) []byte {
+		out := append([]byte{}, id...)
+		out = append(out, vintEncode(uint64(len(payload)))...)
+		return append(out, payload...)
+	}
+	seekHead := func(targetID []byte, targetPos uint64) []byte {
+		pos := make([]byte, 8)
+		binary.BigEndian.PutUint64(pos, targetPos)
+		seek := append(element([]byte{0x53, 0xAB}, targetID), element([]byte{0x53, 0xAC}, pos)...)
+		return element([]byte{0x11, 0x4D, 0x9B, 0x74}, element([]byte{0x4D, 0xBB}, seek))
+	}
+	seekHeadID := []byte{0x11, 0x4D, 0x9B, 0x74}
+	tracksID := []byte{0x16, 0x54, 0xAE, 0x6B}
+
+	info := element([]byte{0x15, 0x49, 0xA9, 0x66}, []byte{0x2A, 0xD7, 0xB1, 0x83, 0x0F, 0x42, 0x40})
+	cluster := element([]byte{0x1F, 0x43, 0xB6, 0x75}, append([]byte{0xE7, 0x81, 0x00},
+		element([]byte{0xA3}, []byte{0x81, 0x00, 0x00, 0x80, 'f', '1'})...))
+	trackEntry, _ := createMockTrackEntry(1, TypeAudio, "A_TEST", "TestAudio", "jpn")
+	tracks := element(tracksID, element([]byte{0xAE}, trackEntry))
+
+	firstLen := uint64(len(seekHead(seekHeadID, 0)))
+	secondPos := firstLen + uint64(len(info)+len(cluster))
+	second := seekHead(tracksID, secondPos+uint64(len(seekHead(tracksID, 0))))
+	segment := bytes.Join([][]byte{seekHead(seekHeadID, secondPos), info, cluster, second, tracks}, nil)
+	data := element([]byte{0x1A, 0x45, 0xDF, 0xA3}, []byte{0x42, 0x82, 0x88, 'm', 'a', 't', 'r', 'o', 's', 'k', 'a'})
+	data = append(data, element([]byte{0x18, 0x53, 0x80, 0x67}, segment)...)
+
+	p, err := NewMatroskaParser(bytes.NewReader(data), false, IDSegmentInfo, IDTracks, IDCues)
+	if err != nil {
+		t.Fatalf("NewMatroskaParser failed: %v", err)
+	}
+	if p.GetNumTracks() != 1 || p.GetTrackInfo(0).CodecID != "A_TEST" {
+		t.Fatalf("Expected the track listed by the second SeekHead, got %d tracks", p.GetNumTracks())
 	}
 }
 
@@ -3252,7 +3370,7 @@ func TestParseCuePoint_Full(t *testing.T) {
 	ctp.Write([]byte{0xF1, 0x81, 0x64})       // ClusterPos 100
 	ctp.Write([]byte{0xF0, 0x81, 0x05})       // RelativePos 5
 	ctp.Write([]byte{0x53, 0x78, 0x81, 0x03}) // BlockNum 3
-	ctp.Write([]byte{0x9B, 0x81, 0x02})       // Duration 2
+	ctp.Write([]byte{0xB2, 0x81, 0x02})       // CueDuration 2
 	cue.Write([]byte{0xB7})
 	cue.Write(vintEncode(uint64(ctp.Len())))
 	cue.Write(ctp.Bytes())

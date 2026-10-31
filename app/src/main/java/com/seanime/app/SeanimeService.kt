@@ -71,7 +71,7 @@ class SeanimeService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val stopAction = Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Exit", pendingStopIntent).build()
+        val stopAction = Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, AppLanguage.tr("Exit", "Beenden"), pendingStopIntent).build()
         val openIntent = PendingIntent.getActivity(this, 1, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
@@ -83,7 +83,7 @@ class SeanimeService : Service() {
                 status.startsWith("Server stopped") -> AppLanguage.tr("Seanime stopped. Open the app to restart.", "Seanime wurde beendet. Zum Neustart App öffnen.")
                 else -> AppLanguage.tr("Seanime is running in the background", "Seanime läuft im Hintergrund")
             })
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_seanime)
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
             .setCategory(Notification.CATEGORY_SERVICE)
@@ -184,7 +184,7 @@ class SeanimeService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT < 26) return
-        val channel = NotificationChannel(CHANNEL_ID, "Seanime Server", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(CHANNEL_ID, AppLanguage.tr("Seanime server", "Seanime-Server"), NotificationManager.IMPORTANCE_LOW)
         channel.description = AppLanguage.tr("Optional notice for background playback and downloads", "Optionaler Hinweis für Wiedergabe und Downloads im Hintergrund")
         channel.setSound(null, null)
         channel.enableVibration(false)

@@ -126,6 +126,10 @@ type TrackInfo struct {
 	Number uint8
 	// Type is the track type. See the track type constants (TypeVideo, TypeAudio, TypeSubtitle).
 	Type uint8
+	// TypeOffset is the file offset of the one-byte TrackType value, 0 when it is unknown.
+	TypeOffset int64
+	// CodecIDOffset is the file offset of the CodecID string, 0 when it is unknown.
+	CodecIDOffset int64
 	// TrackOverlay specifies whether this track should be overlaid on another track.
 	// This is typically used for subtitle or menu tracks that need to be displayed over video.
 	TrackOverlay uint8

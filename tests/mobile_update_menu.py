@@ -111,7 +111,7 @@ with tempfile.TemporaryDirectory(prefix="seanime-mobile-update-test-") as temp_d
         # Settle the component's automatic initial check with the same no-update result.
         page.wait_for_function("window.__pendingUpdateChecks.length === 1")
         respond(page, {"type":"app", "current_version":"1.9.1"})
-        page.wait_for_function("window.__appUpdateCheckCount === 1 && !document.querySelector('[data-app-update-sidebar] [role=status]')?.textContent.includes('Suche nach Updates')")
+        page.wait_for_function("window.__appUpdateCheckCount === 1 && !document.querySelector('[data-app-update-sidebar] [role=status]')?.textContent.includes('wird geprüft')")
         baseline = page.evaluate("window.__appUpdateCheckCount")
 
         menu_button = page.locator('#__seanime_bottom_nav button[data-nav-id="menu"]')
@@ -122,39 +122,40 @@ with tempfile.TemporaryDirectory(prefix="seanime-mobile-update-test-") as temp_d
         page.evaluate("document.querySelector('#android-floating-menu').scrollTop=32")
         before_scroll = page.evaluate("document.querySelector('#android-floating-menu').scrollTop")
 
-        check_again = page.locator('#android-floating-menu [data-app-update-panel] button').filter(has_text="Erneut prüfen")
-        check_again.click()
+        check_again = page.locator('#android-floating-menu [data-app-update-panel] button.mobile-update__check')
+        # A real tap: no scrolling first (the one-line panel sits partly above the scrolled menu)
+        check_again.dispatch_event("click")
         first_request = wait_for_request(page, baseline)
         status = page.locator('#android-floating-menu [data-app-update-panel] [role="status"]')
-        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('Suche nach Updates')")
+        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('wird geprüft')")
         evidence_dir = os.environ.get("SEANIME_UPDATE_TEST_EVIDENCE_DIR")
         if evidence_dir:
             evidence_path = Path(evidence_dir)
             evidence_path.mkdir(parents=True, exist_ok=True)
             page.screenshot(path=str(evidence_path / "controlled-search-loading.png"), full_page=True)
         record("one click starts one controlled check", page.evaluate("window.__appUpdateCheckCount") == baseline + 1)
-        record("menu and scroll position remain during the check", menu.is_visible() and page.evaluate("document.querySelector('#android-floating-menu').scrollTop") == before_scroll)
-        record("German live status and animated spinner are visible", "Suche nach Updates" in status.inner_text() and page.locator('#android-floating-menu [data-update-check-spinner]').is_visible())
-        record("manual action is disabled while the request is pending", page.locator('#android-floating-menu [data-app-update-panel] button').filter(has_text="Prüfung läuft").is_disabled())
+        record("menu and scroll position remain during the check", menu.is_visible() and page.evaluate("document.querySelector('#android-floating-menu').scrollTop") == before_scroll, {"before": before_scroll, "now": page.evaluate("document.querySelector('#android-floating-menu').scrollTop"), "visible": menu.is_visible()})
+        record("German live status and animated spinner are visible", "wird geprüft" in status.inner_text() and page.locator('#android-floating-menu [data-update-check-spinner]').is_visible())
+        record("manual action is disabled while the request is pending", page.locator('#android-floating-menu [data-app-update-panel] button.mobile-update__check').is_disabled())
         page.locator('#android-floating-menu [data-app-update-panel] button').first.dispatch_event("click")
         page.locator('#android-floating-menu [data-app-update-panel] button').first.dispatch_event("click")
         record("rapid repeated taps do not create parallel checks", page.evaluate("window.__appUpdateCheckCount") == baseline + 1 and len(page.evaluate("window.__pendingUpdateChecks")) == 1)
         respond(page, {"type":"app", "current_version":"1.9.1"})
-        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('Auf dem neuesten Stand')")
-        record("no-update result retains installed version and menu scroll", "Installiert: 1.9.1" in page.locator('#android-floating-menu [data-app-update-panel]').inner_text() and menu.is_visible() and page.evaluate("document.querySelector('#android-floating-menu').scrollTop") == before_scroll)
+        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('aktuell')")
+        record("no-update result retains installed version and menu scroll", "App 1.9.1" in page.locator('#android-floating-menu [data-app-update-panel]').inner_text() and menu.is_visible() and page.evaluate("document.querySelector('#android-floating-menu').scrollTop") == before_scroll, {"before": before_scroll, "now": page.evaluate("document.querySelector('#android-floating-menu').scrollTop"), "text": page.locator('#android-floating-menu [data-app-update-panel]').inner_text()})
 
         # A network error is visible and leaves a retry action; the retry is another real bridge request.
-        check_again = page.locator('#android-floating-menu [data-app-update-panel] button').filter(has_text="Erneut prüfen")
+        check_again = page.locator('#android-floating-menu [data-app-update-panel] button.mobile-update__check')
         check_again.click()
         wait_for_request(page, baseline + 1)
         respond_error(page, "GitHub is unreachable")
-        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('Updates konnten nicht geprüft werden')")
-        record("network failure is understandable and retryable", "Erneut versuchen" in page.locator('#android-floating-menu [data-app-update-panel]').inner_text())
-        retry = page.locator('#android-floating-menu [data-app-update-panel] button').filter(has_text="Erneut versuchen")
+        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('Prüfung fehlgeschlagen')")
+        record("network failure is understandable and retryable", page.locator('#android-floating-menu [data-app-update-panel] button.mobile-update__check').is_enabled())
+        retry = page.locator('#android-floating-menu [data-app-update-panel] button.mobile-update__check')
         retry.click()
         retry_request = wait_for_request(page, baseline + 2)
         respond(page, {"type":"app", "current_version":"1.9.1"})
-        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('Auf dem neuesten Stand')")
+        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('aktuell')")
         record("retry starts a fresh check and clears the prior error", retry_request is not None and page.evaluate("window.__appUpdateCheckCount") == baseline + 3)
 
         # Accelerate only the real native bridge timeout for this controlled UI scenario.
@@ -163,33 +164,33 @@ with tempfile.TemporaryDirectory(prefix="seanime-mobile-update-test-") as temp_d
             window.setTimeout = (callback, delay, ...args) =>
                 window.__originalSetTimeout(callback, delay === 60000 ? 40 : delay, ...args);
         }''')
-        page.locator('#android-floating-menu [data-app-update-panel] button').filter(has_text="Erneut prüfen").click()
+        page.locator('#android-floating-menu [data-app-update-panel] button.mobile-update__check').click()
         wait_for_request(page, baseline + 3)
-        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('Updates konnten nicht geprüft werden')")
+        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('Prüfung fehlgeschlagen')")
         page.evaluate('''() => {
             window.setTimeout = window.__originalSetTimeout;
             delete window.__originalSetTimeout;
             window.__pendingUpdateChecks.shift();
         }''')
-        timeout_retry = page.locator('#android-floating-menu [data-app-update-panel] button').filter(has_text="Erneut versuchen")
+        timeout_retry = page.locator('#android-floating-menu [data-app-update-panel] button.mobile-update__check')
         record("bridge timeout ends loading and leaves the menu retryable", timeout_retry.is_visible() and menu.is_visible() and not page.locator('#android-floating-menu [data-update-check-spinner]').is_visible())
         timeout_retry.click()
         timeout_retry_request = wait_for_request(page, baseline + 4)
         respond(page, {"type":"app", "current_version":"1.9.1"})
-        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('Auf dem neuesten Stand')")
+        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('aktuell')")
         record("retry after timeout starts a fresh check and succeeds", timeout_retry_request is not None and page.evaluate("window.__appUpdateCheckCount") == baseline + 5)
 
         # If a late event from the previous request arrives during a newer query, the bridge ID is ignored.
         previous_id = page.evaluate("window.__updateRequestHistory[window.__updateRequestHistory.length-1]")
-        page.locator('#android-floating-menu [data-app-update-panel] button').filter(has_text="Erneut prüfen").click()
+        page.locator('#android-floating-menu [data-app-update-panel] button.mobile-update__check').click()
         current_id = wait_for_request(page, baseline + 5)
         page.evaluate("args => window.__dispatchStaleUpdate(args.id,args.update)", {"id":previous_id,"update":{"type":"app","current_version":"1.9.1","release":{"version":"9.9.9"}}})
-        record("stale prior response cannot replace the active search", current_id != previous_id and "Suche nach Updates" in page.locator('#android-floating-menu [data-app-update-panel] [role="status"]').inner_text() and "9.9.9" not in page.locator('#android-floating-menu [data-app-update-panel]').inner_text())
+        record("stale prior response cannot replace the active search", current_id != previous_id and "wird geprüft" in page.locator('#android-floating-menu [data-app-update-panel] [role="status"]').inner_text() and "9.9.9" not in page.locator('#android-floating-menu [data-app-update-panel]').inner_text())
         respond(page, {"type":"app", "current_version":"1.9.1"})
-        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('Auf dem neuesten Stand')")
+        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('aktuell')")
 
         # Closing is user-controlled. Resolve while closed, then reopen and ensure shared state is restored.
-        page.locator('#android-floating-menu [data-app-update-panel] button').filter(has_text="Erneut prüfen").click()
+        page.locator('#android-floating-menu [data-app-update-panel] button.mobile-update__check').click()
         wait_for_request(page, baseline + 6)
         menu_button.click()
         page.wait_for_function("!document.querySelector('#android-floating-menu').classList.contains('visible') && getComputedStyle(document.querySelector('#android-floating-menu')).display === 'none'")
@@ -197,11 +198,11 @@ with tempfile.TemporaryDirectory(prefix="seanime-mobile-update-test-") as temp_d
         page.wait_for_timeout(50)
         menu_button.click()
         menu.wait_for(state="visible")
-        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('Auf dem neuesten Stand')")
-        record("close during search is allowed and reopen restores the result", menu.is_visible() and "Auf dem neuesten Stand" in page.locator('#android-floating-menu [data-app-update-panel] [role=status]').inner_text())
+        page.wait_for_function("document.querySelector('#android-floating-menu [data-app-update-panel] [role=status]')?.textContent.includes('aktuell')")
+        record("close during search is allowed and reopen restores the result", menu.is_visible() and "aktuell" in page.locator('#android-floating-menu [data-app-update-panel] [role=status]').inner_text())
 
         # Controlled newer release; this does not use or publish an APK.
-        page.locator('#android-floating-menu [data-app-update-panel] button').filter(has_text="Erneut prüfen").click()
+        page.locator('#android-floating-menu [data-app-update-panel] button.mobile-update__check').click()
         wait_for_request(page, baseline + 7)
         respond(page, {"type":"app", "current_version":"1.9.1", "release":{"version":"1.9.2"}})
         page.wait_for_selector('#android-floating-menu [data-app-update-panel] .mobile-update__target:has-text("1.9.2")')

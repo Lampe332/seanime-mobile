@@ -1,0 +1,284 @@
+/* Android player controls: top and bottom bars, the centre buttons and the time bar.
+   One layout that scales with the player's own width: phone portrait (inline), phone landscape and tablet inline from
+   560px, tablet fullscreen from 1000px. Where the player fills the screen (the player sheet, or fullscreen) the bars keep
+   clear of the screen edges: the notch at the sides and the system gesture strip at the bottom, where a swipe up to
+   Home would otherwise start on the time bar. */
+
+[data-vc-element="container"] { container-type: inline-size; }
+
+[data-vc-element="container"] > * {
+    /* 44px: the smallest target a thumb hits reliably */
+    --vc-btn: 2.75rem;
+    --vc-icon: 1.25rem;
+    --vc-seek: 3rem;
+    --vc-play: 3.75rem;
+    --vc-center-gap: 1.25rem;
+    --vc-pad-x: .375rem;
+    --vc-pad-t: .25rem;
+    --vc-pad-b: .125rem;
+    --vc-scrub: 2.75rem;
+    --vc-track: 3px;
+    --vc-thumb: .75rem;
+    --vc-text: .75rem;
+    --vc-pad-l: var(--vc-pad-x);
+    --vc-pad-r: var(--vc-pad-x);
+    --vc-pad-safe-t: 0px;
+    --vc-pad-safe-b: 0px;
+}
+
+@container (min-width: 560px) {
+    [data-vc-element="container"] > * {
+        --vc-btn: 2.75rem;
+        --vc-icon: 1.375rem;
+        --vc-seek: 3.75rem;
+        --vc-play: 4.75rem;
+        --vc-center-gap: 2.5rem;
+        --vc-pad-x: .875rem;
+        --vc-pad-t: .625rem;
+        --vc-pad-b: .375rem;
+        --vc-scrub: 2.75rem;
+        --vc-track: 4px;
+        --vc-thumb: .875rem;
+        --vc-text: .875rem;
+    }
+}
+
+@container (min-width: 1000px) {
+    [data-vc-element="container"] > * {
+        --vc-btn: 3rem;
+        --vc-icon: 1.5rem;
+        --vc-seek: 4.25rem;
+        --vc-play: 5.5rem;
+        --vc-center-gap: 4rem;
+        --vc-pad-x: 1.5rem;
+        --vc-pad-t: .875rem;
+        --vc-pad-b: .5rem;
+        --vc-scrub: 2.75rem;
+        --vc-track: 5px;
+        --vc-thumb: 1rem;
+        --vc-text: .9375rem;
+    }
+}
+
+/* In-page fullscreen (video-core-fullscreen.ts, Android app): the player as a popover in the top layer, over the whole
+   window. The black backdrop is what the grow fades in over the page. */
+[data-vc-element="container"][data-vc-page-fullscreen]:popover-open {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    overflow: clip;
+    background: #000;
+    color: inherit;
+}
+[data-vc-element="container"][data-vc-page-fullscreen]::backdrop { background: #000; }
+
+[data-vc-element="container"][data-vc-inline="false"][data-vc-mini="false"] > *,
+[data-vc-element="container"][data-vc-fullscreen="true"] > * {
+    --vc-pad-l: max(var(--vc-pad-x), env(safe-area-inset-left, 0px));
+    --vc-pad-r: max(var(--vc-pad-x), env(safe-area-inset-right, 0px));
+    --vc-pad-safe-t: env(safe-area-inset-top, 0px);
+    --vc-pad-safe-b: max(1.25rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* Bars: the scrim belongs to the bar, so it slides out with it. Only the controls take touches; the rest of the bar
+   lets taps through to the video (show/hide, double-tap seek). */
+.vc-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 11;
+    padding-left: var(--vc-pad-l);
+    padding-right: var(--vc-pad-r);
+    color: #fff;
+    pointer-events: none;
+    transition: transform 240ms cubic-bezier(.2, .8, .2, 1);
+    will-change: transform;
+}
+.vc-bar--top {
+    top: 0;
+    padding-top: calc(var(--vc-pad-t) + var(--vc-pad-safe-t));
+    padding-bottom: 1.5rem;
+    background: linear-gradient(to bottom, rgb(0 0 0 / .62), rgb(0 0 0 / .26) 62%, transparent);
+}
+.vc-bar--bottom {
+    bottom: 0;
+    padding-top: 1.75rem;
+    padding-bottom: calc(var(--vc-pad-b) + var(--vc-pad-safe-b));
+    background: linear-gradient(to top, rgb(0 0 0 / .72), rgb(0 0 0 / .3) 62%, transparent);
+}
+.vc-bar--swiping { transition: none; }
+.vc-bar button,
+.vc-bar [role="slider"],
+.vc-bar [data-vc-element="timestamp"],
+.vc-bar [data-vc-element="control-volume"] { pointer-events: auto; }
+
+.vc-bar-row {
+    display: flex;
+    align-items: center;
+    gap: .125rem;
+    min-height: var(--vc-btn);
+}
+
+.vc-control-button {
+    position: relative;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--vc-btn);
+    height: var(--vc-btn);
+    border-radius: 999px;
+    color: #fff;
+    font-size: var(--vc-icon);
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 120ms ease, transform 120ms ease;
+}
+.vc-control-button:active { background: rgb(255 255 255 / .16); transform: scale(.92); }
+.vc-control-button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: -2px; }
+.vc-control-button-icon { width: 1em; height: 1em; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .55)); }
+
+/* What is playing, next to the episode buttons; only where the bar has room for it. */
+.vc-title {
+    display: none;
+    min-width: 0;
+    max-width: 46cqw;
+    margin: 0 .5rem;
+    line-height: 1.25;
+    text-shadow: 0 1px 3px rgb(0 0 0 / .6);
+    pointer-events: none;
+}
+.vc-title p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vc-title-anime { font-size: calc(var(--vc-text) * .9); color: rgb(255 255 255 / .72); }
+.vc-title-episode { font-size: calc(var(--vc-text) + 1px); font-weight: 600; }
+@container (min-width: 560px) {
+    .vc-title { display: block; }
+}
+
+.vc-timestamp {
+    display: flex;
+    align-items: center;
+    gap: .3em;
+    min-height: var(--vc-btn);
+    padding: 0 .5rem;
+    font-size: var(--vc-text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 3px rgb(0 0 0 / .6);
+    -webkit-tap-highlight-color: transparent;
+}
+.vc-timestamp-total { color: rgb(255 255 255 / .66); font-weight: 500; }
+
+/* Volume: a slider that opens below the icon. Beside it, it covered the subtitle/audio/cast buttons and its mute button
+   sat where the subtitle button is, so a tap meant for those muted the video. */
+.vc-control-volume { position: relative; flex: none; display: flex; align-items: center; justify-content: center; width: var(--vc-btn); }
+.vc-volume-panel {
+    position: absolute;
+    top: calc(100% + .375rem);
+    right: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    width: 13rem;
+    max-width: 62cqw;
+    height: var(--vc-btn);
+    padding: 0 1rem 0 .5rem;
+    border: 1px solid rgb(255 255 255 / .1);
+    border-radius: 999px;
+    background: rgb(18 18 20 / .86);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+.vc-volume-panel-track { position: absolute; left: 0; right: 0; height: 4px; border-radius: 999px; background: rgb(255 255 255 / .26); }
+.vc-volume-panel-fill { position: absolute; left: 0; height: 4px; border-radius: 999px; background: var(--sm-accent); }
+.vc-volume-panel-thumb {
+    position: absolute;
+    width: .875rem;
+    height: .875rem;
+    margin-left: -.4375rem;
+    border-radius: 999px;
+    background: var(--sm-accent);
+    box-shadow: 0 1px 4px rgb(0 0 0 / .5);
+}
+
+/* Time bar: the visible track is thin, the touch area is the full bar height. */
+.vc-time-range { height: var(--vc-scrub); margin: 0 calc(var(--vc-thumb) / 2 + .25rem); }
+.vc-time-chapter { height: var(--vc-track); }
+.vc-time-progress { background: var(--sm-accent); }
+.vc-time-thumb {
+    position: absolute;
+    top: 50%;
+    z-index: 12;
+    width: var(--vc-thumb);
+    height: var(--vc-thumb);
+    margin: calc(var(--vc-thumb) / -2) 0 0 calc(var(--vc-thumb) / -2);
+    border-radius: 999px;
+    background: var(--sm-accent);
+    box-shadow: 0 0 0 3px rgb(0 0 0 / .22), 0 1px 4px rgb(0 0 0 / .5);
+    pointer-events: none;
+    transition: transform 120ms ease;
+}
+[data-vc-seeking-target-state="true"] > .vc-time-thumb { transform: scale(1.35); }
+
+/* Centre: back, play/pause, forward. VideoControlInjector.kt shows and hides it with the bars (class __seanime-visible). */
+.vc-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    gap: var(--vc-center-gap);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(.96);
+    transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
+}
+.vc-center.__seanime-visible { opacity: 1; visibility: visible; transform: translate(-50%, -50%); transition-delay: 0s; }
+.vc-center-button {
+    display: grid;
+    place-items: center;
+    width: var(--vc-seek);
+    height: var(--vc-seek);
+    border-radius: 999px;
+    color: #fff;
+    pointer-events: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 120ms ease, transform 120ms ease;
+}
+.vc-center.__seanime-visible .vc-center-button { pointer-events: auto; }
+.vc-center-button svg { width: 64%; height: 64%; overflow: visible; filter: drop-shadow(0 1px 3px rgb(0 0 0 / .6)); }
+.vc-center-button:active { background: rgb(255 255 255 / .14); transform: scale(.92); }
+.vc-center-button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
+.vc-center-button--play {
+    width: var(--vc-play);
+    height: var(--vc-play);
+    border: 1px solid rgb(255 255 255 / .18);
+    background: rgb(0 0 0 / .38);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgb(0 0 0 / .35);
+}
+.vc-center-button--play svg { width: 44%; height: 44%; }
+.vc-center-play-icon { animation: vc-center-play-icon 200ms cubic-bezier(.23, 1, .32, 1); }
+@keyframes vc-center-play-icon { from { opacity: 0; transform: scale(.7); } }
+.vc-center-button--play:active { background: rgb(0 0 0 / .52); }
+.vc-center-seek-number { font: 700 6.5px/1 system-ui, sans-serif; }
+.vc-center-turn-back,
+.vc-center-turn-forward { transform-box: view-box; transform-origin: 12px 13px; animation: vc-center-turn-back 320ms cubic-bezier(.2, .8, .2, 1); }
+.vc-center-turn-forward { animation-name: vc-center-turn-forward; }
+@keyframes vc-center-turn-back { 40% { transform: rotate(-40deg); } }
+@keyframes vc-center-turn-forward { 40% { transform: rotate(40deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .vc-bar, .vc-center { transition: none; }
+    .vc-center-turn-back, .vc-center-turn-forward, .vc-center-play-icon { animation: none; }
+}

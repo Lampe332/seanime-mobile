@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
 import { MobileIcon } from "@/lib/mobile-icons"
 import { AppDownloadState, downloadAppUpdate, readAppDownload } from "@/lib/app-updates"
+import { getAndroidAppVersion } from "@/lib/android-app"
 import { useTr } from "@/lib/app-language"
 import { updateModalOpenAtom } from "./update-modal"
 import { toast } from "sonner"
@@ -129,9 +130,21 @@ export function MobileUpdateModal() {
             </Button>}
         </div>
     </section>
+    // Nothing to do: one quiet line with a small check button. An available update, a download or an install keeps the full panel.
+    const quiet = !version && !complete && !installAction && !failed && !busy && !hint
+    const line = <section data-app-update-panel data-update-compact data-update-tone={error ? "error" : "default"} className="mobile-update mobile-update--compact" aria-label={t("App update", "App-Update")}>
+        {isFetching || isLoading ? <span aria-hidden="true" data-update-check-spinner="" className="mobile-update__spinner" /> : <MobileIcon name={error ? "close" : "check"} />}
+        <span role="status" aria-live="polite">{[`App ${installedVersion || getAndroidAppVersion() || ""}`.trim(),
+            isFetching || isLoading ? t("checking…", "wird geprüft…") : error ? t("check failed", "Prüfung fehlgeschlagen")
+                : data ? t("up to date", "aktuell") : t("check unavailable", "Prüfung nicht verfügbar")].join(" · ")}</span>
+        <button type="button" className="mobile-update__check" aria-label={t("Check for updates", "Nach Updates suchen")} disabled={isFetching} onClick={() => void checkAgain()}>
+            <MobileIcon name="refresh" />
+        </button>
+    </section>
+    const panel = quiet ? line : summary
     return <>
-        <div data-app-update-sidebar>{summary}</div>
-        {host && createPortal(summary, host)}
+        <div data-app-update-sidebar>{panel}</div>
+        {host && createPortal(panel, host)}
         <Modal open={open && !!version} onOpenChange={close} title={t("App update", "App-Update")} contentClass="mobile-update-dialog" titleClass="mobile-update-dialog__title" closeClass="mobile-update-dialog__close" overlayClass="mobile-update-overlay"
             closeButton={<Button intent="primary-basic" aria-label={t("Close update", "Update schließen")}><MobileIcon name="close" className="size-5" /></Button>}>
             {summary}

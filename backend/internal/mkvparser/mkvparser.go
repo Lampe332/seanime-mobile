@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"io"
 	"path/filepath"
+	"regexp"
 	"seanime/internal/matroska"
 	"seanime/internal/pgs"
 	"seanime/internal/util"
@@ -104,12 +105,30 @@ func getSubtitleTrackType(codecID string) string {
 		return "ASS"
 	case "S_TEXT/SSA":
 		return "SSA"
-	case "S_TEXT/UTF8":
+	case "S_TEXT/UTF8", "S_TEXT/WEBVTT", "D_WEBVTT/SUBTITLES":
 		return "TEXT"
 	case "S_HDMV/PGS":
 		return "PGS"
 	}
 	return "unknown"
+}
+
+// isWebVTT covers the Matroska codec ID and the older WebM one (which ffmpeg also writes into .mkv files).
+func isWebVTT(codecID string) bool {
+	return codecID == "S_TEXT/WEBVTT" || codecID == "D_WEBVTT/SUBTITLES"
+}
+
+// webVTTTagPattern matches the WebVTT cue tags that have no ASS counterpart: classes, voices, languages and karaoke timestamps.
+var webVTTTagPattern = regexp.MustCompile(`</?(?:c|v|lang)(?:[.\s][^>]*)?>|<\d{1,2}:\d{2}(?::\d{2})?\.\d{3}>`)
+
+// webVTTCueText returns the cue text of a WebVTT block. WebM puts the cue identifier and settings on the first two lines.
+func webVTTCueText(codecID string, data string) string {
+	if codecID == "D_WEBVTT/SUBTITLES" {
+		if parts := strings.SplitN(data, "\n", 3); len(parts) == 3 {
+			data = parts[2]
+		}
+	}
+	return webVTTTagPattern.ReplaceAllString(data, "")
 }
 
 // parseMetadataOnce performs the actual parsing of the file stream.
@@ -195,17 +214,23 @@ func (mp *MetadataParser) GetMetadata(ctx context.Context) *Metadata {
 			}
 
 			track := &TrackInfo{
-				Number:       int64(trackInfo.Number),
-				UID:          trackInfo.UID,
-				Type:         convertTrackType(trackInfo.Type),
-				CodecID:      trackInfo.CodecID,
-				Name:         trackInfo.Name,
-				Language:     trackInfo.Language,
-				LanguageIETF: trackInfo.LanguageIETF,
-				Default:      trackInfo.Default,
-				Forced:       trackInfo.Forced,
-				Enabled:      trackInfo.Enabled,
-				CodecPrivate: string(trackInfo.CodecPrivate),
+				Number:        int64(trackInfo.Number),
+				UID:           trackInfo.UID,
+				Type:          convertTrackType(trackInfo.Type),
+				CodecID:       trackInfo.CodecID,
+				Name:          trackInfo.Name,
+				Language:      trackInfo.Language,
+				LanguageIETF:  trackInfo.LanguageIETF,
+				Default:       trackInfo.Default,
+				Forced:        trackInfo.Forced,
+				Enabled:       trackInfo.Enabled,
+				CodecPrivate:  string(trackInfo.CodecPrivate),
+				TypeOffset:    trackInfo.TypeOffset,
+				CodecIDOffset: trackInfo.CodecIDOffset,
+			}
+			// WebVTT cues are converted to ASS events; their WEBVTT file header is no ASS header for the renderer
+			if isWebVTT(track.CodecID) {
+				track.CodecPrivate = ""
 			}
 
 			// Convert video info
@@ -319,6 +344,8 @@ func (mp *MetadataParser) GetMetadata(ctx context.Context) *Metadata {
 				result.Cues[i] = &CueInfo{
 					Time:     cue.Time,
 					Position: segmentPos + cue.Position,
+					Track:    cue.Track,
+					Duration: cue.Duration,
 				}
 			}
 		}
@@ -670,7 +697,10 @@ func (mp *MetadataParser) processSubtitleData(
 			text := strings.Join(values[8:], ",")
 			subtitleEvent.Text = text
 		}
-	case track.CodecID == "S_TEXT/UTF8":
+	case track.CodecID == "S_TEXT/UTF8" || isWebVTT(track.CodecID):
+		if isWebVTT(track.CodecID) {
+			initialText = webVTTCueText(track.CodecID, initialText)
+		}
 		subtitleEvent.Text = UTF8ToASSText(initialText)
 		subtitleEvent.CodecID = "S_TEXT/ASS"
 		subtitleEvent.ExtraData["readorder"] = "0"

@@ -3,7 +3,7 @@ import { ___manga_scrollSignalAtom } from "@/app/(main)/manga/_containers/chapte
 import {
     ChapterReaderSettings,
 } from "@/app/(main)/manga/_containers/chapter-reader/chapter-reader-settings"
-import { __manga_selectedChapterAtom, MangaReader_SelectedChapter, useHandleChapterPageStatus } from "@/app/(main)/manga/_lib/handle-chapter-reader"
+import { __manga_selectedChapterAtom, MangaReader_SelectedChapter, useEffectiveReadingMode, useHandleChapterPageStatus } from "@/app/(main)/manga/_lib/handle-chapter-reader"
 import {
     __manga_currentPageIndexAtom,
     __manga_currentPaginationMapIndexAtom,
@@ -14,7 +14,6 @@ import {
     __manga_paginationMapAtom,
     __manga_readerProgressBarAtom,
     __manga_readingDirectionAtom,
-    __manga_readingModeAtom,
     MangaReadingDirection,
     MangaReadingMode,
 } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
@@ -53,7 +52,7 @@ export function MangaReaderBar(props: MangaReaderBarProps) {
 
     const [currentPageIndex, setCurrentPageIndex] = useAtom(__manga_currentPageIndexAtom)
     const paginationMap = useAtomValue(__manga_paginationMapAtom)
-    const readingMode = useAtomValue(__manga_readingModeAtom)
+    const readingMode = useEffectiveReadingMode()
     const readingDirection = useAtomValue(__manga_readingDirectionAtom)
 
     const hiddenBar = useAtomValue(__manga_hiddenBarAtom)
@@ -112,7 +111,8 @@ export function MangaReaderBar(props: MangaReaderBarProps) {
         onClick={() => nextChapter && goToChapter("next")}>{reversed ? <LuChevronLeft aria-hidden /> : <LuChevronRight aria-hidden />}</button>
     return (
         <>
-            {pageCount > 1 && !hiddenBar && <div className="reader-page-slider" data-reader-page-slider>
+            {/* Stays mounted while hidden so it slides away with the bar (visibility takes it out of reach once down) */}
+            {pageCount > 1 && <div className={cn("reader-page-slider", hiddenBar && "is-hidden")} data-reader-page-slider aria-hidden={hiddenBar || undefined}>
                 <input
                     type="range"
                     min={0}

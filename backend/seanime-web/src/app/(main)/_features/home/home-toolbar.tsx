@@ -32,6 +32,7 @@ import { MdOutlineConnectWithoutContact, MdOutlineVideoLibrary } from "react-ico
 import { TbFileSad, TbReportSearch } from "react-icons/tb"
 import { PluginAnimeLibraryDropdownItems } from "../plugin/actions/plugin-actions"
 import { useTr } from "@/lib/app-language"
+import { TabletLabel } from "@/lib/tablet-ui"
 
 export type HomeToolbarProps = {
     collectionList: Anime_LibraryCollectionList[]
@@ -91,7 +92,7 @@ export function HomeToolbar(props: HomeToolbarProps) {
             {!isNakamaLibrary && hasLibraryPath && <LibraryPhoneAttention />}
             {createPortal(<>
                 {hasEntries && <button type="button" className="home-header-action" data-home-toolbar-playlists-button aria-label={tr("Playlists", "Playlists")}
-                    onClick={() => setModalOpen(true)}><MdOutlineVideoLibrary aria-hidden /></button>}
+                    onClick={() => setModalOpen(true)}><MdOutlineVideoLibrary aria-hidden /><TabletLabel>{tr("Playlists", "Wiedergabelisten")}</TabletLabel></button>}
                 {!isNakamaLibrary && hasLibraryPath && <LibraryPhoneAction />}
                 <HomeSettingsButton type="toolbar" icon />
             </>, headerSlot)}

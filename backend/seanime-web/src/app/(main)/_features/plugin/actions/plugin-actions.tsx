@@ -161,7 +161,8 @@ type PluginMangaPageDropdownMenuItem = {
     disabled?: boolean
 }
 
-export function PluginMangaPageDropdownItems(props: { media: AL_BaseManga }) {
+/** The manga page's plugin menu items, for a menu of the caller's own (the phone's "More" sheet or the desktop dropdown). */
+export function usePluginMangaPageDropdownItems(media: AL_BaseManga | undefined) {
     const [items, setItems] = useState<PluginMangaPageDropdownMenuItem[]>([])
 
     const { sendActionRenderMangaPageDropdownItemsEvent } = usePluginSendActionRenderMangaPageDropdownItemsEvent()
@@ -185,10 +186,16 @@ export function PluginMangaPageDropdownItems(props: { media: AL_BaseManga }) {
         sendActionClickedEvent({
             actionId: item.id,
             event: {
-                media: props.media,
+                media: media,
             },
         }, item.extensionId)
     }
+
+    return { items, handleClick }
+}
+
+export function PluginMangaPageDropdownItems(props: { media: AL_BaseManga }) {
+    const { items, handleClick } = usePluginMangaPageDropdownItems(props.media)
 
     if (items.length === 0) return null
 

@@ -161,9 +161,9 @@ export function MetaSection(props: { entry: Anime_Entry, details: AL_AnimeDetail
                         </>}
 
                         {entry._isNakamaEntry && currentView === "library" &&
-                            <div className="flex items-center gap-2 h-10 px-4 border rounded-md flex-none">
-                                <MdOutlineConnectWithoutContact className="size-6 animate-pulse text-[--blue]" />
-                                <span className="text-sm tracking-wide">{t("Shared by", "Geteilt von")} {nakamaStatus?.hostConnectionStatus?.username}</span>
+                            <div className="mobile-shared-chip" data-anime-shared-by>
+                                <MdOutlineConnectWithoutContact aria-hidden />
+                                <span>{t("Shared by", "Geteilt von")} {nakamaStatus?.hostConnectionStatus?.username}</span>
                             </div>}
 
                         <PluginAnimePageButtons media={entry.media!} />

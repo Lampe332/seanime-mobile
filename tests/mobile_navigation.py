@@ -82,18 +82,20 @@ with sync_playwright() as p:
                 row.scroll_into_view_if_needed();r=row.bounding_box()
                 reachable=reachable and r['y']>=-1 and r['y']+r['height']<=height+1
             record(prefix+'all menu rows reachable',reachable)
-            page.locator('#__seanime_reset_btn').click();page.wait_for_timeout(220)
+            record(prefix+'menu holds no navigation actions',page.locator('#android-floating-menu #__seanime_reset_btn, #android-floating-menu #__seanime_wrench_btn').count()==0)
+            # Settings opens the reset dialog through window.__seanimeNavigation
+            page.evaluate('window.__seanimeNavigation.reset()');page.wait_for_timeout(220)
             record(prefix+'reset Back handled',page.evaluate(back))
-            record(prefix+'reset closed before menu',not page.locator('#__seanime_reset_dialog_overlay').evaluate('e=>e.classList.contains("visible")') and menu.get_attribute('data-menu-open')=='true')
+            record(prefix+'reset closed',not page.locator('#__seanime_reset_dialog_overlay').evaluate('e=>e.classList.contains("visible")'))
             # Dismiss any baseline reset and reopen its menu if the old Back closed it.
             page.locator('#__seanime_reset_dialog_overlay').evaluate('e=>e.classList.remove("visible")')
             if menu.get_attribute('data-menu-open')!='true': menu.click();page.wait_for_timeout(700)
-            page.locator('#__seanime_wrench_btn').click()
+            page.evaluate('window.__seanimeNavigation.customize()');page.wait_for_timeout(300)
             handled=page.evaluate(back)
             record(prefix+'edit Back stays on page',handled and not nav.evaluate('e=>e.classList.contains("seanime-edit-mode")'))
             # Edit mode: add instead of swap, 7-entry cap, give back, persistence.
             menu.click();page.wait_for_timeout(700)
-            page.locator('#__seanime_wrench_btn').click();page.wait_for_timeout(300)
+            page.evaluate('window.__seanimeNavigation.customize()');page.wait_for_timeout(300)
             panel=page.locator('#android-floating-menu')
             count=page.locator('#__seanime_edit_count')
             record(prefix+'edit panel header',page.locator('#__seanime_edit_done_btn').count()==1 and 'In the bar: 6/7' in count.inner_text() and page.locator('.seanime-edit-sec-title').count()==2
@@ -102,13 +104,12 @@ with sync_playwright() as p:
             page.evaluate("localStorage.setItem('seanime-mobile-language', JSON.stringify('de'))")
             page.locator('#__seanime_edit_done_btn').click();page.wait_for_timeout(200)
             menu.click();page.wait_for_timeout(700)
-            record(prefix+'menu rows in German with the app language',page.locator('#__seanime_wrench_btn').get_attribute('aria-label')=='Navigation anpassen')
-            page.locator('#__seanime_wrench_btn').click();page.wait_for_timeout(300)
+            page.evaluate('window.__seanimeNavigation.customize()');page.wait_for_timeout(300)
             record(prefix+'edit panel in German with the app language','In der Leiste: 6/7' in count.inner_text() and page.locator('#__seanime_edit_done_btn').inner_text()=='Fertig')
             page.evaluate("localStorage.removeItem('seanime-mobile-language')")
             page.locator('#__seanime_edit_done_btn').click();page.wait_for_timeout(200)
             menu.click();page.wait_for_timeout(700)
-            page.locator('#__seanime_wrench_btn').click();page.wait_for_timeout(300)
+            page.evaluate('window.__seanimeNavigation.customize()');page.wait_for_timeout(300)
             record(prefix+'edit view preserves Settings and excludes /sync',panel.locator('.float-nav-item[data-section="menu"][data-float-label="Settings"]').count()==1 and panel.locator('.float-nav-item[data-float-label="Offline-Synchronisierung"], .float-nav-item[data-float-label="Synchronisation"]').count()==0)
             edit_label_style=panel.locator('.float-nav-tooltip').first.evaluate('''e=>{const s=getComputedStyle(e);return {background:s.backgroundColor,radius:s.borderRadius,shadow:s.boxShadow,filter:s.backdropFilter}}''')
             record(prefix+'customization text has no chip background',edit_label_style['background']=='rgba(0, 0, 0, 0)' and edit_label_style['radius']=='0px' and edit_label_style['shadow']=='none' and edit_label_style['filter']=='none',edit_label_style)
@@ -130,7 +131,7 @@ with sync_playwright() as p:
             record(prefix+'7 entries persist after reload',ids()==after and nav.get_attribute('data-nav-count')=='7',ids())
 
             menu.click();page.wait_for_timeout(700)
-            page.locator('#__seanime_wrench_btn').click();page.wait_for_timeout(300)
+            page.evaluate('window.__seanimeNavigation.customize()');page.wait_for_timeout(300)
             panel.locator('.float-nav-item[data-section="bar"][data-nav-id="__float_Schedule"]').click();page.wait_for_timeout(200)
             record(prefix+'tap gives entry back to menu',len(ids())==6 and panel.locator('.float-nav-item[data-section="menu"][data-float-label="Schedule"]').count()==1)
             panel.locator('.float-nav-item[data-section="bar"][data-nav-id="menu"]').click();page.wait_for_timeout(100)
@@ -140,7 +141,7 @@ with sync_playwright() as p:
             # and must leave unrelated app storage alone.
             page.evaluate("localStorage.setItem('__mobile_navigation_test_sentinel', 'keep')")
             if menu.get_attribute('data-menu-open')!='true': menu.click();page.wait_for_timeout(700)
-            page.locator('#__seanime_reset_btn').click();page.wait_for_timeout(150)
+            page.evaluate('window.__seanimeNavigation.reset()');page.wait_for_timeout(150)
             page.locator('#__seanime_reset_dialog_actions button').nth(1).click();page.wait_for_timeout(200)
             record(prefix+'reset restores default tabs once',ids()==['home','lists','discover','search','menu','android-downloads'] and nav.locator('[data-nav-id="android-downloads"]').count()==1 and nav.locator('a[href^="/sync"]').count()==0,ids())
             record(prefix+'reset leaves unrelated storage',page.evaluate("localStorage.getItem('__mobile_navigation_test_sentinel')")=='keep')

@@ -12,6 +12,7 @@ import { Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { useAtom, useSetAtom } from "jotai/react"
 import React from "react"
+import { useSwap } from "@/lib/motion"
 import { LuChevronRight, LuDownload, LuEllipsisVertical, LuFlaskConical, LuGraduationCap, LuPlus, LuRefreshCcw } from "react-icons/lu"
 import { toast } from "sonner"
 import "@/components/shared/mobile-surface.css"
@@ -139,6 +140,8 @@ export function ExtensionsPhone() {
             ].filter(Boolean).join(" · ")
 
     const installed = page !== "marketplace"
+    const panelRef = React.useRef<HTMLDivElement>(null)
+    useSwap(panelRef, installed)
     const nothingFound = !!search.trim() && !overview.permissions.length && !overview.broken.length && !overview.groups.length
 
     return <PageWrapper className="mex" data-mobile-extensions="true">
@@ -178,7 +181,7 @@ export function ExtensionsPhone() {
             </button>
         </div>
 
-        <div id="mex-panel" role="tabpanel" className="mex-panel">
+        <div ref={panelRef} id="mex-panel" role="tabpanel" className="mex-panel">
             {!installed ? <MarketplacePhone t={t} installedIds={installedIds} />
                 : failed ? <div className="mex-notice" role="alert" data-extensions-error>
                         <p>{t("Your extensions could not be loaded.", "Deine Erweiterungen konnten nicht geladen werden.")}</p>

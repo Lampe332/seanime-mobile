@@ -72,8 +72,8 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
                 }} />}
         </SettingsGroup>
         <ConfirmSheet t={t} open={removing !== null} onOpenChange={open => { if (!open) setRemoving(null) }} title={t("Remove folder?", "Ordner entfernen?")}
-            text={t(`${removing} will no longer be part of your library. The files stay on the phone.`,
-                `${removing} gehört dann nicht mehr zu deiner Bibliothek. Die Dateien bleiben auf dem Handy.`)}
+            text={t(`${removing} will no longer be part of your library. The files stay on this device.`,
+                `${removing} gehört dann nicht mehr zu deiner Bibliothek. Die Dateien bleiben auf dem Gerät.`)}
             action={t("Remove", "Entfernen")} danger onConfirm={() => void save("library.libraryPaths", libraryPaths.filter(path => path !== removing))}
             data-settings-remove-folder />
 

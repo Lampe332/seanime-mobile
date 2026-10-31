@@ -1,0 +1,55 @@
+/* The app's shared moves in CSS (motion.ts has the scripted two). Everything here animates opacity and transform only,
+   enters with a strong ease-out in 160-280 ms, plays once when its element appears (never while scrolling), keeps the
+   content's own end state (no fill-forwards, so nothing can stay hidden) and leaves out the travel for reduced motion. */
+:root { --m-out: cubic-bezier(.23, 1, .32, 1); }
+
+@keyframes m-rise { from { opacity: 0; transform: translateY(.5rem); } }
+@keyframes m-from-end { from { opacity: 0; transform: translateX(1rem); } }
+@keyframes m-from-start { from { opacity: 0; transform: translateX(-1rem); } }
+@keyframes m-unfold { from { opacity: 0; transform: translateY(-.375rem); } }
+@keyframes m-pop { from { opacity: 0; transform: scale(.5); } }
+@keyframes m-fade { from { opacity: 0; } }
+@keyframes m-breathe { to { opacity: .5; } }
+
+/* ── Settings: an area's page comes in from the side it was opened towards, its groups one after another; Back brings the
+   list in from the other side. On a tablet the open area's groups glide in beside the list the same way. ── */
+[data-phone-screen="settings"] :is(.pst-subhead, .pst-pane-title, .pst-page > *) { animation: m-from-end 260ms var(--m-out) backwards; }
+[data-phone-screen="settings"] .pst-page > :nth-child(2) { animation-delay: 30ms; }
+[data-phone-screen="settings"] .pst-page > :nth-child(3) { animation-delay: 60ms; }
+[data-phone-screen="settings"] .pst-page > :nth-child(4) { animation-delay: 90ms; }
+[data-phone-screen="settings"] .pst-page > :nth-child(5) { animation-delay: 120ms; }
+[data-phone-screen="settings"] .pst-page > :nth-child(n+6) { animation-delay: 150ms; }
+[data-phone-screen="settings"] .pst-nav[data-settings-return] { animation: m-from-start 240ms var(--m-out) backwards; }
+
+/* ── Unfolding: options that appear under the switch or row that reveals them (spoiler parts, adult blur)
+   and the inside of an opened <details> (About this anime) drop in from just above; closing is immediate. ── */
+/* A sub-setting row's surface is there at once (the block grows without a hole in it), its words and switch drop in */
+:is([data-settings-sub] > *, [data-unfold]) { animation: m-unfold 200ms var(--m-out) backwards; }
+details[open] > :not(summary) { animation: m-unfold 220ms var(--m-out) backwards; }
+
+/* ── Choices: the mark of what was just tapped pops in (a ring's dot, a box's tick); marks already set when a list or sheet
+   opens stay still, as only the focused (just tapped) row plays it. ── */
+:is(.pst-choice, .ps-pick[role="radio"]):focus[aria-checked="true"] :is(.pst-radio, .ps-pick-mark)::after,
+.ps-pick:focus[aria-checked="true"] .ps-pick-mark > svg,
+:is(.ps-choices, .ps-chips) > button:focus[aria-pressed="true"] > svg:first-child { animation: m-pop 200ms var(--m-out); }
+/* Pills and chips change their fill with the tap instead of flipping (phone-screen.css does the ps-* ones; the segments'
+   bubble glides on its own) */
+:is(.pst-swatches, .mml-status) > button { transition: transform 160ms var(--m-out), background-color 160ms ease, color 160ms ease; }
+:is(.pst-swatches, .mml-status) > button:active { transform: scale(.97); }
+
+/* ── States: an empty or failed block settles in instead of popping up; loading blocks breathe slowly so a wait reads as
+   one. ── */
+:is(.ps-empty, .ps-notice, .luffy-phone, .mex-notice, .mdl-empty) { animation: m-rise 240ms var(--m-out) backwards; }
+/* The manga reader's "show controls" button fades in once the bar has slid away, instead of standing there first */
+[data-chapter-reader-drawer-exit-fullscreen-button] { animation: m-fade 200ms ease-out 140ms backwards; }
+.ps-bone { animation: m-breathe 1s ease-in-out infinite alternate; }
+.ps-loading > :nth-child(2n) { animation-delay: -.5s; }
+
+@media (prefers-reduced-motion: reduce) {
+    [data-phone-screen="settings"] :is(.pst-subhead, .pst-pane-title, .pst-page > *, .pst-nav[data-settings-return]),
+    :is([data-settings-sub] > *, [data-unfold]), details[open] > :not(summary),
+    :is(.ps-empty, .ps-notice, .luffy-phone, .mex-notice, .mdl-empty) { animation-name: m-fade; animation-delay: 0ms; }
+    :is(.pst-choice, .ps-pick, .ps-choices > button, .ps-chips > button) :is(*, *::after) { animation: none !important; }
+    .ps-bone { animation: none; }
+    :is(.pst-swatches, .mml-status) > button { transition: none; transform: none !important; }
+}

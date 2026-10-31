@@ -5,6 +5,8 @@ import { HibikeTorrent_AnimeTorrent, Nullish, TorrentClient_Torrent } from "@/ap
 import { useQueryClient } from "@tanstack/react-query"
 import React from "react"
 import { toast } from "sonner"
+import { tr } from "@/lib/app-language"
+import { successFeedback } from "@/lib/feedback"
 
 export function useGetActiveTorrentList(enabled: boolean, category: string, sort: string) {
     const query = React.useMemo(() => {
@@ -63,7 +65,8 @@ export function useTorrentClientDownload(onSuccess?: () => void, onError?: (erro
         method: API_ENDPOINTS.TORRENT_CLIENT.TorrentClientDownload.methods[0],
         mutationKey: [API_ENDPOINTS.TORRENT_CLIENT.TorrentClientDownload.key],
         onSuccess: async () => {
-            toast.success("Download started")
+            toast.success(tr("Download started", "Download gestartet"))
+            successFeedback()
             onSuccess?.()
         },
         ...(onError ? { onError } : {}),

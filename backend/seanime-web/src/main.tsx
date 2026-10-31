@@ -4,6 +4,9 @@ import { ClientProviders, queryClient, store } from "@/app/client-providers"
 import "./app/globals.css"
 import "./app/tablet.css"
 import { IS_TABLET_UI, reloadOnScreenClassChange } from "@/lib/tablet-ui"
+import { installSegmentGlide } from "@/lib/segment-glide"
+import { installEntryCoverTransition } from "@/lib/entry-cover-transition"
+import "@/lib/motion.css"
 import { __navigationPreloadModeAtom, getActualNavigationPreloadMode, NavigationPreloadMode } from "@/lib/navigation-preload-settings"
 import { createRouter, RouterProvider } from "@tanstack/react-router"
 import { useAtomValue } from "jotai/react"
@@ -101,6 +104,8 @@ if (IS_TABLET_UI) document.documentElement.dataset.layout = "tablet"
 document.documentElement.classList.add("dark")
 document.documentElement.style.colorScheme = "dark"
 reloadOnScreenClassChange()
+installSegmentGlide()
+installEntryCoverTransition()
 ReactDOM.createRoot(document.getElementById("root")!, {
     onUncaughtError: (error, errorInfo) => {
         console.error("[Root] Uncaught renderer error", error, errorInfo)

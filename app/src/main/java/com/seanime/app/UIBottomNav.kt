@@ -80,7 +80,8 @@ object UIBottomNav {
                     white-space: nowrap;
                     text-decoration: none;
                     cursor: pointer;
-                    transition: color 0.15s, background 0.15s;
+                    /* No background fade: the web app's segment-glide slides the active pill from the old entry to the new one */
+                    transition: color 0.2s;
                     padding: 0 1px;
                     -webkit-tap-highlight-color: transparent;
                     position: relative;
@@ -120,9 +121,13 @@ object UIBottomNav {
                 #__seanime_bottom_nav[data-nav-count="7"] button {
                     margin: 4px 0.5px;
                     padding: 0;
-                    font-size: 0.58rem;
+                    font-size: 0.625rem;
                     letter-spacing: -0.01em;
                     gap: 0.2rem;
+                }
+                #__seanime_bottom_nav[data-nav-count="7"] a span,
+                #__seanime_bottom_nav[data-nav-count="7"] button span {
+                    text-overflow: ellipsis;
                 }
                 #__seanime_bottom_nav[data-nav-count="7"] a svg,
                 #__seanime_bottom_nav[data-nav-count="7"] button svg {
@@ -132,7 +137,7 @@ object UIBottomNav {
                 @media (max-width: 370px) {
                     #__seanime_bottom_nav[data-nav-count="7"] a,
                     #__seanime_bottom_nav[data-nav-count="7"] button {
-                        font-size: 0.54rem;
+                        font-size: 0.58rem;
                     }
                 }
 
@@ -383,7 +388,11 @@ object UIBottomNav {
                         animation: none;
                         background: rgba(252,165,165,0.2);
                     }
+                    /* the menu only fades in, its rows do not fly */
+                    #android-floating-menu:not(.seanime-edit-mode) { animation-name: seanime-menu-fade; }
+                    #android-floating-menu .float-nav-item { transform: none !important; }
                 }
+                @keyframes seanime-menu-fade { from { opacity: 0; } }
                 /* Regular menu: soft icon tile left, label right */
                 #android-floating-menu:not(.seanime-edit-mode) .float-nav-item {
                     flex-direction: row-reverse;
@@ -603,7 +612,7 @@ object UIBottomNav {
                         gap: 0.12rem;
                     }
                     #android-floating-menu {
-                        bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px)) !important;
+                        bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px)) !important;
                         max-height: calc(100vh - 8rem);
                         max-height: calc(100dvh - 8rem);
                     }
@@ -691,7 +700,6 @@ object UIBottomNav {
                 var icon = window.__seanimeIcons.svg;
                 var iconFor = window.__seanimeIcons.forItem;
                 var SVG_HAMBURGER = icon('menu');
-                var SVG_WRENCH = icon('wrench');
                 var SVG_RESET = icon('close');
                 var SVG_GRIP = icon('grip');
                 var SVG_CHECK = icon('check');
@@ -858,6 +866,7 @@ object UIBottomNav {
                 var menuOpen  = false;
                 var editMode  = false;
                 var menuBtn   = null;
+                var menuCloseAnimation = null;
 
                 // Two entries point to the same destination when label (case-insensitive) or href match.
                 function normKey(s) { return String(s || '').trim().toLowerCase(); }
@@ -913,6 +922,17 @@ object UIBottomNav {
                     try { return JSON.parse(localStorage.getItem('seanime-mobile-language') || '"en"') === 'de' ? de : en; } catch (e) { return en; }
                 }
 
+                // Entry labels stay English in storage, where they key the order and the hidden entries; only the shown text is translated.
+                var NAV_LABELS_DE = {
+                    'Home': 'Start', 'My Lists': 'Meine Listen', 'My lists': 'Meine Listen', 'Discover': 'Entdecken', 'Search': 'Suche',
+                    'Menu': 'Menü', 'Schedule': 'Sendeplan', 'Scan summaries': 'Scan-Berichte', 'More': 'Mehr',
+                    'Refresh AniList': 'AniList aktualisieren', 'Extensions': 'Erweiterungen', 'Settings': 'Einstellungen',
+                    'Sign out': 'Abmelden', 'Sign in': 'Anmelden', 'Login': 'Anmelden'
+                };
+                function navLabel(label) {
+                    return navText(label, NAV_LABELS_DE[label] || label);
+                }
+
                 // Menu rows act as buttons: focusable and activated with Enter or Space.
                 function asButton(row) {
                     row.setAttribute('role', 'button');
@@ -944,7 +964,7 @@ object UIBottomNav {
                     return iconWrap;
                 }
 
-                // Last rows of the menu: customize navigation + reset navigation.
+                // Last row of the edit panel: reset navigation (the menu itself keeps only the everyday entries).
                 function makeActionRow(id, label, svg, danger, onClick) {
                     var row = asButton(document.createElement('div'));
                     row.id = id;
@@ -965,11 +985,8 @@ object UIBottomNav {
                     el.setAttribute('role', 'separator');
                     return el;
                 }
-                function appendMenuActions(menu, withCustomize) {
+                function appendMenuActions(menu) {
                     menu.appendChild(divider());
-                    if (withCustomize) {
-                        menu.appendChild(makeActionRow('__seanime_wrench_btn', navText('Customize navigation', 'Navigation anpassen'), SVG_WRENCH, false, toggleEditMode));
-                    }
                     menu.appendChild(makeActionRow('__seanime_reset_btn', navText('Reset navigation', 'Navigation zur\u00fccksetzen'), SVG_RESET, true, showResetDialog));
                 }
 
@@ -1097,6 +1114,13 @@ object UIBottomNav {
                 function openMenu() {
                     var menu = document.getElementById('android-floating-menu');
                     if (!menu) return;
+                    // Reopened while it folds away: drop the fold and start the unfold from the beginning.
+                    if (menuCloseAnimation) {
+                        menuCloseAnimation.cancel();
+                        menuCloseAnimation = null;
+                        menu.style.display = 'none';
+                        void menu.offsetWidth;
+                    }
 
                     refreshFloatItems();
                     var hiddenMap = loadFloatHidden();
@@ -1112,8 +1136,8 @@ object UIBottomNav {
                     visible.forEach(function(item) {
                         var row = asButton(document.createElement('div'));
                         row.className = 'float-nav-item' + (item.isCurrent ? ' float-nav-item--current' : '');
-                        row.setAttribute('aria-label', item.label);
-                        row.appendChild(rowText(item.label));
+                        row.setAttribute('aria-label', navLabel(item.label));
+                        row.appendChild(rowText(navLabel(item.label)));
                         row.appendChild(iconTile(item.svg));
                         menu.appendChild(row);
 
@@ -1128,11 +1152,16 @@ object UIBottomNav {
                         });
                     });
 
-                    appendMenuActions(menu, true);
-
                     menu.style.display = 'flex';
                     menu.style.pointerEvents = 'auto';
                     menuOpen = true;
+                    // The panel unfolds out of the menu button, wherever the bar or the tablet rail has put it
+                    // (offsets: the opening animation already scales the panel's box).
+                    if (menuBtn) {
+                        var btn = menuBtn.getBoundingClientRect();
+                        menu.style.transformOrigin = Math.round(btn.left + btn.width / 2 - menu.offsetLeft) + 'px ' +
+                            Math.round(btn.top + btn.height / 2 - menu.offsetTop) + 'px';
+                    }
 
                     setMenuBtnOpen(true);
 
@@ -1159,8 +1188,24 @@ object UIBottomNav {
                     if (!menu) { if (onComplete) onComplete(); return; }
                     menu.style.pointerEvents = 'none';
 
-                    // Close atomically so an old hide timer cannot hide a reopened menu.
-                    menu.style.display = 'none';
+                    // Folds back into the menu button in 140 ms; what the tap asked for starts at once. Only this
+                    // animation hides the panel, and openMenu cancels it, so a reopened menu is never hidden late.
+                    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    if (menu.animate && !reduce && !editMode && menu.style.display !== 'none' && !menuCloseAnimation) {
+                        var fold = menu.animate([
+                            { opacity: 1, transform: 'none' },
+                            { opacity: 0, transform: 'translateY(8px) scale(0.95)' }
+                        ], { duration: 140, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' });
+                        menuCloseAnimation = fold;
+                        fold.onfinish = function() {
+                            if (menuCloseAnimation !== fold) return;
+                            menuCloseAnimation = null;
+                            if (!menuOpen) menu.style.display = 'none';
+                            fold.cancel();
+                        };
+                    } else if (!menuCloseAnimation) {
+                        menu.style.display = 'none';
+                    }
                     if (onComplete) onComplete();
                 }
 
@@ -1211,7 +1256,16 @@ object UIBottomNav {
                     });
                     obs.observe(document.body, { childList: true, subtree: true });
                 }
-                function updateActiveState() {
+                // The pill moves on the tap itself (the web app's segment-glide slides it there); the route change
+                // confirms it a moment later, and a navigation that did not happen puts it back.
+                function markActiveNow(el) {
+                    var nav = document.getElementById('__seanime_bottom_nav');
+                    if (!nav) return;
+                    nav.querySelectorAll('a[data-nav-id]').forEach(function(link) { link.setAttribute('data-active', String(link === el)); });
+                    // Only the marks: a menu opened in the meantime stays open.
+                    setTimeout(syncActiveMarks, 800);
+                }
+                function syncActiveMarks() {
                     var nav = document.getElementById('__seanime_bottom_nav');
                     if (!nav) return;
                     nav.querySelectorAll('a[data-nav-id]').forEach(function(link) {
@@ -1221,6 +1275,9 @@ object UIBottomNav {
                         if (active) link.setAttribute('aria-current', 'page');
                         else link.removeAttribute('aria-current');
                     });
+                }
+                function updateActiveState() {
+                    syncActiveMarks();
                     if (menuOpen) closeMenu();
                 }
 
@@ -1254,7 +1311,6 @@ object UIBottomNav {
                     setMenuBtnOpen(false);
                 }
 
-                function toggleEditMode() { if (editMode) exitEditMode(); else enterEditMode(); }
 
                 var editNoticeTimer = null;
 
@@ -1371,16 +1427,16 @@ object UIBottomNav {
 
                     var secBar = editSection('bar', navText('In the bar', 'In der Leiste'));
                     NAV_ITEMS.filter(function(it) { return it.placement === 'nav'; }).forEach(function(item) {
-                        var row = makeEditRow('bar', item.label, item.isMenu ? SVG_HAMBURGER : item.svg, isActive(item));
+                        var row = makeEditRow('bar', navLabel(item.label), item.isMenu ? SVG_HAMBURGER : item.svg, isActive(item));
                         row.dataset.navId = item.id;
                         if (item.isMenu || item.immovableToFloat) {
-                            row.setAttribute('aria-label', item.label + navText(' – always stays in the bar', ' – bleibt immer in der Leiste'));
+                            row.setAttribute('aria-label', navLabel(item.label) + navText(' – always stays in the bar', ' – bleibt immer in der Leiste'));
                             var fixed = document.createElement('span');
                             fixed.className = 'seanime-edit-fixed';
                             fixed.textContent = navText('Fixed', 'Fest');
                             row.appendChild(fixed);
                         } else {
-                            row.setAttribute('aria-label', item.label + navText(' – move back to the menu', ' – zurück ins Menü geben'));
+                            row.setAttribute('aria-label', navLabel(item.label) + navText(' – move back to the menu', ' – zurück ins Menü geben'));
                             var check = document.createElement('span');
                             check.className = 'seanime-edit-check';
                             check.setAttribute('aria-hidden', 'true');
@@ -1408,14 +1464,14 @@ object UIBottomNav {
                         secMenu.appendChild(empty);
                     }
                     reversed.forEach(function(item) {
-                        var row = makeEditRow('menu', item.label, item.svg, item.isCurrent);
+                        var row = makeEditRow('menu', navLabel(item.label), item.svg, item.isCurrent);
                         row.dataset.floatLabel = item.label;
                         var hidden = !!hiddenMap[item.label];
                         if (hidden) {
                             row.setAttribute('data-hidden', 'true');
-                            row.querySelector('.float-nav-tooltip').textContent = item.label + navText(' (hidden)', ' (ausgeblendet)');
+                            row.querySelector('.float-nav-tooltip').textContent = navLabel(item.label) + navText(' (hidden)', ' (ausgeblendet)');
                         }
-                        row.setAttribute('aria-label', item.label + navText(' – move into the bar', ' – in die Leiste holen'));
+                        row.setAttribute('aria-label', navLabel(item.label) + navText(' – move into the bar', ' – in die Leiste holen'));
                         attachRowHandle(row, function() { startRowDrag(row, 'menurow', null, item); });
                         row.addEventListener('click', function(e) {
                             e.stopPropagation();
@@ -1426,7 +1482,7 @@ object UIBottomNav {
                     });
                     scroll.appendChild(secMenu);
 
-                    appendMenuActions(scroll, false);
+                    appendMenuActions(scroll);
 
                     scroll.scrollTop = prevTop;
                     updateEditCount();
@@ -1448,7 +1504,7 @@ object UIBottomNav {
                             el.setAttribute('data-nav-id', 'menu');
                             el.setAttribute('data-menu-open', menuOpen ? 'true' : 'false');
                             if (menuOpen) el.setAttribute('data-active', 'true');
-                            el.innerHTML = SVG_HAMBURGER + '<span>' + item.label + '</span>';
+                            el.innerHTML = SVG_HAMBURGER + '<span>' + navLabel(item.label) + '</span>';
                             menuBtn = el;
 
                             el.addEventListener('click', function(e) {
@@ -1462,13 +1518,14 @@ object UIBottomNav {
                             el.href = item.href || '#';
                             el.setAttribute('data-nav-id', item.id);
                             el.setAttribute('data-active', 'false');
-                            el.innerHTML = item.svg + '<span>' + item.label + '</span>';
+                            el.innerHTML = item.svg + '<span>' + navLabel(item.label) + '</span>';
                             fitIcon(el);
 
                             el.addEventListener('click', function(e) {
                                 if (editMode) { e.preventDefault(); e.stopPropagation(); return; }
                                 if (item.sidebarType === 'link' && item.href) {
                                     e.preventDefault();
+                                    if (!isActive(item)) markActiveNow(el);
                                     navigateViaApp(item.href);
                                 } else if (item.sidebarType === 'button') {
                                     clickSidebarButton(item.label);
@@ -1480,12 +1537,12 @@ object UIBottomNav {
                             el.href = item.href;
                             el.setAttribute('data-nav-id', item.id);
                             el.setAttribute('data-active', 'false');
-                            el.innerHTML = item.svg + '<span>' + item.label + '</span>';
+                            el.innerHTML = item.svg + '<span>' + navLabel(item.label) + '</span>';
 
                             el.addEventListener('click', function(e) {
                                 e.preventDefault();
                                 if (editMode) { e.stopPropagation(); return; }
-                                if (!isActive(item)) navigateViaApp(item.href);
+                                if (!isActive(item)) { markActiveNow(el); navigateViaApp(item.href); }
                                 if (menuOpen) closeMenu();
                             });
                         }
@@ -1855,6 +1912,13 @@ object UIBottomNav {
                         closeMenu();
                     }
                 });
+
+                // Settings › App › Navigation opens these. They start after the tap that asked for them, which would otherwise
+                // count as a tap outside the edit panel and close it again.
+                window.__seanimeNavigation = {
+                    customize: function() { setTimeout(function() { if (!editMode) enterEditMode(); }, 0); },
+                    reset: function() { setTimeout(showResetDialog, 0); }
+                };
 
                 window.__seanimeCloseNavigation = function() {
                     var reset = document.getElementById('__seanime_reset_dialog_overlay');

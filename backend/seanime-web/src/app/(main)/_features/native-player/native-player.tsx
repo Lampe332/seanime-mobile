@@ -23,6 +23,7 @@ import { useSkipData } from "../video-core/_lib/aniskip"
 import { getSubtitleEvents, isSubtitleBatchCurrent } from "./native-player-subtitles"
 import { nativePlayer_stateAtom } from "./native-player.atoms"
 import { streamStartError } from "./stream-start-error"
+import { playerErrorText } from "@/app/(main)/_features/media-core/media-core-texts"
 
 const log = logger("NATIVE PLAYER")
 
@@ -262,7 +263,7 @@ export function NativePlayer() {
                     break
                 case "error":
                     log.error("Error event received", payload)
-                    toast.error("An error occurred while playing the stream. " + ((payload as { error: string }).error))
+                    toast.error(t("Playback error: ", "Wiedergabefehler: ") + playerErrorText((payload as { error: string }).error, t))
                     setState(draft => {
                         draft.playbackError = (payload as { error: string }).error
                         return

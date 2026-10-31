@@ -14,7 +14,10 @@ import android.net.Uri
 import android.util.Log
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
+import com.seanime.app.AppLanguage
+import com.seanime.app.AppLanguage.tr
 import com.seanime.app.R
+import com.seanime.app.notify.AiringNotifier
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -49,7 +52,7 @@ class AnimeListFactory(private val context: Context) : RemoteViewsService.Remote
         views.setTextViewText(R.id.anime_title, item.title)
         val s = item.timeUntil
         val timeStr = if (s / 86400 > 0) "${s / 86400}d ${(s % 86400) / 3600}h" else "${(s % 86400) / 3600}h ${(s % 3600) / 60}m"
-        views.setTextViewText(R.id.anime_timer, "Ep ${item.episode}: $timeStr")
+        views.setTextViewText(R.id.anime_timer, tr("Ep ${item.episode}: $timeStr", "Folge ${item.episode}: $timeStr"))
         if (item.thumbnail == null) item.thumbnail = downloadAndScale(item.coverUrl)
         item.thumbnail?.let { views.setImageViewBitmap(R.id.anime_cover, it) }
         views.setOnClickFillInIntent(R.id.widget_item_container, Intent().setData(Uri.parse("seanime://entry?id=${item.mediaId}")))
@@ -67,7 +70,9 @@ class AnimeListFactory(private val context: Context) : RemoteViewsService.Remote
     override fun hasStableIds(): Boolean = true
 
     override fun onDataSetChanged() {
-        if (cache.hasValidCache() && !cache.isLoading()) {
+        AppLanguage.init(context)
+        // Redraws use the stored list; a fetch runs when asked (refresh) or when the list is outdated, not right after a failed one.
+        if (!cache.isLoading() && (cache.hasValidCache() || cache.recentError())) {
             loadFromCache()
             return
         }
@@ -80,16 +85,20 @@ class AnimeListFactory(private val context: Context) : RemoteViewsService.Remote
             }
             cache.saveCacheData(fresh)
             Log.d("SeanimeWidget", "Widget fetch completed: ${fresh.size} items")
-            context.sendBroadcast(Intent(context, UpcomingAnimeWidget::class.java).setAction(UpcomingAnimeWidget.ACTION_DATA_UPDATED))
             // The Activity, player and widget share this server. Only its owner may stop it.
         } catch (e: Exception) {
             Log.e("SeanimeWidget", "Sync Error: ${e.message}")
-            cache.setError(e.message ?: "Failed to load data")
+            cache.setError(if (e is NoUserException) tr("Open Seanime and log in to AniList, then refresh.", "Seanime öffnen und bei AniList anmelden, dann aktualisieren.")
+                else tr("No connection. The list updates once you are online.", "Keine Verbindung. Die Liste wird mit Internet aktualisiert."))
             loadFromCache()
         } finally {
             cache.setLoading(false)
+            // shows the new list or the error; the redraw this causes finds a fresh list or a recent error and does not fetch
+            context.sendBroadcast(Intent(context, UpcomingAnimeWidget::class.java).setAction(UpcomingAnimeWidget.ACTION_DATA_UPDATED))
         }
     }
+
+    private class NoUserException : Exception("no AniList user")
 
     private fun loadFromCache() {
         val cached = cache.getCacheData()
@@ -100,13 +109,11 @@ class AnimeListFactory(private val context: Context) : RemoteViewsService.Remote
     }
 
     private fun fetchFreshData(): List<AnimeEntry> {
-        try { Thread.sleep(1000L) } catch (_: InterruptedException) { }
-        val status = makeRequestWithRetry("http://localhost:43211/api/v1/status")
-        val username = JSONObject(status).getJSONObject("data").getJSONObject("user").getJSONObject("viewer").getString("name")
-
-        val idQuery = "query (\$name: String) { User(name: \$name) { id } }"
-        val userId = JSONObject(anilist(idQuery, JSONObject().put("name", username)))
-            .getJSONObject("data").getJSONObject("User").getInt("id")
+        // The server knows who is logged in; while it is off (widget in the background), the name it reported last.
+        val known = AiringNotifier.knownUser(context)
+        val username = serverUser(if (known == null) 40 else 1) ?: known ?: throw NoUserException()
+        AiringNotifier.rememberUser(context, username)
+        val userId = AiringNotifier.userId(context, username)
 
         val listQuery = """
             query (${'$'}userId: Int) {
@@ -136,18 +143,17 @@ class AnimeListFactory(private val context: Context) : RemoteViewsService.Remote
     private fun anilist(query: String, variables: JSONObject) =
         makeRequest("https://graphql.anilist.co", JSONObject().put("query", query).put("variables", variables).toString())
 
-    private fun makeRequestWithRetry(url: String): String {
-        var last: Exception? = null
-        // Seanime server can take a few seconds to boot. Give it a wider window.
-        repeat(40) {
+    /** AniList name of the local server's user; a booting server gets several [attempts] (about 10 s for 40). */
+    private fun serverUser(attempts: Int): String? {
+        repeat(attempts) {
             try {
-                return makeRequest(url, null)
-            } catch (e: Exception) {
-                last = e
+                return JSONObject(makeRequest("http://localhost:43211/api/v1/status", null))
+                    .getJSONObject("data").getJSONObject("user").getJSONObject("viewer").getString("name")
+            } catch (_: Exception) {
                 try { Thread.sleep(250L) } catch (_: InterruptedException) { }
             }
         }
-        throw last ?: RuntimeException("Request failed")
+        return null
     }
 
     /** GET without [body], JSON POST with it. */

@@ -1,0 +1,107 @@
+/* Floating stream status (torrent/debrid loading): a compact pill at the top that opens into a card.
+   Sits below the status bar or notch; on tablets it centres on the content next to the rail. */
+.pp-root {
+    position: fixed;
+    z-index: 1000;
+    top: calc(env(safe-area-inset-top, 0px) + .75rem);
+    left: 50%;
+    width: max-content;
+    max-width: calc(100vw - 1.5rem);
+    transform: translateX(-50%);
+    pointer-events: auto;
+}
+html[data-layout="tablet"] .pp-root { left: calc(50% + var(--tablet-rail, 0px) / 2); max-width: calc(100vw - var(--tablet-rail, 0px) - 1.5rem); }
+
+.pp-surface {
+    overflow: hidden;
+    border: 1px solid var(--sm-line-strong);
+    background: rgb(28 28 31 / .96);
+    color: var(--sm-text);
+    box-shadow: 0 12px 32px rgb(0 0 0 / .45);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+}
+
+/* Pill */
+.pp-pill {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    width: min(22rem, calc(100vw - 1.5rem));
+    height: 3.5rem;
+    padding: 0 .375rem 0 .5rem;
+    border-radius: 999px;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+}
+.pp-text { display: flex; flex: 1; flex-direction: column; gap: .125rem; min-width: 0; }
+.pp-title, .pp-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-title { font-size: .875rem; font-weight: 600; line-height: 1.25; }
+.pp-meta { font-size: .75rem; line-height: 1.25; color: var(--sm-text-muted); font-variant-numeric: tabular-nums; }
+
+/* Progress ring: the percentage once data flows, a turning arc while the stream is prepared */
+.pp-ring { position: relative; flex: none; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; }
+.pp-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.pp-ring-track { fill: none; stroke: rgb(255 255 255 / .12); stroke-width: 3.5; }
+.pp-ring-value { fill: none; stroke: var(--sm-accent); stroke-width: 3.5; stroke-linecap: round; transition: stroke-dashoffset 400ms ease; }
+.pp-ring--busy svg { animation: pp-turn 1s linear infinite; }
+.pp-ring-label { position: relative; font-size: .6875rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+@keyframes pp-turn { to { transform: rotate(270deg); } }
+
+.pp-icon-btn {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    color: var(--sm-text-muted);
+    font-size: 1.25rem;
+    -webkit-tap-highlight-color: transparent;
+}
+.pp-icon-btn:active { background: rgb(255 255 255 / .1); }
+.pp-icon-btn--stop { color: var(--sm-danger); background: rgb(242 167 182 / .12); }
+.pp-icon-btn--stop:active { background: rgb(242 167 182 / .22); }
+
+/* Card */
+.pp-card { display: flex; flex-direction: column; gap: 1rem; width: min(25rem, calc(100vw - 1.5rem)); padding: 1rem; border-radius: var(--sm-radius-lg); }
+.pp-card-head { display: flex; align-items: flex-start; gap: .5rem; }
+.pp-card-head > div { flex: 1; min-width: 0; padding-top: .25rem; }
+.pp-card-title { overflow: hidden; font-size: 1rem; font-weight: 600; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.pp-card-sub { margin-top: .125rem; font-size: .8125rem; color: var(--sm-text-muted); }
+
+.pp-progress { display: flex; flex-direction: column; gap: .5rem; }
+.pp-progress-row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.pp-progress-pct { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pp-progress-eta { font-size: .8125rem; color: var(--sm-text-muted); }
+.pp-bar { height: 6px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / .1); }
+.pp-bar > div { height: 100%; border-radius: 999px; background: var(--sm-accent); transition: width 400ms ease; }
+
+.pp-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.pp-stat { padding: .5rem .75rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); }
+.pp-stat dt { font-size: .75rem; color: var(--sm-text-subtle); }
+.pp-stat dd { overflow: hidden; font-size: .9375rem; font-weight: 600; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+
+.pp-step { display: flex; align-items: center; gap: .625rem; padding: .75rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); font-size: .8125rem; }
+.pp-step span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.pp-candidates-title { margin: 0 .25rem .5rem; font-size: .75rem; font-weight: 600; color: var(--sm-text-subtle); }
+.pp-candidates { display: flex; flex-direction: column; gap: .25rem; max-height: 10rem; overflow-y: auto; overscroll-behavior: contain; }
+.pp-candidate { display: flex; align-items: center; gap: .75rem; padding: .5rem .75rem; border-radius: var(--sm-radius-sm); background: var(--sm-surface-control); font-size: .8125rem; }
+.pp-candidate[data-state="skipped"] { opacity: .45; }
+.pp-candidate[data-state="selected"] { box-shadow: inset 0 0 0 1px var(--sm-accent-line); }
+.pp-candidate > div { flex: 1; min-width: 0; }
+.pp-candidate-name { overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.pp-candidate-provider { font-size: .75rem; color: var(--sm-text-subtle); }
+.pp-candidate-state { flex: none; padding: .125rem .5rem; border-radius: 999px; background: rgb(255 255 255 / .08); font-size: .75rem; font-weight: 600; color: var(--sm-text-muted); }
+.pp-candidate[data-state="selected"] .pp-candidate-state { background: var(--sm-accent-soft); color: var(--sm-accent); }
+
+.pp-actions { display: flex; gap: .5rem; }
+.pp-btn { flex: 1; height: 2.75rem; border-radius: 999px; background: var(--sm-surface-control); font-size: .875rem; font-weight: 600; -webkit-tap-highlight-color: transparent; }
+.pp-btn:active { transform: scale(.98); }
+.pp-btn--stop { background: rgb(242 167 182 / .14); color: var(--sm-danger); }
+
+@media (prefers-reduced-motion: reduce) {
+    .pp-ring--busy svg { animation-duration: 3s; }
+    .pp-ring-value, .pp-bar > div { transition: none; }
+}

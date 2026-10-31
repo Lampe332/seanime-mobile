@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory(prefix='seanime-volume-') as tmp:
         check('Sliding to the start mutes',s['volume']<0.01 and s['muted'] is True,s)
         page.mouse.click(b['x']+b['width']*0.5,b['y']+b['height']/2);s=state()
         check('Sliding up again unmutes',abs(s['volume']-0.25)<0.03 and s['muted'] is False,s)
-        page.locator('#outside').tap();page.wait_for_timeout(100)
+        page.locator('#outside').tap();page.wait_for_timeout(300)  # the panel folds back into the speaker (150 ms) before it goes
         check('Tapping outside closes the slider',slider.count()==0 and state()['open'] is False)
         icon.tap();page.wait_for_timeout(3800)
         check('Slider closes by itself after a few idle seconds',slider.count()==0)

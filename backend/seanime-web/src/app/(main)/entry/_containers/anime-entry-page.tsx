@@ -5,6 +5,7 @@ import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { useListAnimeEntryEpisodeTabExtensions } from "@/api/hooks/extensions.hooks"
 import { MediaEntryCharactersSection } from "@/app/(main)/_features/media/_components/media-entry-characters-section"
 import { MediaEntryPageLoadingDisplay } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
+import { MediaEntryLoadError } from "@/app/(main)/_features/media/_components/media-entry-load-error"
 import { usePluginAnimeEntryEpisodeTabs } from "@/app/(main)/_features/plugin/plugin-entry-episode-tabs"
 import {
     getPluginEpisodeTabExtensionId,
@@ -94,7 +95,7 @@ export function AnimeEntryPage() {
     const searchParams = useSearchParams()
     const mediaId = pathname.startsWith("/entry") ? searchParams.get("id") : null
     const tab = searchParams.get("tab")
-    const { data: animeEntry, isLoading: animeEntryLoading } = useGetAnimeEntry(mediaId)
+    const { data: animeEntry, isLoading: animeEntryLoading, isError: animeEntryFailed, error: animeEntryError, refetch: retryAnimeEntry, isFetching: animeEntryFetching } = useGetAnimeEntry(mediaId)
     const { data: animeDetails, isLoading: animeDetailsLoading } = useGetAnilistAnimeDetails(mediaId)
     const { data: registeredEpisodeTabExtensions, isFetched: registeredEpisodeTabExtensionsFetched } = useListAnimeEntryEpisodeTabExtensions()
     const vc_fullscreen = useAtomValue(vc_isFullscreen)
@@ -200,10 +201,11 @@ export function AnimeEntryPage() {
     React.useEffect(() => {
         if (!pathname.startsWith("/entry")) return
 
-        if (!mediaId || (!animeEntryLoading && !animeEntry)) {
+        // A failed load (offline, server busy) shows an error with retry instead of leaving the page
+        if (!mediaId || (!animeEntryLoading && !animeEntry && !animeEntryFailed)) {
             router.push("/")
         }
-    }, [animeEntry, animeEntryLoading, pathname, mediaId])
+    }, [animeEntry, animeEntryLoading, animeEntryFailed, pathname, mediaId])
 
     useUnmount(() => {
         setView("library")
@@ -274,6 +276,7 @@ export function AnimeEntryPage() {
     }, [currentView, pluginEpisodeTabs.tabs, serverStatus])
 
     if (animeEntryLoading) return <MediaEntryPageLoadingDisplay />
+    if (!animeEntry && animeEntryFailed) return <MediaEntryLoadError error={animeEntryError} onRetry={() => retryAnimeEntry()} retrying={animeEntryFetching} />
     if (!animeEntry) return null
 
     const moreSection = <>

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
 import { notifyOfflineChanged, openAndroidDownloads } from "@/lib/android-offline"
 import { useTr } from "@/lib/app-language"
+import { successFeedback } from "@/lib/feedback"
 import React from "react"
 import { LuCheck, LuDownload } from "react-icons/lu"
 import { toast } from "sonner"
@@ -48,6 +49,7 @@ export function EpisodeDownloadPicker({ media, episodes, provider, server, quali
             }))) as { error?: string, added?: number }
             if (result.error) throw new Error(result.error)
             notifyOfflineChanged()
+            if (result.added) successFeedback()
             toast.success(result.added ? t(`${result.added} ${episodeWord(result.added)} queued`, `${result.added} Folgen eingeplant`) : t("All selected episodes are already queued or saved", "Alle gewählten Folgen sind bereits eingeplant oder gespeichert"), {
                 action: { label: "Downloads", onClick: () => openAndroidDownloads() },
             })

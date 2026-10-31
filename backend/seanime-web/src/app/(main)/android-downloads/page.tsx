@@ -10,6 +10,7 @@ import { getAppLanguage, Translate, useTr } from "@/lib/app-language"
 import React from "react"
 import { LuArrowDownToLine, LuCheck, LuPause, LuPlay, LuRefreshCw, LuTrash2 } from "react-icons/lu"
 import { DownloadsHeader } from "./downloads-header"
+import { PhoneHeader } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { OFFLINE_CHANGED_EVENT } from "@/lib/android-offline"
 import {
     animeKey, canResume, groupEpisodes, isActive, nextEpisode, offlineAsset, OfflineEpisode, offlinePollDelay, offlineStateLabel, showsProgress, STARTED_MS, startedEpisodes, watchedShare,
@@ -149,9 +150,10 @@ export default function Page() {
 
     return <PageWrapper ref={root} className="mdl-page" data-downloads-page data-mobile-downloads="true">
         {overview && <>
-            <DownloadsHeader backLabel={t("Back to Seanime", "Zurück zu Seanime")} onBack={() => router.push("/")} title="Downloads"
+            {/* A main destination like Home or Manga: the same head, no back action */}
+            <PhoneHeader title="Downloads"
                 facts={kind === "anime" && loaded ? `${groups.length} Anime · ${episodes.length} ${episodeWord(episodes.length, t)} · ${formatSize(totalBytes)}`
-                    : kind === "torrents" ? t("Saved to your library folder", "In deinem Bibliotheksordner gespeichert") : t("Saved on your phone", "Auf deinem Handy gespeichert")} />
+                    : kind === "torrents" ? t("Saved to your library folder", "In deinem Bibliotheksordner gespeichert") : t("Saved on this device", "Auf diesem Gerät gespeichert")} />
             <div className="mdl-tabs" role="tablist" aria-label={t("Download type", "Download-Typ")}>
                 {[{ value: "anime", label: "Anime" }, { value: "manga", label: "Manga" }, ...(showTorrents ? [{ value: "torrents", label: "Torrents" }] : [])]
                     .map(tab => <button key={tab.value} type="button" role="tab" aria-selected={kind === tab.value} data-downloads-tab={tab.value}
@@ -242,6 +244,9 @@ export default function Page() {
                     </div> : <div className="mdl-empty">
                         <p>{episodes.length ? t("Nothing here right now", "Hier ist gerade alles erledigt") : t("Your offline library starts here", "Deine Offline-Bibliothek beginnt hier")}</p>
                         <p>{episodes.length ? t("Pick another filter to see your anime.", "Wähle einen anderen Filter, um deine Anime zu sehen.") : t("Download an episode on an anime page. Covers, info and episodes will show up here.", "Lade eine Folge auf einer Anime-Seite herunter. Cover, Infos und Folgen findest du anschließend hier.")}</p>
+                        {!episodes.length && <button type="button" className="mdl-secondary" onClick={() => router.push("/search")} data-downloads-find-anime>
+                            {t("Search anime", "Anime suchen")}
+                        </button>}
                     </div>}
                 </section>
             </>}

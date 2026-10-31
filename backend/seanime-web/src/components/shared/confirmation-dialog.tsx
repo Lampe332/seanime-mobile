@@ -1,7 +1,10 @@
-import { Button, ButtonProps } from "@/components/ui/button"
+import { ButtonProps } from "@/components/ui/button"
 import { Modal } from "@/components/ui/modal"
 import { useDisclosure, UseDisclosureReturn } from "@/hooks/use-disclosure"
+import { useTr } from "@/lib/app-language"
 import React from "react"
+import "@/components/shared/mobile-surface.css"
+import "@/app/(main)/_features/phone-screen/phone-screen.css"
 
 type ConfirmationDialogHookProps = {
     title: string,
@@ -21,7 +24,10 @@ export function useConfirmationDialog(props: ConfirmationDialogHookProps) {
     }
 }
 
+/** A bottom sheet like the other phone sheets: the text, then cancel and the one action in thumb reach. */
 export const ConfirmationDialog: React.FC<ConfirmationDialogHookProps & UseDisclosureReturn> = (props) => {
+
+    const t = useTr()
 
     const {
         isOpen,
@@ -29,45 +35,46 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogHookProps & UseDiscl
         onConfirm,
         onCancel,
         title,
-        description = "Are you sure you want to continue?",
-        actionText = "Confirm",
-        cancelText = "Cancel",
+        description = t("Are you sure you want to continue?", "Möchtest du wirklich fortfahren?"),
+        actionText = t("Confirm", "Bestätigen"),
+        cancelText = t("Cancel", "Abbrechen"),
         actionIntent = "alert-subtle",
     } = props
 
     return (
-        <>
-            <Modal
-                title={title}
-                titleClass="text-center"
-                open={isOpen}
-                onOpenChange={close}
-            >
-                <div className="space-y-4">
-                    <div className="text-center">{description}</div>
-                    <div className="flex gap-2 justify-center items-center">
-                        <Button
-                            intent={actionIntent}
-                            onClick={() => {
-                                onConfirm()
-                                close()
-                            }}
-                        >
-                            {actionText}
-                        </Button>
-                        <Button
-                            intent="white"
-                            onClick={() => {
-                                onCancel?.()
-                                close()
-                            }}
-                        >
-                            {cancelText}
-                        </Button>
-                    </div>
+        <Modal
+            title={title}
+            open={isOpen}
+            onOpenChange={close}
+            contentClass="ps-sheet"
+        >
+            <div className="ps-sheet-body">
+                <div className="ps-sheet-text">{description}</div>
+                <div className="ps-sheet-actions">
+                    <button
+                        type="button"
+                        className="ps-secondary"
+                        onClick={() => {
+                            onCancel?.()
+                            close()
+                        }}
+                    >
+                        {cancelText}
+                    </button>
+                    <button
+                        type="button"
+                        className="ps-primary"
+                        data-tone={actionIntent?.startsWith("alert") ? "danger" : undefined}
+                        onClick={() => {
+                            onConfirm()
+                            close()
+                        }}
+                    >
+                        {actionText}
+                    </button>
                 </div>
-            </Modal>
-        </>
+            </div>
+        </Modal>
     )
 
 }

@@ -46,10 +46,12 @@ export function MobileAnimeHeaderDetails(props: MediaPageHeaderEntryDetailsProps
         <div className="mobile-anime-progress">
             <div><span>{tr("Your progress", "Dein Fortschritt")}</span><div><MediaPageHeaderScoreAndProgress score={listData?.score} progress={listData?.progress} episodes={progressTotal} /></div></div>
             <AnilistMediaEntryModal mobileEntry listData={listData} media={media} type={type} />
-            {listData?.status && <p>{listStatusLabel(tr, manga ? "manga" : "anime", listData.status)}{listData.repeat ? ` · ${listData.repeat} ${manga ? tr("rereads", "Wiederholungen") : tr("rewatches", "Wiederholungen")}` : ""}</p>}
+            {listData?.status && <p>{listStatusLabel(tr, manga ? "manga" : "anime", listData.status)}{listData.repeat ? ` · ${listData.repeat} ${listData.repeat === 1
+                ? (manga ? tr("reread", "Wiederholung") : tr("rewatch", "Wiederholung"))
+                : (manga ? tr("rereads", "Wiederholungen") : tr("rewatches", "Wiederholungen"))}` : ""}</p>}
         </div>
         {manga ? <MobileMangaReadAction /> : <a className="mobile-anime-episodes-link" href="#anime-episodes">
-            {tr("Episodes & playback", "Episoden & Wiedergabe")} <span aria-hidden>↓</span>
+            {tr("Episodes & playback", "Folgen & Wiedergabe")} <span aria-hidden>↓</span>
         </a>}
         <details className="mobile-anime-details">
             <summary>{manga ? tr("About this manga", "Über diesen Manga") : tr("About this anime", "Über diesen Anime")}</summary>

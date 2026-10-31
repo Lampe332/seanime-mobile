@@ -8,15 +8,19 @@ import { useWebsocketSender } from "@/app/(main)/_hooks/handle-websockets"
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { toastDebridStreamFailure } from "@/app/(main)/_features/native-player/stream-start-error"
 import { clientIdAtom } from "@/app/websocket-provider"
+import { DownloadSample, estimateDownload, etaLabel } from "@/app/(main)/entry/_containers/torrent-stream/_lib/download-eta"
+import "@/app/(main)/entry/_containers/torrent-stream/playback-play-pill.css"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
+import "@/components/shared/mobile-surface.css"
 import { cn } from "@/components/ui/core/styling"
 import { Spinner } from "@/components/ui/loading-spinner"
+import { Translate, useTr } from "@/lib/app-language"
 import { WSEvents } from "@/lib/server/ws-events"
 import { atom } from "jotai"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import { AnimatePresence, motion } from "motion/react"
 import React, { useEffect, useRef, useState } from "react"
-import { BiChevronDown, BiChevronUp, BiDownArrow, BiGroup, BiStop, BiUpArrow } from "react-icons/bi"
+import { BiChevronUp, BiDownArrow, BiGroup, BiStop, BiUpArrow } from "react-icons/bi"
 import { toast } from "sonner"
 
 export const enum TorrentStreamEvents {
@@ -63,29 +67,33 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
     const [showMediaPlayerLoading, setShowMediaPlayerLoading] = useState(false)
 
     const pillRef = useRef<HTMLDivElement>(null)
+    const tr = useTr()
+    const etaSeconds = useDownloadEta(status)
 
     useEffect(() => {
         if (minimized) return
 
-        function handleClickOutside(e: MouseEvent) {
+        function handleClickOutside(e: PointerEvent) {
             if (pillRef.current && !pillRef.current.contains(e.target as Node)) {
                 setMinimized(true)
             }
         }
 
         const timer = setTimeout(() => {
-            document.addEventListener("mousedown", handleClickOutside)
+            document.addEventListener("pointerdown", handleClickOutside)
         }, 100)
         return () => {
             clearTimeout(timer)
-            document.removeEventListener("mousedown", handleClickOutside)
+            document.removeEventListener("pointerdown", handleClickOutside)
         }
     }, [minimized, setMinimized])
 
     const confirmStop = useConfirmationDialog({
-        title: "Stop streaming?",
-        description: "Are you sure you want to stop and close the stream?",
-        actionText: "Stop stream",
+        title: tr("Stop streaming?", "Stream beenden?"),
+        description: nativePlayerState.active
+            ? tr("The stream stops and the player closes.", "Der Stream stoppt und der Player schließt sich.")
+            : tr("Loading the stream is cancelled.", "Das Laden des Streams wird abgebrochen."),
+        actionText: tr("Stop stream", "Stream beenden"),
         actionIntent: "alert",
         onConfirm: () => {
             handleStopStream()
@@ -218,7 +226,7 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
                 if (data.status === "ready") {
                     setDebridState(null)
                     setAutoSelectState(null)
-                    toast.info("Sending stream to player...", { duration: 1 })
+                    toast.info(tr("Sending stream to player...", "Stream wird an den Player gesendet…"), { duration: 1 })
                     setShowMediaPlayerLoading(true)
                     return
                 }
@@ -259,7 +267,7 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
                     setDebridState(null)
                     setAutoSelectState(null)
                     if (data.message !== "") {
-                        toast.info("Sending stream to player...", { duration: 1 })
+                        toast.info(tr("Sending stream to player...", "Stream wird an den Player gesendet…"), { duration: 1 })
                     }
                     setShowMediaPlayerLoading(true)
                     return
@@ -349,37 +357,58 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
         if (!loadingState) return ""
         switch (loadingState) {
             case "LOADING":
-                return "Loading..."
+                return tr("Loading…", "Lädt…")
             case "SEARCHING_TORRENTS":
-                return "Selecting file..."
-            case "ADDING_TORRENT":
-                return torrentBeingLoaded ? `Adding torrent "${torrentBeingLoaded}"` : "Adding torrent..."
-            case "CHECKING_TORRENT":
-                return torrentBeingLoaded ? `Checking torrent "${torrentBeingLoaded}"` : "Checking torrent..."
             case "SELECTING_FILE":
-                return "Selecting file..."
+                return tr("Picking the file…", "Datei wird gewählt…")
+            case "ADDING_TORRENT":
+                return torrentBeingLoaded ? `${tr("Adding", "Wird hinzugefügt:")} ${torrentBeingLoaded}` : tr("Adding torrent…", "Torrent wird hinzugefügt…")
+            case "CHECKING_TORRENT":
+                return torrentBeingLoaded ? `${tr("Checking", "Wird geprüft:")} ${torrentBeingLoaded}` : tr("Checking torrent…", "Torrent wird geprüft…")
             case "SENDING_STREAM_TO_MEDIA_PLAYER":
-                return "Sending stream to player..."
+                return tr("Starting playback…", "Wiedergabe startet…")
             default:
                 return loadingState
         }
-    }, [loadingState, torrentBeingLoaded])
+    }, [loadingState, torrentBeingLoaded, tr])
 
     const currentStepDetail = autoSelectState?.stepDetail || debridState?.message || loadingStateStr || ""
 
+    // Fetching a torrent's file list can take up to a minute when few people share it
+    const [slowStart, setSlowStart] = useState(false)
+    useEffect(() => {
+        setSlowStart(false)
+        if (isTorrentLoaded || !["LOADING", "ADDING_TORRENT", "CHECKING_TORRENT"].includes(loadingState ?? "")) return
+        const timer = setTimeout(() => setSlowStart(true), 5000)
+        return () => clearTimeout(timer)
+    }, [loadingState, isTorrentLoaded])
+
     if (!showFloatingPill) return null
 
+    const isDebridDownloading = debridState?.status === "downloading"
+    const debridPercent = isDebridDownloading ? debridProgress(debridState?.message) : null
+    const progress = isTorrentLoaded && status ? status.progressPercentage : debridPercent
+    const title = autoSelectState?.mediaTitle || debridState?.torrentName || tr("Stream", "Stream")
+    const episodeLine = autoSelectState?.episode ? `${tr("Episode", "Folge")} ${autoSelectState.episode}` : ""
+    const debridLine = tr("Your debrid service is downloading it", "Der Debrid-Dienst lädt die Folge")
+    const speed = status?.downloadSpeed || "0 B/s"
+    const eta = etaSeconds !== null ? etaLabel(etaSeconds, tr) : ""
+    const pillTitle = isTorrentLoaded && status
+        ? `${Math.floor(status.progressPercentage)} % ${tr("loaded", "geladen")}`
+        : isDebridDownloading ? debridLine
+            : (currentStepDetail || tr("Preparing the stream…", "Stream wird vorbereitet…"))
+    const pillMeta = isTorrentLoaded && status
+        ? [`↓ ${speed}`, eta, `${status.seeders} ${tr("seeders", "Seeder")}`].filter(Boolean).join(" · ")
+        : [title !== tr("Stream", "Stream") && title, episodeLine,
+            slowStart && tr("can take up to 1 min (few seeders?)", "kann bis 1 min dauern (wenige Seeder?)")].filter(Boolean).join(" · ")
+    const cardSub = episodeLine || (isDebridDownloading ? debridLine : debridState?.message)
+
     return (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] w-auto pointer-events-auto" ref={pillRef}>
+        <div className="pp-root" ref={pillRef}>
             <motion.div
                 layout
                 transition={{ type: "spring", stiffness: 300, damping: 28 }}
-                className={cn(
-                    "bg-gray-950/95 border border-[--border] text-[--foreground] shadow-2xl backdrop-blur-md select-none overflow-hidden",
-                    minimized
-                        ? (isTorrentLoaded && status ? "rounded-full h-12 w-fit max-w-[420px]" : "rounded-full h-12 w-[320px]")
-                        : "rounded-[2rem] p-5 w-[95vw] md:w-[400px]",
-                )}
+                className={cn("pp-surface select-none", minimized ? "rounded-full" : "rounded-[1.25rem]")}
             >
                 <AnimatePresence mode="wait" initial={false}>
                     {minimized ? (
@@ -390,62 +419,44 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.15 }}
-                            className="flex items-center justify-between w-full h-full px-4 cursor-pointer"
+                            role="button"
+                            tabIndex={0}
+                            aria-label={tr("Show stream details", "Stream-Details zeigen")}
+                            className="pp-pill cursor-pointer"
                             onClick={() => setMinimized(false)}
+                            onKeyDown={e => {
+                                if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return
+                                e.preventDefault()
+                                setMinimized(false)
+                            }}
                         >
-                            {!isTorrentLoaded && <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden relative">
+                            <PlayPillRing progress={progress} />
+                            <div className="pp-text">
                                 <AnimatePresence mode="wait" initial={false}>
                                     <motion.span
-                                        key={currentStepDetail}
-                                        initial={{ opacity: 0, y: 8, filter: "blur(4px)" }}
-                                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                                        exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
-                                        transition={{ duration: 0.25 }}
-                                        className="text-[--foreground] text-xs font-semibold truncate block"
+                                        key={pillTitle}
+                                        initial={{ opacity: 0, y: 6 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -6 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="pp-title"
                                     >
-                                        {currentStepDetail || "Loading..."}
+                                        {pillTitle}
                                     </motion.span>
                                 </AnimatePresence>
-                            </div>}
-
-                            {isTorrentLoaded && status && (
-                                <div className="flex items-center gap-2 text-[12px] font-medium text-[--muted] flex-shrink-0 mr-1 bg-gray-950/40 px-2.5 py-1 rounded-full">
-                                    <span className="font-bold text-[--foreground]">{status.progressPercentage.toFixed(1)}%</span>
-                                    <span className="flex items-center gap-0.5">
-                                        <BiGroup className="size-3" />
-                                        {status.seeders || "0"}
-                                    </span>
-                                    <span className="flex items-center gap-0.5">
-                                        <BiDownArrow className="size-3" />
-                                        {status.downloadSpeed || "0 B/s"}
-                                    </span>
-                                    <span className="flex items-center gap-0.5">
-                                        <BiUpArrow className="size-3" />
-                                        {status.uploadSpeed || "0 B/s"}
-                                    </span>
-                                </div>
-                            )}
-
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                                <button
-                                    className="p-1 rounded-full hover:bg-[--subtle] text-[--muted] hover:text-[--foreground] transition-colors"
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        setMinimized(false)
-                                    }}
-                                >
-                                    <BiChevronDown className="text-lg" />
-                                </button>
-                                <button
-                                    className="p-1 rounded-full hover:bg-red-900 text-[--muted] hover:text-[--red] transition-colors"
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        confirmStop.open()
-                                    }}
-                                >
-                                    <BiStop className="text-lg" />
-                                </button>
+                                {!!pillMeta && <span className="pp-meta">{pillMeta}</span>}
                             </div>
+                            <button
+                                type="button"
+                                aria-label={tr("Stop stream", "Stream beenden")}
+                                className="pp-icon-btn pp-icon-btn--stop"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    confirmStop.open()
+                                }}
+                            >
+                                <BiStop />
+                            </button>
                         </motion.div>
                     ) : (
                         <motion.div
@@ -455,110 +466,89 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.15 }}
-                            className="flex flex-col gap-4 w-full"
+                            className="pp-card"
                         >
-                            <div className="flex items-center justify-between gap-4 border-b border-[--border]/60 pb-2">
-                                <div className="min-w-0 flex-1">
-                                    <h3 className="text-sm font-bold text-[--foreground] truncate">
-                                        {autoSelectState?.mediaTitle || debridState?.torrentName || "Active Streaming"}
-                                    </h3>
-                                    <p className="text-[11px] text-[--muted] mt-0.5">
-                                        {autoSelectState ? `Episode ${autoSelectState.episode}` : (debridState?.message || "Loading...")}
-                                    </p>
+                            <div className="pp-card-head">
+                                <div>
+                                    <h3 className="pp-card-title">{title}</h3>
+                                    {!!cardSub && <p className="pp-card-sub">{cardSub}</p>}
                                 </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                    <button
-                                        className="p-1 rounded-full hover:bg-[--subtle] text-[--muted] hover:text-[--foreground] transition-colors"
-                                        onClick={() => setMinimized(true)}
-                                    >
-                                        <BiChevronUp className="text-lg" />
-                                    </button>
-                                    <button
-                                        className="p-1 rounded-full hover:bg-red-900 text-[--red] transition-colors"
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            confirmStop.open()
-                                        }}
-                                    >
-                                        <BiStop className="text-lg" />
-                                    </button>
-                                </div>
+                                <button
+                                    type="button"
+                                    aria-label={tr("Minimise", "Verkleinern")}
+                                    className="pp-icon-btn"
+                                    onClick={() => setMinimized(true)}
+                                >
+                                    <BiChevronUp />
+                                </button>
                             </div>
 
-                            {currentStepDetail && !isTorrentLoaded && (
-                                <div className="flex items-center gap-2 bg-gray-950/40 border border-[--border] px-3 py-2.5 rounded-xl text-xs">
-                                    <Spinner className="size-3.5 text-[--brand] flex-shrink-0" />
-                                    <span className="text-[--foreground]/90 font-medium truncate flex-1">
-                                        {currentStepDetail}
-                                    </span>
+                            {isTorrentLoaded && status ? (
+                                <>
+                                    <div className="pp-progress">
+                                        <div className="pp-progress-row">
+                                            <span className="pp-progress-pct">{status.progressPercentage.toFixed(1)} %</span>
+                                            {!!eta && <span className="pp-progress-eta">{eta}</span>}
+                                        </div>
+                                        <div className="pp-bar">
+                                            <div style={{ width: `${Math.min(100, status.progressPercentage)}%` }} />
+                                        </div>
+                                    </div>
+                                    <dl className="pp-stats">
+                                        <div className="pp-stat"><dt>{tr("Download", "Download")}</dt><dd>{speed}</dd></div>
+                                        <div className="pp-stat"><dt>{tr("Seeders", "Seeder")}</dt><dd>{status.seeders}</dd></div>
+                                        <div className="pp-stat"><dt>{tr("Size", "Größe")}</dt><dd>{status.size || "–"}</dd></div>
+                                        <div className="pp-stat"><dt>{tr("Upload", "Upload")}</dt><dd>{status.uploadSpeed || "0 B/s"}</dd></div>
+                                    </dl>
+                                </>
+                            ) : debridPercent !== null ? (
+                                <div className="pp-progress">
+                                    <div className="pp-progress-row">
+                                        <span className="pp-progress-pct">{Math.floor(debridPercent)} %</span>
+                                    </div>
+                                    <div className="pp-bar">
+                                        <div style={{ width: `${Math.min(100, debridPercent)}%` }} />
+                                    </div>
                                 </div>
-                            )}
+                            ) : currentStepDetail ? (
+                                <div className="pp-step">
+                                    <Spinner className="size-4 text-[--brand] flex-shrink-0" />
+                                    <span>{currentStepDetail}</span>
+                                </div>
+                            ) : null}
 
-                            {autoSelectState?.candidates && autoSelectState.candidates.length > 0 && (
-                                <div className="flex flex-col gap-1.5 mt-1">
-                                    <h4 className="text-[10px] font-bold text-[--muted] uppercase tracking-wider px-1">Top Candidates</h4>
-                                    <div className="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto border border-[--border] rounded-xl bg-gray-950 p-1">
-                                        {autoSelectState.candidates.map((cand, idx) => {
-                                            const isSkipped = cand.status === "skipped"
-                                            const isSelected = cand.status === "selected"
-                                            const isAnalyzing = cand.status === "analyzing"
-                                            return (
-                                                <div
-                                                    key={cand.name + idx}
-                                                    className={cn(
-                                                        "flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-xs transition-colors",
-                                                        isSkipped && "opacity-40",
-                                                        isSelected && "bg-[--subtle] border",
-                                                    )}
-                                                >
-                                                    <div className="min-w-0 flex-1">
-                                                        <p
-                                                            className={cn("font-medium text-[--foreground] truncate",
-                                                                isSkipped && "line-through text-[--muted]")}
-                                                        >
-                                                            {cand.name}
-                                                        </p>
-                                                        <p className="text-[9px] text-[--muted] mt-0.5 font-mono">{cand.provider}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2.5 flex-shrink-0">
-                                                        <span className="text-[10px] font-bold text-[--muted]">Score: {cand.score}</span>
-                                                        {!isTorrentLoaded && <span
-                                                            className={cn(
-                                                                "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border border-transparent",
-                                                                cand.status === "waiting" && "bg-gray-900 text-[--muted]",
-                                                                isSkipped && "bg-red-950 text-[--red] ",
-                                                                isAnalyzing && "bg-amber-950 text-[--amber] ",
-                                                                isSelected && "bg-green-950 text-[--green] ",
-                                                            )}
-                                                        >
-                                                            {cand.status}
-                                                        </span>}
-                                                    </div>
+                            {!!autoSelectState?.candidates?.length && (
+                                <div>
+                                    <h4 className="pp-candidates-title">{tr("Candidates", "Kandidaten")}</h4>
+                                    <div className="pp-candidates">
+                                        {autoSelectState.candidates.map((cand, idx) => (
+                                            <div key={cand.name + idx} className="pp-candidate" data-state={cand.status}>
+                                                <div>
+                                                    <p className={cn("pp-candidate-name", cand.status === "skipped" && "line-through")}>{cand.name}</p>
+                                                    <p className="pp-candidate-provider">{cand.provider} · {tr("Score", "Wertung")} {cand.score}</p>
                                                 </div>
-                                            )
-                                        })}
+                                                {!isTorrentLoaded && <span className="pp-candidate-state">{candidateStateLabel(cand.status, tr)}</span>}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
 
-                            {isTorrentLoaded && status && (
-                                <div className="flex flex-col gap-2 bg-gray-950/30 border border-[--border] p-3 rounded-xl mt-1">
-                                    <div className="flex justify-between items-center text-[11px] text-[--muted] font-semibold">
-                                        <span>Speed: <strong className="text-[--foreground]">{status.downloadSpeed || "0 B/s"}</strong></span>
-                                        <span>Seeders: <strong className="text-[--foreground]">{status.seeders}</strong></span>
-                                    </div>
-                                    <div className="w-full bg-gray-950 border border-[--border] rounded-full h-1.5 overflow-hidden">
-                                        <div
-                                            className="bg-[--green] h-full rounded-full transition-all duration-300"
-                                            style={{ width: `${status.progressPercentage}%` }}
-                                        />
-                                    </div>
-                                    <div className="flex justify-between items-center text-[10px] text-[--muted] font-medium">
-                                        <span>{status.progressPercentage.toFixed(1)}% complete</span>
-                                        <span>Upload: {status.uploadSpeed || "0 B/s"}</span>
-                                    </div>
-                                </div>
-                            )}
+                            <div className="pp-actions">
+                                <button type="button" className="pp-btn" onClick={() => setMinimized(true)}>
+                                    {tr("Minimise", "Verkleinern")}
+                                </button>
+                                <button
+                                    type="button"
+                                    className="pp-btn pp-btn--stop"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        confirmStop.open()
+                                    }}
+                                >
+                                    {tr("Stop stream", "Stream beenden")}
+                                </button>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -566,4 +556,62 @@ export function PlaybackPlayPill({ isNativePlayerComponent, show }: {
             <ConfirmationDialog {...confirmStop} />
         </div>
     )
+}
+
+const RING_RADIUS = 16
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS
+
+/** Percentage ring; without a percentage yet it shows a turning arc. */
+function PlayPillRing({ progress }: { progress: number | null }) {
+    const busy = progress === null
+    const value = busy ? 0.25 : Math.max(0, Math.min(100, progress)) / 100
+    return (
+        <span className={cn("pp-ring", busy && "pp-ring--busy")} aria-hidden>
+            <svg viewBox="0 0 40 40">
+                <circle className="pp-ring-track" cx="20" cy="20" r={RING_RADIUS} />
+                <circle className="pp-ring-value" cx="20" cy="20" r={RING_RADIUS} strokeDasharray={RING_LENGTH} strokeDashoffset={RING_LENGTH * (1 - value)} />
+            </svg>
+            {!busy && <span className="pp-ring-label">{Math.floor(progress)}</span>}
+        </span>
+    )
+}
+
+/** The debrid service reports its own download as "Downloading torrent: 45%". */
+function debridProgress(message: string | undefined) {
+    const match = message?.match(/(\d+(?:\.\d+)?)\s*%/)
+    return match ? Number(match[1]) : null
+}
+
+/** Seconds until the selected file is complete, from the torrent status reports (see download-eta.ts). */
+function useDownloadEta(status: Torrentstream_TorrentStatus | null) {
+    const sampleRef = useRef<DownloadSample | null>(null)
+    const [eta, setEta] = useState<number | null>(null)
+
+    useEffect(() => {
+        if (!status) {
+            sampleRef.current = null
+            setEta(null)
+            return
+        }
+        const next = estimateDownload(sampleRef.current, status.downloadProgress, status.progressPercentage, Date.now())
+        sampleRef.current = next.sample
+        setEta(next.eta)
+    }, [status])
+
+    return eta
+}
+
+function candidateStateLabel(state: string, tr: Translate) {
+    switch (state) {
+        case "waiting":
+            return tr("Waiting", "Wartet")
+        case "analyzing":
+            return tr("Checking", "Wird geprüft")
+        case "skipped":
+            return tr("Skipped", "Übersprungen")
+        case "selected":
+            return tr("Chosen", "Gewählt")
+        default:
+            return state
+    }
 }

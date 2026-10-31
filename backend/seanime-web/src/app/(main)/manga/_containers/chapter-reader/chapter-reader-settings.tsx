@@ -1,4 +1,4 @@
-import { useMangaPageZoomControls } from "@/app/(main)/manga/_lib/handle-chapter-reader"
+import { useEffectiveReadingMode, useMangaPageZoomControls } from "@/app/(main)/manga/_lib/handle-chapter-reader"
 import {
     __manga_doublePageOffsetAtom,
     __manga_autoHideControlsAtom,
@@ -26,6 +26,8 @@ import {
     MangaReadingDirection,
     MangaReadingMode,
 } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
+import { MANGA_READING_MODE_AUTO } from "@/app/(main)/manga/_lib/reader-mode"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
 import React from "react"
@@ -53,6 +55,8 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
 
     const [readingDirection, setReadingDirection] = useAtom(__manga_readingDirectionAtom)
     const [readingMode, setReadingMode] = useAtom(__manga_readingModeAtom)
+    // what is laid out: "auto" resolves to single or double page for the current window
+    const effectiveMode = useEffectiveReadingMode()
     const [pageFit, setPageFit] = useAtom(__manga_pageFitAtom)
     const [pageStretch, setPageStretch] = useAtom(__manga_pageStretchAtom)
     const [pageGap, setPageGap] = useAtom(__manga_pageGapAtom)
@@ -109,8 +113,8 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
     }, [readingDirection, readingMode, pageFit, pageStretch, pageGap, pageGapShadow, doublePageOffset, pageOverflowContainerWidth])
 
     const isDefaultSettings =
-        pageFit === defaultSettings[readingMode].pageFit &&
-        pageStretch === defaultSettings[readingMode].pageStretch
+        pageFit === defaultSettings[effectiveMode].pageFit &&
+        pageStretch === defaultSettings[effectiveMode].pageStretch
 
     const [open, setOpen] = useAtom(__manga__readerSettingsDrawerOpen)
     const t = useTr()
@@ -144,9 +148,16 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
                                 { value: MangaReadingMode.LONG_STRIP, label: t("Long strip", "Endlos") },
                                 { value: MangaReadingMode.PAGED, label: t("Single page", "Einzelseite") },
                                 { value: MangaReadingMode.DOUBLE_PAGE, label: t("Double page", "Doppelseite") },
+                                // Tablets can pick by window shape; a stored choice stays visible when the device changed
+                                ...(IS_TABLET_UI || readingMode === MANGA_READING_MODE_AUTO
+                                    ? [{ value: MANGA_READING_MODE_AUTO, label: t("Automatic", "Automatisch") }]
+                                    : []),
                             ]}
+                            note={readingMode === MANGA_READING_MODE_AUTO ? (effectiveMode === MangaReadingMode.DOUBLE_PAGE
+                                ? t("Double page in landscape, single page in portrait. Now: double page.", "Quer Doppelseite, hochkant Einzelseite. Gerade: Doppelseite.")
+                                : t("Double page in landscape, single page in portrait. Now: single page.", "Quer Doppelseite, hochkant Einzelseite. Gerade: Einzelseite.")) : undefined}
                         />
-                        {readingMode !== MangaReadingMode.LONG_STRIP && <ReaderSegment
+                        {effectiveMode !== MangaReadingMode.LONG_STRIP && <ReaderSegment
                             label={t("Direction", "Richtung")}
                             value={readingDirection}
                             onChange={setReadingDirection}
@@ -157,9 +168,9 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
                         />}
                         <ReaderSwitch label={t("Tap the middle to show or hide controls", "Mitte antippen blendet Steuerung ein/aus")}
                             checked={tapToggleControls} onChange={setTapToggleControls} />
-                        {readingMode === MangaReadingMode.LONG_STRIP && <ReaderSwitch label={t("Hide controls while scrolling down", "Steuerung beim Runterscrollen ausblenden")}
+                        {effectiveMode === MangaReadingMode.LONG_STRIP && <ReaderSwitch label={t("Hide controls while scrolling down", "Steuerung beim Runterscrollen ausblenden")}
                             checked={autoHideControls} onChange={setAutoHideControls} />}
-                        {readingMode === MangaReadingMode.DOUBLE_PAGE && <ReaderStepper
+                        {effectiveMode === MangaReadingMode.DOUBLE_PAGE && <ReaderStepper
                             t={t}
                             label={t("Page offset", "Seitenversatz")}
                             value={doublePageOffset}
@@ -194,7 +205,7 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
                             step={MANGA_PAGE_ZOOM_STEP * 100}
                             onReset={pageZoom !== MANGA_PAGE_ZOOM_DEFAULT ? resetZoom : undefined}
                         />
-                        {pageFit === MangaPageFit.LARGER && readingMode !== MangaReadingMode.DOUBLE_PAGE && <ReaderStepper
+                        {pageFit === MangaPageFit.LARGER && effectiveMode !== MangaReadingMode.DOUBLE_PAGE && <ReaderStepper
                             t={t}
                             label={t("Page width", "Seitenbreite")}
                             value={pageOverflowContainerWidth}
@@ -204,14 +215,14 @@ export function ChapterReaderSettings(props: ChapterReaderSettingsProps) {
                             max={100}
                             step={5}
                         />}
-                        {readingMode === MangaReadingMode.LONG_STRIP && (pageFit === MangaPageFit.LARGER || pageFit === MangaPageFit.CONTAIN) && <ReaderSwitch
+                        {effectiveMode === MangaReadingMode.LONG_STRIP && (pageFit === MangaPageFit.LARGER || pageFit === MangaPageFit.CONTAIN) && <ReaderSwitch
                             label={t("Same width for all pages", "Alle Seiten gleich breit")}
                             checked={pageStretch === MangaPageStretch.STRETCH}
                             onChange={v => setPageStretch(v ? MangaPageStretch.STRETCH : MangaPageStretch.NONE)}
                         />}
                         {!isDefaultSettings && <button type="button" className="reader-settings-row reader-settings-reset" onClick={() => {
-                            setPageFit(defaultSettings[readingMode].pageFit)
-                            setPageStretch(defaultSettings[readingMode].pageStretch)
+                            setPageFit(defaultSettings[effectiveMode].pageFit)
+                            setPageStretch(defaultSettings[effectiveMode].pageStretch)
                         }}>
                             <FaRedo aria-hidden />{t("Reset page layout for this mode", "Seitenlayout für diesen Modus zurücksetzen")}
                         </button>}
@@ -262,13 +273,14 @@ function ReaderGroup(props: { title: string, children: React.ReactNode }) {
     </section>
 }
 
-function ReaderSegment(props: { label: string, value: string, onChange: (value: string) => void, options: { value: string, label: string }[] }) {
+function ReaderSegment(props: { label: string, value: string, onChange: (value: string) => void, options: { value: string, label: string }[], note?: string }) {
     return <div className="reader-settings-field" role="group" aria-label={props.label}>
         <span>{props.label}</span>
         <div className="reader-settings-segment" data-count={props.options.length}>
             {props.options.map(option => <button key={option.value} type="button" aria-pressed={props.value === option.value}
                 onClick={() => props.onChange(option.value)}>{option.label}</button>)}
         </div>
+        {!!props.note && <small aria-live="polite">{props.note}</small>}
     </div>
 }
 

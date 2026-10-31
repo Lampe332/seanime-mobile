@@ -46,3 +46,12 @@ you forgot to give Hina.
 	}
 	require.Equal(t, SubtitleTypeWEBVTT, DetectSubtitleType(content))
 }
+
+// WebVTT tracks inside Matroska/WebM: WebM keeps the cue identifier and settings in the block, Matroska only the text.
+func TestWebVTTCueText(t *testing.T) {
+	require.Equal(t, "Zeile <i>kursiv</i>", webVTTCueText("D_WEBVTT/SUBTITLES", "\n\nZeile <i>kursiv</i>"))
+	require.Equal(t, "Hallo\nWelt", webVTTCueText("D_WEBVTT/SUBTITLES", "cue-1\nline:0% align:end\nHallo\nWelt"))
+	require.Equal(t, "Ja, nein", webVTTCueText("S_TEXT/WEBVTT", "<v Roger>Ja, <c.yellow>nein</c>"))
+	require.Equal(t, "Ka ra", webVTTCueText("S_TEXT/WEBVTT", "Ka <00:00:01.500>ra"))
+	require.Equal(t, "TEXT", getSubtitleTrackType("D_WEBVTT/SUBTITLES"))
+}

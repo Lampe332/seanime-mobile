@@ -1,6 +1,9 @@
+import { languageName } from "@/app/(main)/_features/media-core/media-core-texts"
+import { useTr } from "@/lib/app-language"
 import { nativePlayer_stateAtom } from "@/app/(main)/_features/native-player/native-player.atoms"
 import { vc_subtitleManager } from "@/app/(main)/_features/video-core/video-core"
 import { vc_mediaCaptionsManager } from "@/app/(main)/_features/video-core/video-core"
+import { rememberAnimeTrack } from "@/app/(main)/_features/video-core/video-core-anime-tracks"
 import { vc_menuOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_menuSectionOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
@@ -12,6 +15,7 @@ import { MediaCaptionsTrack } from "@/app/(main)/_features/video-core/video-core
 import { VideoCoreMenu, VideoCoreMenuBody, VideoCoreMenuTitle, VideoCoreSettingSelect } from "@/app/(main)/_features/video-core/video-core-menu"
 import { NormalizedTrackInfo } from "@/app/(main)/_features/video-core/video-core-subtitles"
 import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.utils"
+import { useVideoCoreOverlayFeedback } from "@/app/(main)/_features/video-core/video-core-overlay-display"
 import { IconButton } from "@/components/ui/button"
 import { useAtomValue } from "jotai"
 import { useSetAtom } from "jotai/react"
@@ -27,6 +31,7 @@ export function VideoCoreSubtitleMenu({ inline, onPreferenceChange }: {
     inline?: boolean
     onPreferenceChange?: (selection: VideoCoreSubtitleSelection) => void
 }) {
+    const t = useTr()
     const action = useSetAtom(vc_dispatchAction)
     const isMiniPlayer = useAtomValue(vc_miniPlayer)
     const state = useAtomValue(nativePlayer_stateAtom)
@@ -36,6 +41,7 @@ export function VideoCoreSubtitleMenu({ inline, onPreferenceChange }: {
     const isFullscreen = useAtomValue(vc_isFullscreen)
     const containerElement = useAtomValue(vc_containerElement)
     const [selectedTrack, setSelectedTrack] = React.useState<number | null>(null)
+    const { showOverlayFeedback } = useVideoCoreOverlayFeedback()
 
     const setMenuOpen = useSetAtom(vc_menuOpen)
     const setMenuSectionOpen = useSetAtom(vc_menuSectionOpen)
@@ -113,9 +119,10 @@ export function VideoCoreSubtitleMenu({ inline, onPreferenceChange }: {
                 }}
             />}
         >
-            <VideoCoreMenuTitle>Subtitles{" "}
+            <VideoCoreMenuTitle>{t("Subtitles", "Untertitel")}{" "}
                 <IconButton
-                    intent="gray-link" size="xs"
+                    intent="gray-link" size="md"
+                    aria-label={t("Subtitle style", "Untertitel-Stil")}
                     onClick={() => {
                         setMenuOpen("settings")
                         React.startTransition(() => {
@@ -137,10 +144,10 @@ export function VideoCoreSubtitleMenu({ inline, onPreferenceChange }: {
                         ...subtitleTracks.map(track => {
                             // MKV subtitle tracks
                             return {
-                                label: `${track.label || track.language?.toUpperCase() || track.languageIETF?.toUpperCase()}`,
+                                label: track.label || languageName(track.language || track.languageIETF, t) || t(`Track ${track.number}`, `Spur ${track.number}`),
                                 value: track.number,
                                 moreInfo: track.language && track.language !== track.label
-                                    ? `${track.language.toUpperCase()}${track.codecID ? "/" + getSubtitleTrackType(track.codecID) : ``}`
+                                    ? `${languageName(track.language, t)}${track.codecID ? " · " + getSubtitleTrackType(track.codecID) : ``}`
                                     : undefined,
                             }
                         }),
@@ -153,10 +160,16 @@ export function VideoCoreSubtitleMenu({ inline, onPreferenceChange }: {
                         }),
                     ]}
                     onValueChange={(value: number) => {
+                        // Says which subtitles show now over the picture (the pill fades in, video-core-phone-settings.css)
+                        const chosen = value === -1 ? t("Off", "Aus") : activeTracks.find(track => track.number === value)
+                        const label = typeof chosen === "string" ? chosen
+                            : chosen && (chosen.label || languageName(chosen.language, t) || t(`Track ${chosen.number}`, `Spur ${chosen.number}`))
+                        if (label) showOverlayFeedback({ message: `${t("Subtitles", "Untertitel")}: ${label}`, duration: 1400 })
                         if (value === -1) {
                             activeManager?.setNoTrack()
                             setSelectedTrack(null)
                             onPreferenceChange?.(null)
+                            rememberAnimeTrack(state.playbackInfo?.media?.id, "subtitle", "none")
                             return
                         }
                         if (subtitleManager) {
@@ -167,6 +180,7 @@ export function VideoCoreSubtitleMenu({ inline, onPreferenceChange }: {
                         }
                         const track = activeTracks.find(track => track.number === value)
                         if (track) {
+                            rememberAnimeTrack(state.playbackInfo?.media?.id, "subtitle", track.language)
                             onPreferenceChange?.({
                                 language: track.language,
                                 label: track.label,
@@ -188,6 +202,9 @@ function getSubtitleTrackType(codecID: string) {
             return "SSA"
         case "S_TEXT/UTF8":
             return "TEXT"
+        case "S_TEXT/WEBVTT":
+        case "D_WEBVTT/SUBTITLES":
+            return "VTT"
         case "S_HDMV/PGS":
             return "PGS"
     }

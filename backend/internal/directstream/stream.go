@@ -83,6 +83,10 @@ func (m *Manager) getStreamHandler() http.Handler {
 			return
 		}
 
+		if patches := trackPatches(r, playbackInfo); patches != nil {
+			w = &patchWriter{ResponseWriter: w, patches: patches}
+		}
+
 		stream.GetStreamHandler().ServeHTTP(w, r)
 	})
 }

@@ -133,11 +133,11 @@ object PopupWebViewSheet {
                     external.selector = null
                     activity.startActivity(external)
                 } catch (_: ActivityNotFoundException) {
-                    Toast.makeText(activity, "No installed app can open this link", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, AppLanguage.tr("No installed app can open this link", "Keine installierte App kann diesen Link öffnen"), Toast.LENGTH_SHORT).show()
                 } catch (_: SecurityException) {
-                    Toast.makeText(activity, "Android blocked opening this link", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, AppLanguage.tr("Android blocked opening this link", "Android hat das Öffnen dieses Links blockiert"), Toast.LENGTH_SHORT).show()
                 } catch (_: java.net.URISyntaxException) {
-                    Toast.makeText(activity, "This link is invalid", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, AppLanguage.tr("This link is invalid", "Dieser Link ist ungültig"), Toast.LENGTH_SHORT).show()
                 }
                 return true
             }
@@ -152,6 +152,12 @@ object PopupWebViewSheet {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 progress.visibility = View.GONE
+            }
+
+            // All WebViews of the app share one renderer; returning false would take the whole app down with it.
+            override fun onRenderProcessGone(view: WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
+                dialog.dismiss()
+                return true
             }
         }
         popupWebView.webChromeClient = object : WebChromeClient() {

@@ -26,6 +26,7 @@ import { atom } from "jotai"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import mousetrap from "mousetrap"
+import { resolveReadingMode } from "@/app/(main)/manga/_lib/reader-mode"
 import React from "react"
 
 const __manga_readerLoadedPagesAtom = atom<number[]>([])
@@ -247,10 +248,26 @@ export function useHandleChapterPagination(mId: Nullish<string | number>, chapte
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+/**
+ * The reading mode the reader lays out: the chosen one, or for "auto" (tablet option) double page in wide landscape
+ * and single page otherwise. Follows rotation and split-screen resizing.
+ */
+export function useEffectiveReadingMode() {
+    const readingMode = useAtomValue(__manga_readingModeAtom)
+    return React.useSyncExternalStore(
+        onChange => {
+            window.addEventListener("resize", onChange)
+            return () => window.removeEventListener("resize", onChange)
+        },
+        () => resolveReadingMode(readingMode, { width: window.innerWidth, height: window.innerHeight }),
+        () => readingMode,
+    )
+}
+
 export function useHydrateMangaPaginationMap(pageContainer?: Manga_PageContainer) {
     // Current chapter
     const selectedChapter = useAtomValue(__manga_selectedChapterAtom)
-    const readingMode = useAtomValue(__manga_readingModeAtom)
+    const readingMode = useEffectiveReadingMode()
 
     // Global page index
     const currentPageIndex = useAtomValue(__manga_currentPageIndexAtom)

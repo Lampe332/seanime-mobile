@@ -104,7 +104,7 @@ export function PhoneSchedule(props: PhoneScheduleProps) {
 
     return <div className="msc" data-mobile-schedule>
         <header className="msc-header">
-            <h1>{t("Calendar", "Kalender")}</h1>
+            <h1>{t("Schedule", "Sendeplan")}</h1>
             <p>{facts}</p>
         </header>
 

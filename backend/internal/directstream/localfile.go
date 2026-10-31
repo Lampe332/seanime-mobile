@@ -126,6 +126,9 @@ func (s *LocalFileStream) LoadPlaybackInfo() (ret *player.PlaybackInfo, err erro
 		}
 
 		playbackInfo.SubtitleTracks = s.loadLocalSubtitleTracks()
+		if isMp4Content(s.LoadContentType()) {
+			playbackInfo.SubtitleTracks = append(playbackInfo.SubtitleTracks, loadMp4SubtitleTracks(fr, len(playbackInfo.SubtitleTracks), s.logger)...)
+		}
 
 		// VideoCore needs server-side MKV metadata and subtitle extraction.
 		if isEbmlContent(s.LoadContentType()) {

@@ -22,3 +22,16 @@ html:has(.mobile-workspace[data-state="open"]) { overflow-y: hidden !important; 
 .mobile-workspace .mobile-workspace-body::-webkit-scrollbar { display: none; }
 .mobile-workspace .mobile-workspace-back { width: 48px; height: 48px; border-radius: 999px; background: transparent; }
 .mobile-workspace .mobile-workspace-footer { padding: .75rem 1rem max(1rem, env(safe-area-inset-bottom)); border-top: 0; background: var(--sm-surface); }
+/* Opening: the workspace rises like the phone sheets (a side sheet on a wide tablet comes in from the right edge), its scrim
+   fades; closing stays immediate. Keyframes on the open state only, so re-renders with the keyboard never replay it. */
+.UI-Modal__content.mobile-workspace[data-state="open"] { animation: ws-rise 240ms cubic-bezier(.32, .72, 0, 1) !important; }
+.mobile-workspace-overlay[data-state="open"] { animation: ws-fade 200ms ease-out; }
+@keyframes ws-rise { from { opacity: 0; transform: translateY(2rem); } }
+@keyframes ws-side { from { opacity: 0; transform: translateX(2rem); } }
+@keyframes ws-fade { from { opacity: 0; } }
+@media (min-width: 1000px) {
+    html[data-layout="tablet"] .UI-Modal__content.mobile-workspace:not(:has(.mobile-plugin-runtime))[data-state="open"] { animation-name: ws-side !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .UI-Modal__content.mobile-workspace[data-state="open"] { animation-name: ws-fade !important; }
+}

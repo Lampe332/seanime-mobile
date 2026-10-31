@@ -39,6 +39,9 @@ type TrackInfo struct {
 	Video *VideoTrack `json:"video,omitempty"`
 	// Audio specific
 	Audio *AudioTrack `json:"audio,omitempty"`
+	// File offsets of the one-byte TrackType value and the CodecID string, 0 when unknown
+	TypeOffset    int64 `json:"-"`
+	CodecIDOffset int64 `json:"-"`
 	// Internal fields
 	contentEncodings *ContentEncodings `json:"-"`
 	defaultDuration  uint64            `json:"-"` // in ns
@@ -70,6 +73,8 @@ type AttachmentInfo struct {
 type CueInfo struct {
 	Time     uint64 // Time in nanoseconds
 	Position uint64 // Absolute byte position of the cluster
+	Track    uint8  // Track number the cue points at
+	Duration uint64 // Block duration in nanoseconds (subtitle cues), 0 if unknown
 }
 
 // Metadata holds all extracted metadata.

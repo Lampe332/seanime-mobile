@@ -42,6 +42,13 @@
 .mobile-update-release > div { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; max-height: none; overflow: visible; }
 .mobile-update-release h5 { color: #e9e7f0; font-size: .875rem; margin-bottom: 10px; }
 .mobile-update-release p { font-size: .875rem; line-height: 1.65; color: #bfbaca; }
+/* Up to date: a single line in the menu instead of the panel */
+.mobile-update--compact { display: flex; align-items: center; gap: 10px; padding: 2px 4px 2px 16px; }
+.mobile-update--compact > span:not(.mobile-update__spinner) { flex: 1; min-width: 0; color: #b5b0c4; font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.mobile-update--compact > svg, .mobile-update--compact > .mobile-update__spinner { width: 16px; height: 16px; flex: 0 0 16px; margin: 0; color: var(--update-accent); }
+.mobile-update--compact[data-update-tone=error] > svg { color: #fda4af; }
+.mobile-update__check { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--update-accent); }
+.mobile-update__check:active { background: rgba(139,92,246,.12); }
 @keyframes mobile-update-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .mobile-update *, .mobile-update-dialog, .mobile-update-overlay { animation: none !important; transition: none !important; } }
 @media (max-width: 360px) { .mobile-update { padding: 12px; } .mobile-update-dialog.UI-Modal__content { padding: 16px !important; } }

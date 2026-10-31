@@ -1,6 +1,7 @@
 import { __home_settingsModalOpen } from "@/app/(main)/_features/home/home-settings-modal"
 import { Button, IconButton } from "@/components/ui/button"
 import { useTr } from "@/lib/app-language"
+import { TabletLabel } from "@/lib/tablet-ui"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
@@ -24,7 +25,7 @@ export function HomeSettingsButton(props: HomeSettingsButtonProps) {
 
 
     if (props.icon) return <button type="button" data-library-toolbar-switch-view-button className="home-header-action" aria-label={tr("Customize", "Anpassen")}
-        onClick={() => setIsModalOpen(true)}><LuSettings2 aria-hidden /></button>
+        onClick={() => setIsModalOpen(true)}><LuSettings2 aria-hidden /><TabletLabel>{tr("Customize", "Anpassen")}</TabletLabel></button>
 
     if (props.labeled) return <Button data-library-toolbar-switch-view-button className="home-labeled-action" leftIcon={<LuSettings2 aria-hidden />} onClick={() => setIsModalOpen(true)}>{tr("Customize", "Anpassen")}</Button>
 

@@ -1,6 +1,7 @@
 import { ContentGate } from "@/app/(main)/_features/content-gate/content-gate"
 import { MainLayout } from "@/app/(main)/_features/layout/main-layout"
 import { TopNavbar } from "@/app/(main)/_features/layout/top-navbar"
+import { PullToRefresh } from "@/app/(main)/_features/layout/pull-to-refresh"
 import { TourOverlay } from "@/app/(main)/_features/tour/tour-overlay"
 import { ServerDataWrapper } from "@/app/(main)/server-data-wrapper"
 import { AppErrorBoundary } from "@/components/shared/app-error-boundary"
@@ -25,6 +26,7 @@ function Layout() {
             <MainLayout>
                 <div data-main-layout-container className="h-auto">
                     <TopNavbar />
+                    <PullToRefresh />
                     <div data-main-layout-content>
                         <ErrorBoundary FallbackComponent={AppErrorBoundary}>
                             <ContentGate>

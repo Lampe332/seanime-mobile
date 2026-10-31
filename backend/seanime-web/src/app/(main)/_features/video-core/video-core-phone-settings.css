@@ -13,6 +13,15 @@
     backdrop-filter: none;
 }
 
+/* The menu opens out of the button that was tapped (Radix gives the button's corner as the origin) and fades from
+   nothing instead of the popover's half-visible start; closing is quicker and only settles back a little. */
+.UI-Popover__root.vc-phone-settings[data-state] {
+    transform-origin: var(--radix-popover-content-transform-origin);
+    --tw-enter-opacity: 0; --tw-enter-scale: .94; --tw-exit-scale: .97;
+    animation-duration: 200ms; animation-timing-function: cubic-bezier(.23, 1, .32, 1);
+}
+.UI-Popover__root.vc-phone-settings[data-state="closed"] { animation-duration: 140ms; }
+
 @media (orientation: landscape) {
     .UI-Popover__root.vc-phone-settings { width: min(50rem, calc(100vw - 16px)); }
     .vc-phone-settings .vc-phone-groups { grid-template-columns: repeat(auto-fit, minmax(14.5rem, 1fr)); align-items: start; }
@@ -151,6 +160,18 @@
         padding-bottom: max(.75rem, env(safe-area-inset-bottom));
         border-radius: var(--sm-radius-lg) var(--sm-radius-lg) 0 0;
     }
+    /* Docked to the bottom edge it rises like the app's other bottom sheets, wherever the button is. */
+    .UI-Popover__root.vc-phone-settings[data-state] {
+        transform-origin: 50% 100%;
+        --tw-enter-scale: 1; --tw-exit-scale: 1; --tw-enter-translate-y: 2rem; --tw-exit-translate-y: 1.5rem;
+        animation-duration: 240ms; animation-timing-function: cubic-bezier(.32, .72, 0, 1);
+    }
+    .UI-Popover__root.vc-phone-settings[data-state="closed"] { animation-duration: 160ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .UI-Popover__root.vc-phone-settings[data-state] { --tw-enter-scale: 1; --tw-exit-scale: 1; --tw-enter-translate-x: 0; --tw-enter-translate-y: 0; --tw-exit-translate-y: 0; }
+    .vc-phone-skip { animation: none; }
 }
 /* Text setting pages: one 48 dp field, Cancel and Apply side by side. 16 px text keeps the WebView from zooming in. */
 .vc-phone-settings .vc-phone-input {
@@ -183,7 +204,11 @@
 }
 
 /* Phone skip opening / ending: solid and always at the bottom right, clear of the centre play button. */
-.vc-phone-skip { position: absolute; right: .75rem; bottom: 3.5rem; z-index: 60; }
+/* Sits just above the bottom bar (its sizes come from media-core-controls.css). */
+.vc-phone-skip { position: absolute; right: var(--vc-pad-r, .75rem); bottom: calc(var(--vc-pad-b, 0px) + var(--vc-pad-safe-b, 0px) + var(--vc-scrub, 2rem) + var(--vc-btn, 2.5rem) + .75rem); z-index: 60;
+    animation: vc-phone-skip-in 260ms cubic-bezier(.23, 1, .32, 1); }
+/* Skip and the next-episode countdown slide in from the right edge they sit at. */
+@keyframes vc-phone-skip-in { from { opacity: 0; transform: translateX(1rem); } }
 .vc-phone-skip button {
     display: inline-flex;
     align-items: center;
@@ -202,3 +227,15 @@
 .vc-phone-skip button:active { transform: scale(.97); background: #fff; }
 .vc-phone-skip button:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 2px; }
 .vc-phone-skip svg { width: 1.125rem; height: 1.125rem; }
+/* Auto-next countdown: the time on a dark pill, then Cancel (quiet) and Play now (the skip style). */
+.vc-phone-next { display: grid; justify-items: end; gap: .5rem; }
+.vc-phone-next p { margin: 0; padding: .5rem .875rem; border-radius: 999px; background: rgb(0 0 0 / .66); color: #fff; font-size: .875rem; font-weight: 600; }
+.vc-phone-next div { display: flex; gap: .5rem; }
+.vc-phone-next button:first-child { background: rgb(28 28 32 / .9); color: #fff; padding: 0 1.125rem; }
+.vc-phone-next button:first-child:active { background: rgb(44 44 50); }
+
+/* The player's short messages (subtitle or audio track chosen, speed, chapter) drop in at the top instead of popping up;
+   a new message while one shows only swaps the words. */
+[data-vc-overlay-display] { animation: vc-feedback-in 180ms cubic-bezier(.23, 1, .32, 1); }
+@keyframes vc-feedback-in { from { opacity: 0; transform: translateY(-.375rem) scale(.96); } }
+@media (prefers-reduced-motion: reduce) { [data-vc-overlay-display] { animation-name: m-fade; } }

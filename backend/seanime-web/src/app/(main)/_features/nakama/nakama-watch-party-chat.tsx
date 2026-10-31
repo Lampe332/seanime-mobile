@@ -1,8 +1,10 @@
 import { useNakamaSendChatMessage } from "@/api/hooks/nakama.hooks"
+import { PhoneSheet } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { TextInput } from "@/components/ui/text-input"
+import { tr, useTr } from "@/lib/app-language"
 import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
@@ -11,6 +13,8 @@ import { BiChevronDown, BiChevronUp } from "react-icons/bi"
 import { HiOutlineChatBubbleLeftRight } from "react-icons/hi2"
 import { IoSend } from "react-icons/io5"
 import { useNakamaWatchParty } from "./nakama-manager"
+import { useWideScreen } from "./use-wide-screen"
+import "./nakama-phone.css"
 
 type ChatMessage = {
     peerId: string
@@ -62,6 +66,9 @@ export function NakamaWatchPartyChat() {
     const chatContainerRef = React.useRef<HTMLDivElement>(null)
     const inputRef = React.useRef<HTMLInputElement>(null)
 
+    const t = useTr()
+    const wide = useWideScreen()
+
     const { mutate: sendChatMessage, isPending: isSending } = useNakamaSendChatMessage()
 
     // Auto-scroll to bottom when new messages arrive
@@ -75,7 +82,8 @@ export function NakamaWatchPartyChat() {
     React.useEffect(() => {
         if (!minimized) {
             setUnreadCount(0)
-            inputRef.current?.focus()
+            // No keyboard popping up by itself on phones and tablets
+            if (wide) inputRef.current?.focus()
         }
     }, [minimized])
 
@@ -106,10 +114,50 @@ export function NakamaWatchPartyChat() {
     // Don't show chat if there's no session or user is not a participant
     if (!watchPartySession || !isParticipant) return null
 
+    if (!wide) {
+        return <>
+            <button type="button" className="nakama-chat-fab" onClick={() => setMinimized(false)} data-nakama-chat-open
+                aria-label={unreadCount > 0 ? t(`Open watch party chat, ${unreadCount} new`, `Watch-Party-Chat öffnen, ${unreadCount} neu`) : t("Open watch party chat", "Watch-Party-Chat öffnen")}>
+                <HiOutlineChatBubbleLeftRight aria-hidden />
+                <span aria-hidden>Chat</span>
+                {unreadCount > 0 && <span className="nakama-chat-unread" aria-hidden data-nakama-chat-unread>{unreadCount > 9 ? "9+" : unreadCount}</span>}
+            </button>
+            <PhoneSheet title={t("Watch party chat", "Watch-Party-Chat")} open={!minimized} onOpenChange={(open) => setMinimized(!open)} data-nakama-chat-sheet>
+                <div className="nk-chat">
+                    <div className="nk-chat-messages" ref={chatContainerRef} aria-live="polite">
+                        {messages.length === 0
+                            ? <p className="nk-chat-empty">{t("No messages yet. Say hi to the others watching.", "Noch keine Nachrichten. Sag den anderen Hallo.")}</p>
+                            : messages.map(msg => {
+                                const own = msg.peerId === currentUserPeerId
+                                return <div key={msg.messageId} className="nk-msg" data-own={own}>
+                                    <div className="nk-msg-head">
+                                        <b>{own ? t("Me", "Ich") : msg.username}{msg.peerId === "host" && !own ? " (Host)" : ""}</b>
+                                        <time dateTime={msg.timestamp}>{new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>
+                                    </div>
+                                    <p>{msg.message}</p>
+                                </div>
+                            })}
+                        <div ref={messagesEndRef} />
+                    </div>
+                    <form className="nk-chat-form" onSubmit={event => {
+                        event.preventDefault()
+                        handleSendMessage()
+                    }}>
+                        <input ref={inputRef} value={inputValue} onChange={event => setInputValue(event.target.value)} disabled={isSending} autoComplete="off" enterKeyHint="send"
+                            placeholder={t("Type a message…", "Nachricht schreiben …")} aria-label={t("Message", "Nachricht")} data-nakama-chat-input />
+                        <button type="submit" className="ps-primary" disabled={!inputValue.trim() || isSending} aria-label={t("Send", "Senden")} data-nakama-chat-send>
+                            <IoSend aria-hidden />
+                        </button>
+                    </form>
+                </div>
+            </PhoneSheet>
+        </>
+    }
+
     return (
         <div
             className={cn(
-                "fixed bottom-4 left-20 z-[40] hidden lg:flex flex-col bg-gray-900 border rounded-xl shadow-2xl transition-all duration-300",
+                "nakama-chat fixed bottom-4 left-20 z-[40] hidden lg:flex flex-col bg-gray-900 border rounded-xl shadow-2xl transition-all duration-300",
                 minimized ? "w-64 h-14" : "w-[400px] h-[500px]",
             )}
         >
@@ -122,7 +170,7 @@ export function NakamaWatchPartyChat() {
             >
                 <div className="flex items-center gap-2">
                     <HiOutlineChatBubbleLeftRight className="text-xl text-white" />
-                    <span className="font-semibold text-sm">Watch Party Chat</span>
+                    <span className="font-semibold text-sm">{tr("Watch party chat", "Watch-Party-Chat")}</span>
                     {minimized && unreadCount > 0 && (
                         <span className="bg-red-500 text-white text-xs font-bold w-5 flex justify-center items-center rounded-full animate-bounce shadow-lg">
                             {unreadCount > 9 ? "9+" : unreadCount}
@@ -170,6 +218,7 @@ function ChatContent(props: {
     inputRef: React.RefObject<HTMLInputElement | null>
     handleSendMessage: () => void
 }) {
+    const t = useTr()
     const {
         messages,
         currentUserPeerId,
@@ -197,7 +246,7 @@ function ChatContent(props: {
             >
                 {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-[--muted] text-sm">
-                        No messages yet
+                        {t("No messages yet", "Noch keine Nachrichten")}
                     </div>
                 ) : (
                     messages.map((msg) => {
@@ -217,7 +266,7 @@ function ChatContent(props: {
                                             "text-white",
                                         )}
                                     >
-                                        {isOwnMessage ? "Me" : msg.username}{isHostMessage(msg) && " (Host)"}:{" "}
+                                        {isOwnMessage ? t("Me", "Ich") : msg.username}{isHostMessage(msg) && ` (${t("Host", "Host")})`}:{" "}
                                     </span>
                                     <span className="text-xs text-[--muted]">
                                         {new Date(msg.timestamp).toLocaleTimeString([], {
@@ -240,7 +289,7 @@ function ChatContent(props: {
                         value={inputValue}
                         onValueChange={setInputValue}
                         onKeyDown={handleKeyPress}
-                        placeholder="Type a message..."
+                        placeholder={t("Type a message…", "Nachricht schreiben …")}
                         disabled={isSending}
                         className="flex-1 h-10"
                         size="sm"
@@ -254,6 +303,7 @@ function ChatContent(props: {
                         disabled={!inputValue.trim() || isSending}
                         intent="primary"
                         size="sm"
+                        aria-label={t("Send", "Senden")}
                     />
                 </div>
             </div>

@@ -24,12 +24,14 @@ import { ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuTrigger
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Modal } from "@/components/ui/modal"
 import { Translate, useTr } from "@/lib/app-language"
+import { TabletLabel } from "@/lib/tablet-ui"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import React from "react"
+import { useSwap } from "@/lib/motion"
 import { LuBookOpen, LuCheck, LuChevronDown, LuEllipsisVertical, LuEye, LuRefreshCcw, LuSearch, LuSlidersHorizontal } from "react-icons/lu"
 import "@/components/shared/mobile-surface.css"
 import "./manga-library-phone.css"
@@ -78,6 +80,8 @@ export function MangaLibraryPhone(props: MangaLibraryPhoneProps) {
 
     const tabs = React.useMemo(() => getMangaStatusTabs(rawLists, lists), [rawLists, lists])
     const status = pickMangaStatus(storedStatus, tabs)
+    const panelRef = React.useRef<HTMLDivElement>(null)
+    useSwap(panelRef, status)
     const entries = React.useMemo(() => lists?.find(list => list.type === status)?.entries ?? [], [lists, status])
     const rawReading = React.useMemo(() => rawLists?.find(list => list.type === "CURRENT")?.entries, [rawLists])
     const unreadOf = React.useCallback((entry: Manga_CollectionEntry) => getMangaEntryUnreadState(entry.mediaId, entry.listData?.progress || 0,
@@ -165,16 +169,16 @@ export function MangaLibraryPhone(props: MangaLibraryPhoneProps) {
             </div>
             <div className="mml-actions">
                 <SeaLink href="/search?type=manga" className="mml-icon-button" aria-label={t("Search manga on AniList", "Manga auf AniList suchen")}>
-                    <LuSearch aria-hidden />
+                    <LuSearch aria-hidden /><TabletLabel>{t("Search", "Suche")}</TabletLabel>
                 </SeaLink>
                 <button ref={refreshButtonRef} type="button" className="mml-icon-button" onClick={() => setRefreshOpen(true)} data-manga-source-refresh
                     aria-label={refreshRunning ? t("Source refresh running", "Quellen werden aktualisiert") : t("Refresh manga sources", "Manga-Quellen aktualisieren")}>
-                    <LuRefreshCcw aria-hidden />
+                    <LuRefreshCcw aria-hidden /><TabletLabel>{t("Sources", "Quellen")}</TabletLabel>
                     {refreshRunning && <span className="mml-dot" aria-hidden />}
                 </button>
                 <button ref={filterButtonRef} type="button" className="mml-icon-button" onClick={() => setFiltersOpen(true)} data-manga-filter-button
                     aria-label={activeFilters ? `${t("Filter and sort", "Filtern und sortieren")}, ${activeFilters} ${t("active", "aktiv")}` : t("Filter and sort", "Filtern und sortieren")}>
-                    <LuSlidersHorizontal aria-hidden />
+                    <LuSlidersHorizontal aria-hidden /><TabletLabel>{t("Filter", "Filter")}</TabletLabel>
                     {activeFilters > 0 && <span className="mml-dot" aria-hidden />}
                 </button>
                 {pluginItems.length > 0 && <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen} className="mml-menu" trigger={
@@ -222,7 +226,7 @@ export function MangaLibraryPhone(props: MangaLibraryPhoneProps) {
                                     {t(tab.en, tab.de)}<span>{tab.count}</span>
                                 </button>)}
                             </div>
-                            <div id="mml-grid" role="tabpanel" aria-label={selectedTab ? t(selectedTab.en, selectedTab.de) : undefined}>
+                            <div ref={panelRef} id="mml-grid" role="tabpanel" aria-label={selectedTab ? t(selectedTab.en, selectedTab.de) : undefined}>
                                 {entries.length > 0 ? <div className="mml-grid" data-manga-grid={status}>
                                         {entries.map(entry => {
                                             const state = unreadOf(entry)

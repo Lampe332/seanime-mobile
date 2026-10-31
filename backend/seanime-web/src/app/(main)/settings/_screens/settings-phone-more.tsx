@@ -80,7 +80,7 @@ export function SettingsMangaSection({ t }: { t: Translate }) {
             }} />
 
         <SettingsGroup id="manga-local" title={t("Local manga", "Lokale Manga")}
-            note={t("For the local source: a folder with your manga on this phone.", "Für die lokale Quelle: ein Ordner mit deinen Manga auf diesem Handy.")}>
+            note={t("For the local source: a folder with your manga on this device.", "Für die lokale Quelle: ein Ordner mit deinen Manga auf diesem Gerät.")}>
             <TextSettingRow t={t} label={t("Manga folder", "Manga-Ordner")} value={localDirectory} empty={t("Not set", "Nicht gesetzt")}
                 placeholder="/storage/emulated/0/Manga" extra={setDraft => <PickFolderButton t={t} onPicked={setDraft} />}
                 onApply={value => void save("manga.mangaLocalSourceDirectory", value.trim())} data-setting="manga.mangaLocalSourceDirectory" />
@@ -110,8 +110,8 @@ export function SettingsNakamaSection({ t }: { t: Translate }) {
 
         <SettingsGroup id="nakama-host" title={t("Host", "Host")}>
             {isHost && <>
-                <PhoneNotice text={t("Host mode is on, so this phone cannot join a host. Phones cannot host.",
-                    "Der Host-Modus ist an, deshalb kann dieses Handy keinem Host beitreten. Handys können nicht hosten.")} />
+                <PhoneNotice text={t("Host mode is on, so this device cannot join a host. Phones and tablets cannot host.",
+                    "Der Host-Modus ist an, deshalb kann dieses Gerät keinem Host beitreten. Handys und Tablets können nicht hosten.")} />
                 <SettingSwitch path="nakama.isHost" label={t("Host mode", "Host-Modus")} />
             </>}
             <TextSettingRow t={t} label={t("Host address", "Host-Adresse")} value={url} empty={notSet} type="url" placeholder="https://… / room://…"
@@ -120,8 +120,8 @@ export function SettingsNakamaSection({ t }: { t: Translate }) {
             <TextSettingRow t={t} label={t("Host passcode", "Host-Passwort")} value={passcode} empty={notSet} type="password" display={() => "••••••"}
                 onApply={value => void save("nakama.remoteServerPassword", value)} data-setting="nakama.remoteServerPassword" />
             <SettingSwitch path="nakama.includeNakamaAnimeLibrary" disabled={isHost} label={t("Use the host's anime library", "Anime-Bibliothek des Hosts nutzen")}
-                note={t("When the host shares it, its anime join your library. Episodes on this phone stay.",
-                    "Wenn der Host sie teilt, kommen seine Anime zu deiner Bibliothek dazu. Folgen auf diesem Handy bleiben.")} />
+                note={t("When the host shares it, its anime join your library. Episodes on this device stay.",
+                    "Wenn der Host sie teilt, kommen seine Anime zu deiner Bibliothek dazu. Folgen auf diesem Gerät bleiben.")} />
             {enabled && !!url && !isHost && <NakamaConnectionRow t={t} />}
         </SettingsGroup>
     </>

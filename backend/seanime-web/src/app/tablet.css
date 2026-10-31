@@ -10,6 +10,9 @@
 
 html[data-layout="tablet"] { --tablet-rail: 5.5rem; --tablet-gutter: 1.5rem; }
 
+/* TabletLabel's word beside an icon (lib/tablet-ui.ts): hidden in a window too narrow for the rail, shown from 600px below */
+html[data-layout="tablet"] .tablet-label { display: none; }
+
 /* ── Ground: one brand tint easing out from the top of the screen, the same on every screen and behind the rail.
    It eases in ten stops (no kinks to see), and a faint grain dithers it so it shows no 8-bit steps. ── */
 html[data-layout="tablet"] body::before {
@@ -30,6 +33,8 @@ html[data-layout="tablet"] :is([data-top-navbar], [data-home-mobile="true"], [da
 html[data-layout="tablet"] body:has(.UI-Modal__overlay[data-state="open"]) #__seanime_bottom_nav { z-index: 40; }
 /* No dialog is wider than a sheet (the native shell sets them to the full width) */
 html[data-layout="tablet"] body .UI-Modal__content:not(.mobile-workspace) { max-width: min(32rem, calc(100vw - 2rem)) !important; }
+/* The watch party chat floats beside the rail, not under it */
+html[data-layout="tablet"] .nakama-chat { left: calc(var(--tablet-rail) + 1rem); max-width: calc(100vw - var(--tablet-rail) - 2rem); }
 
 @media (min-width: 600px) {
     /* ── Shell: the phone's bottom bar (UIBottomNav.kt) becomes a navigation rail on the left ── */
@@ -90,6 +95,32 @@ html[data-layout="tablet"] body .UI-Modal__content:not(.mobile-workspace) { max-
         inset: auto 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem) calc(var(--tablet-rail) + 1rem) !important;
     }
 
+    /* ── Icon actions with a TabletLabel (Home, My lists, Search, the anime page): the icon and its word as one pill ── */
+    html[data-layout="tablet"] .tablet-label { display: inline; font-size: .875rem; font-weight: 600; line-height: 1.25; white-space: nowrap; }
+    html[data-layout="tablet"] :is(button, a):has(.tablet-label) {
+        display: inline-flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: center; justify-content: center; gap: .5rem;
+        width: auto !important; min-width: 48px; height: 48px !important; padding-inline: .875rem 1.125rem !important; border-radius: 999px !important;
+    }
+    /* IconButton wraps its icon (here the icon and the word) in a block span: lay that span out as the row, too */
+    html[data-layout="tablet"] :is(button, a):has(.tablet-label) > span:has(> .tablet-label) { display: inline-flex; flex-direction: row; align-items: center; gap: .5rem; }
+    /* A pill's dot (an active filter) marks its icon, not the end of its word */
+    html[data-layout="tablet"] :is(button, a):has(.tablet-label) > :is(.ps-dot, .mml-dot) { top: 10px; right: auto; left: calc(.875rem + 15px); }
+    /* The anime and manga pages' Edit and More were round icon buttons (fixed 52px/48px circles): as pills they keep icon and word on
+       one line at the 48px of the round buttons and the "Shared by" chip beside them; More takes its row's surface, Edit the
+       progress block's */
+    html[data-layout="tablet"] :is(.mobile-anime-progress [data-anilist-media-entry-modal-edit-button], [data-anime-entry-dropdown-menu-trigger], [data-manga-entry-dropdown-menu-trigger]) {
+        min-width: 0 !important; height: 48px !important; padding-inline: .875rem 1.125rem !important;
+        background: var(--sm-surface-control) !important; border: 0 !important; color: var(--sm-text) !important; box-shadow: none !important;
+    }
+    html[data-layout="tablet"] [data-anime-meta-section-buttons-row] [data-anime-entry-dropdown-menu-trigger] { background: var(--sm-surface-raised) !important; }
+    html[data-layout="tablet"] [data-manga-meta-section-buttons-row] [data-manga-entry-dropdown-menu-trigger] { background: var(--sm-surface-raised) !important; }
+    html[data-layout="tablet"] :is(.mobile-anime-progress [data-anilist-media-entry-modal-edit-button], [data-anime-entry-dropdown-menu-trigger], [data-manga-entry-dropdown-menu-trigger]) svg {
+        flex: none; width: 1.125rem; height: 1.125rem;
+    }
+    html[data-layout="tablet"] :is(.mobile-anime-progress [data-anilist-media-entry-modal-edit-button], [data-anime-entry-dropdown-menu-trigger], [data-manga-entry-dropdown-menu-trigger]):active {
+        background: var(--sm-accent-soft) !important;
+    }
+
     /* ── Controls: a segmented control is as wide as its options, not the whole tablet ── */
     html[data-layout="tablet"] :is(.ps-segment, .msc-tabs, .mdl-tabs) { width: min(100%, 26rem); justify-self: start; }
     html[data-layout="tablet"] .pl-switch > .ps-segment { flex: 0 1 26rem; }
@@ -148,6 +179,11 @@ html[data-layout="tablet"] .pst-pane-title { font-size: 1.375rem; line-height: 1
     html[data-layout="tablet"] [data-home-mobile="true"] .home-stats dl > div:last-child { grid-column: auto; }
     html[data-layout="tablet"] .msc-section { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--tablet-gutter); align-items: start; }
     html[data-layout="tablet"] .msc-section > :not([data-schedule-day]) { grid-column: 1 / -1; }
+    /* The phone column (42rem) would squeeze the day columns; the tablet uses its width */
+    html[data-layout="tablet"] [data-mobile-schedule-page="true"] { max-width: 72rem; }
+}
+@media (min-width: 1100px) {
+    html[data-layout="tablet"] .msc-section { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (min-width: 1000px) {
@@ -194,6 +230,12 @@ html[data-layout="tablet"] .pst-pane-title { font-size: 1.375rem; line-height: 1
         width: min(30rem, 100%) !important; max-width: 30rem !important; height: 100dvh; max-height: 100dvh !important; overflow-y: auto !important;
         padding-top: calc(env(safe-area-inset-top, 0px) + 1.5rem) !important; border-radius: var(--sm-radius-lg) 0 0 var(--sm-radius-lg);
         --tw-enter-scale: 1; --tw-exit-scale: 1; --tw-enter-translate-x: 2rem; --tw-exit-translate-x: 2rem;
+        --tw-enter-translate-y: 0; --tw-exit-translate-y: 0;
+        animation-duration: 260ms; animation-timing-function: cubic-bezier(.32, .72, 0, 1);
+    }
+    html[data-layout="tablet"] body :is(.ps-sheet, .mex-sheet, .mml-sheet, .msc-sheet, .mobile-download-sheet, .mobile-match-sheet, .mobile-cache-sheet, .home-filter-sheet,
+        .home-mobile-settings, .reader-settings-sheet, .anilist-login-sheet).UI-Modal__content[data-state="closed"] {
+        animation-duration: 170ms; animation-timing-function: cubic-bezier(.23, 1, .32, 1);
     }
 }
 

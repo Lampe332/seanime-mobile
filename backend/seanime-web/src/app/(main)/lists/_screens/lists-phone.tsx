@@ -53,6 +53,7 @@ import { getMangaEntryUnreadState } from "@/app/(main)/manga/_lib/manga-unread"
 import { SeaLink } from "@/components/shared/sea-link"
 import { ContextMenuItem } from "@/components/ui/context-menu"
 import { Translate, useTr } from "@/lib/app-language"
+import { TabletLabel } from "@/lib/tablet-ui"
 import { useRouter } from "@/lib/navigation"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useQueryClient } from "@tanstack/react-query"
@@ -60,6 +61,7 @@ import { atom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import React from "react"
+import { useSwap } from "@/lib/motion"
 import { LuArrowUp, LuChartColumn, LuListPlus, LuPlay, LuRefreshCcw, LuSlidersHorizontal } from "react-icons/lu"
 import { toast } from "sonner"
 import "./lists-phone.css"
@@ -110,10 +112,12 @@ export function ListsPhone() {
     const refreshButton = <PhoneIconButton label={refreshing ? t("Refreshing AniList", "AniList wird aktualisiert") : t("Refresh AniList", "AniList aktualisieren")}
         aria-busy={refreshing} onClick={() => { if (!refreshing) refresh() }} data-lists-refresh>
         <LuRefreshCcw aria-hidden className={refreshing ? "ps-spin" : undefined} />
+        <TabletLabel>{t("Refresh", "Aktualisieren")}</TabletLabel>
     </PhoneIconButton>
     const statsButton = canStats ? <PhoneIconButton label={t("Stats", "Statistik")} aria-pressed={stats} onClick={() => setStatsOpen(open => !open)}
         data-lists-stats-button>
         <LuChartColumn aria-hidden />
+        <TabletLabel>{t("Stats", "Statistik")}</TabletLabel>
     </PhoneIconButton> : null
     // With Manga on, the stats switch sits next to Anime | Manga, whose choice it shows; without, it joins the header actions.
     const typeSwitch = enableManga ? <div className="pl-switch">
@@ -202,6 +206,7 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
     const [storedStatus, setStoredStatus] = useAtom(statusAtoms[type])
     const [sheetOpen, setSheetOpen] = React.useState(false)
     const filterButtonRef = React.useRef<HTMLButtonElement>(null)
+    const panelRef = React.useRef<HTMLDivElement>(null)
     const controlsRef = React.useRef<HTMLDivElement>(null)
     const searchRef = React.useRef<HTMLInputElement>(null)
     const sort = validSorting(storedSort)
@@ -238,6 +243,8 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
         setFollow(followed)
     }
     const status = followed.status && tabs.some(tab => tab.value === followed.status) ? followed.status : remembered
+    // A new status or list type rises in (lib/motion.ts)
+    useSwap(panelRef, `${type}|${status}`)
     const selectStatus = (value: string) => {
         setStoredStatus(value)
         setFollow({ key: searchKey, status: null })
@@ -344,6 +351,7 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
             <PhoneIconButton ref={filterButtonRef} label={filterLabel} dot={activeFilters > 0} onClick={() => setSheetOpen(true)} data-lists-filter-button
                 disabled={!ready || facts.total === 0}>
                 <LuSlidersHorizontal aria-hidden />
+                <TabletLabel>{t("Filter", "Filter")}</TabletLabel>
             </PhoneIconButton>
             {statsButton}
         </PhoneHeader>
@@ -383,7 +391,7 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
                         </SeaLink>
                         <SeaLink href={type === "anime" ? "/search" : "/search?type=manga"} className="ps-secondary">{t("Search", "Suchen")}</SeaLink>
                     </PhoneEmpty>
-                    : <div id="pl-grid" role="tabpanel" aria-label={selectedTab ? t(...selectedTab.label) : undefined}>
+                    : <div ref={panelRef} id="pl-grid" role="tabpanel" aria-label={selectedTab ? t(...selectedTab.label) : undefined}>
                         {entries.length > 0
                             ? <CoverGrid key={`${status}|${sort}`} type={type} status={status} query={gridQuery} entries={entries} now={now} blurAdult={blurAdult}
                                 canStream={type === "anime" && hasStreamingEnabled} libraryOf={libraryOf} showUnwatched={type === "anime" && !!ts.showAnimeUnwatchedCount}

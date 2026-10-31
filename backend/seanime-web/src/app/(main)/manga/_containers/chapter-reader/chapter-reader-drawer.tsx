@@ -9,6 +9,7 @@ import { MangaReaderBar } from "@/app/(main)/manga/_containers/chapter-reader/ma
 import { __manga__readerSettingsDrawerOpen } from "@/app/(main)/manga/_containers/chapter-reader/chapter-reader-settings"
 import {
     useCurrentChapter,
+    useEffectiveReadingMode,
     useHandleChapterPagination,
     useSetCurrentChapter,
     useSwitchSettingsWithKeys,
@@ -29,7 +30,7 @@ import {
     MangaReadingDirection,
     MangaReadingMode,
 } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
-import { LuffyError } from "@/components/shared/luffy-error"
+import { PhoneEmpty } from "@/app/(main)/_features/phone-screen/phone-screen"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { Drawer } from "@/components/ui/drawer"
@@ -37,11 +38,15 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import mousetrap from "mousetrap"
 import React from "react"
+import { LuRefreshCw } from "react-icons/lu"
 import { TbLayoutBottombarExpandFilled } from "react-icons/tb"
 import { __manga_keepScreenOnAtom, __manga_readerBackgroundAtom, __manga_readerBrightnessAtom } from "@/app/(main)/manga/_lib/manga-chapter-reader.atoms"
 
 const READER_BACKGROUNDS = { black: "#000", gray: "#1c1c1f", white: "#f4f4f5" }
 import { toast } from "sonner"
+import { shouldForceLandscape } from "@/app/(main)/manga/_lib/reader-mode"
+import { useTr } from "@/lib/app-language"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 
 type ChapterDrawerProps = {
     entry: { media?: AL_BaseManga | undefined, mediaId: number, listData?: Manga_EntryListData }
@@ -60,6 +65,7 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
     } = props
 
     const serverStatus = useServerStatus()
+    const t = useTr()
 
     // Discord rich presence
     useDiscordMangaPresence(entry)
@@ -100,11 +106,14 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
     const setIsLastPage = useSetAtom(__manga_isLastPageAtom)
 
     const [readingMode, setReadingMode] = useAtom(__manga_readingModeAtom)
+    // "Automatic" (tablet) lays out a double page in wide landscape and a single page otherwise, without turning the device
+    const effectiveMode = useEffectiveReadingMode()
     const [settingsOpen, setSettingsOpen] = useAtom(__manga__readerSettingsDrawerOpen)
 
     React.useEffect(() => {
         const bridge = (window as any).OrientationBridge
-        bridge?.setLandscape?.(!!currentChapter && readingMode === MangaReadingMode.DOUBLE_PAGE)
+        // Phones turn to landscape for a double page; tablets never get turned
+        bridge?.setLandscape?.(!!currentChapter && shouldForceLandscape(readingMode, IS_TABLET_UI))
         return () => bridge?.setLandscape?.(false)
     }, [!!currentChapter, readingMode])
 
@@ -200,7 +209,7 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
         chapterId: currentChapter?.chapterId,
         // provider: chapterContainer.provider as Manga_Provider,
         provider: currentChapter?.provider,
-        doublePage: readingMode === MangaReadingMode.DOUBLE_PAGE,
+        doublePage: effectiveMode === MangaReadingMode.DOUBLE_PAGE,
     })
 
     /**
@@ -219,7 +228,7 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
                 !pageContainerError &&
                 (!pageContainer?.pageDimensions || Object.keys(pageContainer.pageDimensions).length === 0)
             ) {
-                toast.error("Could not get page dimensions from this provider. Switching to paged mode.")
+                toast.error(t("Could not get page dimensions from this provider. Switching to single page.", "Seitengrößen von dieser Quelle nicht verfügbar. Wechsle zu Einzelseite."))
                 setReadingMode(MangaReadingMode.PAGED)
             }
         }
@@ -489,7 +498,7 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
                     loading={isUpdatingProgress}
                     disabled={isUpdatingProgress}
                 >
-                    Update progress ({chapterIdToNumbersMap.get(currentChapter?.chapterId || "")} / {entry?.media?.chapters || "-"})
+                    {t("Update progress", "Fortschritt speichern")} ({chapterIdToNumbersMap.get(currentChapter?.chapterId || "")} / {entry?.media?.chapters || "-"})
                 </Button>
             </div>
 
@@ -531,23 +540,22 @@ export function ChapterReaderDrawer(props: ChapterDrawerProps) {
                 <MangaReaderActionDisplay />
 
                 {pageContainerError ? (
-                    <LuffyError
-                        title="Failed to load pages"
-                    >
-                        <p>An error occurred while trying to load pages for this chapter.</p>
-                        <p>Reload the page, reload sources or change the source.</p>
-
-                        <div className="mt-2">
-                            <Button intent="white" onClick={() => retryFetchPageContainer()}>
-                                Retry
-                            </Button>
-                        </div>
-                    </LuffyError>
+                    <div className="reader-error">
+                        <PhoneEmpty title={t("Pages could not be loaded", "Seiten konnten nicht geladen werden")} data-reader-error
+                            text={t("Try again, or change the source on the manga's page.", "Versuch es erneut oder wechsle auf der Seite des Manga die Quelle.")}>
+                            <button type="button" className="ps-primary" onClick={() => retryFetchPageContainer()} data-reader-retry>
+                                <LuRefreshCw aria-hidden />{t("Try again", "Erneut versuchen")}
+                            </button>
+                            <button type="button" className="ps-secondary" onClick={() => setCurrentChapter(undefined)} data-reader-error-close>
+                                {t("Close chapter", "Kapitel schließen")}
+                            </button>
+                        </PhoneEmpty>
+                    </div>
                 ) : (pageContainerLoading)
                     ? (<LoadingSpinner containerClass="h-full" />)
-                    : (readingMode === MangaReadingMode.LONG_STRIP
+                    : (effectiveMode === MangaReadingMode.LONG_STRIP
                         ? (<MangaVerticalReader pageContainer={pageContainer} initialPageIndex={shouldRestoreSavedPage ? currentResumeLocation?.pageIndex : currentPageIndex} />)
-                        : (readingMode === MangaReadingMode.PAGED || readingMode === MangaReadingMode.DOUBLE_PAGE)
+                        : (effectiveMode === MangaReadingMode.PAGED || effectiveMode === MangaReadingMode.DOUBLE_PAGE)
                             ? (<MangaHorizontalReader pageContainer={pageContainer} />) : null)}
             </div>
         </Drawer>

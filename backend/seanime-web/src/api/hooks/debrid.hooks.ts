@@ -3,6 +3,7 @@ import { DebridAddTorrents_Variables, DebridCancelStream_Variables, DebridGetTor
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { DebridClient_FilePreview, Models_DebridSettings } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
+import { tr } from "@/lib/app-language"
 import { toast } from "sonner"
 
 export function useSaveDebridSettings() {
@@ -25,7 +26,7 @@ export function useDebridAddTorrents(onSuccess: () => void) {
         mutationKey: [API_ENDPOINTS.DEBRID.DebridAddTorrents.key],
         onSuccess: async () => {
             onSuccess()
-            toast.success("Torrent added")
+            toast.success(tr("Torrent added", "Torrent hinzugefügt"))
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.DEBRID.DebridGetTorrents.key] })
         },
     })

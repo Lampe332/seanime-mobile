@@ -189,7 +189,7 @@ function getMobileTutorialSteps({ fromExtensions = false } = {}): TourStep[] {
                 <ul className="list-disc pl-4 space-y-1.5">
                     <li>{tr("Open any anime and tap ", "Öffne einen Anime und tippe auf ")}<b>Online streaming</b>{tr(" to watch.", ", um ihn zu schauen.")}</li>
                     <li><b>Download</b>{tr(" next to Subtitles / Dub saves the whole season or just the current episode to your phone.",
-                        " neben Subtitles / Dub speichert die ganze Staffel oder nur die aktuelle Folge auf dem Handy.")}</li>
+                        " neben Subtitles / Dub speichert die ganze Staffel oder nur die aktuelle Folge auf dem Gerät.")}</li>
                     <li>{tr("Saved episodes and chapters are under ", "Gespeicherte Folgen und Kapitel findest du unten unter ")}<b>Downloads</b>
                         {tr(" at the bottom, also offline.", ", auch offline.")}</li>
                     <li>{tr("Your sources are under ", "Deine Quellen stehen unter ")}<b>Extensions</b>

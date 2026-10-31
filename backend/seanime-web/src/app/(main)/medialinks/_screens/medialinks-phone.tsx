@@ -50,7 +50,7 @@ export function MedialinksPhone({ entry, loading, onPlay }: {
         </PhoneHeader>
         {loading ? <PhoneLoading label={t("Loading episodes", "Folgen werden geladen")} layout={["row", "row", "row", "row"]} />
             : !episodes.length ? <PhoneEmpty title={t("No downloaded episodes", "Keine heruntergeladenen Folgen")}
-                    text={t("Only episodes on this phone can open in an external player.", "Nur Folgen auf diesem Handy lassen sich im externen Player öffnen.")} data-medialinks-empty />
+                    text={t("Only episodes on this device can open in an external player.", "Nur Folgen auf diesem Gerät lassen sich im externen Player öffnen.")} data-medialinks-empty />
                 : groups.filter(([, , list]) => list.length).map(([key, title, list]) => <PhoneSection key={key} id={`pml-${key}`} title={title} count={list.length} data-medialinks-section={key}>
                     <div className="ps-list">
                         {list.map(episode => <EpisodeRow key={episode.localFile!.path} t={t} episode={episode} playing={episode.localFile!.path === playingPath}

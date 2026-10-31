@@ -9,12 +9,14 @@ export default function Page() {
     const searchParams = useSearchParams()
     const searchType = searchParams.get("type")
 
-    // DiscoverPhone reads ?type= on its first render and the atom afterwards
+    // DiscoverPhone reads ?type= on its first render and the atom afterwards. Only the address the page opens with sets the
+    // tab: the tabs write ?type= themselves (replace), and following those writes let a late one switch back to a tab
+    // tapped before (fast taps showed Manga, Schedule, Anime in turn).
     React.useEffect(() => {
         if (searchType) {
             setPageType(searchType as any)
         }
-    }, [searchParams])
+    }, [])
 
     return <DiscoverPhone />
 }
