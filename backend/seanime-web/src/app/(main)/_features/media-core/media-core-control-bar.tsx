@@ -173,11 +173,17 @@ const EASE_OUT = [0.23, 1, 0.32, 1] as const
 // Closed, only the round end under the speaker (about one button of the 13rem pill) is left; open, the whole pill.
 const VOLUME_PANEL_CLOSED = "inset(0% 0% 0% 79% round 999px)"
 const VOLUME_PANEL_OPEN = "inset(0% 0% 0% 0% round 999px)"
-// Phone: the frame that mounts the panel takes 40-90 ms there and the clip runs on the main thread, so up to 40 % of the
-// opening was gone before anything was drawn. It waits through that frame and opens on a gentler curve.
-const VOLUME_PANEL_OPENING = IS_TABLET_UI
-    ? { duration: 0.22, ease: EASE_OUT }
-    : { duration: 0.26, ease: [0.2, 0.6, 0.35, 1] as const, delay: 0.07 }
+const VOLUME_PANEL_OPENING = { duration: 0.22, ease: EASE_OUT }
+// Phone: the WebView there does not draw the clip, so the pill glides in out of the speaker above its right end instead,
+// on transform and opacity alone (the compositor's, no waiting for the mount frame) and the phone's gentler curve.
+const PHONE_VOLUME_PANEL = {
+    style: { transformOrigin: "right top" },
+    initial: { opacity: 0, transform: "translate(1.5rem, -6px) scale(.96)" },
+    // Not "none": Motion turns that into the start's zero (scale(0)) and the pill would vanish.
+    animate: { opacity: 1, transform: "translate(0rem, 0px) scale(1)" },
+    exit: { opacity: 0, transform: "translate(1rem, -4px) scale(.97)", pointerEvents: "none" as const, transition: { duration: 0.15, ease: EASE_OUT } },
+    transition: { duration: 0.24, ease: [0.2, 0.6, 0.35, 1] as const },
+}
 
 export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
     const { volume, muted, onVolumeChange, onMuteToggle, panelOpen, onPanelOpenChange } = props
@@ -282,6 +288,7 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
                         ? { opacity: 0, pointerEvents: "none", transition: { duration: 0.12 } }
                         : { opacity: 0, clipPath: VOLUME_PANEL_CLOSED, transform: "translateY(-4px)", pointerEvents: "none", transition: { duration: 0.15, ease: EASE_OUT } }}
                     transition={VOLUME_PANEL_OPENING}
+                    {...(!IS_TABLET_UI && !reduceMotion && PHONE_VOLUME_PANEL)}
                     onClick={e => e.stopPropagation()}
                     onPointerDown={e => e.stopPropagation()}
                 >

@@ -1,7 +1,10 @@
 /* The app's shared moves in CSS (motion.ts has the scripted two). Everything here animates opacity and transform only,
    enters with a strong ease-out in 160-280 ms, plays once when its element appears (never while scrolling), keeps the
    content's own end state (no fill-forwards, so nothing can stay hidden) and leaves out the travel for reduced motion. */
-:root { --m-out: cubic-bezier(.23, 1, .32, 1); }
+/* --m-enter is what a newly appearing surface enters on: the strong ease-out on a tablet, the phone's gentler --m-phone
+   on a phone (see the Phone section below). Set once on the root, never per element. Presses keep --m-out everywhere. */
+:root { --m-out: cubic-bezier(.23, 1, .32, 1); --m-phone: cubic-bezier(.2, .6, .35, 1); --m-enter: var(--m-out); }
+html:not([data-layout="tablet"]) { --m-enter: var(--m-phone); }
 
 @keyframes m-rise { from { opacity: 0; transform: translateY(.5rem); } }
 @keyframes m-from-end { from { opacity: 0; transform: translateX(1rem); } }
@@ -13,19 +16,19 @@
 
 /* ── Settings: an area's page comes in from the side it was opened towards, its groups one after another; Back brings the
    list in from the other side. On a tablet the open area's groups glide in beside the list the same way. ── */
-[data-phone-screen="settings"] :is(.pst-subhead, .pst-pane-title, .pst-page > *) { animation: m-from-end 260ms var(--m-out) backwards; }
+[data-phone-screen="settings"] :is(.pst-subhead, .pst-pane-title, .pst-page > *) { animation: m-from-end 260ms var(--m-enter) backwards; }
 [data-phone-screen="settings"] .pst-page > :nth-child(2) { animation-delay: 30ms; }
 [data-phone-screen="settings"] .pst-page > :nth-child(3) { animation-delay: 60ms; }
 [data-phone-screen="settings"] .pst-page > :nth-child(4) { animation-delay: 90ms; }
 [data-phone-screen="settings"] .pst-page > :nth-child(5) { animation-delay: 120ms; }
 [data-phone-screen="settings"] .pst-page > :nth-child(n+6) { animation-delay: 150ms; }
-[data-phone-screen="settings"] .pst-nav[data-settings-return] { animation: m-from-start 240ms var(--m-out) backwards; }
+[data-phone-screen="settings"] .pst-nav[data-settings-return] { animation: m-from-start 240ms var(--m-enter) backwards; }
 
 /* ── Unfolding: options that appear under the switch or row that reveals them (spoiler parts, adult blur)
    and the inside of an opened <details> (About this anime) drop in from just above; closing is immediate. ── */
 /* A sub-setting row's surface is there at once (the block grows without a hole in it), its words and switch drop in */
-:is([data-settings-sub] > *, [data-unfold]) { animation: m-unfold 200ms var(--m-out) backwards; }
-details[open] > :not(summary) { animation: m-unfold 220ms var(--m-out) backwards; }
+:is([data-settings-sub] > *, [data-unfold]) { animation: m-unfold 200ms var(--m-enter) backwards; }
+details[open] > :not(summary) { animation: m-unfold 220ms var(--m-enter) backwards; }
 
 /* ── Choices: the mark of what was just tapped pops in (a ring's dot, a box's tick); marks already set when a list or sheet
    opens stay still, as only the focused (just tapped) row plays it. ── */
@@ -39,7 +42,7 @@ details[open] > :not(summary) { animation: m-unfold 220ms var(--m-out) backwards
 
 /* ── States: an empty or failed block settles in instead of popping up; loading blocks breathe slowly so a wait reads as
    one. ── */
-:is(.ps-empty, .ps-notice, .luffy-phone, .mex-notice, .mdl-empty) { animation: m-rise 240ms var(--m-out) backwards; }
+:is(.ps-empty, .ps-notice, .luffy-phone, .mex-notice, .mdl-empty) { animation: m-rise 240ms var(--m-enter) backwards; }
 /* The manga reader's "show controls" button fades in once the bar has slid away, instead of standing there first */
 [data-chapter-reader-drawer-exit-fullscreen-button] { animation: m-fade 200ms ease-out 140ms backwards; }
 .ps-bone { animation: m-breathe 1s ease-in-out infinite alternate; }
@@ -52,27 +55,34 @@ details[open] > :not(summary) { animation: m-unfold 220ms var(--m-out) backwards
 html:not([data-layout="tablet"]) :is(
     body :is(.ps-sheet, .mex-sheet, .mml-sheet, .msc-sheet, .mobile-download-sheet, .mobile-anilist-sheet).UI-Modal__content,
     .UI-Popover__root.vc-phone-settings, .UI-ContextMenu__root[data-phone-menu]
-)[data-state="open"] { animation-duration: 320ms; animation-timing-function: cubic-bezier(.2, .6, .35, 1); }
+)[data-state="open"] { animation-duration: 320ms; animation-timing-function: var(--m-phone); }
 html:not([data-layout="tablet"]) .UI-Modal__content.mobile-workspace[data-state="open"] {
-    animation-duration: 320ms !important; animation-timing-function: cubic-bezier(.2, .6, .35, 1) !important;
+    animation-duration: 320ms !important; animation-timing-function: var(--m-phone) !important;
 }
+/* The other menus and popovers (mobile-surface.css) open the same way, a little quicker as they are small; closing keeps
+   its 120 ms. The player's skip button and its short messages too (video-core-phone-settings.css). */
+html:not([data-layout="tablet"]) :is(.UI-Popover__root, .UI-DropdownMenu__root, .UI-ContextMenu__root):not(.vc-phone-settings):not([data-phone-menu])[data-state="open"] {
+    animation-duration: 240ms; animation-timing-function: var(--m-phone);
+}
+html:not([data-layout="tablet"]) .vc-phone-skip { animation-timing-function: var(--m-phone); }
+html:not([data-layout="tablet"]) [data-vc-overlay-display] { animation-duration: 220ms; animation-timing-function: var(--m-phone); }
 /* Phone: what arrives after its screen (a search's clear button and result note, the manga page's read button and plugin
    action once its data is in, the top bar's buttons) settles in instead of popping into place. */
 @keyframes m-settle { from { opacity: 0; transform: scale(.96); } }
 /* Downloads: the Manga tab's list comes in like the Anime and Torrents tabs instead of standing there at once. */
-html:not([data-layout="tablet"]) [data-manga-downloads] { animation: m-rise 260ms cubic-bezier(.2, .6, .35, 1) backwards; }
+html:not([data-layout="tablet"]) [data-manga-downloads] { animation: m-rise 260ms var(--m-phone) backwards; }
 html:not([data-layout="tablet"]) :is(.ps-search-clear, .ps-section-note, .mobile-read-action, .mobile-entry-icon[data-mobile-plugin-action],
     .mobile-topbar-downloads, [data-top-navbar-content], .msc-text-action) {
-    animation: m-settle 220ms cubic-bezier(.2, .6, .35, 1) backwards;
+    animation: m-settle 220ms var(--m-phone) backwards;
 }
 /* Schedule: Week | Month brings its section in and a newly chosen day's list fades in (paging slides, usePhoneStep). */
-html:not([data-layout="tablet"]) .msc-section { animation: m-rise 260ms cubic-bezier(.2, .6, .35, 1) backwards; }
+html:not([data-layout="tablet"]) .msc-section { animation: m-rise 260ms var(--m-phone) backwards; }
 html:not([data-layout="tablet"]) .msc-day-list { animation: m-fade 200ms ease-out backwards; }
 /* What opens under its row (scan summaries, a hidden library entry's files, the developer tools, the torrent sheet's
    further filters) drops in like [data-unfold] instead of standing there at once. */
 html:not([data-layout="tablet"]) :is(.pss-group-body, .pss-file-body, .plib-files, #pst-developer-tools,
     .ps-sheet-group:has([data-torrent-more][aria-expanded="true"]) > .tsp-field) {
-    animation: m-unfold 220ms cubic-bezier(.2, .6, .35, 1) backwards;
+    animation: m-unfold 220ms var(--m-phone) backwards;
 }
 
 /* Phone press, beyond the ps-* kit (phone-screen.css): the other screens' buttons, covers and rows answer a tap the same
@@ -120,7 +130,7 @@ html:not([data-layout="tablet"]) [data-mobile-anime="true"] [data-episode-grid-i
 /* My lists' stats: each bar grows out to its share once when the stats open (the bars carry their share as an inline scaleX,
    which the animation's end takes), one after another. */
 @keyframes m-grow { from { transform: scaleX(0); } }
-html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars-track > span { animation: m-grow 320ms cubic-bezier(.2, .6, .35, 1) backwards; }
+html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars-track > span { animation: m-grow 320ms var(--m-phone) backwards; }
 html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars > li:nth-child(2) .ps-bars-track > span { animation-delay: 30ms; }
 html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars > li:nth-child(3) .ps-bars-track > span { animation-delay: 60ms; }
 html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars > li:nth-child(4) .ps-bars-track > span { animation-delay: 90ms; }
@@ -128,8 +138,8 @@ html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars > li:nth-c
 
 /* Watch party chat: its button settles in when a party starts, a message that arrives while the chat is open rises in
    (nakama-watch-party-chat.tsx marks those; the ones there when it opens stay still). */
-html:not([data-layout="tablet"]) .nakama-chat-fab { animation: m-settle 220ms cubic-bezier(.2, .6, .35, 1) backwards; }
-html:not([data-layout="tablet"]) .nk-msg[data-new] { animation: m-rise 240ms cubic-bezier(.2, .6, .35, 1) backwards; }
+html:not([data-layout="tablet"]) .nakama-chat-fab { animation: m-settle 220ms var(--m-phone) backwards; }
+html:not([data-layout="tablet"]) .nk-msg[data-new] { animation: m-rise 240ms var(--m-phone) backwards; }
 
 @media (prefers-reduced-motion: reduce) {
     html:not([data-layout="tablet"]) :is(.home-header-action, .mobile-plugin-trigger, .mobile-entry-icon, .mobile-topbar-downloads,

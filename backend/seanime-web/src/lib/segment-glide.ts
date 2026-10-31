@@ -1,4 +1,5 @@
 import "./segment-glide.css"
+import { PHONE_EASE } from "./motion"
 import { IS_TABLET_UI } from "./tablet-ui"
 
 /**
@@ -14,7 +15,10 @@ const PHONE_GLIDE_SWITCHES = ".mex-tabs, .msc-strip"
 const GLIDE_SWITCHES = `${SEGMENT_GLIDE_SWITCHES}, #__seanime_bottom_nav${IS_TABLET_UI ? "" : `, ${PHONE_GLIDE_SWITCHES}`}`
 const CHOSEN_ATTRIBUTES = ["aria-selected", "aria-pressed", "data-current", "data-active"]
 const GLIDE_MS = 280
-const GLIDE_EASING = "cubic-bezier(.32, .72, 0, 1)"
+// Phone: the gentler curve, as the first frames there come late (motion.ts).
+const GLIDE_EASING = IS_TABLET_UI ? "cubic-bezier(.32, .72, 0, 1)" : PHONE_EASE
+// Phone: the most a bubble is scaled on its way to an option of another size (see glide).
+const PHONE_MAX_SCALE = 1.33
 
 type Box = { left: number, top: number, width: number, height: number }
 
@@ -105,13 +109,30 @@ function glide(switcher: HTMLElement, from: HTMLElement, to: HTMLElement) {
     to.setAttribute("data-segment-glide-target", "")
     const first: Keyframe = { transform: `translate(${start.left - end.left}px, ${start.top - end.top}px)` }
     const last: Keyframe = { transform: "translate(0px, 0px)" }
-    // On a phone a bubble of the same size glides on transform alone: that runs on the compositor and keeps going while
-    // the page the tap opens is built (~100 ms there, the bottom bar's pill used to jump to the end).
-    if (IS_TABLET_UI || Math.abs(start.width - end.width) > .5 || Math.abs(start.height - end.height) > .5) {
+    let timing: KeyframeAnimationOptions = { duration: GLIDE_MS, easing: GLIDE_EASING }
+    if (IS_TABLET_UI) {
         Object.assign(first, { width: `${start.width}px`, height: `${start.height}px` })
         Object.assign(last, { width: `${end.width}px`, height: `${end.height}px` })
     }
-    const animation = bubble.animate([first, last], { duration: GLIDE_MS, easing: GLIDE_EASING })
+    // On a phone the bubble glides on transform alone: that runs on the compositor and keeps going while the page the tap
+    // opens is built (~100 ms there, the bottom bar's pill used to jump to the end). Options of another size are reached
+    // by scaling from the old option's size (a width animation lays the switch out on every frame); past PHONE_MAX_SCALE
+    // the stretched round ends would show, so the bubble then appears at the new option instead.
+    else if (Math.abs(start.width - end.width) > .5 || Math.abs(start.height - end.height) > .5) {
+        const scaleX = start.width / end.width, scaleY = start.height / end.height
+        if (Math.max(scaleX, 1 / scaleX, scaleY, 1 / scaleY) <= PHONE_MAX_SCALE) {
+            bubble.style.transformOrigin = "0 0"
+            first.transform += ` scale(${scaleX}, ${scaleY})`
+            last.transform += " scale(1, 1)"
+        } else {
+            first.transform = "scale(.96)"
+            first.opacity = 0
+            last.transform = "none"
+            last.opacity = 1
+            timing = { duration: 180, easing: GLIDE_EASING }
+        }
+    }
+    const animation = bubble.animate([first, last], timing)
     const land = () => {
         if (!bubble.isConnected) return
         bubble.remove()

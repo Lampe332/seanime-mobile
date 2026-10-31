@@ -11,6 +11,10 @@ import { IS_TABLET_UI } from "./tablet-ui"
  *              visible covers rise in a quick cascade; content that is simply there again (a cached revisit) does not
  */
 export const MOTION_EASE_OUT = "cubic-bezier(.23, 1, .32, 1)"
+/** The phone's gentler curve: its first frames come late, so the movement must not be spent by then (motion.css). */
+export const PHONE_EASE = "cubic-bezier(.2, .6, .35, 1)"
+/** What a newly appearing surface enters on: the strong ease-out on a tablet, PHONE_EASE on a phone (--m-enter in CSS). */
+export const ENTER_EASE = IS_TABLET_UI ? MOTION_EASE_OUT : PHONE_EASE
 
 /** Lists whose items cascade in when they replace a loading placeholder. */
 export const REVEAL_LISTS = ".ps-grid, .ps-row, .ps-features, .ps-list, .mml-grid, .mdl-grid, .mex-list, [data-media-card-grid], [data-media-card-lazy-grid], [data-continue-watching-container]"
@@ -39,12 +43,9 @@ export function useSwap<T extends HTMLElement>(ref: React.RefObject<T | null>, k
         running.current = el.animate([
             { opacity: 0, transform: "translateY(.375rem)" },
             { opacity: 1, transform: "none" },
-        ], { duration: 220, easing: MOTION_EASE_OUT })
+        ], { duration: IS_TABLET_UI ? 220 : 260, easing: ENTER_EASE })
     }, [key])
 }
-
-/** The phone's gentler curve: its first frames come late, so the movement must not be spent by then (motion.css). */
-export const PHONE_EASE = "cubic-bezier(.2, .6, .35, 1)"
 
 /**
  * Phone: content replaced in place rises in once `shown` (an identity of what is shown, null while nothing settled is)
@@ -145,7 +146,7 @@ function reveal(scope: HTMLElement, oldChildren: Set<Element>, oldLists: Set<Ele
             item.animate([
                 { opacity: 0, transform: "translateY(.625rem)" },
                 { opacity: 1, transform: "none" },
-            ], { duration: 280, delay: order * REVEAL_STEP_MS, easing: MOTION_EASE_OUT, fill: "backwards" })
+            ], { duration: 280, delay: order * REVEAL_STEP_MS, easing: ENTER_EASE, fill: "backwards" })
             order++
         }
     }
