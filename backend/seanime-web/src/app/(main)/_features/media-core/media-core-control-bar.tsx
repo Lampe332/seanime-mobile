@@ -128,11 +128,10 @@ const PHONE_ICON_SWAP = {
     exit: { opacity: 0, transform: "translateY(10px)", position: "absolute" as const },
     transition: { duration: 0.15, ease: [0.2, 0.6, 0.35, 1] as const },
 }
+// Tablet: the same compositor tween while a video plays, on the tablet's strong ease-out.
 const ICON_SWAP = IS_TABLET_UI ? {
-    initial: { opacity: 0, y: 10, position: "relative" as const },
-    animate: { opacity: 1, y: 0, position: "relative" as const },
-    exit: { opacity: 0, y: 10, position: "absolute" as const },
-    transition: { duration: 0.15 },
+    ...PHONE_ICON_SWAP,
+    transition: { duration: 0.15, ease: [0.23, 1, 0.32, 1] as const },
 } : PHONE_ICON_SWAP
 
 export function MediaCoreControlButtonIcon(props: MediaCoreControlButtonIconProps) {
@@ -182,12 +181,9 @@ export interface MediaCoreVolumeButtonProps {
 
 const VOLUME_PANEL_IDLE_MS = 3500
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
-// Closed, only the round end under the speaker (about one button of the 13rem pill) is left; open, the whole pill.
-const VOLUME_PANEL_CLOSED = "inset(0% 0% 0% 79% round 999px)"
-const VOLUME_PANEL_OPEN = "inset(0% 0% 0% 0% round 999px)"
-const VOLUME_PANEL_OPENING = { duration: 0.22, ease: EASE_OUT }
-// Phone: the WebView there does not draw the clip, so the pill glides in out of the speaker above its right end instead,
-// on transform and opacity alone (the compositor's, no waiting for the mount frame) and the phone's gentler curve.
+// Phone: the pill glides in out of the speaker above its right end (the WebView did not draw a clip-path that opened it
+// from the speaker), on transform and opacity alone (the compositor's, no waiting for the mount frame) and the phone's
+// gentler curve.
 const PHONE_VOLUME_PANEL = {
     style: { transformOrigin: "right top" },
     initial: { opacity: 0, transform: "translate(1.5rem, -6px) scale(.96)" },
@@ -196,6 +192,8 @@ const PHONE_VOLUME_PANEL = {
     exit: { opacity: 0, transform: "translate(1rem, -4px) scale(.97)", pointerEvents: "none" as const, transition: { duration: 0.15, ease: EASE_OUT } },
     transition: { duration: 0.24, ease: [0.2, 0.6, 0.35, 1] as const },
 }
+// Tablet: its WebView draws no such clip either; the same glide out of the speaker, on the tablet's strong ease-out.
+const TABLET_VOLUME_PANEL = { ...PHONE_VOLUME_PANEL, transition: { duration: 0.22, ease: EASE_OUT } }
 
 export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
     const { volume, muted, onVolumeChange, onMuteToggle, panelOpen, onPanelOpenChange } = props
@@ -293,14 +291,12 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
                     data-vc-element="control-volume-mobile-panel"
                     data-vc-gesture-ignore
                     className="vc-control-volume-mobile-panel vc-volume-panel"
-                    // Grows out of the speaker: the pill opens leftwards from the icon's end, slides down from it and fades in.
-                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, clipPath: VOLUME_PANEL_CLOSED, transform: "translateY(-6px)" }}
-                    animate={reduceMotion ? { opacity: 1 } : { opacity: 1, clipPath: VOLUME_PANEL_OPEN, transform: "translateY(0px)" }}
-                    exit={reduceMotion
-                        ? { opacity: 0, pointerEvents: "none", transition: { duration: 0.12 } }
-                        : { opacity: 0, clipPath: VOLUME_PANEL_CLOSED, transform: "translateY(-4px)", pointerEvents: "none", transition: { duration: 0.15, ease: EASE_OUT } }}
-                    transition={VOLUME_PANEL_OPENING}
-                    {...(!IS_TABLET_UI && !reduceMotion && PHONE_VOLUME_PANEL)}
+                    // Reduced motion only fades; otherwise it glides out of the speaker (PHONE_/TABLET_VOLUME_PANEL).
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, pointerEvents: "none", transition: { duration: 0.12 } }}
+                    transition={{ duration: 0.22, ease: EASE_OUT }}
+                    {...(!reduceMotion && (IS_TABLET_UI ? TABLET_VOLUME_PANEL : PHONE_VOLUME_PANEL))}
                     onClick={e => e.stopPropagation()}
                     onPointerDown={e => e.stopPropagation()}
                 >

@@ -153,7 +153,7 @@ export function ChapterList(props: ChapterListProps) {
     const readingChapter = resumeChapter || unreadChapters[0]
     const allChapters = React.useMemo(() => orderChapters(chapterContainer?.chapters ?? [], allOrder), [chapterContainer, allOrder])
     const chapterOrder = showUnreadChapter ? unreadOrder : allOrder
-    // Phone: Unread / All and the order turn the list over in place; it rises in instead of changing under the finger.
+    // Unread / All and the order turn the list over in place; it rises in instead of changing under the finger.
     usePhoneSwap(chapterListRef, `${showUnreadChapter}|${chapterOrder}`)
     const setChapterOrder = showUnreadChapter ? setUnreadOrder : setAllOrder
     const downloadableUnreadChapters = React.useMemo(() => unreadChapters.filter(chapter => {

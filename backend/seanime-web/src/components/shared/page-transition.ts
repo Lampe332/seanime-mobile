@@ -1,19 +1,5 @@
-export const PAGE_TRANSITION = {
-    initial: { opacity: 0, y: 6 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: 6 },
-    transition: {
-        // duration: 0.3,
-        // delay: 0.1,
-        type: "spring",
-        damping: 28,
-        stiffness: 260,
-        mass: 0.7,
-    },
-}
-
 /**
- * Phone: the page comes in exactly while React builds it and the GPU rasterises it, so the spring above (the y shorthand
+ * Phone: the page comes in exactly while React builds it and the GPU rasterises it, so a spring on the y shorthand (it
  * runs frame by frame on the main thread) jumped to its end. A transform string on a tween runs on the compositor (Web
  * Animations) and keeps going meanwhile; the gentler phone curve (motion.ts PHONE_EASE) leaves the way to the late
  * frames. It hands back "none" at the end (Motion keeps "translateY(0px)" otherwise), so the page does not stay a
@@ -27,4 +13,13 @@ export const PHONE_PAGE_TRANSITION = {
         duration: 0.26,
         ease: [0.2, 0.6, 0.35, 1] as const,
     },
+}
+
+/**
+ * Tablet: the same compositor tween (the spring there showed its first frame at 71 % on the way back from a page), on the
+ * tablet's strong ease-out, as its frames come every 16.7 ms.
+ */
+export const TABLET_PAGE_TRANSITION = {
+    ...PHONE_PAGE_TRANSITION,
+    transition: { duration: 0.22, ease: [0.23, 1, 0.32, 1] as const },
 }

@@ -336,7 +336,7 @@ function useRowItems<D, T>(query: RowQuery<D>, select: (data: D | null) => T[]):
 const unavailable = (row: RowItems<unknown>) => row.failed || row.offline
 
 /** Bones while the trending titles load, also while a new genre loads after one without titles. */
-/** Phone: the rows of a newly chosen genre rise in once they have arrived, instead of the covers changing in place. */
+/** The rows of a newly chosen genre rise in once they have arrived, instead of the covers changing in place. */
 function useGenreSwap(panelRef: React.RefObject<HTMLDivElement | null>, genre: string | null, row: RowItems) {
     usePhoneSwap(panelRef, row.stale || !row.items?.length ? null : genre ?? ALL)
 }

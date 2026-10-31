@@ -212,6 +212,12 @@ object UIBottomNav {
                     animation-duration: 0.32s;
                     animation-timing-function: cubic-bezier(0.2,0.6,0.35,1);
                 }
+                /* Tablet: settles without overshoot too, on the drawer curve of its side sheets; its glass panel's first
+                   frames come 33-36 ms apart, which the curve's softer start keeps on screen. */
+                html[data-layout="tablet"] #android-floating-menu:not(.seanime-edit-mode) {
+                    animation-duration: 0.3s;
+                    animation-timing-function: cubic-bezier(0.32,0.72,0,1);
+                }
                 @keyframes seanime-menu-in {
                     from { opacity: 0; transform: translateY(18px) scale(0.94); }
                     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -1101,10 +1107,9 @@ object UIBottomNav {
                     if (button) button.click();
                 }
 
-                // Phone: the pill starts gliding (segment-glide) on a frame of its own before the new page is built, which
-                // holds the page for ~100 ms there; built in the same task, the glide only showed its end.
+                // Phone and tablet: the pill starts gliding (segment-glide) on a frame of its own before the new page is
+                // built, which holds the page for ~100 ms there; built in the same task, the glide only showed its end.
                 function navigateAfterGlide(href) {
-                    if (document.documentElement.getAttribute('data-layout') === 'tablet') { navigateViaApp(href); return; }
                     requestAnimationFrame(function() { setTimeout(function() { navigateViaApp(href); }, 0); });
                 }
 
@@ -1177,22 +1182,9 @@ object UIBottomNav {
                             Math.round(btn.top + btn.height / 2 - menu.offsetTop) + 'px';
                     }
 
+                    // The rows unfold with the panel, no stagger: its timers fired late while the panel was first drawn
+                    // (150-200 ms on a phone, ~200 ms on a tablet) and the rows bunched up after an empty panel.
                     setMenuBtnOpen(true);
-
-                    // Animate: rows fade in with a short stagger. Phone: not there; its timers fire late while the
-                    // panel is first drawn (150-200 ms) and the rows bunched up, so they unfold with the panel.
-                    if (document.documentElement.getAttribute('data-layout') !== 'tablet') return;
-                    var rows = menu.querySelectorAll('.float-nav-item');
-                    rows.forEach(function(el, i) {
-                        el.style.opacity = '0';
-                        el.style.transform = 'translateX(-14px)';
-                        setTimeout(function() {
-                            el.style.transition = 'opacity 0.26s ease, transform 0.34s cubic-bezier(0.2,0.9,0.25,1.2)';
-                            el.style.opacity = '1';
-                            el.style.transform = 'translateX(0)';
-                            setTimeout(function() { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; }, 380);
-                        }, 60 + i * 32);
-                    });
                 }
 
                 function closeMenu(onComplete) {

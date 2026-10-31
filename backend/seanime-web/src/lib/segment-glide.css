@@ -13,13 +13,17 @@
 @media (prefers-reduced-motion: reduce) {
     :is(.ps-segment, .mobile-source-segment, .mdl-tabs, .msc-tabs, .reader-settings-segment, [data-mobile-anime] .UI-StaticTabs__root) > * { transition: none; }
 }
-/* Phone: the extensions' tabs and the schedule's day strip (PHONE_GLIDE_SWITCHES) glide like the segments. */
-html:not([data-layout="tablet"]) :is(.mex-tabs, .msc-strip) { position: relative; isolation: isolate; }
-html:not([data-layout="tablet"]) :is(.mex-tabs, .msc-strip) > :not([data-segment-glide]) { position: relative; z-index: 1; transition: color 200ms ease; }
-html:not([data-layout="tablet"]) :is(.mex-tabs, .msc-strip) > [data-segment-glide-target] { background-color: transparent !important; }
-/* Phone: choice chips without a glide change their fill with the tap instead of flipping. */
+/* Phone and tablet: the extensions' tabs and the schedule's day strip (PHONE_GLIDE_SWITCHES) glide like the segments. */
+html:not([data-layout="tablet"]) :is(.mex-tabs, .msc-strip), html[data-layout="tablet"] :is(.mex-tabs, .msc-strip) { position: relative; isolation: isolate; }
+html:not([data-layout="tablet"]) :is(.mex-tabs, .msc-strip) > :not([data-segment-glide]),
+html[data-layout="tablet"] :is(.mex-tabs, .msc-strip) > :not([data-segment-glide]) { position: relative; z-index: 1; transition: color 200ms ease; }
+html:not([data-layout="tablet"]) :is(.mex-tabs, .msc-strip) > [data-segment-glide-target],
+html[data-layout="tablet"] :is(.mex-tabs, .msc-strip) > [data-segment-glide-target] { background-color: transparent !important; }
+/* Phone and tablet: choice chips without a glide change their fill with the tap instead of flipping. */
 html:not([data-layout="tablet"]) :is(.mdl-chips button, .mml-genres button, .home-option-chips button, .home-filter-genres button, .msc-day,
+    .mobile-download-presets button, .mex-chips button),
+html[data-layout="tablet"] :is(.mdl-chips button, .mml-genres button, .home-option-chips button, .home-filter-genres button, .msc-day,
     .mobile-download-presets button, .mex-chips button) { transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
 @media (prefers-reduced-motion: reduce) {
-    html:not([data-layout="tablet"]) :is(.mex-tabs, .msc-strip) > * { transition: none; }
+    html:not([data-layout="tablet"]) :is(.mex-tabs, .msc-strip) > *, html[data-layout="tablet"] :is(.mex-tabs, .msc-strip) > * { transition: none; }
 }

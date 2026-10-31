@@ -47,9 +47,12 @@ export function useSwap<T extends HTMLElement>(ref: React.RefObject<T | null>, k
     }, [key])
 }
 
+/** The usePhone* moves below on a tablet: the strong ease-out and a little quicker, as its frames come every 16.7 ms. */
+const TABLET_SWAP: KeyframeAnimationOptions = { duration: 220, easing: MOTION_EASE_OUT }
+
 /**
- * Phone: content replaced in place rises in once `shown` (an identity of what is shown, null while nothing settled is)
- * changes from one shown content to another; the first content (useReveal's job) and the tablet do not move.
+ * Phone and tablet: content replaced in place rises in once `shown` (an identity of what is shown, null while nothing
+ * settled is) changes from one shown content to another; the first content (useReveal's job) does not move.
  */
 export function usePhoneSwap<T extends HTMLElement>(ref: React.RefObject<T | null>, shown: string | null) {
     const last = React.useRef<string | null>(null)
@@ -58,16 +61,16 @@ export function usePhoneSwap<T extends HTMLElement>(ref: React.RefObject<T | nul
         const before = last.current
         last.current = shown
         const el = ref.current
-        if (!before || before === shown || IS_TABLET_UI || !el || prefersReducedMotion() || typeof el.animate !== "function") return
+        if (!before || before === shown || !el || prefersReducedMotion() || typeof el.animate !== "function") return
         el.animate([
             { opacity: 0, transform: "translateY(.375rem)" },
             { opacity: 1, transform: "none" },
-        ], { duration: 260, easing: PHONE_EASE })
+        ], IS_TABLET_UI ? TABLET_SWAP : { duration: 260, easing: PHONE_EASE })
     }, [shown])
 }
 
 /**
- * Phone: stepping through pages of one kind (the next or previous week or month) slides the new page in from the side it
+ * Phone and tablet: stepping through pages of one kind (the next or previous week or month) slides the new page in from the side it
  * comes from; `step` grows forwards and shrinks backwards. Children marked data-motion-still (the pager itself) stay.
  */
 export function usePhoneStep<T extends HTMLElement>(ref: React.RefObject<T | null>, step: number) {
@@ -76,14 +79,14 @@ export function usePhoneStep<T extends HTMLElement>(ref: React.RefObject<T | nul
         const before = last.current
         last.current = step
         const el = ref.current
-        if (before === step || IS_TABLET_UI || !el || prefersReducedMotion() || typeof el.animate !== "function") return
+        if (before === step || !el || prefersReducedMotion() || typeof el.animate !== "function") return
         const from = step > before ? "1.5rem" : "-1.5rem"
         for (const child of Array.from(el.children)) {
             if (child.hasAttribute("data-motion-still")) continue
             child.animate([
                 { opacity: 0, transform: `translateX(${from})` },
                 { opacity: 1, transform: "none" },
-            ], { duration: 260, easing: PHONE_EASE })
+            ], IS_TABLET_UI ? TABLET_SWAP : { duration: 260, easing: PHONE_EASE })
         }
     }, [step])
 }
@@ -91,19 +94,19 @@ export function usePhoneStep<T extends HTMLElement>(ref: React.RefObject<T | nul
 const lastViews = new Map<string, string>()
 
 /**
- * Phone: a view that its screen mounts in place of another of the same `group` (My lists remounts its list per type, the
+ * Phone and tablet: a view that its screen mounts in place of another of the same `group` (My lists remounts its list per type, the
  * stats replace it) rises in; the first view and one shown again after leaving the screen stay still.
  */
 export function usePhoneViewSwap(group: string, view: string, ...refs: React.RefObject<HTMLElement | null>[]) {
     React.useLayoutEffect(() => {
         const before = lastViews.get(group)
         lastViews.set(group, view)
-        if (!before || before === view || IS_TABLET_UI || prefersReducedMotion()) return
+        if (!before || before === view || prefersReducedMotion()) return
         for (const ref of refs) {
             ref.current?.animate?.([
                 { opacity: 0, transform: "translateY(.375rem)" },
                 { opacity: 1, transform: "none" },
-            ], { duration: 260, easing: PHONE_EASE })
+            ], IS_TABLET_UI ? TABLET_SWAP : { duration: 260, easing: PHONE_EASE })
         }
     }, [view])
 }

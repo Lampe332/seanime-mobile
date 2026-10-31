@@ -116,9 +116,18 @@ const Image = forwardRef<HTMLImageElement, _ImageProps>((
         if (typeof ref === "function") ref(node)
         else if (ref) ref.current = node
     }, [ref])
-    // Phone: a picture that is not there yet when its frame is drawn fades in once it arrives; one from the memory cache is
+    // A picture that is not there yet when its frame is drawn fades in once it arrives; one from the memory cache is
     // complete at once and simply shows (a revisited screen does not fade its covers again).
     const fadeIn = useRef(false)
+    // Tablet: such a picture stays hidden (an inline opacity, no layer per cover) until its load event starts the fade. The
+    // WebView there drew a picture that arrived while its screen was built a frame before that event ran, so it flashed
+    // in fully, vanished and faded in.
+    const held = useRef(false)
+    const show = (img: HTMLImageElement) => {
+        if (!held.current) return
+        held.current = false
+        img.style.removeProperty("opacity")
+    }
 
     const isStaticImport = typeof src === "object" && src !== null && "src" in src
     const imageSrc = overrideSrc || (isStaticImport ? src.src : src)
@@ -127,7 +136,14 @@ const Image = forwardRef<HTMLImageElement, _ImageProps>((
 
     useLayoutEffect(() => {
         const img = imgRef.current
-        fadeIn.current = !IS_TABLET_UI && !!img && !(img.complete && img.naturalWidth > 0)
+        fadeIn.current = !!img && !(img.complete && img.naturalWidth > 0)
+        if (!IS_TABLET_UI || !img) return
+        show(img)
+        if (fadeIn.current && !prefersReducedMotion() && !document.documentElement.hasAttribute("data-entry-cover-transition")) {
+            held.current = true
+            img.style.opacity = "0"
+            img.addEventListener("error", () => show(img), { once: true })
+        }
     }, [imageSrc])
 
     useEffect(() => {
@@ -182,6 +198,7 @@ const Image = forwardRef<HTMLImageElement, _ImageProps>((
                     fadeIn.current = false
                     e.currentTarget.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease-out" })
                 }
+                show(e.currentTarget)
                 onLoad?.(e)
             }}
             {...props}

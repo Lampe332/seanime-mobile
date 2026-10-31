@@ -6,15 +6,14 @@ import { SeaImage } from "@/components/shared/sea-image"
 import { getImageUrl } from "@/lib/server/assets"
 import { tr } from "@/lib/app-language"
 import { prefersReducedMotion } from "@/lib/motion"
-import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { atom, useAtomValue } from "jotai"
 import React from "react"
 import { IoBookOutline } from "react-icons/io5"
 import "./mobile-anime.css"
 
-/** Phone: the jump to the episodes glides down the page instead of cutting to them (the link's own navigation stays). */
+/** The jump to the episodes glides down the page instead of cutting to them (the link's own navigation stays). */
 function glideToEpisodes() {
-    if (IS_TABLET_UI || prefersReducedMotion()) return
+    if (prefersReducedMotion()) return
     const root = document.documentElement
     root.style.scrollBehavior = "smooth"
     window.setTimeout(() => root.style.scrollBehavior = "", 1000)

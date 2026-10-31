@@ -1,5 +1,4 @@
 import "./entry-cover-transition.css"
-import { IS_TABLET_UI } from "./tablet-ui"
 
 /**
  * Cover → page: tapping an anime or manga cover anywhere (Home, lists, search, discover, schedule …) opens its page out
@@ -10,8 +9,9 @@ import { IS_TABLET_UI } from "./tablet-ui"
  */
 const ENTRY_PATHS = ["/entry", "/manga/entry"]
 const COVER_NAME = "entry-cover"
-// Phone: the screen stands frozen on the old page while this waits, so it gives up sooner and the page just fades in.
-const WAIT_MS = IS_TABLET_UI ? 600 : 250
+// The screen stands frozen on the old page while this waits, so it gives up soon and the page just fades in (a tablet
+// waiting 600 ms for a picture still loading stood still for ~830 ms).
+const WAIT_MS = 250
 
 type ViewTransitionDocument = Document & { startViewTransition?: (update: () => Promise<void> | void) => { finished: Promise<void> } }
 

@@ -9,10 +9,10 @@ import { IS_TABLET_UI } from "./tablet-ui"
  * Nothing waits for it: the bubble lives only for the glide, so resizing or turning the screen never leaves one behind.
  */
 export const SEGMENT_GLIDE_SWITCHES = ".ps-segment, .mobile-source-segment, .mdl-tabs, .msc-tabs, .reader-settings-segment, [data-mobile-anime] .UI-StaticTabs__root"
-// Phone: the extensions' Installed | Marketplace tabs and the schedule's day strip glide too (segment-glide.css).
+// The extensions' Installed | Marketplace tabs and the schedule's day strip glide too (segment-glide.css).
 const PHONE_GLIDE_SWITCHES = ".mex-tabs, .msc-strip"
 // The app's bottom bar / tablet rail (UIBottomNav.kt) marks its page with data-active; its pill glides the same way.
-const GLIDE_SWITCHES = `${SEGMENT_GLIDE_SWITCHES}, #__seanime_bottom_nav${IS_TABLET_UI ? "" : `, ${PHONE_GLIDE_SWITCHES}`}`
+const GLIDE_SWITCHES = `${SEGMENT_GLIDE_SWITCHES}, #__seanime_bottom_nav, ${PHONE_GLIDE_SWITCHES}`
 const CHOSEN_ATTRIBUTES = ["aria-selected", "aria-pressed", "data-current", "data-active"]
 const GLIDE_MS = 280
 // Phone: the gentler curve, as the first frames there come late (motion.ts).
@@ -56,9 +56,9 @@ export function installSegmentGlide() {
         })
     }).observe(document.body, {
         subtree: true, attributes: true, attributeFilter: CHOSEN_ATTRIBUTES, attributeOldValue: true,
-        // Phone: a switch marked data-glide-rebuilt that its screen builds anew with the choice (My lists remounts its list,
-        // switch and all, per type) glides from the option chosen in the switch it replaced. The tablet keeps its behaviour.
-        childList: !IS_TABLET_UI,
+        // A switch marked data-glide-rebuilt that its screen builds anew with the choice (My lists remounts its list,
+        // switch and all, per type) glides from the option chosen in the switch it replaced.
+        childList: true,
     })
 }
 
@@ -110,7 +110,10 @@ function glide(switcher: HTMLElement, from: HTMLElement, to: HTMLElement) {
     const first: Keyframe = { transform: `translate(${start.left - end.left}px, ${start.top - end.top}px)` }
     const last: Keyframe = { transform: "translate(0px, 0px)" }
     let timing: KeyframeAnimationOptions = { duration: GLIDE_MS, easing: GLIDE_EASING }
-    if (IS_TABLET_UI) {
+    // Tablet: only a bubble that changes size animates width and height (cheap there, the Discover tabs show 8 steps); one
+    // between options of one size (the rail's entries) glides on transform alone, on the compositor, while the page the tap
+    // opens is built (a width animation runs on the main thread, and the pill jumped to its end on the way to My lists).
+    if (IS_TABLET_UI && (Math.abs(start.width - end.width) > .5 || Math.abs(start.height - end.height) > .5)) {
         Object.assign(first, { width: `${start.width}px`, height: `${start.height}px` })
         Object.assign(last, { width: `${end.width}px`, height: `${end.height}px` })
     }

@@ -246,3 +246,11 @@ html[data-layout="tablet"] .pst-pane-title { font-size: 1.375rem; line-height: 1
     html[data-layout="tablet"] [data-mobile-anime] .mobile-anime-cover { width: 13rem; }
     html[data-layout="tablet"] .pst-panes { grid-template-columns: 21rem minmax(0, 52rem); }
 }
+
+/* ── Selects (a source, a language): the list opens over its field with a quick settle instead of in one frame; it closes at
+   once, as Radix removes it then ── */
+html[data-layout="tablet"] .UI-Select__content[data-state="open"] { animation: tablet-select-in 160ms cubic-bezier(.23, 1, .32, 1); }
+@keyframes tablet-select-in { from { opacity: 0; transform: scale(.97); } }
+@media (prefers-reduced-motion: reduce) {
+    html[data-layout="tablet"] .UI-Select__content[data-state="open"] { animation-name: m-fade; } /* lib/motion.css */
+}

@@ -233,22 +233,24 @@ object VideoControlInjector {
                     '  font-family: sans-serif; text-shadow: 0 1px 4px rgba(0,0,0,0.5);',
                     '  letter-spacing: 0.3px;',
                     '}',
-                    // Phone: a further double tap on the same side keeps the shown overlay up (showSeekAnimation)
-                    // instead of popping it in again from nothing.
-                    'html:not([data-layout="tablet"]) .__seanime-seek-overlay.__seanime-seek-hold { animation-name: __seanime-seek-hold; }',
+                    // Phone and tablet: a further double tap on the same side keeps the shown overlay up
+                    // (showSeekAnimation) instead of popping it in again from nothing.
+                    'html:not([data-layout="tablet"]) .__seanime-seek-overlay.__seanime-seek-hold,',
+                    'html[data-layout="tablet"] .__seanime-seek-overlay.__seanime-seek-hold { animation-name: __seanime-seek-hold; }',
                     '@keyframes __seanime-seek-hold {',
                     '  0%, 72% { opacity: 1; transform: translateY(-50%) scale(1);    }',
                     '  100%    { opacity: 0; transform: translateY(-50%) scale(0.92); }',
                     '}',
-                    // Phone, reduced motion: the overlay only fades in and out, the arrows stand still (the app-wide
-                    // rule in globals.css would end it at once, so no feedback would be seen at all).
+                    // Phone and tablet, reduced motion: the overlay only fades in and out, the arrows stand still (the
+                    // app-wide rule in globals.css would end it at once, so no feedback would be seen at all).
                     '@media (prefers-reduced-motion: reduce) {',
-                    '  html:not([data-layout="tablet"]) .__seanime-seek-overlay {',
+                    '  html:not([data-layout="tablet"]) .__seanime-seek-overlay, html[data-layout="tablet"] .__seanime-seek-overlay {',
                     '    transform: translateY(-50%);',
                     '    animation-name: __seanime-seek-fade !important; animation-duration: 0.85s !important;',
                     '  }',
-                    '  html:not([data-layout="tablet"]) .__seanime-seek-overlay.__seanime-seek-hold { animation-name: __seanime-seek-fade-hold !important; }',
-                    '  html:not([data-layout="tablet"]) .__seanime-seek-arrow { animation: none; opacity: 0.8; }',
+                    '  html:not([data-layout="tablet"]) .__seanime-seek-overlay.__seanime-seek-hold,',
+                    '  html[data-layout="tablet"] .__seanime-seek-overlay.__seanime-seek-hold { animation-name: __seanime-seek-fade-hold !important; }',
+                    '  html:not([data-layout="tablet"]) .__seanime-seek-arrow, html[data-layout="tablet"] .__seanime-seek-arrow { animation: none; opacity: 0.8; }',
                     '}',
                     '@keyframes __seanime-seek-fade { 0% { opacity: 0; } 15%, 72% { opacity: 1; } 100% { opacity: 0; } }',
                     '@keyframes __seanime-seek-fade-hold { 0%, 72% { opacity: 1; } 100% { opacity: 0; } }'
@@ -261,10 +263,9 @@ object VideoControlInjector {
                 if (typeof seconds !== 'number') seconds = side === 'right' ? 10 : -10;
                 var existing = document.getElementById('__seanime-seek-anim');
                 var label = (seconds > 0 ? '+' : '') + seconds + 's';
-                // Phone: seeking again on the same side while the overlay is up keeps it (no flash back to nothing);
+                // Seeking again on the same side while the overlay is up keeps it (no flash back to nothing);
                 // its fade-out starts over and the arrows run their wave again for the new tap.
-                if (existing && existing.parentNode && existing.__seanimeSide === side &&
-                        document.documentElement.getAttribute('data-layout') !== 'tablet') {
+                if (existing && existing.parentNode && existing.__seanimeSide === side) {
                     existing.querySelector('.__seanime-seek-label').textContent = label;
                     var parts = [existing].concat(Array.prototype.slice.call(existing.querySelectorAll('.__seanime-seek-arrow')));
                     existing.classList.add('__seanime-seek-hold');
