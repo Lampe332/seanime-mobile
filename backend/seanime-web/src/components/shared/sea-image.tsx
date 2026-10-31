@@ -1,5 +1,8 @@
+import { prefersReducedMotion } from "@/lib/motion"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { HIDE_IMAGES } from "@/types/constants"
-import React, { forwardRef, useEffect, useState } from "react"
+import React, { forwardRef, useEffect, useLayoutEffect, useRef, useState } from "react"
+
 
 type ImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
     fill?: boolean
@@ -107,11 +110,25 @@ const Image = forwardRef<HTMLImageElement, _ImageProps>((
     ref,
 ) => {
     const [isLoaded, setIsLoaded] = useState(false)
+    const imgRef = useRef<HTMLImageElement | null>(null)
+    const setImgRef = React.useCallback((node: HTMLImageElement | null) => {
+        imgRef.current = node
+        if (typeof ref === "function") ref(node)
+        else if (ref) ref.current = node
+    }, [ref])
+    // Phone: a picture that is not there yet when its frame is drawn fades in once it arrives; one from the memory cache is
+    // complete at once and simply shows (a revisited screen does not fade its covers again).
+    const fadeIn = useRef(false)
 
     const isStaticImport = typeof src === "object" && src !== null && "src" in src
     const imageSrc = overrideSrc || (isStaticImport ? src.src : src)
 
     const staticBlur = isStaticImport ? src.blurDataURL : undefined
+
+    useLayoutEffect(() => {
+        const img = imgRef.current
+        fadeIn.current = !IS_TABLET_UI && !!img && !(img.complete && img.naturalWidth > 0)
+    }, [imageSrc])
 
     useEffect(() => {
         setIsLoaded(false)
@@ -144,7 +161,7 @@ const Image = forwardRef<HTMLImageElement, _ImageProps>((
 
     return (
         <img
-            ref={ref}
+            ref={setImgRef}
             src={imageSrc}
             alt={alt}
             width={imageWidth}
@@ -160,6 +177,11 @@ const Image = forwardRef<HTMLImageElement, _ImageProps>((
             }}
             onLoad={(e) => {
                 setIsLoaded(true)
+                // Not the page cover a tapped cover flies into (entry-cover-transition.ts).
+                if (fadeIn.current && !prefersReducedMotion() && !document.documentElement.hasAttribute("data-entry-cover-transition")) {
+                    fadeIn.current = false
+                    e.currentTarget.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease-out" })
+                }
                 onLoad?.(e)
             }}
             {...props}

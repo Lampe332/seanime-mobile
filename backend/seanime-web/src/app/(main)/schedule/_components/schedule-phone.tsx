@@ -9,6 +9,7 @@ import { de } from "date-fns/locale"
 import { useAtom, useAtomValue } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import React from "react"
+import { usePhoneStep } from "@/lib/motion"
 import { LuCheck, LuChevronLeft, LuChevronRight, LuSlidersHorizontal } from "react-icons/lu"
 import { useGlobalScheduleCounts } from "../_lib/use-global-schedule"
 import type { CalendarDayItem, CalendarEvent, StatusFilter } from "./schedule-calendar"
@@ -47,6 +48,11 @@ export function PhoneSchedule(props: PhoneScheduleProps) {
     const locale = german ? { locale: de } : undefined
     const [view, setView] = useAtom(phoneViewAtom)
     const [weekOffset, setWeekOffset] = React.useState(0)
+    // Phone: the next or previous 7 days / month slide in from their side; the pager row stays (lib/motion.ts)
+    const weekRef = React.useRef<HTMLElement>(null)
+    const monthRef = React.useRef<HTMLElement>(null)
+    usePhoneStep(weekRef, weekOffset)
+    usePhoneStep(monthRef, currentDate.getFullYear() * 12 + currentDate.getMonth())
     const [filtersOpen, setFiltersOpen] = React.useState(false)
 
     const firstDay = addDays(startOfDay(new Date()), weekOffset * 7)
@@ -122,8 +128,8 @@ export function PhoneSchedule(props: PhoneScheduleProps) {
                 <button key={value} type="button" role="tab" aria-selected={view === value} onClick={() => setView(value)} data-schedule-view={value}>{label}</button>)}
         </div>
 
-        {view === "week" && <section className="msc-section" aria-label={t("Week", "Woche")}>
-            <div className="msc-nav">
+        {view === "week" && <section ref={weekRef} className="msc-section" aria-label={t("Week", "Woche")}>
+            <div className="msc-nav" data-motion-still>
                 <button type="button" className="msc-icon-button" aria-label={t("Previous 7 days", "Vorherige 7 Tage")} onClick={() => setWeekOffset(o => o - 1)}><LuChevronLeft aria-hidden /></button>
                 <h2>{weekOffset === 0 ? t("Next 7 days", "Nächste 7 Tage") : range}</h2>
                 <button type="button" className="msc-icon-button" aria-label={t("Next 7 days", "Nächste 7 Tage")} onClick={() => setWeekOffset(o => o + 1)}><LuChevronRight aria-hidden /></button>
@@ -132,7 +138,7 @@ export function PhoneSchedule(props: PhoneScheduleProps) {
 
             {isAllAnime ? <>
                 <DayStrip week={week} selectedDate={selectedDate} onSelect={props.onSelectDate} locale={locale} counts={allCounts} />
-                {status ?? <DayList title={dayTitle(parseISO(selectedDate))} events={eventsOn(parseISO(selectedDate))}
+                {status ?? <DayList key={selectedDate} title={dayTitle(parseISO(selectedDate))} events={eventsOn(parseISO(selectedDate))}
                     indicateWatched={props.indicateWatched} episodes={episodes} />}
             </> : status ?? (weekCount === 0
                 ? <p className="msc-note">{t("No episodes from your list in these 7 days.", "In diesen 7 Tagen keine Folgen aus deiner Liste.")}</p>
@@ -141,15 +147,15 @@ export function PhoneSchedule(props: PhoneScheduleProps) {
                         indicateWatched={props.indicateWatched} episodes={episodes} />))}
         </section>}
 
-        {view === "month" && <section className="msc-section" aria-label={t("Month", "Monat")}>
-            <div className="msc-nav">
+        {view === "month" && <section ref={monthRef} className="msc-section" aria-label={t("Month", "Monat")}>
+            <div className="msc-nav" data-motion-still>
                 <button type="button" className="msc-icon-button" aria-label={t("Previous month", "Vorheriger Monat")} onClick={() => goMonth(startOfMonth(subMonths(currentDate, 1)))}><LuChevronLeft aria-hidden /></button>
                 <h2><time dateTime={format(currentDate, "yyyy-MM")}>{format(currentDate, "MMMM yyyy", locale)}</time></h2>
                 <button type="button" className="msc-icon-button" aria-label={t("Next month", "Nächster Monat")} onClick={() => goMonth(startOfMonth(addMonths(currentDate, 1)))}><LuChevronRight aria-hidden /></button>
                 {!isSameMonth(currentDate, new Date()) && <button type="button" className="msc-text-action" onClick={toToday}>{t("Today", "Heute")}</button>}
             </div>
             <MonthGrid days={days} selected={selected.date} weekStartsOn={props.weekStartsOn} counts={isAllAnime ? allCounts ?? {} : undefined} onSelect={selectDay} />
-            {status ?? <DayList title={dayTitle(parseISO(selected.date))} today={selected.isToday} events={selected.events}
+            {status ?? <DayList key={selected.date} title={dayTitle(parseISO(selected.date))} today={selected.isToday} events={selected.events}
                 indicateWatched={props.indicateWatched} episodes={episodes} showEmpty />}
         </section>}
 

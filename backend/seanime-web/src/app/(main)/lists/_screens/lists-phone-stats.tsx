@@ -11,6 +11,7 @@ import {
 import { formatScore, getStatsView, ListType, StatRow, statusLabel, StatsView } from "@/app/(main)/lists/_lib/lists-phone"
 import { Translate } from "@/lib/app-language"
 import React from "react"
+import { usePhoneViewSwap } from "@/lib/motion"
 
 type Bar = { key: string, label: string, value: string, ratio: number, meta?: string }
 
@@ -26,6 +27,8 @@ export function ListsStats({ t, type, typeSwitch, actions }: { t: Translate, typ
     const stats = type === "anime" ? query.data?.animeStats : query.data?.mangaStats
     const thisYear = new Date().getFullYear()
     const view = React.useMemo(() => stats ? getStatsView(type, stats, thisYear) : null, [type, stats, thisYear])
+    const statsRef = React.useRef<HTMLDivElement>(null)
+    usePhoneViewSwap("lists", `stats|${type}`, statsRef)
     // A finished request without stats shows the empty state, not an endless load.
     const loading = query.isPending
     const failed = query.isError && !query.data
@@ -41,7 +44,7 @@ export function ListsStats({ t, type, typeSwitch, actions }: { t: Translate, typ
     return <>
         <PhoneHeader title={t("My lists", "Meine Listen")} facts={facts}>{actions}</PhoneHeader>
         {!!typeSwitch && <div className="pl-controls">{typeSwitch}</div>}
-        <div className="pl-stats" data-lists-stats={type}>
+        <div ref={statsRef} className="pl-stats" data-lists-stats={type}>
             {failed ? <PhoneNotice data-lists-error text={offlineAware(t, ["Your stats could not be loaded.", "Deine Statistik konnte nicht geladen werden."],
                     ["No internet connection, so your stats could not be loaded.", "Keine Internetverbindung, deshalb konnte deine Statistik nicht geladen werden."])}>
                     <button type="button" className="ps-text-action" onClick={() => void query.refetch()}>{t("Try again", "Erneut versuchen")}</button>

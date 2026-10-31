@@ -61,7 +61,7 @@ import { atom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import React from "react"
-import { useSwap } from "@/lib/motion"
+import { usePhoneViewSwap, useSwap } from "@/lib/motion"
 import { LuArrowUp, LuChartColumn, LuListPlus, LuPlay, LuRefreshCcw, LuSlidersHorizontal } from "react-icons/lu"
 import { toast } from "sonner"
 import "./lists-phone.css"
@@ -245,6 +245,10 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
     const status = followed.status && tabs.some(tab => tab.value === followed.status) ? followed.status : remembered
     // A new status or list type rises in (lib/motion.ts)
     useSwap(panelRef, `${type}|${status}`)
+    // Phone: Anime | Manga and the way back from the stats mount this list anew; it rises in like a new status does.
+    const statusTabsRef = React.useRef<HTMLElement | null>(null)
+    React.useLayoutEffect(() => { statusTabsRef.current = controlsRef.current?.querySelector("[data-lists-status-tabs]") ?? null }, [])
+    usePhoneViewSwap("lists", type, panelRef, statusTabsRef)
     const selectStatus = (value: string) => {
         setStoredStatus(value)
         setFollow({ key: searchKey, status: null })

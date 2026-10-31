@@ -23,6 +23,7 @@ import { cn } from "@/components/ui/core/styling"
 import { atomWithStorage } from "jotai/utils"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import React from "react"
+import { usePhoneSwap } from "@/lib/motion"
 import { FaRedo } from "react-icons/fa"
 import { LuArrowDownWideNarrow, LuArrowRight, LuArrowUpNarrowWide, LuDownload, LuHash, LuPuzzle, LuRefreshCw } from "react-icons/lu"
 import { LuSearch } from "react-icons/lu"
@@ -152,6 +153,8 @@ export function ChapterList(props: ChapterListProps) {
     const readingChapter = resumeChapter || unreadChapters[0]
     const allChapters = React.useMemo(() => orderChapters(chapterContainer?.chapters ?? [], allOrder), [chapterContainer, allOrder])
     const chapterOrder = showUnreadChapter ? unreadOrder : allOrder
+    // Phone: Unread / All and the order turn the list over in place; it rises in instead of changing under the finger.
+    usePhoneSwap(chapterListRef, `${showUnreadChapter}|${chapterOrder}`)
     const setChapterOrder = showUnreadChapter ? setUnreadOrder : setAllOrder
     const downloadableUnreadChapters = React.useMemo(() => unreadChapters.filter(chapter => {
         return !isChapterLocal(chapter) && !isChapterDownloaded(chapter) && !isChapterQueued(chapter)

@@ -65,7 +65,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router"
 import { atom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
 import React from "react"
-import { useSwap } from "@/lib/motion"
+import { usePhoneSwap, useSwap } from "@/lib/motion"
 import "./discover-phone.css"
 
 type Media = AL_BaseAnime | AL_BaseManga
@@ -124,7 +124,7 @@ export function DiscoverPhone() {
             controls="pd-panel" data-discover-tabs data-tab-count={tabs.length} data-language={language} data-discover-page-header-tabs-container />
         <PluginWebviewSlot slot="after-discover-screen-header" />
         <div ref={panelRef} id="pd-panel" className="pd-panel" role="tabpanel" aria-label={tabs.find(item => item.value === tab)?.label} {...panelHook}>
-            {tab === "anime" ? <AnimeTab /> : tab === "schedule" ? <DiscoverPhoneSchedule schedule={schedule} /> : <MangaTab />}
+            {tab === "anime" ? <AnimeTab panelRef={panelRef} /> : tab === "schedule" ? <DiscoverPhoneSchedule schedule={schedule} /> : <MangaTab panelRef={panelRef} />}
         </div>
     </PhoneScreen>
 }
@@ -133,7 +133,7 @@ export function DiscoverPhone() {
  * The anime rows. The genre-aware ones come first, right under the chips (spotlight, trending, both season rows); the
  * rest (aired, missed, coming soon, movies) shows every genre.
  */
-function AnimeTab() {
+function AnimeTab({ panelRef }: { panelRef: React.RefObject<HTMLDivElement | null> }) {
     const t = useTr()
     const [genre, setGenre] = useAtom(animeGenreAtom)
     const seasons = React.useMemo(() => discoverSeasons(new Date()), [])
@@ -145,6 +145,7 @@ function AnimeTab() {
     const rest = React.useMemo(() => withoutFeatured(trending.items, spotlight), [trending.items, spotlight])
     const qualifier = genre ? genreLabel(t, genre) : undefined
     const clearGenre = () => setGenre(null)
+    useGenreSwap(panelRef, genre, trending)
 
     // AniList, the server or the connection is down when both rows of the first screen fail: one notice, not a wall of them.
     // With a genre chosen the chips stay, so "All" (often still cached) is one tap away.
@@ -256,13 +257,14 @@ function MissedBlock() {
     </DiscoverRow>
 }
 
-function MangaTab() {
+function MangaTab({ panelRef }: { panelRef: React.RefObject<HTMLDivElement | null> }) {
     const [genre, setGenre] = useAtom(mangaGenreAtom)
     const blurAdult = !!useServerStatus()?.settings?.anilist?.blurAdultContent
     const jp = useMangaRow("JP", genre, true)
     const spotlight = React.useMemo(() => pickSpotlight(jp.items, { hideAdult: blurAdult }), [jp.items, blurAdult])
     const rest = React.useMemo(() => withoutFeatured(jp.items, spotlight), [jp.items, spotlight])
     const clearGenre = () => setGenre(null)
+    useGenreSwap(panelRef, genre, jp)
     return <>
         <GenreChips genre={genre} onChange={setGenre} />
         <Spotlight key={genre ?? ALL} items={spotlight} type="manga" loading={spotlightLoading(jp, spotlight)} stale={jp.stale} />
@@ -334,6 +336,11 @@ function useRowItems<D, T>(query: RowQuery<D>, select: (data: D | null) => T[]):
 const unavailable = (row: RowItems<unknown>) => row.failed || row.offline
 
 /** Bones while the trending titles load, also while a new genre loads after one without titles. */
+/** Phone: the rows of a newly chosen genre rise in once they have arrived, instead of the covers changing in place. */
+function useGenreSwap(panelRef: React.RefObject<HTMLDivElement | null>, genre: string | null, row: RowItems) {
+    usePhoneSwap(panelRef, row.stale || !row.items?.length ? null : genre ?? ALL)
+}
+
 const spotlightLoading = (row: RowItems, spotlight: Media[]) => !unavailable(row) && (!row.items || (row.stale && !spotlight.length))
 
 /** One section of covers with its "See all" link, row bones, failure notice or empty state. */

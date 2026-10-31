@@ -56,11 +56,34 @@ html:not([data-layout="tablet"]) :is(
 html:not([data-layout="tablet"]) .UI-Modal__content.mobile-workspace[data-state="open"] {
     animation-duration: 320ms !important; animation-timing-function: cubic-bezier(.2, .6, .35, 1) !important;
 }
+/* Phone: what arrives after its screen (a search's clear button and result note, the manga page's read button and plugin
+   action once its data is in, the top bar's buttons) settles in instead of popping into place. */
+@keyframes m-settle { from { opacity: 0; transform: scale(.96); } }
+/* Downloads: the Manga tab's list comes in like the Anime and Torrents tabs instead of standing there at once. */
+html:not([data-layout="tablet"]) [data-manga-downloads] { animation: m-rise 260ms cubic-bezier(.2, .6, .35, 1) backwards; }
+html:not([data-layout="tablet"]) :is(.ps-search-clear, .ps-section-note, .mobile-read-action, .mobile-entry-icon[data-mobile-plugin-action],
+    .mobile-topbar-downloads, [data-top-navbar-content], .msc-text-action) {
+    animation: m-settle 220ms cubic-bezier(.2, .6, .35, 1) backwards;
+}
+/* Schedule: Week | Month brings its section in and a newly chosen day's list fades in (paging slides, usePhoneStep). */
+html:not([data-layout="tablet"]) .msc-section { animation: m-rise 260ms cubic-bezier(.2, .6, .35, 1) backwards; }
+html:not([data-layout="tablet"]) .msc-day-list { animation: m-fade 200ms ease-out backwards; }
+/* What opens under its row (scan summaries, a hidden library entry's files, the developer tools, the torrent sheet's
+   further filters) drops in like [data-unfold] instead of standing there at once. */
+html:not([data-layout="tablet"]) :is(.pss-group-body, .pss-file-body, .plib-files, #pst-developer-tools,
+    .ps-sheet-group:has([data-torrent-more][aria-expanded="true"]) > .tsp-field) {
+    animation: m-unfold 220ms cubic-bezier(.2, .6, .35, 1) backwards;
+}
 
 @media (prefers-reduced-motion: reduce) {
+    html:not([data-layout="tablet"]) .msc-section { animation-name: m-fade; }
+    html:not([data-layout="tablet"]) :is(.pss-group-body, .pss-file-body, .plib-files, #pst-developer-tools,
+        .ps-sheet-group:has([data-torrent-more][aria-expanded="true"]) > .tsp-field) { animation-name: m-fade; }
     [data-phone-screen="settings"] :is(.pst-subhead, .pst-pane-title, .pst-page > *, .pst-nav[data-settings-return]),
     :is([data-settings-sub] > *, [data-unfold]), details[open] > :not(summary),
     :is(.ps-empty, .ps-notice, .luffy-phone, .mex-notice, .mdl-empty) { animation-name: m-fade; animation-delay: 0ms; }
+    html:not([data-layout="tablet"]) :is(.ps-search-clear, .ps-section-note, .mobile-read-action, .mobile-entry-icon[data-mobile-plugin-action],
+        .mobile-topbar-downloads, [data-top-navbar-content], [data-manga-downloads]) { animation-name: m-fade; }
     :is(.pst-choice, .ps-pick, .ps-choices > button, .ps-chips > button) :is(*, *::after) { animation: none !important; }
     .ps-bone { animation: none; }
     :is(.pst-swatches, .mml-status) > button { transition: none; transform: none !important; }

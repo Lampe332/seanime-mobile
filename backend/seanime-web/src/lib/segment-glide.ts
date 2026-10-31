@@ -8,8 +8,10 @@ import { IS_TABLET_UI } from "./tablet-ui"
  * Nothing waits for it: the bubble lives only for the glide, so resizing or turning the screen never leaves one behind.
  */
 export const SEGMENT_GLIDE_SWITCHES = ".ps-segment, .mobile-source-segment, .mdl-tabs, .msc-tabs, .reader-settings-segment, [data-mobile-anime] .UI-StaticTabs__root"
+// Phone: the extensions' Installed | Marketplace tabs and the schedule's day strip glide too (segment-glide.css).
+const PHONE_GLIDE_SWITCHES = ".mex-tabs, .msc-strip"
 // The app's bottom bar / tablet rail (UIBottomNav.kt) marks its page with data-active; its pill glides the same way.
-const GLIDE_SWITCHES = `${SEGMENT_GLIDE_SWITCHES}, #__seanime_bottom_nav`
+const GLIDE_SWITCHES = `${SEGMENT_GLIDE_SWITCHES}, #__seanime_bottom_nav${IS_TABLET_UI ? "" : `, ${PHONE_GLIDE_SWITCHES}`}`
 const CHOSEN_ATTRIBUTES = ["aria-selected", "aria-pressed", "data-current", "data-active"]
 const GLIDE_MS = 280
 const GLIDE_EASING = "cubic-bezier(.32, .72, 0, 1)"
