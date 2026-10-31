@@ -148,7 +148,9 @@ function BarSection({ t, id, title, bars }: { t: Translate, id: string, title: s
     const cut = !all && bars.length > BARS_SHOWN + 1
     return <PhoneSection id={`pl-stats-${id}`} title={title} data-lists-stats-section={id}>
         <ol className="ps-bars pl-bars">
-            {(cut ? bars.slice(0, BARS_SHOWN) : bars).map(row => <li key={row.key} data-max={row.ratio === 1 || undefined}>
+            {/* "Show all": the added rows drop in under the first five (motion.css [data-unfold]) */}
+            {(cut ? bars.slice(0, BARS_SHOWN) : bars).map((row, index) => <li key={row.key} data-max={row.ratio === 1 || undefined}
+                data-unfold={(all && index >= BARS_SHOWN) || undefined}>
                 <span className="ps-bars-label">{row.label}</span>
                 <span className="ps-bars-value">{row.value}</span>
                 <span className="ps-bars-track" aria-hidden><span style={{ transform: `scaleX(${row.ratio})` }} /></span>

@@ -23,3 +23,11 @@ export const TABLET_PAGE_TRANSITION = {
     ...PHONE_PAGE_TRANSITION,
     transition: { duration: 0.22, ease: [0.23, 1, 0.32, 1] as const },
 }
+
+/** Reduced motion (phone and tablet): the page only fades in; Motion's tween does not read the media query itself. */
+export const REDUCED_PAGE_TRANSITION = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+    transition: { duration: 0.2, ease: "easeOut" as const },
+}

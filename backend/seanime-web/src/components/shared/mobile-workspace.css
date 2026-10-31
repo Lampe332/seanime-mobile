@@ -33,5 +33,6 @@ html:has(.mobile-workspace[data-state="open"]) { overflow-y: hidden !important; 
     html[data-layout="tablet"] .UI-Modal__content.mobile-workspace:not(:has(.mobile-plugin-runtime))[data-state="open"] { animation-name: ws-side !important; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .UI-Modal__content.mobile-workspace[data-state="open"] { animation-name: ws-fade !important; }
+    .UI-Modal__content.mobile-workspace[data-state="open"],
+    html[data-layout="tablet"] .UI-Modal__content.mobile-workspace:not(:has(.mobile-plugin-runtime))[data-state="open"] { animation-name: ws-fade !important; }
 }

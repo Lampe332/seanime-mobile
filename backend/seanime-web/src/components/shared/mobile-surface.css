@@ -55,6 +55,10 @@
 [data-phone-menu] .UI-ContextMenu__item > svg { margin-right: 0; font-size: 1.25rem; color: var(--sm-text-muted); }
 [data-phone-menu] .UI-ContextMenu__label { padding: .625rem .75rem .375rem; font-size: .8125rem; line-height: 1.4; color: var(--sm-text-muted); white-space: normal; overflow: visible; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
 [data-phone-menu] .UI-ContextMenu__separator { margin-block: .25rem; background: var(--sm-line); }
+/* Phone: a sheet focuses its own container when it opens; after any key press (the keyboard's Enter, a Backspace) that
+   counted as keyboard focus and drew the browser's ring around the whole sheet. The container is no control, so it shows
+   none; the controls inside keep theirs. */
+html:not([data-layout="tablet"]) :is(.UI-Modal__content, .UI-Drawer__content, [role="dialog"]):focus-visible { outline: none; }
 
 /* Error and empty states (LuffyError) on Android phones, in the phone kit's empty block. */
 .luffy-phone { margin: 1rem; }

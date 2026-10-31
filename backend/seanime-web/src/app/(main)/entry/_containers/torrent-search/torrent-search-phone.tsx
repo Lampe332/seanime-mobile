@@ -34,6 +34,7 @@ import { __torrentSearch_selectionAtom, TorrentSelectionType } from "@/app/(main
 import { useHandleStartTorrentStream } from "@/app/(main)/entry/_containers/torrent-stream/_lib/handle-torrent-stream"
 import { SeaLink } from "@/components/shared/sea-link"
 import { getAppLanguage, Translate, useTr } from "@/lib/app-language"
+import { usePhoneSwap } from "@/lib/motion"
 import { useRouter } from "@/lib/navigation"
 import { subDays, subMonths } from "date-fns"
 import { useAtom } from "jotai/react"
@@ -221,6 +222,9 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, onDownload }: {
     const filters = { resolution: smartSearchResolution, batch: batchOnly, languages, dualAudio, seeded, tenBit, codecs, sources, maxSize, text: resultText }
     const torrents = React.useMemo(() => sortTorrents(filterTorrents(found, filters, batchOnly && providerBatch), sort),
         [found, smartSearchResolution, batchOnly, languages, dualAudio, seeded, tenBit, codecs, sources, maxSize, resultText, providerBatch, sort])
+    // A new sort order rises in instead of the rows jumping to their new places in one frame
+    const resultsRef = React.useRef<HTMLUListElement>(null)
+    usePhoneSwap(resultsRef, torrents.length ? sort : null)
     const clearFilters = () => {
         setBatchOnly(false)
         setLanguages([])
@@ -382,7 +386,7 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, onDownload }: {
                                 : smart ? t("Search by title finds more.", "Die Suche nach Titel findet mehr.") : undefined}>
                             {smart && <button type="button" className="ps-secondary" onClick={() => setSearchType(Torrent_SearchType.SIMPLE)}>{t("Search by title", "Nach Titel suchen")}</button>}
                         </PhoneEmpty>
-                        : <ul className="tsp-list" data-torrent-list>
+                        : <ul ref={resultsRef} className="tsp-list" data-torrent-list>
                             {torrents.map(torrent => {
                                 const isCached = !!torrent.infoHash && !!cached[torrent.infoHash]
                                 const meta = torrentMeta(torrent, t, isCached, providers.length > 1 ? providerName(torrent.provider) : "")

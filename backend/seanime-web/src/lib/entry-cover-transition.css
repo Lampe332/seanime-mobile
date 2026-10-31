@@ -21,5 +21,10 @@ html:not([data-layout="tablet"])[data-entry-cover-transition]::view-transition-g
 }
 html:not([data-layout="tablet"])[data-entry-cover-transition]::view-transition-old(entry-cover),
 html:not([data-layout="tablet"])[data-entry-cover-transition]::view-transition-new(entry-cover) { animation-duration: 420ms; }
+/* No cover on the page in time (entry-cover-transition.ts): the old cover fades out quickly where it is instead of standing
+   over the new page for the whole flight. */
+html[data-entry-cover-transition][data-entry-cover-miss]::view-transition-group(entry-cover) { animation-duration: 0s; }
+html[data-entry-cover-transition][data-entry-cover-miss]::view-transition-old(entry-cover) { animation: entry-cover-miss 120ms ease-out both; }
+@keyframes entry-cover-miss { to { opacity: 0; } }
 html[data-entry-cover-transition]::view-transition-old(root) { animation-duration: 130ms; animation-timing-function: ease-out; }
 html[data-entry-cover-transition]::view-transition-new(root) { animation-duration: 260ms; animation-delay: 60ms; animation-fill-mode: both; animation-timing-function: cubic-bezier(.23, 1, .32, 1); }

@@ -34,7 +34,10 @@ details[open] > :not(summary) { animation: m-unfold 220ms var(--m-enter) backwar
    opens stay still, as only the focused (just tapped) row plays it. ── */
 :is(.pst-choice, .ps-pick[role="radio"]):focus[aria-checked="true"] :is(.pst-radio, .ps-pick-mark)::after,
 .ps-pick:focus[aria-checked="true"] .ps-pick-mark > svg,
-:is(.ps-choices, .ps-chips) > button:focus[aria-pressed="true"] > svg:first-child { animation: m-pop 200ms var(--m-out); }
+:is(.ps-choices, .ps-chips) > button:focus[aria-pressed="true"] > svg:first-child,
+.msc-check:focus[aria-checked="true"] .msc-checkbox > svg { animation: m-pop 200ms var(--m-out); }
+/* The schedule filter's box fills instead of flipping (its tick pops in above) */
+.msc-checkbox { transition: background-color 160ms ease, box-shadow 160ms ease; }
 /* Pills and chips change their fill with the tap instead of flipping (phone-screen.css does the ps-* ones; the segments'
    bubble glides on its own) */
 :is(.pst-swatches, .mml-status) > button { transition: transform 160ms var(--m-out), background-color 160ms ease, color 160ms ease; }
@@ -47,6 +50,8 @@ details[open] > :not(summary) { animation: m-unfold 220ms var(--m-enter) backwar
 [data-chapter-reader-drawer-exit-fullscreen-button] { animation: m-fade 200ms ease-out 140ms backwards; }
 .ps-bone { animation: m-breathe 1s ease-in-out infinite alternate; }
 .ps-loading > :nth-child(2n) { animation-delay: -.5s; }
+/* The anime page's download arrows (Not in your library) stand still instead of all pulsing for as long as the page is open */
+:is(html:not([data-layout="tablet"]), html[data-layout="tablet"]) [data-mobile-anime="true"] [data-undownloaded-episode-list-action-download-button] { animation: none; }
 
 /* ── Phone (not the tablet layout): a phone draws the app at up to 1440p, where the GPU spends the first ~150 ms of a newly
    opened sheet rasterising it and gets a frame out only every 30-40 ms meanwhile. The sharp curves above had covered ~80 %
@@ -65,6 +70,12 @@ html:not([data-layout="tablet"]) :is(.UI-Popover__root, .UI-DropdownMenu__root, 
     animation-duration: 240ms; animation-timing-function: var(--m-phone);
 }
 html:not([data-layout="tablet"]) .vc-phone-skip { animation-timing-function: var(--m-phone); }
+/* What opens a sheet that takes long to build (motion.ts openAfterPress) stays pressed from the tap's first frame until
+   the sheet is there, as the finger has already left it by then. */
+html:not([data-layout="tablet"]) .ps-icon-button[data-opening] {
+    background: var(--sm-surface-control); color: var(--sm-text); transform: scale(.9); transition-duration: 0s;
+}
+html:not([data-layout="tablet"]) [data-opening] .vc-control-button { background: rgb(255 255 255 / .16); transform: scale(.9); transition-duration: 0s; }
 html:not([data-layout="tablet"]) [data-vc-overlay-display] { animation-duration: 220ms; animation-timing-function: var(--m-phone); }
 /* Phone: what arrives after its screen (a search's clear button and result note, the manga page's read button and plugin
    action once its data is in, the top bar's manga downloads) settles in instead of popping into place. Not the top bar's
@@ -72,6 +83,9 @@ html:not([data-layout="tablet"]) [data-vc-overlay-display] { animation-duration:
 @keyframes m-settle { from { opacity: 0; transform: scale(.96); } }
 /* Downloads: the Manga tab's list comes in like the Anime and Torrents tabs instead of standing there at once. */
 html:not([data-layout="tablet"]) [data-manga-downloads] { animation: m-rise 260ms var(--m-phone) backwards; }
+/* The torrent sheet's download bar rises from the sheet's edge with the first ticked torrent instead of popping up there. */
+@keyframes m-bar { from { opacity: 0; transform: translateY(100%); } }
+html:not([data-layout="tablet"]) .tsp-actions { animation: m-bar 240ms var(--m-phone) backwards; }
 html:not([data-layout="tablet"]) :is(.ps-search-clear, .ps-section-note, .mobile-read-action, .mobile-entry-icon[data-mobile-plugin-action],
     .mobile-topbar-downloads, .msc-text-action) {
     animation: m-settle 220ms var(--m-phone) backwards;
@@ -185,6 +199,7 @@ html:not([data-layout="tablet"]) .nk-msg[data-new] { animation: m-rise 240ms var
 /* ── Tablet: the phone's late arrivals above, on the strong ease-out and a little quicker, as a tablet's frames come every
    16.7 ms (the phone's curve would only look slow there). ── */
 html[data-layout="tablet"] [data-manga-downloads] { animation: m-rise 220ms var(--m-out) backwards; }
+html[data-layout="tablet"] .tsp-actions { animation: m-bar 200ms var(--m-out) backwards; }
 html[data-layout="tablet"] :is(.ps-search-clear, .ps-section-note, .mobile-read-action, .mobile-entry-icon[data-mobile-plugin-action],
     .mobile-topbar-downloads, .msc-text-action) {
     animation: m-settle 200ms var(--m-out) backwards;
@@ -211,6 +226,7 @@ html[data-layout="tablet"] .nk-msg[data-new] { animation: m-rise 220ms var(--m-o
         .mex-action, .msc-row, .msc-check, .pml-row, .pss-group-head, .pss-file-head, .tsp-row, .plib-hidden-head, .gsm-row, .mobile-chapter-open,
         .mobile-chapter-action, .mobile-chapter-order, .mobile-download-list label, .mobile-match-results li > :is(button, a), button.reader-settings-row) { transition: none; }
     html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars-track > span { animation: none; }
+    html:not([data-layout="tablet"]) :is(.ps-icon-button[data-opening], [data-opening] .vc-control-button) { transform: none; }
     html:not([data-layout="tablet"]) :is(.nakama-chat-fab, .nk-msg[data-new]) { animation-name: m-fade; }
     html:not([data-layout="tablet"]) .msc-section { animation-name: m-fade; }
     html:not([data-layout="tablet"]) :is(.pss-group-body, .pss-file-body, .plib-files, #pst-developer-tools,
@@ -219,8 +235,8 @@ html[data-layout="tablet"] .nk-msg[data-new] { animation: m-rise 220ms var(--m-o
     :is([data-settings-sub] > *, [data-unfold]), details[open] > :not(summary),
     :is(.ps-empty, .ps-notice, .luffy-phone, .mex-notice, .mdl-empty) { animation-name: m-fade; animation-delay: 0ms; }
     html:not([data-layout="tablet"]) :is(.ps-search-clear, .ps-section-note, .mobile-read-action, .mobile-entry-icon[data-mobile-plugin-action],
-        .mobile-topbar-downloads, [data-manga-downloads]) { animation-name: m-fade; }
-    :is(.pst-choice, .ps-pick, .ps-choices > button, .ps-chips > button) :is(*, *::after) { animation: none !important; }
+        .mobile-topbar-downloads, .msc-text-action, [data-manga-downloads], .tsp-actions) { animation-name: m-fade; }
+    :is(.pst-choice, .ps-pick, .ps-choices > button, .ps-chips > button, .msc-check) :is(*, *::after) { animation: none !important; }
     .ps-bone { animation: none; }
     :is(.pst-swatches, .mml-status) > button { transition: none; transform: none !important; }
     /* Tablet: the same as the phone above */
@@ -238,5 +254,5 @@ html[data-layout="tablet"] .nk-msg[data-new] { animation: m-rise 220ms var(--m-o
     html[data-layout="tablet"] [data-phone-screen="lists"] .ps-bars-track > span { animation: none; }
     html[data-layout="tablet"] :is(.nakama-chat-fab, .nk-msg[data-new], .msc-section, .pss-group-body, .pss-file-body, .plib-files, #pst-developer-tools,
         .ps-sheet-group:has([data-torrent-more][aria-expanded="true"]) > .tsp-field, .ps-search-clear, .ps-section-note, .mobile-read-action,
-        .mobile-entry-icon[data-mobile-plugin-action], .mobile-topbar-downloads, .msc-text-action, [data-manga-downloads]) { animation-name: m-fade; }
+        .mobile-entry-icon[data-mobile-plugin-action], .mobile-topbar-downloads, .msc-text-action, [data-manga-downloads], .tsp-actions) { animation-name: m-fade; }
 }

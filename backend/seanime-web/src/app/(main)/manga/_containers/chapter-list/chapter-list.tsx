@@ -155,6 +155,8 @@ export function ChapterList(props: ChapterListProps) {
     const chapterOrder = showUnreadChapter ? unreadOrder : allOrder
     // Unread / All and the order turn the list over in place; it rises in instead of changing under the finger.
     usePhoneSwap(chapterListRef, `${showUnreadChapter}|${chapterOrder}`)
+    const mobileTabPanelRef = React.useRef<HTMLDivElement>(null)
+    usePhoneSwap(mobileTabPanelRef, mobileTab)
     const setChapterOrder = showUnreadChapter ? setUnreadOrder : setAllOrder
     const downloadableUnreadChapters = React.useMemo(() => unreadChapters.filter(chapter => {
         return !isChapterLocal(chapter) && !isChapterDownloaded(chapter) && !isChapterQueued(chapter)
@@ -358,192 +360,195 @@ export function ChapterList(props: ChapterListProps) {
                 </button>)}
             </div>
 
-            {mobileTab === "downloaded" && <MobileDownloadedChapters entry={entry} />}
+            {/* Online reading | Downloaded: the chosen tab's content rises in instead of being swapped in one frame */}
+            <div ref={mobileTabPanelRef} className="space-y-4">
+                {mobileTab === "downloaded" && <MobileDownloadedChapters entry={entry} />}
 
-            {mobileTab === "online" && <section className="mobile-episode-options mobile-chapter-options" aria-label={t("Source & reading options", "Quelle & Leseoptionen")}>
-                {/* Each field carries a small caption: the chosen values alone ("MangaFire", "official") do not say what they are */}
-                <div className="mobile-source-pair mobile-source-fields" role="group" aria-label={t("Source", "Quelle")}>
-                    <div className="mobile-source-field">
-                        <span aria-hidden>{t("Source", "Quelle")}</span>
-                        <Select
-                            options={providerOptions}
-                            value={selectedProvider || ""}
-                            onValueChange={v => setSelectedProvider({ mId: mediaId, provider: v })}
-                            disabled={sourceRefreshRunning}
-                            aria-label={t("Source", "Quelle")}
-                        />
+                {mobileTab === "online" && <section className="mobile-episode-options mobile-chapter-options" aria-label={t("Source & reading options", "Quelle & Leseoptionen")}>
+                    {/* Each field carries a small caption: the chosen values alone ("MangaFire", "official") do not say what they are */}
+                    <div className="mobile-source-pair mobile-source-fields" role="group" aria-label={t("Source", "Quelle")}>
+                        <div className="mobile-source-field">
+                            <span aria-hidden>{t("Source", "Quelle")}</span>
+                            <Select
+                                options={providerOptions}
+                                value={selectedProvider || ""}
+                                onValueChange={v => setSelectedProvider({ mId: mediaId, provider: v })}
+                                disabled={sourceRefreshRunning}
+                                aria-label={t("Source", "Quelle")}
+                            />
+                        </div>
                     </div>
-                </div>
-                {(selectedExtension?.settings?.supportsMultiLanguage || selectedExtension?.settings?.supportsMultiScanlator) &&
-                    <div className="mobile-source-pair mobile-source-fields mobile-chapter-filter-pair" role="group" aria-label={t("Chapter filters", "Kapitelfilter")}>
-                    {selectedExtension?.settings?.supportsMultiLanguage && <div className="mobile-source-field">
-                        <span aria-hidden>{t("Language", "Sprache")}</span>
-                        <Select
-                            options={languageOptions}
-                            placeholder={t("All languages", "Alle Sprachen")}
-                            value={selectedFilters.language}
-                            onValueChange={v => setSelectedLanguage({ mId: mediaId, language: v })}
-                            aria-label={t("Language", "Sprache")}
-                        />
+                    {(selectedExtension?.settings?.supportsMultiLanguage || selectedExtension?.settings?.supportsMultiScanlator) &&
+                        <div className="mobile-source-pair mobile-source-fields mobile-chapter-filter-pair" role="group" aria-label={t("Chapter filters", "Kapitelfilter")}>
+                        {selectedExtension?.settings?.supportsMultiLanguage && <div className="mobile-source-field">
+                            <span aria-hidden>{t("Language", "Sprache")}</span>
+                            <Select
+                                options={languageOptions}
+                                placeholder={t("All languages", "Alle Sprachen")}
+                                value={selectedFilters.language}
+                                onValueChange={v => setSelectedLanguage({ mId: mediaId, language: v })}
+                                aria-label={t("Language", "Sprache")}
+                            />
+                        </div>}
+                        {selectedExtension?.settings?.supportsMultiScanlator && <div className="mobile-source-field">
+                            <span aria-hidden>{t("Translator", "Übersetzer")}</span>
+                            <Select
+                                options={scanlatorOptions}
+                                placeholder={t("All translators", "Alle Übersetzer")}
+                                value={selectedFilters.scanlators[0] || ""}
+                                onValueChange={v => setSelectedScanlator({ mId: mediaId, scanlators: [v] })}
+                                aria-label={t("Translator (scanlator)", "Übersetzer (Scanlator)")}
+                            />
+                        </div>}
                     </div>}
-                    {selectedExtension?.settings?.supportsMultiScanlator && <div className="mobile-source-field">
-                        <span aria-hidden>{t("Translator", "Übersetzer")}</span>
-                        <Select
-                            options={scanlatorOptions}
-                            placeholder={t("All translators", "Alle Übersetzer")}
-                            value={selectedFilters.scanlators[0] || ""}
-                            onValueChange={v => setSelectedScanlator({ mId: mediaId, scanlators: [v] })}
-                            aria-label={t("Translator (scanlator)", "Übersetzer (Scanlator)")}
-                        />
-                    </div>}
-                </div>}
-                {/* Rarely needed: reloading the source and matching the title by hand wait behind one quiet button */}
-                <div className="mobile-source-more">
-                    <Button ref={moreButton} leftIcon={<BiDotsVerticalRounded />} intent="gray-basic" size="sm" aria-haspopup="dialog"
-                        aria-label={t("More source options", "Weitere Quellen-Optionen")} onClick={() => setSourceSheet("menu")} data-manga-source-more>
-                        {sourceRefreshRunning ? t("Refreshing …", "Wird aktualisiert …") : t("More", "Mehr")}
-                    </Button>
-                </div>
-                <PhoneSheet title={t("Source", "Quelle")} open={sourceSheet === "menu"} onOpenChange={open => { if (!open) setSourceSheet(null) }}
-                    returnFocusRef={moreButton} data-manga-source-sheet>
-                    <div className="ps-rows">
-                        <PhoneRow icon={<FaRedo />} data-manga-source-refresh
-                            label={sourceRefreshRunning ? t("Refreshing …", "Wird aktualisiert …") : t("Reload source", "Quelle neu laden")}
-                            note={t("Looks for new chapters of this manga at the source", "Sucht bei der Quelle nach neuen Kapiteln dieses Manga")}
-                            disabled={isStartingSourceRefresh || !preferencesHydrated || !selectedExtension || !sourceRefreshEligible || sourceRefreshRunning}
-                            onClick={() => {
-                                setSourceSheet(null)
-                                if (mediaId) startSourceRefresh({ mode: "refresh_selected", mediaIds: [Number(mediaId)] }, {
-                                    onSuccess: () => toast.info(t("Source refresh started", "Quellen-Aktualisierung gestartet")),
-                                })
-                            }} />
-                        <PhoneRow icon={<LuSearch />} chevron data-manga-source-match
-                            label={t("Manual match", "Manuell zuordnen")}
-                            note={t("Pick the matching title at the source yourself", "Den passenden Titel bei der Quelle selbst wählen")}
-                            disabled={!selectedExtension}
-                            onClick={() => {
-                                // One sheet at a time, as on the anime page's "More"
-                                setSourceSheet(null)
-                                setTimeout(() => setSourceSheet("match"), 150)
-                            }} />
+                    {/* Rarely needed: reloading the source and matching the title by hand wait behind one quiet button */}
+                    <div className="mobile-source-more">
+                        <Button ref={moreButton} leftIcon={<BiDotsVerticalRounded />} intent="gray-basic" size="sm" aria-haspopup="dialog"
+                            aria-label={t("More source options", "Weitere Quellen-Optionen")} onClick={() => setSourceSheet("menu")} data-manga-source-more>
+                            {sourceRefreshRunning ? t("Refreshing …", "Wird aktualisiert …") : t("More", "Mehr")}
+                        </Button>
                     </div>
-                </PhoneSheet>
-                <MangaManualMappingModal entry={entry} open={sourceSheet === "match"} onOpenChange={open => { if (!open) setSourceSheet(null) }} />
-            </section>}
+                    <PhoneSheet title={t("Source", "Quelle")} open={sourceSheet === "menu"} onOpenChange={open => { if (!open) setSourceSheet(null) }}
+                        returnFocusRef={moreButton} data-manga-source-sheet>
+                        <div className="ps-rows">
+                            <PhoneRow icon={<FaRedo />} data-manga-source-refresh
+                                label={sourceRefreshRunning ? t("Refreshing …", "Wird aktualisiert …") : t("Reload source", "Quelle neu laden")}
+                                note={t("Looks for new chapters of this manga at the source", "Sucht bei der Quelle nach neuen Kapiteln dieses Manga")}
+                                disabled={isStartingSourceRefresh || !preferencesHydrated || !selectedExtension || !sourceRefreshEligible || sourceRefreshRunning}
+                                onClick={() => {
+                                    setSourceSheet(null)
+                                    if (mediaId) startSourceRefresh({ mode: "refresh_selected", mediaIds: [Number(mediaId)] }, {
+                                        onSuccess: () => toast.info(t("Source refresh started", "Quellen-Aktualisierung gestartet")),
+                                    })
+                                }} />
+                            <PhoneRow icon={<LuSearch />} chevron data-manga-source-match
+                                label={t("Manual match", "Manuell zuordnen")}
+                                note={t("Pick the matching title at the source yourself", "Den passenden Titel bei der Quelle selbst wählen")}
+                                disabled={!selectedExtension}
+                                onClick={() => {
+                                    // One sheet at a time, as on the anime page's "More"
+                                    setSourceSheet(null)
+                                    setTimeout(() => setSourceSheet("match"), 150)
+                                }} />
+                        </div>
+                    </PhoneSheet>
+                    <MangaManualMappingModal entry={entry} open={sourceSheet === "match"} onOpenChange={open => { if (!open) setSourceSheet(null) }} />
+                </section>}
 
-            {mobileTab === "online" && !providerExtensionsLoading && !selectedExtension && <PhoneEmpty data-manga-no-source
-                title={selectedProvider ? t("Saved source unavailable", "Gespeicherte Quelle nicht verfügbar") : t("No manga source available", "Keine Manga-Quelle verfügbar")}
-                text={selectedProvider
-                    ? t(`The saved source “${selectedProvider}” is not installed. Install it again or choose another source.`,
-                        `Die gespeicherte Quelle „${selectedProvider}“ ist nicht installiert. Installiere sie wieder oder wähle eine andere.`)
-                    : t("Install a manga source in Extensions to load chapters.", "Installiere unter Erweiterungen eine Manga-Quelle, um Kapitel zu laden.")}>
-                <SeaLink href="/extensions" className="ps-primary"><LuPuzzle aria-hidden />{t("Open Extensions", "Erweiterungen öffnen")}</SeaLink>
-            </PhoneEmpty>}
+                {mobileTab === "online" && !providerExtensionsLoading && !selectedExtension && <PhoneEmpty data-manga-no-source
+                    title={selectedProvider ? t("Saved source unavailable", "Gespeicherte Quelle nicht verfügbar") : t("No manga source available", "Keine Manga-Quelle verfügbar")}
+                    text={selectedProvider
+                        ? t(`The saved source “${selectedProvider}” is not installed. Install it again or choose another source.`,
+                            `Die gespeicherte Quelle „${selectedProvider}“ ist nicht installiert. Installiere sie wieder oder wähle eine andere.`)
+                        : t("Install a manga source in Extensions to load chapters.", "Installiere unter Erweiterungen eine Manga-Quelle, um Kapitel zu laden.")}>
+                    <SeaLink href="/extensions" className="ps-primary"><LuPuzzle aria-hidden />{t("Open Extensions", "Erweiterungen öffnen")}</SeaLink>
+                </PhoneEmpty>}
 
-            {mobileTab === "downloaded" ? null : chapterContainerLoading ? <LoadingSpinner /> : (
-                chapterContainerError ? <PhoneEmpty title={t("Chapters could not be loaded", "Kapitel konnten nicht geladen werden")} data-manga-chapters-error
-                    text={t("The source did not answer. Check the connection or try again.", "Die Quelle hat nicht geantwortet. Verbindung prüfen oder erneut versuchen.")}>
-                    <button type="button" className="ps-primary" onClick={() => refetchChapterContainer()}><LuRefreshCw aria-hidden />{t("Try again", "Erneut versuchen")}</button>
-                    <MangaManualMappingModal entry={entry}>
-                        <button type="button" className="ps-secondary"><LuSearch aria-hidden />{t("Manual match", "Manuell zuordnen")}</button>
-                    </MangaManualMappingModal>
-                </PhoneEmpty> : (
-                    <>
+                {mobileTab === "downloaded" ? null : chapterContainerLoading ? <LoadingSpinner /> : (
+                    chapterContainerError ? <PhoneEmpty title={t("Chapters could not be loaded", "Kapitel konnten nicht geladen werden")} data-manga-chapters-error
+                        text={t("The source did not answer. Check the connection or try again.", "Die Quelle hat nicht geantwortet. Verbindung prüfen oder erneut versuchen.")}>
+                        <button type="button" className="ps-primary" onClick={() => refetchChapterContainer()}><LuRefreshCw aria-hidden />{t("Try again", "Erneut versuchen")}</button>
+                        <MangaManualMappingModal entry={entry}>
+                            <button type="button" className="ps-secondary"><LuSearch aria-hidden />{t("Manual match", "Manuell zuordnen")}</button>
+                        </MangaManualMappingModal>
+                    </PhoneEmpty> : (
+                        <>
 
-                        {chapterContainer?.chapters?.length === 0 && <PhoneEmpty title={t("No chapters found", "Keine Kapitel gefunden")}
-                            text={t("This source has no chapters of this manga. Try another source.", "Diese Quelle hat keine Kapitel dieses Manga. Probiere eine andere Quelle.")} />}
+                            {chapterContainer?.chapters?.length === 0 && <PhoneEmpty title={t("No chapters found", "Keine Kapitel gefunden")}
+                                text={t("This source has no chapters of this manga. Try another source.", "Diese Quelle hat keine Kapitel dieses Manga. Probiere eine andere Quelle.")} />}
 
-                        {!!chapterContainer?.chapters?.length && (
-                            <div className="mobile-chapters" data-mobile-chapters>
-                                <div className="mobile-episode-heading">
-                                    <h2>{t("Chapters", "Kapitel")} <span>{chapterContainer.chapters.length}</span></h2>
-                                </div>
-                                <div className="mobile-chapter-filters">
-                                    <div className="mobile-source-segment mobile-chapter-show" role="group" aria-label={t("Show chapters", "Kapitel anzeigen")}>
-                                        <button type="button" aria-pressed={showUnreadChapter} onClick={() => { setShowUnreadChapter(true); setMobileVisible(MOBILE_PAGE_SIZE) }}>
-                                            {t("Unread", "Ungelesen")} <span>{unreadChapters.length}</span>
-                                        </button>
-                                        <button type="button" aria-pressed={!showUnreadChapter} onClick={() => { setShowUnreadChapter(false); setMobileVisible(MOBILE_PAGE_SIZE) }}>
-                                            {t("All", "Alle")} <span>{chapterContainer.chapters.length}</span>
-                                        </button>
+                            {!!chapterContainer?.chapters?.length && (
+                                <div className="mobile-chapters" data-mobile-chapters>
+                                    <div className="mobile-episode-heading">
+                                        <h2>{t("Chapters", "Kapitel")} <span>{chapterContainer.chapters.length}</span></h2>
                                     </div>
-                                    {/* One button flips the order; it names the order that is shown */}
-                                    <button type="button" className="mobile-chapter-order" data-chapter-order={chapterOrder}
-                                        aria-label={chapterOrder === "newest"
-                                            ? t("Newest first. Tap for oldest first", "Neueste zuerst. Tippen für älteste zuerst")
-                                            : t("Oldest first. Tap for newest first", "Älteste zuerst. Tippen für neueste zuerst")}
-                                        onClick={() => { setChapterOrder(chapterOrder === "newest" ? "oldest" : "newest"); setMobileVisible(MOBILE_PAGE_SIZE) }}>
-                                        {chapterOrder === "newest" ? <LuArrowDownWideNarrow aria-hidden /> : <LuArrowUpNarrowWide aria-hidden />}
-                                        <span aria-hidden>{chapterOrder === "newest" ? t("Newest first", "Neueste zuerst") : t("Oldest first", "Älteste zuerst")}</span>
-                                    </button>
-                                    <form className="mobile-chapter-jump" onSubmit={jumpToChapter} role="search" aria-label={t("Go to chapter", "Zu Kapitel springen")}>
-                                        <LuHash aria-hidden />
-                                        <input
-                                            type="text"
-                                            name="chapter"
-                                            inputMode="decimal"
-                                            enterKeyHint="go"
-                                            autoComplete="off"
-                                            value={jumpText}
-                                            onChange={event => setJumpText(event.target.value)}
-                                            placeholder={t("Go to chapter", "Zu Kapitel springen")}
-                                            aria-label={t("Chapter number", "Kapitelnummer")}
-                                        />
-                                        <button type="submit" disabled={!jumpText.trim()} aria-label={t("Go", "Los")}
-                                            // keeps the field focused while pressed: its blur moves the layout and the tap would miss
-                                            onMouseDown={event => event.preventDefault()}>
-                                            <LuArrowRight aria-hidden />
-                                        </button>
-                                    </form>
-                                </div>
-                                {!chapters.length && <p className="mobile-chapter-empty">{showDownloadedChapters
-                                    ? t("No downloaded chapters here.", "Hier sind keine Kapitel geladen.")
-                                    : t("All chapters are read.", "Alle Kapitel sind gelesen.")}</p>}
-                                <ul className="mobile-chapter-list" ref={chapterListRef} aria-label={t("Chapters", "Kapitel")}>
-                                    {chapters.slice(0, mobileVisible).map(chapter => {
-                                        const downloaded = isChapterDownloaded(chapter)
-                                        const queued = isChapterQueued(chapter)
-                                        const canDownload = !isChapterLocal(chapter) && !downloaded && !queued
-                                        const language = chapter.language ? LANGUAGES_LIST[chapter.language]?.nativeName || chapter.language : null
-                                        return <li key={chapter.id} data-mobile-chapter={chapter.chapter} data-chapter-id={chapter.id} data-read={!retainUnreadChapters(chapter) || undefined}
-                                            data-chapter-jumped={highlightedChapterId === chapter.id || undefined}
-                                            className={cn("transition-colors duration-500", highlightedChapterId === chapter.id && "rounded-lg bg-[--sm-accent-soft]")}>
-                                            <button type="button" className="mobile-chapter-open"
-                                                onClick={() => setSelectedChapter({
-                                                    chapterId: chapter.id,
-                                                    chapterNumber: chapter.chapter,
-                                                    provider: chapter.provider,
-                                                    mediaId: Number(mediaId),
-                                                })}>
-                                                {/* Titles that only repeat the number ("Chapter 2") don't get the number again underneath. */}
-                                                <span className="mobile-chapter-title">{chapter.title || `${t("Chapter", "Kapitel")} ${chapter.chapter}`}</span>
-                                                <span className="mobile-chapter-meta">{[
-                                                    !chapter.title || chapter.title.trim().toLowerCase().replace(/^(chapter|ch\.?|kapitel)\s*/, "") === String(chapter.chapter).toLowerCase()
-                                                        ? null : `${t("Chapter", "Kapitel")} ${chapter.chapter}`,
-                                                    chapter.scanlator, selectedExtension?.settings?.supportsMultiLanguage ? language : null,
-                                                ].filter(Boolean).join(" · ")}</span>
+                                    <div className="mobile-chapter-filters">
+                                        <div className="mobile-source-segment mobile-chapter-show" role="group" aria-label={t("Show chapters", "Kapitel anzeigen")}>
+                                            <button type="button" aria-pressed={showUnreadChapter} onClick={() => { setShowUnreadChapter(true); setMobileVisible(MOBILE_PAGE_SIZE) }}>
+                                                {t("Unread", "Ungelesen")} <span>{unreadChapters.length}</span>
                                             </button>
-                                            {canDownload && <button type="button" className="mobile-chapter-action" disabled={isSendingDownloadRequest}
-                                                aria-label={t(`Download chapter ${chapter.chapter}`, `Kapitel ${chapter.chapter} laden`)} onClick={() => downloadChapters([chapter])}>
-                                                <LuDownload aria-hidden />
-                                            </button>}
-                                            {queued && <span className="mobile-chapter-state">{t("Queued", "Eingeplant")}</span>}
-                                            {downloaded && <span className="mobile-chapter-state mobile-chapter-state-saved" aria-label={t("Downloaded", "Geladen")}><MdOutlineOfflinePin aria-hidden /></span>}
-                                        </li>
-                                    })}
-                                </ul>
-                                {chapters.length > mobileVisible && <button type="button" className="mobile-chapter-more" onClick={() => setMobileVisible(v => v + MOBILE_PAGE_SIZE)}>
-                                    <LuChevronDown aria-hidden />{t(`Show more (${chapters.length - mobileVisible})`, `Mehr anzeigen (${chapters.length - mobileVisible})`)}
-                                </button>}
-                                {!downloadDataLoading && !!downloadableUnreadChapters.length && <button type="button" className="mobile-chapter-download-unread"
-                                    disabled={isSendingDownloadRequest} onClick={() => confirmDownloadUnread.open()}>
-                                    <LuDownload aria-hidden />{t(`Download unread (${downloadableUnreadChapters.length})`, `Ungelesene laden (${downloadableUnreadChapters.length})`)}
-                                </button>}
-                            </div>
-                        )}
-                    </>
-                )
-            )}
+                                            <button type="button" aria-pressed={!showUnreadChapter} onClick={() => { setShowUnreadChapter(false); setMobileVisible(MOBILE_PAGE_SIZE) }}>
+                                                {t("All", "Alle")} <span>{chapterContainer.chapters.length}</span>
+                                            </button>
+                                        </div>
+                                        {/* One button flips the order; it names the order that is shown */}
+                                        <button type="button" className="mobile-chapter-order" data-chapter-order={chapterOrder}
+                                            aria-label={chapterOrder === "newest"
+                                                ? t("Newest first. Tap for oldest first", "Neueste zuerst. Tippen für älteste zuerst")
+                                                : t("Oldest first. Tap for newest first", "Älteste zuerst. Tippen für neueste zuerst")}
+                                            onClick={() => { setChapterOrder(chapterOrder === "newest" ? "oldest" : "newest"); setMobileVisible(MOBILE_PAGE_SIZE) }}>
+                                            {chapterOrder === "newest" ? <LuArrowDownWideNarrow aria-hidden /> : <LuArrowUpNarrowWide aria-hidden />}
+                                            <span aria-hidden>{chapterOrder === "newest" ? t("Newest first", "Neueste zuerst") : t("Oldest first", "Älteste zuerst")}</span>
+                                        </button>
+                                        <form className="mobile-chapter-jump" onSubmit={jumpToChapter} role="search" aria-label={t("Go to chapter", "Zu Kapitel springen")}>
+                                            <LuHash aria-hidden />
+                                            <input
+                                                type="text"
+                                                name="chapter"
+                                                inputMode="decimal"
+                                                enterKeyHint="go"
+                                                autoComplete="off"
+                                                value={jumpText}
+                                                onChange={event => setJumpText(event.target.value)}
+                                                placeholder={t("Go to chapter", "Zu Kapitel springen")}
+                                                aria-label={t("Chapter number", "Kapitelnummer")}
+                                            />
+                                            <button type="submit" disabled={!jumpText.trim()} aria-label={t("Go", "Los")}
+                                                // keeps the field focused while pressed: its blur moves the layout and the tap would miss
+                                                onMouseDown={event => event.preventDefault()}>
+                                                <LuArrowRight aria-hidden />
+                                            </button>
+                                        </form>
+                                    </div>
+                                    {!chapters.length && <p className="mobile-chapter-empty">{showDownloadedChapters
+                                        ? t("No downloaded chapters here.", "Hier sind keine Kapitel geladen.")
+                                        : t("All chapters are read.", "Alle Kapitel sind gelesen.")}</p>}
+                                    <ul className="mobile-chapter-list" ref={chapterListRef} aria-label={t("Chapters", "Kapitel")}>
+                                        {chapters.slice(0, mobileVisible).map(chapter => {
+                                            const downloaded = isChapterDownloaded(chapter)
+                                            const queued = isChapterQueued(chapter)
+                                            const canDownload = !isChapterLocal(chapter) && !downloaded && !queued
+                                            const language = chapter.language ? LANGUAGES_LIST[chapter.language]?.nativeName || chapter.language : null
+                                            return <li key={chapter.id} data-mobile-chapter={chapter.chapter} data-chapter-id={chapter.id} data-read={!retainUnreadChapters(chapter) || undefined}
+                                                data-chapter-jumped={highlightedChapterId === chapter.id || undefined}
+                                                className={cn("transition-colors duration-500", highlightedChapterId === chapter.id && "rounded-lg bg-[--sm-accent-soft]")}>
+                                                <button type="button" className="mobile-chapter-open"
+                                                    onClick={() => setSelectedChapter({
+                                                        chapterId: chapter.id,
+                                                        chapterNumber: chapter.chapter,
+                                                        provider: chapter.provider,
+                                                        mediaId: Number(mediaId),
+                                                    })}>
+                                                    {/* Titles that only repeat the number ("Chapter 2") don't get the number again underneath. */}
+                                                    <span className="mobile-chapter-title">{chapter.title || `${t("Chapter", "Kapitel")} ${chapter.chapter}`}</span>
+                                                    <span className="mobile-chapter-meta">{[
+                                                        !chapter.title || chapter.title.trim().toLowerCase().replace(/^(chapter|ch\.?|kapitel)\s*/, "") === String(chapter.chapter).toLowerCase()
+                                                            ? null : `${t("Chapter", "Kapitel")} ${chapter.chapter}`,
+                                                        chapter.scanlator, selectedExtension?.settings?.supportsMultiLanguage ? language : null,
+                                                    ].filter(Boolean).join(" · ")}</span>
+                                                </button>
+                                                {canDownload && <button type="button" className="mobile-chapter-action" disabled={isSendingDownloadRequest}
+                                                    aria-label={t(`Download chapter ${chapter.chapter}`, `Kapitel ${chapter.chapter} laden`)} onClick={() => downloadChapters([chapter])}>
+                                                    <LuDownload aria-hidden />
+                                                </button>}
+                                                {queued && <span className="mobile-chapter-state">{t("Queued", "Eingeplant")}</span>}
+                                                {downloaded && <span className="mobile-chapter-state mobile-chapter-state-saved" aria-label={t("Downloaded", "Geladen")}><MdOutlineOfflinePin aria-hidden /></span>}
+                                            </li>
+                                        })}
+                                    </ul>
+                                    {chapters.length > mobileVisible && <button type="button" className="mobile-chapter-more" onClick={() => setMobileVisible(v => v + MOBILE_PAGE_SIZE)}>
+                                        <LuChevronDown aria-hidden />{t(`Show more (${chapters.length - mobileVisible})`, `Mehr anzeigen (${chapters.length - mobileVisible})`)}
+                                    </button>}
+                                    {!downloadDataLoading && !!downloadableUnreadChapters.length && <button type="button" className="mobile-chapter-download-unread"
+                                        disabled={isSendingDownloadRequest} onClick={() => confirmDownloadUnread.open()}>
+                                        <LuDownload aria-hidden />{t(`Download unread (${downloadableUnreadChapters.length})`, `Ungelesene laden (${downloadableUnreadChapters.length})`)}
+                                    </button>}
+                                </div>
+                            )}
+                        </>
+                    )
+                )}
+            </div>
 
             {(chapterContainer || downloadedChapterContainer) && <ChapterReaderDrawer
                 entry={entry}

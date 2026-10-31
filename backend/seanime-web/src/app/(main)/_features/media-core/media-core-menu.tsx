@@ -8,6 +8,7 @@ import { LuCheck, LuChevronLeft, LuChevronRight } from "react-icons/lu"
 import { MediaCoreSelectOption } from "./media-core.types"
 import { menuText } from "./media-core-texts"
 import { useTr } from "@/lib/app-language"
+import { openAfterPress } from "@/lib/motion"
 
 export interface MediaCoreMenuProps {
     name: string
@@ -41,6 +42,7 @@ export function MediaCoreMenu(props: MediaCoreMenuProps) {
     } = props
 
     const t = useRef<NodeJS.Timeout | null>(null)
+    const triggerRef = useRef<HTMLDivElement>(null)
     React.useEffect(() => {
         if (openMenu === null) {
             t.current = setTimeout(() => {
@@ -60,9 +62,11 @@ export function MediaCoreMenu(props: MediaCoreMenuProps) {
             data-vc-element="menu"
             open={openMenu === name}
             onOpenChange={v => {
-                onOpenMenuChange(v ? name : null)
+                // Phone: the settings take ~300 ms to build, so the button shows the tap first
+                if (v) openAfterPress(triggerRef.current, () => onOpenMenuChange(name))
+                else onOpenMenuChange(null)
             }}
-            trigger={<div>{trigger}</div>}
+            trigger={<div ref={triggerRef}>{trigger}</div>}
             sideOffset={sideOffset}
             align="center"
             side="top"

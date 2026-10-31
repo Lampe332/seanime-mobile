@@ -7,6 +7,7 @@ import { initEntryPreloader } from "@/lib/entry-preloader"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createStore } from "jotai"
 import { Provider as JotaiProvider } from "jotai/react"
+import { MotionConfig } from "motion/react"
 import React from "react"
 
 interface ClientProvidersProps {
@@ -35,11 +36,14 @@ export const ClientProviders: React.FC<ClientProvidersProps> = ({ children }) =>
     return (
         <JotaiProvider store={store}>
             <QueryClientProvider client={queryClient}>
-                <WebsocketProvider>
-                    {children}
-                    <CustomThemeProvider />
-                    <Toaster />
-                </WebsocketProvider>
+                {/* Reduced motion: Motion's x/y/scale animations end at once, their fades still play (CSS rules can't reach them) */}
+                <MotionConfig reducedMotion="user">
+                    <WebsocketProvider>
+                        {children}
+                        <CustomThemeProvider />
+                        <Toaster />
+                    </WebsocketProvider>
+                </MotionConfig>
                 <CustomCSSProvider />
             </QueryClientProvider>
         </JotaiProvider>

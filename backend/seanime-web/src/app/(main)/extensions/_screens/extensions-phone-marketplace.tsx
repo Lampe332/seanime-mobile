@@ -12,6 +12,7 @@ import { ExtensionIcon, focusSheet, MarketplaceSheet, SearchField, Spinner, UrlF
 import { LANGUAGES_LIST } from "@/app/(main)/manga/_lib/language-map"
 import { Modal } from "@/components/ui/modal"
 import { appLanguageAtom, Translate } from "@/lib/app-language"
+import { usePhoneSwap } from "@/lib/motion"
 import { useSearchParams } from "@/lib/navigation"
 import { atom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
@@ -45,6 +46,9 @@ export function MarketplacePhone({ t, installedIds }: { t: Translate, installedI
     const { data, isPending, isError, isFetching, refetch } = useGetMarketplaceExtensions(url)
     const [type, setType] = useAtom(__extensions_marketTypeAtom)
     const chipsRef = React.useRef<HTMLDivElement>(null)
+    // A chosen type's list rises in instead of being swapped in one frame
+    const listRef = React.useRef<HTMLDivElement>(null)
+    usePhoneSwap(listRef, isPending ? null : type)
     const [language, setLanguage] = React.useState("all")
     const [search, setSearch] = React.useState("")
     const [repoOpen, setRepoOpen] = React.useState(false)
@@ -155,7 +159,7 @@ export function MarketplacePhone({ t, installedIds }: { t: Translate, installedI
             </div>
         </div>}
 
-        <div id="mex-market-list" role="tabpanel" className="mex-market-list">
+        <div ref={listRef} id="mex-market-list" role="tabpanel" className="mex-market-list">
             {isError && !data ? <div className="mex-notice" role="alert" data-marketplace-error>
                     <p>{typeof navigator !== "undefined" && navigator.onLine === false
                         ? t("No internet connection, so the repository could not be loaded.", "Keine Internetverbindung, deshalb konnte das Repository nicht geladen werden.")

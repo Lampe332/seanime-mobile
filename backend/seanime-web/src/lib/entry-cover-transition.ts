@@ -10,8 +10,11 @@ import "./entry-cover-transition.css"
 const ENTRY_PATHS = ["/entry", "/manga/entry"]
 const COVER_NAME = "entry-cover"
 // The screen stands frozen on the old page while this waits, so it gives up soon and the page just fades in (a tablet
-// waiting 600 ms for a picture still loading stood still for ~830 ms).
+// waiting 600 ms for a picture still loading stood still for ~830 ms). The wait counts from when the page is built: a
+// heavy one (a manga with 300 chapters, ~325 ms on a phone) had used it all up before it could show its cover. MAX_WAIT_MS
+// caps the whole hold.
 const WAIT_MS = 250
+const MAX_WAIT_MS = 450
 
 type ViewTransitionDocument = Document & { startViewTransition?: (update: () => Promise<void> | void) => { finished: Promise<void> } }
 
@@ -60,18 +63,30 @@ function onClick(event: MouseEvent) {
     })
     transition.finished.finally(() => {
         html.removeAttribute("data-entry-cover-transition")
+        html.removeAttribute("data-entry-cover-miss")
         pageCover?.style.removeProperty("view-transition-name")
     }).catch(() => undefined)
 }
 
-/** The page header's cover once its picture is there; null when the page is not that far within WAIT_MS. */
+/**
+ * The page header's cover once its picture is there; null when it is not within WAIT_MS of the page being built (or
+ * MAX_WAIT_MS in all). Then the old cover has nowhere to fly: entry-cover-transition.css lets it fade out quickly where it
+ * is instead of standing over the new page.
+ */
 function waitForPageCover(pathname: string): Promise<HTMLElement | null> {
     const started = performance.now()
+    let built = 0
     return new Promise(resolve => {
         const look = () => {
-            const img = location.pathname === pathname ? document.querySelector<HTMLImageElement>(".mobile-anime-cover img") : null
+            const now = performance.now()
+            const header = location.pathname === pathname ? document.querySelector<HTMLElement>(".mobile-anime-cover") : null
+            if (header && !built) built = now
+            const img = header?.querySelector("img")
             if (img && img.complete && img.naturalWidth > 0) return resolve(img)
-            if (performance.now() - started > WAIT_MS) return resolve(null)
+            if ((built && now - built > WAIT_MS) || now - started > MAX_WAIT_MS) {
+                document.documentElement.setAttribute("data-entry-cover-miss", "")
+                return resolve(null)
+            }
             setTimeout(look, 16)
         }
         look()

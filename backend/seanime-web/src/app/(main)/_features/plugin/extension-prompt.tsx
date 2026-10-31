@@ -3,6 +3,7 @@ import { useIsMainTab, websocketConnectedAtom } from "@/app/websocket-provider"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { Modal } from "@/components/ui/modal"
+import { prefersReducedMotion } from "@/lib/motion"
 import { WSEvents } from "@/lib/server/ws-events"
 import { useAtomValue } from "jotai"
 import * as React from "react"
@@ -43,7 +44,7 @@ export function ExtensionPrompt() {
 
     function handleShake() {
         const modal = frameRef.current
-        if (modal) {
+        if (modal && !prefersReducedMotion()) {
             shakeRef.current?.cancel()
             shakeRef.current = modal.animate([
                 { transform: "translateX(0) scale(1)" },

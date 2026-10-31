@@ -91,6 +91,24 @@ export function usePhoneStep<T extends HTMLElement>(ref: React.RefObject<T | nul
     }, [step])
 }
 
+/**
+ * Phone: opens what takes long to build (the big filter sheets, the player's settings: 195-320 ms before their first frame)
+ * one frame after the tap, its trigger marked data-opening meanwhile (motion.css), so the tap shows at once instead of
+ * after the build. The tablet builds them quickly enough and opens at once.
+ */
+export function openAfterPress(trigger: HTMLElement | null | undefined, open: () => void) {
+    if (IS_TABLET_UI || !trigger) return open()
+    trigger.setAttribute("data-opening", "")
+    requestAnimationFrame(() => setTimeout(() => {
+        try {
+            open()
+        }
+        finally {
+            requestAnimationFrame(() => trigger.removeAttribute("data-opening"))
+        }
+    }, 0))
+}
+
 const lastViews = new Map<string, string>()
 
 /**

@@ -61,7 +61,7 @@ import { ParsedLocation, useLocation, useRouter } from "@tanstack/react-router"
 import { atom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
 import React from "react"
-import { useSwap } from "@/lib/motion"
+import { openAfterPress, useSwap } from "@/lib/motion"
 import { LuArrowUp, LuFolderTree, LuLibrary, LuListPlus, LuLoaderCircle, LuSlidersHorizontal, LuStar, LuX } from "react-icons/lu"
 import "./search-phone.css"
 
@@ -296,7 +296,7 @@ export function SearchPhone() {
 
     return <PhoneScreen screen="search">
         <PhoneHeader title={t("Search", "Suche")} facts={searchTitle(t, state)}>
-            <PhoneIconButton ref={filterButtonRef} onClick={() => onSheetChange(true)} dot={chips.length > 0} data-search-filter-button
+            <PhoneIconButton ref={filterButtonRef} onClick={e => openAfterPress(e.currentTarget, () => onSheetChange(true))} dot={chips.length > 0} data-search-filter-button
                 label={chips.length ? `${t("Filters", "Filter")}, ${chips.length} ${t("active", "aktiv")}` : t("Filters", "Filter")}>
                 <LuSlidersHorizontal aria-hidden />
                 <TabletLabel>{t("Filter", "Filter")}</TabletLabel>

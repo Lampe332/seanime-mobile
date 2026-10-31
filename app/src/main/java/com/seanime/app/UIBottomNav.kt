@@ -37,13 +37,20 @@ object UIBottomNav {
                     padding: 0 4px env(safe-area-inset-bottom, 0px);
                     opacity: 0;
                     pointer-events: none;
-                    transition: opacity 0.25s ease;
+                    /* Hidden only once the fade is over, so the bar fades out instead of vanishing in one frame */
+                    transition: opacity 0.25s ease, visibility 0s linear 0.25s;
                 }
                 #__seanime_bottom_nav.visible {
                     opacity: 1;
                     pointer-events: auto;
+                    transition: opacity 0.25s ease, visibility 0s;
                 }
                 #__seanime_bottom_nav:not(.visible) { visibility: hidden; }
+                /* Phone: leaves as quickly as a sheet closes */
+                html:not([data-layout="tablet"]) #__seanime_bottom_nav:not(.visible) {
+                    transition-duration: 0.16s, 0s;
+                    transition-delay: 0s, 0.16s;
+                }
                 #__seanime_bottom_nav a[data-active="true"],
                 #__seanime_bottom_nav button[data-active="true"] {
                     color: #c4b5fd;
@@ -506,11 +513,12 @@ object UIBottomNav {
                     padding: 24px;
                     opacity: 0;
                     pointer-events: none;
-                    transition: opacity 0.18s ease;
+                    transition: opacity 0.18s ease, visibility 0s linear 0.18s;
                 }
                 #__seanime_reset_dialog_overlay.visible {
                     opacity: 1;
                     pointer-events: auto;
+                    transition: opacity 0.18s ease, visibility 0s;
                 }
                 #__seanime_reset_dialog_overlay:not(.visible) { visibility: hidden; }
                 #__seanime_reset_dialog {
@@ -1171,6 +1179,14 @@ object UIBottomNav {
                         });
                     });
 
+                    // Phone: the unfold's clock ran from display:flex, but the glass panel reached the screen ~120 ms later,
+                    // two thirds of the way in. It holds its first (hidden) keyframe until a frame has been drawn.
+                    if (!TABLET_UI) {
+                        menu.style.animationPlayState = 'paused';
+                        requestAnimationFrame(function() {
+                            requestAnimationFrame(function() { menu.style.animationPlayState = ''; });
+                        });
+                    }
                     menu.style.display = 'flex';
                     menu.style.pointerEvents = 'auto';
                     menuOpen = true;

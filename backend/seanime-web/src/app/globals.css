@@ -356,7 +356,17 @@ pre {
 [data-anime-meta-section-rankings-container="true"], [data-media-entry-genres-list="true"], [data-media-entry-audience-score="true"],
 [data-anime-entry-studio-badge="true"], [data-media-page-header-details-description-trigger="true"] { display: none !important; }
 
-/* With reduced motion requested, every animation and transition finishes at once. */
+/* With reduced motion requested, nothing travels: transitions (a press's give, a slide) finish at once. Keyframe animations
+   keep running, so fades still fade and spinners still spin; each one that moves has its own reduced variant (lib/motion.css
+   and the screens' CSS), the kit's enter/exit animations (tailwindcss-animate) keep only their fade, and the rest below. */
 @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+    *, *::before, *::after {
+        transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+        --tw-enter-translate-x: 0 !important; --tw-enter-translate-y: 0 !important; --tw-enter-scale: 1 !important; --tw-enter-rotate: 0 !important;
+        --tw-exit-translate-x: 0 !important; --tw-exit-translate-y: 0 !important; --tw-exit-scale: 1 !important; --tw-exit-rotate: 0 !important;
+    }
+    .animate-bounce { animation: none !important; }
+    /* Drawers (vaul: the manga reader's, the player's) fade instead of sliding in and out */
+    [data-vaul-drawer][data-state="open"] { animation-name: fadeIn !important; }
+    [data-vaul-drawer][data-state="closed"] { animation-name: fadeOut !important; }
 }

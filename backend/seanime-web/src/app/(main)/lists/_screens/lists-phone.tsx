@@ -61,7 +61,7 @@ import { atom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import React from "react"
-import { usePhoneViewSwap, useSwap } from "@/lib/motion"
+import { openAfterPress, usePhoneViewSwap, useSwap } from "@/lib/motion"
 import { LuArrowUp, LuChartColumn, LuListPlus, LuPlay, LuRefreshCcw, LuSlidersHorizontal } from "react-icons/lu"
 import { toast } from "sonner"
 import "./lists-phone.css"
@@ -352,7 +352,7 @@ function ListsCollection({ type, t, typeSwitch, refreshButton, statsButton }: Co
     return <>
         <PhoneHeader title={t("My lists", "Meine Listen")} facts={factsText}>
             {refreshButton}
-            <PhoneIconButton ref={filterButtonRef} label={filterLabel} dot={activeFilters > 0} onClick={() => setSheetOpen(true)} data-lists-filter-button
+            <PhoneIconButton ref={filterButtonRef} label={filterLabel} dot={activeFilters > 0} onClick={e => openAfterPress(e.currentTarget, () => setSheetOpen(true))} data-lists-filter-button
                 disabled={!ready || facts.total === 0}>
                 <LuSlidersHorizontal aria-hidden />
                 <TabletLabel>{t("Filter", "Filter")}</TabletLabel>

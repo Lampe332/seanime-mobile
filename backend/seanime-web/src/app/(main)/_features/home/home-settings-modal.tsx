@@ -14,6 +14,8 @@ import { NumberInput } from "@/components/ui/number-input"
 import { RadioGroup } from "@/components/ui/radio-group"
 import { Select } from "@/components/ui/select"
 import { TextInput } from "@/components/ui/text-input"
+import { MOTION_EASE_OUT, PHONE_EASE, prefersReducedMotion } from "@/lib/motion"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { arrayMove } from "@dnd-kit/sortable"
 import { useQueryClient } from "@tanstack/react-query"
@@ -81,6 +83,34 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, homeItems: _h
         }
         return !currentItems.some(item => item.type === type)
     })
+
+    // Move up/down: the two rows glide to their new places (FLIP) instead of trading places in one frame. Where each row stood
+    // in the list is taken at the tap; the move shows once the saved order comes back.
+    const sectionListRef = React.useRef<HTMLUListElement>(null)
+    const rowsBefore = React.useRef<Map<string, number> | null>(null)
+    const rememberRows = () => {
+        const list = sectionListRef.current
+        if (!list) return
+        const top = list.getBoundingClientRect().top
+        rowsBefore.current = new Map(Array.from(list.querySelectorAll<HTMLElement>(":scope > [data-home-mobile-item]"),
+            row => [row.dataset.homeMobileItem!, row.getBoundingClientRect().top - top]))
+    }
+    const order = currentItems.map(item => item.id).join()
+    React.useLayoutEffect(() => {
+        const before = rowsBefore.current
+        const list = sectionListRef.current
+        if (!before || !list) return
+        rowsBefore.current = null
+        if (prefersReducedMotion()) return
+        const top = list.getBoundingClientRect().top
+        for (const row of Array.from(list.querySelectorAll<HTMLElement>(":scope > [data-home-mobile-item]"))) {
+            const from = before.get(row.dataset.homeMobileItem!)
+            const dy = from === undefined ? 0 : from - (row.getBoundingClientRect().top - top)
+            if (Math.abs(dy) < 1 || typeof row.animate !== "function") continue
+            row.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }],
+                IS_TABLET_UI ? { duration: 200, easing: MOTION_EASE_OUT } : { duration: 220, easing: PHONE_EASE })
+        }
+    }, [order])
 
     const checkTimeRef = React.useRef<NodeJS.Timeout | null>(null)
     React.useEffect(() => {
@@ -265,7 +295,7 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, homeItems: _h
                             <h3 id="home-customize-active">{tr("On your Home", "Auf deiner Startseite")}</h3>
                             <p>{tr("Changes save automatically.", "Änderungen werden automatisch gespeichert.")}</p>
                         </div>
-                        <ul className="home-customize-list">
+                        <ul ref={sectionListRef} className="home-customize-list">
                             {currentItems.map((item, index) => {
                                 const name = homeSectionName(item.type, tr)
                                 return <li className="home-customize-row" data-home-mobile-item={item.id} data-home-item-type={item.type} key={item.id}>
@@ -282,7 +312,10 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary, homeItems: _h
                                         {([-1, 1] as const).map(direction => <button key={direction} type="button" className="home-customize-tool"
                                             disabled={isUpdatingHomeItems || (direction < 0 ? index === 0 : index === currentItems.length - 1)}
                                             aria-label={`${direction < 0 ? tr("Move up", "Nach oben") : tr("Move down", "Nach unten")}: ${name}`}
-                                            onClick={() => updateHomeItems({ items: normalizeHomeItems(arrayMove(currentItems, index, index + direction)) })}>
+                                            onClick={() => {
+                                                rememberRows()
+                                                updateHomeItems({ items: normalizeHomeItems(arrayMove(currentItems, index, index + direction)) })
+                                            }}>
                                             {direction < 0 ? <LuArrowUp aria-hidden /> : <LuArrowDown aria-hidden />}
                                         </button>)}
                                         {HOME_ITEMS[item.type]?.options && <button type="button" className="home-customize-tool home-customize-options" disabled={isUpdatingHomeItems}

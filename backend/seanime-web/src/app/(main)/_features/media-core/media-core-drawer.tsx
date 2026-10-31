@@ -1,5 +1,6 @@
 import { CloseButton } from "@/components/ui/button"
 import { cn, ComponentAnatomy, defineStyleAnatomy } from "@/components/ui/core/styling"
+import { prefersReducedMotion } from "@/lib/motion"
 import type * as DialogPrimitive from "@radix-ui/react-dialog"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { cva } from "class-variance-authority"
@@ -438,7 +439,8 @@ export function MediaCoreDrawer(props: DrawerProps) {
                     transform: finalTransform,
                 },
             ], {
-                duration: 300,
+                // Reduced motion: lands at once (the fill still holds the end state)
+                duration: prefersReducedMotion() ? 0 : 300,
                 easing: "cubic-bezier(0.4, 0, 0.2, 1)",
                 fill: "both",
             })
