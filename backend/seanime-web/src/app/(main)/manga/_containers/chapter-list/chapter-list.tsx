@@ -425,11 +425,8 @@ export function ChapterList(props: ChapterListProps) {
                                 label={t("Manual match", "Manuell zuordnen")}
                                 note={t("Pick the matching title at the source yourself", "Den passenden Titel bei der Quelle selbst wählen")}
                                 disabled={!selectedExtension}
-                                onClick={() => {
-                                    // One sheet at a time, as on the anime page's "More"
-                                    setSourceSheet(null)
-                                    setTimeout(() => setSourceSheet("match"), 150)
-                                }} />
+                                // One sheet at a time, as on the anime page's "More": the menu leaves as the match sheet comes in
+                                onClick={() => setSourceSheet("match")} />
                         </div>
                     </PhoneSheet>
                     <MangaManualMappingModal entry={entry} open={sourceSheet === "match"} onOpenChange={open => { if (!open) setSourceSheet(null) }} />

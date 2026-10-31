@@ -43,12 +43,11 @@ function onClick(event: MouseEvent) {
     if (!cover || !cover.complete || !cover.naturalWidth) return
     const rect = cover.getBoundingClientRect()
     if (rect.width < 24 || rect.bottom < 0 || rect.top > window.innerHeight) return
-    // Tablet: the page header shows the big picture (coverImage.extraLarge, …/cover/large/), lists the medium one: fetch it
-    // now, while the page renders (a heavy manga ~470 ms, past MAX_WAIT_MS), so the header has it when the wait for it starts.
-    if (IS_TABLET_UI) {
-        const big = cover.currentSrc.replace("/cover/medium/", "/cover/large/")
-        if (big !== cover.currentSrc) new Image().src = big
-    }
+    // The page header shows the big picture (coverImage.extraLarge, …/cover/large/), lists the medium one: fetch it now,
+    // while the page renders (a heavy manga ~470 ms on a tablet, past MAX_WAIT_MS), so the header has it when the wait for
+    // it starts (a phone's header loads that picture eagerly for it: mobile-anime-header.tsx).
+    const big = cover.currentSrc.replace("/cover/medium/", "/cover/large/")
+    if (big !== cover.currentSrc) new Image().src = big
 
     event.preventDefault()
     event.stopPropagation()

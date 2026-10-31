@@ -21,7 +21,7 @@ import { Translate, useTr } from "@/lib/app-language"
 import { upath } from "@/lib/helpers/upath"
 import { useRouter } from "@/lib/navigation"
 import { isCustomSource } from "@/lib/server/utils"
-import { IS_TABLET_UI, TabletLabel } from "@/lib/tablet-ui"
+import { TabletLabel } from "@/lib/tablet-ui"
 import React from "react"
 import { BiDotsVerticalRounded } from "react-icons/bi"
 import { LuArrowUpRight, LuCopy, LuFileMinus, LuGlobe, LuListChecks, LuMagnet, LuPuzzle, LuTrash2 } from "react-icons/lu"
@@ -67,14 +67,10 @@ export function AnimeEntryPhoneMenu({ entry, details }: { entry: Anime_Entry, de
         { view: "onlinestream", settingsTab: "onlinestream", label: t("Online streaming", "Online-Streaming"), on: !!serverStatus?.settings?.library?.enableOnlinestream },
     ]
 
-    // One sheet at a time: the menu closes before the next one opens, so Back always returns to the page. A tablet swaps
-    // them in the same render, so the next side sheet comes in while the menu leaves and the scrim stays (with a pause in
-    // between, the menu's scrim had faded out before the next sheet was built).
-    const afterMenu = (open: () => void) => IS_TABLET_UI ? open() : void setTimeout(open, 150)
-    const go = (next: View) => {
-        setView(null)
-        afterMenu(() => setView(next))
-    }
+    // One sheet at a time, so Back always returns to the page: the menu leaves in the same render the next sheet comes in,
+    // and the scrim stays (with a pause in between, the menu's scrim had faded out and the page flashed up before the next
+    // sheet was built).
+    const go = (next: View) => setView(next)
     const close = (open: boolean) => { if (!open) setView(null) }
 
     return <>
@@ -98,7 +94,7 @@ export function AnimeEntryPhoneMenu({ entry, details }: { entry: Anime_Entry, de
                         note={t("Mark filler episodes, link specials to their series", "Filler-Folgen markieren, Specials ihrer Serie zuordnen")} onClick={() => go("metadata")} />
                     {canDownloadTorrent && <PhoneRow icon={<LuMagnet />} label={t("Download a torrent", "Torrent herunterladen")} chevron data-entry-open="torrent-download"
                         note={t("Into your library folder, with the app's own torrent client", "In deinen Bibliotheksordner, mit dem Torrent-Client der App")}
-                        onClick={() => { setView(null); afterMenu(() => openTorrentSearch("download")) }} />}
+                        onClick={() => { setView(null); openTorrentSearch("download") }} />}
                 </div>
             </PhoneSheetGroup>
             {hasFiles && <PhoneSheetGroup title={t("Files on this device", "Dateien auf diesem Gerät")} note={plural(t, files, ["file", "files"], ["Datei", "Dateien"])}>

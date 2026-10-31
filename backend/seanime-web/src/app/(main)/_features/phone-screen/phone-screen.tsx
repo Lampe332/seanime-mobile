@@ -325,7 +325,8 @@ export function PhoneSheet({ title, open, onOpenChange, returnFocusRef, classNam
     return <Modal title={title} open={open} onOpenChange={onOpenChange} contentClass={cn("ps-sheet", className)} onOpenAutoFocus={focusPhoneSheet}
         onCloseAutoFocus={event => {
             event.preventDefault()
-            returnFocusRef?.current?.focus()
+            // A sheet that came in as this one left (the anime page's "More" → its next sheet) keeps the focus
+            if (!document.querySelector("[role='dialog'][data-state='open']")) returnFocusRef?.current?.focus()
         }}>
         <div className="ps-sheet-body" {...data}>
             {children}
