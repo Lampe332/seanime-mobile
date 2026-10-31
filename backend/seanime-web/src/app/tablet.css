@@ -57,6 +57,8 @@ html[data-layout="tablet"] .nakama-chat { left: calc(var(--tablet-rail) + 1rem);
     /* Content sits beside the rail while the rail shows; nothing waits for a bottom bar any more */
     html[data-layout="tablet"] body:has(#__seanime_bottom_nav.visible) #root { padding-left: var(--tablet-rail); }
     html[data-layout="tablet"] [data-main-layout-content="true"] { padding-bottom: 2rem !important; }
+    /* The watch party chat's button sits beside the rail (it was in nakama-phone.css, whose width queries are phone-only) */
+    html[data-layout="tablet"] .nakama-chat-fab { left: calc(var(--tablet-rail) + 1rem); bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem); }
 
     /* The top bar only held the plugin button: it moves to the foot of the rail and the empty band goes (the manga pages keep
        theirs, it also holds their downloads button). Its z-[90] layer would otherwise keep the moved button under the rail. */
@@ -222,6 +224,13 @@ html[data-layout="tablet"] .pst-pane-title { font-size: 1.375rem; line-height: 1
         inset: 0 0 0 auto; margin: 0; width: min(30rem, 100%) !important; height: 100dvh; max-height: 100dvh !important;
         border-radius: var(--sm-radius-lg) 0 0 var(--sm-radius-lg);
     }
+    /* It comes 2rem in from the right edge and leaves the same way, like the other side sheets (keyframes ws-side and ws-fade:
+       mobile-workspace.css) */
+    html[data-layout="tablet"] .UI-Modal__content.mobile-workspace:not(:has(.mobile-plugin-runtime))[data-state="open"] { animation-name: ws-side !important; }
+    html[data-layout="tablet"] .UI-Modal__content.mobile-workspace:not(:has(.mobile-plugin-runtime))[data-state="closed"] { animation: ws-side-out 170ms cubic-bezier(.23, 1, .32, 1) both !important; }
+    html[data-layout="tablet"] .mobile-workspace-overlay[data-state="closed"] { animation: ws-fade-out 170ms ease-out both; }
+    /* On a tablet the sheet runs the screen's full height: the watch party chat fills it */
+    html[data-layout="tablet"] .nk-chat { height: calc(100dvh - env(safe-area-inset-top, 0px) - 7rem); }
 
     /* ── Sheets open as a side sheet on the right, the full height of the screen ── */
     html[data-layout="tablet"] body :is(.ps-sheet, .mex-sheet, .mml-sheet, .msc-sheet, .mobile-download-sheet, .mobile-match-sheet, .mobile-cache-sheet, .home-filter-sheet,
@@ -237,7 +246,11 @@ html[data-layout="tablet"] .pst-pane-title { font-size: 1.375rem; line-height: 1
         .home-mobile-settings, .reader-settings-sheet, .anilist-login-sheet).UI-Modal__content[data-state="closed"] {
         animation-duration: 170ms; animation-timing-function: cubic-bezier(.23, 1, .32, 1);
     }
+    /* Their scrim leaves with them instead of standing empty for another 80 ms (tailwind's 250 ms) */
+    html[data-layout="tablet"] .UI-Modal__overlay[data-state="closed"] { animation-duration: 170ms; animation-timing-function: cubic-bezier(.23, 1, .32, 1); }
 }
+@keyframes ws-side-out { to { opacity: 0; transform: translateX(2rem); } }
+@keyframes ws-fade-out { to { opacity: 0; } }
 
 /* ── Large tablets: more air, and reading widths that stay readable ── */
 @media (min-width: 1400px) {
@@ -253,4 +266,8 @@ html[data-layout="tablet"] .UI-Select__content[data-state="open"] { animation: t
 @keyframes tablet-select-in { from { opacity: 0; transform: scale(.97); } }
 @media (prefers-reduced-motion: reduce) {
     html[data-layout="tablet"] .UI-Select__content[data-state="open"] { animation-name: m-fade; } /* lib/motion.css */
+    @media (min-width: 1000px) {
+        html[data-layout="tablet"] .UI-Modal__content.mobile-workspace:not(:has(.mobile-plugin-runtime))[data-state="open"] { animation-name: ws-fade !important; }
+        html[data-layout="tablet"] .UI-Modal__content.mobile-workspace:not(:has(.mobile-plugin-runtime))[data-state="closed"] { animation-name: ws-fade-out !important; }
+    }
 }

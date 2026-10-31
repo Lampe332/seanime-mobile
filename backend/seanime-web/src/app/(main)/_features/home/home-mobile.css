@@ -203,6 +203,9 @@ body .UI-Modal__content.home-mobile-settings { width: calc(100% - 16px) !importa
 .home-info-ok:focus-visible { outline: 2px solid var(--sm-text); outline-offset: 2px; }
 .home-info-overlay[data-state="open"], .home-info-card[data-state="open"] { animation: home-info-in .14s ease-out; }
 @keyframes home-info-in { from { opacity: 0; } }
+/* Tablet: it leaves the way it came instead of in one frame with the whole screen's blur */
+html[data-layout="tablet"] :is(.home-info-overlay, .home-info-card)[data-state="closed"] { animation: home-info-out 120ms ease-out both; }
+@keyframes home-info-out { to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
     .home-info-overlay, .home-info-card { animation: none !important; }
     .home-mobile-settings .home-customize-switch > span, .home-mobile-settings .home-customize-switch > span::after { transition: none; }

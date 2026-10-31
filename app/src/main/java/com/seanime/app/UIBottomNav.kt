@@ -1179,14 +1179,13 @@ object UIBottomNav {
                         });
                     });
 
-                    // Phone: the unfold's clock ran from display:flex, but the glass panel reached the screen ~120 ms later,
-                    // two thirds of the way in. It holds its first (hidden) keyframe until a frame has been drawn.
-                    if (!TABLET_UI) {
-                        menu.style.animationPlayState = 'paused';
-                        requestAnimationFrame(function() {
-                            requestAnimationFrame(function() { menu.style.animationPlayState = ''; });
-                        });
-                    }
+                    // Phone and tablet: the unfold's clock ran from display:flex, but the glass panel reached the screen ~120 ms
+                    // later, two thirds of the way in (tablet: only the first opening, its glass panel's first frames take
+                    // ~250 ms). It holds its first (hidden) keyframe until a frame has been drawn.
+                    menu.style.animationPlayState = 'paused';
+                    requestAnimationFrame(function() {
+                        requestAnimationFrame(function() { menu.style.animationPlayState = ''; });
+                    });
                     menu.style.display = 'flex';
                     menu.style.pointerEvents = 'auto';
                     menuOpen = true;

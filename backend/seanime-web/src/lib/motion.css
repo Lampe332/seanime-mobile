@@ -212,6 +212,9 @@ html[data-layout="tablet"] :is(.pss-group-body, .pss-file-body, .plib-files, #ps
 html[data-layout="tablet"] [data-phone-screen="lists"] .ps-bars-track > span { animation: m-grow 300ms var(--m-out) backwards; }
 html[data-layout="tablet"] .nakama-chat-fab { animation: m-settle 200ms var(--m-out) backwards; }
 html[data-layout="tablet"] .nk-msg[data-new] { animation: m-rise 220ms var(--m-out) backwards; }
+/* Home's title and its actions sit outside the page's wrapper (page-wrapper.tsx): they fade in with it, so the page comes as
+   one piece (opacity only, so it stays as it is for reduced motion) */
+html[data-layout="tablet"] [data-home-navbar] .home-mobile-header { animation: m-fade 220ms var(--m-out) backwards; }
 
 @media (prefers-reduced-motion: reduce) {
     html:not([data-layout="tablet"]) :is(.home-header-action, .mobile-plugin-trigger, .mobile-entry-icon, .mobile-topbar-downloads,

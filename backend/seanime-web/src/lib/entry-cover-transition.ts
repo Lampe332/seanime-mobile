@@ -1,4 +1,5 @@
 import "./entry-cover-transition.css"
+import { IS_TABLET_UI } from "./tablet-ui"
 
 /**
  * Cover → page: tapping an anime or manga cover anywhere (Home, lists, search, discover, schedule …) opens its page out
@@ -42,6 +43,12 @@ function onClick(event: MouseEvent) {
     if (!cover || !cover.complete || !cover.naturalWidth) return
     const rect = cover.getBoundingClientRect()
     if (rect.width < 24 || rect.bottom < 0 || rect.top > window.innerHeight) return
+    // Tablet: the page header shows the big picture (coverImage.extraLarge, …/cover/large/), lists the medium one: fetch it
+    // now, while the page renders (a heavy manga ~470 ms, past MAX_WAIT_MS), so the header has it when the wait for it starts.
+    if (IS_TABLET_UI) {
+        const big = cover.currentSrc.replace("/cover/medium/", "/cover/large/")
+        if (big !== cover.currentSrc) new Image().src = big
+    }
 
     event.preventDefault()
     event.stopPropagation()
@@ -83,7 +90,9 @@ function waitForPageCover(pathname: string): Promise<HTMLElement | null> {
             if (header && !built) built = now
             const img = header?.querySelector("img")
             if (img && img.complete && img.naturalWidth > 0) return resolve(img)
-            if ((built && now - built > WAIT_MS) || now - started > MAX_WAIT_MS) {
+            // Tablet: the picture was requested at the tap (onClick), so its wait counts from there (a light page built in
+            // ~115 ms gave up at +365 ms, 5 ms before its picture came)
+            if ((!IS_TABLET_UI && built && now - built > WAIT_MS) || now - started > MAX_WAIT_MS) {
                 document.documentElement.setAttribute("data-entry-cover-miss", "")
                 return resolve(null)
             }

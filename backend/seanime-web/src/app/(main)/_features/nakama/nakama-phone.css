@@ -42,10 +42,3 @@ body:has(.UI-Modal__content[data-state="open"]) .nakama-chat-fab { display: none
 .nk-chat-form input:focus-visible { outline: 2px solid var(--sm-accent); outline-offset: 0; }
 .nk-chat-form .ps-primary { flex: none; width: 48px; padding: 0; }
 
-@media (min-width: 600px) {
-    html[data-layout="tablet"] .nakama-chat-fab { left: calc(var(--tablet-rail) + 1rem); bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem); }
-}
-/* On a tablet the sheet runs the screen's full height (tablet.css): the chat fills it */
-@media (min-width: 1000px) {
-    html[data-layout="tablet"] .nk-chat { height: calc(100dvh - env(safe-area-inset-top, 0px) - 7rem); }
-}
