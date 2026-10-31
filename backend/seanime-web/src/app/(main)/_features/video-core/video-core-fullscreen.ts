@@ -340,7 +340,8 @@ export class VideoCoreFullscreenManager extends EventTarget {
             // Still turning in (a quick second tap): it is black already.
             el.getAnimations().forEach(animation => animation.cancel())
         } else {
-            const out = Array.from(el.children).map(child => child.animate([{ opacity: 0 }], { duration: TURN_BLACK_MS, easing: "ease-in", fill: "forwards" }))
+            // ease-out like the veil on the way in: the picture answers the tap at once instead of standing still first.
+            const out = Array.from(el.children).map(child => child.animate([{ opacity: 0 }], { duration: TURN_BLACK_MS, easing: "ease-out", fill: "forwards" }))
             await Promise.all(out.map(animation => animation.finished.catch(() => undefined)))
             el.setAttribute("data-vc-turning", "")
             out.forEach(animation => animation.cancel())

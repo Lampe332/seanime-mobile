@@ -67,12 +67,13 @@ html:not([data-layout="tablet"]) :is(.UI-Popover__root, .UI-DropdownMenu__root, 
 html:not([data-layout="tablet"]) .vc-phone-skip { animation-timing-function: var(--m-phone); }
 html:not([data-layout="tablet"]) [data-vc-overlay-display] { animation-duration: 220ms; animation-timing-function: var(--m-phone); }
 /* Phone: what arrives after its screen (a search's clear button and result note, the manga page's read button and plugin
-   action once its data is in, the top bar's buttons) settles in instead of popping into place. */
+   action once its data is in, the top bar's manga downloads) settles in instead of popping into place. Not the top bar's
+   row itself: it is built anew on every way to and from Home, so it settled in again on each of them. */
 @keyframes m-settle { from { opacity: 0; transform: scale(.96); } }
 /* Downloads: the Manga tab's list comes in like the Anime and Torrents tabs instead of standing there at once. */
 html:not([data-layout="tablet"]) [data-manga-downloads] { animation: m-rise 260ms var(--m-phone) backwards; }
 html:not([data-layout="tablet"]) :is(.ps-search-clear, .ps-section-note, .mobile-read-action, .mobile-entry-icon[data-mobile-plugin-action],
-    .mobile-topbar-downloads, [data-top-navbar-content], .msc-text-action) {
+    .mobile-topbar-downloads, .msc-text-action) {
     animation: m-settle 220ms var(--m-phone) backwards;
 }
 /* Schedule: Week | Month brings its section in and a newly chosen day's list fades in (paging slides, usePhoneStep). */
@@ -127,6 +128,13 @@ html:not([data-layout="tablet"]) [data-mobile-anime="true"] [data-episode-grid-i
 html:not([data-layout="tablet"]) [data-mobile-anime="true"] [data-episode-grid-item-image-container] { transition: transform 160ms var(--m-out); }
 html:not([data-layout="tablet"]) [data-mobile-anime="true"] [data-episode-grid-item]:has(> .mobile-episode-target:active) [data-episode-grid-item-image-container] { transform: scale(.97); }
 
+/* Phone switches outside the ps-* kit move like .ps-toggle (phone-screen.css): the knob slides on the press curve, track
+   and knob change their fill smoothly (reduced motion: globals.css ends them at once). */
+html:not([data-layout="tablet"]) :is(.mml-toggle, .msc-toggle, .mobile-match-toggle, .home-filter-toggle, .reader-settings-toggle, .gsm-toggle,
+    .home-customize-switch > span) { transition: background-color 180ms ease; }
+html:not([data-layout="tablet"]) :is(.mml-toggle, .msc-toggle, .mobile-match-toggle, .home-filter-toggle, .reader-settings-toggle, .gsm-toggle,
+    .home-customize-switch > span)::after { transition: transform 180ms var(--m-out), background-color 180ms ease; }
+
 /* My lists' stats: each bar grows out to its share once when the stats open (the bars carry their share as an inline scaleX,
    which the animation's end takes), one after another. */
 @keyframes m-grow { from { transform: scaleX(0); } }
@@ -162,7 +170,7 @@ html:not([data-layout="tablet"]) .nk-msg[data-new] { animation: m-rise 240ms var
     :is([data-settings-sub] > *, [data-unfold]), details[open] > :not(summary),
     :is(.ps-empty, .ps-notice, .luffy-phone, .mex-notice, .mdl-empty) { animation-name: m-fade; animation-delay: 0ms; }
     html:not([data-layout="tablet"]) :is(.ps-search-clear, .ps-section-note, .mobile-read-action, .mobile-entry-icon[data-mobile-plugin-action],
-        .mobile-topbar-downloads, [data-top-navbar-content], [data-manga-downloads]) { animation-name: m-fade; }
+        .mobile-topbar-downloads, [data-manga-downloads]) { animation-name: m-fade; }
     :is(.pst-choice, .ps-pick, .ps-choices > button, .ps-chips > button) :is(*, *::after) { animation: none !important; }
     .ps-bone { animation: none; }
     :is(.pst-swatches, .mml-status) > button { transition: none; transform: none !important; }

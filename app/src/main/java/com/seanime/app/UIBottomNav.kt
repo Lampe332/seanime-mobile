@@ -206,10 +206,11 @@ object UIBottomNav {
                     animation: seanime-menu-in 0.34s cubic-bezier(0.2,0.9,0.25,1.15);
                 }
                 /* Phone: the first frames of the big glass panel take 30-40 ms there; a gentler start keeps the unfolding
-                   on screen instead of it being done by the second frame (as motion.css does for the sheets) */
+                   on screen instead of it being done by the second frame (as motion.css does for the sheets). It settles
+                   without overshoot, on the phone curve of the sheets, and its rows come with it (openMenu). */
                 html:not([data-layout="tablet"]) #android-floating-menu:not(.seanime-edit-mode) {
-                    animation-duration: 0.4s;
-                    animation-timing-function: cubic-bezier(0.2,0.6,0.35,1.04);
+                    animation-duration: 0.32s;
+                    animation-timing-function: cubic-bezier(0.2,0.6,0.35,1);
                 }
                 @keyframes seanime-menu-in {
                     from { opacity: 0; transform: translateY(18px) scale(0.94); }
@@ -1178,7 +1179,9 @@ object UIBottomNav {
 
                     setMenuBtnOpen(true);
 
-                    // Animate: rows fade in with a short stagger
+                    // Animate: rows fade in with a short stagger. Phone: not there; its timers fire late while the
+                    // panel is first drawn (150-200 ms) and the rows bunched up, so they unfold with the panel.
+                    if (document.documentElement.getAttribute('data-layout') !== 'tablet') return;
                     var rows = menu.querySelectorAll('.float-nav-item');
                     rows.forEach(function(el, i) {
                         el.style.opacity = '0';

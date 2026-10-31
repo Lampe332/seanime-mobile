@@ -120,6 +120,21 @@ export interface MediaCoreControlButtonIconProps {
     children?: React.ReactNode
 }
 
+// Phone: the y shorthand runs frame by frame on the main thread; a transform string tweens on the compositor (Web
+// Animations), on the phone curve (motion.ts PHONE_EASE). Explicit "translateY(0px)", as Motion turns "none" into zero.
+const PHONE_ICON_SWAP = {
+    initial: { opacity: 0, transform: "translateY(10px)", position: "relative" as const },
+    animate: { opacity: 1, transform: "translateY(0px)", position: "relative" as const },
+    exit: { opacity: 0, transform: "translateY(10px)", position: "absolute" as const },
+    transition: { duration: 0.15, ease: [0.2, 0.6, 0.35, 1] as const },
+}
+const ICON_SWAP = IS_TABLET_UI ? {
+    initial: { opacity: 0, y: 10, position: "relative" as const },
+    animate: { opacity: 1, y: 0, position: "relative" as const },
+    exit: { opacity: 0, y: 10, position: "absolute" as const },
+    transition: { duration: 0.15 },
+} : PHONE_ICON_SWAP
+
 export function MediaCoreControlButtonIcon(props: MediaCoreControlButtonIconProps) {
     const { icons, state, className, iconClass, onClick, onWheel, children } = props
 
@@ -142,10 +157,7 @@ export function MediaCoreControlButtonIcon(props: MediaCoreControlButtonIconProp
                             data-vc-element="control-button-icon"
                             data-vc-state={iconState}
                             className="block"
-                            initial={{ opacity: 0, y: 10, position: "relative" }}
-                            animate={{ opacity: 1, y: 0, position: "relative" }}
-                            exit={{ opacity: 0, y: 10, position: "absolute" }}
-                            transition={{ duration: 0.15 }}
+                            {...ICON_SWAP}
                         >
                             <Icon className={cn("vc-control-button-icon", iconClass)} />
                         </motion.span>
