@@ -34,6 +34,12 @@ class MainActivity : Activity() {
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
     private var videoFullscreenPreviousOrientation: Int? = null
+    /** Fullscreen turned an upright phone to landscape; leaving turns it back upright (holdUprightAfterFullscreen). */
+    private var videoFullscreenFromPortrait = false
+    private var uprightListener: android.view.OrientationEventListener? = null
+    /** The orientation handed back once the phone is held upright again. */
+    private var uprightRestore: Int? = null
+    private val rotationAnimationReset = Runnable { setRotationAnimation(android.view.WindowManager.LayoutParams.ROTATION_ANIMATION_ROTATE) }
     private var backNavigationPending = false
 
     private var retries = 0
@@ -292,6 +298,7 @@ class MainActivity : Activity() {
             runOnUiThread {
                 // Reader DOM observers must not release the video fullscreen lock.
                 if (videoFullscreenPreviousOrientation != null) return@runOnUiThread
+                stopHoldingUpright()
                 requestedOrientation = if (landscape) {
                     ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                 } else {
@@ -308,15 +315,29 @@ class MainActivity : Activity() {
 
     private fun setVideoFullscreenOrientation(fullscreen: Boolean) {
         runOnUiThread {
+            // Phones: the web player is black while it turns (video-core-fullscreen.ts turnIn/turnOut), so the turn is a cut;
+            // the system's rotation would turn a screenshot of the page into the WebView's stale upright frame. Tablets keep it.
+            val phone = resources.configuration.smallestScreenWidthDp < 600
+            if (phone) {
+                setRotationAnimation(android.view.WindowManager.LayoutParams.ROTATION_ANIMATION_JUMPCUT)
+                retryHandler.removeCallbacks(rotationAnimationReset)
+                retryHandler.postDelayed(rotationAnimationReset, 1500)
+            }
             if (fullscreen) {
+                // Back to fullscreen while still held upright: the orientation from before that one is the one to restore.
+                val held = stopHoldingUpright()
                 if (videoFullscreenPreviousOrientation == null) {
-                    videoFullscreenPreviousOrientation = requestedOrientation
+                    videoFullscreenPreviousOrientation = held ?: requestedOrientation
+                    videoFullscreenFromPortrait = phone && resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
                 }
                 requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             } else {
                 val previous = videoFullscreenPreviousOrientation
                 videoFullscreenPreviousOrientation = null
-                if (previous != null) requestedOrientation = previous
+                if (previous != null) {
+                    if (videoFullscreenFromPortrait) holdUprightAfterFullscreen(previous) else requestedOrientation = previous
+                }
+                videoFullscreenFromPortrait = false
             }
             // Fullscreen video may use the area beside the camera cutout, like Android 15+ already does for every
             // window of this app. The pages themselves keep the default: the WebView is only padded to the cutout there.
@@ -325,6 +346,40 @@ class MainActivity : Activity() {
                     else android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
             }
         }
+    }
+
+    private fun setRotationAnimation(animation: Int) {
+        window.attributes = window.attributes.apply { rotationAnimation = animation }
+    }
+
+    /**
+     * Leaving fullscreen that turned an upright phone brings the upright page back even while the phone is still held
+     * sideways (as video apps do); the sensor decides again once the phone is held upright. A phone lying flat stays upright.
+     */
+    private fun holdUprightAfterFullscreen(previous: Int) {
+        stopHoldingUpright()
+        val listener = object : android.view.OrientationEventListener(this) {
+            override fun onOrientationChanged(degrees: Int) {
+                if (degrees == ORIENTATION_UNKNOWN || degrees in 31..329) return
+                val restore = stopHoldingUpright()
+                if (restore != null && videoFullscreenPreviousOrientation == null) requestedOrientation = restore
+            }
+        }
+        if (!listener.canDetectOrientation()) {
+            requestedOrientation = previous
+            return
+        }
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        uprightRestore = previous
+        uprightListener = listener
+        listener.enable()
+    }
+
+    /** Ends holding the phone upright; returns the orientation it was holding back, if any. */
+    private fun stopHoldingUpright(): Int? {
+        uprightListener?.disable()
+        uprightListener = null
+        return uprightRestore.also { uprightRestore = null }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -777,6 +832,7 @@ class MainActivity : Activity() {
         fileTransfer.destroy()
         offlineBridge.invalidate()
         feedback.release()
+        stopHoldingUpright()
         retryHandler.removeCallbacksAndMessages(null)
         PopupWebViewSheet.dismissFor(this)
         if (::pipManager.isInitialized) pipManager.destroy()

@@ -45,6 +45,18 @@ details[open] > :not(summary) { animation: m-unfold 220ms var(--m-out) backwards
 .ps-bone { animation: m-breathe 1s ease-in-out infinite alternate; }
 .ps-loading > :nth-child(2n) { animation-delay: -.5s; }
 
+/* ── Phone (not the tablet layout): a phone draws the app at up to 1440p, where the GPU spends the first ~150 ms of a newly
+   opened sheet rasterising it and gets a frame out only every 30-40 ms meanwhile. The sharp curves above had covered ~80 %
+   of the way by the second of those frames, so sheets popped open; a gentler curve over a little more time leaves the way
+   to the frames that reach the screen (screen recordings 31.10.: 2 → 5 steps). Closing keeps its own quick curve. ── */
+html:not([data-layout="tablet"]) :is(
+    body :is(.ps-sheet, .mex-sheet, .mml-sheet, .msc-sheet, .mobile-download-sheet, .mobile-anilist-sheet).UI-Modal__content,
+    .UI-Popover__root.vc-phone-settings, .UI-ContextMenu__root[data-phone-menu]
+)[data-state="open"] { animation-duration: 320ms; animation-timing-function: cubic-bezier(.2, .6, .35, 1); }
+html:not([data-layout="tablet"]) .UI-Modal__content.mobile-workspace[data-state="open"] {
+    animation-duration: 320ms !important; animation-timing-function: cubic-bezier(.2, .6, .35, 1) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
     [data-phone-screen="settings"] :is(.pst-subhead, .pst-pane-title, .pst-page > *, .pst-nav[data-settings-return]),
     :is([data-settings-sub] > *, [data-unfold]), details[open] > :not(summary),

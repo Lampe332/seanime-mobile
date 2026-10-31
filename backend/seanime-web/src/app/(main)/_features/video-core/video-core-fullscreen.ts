@@ -1,4 +1,5 @@
 import { logger } from "@/lib/helpers/debug"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { atom } from "jotai"
 
 const log = logger("VIDEO CORE FULLSCREEN")
@@ -23,6 +24,10 @@ const FULL_FRAME: FlipFrame = { translate: "0px 0px", scale: "1", clipPath: "ins
 const FLIP_ENTER_MS = 340
 const FLIP_EXIT_MS = 280
 const FLIP_EASING = "cubic-bezier(.32, .72, 0, 1)"
+/** A phone held upright turns for fullscreen: black over the page, the turn, then the picture (see turnIn). */
+const TURN_BLACK_MS = 140
+const TURN_REVEAL_MS = 220
+const TURN_WAIT_MS = 900
 
 /**
  * The fullscreen player drawn over its inline box: the first frame of the grow and the last of the shrink.
@@ -63,6 +68,39 @@ function reducedMotion() {
     return !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
 }
 
+/**
+ * Fades black in over the whole page, the player still in its place under it (moved into the top layer first, it would leave
+ * a hole in the page for the length of the fade). Resolves, once black, with what removes it again.
+ */
+async function blackVeil(duration: number) {
+    const veil = document.createElement("div")
+    veil.setAttribute("aria-hidden", "true")
+    veil.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:#000;pointer-events:none"
+    document.body.append(veil)
+    await veil.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing: "ease-out" }).finished.catch(() => undefined)
+    return () => veil.remove()
+}
+
+/** Resolves two frames after the window has the given orientation (or after `timeout`, if the system keeps it). */
+function orientationReached(landscape: boolean, timeout: number) {
+    return new Promise<void>(resolve => {
+        let done = false
+        const finish = () => {
+            if (done) return
+            done = true
+            window.removeEventListener("resize", check)
+            window.clearTimeout(timer)
+            void nextFrames(2).then(resolve)
+        }
+        const check = () => {
+            if (isLandscape() === landscape) finish()
+        }
+        const timer = window.setTimeout(finish, timeout)
+        window.addEventListener("resize", check)
+        check()
+    })
+}
+
 /** Corner radius of the frame the inline player sits in (the page rounds the frame, the player itself is square). */
 function inlineRadius(el: HTMLElement) {
     let node = el.parentElement
@@ -92,6 +130,14 @@ export class VideoCoreFullscreenManager extends EventTarget {
      * immersive, so nothing else is lost; the page stays in the same view and the first frame is the grow's first.
      */
     private pageFullscreen = false
+    /**
+     * Fullscreen turned an upright phone to landscape. Android turns the window as soon as it is asked and the WebView first
+     * shows its last upright frame in the wide window (black with a sliver of the picture, recordings 31.10.); so the player
+     * goes black before the turn and its picture fades in after it, both ways.
+     */
+    private turned = false
+    /** The black of a turn in is fading in over the page; the player is not fullscreen yet. */
+    private veiling = false
     // Android's Back leaves fullscreen through this (AndroidNavigation.backScript), so it shrinks like the button does.
     private backExit = () => {
         if (!this.isFullscreen) return false
@@ -192,7 +238,8 @@ export class VideoCoreFullscreenManager extends EventTarget {
             if (animate) await this.playExit().catch(() => undefined)
             if (!this.isFullscreen) return
             if (this.pageFullscreen) {
-                this.leavePageFullscreen()
+                if (animate && this.turned) await this.turnOut().catch(() => undefined)
+                else this.leavePageFullscreen()
                 return
             }
             if (document.exitFullscreen) {
@@ -221,10 +268,19 @@ export class VideoCoreFullscreenManager extends EventTarget {
             return
         }
 
-        if (this.isFullscreen) return
+        if (this.isFullscreen || this.veiling) return
         this.enteredLandscape = isLandscape()
         this.inlineBefore = this.measureInline(this.containerElement)
-        if (this.canUsePageFullscreen && this.enterPageFullscreen(this.containerElement)) return
+        if (this.canUsePageFullscreen && !IS_TABLET_UI && !this.enteredLandscape) {
+            // An upright phone: the page goes black around the player, which then moves into the (black) top layer.
+            this.veiling = true
+            const removeVeil = await blackVeil(TURN_BLACK_MS)
+            this.veiling = false
+            const entered = !!this.containerElement && !this.isFullscreen && this.enterPageFullscreen(this.containerElement, true)
+            removeVeil()
+            if (entered || !this.containerElement || this.isFullscreen) return
+        }
+        else if (this.canUsePageFullscreen && this.enterPageFullscreen(this.containerElement, false)) return
         try {
             if (this.containerElement.requestFullscreen) {
                 await this.containerElement.requestFullscreen()
@@ -240,20 +296,25 @@ export class VideoCoreFullscreenManager extends EventTarget {
         }
     }
 
-    private enterPageFullscreen(el: HTMLElement) {
+    /** `turn`: an upright phone, which Android turns to landscape for it (see `turned`). */
+    private enterPageFullscreen(el: HTMLElement, turn: boolean) {
         try {
             el.setAttribute("popover", "manual")
             el.setAttribute("data-vc-page-fullscreen", "")
+            if (turn) el.setAttribute("data-vc-turning", "")
             el.showPopover()
         }
         catch (error) {
             el.removeAttribute("popover")
             el.removeAttribute("data-vc-page-fullscreen")
+            el.removeAttribute("data-vc-turning")
             log.warning("In-page fullscreen not possible, using the browser's", error)
             return false
         }
         this.pageFullscreen = true
-        ;(window as any).OrientationBridge?.setVideoFullscreen(true)
+        this.turned = turn
+        if (turn) void this.turnIn(el).catch(() => undefined)
+        else (window as any).OrientationBridge?.setVideoFullscreen(true)
         log.info("Entered fullscreen (in page)")
         // Same order as the browser's fullscreenchange: the grow is set before this frame is drawn.
         this.handleFullscreenChange()
@@ -261,9 +322,48 @@ export class VideoCoreFullscreenManager extends EventTarget {
         return true
     }
 
+    /** Black already (blackVeil, then the player with its picture hidden): the phone turns, then the picture fades in. */
+    private async turnIn(el: HTMLElement) {
+        ;(window as any).OrientationBridge?.setVideoFullscreen(true)
+        await orientationReached(true, TURN_WAIT_MS)
+        if (!this.turned || this.fullscreenTarget !== el) return
+        this.revealTurned(el)
+    }
+
+    /** Back upright the same way: the picture fades to black, the phone turns, then the page fades in. */
+    private async turnOut() {
+        const el = this.containerElement
+        if (!el) return
+        // A turn in that is still under way stops where it is.
+        this.turned = false
+        if (el.hasAttribute("data-vc-turning")) {
+            // Still turning in (a quick second tap): it is black already.
+            el.getAnimations().forEach(animation => animation.cancel())
+        } else {
+            const out = Array.from(el.children).map(child => child.animate([{ opacity: 0 }], { duration: TURN_BLACK_MS, easing: "ease-in", fill: "forwards" }))
+            await Promise.all(out.map(animation => animation.finished.catch(() => undefined)))
+            el.setAttribute("data-vc-turning", "")
+            out.forEach(animation => animation.cancel())
+        }
+        if (this.fullscreenTarget !== el) return
+        ;(window as any).OrientationBridge?.setVideoFullscreen(false)
+        await orientationReached(false, TURN_WAIT_MS)
+        if (this.fullscreenTarget !== el) return
+        this.leavePageFullscreen()
+        document.body.animate([{ opacity: 0 }, { opacity: 1 }], { duration: TURN_REVEAL_MS, easing: "ease-out" })
+    }
+
+    private revealTurned(el: HTMLElement) {
+        if (!el.hasAttribute("data-vc-turning")) return
+        el.removeAttribute("data-vc-turning")
+        // Only a start (offset 0): hidden controls go back to their own (hidden) opacity.
+        for (const child of Array.from(el.children)) child.animate([{ opacity: 0, offset: 0 }], { duration: TURN_REVEAL_MS, easing: "ease-out" })
+    }
+
     private leavePageFullscreen() {
         const el = this.containerElement
         this.pageFullscreen = false
+        this.turned = false
         if (el) {
             try {
                 if (el.matches(":popover-open")) el.hidePopover()
@@ -272,6 +372,7 @@ export class VideoCoreFullscreenManager extends EventTarget {
             }
             el.removeAttribute("popover")
             el.removeAttribute("data-vc-page-fullscreen")
+            el.removeAttribute("data-vc-turning")
         }
         ;(window as any).OrientationBridge?.setVideoFullscreen(false)
         log.info("Exited fullscreen (in page)")

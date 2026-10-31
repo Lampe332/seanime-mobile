@@ -78,6 +78,8 @@
     color: inherit;
 }
 [data-vc-element="container"][data-vc-page-fullscreen]::backdrop { background: #000; }
+/* An upright phone turning for fullscreen: only the black is drawn until it has turned (video-core-fullscreen.ts turnIn). */
+[data-vc-element="container"][data-vc-turning] > * { opacity: 0 !important; transition: none !important; }
 
 [data-vc-element="container"][data-vc-inline="false"][data-vc-mini="false"] > *,
 [data-vc-element="container"][data-vc-fullscreen="true"] > * {

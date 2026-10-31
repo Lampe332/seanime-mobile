@@ -1,4 +1,5 @@
 import "./segment-glide.css"
+import { IS_TABLET_UI } from "./tablet-ui"
 
 /**
  * One sliding bubble for every segmented switch of the app (Sub/Dub, the anime page's sources, Anime/Manga, Downloads,
@@ -22,7 +23,12 @@ export function installSegmentGlide() {
     installed = true
     new MutationObserver(records => {
         const moves = new Map<HTMLElement, { from?: HTMLElement, to?: HTMLElement }>()
+        const replaced = new Map<string, number>()
         for (const record of records) {
+            if (record.type === "childList") {
+                record.removedNodes.forEach(node => rememberChoices(node, replaced))
+                continue
+            }
             const option = record.target as HTMLElement
             const switcher = option.parentElement
             if (!switcher || !switcher.matches(GLIDE_SWITCHES)) continue
@@ -36,7 +42,33 @@ export function installSegmentGlide() {
         moves.forEach(({ from, to }, switcher) => {
             if (from && to && from.isConnected && to.isConnected) glide(switcher, from, to)
         })
-    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: CHOSEN_ATTRIBUTES, attributeOldValue: true })
+        replaced.forEach((index, label) => {
+            const switcher = document.querySelector<HTMLElement>(`:is(${SEGMENT_GLIDE_SWITCHES})[aria-label="${CSS.escape(label)}"]`)
+            const chosen = switcher ? chosenIndex(switcher) : -1
+            const from = switcher?.children[index]
+            if (switcher && chosen >= 0 && chosen !== index && from instanceof HTMLElement) glide(switcher, from, switcher.children[chosen] as HTMLElement)
+        })
+    }).observe(document.body, {
+        subtree: true, attributes: true, attributeFilter: CHOSEN_ATTRIBUTES, attributeOldValue: true,
+        // Phone: a switch marked data-glide-rebuilt that its screen builds anew with the choice (My lists remounts its list,
+        // switch and all, per type) glides from the option chosen in the switch it replaced. The tablet keeps its behaviour.
+        childList: !IS_TABLET_UI,
+    })
+}
+
+function chosenIndex(switcher: Element) {
+    return Array.from(switcher.children).findIndex(option => CHOSEN_ATTRIBUTES.some(name => option.getAttribute(name) === "true"))
+}
+
+/** Notes, by label, which option was chosen in each switch marked data-glide-rebuilt inside a removed node. */
+function rememberChoices(node: Node, into: Map<string, number>) {
+    if (!(node instanceof Element)) return
+    const switches = node.matches("[data-glide-rebuilt]") ? [node] : Array.from(node.querySelectorAll("[data-glide-rebuilt]"))
+    for (const switcher of switches) {
+        const label = switcher.getAttribute("aria-label")
+        const index = chosenIndex(switcher)
+        if (label && index >= 0) into.set(label, index)
+    }
 }
 
 function boxOf(el: HTMLElement): Box {
@@ -69,10 +101,15 @@ function glide(switcher: HTMLElement, from: HTMLElement, to: HTMLElement) {
     switcher.append(bubble)
     // The new option hides its own bubble until the travelling one arrives.
     to.setAttribute("data-segment-glide-target", "")
-    const animation = bubble.animate([
-        { transform: `translate(${start.left - end.left}px, ${start.top - end.top}px)`, width: `${start.width}px`, height: `${start.height}px` },
-        { transform: "translate(0px, 0px)", width: `${end.width}px`, height: `${end.height}px` },
-    ], { duration: GLIDE_MS, easing: GLIDE_EASING })
+    const first: Keyframe = { transform: `translate(${start.left - end.left}px, ${start.top - end.top}px)` }
+    const last: Keyframe = { transform: "translate(0px, 0px)" }
+    // On a phone a bubble of the same size glides on transform alone: that runs on the compositor and keeps going while
+    // the page the tap opens is built (~100 ms there, the bottom bar's pill used to jump to the end).
+    if (IS_TABLET_UI || Math.abs(start.width - end.width) > .5 || Math.abs(start.height - end.height) > .5) {
+        Object.assign(first, { width: `${start.width}px`, height: `${start.height}px` })
+        Object.assign(last, { width: `${end.width}px`, height: `${end.height}px` })
+    }
+    const animation = bubble.animate([first, last], { duration: GLIDE_MS, easing: GLIDE_EASING })
     const land = () => {
         if (!bubble.isConnected) return
         bubble.remove()

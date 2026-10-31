@@ -121,7 +121,7 @@ export function ListsPhone() {
     </PhoneIconButton> : null
     // With Manga on, the stats switch sits next to Anime | Manga, whose choice it shows; without, it joins the header actions.
     const typeSwitch = enableManga ? <div className="pl-switch">
-        <PhoneTabs label={t("Anime or manga", "Anime oder Manga")} variant="segment" value={type} onChange={setType} data-lists-type-tabs
+        <PhoneTabs label={t("Anime or manga", "Anime oder Manga")} variant="segment" value={type} onChange={setType} data-lists-type-tabs data-glide-rebuilt
             tabs={[{ value: "anime", label: "Anime", name: "Anime" }, { value: "manga", label: "Manga", name: "Manga" }]} />
         {statsButton}
     </div> : null

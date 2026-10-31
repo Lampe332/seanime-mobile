@@ -205,6 +205,12 @@ object UIBottomNav {
                 #android-floating-menu:not(.seanime-edit-mode) {
                     animation: seanime-menu-in 0.34s cubic-bezier(0.2,0.9,0.25,1.15);
                 }
+                /* Phone: the first frames of the big glass panel take 30-40 ms there; a gentler start keeps the unfolding
+                   on screen instead of it being done by the second frame (as motion.css does for the sheets) */
+                html:not([data-layout="tablet"]) #android-floating-menu:not(.seanime-edit-mode) {
+                    animation-duration: 0.4s;
+                    animation-timing-function: cubic-bezier(0.2,0.6,0.35,1.04);
+                }
                 @keyframes seanime-menu-in {
                     from { opacity: 0; transform: translateY(18px) scale(0.94); }
                     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -1094,6 +1100,13 @@ object UIBottomNav {
                     if (button) button.click();
                 }
 
+                // Phone: the pill starts gliding (segment-glide) on a frame of its own before the new page is built, which
+                // holds the page for ~100 ms there; built in the same task, the glide only showed its end.
+                function navigateAfterGlide(href) {
+                    if (document.documentElement.getAttribute('data-layout') === 'tablet') { navigateViaApp(href); return; }
+                    requestAnimationFrame(function() { setTimeout(function() { navigateViaApp(href); }, 0); });
+                }
+
                 function navigateViaApp(href) {
                     if (href === '/android-downloads') {
                         window.dispatchEvent(new Event('seanime-open-downloads'));  // routes/_main.tsx pauses playback and opens the page
@@ -1525,8 +1538,8 @@ object UIBottomNav {
                                 if (editMode) { e.preventDefault(); e.stopPropagation(); return; }
                                 if (item.sidebarType === 'link' && item.href) {
                                     e.preventDefault();
-                                    if (!isActive(item)) markActiveNow(el);
-                                    navigateViaApp(item.href);
+                                    if (!isActive(item)) { markActiveNow(el); navigateAfterGlide(item.href); }
+                                    else navigateViaApp(item.href);
                                 } else if (item.sidebarType === 'button') {
                                     clickSidebarButton(item.label);
                                 }
@@ -1542,7 +1555,7 @@ object UIBottomNav {
                             el.addEventListener('click', function(e) {
                                 e.preventDefault();
                                 if (editMode) { e.stopPropagation(); return; }
-                                if (!isActive(item)) { markActiveNow(el); navigateViaApp(item.href); }
+                                if (!isActive(item)) { markActiveNow(el); navigateAfterGlide(item.href); }
                                 if (menuOpen) closeMenu();
                             });
                         }

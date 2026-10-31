@@ -3,6 +3,7 @@ import "@/components/shared/mobile-surface.css"
 import { SeaImage as Image } from "@/components/shared/sea-image"
 import { cn } from "@/components/ui/core/styling"
 import { tr } from "@/lib/app-language"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import React from "react"
 import { LuMaximize, LuMinimize, LuSkipBack, LuSkipForward, LuVolume, LuVolume1, LuVolume2, LuVolumeOff } from "react-icons/lu"
@@ -172,6 +173,11 @@ const EASE_OUT = [0.23, 1, 0.32, 1] as const
 // Closed, only the round end under the speaker (about one button of the 13rem pill) is left; open, the whole pill.
 const VOLUME_PANEL_CLOSED = "inset(0% 0% 0% 79% round 999px)"
 const VOLUME_PANEL_OPEN = "inset(0% 0% 0% 0% round 999px)"
+// Phone: the frame that mounts the panel takes 40-90 ms there and the clip runs on the main thread, so up to 40 % of the
+// opening was gone before anything was drawn. It waits through that frame and opens on a gentler curve.
+const VOLUME_PANEL_OPENING = IS_TABLET_UI
+    ? { duration: 0.22, ease: EASE_OUT }
+    : { duration: 0.26, ease: [0.2, 0.6, 0.35, 1] as const, delay: 0.07 }
 
 export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
     const { volume, muted, onVolumeChange, onMuteToggle, panelOpen, onPanelOpenChange } = props
@@ -275,7 +281,7 @@ export function MediaCoreVolumeButton(props: MediaCoreVolumeButtonProps) {
                     exit={reduceMotion
                         ? { opacity: 0, pointerEvents: "none", transition: { duration: 0.12 } }
                         : { opacity: 0, clipPath: VOLUME_PANEL_CLOSED, transform: "translateY(-4px)", pointerEvents: "none", transition: { duration: 0.15, ease: EASE_OUT } }}
-                    transition={{ duration: 0.22, ease: EASE_OUT }}
+                    transition={VOLUME_PANEL_OPENING}
                     onClick={e => e.stopPropagation()}
                     onPointerDown={e => e.stopPropagation()}
                 >

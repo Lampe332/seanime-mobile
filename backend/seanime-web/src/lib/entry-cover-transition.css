@@ -13,5 +13,13 @@ html[data-entry-cover-transition]::view-transition-new(entry-cover) {
     object-fit: cover;
     animation-duration: 340ms;
 }
+/* Phone: the transition's first frame (both pages captured at 1440p) takes ~90 ms there, and by then the curve above had
+   covered most of the way, so the cover jumped into place. A gentle start leaves the flight to the frames that follow. */
+html:not([data-layout="tablet"])[data-entry-cover-transition]::view-transition-group(entry-cover) {
+    animation-duration: 420ms;
+    animation-timing-function: cubic-bezier(.5, 0, .2, 1);
+}
+html:not([data-layout="tablet"])[data-entry-cover-transition]::view-transition-old(entry-cover),
+html:not([data-layout="tablet"])[data-entry-cover-transition]::view-transition-new(entry-cover) { animation-duration: 420ms; }
 html[data-entry-cover-transition]::view-transition-old(root) { animation-duration: 130ms; animation-timing-function: ease-out; }
 html[data-entry-cover-transition]::view-transition-new(root) { animation-duration: 260ms; animation-delay: 60ms; animation-fill-mode: both; animation-timing-function: cubic-bezier(.23, 1, .32, 1); }
