@@ -71,6 +71,9 @@ export function NakamaWatchPartyChat() {
 
     const { mutate: sendChatMessage, isPending: isSending } = useNakamaSendChatMessage()
 
+    // Phone: the messages there when the chat opens stay still, the ones arriving while it is open rise in (motion.css)
+    const shownOnOpen = React.useMemo(() => new Set(messages.map(msg => msg.messageId)), [minimized])
+
     // Auto-scroll to bottom when new messages arrive
     React.useEffect(() => {
         if (!minimized && messagesEndRef.current) {
@@ -129,7 +132,7 @@ export function NakamaWatchPartyChat() {
                             ? <p className="nk-chat-empty">{t("No messages yet. Say hi to the others watching.", "Noch keine Nachrichten. Sag den anderen Hallo.")}</p>
                             : messages.map(msg => {
                                 const own = msg.peerId === currentUserPeerId
-                                return <div key={msg.messageId} className="nk-msg" data-own={own}>
+                                return <div key={msg.messageId} className="nk-msg" data-own={own} data-new={!shownOnOpen.has(msg.messageId) || undefined}>
                                     <div className="nk-msg-head">
                                         <b>{own ? t("Me", "Ich") : msg.username}{msg.peerId === "host" && !own ? " (Host)" : ""}</b>
                                         <time dateTime={msg.timestamp}>{new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>

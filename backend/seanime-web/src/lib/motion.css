@@ -75,7 +75,76 @@ html:not([data-layout="tablet"]) :is(.pss-group-body, .pss-file-body, .plib-file
     animation: m-unfold 220ms cubic-bezier(.2, .6, .35, 1) backwards;
 }
 
+/* Phone press, beyond the ps-* kit (phone-screen.css): the other screens' buttons, covers and rows answer a tap the same
+   way. What you hold as one object gives a little under the finger and springs back; its pressed fill comes at once and
+   fades out on release; full-width rows only take that fill. */
+html:not([data-layout="tablet"]) :is(.home-header-action, .mobile-plugin-trigger, .mobile-entry-icon, .mobile-topbar-downloads,
+    .mml-icon-button, .mdl-icon-button, .mex-icon-button, .msc-icon-button, .msc-filter, .mml-primary, .mex-primary, .msc-primary,
+    .mdl-secondary, .mex-more, .mex-text-action, .mex-paste, .mex-install, .pq-chip, .pq-top, .nakama-chat-fab, .gsm-primary,
+    .mobile-anime-episodes-link, .mobile-anime-progress [data-anilist-media-entry-modal-edit-button],
+    [data-mobile-anime="true"] [data-anime-meta-section-buttons-row] .UI-Button_root,
+    [data-mobile-manga="true"] [data-manga-meta-section-buttons-row] .UI-IconButton_root, .mobile-source-more :is(.UI-Button_root, .UI-IconButton_root)) {
+    transition: transform 160ms var(--m-out), background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+html:not([data-layout="tablet"]) :is(.home-header-action, .mobile-plugin-trigger, .mobile-entry-icon, .mobile-topbar-downloads,
+    .mml-icon-button, .mdl-icon-button, .mex-icon-button, .msc-icon-button, .msc-filter, .mml-primary, .mex-primary, .msc-primary,
+    .mdl-secondary, .mex-more, .mex-text-action, .mex-paste, .mex-install, .pq-chip, .pq-top, .nakama-chat-fab, .gsm-primary,
+    .mobile-anime-episodes-link, .mobile-anime-progress [data-anilist-media-entry-modal-edit-button],
+    [data-mobile-anime="true"] [data-anime-meta-section-buttons-row] .UI-Button_root,
+    [data-mobile-manga="true"] [data-manga-meta-section-buttons-row] .UI-IconButton_root, .mobile-source-more :is(.UI-Button_root, .UI-IconButton_root)):active:not(:disabled) {
+    transform: scale(.97); transition-duration: 160ms, 0s, 0s, 0s;
+}
+/* Covers and the large picture cards (Continue watching, Discover's header, manga's Continue reading) */
+html:not([data-layout="tablet"]) :is([data-media-entry-card-body], .mml-card, .mdl-card, .mdl-continue-tile, .home-resume-tile, .home-discover-card) {
+    transition: transform 160ms var(--m-out);
+}
+html:not([data-layout="tablet"]) :is([data-media-entry-card-body-link]:active [data-media-entry-card-body], .mml-card:active, .mdl-card:active, .mdl-continue-tile:active) { transform: scale(.97); }
+html:not([data-layout="tablet"]) :is(.home-resume-tile, .home-discover-card):active { transform: scale(.985); }
+html:not([data-layout="tablet"]) :is(.mml-card-cover, .mdl-card-cover, .mdl-continue-image) { transition: opacity 200ms ease; }
+html:not([data-layout="tablet"]) :is(.mml-card:active .mml-card-cover, .mdl-card:active .mdl-card-cover, .mdl-continue-tile:active .mdl-continue-image) { transition-duration: 0s; }
+html:not([data-layout="tablet"]) .mml-continue-card { transition: transform 160ms var(--m-out), background-color 200ms ease; }
+html:not([data-layout="tablet"]) .mml-continue-card:active { transform: scale(.985); transition-duration: 160ms, 0s; }
+html:not([data-layout="tablet"]) :is(.mml-check, .mdl-row-main, .mex-row, .mex-row-main, .mex-action, .msc-row, .msc-check, .pml-row,
+    .pss-group-head, .pss-file-head, .tsp-row, .plib-hidden-head, .gsm-row, .mobile-chapter-open, .mobile-chapter-action, .mobile-chapter-order,
+    .mobile-download-list label, .mobile-match-results li > :is(button, a), button.reader-settings-row) { transition: background-color 200ms ease; }
+html:not([data-layout="tablet"]) :is(.mml-check, .mdl-row-main, .mex-row, .mex-row-main, .mex-action, .msc-row, .msc-check, .pml-row,
+    .pss-group-head, .pss-file-head, .tsp-row, .plib-hidden-head, .gsm-row, .mobile-chapter-open, .mobile-chapter-action, .mobile-chapter-order,
+    .mobile-download-list label, .mobile-match-results li > :is(button, a), button.reader-settings-row):active { transition-duration: 0s; }
+/* An episode row had no answer to a tap until playback opened: the row takes the pressed fill, its thumbnail gives a little. */
+html:not([data-layout="tablet"]) [data-mobile-anime="true"] [data-episode-grid-item]:has(> .mobile-episode-target:active) {
+    background: var(--sm-surface-control); transition-duration: 0s;
+}
+html:not([data-layout="tablet"]) [data-mobile-anime="true"] [data-episode-grid-item-image-container] { transition: transform 160ms var(--m-out); }
+html:not([data-layout="tablet"]) [data-mobile-anime="true"] [data-episode-grid-item]:has(> .mobile-episode-target:active) [data-episode-grid-item-image-container] { transform: scale(.97); }
+
+/* My lists' stats: each bar grows out to its share once when the stats open (the bars carry their share as an inline scaleX,
+   which the animation's end takes), one after another. */
+@keyframes m-grow { from { transform: scaleX(0); } }
+html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars-track > span { animation: m-grow 320ms cubic-bezier(.2, .6, .35, 1) backwards; }
+html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars > li:nth-child(2) .ps-bars-track > span { animation-delay: 30ms; }
+html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars > li:nth-child(3) .ps-bars-track > span { animation-delay: 60ms; }
+html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars > li:nth-child(4) .ps-bars-track > span { animation-delay: 90ms; }
+html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars > li:nth-child(n+5) .ps-bars-track > span { animation-delay: 120ms; }
+
+/* Watch party chat: its button settles in when a party starts, a message that arrives while the chat is open rises in
+   (nakama-watch-party-chat.tsx marks those; the ones there when it opens stay still). */
+html:not([data-layout="tablet"]) .nakama-chat-fab { animation: m-settle 220ms cubic-bezier(.2, .6, .35, 1) backwards; }
+html:not([data-layout="tablet"]) .nk-msg[data-new] { animation: m-rise 240ms cubic-bezier(.2, .6, .35, 1) backwards; }
+
 @media (prefers-reduced-motion: reduce) {
+    html:not([data-layout="tablet"]) :is(.home-header-action, .mobile-plugin-trigger, .mobile-entry-icon, .mobile-topbar-downloads,
+        .mml-icon-button, .mdl-icon-button, .mex-icon-button, .msc-icon-button, .msc-filter, .mml-primary, .mex-primary, .msc-primary,
+        .mdl-secondary, .mex-more, .mex-text-action, .mex-paste, .mex-install, .pq-chip, .pq-top, .nakama-chat-fab, .gsm-primary,
+        .mobile-anime-episodes-link, .mobile-anime-progress [data-anilist-media-entry-modal-edit-button],
+        [data-mobile-anime="true"] [data-anime-meta-section-buttons-row] .UI-Button_root,
+        [data-mobile-manga="true"] [data-manga-meta-section-buttons-row] .UI-IconButton_root, .mobile-source-more :is(.UI-Button_root, .UI-IconButton_root),
+        [data-media-entry-card-body], .mml-card, .mdl-card, .mdl-continue-tile, .home-resume-tile, .home-discover-card, .mml-continue-card,
+        [data-mobile-anime="true"] [data-episode-grid-item-image-container]) { transition: none; transform: none !important; }
+    html:not([data-layout="tablet"]) :is(.mml-card-cover, .mdl-card-cover, .mdl-continue-image, .mml-check, .mdl-row-main, .mex-row, .mex-row-main,
+        .mex-action, .msc-row, .msc-check, .pml-row, .pss-group-head, .pss-file-head, .tsp-row, .plib-hidden-head, .gsm-row, .mobile-chapter-open,
+        .mobile-chapter-action, .mobile-chapter-order, .mobile-download-list label, .mobile-match-results li > :is(button, a), button.reader-settings-row) { transition: none; }
+    html:not([data-layout="tablet"]) [data-phone-screen="lists"] .ps-bars-track > span { animation: none; }
+    html:not([data-layout="tablet"]) :is(.nakama-chat-fab, .nk-msg[data-new]) { animation-name: m-fade; }
     html:not([data-layout="tablet"]) .msc-section { animation-name: m-fade; }
     html:not([data-layout="tablet"]) :is(.pss-group-body, .pss-file-body, .plib-files, #pst-developer-tools,
         .ps-sheet-group:has([data-torrent-more][aria-expanded="true"]) > .tsp-field) { animation-name: m-fade; }

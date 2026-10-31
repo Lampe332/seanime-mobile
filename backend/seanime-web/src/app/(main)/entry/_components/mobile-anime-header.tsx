@@ -5,10 +5,20 @@ import { listStatusLabel } from "@/app/(main)/discover/_lib/discover-phone"
 import { SeaImage } from "@/components/shared/sea-image"
 import { getImageUrl } from "@/lib/server/assets"
 import { tr } from "@/lib/app-language"
+import { prefersReducedMotion } from "@/lib/motion"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { atom, useAtomValue } from "jotai"
 import React from "react"
 import { IoBookOutline } from "react-icons/io5"
 import "./mobile-anime.css"
+
+/** Phone: the jump to the episodes glides down the page instead of cutting to them (the link's own navigation stays). */
+function glideToEpisodes() {
+    if (IS_TABLET_UI || prefersReducedMotion()) return
+    const root = document.documentElement
+    root.style.scrollBehavior = "smooth"
+    window.setTimeout(() => root.style.scrollBehavior = "", 1000)
+}
 
 /** Manga: the chapter list publishes its read action (start / continue / resume) for the header. */
 type MobileReadAction = { label: string, detail?: string, onClick: () => void }
@@ -50,7 +60,7 @@ export function MobileAnimeHeaderDetails(props: MediaPageHeaderEntryDetailsProps
                 ? (manga ? tr("reread", "Wiederholung") : tr("rewatch", "Wiederholung"))
                 : (manga ? tr("rereads", "Wiederholungen") : tr("rewatches", "Wiederholungen"))}` : ""}</p>}
         </div>
-        {manga ? <MobileMangaReadAction /> : <a className="mobile-anime-episodes-link" href="#anime-episodes">
+        {manga ? <MobileMangaReadAction /> : <a className="mobile-anime-episodes-link" href="#anime-episodes" onClick={glideToEpisodes}>
             {tr("Episodes & playback", "Folgen & Wiedergabe")} <span aria-hidden>↓</span>
         </a>}
         <details className="mobile-anime-details">
