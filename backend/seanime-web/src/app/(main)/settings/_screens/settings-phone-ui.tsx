@@ -164,7 +164,8 @@ function ImagesGroup({ t }: { t: Translate }) {
             value={String(backgroundOpacity)} options={opacityOptions(backgroundOpacity)} data-theme-field="libraryScreenCustomBackgroundOpacity"
             onChange={value => void save({ libraryScreenCustomBackgroundOpacity: Number(value) })} />}
         <TextSettingRow t={t} label={t("Banner image", "Bannerbild")} value={banner} empty={none} type="url" placeholder="https://…"
-            note={t("Shown at the top of some pages. Leave empty for none.", "Erscheint oben auf manchen Seiten. Leer lassen für keins.")}
+            note={IS_TABLET_UI ? t("Shown at the top of some pages. Leave empty for none.", "Erscheint oben auf manchen Seiten. Leer lassen für keins.")
+                : t("Shown behind the title on Home. Leave empty for none.", "Erscheint hinter dem Titel auf der Startseite. Leer lassen für keins.")}
             validate={validateImageLink(t)} data-theme-field="libraryScreenCustomBannerImage"
             onApply={value => void save({ libraryScreenCustomBannerImage: value.trim(), ...visible("libraryScreenCustomBannerOpacity", bannerOpacity) })} />
         {!!banner && <>

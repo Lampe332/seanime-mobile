@@ -7,6 +7,11 @@
 [data-home-navbar] { padding: .75rem 1rem 0; overflow: visible; background: linear-gradient(180deg, rgb(var(--color-brand-500) / .16), rgb(var(--color-brand-500) / .11)); }
 [data-home-navbar] [data-layout-header-background], [data-home-navbar] [data-layout-header-background-gradient] { display: none; }
 [data-home-navbar] .home-mobile-header { width: 100%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .25rem .75rem; padding: .5rem 0 .25rem; }
+/* Banner image (Settings > Appearance), phone only: behind the header row, a scrim under the title, faded out where Home begins. */
+[data-home-navbar] .home-banner { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent); mask-image: linear-gradient(180deg, #000 55%, transparent); }
+[data-home-navbar] .home-banner img { width: 100%; height: 100%; object-fit: cover; }
+[data-home-navbar] .home-banner::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(12 12 14 / .62), rgb(12 12 14 / .28) 70%, rgb(12 12 14 / .4)); }
+[data-home-navbar] .home-banner ~ * { position: relative; z-index: 1; }
 [data-home-navbar] .home-mobile-heading { min-width: 0; }
 [data-home-navbar] .home-mobile-heading > span { display: block; color: var(--sm-accent); opacity: .85; font-size: .6875rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
 [data-home-navbar] h1 { font-size: 1.75rem; letter-spacing: -.03em; line-height: 1.15; margin: .15rem 0 0; font-weight: 700; color: var(--sm-text); overflow-wrap: anywhere; }
