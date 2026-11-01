@@ -18,7 +18,10 @@ import "./mobile-update.css"
 export function MobileUpdateModal() {
     const t = useTr()
     const server = useServerStatus()
-    const { data, isLoading, isFetching, error, refetch } = useGetLatestUpdate(!!server && !server.settings?.library?.disableUpdateCheck)
+    // "Look for new versions" (Settings → About): off, the app neither checks by itself nor pops the notice up; the menu panel
+    // keeps an update found earlier and its own check button
+    const autoCheck = !!server && !server.settings?.library?.disableUpdateCheck
+    const { data, isLoading, isFetching, error, refetch } = useGetLatestUpdate(autoCheck)
     const [open, setOpen] = useAtom(updateModalOpenAtom)
     const [nativeDownload, setDownload] = React.useState<AppDownloadState>({ status: "idle" })
     const download: AppDownloadState = nativeDownload.status === "complete" && data?.release?.version && nativeDownload.version !== data.release.version
@@ -46,8 +49,8 @@ export function MobileUpdateModal() {
     }, [])
     const version = data?.release?.version
     React.useEffect(() => {
-        if (version && localStorage.getItem("notified-available-app-update") !== JSON.stringify(version)) setOpen(true)
-    }, [version])
+        if (autoCheck && version && localStorage.getItem("notified-available-app-update") !== JSON.stringify(version)) setOpen(true)
+    }, [version, autoCheck])
     function close() {
         if (version) localStorage.setItem("notified-available-app-update", JSON.stringify(version))
         setOpen(false)
