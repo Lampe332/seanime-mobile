@@ -253,7 +253,10 @@ function DebridGroup({ t }: { t: Translate }) {
             {!!provider && <ApiKeyField t={t} providerName={providerName} hasKey={!!stored?.apiKey} check={check.result}
                 onSave={async key => !!await save({ apiKey: key })} />}
             {check.result.state === "failed" && <PhoneNotice data-settings-debrid-error text={<>
-                {t(`${providerName} did not accept the API key, or could not be reached.`, `${providerName} hat den API-Schlüssel nicht angenommen oder war nicht erreichbar.`)}
+                {planRestricted(check.result.detail)
+                    ? t(`${providerName} knows the key, but your plan does not include API access, which the app needs.`,
+                        `${providerName} kennt den Schlüssel, aber dein Tarif enthält keinen API-Zugang, den die App braucht.`)
+                    : t(`${providerName} did not accept the API key, or could not be reached.`, `${providerName} hat den API-Schlüssel nicht angenommen oder war nicht erreichbar.`)}
                 {!!check.result.detail && <small className="pst-notice-detail" data-settings-debrid-error-detail>{check.result.detail}</small>}
             </>}>
                 <button type="button" className="ps-text-action" onClick={check.run} data-settings-debrid-recheck>{t("Check again", "Erneut prüfen")}</button>
@@ -301,6 +304,11 @@ function useKeyCheck(stored: Models_DebridSettings | undefined) {
     }, [ready, key, mutateAsync])
     React.useEffect(() => { run() }, [ready, stored?.provider, key])
     return { result, run }
+}
+
+/** The provider answered that the account's plan has no API access (TorBox: 403 PLAN_RESTRICTED_FEATURE); the key itself is fine. */
+function planRestricted(detail: string) {
+    return /PLAN_RESTRICTED|not available on your plan|upgrade to a paid plan/i.test(detail)
 }
 
 function keyCheckDetail(failure: unknown, key: string) {
