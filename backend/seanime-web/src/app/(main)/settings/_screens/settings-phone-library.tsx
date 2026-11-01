@@ -60,7 +60,7 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
         <SettingsGroup id="library-folders" title={t("Folders", "Ordner")}
             note={t("Where your anime files are. The app needs \"All files access\" to read them.", "Wo deine Anime-Dateien liegen. Die App braucht dafür Zugriff auf alle Dateien.")}>
             <TextSettingRow t={t} label={t("Library folder", "Bibliotheksordner")} value={libraryPath} empty={notSet} placeholder="/storage/emulated/0/Anime"
-                note={t("Pick it, or type the path as the phone shows it.", "Wähle ihn aus oder tippe den Pfad, wie das Handy ihn zeigt.")}
+                note={t("Pick it, or type the path as this device shows it.", "Wähle ihn aus oder tippe den Pfad, wie dieses Gerät ihn zeigt.")}
                 extra={setDraft => <PickFolderButton t={t} onPicked={setDraft} />}
                 onApply={value => void save("library.libraryPath", value.trim())} data-setting="library.libraryPath" />
             {libraryPaths.map(path => <LinkRow key={path} label={t("Additional folder", "Weiterer Ordner")} value={path} onClick={() => setRemoving(path)}
