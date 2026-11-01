@@ -1,8 +1,10 @@
 import { PlaybackDownloadedMedia, useCurrentDevicePlaybackSettings, useExternalPlayerLink } from "@/app/(main)/_atoms/playback.atoms"
 import { PhoneChips, PhoneNotice, PhoneSwitch } from "@/app/(main)/_features/phone-screen/phone-screen"
-import { SettingsGroup, SettingSwitch, TextSettingRow } from "@/app/(main)/settings/_screens/settings-phone-kit"
+import { vc_autoNextAtom } from "@/app/(main)/_features/video-core/video-core.atoms"
+import { SettingsGroup, TextSettingRow } from "@/app/(main)/settings/_screens/settings-phone-kit"
 import { Translate } from "@/lib/app-language"
 import { ANDROID_PLAYER_PRESETS, androidPlayerLink, androidPlayerPresetOf } from "@/lib/external-player-link/android-player-presets"
+import { useAtom } from "jotai"
 import React from "react"
 
 /** Playback: the player for downloaded files, the next episode, the external player link (all but the first only on this phone). */
@@ -11,6 +13,8 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
     const { externalPlayerLink, setExternalPlayerLink, encodePath, setEncodePath } = useExternalPlayerLink()
     const external = downloadedMediaPlayback === PlaybackDownloadedMedia.ExternalPlayerLink
     const preset = androidPlayerPresetOf(externalPlayerLink)
+    // The app's player reads this per-device switch (Auto next in its menu); library.autoPlayNextEpisode is only read by desktop players
+    const [autoNext, setAutoNext] = useAtom(vc_autoNextAtom)
 
     return <>
         <SettingsGroup id="playback-files" title={t("Files on this device", "Dateien auf diesem Gerät")}
@@ -26,8 +30,10 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
         </SettingsGroup>
 
         <SettingsGroup id="playback-next" title={t("Next episode", "Nächste Folge")}>
-            <SettingSwitch path="library.autoPlayNextEpisode" label={t("Play the next episode automatically", "Nächste Folge automatisch abspielen")}
-                note={t("Starts it after a short delay when an episode ends.", "Startet sie kurz nach dem Ende einer Folge.")} />
+            <PhoneSwitch label={t("Play the next episode automatically", "Nächste Folge automatisch abspielen")} checked={autoNext} onChange={setAutoNext}
+                note={t("Starts 5 seconds after an episode ends. Same switch as Auto next in the player menu.",
+                    "Startet 5 Sekunden nach dem Ende einer Folge. Derselbe Schalter wie „Nächste Folge automatisch“ im Player-Menü.")}
+                data-settings-auto-next />
         </SettingsGroup>
 
         <SettingsGroup id="playback-external" title={t("External player", "Externer Player")}
