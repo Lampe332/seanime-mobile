@@ -16,6 +16,7 @@ import { Translate } from "@/lib/app-language"
 import { ANIME_COLLECTION_SORTING_OPTIONS, CONTINUE_WATCHING_SORTING_OPTIONS, MANGA_COLLECTION_SORTING_OPTIONS } from "@/lib/helpers/filtering"
 import { __navigationPreloadModeAtom, NavigationPreloadMode } from "@/lib/navigation-preload-settings"
 import { THEME_COLOR_BANK } from "@/lib/theme/theme-bank"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { THEME_DEFAULT_VALUES } from "@/lib/theme/theme-hooks"
 import { colord } from "colord"
 import { useAtom } from "jotai"
@@ -68,8 +69,11 @@ export function SettingsUISection({ t }: { t: Translate }) {
             <ThemeSwitch field="showAnimeUnwatchedCount" label={t("Unwatched episodes on anime cards", "Ungesehene Folgen auf Anime-Karten")} />
             <ThemeSwitch field="showMangaUnreadCount" label={t("Unread chapters on manga cards", "Ungelesene Kapitel auf Manga-Karten")} />
             <ThemeSwitch field="useLegacyEpisodeCard" label={t("Classic episode cards", "Klassische Folgenkarten")} />
-            <ThemeSwitch field="hideEpisodeCardDescription" label={t("Hide episode summaries", "Folgenbeschreibungen verbergen")} />
-            <ThemeSwitch field="hideDownloadedEpisodeCardFilename" label={t("Hide file names of episodes", "Dateinamen von Folgen verbergen")} />
+            {/* The phone's episode rows never show summaries or file names (mobile-anime.css), so these only matter on a tablet */}
+            {IS_TABLET_UI && <>
+                <ThemeSwitch field="hideEpisodeCardDescription" label={t("Hide episode summaries", "Folgenbeschreibungen verbergen")} />
+                <ThemeSwitch field="hideDownloadedEpisodeCardFilename" label={t("Hide file names of episodes", "Dateinamen von Folgen verbergen")} />
+            </>}
             <ThemeSwitch field="disableCarouselAutoScroll" label={t("Stop carousels from scrolling by themselves", "Karussells nicht selbst weiterlaufen lassen")} />
             <ThemeSwitch field="smallerEpisodeCarouselSize" label={t("Smaller episode cards in carousels", "Kleinere Folgenkarten in Karussells")} />
             <ThemeSwitch field="enableBlurringEffects" label={t("Blur effects", "Unschärfe-Effekte")}
