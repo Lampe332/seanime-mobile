@@ -9,6 +9,7 @@ import { MediaCoreSelectOption } from "./media-core.types"
 import { menuText } from "./media-core-texts"
 import { useTr } from "@/lib/app-language"
 import { openAfterPress } from "@/lib/motion"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 
 export interface MediaCoreMenuProps {
     name: string
@@ -70,6 +71,8 @@ export function MediaCoreMenu(props: MediaCoreMenuProps) {
             sideOffset={sideOffset}
             align="center"
             side="top"
+            // Tablet: the wide landscape sheet keeps a gap to the screen edge instead of touching it
+            collisionPadding={IS_TABLET_UI ? 16 : undefined}
             modal={false}
             onEscapeKeyDown={onEscapeKeyDown}
             className={cn(

@@ -162,9 +162,16 @@ html[data-layout="tablet"] .nakama-chat { left: calc(var(--tablet-rail) + 1rem);
 
 /* ── Settings: the areas on the left, the open area beside them (settings-phone.tsx renders both from 720px) ── */
 html[data-layout="tablet"] .pst-panes { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: 1.25rem; align-items: start; }
-html[data-layout="tablet"] .pst-panes > .pst-nav { position: sticky; top: 1rem; }
+/* The list stays beside a long area while it scrolls. The native shell clips body and page wrapper with overflow-x: hidden
+   (UIHomePatch.kt), which makes them scroll boxes that never scroll, so sticky had nothing to stick to; clip cuts the same
+   overflow without being one. The list scrolls on its own when the window is too short for all areas. */
+html[data-layout="tablet"] body:has([data-phone-screen="settings"]),
+html[data-layout="tablet"] [data-phone-screen="settings"][data-page-wrapper] { overflow-x: clip !important; }
+html[data-layout="tablet"] .pst-panes > .pst-nav { position: sticky; top: 1rem; max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+html[data-layout="tablet"] .pst-panes > .pst-nav::-webkit-scrollbar { display: none; }
 html[data-layout="tablet"] .pst-panes .pst-nav-row { min-height: 3.5rem; }
-html[data-layout="tablet"] .pst-panes .pst-nav-row > svg:last-child, html[data-layout="tablet"] .pst-panes .pst-row-text small { display: none; }
+/* Narrow two panes: the list shows names only; the notes of the open area's rows stay */
+html[data-layout="tablet"] .pst-panes .pst-nav-row > svg:last-child, html[data-layout="tablet"] .pst-panes .pst-nav .pst-row-text small { display: none; }
 html[data-layout="tablet"] .pst-panes .pst-nav-row[aria-current="page"] { background: var(--sm-surface-control); }
 html[data-layout="tablet"] .pst-panes .pst-nav-row[aria-current="page"] .pst-row-text > span { font-weight: 650; }
 html[data-layout="tablet"] .pst-pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; min-width: 0; }
@@ -172,8 +179,16 @@ html[data-layout="tablet"] .pst-pane-title { font-size: 1.375rem; line-height: 1
 @media (min-width: 1024px) {
     html[data-layout="tablet"] .pst-panes { grid-template-columns: 19rem minmax(0, 1fr); gap: 2rem; }
     html[data-layout="tablet"] .pst-panes .pst-nav-row { min-height: 3.75rem; }
-    html[data-layout="tablet"] .pst-panes .pst-row-text small { display: block; }
+    html[data-layout="tablet"] .pst-panes .pst-nav .pst-row-text small { display: block; }
 }
+/* Landscape height (about 800px): all ten areas with their notes fit without scrolling the list */
+@media (min-width: 1024px) and (max-height: 900px) {
+    html[data-layout="tablet"] .pst-panes .pst-nav-row { min-height: 3.25rem; padding-block: .5rem; }
+    html[data-layout="tablet"] .pst-panes .pst-nav .pst-row-text small { line-height: 1.35; }
+}
+
+/* ── Player settings: off the screen edge, and long values (two languages) not cut off ── */
+html[data-layout="tablet"] .vc-phone-settings .vc-phone-row-value { max-width: 62%; }
 
 /* ── Calendar: the days side by side ── */
 @media (min-width: 720px) {
