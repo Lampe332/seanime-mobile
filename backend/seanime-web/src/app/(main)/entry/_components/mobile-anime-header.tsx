@@ -6,7 +6,6 @@ import { SeaImage } from "@/components/shared/sea-image"
 import { getImageUrl } from "@/lib/server/assets"
 import { tr } from "@/lib/app-language"
 import { prefersReducedMotion } from "@/lib/motion"
-import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { atom, useAtomValue } from "jotai"
 import React from "react"
 import { IoBookOutline } from "react-icons/io5"
@@ -45,11 +44,11 @@ export function MobileAnimeHeaderDetails(props: MediaPageHeaderEntryDetailsProps
     const manga = type === "manga"
     return <>
         <div className="mobile-anime-identity">
-            {/* Phone: the cover loads at once, not lazily. A lazy one only loaded after the cover flight had given up waiting
-                for it (+380-490 ms), though the tap had fetched its picture by +60-290 ms (entry-cover-transition.ts). */}
+            {/* The cover loads at once, not lazily. A lazy one only loaded after the cover flight had given up waiting for
+                it (+380-490 ms), though the tap had fetched its picture by +60-290 ms (entry-cover-transition.ts). */}
             <div className="mobile-anime-cover">
                 {coverImage ? <SeaImage src={getImageUrl(coverImage)} alt={title || (manga ? tr("Manga cover", "Manga-Cover") : tr("Anime cover", "Anime-Cover"))} fill sizes="96px" className="object-contain"
-                    priority={!IS_TABLET_UI} /> : <span aria-label={tr("No cover", "Kein Cover")}>◇</span>}
+                    priority /> : <span aria-label={tr("No cover", "Kein Cover")}>◇</span>}
             </div>
             <div className="mobile-anime-title">
                 <h1>{title || romajiTitle || englishTitle || (manga ? "Manga" : "Anime")}</h1>
