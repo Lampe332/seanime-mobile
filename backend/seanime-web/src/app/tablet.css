@@ -169,6 +169,10 @@ html[data-layout="tablet"] body:has([data-phone-screen="settings"]),
 html[data-layout="tablet"] [data-phone-screen="settings"][data-page-wrapper] { overflow-x: clip !important; }
 html[data-layout="tablet"] .pst-panes > .pst-nav { position: sticky; top: 1rem; max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
 html[data-layout="tablet"] .pst-panes > .pst-nav::-webkit-scrollbar { display: none; }
+/* The page's bottom space moves into the open area: below the two panes it would push the list's top off screen at the end of
+   a long area (a sticky element cannot leave its grid) */
+html[data-layout="tablet"] [data-phone-screen="settings"]:has(> .pst-panes) { padding-bottom: 0; }
+html[data-layout="tablet"] .pst-pane { padding-bottom: 7rem; }
 html[data-layout="tablet"] .pst-panes .pst-nav-row { min-height: 3.5rem; }
 /* Narrow two panes: the list shows names only; the notes of the open area's rows stay */
 html[data-layout="tablet"] .pst-panes .pst-nav-row > svg:last-child, html[data-layout="tablet"] .pst-panes .pst-nav .pst-row-text small { display: none; }
