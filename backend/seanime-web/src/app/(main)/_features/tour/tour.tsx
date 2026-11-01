@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "@tanstack/react-router"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { ReactNode, useCallback, useEffect, useRef } from "react"
 
 export type TourStepPlacement = "top" | "bottom" | "left" | "right"
@@ -15,6 +16,8 @@ export type TourStep = {
     title?: ReactNode
     // image/hero rendered above the title
     image?: ReactNode
+    // animated badge above the title where the device has tour motion (tour-overlay.tsx TOUR_MOTION)
+    hero?: "intro" | "celebrate"
     // navigate to this route before showing this step
     route?: string
     // e.g. switch a tab, open a drawer
@@ -78,6 +81,15 @@ const INITIAL_STATE: TourState = {
 
 export const tourAtom = atom<TourState>(INITIAL_STATE)
 
+/** The first element matching `selector` that takes up room on screen (not display:none or collapsed). */
+export function findShown(selector: string): Element | null {
+    for (const el of Array.from(document.querySelectorAll(selector))) {
+        const r = el.getBoundingClientRect()
+        if (r.width > 0 && r.height > 0) return el
+    }
+    return null
+}
+
 export function useTour() {
     const [state, setTour] = useAtom(tourAtom)
     const navigate = useNavigate()
@@ -88,14 +100,16 @@ export function useTour() {
     stateRef.current = state
 
     // wait for a DOM element to exist, resolves null on timeout
+    // (phone: to be shown, as the closed Android menu keeps its rows hidden in the page)
     const waitForElement = useCallback(
         (selector: string, timeout = 3000): Promise<Element | null> => {
+            const find = IS_TABLET_UI ? (s: string) => document.querySelector(s) : findShown
             return new Promise((resolve) => {
-                const existing = document.querySelector(selector)
+                const existing = find(selector)
                 if (existing) return resolve(existing)
 
                 const observer = new MutationObserver(() => {
-                    const el = document.querySelector(selector)
+                    const el = find(selector)
                     if (el) {
                         resolve(el)
                         observer.disconnect()
@@ -110,7 +124,7 @@ export function useTour() {
 
                 setTimeout(() => {
                     observer.disconnect()
-                    const lastTry = document.querySelector(selector)
+                    const lastTry = find(selector)
                     resolve(lastTry) // null if not found
                 }, timeout)
             })
@@ -258,6 +272,8 @@ export function useTour() {
             // typing in a field (e.g. a URL during the tour) must not drive the tour
             const el = e.target as HTMLElement | null
             if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return
+            // phone: Android Back closes a sheet with a scripted Escape, which must not end the tour (tour-overlay.tsx follows Back)
+            if (e.key === "Escape" && !e.isTrusted && !IS_TABLET_UI) return
             if (e.key === "Escape") {
                 e.preventDefault()
                 stop()

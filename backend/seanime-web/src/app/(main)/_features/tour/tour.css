@@ -1,0 +1,48 @@
+/* The tour's moves on a device that has values in TOUR_MOTION (tour-overlay.tsx; the phone so far): its root carries .tour-m
+   and the timings as --tour-* properties, which change nowhere else. Opacity and transform only (the check mark's stroke is
+   a 1.5rem paint), every move plays once per step and keeps its content's end state; reduced motion keeps the fades. */
+
+@keyframes tour-rise { from { opacity: 0; transform: translateY(.625rem); } }
+@keyframes tour-fade { from { opacity: 0; } }
+/* the badge on the welcome and finale cards lands with a slight overshoot (easeOutBack) */
+@keyframes tour-pop { from { opacity: 0; transform: scale(.6); } }
+/* the progress pill moves on from the previous step's place (one dot plus its gap to the left) */
+@keyframes tour-dot { from { transform: translateX(-.75rem); } }
+@keyframes tour-draw { from { stroke-dashoffset: 1; } }
+
+/* A card's parts (badge, title, text, buttons) settle in one after another while the card itself arrives */
+.tour-m .tour-part { animation: tour-rise var(--tour-part) var(--tour-ease) backwards; }
+.tour-m .tour-dot-on { animation: tour-dot var(--tour-part) var(--tour-ease) backwards; }
+
+/* The card's buttons give under the finger */
+.tour-m [data-tour-card] button { transition: transform 160ms var(--m-out), background-color 150ms ease, color 150ms ease; }
+.tour-m [data-tour-card] button:active { transform: scale(.96); }
+
+/* "Loading…" only shows for a wait that is felt, not for every step change */
+.tour-m .tour-loading { animation: tour-fade 200ms ease-out var(--tour-wait) backwards; }
+
+/* The ring that beats around a target waiting for a tap (motion: tour-overlay.tsx) */
+.tour-pulse {
+    position: fixed; z-index: 1000000; pointer-events: none; border-radius: 10px;
+    box-shadow: 0 0 0 2px rgb(var(--color-brand-400) / .9), 0 0 14px 2px rgb(var(--color-brand-500) / .45);
+}
+
+.tour-hero { position: relative; display: flex; justify-content: center; padding-top: 1.5rem; }
+.tour-badge {
+    position: relative; display: grid; place-items: center; width: 3.5rem; height: 3.5rem; border-radius: 9999px;
+    color: rgb(var(--color-brand-200)); background: rgb(var(--color-brand-500) / .2); box-shadow: inset 0 0 0 1px rgb(var(--color-brand-400) / .4);
+    animation: tour-pop 420ms cubic-bezier(.34, 1.56, .64, 1) backwards; z-index: 1;
+}
+.tour-badge > svg { width: 1.625rem; height: 1.625rem; }
+.tour-hero[data-kind="celebrate"] .tour-badge { color: #fff; background: rgb(var(--color-brand-500)); box-shadow: 0 0 0 6px rgb(var(--color-brand-500) / .18); }
+.tour-check { stroke-dasharray: 1; animation: tour-draw 360ms var(--tour-ease) backwards; }
+/* The finale's sparks fly out of the badge (motion: tour-overlay.tsx) */
+.tour-spark { position: absolute; left: 50%; top: calc(1.5rem + 1.75rem); width: .5625rem; height: .5625rem; margin: -.28125rem; border-radius: 9999px; opacity: 0; pointer-events: none; }
+.tour-spark:nth-child(3n) { background: rgb(var(--color-brand-300)); }
+.tour-spark:nth-child(3n + 1) { background: rgb(var(--color-brand-500)); }
+.tour-spark:nth-child(3n + 2) { background: #fff; width: .375rem; height: .375rem; margin: -.1875rem; }
+
+@media (prefers-reduced-motion: reduce) {
+    .tour-m .tour-part, .tour-m .tour-badge { animation-name: tour-fade; }
+    .tour-m .tour-dot-on, .tour-m .tour-check { animation: none; }
+}

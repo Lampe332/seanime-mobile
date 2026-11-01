@@ -41,6 +41,7 @@ function getMobileTutorialSteps({ fromExtensions = false } = {}): TourStep[] {
                 </div>
             ),
             nextLabel: tr("Show me", "Zeig es mir"),
+            hero: "intro",
             ignoreOutsideClick: true,
         },
         {
@@ -197,6 +198,7 @@ function getMobileTutorialSteps({ fromExtensions = false } = {}): TourStep[] {
                 </ul>
             ),
             nextLabel: tr("Done", "Fertig"),
+            hero: "celebrate",
             disableBack: true,
             ignoreOutsideClick: true,
         },
