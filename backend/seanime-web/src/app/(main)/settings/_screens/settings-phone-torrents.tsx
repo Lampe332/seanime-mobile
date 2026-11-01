@@ -257,7 +257,7 @@ function DebridGroup({ t }: { t: Translate }) {
                     ? t(`${providerName} knows the key, but your plan does not include API access, which the app needs.`,
                         `${providerName} kennt den Schlüssel, aber dein Tarif enthält keinen API-Zugang, den die App braucht.`)
                     : t(`${providerName} did not accept the API key, or could not be reached.`, `${providerName} hat den API-Schlüssel nicht angenommen oder war nicht erreichbar.`)}
-                {!!check.result.detail && <small className="pst-notice-detail" data-settings-debrid-error-detail>{check.result.detail}</small>}
+                {!!check.result.detail && !planRestricted(check.result.detail) && <small className="pst-notice-detail" data-settings-debrid-error-detail>{check.result.detail}</small>}
             </>}>
                 <button type="button" className="ps-text-action" onClick={check.run} data-settings-debrid-recheck>{t("Check again", "Erneut prüfen")}</button>
             </PhoneNotice>}
