@@ -1,6 +1,7 @@
 import { useListOnlinestreamProviderExtensions } from "@/api/hooks/extensions.hooks"
 import { isLoginModalOpenAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { tr } from "@/lib/app-language"
+import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import React from "react"
@@ -48,8 +49,11 @@ function getMobileTutorialSteps({ fromExtensions = false } = {}): TourStep[] {
             id: "menu",
             target: "#__seanime_bottom_nav button[data-nav-id=\"menu\"]",
             title: tr("Open the menu", "Menü öffnen"),
-            content: <p>{tr("Tap ", "Tippe unten auf ")}<b>Menu</b>{tr(" at the bottom.", ".")}</p>,
-            placement: "top",
+            // the tablet shows the menu in the rail on the left: the card sits beside it
+            content: IS_TABLET_UI
+                ? <p>{tr("Tap ", "Tippe links auf ")}<b>Menu</b>{tr(" on the left.", ".")}</p>
+                : <p>{tr("Tap ", "Tippe unten auf ")}<b>Menu</b>{tr(" at the bottom.", ".")}</p>,
+            placement: IS_TABLET_UI ? "right" : "top",
             allowTargetInteraction: true,
             advanceOnTargetClick: true,
             hideNextButton: true,

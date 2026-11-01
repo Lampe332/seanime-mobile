@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from "@tanstack/react-router"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
-import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { ReactNode, useCallback, useEffect, useRef } from "react"
 
 export type TourStepPlacement = "top" | "bottom" | "left" | "right"
@@ -100,16 +99,15 @@ export function useTour() {
     stateRef.current = state
 
     // wait for a DOM element to exist, resolves null on timeout
-    // (phone: to be shown, as the closed Android menu keeps its rows hidden in the page)
+    // (to be shown, as the closed Android menu keeps its rows hidden in the page)
     const waitForElement = useCallback(
         (selector: string, timeout = 3000): Promise<Element | null> => {
-            const find = IS_TABLET_UI ? (s: string) => document.querySelector(s) : findShown
             return new Promise((resolve) => {
-                const existing = find(selector)
+                const existing = findShown(selector)
                 if (existing) return resolve(existing)
 
                 const observer = new MutationObserver(() => {
-                    const el = find(selector)
+                    const el = findShown(selector)
                     if (el) {
                         resolve(el)
                         observer.disconnect()
@@ -124,7 +122,7 @@ export function useTour() {
 
                 setTimeout(() => {
                     observer.disconnect()
-                    const lastTry = find(selector)
+                    const lastTry = findShown(selector)
                     resolve(lastTry) // null if not found
                 }, timeout)
             })
@@ -272,8 +270,8 @@ export function useTour() {
             // typing in a field (e.g. a URL during the tour) must not drive the tour
             const el = e.target as HTMLElement | null
             if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return
-            // phone: Android Back closes a sheet with a scripted Escape, which must not end the tour (tour-overlay.tsx follows Back)
-            if (e.key === "Escape" && !e.isTrusted && !IS_TABLET_UI) return
+            // Android Back closes a sheet with a scripted Escape, which must not end the tour (tour-overlay.tsx follows Back)
+            if (e.key === "Escape" && !e.isTrusted) return
             if (e.key === "Escape") {
                 e.preventDefault()
                 stop()

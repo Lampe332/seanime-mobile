@@ -1,4 +1,4 @@
-/* The tour's moves on a device that has values in TOUR_MOTION (tour-overlay.tsx; the phone so far): its root carries .tour-m
+/* The tour's moves on a device that has values in TOUR_MOTION (tour-overlay.tsx; phone and tablet): its root carries .tour-m
    and the timings as --tour-* properties, which change nowhere else. Opacity and transform only (the check mark's stroke is
    a 1.5rem paint), every move plays once per step and keeps its content's end state; reduced motion keeps the fades. */
 
@@ -41,6 +41,10 @@
 .tour-spark:nth-child(3n) { background: rgb(var(--color-brand-300)); }
 .tour-spark:nth-child(3n + 1) { background: rgb(var(--color-brand-500)); }
 .tour-spark:nth-child(3n + 2) { background: #fff; width: .375rem; height: .375rem; margin: -.1875rem; }
+
+/* Tablet: the badge lands and the check draws a little quicker (its cards land on a spring, tour-overlay.tsx) */
+html[data-layout="tablet"] .tour-m .tour-badge { animation-duration: 380ms; }
+html[data-layout="tablet"] .tour-m .tour-check { animation-duration: 320ms; }
 
 @media (prefers-reduced-motion: reduce) {
     .tour-m .tour-part, .tour-m .tour-badge { animation-name: tour-fade; }

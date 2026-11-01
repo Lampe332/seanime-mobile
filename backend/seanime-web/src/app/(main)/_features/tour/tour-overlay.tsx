@@ -1,6 +1,6 @@
 import { cn } from "@/components/ui/core/styling"
 import { tr } from "@/lib/app-language"
-import { PHONE_EASE, prefersReducedMotion } from "@/lib/motion"
+import { MOTION_EASE_OUT, PHONE_EASE, prefersReducedMotion } from "@/lib/motion"
 import { IS_TABLET_UI } from "@/lib/tablet-ui"
 import { useLocation } from "@tanstack/react-router"
 import { useAtomValue } from "jotai/react"
@@ -14,19 +14,25 @@ type Rect = { top: number; left: number; width: number; height: number }
 
 const EMPTY_RECT: Rect = { top: 0, left: 0, width: 0, height: 0 }
 
-/** Phone: the tour's fixes for touch and Back (target lookup, card measuring, following Back); the tablet keeps the original. */
-const PHONE = !IS_TABLET_UI
-
 /**
  * The tour's moves per device (ms). A device without values (null) keeps the original fades; the phone's are measured on
- * the S22 Ultra (Desktop/Seanime-Tutorial-Animationen.md). Everything moves by opacity and transform except the spotlight's
- * cutout, which is redrawn per frame (one path of a full-screen layer, no filter) as nothing else can change its shape.
+ * the S22 Ultra, the tablet's on the Pixel Tablet (Desktop/Seanime-Tutorial-Animationen.md). Everything moves by opacity
+ * and transform except the spotlight's cutout, which is redrawn per frame (one path of a full-screen layer, no filter) as
+ * nothing else can change its shape.
  */
 type TourMotion = {
     // the spotlight gliding from one target to the next, and opening on / closing off a target
     travel: number
     iris: number
     travelEase: [number, number, number, number]
+    // a large screen: the glide takes this much longer per px of its longest edge move, up to travelMax; the iris has
+    // its own curve (it enters or leaves rather than moves)
+    travelPerPx?: number
+    travelMax?: number
+    irisEase?: [number, number, number, number]
+    // a device that rasters a card within a frame lands its cards on a spring with this bounce (the transform; opacity
+    // keeps the curve)
+    bounce?: number
     // a popover sliding out of its target (enter starts this far into the spotlight's travel), and leaving
     cardIn: number
     cardDelay: number
@@ -50,7 +56,20 @@ const TOUR_MOTION: { phone: TourMotion, tablet: TourMotion | null } = {
         modalIn: 380, part: 300, stagger: 45, ease: PHONE_EASE,
         pulse: 1600, wait: 700,
     },
-    tablet: null,
+    tablet: {
+        travel: 240, travelPerPx: .17, travelMax: 380, iris: 300, travelEase: [.77, 0, .175, 1], irisEase: [.32, .72, 0, 1],
+        cardIn: 340, cardDelay: 140, cardOut: 120, cardShift: 22, bounce: .2,
+        modalIn: 400, part: 260, stagger: 40, ease: MOTION_EASE_OUT,
+        pulse: 1500, wait: 700,
+    },
+}
+
+// how long the cutout glides from a to b: fixed, or on a large screen longer for a longer way (its farthest edge's move)
+function travelTime(m: TourMotion, a: Rect, b: Rect) {
+    if (!m.travelMax || !m.travelPerPx) return m.travel
+    const far = Math.max(Math.abs(b.left - a.left), Math.abs(b.top - a.top),
+        Math.abs(b.left + b.width - a.left - a.width), Math.abs(b.top + b.height - a.top - a.height))
+    return Math.round(Math.min(m.travelMax, m.travel + far * m.travelPerPx))
 }
 
 const MOTION = IS_TABLET_UI ? TOUR_MOTION.tablet : TOUR_MOTION.phone
@@ -251,6 +270,11 @@ function SpotlightOverlay({ rect, onClick, passThrough }: { rect: Rect; onClick?
     )
 }
 
+// tablet: Back closes the floating menu natively (without seanime:android-back); the menu takes no taps from then on but
+// keeps its rows laid out for its 140 ms fold. A target that takes no taps counts as gone, so the cutout closes before the
+// page under it can be tapped through.
+const tappable = (el: Element) => !IS_TABLET_UI || getComputedStyle(el).pointerEvents !== "none"
+
 const sameRect = (a: Rect | null, b: Rect | null) => a === b || (!!a && !!b
     && Math.abs(a.top - b.top) < .5 && Math.abs(a.left - b.left) < .5 && Math.abs(a.width - b.width) < .5 && Math.abs(a.height - b.height) < .5)
 
@@ -296,9 +320,9 @@ function MotionSpotlight({ rect, stepKey, pulse, passThrough, onClick, m }: {
         ring.setAttribute("rx", String(q))
     }, [])
 
-    const run = useCallback((from: Rect, to: Rect, end: Rect | null, duration: number) => {
+    const run = useCallback((from: Rect, to: Rect, end: Rect | null, duration: number, curve = m.travelEase) => {
         if (glide.current) cancelAnimationFrame(glide.current.raf)
-        const ease = cubicBezier(...m.travelEase)
+        const ease = cubicBezier(...curve)
         const g = { from, to, end, duration, elapsed: 0, last: -1, raf: 0 }
         const frame = (now: number) => {
             // the clock moves on by the frame, at most 34 ms per frame: a frame late behind a new card's raster or a menu's
@@ -343,9 +367,9 @@ function MotionSpotlight({ rect, stepKey, pulse, passThrough, onClick, m }: {
                 g.end = rect
             }
             // the screen changed under a glide: close from where it is
-            else if (!rect && g.end && drawn.current) run(drawn.current, centerOf(drawn.current), null, m.iris)
+            else if (!rect && g.end && drawn.current) run(drawn.current, centerOf(drawn.current), null, m.iris, m.irisEase)
             // closing, and a target came after all (the step Back returned to): open on it from where the cutout is
-            else if (rect && !g.end && drawn.current) run(drawn.current, rect, rect, m.iris)
+            else if (rect && !g.end && drawn.current) run(drawn.current, rect, rect, m.iris, m.irisEase)
             return
         }
         // a glide under way hands over from where the cutout is now
@@ -361,9 +385,9 @@ function MotionSpotlight({ rect, stepKey, pulse, passThrough, onClick, m }: {
             setRest(rect)
             return
         }
-        if (!from && rect) run(centerOf(rect), rect, rect, m.iris)
-        else if (from && !rect) run(from, centerOf(from), null, m.iris)
-        else if (from && rect) run(from, rect, rect, m.travel)
+        if (!from && rect) run(centerOf(rect), rect, rect, m.iris, m.irisEase)
+        else if (from && !rect) run(from, centerOf(from), null, m.iris, m.irisEase)
+        else if (from && rect) run(from, rect, rect, travelTime(m, from, rect))
     }, [key, stepKey])
 
     // the beat: the ring grows ~9px outwards and fades, then waits; reduced motion only fades it. It stops with the tap
@@ -441,11 +465,16 @@ type CardMoves = {
 /**
  * How a card arrives and leaves where the device has tour motion: a centred card rises and grows into place with presence;
  * a popover slides out of its target (from the side it sits on, scaling from that edge) once the spotlight is almost there,
- * and sinks back towards it, quicker, when its step ends. Reduced motion: fades only.
+ * and sinks back towards it, quicker, when its step ends. With `bounce` the arrival lands on a spring (slight overshoot
+ * of the slide and scale, opacity on the curve). Reduced motion: fades only.
  */
 function cardMoves(m: TourMotion, isModal: boolean, placement: TourStepPlacement): CardMoves {
     const reduce = prefersReducedMotion()
     const ease = bezier(m.ease)
+    const spring = (duration: number, delay: number) => ({
+        transform: { type: "spring" as const, duration, bounce: m.bounce, delay },
+        opacity: { duration: duration * .6, delay, ease },
+    })
     if (reduce) return {
         m, reduce, partsAt: 0, motionProps: {
             initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0, transition: { duration: m.cardOut / 1000 } },
@@ -457,7 +486,7 @@ function cardMoves(m: TourMotion, isModal: boolean, placement: TourStepPlacement
             initial: { opacity: 0, transform: "translateY(28px) scale(0.9)" },
             animate: { opacity: 1, transform: "translateY(0px) scale(1)", transitionEnd: { transform: "none" } },
             exit: { opacity: 0, transform: ["translateY(0px) scale(1)", "translateY(0px) scale(0.96)"], transition: { duration: m.cardOut / 1000, ease } },
-            transition: { duration: m.modalIn / 1000, ease },
+            transition: m.bounce ? spring(m.modalIn / 1000, 0) : { duration: m.modalIn / 1000, ease },
         },
     }
     const s = m.cardShift
@@ -472,7 +501,7 @@ function cardMoves(m: TourMotion, isModal: boolean, placement: TourStepPlacement
                 opacity: 0, transform: ["translate(0px, 0px) scale(1)", `translate(${dx / 2}px, ${dy / 2}px) scale(0.97)`],
                 transition: { duration: m.cardOut / 1000, ease },
             },
-            transition: { duration: m.cardIn / 1000, delay: m.cardDelay / 1000, ease },
+            transition: m.bounce ? spring(m.cardIn / 1000, m.cardDelay / 1000) : { duration: m.cardIn / 1000, delay: m.cardDelay / 1000, ease },
         },
     }
 }
@@ -518,8 +547,8 @@ const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(
     ({ step, currentIndex, totalSteps, style, onNext, onPrev, onStop, isModal, moves }, ref) => {
         const isFirstStep = currentIndex === 0
         const isLastStep = currentIndex === totalSteps - 1
-        // phone: a step done by tapping its target that fell back to a centred card (target not found) gets Next, or it would be a dead end
-        const hideNext = step.hideNextButton && !(PHONE && isModal)
+        // a step done by tapping its target that fell back to a centred card (target not found) gets Next, or it would be a dead end
+        const hideNext = step.hideNextButton && !isModal
         const showBack = !isFirstStep && !step.disableBack && !hideNext
         // devices with tour motion: the badge, title, text and buttons settle in one after another
         // (after the badge, when there is one)
@@ -717,7 +746,7 @@ export function TourOverlay() {
         })
     }, [currentStep?.id, status])
 
-    // phone: measured as each card mounts (before it is painted, by its layout size), so a card is placed by its own height,
+    // measured as each card mounts (before it is painted, by its layout size), so a card is placed by its own height,
     // not by the previous card's, which was still leaving when the effect above measured
     // and again when its text wraps differently after mounting
     const cardObserver = useRef<ResizeObserver | null>(null)
@@ -735,7 +764,7 @@ export function TourOverlay() {
     }, [])
     useEffect(() => () => cardObserver.current?.disconnect(), [])
 
-    // phone: when the target is gone for good (Back closed the menu or the sheet, or left the tab), return to the latest
+    // when the target is gone for good (Back closed the menu or the sheet, or left the tab), return to the latest
     // earlier step whose target is on screen, or end the tour if there is none
     const followBack = useRef(() => {})
     followBack.current = () => {
@@ -750,10 +779,10 @@ export function TourOverlay() {
 
     const backAt = useRef(0)
 
-    // phone: Back on a centred card (welcome, finale, a step whose target never came) closes the tour instead of leaving the
+    // Back on a centred card (welcome, finale, a step whose target never came) closes the tour instead of leaving the
     // screen behind it; on a spotlight step the app goes back as usual and the tour follows (below)
     useEffect(() => {
-        if (!PHONE || !active) return
+        if (!active) return
         const onBack = (e: Event) => {
             const { steps, currentIndex: at } = stateRef.current
             if (steps[at]?.target) {
@@ -769,15 +798,14 @@ export function TourOverlay() {
         return () => window.removeEventListener("seanime:android-back", onBack)
     }, [active, stop])
 
-    // phone: the step the target rect was measured for (a new step's first render still has the previous one)
+    // the step the target rect was measured for (a new step's first render still has the previous one)
     const rectStep = useRef(-1)
-    // phone: the target went away (Back closed the menu): no cutout to tap through while the tour decides where to go
+    // the target went away (Back closed the menu): no cutout to tap through while the tour decides where to go
     const [targetLost, setTargetLost] = useState(false)
 
-    // phone: track the target like below, but look it up as shown (the closed menu keeps hidden rows), find it again when the
+    // track the target (scroll + resize), looked up as shown (the closed menu keeps hidden rows), find it again when the
     // page rebuilt it (the menu reopened) and follow Back when it is gone for good
     useEffect(() => {
-        if (!PHONE) return
         if (!active || !currentStep?.target || status !== "idle") {
             setTargetRect(EMPTY_RECT)
             return
@@ -816,7 +844,7 @@ export function TourOverlay() {
         let missingMs = 0
         const watch = setInterval(() => {
             // gone, hidden, or no longer matching (a closing sheet is still in the page for its exit, but no longer "open")
-            const box = el?.isConnected && el.matches(selector) ? el.getBoundingClientRect() : null
+            const box = el?.isConnected && el.matches(selector) && tappable(el) ? el.getBoundingClientRect() : null
             if (box && box.width > 0 && box.height > 0) {
                 // just after Back the target may still be leaving (a closing sheet): decide once it had the time
                 if (Date.now() - backAt.current < 450) return
@@ -826,7 +854,7 @@ export function TourOverlay() {
                 return
             }
             const again = findShown(selector)
-            if (again) {
+            if (again && tappable(again)) {
                 el = again
                 ro.disconnect()
                 ro.observe(again)
@@ -846,59 +874,6 @@ export function TourOverlay() {
         return () => {
             clearTimeout(rescroll)
             clearInterval(watch)
-            cancelAnimationFrame(rafId)
-            window.removeEventListener("scroll", onLayout, true)
-            window.removeEventListener("resize", onLayout)
-            ro.disconnect()
-        }
-    }, [active, currentStep?.target, currentStep?.spotlightPadding, status, currentIndex])
-
-    // track the target element's rect (scroll + resize)
-    useEffect(() => {
-        if (PHONE) return
-        if (!active || !currentStep?.target || status !== "idle") {
-            setTargetRect(EMPTY_RECT)
-            return
-        }
-
-        const el = document.querySelector(currentStep.target)
-        if (!el) {
-            setTargetRect(EMPTY_RECT)
-            return
-        }
-
-        const padding = currentStep.spotlightPadding ?? 8
-
-        const update = () => {
-            setTargetRect(getElementRect(el, padding))
-        }
-
-        update()
-
-        // scroll the element into view
-        // center it so the popover card has room above or below; repeat once in case a re-render
-        // (e.g. a filtered list shrinking) moved it after the first scroll
-        el.scrollIntoView({ behavior: "auto", block: "center", inline: "nearest" })
-        const rescroll = setTimeout(() => {
-            if (el.isConnected) el.scrollIntoView({ behavior: "auto", block: "center", inline: "nearest" })
-            update()
-        }, 350)
-
-        // re-measure on scroll/resize via RAF throttle
-        let rafId = 0
-        const onLayout = () => {
-            cancelAnimationFrame(rafId)
-            rafId = requestAnimationFrame(update)
-        }
-
-        window.addEventListener("scroll", onLayout, true)
-        window.addEventListener("resize", onLayout)
-
-        const ro = new ResizeObserver(onLayout)
-        ro.observe(el)
-
-        return () => {
-            clearTimeout(rescroll)
             cancelAnimationFrame(rafId)
             window.removeEventListener("scroll", onLayout, true)
             window.removeEventListener("resize", onLayout)
