@@ -270,10 +270,10 @@ function SpotlightOverlay({ rect, onClick, passThrough }: { rect: Rect; onClick?
     )
 }
 
-// tablet: Back closes the floating menu natively (without seanime:android-back); the menu takes no taps from then on but
-// keeps its rows laid out for its 140 ms fold. A target that takes no taps counts as gone, so the cutout closes before the
-// page under it can be tapped through.
-const tappable = (el: Element) => !IS_TABLET_UI || getComputedStyle(el).pointerEvents !== "none"
+// Back closes the floating menu natively (without seanime:android-back); the menu takes no taps from then on but keeps its
+// rows laid out for its 140 ms fold. A target that takes no taps counts as gone, so the cutout closes before the page under
+// it can be tapped through.
+const tappable = (el: Element) => getComputedStyle(el).pointerEvents !== "none"
 
 const sameRect = (a: Rect | null, b: Rect | null) => a === b || (!!a && !!b
     && Math.abs(a.top - b.top) < .5 && Math.abs(a.left - b.left) < .5 && Math.abs(a.width - b.width) < .5 && Math.abs(a.height - b.height) < .5)
