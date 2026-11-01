@@ -458,8 +458,8 @@ export function VideoCoreSettingsMenu() {
                         </div>
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Subtitle Styles" label={t("Subtitle styles", "Untertitel-Stil")} icon={MdOutlineSubtitles}>
-                        <p className="text-sm text-[--muted] mb-2">{t("Your style does not replace ASS/SSA subtitles that bring several styles of their own.",
-                            "Dein Stil ersetzt keine ASS/SSA-Untertitel, die mehrere eigene Stile mitbringen.")}</p>
+                        <p className="text-sm text-[--muted] mb-2">{t("ASS/SSA tracks with several styles keep their own look.",
+                            "ASS/SSA-Spuren mit mehreren Stilen behalten ihr eigenes Aussehen.")}</p>
                         <VideoCoreSettingSelect
                             options={[
                                 { label: "On", value: 1 },
@@ -499,7 +499,7 @@ export function VideoCoreSettingsMenu() {
                         </>}
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Caption Styles" label={t("Caption styles", "Stil der Bildunterschriften")} icon={MdOutlineSubtitles}>
-                        <p className="text-sm text-[--muted] mb-2">{t("For subtitles that are not ASS/SSA.", "Für Untertitel, die nicht ASS/SSA sind.")}</p>
+                        <p className="text-sm text-[--muted] mb-2">{t("Only for subtitles that are not ASS.", "Nur für Untertitel, die kein ASS sind.")}</p>
                         {/*    ]}*/}
                         <p className="text-[--muted] text-sm my-2">{t("Options", "Optionen")}</p>
                         <VideoCoreMenuSubOption
@@ -530,7 +530,7 @@ export function VideoCoreSettingsMenu() {
                         />
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Subtitle Delay" label={t("Subtitle delay", "Untertitel-Versatz")} icon={MdOutlineAccessTime}>
-                        <p className="text-sm text-[--muted] mb-2">{t("Plus shows subtitles later, minus shows them earlier.", "Plus zeigt Untertitel später, Minus früher.")}</p>
+                        <p className="text-sm text-[--muted] mb-2">{t("Plus shows subtitles later, minus earlier.", "Plus zeigt Untertitel später, Minus früher.")}</p>
                         <div className="flex gap-1.5 items-center mt-3">
                             <Button
                                 className="px-1 !text-xs flex-1"
@@ -781,9 +781,18 @@ export function VideoCoreSettingsMenu() {
                     </VideoCoreMenuOption>}
                     <VideoCoreMenuOption title="Player Appearance" label={t("Player appearance", "Player-Darstellung")} icon={LuPaintbrush}>
                         <div className="vc-phone-group-rows" data-vc-phone-settings="appearance">
-                            <PhoneSwitchRow icon={TbArrowForwardUp} label={t("Mark skippable parts on the seek bar", "Überspringbare Teile in der Zeitleiste markieren")}
-                                checked={highlightOPEDChapters} onChange={setHighlightOPEDChapters} />
-                            <PhoneSwitchRow icon={LuPalette} label={t("Richer colours", "Kräftigere Farben")} checked={beautifyImage} onChange={setBeautifyImage} />
+                            <PhoneSwitchRow
+                                icon={TbArrowForwardUp}
+                                label={t("Mark skippable parts on the seek bar", "Überspringbare Teile auf der Leiste markieren")}
+                                checked={highlightOPEDChapters}
+                                onChange={setHighlightOPEDChapters}
+                            />
+                            <PhoneSwitchRow
+                                icon={LuPalette}
+                                label={t("Stronger colours", "Kräftigere Farben")}
+                                checked={beautifyImage}
+                                onChange={setBeautifyImage}
+                            />
                         </div>
                     </VideoCoreMenuOption>
                 </VideoCoreMenuSubmenuBody>
@@ -854,7 +863,7 @@ export function VideoCoreSettingsMenu() {
                         />
                     </VideoCoreMenuSubOption>
                     <VideoCoreMenuSubOption title="Background" icon={LuPaintbrush} parentId="Caption Styles">
-                        <p className="text-[--muted] text-sm my-2">{t("Background opacity", "Hintergrund-Deckkraft")}</p>
+                        <p className="text-[--muted] text-sm my-2">{t("Background opacity", "Hintergrunddeckkraft")}</p>
                         <VideoCoreSettingSelect
                             options={CAPTION_STYLES_BACKGROUND_OPACITY_OPTIONS}
                             onValueChange={(v: number) => handleCaptionCustomizationChange("backgroundOpacity", v)}

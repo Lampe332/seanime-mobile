@@ -59,7 +59,7 @@ function opacityOptions(current: number) {
     return [...new Set([...steps, current])].sort((a, b) => a - b).map(value => ({ value: String(value), label: `${value} %` }))
 }
 
-/** Appearance: colours, background image and banner, sorting, cards and episodes, preloading, custom CSS. */
+/** Appearance: colours, background image, sorting, cards and episodes, preloading, custom CSS. */
 export function SettingsUISection({ t }: { t: Translate }) {
     return <>
         <ColoursGroup t={t} />
@@ -77,7 +77,9 @@ export function SettingsUISection({ t }: { t: Translate }) {
             <ThemeSwitch field="disableCarouselAutoScroll" label={t("Stop carousels from scrolling by themselves", "Karussells nicht selbst weiterlaufen lassen")} />
             <ThemeSwitch field="smallerEpisodeCarouselSize" label={t("Smaller episode cards in carousels", "Kleinere Folgenkarten in Karussells")} />
             <ThemeSwitch field="enableBlurringEffects" label={t("Blur effects", "Unschärfe-Effekte")}
-                note={t("Can slow down some devices.", "Kann manche Geräte verlangsamen.")} />
+                note={t("Blurs the page behind some panels, such as Nakama. Can slow down some devices.",
+                    "Verwischt die Seite hinter manchen Fenstern, etwa Nakama. Kann manche Geräte verlangsamen.")} />
+
         </SettingsGroup>
         <PreloadGroup t={t} />
         <CustomCSSGroup t={t} />
@@ -142,6 +144,11 @@ function ColourRow({ label, value, onPick, field }: { label: string, value: stri
     </label>
 }
 
+/**
+ * The background image (CustomBackgroundImage in the root layout, on every page) and, on phones, the banner behind the Home title.
+ * The tablet never shows a banner (CustomLibraryBanner is only mounted by the desktop library and the extension playground), so the
+ * banner fields are left out there.
+ */
 function ImagesGroup({ t }: { t: Translate }) {
     const save = useSaveTheme()
     const background = useThemeValue("libraryScreenCustomBackgroundImage")
@@ -153,9 +160,11 @@ function ImagesGroup({ t }: { t: Translate }) {
     // An opacity never set is stored as 0, which would draw the new image invisibly: it gets the default with the image
     const visible = (field: "libraryScreenCustomBackgroundOpacity" | "libraryScreenCustomBannerOpacity", opacity: number) =>
         opacity > 0 ? {} : { [field]: THEME_DEFAULT_VALUES[field] }
-    return <SettingsGroup id="ui-images" title={t("Background and banner", "Hintergrund und Banner")}
-        note={t("Images come from a link: the app cannot add files to the server's image folder.",
-            "Bilder kommen über einen Link: Die App kann keine Dateien in den Bilderordner des Servers legen.")}>
+    return <SettingsGroup id="ui-images" title={IS_TABLET_UI ? t("Background image", "Hintergrundbild") : t("Background and banner", "Hintergrund und Banner")}
+        note={IS_TABLET_UI ? t("The image comes from a link: the app cannot add files to the server's image folder.",
+                "Das Bild kommt über einen Link: Die App kann keine Dateien in den Bilderordner des Servers legen.")
+            : t("Images come from a link: the app cannot add files to the server's image folder.",
+                "Bilder kommen über einen Link: Die App kann keine Dateien in den Bilderordner des Servers legen.")}>
         <TextSettingRow t={t} label={t("Background image", "Hintergrundbild")} value={background} empty={none} type="url" placeholder="https://…"
             note={t("Shown behind your lists, dimmed on other pages. Leave empty for none.", "Erscheint hinter deinen Listen, auf anderen Seiten gedämpft. Leer lassen für keins.")}
             validate={validateImageLink(t)} data-theme-field="libraryScreenCustomBackgroundImage"
@@ -163,9 +172,9 @@ function ImagesGroup({ t }: { t: Translate }) {
         {!!background && <SelectRow id="pst-background-opacity" label={t("Background image opacity", "Deckkraft des Hintergrundbilds")}
             value={String(backgroundOpacity)} options={opacityOptions(backgroundOpacity)} data-theme-field="libraryScreenCustomBackgroundOpacity"
             onChange={value => void save({ libraryScreenCustomBackgroundOpacity: Number(value) })} />}
+        {!IS_TABLET_UI && <>
         <TextSettingRow t={t} label={t("Banner image", "Bannerbild")} value={banner} empty={none} type="url" placeholder="https://…"
-            note={IS_TABLET_UI ? t("Shown at the top of some pages. Leave empty for none.", "Erscheint oben auf manchen Seiten. Leer lassen für keins.")
-                : t("Shown behind the title on Home. Leave empty for none.", "Erscheint hinter dem Titel auf der Startseite. Leer lassen für keins.")}
+            note={t("Shown behind the title on Home. Leave empty for none.", "Erscheint hinter dem Titel auf der Startseite. Leer lassen für keins.")}
             validate={validateImageLink(t)} data-theme-field="libraryScreenCustomBannerImage"
             onApply={value => void save({ libraryScreenCustomBannerImage: value.trim(), ...visible("libraryScreenCustomBannerOpacity", bannerOpacity) })} />
         {!!banner && <>
@@ -175,6 +184,7 @@ function ImagesGroup({ t }: { t: Translate }) {
             <SelectRow id="pst-banner-opacity" label={t("Banner opacity", "Deckkraft des Banners")} value={String(bannerOpacity)}
                 options={opacityOptions(bannerOpacity)} data-theme-field="libraryScreenCustomBannerOpacity"
                 onChange={value => void save({ libraryScreenCustomBannerOpacity: Number(value) })} />
+        </>}
         </>}
     </SettingsGroup>
 }
@@ -235,7 +245,7 @@ function CustomCSSGroup({ t }: { t: Translate }) {
                 if (await save({ mobileCustomCSS: value })) setCustomCSS({ customCSS: stored.customCSS, mobileCustomCSS: value })
             }} data-theme-field="mobileCustomCSS" />
         {differs && <LinkRow label={t("Apply to this device", "Auf diesem Gerät übernehmen")}
-            note={t("This device uses a different CSS than the one stored on the server.", "Dieses Handy nutzt ein anderes CSS als das auf dem Server gespeicherte.")}
+            note={t("This device uses a different CSS than the one stored on the server.", "Dieses Gerät nutzt ein anderes CSS als das auf dem Server gespeicherte.")}
             onClick={() => setCustomCSS(stored)} data-settings-apply-css />}
     </SettingsGroup>
 }
