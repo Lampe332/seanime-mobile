@@ -2,6 +2,19 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.33 — 01.11.2026 (versionCode 31128)
+
+- 🎉 Home: On phones, the banner image from *Settings → Appearance* now shows behind the Home title
+- ⚡️ Player: The subtitle style, caption style, delay and appearance pages of the player menu are translated and use touch-sized switches
+- 🦺 Settings: The "Auto next" switch in Settings is now the same as the one in the player; before, it could show off while the next episode still played
+- 🦺 Settings: With "Look for new versions" turned off, the update window no longer opens by itself
+- 🦺 Settings: Short values on phones are no longer cut off
+- 🦺 Settings: On tablets the list of areas stays in view while you scroll, and all ten fit on screen in landscape
+- 🦺 Settings: On tablets in portrait, the hints in the open area are no longer hidden
+- 🦺 Player: On tablets the settings menu keeps a gap to the screen edge, and long values like "English / Japanese" are no longer cut off
+- 🦺 Debrid: A TorBox plan without API access now says so instead of reporting the key as not accepted
+- 🏗️ Settings: Removed options that changed nothing in the app: the blurred background on anime pages, the banner on tablets, and the episode summary and file name switches on phones, where both are always hidden
+
 ## 2.0.32 — 01.11.2026 (versionCode 31127)
 
 - ⚡️ Animations: Smoother, more consistent motion on phones, with press feedback on buttons and cards

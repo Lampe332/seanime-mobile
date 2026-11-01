@@ -81,8 +81,16 @@ The Manga tab starts with *Continue reading*. The reader has a page slider, pinc
 - Install streaming sources, manga sources, torrent providers and plugins from community repositories. Plugin windows are laid out for touch, and you can pin favourites.
 - Bottom sheets instead of desktop dialogs, the Android Back button everywhere, and a bottom bar you can rearrange.
 - Launcher shortcuts, a home screen widget, and text shared to the app opens a search.
-- Haptics and a quiet sound for downloads and watched episodes, both under *Settings → App → Feedback*.
-- Settings save as soon as you change them. Options for programs Android cannot run stay hidden.
+
+### Settings
+
+Settings come in ten areas: App, Appearance, Playback, Local library, Online streaming, Torrents & debrid, Manga, Nakama, Logs & cache and About. Changes save the moment you make them. On a tablet the list of areas stays on the left while you scroll through the one you opened.
+
+Every option was checked on a phone and a tablet. The ones that did nothing on Android are gone, and options for programs Android can't run stay hidden. A few things live only in the app:
+
+- *Settings → App*: notifications for new episodes (with a button to send a test), downloads only on Wi-Fi, and under *Feedback* haptics and a quiet sound for downloads and watched episodes.
+- *Settings → Appearance*: a background image from a link, and on phones a banner behind the Home title.
+- *Auto next* in Settings is the same switch as the one in the player.
 
 ### Phones and tablets
 
