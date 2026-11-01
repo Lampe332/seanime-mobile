@@ -41,7 +41,6 @@ import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
 import { Translate, useTr } from "@/lib/app-language"
 import "@/components/shared/mobile-surface.css"
 import "./video-core-phone-settings.css"
@@ -459,8 +458,8 @@ export function VideoCoreSettingsMenu() {
                         </div>
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Subtitle Styles" label={t("Subtitle styles", "Untertitel-Stil")} icon={MdOutlineSubtitles}>
-                        <p className="text-sm text-[--muted] mb-2">Subtitle customization will not override ASS/SSA tracks that contain multiple
-                                                                   styles.</p>
+                        <p className="text-sm text-[--muted] mb-2">{t("ASS/SSA tracks with several styles keep their own look.",
+                            "ASS/SSA-Spuren mit mehreren Stilen behalten ihr eigenes Aussehen.")}</p>
                         <VideoCoreSettingSelect
                             options={[
                                 { label: "On", value: 1 },
@@ -500,7 +499,7 @@ export function VideoCoreSettingsMenu() {
                         </>}
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Caption Styles" label={t("Caption styles", "Stil der Bildunterschriften")} icon={MdOutlineSubtitles}>
-                        <p className="text-sm text-[--muted] mb-2">This only applies to non-ASS subtitles.</p>
+                        <p className="text-sm text-[--muted] mb-2">{t("Only for subtitles that are not ASS.", "Nur für Untertitel, die kein ASS sind.")}</p>
                         {/*    ]}*/}
                         <p className="text-[--muted] text-sm my-2">{t("Options", "Optionen")}</p>
                         <VideoCoreMenuSubOption
@@ -531,7 +530,7 @@ export function VideoCoreSettingsMenu() {
                         />
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Subtitle Delay" label={t("Subtitle delay", "Untertitel-Versatz")} icon={MdOutlineAccessTime}>
-                        <p className="text-sm text-[--muted] mb-2">Positive values delay subtitles, negative values advance them.</p>
+                        <p className="text-sm text-[--muted] mb-2">{t("Plus shows subtitles later, minus earlier.", "Plus zeigt Untertitel später, Minus früher.")}</p>
                         <div className="flex gap-1.5 items-center mt-3">
                             <Button
                                 className="px-1 !text-xs flex-1"
@@ -781,27 +780,25 @@ export function VideoCoreSettingsMenu() {
                         />
                     </VideoCoreMenuOption>}
                     <VideoCoreMenuOption title="Player Appearance" label={t("Player appearance", "Player-Darstellung")} icon={LuPaintbrush}>
-                        <Switch
-                            label="Highlight Skipped Chapters"
-                            side="right"
-                            fieldClass="hover:bg-transparent hover:border-transparent px-0 ml-0 w-full"
-                            size="sm"
-                            value={highlightOPEDChapters}
-                            onValueChange={setHighlightOPEDChapters}
-                        />
-                        <Switch
-                            label="Increase Saturation"
-                            side="right"
-                            fieldClass="hover:bg-transparent hover:border-transparent px-0 ml-0 w-full"
-                            size="sm"
-                            value={beautifyImage}
-                            onValueChange={setBeautifyImage}
-                        />
+                        <div className="vc-phone-group-rows" data-vc-phone-settings="appearance">
+                            <PhoneSwitchRow
+                                icon={TbArrowForwardUp}
+                                label={t("Mark skippable parts on the seek bar", "Überspringbare Teile auf der Leiste markieren")}
+                                checked={highlightOPEDChapters}
+                                onChange={setHighlightOPEDChapters}
+                            />
+                            <PhoneSwitchRow
+                                icon={LuPalette}
+                                label={t("Stronger colours", "Kräftigere Farben")}
+                                checked={beautifyImage}
+                                onChange={setBeautifyImage}
+                            />
+                        </div>
                     </VideoCoreMenuOption>
                 </VideoCoreMenuSubmenuBody>
                 <VideoCoreMenuSubSubmenuBody>
                     <VideoCoreMenuSubOption title="Font Size" icon={LuHeading} parentId="Subtitle Styles">
-                        <p className="text-[--muted] text-sm mb-2">Font Size</p>
+                        <p className="text-[--muted] text-sm mb-2">{t("Font size", "Schriftgröße")}</p>
                         <VideoCoreSettingSelect
                             options={SUBTITLE_STYLES_FONT_SIZE_OPTIONS}
                             onValueChange={(v: number) => handleSubtitleCustomizationChange("fontSize", v)}
@@ -816,13 +813,13 @@ export function VideoCoreSettingsMenu() {
                         />
                     </VideoCoreMenuSubOption>
                     <VideoCoreMenuSubOption title="Outline" icon={LuPalette} parentId="Subtitle Styles">
-                        <p className="text-[--muted] text-sm mb-2">Outline Width</p>
+                        <p className="text-[--muted] text-sm mb-2">{t("Outline width", "Konturbreite")}</p>
                         <VideoCoreSettingSelect
                             options={SUBTITLE_STYLES_OUTLINE_WIDTH_OPTIONS}
                             onValueChange={(v: number) => handleSubtitleCustomizationChange("outline", v)}
                             value={vc_getSubtitleStyle(editedSubCustomization, "outline")}
                         />
-                        <p className="text-[--muted] text-sm my-2">Outline Color</p>
+                        <p className="text-[--muted] text-sm my-2">{t("Outline colour", "Konturfarbe")}</p>
                         <VideoCoreSettingSelect
                             options={SUBTITLE_STYLES_COLOR_OPTIONS}
                             onValueChange={(v: string) => handleSubtitleCustomizationChange("outlineColor", v)}
@@ -830,19 +827,19 @@ export function VideoCoreSettingsMenu() {
                         />
                     </VideoCoreMenuSubOption>
                     <VideoCoreMenuSubOption title="Shadow" icon={LuPalette} parentId="Subtitle Styles">
-                        <p className="text-[--muted] text-sm mb-2">Shadow Depth</p>
+                        <p className="text-[--muted] text-sm mb-2">{t("Shadow depth", "Schattentiefe")}</p>
                         <VideoCoreSettingSelect
                             options={SUBTITLE_STYLES_SHADOW_DEPTH_OPTIONS}
                             onValueChange={(v: number) => handleSubtitleCustomizationChange("shadow", v)}
                             value={vc_getSubtitleStyle(editedSubCustomization, "shadow")}
                         />
-                        <p className="text-[--muted] text-sm my-2">Shadow Opacity</p>
+                        <p className="text-[--muted] text-sm my-2">{t("Shadow opacity", "Schattendeckkraft")}</p>
                         <VideoCoreSettingSelect
                             options={SUBTITLE_STYLES_BACK_COLOR_OPACITY_OPTIONS}
                             onValueChange={(v: number) => handleSubtitleCustomizationChange("backColorOpacity", v)}
                             value={vc_getSubtitleStyle(editedSubCustomization, "backColorOpacity")}
                         />
-                        <p className="text-[--muted] text-sm my-2">Shadow Color</p>
+                        <p className="text-[--muted] text-sm my-2">{t("Shadow colour", "Schattenfarbe")}</p>
                         <VideoCoreSettingSelect
                             options={SUBTITLE_STYLES_COLOR_OPTIONS}
                             onValueChange={(v: string) => handleSubtitleCustomizationChange("backColor", v)}
@@ -866,13 +863,13 @@ export function VideoCoreSettingsMenu() {
                         />
                     </VideoCoreMenuSubOption>
                     <VideoCoreMenuSubOption title="Background" icon={LuPaintbrush} parentId="Caption Styles">
-                        <p className="text-[--muted] text-sm my-2">Background Opacity</p>
+                        <p className="text-[--muted] text-sm my-2">{t("Background opacity", "Hintergrunddeckkraft")}</p>
                         <VideoCoreSettingSelect
                             options={CAPTION_STYLES_BACKGROUND_OPACITY_OPTIONS}
                             onValueChange={(v: number) => handleCaptionCustomizationChange("backgroundOpacity", v)}
                             value={vc_getCaptionStyle(editedCaptionCustomization, "backgroundOpacity")}
                         />
-                        <p className="text-[--muted] text-sm mb-2">Background Color</p>
+                        <p className="text-[--muted] text-sm mb-2">{t("Background colour", "Hintergrundfarbe")}</p>
                         <VideoCoreSettingSelect
                             options={CAPTION_STYLES_COLOR_OPTIONS}
                             onValueChange={(v: string) => handleCaptionCustomizationChange("backgroundColor", v)}
@@ -880,13 +877,13 @@ export function VideoCoreSettingsMenu() {
                         />
                     </VideoCoreMenuSubOption>
                     <VideoCoreMenuSubOption title="Shadow" icon={RiShadowLine} parentId="Caption Styles">
-                        <p className="text-[--muted] text-sm mb-2">Text shadow</p>
+                        <p className="text-[--muted] text-sm mb-2">{t("Text shadow", "Textschatten")}</p>
                         <VideoCoreSettingSelect
                             options={CAPTION_STYLES_TEXT_SHADOW_OPTIONS}
                             onValueChange={(v: number) => handleCaptionCustomizationChange("textShadow", v)}
                             value={vc_getCaptionStyle(editedCaptionCustomization, "textShadow")}
                         />
-                        <p className="text-[--muted] text-sm my-2">Shadow Color</p>
+                        <p className="text-[--muted] text-sm my-2">{t("Shadow colour", "Schattenfarbe")}</p>
                         <VideoCoreSettingSelect
                             options={CAPTION_STYLES_COLOR_OPTIONS}
                             onValueChange={(v: string) => handleCaptionCustomizationChange("textShadowColor", v)}
