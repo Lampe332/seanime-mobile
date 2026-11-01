@@ -30,6 +30,8 @@
 .pst-row-text { flex: 1 1 auto; display: grid; gap: .125rem; min-width: 0; }
 .pst-row-text small { font-size: .8125rem; line-height: 1.45; color: var(--sm-text-muted); }
 .pst-row-value { flex: 0 1 auto; max-width: 55%; min-width: 0; font-size: .875rem; color: var(--sm-text-muted); text-align: end; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; direction: ltr; }
+/* Phone: a short value ("None", "Default") keeps its full width and the label wraps instead; long values (paths) still stop at 55 %. */
+html:not([data-layout="tablet"]) .pst-row-value { flex-shrink: 0; }
 .pst-row[aria-expanded="true"] .pst-expand { transform: rotate(180deg); }
 
 /* Sub-settings of the switch above them (spoiler parts, blur of adult covers). */
