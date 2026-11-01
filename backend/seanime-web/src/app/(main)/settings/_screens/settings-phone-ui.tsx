@@ -74,8 +74,6 @@ export function SettingsUISection({ t }: { t: Translate }) {
             <ThemeSwitch field="smallerEpisodeCarouselSize" label={t("Smaller episode cards in carousels", "Kleinere Folgenkarten in Karussells")} />
             <ThemeSwitch field="enableBlurringEffects" label={t("Blur effects", "Unschärfe-Effekte")}
                 note={t("Can slow down some devices.", "Kann manche Geräte verlangsamen.")} />
-            <ThemeSwitch field="enableMediaPageBlurredBackground" label={t("Blurred background on anime pages", "Verwischter Hintergrund auf Anime-Seiten")}
-                note={t("Can slow down some devices.", "Kann manche Geräte verlangsamen.")} />
         </SettingsGroup>
         <PreloadGroup t={t} />
         <CustomCSSGroup t={t} />
