@@ -2,6 +2,17 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 2.0.32 — 01.11.2026 (versionCode 31127)
+
+- ⚡️ Animations: Smoother, more consistent motion on phones, with press feedback on buttons and cards
+- ⚡️ Animations: Tablet animations tuned for the larger screen
+- ⚡️ Anime page: The cover flies from the list into the page, also on the first visit
+- ⚡️ Tutorial: The setup tour is animated: the spotlight glides between steps, a pulsing ring shows where to tap, and the last step ends with a check mark and sparks
+- 🦺 Tutorial: Pressing Back during the tour no longer leaves a dead overlay or ends the tour
+- 🦺 Tutorial: Tour cards sit next to the button they point at instead of floating away or overlapping it
+- 🦺 Images: Covers no longer flash in fully before fading in
+- 🦺 Sheets: Opening one sheet from another no longer makes the page flash
+
 ## 2.0.31 — 31.10.2026 (versionCode 31126)
 
 - 🎉 Cast: Play an episode on a TV in your Wi-Fi (DLNA, tested with LG webOS) with a remote in the player
