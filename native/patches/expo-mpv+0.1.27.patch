@@ -13,7 +13,7 @@ index 3dc1ab9..c5254f0 100644
  
              // Props (same as iOS)
 diff --git a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPictureInPicture.kt b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPictureInPicture.kt
-index 5a8262d..693d2d2 100644
+index 5a8262d..83077af 100644
 --- a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPictureInPicture.kt
 +++ b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPictureInPicture.kt
 @@ -28,7 +28,8 @@ internal class ExpoMpvPictureInPicture(
@@ -26,13 +26,16 @@ index 5a8262d..693d2d2 100644
      private val onClosed: () -> Unit,
  ) {
      private var enabled = false
-@@ -36,11 +37,14 @@ internal class ExpoMpvPictureInPicture(
+@@ -36,11 +37,17 @@ internal class ExpoMpvPictureInPicture(
      private var ratio = Rational(16, 9)
      private var active = false
      private var released = false
 +    // what Android was last given: params are only sent again when they change (each send rebuilds the window's buttons)
 +    private var applied: String? = null
      private val hiddenViews = mutableMapOf<View, Float>()
++    // views moved by a translation (a player box that follows its page: React Native/Reanimated translate it, and their
++    // frame loop is paused while pinned) are put back at their layout place while pinned, else the window shows black
++    private val movedViews = mutableMapOf<View, Pair<Float, Float>>()
      private val action = "${activity.packageName}.expo.mpv.PIP_${System.identityHashCode(this)}"
      private val receiver = object : BroadcastReceiver() {
          override fun onReceive(context: Context, intent: Intent) {
@@ -42,7 +45,7 @@ index 5a8262d..693d2d2 100644
          }
      }
      private val modeListener = Consumer<PictureInPictureModeChangedInfo> { info ->
-@@ -81,6 +85,7 @@ internal class ExpoMpvPictureInPicture(
+@@ -81,6 +88,7 @@ internal class ExpoMpvPictureInPicture(
          if (enabled && owners[activity] !== this) {
              owners[activity]?.changeMode(false)
              owners[activity] = this
@@ -50,7 +53,7 @@ index 5a8262d..693d2d2 100644
          }
          updateParams()
          // Source replacement can attach a new view while the Activity is
-@@ -95,19 +100,42 @@ internal class ExpoMpvPictureInPicture(
+@@ -95,19 +103,42 @@ internal class ExpoMpvPictureInPicture(
      private fun canAutoEnter() = enabled && playing && view.isShown &&
          owners[activity] === this && !released
  
@@ -102,7 +105,7 @@ index 5a8262d..693d2d2 100644
          if (Build.VERSION.SDK_INT >= 31) {
              builder.setAutoEnterEnabled(canAutoEnter()).setSeamlessResizeEnabled(false)
          }
-@@ -116,8 +144,14 @@ internal class ExpoMpvPictureInPicture(
+@@ -116,8 +147,14 @@ internal class ExpoMpvPictureInPicture(
  
      private fun updateParams() {
          if (released || owners[activity] !== this || !supported()) return
@@ -118,7 +121,7 @@ index 5a8262d..693d2d2 100644
          } catch (_: IllegalStateException) {
              // Unsupported host manifest or an Activity that is already leaving.
          } catch (_: IllegalArgumentException) {
-@@ -129,7 +163,7 @@ internal class ExpoMpvPictureInPicture(
+@@ -129,7 +166,7 @@ internal class ExpoMpvPictureInPicture(
          if (!enabled || released || !view.isShown || !supported()) return false
          if (activity.isInPictureInPictureMode) return true
          return try {
@@ -127,7 +130,31 @@ index 5a8262d..693d2d2 100644
          } catch (_: IllegalStateException) {
              false
          } catch (_: IllegalArgumentException) {
-@@ -193,6 +227,7 @@ internal class ExpoMpvPictureInPicture(
+@@ -148,6 +185,11 @@ internal class ExpoMpvPictureInPicture(
+         } else {
+             hiddenViews.forEach { (sibling, alpha) -> sibling.alpha = alpha }
+             hiddenViews.clear()
++            movedViews.forEach { (moved, at) ->
++                moved.translationX = at.first
++                moved.translationY = at.second
++            }
++            movedViews.clear()
+             // Some Android versions dispatch mode=false before onStop when
+             // closing PiP. Distinguish that from expansion back into the app.
+             view.postDelayed({
+@@ -163,6 +205,11 @@ internal class ExpoMpvPictureInPicture(
+         var child = view
+         var parent = child.parent as? ViewGroup
+         while (parent != null) {
++            if (child.translationX != 0f || child.translationY != 0f) {
++                movedViews.putIfAbsent(child, child.translationX to child.translationY)
++                child.translationX = 0f
++                child.translationY = 0f
++            }
+             for (index in 0 until parent.childCount) {
+                 val sibling = parent.getChildAt(index)
+                 if (sibling !== child) {
+@@ -193,6 +240,7 @@ internal class ExpoMpvPictureInPicture(
      }
  
      companion object {
