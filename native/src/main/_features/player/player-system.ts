@@ -3,6 +3,7 @@ import * as ScreenOrientation from "expo-screen-orientation"
 import { Accelerometer } from "expo-sensors"
 import { Dimensions } from "react-native"
 import { heldUpright, orientationDegrees } from "./upright"
+import { orientationTarget } from "./player-chrome"
 import { getVolume, setVolume } from "react-native-volume-manager"
 
 /*
@@ -45,12 +46,14 @@ export function writeVolume(value: number) {
 }
 
 /*
- * Fullscreen on a phone turns it sideways; leaving a fullscreen that turned an upright phone holds it upright even while it
- * is still held sideways (as video apps do), until the accelerometer sees the phone upright again (MainActivity
- * setVideoFullscreenOrientation + holdUprightAfterFullscreen). A phone lying flat decides nothing and so stays upright.
- * The hold outlives the player, as in the old app; a new fullscreen ends it. Tablets keep turning freely.
+ * Fullscreen turns the screen sideways (MainActivity.setVideoFullscreenOrientation: SENSOR_LANDSCAPE, phones and tablets).
+ * Leaving it turns it upright (r21, player-chrome.ts orientationTarget): a phone is held upright even while it is still
+ * held sideways (as video apps do), until the accelerometer sees it upright again (holdUprightAfterFullscreen); a phone
+ * lying flat decides nothing and so stays upright. The hold outlives the player, as in the old app; a new fullscreen ends
+ * it. A tablet stays upright until the player closes.
  */
-let fullscreenFromPortrait: boolean | null = null
+/** the app's own lock: landscape (fullscreen) on either device, portrait on a tablet that left fullscreen */
+let appLock: "landscape" | "portrait" | null = null
 /** the running upright hold (its number, 0 = none) and its accelerometer listener */
 let holdRun = 0
 let holding = 0
@@ -84,27 +87,38 @@ async function holdUprightAfterFullscreen() {
 }
 
 export function setVideoFullscreenOrientation(fullscreen: boolean, isTablet: boolean) {
-    if (isTablet) return
-    if (fullscreen) {
-        stopHoldingUpright()
-        if (fullscreenFromPortrait === null) {
-            const { width, height } = Dimensions.get("window")
-            fullscreenFromPortrait = height > width
-        }
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {})
-        return
+    switch (orientationTarget(fullscreen, isTablet)) {
+        case "landscape":
+            stopHoldingUpright()
+            appLock = "landscape"
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {})
+            break
+        case "portrait":
+            appLock = "portrait"
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT).catch(() => {})
+            break
+        case "portrait-hold":
+            appLock = null
+            void holdUprightAfterFullscreen()
+            break
     }
-    const fromPortrait = fullscreenFromPortrait
-    fullscreenFromPortrait = null
-    if (fromPortrait) void holdUprightAfterFullscreen()
-    else if (fromPortrait === false) ScreenOrientation.unlockAsync().catch(() => {})
 }
 
-/** The player closes: a fullscreen still on ends as if left (upright hold included); a running hold goes on. */
+/** Whether the app turned the screen to landscape (Back leaves that fullscreen first, also on a tablet). */
+export function turnedToLandscape() {
+    return appLock === "landscape"
+}
+
+/** The player closes: a phone in the app's landscape leaves it as if the button was pressed (upright hold included), a running hold goes on, a tablet turns freely again. */
 export function endPlayerOrientation() {
-    // only a phone's fullscreen sets fullscreenFromPortrait, so this is the phone path; tablets just unlock
-    if (fullscreenFromPortrait !== null) setVideoFullscreenOrientation(false, false)
-    else if (!holding) ScreenOrientation.unlockAsync().catch(() => {})
+    const { width, height } = Dimensions.get("window")
+    const phone = Math.min(width, height) < 600
+    if (phone && appLock === "landscape") {
+        setVideoFullscreenOrientation(false, false)
+        return
+    }
+    appLock = null
+    if (!holding) ScreenOrientation.unlockAsync().catch(() => {})
 }
 
 /** The manga reader's lock ends with it (unchanged). */

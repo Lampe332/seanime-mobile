@@ -101,7 +101,9 @@ import { useSubtitleTranslation } from "./use-subtitle-translation"
 import { player_castingAtom, player_miniAtom, player_trackMemoryAtom } from "./player.atoms"
 import { castableStreamUrl, castTitle, castTrackNumbers, castUrlWithTracks } from "./player-cast"
 import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
-import { endPlayerOrientation, readBrightness, readVolume, restoreBrightness, setVideoFullscreenOrientation, writeBrightness, writeVolume } from "./player-system"
+import { endPlayerOrientation, readBrightness, readVolume, restoreBrightness, setVideoFullscreenOrientation, turnedToLandscape, writeBrightness, writeVolume } from "./player-system"
+import { backStep, isFullscreenWindow, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, miniPlayCommand, progressFraction } from "./player-chrome"
+import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { usePlayerPlaylist } from "./use-player-playlist"
 import { type OfflinePlayback, offlinePositionToSave } from "@/main/android-downloads/_lib/offline-playback"
 import { askForDownloadNotices } from "@/main/android-downloads/_lib/download-notifications"
@@ -227,7 +229,16 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     }
 
     const [visible, setVisible] = React.useState(true)
-    const [fullscreen, setFullscreen] = React.useState(false)
+    // Fullscreen = the landscape window (player-chrome isFullscreenWindow); a pressed button shows its target at once
+    // and the window's turn takes over again once it happened
+    const landscape = isFullscreenWindow(window.width, window.height)
+    const [fullscreenTarget, setFullscreenTarget] = React.useState<boolean | null>(null)
+    const [turnSeen, setTurnSeen] = React.useState(landscape)
+    if (turnSeen !== landscape) {
+        setTurnSeen(landscape)
+        setFullscreenTarget(null)
+    }
+    const fullscreen = fullscreenTarget ?? landscape
     const [pip, setPip] = React.useState(false)
     const [menuOpen, setMenuOpen] = React.useState(false)
     const [menuPage, setMenuPage] = React.useState<PlayerMenuPage>("main")
@@ -558,10 +569,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     }
 
     // ── Fullscreen, PiP, close ──
-    const landscape = window.width > window.height
     const toggleFullscreen = () => {
         const next = !fullscreen
-        setFullscreen(next)
+        setFullscreenTarget(next)
         setMini(false)
         setVideoFullscreenOrientation(next, isTablet)
         events.fullscreen(next)
