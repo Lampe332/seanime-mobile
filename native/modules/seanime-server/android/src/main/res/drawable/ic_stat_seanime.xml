@@ -1,0 +1,9 @@
+<!-- Status bar icon: the bold "S" of the app logo, white on transparent (Android only uses its alpha) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M16.7,6.9C16,5.3 14.3,4.2 12,4.2C9.3,4.2 7.5,5.8 7.5,8C7.5,10.4 9.6,11.2 12,12C14.4,12.8 16.5,13.6 16.5,16C16.5,18.2 14.7,19.8 12,19.8C9.7,19.8 8,18.7 7.3,17.1" />
+</vector>

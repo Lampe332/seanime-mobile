@@ -28053,6 +28053,28 @@
         "required": false,
         "public": true,
         "comments": []
+      },
+      {
+        "name": "DlnaCast",
+        "jsonName": "DlnaCast",
+        "goType": "dlnacast.Controller",
+        "typescriptType": "DlnaCast_Controller",
+        "usedTypescriptType": "DlnaCast_Controller",
+        "usedStructName": "dlnacast.Controller",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "MobileOffline",
+        "jsonName": "MobileOffline",
+        "goType": "mobileoffline.Manager",
+        "typescriptType": "MobileOffline_Manager",
+        "usedTypescriptType": "MobileOffline_Manager",
+        "usedStructName": "mobileoffline.Manager",
+        "required": false,
+        "public": true,
+        "comments": []
       }
     ],
     "comments": []
@@ -38498,6 +38520,314 @@
       }
     ],
     "comments": []
+  },
+  {
+    "filepath": "..\\internal\\dlnacast\\controller.go",
+    "filename": "controller.go",
+    "name": "Event",
+    "formattedName": "DlnaCast_Event",
+    "package": "dlnacast",
+    "fields": [],
+    "aliasOf": {
+      "goType": "map[string]any",
+      "typescriptType": "Record\u003cstring, DlnaCast_any\u003e",
+      "declaredValues": null,
+      "usedStructName": "dlnacast.any"
+    },
+    "comments": null
+  },
+  {
+    "filepath": "../internal/dlnacast/controller.go",
+    "filename": "controller.go",
+    "name": "Device",
+    "formattedName": "DlnaCast_Device",
+    "package": "dlnacast",
+    "fields": [
+      {
+        "name": "ID",
+        "jsonName": "id",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Name",
+        "jsonName": "name",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Kind",
+        "jsonName": "kind",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Device is a renderer as the app lists it."
+    ]
+  },
+  {
+    "filepath": "../internal/dlnacast/controller.go",
+    "filename": "controller.go",
+    "name": "Current",
+    "formattedName": "DlnaCast_Current",
+    "package": "dlnacast",
+    "fields": [
+      {
+        "name": "Device",
+        "jsonName": "device",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Kind",
+        "jsonName": "kind",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Current is the device in use."
+    ]
+  },
+  {
+    "filepath": "../internal/dlnacast/controller.go",
+    "filename": "controller.go",
+    "name": "Controller",
+    "formattedName": "DlnaCast_Controller",
+    "package": "dlnacast",
+    "fields": [
+      {
+        "name": "emit",
+        "jsonName": "emit",
+        "goType": "",
+        "typescriptType": "any",
+        "required": true,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "upnp",
+        "jsonName": "upnp",
+        "goType": "upnp",
+        "typescriptType": "DlnaCast_upnp",
+        "usedTypescriptType": "DlnaCast_upnp",
+        "usedStructName": "dlnacast.upnp",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "serverPort",
+        "jsonName": "serverPort",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "connectTimeout",
+        "jsonName": "connectTimeout",
+        "goType": "time.Duration",
+        "typescriptType": "Duration",
+        "usedTypescriptType": "Duration",
+        "usedStructName": "time.Duration",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "discoverTimeout",
+        "jsonName": "discoverTimeout",
+        "goType": "time.Duration",
+        "typescriptType": "Duration",
+        "usedTypescriptType": "Duration",
+        "usedStructName": "time.Duration",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "mu",
+        "jsonName": "mu",
+        "goType": "sync.Mutex",
+        "typescriptType": "Mutex",
+        "usedTypescriptType": "Mutex",
+        "usedStructName": "sync.Mutex",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "devices",
+        "jsonName": "devices",
+        "goType": "map[string]Renderer",
+        "typescriptType": "Record\u003cstring, DlnaCast_Renderer\u003e",
+        "usedTypescriptType": "DlnaCast_Renderer",
+        "usedStructName": "dlnacast.Renderer",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "current",
+        "jsonName": "current",
+        "goType": "session",
+        "typescriptType": "DlnaCast_session",
+        "usedTypescriptType": "DlnaCast_session",
+        "usedStructName": "dlnacast.session",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "receiver",
+        "jsonName": "receiver",
+        "goType": "forwarder",
+        "typescriptType": "DlnaCast_forwarder",
+        "usedTypescriptType": "DlnaCast_forwarder",
+        "usedStructName": "dlnacast.forwarder",
+        "required": false,
+        "public": false,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Controller is the cast session behind the player's cast panel. All methods return at once; results come as events."
+    ]
+  },
+  {
+    "filepath": "../internal/dlnacast/upnp.go",
+    "filename": "upnp.go",
+    "name": "Renderer",
+    "formattedName": "DlnaCast_Renderer",
+    "package": "dlnacast",
+    "fields": [
+      {
+        "name": "Name",
+        "jsonName": "Name",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "AVTransportURL",
+        "jsonName": "AVTransportURL",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "RenderingControlURL",
+        "jsonName": "RenderingControlURL",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Renderer is a TV or other UPnP media renderer on the network."
+    ]
+  },
+  {
+    "filepath": "../internal/dlnacast/upnp.go",
+    "filename": "upnp.go",
+    "name": "Status",
+    "formattedName": "DlnaCast_Status",
+    "package": "dlnacast",
+    "fields": [
+      {
+        "name": "Playing",
+        "jsonName": "Playing",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "PositionMs",
+        "jsonName": "PositionMs",
+        "goType": "int64",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "DurationMs",
+        "jsonName": "DurationMs",
+        "goType": "int64",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Volume",
+        "jsonName": "Volume",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Ended",
+        "jsonName": "Ended",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Status is what a renderer reports: play state, place and length in ms, volume 0..100 (-1 unknown)."
+    ]
+  },
+  {
+    "filepath": "../internal/dlnacast/upnp.go",
+    "filename": "upnp.go",
+    "name": "UpnpError",
+    "formattedName": "DlnaCast_UpnpError",
+    "package": "dlnacast",
+    "fields": [
+      {
+        "name": "Code",
+        "jsonName": "Code",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " UpnpError is a refused UPnP action; 701 (\"transition not available\") is what LG TVs answer while they are off or in standby."
+    ]
   },
   {
     "filepath": "../internal/events/events.go",
@@ -58672,6 +59002,15 @@
         "comments": []
       },
       {
+        "name": "seekPositions",
+        "jsonName": "seekPositions",
+        "goType": "map[uint32]uint64",
+        "typescriptType": "Record\u003cnumber, number\u003e",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
         "name": "noSeeking",
         "jsonName": "noSeeking",
         "goType": "bool",
@@ -58837,6 +59176,24 @@
         "name": "Type",
         "jsonName": "Type",
         "goType": "uint8",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "TypeOffset",
+        "jsonName": "TypeOffset",
+        "goType": "int64",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "CodecIDOffset",
+        "jsonName": "CodecIDOffset",
+        "goType": "int64",
         "typescriptType": "number",
         "required": true,
         "public": true,
@@ -62904,6 +63261,24 @@
         "comments": []
       },
       {
+        "name": "TypeOffset",
+        "jsonName": "",
+        "goType": "int64",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "CodecIDOffset",
+        "jsonName": "",
+        "goType": "int64",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
         "name": "contentEncodings",
         "jsonName": "",
         "goType": "ContentEncodings",
@@ -63130,6 +63505,28 @@
         "public": true,
         "comments": [
           " Absolute byte position of the cluster"
+        ]
+      },
+      {
+        "name": "Track",
+        "jsonName": "Track",
+        "goType": "uint8",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": [
+          " Track number the cue points at"
+        ]
+      },
+      {
+        "name": "Duration",
+        "jsonName": "Duration",
+        "goType": "uint64",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": [
+          " Block duration in nanoseconds (subtitle cues), 0 if unknown"
         ]
       }
     ],
@@ -64153,6 +64550,1388 @@
     ],
     "comments": [
       " Tracks element and its children"
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/library.go",
+    "filename": "library.go",
+    "name": "MangaRequest",
+    "formattedName": "MobileOffline_MangaRequest",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "MediaID",
+        "jsonName": "mediaId",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " MangaRequest describes a manga for the offline list (the old bridge's cacheManga)."
+    ],
+    "embeddedStructNames": [
+      "mobileoffline.Details"
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "SourceSubtitle",
+    "formattedName": "MobileOffline_SourceSubtitle",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "URL",
+        "jsonName": "url",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Language",
+        "jsonName": "language",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "IsDefault",
+        "jsonName": "isDefault",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " SourceSubtitle is a subtitle offered by a source."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "VideoSource",
+    "formattedName": "MobileOffline_VideoSource",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "Server",
+        "jsonName": "server",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "URL",
+        "jsonName": "url",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Quality",
+        "jsonName": "quality",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Type",
+        "jsonName": "type",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Headers",
+        "jsonName": "headers",
+        "goType": "map[string]string",
+        "typescriptType": "Record\u003cstring, string\u003e",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Subtitles",
+        "jsonName": "subtitles",
+        "goType": "[]SourceSubtitle",
+        "typescriptType": "Array\u003cMobileOffline_SourceSubtitle\u003e",
+        "usedTypescriptType": "MobileOffline_SourceSubtitle",
+        "usedStructName": "mobileoffline.SourceSubtitle",
+        "required": false,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " VideoSource is one stream of an episode as a provider offers it."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "MediaDetails",
+    "formattedName": "MobileOffline_MediaDetails",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "Description",
+        "jsonName": "description",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Genres",
+        "jsonName": "genres",
+        "goType": "[]string",
+        "typescriptType": "Array\u003cstring\u003e",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Year",
+        "jsonName": "year",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Format",
+        "jsonName": "format",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "TotalEpisodes",
+        "jsonName": "totalEpisodes",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Duration",
+        "jsonName": "duration",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Score",
+        "jsonName": "score",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "CoverURL",
+        "jsonName": "coverUrl",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "BannerURL",
+        "jsonName": "bannerUrl",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " MediaDetails is what the offline view shows about an anime."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "Details",
+    "formattedName": "MobileOffline_Details",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "Title",
+        "jsonName": "title",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Description",
+        "jsonName": "description",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Genres",
+        "jsonName": "genres",
+        "goType": "[]string",
+        "typescriptType": "Array\u003cstring\u003e",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Year",
+        "jsonName": "year",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Format",
+        "jsonName": "format",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "TotalEpisodes",
+        "jsonName": "totalEpisodes",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Duration",
+        "jsonName": "duration",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Score",
+        "jsonName": "score",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "CoverURL",
+        "jsonName": "coverUrl",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "BannerURL",
+        "jsonName": "bannerUrl",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "EpisodeTitle",
+        "jsonName": "episodeTitle",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "EpisodeImageURL",
+        "jsonName": "episodeImageUrl",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "EpisodeDescription",
+        "jsonName": "episodeDescription",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "AirDate",
+        "jsonName": "airDate",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "CoverAsset",
+        "jsonName": "coverAsset",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "BannerAsset",
+        "jsonName": "bannerAsset",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "EpisodeImageAsset",
+        "jsonName": "episodeImageAsset",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "MetadataSaved",
+        "jsonName": "metadataSaved",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Details are the descriptions kept for offline use, with artwork saved in the data folder (the *Asset names)."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "SavedSubtitle",
+    "formattedName": "MobileOffline_SavedSubtitle",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "File",
+        "jsonName": "file",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Language",
+        "jsonName": "language",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Label",
+        "jsonName": "label",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Default",
+        "jsonName": "default",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Mime",
+        "jsonName": "mime",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " SavedSubtitle is a subtitle file of a download."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "Files",
+    "formattedName": "MobileOffline_Files",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "Video",
+        "jsonName": "video",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Audio",
+        "jsonName": "audio",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Subtitles",
+        "jsonName": "subtitles",
+        "goType": "[]SavedSubtitle",
+        "typescriptType": "Array\u003cMobileOffline_SavedSubtitle\u003e",
+        "usedTypescriptType": "MobileOffline_SavedSubtitle",
+        "usedStructName": "mobileoffline.SavedSubtitle",
+        "required": false,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Files are the saved files of a ready episode, served under /api/v1/mobile-offline/file/{id}/{file}."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "Item",
+    "formattedName": "MobileOffline_Item",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "ID",
+        "jsonName": "id",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Key",
+        "jsonName": "key",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Status",
+        "jsonName": "status",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Ready",
+        "jsonName": "ready",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "MediaID",
+        "jsonName": "mediaId",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Provider",
+        "jsonName": "provider",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Episode",
+        "jsonName": "episode",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Dubbed",
+        "jsonName": "dubbed",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Quality",
+        "jsonName": "quality",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Server",
+        "jsonName": "server",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "AudioLanguage",
+        "jsonName": "audioLanguage",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Progress",
+        "jsonName": "progress",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Bytes",
+        "jsonName": "bytes",
+        "goType": "int64",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "PositionMs",
+        "jsonName": "position",
+        "goType": "int64",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Failure",
+        "jsonName": "failure",
+        "goType": "Failure",
+        "typescriptType": "MobileOffline_Failure",
+        "usedTypescriptType": "MobileOffline_Failure",
+        "usedStructName": "mobileoffline.Failure",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Error",
+        "jsonName": "error",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Files",
+        "jsonName": "files",
+        "goType": "Files",
+        "typescriptType": "MobileOffline_Files",
+        "usedTypescriptType": "MobileOffline_Files",
+        "usedStructName": "mobileoffline.Files",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Order",
+        "jsonName": "order",
+        "goType": "int64",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Item is one episode of the queue or the offline library."
+    ],
+    "embeddedStructNames": [
+      "mobileoffline.Details"
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "Network",
+    "formattedName": "MobileOffline_Network",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "Known",
+        "jsonName": "known",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Connected",
+        "jsonName": "connected",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Metered",
+        "jsonName": "metered",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Network is what the app reports about the connection (NetInfo); Known is false until it did."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "Snapshot",
+    "formattedName": "MobileOffline_Snapshot",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "Items",
+        "jsonName": "items",
+        "goType": "[]Item",
+        "typescriptType": "Array\u003cMobileOffline_Item\u003e",
+        "usedTypescriptType": "MobileOffline_Item",
+        "usedStructName": "mobileoffline.Item",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "WifiOnly",
+        "jsonName": "wifiOnly",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Network",
+        "jsonName": "network",
+        "goType": "Network",
+        "typescriptType": "MobileOffline_Network",
+        "usedTypescriptType": "MobileOffline_Network",
+        "usedStructName": "mobileoffline.Network",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Waiting",
+        "jsonName": "waiting",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Snapshot is the whole offline state for the app."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "Options",
+    "formattedName": "MobileOffline_Options",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "Dir",
+        "jsonName": "Dir",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Resolve",
+        "jsonName": "Resolve",
+        "goType": "ResolveFunc",
+        "typescriptType": "MobileOffline_ResolveFunc",
+        "usedTypescriptType": "MobileOffline_ResolveFunc",
+        "usedStructName": "mobileoffline.ResolveFunc",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Media",
+        "jsonName": "Media",
+        "goType": "MediaFunc",
+        "typescriptType": "MobileOffline_MediaFunc",
+        "usedTypescriptType": "MobileOffline_MediaFunc",
+        "usedStructName": "mobileoffline.MediaFunc",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Changed",
+        "jsonName": "Changed",
+        "goType": "",
+        "typescriptType": "any",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Client",
+        "jsonName": "Client",
+        "goType": "http.Client",
+        "typescriptType": "Client",
+        "usedTypescriptType": "Client",
+        "usedStructName": "http.Client",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "FreeSpace",
+        "jsonName": "FreeSpace",
+        "goType": "",
+        "typescriptType": "any",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Tick",
+        "jsonName": "Tick",
+        "goType": "time.Duration",
+        "typescriptType": "Duration",
+        "usedTypescriptType": "Duration",
+        "usedStructName": "time.Duration",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "LegacyDir",
+        "jsonName": "LegacyDir",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Options configure a Manager."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "Manager",
+    "formattedName": "MobileOffline_Manager",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "opts",
+        "jsonName": "opts",
+        "goType": "Options",
+        "typescriptType": "MobileOffline_Options",
+        "usedTypescriptType": "MobileOffline_Options",
+        "usedStructName": "mobileoffline.Options",
+        "required": true,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "client",
+        "jsonName": "client",
+        "goType": "http.Client",
+        "typescriptType": "Client",
+        "usedTypescriptType": "Client",
+        "usedStructName": "http.Client",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "mu",
+        "jsonName": "mu",
+        "goType": "sync.Mutex",
+        "typescriptType": "Mutex",
+        "usedTypescriptType": "Mutex",
+        "usedStructName": "sync.Mutex",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "state",
+        "jsonName": "state",
+        "goType": "persisted",
+        "typescriptType": "MobileOffline_persisted",
+        "usedTypescriptType": "MobileOffline_persisted",
+        "usedStructName": "mobileoffline.persisted",
+        "required": true,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "network",
+        "jsonName": "network",
+        "goType": "Network",
+        "typescriptType": "MobileOffline_Network",
+        "usedTypescriptType": "MobileOffline_Network",
+        "usedStructName": "mobileoffline.Network",
+        "required": true,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "running",
+        "jsonName": "running",
+        "goType": "map[string]context.CancelFunc",
+        "typescriptType": "Record\u003cstring, CancelFunc\u003e",
+        "usedTypescriptType": "CancelFunc",
+        "usedStructName": "context.CancelFunc",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "attempts",
+        "jsonName": "attempts",
+        "goType": "map[string]time.Time",
+        "typescriptType": "Record\u003cstring, string\u003e",
+        "usedStructName": "time.Time",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "lastSave",
+        "jsonName": "lastSave",
+        "goType": "time.Time",
+        "typescriptType": "string",
+        "usedStructName": "time.Time",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "emitTimer",
+        "jsonName": "emitTimer",
+        "goType": "time.Timer",
+        "typescriptType": "Timer",
+        "usedTypescriptType": "Timer",
+        "usedStructName": "time.Timer",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "wake",
+        "jsonName": "wake",
+        "goType": "",
+        "typescriptType": "any",
+        "required": true,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "done",
+        "jsonName": "done",
+        "goType": "",
+        "typescriptType": "any",
+        "required": true,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "closeOnce",
+        "jsonName": "closeOnce",
+        "goType": "sync.Once",
+        "typescriptType": "Once",
+        "usedTypescriptType": "Once",
+        "usedStructName": "sync.Once",
+        "required": false,
+        "public": false,
+        "comments": []
+      },
+      {
+        "name": "wg",
+        "jsonName": "wg",
+        "goType": "sync.WaitGroup",
+        "typescriptType": "WaitGroup",
+        "usedTypescriptType": "WaitGroup",
+        "usedStructName": "sync.WaitGroup",
+        "required": false,
+        "public": false,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Manager is the download queue and offline library."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "BatchEpisode",
+    "formattedName": "MobileOffline_BatchEpisode",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "Number",
+        "jsonName": "number",
+        "goType": "float64",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Title",
+        "jsonName": "title",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Image",
+        "jsonName": "image",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Description",
+        "jsonName": "description",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " BatchEpisode is one episode of a batch."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "BatchRequest",
+    "formattedName": "MobileOffline_BatchRequest",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "MediaID",
+        "jsonName": "mediaId",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Provider",
+        "jsonName": "provider",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Dubbed",
+        "jsonName": "dubbed",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Quality",
+        "jsonName": "quality",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Server",
+        "jsonName": "server",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Title",
+        "jsonName": "title",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "CoverURL",
+        "jsonName": "coverUrl",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "BannerURL",
+        "jsonName": "bannerUrl",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Episodes",
+        "jsonName": "episodes",
+        "goType": "[]BatchEpisode",
+        "typescriptType": "Array\u003cMobileOffline_BatchEpisode\u003e",
+        "usedTypescriptType": "MobileOffline_BatchEpisode",
+        "usedStructName": "mobileoffline.BatchEpisode",
+        "required": false,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " BatchRequest queues episodes of one anime from an online-stream provider (one episode, a season, the missing ones)."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/manager.go",
+    "filename": "manager.go",
+    "name": "DownloadRequest",
+    "formattedName": "MobileOffline_DownloadRequest",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "Key",
+        "jsonName": "key",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "URL",
+        "jsonName": "url",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Type",
+        "jsonName": "type",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Headers",
+        "jsonName": "headers",
+        "goType": "map[string]string",
+        "typescriptType": "Record\u003cstring, string\u003e",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Subtitles",
+        "jsonName": "subtitles",
+        "goType": "[]SourceSubtitle",
+        "typescriptType": "Array\u003cMobileOffline_SourceSubtitle\u003e",
+        "usedTypescriptType": "MobileOffline_SourceSubtitle",
+        "usedStructName": "mobileoffline.SourceSubtitle",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "MediaID",
+        "jsonName": "mediaId",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Episode",
+        "jsonName": "episode",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Dubbed",
+        "jsonName": "dubbed",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Quality",
+        "jsonName": "quality",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " DownloadRequest saves one episode from a source the app already has (the player's current stream)."
+    ],
+    "embeddedStructNames": [
+      "mobileoffline.Details"
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/policy.go",
+    "filename": "policy.go",
+    "name": "Failure",
+    "formattedName": "MobileOffline_Failure",
+    "package": "mobileoffline",
+    "fields": [],
+    "aliasOf": {
+      "goType": "string",
+      "typescriptType": "string",
+      "declaredValues": [
+        "\"SOURCE_REFUSED\"",
+        "\"CONNECTION\"",
+        "\"STORAGE_FULL\"",
+        "\"SOURCE_UNAVAILABLE\"",
+        "\"UNKNOWN\""
+      ]
+    },
+    "comments": [
+      " Failure is why a download failed, as far as its error tells. Stored by name, so only add entries."
+    ]
+  },
+  {
+    "filepath": "../internal/mobileoffline/policy.go",
+    "filename": "policy.go",
+    "name": "HTTPError",
+    "formattedName": "MobileOffline_HTTPError",
+    "package": "mobileoffline",
+    "fields": [
+      {
+        "name": "Status",
+        "jsonName": "Status",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " HTTPError is a refused request of a source (any status \u003e= 400)."
+    ]
+  },
+  {
+    "filepath": "../internal/mobilestorage/access.go",
+    "filename": "access.go",
+    "name": "Access",
+    "formattedName": "MobileStorage_Access",
+    "package": "mobilestorage",
+    "fields": [
+      {
+        "name": "Path",
+        "jsonName": "path",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Exists",
+        "jsonName": "exists",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Readable",
+        "jsonName": "readable",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "AllFilesAccess",
+        "jsonName": "allFilesAccess",
+        "goType": "bool",
+        "typescriptType": "boolean",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": []
+  },
+  {
+    "filepath": "../internal/mp4subs/mp4subs.go",
+    "filename": "mp4subs.go",
+    "name": "Track",
+    "formattedName": "Track",
+    "package": "mp4subs",
+    "fields": [
+      {
+        "name": "Language",
+        "jsonName": "Language",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": [
+          " ISO 639-2 code from mdhd, \"und\" when unset"
+        ]
+      },
+      {
+        "name": "Name",
+        "jsonName": "Name",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": [
+          " handler name, empty when generic"
+        ]
+      },
+      {
+        "name": "SRT",
+        "jsonName": "SRT",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " Track is one embedded text track converted to SRT."
     ]
   },
   {
@@ -87448,6 +89227,36 @@
       }
     ],
     "comments": []
+  },
+  {
+    "filepath": "../internal/videocore/translate_lines.go",
+    "filename": "translate_lines.go",
+    "name": "TranslatedLines",
+    "formattedName": "VideoCore_TranslatedLines",
+    "package": "videocore",
+    "fields": [
+      {
+        "name": "Lines",
+        "jsonName": "lines",
+        "goType": "[]string",
+        "typescriptType": "Array\u003cstring\u003e",
+        "required": false,
+        "public": true,
+        "comments": []
+      },
+      {
+        "name": "Language",
+        "jsonName": "language",
+        "goType": "string",
+        "typescriptType": "string",
+        "required": true,
+        "public": true,
+        "comments": []
+      }
+    ],
+    "comments": [
+      " TranslatedLines is the answer to a batch of subtitle lines."
+    ]
   },
   {
     "filepath": "../internal/videocore/translator.go",

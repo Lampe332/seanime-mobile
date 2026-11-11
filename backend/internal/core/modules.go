@@ -52,6 +52,8 @@ func (a *App) initModulesOnce() {
 
 	_, _ = util.InitIOSDocumentsDir()
 
+	a.initMobileFeatures()
+
 	a.LocalManager.SetRefreshAnilistCollectionsFunc(func() {
 		_, _ = a.RefreshAnimeCollection()
 		_, _ = a.RefreshMangaCollection()

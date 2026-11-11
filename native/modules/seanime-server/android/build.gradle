@@ -1,0 +1,27 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.seanime.server'
+version = '0.1.0'
+
+// Port of the Go server, from native/app-variants.json via app.config.js and plugins/with-server-port.js (written into
+// android/gradle.properties at prebuild). No default here: a second literal could drift from the JS side.
+def serverPort = findProperty('seanime.serverPort')
+if (serverPort == null || !(serverPort.toString() ==~ /\d+/)) {
+  throw new GradleException('seanime.serverPort missing in android/gradle.properties (plugins/with-server-port.js, app.config.js).')
+}
+
+android {
+  namespace "com.seanime.server"
+  buildFeatures {
+    buildConfig true
+  }
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+    buildConfigField "int", "SERVER_PORT", serverPort.toString()
+  }
+  // src/main/jniLibs/<abi>/libseanime.so is the Go server, built by native/scripts/build-android.ps1 (not committed).
+}

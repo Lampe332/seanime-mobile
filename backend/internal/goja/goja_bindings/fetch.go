@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"seanime/internal/constants"
 	"seanime/internal/security"
 	"seanime/internal/util"
 	"strings"
@@ -38,6 +39,25 @@ var (
 	clientWithoutBypass = req.C().
 				SetTimeout(defaultTimeout)
 )
+
+// appUserAgent names the app instead of a browser.
+var appUserAgent = "Seanime/" + constants.Version
+
+// appIdentityHosts answer requests that claim to be a browser with a bot check instead of their API: api.mangadex.org
+// (checked 2026-11-05) redirects every request with a browser User-Agent (the bypass client's, or the Chrome one the
+// MangaDex extension sets for /at-home) to the HTML page mangadex.org/edge/challenge. Followed, that is a 200 the
+// extension cannot parse, so search, chapters and pages all failed ("Chapters could not be loaded"). MangaDex asks API
+// clients to name themselves in the User-Agent; with that the same requests answer with JSON.
+var appIdentityHosts = []string{"api.mangadex.org"}
+
+// needsAppIdentity reports whether a request goes to a host that must get the plain client and the app's User-Agent.
+func needsAppIdentity(rawUrl string) bool {
+	u, err := url.Parse(rawUrl)
+	if err != nil {
+		return false
+	}
+	return lo.Contains(appIdentityHosts, strings.ToLower(u.Hostname()))
+}
 
 type Fetch struct {
 	vm             *goja.Runtime
@@ -427,7 +447,8 @@ func (f *Fetch) Fetch(call goja.FunctionCall) goja.Value {
 		log.Trace().Str("id", f.extensionId).Str("url", url).Str("method", options.Method).Msgf("extension: Network request")
 
 		var client *req.Client
-		if options.NoCloudFlareBypass {
+		appIdentity := needsAppIdentity(url)
+		if options.NoCloudFlareBypass || appIdentity {
 			client = clientWithoutBypass
 		} else {
 			client = clientWithCloudFlareBypass
@@ -449,6 +470,10 @@ func (f *Fetch) Fetch(call goja.FunctionCall) goja.Value {
 		// Set headers
 		for k, v := range options.Headers {
 			request.SetHeader(k, v)
+		}
+		// after the extension's headers: some extensions send a browser User-Agent of their own
+		if appIdentity {
+			request.SetHeader("User-Agent", appUserAgent)
 		}
 
 		if reqContentType != "" {

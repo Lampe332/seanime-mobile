@@ -1,13 +1,10 @@
 package main
 
 import (
-	"embed"
 	"seanime/internal/server"
 )
 
-//go:embed all:web
-var WebFS embed.FS
-
+// WebFS is the embedded web UI (web_embed.go), or empty in the native app's build (web_none.go, tag nowebui).
 func main() {
 	server.StartServer(WebFS)
 }

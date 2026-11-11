@@ -2133,6 +2133,22 @@ export type DebridClient_StreamState = {
 export type DebridClient_StreamStatus = "downloading" | "ready" | "failed" | "started"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Dlnacast
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * - Filepath: internal/dlnacast/controller.go
+ * - Filename: controller.go
+ * - Package: dlnacast
+ * @description
+ *  Current is the device in use.
+ */
+export type DlnaCast_Current = {
+    device: string
+    kind: string
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Extension
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -3459,6 +3475,14 @@ export type MKVParser_CueInfo = {
      * Absolute byte position of the cluster
      */
     Position: number
+    /**
+     * Track number the cue points at
+     */
+    Track: number
+    /**
+     * Block duration in nanoseconds (subtitle cues), 0 if unknown
+     */
+    Duration: number
 }
 
 /**
@@ -3580,6 +3604,191 @@ export type MKVParser_TrackType = "video" |
 export type MKVParser_VideoTrack = {
     PixelWidth: number
     PixelHeight: number
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Mobileoffline
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * - Filepath: internal/mobileoffline/manager.go
+ * - Filename: manager.go
+ * - Package: mobileoffline
+ * @description
+ *  BatchEpisode is one episode of a batch.
+ */
+export type MobileOffline_BatchEpisode = {
+    number: number
+    title: string
+    image: string
+    description: string
+}
+
+/**
+ * - Filepath: internal/mobileoffline/manager.go
+ * - Filename: manager.go
+ * - Package: mobileoffline
+ * @description
+ *  Details are the descriptions kept for offline use, with artwork saved in the data folder (the *Asset names).
+ */
+export type MobileOffline_Details = {
+    title?: string
+    description?: string
+    genres?: Array<string>
+    year?: number
+    format?: string
+    totalEpisodes?: number
+    duration?: number
+    score?: number
+    coverUrl?: string
+    bannerUrl?: string
+    episodeTitle?: string
+    episodeImageUrl?: string
+    episodeDescription?: string
+    airDate?: string
+    coverAsset?: string
+    bannerAsset?: string
+    episodeImageAsset?: string
+    metadataSaved: boolean
+}
+
+/**
+ * - Filepath: internal/mobileoffline/policy.go
+ * - Filename: policy.go
+ * - Package: mobileoffline
+ * @description
+ *  Failure is why a download failed, as far as its error tells. Stored by name, so only add entries.
+ */
+export type MobileOffline_Failure = "SOURCE_REFUSED" | "CONNECTION" | "STORAGE_FULL" | "SOURCE_UNAVAILABLE" | "UNKNOWN"
+
+/**
+ * - Filepath: internal/mobileoffline/manager.go
+ * - Filename: manager.go
+ * - Package: mobileoffline
+ * @description
+ *  Files are the saved files of a ready episode, served under /api/v1/mobile-offline/file/{id}/{file}.
+ */
+export type MobileOffline_Files = {
+    video?: string
+    audio?: string
+    subtitles?: Array<MobileOffline_SavedSubtitle>
+}
+
+/**
+ * - Filepath: internal/mobileoffline/manager.go
+ * - Filename: manager.go
+ * - Package: mobileoffline
+ * @description
+ *  Item is one episode of the queue or the offline library.
+ */
+export type MobileOffline_Item = {
+    id: string
+    key: string
+    status: string
+    ready: boolean
+    mediaId: number
+    provider: string
+    episode: string
+    dubbed: boolean
+    quality: string
+    server: string
+    audioLanguage: string
+    progress: number
+    bytes: number
+    position: number
+    failure?: MobileOffline_Failure
+    error?: string
+    files: MobileOffline_Files
+    order: number
+    title?: string
+    description?: string
+    genres?: Array<string>
+    year?: number
+    format?: string
+    totalEpisodes?: number
+    duration?: number
+    score?: number
+    coverUrl?: string
+    bannerUrl?: string
+    episodeTitle?: string
+    episodeImageUrl?: string
+    episodeDescription?: string
+    airDate?: string
+    coverAsset?: string
+    bannerAsset?: string
+    episodeImageAsset?: string
+    metadataSaved: boolean
+}
+
+/**
+ * - Filepath: internal/mobileoffline/manager.go
+ * - Filename: manager.go
+ * - Package: mobileoffline
+ * @description
+ *  Network is what the app reports about the connection (NetInfo); Known is false until it did.
+ */
+export type MobileOffline_Network = {
+    known: boolean
+    connected: boolean
+    metered: boolean
+}
+
+/**
+ * - Filepath: internal/mobileoffline/manager.go
+ * - Filename: manager.go
+ * - Package: mobileoffline
+ * @description
+ *  SavedSubtitle is a subtitle file of a download.
+ */
+export type MobileOffline_SavedSubtitle = {
+    file: string
+    language: string
+    label: string
+    default: boolean
+    mime: string
+}
+
+/**
+ * - Filepath: internal/mobileoffline/manager.go
+ * - Filename: manager.go
+ * - Package: mobileoffline
+ * @description
+ *  Snapshot is the whole offline state for the app.
+ */
+export type MobileOffline_Snapshot = {
+    items?: Array<MobileOffline_Item>
+    wifiOnly: boolean
+    network: MobileOffline_Network
+    waiting: string
+}
+
+/**
+ * - Filepath: internal/mobileoffline/manager.go
+ * - Filename: manager.go
+ * - Package: mobileoffline
+ * @description
+ *  SourceSubtitle is a subtitle offered by a source.
+ */
+export type MobileOffline_SourceSubtitle = {
+    url: string
+    language: string
+    isDefault: boolean
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Mobilestorage
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * - Filepath: internal/mobilestorage/access.go
+ * - Filename: access.go
+ * - Package: mobilestorage
+ */
+export type MobileStorage_Access = {
+    path: string
+    exists: boolean
+    readable: boolean
+    allFilesAccess: boolean
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -5329,6 +5538,18 @@ export type VideoCore_ServerEvent = "pause" |
     "get-media-caption-track" |
     "get-playback-state" |
     "get-playlist"
+
+/**
+ * - Filepath: internal/videocore/translate_lines.go
+ * - Filename: translate_lines.go
+ * - Package: videocore
+ * @description
+ *  TranslatedLines is the answer to a batch of subtitle lines.
+ */
+export type VideoCore_TranslatedLines = {
+    lines?: Array<string>
+    language: string
+}
 
 /**
  * - Filepath: internal/videocore/types.go

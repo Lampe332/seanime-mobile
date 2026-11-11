@@ -102,4 +102,8 @@ const (
 	NakamaWatchPartyChatMessage                           = "nakama-watch-party-chat-message"
 
 	SettingsChanged = "settings-changed"
+
+	// Native mobile app (E4)
+	DlnaCast             = "dlna-cast"              // State of the DLNA cast session (searching, devices, connecting, started, status, idle, stopped, error)
+	MobileOfflineUpdated = "mobile-offline-updated" // Snapshot of the episode downloads changed
 )

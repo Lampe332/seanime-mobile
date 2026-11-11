@@ -1,0 +1,23 @@
+{
+  "current": "test",
+  "variants": {
+    "test": {
+      "name": "Seanime Native (Test)",
+      "applicationId": "com.seanime.app.native",
+      "scheme": "seanime-native",
+      "serverPort": 43212,
+      "versionCode": 1,
+      "icon": "./assets/images/icon-test.png",
+      "adaptiveIconBackground": "./assets/images/android-icon-background-test.png"
+    },
+    "release": {
+      "name": "Seanime Mobile",
+      "applicationId": "com.seanime.app.local",
+      "scheme": "seanime",
+      "serverPort": 43211,
+      "versionCode": 31129,
+      "icon": "./assets/images/icon.png",
+      "adaptiveIconBackground": "./assets/images/android-icon-background.png"
+    }
+  }
+}

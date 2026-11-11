@@ -524,6 +524,118 @@
 // }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// dlna_cast
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// export function useDlnaCastDiscover() {
+//     return useServerMutation<boolean>({
+//         endpoint: API_ENDPOINTS.DLNA_CAST.DlnaCastDiscover.endpoint,
+//         method: API_ENDPOINTS.DLNA_CAST.DlnaCastDiscover.methods[0],
+//         mutationKey: [API_ENDPOINTS.DLNA_CAST.DlnaCastDiscover.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useDlnaCastStart() {
+//     return useServerMutation<boolean, DlnaCastStart_Variables>({
+//         endpoint: API_ENDPOINTS.DLNA_CAST.DlnaCastStart.endpoint,
+//         method: API_ENDPOINTS.DLNA_CAST.DlnaCastStart.methods[0],
+//         mutationKey: [API_ENDPOINTS.DLNA_CAST.DlnaCastStart.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useDlnaCastSwitchStream() {
+//     return useServerMutation<boolean, DlnaCastSwitchStream_Variables>({
+//         endpoint: API_ENDPOINTS.DLNA_CAST.DlnaCastSwitchStream.endpoint,
+//         method: API_ENDPOINTS.DLNA_CAST.DlnaCastSwitchStream.methods[0],
+//         mutationKey: [API_ENDPOINTS.DLNA_CAST.DlnaCastSwitchStream.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useDlnaCastLoad() {
+//     return useServerMutation<boolean, DlnaCastLoad_Variables>({
+//         endpoint: API_ENDPOINTS.DLNA_CAST.DlnaCastLoad.endpoint,
+//         method: API_ENDPOINTS.DLNA_CAST.DlnaCastLoad.methods[0],
+//         mutationKey: [API_ENDPOINTS.DLNA_CAST.DlnaCastLoad.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useDlnaCastControl() {
+//     return useServerMutation<boolean, DlnaCastControl_Variables>({
+//         endpoint: API_ENDPOINTS.DLNA_CAST.DlnaCastControl.endpoint,
+//         method: API_ENDPOINTS.DLNA_CAST.DlnaCastControl.methods[0],
+//         mutationKey: [API_ENDPOINTS.DLNA_CAST.DlnaCastControl.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useDlnaCastStatus() {
+//     return useServerMutation<boolean>({
+//         endpoint: API_ENDPOINTS.DLNA_CAST.DlnaCastStatus.endpoint,
+//         method: API_ENDPOINTS.DLNA_CAST.DlnaCastStatus.methods[0],
+//         mutationKey: [API_ENDPOINTS.DLNA_CAST.DlnaCastStatus.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useDlnaCastStop() {
+//     return useServerMutation<boolean, DlnaCastStop_Variables>({
+//         endpoint: API_ENDPOINTS.DLNA_CAST.DlnaCastStop.endpoint,
+//         method: API_ENDPOINTS.DLNA_CAST.DlnaCastStop.methods[0],
+//         mutationKey: [API_ENDPOINTS.DLNA_CAST.DlnaCastStop.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useDlnaCastForward() {
+//     return useServerMutation<string, DlnaCastForward_Variables>({
+//         endpoint: API_ENDPOINTS.DLNA_CAST.DlnaCastForward.endpoint,
+//         method: API_ENDPOINTS.DLNA_CAST.DlnaCastForward.methods[0],
+//         mutationKey: [API_ENDPOINTS.DLNA_CAST.DlnaCastForward.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useDlnaCastForwardClose() {
+//     return useServerMutation<boolean>({
+//         endpoint: API_ENDPOINTS.DLNA_CAST.DlnaCastForwardClose.endpoint,
+//         method: API_ENDPOINTS.DLNA_CAST.DlnaCastForwardClose.methods[0],
+//         mutationKey: [API_ENDPOINTS.DLNA_CAST.DlnaCastForwardClose.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useDlnaCastCurrent() {
+//     return useServerQuery<DlnaCast_Current>({
+//         endpoint: API_ENDPOINTS.DLNA_CAST.DlnaCastCurrent.endpoint,
+//         method: API_ENDPOINTS.DLNA_CAST.DlnaCastCurrent.methods[0],
+//         queryKey: [API_ENDPOINTS.DLNA_CAST.DlnaCastCurrent.key],
+//         enabled: true,
+//     })
+// }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // download
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1348,6 +1460,129 @@
 // }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// mobile_offline
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// export function useGetMobileOfflineSnapshot() {
+//     return useServerQuery<MobileOffline_Snapshot>({
+//         endpoint: API_ENDPOINTS.MOBILE_OFFLINE.GetMobileOfflineSnapshot.endpoint,
+//         method: API_ENDPOINTS.MOBILE_OFFLINE.GetMobileOfflineSnapshot.methods[0],
+//         queryKey: [API_ENDPOINTS.MOBILE_OFFLINE.GetMobileOfflineSnapshot.key],
+//         enabled: true,
+//     })
+// }
+
+// export function useMobileOfflineBatch() {
+//     return useServerMutation<number, MobileOfflineBatch_Variables>({
+//         endpoint: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineBatch.endpoint,
+//         method: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineBatch.methods[0],
+//         mutationKey: [API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineBatch.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useMobileOfflineDownload() {
+//     return useServerMutation<MobileOffline_Item, MobileOfflineDownload_Variables>({
+//         endpoint: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineDownload.endpoint,
+//         method: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineDownload.methods[0],
+//         mutationKey: [API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineDownload.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useMobileOfflineAction() {
+//     return useServerMutation<boolean, MobileOfflineAction_Variables>({
+//         endpoint: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineAction.endpoint,
+//         method: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineAction.methods[0],
+//         mutationKey: [API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineAction.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useMobileOfflineNetwork() {
+//     return useServerMutation<boolean, MobileOfflineNetwork_Variables>({
+//         endpoint: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineNetwork.endpoint,
+//         method: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineNetwork.methods[0],
+//         mutationKey: [API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineNetwork.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useMobileOfflineSettings() {
+//     return useServerMutation<boolean, MobileOfflineSettings_Variables>({
+//         endpoint: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineSettings.endpoint,
+//         method: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineSettings.methods[0],
+//         mutationKey: [API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineSettings.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useMobileOfflinePosition() {
+//     return useServerMutation<boolean, MobileOfflinePosition_Variables>({
+//         endpoint: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflinePosition.endpoint,
+//         method: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflinePosition.methods[0],
+//         mutationKey: [API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflinePosition.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useMobileOfflineCacheManga() {
+//     return useServerMutation<MobileOffline_Details, MobileOfflineCacheManga_Variables>({
+//         endpoint: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineCacheManga.endpoint,
+//         method: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineCacheManga.methods[0],
+//         mutationKey: [API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineCacheManga.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useMobileOfflineFile(id: string, name: string) {
+//     return useServerQuery<boolean>({
+//         endpoint: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineFile.endpoint.replace("{id}", String(id)).replace("{name}", String(name)),
+//         method: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineFile.methods[0],
+//         queryKey: [API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineFile.key],
+//         enabled: true,
+//     })
+// }
+
+// export function useMobileOfflineArtwork(name: string) {
+//     return useServerQuery<boolean>({
+//         endpoint: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineArtwork.endpoint.replace("{name}", String(name)),
+//         method: API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineArtwork.methods[0],
+//         queryKey: [API_ENDPOINTS.MOBILE_OFFLINE.MobileOfflineArtwork.key],
+//         enabled: true,
+//     })
+// }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// mobile_storage
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// export function useMobileStorageAccess() {
+//     return useServerMutation<MobileStorage_Access, MobileStorageAccess_Variables>({
+//         endpoint: API_ENDPOINTS.MOBILE_STORAGE.MobileStorageAccess.endpoint,
+//         method: API_ENDPOINTS.MOBILE_STORAGE.MobileStorageAccess.methods[0],
+//         mutationKey: [API_ENDPOINTS.MOBILE_STORAGE.MobileStorageAccess.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // nakama
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2139,6 +2374,28 @@
 //         method: API_ENDPOINTS.VIDEOCORE.VideoCoreInSightGetCharacterDetails.methods[0],
 //         queryKey: [API_ENDPOINTS.VIDEOCORE.VideoCoreInSightGetCharacterDetails.key],
 //         enabled: true,
+//     })
+// }
+
+// export function useVideoCoreTranslateSubtitleLines() {
+//     return useServerMutation<VideoCore_TranslatedLines, VideoCoreTranslateSubtitleLines_Variables>({
+//         endpoint: API_ENDPOINTS.VIDEOCORE.VideoCoreTranslateSubtitleLines.endpoint,
+//         method: API_ENDPOINTS.VIDEOCORE.VideoCoreTranslateSubtitleLines.methods[0],
+//         mutationKey: [API_ENDPOINTS.VIDEOCORE.VideoCoreTranslateSubtitleLines.key],
+//         onSuccess: async () => {
+//
+//         },
+//     })
+// }
+
+// export function useVideoCoreGetSubtitleTrack() {
+//     return useServerMutation<string, VideoCoreGetSubtitleTrack_Variables>({
+//         endpoint: API_ENDPOINTS.VIDEOCORE.VideoCoreGetSubtitleTrack.endpoint,
+//         method: API_ENDPOINTS.VIDEOCORE.VideoCoreGetSubtitleTrack.methods[0],
+//         mutationKey: [API_ENDPOINTS.VIDEOCORE.VideoCoreGetSubtitleTrack.key],
+//         onSuccess: async () => {
+//
+//         },
 //     })
 // }
 

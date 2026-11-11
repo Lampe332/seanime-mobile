@@ -14,6 +14,7 @@ import (
 	debrid_client "seanime/internal/debrid/client"
 	"seanime/internal/directstream"
 	discordrpc_presence "seanime/internal/discordrpc/presence"
+	"seanime/internal/dlnacast"
 	"seanime/internal/doh"
 	"seanime/internal/events"
 	"seanime/internal/extension"
@@ -34,6 +35,7 @@ import (
 	"seanime/internal/mediaplayers/mpchc"
 	"seanime/internal/mediaplayers/mpv"
 	"seanime/internal/mediaplayers/vlc"
+	"seanime/internal/mobileoffline"
 	"seanime/internal/nakama"
 	"seanime/internal/nativeplayer"
 	"seanime/internal/onlinestream"
@@ -168,6 +170,10 @@ type (
 		PlaylistManager *playlist.Manager
 		LibraryExplorer *library_explorer.LibraryExplorer
 		NakamaManager   *nakama.Manager
+
+		// Native mobile app (E4): DLNA casting and episode downloads; MobileOffline is nil when its folder is unusable
+		DlnaCast      *dlnacast.Controller
+		MobileOffline *mobileoffline.Manager
 	}
 )
 

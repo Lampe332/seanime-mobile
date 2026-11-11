@@ -6,6 +6,11 @@
 - Keep Play Store edition sources, builds, signing material, and other private files out of this repository and its releases.
 - Preserve existing work. These instructions do not authorize a push, tag, or release by themselves.
 
+## Native app rewrite (branch `native`)
+
+- Before touching `native/` or porting anything from `app/` or `backend/seanime-web/`, read `docs/NATIVE-UMBAU.md` (German). It maps every old file and bridge to its new place and lists the fixes that must survive the port.
+- Every port updates that map in the same commit: status, new path, and a row in its change log.
+
 ## Required release-note style
 
 Whenever preparing or publishing an app update to this repository, write its GitHub release description in the style below. Prepare the description before publishing; do not rely on an automatically generated commit list. A normal code push does not require creating a release.

@@ -2,6 +2,38 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 3.0.0 — 11.11.2026 (versionCode 31129)
+
+- 📝 BREAKING: Android: Seanime Mobile now needs Android 7.0 or newer (before: Android 5.0). On older phones, stay on 2.0.33
+- 📝 BREAKING: Settings: Preferences that 2.0.33 kept only inside the app's web view start from their defaults after the update; set them again where you changed them
+  - Navigation bar order and hidden items, the remembered audio/subtitle track per anime, the subtitle style, the external player link, the playback and online-stream choices, torrent search providers, manga reader and calendar options
+  - Without a streaming source installed, the setup tour shows once more
+  - Your library, lists, server settings, extensions, the app language, touch feedback and new-episode notification settings stay
+- 📝 BREAKING: Widget: If the "Upcoming anime" widget disappears from the home screen after the update, add it again
+- 🏗️ BREAKING: Backup: Android no longer backs up the app's data, because it holds your AniList token and service keys. When you move to a new phone, set the app up again there (AniList sign-in, extensions, settings)
+- 🏗️ BREAKING: Plugins: Plugins that change the app's page (DOM plugins, for example the dub badge) and plugin episode tabs no longer run; plugin tray buttons, actions and plugin windows still work
+- 🎉 Toasts: Tap a message to close it
+- ⚡️ App: Rebuilt as a native app: every screen, list and animation is drawn natively instead of in a web view
+- ⚡️ App: Home and My lists scroll with fewer dropped frames, and the app comes back from the background faster
+- ⚡️ Player: One player plays every episode, including AC3, DTS and TrueHD audio, ASS subtitles and all tracks of MKV files, and switches tracks without reloading
+- ⚡️ Downloads: Episodes saved with 2.0.33 are taken over on the first start, with their subtitles, details and playback position
+  - An episode that cannot be taken over shows as failed and can be downloaded again
+- ⚡️ Layout: Pages start right below the top edge instead of under an empty strip, and the dark strip above the anime page is gone
+- ⚡️ Layout: Every tab has the same compact head, and the schedule title matches the other pages
+- ⚡️ Home: The gap after "Continue watching" matches the gaps between the other rows
+- ⚡️ Buttons: Main buttons use a darker brand color, so their white label is easier to read
+- ⚡️ Discover: The spotlight's shade darkens sooner, so the title stays readable on bright artwork
+- ⚡️ Tablets: Downloads keep their rows at the width of the settings pane
+- ⚡️ Tablets: The search field sits beside Anime | Manga on My lists and Search
+- ⚡️ Tablets: On anime and manga pages, the left column stays in view while you scroll
+- ⚡️ Updates: The updater only installs a new version when the download matches the checksum GitHub publishes for it
+- ⚡️ Logs: The app's own log leaves out request bodies, sign-in headers and stream tokens
+- 🦺 Player: Subtitle and audio track names no longer repeat the language, like "Chinese (Chinese - (China))"
+- 🦺 Search: Sort chips now change the order of title search results, and the browse sorting is no longer changed by a chip picked while searching
+- 🦺 Lists: The statistics show "N started · M planned", so they match the list count; before, AniList's count left out planned entries
+- 🦺 Manga: MangaDex chapters load again
+- 🏗️ App: The server no longer carries the web interface. The APK is still larger than 2.0.33 (about 107 MB instead of 70 MB)
+
 ## 2.0.33 — 01.11.2026 (versionCode 31128)
 
 - 🎉 Home: On phones, the banner image from *Settings → Appearance* now shows behind the Home title

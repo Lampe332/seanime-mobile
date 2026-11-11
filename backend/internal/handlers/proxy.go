@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	url2 "net/url"
+	"path"
 	"seanime/internal/security"
 	"seanime/internal/util"
 	"strconv"
@@ -292,7 +293,7 @@ func (h *Handler) VideoProxy(c echo.Context) (err error) {
 
 		for _, segment := range mediaPl.Segments {
 			if segment != nil {
-				if rewriter.rewrite(&segment.URI) {
+				if rewriter.rewriteSegment(&segment.URI) {
 					needsRewrite = true
 				}
 
@@ -312,7 +313,7 @@ func (h *Handler) VideoProxy(c echo.Context) (err error) {
 
 		for _, segment := range mediaPl.PartialSegments {
 			if segment != nil {
-				if rewriter.rewrite(&segment.URI) {
+				if rewriter.rewriteSegment(&segment.URI) {
 					needsRewrite = true
 				}
 			}
@@ -399,14 +400,19 @@ func (p *videoProxy) newRewriter(baseURL *url2.URL, headerMap map[string]string,
 }
 
 func (r videoProxyRewriter) rewrite(uri *string) bool {
-	return r.rewriteURL(uri, false)
+	return r.rewriteURL(uri, false, false)
 }
 
 func (r videoProxyRewriter) rewriteKey(uri *string) bool {
-	return r.rewriteURL(uri, true)
+	return r.rewriteURL(uri, true, false)
 }
 
-func (r videoProxyRewriter) rewriteURL(uri *string, isHLSKey bool) bool {
+// rewriteSegment rewrites a media segment; see needsSegmentHint.
+func (r videoProxyRewriter) rewriteSegment(uri *string) bool {
+	return r.rewriteURL(uri, false, true)
+}
+
+func (r videoProxyRewriter) rewriteURL(uri *string, isHLSKey bool, isSegment bool) bool {
 	if uri == nil || strings.TrimSpace(*uri) == "" || r.isProxyURL(*uri) {
 		return false
 	}
@@ -417,7 +423,34 @@ func (r videoProxyRewriter) rewriteURL(uri *string, isHLSKey bool) bool {
 	}
 
 	*uri = r.proxyURL(targetURL, isHLSKey)
+	if isSegment && needsSegmentHint(targetURL) {
+		*uri += videoProxySegmentHint
+	}
 	return true
+}
+
+// hlsSegmentExtensions are the segment file types ffmpeg's HLS demuxer accepts (hls.c allowed_segment_extensions).
+var hlsSegmentExtensions = map[string]struct{}{
+	"3gp": {}, "aac": {}, "avi": {}, "ac3": {}, "eac3": {}, "flac": {}, "mkv": {}, "m3u8": {}, "m4a": {}, "m4s": {},
+	"m4v": {}, "mpg": {}, "mov": {}, "mp2": {}, "mp3": {}, "mp4": {}, "mpeg": {}, "mpegts": {}, "ogg": {}, "ogv": {},
+	"oga": {}, "ts": {}, "vob": {}, "vtt": {}, "wav": {}, "webvtt": {}, "cmfv": {}, "cmfa": {},
+}
+
+// videoProxySegmentHint ends a segment's proxy URL in ".ts". ffmpeg (mpv in the Android app, desktop players) checks the
+// end of a segment URL: some hosts serve MPEG-TS segments as ".jpg"/".png"/".html" or without an extension, and ffmpeg
+// then refuses them ("not in allowed_segment_extensions") or probes them as an image, the stream stops after the first
+// seconds. Browsers (hls.js) ignore the extra parameter, the handler never reads it.
+const videoProxySegmentHint = "&seg=.ts"
+
+// needsSegmentHint reports whether a segment URL's own extension is one ffmpeg would refuse.
+func needsSegmentHint(targetURL string) bool {
+	parsedURL, err := url2.Parse(targetURL)
+	if err != nil {
+		return false
+	}
+	ext := strings.TrimPrefix(strings.ToLower(path.Ext(parsedURL.Path)), ".")
+	_, ok := hlsSegmentExtensions[ext]
+	return !ok
 }
 
 func (r videoProxyRewriter) resolve(rawURI string) (string, bool) {

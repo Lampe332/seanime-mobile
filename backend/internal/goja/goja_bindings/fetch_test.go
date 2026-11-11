@@ -89,6 +89,46 @@ func TestFetchRedirectOptions(t *testing.T) {
 	}
 }
 
+func TestNeedsAppIdentity(t *testing.T) {
+	require.True(t, needsAppIdentity("https://api.mangadex.org/manga?title=x"))
+	require.True(t, needsAppIdentity("https://API.MangaDex.org/at-home/server/1"))
+	require.False(t, needsAppIdentity("https://mangadex.org/covers/1.jpg"))
+	require.False(t, needsAppIdentity("https://cmdxd98sb0x3yprd.mangadex.network/data/a/b.png"))
+	require.False(t, needsAppIdentity("https://example.com/api.mangadex.org"))
+	require.False(t, needsAppIdentity("::not a url"))
+	require.NotContains(t, appUserAgent, "Mozilla")
+}
+
+// A host on the list gets the app's User-Agent even when the extension sets a browser one (the MangaDex extension does for /at-home)
+func TestFetchAppIdentityUserAgent(t *testing.T) {
+	agents := make(chan string, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		agents <- r.UserAgent()
+		_, _ = w.Write([]byte("{}"))
+	}))
+	defer server.Close()
+
+	previous := appIdentityHosts
+	appIdentityHosts = []string{"127.0.0.1"}
+	defer func() { appIdentityHosts = previous }()
+
+	vm := goja.New()
+	fetch := BindFetch("", vm, []string{"*"})
+	defer fetch.Close()
+
+	val, err := vm.RunString(fmt.Sprintf(`fetch(%q, { headers: { "User-Agent": "Mozilla/5.0 Chrome/58.0" } })`, server.URL+"/at-home/server/1"))
+	require.NoError(t, err)
+	waitForPromiseState(t, requirePromise(t, val), goja.PromiseStateFulfilled)
+	require.Equal(t, appUserAgent, <-agents)
+
+	// other hosts keep the extension's own header
+	appIdentityHosts = []string{"api.mangadex.org"}
+	val, err = vm.RunString(fmt.Sprintf(`fetch(%q, { headers: { "User-Agent": "Mozilla/5.0 Chrome/58.0" } })`, server.URL+"/other"))
+	require.NoError(t, err)
+	waitForPromiseState(t, requirePromise(t, val), goja.PromiseStateFulfilled)
+	require.Equal(t, "Mozilla/5.0 Chrome/58.0", <-agents)
+}
+
 func TestIsURLAllowed(t *testing.T) {
 	vm := goja.New()
 

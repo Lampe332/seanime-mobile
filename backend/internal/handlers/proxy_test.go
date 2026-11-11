@@ -191,6 +191,60 @@ func TestProxyRewritesHLS(t *testing.T) {
 	assert.Contains(t, body, url.QueryEscape("https://video.example/hls/segment.ts"))
 	assert.Contains(t, body, url.QueryEscape("https://cdn.example.com/absolute.ts"))
 	assert.Equal(t, "application/vnd.apple.mpegurl", rec.Header().Get(echo.HeaderContentType))
+	// segments with an extension ffmpeg accepts get no hint
+	assert.NotContains(t, body, videoProxySegmentHint)
+}
+
+// KickAssAnime (06.11.2026) serves MPEG-TS segments as ".jpg": mpv refused them ("not in allowed_segment_extensions")
+// and the stream stopped after three seconds.
+func TestProxyHintsDisguisedHLSSegments(t *testing.T) {
+	security.SetSecureMode("")
+	t.Cleanup(func() { security.SetSecureMode("") })
+
+	playlist := strings.Join([]string{
+		"#EXTM3U",
+		"#EXT-X-VERSION:6",
+		"#EXT-X-TARGETDURATION:6",
+		"#EXT-X-MAP:URI=\"init.jpg\"",
+		"#EXTINF:6,",
+		"https://st1.example.xyz/a/000.jpg",
+		"#EXTINF:6,",
+		"seg/001",
+		"#EXTINF:6,",
+		"002.ts?sig=x.jpg",
+		"#EXT-X-ENDLIST",
+		"",
+	}, "\n")
+
+	initTestClients(t, &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		return newResp(r, http.StatusOK, http.Header{
+			echo.HeaderContentType: []string{"application/vnd.apple.mpegurl"},
+		}, playlist), nil
+	})}, nil)
+
+	rec := runProxy(t, http.MethodGet, "https://video.example/hls/playlist.m3u8", map[string]string{"Referer": "https://source.example/"}, nil)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var segments []string
+	for _, line := range strings.Split(rec.Body.String(), "\n") {
+		if strings.HasPrefix(line, "/api/v1/proxy?") {
+			segments = append(segments, line)
+		}
+	}
+	require.Len(t, segments, 3)
+	// the segment URL then ends in ".ts" and still carries the real target
+	assert.True(t, strings.HasSuffix(segments[0], "&seg=.ts"))
+	assert.Contains(t, segments[0], url.QueryEscape("https://st1.example.xyz/a/000.jpg"))
+	assert.True(t, strings.HasSuffix(segments[1], "&seg=.ts"))
+	// the extension of the path counts, not the query
+	assert.False(t, strings.HasSuffix(segments[2], "&seg=.ts"))
+	// the init section is not a segment
+	assert.NotContains(t, rec.Body.String(), url.QueryEscape("https://video.example/hls/init.jpg")+"&seg=.ts")
+
+	// the handler reads the target as before
+	parsed, err := url.Parse("http://127.0.0.1" + segments[0])
+	require.NoError(t, err)
+	assert.Equal(t, "https://st1.example.xyz/a/000.jpg", parsed.Query().Get("url"))
 }
 
 func TestProxyKeyDecodesBase64(t *testing.T) {

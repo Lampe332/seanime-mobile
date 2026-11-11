@@ -31,6 +31,54 @@ func (h *Handler) HandleVideoCoreInSightGetCharacterDetails(c echo.Context) erro
 	return h.RespondWithData(c, ret)
 }
 
+// HandleVideoCoreTranslateSubtitleLines
+//
+//	@summary translates subtitle lines with the subtitle translation settings.
+//	@desc The lines come back in the same order with the target language. Errors are short codes the player shows as text.
+//	@returns videocore.TranslatedLines
+//	@route /api/v1/videocore/translate-lines [POST]
+func (h *Handler) HandleVideoCoreTranslateSubtitleLines(c echo.Context) error {
+	type body struct {
+		Lines []string `json:"lines"`
+	}
+
+	var b body
+	if err := c.Bind(&b); err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	ret, err := h.App.VideoCore.TranslateSubtitleLines(c.Request().Context(), b.Lines)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	return h.RespondWithData(c, ret)
+}
+
+// HandleVideoCoreGetSubtitleTrack
+//
+//	@summary returns one embedded subtitle track of the current stream as a file.
+//	@desc ASS/SSA tracks come back as ASS with their styles, plain text tracks as SRT. Errors are short codes.
+//	@returns string
+//	@route /api/v1/videocore/subtitle-track [POST]
+func (h *Handler) HandleVideoCoreGetSubtitleTrack(c echo.Context) error {
+	type body struct {
+		TrackNumber int64 `json:"trackNumber"`
+	}
+
+	var b body
+	if err := c.Bind(&b); err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	ret, err := h.App.DirectStreamManager.SubtitleTrackFile(c.Request().Context(), b.TrackNumber)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	return h.RespondWithData(c, ret)
+}
+
 // HandleVideoCoreSaveScreenshot
 //
 //	@summary saves a screenshot to a local directory.

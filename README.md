@@ -4,13 +4,13 @@
 
 <p align="center">
   <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><img src="https://img.shields.io/github/v/release/Lampe332/seanime-mobile?style=for-the-badge&color=8b75ff&label=Version" alt="Latest version"></a>
-  <img src="https://img.shields.io/badge/Android-5.0%2B-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Android 5.0+">
+  <img src="https://img.shields.io/badge/Android-7.0%2B-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Android 7.0+">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-555?style=for-the-badge" alt="GPL-3.0"></a>
 </p>
 
 <p align="center"><a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><b>Download the latest APK</b></a> &nbsp;·&nbsp; <a href="#install">Install</a> &nbsp;·&nbsp; <a href="#first-start">First start</a> &nbsp;·&nbsp; <a href="#faq">FAQ</a> &nbsp;·&nbsp; <a href="CHANGELOG.md">Changelog</a></p>
 
-[Seanime](https://github.com/5rahim/seanime) is a server you run on a computer and open in a browser. Seanime Mobile puts that server inside an Android app and rebuilds the screens for touch, so a phone or tablet is all you need. You stream anime through extensions or torrents, save episodes for later, read manga and keep your AniList lists in sync. If Seanime already runs on your PC or home server, the app can play that library too.
+[Seanime](https://github.com/5rahim/seanime) is a server you run on a computer and open in a browser. Seanime Mobile puts that server inside an Android app with its own touch screens, so a phone or tablet is all you need. Since version 3.0 the app is native (React Native): every screen, list and animation is drawn by Android instead of a web view. You stream anime through extensions or torrents, save episodes for later, read manga and keep your AniList lists in sync. If Seanime already runs on your PC or home server, the app can play that library too.
 
 The app continues Pal-droid's [Seanime Android](https://github.com/Pal-droid/Seanime-Android) port, which is archived and stopped at Seanime 3.5.2. Seanime Mobile runs Seanime 3.10.4.
 
@@ -39,7 +39,8 @@ New versions come out often. You find the newest on the [releases page](https://
 ## Good to know before you install
 
 - **No sources included.** The app ships without streaming, torrent or manga sources. You add them from a community extension repository ([First start](#first-start), step 4). This project does not link to any.
-- **Android on ARM.** The APK runs on 64-bit and 32-bit ARM phones and tablets with Android 5.0 or newer. There is no iOS version.
+- **Android on ARM.** The APK runs on 64-bit and 32-bit ARM phones and tablets with Android 7.0 or newer. There is no iOS version.
+- **New in 3.0.** Casting to a TV, debrid, Nakama and external players were carried over to the native app but have not been tested on a real TV, account or second server yet.
 - **Not the official app.** Seanime Mobile is an independent, open-source fork of Seanime under the GPL-3.0.
 - **Torrents are up to you.** They only work with torrent providers you install yourself, and they use your connection, mobile data included; the app asks before a torrent starts on mobile data. The auto-downloader is not available on Android.
 
@@ -49,9 +50,9 @@ New versions come out often. You find the newest on the [releases page](https://
 
 <p align="center"><img src="docs/images/readme/gallery-watch.ef1d5214.png" alt="Four phone screens: Home with Continue watching, an anime page with progress and the Library, Debrid and Online tabs, the episode list with the player on the page, and the More sheet with links, specials and tab switches" width="100%"></p>
 
-Open an anime, pick a source, a server and Sub or Dub, and the episode plays on the page. The built-in player has picture-in-picture that starts when you leave a playing video, lock screen and notification controls, a sleep timer, Fit, Zoom and Stretch, swipes for brightness and volume, and 2× speed while you hold. It skips openings and endings, remembers your audio and subtitle language for each anime and translates subtitles (Google works without a key). Some episodes carry AC3, DTS or TrueHD audio that the web player cannot decode; **Play in the app player** moves them to the app's own player, which can. Prefer another player? One tap hands the episode to VLC, MX Player, mpv or Just Player.
+Open an anime, pick a source, a server and Sub or Dub, and the episode plays in the built-in player. It has picture-in-picture that starts when you leave a playing video, lock screen and notification controls, a sleep timer, Fit, Zoom and Stretch, swipes for brightness and volume, and 2× speed while you hold. It skips openings and endings, remembers your audio and subtitle language for each anime, and can translate subtitles into another language (Google works without a key). One player handles every episode, including AC3, DTS and TrueHD audio, ASS subtitles and all tracks of MKV files. Prefer another player? One tap hands the episode to VLC, MX Player, mpv or Just Player.
 
-**Cast to a TV** sends the episode to a TV on your Wi-Fi over DLNA (tested with LG webOS) and turns the player into a remote. Your audio and subtitle tracks go along, **Next episode** plays on the TV, and **Continue on this device** picks up where the TV stopped. Google Cast for Google TV and Chromecast is included too, without subtitles and not yet tested on a real device.
+**Cast to a TV** sends the episode to a TV on your Wi-Fi over DLNA and turns the player into a remote. Your audio and subtitle tracks go along, **Next episode** plays on the TV, and **Continue on this device** picks up where the TV stopped. Google Cast for Google TV and Chromecast is included too, without subtitles and not yet tested on a real device.
 
 The same page downloads single episodes or a whole season. Downloads can wait for Wi-Fi, notify you when they finish or fail, and play without a connection from the **Downloads** tab. **Continue watching** on Home resumes where you stopped, and the app can notify you when a new episode of a show you are watching comes out.
 
@@ -96,8 +97,7 @@ Every option was checked on a phone and a tablet. The ones that did nothing on A
 
 <p align="center"><img src="docs/images/readme/tablet.c4c327a3.png" alt="Six tablet screens in landscape: Home with the navigation rail, an anime page with the cover on the left and the player and episodes on the right, the More sheet sliding in from the right, a manga page with chapters beside the cover, Settings in two panes, and Search with a wide cover grid. Streaming and manga source names are blurred" width="100%"></p>
 
-One APK covers both. The app picks its layout from the screen width: a phone gets the bottom bar, a tablet gets a navigation rail on the left, settings in two panes, sheets that slide in from the side, and anime and manga pages with the cover on the left and the episodes or chapters on the right. Split-screen windows get the layout they have room for. Open or close a foldable and the layout follows; a playing video keeps going until you pause it.
-
+One APK covers both. The app picks its layout from the screen width: a phone gets the bottom bar, a tablet gets a navigation rail on the left, settings in two panes, sheets that slide in from the side, and anime and manga pages with the cover on the left and the episodes or chapters on the right.
 ## Install
 
 1. On your device, open the **[latest release](https://github.com/Lampe332/seanime-mobile/releases/latest)** and download `Seanime-Mobile-x.y.z.apk` under *Assets*.
@@ -110,6 +110,17 @@ One APK covers both. The app picks its layout from the screen width: a phone get
 ### Updates
 
 The app checks this repository for new releases when it starts. When one is out, tap **Download and update**; the app verifies the download and Android asks you to confirm. Your data and downloads stay. Turn the check off under *Settings → About → Look for new versions*, or run it yourself with *Check for updates now*.
+
+### Updating from 2.0.x to 3.0
+
+3.0 is the same app (`com.seanime.app.local`, same signature), so it installs over 2.0.33 as a normal update: through the update window in 2.0.33, or by downloading `Seanime-Mobile-3.0.0.apk` and installing it. Your library, lists, server settings, extensions, language and downloaded episodes stay. Before you update:
+
+- 3.0 needs Android 7.0 or newer. On Android 5 or 6, stay on 2.0.33.
+- Preferences that 2.0.x kept inside its web view start from their defaults, for example the navigation bar order, the subtitle style and the manga reader options.
+- Android no longer backs up the app's data. When you move to a new phone, set the app up again there.
+- If the "Upcoming anime" widget disappears from the home screen, add it again.
+
+The full list is in the [changelog](CHANGELOG.md).
 
 ## First start
 
@@ -135,7 +146,7 @@ That is expected on a fresh install. Connect AniList to see your lists and the c
 <details>
 <summary><b>An episode won't play</b></summary>
 
-It is almost always the source. Pick another server or source on the anime page; servers marked "not directly playable" usually fail. Keeping your extensions up to date (*Menu → Extensions*) helps too. If the picture plays without sound, the episode probably has AC3, DTS or TrueHD audio: tap **Play in the app player** in the notice that appears.
+It is almost always the source. Pick another server or source on the anime page; servers marked "not directly playable" usually fail. Keeping your extensions up to date (*Menu → Extensions*) helps too.
 </details>
 
 <details>
@@ -163,7 +174,7 @@ Both devices need to be on the same network, unless you make the server reachabl
 <details>
 <summary><b>Which TVs can I cast to?</b></summary>
 
-Casting uses DLNA, which many smart TVs support. It was tested with an LG webOS TV. Google Cast (Google TV, Chromecast) is built in as well, but without subtitles and so far untested on a real device. Phone and TV need to be on the same Wi-Fi.
+Casting uses DLNA, which many smart TVs support. Version 2.0.x was tested with an LG webOS TV; 3.0 has not been tested on a TV yet. Google Cast (Google TV, Chromecast) is built in as well, but without subtitles and so far untested on a real device. Phone and TV need to be on the same Wi-Fi.
 </details>
 
 <details>
@@ -182,19 +193,20 @@ Found a bug or have an idea? [Open an issue](https://github.com/Lampe332/seanime
 
 ## Build it yourself
 
-The repository holds the complete source: the Android app (Kotlin), the Seanime server (Go) and the interface (React). Step-by-step instructions are in **[docs/BUILD.md](docs/BUILD.md)**.
+The repository holds the complete source: the native Android app (React Native and Expo, TypeScript) and the Seanime server (Go). The 3.x app is built with `native/scripts/build-android.ps1`; its header lists the steps and options. **[docs/BUILD.md](docs/BUILD.md)** still describes the 2.0.x web-view app, whose sources stay in the repository for now.
 
 ```
-app/            Android app: Kotlin, WebView, player, casting, downloads, updater
-backend/        Seanime server (Go) and the web interface (backend/seanime-web, React)
-docs/           Build guide, README images, the original Android port's README
-tests/          UI tests (Python and Playwright)
-Build.ps1       Signed release build including the backend
+native/         Android app 3.x: React Native + Expo (TypeScript), build script in native/scripts
+backend/        Seanime server (Go); backend/seanime-web is the web interface of 2.0.x
+app/            Android app 2.0.x: Kotlin and WebView
+docs/           Build guide (2.0.x), README images, the original Android port's README
+tests/          UI tests of 2.0.x (Python and Playwright)
+Build.ps1       Signed release build of 2.0.x including the backend
 ```
 
 ## Credits and license
 
-- [**Seanime**](https://github.com/5rahim/seanime) by 5rahim: server and web interface
+- [**Seanime**](https://github.com/5rahim/seanime) by 5rahim: server and web interface, which the native screens are ported from
 - [**Seanime Android**](https://github.com/Pal-droid/Seanime-Android) by Pal-droid: the original Android port ([original README](docs/upstream/README.md))
 
 Seanime Mobile is licensed under the **GPL-3.0**, like the projects it builds on ([LICENSE](LICENSE)). The app hosts no content; it only shows what your installed extensions provide.

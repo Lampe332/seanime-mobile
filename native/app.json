@@ -1,0 +1,180 @@
+{
+  "expo": {
+    "slug": "seanime-native",
+    "version": "3.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.seanime.app.nativeapp",
+      "allowBackup": false,
+      "adaptiveIcon": {
+        "backgroundColor": "#0c0c0c",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.REQUEST_INSTALL_PACKAGES",
+        "android.permission.MANAGE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WRITE_SETTINGS",
+        "android.permission.ACTIVITY_RECOGNITION"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "anilist.co",
+              "pathPrefix": "/anime/"
+            },
+            {
+              "scheme": "https",
+              "host": "myanimelist.net",
+              "pathPrefix": "/anime/"
+            }
+          ]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-status-bar",
+        {
+          "hidden": true,
+          "style": "light"
+        }
+      ],
+      [
+        "expo-navigation-bar",
+        {
+          "hidden": true
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0c0c0c",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "useLegacyPackaging": true,
+            "usesCleartextTraffic": true,
+            "extraProguardRules": "-keep class expo.modules.mpv.** { *; }",
+            "buildArchs": [
+              "arm64-v8a",
+              "armeabi-v7a"
+            ]
+          }
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "Inter",
+                "fontDefinitions": [
+                  {
+                    "path": "./node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf",
+                    "weight": 400
+                  },
+                  {
+                    "path": "./node_modules/@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf",
+                    "weight": 500
+                  },
+                  {
+                    "path": "./node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf",
+                    "weight": 600
+                  },
+                  {
+                    "path": "./node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf",
+                    "weight": 700
+                  },
+                  {
+                    "path": "./node_modules/@expo-google-fonts/inter/800ExtraBold/Inter_800ExtraBold.ttf",
+                    "weight": 800
+                  }
+                ]
+              }
+            ]
+          },
+          "ios": {
+            "fonts": [
+              "./node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf",
+              "./node_modules/@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf",
+              "./node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf",
+              "./node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf",
+              "./node_modules/@expo-google-fonts/inter/800ExtraBold/Inter_800ExtraBold.ttf"
+            ]
+          }
+        }
+      ],
+      "expo-web-browser",
+      "@react-native-community/datetimepicker",
+      "expo-background-task",
+      "expo-audio",
+      "expo-sharing",
+      "expo-quick-actions",
+      [
+        "expo-share-intent",
+        {
+          "androidIntentFilters": [
+            "text/*"
+          ],
+          "disableIOS": true
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "UpcomingAnime",
+              "label": "Upcoming anime",
+              "description": "Next episodes of your list with a countdown",
+              "minWidth": "250dp",
+              "minHeight": "140dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 3600000
+            }
+          ]
+        }
+      ],
+      [
+        "react-native-google-cast",
+        {
+          "receiverAppId": "CC1AD845",
+          "expandedController": false,
+          "androidPlayServicesCastFrameworkVersion": "22.1.0"
+        }
+      ],
+      "./plugins/with-notification-icon",
+      "./plugins/with-single-react-root",
+      "expo-notifications",
+      "expo-mpv"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

@@ -1,0 +1,113 @@
+import { localStore } from "@/lib/storage"
+import { atomWithStorage } from "jotai/utils"
+
+export interface MediaCorePreferences {
+    version: number
+    autoPlay: boolean
+    autoNext: boolean
+    volume: number
+    // Extra gain applied on top of the element volume (1 = off, 3 = 300%)
+    volumeBoost: number
+    muted: boolean
+    playbackRate: number
+    autoSkip: boolean
+    skipPatterns: string
+    timestampMode: "elapsed" | "remaining"
+}
+
+const mediaCoreDefaultPreferences: MediaCorePreferences = {
+    version: 2,
+    autoPlay: true,
+    autoNext: true,
+    volume: 1.0,
+    volumeBoost: 1.0,
+    muted: false,
+    playbackRate: 1.0,
+    autoSkip: false,
+    skipPatterns: "",
+    timestampMode: "elapsed",
+}
+
+const PREFERENCES_KEY = "sea-media-core-preferences"
+
+function parsePreferences(value: unknown): MediaCorePreferences | null {
+    if (!value || typeof value !== "object") return null
+    const parsed = value as Partial<MediaCorePreferences>
+    if (parsed.version !== 1 && parsed.version !== 2) return null
+
+    return {
+        ...mediaCoreDefaultPreferences,
+        ...parsed,
+        version: 2,
+        skipPatterns: typeof parsed.skipPatterns === "string" ? parsed.skipPatterns : "",
+        volumeBoost: typeof parsed.volumeBoost === "number" ? parsed.volumeBoost : mediaCoreDefaultPreferences.volumeBoost,
+    }
+}
+
+const customStorage = {
+    getItem(key: string, initialValue: MediaCorePreferences): MediaCorePreferences {
+        try {
+            const raw = localStore.getItem(key)
+            if (raw) {
+                const parsed = JSON.parse(raw) as any
+                const preferences = parsePreferences(parsed)
+                if (preferences) {
+                    if (parsed.version !== 2 || typeof parsed.skipPatterns !== "string") {
+                        localStore.setItem(key, JSON.stringify(preferences))
+                    }
+                    return preferences
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse sea-media-core-preferences", e)
+        }
+
+        // Migration precedence: existing unified value -> VideoCore legacy value -> MpvCore legacy value -> default.
+        const getLegacyValue = <T>(vcKey: string, mcKey: string, fallback: T): T => {
+            try {
+                const vcRaw = localStore.getItem(vcKey)
+                if (vcRaw !== null) return JSON.parse(vcRaw) as T
+                const mcRaw = localStore.getItem(mcKey)
+                if (mcRaw !== null) return JSON.parse(mcRaw) as T
+            } catch (e) {
+                console.error(`Failed to migrate legacy keys ${vcKey} / ${mcKey}`, e)
+            }
+            return fallback
+        }
+
+        const migrated: MediaCorePreferences = {
+            version: 2,
+            autoPlay: getLegacyValue("sea-video-core-auto-play", "sea-mpv-core-auto-play", mediaCoreDefaultPreferences.autoPlay),
+            autoNext: getLegacyValue("sea-video-core-auto-next", "sea-mpv-core-auto-next", mediaCoreDefaultPreferences.autoNext),
+            volume: getLegacyValue("sea-video-core-volume", "sea-mpv-core-volume", mediaCoreDefaultPreferences.volume),
+            volumeBoost: mediaCoreDefaultPreferences.volumeBoost,
+            muted: getLegacyValue("sea-video-core-muted", "sea-mpv-core-muted", mediaCoreDefaultPreferences.muted),
+            playbackRate: getLegacyValue("sea-video-core-playback-rate", "sea-mpv-core-playback-rate", mediaCoreDefaultPreferences.playbackRate),
+            autoSkip: getLegacyValue("sea-video-core-auto-skip-op-ed", "sea-mpv-core-auto-skip", mediaCoreDefaultPreferences.autoSkip),
+            skipPatterns: mediaCoreDefaultPreferences.skipPatterns,
+            timestampMode: getLegacyValue<"elapsed" | "remaining">("sea-video-core-timestamp-type", "dummy-nonexistent-key", mediaCoreDefaultPreferences.timestampMode),
+        }
+
+        try {
+            localStore.setItem(key, JSON.stringify(migrated))
+        } catch (e) {
+            console.error("Failed to write migrated sea-media-core-preferences", e)
+        }
+
+        return migrated
+    },
+    setItem(key: string, value: MediaCorePreferences) {
+        localStore.setItem(key, JSON.stringify(value))
+    },
+    removeItem(key: string) {
+        localStore.removeItem(key)
+    },
+    // The web version also listened for "storage" events from other browser tabs; the app has one instance, so no subscribe
+}
+
+export const mediaCorePreferencesAtom = atomWithStorage<MediaCorePreferences>(
+    PREFERENCES_KEY,
+    mediaCoreDefaultPreferences,
+    customStorage,
+    { getOnInit: true }
+)

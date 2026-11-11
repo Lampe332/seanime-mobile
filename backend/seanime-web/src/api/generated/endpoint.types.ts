@@ -19,6 +19,8 @@ import type {
     HibikeTorrent_AnimeTorrent,
     HibikeTorrent_BatchEpisodeFiles,
     Manga_MangaSourceRefreshMode,
+    MobileOffline_BatchEpisode,
+    MobileOffline_SourceSubtitle,
     Models_AnilistSettings,
     Models_DebridSettings,
     Models_DiscordSettings,
@@ -489,6 +491,85 @@ export type SetDiscordMangaActivity_Variables = {
     title: string
     image: string
     chapter: string
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// dlna_cast
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * - Filepath: internal/handlers/dlna_cast.go
+ * - Filename: dlna_cast.go
+ * - Endpoint: /api/v1/dlna-cast/start
+ * @description
+ * Route casts a stream of this server to a renderer of the last search.
+ */
+export type DlnaCastStart_Variables = {
+    deviceId: string
+    url: string
+    title: string
+    positionMs: number
+    artworkUrl: string
+}
+
+/**
+ * - Filepath: internal/handlers/dlna_cast.go
+ * - Filename: dlna_cast.go
+ * - Endpoint: /api/v1/dlna-cast/switch-stream
+ * @description
+ * Route plays another stream of the same video on the TV from where it is (other audio/subtitle track).
+ */
+export type DlnaCastSwitchStream_Variables = {
+    url: string
+}
+
+/**
+ * - Filepath: internal/handlers/dlna_cast.go
+ * - Filename: dlna_cast.go
+ * - Endpoint: /api/v1/dlna-cast/load
+ * @description
+ * Route plays another video (the next episode) on the TV in use.
+ */
+export type DlnaCastLoad_Variables = {
+    url: string
+    title: string
+    positionMs: number
+    artworkUrl: string
+}
+
+/**
+ * - Filepath: internal/handlers/dlna_cast.go
+ * - Filename: dlna_cast.go
+ * - Endpoint: /api/v1/dlna-cast/control
+ * @description
+ * Route controls the TV: play, pause, seek (to value ms), skip (by value ms), volume (to value percent).
+ */
+export type DlnaCastControl_Variables = {
+    action: string
+    value: number
+}
+
+/**
+ * - Filepath: internal/handlers/dlna_cast.go
+ * - Filename: dlna_cast.go
+ * - Endpoint: /api/v1/dlna-cast/stop
+ * @description
+ * Route ends casting; emits "stopped" with the TV's position (resume: the phone continues there).
+ */
+export type DlnaCastStop_Variables = {
+    resume: boolean
+}
+
+/**
+ * - Filepath: internal/handlers/dlna_cast.go
+ * - Filename: dlna_cast.go
+ * - Endpoint: /api/v1/dlna-cast/forward
+ * @description
+ * Route makes a stream of this server reachable for a Google Cast receiver.
+ */
+export type DlnaCastForward_Variables = {
+    host: string
+    url: string
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1060,6 +1141,166 @@ export type DeleteMediaMetadataParent_Variables = {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// mobile_offline
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * - Filepath: internal/handlers/mobile_offline.go
+ * - Filename: mobile_offline.go
+ * - Endpoint: /api/v1/mobile-offline/batch
+ * @description
+ * Route queues episodes of an anime from an online-stream provider (one episode, a season or the missing ones).
+ */
+export type MobileOfflineBatch_Variables = {
+    mediaId: number
+    provider: string
+    dubbed: boolean
+    quality: string
+    server: string
+    title: string
+    coverUrl: string
+    bannerUrl: string
+    episodes: Array<MobileOffline_BatchEpisode>
+}
+
+/**
+ * - Filepath: internal/handlers/mobile_offline.go
+ * - Filename: mobile_offline.go
+ * - Endpoint: /api/v1/mobile-offline/download
+ * @description
+ * Route saves one episode from a source the app already has (the player's stream).
+ */
+export type MobileOfflineDownload_Variables = {
+    key: string
+    url: string
+    type: string
+    headers: Record<string, string>
+    subtitles: Array<MobileOffline_SourceSubtitle>
+    mediaId: number
+    episode: string
+    dubbed: boolean
+    quality: string
+    title: string
+    coverUrl: string
+    bannerUrl: string
+    episodeTitle: string
+    episodeImageUrl: string
+    episodeDescription: string
+}
+
+/**
+ * - Filepath: internal/handlers/mobile_offline.go
+ * - Filename: mobile_offline.go
+ * - Endpoint: /api/v1/mobile-offline/action
+ * @description
+ * Route pauses, resumes, retries or removes a saved or queued episode.
+ */
+export type MobileOfflineAction_Variables = {
+    id: string
+    action: string
+}
+
+/**
+ * - Filepath: internal/handlers/mobile_offline.go
+ * - Filename: mobile_offline.go
+ * - Endpoint: /api/v1/mobile-offline/network
+ * @description
+ * Route tells the server the phone's connection (from NetInfo); downloads wait while it is metered and "Wi-Fi only" is on.
+ */
+export type MobileOfflineNetwork_Variables = {
+    connected: boolean
+    metered: boolean
+}
+
+/**
+ * - Filepath: internal/handlers/mobile_offline.go
+ * - Filename: mobile_offline.go
+ * - Endpoint: /api/v1/mobile-offline/settings
+ * @description
+ * Route turns "Wi-Fi only" for episode downloads on or off.
+ */
+export type MobileOfflineSettings_Variables = {
+    wifiOnly: boolean
+}
+
+/**
+ * - Filepath: internal/handlers/mobile_offline.go
+ * - Filename: mobile_offline.go
+ * - Endpoint: /api/v1/mobile-offline/position
+ * @description
+ * Route stores where the offline player stopped in an episode.
+ */
+export type MobileOfflinePosition_Variables = {
+    id: string
+    positionMs: number
+}
+
+/**
+ * - Filepath: internal/handlers/mobile_offline.go
+ * - Filename: mobile_offline.go
+ * - Endpoint: /api/v1/mobile-offline/manga
+ * @description
+ * Route saves a manga's descriptions and cover for the offline list and returns them.
+ */
+export type MobileOfflineCacheManga_Variables = {
+    mediaId: number
+    title: string
+    description: string
+    genres: Array<string>
+    year: number
+    format: string
+    coverUrl: string
+    bannerUrl: string
+}
+
+/**
+ * - Filepath: internal/handlers/mobile_offline.go
+ * - Filename: mobile_offline.go
+ * - Endpoint: /api/v1/mobile-offline/file/{id}/{name}
+ * @description
+ * Route serves a file of a saved episode (video, separate audio, subtitles) with byte ranges.
+ */
+export type MobileOfflineFile_Variables = {
+    /**
+     *  Item id
+     */
+    id: string
+    /**
+     *  File name from the item's files
+     */
+    name: string
+}
+
+/**
+ * - Filepath: internal/handlers/mobile_offline.go
+ * - Filename: mobile_offline.go
+ * - Endpoint: /api/v1/mobile-offline/artwork/{name}
+ * @description
+ * Route serves saved artwork (the *Asset names of an item).
+ */
+export type MobileOfflineArtwork_Variables = {
+    /**
+     *  Artwork file name
+     */
+    name: string
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// mobile_storage
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * - Filepath: internal/handlers/mobile_storage.go
+ * - Filename: mobile_storage.go
+ * - Endpoint: /api/v1/mobile-storage/access
+ * @description
+ * Route tells whether the server can read a folder the native app picked.
+ */
+export type MobileStorageAccess_Variables = {
+    path: string
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // nakama
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1303,6 +1544,14 @@ export type GetPlaylistEpisodes_Variables = {
      */
     progress: number
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// proxy
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// proxy_test
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // report
@@ -1652,6 +1901,28 @@ export type VideoCoreInSightGetCharacterDetails_Variables = {
      *  The MAL character ID
      */
     malId: number
+}
+
+/**
+ * - Filepath: internal/handlers/videocore.go
+ * - Filename: videocore.go
+ * - Endpoint: /api/v1/videocore/translate-lines
+ * @description
+ * Route translates subtitle lines with the subtitle translation settings.
+ */
+export type VideoCoreTranslateSubtitleLines_Variables = {
+    lines: Array<string>
+}
+
+/**
+ * - Filepath: internal/handlers/videocore.go
+ * - Filename: videocore.go
+ * - Endpoint: /api/v1/videocore/subtitle-track
+ * @description
+ * Route returns one embedded subtitle track of the current stream as a file.
+ */
+export type VideoCoreGetSubtitleTrack_Variables = {
+    trackNumber: number
 }
 
 /**

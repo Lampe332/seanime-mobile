@@ -312,6 +312,35 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.POST("/onlinestream/remove-mapping", h.HandleRemoveOnlinestreamMapping)
 
 	//
+	// Native mobile app: DLNA cast + episode downloads (E4)
+	//
+
+	v1.POST("/dlna-cast/discover", h.HandleDlnaCastDiscover)
+	v1.POST("/dlna-cast/start", h.HandleDlnaCastStart)
+	v1.POST("/dlna-cast/switch-stream", h.HandleDlnaCastSwitchStream)
+	v1.POST("/dlna-cast/load", h.HandleDlnaCastLoad)
+	v1.POST("/dlna-cast/control", h.HandleDlnaCastControl)
+	v1.POST("/dlna-cast/status", h.HandleDlnaCastStatus)
+	v1.POST("/dlna-cast/stop", h.HandleDlnaCastStop)
+	v1.POST("/dlna-cast/forward", h.HandleDlnaCastForward)
+	v1.POST("/dlna-cast/forward-close", h.HandleDlnaCastForwardClose)
+	v1.GET("/dlna-cast/current", h.HandleDlnaCastCurrent)
+
+	v1.POST("/mobile-storage/access", h.HandleMobileStorageAccess)
+
+	v1.GET("/mobile-offline/snapshot", h.HandleGetMobileOfflineSnapshot)
+	v1.POST("/mobile-offline/batch", h.HandleMobileOfflineBatch)
+	v1.POST("/mobile-offline/download", h.HandleMobileOfflineDownload)
+	v1.POST("/mobile-offline/action", h.HandleMobileOfflineAction)
+	v1.POST("/mobile-offline/network", h.HandleMobileOfflineNetwork)
+	v1.POST("/mobile-offline/settings", h.HandleMobileOfflineSettings)
+	v1.POST("/mobile-offline/position", h.HandleMobileOfflinePosition)
+	v1.POST("/mobile-offline/manga", h.HandleMobileOfflineCacheManga)
+	v1.GET("/mobile-offline/file/:id/:name", h.HandleMobileOfflineFile)
+	v1.HEAD("/mobile-offline/file/:id/:name", h.HandleMobileOfflineFile)
+	v1.GET("/mobile-offline/artwork/:name", h.HandleMobileOfflineArtwork)
+
+	//
 	// Metadata Provider
 	//
 
@@ -399,6 +428,8 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	//
 	v1.GET("/videocore/insight/character/:malId", h.HandleVideoCoreInSightGetCharacterDetails)
 	v1.POST("/videocore/screenshot", h.HandleVideoCoreSaveScreenshot)
+	v1.POST("/videocore/translate-lines", h.HandleVideoCoreTranslateSubtitleLines)
+	v1.POST("/videocore/subtitle-track", h.HandleVideoCoreGetSubtitleTrack)
 
 	//
 	// Torrent stream

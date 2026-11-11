@@ -1,0 +1,54 @@
+# Builds the Go server as SeanimeCore.xcframework for the iOS app (E7, docs/NATIVE-UMBAU.md).
+# Manual only; needs no secrets. The framework is uploaded as an artifact, never committed.
+name: iOS core (gomobile)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  xcframework:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # gomobile/gobind in the version pinned by backend/go.mod (golang.org/x/mobile).
+      - name: Install gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile golang.org/x/mobile/cmd/gobind
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: gomobile init
+        run: gomobile init
+
+      - name: Vet the mobile package
+        run: GOOS=darwin GOARCH=arm64 go vet ./mobile/...
+
+      # Slices ios-arm64 + ios-arm64_x86_64-simulator, as the iOS podspec of 5rahim/seanime-server-mobile expects.
+      - name: gomobile bind
+        run: |
+          mkdir -p ../build/ios
+          gomobile bind -v -target=ios,iossimulator -iosversion=15.1 -ldflags="-s -w" -o ../build/ios/SeanimeCore.xcframework ./mobile
+
+      - name: Show framework
+        run: |
+          ls -R ../build/ios/SeanimeCore.xcframework | head -50
+          grep -h "FOUNDATION_EXPORT" ../build/ios/SeanimeCore.xcframework/ios-arm64/SeanimeCore.framework/Headers/*.h || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SeanimeCore.xcframework
+          path: build/ios/SeanimeCore.xcframework
+          if-no-files-found: error
+          retention-days: 14

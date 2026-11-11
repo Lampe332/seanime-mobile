@@ -1,0 +1,100 @@
+diff --git a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvModule.kt b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvModule.kt
+index 3dc1ab9..c5254f0 100644
+--- a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvModule.kt
++++ b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvModule.kt
+@@ -27,7 +27,8 @@ class ExpoMpvModule : Module() {
+                 "onBuffer",
+                 "onSeek",
+                 "onVolumeChange",
+-                "onPictureInPictureChange"
++                "onPictureInPictureChange",
++                "onRemoteCommand"
+             )
+ 
+             // Props (same as iOS)
+diff --git a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPlaybackService.kt b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPlaybackService.kt
+index e79213b..28a9403 100644
+--- a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPlaybackService.kt
++++ b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPlaybackService.kt
+@@ -122,6 +122,8 @@ class ExpoMpvPlaybackService : Service() {
+                 override fun onPause() { owner?.pause() }
+                 override fun onSeekTo(pos: Long) { owner?.seekTo(pos / 1000.0) }
+                 override fun onStop() { owner?.stop() }
++                override fun onSkipToNext() { owner?.remoteCommand("next") }
++                override fun onSkipToPrevious() { owner?.remoteCommand("previous") }
+             }, Handler(Looper.getMainLooper()))
+             isActive = true
+         }
+@@ -168,7 +170,10 @@ class ExpoMpvPlaybackService : Service() {
+             .build())
+         session.setPlaybackState(PlaybackState.Builder()
+             .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or
+-                PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_SEEK_TO or PlaybackState.ACTION_STOP)
++                PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_SEEK_TO or PlaybackState.ACTION_STOP or
++                // offered only while the host says there is a next/previous item (metadata "hasNext"/"hasPrevious")
++                (if (metadata["hasNext"] == "true") PlaybackState.ACTION_SKIP_TO_NEXT else 0L) or
++                (if (metadata["hasPrevious"] == "true") PlaybackState.ACTION_SKIP_TO_PREVIOUS else 0L))
+             .setState(if (playing) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
+                 position, if (playing) player.sessionSpeed else 0f)
+             .build())
+diff --git a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvView.kt b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvView.kt
+index c69d5fc..16c2b8a 100644
+--- a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvView.kt
++++ b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvView.kt
+@@ -20,6 +20,7 @@ class ExpoMpvView(context: Context, appContext: AppContext) : ExpoView(context,
+     private val onSeek by EventDispatcher()
+     private val onVolumeChange by EventDispatcher()
+     private val onPictureInPictureChange by EventDispatcher()
++    private val onRemoteCommand by EventDispatcher()
+ 
+     // SurfaceView is a native child; React Native only lays out this outer host.
+     override val shouldUseAndroidLayout = true
+@@ -105,6 +106,10 @@ class ExpoMpvView(context: Context, appContext: AppContext) : ExpoView(context,
+                     )
+                 )
+             }
++
++            override fun onRemoteCommand(command: String) {
++                onRemoteCommand(mapOf("command" to command))
++            }
+         },
+     )
+ 
+diff --git a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt
+index fdc5613..a1eeac4 100644
+--- a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt
++++ b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt
+@@ -22,8 +22,12 @@ internal class MpvPlayer(
+         fun onBuffer(isBuffering: Boolean)
+         fun onSeek()
+         fun onVolumeChange(volume: Double, muted: Boolean)
++        fun onRemoteCommand(command: String) {}
+     }
+ 
++    /** Next/previous from the media session; the host decides what they mean. Called on the main thread. */
++    internal fun remoteCommand(command: String) = listener.onRemoteCommand(command)
++
+     private val mainHandler = Handler(Looper.getMainLooper())
+     private val playerThread = HandlerThread("ExpoMpvPlayer").apply { start() }
+     private val playerHandler = Handler(playerThread.looper)
+diff --git a/node_modules/expo-mpv/build/ExpoMpv.types.d.ts b/node_modules/expo-mpv/build/ExpoMpv.types.d.ts
+index 8826be4..718ecac 100644
+--- a/node_modules/expo-mpv/build/ExpoMpv.types.d.ts
++++ b/node_modules/expo-mpv/build/ExpoMpv.types.d.ts
+@@ -202,7 +202,16 @@ export type ExpoMpvViewProps = {
+         albumTitle?: string;
+         /** Artwork URL or file URI. Loaded asynchronously and resized natively. */
+         artwork?: string;
++        /** Android: "true" offers next/previous in the media session; answered by onRemoteCommand. */
++        hasNext?: string;
++        hasPrevious?: string;
+     };
++    /** Android: next/previous pressed on the lock screen, notification or headset. */
++    onRemoteCommand?: (event: {
++        nativeEvent: {
++            command: "next" | "previous";
++        };
++    }) => void;
+     /**
+      * Whether playback is paused.
+      */

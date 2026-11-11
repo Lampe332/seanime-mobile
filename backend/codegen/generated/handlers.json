@@ -2215,6 +2215,438 @@
     }
   },
   {
+    "name": "HandleDlnaCastDiscover",
+    "trimmedName": "DlnaCastDiscover",
+    "comments": [
+      "HandleDlnaCastDiscover",
+      "",
+      "\t@summary searches the network for DLNA renderers (TVs).",
+      "\t@desc Emits \"searching\", then \"devices\" with the found renderers.",
+      "\t@route /api/v1/dlna-cast/discover [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/dlna_cast.go",
+    "filename": "dlna_cast.go",
+    "api": {
+      "summary": "searches the network for DLNA renderers (TVs).",
+      "descriptions": [
+        "Emits \"searching\", then \"devices\" with the found renderers."
+      ],
+      "endpoint": "/api/v1/dlna-cast/discover",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleDlnaCastStart",
+    "trimmedName": "DlnaCastStart",
+    "comments": [
+      "HandleDlnaCastStart",
+      "",
+      "\t@summary casts a stream of this server to a renderer of the last search.",
+      "\t@desc The stream URL must point to this server (127.0.0.1); the TV gets it through a random path on the phone's Wi-Fi address.",
+      "\t@desc Emits \"connecting\", then \"started\" or \"error\".",
+      "\t@route /api/v1/dlna-cast/start [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/dlna_cast.go",
+    "filename": "dlna_cast.go",
+    "api": {
+      "summary": "casts a stream of this server to a renderer of the last search.",
+      "descriptions": [
+        "The stream URL must point to this server (127.0.0.1); the TV gets it through a random path on the phone's Wi-Fi address.",
+        "Emits \"connecting\", then \"started\" or \"error\"."
+      ],
+      "endpoint": "/api/v1/dlna-cast/start",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "DeviceId",
+          "jsonName": "deviceId",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Title",
+          "jsonName": "title",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "PositionMs",
+          "jsonName": "positionMs",
+          "goType": "int64",
+          "usedStructType": "",
+          "typescriptType": "number",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "ArtworkUrl",
+          "jsonName": "artworkUrl",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleDlnaCastSwitchStream",
+    "trimmedName": "DlnaCastSwitchStream",
+    "comments": [
+      "HandleDlnaCastSwitchStream",
+      "",
+      "\t@summary plays another stream of the same video on the TV from where it is (other audio/subtitle track).",
+      "\t@desc Pick tracks with ?audioTrack=N / ?subtitleTrack=N|-1 on the direct stream URL.",
+      "\t@route /api/v1/dlna-cast/switch-stream [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/dlna_cast.go",
+    "filename": "dlna_cast.go",
+    "api": {
+      "summary": "plays another stream of the same video on the TV from where it is (other audio/subtitle track).",
+      "descriptions": [
+        "Pick tracks with ?audioTrack=N / ?subtitleTrack=N|-1 on the direct stream URL."
+      ],
+      "endpoint": "/api/v1/dlna-cast/switch-stream",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleDlnaCastLoad",
+    "trimmedName": "DlnaCastLoad",
+    "comments": [
+      "HandleDlnaCastLoad",
+      "",
+      "\t@summary plays another video (the next episode) on the TV in use.",
+      "\t@route /api/v1/dlna-cast/load [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/dlna_cast.go",
+    "filename": "dlna_cast.go",
+    "api": {
+      "summary": "plays another video (the next episode) on the TV in use.",
+      "descriptions": [],
+      "endpoint": "/api/v1/dlna-cast/load",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Title",
+          "jsonName": "title",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "PositionMs",
+          "jsonName": "positionMs",
+          "goType": "int64",
+          "usedStructType": "",
+          "typescriptType": "number",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "ArtworkUrl",
+          "jsonName": "artworkUrl",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleDlnaCastControl",
+    "trimmedName": "DlnaCastControl",
+    "comments": [
+      "HandleDlnaCastControl",
+      "",
+      "\t@summary controls the TV: play, pause, seek (to value ms), skip (by value ms), volume (to value percent).",
+      "\t@desc Emits a \"status\" afterwards.",
+      "\t@route /api/v1/dlna-cast/control [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/dlna_cast.go",
+    "filename": "dlna_cast.go",
+    "api": {
+      "summary": "controls the TV: play, pause, seek (to value ms), skip (by value ms), volume (to value percent).",
+      "descriptions": [
+        "Emits a \"status\" afterwards."
+      ],
+      "endpoint": "/api/v1/dlna-cast/control",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Action",
+          "jsonName": "action",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Value",
+          "jsonName": "value",
+          "goType": "int64",
+          "usedStructType": "",
+          "typescriptType": "number",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleDlnaCastStatus",
+    "trimmedName": "DlnaCastStatus",
+    "comments": [
+      "HandleDlnaCastStatus",
+      "",
+      "\t@summary asks the TV for its state; emits \"status\", or \"idle\" when nothing casts.",
+      "\t@route /api/v1/dlna-cast/status [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/dlna_cast.go",
+    "filename": "dlna_cast.go",
+    "api": {
+      "summary": "asks the TV for its state; emits \"status\", or \"idle\" when nothing casts.",
+      "descriptions": [],
+      "endpoint": "/api/v1/dlna-cast/status",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleDlnaCastStop",
+    "trimmedName": "DlnaCastStop",
+    "comments": [
+      "HandleDlnaCastStop",
+      "",
+      "\t@summary ends casting; emits \"stopped\" with the TV's position (resume: the phone continues there).",
+      "\t@route /api/v1/dlna-cast/stop [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/dlna_cast.go",
+    "filename": "dlna_cast.go",
+    "api": {
+      "summary": "ends casting; emits \"stopped\" with the TV's position (resume: the phone continues there).",
+      "descriptions": [],
+      "endpoint": "/api/v1/dlna-cast/stop",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Resume",
+          "jsonName": "resume",
+          "goType": "bool",
+          "usedStructType": "",
+          "typescriptType": "boolean",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleDlnaCastForward",
+    "trimmedName": "DlnaCastForward",
+    "comments": [
+      "HandleDlnaCastForward",
+      "",
+      "\t@summary makes a stream of this server reachable for a Google Cast receiver.",
+      "\t@desc Google Cast runs in the app; the receiver (host = its IP address) gets the stream through a random path on the",
+      "\t@desc phone's Wi-Fi address, like a DLNA TV. A new forward closes the previous one. Fails with an error code",
+      "\t@desc (invalid-stream, no-wifi).",
+      "\t@route /api/v1/dlna-cast/forward [POST]",
+      "\t@returns string",
+      ""
+    ],
+    "filepath": "internal/handlers/dlna_cast.go",
+    "filename": "dlna_cast.go",
+    "api": {
+      "summary": "makes a stream of this server reachable for a Google Cast receiver.",
+      "descriptions": [
+        "Google Cast runs in the app; the receiver (host = its IP address) gets the stream through a random path on the",
+        "phone's Wi-Fi address, like a DLNA TV. A new forward closes the previous one. Fails with an error code",
+        "(invalid-stream, no-wifi)."
+      ],
+      "endpoint": "/api/v1/dlna-cast/forward",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Host",
+          "jsonName": "host",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "string",
+      "returnGoType": "string",
+      "returnTypescriptType": "string"
+    }
+  },
+  {
+    "name": "HandleDlnaCastForwardClose",
+    "trimmedName": "DlnaCastForwardClose",
+    "comments": [
+      "HandleDlnaCastForwardClose",
+      "",
+      "\t@summary closes the Google Cast forward; its path stops working.",
+      "\t@route /api/v1/dlna-cast/forward-close [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/dlna_cast.go",
+    "filename": "dlna_cast.go",
+    "api": {
+      "summary": "closes the Google Cast forward; its path stops working.",
+      "descriptions": [],
+      "endpoint": "/api/v1/dlna-cast/forward-close",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleDlnaCastCurrent",
+    "trimmedName": "DlnaCastCurrent",
+    "comments": [
+      "HandleDlnaCastCurrent",
+      "",
+      "\t@summary returns the casting device, or null when nothing casts (the app asks after it restarts).",
+      "\t@route /api/v1/dlna-cast/current [GET]",
+      "\t@returns dlnacast.Current",
+      ""
+    ],
+    "filepath": "internal/handlers/dlna_cast.go",
+    "filename": "dlna_cast.go",
+    "api": {
+      "summary": "returns the casting device, or null when nothing casts (the app asks after it restarts).",
+      "descriptions": [],
+      "endpoint": "/api/v1/dlna-cast/current",
+      "methods": [
+        "GET"
+      ],
+      "params": [],
+      "bodyFields": [],
+      "returns": "dlnacast.Current",
+      "returnGoType": "dlnacast.Current",
+      "returnTypescriptType": "DlnaCast_Current"
+    }
+  },
+  {
     "name": "HandleDownloadTorrentFile",
     "trimmedName": "DownloadTorrentFile",
     "comments": [
@@ -5632,6 +6064,719 @@
     }
   },
   {
+    "name": "HandleGetMobileOfflineSnapshot",
+    "trimmedName": "GetMobileOfflineSnapshot",
+    "comments": [
+      "HandleGetMobileOfflineSnapshot",
+      "",
+      "\t@summary returns all saved and queued episodes, the \"Wi-Fi only\" setting and what the queue waits for.",
+      "\t@route /api/v1/mobile-offline/snapshot [GET]",
+      "\t@returns mobileoffline.Snapshot",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_offline.go",
+    "filename": "mobile_offline.go",
+    "api": {
+      "summary": "returns all saved and queued episodes, the \"Wi-Fi only\" setting and what the queue waits for.",
+      "descriptions": [],
+      "endpoint": "/api/v1/mobile-offline/snapshot",
+      "methods": [
+        "GET"
+      ],
+      "params": [],
+      "bodyFields": [],
+      "returns": "mobileoffline.Snapshot",
+      "returnGoType": "mobileoffline.Snapshot",
+      "returnTypescriptType": "MobileOffline_Snapshot"
+    }
+  },
+  {
+    "name": "HandleMobileOfflineBatch",
+    "trimmedName": "MobileOfflineBatch",
+    "comments": [
+      "HandleMobileOfflineBatch",
+      "",
+      "\t@summary queues episodes of an anime from an online-stream provider (one episode, a season or the missing ones).",
+      "\t@desc The source of each episode is resolved only when a download slot is free. Returns how many were added.",
+      "\t@route /api/v1/mobile-offline/batch [POST]",
+      "\t@returns int",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_offline.go",
+    "filename": "mobile_offline.go",
+    "api": {
+      "summary": "queues episodes of an anime from an online-stream provider (one episode, a season or the missing ones).",
+      "descriptions": [
+        "The source of each episode is resolved only when a download slot is free. Returns how many were added."
+      ],
+      "endpoint": "/api/v1/mobile-offline/batch",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "MediaId",
+          "jsonName": "mediaId",
+          "goType": "int",
+          "usedStructType": "",
+          "typescriptType": "number",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Provider",
+          "jsonName": "provider",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Dubbed",
+          "jsonName": "dubbed",
+          "goType": "bool",
+          "usedStructType": "",
+          "typescriptType": "boolean",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Quality",
+          "jsonName": "quality",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Server",
+          "jsonName": "server",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Title",
+          "jsonName": "title",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "CoverUrl",
+          "jsonName": "coverUrl",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "BannerUrl",
+          "jsonName": "bannerUrl",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Episodes",
+          "jsonName": "episodes",
+          "goType": "[]mobileoffline.BatchEpisode",
+          "usedStructType": "mobileoffline.BatchEpisode",
+          "typescriptType": "Array\u003cMobileOffline_BatchEpisode\u003e",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "int",
+      "returnGoType": "int",
+      "returnTypescriptType": "number"
+    }
+  },
+  {
+    "name": "HandleMobileOfflineDownload",
+    "trimmedName": "MobileOfflineDownload",
+    "comments": [
+      "HandleMobileOfflineDownload",
+      "",
+      "\t@summary saves one episode from a source the app already has (the player's stream).",
+      "\t@desc Provider URLs only (or this server's /api/v1/proxy, which is unwrapped); the server never sends its own token to them.",
+      "\t@route /api/v1/mobile-offline/download [POST]",
+      "\t@returns mobileoffline.Item",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_offline.go",
+    "filename": "mobile_offline.go",
+    "api": {
+      "summary": "saves one episode from a source the app already has (the player's stream).",
+      "descriptions": [
+        "Provider URLs only (or this server's /api/v1/proxy, which is unwrapped); the server never sends its own token to them."
+      ],
+      "endpoint": "/api/v1/mobile-offline/download",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Key",
+          "jsonName": "key",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Type",
+          "jsonName": "type",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Headers",
+          "jsonName": "headers",
+          "goType": "map[string]string",
+          "usedStructType": "",
+          "typescriptType": "Record\u003cstring, string\u003e",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Subtitles",
+          "jsonName": "subtitles",
+          "goType": "[]mobileoffline.SourceSubtitle",
+          "usedStructType": "mobileoffline.SourceSubtitle",
+          "typescriptType": "Array\u003cMobileOffline_SourceSubtitle\u003e",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "MediaId",
+          "jsonName": "mediaId",
+          "goType": "int",
+          "usedStructType": "",
+          "typescriptType": "number",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Episode",
+          "jsonName": "episode",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Dubbed",
+          "jsonName": "dubbed",
+          "goType": "bool",
+          "usedStructType": "",
+          "typescriptType": "boolean",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Quality",
+          "jsonName": "quality",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Title",
+          "jsonName": "title",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "CoverUrl",
+          "jsonName": "coverUrl",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "BannerUrl",
+          "jsonName": "bannerUrl",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "EpisodeTitle",
+          "jsonName": "episodeTitle",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "EpisodeImageUrl",
+          "jsonName": "episodeImageUrl",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "EpisodeDescription",
+          "jsonName": "episodeDescription",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "mobileoffline.Item",
+      "returnGoType": "mobileoffline.Item",
+      "returnTypescriptType": "MobileOffline_Item"
+    }
+  },
+  {
+    "name": "HandleMobileOfflineAction",
+    "trimmedName": "MobileOfflineAction",
+    "comments": [
+      "HandleMobileOfflineAction",
+      "",
+      "\t@summary pauses, resumes, retries or removes a saved or queued episode.",
+      "\t@route /api/v1/mobile-offline/action [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_offline.go",
+    "filename": "mobile_offline.go",
+    "api": {
+      "summary": "pauses, resumes, retries or removes a saved or queued episode.",
+      "descriptions": [],
+      "endpoint": "/api/v1/mobile-offline/action",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Action",
+          "jsonName": "action",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleMobileOfflineNetwork",
+    "trimmedName": "MobileOfflineNetwork",
+    "comments": [
+      "HandleMobileOfflineNetwork",
+      "",
+      "\t@summary tells the server the phone's connection (from NetInfo); downloads wait while it is metered and \"Wi-Fi only\" is on.",
+      "\t@route /api/v1/mobile-offline/network [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_offline.go",
+    "filename": "mobile_offline.go",
+    "api": {
+      "summary": "tells the server the phone's connection (from NetInfo); downloads wait while it is metered and \"Wi-Fi only\" is on.",
+      "descriptions": [],
+      "endpoint": "/api/v1/mobile-offline/network",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Connected",
+          "jsonName": "connected",
+          "goType": "bool",
+          "usedStructType": "",
+          "typescriptType": "boolean",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Metered",
+          "jsonName": "metered",
+          "goType": "bool",
+          "usedStructType": "",
+          "typescriptType": "boolean",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleMobileOfflineSettings",
+    "trimmedName": "MobileOfflineSettings",
+    "comments": [
+      "HandleMobileOfflineSettings",
+      "",
+      "\t@summary turns \"Wi-Fi only\" for episode downloads on or off.",
+      "\t@route /api/v1/mobile-offline/settings [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_offline.go",
+    "filename": "mobile_offline.go",
+    "api": {
+      "summary": "turns \"Wi-Fi only\" for episode downloads on or off.",
+      "descriptions": [],
+      "endpoint": "/api/v1/mobile-offline/settings",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "WifiOnly",
+          "jsonName": "wifiOnly",
+          "goType": "bool",
+          "usedStructType": "",
+          "typescriptType": "boolean",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleMobileOfflinePosition",
+    "trimmedName": "MobileOfflinePosition",
+    "comments": [
+      "HandleMobileOfflinePosition",
+      "",
+      "\t@summary stores where the offline player stopped in an episode.",
+      "\t@route /api/v1/mobile-offline/position [POST]",
+      "\t@returns bool",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_offline.go",
+    "filename": "mobile_offline.go",
+    "api": {
+      "summary": "stores where the offline player stopped in an episode.",
+      "descriptions": [],
+      "endpoint": "/api/v1/mobile-offline/position",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "PositionMs",
+          "jsonName": "positionMs",
+          "goType": "int64",
+          "usedStructType": "",
+          "typescriptType": "number",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleMobileOfflineCacheManga",
+    "trimmedName": "MobileOfflineCacheManga",
+    "comments": [
+      "HandleMobileOfflineCacheManga",
+      "",
+      "\t@summary saves a manga's descriptions and cover for the offline list and returns them.",
+      "\t@desc The chapters themselves are downloaded by the manga downloader (/api/v1/manga/download-chapters).",
+      "\t@route /api/v1/mobile-offline/manga [POST]",
+      "\t@returns mobileoffline.Details",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_offline.go",
+    "filename": "mobile_offline.go",
+    "api": {
+      "summary": "saves a manga's descriptions and cover for the offline list and returns them.",
+      "descriptions": [
+        "The chapters themselves are downloaded by the manga downloader (/api/v1/manga/download-chapters)."
+      ],
+      "endpoint": "/api/v1/mobile-offline/manga",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "MediaId",
+          "jsonName": "mediaId",
+          "goType": "int",
+          "usedStructType": "",
+          "typescriptType": "number",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Title",
+          "jsonName": "title",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Genres",
+          "jsonName": "genres",
+          "goType": "[]string",
+          "usedStructType": "",
+          "typescriptType": "Array\u003cstring\u003e",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Year",
+          "jsonName": "year",
+          "goType": "int",
+          "usedStructType": "",
+          "typescriptType": "number",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "Format",
+          "jsonName": "format",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "CoverUrl",
+          "jsonName": "coverUrl",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        },
+        {
+          "name": "BannerUrl",
+          "jsonName": "bannerUrl",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "mobileoffline.Details",
+      "returnGoType": "mobileoffline.Details",
+      "returnTypescriptType": "MobileOffline_Details"
+    }
+  },
+  {
+    "name": "HandleMobileOfflineFile",
+    "trimmedName": "MobileOfflineFile",
+    "comments": [
+      "HandleMobileOfflineFile",
+      "",
+      "\t@summary serves a file of a saved episode (video, separate audio, subtitles) with byte ranges.",
+      "\t@route /api/v1/mobile-offline/file/{id}/{name} [GET]",
+      "\t@param id - string - true - \"Item id\"",
+      "\t@param name - string - true - \"File name from the item's files\"",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_offline.go",
+    "filename": "mobile_offline.go",
+    "api": {
+      "summary": "serves a file of a saved episode (video, separate audio, subtitles) with byte ranges.",
+      "descriptions": [],
+      "endpoint": "/api/v1/mobile-offline/file/{id}/{name}",
+      "methods": [
+        "GET"
+      ],
+      "params": [
+        {
+          "name": "id",
+          "jsonName": "id",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": [
+            "Item id"
+          ]
+        },
+        {
+          "name": "name",
+          "jsonName": "name",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": [
+            "File name from the item's files"
+          ]
+        }
+      ],
+      "bodyFields": [],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleMobileOfflineArtwork",
+    "trimmedName": "MobileOfflineArtwork",
+    "comments": [
+      "HandleMobileOfflineArtwork",
+      "",
+      "\t@summary serves saved artwork (the *Asset names of an item).",
+      "\t@route /api/v1/mobile-offline/artwork/{name} [GET]",
+      "\t@param name - string - true - \"Artwork file name\"",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_offline.go",
+    "filename": "mobile_offline.go",
+    "api": {
+      "summary": "serves saved artwork (the *Asset names of an item).",
+      "descriptions": [],
+      "endpoint": "/api/v1/mobile-offline/artwork/{name}",
+      "methods": [
+        "GET"
+      ],
+      "params": [
+        {
+          "name": "name",
+          "jsonName": "name",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": [
+            "Artwork file name"
+          ]
+        }
+      ],
+      "bodyFields": [],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "HandleMobileStorageAccess",
+    "trimmedName": "MobileStorageAccess",
+    "comments": [
+      "HandleMobileStorageAccess",
+      "",
+      "\t@summary tells whether the server can read a folder the native app picked.",
+      "\t@desc Android: \"allFilesAccess\" is false while the app lacks \"All files access\" for that storage volume.",
+      "\t@route /api/v1/mobile-storage/access [POST]",
+      "\t@returns mobilestorage.Access",
+      ""
+    ],
+    "filepath": "internal/handlers/mobile_storage.go",
+    "filename": "mobile_storage.go",
+    "api": {
+      "summary": "tells whether the server can read a folder the native app picked.",
+      "descriptions": [
+        "Android: \"allFilesAccess\" is false while the app lacks \"All files access\" for that storage volume."
+      ],
+      "endpoint": "/api/v1/mobile-storage/access",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "goType": "string",
+          "usedStructType": "",
+          "typescriptType": "string",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "mobilestorage.Access",
+      "returnGoType": "mobilestorage.Access",
+      "returnTypescriptType": "MobileStorage_Access"
+    }
+  },
+  {
     "name": "HandleNakamaWebSocket",
     "trimmedName": "NakamaWebSocket",
     "comments": [
@@ -7243,6 +8388,70 @@
       "returns": "[]anime.PlaylistEpisode",
       "returnGoType": "anime.PlaylistEpisode",
       "returnTypescriptType": "Array\u003cAnime_PlaylistEpisode\u003e"
+    }
+  },
+  {
+    "name": "rewriteSegment",
+    "trimmedName": "rewriteSegment",
+    "comments": [
+      "rewriteSegment rewrites a media segment; see needsSegmentHint.",
+      ""
+    ],
+    "filepath": "internal/handlers/proxy.go",
+    "filename": "proxy.go",
+    "api": {
+      "summary": "",
+      "descriptions": [],
+      "endpoint": "",
+      "methods": null,
+      "params": [],
+      "bodyFields": [],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "needsSegmentHint",
+    "trimmedName": "needsSegmentHint",
+    "comments": [
+      "needsSegmentHint reports whether a segment URL's own extension is one ffmpeg would refuse.",
+      ""
+    ],
+    "filepath": "internal/handlers/proxy.go",
+    "filename": "proxy.go",
+    "api": {
+      "summary": "",
+      "descriptions": [],
+      "endpoint": "",
+      "methods": null,
+      "params": [],
+      "bodyFields": [],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
+    }
+  },
+  {
+    "name": "TestProxyHintsDisguisedHLSSegments",
+    "trimmedName": "TestProxyHintsDisguisedHLSSegments",
+    "comments": [
+      "KickAssAnime (06.11.2026) serves MPEG-TS segments as \".jpg\": mpv refused them (\"not in allowed_segment_extensions\")",
+      "and the stream stopped after three seconds.",
+      ""
+    ],
+    "filepath": "internal/handlers/proxy_test.go",
+    "filename": "proxy_test.go",
+    "api": {
+      "summary": "",
+      "descriptions": [],
+      "endpoint": "",
+      "methods": null,
+      "params": [],
+      "bodyFields": [],
+      "returns": "bool",
+      "returnGoType": "bool",
+      "returnTypescriptType": "boolean"
     }
   },
   {
@@ -9261,6 +10470,86 @@
       "returns": "videocore.InSightCharacterDetails",
       "returnGoType": "videocore.InSightCharacterDetails",
       "returnTypescriptType": "VideoCore_InSightCharacterDetails"
+    }
+  },
+  {
+    "name": "HandleVideoCoreTranslateSubtitleLines",
+    "trimmedName": "VideoCoreTranslateSubtitleLines",
+    "comments": [
+      "HandleVideoCoreTranslateSubtitleLines",
+      "",
+      "\t@summary translates subtitle lines with the subtitle translation settings.",
+      "\t@desc The lines come back in the same order with the target language. Errors are short codes the player shows as text.",
+      "\t@returns videocore.TranslatedLines",
+      "\t@route /api/v1/videocore/translate-lines [POST]",
+      ""
+    ],
+    "filepath": "internal/handlers/videocore.go",
+    "filename": "videocore.go",
+    "api": {
+      "summary": "translates subtitle lines with the subtitle translation settings.",
+      "descriptions": [
+        "The lines come back in the same order with the target language. Errors are short codes the player shows as text."
+      ],
+      "endpoint": "/api/v1/videocore/translate-lines",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "Lines",
+          "jsonName": "lines",
+          "goType": "[]string",
+          "usedStructType": "",
+          "typescriptType": "Array\u003cstring\u003e",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "videocore.TranslatedLines",
+      "returnGoType": "videocore.TranslatedLines",
+      "returnTypescriptType": "VideoCore_TranslatedLines"
+    }
+  },
+  {
+    "name": "HandleVideoCoreGetSubtitleTrack",
+    "trimmedName": "VideoCoreGetSubtitleTrack",
+    "comments": [
+      "HandleVideoCoreGetSubtitleTrack",
+      "",
+      "\t@summary returns one embedded subtitle track of the current stream as a file.",
+      "\t@desc ASS/SSA tracks come back as ASS with their styles, plain text tracks as SRT. Errors are short codes.",
+      "\t@returns string",
+      "\t@route /api/v1/videocore/subtitle-track [POST]",
+      ""
+    ],
+    "filepath": "internal/handlers/videocore.go",
+    "filename": "videocore.go",
+    "api": {
+      "summary": "returns one embedded subtitle track of the current stream as a file.",
+      "descriptions": [
+        "ASS/SSA tracks come back as ASS with their styles, plain text tracks as SRT. Errors are short codes."
+      ],
+      "endpoint": "/api/v1/videocore/subtitle-track",
+      "methods": [
+        "POST"
+      ],
+      "params": [],
+      "bodyFields": [
+        {
+          "name": "TrackNumber",
+          "jsonName": "trackNumber",
+          "goType": "int64",
+          "usedStructType": "",
+          "typescriptType": "number",
+          "required": true,
+          "descriptions": []
+        }
+      ],
+      "returns": "string",
+      "returnGoType": "string",
+      "returnTypescriptType": "string"
     }
   },
   {

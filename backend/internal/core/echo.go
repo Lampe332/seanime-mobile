@@ -23,6 +23,11 @@ func NewEchoApp(app *App, webFS *embed.FS) *echo.Echo {
 	e.StdLogger = log.Default()
 
 	distFS, err := fs.Sub(webFS, "web")
+	if err == nil {
+		// An empty embed.FS (native app build with tag nowebui, iOS entry point) still makes a valid sub-FS; without
+		// index.html the static middleware would answer every page with a 500, so run API-only and let pages 404.
+		_, err = fs.Stat(distFS, "index.html")
+	}
 	if err != nil {
 		app.Logger.Warn().Msg("app: Web UI directory 'web' not found in embedded FS, running in API-only mode")
 	}

@@ -482,6 +482,86 @@ export const API_ENDPOINTS = {
             endpoint: "/api/v1/discord/presence/cancel",
         },
     },
+    DLNA_CAST: {
+        /**
+         *  @description
+         *  Route searches the network for DLNA renderers (TVs).
+         *  Emits "searching", then "devices" with the found renderers.
+         */
+        DlnaCastDiscover: {
+            key: "DLNA-CAST-dlna-cast-discover",
+            methods: ["POST"],
+            endpoint: "/api/v1/dlna-cast/discover",
+        },
+        /**
+         *  @description
+         *  Route casts a stream of this server to a renderer of the last search.
+         *  The stream URL must point to this server (127.0.0.1); the TV gets it through a random path on the phone's Wi-Fi address.
+         *  Emits "connecting", then "started" or "error".
+         */
+        DlnaCastStart: {
+            key: "DLNA-CAST-dlna-cast-start",
+            methods: ["POST"],
+            endpoint: "/api/v1/dlna-cast/start",
+        },
+        /**
+         *  @description
+         *  Route plays another stream of the same video on the TV from where it is (other audio/subtitle track).
+         *  Pick tracks with ?audioTrack=N / ?subtitleTrack=N|-1 on the direct stream URL.
+         */
+        DlnaCastSwitchStream: {
+            key: "DLNA-CAST-dlna-cast-switch-stream",
+            methods: ["POST"],
+            endpoint: "/api/v1/dlna-cast/switch-stream",
+        },
+        DlnaCastLoad: {
+            key: "DLNA-CAST-dlna-cast-load",
+            methods: ["POST"],
+            endpoint: "/api/v1/dlna-cast/load",
+        },
+        /**
+         *  @description
+         *  Route controls the TV: play, pause, seek (to value ms), skip (by value ms), volume (to value percent).
+         *  Emits a "status" afterwards.
+         */
+        DlnaCastControl: {
+            key: "DLNA-CAST-dlna-cast-control",
+            methods: ["POST"],
+            endpoint: "/api/v1/dlna-cast/control",
+        },
+        DlnaCastStatus: {
+            key: "DLNA-CAST-dlna-cast-status",
+            methods: ["POST"],
+            endpoint: "/api/v1/dlna-cast/status",
+        },
+        DlnaCastStop: {
+            key: "DLNA-CAST-dlna-cast-stop",
+            methods: ["POST"],
+            endpoint: "/api/v1/dlna-cast/stop",
+        },
+        /**
+         *  @description
+         *  Route makes a stream of this server reachable for a Google Cast receiver.
+         *  Google Cast runs in the app; the receiver (host = its IP address) gets the stream through a random path on the
+         *  phone's Wi-Fi address, like a DLNA TV. A new forward closes the previous one. Fails with an error code
+         *  (invalid-stream, no-wifi).
+         */
+        DlnaCastForward: {
+            key: "DLNA-CAST-dlna-cast-forward",
+            methods: ["POST"],
+            endpoint: "/api/v1/dlna-cast/forward",
+        },
+        DlnaCastForwardClose: {
+            key: "DLNA-CAST-dlna-cast-forward-close",
+            methods: ["POST"],
+            endpoint: "/api/v1/dlna-cast/forward-close",
+        },
+        DlnaCastCurrent: {
+            key: "DLNA-CAST-dlna-cast-current",
+            methods: ["GET"],
+            endpoint: "/api/v1/dlna-cast/current",
+        },
+    },
     DOWNLOAD: {
         DownloadTorrentFile: {
             key: "DOWNLOAD-download-torrent-file",
@@ -1093,6 +1173,85 @@ export const API_ENDPOINTS = {
             key: "METADATA-delete-media-metadata-parent",
             methods: ["DELETE"],
             endpoint: "/api/v1/metadata/parent",
+        },
+    },
+    MOBILE_OFFLINE: {
+        GetMobileOfflineSnapshot: {
+            key: "MOBILE-OFFLINE-get-mobile-offline-snapshot",
+            methods: ["GET"],
+            endpoint: "/api/v1/mobile-offline/snapshot",
+        },
+        /**
+         *  @description
+         *  Route queues episodes of an anime from an online-stream provider (one episode, a season or the missing ones).
+         *  The source of each episode is resolved only when a download slot is free. Returns how many were added.
+         */
+        MobileOfflineBatch: {
+            key: "MOBILE-OFFLINE-mobile-offline-batch",
+            methods: ["POST"],
+            endpoint: "/api/v1/mobile-offline/batch",
+        },
+        /**
+         *  @description
+         *  Route saves one episode from a source the app already has (the player's stream).
+         *  Provider URLs only (or this server's /api/v1/proxy, which is unwrapped); the server never sends its own token to them.
+         */
+        MobileOfflineDownload: {
+            key: "MOBILE-OFFLINE-mobile-offline-download",
+            methods: ["POST"],
+            endpoint: "/api/v1/mobile-offline/download",
+        },
+        MobileOfflineAction: {
+            key: "MOBILE-OFFLINE-mobile-offline-action",
+            methods: ["POST"],
+            endpoint: "/api/v1/mobile-offline/action",
+        },
+        MobileOfflineNetwork: {
+            key: "MOBILE-OFFLINE-mobile-offline-network",
+            methods: ["POST"],
+            endpoint: "/api/v1/mobile-offline/network",
+        },
+        MobileOfflineSettings: {
+            key: "MOBILE-OFFLINE-mobile-offline-settings",
+            methods: ["POST"],
+            endpoint: "/api/v1/mobile-offline/settings",
+        },
+        MobileOfflinePosition: {
+            key: "MOBILE-OFFLINE-mobile-offline-position",
+            methods: ["POST"],
+            endpoint: "/api/v1/mobile-offline/position",
+        },
+        /**
+         *  @description
+         *  Route saves a manga's descriptions and cover for the offline list and returns them.
+         *  The chapters themselves are downloaded by the manga downloader (/api/v1/manga/download-chapters).
+         */
+        MobileOfflineCacheManga: {
+            key: "MOBILE-OFFLINE-mobile-offline-cache-manga",
+            methods: ["POST"],
+            endpoint: "/api/v1/mobile-offline/manga",
+        },
+        MobileOfflineFile: {
+            key: "MOBILE-OFFLINE-mobile-offline-file",
+            methods: ["GET"],
+            endpoint: "/api/v1/mobile-offline/file/{id}/{name}",
+        },
+        MobileOfflineArtwork: {
+            key: "MOBILE-OFFLINE-mobile-offline-artwork",
+            methods: ["GET"],
+            endpoint: "/api/v1/mobile-offline/artwork/{name}",
+        },
+    },
+    MOBILE_STORAGE: {
+        /**
+         *  @description
+         *  Route tells whether the server can read a folder the native app picked.
+         *  Android: "allFilesAccess" is false while the app lacks "All files access" for that storage volume.
+         */
+        MobileStorageAccess: {
+            key: "MOBILE-STORAGE-mobile-storage-access",
+            methods: ["POST"],
+            endpoint: "/api/v1/mobile-storage/access",
         },
     },
     NAKAMA: {
@@ -1778,6 +1937,26 @@ export const API_ENDPOINTS = {
             key: "VIDEOCORE-video-core-in-sight-get-character-details",
             methods: ["GET"],
             endpoint: "/api/v1/videocore/insight/character/{malId}",
+        },
+        /**
+         *  @description
+         *  Route translates subtitle lines with the subtitle translation settings.
+         *  The lines come back in the same order with the target language. Errors are short codes the player shows as text.
+         */
+        VideoCoreTranslateSubtitleLines: {
+            key: "VIDEOCORE-video-core-translate-subtitle-lines",
+            methods: ["POST"],
+            endpoint: "/api/v1/videocore/translate-lines",
+        },
+        /**
+         *  @description
+         *  Route returns one embedded subtitle track of the current stream as a file.
+         *  ASS/SSA tracks come back as ASS with their styles, plain text tracks as SRT. Errors are short codes.
+         */
+        VideoCoreGetSubtitleTrack: {
+            key: "VIDEOCORE-video-core-get-subtitle-track",
+            methods: ["POST"],
+            endpoint: "/api/v1/videocore/subtitle-track",
         },
         VideoCoreSaveScreenshot: {
             key: "VIDEOCORE-video-core-save-screenshot",
