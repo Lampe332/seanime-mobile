@@ -13,6 +13,15 @@ export function isFullscreenWindow(width: number, height: number) {
     return width > height
 }
 
+/**
+ * Whether the app may turn the screen at all. Android 16 (API 36) ignores orientation requests of apps targeting 36 on
+ * screens with a smallest width of 600dp or more (r21 tablet: `ignoreOrientationRequest=true`, 2.0.33 targets 36 too, so
+ * its button did nothing there either). On such a screen the player always fills it, and the fullscreen button is left out.
+ */
+export function canTurnScreen(androidApi: number, width: number, height: number) {
+    return !(androidApi >= 36 && Math.min(width, height) >= 600)
+}
+
 /** What the orientation lock becomes for a fullscreen target: a phone leaves upright and is held there until it is upright in the hand (MainActivity.holdUprightAfterFullscreen), a tablet stays upright while the player is open. */
 export type OrientationTarget = "landscape" | "portrait-hold" | "portrait"
 

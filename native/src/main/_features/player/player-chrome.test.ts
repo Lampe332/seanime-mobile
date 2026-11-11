@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { backStep, isFullscreenWindow, loadStart, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand, orientationTarget, progressFraction } from "./player-chrome"
+import { backStep, canTurnScreen, isFullscreenWindow, loadStart, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand, orientationTarget, progressFraction } from "./player-chrome"
 
 const back = (over: Partial<Parameters<typeof backStep>[0]>) =>
     backStep({ overlayOpen: false, mini: false, fullscreen: false, isTablet: false, turnedByApp: false, ...over })
@@ -28,6 +28,13 @@ describe("player frame (r21)", () => {
         expect(orientationTarget(true, true)).toBe("landscape")
         expect(orientationTarget(false, false)).toBe("portrait-hold")
         expect(orientationTarget(false, true)).toBe("portrait")
+    })
+
+    it("Android 16 tablets do not let the app turn the screen, phones and older tablets do", () => {
+        expect(canTurnScreen(36, 2560, 1600)).toBe(false)
+        expect(canTurnScreen(37, 800, 1280)).toBe(false)
+        expect(canTurnScreen(36, 412, 915)).toBe(true)
+        expect(canTurnScreen(35, 2560, 1600)).toBe(true)
     })
 
     it("the mini player's button does what it shows", () => {

@@ -42,7 +42,7 @@ import SkipBack from "lucide-react-native/icons/skip-back"
 import SkipForward from "lucide-react-native/icons/skip-forward"
 import X from "lucide-react-native/icons/x"
 import React from "react"
-import { ActivityIndicator, BackHandler, type GestureResponderEvent, Pressable, useWindowDimensions, View } from "react-native"
+import { ActivityIndicator, BackHandler, type GestureResponderEvent, Platform, Pressable, useWindowDimensions, View } from "react-native"
 import Animated, { Easing, FadeIn, FadeOut, ReduceMotion, useAnimatedStyle, useReducedMotion, withTiming } from "react-native-reanimated"
 import { levelPanelIn, levelPanelOut } from "@/components/ui/core/animations"
 import { LEVEL_PANEL } from "@/lib/motion"
@@ -104,7 +104,7 @@ import { player_castingAtom, player_miniAtom, player_trackMemoryAtom } from "./p
 import { castableStreamUrl, castTitle, castTrackNumbers, castUrlWithTracks } from "./player-cast"
 import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
 import { endPlayerOrientation, readBrightness, readVolume, restoreBrightness, setVideoFullscreenOrientation, turnedToLandscape, writeBrightness, writeVolume } from "./player-system"
-import { backStep, isFullscreenWindow, loadStart, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, miniPlayCommand, progressFraction } from "./player-chrome"
+import { backStep, canTurnScreen, isFullscreenWindow, loadStart, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, miniPlayCommand, progressFraction } from "./player-chrome"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { usePlayerPlaylist } from "./use-player-playlist"
 import { type OfflinePlayback, offlinePositionToSave } from "@/main/android-downloads/_lib/offline-playback"
@@ -1111,9 +1111,12 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                                 </Text>
                             </Pressable>
                             <View className="flex-1" />
-                            <BarButton label={fullscreen ? t("Exit fullscreen", "Vollbild beenden") : t("Fullscreen", "Vollbild")} onPress={toggleFullscreen}>
-                                {fullscreen ? <Minimize size={barIcon} color="#fff" /> : <Maximize size={barIcon} color="#fff" />}
-                            </BarButton>
+                            {/* Android 16 tablets ignore the app's orientation (player-chrome canTurnScreen): no button that cannot act */}
+                            {canTurnScreen(Platform.OS === "android" ? Number(Platform.Version) : 0, window.width, window.height) && (
+                                <BarButton label={fullscreen ? t("Exit fullscreen", "Vollbild beenden") : t("Fullscreen", "Vollbild")} onPress={toggleFullscreen}>
+                                    {fullscreen ? <Minimize size={barIcon} color="#fff" /> : <Maximize size={barIcon} color="#fff" />}
+                                </BarButton>
+                            )}
                         </View>
                         </BarSizeContext>
                         <TimeBar
