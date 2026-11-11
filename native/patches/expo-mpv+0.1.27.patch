@@ -12,6 +12,129 @@ index 3dc1ab9..c5254f0 100644
              )
  
              // Props (same as iOS)
+diff --git a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPictureInPicture.kt b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPictureInPicture.kt
+index 5a8262d..693d2d2 100644
+--- a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPictureInPicture.kt
++++ b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPictureInPicture.kt
+@@ -28,7 +28,8 @@ internal class ExpoMpvPictureInPicture(
+     private val view: View,
+     private val activity: ComponentActivity,
+     private val onModeChanged: (Boolean) -> Unit,
+-    private val onTogglePlay: () -> Unit,
++    /** "play", "pause", "rewind" (−10 s) or "forward" (+10 s) from the window's buttons */
++    private val onCommand: (String) -> Unit,
+     private val onClosed: () -> Unit,
+ ) {
+     private var enabled = false
+@@ -36,11 +37,14 @@ internal class ExpoMpvPictureInPicture(
+     private var ratio = Rational(16, 9)
+     private var active = false
+     private var released = false
++    // what Android was last given: params are only sent again when they change (each send rebuilds the window's buttons)
++    private var applied: String? = null
+     private val hiddenViews = mutableMapOf<View, Float>()
+     private val action = "${activity.packageName}.expo.mpv.PIP_${System.identityHashCode(this)}"
+     private val receiver = object : BroadcastReceiver() {
+         override fun onReceive(context: Context, intent: Intent) {
+-            if (intent.action == action && active && !released) onTogglePlay()
++            if (intent.action != action || !active || released) return
++            intent.getStringExtra(EXTRA_COMMAND)?.let(onCommand)
+         }
+     }
+     private val modeListener = Consumer<PictureInPictureModeChangedInfo> { info ->
+@@ -81,6 +85,7 @@ internal class ExpoMpvPictureInPicture(
+         if (enabled && owners[activity] !== this) {
+             owners[activity]?.changeMode(false)
+             owners[activity] = this
++            applied = null // the Activity holds another view's params
+         }
+         updateParams()
+         // Source replacement can attach a new view while the Activity is
+@@ -95,19 +100,42 @@ internal class ExpoMpvPictureInPicture(
+     private fun canAutoEnter() = enabled && playing && view.isShown &&
+         owners[activity] === this && !released
+ 
+-    private fun params(): PictureInPictureParams {
+-        val builder = PictureInPictureParams.Builder().setAspectRatio(ratio)
++    /** The source bounds only matter for the way into the window; once pinned they would change the key on every layout. */
++    private fun sourceBounds(): Rect? {
++        if (active) return null
+         val bounds = Rect()
+-        if (view.getGlobalVisibleRect(bounds) && !bounds.isEmpty) builder.setSourceRectHint(bounds)
++        return if (view.getGlobalVisibleRect(bounds) && !bounds.isEmpty) bounds else null
++    }
++
++    private fun remoteAction(code: Int, command: String, icon: Int, title: Int): RemoteAction {
++        // one PendingIntent per button (own request code + command), so Android never merges them
+         val pendingIntent = PendingIntent.getBroadcast(
+-            activity, 0, Intent(action).setPackage(activity.packageName),
++            activity, code, Intent(action).setPackage(activity.packageName).putExtra(EXTRA_COMMAND, command),
+             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+         )
+-        val title = activity.getString(if (playing) R.string.expo_mpv_pip_pause else R.string.expo_mpv_pip_play)
+-        builder.setActions(listOf(RemoteAction(
+-            Icon.createWithResource(activity, if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play),
+-            title, title, pendingIntent,
+-        )))
++        val text = activity.getString(title)
++        return RemoteAction(Icon.createWithResource(activity, icon), text, text, pendingIntent)
++    }
++
++    /**
++     * −10 s, play/pause, +10 s (the old app's PiPControls); play/pause alone when the system allows fewer than three.
++     * The middle button says what it will do (play or pause), so a tap never flips a state it did not show.
++     */
++    private fun actions(): List<RemoteAction> {
++        val toggle = if (playing) remoteAction(2, "pause", R.drawable.expo_mpv_pip_pause, R.string.expo_mpv_pip_pause)
++            else remoteAction(2, "play", R.drawable.expo_mpv_pip_play, R.string.expo_mpv_pip_play)
++        if (activity.maxNumPictureInPictureActions < 3) return listOf(toggle)
++        return listOf(
++            remoteAction(1, "rewind", R.drawable.expo_mpv_pip_rewind, R.string.expo_mpv_pip_rewind),
++            toggle,
++            remoteAction(3, "forward", R.drawable.expo_mpv_pip_forward, R.string.expo_mpv_pip_forward),
++        )
++    }
++
++    private fun params(bounds: Rect?): PictureInPictureParams {
++        val builder = PictureInPictureParams.Builder().setAspectRatio(ratio)
++        if (bounds != null) builder.setSourceRectHint(bounds)
++        builder.setActions(actions())
+         if (Build.VERSION.SDK_INT >= 31) {
+             builder.setAutoEnterEnabled(canAutoEnter()).setSeamlessResizeEnabled(false)
+         }
+@@ -116,8 +144,14 @@ internal class ExpoMpvPictureInPicture(
+ 
+     private fun updateParams() {
+         if (released || owners[activity] !== this || !supported()) return
++        val bounds = sourceBounds()
++        // Layout passes come with every React render (progress ticks while playing); resending the same params made the
++        // window rebuild its buttons twice a second, and a tap landing in between was lost (pause in PiP "did nothing").
++        val key = "${canAutoEnter()}|$playing|$ratio|${bounds?.flattenToString()}"
++        if (key == applied) return
+         try {
+-            activity.setPictureInPictureParams(params())
++            activity.setPictureInPictureParams(params(bounds))
++            applied = key
+         } catch (_: IllegalStateException) {
+             // Unsupported host manifest or an Activity that is already leaving.
+         } catch (_: IllegalArgumentException) {
+@@ -129,7 +163,7 @@ internal class ExpoMpvPictureInPicture(
+         if (!enabled || released || !view.isShown || !supported()) return false
+         if (activity.isInPictureInPictureMode) return true
+         return try {
+-            activity.enterPictureInPictureMode(params())
++            activity.enterPictureInPictureMode(params(sourceBounds()))
+         } catch (_: IllegalStateException) {
+             false
+         } catch (_: IllegalArgumentException) {
+@@ -193,6 +227,7 @@ internal class ExpoMpvPictureInPicture(
+     }
+ 
+     companion object {
++        private const val EXTRA_COMMAND = "expo.mpv.PIP_COMMAND"
+         private val owners = WeakHashMap<ComponentActivity, ExpoMpvPictureInPicture>()
+     }
+ }
 diff --git a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPlaybackService.kt b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPlaybackService.kt
 index e79213b..28a9403 100644
 --- a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvPlaybackService.kt
@@ -38,7 +161,7 @@ index e79213b..28a9403 100644
                  position, if (playing) player.sessionSpeed else 0f)
              .build())
 diff --git a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvView.kt b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvView.kt
-index c69d5fc..16c2b8a 100644
+index c69d5fc..e832da3 100644
 --- a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvView.kt
 +++ b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/ExpoMpvView.kt
 @@ -20,6 +20,7 @@ class ExpoMpvView(context: Context, appContext: AppContext) : ExpoView(context,
@@ -60,8 +183,25 @@ index c69d5fc..16c2b8a 100644
          },
      )
  
+@@ -161,7 +166,15 @@ class ExpoMpvView(context: Context, appContext: AppContext) : ExpoView(context,
+             pip = ExpoMpvPictureInPicture(this, activity, { active ->
+                 pipOverlay.visibility = if (active) View.VISIBLE else View.GONE
+                 onPictureInPictureChange(mapOf("isActive" to active))
+-            }, { player.togglePlay() }, { player.pause() })
++            }, { command ->
++                when (command) {
++                    "play" -> player.play()
++                    "pause" -> player.pause()
++                    // absolute seeks are exact in mpv (relative ones jump to keyframes: +10 s landed 19 s on)
++                    "rewind" -> player.seekTo((player.sessionPosition / 1000.0 - 10.0).coerceAtLeast(0.0))
++                    "forward" -> player.seekTo(player.sessionPosition / 1000.0 + 10.0)
++                }
++            }, { player.pause() })
+         }
+         updatePictureInPicture()
+     }
 diff --git a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt
-index fdc5613..a1eeac4 100644
+index fdc5613..780e25c 100644
 --- a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt
 +++ b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt
 @@ -22,8 +22,12 @@ internal class MpvPlayer(
@@ -77,6 +217,115 @@ index fdc5613..a1eeac4 100644
      private val mainHandler = Handler(Looper.getMainLooper())
      private val playerThread = HandlerThread("ExpoMpvPlayer").apply { start() }
      private val playerHandler = Handler(playerThread.looper)
+@@ -730,6 +734,7 @@ internal class MpvPlayer(
+         lastProgressEmitPosition = Double.NaN
+         lastProgressEmitDuration = Double.NaN
+         lastProgressEmitBufferedDuration = Double.NaN
++        lastSessionPosition = Double.NaN
+     }
+ 
+     private fun emitProgressEvent(force: Boolean = false) {
+@@ -755,10 +760,25 @@ internal class MpvPlayer(
+         lastProgressEmitDuration = duration
+         lastProgressEmitBufferedDuration = bufferedDuration
+ 
+-        ExpoMpvPlaybackService.update(this)
++        // The media session carries position + speed, so the system runs its clock on by itself. Republishing it on
++        // every tick re-posted the notification and made the picture-in-picture window rebuild its buttons twice a
++        // second; now only a seek/start (force), a new duration or speed, or a clock that drifted (stall) republish.
++        val now = android.os.SystemClock.elapsedRealtime()
++        val expected = lastSessionPosition + (now - lastSessionAt) / 1000.0 * lastSessionSpeed
++        if (force || durationChanged || cachedSpeed != lastSessionSpeed || lastSessionPosition.isNaN() ||
++            kotlin.math.abs(position - expected) > 1.5) {
++            lastSessionPosition = position
++            lastSessionAt = now
++            lastSessionSpeed = cachedSpeed
++            ExpoMpvPlaybackService.update(this)
++        }
+         listener.onProgress(position, duration, bufferedDuration)
+     }
+ 
++    private var lastSessionPosition = Double.NaN
++    private var lastSessionAt = 0L
++    private var lastSessionSpeed = 1.0
++
+     private fun emitError(message: String) {
+         dispatchOnMain {
+             listener.onError(message)
+diff --git a/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_forward.xml b/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_forward.xml
+new file mode 100644
+index 0000000..6b21e40
+--- /dev/null
++++ b/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_forward.xml
+@@ -0,0 +1,6 @@
++<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
++    <group android:pivotX="12" android:scaleX="-1">
++        <path android:fillColor="#FFFFFFFF" android:pathData="M11.99,5V1l-5,5 5,5V7c3.31,0 6,2.69 6,6s-2.69,6 -6,6 -6,-2.69 -6,-6h-2c0,4.42 3.58,8 8,8s8,-3.58 8,-8 -3.58,-8 -8,-8z" />
++    </group>
++    <path android:fillColor="#FFFFFFFF" android:pathData="M10.89,16h-0.85v-3.26l-1.01,0.31v-0.69l1.77,-0.63h0.09V16zM15.17,14.24c0,0.32 -0.03,0.6 -0.1,0.82s-0.17,0.42 -0.29,0.57 -0.28,0.26 -0.45,0.33 -0.37,0.1 -0.59,0.1 -0.41,-0.03 -0.59,-0.1 -0.33,-0.18 -0.46,-0.33 -0.23,-0.34 -0.3,-0.57 -0.11,-0.5 -0.11,-0.82v-0.74c0,-0.32 0.03,-0.6 0.1,-0.82s0.17,-0.42 0.29,-0.57 0.28,-0.26 0.45,-0.33 0.37,-0.1 0.59,-0.1 0.41,0.03 0.59,0.1 0.33,0.18 0.46,0.33 0.23,0.34 0.3,0.57 0.11,0.5 0.11,0.82v0.74zM14.32,13.38c0,-0.19 -0.01,-0.35 -0.04,-0.48s-0.07,-0.23 -0.12,-0.31 -0.11,-0.14 -0.19,-0.17 -0.16,-0.05 -0.25,-0.05 -0.18,0.02 -0.25,0.05 -0.14,0.09 -0.19,0.17 -0.09,0.18 -0.12,0.31 -0.04,0.29 -0.04,0.48v0.97c0,0.19 0.01,0.35 0.04,0.48s0.07,0.24 0.12,0.32 0.11,0.14 0.19,0.17 0.16,0.05 0.25,0.05 0.18,-0.02 0.25,-0.05 0.14,-0.09 0.19,-0.17 0.09,-0.19 0.11,-0.32 0.04,-0.29 0.04,-0.48v-0.97z" />
++</vector>
+diff --git a/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_pause.xml b/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_pause.xml
+new file mode 100644
+index 0000000..5951c7e
+--- /dev/null
++++ b/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_pause.xml
+@@ -0,0 +1,3 @@
++<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
++    <path android:fillColor="#FFFFFFFF" android:pathData="M6,19h4V5H6v14zM14,5v14h4V5h-4z" />
++</vector>
+diff --git a/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_play.xml b/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_play.xml
+new file mode 100644
+index 0000000..5e70503
+--- /dev/null
++++ b/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_play.xml
+@@ -0,0 +1,3 @@
++<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
++    <path android:fillColor="#FFFFFFFF" android:pathData="M8,5v14l11,-7z" />
++</vector>
+diff --git a/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_rewind.xml b/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_rewind.xml
+new file mode 100644
+index 0000000..f05512d
+--- /dev/null
++++ b/node_modules/expo-mpv/android/src/main/res/drawable/expo_mpv_pip_rewind.xml
+@@ -0,0 +1,4 @@
++<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
++    <path android:fillColor="#FFFFFFFF" android:pathData="M11.99,5V1l-5,5 5,5V7c3.31,0 6,2.69 6,6s-2.69,6 -6,6 -6,-2.69 -6,-6h-2c0,4.42 3.58,8 8,8s8,-3.58 8,-8 -3.58,-8 -8,-8z" />
++    <path android:fillColor="#FFFFFFFF" android:pathData="M10.89,16h-0.85v-3.26l-1.01,0.31v-0.69l1.77,-0.63h0.09V16zM15.17,14.24c0,0.32 -0.03,0.6 -0.1,0.82s-0.17,0.42 -0.29,0.57 -0.28,0.26 -0.45,0.33 -0.37,0.1 -0.59,0.1 -0.41,-0.03 -0.59,-0.1 -0.33,-0.18 -0.46,-0.33 -0.23,-0.34 -0.3,-0.57 -0.11,-0.5 -0.11,-0.82v-0.74c0,-0.32 0.03,-0.6 0.1,-0.82s0.17,-0.42 0.29,-0.57 0.28,-0.26 0.45,-0.33 0.37,-0.1 0.59,-0.1 0.41,0.03 0.59,0.1 0.33,0.18 0.46,0.33 0.23,0.34 0.3,0.57 0.11,0.5 0.11,0.82v0.74zM14.32,13.38c0,-0.19 -0.01,-0.35 -0.04,-0.48s-0.07,-0.23 -0.12,-0.31 -0.11,-0.14 -0.19,-0.17 -0.16,-0.05 -0.25,-0.05 -0.18,0.02 -0.25,0.05 -0.14,0.09 -0.19,0.17 -0.09,0.18 -0.12,0.31 -0.04,0.29 -0.04,0.48v0.97c0,0.19 0.01,0.35 0.04,0.48s0.07,0.24 0.12,0.32 0.11,0.14 0.19,0.17 0.16,0.05 0.25,0.05 0.18,-0.02 0.25,-0.05 0.14,-0.09 0.19,-0.17 0.09,-0.19 0.11,-0.32 0.04,-0.29 0.04,-0.48v-0.97z" />
++</vector>
+diff --git a/node_modules/expo-mpv/android/src/main/res/values-de/strings.xml b/node_modules/expo-mpv/android/src/main/res/values-de/strings.xml
+new file mode 100644
+index 0000000..6b5a418
+--- /dev/null
++++ b/node_modules/expo-mpv/android/src/main/res/values-de/strings.xml
+@@ -0,0 +1,6 @@
++<resources>
++    <string name="expo_mpv_pip_play">Abspielen</string>
++    <string name="expo_mpv_pip_pause">Pause</string>
++    <string name="expo_mpv_pip_rewind">10 Sekunden zurück</string>
++    <string name="expo_mpv_pip_forward">10 Sekunden vor</string>
++</resources>
+diff --git a/node_modules/expo-mpv/android/src/main/res/values-zh/strings.xml b/node_modules/expo-mpv/android/src/main/res/values-zh/strings.xml
+index bc7852a..bedc8d0 100644
+--- a/node_modules/expo-mpv/android/src/main/res/values-zh/strings.xml
++++ b/node_modules/expo-mpv/android/src/main/res/values-zh/strings.xml
+@@ -1,4 +1,6 @@
+ <resources>
+     <string name="expo_mpv_pip_play">播放</string>
+     <string name="expo_mpv_pip_pause">暂停</string>
++    <string name="expo_mpv_pip_rewind">后退 10 秒</string>
++    <string name="expo_mpv_pip_forward">前进 10 秒</string>
+ </resources>
+diff --git a/node_modules/expo-mpv/android/src/main/res/values/strings.xml b/node_modules/expo-mpv/android/src/main/res/values/strings.xml
+index 23ff375..d4b0abb 100644
+--- a/node_modules/expo-mpv/android/src/main/res/values/strings.xml
++++ b/node_modules/expo-mpv/android/src/main/res/values/strings.xml
+@@ -1,4 +1,6 @@
+ <resources>
+     <string name="expo_mpv_pip_play">Play</string>
+     <string name="expo_mpv_pip_pause">Pause</string>
++    <string name="expo_mpv_pip_rewind">Back 10 seconds</string>
++    <string name="expo_mpv_pip_forward">Forward 10 seconds</string>
+ </resources>
 diff --git a/node_modules/expo-mpv/build/ExpoMpv.types.d.ts b/node_modules/expo-mpv/build/ExpoMpv.types.d.ts
 index 8826be4..718ecac 100644
 --- a/node_modules/expo-mpv/build/ExpoMpv.types.d.ts
