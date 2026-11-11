@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest"
-import { bottomPad, controlSizes, topPad } from "./control-sizes"
+import { bottomPad, controlSizes, fitBarButton, MIN_BAR_BUTTON, topPad } from "./control-sizes"
+
+describe("fitBarButton", () => {
+    it("keeps 44dp while the row fits", () => {
+        expect(fitBarButton(44, 9, 412 - 12)).toBe(44)
+        expect(fitBarButton(48, 10, 1280 - 48)).toBe(48)
+    })
+
+    it("narrows a full upright row, never under 36dp", () => {
+        // S22 upright: close + prev + next + settings + subs + audio + cast + PiP + volume + one more = 10 → 40dp
+        expect(fitBarButton(44, 10, 400)).toBe(40)
+        expect(fitBarButton(44, 11, 400)).toBe(MIN_BAR_BUTTON)
+        expect(fitBarButton(44, 20, 400)).toBe(MIN_BAR_BUTTON)
+        expect(fitBarButton(44, 0, 400)).toBe(44)
+    })
+})
 
 describe("controlSizes", () => {
     it("uses the portrait values below 560dp", () => {

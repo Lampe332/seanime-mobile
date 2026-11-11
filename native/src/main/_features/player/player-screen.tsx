@@ -6,7 +6,7 @@ import { useTr } from "@/lib/app-language"
 import { openInPlayerApp } from "@/lib/external-player-link/open-external-player"
 import { colors } from "@/lib/theme/tokens"
 import { showsRail } from "@/lib/tablet-ui"
-import { bottomPad, controlSizes, topPad } from "./control-sizes"
+import { bottomPad, controlSizes, fitBarButton, topPad } from "./control-sizes"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { getSkipChapters } from "@/main/_features/media-core/media-core-chapters"
 import { mediaCorePreferencesAtom } from "@/main/_features/media-core/media-core-preferences"
@@ -28,6 +28,7 @@ import {
 import { ExpoMpvView, type ExpoMpvViewRef } from "expo-mpv"
 import { useKeepAwake } from "expo-keep-awake"
 import { useAtom, useAtomValue } from "jotai"
+import ArrowLeft from "lucide-react-native/icons/arrow-left"
 import Captions from "lucide-react-native/icons/captions"
 import Cast from "lucide-react-native/icons/cast"
 import Film from "lucide-react-native/icons/film"
@@ -122,7 +123,9 @@ import { playlistNavigation } from "@/main/_features/playlists/lib/mobile-playli
  * centre buttons −5 / play / +10, bars that hide after 5 s while playing, a time bar that scrubs only after 10 px
  * sideways, double tap −5/+10 on either half, brightness (left) and volume (right) by vertical swipes, long press = 2x.
  * Sideways swipes do nothing (no swipe-to-seek), and a swipe or long press never toggles the controls.
- * Opens over every page (like the old native player); Back or the arrow makes it the mini player, × ends the stream.
+ * Opens over every page (like the old native player). The arrow at the top left and Back close it (2.0.x since 1.9.38);
+ * Back in fullscreen first turns upright. While a stream still loads, the minimise button parks it in the mini player
+ * (2.0.x LoadingFloatingButtons), which plays on above the navigation bar until it is opened or closed.
  */
 
 type ViewRef = React.ComponentRef<typeof View>
@@ -593,21 +596,6 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         endPlayerOrientation()
     }, [])
 
-    const onBack = React.useEffectEvent(() => {
-        if (menuOpen || playerCast.open) return false
-        if (fullscreen) {
-            toggleFullscreen()
-            return true
-        }
-        setMini(true)
-        return true
-    })
-    React.useEffect(() => {
-        if (mini) return
-        const sub = BackHandler.addEventListener("hardwareBackPress", () => onBack())
-        return () => sub.remove()
-    }, [mini])
-
     const commandsValue: PlayerCommands = {
         getTime: () => timeRef.current,
         pause: () => mpv.current?.pause().catch(() => {}),
@@ -776,6 +764,25 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         playing, positionMs: () => timeRef.current.currentTime * 1000, pauseLocal, resumeLocal,
     })
     const castPill = !mini && playerCast.casting && !playerCast.open
+
+    // Back (2.0.x onHistoryPop/backExit, player-chrome backStep): open menus first, then fullscreen, then the player closes
+    const onBack = React.useEffectEvent(() => {
+        switch (backStep({ overlayOpen: menuOpen || playerCast.open, mini, fullscreen, isTablet, turnedByApp: turnedToLandscape() })) {
+            case "pass":
+                return false
+            case "exit-fullscreen":
+                toggleFullscreen()
+                return true
+            case "close":
+                void close()
+                return true
+        }
+    })
+    React.useEffect(() => {
+        if (mini) return
+        const sub = BackHandler.addEventListener("hardwareBackPress", () => onBack())
+        return () => sub.remove()
+    }, [mini])
     const errorText = playbackError ?? videoError
 
     const barTiming = { duration: reduceMotion ? 0 : barsShown ? BAR_IN_MS : BAR_OUT_MS, easing: BAR_EASE }
@@ -791,11 +798,20 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const unpop = reduceMotion ? undefined : POP_OUT
 
     const fillsScreen = fullscreen || landscape
-    // Tablet: 2.0.33's mini player (media-core-drawer.tsx): 300dp wide, 20dp from the right and bottom edges, no bar to clear
-    const railMini = showsRail(isTablet, window)
-    const miniWidth = railMini ? 300 : Math.min(260, window.width * 0.55)
+    // the top row's buttons, narrowed on an upright phone when they would not fit (control-sizes fitBarButton)
+    const topButtons = [true, playlist.hasPreviousEpisode, playlist.hasNextEpisode, true, (online?.qualities?.length ?? 0) > 1,
+        tracks.some(track => track.type === "sub"), tracks.filter(track => track.type === "audio").length > 1,
+        playerCast.available && !pip, canEnterPip(casting, hasVideo), true, !hasVideo && !errorText].filter(Boolean).length
+    const topButton = fitBarButton(vc.button, topButtons, window.width - insets.left - insets.right - vc.padX * 2 - (topButtons - 1) * 2)
+    // Mini player (player-chrome miniFrame): a bar above the phone's navigation bar, 2.0.33's card beside the tablet's rail
+    const navBar = useNavBarHeight()
+    const miniBox = miniFrame({ width: window.width, rail: showsRail(isTablet, window), navBar, insets })
     const containerStyle = mini
-        ? { position: "absolute" as const, right: railMini ? 20 : 12, bottom: insets.bottom + (railMini ? 20 : 76), width: miniWidth, height: miniWidth * 9 / 16, borderRadius: 12, overflow: "hidden" as const }
+        ? { position: "absolute" as const, right: miniBox.right, bottom: miniBox.bottom, width: miniBox.width, height: miniBox.height, borderRadius: 14, overflow: "hidden" as const, backgroundColor: colors.smSurfaceRaised }
+        : { position: "absolute" as const, left: 0, top: 0, right: 0, bottom: 0, backgroundColor: "#000" }
+    // the picture keeps square corners (a SurfaceView ignores rounding), so in the mini player it sits inside the card's padding
+    const videoStyle = mini
+        ? { position: "absolute" as const, left: MINI_BAR.pad, top: MINI_BAR.pad, width: miniBox.video.width, height: miniBox.video.height, backgroundColor: "#000" }
         : { position: "absolute" as const, left: 0, top: 0, right: 0, bottom: 0 }
 
     return (
@@ -944,10 +960,12 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                         backgroundImage: "linear-gradient(to bottom, rgba(0,0,0,0.62), rgba(0,0,0,0.26) 62%, transparent)",
                     }]}>
                         {/* 2.0.32's row (video-core.tsx VideoCoreMobileControlBar): episode buttons and, from 560dp, the title on
-                            the left; settings, quality, subtitles, audio, cast, picture in picture and volume on the right. Back
-                            minimises the player, the mini player's × ends it. */}
-                        <BarSizeContext value={vc.button}>
+                            the left; settings, quality, subtitles, audio, cast, picture in picture and volume on the right.
+                            r21: the arrow in front closes the player like Back (2.0.32 had only Back, Nick missed a button);
+                            while the stream loads, the last button parks it in the mini player (2.0.x loading buttons). */}
+                        <BarSizeContext value={topButton}>
                         <View className="flex-row items-center gap-0.5" style={{ minHeight: vc.button }}>
+                            <BarButton label={t("Close player", "Player schließen")} onPress={() => void close()}><ArrowLeft size={barIcon} color="#fff" /></BarButton>
                             {playlist.hasPreviousEpisode && (
                                 <BarButton label={t("Previous episode", "Vorige Folge")} onPress={() => playlist.playEpisode("previous")}><SkipBack size={barIcon} color="#fff" /></BarButton>
                             )}
@@ -981,7 +999,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                                     <PictureInPicture2 size={barIcon} color="#fff" />
                                 </BarButton>
                             )}
-                            <VolumeButton volume={volume} muted={muted} open={volumeOpen} iconSize={barIcon} size={vc.button} onToggle={() => {
+                            <VolumeButton volume={volume} muted={muted} open={volumeOpen} iconSize={barIcon} size={topButton} onToggle={() => {
                                 if (volumeOpen) scheduleHide()
                                 else if (hideTimer.current) clearTimeout(hideTimer.current)
                                 setVolumeOpen(!volumeOpen)

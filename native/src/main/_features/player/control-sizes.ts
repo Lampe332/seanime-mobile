@@ -69,3 +69,16 @@ export function bottomPad(width: number, fillsScreen: boolean, insetBottom: numb
 export function topPad(width: number, fillsScreen: boolean, insetTop: number) {
     return (fillsScreen ? 0 : insetTop) + controlSizes(width).padTop
 }
+
+/** The smallest bar button: 36dp plus the 4dp hit slop on each side is still a 44dp target. */
+export const MIN_BAR_BUTTON = 36
+
+/**
+ * A full top row (close, previous, next, settings, quality, subtitles, audio, cast, PiP, volume: up to 11 on an online
+ * stream) does not fit 44dp buttons on an upright phone (412dp); the old CSS let flex items shrink, so here the buttons get
+ * narrower, never under 36dp. `room` is the row's width inside its padding.
+ */
+export function fitBarButton(size: number, count: number, room: number) {
+    if (count <= 0) return size
+    return Math.min(size, Math.max(MIN_BAR_BUTTON, Math.floor(room / count)))
+}
