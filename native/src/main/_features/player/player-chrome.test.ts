@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { backStep, isFullscreenWindow, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand, orientationTarget, progressFraction } from "./player-chrome"
+import { backStep, isFullscreenWindow, loadStart, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand, orientationTarget, progressFraction } from "./player-chrome"
 
 const back = (over: Partial<Parameters<typeof backStep>[0]>) =>
     backStep({ overlayOpen: false, mini: false, fullscreen: false, isTablet: false, turnedByApp: false, ...over })
@@ -58,6 +58,13 @@ describe("player frame (r21)", () => {
         expect(f).toMatchObject({ right: MINI_CARD.edge, bottom: MINI_CARD.edge, width: MINI_CARD.width })
         expect(f.video).toEqual({ width: 308, height: 173 })
         expect(f.height).toBe(MINI_CARD.pad + 173 + MINI_CARD.rowHeight)
+    })
+
+    it("a loaded episode plays with Auto play, unless paused while it loaded", () => {
+        expect(loadStart(true, true)).toBe("play")
+        expect(loadStart(true, false)).toBe("keep")
+        expect(loadStart(false, true)).toBe("pause")
+        expect(loadStart(false, false)).toBe("pause")
     })
 
     it("progress line stays within 0…1", () => {

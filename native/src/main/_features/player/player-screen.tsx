@@ -104,7 +104,7 @@ import { player_castingAtom, player_miniAtom, player_trackMemoryAtom } from "./p
 import { castableStreamUrl, castTitle, castTrackNumbers, castUrlWithTracks } from "./player-cast"
 import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
 import { endPlayerOrientation, readBrightness, readVolume, restoreBrightness, setVideoFullscreenOrientation, turnedToLandscape, writeBrightness, writeVolume } from "./player-system"
-import { backStep, isFullscreenWindow, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, miniPlayCommand, progressFraction } from "./player-chrome"
+import { backStep, isFullscreenWindow, loadStart, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, miniPlayCommand, progressFraction } from "./player-chrome"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { usePlayerPlaylist } from "./use-player-playlist"
 import { type OfflinePlayback, offlinePositionToSave } from "@/main/android-downloads/_lib/offline-playback"
@@ -282,11 +282,15 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const completedRef = React.useRef(false)
     const endedRef = React.useRef(false)
     const playingRef = React.useRef(false)
+    // mpv keeps its pause flag across files, so an episode picked while the last one was paused would load paused: with
+    // "Auto play" it starts on load instead (old <video autoplay>), unless a pause came in while it loaded (r21)
+    const playOnLoad = React.useRef(false)
     const skippedRef = React.useRef<number | null>(null)
     const hideTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
     React.useEffect(() => {
         playedRef.current = { played: 0, previous: 0, seeking: false }
         completedRef.current = false
+        playOnLoad.current = true
         playingRef.current = false
         endedRef.current = false
         skippedRef.current = null
@@ -730,6 +734,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
             scheduleHide()
             events.resumed()
         } else {
+            playOnLoad.current = false
             events.paused()
             if (!ended) saveOffline(timeRef.current.currentTime, false)
         }
@@ -849,8 +854,11 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                 onLoad={({ nativeEvent }) => {
                     setLoaded(true)
                     setBuffering(false)
-                    if (autoPlay) syncPlaying()
-                    else void mpv.current?.pause().then(syncPlaying).catch(() => {})
+                    const start = loadStart(autoPlay, playOnLoad.current)
+                    playOnLoad.current = false
+                    if (start === "pause") void mpv.current?.pause().then(syncPlaying).catch(() => {})
+                    else if (start === "play") void mpv.current?.play().then(syncPlaying).catch(() => {})
+                    else syncPlaying()
                     setDuration(nativeEvent.duration)
                     timeRef.current = { ...timeRef.current, duration: nativeEvent.duration }
                     loadEvents.opened()

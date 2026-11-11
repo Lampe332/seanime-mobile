@@ -70,6 +70,16 @@ export function miniFrame(s: { width: number, rail: boolean, navBar: number, ins
     }
 }
 
+/**
+ * What a loaded file does first. mpv keeps its pause flag across files, so an episode picked while the last one was paused
+ * loaded paused (r21 test); with "Auto play" a new episode starts (old `<video autoplay>`) unless a pause came in while it
+ * loaded (`playOnLoad` false); without it the file waits paused (2.0.x "Auto play" off).
+ */
+export function loadStart(autoPlay: boolean, playOnLoad: boolean): "pause" | "play" | "keep" {
+    if (!autoPlay) return "pause"
+    return playOnLoad ? "play" : "keep"
+}
+
 /** 0…1 along the mini player's progress line. */
 export function progressFraction(position: number, duration: number) {
     if (!(duration > 0) || !Number.isFinite(position)) return 0
