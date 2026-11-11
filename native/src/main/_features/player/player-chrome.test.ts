@@ -1,42 +1,96 @@
 import { describe, expect, it } from "vitest"
-import { backStep, canTurnScreen, isFullscreenWindow, loadStart, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand, orientationTarget, progressFraction } from "./player-chrome"
+import {
+    backStep, boxFrame, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand,
+    orientationTarget, playerView, progressFraction, scrollTarget, viewTurn,
+} from "./player-chrome"
+import { BOX_COMPACT_HEIGHT, boxControlSizes, controlSizes } from "./control-sizes"
 
-const back = (over: Partial<Parameters<typeof backStep>[0]>) =>
-    backStep({ overlayOpen: false, mini: false, fullscreen: false, isTablet: false, turnedByApp: false, ...over })
-
-describe("player frame (r21)", () => {
-    it("Back closes the player like 2.0.x, after leaving fullscreen first", () => {
-        expect(back({})).toBe("close")
-        expect(back({ fullscreen: true })).toBe("exit-fullscreen")
-        expect(back({ fullscreen: true, turnedByApp: true })).toBe("exit-fullscreen")
-        // an open menu/sheet and the mini player leave Back to others
-        expect(back({ overlayOpen: true, fullscreen: true })).toBe("pass")
-        expect(back({ mini: true })).toBe("pass")
+describe("player places (r22): full, box, mini", () => {
+    it("small plays in the box while its page shows it, else in the mini player; not small is fullscreen", () => {
+        expect(playerView(false, false)).toBe("full")
+        expect(playerView(false, true)).toBe("full")
+        expect(playerView(true, true)).toBe("box")
+        expect(playerView(true, false)).toBe("mini")
     })
 
-    it("a tablet's own landscape is not left by Back, a landscape the app turned is", () => {
-        expect(back({ isTablet: true, fullscreen: true })).toBe("close")
-        expect(back({ isTablet: true, fullscreen: true, turnedByApp: true })).toBe("exit-fullscreen")
-        expect(back({ isTablet: true })).toBe("close")
+    it("the online page's box holds its own stream, the anime page's box every other stream of that anime", () => {
+        expect(boxOwner(true, 123)).toBe("online")
+        expect(boxOwner(false, 123)).toBe("media:123")
+        expect(boxOwner(false, undefined)).toBeNull()
+        expect(boxOwner(false, 0)).toBeNull()
     })
 
-    it("fullscreen is the landscape window, so the button always turns the screen", () => {
-        expect(isFullscreenWindow(3088, 1440)).toBe(true)
-        expect(isFullscreenWindow(1440, 3088)).toBe(false)
-        expect(isFullscreenWindow(1000, 1000)).toBe(false)
+    it("Back in fullscreen makes the player small, it never closes it; box and mini leave Back to the page", () => {
+        expect(backStep({ overlayOpen: false, view: "full" })).toBe("shrink")
+        expect(backStep({ overlayOpen: false, view: "box" })).toBe("pass")
+        expect(backStep({ overlayOpen: false, view: "mini" })).toBe("pass")
+        // an open menu or sheet answers Back first
+        expect(backStep({ overlayOpen: true, view: "full" })).toBe("pass")
+    })
+
+    it("a phone turns landscape for fullscreen and upright for box/mini, a tablet is never turned", () => {
+        expect(viewTurn("full", false)).toBe("landscape")
+        expect(viewTurn("box", false)).toBe("upright")
+        expect(viewTurn("mini", false)).toBe("upright")
+        expect(viewTurn("full", true)).toBe("none")
+        expect(viewTurn("box", true)).toBe("none")
         expect(orientationTarget(true, false)).toBe("landscape")
-        expect(orientationTarget(true, true)).toBe("landscape")
         expect(orientationTarget(false, false)).toBe("portrait-hold")
         expect(orientationTarget(false, true)).toBe("portrait")
     })
+})
 
-    it("Android 16 tablets do not let the app turn the screen, phones and older tablets do", () => {
-        expect(canTurnScreen(36, 2560, 1600)).toBe(false)
-        expect(canTurnScreen(37, 800, 1280)).toBe(false)
-        expect(canTurnScreen(36, 412, 915)).toBe(true)
-        expect(canTurnScreen(35, 2560, 1600)).toBe(true)
+describe("the box follows the page (r22)", () => {
+    // S22 upright: the scroll area is the whole window, status bar 40dp, the box 380×214 at 16dp in, 900dp down the content
+    const phone: BoxGeometry = { viewport: { x: 0, y: 0, width: 412, height: 915 }, content: { x: 16, y: 900, width: 380, height: 214 }, topInset: 40 }
+
+    it("is clipped to the page under the status bar and moves up by the scroll offset", () => {
+        const at0 = boxFrame(phone, 0)
+        expect(at0.clip).toEqual({ left: 0, top: 40, width: 412, height: 875 })
+        expect(at0.box).toEqual({ left: 16, top: 860, width: 380, height: 214 })
+        const at500 = boxFrame(phone, 500)
+        expect(at500.box.top).toBe(360)
+        // scrolled 1 dp further, 1 dp higher: the box sticks to the page
+        expect(boxFrame(phone, 501).box.top).toBe(359)
     })
 
+    it("knows when it is scrolled out of the page", () => {
+        expect(boxVisible(phone, 0)).toBe(true)
+        // its bottom edge just above the clip's top
+        expect(boxVisible(phone, 900 + 214 - 40)).toBe(false)
+        expect(boxVisible(phone, 900 + 214 - 41)).toBe(true)
+    })
+
+    it("tablet with the rail: the scroll area starts beside the rail and below nothing", () => {
+        const tablet: BoxGeometry = { viewport: { x: 96, y: 0, width: 1184, height: 800 }, content: { x: 24, y: 420, width: 1136, height: 639 }, topInset: 24 }
+        const f = boxFrame(tablet, 100)
+        expect(f.clip).toEqual({ left: 96, top: 24, width: 1184, height: 776 })
+        expect(f.box).toEqual({ left: 24, top: 0 + 420 - 100 - 24, width: 1136, height: 639 })
+    })
+
+    it("a vertical drag on the box scrolls the page, a sideways one does not", () => {
+        expect(isScrollDrag(0, 11)).toBe(true)
+        expect(isScrollDrag(0, -11)).toBe(true)
+        expect(isScrollDrag(0, 10)).toBe(false)
+        expect(isScrollDrag(30, 20)).toBe(false)
+        expect(scrollTarget(500, 120, 2000)).toBe(380)
+        expect(scrollTarget(50, 120, 2000)).toBe(0)
+        expect(scrollTarget(1950, -120, 2000)).toBe(2000)
+    })
+
+    it("a phone's box (214dp high) gets a smaller centre that fits between its bars, a tablet's keeps the width's sizes", () => {
+        const phoneBox = boxControlSizes(380, 214)
+        expect(phoneBox.button).toBe(controlSizes(380).button)
+        expect(phoneBox.play).toBe(48)
+        expect(phoneBox.seek).toBe(40)
+        // top bar 4 + 44, bottom bar 8 + 44 + 44 + 2: 72dp room, the 48dp play button fits
+        expect(214 - (4 + 44) - (44 + 44 + 2)).toBeGreaterThanOrEqual(phoneBox.play)
+        expect(boxControlSizes(1136, 639)).toEqual(controlSizes(1136))
+        expect(boxControlSizes(700, BOX_COMPACT_HEIGHT)).toEqual(controlSizes(700))
+    })
+})
+
+describe("player frame (r21)", () => {
     it("the mini player's button does what it shows", () => {
         expect(miniPlayCommand(true)).toBe("pause")
         expect(miniPlayCommand(false)).toBe("play")

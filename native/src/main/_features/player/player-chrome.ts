@@ -1,25 +1,28 @@
 /*
- * The player's frame (r21, Nick 11.11.): how it is left, how fullscreen turns, where the mini player sits. Pure rules,
- * tested in player-chrome.test.ts; player-screen.tsx and player-system.ts apply them.
+ * The player's frame (r21/r22, Nick 11.11.): where the one player shows, how it is left, how fullscreen turns, where the
+ * box and the mini player sit. Pure rules, tested in player-chrome.test.ts; player-screen.tsx, player-box.tsx and
+ * player-system.ts apply them.
  */
 
 /**
- * Fullscreen is the landscape picture. The window is always free of system bars (lib/system-bars), so turning is the only
- * thing fullscreen changes: a window that is already landscape (a tablet, a phone turned by its own rotation) counts as
- * fullscreen, and the button then turns it upright. 2.0.x locked an already landscape window to landscape, so the button
- * seemed to do nothing there.
+ * r22 (Nick 11.11.): one player in three places, whatever plays (online, library file, torrent, debrid, saved episode).
+ * - "full": over the whole window (a phone turns to landscape; a tablet keeps its own orientation, Android 16 ignores
+ *   an app's lock there).
+ * - "box": in the 16:9 box at the top of the episodes of its own anime page (2.0.x inline player of the online stream page).
+ * - "mini": anywhere else, the bar above the navigation (phone) or the card (tablet).
+ * `small` is the user's choice (the bottom-right button, Back); `boxShown` whether the page with the box is on screen.
  */
-export function isFullscreenWindow(width: number, height: number) {
-    return width > height
+export type PlayerView = "full" | "box" | "mini"
+
+export function playerView(small: boolean, boxShown: boolean): PlayerView {
+    if (!small) return "full"
+    return boxShown ? "box" : "mini"
 }
 
-/**
- * Whether the app may turn the screen at all. Android 16 (API 36) ignores orientation requests of apps targeting 36 on
- * screens with a smallest width of 600dp or more (r21 tablet: `ignoreOrientationRequest=true`, 2.0.33 targets 36 too, so
- * its button did nothing there either). On such a screen the player always fills it, and the fullscreen button is left out.
- */
-export function canTurnScreen(androidApi: number, width: number, height: number) {
-    return !(androidApi >= 36 && Math.min(width, height) >= 600)
+/** Which box holds a playback: the online stream page's own stream, or any other stream of an anime on its page. */
+export function boxOwner(online: boolean, mediaId: number | undefined): string | null {
+    if (online) return "online"
+    return mediaId ? `media:${mediaId}` : null
 }
 
 /** What the orientation lock becomes for a fullscreen target: a phone leaves upright and is held there until it is upright in the hand (MainActivity.holdUprightAfterFullscreen), a tablet stays upright while the player is open. */
@@ -30,18 +33,66 @@ export function orientationTarget(fullscreen: boolean, isTablet: boolean): Orien
     return isTablet ? "portrait" : "portrait-hold"
 }
 
+/**
+ * The turn that goes with a view: a phone turns to landscape for "full" and upright for the box or the mini player.
+ * A tablet is never turned (Android 16 ignores the lock on screens from 600dp, r21; the player fills the window as it is).
+ */
+export function viewTurn(view: PlayerView, isTablet: boolean): "landscape" | "upright" | "none" {
+    if (isTablet) return "none"
+    return view === "full" ? "landscape" : "upright"
+}
+
 /** What Android Back does in the player. */
-export type BackStep = "pass" | "exit-fullscreen" | "close"
+export type BackStep = "pass" | "shrink"
 
 /**
- * 2.0.x (video-core.tsx onHistoryPop, since 1.9.38): Back closes the player; in fullscreen it first leaves fullscreen
- * (backExit). An open menu or sheet answers Back itself, the mini player leaves Back to the page under it.
- * `turnedByApp`: the app turned the window to landscape (a tablet's own landscape is not left by Back, it closes).
+ * r22: Back in the full player makes it small (box on its page, else mini) and it plays on, like the bottom-right button;
+ * an open menu or sheet answers Back itself; in the box or the mini player Back belongs to the page (leaving the anime
+ * page turns the box into the mini player). The player is closed only by the mini player's × (or its error's Close).
  */
-export function backStep(s: { overlayOpen: boolean, mini: boolean, fullscreen: boolean, isTablet: boolean, turnedByApp: boolean }): BackStep {
-    if (s.overlayOpen || s.mini) return "pass"
-    if (s.fullscreen && (!s.isTablet || s.turnedByApp)) return "exit-fullscreen"
-    return "close"
+export function backStep(s: { overlayOpen: boolean, view: PlayerView }): BackStep {
+    if (s.overlayOpen || s.view !== "full") return "pass"
+    return "shrink"
+}
+
+/** The box's place: the page's scroll area in window coordinates, the box in the scroll content. */
+export type BoxGeometry = {
+    viewport: { x: number, y: number, width: number, height: number }
+    content: { x: number, y: number, width: number, height: number }
+    /** the status bar's height: the box is never drawn under it (it scrolls away like the page under a clip) */
+    topInset: number
+}
+
+/**
+ * Where the box is for a scroll offset: `clip` is the visible part of the page's scroll area (the box never paints over the
+ * status bar, the rail or past the page), `box` the player's frame inside the clip. Runs on the UI thread per frame.
+ */
+export function boxFrame(g: BoxGeometry, scrollY: number) {
+    "worklet"
+    const clipTop = Math.max(g.viewport.y, g.topInset)
+    const clipBottom = g.viewport.y + g.viewport.height
+    return {
+        clip: { left: g.viewport.x, top: clipTop, width: g.viewport.width, height: Math.max(0, clipBottom - clipTop) },
+        box: { left: g.content.x, top: g.viewport.y + g.content.y - scrollY - clipTop, width: g.content.width, height: g.content.height },
+    }
+}
+
+/** Whether any of the box is visible at this scroll offset (fully scrolled away: the bars need not be drawn). */
+export function boxVisible(g: BoxGeometry, scrollY: number) {
+    const { clip, box } = boxFrame(g, scrollY)
+    return box.top + box.height > 0 && box.top < clip.height
+}
+
+/**
+ * A vertical drag on the box scrolls the page (the box floats above it, so the page cannot see the finger): the drag
+ * counts once it went 10dp more up/down than sideways. Then `scrollTarget` is where the page goes.
+ */
+export function isScrollDrag(dx: number, dy: number) {
+    return Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)
+}
+
+export function scrollTarget(startScroll: number, dragged: number, maxScroll: number) {
+    return Math.max(0, Math.min(maxScroll, startScroll - dragged))
 }
 
 /** The mini player's button acts on what it shows (play or pause), never a blind toggle against a state it did not show. */

@@ -23,6 +23,7 @@ import { colors } from "@/lib/theme/tokens"
 import { usePlayNext } from "@/main/_atoms/playback.atoms"
 import { nativePlayer_initialState, nativePlayer_stateAtom } from "@/main/_features/native-player/native-player.atoms"
 import { player_miniAtom, player_offlineItemAtom } from "@/main/_features/player/player.atoms"
+import { PlayerBoxSlot } from "@/main/_features/player/player-box"
 import { useServerHMACAuth } from "@/main/_hooks/use-server-status"
 import { EpisodeRow, IconAction } from "@/main/entry/_containers/episode-list/episode-section"
 import { WindowedRows } from "@/main/entry/_containers/episode-list/windowed-rows"
@@ -71,9 +72,10 @@ import { ActivityIndicator, Pressable, View } from "react-native"
  * The online streaming source of an anime page (web onlinestream-page.tsx, Android layout of mobile-anime.css): provider +
  * server as one joined pair, Sub/Dub and Download on one line, "Try all providers", Manual match, Cache and the list/grid
  * switch as quiet actions; the current episode with previous/next, then the provider's episodes.
- * The web page had an inline player; here a 16:9 card stands in its place and the app's player (E3, over every page)
- * plays the stream. Opening the page only picks the episode (getMobileInitialEpisode); a tap on the card, an episode,
- * previous/next or "Continue" from Home plays. The auto provider cycler, the 15 s provider and 20 s playback limits and
+ * The web page had an inline player; here the 16:9 card is the box the app's player (E3, one over every page) plays in
+ * (r22, player-box.tsx): a tap on the card, an episode or previous/next plays in the box, its bottom-right button makes
+ * it fullscreen and back; "Continue" from Home starts fullscreen (2.0.x too). Opening the page only picks the episode
+ * (getMobileInitialEpisode). The auto provider cycler, the 15 s provider and 20 s playback limits and
  * the subtitle preference work as on the web; the player reports load, time and errors back (OnlinePlayerEvents).
  * The plugins' items for online episodes (type "onlinestream") open from a list row's ⋯ (2.17). Not here: the Nakama
  * watch party (2.13).
@@ -282,12 +284,13 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     // ── Starting playback: one player over all pages, so a saved episode or a server stream makes way ──
     const setNativePlayerState = useSetAtom(nativePlayer_stateAtom)
     const setOfflineItem = useSetAtom(player_offlineItemAtom)
-    const setMini = useSetAtom(player_miniAtom)
-    const start = useLatestFunction((resumeAt?: number, fromPage = true) => {
+    const setSmall = useSetAtom(player_miniAtom)
+    // r22: a tap on the page plays in the box (small), "Continue" and a playlist start fullscreen, the player's own
+    // previous/next keeps whatever size it has
+    const start = useLatestFunction((resumeAt?: number, size: "box" | "full" | "keep" = "box") => {
         setOfflineItem(null)
         setNativePlayerState(nativePlayer_initialState)
-        // a tap on the page brings the player up from the mini player; auto next in the mini player stays small
-        if (fromPage) setMini(false)
+        if (size !== "keep") setSmall(size === "box")
         setStartSeconds(resumeAt)
         setErrorState(null)
         lastTimeRef.current = 0
@@ -300,7 +303,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     React.useEffect(() => {
         if (!mediaId || playNext !== mediaId || initializedMedia !== mediaId) return
         resetPlayNext()
-        start()
+        start(undefined, "full")
     }, [playNext, mediaId, initializedMedia, resetPlayNext, start])
 
     // set while a playlist's next episode waits for the player to close (below the player's events)
@@ -331,7 +334,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         rememberMobileEpisode(mediaId, target)
         setUrl(null)
         setSelectedEpisodeNumber(target)
-        start(undefined, fromPage)
+        start(undefined, fromPage ? "box" : "keep")
     })
 
     // A change of provider/server/audio while it plays carries on at the same place (web savePreviousStateThen)
@@ -405,14 +408,14 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         setSelectedEpisodeNumber(number)
         if (!currentPlaylist) return
         if (active && onlineInPlayer?.events === eventsRef) setStartWhenClosed(true)
-        else start()
+        else start(undefined, "full")
     })
     React.useEffect(() => {
         if (urlEpisode !== undefined && episodes?.length) openLinkedEpisode(urlEpisode)
     }, [urlEpisode, episodes, openLinkedEpisode])
     const startAfterClose = useLatestFunction(() => {
         setStartWhenClosed(false)
-        start()
+        start(undefined, "full")
     })
     React.useEffect(() => {
         if (startWhenClosed && !onlineInPlayer) startAfterClose()
@@ -570,11 +573,12 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
             <Button leftIcon={<RefreshCw size={18} color="#fff" />} onPress={() => retryEpisodeList()}>{t("Try again", "Erneut versuchen")}</Button>
         </PhoneEmpty></View> : !episodeListLoading && !episodes?.length ? <View accessibilityRole="summary"><PhoneEmpty title={t("No episodes from this provider", "Keine Folgen bei diesem Anbieter")}
             text={t("Choose another source above.", "Wähle oben eine andere Quelle.")} /></View> : <>
-            {/* In place of the web's inline player: the episode, a play button and what the source is doing */}
+            {/* The web's inline player (r22): the box the player lies over while this page's stream plays; before that the
+                episode with a play button and what the source is doing */}
+            <PlayerBoxSlot owner="online" active={playing} className="aspect-video w-full overflow-hidden rounded-surface bg-sm-surface-raised">
             <Pressable accessibilityRole="button" accessibilityLabel={`${t("Play", "Abspielen")}: ${heading}`} disabled={currentEpisodeNumber === null}
                 onPress={() => currentEpisodeNumber !== null && selectEpisode(currentEpisodeNumber)}
-                className="aspect-video w-full overflow-hidden rounded-surface bg-sm-surface-raised active:opacity-90"
-                style={{ boxShadow: "0 12px 28px -14px rgba(0,0,0,0.8)" }}>
+                className="flex-1 active:opacity-90">
                 {!!card && <Image source={getImageUrl(card)} contentFit="cover" style={{ position: "absolute", inset: 0, opacity: 0.55 }} accessibilityIgnoresInvertColors />}
                 <View className="flex-1 items-center justify-center gap-3 px-6">
                     {episodeLoading || (playing && !url && !shownError) ? <>
@@ -583,9 +587,9 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
                     </> : <View className="h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-black/45">
                         <Play size={28} color="#fff" fill="#fff" />
                     </View>}
-                    {playing && !!url && <Text className="text-center text-[13px] text-white/80">{t("Playing in the player", "Läuft im Player")}</Text>}
                 </View>
             </Pressable>
+            </PlayerBoxSlot>
             {!!sourceFailure && !cycler.isTrying && <Muted accessibilityLiveRegion="polite" className="mt-3 text-[13px]">{sourceFailure}</Muted>}
             {(episodeSourceError || !!playbackError || (!episodeLoading && !!episodeSource && !videoSource)) &&
                 <Button intent="secondary" wrapperClassName="mt-3 self-start" disabled={episodeLoading} onPress={() => retryEpisodeSource()}>{t("Retry source", "Quelle erneut laden")}</Button>}

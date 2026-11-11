@@ -70,6 +70,22 @@ export function topPad(width: number, fillsScreen: boolean, insetTop: number) {
     return (fillsScreen ? 0 : insetTop) + controlSizes(width).padTop
 }
 
+/**
+ * The box on the anime page (r22, 2.0.x inline player: the same bars by the box's width). A box under 300dp high (a phone:
+ * ~214dp) has no room for the 60dp play button between the bars, so the centre gets 48dp play and 40dp seek buttons
+ * (still ≥ 40dp + 4dp slop); the bars keep their sizes. A taller box (tablet) keeps the width's values.
+ */
+export const BOX_COMPACT_HEIGHT = 300
+
+export function boxControlSizes(width: number, height: number): ControlSizes {
+    const sizes = controlSizes(width)
+    if (height >= BOX_COMPACT_HEIGHT) return sizes
+    return { ...sizes, play: 48, playIcon: 22, seek: 40, centerGap: 16 }
+}
+
+/** The box's bars: 8dp of scrim over the bottom row and under the top row instead of 28/24 (the box is ~214dp high). */
+export const BOX_BAR_FADE = 8
+
 /** The smallest bar button: 36dp plus the 4dp hit slop on each side is still a 44dp target. */
 export const MIN_BAR_BUTTON = 36
 

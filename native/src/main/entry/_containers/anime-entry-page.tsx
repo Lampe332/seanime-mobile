@@ -43,6 +43,7 @@ import {
     shownAnimeEntryView,
 } from "@/main/entry/_lib/anime-entry-view"
 import { OnlinestreamPage } from "@/main/onlinestream/_containers/onlinestream-page"
+import { player_onlineAtom } from "@/main/onlinestream/_lib/onlinestream-player.atoms"
 import { addSeconds } from "date-fns/addSeconds"
 import { format } from "date-fns/format"
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow"
@@ -68,7 +69,8 @@ import Share2 from "lucide-react-native/icons/share-2"
 import Star from "lucide-react-native/icons/star"
 import React from "react"
 import { ActivityIndicator, Pressable, ScrollView, useWindowDimensions, View } from "react-native"
-import { useReducedMotion } from "react-native-reanimated"
+import Animated, { useReducedMotion } from "react-native-reanimated"
+import { BoxHostProvider, PlayerMediaBox, useBoxHost } from "@/main/_features/player/player-box"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 /*
@@ -125,7 +127,6 @@ export function AnimeEntryPage() {
     const storedHidden = useAtomValue(__anime_hiddenEntryViewsAtom)
     const hidden = React.useMemo(() => [...storedHidden, ...NOT_READY_VIEWS], [storedHidden])
     const switchedFor = React.useRef<string | null>(null)
-    const scrollRef = React.useRef<React.ComponentRef<typeof ScrollView>>(null)
     // the wide tablet's left column, which scrolls on its own (r16)
     const columnRef = React.useRef<React.ComponentRef<typeof ScrollView>>(null)
     const scrollSignal = useEntryScrollSignal()
@@ -144,17 +145,25 @@ export function AnimeEntryPage() {
     // – also through a link with the same anime and tab, like a playlist's next online episode – picks the first view
     // again (web: a new page mount per visit). The hidden page keeps its view until then (shownAnimeEntryView).
     const focused = useIsFocused()
+    // r22: an Animated.ScrollView, its offset drives the player's box on the UI thread (player-box.tsx)
+    const { scrollRef, host: boxHost, onScroll: onBoxScroll, onScrollViewLayout, onContentSizeChange, setContent, onContentLayout } =
+        useBoxHost({ focused, topInset: insets.top, onScrollSignal: scrollSignal.emit, signalMs: SCROLL_SIGNAL_MS })
     const [left, setLeft] = React.useState(false)
     const ready = !isLoading && !!mediaId && !!serverStatus?.settings
-    const startView = focused && left && ready ? getInitialAnimeEntryView({ entry, serverStatus, hidden, tab: params.tab }) : null
+    // r22: this anime's online stream still plays (box or mini player): coming back opens the online view, so its box
+    // takes the player again (player-box.tsx)
+    const onlineMediaId = useAtomValue(player_onlineAtom)?.params.mediaId
+    const backToOnline = !params.tab && !!mediaId && String(onlineMediaId ?? "") === mediaId && !hidden.includes("onlinestream")
+    const firstView = (): AnimeEntryView => backToOnline ? "onlinestream" : getInitialAnimeEntryView({ entry, serverStatus, hidden, tab: params.tab })
+    const startView = focused && left && ready ? firstView() : null
     const view = shownAnimeEntryView(storedView, focused, left, startView)
     React.useEffect(() => {
         if (!focused || !ready) return
         if (switchedFor.current === mediaId) return
         switchedFor.current = mediaId
-        setView(getInitialAnimeEntryView({ entry, serverStatus, hidden, tab: params.tab }))
+        setView(backToOnline ? "onlinestream" : getInitialAnimeEntryView({ entry, serverStatus, hidden, tab: params.tab }))
         setLeft(false)
-    }, [focused, entry, ready, mediaId, serverStatus, hidden, params.tab, setView])
+    }, [focused, entry, ready, mediaId, serverStatus, hidden, params.tab, setView, backToOnline])
     const pickView = (next: AnimeEntryView) => {
         setView(next)
         setLeft(false)
@@ -179,7 +188,7 @@ export function AnimeEntryPage() {
     React.useEffect(() => {
         scrollRef.current?.scrollTo({ y: 0, animated: false })
         columnRef.current?.scrollTo({ y: 0, animated: false })
-    }, [mediaId])
+    }, [mediaId, scrollRef])
     // the cover flight's way back (registered later) lets these steps go first
     useCoverFlightPageBackSteps(trail.length > 0)
     useCloseOnBack(trail.length > 0, () => {
@@ -222,6 +231,8 @@ export function AnimeEntryPage() {
     // The tablet edition shows characters and relations across the whole page, under the anime and its episodes
     const bottomSection = rail ? undefined : moreSection
     const episodes = <View className="min-w-0">
+        {/* r22: a library file, torrent, debrid or saved episode of this anime plays on in a box here when made small */}
+        <PlayerMediaBox mediaId={entry.mediaId} />
         <PluginWebviewSlot slot="before-anime-entry-episode-list" />
         {view === "library" && <EpisodeSection entry={entry} bottomSection={bottomSection} />}
         {view === "torrentstream" && <TorrentStreamPage entry={entry} bottomSection={bottomSection} />}
@@ -231,7 +242,7 @@ export function AnimeEntryPage() {
     </View>
 
     const header = <EntryHeader entry={entry} details={details} detailsLoading={detailsLoading} wide={wide} tablet={rail}
-        onEpisodes={wide ? undefined : () => scrollRef.current?.scrollTo({ y: Math.max(0, episodesY.current - 16), animated: !reduceMotion })}
+        onEpisodes={wide ? undefined : () => scrollRef.current?.scrollTo({ y: Math.max(0, boxHost.contentOffset().y + episodesY.current - 16), animated: !reduceMotion })}
         actions={<View className="flex-row flex-wrap items-center gap-2">
             <MoreButton tablet={rail} onPress={() => setMoreOpen(true)} />
             <PluginPageButtons kind="anime" media={entry.media} />
@@ -258,39 +269,45 @@ export function AnimeEntryPage() {
     }
 
     // the long online list draws only the rows near the screen and follows the scrolling (windowed-rows.tsx, r18)
-    return <EntryScrollProvider value={scrollSignal}>
-        {wide
-            // r16 (Nick 10.11., not in 2.0.33): the left column stays while only the right one scrolls; a column taller than the
-            // screen scrolls on its own. Characters and relations follow the episodes in the right column.
-            ? <View className="flex-1 flex-row px-6" style={{ columnGap: window.width >= 1400 ? 48 : 40 }}>
-                <ScrollView ref={columnRef} style={{ width: window.width >= 1400 ? 352 : 320, flexGrow: 0 }} contentContainerStyle={scrollPadding}
-                    showsVerticalScrollIndicator={false}>
-                    {header}
-                </ScrollView>
-                <ScrollView ref={scrollRef} className="min-w-0 flex-1" contentContainerStyle={scrollPadding}
-                    onScroll={scrollSignal.emit} scrollEventThrottle={SCROLL_SIGNAL_MS}>
-                    <View className="gap-4">
-                        {tabsRow}
-                        <NextAiringEpisode entry={entry} />
+    // r22: the scroll content sits in one wrapper, so the player's box is measured in it (player-box.tsx)
+    const scrollProps = {
+        ref: scrollRef,
+        onScroll: onBoxScroll,
+        scrollEventThrottle: 16,
+        onLayout: onScrollViewLayout,
+        onContentSizeChange,
+    }
+    // r22: one tree for both layouts, so a window change (picture in picture, turning the tablet) does not remount the
+    // episodes with the online stream page and the player's box; only the left column comes and goes
+    return <EntryScrollProvider value={scrollSignal}><BoxHostProvider value={boxHost}>
+        <View className={wide ? "flex-1 flex-row px-6" : "flex-1"} style={wide ? { columnGap: window.width >= 1400 ? 48 : 40 } : undefined}>
+            {/* r16 (Nick 10.11., not in 2.0.33): wide, the left column stays while only the right one scrolls; a column taller
+                than the screen scrolls on its own. Characters and relations follow the episodes in the right column. */}
+            {wide ? <ScrollView ref={columnRef} style={{ width: window.width >= 1400 ? 352 : 320, flexGrow: 0 }} contentContainerStyle={scrollPadding}
+                showsVerticalScrollIndicator={false}>
+                {header}
+            </ScrollView> : null}
+            <Animated.ScrollView {...scrollProps} style={wide ? { minWidth: 0, flex: 1 } : { flex: 1 }}
+                // style objects, not classes: uniwind's className reaches react-native's own components only
+                contentContainerStyle={wide ? scrollPadding
+                    : { ...scrollPadding, width: "100%", alignSelf: "center", paddingHorizontal: rail ? 24 : 0, ...(!rail ? { backgroundImage: pageTint(0) } : null) }}>
+                <View ref={setContent} collapsable={false} onLayout={e => onContentLayout(e.nativeEvent.layout.x, e.nativeEvent.layout.y)}>
+                    {!wide && <View className={rail ? "pb-2" : "px-4 pb-2 pt-4"}>{header}</View>}
+                    {/* "Episodes & playback" glides to it (its place in the wrapper + the wrapper's in the scroll content) */}
+                    {/* phone: the content container's 1rem, below it the page's and the view's `pb-10` (anime-entry-page.tsx 2.0.32) */}
+                    <View className={wide ? "gap-4" : rail ? "pt-4" : "p-4 pb-24"} onLayout={event => { episodesY.current = event.nativeEvent.layout.y }}>
+                        {wide && tabsRow}
+                        {wide && <NextAiringEpisode entry={entry} />}
                         {episodes}
                     </View>
-                    <View className="gap-6 pt-6">{moreSection}</View>
-                    <PluginWebviewSlot slot="anime-screen-bottom" />
-                </ScrollView>
-            </View>
-            : <ScrollView ref={scrollRef} className="flex-1" onScroll={scrollSignal.emit} scrollEventThrottle={SCROLL_SIGNAL_MS}
-                contentContainerStyle={{ ...scrollPadding, ...(!rail ? { backgroundImage: pageTint(0) } : null) }}
-                contentContainerClassName={cn("w-full self-center", rail ? "px-6" : "")}>
-                <View className={rail ? "pb-2" : "px-4 pb-2 pt-4"}>{header}</View>
-                {/* measured as a direct child of the scroll content: "Episodes & playback" glides to it */}
-                {/* phone: the content container's 1rem, below it the page's and the view's `pb-10` (anime-entry-page.tsx 2.0.32) */}
-                <View className={rail ? "pt-4" : "p-4 pb-24"} onLayout={event => { episodesY.current = event.nativeEvent.layout.y }}>{episodes}</View>
-                {rail && <View className="gap-6 pt-6">{moreSection}</View>}
-                <View className={rail ? "" : "px-4"}><PluginWebviewSlot slot="anime-screen-bottom" /></View>
-            </ScrollView>}
+                    {(wide || rail) && <View className="gap-6 pt-6">{moreSection}</View>}
+                    <View className={wide || rail ? "" : "px-4"}><PluginWebviewSlot slot="anime-screen-bottom" /></View>
+                </View>
+            </Animated.ScrollView>
+        </View>
         <AnimeEntryPhoneMenu entry={entry} details={details} open={moreOpen} onOpenChange={setMoreOpen} isLibraryView={view === "library"} />
         <TorrentSearchPhone entry={entry} />
-    </EntryScrollProvider>
+    </BoxHostProvider></EntryScrollProvider>
 }
 
 /** The header (mobile-anime-header.tsx): identity, progress with Edit, the jump to the episodes, About, the actions */

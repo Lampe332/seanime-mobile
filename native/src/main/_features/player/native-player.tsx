@@ -33,6 +33,12 @@ export function NativePlayer() {
     const qc = useQueryClient()
     const [state, setState] = useAtom(nativePlayer_stateAtom)
     const setMini = useSetAtom(player_miniAtom)
+    // r22: a new server stream (library file, torrent, debrid, Nakama) opens fullscreen; the next episode of one that is
+    // already playing keeps its size (box, mini or full)
+    const activeRef = React.useRef(state.active)
+    React.useLayoutEffect(() => {
+        activeRef.current = state.active
+    })
     const [offlineItem, setOfflineItem] = useAtom(player_offlineItemAtom)
     const [online, setOnline] = useAtom(player_onlineAtom)
     const abortTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -71,6 +77,7 @@ export function NativePlayer() {
                 case "open-and-await":
                     log.info("Open and await", payload)
                     if (abortTimer.current) clearTimeout(abortTimer.current)
+                    if (!activeRef.current) setMini(false)
                     // a server stream replaces an offline episode or an online stream
                     setOfflineItem(null)
                     endOnline()

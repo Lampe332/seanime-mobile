@@ -119,6 +119,9 @@ function MainFrame() {
                     </ContentGate>
                 </View>
             </View>
+            {/* The one player (E3, r22): full over everything (its own z-order), else the box on its anime page or the mini
+                player – both under the bar, menu and sheets that follow */}
+            <NativePlayer />
             <LibraryStatus />
             {!rail && <NavBar {...navProps} />}
             {/* a tapped cover flying into its page and back, over the page and the bar */}
@@ -140,8 +143,6 @@ function MainFrame() {
             <MangaPreferencesSync />
             <MangaSourceRefreshSync />
             <MangaReader />
-            {/* The player opens over every page and stays as the mini player while browsing (E3) */}
-            <NativePlayer />
             <NakamaManager />
             <GlobalPlaylistManager />
             <MobilePlaylists />

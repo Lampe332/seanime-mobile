@@ -3,7 +3,10 @@ import { atomWithStorage } from "@/lib/storage"
 import { atom } from "jotai"
 import type { TrackMemory } from "./player-logic"
 
-/** Mini player: the video keeps playing in a small card above the bar while the app is used (web vc_miniPlayer). */
+/**
+ * The player is small (r22): it plays in the box of its anime page while that page is on screen, else in the mini player
+ * (player-chrome playerView); false = fullscreen. Set by the bottom-right button and Back; a new stream decides it on start.
+ */
 export const player_miniAtom = atom(false)
 
 /** Audio/subtitle language picked per anime (AniList id → language or "off"), kept across app starts. */

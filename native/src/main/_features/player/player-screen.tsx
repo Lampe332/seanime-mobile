@@ -6,7 +6,7 @@ import { useTr } from "@/lib/app-language"
 import { openInPlayerApp } from "@/lib/external-player-link/open-external-player"
 import { colors } from "@/lib/theme/tokens"
 import { showsRail } from "@/lib/tablet-ui"
-import { bottomPad, controlSizes, fitBarButton, topPad } from "./control-sizes"
+import { BOX_BAR_FADE, bottomPad, boxControlSizes, controlSizes, fitBarButton, topPad } from "./control-sizes"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { getSkipChapters } from "@/main/_features/media-core/media-core-chapters"
 import { mediaCorePreferencesAtom } from "@/main/_features/media-core/media-core-preferences"
@@ -27,22 +27,20 @@ import {
 } from "@/main/_features/video-core/video-core.atoms"
 import { ExpoMpvView, type ExpoMpvViewRef } from "expo-mpv"
 import { useKeepAwake } from "expo-keep-awake"
-import { useAtom, useAtomValue } from "jotai"
-import ArrowLeft from "lucide-react-native/icons/arrow-left"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import Captions from "lucide-react-native/icons/captions"
 import Cast from "lucide-react-native/icons/cast"
 import Film from "lucide-react-native/icons/film"
 import Headphones from "lucide-react-native/icons/headphones"
 import Maximize from "lucide-react-native/icons/maximize"
 import Minimize from "lucide-react-native/icons/minimize"
-import Minimize2 from "lucide-react-native/icons/minimize-2"
 import PictureInPicture2 from "lucide-react-native/icons/picture-in-picture-2"
 import Settings from "lucide-react-native/icons/settings"
 import SkipBack from "lucide-react-native/icons/skip-back"
 import SkipForward from "lucide-react-native/icons/skip-forward"
 import X from "lucide-react-native/icons/x"
 import React from "react"
-import { ActivityIndicator, BackHandler, type GestureResponderEvent, Platform, Pressable, useWindowDimensions, View } from "react-native"
+import { ActivityIndicator, BackHandler, type GestureResponderEvent, Pressable, StyleSheet, useWindowDimensions, View } from "react-native"
 import Animated, { Easing, FadeIn, FadeOut, ReduceMotion, useAnimatedStyle, useReducedMotion, withTiming } from "react-native-reanimated"
 import { levelPanelIn, levelPanelOut } from "@/components/ui/core/animations"
 import { LEVEL_PANEL } from "@/lib/motion"
@@ -101,10 +99,11 @@ import {
 } from "./player-logic"
 import { useSubtitleTranslation } from "./use-subtitle-translation"
 import { player_castingAtom, player_miniAtom, player_trackMemoryAtom } from "./player.atoms"
+import { boxScroll, player_boxSlotAtom, player_nowAtom } from "./player-box"
 import { castableStreamUrl, castTitle, castTrackNumbers, castUrlWithTracks } from "./player-cast"
 import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
 import { endPlayerOrientation, readBrightness, readVolume, restoreBrightness, setVideoFullscreenOrientation, turnedToLandscape, writeBrightness, writeVolume } from "./player-system"
-import { backStep, canTurnScreen, isFullscreenWindow, loadStart, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, miniPlayCommand, progressFraction } from "./player-chrome"
+import { backStep, boxFrame, boxOwner, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, miniPlayCommand, playerView, progressFraction, viewTurn } from "./player-chrome"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { usePlayerPlaylist } from "./use-player-playlist"
 import { type OfflinePlayback, offlinePositionToSave } from "@/main/android-downloads/_lib/offline-playback"
@@ -124,9 +123,10 @@ import { playlistNavigation } from "@/main/_features/playlists/lib/mobile-playli
  * centre buttons −5 / play / +10, bars that hide after 5 s while playing, a time bar that scrubs only after 10 px
  * sideways, double tap −5/+10 on either half, brightness (left) and volume (right) by vertical swipes, long press = 2x.
  * Sideways swipes do nothing (no swipe-to-seek), and a swipe or long press never toggles the controls.
- * Opens over every page (like the old native player). The arrow at the top left and Back close it (2.0.x since 1.9.38);
- * Back in fullscreen first turns upright. While a stream still loads, the minimise button parks it in the mini player
- * (2.0.x LoadingFloatingButtons), which plays on above the navigation bar until it is opened or closed.
+ * r22 (Nick 11.11.): one player, three places (player-chrome playerView): fullscreen over everything, the box on its anime
+ * page (2.0.x inline player), the mini player anywhere else. The bottom-right button switches fullscreen ↔ small (box or
+ * mini), during loading too; Back in fullscreen makes it small; it always plays on (the mpv view is never remounted,
+ * only its frame moves). The mini player's × closes it.
  */
 
 type ViewRef = React.ComponentRef<typeof View>
@@ -139,8 +139,10 @@ const POP_IN = FadeIn.duration(150).easing(BAR_EASE)
 const POP_OUT = FadeOut.duration(120)
 
 type SurfaceGesture = {
-    x: number, y: number, side: Side, kind: SwipeKind | "boost" | null, startLevel: number, kindY: number, moved: boolean,
+    x: number, y: number, side: Side, kind: SwipeKind | "boost" | "scroll" | null, startLevel: number, kindY: number, moved: boolean,
     levels: { brightness: number, volume: number }
+    /** window position at the start and the last two moves (the box scrolls the page by them, r22) */
+    pageX: number, pageY: number, last: { y: number, t: number }, previous: { y: number, t: number }
 }
 
 /** `level` (0…1): the brightness / volume panel's bar */
@@ -174,7 +176,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const reduceMotion = useReducedMotion()
     const mpv = React.useRef<ExpoMpvViewRef>(null)
 
-    const [mini, setMini] = useAtom(player_miniAtom)
+    const [small, setSmall] = useAtom(player_miniAtom)
     const casting = useAtomValue(player_castingAtom)
     const [trackMemory, setTrackMemory] = useAtom(player_trackMemoryAtom)
     const settings = useAtomValue(vc_settings)
@@ -233,17 +235,24 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     }
 
     const [visible, setVisible] = React.useState(true)
-    // Fullscreen = the landscape window (player-chrome isFullscreenWindow); a pressed button shows its target at once
-    // and the window's turn takes over again once it happened
-    const landscape = isFullscreenWindow(window.width, window.height)
-    const [fullscreenTarget, setFullscreenTarget] = React.useState<boolean | null>(null)
-    const [turnSeen, setTurnSeen] = React.useState(landscape)
-    if (turnSeen !== landscape) {
-        setTurnSeen(landscape)
-        setFullscreenTarget(null)
-    }
-    const fullscreen = fullscreenTarget ?? landscape
     const [pip, setPip] = React.useState(false)
+    const pipRef = React.useRef(false)
+    // ── Where the player is (r22): full, the box on its anime page, or the mini player ──
+    const owner = boxOwner(!!online, mediaId)
+    const setNow = useSetAtom(player_nowAtom)
+    React.useEffect(() => {
+        setNow({ owner })
+    }, [owner, setNow])
+    React.useEffect(() => () => setNow(null), [setNow])
+    const slot = useAtomValue(player_boxSlotAtom)
+    const boxSlot = slot && owner && slot.owner === owner ? slot : null
+    const view = playerView(small, !!boxSlot)
+    // picture in picture shows the whole window: the player fills it, whatever its place in the app
+    const layoutView = pip ? "full" : view
+    const mini = layoutView === "mini"
+    const box = layoutView === "box" ? boxSlot : null
+    const fullscreen = view === "full"
+    const landscape = window.width > window.height
     const [menuOpen, setMenuOpen] = React.useState(false)
     const [menuPage, setMenuPage] = React.useState<PlayerMenuPage>("main")
     // the bar button the menu hangs from in landscape (2.0.32: each menu is a popover out of its own button)
@@ -576,14 +585,29 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         }
     }
 
-    // ── Fullscreen, PiP, close ──
+    // ── Fullscreen ↔ small (box/mini), PiP, close ──
+    // the bottom-right button and Back: the frame moves, the stream plays on (no remount of the mpv view)
     const toggleFullscreen = () => {
-        const next = !fullscreen
-        setFullscreenTarget(next)
-        setMini(false)
-        setVideoFullscreenOrientation(next, isTablet)
-        events.fullscreen(next)
+        setMenuOpen(false)
+        setVolumeOpen(false)
+        setSmall(!small)
     }
+    // a phone turns to landscape for fullscreen and upright for the box/mini (only after the app turned it); a tablet
+    // keeps its orientation (player-chrome viewTurn)
+    React.useEffect(() => {
+        switch (viewTurn(view, isTablet)) {
+            case "landscape":
+                setVideoFullscreenOrientation(true, false)
+                break
+            case "upright":
+                if (turnedToLandscape()) setVideoFullscreenOrientation(false, false)
+                break
+        }
+    }, [view, isTablet])
+    const reportFullscreen = React.useEffectEvent((on: boolean) => events.fullscreen(on))
+    React.useEffect(() => {
+        reportFullscreen(fullscreen)
+    }, [fullscreen])
 
     const close = React.useCallback(async () => {
         setCountdown(null)
@@ -638,8 +662,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const speedBeforeBoost = React.useRef(1)
 
     const onGrant = (e: GestureResponderEvent) => {
-        const { locationX: x, locationY: y } = e.nativeEvent
-        const g: SurfaceGesture = { x, y, side: sideOf(x, surface.current.width), kind: null, startLevel: 0, kindY: y, moved: false, levels: { brightness: 0.5, volume: 0.5 } }
+        const { locationX: x, locationY: y, pageX, pageY, timestamp } = e.nativeEvent
+        const g: SurfaceGesture = { x, y, side: sideOf(x, surface.current.width), kind: null, startLevel: 0, kindY: y, moved: false, levels: { brightness: 0.5, volume: 0.5 },
+            pageX, pageY, last: { y: pageY, t: timestamp }, previous: { y: pageY, t: timestamp } }
         gesture.current = g
         // the levels are read now so they are there once the finger has moved far enough to count as a swipe
         readBrightness().then(v => (g.levels.brightness = v))
@@ -657,7 +682,25 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const onMove = (e: GestureResponderEvent) => {
         const g = gesture.current
         if (!g || g.kind === "boost") return
-        const { locationX: x, locationY: y } = e.nativeEvent
+        const { locationX: x, locationY: y, pageX, pageY, timestamp } = e.nativeEvent
+        // the box: a vertical drag scrolls the page under it (window coordinates, the box moves with the page)
+        if (box) {
+            g.previous = g.last
+            g.last = { y: pageY, t: timestamp }
+            if (!g.kind && isScrollDrag(pageX - g.pageX, pageY - g.pageY)) {
+                g.kind = "scroll"
+                g.moved = true
+                if (longPress.current) clearTimeout(longPress.current)
+                g.pageY = pageY
+                box.scroller.begin()
+            }
+            if (g.kind === "scroll") box.scroller.move(pageY - g.pageY)
+            else if (Math.abs(pageX - g.pageX) > 10) {
+                g.moved = true
+                if (longPress.current) clearTimeout(longPress.current)
+            }
+            return
+        }
         const dx = x - g.x
         const dyUp = g.y - y
         if (Math.abs(dx) > 10 || Math.abs(dyUp) > 10) {
@@ -674,7 +717,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         const level = swipeLevel(g.startLevel, g.kindY - y, surface.current.height)
         if (g.kind === "brightness") writeBrightness(level)
         else writeVolume(level)
-        setHud({ side: g.side, text: `${Math.round(level * 100)} %`, kind: g.kind, level })
+        setHud({ side: g.side, text: `${Math.round(level * 100)} %`, kind: g.kind as SwipeKind, level })
     }
 
     const onEnd = (e: GestureResponderEvent, cancelled: boolean) => {
@@ -685,6 +728,11 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         if (g.kind === "boost") {
             setBoosting(false)
             setHud(null)
+            return
+        }
+        if (g.kind === "scroll") {
+            const ms = g.last.t - g.previous.t
+            box?.scroller.end(!cancelled && ms > 0 ? (g.last.y - g.previous.y) / ms * 1000 : 0)
             return
         }
         if (g.kind) {
@@ -746,8 +794,11 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const effectiveSpeed = boosting ? BOOST_RATE : speed
     // an open volume pill keeps the bars, like an open player menu did
     const barsShown = visible || !playing || volumeOpen
+    // the frame the controls fill: the window, or the box (r22) with no system insets inside it
+    const frameWidth = box ? box.geometry.content.width : window.width
+    const edge = box ? { top: 0, bottom: 0, left: 0, right: 0 } : insets
     // --vc-* of media-core-controls.css by the player's width (control-sizes.ts); from 1000dp the tablet's values
-    const vc = controlSizes(window.width)
+    const vc = box ? boxControlSizes(frameWidth, box.geometry.content.height) : controlSizes(window.width)
     const barIcon = vc.icon
     const hasVideo = !!source && loaded
     const title = info?.episode?.displayTitle || (progressNumber ? t(`Episode ${progressNumber}`, `Folge ${progressNumber}`) : "")
@@ -771,24 +822,22 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     })
     const castPill = !mini && playerCast.casting && !playerCast.open
 
-    // Back (2.0.x onHistoryPop/backExit, player-chrome backStep): open menus first, then fullscreen, then the player closes
+    // Back (r22, player-chrome backStep): open menus first; fullscreen becomes small (box or mini) and plays on; in the box
+    // or the mini player Back is the page's
     const onBack = React.useEffectEvent(() => {
-        switch (backStep({ overlayOpen: menuOpen || playerCast.open, mini, fullscreen, isTablet, turnedByApp: turnedToLandscape() })) {
+        switch (backStep({ overlayOpen: menuOpen || playerCast.open, view })) {
             case "pass":
                 return false
-            case "exit-fullscreen":
+            case "shrink":
                 toggleFullscreen()
-                return true
-            case "close":
-                void close()
                 return true
         }
     })
     React.useEffect(() => {
-        if (mini) return
+        if (!fullscreen) return
         const sub = BackHandler.addEventListener("hardwareBackPress", () => onBack())
         return () => sub.remove()
-    }, [mini])
+    }, [fullscreen])
     const errorText = playbackError ?? videoError
 
     const barTiming = { duration: reduceMotion ? 0 : barsShown ? BAR_IN_MS : BAR_OUT_MS, easing: BAR_EASE }
@@ -803,25 +852,48 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const pop = reduceMotion ? undefined : POP_IN
     const unpop = reduceMotion ? undefined : POP_OUT
 
-    const fillsScreen = fullscreen || landscape
-    // the top row's buttons, narrowed on an upright phone when they would not fit (control-sizes fitBarButton)
-    const topButtons = [true, playlist.hasPreviousEpisode, playlist.hasNextEpisode, true, (online?.qualities?.length ?? 0) > 1,
+    // the box has no screen edges inside it: its bars sit at its own edges (2.0.x inline: [data-vc-inline="true"])
+    const fillsScreen = !!box || landscape
+    // the top row's buttons, narrowed when they would not fit (control-sizes fitBarButton); the box leaves out the volume
+    // (the phone's keys), its bars stay inside the page
+    const showVolume = !box
+    const topButtons = [playlist.hasPreviousEpisode, playlist.hasNextEpisode, true, (online?.qualities?.length ?? 0) > 1,
         tracks.some(track => track.type === "sub"), tracks.filter(track => track.type === "audio").length > 1,
-        playerCast.available && !pip, canEnterPip(casting, hasVideo), true, !hasVideo && !errorText].filter(Boolean).length
-    const topButton = fitBarButton(vc.button, topButtons, window.width - insets.left - insets.right - vc.padX * 2 - (topButtons - 1) * 2)
+        playerCast.available && !pip, canEnterPip(casting, hasVideo), showVolume].filter(Boolean).length
+    const topButton = fitBarButton(vc.button, topButtons, frameWidth - edge.left - edge.right - vc.padX * 2 - (topButtons - 1) * 2)
+    const barFadeTop = box ? BOX_BAR_FADE : 24
+    const barFadeBottom = box ? BOX_BAR_FADE : 28
+    // the bottom bar's height (row + time bar + room under it): the centre buttons sit between the bars in the box
+    const bottomBarHeight = barFadeBottom + vc.button + 44 + bottomPad(frameWidth, !mini && !box, edge.bottom)
+    const topBarHeight = topPad(frameWidth, fillsScreen, edge.top) + vc.button
     // Mini player (player-chrome miniFrame): a bar above the phone's navigation bar, 2.0.33's card beside the tablet's rail
     const navBar = useNavBarHeight()
     const miniBox = miniFrame({ width: window.width, rail: showsRail(isTablet, window), navBar, insets })
-    const containerStyle = mini
+    // One tree in every place (the mpv view is never remounted): the outer frame clips, the body carries the picture and
+    // the controls. Full: both fill the window above everything. Box: the outer frame is the page's scroll area (clip), the
+    // body the box, moved with the page's scroll on the UI thread. Mini: the card.
+    const boxStatic = box ? boxFrame(box.geometry, 0) : null
+    const outerStyle = mini
         ? { position: "absolute" as const, right: miniBox.right, bottom: miniBox.bottom, width: miniBox.width, height: miniBox.height, borderRadius: 14, overflow: "hidden" as const, backgroundColor: colors.smSurfaceRaised }
-        : { position: "absolute" as const, left: 0, top: 0, right: 0, bottom: 0, backgroundColor: "#000" }
+        : boxStatic
+            ? { position: "absolute" as const, ...boxStatic.clip, overflow: "hidden" as const }
+            : { position: "absolute" as const, left: 0, top: 0, right: 0, bottom: 0, backgroundColor: "#000", zIndex: 50, elevation: 50 }
+    const bodyStyle = boxStatic
+        ? { position: "absolute" as const, left: boxStatic.box.left, top: 0, width: boxStatic.box.width, height: boxStatic.box.height, backgroundColor: "#000" }
+        : { position: "absolute" as const, left: 0, top: 0, right: 0, bottom: 0 }
+    const geometry = box?.geometry ?? null
+    const bodyMotion = useAnimatedStyle(() => {
+        if (!geometry) return { transform: [{ translateY: 0 }] }
+        return { transform: [{ translateY: boxFrame(geometry, boxScroll.value).box.top }] }
+    }, [geometry])
     // the picture keeps square corners (a SurfaceView ignores rounding), so in the mini player it sits inside the card's padding
     const videoStyle = mini
         ? { position: "absolute" as const, left: MINI_BAR.pad, top: MINI_BAR.pad, width: miniBox.video.width, height: miniBox.video.height, backgroundColor: "#000" }
         : { position: "absolute" as const, left: 0, top: 0, right: 0, bottom: 0 }
 
-    return (
-        <View ref={rootRef} collapsable={false} style={[containerStyle, { zIndex: 50, elevation: 50 }]}>
+    return (<>
+        <View collapsable={false} pointerEvents="box-none" style={outerStyle}>
+        <Animated.View collapsable={false} style={[bodyStyle, bodyMotion]}>
             {playing && <KeepScreenOn />}
 
             <ExpoMpvView
@@ -846,9 +918,12 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     const which = remoteEpisode(nativeEvent.command, playlist.hasNextEpisode, playlist.hasPreviousEpisode)
                     if (which) playlist.playEpisode(which)
                 }}
-                pictureInPictureEnabled={canEnterPip(casting, hasVideo) && !mini}
+                pictureInPictureEnabled={canEnterPip(casting, hasVideo) && view !== "mini"}
                 onPictureInPictureChange={({ nativeEvent }) => {
+                    pipRef.current = nativeEvent.isActive
                     setPip(nativeEvent.isActive)
+                    // back from picture in picture: the bars show where it stands now
+                    if (!nativeEvent.isActive) setPosition(timeRef.current.currentTime)
                     events.pip(nativeEvent.isActive)
                 }}
                 onLoad={({ nativeEvent }) => {
@@ -875,9 +950,12 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                 onProgress={({ nativeEvent }) => {
                     const { position: p, duration: d, bufferedPosition } = nativeEvent
                     timeRef.current = { ...timeRef.current, currentTime: p, duration: d }
-                    setPosition(p)
-                    if (d > 0 && d !== duration) setDuration(d)
-                    setBuffered(bufferedPosition)
+                    // picture in picture shows only the picture: no re-render of hidden bars per tick (r22 PiP)
+                    if (!pipRef.current) {
+                        setPosition(p)
+                        if (d > 0 && d !== duration) setDuration(d)
+                        setBuffered(bufferedPosition)
+                    }
                     onlineEvents?.current?.time(p)
                     if (offline && Math.abs(p - savedAtRef.current) >= OFFLINE_SAVE_EVERY_S) saveOffline(p, false)
                     // progress only ticks while mpv plays; a missed state event is caught up here
@@ -915,7 +993,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     error={errorText}
                     progress={progressFraction(position, duration)}
                     onExpand={() => {
-                        setMini(false)
+                        setSmall(false)
                         showBars()
                     }}
                     onPlay={() => {
@@ -925,9 +1003,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     }}
                     onClose={() => void close()}
                 />
-            ) : (
+            ) : pip ? null : (
                 <>
-                    {/* The video surface: taps, double taps, swipes, long press */}
+                    {/* The video surface: taps, double taps, swipes, long press; in the box a vertical drag scrolls the page */}
                     <View
                         style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
                         onLayout={e => (surface.current = { width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
@@ -975,7 +1053,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     )}
 
                     {!!message && (
-                        <View pointerEvents="none" className="absolute self-center rounded-full bg-black/65 px-4 py-2" style={{ top: insets.top + (castPill ? 116 : 64) }}>
+                        <View pointerEvents="none" className="absolute self-center rounded-full bg-black/65 px-4 py-2" style={{ top: edge.top + (box ? 52 : castPill ? 116 : 64) }}>
                             <Text className="text-sm font-semibold text-white">{message}</Text>
                         </View>
                     )}
@@ -983,16 +1061,14 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     {/* Top bar */}
                     <Animated.View pointerEvents={barsShown ? "box-none" : "none"} style={[fadeStyle, {
                         position: "absolute", left: 0, right: 0, top: 0,
-                        paddingTop: topPad(window.width, fillsScreen, insets.top), paddingLeft: insets.left + vc.padX, paddingRight: insets.right + vc.padX, paddingBottom: 24,
+                        paddingTop: topPad(frameWidth, fillsScreen, edge.top), paddingLeft: edge.left + vc.padX, paddingRight: edge.right + vc.padX, paddingBottom: barFadeTop,
                         backgroundImage: "linear-gradient(to bottom, rgba(0,0,0,0.62), rgba(0,0,0,0.26) 62%, transparent)",
                     }]}>
                         {/* 2.0.32's row (video-core.tsx VideoCoreMobileControlBar): episode buttons and, from 560dp, the title on
                             the left; settings, quality, subtitles, audio, cast, picture in picture and volume on the right.
-                            r21: the arrow in front closes the player like Back (2.0.32 had only Back, Nick missed a button);
-                            while the stream loads, the last button parks it in the mini player (2.0.x loading buttons). */}
+                            r22: no close arrow and no loading "minimise" (Nick 11.11.): the bottom-right button makes it small. */}
                         <BarSizeContext value={topButton}>
                         <View className="flex-row items-center gap-0.5" style={{ minHeight: vc.button }}>
-                            <BarButton label={t("Close player", "Player schließen")} onPress={() => void close()}><ArrowLeft size={barIcon} color="#fff" /></BarButton>
                             {playlist.hasPreviousEpisode && (
                                 <BarButton label={t("Previous episode", "Vorige Folge")} onPress={() => playlist.playEpisode("previous")}><SkipBack size={barIcon} color="#fff" /></BarButton>
                             )}
@@ -1000,7 +1076,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                                 <BarButton label={t("Next episode", "Nächste Folge")} onPress={() => playlist.playEpisode("next")}><SkipForward size={barIcon} color="#fff" /></BarButton>
                             )}
                             <View className="min-w-0 flex-1 px-2" pointerEvents="none">
-                                {window.width >= 560 && <View style={{ maxWidth: window.width * 0.46 }}>
+                                {frameWidth >= 560 && <View style={{ maxWidth: frameWidth * 0.46 }}>
                                     {!!animeTitle && <Text numberOfLines={1} className="text-white/70" style={{ fontSize: vc.titleText * 0.9 }}>{animeTitle}</Text>}
                                     {!!title && <Text numberOfLines={1} className="font-semibold text-white" style={{ fontSize: vc.titleText + 1 }}>{title}</Text>}
                                 </View>}
@@ -1026,19 +1102,16 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                                     <PictureInPicture2 size={barIcon} color="#fff" />
                                 </BarButton>
                             )}
-                            <VolumeButton volume={volume} muted={muted} open={volumeOpen} iconSize={barIcon} size={topButton} onToggle={() => {
+                            {showVolume && <VolumeButton volume={volume} muted={muted} open={volumeOpen} iconSize={barIcon} size={topButton} onToggle={() => {
                                 if (volumeOpen) scheduleHide()
                                 else if (hideTimer.current) clearTimeout(hideTimer.current)
                                 setVolumeOpen(!volumeOpen)
-                            }} />
-                            {!hasVideo && !errorText && (
-                                <BarButton label={t("Minimise player", "Player verkleinern")} onPress={() => setMini(true)}><Minimize2 size={barIcon} color="#fff" /></BarButton>
-                            )}
+                            }} />}
                         </View>
                         </BarSizeContext>
                     </Animated.View>
 
-                    {volumeOpen && barsShown && (
+                    {volumeOpen && barsShown && showVolume && (
                         <VolumePanel top={topPad(window.width, fillsScreen, insets.top) + vc.button + 6} right={insets.right + vc.padX} width={window.width}
                             volume={volume} muted={muted} onVolume={setVolume} onMuted={setMuted}
                             onClose={() => {
@@ -1050,7 +1123,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     {/* "Playing on …": stays while the bars hide, the phone is paused while the TV plays */}
                     {castPill && (
                         <Animated.View entering={pop} exiting={unpop} pointerEvents="box-none" className="absolute left-0 right-0 items-center"
-                            style={{ top: (fillsScreen ? 8 : insets.top) + 60 }}>
+                            style={{ top: (fillsScreen ? 8 : edge.top) + 60 }}>
                             <CastPill device={playerCast.state.device ?? ""} onPress={() => playerCast.setOpen(true)} />
                         </Animated.View>
                     )}
@@ -1058,7 +1131,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     {/* Centre: −5, play/pause, +10 */}
                     {!!source && !errorText && (
                         <Animated.View pointerEvents={barsShown ? "box-none" : "none"} style={[barStyle, {
-                            position: "absolute", left: 0, right: 0, top: 0, bottom: 0, alignItems: "center", justifyContent: "center",
+                            // the box: between its bars (the 214dp box has no room for them to overlap the centre)
+                            position: "absolute", left: 0, right: 0, top: box ? topBarHeight : 0, bottom: box ? bottomBarHeight - barFadeBottom : 0,
+                            alignItems: "center", justifyContent: "center",
                         }]}>
                             <View className="flex-row items-center" style={{ gap: vc.centerGap }} pointerEvents="box-none">
                                 <CenterSeek seconds={-SEEK_BACK_SECONDS} size={vc.seek} onSeek={s => { seekBy(s); showBars() }} />
@@ -1079,7 +1154,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     {/* Skip intro/outro and the auto next countdown sit above the bottom bar */}
                     {countdown !== null ? (
                         <Animated.View entering={pop} exiting={unpop} className="absolute right-3 flex-row items-center gap-2 rounded-full bg-black/70 py-1.5 pl-4 pr-1.5"
-                            style={{ bottom: (fillsScreen ? 8 : insets.bottom) + 96 }}>
+                            style={{ bottom: box ? bottomBarHeight - barFadeBottom + 4 : (fillsScreen ? 8 : insets.bottom) + 96 }}>
                             <Text className="text-sm font-semibold text-white">{t(`Next episode in ${countdown}`, `Nächste Folge in ${countdown}`)}</Text>
                             <Pressable accessibilityRole="button" onPress={() => setCountdown(null)} className="rounded-full px-3 py-2 active:bg-white/15">
                                 <Text className="text-sm text-white/80">{t("Cancel", "Abbrechen")}</Text>
@@ -1088,18 +1163,19 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                                 <Text className="text-sm font-semibold text-black">{t("Play now", "Jetzt abspielen")}</Text>
                             </Pressable>
                         </Animated.View>
-                    ) : (!!skipSegment && !autoSkip && barsShown && (
+                    ) : (!!skipSegment && !autoSkip && barsShown && !box && (
                         <Pressable accessibilityRole="button" onPress={() => seekTo(skipSegment.end)}
                             className="absolute right-3 rounded-full border border-white/25 bg-black/70 px-4 py-2.5 active:bg-black/85"
-                            style={{ bottom: (fillsScreen ? 8 : insets.bottom) + 96 }}>
+                            style={{ bottom: box ? bottomBarHeight - barFadeBottom + 4 : (fillsScreen ? 8 : insets.bottom) + 96 }}>
                             <Text className="text-sm font-semibold text-white">{t(`Skip ${skipSegment.label}`, `${skipSegment.label} überspringen`)}</Text>
                         </Pressable>
                     ))}
 
-                    {/* Bottom bar: this player always fills the screen ([data-vc-inline="false"]), upright too: the 1.25rem room under it */}
+                    {/* Bottom bar: full fills the screen ([data-vc-inline="false"]), upright too: the 1.25rem room under it; the box
+                        ([data-vc-inline="true"]) only its own padding */}
                     <Animated.View pointerEvents={barsShown ? "box-none" : "none"} style={[fadeStyle, {
                         position: "absolute", left: 0, right: 0, bottom: 0,
-                        paddingTop: 28, paddingBottom: bottomPad(window.width, !mini, insets.bottom), paddingLeft: insets.left + vc.padX, paddingRight: insets.right + vc.padX,
+                        paddingTop: barFadeBottom, paddingBottom: bottomPad(frameWidth, !mini && !box, edge.bottom), paddingLeft: edge.left + vc.padX, paddingRight: edge.right + vc.padX,
                         backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0.3) 62%, transparent)",
                     }]}>
                         <BarSizeContext value={vc.button}>
@@ -1111,12 +1187,17 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                                 </Text>
                             </Pressable>
                             <View className="flex-1" />
-                            {/* Android 16 tablets ignore the app's orientation (player-chrome canTurnScreen): no button that cannot act */}
-                            {canTurnScreen(Platform.OS === "android" ? Number(Platform.Version) : 0, window.width, window.height) && (
-                                <BarButton label={fullscreen ? t("Exit fullscreen", "Vollbild beenden") : t("Fullscreen", "Vollbild")} onPress={toggleFullscreen}>
-                                    {fullscreen ? <Minimize size={barIcon} color="#fff" /> : <Maximize size={barIcon} color="#fff" />}
-                                </BarButton>
+                            {/* the box (~214dp) has no room above its bar: "Skip" sits in the row, beside the size button */}
+                            {!!box && !!skipSegment && !autoSkip && countdown === null && (
+                                <Pressable accessibilityRole="button" onPress={() => seekTo(skipSegment.end)} hitSlop={4}
+                                    className="mr-1 justify-center rounded-full border border-white/25 bg-black/60 px-3 active:bg-black/80" style={{ height: 36 }}>
+                                    <Text numberOfLines={1} className="text-[13px] font-semibold text-white">{t(`Skip ${skipSegment.label}`, `${skipSegment.label} überspringen`)}</Text>
+                                </Pressable>
                             )}
+                            {/* r22: on every device (tablets too): fullscreen <-> the box on the anime page (else the mini player) */}
+                            <BarButton label={fullscreen ? t("Exit fullscreen", "Vollbild beenden") : t("Fullscreen", "Vollbild")} onPress={toggleFullscreen}>
+                                {fullscreen ? <Minimize size={barIcon} color="#fff" /> : <Maximize size={barIcon} color="#fff" />}
+                            </BarButton>
                         </View>
                         </BarSizeContext>
                         <TimeBar
@@ -1139,7 +1220,11 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     </Animated.View>
                 </>
             )}
+        </Animated.View>
+        </View>
 
+        {/* Menus over the whole window, also from the box (r22); above the bar and rail while open */}
+        <View ref={rootRef} collapsable={false} pointerEvents="box-none" style={[StyleSheet.absoluteFill, { zIndex: 60, elevation: menuOpen ? 60 : 0 }]}>
             <CastSheet cast={playerCast} title={castTitle(animeTitle, title)} hasNext={playlist.hasNextEpisode} onNext={() => playlist.playEpisode("next")} />
 
             <PlayerMenu
@@ -1180,7 +1265,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                 }}
             />
         </View>
-    )
+    </>)
 }
 
 /** The brightness / volume panel: it slides in from its side, its bar glides to each new level (UI thread) */
