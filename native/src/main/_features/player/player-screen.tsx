@@ -35,6 +35,7 @@ import Film from "lucide-react-native/icons/film"
 import Headphones from "lucide-react-native/icons/headphones"
 import Maximize from "lucide-react-native/icons/maximize"
 import Minimize from "lucide-react-native/icons/minimize"
+import Minimize2 from "lucide-react-native/icons/minimize-2"
 import PictureInPicture2 from "lucide-react-native/icons/picture-in-picture-2"
 import Settings from "lucide-react-native/icons/settings"
 import SkipBack from "lucide-react-native/icons/skip-back"
@@ -815,14 +816,14 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         : { position: "absolute" as const, left: 0, top: 0, right: 0, bottom: 0 }
 
     return (
-        <View ref={rootRef} collapsable={false} style={[containerStyle, { backgroundColor: "#000", zIndex: 50, elevation: 50 }]}>
+        <View ref={rootRef} collapsable={false} style={[containerStyle, { zIndex: 50, elevation: 50 }]}>
             {playing && <KeepScreenOn />}
 
             <ExpoMpvView
                 ref={mpv}
                 // an online stream whose source was refreshed can come back with the same URL: a new view loads it again
                 key={viewKey}
-                style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
+                style={videoStyle}
                 source={source}
                 startPosition={startPosition}
                 speed={effectiveSpeed}
@@ -897,7 +898,25 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
             />
 
             {mini ? (
-                <MiniControls playing={playing} onExpand={() => setMini(false)} onToggle={togglePlay} onClose={() => void close()} />
+                <MiniPlayer
+                    frame={miniBox}
+                    title={title || loadingState || ""}
+                    subtitle={animeTitle}
+                    playing={playing}
+                    loading={(buffering || !source) && !errorText}
+                    error={errorText}
+                    progress={progressFraction(position, duration)}
+                    onExpand={() => {
+                        setMini(false)
+                        showBars()
+                    }}
+                    onPlay={() => {
+                        // what the button shows is what it does (a toggle could meet a state change on the way)
+                        if (miniPlayCommand(playing) === "pause") mpv.current?.pause().catch(() => {})
+                        else mpv.current?.play().catch(() => {})
+                    }}
+                    onClose={() => void close()}
+                />
             ) : (
                 <>
                     {/* The video surface: taps, double taps, swipes, long press */}
@@ -1004,6 +1023,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                                 else if (hideTimer.current) clearTimeout(hideTimer.current)
                                 setVolumeOpen(!volumeOpen)
                             }} />
+                            {!hasVideo && !errorText && (
+                                <BarButton label={t("Minimise player", "Player verkleinern")} onPress={() => setMini(true)}><Minimize2 size={barIcon} color="#fff" /></BarButton>
+                            )}
                         </View>
                         </BarSizeContext>
                     </Animated.View>
@@ -1305,14 +1327,55 @@ function TimeBar({ position, duration, buffered, pieces, highlight, track, thumb
     )
 }
 
-function MiniControls({ playing, onExpand, onToggle, onClose }: { playing: boolean, onExpand: () => void, onToggle: () => void, onClose: () => void }) {
+/**
+ * The mini player around the picture (r21): the picture and titles open the player, play/pause and × sit beside them as
+ * their own 44dp buttons (before, they were nested in the "open" press area over the video, and a tap that slipped off
+ * them opened the player), a progress line runs along the bottom edge. Phone: one row docked above the navigation bar;
+ * tablet: the row under the picture. Only the buttons and the picture take touches; the page beside the card stays usable.
+ */
+function MiniPlayer({ frame, title, subtitle, playing, loading, error, progress, onExpand, onPlay, onClose }: {
+    frame: MiniFrame, title: string, subtitle: string, playing: boolean, loading: boolean, error: string | null, progress: number,
+    onExpand: () => void, onPlay: () => void, onClose: () => void
+}) {
     const t = useTr()
+    const bar = frame.kind === "bar"
+    const pad = bar ? MINI_BAR.pad : MINI_CARD.pad
+    // the row of titles and buttons: right of the picture on a phone, under it on a tablet
+    const row = bar
+        ? { left: pad + frame.video.width + 10, top: 0, right: 4, height: frame.height }
+        : { left: 12, top: pad + frame.video.height, right: 4, height: MINI_CARD.rowHeight }
     return (
-        <Pressable accessibilityRole="button" accessibilityLabel={t("Open player", "Player öffnen")} onPress={onExpand} className="absolute inset-0">
-            <View className="absolute bottom-1 right-1 flex-row gap-1">
-                <BarButton label={playing ? t("Pause", "Pause") : t("Play", "Abspielen")} onPress={onToggle}><PlayPauseIcon playing={playing} size={20} /></BarButton>
-                <BarButton label={t("Close player", "Player schließen")} onPress={onClose}><X size={20} color="#fff" /></BarButton>
+        <>
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("Open player", "Player öffnen")}
+                onPress={onExpand}
+                className="absolute inset-0 active:bg-white/5"
+            />
+            {loading && (
+                <View pointerEvents="none" className="absolute items-center justify-center" style={{ left: pad, top: pad, width: frame.video.width, height: frame.video.height }}>
+                    <ActivityIndicator color="#fff" size="small" />
+                </View>
+            )}
+            <View pointerEvents="box-none" className="absolute flex-row items-center" style={row}>
+                <View pointerEvents="none" className="min-w-0 flex-1 justify-center pr-1">
+                    {!!title && <Text numberOfLines={1} className="text-[14px] font-semibold" style={{ color: colors.smText }}>{title}</Text>}
+                    {!!(error || subtitle) && (
+                        <Text numberOfLines={1} className="text-[12px]" style={{ color: error ? colors.smDanger : colors.smTextMuted }}>{error || subtitle}</Text>
+                    )}
+                </View>
+                <BarSizeContext value={44}>
+                    {!error && (
+                        <BarButton label={playing ? t("Pause", "Pause") : t("Play", "Abspielen")} onPress={onPlay}>
+                            <PlayPauseIcon playing={playing} size={24} />
+                        </BarButton>
+                    )}
+                    <BarButton label={t("Close player", "Player schließen")} onPress={onClose}><X size={22} color="#fff" /></BarButton>
+                </BarSizeContext>
             </View>
-        </Pressable>
+            <View pointerEvents="none" className="absolute bottom-0 left-0 right-0" style={{ height: 2, backgroundColor: colors.smLine }}>
+                <View style={{ height: 2, width: `${progress * 100}%`, backgroundColor: colors.smAccent }} />
+            </View>
+        </>
     )
 }
