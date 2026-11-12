@@ -2,7 +2,7 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
-## 3.0.0 — 11.11.2026 (versionCode 31129)
+## 3.0.0 — 12.11.2026 (versionCode 31129)
 
 - 📝 BREAKING: Android: Seanime Mobile now needs Android 7.0 or newer (before: Android 5.0). On older phones, stay on 2.0.33
 - 📝 BREAKING: Settings: Preferences that 2.0.33 kept only inside the app's web view start from their defaults after the update; set them again where you changed them
@@ -12,10 +12,15 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 📝 BREAKING: Widget: If the "Upcoming anime" widget disappears from the home screen after the update, add it again
 - 🏗️ BREAKING: Backup: Android no longer backs up the app's data, because it holds your AniList token and service keys. When you move to a new phone, set the app up again there (AniList sign-in, extensions, settings)
 - 🏗️ BREAKING: Plugins: Plugins that change the app's page (DOM plugins, for example the dub badge) and plugin episode tabs no longer run; plugin tray buttons, actions and plugin windows still work
+- 🎉 Player: Library, torrent and debrid episodes can keep playing in a box on their anime page: make the player small with the bottom-right button or Back, and it plays on above the episode list; on any other page it plays on in the mini player
 - 🎉 Toasts: Tap a message to close it
-- ⚡️ App: Rebuilt as a native app: every screen, list and animation is drawn natively instead of in a web view
+- ⚡️ App: Rebuilt from the ground up as a native Android app (React Native and Expo) instead of a web page inside a web view
+  - Every screen, list, menu and animation is now drawn by Android itself, keeping the 2.0.33 layout
+  - The Seanime server still runs inside the app, as before
 - ⚡️ App: Home and My lists scroll with fewer dropped frames, and the app comes back from the background faster
 - ⚡️ Player: One player plays every episode, including AC3, DTS and TrueHD audio, ASS subtitles and all tracks of MKV files, and switches tracks without reloading
+- ⚡️ Player: Back in fullscreen makes the player small instead of closing it, and the episode keeps playing without a pause; the mini player's × closes it
+- ⚡️ Player: The mini player is a bar above the navigation bar with play/pause, close and a progress line (a card on tablets); tap it to go back to fullscreen
 - ⚡️ Downloads: Episodes saved with 2.0.33 are taken over on the first start, with their subtitles, details and playback position
   - An episode that cannot be taken over shows as failed and can be downloaded again
 - ⚡️ Layout: Pages start right below the top edge instead of under an empty strip, and the dark strip above the anime page is gone
