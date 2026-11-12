@@ -52,7 +52,7 @@ The app continues Pal-droid's [Seanime Android](https://github.com/Pal-droid/Sea
 
 ### Watch and download
 
-<p align="center"><img src="docs/images/readme/gallery-watch.png" alt="Four phone screens: Home with Continue watching and Currently watching, the Dr. STONE anime page with progress and the Local library and Online streaming tabs, an episode playing in the box above the episode list, and the Downloads tab with one episode downloading" width="100%"></p>
+<p align="center"><img src="docs/images/readme/gallery-watch.png" alt="Four phone screens: Home with Continue watching and Currently watching, the Dr. STONE anime page with progress and the Library, Torrent, Debrid and Online tabs, an episode playing in the box above the episode list, and the Downloads tab with one episode downloading" width="100%"></p>
 
 Open an anime, pick a source, a server and Sub or Dub, and press play. The episode starts in a box on the page, above the episode list. The button at the bottom right makes it fullscreen and brings it back, and the episode does not pause or reload on the way. Back in fullscreen also makes the player small. Leave the anime page and the episode moves into a mini player above the navigation bar (a card on tablets): tap it to go back to fullscreen, or close it with ×. Episodes from your library, torrents and debrid start fullscreen and use the same box and mini player once you make them small.
 
@@ -68,9 +68,9 @@ The same page downloads single episodes or a whole season. Downloads can wait fo
 
 Discover opens with the season's spotlight, then genre chips and rows for trending, recent and upcoming shows, each with *See all*. The schedule lists what airs over the next two weeks. In Search, results come in while you type, sort chips change their order, and more results load as you scroll. Long-press a cover for a quick preview, playlists and plugin actions. **My lists** has search, every AniList status and your stats, and your changes go straight to AniList.
 
-### Mini player, manga and the menu
+### Mini player, manga and settings
 
-<p align="center"><img src="docs/images/readme/gallery-more.png" alt="Four phone screens: Home with the mini player as a bar above the navigation, a manga page with progress, source and chapters, the menu with Schedule, Manga, Extensions and Settings, and the Settings list with its areas" width="100%"></p>
+<p align="center"><img src="docs/images/readme/gallery-more.png" alt="Four phone screens: Home with the mini player as a bar above the navigation, a manga page with progress, Continue reading and the source, the reader showing a chapter page with its page slider, and the Settings list with its areas" width="100%"></p>
 
 The Manga tab starts with *Continue reading*. The reader has a page slider, pinch and double-tap zoom, swipes to turn pages, brightness, a black, gray or white background and keep-screen-on. You can sort chapters, jump to one, and download chapters to read offline. On a tablet the reader switches between single and double pages on its own.
 
