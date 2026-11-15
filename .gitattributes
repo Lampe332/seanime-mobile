@@ -4,3 +4,9 @@
 *.sh text eol=lf
 # Third-party source is kept byte for byte as released.
 /native/modules/core-sandbox/cpp/third_party/** -text
+# GitHub's language bar should count the code written for this app, not generated files:
+# Seanime's API types (made by its codegen) and the two bundles built by native/scripts/.
+/native/src/api/generated/*.types.ts linguist-generated
+/native/src/api/generated/endpoints.ts linguist-generated
+/native/src/api/generated/types.ts linguist-generated
+*.generated.ts linguist-generated
