@@ -1,13 +1,13 @@
 // geschrieben nach: App-Code anilist-login-mobile.tsx und settings-app.tsx (Anmelden mit dem Token aus AniLists Anmeldeseite, Abmelden), auth.hooks.ts (die Antwort ist der Status), Aufzeichnung api vom 13.11.2026 (STATUS.GetStatus: Felder von user.viewer), öffentliche AniList-Doku (Viewer) und docs/EIGENER-KERN.md §4c/§4p; kein Server-Quelltext
 
-import { eq } from "drizzle-orm"
+import { eq, notInArray } from "drizzle-orm"
 import { inOrder } from "../database/database"
 import { account, anilistAnswers, anilistListEntries } from "../database/schema"
 import { CoreError } from "../errors"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import type { CoreEnvironment, CoreRequest } from "../registry"
 import { startStatus } from "../start/start"
-import { keepLocalListsAside } from "./changes"
+import { LOCAL_LISTS_QUESTION, keepLocalListsAside } from "./changes"
 import { askAnilist, clientFor } from "./client"
 
 /*
@@ -29,11 +29,12 @@ function tokenOf(body: unknown): string {
     return token.trim()
 }
 
-async function forgetLists(environment: CoreEnvironment) {
+/** The kept lists and answers gone, but for the questions named in `keep` */
+async function forgetLists(environment: CoreEnvironment, keep: string[] = []) {
     const database = await environment.database()
     await inOrder(database, async () => {
         await database.delete(anilistListEntries)
-        await database.delete(anilistAnswers)
+        await database.delete(anilistAnswers).where(keep.length > 0 ? notInArray(anilistAnswers.question, keep) : undefined)
     })
 }
 
@@ -49,8 +50,12 @@ export async function login(request: CoreRequest, environment: CoreEnvironment):
     const [before] = await inOrder(database, () => database.select({ username: account.username }).from(account).where(eq(account.id, 1)))
     const now = environment.now()
     if (before && before.username !== viewer.name) await forgetLists(environment)
-    // from the local account: its lists are put aside before AniList's replace them, for "Upload local lists"
-    else if (!before) await keepLocalListsAside(database, now)
+    // from the local account: its lists are put aside for "Upload local lists", then forgotten, so that the next read
+    // (the home screen's too, home.ts `listEntries`) asks AniList instead of giving the local account's (empty) lists
+    else if (!before) {
+        await keepLocalListsAside(database, now)
+        await forgetLists(environment, [LOCAL_LISTS_QUESTION("ANIME"), LOCAL_LISTS_QUESTION("MANGA")])
+    }
     const { id: _id, ...shown } = viewer
     await inOrder(database, () => database.insert(account).values({ id: 1, username: viewer.name as string, viewer: JSON.stringify(shown), createdAt: now, changedAt: now })
         .onConflictDoUpdate({ target: account.id, set: { username: viewer.name as string, viewer: JSON.stringify(shown), changedAt: now } }))

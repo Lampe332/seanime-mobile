@@ -7,6 +7,8 @@ import { account, anilistListEntries, anilistMedia } from "../database/schema"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { type CoreEnvironment, type CoreMethod, matchCoreRoute } from "../registry"
 import { OTHER_ACCOUNT_REFUSED } from "./auth"
+import { LOCAL_LISTS_QUESTION, localCollection } from "./changes"
+import { keepCollection, storedAnswer, storedCollection } from "./store"
 import { ANILIST_URL, type HttpFetch } from "./client"
 
 /* Signing in and out in the core (phase 5a-3). Names, numbers and tokens are made up. */
@@ -77,6 +79,23 @@ describe("auth", () => {
         await opened.insert(anilistListEntries).values({ anilistId: 1, media: media.id, kind: "ANIME", list: 0, position: 0, content: {}, changedAt: now })
         await post("/api/v1/auth/login", { token: "t" })
         expect(await opened.select().from(anilistListEntries)).toEqual([])
+    })
+
+    it("forgets the local account's empty lists at sign-in, so that the home screen asks AniList (4.0.1)", async () => {
+        const opened = await environment.database()
+        // the home screen before signing in: the local account's lists, kept empty (changes.ts localCollection)
+        expect(await localCollection(opened, "ANIME", now)).toEqual({ MediaListCollection: { lists: [] } })
+        await post("/api/v1/auth/login", { token: "t" })
+        expect(await storedCollection(opened, "ANIME")).toBeNull()
+    })
+
+    it("keeps the local account's lists aside at sign-in while forgetting them as the core's lists", async () => {
+        const opened = await environment.database()
+        await keepCollection(opened, "ANIME", { MediaListCollection: { lists: [{ status: "CURRENT", isCustomList: false, entries: [{ id: 1, status: "CURRENT", progress: 2, media: { id: 5 } }] }] } }, now)
+        await post("/api/v1/auth/login", { token: "t" })
+        expect(await storedCollection(opened, "ANIME")).toBeNull()
+        const aside = await storedAnswer(opened, LOCAL_LISTS_QUESTION("ANIME")) as { MediaListCollection: { lists: { entries: unknown[] }[] } }
+        expect(aside.MediaListCollection.lists[0].entries).toHaveLength(1)
     })
 
     it("signs in the test account only, when the app names one", async () => {
