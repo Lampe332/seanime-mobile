@@ -1,3 +1,4 @@
+import { coreHearPlaylist } from "@/api/client/core-switch"
 import type { Anime_Entry, Anime_Playlist, Anime_PlaylistEpisode, HibikeTorrent_AnimeTorrent } from "@/api/generated/types"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
@@ -16,7 +17,10 @@ import { useCurrentDevicePlaybackSettings, usesAndroidBuiltInPlayer } from "@/ma
 import { useAutoPlaySelectedTorrent } from "@/main/_features/autoplay/autoplay.atoms"
 import { getBatchSelectionParams } from "@/main/_features/autoplay/batches"
 import { nativePlayer_stateAtom } from "@/main/_features/native-player/native-player.atoms"
-import { useWebsocketMessageListener, useWebsocketSender } from "@/main/_hooks/handle-websockets"
+import { player_miniAtom } from "@/main/_features/player/player.atoms"
+import { player_boxSlotAtom, player_nowAtom } from "@/main/_features/player/player-box"
+import { miniFrame, miniPlayerShown, playlistButtonBottom } from "@/main/_features/player/player-chrome"
+import { useWebsocketMessageListener } from "@/main/_hooks/handle-websockets"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { useHandleStartDebridStream } from "@/main/entry/_containers/debrid-stream/_lib/handle-debrid-stream"
 import { __torrentSearch_selectionAtom, __torrentSearch_selectionEpisodeAtom } from "@/main/entry/_containers/torrent-search/torrent-search.atoms"
@@ -36,7 +40,7 @@ import SkipBack from "lucide-react-native/icons/skip-back"
 import SkipForward from "lucide-react-native/icons/skip-forward"
 import X from "lucide-react-native/icons/x"
 import React from "react"
-import { Pressable, View } from "react-native"
+import { Pressable, useWindowDimensions, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { playlistEpisodeKey, samePlaylistEpisode } from "../lib/mobile-playlist-state"
 
@@ -59,8 +63,13 @@ const pm_confirmProgressUpdateModalOpen = atom<"next" | "previous" | null>(null)
 const pm_playEpisodeRequestPending = atom(false)
 const playlistEpisodeRequestCooldownMs = 2500
 
+/** The `playlist` channel, heard by the core (core/playback/playlists.ts) */
+function usePlaylistSender() {
+    return coreHearPlaylist
+}
+
 export function usePlaylistManager() {
-    const { sendMessage } = useWebsocketSender()
+    const sendPlaylist = usePlaylistSender()
     const clientId = useAtomValue(clientIdAtom)
     const currentPlaylist = useAtomValue(pm_currentPlaylist)
     const currentPlaylistEpisode = useAtomValue(pm_currentPlaylistEpisode)
@@ -71,33 +80,30 @@ export function usePlaylistManager() {
 
     function startPlaylist(playlist: Anime_Playlist) {
         toast.info(tr("Starting playlist...", "Playlist wird gestartet…"))
-        sendMessage({
-            type: WSEvents.PLAYLIST,
+        sendPlaylist({
+            type: "start-playlist",
             payload: {
-                type: "start-playlist",
-                payload: {
-                    clientId,
-                    dbId: playlist.dbId,
-                    localFilePlaybackMethod: usesAndroidBuiltInPlayer(downloadedMediaPlayback) ? "nativePlayer" : activeOnDevice ? "transcode" : downloadedMediaPlayback,
-                    streamPlaybackMethod: torrentStreamingPlayback,
-                },
+                clientId,
+                dbId: playlist.dbId,
+                localFilePlaybackMethod: usesAndroidBuiltInPlayer(downloadedMediaPlayback) ? "nativePlayer" : activeOnDevice ? "transcode" : downloadedMediaPlayback,
+                streamPlaybackMethod: torrentStreamingPlayback,
             },
         })
     }
 
     function stopPlaylist() {
         setPlayEpisodeRequestPending(false)
-        sendMessage({ type: WSEvents.PLAYLIST, payload: { type: "stop-playlist" } })
+        sendPlaylist({ type: "stop-playlist" })
     }
 
     function reopenEpisode() {
-        sendMessage({ type: WSEvents.PLAYLIST, payload: { type: "reopen-episode" } })
+        sendPlaylist({ type: "reopen-episode" })
     }
 
     function requestEpisode(which: "next" | "previous", isCurrentCompleted: boolean) {
         setPlayEpisodeRequestPending(true)
         setTimeout(() => setPlayEpisodeRequestPending(false), playlistEpisodeRequestCooldownMs)
-        sendMessage({ type: WSEvents.PLAYLIST, payload: { type: "play-episode", payload: { which, isCurrentCompleted } } })
+        sendPlaylist({ type: "play-episode", payload: { which, isCurrentCompleted } })
     }
 
     function playEpisode(which: "next" | "previous", isCurrentCompleted: boolean) {
@@ -136,7 +142,7 @@ function sameTorrent(autoPlayTorrent: { entry: Anime_Entry, torrent: HibikeTorre
 /** Once in the main layout */
 export function GlobalPlaylistManager() {
     const t = useTr()
-    const { sendMessage } = useWebsocketSender()
+    const sendPlaylist = usePlaylistSender()
     const websocketConnected = useAtomValue(websocketConnectedAtom)
     const serverStatus = useServerStatus()
     const router = useRouter()
@@ -149,8 +155,8 @@ export function GlobalPlaylistManager() {
     const [open, setOpen] = React.useState(false)
 
     React.useEffect(() => {
-        sendMessage({ type: WSEvents.PLAYLIST, payload: { type: "current-playlist" } })
-    }, [websocketConnected, sendMessage])
+        sendPlaylist({ type: "current-playlist" })
+    }, [websocketConnected, sendPlaylist])
 
     const { handleStreamSelection: handleTorrentstreamSelection, handleAutoSelectStream: handleTorrentstreamAutoSelect } = useHandleStartTorrentStream()
     const { handleStreamSelection: handleDebridstreamSelection, handleAutoSelectStream: handleDebridstreamAutoSelect } = useHandleStartDebridStream()
@@ -264,9 +270,14 @@ function PlaylistButton({ open, onPress }: { open: boolean, onPress: () => void 
     const insets = useSafeAreaInsets()
     const barHeight = useNavBarHeight()
     const { rail } = useTabletLayout()
+    const window = useWindowDimensions()
+    const now = useAtomValue(player_nowAtom)
+    const slot = useAtomValue(player_boxSlotAtom)
+    const mini = miniPlayerShown(useAtomValue(player_miniAtom), now, slot?.owner)
+        ? miniFrame({ width: window.width, rail, navBar: barHeight, insets }) : null
     return (
         <Pressable accessibilityRole="button" accessibilityLabel={t("Open playing playlist", "Laufende Playlist öffnen")} onPress={onPress}
-            style={{ bottom: (rail ? 16 : barHeight + 16) + insets.bottom, shadowColor: "#000", shadowOpacity: 0.45, shadowRadius: 14, elevation: 10 }}
+            style={{ bottom: playlistButtonBottom({ rail, navBar: barHeight, insetBottom: insets.bottom, mini }), shadowColor: "#000", shadowOpacity: 0.45, shadowRadius: 14, elevation: 10 }}
             className="absolute right-4 h-14 w-14 items-center justify-center rounded-full bg-white active:bg-[#e4e4e7]">
             {open ? <X size={24} color="#111111" /> : <ListVideo size={24} color="#111111" />}
         </Pressable>

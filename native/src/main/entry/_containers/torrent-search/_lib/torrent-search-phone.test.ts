@@ -74,6 +74,16 @@ describe("torrentMeta", () => {
     it("names the provider, the best release and the debrid cache first", () => {
         expect(torrentMeta(torrent({ isBestRelease: true }), en, "en", true, "Prov", NOW)).toBe("Prov · Best release · Cached · Group · 1080p · 1 GiB · 12 seeders · 3 days ago")
     })
+    it("says 1 seeder, not 1 seeders", () => {
+        expect(torrentMeta(torrent({ seeders: 1 }), en, "en", false, "", NOW)).toBe("Group · 1080p · 1 GiB · 1 seeder · 3 days ago")
+        expect(torrentMeta(torrent({ seeders: 1 }), de, "de", false, "", NOW)).toBe("Group · 1080p · 1 GiB · 1 Seeder · vor 3 Tagen")
+    })
+    it("does not call a single ~150 MiB episode a batch, even when the provider does (Internet Archive \"Dr. Stone Sub 2\")", () => {
+        const single = torrent({ name: "Dr. Stone Sub 2", isBatch: true, size: 159_100_000, formattedSize: "151.7 MiB", releaseGroup: "", resolution: "", seeders: 1 })
+        expect(torrentMeta(single, en, "en", false, "Internet Archive", NOW)).toBe("Internet Archive · 151.7 MiB · 1 seeder · 3 days ago")
+        const pack = torrent({ name: "Dr. Stone En latino", isBatch: true, size: 9_340_000_000, formattedSize: "8.7 GiB", releaseGroup: "", resolution: "", seeders: 1 })
+        expect(torrentMeta(pack, en, "en", false, "Internet Archive", NOW)).toBe("Internet Archive · Batch · 8.7 GiB · 1 seeder · 3 days ago")
+    })
 })
 
 describe("ago", () => {

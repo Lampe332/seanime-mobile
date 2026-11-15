@@ -9,7 +9,6 @@ import { Tabs } from "@/components/ui/tabs/tabs"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate, useTr } from "@/lib/app-language"
-import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover/popover"
@@ -28,6 +27,7 @@ import { ActivityIndicator, Pressable, View } from "react-native"
 import { extensionMeta, getInstalledOverview, invalidReasonLabel } from "../_lib/extensions-phone"
 import { type ExtensionSelection, findSelection, installedExtensionIds } from "../_lib/extensions-screen"
 import { __extensions_currentPageAtom } from "../_lib/marketplace.atoms"
+import { useRefreshExtensionUpdateCount } from "../_lib/use-extension-updates"
 import { __extensions_marketTypeAtom, MarketplacePhone } from "./extensions-phone-marketplace"
 import {
     AddExtensionSheet, ExtensionCodeSheet, ExtensionIcon, ExtensionPreferencesSheet, ExtensionSheet, type ExtensionSubSheet,
@@ -45,7 +45,6 @@ const SEARCH_FROM = 8
  */
 export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "installed" | "marketplace", marketType?: string }) {
     const t = useTr()
-    const router = useRouter()
     const { rail } = useTabletLayout()
     // the setup tour points only at the tab on screen
     const focused = useIsFocused()
@@ -70,6 +69,14 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
     const loading = !all && query.isPending
     const failed = !all && query.isError
     const checking = withUpdates && query.isFetching
+    // Opening the screen checks for updates once the list is there (extension-updates.ts); the Menu's count follows the answer
+    // (set while rendering, as useLastData: the list's first answer is there, the check follows)
+    if (all && !withUpdates) setWithUpdates(true)
+    const refreshUpdateCount = useRefreshExtensionUpdateCount()
+    const checkedAt = withUpdates && query.isSuccess ? query.dataUpdatedAt : 0
+    React.useEffect(() => {
+        if (checkedAt) refreshUpdateCount()
+    }, [checkedAt, refreshUpdateCount])
 
     const [search, setSearch] = React.useState("")
     const [selectedId, setSelectedId] = React.useState<string | null>(null)
@@ -179,7 +186,7 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
         </>}>
             <Tabs variant="pills" value={installed ? "installed" : "marketplace"} onValueChange={value => setPage(value as "installed" | "marketplace")}
                 items={[
-                    { value: "installed", label: t("Installed", "Installiert") + (overview.attention > 0 ? " •" : ""), count: all ? overview.total : undefined },
+                    { value: "installed", label: t("Installed", "Installiert") + (overview.attention > 0 || overview.updates > 0 ? " •" : ""), count: all ? overview.total : undefined },
                     { value: "marketplace", label: t("Marketplace", "Marktplatz"), tourTarget: focused ? TOUR_TARGETS.marketplaceTab : undefined },
                 ]} />
 
@@ -222,7 +229,8 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
                             {overview.groups.map(group => (
                                 <PhoneSection key={group.key} className={columnClass} title={t(group.en, group.de)} count={group.items.length}
                                     action={group.key === "custom-source"
-                                        ? <TextAction label={t("Browse", "Durchsuchen")} onPress={() => router.push("/custom-sources")} />
+                                        // custom sources list their media through the server: left out without it (phase 7f)
+                                        ? undefined
                                         : group.key !== "disabled" ? <TextAction label={`+ ${t("Add", "Hinzufügen")}`} onPress={() => openMarketplace(group.key)}
                                             accessibilityLabel={t(`Add ${group.en.toLowerCase()}`, `${group.de} hinzufügen`)} /> : undefined}>
                                     {group.items.length === 0 && (

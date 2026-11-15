@@ -1,6 +1,7 @@
 import type { AnilistListAnime_Variables } from "@/api/generated/endpoint.types"
 import type { AL_BaseAnime, AL_BaseManga, AL_ListAnime, AL_ListManga, AL_ListRecentAnime } from "@/api/generated/types"
 import { CardMenu, type CardMenuAnchor } from "@/components/shared/card-menu"
+import { useCardListItems } from "@/main/_features/media/_containers/use-card-list-items"
 import { useCoverFlightSource } from "@/components/shared/cover-flight"
 import { FORMAT_LABELS, Notice, TextAction } from "@/components/shared/phone-kit"
 import { PluginWebviewSlot } from "@/main/_features/plugin/plugin-webview"
@@ -456,12 +457,14 @@ const FeatureCard = React.memo(function FeatureCard({ media, type, width }: { me
     const closeMenu = React.useCallback(() => setMenuAt(null), [])
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
     const format =media.format && !(type === "manga" && media.format === "MANGA") ? FORMAT_LABELS[media.format] : undefined
-    const meta = [seasonYearLabel(t, media), format ? t(...format) : "", scoreLabel(t, media.meanScore)].filter(Boolean).join(" · ")
+    const hideScore = !!useServerStatus()?.settings?.anilist?.hideAudienceScore
+    const meta = [seasonYearLabel(t, media), format ? t(...format) : "", scoreLabel(t, media.meanScore, hideScore)].filter(Boolean).join(" · ")
     const coverFallback = !media.bannerImage
     const pictureUri = getImageUrl(media.bannerImage || media.coverImage?.extraLarge || media.coverImage?.large || "")
     // the banner narrows into the page's cover and cross-fades into it (cover-flight.tsx)
     const { coverRef, onLoad, hidden, open } = useCoverFlightSource(media.id, pictureUri, getImageUrl(media.coverImage?.extraLarge || media.coverImage?.large || ""),
         coverFallback ? FEATURE_COVER_LOOK : undefined)
+    const listItems = useCardListItems(media, type, open)
     return (
         <Pressable
             ref={coverRef}
@@ -476,7 +479,7 @@ const FeatureCard = React.memo(function FeatureCard({ media, type, width }: { me
             className="min-h-[216px] justify-end gap-1.5 overflow-hidden rounded-surface bg-sm-surface-control p-4 active:opacity-90"
         >
             <CardMenu anchor={menuAt} title={title} onClose={closeMenu}
-                items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, type) }]} />
+                items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, type) }, ...listItems]} />
             <Image
                 source={pictureUri}
                 recyclingKey={String(media.id)}
@@ -522,7 +525,7 @@ const DiscoverCover = React.memo(function DiscoverCover({ media, type, width, ta
     const { listData, libraryData } = useDiscoverEntry(type, media.id)
     const status = listStatusLabel(t, type, listData?.status)
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
-    const fallback = line === "score" ? scoreLabel(t, media.meanScore) : type === "manga" ? String(media.startDate?.year ?? "") : seasonYearLabel(t, media)
+    const fallback = line === "score" ? scoreLabel(t, media.meanScore, !!serverStatus?.settings?.anilist?.hideAudienceScore) : type === "manga" ? String(media.startDate?.year ?? "") : seasonYearLabel(t, media)
     const total = type === "anime" ? (media as AL_BaseAnime).episodes : (media as AL_BaseManga).chapters
     const watching = listData?.status === "CURRENT" || listData?.status === "REPEATING"
     // As MediaEntryCard's unwatched badge: the library's count when the files are there, else the aired episodes not seen.

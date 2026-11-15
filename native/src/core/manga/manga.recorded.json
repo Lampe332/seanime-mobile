@@ -1,0 +1,299 @@
+{
+ "note": "Only the form of the server's answers of 13.11.2026 (fields and kinds), no values. headers/imageHeaders: object.",
+ "answers": {
+  "GetMangaEntry": {
+   "method": "GET",
+   "endpoint": "/api/v1/manga/entry/{id}",
+   "status": 200,
+   "data": {
+    "mediaId": "number",
+    "media": {
+     "id": "number",
+     "siteUrl": "string",
+     "status": "string",
+     "type": "string",
+     "format": "string",
+     "chapters": "number",
+     "synonyms": [
+      "string"
+     ],
+     "isAdult": "boolean",
+     "countryOfOrigin": "string",
+     "meanScore": "number",
+     "description": "string",
+     "genres": [
+      "string"
+     ],
+     "title": {
+      "native": "string",
+      "romaji": "string",
+      "userPreferred": "string"
+     },
+     "coverImage": {
+      "color": "string",
+      "extraLarge": "string",
+      "large": "string",
+      "medium": "string"
+     },
+     "startDate": {
+      "day": "number",
+      "month": "number",
+      "year": "number"
+     },
+     "endDate": {
+      "day": "number",
+      "month": "number",
+      "year": "number"
+     }
+    },
+    "listData": {
+     "status": "string",
+     "createdAt": "number",
+     "updatedAt": "number"
+    }
+   }
+  },
+  "GetMangaEntryDetails": {
+   "method": "GET",
+   "endpoint": "/api/v1/manga/entry/{id}/details",
+   "status": 200,
+   "data": {
+    "characters": {
+     "edges": [
+      {
+       "id": "number",
+       "node": {
+        "id": "number",
+        "isFavourite": "boolean",
+        "gender": "string",
+        "dateOfBirth": {},
+        "name": {
+         "full": "string",
+         "native": "string"
+        },
+        "image": {
+         "large": "string"
+        },
+        "siteUrl": "string"
+       },
+       "role": "string"
+      }
+     ]
+    },
+    "genres": [
+     "string"
+    ],
+    "id": "number",
+    "recommendations": {
+     "edges": [
+      {
+       "node": {
+        "mediaRecommendation": {
+         "chapters": "number",
+         "countryOfOrigin": "string",
+         "coverImage": {
+          "color": "string",
+          "extraLarge": "string",
+          "large": "string",
+          "medium": "string"
+         },
+         "description": "string",
+         "endDate": {
+          "day": "number",
+          "month": "number",
+          "year": "number"
+         },
+         "format": "string",
+         "id": "number",
+         "isAdult": "boolean",
+         "meanScore": "number",
+         "siteUrl": "string",
+         "startDate": {
+          "day": "number",
+          "month": "number",
+          "year": "number"
+         },
+         "status": "string",
+         "title": {
+          "english": "string",
+          "native": "string",
+          "romaji": "string",
+          "userPreferred": "string"
+         },
+         "type": "string"
+        }
+       }
+      }
+     ]
+    },
+    "relations": {},
+    "siteUrl": "string"
+   }
+  },
+  "GetMangaEntryChapters.mangadex": {
+   "method": "POST",
+   "endpoint": "/api/v1/manga/chapters",
+   "status": 200,
+   "requestFields": [
+    "mediaId",
+    "provider"
+   ],
+   "data": {
+    "mediaId": "number",
+    "provider": "string",
+    "chapters": [
+     {
+      "provider": "string",
+      "id": "string",
+      "url": "string",
+      "title": "string",
+      "chapter": "string",
+      "index": "number",
+      "updatedAt": "string"
+     }
+    ]
+   }
+  },
+  "GetMangaEntryChapters.local-manga": {
+   "method": "POST",
+   "endpoint": "/api/v1/manga/chapters",
+   "status": 500,
+   "requestFields": [
+    "mediaId",
+    "provider"
+   ],
+   "error": "string"
+  },
+  "GetMangaEntryPages": {
+   "method": "POST",
+   "endpoint": "/api/v1/manga/pages",
+   "status": 200,
+   "requestFields": [
+    "mediaId",
+    "provider",
+    "chapterId",
+    "doublePage"
+   ],
+   "data": {
+    "mediaId": "number",
+    "provider": "string",
+    "chapterId": "string",
+    "pages": [
+     {
+      "provider": "string",
+      "url": "string",
+      "index": "number",
+      "headers": "object"
+     }
+    ],
+    "pageDimensions": "null",
+    "isDownloaded": "boolean"
+   }
+  },
+  "GetMangaMapping.mangadex": {
+   "method": "POST",
+   "endpoint": "/api/v1/manga/get-mapping",
+   "status": 200,
+   "requestFields": [
+    "provider",
+    "mediaId"
+   ],
+   "data": {
+    "mangaId": "null"
+   }
+  },
+  "MangaManualSearch.mangadex": {
+   "method": "POST",
+   "endpoint": "/api/v1/manga/search",
+   "status": 200,
+   "requestFields": [
+    "provider",
+    "query"
+   ],
+   "data": [
+    {
+     "provider": "string",
+     "id": "string",
+     "title": "string",
+     "synonyms": [
+      "string"
+     ],
+     "year": "number",
+     "image": "string",
+     "searchRating": "number"
+    }
+   ]
+  },
+  "MangaManualSearch.local-manga": {
+   "method": "POST",
+   "endpoint": "/api/v1/manga/search",
+   "status": 200,
+   "requestFields": [
+    "provider",
+    "query"
+   ],
+   "data": []
+  },
+  "GetMangaCollection": {
+   "method": "GET",
+   "endpoint": "/api/v1/manga/collection",
+   "status": 200,
+   "data": {
+    "lists": [
+     {
+      "type": "string",
+      "status": "string",
+      "entries": [
+       {
+        "media": {
+         "id": "number",
+         "idMal": "number",
+         "siteUrl": "string",
+         "status": "string",
+         "type": "string",
+         "format": "string",
+         "synonyms": [
+          "string"
+         ],
+         "isAdult": "boolean",
+         "countryOfOrigin": "string",
+         "meanScore": "number",
+         "description": "string",
+         "genres": [
+          "string"
+         ],
+         "title": {
+          "english": "string",
+          "native": "string",
+          "romaji": "string",
+          "userPreferred": "string"
+         },
+         "coverImage": {
+          "color": "string",
+          "extraLarge": "string",
+          "large": "string",
+          "medium": "string"
+         },
+         "startDate": {
+          "day": "number",
+          "month": "number",
+          "year": "number"
+         },
+         "endDate": {}
+        },
+        "mediaId": "number",
+        "listData": {
+         "progress": "number",
+         "status": "string",
+         "startedAt": "string",
+         "createdAt": "number",
+         "updatedAt": "number"
+        }
+       }
+      ]
+     }
+    ]
+   }
+  }
+ }
+}

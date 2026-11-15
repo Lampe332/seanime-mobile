@@ -1,4 +1,3 @@
-import { getServerBaseUrl } from "@/api/client/server-url"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import type { MobileOffline_Item, NativePlayer_PlaybackInfo, NativePlayer_ServerEvent } from "@/api/generated/types"
 import { toast } from "@/components/ui/toast/toast-store"
@@ -13,7 +12,6 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useAtom, useSetAtom } from "jotai"
 import React from "react"
 import { player_miniAtom, player_offlineItemAtom } from "./player.atoms"
-import { resolveStreamUrl } from "./player-logic"
 import { PlayerScreen } from "./player-screen"
 import { useGetMobileOfflineSnapshot, useMobileOfflinePosition } from "@/api/hooks/mobile_offline.hooks"
 import { followingEpisode } from "@/main/android-downloads/_lib/offline-library"
@@ -108,11 +106,11 @@ export function NativePlayer() {
                     setOfflineItem(null)
                     endOnline()
                     const info = payload as NativePlayer_PlaybackInfo
-                    // library streams come as "{{SERVER_URL}}/api/v1/directstream/…" (web video-core.tsx filled in the server)
-                    const playbackInfo = info.streamUrl ? { ...info, streamUrl: resolveStreamUrl(info.streamUrl, getServerBaseUrl()) } : info
+                    // a file of the user's library opened by the core (§4p, 5b-1): the address is the device's own, no token in it
+                    if (info.streamUrl?.startsWith("file://")) log.info("Watch local file", info.streamUrl)
                     setState(draft => {
                         draft.active = true
-                        draft.playbackInfo = playbackInfo
+                        draft.playbackInfo = info
                         draft.loadingState = null
                         draft.playbackError = null
                     })
@@ -170,7 +168,7 @@ function OfflinePlayer({ item, onClose }: { item: MobileOffline_Item, onClose: (
         playback,
         hasNext: !!next,
         playNext: () => { if (next) setOfflineItem(next) },
-        savePosition: (positionMs: number) => savePosition({ id: item.id, positionMs }),
+        savePosition: (positionMs: number, watched?: boolean) => savePosition({ id: item.id, positionMs, ...(watched ? { watched } : {}) }),
     }), [playback, next, item.id, setOfflineItem, savePosition])
     return <PlayerScreen info={info} loadingState={null} playbackError={null} onClose={onClose} offline={offline} />
 }

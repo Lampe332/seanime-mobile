@@ -69,7 +69,7 @@ export function folderPickProblemText(problem: FolderPickProblem, t: Translate):
         case "missing":
             return t("This folder was not found.", "Dieser Ordner wurde nicht gefunden.")
         case "unreadable":
-            return t("Seanime cannot read this folder.", "Seanime kann diesen Ordner nicht lesen.")
+            return t("Seanime Mobile cannot read this folder.", "Seanime Mobile kann diesen Ordner nicht lesen.")
         default:
             return t("The folder picker is not available.", "Die Ordnerauswahl ist nicht verfügbar.")
     }

@@ -87,8 +87,8 @@ export function TorrentDownloads({ active }: { active: boolean }) {
 
     return <View className="gap-6">
         {torrents.length === 0 && <PhoneEmpty title={t("No torrents", "Keine Torrents")}
-            text={t("Open an anime and choose Download → a torrent. It is saved to your library folder and shows up here while it loads.",
-                "Öffne einen Anime und wähle Herunterladen → einen Torrent. Er landet in deinem Bibliotheksordner und erscheint hier, solange er lädt.")} />}
+            text={t("Open an anime and tap ⋮ → Download a torrent. It is saved to your library folder and shows up here while it loads.",
+                "Öffne einen Anime und tippe auf ⋮ → „Torrent herunterladen“. Er landet in deinem Bibliotheksordner und erscheint hier, solange er lädt.")} />}
         {groups.map(group => <PhoneSection key={group.key} title={group.title} count={group.rows.length}>
             <RowGroup>
                 {group.rows.map(torrent => <View key={torrent.hash} className="flex-row items-center bg-sm-surface-raised pr-1">
@@ -120,13 +120,13 @@ export function TorrentDownloads({ active }: { active: boolean }) {
                     { label: t("Progress", "Fortschritt"), value: `${Math.round(open.progress * 100)} % · ${open.size}` },
                     ...(open.status === "downloading" ? [{ label: t("Speed", "Tempo"), value: `↓ ${open.downSpeed} · ↑ ${open.upSpeed}` }] : []),
                     ...(open.status === "downloading" && etaLabel(open.eta, t) ? [{ label: t("Time left", "Restzeit"), value: etaLabel(open.eta, t, false) }] : []),
-                    { label: t("Peers", "Peers"), value: `${open.peers} · ${t(`${open.seeds} seeders`, `${open.seeds} Seeder`)}` },
+                    { label: t("Peers", "Peers"), value: `${open.peers} · ${t(`${open.seeds} ${open.seeds === 1 ? "seeder" : "seeders"}`, `${open.seeds} Seeder`)}` },
                     ...(open.contentPath ? [{ label: t("Saved to", "Speicherort"), value: open.contentPath }] : []),
                     ...(open.error ? [{ label: t("Error", "Fehler"), value: open.error }] : []),
                 ]} />
                 {confirmDelete
-                    ? <Text accessibilityRole="alert" className="text-sm-text-muted">{t("The torrent is removed and everything it downloaded is deleted from your phone.",
-                        "Der Torrent wird entfernt und alles, was er geladen hat, wird vom Handy gelöscht.")}</Text>
+                    ? <Text accessibilityRole="alert" className="text-sm-text-muted">{t("The torrent is removed and everything it downloaded is deleted from this device.",
+                        "Der Torrent wird entfernt und alles, was er geladen hat, wird von diesem Gerät gelöscht.")}</Text>
                     : <RowGroup>
                         <ActionRow label={t("Remove from the list", "Aus der Liste entfernen")} disabled={isPending}
                             note={t("Stops sharing; the files stay in your library.", "Beendet das Teilen; die Dateien bleiben in deiner Bibliothek.")}

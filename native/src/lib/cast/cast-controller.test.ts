@@ -60,7 +60,7 @@ async function startGoogleCast(events: CastEvent[]) {
     castController.subscribe(event => events.push(event))
     castController.discover()
     await new Promise(resolve => setTimeout(resolve, 3100))
-    await castController.start("cast:tv1", "http://127.0.0.1:43212/api/v1/directstream/stream?id=a", "Dr. STONE · Episode 3", 60_000, "")
+    await castController.start("cast:tv1", "http://127.0.0.1:8080/api/v1/directstream/stream?id=a", "Dr. STONE · Episode 3", 60_000, "")
 }
 
 describe("cast controller (Google Cast)", () => {

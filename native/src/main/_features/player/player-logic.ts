@@ -319,6 +319,32 @@ export const MPV_OPEN_OPTIONS: [string, string][] = [
     ["volume-max", "300"],
 ]
 
+/**
+ * The mpv option for a stream whose provider wants its own headers (Referer, Origin, User-Agent), used when the stream
+ * is played without the server's proxy (core area "streams", docs/EIGENER-KERN.md). mpv sends these fields with every
+ * request of the stream: playlist, keys, segments and subtitle files. `http-header-fields` is a list separated by
+ * commas, so a comma inside a value ("(KHTML, like Gecko)") is escaped. undefined = the stream comes through the proxy:
+ * nothing is set. {} clears the fields of the stream before.
+ */
+export function mpvHeaderOptions(headers: Record<string, string> | undefined): [string, string][] {
+    if (!headers) return []
+    const fields = Object.entries(headers)
+        .filter(([name, value]) => !!name.trim() && !/[\r\n]/.test(name + value))
+        .map(([name, value]) => `${name.trim()}: ${value}`.replace(/,/g, "\\,"))
+    return [["http-header-fields", fields.join(",")]]
+}
+
+/**
+ * The headers a played file brings (`requestHeaders`, a file of a Nakama host: its token, phase 7e), else {} so that the
+ * fields of a stream before are cleared; undefined while nothing plays.
+ */
+export function streamHeadersOf(info: unknown): Record<string, string> | undefined {
+    if (!info || typeof info !== "object") return undefined
+    const headers = (info as { requestHeaders?: unknown }).requestHeaders
+    if (!headers || typeof headers !== "object") return {}
+    return Object.fromEntries(Object.entries(headers).filter((pair): pair is [string, string] => typeof pair[1] === "string"))
+}
+
 /* ── Lock screen, notification, headset: next/previous episode ──────────── */
 
 /**
@@ -360,16 +386,6 @@ export function isPlayingState(state: string, isPlaying: boolean) {
     if (state === "playing") return true
     if (state === "paused" || state === "ended" || state === "idle") return false
     return isPlaying
-}
-
-/* ── Stream URL ─────────────────────────────────────────────────────────── */
-
-/**
- * The server sends library streams as "{{SERVER_URL}}/api/v1/directstream/stream?…" (video-core.tsx replaced it with the
- * page's server); mpv and other player apps need the real address. Other URLs (torrent, debrid, Nakama) stay as they are.
- */
-export function resolveStreamUrl(url: string, serverBaseUrl: string) {
-    return url.replace("{{SERVER_URL}}", serverBaseUrl)
 }
 
 /* ── Time ───────────────────────────────────────────────────────────────── */

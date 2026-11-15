@@ -1,6 +1,6 @@
 import { PickRow, Choices, Notice } from "@/components/shared/phone-kit"
 import { type Translate } from "@/lib/app-language"
-import { ANDROID_PLAYER_PRESETS, androidPlayerLink, androidPlayerPresetOf } from "@/lib/external-player-link/android-player-presets"
+import { ANDROID_PLAYER_PRESETS, androidPlayerPresetOf, toggledPlayerLink } from "@/lib/external-player-link/android-player-presets"
 import { PlaybackDownloadedMedia, useCurrentDevicePlaybackSettings, useExternalPlayerLink } from "@/main/_atoms/playback.atoms"
 import { vc_autoNextAtom } from "@/main/_features/video-core/video-core.atoms"
 import { ChoiceRows, LocalSwitch, SettingsGroup, TextSettingRow } from "@/main/settings/_components/settings-kit"
@@ -42,7 +42,7 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
             <View className="bg-sm-surface-raised px-4 py-3">
                 <Choices label={t("Player app", "Player-App")} showCheck onRaised
                     chips={ANDROID_PLAYER_PRESETS.map(item => ({ value: item.packageName, label: item.name }))}
-                    selected={preset ? [preset.packageName] : []} onToggle={packageName => setExternalPlayerLink(androidPlayerLink(packageName))} />
+                    selected={preset ? [preset.packageName] : []} onToggle={packageName => setExternalPlayerLink(toggledPlayerLink(externalPlayerLink, packageName))} />
             </View>
             <TextSettingRow label={t("Player link", "Player-Link")} value={externalPlayerLink} empty={t("Not set", "Nicht gesetzt")}
                 display={value => androidPlayerPresetOf(value)?.name ?? value} placeholder="intent://{url}#Intent;…;end"

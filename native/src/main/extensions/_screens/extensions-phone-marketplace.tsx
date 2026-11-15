@@ -4,7 +4,7 @@ import { PhoneEmpty, PhoneSection } from "@/components/shared/phone-cards"
 import { LoadingRows, Notice, RowGroup, SearchField, TextAction } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { Select } from "@/components/ui/select/select"
-import { Sheet } from "@/components/ui/sheet/sheet"
+import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { appLanguageAtom, type Translate } from "@/lib/app-language"
@@ -12,27 +12,33 @@ import { colors } from "@/lib/theme/tokens"
 import { LANGUAGES_LIST } from "@/main/manga/_lib/language-map"
 import NetInfo from "@react-native-community/netinfo"
 import { pressTourTarget, TOUR_TARGETS, useTourTarget } from "@/main/_features/tour/tour-targets"
+import { useDebounce } from "@/hooks/use-debounce"
+import * as Clipboard from "expo-clipboard"
 import { atom, useAtom, useAtomValue } from "jotai"
 import Check from "lucide-react-native/icons/check"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
+import ClipboardPaste from "lucide-react-native/icons/clipboard-paste"
 import Download from "lucide-react-native/icons/download"
+import Plus from "lucide-react-native/icons/plus"
 import RotateCw from "lucide-react-native/icons/rotate-cw"
+import Store from "lucide-react-native/icons/store"
 import React from "react"
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native"
 import { extensionMeta, shortRepositoryUrl } from "../_lib/extensions-phone"
-import { isWebUrl, marketplaceView, OVERVIEW_ROWS } from "../_lib/extensions-screen"
-import { DEFAULT_MARKETPLACE_URL, marketplaceUrlAtom } from "../_lib/marketplace.atoms"
-import { ExtensionIcon, MarketplaceSheet, UrlField } from "./extensions-phone-sheets"
+import { marketplaceView, OVERVIEW_ROWS } from "../_lib/extensions-screen"
+import { marketplaceLink, marketplacePreview, rememberMarketplace, sameMarketplace, storedMarketplace } from "../_lib/marketplace-link"
+import { DEFAULT_MARKETPLACE_URL, marketplaceUrlAtom, recentMarketplacesAtom } from "../_lib/marketplace.atoms"
+import { ExtensionIcon, MarketplaceSheet, SheetAction, UrlField } from "./extensions-phone-sheets"
 
 /** The marketplace's type filter; the Installed tab's "Add" actions and `/extensions?type=` open it on a type. */
 export const __extensions_marketTypeAtom = atom("all")
 
 /**
- * Phone marketplace (web extensions-phone-marketplace.tsx): the repository with its reload and change actions (the
- * community repository is a link to its .json), type chips with counts, search and content language, then the
+ * Phone marketplace (web extensions-phone-marketplace.tsx): the marketplace in use with its reload and change actions
+ * (another one is added by pasting its link), type chips with counts, search and content language, then the
  * extensions as rows with one install button each. Installing only happens on the user's tap.
- * `tourOn` (the tab is on screen): the setup tour points at the repository button, the type chips, the first install
- * buttons and the repository sheet with its Save.
+ * `tourOn` (the tab is on screen): the setup tour points at the add/change button, the type chips, the first install
+ * buttons and the add sheet with its Add.
  */
 export function MarketplacePhone({ t, installedIds, tourOn }: { t: Translate, installedIds: Set<string>, tourOn: boolean }) {
     const [url, setUrl] = useAtom(marketplaceUrlAtom)
@@ -42,7 +48,9 @@ export function MarketplacePhone({ t, installedIds, tourOn }: { t: Translate, in
     const [language, setLanguage] = React.useState("all")
     const [search, setSearch] = React.useState("")
     const [repoOpen, setRepoOpen] = React.useState(false)
-    const [repoDraft, setRepoDraft] = React.useState("")
+    // a new key per opening: the sheet starts without the last visit's link
+    const [repoKey, setRepoKey] = React.useState(0)
+    const [recent, setRecent] = useAtom(recentMarketplacesAtom)
     const [selected, setSelected] = React.useState<Extension_Extension | null>(null)
     const [sheetOpen, setSheetOpen] = React.useState(false)
     const [offline, setOffline] = React.useState(false)
@@ -60,14 +68,16 @@ export function MarketplacePhone({ t, installedIds, tourOn }: { t: Translate, in
         void NetInfo.fetch().then(state => setOffline(state.isConnected === false))
     }, [isError])
 
-    const openRepository = (draft: string) => {
-        setRepoDraft(draft)
+    const openRepository = () => {
+        setRepoKey(key => key + 1)
         setRepoOpen(true)
     }
-    const saveRepository = (next: string) => {
-        setUrl(next)
+    // the marketplace left behind stays one tap away, also one added before the list of recent ones existed
+    const chooseMarketplace = (next: string) => {
+        setRecent(rememberMarketplace(rememberMarketplace(recent, url), next))
+        setUrl(storedMarketplace(next))
         setRepoOpen(false)
-        toast.success(next === DEFAULT_MARKETPLACE_URL ? t("Using the official repository", "Offizielles Repository wird genutzt") : t("Repository saved", "Repository gespeichert"))
+        toast.success(sameMarketplace(next, DEFAULT_MARKETPLACE_URL) ? t("Using the official marketplace", "Offizieller Marktplatz wird genutzt") : t("Marketplace added", "Marktplatz hinzugefügt"))
     }
     const resetFilters = () => {
         setType("all")
@@ -81,36 +91,36 @@ export function MarketplacePhone({ t, installedIds, tourOn }: { t: Translate, in
 
     return (
         <View className="gap-5">
-            <View accessibilityLabel={t("Repository", "Repository")} className="min-h-[68px] flex-row items-center gap-1 rounded-surface bg-sm-surface-raised py-2 pl-4 pr-2">
+            <View accessibilityLabel={t("Marketplace", "Marktplatz")} className="min-h-[68px] flex-row items-center gap-1 rounded-surface bg-sm-surface-raised py-2 pl-4 pr-2">
                 <View className="min-w-0 flex-1 gap-px">
-                    <Text className="text-xs text-sm-text-subtle">{t("Repository", "Repository")}</Text>
-                    <Text numberOfLines={1} className="font-semibold">{isDefault ? t("Official repository", "Offizielles Repository") : shortRepositoryUrl(url)}</Text>
+                    <Text numberOfLines={1} className="font-semibold">{isDefault ? t("Official marketplace", "Offizieller Marktplatz") : shortRepositoryUrl(url)}</Text>
                     {!!data && <Text className="text-xs text-sm-text-muted" style={{ fontVariant: ["tabular-nums"] }}>
                         {view.usable.length === 1 ? t("1 extension", "1 Erweiterung") : t(`${view.usable.length} extensions`, `${view.usable.length} Erweiterungen`)}
                     </Text>}
                 </View>
-                <Button intent="icon" accessibilityLabel={t("Reload repository", "Repository neu laden")} disabled={isFetching} onPress={() => void refetch()}>
+                <Button intent="icon" accessibilityLabel={t("Reload marketplace", "Marktplatz neu laden")} disabled={isFetching} onPress={() => void refetch()}>
                     {isFetching ? <ActivityIndicator size="small" color={colors.smTextMuted} /> : <RotateCw size={22} color={colors.smTextMuted} />}
                 </Button>
                 <View ref={changeRef} collapsable={false}>
                     <TextAction label={t("Change", "Ändern")} onPress={() => {
                         if (!missing) pressTourTarget(TOUR_TARGETS.changeRepo)
-                        openRepository(url)
+                        openRepository()
                     }} />
                 </View>
             </View>
 
             {missing && (
-                <View className="gap-2 rounded-surface bg-sm-surface-raised p-4">
-                    <Text className="text-base font-bold">{view.missing.length > 1 ? t("No streaming or manga sources here", "Hier gibt es keine Streaming- oder Manga-Quellen")
-                        : view.missing[0].type === "manga-provider" ? t("No manga sources here", "Hier gibt es keine Manga-Quellen")
-                            : t("No streaming sources here", "Hier gibt es keine Streaming-Quellen")}</Text>
-                    <Text className="text-sm leading-[21px] text-sm-text-muted">{t("The official repository no longer lists content sources. Find a community repository online and add its link.",
-                        "Das offizielle Repository listet keine Inhaltsquellen mehr. Such online nach einem Community-Repository und füge seinen Link hinzu.")}</Text>
-                    <View ref={addRef} collapsable={false} className="mt-1.5 flex-row"><Button wrapperClassName="flex-1" onPress={() => {
+                <View className="gap-3 rounded-surface bg-sm-surface-raised p-4">
+                    <View className="gap-1">
+                        <Text className="text-base font-bold">{view.missing.length > 1 ? t("No streaming or manga sources here", "Hier gibt es keine Streaming- oder Manga-Quellen")
+                            : view.missing[0].type === "manga-provider" ? t("No manga sources here", "Hier gibt es keine Manga-Quellen")
+                                : t("No streaming sources here", "Hier gibt es keine Streaming-Quellen")}</Text>
+                        <Text className="text-sm leading-[21px] text-sm-text-muted">{t("Add a community marketplace with its link.", "Füge einen Community-Marktplatz über seinen Link hinzu.")}</Text>
+                    </View>
+                    <View ref={addRef} collapsable={false} className="flex-row"><Button wrapperClassName="flex-1" leftIcon={<Plus size={18} color="#ffffff" />} onPress={() => {
                         pressTourTarget(TOUR_TARGETS.changeRepo)
-                        openRepository("")
-                    }}>{t("Add repository", "Repository hinzufügen")}</Button></View>
+                        openRepository()
+                    }}>{t("Add marketplace", "Marktplatz hinzufügen")}</Button></View>
                 </View>
             )}
 
@@ -135,21 +145,21 @@ export function MarketplacePhone({ t, installedIds, tourOn }: { t: Translate, in
             )}
 
             {isError && !data ? (
-                <Notice text={offline ? t("No internet connection, so the repository could not be loaded.", "Keine Internetverbindung, deshalb konnte das Repository nicht geladen werden.")
-                    : t("The repository could not be loaded.", "Das Repository konnte nicht geladen werden.")}>
+                <Notice text={offline ? t("No internet connection, so the marketplace could not be loaded.", "Keine Internetverbindung, deshalb konnte der Marktplatz nicht geladen werden.")
+                    : t("The marketplace could not be loaded.", "Der Marktplatz konnte nicht geladen werden.")}>
                     <TextAction label={t("Try again", "Erneut versuchen")} onPress={() => void refetch()} />
-                    <TextAction label={t("Change repository", "Repository ändern")} onPress={() => openRepository(url)} />
+                    <TextAction label={t("Change marketplace", "Marktplatz ändern")} onPress={openRepository} />
                 </Notice>
             ) : isPending ? <LoadingRows label={t("Loading the marketplace", "Marktplatz wird geladen")} count={5} />
                 : view.usable.length === 0 ? (
-                    <PhoneEmpty title={t("No extensions in this repository", "Keine Erweiterungen in diesem Repository")}
-                        text={t("It has nothing the phone app can use. Try another repository.", "Es enthält nichts, was die Handy-App nutzen kann. Versuch ein anderes Repository.")}>
-                        <Button intent="secondary" onPress={() => openRepository(url)}>{t("Change repository", "Repository ändern")}</Button>
+                    <PhoneEmpty title={t("No extensions in this marketplace", "Keine Erweiterungen in diesem Marktplatz")}
+                        text={t("It has nothing the phone app can use.", "Er enthält nichts, was die Handy-App nutzen kann.")}>
+                        <Button intent="secondary" onPress={openRepository}>{t("Change marketplace", "Marktplatz ändern")}</Button>
                     </PhoneEmpty>
                 ) : view.groups.length === 0 ? (view.typeMissing ? (
-                    <PhoneEmpty title={t(`${view.typeMissing.noneEn} in this repository`, `${view.typeMissing.noneDe} in diesem Repository`)}
-                        text={t("Other repositories have them. Add one with its link.", "Andere Repositorys haben sie. Füge eines über seinen Link hinzu.")}>
-                        <Button intent="secondary" onPress={() => openRepository(url)}>{t("Change repository", "Repository ändern")}</Button>
+                    <PhoneEmpty title={t(`${view.typeMissing.noneEn} in this marketplace`, `${view.typeMissing.noneDe} in diesem Marktplatz`)}
+                        text={t("Other marketplaces have them.", "Andere Marktplätze haben sie.")}>
+                        <Button intent="secondary" onPress={openRepository}>{t("Add marketplace", "Marktplatz hinzufügen")}</Button>
                     </PhoneEmpty>
                 ) : (
                     <PhoneEmpty title={t("No extensions match", "Keine Erweiterung passt")} text={t("Try another type, language or search.", "Versuch eine andere Art, Sprache oder Suche.")}>
@@ -174,7 +184,7 @@ export function MarketplacePhone({ t, installedIds, tourOn }: { t: Translate, in
                     </PhoneSection>
                 ))}
 
-            <RepositorySheet t={t} open={repoOpen} onOpenChange={setRepoOpen} draft={repoDraft} onDraft={setRepoDraft} isDefault={isDefault} onSave={saveRepository} />
+            <AddMarketplaceSheet key={repoKey} t={t} open={repoOpen} onOpenChange={setRepoOpen} current={url} recent={recent} installedIds={installedIds} onUse={chooseMarketplace} />
             {!!selected && <MarketplaceSheet t={t} open={sheetOpen} onOpenChange={setSheetOpen} extension={selected} installed={installedIds.has(selected.id)} />}
         </View>
     )
@@ -243,33 +253,73 @@ function MarketRow({ t, extension, installed, onOpen, tourOn }: { t: Translate, 
     )
 }
 
-function RepositorySheet({ t, open, onOpenChange, draft, onDraft, isDefault, onSave }: {
+/**
+ * Add a marketplace: one main button that pastes the copied link, then adds it once its preview loaded (what it offers,
+ * how many are installed already). The official and earlier marketplaces are one tap each; typing the link is the
+ * fallback. A GitHub page or repository link becomes the file the core reads (marketplaceLink).
+ */
+function AddMarketplaceSheet({ t, open, onOpenChange, current, recent, installedIds, onUse }: {
     t: Translate
     open: boolean
     onOpenChange: (open: boolean) => void
-    draft: string
-    onDraft: (value: string) => void
-    isDefault: boolean
-    onSave: (url: string) => void
+    current: string
+    recent: string[]
+    installedIds: Set<string>
+    onUse: (url: string) => void
 }) {
-    const valid = isWebUrl(draft)
-    const save = () => {
-        if (valid) onSave(draft.trim())
+    const [draft, setDraft] = React.useState("")
+    const link = marketplaceLink(draft)
+    const checked = useDebounce(link, 400)
+    const duplicate = !!link && sameMarketplace(link, current)
+    const ready = !!link && checked === link && !duplicate
+    const { data, isFetching, isError } = useGetMarketplaceExtensions(ready ? link : undefined, ready)
+    const preview = ready && !isFetching && !isError && data ? marketplacePreview(data, installedIds) : null
+    const canAdd = !!preview && preview.total > 0
+    const checking = !!link && !duplicate && (!ready || isFetching)
+    const known = [...(sameMarketplace(current, "") ? [] : [""]), ...recent.filter(item => !sameMarketplace(item, current))]
+
+    const paste = async () => {
+        const found = marketplaceLink((await Clipboard.getStringAsync().catch(() => "")) || "")
+        if (found) setDraft(found)
+        else toast.info(t("No link in the clipboard", "Kein Link in der Zwischenablage"))
     }
+    const add = () => {
+        if (!canAdd || !link) return
+        pressTourTarget(TOUR_TARGETS.repoSave)
+        onUse(link)
+    }
+    const facts = preview && [
+        preview.total === 1 ? t("1 extension", "1 Erweiterung") : t(`${preview.total} extensions`, `${preview.total} Erweiterungen`),
+        preview.streaming ? `${preview.streaming} Streaming` : "",
+        preview.manga ? `${preview.manga} Manga` : "",
+        preview.installed ? t(`${preview.installed} installed`, `${preview.installed} installiert`) : "",
+    ].filter(Boolean).join(" · ")
+
     return (
-        <Sheet open={open} onOpenChange={onOpenChange} title={t("Repository", "Repository")} tourTarget={TOUR_TARGETS.repoSheet}
-            description={t("Paste the link to a repository's .json file. Its extensions then appear in the marketplace.",
-                "Füge den Link zur .json-Datei eines Repositorys ein. Seine Erweiterungen erscheinen dann im Marktplatz.")}
-            footer={<>
-                {/* its own width first, like the web's `flex: 1 1 max-content` (flex-1 cut it to "Use offi…" on the phone) */}
-                <Button intent="secondary" size="lg" wrapperClassName="grow shrink-0" disabled={isDefault} onPress={() => onSave(DEFAULT_MARKETPLACE_URL)}>{t("Use official", "Offizielles nutzen")}</Button>
-                <Button size="lg" wrapperClassName="flex-[2]" disabled={!valid} onPress={() => {
-                    pressTourTarget(TOUR_TARGETS.repoSave)
-                    save()
-                }}>{t("Save", "Speichern")}</Button>
-            </>}>
-            <UrlField t={t} label={t("Repository link", "Repository-Link")} value={draft} onChange={onDraft} placeholder="https://…/index.json" onSubmit={save}
-                error={draft.trim() && !valid ? t("Enter a full link that starts with https://", "Gib einen vollständigen Link mit https:// ein") : undefined} />
+        <Sheet open={open} onOpenChange={onOpenChange} title={t("Add marketplace", "Marktplatz hinzufügen")} tourTarget={TOUR_TARGETS.repoSheet}
+            footer={draft.trim()
+                ? <Button size="lg" wrapperClassName="flex-1" disabled={!canAdd} loading={checking} leftIcon={<Plus size={18} color="#ffffff" />} onPress={add}>
+                    {t("Add", "Hinzufügen")}</Button>
+                : <Button size="lg" wrapperClassName="flex-1" leftIcon={<ClipboardPaste size={18} color="#ffffff" />} onPress={() => void paste()}>
+                    {t("Paste link", "Link einfügen")}</Button>}>
+            <View className="gap-2">
+                <UrlField t={t} label={t("Link", "Link")} value={draft} onChange={setDraft} placeholder="https://github.com/…" onSubmit={add} pasteInside={false}
+                    error={draft.trim() && !link ? t("Enter a full link that starts with https://", "Gib einen vollständigen Link mit https:// ein")
+                        : isError && ready && !isFetching ? t("No marketplace found at this link", "Unter diesem Link gibt es keinen Marktplatz") : undefined} />
+                {duplicate ? <Muted>{t("This is your marketplace already", "Das ist schon dein Marktplatz")}</Muted>
+                    : checking ? <Muted>{t("Checking the link…", "Link wird geprüft …")}</Muted>
+                        : preview ? (canAdd ? <Text className="text-[13px] text-sm-text-muted" style={{ fontVariant: ["tabular-nums"] }}>{facts}</Text>
+                            : <Text className="text-[13px] text-sm-danger">{t("Nothing here the phone app can use", "Nichts darin, was die Handy-App nutzen kann")}</Text>)
+                            : null}
+            </View>
+            {known.length > 0 && (
+                <SheetGroup title={t("Switch to", "Wechseln zu")}>
+                    <RowGroup>
+                        {known.map(item => <SheetAction key={item || "official"} icon={Store} label={item ? shortRepositoryUrl(item) : t("Official marketplace", "Offizieller Marktplatz")}
+                            onPress={() => onUse(item)} />)}
+                    </RowGroup>
+                </SheetGroup>
+            )}
         </Sheet>
     )
 }

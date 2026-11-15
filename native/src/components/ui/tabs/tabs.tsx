@@ -66,7 +66,11 @@ export function Tabs({ value, onValueChange, items, variant = "segment", classNa
         onLayout={glide.onOptionLayout(item.value)} glide={glide} />)
 
     return (
-        <TabsPrimitive.Root value={value} onValueChange={onValueChange} className={className}>
+        <TabsPrimitive.Root value={value} onValueChange={next => {
+            // a switch rebuilt by this choice takes over the bubble from here (glide.tsx, leave)
+            glide.leave()
+            onValueChange(next)
+        }} className={className}>
             {variant === "segment" ? (
                 <TabsPrimitive.List className="flex-row gap-1 rounded-surface-sm bg-sm-surface-sunken p-1">
                     <GlidePill glide={glide} className={BUBBLE.segment} />

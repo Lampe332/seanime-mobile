@@ -1,0 +1,109 @@
+diff --git a/node_modules/react-native-worklets/lib/module/runLoop/uiRuntime/requestAnimationFrame.js b/node_modules/react-native-worklets/lib/module/runLoop/uiRuntime/requestAnimationFrame.js
+index a96bbed..2a42925 100644
+--- a/node_modules/react-native-worklets/lib/module/runLoop/uiRuntime/requestAnimationFrame.js
++++ b/node_modules/react-native-worklets/lib/module/runLoop/uiRuntime/requestAnimationFrame.js
+@@ -31,9 +31,18 @@ export function setupRequestAnimationFrame() {
+       finalizer();
+     }
+   }
++  // Seanime Mobile patch: the loop only runs while something waits for a frame
++  let loopRunning = false;
++  function startLoop() {
++    if (!loopRunning) {
++      loopRunning = true;
++      globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++    }
++  }
+   function requestAnimationFrame(callback) {
+     const handle = queuedCallbacksEnd++;
+     queuedCallbacks.push(callback);
++    startLoop();
+     return handle;
+   }
+   function cancelAnimationFrame(handle) {
+@@ -49,8 +58,12 @@ export function setupRequestAnimationFrame() {
+   function nativeFlushQueue(timestamp) {
+     flushQueue(timestamp);
+ 
+-    /* Schedule next frame */
+-    globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++    /* Schedule next frame, only if work was queued meanwhile */
++    if (queuedCallbacks.length > 0 || queuedFinalizers.length > 0) {
++      globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++    } else {
++      loopRunning = false;
++    }
+   }
+   function flushQueue(timestamp) {
+     globalThis.__frameTimestamp = timestamp;
+@@ -61,10 +74,11 @@ export function setupRequestAnimationFrame() {
+   globalThis.cancelAnimationFrame = cancelAnimationFrame;
+   globalThis.requestAnimationFrameFinalizer = callback => {
+     queuedFinalizers.push(callback);
++    startLoop();
+   };
+ 
+-  /* Start the loop */
+-  globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++  /* Start the loop once; it stops when nothing waits */
++  startLoop();
+ 
+   // TODO: Remove it after support for Reanimated 4.3 is dropped.
+   globalThis.__flushAnimationFrame = eventTimestamp => {
+diff --git a/node_modules/react-native-worklets/src/runLoop/uiRuntime/requestAnimationFrame.ts b/node_modules/react-native-worklets/src/runLoop/uiRuntime/requestAnimationFrame.ts
+index f9a439a..58bcc76 100644
+--- a/node_modules/react-native-worklets/src/runLoop/uiRuntime/requestAnimationFrame.ts
++++ b/node_modules/react-native-worklets/src/runLoop/uiRuntime/requestAnimationFrame.ts
+@@ -39,11 +39,23 @@ export function setupRequestAnimationFrame() {
+     }
+   }
+ 
++  // Seanime Mobile patch: the loop only runs while something waits for a frame
++  // (upstream asks for every frame forever, which wakes the main thread on each vsync).
++  let loopRunning = false;
++
++  function startLoop() {
++    if (!loopRunning) {
++      loopRunning = true;
++      globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++    }
++  }
++
+   function requestAnimationFrame(
+     callback: (timestamp: number) => void
+   ): number {
+     const handle = queuedCallbacksEnd++;
+     queuedCallbacks.push(callback);
++    startLoop();
+     return handle;
+   }
+ 
+@@ -62,8 +74,12 @@ export function setupRequestAnimationFrame() {
+   function nativeFlushQueue(timestamp: number) {
+     flushQueue(timestamp);
+ 
+-    /* Schedule next frame */
+-    globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++    /* Schedule next frame, only if work was queued meanwhile */
++    if (queuedCallbacks.length > 0 || queuedFinalizers.length > 0) {
++      globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++    } else {
++      loopRunning = false;
++    }
+   }
+ 
+   function flushQueue(timestamp: number) {
+@@ -77,10 +93,11 @@ export function setupRequestAnimationFrame() {
+     cancelAnimationFrame as typeof globalThis.cancelAnimationFrame;
+   globalThis.requestAnimationFrameFinalizer = (callback: () => void) => {
+     queuedFinalizers.push(callback);
++    startLoop();
+   };
+ 
+-  /* Start the loop */
+-  globalThis.__nativeRequestAnimationFrame(nativeFlushQueue);
++  /* Start the loop once (drains startup microtasks); it stops when nothing waits */
++  startLoop();
+ 
+   // TODO: Remove it after support for Reanimated 4.3 is dropped.
+   globalThis.__flushAnimationFrame = (eventTimestamp: number) => {

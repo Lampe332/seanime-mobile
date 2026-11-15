@@ -8,7 +8,10 @@ const source = readFileSync(join(__dirname, "player-screen.tsx"), "utf8")
 describe("player screen", () => {
     it("gives every mpv view its open options and subtitle look, also the new view of a refreshed online stream", () => {
         expect(source).toContain("key={viewKey}")
-        expect(source).toMatch(/setOptionsView\(viewKey\)\)[\s\S]{0,80}\}, \[viewKey\]\)/)
+        // the options' key is the view's key (plus the headers of a stream played without the proxy, docs/EIGENER-KERN.md)
+        expect(source).toContain("const optionsKey = headerOptions.length ? `${viewKey}|${headerOptions[0][1]}` : viewKey")
+        expect(source).toMatch(/setOptionsView\(optionsKey\)\)[\s\S]{0,80}\}, \[optionsKey, headerOptions\]\)/)
+        expect(source).toContain("const mpvOptionsSet = optionsView === optionsKey")
         const onLoad = source.slice(source.indexOf("onLoad={"), source.indexOf("onPlaybackStateChange={"))
         expect(onLoad).toContain("applySubtitleStyle()")
     })

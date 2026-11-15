@@ -161,6 +161,7 @@ export function PluginTrayButton({ variant }: { variant: "home" | "bar" }) {
     const pinned = pinnedTrayIcons(pins, icons)
 
     // nothing to open or pin: the button would only lead to an empty "No plugins available" sheet
+    // without the server no plugin runs (phase 7a): no icons, no development extensions, no button
     if (isFeatureDisabled("PluginTray") || (!icons.length && !developmentModeExtensions?.length)) return null
     return <View className="min-w-0 flex-row flex-wrap items-center gap-1.5">
         <Pressable accessibilityRole="button" accessibilityLabel={t("Open plugins", "Plugins öffnen")} onPress={() => setChooserOpen(true)}

@@ -1,7 +1,6 @@
 import type { Anime_Entry, NativePlayer_PlaybackInfo, Onlinestream_Episode } from "@/api/generated/types"
 import { CardMenu, type CardMenuAnchor } from "@/components/shared/card-menu"
 import { forEpisodeType, usePluginActions, useRunPluginAction } from "@/main/_features/plugin/plugin-actions"
-import { getServerBaseUrl } from "@/api/client/server-url"
 import {
     useGetOnlineStreamEpisodeList,
     useGetOnlineStreamEpisodeSource,
@@ -15,7 +14,7 @@ import { Select } from "@/components/ui/select/select"
 import { Dialog } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
-import { useLatestFunction } from "@/lib/helpers/debug"
+import { logger, useLatestFunction } from "@/lib/helpers/debug"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { atomWithStorage } from "@/lib/storage"
@@ -31,13 +30,13 @@ import { StreamPageSkeleton } from "@/main/entry/_containers/torrent-stream/_com
 import { EpisodeDownloadButton } from "@/main/onlinestream/_containers/episode-download-sheet"
 import { OnlinestreamManualMappingSheet } from "@/main/onlinestream/_containers/onlinestream-manual-matching"
 import { useHandleOnlinestreamProviderExtensions } from "@/main/onlinestream/_lib/handle-onlinestream-providers"
+import { providerForMedia, withMediaProvider } from "@/main/onlinestream/_lib/onlinestream-provider-choice"
 import { getMobileInitialEpisode, rememberMobileEpisode } from "@/main/onlinestream/_lib/mobile-episode-selection"
 import { type OnlinePlayerEvents, player_onlineAtom } from "@/main/onlinestream/_lib/onlinestream-player.atoms"
 import {
     buildOnlineStream,
     chooseVideoSource,
     episodeServers,
-    needsProxy,
     onlineDownloadRequest,
     type OnlineStream,
     playableVideoSources,
@@ -45,6 +44,7 @@ import {
 import {
     __onlinestream_dubbedPreferenceByMediaAtom,
     __onlinestream_qualityAtom,
+    __onlinestream_providerByMediaAtom,
     __onlinestream_selectedProviderAtom,
     __onlinestream_selectedServerAtom,
     __onlinestream_subtitlePreferenceByMediaAtom,
@@ -117,7 +117,12 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     const [quality, setQuality] = useAtom(__onlinestream_qualityAtom)
     const [dubbedByMedia, setDubbedByMedia] = useAtom(__onlinestream_dubbedPreferenceByMediaAtom)
     const [preferredProvider, setPreferredProvider] = useAtom(__onlinestream_selectedProviderAtom)
-    const [provider, setProvider] = React.useState(preferredProvider)
+    const [providerByMedia, setProviderByMedia] = useAtom(__onlinestream_providerByMediaAtom)
+    const { providerExtensions, providerExtensionOptions } = useHandleOnlinestreamProviderExtensions()
+    const installedIds = React.useMemo(() => providerExtensions.map(p => p.id), [providerExtensions])
+    // this anime's own provider, else the one picked last (onlinestream-provider-choice.ts)
+    const mediaProvider = providerForMedia(providerByMedia, mediaId, preferredProvider, installedIds)
+    const [provider, setProvider] = React.useState(mediaProvider)
     const [subtitlePreferences, setSubtitlePreferences] = useAtom(__onlinestream_subtitlePreferenceByMediaAtom)
     // The stream is built only while the player has (or wants) this page's stream
     const [active, setActive] = React.useState(false)
@@ -128,10 +133,10 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     }, [mediaId, setDubbedByMedia])
 
     // The stored provider/server follow a change elsewhere; another anime starts from them again
-    const [syncedProvider, setSyncedProvider] = React.useState(preferredProvider)
-    if (syncedProvider !== preferredProvider) {
-        setSyncedProvider(preferredProvider)
-        setProvider(preferredProvider)
+    const [syncedProvider, setSyncedProvider] = React.useState(mediaProvider)
+    if (syncedProvider !== mediaProvider) {
+        setSyncedProvider(mediaProvider)
+        setProvider(mediaProvider)
     }
     const [syncedServer, setSyncedServer] = React.useState(preferredServer)
     if (syncedServer !== preferredServer) {
@@ -142,7 +147,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     const [syncedMedia, setSyncedMedia] = React.useState(mediaId)
     if (syncedMedia !== mediaId) {
         setSyncedMedia(mediaId)
-        setProvider(preferredProvider)
+        setProvider(mediaProvider)
         setServer(preferredServer)
         setActive(false)
     }
@@ -151,7 +156,6 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     const [cacheOpen, setCacheOpen] = React.useState(false)
     const [matchOpen, setMatchOpen] = React.useState(false)
 
-    const { providerExtensions, providerExtensionOptions } = useHandleOnlinestreamProviderExtensions()
     const extension = providerExtensions.find(p => p.id === provider)
     const sourceDubbed = !!extension?.supportsDub && dubbed
     // bumped to build the stream URL again from an unchanged source (after a source refresh)
@@ -219,6 +223,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     const stream = built && built.key === streamKey ? built.stream : null
     const url = stream?.url ?? null
     const subtitleTracks = stream?.subtitles
+    const streamHeaders = stream?.headers
     // the cycler clears the URL to show "Loading stream" until the next candidate is built
     const setUrl = React.useCallback((value: string | null) => {
         if (value === null) setBuilt(null)
@@ -247,8 +252,10 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         let cancelled = false
         const source = videoSource
         void (async () => {
-            const query = needsProxy(source) ? await tokenQuery("/api/v1/proxy", "&") : ""
-            if (!cancelled) setBuilt({ key: streamKey, stream: buildOnlineStream(source, getServerBaseUrl(), query) })
+            // the headers go to mpv, the server's proxy is not there (docs/EIGENER-KERN.md §4s)
+            // names and counts only, never addresses or values (docs/EIGENER-KERN.md §4m, 3f-2)
+            logger("Onlinestream").info(`playing directly, no proxy: ${source.type ?? "-"}, header fields ${Object.keys(source.headers ?? {}).join("/") || "none"}, subtitles ${source.subtitles?.length ?? 0}`)
+            if (!cancelled) setBuilt({ key: streamKey, stream: buildOnlineStream(source, "", "", true) })
         })()
         return () => {
             cancelled = true
@@ -345,6 +352,8 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
             return
         }
         setStartSeconds(resumeIfPlaying())
+        // kept for this anime; the global choice becomes the default for anime without their own
+        setProviderByMedia(previous => withMediaProvider(previous, mediaId, value))
         setPreferredProvider(value)
         setProvider(value)
     }
@@ -456,6 +465,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
             info,
             params: { mediaId, episodeNumber: currentEpisodeNumber, provider: provider ?? "", server: server ?? "", quality: quality ?? "", dubbed },
             reload: streamReload,
+            headers: streamHeaders,
             startSeconds,
             loadingState,
             playbackError: shownError,
@@ -467,7 +477,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
             download,
             events: eventsRef,
         })
-    }, [active, info, mediaId, currentEpisodeNumber, provider, server, quality, dubbed, streamReload, startSeconds, loadingState, shownError, hasNext,
+    }, [active, info, mediaId, currentEpisodeNumber, provider, server, quality, dubbed, streamReload, streamHeaders, startSeconds, loadingState, shownError, hasNext,
         hasPrevious, qualities, videoSource?.quality, subtitlePreferences, download, setOnline])
 
     // Another anime opened on this page: the stream of the one before keeps playing, without this page's controls

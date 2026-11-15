@@ -35,28 +35,35 @@ describe("DLNA cast state", () => {
 
 describe("DLNA cast texts", () => {
     it("has a German and English text for every error code", () => {
-        const codes: DlnaCastErrorCode[] = ["gone", "no-wifi", "tv-off", "no-answer", "rejected", "control-failed", "track-failed", "not-connected", "invalid-stream"]
+        const codes: DlnaCastErrorCode[] = ["gone", "no-wifi", "tv-off", "no-answer", "rejected", "control-failed", "seek-failed", "track-failed", "not-connected", "invalid-stream"]
         for (const code of codes) {
             expect(dlnaCastErrorText(code, en)).not.toBe("")
             expect(dlnaCastErrorText(code, de)).not.toBe(dlnaCastErrorText(code, en))
         }
         expect(dlnaCastErrorText("tv-off", de)).toContain("Standby")
     })
+
+    it("says where the TV could not jump to when only the start jump failed", () => {
+        expect(dlnaCastErrorText("seek-failed", en, 287_400)).toBe("Playing on the TV, but it could not jump to 4:47. It started from the beginning.")
+        expect(dlnaCastErrorText("seek-failed", en, 3_725_000)).toContain("jump to 1:02:05.")
+        expect(dlnaCastErrorText("seek-failed", en)).toBe("Playing on the TV, but it could not jump to your position. It started from the beginning.")
+        expect(dlnaCastErrorText("seek-failed", en, 287_400)).not.toBe(dlnaCastErrorText("control-failed", en))
+    })
 })
 
 describe("cast stream tracks", () => {
     it("sets and clears the track patches of the direct stream", () => {
-        const url = "http://127.0.0.1:43212/api/v1/directstream/stream?id=abc&audioTrack=1"
-        expect(castStreamUrl(url, { audioTrack: 2, subtitleTrack: -1 })).toBe("http://127.0.0.1:43212/api/v1/directstream/stream?id=abc&audioTrack=2&subtitleTrack=-1")
-        expect(castStreamUrl(url, { audioTrack: null })).toBe("http://127.0.0.1:43212/api/v1/directstream/stream?id=abc")
+        const url = "http://127.0.0.1:8080/api/v1/directstream/stream?id=abc&audioTrack=1"
+        expect(castStreamUrl(url, { audioTrack: 2, subtitleTrack: -1 })).toBe("http://127.0.0.1:8080/api/v1/directstream/stream?id=abc&audioTrack=2&subtitleTrack=-1")
+        expect(castStreamUrl(url, { audioTrack: null })).toBe("http://127.0.0.1:8080/api/v1/directstream/stream?id=abc")
     })
     it("keeps the other query values as they are (base64 padding and + of a Nakama path)", () => {
-        const url = "http://127.0.0.1:43212/api/v1/nakama/stream?type=file&path=L3N0b3JhZ2UvYS+b/Q==#t"
+        const url = "http://127.0.0.1:8080/api/v1/nakama/stream?type=file&path=L3N0b3JhZ2UvYS+b/Q==#t"
         expect(castStreamUrl(url, { audioTrack: 2, subtitleTrack: -1 }))
-            .toBe("http://127.0.0.1:43212/api/v1/nakama/stream?type=file&path=L3N0b3JhZ2UvYS+b/Q==&audioTrack=2&subtitleTrack=-1#t")
+            .toBe("http://127.0.0.1:8080/api/v1/nakama/stream?type=file&path=L3N0b3JhZ2UvYS+b/Q==&audioTrack=2&subtitleTrack=-1#t")
         expect(castStreamUrl(`${url.slice(0, -2)}&subtitleTrack=3&subtitleTrack=4`, { subtitleTrack: null, audioTrack: null }))
-            .toBe("http://127.0.0.1:43212/api/v1/nakama/stream?type=file&path=L3N0b3JhZ2UvYS+b/Q==")
-        expect(castStreamUrl("http://127.0.0.1:43212/api/v1/directstream/stream", { audioTrack: 1, subtitleTrack: null }))
-            .toBe("http://127.0.0.1:43212/api/v1/directstream/stream?audioTrack=1")
+            .toBe("http://127.0.0.1:8080/api/v1/nakama/stream?type=file&path=L3N0b3JhZ2UvYS+b/Q==")
+        expect(castStreamUrl("http://127.0.0.1:8080/api/v1/directstream/stream", { audioTrack: 1, subtitleTrack: null }))
+            .toBe("http://127.0.0.1:8080/api/v1/directstream/stream?audioTrack=1")
     })
 })

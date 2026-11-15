@@ -1,0 +1,21 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["seanime", "coresandbox"],
+  "ios": {
+    "iosModuleName": "SeanimeCoreSandbox"
+  },
+  "android": {
+    "androidNamespace": ["seanime", "coresandbox"],
+    "androidCxxLibName": "SeanimeCoreSandbox"
+  },
+  "autolinking": {
+    "CoreSandboxFactory": {
+      "all": {
+        "language": "c++",
+        "implementationClassName": "HybridCoreSandboxFactory"
+      }
+    }
+  },
+  "ignorePaths": ["**/node_modules", "cpp/third_party"],
+  "gitAttributesGeneratedFlag": false
+}

@@ -13,9 +13,4 @@ describe("websocket sender", () => {
         expect(sender).toMatch(/useLayoutEffect\(\(\) => \{\s*latest\.current = \{ sendMessage, addPluginEventToBatch \}\s*\}\)/)
     })
 
-    it("is what the player's status interval depends on", () => {
-        const player = readFileSync(join(__dirname, "../_features/player/use-player-server.ts"), "utf8")
-        expect(player).toContain("const { sendMessage } = useWebsocketSender()")
-        expect(player).toMatch(/setInterval\(\(\) => send\("video-status", timePayload\(\)\), 1000\)/)
-    })
 })

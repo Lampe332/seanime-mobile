@@ -1,6 +1,6 @@
 import type { MobileOffline_Item } from "@/api/generated/types"
 import { describe, expect, it } from "vitest"
-import { canPlayOffline, offlinePlayback, offlinePlaybackInfo, offlinePositionToSave, offlineStartSeconds } from "./offline-playback"
+import { canPlayOffline, offlinePlaybackInfo, offlinePositionToSave, offlineStartSeconds } from "./offline-playback"
 
 const item = (values: Partial<MobileOffline_Item> = {}): MobileOffline_Item => ({
     id: "abc", key: "k", status: "ready", ready: true, mediaId: 9, provider: "p", episode: "4", dubbed: false, quality: "", server: "", audioLanguage: "ja",
@@ -27,22 +27,10 @@ describe("offline playback", () => {
         expect(offlinePositionToSave(-3, false)).toBe(0)
     })
 
-    it("plays the saved files from the Go server", () => {
-        const playback = offlinePlayback(item({
-            files: { video: "video.ts", audio: "audio de.m4a", subtitles: [{ file: "en.vtt", language: "en", label: "English", default: true, mime: "text/vtt" }] },
-            position: 30000,
-        }))
-        expect(playback.startSeconds).toBe(30)
-        expect(playback.audioUrl).toMatch(/\/api\/v1\/mobile-offline\/file\/abc\/audio%20de\.m4a$/)
-        expect(playback.subtitles).toEqual([{ url: expect.stringMatching(/\/file\/abc\/en\.vtt$/), label: "English", language: "en", default: true }])
-        expect(offlinePlayback(item()).audioUrl).toBeUndefined()
-    })
-
     it("describes the episode for the player without a server playback", () => {
         const info = offlinePlaybackInfo(item({ coverUrl: "https://cover" }))
         expect(info.id).toBe("offline-abc")
         expect(info.streamType).toBe("url")
-        expect(info.streamUrl).toMatch(/\/api\/v1\/mobile-offline\/file\/abc\/video\.mp4$/)
         expect(info.media).toMatchObject({ id: 9, title: { userPreferred: "Frieren" }, coverImage: { large: "https://cover" } })
         expect(info.episode).toMatchObject({ progressNumber: 4, episodeNumber: 4, displayTitle: "" })
     })

@@ -67,6 +67,9 @@ describe("marketplaceView", () => {
     it("keeps only phone types and lists the languages", () => {
         const v = marketplaceView(data, { type: "all", language: "all", search: "" }, "en", false)
         expect(v.usable.some(e => e.id === "desktop")).toBe(false)
+        expect(v.usable.some(e => e.id === "p")).toBe(false)
+        expect(v.chips.map(c => c.type)).not.toContain("plugin")
+        expect(v.groups.map(g => g.type)).not.toContain("plugin")
         expect(v.languages).toEqual(["de", "en"])
         expect(v.overview).toBe(true)
         expect(v.filtered).toBe(false)

@@ -2,6 +2,7 @@ import { SeaError, useServerMutation, useServerQuery } from "../client/requests"
 import { NakamaCreateWatchParty_Variables, NakamaJoinWatchParty_Variables, NakamaPlayVideo_Variables, NakamaSendChatMessage_Variables } from "../generated/endpoint.types"
 import { API_ENDPOINTS } from "../generated/endpoints"
 import { Nakama_MessageResponse } from "../generated/types"
+import { onlyWithServer } from "@/lib/server/without-server"
 
 export function useNakamaReconnectToHost() {
     return useServerMutation<Nakama_MessageResponse, {}>({
@@ -108,5 +109,7 @@ export function useNakamaRoomsAvailable() {
         endpoint: API_ENDPOINTS.NAKAMA.NakamaRoomsAvailable.endpoint,
         method: API_ENDPOINTS.NAKAMA.NakamaRoomsAvailable.methods[0],
         queryKey: [API_ENDPOINTS.NAKAMA.NakamaRoomsAvailable.key],
+        // asked by the Nakama manager at every start: no screen of its own
+        enabled: onlyWithServer(),
     })
 }

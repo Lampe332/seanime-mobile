@@ -4,6 +4,8 @@ import { useAtom } from "jotai"
 import React from "react"
 import { rememberUser } from "./anilist-public"
 import { airingNotificationsAtom, checkAiring, postTestAiring, setAiringEnabled, syncAiringTask } from "./airing-notifier"
+import * as Notifications from "expo-notifications"
+import { chapterNotificationsAtom, checkChaptersInBackground, writeChapterNotifyEnabled } from "@/lib/updates/chapter-check"
 
 /** Settings → App → New episodes (E2 2.12): the switch; turning it on asks for the notification permission. */
 export function useAiringNotificationsSetting() {
@@ -11,6 +13,18 @@ export function useAiringNotificationsSetting() {
     const setEnabled = React.useCallback((value: boolean) => {
         setEnabledAtom(value)
         void setAiringEnabled(value)
+    }, [setEnabledAtom])
+    return [enabled, setEnabled] as const
+}
+
+/** Settings → App → New chapters: the switch; turning it on asks for the notification permission (same job as the episodes) */
+export function useChapterNotificationsSetting() {
+    const [enabled, setEnabledAtom] = useAtom(chapterNotificationsAtom)
+    const setEnabled = React.useCallback((value: boolean) => {
+        setEnabledAtom(value)
+        writeChapterNotifyEnabled(value)
+        void syncAiringTask().catch(() => undefined)
+        if (value) void Notifications.requestPermissionsAsync().catch(() => undefined)
     }, [setEnabledAtom])
     return [enabled, setEnabled] as const
 }
@@ -34,5 +48,7 @@ export function useAiringScheduler() {
         if (!name) return
         rememberUser(name)
         void checkAiring({ force: true }).catch(() => undefined)
+        // new chapters: at most every few hours, also at start (lib/updates/chapter-check.ts)
+        void checkChaptersInBackground().catch(() => undefined)
     }, [name])
 }

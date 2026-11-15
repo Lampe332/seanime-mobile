@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { fromMangaPreferences, getActiveMangaFilters, toMangaPreferences } from "./manga-preferences"
+import { defaultMangaProvider, fromMangaPreferences, getActiveMangaFilters, toMangaPreferences, withInstalledProviders } from "./manga-preferences"
 
 describe("manga preferences", () => {
     it("preserves filters for inactive providers", () => {
@@ -54,5 +54,22 @@ describe("manga preferences", () => {
         expect(filters).toEqual({
             "1": { scanlators: ["Active Group"], language: "en" },
         })
+    })
+})
+
+describe("a saved source that is gone", () => {
+    const installed = [{ id: "weebcentral", name: "WeebCentral" }, { id: "mangafire", name: "MangaFire" }] as never[]
+
+    it("falls back from the old built-in local source to the first installed one", () => {
+        expect(defaultMangaProvider("local-manga", installed)).toBe("weebcentral")
+        expect(defaultMangaProvider("mangafire", installed)).toBe("mangafire")
+        expect(defaultMangaProvider("local-manga", [])).toBeNull()
+        expect(defaultMangaProvider(undefined, undefined)).toBeNull()
+    })
+
+    it("replaces a stored local choice and keeps the others", () => {
+        expect(withInstalledProviders({ "1": "local-manga", "2": "mangafire" }, installed, "weebcentral"))
+            .toEqual({ "1": "weebcentral", "2": "mangafire" })
+        expect(withInstalledProviders({ "2": "mangafire" }, installed, "weebcentral")).toBeNull()
     })
 })

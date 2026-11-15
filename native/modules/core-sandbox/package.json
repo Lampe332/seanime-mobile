@@ -1,0 +1,16 @@
+{
+  "name": "seanime-core-sandbox",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QuickJS sandboxes for extensions: shared C++ around quickjs-ng, bound with Nitro",
+  "license": "MIT",
+  "main": "index.ts",
+  "react-native": "index.ts",
+  "scripts": {
+    "specs": "npx --yes nitrogen@0.37.2"
+  },
+  "peerDependencies": {
+    "react-native": "*",
+    "react-native-nitro-modules": "*"
+  }
+}

@@ -5,15 +5,15 @@ const expoConfig = require('eslint-config-expo/flat');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*'],
+    ignores: ['dist/*', 'src/core/extensions/contract/*'],
   },
   {
-    // Logic copied unchanged from backend/seanime-web (docs/NATIVE-UMBAU.md §3.2). It was written before the React
+    // Logic copied unchanged from backend/seanime-web (docs/NATIVE-UMBAU.md ﾂｧ3.2). It was written before the React
     // Compiler rules and breaks some of them on purpose (setState in effects, refs/Date.now while rendering, manual
     // memoization). Where the compiler cannot keep such code safe (refs, purity, memoization) it skips that function
     // and leaves it plain React, which is how it ran in the web app; setState in an effect is a style check that does
     // not change what the compiler emits. So these rules only warn here: rewriting the code to satisfy them would
-    // change ported behaviour. New code outside these files keeps them as errors. See §9 (04.11.2026).
+    // change ported behaviour. New code outside these files keeps them as errors. See ﾂｧ9 (04.11.2026).
     files: [
       'src/hooks/use-debounce.ts',
       'src/lib/helpers/debug.ts',

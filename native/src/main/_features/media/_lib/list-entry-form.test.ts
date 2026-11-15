@@ -10,7 +10,43 @@ import {
     listStatusOptions,
     parseStepInput,
     progressMaxFor,
+    entryButton,
+    addingDone,
 } from "./list-entry-form"
+
+/*
+ * Correction 5a-K (docs/EIGENER-KERN.md §4p): on the tablet the add button stayed away for the rest of the app's run.
+ * The page had added the anime once (the mutation's success hides the button until the entry comes), the entry was
+ * removed elsewhere later, and the page still counted the old success.
+ */
+describe("entryButton: add or edit next to the progress", () => {
+    const user = { viewer: { name: "someone" }, isSimulated: false }
+    const entry = { status: "PLANNING", progress: 0 }
+
+    it("shows nothing without a user, add without an entry, edit with one", () => {
+        expect(entryButton(undefined, undefined, false)).toBe("none")
+        expect(entryButton(user, undefined, false)).toBe("add")
+        expect(entryButton(user, entry, false)).toBe("edit")
+    })
+
+    it("hides the add button after adding until the entry arrives", () => {
+        expect(entryButton(user, undefined, true)).toBe("none")
+        expect(addingDone(true, undefined)).toBe(false)
+    })
+
+    it("shows the add button again when the added entry is removed elsewhere later", () => {
+        // added on this page, the entry arrived: the add is done and forgotten
+        let added = true
+        if (addingDone(added, entry)) added = false
+        expect(entryButton(user, entry, added)).toBe("edit")
+        // removed elsewhere (AniList's site, another device), the same page still open
+        expect(entryButton(user, undefined, added)).toBe("add")
+    })
+
+    it("never forgets an add that did not succeed", () => {
+        expect(addingDone(false, entry)).toBe(false)
+    })
+})
 
 const en = (english: string) => english
 

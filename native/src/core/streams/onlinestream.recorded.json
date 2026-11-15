@@ -1,0 +1,308 @@
+{
+ "note": "Only the form of the server's answers of 13.11.2026 (fields and kinds), no values. metadata/headers: object.",
+ "answers": {
+  "GetOnlineStreamEpisodeList.aq-anikoto": {
+   "method": "POST",
+   "endpoint": "/api/v1/onlinestream/episode-list",
+   "requestFields": [
+    "mediaId",
+    "dubbed",
+    "provider"
+   ],
+   "data": {
+    "episodes": [
+     {
+      "number": "number",
+      "title": "string",
+      "image": "string",
+      "description": "string",
+      "metadata": "object"
+     }
+    ],
+    "media": {
+     "id": "number",
+     "idMal": "number",
+     "siteUrl": "string",
+     "status": "string",
+     "season": "string",
+     "type": "string",
+     "format": "string",
+     "seasonYear": "number",
+     "bannerImage": "string",
+     "episodes": "number",
+     "synonyms": [
+      "string"
+     ],
+     "isAdult": "boolean",
+     "countryOfOrigin": "string",
+     "meanScore": "number",
+     "description": "string",
+     "genres": [
+      "string"
+     ],
+     "duration": "number",
+     "trailer": {
+      "id": "string",
+      "site": "string",
+      "thumbnail": "string"
+     },
+     "title": {
+      "english": "string",
+      "native": "string",
+      "romaji": "string",
+      "userPreferred": "string"
+     },
+     "coverImage": {
+      "color": "string",
+      "extraLarge": "string",
+      "large": "string",
+      "medium": "string"
+     },
+     "startDate": {
+      "day": "number",
+      "month": "number",
+      "year": "number"
+     },
+     "endDate": {
+      "day": "number",
+      "month": "number",
+      "year": "number"
+     }
+    }
+   }
+  },
+  "GetOnlineStreamEpisodeSource.aq-anikoto": {
+   "method": "POST",
+   "endpoint": "/api/v1/onlinestream/episode-source",
+   "requestFields": [
+    "episodeNumber",
+    "mediaId",
+    "provider",
+    "dubbed"
+   ],
+   "data": {
+    "number": "number",
+    "videoSources": [
+     {
+      "server": "string",
+      "headers": "object",
+      "url": "string",
+      "quality": "string",
+      "type": "string",
+      "subtitles": [
+       {
+        "url": "string",
+        "language": "string",
+        "isDefault": "boolean"
+       }
+      ]
+     }
+    ],
+    "servers": [
+     {
+      "server": "string",
+      "status": "string"
+     }
+    ]
+   }
+  },
+  "GetOnlinestreamMapping.aq-anikoto": {
+   "method": "POST",
+   "endpoint": "/api/v1/onlinestream/get-mapping",
+   "requestFields": [
+    "provider",
+    "mediaId"
+   ],
+   "data": {
+    "animeId": "null"
+   }
+  },
+  "OnlinestreamManualSearch.aq-anikoto": {
+   "method": "POST",
+   "endpoint": "/api/v1/onlinestream/search",
+   "requestFields": [
+    "provider",
+    "query",
+    "dubbed"
+   ],
+   "data": [
+    {
+     "id": "string",
+     "title": "string",
+     "url": "string",
+     "subOrDub": "string"
+    }
+   ]
+  },
+  "GetOnlineStreamEpisodeList.kaa": {
+   "method": "POST",
+   "endpoint": "/api/v1/onlinestream/episode-list",
+   "requestFields": [
+    "mediaId",
+    "dubbed",
+    "provider"
+   ],
+   "data": {
+    "episodes": [
+     {
+      "number": "number",
+      "title": "string",
+      "image": "string",
+      "description": "string",
+      "metadata": "object"
+     }
+    ],
+    "media": {
+     "id": "number",
+     "idMal": "number",
+     "siteUrl": "string",
+     "status": "string",
+     "season": "string",
+     "type": "string",
+     "format": "string",
+     "seasonYear": "number",
+     "bannerImage": "string",
+     "episodes": "number",
+     "synonyms": [
+      "string"
+     ],
+     "isAdult": "boolean",
+     "countryOfOrigin": "string",
+     "meanScore": "number",
+     "description": "string",
+     "genres": [
+      "string"
+     ],
+     "duration": "number",
+     "trailer": {
+      "id": "string",
+      "site": "string",
+      "thumbnail": "string"
+     },
+     "title": {
+      "english": "string",
+      "native": "string",
+      "romaji": "string",
+      "userPreferred": "string"
+     },
+     "coverImage": {
+      "color": "string",
+      "extraLarge": "string",
+      "large": "string",
+      "medium": "string"
+     },
+     "startDate": {
+      "day": "number",
+      "month": "number",
+      "year": "number"
+     },
+     "endDate": {
+      "day": "number",
+      "month": "number",
+      "year": "number"
+     }
+    }
+   }
+  },
+  "GetOnlineStreamEpisodeSource.kaa": {
+   "method": "POST",
+   "endpoint": "/api/v1/onlinestream/episode-source",
+   "requestFields": [
+    "episodeNumber",
+    "mediaId",
+    "provider",
+    "dubbed"
+   ],
+   "data": {
+    "number": "number",
+    "videoSources": [
+     {
+      "server": "string",
+      "headers": "object",
+      "url": "string",
+      "quality": "string",
+      "type": "string",
+      "subtitles": [
+       {
+        "url": "string",
+        "language": "string",
+        "isDefault": "boolean"
+       }
+      ]
+     }
+    ],
+    "servers": [
+     {
+      "server": "string",
+      "status": "string"
+     }
+    ]
+   }
+  },
+  "GetOnlinestreamMapping.kaa": {
+   "method": "POST",
+   "endpoint": "/api/v1/onlinestream/get-mapping",
+   "requestFields": [
+    "provider",
+    "mediaId"
+   ],
+   "data": {
+    "animeId": "null"
+   }
+  },
+  "OnlinestreamManualSearch.kaa": {
+   "method": "POST",
+   "endpoint": "/api/v1/onlinestream/search",
+   "requestFields": [
+    "provider",
+    "query",
+    "dubbed"
+   ],
+   "data": [
+    {
+     "id": "string",
+     "title": "string",
+     "url": "string",
+     "subOrDub": "string"
+    }
+   ]
+  },
+  "OnlinestreamManualMapping": {
+   "method": "POST",
+   "endpoint": "/api/v1/onlinestream/manual-mapping",
+   "requestFields": [
+    "provider",
+    "mediaId",
+    "animeId"
+   ],
+   "data": "boolean"
+  },
+  "RemoveOnlinestreamMapping": {
+   "method": "POST",
+   "endpoint": "/api/v1/onlinestream/remove-mapping",
+   "requestFields": [
+    "provider",
+    "mediaId"
+   ],
+   "data": "boolean"
+  },
+  "OnlineStreamEmptyCache": {
+   "method": "DELETE",
+   "endpoint": "/api/v1/onlinestream/cache",
+   "requestFields": [
+    "mediaId"
+   ],
+   "data": "boolean"
+  },
+  "GetOnlinestreamMapping.after-manual-mapping": {
+   "data": {
+    "animeId": "string"
+   }
+  }
+ },
+ "mediaTitles": {
+  "romaji": "Dr. STONE",
+  "english": "Dr. STONE",
+  "synonymsCount": 5
+ }
+}

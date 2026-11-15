@@ -1,4 +1,3 @@
-import { getServerBaseUrl } from "@/api/client/server-url"
 import { storage } from "@/lib/storage"
 
 /*
@@ -25,7 +24,28 @@ export function rememberUser(name: string) {
     if (name && name !== knownUser()) storage.set(USER_KEY, name)
 }
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+/**
+ * The AniList user of the core's own status (none for the simulated user): the core answers it, no HTTP (phase 5c-1).
+ * Until stage 8a-2 this asked the app's own server with several attempts while it booted; it is no longer in the app.
+ */
+export async function serverUser(): Promise<string | null> {
+    const { buildSeaQuery } = await import("@/api/client/requests")
+    const status = await buildSeaQuery<{ user?: { isSimulated?: boolean, viewer?: { name?: unknown } } }>({ endpoint: "/api/v1/status", method: "GET" }).catch(() => undefined)
+    const user = status?.user
+    return user && !user.isSimulated && typeof user.viewer?.name === "string" && user.viewer.name ? user.viewer.name : null
+}
+
+/** The user to read the list of: the core's (remembered), else the last one; without either NoAniListUserError. */
+export async function resolveUser(): Promise<string> {
+    const known = knownUser()
+    const name = await serverUser()
+    if (name) {
+        rememberUser(name)
+        return name
+    }
+    if (known) return known
+    throw new NoAniListUserError()
+}
 
 async function withTimeout<T>(ms: number, run: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const controller = new AbortController()
@@ -36,38 +56,6 @@ async function withTimeout<T>(ms: number, run: (signal: AbortSignal) => Promise<
     finally {
         clearTimeout(timer)
     }
-}
-
-/** The local server's AniList user (none for the simulated user); a booting server gets several attempts. */
-export async function serverUser(attempts: number, pauseMs: number): Promise<string | null> {
-    for (let i = 0; i < attempts; i++) {
-        try {
-            const body = await withTimeout(3000, signal => fetch(`${getServerBaseUrl()}/api/v1/status`, {
-                signal, headers: { Origin: getServerBaseUrl(), Accept: "application/json" },
-            }).then(res => res.json()))
-            const user = body?.data?.user
-            if (user && !user.isSimulated && typeof user.viewer?.name === "string" && user.viewer.name) return user.viewer.name
-            // the server answered: it has no AniList user, waiting does not help
-            if (body?.data) return null
-        }
-        catch {
-            // not up yet
-        }
-        if (i < attempts - 1) await sleep(pauseMs)
-    }
-    return null
-}
-
-/** The user to read the list of: the server's (remembered), else the last one; without either NoAniListUserError. */
-export async function resolveUser(attemptsWithoutKnown: number, pauseMs: number): Promise<string> {
-    const known = knownUser()
-    const name = await serverUser(known ? 1 : attemptsWithoutKnown, pauseMs)
-    if (name) {
-        rememberUser(name)
-        return name
-    }
-    if (known) return known
-    throw new NoAniListUserError()
 }
 
 export async function anilist<T>(query: string, variables: Record<string, unknown>): Promise<T> {

@@ -82,8 +82,17 @@ function matchesAny<K extends string>(name: string, wanted: K[] | undefined, pat
     return !wanted?.length || wanted.some(key => patterns[key].test(name))
 }
 
-export function isBatchRelease(torrent: Pick<HibikeTorrent_AnimeTorrent, "name" | "isBatch">) {
-    return !!torrent.isBatch || BATCH.test(torrent.name)
+// A whole season is never this small: a provider's batch flag on a single ~150 MiB episode (Internet Archive reads no
+// episode number in "Dr. Stone Sub 2" and calls the item a batch) is not believed
+const SMALLEST_BATCH = 500 * 1024 * 1024
+
+/** The provider's batch flag, unless the size is one of a single episode (an unknown size, 0, keeps the flag) */
+export function isProviderBatch(torrent: Pick<HibikeTorrent_AnimeTorrent, "isBatch" | "size">) {
+    return !!torrent.isBatch && !(torrent.size > 0 && torrent.size < SMALLEST_BATCH)
+}
+
+export function isBatchRelease(torrent: Pick<HibikeTorrent_AnimeTorrent, "name" | "isBatch" | "size">) {
+    return isProviderBatch(torrent) || BATCH.test(torrent.name)
 }
 
 export function isDualAudioRelease(name: string) {

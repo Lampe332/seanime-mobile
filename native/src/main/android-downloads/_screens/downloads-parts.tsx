@@ -1,5 +1,6 @@
 import { offlineArtworkUrl } from "@/api/hooks/mobile_offline.helpers"
 import { cn } from "@/components/ui/core/styling"
+import { logger } from "@/lib/helpers/debug"
 import { colors } from "@/lib/theme/tokens"
 import { Image } from "expo-image"
 import ArrowDownToLine from "lucide-react-native/icons/arrow-down-to-line"
@@ -12,13 +13,18 @@ import { View } from "react-native"
  * thin accent line for download or watch progress, the round play mark over a picture.
  */
 
-/** `.mdl-art`: saved artwork from the Go server, else the online URL, else the download icon on the control surface. */
+/** `.mdl-art`: saved artwork (from the Go server, or the file itself with the core's downloads), else the online URL, else the download icon on the control surface. */
 export function Artwork({ asset, url, className, iconSize = 24 }: { asset?: string, url?: string, className?: string, iconSize?: number }) {
     const [failed, setFailed] = React.useState<string | null>(null)
     const source = offlineArtworkUrl(asset, url)
+    // one view per address: the failure of an address that was left (the online cover while the episode loaded, its
+    // request still on its way when the saved file took over) must not count against the saved file (4b-C1K)
     return <View className={cn("items-center justify-center overflow-hidden bg-sm-surface-control", className)}>
         {source && failed !== source
-            ? <Image source={source} contentFit="cover" style={{ position: "absolute", inset: 0 }} onError={() => setFailed(source)} accessibilityIgnoresInvertColors />
+            ? <Image key={source} source={source} contentFit="cover" style={{ position: "absolute", inset: 0 }} onError={event => {
+                setFailed(source)
+                if (source.startsWith("file:")) logger("CoreOffline").warning(`saved picture not shown: ${String(event.error).slice(0, 120)}`)
+            }} accessibilityIgnoresInvertColors />
             : <ArrowDownToLine size={iconSize} color={colors.smTextSubtle} />}
     </View>
 }

@@ -1,5 +1,5 @@
 import type { AL_BaseAnime, Anime_Entry, Anime_EntryDownloadInfo, Anime_Episode, Anime_LocalFileType } from "@/api/generated/types"
-import { getServerBaseUrl } from "@/api/client/server-url"
+import { withoutServerError } from "@/lib/server/without-server"
 import { useUpdateAnimeEntryProgress } from "@/api/hooks/anime_entries.hooks"
 import { getEpisodeMinutesRemaining, getEpisodePercentageComplete, useGetContinuityWatchHistory } from "@/api/hooks/continuity.hooks"
 import { useUpdateLocalFileData } from "@/api/hooks/localfiles.hooks"
@@ -11,15 +11,13 @@ import { Dialog, Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Muted, SectionTitle, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { useTr } from "@/lib/app-language"
-import { utf8ToBase64 } from "@/lib/helpers/base64"
-import { copyToClipboard, openInAppBrowser } from "@/lib/helpers/browser"
+import { openInAppBrowser } from "@/lib/helpers/browser"
 import { getImageUrl } from "@/lib/server/assets"
 import { useEpisodeSpoilerState } from "@/lib/theme/anime-spoilers"
 import { colors } from "@/lib/theme/tokens"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
-import { useExternalPlayerLink } from "@/main/_atoms/playback.atoms"
 import { IN_APP_PLAYER_READY } from "@/main/_features/player/player-availability"
-import { useHasTorrentProvider, useServerHMACAuth, useServerStatus } from "@/main/_hooks/use-server-status"
+import { useHasTorrentProvider, useServerStatus } from "@/main/_hooks/use-server-status"
 import { useHandleEpisodeSection } from "@/main/entry/_lib/handle-episode-section"
 import { useHandlePlayMedia } from "@/main/entry/_lib/handle-play-media"
 import { PhoneDownloadedEpisodes } from "./phone-downloaded-episodes"
@@ -75,21 +73,21 @@ export function EpisodeSection({ entry, bottomSection }: { entry: Anime_Entry, b
         : undefined
 
     if ((!entry.listData && !entry._isNakamaEntry) || !entry.libraryData) {
+        // the heading belongs to the list under it (S22 15.11.: 56dp between them read as two blocks); the rest keeps 40dp
         return <View className="gap-10">
             <PhoneDownloadedEpisodes mediaId={entry.mediaId} />
-            {media.status !== "NOT_YET_RELEASED"
-                ? <View className="flex-row items-center gap-2">
-                    <LibraryBig size={20} color="#fefce8" />
-                    <Text className="text-xl font-semibold tracking-[-0.5px] text-[#fefce8]">{entry._isNakamaEntry
-                        ? t("Not in the Nakama's library", "Nicht in der Nakama-Bibliothek")
-                        : t("Not in your library", "Nicht in deiner Bibliothek")}</Text>
-                </View>
-                : <Text className="text-lg font-semibold tracking-[-0.45px] text-[#fefce8]">{t("Not yet released", "Noch nicht erschienen")}</Text>}
-            {/* 2.0.32: <h4>/<h5> (globals.css), then the list and the rest in their own `pt-4 space-y-10` box */}
-            <View className="gap-10 pt-4">
-                {!entry._isNakamaEntry && <UndownloadedEpisodeList downloadInfo={entry.downloadInfo} media={media} />}
-                {bottomSection}
+            <View className="gap-4">
+                {media.status !== "NOT_YET_RELEASED"
+                    ? <View className="flex-row items-center gap-2">
+                        <LibraryBig size={20} color="#fefce8" />
+                        <Text className="text-xl font-semibold tracking-[-0.5px] text-[#fefce8]">{entry._isNakamaEntry
+                            ? t("Not in the Nakama's library", "Nicht in der Nakama-Bibliothek")
+                            : t("Not in your library", "Nicht in deiner Bibliothek")}</Text>
+                    </View>
+                    : <Text className="text-lg font-semibold tracking-[-0.45px] text-[#fefce8]">{t("Not yet released", "Noch nicht erschienen")}</Text>}
+                {!entry._isNakamaEntry && <UndownloadedEpisodeList downloadInfo={entry.downloadInfo} media={media} underHeading />}
             </View>
+            {bottomSection}
         </View>
     }
 
@@ -264,25 +262,16 @@ function EpisodeItem({ episode, media, isWatched, watchedProgress, onPlay, perce
     const t = useTr()
     const { updateLocalFile, isPending } = useUpdateLocalFileData()
     const { mutate: updateProgress, isPending: isUpdatingProgress } = useUpdateAnimeEntryProgress(media.id, episode.progressNumber, false)
-    const { getHMACTokenQueryParam } = useServerHMACAuth()
-    const { encodePath } = useExternalPlayerLink()
     const [menuAt, setMenuAt] = React.useState<CardMenuAnchor | null>(null)
     const [sheet, setSheet] = React.useState<"info" | "metadata" | null>(null)
     const closeMenu = React.useCallback(() => setMenuAt(null), [])
     const pluginItems = usePluginActions("episodeGridItems", libraryEpisodeItems)
     const runPlugin = useRunPluginAction()
 
-    const copyStreamUrl = async () => {
+    // the library's and the Nakama host's stream addresses were the server's; the app has none to copy (toast)
+    const copyStreamUrl = () => {
         if (!episode.localFile) return
-        if (!episode._isNakamaEpisode) {
-            const path = encodePath ? utf8ToBase64(episode.localFile.path) : encodeURIComponent(episode.localFile.path)
-            const tokenQuery = await getHMACTokenQueryParam("/api/v1/mediastream/file", "&")
-            await copyToClipboard(`${getServerBaseUrl()}/api/v1/mediastream/file?path=${path}${tokenQuery}`)
-        } else {
-            const tokenQuery = await getHMACTokenQueryParam("/api/v1/nakama/stream", "&")
-            await copyToClipboard(`${getServerBaseUrl()}/api/v1/nakama/stream?type=file&path=${utf8ToBase64(episode.localFile.path)}${tokenQuery}`)
-        }
-        toast.info(t("Stream URL copied", "Stream-URL kopiert"))
+        toast.error(withoutServerError("The stream address").message)
     }
 
     const items = [
@@ -372,8 +361,10 @@ function MetadataSheet({ episode, onClose }: { episode: Anime_Episode, onClose: 
     </Sheet>
 }
 
-/** Episodes neither in the library nor (with a torrent provider) watched; at most 28 */
-function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress }: { downloadInfo: Anime_EntryDownloadInfo | undefined, media: AL_BaseAnime, watchedProgress?: number }) {
+/** Episodes neither in the library nor (with a torrent provider) watched; at most 28. `underHeading`: under "Not in your library" */
+function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, underHeading }: {
+    downloadInfo: Anime_EntryDownloadInfo | undefined, media: AL_BaseAnime, watchedProgress?: number, underHeading?: boolean
+}) {
     const t = useTr()
     const { hasTorrentProvider } = useHasTorrentProvider()
     const [info, setInfo] = React.useState<Anime_Episode | null>(null)
@@ -387,8 +378,10 @@ function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress }: { dow
     const text = !hasTorrentProvider ? t("The following episodes are not in your library:", "Diese Episoden sind nicht in deiner Bibliothek:")
         : downloadInfo?.rewatch ? t("You have not downloaded the following:", "Das hast du noch nicht heruntergeladen:")
             : t("You have not watched nor downloaded the following:", "Das hast du weder gesehen noch heruntergeladen:")
+    // under the "Not in your library" heading the same sentence again only repeats it
+    const repeatsHeading = underHeading && !hasTorrentProvider
     return <View className="gap-4">
-        <Text className="text-base">{text}</Text>
+        {!repeatsHeading && <Text className="text-base">{text}</Text>}
         <View>
             {episodes.slice(0, 28).map((ep, idx) => {
                 if (!ep.episode) return null
@@ -407,7 +400,7 @@ function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress }: { dow
                     <View className="mt-1 flex-row items-center gap-1">
                         <CalendarDays size={14} color={colors.smTextMuted} />
                         <Text className="text-sm text-sm-text-muted">{episode.episodeMetadata?.airDate
-                            ? `${t("Aired on", "Ausgestrahlt am")} ${new Date(episode.episodeMetadata.airDate).toLocaleDateString()}`
+                            ? `${t("Aired on", "Ausgestrahlt am")} ${new Date(episode.episodeMetadata.airDate).toLocaleDateString(t("en-US", "de-DE"))}`
                             : t("Aired", "Ausgestrahlt")}</Text>
                     </View>
                 </EpisodeRow>

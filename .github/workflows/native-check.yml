@@ -1,0 +1,46 @@
+# Checks the native app (native/) on every push and pull request that touches it: types, logic tests, lint.
+# Nothing is built or published here; the APK is built on the developer's machine (native/scripts/build-android.ps1).
+name: Native check
+
+on:
+  push:
+    paths:
+      - "native/**"
+      - ".github/workflows/native-check.yml"
+  pull_request:
+    paths:
+      - "native/**"
+      - ".github/workflows/native-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: native/package-lock.json
+
+      # postinstall applies native/patches (patch-package)
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - run: npm run lint

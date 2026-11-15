@@ -1,0 +1,33 @@
+{
+    "_": "geschrieben nach: Aufzeichnung api und api-schreibend vom 13.11.2026 (CONTINUITY.*): Form der Antworten und der Anfrage, Nummern und Zeiten erfunden",
+    "history": {
+        "1": {
+            "kind": "onlinestream",
+            "filepath": "",
+            "mediaId": 1,
+            "episodeNumber": 1,
+            "currentTime": 100,
+            "duration": 1440,
+            "timeAdded": "2026-01-01T10:00:00.000000001Z",
+            "timeUpdated": "2026-01-01T10:00:00.000000002Z"
+        }
+    },
+    "itemBefore": { "item": null, "found": false },
+    "itemAfter": {
+        "item": {
+            "kind": "onlinestream",
+            "filepath": "",
+            "mediaId": 1,
+            "episodeNumber": 1,
+            "currentTime": 100,
+            "duration": 1440,
+            "timeAdded": "2026-01-01T10:00:00.000000001Z",
+            "timeUpdated": "2026-01-01T10:00:00.000000002Z"
+        },
+        "found": true
+    },
+    "update": {
+        "request": { "options": { "currentTime": 100, "duration": 1440, "mediaId": 1, "episodeNumber": 1, "kind": "onlinestream" } },
+        "response": true
+    }
+}

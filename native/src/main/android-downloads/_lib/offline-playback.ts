@@ -1,5 +1,6 @@
 import type { NativePlayer_PlaybackInfo } from "@/api/generated/types"
 import { offlineArtworkUrl, offlineFileUrl } from "@/api/hooks/mobile_offline.helpers"
+import { COMPLETION_RATIO } from "@/main/_features/player/player-logic"
 import type { OfflineItem } from "./offline-library"
 
 /*
@@ -28,6 +29,11 @@ export const canPlayOffline = (item: OfflineItem) => item.ready && !!item.files?
  */
 export function offlineStartSeconds(item: OfflineItem): number {
     return item.position > 0 ? item.position / 1000 : 0
+}
+
+/** Whether the episode counts as watched when the player stops (its end, or the 80 % that sets AniList's progress) */
+export function offlineWatched(currentSeconds: number, durationSeconds: number, ended: boolean): boolean {
+    return ended || (durationSeconds > 0 && currentSeconds / durationSeconds >= COMPLETION_RATIO)
 }
 
 /** Position to store when the player stops: 0 once the episode ended, so it starts over next time (savePosition()). */

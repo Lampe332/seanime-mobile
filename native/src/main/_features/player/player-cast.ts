@@ -9,17 +9,6 @@ import { mpvIdToMkvNumber } from "./player-logic"
  * lib/cast/cast-controller.ts (DLNA in Go, Google Cast through react-native-google-cast).
  */
 
-/** Only streams of the app's own server can be handed to the TV; online streams (and the proxy) stay on the phone. */
-export function castableStreamUrl(streamUrl: string | null | undefined, serverBaseUrl: string, opts: { online?: boolean, separateAudio?: boolean } = {}) {
-    if (!streamUrl || opts.online || !serverBaseUrl) return null
-    const base = serverBaseUrl.replace(/\/+$/, "")
-    if (!streamUrl.startsWith(`${base}/api/`)) return null
-    if (streamUrl.startsWith(`${base}/api/v1/proxy`)) return null
-    // a saved HLS episode keeps its sound in a second file the TV would never get
-    if (opts.separateAudio) return null
-    return streamUrl
-}
-
 type MkvTracks = { number: number }[] | null | undefined
 
 /**
@@ -31,6 +20,22 @@ export function castTrackNumbers(mkvAudio: MkvTracks, mkvSubs: MkvTracks, audioI
     const audio = mkvAudio?.length && audioId > 0 ? mpvIdToMkvNumber(mkvAudio, audioId) : -1
     const subtitleTrack = mkvSubs ? (subId > 0 ? mpvIdToMkvNumber(mkvSubs, subId) : -1) : null
     return { audioTrack: audio >= 0 ? audio : null, subtitleTrack }
+}
+
+/** The core's torrent stream for this player (phase 6b-2): `http://127.0.0.1:<port>/<token>/<info hash>/<index>/<name>` */
+const CORE_TORRENT_STREAM = /^http:\/\/127\.0\.0\.1:\d{1,5}\/[0-9a-f]{32}\/[0-9a-f]{40}\/\d+\/[^/?#]+$/
+
+/**
+ * The stream the player hands to the cast panel (phase 7c-2), null = the cast button stays off. Only what the core's
+ * outlet can share into the Wi-Fi (core/cast/cast.ts castSource): a file of the device (offline episode, local library,
+ * `file://` or a path) and the core's torrent stream. Not an online stream or a file that needs request headers (a
+ * Nakama host's token): the TV cannot send them, that needs a forwarder of its own. The URL goes as it is: the outlet
+ * has no track remux (the server's ?audioTrack is gone since phase 7b), the TV plays the file's own default tracks.
+ */
+export function playerCastUrl(streamUrl: string | null | undefined, { online, headers }: { online: boolean, headers?: Record<string, string> }) {
+    if (!streamUrl || online || (headers && Object.keys(headers).length > 0)) return null
+    if (/^file:\/\/\//i.test(streamUrl) || streamUrl.startsWith("/")) return streamUrl
+    return CORE_TORRENT_STREAM.test(streamUrl) ? streamUrl : null
 }
 
 /** The stream for the TV with the tracks playing here (?audioTrack / ?subtitleTrack, backend directstream/audiotrack.go). */
@@ -53,9 +58,9 @@ export function castFollowUp(sent: string | null, current: string | null): "none
     return withoutTracks(sent) === withoutTracks(current) ? "switch" : "load"
 }
 
-/** "Dr. STONE · Episode 3" for the TV's screen; "Seanime" without either. */
+/** "Dr. STONE · Episode 3" for the TV's screen; "Seanime Mobile" without either. */
 export function castTitle(animeTitle: string | null | undefined, episodeTitle: string | null | undefined) {
-    return [animeTitle, episodeTitle].filter(Boolean).join(" · ") || "Seanime"
+    return [animeTitle, episodeTitle].filter(Boolean).join(" · ") || "Seanime Mobile"
 }
 
 /** Which way the video goes; LG webOS TVs only come over DLNA (the controller leaves out their Google Cast entry). */

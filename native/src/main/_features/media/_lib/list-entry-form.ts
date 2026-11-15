@@ -92,6 +92,24 @@ export function changedRepeat(repeat: number | null, stored: number | undefined)
 }
 
 /** "2026-10-05" in the date fields */
+/**
+ * The button next to the progress (AnilistMediaEntryButton): nothing without a user, "add" without an entry, "edit"
+ * with one. Right after adding it hides until the entry comes (`adding` = the add succeeded on this page).
+ */
+export function entryButton(user: unknown, listData: unknown, adding: boolean): "none" | "add" | "edit" {
+    if (!user) return "none"
+    if (listData) return "edit"
+    return adding ? "none" : "add"
+}
+
+/**
+ * The added entry arrived: the add is done and is forgotten. Without that the page counted the old success for as long
+ * as it stayed open and hid the add button once the entry was removed elsewhere (correction 5a-K).
+ */
+export function addingDone(adding: boolean, listData: unknown): boolean {
+    return adding && !!listData
+}
+
 export function formatFieldDate(date: Date | null) {
     if (!date) return ""
     const pad = (n: number) => String(n).padStart(2, "0")

@@ -1,7 +1,6 @@
 import type { Translate } from "@/lib/app-language"
 import { describe, expect, it } from "vitest"
 import {
-    castableStreamUrl,
     castFollowUp,
     castKindLabel,
     castPollMs,
@@ -11,26 +10,36 @@ import {
     castUrlWithTracks,
     castVolumeStep,
     phoneAfterCast,
+    playerCastUrl,
 } from "./player-cast"
 
-const BASE = "http://127.0.0.1:43212"
-const STREAM = `${BASE}/api/v1/directstream/stream?id=abc`
-
-describe("castable streams", () => {
-    it("the server's own streams", () => {
-        expect(castableStreamUrl(STREAM, BASE)).toBe(STREAM)
-        expect(castableStreamUrl(`${BASE}/api/v1/mobile-offline/file/1/ep.mkv`, `${BASE}/`)).toBe(`${BASE}/api/v1/mobile-offline/file/1/ep.mkv`)
+describe("the player's stream for the TV (phase 7c-2)", () => {
+    const torrent = `http://127.0.0.1:41234/${"a".repeat(32)}/${"0123456789abcdef".repeat(2)}01234567/3/Dr.%20STONE%20-%2003.mkv`
+    it("hands the core's torrent stream over as it is", () => {
+        expect(playerCastUrl(torrent, { online: false, headers: {} })).toBe(torrent)
     })
-
-    it("online streams, the proxy, other hosts and split audio stay on the phone", () => {
-        expect(castableStreamUrl(STREAM, BASE, { online: true })).toBeNull()
-        expect(castableStreamUrl(`${BASE}/api/v1/proxy?url=x`, BASE)).toBeNull()
-        expect(castableStreamUrl("https://cdn.example.com/ep.m3u8", BASE)).toBeNull()
-        expect(castableStreamUrl(`${BASE}/api/v1/mobile-offline/file/1/ep.mp4`, BASE, { separateAudio: true })).toBeNull()
-        expect(castableStreamUrl(undefined, BASE)).toBeNull()
-        expect(castableStreamUrl(STREAM, "")).toBeNull()
+    it("hands a file of the device over (offline episode, local library, path)", () => {
+        const file = "file:///data/user/0/com.seanime.app.native/files/episodes/abc/ep%201.mkv"
+        expect(playerCastUrl(file, { online: false })).toBe(file)
+        expect(playerCastUrl("/storage/emulated/0/Anime/ep.mkv", { online: false, headers: {} })).toBe("/storage/emulated/0/Anime/ep.mkv")
+    })
+    it("leaves online streams and files with request headers out", () => {
+        expect(playerCastUrl("https://cdn.example.org/ep.m3u8", { online: true })).toBeNull()
+        expect(playerCastUrl(torrent, { online: true })).toBeNull()
+        expect(playerCastUrl("http://192.168.1.20:43211/api/v1/nakama/stream?type=file&path=YQ==", { online: false, headers: { "X-Seanime-Nakama-Token": "t" } })).toBeNull()
+        expect(playerCastUrl("file:///x.mkv", { online: false, headers: { Referer: "r" } })).toBeNull()
+    })
+    it("leaves other streams of the device and network addresses out", () => {
+        expect(playerCastUrl("http://127.0.0.1:43211/api/v1/directstream/stream?id=1", { online: false })).toBeNull()
+        expect(playerCastUrl(`${torrent}?audioTrack=2`, { online: false })).toBeNull()
+        expect(playerCastUrl("https://debrid.example.org/file.mkv", { online: false })).toBeNull()
+        expect(playerCastUrl("", { online: false })).toBeNull()
+        expect(playerCastUrl(undefined, { online: false })).toBeNull()
     })
 })
+
+const BASE = "http://192.168.1.20:8080"
+const STREAM = `${BASE}/api/v1/directstream/stream?id=abc`
 
 describe("cast tracks from mpv IDs", () => {
     // MKV track numbers: video 1, audio 2 + 3, subtitles 4 + 5
@@ -84,7 +93,7 @@ describe("cast panel", () => {
 
     it("titles and device kinds", () => {
         expect(castTitle("Dr. STONE", "Episode 3")).toBe("Dr. STONE · Episode 3")
-        expect(castTitle("", "")).toBe("Seanime")
+        expect(castTitle("", "")).toBe("Seanime Mobile")
         expect(castKindLabel("webos", de)).toBe("LG webOS · direkt (DLNA)")
         expect(castKindLabel("googlecast", en)).toContain("no subtitles")
         expect(castKindLabel("dlna", en)).toBe("Smart TV · direct (DLNA)")

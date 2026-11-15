@@ -1,0 +1,22 @@
+// geschrieben nach: Muster des früheren Server-Moduls (lokales Expo-Modul, bis Stufe 8a-1), docs/EIGENER-KERN.md §4o; kein Server-Quelltext
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.seanime.coredownload'
+version = '0.1.0'
+
+android {
+  namespace "com.seanime.coredownload"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+}
+
+dependencies {
+  // WorkManager is already in the app (expo-background-task asks for it); this is the version the app's build resolves,
+  // read from META-INF/androidx.work_work-runtime.version of the built APK. No other library.
+  implementation 'androidx.work:work-runtime:2.12.0'
+}

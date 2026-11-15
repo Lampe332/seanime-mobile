@@ -462,7 +462,8 @@ function TorrentDownloadSheet({ entry, torrents: shown, t, onBack, onDone }: {
     const media = entry.media
     const smartSelect = canSmartSelect(torrents, media, missing)
     const [onlyMissing, setOnlyMissing] = React.useState(true)
-    const debridOn = !!serverStatus?.debridSettings?.enabled && !!serverStatus?.debridSettings?.provider
+    // a debrid download into a folder needs the server (phase 7f): without it only the torrent client downloads
+    const debridOn = false
     const [viaDebrid, setViaDebrid] = React.useState(false)
     const metered = useMeteredGuard(t)
     const settingsReady = MENU_ENTRIES.some(e => e.id === "settings" && e.ready)

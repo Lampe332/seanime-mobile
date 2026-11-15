@@ -1,0 +1,16 @@
+{
+  "name": "seanime-core-cast",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The search for TVs in the home network (SSDP): shared C++ bound with Nitro, Android's multicast lock in Kotlin",
+  "license": "MIT",
+  "main": "index.ts",
+  "react-native": "index.ts",
+  "scripts": {
+    "specs": "npx --yes nitrogen@0.37.2"
+  },
+  "peerDependencies": {
+    "react-native": "*",
+    "react-native-nitro-modules": "*"
+  }
+}

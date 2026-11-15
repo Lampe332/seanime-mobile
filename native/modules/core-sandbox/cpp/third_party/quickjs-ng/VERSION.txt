@@ -1,0 +1,5 @@
+quickjs-ng v0.18.0 (released 2026-11-01), MIT, see LICENSE
+Source: https://github.com/quickjs-ng/quickjs/archive/refs/tags/v0.18.0.tar.gz
+
+Taken over unchanged, the core only: dtoa.c, libregexp.c, libunicode.c, quickjs.c and the headers they include.
+Not taken over: quickjs-libc (std, os), the command line tools, tests, examples and docs.

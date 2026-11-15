@@ -1,8 +1,14 @@
-import type { Anime_LibraryCollection, Anime_LibraryCollectionEntry, Anime_LibraryCollectionList, Anime_PlaylistEpisode, Nullish } from "@/api/generated/types"
+import type { Anime_LibraryCollection, Anime_LibraryCollectionEntry, Anime_LibraryCollectionList, Anime_PlaylistEpisode, Anime_WatchType, Nullish } from "@/api/generated/types"
 
 /* The playlist editor's rules (web playlists/lib/mobile-playlist-state.ts + playlist-list-modal.tsx), without the screen. */
 
 export const MAX_PLAYLIST_EPISODES = 200
+
+// Source preselected for new episodes: torrent before debrid before online streaming. Without the online
+// fallback a setup with only online streaming showed "Choose source" and saved episodes the player can't start.
+export function defaultPlaylistWatchType(sources: { torrent: boolean, debrid: boolean, online: boolean }): Anime_WatchType {
+    return sources.torrent ? "torrent" : sources.debrid ? "debrid" : sources.online ? "online" : "" as Anime_WatchType
+}
 
 // Match the existing playlist identity, including special episode numbers.
 export function samePlaylistEpisode(a: Nullish<Anime_PlaylistEpisode>, b: Nullish<Anime_PlaylistEpisode>) {

@@ -5,6 +5,7 @@ import {
     getEntryTabSettings,
     getInitialAnimeEntryView,
     isBuiltInAnimeEntryViewAvailable,
+    keptAnimeEntryView,
     NATIVE_VIEW_READY,
     NOT_READY_VIEWS,
     shownAnimeEntryView,
@@ -40,6 +41,15 @@ describe("anime page views", () => {
         expect(getInitialAnimeEntryView({ entry, serverStatus: status({ online: true, defaultSource: "ext:a" }), hidden: [] })).toBe("onlinestream")
         const upcoming = { libraryData: undefined, media: { status: "NOT_YET_RELEASED" } } as never
         expect(getInitialAnimeEntryView({ entry: upcoming, serverStatus: status({ online: true }), hidden: [], tab: "onlinestream" })).toBe("library")
+    })
+
+    it("does not open on an empty library tab when the library is the default source", () => {
+        const outside = { libraryData: undefined, media: { status: "FINISHED" } } as never
+        const inLibrary = { libraryData: {}, media: { status: "FINISHED" } } as never
+        expect(getInitialAnimeEntryView({ entry: outside, serverStatus: status({ online: true, defaultSource: "library" }), hidden: [] })).toBe("onlinestream")
+        expect(getInitialAnimeEntryView({ entry: inLibrary, serverStatus: status({ online: true, defaultSource: "library" }), hidden: [] })).toBe("library")
+        // without online streaming the library stays the only tab
+        expect(getInitialAnimeEntryView({ entry: outside, serverStatus: status({ defaultSource: "library" }), hidden: [] })).toBe("library")
     })
 
     it("shows tabs only with a streaming source, with short names from three on", () => {
@@ -82,5 +92,18 @@ describe("shownAnimeEntryView (a page left and shown again)", () => {
         expect(shownAnimeEntryView("onlinestream", true, true, "onlinestream")).toBe("onlinestream")
         expect(shownAnimeEntryView("onlinestream", true, true, "library")).toBe("library")
         expect(shownAnimeEntryView("onlinestream", true, true, null)).toBe("library")
+    })
+})
+
+describe("keptAnimeEntryView (the tab picked last comes back)", () => {
+    const all = () => true
+    it("keeps the picked tab for the same anime (Back from the settings shows Torrent, not Online)", () => {
+        expect(keptAnimeEntryView({ mediaId: "21", view: "torrentstream" }, "21", false, all)).toBe("torrentstream")
+    })
+    it("leaves another anime, a link with a tab and a tab that is gone to the first view", () => {
+        expect(keptAnimeEntryView({ mediaId: "21", view: "torrentstream" }, "22", false, all)).toBeNull()
+        expect(keptAnimeEntryView({ mediaId: "21", view: "torrentstream" }, "21", true, all)).toBeNull()
+        expect(keptAnimeEntryView({ mediaId: "21", view: "torrentstream" }, "21", false, view => view !== "torrentstream")).toBeNull()
+        expect(keptAnimeEntryView(null, "21", false, all)).toBeNull()
     })
 })

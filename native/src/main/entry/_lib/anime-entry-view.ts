@@ -60,7 +60,9 @@ export function getInitialAnimeEntryView({ entry, serverStatus, hidden, tab }: {
     if (entry?.media?.status === "NOT_YET_RELEASED") return "library"
     if (tab && isBuiltInAnimeEntryViewAvailable(tab, serverStatus, hidden)) return tab as AnimeEntryView
     const defaultSource = serverStatus?.settings?.library?.defaultPlaybackSource || ""
-    if (defaultSource && isBuiltInAnimeEntryViewAvailable(defaultSource, serverStatus, hidden)) return defaultSource as AnimeEntryView
+    // the library as default only when the anime has files there: else its tab would open empty
+    const empty = defaultSource === "library" && !entry?.libraryData
+    if (defaultSource && !empty && isBuiltInAnimeEntryViewAvailable(defaultSource, serverStatus, hidden)) return defaultSource as AnimeEntryView
     return getAutomaticAnimeEntryView(entry, serverStatus, hidden)
 }
 
@@ -73,6 +75,16 @@ export function getInitialAnimeEntryView({ entry, serverStatus, hidden, tab }: {
 export function shownAnimeEntryView(stored: AnimeEntryView, focused: boolean, left: boolean, start: AnimeEntryView | null): AnimeEntryView {
     if (!focused || !left) return stored
     return start ?? "library"
+}
+
+/**
+ * The tab picked last on this anime's page, which it comes back with (Back from the settings, the player): none when the
+ * link names a tab or the online stream still plays (`linked`), for another anime, or when that tab is gone now.
+ */
+export function keptAnimeEntryView(kept: { mediaId: string, view: AnimeEntryView } | null, mediaId: string | null, linked: boolean,
+    available: (view: AnimeEntryView) => boolean): AnimeEntryView | null {
+    if (linked || !kept || !mediaId || kept.mediaId !== mediaId || !available(kept.view)) return null
+    return kept.view
 }
 
 /** The source tabs over the episodes; none when only the library is there (EntrySectionTabs) */

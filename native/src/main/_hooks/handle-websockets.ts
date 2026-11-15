@@ -1,9 +1,9 @@
 import { WebSocketContext } from "@/main/_atoms/websocket.atoms"
 import { websocketConnectedAtom } from "@/main/websocket-provider"
 import { logger } from "@/lib/helpers/debug"
-import { SeaWebsocketEvent, SeaWebsocketPluginEvent } from "@/lib/server/queries.types"
+import { SeaWebsocketEvent } from "@/lib/server/queries.types"
+import { listenForPluginEvent, listenForServerEvent } from "@/lib/server/server-events"
 import { WSEvents } from "@/lib/server/ws-events"
-import { copyWebsocketPayload, decodeWebsocketMessage } from "@/lib/server/websocket-message"
 import { useAtom } from "jotai"
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 
@@ -230,27 +230,8 @@ export type WebSocketMessageListener<TData> = {
 export function useWebsocketMessageListener<TData = unknown>({ type, onMessage, deps }: WebSocketMessageListener<TData> & { deps?: any[] }) {
     const socket = useContext(WebSocketContext)
 
-    useEffect(() => {
-        if (socket) {
-            const messageHandler = (event: MessageEvent) => {
-                try {
-                    const parsed = decodeWebsocketMessage<TData>(event)
-                    if (!!parsed.type && parsed.type === type) {
-                        onMessage(copyWebsocketPayload(parsed.payload))
-                    }
-                }
-                catch {
-                    logger("Websocket").error(`Error handling message ${type}`)
-                }
-            }
-
-            socket.addEventListener("message", messageHandler)
-
-            return () => {
-                socket.removeEventListener("message", messageHandler)
-            }
-        }
-    }, [socket, onMessage, ...(deps ?? [])])
+    // the server's socket and the app's own core, heard the same way (src/lib/server/server-events.ts)
+    useEffect(() => listenForServerEvent<TData>(socket, type, onMessage), [socket, onMessage, ...(deps ?? [])])
 
     return null
 }
@@ -264,43 +245,7 @@ export type WebSocketPluginMessageListener<TData> = {
 export function useWebsocketPluginMessageListener<TData = unknown>({ type, extensionId, onMessage }: WebSocketPluginMessageListener<TData>) {
     const socket = useContext(WebSocketContext)
 
-    useEffect(() => {
-        if (socket) {
-            const messageHandler = (event: MessageEvent) => {
-                try {
-                    const parsed = decodeWebsocketMessage<TData>(event)
-                    if (!!parsed.type && parsed.type === "plugin") {
-                        const message = parsed.payload as SeaWebsocketPluginEvent<TData>
-
-                        if (message.type === "plugin:batch-events" && message.payload && (message.payload as any).events) {
-                            const events = (message.payload as any).events || []
-                            for (const event of events) {
-                                if (event.type === type &&
-                                    (!extensionId || extensionId === event.extensionId || extensionId === "")) {
-                                    onMessage(copyWebsocketPayload(event.payload as TData), event.extensionId)
-                                }
-                            }
-                            return
-                        }
-
-                        if (message.type === type &&
-                            (!extensionId || extensionId === message.extensionId || extensionId === "")) {
-                            onMessage(copyWebsocketPayload(message.payload as TData), message.extensionId)
-                        }
-                    }
-                }
-                catch {
-                    logger("Websocket").error(`Error handling plugin message ${type}`)
-                }
-            }
-
-            socket.addEventListener("message", messageHandler)
-
-            return () => {
-                socket.removeEventListener("message", messageHandler)
-            }
-        }
-    }, [socket, onMessage, type, extensionId])
+    useEffect(() => listenForPluginEvent<TData>(socket, type, extensionId, onMessage), [socket, onMessage, type, extensionId])
 
     return null
 }

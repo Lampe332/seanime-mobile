@@ -41,7 +41,7 @@ function MappingContent({ entry }: { entry: Manga_Entry }) {
     const [query, setQuery] = React.useState((entry.media?.title?.english || entry.media?.title?.romaji || entry.media?.title?.userPreferred || "").split(/[:：]/)[0].trim())
     const [selected, setSelected] = React.useState<HibikeManga_SearchResult | null>(null)
     const [confirming, setConfirming] = React.useState(false)
-    const image = (item: HibikeManga_SearchResult) => item.image && imageProxyReady ? getChapterPageUrl(item.image, false, item.imageHeaders) : undefined
+    const image = (item: HibikeManga_SearchResult) => item.image && imageProxyReady ? getChapterPageUrl(item.image, false) : undefined
 
     const runSearch = () => {
         if (selectedProvider && query.trim()) search({ provider: selectedProvider, query: query.trim() })

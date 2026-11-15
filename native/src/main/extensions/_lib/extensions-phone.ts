@@ -29,6 +29,13 @@ export function isPhoneExtension(extension: Extension_Extension | undefined) {
     return !!extension && phoneTypes.has(extension.type)
 }
 
+/** What a marketplace may offer: 4.0 runs no plugins, so they are left out (installed ones stay listed to be removed). */
+export const MARKETPLACE_EXTENSION_TYPES = PHONE_EXTENSION_TYPES.filter(item => item.type !== "plugin")
+
+export function isMarketplaceExtension(extension: Extension_Extension | undefined) {
+    return !!extension && extension.type !== "plugin" && phoneTypes.has(extension.type)
+}
+
 export function extensionTypeLabel(type: string, t: Translate) {
     const item = PHONE_EXTENSION_TYPES.find(item => item.type === type)
     return item ? t(item.oneEn, item.oneDe) : t("Anime torrents", "Anime-Torrents")

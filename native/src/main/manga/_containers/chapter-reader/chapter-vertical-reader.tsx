@@ -34,9 +34,10 @@ const GAP = 16
  * scrolling down" they slide away reading down and come back scrolling up. Opening restores the saved page: the strip jumps
  * there again as the pages above it load, until the reader touches it.
  */
-export function MangaVerticalReader({ pageContainer, pageUrl, initialPageIndex, width, height }: {
+export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initialPageIndex, width, height }: {
     pageContainer: Manga_PageContainer | undefined
     pageUrl: (index: number) => string | undefined
+    pageHeaders?: (index: number) => Record<string, string> | undefined
     initialPageIndex: number
     width: number
     height: number
@@ -136,7 +137,7 @@ export function MangaVerticalReader({ pageContainer, pageUrl, initialPageIndex, 
             const size = sizeOf(index)
             return <Pressable accessible={false} onPress={() => { if (tapToggleControls) setHideBar(prev => !prev) }}
                 style={{ height: size.height + (index < count - 1 ? gap : 0), alignItems: "center", paddingHorizontal: 16 }}>
-                <ChapterPage url={pageUrl(index)} index={index} width={size.width} height={size.height} recycle
+                <ChapterPage url={pageUrl(index)} headers={pageHeaders?.(index)} index={index} width={size.width} height={size.height} recycle
                     contentFit={pageFit === MangaPageFit.TRUE_SIZE ? "none" : "contain"} onSize={onSize} onLoaded={onLoaded} />
             </Pressable>
         }}

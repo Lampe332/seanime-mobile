@@ -68,8 +68,8 @@ class CastController {
         this.listeners.forEach(listener => listener(event))
     }
 
-    private fail(code: CastErrorCode) {
-        this.emit({ state: "error", code })
+    private fail(code: CastErrorCode, positionMs?: number) {
+        this.emit(positionMs === undefined ? { state: "error", code } : { state: "error", code, positionMs })
     }
 
     /** True while a TV plays (no picture-in-picture while casting, E3). */
@@ -89,7 +89,7 @@ class CastController {
         }
         // the searching event is sent by discover() itself, once for both
         if (event.state === "searching") return
-        if (event.state === "error") return this.fail(event.code)
+        if (event.state === "error") return this.fail(event.code, event.positionMs)
         // a DLNA session only reports while Google Cast is not in use
         if (this.google && event.state !== "stopped") return
         this.emit(event as CastEvent)

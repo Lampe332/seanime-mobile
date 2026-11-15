@@ -28,9 +28,15 @@ export function AiringRows({ t, enabled, onChange, onTest }: {
     </>
 }
 
+/** "Notify about new chapters": manga on Reading, checked every few hours by the same background job (lib/updates/chapter-check.ts) */
+export function ChapterRow({ t, enabled, onChange }: { t: Translate, enabled: boolean, onChange: (enabled: boolean) => void }) {
+    return <LocalSwitch label={t("Notify about new chapters", "Neue Kapitel melden")} checked={enabled} onCheckedChange={onChange}
+        note={t("For the manga you are reading, checked with their source every few hours.", "Für die Manga, die du liest, alle paar Stunden bei ihrer Quelle geprüft.")} />
+}
+
 /** Episode downloads can wait for Wi-Fi; torrents ask before they start on mobile data either way (WifiOnlyDownloadsSetting) */
 export function WifiOnlyRow({ t, enabled, onChange }: { t: Translate, enabled: boolean, onChange: (enabled: boolean) => void }) {
-    return <LocalSwitch label={t("Download only on Wi-Fi", "Nur im WLAN herunterladen")} checked={enabled} onCheckedChange={onChange}
+    return <LocalSwitch label={t("Download on Wi-Fi only", "Nur über WLAN herunterladen")} checked={enabled} onCheckedChange={onChange}
         note={t("Episode downloads wait for Wi-Fi instead of using mobile data.", "Folgen-Downloads warten auf WLAN, statt mobile Daten zu verbrauchen.")} />
 }
 
@@ -48,8 +54,18 @@ export function FeedbackGroup({ t, hasVibrator, haptics, onHaptics, sounds, onSo
         {hasVibrator && <LocalSwitch label={t("Vibration", "Vibration")} checked={haptics} onCheckedChange={onHaptics}
             note={t("A short tick for switches, long presses and finished actions.", "Ein kurzes Ticken bei Schaltern, langem Drücken und erledigten Aktionen.")} />}
         <LocalSwitch label={t("Sounds", "Töne")} checked={sounds} onCheckedChange={onSounds}
-            note={t("A quiet sound when a download starts, an episode is marked as watched or you join a watch party. Never while something plays.",
-                "Ein leiser Ton, wenn ein Download startet, eine Folge als gesehen markiert wird oder du einer Watch Party beitrittst. Nie während etwas läuft.")} />
+            note={t("A quiet sound when a download starts or an episode is marked as watched. Never while something plays.",
+                "Ein leiser Ton, wenn ein Download startet oder eine Folge als gesehen markiert wird. Nie während etwas läuft.")} />
+    </SettingsGroup>
+}
+
+/** Home screen widgets: each row asks the launcher to add the widget (its own "Add" dialog confirms) */
+export function WidgetsGroup({ t, onAdd }: { t: Translate, onAdd: (widget: "ContinueWatching" | "UpcomingAnime") => void }) {
+    return <SettingsGroup title={t("Home screen widgets", "Widgets für den Startbildschirm")}>
+        <LinkRow label={t("Add “Continue watching”", "„Weiterschauen“ hinzufügen")} chevron={false} onPress={() => onAdd("ContinueWatching")}
+            note={t("Your next episodes; a tap opens the anime.", "Deine nächsten Folgen; ein Tipp öffnet den Anime.")} />
+        <LinkRow label={t("Add “Upcoming anime”", "„Demnächst“ hinzufügen")} chevron={false} onPress={() => onAdd("UpcomingAnime")}
+            note={t("Countdowns to the next episodes of your list.", "Countdowns bis zu den nächsten Folgen deiner Liste.")} />
     </SettingsGroup>
 }
 

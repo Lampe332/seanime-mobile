@@ -1,3 +1,5 @@
+import { useAppSwitches, useSetAppSwitches } from "@/api/hooks/app-switches.hooks"
+import { SelectRow } from "@/main/settings/_components/settings-kit"
 import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
 import { useGetMobileOfflineSnapshot, useMobileOfflineAction, useMobileOfflineSettings } from "@/api/hooks/mobile_offline.hooks"
 import { offlineFailureText, offlineWaitingText } from "@/api/hooks/mobile_offline.helpers"
@@ -111,8 +113,10 @@ export function DownloadsPhone({ kind, animeKey: selectedKey, mangaId = 0 }: {
     const size = (bytes: number) => formatSize(bytes, language)
 
     const overview = kind === "manga" ? !mangaId : !selectedKey
+    // nothing saved yet: one plain line instead of "0 Anime · 0 episodes · 0 MB" (S22 15.11.)
     const facts = kind === "anime" && snapshot
-        ? `${groups.length} Anime · ${items.length} ${episodeWord(items.length, t)} · ${size(totalBytes(items))}`
+        ? items.length === 0 ? t("Nothing downloaded yet", "Noch nichts heruntergeladen")
+            : `${t(`${groups.length} anime`, `${groups.length} Anime`)} · ${items.length} ${episodeWord(items.length, t)} · ${size(totalBytes(items))}`
         : kind === "torrents" ? t("Saved to your library folder", "In deinem Bibliotheksordner gespeichert") : t("Saved on this device", "Auf diesem Gerät gespeichert")
 
     let body: React.ReactNode
@@ -153,7 +157,7 @@ export function DownloadsPhone({ kind, animeKey: selectedKey, mangaId = 0 }: {
         {/* r16 (Nick 10.11., not in 2.0.33): next to the rail the rows stop at the reading width, so a switch stays near its label */}
         {rail ? <View className="gap-6" style={readingColumn(rail)}>{body}</View> : body}
 
-        <Dialog title={t("Delete anime from phone?", "Anime vom Handy löschen?")} open={deletingAnime.length > 0} onOpenChange={open => { if (!open) setDeletingAnime([]) }}
+        <Dialog title={t("Delete anime from device?", "Anime vom Gerät löschen?")} open={deletingAnime.length > 0} onOpenChange={open => { if (!open) setDeletingAnime([]) }}
             description={t("All saved episodes and pending downloads of the selected anime will be removed.", "Alle gespeicherten Folgen und ausstehenden Downloads der gewählten Anime werden entfernt.")}
             footer={<>
                 <Button intent="secondary" wrapperClassName="flex-1" onPress={() => setDeletingAnime([])}>{t("Cancel", "Abbrechen")}</Button>
@@ -167,7 +171,7 @@ export function DownloadsPhone({ kind, animeKey: selectedKey, mangaId = 0 }: {
             </RowGroup>
         </Dialog>
 
-        <Dialog title={t("Delete episode from phone?", "Folge vom Handy löschen?")} open={!!deleting} onOpenChange={open => { if (!open) setDeleting(null) }}
+        <Dialog title={t("Delete episode from device?", "Folge vom Gerät löschen?")} open={!!deleting} onOpenChange={open => { if (!open) setDeleting(null) }}
             description={deleting ? `${deleting.title ?? ""} · ${t("Episode", "Folge")} ${deleting.episode} · ${size(deleting.bytes)}` : undefined}
             footer={<>
                 <Button intent="secondary" wrapperClassName="flex-1" onPress={() => setDeleting(null)}>{t("Cancel", "Abbrechen")}</Button>
@@ -353,6 +357,10 @@ function DownloadSettings({ wifiOnly, usedBytes, size }: { wifiOnly: boolean, us
     const t = useTr()
     const { rail } = useTabletLayout()
     const { mutate: saveSettings, isPending } = useMobileOfflineSettings()
+    const switches = useAppSwitches().data
+    const deleteWatched = switches?.deleteWatchedEpisodes ?? ""
+    const prefetch = String(switches?.prefetchEpisodes ?? 0)
+    const { mutate: setSwitches, isPending: switching } = useSetAppSwitches()
     // free space of the phone's internal storage (expo-file-system Paths, a quick synchronous read), on every render:
     // each snapshot event re-renders the tab, so it follows the downloads
     const free = readFreeSpace()
@@ -361,6 +369,24 @@ function DownloadSettings({ wifiOnly, usedBytes, size }: { wifiOnly: boolean, us
             <SwitchRow label={t("Download on Wi-Fi only", "Nur über WLAN herunterladen")}
                 description={t("On mobile data, episode downloads wait until you are on Wi-Fi.", "Mit mobilen Daten warten die Folgen-Downloads, bis du im WLAN bist.")}
                 checked={wifiOnly} disabled={isPending} onCheckedChange={checked => saveSettings({ wifiOnly: checked })} />
+            <SelectRow label={t("Delete watched episodes", "Gesehene Folgen löschen")} value={deleteWatched} disabled={switching}
+                note={t("Only episodes saved here, once watched to 80 %. Never in incognito mode.", "Nur hier gespeicherte Folgen, sobald zu 80 % gesehen. Nie im Inkognito-Modus.")}
+                options={[
+                    { value: "", label: t("Off", "Aus") },
+                    { value: "watched", label: t("After watching", "Nach dem Ansehen") },
+                    { value: "keep-one", label: t("Keep one episode back", "Eine Folge Abstand behalten") },
+                ]}
+                onChange={value => setSwitches({ deleteWatchedEpisodes: value as "" | "watched" | "keep-one" })} />
+            <SelectRow label={t("Download next episodes automatically", "Nächste Folgen automatisch laden")} value={prefetch} disabled={switching}
+                note={t("For anime on Watching you are playing online, with the same source. Wi-Fi only, at least 2 GB free, never in incognito mode.",
+                    "Für Anime auf „Schaue ich“, die du online abspielst, mit derselben Quelle. Nur im WLAN, ab 2 GB frei, nie im Inkognito-Modus.")}
+                options={[
+                    { value: "0", label: t("Off", "Aus") },
+                    { value: "1", label: t("1 episode ahead", "1 Folge voraus") },
+                    { value: "2", label: t("2 episodes ahead", "2 Folgen voraus") },
+                    { value: "3", label: t("3 episodes ahead", "3 Folgen voraus") },
+                ]}
+                onChange={value => setSwitches({ prefetchEpisodes: Number(value) as 0 | 1 | 2 | 3 })} />
             <View className="min-h-14 justify-center gap-0.5 bg-sm-surface-raised px-4 py-2.5">
                 <Text className="text-[15px]">{t("Storage", "Speicher")}</Text>
                 <Muted style={{ fontVariant: ["tabular-nums"] }}>

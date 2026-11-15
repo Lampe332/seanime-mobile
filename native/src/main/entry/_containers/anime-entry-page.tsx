@@ -39,6 +39,8 @@ import {
     getAnimeEntryTabs,
     getAutomaticAnimeEntryView,
     getInitialAnimeEntryView,
+    isBuiltInAnimeEntryViewAvailable,
+    keptAnimeEntryView,
     NOT_READY_VIEWS,
     shownAnimeEntryView,
 } from "@/main/entry/_lib/anime-entry-view"
@@ -154,18 +156,25 @@ export function AnimeEntryPage() {
     // takes the player again (player-box.tsx)
     const onlineMediaId = useAtomValue(player_onlineAtom)?.params.mediaId
     const backToOnline = !params.tab && !!mediaId && String(onlineMediaId ?? "") === mediaId && !hidden.includes("onlinestream")
-    const firstView = (): AnimeEntryView => backToOnline ? "onlinestream" : getInitialAnimeEntryView({ entry, serverStatus, hidden, tab: params.tab })
+    // the tab picked last on this anime stays when the page shows again (Back from the settings), unless a link names one
+    const [kept, setKept] = React.useState<{ mediaId: string, view: AnimeEntryView } | null>(null)
+    const firstView = (): AnimeEntryView => backToOnline ? "onlinestream"
+        : keptAnimeEntryView(kept, mediaId, !!params.tab, view => isBuiltInAnimeEntryViewAvailable(view, serverStatus, hidden))
+            ?? getInitialAnimeEntryView({ entry, serverStatus, hidden, tab: params.tab })
     const startView = focused && left && ready ? firstView() : null
     const view = shownAnimeEntryView(storedView, focused, left, startView)
     React.useEffect(() => {
         if (!focused || !ready) return
         if (switchedFor.current === mediaId) return
         switchedFor.current = mediaId
-        setView(backToOnline ? "onlinestream" : getInitialAnimeEntryView({ entry, serverStatus, hidden, tab: params.tab }))
+        setView(backToOnline ? "onlinestream"
+            : keptAnimeEntryView(kept, mediaId, !!params.tab, view => isBuiltInAnimeEntryViewAvailable(view, serverStatus, hidden))
+                ?? getInitialAnimeEntryView({ entry, serverStatus, hidden, tab: params.tab }))
         setLeft(false)
-    }, [focused, entry, ready, mediaId, serverStatus, hidden, params.tab, setView, backToOnline])
+    }, [focused, entry, ready, mediaId, serverStatus, hidden, params.tab, setView, backToOnline, kept])
     const pickView = (next: AnimeEntryView) => {
         setView(next)
+        if (mediaId) setKept({ mediaId, view: next })
         setLeft(false)
     }
 

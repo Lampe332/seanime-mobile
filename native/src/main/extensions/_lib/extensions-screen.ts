@@ -1,5 +1,5 @@
 import type { Extension_Extension, Extension_InvalidExtension, ExtensionRepo_AllExtensions } from "@/api/generated/types"
-import { filterMarketplace, isPhoneExtension, PHONE_EXTENSION_TYPES } from "./extensions-phone"
+import { filterMarketplace, isMarketplaceExtension, MARKETPLACE_EXTENSION_TYPES, PHONE_EXTENSION_TYPES } from "./extensions-phone"
 
 /*
  * Logic of the Extensions tab (web extensions-phone.tsx, -marketplace.tsx, extension-code.tsx) without the screen:
@@ -70,14 +70,14 @@ export type MarketplaceView = {
     overview: boolean
 }
 
-/** The marketplace's lists (MarketplacePhone): phone types only, chips and groups after language and search. */
+/** The marketplace's lists (MarketplacePhone): phone types without plugins, chips and groups after language and search. */
 export function marketplaceView(data: Extension_Extension[] | undefined, filters: MarketplaceFilterState, appLanguage: string, isDefault: boolean): MarketplaceView {
-    const usable = (data ?? []).filter(isPhoneExtension)
+    const usable = (data ?? []).filter(isMarketplaceExtension)
     const languages = [...new Set(usable.map(extension => extension.lang?.toLowerCase()).filter(Boolean) as string[])].sort()
     const narrowed = filterMarketplace(usable, { type: "all", language: filters.language, search: filters.search }, appLanguage)
     const shown = filters.type === "all" ? narrowed : narrowed.filter(extension => extension.type === filters.type)
-    const groups = PHONE_EXTENSION_TYPES.map(item => ({ ...item, items: shown.filter(extension => extension.type === item.type) })).filter(group => group.items.length > 0)
-    const chips = [ALL_TYPES, ...PHONE_EXTENSION_TYPES].map(item => ({
+    const groups = MARKETPLACE_EXTENSION_TYPES.map(item => ({ ...item, items: shown.filter(extension => extension.type === item.type) })).filter(group => group.items.length > 0)
+    const chips = [ALL_TYPES, ...MARKETPLACE_EXTENSION_TYPES].map(item => ({
         type: item.type, tabName: item.tabName, chipEn: item.chipEn, chipDe: item.chipDe,
         count: item.type === "all" ? narrowed.length : narrowed.filter(extension => extension.type === item.type).length,
     }))
@@ -86,7 +86,7 @@ export function marketplaceView(data: Extension_Extension[] | undefined, filters
             .filter(item => !usable.some(extension => extension.type === item.type))
         : []
     const typeMissing = filters.type !== "all" && !usable.some(extension => extension.type === filters.type)
-        ? PHONE_EXTENSION_TYPES.find(item => item.type === filters.type) : undefined
+        ? MARKETPLACE_EXTENSION_TYPES.find(item => item.type === filters.type) : undefined
     return {
         usable, languages, chips, groups, missing, typeMissing,
         filtered: filters.type !== "all" || filters.language !== "all" || !!filters.search.trim(),

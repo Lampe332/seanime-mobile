@@ -1,18 +1,20 @@
 import { useServerMutation, useServerQuery } from "@/api/client/requests"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
+import { useIncognito, useSetAppSwitches } from "@/api/hooks/app-switches.hooks"
 import { useLogout } from "@/api/hooks/auth.hooks"
 import { useListAnimeEntryEpisodeTabExtensions } from "@/api/hooks/extensions.hooks"
 import { useGetMobileOfflineSnapshot, useMobileOfflineSettings } from "@/api/hooks/mobile_offline.hooks"
 import { Tabs } from "@/components/ui/tabs/tabs"
 import { toast } from "@/components/ui/toast/toast-store"
-import { useAiringNotificationsSetting, useTestAiringNotification } from "@/lib/airing/airing-hooks"
+import { useAiringNotificationsSetting, useChapterNotificationsSetting, useTestAiringNotification } from "@/lib/airing/airing-hooks"
 import { type AppLanguage, appLanguageAtom, type Translate } from "@/lib/app-language"
 import { hapticsEnabledAtom, hasVibrator, playSound, soundsEnabledAtom } from "@/lib/feedback"
 import { resetNavigation } from "@/lib/nav/nav-store"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { useStartMobileTutorial } from "@/main/_features/tour/mobile-tutorial"
+import { BackupGroup } from "@/main/settings/_components/backup-group"
 import { NavigationEditor } from "@/main/settings/_components/navigation-editor"
-import { AiringRows, FeedbackGroup, WifiOnlyRow } from "@/main/settings/_components/settings-app-services"
+import { AiringRows, ChapterRow, FeedbackGroup, WidgetsGroup, WifiOnlyRow } from "@/main/settings/_components/settings-app-services"
 import {
     ConfirmSheet,
     LinkRow,
@@ -28,7 +30,8 @@ import {
 import { useQueryClient } from "@tanstack/react-query"
 import { useAtom } from "jotai"
 import React from "react"
-import { View } from "react-native"
+import { Platform, View } from "react-native"
+import { requestPinWidget } from "react-native-android-widget"
 
 /*
  * App (settings-phone-app.tsx): episodes (with E4's new-episode notifications and Wi-Fi-only downloads), anime, language,
@@ -42,13 +45,18 @@ export function SettingsAppSection({ t }: { t: Translate }) {
     const hideSpoilers = useThemeValue("hideAnimeSpoilers")
     const adult = useSettingValue("anilist.enableAdultContent", false)
     const cacheDisabled = useSettingValue("anilist.disableCacheLayer", false)
+    const incognito = useIncognito()
+    const { mutate: setSwitches } = useSetAppSwitches()
 
     return <>
         <SettingsGroup title={t("Episodes", "Folgen")}>
             <SettingSwitch path="library.autoUpdateProgress" label={t("Update progress automatically", "Fortschritt automatisch speichern")}
-                note={t("Marks an episode as watched once you have seen 80 % of it.", "Setzt eine Folge auf gesehen, sobald du 80 % davon geschaut hast.")} />
+                note={t("Marks an episode as watched once you have seen 80% of it.", "Setzt eine Folge auf gesehen, sobald du 80 % davon geschaut hast.")} />
             <SettingSwitch path="library.enableWatchContinuity" label={t("Watch history", "Wiedergabeverlauf")}
                 note={t("Remembers where you stopped and resumes there.", "Merkt sich, wo du aufgehört hast, und setzt dort fort.")} />
+            <LocalSwitch label={t("Incognito mode", "Inkognito-Modus")} checked={incognito} onCheckedChange={checked => setSwitches({ incognitoMode: checked })}
+                note={t("While on, nothing you watch or read is added to History or Continue watching, and no progress goes to AniList. Also in the Menu.",
+                    "Solange an, landet nichts, was du schaust oder liest, im Verlauf oder bei „Weiterschauen“, und kein Fortschritt geht an AniList. Auch im Menü.")} />
             <DefaultSourceSelect t={t} />
             <AppServiceRows t={t} />
         </SettingsGroup>
@@ -64,7 +72,7 @@ export function SettingsAppSection({ t }: { t: Translate }) {
                     note={t("Starts hiding from the episode after the next one.", "Verbirgt erst ab der übernächsten Folge.")} sub />
             </>}
             <SettingSwitch path="anilist.hideAudienceScore" label={t("Hide audience score", "Publikumswertung verbergen")}
-                note={t("Shows the score only when you tap it.", "Zeigt die Wertung erst, wenn du darauf tippst.")} />
+                note={t("Leaves AniList's score off the Discover cards.", "Blendet die AniList-Wertung auf den Entdecken-Karten aus.")} />
             <SettingSwitch path="anilist.enableAdultContent" label={t("Adult content", "Inhalte für Erwachsene")}
                 note={t("When off, adult titles are hidden from search and your library.", "Wenn aus, sind Titel für Erwachsene in Suche und Bibliothek verborgen.")} />
             {adult && <SettingSwitch path="anilist.blurAdultContent" label={t("Blur adult covers", "Cover für Erwachsene verwischen")} sub />}
@@ -72,23 +80,22 @@ export function SettingsAppSection({ t }: { t: Translate }) {
 
         <LanguageGroup t={t} />
         <AppFeedbackGroup t={t} />
+        {Platform.OS === "android" && <WidgetsGroup t={t} onAdd={widget => void addWidget(t, widget)} />}
 
         <SettingsGroup title={t("Extensions", "Erweiterungen")}>
-            <SettingSwitch path="library.enableExtensionSecureMode" label={t("Secure mode", "Sicherer Modus")}
-                note={t("Asks before an extension does something sensitive, even with permission.", "Fragt nach, bevor eine Erweiterung etwas Heikles tut, auch mit Berechtigung.")} />
             <LinkRow label={t("Show the setup tutorial", "Einrichtungs-Tutorial zeigen")}
                 note={t("How to add a repository and install a streaming source.", "Wie du ein Repository hinzufügst und eine Streaming-Quelle installierst.")}
                 onPress={() => startTutorial()} />
         </SettingsGroup>
 
         <LocalAccountGroup t={t} isSimulated={isSimulated} />
+        <BackupGroup t={t} />
 
         <SettingsGroup title={t("Metadata", "Metadaten")}>
             <SettingSwitch path="anilist.disableCacheLayer" label={t("Turn off AniList caching", "AniList-Zwischenspeicher ausschalten")}
-                note={t("The cache keeps the app usable while AniList is down.", "Der Zwischenspeicher hält die App nutzbar, wenn AniList ausfällt.")} />
+                note={t("When AniList is down, pages show an error instead of the last saved data.",
+                    "Wenn AniList ausfällt, zeigen Seiten einen Fehler statt der zuletzt gespeicherten Daten.")} />
             {!cacheDisabled && <CacheOnlySwitch t={t} />}
-            <SettingSwitch path="library.useFallbackMetadataProvider" label={t("Fallback episode metadata", "Ersatzquelle für Folgendaten")}
-                note={t("Loads episode details from another source.", "Lädt Folgendetails aus einer anderen Quelle.")} />
         </SettingsGroup>
 
         <NavigationGroup t={t} />
@@ -131,20 +138,29 @@ function DefaultSourceSelect({ t }: { t: Translate }) {
 function AppServiceRows({ t }: { t: Translate }) {
     const [airing, setAiring] = useAiringNotificationsSetting()
     const { mutate: testAiring } = useTestAiringNotification()
+    const [chapters, setChapters] = useChapterNotificationsSetting()
     const { data: snapshot } = useGetMobileOfflineSnapshot()
     const { mutate: saveOffline } = useMobileOfflineSettings()
     return <>
         <AiringRows t={t} enabled={airing} onChange={setAiring} onTest={() => testAiring(undefined, {
             onSuccess: result => result === "permission"
-                ? toast.error(t("Allow notifications for Seanime first.", "Erlaube zuerst Benachrichtigungen für Seanime."))
+                ? toast.error(t("Allow notifications for Seanime Mobile first.", "Erlaube zuerst Benachrichtigungen für Seanime Mobile."))
                 : toast.success(t("Test notification sent", "Testbenachrichtigung gesendet")),
         })} />
+        <ChapterRow t={t} enabled={chapters} onChange={setChapters} />
         {/* the value lives in the Go download queue (queue.json); without its snapshot nothing to show yet */}
         {!!snapshot && <WifiOnlyRow t={t} enabled={snapshot.wifiOnly} onChange={wifiOnly => saveOffline({ wifiOnly })} />}
     </>
 }
 
 /** Touch feedback (Feedback.kt); the vibration switch only on devices with a motor (Karte §9, 2.12) */
+/** AppWidgetManager.requestPinAppWidget through the widget library; false when the launcher cannot pin widgets */
+async function addWidget(t: Translate, widgetName: string) {
+    const asked = await requestPinWidget({ widgetName }).catch(() => false)
+    if (!asked) toast.error(t("Your launcher cannot add widgets from apps. Add it from the home screen instead.",
+        "Dein Startbildschirm kann keine Widgets aus Apps hinzufügen. Füge es dort über die Widget-Auswahl hinzu."))
+}
+
 function AppFeedbackGroup({ t }: { t: Translate }) {
     const [haptics, setHaptics] = useAtom(hapticsEnabledAtom)
     const [sounds, setSounds] = useAtom(soundsEnabledAtom)
@@ -186,20 +202,17 @@ function LocalAccountGroup({ t, isSimulated }: { t: Translate, isSimulated: bool
     })
     return <SettingsGroup title={t("Local account", "Lokales Konto")}
         note={t("Used when you are not signed in with AniList.", "Wird benutzt, wenn du nicht mit AniList angemeldet bist.")}>
-        <SettingSwitch path="library.autoSyncToLocalAccount" disabled={isSimulated} label={t("Back up AniList lists", "AniList-Listen sichern")}
-            note={t("Copies your AniList lists to the local account now and then. Local changes since the last copy are replaced.",
-                "Kopiert deine AniList-Listen ab und zu ins lokale Konto. Lokale Änderungen seit der letzten Kopie werden ersetzt.")} />
         <LinkRow label={uploading ? t("Uploading…", "Wird hochgeladen …") : t("Upload local lists to AniList", "Lokale Listen zu AniList hochladen")}
             disabled={isSimulated || uploading} onPress={() => setConfirm(true)} />
         <ConfirmSheet open={confirm} onOpenChange={setConfirm} title={t("Upload to AniList?", "Zu AniList hochladen?")}
-            text={t("Your local Seanime lists will be written to your AniList account.", "Deine lokalen Seanime-Listen werden in dein AniList-Konto geschrieben.")}
+            text={t("Your local Seanime Mobile lists will be written to your AniList account.", "Deine lokalen Seanime-Mobile-Listen werden in dein AniList-Konto geschrieben.")}
             action={t("Upload", "Hochladen")} onConfirm={() => upload()} />
     </SettingsGroup>
 }
 
 /**
- * Cache-only mode: the server's own state, switched by its toggle endpoint. The server checks AniList every 10 seconds and
- * leaves cache-only mode once AniList answers (cachelayer.go), so the switch asks again as often to show that.
+ * Cache-only mode: the core's own state (core/anilist/cache-only.ts), switched by its toggle endpoint. It turns on by
+ * itself when AniList fails and off once AniList answers again, so the switch asks every 10 seconds to show that.
  */
 function CacheOnlySwitch({ t }: { t: Translate }) {
     const queryClient = useQueryClient()
@@ -237,8 +250,8 @@ function NavigationGroup({ t }: { t: Translate }) {
         <LinkRow label={t("Reset navigation", "Navigation zurücksetzen")} tone="danger" onPress={() => setConfirm(true)} />
         <NavigationEditor open={editing} onOpenChange={setEditing} />
         <ConfirmSheet open={confirm} onOpenChange={setConfirm} title={t("Reset to defaults?", "Auf Standard zurücksetzen?")}
-            text={t("This will restore the default bottom nav and reset your floating menu customizations.",
-                "Die Standard-Navigation unten wird wiederhergestellt und deine Anpassungen am schwebenden Menü werden zurückgesetzt.")}
+            text={t("This will restore the default navigation and reset your menu customizations.",
+                "Die Standard-Navigation wird wiederhergestellt und deine Anpassungen am Menü werden zurückgesetzt.")}
             action={t("Yes", "Ja")} danger onConfirm={resetNavigation} />
     </SettingsGroup>
 }

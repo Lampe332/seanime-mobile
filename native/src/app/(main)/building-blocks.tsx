@@ -252,7 +252,7 @@ export default function BuildingBlocksScreen() {
             <Dialog
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
-                title={t("Delete episode from phone?", "Folge vom Handy löschen?")}
+                title={t("Delete episode from device?", "Folge vom Gerät löschen?")}
                 description={t("The dialog of the building blocks deletes nothing.", "Der Dialog der Bausteine löscht nichts.")}
                 footer={<>
                     <Button intent="secondary" onPress={() => setDialogOpen(false)}>{t("Cancel", "Abbrechen")}</Button>

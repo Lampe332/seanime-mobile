@@ -28,4 +28,4 @@ export function useTr(): Translate {
 }
 
 // The server service's notification reads the language from the same SharedPreferences as before (AppLanguage.kt);
-// the root layout pushes it through SeanimeServer.setLanguage whenever appLanguageAtom changes.
+// the server's notification took it from SeanimeServer.setLanguage until stage 8a-1 (the server left the app).

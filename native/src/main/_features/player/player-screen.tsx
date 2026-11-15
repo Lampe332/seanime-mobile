@@ -1,5 +1,5 @@
 import type { NativePlayer_PlaybackInfo } from "@/api/generated/types"
-import { getServerBaseUrl } from "@/api/client/server-url"
+import { streamFileAddress } from "@/lib/server/without-server"
 import { Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { useTr } from "@/lib/app-language"
@@ -73,11 +73,11 @@ import {
     LONG_PRESS_MS,
     mkvNumberToMpvId,
     MPV_OPEN_OPTIONS,
+    mpvHeaderOptions, streamHeadersOf,
     mpvIdToMkvNumber,
     pickTrack,
     type PlayerTrack,
     rememberTrack,
-    resolveStreamUrl,
     SCRUB_IDLE,
     type ScrubState,
     scrubDown,
@@ -100,13 +100,13 @@ import {
 import { useSubtitleTranslation } from "./use-subtitle-translation"
 import { player_castingAtom, player_miniAtom, player_trackMemoryAtom } from "./player.atoms"
 import { boxScroll, player_boxSlotAtom, player_nowAtom } from "./player-box"
-import { castableStreamUrl, castTitle, castTrackNumbers, castUrlWithTracks } from "./player-cast"
+import { castTitle, playerCastUrl } from "./player-cast"
 import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
 import { endPlayerOrientation, readBrightness, readVolume, restoreBrightness, setVideoFullscreenOrientation, turnedToLandscape, writeBrightness, writeVolume } from "./player-system"
 import { backStep, boxFrame, boxOwner, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, miniPlayCommand, playerView, progressFraction, viewTurn } from "./player-chrome"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { usePlayerPlaylist } from "./use-player-playlist"
-import { type OfflinePlayback, offlinePositionToSave } from "@/main/android-downloads/_lib/offline-playback"
+import { type OfflinePlayback, offlinePositionToSave, offlineWatched } from "@/main/android-downloads/_lib/offline-playback"
 import { askForDownloadNotices } from "@/main/android-downloads/_lib/download-notifications"
 import { useMobileOfflineDownload } from "@/api/hooks/mobile_offline.hooks"
 import { successFeedback } from "@/lib/feedback"
@@ -154,7 +154,8 @@ export type PlayerOffline = {
     hasNext: boolean
     playNext: () => void
     /** stores where the player stopped, in ms (0 after the end) */
-    savePosition: (positionMs: number) => void
+    /** watched: it counts as watched now (end or 80 % when closed) */
+    savePosition: (positionMs: number, watched?: boolean) => void
 }
 
 // The offline position is stored this often while playing, and on pause, close and end (OfflineActivity.kt savePosition)
@@ -318,18 +319,25 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     // mpv options that only apply when a file opens go in first, into every mpv view: a refreshed online stream gets a
     // new view (its key below), which starts without them and without the subtitle look
     const viewKey = online ? `online-${online.reload}` : "file"
+    // a stream played without the server's proxy brings the provider's headers; they are open options too. Through the
+    // proxy (always, unless the core area "streams" is on) there are none and the key is the view's key as before
+    // a file of a Nakama host brings its token as a header (phase 7e); any other file clears the fields of the one before,
+    // so a host's token never goes to another address
+    const fileHeaders = online ? undefined : streamHeadersOf(info)
+    const headerOptions = React.useMemo(() => mpvHeaderOptions(online ? online.headers : fileHeaders), [online, fileHeaders])
+    const optionsKey = headerOptions.length ? `${viewKey}|${headerOptions[0][1]}` : viewKey
     const [optionsView, setOptionsView] = React.useState<string | null>(null)
-    const mpvOptionsSet = optionsView === viewKey
+    const mpvOptionsSet = optionsView === optionsKey
     React.useEffect(() => {
         const view = mpv.current
         if (!view) return
         let alive = true
-        void Promise.all(MPV_OPEN_OPTIONS.map(([name, value]) => view.setPropertyString(name, value).catch(() => {})))
-            .then(() => alive && setOptionsView(viewKey))
+        void Promise.all([...MPV_OPEN_OPTIONS, ...headerOptions].map(([name, value]) => view.setPropertyString(name, value).catch(() => {})))
+            .then(() => alive && setOptionsView(optionsKey))
         return () => {
             alive = false
         }
-    }, [viewKey])
+    }, [optionsKey, headerOptions])
     // offline episodes do not wait for the watch history; every mode waits for the open options (preroll, E3 device fix)
     const source = info?.streamUrl && (offline || !waiting) && mpvOptionsSet ? info.streamUrl : undefined
 
@@ -344,10 +352,10 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
 
     // ── Offline position ──
     const savedAtRef = React.useRef(0)
-    const saveOffline = React.useCallback((seconds: number, ended: boolean) => {
+    const saveOffline = React.useCallback((seconds: number, ended: boolean, watched = false) => {
         if (!offline) return
         savedAtRef.current = seconds
-        offline.savePosition(offlinePositionToSave(seconds, ended))
+        offline.savePosition(offlinePositionToSave(seconds, ended), watched)
     }, [offline])
 
     // ── "Save this episode" (online streams): the Go server downloads from the provider URL (no app token in it) ──
@@ -427,8 +435,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         // stream's default subtitle is shown unless a preference below says otherwise (web isDefaultSubtitleTrack)
         for (const sub of info?.subtitleTracks ?? []) {
             if (!sub.src) continue
-            const resolved = resolveStreamUrl(sub.src, getServerBaseUrl())
-            const src = resolved.startsWith("http") ? resolved : getServerBaseUrl() + resolved
+            // only whole addresses (http, file://); a path on a server the app no longer has is left out
+            const src = streamFileAddress(sub.src)
+            if (!src) continue
             await view.addSubtitle(src, online && sub.default ? "select" : "auto", sub.label, sub.language).catch(() => {})
         }
         const list = (await readTrackList(() => view.getTrackList(), () => mpv.current === view))
@@ -467,9 +476,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         // the files loadTracks adds, in its order
         externalFiles: [
             ...(offlineFiles?.subtitles ?? []).map(sub => ({ label: sub.label, url: sub.url })),
-            ...(info?.subtitleTracks ?? []).filter(sub => !!sub.src).map(sub => {
-                const resolved = resolveStreamUrl(sub.src ?? "", getServerBaseUrl())
-                return { label: sub.label, url: resolved.startsWith("http") ? resolved : getServerBaseUrl() + resolved }
+            ...(info?.subtitleTracks ?? []).filter(sub => !!sub.src).flatMap(sub => {
+                const url = streamFileAddress(sub.src ?? "")
+                return url ? [{ label: sub.label, url }] : []
             }),
         ],
     }), [mkvSubs, info?.subtitleTracks, offlineFiles])
@@ -570,7 +579,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         }
         endedRef.current = true
         events.ended(autoNext)
-        saveOffline(0, true)
+        saveOffline(0, true, true)
         switch (endAction(sleepTimer, autoNext, playlist.hasNextEpisode)) {
             case "stop-sleep":
                 setSleepTimer(null)
@@ -611,7 +620,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
 
     const close = React.useCallback(async () => {
         setCountdown(null)
-        if (!endedRef.current) saveOffline(timeRef.current.currentTime, false)
+        // watched (80 %) when closed: "Delete watched episodes" may take the episode (core/offline/auto-delete.ts)
+        if (!endedRef.current) saveOffline(timeRef.current.currentTime, false, offlineWatched(timeRef.current.currentTime, timeRef.current.duration, false))
         await mpv.current?.prepareForExit().catch(() => {})
         restoreBrightness()
         endPlayerOrientation()
@@ -804,10 +814,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const title = info?.episode?.displayTitle || (progressNumber ? t(`Episode ${progressNumber}`, `Folge ${progressNumber}`) : "")
     const animeTitle = info?.media?.title?.userPreferred ?? ""
 
-    // ── Cast: the server's own stream with the tracks playing here (web video-core-cast tvUrl) ──
-    const castBase = castableStreamUrl(source, getServerBaseUrl(), { online: !!online, separateAudio: !!offline?.playback.audioUrl })
-    const castUrl = React.useMemo(() => castBase ? castUrlWithTracks(castBase, castTrackNumbers(mkvAudio, mkvSubs, audioId, subId)) : null,
-        [castBase, mkvAudio, mkvSubs, audioId, subId])
+    // ── Cast (phase 7c-2): a file of the device or the core's torrent stream goes to the TV through the core's outlet;
+    // online streams and files with headers stay here (castUrl null, the panel still follows a cast found running) ──
+    const castUrl = playerCastUrl(source, { online: !!online, headers: fileHeaders })
     const pauseLocal = React.useCallback(() => {
         mpv.current?.pause().catch(() => {})
     }, [])

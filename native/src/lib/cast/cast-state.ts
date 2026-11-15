@@ -20,7 +20,8 @@ export type CastEvent =
     | { state: "status", device: string, kind: CastKind, playing: boolean, positionMs: number, durationMs: number, volume: number, ended: boolean }
     | { state: "idle" }
     | { state: "stopped", positionMs: number, resume: boolean }
-    | { state: "error", code: CastErrorCode }
+    /** positionMs: where the TV was asked to jump (seek-failed) */
+    | { state: "error", code: CastErrorCode, positionMs?: number }
 
 export type CastState = {
     phase: "idle" | "searching" | "connecting" | "casting"
@@ -34,6 +35,8 @@ export type CastState = {
     volume: number
     ended: boolean
     error?: CastErrorCode
+    /** where the TV was asked to jump, for the error's text (seek-failed) */
+    errorAtMs?: number
     /** the phone's position when casting stopped, and whether the phone continues there */
     stopped?: { positionMs: number, resume: boolean }
 }
@@ -61,7 +64,7 @@ export function reduceCast(state: CastState, event: CastEvent): CastState {
             return { ...initialCastState, devices: state.devices, stopped: { positionMs: event.positionMs, resume: event.resume } }
         case "error":
             // a failed start or load ends connecting; a failed control keeps the session
-            return { ...state, phase: state.phase === "connecting" ? "idle" : state.phase, error: event.code }
+            return { ...state, phase: state.phase === "connecting" ? "idle" : state.phase, error: event.code, errorAtMs: event.positionMs }
     }
 }
 
@@ -106,6 +109,6 @@ export function googleStatus(status: { playerState: string | null, idleReason?: 
     }
 }
 
-export function castErrorText(code: CastErrorCode, tr: Translate): string {
-    return dlnaCastErrorText(code, tr)
+export function castErrorText(code: CastErrorCode, tr: Translate, positionMs?: number): string {
+    return dlnaCastErrorText(code, tr, positionMs)
 }

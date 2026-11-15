@@ -22,6 +22,7 @@ import { copyToClipboard } from "@/lib/helpers/browser"
 import { MENU_ENTRIES } from "@/lib/nav/nav-items"
 import { useRouter } from "@/lib/navigation"
 import { WSEvents } from "@/lib/server/ws-events"
+import { coreAskNakamaStatus } from "@/api/client/core-switch"
 import { colors } from "@/lib/theme/tokens"
 import { useWebsocketMessageListener, useWebsocketSender } from "@/main/_hooks/handle-websockets"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -69,7 +70,6 @@ export function useNakamaWatchParty() {
 /** Once in the main layout: keeps the status and owns the sheet. */
 export function NakamaManager() {
     const t = useTr()
-    const { sendMessage } = useWebsocketSender()
     const queryClient = useQueryClient()
     const [open, setOpen] = useAtom(nakamaModalOpenAtom)
     const [status, setStatus] = useAtom(nakamaStatusAtom)
@@ -88,9 +88,9 @@ export function NakamaManager() {
     const [confirmRoom, setConfirmRoom] = React.useState(false)
 
     const refetchStatus = React.useCallback(() => {
-        // useDenshiPlayer: whether this client plays in the desktop app's own player (never on a phone)
-        sendMessage({ type: WSEvents.NAKAMA_STATUS_REQUESTED, payload: { useDenshiPlayer: false, clientId: clientId || "" } })
-    }, [sendMessage, clientId])
+        // the app's own core holds the guest's connection (phase 7e): it answers with the event "nakama-status"
+        coreAskNakamaStatus()
+    }, [])
 
     React.useEffect(() => {
         refetchStatus()
@@ -272,7 +272,7 @@ function NakamaPhoneContent({ t, status, roomsAvailable, hostPassword, actions: 
                     <ActionRow icon={KeyRound} label={t("Passcode", "Passwort")} note={hostPassword || t("No password set", "Kein Passwort gesetzt")}
                         trailing={hostPassword ? <CopyMark /> : undefined} disabled={!hostPassword} onPress={() => copy(hostPassword)} />
                     {!!room.expiresAt && <ActionRow icon={Clock} label={t("Expires", "Läuft ab")}
-                        value={new Date(room.expiresAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })} />}
+                        value={new Date(room.expiresAt).toLocaleString(t("en-US", "de-DE"), { dateStyle: "short", timeStyle: "short" })} />}
                     <ActionRow icon={Unplug} tone="danger" disabled={a.disconnectingRoom} onPress={a.disconnectRoom}
                         label={a.disconnectingRoom ? t("Disconnecting…", "Trennt …") : t("Close the room", "Raum schließen")} />
                 </RowGroup>

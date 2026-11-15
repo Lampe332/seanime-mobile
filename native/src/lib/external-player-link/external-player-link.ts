@@ -1,12 +1,9 @@
-import { getServerBaseUrl, SERVER_HOST } from "@/api/client/server-url"
+import { withoutServerError } from "@/lib/server/without-server"
+import { toast } from "@/components/ui/toast/toast-store"
 import { logger } from "@/lib/helpers/debug"
 import { withoutTokens } from "@/lib/helpers/log-safe"
 
 const log = logger("EXTERNAL PLAYER LINK")
-
-// The web app filled these from the page it was served from; the app always talks to its own server on 127.0.0.1
-const SERVER_SCHEME = "http"
-const SERVER_HOSTNAME = "127.0.0.1"
 
 export class ExternalPlayerLink {
 
@@ -36,13 +33,9 @@ export class ExternalPlayerLink {
         this._mediaTitle = title ?? null
     }
 
-    async to(props: { endpoint: string, onTokenQueryParam?: () => Promise<string> }) {
-        let url = getServerBaseUrl() + props.endpoint
-        if (props.onTokenQueryParam) {
-            url += await props.onTokenQueryParam()
-        }
-        logger("MEDIALINKS").info("Formatted URL to send", withoutTokens(url))
-        this._urlToSend = url
+    /** A stream address of the server (endpoint): the app has no server, so there is none to send (toast) */
+    to(props: { endpoint: string }) {
+        toast.error(withoutServerError(props.endpoint.split("?")[0]).message)
     }
 
     getFullUrl() {
@@ -56,10 +49,7 @@ export class ExternalPlayerLink {
     }
 
     private _formatTemplateUrl(url: string) {
-        let urlToSend = url
-        urlToSend = urlToSend.replace("{{SCHEME}}", SERVER_SCHEME)
-        urlToSend = urlToSend.replace("{{HOST}}", SERVER_HOST)
-
+        const urlToSend = url
         if (this._playerLink.includes("?")) {
             return encodeURIComponent(urlToSend)
         }
@@ -72,9 +62,6 @@ export class ExternalPlayerLink {
 
     private _formatFinalUrl(url: string): string {
         let link = this._playerLink
-        link = link.replace("{scheme}", SERVER_SCHEME)
-        link = link.replace("{host}", SERVER_HOST)
-        link = link.replace("{hostname}", SERVER_HOSTNAME)
         link = link.replace("{mediaTitle}", this._cleanTitle(this._mediaTitle ?? ""))
         link = link.replace("{episodeNumber}", this._episodeNumber?.toString?.() ?? "")
         link = link.replace("{mime}", "video/webm")
@@ -92,9 +79,6 @@ export class ExternalPlayerLink {
         // e.g. "mpv://http://localhost:43214/stream/..."
         // e.g. "intent://http://localhost:43214/stream/...#Intent;package=org.videolan.vlc;scheme=http;end"
         let retUrl = link.replace("{url}", url)
-            .replace("127.0.0.1", SERVER_HOSTNAME)
-            .replace("localhost", SERVER_HOSTNAME)
-
 
         if (link.startsWith("intent://")) {
             // e.g. "intent://localhost:43214/stream/...#Intent;package=org.videolan.vlc;scheme=http;end"

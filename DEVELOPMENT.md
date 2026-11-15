@@ -1,5 +1,7 @@
 # Development
 
+> **Outdated (stage 8a-2):** this guide describes the old app (`app/`, `backend/`, `Build.ps1`, `tests/`), which left the repo; it is kept until the README and name are redone in stage 8b. The current app is `native/` (Expo/React Native with its own core, no server); see `docs/EIGENER-KERN.md` (German) and build with `native/scripts/build-android.ps1`.
+
 Guide for contributors to Seanime Mobile, the Android app that bundles the Seanime server and UI.
 
 ## Repository layout

@@ -3,6 +3,8 @@ import { storage } from "@/lib/storage"
 import React from "react"
 import { requestWidgetUpdate, type WidgetTaskHandlerProps } from "react-native-android-widget"
 import { anilist, listMedia, NoAniListUserError, resolveUser, UPCOMING_QUERY, UpcomingFetch, userId } from "../airing/anilist-public"
+import { CONTINUE_WIDGET_NAME } from "./continue-widget"
+import { continueView } from "./continue-widget-task"
 import { REFRESH_ACTION, UpcomingWidget, WIDGET_NAME } from "./upcoming-widget"
 import { createWidgetCache, FetchedEntry, stampText } from "./widget-cache"
 
@@ -46,7 +48,7 @@ function stamp() {
 }
 
 async function fetchUpcoming(): Promise<FetchedEntry[]> {
-    const name = await resolveUser(40, 250)
+    const name = await resolveUser()
     const data = await anilist<UpcomingFetch>(UPCOMING_QUERY, { userId: await userId(name) })
     return listMedia(data)
         .map(media => ({
@@ -67,7 +69,7 @@ function fetchIntoCache(): Promise<void> {
         fetching = fetchUpcoming()
             .then(fresh => cache.save(fresh))
             .catch(error => cache.setError(error instanceof NoAniListUserError
-                ? tr("Open Seanime and log in to AniList, then refresh.", "Seanime öffnen und bei AniList anmelden, dann aktualisieren.")
+                ? tr("Open Seanime Mobile and log in to AniList, then refresh.", "Seanime Mobile öffnen und bei AniList anmelden, dann aktualisieren.")
                 : tr("No connection. The list updates once you are online.", "Keine Verbindung. Die Liste wird mit Internet aktualisiert.")))
             .finally(() => {
                 fetching = null
@@ -83,8 +85,13 @@ function redrawAll() {
 }
 
 /** Registered at the entry (index.ts); Android calls it for adds, periodic updates, resizes and the refresh button. */
-export async function widgetTaskHandler({ widgetAction, clickAction, renderWidget }: WidgetTaskHandlerProps) {
+export async function widgetTaskHandler({ widgetInfo, widgetAction, clickAction, renderWidget }: WidgetTaskHandlerProps) {
     if (widgetAction === "WIDGET_DELETED") return
+    // "Continue watching" draws its stored list (continue-widget-task.tsx); its rows open pages by themselves
+    if (widgetInfo.widgetName === CONTINUE_WIDGET_NAME) {
+        if (widgetAction !== "WIDGET_CLICK") renderWidget(continueView(widgetInfo))
+        return
+    }
     const refresh = widgetAction === "WIDGET_CLICK" && clickAction === REFRESH_ACTION
     if (widgetAction === "WIDGET_CLICK" && !refresh) return
     if (refresh) cache.clearError()

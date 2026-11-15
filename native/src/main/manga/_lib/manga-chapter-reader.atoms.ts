@@ -10,6 +10,8 @@ export type MangaReaderResumeLocation = {
     provider: string
     pageIndex: number
     updatedAt: number
+    /** the chapter's number as the list shows it, for the History screen (older entries have none) */
+    chapterNumber?: string
 }
 
 const MANGA_READER_RESUME_MAX_ENTRIES = 250

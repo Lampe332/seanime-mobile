@@ -34,9 +34,10 @@ import { ChapterPage } from "./chapter-page"
  * gesture zoom is on, the finger moves the page instead. The next pages are fetched ahead (the web kept every page
  * mounted and hidden for that).
  */
-export function MangaHorizontalReader({ pageContainer, pageUrl, width, height }: {
+export function MangaHorizontalReader({ pageContainer, pageUrl, pageHeaders, width, height }: {
     pageContainer: Manga_PageContainer | undefined
     pageUrl: (index: number) => string | undefined
+    pageHeaders?: (index: number) => Record<string, string> | undefined
     width: number
     height: number
 }) {
@@ -94,9 +95,16 @@ export function MangaHorizontalReader({ pageContainer, pageUrl, width, height }:
 
     // fetch the next pages ahead, so turning shows them at once
     React.useEffect(() => {
-        const ahead = [1, 2].flatMap(step => paginationMap[currentMapIndex + step] ?? []).map(pageUrl).filter((url): url is string => !!url)
-        if (ahead.length) void Image.prefetch(ahead, "memory-disk")
-    }, [currentMapIndex, paginationMap, pageUrl])
+        const ahead = [1, 2].flatMap(step => paginationMap[currentMapIndex + step] ?? [])
+        const plain = ahead.filter(index => !pageHeaders?.(index)).map(pageUrl).filter((url): url is string => !!url)
+        if (plain.length) void Image.prefetch(plain, "memory-disk")
+        // a page with headers (area manga on) is fetched ahead with them
+        for (const index of ahead) {
+            const headers = pageHeaders?.(index)
+            const url = headers ? pageUrl(index) : undefined
+            if (url && headers) void Image.prefetch(url, { cachePolicy: "memory-disk", headers })
+        }
+    }, [currentMapIndex, paginationMap, pageUrl, pageHeaders])
 
     const currentPages = paginationMap[currentMapIndex] ?? []
     const double = readingMode === MangaReadingMode.DOUBLE_PAGE && currentPages.length === 2
@@ -121,7 +129,7 @@ export function MangaHorizontalReader({ pageContainer, pageUrl, width, height }:
     const pages = <Animated.View pointerEvents="box-none" style={[{ width: contentWidth, minHeight: contentHeight, transformOrigin: "top left" }, gestures.animatedStyle]}
         className={double ? "flex-row-reverse items-center justify-center" : "items-center justify-center"}>
         {currentPages.map((index, i) => <View key={`${index}-${pageContainer?.pages?.[index]?.url}`} style={double && pageGap ? { marginHorizontal: 4 } : undefined}>
-            <ChapterPage url={pageUrl(index)} index={index} width={pageSizes[i].width} height={pageSizes[i].height}
+            <ChapterPage url={pageUrl(index)} headers={pageHeaders?.(index)} index={index} width={pageSizes[i].width} height={pageSizes[i].height}
                 contentFit={pageFit === MangaPageFit.TRUE_SIZE ? "none" : "contain"} onSize={onSize} onLoaded={handlePageLoad} />
             {showShadows && <View pointerEvents="none" className="absolute bottom-0 top-0 w-[3%]"
                 style={i === 0 ? { left: 0, backgroundImage: "linear-gradient(90deg, rgba(17,17,17,0.3) 0%, rgba(17,17,17,0) 100%)" }

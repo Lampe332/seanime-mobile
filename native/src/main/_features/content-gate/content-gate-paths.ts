@@ -9,7 +9,6 @@ const CONTENT_GATE_ALLOWED_PATHS = [
     "/android-downloads",
     "/sync",
     // native-only pages without anime or manga (Menu › Server status / Building blocks)
-    "/server-status",
     "/building-blocks",
 ]
 

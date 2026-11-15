@@ -45,6 +45,8 @@ const CLOSE_GLYPH = "M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 
  */
 const OUT_OF_FLOW = { display: "none" } as const
 
+const claimTouch = () => true
+
 function CloseButton({ top = 8 }: { top?: number }) {
     const t = useTr()
     return (
@@ -179,11 +181,17 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
                                     // only as tall as its content; it scrolls once it reaches the sheet's room (see bodyMax)
                                     style={{ maxHeight: bodyMax }}
                                     className={cn("shrink", compact ? "mt-3" : "mt-4", side && workspace ? "grow" : "grow-0")}
-                                    contentContainerClassName={dense ? "gap-4" : "gap-5"}
                                     keyboardShouldPersistTaps="handled"
                                     showsVerticalScrollIndicator={false}
                                 >
-                                    {children}
+                                    {/*
+                                      * The body takes a touch that starts between its controls itself. Else the dialog Content
+                                      * above became the JS responder, and Android hands a responder view every move of its
+                                      * touch: a slow drag never reached the scroll view (filter sheets stuck at "Year", T1/S2 15.11.).
+                                      */}
+                                    <View className={dense ? "gap-4" : "gap-5"} onStartShouldSetResponder={claimTouch}>
+                                        {children}
+                                    </View>
                                 </ScrollView>
                                 {!!footer && <View onLayout={event => setFootHeight(event.nativeEvent.layout.height)} style={{ paddingTop: sheetFooterTop({ compact, dense }) }}
                                     className="flex-row gap-2 bg-sm-surface">

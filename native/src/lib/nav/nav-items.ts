@@ -126,7 +126,7 @@ export function isActive(item: NavItem, pathname: string) {
 
 const NAV_LABELS_DE: Record<string, string> = {
     "Home": "Start", "My Lists": "Meine Listen", "My lists": "Meine Listen", "Discover": "Entdecken", "Search": "Suche",
-    "Menu": "Menü", "Schedule": "Sendeplan", "Scan summaries": "Scan-Berichte", "More": "Mehr",
+    "Menu": "Menü", "Schedule": "Sendeplan", "Scan summaries": "Scan-Berichte", "History": "Verlauf", "More": "Mehr",
     "Refresh AniList": "AniList aktualisieren", "Extensions": "Erweiterungen", "Settings": "Einstellungen",
     "Sign out": "Abmelden", "Sign in": "Anmelden", "Login": "Anmelden",
     // added by the native app
@@ -157,14 +157,15 @@ export function navIcon(item: Pick<NavItem, "id" | "href">): MobileIconName {
 export type MenuEntry = { id: string, href: string, label: string, icon: MobileIconName, ready: boolean }
 
 export const MENU_ENTRIES: MenuEntry[] = [
+    { id: "updates", href: "/updates", label: "Updates", icon: "bell", ready: true },
     { id: "schedule", href: "/schedule", label: "Schedule", icon: "calendar", ready: true },
+    { id: "history", href: "/history", label: "History", icon: "history", ready: true },
     { id: "manga", href: "/manga", label: "Manga", icon: "manga", ready: true },
     { id: "scan-summaries", href: "/scan-summaries", label: "Scan summaries", icon: "report", ready: true },
     { id: "extensions", href: "/extensions", label: "Extensions", icon: "extensions", ready: true },
     { id: "settings", href: "/settings", label: "Settings", icon: "settings", ready: true },
     // native-app pages: the server state (E0's test screen) and the catalogue of building blocks. Development aids the old
     // menu never had, so only dev builds list them; the routes stay reachable by link.
-    { id: "server-status", href: "/server-status", label: "Server status", icon: "wrench", ready: __DEV__ },
     { id: "building-blocks", href: "/building-blocks", label: "Building blocks", icon: "grip", ready: __DEV__ },
 ]
 

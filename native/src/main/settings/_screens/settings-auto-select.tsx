@@ -85,8 +85,8 @@ export function AutoSelectGroup({ t }: { t: Translate }) {
     const saved = !!profile?.dbId
 
     return <SettingsGroup title={t("Auto-select", "Auto-Auswahl")}
-        note={t("Applies when the app picks a torrent for you while streaming (\"Auto-select the best torrent\" above and with debrid).",
-            "Gilt, wenn die App beim Streamen automatisch einen Torrent für dich wählt („Besten Torrent automatisch wählen“).")}>
+        note={t("Applies when the app picks a torrent for you while streaming, with torrents or debrid.",
+            "Gilt, wenn die App beim Streamen per Torrent oder Debrid automatisch einen Torrent für dich wählt.")}>
         <LinkRow label={t("Auto-select profile", "Auto-Auswahl-Profil")} disabled={isLoading || isError}
             value={isLoading ? t("Loading…", "Lädt …") : isError ? t("Not available", "Nicht verfügbar") : saved ? t("Set", "Eingestellt") : t("Default", "Standard")}
             note={t("Release groups, languages, codecs, exclusions and more.", "Release-Gruppen, Sprachen, Codecs, Ausschlüsse und mehr.")}

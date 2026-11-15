@@ -182,6 +182,7 @@ describe("phone discover cards", () => {
         expect(scoreLabel(en, 82)).toBe("82%")
         expect(scoreLabel(de, 82)).toBe("82 %")
         expect(scoreLabel(en, undefined)).toBe("")
+        expect(scoreLabel(en, 82, true)).toBe("")
         expect(listStatusLabel(en, "anime", "CURRENT")).toBe("Watching")
         expect(listStatusLabel(de, "manga", "CURRENT")).toBe("Lese ich")
         expect(listStatusLabel(de, "anime", "REPEATING")).toBe("Schaue erneut")

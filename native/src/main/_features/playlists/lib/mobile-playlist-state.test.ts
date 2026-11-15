@@ -1,11 +1,24 @@
 import type { Anime_LibraryCollection, Anime_PlaylistEpisode } from "@/api/generated/types"
 import { describe, expect, it } from "vitest"
 import {
-    createPlaylistMutationGate, MAX_PLAYLIST_EPISODES, movePlaylistEpisode, playlistAnimeChoices, playlistLibraryCollection, playlistNavigation, samePlaylistEpisode,
+    createPlaylistMutationGate, defaultPlaylistWatchType, MAX_PLAYLIST_EPISODES, movePlaylistEpisode, playlistAnimeChoices, playlistLibraryCollection, playlistNavigation, samePlaylistEpisode,
     selectPlaylistEpisodes, togglePlaylistEpisode,
 } from "./mobile-playlist-state"
 
 const ep = (media: number, n: number, anidb = String(n)) => ({ episode: { aniDBEpisode: anidb, episodeNumber: n, baseAnime: { id: media } } }) as unknown as Anime_PlaylistEpisode
+
+describe("default playlist source", () => {
+    it("preselects online streaming when it is the only source", () => {
+        expect(defaultPlaylistWatchType({ torrent: false, debrid: false, online: true })).toBe("online")
+    })
+    it("keeps torrent before debrid before online", () => {
+        expect(defaultPlaylistWatchType({ torrent: true, debrid: true, online: true })).toBe("torrent")
+        expect(defaultPlaylistWatchType({ torrent: false, debrid: true, online: true })).toBe("debrid")
+    })
+    it("stays empty without any source", () => {
+        expect(defaultPlaylistWatchType({ torrent: false, debrid: false, online: false })).toBe("")
+    })
+})
 
 describe("playlist episodes", () => {
     it("matches by anime, AniDB episode and number (specials too)", () => {

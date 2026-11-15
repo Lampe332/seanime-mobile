@@ -2,7 +2,7 @@ import { atomWithStorage, readStoredJSON } from "@/lib/storage"
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio"
 import * as Haptics from "expo-haptics"
 import { Platform } from "react-native"
-import SeanimeServer from "../../modules/seanime-server"
+import DeviceFacts from "../../modules/core-download"
 import { hapticType, type HapticKind, soundAllowed } from "./feedback-policy"
 
 /*
@@ -32,7 +32,7 @@ export function haptic(kind: HapticKind) {
 export function hasVibrator(): boolean {
     if (Platform.OS !== "android") return false
     try {
-        return SeanimeServer.feedbackState().hasVibrator
+        return DeviceFacts.feedbackState().hasVibrator
     }
     catch {
         return false
@@ -46,7 +46,7 @@ export function playSound(name: "success") {
     if (name !== "success" || Platform.OS !== "android") return
     let allowed = false
     try {
-        const state = SeanimeServer.feedbackState()
+        const state = DeviceFacts.feedbackState()
         allowed = soundAllowed(readStoredJSON(SOUNDS_KEY, true), state.ringerMode, state.musicActive)
     }
     catch {

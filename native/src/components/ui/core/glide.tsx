@@ -81,17 +81,18 @@ export function useGlide(selected: string | null, memory?: string) {
         place(selected)
     }, [selected, place])
 
-    // A remembered switch leaves its bubble where it stands (mid-glide: where it is now) for the switch built after it
-    React.useEffect(() => {
-        if (!memory) return
-        return () => {
-            const last = shown.current
-            if (!last) return
-            const current = state.get()
-            const box = current ? mixBox(current.from, current.to, progress.get()) : last.box
-            leftBubbles.set(memory, { key: last.key, box, at: Date.now() })
-        }
+    // A remembered switch leaves its bubble where it stands (mid-glide: where it is now) for the switch built after it.
+    // The switch calls it on the tap that rebuilds it: the new switch reads leftBubbles while it renders, before the old
+    // one's unmount effect runs, so a record made only on unmount came one choice late and every switch jumped.
+    const leave = React.useCallback(() => {
+        const last = shown.current
+        if (!memory || !last) return
+        const current = state.get()
+        const box = current ? mixBox(current.from, current.to, progress.get()) : last.box
+        leftBubbles.set(memory, { key: last.key, box, at: Date.now() })
     }, [memory, state, progress])
+
+    React.useEffect(() => leave, [leave])
 
     const onOptionLayout = React.useCallback((key: string) => (event: LayoutChangeEvent) => {
         const { x, y, width, height } = event.nativeEvent.layout
@@ -99,7 +100,7 @@ export function useGlide(selected: string | null, memory?: string) {
         if (key === selectedRef.current) place(key)
     }, [place])
 
-    return { onOptionLayout, state, progress, appear, placed, selected, handoffKey: handoff?.key ?? null }
+    return { onOptionLayout, leave, state, progress, appear, placed, selected, handoffKey: handoff?.key ?? null }
 }
 
 /**

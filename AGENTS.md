@@ -6,10 +6,11 @@
 - Keep Play Store edition sources, builds, signing material, and other private files out of this repository and its releases.
 - Preserve existing work. These instructions do not authorize a push, tag, or release by themselves.
 
-## Native app rewrite (branch `native`)
+## Native app (`native/`)
 
-- Before touching `native/` or porting anything from `app/` or `backend/seanime-web/`, read `docs/NATIVE-UMBAU.md` (German). It maps every old file and bridge to its new place and lists the fixes that must survive the port.
-- Every port updates that map in the same commit: status, new path, and a row in its change log.
+- The app is the Expo/React Native app in `native/` with its own core in `native/src/core/` (German plan and log: `docs/EIGENER-KERN.md`). The old Kotlin app (`app/`) and the Go server with its web UI (`backend/`, `backend/seanime-web/`) left the repo in stage 8a-2; they stay in the git history (last at `cc0d8e7`).
+- `docs/NATIVE-UMBAU.md` (German) is the historical map of the port from `app/` and `backend/seanime-web/`; read it for why a screen or fix is the way it is.
+- The extension contract (Seanime's `.d.ts` files) lives in `native/src/core/extensions/contract/`; do not edit it.
 
 ## Required release-note style
 

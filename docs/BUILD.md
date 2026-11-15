@@ -1,256 +1,88 @@
 # Building Seanime Mobile
 
-Step-by-step guide for Windows 10/11 (PowerShell). The backend is an Android-only fork of Seanime 3.10.4.
+The app is the Expo / React Native project in `native/`, with its own core in TypeScript (`native/src/core/`). There is no Go server, no `backend/` folder and no `libseanime.so` any more; the build script checks that the APK carries none.
 
-There are two ways to build:
+Everything below is for Windows 10/11 with PowerShell, because the build script is a PowerShell script.
 
-| Path | When | Requires |
-|---|---|---|
-| **A: Android app only** | You change Kotlin code (`app/`) | JDK 21 + Android SDK |
-| **B: Everything** | You change the backend (`backend/`) or the UI (`backend/seanime-web/`) | additionally Go, Node.js, Android NDK |
+## 1. Prerequisites
 
-Path A uses the prebuilt backend binaries shipped in `app/src/main/jniLibs/<abi>/libseanime.so`.
+The script `native/scripts/build-android.ps1` expects one toolchain folder of your own, passed as `-ToolchainRoot`. It reads these parts of it:
 
----
+| Path inside `-ToolchainRoot` | Used for |
+|---|---|
+| `android-sdk\` | Android SDK; the script sets `ANDROID_HOME` and `ANDROID_SDK_ROOT` to it |
+| `android-sdk\cmake\3.31.6\` | CMake with a long-path-aware ninja for the React Native C++ builds. Missing, the script stops and prints the `sdkmanager` command that installs it |
+| `android-sdk\build-tools\36.0.0\` | `apksigner`, `zipalign` and `aapt2` for checking the finished APK |
+| `gradle-cache\` | Gradle's cache (the script links it to a short path in the work directory) |
+| `npm-cache\` | npm's cache |
 
-## 1. Install the tools
+Besides that you need, on `PATH`:
 
-### JDK, Node.js and Git
+- **Node.js with npm** (`npx` runs `patch-package` and `expo prebuild`). The script's notes refer to Node 24.
+- **A JDK** for Gradle (`JAVA_HOME` or `java` on `PATH`; the script does not set one).
+- **The Android NDK** in the SDK, in the version React Native's Gradle setup asks for (`ndkVersion` in `native/node_modules/react-native/gradle/libs.versions.toml`).
 
-```powershell
-winget install EclipseAdoptium.Temurin.21.JDK
-winget install OpenJS.NodeJS.LTS
-winget install Git.Git
-```
-
-Reopen PowerShell afterwards and check:
-
-```powershell
-java -version    # openjdk version "21..."
-node -v          # current LTS
-```
-
-Gradle itself (9.2.1, via `gradlew.bat`) and the Android Gradle Plugin (9.0.1) are downloaded automatically on the first build.
-
-### Create a toolchain folder
-
-`Build.ps1` expects all Android and Go tools in **one** folder that you pass as `-ToolchainRoot`. Any location works; this guide uses `C:\Android-Toolchain` as an example:
-
-```
-C:\Android-Toolchain\
-├─ android-sdk\
-│  ├─ platforms\android-36\
-│  ├─ build-tools\36.0.0\
-│  ├─ platform-tools\
-│  └─ ndk\29.0.14206865\          (path B only)
-├─ go\bin\go.exe                  (path B only)
-├─ gradle-cache\                  (created by the build)
-└─ gopath\  go-cache\  npm-cache\ (created by the build, path B only)
-```
-
-### Android SDK
-
-1. Download the [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) for Windows.
-2. Extract them to `C:\Android-Toolchain\android-sdk\cmdline-tools\latest\` (so that `bin\sdkmanager.bat` exists there).
-3. Install the packages:
+Install the JavaScript dependencies once (this also applies the library patches in `native/patches/` through `postinstall`):
 
 ```powershell
-$sdk = 'C:\Android-Toolchain\android-sdk'
-& "$sdk\cmdline-tools\latest\bin\sdkmanager.bat" --sdk_root=$sdk --licenses
-& "$sdk\cmdline-tools\latest\bin\sdkmanager.bat" --sdk_root=$sdk "platforms;android-36" "build-tools;36.0.0" "platform-tools" "ndk;29.0.14206865"
+cd native
+npm install
 ```
 
-The NDK (about 1 GB) is only needed for path B. `Build.ps1` uses exactly NDK `29.0.14206865` and build-tools `36.0.0`.
+## 2. App variants
 
-### Go (path B only)
+`native/app-variants.json` lists the variants. `app.config.js` and `src/lib/app-variant.ts` both read it; the build script switches `current` only in its staged copy, never in the checkout.
 
-Download [Go for Windows (ZIP)](https://go.dev/dl/) and extract it so that `C:\Android-Toolchain\go\bin\go.exe` exists. If your Go is older than the version required by `backend/go.mod`, Go downloads the required toolchain automatically on the first build.
+| Variant | How to build | Package | Signed with |
+|---|---|---|---|
+| `test` (default) | `-Variant test` or nothing | `com.seanime.app.native` | debug key |
+| `scratch` | `-Variant scratch` | `com.seanime.app.scratch`, debuggable (`adb shell run-as` can read its files) | debug key |
+| `release` | `-Release` | `com.seanime.app.local` | the project's release key (not part of this repository) |
 
----
+The variants have different package names, so they install side by side.
 
-## 2. Get the source
+## 3. Build
+
+From the repository root:
 
 ```powershell
-git clone https://github.com/Lampe332/seanime-mobile.git
-cd seanime-mobile
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File native\scripts\build-android.ps1 -ToolchainRoot <your toolchain folder> -Variant scratch
 ```
 
----
-
-## 3A. Build the Android app only (debug)
+or from `native/` with the same parameters after `--`:
 
 ```powershell
-$env:ANDROID_HOME = 'C:\Android-Toolchain\android-sdk'
-.\gradlew.bat --no-daemon :app:assembleDebug
-```
-
-Output: `app\build\outputs\apk\debug\app-debug.apk`
-
-Install it on a phone (USB debugging enabled):
-
-```powershell
-& "$env:ANDROID_HOME\platform-tools\adb.exe" install -r app\build\outputs\apk\debug\app-debug.apk
-```
-
-> A debug build is signed with a different key and uses the same package ID (`com.seanime.app.local`) as a release. It **cannot** be installed over an installed release. Uninstall first, or build a signed release (see section 4).
-
-## 3B. Build everything (backend + UI + app)
-
-```powershell
-.\Build.ps1 -ToolchainRoot 'C:\Android-Toolchain' -WorkDirectory 'D:\Seanime-Build' -RebuildBackend
+npm run build:android -- -ToolchainRoot <your toolchain folder>
 ```
 
 Parameters:
 
-| Parameter | Required | Meaning |
-|---|---|---|
-| `-ToolchainRoot` | yes | The toolchain folder from section 1. |
-| `-WorkDirectory` | no | Where staging copies and the final APK go. Default: `%TEMP%\Seanime-Android-Build`. `D:\Seanime-Build` above is only an example. It must be **outside** your checkout. |
-| `-RebuildBackend` | no | Also rebuild the UI and the Go backend. |
-
-The script:
-
-1. copies the source into a new staging folder `<WorkDirectory>\<random id>\` (your checkout stays clean; staging folders are not deleted automatically),
-2. builds the React UI (`npm ci`, `npm run build`, which includes the TypeScript check) and embeds it into `backend/web`,
-3. compiles the Go backend for `arm64-v8a` and `armeabi-v7a` as `libseanime.so` (with 16 KiB page alignment),
-4. runs `:app:assembleRelease :app:lintRelease`, then verifies the APK signature (`apksigner verify`) and 16 KiB zip alignment (`zipalign -c -P 16 4`),
-5. copies the result to `<WorkDirectory>\Seanime-Mobile-<versionName>.apk` and prints `PASS: signed APK built and verified: ...`.
-
-Without `-RebuildBackend` only steps 1, 4 and 5 run. Node.js and `npm` must be on `PATH` for step 2.
-
-`<versionName>` is read from the default value in `app/build.gradle.kts`, so the output is `Seanime-Mobile-<versionName>.apk`.
-
-`Build.ps1` always produces a **signed** release and therefore needs a signing key (next section).
-
----
-
-## 4. Signing
-
-Android only installs an update if it is signed with **the same key** as the installed app. The private key of the official releases is not part of this repository, so builds you sign yourself cannot update an official installation (and vice versa).
-
-### Create your own key (once)
-
-```powershell
-keytool -genkeypair -v -storetype PKCS12 -keystore <path-to-your-key>.p12 -alias seanime-android -keyalg RSA -keysize 4096 -validity 10000
-```
-
-Keep the key file and its password safe and outside the repository. Without them you cannot build updates for your own installation. The build uses the same password for the keystore and the key, which is the default for PKCS12 keystores.
-
-### Provide the key
-
-Either through environment variables (read by `app/build.gradle.kts`):
-
-```powershell
-$env:SEANIME_SIGNING_STORE    = '<path-to-your-key>.p12'
-$env:SEANIME_SIGNING_ALIAS    = 'seanime-android'   # optional, this is the default
-$env:SEANIME_SIGNING_PASSWORD = '<your password>'
-```
-
-or as a folder **next to** the repository, which is picked up automatically:
-
-```
-seanime-mobile\                  (this repository)
-seanime-mobile-signing\
-├─ seanime-android.p12
-└─ password.txt                  (only the password, one line)
-```
-
-Then:
-
-```powershell
-.\Build.ps1 -ToolchainRoot 'C:\Android-Toolchain'
-```
-
-Without a key, `.\gradlew.bat :app:assembleRelease` produces an unsigned APK that cannot be installed, and `Build.ps1` stops with an error.
-
-### Version numbers for releases
-
-Release APKs must use a `versionName` of the form `X.Y.Z`. The in-app updater (`app/src/main/java/com/seanime/app/AppReleasePolicy.kt`) only accepts GitHub release tags `X.Y.Z` (optionally prefixed with `v`), ignores drafts and pre-releases, and only downloads an asset named `Seanime-Mobile-X.Y.Z.apk`. Change `versionName` and `versionCode` in `app/build.gradle.kts` together; `versionCode` must increase with every release.
-
----
-
-## 5. Tests
-
-```powershell
-# Android lint
-.\gradlew.bat :app:lintRelease
-
-# UI: TypeScript + unit tests
-cd backend\seanime-web
-npm ci
-npm run typecheck
-npm test
-cd ..\..
-
-# Browser tests (Python + Playwright); need npm ci in backend\seanime-web first
-python -m pip install playwright
-python -m playwright install chromium
-python tests\mobile_navigation.py
-python tests\plugin_dom.py
-```
-
-More UI harnesses live in `tests\` (see [DEVELOPMENT.md](../DEVELOPMENT.md)).
-
-On-device test (phone via USB, AniList account signed in inside the app). Instrumentation tests are built against the **release** build type, so a signing key is required (section 4):
-
-```powershell
-.\gradlew.bat :app:assembleRelease :app:assembleReleaseAndroidTest -PseanimeAuditRunner=com.seanime.app.audit.MobileInstrumentation
-adb install -r app\build\outputs\apk\release\app-release.apk
-adb install -r app\build\outputs\apk\androidTest\release\app-release-androidTest.apk
-adb shell am instrument -w com.seanime.app.local.test/com.seanime.app.audit.MobileInstrumentation
-```
-
-This instrumentation reads the AniList list and restores the previous widget cache afterwards; it does not change AniList progress. Without `-PseanimeAuditRunner` the test APK uses the default runner `com.seanime.app.audit.OfflineInstrumentation`.
-
-### Test a first start without touching the installed app
-
-A copy with its own package ID (`com.seanime.app.local.fresh`) can be installed next to the normal app and starts completely empty, including the setup wizard and tutorial:
-
-```powershell
-.\gradlew.bat :app:assembleRelease -PseanimeAppIdSuffix=.fresh
-adb shell am force-stop com.seanime.app.local
-adb install -r app\build\outputs\apk\release\app-release.apk
-```
-
-Both apps use the same local server port (`127.0.0.1:43211`). Stop the normal app first, otherwise the test copy connects to its server. Remove it afterwards with `adb uninstall com.seanime.app.local.fresh`.
-
-### Phones and tablets
-
-One APK serves both. At start the web app checks the screen: when its smaller side is 600 CSS px or more (the Android sw600dp rule), it is a tablet (`IS_TABLET_UI` in `src/lib/tablet-ui.ts`), and `main.tsx` sets `html[data-layout="tablet"]`. The native injections (`UIBottomNav.kt`, `VideoControlInjector.kt`) read that attribute.
-
-- The web UI has only phone screens, and a tablet shows them too: `layoutWidth()` reports a phone width to the width breakpoints in JavaScript.
-- `postcss.config.cjs` keeps every width media query above 430 px for phones (scoped to `:not([data-layout="tablet"])`) and adds a copy that resolves it for tablets as on a phone held upright. `:where()` keeps the specificity, so the cascade does not change on either.
-- `src/app/tablet.css` lays the phone screens out for the tablet by its real width (navigation rail, two panes, side sheets). Every rule is scoped to `html[data-layout="tablet"]`.
-- The activity handles size changes itself (`configChanges`), so a foldable opened or closed keeps the page. `reloadOnScreenClassChange()` reloads it when the screen crosses 600 px (after a playing video pauses), and the web app and the native injections decide again. A display size (density) change recreates the activity anyway.
-
----
-
-## How the app is put together
-
-```
-┌──────────────── Android APK ────────────────┐
-│  Kotlin shell (app/)                        │
-│   • SeanimeService (foreground service)     │
-│   • WebView → http://127.0.0.1:43211        │
-│   • Offline player (Media3/ExoPlayer)       │
-│   • Download queue                          │
-│                                             │
-│  libseanime.so = Go program (backend/)      │
-│   • Seanime server incl. embedded           │
-│     React UI (backend/web)                  │
-└─────────────────────────────────────────────┘
-```
-
-`libseanime.so` is not a JNI module but an executable Go program (PIE). Android extracts it from the APK (`useLegacyPackaging = true`) and `SeanimeService` starts it from `nativeLibraryDir`.
-
-## Troubleshooting
-
-| Error | Fix |
+| Parameter | Meaning |
 |---|---|
-| `Android SDK platform 36 is required.` | Run `sdkmanager "platforms;android-36"`, check `-ToolchainRoot` |
-| `Set SEANIME_SIGNING_STORE, SEANIME_SIGNING_ALIAS and SEANIME_SIGNING_PASSWORD ...` | Provide a signing key, see section 4 |
-| `APK signature verification failed.` | The keystore path is wrong or missing, so Gradle built an unsigned APK; check `SEANIME_SIGNING_STORE` |
-| `Choose a build work directory outside the delivered source project.` | Pass a `-WorkDirectory` outside your checkout |
-| `Native build failed: arm64-v8a` | NDK `29.0.14206865` is missing, or `go\bin\go.exe` is not in the toolchain folder |
-| `npm ci failed.` | Is Node.js installed? Reopen PowerShell after installing it |
-| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | Different signing key than the installed app; uninstall the old app |
+| `-ToolchainRoot <path>` | Required. Your toolchain folder (section 1) |
+| `-Variant test\|scratch` | Which variant; default `test` |
+| `-Release` | The release variant. Needs the release signing key, which is read at build time from a `seanime-mobile-signing` folder next to the repository or from `SEANIME_SIGNING_STORE`, `SEANIME_SIGNING_PASSWORD` and `SEANIME_SIGNING_ALIAS`. Refused together with `-Variant scratch` or `-Debuggable` |
+| `-Debuggable` | A debuggable build of the test variant |
+| `-WorkDirectory <path>` | Where the build runs and the APK lands; default `D:\SNB`. Must be outside the repository. Keep it short: ninja on Windows fails on object paths over 260 characters |
+
+What the script does:
+
+1. Mirrors `native/` into `<WorkDirectory>\s` (without `android/`, which is generated) and sets the variant there.
+2. Runs `patch-package` and `expo prebuild --platform android --clean`.
+3. Builds with `gradlew assembleRelease` (the `test` and `scratch` variants are signed with the debug key; `-Release` is signed again with the release key).
+4. Checks the APK: one signer (the expected certificate), 16 KiB alignment, package name, version name and code, app label, debuggable flag, and that no `libseanime.so` is inside.
+5. Copies it to `<WorkDirectory>\Seanime-Native-<version>-<variant>.apk` (release: `Seanime-Mobile-<version>.apk`) and prints `PASS: …` with its size.
+
+Install it on a device with `adb install -r <apk>`.
+
+## 4. Checks
+
+Run these in `native/` before a commit:
+
+```powershell
+npm run typecheck   # tsc --noEmit
+npm test            # vitest run
+npm run lint        # expo lint
+```
+
+The tests need no device: the core runs against Node's built-in SQLite and test doubles for the network.

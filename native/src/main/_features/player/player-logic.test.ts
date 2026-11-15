@@ -15,6 +15,7 @@ import {
     isPlayingState,
     languageList,
     mkvNumberToMpvId,
+    mpvHeaderOptions,
     mpvIdToMkvNumber,
     pickTrack,
     pipAspectRatio,
@@ -23,7 +24,6 @@ import {
     type PlayerTrack,
     readTrackList,
     rememberTrack,
-    resolveStreamUrl,
     sessionQueue,
     SCRUB_IDLE,
     scrubCancel,
@@ -325,14 +325,6 @@ describe("time format", () => {
     })
 })
 
-describe("stream url", () => {
-    it("fills the server address into library streams and leaves other urls alone", () => {
-        expect(resolveStreamUrl("{{SERVER_URL}}/api/v1/directstream/stream?id=a&token=t", "http://127.0.0.1:43212"))
-            .toBe("http://127.0.0.1:43212/api/v1/directstream/stream?id=a&token=t")
-        expect(resolveStreamUrl("http://127.0.0.1:43212/api/v1/torrentstream/stream/x.mkv", "http://h")).toBe("http://127.0.0.1:43212/api/v1/torrentstream/stream/x.mkv")
-    })
-})
-
 describe("playback state", () => {
     it("trusts mpv's state over its isPlaying flag", () => {
         // expo-mpv can report "playing" with isPlaying false (pause event before the source was set)
@@ -350,5 +342,26 @@ describe("pictureFitProperties", () => {
         expect(pictureFitProperties("contain")).toEqual([["keepaspect", "yes"], ["panscan", "0.0"]])
         expect(pictureFitProperties("cover")).toEqual([["keepaspect", "yes"], ["panscan", "1.0"]])
         expect(pictureFitProperties("fill")).toEqual([["keepaspect", "no"], ["panscan", "0.0"]])
+    })
+})
+
+describe("stream headers for mpv", () => {
+    it("sets nothing for a stream that comes through the proxy", () => {
+        expect(mpvHeaderOptions(undefined)).toEqual([])
+    })
+
+    it("writes the headers as mpv's list, with commas inside a value escaped", () => {
+        expect(mpvHeaderOptions({
+            Origin: "https://site.example",
+            Referer: "https://site.example/player?id=1&ln=ja-JP",
+            "User-Agent": "Mozilla/5.0 (KHTML, like Gecko) Chrome/139.0.0.0",
+        })).toEqual([["http-header-fields",
+            "Origin: https://site.example,Referer: https://site.example/player?id=1&ln=ja-JP,User-Agent: Mozilla/5.0 (KHTML\\, like Gecko) Chrome/139.0.0.0"]])
+    })
+
+    it("clears the list for a source without headers and drops what could split a header", () => {
+        expect(mpvHeaderOptions({})).toEqual([["http-header-fields", ""]])
+        expect(mpvHeaderOptions({ " ": "x", Referer: "a\r\nX-Injected: 1", Origin: "https://ok.example" }))
+            .toEqual([["http-header-fields", "Origin: https://ok.example"]])
     })
 })

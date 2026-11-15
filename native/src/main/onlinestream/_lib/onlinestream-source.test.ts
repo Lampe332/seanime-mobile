@@ -41,17 +41,33 @@ describe("online stream sources", () => {
             subtitles: [{ url: "https://cdn.example/en.vtt", language: "English", isDefault: false }, { url: "https://cdn.example/de.vtt", language: "German", isDefault: true }],
         })
         expect(needsProxy(withHeaders)).toBe(true)
-        const proxied = buildOnlineStream(withHeaders, "http://127.0.0.1:43212", "&token=abc")
-        expect(proxied.url).toBe("http://127.0.0.1:43212/api/v1/proxy?url=" + encodeURIComponent(withHeaders.url)
+        const proxied = buildOnlineStream(withHeaders, "http://127.0.0.1:8080", "&token=abc")
+        expect(proxied.url).toBe("http://127.0.0.1:8080/api/v1/proxy?url=" + encodeURIComponent(withHeaders.url)
             + "&headers=" + encodeURIComponent(JSON.stringify(withHeaders.headers)) + "&token=abc")
-        expect(proxied.subtitles.map(s => [s.label, s.default, s.src.startsWith("http://127.0.0.1:43212/api/v1/proxy?url=")])).toEqual([
+        expect(proxied.subtitles.map(s => [s.label, s.default, s.src.startsWith("http://127.0.0.1:8080/api/v1/proxy?url=")])).toEqual([
             ["English", false, true], ["German", true, true],
         ])
 
-        const direct = buildOnlineStream(src("720p", { subtitles: [{ url: "https://cdn.example/a.vtt", language: "English", isDefault: false }] }), "http://127.0.0.1:43212", "")
+        const direct = buildOnlineStream(src("720p", { subtitles: [{ url: "https://cdn.example/a.vtt", language: "English", isDefault: false }] }), "http://127.0.0.1:8080", "")
         expect(direct.url).toBe("https://cdn.example/720p.m3u8")
         // without a default flag the first subtitle is the default (web isDefaultSubtitleTrack)
         expect(direct.subtitles[0]).toMatchObject({ src: "https://cdn.example/a.vtt", default: true })
+        // through the proxy the player gets no headers of its own
+        expect(proxied.headers).toBeUndefined()
+        expect(direct.headers).toBeUndefined()
+    })
+
+    it("without the proxy (core area \"streams\") hands the provider's addresses and headers to the player", () => {
+        const withHeaders = src("1080p", {
+            headers: { Referer: "https://site.example/", Origin: "https://site.example" },
+            subtitles: [{ url: "https://cdn.example/en.vtt", language: "English", isDefault: true }],
+        })
+        const stream = buildOnlineStream(withHeaders, "http://127.0.0.1:8080", "", true)
+        expect(stream.url).toBe("https://cdn.example/1080p.m3u8")
+        expect(stream.subtitles[0].src).toBe("https://cdn.example/en.vtt")
+        expect(stream.headers).toEqual({ Referer: "https://site.example/", Origin: "https://site.example" })
+        // a source without headers clears the ones of the stream before
+        expect(buildOnlineStream(src("720p"), "http://127.0.0.1:8080", "", true).headers).toEqual({})
     })
 
     it("saves an episode from the provider URL, never the player's proxy URL with the token", () => {

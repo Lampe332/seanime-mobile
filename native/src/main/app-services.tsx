@@ -1,4 +1,5 @@
 import { useMobileOfflineLiveSnapshot, useReportNetworkToServer } from "@/api/hooks/mobile_offline.hooks"
+import { useAnilistSyncService } from "@/main/_features/anilist-sync/anilist-sync"
 import { useAiringScheduler } from "@/lib/airing/airing-hooks"
 import { appLanguageAtom } from "@/lib/app-language"
 import { useAppLinkSources } from "@/lib/app-links-handler"
@@ -26,6 +27,8 @@ export function AppServices() {
     useAiringScheduler()
     useCastEventsBridge()
     useMobileOfflineLiveSnapshot()
+    // changes made without AniList go out at the start, when the network is back and when the app comes to the front
+    useAnilistSyncService()
 
     React.useEffect(() => {
         reconcileAppUpdate()
@@ -45,5 +48,12 @@ function NetworkReporter() {
     useReportNetworkToServer()
     // download notices follow the server's snapshots (finished, failed, waiting for Wi-Fi)
     useDownloadNotifications()
+    // "Download next episodes automatically" looks once after the start, when the network report is in and the first screen is up
+    React.useEffect(() => {
+        const timer = setTimeout(() => void import("@/api/client/core-prefetch").then(module => module.requestPrefetch()).catch(() => undefined), START_PREFETCH_MS)
+        return () => clearTimeout(timer)
+    }, [])
     return null
 }
+
+const START_PREFETCH_MS = 15_000

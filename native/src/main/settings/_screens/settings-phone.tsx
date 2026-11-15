@@ -8,16 +8,18 @@ import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate, useTr } from "@/lib/app-language"
 import { updateNoticeOpens } from "@/lib/app-updates/update-notice"
 import { updateModalOpenAtom } from "@/main/_features/update/mobile-update"
-import { openTab } from "@/lib/helpers/browser"
+import { haptic } from "@/lib/feedback"
 import { MENU_ENTRIES } from "@/lib/nav/nav-items"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { TABLET_READING_WIDTH } from "@/lib/tablet-ui"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
+import { SakuraBurst } from "@/main/settings/_components/sakura-burst"
 import { UpdateCheckRow } from "@/main/settings/_components/settings-app-services"
 import { SettingsGroup, SettingSwitch } from "@/main/settings/_components/settings-kit"
 import { sectionFromTab, SETTINGS_SECTIONS, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
+import { NO_TAPS, secretMessage, TAP_RESET_MS, tapHint, versionTap } from "@/main/settings/_lib/version-taps"
 import { SettingsAppSection } from "@/main/settings/_screens/settings-app"
 import { SettingsLibrarySection } from "@/main/settings/_screens/settings-library"
 import { SettingsLogsSection } from "@/main/settings/_screens/settings-logs"
@@ -58,22 +60,23 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, title: [string, string], summary: [string, string] }> = {
     seanime: { icon: WandSparkles, title: ["App", "App"], summary: ["Episodes, language, extensions, navigation, account", "Folgen, Sprache, Erweiterungen, Navigation, Konto"] },
-    ui: { icon: Palette, title: ["Appearance", "Darstellung"], summary: ["Banner, sorting, cards, loading pages", "Banner, Sortierung, Karten, Seiten laden"] },
+    ui: { icon: Palette, title: ["Appearance", "Darstellung"], summary: ["Sorting, cards, loading pages", "Sortierung, Karten, Seiten laden"] },
     playback: { icon: CirclePlay, title: ["Playback", "Wiedergabe"], summary: ["Player for your files, external player, next episode", "Player für deine Dateien, externer Player, nächste Folge"] },
     library: { icon: Library, title: ["Local library", "Lokale Bibliothek"], summary: ["Folders, scanning, matching", "Ordner, Scannen, Zuordnung"] },
     onlinestream: { icon: Globe, title: ["Online streaming", "Online-Streaming"], summary: ["Streaming and your anime lists", "Streaming und deine Anime-Listen"] },
     torrents: { icon: Magnet, title: ["Torrents & debrid", "Torrents & Debrid"], summary: ["Providers, torrent streaming, downloads, debrid", "Anbieter, Torrent-Streaming, Downloads, Debrid"] },
-    manga: { icon: BookOpen, title: ["Manga", "Manga"], summary: ["Reading progress, default source, local folder", "Lesefortschritt, Standardquelle, lokaler Ordner"] },
+    manga: { icon: BookOpen, title: ["Manga", "Manga"], summary: ["Reading progress, default source", "Lesefortschritt, Standardquelle"] },
     nakama: { icon: Users, title: ["Nakama", "Nakama"], summary: ["Stream from your PC or home server", "Vom PC oder Home-Server streamen"] },
-    logs: { icon: BookKey, title: ["Logs & cache", "Logs & Cache"], summary: ["Server logs, cache, developer", "Server-Logs, Cache, Entwickler"] },
+    logs: { icon: BookKey, title: ["Cache", "Cache"], summary: ["Manga and online streaming cache", "Manga- und Online-Streaming-Cache"] },
     about: { icon: Info, title: ["About", "Über"], summary: ["Version and updates", "Version und Updates"] },
 }
 
 const appVersion = () => Constants.expoConfig?.version ?? ""
 
-function versionLine(version?: string) {
+/** The head line under "Settings": only the app's own version, never the Seanime desktop version */
+function versionLine() {
     const app = appVersion()
-    return [version ? `Seanime ${version}` : "", app ? `App ${app}` : ""].filter(Boolean).join(" · ")
+    return app ? `Seanime Mobile ${app}` : ""
 }
 
 export function SettingsPhone() {
@@ -110,7 +113,7 @@ export function SettingsPhone() {
         </PhoneScreen>
     }
 
-    if (twoPanes && shown) return <TwoPanes t={t} shown={shown} onOpen={setSection} version={status.version} />
+    if (twoPanes && shown) return <TwoPanes t={t} shown={shown} onOpen={setSection} />
 
     if (shown) {
         const current = SECTIONS[shown]
@@ -128,7 +131,7 @@ export function SettingsPhone() {
         </PhoneScreen>
     }
 
-    return <PhoneScreen key="list" title={t("Settings", "Einstellungen")} subtitle={versionLine(status.version)}>
+    return <PhoneScreen key="list" title={t("Settings", "Einstellungen")} subtitle={versionLine()}>
         <SectionList t={t} onOpen={setSection} />
     </PhoneScreen>
 }
@@ -167,7 +170,7 @@ function SectionList({ t, onOpen, current, compact, notes = true }: {
  * Two panes (tablet.css `.pst-panes`): 14rem list from 720dp, 19rem with the notes from 1024dp, 21rem from 1400dp; the
  * open area beside it with its title. The head stays above both.
  */
-function TwoPanes({ t, shown, onOpen, version }: { t: Translate, shown: SettingsSectionId, onOpen: (id: SettingsSectionId) => void, version?: string }) {
+function TwoPanes({ t, shown, onOpen }: { t: Translate, shown: SettingsSectionId, onOpen: (id: SettingsSectionId) => void }) {
     const insets = useSafeAreaInsets()
     const top = usePageTop()
     const { window } = useTabletLayout()
@@ -182,7 +185,7 @@ function TwoPanes({ t, shown, onOpen, version }: { t: Translate, shown: Settings
     return <View className="flex-1" style={{ paddingTop: top }}>
         <View className="w-full gap-1 px-4 pb-4 pt-1">
             <Heading>{t("Settings", "Einstellungen")}</Heading>
-            <Muted>{versionLine(version)}</Muted>
+            <Muted>{versionLine()}</Muted>
         </View>
         <View className="w-full flex-1 flex-row px-4" style={{ gap }}>
             <ScrollView style={{ width: listWidth, flexGrow: 0 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
@@ -243,30 +246,41 @@ function UpdateCheck({ t }: { t: Translate }) {
     })} />
 }
 
-/** Versions, "Look for new versions", "Check for updates now" and, quietly at the end, Donate. */
+/** The app version (ten taps on it: the secret, version-taps.ts), "Look for new versions" and "Check for updates now". */
 function SettingsAboutSection({ t }: { t: Translate }) {
-    const status = useServerStatus()
     const app = appVersion()
+    const taps = React.useRef(NO_TAPS)
+    const [burst, setBurst] = React.useState(0)
+    const endBurst = React.useCallback(() => setBurst(0), [])
+    const onVersionTap = () => {
+        const result = versionTap(taps.current, Date.now())
+        taps.current = result.state
+        if (result.secret) {
+            toast.dismiss(TAP_HINT_TOAST)
+            haptic("confirm")
+            setBurst(n => n + 1)
+        }
+        else if (result.remaining !== null) toast(tapHint(result.remaining, t), { id: TAP_HINT_TOAST, duration: TAP_RESET_MS })
+    }
     return <>
-        <SettingsGroup title={t("Version", "Version")}>
-            {!!app && <VersionRow label={t("App", "App")} value={app} />}
-            <VersionRow label="Seanime" value={[status?.version, status?.versionName].filter(Boolean).join(" ")} />
-        </SettingsGroup>
+        {!!app && <SettingsGroup title={t("Version", "Version")}>
+            <VersionRow label="Seanime Mobile" value={app} onPress={onVersionTap} />
+        </SettingsGroup>}
         <SettingsGroup title={t("Updates", "Updates")}>
             <SettingSwitch path="library.disableUpdateCheck" invert label={t("Look for new versions", "Nach neuen Versionen suchen")}
                 note={t("Shows a notice when a new app version is out.", "Zeigt einen Hinweis, sobald eine neue App-Version erscheint.")} />
             <UpdateCheck t={t} />
         </SettingsGroup>
-        <Pressable accessibilityRole="link" onPress={() => openTab("https://github.com/sponsors/5rahim")}
-            className="min-h-12 items-center justify-center self-center px-4">
-            <Text className="text-sm text-sm-text-subtle underline">{t("Donate to the Seanime developer", "An den Seanime-Entwickler spenden")}</Text>
-        </Pressable>
+        {/* keyed: tapping it out again while it falls starts a new one */}
+        {burst > 0 && <SakuraBurst key={burst} message={secretMessage(t)} onDone={endBurst} />}
     </>
 }
 
-function VersionRow({ label, value }: { label: string, value: string }) {
-    return <View className="flex-row flex-wrap items-baseline justify-between gap-x-4 bg-sm-surface-raised px-4 py-3">
+const TAP_HINT_TOAST = "version-taps"
+
+function VersionRow({ label, value, onPress }: { label: string, value: string, onPress: () => void }) {
+    return <Pressable onPress={onPress} className="flex-row flex-wrap items-baseline justify-between gap-x-4 bg-sm-surface-raised px-4 py-3 active:bg-sm-surface-control">
         <Text className="text-sm text-sm-text-muted">{label}</Text>
         <Text className="ml-auto text-right text-base font-semibold">{value}</Text>
-    </View>
+    </Pressable>
 }

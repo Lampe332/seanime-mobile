@@ -1,0 +1,10 @@
+{
+  "_herkunft": "Form der Aufzeichnung PLAYLIST.* vom 13.11.2026 (api: GetPlaylists; api-schreibend: CreatePlaylist, UpdatePlaylist, DeletePlaylist mit Zustand vorher/nachher); Namen erfunden; beim Anlegen antwortete der Server dbId 0, hier die gespeicherte Nummer (Zustand nachher: 1)",
+  "listEmpty": [],
+  "create": { "request": { "name": "Made up", "episodes": [] }, "response": { "dbId": 1, "name": "Made up", "episodes": [] } },
+  "listAfterCreate": [{ "dbId": 1, "name": "Made up", "episodes": [] }],
+  "update": { "request": { "dbId": 1, "name": "Made up 2", "episodes": [] }, "response": { "dbId": 1, "name": "Made up 2", "episodes": [] } },
+  "listAfterUpdate": [{ "dbId": 1, "name": "Made up 2", "episodes": [] }],
+  "delete": { "request": { "dbId": 1 }, "response": true },
+  "listAfterDelete": []
+}

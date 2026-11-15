@@ -252,7 +252,8 @@ export function ExtensionSheet(props: ExtensionSheetProps) {
     return (
         <Sheet open={props.open} onOpenChange={props.onOpenChange} title={extension.name || extension.id} titleIcon={<ExtensionIcon extension={extension} large />} description={sheetHeadLine(extension, t)} dense>
 
-            {waitsForPermission && (
+            {/* without the server no plugin runs and none can be granted (phase 7a) */}
+            {false && (
                 <Block tone="warning" title={t("Permissions required", "Erlaubnis nötig")} actions={<>
                     <Button intent="secondary" wrapperClassName="grow" onPress={() => onSubSheet({ kind: "code", readOnly: true })}>{t("View code", "Code ansehen")}</Button>
                     <Button wrapperClassName="grow-[2]" loading={isGranting} leftIcon={<ShieldCheck size={18} color="#ffffff" />} onPress={grant}>{t("Grant permissions", "Erlauben")}</Button>
@@ -263,15 +264,15 @@ export function ExtensionSheet(props: ExtensionSheetProps) {
                             ? <View key={index} className="gap-px"><Text className="text-sm font-semibold">{line.label}</Text>{!!line.value && <BlockText>{line.value}</BlockText>}</View>
                             : <Text key={index} className={cn("text-sm leading-[21px]", line.kind === "warning" ? "font-semibold text-sm-warning" : "text-sm-text-muted")}>{line.text}</Text>)}
                     </View>
-                    {unsafe && <Text className="text-[13px] leading-[19.5px] text-sm-warning">{t("This plugin relies on unsafe flags. Seanime can't guarantee that it is safe to use.",
-                        "Dieses Plugin braucht unsichere Flags. Seanime kann nicht garantieren, dass es sicher ist.")}</Text>}
+                    {unsafe && <Text className="text-[13px] leading-[19.5px] text-sm-warning">{t("This plugin relies on unsafe flags. Seanime Mobile can't guarantee that it is safe to use.",
+                        "Dieses Plugin braucht unsichere Flags. Seanime Mobile kann nicht garantieren, dass es sicher ist.")}</Text>}
                 </Block>
             )}
 
             {broken && (
                 <Block tone="danger" title={invalidReasonLabel(invalid?.code, t)}>
-                    <BlockText>{t("Seanime could not load this extension. If you aren't sure what this means, contact its author.",
-                        "Seanime konnte diese Erweiterung nicht laden. Wenn du nicht weißt, was das heißt, frag ihren Autor.")}</BlockText>
+                    <BlockText>{t("Seanime Mobile could not load this extension. If you aren't sure what this means, contact its author.",
+                        "Seanime Mobile konnte diese Erweiterung nicht laden. Wenn du nicht weißt, was das heißt, frag ihren Autor.")}</BlockText>
                     {!!invalid?.reason && (
                         <ScrollView nestedScrollEnabled style={{ maxHeight: 192 }} className="rounded-surface-sm bg-sm-surface-sunken" contentContainerClassName="p-3">
                             <Text selectable style={MONO} className="text-xs leading-[18px] text-sm-danger">{invalid.reason}</Text>
@@ -302,7 +303,7 @@ export function ExtensionSheet(props: ExtensionSheetProps) {
             <RowGroup>
                 {!!extension.userConfig && !invalid && <SheetAction icon={Settings2} label={t("Preferences", "Einstellungen")} onPress={() => onSubSheet({ kind: "preferences" })}
                     note={userConfigError ? t("Needs setup before it can be used", "Muss eingerichtet werden") : undefined} tone={userConfigError ? "warning" : undefined} />}
-                {extension.type === "custom-source" && !invalid && !disabled && <SheetAction icon={Search} label={t("Browse this source", "Quelle durchsuchen")}
+                {false && <SheetAction icon={Search} label={t("Browse this source", "Quelle durchsuchen")}
                     onPress={() => {
                         props.onOpenChange(false)
                         router.push(`/custom-sources?provider=${encodeURIComponent(extension.id)}`)
@@ -368,8 +369,11 @@ export function MarketplaceSheet({ t, open, onOpenChange, extension, installed }
     )
 }
 
-/** `.mex-field`: a filled link field with the paste button inside, its error under it */
-export function UrlField({ t, label, value, onChange, placeholder, onSubmit, error }: {
+/**
+ * `.mex-field`: a filled link field with the paste button inside, its error under it. `pasteInside={false}` when the
+ * sheet already has its own big paste button, so there is one way to paste.
+ */
+export function UrlField({ t, label, value, onChange, placeholder, onSubmit, error, pasteInside = true }: {
     t: Translate
     label: string
     value: string
@@ -377,6 +381,7 @@ export function UrlField({ t, label, value, onChange, placeholder, onSubmit, err
     placeholder: string
     onSubmit?: () => void
     error?: string
+    pasteInside?: boolean
 }) {
     const paste = async () => {
         const text = ((await Clipboard.getStringAsync().catch(() => "")) || "").trim()
@@ -390,11 +395,13 @@ export function UrlField({ t, label, value, onChange, placeholder, onSubmit, err
                 <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
                     keyboardType="url" autoCapitalize="none" autoCorrect={false} autoComplete="off" returnKeyType="go" onSubmitEditing={onSubmit}
                     style={error ? { borderWidth: 1.5, borderColor: colors.smDanger } : undefined}
-                    className="min-h-[52px] rounded-surface bg-sm-surface-raised pl-4 pr-14 font-sans text-[15px] text-sm-text" />
-                <Pressable accessibilityRole="button" accessibilityLabel={t("Paste link", "Link einfügen")} onPress={() => void paste()}
-                    className="absolute right-0.5 h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control">
-                    <ClipboardPaste size={20} color={colors.smTextMuted} />
-                </Pressable>
+                    className={cn("min-h-[52px] rounded-surface bg-sm-surface-raised pl-4 font-sans text-[15px] text-sm-text", pasteInside ? "pr-14" : "pr-4")} />
+                {pasteInside && (
+                    <Pressable accessibilityRole="button" accessibilityLabel={t("Paste link", "Link einfügen")} onPress={() => void paste()}
+                        className="absolute right-0.5 h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control">
+                        <ClipboardPaste size={20} color={colors.smTextMuted} />
+                    </Pressable>
+                )}
             </View>
             {!!error && <Text className="text-[13px] text-sm-danger">{error}</Text>}
         </View>

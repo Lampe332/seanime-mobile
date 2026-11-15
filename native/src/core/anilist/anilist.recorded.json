@@ -1,0 +1,2484 @@
+{
+ "note": "Trimmed from the server's recorded answers of 13.11.2026 (fewer items, same shapes). Test data only. Everything personal is synthetic: the list entries' ids, progress, scores, repeats, dates and timestamps, and the numbers of the statistics are made up; only public title data is as recorded.",
+ "animeCollection": {
+  "MediaListCollection": {
+   "lists": [
+    {
+     "entries": [
+      {
+       "completedAt": {
+        "day": 1,
+        "month": 2,
+        "year": 2024
+       },
+       "createdAt": 1700000000,
+       "id": 900000001,
+       "media": {
+        "id": 103632,
+        "idMal": 37984,
+        "siteUrl": "https://anilist.co/anime/103632",
+        "status": "FINISHED",
+        "season": "WINTER",
+        "type": "ANIME",
+        "format": "TV",
+        "seasonYear": 2021,
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/103632-N4ssExnvLw74.jpg",
+        "episodes": 24,
+        "synonyms": [
+         "转生成蜘蛛又怎样！",
+         "حسنا أنا عنكبوت، ماذا في ذلك؟",
+         "แมงมุมแล้วไง ข้องใจเหรอคะ ",
+         "Tôi Là Nhện Đấy, Có Sao Không?"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "JP",
+        "meanScore": 72,
+        "description": "I, the protagonist, was just an ordinary high school girl, but suddenly I was reincarnated as a spider monster in a fantasy world. Not only that, but I awakened in a dungeon filled with vicious monsters. Armed with only my human knowledge and my overwhelming positivity, I'm forced to use spiderwebs and traps to defeat far stronger monsters just to stay alive... So begins the labyrinth survival story of a girl with incredible mental strength living as one of the lowest-ranked beasts!<br><br>\n\n(Source: Crunchyroll)",
+        "genres": [
+         "Action",
+         "Adventure",
+         "Comedy",
+         "Fantasy",
+         "Mystery"
+        ],
+        "duration": 24,
+        "trailer": {
+         "id": "UZE4ZZiXBQY",
+         "site": "youtube",
+         "thumbnail": "https://i.ytimg.com/vi/UZE4ZZiXBQY/hqdefault.jpg"
+        },
+        "title": {
+         "english": "So I'm a Spider, So What?",
+         "native": "蜘蛛ですが、なにか？",
+         "romaji": "Kumo desu ga, Nani ka?",
+         "userPreferred": "So I'm a Spider, So What?"
+        },
+        "coverImage": {
+         "color": "#bbc9f1",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx103632-2wsy9wFUdm1C.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx103632-2wsy9wFUdm1C.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx103632-2wsy9wFUdm1C.jpg"
+        },
+        "startDate": {
+         "day": 8,
+         "month": 1,
+         "year": 2021
+        },
+        "endDate": {
+         "day": 3,
+         "month": 7,
+         "year": 2021
+        }
+       },
+       "private": false,
+       "progress": 24,
+       "repeat": 0,
+       "score": 8,
+       "startedAt": {
+        "day": 1,
+        "month": 1,
+        "year": 2024
+       },
+       "status": "COMPLETED",
+       "updatedAt": 1700003600
+      },
+      {
+       "completedAt": {
+        "day": 2,
+        "month": 2,
+        "year": 2024
+       },
+       "createdAt": 1700086400,
+       "id": 900000002,
+       "media": {
+        "id": 147105,
+        "idMal": 51553,
+        "siteUrl": "https://anilist.co/anime/147105",
+        "status": "FINISHED",
+        "season": "SPRING",
+        "type": "ANIME",
+        "format": "ONA",
+        "seasonYear": 2026,
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/147105-fTjmRrILFixZ.jpg",
+        "episodes": 13,
+        "synonyms": [
+         "Atelier of Witch Hat",
+         " จอมเวทฝึกหัดกับหมวกมหัศจรรย์",
+         "Atelier spiczastych kapeluszy",
+         "Cadı Şapkası Atölyesi",
+         "L'Atelier des Sorciers",
+         "Xưởng Phép Thuật",
+         "Ателье колдовских колпаков"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "JP",
+        "meanScore": 85,
+        "description": "In a world where everyone takes wonders like magic spells and dragons for granted, Coco is a girl with a simple dream: she wants to be a witch. But everybody knows magicians are born, not made, and Coco was not born with a gift for magic. Resigned to her un-magical life, Coco is about to give up on her dream to become a witch … until the day she meets Qifrey, a mysterious, traveling magician. After secretly seeing Qifrey perform magic in a way she’s never seen before, Coco soon learns what everybody “knows” might not be the truth, and discovers that her magical dream may not be as far away as it may seem... <br>\n<br>\n(Source: Kodansha USA) <br><br>\n\n<i>Note: Tongari Boushi no Atelier episode 2 was streamed a week in advance on Crunchyroll, ABEMA, and Netflix, alongside episode 1. Streaming is one week ahead of the TV broadcast.</i>",
+        "genres": [
+         "Adventure",
+         "Drama",
+         "Fantasy"
+        ],
+        "duration": 24,
+        "trailer": {
+         "id": "rc26AwBXlUE",
+         "site": "youtube",
+         "thumbnail": "https://i.ytimg.com/vi/rc26AwBXlUE/hqdefault.jpg"
+        },
+        "title": {
+         "english": "Witch Hat Atelier",
+         "native": "とんがり帽子のアトリエ",
+         "romaji": "Tongari Boushi no Atelier",
+         "userPreferred": "Witch Hat Atelier"
+        },
+        "coverImage": {
+         "color": "#0d8693",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx147105-rwOX8qyUy8gV.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx147105-rwOX8qyUy8gV.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx147105-rwOX8qyUy8gV.jpg"
+        },
+        "startDate": {
+         "day": 6,
+         "month": 4,
+         "year": 2026
+        },
+        "endDate": {
+         "day": 22,
+         "month": 6,
+         "year": 2026
+        }
+       },
+       "private": false,
+       "progress": 13,
+       "repeat": 0,
+       "score": 7,
+       "startedAt": {
+        "day": 2,
+        "month": 1,
+        "year": 2024
+       },
+       "status": "COMPLETED",
+       "updatedAt": 1700090000
+      }
+     ],
+     "isCustomList": false,
+     "name": "Completed",
+     "status": "COMPLETED"
+    },
+    {
+     "entries": [
+      {
+       "completedAt": {},
+       "createdAt": 1700172800,
+       "id": 900000003,
+       "media": {
+        "id": 195600,
+        "idMal": 62001,
+        "siteUrl": "https://anilist.co/anime/195600",
+        "status": "FINISHED",
+        "season": "SPRING",
+        "type": "ANIME",
+        "format": "TV",
+        "seasonYear": 2026,
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/195600-UxHvDXwzJxlP.jpg",
+        "episodes": 24,
+        "synonyms": [
+         "ヨミツガ",
+         "YomiTsuga",
+         "Pasangan dari Alam Baka",
+         "ยมลแห่งยมโลก",
+         "Yomi no Tsugai - Daemons do Reino das Sombras",
+         "Espíritus del Inframundo",
+         "Цугаи загробного мира",
+         "Kontraduety z zaświatów",
+         "Цуґаї потойбіччя",
+         "黃泉使者"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "JP",
+        "meanScore": 78,
+        "description": "In a remote mountain village under the watchful eyes of two stone guardians, the young Yuru contentedly lives off the land while staying close to the only family he has left—Asa, his precious twin sister. Asa, meanwhile, carries out a mysterious “duty” on behalf of the village while locked in a cage. Why is Asa a prisoner? And what other secrets does Yuru’s otherwise idyllic home hide?\n<br><br>(Source: Square Enix)",
+        "genres": [
+         "Action",
+         "Adventure",
+         "Comedy",
+         "Fantasy",
+         "Supernatural"
+        ],
+        "duration": 24,
+        "trailer": {
+         "id": "XCyj9KKKjUI",
+         "site": "youtube",
+         "thumbnail": "https://i.ytimg.com/vi/XCyj9KKKjUI/hqdefault.jpg"
+        },
+        "title": {
+         "english": "Daemons of the Shadow Realm",
+         "native": "黄泉のツガイ",
+         "romaji": "Yomi no Tsugai",
+         "userPreferred": "Daemons of the Shadow Realm"
+        },
+        "coverImage": {
+         "color": "#e49335",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx195600-moI0UFArtOme.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx195600-moI0UFArtOme.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx195600-moI0UFArtOme.jpg"
+        },
+        "startDate": {
+         "day": 4,
+         "month": 4,
+         "year": 2026
+        },
+        "endDate": {
+         "day": 19,
+         "month": 9,
+         "year": 2026
+        }
+       },
+       "private": false,
+       "progress": 1,
+       "repeat": 0,
+       "score": 6,
+       "startedAt": {},
+       "status": "DROPPED",
+       "updatedAt": 1700176400
+      },
+      {
+       "completedAt": {},
+       "createdAt": 1700259200,
+       "id": 900000004,
+       "media": {
+        "id": 116338,
+        "idMal": 41402,
+        "siteUrl": "https://anilist.co/anime/116338",
+        "status": "FINISHED",
+        "season": "SPRING",
+        "type": "ANIME",
+        "format": "TV",
+        "seasonYear": 2021,
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/116338-LexsWZ3dXsod.jpg",
+        "episodes": 21,
+        "synonyms": [
+         "Welcome to Demon School, Iruma-kun! Season 2",
+         "入间同学入魔了 第二季",
+         "入间同学入魔了！2",
+         "อิรุมะคุง พจญในแดนปีศาจ! ภาค 2"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "JP",
+        "meanScore": 80,
+        "description": "Suzuki Iruma, human and deeply non-aggressive, one day becomes the grandson of the great demon Sullivan. Doted on beyond belief, Iruma starts school where \"Grandpa\" serves as the chair... and finds, to his surprise, that he enjoys life there with Asmodeus, Clara, and the rest of his demon classmates. But just when Iruma thought he'd fitted in, there's more trouble ahead! A ring begins to talk, and Iruma... goes bad?! Iruma's chaotic, demonic life at school continues!<br>\n<br>\n(Source: NHK)",
+        "genres": [
+         "Comedy",
+         "Fantasy",
+         "Supernatural"
+        ],
+        "duration": 25,
+        "trailer": {
+         "id": "NxqfMRZfVTA",
+         "site": "youtube",
+         "thumbnail": "https://i.ytimg.com/vi/NxqfMRZfVTA/hqdefault.jpg"
+        },
+        "title": {
+         "english": "Welcome to Demon School! Iruma-kun Season 2",
+         "native": "魔入りました！入間くん 第2シリーズ",
+         "romaji": "Mairimashita! Iruma-kun 2",
+         "userPreferred": "Welcome to Demon School! Iruma-kun Season 2"
+        },
+        "coverImage": {
+         "color": "#e4c95d",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx116338-jbuJnLkPMcm7.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx116338-jbuJnLkPMcm7.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx116338-jbuJnLkPMcm7.jpg"
+        },
+        "startDate": {
+         "day": 17,
+         "month": 4,
+         "year": 2021
+        },
+        "endDate": {
+         "day": 11,
+         "month": 9,
+         "year": 2021
+        }
+       },
+       "private": false,
+       "progress": 1,
+       "repeat": 0,
+       "score": 9,
+       "startedAt": {},
+       "status": "DROPPED",
+       "updatedAt": 1700262800
+      }
+     ],
+     "isCustomList": false,
+     "name": "Dropped",
+     "status": "DROPPED"
+    },
+    {
+     "entries": [
+      {
+       "completedAt": {},
+       "createdAt": 1700345600,
+       "id": 900000005,
+       "media": {
+        "id": 144092,
+        "idMal": 50854,
+        "siteUrl": "https://anilist.co/anime/144092",
+        "status": "FINISHED",
+        "season": "WINTER",
+        "type": "ANIME",
+        "format": "TV",
+        "seasonYear": 2023,
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/144092-EMQdMWbZ94Sl.jpg",
+        "episodes": 12,
+        "isAdult": false,
+        "countryOfOrigin": "JP",
+        "meanScore": 72,
+        "description": "Handyman Saitou has never felt special in his life. When he’s dropped into a medieval fantasy world, he gathers a party of unique beings to survive. Surrounded by a heavy warrior, a spell-forgetting wizard, and even a divine fairy princess, he yearns to be helpful. But after Saitou saves everyone during a raid, it’s clear that having a handyman on an adventure isn’t just useful, it’s essential!<br><br>\n(Source: Crunchyroll)",
+        "genres": [
+         "Adventure",
+         "Comedy",
+         "Fantasy",
+         "Slice of Life"
+        ],
+        "duration": 24,
+        "trailer": {
+         "id": "dFu4h4vte90",
+         "site": "youtube",
+         "thumbnail": "https://i.ytimg.com/vi/dFu4h4vte90/hqdefault.jpg"
+        },
+        "title": {
+         "english": "Handyman Saitou in Another World",
+         "native": "便利屋斎藤さん、異世界に行く",
+         "romaji": "Benriya Saitou-san, Isekai ni Iku",
+         "userPreferred": "Handyman Saitou in Another World"
+        },
+        "coverImage": {
+         "color": "#d6bb78",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx144092-8EKzzZQofFlW.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx144092-8EKzzZQofFlW.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx144092-8EKzzZQofFlW.jpg"
+        },
+        "startDate": {
+         "day": 8,
+         "month": 1,
+         "year": 2023
+        },
+        "endDate": {
+         "day": 26,
+         "month": 3,
+         "year": 2023
+        }
+       },
+       "private": false,
+       "progress": 0,
+       "repeat": 0,
+       "score": 0,
+       "startedAt": {},
+       "status": "PLANNING",
+       "updatedAt": 1700349200
+      },
+      {
+       "completedAt": {},
+       "createdAt": 1700432000,
+       "id": 900000006,
+       "media": {
+        "id": 189323,
+        "idMal": 61338,
+        "siteUrl": "https://anilist.co/anime/189323",
+        "status": "NOT_YET_RELEASED",
+        "season": "WINTER",
+        "type": "ANIME",
+        "format": "TV",
+        "seasonYear": 2027,
+        "synonyms": [
+         "シャンフロ３",
+         "シャングリラ・フロンティア〜クソゲーハンター, 神ゲーに挑まんとす〜 3rd season",
+         "Shangri-La Frontier: Kusoge Hunter, Kamige ni Idoman to su 3rd Season",
+         "Thợ săn Game rác thách thức Game cấp thánh, Mùa 3"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "JP",
+        "description": "The third season of <i>Shangri-La Frontier</i>.",
+        "genres": [
+         "Action",
+         "Adventure",
+         "Comedy",
+         "Fantasy",
+         "Sci-Fi"
+        ],
+        "trailer": {
+         "id": "84JvYWUOOaU",
+         "site": "youtube",
+         "thumbnail": "https://i.ytimg.com/vi/84JvYWUOOaU/hqdefault.jpg"
+        },
+        "title": {
+         "english": "Shangri-La Frontier Season 3",
+         "native": "シャングリラ・フロンティア 3rd season",
+         "romaji": "Shangri-La Frontier 3rd Season",
+         "userPreferred": "Shangri-La Frontier Season 3"
+        },
+        "coverImage": {
+         "color": "#f1ae35",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx189323-gHXhqIOBUY8F.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx189323-gHXhqIOBUY8F.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx189323-gHXhqIOBUY8F.jpg"
+        },
+        "startDate": {
+         "day": 10,
+         "month": 1,
+         "year": 2027
+        },
+        "endDate": {},
+        "nextAiringEpisode": {
+         "airingAt": 1800172800,
+         "episode": 1,
+         "timeUntilAiring": 5613989
+        }
+       },
+       "private": false,
+       "progress": 0,
+       "repeat": 0,
+       "score": 0,
+       "startedAt": {},
+       "status": "PLANNING",
+       "updatedAt": 1700435600
+      }
+     ],
+     "isCustomList": false,
+     "name": "Planning",
+     "status": "PLANNING"
+    },
+    {
+     "entries": [
+      {
+       "completedAt": {},
+       "createdAt": 1700518400,
+       "id": 900000007,
+       "media": {
+        "id": 137667,
+        "idMal": 49818,
+        "siteUrl": "https://anilist.co/anime/137667",
+        "status": "FINISHED",
+        "type": "ANIME",
+        "format": "ONA",
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/137667-AhUoT3NFgbif.jpg",
+        "episodes": 13,
+        "synonyms": [
+         "Lord of the Mysteries",
+         "LOTM",
+         "诡秘之主",
+         "Lord of Mysteries: The Clown",
+         "Chúa Tể Huyền Bí",
+         "Tuan Misteri",
+         "신비의 제왕",
+         "LoM"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "CN",
+        "meanScore": 85,
+        "description": "In a Victorian world of steam, dreadnoughts, and occult horrors, Zhou Mingrui awakens as Klein Moretti. He walks a razor’s edge between light and darkness, entangled with warring Churches. This is the legend of unlimited potential…and unspeakable danger.\n<br><br>\n(Source: Crunchyroll)",
+        "genres": [
+         "Action",
+         "Drama",
+         "Fantasy",
+         "Mystery",
+         "Supernatural",
+         "Thriller"
+        ],
+        "duration": 35,
+        "trailer": {
+         "id": "_M9PRUrmpo0",
+         "site": "youtube",
+         "thumbnail": "https://i.ytimg.com/vi/_M9PRUrmpo0/hqdefault.jpg"
+        },
+        "title": {
+         "english": "Lord of Mysteries",
+         "native": "诡秘之主 小丑篇​",
+         "romaji": "Guimi Zhi Zhu: Xiaochou Pian",
+         "userPreferred": "Lord of Mysteries"
+        },
+        "coverImage": {
+         "color": "#93c9e4",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx137667-xQxzQRAerw53.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx137667-xQxzQRAerw53.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx137667-xQxzQRAerw53.jpg"
+        },
+        "startDate": {
+         "day": 28,
+         "month": 6,
+         "year": 2025
+        },
+        "endDate": {
+         "day": 13,
+         "month": 9,
+         "year": 2025
+        }
+       },
+       "private": false,
+       "progress": 2,
+       "repeat": 0,
+       "score": 6,
+       "startedAt": {},
+       "status": "PAUSED",
+       "updatedAt": 1700522000
+      },
+      {
+       "completedAt": {},
+       "createdAt": 1700604800,
+       "id": 900000008,
+       "media": {
+        "id": 99255,
+        "idMal": 35788,
+        "siteUrl": "https://anilist.co/anime/99255",
+        "status": "FINISHED",
+        "season": "FALL",
+        "type": "ANIME",
+        "format": "TV",
+        "seasonYear": 2017,
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/99255-FcvNIg6FLK4o.jpg",
+        "episodes": 12,
+        "synonyms": [
+         "食戟之灵 餐之皿",
+         "ยอดนักปรุงโซมะ ภาค 3"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "JP",
+        "meanScore": 78,
+        "description": "At the Moon Festival, Totsuki Academy’s annual gourmet jubilee, students wage fierce culinary war as they try to out-earn their peers by selling the most of their chosen cuisine. Souma Yukihira, however, has his sights set on a grander prize: challenging the Elite Ten, who rule over the academy with iron fists. But Souma might have to put his grand ambitions on hold for the time being, because an insidious scheme to upset the balance of Totsuki Academy has begun to emerge from the shadows…\n<br><br>\n(Source: Sentai Filmworks)",
+        "genres": [
+         "Comedy",
+         "Ecchi"
+        ],
+        "duration": 24,
+        "trailer": {
+         "id": "SELSLl0_Gmw",
+         "site": "youtube",
+         "thumbnail": "https://i.ytimg.com/vi/SELSLl0_Gmw/hqdefault.jpg"
+        },
+        "title": {
+         "english": "Food Wars! The Third Plate",
+         "native": "食戟のソーマ 餐ノ皿",
+         "romaji": "Shokugeki no Souma: San no Sara",
+         "userPreferred": "Food Wars! The Third Plate"
+        },
+        "coverImage": {
+         "color": "#f17800",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx99255-heGTtj5b4owl.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/nx99255-heGTtj5b4owl.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/nx99255-heGTtj5b4owl.jpg"
+        },
+        "startDate": {
+         "day": 4,
+         "month": 10,
+         "year": 2017
+        },
+        "endDate": {
+         "day": 20,
+         "month": 12,
+         "year": 2017
+        }
+       },
+       "private": false,
+       "progress": 2,
+       "repeat": 0,
+       "score": 9,
+       "startedAt": {},
+       "status": "PAUSED",
+       "updatedAt": 1700608400
+      }
+     ],
+     "isCustomList": false,
+     "name": "Paused",
+     "status": "PAUSED"
+    },
+    {
+     "entries": [
+      {
+       "completedAt": {},
+       "createdAt": 1700691200,
+       "id": 900000009,
+       "media": {
+        "id": 97940,
+        "idMal": 34572,
+        "siteUrl": "https://anilist.co/anime/97940",
+        "status": "FINISHED",
+        "season": "FALL",
+        "type": "ANIME",
+        "format": "TV",
+        "seasonYear": 2017,
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/97940-1URQdQ4U1a0b.jpg",
+        "episodes": 170,
+        "synonyms": [
+         "תלתן שחור",
+         "แบล็กโคลเวอร์",
+         "Чёрный клевер"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "JP",
+        "meanScore": 79,
+        "description": "In a world where magic is everything, Asta and Yuno are both found abandoned at a church on the same day. While Yuno is gifted with exceptional magical powers, Asta is the only one in this world without any. At the age of fifteen, both receive grimoires, magic books that amplify their holder’s magic. Asta’s is a rare Grimoire of Anti-Magic that negates and repels his opponent’s spells. Being opposite but good rivals, Yuno and Asta are ready for the hardest of challenges to achieve their common dream: to be the Wizard King. Giving up is never an option!<br>\n<br>\n(Source: Crunchyroll)",
+        "genres": [
+         "Action",
+         "Adventure",
+         "Comedy",
+         "Fantasy"
+        ],
+        "duration": 24,
+        "trailer": {
+         "id": "vUjAxk1qYzQ",
+         "site": "youtube",
+         "thumbnail": "https://i.ytimg.com/vi/vUjAxk1qYzQ/hqdefault.jpg"
+        },
+        "title": {
+         "english": "Black Clover",
+         "native": "ブラッククローバー",
+         "romaji": "Black Clover",
+         "userPreferred": "Black Clover"
+        },
+        "coverImage": {
+         "color": "#d6c96b",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx97940-fyh8o7gNbha0.png",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx97940-fyh8o7gNbha0.png",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx97940-fyh8o7gNbha0.png"
+        },
+        "startDate": {
+         "day": 3,
+         "month": 10,
+         "year": 2017
+        },
+        "endDate": {
+         "day": 30,
+         "month": 3,
+         "year": 2021
+        }
+       },
+       "private": false,
+       "progress": 3,
+       "repeat": 0,
+       "score": 8,
+       "startedAt": {
+        "day": 9,
+        "month": 1,
+        "year": 2024
+       },
+       "status": "CURRENT",
+       "updatedAt": 1700694800
+      },
+      {
+       "completedAt": {},
+       "createdAt": 1700777600,
+       "id": 900000010,
+       "media": {
+        "id": 204389,
+        "idMal": 63140,
+        "siteUrl": "https://anilist.co/anime/204389",
+        "status": "RELEASING",
+        "season": "FALL",
+        "type": "ANIME",
+        "format": "ONA",
+        "seasonYear": 2026,
+        "isAdult": false,
+        "countryOfOrigin": "JP",
+        "meanScore": 75,
+        "description": "The second season of <i>Yasei no Last Boss ga Arawareta!</i>",
+        "genres": [
+         "Action",
+         "Adventure",
+         "Fantasy"
+        ],
+        "duration": 24,
+        "trailer": {
+         "id": "LyDMSUR6_Q8",
+         "site": "youtube",
+         "thumbnail": "https://i.ytimg.com/vi/LyDMSUR6_Q8/hqdefault.jpg"
+        },
+        "title": {
+         "english": "A Wild Last Boss Appeared! Season 2",
+         "native": "野生のラスボスが現れた！ 第2期",
+         "romaji": "Yasei no Last Boss ga Arawareta! 2nd Season",
+         "userPreferred": "A Wild Last Boss Appeared! Season 2"
+        },
+        "coverImage": {
+         "color": "#e45dc9",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx204389-jCoFCeTthDMy.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx204389-jCoFCeTthDMy.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx204389-jCoFCeTthDMy.jpg"
+        },
+        "startDate": {
+         "day": 26,
+         "month": 9,
+         "year": 2026
+        },
+        "endDate": {},
+        "nextAiringEpisode": {
+         "airingAt": 1794663000,
+         "episode": 8,
+         "timeUntilAiring": 104189
+        }
+       },
+       "private": false,
+       "progress": 3,
+       "repeat": 0,
+       "score": 7,
+       "startedAt": {
+        "day": 10,
+        "month": 1,
+        "year": 2024
+       },
+       "status": "CURRENT",
+       "updatedAt": 1700781200
+      }
+     ],
+     "isCustomList": false,
+     "name": "Watching",
+     "status": "CURRENT"
+    }
+   ]
+  }
+ },
+ "mangaCollection": {
+  "MediaListCollection": {
+   "lists": [
+    {
+     "entries": [
+      {
+       "completedAt": {},
+       "createdAt": 1700864000,
+       "id": 900000011,
+       "media": {
+        "id": 130258,
+        "siteUrl": "https://anilist.co/manga/130258",
+        "status": "FINISHED",
+        "type": "MANGA",
+        "format": "MANGA",
+        "chapters": 84,
+        "synonyms": [
+         "My Harem Grew So Large, I Was Forced to Ascend",
+         "后宫太多，只好飞升了"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "CN",
+        "meanScore": 70,
+        "description": "Tsundere shaman, demonic master, yandere kouhai, barefoot alchemist, and the sword-saint in white silk. Ye Gulou, the young, handsome, and most powerful cultivator on the continent, is surrounded by five beautiful ladies, all of whom are out to kill him! The only way out is to attempt ascending to immortality, but he transmigrated to another world instead, along with his five pursuers! Now they are elf, beast-girl, lady knight, high-priestess, with more girls still to come! Caught between girls from two worlds, his thousand-year virgin-cultivation progress is in grave danger! Meanwhile, even more cute isekai girls are joining in~~\n<BR><BR>\n(Source: Bilibili, translated)\n<BR><BR>\n<I>Note: Chapter count includes six bonus chapters.</i>",
+        "genres": [
+         "Adventure",
+         "Comedy",
+         "Ecchi",
+         "Fantasy",
+         "Romance"
+        ],
+        "title": {
+         "native": "妹子太多，只好飞升了",
+         "romaji": "Meizi Tai Duo, Zhihao Feisheng Le",
+         "userPreferred": "Meizi Tai Duo, Zhihao Feisheng Le"
+        },
+        "coverImage": {
+         "color": "#fe5093",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx130258-qkbweJ1o1GKE.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx130258-qkbweJ1o1GKE.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/small/bx130258-qkbweJ1o1GKE.jpg"
+        },
+        "startDate": {
+         "day": 1,
+         "month": 11,
+         "year": 2020
+        },
+        "endDate": {
+         "day": 9,
+         "month": 12,
+         "year": 2023
+        }
+       },
+       "private": false,
+       "progress": 0,
+       "repeat": 0,
+       "score": 0,
+       "startedAt": {},
+       "status": "PLANNING",
+       "updatedAt": 1700867600
+      },
+      {
+       "completedAt": {},
+       "createdAt": 1700950400,
+       "id": 900000012,
+       "media": {
+        "id": 188692,
+        "siteUrl": "https://anilist.co/manga/188692",
+        "status": "RELEASING",
+        "type": "MANGA",
+        "format": "MANGA",
+        "synonyms": [
+         "Become the Strongest Hero Through the Cheat System",
+         "The Boundless Ring's Champion Unleashed in Another World",
+         "Divine Ring Arrives: The Strongest Otherworld",
+         "이세계 최강 반지왕"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "CN",
+        "meanScore": 68,
+        "description": "When darkness invades the city, zillions of human warriors come into being, but Aiden isn't one of them. One day, he comes across a mysterious ring and is sent into the Orc Realm where humans are forbidden, by a treaty. He magically survives his execution, lifts the Orc Tribe's sacred hammer, and becomes the tribe leader. Just then, he is transported back to his original reality.\n<br><br>\n(Source: WebComics)",
+        "genres": [
+         "Action",
+         "Fantasy"
+        ],
+        "title": {
+         "english": "The Divine Ring Descends: The Strongest Otherworld",
+         "native": "神戒降临: 最强异世界",
+         "romaji": "Shen Jie Jianglin: Zui Qiang Yi Shijie",
+         "userPreferred": "The Divine Ring Descends: The Strongest Otherworld"
+        },
+        "coverImage": {
+         "color": "#e4435d",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b188692-7RQEfEz4apYp.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b188692-7RQEfEz4apYp.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/small/b188692-7RQEfEz4apYp.jpg"
+        },
+        "startDate": {
+         "day": 25,
+         "month": 1,
+         "year": 2025
+        },
+        "endDate": {}
+       },
+       "private": false,
+       "progress": 0,
+       "repeat": 0,
+       "score": 0,
+       "startedAt": {},
+       "status": "PLANNING",
+       "updatedAt": 1700954000
+      },
+      {
+       "completedAt": {},
+       "createdAt": 1701036800,
+       "id": 900000013,
+       "media": {
+        "id": 119257,
+        "idMal": 132214,
+        "siteUrl": "https://anilist.co/manga/119257",
+        "status": "HIATUS",
+        "type": "MANGA",
+        "format": "MANGA",
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/119257-RtxJMRCunHXc.jpg",
+        "synonyms": [
+         "Omniscient Reader's Viewpoint",
+         "ORV",
+         "Punkt Widzenia Wszechwiedzącego Czytelnika",
+         "Lector omnisciente",
+         "Lecteur Omniscient",
+         "Der allwissende Leser",
+         "전독시",
+         "全知读者",
+         "全知讀者視角",
+         "อ่านชะตาวันสิ้นโลก",
+         "全知的な読者の視点から",
+         "Zenchiteki na Dokusha no Shiten kara",
+         "Всеведущий читатель"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "KR",
+        "meanScore": 86,
+        "description": "Back then, Dok-Ja had no idea. He had no idea his favorite web novel 'Three Ways to Survive the Apocalypse' was going to come to life, and that he would become the only person to know how the world was going to end. He also had no idea he would end up becoming the protagonist of this novel-turned-reality. Now, Dok-Ja will go on a journey to change the course of the story and save humankind once and for all.\n<br><br>\n(Source: WEBTOON, edited)",
+        "genres": [
+         "Action",
+         "Adventure",
+         "Fantasy"
+        ],
+        "title": {
+         "english": "Omniscient Reader",
+         "native": "전지적 독자 시점",
+         "romaji": "Jeonjijeok Dokja Sijeom",
+         "userPreferred": "Omniscient Reader"
+        },
+        "coverImage": {
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-Pi21aq3ey9GG.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx119257-Pi21aq3ey9GG.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/small/bx119257-Pi21aq3ey9GG.jpg"
+        },
+        "startDate": {
+         "day": 26,
+         "month": 5,
+         "year": 2020
+        },
+        "endDate": {}
+       },
+       "private": false,
+       "progress": 0,
+       "repeat": 0,
+       "score": 0,
+       "startedAt": {},
+       "status": "PLANNING",
+       "updatedAt": 1701040400
+      }
+     ],
+     "isCustomList": false,
+     "name": "Planning",
+     "status": "PLANNING"
+    },
+    {
+     "entries": [
+      {
+       "completedAt": {},
+       "createdAt": 1701123200,
+       "id": 900000014,
+       "media": {
+        "id": 153336,
+        "idMal": 164677,
+        "siteUrl": "https://anilist.co/manga/153336",
+        "status": "RELEASING",
+        "type": "MANGA",
+        "format": "MANGA",
+        "isAdult": true,
+        "countryOfOrigin": "JP",
+        "meanScore": 74,
+        "description": "\"Why are you erect...? That's so unfair.\" In a world where all other men have contracted ED, I alone am subjected to the starved true nature of women as the sole man who can get an erection.\n<br><br>\n(Source: Coolmic)\n<br><br>\n<i>Note: Simultaneously released in long-strip and traditional formats.</i>",
+        "genres": [
+         "Ecchi",
+         "Fantasy"
+        ],
+        "title": {
+         "english": "Adam's Sweet Agony",
+         "native": "悶えてよ、アダムくん",
+         "romaji": "Modaete yo, Adam-kun",
+         "userPreferred": "Adam's Sweet Agony"
+        },
+        "coverImage": {
+         "color": "#e443a1",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx153336-7JFTBxaLu6AV.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx153336-7JFTBxaLu6AV.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/small/bx153336-7JFTBxaLu6AV.jpg"
+        },
+        "startDate": {
+         "day": 18,
+         "month": 4,
+         "year": 2022
+        },
+        "endDate": {}
+       },
+       "private": false,
+       "progress": 3,
+       "repeat": 0,
+       "score": 7,
+       "startedAt": {
+        "day": 14,
+        "month": 1,
+        "year": 2024
+       },
+       "status": "CURRENT",
+       "updatedAt": 1701126800
+      },
+      {
+       "completedAt": {},
+       "createdAt": 1701209600,
+       "id": 900000015,
+       "media": {
+        "id": 117460,
+        "idMal": 147727,
+        "siteUrl": "https://anilist.co/manga/117460",
+        "status": "RELEASING",
+        "type": "MANGA",
+        "format": "MANGA",
+        "synonyms": [
+         "裝備仔",
+         "装备我最强",
+         "テムパル〜アイテムの力〜",
+         "Sobreequipado"
+        ],
+        "isAdult": false,
+        "countryOfOrigin": "KR",
+        "meanScore": 77,
+        "description": "Sin Yeong-U (a.k.a. Grid), an unlucky man in life and a low-level player in the popular VR game “Satisfy,” finds a powerful item that earns him a rare legendary class title: “Pagma’s Successor.” He’s now a skilled blacksmith who can forge unique weapons and equip the game’s most powerful gear. Grid resolves to use his new abilities to achieve fame and fortune, but as his very existence begins to stir up trouble in Satisfy, he realizes that life as a legend may be more than he bargained for….\n<br><br>\n(Source: Tapas, edited)",
+        "genres": [
+         "Action",
+         "Adventure",
+         "Comedy",
+         "Fantasy"
+        ],
+        "title": {
+         "english": "Overgeared",
+         "native": "템빨",
+         "romaji": "Temppal",
+         "userPreferred": "Overgeared"
+        },
+        "coverImage": {
+         "color": "#e4505d",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117460-46JbftfHSXoc.jpg",
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx117460-46JbftfHSXoc.jpg",
+         "medium": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/small/bx117460-46JbftfHSXoc.jpg"
+        },
+        "startDate": {
+         "day": 1,
+         "month": 4,
+         "year": 2020
+        },
+        "endDate": {}
+       },
+       "private": false,
+       "progress": 3,
+       "repeat": 0,
+       "score": 6,
+       "startedAt": {
+        "day": 15,
+        "month": 1,
+        "year": 2024
+       },
+       "status": "CURRENT",
+       "updatedAt": 1701213200
+      }
+     ],
+     "isCustomList": false,
+     "name": "Reading",
+     "status": "CURRENT"
+    }
+   ]
+  }
+ },
+ "animeTags": {
+  "97940": [
+   "Magic",
+   "Shounen",
+   "Found Family",
+   "Male Protagonist",
+   "Super Power",
+   "Ensemble Cast",
+   "Orphan",
+   "Dissociative Identities",
+   "Medieval",
+   "Revenge",
+   "Demons",
+   "Elf",
+   "Love Triangle",
+   "Estranged Family",
+   "Politics",
+   "Adoption",
+   "Reincarnation",
+   "Class Struggle",
+   "Conspiracy",
+   "Swordplay",
+   "Heterosexual",
+   "Cult",
+   "Episodic",
+   "War",
+   "Bullying",
+   "Lost Civilization",
+   "Time Skip",
+   "Cultivation",
+   "Kuudere",
+   "Disability",
+   "Curses",
+   "Coming of Age",
+   "Henshin",
+   "Tsundere",
+   "Nun",
+   "Food",
+   "Travel",
+   "Espionage",
+   "Age Regression",
+   "Tomboy",
+   "Suicide",
+   "Dungeon",
+   "Nudity"
+  ],
+  "99255": [
+   "Food",
+   "Shounen",
+   "School",
+   "Primarily Teen Cast",
+   "Male Protagonist",
+   "Educational",
+   "Nudity",
+   "Tsundere",
+   "Tanned Skin",
+   "CGI"
+  ],
+  "103632": [
+   "Isekai",
+   "Reincarnation",
+   "Survival",
+   "Monster Girl",
+   "Female Protagonist",
+   "Achronological Order",
+   "Magic",
+   "Anti-Hero",
+   "Conspiracy",
+   "CGI",
+   "War",
+   "Demons",
+   "Time Skip",
+   "Dungeon",
+   "Post-Apocalyptic",
+   "Gore",
+   "Dissociative Identities",
+   "Cannibalism",
+   "Meta",
+   "Medieval",
+   "Vampire",
+   "Gender Bending",
+   "Football",
+   "Fishing",
+   "Female Harem"
+  ],
+  "116338": [
+   "School",
+   "Demons",
+   "Male Protagonist",
+   "Shounen",
+   "Ensemble Cast",
+   "Found Family",
+   "Mythology",
+   "Magic",
+   "Isekai",
+   "Adoption",
+   "School Club",
+   "Butler",
+   "Kemonomimi",
+   "Monster Boy",
+   "Love Triangle",
+   "Crossdressing",
+   "Musical Theater",
+   "Monster Girl",
+   "Tomboy",
+   "Coming of Age",
+   "Primarily Male Cast"
+  ],
+  "137667": [
+   "Conspiracy",
+   "Magic",
+   "Male Protagonist",
+   "Cult",
+   "Religion",
+   "Cosmic Horror",
+   "Gods",
+   "Body Horror",
+   "Gore",
+   "Primarily Adult Cast",
+   "Detective",
+   "Steampunk",
+   "Seinen",
+   "Isekai",
+   "Lost Civilization",
+   "Alchemy",
+   "Cultivation",
+   "Tragedy",
+   "Foreign",
+   "Acting",
+   "Astronomy",
+   "Dissociative Identities",
+   "Curses",
+   "Guns",
+   "CGI",
+   "Espionage",
+   "Reincarnation",
+   "Angels",
+   "Skeleton",
+   "Historical",
+   "Gender Bending",
+   "Episodic",
+   "Demons",
+   "Ghost",
+   "Urban Fantasy"
+  ],
+  "144092": [
+   "Primarily Adult Cast",
+   "Isekai",
+   "Male Protagonist",
+   "Magic",
+   "Ensemble Cast",
+   "Fairy",
+   "Dungeon",
+   "Seinen",
+   "Swordplay",
+   "Skeleton",
+   "Memory Manipulation",
+   "Episodic",
+   "Surreal Comedy",
+   "Ninja",
+   "Found Family",
+   "Iyashikei",
+   "Time Manipulation",
+   "Tragedy",
+   "Tsundere",
+   "Nekomimi",
+   "Gender Bending",
+   "Age Regression",
+   "Mixed Gender Harem",
+   "Goblin"
+  ],
+  "147105": [
+   "Magic",
+   "Witch",
+   "Conspiracy",
+   "Female Protagonist",
+   "Drawing",
+   "Memory Manipulation",
+   "Primarily Female Cast",
+   "Coming of Age",
+   "Primarily Child Cast",
+   "Found Family",
+   "Medieval",
+   "Ensemble Cast",
+   "Philosophy",
+   "Teacher",
+   "Disability",
+   "Politics",
+   "Seinen",
+   "Travel",
+   "Revenge",
+   "Foreign",
+   "Rehabilitation",
+   "School",
+   "Body Horror",
+   "Tsundere",
+   "Achromatic",
+   "Dragons",
+   "Twins"
+  ],
+  "189323": [
+   "Virtual World",
+   "Video Games",
+   "Male Protagonist",
+   "Swordplay",
+   "E-Sports",
+   "Animals",
+   "Shounen",
+   "Dungeon"
+  ],
+  "195600": [
+   "Shounen",
+   "Youkai",
+   "Male Protagonist",
+   "Proxy Battle",
+   "Twins",
+   "Urban Fantasy",
+   "Creature Taming",
+   "Guns",
+   "Found Family",
+   "Archery",
+   "Anachronism",
+   "Rural",
+   "Conspiracy",
+   "Demons",
+   "Gore",
+   "Swordplay",
+   "Suicide",
+   "Super Power"
+  ],
+  "204389": [
+   "Isekai",
+   "Magic",
+   "Gender Bending",
+   "Female Protagonist",
+   "Asexual",
+   "Virtual World",
+   "Desert",
+   "Demons",
+   "Memory Manipulation",
+   "Shapeshifting",
+   "Class Struggle",
+   "Dinosaurs"
+  ]
+ },
+ "mangaTags": {
+  "117460": [
+   "Video Games",
+   "Virtual World",
+   "Male Protagonist",
+   "Magic",
+   "Kingdom Management",
+   "Swordplay",
+   "Politics",
+   "Female Harem",
+   "Primarily Adult Cast",
+   "Long Strip",
+   "Dragons",
+   "E-Sports",
+   "Angels",
+   "Assassins",
+   "Dungeon",
+   "Demons",
+   "Economics",
+   "Cult"
+  ],
+  "119257": [
+   "Survival",
+   "Post-Apocalyptic",
+   "Death Game",
+   "POV",
+   "Meta",
+   "Full Color",
+   "Denpa",
+   "Gods",
+   "Time Loop",
+   "Male Protagonist",
+   "Philosophy",
+   "Tragedy",
+   "Astronomy",
+   "Found Family",
+   "Alternate Universe",
+   "Cosmic Horror",
+   "Suicide",
+   "Primarily Adult Cast",
+   "Historical",
+   "Battle Royale",
+   "Isekai",
+   "Religion",
+   "Long Strip",
+   "Swordplay",
+   "Body Horror",
+   "Dragons",
+   "Ensemble Cast",
+   "Age Regression",
+   "Trains",
+   "Adoption",
+   "Parody",
+   "Crossover",
+   "Angels",
+   "Demons",
+   "Terrorism",
+   "Afterlife",
+   "Female Protagonist",
+   "Zombie"
+  ],
+  "130258": [
+   "Female Harem",
+   "Male Protagonist",
+   "Martial Arts",
+   "Cultivation",
+   "Full Color",
+   "Isekai"
+  ],
+  "153336": [
+   "Slavery",
+   "Heterosexual",
+   "Virginity",
+   "Female Harem",
+   "Male Protagonist",
+   "Fellatio",
+   "MILF",
+   "Teacher",
+   "Ojou-sama",
+   "Sumata",
+   "Disability",
+   "Tomboy",
+   "Pandemic"
+  ],
+  "188692": [
+   "Full Color",
+   "Long Strip"
+  ]
+ },
+ "details": {
+  "averageScore": 81,
+  "characters": {
+   "edges": [
+    {
+     "id": 157822,
+     "node": {
+      "id": 124142,
+      "isFavourite": false,
+      "gender": "Male",
+      "age": "15-23+ (physically), 3700+ (chronologically)",
+      "dateOfBirth": {
+       "day": 4,
+       "month": 1,
+       "year": 2004
+      },
+      "name": {
+       "alternative": [
+        "Sorcerer",
+        "Sorcerer Gentleman",
+        "Professor Senku",
+        "String bean",
+        "Dr. Senku",
+        "Lab"
+       ],
+       "full": "Senkuu Ishigami",
+       "native": "石神千空"
+      },
+      "image": {
+       "large": "https://s4.anilist.co/file/anilistcdn/character/large/b124142-XUO1g7wRqkaT.png"
+      },
+      "description": "__Height:__ 171 cm (5'7\")\n\nSenkuu is a genius with a vast amount of scientific knowledge. He is able to invent various kinds of tools and gadgets in a short amount of time with ease. As a child, he designed and built a functioning miniature rocket ship. Senkuu also possesses an analytical mind, being able to correctly discern the situation he is in. Even in his pre-teens, he was intelligent and sharp-minded enough to create advanced machines.\n\nSenkuu's physical abilities are very low and he would lose against someone like [Kohaku](https://anilist.co/character/124143) in a brawl, something he himself admits.\n\n~!In \"Village Games Arc\" Senku unintentionally won and married [Ruri](https://anilist.co/character/143272), but divorced immediately afterwards.!~",
+      "siteUrl": "https://anilist.co/character/124142"
+     },
+     "role": "MAIN"
+    },
+    {
+     "id": 158759,
+     "node": {
+      "id": 124143,
+      "isFavourite": false,
+      "gender": "Female",
+      "age": "16-23 (physically), 27 (chronologically)",
+      "dateOfBirth": {
+       "day": 8,
+       "month": 8
+      },
+      "name": {
+       "full": "Kohaku",
+       "native": "コハク"
+      },
+      "image": {
+       "large": "https://s4.anilist.co/file/anilistcdn/character/large/b124143-DABUFs3cPNrP.png"
+      },
+      "description": "__Height:__ 160 cm (5'3\")\n\nKohaku is a young woman who is a descendant of modern humans. She is Ruri's younger sister and the daughter of Kokuyo. She appears to be well known in her village due to her combative abilities, as both Kinro and Ginro were afraid of her. Kohaku excels at fighting, hunting, and general survival skills. She is a tomboy by nature, having little interest in more typical feminine activities and has little knowledge about them, although she does seem to enjoy some lavish clothing that was provided to her. She possesses a sharp instinct and intellect.\n\nKohaku is a kind young woman, caring deeply for her sickly older sister, willing to participate in the tournament for her hand in marriage just to protect her. This care extends to her comrades, and anyone she's loyal to. In addition to this, she has a reckless and hotheaded personality, often reacting in anger to being called a gorilla or lioness due to her strength and physicality. She also acts on her emotions at times, going against rational thought. She also has a bit of a teasing side, asking Chrome if he could fall for her to her resemblance to her sister.",
+      "siteUrl": "https://anilist.co/character/124143"
+     },
+     "role": "MAIN"
+    },
+    {
+     "id": 158756,
+     "node": {
+      "id": 124144,
+      "isFavourite": false,
+      "gender": "Male",
+      "age": "18-",
+      "dateOfBirth": {
+       "day": 10,
+       "month": 10
+      },
+      "name": {
+       "alternative": [
+        "The Strongest High School Primate"
+       ],
+       "full": "Tsukasa Shishiou",
+       "native": "獅子王司"
+      },
+      "image": {
+       "large": "https://s4.anilist.co/file/anilistcdn/character/large/b124144-KOjcmhunbvYn.png"
+      },
+      "description": "__Height:__ 195 cm (6'4\")\n\nAccording to [Taiju](https://anilist.co/character/124146/Ooki-Taiju), Tsukasa has the reputation as \"The Strongest High School Primate\" due to his tremendous fighting abilities.\n\nTsukasa is essentially violent, but extremely careful and aware of his actions. He is a very kind, thoughtful, and polite man outside of his pessimistic ideals towards humanity. He offers help in the beginning to [Senku](https://anilist.co/character/124142/Ishigami-Senkuu) and Taiju after they revive him and becomes their hunter for food, using his skills as a prominent athlete to aid them. It’s revealed later that Tsukasa plans to purge humanity of adults who hurt the young and weak, then thinks Senku will go along with him, but instead Senku rejects him. After this point, Tsukasa becomes fairly determined in carrying out his plans even to the point of leaving their group.",
+      "siteUrl": "https://anilist.co/character/124144"
+     },
+     "role": "MAIN"
+    }
+   ]
+  },
+  "description": "After five years of harboring unspoken feelings, high-schooler Taiju Ooki is finally ready to confess his love to Yuzuriha Ogawa. Just when Taiju begins his confession however, a blinding green light strikes the Earth and petrifies mankind around the world— turning every single human into stone.\n<br><br>\nSeveral millennia later, Taiju awakens to find the modern world completely nonexistent, as nature has flourished in the years humanity stood still. Among a stone world of statues, Taiju encounters one other living human: his science-loving friend Senkuu, who has been active for a few months. Taiju learns that Senkuu has developed a grand scheme—to launch the complete revival of civilization with science. Taiju's brawn and Senkuu's brains combine to forge a formidable partnership, and they soon uncover a method to revive those petrified.\n<br><br>\nHowever, Senkuu's master plan is threatened when his ideologies are challenged by those who awaken. All the while, the reason for mankind's petrification remains unknown.\n<br><br>\n(Source: MAL Rewrite)",
+  "duration": 24,
+  "endDate": {
+   "day": 13,
+   "month": 12,
+   "year": 2019
+  },
+  "genres": [
+   "Action",
+   "Adventure",
+   "Comedy",
+   "Sci-Fi"
+  ],
+  "id": 105333,
+  "meanScore": 81,
+  "popularity": 565660,
+  "rankings": [
+   {
+    "allTime": true,
+    "context": "highest rated all time",
+    "format": "TV",
+    "rank": 242,
+    "type": "RATED"
+   },
+   {
+    "allTime": true,
+    "context": "most popular all time",
+    "format": "TV",
+    "rank": 33,
+    "type": "POPULAR"
+   },
+   {
+    "allTime": false,
+    "context": "highest rated",
+    "format": "TV",
+    "rank": 13,
+    "type": "RATED",
+    "year": 2019
+   },
+   {
+    "allTime": false,
+    "context": "most popular",
+    "format": "TV",
+    "rank": 5,
+    "type": "POPULAR",
+    "year": 2019
+   },
+   {
+    "allTime": false,
+    "context": "highest rated",
+    "format": "TV",
+    "rank": 4,
+    "season": "SUMMER",
+    "type": "RATED",
+    "year": 2019
+   },
+   {
+    "allTime": false,
+    "context": "most popular",
+    "format": "TV",
+    "rank": 1,
+    "season": "SUMMER",
+    "type": "POPULAR",
+    "year": 2019
+   }
+  ],
+  "recommendations": {
+   "edges": [
+    {
+     "node": {
+      "mediaRecommendation": {
+       "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/108268-JbUzGiUlmCTy.jpg",
+       "coverImage": {
+        "color": "#e4bb50",
+        "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx108268-Dtt82uOi3vq5.jpg",
+        "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx108268-Dtt82uOi3vq5.jpg",
+        "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx108268-Dtt82uOi3vq5.jpg"
+       },
+       "description": "When a sickly young girl suddenly becomes obsessed with inventing new things, her family and friends are all puzzled. \"What has gotten into Myne?\" they wondered, never dreaming that the answer is not a \"What\" but a \"Who\": Urano Motosu, a book-loving apprentice librarian who died in an earthquake in Tokyo who somehow found herself in Myne's body! And since Myne's world is still in a medieval stage, where books can only be owned by the elite, the new Myne intends to do everything she can to bring her beloved books to the masses in the time she has left.<br>\n<br>\n(Source: Sentai Filmworks)<br>\n<br>\n<i>Note: The first episode was included in a bonus DVD that came with the limited edition of the 8th volume of <a href=\"https://anilist.co/manga/110802\">Part 4</a> of the light novel that was released on September 10th, 2019 prior to its TV premiere.</i>",
+       "episodes": 14,
+       "format": "TV",
+       "id": 108268,
+       "idMal": 39468,
+       "isAdult": false,
+       "meanScore": 78,
+       "season": "FALL",
+       "siteUrl": "https://anilist.co/anime/108268",
+       "startDate": {
+        "day": 3,
+        "month": 10,
+        "year": 2019
+       },
+       "status": "FINISHED",
+       "title": {
+        "english": "Ascendance of a Bookworm",
+        "native": "本好きの下剋上 司書になるためには手段を選んでいられません",
+        "romaji": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen",
+        "userPreferred": "Ascendance of a Bookworm"
+       },
+       "trailer": {
+        "id": "Wo28IopG2WE",
+        "site": "youtube",
+        "thumbnail": "https://i.ytimg.com/vi/Wo28IopG2WE/hqdefault.jpg"
+       },
+       "type": "ANIME"
+      }
+     }
+    },
+    {
+     "node": {
+      "mediaRecommendation": {
+       "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/101280-9t7J3774n955.jpg",
+       "coverImage": {
+        "color": "#5daef1",
+        "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101280-tDxCVJm714nt.jpg",
+        "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx101280-tDxCVJm714nt.jpg",
+        "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx101280-tDxCVJm714nt.jpg"
+       },
+       "description": "Lonely thirty-seven-year-old Satoru Mikami is stuck in a dead-end job, unhappy with his mundane life, but after dying at the hands of a robber, he awakens to a fresh start in a fantasy realm...as a slime monster! As he acclimates to his goopy new existence, his exploits with the other monsters set off a chain of events that will change his new world forever!<br><br>\n\n(Source: Yen Press)",
+       "episodes": 24,
+       "format": "TV",
+       "id": 101280,
+       "idMal": 37430,
+       "isAdult": false,
+       "meanScore": 80,
+       "season": "FALL",
+       "siteUrl": "https://anilist.co/anime/101280",
+       "startDate": {
+        "day": 2,
+        "month": 10,
+        "year": 2018
+       },
+       "status": "FINISHED",
+       "title": {
+        "english": "That Time I Got Reincarnated as a Slime",
+        "native": "転生したらスライムだった件",
+        "romaji": "Tensei Shitara Slime Datta Ken",
+        "userPreferred": "That Time I Got Reincarnated as a Slime"
+       },
+       "trailer": {
+        "id": "QsS7AzXCwKA",
+        "site": "youtube",
+        "thumbnail": "https://i.ytimg.com/vi/QsS7AzXCwKA/hqdefault.jpg"
+       },
+       "type": "ANIME"
+      }
+     }
+    }
+   ]
+  },
+  "relations": {
+   "edges": [
+    {
+     "node": {
+      "id": 98416,
+      "idMal": 103897,
+      "siteUrl": "https://anilist.co/manga/98416",
+      "status": "FINISHED",
+      "type": "MANGA",
+      "format": "MANGA",
+      "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/98416-1XM7oOALCGjA.jpg",
+      "isAdult": false,
+      "countryOfOrigin": "JP",
+      "meanScore": 81,
+      "description": "One fateful day, all of humanity was petrified by a blinding flash of light. After several millennia, high schooler Taiju awakens and finds himself lost in a world of statues. However, he’s not alone! His science-loving friend Senku’s been up and running for a few months and he's got a grand plan in mind—to kickstart civilization with the power of science!\n<br><br>\n(Source: VIZ Media)\n<br><br>\n<i>Note: Shueisha published its 27th volume on April 4, 2024. This volume contains the one-shot Dr. STONE: TERRAFORMING and the mini-series Dr. STONE 4D SCIENCE.</i>",
+      "genres": [
+       "Action",
+       "Adventure",
+       "Comedy",
+       "Sci-Fi"
+      ],
+      "trailer": {
+       "id": "Y2ry4tqDDjY",
+       "site": "youtube",
+       "thumbnail": "https://i.ytimg.com/vi/Y2ry4tqDDjY/hqdefault.jpg"
+      },
+      "title": {
+       "english": "Dr. STONE",
+       "native": "Dr.STONE",
+       "romaji": "Dr. STONE",
+       "userPreferred": "Dr. STONE"
+      },
+      "coverImage": {
+       "color": "#e4ae28",
+       "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b98416-L44f4idEGMAX.jpg",
+       "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b98416-L44f4idEGMAX.jpg",
+       "medium": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/small/b98416-L44f4idEGMAX.jpg"
+      },
+      "startDate": {
+       "day": 6,
+       "month": 3,
+       "year": 2017
+      },
+      "endDate": {
+       "day": 4,
+       "month": 4,
+       "year": 2024
+      }
+     },
+     "relationType": "SOURCE"
+    },
+    {
+     "node": {
+      "id": 113936,
+      "idMal": 40852,
+      "siteUrl": "https://anilist.co/anime/113936",
+      "status": "FINISHED",
+      "season": "WINTER",
+      "type": "ANIME",
+      "format": "TV",
+      "seasonYear": 2021,
+      "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/113936-PpMtCY9kCwwV.jpg",
+      "episodes": 11,
+      "synonyms": [
+       "ドクターストーン STONE WARS",
+       "Ｄｒ．ＳＴＯＮＥ第2期",
+       "Dr. STONE 2",
+       "닥터 스톤 STONE WARS",
+       "石纪元第二季",
+       "DR.STONE ภาค 2",
+       "Доктор Стоун: Каменные войны"
+      ],
+      "isAdult": false,
+      "countryOfOrigin": "JP",
+      "meanScore": 81,
+      "description": "Armed with the power of science and a genius intellect, Senkuu is determined to save humanity. However, Tsukasa’s empire goes on the offensive to halt the progress of science. Bolder choices are made as these two start a war that rocks the Stone World. <br><br>\n(Source: Crunchyroll)",
+      "genres": [
+       "Action",
+       "Adventure",
+       "Comedy",
+       "Sci-Fi"
+      ],
+      "duration": 24,
+      "trailer": {
+       "id": "QqgqrrFbw3g",
+       "site": "youtube",
+       "thumbnail": "https://i.ytimg.com/vi/QqgqrrFbw3g/hqdefault.jpg"
+      },
+      "title": {
+       "english": "Dr. STONE: STONE WARS",
+       "native": "Dr.STONE STONE WARS",
+       "romaji": "Dr. STONE: STONE WARS",
+       "userPreferred": "Dr. STONE: STONE WARS"
+      },
+      "coverImage": {
+       "color": "#e4bb50",
+       "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113936-D4eYd4XwslVI.jpg",
+       "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx113936-D4eYd4XwslVI.jpg",
+       "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx113936-D4eYd4XwslVI.jpg"
+      },
+      "startDate": {
+       "day": 14,
+       "month": 1,
+       "year": 2021
+      },
+      "endDate": {
+       "day": 25,
+       "month": 3,
+       "year": 2021
+      }
+     },
+     "relationType": "SEQUEL"
+    }
+   ]
+  },
+  "siteUrl": "https://anilist.co/anime/105333",
+  "staff": {
+   "edges": [
+    {
+     "node": {
+      "id": 96902,
+      "name": {
+       "full": "Riichirou Inagaki"
+      }
+     },
+     "role": "Original Story"
+    },
+    {
+     "node": {
+      "id": 98537,
+      "name": {
+       "full": "Boichi"
+      }
+     },
+     "role": "Original Character Design"
+    }
+   ]
+  },
+  "startDate": {
+   "day": 5,
+   "month": 7,
+   "year": 2019
+  },
+  "studios": {
+   "nodes": [
+    {
+     "id": 73,
+     "name": "TMS Entertainment"
+    }
+   ]
+  },
+  "trailer": {
+   "id": "pon9R5n5dMk",
+   "site": "youtube",
+   "thumbnail": "https://i.ytimg.com/vi/pon9R5n5dMk/hqdefault.jpg"
+  }
+ },
+ "studio": {
+  "Studio": {
+   "id": 73,
+   "isAnimationStudio": true,
+   "media": {
+    "nodes": [
+     {
+      "id": 235,
+      "idMal": 235,
+      "siteUrl": "https://anilist.co/anime/235",
+      "status": "RELEASING",
+      "season": "WINTER",
+      "type": "ANIME",
+      "format": "TV",
+      "seasonYear": 1996,
+      "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/235-MTmiz0uB0fMd.jpg",
+      "synonyms": [
+       "Case Closed",
+       "Detectiu Conan",
+       "הבלש קונאן",
+       "Detektyw Conan",
+       "المحقق كونان",
+       "名侦探柯南",
+       "Meitantei Conan: Keisaku Gakkou Hen - Wild Police Story",
+       "名探偵コナン 警察学校編 Wild Police Story",
+       "Détective Conan",
+       "ยอดนักสืบจิ๋วโคนัน",
+       "Thám Tử Lừng Danh Conan",
+       "Detektiv Conan",
+       "Detetive Conan"
+      ],
+      "isAdult": false,
+      "countryOfOrigin": "JP",
+      "meanScore": 82,
+      "description": "Kudo Shinichi is a seventeen year-old high school detective whom people call the \"Modern Sherlock Holmes.\" However, one night after a date with his childhood sweetheart, Ran, Shinichi witnessed an illegal trade and, caught off his guard, was knocked unconscious and fed a drug that was supposed to kill him... but he woke up and found himself shrunken to a seven year-old. In order to track down the men who did this to him, Shinichi hid his identity and lived with Ran, whose father happened to be a hopeless detective, and with that came a series of murders and mysteries that he must solve. <br><br>\n(Source: Anime News Network)\n<br><br>\n<i>Note:<br>\n- Includes Keisatsu Gakkou-hen - Wild Police Story in episodes 1029, 1038, 1042, 1061<br>\n- Episodes 11, 52, 76, 118, 162, 184, 208, 342, 356, 449, 452, 487, 488, 489, 490, 515, 516, 521, 522, 651, 734, 804, 805, 927, 928, 1187 aired with a runtime of ~50 minutes as opposed to the standard 25 minute long episode.<br>\n- Episodes 96, 129, 174, 219, 263, 304, 383, 479 aired with a runtime of ~90 minutes as opposed to the standard 25 minute long episode.<br>\n- Episode 345, 425 aired with a runtime of ~115 minutes as opposed to the standard 25 minute long episode.<br>\n</i>",
+      "genres": [
+       "Adventure",
+       "Comedy",
+       "Mystery",
+       "Psychological"
+      ],
+      "duration": 25,
+      "title": {
+       "english": "Detective Conan",
+       "native": "名探偵コナン",
+       "romaji": "Meitantei Conan",
+       "userPreferred": "Detective Conan"
+      },
+      "coverImage": {
+       "color": "#28a1e4",
+       "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx235-MyYT7K3chBdO.jpg",
+       "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx235-MyYT7K3chBdO.jpg",
+       "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx235-MyYT7K3chBdO.jpg"
+      },
+      "startDate": {
+       "day": 8,
+       "month": 1,
+       "year": 1996
+      },
+      "endDate": {},
+      "nextAiringEpisode": {
+       "airingAt": 1794646800,
+       "episode": 1220,
+       "timeUntilAiring": 87898
+      }
+     },
+     {
+      "id": 191788,
+      "idMal": 61603,
+      "siteUrl": "https://anilist.co/anime/191788",
+      "status": "RELEASING",
+      "season": "FALL",
+      "type": "ANIME",
+      "format": "TV",
+      "seasonYear": 2026,
+      "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/191788-tyhsHpXeF26X.jpg",
+      "episodes": 24,
+      "isAdult": false,
+      "countryOfOrigin": "JP",
+      "meanScore": 82,
+      "description": "Aoi Ashito’s game has now earned him a spot on the A team, but he is quickly overwhelmed by his harsh new reality. Surrounded by elite players like Kuribayashi and Akutsu, practices are just as merciless as the matches. In this U-18 Premier League of powerhouse talent, Ashito must evolve or be crushed, if he’s ever to be acknowledged.\n<br><br>\n(Source: Crunchyroll)",
+      "genres": [
+       "Sports"
+      ],
+      "duration": 24,
+      "trailer": {
+       "id": "phKPnPXm74c",
+       "site": "youtube",
+       "thumbnail": "https://i.ytimg.com/vi/phKPnPXm74c/hqdefault.jpg"
+      },
+      "title": {
+       "english": "Aoashi Season 2",
+       "native": "アオアシ 第2期",
+       "romaji": "Aoashi 2nd Season",
+       "userPreferred": "Aoashi Season 2"
+      },
+      "coverImage": {
+       "color": "#e4ae50",
+       "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx191788-XC6F24LdX6a4.jpg",
+       "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx191788-XC6F24LdX6a4.jpg",
+       "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx191788-XC6F24LdX6a4.jpg"
+      },
+      "startDate": {
+       "day": 4,
+       "month": 10,
+       "year": 2026
+      },
+      "endDate": {},
+      "nextAiringEpisode": {
+       "airingAt": 1794729600,
+       "episode": 7,
+       "timeUntilAiring": 170698
+      }
+     },
+     {
+      "id": 199221,
+      "idMal": 62568,
+      "siteUrl": "https://anilist.co/anime/199221",
+      "status": "FINISHED",
+      "season": "SPRING",
+      "type": "ANIME",
+      "format": "TV",
+      "seasonYear": 2026,
+      "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/199221-b3W0FfJd4zMy.jpg",
+      "episodes": 13,
+      "synonyms": [
+       "Dr.STONE Season 4 Part 3",
+       "ドクターストーン"
+      ],
+      "isAdult": false,
+      "countryOfOrigin": "JP",
+      "meanScore": 83,
+      "description": "After reconciling with Dr. Xeno, Senkuu Ishigami is close to realizing his long-held dream: the space mission to the Moon is finally underway. While Dr. Xeno begins the development of their rocket's engine, Senkuu's team continues navigating through continents and seas in search of essential resources and people to assemble the necessary infrastructure for the mission as well as revive the entire human population.\n<br><br>\nMeanwhile, the enigmatic Whyman continues to cast its shadow over Earth from the Moon. But with the combined might of humanity finally coming together, it is only a matter of time before Senkuu and the others confront Whyman and get the answers that have eluded humanity for centuries.\n<br><br>\n(Source: MAL Rewrite)",
+      "genres": [
+       "Action",
+       "Adventure",
+       "Comedy",
+       "Sci-Fi"
+      ],
+      "duration": 24,
+      "trailer": {
+       "id": "Ox8hatPxyiQ",
+       "site": "youtube",
+       "thumbnail": "https://i.ytimg.com/vi/Ox8hatPxyiQ/hqdefault.jpg"
+      },
+      "title": {
+       "english": "Dr. STONE SCIENCE FUTURE Cour 3",
+       "native": "Dr.STONE SCIENCE FUTURE 3クール",
+       "romaji": "Dr. STONE: SCIENCE FUTURE Part 3",
+       "userPreferred": "Dr. STONE SCIENCE FUTURE Cour 3"
+      },
+      "coverImage": {
+       "color": "#e4d6ae",
+       "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx199221-TReDQMNhslHu.jpg",
+       "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx199221-TReDQMNhslHu.jpg",
+       "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx199221-TReDQMNhslHu.jpg"
+      },
+      "startDate": {
+       "day": 2,
+       "month": 4,
+       "year": 2026
+      },
+      "endDate": {
+       "day": 25,
+       "month": 6,
+       "year": 2026
+      }
+     }
+    ]
+   },
+   "name": "TMS Entertainment"
+  }
+ },
+ "listAnime": {
+  "Page": {
+   "media": [
+    {
+     "id": 105333,
+     "idMal": 38691,
+     "siteUrl": "https://anilist.co/anime/105333",
+     "status": "FINISHED",
+     "season": "SUMMER",
+     "type": "ANIME",
+     "format": "TV",
+     "seasonYear": 2019,
+     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/105333-KWKGvBM8Hyga.jpg",
+     "episodes": 24,
+     "synonyms": [
+      "Dcst",
+      "石纪元",
+      "ドクターストーン",
+      "ดร.สโตน เจ้าแห่งวิทยาศาสตร์กู้คืนอารยธรรมโลก",
+      "Доктор Стоун"
+     ],
+     "isAdult": false,
+     "countryOfOrigin": "JP",
+     "meanScore": 81,
+     "description": "After five years of harboring unspoken feelings, high-schooler Taiju Ooki is finally ready to confess his love to Yuzuriha Ogawa. Just when Taiju begins his confession however, a blinding green light strikes the Earth and petrifies mankind around the world— turning every single human into stone.\n<br><br>\nSeveral millennia later, Taiju awakens to find the modern world completely nonexistent, as nature has flourished in the years humanity stood still. Among a stone world of statues, Taiju encounters one other living human: his science-loving friend Senkuu, who has been active for a few months. Taiju learns that Senkuu has developed a grand scheme—to launch the complete revival of civilization with science. Taiju's brawn and Senkuu's brains combine to forge a formidable partnership, and they soon uncover a method to revive those petrified.\n<br><br>\nHowever, Senkuu's master plan is threatened when his ideologies are challenged by those who awaken. All the while, the reason for mankind's petrification remains unknown.\n<br><br>\n(Source: MAL Rewrite)",
+     "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Sci-Fi"
+     ],
+     "duration": 24,
+     "trailer": {
+      "id": "pon9R5n5dMk",
+      "site": "youtube",
+      "thumbnail": "https://i.ytimg.com/vi/pon9R5n5dMk/hqdefault.jpg"
+     },
+     "title": {
+      "english": "Dr. STONE",
+      "native": "Dr.STONE",
+      "romaji": "Dr. STONE",
+      "userPreferred": "Dr. STONE"
+     },
+     "coverImage": {
+      "color": "#c9d678",
+      "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx105333-GybuoSoOZfpH.jpg",
+      "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx105333-GybuoSoOZfpH.jpg",
+      "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx105333-GybuoSoOZfpH.jpg"
+     },
+     "startDate": {
+      "day": 5,
+      "month": 7,
+      "year": 2019
+     },
+     "endDate": {
+      "day": 13,
+      "month": 12,
+      "year": 2019
+     }
+    },
+    {
+     "id": 113936,
+     "idMal": 40852,
+     "siteUrl": "https://anilist.co/anime/113936",
+     "status": "FINISHED",
+     "season": "WINTER",
+     "type": "ANIME",
+     "format": "TV",
+     "seasonYear": 2021,
+     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/113936-PpMtCY9kCwwV.jpg",
+     "episodes": 11,
+     "synonyms": [
+      "ドクターストーン STONE WARS",
+      "Ｄｒ．ＳＴＯＮＥ第2期",
+      "Dr. STONE 2",
+      "닥터 스톤 STONE WARS",
+      "石纪元第二季",
+      "DR.STONE ภาค 2",
+      "Доктор Стоун: Каменные войны"
+     ],
+     "isAdult": false,
+     "countryOfOrigin": "JP",
+     "meanScore": 81,
+     "description": "Armed with the power of science and a genius intellect, Senkuu is determined to save humanity. However, Tsukasa’s empire goes on the offensive to halt the progress of science. Bolder choices are made as these two start a war that rocks the Stone World. <br><br>\n(Source: Crunchyroll)",
+     "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Sci-Fi"
+     ],
+     "duration": 24,
+     "trailer": {
+      "id": "QqgqrrFbw3g",
+      "site": "youtube",
+      "thumbnail": "https://i.ytimg.com/vi/QqgqrrFbw3g/hqdefault.jpg"
+     },
+     "title": {
+      "english": "Dr. STONE: STONE WARS",
+      "native": "Dr.STONE STONE WARS",
+      "romaji": "Dr. STONE: STONE WARS",
+      "userPreferred": "Dr. STONE: STONE WARS"
+     },
+     "coverImage": {
+      "color": "#e4bb50",
+      "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113936-D4eYd4XwslVI.jpg",
+      "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx113936-D4eYd4XwslVI.jpg",
+      "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx113936-D4eYd4XwslVI.jpg"
+     },
+     "startDate": {
+      "day": 14,
+      "month": 1,
+      "year": 2021
+     },
+     "endDate": {
+      "day": 25,
+      "month": 3,
+      "year": 2021
+     }
+    },
+    {
+     "id": 142876,
+     "idMal": 50612,
+     "siteUrl": "https://anilist.co/anime/142876",
+     "status": "FINISHED",
+     "season": "SUMMER",
+     "type": "ANIME",
+     "format": "SPECIAL",
+     "seasonYear": 2022,
+     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/142876-4vxyOR19TI7i.jpg",
+     "episodes": 1,
+     "synonyms": [
+      "Dr. STONE: Ryusui",
+      "Доктор Стоун: Рюсуй"
+     ],
+     "isAdult": false,
+     "countryOfOrigin": "JP",
+     "meanScore": 80,
+     "description": "Now that brains and brawns have united forces, the next step in Senkuu's plan to unravel the mystery behind the green light that once petrified humanity is to go to the other side of the Earth and investigate its origin. However, to achieve this, Senkuu must first build a ship.\n<br><br>\nWith the help of Tsukasa Shishiou's former underlings, the base of the ship is rapidly assembled, but there is one missing piece: a skilled captain. During their search, Senkuu and his crew come across a petrified Ryuusui Nanami—the heir of the biggest maritime conglomerate, known for his vast knowledge of sailboats but unpleasant personality. Despite this, Senkuu takes the risk and revives Ryuusui.\n<br><br>\nRyuusui, upon realizing there are no ownership rights in this new civilization, is excited at the prospect of claiming everything for himself. But before he agrees to play a crucial part in their upcoming journey and command the vessel through the restless seas, he and Senkuu must find the king of fuels to power the ship—oil.\n<br><br>\n(Source: MAL Rewrite)",
+     "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Sci-Fi"
+     ],
+     "duration": 55,
+     "trailer": {
+      "id": "xR0mAOlclHg",
+      "site": "youtube",
+      "thumbnail": "https://i.ytimg.com/vi/xR0mAOlclHg/hqdefault.jpg"
+     },
+     "title": {
+      "english": "Dr. STONE Special Episode – RYUSUI",
+      "native": "Dr.STONE 龍水",
+      "romaji": "Dr. STONE: Ryuusui",
+      "userPreferred": "Dr. STONE Special Episode – RYUSUI"
+     },
+     "coverImage": {
+      "color": "#50aee4",
+      "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx142876-izO35hPP2DZ9.jpg",
+      "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx142876-izO35hPP2DZ9.jpg",
+      "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx142876-izO35hPP2DZ9.jpg"
+     },
+     "startDate": {
+      "day": 10,
+      "month": 7,
+      "year": 2022
+     },
+     "endDate": {
+      "day": 10,
+      "month": 7,
+      "year": 2022
+     }
+    }
+   ],
+   "pageInfo": {
+    "currentPage": 1,
+    "hasNextPage": false,
+    "lastPage": 1,
+    "perPage": 20,
+    "total": 8
+   }
+  }
+ },
+ "listAnimeRequest": {
+  "page": 1,
+  "perPage": 20,
+  "search": "Dr. STONE",
+  "sort": [
+   "SEARCH_MATCH"
+  ]
+ },
+ "listManga": {
+  "Page": {
+   "media": [
+    {
+     "id": 98416,
+     "idMal": 103897,
+     "siteUrl": "https://anilist.co/manga/98416",
+     "status": "FINISHED",
+     "type": "MANGA",
+     "format": "MANGA",
+     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/98416-1XM7oOALCGjA.jpg",
+     "chapters": 236,
+     "volumes": 27,
+     "isAdult": false,
+     "countryOfOrigin": "JP",
+     "meanScore": 81,
+     "description": "One fateful day, all of humanity was petrified by a blinding flash of light. After several millennia, high schooler Taiju awakens and finds himself lost in a world of statues. However, he’s not alone! His science-loving friend Senku’s been up and running for a few months and he's got a grand plan in mind—to kickstart civilization with the power of science!\n<br><br>\n(Source: VIZ Media)\n<br><br>\n<i>Note: Shueisha published its 27th volume on April 4, 2024. This volume contains the one-shot Dr. STONE: TERRAFORMING and the mini-series Dr. STONE 4D SCIENCE.</i>",
+     "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Sci-Fi"
+     ],
+     "title": {
+      "english": "Dr. STONE",
+      "native": "Dr.STONE",
+      "romaji": "Dr. STONE",
+      "userPreferred": "Dr. STONE"
+     },
+     "coverImage": {
+      "color": "#e4ae28",
+      "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b98416-L44f4idEGMAX.jpg",
+      "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b98416-L44f4idEGMAX.jpg",
+      "medium": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/small/b98416-L44f4idEGMAX.jpg"
+     },
+     "startDate": {
+      "day": 6,
+      "month": 3,
+      "year": 2017
+     },
+     "endDate": {
+      "day": 4,
+      "month": 4,
+      "year": 2024
+     }
+    },
+    {
+     "id": 152129,
+     "siteUrl": "https://anilist.co/manga/152129",
+     "status": "FINISHED",
+     "type": "MANGA",
+     "format": "ONE_SHOT",
+     "chapters": 1,
+     "synonyms": [
+      "Dr. STONE テラフォーミング"
+     ],
+     "isAdult": false,
+     "countryOfOrigin": "JP",
+     "meanScore": 76,
+     "description": "Special one-shot set shortly after the end of the main story.",
+     "genres": [
+      "Action",
+      "Adventure",
+      "Drama",
+      "Sci-Fi"
+     ],
+     "title": {
+      "english": "Dr. STONE: Terraforming",
+      "native": "Dr. STONE　TERRAFORMING",
+      "romaji": "Dr. STONE: TERRAFORMING",
+      "userPreferred": "Dr. STONE: Terraforming"
+     },
+     "coverImage": {
+      "color": "#e46b28",
+      "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx152129-MyqcgWVRMSnw.png",
+      "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx152129-MyqcgWVRMSnw.png",
+      "medium": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/small/bx152129-MyqcgWVRMSnw.png"
+     },
+     "startDate": {
+      "day": 4,
+      "month": 7,
+      "year": 2022
+     },
+     "endDate": {
+      "day": 4,
+      "month": 7,
+      "year": 2022
+     }
+    },
+    {
+     "id": 112673,
+     "idMal": 122464,
+     "siteUrl": "https://anilist.co/manga/112673",
+     "status": "FINISHED",
+     "type": "MANGA",
+     "format": "MANGA",
+     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/112673-WBCynGr55cw7.jpg",
+     "chapters": 9,
+     "volumes": 1,
+     "synonyms": [
+      "DR. STONE Reboot: Byakuya - Tôi ở đây"
+     ],
+     "isAdult": false,
+     "countryOfOrigin": "JP",
+     "meanScore": 77,
+     "description": "Learn what happened when the world turned to stone in this special side story to <i>Dr. STONE</i>. As Senku and his friends are being turned to stone, his father Byakuya is on the International Space Station. This is the story of the crew as they try to survive as the only humans who remain flesh and blood!\n<br><br>\n(Source: VIZ Media)",
+     "genres": [
+      "Adventure",
+      "Sci-Fi"
+     ],
+     "title": {
+      "english": "Dr. STONE Reboot: Byakuya",
+      "native": "Dr.STONE reboot:百夜",
+      "romaji": "Dr. STONE reboot: Byakuya",
+      "userPreferred": "Dr. STONE Reboot: Byakuya"
+     },
+     "coverImage": {
+      "color": "#e4bb5d",
+      "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx112673-ppxmIwBve158.jpg",
+      "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx112673-ppxmIwBve158.jpg",
+      "medium": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/small/bx112673-ppxmIwBve158.jpg"
+     },
+     "startDate": {
+      "day": 28,
+      "month": 10,
+      "year": 2019
+     },
+     "endDate": {
+      "day": 22,
+      "month": 12,
+      "year": 2019
+     }
+    }
+   ],
+   "pageInfo": {
+    "currentPage": 1,
+    "hasNextPage": false,
+    "lastPage": 1,
+    "perPage": 20,
+    "total": 4
+   }
+  }
+ },
+ "listMangaRequest": {
+  "page": 1,
+  "perPage": 20,
+  "search": "Dr. STONE",
+  "sort": [
+   "SEARCH_MATCH"
+  ]
+ },
+ "recent": {
+  "Page": {
+   "airingSchedules": [
+    {
+     "airingAt": 1794556800,
+     "episode": 8,
+     "id": 420971,
+     "media": {
+      "id": 210482,
+      "idMal": 61469,
+      "siteUrl": "https://anilist.co/anime/210482",
+      "status": "RELEASING",
+      "season": "FALL",
+      "type": "ANIME",
+      "format": "ONA",
+      "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/210482-pYAD0IbzNbgS.jpg",
+      "episodes": 11,
+      "synonyms": [
+       "JoJo's Bizarre Adventure: Part 7–Steel Ball Run",
+       "SBR"
+      ],
+      "isAdult": false,
+      "countryOfOrigin": "JP",
+      "meanScore": 86,
+      "description": "In the 2nd STAGE, a desert crossing spanning roughly 750 miles- the land that Johnny Joestar and Gyro Zeppeli must challenge, is home to the area that is feared as the \"Devil's Palm.\" In 1875, a threat lurking in said desert wiped out a cavalry of 26 people, eliciting fear from the local native people. As ominous incidents begin to unfold, they are forced to realize that this race is far more than a mere competition. The two press forward, where countless hidden motives collide..<br><br>\n\n(Source: Warner Bros. Japan Anime, Netflix Anime, edited)",
+      "genres": [
+       "Action",
+       "Adventure",
+       "Drama",
+       "Mystery",
+       "Supernatural"
+      ],
+      "duration": 23,
+      "trailer": {
+       "id": "jXtG_lcR9P4",
+       "site": "youtube",
+       "thumbnail": "https://i.ytimg.com/vi/jXtG_lcR9P4/hqdefault.jpg"
+      },
+      "title": {
+       "english": "STEEL BALL RUN JoJo's Bizarre Adventure 2nd - 3rd STAGE",
+       "native": "ジョジョの奇妙な冒険 スティール・ボール・ラン 2nd＆3rd STAGE",
+       "romaji": "JoJo no Kimyou na Bouken: Steel Ball Run - 2nd & 3rd STAGE",
+       "userPreferred": "STEEL BALL RUN JoJo's Bizarre Adventure 2nd - 3rd STAGE"
+      },
+      "coverImage": {
+       "color": "#f1ae50",
+       "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx210482-P1VNKbqdJ6Zj.jpg",
+       "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx210482-P1VNKbqdJ6Zj.jpg",
+       "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx210482-P1VNKbqdJ6Zj.jpg"
+      },
+      "startDate": {
+       "day": 25,
+       "month": 9,
+       "year": 2026
+      },
+      "endDate": {},
+      "nextAiringEpisode": {
+       "airingAt": 1795161600,
+       "episode": 9,
+       "timeUntilAiring": 602697
+      }
+     },
+     "timeUntilAiring": -2103
+    },
+    {
+     "airingAt": 1794542400,
+     "episode": 3,
+     "id": 421374,
+     "media": {
+      "id": 206244,
+      "siteUrl": "https://anilist.co/anime/206244",
+      "status": "RELEASING",
+      "type": "ANIME",
+      "format": "ONA",
+      "episodes": 6,
+      "isAdult": false,
+      "countryOfOrigin": "CN",
+      "meanScore": 67,
+      "description": "The third season of <i>Luo Xiaohei Zhan Ji</i>.",
+      "genres": [
+       "Action",
+       "Adventure",
+       "Comedy",
+       "Supernatural"
+      ],
+      "title": {
+       "native": "罗小黑战记 学前篇",
+       "romaji": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
+       "userPreferred": "Luo Xiaohei Zhan Ji: Xue Qian Pian"
+      },
+      "coverImage": {
+       "color": "#f1bb50",
+       "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206244-ke6bcfsL40qY.jpg",
+       "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx206244-ke6bcfsL40qY.jpg",
+       "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx206244-ke6bcfsL40qY.jpg"
+      },
+      "startDate": {
+       "day": 30,
+       "month": 10,
+       "year": 2026
+      },
+      "endDate": {},
+      "nextAiringEpisode": {
+       "airingAt": 1795147200,
+       "episode": 4,
+       "timeUntilAiring": 588297
+      }
+     },
+     "timeUntilAiring": -16503
+    },
+    {
+     "airingAt": 1794531000,
+     "episode": 7,
+     "id": 421795,
+     "media": {
+      "id": 217577,
+      "idMal": 65007,
+      "siteUrl": "https://anilist.co/anime/217577",
+      "status": "RELEASING",
+      "season": "FALL",
+      "type": "ANIME",
+      "format": "TV_SHORT",
+      "isAdult": false,
+      "countryOfOrigin": "JP",
+      "meanScore": 45,
+      "description": "Mazenchu is set in a school where all kinds of food can live out their youth and form friendships, rivalries, and bittersweet romances.\n<br><br>\n(Source: Anime News Network)",
+      "genres": [
+       "Slice of Life"
+      ],
+      "title": {
+       "native": "マゼンチュ",
+       "romaji": "Mazenchu",
+       "userPreferred": "Mazenchu"
+      },
+      "coverImage": {
+       "color": "#f1a11a",
+       "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx217577-bYfoFScj9Pwi.jpg",
+       "large": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/bx217577-bYfoFScj9Pwi.jpg",
+       "medium": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/small/bx217577-bYfoFScj9Pwi.jpg"
+      },
+      "startDate": {
+       "day": 2,
+       "month": 10,
+       "year": 2026
+      },
+      "endDate": {},
+      "nextAiringEpisode": {
+       "airingAt": 1795135800,
+       "episode": 8,
+       "timeUntilAiring": 576897
+      }
+     },
+     "timeUntilAiring": -27903
+    }
+   ],
+   "pageInfo": {
+    "currentPage": 1,
+    "hasNextPage": true,
+    "lastPage": 100,
+    "perPage": 50,
+    "total": 5000
+   }
+  }
+ },
+ "recentRequest": {
+  "page": 1,
+  "perPage": 50,
+  "airingAt_lesser": 1794558899,
+  "airingAt_greater": 1793954099,
+  "sort": [
+   "TIME_DESC"
+  ]
+ },
+ "stats": {
+  "animeStats": {
+   "count": 120,
+   "minutesWatched": 28800,
+   "episodesWatched": 1200,
+   "meanScore": 75.5,
+   "genres": [],
+   "formats": [],
+   "statuses": [],
+   "studios": [],
+   "scores": [],
+   "startYears": [],
+   "releaseYears": []
+  },
+  "mangaStats": {
+   "count": 5,
+   "chaptersRead": 40,
+   "meanScore": 70.5,
+   "genres": [],
+   "statuses": [],
+   "scores": [],
+   "startYears": [],
+   "releaseYears": []
+  }
+ },
+ "unknownStudio": {
+  "status": 500,
+  "body": {
+   "error": "no cached data available"
+  }
+ }
+}

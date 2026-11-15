@@ -60,15 +60,20 @@ export function keyCheckDetail(failure: unknown, key: string) {
     return (key.length >= 4 ? message.split(key).join("•••") : message).slice(0, 240)
 }
 
+/** What the debrid switch saves: on only with a provider chosen (null: nothing is saved, the page shows a hint instead) */
+export function debridSwitchPatch(checked: boolean, provider: string): { enabled: boolean } | null {
+    return checked && !provider ? null : { enabled: checked }
+}
+
+/** What choosing a debrid provider saves: "None" ("-") also turns debrid off, which cannot run without one */
+export function debridProviderPatch(next: string): { provider: string, enabled?: false } {
+    return next === "-" || !next ? { provider: "", enabled: false } : { provider: next }
+}
+
 /** Bytes as the developer tools show them */
 export function formatBytes(bytes: number) {
     if (!bytes) return "0 B"
     const units = ["B", "KB", "MB", "GB"]
     const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
     return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(1))} ${units[i]}`
-}
-
-/** Which log files a filter of the log list shows */
-export function filterLogFiles(names: string[], filter: "all" | "server" | "scanner") {
-    return names.filter(name => filter === "all" || (filter === "server" ? name.startsWith("seanime-") : name.includes("-scan")))
 }

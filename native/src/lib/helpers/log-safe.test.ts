@@ -8,7 +8,7 @@ describe("requestErrorSummary", () => {
         code: "ERR_BAD_RESPONSE",
         config: {
             method: "post",
-            url: "http://127.0.0.1:43212/api/v1/auth/login?token=query-secret",
+            url: "http://127.0.0.1:8080/api/v1/auth/login?token=query-secret",
             headers: { "X-Seanime-Token": "password-hash", "X-Seanime-Client-Id-Proof": "proof-secret" },
             data: JSON.stringify({ token: "anilist-secret" }),
         },
@@ -19,7 +19,7 @@ describe("requestErrorSummary", () => {
     it("keeps what explains the failure", () => {
         expect(requestErrorSummary(failedLogin)).toEqual({
             method: "POST",
-            url: "http://127.0.0.1:43212/api/v1/auth/login",
+            url: "http://127.0.0.1:8080/api/v1/auth/login",
             status: 500,
             code: "ERR_BAD_RESPONSE",
             message: "Request failed with status code 500",
@@ -41,12 +41,12 @@ describe("requestErrorSummary", () => {
 
 describe("withoutTokens", () => {
     it("hides the token of a stream link, plain and URL-encoded, and keeps the rest", () => {
-        expect(withoutTokens("http://127.0.0.1:43212/api/v1/mediastream/file?path=abc&token=eyJh.bGc-_9&x=1"))
-            .toBe("http://127.0.0.1:43212/api/v1/mediastream/file?path=abc&token=…&x=1")
-        expect(withoutTokens("intent://127.0.0.1:43212/stream?token=eyJh.bGc#Intent;scheme=http;end"))
-            .toBe("intent://127.0.0.1:43212/stream?token=…#Intent;scheme=http;end")
+        expect(withoutTokens("http://127.0.0.1:8080/api/v1/mediastream/file?path=abc&token=eyJh.bGc-_9&x=1"))
+            .toBe("http://127.0.0.1:8080/api/v1/mediastream/file?path=abc&token=…&x=1")
+        expect(withoutTokens("intent://127.0.0.1:8080/stream?token=eyJh.bGc#Intent;scheme=http;end"))
+            .toBe("intent://127.0.0.1:8080/stream?token=…#Intent;scheme=http;end")
         expect(withoutTokens("vlc://x?url=http%3A%2F%2F127.0.0.1%2Fs%3Ftoken%3DeyJh.bGc")).toBe("vlc://x?url=http%3A%2F%2F127.0.0.1%2Fs%3Ftoken%3D…")
-        expect(withoutTokens("http://127.0.0.1:43212/api/v1/directstream/stream")).toBe("http://127.0.0.1:43212/api/v1/directstream/stream")
+        expect(withoutTokens("http://127.0.0.1:8080/api/v1/directstream/stream")).toBe("http://127.0.0.1:8080/api/v1/directstream/stream")
     })
 })
 
@@ -54,8 +54,8 @@ describe("playbackInfoSummary", () => {
     // the server's "watch" event for a library episode (logcat r17: streamUrl with the server token)
     const watch = {
         id: "abc", streamType: "file", mimeType: "video/x-matroska", contentLength: 123456,
-        streamUrl: "http://127.0.0.1:43212/api/v1/directstream/stream?id=abc&token=eyJhbGciOi.secret",
-        subtitleTracks: [{ src: "http://127.0.0.1:43212/sub?token=eyJsub" }],
+        streamUrl: "http://127.0.0.1:8080/api/v1/directstream/stream?id=abc&token=eyJhbGciOi.secret",
+        subtitleTracks: [{ src: "http://127.0.0.1:8080/sub?token=eyJsub" }],
         episode: { episodeNumber: 1 }, media: { id: 105333 }, localFile: { path: "/storage/emulated/0/Anime/Dr. STONE 01.mkv" },
     }
 

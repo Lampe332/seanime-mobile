@@ -14,7 +14,7 @@ local.properties
 # Device specific
 captures/
 
-# External native build (if you're compiling Go with NDK)
+# External native build
 .externalNativeBuild/
 .cxx/
 
@@ -30,7 +30,4 @@ signing/
 .kotlin/
 __pycache__/
 *.log
-backend/seanime-web/node_modules/
-backend/seanime-web/out/
 
-tests/plugin-dom-test.js

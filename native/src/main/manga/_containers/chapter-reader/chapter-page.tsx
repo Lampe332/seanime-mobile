@@ -10,8 +10,10 @@ import { ActivityIndicator, Pressable, View } from "react-native"
  * three times one second apart, then shows a retry button. The page reports its picture size once loaded, so the reader
  * lays it out at its real shape.
  */
-export const ChapterPage = React.memo(function ChapterPage({ url, index, width, height, onSize, onLoaded, contentFit = "contain", recycle }: {
+export const ChapterPage = React.memo(function ChapterPage({ url, headers, index, width, height, onSize, onLoaded, contentFit = "contain", recycle }: {
     url: string | undefined
+    /** Headers the picture needs, given straight to it (area manga on, §4n) */
+    headers?: Record<string, string>
     index: number
     width: number
     height: number
@@ -45,7 +47,7 @@ export const ChapterPage = React.memo(function ChapterPage({ url, index, width, 
     return <View style={{ width, height }} className="items-center justify-center">
         {!!url && <Image
             key={attempt}
-            source={url}
+            source={headers ? { uri: url, headers } : url}
             recyclingKey={recycle ? `${url}#${attempt}` : undefined}
             contentFit={contentFit}
             cachePolicy="memory-disk"

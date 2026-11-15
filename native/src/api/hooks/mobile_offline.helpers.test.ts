@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { MobileOffline_Failure, MobileOffline_Item } from "@/api/generated/types"
-import { networkReport, offlineArtworkUrl, offlineFailureText, offlineFileUrl, offlineWaitingText, pendingItems } from "./mobile_offline.helpers"
+import { networkReport, offlineFailureText, offlineWaitingText, pendingItems } from "./mobile_offline.helpers"
 
 const de = (_en: string, de: string) => de
 const en = (en: string) => en
@@ -14,15 +14,6 @@ describe("network report", () => {
 
     it("counts an unknown connection as connected", () => {
         expect(networkReport({ isConnected: null })).toEqual({ connected: true, metered: false })
-    })
-})
-
-describe("offline URLs", () => {
-    it("points to the server's file and artwork routes", () => {
-        expect(offlineFileUrl("a".repeat(32), "video.ts")).toBe(`http://127.0.0.1:43212/api/v1/mobile-offline/file/${"a".repeat(32)}/video.ts`)
-        expect(offlineArtworkUrl("b".repeat(64) + ".jpg")).toBe(`http://127.0.0.1:43212/api/v1/mobile-offline/artwork/${"b".repeat(64)}.jpg`)
-        expect(offlineArtworkUrl(undefined, "https://img.example/cover.jpg")).toBe("https://img.example/cover.jpg")
-        expect(offlineArtworkUrl("", "")).toBeUndefined()
     })
 })
 

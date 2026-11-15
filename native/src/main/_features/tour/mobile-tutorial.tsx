@@ -30,16 +30,16 @@ function B({ children }: { children: React.ReactNode }) {
 const wait = (ms: number) => () => new Promise<void>(resolve => setTimeout(resolve, ms))
 
 /**
- * The repository step names the button it points at: "Add repository" in the notice shown while the official repository
- * has no content sources, otherwise "Change" next to the repository in use.
+ * The marketplace step names the button it points at: "Add marketplace" in the notice shown while the official
+ * marketplace has no content sources, otherwise "Change" next to the marketplace in use.
  */
 function RepositoryStepText() {
     const [noSources] = React.useState(() => tourTargetData(TOUR_TARGETS.changeRepo) === "add")
     return noSources
-        ? <P>{tr("Seanime's own repository only has plugins. Tap ", "Das Repository von Seanime hat nur Plugins. Tippe auf ")}<B>{tr("Add repository", "Repository hinzufügen")}</B>
-            {tr(" to add a community repository with streaming and manga sources.", ", um ein Community-Repository mit Streaming- und Manga-Quellen hinzuzufügen.")}</P>
-        : <P>{tr("Tap ", "Tippe auf ")}<B>{tr("Change", "Ändern")}</B>{tr(" to use another repository with streaming and manga sources.",
-            ", um ein anderes Repository mit Streaming- und Manga-Quellen zu nutzen.")}</P>
+        ? <P>{tr("Seanime's own marketplace only has plugins. Tap ", "Der Marktplatz von Seanime hat nur Plugins. Tippe auf ")}<B>{tr("Add marketplace", "Marktplatz hinzufügen")}</B>
+            {tr(" to add a community marketplace with streaming and manga sources.", ", um einen Community-Marktplatz mit Streaming- und Manga-Quellen hinzuzufügen.")}</P>
+        : <P>{tr("Tap ", "Tippe auf ")}<B>{tr("Change", "Ändern")}</B>{tr(" to use another marketplace with streaming and manga sources.",
+            ", um einen anderen Marktplatz mit Streaming- und Manga-Quellen zu nutzen.")}</P>
 }
 
 export function getMobileTutorialSteps({ fromExtensions = false, tablet = false } = {}): TourStep[] {
@@ -48,8 +48,8 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             id: "welcome",
             title: tr("Welcome to Seanime Mobile", "Willkommen bei Seanime Mobile"),
             content: <View className="gap-2">
-                <P>{tr("Seanime doesn't come with any streaming or manga sources. You add them yourself as extensions.",
-                    "Seanime bringt keine Streaming- oder Manga-Quellen mit. Du fügst sie selbst als Erweiterungen hinzu.")}</P>
+                <P>{tr("Seanime Mobile doesn't come with any streaming or manga sources. You add them yourself as extensions.",
+                    "Seanime Mobile bringt keine Streaming- oder Manga-Quellen mit. Du fügst sie selbst als Erweiterungen hinzu.")}</P>
                 <P>{tr("This short tour shows you how. It takes about a minute.", "Diese kurze Tour zeigt dir wie. Sie dauert etwa eine Minute.")}</P>
             </View>,
             nextLabel: tr("Show me", "Zeig es mir"),
@@ -101,7 +101,7 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
         {
             id: "change-repo",
             target: TOUR_TARGETS.changeRepo,
-            title: tr("Add a repository", "Repository hinzufügen"),
+            title: tr("Add a marketplace", "Marktplatz hinzufügen"),
             content: <RepositoryStepText />,
             placement: "bottom",
             allowTargetInteraction: true,
@@ -113,13 +113,12 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
         {
             id: "paste-url",
             target: TOUR_TARGETS.repoSheet,
-            title: tr("Paste the repository link", "Repository-Link einfügen"),
+            title: tr("Paste the marketplace link", "Marktplatz-Link einfügen"),
             content: <View className="gap-2">
-                <P>{tr("Copy the link to a repository (it ends with ", "Kopiere den Link zu einem Repository (er endet auf ")}<B>.json</B>
-                    {tr("), tap the ", "), tippe im Feld auf den ")}<B>{tr("paste button", "Einfügen-Knopf")}</B>
-                    {tr(" in the field, then ", " und dann auf ")}<B>{tr("Save", "Speichern")}</B>.</P>
-                <P small>{tr("You can find Seanime extension repositories online in the Seanime community.",
-                    "Repositorys für Seanime findest du online in der Seanime-Community.")}</P>
+                <P>{tr("Copy the link to a marketplace, tap ", "Kopiere den Link zu einem Marktplatz, tippe auf ")}<B>{tr("Paste link", "Link einfügen")}</B>
+                    {tr(", then ", " und dann auf ")}<B>{tr("Add", "Hinzufügen")}</B>.</P>
+                <P small>{tr("You can find Seanime marketplaces online in the Seanime community.",
+                    "Marktplätze für Seanime findest du online in der Seanime-Community.")}</P>
             </View>,
             placement: "top",
             // the repository sheet slides up from the bottom; measured mid-way, the card would cover its title

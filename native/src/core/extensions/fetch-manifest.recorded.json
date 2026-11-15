@@ -1,0 +1,2963 @@
+{
+  "source": "scripts/record-server.mjs manifest-cases, answers of the test app's server (Seanime 3.10.4)",
+  "recordedOn": "2026-11-13",
+  "origin": "http://127.0.0.1:8765",
+  "files": {
+    "/payload.js": "class Provider { search() { return [] } }",
+    "/empty.js": ""
+  },
+  "cases": [
+    {
+      "name": "address-empty",
+      "manifestUri": "",
+      "served": "(nothing: the address does not lead to this computer)",
+      "status": 500,
+      "body": {
+        "error": "failed to fetch extension manifest, Get \"\": unsupported protocol scheme \"\""
+      }
+    },
+    {
+      "name": "address-other-scheme",
+      "manifestUri": "file:///sdcard/manifest.json",
+      "served": "(nothing: the address does not lead to this computer)",
+      "status": 500,
+      "body": {
+        "error": "failed to fetch extension manifest, Get \"file:///sdcard/manifest.json\": unsupported protocol scheme \"file\""
+      }
+    },
+    {
+      "name": "address-unreachable",
+      "manifestUri": "http://127.0.0.1:9/manifest.json",
+      "served": "(nothing: the address does not lead to this computer)",
+      "status": 500,
+      "body": {
+        "error": "failed to fetch extension manifest, Get \"http://127.0.0.1:9/manifest.json\": dial tcp 127.0.0.1:9: connect: connection refused"
+      }
+    },
+    {
+      "name": "address-without-scheme",
+      "manifestUri": "example.com/manifest.json",
+      "served": "(nothing: the address does not lead to this computer)",
+      "status": 500,
+      "body": {
+        "error": "failed to fetch extension manifest, Get \"example.com/manifest.json\": unsupported protocol scheme \"\""
+      }
+    },
+    {
+      "name": "constraint-0",
+      "manifestUri": "http://127.0.0.1:8765/constraint-0/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": ">=99.0.0"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": ">=99.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "constraint-1",
+      "manifestUri": "http://127.0.0.1:8765/constraint-1/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": "<3.0.0"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": "<3.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "constraint-10",
+      "manifestUri": "http://127.0.0.1:8765/constraint-10/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": ">3.10.4"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": ">3.10.4",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "constraint-2",
+      "manifestUri": "http://127.0.0.1:8765/constraint-2/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": "^3.10.0"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": "^3.10.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "constraint-3",
+      "manifestUri": "http://127.0.0.1:8765/constraint-3/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": "~3.10.0"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": "~3.10.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "constraint-4",
+      "manifestUri": "http://127.0.0.1:8765/constraint-4/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": "3.x"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": "3.x",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "constraint-5",
+      "manifestUri": "http://127.0.0.1:8765/constraint-5/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": "not a constraint"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": "not a constraint",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "constraint-6",
+      "manifestUri": "http://127.0.0.1:8765/constraint-6/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": ">=3.0.0, <4.0.0"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": ">=3.0.0, <4.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "constraint-7",
+      "manifestUri": "http://127.0.0.1:8765/constraint-7/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": ">=3.0.0 <4.0.0"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": ">=3.0.0 <4.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "constraint-8",
+      "manifestUri": "http://127.0.0.1:8765/constraint-8/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": ">=4 || <2"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": ">=4 || <2",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "constraint-9",
+      "manifestUri": "http://127.0.0.1:8765/constraint-9/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "semverConstraint": "3.10.4"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": "3.10.4",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "development-mode",
+      "manifestUri": "http://127.0.0.1:8765/development-mode/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "isDevelopment": true
+      },
+      "status": 500,
+      "body": {
+        "error": "cannot install development mode extensions for security reasons"
+      }
+    },
+    {
+      "name": "empty-optionals",
+      "manifestUri": "http://127.0.0.1:8765/empty-optionals/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "permissions": [],
+        "notes": "",
+        "isDevelopment": false,
+        "userConfig": null,
+        "semverConstraint": "",
+        "plugin": null
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "extra-fields",
+      "manifestUri": "http://127.0.0.1:8765/extra-fields/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "unknownField": 1,
+        "readme": "read me",
+        "notes": "a note",
+        "semverConstraint": ">=3.0.0",
+        "permissions": [
+          "x"
+        ],
+        "isDevelopment": true
+      },
+      "status": 500,
+      "body": {
+        "error": "cannot install development mode extensions for security reasons"
+      }
+    },
+    {
+      "name": "http-404",
+      "manifestUri": "http://127.0.0.1:8765/http-404/manifest.json",
+      "served": 404,
+      "status": 500,
+      "body": {
+        "error": "failed to parse extension manifest, invalid character 'o' in literal null (expecting 'u')"
+      }
+    },
+    {
+      "name": "id-0-kern_probe",
+      "manifestUri": "http://127.0.0.1:8765/id-0-kern_probe/manifest.json",
+      "served": {
+        "id": "kern_probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "id-1-kern.probe",
+      "manifestUri": "http://127.0.0.1:8765/id-1-kern.probe/manifest.json",
+      "served": {
+        "id": "kern.probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "id-10-kern-1",
+      "manifestUri": "http://127.0.0.1:8765/id-10-kern-1/manifest.json",
+      "served": {
+        "id": "kern-1",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-1",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "id-11--kern",
+      "manifestUri": "http://127.0.0.1:8765/id-11--kern/manifest.json",
+      "served": {
+        "id": "-kern",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "id-12-kern-",
+      "manifestUri": "http://127.0.0.1:8765/id-12-kern-/manifest.json",
+      "served": {
+        "id": "kern-",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "id-13-a",
+      "manifestUri": "http://127.0.0.1:8765/id-13-a/manifest.json",
+      "served": {
+        "id": "a",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID is too short"
+      }
+    },
+    {
+      "name": "id-14-kern--probe",
+      "manifestUri": "http://127.0.0.1:8765/id-14-kern--probe/manifest.json",
+      "served": {
+        "id": "kern--probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern--probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "id-15-abc",
+      "manifestUri": "http://127.0.0.1:8765/id-15-abc/manifest.json",
+      "served": {
+        "id": "abc",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "abc",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "id-16-ab1",
+      "manifestUri": "http://127.0.0.1:8765/id-16-ab1/manifest.json",
+      "served": {
+        "id": "ab1",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "ab1",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "id-17-1ab",
+      "manifestUri": "http://127.0.0.1:8765/id-17-1ab/manifest.json",
+      "served": {
+        "id": "1ab",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "id-18-a12",
+      "manifestUri": "http://127.0.0.1:8765/id-18-a12/manifest.json",
+      "served": {
+        "id": "a12",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "a12",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "id-19-ab",
+      "manifestUri": "http://127.0.0.1:8765/id-19-ab/manifest.json",
+      "served": {
+        "id": "ab",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID is too short"
+      }
+    },
+    {
+      "name": "id-2-KernProbe",
+      "manifestUri": "http://127.0.0.1:8765/id-2-KernProbe/manifest.json",
+      "served": {
+        "id": "KernProbe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "KernProbe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "id-20-a-b",
+      "manifestUri": "http://127.0.0.1:8765/id-20-a-b/manifest.json",
+      "served": {
+        "id": "a-b",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "a-b",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "id-3-123",
+      "manifestUri": "http://127.0.0.1:8765/id-3-123/manifest.json",
+      "served": {
+        "id": "123",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "id-4-kernxprobe",
+      "manifestUri": "http://127.0.0.1:8765/id-4-kernxprobe/manifest.json",
+      "served": {
+        "id": "kern/probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "id-5-kxrn",
+      "manifestUri": "http://127.0.0.1:8765/id-5-kxrn/manifest.json",
+      "served": {
+        "id": "kärn",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "id-6-kernxprobe",
+      "manifestUri": "http://127.0.0.1:8765/id-6-kernxprobe/manifest.json",
+      "served": {
+        "id": "kern probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "id-7-kernx",
+      "manifestUri": "http://127.0.0.1:8765/id-7-kernx/manifest.json",
+      "served": {
+        "id": "kern$",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "id-8-a1",
+      "manifestUri": "http://127.0.0.1:8765/id-8-a1/manifest.json",
+      "served": {
+        "id": "a1",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID is too short"
+      }
+    },
+    {
+      "name": "id-9-1a",
+      "manifestUri": "http://127.0.0.1:8765/id-9-1a/manifest.json",
+      "served": {
+        "id": "1a",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID is too short"
+      }
+    },
+    {
+      "name": "id-with-spaces",
+      "manifestUri": "http://127.0.0.1:8765/id-with-spaces/manifest.json",
+      "served": {
+        "id": "Kern Probe!",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID contains invalid characters"
+      }
+    },
+    {
+      "name": "inline-payload",
+      "manifestUri": "http://127.0.0.1:8765/inline-payload/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "json-array",
+      "manifestUri": "http://127.0.0.1:8765/json-array/manifest.json",
+      "served": "[]",
+      "status": 500,
+      "body": {
+        "error": "failed to parse extension manifest, json: cannot unmarshal array into Go value of type extension.Extension"
+      }
+    },
+    {
+      "name": "json-null",
+      "manifestUri": "http://127.0.0.1:8765/json-null/manifest.json",
+      "served": "null",
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension is missing required fields, ID: , Name: , Version: , Language: , Type: , Author: , Payload: 0"
+      }
+    },
+    {
+      "name": "language-JavaScript",
+      "manifestUri": "http://127.0.0.1:8765/language-JavaScript/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "JavaScript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, unsupported language: JavaScript"
+      }
+    },
+    {
+      "name": "language-go",
+      "manifestUri": "http://127.0.0.1:8765/language-go/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "go",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "go",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "language-typescript",
+      "manifestUri": "http://127.0.0.1:8765/language-typescript/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "typescript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "typescript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "language-unknown",
+      "manifestUri": "http://127.0.0.1:8765/language-unknown/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "python",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, unsupported language: python"
+      }
+    },
+    {
+      "name": "manifest-uri-differs",
+      "manifestUri": "http://127.0.0.1:8765/manifest-uri-differs/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "https://example.com/other/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "https://example.com/other/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider { search() { return [] } }",
+          "payloadURI": "http://127.0.0.1:8765/payload.js"
+        }
+      }
+    },
+    {
+      "name": "missing-author",
+      "manifestUri": "http://127.0.0.1:8765/missing-author/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension is missing required fields, ID: kern-probe, Name: Kern Probe, Version: 1.0.0, Language: javascript, Type: onlinestream-provider, Author: , Payload: 41"
+      }
+    },
+    {
+      "name": "missing-description",
+      "manifestUri": "http://127.0.0.1:8765/missing-description/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider { search() { return [] } }",
+          "payloadURI": "http://127.0.0.1:8765/payload.js"
+        }
+      }
+    },
+    {
+      "name": "missing-icon",
+      "manifestUri": "http://127.0.0.1:8765/missing-icon/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider { search() { return [] } }",
+          "payloadURI": "http://127.0.0.1:8765/payload.js"
+        }
+      }
+    },
+    {
+      "name": "missing-id",
+      "manifestUri": "http://127.0.0.1:8765/missing-id/manifest.json",
+      "served": {
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension is missing required fields, ID: , Name: Kern Probe, Version: 1.0.0, Language: javascript, Type: onlinestream-provider, Author: nobody, Payload: 41"
+      }
+    },
+    {
+      "name": "missing-lang",
+      "manifestUri": "http://127.0.0.1:8765/missing-lang/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "",
+          "payload": "class Provider { search() { return [] } }",
+          "payloadURI": "http://127.0.0.1:8765/payload.js"
+        }
+      }
+    },
+    {
+      "name": "missing-language",
+      "manifestUri": "http://127.0.0.1:8765/missing-language/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension is missing required fields, ID: kern-probe, Name: Kern Probe, Version: 1.0.0, Language: , Type: onlinestream-provider, Author: nobody, Payload: 41"
+      }
+    },
+    {
+      "name": "missing-manifestURI",
+      "manifestUri": "http://127.0.0.1:8765/missing-manifestURI/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider { search() { return [] } }",
+          "payloadURI": "http://127.0.0.1:8765/payload.js"
+        }
+      }
+    },
+    {
+      "name": "missing-name",
+      "manifestUri": "http://127.0.0.1:8765/missing-name/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension is missing required fields, ID: kern-probe, Name: , Version: 1.0.0, Language: javascript, Type: onlinestream-provider, Author: nobody, Payload: 41"
+      }
+    },
+    {
+      "name": "missing-type",
+      "manifestUri": "http://127.0.0.1:8765/missing-type/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension is missing required fields, ID: kern-probe, Name: Kern Probe, Version: 1.0.0, Language: javascript, Type: , Author: nobody, Payload: 41"
+      }
+    },
+    {
+      "name": "missing-version",
+      "manifestUri": "http://127.0.0.1:8765/missing-version/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension is missing required fields, ID: kern-probe, Name: Kern Probe, Version: , Language: javascript, Type: onlinestream-provider, Author: nobody, Payload: 41"
+      }
+    },
+    {
+      "name": "missing-website",
+      "manifestUri": "http://127.0.0.1:8765/missing-website/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider { search() { return [] } }",
+          "payloadURI": "http://127.0.0.1:8765/payload.js"
+        }
+      }
+    },
+    {
+      "name": "no-payload",
+      "manifestUri": "http://127.0.0.1:8765/no-payload/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension is missing payload and payload URI"
+      }
+    },
+    {
+      "name": "not-json",
+      "manifestUri": "http://127.0.0.1:8765/not-json/manifest.json",
+      "served": "this is not JSON",
+      "status": 500,
+      "body": {
+        "error": "failed to parse extension manifest, invalid character 'h' in literal true (expecting 'r')"
+      }
+    },
+    {
+      "name": "optional-fields",
+      "manifestUri": "http://127.0.0.1:8765/optional-fields/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "unknownField": 1,
+        "readme": "read me",
+        "notes": "a note",
+        "semverConstraint": ">=3.0.0",
+        "permissions": [
+          "x"
+        ]
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "semverConstraint": ">=3.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "read me",
+          "notes": "a note",
+          "lang": "en",
+          "permissions": [
+            "x"
+          ],
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "order-all",
+      "manifestUri": "http://127.0.0.1:8765/order-all/manifest.json",
+      "served": {
+        "id": "a",
+        "name": "Kern Probe",
+        "version": "x",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "py",
+        "type": "zz",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension ID is too short"
+      }
+    },
+    {
+      "name": "order-development-and-empty-payload",
+      "manifestUri": "http://127.0.0.1:8765/order-development-and-empty-payload/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/empty.js",
+        "isDevelopment": true
+      },
+      "status": 500,
+      "body": {
+        "error": "downloaded payload is empty"
+      }
+    },
+    {
+      "name": "order-development-and-missing-id",
+      "manifestUri": "http://127.0.0.1:8765/order-development-and-missing-id/manifest.json",
+      "served": {
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js",
+        "isDevelopment": true
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, extension is missing required fields, ID: , Name: Kern Probe, Version: 1.0.0, Language: javascript, Type: onlinestream-provider, Author: nobody, Payload: 41"
+      }
+    },
+    {
+      "name": "order-language-type",
+      "manifestUri": "http://127.0.0.1:8765/order-language-type/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "py",
+        "type": "zz",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, unsupported language: py"
+      }
+    },
+    {
+      "name": "order-plugin-and-type",
+      "manifestUri": "http://127.0.0.1:8765/order-plugin-and-type/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "zz",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "plugin": {}
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, unsupported extension type: zz"
+      }
+    },
+    {
+      "name": "order-version-language-type",
+      "manifestUri": "http://127.0.0.1:8765/order-version-language-type/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "x",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "py",
+        "type": "zz",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, invalid version: x"
+      }
+    },
+    {
+      "name": "payload-and-payload-uri",
+      "manifestUri": "http://127.0.0.1:8765/payload-and-payload-uri/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js",
+        "payload": "INLINE"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider { search() { return [] } }",
+          "payloadURI": "http://127.0.0.1:8765/payload.js"
+        }
+      }
+    },
+    {
+      "name": "payload-uri-404",
+      "manifestUri": "http://127.0.0.1:8765/payload-uri-404/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/missing.js"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "not found",
+          "payloadURI": "http://127.0.0.1:8765/missing.js"
+        }
+      }
+    },
+    {
+      "name": "payload-uri-empty-file",
+      "manifestUri": "http://127.0.0.1:8765/payload-uri-empty-file/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/empty.js"
+      },
+      "status": 500,
+      "body": {
+        "error": "downloaded payload is empty"
+      }
+    },
+    {
+      "name": "payload-uri-unreachable",
+      "manifestUri": "http://127.0.0.1:8765/payload-uri-unreachable/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:9/payload.js"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed to download payload, failed to download payload, Get \"http://127.0.0.1:9/payload.js\": dial tcp 127.0.0.1:9: connect: connection refused"
+      }
+    },
+    {
+      "name": "plugin-empty",
+      "manifestUri": "http://127.0.0.1:8765/plugin-empty/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "plugin",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "plugin": {}
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, plugin manifest version is missing"
+      }
+    },
+    {
+      "name": "plugin-full",
+      "manifestUri": "http://127.0.0.1:8765/plugin-full/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "plugin",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "plugin": {
+          "version": "1",
+          "unknownKey": 1,
+          "permissions": {
+            "scopes": [
+              "storage",
+              "playback"
+            ],
+            "allow": {
+              "networkAccess": {
+                "allowedDomains": [
+                  "example.com"
+                ],
+                "reasoning": "needs it"
+              },
+              "unsafeFlags": [
+                {
+                  "flag": "dom-script-manipulation",
+                  "reason": "because"
+                }
+              ],
+              "readPaths": [
+                "$DOWNLOAD/**"
+              ],
+              "writePaths": [],
+              "commandScopes": [
+                {
+                  "description": "open",
+                  "command": "open",
+                  "args": [
+                    {
+                      "value": "-a"
+                    },
+                    {
+                      "validator": "$ARGS"
+                    },
+                    {}
+                  ]
+                },
+                {
+                  "command": "ls"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "plugin",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}",
+          "plugin": {
+            "version": "1",
+            "permissions": {
+              "scopes": [
+                "storage",
+                "playback"
+              ],
+              "allow": {
+                "networkAccess": {
+                  "allowedDomains": [
+                    "example.com"
+                  ],
+                  "reasoning": "needs it"
+                },
+                "unsafeFlags": [
+                  {
+                    "flag": "dom-script-manipulation",
+                    "reason": "because"
+                  }
+                ],
+                "readPaths": [
+                  "$DOWNLOAD/**"
+                ],
+                "commandScopes": [
+                  {
+                    "description": "open",
+                    "command": "open",
+                    "args": [
+                      {
+                        "value": "-a"
+                      },
+                      {
+                        "validator": "$ARGS"
+                      },
+                      {}
+                    ]
+                  },
+                  {
+                    "command": "ls"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "plugin-on-provider",
+      "manifestUri": "http://127.0.0.1:8765/plugin-on-provider/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "plugin": {
+          "version": "2"
+        }
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}",
+          "plugin": {
+            "version": "2",
+            "permissions": {
+              "allow": {
+                "networkAccess": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "plugin-without-manifest",
+      "manifestUri": "http://127.0.0.1:8765/plugin-without-manifest/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "plugin",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, plugin manifest is missing"
+      }
+    },
+    {
+      "name": "type-anime-torrent-provider",
+      "manifestUri": "http://127.0.0.1:8765/type-anime-torrent-provider/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "anime-torrent-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "anime-torrent-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "type-custom-source",
+      "manifestUri": "http://127.0.0.1:8765/type-custom-source/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "custom-source",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "custom-source",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "type-manga-provider",
+      "manifestUri": "http://127.0.0.1:8765/type-manga-provider/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "manga-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "manga-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "type-plugin",
+      "manifestUri": "http://127.0.0.1:8765/type-plugin/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "plugin",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "plugin": {
+          "version": "1",
+          "permissions": {
+            "scopes": [
+              "storage"
+            ]
+          }
+        }
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "plugin",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}",
+          "plugin": {
+            "version": "1",
+            "permissions": {
+              "scopes": [
+                "storage"
+              ],
+              "allow": {
+                "networkAccess": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "type-unknown",
+      "manifestUri": "http://127.0.0.1:8765/type-unknown/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "something-else",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, unsupported extension type: something-else"
+      }
+    },
+    {
+      "name": "user-config-empty",
+      "manifestUri": "http://127.0.0.1:8765/user-config-empty/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "userConfig": {}
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "userConfig": {
+            "version": 0,
+            "requiresConfig": false,
+            "fields": null
+          },
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "user-config-full",
+      "manifestUri": "http://127.0.0.1:8765/user-config-full/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "userConfig": {
+          "version": 3,
+          "requiresConfig": false,
+          "unknownKey": true,
+          "fields": [
+            {
+              "type": "select",
+              "name": "mirror",
+              "label": "Mirror",
+              "default": "a",
+              "options": [
+                {
+                  "value": "a",
+                  "label": "A",
+                  "extra": 1
+                },
+                {
+                  "value": "b",
+                  "label": "B"
+                }
+              ]
+            },
+            {
+              "type": "switch",
+              "name": "dub",
+              "label": "Dub",
+              "default": ""
+            },
+            {
+              "type": "unknown-kind",
+              "name": "x",
+              "label": "X",
+              "options": []
+            },
+            {}
+          ]
+        }
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "userConfig": {
+            "version": 3,
+            "requiresConfig": false,
+            "fields": [
+              {
+                "type": "select",
+                "name": "mirror",
+                "label": "Mirror",
+                "options": [
+                  {
+                    "value": "a",
+                    "label": "A"
+                  },
+                  {
+                    "value": "b",
+                    "label": "B"
+                  }
+                ],
+                "default": "a"
+              },
+              {
+                "type": "switch",
+                "name": "dub",
+                "label": "Dub"
+              },
+              {
+                "type": "unknown-kind",
+                "name": "x",
+                "label": "X"
+              },
+              {
+                "type": "",
+                "name": "",
+                "label": ""
+              }
+            ]
+          },
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "user-config-no-fields",
+      "manifestUri": "http://127.0.0.1:8765/user-config-no-fields/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "userConfig": {
+          "version": 1,
+          "requiresConfig": false,
+          "fields": []
+        }
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "userConfig": {
+            "version": 1,
+            "requiresConfig": false,
+            "fields": []
+          },
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "user-config",
+      "manifestUri": "http://127.0.0.1:8765/user-config/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}",
+        "userConfig": {
+          "version": 1,
+          "requiresConfig": true,
+          "fields": [
+            {
+              "type": "text",
+              "name": "url",
+              "label": "Address",
+              "default": "https://example.com"
+            }
+          ]
+        }
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "userConfig": {
+            "version": 1,
+            "requiresConfig": true,
+            "fields": [
+              {
+                "type": "text",
+                "name": "url",
+                "label": "Address",
+                "default": "https://example.com"
+              }
+            ]
+          },
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "valid",
+      "manifestUri": "http://127.0.0.1:8765/valid/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payloadURI": "http://127.0.0.1:8765/payload.js"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "1.0.0",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider { search() { return [] } }",
+          "payloadURI": "http://127.0.0.1:8765/payload.js"
+        }
+      }
+    },
+    {
+      "name": "version-0",
+      "manifestUri": "http://127.0.0.1:8765/version-0/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, invalid version: 1.0"
+      }
+    },
+    {
+      "name": "version-1",
+      "manifestUri": "http://127.0.0.1:8765/version-1/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "v1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, invalid version: v1.0.0"
+      }
+    },
+    {
+      "name": "version-2",
+      "manifestUri": "http://127.0.0.1:8765/version-2/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0-beta.1",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, invalid version: 1.0.0-beta.1"
+      }
+    },
+    {
+      "name": "version-3",
+      "manifestUri": "http://127.0.0.1:8765/version-3/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, invalid version: 1"
+      }
+    },
+    {
+      "name": "version-4",
+      "manifestUri": "http://127.0.0.1:8765/version-4/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0+build",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, invalid version: 1.0.0+build"
+      }
+    },
+    {
+      "name": "version-5",
+      "manifestUri": "http://127.0.0.1:8765/version-5/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": " 1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, invalid version:  1.0.0"
+      }
+    },
+    {
+      "name": "version-6",
+      "manifestUri": "http://127.0.0.1:8765/version-6/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "1.0.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, invalid version: 1.0.0.0"
+      }
+    },
+    {
+      "name": "version-7",
+      "manifestUri": "http://127.0.0.1:8765/version-7/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "01.2.3",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "01.2.3",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "version-8",
+      "manifestUri": "http://127.0.0.1:8765/version-8/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "10.20.30",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "kern-probe",
+          "name": "Kern Probe",
+          "version": "10.20.30",
+          "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+          "language": "javascript",
+          "type": "onlinestream-provider",
+          "description": "A manifest for recording",
+          "author": "nobody",
+          "icon": "",
+          "website": "",
+          "readme": "",
+          "lang": "en",
+          "payload": "class Provider {}"
+        }
+      }
+    },
+    {
+      "name": "version-not-semver",
+      "manifestUri": "http://127.0.0.1:8765/version-not-semver/manifest.json",
+      "served": {
+        "id": "kern-probe",
+        "name": "Kern Probe",
+        "version": "new",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed sanity check, invalid version: new"
+      }
+    },
+    {
+      "name": "wrong-type-id",
+      "manifestUri": "http://127.0.0.1:8765/wrong-type-id/manifest.json",
+      "served": {
+        "id": 5,
+        "name": "Kern Probe",
+        "version": "1.0.0",
+        "manifestURI": "http://127.0.0.1:8765/valid/manifest.json",
+        "language": "javascript",
+        "type": "onlinestream-provider",
+        "description": "A manifest for recording",
+        "author": "nobody",
+        "icon": "",
+        "website": "",
+        "lang": "en",
+        "payload": "class Provider {}"
+      },
+      "status": 500,
+      "body": {
+        "error": "failed to parse extension manifest, json: cannot unmarshal number into Go struct field Extension.id of type string"
+      }
+    }
+  ]
+}

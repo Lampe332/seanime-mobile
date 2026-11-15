@@ -30,7 +30,7 @@ import { levelOf, logText, matchesQuery, newestScans, plural, readFromName, visi
  * search over the chosen one (it opens every block that matches). Errors take the danger tone, warnings the accent.
  */
 
-const scanDate = (date: string) => new Date(date).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+const scanDate = (t: Translate, date: string) => new Date(date).toLocaleString(t("en-US", "de-DE"), { dateStyle: "medium", timeStyle: "short" })
 
 function Chevron({ open }: { open: boolean }) {
     return <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}><ChevronDown size={18} color={colors.smTextSubtle} /></View>
@@ -135,7 +135,7 @@ export function ScanSummariesPhone() {
     const unmatched = (summary?.unmatchedFiles ?? []).filter(file => matchesQuery(file, query))
     const groups = React.useMemo(() => visibleGroups(summary?.groups, query), [summary, query])
 
-    const facts = summary && scan?.createdAt ? [scanDate(scan.createdAt), plural(t, summary.groups?.length ?? 0, ["anime", "anime"], ["Anime", "Anime"]),
+    const facts = summary && scan?.createdAt ? [scanDate(t, scan.createdAt), plural(t, summary.groups?.length ?? 0, ["anime", "anime"], ["Anime", "Anime"]),
         summary.unmatchedFiles?.length ? t(`${summary.unmatchedFiles.length} not matched`, `${summary.unmatchedFiles.length} ohne Anime`) : ""].filter(Boolean).join(" · ") : undefined
 
     return (
@@ -150,7 +150,7 @@ export function ScanSummariesPhone() {
                 ) : <>
                     <View className="gap-2">
                         {scans.length > 1 && <Select value={summary.id} onValueChange={setChosen} placeholder={t("Scan", "Scan")} accessibilityLabel={t("Scan", "Scan")}
-                            options={scans.map(item => ({ value: item.scanSummary!.id, label: scanDate(item.createdAt!) }))} />}
+                            options={scans.map(item => ({ value: item.scanSummary!.id, label: scanDate(t, item.createdAt!) }))} />}
                         <SearchField value={search} onChangeText={setSearch} placeholder={t("Search file names", "Dateinamen suchen")} />
                     </View>
                     {!!query && !unmatched.length && !groups.length && <PhoneEmpty title={t("No file matches", "Keine Datei passt")}

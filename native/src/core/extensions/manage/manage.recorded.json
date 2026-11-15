@@ -1,0 +1,493 @@
+{
+ "GetAllExtensions": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/all",
+  "request": {
+   "withUpdates": "boolean"
+  },
+  "data": {
+   "extensions": [
+    "array",
+    {
+     "author": "string",
+     "description": "string",
+     "icon": "string",
+     "id": "string",
+     "lang": "string",
+     "language": "string",
+     "manifestURI": "string",
+     "name": "string",
+     "payload": "string",
+     "payloadURI?": "string",
+     "readme": "string",
+     "type": "string",
+     "userConfig?": {
+      "fields": [
+       "array",
+       {
+        "default": "string",
+        "label": "string",
+        "name": "string",
+        "options?": [
+         "array",
+         {
+          "label": "string",
+          "value": "string"
+         }
+        ],
+        "type": "string"
+       }
+      ],
+      "requiresConfig": "boolean",
+      "version": "number"
+     },
+     "version": "string",
+     "website": "string"
+    }
+   ],
+   "invalidExtensions": [
+    "array"
+   ],
+   "disabledExtensions": "null",
+   "invalidUserConfigExtensions": [
+    "array"
+   ],
+   "hasUpdate": "null",
+   "unsafeExtensions": {}
+  }
+ },
+ "ListExtensionData": {
+  "method": "GET",
+  "endpoint": "/api/v1/extensions/list",
+  "request": null,
+  "data": [
+   "array",
+   {
+    "author": "string",
+    "description": "string",
+    "icon": "string",
+    "id": "string",
+    "lang": "string",
+    "language": "string",
+    "manifestURI": "string",
+    "name": "string",
+    "payload": "string",
+    "payloadURI?": "string",
+    "readme": "string",
+    "type": "string",
+    "userConfig?": {
+     "fields": [
+      "array",
+      {
+       "default": "string",
+       "label": "string",
+       "name": "string",
+       "options?": [
+        "array",
+        {
+         "label": "string",
+         "value": "string"
+        }
+       ],
+       "type": "string"
+      }
+     ],
+     "requiresConfig": "boolean",
+     "version": "number"
+    },
+    "version": "string",
+    "website": "string"
+   }
+  ]
+ },
+ "ListAnimeTorrentProviderExtensions": {
+  "method": "GET",
+  "endpoint": "/api/v1/extensions/list/anime-torrent-provider",
+  "request": null,
+  "data": [
+   "array",
+   {
+    "id": "string",
+    "lang": "string",
+    "name": "string",
+    "settings": {
+     "canSmartSearch": "boolean",
+     "smartSearchFilters": [
+      "array",
+      "string"
+     ],
+     "supportsAdult": "boolean",
+     "type": "string"
+    }
+   }
+  ]
+ },
+ "ListMangaProviderExtensions": {
+  "method": "GET",
+  "endpoint": "/api/v1/extensions/list/manga-provider",
+  "request": null,
+  "data": [
+   "array",
+   {
+    "id": "string",
+    "lang": "string",
+    "name": "string",
+    "settings": {
+     "supportsMultiLanguage": "boolean",
+     "supportsMultiScanlator": "boolean"
+    }
+   }
+  ]
+ },
+ "ListOnlinestreamProviderExtensions": {
+  "method": "GET",
+  "endpoint": "/api/v1/extensions/list/onlinestream-provider",
+  "request": null,
+  "data": [
+   "array",
+   {
+    "episodeServers": [
+     "array",
+     "string"
+    ],
+    "id": "string",
+    "lang": "string",
+    "name": "string",
+    "supportsDub": "boolean"
+   }
+  ]
+ },
+ "ListCustomSourceExtensions": {
+  "method": "GET",
+  "endpoint": "/api/v1/extensions/list/custom-source",
+  "request": null,
+  "data": [
+   "array"
+  ]
+ },
+ "GetExtensionPayload.dkb": {
+  "method": "GET",
+  "endpoint": "/api/v1/extensions/payload/{id}",
+  "request": null,
+  "data": "string"
+ },
+ "GetExtensionUserConfig.aq-anikoto": {
+  "method": "GET",
+  "endpoint": "/api/v1/extensions/user-config/{id}",
+  "request": null,
+  "data": {
+   "userConfig": {
+    "version": "number",
+    "requiresConfig": "boolean",
+    "fields": [
+     "array",
+     {
+      "default": "string",
+      "label": "string",
+      "name": "string",
+      "options?": [
+       "array",
+       {
+        "label": "string",
+        "value": "string"
+       }
+      ],
+      "type": "string"
+     }
+    ]
+   },
+   "savedUserConfig": "null"
+  }
+ },
+ "GetExtensionUserConfig.dkb": {
+  "method": "GET",
+  "endpoint": "/api/v1/extensions/user-config/{id}",
+  "request": null,
+  "data": {
+   "userConfig": "null",
+   "savedUserConfig": "null"
+  }
+ },
+ "GetExtensionUpdateData": {
+  "method": "GET",
+  "endpoint": "/api/v1/extensions/updates",
+  "request": null,
+  "data": "null"
+ },
+ "GetMarketplaceExtensions": {
+  "method": "GET",
+  "endpoint": "/api/v1/extensions/marketplace",
+  "request": null,
+  "data": [
+   "array",
+   {
+    "author": "string",
+    "description": "string",
+    "icon": "string",
+    "id": "string",
+    "lang": "string",
+    "language": "string",
+    "manifestURI": "string",
+    "name": "string",
+    "payload": "string",
+    "readme": "string",
+    "type": "string",
+    "version": "string",
+    "website": "string"
+   }
+  ]
+ },
+ "SaveExtensionUserConfig": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/user-config",
+  "request": {
+   "id": "string",
+   "version": "number",
+   "values": {
+    "greeting": "string"
+   }
+  },
+  "data": "boolean",
+  "after": {
+   "userConfig": {
+    "version": "number",
+    "requiresConfig": "boolean",
+    "fields": [
+     "array",
+     {
+      "default": "string",
+      "label": "string",
+      "name": "string",
+      "type": "string"
+     }
+    ]
+   },
+   "savedUserConfig": {
+    "version": "number",
+    "values": {
+     "greeting": "string"
+    }
+   }
+  }
+ },
+ "ReloadExternalExtension": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/external/reload",
+  "request": {
+   "id": "string"
+  },
+  "data": "boolean"
+ },
+ "InstallExternalExtension": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/external/install",
+  "request": {
+   "manifestUri": "string"
+  },
+  "data": {
+   "message": "string"
+  },
+  "after": {
+   "userConfig": {
+    "version": "number",
+    "requiresConfig": "boolean",
+    "fields": [
+     "array",
+     {
+      "default": "string",
+      "label": "string",
+      "name": "string",
+      "type": "string"
+     }
+    ]
+   },
+   "savedUserConfig": "null"
+  }
+ },
+ "UninstallExternalExtension.probe": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/external/uninstall",
+  "request": {
+   "id": "string"
+  },
+  "data": "boolean"
+ },
+ "GetAllExtensions.withDisabled": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/all",
+  "request": null,
+  "data": {
+   "extensions": [
+    "array",
+    {
+     "author": "string",
+     "description": "string",
+     "icon": "string",
+     "id": "string",
+     "lang": "string",
+     "language": "string",
+     "manifestURI": "string",
+     "name": "string",
+     "payload": "string",
+     "readme": "string",
+     "type": "string",
+     "version": "string",
+     "website": "string"
+    }
+   ],
+   "invalidExtensions": [
+    "array"
+   ],
+   "disabledExtensions": [
+    "array",
+    {
+     "author": "string",
+     "description": "string",
+     "icon": "string",
+     "id": "string",
+     "lang": "string",
+     "language": "string",
+     "manifestURI": "string",
+     "name": "string",
+     "payload": "string",
+     "payloadURI": "string",
+     "readme": "string",
+     "type": "string",
+     "userConfig": {
+      "fields": [
+       "array",
+       {
+        "default": "string",
+        "label": "string",
+        "name": "string",
+        "type": "string"
+       }
+      ],
+      "requiresConfig": "boolean",
+      "version": "number"
+     },
+     "version": "string",
+     "website": "string"
+    }
+   ],
+   "invalidUserConfigExtensions": [
+    "array"
+   ],
+   "hasUpdate": "null",
+   "unsafeExtensions": {}
+  }
+ },
+ "InstallExternalExtensionRepository.preview": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/external/install-repository",
+  "request": {
+   "install": "boolean",
+   "repositoryUri": "string"
+  },
+  "data": {
+   "extensions": [
+    "array",
+    {
+     "author": "string",
+     "description": "string",
+     "icon": "string",
+     "id": "string",
+     "lang": "string",
+     "language": "string",
+     "manifestURI": "string",
+     "name": "string",
+     "payload": "string",
+     "readme": "string",
+     "type": "string",
+     "version": "string",
+     "website": "string",
+     "payloadURI?": "string",
+     "userConfig?": {
+      "fields": [
+       "array",
+       {
+        "default": "string",
+        "label": "string",
+        "name": "string",
+        "type": "string"
+       }
+      ],
+      "requiresConfig": "boolean",
+      "version": "number"
+     }
+    }
+   ],
+   "message": "string"
+  }
+ },
+ "InstallExternalExtensionRepository.install": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/external/install-repository",
+  "request": {
+   "install": "boolean",
+   "repositoryUri": "string"
+  },
+  "data": {
+   "extensions": [
+    "array",
+    {
+     "author": "string",
+     "description": "string",
+     "icon": "string",
+     "id": "string",
+     "lang": "string",
+     "language": "string",
+     "manifestURI": "string",
+     "name": "string",
+     "payload": "string",
+     "readme": "string",
+     "type": "string",
+     "version": "string",
+     "website": "string",
+     "payloadURI?": "string",
+     "userConfig?": {
+      "fields": [
+       "array",
+       {
+        "default": "string",
+        "label": "string",
+        "name": "string",
+        "type": "string"
+       }
+      ],
+      "requiresConfig": "boolean",
+      "version": "number"
+     }
+    }
+   ],
+   "message": "string"
+  }
+ },
+ "UpdateExtensionCode": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/external/edit-payload",
+  "request": {
+   "id": "string",
+   "payload": "string"
+  },
+  "data": "boolean"
+ },
+ "SetExternalExtensionDisabled.disable": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/external/disabled",
+  "request": {
+   "disabled": "boolean",
+   "id": "string"
+  },
+  "data": "boolean"
+ },
+ "SetExternalExtensionDisabled.enable": {
+  "method": "POST",
+  "endpoint": "/api/v1/extensions/external/disabled",
+  "request": {
+   "disabled": "boolean",
+   "id": "string"
+  },
+  "data": "boolean"
+ }
+}

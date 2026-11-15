@@ -35,6 +35,7 @@ import { atom } from "jotai"
 import { useAtom } from "jotai/react"
 import React from "react"
 import { toast } from "@/components/ui/toast/toast-store"
+import { onlyWithServer } from "@/lib/server/without-server"
 
 const pluginWithIssuesCountAtom = atom(0)
 
@@ -179,7 +180,8 @@ export function useListAnimeEntryEpisodeTabExtensions() {
         endpoint: API_ENDPOINTS.EXTENSIONS.ListAnimeEntryEpisodeTabExtensions.endpoint,
         method: API_ENDPOINTS.EXTENSIONS.ListAnimeEntryEpisodeTabExtensions.methods[0],
         queryKey: [API_ENDPOINTS.EXTENSIONS.ListAnimeEntryEpisodeTabExtensions.key],
-        enabled: true,
+        // plugin tabs for the settings' episode source choice (plugins live in the server): no screen of its own
+        enabled: onlyWithServer(),
     })
 }
 
@@ -221,7 +223,8 @@ export function useListDevelopmentModeExtensions() {
         endpoint: API_ENDPOINTS.EXTENSIONS.ListDevelopmentModeExtensions.endpoint,
         method: API_ENDPOINTS.EXTENSIONS.ListDevelopmentModeExtensions.methods[0],
         queryKey: [API_ENDPOINTS.EXTENSIONS.ListDevelopmentModeExtensions.key],
-        enabled: true,
+        // asked by the plugin button on every screen with a top bar: no screen of its own
+        enabled: onlyWithServer(),
     })
 }
 
@@ -256,7 +259,8 @@ export function useGetPluginSettings() {
         endpoint: API_ENDPOINTS.EXTENSIONS.GetPluginSettings.endpoint,
         method: API_ENDPOINTS.EXTENSIONS.GetPluginSettings.methods[0],
         queryKey: [API_ENDPOINTS.EXTENSIONS.GetPluginSettings.key],
-        enabled: true,
+        // asked by the plugin button on every screen with a top bar: no screen of its own
+        enabled: onlyWithServer(),
     })
 }
 
@@ -288,13 +292,14 @@ export function useGrantPluginPermissions() {
     })
 }
 
-export function useGetMarketplaceExtensions(marketplaceUrl?: string) {
+/** `enabled` false: nothing is fetched (the add-marketplace sheet previews a link only once it is one) */
+export function useGetMarketplaceExtensions(marketplaceUrl?: string, enabled = true) {
     const url = marketplaceUrl ? `?marketplace=${encodeURIComponent(marketplaceUrl)}` : ""
     return useServerQuery<Array<Extension_Extension>>({
         endpoint: `${API_ENDPOINTS.EXTENSIONS.GetMarketplaceExtensions.endpoint}${url}`,
         method: API_ENDPOINTS.EXTENSIONS.GetMarketplaceExtensions.methods[0],
         queryKey: [API_ENDPOINTS.EXTENSIONS.GetMarketplaceExtensions.key, marketplaceUrl],
-        enabled: true,
+        enabled,
     })
 }
 

@@ -1,5 +1,6 @@
 import type { Anime_Episode, DebridClient_StreamState } from "@/api/generated/types"
 import { atomWithStorage } from "@/lib/storage"
+import type { AutoSelectChoice } from "@/main/entry/_containers/torrent-stream/_lib/auto-select-choice"
 import { atom, useAtom } from "jotai"
 
 /*
@@ -16,6 +17,8 @@ export const __debridstream_stateAtom = atom<DebridClient_StreamState | null>(nu
 // torrent-stream-page.tsx
 export const __torrentStream_autoSelectFileAtom = atomWithStorage("sea-torrentstream-auto-select-file", true)
 export const __torrentStream_currentSessionAutoSelectAtom = atom(false)
+// the page switch as the user left it (auto-select-choice.ts): leaving the page no longer turns it back on
+export const __torrentStream_autoSelectChoiceAtom = atomWithStorage<AutoSelectChoice | null>("sea-torrentstream-auto-select-choice", null)
 
 // debrid-stream-page.tsx
 export const __debridStream_autoSelectFileAtom = atomWithStorage("sea-debridstream-manually-select-file", false)

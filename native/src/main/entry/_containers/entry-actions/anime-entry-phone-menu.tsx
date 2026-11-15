@@ -1,6 +1,6 @@
 import type { AL_AnimeDetailsById_Media, Anime_Entry } from "@/api/generated/types"
 import { useDeleteLocalFiles, useUpdateLocalFiles } from "@/api/hooks/localfiles.hooks"
-import { useDeleteMediaMetadataParent, useGetMediaMetadataParent, usePopulateFillerData, useRemoveFillerData, useSaveMediaMetadataParent } from "@/api/hooks/metadata.hooks"
+import { useDeleteMediaMetadataParent, useGetMediaMetadataParent, useSaveMediaMetadataParent } from "@/api/hooks/metadata.hooks"
 import { ActionRow, PickRow, RowGroup } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
@@ -155,17 +155,13 @@ function NumberField({ label, value, onChange, placeholder, note }: { label: str
 
 /** Filler episodes from AnimeFillerList, and for specials without AniDB data the parent series their metadata comes from */
 function MetadataSheet({ t, entry, details, open, onOpenChange }: SheetProps & { details?: AL_AnimeDetailsById_Media }) {
-    const { mutate: populate, isPending: populating } = usePopulateFillerData()
-    const { mutate: removeFiller, isPending: removing } = useRemoveFillerData()
     const { data: stored, isLoading } = useGetMediaMetadataParent(entry.mediaId)
     const { mutate: saveParent, isPending: saving } = useSaveMediaMetadataParent()
     const { mutate: deleteParent, isPending: deleting } = useDeleteMediaMetadataParent()
     const [edited, setEdited] = React.useState<{ parentId?: string, offset?: string }>({})
     const parentId = edited.parentId ?? (stored?.id ? String(stored.parentId || "") : "")
     const offset = edited.offset ?? (stored?.id ? String(stored.specialOffset || "") : "")
-    const series = entry.media?.format === "TV" || entry.media?.format === "TV_SHORT" || entry.media?.format === "ONA"
     const suggested = details?.relations?.edges?.find(edge => edge?.relationType === "PARENT")?.node?.id
-    const busy = populating || removing
     const parentBusy = saving || deleting
 
     return <Sheet title={t("Filler and specials", "Filler und Specials")} open={open} onOpenChange={onOpenChange}
@@ -177,16 +173,6 @@ function MetadataSheet({ t, entry, details, open, onOpenChange }: SheetProps & {
                 {t("Save series link", "Serien-Verknüpfung speichern")}
             </Button>
         </> : undefined}>
-        <SheetGroup title={t("Filler episodes", "Filler-Folgen")}
-            note={series ? t("From AnimeFillerList. Filler episodes are marked in the episode list.", "Von AnimeFillerList. Filler-Folgen werden in der Folgenliste markiert.")
-                : t("AnimeFillerList only covers TV and web series.", "AnimeFillerList kennt nur TV- und Web-Serien.")}>
-            <RowGroup>
-                <ActionRow label={populating ? t("Fetching…", "Wird abgerufen…") : t("Fetch filler info", "Filler-Infos abrufen")} disabled={!series || busy}
-                    onPress={() => populate({ mediaId: entry.mediaId })} />
-                <ActionRow label={removing ? t("Removing…", "Wird entfernt…") : t("Remove filler info", "Filler-Infos entfernen")} disabled={!series || busy}
-                    onPress={() => removeFiller({ mediaId: entry.mediaId })} />
-            </RowGroup>
-        </SheetGroup>
         {!entry.anidbId && <SheetGroup title={t("Specials", "Specials")}
             note={t("Without AniDB data, specials can take their episode titles and pictures from the series they belong to.",
                 "Ohne AniDB-Daten können Specials Folgentitel und Bilder von ihrer Serie übernehmen.")}>

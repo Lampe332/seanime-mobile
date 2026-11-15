@@ -43,8 +43,6 @@ example
 /ios
 /android
 
-# Go server binary, built by scripts/build-android.ps1
-/modules/seanime-server/android/src/main/jniLibs/
 
 # Device screenshots (may show private content)
 /docs-shots/

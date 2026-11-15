@@ -130,6 +130,20 @@ export function miniFrame(s: { width: number, rail: boolean, navBar: number, ins
     }
 }
 
+/** Whether the player shows as the mini player: open (`now` set), small and without its box on the current page. */
+export function miniPlayerShown(small: boolean, now: { owner: string | null } | null, boxSlotOwner: string | null | undefined): boolean {
+    return !!now && playerView(small, !!now.owner && boxSlotOwner === now.owner) === "mini"
+}
+
+/**
+ * The running playlist's round button (global-playlist-manager): 16dp over the phone's navigation bar (tablet: over the
+ * bottom edge), and 16dp above the mini player while that shows, so the mini player's × stays free.
+ */
+export function playlistButtonBottom(s: { rail: boolean, navBar: number, insetBottom: number, mini: MiniFrame | null }): number {
+    const base = (s.rail ? 0 : s.navBar) + s.insetBottom + 16
+    return s.mini ? Math.max(base, s.mini.bottom + s.mini.height + 16) : base
+}
+
 /**
  * What a loaded file does first. mpv keeps its pause flag across files, so an episode picked while the last one was paused
  * loaded paused (r21 test); with "Auto play" a new episode starts (old `<video autoplay>`) unless a pause came in while it

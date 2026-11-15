@@ -188,8 +188,9 @@ export function byMeanScore<T extends { meanScore?: number | null }>(media: T[] 
 }
 
 /** AniList's mean score as a percentage: "82%" / "82 %". */
-export function scoreLabel(t: Translate, score: number | null | undefined) {
-    return score ? t(`${score}%`, `${score} %`) : ""
+export function scoreLabel(t: Translate, score: number | null | undefined, hidden = false) {
+    // "Hide audience score" (anilist.hideAudienceScore) leaves it out
+    return score && !hidden ? t(`${score}%`, `${score} %`) : ""
 }
 
 const LIST_STATUS_LABELS: Record<AL_MediaListStatus, { anime: [string, string], manga: [string, string] }> = {

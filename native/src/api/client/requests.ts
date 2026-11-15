@@ -1,11 +1,9 @@
-import { getServerBaseUrl } from "@/api/client/server-url"
+import { coreRequestFor, serverOffError } from "@/api/client/core-switch"
 import { toast } from "@/components/ui/toast/toast-store"
 import { serverAuthTokenAtom } from "@/main/_atoms/server-status.atoms"
 import { requestErrorSummary } from "@/lib/helpers/log-safe"
-import { getClientId, getClientIdProof, setClientIdentity } from "@/lib/server/client-id"
-import { __clientPlatform__ } from "@/types/constants"
 import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from "@tanstack/react-query"
-import axios, { AxiosError } from "axios"
+import { AxiosError } from "axios"
 import { getDefaultStore, useAtomValue } from "jotai"
 import { RESET } from "jotai/utils"
 import { useEffect } from "react"
@@ -62,8 +60,7 @@ function isAuthFailureResponse(status: number | undefined, data: unknown): boole
 
 /**
  * The web app removed the stored server password and reloaded on /public/auth. The native app has no page to reload: it
- * resets the token atom (which also removes the stored value), and the root layout shows the server-password screen while
- * the server has a password and no token is stored (the same condition that pauses the WebSocket).
+ * resets the token atom (which also removes the stored value).
  */
 function _handleAuthFailure() {
     if (authRedirectInProgress) return
@@ -81,9 +78,12 @@ function checkAuthError(error: SeaError | AxiosError | null | undefined) {
 }
 
 /**
- * Create axios query to the server
+ * A request of the hooks, answered by the app's own core (docs/EIGENER-KERN.md) without HTTP.
  * - First generic: Return type
  * - Second generic: Params/Data type
+ *
+ * What the core has no code for needed the Go server, which is no longer in the app since stage 8a-1 (§4s): it fails at
+ * once, as a server error with status 503 (§4p, phase 5c-1), and the hooks show their error as before.
  */
 export async function buildSeaQuery<T, D extends any = any>(
     {
@@ -91,82 +91,10 @@ export async function buildSeaQuery<T, D extends any = any>(
         method,
         data,
         params,
-        password,
     }: SeaQuery<D>): Promise<T | undefined> {
-    const headers: Record<string, string> = {}
-
-    if (password) {
-        headers["X-Seanime-Token"] = password
-    }
-
-    const clientId = getClientId()
-    const clientIdProof = getClientIdProof()
-    if (clientId) {
-        headers["X-Seanime-Client-Id"] = clientId
-    }
-    if (clientIdProof) {
-        headers["X-Seanime-Client-Id-Proof"] = clientIdProof
-    }
-    headers["X-Seanime-Client-Platform"] = __clientPlatform__
-    // The WebView's requests were same-origin and carried this Origin; the server's local-security guard
-    // (handlers/local_security.go) only allows privileged actions (first start, settings, extensions) from a trusted
-    // local origin. React Native sends no Origin of its own.
-    headers["Origin"] = getServerBaseUrl()
-
-    let res
-    try {
-        res = await axios<T>({
-            url: getServerBaseUrl() + endpoint,
-            method,
-            data,
-            params,
-            headers,
-            withCredentials: true,
-        })
-    }
-    catch (error) {
-        if (axios.isAxiosError(error)) {
-            checkAuthError(error)
-        }
-        throw error
-    }
-
-    syncClientIdFromHeader(res.headers)
-
-    const response = _handleSeaResponse<T>(res.data)
-    return response.data
-}
-
-function syncClientIdFromHeader(headers: unknown) {
-    if (!headers) return
-
-    const clientId = getHeaderValue(headers, "x-seanime-client-id")
-    const clientIdProof = getHeaderValue(headers, "x-seanime-client-id-proof")
-
-    if (clientId) {
-        setClientIdentity(clientId, clientIdProof)
-    }
-}
-
-function getHeaderValue(headers: unknown, name: string): string {
-    if (typeof headers === "object" && headers !== null && "get" in headers && typeof headers.get === "function") {
-        const value = headers.get(name)
-        if (typeof value === "string" && value.trim()) {
-            return value.trim()
-        }
-        return ""
-    }
-
-    const rawValue = (headers as Record<string, string | string[] | undefined>)[name]
-    if (typeof rawValue === "string" && rawValue.trim()) {
-        return rawValue.trim()
-    }
-
-    if (Array.isArray(rawValue) && typeof rawValue[0] === "string" && rawValue[0].trim()) {
-        return rawValue[0].trim()
-    }
-
-    return ""
+    const fromCore = coreRequestFor<T>(method, endpoint)
+    if (fromCore) return fromCore(data, params)
+    throw serverOffError(method, endpoint)
 }
 
 type ServerMutationProps<R, V = void> = UseMutationOptions<R | undefined, SeaError, V, unknown> & {
@@ -299,17 +227,4 @@ function _handleSeaError(data: any): string {
         }
         return "Error: " + err
     }
-}
-
-function _handleSeaResponse<T>(res: unknown): { data: T | undefined, error: string | undefined } {
-
-    if (typeof res === "object" && !!res && "error" in res && typeof res.error === "string") {
-        return { data: undefined, error: res.error }
-    }
-    if (typeof res === "object" && !!res && "data" in res) {
-        return { data: res.data as T, error: undefined }
-    }
-
-    return { data: undefined, error: "No response from the server" }
-
 }

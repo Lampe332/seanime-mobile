@@ -1,3 +1,4 @@
+import { useIncognito, useSetAppSwitches } from "@/api/hooks/app-switches.hooks"
 import { menuIn, menuOut } from "@/components/ui/core/animations"
 import { useCloseOnBack } from "@/components/ui/core/back-handler"
 import { GlidePill, GlideStandIn, useGlide } from "@/components/ui/core/glide"
@@ -9,6 +10,9 @@ import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
 import { isActive, MAX_NAV_ITEMS, menuTargets, navIcon, navLabel, type NavItem } from "@/lib/nav/nav-items"
 import { useAllNavItems } from "@/lib/nav/nav-store"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
+import { updateDotOn } from "@/main/extensions/_lib/extension-updates"
+import { useExtensionUpdateCount } from "@/main/extensions/_lib/use-extension-updates"
+import { useUpdatesCount } from "@/lib/updates/use-updates"
 import { pressTourTarget, TOUR_TARGETS, useTourTarget } from "@/main/_features/tour/tour-targets"
 import { colors, sizes } from "@/lib/theme/tokens"
 import { Image } from "expo-image"
@@ -57,12 +61,21 @@ function NavEntry({ item, active, dense, rail, railHeight, onPress, onLayout, st
     const label = navLabel(item.label, language)
     // the setup tour points at the Menu button
     const tourRef = useTourTarget(item.isMenu ? TOUR_TARGETS.menu : null)
+    // extension updates: a dot on Extensions, or on Menu while Extensions is in the Menu (extension-updates.ts)
+    const updates = useExtensionUpdateCount()
+    const extensionsInBar = useNavItems().some(entry => entry.href === "/extensions")
+    // new episodes/chapters (Updates): a dot on its bar entry, or on Menu while Updates is in the Menu
+    const fresh = useUpdatesCount()
+    const updatesInBar = useNavItems().some(entry => entry.href === "/updates")
+    const dot = updateDotOn(item, updates, extensionsInBar) || (fresh > 0 && (item.href === "/updates" || (!!item.isMenu && !updatesInBar)))
+    // incognito mode: a small mask on the Menu button, so it is not forgotten (the switch is in the Menu)
+    const incognito = useIncognito() && !!item.isMenu
     return (
         <Pressable
             ref={tourRef}
             accessibilityRole={item.isMenu ? "button" : "tab"}
             accessibilityState={{ selected: active }}
-            accessibilityLabel={label}
+            accessibilityLabel={[label, dot ? (language === "de" ? "Updates verfügbar" : "updates available") : "", incognito ? (language === "de" ? "Inkognito an" : "incognito on") : ""].filter(Boolean).join(", ")}
             onPress={() => {
                 if (item.isMenu) pressTourTarget(TOUR_TARGETS.menu)
                 onPress()
@@ -79,11 +92,20 @@ function NavEntry({ item, active, dense, rail, railHeight, onPress, onLayout, st
             )}
         >
             {standIn}
-            <MobileIcon
-                name={navIcon(item)}
-                size={dense && !rail ? sizes.navIconDense : sizes.navIcon}
-                color={active ? colors.navActive : colors.navItem}
-            />
+            <View>
+                <MobileIcon
+                    name={navIcon(item)}
+                    size={dense && !rail ? sizes.navIconDense : sizes.navIcon}
+                    color={active ? colors.navActive : colors.navItem}
+                />
+                {dot && !incognito && <View pointerEvents="none" className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-sm-accent" />}
+                {incognito && (
+                    <View pointerEvents="none" style={{ backgroundColor: colors.smAccent }}
+                        className="absolute -right-2.5 -top-1.5 h-[17px] w-[17px] items-center justify-center rounded-full border border-black/40">
+                        <MobileIcon name="incognito" size={11} color="#ffffff" />
+                    </View>
+                )}
+            </View>
             {/* UIBottomNav.kt: one line, never an ellipsis. Android lays the label out a little wider than the WebView did, so a
                 label that just fit there ("Meine Listen") shrinks by up to 12 % instead of ending in "Meine Lis…" */}
             <Text
@@ -186,7 +208,7 @@ export function NavRail({ items, pathname, menuOpen, onNavigate, onMenu, short }
             {!short && (
                 <Image
                     source={require("../../../assets/images/seanime-logo.png")}
-                    accessibilityLabel="Seanime"
+                    accessibilityLabel="Seanime Mobile"
                     style={{ position: "absolute", top: insets.top + 20, left: (sizes.tabletRail - sizes.tabletRailMark) / 2, width: sizes.tabletRailMark, height: sizes.tabletRailMark, borderRadius: 12 }}
                     contentFit="cover"
                 />
@@ -195,11 +217,16 @@ export function NavRail({ items, pathname, menuOpen, onNavigate, onMenu, short }
     )
 }
 
-function MenuRow({ label, icon, current, first, tourTarget, onPress }: {
+function MenuRow({ label, icon, current, first, tourTarget, onPress, count, countLabel, state }: {
     label: string
     icon: React.ComponentProps<typeof MobileIcon>["name"]
     current: boolean
     first: boolean
+    /** a switch row (incognito mode): its state as a small "On"/"Off" at the row's end */
+    state?: { on: boolean, label: string }
+    /** a count at the row's end (Extensions: updates) and how it is read out */
+    count?: number
+    countLabel?: string
     /** the setup tour points at this row (Extensions) */
     tourTarget?: string
     onPress: () => void
@@ -211,8 +238,9 @@ function MenuRow({ label, icon, current, first, tourTarget, onPress }: {
             {!first && !current && <View pointerEvents="none" className="absolute left-16 right-3 top-0 h-px bg-white/5" />}
             <Pressable
                 ref={tourRef}
-                accessibilityRole="button"
-                accessibilityState={{ selected: current }}
+                accessibilityRole={state ? "switch" : "button"}
+                accessibilityState={state ? { checked: state.on } : { selected: current }}
+                accessibilityLabel={count ? `${label}, ${countLabel ?? count}` : undefined}
                 onPress={() => {
                     if (tourTarget) pressTourTarget(tourTarget)
                     onPress()
@@ -238,6 +266,16 @@ function MenuRow({ label, icon, current, first, tourTarget, onPress }: {
                 >
                     {label}
                 </Text>
+                {!!count && (
+                    <View className="h-6 min-w-6 items-center justify-center rounded-full bg-sm-accent-soft px-2">
+                        <Text className="text-[13px] font-semibold text-sm-accent" style={{ fontVariant: ["tabular-nums"] }}>{count}</Text>
+                    </View>
+                )}
+                {!!state && (
+                    <View className={cn("h-6 items-center justify-center rounded-full px-2.5", state.on ? "bg-sm-accent-soft" : "bg-white/6")}>
+                        <Text className={cn("text-[12.5px] font-semibold", state.on ? "text-sm-accent" : "text-white/60")}>{state.label}</Text>
+                    </View>
+                )}
             </Pressable>
         </Animated.View>
     )
@@ -265,12 +303,16 @@ export function NavMenu({ open, onClose, pathname, onOpen, rail, barItems, actio
     const barHeight = useNavBarHeight()
     const { height, width } = useWindowDimensions()
     const language = useAtomValue(appLanguageAtom)
+    const updates = useExtensionUpdateCount()
+    const fresh = useUpdatesCount()
     const allItems = useAllNavItems()
     // Manga only while it is on (Settings › More › Manga), as in the web sidebar
     const librarySettings = useServerStatus()?.settings?.library
     const mangaEnabled = !!librarySettings?.enableManga
     // Scan summaries only once a library folder is set, as in the web sidebar
     const hasLibrary = !!librarySettings?.libraryPath
+    const incognito = useIncognito()
+    const { mutate: setSwitches } = useSetAppSwitches()
     useCloseOnBack(open, onClose)
     if (!open) return null
 
@@ -305,14 +347,27 @@ export function NavMenu({ open, onClose, pathname, onOpen, rail, barItems, actio
             >
                 <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
                     {header}
+                    {/* the quick switch: stays open on a tap, so the change is seen */}
+                    <MenuRow
+                        label={language === "de" ? "Inkognito-Modus" : "Incognito mode"}
+                        icon="incognito"
+                        first
+                        current={incognito}
+                        state={{ on: incognito, label: incognito ? (language === "de" ? "An" : "On") : (language === "de" ? "Aus" : "Off") }}
+                        onPress={() => setSwitches({ incognitoMode: !incognito })}
+                    />
                     {entries.map((entry, i) => (
                         <MenuRow
                             key={entry.id}
                             label={navLabel(entry.label, language)}
                             icon={entry.icon}
-                            first={i === 0}
+                            first={false}
                             current={pathname === entry.href}
                             tourTarget={entry.href === "/extensions" ? TOUR_TARGETS.menuExtensions : undefined}
+                            count={entry.href === "/extensions" ? updates : entry.href === "/updates" ? fresh : undefined}
+                            countLabel={entry.href === "/updates" ? (language === "de" ? `${fresh} neu` : `${fresh} new`)
+                                : updates === 1 ? (language === "de" ? "1 Update verfügbar" : "1 update available")
+                                    : language === "de" ? `${updates} Updates verfügbar` : `${updates} updates available`}
                             onPress={() => onOpen(entry.href)}
                         />
                     ))}
@@ -321,7 +376,7 @@ export function NavMenu({ open, onClose, pathname, onOpen, rail, barItems, actio
                             key={action.id}
                             label={navLabel(action.label, language)}
                             icon={action.icon}
-                            first={entries.length === 0 && i === 0}
+                            first={false}
                             current={false}
                             onPress={() => {
                                 onClose()

@@ -4,7 +4,7 @@
  * here (docs/NATIVE-UMBAU.md §9 "E6 Datenübernahme"). Runs before any atom reads storage (index.ts imports
  * legacy-preferences-run.ts first) and never overwrites a value the new app already has.
  */
-import type { LegacyPreferences } from "../../modules/seanime-server"
+import type { LegacyPreferences } from "../../modules/core-download"
 
 /** MMKV keys of the new app (lib/app-language.ts, lib/feedback.ts, lib/airing/airing-notifier.ts). */
 export const LEGACY_TARGET_KEYS = {

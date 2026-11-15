@@ -1,6 +1,8 @@
 import type { Anime_Episode, Continuity_WatchHistory } from "@/api/generated/types"
 import { getEpisodeMinutesRemaining, getEpisodePercentageComplete, useGetContinuityWatchHistory } from "@/api/hooks/continuity.hooks"
+import { Button } from "@/components/ui/button/button"
 import { SectionTitle, Text } from "@/components/ui/text/text"
+import { CONTINUE_WATCHING_EMPTY_ACTIONS } from "@/main/_features/anime-library/_lib/continue-watching-empty"
 import { useTr } from "@/lib/app-language"
 import { getSpoilerFreeAnimeImage, useContinueWatchingSpoilers, useEpisodeSpoilerState } from "@/lib/theme/anime-spoilers"
 import { colors } from "@/lib/theme/tokens"
@@ -32,6 +34,7 @@ export function ContinueWatching({ episodes }: { episodes: Anime_Episode[] }) {
     const { data: watchHistory } = useGetContinuityWatchHistory()
     const { width } = useWindowDimensions()
     const tileWidth = Math.round(Math.min(width * 0.86, 352))
+    const router = useRouter()
 
     return (
         // 2.0.32 left 24dp more under the tiles (pb-6) than between the other rows; r16 (Nick 10.11., on purpose unlike 2.0.32/2.0.33):
@@ -53,8 +56,16 @@ export function ContinueWatching({ episodes }: { episodes: Anime_Episode[] }) {
                     contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
                 />
             ) : (
-                <View className="rounded-surface bg-sm-surface p-5">
+                <View className="gap-4 rounded-surface bg-sm-surface p-5">
                     <Text className="text-sm-text-muted">{t("No episodes to continue. Choose a series from your library.", "Keine Folge zum Fortsetzen. Wähle eine Serie aus deiner Bibliothek.")}</Text>
+                    {/* the ways on (continue-watching-empty.ts): the lists as the filled button, Discover as the quiet one */}
+                    <View className="flex-row flex-wrap gap-2">
+                        {CONTINUE_WATCHING_EMPTY_ACTIONS.map((action, index) => (
+                            <Button key={action.id} intent={index === 0 ? "primary" : "secondary"} onPress={() => router.push(action.href)}>
+                                {t(action.label[0], action.label[1])}
+                            </Button>
+                        ))}
+                    </View>
                 </View>
             )}
         </View>

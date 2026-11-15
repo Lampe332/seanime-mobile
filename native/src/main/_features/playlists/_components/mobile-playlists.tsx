@@ -25,7 +25,7 @@ import React from "react"
 import { ActivityIndicator, Pressable, TextInput, View } from "react-native"
 import { usePlaylistManager } from "../_containers/global-playlist-manager"
 import {
-    createPlaylistMutationGate, MAX_PLAYLIST_EPISODES, movePlaylistEpisode, playlistAnimeChoices, playlistLibraryCollection, samePlaylistEpisode, selectPlaylistEpisodes,
+    createPlaylistMutationGate, defaultPlaylistWatchType, MAX_PLAYLIST_EPISODES, movePlaylistEpisode, playlistAnimeChoices, playlistLibraryCollection, samePlaylistEpisode, selectPlaylistEpisodes,
     togglePlaylistEpisode,
 } from "../lib/mobile-playlist-state"
 import { usePlaylistEditorManager } from "../lib/playlist-editor-manager"
@@ -90,7 +90,7 @@ export function MobilePlaylists() {
         ...(hasDebridService ? [{ value: "debrid", label: t("Debrid streaming", "Debrid-Streaming") }] : []),
         ...(hasOnlineStreaming ? [{ value: "online", label: t("Online streaming", "Online-Streaming") }] : []),
     ]
-    const defaultWatchType = (hasTorrentStreaming ? "torrent" : hasDebridService ? "debrid" : "") as Anime_WatchType
+    const defaultWatchType = defaultPlaylistWatchType({ torrent: hasTorrentStreaming, debrid: hasDebridService, online: hasOnlineStreaming })
     const entries = React.useMemo(() => playlistAnimeChoices(collection, category, search), [collection, category, search])
 
     // "Add to playlist" of an anime that is neither in the library nor watched (playlist-list-modal.tsx)

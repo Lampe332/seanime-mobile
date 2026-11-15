@@ -968,6 +968,8 @@ export type UpdateMangaProgress_Variables = {
     malId?: number
     chapterNumber: number
     totalChapters: number
+    /** the reader's automatic progress (not the user's mark): refused in incognito mode (core/settings/incognito.ts) */
+    auto?: boolean
 }
 
 /**

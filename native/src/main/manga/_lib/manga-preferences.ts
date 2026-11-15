@@ -73,3 +73,27 @@ export function getActiveMangaFilters(
 
     return filters
 }
+
+/** The source for a manga without one: the saved default when it is installed, otherwise the first installed one */
+export function defaultMangaProvider(
+    savedDefault: string | undefined,
+    extensions: ExtensionRepo_MangaProviderExtensionItem[] | undefined,
+): string | null {
+    const saved = savedDefault ? extensions?.find(extension => extension.id === savedDefault) : undefined
+    return saved?.id ?? extensions?.[0]?.id ?? null
+}
+
+/** Stored sources that are no longer installed (such as the old built-in "local-manga") replaced; null when none is */
+export function withInstalledProviders(
+    stored: Record<string, string>,
+    extensions: ExtensionRepo_MangaProviderExtensionItem[],
+    fallback: string,
+): Record<string, string> | null {
+    let next: Record<string, string> | null = null
+    for (const [mediaId, providerId] of Object.entries(stored)) {
+        if (extensions.some(extension => extension.id === providerId)) continue
+        next ??= { ...stored }
+        next[mediaId] = fallback
+    }
+    return next
+}

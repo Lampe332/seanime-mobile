@@ -2,7 +2,7 @@ import { Text } from "@/components/ui/text/text"
 import { Image } from "expo-image"
 import React from "react"
 import { View } from "react-native"
-import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated"
+import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated"
 
 /*
  * loading-overlay-with-logo.tsx: the logo (100dp) and a spaced word over the page while the server starts. Tailwind's
@@ -12,6 +12,8 @@ export function LoadingOverlayWithLogo({ title }: { title?: string }) {
     const pulse = useSharedValue(1)
     React.useEffect(() => {
         pulse.set(withRepeat(withTiming(0.5, { duration: 1000, easing: Easing.bezier(0.4, 0, 0.6, 1), reduceMotion: ReduceMotion.System }), -1, true))
+        // An endless animation keeps running on the UI thread after the overlay is gone (every frame, nothing drawn)
+        return () => cancelAnimation(pulse)
     }, [pulse])
     const style = useAnimatedStyle(() => ({ opacity: pulse.get() }))
 

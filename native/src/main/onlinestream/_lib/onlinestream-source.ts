@@ -79,17 +79,23 @@ export function proxyUrl(baseUrl: string, url: string, headers: Record<string, s
 export type OnlineStream = {
     url: string
     subtitles: { index: number, label: string, language: string, src: string, default: boolean }[]
+    /** Only without the proxy (`direct`): the headers the player itself has to send, {} when the source needs none. */
+    headers?: Record<string, string>
 }
 
 /**
  * The URL the player gets, with its subtitle files: a source with headers goes through the server's proxy (which sends
  * the headers to the provider), the others are played directly.
+ *
+ * `direct` (core area "streams", docs/EIGENER-KERN.md, off by default): no proxy; the provider's own addresses go to the
+ * player together with the headers, and mpv sends them with every request of the stream.
  */
-export function buildOnlineStream(source: Onlinestream_VideoSource, baseUrl: string, tokenQuery: string): OnlineStream {
+export function buildOnlineStream(source: Onlinestream_VideoSource, baseUrl: string, tokenQuery: string, direct: boolean = false): OnlineStream {
     const headers = source.headers
-    const shouldProxy = !!headers && Object.keys(headers).length > 0
+    const shouldProxy = !direct && !!headers && Object.keys(headers).length > 0
     const wrap = (url: string) => shouldProxy ? proxyUrl(baseUrl, url, headers!, tokenQuery) : url
     return {
+        ...(direct ? { headers: headers ?? {} } : {}),
         url: wrap(source.url),
         subtitles: (source.subtitles ?? []).map((sub, index) => ({
             index,

@@ -15,7 +15,6 @@ import {
     useSaveSetting,
     useSettingValue,
 } from "@/main/settings/_components/settings-kit"
-import { PickFolderButton } from "@/main/settings/_components/pick-folder"
 import { atom, useAtom } from "jotai"
 import React from "react"
 
@@ -36,7 +35,6 @@ const storedProvidersHistoryAtom = atom<Record<string, string> | null>(null)
 export function SettingsMangaSection({ t }: { t: Translate }) {
     const save = useSaveSetting()
     const defaultProvider = useSettingValue("manga.defaultMangaProvider", "")
-    const localDirectory = useSettingValue("manga.mangaLocalSourceDirectory", "")
     const { data: extensions } = useListMangaProviderExtensions()
     const { storedProviders, overwriteStoredProviders, overwriteStoredProvidersWith } = useStoredMangaProviders(extensions)
     const [history, setHistory] = useAtom(storedProvidersHistoryAtom)
@@ -81,13 +79,6 @@ export function SettingsMangaSection({ t }: { t: Translate }) {
                 setHistory(previous)
                 toast.success(t("All sources replaced.", "Alle Quellen ersetzt."))
             }} />
-
-        <SettingsGroup title={t("Local manga", "Lokale Manga")}
-            note={t("For the local source: a folder with your manga on this device.", "Für die lokale Quelle: ein Ordner mit deinen Manga auf diesem Gerät.")}>
-            <TextSettingRow label={t("Manga folder", "Manga-Ordner")} value={localDirectory} empty={t("Not set", "Nicht gesetzt")}
-                placeholder="/storage/emulated/0/Manga" extra={setDraft => <PickFolderButton t={t} onPicked={setDraft} />}
-                onApply={value => void save("manga.mangaLocalSourceDirectory", value.trim())} />
-        </SettingsGroup>
     </>
 }
 

@@ -41,7 +41,8 @@ export function MangaSourceRefreshSheet({ open, onOpenChange, job }: { open: boo
     const progress = job?.total ? Math.min(100, Math.round(job.current / job.total * 100)) : 0
     const failedMediaIds = [...new Set(job?.result.issues?.filter(issue => issue.kind === "provider_error").map(issue => issue.mediaId) ?? [])]
     const affectedMediaIds = [...new Set(job?.result.issues?.map(issue => issue.mediaId) ?? [])]
-    const canFindAlternatives = providerCount > 0 && (job?.mode === "refresh_selected" || job?.mode === "refresh_and_find") && affectedMediaIds.length > 0
+    // without the server only "refresh_selected" is there (phase 7f): finding other sources is left out
+    const canFindAlternatives = false
 
     const dismissJob = (runAgain: boolean) => stopRefresh(undefined, {
         onSuccess: () => {
@@ -58,12 +59,13 @@ export function MangaSourceRefreshSheet({ open, onOpenChange, job }: { open: boo
         stopRefresh(undefined, { onSuccess: () => startRefresh({ mode: "reevaluate_all", mediaIds: affectedMediaIds }) })
     }
 
-    const modes: { value: Manga_MangaSourceRefreshMode, title: string, note: string, discovery: boolean }[] = [
+    const allModes: { value: Manga_MangaSourceRefreshMode, title: string, note: string, discovery: boolean }[] = [
         { value: "refresh_selected", title: t("Refresh selected sources", "Gewählte Quellen aktualisieren"), note: t("Update manga that already have a saved source.", "Manga mit gespeicherter Quelle auf neue Kapitel prüfen."), discovery: false },
         { value: "find_missing", title: t("Find missing sources", "Fehlende Quellen finden"), note: t("Search every installed provider for manga without a source.", "Für Manga ohne Quelle alle installierten Quellen durchsuchen."), discovery: true },
         { value: "refresh_and_find", title: t("Refresh and find missing", "Aktualisieren und fehlende finden"), note: t("Update saved sources, then search for missing ones.", "Gespeicherte Quellen aktualisieren, dann fehlende suchen."), discovery: true },
         { value: "reevaluate_all", title: t("Re-evaluate all sources", "Alle Quellen neu bewerten"), note: t("Compare every installed provider and allow saved sources to change.", "Alle installierten Quellen vergleichen; gespeicherte Quellen dürfen wechseln."), discovery: true },
     ]
+    const modes = allModes.filter(option => !option.discovery)
 
     const footer = running ? <>
         <Button intent="secondary" wrapperClassName="flex-1" onPress={() => onOpenChange(false)}>{t("Close", "Schließen")}</Button>

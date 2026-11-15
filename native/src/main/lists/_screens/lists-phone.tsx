@@ -48,6 +48,7 @@ import {
 } from "@/main/lists/_lib/lists-phone"
 import { ListsFilterSheet } from "@/main/lists/_screens/lists-phone-filters"
 import { ListsAction, ListsHeader } from "@/main/lists/_screens/lists-phone-header"
+import { AnilistSyncBar } from "@/main/_features/anilist-sync/anilist-sync"
 import { ListsStats } from "@/main/lists/_screens/lists-phone-stats"
 import { __mangaLibrary_latestChapterNumbersAtom } from "@/main/manga/_lib/handle-manga-collection"
 import { getMangaEntryUnreadState } from "@/main/manga/_lib/manga-unread"
@@ -397,6 +398,7 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
                     disabled={!ready || facts.total === 0} onPress={() => setSheetOpen(true)} />
                 {statsButton}
             </ListsHeader>
+            <AnilistSyncBar className="-mt-3" />
             {(!!typeSwitch || (ready && tabs.length > 0)) && (
                 <View className="gap-3" onLayout={event => { controlsY.current = event.nativeEvent.layout.y }}>
                     {/* r16 (Nick 10.11., not in 2.0.33): on a wide tablet the field stands beside Anime | Manga (searchBesideTabs);
@@ -522,9 +524,11 @@ const ListCard = React.memo(function ListCard({ type, entry, width, now, blurAdu
     const menuItems = React.useMemo<CardMenuItem[] | undefined>(() => IN_APP_PLAYER_READY && info.canContinue
         ? [{ id: "continue", label: t("Continue", "Weiterschauen"), icon: Play, onPress: () => onContinue(media.id) }] : undefined,
     [info.canContinue, media.id, onContinue, t])
+    // "+1 episode/chapter" and, for manga, "Continue reading" from this entry (card-list-actions.ts)
+    const listEntry = React.useMemo(() => ({ status: entry.status, progress: entry.progress }), [entry.status, entry.progress])
 
     return <PhoneCoverCard media={media as AL_BaseAnime | AL_BaseManga} type={type} width={width} blurAdult={blurAdult} progress={info.progress} badge={badge}
-        tag={info.tag} meta={cardMeta(t, info.meta, media)} inLibrary={!!library?.local} menuItems={menuItems} onList
+        tag={info.tag} meta={cardMeta(t, info.meta, media)} inLibrary={!!library?.local} menuItems={menuItems} onList listEntry={listEntry}
         label={cardLabel(t, type, entry, info, { unread, unwatched: info.fresh > 0 ? 0 : unwatched, local: !!library?.local })} />
 })
 

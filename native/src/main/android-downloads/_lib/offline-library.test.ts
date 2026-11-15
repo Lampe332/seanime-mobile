@@ -1,7 +1,7 @@
 import type { AL_BaseAnime, MobileOffline_Snapshot, Onlinestream_Episode } from "@/api/generated/types"
 import { describe, expect, it } from "vitest"
 import {
-    batchRequest, canResume, clock, downloadPresets, filterGroups, followingEpisode, formatSize, groupItems, nextEpisode, noticeName, offlineColumns,
+    activePreset, batchRequest, canResume, clock, downloadPresets, filterGroups, followingEpisode, formatSize, groupItems, nextEpisode, noticeName, offlineColumns,
     type OfflineItem, offlineNotices, plainText, resumeAction, showsProgress, startedItems, stateLabel, storedEpisodes, watchedShare,
 } from "./offline-library"
 
@@ -96,6 +96,15 @@ describe("episode picker", () => {
         expect(downloadPresets([1, 2, 3, 5], 3)).toEqual({ season: [1, 2, 3, 5], from: [3, 5], this: [3] })
         expect(downloadPresets([1, 2], 4).this).toEqual([])
         expect(downloadPresets([1, 2], null).from).toEqual([1, 2])
+    })
+
+    it("turns on one quick selection, the first, when two hold the same episodes", () => {
+        const presets = downloadPresets([1, 2, 3], 1)
+        const chips = [{ id: "season", numbers: presets.season }, { id: "from", numbers: presets.from }, { id: "this", numbers: presets.this }]
+        expect(activePreset(new Set([1, 2, 3]), chips)).toBe("season")
+        expect(activePreset(new Set([1]), chips)).toBe("this")
+        expect(activePreset(new Set([2, 3]), chips)).toBeNull()
+        expect(activePreset(new Set(), [{ id: "this", numbers: [] }])).toBeNull()
     })
 
     it("builds the batch request with Auto quality and short descriptions", () => {

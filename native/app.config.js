@@ -26,7 +26,8 @@ module.exports = ({ config }) => {
     plugins: [
       ...plugins,
       ['./plugins/with-application-id', { applicationId: variant.applicationId }],
-      ['./plugins/with-server-port', { port: variant.serverPort }],
+      // "scratch" only (and a one-off test build with build-android.ps1 -Debuggable): readable with adb run-as
+      ...(variant.debuggable ? ['./plugins/with-debuggable'] : []),
     ],
   };
 };

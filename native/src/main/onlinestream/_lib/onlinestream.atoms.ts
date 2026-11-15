@@ -1,7 +1,11 @@
 import { atom } from "jotai"
 import { atomWithStorage } from "@/lib/storage"
 
+/** The provider picked last anywhere: the default for an anime without its own (onlinestream-provider-choice.ts) */
 export const __onlinestream_selectedProviderAtom = atomWithStorage<string | null>("sea-onlinestream-provider", null)
+
+/** The provider picked on each anime's page, by media id */
+export const __onlinestream_providerByMediaAtom = atomWithStorage<Record<string, string>>("sea-onlinestream-provider-by-media", {})
 
 export type OnlinestreamAudioTrackPreference = {
     trackId?: number

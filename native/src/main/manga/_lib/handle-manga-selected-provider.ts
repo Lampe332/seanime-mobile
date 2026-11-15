@@ -10,7 +10,7 @@ import { useAtom, useAtomValue } from "jotai/react"
 import { atomWithStorage } from "@/lib/storage"
 import React from "react"
 import { toast } from "@/components/ui/toast/toast-store"
-import { getActiveMangaFilters, MangaEntryFilters } from "./manga-preferences"
+import { defaultMangaProvider, getActiveMangaFilters, MangaEntryFilters, withInstalledProviders } from "./manga-preferences"
 
 export type { MangaEntryFilters } from "./manga-preferences"
 
@@ -68,11 +68,7 @@ const getDefaultMangaProvider = (
     serverStatus: Status | undefined,
     extensions: ExtensionRepo_MangaProviderExtensionItem[] | undefined,
 ): string | null => {
-    const firstExt = ((!!extensions?.length && extensions?.length > 1) ? extensions?.filter(n => n.id !== "local-manga")?.[0] : extensions?.[0])
-    const defaultExt = !!serverStatus?.settings?.manga?.defaultMangaProvider
-        ? extensions?.find(n => n.id === serverStatus?.settings?.manga?.defaultMangaProvider)
-        : null
-    return defaultExt?.id || firstExt?.id || null
+    return defaultMangaProvider(serverStatus?.settings?.manga?.defaultMangaProvider, extensions)
 }
 
 /**
@@ -99,18 +95,9 @@ export function useStoredMangaProviders(_extensions: ExtensionRepo_MangaProvider
         }
 
         // Validate all stored providers and replace invalid ones with default
-        const validatedProviders = { ...storedProvider }
-        let hasChanges = false
+        const validatedProviders = withInstalledProviders(storedProvider, extensions, defaultProvider)
 
-        Object.entries(storedProvider).forEach(([mediaId, providerId]) => {
-            const isProviderAvailable = extensions.some(provider => provider.id === providerId)
-            if (!isProviderAvailable) {
-                validatedProviders[mediaId] = defaultProvider
-                hasChanges = true
-            }
-        })
-
-        if (hasChanges) {
+        if (validatedProviders) {
             setStoredProvider(validatedProviders)
             for (const [mediaId, providerId] of Object.entries(validatedProviders)) {
                 if (storedProvider[mediaId] === providerId) continue

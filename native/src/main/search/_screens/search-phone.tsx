@@ -1,7 +1,6 @@
 import { PHONE_PAGE_TINT, PhoneHeadTray, usePageTop } from "@/components/shared/phone-screen"
 import { HEAD_ACTIONS_STYLE } from "@/components/shared/page-head"
 import { buildSeaQuery } from "@/api/client/requests"
-import { useListCustomSourceExtensions } from "@/api/hooks/extensions.hooks"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import type { AL_BaseAnime, AL_BaseManga, AL_ListAnime, AL_ListManga, Anime_EntryLibraryData, Anime_EntryListData, Manga_EntryListData } from "@/api/generated/types"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
@@ -52,10 +51,12 @@ import {
     withSearchFilters,
     withSearchTitle,
 } from "@/main/search/_lib/search-phone"
+import { withoutRecentSearch, withRecentSearch } from "@/main/search/_lib/recent-searches"
 import { SearchPhoneFilters } from "@/main/search/_screens/search-phone-filters"
+import { atomWithStorage } from "@/lib/storage"
+import History from "lucide-react-native/icons/rotate-ccw-clock"
 import { FlashList, type FlashListRef } from "@shopify/flash-list"
 import { useInfiniteQuery } from "@tanstack/react-query"
-import { router } from "expo-router"
 import { atom, useAtom, useAtomValue } from "jotai"
 import ArrowUp from "lucide-react-native/icons/arrow-up"
 import FolderOpen from "lucide-react-native/icons/folder-open"
@@ -63,6 +64,7 @@ import Library from "lucide-react-native/icons/library"
 import SlidersHorizontal from "lucide-react-native/icons/sliders-horizontal"
 import Star from "lucide-react-native/icons/star"
 import X from "lucide-react-native/icons/x"
+import { useFocusEffect } from "expo-router"
 import React from "react"
 import { AccessibilityInfo, ActivityIndicator, Pressable, ScrollView, type TextInputInstance, useWindowDimensions, View } from "react-native"
 import Animated from "react-native-reanimated"
@@ -77,6 +79,9 @@ type StoredSearch = {
 
 /** The phone's own search: kept across pages for the app session (a restart starts fresh), like the desktop atom. */
 const searchPhoneAtom = atom<StoredSearch>({ state: SEARCH_DEFAULTS, applied: null })
+
+/** The last searches on this device (recent-searches.ts), kept across starts */
+const recentSearchesAtom = atomWithStorage<string[]>("sea-search-recent", [])
 
 export type SearchLinkParams = Record<string, string | string[] | undefined>
 
@@ -95,7 +100,6 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     const serverStatus = useServerStatus()
     const adultAllowed = !!serverStatus?.settings?.anilist?.enableAdultContent
     // with a custom-source extension the results head links its screen (search-phone.tsx `data-search-custom-sources`)
-    const { data: customSources } = useListCustomSourceExtensions()
     const insets = useSafeAreaInsets()
     const top = usePageTop()
     const barHeight = useNavBarHeight()
@@ -144,6 +148,9 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         // The ✕ goes away with the words; the field keeps the focus (and the keyboard) for new ones.
         inputRef.current?.focus()
     }
+    // A result opens over this screen, which stays mounted: a field that kept the focus brings its keyboard back up there
+    // whenever Android gives the window the focus again (a sheet or dialog closes), so it lets go when the screen does.
+    useFocusEffect(React.useCallback(() => () => inputRef.current?.blur(), []))
 
     const variables = React.useMemo(() => searchVariables(state, adultAllowed), [state, adultAllowed])
     const searchKey = JSON.stringify([state.type, variables])
@@ -156,6 +163,24 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     const stale = !current && !!shown
     const items = React.useMemo(() => uniqueMedia<Media>(shown?.pages as never), [shown?.pages])
     const canLoadMore = !stale && !!results.hasNextPage && !results.isFetchNextPageError
+
+    // A search is remembered when it is sent with Enter or when the screen is left over its results (a result opened)
+    const [recent, setRecent] = useAtom(recentSearchesAtom)
+    const remember = React.useCallback((term: string) => setRecent(list => withRecentSearch(list, term)), [setRecent])
+    const foundTitle = React.useRef("")
+    const found = !stale && items.length ? state.title : ""
+    React.useEffect(() => {
+        foundTitle.current = found
+    }, [found])
+    useFocusEffect(React.useCallback(() => () => {
+        if (foundTitle.current) remember(foundTitle.current)
+    }, [remember]))
+    const searchRecent = (term: string) => {
+        setInput(term)
+        commitTitle(term)
+        remember(term)
+        inputRef.current?.blur()
+    }
     const loadMore = () => {
         if (!results.isFetchingNextPage) void results.fetchNextPage({ cancelRefetch: false })
     }
@@ -233,10 +258,15 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                             items={[{ value: "anime", label: "Anime" }, { value: "manga", label: "Manga" }]} />
                     </View>
                     <View className={cn(!beside && "mt-3")} style={beside ? { flex: 1, maxWidth: TABLET_SEARCH_MAX_WIDTH } : undefined}>
-                        <SearchField value={input} onChangeText={onInput} onSubmit={() => commitTitle(input)} inputRef={inputRef}
+                        <SearchField value={input} onChangeText={onInput} onSubmit={() => {
+                            commitTitle(input)
+                            remember(input)
+                        }} inputRef={inputRef}
                             placeholder={state.type === "anime" ? t("Search anime", "Anime suchen") : t("Search manga", "Manga suchen")} />
                     </View>
                 </View>
+                {!input && recent.length > 0 && <RecentSearches t={t} terms={recent} onSearch={searchRecent}
+                    onRemove={term => setRecent(list => withoutRecentSearch(list, term))} onClear={() => setRecent([])} />}
                 <ChipRow label={t("Sort by", "Sortieren nach")} selected={[sort]}
                     chips={searchSortChips(state.type, !!title).map(option => ({ value: option.value, label: t(option.en, option.de) }))}
                     onSelect={value => update(current => selectSearchSort(current, value as TitleSort))} />
@@ -245,7 +275,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
 
             <PhoneSection title={t("Results", "Ergebnisse")}
                 count={!stale && items.length ? `${items.length}${canLoadMore || results.isFetchingNextPage ? "+" : ""}` : undefined}
-                action={!!customSources?.length && <TextAction label={t("Custom sources", "Eigene Quellen")} onPress={() => router.push("/custom-sources")} />}
+                
                 note={title && !!items.length && sort === "SEARCH_MATCH" ? t("Best matches first", "Beste Treffer zuerst") : undefined}>
                 {body}
             </PhoneSection>
@@ -358,6 +388,31 @@ function ActiveFilters({ t, chips, onRemove, onClear }: { t: Translate, chips: S
                 </Pressable>
             ))}
             <View className="-ml-1"><TextAction label={t("Clear filters", "Filter zurücksetzen")} onPress={onClear} /></View>
+        </ScrollView>
+    )
+}
+
+/** The last searches under the empty field: a tap searches again, the ✕ forgets one, "Clear" all (recent-searches.ts) */
+function RecentSearches({ t, terms, onSearch, onRemove, onClear }: {
+    t: Translate, terms: string[], onSearch: (term: string) => void, onRemove: (term: string) => void, onClear: () => void
+}) {
+    return (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={t("Recent searches", "Letzte Suchen")}
+            keyboardShouldPersistTaps="handled" className="-mx-4 grow-0" contentContainerClassName="items-center gap-2 px-4">
+            {terms.map(term => (
+                <View key={term} className="min-h-12 max-w-[80vw] flex-row items-center overflow-hidden rounded-full bg-sm-surface-raised">
+                    <Pressable accessibilityRole="button" accessibilityLabel={t(`Search ${term}`, `${term} suchen`)} onPress={() => onSearch(term)}
+                        className="min-h-12 shrink flex-row items-center gap-1.5 py-1 pl-4 pr-1 active:bg-sm-surface-control">
+                        <History size={16} color={colors.smTextMuted} />
+                        <Text numberOfLines={1} className="shrink text-sm font-semibold leading-[18px]">{term}</Text>
+                    </Pressable>
+                    <Pressable accessibilityRole="button" accessibilityLabel={t(`Remove ${term} from recent searches`, `${term} aus den letzten Suchen entfernen`)}
+                        onPress={() => onRemove(term)} className="min-h-12 w-10 items-center justify-center active:bg-sm-surface-control">
+                        <X size={16} color={colors.smTextMuted} />
+                    </Pressable>
+                </View>
+            ))}
+            <View className="-ml-1"><TextAction label={t("Clear", "Leeren")} onPress={onClear} /></View>
         </ScrollView>
     )
 }

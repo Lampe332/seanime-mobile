@@ -1,0 +1,170 @@
+{
+ "note": "Only the form of the server's answers of 13.11.2026 (fields and kinds), no values. Torrent fields: all fields seen and those every torrent had.",
+ "answers": {
+  "SearchTorrent.archive-org": {
+   "method": "POST",
+   "endpoint": "/api/v1/torrent/search",
+   "requestFields": [
+    "query",
+    "episodeNumber",
+    "batch",
+    "media",
+    "absoluteOffset",
+    "resolution",
+    "type",
+    "provider",
+    "bestRelease"
+   ],
+   "requestType": "simple",
+   "data": {
+    "torrents": "array",
+    "previews": "array",
+    "torrentMetadata": "object",
+    "debridInstantAvailability": "null",
+    "animeMetadata": "object",
+    "includedSpecialProviders": "array"
+   },
+   "metadataEntry": {
+    "distance": "number",
+    "metadata": "object"
+   }
+  },
+  "SearchTorrent.dkb": {
+   "method": "POST",
+   "endpoint": "/api/v1/torrent/search",
+   "requestFields": [
+    "query",
+    "episodeNumber",
+    "batch",
+    "media",
+    "absoluteOffset",
+    "resolution",
+    "type",
+    "provider",
+    "bestRelease"
+   ],
+   "requestType": "simple",
+   "data": {
+    "torrents": "array",
+    "previews": "array",
+    "torrentMetadata": "object",
+    "debridInstantAvailability": "null",
+    "animeMetadata": "object",
+    "includedSpecialProviders": "array"
+   },
+   "metadataEntry": {
+    "distance": "number",
+    "metadata": "object"
+   }
+  },
+  "GetAutoSelectProfile": {
+   "method": "GET",
+   "endpoint": "/api/v1/auto-select/profile",
+   "data": {
+    "dbId": "number",
+    "providers": "null",
+    "releaseGroups": "null",
+    "resolutions": "null",
+    "excludeTerms": "null",
+    "preferredLanguages": "null",
+    "preferredCodecs": "null",
+    "preferredSources": "null",
+    "multipleAudioPreference": "string",
+    "multipleSubsPreference": "string",
+    "batchPreference": "string",
+    "bestReleasePreference": "string",
+    "requireLanguage": "boolean",
+    "requireCodec": "boolean",
+    "requireSource": "boolean"
+   },
+   "dbIdWithoutProfile": 0
+  },
+  "SaveAutoSelectProfile": {
+   "method": "POST",
+   "endpoint": "/api/v1/auto-select/profile",
+   "requestFields": [
+    "profile"
+   ],
+   "data": {
+    "dbId": "number",
+    "providers": "null",
+    "releaseGroups": "null",
+    "resolutions": [
+     "string"
+    ],
+    "excludeTerms": "null",
+    "preferredLanguages": "null",
+    "preferredCodecs": "null",
+    "preferredSources": "null",
+    "multipleAudioPreference": "string",
+    "multipleSubsPreference": "string",
+    "batchPreference": "string",
+    "bestReleasePreference": "string",
+    "requireLanguage": "boolean",
+    "requireCodec": "boolean",
+    "requireSource": "boolean",
+    "minSeeders": "number"
+   },
+   "dbIdSaved": 1
+  },
+  "DeleteAutoSelectProfile": {
+   "method": "DELETE",
+   "endpoint": "/api/v1/auto-select/profile",
+   "data": "boolean",
+   "after": {
+    "dbId": "number",
+    "providers": "null",
+    "releaseGroups": "null",
+    "resolutions": "null",
+    "excludeTerms": "null",
+    "preferredLanguages": "null",
+    "preferredCodecs": "null",
+    "preferredSources": "null",
+    "multipleAudioPreference": "string",
+    "multipleSubsPreference": "string",
+    "batchPreference": "string",
+    "bestReleasePreference": "string",
+    "requireLanguage": "boolean",
+    "requireCodec": "boolean",
+    "requireSource": "boolean"
+   }
+  }
+ },
+ "torrentFields": {
+  "provider": "string",
+  "name": "string",
+  "date": "string",
+  "size": "number",
+  "formattedSize": "string",
+  "seeders": "number",
+  "leechers": "number",
+  "downloadCount": "number",
+  "link": "string",
+  "downloadUrl": "string",
+  "magnetLink": "string",
+  "infoHash": "string",
+  "episodeNumber": "number",
+  "isBestRelease": "boolean",
+  "confirmed": "boolean",
+  "resolution": "string",
+  "releaseGroup": "string",
+  "isBatch": "boolean"
+ },
+ "everyTorrentHas": [
+  "provider",
+  "name",
+  "date",
+  "size",
+  "formattedSize",
+  "seeders",
+  "leechers",
+  "downloadCount",
+  "link",
+  "downloadUrl",
+  "magnetLink",
+  "infoHash",
+  "episodeNumber",
+  "isBestRelease",
+  "confirmed"
+ ]
+}

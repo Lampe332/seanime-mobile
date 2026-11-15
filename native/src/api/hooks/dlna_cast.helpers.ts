@@ -15,6 +15,8 @@ export type DlnaCastErrorCode =
     | "no-answer"
     | "rejected"
     | "control-failed"
+    /** the video plays on the TV, but from its start: the jump to the phone's position failed */
+    | "seek-failed"
     | "track-failed"
     | "not-connected"
     | "invalid-stream"
@@ -31,7 +33,8 @@ export type DlnaCastEvent =
 }
     | { state: "idle" }
     | { state: "stopped", positionMs: number, resume: boolean }
-    | { state: "error", code: DlnaCastErrorCode, message: string }
+    /** positionMs: where the TV was asked to jump (seek-failed) */
+    | { state: "error", code: DlnaCastErrorCode, message: string, positionMs?: number }
 
 /** What the cast panel shows, built from the events. */
 export type DlnaCastState = {
@@ -72,8 +75,26 @@ export function reduceDlnaCast(state: DlnaCastState, event: DlnaCastEvent): Dlna
     }
 }
 
-export function dlnaCastErrorText(code: DlnaCastErrorCode, tr: Translate): string {
+/** 287_400 → "4:47", 3_725_000 → "1:02:05" (as the player shows times) */
+function clock(ms: number): string {
+    const s = Math.max(0, Math.floor(ms / 1000))
+    const h = Math.floor(s / 3600)
+    const m = Math.floor((s % 3600) / 60)
+    const sec = String(s % 60).padStart(2, "0")
+    return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`
+}
+
+/** positionMs: where the TV was asked to jump, for seek-failed */
+export function dlnaCastErrorText(code: DlnaCastErrorCode, tr: Translate, positionMs?: number): string {
     switch (code) {
+        case "seek-failed": {
+            const at = positionMs !== undefined && positionMs > 0 ? clock(positionMs) : null
+            return at
+                ? tr(`Playing on the TV, but it could not jump to ${at}. It started from the beginning.`,
+                    `Läuft auf dem Fernseher, aber er konnte nicht zu ${at} springen. Die Folge startet von vorn.`)
+                : tr("Playing on the TV, but it could not jump to your position. It started from the beginning.",
+                    "Läuft auf dem Fernseher, aber er konnte nicht zu deiner Stelle springen. Die Folge startet von vorn.")
+        }
         case "gone":
             return tr("This TV is gone, search again.", "Dieser Fernseher ist weg, bitte neu suchen.")
         case "no-wifi":

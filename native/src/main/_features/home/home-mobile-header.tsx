@@ -30,7 +30,7 @@ export function HomeMobileHeader({ actions }: { actions?: React.ReactNode }) {
             {/* With a banner the head gets the height of a picture strip; title and actions sit at its foot. */}
             <View className={cn("flex-row flex-wrap justify-between gap-x-3 gap-y-1 pt-2 pb-1", image ? "min-h-36 items-end pb-3" : "items-center")}>
                 <View className="min-w-0 shrink">
-                    {!rail && <Text className="text-[11px] font-semibold uppercase tracking-[1.3px] text-sm-accent opacity-85">Seanime</Text>}
+                    {!rail && <Text className="text-[11px] font-semibold uppercase tracking-[1.3px] text-sm-accent opacity-85">Seanime Mobile</Text>}
                     <Text accessibilityRole="header" className="mt-[2px] text-[28px] font-bold leading-[32px] tracking-[-0.84px]">{t("Home", "Startseite")}</Text>
                 </View>
                 {!!actions && <View className="ml-auto max-w-full flex-row flex-wrap items-center justify-end">{actions}</View>}

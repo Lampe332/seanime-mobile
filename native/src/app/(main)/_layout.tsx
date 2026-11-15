@@ -17,6 +17,7 @@ import { MangaReader } from "@/main/manga/_containers/chapter-reader/manga-reade
 import { MangaPreferencesSync, MangaSourceRefreshSync } from "@/main/manga/_lib/manga-preferences-sync"
 import { useAnimeCollectionLoader } from "@/main/_hooks/anilist-collection-loader"
 import { useAnimeLibraryCollectionLoader, useMangaCollectionLoader } from "@/main/_hooks/collection-loaders"
+import { useDailyExtensionUpdateCheck } from "@/main/extensions/_lib/use-extension-updates"
 import { useCurrentUser, useServerStatus } from "@/main/_hooks/use-server-status"
 import { nakamaModalOpenAtom, NakamaManager, useNakamaStatus } from "@/main/_features/nakama/nakama-manager"
 import { nakamaBadge } from "@/main/_features/nakama/nakama-status"
@@ -65,6 +66,8 @@ function MainFrame() {
     useAnimeLibraryCollectionLoader()
     useAnimeCollectionLoader()
     useMangaCollectionLoader()
+    // extension updates: at most one check a day at start, the Menu shows the count (extension-updates.ts)
+    useDailyExtensionUpdateCheck()
     // Signing out sits in Settings › App › Account; signing in is a Menu action while no account is stored (main-sidebar.tsx)
     const menuActions: NavMenuAction[] = user?.isSimulated
         ? [{ id: "sign-in", label: "Sign in", icon: "fallback", onPress: () => setLoginModal(true) }]
@@ -157,10 +160,11 @@ function MainFrame() {
                 <TabTrigger name="discover" href="/discover" />
                 <TabTrigger name="search" href="/search" />
                 <TabTrigger name="android-downloads" href="/android-downloads" />
-                <TabTrigger name="server-status" href="/server-status" />
                 <TabTrigger name="building-blocks" href="/building-blocks" />
                 <TabTrigger name="entry" href="/entry" />
                 <TabTrigger name="schedule" href="/schedule" />
+                <TabTrigger name="history" href="/history" />
+                <TabTrigger name="updates" href="/updates" />
                 <TabTrigger name="settings" href="/settings" />
                 <TabTrigger name="manga/index" href="/manga" />
                 <TabTrigger name="manga/entry" href="/manga/entry" />

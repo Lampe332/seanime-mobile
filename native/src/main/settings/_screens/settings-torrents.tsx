@@ -7,6 +7,7 @@ import { Notice, TextAction } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { cn } from "@/components/ui/core/styling"
 import { SwitchRow } from "@/components/ui/switch/switch"
+import { toast } from "@/components/ui/toast/toast-store"
 import { Muted, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
@@ -14,7 +15,7 @@ import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { AutoSelectGroup } from "@/main/settings/_screens/settings-auto-select"
 import { enqueue, pendingAtom, saveFailed, SelectRow, SettingsGroup, usePending, useSaveSetting, useSettingValue } from "@/main/settings/_components/settings-kit"
-import { keyCheckDetail, limitOptions, type Option, planRestricted, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
+import { debridProviderPatch, debridSwitchPatch, keyCheckDetail, limitOptions, type Option, planRestricted, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAtomValue, useStore } from "jotai"
 import React from "react"
@@ -236,12 +237,18 @@ function DebridGroup({ t }: { t: Translate }) {
     return <SettingsGroup title={t("Debrid", "Debrid")}
         note={t("A paid service that downloads torrents for you and streams them from its servers.",
             "Ein kostenpflichtiger Dienst, der Torrents für dich lädt und von seinen Servern streamt.")}>
-        <RowSwitch kind="debrid" field="enabled" label={t("Debrid service", "Debrid-Dienst")}
-            note={t("Stream and download through your debrid account.", "Über dein Debrid-Konto streamen und laden.")} />
+        {/* On only with a provider: without one debrid cannot run, the switch says so instead (choosing None turns it off) */}
+        <SwitchRow label={t("Debrid service", "Debrid-Dienst")} checked={!!enabled}
+            description={t("Stream and download through your debrid account.", "Über dein Debrid-Konto streamen und laden.")}
+            onCheckedChange={checked => {
+                const patch = debridSwitchPatch(checked, provider)
+                if (patch) void save(patch)
+                else toast.error(t("Choose a provider first.", "Wähle zuerst einen Anbieter."))
+            }} />
+        <SelectRow label={t("Provider", "Anbieter")} value={provider || "-"} sub
+            options={[{ value: "-", label: t("None", "Keiner") }, ...DEBRID_PROVIDERS]}
+            onChange={next => void save(debridProviderPatch(next))} />
         {enabled && <>
-            <SelectRow label={t("Provider", "Anbieter")} value={provider || "-"} sub
-                options={[{ value: "-", label: t("None", "Keiner") }, ...DEBRID_PROVIDERS]}
-                onChange={next => void save({ provider: next === "-" ? "" : next })} />
             {!!provider && <ApiKeyField t={t} providerName={providerName} hasKey={!!stored?.apiKey} check={check.result}
                 onSave={async key => !!await save({ apiKey: key })} />}
             {failed !== null && <Notice text={planRestricted(failed)

@@ -18,6 +18,7 @@ import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { __anilist_userAnimeMediaAtom } from "@/main/_atoms/anilist.atoms"
 import { ContinueWatching } from "@/main/_features/anime-library/_containers/continue-watching"
+import { useContinueWatchingWidget } from "@/lib/widget/continue-widget-task"
 import { LibraryView } from "@/main/_features/anime-library/_containers/library-collection"
 import { useHandleDetailedLibraryCollection } from "@/main/_features/anime-library/_lib/handle-detailed-library-collection"
 import { type HandleLibraryCollectionProps, useHandleLibraryCollection } from "@/main/_features/anime-library/_lib/handle-library-collection"
@@ -56,6 +57,7 @@ import { PluginTrayButton } from "@/main/_features/plugin/plugin-tray"
 import { PluginWebviewSlot } from "@/main/_features/plugin/plugin-webview"
 import { HomeDiscoverFeature, LibraryUpcomingEpisodes } from "./home-discover-sections"
 import { HomeMobileHeader, HomeHeaderAction } from "./home-mobile-header"
+import { AnilistSyncBar } from "@/main/_features/anilist-sync/anilist-sync"
 import { HomeScheduleCalendar } from "./home-schedule-calendar"
 import { HOME_ITEMS_PENDING, hasSectionGapBefore, resolveHomeItems, withCurrentSchema } from "./home-layout"
 import { __home_settingsModalOpen, HomeSettingsSheet } from "./home-settings-sheet"
@@ -78,6 +80,8 @@ export function HomeScreen() {
     const { data: savedItems, isLoading: loadingItems, isError: itemsError, refetch: retryItems } = useGetHomeItems()
     const { isError: collectionError, refetch: retryCollection } = useGetLibraryCollection()
     const library = useHandleLibraryCollection()
+    // the home screen widget shows the same "Continue watching" list
+    useContinueWatchingWidget(library.continueWatchingList, !library.isLoading && !collectionError)
     // Keeps the manga collection (and its chapter-number atoms) loaded while Home is open
     useHandleMangaCollection()
     const homeItems = React.useMemo(() => resolveHomeItems(savedItems), [savedItems])
@@ -138,6 +142,7 @@ export function HomeScreen() {
             >
                 <HomeMobileHeader actions={actions} />
                 <View className={cn("w-full px-4", !rail && "max-w-[1152px] self-center")}>
+                    <AnilistSyncBar className="pb-2" />
                     <PluginWebviewSlot slot="after-home-screen-toolbar" />
                     {!library.isNakamaLibrary && hasLibraryPath && <View className="pt-2"><LibraryPhoneAttention /></View>}
                     {body}

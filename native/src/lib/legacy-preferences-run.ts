@@ -3,11 +3,11 @@
  * app's preferences must be in MMKV before any screen or task module is evaluated (legacy-preferences.ts).
  */
 import { File, Paths } from "expo-file-system"
-import SeanimeServer from "../../modules/seanime-server"
+import DeviceFacts from "../../modules/core-download"
 import { copyLegacyPreferences } from "./legacy-preferences"
 import { storage } from "./storage"
 
-copyLegacyPreferences(storage, () => SeanimeServer.legacyPreferences())
+copyLegacyPreferences(storage, () => DeviceFacts.legacyPreferences())
 
 // The 2.0.33 updater validated the downloaded APK as files/app-update/pending.apk and deleted it only after its own next
 // start, which never comes once this app replaced it; the native updater uses other file names there.

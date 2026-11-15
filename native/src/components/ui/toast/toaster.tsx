@@ -6,6 +6,7 @@ import { colors } from "@/lib/theme/tokens"
 import React from "react"
 import { Pressable, Text, useWindowDimensions, View } from "react-native"
 import Animated, { Easing, Keyframe, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
 
 /*
@@ -117,6 +118,7 @@ function ToastRow({ item, index, frontHeight, onFrontHeight }: { item: ToastItem
 export function Toaster() {
     const toasts = React.useSyncExternalStore(subscribeToasts, getToasts, getToasts)
     const { width } = useWindowDimensions()
+    const insetTop = useSafeAreaInsets().top
     const visible = toasts.slice(-VISIBLE_TOASTS)
     const [frontHeight, setFrontHeight] = React.useState(0)
     // a new error toast gets the "reject" haptic (toaster.tsx of the web app)
@@ -127,7 +129,7 @@ export function Toaster() {
     }, [toasts])
     if (visible.length === 0) return null
     return (
-        <View pointerEvents="box-none" style={{ position: "absolute", ...toasterFrame(width) }}>
+        <View pointerEvents="box-none" style={{ position: "absolute", ...toasterFrame(width, insetTop) }}>
             {visible.map((item, i) => (
                 <ToastRow key={item.id} item={item} index={visible.length - 1 - i} frontHeight={frontHeight} onFrontHeight={setFrontHeight} />
             ))}

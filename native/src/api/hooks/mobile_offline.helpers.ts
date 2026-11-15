@@ -1,6 +1,7 @@
-import { getServerBaseUrl } from "@/api/client/server-url"
 import type { MobileOffline_Failure, MobileOffline_Item } from "@/api/generated/types"
+import { offlineArtworkAddress, offlineFileAddress } from "@/core"
 import type { Translate } from "@/lib/app-language"
+import { logger } from "@/lib/helpers/debug"
 
 /** WebSocket event with the whole download snapshot (backend/internal/mobileoffline). */
 export const MOBILE_OFFLINE_EVENT = "mobile-offline-updated"
@@ -16,14 +17,32 @@ export function networkReport(state: NetworkLike): { connected: boolean, metered
     return { connected: state.isConnected !== false, metered: state.details?.isConnectionExpensive === true }
 }
 
-/** URL of a saved file of an episode (video, separate audio track or subtitle) for the player. */
+const ownFilesTold = new Set<string>()
+
+/**
+ * URL of a saved file of an episode (video, separate audio track or subtitle) for the player. An episode of the core's
+ * own downloads (area `offline`, docs/EIGENER-KERN.md §4o) is the file itself in the app's storage: mpv reads it
+ * without the server in between.
+ */
 export function offlineFileUrl(id: string, file: string): string {
-    return `${getServerBaseUrl()}/api/v1/mobile-offline/file/${encodeURIComponent(id)}/${encodeURIComponent(file)}`
+    const own = offlineFileAddress(id, file)
+    if (own) {
+        if (!ownFilesTold.has(own)) {
+            ownFilesTold.add(own)
+            logger("CoreOffline").info(`saved file for the player, straight from the app's storage: ${own}`)
+        }
+        return own
+    }
+    // only the app's own files; an episode the old server saved is not there
+    return ""
 }
 
-/** URL of saved artwork (coverAsset, bannerAsset, episodeImageAsset), or the online URL while it is not saved yet. */
+/**
+ * URL of saved artwork (coverAsset, bannerAsset, episodeImageAsset), or the online URL while it is not saved yet. A
+ * picture of the core's own downloads (area `offline`) is the file itself in the app's storage.
+ */
 export function offlineArtworkUrl(asset: string | undefined, fallback?: string): string | undefined {
-    if (asset) return `${getServerBaseUrl()}/api/v1/mobile-offline/artwork/${encodeURIComponent(asset)}`
+    if (asset) return offlineArtworkAddress(asset) ?? (fallback || undefined)
     return fallback || undefined
 }
 

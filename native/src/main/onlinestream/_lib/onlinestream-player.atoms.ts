@@ -35,6 +35,8 @@ export type OnlinePlayback = {
     info: NativePlayer_PlaybackInfo
     params: OnlinestreamParams
     reload: number
+    /** Set when the stream plays without the server's proxy: the headers mpv has to send itself (player-logic mpvHeaderOptions). */
+    headers?: Record<string, string>
     startSeconds?: number
     loadingState: string | null
     playbackError: string | null

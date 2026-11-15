@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
-    backStep, boxFrame, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand,
+    backStep, boxFrame, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand, miniPlayerShown, playlistButtonBottom,
     orientationTarget, playerView, progressFraction, scrollTarget, viewTurn,
 } from "./player-chrome"
 import { BOX_COMPACT_HEIGHT, boxControlSizes, controlSizes } from "./control-sizes"
@@ -94,6 +94,26 @@ describe("player frame (r21)", () => {
     it("the mini player's button does what it shows", () => {
         expect(miniPlayCommand(true)).toBe("pause")
         expect(miniPlayCommand(false)).toBe("play")
+    })
+
+    it("the playlist button rises above the mini player so its × stays free", () => {
+        const insets = { bottom: 24, left: 0, right: 0 }
+        const bar = miniFrame({ width: 412, rail: false, navBar: 56, insets })
+        expect(playlistButtonBottom({ rail: false, navBar: 56, insetBottom: 24, mini: null })).toBe(56 + 24 + 16)
+        const lifted = playlistButtonBottom({ rail: false, navBar: 56, insetBottom: 24, mini: bar })
+        expect(lifted).toBe(bar.bottom + bar.height + 16)
+        // no overlap with the bar (the button is 56dp tall and sits at the right like the ×)
+        expect(lifted).toBeGreaterThanOrEqual(bar.bottom + bar.height)
+        const card = miniFrame({ width: 1280, rail: true, navBar: 0, insets: { bottom: 0, left: 0, right: 0 } })
+        expect(playlistButtonBottom({ rail: true, navBar: 0, insetBottom: 0, mini: card })).toBe(card.bottom + card.height + 16)
+    })
+
+    it("the mini player shows only while open, small and without its box on the page", () => {
+        expect(miniPlayerShown(true, null, null)).toBe(false)
+        expect(miniPlayerShown(false, { owner: "media:1" }, null)).toBe(false)
+        expect(miniPlayerShown(true, { owner: "media:1" }, "media:1")).toBe(false)
+        expect(miniPlayerShown(true, { owner: "media:1" }, "media:2")).toBe(true)
+        expect(miniPlayerShown(true, { owner: null }, null)).toBe(true)
     })
 
     it("phone: a bar docked above the navigation bar", () => {

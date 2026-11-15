@@ -10,3 +10,6 @@ export const DEFAULT_MARKETPLACE_URL = ""
 export const marketplaceUrlAtom = atomWithStorage<string>(
     "marketplace-url",
     DEFAULT_MARKETPLACE_URL)
+
+// Marketplaces added before (newest first, never the official one): one tap switches back
+export const recentMarketplacesAtom = atomWithStorage<string[]>("marketplace-recent", [])

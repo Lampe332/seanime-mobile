@@ -1,4 +1,3 @@
-import { getServerBaseUrl } from "@/api/client/server-url"
 import type { Anime_Entry, Anime_Episode } from "@/api/generated/types"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
 import { usePlaybackStartManualTracking } from "@/api/hooks/playback_manager.hooks"
@@ -12,12 +11,10 @@ import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate, useTr } from "@/lib/app-language"
 import { ExternalPlayerLink } from "@/lib/external-player-link/external-player-link"
 import { openExternalPlayer } from "@/lib/external-player-link/open-external-player"
-import { logger } from "@/lib/helpers/debug"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
 import { useExternalPlayerLink } from "@/main/_atoms/playback.atoms"
 import { __mpt_currentExternalPlayerLinkAtom } from "@/main/_features/progress-tracking/progress-tracking.atoms"
-import { useServerHMACAuth } from "@/main/_hooks/use-server-status"
 import { useMediastreamCurrentFile } from "@/main/mediastream/_lib/mediastream.atoms"
 import { clientIdAtom } from "@/main/websocket-provider"
 import { Image } from "expo-image"
@@ -66,25 +63,8 @@ function usePlayInExternalPlayer(entry: Anime_Entry | undefined) {
     const t = useTr()
     const clientId = useAtomValue(clientIdAtom)
     const { externalPlayerLink, encodePath } = useExternalPlayerLink()
-    const { getHMACTokenQueryParam } = useServerHMACAuth()
     const { mutate: startManualTracking } = usePlaybackStartManualTracking()
     const setCurrentExternalPlayerLink = useSetAtom(__mpt_currentExternalPlayerLinkAtom)
-
-    const subtitleUrls = async (filePath: string) => {
-        try {
-            const subtitlesToken = await getHMACTokenQueryParam("/api/v1/mediastream/local-subtitles", "&")
-            const response = await fetch(`${getServerBaseUrl()}/api/v1/mediastream/local-subtitles?path=${encodeFilePath(filePath, encodePath)}${subtitlesToken}`,
-                { headers: { Origin: getServerBaseUrl() } })
-            if (!response.ok) return []
-            const files = ((await response.json()) as { data?: { path: string }[] }).data ?? []
-            if (!files.length) return []
-            const fileToken = await getHMACTokenQueryParam("/api/v1/mediastream/file", "&")
-            return files.map(file => `${getServerBaseUrl()}/api/v1/mediastream/file?path=${encodeFilePath(file.path, encodePath)}${fileToken}`)
-        } catch (error) {
-            logger("MEDIALINKS").warning("Failed to get local subtitle files", error)
-            return []
-        }
-    }
 
     // true once a player app took the episode; a missing player (toast) neither marks the row nor starts the tracking
     return async (filePath: string): Promise<boolean> => {
@@ -100,11 +80,7 @@ function usePlayInExternalPlayer(entry: Anime_Entry | undefined) {
         const link = new ExternalPlayerLink(externalPlayerLink)
         link.setEpisodeNumber(episode.progressNumber)
         link.setMediaTitle(entry.media?.title?.userPreferred)
-        link.setSubtitleUrls(await subtitleUrls(filePath))
-        await link.to({
-            endpoint: "/api/v1/mediastream/file?path=" + encodeFilePath(filePath, encodePath),
-            onTokenQueryParam: () => getHMACTokenQueryParam("/api/v1/mediastream/file", "&"),
-        })
+        link.to({ endpoint: "/api/v1/mediastream/file?path=" + encodeFilePath(filePath, encodePath) })
         if (!(await openExternalPlayer(link.getFullUrl()))) return false
         setCurrentExternalPlayerLink(link.getFullUrl())
         // Only main episodes move the progress

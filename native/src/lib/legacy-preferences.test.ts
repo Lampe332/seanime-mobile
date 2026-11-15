@@ -19,21 +19,6 @@ describe("legacy preferences of Seanime Mobile 2.0.33", () => {
         expect(source("airing/airing-notifier.ts")).toContain(`const ANNOUNCED_KEY = "${LEGACY_TARGET_KEYS.airingAnnounced}"`)
     })
 
-    it("the Kotlin reader uses the old app's preference files and keys", () => {
-        const module = source("../../modules/seanime-server/android/src/main/java/com/seanime/server/SeanimeServerModule.kt")
-        const old = (file: string) => source(`../../../app/src/main/java/com/seanime/app/${file}`)
-        expect(old("AppLanguage.kt")).toContain(`PREFS = "seanime_app"`)
-        expect(old("AppLanguage.kt")).toContain(`KEY = "language"`)
-        expect(old("Feedback.kt")).toContain(`KEY_HAPTICS = "feedback_haptics"`)
-        expect(old("Feedback.kt")).toContain(`KEY_SOUNDS = "feedback_sounds"`)
-        expect(old("notify/AiringNotifier.kt")).toContain(`PREFS = "airing_notifier"`)
-        expect(old("notify/AiringNotifier.kt")).toContain(`getBoolean("enabled", true)`)
-        for (const text of [`getSharedPreferences("seanime_app"`, `getSharedPreferences("airing_notifier"`, `"feedback_haptics"`,
-            `"feedback_sounds"`, `getString("language", null)`, `contains("enabled")`, `getString("announced", null)`]) {
-            expect(module).toContain(text)
-        }
-    })
-
     it("an updated phone gets its language, feedback and new-episode settings as JSON values", () => {
         const store = memoryStore()
         const written = copyLegacyPreferences(store, () => ({

@@ -21,9 +21,12 @@ import {
     listStatusOptions,
     parseStepInput,
     progressMaxFor,
+    entryButton,
+    addingDone,
 } from "@/main/_features/media/_lib/list-entry-form"
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker"
 import CalendarDays from "lucide-react-native/icons/calendar-days"
+import ListPlus from "lucide-react-native/icons/list-plus"
 import Minus from "lucide-react-native/icons/minus"
 import Plus from "lucide-react-native/icons/plus"
 import SquarePen from "lucide-react-native/icons/square-pen"
@@ -52,16 +55,29 @@ export function AnilistMediaEntryButton({ media, listData, type = "anime", varia
     const user = useCurrentUser()
     const { rail } = useTabletLayout()
     const [open, setOpen] = React.useState(false)
-    const { mutate, isPending: isEditing, isSuccess } = useEditAnilistListEntry(media?.id, type)
+    const { mutate, isPending: isEditing, isSuccess, reset } = useEditAnilistListEntry(media?.id, type)
+    // the added entry arrived: forget the add, so the button comes back if the entry is removed elsewhere later (5a-K)
+    React.useEffect(() => {
+        if (addingDone(isSuccess, listData)) reset()
+    }, [isSuccess, listData, reset])
 
-    if (!user) return null
+    const shown = entryButton(user, listData, isSuccess)
+    if (shown === "none") return null
 
-    if (!listData) {
-        if (isSuccess) return null // Hide button when mutation is successful
-        return <Pressable accessibilityRole="button" accessibilityLabel={tr("Add to list", "Zur Liste hinzufügen")} disabled={isEditing}
-            onPress={() => mutate({ mediaId: media?.id || 0, status: "PLANNING", score: 0, progress: 0, startedAt: undefined, completedAt: undefined, type })}
-            className="h-12 w-12 items-center justify-center rounded-full bg-sm-surface-control active:bg-sm-accent-soft">
-            {isEditing ? <ActivityIndicator color={colors.smText} /> : <Plus size={22} color={colors.smText} />}
+    if (shown === "add" || !listData) {
+        // a list icon with its words: a bare "+" beside the progress read as "+1 episode"
+        const addLabel = tr("Add to list", "Zur Liste")
+        const add = () => mutate({ mediaId: media?.id || 0, status: "PLANNING", score: 0, progress: 0, startedAt: undefined, completedAt: undefined, type })
+        if (variant === "action") {
+            return <Button intent="secondary" leftIcon={<ListPlus size={18} color={colors.smText} />} onPress={add} disabled={isEditing}
+                accessibilityLabel={tr("Add to list", "Zur Liste hinzufügen")}>
+                {addLabel}
+            </Button>
+        }
+        return <Pressable accessibilityRole="button" accessibilityLabel={tr("Add to list", "Zur Liste hinzufügen")} disabled={isEditing} onPress={add}
+            className="h-12 flex-row items-center justify-center gap-2 rounded-full bg-sm-surface-control pl-3.5 pr-[18px] active:bg-sm-accent-soft">
+            {isEditing ? <ActivityIndicator size="small" color={colors.smText} /> : <ListPlus size={18} color={colors.smText} />}
+            <Text className="text-sm font-semibold">{addLabel}</Text>
         </Pressable>
     }
 

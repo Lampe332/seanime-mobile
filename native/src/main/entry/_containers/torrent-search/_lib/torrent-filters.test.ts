@@ -30,10 +30,15 @@ describe("isGermanRelease", () => {
 
 describe("isBatchRelease", () => {
     it("takes the provider flag or the name", () => {
-        expect(isBatchRelease(torrent("x", { isBatch: true }))).toBe(true)
+        expect(isBatchRelease(torrent("x", { isBatch: true, size: 0 }))).toBe(true)
+        expect(isBatchRelease(torrent("x", { isBatch: true, size: 9_340_000_000 }))).toBe(true)
         expect(isBatchRelease(torrent("Solo Leveling Season 2 Complete"))).toBe(true)
         expect(isBatchRelease(torrent("Frieren - 01-28 [1080p]"))).toBe(true)
         expect(isBatchRelease(torrent("Frieren - 05 [1080p]"))).toBe(false)
+    })
+    it("does not believe the provider's flag on a single episode's size (Internet Archive \"Dr. Stone Sub 2\", ~150 MiB)", () => {
+        expect(isBatchRelease(torrent("Dr. Stone Sub 2", { isBatch: true, size: 159_100_000 }))).toBe(false)
+        expect(isBatchRelease(torrent("Dr Stone S1", { isBatch: true, size: 159_100_000 }))).toBe(true)
     })
 
     it("knows season packs from single episodes of a season", () => {

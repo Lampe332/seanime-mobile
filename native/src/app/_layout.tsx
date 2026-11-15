@@ -4,6 +4,7 @@ import { AppServices } from '@/main/app-services';
 import { ClientProviders } from '@/main/client-providers';
 import { Stack } from 'expo-router';
 import { NavigationBar } from 'expo-navigation-bar';
+import { HiddenBrowserHost } from '@/lib/hidden-browser/hidden-browser';
 import { hideSystemBars } from '@/lib/system-bars';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
@@ -30,6 +31,8 @@ export default function RootLayout() {
   useKeepSystemBarsHidden();
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#070707' }}>
+      {/* The hidden page for extensions (docs/EIGENER-KERN.md §4k): nothing until one is asked for, then beneath everything */}
+      <HiddenBrowserHost />
       <ClientProviders>
         <AppServices />
         {/* Full screen like the old app (MainActivity.hideSystemBars): status and navigation bar hidden, a swipe from the

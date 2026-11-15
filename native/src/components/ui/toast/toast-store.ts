@@ -2,6 +2,8 @@
  * The app's toasts with sonner's call shape (`toast.success("…")`), so the API hooks copied from seanime-web call it
  * unchanged. <Toaster /> (toaster.tsx) draws them; this file has no React Native import so logic tests can load it.
  */
+import { pageTop } from "@/components/shared/page-top"
+
 export type ToastType = "default" | "success" | "error" | "warning" | "info"
 
 export type ToastOptions = {
@@ -27,13 +29,21 @@ const DEFAULT_DURATION = 4000
 export const VISIBLE_TOASTS = 4
 
 /**
- * Where the toaster sits (sonner 2.0.7, `position="top-right"`). Up to 600dp wide (its `max-width: 600px` rule) the
- * toasts span the width 16dp from the sides and 16dp from the top edge; wider they are 356dp, 24dp from the top right.
- * The old WebView drew under the status bar and the camera cutout, so the top inset is not added (S22 10.11.: the toast
- * sat 27dp lower than in 2.0.32).
+ * How far under the page's top (page-top.ts) the toasts start: under the head's buttons on every page. The tallest head
+ * is Home's (the "Seanime Mobile" line over the title): its 48dp buttons end about 53dp under the page's top (S22 15.11.); the
+ * other heads (page-head.ts: the 32dp title line, the buttons overhanging it by 8dp) end theirs at 40dp. 16dp from the
+ * top edge, as before, covered Refresh, Filter and the other head buttons.
  */
-export function toasterFrame(windowWidth: number): { top: number, left?: number, right: number, width?: number } {
-    return windowWidth <= 600 ? { top: 16, left: 16, right: 16 } : { top: 24, right: 24, width: 356 }
+export const TOAST_TOP_UNDER_HEAD = 64
+
+/**
+ * Where the toaster sits (sonner 2.0.7, `position="top-right"`): up to 600dp wide (its `max-width: 600px` rule) the
+ * toasts span the width 16dp from the sides; wider they are 356dp, 24dp from the right. Their top is under the page
+ * head (TOAST_TOP_UNDER_HEAD), the same on every page, phone and tablet.
+ */
+export function toasterFrame(windowWidth: number, insetTop: number): { top: number, left?: number, right: number, width?: number } {
+    const top = pageTop(insetTop) + TOAST_TOP_UNDER_HEAD
+    return windowWidth <= 600 ? { top, left: 16, right: 16 } : { top, right: 24, width: 356 }
 }
 
 /**

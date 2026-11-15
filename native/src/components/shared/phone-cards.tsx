@@ -11,6 +11,8 @@ import { mediaEntryHref } from "@/main/_features/media/_lib/media-card"
 import { getAnimeLibraryEntryAtom } from "@/main/_atoms/anime-library-collection.atoms"
 import { usePlaylistMenuItem } from "@/main/_features/playlists/_components/playlist-menu-item"
 import { usePluginCardMenuItems } from "@/main/_features/plugin/plugin-actions"
+import { useCardListItems } from "@/main/_features/media/_containers/use-card-list-items"
+import type { CardListState } from "@/main/_features/media/_lib/card-list-actions"
 import { useAtomValue } from "jotai"
 import { gridLayout, rowCoverWidth } from "@/components/shared/cover-layout"
 import { useNetInfo } from "@react-native-community/netinfo"
@@ -113,13 +115,15 @@ export type CoverCardProps = {
      * as 2.0.32's lists-phone.tsx (`canStream || library`); else the library entry decides.
      */
     onList?: boolean
+    /** My lists: the card's list entry, for "+1" and "Continue reading" without asking the collections (use-card-list-items.ts) */
+    listEntry?: CardListState
 }
 
 /**
  * A tap opens the anime page (`/entry?id=`) or the manga page (`/manga/entry?id=`), a long press the card menu with
  * Preview, the caller's items and, for anime of the library, "Add to playlist" (2.14), as Home's cards.
  */
-export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, width, blurAdult, progress, badge, tag, meta, metaTone, label, metaIcon, inLibrary, menuItems, onList }: CoverCardProps) {
+export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, width, blurAdult, progress, badge, tag, meta, metaTone, label, metaIcon, inLibrary, menuItems, onList, listEntry }: CoverCardProps) {
     const t = useTr()
     const { setPreviewModalMediaId } = useMediaPreviewModal()
     const [menuAt, setMenuAt] = React.useState<CardMenuAnchor | null>(null)
@@ -137,6 +141,8 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, 
     const { coverRef, onLoad: onCoverLoad, hidden: coverHidden, open: openEntry } = useCoverFlightSource(media.id, veiled ? "" : coverUri, getImageUrl(media.coverImage?.extraLarge || media.coverImage?.large || ""))
     const press = usePressScale(SCALE.pressCard)
     const fade = useImageFade()
+    // "Add to list" / "On your list", "+1", My lists' "Continue reading" (card-list-actions.ts)
+    const listItems = useCardListItems(media, type, openEntry, listEntry)
 
     return (
         <Animated.View style={[{ width }, press.animatedStyle]}>
@@ -153,7 +159,7 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, 
         >
             <CardMenu anchor={menuAt} title={title} onClose={closeMenu}
                 items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, type) },
-                    ...(menuItems ?? []), ...(playlistItem ? [playlistItem] : []), ...pluginItems]} />
+                    ...(menuItems ?? []), ...listItems, ...(playlistItem ? [playlistItem] : []), ...pluginItems]} />
             <View ref={coverRef} collapsable={false} className="mb-1 aspect-[2/3] w-full overflow-hidden rounded-surface-sm bg-sm-surface-control">
                 <Image
                     source={coverUri}

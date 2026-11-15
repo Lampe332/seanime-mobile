@@ -1,5 +1,5 @@
 // Small status-bar icon of the app's own notifications (new episodes, updates): the bold "S" of the logo that the
-// server module already ships as a vector (modules/seanime-server/android/src/main/res/drawable/ic_stat_seanime.xml,
+// download module ships as a vector (modules/core-download/android/src/main/res/drawable/ic_stat_seanime.xml,
 // the old app's ic_stat_seanime). expo-notifications' own `icon` option only takes a PNG, so the meta-data it reads is
 // pointed at the vector here. Listed before expo-notifications in app.json: manifest mods run last-listed first, and
 // expo-notifications removes the entry when it has no icon of its own.

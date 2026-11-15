@@ -55,6 +55,7 @@ export function useGetMangaSourceRefresh(enabled = true) {
         endpoint: API_ENDPOINTS.MANGA.GetMangaSourceRefresh.endpoint,
         method: API_ENDPOINTS.MANGA.GetMangaSourceRefresh.methods[0],
         queryKey: [API_ENDPOINTS.MANGA.GetMangaSourceRefresh.key],
+        // a background job, asked on Home, the manga list and the chapter list; without the server the core's (phase 7f)
         enabled,
         retry: false,
     })

@@ -20,6 +20,11 @@ export function androidPlayerPresetOf(link: string) {
     return ANDROID_PLAYER_PRESETS.find(preset => link === androidPlayerLink(preset.packageName))
 }
 
+/** The link after tapping a player chip: that player's link, or none ("") when it was the chosen one already */
+export function toggledPlayerLink(link: string, packageName: string) {
+    return androidPlayerPresetOf(link)?.packageName === packageName ? "" : androidPlayerLink(packageName)
+}
+
 export type IntentLink = { data: string, type?: string, packageName?: string, className?: string }
 
 /** The activity that opens a stream in this player app, if it is a preset. */

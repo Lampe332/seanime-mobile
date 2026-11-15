@@ -1,10 +1,7 @@
-import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate } from "@/lib/app-language"
-import { fileTimestamp, useSaveServerFile } from "@/main/_hooks/use-save-server-file"
 import {
     ConfirmSheet,
     LinkRow,
-    SelectRow,
     SettingsGroup,
     SettingSwitch,
     TextSettingRow,
@@ -15,7 +12,8 @@ import { PickFolderButton, usePickFolder } from "@/main/settings/_components/pic
 import React from "react"
 
 /*
- * Local library (settings-phone-library.tsx): folders, scanning, matching, export (E4 file module, share sheet). Folders
+ * Local library (settings-phone-library.tsx): folders, scanning, matching. The old JSON export left with the server;
+ * Settings → App → Backup saves all app data instead. Folders
  * come from the system folder picker ("Choose folder", "Add another folder"; lib/folder-picker checks "All files access"
  * through the server and turns the tree URI into a path) or are typed as this device shows them. No import: it reads a
  * path on the server.
@@ -24,7 +22,6 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
     const save = useSaveSetting()
     const libraryPath = useSettingValue("library.libraryPath", "")
     const libraryPaths = useSettingValue<string[] | null>("library.libraryPaths", []) ?? []
-    const legacy = useSettingValue("library.scannerUseLegacyMatching", false)
     const { pick, picking, available } = usePickFolder(t)
     const [removing, setRemoving] = React.useState<string | null>(null)
 
@@ -57,54 +54,9 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
         </SettingsGroup>
 
         <SettingsGroup title={t("Matching", "Zuordnung")} note={t("How the scanner matches files to AniList entries.", "Wie der Scanner Dateien AniList-Einträgen zuordnet.")}>
-            <SettingSwitch path="library.scannerUseLegacyMatching" label={t("Legacy matching", "Alte Zuordnung")}
-                note={t("The simpler matching of Seanime 3.4 and older.", "Die einfachere Zuordnung von Seanime 3.4 und älter.")} />
-            {legacy ? <LegacyMatching t={t} /> : <ScannerConfigRow t={t} />}
+            {/* no "Legacy matching": the core's scanner has one way of matching (core/library/scan.ts) */}
+            <ScannerConfigRow t={t} />
         </SettingsGroup>
-
-        <SettingsGroup title={t("Library data", "Bibliotheksdaten")}>
-            <ExportRow t={t} />
-        </SettingsGroup>
-    </>
-}
-
-/** Export: the library's file data as JSON through Android's share sheet (E4 file module). */
-function ExportRow({ t }: { t: Translate }) {
-    const saveServerFile = useSaveServerFile()
-    const [exporting, setExporting] = React.useState(false)
-    return <LinkRow label={exporting ? t("Exporting…", "Wird exportiert …") : t("Export library data", "Bibliotheksdaten exportieren")} disabled={exporting}
-        note={t("Saves the scanned file data as a JSON file.", "Speichert die gescannten Dateidaten als JSON-Datei.")}
-        onPress={async () => {
-            setExporting(true)
-            try {
-                await saveServerFile("/api/v1/library/local-files/dump", `seanime-localfiles-${fileTimestamp()}.json`, { mime: "application/json" })
-            }
-            catch {
-                toast.error(t("The library data could not be exported.", "Die Bibliotheksdaten konnten nicht exportiert werden."))
-            }
-            finally {
-                setExporting(false)
-            }
-        }} />
-}
-
-function LegacyMatching({ t }: { t: Translate }) {
-    const save = useSaveSetting()
-    const algorithm = useSettingValue("library.scannerMatchingAlgorithm", "")
-    const threshold = useSettingValue("library.scannerMatchingThreshold", 0)
-    const shownThreshold = threshold > 0 ? threshold : 0.5
-    return <>
-        <SelectRow label={t("Matching algorithm", "Zuordnungsverfahren")} value={algorithm || "-"}
-            onChange={value => void save("library.scannerMatchingAlgorithm", value === "-" ? "" : value)}
-            options={[
-                { value: "-", label: t("Levenshtein + Sorensen-Dice (default)", "Levenshtein + Sorensen-Dice (Standard)") },
-                { value: "sorensen-dice", label: "Sorensen-Dice" },
-                { value: "jaccard", label: "Jaccard" },
-            ]} />
-        <SelectRow label={t("Matching threshold", "Zuordnungsschwelle")} value={shownThreshold.toFixed(1)}
-            note={t("The lowest score a file needs to be matched. Default 0.5.", "Die niedrigste Punktzahl, mit der eine Datei zugeordnet wird. Standard 0,5.")}
-            onChange={value => void save("library.scannerMatchingThreshold", Number(value))}
-            options={Array.from({ length: 10 }, (_, i) => ((i + 1) / 10).toFixed(1)).map(value => ({ value, label: value }))} />
     </>
 }
 

@@ -244,7 +244,7 @@ function MangaDetail({ group, queue, t, onChanged }: { group: MangaDownloadGroup
                 })}
             </View>
         </PhoneSection>
-        <Dialog title={t("Delete chapter from phone?", "Kapitel vom Handy löschen?")} open={!!deleting} onOpenChange={value => { if (!value) setDeleting(null) }}
+        <Dialog title={t("Delete chapter from device?", "Kapitel vom Gerät löschen?")} open={!!deleting} onOpenChange={value => { if (!value) setDeleting(null) }}
             description={`${title} · ${t("Chapter", "Kapitel")} ${deleting?.chapterNumber ?? ""}`}
             footer={<>
                 <Button intent="secondary" wrapperClassName="flex-1" onPress={() => setDeleting(null)}>{t("Cancel", "Abbrechen")}</Button>

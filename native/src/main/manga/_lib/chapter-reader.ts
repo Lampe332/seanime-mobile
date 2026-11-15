@@ -16,12 +16,14 @@ export type MangaReader_SelectedChapter = {
 }
 
 type DownloadedChapter = { chapterId: string, chapterNumber: string, provider: string }
-type ContainerChapter = { id: string, chapter: string, provider: string }
+type ContainerChapter = { id: string, chapter: string, provider: string, language?: string, scanlator?: string }
 type ChapterContainer = { mediaId: number, chapters?: ContainerChapter[] | null }
 
 /**
  * The previous or next chapter (useHandleChapterPagination): a downloaded one first, then the neighbour in the source's
  * list and the closest number in the source; of these the closest to the current chapter wins, a downloaded one on a tie.
+ * The source's chapters are those of the open chapter's strand (same language and scanlator), so the reader does not
+ * jump into another translation; a provider with one strand is not changed by this.
  */
 export function getAdjacentChapter(
     dir: "previous" | "next",
@@ -41,7 +43,10 @@ export function getAdjacentChapter(
     const downloadedCh = first ? { chapterId: first.chapterId, chapterNumber: first.chapterNumber, provider: first.provider, mediaId: Number(mediaId) } : undefined
     if (!container?.chapters) return downloadedCh
 
-    const chapters = container.chapters
+    const open = container.chapters.find(chapter => chapter.id === current.chapterId)
+    const chapters = open
+        ? container.chapters.filter(chapter => (chapter.language ?? "") === (open.language ?? "") && (chapter.scanlator ?? "") === (open.scanlator ?? ""))
+        : container.chapters
     const idx = chapters.findIndex(chapter => chapter.id === current.chapterId)
     const neighbour = idx !== -1 ? chapters[next ? idx + 1 : idx - 1] : undefined
     const neighbourCh = neighbour ? { chapterId: neighbour.id, chapterNumber: neighbour.chapter, provider: neighbour.provider, mediaId: container.mediaId } : undefined

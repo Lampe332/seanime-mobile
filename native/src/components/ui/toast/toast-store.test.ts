@@ -1,16 +1,31 @@
 import { describe, expect, it } from "vitest"
-import { stackedToast, toast, toasterFrame, getToasts } from "./toast-store"
+import { HEAD_ACTION_OVERHANG, HEAD_ACTION_SIZE, HEADING_LINE_HEIGHT } from "@/components/shared/page-head"
+import { pageTop } from "@/components/shared/page-top"
+import { stackedToast, toast, toasterFrame, getToasts, TOAST_TOP_UNDER_HEAD } from "./toast-store"
 
-// sonner 2.0.7 as 2.0.32 used it: <Toaster position="top-right" visibleToasts={4} /> (S22 10.11.: 16dp from the top)
+// sonner 2.0.7 as 2.0.32 used it: <Toaster position="top-right" visibleToasts={4} />, its top under the page head's buttons
 describe("toaster frame", () => {
-    it("spans a phone 16dp from the top and the sides (max-width: 600px)", () => {
-        expect(toasterFrame(384)).toEqual({ top: 16, left: 16, right: 16 })
-        expect(toasterFrame(600)).toEqual({ top: 16, left: 16, right: 16 })
+    it("spans a phone 16dp from the sides (max-width: 600px)", () => {
+        expect(toasterFrame(384, 0)).toMatchObject({ left: 16, right: 16 })
+        expect(toasterFrame(600, 0)).toMatchObject({ left: 16, right: 16 })
     })
 
-    it("is 356dp wide, 24dp from the top right when wider", () => {
-        expect(toasterFrame(601)).toEqual({ top: 24, right: 24, width: 356 })
-        expect(toasterFrame(1280)).toEqual({ top: 24, right: 24, width: 356 })
+    it("is 356dp wide, 24dp from the right when wider", () => {
+        expect(toasterFrame(601, 0)).toMatchObject({ right: 24, width: 356 })
+        expect(toasterFrame(1280, 0)).toMatchObject({ right: 24, width: 356 })
+    })
+
+    it("starts below the head's buttons on phone and tablet, so it never covers them", () => {
+        // page-head.ts: the 32dp title line with the 48dp buttons overhanging it by 8dp; Home's buttons end ~53dp down
+        const pageHeadButtonsEnd = HEADING_LINE_HEIGHT + HEAD_ACTION_OVERHANG
+        expect(pageHeadButtonsEnd + HEAD_ACTION_OVERHANG).toBe(HEAD_ACTION_SIZE)
+        expect(TOAST_TOP_UNDER_HEAD).toBeGreaterThanOrEqual(53 + 8)
+        for (const insetTop of [0, 30, 48]) {
+            expect(toasterFrame(384, insetTop).top).toBe(pageTop(insetTop) + TOAST_TOP_UNDER_HEAD)
+            expect(toasterFrame(1280, insetTop).top).toBe(pageTop(insetTop) + TOAST_TOP_UNDER_HEAD)
+            expect(toasterFrame(384, insetTop).top - pageTop(insetTop)).toBeGreaterThan(pageHeadButtonsEnd)
+        }
+        expect(toasterFrame(384, 30).top).toBe(98)
     })
 })
 

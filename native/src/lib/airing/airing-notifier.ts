@@ -8,6 +8,7 @@ import * as TaskManager from "expo-task-manager"
 import { Platform } from "react-native"
 import { aired, AiringNext, Announced, ANNOUNCE_DELAY_SECONDS, nextCheck, toSchedule } from "./airing-policy"
 import { AIRING_QUERY, AiringFetch, anilist, listMedia, resolveUser, userId } from "./anilist-public"
+import { checkChaptersInBackground, isChapterNotifyEnabled } from "@/lib/updates/chapter-check"
 
 /*
  * New-episode notifications for the anime on the watching list (AiringNotifier.kt). The old app woke itself with an
@@ -72,8 +73,9 @@ async function postNow(item: AiringNext, test: boolean) {
 }
 
 async function fetchNext(attempts: number): Promise<AiringNext[]> {
-    // the server knows the user while it runs; a background check may come while it does not, then the last name is used
-    const name = await resolveUser(attempts, 2000)
+    // the core's status knows the user; without one (no account yet) the last name is used
+    void attempts
+    const name = await resolveUser()
     const data = await anilist<AiringFetch>(AIRING_QUERY, { userId: await userId(name) })
     return listMedia(data).map(media => ({
         mediaId: media.id,
@@ -150,12 +152,13 @@ async function cancelPlanned() {
     writeJSON(SCHEDULED_KEY, {})
 }
 
-/** Background checks run only while the notifications are on. */
+/** Background checks run only while the episode or the chapter notifications are on (the same job does both). */
 export async function syncAiringTask() {
     if (Platform.OS !== "android") return
+    const wanted = isAiringEnabled() || isChapterNotifyEnabled()
     const registered = await TaskManager.isTaskRegisteredAsync(AIRING_TASK)
-    if (isAiringEnabled() && !registered) await BackgroundTask.registerTaskAsync(AIRING_TASK, { minimumInterval: 60 })
-    if (!isAiringEnabled() && registered) await BackgroundTask.unregisterTaskAsync(AIRING_TASK)
+    if (wanted && !registered) await BackgroundTask.registerTaskAsync(AIRING_TASK, { minimumInterval: 60 })
+    if (!wanted && registered) await BackgroundTask.unregisterTaskAsync(AIRING_TASK)
 }
 
 /** Turning it on asks for the notification permission first (Android 13+). */
@@ -192,7 +195,9 @@ export function defineAiringTask() {
     if (TaskManager.isTaskDefined(AIRING_TASK)) return
     TaskManager.defineTask(AIRING_TASK, async () => {
         try {
-            await checkAiring()
+            // new manga chapters ride along: the check itself runs at most every few hours (lib/updates/chapter-check.ts)
+            const [episodes, chapters] = await Promise.allSettled([checkAiring(), checkChaptersInBackground()])
+            if (episodes.status === "rejected" && chapters.status === "rejected") return BackgroundTask.BackgroundTaskResult.Failed
             return BackgroundTask.BackgroundTaskResult.Success
         }
         catch {

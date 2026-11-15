@@ -2,7 +2,7 @@ import type { AL_BaseAnime, Anime_Entry, Anime_EntryDownloadInfo, HibikeTorrent_
 import type { Translate } from "@/lib/app-language"
 import { upath } from "@/lib/helpers/upath"
 import { atomWithStorage, readStoredJSON, storage } from "@/lib/storage"
-import type { TorrentLanguage, TorrentSort } from "@/main/entry/_containers/torrent-search/_lib/torrent-filters"
+import { isProviderBatch, type TorrentLanguage, type TorrentSort } from "@/main/entry/_containers/torrent-search/_lib/torrent-filters"
 import type { TorrentSelectionType } from "@/main/entry/_containers/torrent-search/torrent-search.atoms"
 import { addDays } from "date-fns/addDays"
 import { addHours } from "date-fns/addHours"
@@ -95,12 +95,12 @@ export function torrentMeta(torrent: HibikeTorrent_AnimeTorrent, t: Translate, l
         provider,
         torrent.isBestRelease ? t("Best release", "Bestes Release") : "",
         cached ? t("Cached", "Gecacht") : "",
-        torrent.isBatch ? "Batch" : "",
+        isProviderBatch(torrent) ? "Batch" : "",
         torrent.releaseGroup || "",
         torrent.resolution || "",
         torrent.formattedSize || "",
         // Providers without seeder counts send -1
-        torrent.seeders > 0 ? t(`${torrent.seeders} seeders`, `${torrent.seeders} Seeder`)
+        torrent.seeders > 0 ? t(`${torrent.seeders} ${torrent.seeders === 1 ? "seeder" : "seeders"}`, `${torrent.seeders} Seeder`)
             : torrent.seeders < 0 ? t("Seeders unknown", "Seeder unbekannt") : t("No seeders", "Keine Seeder"),
         ago(torrent.date, language, now),
     ]

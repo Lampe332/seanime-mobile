@@ -1,4 +1,6 @@
+import type { AL_BaseAnime } from "@/api/generated/types"
 import { CardMenu, type CardMenuAnchor } from "@/components/shared/card-menu"
+import { useCardListItems } from "@/main/_features/media/_containers/use-card-list-items"
 import { useCoverFlightSource } from "@/components/shared/cover-flight"
 import { LoadingRows, Notice, TextAction } from "@/components/shared/phone-kit"
 import { PhoneEmpty, PhoneSection, useOfflineAware } from "@/components/shared/phone-cards"
@@ -107,6 +109,7 @@ const ScheduleRow = React.memo(function ScheduleRow({ item, german }: { item: Ai
     // the row's cover flies into the page it opens (cover-flight.tsx); a blurred one does not fly
     const coverUri = getImageUrl(media.coverImage?.large || media.coverImage?.medium || "")
     const { coverRef, onLoad, hidden, open } = useCoverFlightSource(media.id, veiled ? "" : coverUri, getImageUrl(media.coverImage?.extraLarge || ""))
+    const listItems = useCardListItems(media as AL_BaseAnime, "anime", open)
     return (
         <Pressable
             accessibilityRole="link"
@@ -118,7 +121,7 @@ const ScheduleRow = React.memo(function ScheduleRow({ item, german }: { item: Ai
             className="min-h-[76px] w-full flex-row flex-wrap items-center gap-3.5 bg-sm-surface-raised py-2.5 pl-2.5 pr-4 active:bg-sm-surface-control"
         >
             <CardMenu anchor={menuAt} title={title} onClose={closeMenu}
-                items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, "anime") }]} />
+                items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, "anime") }, ...listItems]} />
             <View ref={coverRef} collapsable={false} className="aspect-[2/3] w-11 overflow-hidden rounded-[8px] bg-sm-surface-control">
                 <Image source={coverUri} recyclingKey={String(media.id)} contentFit="cover"
                     blurRadius={veiled ? 24 : 0} transition={fade} onLoad={onLoad}

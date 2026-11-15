@@ -126,6 +126,15 @@ export function downloadPresets(available: number[], current: number | null) {
 }
 
 /**
+ * The one quick selection that is on: the first whose episodes are exactly the selected ones. Two can hold the same
+ * episodes (Season and "From ep. 1"), then only the first is on.
+ */
+export function activePreset(selected: Set<number>, presets: { id: string, numbers: number[] }[]): string | null {
+    const match = presets.find(preset => preset.numbers.length > 0 && preset.numbers.length === selected.size && preset.numbers.every(n => selected.has(n)))
+    return match?.id ?? null
+}
+
+/**
  * POST /mobile-offline/batch for the picked episodes of an online stream (episode-download-picker.tsx submit): the
  * provider, server, quality ("Auto" when none) and audio the stream page plays with, the anime's title and artwork, each
  * episode's title, picture and a short description (400 characters, as before). The server resolves each source only

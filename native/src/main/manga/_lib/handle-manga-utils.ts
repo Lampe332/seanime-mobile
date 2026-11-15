@@ -1,4 +1,3 @@
-import { getServerBaseUrl } from "@/api/client/server-url"
 import { HibikeManga_ChapterDetails, Manga_MediaDownloadData } from "@/api/generated/types"
 import { useServerHMACAuth, useServerStatus } from "@/main/_hooks/use-server-status"
 import React from "react"
@@ -25,40 +24,35 @@ export function isChapterAfter(a: string, b: string): boolean {
 
 export function useMangaReaderUtils() {
     const serverStatus = useServerStatus()
+    // only for isReady below: a status kept from the old server may still say it had a password
     const { getHMACTokenQueryParam, password } = useServerHMACAuth()
     const [tokenQueryParam, setTokenQueryParam] = React.useState<string>("")
-    const [localPageToken, setLocalPageToken] = React.useState<string>("")
 
     React.useLayoutEffect(() => {
         (async () => {
             setTokenQueryParam(await getHMACTokenQueryParam("/api/v1/image-proxy", "&"))
-            setLocalPageToken(await getHMACTokenQueryParam("/api/v1/manga/local-page", "?"))
         })()
     }, [password])
 
-    const getChapterPageUrl = React.useCallback((url: string, isDownloaded: boolean | undefined, headers?: Record<string, string>) => {
-        if (url.startsWith("{{manga-local-assets}}")) {
-            return `${getServerBaseUrl()}/api/v1/manga/local-page/${encodeURIComponent(url)}${localPageToken}`
-        }
+    const getChapterPageUrl = React.useCallback((url: string, isDownloaded: boolean | undefined) => {
+        // the server's local manga pages are not there, the app runs without it (§4s)
+        if (url.startsWith("{{manga-local-assets}}")) return ""
+        // straight from the source, the headers go with the picture (getChapterPageHeaders)
+        if (!isDownloaded) return url
+        // a chapter the core saved: its file on the device; the server's downloads folder is not there
+        return url.startsWith("file://") ? url : ""
+    }, [])
 
-        if (!isDownloaded) {
-            if (headers && Object.keys(headers).length > 0) {
-                const params = new URLSearchParams({
-                    url,
-                    headers: JSON.stringify(headers),
-                })
-                return `${getServerBaseUrl()}/api/v1/image-proxy?${params.toString()}${tokenQueryParam}`
-            }
-
-            return url
-        }
-
-        return `${getServerBaseUrl()}/manga-downloads/${url}`
-    }, [tokenQueryParam, localPageToken])
+    /** The headers a page needs when it loads straight from the source (area manga on, §4n); otherwise none */
+    const getChapterPageHeaders = React.useCallback((url: string, isDownloaded: boolean | undefined, headers?: Record<string, string>) => {
+        if (isDownloaded || url.startsWith("{{manga-local-assets}}") || !headers || Object.keys(headers).length === 0) return undefined
+        return headers
+    }, [])
 
     return {
         isReady: (!serverStatus?.serverHasPassword) || (!!password && !!tokenQueryParam),
         getChapterPageUrl,
+        getChapterPageHeaders,
     }
 
 }

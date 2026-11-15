@@ -1,0 +1,120 @@
+diff --git a/node_modules/react-native-reanimated/lib/module/mappers.native.js b/node_modules/react-native-reanimated/lib/module/mappers.native.js
+index 75dd011..20b971a 100644
+--- a/node_modules/react-native-reanimated/lib/module/mappers.native.js
++++ b/node_modules/react-native-reanimated/lib/module/mappers.native.js
+@@ -68,6 +68,7 @@ function createMapperRegistry() {
+   let mapperRunFinalizers = [];
+   global.__requestMapperRunFinalizer = finalizer => {
+     mapperRunFinalizers.push(finalizer);
++    scheduleMapperRun();
+   };
+   let isAnyMapperDirty = false;
+   function mapperRun() {
+@@ -98,12 +99,23 @@ function createMapperRegistry() {
+     }
+   }
+   const schedulingFunction = globalThis.requestAnimationFrameFinalizer;
++  // Patched: mappers run on demand (dirty mapper or pending finalizer)
++  // instead of re-scheduling every frame.
++  let mapperRunScheduled = false;
++  function scheduleMapperRun() {
++    if (!mapperRunScheduled) {
++      mapperRunScheduled = true;
++      schedulingFunction(scheduledMapperRun);
++    }
++  }
+   function scheduledMapperRun() {
++    mapperRunScheduled = false;
+     mapperRun();
+-    // We always run mappers on native.
+-    schedulingFunction(scheduledMapperRun);
++    if (isAnyMapperDirty || mapperRunFinalizers.length > 0) {
++      scheduleMapperRun();
++    }
+   }
+-  schedulingFunction(scheduledMapperRun);
++  scheduleMapperRun();
+   global.__mapperRun = mapperRun;
+   function extractInputs(inputs, resultArray) {
+     if (Array.isArray(inputs)) {
+@@ -142,8 +154,10 @@ function createMapperRegistry() {
+         sv.addListener(mapper.id, () => {
+           mapper.dirty = true;
+           isAnyMapperDirty = true;
++          scheduleMapperRun();
+         });
+       }
++      scheduleMapperRun();
+     },
+     stop: mapperID => {
+       const mapper = mappers.get(mapperID);
+@@ -154,6 +168,7 @@ function createMapperRegistry() {
+         for (const sv of mapper.inputs) {
+           sv.removeListener(mapper.id);
+         }
++        scheduleMapperRun();
+       }
+     }
+   };
+diff --git a/node_modules/react-native-reanimated/src/mappers.native.ts b/node_modules/react-native-reanimated/src/mappers.native.ts
+index 740b5c3..e7d6e87 100644
+--- a/node_modules/react-native-reanimated/src/mappers.native.ts
++++ b/node_modules/react-native-reanimated/src/mappers.native.ts
+@@ -78,6 +78,7 @@ function createMapperRegistry() {
+   let mapperRunFinalizers: (() => void)[] = [];
+   global.__requestMapperRunFinalizer = (finalizer: () => void) => {
+     mapperRunFinalizers.push(finalizer);
++    scheduleMapperRun();
+   };
+ 
+   let isAnyMapperDirty = false;
+@@ -112,13 +113,27 @@ function createMapperRegistry() {
+ 
+   const schedulingFunction = globalThis.requestAnimationFrameFinalizer;
+ 
++  // Patched: mappers run on demand (dirty mapper or pending finalizer)
++  // instead of re-scheduling every frame, so an idle app stops waking the
++  // UI thread 60 times a second.
++  let mapperRunScheduled = false;
++
++  function scheduleMapperRun() {
++    if (!mapperRunScheduled) {
++      mapperRunScheduled = true;
++      schedulingFunction(scheduledMapperRun);
++    }
++  }
++
+   function scheduledMapperRun() {
++    mapperRunScheduled = false;
+     mapperRun();
+-    // We always run mappers on native.
+-    schedulingFunction(scheduledMapperRun);
++    if (isAnyMapperDirty || mapperRunFinalizers.length > 0) {
++      scheduleMapperRun();
++    }
+   }
+ 
+-  schedulingFunction(scheduledMapperRun);
++  scheduleMapperRun();
+ 
+   global.__mapperRun = mapperRun;
+ 
+@@ -168,8 +183,10 @@ function createMapperRegistry() {
+         sv.addListener(mapper.id, () => {
+           mapper.dirty = true;
+           isAnyMapperDirty = true;
++          scheduleMapperRun();
+         });
+       }
++      scheduleMapperRun();
+     },
+     stop: (mapperID: number) => {
+       const mapper = mappers.get(mapperID);
+@@ -180,6 +197,7 @@ function createMapperRegistry() {
+         for (const sv of mapper.inputs) {
+           sv.removeListener(mapper.id);
+         }
++        scheduleMapperRun();
+       }
+     },
+   };

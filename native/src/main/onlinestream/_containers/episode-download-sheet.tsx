@@ -11,7 +11,7 @@ import { successFeedback } from "@/lib/feedback"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
 import { askForDownloadNotices } from "@/main/android-downloads/_lib/download-notifications"
-import { batchRequest, downloadPresets, episodeWord, storedEpisodes } from "@/main/android-downloads/_lib/offline-library"
+import { activePreset, batchRequest, downloadPresets, episodeWord, storedEpisodes } from "@/main/android-downloads/_lib/offline-library"
 import { Image } from "expo-image"
 import Download from "lucide-react-native/icons/download"
 import React from "react"
@@ -24,8 +24,6 @@ import { Pressable, View } from "react-native"
  * (POST /mobile-offline/batch), which resolves each source only once a slot is free and keeps running in the background.
  * Mounted by the online stream screen (E2 2.15) with the provider, server, quality and audio it plays with.
  */
-
-const sameSet = (a: Set<number>, b: number[]) => a.size === b.length && b.every(n => a.has(n))
 
 export function EpisodeDownloadButton({ media, episodes, provider, server, quality, dubbed, currentEpisode }: {
     media: AL_BaseAnime
@@ -83,7 +81,8 @@ export function EpisodeDownloadButton({ media, episodes, provider, server, quali
         { id: "from", label: t(`From ep. ${from}`, `Ab Folge ${from}`), numbers: presets.from },
         ...(currentEpisode !== null ? [{ id: "this", label: t("This episode", "Diese Folge"), numbers: presets.this }] : []),
     ]
-    const cover = media.coverImage?.large || media.coverImage?.medium
+    const active = activePreset(selected, chips)
+    const cover =media.coverImage?.large || media.coverImage?.medium
 
     return <>
         {/* `.mobile-source-line [data-download-season]`: a raised 48dp block with --sm-radius-sm, 1rem to the sides, .875rem semibold;
@@ -108,7 +107,7 @@ export function EpisodeDownloadButton({ media, episodes, provider, server, quali
                 </View>
                 <View className="flex-row flex-wrap gap-2" accessibilityLabel={t("Quick selection", "Schnellauswahl")}>
                     {chips.map(chip => {
-                        const on = sameSet(selected, chip.numbers)
+                        const on = chip.id === active
                         return <Pressable key={chip.id} accessibilityRole="togglebutton" accessibilityState={{ checked: on, disabled: busy || !chip.numbers.length }}
                             disabled={busy || !chip.numbers.length} onPress={() => setSelected(new Set(chip.numbers))}
                             className={cn("min-h-12 justify-center rounded-full px-4", on ? "bg-sm-accent-soft" : "bg-sm-surface-raised active:bg-sm-surface-control", !chip.numbers.length && "opacity-45")}>

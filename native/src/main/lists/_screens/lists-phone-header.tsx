@@ -6,7 +6,7 @@ import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import React from "react"
 import { Pressable, View } from "react-native"
-import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated"
+import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated"
 
 type Icon = React.ComponentType<{ size?: number, color?: string }>
 
@@ -32,6 +32,7 @@ function Spinning({ active, children }: { active: boolean, children: React.React
             return
         }
         turn.set(withRepeat(withTiming(360, { duration: 900, easing: Easing.linear, reduceMotion: ReduceMotion.System }), -1, false))
+        return () => cancelAnimation(turn)
     }, [active, turn])
     const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.get()}deg` }] }))
     return <Animated.View style={style}>{children}</Animated.View>

@@ -1,7 +1,8 @@
+import { coreHearPlayer } from "@/api/client/core-switch"
 import type { NativePlayer_PlaybackInfo } from "@/api/generated/types"
 import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
-import { useWebsocketMessageListener, useWebsocketSender } from "@/main/_hooks/handle-websockets"
+import { useWebsocketMessageListener } from "@/main/_hooks/handle-websockets"
 import { clientIdAtom } from "@/main/websocket-provider"
 import type { OnlinestreamParams } from "@/main/onlinestream/_lib/onlinestream-player.atoms"
 import { useAtomValue } from "jotai"
@@ -57,7 +58,6 @@ export function toVideoCorePlaybackInfo(info: NativePlayer_PlaybackInfo, origin?
  * nothing and takes no commands; offline playback never updates AniList or continuity (as in the old OfflineActivity).
  */
 export function usePlayerServer(info: NativePlayer_PlaybackInfo | null, commands: React.RefObject<PlayerCommands | null>, enabled = true, origin?: PlayerServerOrigin) {
-    const { sendMessage } = useWebsocketSender()
     const clientId = useAtomValue(clientIdAtom)
     const infoRef = React.useRef(info)
     const enabledRef = React.useRef(enabled)
@@ -70,8 +70,9 @@ export function usePlayerServer(info: NativePlayer_PlaybackInfo | null, commands
 
     const send = React.useCallback((type: string, payload?: unknown) => {
         if (!enabledRef.current) return
-        sendMessage({ type: WSEvents.VIDEOCORE, payload: { clientId, type, payload } })
-    }, [sendMessage, clientId])
+        // the core keeps history and progress (core/playback/playback.ts)
+        coreHearPlayer({ clientId, type, payload })
+    }, [clientId])
 
     const timePayload = React.useCallback(() => {
         const t = commands.current?.getTime() ?? { currentTime: 0, duration: 0, paused: true }

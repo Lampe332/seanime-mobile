@@ -1,7 +1,7 @@
 {
   "expo": {
     "slug": "seanime-native",
-    "version": "3.0.0",
+    "version": "4.0.0",
     "orientation": "default",
     "userInterfaceStyle": "dark",
     "android": {
@@ -151,6 +151,17 @@
               "description": "Next episodes of your list with a countdown",
               "minWidth": "250dp",
               "minHeight": "140dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 3600000
+            },
+            {
+              "name": "ContinueWatching",
+              "label": "Continue watching",
+              "description": "Your next episodes in Seanime Mobile",
+              "minWidth": "180dp",
+              "minHeight": "60dp",
               "targetCellWidth": 3,
               "targetCellHeight": 2,
               "resizeMode": "horizontal|vertical",

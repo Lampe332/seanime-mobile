@@ -1,0 +1,45 @@
+{
+    "note": "From the recording api-anilist-schreibend of 13.11.2026 (the server of the scratch app, signed in with the test account; docs/EIGENER-KERN.md §4f): what the server answered, which status it left after a progress, what it told its clients. Numbers of entries and times are made up; titles are AniList's public numbers.",
+    "requests": {
+        "edit": { "mediaId": 105333, "status": "CURRENT", "score": 80, "progress": 3, "startedAt": { "year": 2026, "month": 11, "day": 1 }, "type": "anime" },
+        "editAdd": { "mediaId": 105333, "status": "PLANNING", "score": 0, "progress": 0, "type": "anime" },
+        "progress": { "mediaId": 105333, "episodeNumber": 7, "totalEpisodes": 24 },
+        "mangaProgress": { "mediaId": 98416, "chapterNumber": 5, "totalChapters": 236 },
+        "repeat": { "mediaId": 105333, "repeat": 2 },
+        "delete": { "mediaId": 105333, "type": "anime" }
+    },
+    "answer": true,
+    "errors": {
+        "status": 500,
+        "editWithoutScore": { "request": { "mediaId": 105333, "progress": 4, "type": "anime" }, "anilistSaid": ["The score raw must be an integer."] },
+        "editWithoutScoreAndProgress": { "request": { "mediaId": 1, "status": "PAUSED" }, "anilistSaid": ["The score raw must be an integer.", "The progress must be an integer."] },
+        "editUnknownTitle": { "request": { "mediaId": 999999999, "status": "PLANNING", "score": 0, "progress": 0, "type": "anime" }, "anilistSaid": ["The selected media id is invalid."] },
+        "deleteWithoutType": { "request": { "mediaId": 98416 }, "error": "missing parameters" },
+        "deleteNotInList": { "request": { "mediaId": 105333, "type": "anime" }, "error": "list entry not found" }
+    },
+    "statusAfterProgress": [
+        { "case": "not in the lists", "before": null, "progress": 1, "total": 26, "after": "CURRENT", "startedToday": true },
+        { "case": "from planning", "before": "PLANNING", "progress": 3, "total": 26, "after": "CURRENT" },
+        { "case": "forward", "before": "CURRENT", "progress": 7, "total": 24, "after": "CURRENT" },
+        { "case": "backward", "before": "CURRENT", "progress": 2, "total": 24, "after": "CURRENT" },
+        { "case": "rewatching", "before": "REPEATING", "progress": 4, "total": 26, "after": "REPEATING" },
+        { "case": "total unknown", "before": "REPEATING", "progress": 5, "total": 0, "after": "REPEATING" },
+        { "case": "from completed", "before": "COMPLETED", "progress": 10, "total": 26, "after": "CURRENT" },
+        { "case": "the last one", "before": "CURRENT", "progress": 24, "total": 24, "after": "COMPLETED", "completedToday": true }
+    ],
+    "events": {
+        "anime": { "type": "refreshed-anilist-anime-collection", "payload": null },
+        "manga": { "type": "refreshed-anilist-manga-collection", "payload": null },
+        "repeat": null
+    },
+    "afterEdit": {
+        "list": { "status": "CURRENT", "name": "Watching", "isCustomList": false },
+        "entry": { "completedAt": {}, "createdAt": 1700000000, "id": 7001, "private": false, "progress": 3, "repeat": 0, "score": 80, "startedAt": { "day": 1, "month": 11, "year": 2026 }, "status": "CURRENT", "updatedAt": 1700000011 },
+        "listData": { "progress": 3, "score": 80, "status": "CURRENT", "startedAt": "2026-11-01T00:00:00Z", "createdAt": 1700000000, "updatedAt": 1700000011 }
+    },
+    "afterAdd": {
+        "list": { "status": "PLANNING", "name": "Planning", "isCustomList": false },
+        "entry": { "completedAt": {}, "createdAt": 1700000000, "id": 7001, "private": false, "progress": 0, "repeat": 0, "score": 0, "startedAt": {}, "status": "PLANNING", "updatedAt": 1700000000 },
+        "listData": { "status": "PLANNING", "createdAt": 1700000000, "updatedAt": 1700000000 }
+    }
+}

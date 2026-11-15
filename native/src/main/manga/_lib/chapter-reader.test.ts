@@ -39,6 +39,26 @@ describe("previous / next chapter", () => {
         expect(getAdjacentChapter("previous", { ...current, chapterId: "c9", chapterNumber: "9" }, [], container, 7)).toBeUndefined()
         expect(getAdjacentChapter("next", undefined, [], container, 7)).toBeUndefined()
     })
+    it("stays in the open chapter's language and scanlator (MangaFire lists every translation in one list)", () => {
+        // as MangaFire gives Dr. STONE: the official English numbers 0, 0.001, … next to other translations
+        const mixed = {
+            mediaId: 7,
+            chapters: [
+                { id: "en-off-1", chapter: "0", provider: "mf", language: "en", scanlator: "official" },
+                { id: "en-off-2", chapter: "0.001", provider: "mf", language: "en", scanlator: "official" },
+                { id: "en-fan-1", chapter: "1", provider: "mf", language: "en", scanlator: "fan" },
+                { id: "en-fan-2", chapter: "2", provider: "mf", language: "en", scanlator: "fan" },
+                { id: "fr-1", chapter: "1", provider: "mf", language: "fr", scanlator: "official" },
+                { id: "fr-2", chapter: "2", provider: "mf", language: "fr", scanlator: "official" },
+            ],
+        }
+        const at = (id: string, chapterNumber: string) => ({ chapterId: id, chapterNumber, provider: "mf", mediaId: 7 })
+        expect(getAdjacentChapter("next", at("en-off-1", "0"), [], mixed, 7)?.chapterId).toBe("en-off-2")
+        expect(getAdjacentChapter("previous", at("en-off-2", "0.001"), [], mixed, 7)?.chapterId).toBe("en-off-1")
+        expect(getAdjacentChapter("next", at("en-fan-1", "1"), [], mixed, 7)?.chapterId).toBe("en-fan-2")
+        expect(getAdjacentChapter("previous", at("fr-2", "2"), [], mixed, 7)?.chapterId).toBe("fr-1")
+        expect(getAdjacentChapter("previous", at("fr-1", "1"), [], mixed, 7)).toBeUndefined()
+    })
 })
 
 describe("pagination map", () => {

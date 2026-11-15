@@ -4,7 +4,8 @@ import { vc_autoNextAtom } from "@/main/_features/video-core/video-core.atoms"
 import { createStore } from "jotai"
 import { describe, expect, it } from "vitest"
 import {
-    filterLogFiles,
+    debridProviderPatch,
+    debridSwitchPatch,
     formatBytes,
     keyCheckDetail,
     limitOptions,
@@ -81,14 +82,20 @@ describe("debrid key check", () => {
     })
 })
 
-describe("logs and memory", () => {
-    it("filters server and scanner logs", () => {
-        const names = ["seanime-2026-11-05.log", "2026-11-05-scan.log"]
-        expect(filterLogFiles(names, "server")).toEqual(["seanime-2026-11-05.log"])
-        expect(filterLogFiles(names, "scanner")).toEqual(["2026-11-05-scan.log"])
-        expect(filterLogFiles(names, "all")).toEqual(names)
+describe("debrid switch and provider", () => {
+    it("turns debrid on only with a provider chosen", () => {
+        expect(debridSwitchPatch(true, "")).toBeNull()
+        expect(debridSwitchPatch(true, "torbox")).toEqual({ enabled: true })
+        expect(debridSwitchPatch(false, "")).toEqual({ enabled: false })
+        expect(debridSwitchPatch(false, "torbox")).toEqual({ enabled: false })
     })
+    it("choosing None turns debrid off", () => {
+        expect(debridProviderPatch("-")).toEqual({ provider: "", enabled: false })
+        expect(debridProviderPatch("realdebrid")).toEqual({ provider: "realdebrid" })
+    })
+})
 
+describe("memory", () => {
     it("formats bytes", () => {
         expect(formatBytes(0)).toBe("0 B")
         expect(formatBytes(1536)).toBe("1.5 KB")

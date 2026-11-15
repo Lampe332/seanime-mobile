@@ -348,6 +348,24 @@ export const API_ENDPOINTS = {
             methods: ["GET"],
             endpoint: "/api/v1/continuity/item/{id}",
         },
+        /** The app's own (History screen): takes one anime out of the watch history, never AniList */
+        DeleteContinuityWatchHistoryItem: {
+            key: "CONTINUITY-delete-continuity-watch-history-item",
+            methods: ["DELETE"],
+            endpoint: "/api/v1/continuity/item",
+        },
+        /** The app's own (History screen): "Clear history" */
+        ClearContinuityWatchHistory: {
+            key: "CONTINUITY-clear-continuity-watch-history",
+            methods: ["DELETE"],
+            endpoint: "/api/v1/continuity/history",
+        },
+        /** The app's own (History screen): the titles of the history, as the core keeps them */
+        GetHistoryMedia: {
+            key: "CONTINUITY-get-history-media",
+            methods: ["POST"],
+            endpoint: "/api/v1/history/media",
+        },
         /**
          *  @description
          *  Route Returns the continuity watch history
@@ -1223,6 +1241,15 @@ export const API_ENDPOINTS = {
         },
         /**
          *  @description
+         *  Route queues the next episodes of the anime being watched online ("Download next episodes automatically", core/offline/prefetch.ts).
+         */
+        MobileOfflinePrefetch: {
+            key: "MOBILE-OFFLINE-mobile-offline-prefetch",
+            methods: ["POST"],
+            endpoint: "/api/v1/mobile-offline/prefetch",
+        },
+        /**
+         *  @description
          *  Route saves a manga's descriptions and cover for the offline list and returns them.
          *  The chapters themselves are downloaded by the manga downloader (/api/v1/manga/download-chapters).
          */
@@ -1962,6 +1989,19 @@ export const API_ENDPOINTS = {
             key: "VIDEOCORE-video-core-save-screenshot",
             methods: ["POST"],
             endpoint: "/api/v1/videocore/screenshot",
+        },
+    },
+    /** The app's own switches: incognito mode and "Delete watched episodes" (core/settings/incognito.ts) */
+    APP_SWITCHES: {
+        GetAppSwitches: {
+            key: "APP-SWITCHES-get",
+            methods: ["GET"],
+            endpoint: "/api/v1/app-switches",
+        },
+        PatchAppSwitches: {
+            key: "APP-SWITCHES-patch",
+            methods: ["PATCH"],
+            endpoint: "/api/v1/app-switches",
         },
     },
 } satisfies ApiEndpoints

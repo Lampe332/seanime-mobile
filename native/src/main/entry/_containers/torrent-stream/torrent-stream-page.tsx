@@ -10,7 +10,9 @@ import { __torrentSearch_selectionAtom, __torrentSearch_selectionEpisodeAtom } f
 import { ForgetBatchDialog, StreamControlsPhone } from "@/main/entry/_containers/torrent-stream/_components/stream-controls-phone"
 import { TorrentStreamEpisodeSection } from "@/main/entry/_containers/torrent-stream/_components/torrent-stream-episode-section"
 import { useHandleStartTorrentStream } from "@/main/entry/_containers/torrent-stream/_lib/handle-torrent-stream"
+import { rememberAutoSelect, startAutoSelect } from "@/main/entry/_containers/torrent-stream/_lib/auto-select-choice"
 import {
+    __torrentStream_autoSelectChoiceAtom,
     __torrentStream_autoSelectFileAtom,
     __torrentStream_currentSessionAutoSelectAtom,
     useTorrentSearchSelectedStreamEpisode,
@@ -34,13 +36,12 @@ export function TorrentStreamPage({ entry, bottomSection }: { entry: Anime_Entry
 
     const { data: episodeCollection, isLoading } = useGetAnimeEpisodeCollection(entry.mediaId)
 
+    // The setting is the start; a flip of the switch is remembered past this page (auto-select-choice.ts)
+    const [savedAutoSelect, setSavedAutoSelect] = useAtom(__torrentStream_autoSelectChoiceAtom)
+    const settingAutoSelect = serverStatus?.torrentstreamSettings?.autoSelect
     React.useLayoutEffect(() => {
-        if (!episodeCollection?.hasMappingError) {
-            setAutoSelect(serverStatus?.torrentstreamSettings?.autoSelect ?? false)
-        } else {
-            setAutoSelect(false)
-        }
-    }, [serverStatus?.torrentstreamSettings?.autoSelect, episodeCollection, setAutoSelect])
+        setAutoSelect(startAutoSelect({ mappingError: !!episodeCollection?.hasMappingError, setting: settingAutoSelect, saved: savedAutoSelect }))
+    }, [settingAutoSelect, savedAutoSelect, episodeCollection, setAutoSelect])
 
     const setTorrentSearchSelection = useSetAtom(__torrentSearch_selectionAtom)
     const setTorrentSearchEpisode = useSetAtom(__torrentSearch_selectionEpisodeAtom)
@@ -140,7 +141,10 @@ export function TorrentStreamPage({ entry, bottomSection }: { entry: Anime_Entry
     const canTap = IN_APP_PLAYER_READY || (!autoSelect && !usePreviousBatch)
 
     return <View className="gap-6">
-        <StreamControlsPhone autoSelect={autoSelect} onAutoSelect={setAutoSelect}
+        <StreamControlsPhone autoSelect={autoSelect} onAutoSelect={value => {
+            setAutoSelect(value)
+            setSavedAutoSelect(rememberAutoSelect(value, settingAutoSelect))
+        }}
             batchName={usePreviousBatch ? batchHistory?.torrent?.name : undefined} onForgetBatch={() => setForgetOpen(true)}
             forgetting={isDeletingBatchHistory} mappingError={!!episodeCollection?.hasMappingError} />
         <TorrentStreamEpisodeSection entry={entry} episodeCollection={episodeCollection} bottomSection={bottomSection} pluginType="torrentstream"

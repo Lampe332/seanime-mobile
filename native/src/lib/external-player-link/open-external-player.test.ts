@@ -26,7 +26,7 @@ describe("openExternalPlayer", () => {
 
     it("reports a missing player app for a preset intent link", async () => {
         startActivityAsync.mockRejectedValueOnce(new Error("ActivityNotFound"))
-        const link = "intent://127.0.0.1:43212/x.mkv#Intent;scheme=http;type=video/*;package=org.videolan.vlc;end"
+        const link = "intent://127.0.0.1:8080/x.mkv#Intent;scheme=http;type=video/*;package=org.videolan.vlc;end"
         expect(await openExternalPlayer(link)).toBe(false)
         expect(toastError).toHaveBeenCalledTimes(1)
     })

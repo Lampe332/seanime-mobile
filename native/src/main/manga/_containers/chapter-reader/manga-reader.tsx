@@ -1,3 +1,4 @@
+import { useIncognito } from "@/api/hooks/app-switches.hooks"
 import { useGetMangaEntryPages, useUpdateMangaProgress } from "@/api/hooks/manga.hooks"
 import { PhoneEmpty } from "@/components/shared/phone-cards"
 import { Button } from "@/components/ui/button/button"
@@ -98,8 +99,9 @@ function Reader({ source }: { source: MangaReaderSource }) {
     const readerBackground = useAtomValue(__manga_readerBackgroundAtom)
     const readerBrightness = useAtomValue(__manga_readerBrightnessAtom)
     const [resumeLocations, setResumeLocations] = useAtom(__manga_resumeLocationsAtom)
+    const incognito = useIncognito()
     const setScrollSignal = useSetAtom(__manga_scrollSignalAtom)
-    const { getChapterPageUrl, isReady } = useMangaReaderUtils()
+    const { getChapterPageUrl, getChapterPageHeaders, isReady } = useMangaReaderUtils()
     useEntryReaderSettings(entry.mediaId)
 
     const close = React.useCallback(() => setCurrentChapter(undefined), [setCurrentChapter])
@@ -176,12 +178,13 @@ function Reader({ source }: { source: MangaReaderSource }) {
     const lastUpdatedChapter = React.useRef<string | null>(null)
     const pagesReady = !pageContainerLoading && !pageContainerError
     React.useEffect(() => {
-        if (serverStatus?.settings?.manga?.mangaAutoUpdateProgress && currentChapter?.chapterId && shouldUpdateProgress && pagesReady && isLastPage
+        // incognito mode: no progress to AniList (the core refuses it too, core/settings/incognito.ts)
+        if (!incognito && serverStatus?.settings?.manga?.mangaAutoUpdateProgress && currentChapter?.chapterId && shouldUpdateProgress && pagesReady && isLastPage
             && lastUpdatedChapter.current !== currentChapter.chapterId) {
             lastUpdatedChapter.current = currentChapter.chapterId
-            updateProgress({ chapterNumber, mediaId: entry.mediaId, malId: entry.media?.idMal || undefined, totalChapters: entry.media?.chapters || 0 })
+            updateProgress({ chapterNumber, mediaId: entry.mediaId, malId: entry.media?.idMal || undefined, totalChapters: entry.media?.chapters || 0, auto: true })
         }
-    }, [serverStatus?.settings?.manga?.mangaAutoUpdateProgress, currentChapter?.chapterId, shouldUpdateProgress, pagesReady, isLastPage,
+    }, [incognito, serverStatus?.settings?.manga?.mangaAutoUpdateProgress, currentChapter?.chapterId, shouldUpdateProgress, pagesReady, isLastPage,
         chapterNumber, entry.mediaId, entry.media?.idMal, entry.media?.chapters, updateProgress])
 
     // Resume: open at the saved page of this chapter, then save the place while reading
@@ -212,22 +215,30 @@ function Reader({ source }: { source: MangaReaderSource }) {
         if (restoredFor && restoredFor === chapterKey && firstPage !== startPage) setCurrentPageIndex(firstPage)
     }, [restoredFor, chapterKey, firstPage, startPage, setCurrentPageIndex])
     React.useEffect(() => {
-        if (!currentChapter || restoredFor !== chapterKey || !pageCount || currentPageIndex < 0 || currentPageIndex > pageCount - 1) return
+        // incognito mode: the page is not kept (no History, no resume)
+        if (incognito || !currentChapter || restoredFor !== chapterKey || !pageCount || currentPageIndex < 0 || currentPageIndex > pageCount - 1) return
         setResumeLocations(prev => {
             const location = prev[mediaKey]
             if (location?.chapterId === currentChapter.chapterId && location?.provider === currentChapter.provider && location?.pageIndex === currentPageIndex) return prev
             return cleanupMangaResumeLocations({
                 ...prev,
-                [mediaKey]: { chapterId: currentChapter.chapterId, provider: currentChapter.provider, pageIndex: currentPageIndex, updatedAt: Date.now() },
+                [mediaKey]: { chapterId: currentChapter.chapterId, provider: currentChapter.provider, pageIndex: currentPageIndex, updatedAt: Date.now(),
+                    ...(Number.isFinite(chapterNumber) && chapterNumber > 0 ? { chapterNumber: String(chapterNumber) } : {}) },
             })
         })
-    }, [currentChapter, chapterKey, restoredFor, pageCount, currentPageIndex, mediaKey, setResumeLocations])
+    }, [incognito, chapterNumber, currentChapter, chapterKey, restoredFor, pageCount, currentPageIndex, mediaKey, setResumeLocations])
 
     const pageUrl = React.useCallback((index: number) => {
         const page = pageContainer?.pages?.[index]
         if (!page || !isReady) return undefined
-        return getChapterPageUrl(page.url, pageContainer?.isDownloaded, page.headers)
+        return getChapterPageUrl(page.url, pageContainer?.isDownloaded)
     }, [pageContainer, isReady, getChapterPageUrl])
+
+    // with the area manga on, the headers a page needs go with its picture instead of through the server (§4n)
+    const pageHeaders = React.useCallback((index: number) => {
+        const page = pageContainer?.pages?.[index]
+        return page ? getChapterPageHeaders(page.url, pageContainer?.isDownloaded, page.headers) : undefined
+    }, [pageContainer, getChapterPageHeaders])
 
     // The bar and slider slide away when hidden
     const barStyle = useAnimatedStyle(() => ({
@@ -266,8 +277,8 @@ function Reader({ source }: { source: MangaReaderSource }) {
                 </View>
             </View> : pageContainerLoading || !pageContainer ? <View className="flex-1 items-center justify-center"><ActivityIndicator color={colors.smTextMuted} size="large" /></View>
                 : effectiveMode === MangaReadingMode.LONG_STRIP
-                    ? <MangaVerticalReader key={chapterKey} pageContainer={pageContainer} pageUrl={pageUrl} initialPageIndex={firstPage} width={window.width} height={readerHeight} />
-                    : <MangaHorizontalReader key={chapterKey} pageContainer={pageContainer} pageUrl={pageUrl} width={window.width} height={readerHeight} />}
+                    ? <MangaVerticalReader key={chapterKey} pageContainer={pageContainer} pageUrl={pageUrl} pageHeaders={pageHeaders} initialPageIndex={firstPage} width={window.width} height={readerHeight} />
+                    : <MangaHorizontalReader key={chapterKey} pageContainer={pageContainer} pageUrl={pageUrl} pageHeaders={pageHeaders} width={window.width} height={readerHeight} />}
         </View>
 
         {readerBrightness < 100 && <View pointerEvents="none" style={{ position: "absolute", inset: 0, backgroundColor: "#000", opacity: (100 - readerBrightness) / 100 }} />}

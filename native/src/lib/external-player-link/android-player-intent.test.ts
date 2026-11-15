@@ -3,9 +3,9 @@ import { androidPlayerLink, parseIntentLink, playerActivityOf } from "./android-
 
 describe("external player intent links", () => {
     it("turns a preset link with the stream into a VIEW intent", () => {
-        const link = androidPlayerLink("org.videolan.vlc").replace("{url}", "127.0.0.1:43212/api/v1/directstream/stream?id=1")
+        const link = androidPlayerLink("org.videolan.vlc").replace("{url}", "127.0.0.1:8080/api/v1/directstream/stream?id=1")
         expect(parseIntentLink(link)).toEqual({
-            data: "http://127.0.0.1:43212/api/v1/directstream/stream?id=1",
+            data: "http://127.0.0.1:8080/api/v1/directstream/stream?id=1",
             type: "video/*",
             packageName: "org.videolan.vlc",
             className: "org.videolan.vlc.StartActivity",

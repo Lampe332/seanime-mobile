@@ -13,7 +13,7 @@ import { PlaybackDownloadedMedia, useCurrentDevicePlaybackSettings, useExternalP
 import { useSetTorrentstreamAutoplayInfo } from "@/main/_features/autoplay/autoplay.atoms"
 import { streamStartError } from "@/main/_features/native-player/stream-start-error"
 import { __mpt_currentExternalPlayerLinkAtom } from "@/main/_features/progress-tracking/progress-tracking.atoms"
-import { useServerHMACAuth, useServerStatus } from "@/main/_hooks/use-server-status"
+import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { useMediastreamActiveOnDevice, useMediastreamCurrentFile } from "@/main/mediastream/_lib/mediastream.atoms"
 import { clientIdAtom } from "@/main/websocket-provider"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -38,7 +38,6 @@ export function useHandlePlayMedia() {
 
     const { downloadedMediaPlayback } = useCurrentDevicePlaybackSettings()
     const { externalPlayerLink } = useExternalPlayerLink()
-    const { getHMACTokenQueryParam: getServerHMACTokenQueryParam } = useServerHMACAuth()
 
     // Play using desktop external player
     const { mutate: playVideo } = usePlaybackPlayVideo()
@@ -68,10 +67,7 @@ export function useHandlePlayMedia() {
                 const link = new ExternalPlayerLink(externalPlayerLink)
                 link.setEpisodeNumber(episode.progressNumber)
                 link.setMediaTitle(episode.baseAnime?.title?.userPreferred)
-                link.to({
-                    endpoint: "/api/v1/nakama/stream?type=file&path=" + utf8ToBase64(path),
-                    onTokenQueryParam: () => getServerHMACTokenQueryParam("/api/v1/nakama/stream", "&"),
-                }).then()
+                link.to({ endpoint: "/api/v1/nakama/stream?type=file&path=" + utf8ToBase64(path) })
                 void openExternalPlayer(link.getFullUrl())
                 setCurrentExternalPlayerLink(link.getFullUrl())
 

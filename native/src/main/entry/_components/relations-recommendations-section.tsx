@@ -87,11 +87,12 @@ export function RelationsRecommendationsSection({ entry, details, loading }: {
 }
 
 /**
- * The page's h2 (globals.css: text-3xl, bold, tight); the manga page uses it too. No margin of its own: in 2.0.32 the
- * first one is `first:mt-0` and the next sits `space-y-4` below the row, so the parent's gap is the whole distance.
+ * The section heading under the episodes/chapters, as big as "Characters" above it (20dp bold; 2.0.32's text-3xl h2 sat
+ * oversized next to the other section titles); the manga page uses it too. No margin of its own: in 2.0.32 the first
+ * one is `first:mt-0` and the next sits `space-y-4` below the row, so the parent's gap is the whole distance.
  */
 export function Heading({ children }: { children: string }) {
-    return <Text accessibilityRole="header" className="text-[30px] font-bold leading-[36px] tracking-[-0.75px]">{children}</Text>
+    return <Text accessibilityRole="header" className="text-[20px] font-bold leading-[27px] tracking-[-0.3px]">{children}</Text>
 }
 
 /** A cover card with the user's list entry and library data, and the relation as a label top right */

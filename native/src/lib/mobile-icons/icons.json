@@ -20,7 +20,10 @@
     "update": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 16V8m-3 3 3-3 3 3\"/>",
     "report": "<path d=\"M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5.7M18 12V7a2 2 0 0 0-2-2h-2M10 3h2a2 2 0 0 1 0 4h-2a2 2 0 0 1 0-4ZM8 11h4M8 15h3M18.5 19.5 21 22\"/><circle cx=\"16.5\" cy=\"17.5\" r=\"2.5\"/>",
     "nakama": "<circle cx=\"7\" cy=\"15\" r=\"2\"/><circle cx=\"17\" cy=\"15\" r=\"2\"/><path d=\"M3 21a4 4 0 0 1 8 0M13 21a4 4 0 0 1 8 0M9.5 8.5a3.5 3.5 0 0 1 5 0M7 6a7 7 0 0 1 10 0\"/>",
-    "fallback": "<circle cx=\"12\" cy=\"12\" r=\"8\"/>"
+    "fallback": "<circle cx=\"12\" cy=\"12\" r=\"8\"/>",
+    "history": "<path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/><path d=\"M12 7v5l4 2\"/>",
+    "bell": "<path d=\"M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9\"/><path d=\"M10.3 21a1.94 1.94 0 0 0 3.4 0\"/>",
+    "incognito": "<path d=\"M14 18a2 2 0 0 0-4 0\"/><path d=\"m19 11-2.11-6.657a2 2 0 0 0-2.752-1.148l-1.276.61A2 2 0 0 1 12 4H8.5a2 2 0 0 0-1.925 1.456L5 11\"/><path d=\"M2 11h20\"/><circle cx=\"17\" cy=\"18\" r=\"3\"/><circle cx=\"7\" cy=\"18\" r=\"3\"/>"
   },
   "routes": {
     "/": "home",
@@ -31,7 +34,8 @@
     "/settings": "settings",
     "/extensions": "extensions",
     "/manga": "manga",
-    "/schedule": "calendar"
+    "/schedule": "calendar",
+    "/history": "history"
   },
   "actions": {
     "Sign out": "logout",

@@ -6,11 +6,6 @@ import { describe, expect, it } from "vitest"
 const read = (path: string) => readFileSync(join(__dirname, path), "utf8")
 
 describe("UI round 5", () => {
-    it("links Custom sources on the search results head when such an extension exists (data-search-custom-sources)", () => {
-        const source = read("search/_screens/search-phone.tsx")
-        expect(source).toMatch(/action=\{!!customSources\?\.length && <TextAction label=\{t\("Custom sources"/)
-    })
-
     it("shows all list filter tags with a quiet .ps-more line, not an accent action", () => {
         const source = read("lists/_screens/lists-phone-filters.tsx")
         expect(source).toMatch(/<MoreAction label=\{t\(`Show all \$\{tagChips\.total\} tags`/)

@@ -9,6 +9,7 @@ import { type Translate, useTr } from "@/lib/app-language"
 import { castController } from "@/lib/cast/cast-controller"
 import { type CastDevice, castErrorText, type CastState } from "@/lib/cast/cast-state"
 import { useCast } from "@/lib/cast/use-cast"
+import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { colors } from "@/lib/theme/tokens"
 import Cast from "lucide-react-native/icons/cast"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
@@ -118,7 +119,7 @@ export function usePlayerCast({ castUrl, ready, title, artwork, playing, positio
     // Errors show in the sheet; with the sheet closed (a failed control from the pill's session) as a toast
     const error = state.error
     const toastError = React.useEffectEvent((code: NonNullable<CastState["error"]>) => {
-        if (!open) toast.error(castErrorText(code, t))
+        if (!open) toast.error(castErrorText(code, t, state.errorAtMs))
     })
     React.useEffect(() => {
         if (error) toastError(error)
@@ -150,8 +151,13 @@ export function CastPill({ device, onPress }: { device: string, onPress: () => v
 export function CastSheet({ cast: c, title, hasNext, onNext }: { cast: PlayerCast, title: string, hasNext: boolean, onNext: () => void }) {
     const t = useTr()
     const { state, cast, open, setOpen, casting, start } = c
+    const { isTablet, window } = useTabletLayout()
+    // A phone on its side (the player in full screen) has no room for the whole remote: its ways out sit in the sheet's
+    // foot, in one row, so "Stop casting" shows without scrolling
+    const leaveInFoot = casting && !isTablet && window.width > window.height
     return (
-        <Sheet open={open} onOpenChange={setOpen} title={casting ? t("Playing on TV", "Läuft auf dem Fernseher") : t("Cast to a TV", "Auf Fernseher übertragen")}>
+        <Sheet open={open} onOpenChange={setOpen} title={casting ? t("Playing on TV", "Läuft auf dem Fernseher") : t("Cast to a TV", "Auf Fernseher übertragen")}
+            footer={leaveInFoot ? <CastLeave t={t} state={state} hasNext={hasNext} row /> : undefined}>
             <View className="gap-5">
                 {state.phase === "searching" && <Waiting text={t("Looking for TVs in your Wi-Fi…", "Suche Fernseher im WLAN …")} />}
                 {state.phase === "connecting" && <Waiting text={t(`Connecting to ${state.device ?? ""}…`, `Verbinde mit ${state.device ?? ""} …`)} />}
@@ -173,9 +179,9 @@ export function CastSheet({ cast: c, title, hasNext, onNext }: { cast: PlayerCas
                     </Button>
                 )}
 
-                {casting && <CastRemote t={t} state={state} title={title} onNext={hasNext ? onNext : undefined} />}
+                {casting && <CastRemote t={t} state={state} title={title} onNext={hasNext ? onNext : undefined} leaveInFoot={leaveInFoot} />}
 
-                {!!state.error && <Text accessibilityRole="alert" className="text-[13px] leading-[19.5px] text-sm-danger">{castErrorText(state.error, t)}</Text>}
+                {!!state.error && <Text accessibilityRole="alert" className="text-[13px] leading-[19.5px] text-sm-danger">{castErrorText(state.error, t, state.errorAtMs)}</Text>}
             </View>
         </Sheet>
     )
@@ -212,11 +218,25 @@ function RoundButton({ label, onPress, big, children }: { label: string, onPress
     )
 }
 
-function CastRemote({ t, state, title, onNext }: { t: Translate, state: CastState, title: string, onNext?: () => void }) {
+/** "Continue on this device" and "Stop casting": stacked under the remote, or in one row in the sheet's foot */
+function CastLeave({ t, state, hasNext, row }: { t: Translate, state: CastState, hasNext: boolean, row?: boolean }) {
+    const stop = (resume: boolean) => void castController.stop(resume)
+    const nextFirst = state.ended && hasNext
+    const keep = (
+        <Button key="keep" intent={nextFirst ? "secondary" : "primary"} wrapperClassName={row ? "flex-1" : undefined}
+            leftIcon={<Smartphone size={18} color={nextFirst ? colors.smText : "#fff"} />} onPress={() => stop(true)}>
+            {t("Continue on this device", "Auf diesem Gerät weiterschauen")}
+        </Button>
+    )
+    const end = <Button key="end" intent="text" wrapperClassName={row ? "flex-1" : undefined} onPress={() => stop(false)}>{t("Stop casting", "Übertragung beenden")}</Button>
+    // in a row the main action is on the right, as in the app's dialogs
+    return row ? <>{end}{keep}</> : <>{keep}{end}</>
+}
+
+function CastRemote({ t, state, title, onNext, leaveInFoot }: { t: Translate, state: CastState, title: string, onNext?: () => void, leaveInFoot: boolean }) {
     // While dragging, the bar shows the finger, not the TV
     const [dragMs, setDragMs] = React.useState<number | null>(null)
     const control = (action: "play" | "pause" | "seek" | "skip" | "volume", value?: number) => void castController.control(action, value)
-    const stop = (resume: boolean) => void castController.stop(resume)
     const duration = state.durationMs
     const position = castSeekValue(dragMs, state.positionMs, duration)
     const volume = state.volume
@@ -270,18 +290,16 @@ function CastRemote({ t, state, title, onNext }: { t: Translate, state: CastStat
 
             {state.ended && <Muted className="text-center">{t("The episode has ended on the TV.", "Die Folge ist auf dem Fernseher zu Ende.")}</Muted>}
 
-            <View className="gap-2.5">
-                {!!onNext && (
-                    <Button intent={state.ended ? "primary" : "secondary"} leftIcon={<SkipForward size={18} color={state.ended ? "#fff" : colors.smText} />} onPress={onNext}>
-                        {t("Next episode", "Nächste Folge")}
-                    </Button>
-                )}
-                <Button intent={state.ended && onNext ? "secondary" : "primary"} leftIcon={<Smartphone size={18} color={state.ended && onNext ? colors.smText : "#fff"} />}
-                    onPress={() => stop(true)}>
-                    {t("Continue on this device", "Auf diesem Gerät weiterschauen")}
-                </Button>
-                <Button intent="text" onPress={() => stop(false)}>{t("Stop casting", "Übertragung beenden")}</Button>
-            </View>
+            {(!!onNext || !leaveInFoot) && (
+                <View className="gap-2.5">
+                    {!!onNext && (
+                        <Button intent={state.ended ? "primary" : "secondary"} leftIcon={<SkipForward size={18} color={state.ended ? "#fff" : colors.smText} />} onPress={onNext}>
+                            {t("Next episode", "Nächste Folge")}
+                        </Button>
+                    )}
+                    {!leaveInFoot && <CastLeave t={t} state={state} hasNext={!!onNext} />}
+                </View>
+            )}
         </View>
     )
 }

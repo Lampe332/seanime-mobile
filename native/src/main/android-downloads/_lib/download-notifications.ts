@@ -15,7 +15,9 @@ import { noticeName, type OfflineNotice, offlineNotices } from "./offline-librar
  * the reason, and "Waiting for Wi-Fi" while queued episodes wait on mobile data (removed once they run). They follow the
  * server's "mobile-offline-updated" snapshots while the app runs. Tapping one opens Downloads (app-links-handler).
  * Quiet channel like the old one (IMPORTANCE_LOW, named in the app language); posted only with the permission, which
- * the app asks for when episodes are queued (episode-download-sheet.tsx).
+ * the app asks for when episodes are queued (episode-download-sheet.tsx). With the core's downloads (area `offline`)
+ * the device shows "finished" and "failed" itself (core-offline.ts): the app's timers stand still while it is not in
+ * front, and a notice from here only came when it was opened.
  */
 
 const CHANNEL = "episode-downloads"
@@ -80,7 +82,7 @@ export function useDownloadNotifications() {
     const previous = React.useRef<MobileOffline_Snapshot | undefined>(undefined)
     React.useEffect(() => {
         if (!data) return
-        const notices = offlineNotices(previous.current, data)
+        const notices = offlineNotices(previous.current, data).filter(notice => notice.kind === "waiting-wifi" || notice.kind === "waiting-wifi-over")
         previous.current = data
         if (!notices.length || Platform.OS !== "android") return
         void (async () => {
