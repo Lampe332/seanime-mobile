@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 4.0.1 — 15.11.2026 (versionCode 40001)
+
+- 🦺 Home: After signing in, Home shows the shows you're watching right away instead of only after "Refresh AniList"
+
 ## 4.0.0 — 15.11.2026 (versionCode 40000)
 
 - 📝 BREAKING: Updating from 2.0.33: the updater in 2.0.33 refuses this version ("APK does not support this device"). Download `Seanime-Mobile-4.0.0.apk` and install it over the app; your data stays. From 3.0.0 the app updates itself as usual
