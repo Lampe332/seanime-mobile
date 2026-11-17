@@ -252,12 +252,15 @@ export function searchStateFromParams(params: Params, adultAllowed: boolean): Se
 
 /* --------------------------------------------------- State ---------------------------------------------------- */
 
-/** Anime and manga share title, genres, tags, year, status, score and adult; format, season, country and the count sort are reset. */
+/**
+ * The other type starts without filters: anime filters (genres, year, status, …) taken along to manga left an empty
+ * "No manga match" the user had not asked for (tablet test T2). The title and the sorts stay; a count sort is reset.
+ */
 export function switchSearchType(state: SearchPhoneState, type: SearchType): SearchPhoneState {
     if (state.type === type) return state
     const countSort = (sort: TitleSort) => sort === "EPISODES_DESC" || sort === "CHAPTERS_DESC"
     return {
-        ...state, type, format: null, season: null, country: null,
+        ...clearSearchFilters(state), type,
         sort: countSort(state.sort) ? "SCORE_DESC" : state.sort,
         titleSort: countSort(state.titleSort) ? "SEARCH_MATCH" : state.titleSort,
     }

@@ -71,9 +71,12 @@ describe("phone search: links", () => {
 })
 
 describe("phone search: state", () => {
-    it("resets what the other type cannot use when switching", () => {
-        const anime = state({ title: "fate", sort: "EPISODES_DESC", genres: ["Action"], format: "TV", season: "FALL", year: 2020, minScore: 7 })
-        expect(switchSearchType(anime, "manga")).toEqual(state({ type: "manga", title: "fate", genres: ["Action"], year: 2020, minScore: 7 }))
+    it("starts the other type without the filters of this one when switching", () => {
+        const anime = state({ title: "fate", sort: "EPISODES_DESC", genres: ["Action"], tags: ["Isekai"], format: "TV", season: "FALL", year: 2020,
+            status: "RELEASING", minScore: 7, adult: true })
+        expect(switchSearchType(anime, "manga")).toEqual(state({ type: "manga", title: "fate" }))
+        expect(switchSearchType(state({ sort: "TRENDING_DESC", titleSort: "POPULARITY_DESC" }), "manga"))
+            .toEqual(state({ type: "manga", sort: "TRENDING_DESC", titleSort: "POPULARITY_DESC" }))
         expect(switchSearchType(state({ type: "manga", country: "KR", sort: "TRENDING_DESC" }), "anime")).toEqual(state({ sort: "TRENDING_DESC" }))
         expect(switchSearchType(anime, "anime")).toBe(anime)
     })
