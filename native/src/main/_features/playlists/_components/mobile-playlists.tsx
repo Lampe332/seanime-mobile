@@ -22,7 +22,7 @@ import Plus from "lucide-react-native/icons/plus"
 import Trash2 from "lucide-react-native/icons/trash"
 import { PlaySolidIcon } from "@/components/shared/legacy-icons"
 import React from "react"
-import { ActivityIndicator, Pressable, TextInput, View } from "react-native"
+import { ActivityIndicator, Keyboard, Pressable, TextInput, View } from "react-native"
 import { usePlaylistManager } from "../_containers/global-playlist-manager"
 import {
     createPlaylistMutationGate, defaultPlaylistWatchType, MAX_PLAYLIST_EPISODES, movePlaylistEpisode, playlistAnimeChoices, playlistLibraryCollection, samePlaylistEpisode, selectPlaylistEpisodes,
@@ -74,7 +74,13 @@ export function MobilePlaylists() {
     const update = useUpdatePlaylist()
     const remove = useDeletePlaylist()
     const { startPlaylist } = usePlaylistManager()
-    const [step, setStep] = React.useState<Step>("list")
+    const [step, setStepState] = React.useState<Step>("list")
+    // A tap in the sheet keeps the keyboard (keyboardShouldPersistTaps), so a step that takes the focused field away (the
+    // name, the anime search) let it go first: the next step has no field of its own and showed the keyboard over nothing.
+    const setStep = (next: Step) => {
+        Keyboard.dismiss()
+        setStepState(next)
+    }
     const [draft, setDraft] = React.useState<Draft>({ name: "", episodes: [] })
     const [category, setCategory] = React.useState("CURRENT")
     const [search, setSearch] = React.useState("")
