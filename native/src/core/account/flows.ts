@@ -1,4 +1,4 @@
-// geschrieben nach: Plan „Account + Sync“ (Abschnitte 2, 6.1–6.3, 6.6–6.9) und dem Server-Vertrag account-server/src (routes.ts, identity.ts, schemas.ts)
+// geschrieben nach: Plan „Account + Sync“ (Abschnitte 2, 6.1–6.3, 6.6–6.9) und dem Server-Vertrag account-server/src (routes.ts mit account/start-fresh, identity.ts mit reset/info userId, schemas.ts)
 
 import { AccountApiError } from "./client"
 import {
@@ -18,7 +18,7 @@ import {
     wipe,
     wrapKey,
 } from "./crypto"
-import { type AccountDeps, type RotationResult, ServerContractError, deviceKeys, rotate } from "./devices"
+import { type AccountDeps, type RotationResult, deviceKeys, rotate } from "./devices"
 import type { AccountKind } from "./session"
 
 /*
@@ -147,16 +147,15 @@ export async function changePassword(deps: AccountDeps, input: { email: string, 
 }
 
 /**
- * Plan 6.8 with recovery code: unwraps the DEK with the code, sends the new password wrap and the unchanged recovery
- * wrap, then signs in. `userId` (the recovery wrap's AAD) comes from this device's stored account when not given: the
- * server's reset/info does not return it.
+ * Plan 6.8 with recovery code: unwraps the DEK with the code, sends the new password wrap and a new recovery wrap (same
+ * code, fresh nonce), then signs in. `userId` (the wraps' AAD) comes from the server's reset/info, so this works on a
+ * device that never held the account. The website's /account/reset/ does exactly the same.
  */
-export async function resetWithRecovery(deps: AccountDeps, input: { token: string, recoveryCode: string, email: string, newPassword: string, deviceName: string, userId?: string, kdf?: Kdf }): Promise<SignInResult> {
+export async function resetWithRecovery(deps: AccountDeps, input: { token: string, recoveryCode: string, email: string, newPassword: string, deviceName: string, kdf?: Kdf }): Promise<SignInResult> {
     const { client, sodium } = deps
     const info = await client.resetInfo(input.token)
     if (!info.hasRecovery || !info.recoveryWrappedDek || !info.dekId) throw new AccountApiError(409, "no_recovery", "This account has no recovery code.")
-    const userId = input.userId ?? (await deps.session.load())?.userId
-    if (!userId) throw new ServerContractError("POST /v1/auth/reset/info does not return the userId the recovery wrap is bound to, and this device has no stored account")
+    const userId = info.userId
     const recoveryKey = recoveryKeyFrom(sodium, input.recoveryCode)
     const dek = unwrapKey(sodium, info.recoveryWrappedDek, recoveryKey, userId, "recovery")
     const kdf = input.kdf ?? DEFAULT_KDF
@@ -168,7 +167,7 @@ export async function resetWithRecovery(deps: AccountDeps, input: { token: strin
             salt: toB64(sodium, salt),
             kdf,
             authKey: toB64(sodium, authKey),
-            keys: { dekId: info.dekId, wrappedDek: wrapKey(sodium, dek, encKey, userId, "password"), recoveryWrappedDek: info.recoveryWrappedDek },
+            keys: { dekId: info.dekId, wrappedDek: wrapKey(sodium, dek, encKey, userId, "password"), recoveryWrappedDek: wrapKey(sodium, dek, recoveryKey, userId, "recovery") },
         })
     }
     finally {
@@ -181,8 +180,8 @@ export type ResetResult = SignInResult & { rotation: "done" | "not-needed" | "bl
 
 /**
  * Plan 6.8 without code: the server drops the password wrap. A device that still holds the DEK wraps it for the new
- * password at sign-in and rotates the DEK; without one the account needs an approval or the recovery code.
- * "blocked": the rotation could not run here (another device must do it after signing in, or ServerContractError).
+ * password at sign-in and rotates the DEK; without one the account needs an approval, the recovery code or startFresh.
+ * "blocked": the rotation could not run here (this device has no key; another device must do it after signing in).
  */
 export async function resetWithoutRecovery(deps: AccountDeps, input: { token: string, email: string, newPassword: string, deviceName: string, kdf?: Kdf }): Promise<ResetResult> {
     const { client, sodium } = deps
@@ -199,14 +198,8 @@ export async function resetWithoutRecovery(deps: AccountDeps, input: { token: st
     try {
         if (signedIn.status !== "ready") return { ...signedIn, rotation: "blocked" }
         if (!(await client.syncMeta()).rotationRequired) return { ...signedIn, rotation: "not-needed" }
-        try {
-            await rotate(deps, { encKey })
-            return { ...signedIn, rotation: "done" }
-        }
-        catch (error) {
-            if (error instanceof ServerContractError) return { ...signedIn, rotation: "blocked" }
-            throw error
-        }
+        await rotate(deps, { encKey })
+        return { ...signedIn, rotation: "done" }
     }
     finally {
         wipe(sodium, encKey)
@@ -268,6 +261,40 @@ export async function useRecoveryCode(deps: AccountDeps, input: { code: string, 
     }
     finally {
         wipe(deps.sodium, key)
+    }
+}
+
+/* ---- Start fresh ---- */
+
+/**
+ * Plan 2, 6.3, 6.8 "Start fresh": the old DEK is lost (no device left, no recovery code). A new DEK for the account,
+ * sealed to this device; the server deletes the synced data, every other device and every other session in one step.
+ * Email accounts give their password (fresh sign-in and the new password wrap); Google accounts must have signed in
+ * within the last 10 minutes. This device's own data stays and becomes the account's first upload.
+ */
+export async function startFresh(deps: AccountDeps, input: { deviceName: string, password?: string }): Promise<{ dekId: string, deviceId: string }> {
+    const { sodium } = deps
+    const encKey = await reauth(deps, input.password, input.deviceName)
+    const dek = newDek(sodium)
+    try {
+        const state = await deps.session.load()
+        if (!state) throw new AccountApiError(401, "unauthorized", "Sign in first.")
+        const keys = await deviceKeys(deps)
+        const dekId = newDekId(sodium)
+        const answer = await deps.client.startFresh({
+            dekId,
+            ...(encKey ? { wrappedDek: wrapKey(sodium, dek, encKey, state.userId, "password") } : {}),
+            device: { name: input.deviceName, devicePub: toB64(sodium, keys.publicKey), sealedDek: sealDek(sodium, dek, keys.publicKey) },
+        })
+        wipe(sodium, state.dek)
+        await deps.session.saveDek(dekId, dek)
+        await deps.session.updateSession({ deviceId: answer.deviceId })
+        // versions start again at 1; nothing to import, this device uploads first
+        await deps.session.updateSync({ imported: true, highestVersion: 0, lastHash: null, lastSyncAt: null })
+        return answer
+    }
+    finally {
+        wipe(sodium, dek, encKey)
     }
 }
 

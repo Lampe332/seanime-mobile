@@ -1,7 +1,9 @@
-// geschrieben nach: Plan „Account + Sync“ (Abschnitte 6.5, 6.6, 8 Rollback-Schutz, 10.2) und dem Server-Vertrag account-server/src/routes.ts (sync/meta, sync/snapshot mit If-Match und X-Dek-Id)
+// geschrieben nach: Plan „Account + Sync“ (Abschnitte 6.5, 6.6, 8 Rollback-Schutz, 10.2) und dem Server-Vertrag account-server/src/routes.ts (sync/meta, sync/snapshot mit If-Match und X-Dek-Id, account/keys/device)
 
 import type { RestoreMode } from "../backup/backup"
 import { AccountApiError, type AccountClient, ConflictError, RateLimitedError, ReauthRequiredError, UnauthorizedError } from "./client"
+import { AccountCryptoError } from "./crypto"
+import { pickUpDeviceKey } from "./devices"
 import { type Gzip, type PackageEnvironment, type SyncPackage, applyPackage, makePackage, openPackage, packageHash, sealPackage } from "./package"
 import type { AccountSession, AccountState } from "./session"
 import type { Sodium } from "./sodium"
@@ -16,6 +18,8 @@ import type { Sodium } from "./sodium"
  *   account, version and DEK, so the server can neither swap packages nor pass an old one off as new.
  * - A newer package while this device changed nothing replaces the local state; with changes on both sides they merge
  *   (restoreBackup "merge", watch positions by time, package.ts).
+ * - Another device rotated the DEK: this device fetches the new DEK sealed to its own key (account/keys/device) and
+ *   syncs on; "key-changed" only when the server has no newer key for it (it was removed, or start fresh ran).
  */
 
 export const SYNC_INTERVAL_MS = 5 * 60 * 1000
@@ -34,12 +38,15 @@ export type SyncOutcome =
     /** The account's newer package replaced the unchanged local state */
     | { state: "updated", version: number }
     | { state: "merged", version: number }
-    /** Another device rotated the DEK: this device must sign in again to get the new one */
+    /** The account uses a key this device cannot get (the device was removed, or start fresh ran elsewhere) */
     | { state: "key-changed" }
     | { state: "rollback-rejected", version: number, highest: number }
     | { state: "rate-limited", retryAfter: number | null }
 
-export type SyncResult = SyncOutcome & { rotationRequired: boolean, rewrapNeeded: boolean }
+/** The server's flags with every result; `recoveryRenewalNeeded`: "recovery code needs renewal" (a rotation dropped it) */
+export type SyncFlags = { rotationRequired: boolean, rewrapNeeded: boolean, recoveryRenewalNeeded: boolean }
+export type SyncResult = SyncOutcome & SyncFlags
+const NO_FLAGS: SyncFlags = { rotationRequired: false, rewrapNeeded: false, recoveryRenewalNeeded: false }
 
 /** This device's data, as a package and back (package.ts does the work; the app adds its preferences and safety backup) */
 export interface LocalData {
@@ -68,7 +75,7 @@ export function coreLocalData(environment: PackageEnvironment, app: {
     }
 }
 
-export type SyncApi = Pick<AccountClient, "syncMeta" | "snapshot" | "putSnapshot">
+export type SyncApi = Pick<AccountClient, "syncMeta" | "snapshot" | "putSnapshot" | "deviceKey">
 
 class KeyChanged extends Error {}
 class Rollback extends Error {
@@ -102,12 +109,27 @@ export class SyncEngine {
     }
 
     sync(trigger: SyncTrigger): Promise<SyncResult> {
-        return this.serial(() => this.run(trigger))
+        return this.serial(() => this.withKeyPickup(() => this.run(trigger)))
+    }
+
+    /** On "key-changed" the new DEK sealed to this device is fetched once and the work runs again */
+    private async withKeyPickup(work: () => Promise<SyncResult>): Promise<SyncResult> {
+        const first = await work()
+        if (first.state !== "key-changed") return first
+        try {
+            if (!(await pickUpDeviceKey({ api: this.deps.api, session: this.deps.session, sodium: this.deps.sodium }))) return first
+        }
+        catch (error) {
+            // no key for this device on the server, or it does not open with this device's key
+            if (error instanceof AccountApiError || error instanceof AccountCryptoError) return first
+            throw error
+        }
+        return work()
     }
 
     /** The user tapped "Import": local backup first, then the account's package replaces the device's state */
     importFromAccount(): Promise<SyncResult> {
-        return this.serial(() => this.guard(async (state, flags) => {
+        return this.serial(() => this.withKeyPickup(() => this.guard(async (state, flags) => {
             const meta = await this.deps.api.syncMeta()
             this.check(state, meta)
             if (meta.version === 0) {
@@ -120,7 +142,7 @@ export class SyncEngine {
             const hash = packageHash(this.deps.sodium, await this.deps.local.make())
             await this.deps.session.updateSync({ imported: true, highestVersion: remote.version, lastHash: hash, lastSyncAt: this.deps.now() })
             return { state: "updated", version: remote.version, ...flags }
-        }))
+        })))
     }
 
     private serial<T>(work: () => Promise<T>): Promise<T> {
@@ -130,7 +152,7 @@ export class SyncEngine {
     }
 
     /** Loads the account, maps the server's answers that end a sync to their state */
-    private async guard(work: (state: Unlocked, flags: { rotationRequired: boolean, rewrapNeeded: boolean }) => Promise<SyncResult>, flags = { rotationRequired: false, rewrapNeeded: false }): Promise<SyncResult> {
+    private async guard(work: (state: Unlocked, flags: SyncFlags) => Promise<SyncResult>, flags: SyncFlags = NO_FLAGS): Promise<SyncResult> {
         const state = await this.deps.session.load()
         if (!state) return { state: "signed-out", ...flags }
         if (!state.dek || !state.dekId) return { state: "needs-key", ...flags }
@@ -166,7 +188,7 @@ export class SyncEngine {
 
     private async run(trigger: SyncTrigger): Promise<SyncResult> {
         const loaded = await this.deps.session.load()
-        if (loaded && !this.isDue(trigger, loaded)) return { state: "skipped", rotationRequired: false, rewrapNeeded: false }
+        if (loaded && !this.isDue(trigger, loaded)) return { state: "skipped", ...NO_FLAGS }
         let meta = await this.metaOrState()
         if ("state" in meta) return meta
         if (meta.rotationRequired && this.deps.rotate) {
@@ -182,7 +204,7 @@ export class SyncEngine {
             }
         }
         const current = meta
-        const flags = { rotationRequired: current.rotationRequired, rewrapNeeded: current.rewrapNeeded }
+        const flags: SyncFlags = { rotationRequired: current.rotationRequired, rewrapNeeded: current.rewrapNeeded, recoveryRenewalNeeded: current.recoveryRenewalNeeded === true }
         return this.guard(async state => {
             const { session, local, sodium, api, now } = this.deps
             this.check(state, current)
@@ -241,15 +263,15 @@ export class SyncEngine {
     private async metaOrState() {
         try {
             const state = await this.deps.session.load()
-            if (!state) return { state: "signed-out", rotationRequired: false, rewrapNeeded: false } as const
-            if (!state.dek || !state.dekId) return { state: "needs-key", rotationRequired: false, rewrapNeeded: false } as const
+            if (!state) return { state: "signed-out", ...NO_FLAGS } as const
+            if (!state.dek || !state.dekId) return { state: "needs-key", ...NO_FLAGS } as const
             return await this.deps.api.syncMeta()
         }
         catch (error) {
-            if (error instanceof UnauthorizedError) return { state: "signed-out", rotationRequired: false, rewrapNeeded: false } as const
+            if (error instanceof UnauthorizedError) return { state: "signed-out", ...NO_FLAGS } as const
             if (error instanceof RateLimitedError) {
                 this.backoffUntil = this.deps.now() + (error.retryAfter ?? 60) * 1000
-                return { state: "rate-limited", retryAfter: error.retryAfter, rotationRequired: false, rewrapNeeded: false } as const
+                return { state: "rate-limited", retryAfter: error.retryAfter, ...NO_FLAGS } as const
             }
             throw error
         }

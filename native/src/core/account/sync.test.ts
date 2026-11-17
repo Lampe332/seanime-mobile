@@ -7,7 +7,7 @@ import { isDeviceKey } from "@/lib/app-backup-keys"
 import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { beforeAll, describe, expect, it } from "vitest"
 import { playlists, watchPositions } from "../database/schema"
-import { ConflictError, type Snapshot, type SyncMeta } from "./client"
+import { AccountApiError, ConflictError, type Snapshot, type SyncMeta } from "./client"
 import { AccountSession } from "./session"
 import type { Sodium } from "./sodium"
 import { SYNC_INTERVAL_MS, type SyncApi, SyncEngine, coreLocalData } from "./sync"
@@ -33,7 +33,11 @@ class FakeServer implements SyncApi {
     /** What the next answers claim, to play a lying server */
     overrideMeta: Partial<SyncMeta> = {}
     oldSnapshot: Snapshot | null = null
-    syncMeta = async (): Promise<SyncMeta> => ({ version: this.version, size: this.blob?.length ?? 0, dekId: this.blob ? DEK_ID : null, updatedAt: null, rotationRequired: false, rewrapNeeded: false, ...this.overrideMeta })
+    syncMeta = async (): Promise<SyncMeta> => ({ version: this.version, size: this.blob?.length ?? 0, dekId: this.blob ? DEK_ID : null, updatedAt: null, rotationRequired: false, rewrapNeeded: false, recoveryRenewalNeeded: false, ...this.overrideMeta })
+    /** This fake holds no sealed keys: like a device the server no longer knows */
+    deviceKey = async () => {
+        throw new AccountApiError(404, "not_found", "no key")
+    }
     snapshot = async (): Promise<Snapshot | null> => this.oldSnapshot ?? (this.blob ? { bytes: this.blob, version: this.version, dekId: DEK_ID } : null)
     putSnapshot = async (bytes: Uint8Array, ifMatch: number, dekId: string) => {
         if (dekId !== DEK_ID) throw new ConflictError("dek_mismatch", "different key", {})
@@ -185,7 +189,7 @@ describe("sync engine", () => {
         const a = await phone(server, { imported: true })
         await a.engine.sync("start")
         server.overrideMeta = { dekId: "dek-2", rotationRequired: true, rewrapNeeded: true }
-        expect(await a.engine.sync("manual")).toEqual({ state: "key-changed", rotationRequired: true, rewrapNeeded: true })
+        expect(await a.engine.sync("manual")).toEqual({ state: "key-changed", rotationRequired: true, rewrapNeeded: true, recoveryRenewalNeeded: false })
         expect(server.uploads).toBe(1)
     })
 })

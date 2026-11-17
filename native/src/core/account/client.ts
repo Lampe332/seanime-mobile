@@ -1,4 +1,4 @@
-// geschrieben nach: dem Server-Vertrag account-server/src (index.ts Routen, routes.ts, identity.ts, approval.ts, rotate.ts, schemas.ts, http.ts) und account-server/README.md
+// geschrieben nach: dem Server-Vertrag account-server/src (index.ts Routen, routes.ts, identity.ts, approval.ts, rotate.ts, schemas.ts, http.ts; GET account, account/keys/device, account/start-fresh) und account-server/README.md
 
 import type { Kdf } from "./crypto"
 
@@ -63,10 +63,29 @@ export type SignupBody = { email: string, salt: string, kdf: Kdf, authKey: strin
 export type SignupAnswer = { userId: string, deviceId: string | null, emailVerified: boolean, sessionToken: string }
 export type LoginAnswer = { userId: string, emailVerified: boolean, kdf: Kdf, wrappedDek: string | null, dekId: string | null, rewrapNeeded: boolean, sessionToken: string }
 export type GoogleAnswer = { userId: string, created: boolean, emailVerified: boolean, dekId: string | null, recoveryWrappedDek: string | null, sessionToken: string }
-export type ResetInfo = { dekId: string | null, hasRecovery: boolean, recoveryWrappedDek: string | null }
+/** `userId` is part of the recovery wrap's AAD, so a device without a stored account can still unwrap it */
+export type ResetInfo = { userId: string, dekId: string | null, hasRecovery: boolean, recoveryWrappedDek: string | null }
 export type ResetBody = { token: string, salt: string, kdf: Kdf, authKey: string, keys?: { dekId: string, wrappedDek: string, recoveryWrappedDek: string } }
-/** `devicePub` is not part of the server's answer today (see devices.ts rotate) */
-export type DeviceInfo = { id: string, name: string, createdAt: number, lastSeenAt: number, current: boolean, devicePub?: string }
+/** `devicePub`: the device's public key, a rotation seals the new DEK to it; `dekId`: the key its sealed DEK belongs to */
+export type DeviceInfo = { id: string, name: string, createdAt: number, lastSeenAt: number, current: boolean, devicePub: string, dekId: string | null }
+/** The DEK sealed to this session's device (after another device rotated it) */
+export type DeviceKey = { deviceId: string, dekId: string, sealedDek: string }
+export type StartFreshBody = { dekId: string, wrappedDek?: string, recoveryWrappedDek?: string, device: DeviceKeysBody }
+/** GET account: what the account screen shows; never a key or hash */
+export type AccountInfo = {
+    userId: string
+    email: string
+    emailVerified: boolean
+    googleLinked: boolean
+    hasPassword: boolean
+    hasRecovery: boolean
+    dekId: string | null
+    createdAt: number
+    rewrapNeeded: boolean
+    rotationRequired: boolean
+    /** A rotation without the recovery code dropped it: the user should save a new one */
+    recoveryRenewalNeeded: boolean
+}
 export type KeysBody = { dekId: string, wrappedDek?: string, recoveryWrappedDek?: string, device?: DeviceKeysBody }
 export type PasswordBody = { salt: string, kdf: Kdf, authKey: string, wrappedDek: string, dekId: string }
 export type RequestStatus = "pending" | "nonce" | "revealed" | "approved" | "denied" | "expired"
@@ -86,7 +105,7 @@ export type ApprovalRequest = {
     deviceId?: string | null
 }
 export type RotateMeta = { oldDekId: string, dekId: string, devices: { deviceId: string, sealedDek: string }[], wrappedDek?: string, recoveryWrappedDek?: string }
-export type SyncMeta = { version: number, size: number, dekId: string | null, updatedAt: number | null, rotationRequired: boolean, rewrapNeeded: boolean }
+export type SyncMeta = { version: number, size: number, dekId: string | null, updatedAt: number | null, rotationRequired: boolean, rewrapNeeded: boolean, recoveryRenewalNeeded: boolean }
 export type Snapshot = { bytes: Uint8Array, version: number, dekId: string }
 
 type Body = Record<string, unknown>
@@ -141,7 +160,11 @@ export class AccountClient {
     deny = (id: string) => this.call<void>("POST", `devices/requests/${encodeURIComponent(id)}/deny`)
 
     /* account */
+    account = () => this.call<AccountInfo>("GET", "account")
     putKeys = (body: KeysBody) => this.call<{ dekId: string, deviceId: string | null }>("PUT", "account/keys", { json: body })
+    deviceKey = () => this.call<DeviceKey>("GET", "account/keys/device")
+    /** Needs a sign-in within the last 10 minutes; removes the synced data, every device and every other session */
+    startFresh = (body: StartFreshBody) => this.call<{ dekId: string, deviceId: string }>("POST", "account/start-fresh", { json: body })
     changePassword = (body: PasswordBody) => this.call<void>("POST", "account/password", { json: body })
     linkGoogle = (idToken: string, nonce: string) => this.call<void>("POST", "account/link-google", { json: { idToken, nonce } })
     deleteAccount = () => this.call<void>("DELETE", "account")
@@ -149,7 +172,7 @@ export class AccountClient {
     /** DEK rotation: multipart/form-data with the parts `meta` (JSON) and `snapshot` (when the account has one) */
     rotate = (meta: RotateMeta, snapshot: Uint8Array | null, ifMatch: number) => {
         const { boundary, body } = multipart(meta, snapshot)
-        return this.call<{ dekId: string, version: number }>("POST", "account/rotate", {
+        return this.call<{ dekId: string, version: number, recoveryRenewalNeeded: boolean }>("POST", "account/rotate", {
             bytes: body,
             headers: { "Content-Type": `multipart/form-data; boundary=${boundary}`, "If-Match": String(ifMatch) },
         })

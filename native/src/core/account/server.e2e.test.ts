@@ -18,8 +18,8 @@ import { playlists } from "../database/schema"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { AccountClient, type HttpFetch, UnauthorizedError } from "./client"
 import { type Kdf, deriveKeys, fromB64, toB64 } from "./crypto"
-import { type AccountDeps, ServerContractError, answerRequest, approveRequest, checkApproval, compareRequest, openRequests, requestApproval, rotate } from "./devices"
-import { createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, signupEmail } from "./flows"
+import { type AccountDeps, answerRequest, approveRequest, checkApproval, compareRequest, openRequests, requestApproval, rotate } from "./devices"
+import { createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signupEmail, startFresh } from "./flows"
 import { AccountSession } from "./session"
 import type { Sodium } from "./sodium"
 import { SyncEngine, coreLocalData } from "./sync"
@@ -135,11 +135,17 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         return deriveKeys(sodium, password, fromB64(sodium, salt, 16), kdf).encKey
     }
 
-    async function lastMailToken(): Promise<string> {
-        const mails = await (await (await mf.getWorker("mail-sink")).fetch("http://mail-sink/")).json() as { to: string, text: string }[]
-        const match = /#token=([A-Za-z0-9_-]{43})/.exec(mails.filter(mail => mail.to === EMAIL).at(-1)?.text ?? "")
-        if (!match) throw new Error("no mail with a token")
-        return match[1]!
+    const mailCount = async () => ((await (await (await mf.getWorker("mail-sink")).fetch("http://mail-sink/")).json()) as unknown[]).length
+
+    /** The reset mail goes out after the server answered (waitUntil): waits for a mail newer than `after` mails */
+    async function nextMailToken(after: number): Promise<string> {
+        for (let attempt = 0; attempt < 50; attempt++) {
+            const mails = await (await (await mf.getWorker("mail-sink")).fetch("http://mail-sink/")).json() as { to: string, text: string }[]
+            const match = /#token=([A-Za-z0-9_-]{43})/.exec(mails.slice(after).filter(mail => mail.to === EMAIL).at(-1)?.text ?? "")
+            if (match) return match[1]!
+            await new Promise(resolve => setTimeout(resolve, 50))
+        }
+        throw new Error("no mail with a token")
     }
 
     let phone: ReturnType<typeof install>
@@ -201,39 +207,90 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await names(laptop)).toEqual(["Evening", "Tablet list"])
     })
 
-    it("rotation: refused by the server contract while other devices exist, works once the device is alone", async () => {
-        const encKey = await encKeyFor(phone.client, PASSWORD)
-        await expect(rotate(phone.deps, { encKey })).rejects.toThrow(ServerContractError)
+    it("rotation with several devices: the others fetch the new key on their own and read on", async () => {
         const before = (await phone.session.load())!.dekId
-        // remove the laptop (contract error again: the tablet is still there), then the tablet: the phone rotates alone
+        // the phone removes the laptop: the new key is sealed to the phone and the tablet
         const laptopId = (await laptop.session.load())!.deviceId!
-        await expect(removeDevice(phone.deps, { deviceId: laptopId, deviceName: "Phone", password: PASSWORD })).rejects.toThrow(ServerContractError)
-        const tabletId = (await tablet.session.load())!.deviceId!
-        const rotated = await removeDevice(phone.deps, { deviceId: tabletId, deviceName: "Phone", password: PASSWORD })
+        const rotated = await removeDevice(phone.deps, { deviceId: laptopId, deviceName: "Phone", password: PASSWORD })
         expect(rotated.dekId).not.toBe(before)
+        expect(rotated.recoveryNeedsRenewal).toBe(false)
         expect(await phone.client.syncMeta()).toMatchObject({ dekId: rotated.dekId, version: rotated.version, rotationRequired: false })
-        // the re-encrypted package opens with the new DEK; the removed tablet is signed out
-        expect(await phone.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: rotated.version })
-        await expect(tablet.client.syncMeta()).rejects.toThrow(UnauthorizedError)
-        expect(await tablet.engine.sync("manual")).toMatchObject({ state: "signed-out" })
-        // and a fresh sign-in on a new install gets the new key through the new password wrap
+        await expect(laptop.client.syncMeta()).rejects.toThrow(UnauthorizedError)
+        expect(await laptop.engine.sync("manual")).toMatchObject({ state: "signed-out" })
+
+        await (await phone.db()).insert(playlists).values({ name: "After rotation", episodes: [], createdAt: clock, updatedAt: clock })
+        expect(await phone.engine.sync("manual")).toMatchObject({ state: "uploaded", version: rotated.version + 1 })
+        // the tablet still holds the old key; its sync picks up the sealed new one without a sign-in. The pickup needs
+        // only the device key pair, so a Google account (no password on the device) does the same.
+        await tablet.session.updateSession({ kind: "google", email: null })
+        expect((await tablet.session.load())!.dekId).toBe(before)
+        expect(await tablet.engine.sync("manual")).toMatchObject({ state: "updated", version: rotated.version + 1 })
+        const [phoneState, tabletState] = [await phone.session.load(), await tablet.session.load()]
+        expect(tabletState!.dekId).toBe(rotated.dekId)
+        expect(tabletState!.dek).toEqual(phoneState!.dek)
+        expect(await names(tablet)).toEqual(["After rotation", "Evening", "Tablet list"])
+        await tablet.session.updateSession({ kind: "email", email: EMAIL })
+
+        // a fresh sign-in on a new install gets the new key through the new password wrap
         const fresh = install()
         expect(await loginEmail(fresh.deps, { email: EMAIL, password: PASSWORD, deviceName: "New" })).toMatchObject({ status: "ready" })
         expect((await fresh.session.load())!.dekId).toBe(rotated.dekId)
         expect(await fresh.engine.importFromAccount()).toMatchObject({ state: "updated" })
-        expect(await names(fresh)).toEqual(["Evening", "Tablet list"])
+        expect(await names(fresh)).toEqual(["After rotation", "Evening", "Tablet list"])
     })
 
-    it("password reset with the recovery code keeps the data", async () => {
+    it("a rotation without the recovery code says the code needs renewal, a new code clears it", async () => {
+        await loginEmail(phone.deps, { email: EMAIL, password: PASSWORD, deviceName: "Phone" })
+        await createRecoveryCode(phone.deps)
+        const rotated = await rotate(phone.deps, { encKey: await encKeyFor(phone.client, PASSWORD) })
+        expect(rotated).toMatchObject({ recoveryRenewed: false, recoveryNeedsRenewal: true })
+        expect(await tablet.engine.sync("manual")).toMatchObject({ state: "updated", recoveryRenewalNeeded: true })
+        expect((await tablet.session.load())!.dekId).toBe(rotated.dekId)
+        expect(await phone.client.account()).toMatchObject({ hasRecovery: false, recoveryRenewalNeeded: true })
+        await createRecoveryCode(phone.deps)
+        expect(await phone.engine.sync("manual")).toMatchObject({ recoveryRenewalNeeded: false })
+    })
+
+    it("password reset with the recovery code on a device that never held the account (userId from the server)", async () => {
         await loginEmail(phone.deps, { email: EMAIL, password: PASSWORD, deviceName: "Phone" })
         const code = await createRecoveryCode(phone.deps)
-        await phone.client.resetRequest(EMAIL)
-        const token = await lastMailToken()
+        const stranger = install()
+        expect(await stranger.session.load()).toBeNull()
+        const mails = await mailCount()
+        await stranger.client.resetRequest(EMAIL)
+        const token = await nextMailToken(mails)
         const newPassword = "another long password 2"
-        expect(await resetWithRecovery(phone.deps, { token, recoveryCode: code, email: EMAIL, newPassword, deviceName: "Phone", kdf: KDF })).toMatchObject({ status: "ready" })
+        expect(await resetWithRecovery(stranger.deps, { token, recoveryCode: code, email: EMAIL, newPassword, deviceName: "Stranger", kdf: KDF })).toMatchObject({ status: "ready" })
+        expect(await stranger.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        expect(await names(stranger)).toEqual(["After rotation", "Evening", "Tablet list"])
         const other = install()
         expect(await loginEmail(other.deps, { email: EMAIL, password: newPassword, deviceName: "Other" })).toMatchObject({ status: "ready" })
         expect(await other.engine.importFromAccount()).toMatchObject({ state: "updated" })
-        expect(await names(other)).toEqual(["Evening", "Tablet list"])
+        expect(await names(other)).toEqual(["After rotation", "Evening", "Tablet list"])
+    })
+
+    it("start fresh after a reset without code and without any device holding the key", async () => {
+        const lonely = install()
+        const mails = await mailCount()
+        await lonely.client.resetRequest(EMAIL)
+        const token = await nextMailToken(mails)
+        const password = "a third long password 3"
+        expect(await resetWithoutRecovery(lonely.deps, { token, email: EMAIL, newPassword: password, deviceName: "Lonely", kdf: KDF })).toMatchObject({ status: "needs-key", rotation: "blocked" })
+        expect(await lonely.engine.sync("manual")).toMatchObject({ state: "needs-key" })
+
+        const witness = install()
+        expect(await loginEmail(witness.deps, { email: EMAIL, password, deviceName: "Witness" })).toMatchObject({ status: "needs-key" })
+        await (await lonely.db()).insert(playlists).values({ name: "Fresh start", episodes: [], createdAt: clock, updatedAt: clock })
+        const started = await startFresh(lonely.deps, { deviceName: "Lonely", password })
+        expect(await lonely.client.syncMeta()).toMatchObject({ version: 0, dekId: null, rotationRequired: false, rewrapNeeded: false })
+        expect(await lonely.client.devices()).toEqual([expect.objectContaining({ id: started.deviceId, current: true })])
+        expect(await lonely.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 1 })
+        // every other session is gone; a new sign-in gets the new key and the new data
+        await expect(witness.client.syncMeta()).rejects.toThrow(UnauthorizedError)
+        const next = install()
+        expect(await loginEmail(next.deps, { email: EMAIL, password, deviceName: "Next" })).toMatchObject({ status: "ready" })
+        expect((await next.session.load())!.dekId).toBe(started.dekId)
+        expect(await next.engine.importFromAccount()).toMatchObject({ state: "updated", version: 1 })
+        expect(await names(next)).toEqual(["Fresh start"])
     })
 })

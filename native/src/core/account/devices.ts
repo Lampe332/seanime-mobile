@@ -1,4 +1,4 @@
-// geschrieben nach: Plan „Account + Sync“ (Abschnitte 5 DEK-Rotation, 6.4 Freigabe, 6.9) und dem Server-Vertrag account-server/src/approval.ts und rotate.ts
+// geschrieben nach: Plan „Account + Sync“ (Abschnitte 5 DEK-Rotation, 6.4 Freigabe, 6.9) und dem Server-Vertrag account-server/src/approval.ts, rotate.ts und routes.ts (GET devices mit devicePub, GET account/keys/device)
 
 import { AccountApiError, type AccountClient, type ApprovalRequest } from "./client"
 import {
@@ -23,14 +23,6 @@ import type { AccountSession } from "./session"
 import type { Sodium, SodiumKeyPair } from "./sodium"
 
 export type AccountDeps = { client: AccountClient, session: AccountSession, sodium: Sodium }
-
-/** The server lacks something this step needs (named in the message); the server, not the app, has to change */
-export class ServerContractError extends Error {
-    constructor(message: string) {
-        super(message)
-        this.name = "ServerContractError"
-    }
-}
 
 /** This device's key pair, made once and kept in the secured storage */
 export async function deviceKeys(deps: AccountDeps): Promise<SodiumKeyPair> {
@@ -153,7 +145,31 @@ export function denyRequest(deps: AccountDeps, requestId: string): Promise<void>
 
 /* ---- DEK rotation (plan 5, 6.9) ---- */
 
-export type RotationResult = { dekId: string, version: number, recoveryRenewed: boolean }
+/**
+ * Another device rotated the DEK: this device fetches the new DEK the rotation sealed to its key and opens it with its
+ * private key (email and Google accounts alike, no new sign-in). False when the server holds no newer key for it.
+ */
+export async function pickUpDeviceKey(deps: { api: Pick<AccountClient, "deviceKey">, session: AccountSession, sodium: Sodium }): Promise<boolean> {
+    const state = await deps.session.load()
+    if (!state?.deviceKeys || !state.deviceId) return false
+    const key = await deps.api.deviceKey()
+    if (key.deviceId !== state.deviceId || key.dekId === state.dekId) {
+        wipe(deps.sodium, state.dek)
+        return false
+    }
+    const dek = openSealedDek(deps.sodium, key.sealedDek, state.deviceKeys)
+    await deps.session.saveDek(key.dekId, dek)
+    wipe(deps.sodium, dek, state.dek)
+    return true
+}
+
+export type RotationResult = {
+    dekId: string
+    version: number
+    recoveryRenewed: boolean
+    /** "Recovery code needs renewal": the rotation ran without the code, the server dropped the old recovery wrap */
+    recoveryNeedsRenewal: boolean
+}
 
 /**
  * A new DEK: the stored package re-encrypted with it, sealed to every device of the account, new password wrap
@@ -177,8 +193,7 @@ export async function rotate(deps: AccountDeps, keys: { encKey?: Uint8Array, rec
     const dekId = newDekId(sodium)
     try {
         const sealed = devices.map(device => {
-            const pub = device.current ? state.deviceKeys!.publicKey : device.devicePub ? fromB64(sodium, device.devicePub, 32) : null
-            if (!pub) throw new ServerContractError("GET /v1/devices does not return the devices' public keys (devicePub): the new key cannot be sealed for the other devices")
+            const pub = device.current ? state.deviceKeys!.publicKey : fromB64(sodium, device.devicePub, 32)
             return { deviceId: device.id, sealedDek: sealDek(sodium, dek, pub) }
         })
         const blob = plain ? encryptPackage(sodium, plain, dek, { userId: state.userId, version: meta.version + 1, dekId }) : null
@@ -191,7 +206,7 @@ export async function rotate(deps: AccountDeps, keys: { encKey?: Uint8Array, rec
         }, blob, meta.version)
         await session.saveDek(dekId, dek)
         await session.updateSync({ highestVersion: Math.max(state.highestVersion, result.version) })
-        return { dekId, version: result.version, recoveryRenewed: keys.recoveryKey !== undefined }
+        return { dekId, version: result.version, recoveryRenewed: keys.recoveryKey !== undefined, recoveryNeedsRenewal: result.recoveryRenewalNeeded === true }
     }
     finally {
         wipe(sodium, dek, plain, state.dek)
