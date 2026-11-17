@@ -7,14 +7,14 @@
 
 ## Summary
 
-The code base was clearly written with security in mind, and most of the usual mobile findings do not apply. No critical or high finding was found in the app's own code. Three weaknesses around **restoring a backup file that the app did not write** and around **`intent://` player links** were fixed on this branch. What remains open are design decisions that would change what users can do (cleartext traffic, `http://` extension repositories, what an extension may reach), and dependency advisories that only have a major-version fix.
+The code base was clearly written with security in mind, and most of the usual mobile findings do not apply. No critical or high finding was found in the app's own code. Three weaknesses around **restoring a backup file that the app did not write** and around **`intent://` player links** were fixed on this branch. A follow-up on `release-4.1.0` closed four of the open items (F-04 to F-07): hints for `http://` extension links and Nakama hosts, pinned CI actions, and encoded text in own `intent://` links. What remains open are design decisions that would change what users can do (cleartext traffic, what an extension may reach), stored passwords of other programs, and dependency advisories that only have a major-version fix.
 
 | Severity | Count | Fixed here | Open (decision) |
 | --- | --- | --- | --- |
 | Critical | 0 | – | – |
 | High | 0 | – | – |
-| Medium | 3 | 1 | 2 |
-| Low | 8 | 2 | 6 |
+| Medium | 3 | 2 | 1 |
+| Low | 8 | 5 | 3 |
 | Info | 6 | – | – |
 
 Category view in the format of the `cybersecurity` skill (0–100, a reviewer's judgment, not a measurement): vulnerabilities 90 · authorization 92 · secrets 95 · dependencies 80 · CI/infrastructure 90 · threat intelligence (malware, backdoor, C2 patterns) 100 · AI-code patterns 92 · logic and design 85 — weighted 91 (A). No prompt-injection text aimed at reviewers was found in the repository.
@@ -41,7 +41,7 @@ These are observations from the source, listed so that a later audit does not ha
 | SQL | Drizzle with bound parameters; the one raw statement binds its value | `src/core/anilist/store.ts` |
 | Secrets in the repository | None found (keys, tokens, private keys, keystores); signing files are ignored | `.gitignore`, `native/.gitignore` |
 | Telemetry | No analytics, crash or advertising SDK | `package.json` |
-| CI | Read-only token, no secrets, no publishing, first-party actions only | `.github/workflows/native-check.yml` |
+| CI | Read-only token, no secrets, no publishing, first-party actions only, pinned to commit SHAs (F-05) | `.github/workflows/native-check.yml` |
 | Lockfile | Version 3, every package from registry.npmjs.org with an integrity hash; the only install script is `fsevents` (macOS, optional); `postinstall` runs `patch-package` | `native/package-lock.json` |
 
 ## Findings
@@ -58,7 +58,25 @@ A backup made by the app holds no password, key or token, and a restore puts the
 
 **F-03 · Low · A stream address could redirect an `intent://` player link** — fixed in `0a4b11e1`
 `native/src/lib/external-player-link/android-player-presets.ts:43`
-`parseIntentLink` read the first `#Intent;` of the finished link. An address put in for `{url}` (it comes from a provider) could bring its own `#Intent;component=…;end` and so choose the activity that is started inside the chosen player's package (intent redirection, CWE-926/CWE-940). The link's own part is the last one; the parser now takes that. In 4.0.1 the path is hardly reachable (without the server, `{url}` stays empty), so this is hardening. One rest remains, see O-08.
+`parseIntentLink` read the first `#Intent;` of the finished link. An address put in for `{url}` (it comes from a provider) could bring its own `#Intent;component=…;end` and so choose the activity that is started inside the chosen player's package (intent redirection, CWE-926/CWE-940). The link's own part is the last one; the parser now takes that. In 4.0.1 the path is hardly reachable (without the server, `{url}` stays empty), so this is hardening. The rest was closed by F-07.
+
+The four items below were open decisions (O-02, O-06, O-07, O-08) and were closed in a follow-up on `release-4.1.0`.
+
+**F-04 · Medium · Extension code can be loaded over `http://`** (was O-02), hint added in `be126980`
+`native/src/main/extensions/_lib/extensions-screen.ts:55`, `native/src/main/extensions/_screens/extensions-phone-sheets.tsx:407`
+Marketplace, repository, manifest and payload addresses still accept `http://`, as upstream Seanime does, so self-hosted repositories without TLS keep working (`install.ts:76`, `manage.ts:342`, `fetch-manifest.ts:213`). On a hostile network the code of an extension could be replaced on install or update. The link fields for a marketplace, a repository and a manifest, the marketplace's install sheet, a found manifest with an `http://` payload and a repository list with such extensions now show a short hint (English and German) that the link is not encrypted and its code could be swapped. The check `isInsecureAddress` has its own test. CWE-319 / CWE-494.
+
+**F-05 · Low · Actions in CI were pinned to a tag, not a commit** (was O-06), fixed in `dfd24714`
+`.github/workflows/native-check.yml:31,33`
+`actions/checkout` and `actions/setup-node` are now pinned to the commit SHAs of `v4.4.0`, each with a `# v4.4.0` comment. Both `v4` tags pointed to that release, so the workflow runs the same code. CWE-829.
+
+**F-06 · Low · The Nakama password travels as a header, by default over `http://`** (was O-07), hint added in `ae321ab2`
+`native/src/main/settings/_screens/settings-more.tsx:118`, `native/src/main/settings/_lib/nakama-host.ts`
+This is the upstream protocol (`X-Seanime-Nakama-Token`, `native/src/core/nakama/guest.ts:62,259`), so it stays. When the host address is typed with `http://` or without a scheme (the core then uses `http://`), the Nakama settings now say that the passcode and the streams go over the network unencrypted and suggest `https://`. Existing setups keep working. CWE-319.
+
+**F-07 · Low · Title and subtitle placeholders in a custom `intent://` link were not encoded** (was O-08), fixed in `a19c653c`
+`native/src/lib/external-player-link/external-player-link.ts:67`
+Rest of F-03: in a link the user wrote themselves, `{mediaTitle}`, `{formattedTitle}`, `{subtitleUrl}` or `{subtitleUrls}` placed after `#Intent;` could add fields (a title containing `;package=…`). For `intent://` links these values now go in with `;` as `%3B` and `#` as `%23` (Android decodes intent values). Presets and other links are unchanged. A test checks that such a title and subtitle address add no field. CWE-926 / CWE-940.
 
 **Not a security fix:** `5cf1140c` keeps the two generated bundles LF on every checkout. With `core.autocrlf` on Windows two tests that compare the bundles byte for byte failed; found while establishing the baseline.
 
@@ -67,27 +85,17 @@ A backup made by the app holds no password, key or token, and a restore puts the
 Each of these would remove something users can do today or change stored data, so none was changed.
 
 **O-01 · Medium · Cleartext traffic is allowed for the whole app** — `native/app.json:77`
-`usesCleartextTraffic: true` is needed for DLNA/UPnP TVs, the local stream address `http://127.0.0.1`, a Nakama host on the home network, and `http://` sources of extensions. The price: any request the app or an extension makes to an `http://` address can be read and changed on the network. Option: a network security config that allows cleartext only for loopback and private address ranges. That breaks `http://` extension sources and hosts on public addresses, so it needs a decision and a device test.
-
-**O-02 · Medium · Extension code can be loaded over `http://`** — `native/src/core/extensions/manage/install.ts:76`, `manage.ts:342`, `fetch-manifest.ts:213`
-Marketplace, repository, manifest and payload addresses accept `http://`, as upstream Seanime does. On a hostile network the code of an extension can be replaced on install or update. The sandbox limits what such code reaches (no files, no secrets of the app), but it can still make any web request and return any stream. Options: refuse `http://` for these addresses (breaks self-hosted repositories without TLS), or keep it and show a warning in the install dialog.
+`usesCleartextTraffic: true` is needed for DLNA/UPnP TVs, the local stream address `http://127.0.0.1`, a Nakama host on the home network, and `http://` sources of extensions. The price: any request the app or an extension makes to an `http://` address can be read and changed on the network. Option: a network security config that allows cleartext only for loopback and private address ranges. That breaks `http://` extension sources and hosts on public addresses, so it needs a decision and a device test. Deferred: limiting cleartext breaks home servers and `http://` sources, so it waits for a device test.
 
 **O-03 · Low · An extension can reach loopback and the local network** — `native/src/core/extensions/helpers/helpers.ts:100`
-`fetch` inside an extension accepts every `http(s)` host, including `127.0.0.1` and private ranges (routers, NAS, other apps' local servers). The app's own stream server is protected by its token. Blocking private ranges would break custom-source extensions that talk to a server at home; blocking only loopback is the smaller step.
+`fetch` inside an extension accepts every `http(s)` host, including `127.0.0.1` and private ranges (routers, NAS, other apps' local servers). The app's own stream server is protected by its token. Blocking private ranges would break custom-source extensions that talk to a server at home; blocking only loopback is the smaller step. Deferred: either block can break extensions that use a home server or an `http://` source, so it waits for a device test.
 
 **O-04 · Low · Passwords of other programs lie in the settings table as plain text** — `native/src/core/settings/shape.ts:60,74,87,94,141`
-`vlcPassword`, `qbittorrentPassword`, `transmissionPassword`, `vcTranslateApiKey` and `hostPassword` are part of the settings JSON in the app's private SQLite file (not in backups, not in Android's backup). Reading them needs root or a debuggable build. Moving them to the secured storage, as was done for the debrid key and the Nakama password, needs a tested migration of stored data.
+`vlcPassword`, `qbittorrentPassword`, `transmissionPassword`, `vcTranslateApiKey` and `hostPassword` are part of the settings JSON in the app's private SQLite file (not in backups, not in Android's backup). Reading them needs root or a debuggable build. Moving them to the secured storage, as was done for the debrid key and the Nakama password, needs a tested migration of stored data. Deferred: the move needs a migration of stored settings that is tested on a device first.
 
-**O-05 · Low · Dependency advisories without a compatible fix** — see the npm audit section. `zod` (high, direct) validates only what the user types into the settings forms; the fix is the next major version.
+**O-05 · Low · Dependency advisories without a compatible fix** — see the npm audit section. `zod` (high, direct) validates only what the user types into the settings forms; the fix is the next major version. Deferred: the fix needs a major update of zod, planned with the next dependency round.
 
-**O-06 · Low · Actions in CI are pinned to a tag, not a commit** — `.github/workflows/native-check.yml:31,33`
-`actions/checkout@v4` and `actions/setup-node@v4` are first-party and the job has a read-only token and no secrets, so the exposure is small. Pinning to commit SHAs is the usual hardening.
-
-**O-07 · Low · The Nakama password travels as a header, by default over `http://`** — `native/src/core/nakama/guest.ts:62,259`
-This is the upstream protocol (`X-Seanime-Nakama-Token`). On a shared network the password and the streams can be read. A host address typed with `https://` is used as such; a hint in the settings is the only change that does not break existing setups.
-
-**O-08 · Low · Title and subtitle placeholders in a custom `intent://` link are not encoded** — `native/src/lib/external-player-link/external-player-link.ts`
-Rest of F-03: in a link the user wrote themselves, `{mediaTitle}` or `{subtitleUrl}` placed after `#Intent;` can add fields (a title containing `;package=…`). Presets are not affected. Encoding `;` and `#` in these values for `intent://` links closes it; left open because the path has no test seam yet and is not reachable with a stream in 4.0.1.
+O-02, O-06, O-07 and O-08 are closed, see F-04 to F-07.
 
 ### Informational
 
@@ -109,9 +117,9 @@ A compact pass with the mobile lens of the `threat-model` skill. It is **not** a
 | Boundary | Main threats (STRIDE) | State |
 | --- | --- | --- |
 | App ↔ AniList / debrid services (HTTPS) | Disclosure of the token | Token only in secured storage and in the `Authorization` header; not in logs, status or backups |
-| App ↔ extension code | Elevation, tampering, disclosure | Sandbox with one door; reaches the web but no files and no secrets. Open: O-02, O-03 |
-| App ↔ marketplace / repositories | Tampering with code in transit | HTTPS by default (official marketplace); `http://` possible → O-02 |
-| App ↔ local network (DLNA, cast share, Nakama, torrents) | Spoofed devices, disclosure of streams | Cast share behind a 256-bit token per file; DLNA answers parsed as data; cleartext by nature → O-01, O-07 |
+| App ↔ extension code | Elevation, tampering, disclosure | Sandbox with one door; reaches the web but no files and no secrets. Hint for `http://` links: F-04. Open: O-03 |
+| App ↔ marketplace / repositories | Tampering with code in transit | HTTPS by default (official marketplace); `http://` possible, with a hint in the add and install sheets (F-04) |
+| App ↔ local network (DLNA, cast share, Nakama, torrents) | Spoofed devices, disclosure of streams | Cast share behind a 256-bit token per file; DLNA answers parsed as data; cleartext by nature → O-01; hint for a Nakama host without `https://` (F-06) |
 | App ↔ other apps (links, share sheet, widgets, notifications, loopback server) | Spoofed entry, intent redirection | Links only navigate; no exported services; loopback server behind a token; F-03 fixed |
 | App ↔ files the user picks (backup, local library) | Tampering through a prepared file | F-01 and F-02 fixed; I-01 remains by design |
 | App ↔ GitHub releases (updater) | Tampered update | Digest, size, signature and version checks |
@@ -119,7 +127,7 @@ A compact pass with the mobile lens of the `threat-model` skill. It is **not** a
 
 **Lifecycle checks of the lens:** account change — signing in as another account forgets the kept lists, and waiting AniList changes carry the account they were made for (`anilist/auth.ts`, `anilist/changes.ts`). Notification and widget taps — they open a page by id; the page reads with the current account. Offline queue — bound to its account as above. Sharing out — player links and logs are cut of tokens; backups hold no secrets. Recovery — a restore writes a safety copy of the state before it.
 
-**Proposed verification (not run):** restore a prepared file that names `seanime-mobile-app-update` on a device and confirm the updater state is unchanged; open an `http://` marketplace through a proxy that rewrites the payload to confirm O-02 and to test any change made for it.
+**Proposed verification (not run):** restore a prepared file that names `seanime-mobile-app-update` on a device and confirm the updater state is unchanged; open an `http://` marketplace through a proxy that rewrites the payload to confirm the risk behind F-04 (the hint warns about it, it does not prevent it).
 
 ## npm audit
 
@@ -142,3 +150,11 @@ Run in `native/` after the last commit:
 - `npm run lint` — 0 errors, 339 warnings (unchanged from the base)
 
 Not verified: behaviour on a device, the native modules (no build), and the open items above.
+
+Follow-up for F-04 to F-07 on `release-4.1.0`, run in `native/`:
+
+- `npx tsc --noEmit`: 0 errors
+- `npx vitest run` on the changed modules (`src/lib/external-player-link`, `src/main/extensions`, `src/main/settings/_lib/nakama-host.test.ts`): all passed, 6 tests added
+- `npx eslint` on the changed files: 0 errors
+
+Not verified: the hints on a device.
