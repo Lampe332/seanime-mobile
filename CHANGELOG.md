@@ -2,6 +2,25 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 4.1.0 — 17.11.2026 (versionCode 40100)
+
+- 🎉 Settings: About now links to the Seanime Mobile Discord server
+- 🎉 Settings: About has a Legal section with the imprint, a contact address and links to the privacy policy and imprint
+- ⚡️ App: New icon, splash screen and logo
+- ⚡️ Extensions: Adding a marketplace, repository or extension over http:// now shows a warning, since its code could be swapped on the way
+- ⚡️ Nakama: The settings point out when the host address isn't https://, because the password and streams then go over the network unencrypted
+- 🦺 Backup: Fixed a restore writing device-bound settings from the file, such as the updater's record of an already checked APK
+- 🦺 Backup: Fixed passwords and keys in a hand-edited backup file reaching the settings
+- 🦺 External player: Fixed a stream address or a title with `;` or `#` adding fields to a custom `intent://` link
+- 🦺 Reader: Fixed "Reset page layout" leaving the zoom unchanged
+- 🦺 Reader: Fixed the Original fit showing a small page with a black area above it
+- 🦺 Manga: Fixed "Reload source" giving no hint why it can't be used
+- 🦺 Anime: Fixed an empty "Filler and specials" sheet. It's called "Specials" now and only appears when it has something in it
+- 🦺 Search: Fixed anime filters carrying over to the manga search
+- 🦺 Search: Fixed releasing titles being labeled "Airing" or "Publishing" instead of "Releasing" like everywhere else
+- 🦺 Playlists: Fixed the keyboard opening on the episode picker
+- 🦺 Home: Fixed the keyboard staying open after editing a section's options
+
 ## 4.0.1 — 15.11.2026 (versionCode 40001)
 
 - 🦺 Home: After signing in, Home shows the shows you're watching right away instead of only after "Refresh AniList"
