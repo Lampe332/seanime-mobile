@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest"
 import {
     buildPaginationMap,
+    defaultPageLayout,
     getAdjacentChapter,
+    isDefaultPageLayout,
     isNearStripEnd,
     mapIndexForPage,
     pageAtLine,
@@ -148,5 +150,19 @@ describe("single / double page", () => {
         expect(pagedPageSize({ ...base, fit: "contain", double: true })).toEqual({ width: 200, height: 300 })
         expect(pagedPageSize({ ...base, fit: "cover", double: false })).toEqual({ width: 400, height: 600 })
         expect(pagedPageSize({ ...base, fit: "larger", double: false })).toEqual({ width: 200, height: 300 })
+    })
+})
+
+describe("reset page layout", () => {
+    it("goes back to the mode's fit and stretch at 100 % zoom", () => {
+        expect(defaultPageLayout("long-strip")).toEqual({ pageFit: "cover", pageStretch: "none", pageZoom: 1 })
+        expect(defaultPageLayout("paged")).toEqual({ pageFit: "contain", pageStretch: "none", pageZoom: 1 })
+        expect(defaultPageLayout("double-page")).toEqual({ pageFit: "contain", pageStretch: "none", pageZoom: 1 })
+    })
+
+    it("offers the reset while only the zoom differs", () => {
+        expect(isDefaultPageLayout("paged", { pageFit: "contain", pageStretch: "none", pageZoom: 1 })).toBe(true)
+        expect(isDefaultPageLayout("paged", { pageFit: "contain", pageStretch: "none", pageZoom: 1.1 })).toBe(false)
+        expect(isDefaultPageLayout("long-strip", { pageFit: "contain", pageStretch: "none", pageZoom: 1 })).toBe(false)
     })
 })

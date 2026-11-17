@@ -187,6 +187,17 @@ export function clampMangaPageZoom(value: number) {
     return Math.min(MANGA_PAGE_ZOOM_MAX, Math.max(MANGA_PAGE_ZOOM_MIN, Number(value.toFixed(2))))
 }
 
+/** The page layout "Reset page layout for this mode" goes back to: the mode's fit and stretch at 100 % zoom. */
+export function defaultPageLayout(mode: string) {
+    const pageFit = mode === MangaReadingMode.LONG_STRIP ? MangaPageFit.COVER : MangaPageFit.CONTAIN
+    return { pageFit, pageStretch: MangaPageStretch.NONE, pageZoom: MANGA_PAGE_ZOOM_DEFAULT }
+}
+
+export function isDefaultPageLayout(mode: string, layout: { pageFit: string, pageStretch: string, pageZoom: number }) {
+    const defaults = defaultPageLayout(mode)
+    return layout.pageFit === defaults.pageFit && layout.pageStretch === defaults.pageStretch && layout.pageZoom === defaults.pageZoom
+}
+
 /** A page's height over its width; a usual manga page until the picture has loaded. */
 export const DEFAULT_PAGE_RATIO = 1.42
 

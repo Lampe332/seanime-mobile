@@ -5,6 +5,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
+import { defaultPageLayout, isDefaultPageLayout } from "@/main/manga/_lib/chapter-reader"
 import { useEffectiveReadingMode, useMangaPageZoomControls } from "@/main/manga/_lib/handle-chapter-reader"
 import {
     __manga_autoHideControlsAtom,
@@ -49,12 +50,6 @@ import { Pressable, View } from "react-native"
  */
 
 export const __manga_readerSettingsOpenAtom = atom(false)
-
-const DEFAULT_LAYOUT: Record<string, { pageFit: string, pageStretch: string }> = {
-    [MangaReadingMode.LONG_STRIP]: { pageFit: MangaPageFit.COVER, pageStretch: MangaPageStretch.NONE },
-    [MangaReadingMode.PAGED]: { pageFit: MangaPageFit.CONTAIN, pageStretch: MangaPageStretch.NONE },
-    [MangaReadingMode.DOUBLE_PAGE]: { pageFit: MangaPageFit.CONTAIN, pageStretch: MangaPageStretch.NONE },
-}
 
 /** Loads this manga's remembered reader settings once, then stores every change for it. */
 export function useEntryReaderSettings(mediaId: number) {
@@ -120,8 +115,8 @@ export function ChapterReaderSettings() {
     const [readerBrightness, setReaderBrightness] = useAtom(__manga_readerBrightnessAtom)
     const [tapToggleControls, setTapToggleControls] = useAtom(__manga_tapToggleControlsAtom)
     const [autoHideControls, setAutoHideControls] = useAtom(__manga_autoHideControlsAtom)
-    const layoutDefaults = DEFAULT_LAYOUT[effectiveMode] ?? DEFAULT_LAYOUT[MangaReadingMode.PAGED]
-    const isDefaultLayout = pageFit === layoutDefaults.pageFit && pageStretch === layoutDefaults.pageStretch
+    const layoutDefaults = defaultPageLayout(effectiveMode)
+    const isDefaultLayout = isDefaultPageLayout(effectiveMode, { pageFit, pageStretch, pageZoom })
 
     return <Sheet compact title={t("Reader settings", "Lese-Einstellungen")} open={open} onOpenChange={setOpen}>
         {/* `.reader-settings`: the groups 1rem apart (the sheet's own body gap is 1.25rem) */}
@@ -165,6 +160,7 @@ export function ChapterReaderSettings() {
             {!isDefaultLayout && <Pressable accessibilityRole="button" onPress={() => {
                 setPageFit(layoutDefaults.pageFit)
                 setPageStretch(layoutDefaults.pageStretch)
+                setZoom(layoutDefaults.pageZoom)
             }} className="min-h-12 flex-row items-center gap-2.5 bg-sm-surface-raised px-3 active:bg-sm-surface-control">
                 <RotateCcw size={16} color={colors.smAccent} />
                 <Text className="text-sm text-sm-accent">{t("Reset page layout for this mode", "Seitenlayout für diesen Modus zurücksetzen")}</Text>
