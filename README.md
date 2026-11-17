@@ -118,9 +118,9 @@ From then on the app offers updates itself. It checks this repository for a new 
 
 1. Pick your language (English or Deutsch) and tap *Get started*.
 2. Log in with AniList. Allow access there and copy the code it shows. Back in the app, it finds the code and offers *Connect*. No account? Make one for free at [anilist.co](https://anilist.co), or tap *Not now* and use the local account.
-3. Add sources. None are installed at first. A short tour shows the way: *Menu → Extensions → Marketplace*. The official Seanime marketplace by 5rahim is set by default; to use another one, paste its link, check the preview, add it. Then install a streaming source and a manga source.
+3. Add sources. None are installed at first. A short tour shows the way: *Menu → Extensions → Marketplace*. The official Seanime marketplace by 5rahim is set by default, but right now it has no streaming or manga sources. For those, add a community marketplace: paste its link, check the preview, add it. The [setup guide on the website](https://seanimemobile.com/#start) has one ready to copy. Then install a streaming source and a manga source.
 
-Apart from the official Seanime marketplace, this project doesn't link to any marketplace and has nothing to do with the content of extensions.
+This project has nothing to do with the content of extensions. Community extensions get scanned automatically, but nobody checks them by hand, so only install what you trust.
 
 ## Good to know
 
