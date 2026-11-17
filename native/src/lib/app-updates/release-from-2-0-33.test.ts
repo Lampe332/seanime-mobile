@@ -123,30 +123,33 @@ describe("seen by the 3.0.0 updater (native app)", () => {
     })
 })
 
-describe("4.0.1, seen by the 4.0.0 updater (same updater as 3.0.0)", () => {
-    it("is offered over 4.0.0 and installs over its versionCode 40000", () => {
-        expect(version).toBe("4.0.1")
-        expect(release.versionCode).toBe(40001)
+describe("4.1.0, seen by the 4.0.x updater (same updater as 3.0.0)", () => {
+    it("is offered over 4.0.1 and 4.0.0 and installs over versionCode 40001", () => {
+        expect(version).toBe("4.1.0")
+        expect(release.versionCode).toBe(40100)
+        const v401Release = githubRelease("Seanime-Mobile-4.0.1.apk", {}, "v4.0.1")
         const v4Release = githubRelease("Seanime-Mobile-4.0.0.apk", {}, "v4.0.0")
-        expect(selectUpdate("4.0.0", parseReleases([githubRelease(assetName), v4Release, v3Release]))?.version).toBe("4.0.1")
-        expect(selectUpdate("3.0.0", parseReleases([githubRelease(assetName), v4Release, v3Release]))?.version).toBe("4.0.1")
-        expect(androidInstalls(releaseApk, 40000)).toBe(true)
+        const all = parseReleases([githubRelease(assetName), v401Release, v4Release, v3Release])
+        expect(selectUpdate("4.0.1", all)?.version).toBe("4.1.0")
+        expect(selectUpdate("4.0.0", all)?.version).toBe("4.1.0")
+        expect(selectUpdate("3.0.0", all)?.version).toBe("4.1.0")
+        expect(androidInstalls(releaseApk, 40001)).toBe(true)
     })
 })
 
 describe("releases after it, seen by the native updater", () => {
     it("the next one is offered, the installed one and older are not", () => {
-        const next = githubRelease("Seanime-Mobile-4.0.2.apk", {}, "v4.0.2")
-        expect(selectUpdate(version, parseReleases([next, githubRelease(assetName)]))?.version).toBe("4.0.2")
+        const next = githubRelease("Seanime-Mobile-4.1.1.apk", {}, "v4.1.1")
+        expect(selectUpdate(version, parseReleases([next, githubRelease(assetName)]))?.version).toBe("4.1.1")
         expect(selectUpdate(version, parseReleases([githubRelease(assetName), v3Release]))).toBeNull()
     })
     it("the newest of several later releases wins", () => {
         const releases = parseReleases([
-            githubRelease("Seanime-Mobile-4.0.2.apk", {}, "v4.0.2"),
-            githubRelease("Seanime-Mobile-4.1.0.apk", {}, "v4.1.0"),
-            githubRelease("Seanime-Mobile-4.0.10.apk", {}, "v4.0.10"),
+            githubRelease("Seanime-Mobile-4.1.1.apk", {}, "v4.1.1"),
+            githubRelease("Seanime-Mobile-4.2.0.apk", {}, "v4.2.0"),
+            githubRelease("Seanime-Mobile-4.1.10.apk", {}, "v4.1.10"),
         ])
-        expect(selectUpdate(version, releases)?.version).toBe("4.1.0")
+        expect(selectUpdate(version, releases)?.version).toBe("4.2.0")
     })
 })
 

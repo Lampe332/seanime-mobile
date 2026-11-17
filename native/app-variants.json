@@ -13,7 +13,7 @@
       "name": "Seanime Mobile",
       "applicationId": "com.seanime.app.local",
       "scheme": "seanime",
-      "versionCode": 40001,
+      "versionCode": 40100,
       "icon": "./assets/images/icon.png",
       "adaptiveIconBackground": "./assets/images/android-icon-background.png"
     },
