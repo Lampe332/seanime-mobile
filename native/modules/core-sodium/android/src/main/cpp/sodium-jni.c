@@ -275,6 +275,55 @@ NATIVE(jbyteArray, hashSha256)(JNIEnv *env, jobject self, jbyteArray message) {
     return result;
 }
 
+/** Ed25519: publicKey (32 bytes) || privateKey (64 bytes, seed || publicKey) */
+NATIVE(jbyteArray, signKeypair)(JNIEnv *env, jobject self) {
+    (void) self;
+    unsigned char *pair = room(env, crypto_sign_PUBLICKEYBYTES + crypto_sign_SECRETKEYBYTES);
+    if (!pair) return NULL;
+    crypto_sign_keypair(pair, pair + crypto_sign_PUBLICKEYBYTES);
+    return hand_over(env, pair, crypto_sign_PUBLICKEYBYTES + crypto_sign_SECRETKEYBYTES);
+}
+
+/** Ed25519 signature (64 bytes) of `message` */
+NATIVE(jbyteArray, signDetached)(JNIEnv *env, jobject self, jbyteArray message, jbyteArray privateKey) {
+    (void) self;
+    Bytes m = {0}, sk = {0};
+    jbyteArray result = NULL;
+    if (take(env, message, &m) && take(env, privateKey, &sk)) {
+        if (sk.length != crypto_sign_SECRETKEYBYTES) BAD_ARGUMENT("invalid privateKey length");
+        else {
+            unsigned char *signature = room(env, crypto_sign_BYTES);
+            if (signature) {
+                if (crypto_sign_detached(signature, NULL, U(m), m.length, U(sk)) == 0) {
+                    result = hand_over(env, signature, crypto_sign_BYTES);
+                } else {
+                    drop(signature, crypto_sign_BYTES);
+                    BAD_ARGUMENT("crypto_sign_detached failed");
+                }
+            }
+        }
+    }
+    give_back(env, &m);
+    give_back(env, &sk);
+    return result;
+}
+
+/** True when `signature` is the Ed25519 signature of `message` by `publicKey` */
+NATIVE(jboolean, signVerifyDetached)(JNIEnv *env, jobject self, jbyteArray signature, jbyteArray message, jbyteArray publicKey) {
+    (void) self;
+    Bytes s = {0}, m = {0}, pk = {0};
+    jboolean result = JNI_FALSE;
+    if (take(env, signature, &s) && take(env, message, &m) && take(env, publicKey, &pk)) {
+        if (s.length != crypto_sign_BYTES) BAD_ARGUMENT("invalid signature length");
+        else if (pk.length != crypto_sign_PUBLICKEYBYTES) BAD_ARGUMENT("invalid publicKey length");
+        else result = crypto_sign_verify_detached(U(s), U(m), m.length, U(pk)) == 0 ? JNI_TRUE : JNI_FALSE;
+    }
+    give_back(env, &s);
+    give_back(env, &m);
+    give_back(env, &pk);
+    return result;
+}
+
 /** `key` empty: no key */
 NATIVE(jbyteArray, generichash)(JNIEnv *env, jobject self, jint hashLength, jbyteArray message, jbyteArray key) {
     (void) self;

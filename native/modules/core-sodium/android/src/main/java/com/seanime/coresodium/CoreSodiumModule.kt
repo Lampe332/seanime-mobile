@@ -22,6 +22,9 @@ object SodiumNative {
     @JvmStatic external fun boxSeal(message: ByteArray, publicKey: ByteArray): ByteArray
     @JvmStatic external fun boxSealOpen(ciphertext: ByteArray, publicKey: ByteArray, privateKey: ByteArray): ByteArray?
     @JvmStatic external fun hashSha256(message: ByteArray): ByteArray
+    @JvmStatic external fun signKeypair(): ByteArray
+    @JvmStatic external fun signDetached(message: ByteArray, privateKey: ByteArray): ByteArray
+    @JvmStatic external fun signVerifyDetached(signature: ByteArray, message: ByteArray, publicKey: ByteArray): Boolean
     @JvmStatic external fun generichash(hashLength: Int, message: ByteArray, key: ByteArray): ByteArray
     @JvmStatic external fun randombytesBuf(length: Int): ByteArray
     @JvmStatic external fun memzero(buffer: java.nio.ByteBuffer)
@@ -65,6 +68,13 @@ class CoreSodiumModule : Module() {
                 ?: throw IllegalArgumentException("incorrect key pair for the given ciphertext")
         }
         Function("crypto_hash_sha256") { message: ByteArray -> SodiumNative.hashSha256(message) }
+        Function("crypto_sign_keypair") { SodiumNative.signKeypair() }
+        Function("crypto_sign_detached") { message: ByteArray, privateKey: ByteArray ->
+            wiping(privateKey) { SodiumNative.signDetached(message, privateKey) }
+        }
+        Function("crypto_sign_verify_detached") { signature: ByteArray, message: ByteArray, publicKey: ByteArray ->
+            SodiumNative.signVerifyDetached(signature, message, publicKey)
+        }
         Function("crypto_generichash") { hashLength: Int, message: ByteArray, key: ByteArray ->
             wiping(key) { SodiumNative.generichash(hashLength, message, key) }
         }
