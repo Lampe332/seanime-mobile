@@ -44,3 +44,29 @@ describe("Android external player presets", () => {
         expect(toggledPlayerLink("outplayer://{url}", "org.videolan.vlc")).toBe(vlc)
     })
 })
+
+describe("text placeholders in an own intent:// link", () => {
+    const own = "intent://{url}#Intent;scheme=http;type=video/*;package=org.videolan.vlc;S.title={mediaTitle};S.sub={subtitleUrl};S.name={formattedTitle};end"
+
+    it("a title or subtitle address cannot add a field", () => {
+        const link = new ExternalPlayerLink(own)
+        link.setUrl("http://127.0.0.1:8080/a.mkv")
+        link.setMediaTitle("Show;package=evil;end")
+        link.setEpisodeNumber(3)
+        link.setSubtitleUrls(["http://127.0.0.1:8080/s.vtt#Intent;component=com.evil/.X;end"])
+        const full = link.getFullUrl()
+        expect(full).toBe("intent://127.0.0.1:8080/a.mkv#Intent;scheme=http;type=video/*;package=org.videolan.vlc;S.title=Show%3Bpackage=evil%3Bend;S.sub=http://127.0.0.1:8080/s.vtt%23Intent%3Bcomponent=com.evil/.X%3Bend;S.name=Episode 3 - Show%3Bpackage=evil%3Bend;end")
+        expect(parseIntentLink(full)).toEqual({
+            data: "http://127.0.0.1:8080/a.mkv",
+            type: "video/*",
+            packageName: "org.videolan.vlc",
+            className: playerActivityOf("org.videolan.vlc"),
+        })
+    })
+    it("other links keep the title as it is", () => {
+        const link = new ExternalPlayerLink("outplayer://{url}&title={mediaTitle}")
+        link.setUrl("http://127.0.0.1:8080/a.mkv")
+        link.setMediaTitle("A;B#C")
+        expect(link.getFullUrl()).toBe("outplayer://http://127.0.0.1:8080/a.mkv&title=A;B#C")
+    })
+})

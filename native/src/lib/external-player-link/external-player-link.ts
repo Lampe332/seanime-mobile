@@ -60,12 +60,21 @@ export class ExternalPlayerLink {
         return title.replace(/[\\/:*?"<>|]/g, "")
     }
 
+    /**
+     * In an intent:// link a ";" or "#" of a text value would start a new field ("…;package=other"), so they go in
+     * encoded as %3B and %23 (Android decodes intent values). Other links keep the value as it is.
+     */
+    private _intentSafe(value: string) {
+        if (!this._playerLink.startsWith("intent://")) return value
+        return value.replace(/[;#]/g, c => encodeURIComponent(c))
+    }
+
     private _formatFinalUrl(url: string): string {
         let link = this._playerLink
-        link = link.replace("{mediaTitle}", this._cleanTitle(this._mediaTitle ?? ""))
+        link = link.replace("{mediaTitle}", this._intentSafe(this._cleanTitle(this._mediaTitle ?? "")))
         link = link.replace("{episodeNumber}", this._episodeNumber?.toString?.() ?? "")
         link = link.replace("{mime}", "video/webm")
-        const subtitleUrls = this._subtitleUrls.map(url => this._formatTemplateUrl(url))
+        const subtitleUrls = this._subtitleUrls.map(url => this._intentSafe(this._formatTemplateUrl(url)))
         link = link.replaceAll("{subtitleUrl}", subtitleUrls[0] ?? "")
         link = link.replaceAll("{subtitleUrls}", subtitleUrls.join(","))
         if (link.includes("{formattedTitle}")) {
@@ -73,7 +82,7 @@ export class ExternalPlayerLink {
             if (this._episodeNumber !== null && !!title.length) {
                 title = `Episode ${this._episodeNumber} - ${title}`
             }
-            link = link.replace("{formattedTitle}", this._cleanTitle(title ?? ""))
+            link = link.replace("{formattedTitle}", this._intentSafe(this._cleanTitle(title ?? "")))
         }
         log.info("Formatted external player link", withoutTokens(link))
         // e.g. "mpv://http://localhost:43214/stream/..."
