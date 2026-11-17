@@ -1,6 +1,6 @@
 // geschrieben nach: core/account/crypto.test.ts (Testvektoren, gleiche Rechnung) und dem Muster der Selbsttests in app-links-handler.ts; nur Entwickler-Diagnose
 import {
-    AUTH_CONTEXT, ENC_CONTEXT, commitment, decryptPackage, deriveKeys, encryptPackage, newRecoveryCode, openSealedDek, recoveryKeyFrom, sas, sealDek, toB64,
+    commitment, decryptPackage, deriveKeys, encryptPackage, newRecoveryCode, openSealedDek, recoveryKeyFrom, sas, sealDek, toB64,
     unwrapKey, wrapKey,
 } from "@/core/account/crypto"
 import vectors from "@/core/account/__fixtures__/vectors.json"
@@ -50,23 +50,18 @@ export async function runAccountSodiumSelfTest(): Promise<string[]> {
     const salt = unhex(input.salt)
 
     let encKey: Uint8Array = new Uint8Array(0)
-    check("deriveKeys authKey+encKey (Argon2id sync)", () => {
-        const keys = deriveKeys(sodium, input.password, salt, input.kdf as Parameters<typeof deriveKeys>[3])
-        encKey = keys.encKey
-        return hex(keys.authKey) === output.authKey && hex(keys.encKey) === output.encKey
-    })
-
-    // the same derivation with the master key from the background thread
-    const asyncStart = performance.now()
-    try {
-        const master = await sodium.crypto_pwhash_async(32, input.password.normalize("NFKC"), salt, input.kdf.t, input.kdf.m * 1024, sodium.crypto_pwhash_ALG_ARGON2ID13)
-        const ms = Math.round(performance.now() - asyncStart)
-        const ok = hex(sodium.crypto_kdf_derive_from_key(32, 1, AUTH_CONTEXT, master)) === output.authKey
-            && hex(sodium.crypto_kdf_derive_from_key(32, 2, ENC_CONTEXT, master)) === output.encKey
-        lines.push(`${ok ? "PASS" : "FAIL"} authKey+encKey (Argon2id async) ${ms} ms`)
-    }
-    catch (error) {
-        lines.push(`FAIL authKey+encKey (Argon2id async) (${error instanceof Error ? error.message : String(error)})`)
+    // Argon2id on the JS thread (the core's fallback) and off it (what deriveKeys uses on the device)
+    for (const [name, lib] of [["sync", { ...sodium, crypto_pwhash_async: undefined }], ["async", sodium]] as const) {
+        const start = performance.now()
+        try {
+            const keys = await deriveKeys(lib, input.password, salt, input.kdf as Parameters<typeof deriveKeys>[3])
+            encKey = keys.encKey
+            const ok = hex(keys.authKey) === output.authKey && hex(keys.encKey) === output.encKey
+            lines.push(`${ok ? "PASS" : "FAIL"} deriveKeys authKey+encKey (Argon2id ${name}) ${Math.round(performance.now() - start)} ms`)
+        }
+        catch (error) {
+            lines.push(`FAIL deriveKeys (Argon2id ${name}) (${error instanceof Error ? error.message : String(error)})`)
+        }
     }
 
     check("wrappedPassword", () => wrapKey(fixedRandom(sodium, unhex(input.wrapNonce)), dek, encKey, input.userId, "password") === output.wrappedPassword)

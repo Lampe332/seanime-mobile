@@ -132,7 +132,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
 
     async function encKeyFor(client: AccountClient, password: string): Promise<Uint8Array> {
         const { salt, kdf } = await client.prelogin(EMAIL)
-        return deriveKeys(sodium, password, fromB64(sodium, salt, 16), kdf).encKey
+        return (await deriveKeys(sodium, password, fromB64(sodium, salt, 16), kdf)).encKey
     }
 
     const mailCount = async () => ((await (await (await mf.getWorker("mail-sink")).fetch("http://mail-sink/")).json()) as unknown[]).length
@@ -183,7 +183,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
     it("device approval with commitment and the same number on both devices", async () => {
         // a session without the DEK (as after a Google sign-in on a new device)
         const { salt, kdf } = await laptop.client.prelogin(EMAIL)
-        const { authKey } = deriveKeys(sodium, PASSWORD, fromB64(sodium, salt, 16), kdf)
+        const { authKey } = await deriveKeys(sodium, PASSWORD, fromB64(sodium, salt, 16), kdf)
         const login = await laptop.client.login(EMAIL, toB64(sodium, authKey))
         await laptop.session.saveSession({ userId: login.userId, sessionToken: login.sessionToken, kind: "email", email: EMAIL, deviceId: null })
 

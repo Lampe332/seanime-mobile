@@ -11,6 +11,8 @@ export type SodiumKeyPair = { publicKey: Uint8Array, privateKey: Uint8Array }
 export interface Sodium {
     /** Argon2id13 when `algorithm` is `crypto_pwhash_ALG_ARGON2ID13`; `memLimit` in bytes */
     crypto_pwhash(keyLength: number, password: string | Uint8Array, salt: Uint8Array, opsLimit: number, memLimit: number, algorithm: number): Uint8Array
+    /** The same off the JS thread, when the build has it (the device's module); the core prefers it */
+    crypto_pwhash_async?(keyLength: number, password: string | Uint8Array, salt: Uint8Array, opsLimit: number, memLimit: number, algorithm: number): Promise<Uint8Array>
     readonly crypto_pwhash_ALG_ARGON2ID13: number
     /** `context` is 8 bytes; a 7-character text is padded with its terminating zero byte ("sm-auth" = "sm-auth\0") */
     crypto_kdf_derive_from_key(subkeyLength: number, subkeyId: number, context: string, key: Uint8Array): Uint8Array

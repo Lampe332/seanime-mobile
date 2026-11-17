@@ -69,8 +69,8 @@ type Vectors = {
     }
 }
 
-function compute(): Vectors["output"] & { sealPrivateKey: Uint8Array } {
-    const { authKey, encKey } = deriveKeys(sodium, INPUT.password, unhex(INPUT.salt), INPUT.kdf)
+async function compute(): Promise<Vectors["output"] & { sealPrivateKey: Uint8Array }> {
+    const { authKey, encKey } = await deriveKeys(sodium, INPUT.password, unhex(INPUT.salt), INPUT.kdf)
     const dek = unhex(INPUT.dek)
     const wrappedPassword = wrapKey(fixedRandom(sodium, unhex(INPUT.wrapNonce)), dek, encKey, INPUT.userId, "password")
     const { code, key } = newRecoveryCode(fixedRandom(sodium, unhex(INPUT.recoveryBytes)))
@@ -93,9 +93,26 @@ function compute(): Vectors["output"] & { sealPrivateKey: Uint8Array } {
     }
 }
 
+describe("deriveKeys", () => {
+    it("runs Argon2id through crypto_pwhash_async when the Sodium has it, with the same keys", async () => {
+        let calls = 0
+        const withAsync: Sodium = { ...sodium, crypto_pwhash_async: async (...args: Parameters<Sodium["crypto_pwhash"]>) => {
+            calls++
+            return sodium.crypto_pwhash(...args)
+        } }
+        const salt = unhex(INPUT.salt)
+        const kdf = { alg: "argon2id", m: 8, t: 1, p: 1 } as const
+        const viaAsync = await deriveKeys(withAsync, INPUT.password, salt, kdf)
+        const viaSync = await deriveKeys(sodium, INPUT.password, salt, kdf)
+        expect(calls).toBe(1)
+        expect(hex(viaAsync.authKey)).toBe(hex(viaSync.authKey))
+        expect(hex(viaAsync.encKey)).toBe(hex(viaSync.encKey))
+    })
+})
+
 describe("test vectors", () => {
-    it("reproduces __fixtures__/vectors.json", () => {
-        const { sealPrivateKey, ...output } = compute()
+    it("reproduces __fixtures__/vectors.json", async () => {
+        const { sealPrivateKey, ...output } = await compute()
         if (process.env.WRITE_VECTORS === "1" || !existsSync(VECTORS_FILE)) {
             writeFileSync(VECTORS_FILE, JSON.stringify({ input: INPUT, output } satisfies Vectors, null, 4) + "\n")
         }

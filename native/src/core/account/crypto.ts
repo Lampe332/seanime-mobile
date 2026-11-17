@@ -93,12 +93,24 @@ export const newDeviceKeyPair = (sodium: Sodium): SodiumKeyPair => {
 
 /* ---- Password ---- */
 
-/** authKey (goes to the server) and encKey (never leaves the device) from the password. The master key is wiped. */
-export function deriveKeys(sodium: Sodium, password: string, salt: Uint8Array, kdf: Kdf): { authKey: Uint8Array, encKey: Uint8Array } {
+/**
+ * authKey (goes to the server) and encKey (never leaves the device) from the password. The master key is wiped.
+ * Argon2id runs off the JS thread when the Sodium has crypto_pwhash_async (the device's module), so the screen keeps moving.
+ */
+export async function deriveKeys(sodium: Sodium, password: string, salt: Uint8Array, kdf: Kdf): Promise<{ authKey: Uint8Array, encKey: Uint8Array }> {
     if (kdf.alg !== "argon2id" || kdf.p !== 1) throw new AccountCryptoError("unsupported key derivation parameters")
     if (salt.length !== SALT_BYTES) throw new AccountCryptoError("salt has the wrong length")
     const secret = utf8(password.normalize("NFKC"))
-    const master = sodium.crypto_pwhash(KEY_BYTES, secret, salt, kdf.t, kdf.m * 1024, sodium.crypto_pwhash_ALG_ARGON2ID13)
+    let master: Uint8Array
+    try {
+        master = sodium.crypto_pwhash_async
+            ? await sodium.crypto_pwhash_async(KEY_BYTES, secret, salt, kdf.t, kdf.m * 1024, sodium.crypto_pwhash_ALG_ARGON2ID13)
+            : sodium.crypto_pwhash(KEY_BYTES, secret, salt, kdf.t, kdf.m * 1024, sodium.crypto_pwhash_ALG_ARGON2ID13)
+    }
+    catch (error) {
+        wipe(sodium, secret)
+        throw error
+    }
     try {
         return {
             authKey: sodium.crypto_kdf_derive_from_key(KEY_BYTES, 1, AUTH_CONTEXT, master),

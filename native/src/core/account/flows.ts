@@ -68,7 +68,7 @@ export async function signupEmail(deps: AccountDeps, input: { email: string, pas
     const { client, sodium } = deps
     const kdf = input.kdf ?? DEFAULT_KDF
     const salt = newSalt(sodium)
-    const { authKey, encKey } = deriveKeys(sodium, input.password, salt, kdf)
+    const { authKey, encKey } = await deriveKeys(sodium, input.password, salt, kdf)
     const dek = newDek(sodium)
     try {
         const answer = await client.signup({ email: input.email, salt: toB64(sodium, salt), kdf, authKey: toB64(sodium, authKey) })
@@ -86,7 +86,7 @@ export async function signupEmail(deps: AccountDeps, input: { email: string, pas
 async function signInEmail(deps: AccountDeps, input: { email: string, password: string, deviceName: string }): Promise<SignInResult & { encKey: Uint8Array }> {
     const { client, sodium } = deps
     const { salt, kdf } = await client.prelogin(input.email)
-    const { authKey, encKey } = deriveKeys(sodium, input.password, fromB64(sodium, salt, 16), kdf)
+    const { authKey, encKey } = await deriveKeys(sodium, input.password, fromB64(sodium, salt, 16), kdf)
     try {
         const answer = await client.login(input.email, toB64(sodium, authKey))
         const kept = await startSession(deps, answer.userId, answer.sessionToken, "email", input.email)
@@ -137,7 +137,7 @@ export async function changePassword(deps: AccountDeps, input: { email: string, 
     if (signedIn.status !== "ready" || !state?.dek || !state.dekId) throw new AccountCryptoError("this device has no key; approve it first")
     const kdf = input.kdf ?? DEFAULT_KDF
     const salt = newSalt(sodium)
-    const { authKey, encKey } = deriveKeys(sodium, input.newPassword, salt, kdf)
+    const { authKey, encKey } = await deriveKeys(sodium, input.newPassword, salt, kdf)
     try {
         await deps.client.changePassword({ salt: toB64(sodium, salt), kdf, authKey: toB64(sodium, authKey), wrappedDek: wrapKey(sodium, state.dek, encKey, state.userId, "password"), dekId: state.dekId })
     }
@@ -160,7 +160,7 @@ export async function resetWithRecovery(deps: AccountDeps, input: { token: strin
     const dek = unwrapKey(sodium, info.recoveryWrappedDek, recoveryKey, userId, "recovery")
     const kdf = input.kdf ?? DEFAULT_KDF
     const salt = newSalt(sodium)
-    const { authKey, encKey } = deriveKeys(sodium, input.newPassword, salt, kdf)
+    const { authKey, encKey } = await deriveKeys(sodium, input.newPassword, salt, kdf)
     try {
         await client.reset({
             token: input.token,
@@ -187,7 +187,7 @@ export async function resetWithoutRecovery(deps: AccountDeps, input: { token: st
     const { client, sodium } = deps
     const kdf = input.kdf ?? DEFAULT_KDF
     const salt = newSalt(sodium)
-    const derived = deriveKeys(sodium, input.newPassword, salt, kdf)
+    const derived = await deriveKeys(sodium, input.newPassword, salt, kdf)
     try {
         await client.reset({ token: input.token, salt: toB64(sodium, salt), kdf, authKey: toB64(sodium, derived.authKey) })
     }
