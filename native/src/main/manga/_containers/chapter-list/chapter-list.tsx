@@ -346,7 +346,10 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
         <Sheet title={t("Source", "Quelle")} open={sourceSheet === "menu"} onOpenChange={value => { if (!value) setSourceSheet(null) }}>
             <RowGroup>
                 <ActionRow icon={RotateCw} label={sourceRefreshRunning ? t("Refreshing …", "Wird aktualisiert …") : t("Reload source", "Quelle neu laden")}
-                    note={t("Looks for new chapters of this manga at the source", "Sucht bei der Quelle nach neuen Kapiteln dieses Manga")}
+                    // a disabled row says why, or a tap on it seems to do nothing
+                    note={!sourceRefreshRunning && !selectedExtension ? t("Pick a source first", "Zuerst eine Quelle wählen")
+                        : !sourceRefreshRunning && !sourceRefreshEligible ? t("Only for manga you are reading or rereading", "Nur für Manga, die du liest oder erneut liest")
+                        : t("Looks for new chapters of this manga at the source", "Sucht bei der Quelle nach neuen Kapiteln dieses Manga")}
                     disabled={isStartingSourceRefresh || !preferencesHydrated || !selectedExtension || !sourceRefreshEligible || sourceRefreshRunning}
                     onPress={() => {
                         setSourceSheet(null)
