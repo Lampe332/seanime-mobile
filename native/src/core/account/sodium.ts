@@ -25,6 +25,11 @@ export interface Sodium {
     crypto_generichash(hashLength: number, message: Uint8Array, key?: Uint8Array | null): Uint8Array
     /** SHA-256: the server checks the approval commitment with it (account-server/src/approval.ts) */
     crypto_hash_sha256(message: Uint8Array): Uint8Array
+    /** Ed25519 (plan 10.2b): publicKey 32 bytes, privateKey 64 bytes (seed || publicKey) */
+    crypto_sign_keypair(): SodiumKeyPair
+    /** Ed25519 signature, 64 bytes */
+    crypto_sign_detached(message: Uint8Array, privateKey: Uint8Array): Uint8Array
+    crypto_sign_verify_detached(signature: Uint8Array, message: Uint8Array, publicKey: Uint8Array): boolean
     randombytes_buf(length: number): Uint8Array
     memzero(bytes: Uint8Array): void
     to_base64(input: Uint8Array, variant?: number): string

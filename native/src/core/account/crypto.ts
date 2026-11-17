@@ -86,6 +86,12 @@ export const newSalt = (sodium: Sodium) => sodium.randombytes_buf(SALT_BYTES)
 export const newDek = (sodium: Sodium) => sodium.randombytes_buf(KEY_BYTES)
 /** A DEK's name on the server (DekId: 1–64 Base64url characters): 128 random bits */
 export const newDekId = (sodium: Sodium) => toB64(sodium, sodium.randombytes_buf(16))
+/** Ed25519 key pair of a new session (plan 10.2b): libsodium crypto_sign_keypair; the private half stays on the device */
+export function newSigningKeyPair(sodium: Sodium): SodiumKeyPair {
+    const { publicKey, privateKey } = sodium.crypto_sign_keypair()
+    return { publicKey, privateKey }
+}
+
 export const newDeviceKeyPair = (sodium: Sodium): SodiumKeyPair => {
     const { publicKey, privateKey } = sodium.crypto_box_keypair()
     return { publicKey, privateKey }

@@ -12,6 +12,16 @@ export const RELEASE_ACCOUNT_API = "https://api.seanimemobile.com"
 const LOCAL_HTTP = /^http:\/\/(127\.0\.0\.1|localhost)(:\d{1,5})?\/?$/
 const HTTPS = /^https:\/\/[a-z0-9.-]+(:\d{1,5})?\/?$/i
 
+/**
+ * Run-time check of every account request's address: the release only ever talks https; test and scratch builds also
+ * the local server over http on this device (adb reverse). Anything else throws before a byte is sent.
+ */
+export function checkAccountUrl(variantName: string, url: string): string {
+    if (/^https:\/\//i.test(url)) return url
+    if (variantName !== "release" && /^http:\/\/(127\.0\.0\.1|localhost)(:\d{1,5})?\//.test(url)) return url
+    throw new Error("The account server must be reached over https.")
+}
+
 export function accountApiBase(variantName: string, override: string | undefined): string {
     if (variantName === "release" || !override) return RELEASE_ACCOUNT_API
     const address = override.trim()

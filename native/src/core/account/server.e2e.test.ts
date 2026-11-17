@@ -114,7 +114,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const one = device(driver, () => clock)
         const store = memoryStore()
         const session = new AccountSession(store, sodium)
-        const client = new AccountClient({ baseUrl, fetch: fetch as unknown as HttpFetch, token: async () => (await session.load())?.sessionToken ?? null })
+        const client = new AccountClient({ baseUrl, fetch: fetch as unknown as HttpFetch, sodium, credentials: () => session.credentials() })
         const deps: AccountDeps = { client, session, sodium }
         let backups = 0
         const local = coreLocalData(one.environment, {
@@ -182,10 +182,11 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
 
     it("device approval with commitment and the same number on both devices", async () => {
         // a session without the DEK (as after a Google sign-in on a new device)
-        const { salt, kdf } = await laptop.client.prelogin(EMAIL)
+        const { salt, kdf, challenge } = await laptop.client.prelogin(EMAIL)
         const { authKey } = await deriveKeys(sodium, PASSWORD, fromB64(sodium, salt, 16), kdf)
-        const login = await laptop.client.login(EMAIL, toB64(sodium, authKey))
-        await laptop.session.saveSession({ userId: login.userId, sessionToken: login.sessionToken, kind: "email", email: EMAIL, deviceId: null })
+        const signing = sodium.crypto_sign_keypair()
+        const login = await laptop.client.login(EMAIL, toB64(sodium, authKey), challenge, signing)
+        await laptop.session.saveSession({ userId: login.userId, sessionToken: login.sessionToken, signingKey: toB64(sodium, signing.privateKey), kind: "email", email: EMAIL, deviceId: null })
 
         const pending = await requestApproval(laptop.deps, "Laptop")
         expect(await checkApproval(laptop.deps, pending)).toEqual({ state: "waiting" })
@@ -292,5 +293,34 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect((await next.session.load())!.dekId).toBe(started.dekId)
         expect(await next.engine.importFromAccount()).toMatchObject({ state: "updated", version: 1 })
         expect(await names(next)).toEqual(["Fresh start"])
+    })
+
+    it("plan 10.2b: the token alone, a replayed request, another key or a replayed login get 401", async () => {
+        const password = "a third long password 3"
+        const probe = install()
+        expect(await loginEmail(probe.deps, { email: EMAIL, password, deviceName: "Probe" })).toMatchObject({ status: "ready" })
+        const { sessionToken } = (await probe.session.credentials())!
+        expect((await fetch(`${baseUrl.replace(/\/$/, "")}/v1/sync/meta`, { headers: { Authorization: `Bearer ${sessionToken}` } })).status).toBe(401)
+
+        const seen: { url: string, init: RequestInit }[] = []
+        const recording = new AccountClient({
+            baseUrl,
+            sodium,
+            credentials: () => probe.session.credentials(),
+            fetch: (async (url: string, init: RequestInit) => {
+                seen.push({ url, init })
+                return fetch(url, init)
+            }) as unknown as HttpFetch,
+        })
+        expect(await recording.syncMeta()).toMatchObject({ version: 1 })
+        expect((await fetch(seen.at(-1)!.url, seen.at(-1)!.init)).status).toBe(401)
+
+        const otherKey = new AccountClient({ baseUrl, fetch: fetch as unknown as HttpFetch, sodium, credentials: () => ({ sessionToken, signingKey: sodium.crypto_sign_keypair().privateKey }) })
+        await expect(otherKey.syncMeta()).rejects.toThrow(UnauthorizedError)
+
+        const { salt, kdf, challenge } = await recording.prelogin(EMAIL)
+        const { authKey } = await deriveKeys(sodium, password, fromB64(sodium, salt, 16), kdf)
+        expect(await recording.login(EMAIL, toB64(sodium, authKey), challenge, sodium.crypto_sign_keypair())).toMatchObject({ sessionToken: expect.any(String) })
+        expect((await fetch(seen.at(-1)!.url, seen.at(-1)!.init)).status).toBe(401)
     })
 })

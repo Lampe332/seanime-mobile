@@ -1,5 +1,6 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitte 5, 8: Speicher, Rollback-Schutz) und der API von expo-secure-store (getItemAsync/setItemAsync/deleteItemAsync)
 
+import type { SessionCredentials } from "./client"
 import { fromB64, toB64 } from "./crypto"
 import type { Sodium, SodiumKeyPair } from "./sodium"
 
@@ -34,6 +35,8 @@ export type AccountKind = "email" | "google"
 export type SessionInfo = {
     userId: string
     sessionToken: string
+    /** base64url Ed25519 private key (64 bytes) this session signs every request with (plan 10.2b); made at sign-in */
+    signingKey: string
     kind: AccountKind
     email: string | null
     /** The server's id of this device, once it holds the DEK and is registered */
@@ -90,6 +93,13 @@ export class AccountSession {
             dek: dek ? fromB64(this.sodium, dek.dek, 32) : null,
             deviceKeys: await this.deviceKeys(),
         }
+    }
+
+    /** Token and signing key of the signed-in session (AccountClient signs with them), or null */
+    async credentials(): Promise<SessionCredentials | null> {
+        const session = await this.read<SessionInfo>(KEYS.session)
+        if (!session?.sessionToken || !session.signingKey) return null
+        return { sessionToken: session.sessionToken, signingKey: fromB64(this.sodium, session.signingKey, 64) }
     }
 
     async saveSession(session: SessionInfo): Promise<void> {

@@ -19,6 +19,8 @@ import { Alert } from "react-native"
 const hex = (data: Uint8Array) => Array.from(data, byte => byte.toString(16).padStart(2, "0")).join("")
 const unhex = (text: string) => Uint8Array.from(text.match(/../g) ?? [], pair => parseInt(pair, 16))
 const utf8 = (text: string) => new TextEncoder().encode(text)
+/** RFC 8032 section 7.1 test 1: Ed25519 signature of the empty message */
+const RFC8032_EMPTY_SIGNATURE = "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b"
 
 /** libsodium with a fixed sequence of "random" bytes, as in the core's test harness */
 function fixedRandom(sodium: Sodium, ...chunks: Uint8Array[]): Sodium {
@@ -91,6 +93,20 @@ export async function runAccountSodiumSelfTest(): Promise<string[]> {
     check("new keypair seal+open", () => {
         const pair = sodium.crypto_box_keypair()
         return hex(openSealedDek(sodium, sealDek(sodium, dek, pair.publicKey), pair)) === input.dek
+    })
+    // Ed25519 request signing (plan 10.2b): RFC 8032 7.1 test 1, the request-line vector, a new key pair signed and checked back
+    const signSecret = unhex(input.signSecretKey)
+    check("sign RFC 8032 vector", () => hex(sodium.crypto_sign_detached(new Uint8Array(0), signSecret)) === RFC8032_EMPTY_SIGNATURE)
+    check("sign request vector", () => hex(sodium.crypto_sign_detached(utf8(input.signMessage), signSecret)) === output.signature)
+    check("sign verify vector", () => sodium.crypto_sign_verify_detached(unhex(output.signature), utf8(input.signMessage), signSecret.subarray(32)))
+    check("new sign keypair sign+verify", () => {
+        const pair = sodium.crypto_sign_keypair()
+        const message = utf8(input.signMessage)
+        const signature = sodium.crypto_sign_detached(message, pair.privateKey)
+        const good = pair.publicKey.length === 32 && pair.privateKey.length === 64 && hex(pair.privateKey.subarray(32)) === hex(pair.publicKey)
+            && sodium.crypto_sign_verify_detached(signature, message, pair.publicKey)
+        message[0]! ^= 1
+        return good && !sodium.crypto_sign_verify_detached(signature, message, pair.publicKey)
     })
     check("randombytes+memzero", () => {
         const random = sodium.randombytes_buf(64)

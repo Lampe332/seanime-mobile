@@ -11,6 +11,7 @@ import {
     newDekId,
     newRecoveryCode,
     newSalt,
+    newSigningKeyPair,
     recoveryKeyFrom,
     sealDek,
     toB64,
@@ -20,6 +21,7 @@ import {
 } from "./crypto"
 import { type AccountDeps, type RotationResult, deviceKeys, rotate } from "./devices"
 import type { AccountKind } from "./session"
+import type { SodiumKeyPair } from "./sodium"
 
 /*
  * The account steps the screens call. Each one leaves the secured storage (session.ts) in a known state:
@@ -52,12 +54,16 @@ async function registerDevice(deps: AccountDeps, userId: string, dekId: string, 
     await deps.session.updateSession({ deviceId: answer.deviceId })
 }
 
-/** Starts a new session; a different account before on this device is forgotten first (its sync state does not carry over) */
-async function startSession(deps: AccountDeps, userId: string, sessionToken: string, kind: AccountKind, email: string | null) {
+/**
+ * Starts a new session bound to `signing` (the key that signed the sign-in); a different account before on this device
+ * is forgotten first (its sync state does not carry over)
+ */
+async function startSession(deps: AccountDeps, userId: string, sessionToken: string, signing: SodiumKeyPair, kind: AccountKind, email: string | null) {
     const prior = await deps.session.load()
     if (prior && prior.userId !== userId) await deps.session.clear()
     const kept = prior?.userId === userId ? prior : null
-    await deps.session.saveSession({ userId, sessionToken, kind, email, deviceId: null })
+    await deps.session.saveSession({ userId, sessionToken, signingKey: toB64(deps.sodium, signing.privateKey), kind, email, deviceId: null })
+    wipe(deps.sodium, signing.privateKey)
     return kept
 }
 
@@ -70,9 +76,11 @@ export async function signupEmail(deps: AccountDeps, input: { email: string, pas
     const salt = newSalt(sodium)
     const { authKey, encKey } = await deriveKeys(sodium, input.password, salt, kdf)
     const dek = newDek(sodium)
+    const signing = newSigningKeyPair(sodium)
     try {
-        const answer = await client.signup({ email: input.email, salt: toB64(sodium, salt), kdf, authKey: toB64(sodium, authKey) })
-        await startSession(deps, answer.userId, answer.sessionToken, "email", input.email)
+        const { challenge } = await client.prelogin(input.email)
+        const answer = await client.signup({ email: input.email, salt: toB64(sodium, salt), kdf, authKey: toB64(sodium, authKey), challenge }, signing)
+        await startSession(deps, answer.userId, answer.sessionToken, signing, "email", input.email)
         await deps.session.updateSync({ imported: true, highestVersion: 0, lastHash: null, lastSyncAt: null })
         await registerDevice(deps, answer.userId, newDekId(sodium), dek, input.deviceName, { wrappedDek: wrapKey(sodium, dek, encKey, answer.userId, "password") })
         return { userId: answer.userId, status: "ready", emailVerified: answer.emailVerified, created: true, recoveryWrappedDek: null }
@@ -85,11 +93,12 @@ export async function signupEmail(deps: AccountDeps, input: { email: string, pas
 /** Sign-in with password; returns encKey for the steps that need it (the caller wipes it) */
 async function signInEmail(deps: AccountDeps, input: { email: string, password: string, deviceName: string }): Promise<SignInResult & { encKey: Uint8Array }> {
     const { client, sodium } = deps
-    const { salt, kdf } = await client.prelogin(input.email)
+    const { salt, kdf, challenge } = await client.prelogin(input.email)
     const { authKey, encKey } = await deriveKeys(sodium, input.password, fromB64(sodium, salt, 16), kdf)
+    const signing = newSigningKeyPair(sodium)
     try {
-        const answer = await client.login(input.email, toB64(sodium, authKey))
-        const kept = await startSession(deps, answer.userId, answer.sessionToken, "email", input.email)
+        const answer = await client.login(input.email, toB64(sodium, authKey), challenge, signing)
+        const kept = await startSession(deps, answer.userId, answer.sessionToken, signing, "email", input.email)
         const result = { userId: answer.userId, emailVerified: answer.emailVerified, created: false, recoveryWrappedDek: null, encKey }
         if (answer.wrappedDek && answer.dekId) {
             const dek = unwrapKey(sodium, answer.wrappedDek, encKey, answer.userId, "password")
@@ -208,16 +217,17 @@ export async function resetWithoutRecovery(deps: AccountDeps, input: { token: st
 
 /* ---- Google ---- */
 
-/** Plan 6.3, step 1: the one-time nonce the Google ID token must carry */
-export function googleNonce(deps: AccountDeps): Promise<{ nonce: string, expiresAt: number }> {
+/** Plan 6.3, step 1: the one-time nonce the Google ID token must carry, and the sign-in challenge issued with it */
+export function googleNonce(deps: AccountDeps): Promise<{ nonce: string, expiresAt: number, challenge: string }> {
     return deps.client.googleNonce()
 }
 
 /** Plan 6.3: the ID token comes from the screens (Credential Manager / Google Identity Services) with the nonce */
-export async function loginGoogle(deps: AccountDeps, input: { idToken: string, nonce: string, deviceName: string }): Promise<SignInResult> {
+export async function loginGoogle(deps: AccountDeps, input: { idToken: string, nonce: string, challenge: string, deviceName: string }): Promise<SignInResult> {
     const { sodium } = deps
-    const answer = await deps.client.google(input.idToken, input.nonce)
-    const kept = await startSession(deps, answer.userId, answer.sessionToken, "google", null)
+    const signing = newSigningKeyPair(sodium)
+    const answer = await deps.client.google(input.idToken, input.nonce, input.challenge, signing)
+    const kept = await startSession(deps, answer.userId, answer.sessionToken, signing, "google", null)
     const result = { userId: answer.userId, emailVerified: answer.emailVerified, created: answer.created, recoveryWrappedDek: answer.recoveryWrappedDek }
     if (answer.dekId === null) {
         const dek = newDek(sodium)

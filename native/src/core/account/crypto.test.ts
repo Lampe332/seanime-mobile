@@ -13,6 +13,7 @@ import {
     deriveKeys,
     encryptPackage,
     newRecoveryCode,
+    newSigningKeyPair,
     openSealedDek,
     parseRecoveryCode,
     recoveryKeyFrom,
@@ -33,6 +34,11 @@ beforeAll(async () => {
 const VECTORS_FILE = path.join(__dirname, "__fixtures__", "vectors.json")
 const SERVER = path.resolve(__dirname, "../../../../account-server")
 
+const RFC8032_SEED = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+const RFC8032_PUBLIC = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+/** RFC 8032 section 7.1 test 1: the signature of the empty message */
+const RFC8032_EMPTY_SIGNATURE = "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b"
+
 /* Fixed inputs. Set WRITE_VECTORS=1 once to write __fixtures__/vectors.json; afterwards every run must reproduce it. */
 const INPUT = {
     password: "correct horse battery staple ü",
@@ -50,6 +56,9 @@ const INPUT = {
     rN: hex(bytes(32, 33)),
     rO: hex(bytes(32, 65)),
     sealSeed: hex(bytes(32, 150)),
+    // Ed25519 secret key (seed || public key) of RFC 8032 section 7.1 test 1, signing a request line as the client builds it
+    signSecretKey: `${RFC8032_SEED}${RFC8032_PUBLIC}`,
+    signMessage: ["v1", "GET", "/v1/sync/meta", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "1763460000000", "AAECAwQFBgcICQoLDA0ODw", "-"].join("\n"),
 }
 
 type Vectors = {
@@ -66,6 +75,7 @@ type Vectors = {
         sas: string
         sealPublicKey: string
         sealedDek: string
+        signature: string
     }
 }
 
@@ -90,8 +100,33 @@ async function compute(): Promise<Vectors["output"] & { sealPrivateKey: Uint8Arr
         sealPublicKey: hex(seed.publicKey),
         sealPrivateKey: seed.privateKey,
         sealedDek: sealDek(sodium, dek, seed.publicKey),
+        signature: hex(sodium.crypto_sign_detached(new TextEncoder().encode(INPUT.signMessage), unhex(INPUT.signSecretKey))),
     }
 }
+
+describe("request signing key (plan 10.2b)", () => {
+    it("signs the RFC 8032 vector, round-trips a new key and refuses a changed message", () => {
+        const secret = unhex(`${RFC8032_SEED}${RFC8032_PUBLIC}`)
+        expect(hex(sodium.crypto_sign_detached(new Uint8Array(0), secret))).toBe(RFC8032_EMPTY_SIGNATURE)
+        expect(sodium.crypto_sign_verify_detached(unhex(RFC8032_EMPTY_SIGNATURE), new Uint8Array(0), unhex(RFC8032_PUBLIC))).toBe(true)
+        const pair = newSigningKeyPair(sodium)
+        expect(pair.publicKey).toHaveLength(32)
+        expect(pair.privateKey).toHaveLength(64)
+        expect(hex(pair.privateKey.subarray(32))).toBe(hex(pair.publicKey))
+        const message = new TextEncoder().encode(["v1", "PUT", "/v1/sync/snapshot"].join("\n"))
+        const signature = sodium.crypto_sign_detached(message, pair.privateKey)
+        expect(sodium.crypto_sign_verify_detached(signature, message, pair.publicKey)).toBe(true)
+        message[0]! ^= 1
+        expect(sodium.crypto_sign_verify_detached(signature, message, pair.publicKey)).toBe(false)
+    })
+
+    it("libsodium signatures verify with WebCrypto Ed25519, as the server checks them", async () => {
+        const pair = newSigningKeyPair(sodium)
+        const message = new TextEncoder().encode(INPUT.signMessage)
+        const key = await crypto.subtle.importKey("raw", Uint8Array.from(pair.publicKey), { name: "Ed25519" }, false, ["verify"])
+        expect(await crypto.subtle.verify({ name: "Ed25519" }, key, Uint8Array.from(sodium.crypto_sign_detached(message, pair.privateKey)), message)).toBe(true)
+    })
+})
 
 describe("deriveKeys", () => {
     it("runs Argon2id through crypto_pwhash_async when the Sodium has it, with the same keys", async () => {

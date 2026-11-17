@@ -23,8 +23,8 @@ function kdfContext(context: string): Uint8Array {
     return bytes.subarray(0, KDF_CONTEXT_BYTES)
 }
 
-function splitPair(pair: Uint8Array): SodiumKeyPair {
-    const keys = { publicKey: pair.slice(0, 32), privateKey: pair.slice(32, 64) }
+function splitPair(pair: Uint8Array, privateBytes = 32): SodiumKeyPair {
+    const keys = { publicKey: pair.slice(0, 32), privateKey: pair.slice(32, 32 + privateBytes) }
     native.memzero(pair)
     return keys
 }
@@ -53,6 +53,9 @@ export const accountSodium: DeviceSodium = {
     crypto_box_seal_open: (ciphertext, publicKey, privateKey) => native.crypto_box_seal_open(ciphertext, publicKey, privateKey),
     crypto_generichash: (hashLength, message, key) => native.crypto_generichash(hashLength, message, key ?? NONE),
     crypto_hash_sha256: message => native.crypto_hash_sha256(message),
+    crypto_sign_keypair: () => splitPair(native.crypto_sign_keypair(), 64),
+    crypto_sign_detached: (message, privateKey) => native.crypto_sign_detached(message, privateKey),
+    crypto_sign_verify_detached: (signature, message, publicKey) => native.crypto_sign_verify_detached(signature, message, publicKey),
     randombytes_buf: length => native.randombytes_buf(length),
     memzero: bytes => {
         if (bytes.length > 0) native.memzero(bytes)
