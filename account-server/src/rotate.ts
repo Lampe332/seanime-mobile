@@ -71,7 +71,7 @@ export async function rotate(ctx: Ctx): Promise<Response> {
 
   const userId = session.userId;
   const user = await env.DB.prepare(
-    "SELECT dek_id, auth_hash, wrapped_dek, recovery_wrapped_dek, rewrap_needed, rotation_required FROM users WHERE id = ?",
+    "SELECT dek_id, auth_hash, wrapped_dek, recovery_wrapped_dek, rewrap_needed, rotation_required, recovery_renewal_needed FROM users WHERE id = ?",
   )
     .bind(userId)
     .first<{
@@ -81,6 +81,7 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       recovery_wrapped_dek: string | null;
       rewrap_needed: number;
       rotation_required: number;
+      recovery_renewal_needed: number;
     }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.dek_id !== meta.oldDekId) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
@@ -108,13 +109,17 @@ export async function rotate(ctx: Ctx): Promise<Response> {
     throw new HttpError(400, "invalid_request", "The re-encrypted snapshot is required", {}, { fields: ["snapshot"] });
   }
 
+  // Without the recovery code the old recovery wrap cannot follow the new key: it is dropped and the user is told
+  // to save a new code (sync/meta, GET account). With it, the flag clears.
+  const renewal = meta.recoveryWrappedDek !== undefined ? 0 : user.recovery_wrapped_dek !== null || user.recovery_renewal_needed === 1 ? 1 : 0;
   const t = now();
   const next = current + 1;
   const switched = "(SELECT dek_id FROM users WHERE id = ?) = ?";
   const statements: D1PreparedStatement[] = [
     env.DB.prepare(
       `UPDATE users SET dek_id = ?, wrapped_dek = ?, recovery_wrapped_dek = ?,
-         rewrap_needed = CASE WHEN ? IS NULL THEN rewrap_needed ELSE 0 END, rotation_required = 0
+         rewrap_needed = CASE WHEN ? IS NULL THEN rewrap_needed ELSE 0 END, rotation_required = 0,
+         recovery_renewal_needed = ?
        WHERE id = ? AND dek_id = ?
          AND COALESCE((SELECT version FROM snapshots WHERE user_id = ?), 0) = ?
          AND (SELECT COUNT(*) FROM devices WHERE user_id = ?) = ?`,
@@ -123,6 +128,7 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       meta.wrappedDek ?? null,
       meta.recoveryWrappedDek ?? null,
       meta.wrappedDek ?? null,
+      renewal,
       userId,
       meta.oldDekId,
       userId,
@@ -162,7 +168,8 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       // Put D1 back so the account never points at a key the stored blob does not use.
       await env.DB.batch([
         env.DB.prepare(
-          `UPDATE users SET dek_id = ?, wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = ?, rotation_required = ?
+          `UPDATE users SET dek_id = ?, wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = ?, rotation_required = ?,
+             recovery_renewal_needed = ?
            WHERE id = ? AND dek_id = ?`,
         ).bind(
           user.dek_id,
@@ -170,6 +177,7 @@ export async function rotate(ctx: Ctx): Promise<Response> {
           user.recovery_wrapped_dek,
           user.rewrap_needed,
           user.rotation_required,
+          user.recovery_renewal_needed,
           userId,
           meta.dekId,
         ),
@@ -190,5 +198,5 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       throw err;
     }
   }
-  return json({ dekId: meta.dekId, version: parts.snapshot ? next : current });
+  return json({ dekId: meta.dekId, version: parts.snapshot ? next : current, recoveryRenewalNeeded: renewal === 1 });
 }

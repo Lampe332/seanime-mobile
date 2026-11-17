@@ -75,7 +75,10 @@ export async function resendVerification(ctx: Ctx): Promise<Response> {
 
 // ---------------------------------------------------------------- password reset
 
-/** Same answer for known and unknown emails. 3 per hour per email (the counter exists for unknown ones too). */
+/**
+ * Same answer for known and unknown emails. 3 per hour per email (the counter exists for unknown ones too).
+ * Token and mail for a known email run after the answer (waitUntil), so both answers take the same time.
+ */
 export async function resetRequest(ctx: Ctx): Promise<Response> {
   const { env, request } = ctx;
   await burstLimit(env.LOGIN_LIMITER, clientIp(request));
@@ -84,15 +87,22 @@ export async function resetRequest(ctx: Ctx): Promise<Response> {
   const user = await env.DB.prepare("SELECT id FROM users WHERE email = ? AND auth_hash IS NOT NULL")
     .bind(email)
     .first<{ id: string }>();
-  if (user) {
-    const issued = await issueToken(env, user.id, "reset", RESET_TTL);
+  if (user) ctx.waitUntil(sendResetLink(env, user.id, email));
+  return json({ ok: true, message: "If an account exists for this email, we sent a reset link." }, 202);
+}
+
+async function sendResetLink(env: Env, userId: string, email: string): Promise<void> {
+  try {
+    const issued = await issueToken(env, userId, "reset", RESET_TTL);
     await env.DB.batch([
-      env.DB.prepare("DELETE FROM tokens WHERE user_id = ? AND purpose = 'reset' AND used_at IS NULL").bind(user.id),
+      env.DB.prepare("DELETE FROM tokens WHERE user_id = ? AND purpose = 'reset' AND used_at IS NULL").bind(userId),
       issued.statement,
     ]);
     await sendMail(env, email, { kind: "reset", token: issued.token });
+  } catch (err) {
+    // Never log the email or the token.
+    console.error(JSON.stringify({ msg: "reset_link_failed", error: (err as Error)?.name ?? "unknown" }));
   }
-  return json({ ok: true, message: "If an account exists for this email, we sent a reset link." }, 202);
 }
 
 interface ResetTarget {
@@ -123,6 +133,8 @@ export async function resetInfo(ctx: Ctx): Promise<Response> {
   const { token } = await readJson(request, TokenBody);
   const target = await resetTarget(env, await tokenHash(token));
   return json({
+    // The recovery wrap's AAD contains the userId; the device needs it to unwrap with the recovery code.
+    userId: target.user_id,
     dekId: target.dek_id,
     hasRecovery: target.recovery_wrapped_dek !== null,
     recoveryWrappedDek: target.recovery_wrapped_dek,
@@ -148,7 +160,7 @@ export async function resetPassword(ctx: Ctx): Promise<Response> {
   const update = body.keys
     ? env.DB.prepare(
         `UPDATE users SET kdf_salt = ?, kdf_params = ?, auth_hash = ?, pepper_version = ?, email_verified = 1,
-           wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = 0
+           wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = 0, recovery_renewal_needed = 0
          WHERE id = ${owner} AND dek_id = ?`,
       ).bind(body.salt, JSON.stringify(body.kdf), auth, PEPPER_VERSION, body.keys.wrappedDek, body.keys.recoveryWrappedDek, hash, t, body.keys.dekId)
     : // Without recovery code no DEK is handed out: the password wrap is dropped (plan 6.8, 10.2).

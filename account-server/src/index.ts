@@ -29,9 +29,12 @@ const routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
   ["POST", /^\/v1\/devices\/requests\/(?<id>[^/]+)\/deny$/, approval.denyRequest],
   ["DELETE", /^\/v1\/devices\/(?<id>[^/]+)$/, r.deleteDevice],
   ["PUT", /^\/v1\/account\/keys$/, r.putKeys],
+  ["GET", /^\/v1\/account\/keys\/device$/, r.getDeviceKey],
+  ["POST", /^\/v1\/account\/start-fresh$/, r.startFresh],
   ["POST", /^\/v1\/account\/password$/, r.changePassword],
   ["POST", /^\/v1\/account\/rotate$/, rotate],
   ["POST", /^\/v1\/account\/link-google$/, id.linkGoogle],
+  ["GET", /^\/v1\/account$/, r.getAccount],
   ["DELETE", /^\/v1\/account$/, r.deleteAccount],
   ["GET", /^\/v1\/sync\/meta$/, r.syncMeta],
   ["GET", /^\/v1\/sync\/snapshot$/, r.getSnapshot],
@@ -39,7 +42,7 @@ const routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
   ["DELETE", /^\/v1\/sync$/, r.deleteSync],
 ];
 
-async function handle(request: Request, env: Env, isBrowser: boolean): Promise<Response> {
+async function handle(request: Request, env: Env, isBrowser: boolean, exec: ExecutionContext): Promise<Response> {
   const { pathname } = new URL(request.url);
   let pathMatched = false;
   for (const [method, pattern, handler] of routes) {
@@ -47,13 +50,13 @@ async function handle(request: Request, env: Env, isBrowser: boolean): Promise<R
     if (!m) continue;
     pathMatched = true;
     if (method !== request.method) continue;
-    return handler({ request, env, isBrowser, params: { ...m.groups } });
+    return handler({ request, env, isBrowser, params: { ...m.groups }, waitUntil: (p) => exec.waitUntil(p) });
   }
   throw pathMatched ? new HttpError(405, "method_not_allowed") : new HttpError(404, "not_found");
 }
 
 export default {
-  async fetch(request, env): Promise<Response> {
+  async fetch(request, env, exec): Promise<Response> {
     const origin = request.headers.get("Origin");
     // CORS: only the website may call from a browser. Requests without Origin come from the app.
     if (origin !== null && origin !== env.ALLOWED_ORIGIN) {
@@ -62,7 +65,7 @@ export default {
     const corsOrigin = origin;
     if (request.method === "OPTIONS") return finalize(preflight(), corsOrigin);
     try {
-      return finalize(await handle(request, env, origin !== null), corsOrigin);
+      return finalize(await handle(request, env, origin !== null, exec), corsOrigin);
     } catch (err) {
       if (err instanceof HttpError) return finalize(errorResponse(err), corsOrigin);
       // Never log bodies, tokens or emails: only the route and the error type.

@@ -391,8 +391,16 @@ describe("device approval", () => {
 
 // ---------------------------------------------------------------- password reset
 
+/** The mail goes out in waitUntil after the answer: wait for it like the runtime does. */
 async function requestReset(email: string) {
-  const res = await api("/v1/auth/reset-request", { body: { email } });
+  const exec = createExecutionContext();
+  const request = new Request("https://api.example.com/v1/auth/reset-request", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "CF-Connecting-IP": freshIp() },
+    body: JSON.stringify({ email }),
+  });
+  const res = await (worker.fetch as unknown as (r: Request, e: Env, c: ExecutionContext) => Promise<Response>)(request, env, exec);
+  await waitOnExecutionContext(exec);
   return res;
 }
 
@@ -428,7 +436,7 @@ describe("password reset", () => {
     expect(row?.ttl).toBe(30 * 60);
 
     const info = await (await api("/v1/auth/reset/info", { body: { token } })).json<Record<string, unknown>>();
-    expect(info).toEqual({ dekId: u.keys.dekId, hasRecovery: false, recoveryWrappedDek: null });
+    expect(info).toEqual({ userId: u.userId, dekId: u.keys.dekId, hasRecovery: false, recoveryWrappedDek: null });
 
     const k = clientKeys();
     const res = await api("/v1/auth/reset", { body: { token, salt: k.salt, kdf: DEFAULT_KDF, authKey: k.authKey } });
@@ -464,7 +472,7 @@ describe("password reset", () => {
     await requestReset(u.email);
     const token = tokenIn((await takeMails(u.email))[0], "/account/reset/");
     const info = await (await api("/v1/auth/reset/info", { body: { token } })).json<Record<string, unknown>>();
-    expect(info).toEqual({ dekId: u.keys.dekId, hasRecovery: true, recoveryWrappedDek: recovery });
+    expect(info).toEqual({ userId: u.userId, dekId: u.keys.dekId, hasRecovery: true, recoveryWrappedDek: recovery });
     expect(JSON.stringify(info)).not.toContain(u.keys.wrappedDek);
 
     const k = clientKeys();
@@ -547,7 +555,7 @@ describe("DEK rotation", () => {
 
     const ok = await rotateRequest(a.token, base, 1, blob);
     expect(ok.status).toBe(200);
-    expect(await ok.json()).toEqual({ dekId: newDek, version: 2 });
+    expect(await ok.json()).toEqual({ dekId: newDek, version: 2, recoveryRenewalNeeded: false });
 
     const meta2 = await (await api("/v1/sync/meta", { token: a.token })).json<{ rotationRequired: boolean; dekId: string; version: number }>();
     expect(meta2).toMatchObject({ rotationRequired: false, dekId: newDek, version: 2 });

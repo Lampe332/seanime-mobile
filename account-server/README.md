@@ -16,12 +16,12 @@ Storage: D1 (`DB`) for accounts, sessions, devices and wrapped keys; R2 (`SNAPSH
 | POST | `auth/logout` | |
 | POST | `auth/verify` | `{token}` from the confirmation mail. One-time, 7 days. |
 | POST | `auth/verify/resend` | Signed in. 3 per hour. |
-| POST | `auth/reset-request` | `{email}`. Same answer for unknown emails. 3 per hour per email. |
-| POST | `auth/reset/info` | `{token}`. Recovery wrap and dekId so the device can unwrap with the recovery code. Never the password wrap. Does not use up the token. |
+| POST | `auth/reset-request` | `{email}`. Same answer for unknown emails. 3 per hour per email. Token and mail run after the answer (`waitUntil`), so both answers take the same time. |
+| POST | `auth/reset/info` | `{token}`. `userId` (part of the wrap AAD), recovery wrap and dekId so the device can unwrap with the recovery code. Never the password wrap. Does not use up the token. |
 | POST | `auth/reset` | `{token, salt, kdf, authKey, keys?}`. One-time, 30 min. With `keys` (recovery code): new password and recovery wraps. Without: password wrap dropped, `rewrapNeeded`. Signs out every session. |
 | POST | `auth/google/nonce` | One-time nonce, 5 min. |
 | POST | `auth/google` | `{idToken, nonce}`. RS256 against Google's JWKS (cached per `Cache-Control`), `iss`, `aud`, `exp`/`iat`, nonce, `email_verified`. An existing password account with the same email is never linked automatically (409 `account_exists`). |
-| GET | `devices` | |
+| GET | `devices` | Each device with its `devicePub` and the `dekId` of its sealed key, so a rotation can seal to all of them. |
 | DELETE | `devices/:id` | Sign-in within the last 10 min required. Sets `rotationRequired`. |
 | POST/GET | `devices/requests` | New device creates an approval request `{deviceName, devicePub, commitment}`; approved devices list open ones. |
 | GET | `devices/requests/:id` | State; the requesting session also gets `sealedDek`, `dekId`, `deviceId` once approved. |
@@ -29,12 +29,15 @@ Storage: D1 (`DB`) for accounts, sessions, devices and wrapped keys; R2 (`SNAPSH
 | POST | `devices/requests/:id/reveal` | New device reveals `rN`; the server checks `SHA-256(devicePub \|\| rN) == commitment`. |
 | POST | `devices/requests/:id/approve` | `{dekId, sealedDek}`, only by the device that sent `rO`, sign-in within 10 min. Mail to the account. |
 | POST | `devices/requests/:id/deny` | Blocks the request at once. |
+| GET | `account` | Email, confirmed, Google linked, has password/recovery, dekId, created, and the flags `rewrapNeeded`, `rotationRequired`, `recoveryRenewalNeeded`. Never a key or hash. |
 | PUT | `account/keys` | First DEK, password/recovery wraps, this device's sealed DEK. |
+| GET | `account/keys/device` | `{deviceId, dekId, sealedDek}` of the session's device. After another device rotated, this device picks up its new key here. |
+| POST | `account/start-fresh` | `{dekId, wrappedDek?, recoveryWrappedDek?, device}`. Sign-in within 10 min. One transaction: snapshot, every device, open approvals and all other sessions go; the new dekId, its wraps and this device are set. Then the R2 blob is deleted. |
 | POST | `account/password` | Sign-in within the last 10 min required. Signs out other sessions. Mail. |
-| POST | `account/rotate` | DEK rotation, `multipart/form-data` with parts `meta` (JSON) and `snapshot`, `If-Match` required. Device session, sign-in within 10 min. Afterwards wraps of the old dekId are refused. |
+| POST | `account/rotate` | DEK rotation, `multipart/form-data` with parts `meta` (JSON) and `snapshot`, `If-Match` required. Device session, sign-in within 10 min. Afterwards wraps of the old dekId are refused. Without a new recovery wrap the old one is dropped and `recoveryRenewalNeeded` is set until a new code is saved. If writing R2 fails, D1 is put back. |
 | POST | `account/link-google` | `{idToken, nonce}`. Sign-in within the last 10 min required. |
 | DELETE | `account` | Sign-in within the last 10 min required. Removes D1 rows and the R2 blob at once. |
-| GET | `sync/meta` | Also `rotationRequired` and `rewrapNeeded`. |
+| GET | `sync/meta` | Also `rotationRequired`, `rewrapNeeded` and `recoveryRenewalNeeded`. |
 | GET/PUT | `sync/snapshot` | PUT needs `If-Match: <version>` and `X-Dek-Id`, body `application/octet-stream`, max 10 MB. |
 | DELETE | `sync` | |
 

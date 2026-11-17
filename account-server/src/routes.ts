@@ -1,10 +1,10 @@
 import { fromB64url, hmacSha256, safeEqual, toB64url } from "./crypto";
 import { clientIp, HttpError, json, noContent, readJson, readLimited, requireMediaType } from "./http";
 import { burstLimit, clearKey, failureWait, fixedWindow, rateKey, recordFailure } from "./ratelimit";
-import { DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, Uuid } from "./schemas";
+import { DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, StartFreshBody, Uuid } from "./schemas";
 import { sendMail } from "./mail";
 import { issueToken, VERIFY_TTL } from "./identity";
-import { clearSessionCookie, newSession, now, requireRecentAuth, requireSession, sessionCookie } from "./session";
+import { clearSessionCookie, newSession, now, requireDevice, requireRecentAuth, requireSession, sessionCookie } from "./session";
 
 export interface Ctx {
   request: Request;
@@ -12,6 +12,8 @@ export interface Ctx {
   /** True when the request comes from the website (allowed Origin): the session goes into a cookie. */
   isBrowser: boolean;
   params: Record<string, string>;
+  /** Work that may finish after the answer was sent (ExecutionContext.waitUntil). */
+  waitUntil: (promise: Promise<unknown>) => void;
 }
 
 export const PEPPER_VERSION = 1;
@@ -174,14 +176,17 @@ export async function logout(ctx: Ctx): Promise<Response> {
 export async function listDevices(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
   const { results } = await ctx.env.DB.prepare(
-    "SELECT id, name, created_at, last_seen_at FROM devices WHERE user_id = ? ORDER BY created_at",
+    "SELECT id, name, device_pub, dek_id, created_at, last_seen_at FROM devices WHERE user_id = ? ORDER BY created_at",
   )
     .bind(session.userId)
-    .all<{ id: string; name: string; created_at: number; last_seen_at: number }>();
+    .all<{ id: string; name: string; device_pub: string; dek_id: string | null; created_at: number; last_seen_at: number }>();
   return json({
     devices: results.map((d) => ({
       id: d.id,
       name: d.name,
+      // Public keys only: a rotating device seals the new DEK to each of them (plan 5).
+      devicePub: d.device_pub,
+      dekId: d.dek_id,
       createdAt: d.created_at,
       lastSeenAt: d.last_seen_at,
       current: d.id === session.deviceId,
@@ -232,13 +237,15 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
       `UPDATE users SET dek_id = ?,
          wrapped_dek = COALESCE(?, wrapped_dek),
          recovery_wrapped_dek = COALESCE(?, recovery_wrapped_dek),
-         rewrap_needed = CASE WHEN ? IS NULL THEN rewrap_needed ELSE 0 END
+         rewrap_needed = CASE WHEN ? IS NULL THEN rewrap_needed ELSE 0 END,
+         recovery_renewal_needed = CASE WHEN ? IS NULL THEN recovery_renewal_needed ELSE 0 END
        WHERE id = ? AND (dek_id IS NULL OR dek_id = ?)`,
     ).bind(
       body.dekId,
       body.wrappedDek ?? null,
       body.recoveryWrappedDek ?? null,
       body.wrappedDek ?? null,
+      body.recoveryWrappedDek ?? null,
       session.userId,
       body.dekId,
     ),
@@ -328,6 +335,102 @@ export async function deleteAccount(ctx: Ctx): Promise<Response> {
   return noContent(ctx.isBrowser ? { "Set-Cookie": clearSessionCookie() } : {});
 }
 
+/** What the account page shows: never a key, a hash or a wrap, only whether they exist. */
+export async function getAccount(ctx: Ctx): Promise<Response> {
+  const session = await requireSession(ctx.request, ctx.env);
+  const user = await ctx.env.DB.prepare(
+    `SELECT email, email_verified, google_sub, auth_hash, recovery_wrapped_dek, dek_id, created_at,
+       rewrap_needed, rotation_required, recovery_renewal_needed
+     FROM users WHERE id = ?`,
+  )
+    .bind(session.userId)
+    .first<{
+      email: string;
+      email_verified: number;
+      google_sub: string | null;
+      auth_hash: string | null;
+      recovery_wrapped_dek: string | null;
+      dek_id: string | null;
+      created_at: number;
+      rewrap_needed: number;
+      rotation_required: number;
+      recovery_renewal_needed: number;
+    }>();
+  if (!user) throw new HttpError(401, "unauthorized");
+  return json({
+    userId: session.userId,
+    email: user.email,
+    emailVerified: user.email_verified === 1,
+    googleLinked: user.google_sub !== null,
+    hasPassword: user.auth_hash !== null,
+    hasRecovery: user.recovery_wrapped_dek !== null,
+    dekId: user.dek_id,
+    createdAt: user.created_at,
+    rewrapNeeded: user.rewrap_needed === 1,
+    rotationRequired: user.rotation_required === 1,
+    recoveryRenewalNeeded: user.recovery_renewal_needed === 1,
+  });
+}
+
+/**
+ * The DEK sealed to this session's device. After another device rotated the key, this device fetches the new one
+ * here and opens it with its private key; no new sign-in needed.
+ */
+export async function getDeviceKey(ctx: Ctx): Promise<Response> {
+  const session = await requireSession(ctx.request, ctx.env);
+  const deviceId = requireDevice(session);
+  const row = await ctx.env.DB.prepare(
+    "SELECT dek_id, sealed_dek FROM devices WHERE id = ? AND user_id = ? AND sealed_dek IS NOT NULL AND dek_id IS NOT NULL",
+  )
+    .bind(deviceId, session.userId)
+    .first<{ dek_id: string; sealed_dek: string }>();
+  if (!row) throw new HttpError(404, "not_found", "This device has no key on the server.");
+  return json({ deviceId, dekId: row.dek_id, sealedDek: row.sealed_dek });
+}
+
+/**
+ * Start fresh (plan 2, 6.3, 6.8): the old DEK is lost (no device, no recovery code). In one transaction the synced
+ * snapshot, every device and its key, open approval requests and all other sessions go; the account gets the new
+ * dekId, its wraps and this device sealed to the new key. The R2 blob is deleted afterwards.
+ */
+export async function startFresh(ctx: Ctx): Promise<Response> {
+  const { env } = ctx;
+  const session = await requireSession(ctx.request, env);
+  requireRecentAuth(session);
+  const body = await readJson(ctx.request, StartFreshBody);
+  const user = await env.DB.prepare("SELECT dek_id, auth_hash FROM users WHERE id = ?")
+    .bind(session.userId)
+    .first<{ dek_id: string | null; auth_hash: string | null }>();
+  if (!user) throw new HttpError(401, "unauthorized");
+  if (user.auth_hash !== null && body.wrappedDek === undefined) {
+    throw new HttpError(400, "invalid_request", "wrappedDek is required for password accounts", {}, { fields: ["wrappedDek"] });
+  }
+  if (user.dek_id === body.dekId) throw new HttpError(400, "invalid_request", "dekId must be new", {}, { fields: ["dekId"] });
+
+  const userId = session.userId;
+  const deviceId = crypto.randomUUID();
+  const t = now();
+  const d = body.device;
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM snapshots WHERE user_id = ?").bind(userId),
+    env.DB.prepare("DELETE FROM device_requests WHERE user_id = ?").bind(userId),
+    env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND token_hash != ?").bind(userId, session.tokenHash),
+    env.DB.prepare("DELETE FROM devices WHERE user_id = ?").bind(userId),
+    env.DB.prepare(
+      `UPDATE users SET dek_id = ?, wrapped_dek = ?, recovery_wrapped_dek = ?,
+         rewrap_needed = 0, rotation_required = 0, recovery_renewal_needed = 0
+       WHERE id = ?`,
+    ).bind(body.dekId, body.wrappedDek ?? null, body.recoveryWrappedDek ?? null, userId),
+    env.DB.prepare(
+      `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, created_at, last_seen_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(deviceId, userId, d.name, d.devicePub, d.sealedDek, body.dekId, t, t),
+    env.DB.prepare("UPDATE sessions SET device_id = ? WHERE token_hash = ?").bind(deviceId, session.tokenHash),
+  ]);
+  await env.SNAPSHOTS.delete(snapKey(userId));
+  return json({ dekId: body.dekId, deviceId });
+}
+
 // ---------------------------------------------------------------- sync
 
 interface SnapshotRow {
@@ -347,9 +450,9 @@ export async function syncMeta(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
   const [row, flags] = await Promise.all([
     snapshotRow(ctx.env, session.userId),
-    ctx.env.DB.prepare("SELECT rotation_required, rewrap_needed FROM users WHERE id = ?")
+    ctx.env.DB.prepare("SELECT rotation_required, rewrap_needed, recovery_renewal_needed FROM users WHERE id = ?")
       .bind(session.userId)
-      .first<{ rotation_required: number; rewrap_needed: number }>(),
+      .first<{ rotation_required: number; rewrap_needed: number; recovery_renewal_needed: number }>(),
   ]);
   return json({
     version: row?.version ?? 0,
@@ -359,6 +462,8 @@ export async function syncMeta(ctx: Ctx): Promise<Response> {
     // A device was removed (or the password reset without code): rotate the DEK via account/rotate.
     rotationRequired: flags?.rotation_required === 1,
     rewrapNeeded: flags?.rewrap_needed === 1,
+    // A rotation without the recovery code dropped the recovery wrap: the user should save a new code.
+    recoveryRenewalNeeded: flags?.recovery_renewal_needed === 1,
   });
 }
 

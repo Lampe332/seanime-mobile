@@ -139,3 +139,11 @@ export const RotateMeta = z.strictObject({
   wrappedDek: b64Blob.optional(),
   recoveryWrappedDek: b64Blob.optional(),
 });
+
+/** Start fresh (plan 2, 6.3, 6.8): a new DEK for an account whose old one is lost; everything synced goes. */
+export const StartFreshBody = z.strictObject({
+  dekId: DekId,
+  wrappedDek: b64Blob.optional(),
+  recoveryWrappedDek: b64Blob.optional(),
+  device: DeviceKeys,
+});
