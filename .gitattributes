@@ -10,3 +10,6 @@
 /native/src/api/generated/endpoints.ts linguist-generated
 /native/src/api/generated/types.ts linguist-generated
 *.generated.ts linguist-generated
+# The two bundles are compared byte for byte with a fresh build (helpers.test.ts, manage.test.ts): a CRLF checkout
+# (core.autocrlf on Windows) made both tests fail, so they stay LF on every checkout.
+*.generated.ts text eol=lf
