@@ -38,7 +38,7 @@ import ListTodo from "lucide-react-native/icons/list-todo"
 import Milestone from "lucide-react-native/icons/milestone"
 import SquareLibrary from "lucide-react-native/icons/square-library"
 import React from "react"
-import { Pressable, TextInput, View } from "react-native"
+import { Keyboard, Pressable, TextInput, View } from "react-native"
 import Animated, { Easing, LinearTransition, ReduceMotion } from "react-native-reanimated"
 import { DEFAULT_HOME_ITEMS, HOME_ITEMS } from "./home-items.utils"
 import { addHomeItem, availableHomeItemTypes, moveHomeItem, normalizeHomeItems } from "./home-layout"
@@ -282,12 +282,21 @@ function HomeItemOptionsSheet({ item, open, onClose, onSave, updating }: {
     const [form, setForm] = React.useState<Record<string, unknown>>(() => schema?.schemaVersion === item.schemaVersion ? (item.options || {}) : {})
     if (!schema?.options) return null
     const set = (name: string, value: unknown) => setForm(prev => ({ ...prev, [name]: value }))
+    // A tap in the sheet keeps the keyboard (keyboardShouldPersistTaps): the name field lets it go before the sheet goes,
+    // else the keyboard came back over the next page without a field (Home › "Add series to your collection" › Discover)
+    const close = () => {
+        Keyboard.dismiss()
+        onClose()
+    }
 
     return (
-        <Sheet open={open} onOpenChange={o => !o && onClose()} title={`${t("Options", "Optionen")}: ${homeSectionName(item.type, t)}`}
+        <Sheet open={open} onOpenChange={o => !o && close()} title={`${t("Options", "Optionen")}: ${homeSectionName(item.type, t)}`}
             footer={<>
-                <Button intent="secondary" wrapperClassName="flex-1" disabled={updating} onPress={onClose}>{t("Cancel", "Abbrechen")}</Button>
-                <Button wrapperClassName="flex-1" loading={updating} onPress={() => onSave(form)}>{t("Save", "Speichern")}</Button>
+                <Button intent="secondary" wrapperClassName="flex-1" disabled={updating} onPress={close}>{t("Cancel", "Abbrechen")}</Button>
+                <Button wrapperClassName="flex-1" loading={updating} onPress={() => {
+                    Keyboard.dismiss()
+                    onSave(form)
+                }}>{t("Save", "Speichern")}</Button>
             </>}>
             {(schema.options as OptionSchema[]).map(option => <OptionField key={option.name} option={option} value={form[option.name]} onChange={value => set(option.name, value)} />)}
         </Sheet>
