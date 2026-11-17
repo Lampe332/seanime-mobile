@@ -16,7 +16,8 @@ import { Directory, File, Paths } from "expo-file-system"
  * undone. The app starts anew after a restore: its screens and caches read everything again.
  */
 
-function appPreferences(): Record<string, string> {
+/** The app's own preferences without the device's keys (also the account sync's part) */
+export function appPreferences(): Record<string, string> {
     const result: Record<string, string> = {}
     for (const key of storage.getAllKeys()) {
         if (isDeviceKey(key)) continue
@@ -75,9 +76,19 @@ export async function pickBackup(): Promise<{ file: BackupFile, summary: BackupS
 
 /** Restores a backup: the current state goes to the safety file first, then the app starts anew */
 export async function restoreBackupFile(file: BackupFile, mode: RestoreMode): Promise<void> {
+    await writeSafetyBackup()
+    const { preferences } = await coreRestoreBackup(file, mode, { preferences: appPreferences() })
+    writeAppPreferences(preferences)
+}
+
+/** The current state into the safety file ("Undo last restore"); also before an import from the account */
+export async function writeSafetyBackup(): Promise<void> {
     const before = await makeBackupFile()
     safetyFile().write(JSON.stringify(before))
-    const { preferences } = await coreRestoreBackup(file, mode, { preferences: appPreferences() })
+}
+
+/** Preferences from a backup or the account into the app's store */
+export function writeAppPreferences(preferences: Record<string, string>): void {
     // the device's own keys are never written from a file (app-backup-keys.ts); the app's backups do not hold them
     for (const [key, value] of Object.entries(withoutDeviceKeys(preferences))) storage.set(key, value)
 }
