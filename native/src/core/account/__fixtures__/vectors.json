@@ -1,0 +1,37 @@
+{
+    "input": {
+        "password": "correct horse battery staple ü",
+        "salt": "000102030405060708090a0b0c0d0e0f",
+        "kdf": {
+            "alg": "argon2id",
+            "m": 65536,
+            "t": 3,
+            "p": 1
+        },
+        "userId": "6f1c2c1e-0d7b-4c3a-9a51-2f0e7d4b8a10",
+        "dek": "6465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f80818283",
+        "wrapNonce": "c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+        "recoveryBytes": "32333435363738393a3b3c3d3e3f4041",
+        "packagePlain": "{\"hello\":\"world\"}",
+        "packageNonce": "0708090a0b0c0d0e0f101112131415161718191a1b1c1d1e",
+        "version": 3,
+        "dekId": "dek-vector-1",
+        "devicePub": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+        "rN": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+        "rO": "4142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f60",
+        "sealSeed": "969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5"
+    },
+    "output": {
+        "authKey": "2029af9132bcd41d2e2d22f7fe4b03166e3d1240c747a5a160da83cdf565df82",
+        "encKey": "96ca3bcb956538104e28f720288a43f46def29b2eebce65ab72a0a5f89441cb5",
+        "wrappedPassword": "yMnKy8zNzs_Q0dLT1NXW19jZ2tvc3d7foSz4l7kSDEqGOAPF2jexySkn_BAxD4RycKesJamQf1CoSOjXBp0P3Pz6XPNpIrio",
+        "recoveryCode": "GIZTINJWG44DSOR3HQ6T4P2AIE",
+        "recoveryKey": "6fbb13452d50219b81800e21c9030f3ea15c7be96c2a0bdc54cba0b57fe40d7b",
+        "wrappedRecovery": "yMnKy8zNzs_Q0dLT1NXW19jZ2tvc3d7fsNJS3cnGsvNtnJ4H87-6Py0qzHnExoYh7-Pj2mhgTYhcfiJ0ZOGS7OQzwrf0TnUJ",
+        "package": "534d53010708090a0b0c0d0e0f101112131415161718191a1b1c1d1eec7b3c2cbab784d2477e8d63b8f6f767f1b598bac697f7252123e1e1eb7c847974",
+        "commitment": "IKfshGhPf-Ekyzcn0ElzSrC32i9S_K-875iez9kehws",
+        "sas": "077654",
+        "sealPublicKey": "519711ad99a08bafb9675120ea05c06b5648811bbae1ead99465791ef56dbb2e",
+        "sealedDek": "fS488a5N3Fku67V1fFec1wGjYRYD8aeb3XoC7p0RCCLjIjmduYLpVAVKykvLmIpxg6WcvI42lhmMXZf6QAJf-nb9dk9prAETHbQn3-u6nLQ"
+    }
+}
