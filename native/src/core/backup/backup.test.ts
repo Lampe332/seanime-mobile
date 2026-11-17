@@ -169,6 +169,30 @@ describe("restoring", () => {
         expect([...two.files.keys()].sort()).toEqual(["ext-a.json", "ext-b.json"])
     })
 
+    it("a file made by hand brings no password, key or token into the settings, in neither mode", async () => {
+        const one = await filled()
+        const made = await makeBackup(one.environment, { appVersion: "4.0.0", preferences: {} })
+        const byHand = JSON.parse(JSON.stringify(made)) as BackupFile
+        const section = (name: string) => byHand.tables.settings!.find(row => row.section === name)!
+        section("torrent").content = { ...(section("torrent").content as Json), qbittorrentPassword: "from-file" }
+        byHand.tables.settings!.push({ section: "mediaPlayer", content: { host: "192.0.2.20", vlcPassword: "from-file", nested: { apiKey: "from-file", port: 8080 } }, changedAt: CLOCK })
+        byHand.tables.extensionConfigs![0]!.values = { language: "de", apiKey: "from-file", session: JWT }
+        byHand.tables.torrentKept![0]!.content = { autoSelect: true, slowSeeding: false, token: "from-file" }
+        for (const mode of ["replace", "merge"] as const) {
+            forgetDatabases()
+            const two = device(`${mode}.db`)
+            const db = await two.db()
+            if (mode === "replace") await db.insert(settingsSections).values({ section: "torrent", content: { qbittorrentPassword: "device-pw" }, changedAt: CLOCK })
+            await restoreBackup(two.environment, readBackup(JSON.stringify(byHand)), mode)
+            const settings = await db.select().from(settingsSections)
+            expect(settings.find(row => row.section === "mediaPlayer")?.content).toEqual({ host: "192.0.2.20", nested: { port: 8080 } })
+            expect((settings.find(row => row.section === "torrent")?.content as Json).qbittorrentPassword).toBe(mode === "replace" ? "device-pw" : undefined)
+            expect((await db.select().from(extensionUserConfigs))[0]?.values).toEqual({ language: "de" })
+            expect((await db.select().from(torrentKept))[0]?.content).toEqual({ autoSelect: true, slowSeeding: false })
+            expect(JSON.stringify(await db.select().from(settingsSections))).not.toContain("from-file")
+        }
+    })
+
     it("merge keeps what the device has and adds only what is missing", async () => {
         const one = await filled()
         const file = await makeBackup(one.environment, { appVersion: "4.0.0", preferences: PREFERENCES })

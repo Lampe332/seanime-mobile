@@ -296,12 +296,13 @@ function chunks<T>(items: T[], size = 50): T[][] {
     return result
 }
 
-/** The rows a table gets from the file: with the device's secrets put back; in a merge only what does not clash */
+/** The rows a table gets from the file: without the file's secrets, with the device's put back; in a merge only what does not clash */
 function rowsFor(name: BackupTable, rows: Json[], current: Json[], mode: RestoreMode): Json[] {
     const column = WITH_SECRETS[name]
     const key = name === "settings" ? "section" : name === "torrentKept" ? "key" : name === "extensionConfigs" ? "id" : null
     const now = new Map(key ? current.map(row => [row[key], row]) : [])
-    const withSecrets = column && key ? rows.map(row => ({ ...row, [column]: withSecretsOf(now.get(row[key])?.[column], row[column]) })) : rows
+    // a file made by hand may name a password, key or token: it is dropped as in the export, only the device's own count
+    const withSecrets = column && key ? rows.map(row => ({ ...row, [column]: withSecretsOf(now.get(row[key])?.[column], withoutSecrets(row[column])) })) : rows
     if (mode === "replace") return withSecrets
     // a merge: playlists by name and waiting changes by title get numbers of this database; the home screen is taken only when empty
     if (name === "homeItems") return current.length === 0 ? withSecrets : []
