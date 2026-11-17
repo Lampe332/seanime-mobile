@@ -2,6 +2,7 @@
 
 import { coreMakeBackup, coreRestoreBackup } from "@/api/client/core-switch"
 import { type BackupFile, type BackupSummary, type RestoreMode, backupSummary, readBackup } from "@/core"
+import { isDeviceKey, withoutDeviceKeys } from "@/lib/app-backup-keys"
 import { pickFiles, saveExport } from "@/lib/file-transfer"
 import { storage } from "@/lib/storage"
 import * as Application from "expo-application"
@@ -15,22 +16,10 @@ import { Directory, File, Paths } from "expo-file-system"
  * undone. The app starts anew after a restore: its screens and caches read everything again.
  */
 
-/** Keys of the store that belong to this device or this install, not to the user's choices */
-const DEVICE_KEYS = [
-    /^seanime-core-/,
-    /^seanime-client-id/,
-    /^seanime-mobile-airing-(announced|next|next-check|scheduled)$/,
-    /^seanime-mobile-app-update/,
-    /^notified-available-app-update$/,
-    /^RELEASES-/,
-    /^seanime-mobile-legacy-preferences-copied$/,
-    /^seanime-mobile-anilist-user$/,
-]
-
 function appPreferences(): Record<string, string> {
     const result: Record<string, string> = {}
     for (const key of storage.getAllKeys()) {
-        if (DEVICE_KEYS.some(pattern => pattern.test(key))) continue
+        if (isDeviceKey(key)) continue
         const value = storage.getString(key)
         if (value !== undefined) result[key] = value
     }
@@ -89,7 +78,8 @@ export async function restoreBackupFile(file: BackupFile, mode: RestoreMode): Pr
     const before = await makeBackupFile()
     safetyFile().write(JSON.stringify(before))
     const { preferences } = await coreRestoreBackup(file, mode, { preferences: appPreferences() })
-    for (const [key, value] of Object.entries(preferences)) storage.set(key, value)
+    // the device's own keys are never written from a file (app-backup-keys.ts); the app's backups do not hold them
+    for (const [key, value] of Object.entries(withoutDeviceKeys(preferences))) storage.set(key, value)
 }
 
 export function hasSafetyBackup(): boolean {

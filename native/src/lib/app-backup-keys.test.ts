@@ -1,0 +1,38 @@
+// geschrieben nach: lib/app-backup-keys.ts; Werte erfunden, keine Anfrage verlässt den Test
+
+import { describe, expect, it } from "vitest"
+import { isDeviceKey, withoutDeviceKeys } from "./app-backup-keys"
+
+describe("the keys a backup may carry", () => {
+    it("keeps the user's choices", () => {
+        const choices = {
+            "seanime-mobile-language": "\"de\"",
+            "marketplace-url": "\"https://example.org/marketplace.json\"",
+            "sea-video-core-keybindings": "{}",
+        }
+        expect(withoutDeviceKeys(choices)).toEqual(choices)
+    })
+
+    it("leaves out what belongs to the device or the install: updater state, client id, the core's switches", () => {
+        const fromFile = {
+            "seanime-mobile-language": "\"en\"",
+            "seanime-mobile-app-update": JSON.stringify({ status: "complete", version: "9.9.9", fileName: "Seanime-Mobile-9.9.9.apk", sha256: "0".repeat(64) }),
+            "seanime-mobile-app-update-known": "\"9.9.9\"",
+            "seanime-client-id": "\"someone-else\"",
+            "seanime-client-id-proof": "\"proof\"",
+            "seanime-core-write-account": "1234567",
+            "RELEASES-get-latest-update": "{}",
+            "notified-available-app-update": "\"9.9.9\"",
+            "seanime-mobile-airing-next-check": "0",
+            "seanime-mobile-legacy-preferences-copied": "true",
+            "seanime-mobile-anilist-user": "\"someone\"",
+        }
+        expect(withoutDeviceKeys(fromFile)).toEqual({ "seanime-mobile-language": "\"en\"" })
+    })
+
+    it("matches whole names only where the list says so", () => {
+        expect(isDeviceKey("seanime-mobile-airing-next")).toBe(true)
+        expect(isDeviceKey("seanime-mobile-airing-notifications")).toBe(false)
+        expect(isDeviceKey("my-notified-available-app-update")).toBe(false)
+    })
+})

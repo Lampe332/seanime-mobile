@@ -1,0 +1,29 @@
+// geschrieben nach: lib/app-backup.ts (die Liste der Geräte-Schlüssel stand dort) und docs/SECURITY-AUDIT.md (Befund „Restore schreibt Geräte-Schlüssel“); kein Server-Quelltext
+
+/*
+ * Which keys of the app's own store (lib/storage.ts) a backup may carry. Keys that belong to this device or this
+ * install stay out in both directions: a backup does not take them along, and a restore does not write them, whatever
+ * the file says. The second half matters for a file that was not made by the app: the updater's state (which APK was
+ * checked), the client id and the core's own switches are never set from outside.
+ */
+
+/** Keys of the store that belong to this device or this install, not to the user's choices */
+const DEVICE_KEYS = [
+    /^seanime-core-/,
+    /^seanime-client-id/,
+    /^seanime-mobile-airing-(announced|next|next-check|scheduled)$/,
+    /^seanime-mobile-app-update/,
+    /^notified-available-app-update$/,
+    /^RELEASES-/,
+    /^seanime-mobile-legacy-preferences-copied$/,
+    /^seanime-mobile-anilist-user$/,
+]
+
+export function isDeviceKey(key: string): boolean {
+    return DEVICE_KEYS.some(pattern => pattern.test(key))
+}
+
+/** The preferences without the device's own keys: what a backup takes along and what a restore may write */
+export function withoutDeviceKeys(preferences: Record<string, string>): Record<string, string> {
+    return Object.fromEntries(Object.entries(preferences).filter(([key]) => !isDeviceKey(key)))
+}
