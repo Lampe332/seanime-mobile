@@ -9,6 +9,7 @@ import { type Translate, useTr } from "@/lib/app-language"
 import { updateNoticeOpens } from "@/lib/app-updates/update-notice"
 import { updateModalOpenAtom } from "@/main/_features/update/mobile-update"
 import { haptic } from "@/lib/feedback"
+import { openTab } from "@/lib/helpers/browser"
 import { MENU_ENTRIES } from "@/lib/nav/nav-items"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
@@ -17,7 +18,8 @@ import { TABLET_READING_WIDTH } from "@/lib/tablet-ui"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { SakuraBurst } from "@/main/settings/_components/sakura-burst"
 import { UpdateCheckRow } from "@/main/settings/_components/settings-app-services"
-import { SettingsGroup, SettingSwitch } from "@/main/settings/_components/settings-kit"
+import { LinkRow, SettingsGroup, SettingSwitch } from "@/main/settings/_components/settings-kit"
+import { contactHref, LEGAL, shortLink } from "@/main/settings/_lib/legal"
 import { sectionFromTab, SETTINGS_SECTIONS, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 import { NO_TAPS, secretMessage, TAP_RESET_MS, tapHint, versionTap } from "@/main/settings/_lib/version-taps"
 import { SettingsAppSection } from "@/main/settings/_screens/settings-app"
@@ -68,7 +70,7 @@ const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, title: [string, st
     manga: { icon: BookOpen, title: ["Manga", "Manga"], summary: ["Reading progress, default source", "Lesefortschritt, Standardquelle"] },
     nakama: { icon: Users, title: ["Nakama", "Nakama"], summary: ["Stream from your PC or home server", "Vom PC oder Home-Server streamen"] },
     logs: { icon: BookKey, title: ["Cache", "Cache"], summary: ["Manga and online streaming cache", "Manga- und Online-Streaming-Cache"] },
-    about: { icon: Info, title: ["About", "Über"], summary: ["Version and updates", "Version und Updates"] },
+    about: { icon: Info, title: ["About", "Über"], summary: ["Version, updates, legal", "Version, Updates, Rechtliches"] },
 }
 
 const appVersion = () => Constants.expoConfig?.version ?? ""
@@ -246,7 +248,7 @@ function UpdateCheck({ t }: { t: Translate }) {
     })} />
 }
 
-/** The app version (ten taps on it: the secret, version-taps.ts), "Look for new versions" and "Check for updates now". */
+/** The app version (ten taps on it: the secret, version-taps.ts), "Look for new versions", "Check for updates now" and Legal. */
 function SettingsAboutSection({ t }: { t: Translate }) {
     const app = appVersion()
     const taps = React.useRef(NO_TAPS)
@@ -271,12 +273,28 @@ function SettingsAboutSection({ t }: { t: Translate }) {
                 note={t("Shows a notice when a new app version is out.", "Zeigt einen Hinweis, sobald eine neue App-Version erscheint.")} />
             <UpdateCheck t={t} />
         </SettingsGroup>
+        <LegalGroup t={t} />
         {/* keyed: tapping it out again while it falls starts a new one */}
         {burst > 0 && <SakuraBurst key={burst} message={secretMessage(t)} onDone={endBurst} />}
     </>
 }
 
 const TAP_HINT_TOAST = "version-taps"
+
+/** Legal (_lib/legal.ts): who runs the app, then contact, website, privacy policy and imprint, each opened outside the app */
+function LegalGroup({ t }: { t: Translate }) {
+    return <SettingsGroup title={t("Legal", "Rechtliches")}
+        note={t("Unofficial app, built on Seanime by 5rahim. No telemetry, no analytics.", "Inoffizielle App, gebaut auf Seanime von 5rahim. Keine Telemetrie, keine Analyse.")}>
+        <View accessible accessibilityLabel={`${t("Imprint", "Impressum")}: ${LEGAL.name}, ${LEGAL.region}`} className="gap-0.5 bg-sm-surface-raised px-4 py-3">
+            <Text className="text-[15px]">{LEGAL.name}</Text>
+            <Muted className="text-[13px] leading-[19px]">{LEGAL.region}</Muted>
+        </View>
+        <LinkRow label={t("Contact", "Kontakt")} value={LEGAL.email} onPress={() => openTab(contactHref())} />
+        <LinkRow label={t("Website", "Website")} value={shortLink(LEGAL.website)} onPress={() => openTab(LEGAL.website)} />
+        <LinkRow label={t("Privacy policy", "Datenschutz")} onPress={() => openTab(LEGAL.privacy)} />
+        <LinkRow label={t("Imprint", "Impressum")} onPress={() => openTab(LEGAL.imprint)} />
+    </SettingsGroup>
+}
 
 function VersionRow({ label, value, onPress }: { label: string, value: string, onPress: () => void }) {
     return <Pressable onPress={onPress} className="flex-row flex-wrap items-baseline justify-between gap-x-4 bg-sm-surface-raised px-4 py-3 active:bg-sm-surface-control">
