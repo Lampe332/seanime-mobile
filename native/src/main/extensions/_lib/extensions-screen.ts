@@ -48,6 +48,14 @@ export function isWebUrl(value: string) {
     return /^https?:\/\/[^\s/?#]+(?:[/?#]\S*)?$/i.test(value.trim())
 }
 
+/**
+ * A link that loads over plain http:// (core install.ts, manage.ts and fetch-manifest.ts allow it): nothing is encrypted,
+ * so someone on the network could swap the extension code it serves. The add and install sheets show a hint for it.
+ */
+export function isInsecureAddress(value: string | undefined) {
+    return /^http:\/\//i.test((value ?? "").trim())
+}
+
 export const ALL_TYPES = { type: "all", tabName: "All Types", chipEn: "All", chipDe: "Alle" }
 
 /** Rows per type in the overview; "Show all" opens the type's full list. */

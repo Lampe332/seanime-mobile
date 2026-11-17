@@ -48,7 +48,7 @@ import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react
 import {
     extensionLanguageLabel, extensionMeta, extensionTypeLabel, invalidReasonLabel, isExtensionIconUrl, parsePermissionDescription, sortExtensions,
 } from "../_lib/extensions-phone"
-import { lineDiff, normalizeDiffCode, userConfigValues } from "../_lib/extensions-screen"
+import { isInsecureAddress, lineDiff, normalizeDiffCode, userConfigValues } from "../_lib/extensions-screen"
 
 /*
  * The Extensions tab's sheets (web extensions-phone-sheets.tsx, extension-user-config.tsx, extension-code.tsx +
@@ -357,6 +357,7 @@ export function MarketplaceSheet({ t, open, onOpenChange, extension, installed }
                     onPress={() => install({ manifestUri: extension.manifestURI }, { onSuccess: response => toast.success(response?.message || t("Installed", "Installiert")) })}>
                     {t("Install", "Installieren")}
                 </Button>}>
+            {!installed && (isInsecureAddress(extension.manifestURI) || isInsecureAddress(extension.payloadURI)) && <InsecureLinkHint t={t} />}
             <AboutText extension={extension} t={t} />
             {(!!extension.readme || !!extension.website) && (
                 <RowGroup>
@@ -403,8 +404,16 @@ export function UrlField({ t, label, value, onChange, placeholder, onSubmit, err
                     </Pressable>
                 )}
             </View>
-            {!!error && <Text className="text-[13px] text-sm-danger">{error}</Text>}
+            {error ? <Text className="text-[13px] text-sm-danger">{error}</Text> : isInsecureAddress(value) && <InsecureLinkHint t={t} />}
         </View>
+    )
+}
+
+/** Under an http:// link of a marketplace, repository, manifest or code file: its content is not encrypted on the way. */
+function InsecureLinkHint({ t }: { t: Translate }) {
+    return (
+        <Text className="text-[13px] leading-[19.5px] text-sm-warning">{t("This link uses http://, so it is not encrypted. Someone on the network could swap the extension's code. Use https:// if you can.",
+            "Dieser Link nutzt http:// und ist nicht verschlüsselt. Jemand im Netzwerk könnte den Code der Erweiterung austauschen. Nutze https://, wenn möglich.")}</Text>
     )
 }
 
@@ -463,6 +472,7 @@ export function AddExtensionSheet({ t, open, onOpenChange, installedIds, onBrows
                             </View>
                         </View>
                         {!!found.description && <BlockText>{found.description}</BlockText>}
+                        {!installedIds.has(found.id) && !isInsecureAddress(manifestUrl) && isInsecureAddress(found.payloadURI) && <InsecureLinkHint t={t} />}
                         {installedIds.has(found.id)
                             ? <View className="min-h-12 flex-row items-center justify-center gap-2"><Check size={18} color={colors.smTextMuted} /><Text className="font-semibold text-sm-text-muted">{t("Already installed", "Schon installiert")}</Text></View>
                             : <Button loading={installing} leftIcon={<Download size={18} color="#ffffff" />} onPress={() => install({ manifestUri: found.manifestURI }, {
@@ -496,6 +506,8 @@ export function AddExtensionSheet({ t, open, onOpenChange, installedIds, onBrows
                             </View>
                         ))}
                     </ScrollView>
+                    {!isInsecureAddress(repositoryUrl) && listed.some(extension => isInsecureAddress(extension.manifestURI) || isInsecureAddress(extension.payloadURI))
+                        && <InsecureLinkHint t={t} />}
                     <Button loading={importing} leftIcon={<Download size={18} color="#ffffff" />} onPress={() => loadRepository(true)}>
                         {t(`Install all ${listed.length}`, `Alle ${listed.length} installieren`)}
                     </Button>

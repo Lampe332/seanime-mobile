@@ -1,6 +1,6 @@
 import type { Extension_Extension, ExtensionRepo_AllExtensions } from "@/api/generated/types"
 import { describe, expect, it } from "vitest"
-import { findSelection, installedExtensionIds, isWebUrl, lineDiff, marketplaceView, OVERVIEW_ROWS, userConfigValues } from "./extensions-screen"
+import { findSelection, installedExtensionIds, isInsecureAddress, isWebUrl, lineDiff, marketplaceView, OVERVIEW_ROWS, userConfigValues } from "./extensions-screen"
 
 const ext = (id: string, type: string, extra: Partial<Extension_Extension> = {}) => ({
     id, name: id.toUpperCase(), type, version: "1.0.0", manifestURI: `https://x/${id}.json`, language: "javascript", lang: "en",
@@ -55,6 +55,20 @@ describe("isWebUrl", () => {
         expect(isWebUrl("https://")).toBe(false)
         expect(isWebUrl("https://a b/index.json")).toBe(false)
         expect(isWebUrl("")).toBe(false)
+    })
+})
+
+describe("isInsecureAddress", () => {
+    it("flags plain http links in any spelling", () => {
+        expect(isInsecureAddress("http://192.168.1.20:43211/repo.json")).toBe(true)
+        expect(isInsecureAddress("  HTTP://example.com/manifest.json ")).toBe(true)
+    })
+    it("leaves https, unfinished input and nothing alone", () => {
+        expect(isInsecureAddress("https://raw.githubusercontent.com/a/b/main/index.json")).toBe(false)
+        expect(isInsecureAddress("htt")).toBe(false)
+        expect(isInsecureAddress("example.com/index.json")).toBe(false)
+        expect(isInsecureAddress("")).toBe(false)
+        expect(isInsecureAddress(undefined)).toBe(false)
     })
 })
 
