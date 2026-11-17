@@ -19,6 +19,8 @@ export default defineConfig(async () => {
             GOOGLE_WEB_CLIENT_ID: "test-client.apps.googleusercontent.com",
             // Test-only JWKS host; the tests answer it with their own RSA key.
             GOOGLE_JWKS_URL: "https://jwks.test/certs",
+            // Pinned so a local .dev.vars (e.g. a localhost origin for wrangler dev) never changes test results.
+            ALLOWED_ORIGIN: "https://seanimemobile.com",
             TEST_MIGRATIONS: migrations,
           },
         },
