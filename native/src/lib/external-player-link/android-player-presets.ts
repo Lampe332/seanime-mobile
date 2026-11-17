@@ -38,7 +38,9 @@ export function playerActivityOf(packageName: string | undefined) {
  */
 export function parseIntentLink(link: string): IntentLink | null {
     if (!link.startsWith("intent://")) return null
-    const hash = link.indexOf("#Intent;")
+    // the last one is the link's own: a stream address put in for {url} may hold "#Intent;…" itself, which then stays
+    // a part of the address and names no app, activity or scheme
+    const hash = link.lastIndexOf("#Intent;")
     if (hash === -1) return null
     const target = link.slice("intent://".length, hash)
     const fields = new Map<string, string>()
