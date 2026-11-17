@@ -86,3 +86,9 @@ export function sessionCookie(token: string): string {
 export function clearSessionCookie(): string {
   return `${COOKIE_NAME}=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`;
 }
+
+/** Endpoints for approved devices only (the session belongs to a device that holds the DEK). */
+export function requireDevice(session: Session): string {
+  if (session.deviceId === null) throw new HttpError(403, "device_required", "Only a signed-in device can do this.");
+  return session.deviceId;
+}

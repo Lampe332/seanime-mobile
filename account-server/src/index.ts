@@ -1,5 +1,8 @@
 import { errorResponse, finalize, HttpError, preflight } from "./http";
 import { cleanup } from "./cron";
+import * as approval from "./approval";
+import * as id from "./identity";
+import { rotate } from "./rotate";
 import * as r from "./routes";
 
 type Handler = (ctx: r.Ctx) => Promise<Response>;
@@ -9,10 +12,26 @@ const routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
   ["POST", /^\/v1\/auth\/signup$/, r.signup],
   ["POST", /^\/v1\/auth\/login$/, r.login],
   ["POST", /^\/v1\/auth\/logout$/, r.logout],
+  ["POST", /^\/v1\/auth\/verify$/, id.verifyEmail],
+  ["POST", /^\/v1\/auth\/verify\/resend$/, id.resendVerification],
+  ["POST", /^\/v1\/auth\/reset-request$/, id.resetRequest],
+  ["POST", /^\/v1\/auth\/reset\/info$/, id.resetInfo],
+  ["POST", /^\/v1\/auth\/reset$/, id.resetPassword],
+  ["POST", /^\/v1\/auth\/google\/nonce$/, id.googleNonce],
+  ["POST", /^\/v1\/auth\/google$/, id.googleLogin],
   ["GET", /^\/v1\/devices$/, r.listDevices],
+  ["POST", /^\/v1\/devices\/requests$/, approval.createRequest],
+  ["GET", /^\/v1\/devices\/requests$/, approval.listRequests],
+  ["GET", /^\/v1\/devices\/requests\/(?<id>[^/]+)$/, approval.getRequest],
+  ["POST", /^\/v1\/devices\/requests\/(?<id>[^/]+)\/nonce$/, approval.postNonce],
+  ["POST", /^\/v1\/devices\/requests\/(?<id>[^/]+)\/reveal$/, approval.postReveal],
+  ["POST", /^\/v1\/devices\/requests\/(?<id>[^/]+)\/approve$/, approval.approveRequest],
+  ["POST", /^\/v1\/devices\/requests\/(?<id>[^/]+)\/deny$/, approval.denyRequest],
   ["DELETE", /^\/v1\/devices\/(?<id>[^/]+)$/, r.deleteDevice],
   ["PUT", /^\/v1\/account\/keys$/, r.putKeys],
   ["POST", /^\/v1\/account\/password$/, r.changePassword],
+  ["POST", /^\/v1\/account\/rotate$/, rotate],
+  ["POST", /^\/v1\/account\/link-google$/, id.linkGoogle],
   ["DELETE", /^\/v1\/account$/, r.deleteAccount],
   ["GET", /^\/v1\/sync\/meta$/, r.syncMeta],
   ["GET", /^\/v1\/sync\/snapshot$/, r.getSnapshot],

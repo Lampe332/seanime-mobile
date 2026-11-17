@@ -82,3 +82,60 @@ export const PasswordBody = z.strictObject({
   wrappedDek: b64Blob,
   dekId: DekId,
 });
+
+// ---------------------------------------------------------------- phase 1b
+
+/** 256-bit one-time token (verify / reset), base64url. */
+export const Token = b64Exact(32);
+export const Nonce32 = b64Exact(32);
+export const SealedDek = b64Blob;
+
+export const TokenBody = z.strictObject({ token: Token });
+
+export const GoogleBody = z.strictObject({
+  idToken: z
+    .string()
+    .min(20)
+    .max(4096)
+    .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/),
+  nonce: Nonce32,
+});
+
+export const ResetRequestBody = z.strictObject({ email: Email });
+
+export const ResetBody = z.strictObject({
+  token: Token,
+  salt: Salt,
+  kdf: Kdf,
+  authKey: AuthKey,
+  // With recovery code: the device unwrapped the DEK with the recovery key and sends both new wraps.
+  // Without: no keys, the password wrap is dropped until a signed-in device sends a new one.
+  keys: z
+    .strictObject({
+      dekId: DekId,
+      wrappedDek: b64Blob,
+      recoveryWrappedDek: b64Blob,
+    })
+    .optional(),
+});
+
+export const DeviceRequestBody = z.strictObject({
+  deviceName: DeviceName,
+  devicePub: DevicePub,
+  /** base64url(SHA-256(devicePub bytes || rN bytes)), see approval.ts. */
+  commitment: Nonce32,
+});
+
+export const ApproverNonceBody = z.strictObject({ nonce: Nonce32 });
+export const RevealBody = z.strictObject({ reveal: Nonce32 });
+export const ApproveBody = z.strictObject({ dekId: DekId, sealedDek: SealedDek });
+
+export const RotateMeta = z.strictObject({
+  oldDekId: DekId,
+  dekId: DekId,
+  devices: z
+    .array(z.strictObject({ deviceId: Uuid, sealedDek: SealedDek }))
+    .max(50),
+  wrappedDek: b64Blob.optional(),
+  recoveryWrappedDek: b64Blob.optional(),
+});

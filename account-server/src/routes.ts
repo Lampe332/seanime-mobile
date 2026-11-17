@@ -2,6 +2,8 @@ import { fromB64url, hmacSha256, safeEqual, toB64url } from "./crypto";
 import { clientIp, HttpError, json, noContent, readJson, readLimited, requireMediaType } from "./http";
 import { burstLimit, clearKey, failureWait, fixedWindow, rateKey, recordFailure } from "./ratelimit";
 import { DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, Uuid } from "./schemas";
+import { sendMail } from "./mail";
+import { issueToken, VERIFY_TTL } from "./identity";
 import { clearSessionCookie, newSession, now, requireRecentAuth, requireSession, sessionCookie } from "./session";
 
 export interface Ctx {
@@ -12,7 +14,7 @@ export interface Ctx {
   params: Record<string, string>;
 }
 
-const PEPPER_VERSION = 1;
+export const PEPPER_VERSION = 1;
 const WRONG_LOGIN = "Wrong email or password";
 export const MAX_SNAPSHOT_BYTES = 10 * 1024 * 1024;
 const LOGIN_LIMIT_EMAIL = 5;
@@ -21,18 +23,18 @@ const SIGNUP_LIMIT_IP = 5;
 const UPLOAD_LIMIT = 30;
 const HOUR = 3600;
 
-const snapKey = (userId: string) => `snap/${userId}`;
+export const snapKey = (userId: string) => `snap/${userId}`;
 
-async function authHash(env: Env, authKey: string): Promise<Uint8Array> {
+export async function authHash(env: Env, authKey: string): Promise<Uint8Array> {
   return hmacSha256(env.PEPPER_V1, fromB64url(authKey)!);
 }
 
-function withSession(ctx: Ctx, token: string, body: Record<string, unknown>, status = 200): Response {
+export function withSession(ctx: Ctx, token: string, body: Record<string, unknown>, status = 200): Response {
   if (ctx.isBrowser) return json(body, status, { "Set-Cookie": sessionCookie(token) });
   return json({ ...body, sessionToken: token }, status);
 }
 
-function isUniqueViolation(err: unknown): boolean {
+export function isUniqueViolation(err: unknown): boolean {
   return err instanceof Error && /UNIQUE constraint failed/i.test(err.message);
 }
 
@@ -91,7 +93,8 @@ export async function signup(ctx: Ctx): Promise<Response> {
     );
   }
   const session = await newSession(env, userId, deviceId);
-  statements.push(session.statement);
+  const verify = await issueToken(env, userId, "verify", VERIFY_TTL);
+  statements.push(session.statement, verify.statement);
   try {
     await env.DB.batch(statements);
   } catch (err) {
@@ -99,6 +102,7 @@ export async function signup(ctx: Ctx): Promise<Response> {
     if (isUniqueViolation(err)) throw new HttpError(409, "email_taken", "An account with this email already exists.");
     throw err;
   }
+  await sendMail(env, body.email, { kind: "verify", token: verify.token });
   return withSession(ctx, session.token, { userId, deviceId, emailVerified: false }, 201);
 }
 
@@ -119,7 +123,7 @@ export async function login(ctx: Ctx): Promise<Response> {
   }, { retryAfter: wait });
 
   const user = await env.DB.prepare(
-    `SELECT id, auth_hash, pepper_version, kdf_params, wrapped_dek, dek_id, email_verified
+    `SELECT id, auth_hash, pepper_version, kdf_params, wrapped_dek, dek_id, email_verified, rewrap_needed
      FROM users WHERE email = ?`,
   )
     .bind(body.email)
@@ -131,6 +135,7 @@ export async function login(ctx: Ctx): Promise<Response> {
       wrapped_dek: string | null;
       dek_id: string | null;
       email_verified: number;
+      rewrap_needed: number;
     }>();
   const presented = await authHash(env, body.authKey);
   const stored = user?.auth_hash ? fromB64url(user.auth_hash) : null;
@@ -153,6 +158,8 @@ export async function login(ctx: Ctx): Promise<Response> {
     kdf: user.kdf_params ? JSON.parse(user.kdf_params) : DEFAULT_KDF,
     wrappedDek: user.wrapped_dek,
     dekId: user.dek_id,
+    // After a reset without recovery code: wrappedDek is null until a device that holds the DEK sends a new wrap.
+    rewrapNeeded: user.rewrap_needed === 1,
   });
 }
 
@@ -193,6 +200,8 @@ export async function deleteDevice(ctx: Ctx): Promise<Response> {
     env.DB.prepare("DELETE FROM devices WHERE id = ? AND user_id = ?").bind(id.data, session.userId),
   ]);
   if (!del || del.meta.changes === 0) throw new HttpError(404, "not_found");
+  // The removed device may still know the DEK: the remaining devices should rotate it (plan 6.9).
+  await env.DB.prepare("UPDATE users SET rotation_required = 1 WHERE id = ?").bind(session.userId).run();
   return noContent();
 }
 
@@ -222,9 +231,17 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
     env.DB.prepare(
       `UPDATE users SET dek_id = ?,
          wrapped_dek = COALESCE(?, wrapped_dek),
-         recovery_wrapped_dek = COALESCE(?, recovery_wrapped_dek)
+         recovery_wrapped_dek = COALESCE(?, recovery_wrapped_dek),
+         rewrap_needed = CASE WHEN ? IS NULL THEN rewrap_needed ELSE 0 END
        WHERE id = ? AND (dek_id IS NULL OR dek_id = ?)`,
-    ).bind(body.dekId, body.wrappedDek ?? null, body.recoveryWrappedDek ?? null, session.userId, body.dekId),
+    ).bind(
+      body.dekId,
+      body.wrappedDek ?? null,
+      body.recoveryWrappedDek ?? null,
+      body.wrappedDek ?? null,
+      session.userId,
+      body.dekId,
+    ),
   ];
   let deviceId = session.deviceId;
   if (body.device) {
@@ -237,18 +254,24 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
         ).bind(d.name, d.devicePub, d.sealedDek, body.dekId, t, deviceId, session.userId),
       );
     } else {
-      deviceId = crypto.randomUUID();
+      // A device is recognised by its key: a re-login of the same device updates its row, no duplicate.
       statements.push(
         env.DB.prepare(
           `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, created_at, last_seen_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        ).bind(deviceId, session.userId, d.name, d.devicePub, d.sealedDek, body.dekId, t, t),
-        env.DB.prepare("UPDATE sessions SET device_id = ? WHERE token_hash = ?").bind(deviceId, session.tokenHash),
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(user_id, device_pub) DO UPDATE SET
+             name = excluded.name, sealed_dek = excluded.sealed_dek, dek_id = excluded.dek_id, last_seen_at = excluded.last_seen_at
+           RETURNING id`,
+        ).bind(crypto.randomUUID(), session.userId, d.name, d.devicePub, d.sealedDek, body.dekId, t, t),
+        env.DB.prepare(
+          "UPDATE sessions SET device_id = (SELECT id FROM devices WHERE user_id = ? AND device_pub = ?) WHERE token_hash = ?",
+        ).bind(session.userId, d.devicePub, session.tokenHash),
       );
     }
   }
-  const [update] = await env.DB.batch(statements);
+  const [update, upsert] = await env.DB.batch(statements);
   if (!update || update.meta.changes === 0) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
+  if (body.device && !session.deviceId) deviceId = (upsert?.results[0] as { id: string } | undefined)?.id ?? null;
   return json({ dekId: body.dekId, deviceId });
 }
 
@@ -257,9 +280,9 @@ export async function changePassword(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, env);
   requireRecentAuth(session);
   const body = await readJson(ctx.request, PasswordBody);
-  const user = await env.DB.prepare("SELECT dek_id, auth_hash FROM users WHERE id = ?")
+  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash FROM users WHERE id = ?")
     .bind(session.userId)
-    .first<{ dek_id: string | null; auth_hash: string | null }>();
+    .first<{ email: string; dek_id: string | null; auth_hash: string | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.auth_hash === null) throw new HttpError(409, "no_password", "This account has no password.");
   if (user.dek_id !== body.dekId) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
@@ -272,23 +295,36 @@ export async function changePassword(ctx: Ctx): Promise<Response> {
     // Every other session is signed out (plan 6.7).
     env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND token_hash != ?").bind(session.userId, session.tokenHash),
   ]);
+  await sendMail(env, user.email, { kind: "password_changed" });
   return noContent();
 }
 
-/** Removes every trace of an account: R2 blob first, then all D1 rows. */
-export async function deleteUserData(env: Env, userId: string): Promise<void> {
-  await env.SNAPSHOTS.delete(snapKey(userId));
-  await env.DB.batch(
-    ["sessions", "devices", "tokens", "device_requests", "snapshots"].map((table) =>
-      env.DB.prepare(`DELETE FROM ${table} WHERE user_id = ?`).bind(userId),
-    ).concat(env.DB.prepare("DELETE FROM users WHERE id = ?").bind(userId)),
+/**
+ * Removes every trace of an account: all D1 rows in one transaction, then the R2 blob.
+ * `onlyIf` is an extra SQL condition on the users row (e.g. "still unconfirmed"), checked inside the same
+ * transaction, so the cron never deletes an account that changed in the meantime. Returns whether it was deleted.
+ */
+export async function deleteUserData(env: Env, userId: string, onlyIf = "1 = 1"): Promise<boolean> {
+  const guard = `EXISTS (SELECT 1 FROM users WHERE id = ? AND ${onlyIf})`;
+  const results = await env.DB.batch(
+    ["sessions", "devices", "tokens", "device_requests", "snapshots"]
+      .map((table) => env.DB.prepare(`DELETE FROM ${table} WHERE user_id = ? AND ${guard}`).bind(userId, userId))
+      .concat(env.DB.prepare(`DELETE FROM users WHERE id = ? AND ${onlyIf}`).bind(userId)),
   );
+  const deleted = (results.at(-1)?.meta.changes ?? 0) > 0;
+  if (deleted) await env.SNAPSHOTS.delete(snapKey(userId));
+  return deleted;
 }
 
 export async function deleteAccount(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
   requireRecentAuth(session);
-  await deleteUserData(ctx.env, session.userId);
+  const user = await ctx.env.DB.prepare("SELECT email FROM users WHERE id = ?")
+    .bind(session.userId)
+    .first<{ email: string }>();
+  if (await deleteUserData(ctx.env, session.userId)) {
+    if (user) await sendMail(ctx.env, user.email, { kind: "account_deleted" });
+  }
   return noContent(ctx.isBrowser ? { "Set-Cookie": clearSessionCookie() } : {});
 }
 
@@ -301,7 +337,7 @@ interface SnapshotRow {
   updated_at: number;
 }
 
-function snapshotRow(env: Env, userId: string): Promise<SnapshotRow | null> {
+export function snapshotRow(env: Env, userId: string): Promise<SnapshotRow | null> {
   return env.DB.prepare("SELECT version, size, dek_id, updated_at FROM snapshots WHERE user_id = ?")
     .bind(userId)
     .first<SnapshotRow>();
@@ -309,12 +345,20 @@ function snapshotRow(env: Env, userId: string): Promise<SnapshotRow | null> {
 
 export async function syncMeta(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
-  const row = await snapshotRow(ctx.env, session.userId);
+  const [row, flags] = await Promise.all([
+    snapshotRow(ctx.env, session.userId),
+    ctx.env.DB.prepare("SELECT rotation_required, rewrap_needed FROM users WHERE id = ?")
+      .bind(session.userId)
+      .first<{ rotation_required: number; rewrap_needed: number }>(),
+  ]);
   return json({
     version: row?.version ?? 0,
     size: row?.size ?? 0,
     dekId: row?.dek_id ?? null,
     updatedAt: row?.updated_at ?? null,
+    // A device was removed (or the password reset without code): rotate the DEK via account/rotate.
+    rotationRequired: flags?.rotation_required === 1,
+    rewrapNeeded: flags?.rewrap_needed === 1,
   });
 }
 

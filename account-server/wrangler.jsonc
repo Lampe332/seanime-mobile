@@ -8,11 +8,15 @@
     "traces": { "enabled": true }
   },
   "vars": {
-    "ALLOWED_ORIGIN": "https://seanimemobile.com"
+    "ALLOWED_ORIGIN": "https://seanimemobile.com",
+    // Base URL for links in emails (verify, reset).
+    "WEB_BASE_URL": "https://seanimemobile.com",
+    // Google signing keys. Tests point this at their own JWKS; production keeps Google's URL.
+    "GOOGLE_JWKS_URL": "https://www.googleapis.com/oauth2/v3/certs"
   },
   // Values are set with `wrangler secret put`, never committed.
   "secrets": {
-    "required": ["PEPPER_V1", "ENUM_SECRET"]
+    "required": ["PEPPER_V1", "ENUM_SECRET", "GOOGLE_WEB_CLIENT_ID"]
   },
   // Placeholder IDs. Replace with the real resource IDs before the first deploy.
   "d1_databases": [
@@ -22,6 +26,10 @@
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
+  ],
+  // Cloudflare Email Service. The sender domain must be onboarded before the first deploy.
+  "send_email": [
+    { "name": "EMAIL", "allowed_sender_addresses": ["no-reply@seanimemobile.com"] }
   ],
   "r2_buckets": [
     {
