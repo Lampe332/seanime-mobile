@@ -15,6 +15,7 @@ import {
     useSaveSetting,
     useSettingValue,
 } from "@/main/settings/_components/settings-kit"
+import { isUnencryptedHost } from "@/main/settings/_lib/nakama-host"
 import { atom, useAtom } from "jotai"
 import React from "react"
 
@@ -114,6 +115,8 @@ export function SettingsNakamaSection({ t }: { t: Translate }) {
             <TextSettingRow label={t("Host address", "Host-Adresse")} value={url} empty={notSet} keyboardType="url" placeholder="https://… / room://…"
                 note={t("The address of the Nakama host or a room link.", "Die Adresse des Nakama-Hosts oder ein Raum-Link.")}
                 onApply={value => void save("nakama.remoteServerURL", value.trim())} />
+            {!isHost && isUnencryptedHost(url) && <Notice text={t("This address has no https://, so the passcode and the streams go over the network unencrypted. Use https:// if your host supports it.",
+                "Diese Adresse hat kein https://, deshalb gehen Passwort und Streams unverschlüsselt durchs Netzwerk. Nutze https://, wenn dein Host es unterstützt.")} />}
             <TextSettingRow label={t("Host passcode", "Host-Passwort")} value={passcode} empty={notSet} secure display={() => "••••••"}
                 onApply={value => void save("nakama.remoteServerPassword", value)} />
             <SettingSwitch path="nakama.includeNakamaAnimeLibrary" disabled={isHost} label={t("Use the host's anime library", "Anime-Bibliothek des Hosts nutzen")}
