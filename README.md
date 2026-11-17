@@ -27,6 +27,7 @@
   <a href="#install">Install</a> &nbsp;·&nbsp;
   <a href="#first-start">First start</a> &nbsp;·&nbsp;
   <a href="#faq">FAQ</a> &nbsp;·&nbsp;
+  <a href="https://discord.gg/dxJdj5Dqt9">Discord</a> &nbsp;·&nbsp;
   <a href="CHANGELOG.md">Changelog</a>
 </p>
 
@@ -117,9 +118,9 @@ From then on the app offers updates itself. It checks this repository for a new 
 
 1. Pick your language (English or Deutsch) and tap *Get started*.
 2. Log in with AniList. Allow access there and copy the code it shows. Back in the app, it finds the code and offers *Connect*. No account? Make one for free at [anilist.co](https://anilist.co), or tap *Not now* and use the local account.
-3. Add sources. The app ships with none. A short tour shows the way: *Menu → Extensions → Marketplace*, paste the link of a community marketplace, check the preview, add it. Then install a streaming source and a manga source.
+3. Add sources. None are installed at first. A short tour shows the way: *Menu → Extensions → Marketplace*. The official Seanime marketplace by 5rahim is set by default; to use another one, paste its link, check the preview, add it. Then install a streaming source and a manga source.
 
-This project doesn't link to any marketplace and has nothing to do with their content.
+Apart from the official Seanime marketplace, this project doesn't link to any marketplace and has nothing to do with the content of extensions.
 
 ## Good to know
 
@@ -187,7 +188,7 @@ No. The local account keeps lists and progress on the device, and *Upload local 
 
 </details>
 
-Found a bug or have an idea? [Open an issue](https://github.com/Lampe332/seanime-mobile/issues) with your device model, Android version and app version (*Settings → About*).
+Found a bug or have an idea? [Open an issue](https://github.com/Lampe332/seanime-mobile/issues) with your device model, Android version and app version (*Settings → About*). For questions, help with setup or just to chat, join the [Discord server](https://discord.gg/dxJdj5Dqt9).
 
 ## Build it yourself
 
@@ -205,4 +206,14 @@ The full license texts of these and the bundled JavaScript libraries are in [`li
 
 Seanime Mobile is licensed under the GPL-3.0 ([LICENSE](LICENSE)). The app hosts no content; it only shows what your installed extensions provide.
 
-<p align="center"><sub>Website: <a href="https://seanimemobile.com">seanimemobile.com</a> · <a href="https://seanimemobile.com/help">Help</a> · <a href="https://seanimemobile.com/privacy">Privacy</a> · <a href="https://seanimemobile.com/security">Security</a> · <a href="https://seanimemobile.com/imprint">Imprint</a></sub></p>
+## Legal
+
+Nick Schäfer · Kanton Basel-Landschaft, Switzerland · info@seanimemobile.com
+
+- Website: [seanimemobile.com](https://seanimemobile.com)
+- Privacy policy: [seanimemobile.com/privacy](https://seanimemobile.com/privacy)
+- Imprint: [seanimemobile.com/imprint](https://seanimemobile.com/imprint)
+
+Unofficial app, built on Seanime by 5rahim. No telemetry, no analytics. The same details are in the app under *Settings → About → Legal*.
+
+<p align="center"><sub>Website: <a href="https://seanimemobile.com">seanimemobile.com</a> · <a href="https://seanimemobile.com/help">Help</a> · <a href="https://discord.gg/dxJdj5Dqt9">Discord</a> · <a href="https://seanimemobile.com/privacy">Privacy</a> · <a href="https://seanimemobile.com/security">Security</a> · <a href="https://seanimemobile.com/imprint">Imprint</a></sub></p>
