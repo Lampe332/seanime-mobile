@@ -19,7 +19,7 @@ import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { SakuraBurst } from "@/main/settings/_components/sakura-burst"
 import { UpdateCheckRow } from "@/main/settings/_components/settings-app-services"
 import { LinkRow, SettingsGroup, SettingSwitch } from "@/main/settings/_components/settings-kit"
-import { contactHref, LEGAL, shortLink } from "@/main/settings/_lib/legal"
+import { contactHref, DISCORD_INVITE, LEGAL, shortLink } from "@/main/settings/_lib/legal"
 import { sectionFromTab, SETTINGS_SECTIONS, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 import { NO_TAPS, secretMessage, TAP_RESET_MS, tapHint, versionTap } from "@/main/settings/_lib/version-taps"
 import { SettingsAppSection } from "@/main/settings/_screens/settings-app"
@@ -70,7 +70,7 @@ const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, title: [string, st
     manga: { icon: BookOpen, title: ["Manga", "Manga"], summary: ["Reading progress, default source", "Lesefortschritt, Standardquelle"] },
     nakama: { icon: Users, title: ["Nakama", "Nakama"], summary: ["Stream from your PC or home server", "Vom PC oder Home-Server streamen"] },
     logs: { icon: BookKey, title: ["Cache", "Cache"], summary: ["Manga and online streaming cache", "Manga- und Online-Streaming-Cache"] },
-    about: { icon: Info, title: ["About", "Über"], summary: ["Version, updates, legal", "Version, Updates, Rechtliches"] },
+    about: { icon: Info, title: ["About", "Über"], summary: ["Version, updates, Discord, legal", "Version, Updates, Discord, Rechtliches"] },
 }
 
 const appVersion = () => Constants.expoConfig?.version ?? ""
@@ -272,6 +272,10 @@ function SettingsAboutSection({ t }: { t: Translate }) {
             <SettingSwitch path="library.disableUpdateCheck" invert label={t("Look for new versions", "Nach neuen Versionen suchen")}
                 note={t("Shows a notice when a new app version is out.", "Zeigt einen Hinweis, sobald eine neue App-Version erscheint.")} />
             <UpdateCheck t={t} />
+        </SettingsGroup>
+        <SettingsGroup title={t("Community", "Community")}
+            note={t("Questions, help with setup and news about the app.", "Fragen, Hilfe bei der Einrichtung und Neuigkeiten zur App.")}>
+            <LinkRow label="Discord" value={shortLink(DISCORD_INVITE)} onPress={() => openTab(DISCORD_INVITE)} />
         </SettingsGroup>
         <LegalGroup t={t} />
         {/* keyed: tapping it out again while it falls starts a new one */}

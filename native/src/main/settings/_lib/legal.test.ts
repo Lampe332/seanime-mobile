@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { contactHref, imprintLine, LEGAL, shortLink } from "./legal"
+import { contactHref, DISCORD_INVITE, imprintLine, LEGAL, shortLink } from "./legal"
 
 describe("Legal", () => {
     it("shows the imprint as on the website", () => {
@@ -21,5 +21,10 @@ describe("Legal", () => {
     it("shows links without their scheme", () => {
         expect(shortLink(LEGAL.website)).toBe("seanimemobile.com")
         expect(shortLink(LEGAL.privacy)).toBe("seanimemobile.com/privacy")
+        expect(shortLink(DISCORD_INVITE)).toBe("discord.gg/dxJdj5Dqt9")
+    })
+
+    it("invites to the Discord server over https", () => {
+        expect(DISCORD_INVITE).toBe("https://discord.gg/dxJdj5Dqt9")
     })
 })

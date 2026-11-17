@@ -10,6 +10,9 @@ export const LEGAL = {
     imprint: "https://seanimemobile.com/imprint",
 } as const
 
+/** Settings › About › Community: the app's Discord server (the same invite as on the website and in the README) */
+export const DISCORD_INVITE = "https://discord.gg/dxJdj5Dqt9"
+
 /** The imprint in one line, as on the website: name · region · e-mail */
 export function imprintLine() {
     return [LEGAL.name, LEGAL.region, LEGAL.email].join(" · ")
