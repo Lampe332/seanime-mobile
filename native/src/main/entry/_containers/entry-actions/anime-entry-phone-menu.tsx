@@ -32,8 +32,8 @@ import React from "react"
 import { TextInput, View } from "react-native"
 
 /*
- * The anime page's "More" (anime-entry-phone-menu.tsx): the anime elsewhere (AniList, AniDB, MyAnimeList), filler episodes
- * and specials metadata, for anime in the local library unmatching or deleting some of its files, and which streaming
+ * The anime page's "More" (anime-entry-phone-menu.tsx): the anime elsewhere (AniList, AniDB, MyAnimeList), the series a
+ * special takes its metadata from (only without AniDB data), for anime in the local library unmatching or deleting some of its files, and which streaming
  * tabs anime pages show on this device (a tab whose feature is off links to its setting).
  * "Download a torrent" (with a torrent provider installed) opens the torrent sheet. The plugins' items for the page are a
  * group of their own (2.17). A tab that is off in
@@ -66,6 +66,9 @@ export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibr
     const { data: torrentProviders } = useAnimeListTorrentProviderExtensions()
     const openTorrentSearch = useSetAtom(__torrentSearch_selectionAtom)
     const canDownloadTorrent = !!torrentProviders?.length && entry.media?.status !== "NOT_YET_RELEASED" && !entry._isNakamaEntry
+    // filler marking needed the server and did not come back; the sheet only has the specials' series link, which an anime
+    // with AniDB data does not need (it would open empty)
+    const hasSpecialsLink = !entry.anidbId
     // the plugins' items for this page (usePluginAnimePageDropdownItems)
     const pluginItems = usePluginActions("animePageItems")
     const runPlugin = useRunPluginAction()
@@ -90,10 +93,10 @@ export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibr
                         onPress={() => copyToClipboard(entry.mediaId.toString()).then(() => toast.success(t("ID copied", "ID kopiert")))} />}
                 </RowGroup>
             </SheetGroup>
-            <SheetGroup title={t("Episodes", "Folgen")}>
+            {(hasSpecialsLink || canDownloadTorrent) && <SheetGroup title={t("Episodes", "Folgen")}>
                 <RowGroup>
-                    <ActionRow icon={ListChecks} label={t("Filler and specials", "Filler und Specials")} chevron
-                        note={t("Mark filler episodes, link specials to their series", "Filler-Folgen markieren, Specials ihrer Serie zuordnen")} onPress={() => go("metadata")} />
+                    {hasSpecialsLink && <ActionRow icon={ListChecks} label={t("Specials", "Specials")} chevron
+                        note={t("Link specials to their series", "Specials ihrer Serie zuordnen")} onPress={() => go("metadata")} />}
                     {canDownloadTorrent && <ActionRow icon={Magnet} label={t("Download a torrent", "Torrent herunterladen")} chevron
                         note={t("Into your library folder, with the app's own torrent client", "In deinen Bibliotheksordner, mit dem Torrent-Client der App")}
                         onPress={() => {
@@ -101,7 +104,7 @@ export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibr
                             openTorrentSearch("download")
                         }} />}
                 </RowGroup>
-            </SheetGroup>
+            </SheetGroup>}
             {hasFiles && <SheetGroup title={t("Files on this device", "Dateien auf diesem Gerät")} note={plural(t, files, ["file", "files"], ["Datei", "Dateien"])}>
                 <RowGroup>
                     <ActionRow icon={FileMinus} label={t("Unmatch files", "Zuordnung lösen")} chevron
@@ -153,7 +156,7 @@ function NumberField({ label, value, onChange, placeholder, note }: { label: str
     </View>
 }
 
-/** Filler episodes from AnimeFillerList, and for specials without AniDB data the parent series their metadata comes from */
+/** For specials without AniDB data: the parent series their metadata comes from */
 function MetadataSheet({ t, entry, details, open, onOpenChange }: SheetProps & { details?: AL_AnimeDetailsById_Media }) {
     const { data: stored, isLoading } = useGetMediaMetadataParent(entry.mediaId)
     const { mutate: saveParent, isPending: saving } = useSaveMediaMetadataParent()
@@ -164,7 +167,7 @@ function MetadataSheet({ t, entry, details, open, onOpenChange }: SheetProps & {
     const suggested = details?.relations?.edges?.find(edge => edge?.relationType === "PARENT")?.node?.id
     const parentBusy = saving || deleting
 
-    return <Sheet title={t("Filler and specials", "Filler und Specials")} open={open} onOpenChange={onOpenChange}
+    return <Sheet title={t("Specials", "Specials")} open={open} onOpenChange={onOpenChange}
         footer={!entry.anidbId ? <>
             {!!stored?.id && <Button intent="secondary" wrapperClassName="flex-1" disabled={parentBusy}
                 onPress={() => deleteParent({ mediaId: entry.mediaId })}>{t("Unlink", "Verknüpfung lösen")}</Button>}
