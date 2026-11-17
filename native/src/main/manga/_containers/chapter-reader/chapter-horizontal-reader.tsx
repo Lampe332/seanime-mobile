@@ -130,7 +130,7 @@ export function MangaHorizontalReader({ pageContainer, pageUrl, pageHeaders, wid
         className={double ? "flex-row-reverse items-center justify-center" : "items-center justify-center"}>
         {currentPages.map((index, i) => <View key={`${index}-${pageContainer?.pages?.[index]?.url}`} style={double && pageGap ? { marginHorizontal: 4 } : undefined}>
             <ChapterPage url={pageUrl(index)} headers={pageHeaders?.(index)} index={index} width={pageSizes[i].width} height={pageSizes[i].height}
-                contentFit={pageFit === MangaPageFit.TRUE_SIZE ? "none" : "contain"} onSize={onSize} onLoaded={handlePageLoad} />
+                onSize={onSize} onLoaded={handlePageLoad} />
             {showShadows && <View pointerEvents="none" className="absolute bottom-0 top-0 w-[3%]"
                 style={i === 0 ? { left: 0, backgroundImage: "linear-gradient(90deg, rgba(17,17,17,0.3) 0%, rgba(17,17,17,0) 100%)" }
                     : { right: 0, backgroundImage: "linear-gradient(-90deg, rgba(17,17,17,0.3) 0%, rgba(17,17,17,0) 100%)" }} />}

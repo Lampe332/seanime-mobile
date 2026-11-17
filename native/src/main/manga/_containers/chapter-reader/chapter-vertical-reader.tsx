@@ -12,7 +12,6 @@ import {
     __manga_pageStretchAtom,
     __manga_pageZoomAtom,
     __manga_tapToggleControlsAtom,
-    MangaPageFit,
 } from "@/main/manga/_lib/manga-chapter-reader.atoms"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { FlashList, type FlashListRef } from "@shopify/flash-list"
@@ -138,7 +137,7 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
             return <Pressable accessible={false} onPress={() => { if (tapToggleControls) setHideBar(prev => !prev) }}
                 style={{ height: size.height + (index < count - 1 ? gap : 0), alignItems: "center", paddingHorizontal: 16 }}>
                 <ChapterPage url={pageUrl(index)} headers={pageHeaders?.(index)} index={index} width={size.width} height={size.height} recycle
-                    contentFit={pageFit === MangaPageFit.TRUE_SIZE ? "none" : "contain"} onSize={onSize} onLoaded={onLoaded} />
+                    onSize={onSize} onLoaded={onLoaded} />
             </Pressable>
         }}
         // a long chapter loads the next pages before they reach the screen

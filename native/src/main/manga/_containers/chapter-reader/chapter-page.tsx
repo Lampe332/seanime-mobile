@@ -8,9 +8,10 @@ import { ActivityIndicator, Pressable, View } from "react-native"
 /*
  * One page of a chapter (chapter-page.tsx): expo-image with a spinner while it loads; a failed page tries again up to
  * three times one second apart, then shows a retry button. The page reports its picture size once loaded, so the reader
- * lays it out at its real shape.
+ * lays it out at its real shape. The reader sizes the page for every fit (Original too), so the picture always fills it:
+ * expo-image's "none" draws in raw pixels and left Original a small picture in the middle of a dp-sized page.
  */
-export const ChapterPage = React.memo(function ChapterPage({ url, headers, index, width, height, onSize, onLoaded, contentFit = "contain", recycle }: {
+export const ChapterPage = React.memo(function ChapterPage({ url, headers, index, width, height, onSize, onLoaded, recycle }: {
     url: string | undefined
     /** Headers the picture needs, given straight to it (area manga on, §4n) */
     headers?: Record<string, string>
@@ -19,7 +20,6 @@ export const ChapterPage = React.memo(function ChapterPage({ url, headers, index
     height: number
     onSize?: (index: number, size: { width: number, height: number }) => void
     onLoaded?: (index: number) => void
-    contentFit?: "contain" | "cover" | "fill" | "none"
     /** FlashList reuses the view: a new page must not show the previous one's picture for a frame */
     recycle?: boolean
 }) {
@@ -49,7 +49,7 @@ export const ChapterPage = React.memo(function ChapterPage({ url, headers, index
             key={attempt}
             source={headers ? { uri: url, headers } : url}
             recyclingKey={recycle ? `${url}#${attempt}` : undefined}
-            contentFit={contentFit}
+            contentFit="contain"
             cachePolicy="memory-disk"
             style={{ width, height }}
             accessibilityLabel={t(`Page ${index + 1}`, `Seite ${index + 1}`)}
