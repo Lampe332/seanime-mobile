@@ -139,18 +139,15 @@ export const SEARCH_SEASONS: SearchOption<AL_MediaSeason>[] = [
 ]
 
 /**
- * Release statuses. The running one reads "Airing" for anime and "Publishing" for manga, as their group headings do. Hiatus and
- * cancelled avoid "Pausiert" / "Abgebrochen": on the covers those words mean the user's own list status.
+ * Release statuses. The running one reads "Releasing" (AniList's word) for anime and manga, as on the covers of Discover,
+ * My lists and the anime page (media-labels.ts). Hiatus and cancelled avoid "Pausiert" / "Abgebrochen": on the covers those
+ * words mean the user's own list status.
  */
-const SEARCH_STATUS_OPTIONS: (SearchOption<AL_MediaStatus> & { manga?: [string, string] })[] = [
-    { value: "FINISHED", en: "Finished", de: "Abgeschlossen" }, { value: "RELEASING", en: "Airing", de: "Läuft", manga: ["Publishing", "Erscheint"] },
+export const SEARCH_STATUSES: SearchOption<AL_MediaStatus>[] = [
+    { value: "FINISHED", en: "Finished", de: "Abgeschlossen" }, { value: "RELEASING", en: "Releasing", de: "Läuft" },
     { value: "NOT_YET_RELEASED", en: "Upcoming", de: "Demnächst" }, { value: "HIATUS", en: "Hiatus", de: "Unterbrochen" },
     { value: "CANCELLED", en: "Cancelled", de: "Eingestellt" },
 ]
-
-export function searchStatuses(type: SearchType): SearchOption<AL_MediaStatus>[] {
-    return SEARCH_STATUS_OPTIONS.map(({ manga, ...option }) => type === "manga" && manga ? { ...option, en: manga[0], de: manga[1] } : option)
-}
 
 /** The desktop's year list: two years ahead, 70 years back. */
 export function searchYears(now = new Date()) {
@@ -246,7 +243,7 @@ export function searchStateFromParams(params: Params, adultAllowed: boolean): Se
         format: type === "anime" ? find(SEARCH_ANIME_FORMATS, formatParam)?.value ?? null : formatParam === "ONE_SHOT" ? "ONE_SHOT" : null,
         season: type === "anime" ? find(SEARCH_SEASONS, read("season").toUpperCase())?.value ?? null : null,
         year: Number.isInteger(year) && year >= 1900 && year <= 2100 ? year : null,
-        status: find(SEARCH_STATUS_OPTIONS, read("status").toUpperCase())?.value ?? null,
+        status: find(SEARCH_STATUSES, read("status").toUpperCase())?.value ?? null,
         country: type === "manga" ? find(SEARCH_COUNTRIES, read("country").toUpperCase())?.value ?? null : null,
         adult,
     }
@@ -395,7 +392,7 @@ export function searchFilterChips(t: Translate, state: SearchPhoneState, adultAl
     if (state.format) add("format", "format", label(t, [...SEARCH_ANIME_FORMATS, ...SEARCH_MANGA_FORMATS], state.format))
     if (state.season && state.type === "anime") add("season", "season", label(t, SEARCH_SEASONS, state.season))
     if (state.year) add("year", "year", String(state.year))
-    if (state.status) add("status", "status", label(t, searchStatuses(state.type), state.status))
+    if (state.status) add("status", "status", label(t, SEARCH_STATUSES, state.status))
     if (state.minScore) add("minScore", "minScore", `${state.minScore}+`, t(`score ${state.minScore}+`, `Wertung ${state.minScore}+`))
     for (const tag of sentTags(state, adultAllowed)) add("tag", `tag:${tag}`, `#${tag}`, t(`tag ${tag}`, `Tag ${tag}`))
     if (state.country && state.type === "manga") add("country", "country", label(t, SEARCH_COUNTRIES, state.country))
@@ -467,7 +464,7 @@ export function resultCardFacts(t: Translate, type: SearchType, media: AL_BaseAn
     const status = listStatusLabel(t, type, list?.status)
     const progress = list?.progress ?? 0
     const total = (type === "anime" ? anime.episodes : (media as AL_BaseManga).chapters) ?? 0
-    const release = media.status === "RELEASING" || media.status === "NOT_YET_RELEASED" ? label(t, searchStatuses(type), media.status) : ""
+    const release = media.status === "RELEASING" || media.status === "NOT_YET_RELEASED" ? label(t, SEARCH_STATUSES, media.status) : ""
     const score = Math.round(list?.score ?? 0) / 10
     const scoreText = t(String(score), String(score).replace(".", ","))
 

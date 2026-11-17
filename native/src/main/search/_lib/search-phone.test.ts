@@ -1,4 +1,5 @@
 import { AL_BaseAnime, AL_BaseManga } from "@/api/generated/types"
+import { MEDIA_STATUS_LABELS } from "@/main/_features/media/_lib/media-labels"
 import { describe, expect, it } from "vitest"
 import {
     activeSearchSort,
@@ -16,7 +17,7 @@ import {
     searchParamsKey,
     SearchPhoneState,
     searchStateFromParams,
-    searchStatuses,
+    SEARCH_STATUSES,
     searchTagChoices,
     searchTitle,
     searchVariables,
@@ -111,9 +112,9 @@ describe("phone search: state", () => {
 
     it("lists one removable chip per filter, sent tags only", () => {
         const s = state({ genres: ["Action"], format: "TV", season: "FALL", year: 2024, status: "RELEASING", minScore: 7, tags: ["Isekai", "Bondage"], adult: true })
-        expect(searchFilterChips(en, s, false).map(chip => chip.label)).toEqual(["Action", "TV", "Fall", "2024", "Airing", "7+", "#Isekai"])
-        expect(searchFilterChips(en, s, true).map(chip => chip.label)).toEqual(["Action", "TV", "Fall", "2024", "Airing", "7+", "#Isekai", "#Bondage", "Adult"])
-        expect(searchFilterChips(en, state({ type: "manga", status: "RELEASING" }), false).map(chip => chip.label)).toEqual(["Publishing"])
+        expect(searchFilterChips(en, s, false).map(chip => chip.label)).toEqual(["Action", "TV", "Fall", "2024", "Releasing", "7+", "#Isekai"])
+        expect(searchFilterChips(en, s, true).map(chip => chip.label)).toEqual(["Action", "TV", "Fall", "2024", "Releasing", "7+", "#Isekai", "#Bondage", "Adult"])
+        expect(searchFilterChips(en, state({ type: "manga", status: "RELEASING" }), false).map(chip => chip.label)).toEqual(["Releasing"])
         expect(searchFilterChips(de, state({ type: "manga", genres: ["Adventure"], country: "KR", minScore: 8 }), false).map(chip => [chip.label, chip.name]))
             .toEqual([["Abenteuer", "Abenteuer"], ["8+", "Wertung 8+"], ["Südkorea", "Südkorea"]])
         expect(removeSearchFilter(s, "genre:Action").genres).toEqual([])
@@ -177,10 +178,15 @@ describe("phone search: results", () => {
     })
 
     it("words release statuses unlike the list statuses on the covers", () => {
-        expect(searchStatuses("anime").map(option => option.en)).toEqual(["Finished", "Airing", "Upcoming", "Hiatus", "Cancelled"])
-        expect(searchStatuses("manga").map(option => option.de)).toEqual(["Abgeschlossen", "Erscheint", "Demnächst", "Unterbrochen", "Eingestellt"])
+        expect(SEARCH_STATUSES.map(option => option.en)).toEqual(["Finished", "Releasing", "Upcoming", "Hiatus", "Cancelled"])
+        expect(SEARCH_STATUSES.map(option => option.de)).toEqual(["Abgeschlossen", "Läuft", "Demnächst", "Unterbrochen", "Eingestellt"])
         const listWords = ["CURRENT", "PLANNING", "COMPLETED", "DROPPED", "PAUSED", "REPEATING"].map(status => listStatusLabel(de, "anime", status as never))
-        expect(searchStatuses("anime").filter(option => listWords.includes(option.de))).toEqual([])
+        expect(SEARCH_STATUSES.filter(option => listWords.includes(option.de))).toEqual([])
+    })
+
+    it("calls a running title what Discover, My lists and the anime page call it", () => {
+        const releasing = SEARCH_STATUSES.find(option => option.value === "RELEASING")
+        expect([releasing?.en, releasing?.de]).toEqual(MEDIA_STATUS_LABELS.RELEASING)
     })
 })
 
@@ -200,14 +206,14 @@ describe("phone search: result cards", () => {
         expect(resultCardFacts(de, "anime", anime({}), { status: "COMPLETED", progress: 28, score: 85 })).toMatchObject({ meta: "Fertig · 2023", tag: "28/28", badge: "★ 8,5" })
         expect(resultCardFacts(en, "anime", anime({ status: "NOT_YET_RELEASED", episodes: undefined }), { status: "PLANNING", progress: 0 }).tag).toBe("Upcoming")
         expect(resultCardFacts(en, "manga", manga({ chapters: undefined }), { status: "CURRENT", progress: 7 }, { unseen: 3 })).toMatchObject({ tag: "7/–", badge: "3 new" })
-        expect(resultCardFacts(en, "manga", manga({}), undefined).tag).toBe("Publishing")
+        expect(resultCardFacts(en, "manga", manga({}), undefined).tag).toBe("Releasing")
     })
 
     it("names everything the card shows for screen readers, title first", () => {
         expect(resultCardFacts(en, "anime", anime({ status: "RELEASING" }), { status: "CURRENT", progress: 1, score: 90 }, { unseen: 1, local: true }).label)
-            .toBe("Frieren, Watching, 1 of 28 episodes watched, 1 new episode, your score 9, in your library, Fall 2023, TV, Airing")
+            .toBe("Frieren, Watching, 1 of 28 episodes watched, 1 new episode, your score 9, in your library, Fall 2023, TV, Releasing")
         expect(resultCardFacts(de, "manga", manga({ chapters: undefined }), { status: "CURRENT", progress: 2 }, { unseen: 4 }).label)
-            .toBe("Berserk, Lese ich, 2 Kapitel gelesen, 4 neue Kapitel, 1989, Manga, Erscheint")
+            .toBe("Berserk, Lese ich, 2 Kapitel gelesen, 4 neue Kapitel, 1989, Manga, Läuft")
     })
 
     it("counts new episodes and chapters as the desktop card does", () => {

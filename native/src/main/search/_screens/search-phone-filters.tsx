@@ -14,10 +14,10 @@ import {
     SEARCH_MANGA_FORMATS,
     SEARCH_MIN_SCORES,
     SEARCH_SEASONS,
+    SEARCH_STATUSES,
     searchFilterChips,
     type SearchOption,
     type SearchPhoneState,
-    searchStatuses,
     searchTagChoices,
     searchYears,
     toggleValue,
@@ -101,7 +101,7 @@ function FilterGroups({ t, draft, onDraft, adultAllowed }: { t: Translate, draft
         </SheetGroup>
 
         <SheetGroup title={statusTitle}>
-            <Choices label={statusTitle} chips={chips(searchStatuses(draft.type))} selected={one(draft.status)} onToggle={pick("status")} />
+            <Choices label={statusTitle} chips={chips(SEARCH_STATUSES)} selected={one(draft.status)} onToggle={pick("status")} />
         </SheetGroup>
 
         <SheetGroup title={t("Minimum score", "Mindestwertung")}>
