@@ -3,7 +3,7 @@ import { exports } from "cloudflare:workers";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { renderMail, type Mail } from "../src/mail";
-import { api, b64, clientKeys, DEFAULT_KDF, freshEmail, freshIp, rand, signupUser, upload } from "./helpers";
+import { api, b64, clientKeys, DEFAULT_KDF, freshEmail, freshIp, rand, signed, signupUser, upload } from "./helpers";
 
 // ---------------------------------------------------------------- helpers
 
@@ -213,10 +213,11 @@ describe("google sign-in", () => {
       expect(res.status).toBe(401);
       expect((await res.json<{ error: string }>()).error).toBe("invalid_google_token");
     }
-    // A nonce that was never issued or has expired.
+    // A nonce that was never issued has no challenge either: the signed sign-in is refused (plan 10.2b).
     const unknown = b64(rand(32));
     const res = await api("/v1/auth/google", { body: { idToken: await signJwt(claims(unknown)), nonce: unknown } });
-    expect((await res.json<{ error: string }>()).error).toBe("invalid_nonce");
+    expect(res.status).toBe(401);
+    expect((await res.json<{ error: string }>()).error).toBe("unauthorized");
     const nonce = await googleNonce();
     await env.DB.prepare("UPDATE google_nonces SET expires_at = ? WHERE used_at IS NULL").bind(nowS() - 1).run();
     expect((await api("/v1/auth/google", { body: { idToken: await signJwt(claims(nonce)), nonce } })).status).toBe(401);
@@ -498,13 +499,13 @@ function rotateRequest(token: string, meta: unknown, ifMatch: number, snapshot?:
   const form = new FormData();
   form.append("meta", JSON.stringify(meta));
   if (snapshot) form.append("snapshot", new Blob([snapshot]), "snapshot.bin");
-  return exports.default.fetch(
+  return signed(
     new Request("https://api.example.com/v1/account/rotate", {
       method: "POST",
       body: form,
       headers: { Authorization: `Bearer ${token}`, "If-Match": String(ifMatch), "CF-Connecting-IP": freshIp() },
     }),
-  );
+  ).then((request) => exports.default.fetch(request));
 }
 
 describe("DEK rotation", () => {

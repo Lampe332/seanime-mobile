@@ -4,6 +4,7 @@ import { burstLimit, clearKey, failureWait, fixedWindow, rateKey, recordFailure 
 import { DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, StartFreshBody, Uuid } from "./schemas";
 import { sendMail } from "./mail";
 import { issueToken, VERIFY_TTL } from "./identity";
+import { issueChallenge, verifySignIn } from "./signature";
 import { clearSessionCookie, newSession, now, requireDevice, requireRecentAuth, requireSession, sessionCookie } from "./session";
 
 export interface Ctx {
@@ -51,10 +52,12 @@ export async function prelogin(ctx: Ctx): Promise<Response> {
   const row = await env.DB.prepare("SELECT kdf_salt, kdf_params FROM users WHERE email = ?")
     .bind(email)
     .first<{ kdf_salt: string | null; kdf_params: string | null }>();
+  // One-time challenge for the following login or signup (plan 10.2b), made the same way for unknown emails.
+  const challenge = await issueChallenge(env, `email:${email}`);
   if (row?.kdf_salt && row.kdf_params) {
-    return json({ salt: row.kdf_salt, kdf: JSON.parse(row.kdf_params) });
+    return json({ salt: row.kdf_salt, kdf: JSON.parse(row.kdf_params), challenge });
   }
-  return json({ salt: decoySalt, kdf: DEFAULT_KDF });
+  return json({ salt: decoySalt, kdf: DEFAULT_KDF, challenge });
 }
 
 export async function signup(ctx: Ctx): Promise<Response> {
@@ -63,6 +66,7 @@ export async function signup(ctx: Ctx): Promise<Response> {
   await burstLimit(env.SIGNUP_LIMITER, ip);
   await fixedWindow(env, await rateKey(env, "signup-ip", ip), SIGNUP_LIMIT_IP, HOUR);
   const body = await readJson(request, SignupBody);
+  await verifySignIn(env, request, body.sigKey, body.challenge, `email:${body.email}`);
 
   const userId = crypto.randomUUID();
   const t = now();
@@ -94,7 +98,7 @@ export async function signup(ctx: Ctx): Promise<Response> {
       ).bind(deviceId, userId, d.name, d.devicePub, d.sealedDek, body.keys.dekId, t, t),
     );
   }
-  const session = await newSession(env, userId, deviceId);
+  const session = await newSession(env, userId, deviceId, body.sigKey);
   const verify = await issueToken(env, userId, "verify", VERIFY_TTL);
   statements.push(session.statement, verify.statement);
   try {
@@ -123,6 +127,8 @@ export async function login(ctx: Ctx): Promise<Response> {
   if (wait > 0) throw new HttpError(429, "rate_limited", "Too many attempts. Try again later.", {
     "Retry-After": String(wait),
   }, { retryAfter: wait });
+  // Signed with the new key and carrying an unused challenge: a captured login cannot be sent again.
+  await verifySignIn(env, request, body.sigKey, body.challenge, `email:${body.email}`);
 
   const user = await env.DB.prepare(
     `SELECT id, auth_hash, pepper_version, kdf_params, wrapped_dek, dek_id, email_verified, rewrap_needed
@@ -148,7 +154,7 @@ export async function login(ctx: Ctx): Promise<Response> {
     throw new HttpError(401, "wrong_credentials", WRONG_LOGIN);
   }
 
-  const session = await newSession(env, user.id, null);
+  const session = await newSession(env, user.id, null, body.sigKey);
   await env.DB.batch([
     session.statement,
     clearKey(env, emailKey),
@@ -398,9 +404,9 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, env);
   requireRecentAuth(session);
   const body = await readJson(ctx.request, StartFreshBody);
-  const user = await env.DB.prepare("SELECT dek_id, auth_hash FROM users WHERE id = ?")
+  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash FROM users WHERE id = ?")
     .bind(session.userId)
-    .first<{ dek_id: string | null; auth_hash: string | null }>();
+    .first<{ email: string; dek_id: string | null; auth_hash: string | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.auth_hash !== null && body.wrappedDek === undefined) {
     throw new HttpError(400, "invalid_request", "wrappedDek is required for password accounts", {}, { fields: ["wrappedDek"] });
@@ -428,6 +434,7 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
     env.DB.prepare("UPDATE sessions SET device_id = ? WHERE token_hash = ?").bind(deviceId, session.tokenHash),
   ]);
   await env.SNAPSHOTS.delete(snapKey(userId));
+  await sendMail(env, user.email, { kind: "start_fresh" });
   return json({ dekId: body.dekId, deviceId });
 }
 

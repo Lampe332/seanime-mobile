@@ -29,6 +29,7 @@ export async function cleanup(env: Env): Promise<CleanupResult> {
     env.DB.prepare("DELETE FROM device_requests WHERE expires_at <= ?").bind(t - DAY),
     env.DB.prepare("DELETE FROM google_nonces WHERE expires_at <= ? OR used_at IS NOT NULL").bind(t),
     env.DB.prepare("DELETE FROM rate_limits WHERE expires_at <= ?").bind(t),
+    env.DB.prepare("DELETE FROM used_nonces WHERE expires_at <= ?").bind(t),
     env.DB.prepare("DELETE FROM sessions WHERE last_used_at < ?").bind(t - SESSION_IDLE_SECONDS),
   ]);
 

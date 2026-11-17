@@ -113,7 +113,7 @@ export function preflight(): Response {
     status: 204,
     headers: {
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, If-Match, X-Dek-Id",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, If-Match, X-Dek-Id, X-SM-Sig, X-SM-Ts, X-SM-Nonce",
       "Access-Control-Max-Age": "600",
     },
   });

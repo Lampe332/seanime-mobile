@@ -4,7 +4,7 @@ import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import worker from "../src/index";
-import { api, b64, clientKeys, freshIp, rand, signupUser, upload } from "./helpers";
+import { api, b64, clientKeys, freshIp, rand, signed, signupUser, upload } from "./helpers";
 
 const sink = env.EMAIL as unknown as { take(to: string): Promise<{ text: string }[]> };
 type User = Awaited<ReturnType<typeof signupUser>>;
@@ -93,7 +93,7 @@ describe("devices and the device key", () => {
       ],
       wrappedDek: b64(rand(72)),
     };
-    expect((await exports.default.fetch(rotateRequest(a.token, meta, 0))).status).toBe(200);
+    expect((await exports.default.fetch(await signed(rotateRequest(a.token, meta, 0)))).status).toBe(200);
     // The tablet keeps its session and picks up its newly sealed key.
     expect(await json(await api("/v1/account/keys/device", { token: tablet.token }))).toEqual({
       deviceId: tablet.deviceId,
@@ -200,9 +200,11 @@ describe("GET account", () => {
   it("works for the website with the session cookie", async () => {
     const a = await signupUser();
     const res = await exports.default.fetch(
-      new Request("https://api.example.com/v1/account", {
-        headers: { Origin: "https://seanimemobile.com", Cookie: `__Host-sid=${a.token}`, "CF-Connecting-IP": freshIp() },
-      }),
+      await signed(
+        new Request("https://api.example.com/v1/account", {
+          headers: { Origin: "https://seanimemobile.com", Cookie: `__Host-sid=${a.token}`, "CF-Connecting-IP": freshIp() },
+        }),
+      ),
     );
     expect(res.status).toBe(200);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://seanimemobile.com");
@@ -267,14 +269,14 @@ describe("rotation", () => {
       delete: (key: string) => env.SNAPSHOTS.delete(key),
     };
     const brokenEnv = new Proxy(env, { get: (target, key) => (key === "SNAPSHOTS" ? brokenR2 : Reflect.get(target, key)) });
-    const failed = await workerFetch(rotateRequest(a.token, meta, 1, rand(128)), brokenEnv, createExecutionContext());
+    const failed = await workerFetch(await signed(rotateRequest(a.token, meta, 1, rand(128))), brokenEnv, createExecutionContext());
     expect(failed.status).toBe(500);
     expect(await state()).toEqual(before);
     const kept = await api("/v1/sync/snapshot", { token: a.token });
     expect(kept.headers.get("X-Dek-Id")).toBe(a.keys.dekId);
     expect(new Uint8Array(await kept.arrayBuffer())).toEqual(blob);
 
-    const ok = await exports.default.fetch(rotateRequest(a.token, meta, 1, rand(128)));
+    const ok = await exports.default.fetch(await signed(rotateRequest(a.token, meta, 1, rand(128))));
     expect(ok.status).toBe(200);
     expect(await json(ok)).toEqual({ dekId: newDek, version: 2, recoveryRenewalNeeded: true });
     expect(await json(await api("/v1/sync/meta", { token: a.token }))).toMatchObject({ dekId: newDek, recoveryRenewalNeeded: true });

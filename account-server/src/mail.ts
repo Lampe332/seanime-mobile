@@ -12,6 +12,7 @@ export type Mail =
   | { kind: "new_device"; deviceName: string }
   | { kind: "password_changed" }
   | { kind: "account_deleted" }
+  | { kind: "start_fresh" }
   | { kind: "inactivity"; deleteAt: number };
 
 interface Content {
@@ -71,6 +72,15 @@ function content(env: Env, mail: Mail): Content {
         lines: [
           "Your Seanime Mobile account and all synced data were deleted.",
           "The app keeps working on your devices with the data stored there.",
+        ],
+      };
+    case "start_fresh":
+      return {
+        subject: "Your synced data was reset",
+        lines: [
+          "Someone chose Start fresh for your Seanime Mobile account.",
+          "All synced data was deleted, every other device was removed and signed out, and a new key was created.",
+          "If this was not you, reset your password right away and remove any device you do not know.",
         ],
       };
     case "inactivity":

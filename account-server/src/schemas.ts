@@ -44,11 +44,21 @@ export const DeviceKeys = z.strictObject({
 
 export const PreloginBody = z.strictObject({ email: Email });
 
+/** Public signing key of a new session (plan 10.2b): Ed25519 (32 bytes) or ECDSA P-256 (65-byte uncompressed point). */
+export const SigKeyBody = z.discriminatedUnion("alg", [
+  z.strictObject({ alg: z.literal("ed25519"), pub: b64Exact(32) }),
+  z.strictObject({ alg: z.literal("p256"), pub: b64Exact(65) }),
+]);
+/** One-time sign-in challenge from auth/prelogin or auth/google/nonce (signature.ts): 36 bytes. */
+export const Challenge = b64Exact(36);
+
 export const SignupBody = z.strictObject({
   email: Email,
   salt: Salt,
   kdf: Kdf,
   authKey: AuthKey,
+  challenge: Challenge,
+  sigKey: SigKeyBody,
   // Present when signing up in the app (plan 6.1); absent for website signups.
   keys: z
     .strictObject({
@@ -62,6 +72,8 @@ export const SignupBody = z.strictObject({
 export const LoginBody = z.strictObject({
   email: Email,
   authKey: AuthKey,
+  challenge: Challenge,
+  sigKey: SigKeyBody,
 });
 
 export const KeysBody = z
@@ -99,6 +111,14 @@ export const GoogleBody = z.strictObject({
     .max(4096)
     .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/),
   nonce: Nonce32,
+});
+
+/** Google sign-in: the ID token, its nonce, the challenge issued with the nonce and the new session's key. */
+export const GoogleLoginBody = z.strictObject({
+  idToken: GoogleBody.shape.idToken,
+  nonce: Nonce32,
+  challenge: Challenge,
+  sigKey: SigKeyBody,
 });
 
 export const ResetRequestBody = z.strictObject({ email: Email });

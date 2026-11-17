@@ -5,7 +5,8 @@ import { clientIp, HttpError, json, noContent, readJson } from "./http";
 import { sendMail } from "./mail";
 import { burstLimit, fixedWindow, rateKey } from "./ratelimit";
 import { authHash, type Ctx, isUniqueViolation, PEPPER_VERSION, withSession } from "./routes";
-import { GoogleBody, ResetBody, ResetRequestBody, TokenBody } from "./schemas";
+import { GoogleBody, GoogleLoginBody, ResetBody, ResetRequestBody, TokenBody } from "./schemas";
+import { issueChallenge, verifySignIn } from "./signature";
 import { newSession, now, requireRecentAuth, requireSession } from "./session";
 
 export const VERIFY_TTL = 7 * 24 * 3600;
@@ -196,7 +197,8 @@ export async function googleNonce(ctx: Ctx): Promise<Response> {
   await env.DB.prepare("INSERT INTO google_nonces (nonce_hash, expires_at) VALUES (?, ?)")
     .bind(toB64url(await sha256(nonce)), t + GOOGLE_NONCE_TTL)
     .run();
-  return json({ nonce, expiresAt: t + GOOGLE_NONCE_TTL });
+  // The sign-in with this nonce must also carry this one-time challenge, signed with the new key (plan 10.2b).
+  return json({ nonce, expiresAt: t + GOOGLE_NONCE_TTL, challenge: await issueChallenge(env, `google:${nonce}`) });
 }
 
 /** Verifies the token, then uses up the nonce. A nonce works exactly once. */
@@ -221,7 +223,8 @@ interface GoogleUser {
 export async function googleLogin(ctx: Ctx): Promise<Response> {
   const { env, request } = ctx;
   await burstLimit(env.LOGIN_LIMITER, clientIp(request));
-  const body = await readJson(request, GoogleBody);
+  const body = await readJson(request, GoogleLoginBody);
+  await verifySignIn(env, request, body.sigKey, body.challenge, `google:${body.nonce}`);
   const identity = await googleIdentity(env, body);
   const t = now();
 
@@ -254,7 +257,7 @@ export async function googleLogin(ctx: Ctx): Promise<Response> {
     created = true;
   }
 
-  const session = await newSession(env, user.id, null);
+  const session = await newSession(env, user.id, null, body.sigKey);
   await env.DB.batch([
     session.statement,
     env.DB.prepare("UPDATE users SET last_active_at = ? WHERE id = ?").bind(t, user.id),

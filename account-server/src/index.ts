@@ -3,6 +3,7 @@ import { cleanup } from "./cron";
 import * as approval from "./approval";
 import * as id from "./identity";
 import { rotate } from "./rotate";
+import { withBodyDigest } from "./signature";
 import * as r from "./routes";
 
 type Handler = (ctx: r.Ctx) => Promise<Response>;
@@ -50,7 +51,9 @@ async function handle(request: Request, env: Env, isBrowser: boolean, exec: Exec
     if (!m) continue;
     pathMatched = true;
     if (method !== request.method) continue;
-    return handler({ request, env, isBrowser, params: { ...m.groups }, waitUntil: (p) => exec.waitUntil(p) });
+    // The body is read once here so its hash can be checked against the request signature (signature.ts).
+    const req = await withBodyDigest(request);
+    return handler({ request: req, env, isBrowser, params: { ...m.groups }, waitUntil: (p) => exec.waitUntil(p) });
   }
   throw pathMatched ? new HttpError(405, "method_not_allowed") : new HttpError(404, "not_found");
 }
