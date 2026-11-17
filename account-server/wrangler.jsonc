@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "seanime-account",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-17",
+  "observability": {
+    "enabled": true,
+    "traces": { "enabled": true }
+  },
+  "vars": {
+    "ALLOWED_ORIGIN": "https://seanimemobile.com"
+  },
+  // Values are set with `wrangler secret put`, never committed.
+  "secrets": {
+    "required": ["PEPPER_V1", "ENUM_SECRET"]
+  },
+  // Placeholder IDs. Replace with the real resource IDs before the first deploy.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "seanime-account",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "SNAPSHOTS",
+      "bucket_name": "seanime-account-snapshots"
+    }
+  ],
+  // Short burst limits per IP. Longer windows (15 min, 1 h) are counted in D1.
+  "ratelimits": [
+    { "name": "LOGIN_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    { "name": "SIGNUP_LIMITER", "namespace_id": "1002", "simple": { "limit": 5, "period": 60 } }
+  ],
+  "triggers": {
+    "crons": ["17 3 * * *"]
+  }
+}

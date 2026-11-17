@@ -1,0 +1,3 @@
+# Copy to .dev.vars for `wrangler dev`. Test-only values; production secrets are set with `wrangler secret put`.
+PEPPER_V1=dev-pepper-not-secret-0123456789abcdef
+ENUM_SECRET=dev-enum-secret-not-secret-0123456789
