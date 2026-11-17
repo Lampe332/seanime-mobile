@@ -1,14 +1,19 @@
 <p align="center">
-  <img src="docs/images/readme/banner.png" alt="Seanime Mobile. Anime and manga on Android. No PC, no server. A phone showing Discover stands in front of a tablet that plays an episode." width="100%">
+  <img src="docs/images/readme/logo.png" alt="Seanime Mobile logo" width="112" height="112">
 </p>
 
+<h1 align="center">Seanime Mobile</h1>
+
 <p align="center">
-  Stream or download anime, read manga, and keep your AniList in sync, all on your Android phone or tablet.<br>
-  Free and open source. No ads.
+  <b>Anime and manga on your Android phone or tablet.</b><br>
+  Stream or download episodes, read manga, and keep your AniList in sync.<br>
+  Free, open source, no ads. No PC and no server at home.
 </p>
 
 <p align="center">
   <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><img src="docs/images/readme/download.svg" alt="Download the APK" height="52"></a>
+  &nbsp;
+  <a href="https://seanimemobile.com"><img src="docs/images/readme/website.svg" alt="Visit seanimemobile.com" height="52"></a>
 </p>
 
 <p align="center">
@@ -18,13 +23,25 @@
 </p>
 
 <p align="center">
+  <a href="https://seanimemobile.com">Website</a> &nbsp;·&nbsp;
   <a href="#install">Install</a> &nbsp;·&nbsp;
   <a href="#first-start">First start</a> &nbsp;·&nbsp;
   <a href="#faq">FAQ</a> &nbsp;·&nbsp;
   <a href="CHANGELOG.md">Changelog</a>
 </p>
 
-<p align="center"><sub>Built on <a href="https://github.com/5rahim/seanime">Seanime</a> by 5rahim. Not the official Seanime app.</sub></p>
+<p align="center"><sub>Unofficial · built on <a href="https://github.com/5rahim/seanime">Seanime</a> by 5rahim. Not the official Seanime app.</sub></p>
+
+<p align="center">
+  <img src="docs/images/readme/banner.png" alt="Seanime Mobile. Anime and manga on Android. No PC, no server. A phone showing Discover stands in front of a tablet that plays an episode." width="100%">
+</p>
+
+## Why use it
+
+- **Everything runs on the device.** The app has its own core, so there is no PC or home server to keep alive.
+- **No account needed.** Log in with AniList, or use a local account that keeps your lists on the phone.
+- **No ads, no price tag.** It's free software under the GPL-3.0, and the code is right here.
+- **One APK for phones and tablets.** Tablets get a layout of their own.
 
 <p align="center">
   <img src="docs/images/readme/phone-discover.png" alt="Discover with the season spotlight, genre chips and Trending now" width="24%">
@@ -41,9 +58,9 @@
   <tr><td><b>Watch</b></td><td>Stream from the sources you install, online or by torrent, with Sub or Dub. The player is mpv, so AC3, DTS, ASS subtitles and every track of an MKV just play.</td></tr>
   <tr><td><b>Download</b></td><td>Keep episodes and chapters on the device for when there's no connection.</td></tr>
   <tr><td><b>Read</b></td><td>Manga, online or offline. The Manga tab picks up where you stopped.</td></tr>
-  <tr><td><b>Track</b></td><td>Your AniList lists and progress stay in sync. If AniList is down, your changes wait on the phone and go out later. A local account works without AniList.</td></tr>
+  <tr><td><b>Track</b></td><td>Your AniList lists and progress stay in sync. If AniList is down, your changes wait on the phone and go out later.</td></tr>
   <tr><td><b>Cast</b></td><td>Send an episode to your TV over DLNA, or play your PC's Seanime library through Nakama.</td></tr>
-  <tr><td><b>Tablets</b></td><td>One APK for phones and tablets. Tablets get a navigation rail, settings in two panes, and anime pages where the cover stays put while the episodes scroll.</td></tr>
+  <tr><td><b>Tablets</b></td><td>A navigation rail, settings in two panes, and anime pages where the cover stays put while the episodes scroll.</td></tr>
 </table>
 
 <details>
@@ -73,6 +90,8 @@
 </p>
 </details>
 
+Want a guided look first? The [website](https://seanimemobile.com) has a tap-through tour of the app and the full feature list.
+
 ## See it run
 
 <p align="center">
@@ -86,6 +105,8 @@
 1. On your phone or tablet, open the [latest release](https://github.com/Lampe332/seanime-mobile/releases/latest) and download the `Seanime-Mobile` APK under *Assets*. It's about 71 MB.
 2. Open the file. The first time, Android asks you to allow *Install unknown apps* for your browser or file manager. Allow it and go back.
 3. Tap *Install*. Play Protect may warn you because the app doesn't come from the Play Store. Choose *More details → Install anyway*.
+
+Stuck on one of those steps? [seanimemobile.com/help](https://seanimemobile.com/help) walks through them one by one, shows how to check the file's SHA-256 checksum, and lists fixes for common problems.
 
 From then on the app offers updates itself. It checks this repository for a new release when it starts, and it installs a download only when it matches the checksum GitHub publishes for it.
 
@@ -158,6 +179,14 @@ No. The local account keeps lists and progress on the device, and *Upload local 
 
 </details>
 
+<details>
+<summary>Where do I find more help, and what does the app send where?</summary>
+<br>
+
+[seanimemobile.com/help](https://seanimemobile.com/help) covers installing, checking the file, updates and common problems. The [privacy page](https://seanimemobile.com/privacy) explains what the app sends where and which permissions it uses for what.
+
+</details>
+
 Found a bug or have an idea? [Open an issue](https://github.com/Lampe332/seanime-mobile/issues) with your device model, Android version and app version (*Settings → About*).
 
 ## Build it yourself
@@ -175,3 +204,5 @@ Seanime Mobile is built on [**Seanime**](https://github.com/5rahim/seanime) by *
 The full license texts of these and the bundled JavaScript libraries are in [`licenses/`](licenses/). The old server code and the earlier apps are still in the git history.
 
 Seanime Mobile is licensed under the GPL-3.0 ([LICENSE](LICENSE)). The app hosts no content; it only shows what your installed extensions provide.
+
+<p align="center"><sub>Website: <a href="https://seanimemobile.com">seanimemobile.com</a> · <a href="https://seanimemobile.com/help">Help</a> · <a href="https://seanimemobile.com/privacy">Privacy</a> · <a href="https://seanimemobile.com/security">Security</a> · <a href="https://seanimemobile.com/imprint">Imprint</a></sub></p>
