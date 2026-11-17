@@ -22,6 +22,7 @@ import { LinkRow, SettingsGroup, SettingSwitch } from "@/main/settings/_componen
 import { contactHref, DISCORD_INVITE, LEGAL, shortLink } from "@/main/settings/_lib/legal"
 import { sectionFromTab, SETTINGS_SECTIONS, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 import { NO_TAPS, secretMessage, TAP_RESET_MS, tapHint, versionTap } from "@/main/settings/_lib/version-taps"
+import { SettingsAccountSection } from "@/main/settings/_screens/settings-account"
 import { SettingsAppSection } from "@/main/settings/_screens/settings-app"
 import { SettingsLibrarySection } from "@/main/settings/_screens/settings-library"
 import { SettingsLogsSection } from "@/main/settings/_screens/settings-logs"
@@ -40,6 +41,7 @@ import BookKey from "lucide-react-native/icons/book-key"
 import BookOpen from "lucide-react-native/icons/book-open"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
 import CirclePlay from "lucide-react-native/icons/circle-play"
+import CircleUserRound from "lucide-react-native/icons/circle-user-round"
 import Globe from "lucide-react-native/icons/globe"
 import Info from "lucide-react-native/icons/info"
 import Library from "lucide-react-native/icons/library"
@@ -61,6 +63,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
  */
 
 const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, title: [string, string], summary: [string, string] }> = {
+    account: { icon: CircleUserRound, title: ["Account", "Konto"], summary: ["Sync settings and watch history between devices", "Einstellungen und Verlauf zwischen Geräten synchronisieren"] },
     seanime: { icon: WandSparkles, title: ["App", "App"], summary: ["Episodes, language, extensions, navigation, account", "Folgen, Sprache, Erweiterungen, Navigation, Konto"] },
     ui: { icon: Palette, title: ["Appearance", "Darstellung"], summary: ["Sorting, cards, loading pages", "Sortierung, Karten, Seiten laden"] },
     playback: { icon: CirclePlay, title: ["Playback", "Wiedergabe"], summary: ["Player for your files, external player, next episode", "Player für deine Dateien, externer Player, nächste Folge"] },
@@ -143,7 +146,7 @@ function SectionList({ t, onOpen, current, compact, notes = true }: {
     t: Translate
     onOpen: (id: SettingsSectionId) => void
     current?: SettingsSectionId
-    /** a tablet landscape under 900dp height: all ten areas fit without scrolling */
+    /** a tablet landscape under 900dp height: all eleven areas fit without scrolling */
     compact?: boolean
     notes?: boolean
 }) {
@@ -206,6 +209,8 @@ function SectionContent({ id, t, onOpen, tablet }: { id: SettingsSectionId, t: T
     const router = useRouter()
     const extensionsReady = MENU_ENTRIES.some(e => e.id === "extensions" && e.ready)
     switch (id) {
+        case "account":
+            return <SettingsAccountSection t={t} />
         case "seanime":
             return <SettingsAppSection t={t} />
         case "ui":
