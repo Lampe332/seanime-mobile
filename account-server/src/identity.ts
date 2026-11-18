@@ -3,11 +3,11 @@ import { fromB64url, hmacSha256, randomBytes, safeEqual, sha256, toB64url } from
 import { verifyGoogleIdToken } from "./google";
 import { clientIp, HttpError, json, noContent, readJson } from "./http";
 import { notify, sendMail } from "./mail";
-import { burstLimit, fixedWindow, ipRange, isKnownNetwork, mailAllowed, rateKey, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
+import { burstLimit, fixedWindow, ipKey, isKnownNetwork, mailAllowed, rateKey, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
 import { authHash, type Ctx, isUniqueViolation, PEPPER_VERSION, withSession } from "./routes";
 import { GoogleLoginBody, LinkGoogleBody, ResetBody, ResetRequestBody, TokenBody, UnlinkGoogleBody } from "./schemas";
 import { issueChallenge, useOnce, verifySignIn } from "./signature";
-import { newSession, now, requireSession, type Session } from "./session";
+import { newSession, now, RECENT_AUTH_SECONDS, requireSession, type Session } from "./session";
 
 export const VERIFY_TTL = 7 * 24 * 3600;
 export const RESET_TTL = 30 * 60;
@@ -108,8 +108,9 @@ export async function resetRequest(ctx: Ctx): Promise<Response> {
   const ip = clientIp(request);
   await burstLimit(env.LOGIN_LIMITER, ip);
   const { email } = await readJson(request, ResetRequestBody);
-  // N-4: per (email, IP range), so somebody elsewhere cannot use up the owner's reset mails.
-  await fixedWindow(env, await rateKey(env, "reset-email", `${email}|${ipRange(ip)}`), RESET_LIMIT_EMAIL, HOUR);
+  // N-4: per (email, sender), so somebody elsewhere cannot use up the owner's reset mails. NEU5-1: per address (IPv6 /48),
+  // not per /24, so a stranger in the owner's network can't either; the mails stay capped per network (mailAllowed).
+  await fixedWindow(env, await rateKey(env, "reset-email", `${email}|${ipKey(ip)}`), RESET_LIMIT_EMAIL, HOUR);
   const user = await env.DB.prepare("SELECT id FROM users WHERE email = ? AND auth_hash IS NOT NULL")
     .bind(email)
     .first<{ id: string }>();
@@ -331,10 +332,14 @@ export async function requirePassword(env: Env, request: Request, session: Sessi
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.auth_hash === null) throw new HttpError(409, "no_password", "This account has no password.");
   // Counted before the check (N-5); the session is signed in already, but a stolen one must not guess freely. A device
-  // of the account counts only per IP, like a known device at sign-in.
+  // of the account counts only per IP, like a known device at sign-in. NEU5-2: so does a password sign-in within the last
+  // 10 minutes (the website's), which proved the password already; a stranger holding the email's counter can't block it.
   const ip = clientIp(request);
   const ipBack = await reserveLoginIp(env, ip);
-  const { onSuccess, confirmByMail } = await reserveLoginEmail(env, ip, user.email, session.deviceId !== null);
+  const freshPassword = session.passwordAuth && now() - session.authAt <= RECENT_AUTH_SECONDS;
+  const { onSuccess, confirmByMail } = await reserveLoginEmail(env, ip, user.email, session.deviceId !== null || freshPassword);
+  // NEU5-2: an older password sign-in only needs a new one (through the mailed link if need be), then the above applies
+  if (confirmByMail && session.passwordAuth) throw new HttpError(403, "reauth_required", "Sign in again to continue.");
   if (confirmByMail) throw new HttpError(429, "rate_limited", "Too many attempts for this email. Use the app on one of your devices.");
   const stored = fromB64url(user.auth_hash);
   const ok = stored !== null && safeEqual(await authHash(env, authKey), stored) && user.pepper_version === PEPPER_VERSION;

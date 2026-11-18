@@ -230,8 +230,9 @@ describe("S5: nobody is locked out by the email's counter", () => {
     await sink.take(a.email);
     const statuses: number[] = [];
     for (let i = 0; i < 8; i++) statuses.push((await api("/v1/auth/reset-request", { body: { email: a.email }, ip: `203.0.113.${i + 1}`, sign: false })).status);
-    expect(statuses.filter((s) => s === 202)).toHaveLength(3);
-    expect(await mailsTo(a.email, "Reset your password", 3)).toHaveLength(3);
+    // NEU5-1: the request limit is per address now; the mails from one network stay capped (5 an hour)
+    expect(statuses.every((s) => s === 202)).toBe(true);
+    expect(await mailsTo(a.email, "Reset your password", 8)).toHaveLength(5);
     expect((await api("/v1/auth/reset-request", { body: { email: a.email }, ip: "198.51.100.7", sign: false })).status).toBe(202);
     expect(await mailsTo(a.email, "Reset your password")).toHaveLength(1);
   });

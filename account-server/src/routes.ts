@@ -584,11 +584,12 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
     }>();
   if (!user) throw new HttpError(401, "unauthorized");
   // I5: the newest security events, the same ones that were mailed. NEU4-5: plus the newest of each kind, so a flood of one
-  // kind never pushes another out of the list.
+  // kind never pushes another out of the list. NEU5-4: the newest 3 of each kind, so two devices signed out stay listed.
   const { results: events } = await ctx.env.DB.prepare(
     `SELECT kind, device_name, at FROM account_events WHERE user_id = ?1 AND (
        id IN (SELECT id FROM account_events WHERE user_id = ?1 ORDER BY at DESC, id DESC LIMIT 20)
-       OR id IN (SELECT MAX(id) FROM account_events WHERE user_id = ?1 GROUP BY kind))
+       OR id IN (SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY kind ORDER BY at DESC, id DESC) AS n
+                 FROM account_events WHERE user_id = ?1) WHERE n <= 3))
      ORDER BY at DESC, id DESC`,
   )
     .bind(session.userId)

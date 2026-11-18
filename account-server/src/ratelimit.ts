@@ -185,10 +185,14 @@ export async function isKnownNetwork(env: Env, userId: string, ip: string): Prom
 
 /**
  * Counts one mail of `pot` to `email` from `ip` and says whether it may go. Never throws, so the answer to the sender
- * stays the same either way (no hint whether the address has an account). `knownNetwork` skips the cap across networks.
+ * stays the same either way (no hint whether the address has an account). `knownNetwork` counts per address and caps the
+ * whole network per day instead of the cap across networks (NEU5-1).
  */
 export async function mailAllowed(env: Env, pot: MailPot, email: string, ip: string, knownNetwork = false): Promise<boolean> {
-  const sender = `${email}|${ipRange(ip)}`;
+  // NEU5-1: in a known network the pot is per address (IPv6 /48), so a stranger in the same /24 (public WLAN, carrier NAT)
+  // uses up only his own; the whole network stays capped per day (below) instead of the cap across networks.
+  const range = `${email}|${ipRange(ip)}`;
+  const sender = knownNetwork ? `${email}|${ipKey(ip)}` : range;
   const count = async (window: string, seconds: number, value = sender) => {
     const t = now();
     const row = await env.DB.prepare(
@@ -205,7 +209,7 @@ export async function mailAllowed(env: Env, pot: MailPot, email: string, ip: str
   };
   if ((await count("hour", 3600)) > MAIL_LIMIT_HOUR) return false;
   if ((await count("day", 24 * 3600)) > MAIL_LIMIT_DAY) return false;
-  if (knownNetwork) return true;
+  if (knownNetwork) return (await count("day-net", 24 * 3600, range)) <= MAIL_LIMIT_DAY_ALL;
   return (await count("day-all", 24 * 3600, email)) <= MAIL_LIMIT_DAY_ALL;
 }
 

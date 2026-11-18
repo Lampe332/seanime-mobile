@@ -81,12 +81,14 @@ describe("parallel logins (N-5)", () => {
 });
 
 describe("reset mails (N-4)", () => {
-  it("counts per email and IP range", async () => {
+  it("counts per email and IP address (NEU5-1: not per range, the mails stay capped per range)", async () => {
     const u = await signupUser();
     const a = net();
     const reset = (ip: string) => api("/v1/auth/reset-request", { ip, body: { email: u.email } });
-    for (let i = 1; i <= 3; i++) expect((await reset(`${a}.${i}`)).status).toBe(202);
-    expect((await reset(`${a}.4`)).status).toBe(429);
+    for (let i = 1; i <= 3; i++) expect((await reset(`${a}.1`)).status).toBe(202);
+    expect((await reset(`${a}.1`)).status).toBe(429);
+    // Somebody else in the same network still gets an answer.
+    expect((await reset(`${a}.2`)).status).toBe(202);
     // The owner elsewhere still gets a link.
     expect((await reset(`${net()}.1`)).status).toBe(202);
   });

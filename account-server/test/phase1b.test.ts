@@ -420,11 +420,11 @@ describe("device approval", () => {
 // ---------------------------------------------------------------- password reset
 
 /** The mail goes out in waitUntil after the answer: wait for it like the runtime does. */
-async function requestReset(email: string) {
+async function requestReset(email: string, ip = `10.254.${rand(1)[0]}.${rand(1)[0]}`) {
   const exec = createExecutionContext();
   const request = new Request("https://api.example.com/v1/auth/reset-request", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "CF-Connecting-IP": `10.254.254.${rand(1)[0]}` }, // one /24: the limit counts per email and IP range (N-4)
+    headers: { "Content-Type": "application/json", "CF-Connecting-IP": ip }, // the limit counts per email and IP address (N-4, NEU5-1)
     body: JSON.stringify({ email }),
   });
   const res = await (worker.fetch as unknown as (r: Request, e: Env, c: ExecutionContext) => Promise<Response>)(request, env, exec);
@@ -436,20 +436,20 @@ describe("password reset", () => {
   it("answers known and unknown emails the same and limits to 3 per hour", async () => {
     const u = await signupUser();
     await takeMails(u.email);
-    const known = await requestReset(u.email);
+    const known = await requestReset(u.email, "10.254.254.7");
     const ghost = freshEmail("ghost");
-    const unknown = await requestReset(ghost);
+    const unknown = await requestReset(ghost, "10.254.254.7");
     expect(known.status).toBe(202);
     expect(unknown.status).toBe(202);
     expect(await known.json()).toEqual(await unknown.json());
     expect(await takeMails(ghost)).toHaveLength(0);
     expect(await takeMails(u.email)).toHaveLength(1);
-    await requestReset(u.email);
-    await requestReset(u.email);
-    expect((await requestReset(u.email)).status).toBe(429);
-    await requestReset(ghost);
-    await requestReset(ghost);
-    expect((await requestReset(ghost)).status).toBe(429);
+    await requestReset(u.email, "10.254.254.7");
+    await requestReset(u.email, "10.254.254.7");
+    expect((await requestReset(u.email, "10.254.254.7")).status).toBe(429);
+    await requestReset(ghost, "10.254.254.7");
+    await requestReset(ghost, "10.254.254.7");
+    expect((await requestReset(ghost, "10.254.254.7")).status).toBe(429);
   });
 
   it("without recovery code: new login, no password wrap, all sessions out, token once", async () => {
