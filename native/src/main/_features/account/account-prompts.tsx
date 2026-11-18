@@ -136,11 +136,16 @@ function ApprovalSheet({ request, onClose }: { request: ApprovalRequest, onClose
         setBusy(true)
         try {
             await denyApproval(request.id)
+            toast.success(t(`${request.deviceName} was denied.`, `${request.deviceName} wurde abgelehnt.`))
+            onClose()
         }
-        catch {
-            // already ended on the server
+        catch (error) {
+            // M-1: a deny that did not reach the server must not look like one; the sheet stays open to try again
+            toast.error(accountErrorText(t, error))
         }
-        onClose()
+        finally {
+            setBusy(false)
+        }
     }
 
     return <Sheet title={t(`${request.deviceName} wants to sign in`, `${request.deviceName} möchte sich anmelden`)} open onOpenChange={open => !open && onClose()}

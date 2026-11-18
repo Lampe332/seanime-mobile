@@ -8,7 +8,7 @@ import { toast } from "@/components/ui/toast/toast-store"
 import type { DeviceInfo } from "@/core/account/client"
 import type { PendingApproval } from "@/core/account/devices"
 import {
-    accountAtom, accountInfoAtom, approvalDone, approvalProgress, askForApproval, changeAccountPassword, createAccount, deleteSyncedData, deleteWholeAccount,
+    accountAtom, accountInfoAtom, approvalDone, disconnectGoogle, finishKeyChange, approvalProgress, askForApproval, changeAccountPassword, createAccount, deleteSyncedData, deleteWholeAccount,
     importDismissedAtom, lastSyncAtom, listDevices, newRecoveryCode, recoveryCodeUsable, removeAccountDevice, resendConfirmation, signIn, signOutHere,
     startFreshHere, syncingAtom, syncNow, unlockWithRecoveryCode,
 } from "@/lib/account/account-app"
@@ -219,7 +219,7 @@ function Overview({ t }: { t: Translate }) {
     const setImportDismissed = useSetAtom(importDismissedAtom)
     const queryClient = useQueryClient()
     const [now, setNow] = React.useState(Date.now)
-    const [sheet, setSheet] = React.useState<"recovery" | "password" | "signout" | "data" | "delete" | null>(null)
+    const [sheet, setSheet] = React.useState<"recovery" | "password" | "signout" | "data" | "delete" | "rotate" | "google" | null>(null)
     const [code, setCode] = React.useState<string | null>(null)
     const [removing, setRemoving] = React.useState<DeviceInfo | null>(null)
     const devices = useQuery({ queryKey: DEVICES_KEY, queryFn: listDevices })
@@ -251,6 +251,8 @@ function Overview({ t }: { t: Translate }) {
 
     const renewal = info?.recoveryRenewalNeeded || lastSync?.recoveryRenewalNeeded
     const syncNote = syncNoteFor(t, lastSync?.state)
+    // M-4: a removed device still knows the old key until one of the user's devices switches to a new one
+    const keyChangePending = (info?.rotationRequired || lastSync?.rotationRequired) && lastSync?.state !== "key-untrusted"
 
     return <View className="gap-6">
         {info && !info.emailVerified && <SettingsGroup title={t("Confirm your email", "Bestätige deine E-Mail")}
@@ -264,11 +266,18 @@ function Overview({ t }: { t: Translate }) {
                 note={t("Your account has data from another device", "Dein Konto hat Daten von einem anderen Gerät")} onPress={() => setImportDismissed(false)} />}
             <LinkRow label={syncing ? t("Syncing…", "Wird synchronisiert …") : t("Sync now", "Jetzt synchronisieren")} disabled={syncing}
                 value={syncedAgo(t, account.lastSyncAt, Math.max(now, account.lastSyncAt ?? 0))} note={syncNote} chevron={false} onPress={() => void syncNowPressed()} />
+            {keyChangePending && <LinkRow label={t("Finish removing a device", "Entfernen eines Geräts abschließen")} tone="accent"
+                note={account.kind === "email"
+                    ? t("A removed device can still read your data until the key changes. Enter your password to change it.", "Ein entferntes Gerät kann deine Daten lesen, bis der Schlüssel wechselt. Gib dein Passwort ein, um ihn zu wechseln.")
+                    : t("A removed device can still read your data until the key changes. Sign out and sign in with Google again to change it.", "Ein entferntes Gerät kann deine Daten lesen, bis der Schlüssel wechselt. Melde dich ab und wieder mit Google an, um ihn zu wechseln.")}
+                onPress={() => setSheet("rotate")} />}
         </SettingsGroup>
 
         <SettingsGroup title={t("Devices", "Geräte")} note={t("Removing a device signs it out and changes the key, so it can't read anything new.", "Ein entferntes Gerät wird abgemeldet und der Schlüssel gewechselt, damit es nichts Neues mehr lesen kann.")}>
-            {devices.data?.map(device => <LinkRow key={device.id} label={device.name}
-                note={device.current ? t("This device", "Dieses Gerät") : t(`Last seen ${new Date(device.lastSeenAt).toLocaleDateString(t("en-US", "de-DE"))}`, `Zuletzt ${new Date(device.lastSeenAt).toLocaleDateString("de-DE")}`)}
+            {devices.data?.map(device => <LinkRow key={device.id} label={device.name} tone={device.verified ? undefined : "danger"}
+                note={!device.verified
+                    ? t("Not added by one of your devices. Remove it if you don't know it.", "Nicht von einem deiner Geräte hinzugefügt. Entferne es, wenn du es nicht kennst.")
+                    : device.current ? t("This device", "Dieses Gerät") : t(`Last seen ${new Date(device.lastSeenAt).toLocaleDateString(t("en-US", "de-DE"))}`, `Zuletzt ${new Date(device.lastSeenAt).toLocaleDateString("de-DE")}`)}
                 value={device.current ? undefined : t("Remove", "Entfernen")} chevron={!device.current} disabled={device.current} onPress={() => setRemoving(device)} />)}
             {devices.isError && <LinkRow label={t("Couldn't load the devices", "Geräte konnten nicht geladen werden")} value={t("Retry", "Nochmal")} onPress={() => void devices.refetch()} />}
             {devices.isPending && <LinkRow label={t("Loading…", "Wird geladen …")} chevron={false} disabled onPress={() => undefined} />}
@@ -284,6 +293,8 @@ function Overview({ t }: { t: Translate }) {
 
         <SettingsGroup title={t("Account", "Konto")}>
             {account.kind === "email" && <LinkRow label={t("Change password", "Passwort ändern")} note={t("Signs out your other devices", "Meldet deine anderen Geräte ab")} onPress={() => setSheet("password")} />}
+            {account.kind === "email" && info?.googleLinked && <LinkRow label={t("Disconnect Google", "Google trennen")}
+                note={t("Google sign-in is linked to this account", "Google-Anmeldung ist mit diesem Konto verknüpft")} onPress={() => setSheet("google")} />}
             <LinkRow label={t("Sign out", "Abmelden")} note={t("The data on this device stays", "Die Daten auf diesem Gerät bleiben")} onPress={() => setSheet("signout")} />
             <LinkRow label={t("Delete synced data", "Synchronisierte Daten löschen")} tone="danger" onPress={() => setSheet("data")} />
             <LinkRow label={t("Delete account", "Konto löschen")} tone="danger" onPress={() => setSheet("delete")} />
@@ -308,6 +319,22 @@ function Overview({ t }: { t: Translate }) {
                 await deleteWholeAccount(password)
                 toast.success(t("Account deleted.", "Konto gelöscht."))
             }} />
+        <InputSheet t={t} open={sheet === "rotate"} onOpenChange={open => !open && setSheet(null)} title={t("Finish removing a device", "Entfernen eines Geräts abschließen")}
+            field={account.kind === "email" ? "password" : "none"}
+            text={t("Your devices switch to a new key, so a removed device can't read anything synced from now on.", "Deine Geräte wechseln zu einem neuen Schlüssel, damit ein entferntes Gerät ab jetzt nichts Neues mehr lesen kann.")}
+            placeholder={t("Your password", "Dein Passwort")} action={t("Change key", "Schlüssel wechseln")}
+            onSubmit={async password => {
+                await finishKeyChange(account.kind === "email" ? password : undefined)
+                void queryClient.invalidateQueries({ queryKey: DEVICES_KEY })
+                toast.success(t("Done. The removed device can't read anything new.", "Fertig. Das entfernte Gerät kann nichts Neues mehr lesen."))
+            }} />
+        <InputSheet t={t} open={sheet === "google"} onOpenChange={open => !open && setSheet(null)} title={t("Disconnect Google?", "Google trennen?")} danger
+            text={t("Google can't be used to sign in to this account any more. You sign in with your email and password.", "Google kann danach nicht mehr zum Anmelden genutzt werden. Du meldest dich mit E-Mail und Passwort an.")}
+            placeholder={t("Your password", "Dein Passwort")} action={t("Disconnect", "Trennen")}
+            onSubmit={async password => {
+                await disconnectGoogle(password)
+                toast.success(t("Google disconnected.", "Google getrennt."))
+            }} />
         <InputSheet t={t} open={removing !== null} onOpenChange={open => !open && setRemoving(null)} title={t(`Remove ${removing?.name ?? ""}?`, `${removing?.name ?? ""} entfernen?`)} danger
             field={account.kind === "email" ? "password" : "none"}
             text={t("The device is signed out and gets no new data. Its own data stays on it.", "Das Gerät wird abgemeldet und bekommt keine neuen Daten. Seine eigenen Daten bleiben darauf.")}
@@ -322,6 +349,8 @@ function Overview({ t }: { t: Translate }) {
 function syncNoteFor(t: Translate, state: string | undefined): string | undefined {
     switch (state) {
         case "key-changed": return t("This device was removed from the account. Sign out and sign in again.", "Dieses Gerät wurde aus dem Konto entfernt. Melde dich ab und wieder an.")
+        case "key-untrusted": return t("Sync stopped: the account's key changed, and none of your devices vouched for it. If you didn't start fresh on another device, someone may be trying to get in. Sign out, then sign in again.",
+            "Sync gestoppt: Der Schlüssel des Kontos wurde gewechselt, ohne dass eines deiner Geräte das bestätigt hat. Wenn du nicht auf einem anderen Gerät neu angefangen hast, versucht vielleicht jemand reinzukommen. Melde dich ab und wieder an.")
         case "rate-limited": return t("Paused for a moment, too many syncs.", "Kurz pausiert, zu viele Syncs.")
         case "rollback-rejected": return t("The server sent older data than this device knows. Nothing was changed.", "Der Server schickte ältere Daten, als dieses Gerät kennt. Nichts wurde geändert.")
         default: return undefined

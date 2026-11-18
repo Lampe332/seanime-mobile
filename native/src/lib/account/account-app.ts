@@ -3,10 +3,11 @@
 import { corePackageEnvironment } from "@/api/client/core-switch"
 import { type AccountInfo, AccountClient, type ApprovalRequest, type HttpFetch } from "@/core/account/client"
 import {
-    type ApproverTurn, type PendingApproval, answerRequest, approveRequest, checkApproval, compareRequest, denyRequest, openRequests, requestApproval, rotate,
+    type ApproverTurn, type PendingApproval, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, denyRequest, openRequests, requestApproval, rotate,
 } from "@/core/account/devices"
 import {
-    changePassword, createRecoveryCode, deleteAccount, loginEmail, removeDevice, signOut, signupEmail, startFresh, useRecoveryCode as openWithRecoveryCode,
+    changePassword, completeRotation, createRecoveryCode, deleteAccount, loginEmail, removeDevice, signOut, signupEmail, startFresh, unlinkGoogle,
+    useRecoveryCode as openWithRecoveryCode,
 } from "@/core/account/flows"
 import { AccountSession, type AccountKind } from "@/core/account/session"
 import { SyncEngine, type SyncResult, type SyncTrigger, coreLocalData } from "@/core/account/sync"
@@ -63,6 +64,8 @@ const engine = new SyncEngine({
         safetyBackup: writeSafetyBackup,
     }),
     now: Date.now,
+    // Google accounts rotate here while their sign-in is recent; email accounts need the password, so the sync goes on
+    // and the account screen asks for it ("Finish removing a device", M-4)
     rotate: async () => {
         await rotate(deps)
         return true
@@ -138,8 +141,9 @@ export async function runSync(trigger: SyncTrigger): Promise<SyncResult | null> 
         if (result.state === "skipped") return result
         store.set(lastSyncAtom, result)
         if (result.state === "signed-out") {
-            // the session ended on the server (expired, removed on another device): this device forgets it, its data stays
-            await session.clear()
+            // the session ended on the server (expired, password reset, removed on another device): only the session goes.
+            // The key stays until the user signs in again or signs out, so a reset without code keeps the data (N-3).
+            await session.dropSession()
         }
         if (result.state === "updated" || result.state === "merged") afterDataChange()
         await refreshAccount()
@@ -230,11 +234,25 @@ export async function changeAccountPassword(currentPassword: string, newPassword
     await refreshInfo()
 }
 
-export const listDevices = () => client.devices()
+/** The account's devices, each checked against the key: an unverified one was not added by any of the user's devices */
+export const listDevices = () => checkedDevices(deps)
 
 export async function removeAccountDevice(deviceId: string, password: string): Promise<void> {
     await removeDevice(deps, { deviceId, deviceName: deviceName(), password })
     await runSync("manual")
+}
+
+/** "Finish removing a device": the rotation the server asks for, with the password (email) or a recent sign-in (Google) */
+export async function finishKeyChange(password: string | undefined): Promise<void> {
+    await completeRotation(deps, { deviceName: deviceName(), password })
+    await refreshInfo()
+    await runSync("manual")
+}
+
+/** "Disconnect Google" (H-2): needs the account's password */
+export async function disconnectGoogle(password: string): Promise<void> {
+    await unlinkGoogle(deps, { password })
+    await refreshInfo()
 }
 
 /** A new recovery code; the password signs in afresh first (the server wants a sign-in within 10 minutes) */
