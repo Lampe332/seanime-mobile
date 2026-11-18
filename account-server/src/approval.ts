@@ -20,8 +20,8 @@
  */
 import { fromB64url, safeEqual, sha256 } from "./crypto";
 import { HttpError, json, noContent, readJson } from "./http";
-import { sendMail } from "./mail";
-import { fixedWindow, rateKey } from "./ratelimit";
+import { notify } from "./mail";
+import { fixedWindow, rateKey, windowCount } from "./ratelimit";
 import { isUniqueViolation, removedError, wasRemoved, type Ctx } from "./routes";
 import { ApproveBody, ApproverNonceBody, DeviceRequestBody, RevealBody, Uuid } from "./schemas";
 import { copyDeviceKey, now, requireDevice, requireSession, type Session } from "./session";
@@ -30,6 +30,22 @@ const REQUEST_TTL = 10 * 60;
 const MAX_OPEN = 3;
 const NEW_PER_HOUR = 5;
 const OPEN = "('pending', 'nonce', 'revealed')";
+/** S1: after this many "No" answers (or failed commitments) within an hour, approvals pause for an hour, mailed */
+const NO_LIMIT = 3;
+const PAUSE_SECONDS = 3600;
+
+const noKey = (env: Env, userId: string) => rateKey(env, "approval-no", userId);
+
+/** S1: counts a "No" (a number that did not match); the third within an hour pauses approvals for an hour and mails */
+async function countNo(env: Env, userId: string): Promise<void> {
+  const key = await noKey(env, userId);
+  await fixedWindow(env, key, Number.MAX_SAFE_INTEGER, PAUSE_SECONDS);
+  if ((await windowCount(env, key)) !== NO_LIMIT) return;
+  await env.DB.prepare("UPDATE rate_limits SET expires_at = ? WHERE key = ?").bind(now() + PAUSE_SECONDS, key).run();
+  await env.DB.prepare("UPDATE device_requests SET status = 'denied' WHERE user_id = ? AND status IN " + OPEN).bind(userId).run();
+  const user = await env.DB.prepare("SELECT email FROM users WHERE id = ?").bind(userId).first<{ email: string }>();
+  if (user) await notify(env, userId, user.email, { kind: "approvals_paused" });
+}
 
 type Status = "pending" | "nonce" | "revealed" | "approved" | "denied";
 
@@ -124,6 +140,9 @@ export async function createRequest(ctx: Ctx): Promise<Response> {
   if ((open?.n ?? 0) >= MAX_OPEN) {
     throw new HttpError(429, "too_many_open_requests", "Too many open requests. Wait a few minutes.");
   }
+  if ((await windowCount(env, await noKey(env, session.userId))) >= NO_LIMIT) {
+    throw new HttpError(429, "approvals_paused", "The numbers didn't match three times. Approving devices is paused for an hour.");
+  }
   await fixedWindow(env, await rateKey(env, "approval", session.userId), NEW_PER_HOUR, 3600);
   const id = crypto.randomUUID();
   await env.DB.prepare(
@@ -198,6 +217,7 @@ export async function postReveal(ctx: Ctx): Promise<Response> {
     await env.DB.prepare("UPDATE device_requests SET status = 'denied' WHERE id = ? AND user_id = ?")
       .bind(row.id, session.userId)
       .run();
+    await countNo(env, session.userId);
     throw new HttpError(422, "commitment_mismatch", "The device check failed. Start again.");
   }
   const res = await env.DB.prepare(
@@ -270,7 +290,7 @@ export async function approveRequest(ctx: Ctx): Promise<Response> {
   }
   const claim = batch[0];
   if (!claim || claim.meta.changes === 0) throw new HttpError(409, "wrong_order", "The request changed. Reload it.");
-  await sendMail(env, user.email, { kind: "new_device", deviceName: row.device_name });
+  await notify(env, session.userId, user.email, { kind: "new_device", deviceName: row.device_name });
   return json({ id: row.id, status: "approved" });
 }
 
@@ -284,10 +304,11 @@ export async function denyRequest(ctx: Ctx): Promise<Response> {
   const row = await loadRequest(ctx, session);
   if (!isRequester(row, session)) requireDevice(session);
   if (row.status === "approved") throw new HttpError(409, "wrong_order", "This request was already approved.");
-  await env.DB.prepare(
+  const res = await env.DB.prepare(
     `UPDATE device_requests SET status = 'denied' WHERE id = ? AND user_id = ? AND status IN ${OPEN}`,
   )
     .bind(row.id, session.userId)
     .run();
+  if (res.meta.changes > 0) await countNo(env, session.userId);
   return noContent();
 }

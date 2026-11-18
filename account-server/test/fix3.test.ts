@@ -5,8 +5,8 @@
 import { env } from "cloudflare:test";
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { ipKey, ipRange, LOGIN_LIMIT_EMAIL_GLOBAL, MAIL_LIMIT_HOUR } from "../src/ratelimit";
-import { api, b64, DEFAULT_KDF, deviceKeys, freshEmail, freshIp, keyOf, newKey, rand, sessionId, signed, signupUser, upload } from "./helpers";
+import { ipKey, ipRange } from "../src/ratelimit";
+import { api, b64, DEFAULT_KDF, deviceKeys, freshEmail, freshIp, newKey, rand, sessionId, signupUser, upload } from "./helpers";
 
 interface SentMail {
   to: string;
@@ -34,26 +34,6 @@ async function addDevice(u: Awaited<ReturnType<typeof signupUser>>, name: string
   return { token, device, deviceId: (await res.json<{ deviceId: string }>()).deviceId };
 }
 
-async function rotate(token: string, u: Awaited<ReturnType<typeof signupUser>>, deviceIds: string[], removed: string[] = []) {
-  const meta = {
-    oldDekId: u.keys.dekId,
-    dekId: `dek-${b64(rand(6))}`,
-    dekProof: b64(rand(32)),
-    chainMac: b64(rand(32)),
-    devices: deviceIds.map((deviceId) => ({ deviceId, sealedDek: b64(rand(120)), mac: b64(rand(32)) })),
-    wrappedDek: b64(rand(72)),
-    removed,
-  };
-  const form = new FormData();
-  form.append("meta", JSON.stringify(meta));
-  const request = new Request("https://api.example.com/v1/account/rotate", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "If-Match": "0", "CF-Connecting-IP": freshIp() },
-    body: form,
-  });
-  return exports.default.fetch(await signed(request, keyOf(token)));
-}
-
 const count = async (table: string) => (await env.DB.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first<{ n: number }>())!.n;
 
 describe("removing a device (NEU-2, R4)", () => {
@@ -66,8 +46,8 @@ describe("removing a device (NEU-2, R4)", () => {
     expect(gone.status).toBe(401);
     expect((await gone.json<{ error: string }>()).error).toBe("device_removed");
     expect((await sink.take(a.email)).map((m) => m.subject)).toEqual(["A device was removed"]);
-    const meta = await (await api("/v1/sync/meta", { token: a.token })).json<{ rotationRequired: boolean; removedDevices: string[] }>();
-    expect(meta).toMatchObject({ rotationRequired: true, removedDevices: [tablet.device.devicePub] });
+    const meta = await (await api("/v1/sync/meta", { token: a.token })).json<{ rotationRequired: boolean }>();
+    expect(meta).toMatchObject({ rotationRequired: true });
 
     // the removed phone signs in again (it still knows the DEK and its proof): no way back with its key
     const again = await loginToken(a.email, a.keys.authKey);
@@ -78,39 +58,13 @@ describe("removing a device (NEU-2, R4)", () => {
     expect(req.status).toBe(403);
     const fresh = await api("/v1/account/start-fresh", { token: again, body: { dekId: `dek-${b64(rand(6))}`, dekProof: b64(rand(32)), wrappedDek: b64(rand(72)), device: tablet.device } });
     expect(fresh.status).toBe(403);
-    // and while the rotation is pending, the DEK proof adds no new device row either
+    // S3: with a Google-style session (no password) the DEK proof adds no new device row either
+    await env.DB.prepare("UPDATE sessions SET password_auth = 0 WHERE token_hash = ?").bind(await sessionId(again)).run();
     const other = await api("/v1/account/keys", { method: "PUT", token: again, body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, device: deviceKeys("Old Tablet") } });
     expect(other.status).toBe(403);
-    expect((await other.json<{ error: string }>()).error).toBe("rotation_pending");
+    expect((await other.json<{ error: string }>()).error).toBe("owner_required");
     // nor does a keyless session read the encrypted data
     expect((await api("/v1/sync/snapshot", { token: again })).status).toBe(403);
-  });
-
-  it("a session made after the removal cannot finish the rotation; a device from before it can", async () => {
-    const a = await signupUser();
-    const tablet = await addDevice(a, "Old Tablet");
-    const phone2 = await addDevice(a, "Second Phone");
-    expect((await api(`/v1/devices/${tablet.deviceId}`, { method: "DELETE", token: a.token })).status).toBe(204);
-    // a Google-style session (no password check) made after the removal, bound to a row from before it with another key
-    const late = await loginToken(a.email, a.keys.authKey);
-    await env.DB.batch([
-      env.DB.prepare("UPDATE sessions SET password_auth = 0, device_id = ?, created_at = created_at + 5 WHERE token_hash = ?").bind(phone2.deviceId, await sessionId(late)),
-    ]);
-    const lateRes = await rotate(late, a, [a.deviceId!, phone2.deviceId]);
-    expect(lateRes.status).toBe(403);
-    expect((await lateRes.json<{ error: string }>()).error).toBe("rotation_not_allowed");
-    // a device added after the removal (here by D1, as an approval would) cannot either
-    const newcomer = await api("/v1/account/keys", { method: "PUT", token: phone2.token, body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, device: { ...phone2.device } } });
-    expect(newcomer.status).toBe(200);
-    await env.DB.prepare("UPDATE devices SET created_at = created_at + 100 WHERE id = ?").bind(phone2.deviceId).run();
-    expect((await (await rotate(phone2.token, a, [a.deviceId!, phone2.deviceId])).json<{ error: string }>()).error).toBe("rotation_not_allowed");
-    await env.DB.prepare("UPDATE devices SET created_at = created_at - 100 WHERE id = ?").bind(phone2.deviceId).run();
-    // the phone that was signed in before the removal finishes it; the chain names it and the removed key
-    const ok = await rotate(a.token, a, [a.deviceId!, phone2.deviceId], [tablet.device.devicePub]);
-    expect(ok.status).toBe(200);
-    const key = await (await api("/v1/account/keys/device", { token: phone2.token })).json<{ rotatorPub: string; removed: string[] }>();
-    expect(key).toMatchObject({ rotatorPub: a.keys.devicePub, removed: [tablet.device.devicePub] });
-    expect(await env.DB.prepare("SELECT removed_at, rotation_required FROM users WHERE id = ?").bind(a.userId).first()).toEqual({ removed_at: null, rotation_required: 0 });
   });
 
   it("approval: a request with a registered device key is refused (NEU-12), the approver must send its own key, the new device may deny", async () => {
@@ -128,12 +82,8 @@ describe("removing a device (NEU-2, R4)", () => {
     expect((await (await api(`/v1/devices/requests/${id}`, { token: n })).json<{ status: string }>()).status).toBe("denied");
   });
 
-  it("signing out removes the device's own row without asking for a rotation; a password change unlinks Google (NEU-10)", async () => {
+  it("a password change unlinks Google (NEU-10)", async () => {
     const a = await signupUser();
-    const tablet = await addDevice(a, "Tablet");
-    expect((await api("/v1/auth/logout", { token: tablet.token, method: "POST" })).status).toBe(204);
-    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM devices WHERE id = ?").bind(tablet.deviceId).first()).toEqual({ n: 0 });
-    expect(await env.DB.prepare("SELECT rotation_required FROM users WHERE id = ?").bind(a.userId).first()).toEqual({ rotation_required: 0 });
     await env.DB.prepare("UPDATE users SET google_sub = 'g-123' WHERE id = ?").bind(a.userId).run();
     const res = await api("/v1/account/password", { token: a.token, body: { salt: b64(rand(16)), kdf: DEFAULT_KDF, authKey: b64(rand(32)), wrappedDek: b64(rand(72)), dekId: a.keys.dekId } });
     expect(res.status).toBe(204);
@@ -159,45 +109,15 @@ describe("limits (NEU-4, NEU-5, NEU-11)", () => {
     expect((await api("/v1/auth/prelogin", { body: { email: freshEmail() }, ip: `2001:db9:${prefix.slice(9)}::1`, sign: false })).status).toBe(200);
   });
 
-  it("a global per-email limit stops guesses from many networks, but never a known device of the account", async () => {
-    const key = await newKey();
-    const email = freshEmail();
-    const authKey = b64(rand(32));
-    const signup = await api("/v1/auth/signup", {
-      sign: key,
-      body: { email, salt: b64(rand(16)), kdf: DEFAULT_KDF, authKey, keys: { wrappedDek: b64(rand(72)), dekId: "dek-g", dekProof: b64(rand(32)), device: deviceKeys() } },
-    });
-    expect(signup.status).toBe(201);
-    for (let i = 0; i < LOGIN_LIMIT_EMAIL_GLOBAL; i++) {
-      // every guess from another /24: neither the IP nor the (email, range) counter ever fills up
-      expect((await login(email, b64(rand(32)), { ip: `198.${i}.${rand(1)[0]}.9` })).status).toBe(401);
-    }
-    expect((await login(email, authKey, { ip: "192.0.2.50" })).status).toBe(429);
-    // the phone that signed up keeps its signing key: it signs in right away
-    expect((await login(email, authKey, { ip: "192.0.2.51", sign: key })).status).toBe(200);
-  });
-
-  it("requests without a session write nothing to D1 under load (stateless Google nonce, challenge checked first)", async () => {
+  it("requests without a session write nothing to D1 under load but the sender's one counter row (NEU3-7)", async () => {
     const before = { nonces: await count("used_nonces"), google: await count("google_nonces"), limits: await count("rate_limits") };
     const prefix = `2001:db8:${(rand(1)[0]! + 512).toString(16)}`;
     for (let i = 0; i < 30; i++) {
       await api("/v1/auth/google/nonce", { method: "POST", ip: `${prefix}::${i + 1}`, sign: false });
-      // a sign-in with a made-up challenge: refused before its nonce or any counter is written
+      // a sign-in with a made-up challenge: counted against its network first, refused before its nonce is written
       await api("/v1/auth/login", { body: { email: freshEmail(), authKey: b64(rand(32)), challenge: b64(rand(36)), sigKey: { alg: "ed25519", pub: b64(rand(32)) } }, ip: `${prefix}:1::${i + 1}`, sign: false });
     }
-    expect({ nonces: await count("used_nonces"), google: await count("google_nonces"), limits: await count("rate_limits") }).toEqual(before);
-  });
-
-  it("caps the mails anybody can trigger per recipient, whoever asks from wherever", async () => {
-    const a = await signupUser();
-    await sink.take(a.email);
-    for (let i = 0; i < MAIL_LIMIT_HOUR + 4; i++) {
-      expect((await api("/v1/auth/reset-request", { body: { email: a.email }, ip: `203.${i}.${rand(1)[0]}.1`, sign: false })).status).toBe(202);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const resets = (await sink.take(a.email)).filter((m) => m.subject.toLowerCase().includes("reset"));
-    // the confirmation mail of the sign-up counted too: together they stop at the cap
-    expect(resets.length + 1).toBe(MAIL_LIMIT_HOUR);
+    expect({ nonces: await count("used_nonces"), google: await count("google_nonces"), limits: await count("rate_limits") }).toEqual({ ...before, limits: before.limits + 1 });
   });
 
   it("counts an upload before its body is read (NEU-11)", async () => {

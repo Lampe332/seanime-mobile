@@ -31,6 +31,9 @@ export async function cleanup(env: Env): Promise<CleanupResult> {
     env.DB.prepare("DELETE FROM rate_limits WHERE expires_at <= ?").bind(t),
     env.DB.prepare("DELETE FROM used_nonces WHERE expires_at <= ?").bind(t),
     env.DB.prepare("DELETE FROM removed_sessions WHERE expires_at <= ?").bind(t),
+    env.DB.prepare("DELETE FROM login_links WHERE expires_at <= ?").bind(t),
+    // I5: the account keeps its security events for 180 days
+    env.DB.prepare("DELETE FROM account_events WHERE at < ?").bind(t - 180 * DAY),
     env.DB.prepare("DELETE FROM sessions WHERE last_used_at < ?").bind(t - SESSION_IDLE_SECONDS),
   ]);
 

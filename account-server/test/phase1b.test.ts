@@ -495,7 +495,7 @@ describe("password reset", () => {
   it("with recovery code: both wraps replaced, data key unchanged; expired token refused", async () => {
     const u = await signupUser();
     const recovery = b64(rand(72));
-    expect((await api("/v1/account/keys", { method: "PUT", token: u.token, body: { dekId: u.keys.dekId, recoveryWrappedDek: recovery } })).status).toBe(200);
+    expect((await api("/v1/account/keys", { method: "PUT", token: u.token, body: { dekId: u.keys.dekId, recoveryWrappedDek: recovery, recoveryProof: b64(rand(32)) } })).status).toBe(200);
     await takeMails(u.email);
     await requestReset(u.email);
     const token = tokenIn((await takeMails(u.email))[0], "/account/reset/");
@@ -573,6 +573,7 @@ describe("DEK rotation", () => {
       ],
       wrappedDek: b64(rand(72)),
       recoveryWrappedDek: b64(rand(72)),
+      recoveryProof: b64(rand(32)),
     };
     const blob = rand(128);
     // Missing device, removed device, stale version, missing snapshot.
@@ -757,7 +758,7 @@ describe("key trust (K-1, M-5): only key holders change keys", () => {
     expect((await upload(a.token, rand(64), 0, a.keys.dekId)).status).toBe(200);
     const s = await newDeviceSession(a);
     expect((await upload(s, rand(64), 1, a.keys.dekId)).status).toBe(403);
-    expect((await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, recoveryWrappedDek: b64(rand(72)) } })).status).toBe(403);
+    expect((await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, recoveryWrappedDek: b64(rand(72)), recoveryProof: b64(rand(32)) } })).status).toBe(403);
     expect((await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, wrappedDek: b64(rand(72)) } })).status).toBe(403);
     const k = clientKeys();
     const password = { salt: k.salt, kdf: DEFAULT_KDF, authKey: k.authKey, wrappedDek: b64(rand(72)), dekId: a.keys.dekId };
@@ -768,13 +769,13 @@ describe("key trust (K-1, M-5): only key holders change keys", () => {
     expect(await (await api("/v1/account", { token: a.token })).json()).toMatchObject({ hasRecovery: false });
     expect((await login(a.email, a.keys.authKey)).wrappedDek).toBe(a.keys.wrappedDek);
     // with the DEK proof the same session may (a key holder that signed in with its password)
-    expect((await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, recoveryWrappedDek: b64(rand(72)) } })).status).toBe(200);
+    expect((await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, recoveryWrappedDek: b64(rand(72)), recoveryProof: b64(rand(32)) } })).status).toBe(200);
   });
 
   it("a recovery reset without the right proof cannot overwrite the wraps", async () => {
     const u = await signupUser();
     const recovery = b64(rand(72));
-    expect((await api("/v1/account/keys", { method: "PUT", token: u.token, body: { dekId: u.keys.dekId, recoveryWrappedDek: recovery } })).status).toBe(200);
+    expect((await api("/v1/account/keys", { method: "PUT", token: u.token, body: { dekId: u.keys.dekId, recoveryWrappedDek: recovery, recoveryProof: b64(rand(32)) } })).status).toBe(200);
     await takeMails(u.email);
     await requestReset(u.email);
     const token = tokenIn((await takeMails(u.email))[0], "/account/reset/");
@@ -863,7 +864,7 @@ describe("mails (M-3)", () => {
     const tabletId = (await reg.json<{ deviceId: string }>()).deviceId;
     expect((await takeMails(a.email)).map((m) => m.text)).toEqual([expect.stringContaining("A device was added to your account: Tablet.")]);
 
-    expect((await api("/v1/account/keys", { method: "PUT", token: a.token, body: { dekId: a.keys.dekId, recoveryWrappedDek: b64(rand(72)) } })).status).toBe(200);
+    expect((await api("/v1/account/keys", { method: "PUT", token: a.token, body: { dekId: a.keys.dekId, recoveryWrappedDek: b64(rand(72)), recoveryProof: b64(rand(32)) } })).status).toBe(200);
     expect((await takeMails(a.email)).map((m) => m.subject)).toEqual(["Your recovery code was changed"]);
 
     const devices = [

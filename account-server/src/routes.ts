@@ -1,8 +1,8 @@
-import { fromB64url, hmacSha256, safeEqual, sha256, toB64url } from "./crypto";
+import { fromB64url, hmacSha256, randomBytes, safeEqual, sha256, toB64url } from "./crypto";
 import { clientIp, HttpError, json, noContent, readJson, readLimited, requireMediaType } from "./http";
-import { burstLimit, fixedWindow, ipKey, mailAllowed, rateKey, reserveLogin } from "./ratelimit";
+import { burstLimit, fixedWindow, ipKey, mailAllowed, rateKey, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
 import { DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, StartFreshBody, Uuid } from "./schemas";
-import { sendMail } from "./mail";
+import { notify, sendMail } from "./mail";
 import { issueToken, VERIFY_TTL } from "./identity";
 import { issueChallenge, verifySignIn } from "./signature";
 import {
@@ -59,21 +59,23 @@ export async function proofHash(proof: string): Promise<string> {
   return toB64url(await sha256(fromB64url(proof)!));
 }
 
-async function proofMatches(stored: string | null, presented: string | undefined): Promise<boolean> {
+export async function proofMatches(stored: string | null, presented: string | undefined): Promise<boolean> {
   if (!stored || !presented) return false;
   const expected = fromB64url(stored);
   const given = fromB64url(presented);
   return expected !== null && given !== null && safeEqual(await sha256(given), expected);
 }
 
+const keyRequired = () => new HttpError(403, "key_required", "Only a device that holds the account key can do this.");
+const ownerRequired = () =>
+  new HttpError(403, "owner_required", "Sign in with your password, use your recovery code or approve this device on another one.");
+
 /**
- * K-1, M-5: only a key holder may add a device or change a wrap. That is a session bound to a device row (rows only come
- * from key holders: first key, approval, proof, start fresh) or one that shows the DEK proof.
+ * S3 (I3): a session owns the account when its sign-in checked the password (within the last 10 minutes, checked by the
+ * caller) or it shows the recovery proof. The DEK proof alone never does: a copied key is no account.
  */
-export async function requireKeyHolder(session: Session, storedProof: string | null, presented: string | undefined): Promise<void> {
-  if (session.deviceId !== null) return;
-  if (await proofMatches(storedProof, presented)) return;
-  throw new HttpError(403, "key_required", "Only a device that holds the account key can do this.");
+async function isOwner(session: Session, user: { auth_hash: string | null; recovery_proof: string | null }, recoveryProof?: string): Promise<boolean> {
+  return (session.passwordAuth && user.auth_hash !== null) || (await proofMatches(user.recovery_proof, recoveryProof));
 }
 
 // ---------------------------------------------------------------- auth
@@ -145,7 +147,7 @@ export async function signup(ctx: Ctx): Promise<Response> {
     throw err;
   }
   // NEU-5: confirmation mails count against the address's mail limit; over it, the link can be sent again later
-  if (await mailAllowed(env, body.email)) await sendMail(env, body.email, { kind: "verify", token: verify.token });
+  if (await mailAllowed(env, body.email, ip)) await sendMail(env, body.email, { kind: "verify", token: verify.token });
   return withSession(ctx, session.token, { userId, deviceId, emailVerified: false }, 201);
 }
 
@@ -154,18 +156,21 @@ export async function login(ctx: Ctx): Promise<Response> {
   const ip = clientIp(request);
   await burstLimit(env.LOGIN_LIMITER, ip);
   const body = await readJson(request, LoginBody);
+  // NEU3-7: the IP counter first, so a waiting sender writes no nonce or challenge
+  const ipBack = await reserveLoginIp(env, ip);
   // Signed with the new key and carrying an unused challenge: a captured login cannot be sent again.
   await verifySignIn(env, request, body.sigKey, body.challenge, `email:${body.email}`);
 
-  // M-2: a device whose row carries this signing key (it keeps the key across sign-ins) is never held up by the email
-  // counter; everybody else counts per (email, IP range), so nobody elsewhere can lock the owner out. N-5: counted
-  // before the check.
+  // M-2, S5: a device whose live row carries this signing key (it keeps the key across sign-ins), or a key whose sign-in
+  // the owner confirmed by mail, skips the email counters. N-5: counted before the check.
   const known = await env.DB.prepare(
-    `SELECT 1 AS k FROM devices d JOIN users u ON u.id = d.user_id WHERE u.email = ? AND d.sig_alg = ? AND d.sig_pub = ?`,
+    `SELECT 1 AS k FROM users u WHERE u.email = ?1 AND (
+       EXISTS (SELECT 1 FROM devices d WHERE d.user_id = u.id AND d.sig_alg = ?2 AND d.sig_pub = ?3 AND d.signed_out_at IS NULL)
+       OR EXISTS (SELECT 1 FROM login_links l WHERE l.user_id = u.id AND l.sig_pub = ?3 AND l.confirmed_at IS NOT NULL AND l.expires_at > ?4))`,
   )
-    .bind(body.email, body.sigKey.alg, body.sigKey.pub)
+    .bind(body.email, body.sigKey.alg, body.sigKey.pub, now())
     .first<{ k: number }>();
-  const onSuccess = await reserveLogin(env, ip, body.email, known !== null);
+  const { onSuccess, confirmByMail } = await reserveLoginEmail(env, ip, body.email, known !== null);
 
   const user = await env.DB.prepare(
     `SELECT id, auth_hash, pepper_version, kdf_params, wrapped_dek, dek_id, email_verified, rewrap_needed
@@ -186,15 +191,22 @@ export async function login(ctx: Ctx): Promise<Response> {
   const stored = user?.auth_hash ? fromB64url(user.auth_hash) : null;
   // Compare against a zero buffer for unknown users so both paths do the same work.
   const match = safeEqual(presented, stored ?? new Uint8Array(32));
-  if (!user || !stored || !match || user.pepper_version !== PEPPER_VERSION) {
-    throw new HttpError(401, "wrong_credentials", WRONG_LOGIN);
+  const right = user !== null && stored !== null && match && user.pepper_version === PEPPER_VERSION;
+  if (confirmByMail) {
+    // S5: the same answer for a right and a wrong password; only the right one mails the owner a link, after the answer
+    if (right && user) ctx.waitUntil(sendLoginLink(env, user.id, body.email, body.sigKey.pub, ip));
+    return json({ confirm: "email", message: "Open the link we emailed you, then press Continue." }, 202);
   }
+  if (!right || !user) throw new HttpError(401, "wrong_credentials", WRONG_LOGIN);
 
   const session = await newSession(env, user.id, null, body.sigKey, true);
   await env.DB.batch([
     session.statement,
+    ipBack,
     ...onSuccess,
     env.DB.prepare("UPDATE users SET last_active_at = ? WHERE id = ?").bind(now(), user.id),
+    // a confirmed link works once
+    env.DB.prepare("DELETE FROM login_links WHERE user_id = ? AND sig_pub = ?").bind(user.id, body.sigKey.pub),
   ]);
   return withSession(ctx, session.token, {
     userId: user.id,
@@ -207,17 +219,44 @@ export async function login(ctx: Ctx): Promise<Response> {
   });
 }
 
+/** S5: the link that lets this signing key sign in once more, mailed after the answer (same time for every answer) */
+const LOGIN_LINK_TTL = 15 * 60;
+async function sendLoginLink(env: Env, userId: string, email: string, sigPub: string, ip: string): Promise<void> {
+  try {
+    if (!(await mailAllowed(env, email, ip))) return;
+    const token = toB64url(randomBytes(32));
+    await env.DB.prepare("INSERT INTO login_links (token_hash, user_id, sig_pub, expires_at) VALUES (?, ?, ?, ?)")
+      .bind(toB64url(await sha256(token)), userId, sigPub, now() + LOGIN_LINK_TTL)
+      .run();
+    await sendMail(env, email, { kind: "confirm_sign_in", token });
+  } catch (err) {
+    console.error(JSON.stringify({ msg: "login_link_failed", error: (err as Error)?.name ?? "unknown" }));
+  }
+}
+
+/**
+ * S4: a device that signs out leaves a trace. Its sessions end, its row stays marked "signed out" (it may have kept a
+ * copy of the key), the account is asked to change the key, and the owner gets a mail and an event. The row never comes
+ * back by its signing key; the device joins again only by password, recovery code or approval.
+ */
 export async function logout(ctx: Ctx): Promise<Response> {
-  const session = await requireSession(ctx.request, ctx.env);
-  // A device that signs out forgets the key and its device keys: its row goes too (no rotation, it left by itself), so a
-  // later sign-in asks with a new device key and the list shows no stale device (NEU-12).
-  await ctx.env.DB.batch([
-    ctx.env.DB.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(session.tokenHash),
-    ...(session.deviceId
-      ? [ctx.env.DB.prepare("DELETE FROM devices WHERE id = ? AND user_id = ?").bind(session.deviceId, session.userId)]
-      : []),
+  const { env } = ctx;
+  const session = await requireSession(ctx.request, env);
+  const cookie: Record<string, string> = ctx.isBrowser ? { "Set-Cookie": clearSessionCookie() } : {};
+  if (session.deviceId === null) {
+    await env.DB.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(session.tokenHash).run();
+    return noContent(cookie);
+  }
+  const row = await env.DB.prepare("SELECT d.name, u.email FROM devices d JOIN users u ON u.id = d.user_id WHERE d.id = ? AND d.user_id = ?")
+    .bind(session.deviceId, session.userId)
+    .first<{ name: string; email: string }>();
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND (token_hash = ? OR device_id = ?)").bind(session.userId, session.tokenHash, session.deviceId),
+    env.DB.prepare("UPDATE devices SET signed_out_at = ? WHERE id = ? AND user_id = ?").bind(now(), session.deviceId, session.userId),
+    env.DB.prepare("UPDATE users SET rotation_required = 1 WHERE id = ?").bind(session.userId),
   ]);
-  return noContent(ctx.isBrowser ? { "Set-Cookie": clearSessionCookie() } : {});
+  if (row) await notify(env, session.userId, row.email, { kind: "device_signed_out", deviceName: row.name });
+  return noContent(cookie);
 }
 
 // ---------------------------------------------------------------- devices
@@ -225,10 +264,19 @@ export async function logout(ctx: Ctx): Promise<Response> {
 export async function listDevices(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
   const { results } = await ctx.env.DB.prepare(
-    "SELECT id, name, device_pub, dek_id, mac, created_at, last_seen_at FROM devices WHERE user_id = ? ORDER BY created_at",
+    "SELECT id, name, device_pub, dek_id, mac, created_at, last_seen_at, signed_out_at FROM devices WHERE user_id = ? ORDER BY created_at",
   )
     .bind(session.userId)
-    .all<{ id: string; name: string; device_pub: string; dek_id: string | null; mac: string | null; created_at: number; last_seen_at: number }>();
+    .all<{
+      id: string;
+      name: string;
+      device_pub: string;
+      dek_id: string | null;
+      mac: string | null;
+      created_at: number;
+      last_seen_at: number;
+      signed_out_at: number | null;
+    }>();
   return json({
     devices: results.map((d) => ({
       id: d.id,
@@ -240,15 +288,17 @@ export async function listDevices(ctx: Ctx): Promise<Response> {
       mac: d.mac,
       createdAt: d.created_at,
       lastSeenAt: d.last_seen_at,
+      // S4: the device signed out at this time; it gets no new key unless the user keeps it, and it can't come back by itself
+      signedOutAt: d.signed_out_at,
       current: d.id === session.deviceId,
     })),
   });
 }
 
 /**
- * Removes a device (plan 6.9). NEU-2: its sessions hear "device_removed" from now on (the app then drops the key), its
- * device key can never be bound to the account again, and until a rotation the account takes no new device row by DEK
- * proof and only sessions and devices from before the removal may rotate (rotate.ts). M-3: mailed.
+ * Removes a device (plan 6.9, the website's way; the app removes by leaving a device out of a key change, rotate.ts).
+ * NEU-2: its sessions hear "device_removed" from now on (the app then drops the key), its device key can never be bound
+ * to the account again, and the account is asked to change the key. M-3, I5: mailed and listed.
  */
 export async function deleteDevice(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
@@ -257,30 +307,56 @@ export async function deleteDevice(ctx: Ctx): Promise<Response> {
   const id = Uuid.safeParse(ctx.params.id);
   if (!id.success) throw new HttpError(404, "not_found");
   const row = await env.DB.prepare(
-    "SELECT d.name, d.device_pub, d.sig_pub, u.email FROM devices d JOIN users u ON u.id = d.user_id WHERE d.id = ? AND d.user_id = ?",
+    "SELECT d.name, d.device_pub, u.email FROM devices d JOIN users u ON u.id = d.user_id WHERE d.id = ? AND d.user_id = ?",
   )
     .bind(id.data, session.userId)
-    .first<{ name: string; device_pub: string; sig_pub: string | null; email: string }>();
+    .first<{ name: string; device_pub: string; email: string }>();
   if (!row) throw new HttpError(404, "not_found");
-  const t = now();
   const results = await env.DB.batch([
-    env.DB.prepare(
-      `INSERT INTO removed_sessions (token_hash, user_id, expires_at)
-       SELECT token_hash, user_id, ? FROM sessions WHERE device_id = ? AND user_id = ?
-       ON CONFLICT(token_hash) DO NOTHING`,
-    ).bind(t + SESSION_IDLE_SECONDS, id.data, session.userId),
-    env.DB.prepare(
-      `INSERT INTO removed_devices (user_id, device_pub, sig_pub, removed_at) VALUES (?, ?, ?, ?)
-       ON CONFLICT(user_id, device_pub) DO UPDATE SET sig_pub = excluded.sig_pub, removed_at = excluded.removed_at`,
-    ).bind(session.userId, row.device_pub, row.sig_pub, t),
-    env.DB.prepare("DELETE FROM sessions WHERE device_id = ? AND user_id = ?").bind(id.data, session.userId),
-    env.DB.prepare("DELETE FROM devices WHERE id = ? AND user_id = ?").bind(id.data, session.userId),
+    ...removeDeviceStatements(env, session.userId, [{ id: id.data, devicePub: row.device_pub }]),
     // The removed device may still know the DEK: the remaining devices rotate it (plan 6.9).
-    env.DB.prepare("UPDATE users SET rotation_required = 1, removed_at = COALESCE(removed_at, ?) WHERE id = ?").bind(t, session.userId),
+    env.DB.prepare("UPDATE users SET rotation_required = 1 WHERE id = ?").bind(session.userId),
   ]);
   if ((results[3]?.meta.changes ?? 0) === 0) throw new HttpError(404, "not_found");
-  await sendMail(env, row.email, { kind: "device_removed", deviceName: row.name });
+  await notify(env, session.userId, row.email, { kind: "device_removed", deviceName: row.name });
   return noContent();
+}
+
+/**
+ * The four statements that remove device rows (website removal, and the devices a key change leaves out): sessions remembered
+ * as removed (they answer "device_removed"), the device key on the removed list (never bound again), sessions and row gone.
+ * The fourth statement's `changes` tells whether a row went. `guard` (SQL and its values) makes all four depend on a
+ * condition, so they apply only together with the statement before them in a batch (rotate.ts).
+ */
+export function removeDeviceStatements(
+  env: Env,
+  userId: string,
+  rows: { id: string; devicePub: string }[],
+  guard: { sql: string; binds: unknown[] } = { sql: "1 = 1", binds: [] },
+): D1PreparedStatement[] {
+  const t = now();
+  const ids = JSON.stringify(rows.map((r) => r.id));
+  return [
+    env.DB.prepare(
+      `INSERT INTO removed_sessions (token_hash, user_id, expires_at)
+       SELECT token_hash, user_id, ? FROM sessions WHERE user_id = ? AND device_id IN (SELECT value FROM json_each(?)) AND ${guard.sql}
+       ON CONFLICT(token_hash) DO NOTHING`,
+    ).bind(t + SESSION_IDLE_SECONDS, userId, ids, ...guard.binds),
+    env.DB.prepare(
+      `INSERT INTO removed_devices (user_id, device_pub, removed_at) SELECT ?, value, ? FROM json_each(?) WHERE ${guard.sql}
+       ON CONFLICT(user_id, device_pub) DO UPDATE SET removed_at = excluded.removed_at`,
+    ).bind(userId, t, JSON.stringify(rows.map((r) => r.devicePub)), ...guard.binds),
+    env.DB.prepare(`DELETE FROM sessions WHERE user_id = ? AND device_id IN (SELECT value FROM json_each(?)) AND ${guard.sql}`).bind(
+      userId,
+      ids,
+      ...guard.binds,
+    ),
+    env.DB.prepare(`DELETE FROM devices WHERE user_id = ? AND id IN (SELECT value FROM json_each(?)) AND ${guard.sql}`).bind(
+      userId,
+      ids,
+      ...guard.binds,
+    ),
+  ];
 }
 
 /** Whether a device key was removed from the account (it never binds again, NEU-2) */
@@ -300,23 +376,11 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, env);
   requireRecentAuth(session);
   const body = await readJson(ctx.request, KeysBody);
-  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, dek_proof, removed_at FROM users WHERE id = ?")
+  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, dek_proof, recovery_proof FROM users WHERE id = ?")
     .bind(session.userId)
-    .first<{ email: string; dek_id: string | null; auth_hash: string | null; dek_proof: string | null; removed_at: number | null }>();
+    .first<{ email: string; dek_id: string | null; auth_hash: string | null; dek_proof: string | null; recovery_proof: string | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
-  if (body.device) {
-    if (await wasRemoved(env, session.userId, body.device.devicePub)) throw removedError();
-    if (!session.deviceId && user.removed_at !== null) {
-      // NEU-2: while a removal waits for its rotation, the DEK proof adds no device. Only a device from before the
-      // removal signs in again: with the signing key it kept, or after a password check.
-      const known = await env.DB.prepare("SELECT created_at, sig_pub FROM devices WHERE user_id = ? AND device_pub = ?")
-        .bind(session.userId, body.device.devicePub)
-        .first<{ created_at: number; sig_pub: string | null }>();
-      if (!known || known.created_at > user.removed_at || (known.sig_pub !== session.sigPub && !session.passwordAuth)) {
-        throw new HttpError(403, "rotation_pending", "A removed device is waiting for the key change. Finish it on one of your devices first.");
-      }
-    }
-  }
+  if (body.device && (await wasRemoved(env, session.userId, body.device.devicePub))) throw removedError();
 
   const first = user.dek_id === null;
   if (first) {
@@ -330,8 +394,21 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
     }
   } else {
     if (user.dek_id !== body.dekId) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
-    // K-1, M-5: a session without the key can neither add a device nor overwrite a wrap.
-    await requireKeyHolder(session, user.dek_proof, body.dekProof);
+    if (session.deviceId === null) {
+      // K-1, M-5: a session without a device row needs the key; S3 (I3): and it must own the account. A copied DEK
+      // alone (a thief who signed out, a removed device) never joins again. The one exception without a password or
+      // the recovery code: a device whose live row carries this session's signing key takes that row back (its session
+      // ran out; it never signed out and was never removed).
+      if (!(await proofMatches(user.dek_proof, body.dekProof))) throw keyRequired();
+      const reclaim =
+        body.device !== undefined &&
+        (await env.DB.prepare(
+          "SELECT 1 AS k FROM devices WHERE user_id = ? AND device_pub = ? AND sig_pub = ? AND signed_out_at IS NULL",
+        )
+          .bind(session.userId, body.device.devicePub, session.sigPub)
+          .first()) !== null;
+      if (!reclaim && !(await isOwner(session, user, body.recoveryProof))) throw ownerRequired();
+    }
   }
 
   const t = now();
@@ -340,6 +417,7 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
       `UPDATE users SET dek_id = ?, dek_proof = COALESCE(?, dek_proof),
          wrapped_dek = COALESCE(?, wrapped_dek),
          recovery_wrapped_dek = COALESCE(?, recovery_wrapped_dek),
+         recovery_proof = CASE WHEN ? IS NULL THEN recovery_proof ELSE ? END,
          rewrap_needed = CASE WHEN ? IS NULL THEN rewrap_needed ELSE 0 END,
          recovery_renewal_needed = CASE WHEN ? IS NULL THEN recovery_renewal_needed ELSE 0 END
        WHERE id = ? AND ${first ? "dek_id IS NULL" : "dek_id = ?"}`,
@@ -348,6 +426,8 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
       first ? await proofHash(body.dekProof!) : null,
       body.wrappedDek ?? null,
       body.recoveryWrappedDek ?? null,
+      body.recoveryWrappedDek ?? null,
+      body.recoveryWrappedDek !== undefined ? await proofHash(body.recoveryProof!) : null,
       body.wrappedDek ?? null,
       body.recoveryWrappedDek ?? null,
       session.userId,
@@ -356,6 +436,13 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
   ];
   let deviceId = session.deviceId;
   let newRow = false;
+  // a device that takes its own row back (same device key) is no new device: no "new device" mail for its re-sign-in
+  const known =
+    body.device !== undefined &&
+    deviceId === null &&
+    (await env.DB.prepare("SELECT 1 AS k FROM devices WHERE user_id = ? AND device_pub = ? AND signed_out_at IS NULL")
+      .bind(session.userId, body.device.devicePub)
+      .first()) !== null;
   if (body.device) {
     const d = body.device;
     if (deviceId) {
@@ -367,8 +454,8 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
         ).bind(d.name, d.sealedDek, body.dekId, d.mac, t, deviceId, session.userId, d.devicePub),
       );
     } else {
-      // Only a key holder gets here (first key or DEK proof). A device that signs in again with the same key takes its
-      // old row back; any other session that still used that row is signed out.
+      // Only the owner with the key gets here (first key, password, recovery code, or its own live row). A device that
+      // signs in again with the same key takes its old row back; any other session that still used that row is signed out.
       newRow = true;
       statements.push(
         env.DB.prepare(
@@ -376,7 +463,7 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(user_id, device_pub) DO UPDATE SET
              name = excluded.name, sealed_dek = excluded.sealed_dek, dek_id = excluded.dek_id, mac = excluded.mac,
-             last_seen_at = excluded.last_seen_at
+             last_seen_at = excluded.last_seen_at, signed_out_at = NULL
            RETURNING id`,
         ).bind(crypto.randomUUID(), session.userId, d.name, d.devicePub, d.sealedDek, body.dekId, d.mac, t, t),
         env.DB.prepare(
@@ -397,8 +484,8 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
   }
   if (newRow) deviceId = (deviceWrite?.results[0] as { id: string } | undefined)?.id ?? null;
   // M-3: every device that joins and every new recovery wrap is mailed to the account's address.
-  if (newRow) await sendMail(env, user.email, { kind: "new_device", deviceName: body.device!.name });
-  if (body.recoveryWrappedDek !== undefined) await sendMail(env, user.email, { kind: "recovery_changed" });
+  if (newRow && !known) await notify(env, session.userId, user.email, { kind: "new_device", deviceName: body.device!.name });
+  if (body.recoveryWrappedDek !== undefined) await notify(env, session.userId, user.email, { kind: "recovery_changed" });
   return json({ dekId: body.dekId, deviceId });
 }
 
@@ -413,8 +500,10 @@ export async function changePassword(ctx: Ctx): Promise<Response> {
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.auth_hash === null) throw new HttpError(409, "no_password", "This account has no password.");
   if (user.dek_id !== body.dekId) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
-  // M-5: the new password wrap must come from a key holder, not from a Google sign-in that wants the password.
-  await requireKeyHolder(session, user.dek_proof, body.dekProof);
+  // S3: only a sign-in that just checked the current password changes it; M-5: and the new wrap comes from a key holder,
+  // not from a Google sign-in or a copied key.
+  if (!session.passwordAuth) throw ownerRequired();
+  if (session.deviceId === null && !(await proofMatches(user.dek_proof, body.dekProof))) throw keyRequired();
   const hash = toB64url(await authHash(env, body.authKey));
   await env.DB.batch([
     env.DB.prepare(
@@ -425,7 +514,7 @@ export async function changePassword(ctx: Ctx): Promise<Response> {
     // Every other session is signed out (plan 6.7).
     env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND token_hash != ?").bind(session.userId, session.tokenHash),
   ]);
-  await sendMail(env, user.email, { kind: "password_changed" });
+  await notify(env, session.userId, user.email, { kind: "password_changed" });
   return noContent();
 }
 
@@ -437,7 +526,7 @@ export async function changePassword(ctx: Ctx): Promise<Response> {
 export async function deleteUserData(env: Env, userId: string, onlyIf = "1 = 1"): Promise<boolean> {
   const guard = `EXISTS (SELECT 1 FROM users WHERE id = ? AND ${onlyIf})`;
   const results = await env.DB.batch(
-    ["sessions", "devices", "tokens", "device_requests", "snapshots", "removed_devices", "removed_sessions"]
+    ["sessions", "devices", "tokens", "device_requests", "snapshots", "removed_devices", "removed_sessions", "login_links", "account_events"]
       .map((table) => env.DB.prepare(`DELETE FROM ${table} WHERE user_id = ? AND ${guard}`).bind(userId, userId))
       .concat(env.DB.prepare(`DELETE FROM users WHERE id = ? AND ${onlyIf}`).bind(userId)),
   );
@@ -480,8 +569,15 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
       recovery_renewal_needed: number;
     }>();
   if (!user) throw new HttpError(401, "unauthorized");
+  // I5: the newest security events, the same ones that were mailed
+  const { results: events } = await ctx.env.DB.prepare(
+    "SELECT kind, device_name, at FROM account_events WHERE user_id = ? ORDER BY at DESC, id DESC LIMIT 20",
+  )
+    .bind(session.userId)
+    .all<{ kind: string; device_name: string | null; at: number }>();
   return json({
     userId: session.userId,
+    events: events.map((e) => ({ kind: e.kind, deviceName: e.device_name, at: e.at })),
     email: user.email,
     emailVerified: user.email_verified === 1,
     googleLinked: user.google_sub !== null,
@@ -540,13 +636,16 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, env);
   requireRecentAuth(session);
   const body = await readJson(ctx.request, StartFreshBody);
-  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash FROM users WHERE id = ?")
+  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, recovery_proof FROM users WHERE id = ?")
     .bind(session.userId)
-    .first<{ email: string; dek_id: string | null; auth_hash: string | null }>();
+    .first<{ email: string; dek_id: string | null; auth_hash: string | null; recovery_proof: string | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.auth_hash !== null && body.wrappedDek === undefined) {
     throw new HttpError(400, "invalid_request", "wrappedDek is required for password accounts", {}, { fields: ["wrappedDek"] });
   }
+  // S3 (I3): a password account starts fresh only right after its password. A Google-only account has none; its recent
+  // Google sign-in is the owner's (Nick 18.11.: Google without a password stays). Either way mailed and listed.
+  if (user.auth_hash !== null && !(await isOwner(session, user))) throw ownerRequired();
   if (user.dek_id === body.dekId) throw new HttpError(400, "invalid_request", "dekId must be new", {}, { fields: ["dekId"] });
   if (await wasRemoved(env, session.userId, body.device.devicePub)) throw removedError();
 
@@ -561,13 +660,14 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
     // this session may belong to an old device row: detach it first, or the row's ON DELETE CASCADE ends it
     env.DB.prepare("UPDATE sessions SET device_id = NULL WHERE token_hash = ?").bind(session.tokenHash),
     env.DB.prepare("DELETE FROM devices WHERE user_id = ?").bind(userId),
-    // A new key chain starts: no chain MAC, so the account's other devices refuse the new key and ask their user.
+    // A new key chain starts: no chain MAC, so the account's other devices refuse the new key and ask their user. The
+    // old recovery code can't open the new key: its wrap and proof go.
     env.DB.prepare(
-      `UPDATE users SET dek_id = ?, dek_proof = ?, wrapped_dek = ?, recovery_wrapped_dek = ?, chain_from = NULL, chain_mac = NULL,
-         chain_rotator = NULL, chain_removed = NULL, rewrap_needed = 0, rotation_required = 0, recovery_renewal_needed = 0,
-         removed_at = NULL
+      `UPDATE users SET dek_id = ?, dek_proof = ?, wrapped_dek = ?, recovery_wrapped_dek = NULL, recovery_proof = NULL,
+         chain_from = NULL, chain_mac = NULL, chain_rotator = NULL, chain_removed = NULL, rewrap_needed = 0,
+         rotation_required = 0, recovery_renewal_needed = 0
        WHERE id = ?`,
-    ).bind(body.dekId, await proofHash(body.dekProof), body.wrappedDek ?? null, body.recoveryWrappedDek ?? null, userId),
+    ).bind(body.dekId, await proofHash(body.dekProof), body.wrappedDek ?? null, userId),
     env.DB.prepare(
       `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -576,7 +676,7 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
     copyDeviceKey(env, session.tokenHash),
   ]);
   await env.SNAPSHOTS.delete(snapKey(userId));
-  await sendMail(env, user.email, { kind: "start_fresh" });
+  await notify(env, userId, user.email, { kind: "start_fresh" });
   return json({ dekId: body.dekId, deviceId });
 }
 
@@ -616,8 +716,8 @@ export async function syncMeta(ctx: Ctx): Promise<Response> {
     rewrapNeeded: flags?.rewrap_needed === 1,
     // A rotation without the recovery code dropped the recovery wrap: the user should save a new code.
     recoveryRenewalNeeded: flags?.recovery_renewal_needed === 1,
-    // Device keys removed from the account: the devices never seal a new DEK to them and refuse a chain one of them made
-    // (R3). Trusting this list can only leave a device out, never let one in.
+    // Device keys removed from the account (R3). The devices keep them apart from their own list and bounded (NEU3-3);
+    // believing it can only leave a device out, never let one in.
     removedDevices: removed.results.map((r) => r.device_pub),
   });
 }

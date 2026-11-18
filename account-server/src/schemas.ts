@@ -89,10 +89,16 @@ export const KeysBody = z
     dekProof: DekProof.optional(),
     wrappedDek: b64Blob.optional(),
     recoveryWrappedDek: b64Blob.optional(),
+    /** S3: KDF of the recovery key. With a new recovery wrap it is stored (its SHA-256); alone it shows the owner's code. */
+    recoveryProof: DekProof.optional(),
     device: DeviceKeys.optional(),
   })
   .refine((b) => b.wrappedDek !== undefined || b.recoveryWrappedDek !== undefined || b.device !== undefined, {
     message: "Nothing to store",
+  })
+  .refine((b) => b.recoveryWrappedDek === undefined || b.recoveryProof !== undefined, {
+    message: "A recovery wrap needs its proof",
+    path: ["recoveryProof"],
   });
 
 export const PasswordBody = z.strictObject({
@@ -163,26 +169,33 @@ export const ApproverNonceBody = z.strictObject({ nonce: Nonce32, approverPub: D
 export const RevealBody = z.strictObject({ reveal: Nonce32 });
 export const ApproveBody = z.strictObject({ dekId: DekId, sealedDek: SealedDek, mac: Mac });
 
-export const RotateMeta = z.strictObject({
-  oldDekId: DekId,
-  dekId: DekId,
-  dekProof: DekProof,
-  /** The old DEK's MAC over the new one; devices take the new DEK only with it (K-1). */
-  chainMac: Mac,
-  devices: z
-    .array(z.strictObject({ deviceId: Uuid, sealedDek: SealedDek, mac: Mac }))
-    .max(50),
-  wrappedDek: b64Blob.optional(),
-  recoveryWrappedDek: b64Blob.optional(),
-  /** Chain v2: device keys the rotation leaves out as removed (the chain MAC covers them; the devices remember them) */
-  removed: z.array(DevicePub).max(50),
-});
+export const RotateMeta = z
+  .strictObject({
+    oldDekId: DekId,
+    dekId: DekId,
+    dekProof: DekProof,
+    /** The old DEK's MAC over the new one; devices take the new DEK only with it (K-1). */
+    chainMac: Mac,
+    /** S2: the devices the user kept; every other row of the account is removed in the same step */
+    devices: z
+      .array(z.strictObject({ deviceId: Uuid, sealedDek: SealedDek, mac: Mac }))
+      .min(1)
+      .max(50),
+    wrappedDek: b64Blob.optional(),
+    recoveryWrappedDek: b64Blob.optional(),
+    recoveryProof: DekProof.optional(),
+    /** Chain v2: device keys the rotation leaves out (the chain MAC covers them; the devices remember them) */
+    removed: z.array(DevicePub).max(50),
+  })
+  .refine((b) => b.recoveryWrappedDek === undefined || b.recoveryProof !== undefined, {
+    message: "A recovery wrap needs its proof",
+    path: ["recoveryProof"],
+  });
 
 /** Start fresh (plan 2, 6.3, 6.8): a new DEK for an account whose old one is lost; everything synced goes. */
 export const StartFreshBody = z.strictObject({
   dekId: DekId,
   dekProof: DekProof,
   wrappedDek: b64Blob.optional(),
-  recoveryWrappedDek: b64Blob.optional(),
   device: DeviceKeys,
 });

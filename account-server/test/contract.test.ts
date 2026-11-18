@@ -122,7 +122,7 @@ describe("start fresh", () => {
     const a = await signupUser();
     const tablet = await addDevice(a, "Tablet");
     const recovery = b64(rand(72));
-    expect((await api("/v1/account/keys", { method: "PUT", token: a.token, body: { dekId: a.keys.dekId, recoveryWrappedDek: recovery } })).status).toBe(200);
+    expect((await api("/v1/account/keys", { method: "PUT", token: a.token, body: { dekId: a.keys.dekId, recoveryWrappedDek: recovery, recoveryProof: b64(rand(32)) } })).status).toBe(200);
     expect((await upload(a.token, rand(64), 0, a.keys.dekId)).status).toBe(200);
     const other = await signupUser();
     const otherBlob = rand(64);
@@ -195,6 +195,8 @@ describe("GET account", () => {
     const text = await res.text();
     expect(JSON.parse(text)).toEqual({
       userId: a.userId,
+      // I5: the security events (none yet after the sign-up)
+      events: [],
       email: a.email,
       emailVerified: false,
       googleLinked: false,
@@ -261,7 +263,7 @@ describe("rotation", () => {
   it("puts D1 back when R2 fails, then rotates; without the recovery code it asks to renew it", async () => {
     const a = await signupUser();
     const recovery = b64(rand(72));
-    expect((await api("/v1/account/keys", { method: "PUT", token: a.token, body: { dekId: a.keys.dekId, recoveryWrappedDek: recovery } })).status).toBe(200);
+    expect((await api("/v1/account/keys", { method: "PUT", token: a.token, body: { dekId: a.keys.dekId, recoveryWrappedDek: recovery, recoveryProof: b64(rand(32)) } })).status).toBe(200);
     const blob = rand(96);
     expect((await upload(a.token, blob, 0, a.keys.dekId)).status).toBe(200);
     const state = async () => ({
@@ -296,7 +298,7 @@ describe("rotation", () => {
     expect(await json(await api("/v1/sync/meta", { token: a.token }))).toMatchObject({ dekId: newDek, recoveryRenewalNeeded: true });
     expect(await json(await api("/v1/account", { token: a.token }))).toMatchObject({ hasRecovery: false, recoveryRenewalNeeded: true });
     // A new recovery code for the new key clears the flag.
-    expect((await api("/v1/account/keys", { method: "PUT", token: a.token, body: { dekId: newDek, recoveryWrappedDek: b64(rand(72)) } })).status).toBe(200);
+    expect((await api("/v1/account/keys", { method: "PUT", token: a.token, body: { dekId: newDek, recoveryWrappedDek: b64(rand(72)), recoveryProof: b64(rand(32)) } })).status).toBe(200);
     expect(await json(await api("/v1/account", { token: a.token }))).toMatchObject({ hasRecovery: true, recoveryRenewalNeeded: false });
   });
 });

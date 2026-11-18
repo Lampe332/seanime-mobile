@@ -93,35 +93,46 @@ export function ipKey(ip: string): string {
 
 export const LOGIN_LIMIT_EMAIL = 5;
 export const LOGIN_LIMIT_IP = 20;
-/** NEU-4: per email across all networks, with the same growing wait; a known device of the account never counts here */
+/** NEU-4: per email across all networks; above it a right password needs the link in a mail (S5), nobody is locked out */
 export const LOGIN_LIMIT_EMAIL_GLOBAL = 20;
 
+const waiting = (wait: number) =>
+  new HttpError(429, "rate_limited", "Too many attempts. Try again later.", { "Retry-After": String(wait) }, { retryAfter: wait });
+const giveBack = (env: Env, key: string) => env.DB.prepare("UPDATE rate_limits SET count = MAX(count - 1, 0) WHERE key = ?").bind(key);
+
 /**
- * Login-style password check (login, and the password asked again for Google link/unlink): counts the attempt per IP
- * and, unless the request comes from a known device, per (email, IP range) before the check (N-5, M-2). Throws 429
- * while a key waits. Returns the statements to run after a success: the email counter is cleared, the IP counter only
- * gives this attempt back (clearing it would let somebody reset it with a login to an own account between guesses).
+ * Step 1 of a password check, before anything else of the sign-in is written to D1 (NEU3-7): the attempt counts against
+ * the sender's IP (IPv6 /48). Throws 429 while it waits. Returns the statement that gives this attempt back after a
+ * success (clearing the counter would let somebody reset it with a login to an own account between guesses).
  */
-export async function reserveLogin(env: Env, ip: string, email: string, knownDevice: boolean): Promise<D1PreparedStatement[]> {
-  const ipCounter = await rateKey(env, "login-ip", ipKey(ip));
-  let wait = await reserveAttempt(env, ipCounter, LOGIN_LIMIT_IP);
-  const onSuccess = [env.DB.prepare("UPDATE rate_limits SET count = MAX(count - 1, 0) WHERE key = ?").bind(ipCounter)];
-  if (wait === 0 && !knownDevice) {
-    const emailKey = await rateKey(env, "login-email", `${email}|${ipRange(ip)}`);
-    onSuccess.push(clearKey(env, emailKey));
-    wait = await reserveAttempt(env, emailKey, LOGIN_LIMIT_EMAIL);
-  }
-  if (wait === 0 && !knownDevice) {
-    // NEU-4: guesses spread over many networks still meet one counter per email. It only gives back this attempt on a
-    // success, like the IP counter, so a sign-in of the owner never resets it for the guesser.
-    const globalKey = await rateKey(env, "login-email-all", email);
-    onSuccess.push(env.DB.prepare("UPDATE rate_limits SET count = MAX(count - 1, 0) WHERE key = ?").bind(globalKey));
-    wait = await reserveAttempt(env, globalKey, LOGIN_LIMIT_EMAIL_GLOBAL);
-  }
-  if (wait > 0) {
-    throw new HttpError(429, "rate_limited", "Too many attempts. Try again later.", { "Retry-After": String(wait) }, { retryAfter: wait });
-  }
-  return onSuccess;
+export async function reserveLoginIp(env: Env, ip: string): Promise<D1PreparedStatement> {
+  const key = await rateKey(env, "login-ip", ipKey(ip));
+  const wait = await reserveAttempt(env, key, LOGIN_LIMIT_IP);
+  if (wait > 0) throw waiting(wait);
+  return giveBack(env, key);
+}
+
+/**
+ * Step 2 (N-5, M-2, NEU-4, S5): unless a known device asks, the attempt counts per (email, IP range), which only ever
+ * holds up the sender's own network (429), and per email across all networks. Over that one nobody is held up: the
+ * answer turns into "confirm by mail" for a right and a wrong password alike, so a guesser learns nothing, and the owner
+ * signs in through the link the right password triggers (I4). Returns what a success runs and whether the mail is needed.
+ */
+export async function reserveLoginEmail(
+  env: Env,
+  ip: string,
+  email: string,
+  known: boolean,
+): Promise<{ onSuccess: D1PreparedStatement[]; confirmByMail: boolean }> {
+  if (known) return { onSuccess: [], confirmByMail: false };
+  const rangeKey = await rateKey(env, "login-email", `${email}|${ipRange(ip)}`);
+  const wait = await reserveAttempt(env, rangeKey, LOGIN_LIMIT_EMAIL);
+  if (wait > 0) throw waiting(wait);
+  const globalKey = await rateKey(env, "login-email-all", email);
+  const confirmByMail = (await reserveAttempt(env, globalKey, LOGIN_LIMIT_EMAIL_GLOBAL)) > 0;
+  // A success clears the range counter and gives back this one attempt of the email's counter, so the owner never
+  // resets it for the guesser.
+  return { onSuccess: [clearKey(env, rangeKey), ...(confirmByMail ? [] : [giveBack(env, globalKey)])], confirmByMail };
 }
 
 /** Fixed window: at most `limit` hits per `windowSeconds`. Throws 429 when exceeded. */
@@ -141,16 +152,22 @@ export async function fixedWindow(env: Env, key: string, limit: number, windowSe
   if (row.count > limit) throw tooMany(row.expires_at - t);
 }
 
-/** NEU-5: mails anybody can trigger for an address (reset links, confirmation links), per recipient across all senders */
+/**
+ * NEU-5, NEU3-6: mails anybody can trigger for an address (reset links, confirmation links). Per (recipient, sender's IP
+ * range), so a stranger uses up only the mails his own network may trigger, never the owner's; plus a high cap per
+ * recipient across all networks against using the service to flood a mailbox.
+ */
 export const MAIL_LIMIT_HOUR = 5;
 export const MAIL_LIMIT_DAY = 10;
+export const MAIL_LIMIT_DAY_ALL = 50;
 
 /**
- * Counts one such mail to `email` and says whether it may go: at most MAIL_LIMIT_HOUR per hour and MAIL_LIMIT_DAY per
- * day. Never throws, so the answer to the sender stays the same either way (no hint whether the address has an account).
+ * Counts one such mail to `email` from `ip` and says whether it may go. Never throws, so the answer to the sender stays
+ * the same either way (no hint whether the address has an account).
  */
-export async function mailAllowed(env: Env, email: string): Promise<boolean> {
-  const count = async (window: string, seconds: number) => {
+export async function mailAllowed(env: Env, email: string, ip: string): Promise<boolean> {
+  const sender = `${email}|${ipRange(ip)}`;
+  const count = async (window: string, seconds: number, value = sender) => {
     const t = now();
     const row = await env.DB.prepare(
       `INSERT INTO rate_limits (key, count, last_at, expires_at) VALUES (?1, 1, ?2, ?2 + ?3)
@@ -160,11 +177,19 @@ export async function mailAllowed(env: Env, email: string): Promise<boolean> {
          expires_at = CASE WHEN rate_limits.expires_at <= ?2 THEN ?2 + ?3 ELSE rate_limits.expires_at END
        RETURNING count`,
     )
-      .bind(await rateKey(env, `mail-${window}`, email), t, seconds)
+      .bind(await rateKey(env, `mail-${window}`, value), t, seconds)
       .first<{ count: number }>();
     return row?.count ?? Number.MAX_SAFE_INTEGER;
   };
-  const hour = await count("hour", 3600);
-  if (hour > MAIL_LIMIT_HOUR) return false;
-  return (await count("day", 24 * 3600)) <= MAIL_LIMIT_DAY;
+  if ((await count("hour", 3600)) > MAIL_LIMIT_HOUR) return false;
+  if ((await count("day", 24 * 3600)) > MAIL_LIMIT_DAY) return false;
+  return (await count("day-all", 24 * 3600, email)) <= MAIL_LIMIT_DAY_ALL;
+}
+
+/** Hits of a fixedWindow key in its current window (0 when none or over) */
+export async function windowCount(env: Env, key: string): Promise<number> {
+  const row = await env.DB.prepare("SELECT count FROM rate_limits WHERE key = ? AND expires_at > ?")
+    .bind(key, now())
+    .first<{ count: number }>();
+  return row?.count ?? 0;
 }

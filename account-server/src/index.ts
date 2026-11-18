@@ -21,6 +21,7 @@ const routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
   ["POST", /^\/v1\/auth\/prelogin$/, r.prelogin],
   ["POST", /^\/v1\/auth\/signup$/, r.signup],
   ["POST", /^\/v1\/auth\/login$/, r.login],
+  ["POST", /^\/v1\/auth\/login\/confirm$/, id.confirmLogin],
   ["POST", /^\/v1\/auth\/logout$/, r.logout],
   ["POST", /^\/v1\/auth\/verify$/, id.verifyEmail],
   ["POST", /^\/v1\/auth\/verify\/resend$/, id.resendVerification],

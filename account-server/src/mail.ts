@@ -18,7 +18,28 @@ export type Mail =
   | { kind: "google_unlinked" }
   | { kind: "recovery_changed" }
   | { kind: "key_rotated" }
+  | { kind: "device_signed_out"; deviceName: string }
+  | { kind: "approvals_paused" }
+  | { kind: "confirm_sign_in"; token: string }
   | { kind: "inactivity"; deleteAt: number };
+
+/** Mails about a change to the account's security; each one is also kept as a visible event (I5) */
+export type SecurityMail = Extract<
+  Mail,
+  {
+    kind:
+      | "new_device"
+      | "device_removed"
+      | "device_signed_out"
+      | "password_changed"
+      | "start_fresh"
+      | "google_linked"
+      | "google_unlinked"
+      | "recovery_changed"
+      | "key_rotated"
+      | "approvals_paused";
+  }
+>;
 
 interface Content {
   subject: string;
@@ -68,7 +89,7 @@ function content(env: Env, mail: Mail): Content {
         subject: "A device was removed",
         lines: [
           `${mail.deviceName} was removed from your account and signed out.`,
-          "Open Seanime Mobile on one of your other devices and finish the removal there. Until then the removed device still knows the old key.",
+          "Open Seanime Mobile on one of your devices and choose Change encryption key. Until then the removed device still knows the old key. If you have no device left, sign in with your password or your recovery code first.",
           "If this was not you, change your password and check your devices.",
         ],
       };
@@ -129,6 +150,32 @@ function content(env: Env, mail: Mail): Content {
           "Your other devices pick it up on their own. If you did not remove a device, check your device list.",
         ],
       };
+    case "device_signed_out":
+      return {
+        subject: "A device signed out",
+        lines: [
+          `${mail.deviceName} signed out of your account. Your device list shows it as signed out.`,
+          "If you did not sign it out yourself, open Seanime Mobile on one of your devices and choose Change encryption key, so it can't read anything new.",
+        ],
+      };
+    case "approvals_paused":
+      return {
+        subject: "New device sign-ins are paused",
+        lines: [
+          "The numbers of three device sign-ins in the last hour did not match. That can be an attack, so approving new devices is paused for one hour.",
+          "Your password and your recovery code still work. If you did not try to add a device, change your password.",
+        ],
+      };
+    case "confirm_sign_in":
+      return {
+        subject: "Confirm your sign-in",
+        lines: [
+          "Someone signed in to your Seanime Mobile account with the right password. Many wrong passwords were tried for your email lately, so the sign-in waits for this link.",
+          "The link works for 15 minutes. After you open it, go back to the app or the website and press Continue.",
+          "If this was not you, do not open the link and change your password.",
+        ],
+        link: { label: "Confirm sign-in", url: `${base}/account/confirm/#token=${mail.token}` },
+      };
     case "inactivity":
       return {
         subject: "Your account will be deleted soon",
@@ -154,6 +201,17 @@ export function renderMail(env: Env, mail: Mail): { subject: string; text: strin
     `<p>${SIGNOFF}</p>`,
   ].join("\n");
   return { subject: c.subject, text, html };
+}
+
+/**
+ * I5: a security event is kept for the account (GET account lists the newest ones) and mailed. The row is written before
+ * the mail, so the event shows even when the mail fails.
+ */
+export async function notify(env: Env, userId: string, to: string, mail: SecurityMail): Promise<void> {
+  await env.DB.prepare("INSERT INTO account_events (user_id, kind, device_name, at) VALUES (?, ?, ?, ?)")
+    .bind(userId, mail.kind, "deviceName" in mail ? mail.deviceName : null, Math.floor(Date.now() / 1000))
+    .run();
+  await sendMail(env, to, mail);
 }
 
 /**

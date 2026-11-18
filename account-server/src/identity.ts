@@ -2,12 +2,12 @@
 import { fromB64url, hmacSha256, randomBytes, safeEqual, sha256, toB64url } from "./crypto";
 import { verifyGoogleIdToken } from "./google";
 import { clientIp, HttpError, json, noContent, readJson } from "./http";
-import { sendMail } from "./mail";
-import { burstLimit, fixedWindow, ipRange, mailAllowed, rateKey, reserveLogin } from "./ratelimit";
+import { notify, sendMail } from "./mail";
+import { burstLimit, fixedWindow, ipRange, mailAllowed, rateKey, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
 import { authHash, type Ctx, isUniqueViolation, PEPPER_VERSION, withSession } from "./routes";
 import { GoogleLoginBody, LinkGoogleBody, ResetBody, ResetRequestBody, TokenBody, UnlinkGoogleBody } from "./schemas";
 import { issueChallenge, useOnce, verifySignIn } from "./signature";
-import { newSession, now, requireSession } from "./session";
+import { newSession, now, requireSession, type Session } from "./session";
 
 export const VERIFY_TTL = 7 * 24 * 3600;
 export const RESET_TTL = 30 * 60;
@@ -56,6 +56,24 @@ export async function verifyEmail(ctx: Ctx): Promise<Response> {
   return json({ emailVerified: true });
 }
 
+/**
+ * S5: the link from the "Confirm your sign-in" mail (/account/confirm/#token=...). Marks that sign-in as confirmed; the
+ * device or page that typed the password then presses Continue and signs in like a known device (once, 15 minutes).
+ */
+export async function confirmLogin(ctx: Ctx): Promise<Response> {
+  const { env, request } = ctx;
+  await burstLimit(env.LOGIN_LIMITER, clientIp(request));
+  const { token } = await readJson(request, TokenBody);
+  const t = now();
+  const res = await env.DB.prepare(
+    "UPDATE login_links SET confirmed_at = ? WHERE token_hash = ? AND confirmed_at IS NULL AND expires_at > ?",
+  )
+    .bind(t, await tokenHash(token), t)
+    .run();
+  if (res.meta.changes === 0) throw invalidToken();
+  return json({ confirmed: true });
+}
+
 export async function resendVerification(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
   const session = await requireSession(ctx.request, env);
@@ -66,7 +84,9 @@ export async function resendVerification(ctx: Ctx): Promise<Response> {
   if (user.email_verified === 1) throw new HttpError(409, "already_verified", "Your email is already confirmed.");
   await fixedWindow(env, await rateKey(env, "verify-resend", session.userId), RESEND_LIMIT, HOUR);
   // NEU-5: also counted per address, across accounts and senders
-  if (!(await mailAllowed(env, user.email))) throw new HttpError(429, "rate_limited", "Too many emails to this address. Try again later.");
+  if (!(await mailAllowed(env, user.email, clientIp(ctx.request)))) {
+    throw new HttpError(429, "rate_limited", "Too many emails to this address. Try again later.");
+  }
   const issued = await issueToken(env, session.userId, "verify", VERIFY_TTL);
   await env.DB.batch([
     env.DB.prepare("DELETE FROM tokens WHERE user_id = ? AND purpose = 'verify' AND used_at IS NULL").bind(session.userId),
@@ -92,14 +112,15 @@ export async function resetRequest(ctx: Ctx): Promise<Response> {
   const user = await env.DB.prepare("SELECT id FROM users WHERE email = ? AND auth_hash IS NOT NULL")
     .bind(email)
     .first<{ id: string }>();
-  if (user) ctx.waitUntil(sendResetLink(env, user.id, email));
+  if (user) ctx.waitUntil(sendResetLink(env, user.id, email, ip));
   return json({ ok: true, message: "If an account exists for this email, we sent a reset link." }, 202);
 }
 
-async function sendResetLink(env: Env, userId: string, email: string): Promise<void> {
+async function sendResetLink(env: Env, userId: string, email: string, ip: string): Promise<void> {
   try {
-    // NEU-5: at most a few reset mails per address, whoever asks from wherever (checked after the answer, which stays the same)
-    if (!(await mailAllowed(env, email))) return;
+    // NEU-5, NEU3-6: a few reset mails per address and sender network, so a stranger never uses up the owner's
+    // (checked after the answer, which stays the same)
+    if (!(await mailAllowed(env, email, ip))) return;
     const issued = await issueToken(env, userId, "reset", RESET_TTL);
     await env.DB.batch([
       env.DB.prepare("DELETE FROM tokens WHERE user_id = ? AND purpose = 'reset' AND used_at IS NULL").bind(userId),
@@ -197,7 +218,7 @@ export async function resetPassword(ctx: Ctx): Promise<Response> {
   ]);
   if (!used || used.meta.changes === 0) throw invalidToken();
   if (!changed || changed.meta.changes === 0) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
-  await sendMail(env, target.email, { kind: "password_changed" });
+  await notify(env, target.user_id, target.email, { kind: "password_changed" });
   return json({ rewrapNeeded: !body.keys && target.dek_id !== null });
 }
 
@@ -301,18 +322,22 @@ export async function googleLogin(ctx: Ctx): Promise<Response> {
  * H-2: the password again (authKey), checked like a login and counted against the same limits, so a session alone (a
  * stolen token, a website session) can neither add nor remove a Google sign-in. Returns the account's email.
  */
-async function requirePassword(env: Env, request: Request, userId: string, authKey: string): Promise<string> {
+async function requirePassword(env: Env, request: Request, session: Session, authKey: string): Promise<string> {
   const user = await env.DB.prepare("SELECT email, auth_hash, pepper_version FROM users WHERE id = ?")
-    .bind(userId)
+    .bind(session.userId)
     .first<{ email: string; auth_hash: string | null; pepper_version: number | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.auth_hash === null) throw new HttpError(409, "no_password", "This account has no password.");
-  // Counted before the check (N-5); the session is signed in already, but a stolen one must not guess freely.
-  const onSuccess = await reserveLogin(env, clientIp(request), user.email, false);
+  // Counted before the check (N-5); the session is signed in already, but a stolen one must not guess freely. A device
+  // of the account counts only per IP, like a known device at sign-in.
+  const ip = clientIp(request);
+  const ipBack = await reserveLoginIp(env, ip);
+  const { onSuccess, confirmByMail } = await reserveLoginEmail(env, ip, user.email, session.deviceId !== null);
+  if (confirmByMail) throw new HttpError(429, "rate_limited", "Too many attempts for this email. Use the app on one of your devices.");
   const stored = fromB64url(user.auth_hash);
   const ok = stored !== null && safeEqual(await authHash(env, authKey), stored) && user.pepper_version === PEPPER_VERSION;
   if (!ok) throw new HttpError(403, "wrong_password", "Wrong password.");
-  await env.DB.batch(onSuccess);
+  await env.DB.batch([ipBack, ...onSuccess]);
   return user.email;
 }
 
@@ -321,7 +346,7 @@ export async function linkGoogle(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
   const session = await requireSession(ctx.request, env);
   const body = await readJson(ctx.request, LinkGoogleBody);
-  const email = await requirePassword(env, ctx.request, session.userId, body.authKey);
+  const email = await requirePassword(env, ctx.request, session, body.authKey);
   const identity = await googleIdentity(env, body);
   let res: D1Result;
   try {
@@ -333,7 +358,7 @@ export async function linkGoogle(ctx: Ctx): Promise<Response> {
     throw err;
   }
   if (res.meta.changes === 0) throw new HttpError(409, "already_linked", "A Google account is already linked.");
-  await sendMail(env, email, { kind: "google_linked" });
+  await notify(env, session.userId, email, { kind: "google_linked" });
   return noContent();
 }
 
@@ -342,11 +367,11 @@ export async function unlinkGoogle(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
   const session = await requireSession(ctx.request, env);
   const body = await readJson(ctx.request, UnlinkGoogleBody);
-  const email = await requirePassword(env, ctx.request, session.userId, body.authKey);
+  const email = await requirePassword(env, ctx.request, session, body.authKey);
   const res = await env.DB.prepare("UPDATE users SET google_sub = NULL WHERE id = ? AND google_sub IS NOT NULL")
     .bind(session.userId)
     .run();
   if (res.meta.changes === 0) throw new HttpError(409, "not_linked", "No Google account is linked.");
-  await sendMail(env, email, { kind: "google_unlinked" });
+  await notify(env, session.userId, email, { kind: "google_unlinked" });
   return noContent();
 }
