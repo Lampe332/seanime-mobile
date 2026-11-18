@@ -1,4 +1,5 @@
 import type { AL_MediaListStatus, Anime_EntryListData, Anime_ScheduleItem } from "@/api/generated/types"
+import { weekdayNames } from "@/lib/i18n/format"
 import type { Day } from "date-fns"
 import { addDays } from "date-fns/addDays"
 import { endOfMonth } from "date-fns/endOfMonth"
@@ -82,7 +83,7 @@ export function calendarDays(month: Date, weekStartsOn: number, eventsOn: (day: 
 }
 
 /** Weekday heads in the grid's order. */
-export function weekdayLabels(german: boolean, weekStartsOn: number) {
-    const names = (german ? "Mo Di Mi Do Fr Sa So" : "Mo Tu We Th Fr Sa Su").split(" ")
+export function weekdayLabels(language: string, weekStartsOn: number) {
+    const names = weekdayNames(language)
     return weekStartsOn === 0 ? [names[6], ...names.slice(0, 6)] : names
 }

@@ -33,6 +33,6 @@ describe("phone calendar", () => {
         expect(monday.length % 7).toBe(0)
         expect(monday.filter(d => d.isCurrentMonth)).toHaveLength(30)
         expect(calendarDays(month, 0, () => [])[0].date).toBe("2026-11-01")
-        expect(weekdayLabels(true, 0)).toEqual(["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"])
+        expect(weekdayLabels("de", 0)).toEqual(["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"])
     })
 })
