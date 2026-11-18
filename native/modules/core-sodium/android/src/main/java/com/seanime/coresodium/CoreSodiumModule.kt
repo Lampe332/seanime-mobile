@@ -34,6 +34,8 @@ object SodiumNative {
     @JvmStatic external fun boxSeedKeypair(seed: ByteArray): ByteArray
     @JvmStatic external fun boxSeal(message: ByteArray, publicKey: ByteArray): ByteArray
     @JvmStatic external fun boxSealOpen(ciphertext: ByteArray, publicKey: ByteArray, privateKey: ByteArray): ByteArray?
+    @JvmStatic external fun boxEasy(message: ByteArray, nonce: ByteArray, publicKey: ByteArray, privateKey: ByteArray): ByteArray
+    @JvmStatic external fun boxOpenEasy(ciphertext: ByteArray, nonce: ByteArray, publicKey: ByteArray, privateKey: ByteArray): ByteArray?
     @JvmStatic external fun hashSha256(message: ByteArray): ByteArray
     @JvmStatic external fun signKeypair(): ByteArray
     @JvmStatic external fun signDetached(message: ByteArray, privateKey: ByteArray): ByteArray
@@ -203,6 +205,13 @@ class CoreSodiumModule : Module() {
         }
         Function("crypto_box_seal_open") { ciphertext: ByteArray, publicKey: ByteArray, privateKey: ByteArray ->
             wiping(privateKey) { SodiumNative.boxSealOpen(ciphertext, publicKey, privateKey) }
+                ?: throw IllegalArgumentException("incorrect key pair for the given ciphertext")
+        }
+        Function("crypto_box_easy") { message: ByteArray, nonce: ByteArray, publicKey: ByteArray, privateKey: ByteArray ->
+            wiping(message, privateKey) { SodiumNative.boxEasy(message, nonce, publicKey, privateKey) }
+        }
+        Function("crypto_box_open_easy") { ciphertext: ByteArray, nonce: ByteArray, publicKey: ByteArray, privateKey: ByteArray ->
+            wiping(privateKey) { SodiumNative.boxOpenEasy(ciphertext, nonce, publicKey, privateKey) }
                 ?: throw IllegalArgumentException("incorrect key pair for the given ciphertext")
         }
         Function("crypto_hash_sha256") { message: ByteArray -> SodiumNative.hashSha256(message) }

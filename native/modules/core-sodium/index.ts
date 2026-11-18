@@ -24,6 +24,10 @@ declare class SeanimeCoreSodiumModule extends NativeModule {
     crypto_box_seal(message: Uint8Array, publicKey: Uint8Array): Uint8Array
     /** Throws when the ciphertext does not open */
     crypto_box_seal_open(ciphertext: Uint8Array, publicKey: Uint8Array, privateKey: Uint8Array): Uint8Array
+    /** Authenticated: only the holder of privateKey makes it, only the holder of the key behind publicKey opens it */
+    crypto_box_easy(message: Uint8Array, nonce: Uint8Array, publicKey: Uint8Array, privateKey: Uint8Array): Uint8Array
+    /** Throws when the box does not open with this sender key (publicKey) and own private key */
+    crypto_box_open_easy(ciphertext: Uint8Array, nonce: Uint8Array, publicKey: Uint8Array, privateKey: Uint8Array): Uint8Array
     crypto_hash_sha256(message: Uint8Array): Uint8Array
     /** Ed25519: publicKey (32 bytes) followed by privateKey (64 bytes) */
     crypto_sign_keypair(): Uint8Array

@@ -1,7 +1,7 @@
 // geschrieben nach: core/account/crypto.test.ts (Testvektoren, gleiche Rechnung) und dem Muster der Selbsttests in app-links-handler.ts; nur Entwickler-Diagnose
 import {
-    chainMac, commitment, decryptPackage, dekProof, deriveKeys, deviceMac, encryptPackage, newRecoveryCode, openSealedDek, recoveryKeyFrom, sas,
-    sealDek, toB64, unwrapKey, wrapKey,
+    boxDek, chainMac, commitment, decryptPackage, dekProof, deriveKeys, deviceMac, encryptPackage, newRecoveryCode, openBoxedDek, recoveryKeyFrom, sas,
+    toB64, unwrapKey, wrapKey,
 } from "@/core/account/crypto"
 import vectors from "@/core/account/__fixtures__/vectors.json"
 import type { Sodium } from "@/core/account/sodium"
@@ -77,10 +77,20 @@ export async function runAccountSodiumSelfTest(): Promise<string[]> {
     check("wrappedRecovery", () => wrapKey(fixedRandom(sodium, unhex(input.wrapNonce)), dek, recoveryKey, input.userId, input.dekId, "recovery") === output.wrappedRecovery)
     check("package", () => hex(encryptPackage(fixedRandom(sodium, unhex(input.packageNonce)), utf8(input.packagePlain), dek, binding)) === output.package)
     check("commitment", () => toB64(sodium, commitment(sodium, unhex(input.devicePub), unhex(input.rN))) === output.commitment)
-    check("sas", () => sas(sodium, unhex(input.devicePub), unhex(input.rN), unhex(input.rO)) === output.sas)
     const seeded = sodium.crypto_box_seed_keypair(unhex(input.sealSeed))
+    const receiver = sodium.crypto_box_seed_keypair(unhex(input.boxSeed))
+    check("sas v2", () => sas(sodium, unhex(input.devicePub), seeded.publicKey, unhex(input.rN), unhex(input.rO)) === output.sas)
     check("sealPublicKey", () => hex(seeded.publicKey) === output.sealPublicKey)
-    check("sealedDek opens", () => hex(openSealedDek(sodium, output.sealedDek, input.dekId, seeded)) === input.dek)
+    // approval v2 / chain v2 (fix round 3): crypto_box_easy and crypto_box_open_easy of the module, one libsodium call each
+    const rotateCtx = { kind: "rotate" as const, userId: input.userId }
+    check("box vector", () => hex(receiver.publicKey) === output.boxPublicKey
+        && boxDek(fixedRandom(sodium, unhex(input.boxNonce)), dek, input.dekId, rotateCtx, receiver.publicKey, seeded) === output.boxedDek)
+    check("box vector opens", () => hex(openBoxedDek(sodium, output.boxedDek, input.dekId, rotateCtx, seeded.publicKey, receiver)) === input.dek)
+    check("box wrong sender refused", () => {
+        try { openBoxedDek(sodium, output.boxedDek, input.dekId, rotateCtx, sodium.crypto_box_keypair().publicKey, receiver) }
+        catch { return true }
+        return false
+    })
     check("unwrap password", () => hex(unwrapKey(sodium, output.wrappedPassword, unhex(output.encKey), input.userId, input.dekId, "password")) === input.dek)
     check("unwrap recovery", () => hex(unwrapKey(sodium, output.wrappedRecovery, recoveryKeyFrom(sodium, output.recoveryCode), input.userId, input.dekId, "recovery")) === input.dek)
     check("decrypt package", () => new TextDecoder().decode(decryptPackage(sodium, unhex(output.package), dek, binding)) === input.packagePlain)
@@ -91,14 +101,15 @@ export async function runAccountSodiumSelfTest(): Promise<string[]> {
         catch { return true }
         return false
     })
-    check("new keypair seal+open", () => {
-        const pair = sodium.crypto_box_keypair()
-        return hex(openSealedDek(sodium, sealDek(sodium, dek, input.dekId, pair.publicKey), input.dekId, pair)) === input.dek
+    check("new keypairs box+open", () => {
+        const from = sodium.crypto_box_keypair()
+        const to = sodium.crypto_box_keypair()
+        return hex(openBoxedDek(sodium, boxDek(sodium, dek, input.dekId, rotateCtx, to.publicKey, from), input.dekId, rotateCtx, from.publicKey, to)) === input.dek
     })
     // K-1 / N-1 (fix round 1): keyed BLAKE2b and crypto_kdf under the DEK, as the device list and the key chain use them
     check("deviceMac", () => deviceMac(sodium, dek, { userId: input.userId, dekId: input.dekId, devicePub: unhex(input.devicePub) }) === output.deviceMac)
     check("dekProof", () => dekProof(sodium, dek) === output.dekProof)
-    check("chainMac", () => chainMac(sodium, dek, { userId: input.userId, oldDekId: input.dekId, newDekId: input.newDekId }, unhex(input.newDek)) === output.chainMac)
+    check("chainMac v2", () => chainMac(sodium, dek, { userId: input.userId, oldDekId: input.dekId, newDekId: input.newDekId, rotatorPub: seeded.publicKey, removed: [toB64(sodium, unhex(input.devicePub))] }, unhex(input.newDek)) === output.chainMac)
     // Ed25519 request signing (plan 10.2b): RFC 8032 7.1 test 1, the request-line vector, a new key pair signed and checked back
     const signSecret = unhex(input.signSecretKey)
     check("sign RFC 8032 vector", () => hex(sodium.crypto_sign_detached(new Uint8Array(0), signSecret)) === RFC8032_EMPTY_SIGNATURE)

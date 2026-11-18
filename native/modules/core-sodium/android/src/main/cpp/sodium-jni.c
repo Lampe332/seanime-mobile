@@ -234,6 +234,67 @@ NATIVE(jbyteArray, boxSeal)(JNIEnv *env, jobject self, jbyteArray message, jbyte
     return result;
 }
 
+/* crypto_box_easy: authenticated public-key encryption from the holder of privateKey to publicKey (approval v2, key
+ * chain v2). One libsodium call. */
+NATIVE(jbyteArray, boxEasy)(JNIEnv *env, jobject self, jbyteArray message, jbyteArray nonce, jbyteArray publicKey, jbyteArray privateKey) {
+    (void) self;
+    Bytes m = {0}, n = {0}, pk = {0}, sk = {0};
+    jbyteArray result = NULL;
+    if (take(env, message, &m) && take(env, nonce, &n) && take(env, publicKey, &pk) && take(env, privateKey, &sk)) {
+        if (n.length != crypto_box_NONCEBYTES) BAD_ARGUMENT("invalid nonce length");
+        else if (pk.length != crypto_box_PUBLICKEYBYTES) BAD_ARGUMENT("invalid publicKey length");
+        else if (sk.length != crypto_box_SECRETKEYBYTES) BAD_ARGUMENT("invalid privateKey length");
+        else if (m.length > (size_t) 0x7fffffff - crypto_box_MACBYTES) BAD_ARGUMENT("message too long");
+        else {
+            size_t length = m.length + crypto_box_MACBYTES;
+            unsigned char *boxed = room(env, length);
+            if (boxed) {
+                if (crypto_box_easy(boxed, U(m), m.length, U(n), U(pk), U(sk)) == 0) {
+                    result = hand_over(env, boxed, length);
+                } else {
+                    drop(boxed, length);
+                    BAD_ARGUMENT("crypto_box_easy failed");
+                }
+            }
+        }
+    }
+    give_back(env, &m);
+    give_back(env, &n);
+    give_back(env, &pk);
+    give_back(env, &sk);
+    return result;
+}
+
+/* crypto_box_open_easy: NULL when the box was not made by the holder of the private key behind publicKey for this key.
+ * One libsodium call. */
+NATIVE(jbyteArray, boxOpenEasy)(JNIEnv *env, jobject self, jbyteArray ciphertext, jbyteArray nonce, jbyteArray publicKey, jbyteArray privateKey) {
+    (void) self;
+    Bytes c = {0}, n = {0}, pk = {0}, sk = {0};
+    jbyteArray result = NULL;
+    if (take(env, ciphertext, &c) && take(env, nonce, &n) && take(env, publicKey, &pk) && take(env, privateKey, &sk)) {
+        if (c.length < crypto_box_MACBYTES) BAD_ARGUMENT("ciphertext is too short");
+        else if (n.length != crypto_box_NONCEBYTES) BAD_ARGUMENT("invalid nonce length");
+        else if (pk.length != crypto_box_PUBLICKEYBYTES) BAD_ARGUMENT("invalid publicKey length");
+        else if (sk.length != crypto_box_SECRETKEYBYTES) BAD_ARGUMENT("invalid privateKey length");
+        else {
+            size_t length = c.length - crypto_box_MACBYTES;
+            unsigned char *plain = room(env, length > 0 ? length : 1);
+            if (plain) {
+                if (crypto_box_open_easy(plain, U(c), c.length, U(n), U(pk), U(sk)) == 0) {
+                    result = hand_over(env, plain, length);
+                } else {
+                    drop(plain, length > 0 ? length : 1);
+                }
+            }
+        }
+    }
+    give_back(env, &c);
+    give_back(env, &n);
+    give_back(env, &pk);
+    give_back(env, &sk);
+    return result;
+}
+
 NATIVE(jbyteArray, boxSealOpen)(JNIEnv *env, jobject self, jbyteArray ciphertext, jbyteArray publicKey, jbyteArray privateKey) {
     (void) self;
     Bytes c = {0}, pk = {0}, sk = {0};
