@@ -13,7 +13,7 @@ import { Dialog } from "@/components/ui/sheet/sheet"
 import { SwitchRow } from "@/components/ui/switch/switch"
 import { Tabs } from "@/components/ui/tabs/tabs"
 import { Muted, Text } from "@/components/ui/text/text"
-import { appLanguageAtom, type Translate, useTr } from "@/lib/app-language"
+import { appLanguageAtom, plural, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -417,7 +417,7 @@ function AnimeDetail({ group, size, onBack, onAction, onPlay, onDelete, onDelete
     const next = nextEpisode(items)
     const saved = items.filter(item => item.ready).length
     const description = plainText(media.description)
-    const facts = [media.year, media.format, media.duration ? `${media.duration} ${t("min", "Min.")}` : null, media.score ? `★ ${media.score / 10}` : null].filter(Boolean).join(" · ")
+    const facts = [media.year, media.format, media.duration ? t(`${media.duration} min`, `${media.duration} Min.`) : null, media.score ? `★ ${media.score / 10}` : null].filter(Boolean).join(" · ")
     // OfflineActivity.kt: one column on phones, a grid from 600dp (tablets, landscape foldables)
     const columns = offlineColumns(width)
     const gap = 12
@@ -437,7 +437,7 @@ function AnimeDetail({ group, size, onBack, onAction, onPlay, onDelete, onDelete
             <View className="min-h-12 flex-row flex-wrap items-center justify-between gap-x-3 border-y border-sm-line py-2.5" style={{ alignContent: "center" }}>
                 <View className="flex-row items-center gap-1.5">
                     <Check size={16} color={colors.smAccent} />
-                    <Text className="text-sm font-semibold">{saved} {saved === 1 ? t("episode saved", "Folge gespeichert") : t("episodes saved", "Folgen gespeichert")}</Text>
+                    <Text className="text-sm font-semibold">{plural(t, saved, ["1 episode saved", "{0} episodes saved"], ["1 Folge gespeichert", "{0} Folgen gespeichert"])}</Text>
                 </View>
                 <Muted className="text-sm" style={{ fontVariant: ["tabular-nums"] }}>{size(totalBytes(items))}</Muted>
             </View>

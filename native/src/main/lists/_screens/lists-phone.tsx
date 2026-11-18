@@ -13,7 +13,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Tabs } from "@/components/ui/tabs/tabs"
 import { toast } from "@/components/ui/toast/toast-store"
 import { Text } from "@/components/ui/text/text"
-import { type Translate, useTr } from "@/lib/app-language"
+import { plural, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { atomWithStorage } from "@/lib/storage"
 import { colors } from "@/lib/theme/tokens"
@@ -308,13 +308,12 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
     const loading = query.isPending
     const failed = query.isError && !query.data
     const ready = !loading && !failed
-    const noun = type === "anime" ? "Anime" : "Manga"
     const locale = t("en-US", "de-DE")
     const count = (value: number) => value.toLocaleString(locale)
     const factsText = loading ? t("Loading your list…", "Deine Liste wird geladen …")
         : failed ? t("Not loaded", "Nicht geladen")
             : [
-                t(`${count(facts.total)} ${type}`, `${count(facts.total)} ${noun}`),
+                (type === "anime" ? t(`${count(facts.total)} anime`, `${count(facts.total)} Anime`) : t(`${count(facts.total)} manga`, `${count(facts.total)} Manga`)),
                 facts.total > 0 && (type === "anime" ? t(`${count(facts.current)} watching`, `${count(facts.current)} am Schauen`)
                     : t(`${count(facts.current)} reading`, `${count(facts.current)} am Lesen`)),
                 facts.fresh > 0 && (type === "anime" ? t(`${count(facts.fresh)} with new episodes`, `${count(facts.fresh)} mit neuen Folgen`)
@@ -380,7 +379,8 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
                 </Button>
                 <Button intent="secondary" onPress={resetFilters}>{t("Reset", "Zurücksetzen")}</Button>
             </PhoneEmpty>
-            : <PhoneEmpty title={!activeFilters ? t(`No ${type} match the search`, `Keine ${noun} passen zur Suche`) : t(`No ${type} match the filter`, `Keine ${noun} passen zum Filter`)}
+            : <PhoneEmpty title={!activeFilters ? (type === "anime" ? t("No anime match the search", "Keine Anime passen zur Suche") : t("No manga match the search", "Keine Manga passen zur Suche"))
+                : type === "anime" ? t("No anime match the filter", "Keine Anime passen zum Filter") : t("No manga match the filter", "Keine Manga passen zum Filter")}
                 text={t("Filter and search apply to every list.", "Filter und Suche gelten für alle Listen.")}>
                 <Button intent="secondary" onPress={resetFilters}>{t("Reset", "Zurücksetzen")}</Button>
             </PhoneEmpty>
@@ -554,19 +554,19 @@ function cardLabel(t: Translate, type: ListType, entry: ListEntry, info: CardInf
     const media = entry.media!
     const progress = entry.progress ?? 0
     const known = type === "anime" ? (media as AL_BaseAnime).episodes : (media as AL_BaseManga).chapters
-    const amount = (value: number, one: [string, string], many: [string, string]) => value === 1 ? t(...one) : t(`${value} ${many[0]}`, `${value} ${many[1]}`)
+    const amount = (value: number, en: [string, string], de: [string, string]) => plural(t, value, en, de)
     const done = !info.tag && info.meta.kind !== "chapters" ? ""
         : type === "anime" ? known ? t(`${progress} of ${known} episodes watched`, `${progress} von ${known} Folgen gesehen`)
-                : amount(progress, ["1 episode watched", "1 Folge gesehen"], ["episodes watched", "Folgen gesehen"])
+                : amount(progress, ["1 episode watched", "{0} episodes watched"], ["1 Folge gesehen", "{0} Folgen gesehen"])
             : known ? t(`${progress} of ${known} chapters read`, `${progress} von ${known} Kapiteln gelesen`)
-                : amount(progress, ["1 chapter read", "1 Kapitel gelesen"], ["chapters read", "Kapitel gelesen"])
+                : amount(progress, ["1 chapter read", "{0} chapters read"], ["1 Kapitel gelesen", "{0} Kapitel gelesen"])
     const meta = info.meta
     return [
         media.title?.userPreferred || media.title?.romaji || media.title?.english,
         done,
-        info.fresh > 0 && amount(info.fresh, ["1 new episode", "1 neue Folge"], ["new episodes", "neue Folgen"]),
-        extra.unread > 0 && amount(extra.unread, ["1 new chapter", "1 neues Kapitel"], ["new chapters", "neue Kapitel"]),
-        extra.unwatched > 0 && amount(extra.unwatched, ["1 episode left", "1 Folge offen"], ["episodes left", "Folgen offen"]),
+        info.fresh > 0 && amount(info.fresh, ["1 new episode", "{0} new episodes"], ["1 neue Folge", "{0} neue Folgen"]),
+        extra.unread > 0 && amount(extra.unread, ["1 new chapter", "{0} new chapters"], ["1 neues Kapitel", "{0} neue Kapitel"]),
+        extra.unwatched > 0 && amount(extra.unwatched, ["1 episode left", "{0} episodes left"], ["1 Folge offen", "{0} Folgen offen"]),
         info.score > 0 && t(`your score ${formatScore(t, info.score)}`, `deine Bewertung ${formatScore(t, info.score)}`),
         extra.local && t("in your library", "in deiner Bibliothek"),
         meta.kind === "airing" ? t(`episode ${meta.episode} in ${formatInSpoken(t, meta.inMs)}`, `Folge ${meta.episode} in ${formatInSpoken(t, meta.inMs)}`)

@@ -8,7 +8,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Select } from "@/components/ui/select/select"
 import { Text } from "@/components/ui/text/text"
 import { useDebounce } from "@/hooks/use-debounce"
-import { type Translate, useTr } from "@/lib/app-language"
+import { plural, type Translate, useTr } from "@/lib/app-language"
 import { upath } from "@/lib/helpers/upath"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
@@ -22,7 +22,7 @@ import FileVideo from "lucide-react-native/icons/file-play"
 import TriangleAlert from "lucide-react-native/icons/triangle-exclamation-point"
 import React from "react"
 import { Pressable, View } from "react-native"
-import { levelOf, logText, matchesQuery, newestScans, plural, readFromName, visibleGroups } from "../_lib/scan-summaries"
+import { levelOf, logText, matchesQuery, newestScans, readFromName, visibleGroups } from "../_lib/scan-summaries"
 
 /*
  * Scan summaries (web scan-summaries-phone.tsx + .css `.pss-*`): which anime the last scan found and the files it could
@@ -99,12 +99,12 @@ function GroupBlock({ t, group, query }: { t: Translate, group: Summary_ScanSumm
                 </View>
                 <View className="min-w-0 flex-1 gap-0.5">
                     <Text numberOfLines={2} className="font-semibold">{group.mediaTitle}</Text>
-                    <Text className="text-[13px] text-sm-text-muted">{[plural(t, files.length, ["file", "files"], ["Datei", "Dateien"]),
+                    <Text className="text-[13px] text-sm-text-muted">{[plural(t, files.length, ["1 file", "{0} files"], ["1 Datei", "{0} Dateien"]),
                         group.mediaIsInCollection ? t("on your AniList", "auf deiner AniList") : t("not on your AniList", "nicht auf deiner AniList")].join(" · ")}</Text>
                     {(errors > 0 || warnings > 0) && (
                         <View className="flex-row flex-wrap gap-x-3">
-                            {errors > 0 && <Text className="text-[13px] font-semibold text-sm-danger">{plural(t, errors, ["error", "errors"], ["Fehler", "Fehler"])}</Text>}
-                            {warnings > 0 && <Text className="text-[13px] font-semibold text-sm-accent">{plural(t, warnings, ["warning", "warnings"], ["Warnung", "Warnungen"])}</Text>}
+                            {errors > 0 && <Text className="text-[13px] font-semibold text-sm-danger">{plural(t, errors, ["1 error", "{0} errors"], ["1 Fehler", "{0} Fehler"])}</Text>}
+                            {warnings > 0 && <Text className="text-[13px] font-semibold text-sm-accent">{plural(t, warnings, ["1 warning", "{0} warnings"], ["1 Warnung", "{0} Warnungen"])}</Text>}
                         </View>
                     )}
                 </View>
@@ -135,7 +135,7 @@ export function ScanSummariesPhone() {
     const unmatched = (summary?.unmatchedFiles ?? []).filter(file => matchesQuery(file, query))
     const groups = React.useMemo(() => visibleGroups(summary?.groups, query), [summary, query])
 
-    const facts = summary && scan?.createdAt ? [scanDate(t, scan.createdAt), plural(t, summary.groups?.length ?? 0, ["anime", "anime"], ["Anime", "Anime"]),
+    const facts = summary && scan?.createdAt ? [scanDate(t, scan.createdAt), plural(t, summary.groups?.length ?? 0, ["1 anime", "{0} anime"], ["1 Anime", "{0} Anime"]),
         summary.unmatchedFiles?.length ? t(`${summary.unmatchedFiles.length} not matched`, `${summary.unmatchedFiles.length} ohne Anime`) : ""].filter(Boolean).join(" · ") : undefined
 
     return (

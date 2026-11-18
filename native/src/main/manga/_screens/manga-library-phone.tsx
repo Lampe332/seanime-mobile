@@ -12,7 +12,7 @@ import { Select } from "@/components/ui/select/select"
 import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { SwitchRow } from "@/components/ui/switch/switch"
 import { SectionTitle, Text } from "@/components/ui/text/text"
-import { type Translate, useTr } from "@/lib/app-language"
+import { plural, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { atomWithStorage } from "@/lib/storage"
@@ -241,7 +241,7 @@ function ContinueCard({ item, blurAdult, only, t, onContinue }: {
     const media = entry.media
     const title = media?.title?.userPreferred || ""
     const chapters = progress > 0 ? `${t("Chapter", "Kapitel")} ${progress}${total ? ` / ${total}` : ""}` : t("Reading started", "Lesen begonnen")
-    const fresh = unread && unread > 0 ? `${unread} ${unread === 1 ? t("new chapter", "neues Kapitel") : t("new chapters", "neue Kapitel")}` : ""
+    const fresh = unread && unread > 0 ? plural(t, unread, ["1 new chapter", "{0} new chapters"], ["1 neues Kapitel", "{0} neue Kapitel"]) : ""
     const veiled = blurAdult && !!media?.isAdult
     const cardWidth = only ? Math.min(width - 32, 512) : Math.min(width * 0.86, 352)
     // the cover flies into the page (cover-flight.tsx); a blurred one does not fly
@@ -278,11 +278,11 @@ const MangaCard = React.memo(function MangaCard({ entry, width, blurAdult, lates
     if (!media) return null
     const progress = entry.listData?.progress || 0
     const total = getMangaChapterTotal(media.chapters, latest) ?? 0
-    const meta = progress > 0 ? `${t("Ch.", "Kap.")} ${progress}${total ? ` / ${total}` : ""}`
-        : media.chapters ? `${media.chapters} ${t("chapters", "Kapitel")}` : media.startDate?.year ? String(media.startDate.year) : ""
+    const meta = progress > 0 ? `${t(`Ch. ${progress}`, `Kap. ${progress}`)}${total ? ` / ${total}` : ""}`
+        : media.chapters ? t(`${media.chapters} chapters`, `${media.chapters} Kapitel`) : media.startDate?.year ? String(media.startDate.year) : ""
     return <PhoneCoverCard media={media} type="manga" width={width} blurAdult={blurAdult}
         progress={progress > 0 && total > 0 && entry.listData?.status !== "COMPLETED" ? { value: progress, total } : undefined}
-        badge={fresh > 0 ? `${fresh} ${t("new", "neu")}` : undefined} meta={meta} />
+        badge={fresh > 0 ? t(`${fresh} new`, `${fresh} neu`) : undefined} meta={meta} />
 })
 
 function FilterSheet({ open, onOpenChange, t, rawLists, status, resultCount, onReset }: {

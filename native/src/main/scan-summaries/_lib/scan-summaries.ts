@@ -46,6 +46,3 @@ export function logText(message: string, t: Translate) {
     return message.startsWith("PANIC") ? t("The scanner crashed on this file. Please report it on GitHub.", "Der Scanner ist an dieser Datei abgestürzt. Bitte melde das auf GitHub.") : message
 }
 
-export function plural(t: Translate, n: number, en: [string, string], de: [string, string]) {
-    return `${n} ${n === 1 ? t(en[0], de[0]) : t(en[1], de[1])}`
-}

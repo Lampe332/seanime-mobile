@@ -26,7 +26,7 @@ import { useImageFade } from "@/components/ui/core/image-fade"
 import { cn } from "@/components/ui/core/styling"
 import { Tabs } from "@/components/ui/tabs/tabs"
 import { Text } from "@/components/ui/text/text"
-import { useTr } from "@/lib/app-language"
+import { type Translate, useTr } from "@/lib/app-language"
 import { anilist_getCurrentEpisodes } from "@/lib/helpers/media"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
@@ -113,8 +113,7 @@ export function DiscoverPhone() {
     }
     const schedule = useDiscoverSchedule(tab === "schedule")
     const { current } = React.useMemo(() => discoverSeasons(new Date()), [])
-    const [seasonEn, seasonDe] = SEASON_NAMES[current.season]
-    const facts = tab === "anime" ? t(`${seasonEn} ${current.year} season`, `${seasonDe}-Saison ${current.year}`)
+    const facts = tab === "anime" ? seasonTitle(t, "season", current)
         : tab === "manga" ? t("Trending manga, manhwa and manhua", "Angesagte Manga, Manhwa und Manhua")
             : scheduleFactsLine(t, schedule)
 
@@ -139,7 +138,31 @@ export function DiscoverPhone() {
     )
 }
 
-const SEASON_NAMES: Record<string, [string, string]> = { WINTER: ["Winter", "Winter"], SPRING: ["Spring", "Frühling"], SUMMER: ["Summer", "Sommer"], FALL: ["Fall", "Herbst"] }
+/** "Fall 2026 season", "Top of Fall 2026", "Best of Summer 2026" as whole texts, so each language words season and year itself. */
+function seasonTitle(t: Translate, kind: "season" | "top" | "best", { season, year }: SeasonYear) {
+    if (kind === "season") {
+        switch (season) {
+            case "WINTER": return t(`Winter ${year} season`, `Winter-Saison ${year}`)
+            case "SPRING": return t(`Spring ${year} season`, `Frühling-Saison ${year}`)
+            case "SUMMER": return t(`Summer ${year} season`, `Sommer-Saison ${year}`)
+            default: return t(`Fall ${year} season`, `Herbst-Saison ${year}`)
+        }
+    }
+    if (kind === "top") {
+        switch (season) {
+            case "WINTER": return t(`Top of Winter ${year}`, `Bestbewertet im Winter ${year}`)
+            case "SPRING": return t(`Top of Spring ${year}`, `Bestbewertet im Frühling ${year}`)
+            case "SUMMER": return t(`Top of Summer ${year}`, `Bestbewertet im Sommer ${year}`)
+            default: return t(`Top of Fall ${year}`, `Bestbewertet im Herbst ${year}`)
+        }
+    }
+    switch (season) {
+        case "WINTER": return t(`Best of Winter ${year}`, `Bestbewertet im Winter ${year}`)
+        case "SPRING": return t(`Best of Spring ${year}`, `Bestbewertet im Frühling ${year}`)
+        case "SUMMER": return t(`Best of Summer ${year}`, `Bestbewertet im Sommer ${year}`)
+        default: return t(`Best of Fall ${year}`, `Bestbewertet im Herbst ${year}`)
+    }
+}
 
 /**
  * The anime rows. The genre-aware ones come first, right under the chips (spotlight, trending, both season rows); the
@@ -168,8 +191,6 @@ function AnimeTab() {
         }} />
     </>
 
-    const [seasonEn, seasonDe] = SEASON_NAMES[seasons.current.season]
-    const [lastEn, lastDe] = SEASON_NAMES[seasons.previous.season]
     return <>
         <GenreChips genre={genre} onChange={setGenre} />
         <Spotlight key={genre ?? ALL} items={spotlight} type="anime" loading={spotlightLoading(trending, spotlight)} stale={trending.stale} />
@@ -177,9 +198,9 @@ function AnimeTab() {
             genre={genre} onClearGenre={clearGenre} empty={t("Nothing is trending right now.", "Gerade ist nichts angesagt.")}
             renderCard={(media, width) => <DiscoverCover media={media} type="anime" width={width} />} />
         <SeasonBlock season={seasons.current} genre={genre} onClearGenre={clearGenre}
-            title={t(`Top of ${seasonEn} ${seasons.current.year}`, `Bestbewertet im ${seasonDe} ${seasons.current.year}`)} />
+            title={seasonTitle(t, "top", seasons.current)} />
         <SeasonBlock season={seasons.previous} genre={genre} onClearGenre={clearGenre}
-            title={t(`Best of ${lastEn} ${seasons.previous.year}`, `Bestbewertet im ${lastDe} ${seasons.previous.year}`)} />
+            title={seasonTitle(t, "best", seasons.previous)} />
         <RecentBlock row={recent} />
         <MissedBlock />
         <AnimeBlock title={t("Coming soon", "Demnächst")} seeAll={seeAllLinks.upcoming()} variables={UPCOMING} releaseMark={false}

@@ -12,7 +12,7 @@ import { SwitchRow } from "@/components/ui/switch/switch"
 import { toast } from "@/components/ui/toast/toast-store"
 import { Muted, Text } from "@/components/ui/text/text"
 import { useDebounce } from "@/hooks/use-debounce"
-import { type Translate, useTr } from "@/lib/app-language"
+import { plural, type Translate, useTr } from "@/lib/app-language"
 import { upath } from "@/lib/helpers/upath"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
@@ -55,14 +55,13 @@ import { Pressable, View } from "react-native"
  * "Scan summaries" (2.14) closes the sheet and opens /scan-summaries.
  */
 
-const plural = (t: Translate, n: number, en: [string, string], de: [string, string]) => `${n} ${n === 1 ? t(en[0], de[0]) : t(en[1], de[1])}`
 const fileName = (lf: Anime_LocalFile) => lf.parsedInfo?.original || upath.basename(lf.path)
 const byEpisode = (a: Anime_LocalFile, b: Anime_LocalFile) => Number(a.parsedInfo?.episode ?? 0) - Number(b.parsedInfo?.episode ?? 0)
 const animeTitle = (media?: AL_BaseAnime) => media?.title?.userPreferred || media?.title?.english || media?.title?.romaji || ""
 
 function animeNote(t: Translate, media: AL_BaseAnime) {
     const format = media.format ? t(...(FORMAT_LABELS[media.format] ?? [media.format, media.format])) : ""
-    return [format, media.startDate?.year, media.episodes ? plural(t, media.episodes, ["episode", "episodes"], ["Folge", "Folgen"]) : ""].filter(Boolean).join(" · ")
+    return [format, media.startDate?.year, media.episodes ? plural(t, media.episodes, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"]) : ""].filter(Boolean).join(" · ")
 }
 
 /** Where a folder sits: its parent below the library folder ("Anime / Season 2"), or the whole path outside of it. */
@@ -127,12 +126,10 @@ export function LibraryPhoneAttention() {
     return (
         <RowGroup className="mb-3">
             {unmatchedFiles > 0 && <ActionRow tone="attention" icon={FileQuestion} chevron onPress={() => setUnmatched(true)}
-                label={t(`${plural(t, unmatchedFiles, ["file has", "files have"], ["Datei hat", "Dateien haben"])} no anime yet`,
-                    `${plural(t, unmatchedFiles, ["file has", "files have"], ["Datei hat", "Dateien haben"])} noch keinen Anime`)}
+                label={plural(t, unmatchedFiles, ["1 file has no anime yet", "{0} files have no anime yet"], ["1 Datei hat noch keinen Anime", "{0} Dateien haben noch keinen Anime"])}
                 note={t("Pick the anime they belong to", "Wähle den passenden Anime")} />}
             {unknownGroups.length > 0 && <ActionRow tone="attention" icon={EyeOff} chevron onPress={() => setUnknown(true)}
-                label={t(`${plural(t, unknownGroups.length, ["anime is", "anime are"], ["Anime ist", "Anime sind"])} hidden`,
-                    `${plural(t, unknownGroups.length, ["anime is", "anime are"], ["Anime ist", "Anime sind"])} versteckt`)}
+                label={plural(t, unknownGroups.length, ["1 anime is hidden", "{0} anime are hidden"], ["1 Anime ist versteckt", "{0} Anime sind versteckt"])}
                 note={t("Matched, but not on your AniList yet", "Zugeordnet, aber noch nicht auf deiner AniList")} />}
         </RowGroup>
     )
@@ -228,7 +225,7 @@ export function LibraryPhoneSheet() {
                     ...(stats ? [{
                         label: t("Anime", "Anime"),
                         value: String(stats.totalEntries),
-                        note: `${plural(t, stats.totalFiles, ["file", "files"], ["Datei", "Dateien"])} · ${stats.totalSize}`,
+                        note: `${plural(t, stats.totalFiles, ["1 file", "{0} files"], ["1 Datei", "{0} Dateien"])} · ${stats.totalSize}`,
                     }] : []),
                 ]} />}
 
@@ -374,7 +371,7 @@ export function UnmatchedPhoneSheet({ unmatchedGroups, open: openProp, onOpenCha
                 </Button>
                 <Button wrapperClassName="flex-1" disabled={!anime || !picked.length || matching || ignoring}
                     onPress={() => anime && match({ paths: picked, mediaId: anime.id }, { onSuccess: () => done(t("Files matched", "Dateien zugeordnet")) })}>
-                    {picked.length ? t(`Match ${plural(t, picked.length, ["file", "files"], ["Datei", "Dateien"])}`, `${plural(t, picked.length, ["Datei", "Dateien"], ["Datei", "Dateien"])} zuordnen`)
+                    {picked.length ? plural(t, picked.length, ["Match 1 file", "Match {0} files"], ["1 Datei zuordnen", "{0} Dateien zuordnen"])
                         : t("Match", "Zuordnen")}
                 </Button>
             </>}>
@@ -441,7 +438,7 @@ function HiddenAnime({ t, group, busy, onAdd, onUnmatch }: { t: Translate, group
                 <Cover src={entry?.media?.coverImage?.medium || entry?.media?.coverImage?.large} />
                 <View className="min-w-0 flex-1 gap-0.5">
                     <Text className="text-[15px]">{title}</Text>
-                    <Muted>{plural(t, files.length, ["file", "files"], ["Datei", "Dateien"])}{entry?.media ? ` · ${animeNote(t, entry.media)}` : ""}</Muted>
+                    <Muted>{plural(t, files.length, ["1 file", "{0} files"], ["1 Datei", "{0} Dateien"])}{entry?.media ? ` · ${animeNote(t, entry.media)}` : ""}</Muted>
                 </View>
                 <View style={{ transform: [{ rotate: showFiles ? "90deg" : "0deg" }] }}><ChevronRight size={18} color={colors.smTextSubtle} /></View>
             </Pressable>
@@ -499,7 +496,7 @@ export function IgnoredFilesPhoneSheet({ files }: { files: Anime_LocalFile[] }) 
         <Sheet title={t("Ignored files", "Ignorierte Dateien")} open={open} onOpenChange={setOpen} className="min-h-[78%]"
             footer={files.length ? <Button wrapperClassName="flex-1" disabled={!picked.length || isPending}
                 onPress={() => updateFiles({ paths: picked, action: "unignore" }, { onSuccess: () => toast.success(t("Scans include these files again", "Scans beziehen diese Dateien wieder ein")) })}>
-                {picked.length ? t(`Stop ignoring ${plural(t, picked.length, ["file", "files"], ["Datei", "Dateien"])}`, `${plural(t, picked.length, ["Datei", "Dateien"], ["Datei", "Dateien"])} nicht mehr ignorieren`)
+                {picked.length ? plural(t, picked.length, ["Stop ignoring 1 file", "Stop ignoring {0} files"], ["1 Datei nicht mehr ignorieren", "{0} Dateien nicht mehr ignorieren"])
                     : t("Stop ignoring", "Nicht mehr ignorieren")}
             </Button> : undefined}>
             {!files.length

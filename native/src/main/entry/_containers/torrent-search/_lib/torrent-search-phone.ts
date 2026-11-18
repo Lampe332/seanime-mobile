@@ -1,5 +1,6 @@
 import type { AL_BaseAnime, Anime_Entry, Anime_EntryDownloadInfo, HibikeTorrent_AnimeTorrent } from "@/api/generated/types"
 import type { Translate } from "@/lib/app-language"
+import { dateFnsLocale } from "@/lib/i18n/format"
 import { upath } from "@/lib/helpers/upath"
 import { atomWithStorage, readStoredJSON, storage } from "@/lib/storage"
 import { isProviderBatch, type TorrentLanguage, type TorrentSort } from "@/main/entry/_containers/torrent-search/_lib/torrent-filters"
@@ -11,7 +12,6 @@ import { addYears } from "date-fns/addYears"
 import { formatDistanceStrict } from "date-fns/formatDistanceStrict"
 import { subDays } from "date-fns/subDays"
 import { subMonths } from "date-fns/subMonths"
-import { de } from "date-fns/locale/de"
 
 /*
  * The logic of the phone torrent sheet (torrent-search-phone.tsx) without its screen: what the sheet is for, the stored
@@ -86,7 +86,7 @@ function relative(value: number, unit: AgoUnit, language: string) {
     if (typeof Intl.RelativeTimeFormat === "function") return new Intl.RelativeTimeFormat(language, { numeric: "auto" }).format(value, unit)
     const base = new Date(0)
     const other = unit === "hour" ? addHours(base, value) : unit === "day" ? addDays(base, value) : unit === "month" ? addMonths(base, value) : addYears(base, value)
-    return formatDistanceStrict(other, base, { addSuffix: true, unit, locale: language === "de" ? de : undefined })
+    return formatDistanceStrict(other, base, { addSuffix: true, unit, ...dateFnsLocale(language) })
 }
 
 /** The facts line under a result: provider (several searched), best, cached, batch, group, resolution, size, seeders, age */
@@ -100,7 +100,7 @@ export function torrentMeta(torrent: HibikeTorrent_AnimeTorrent, t: Translate, l
         torrent.resolution || "",
         torrent.formattedSize || "",
         // Providers without seeder counts send -1
-        torrent.seeders > 0 ? t(`${torrent.seeders} ${torrent.seeders === 1 ? "seeder" : "seeders"}`, `${torrent.seeders} Seeder`)
+        torrent.seeders > 0 ? (torrent.seeders === 1 ? t("1 seeder", "1 Seeder") : t(`${torrent.seeders} seeders`, `${torrent.seeders} Seeder`))
             : torrent.seeders < 0 ? t("Seeders unknown", "Seeder unbekannt") : t("No seeders", "Keine Seeder"),
         ago(torrent.date, language, now),
     ]

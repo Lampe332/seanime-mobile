@@ -7,7 +7,7 @@ import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { SwitchRow } from "@/components/ui/switch/switch"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import { type Translate, useTr } from "@/lib/app-language"
+import { plural, type Translate, useTr } from "@/lib/app-language"
 import { copyToClipboard, openInAppBrowser } from "@/lib/helpers/browser"
 import { upath } from "@/lib/helpers/upath"
 import { MENU_ENTRIES } from "@/lib/nav/nav-items"
@@ -41,7 +41,6 @@ import { TextInput, View } from "react-native"
  */
 
 type MenuView = "menu" | "metadata" | "unmatch" | "delete" | null
-const plural = (t: Translate, n: number, en: [string, string], de: [string, string]) => `${n} ${n === 1 ? t(en[0], de[0]) : t(en[1], de[1])}`
 
 export function ExternalRow({ href, label, note }: { href: string, label: string, note: string }) {
     return <ActionRow icon={Globe} label={label} note={note} onPress={() => openInAppBrowser(href)} trailing={<ArrowUpRight size={18} color={colors.smTextSubtle} />} />
@@ -105,7 +104,7 @@ export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibr
                         }} />}
                 </RowGroup>
             </SheetGroup>}
-            {hasFiles && <SheetGroup title={t("Files on this device", "Dateien auf diesem Gerät")} note={plural(t, files, ["file", "files"], ["Datei", "Dateien"])}>
+            {hasFiles && <SheetGroup title={t("Files on this device", "Dateien auf diesem Gerät")} note={plural(t, files, ["1 file", "{0} files"], ["1 Datei", "{0} Dateien"])}>
                 <RowGroup>
                     <ActionRow icon={FileMinus} label={t("Unmatch files", "Zuordnung lösen")} chevron
                         note={t("They go back to the unmatched files", "Sie kommen zurück zu den Dateien ohne Anime")} onPress={() => go("unmatch")} />
@@ -205,12 +204,13 @@ function FilesSheet({ t, entry, mode, open, onOpenChange }: SheetProps & { mode:
         setConfirming(false)
     }
     const busy = unmatching || deleting
-    const count = plural(t, picked.length, ["file", "files"], ["Datei", "Dateien"])
+    const n = picked.length
     const allPicked = !!files.length && picked.length === files.length
     const done = () => onOpenChange(false)
     const danger = mode === "delete"
 
-    if (confirming) return <Sheet title={danger ? t(`Delete ${count}?`, `${count} löschen?`) : t(`Unmatch ${count}?`, `Zuordnung von ${count} lösen?`)}
+    if (confirming) return <Sheet title={danger ? plural(t, n, ["Delete 1 file?", "Delete {0} files?"], ["1 Datei löschen?", "{0} Dateien löschen?"])
+        : plural(t, n, ["Unmatch 1 file?", "Unmatch {0} files?"], ["Zuordnung von 1 Datei lösen?", "Zuordnung von {0} Dateien lösen?"])}
         open={open} onOpenChange={onOpenChange}
         footer={<>
             <Button intent="secondary" wrapperClassName="flex-1" onPress={() => setConfirming(false)}>{t("Back", "Zurück")}</Button>
@@ -227,7 +227,8 @@ function FilesSheet({ t, entry, mode, open, onOpenChange }: SheetProps & { mode:
 
     return <Sheet title={danger ? t("Delete files", "Dateien löschen") : t("Unmatch files", "Zuordnung lösen")} open={open} onOpenChange={onOpenChange}
         footer={<Button intent={danger ? "danger" : "primary"} wrapperClassName="flex-1" disabled={!picked.length || busy} onPress={() => setConfirming(true)}>
-            {!picked.length ? t("Pick files", "Dateien wählen") : danger ? t(`Delete ${count}`, `${count} löschen`) : t(`Unmatch ${count}`, `Zuordnung von ${count} lösen`)}
+            {!picked.length ? t("Pick files", "Dateien wählen") : danger ? plural(t, n, ["Delete 1 file", "Delete {0} files"], ["1 Datei löschen", "{0} Dateien löschen"])
+                : plural(t, n, ["Unmatch 1 file", "Unmatch {0} files"], ["Zuordnung von 1 Datei lösen", "Zuordnung von {0} Dateien lösen"])}
         </Button>}>
         {!files.length ? <Muted>{t("No files", "Keine Dateien")}</Muted>
             : <SheetGroup title={t("Files", "Dateien")} note={t(`${picked.length} of ${files.length} picked`, `${picked.length} von ${files.length} gewählt`)}>

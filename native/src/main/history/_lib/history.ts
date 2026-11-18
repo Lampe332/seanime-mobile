@@ -1,6 +1,8 @@
 // geschrieben nach: Mihon/Kotatsu Verlauf (zuletzt gelesen, nach Tag gruppiert), Kern-Route GET /api/v1/continuity/history (playback.ts) und dem Manga-Lesestand der App (manga-chapter-reader.atoms.ts)
 
 import type { Continuity_WatchHistory } from "@/api/generated/types"
+import { type AppLanguage, translate } from "@/lib/app-language"
+import { localeTag } from "@/lib/i18n/format"
 import type { MangaReaderResumeLocation } from "@/main/manga/_lib/manga-chapter-reader.atoms"
 
 /*
@@ -50,10 +52,10 @@ const dayKey = (time: number) => {
     return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 }
 
-const locale = (language: string) => language === "de" ? "de-DE" : "en-US"
+const locale = localeTag
 
 /** The entries (newest first) in days of the device's time zone */
-export function groupByDay(entries: HistoryEntry[], now: number, language: string): HistoryDay[] {
+export function groupByDay(entries: HistoryEntry[], now: number, language: AppLanguage): HistoryDay[] {
     const today = dayKey(now)
     const yesterday = new Date(now)
     yesterday.setDate(yesterday.getDate() - 1)
@@ -64,8 +66,8 @@ export function groupByDay(entries: HistoryEntry[], now: number, language: strin
         let day = days[days.length - 1]
         if (!day || day.key !== key) {
             const date = new Date(entry.at)
-            const label = key === today ? (language === "de" ? "Heute" : "Today")
-                : key === dayKey(yesterday.getTime()) ? (language === "de" ? "Gestern" : "Yesterday")
+            const label = key === today ? translate(language, "Today", "Heute")
+                : key === dayKey(yesterday.getTime()) ? translate(language, "Yesterday", "Gestern")
                     : date.toLocaleDateString(locale(language), { weekday: "short", day: "numeric", month: "short", ...(date.getFullYear() !== thisYear ? { year: "numeric" } : {}) })
             day = { key, label, entries: [] }
             days.push(day)

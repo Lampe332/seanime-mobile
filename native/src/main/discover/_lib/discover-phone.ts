@@ -1,10 +1,10 @@
 import type { AL_ListRecentAnime_Page_AiringSchedules, AL_MediaListStatus } from "@/api/generated/types"
 import type { Translate } from "@/lib/app-language"
+import { formatDate, formatTime } from "@/lib/i18n/format"
 import { addDays } from "date-fns/addDays"
 import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays"
 import { format } from "date-fns/format"
 import { startOfDay } from "date-fns/startOfDay"
-import { de } from "date-fns/locale/de"
 
 /** Pure helpers of the Android phone Discover tab: tabs, season math, "See all" links, labels, schedule days. */
 
@@ -97,7 +97,7 @@ export function airedAgoLabel(t: Translate, airingAt: number, now: number) {
 export function episodeTag(t: Translate, item: Airing) {
     if (item.media?.format === "MOVIE") return t("Movie", "Film")
     const total = item.media?.episodes
-    return `${t("Ep", "Folge")} ${item.episode}${total ? `/${total}` : ""}`
+    return `${t(`Ep ${item.episode}`, `Folge ${item.episode}`)}${total ? `/${total}` : ""}`
 }
 
 export type ScheduleDay = { key: string, date: Date, items: Airing[] }
@@ -123,16 +123,16 @@ export function groupScheduleByDay(items: Airing[], now: number, until?: Date): 
 }
 
 /** "Later today" (the schedule only has episodes still to come), "Tomorrow", then "Friday, 23 Oct" / "Freitag, 23. Okt." */
-export function scheduleDayTitle(t: Translate, day: Date, now: number, german: boolean) {
+export function scheduleDayTitle(t: Translate, day: Date, now: number, language: string) {
     const offset = differenceInCalendarDays(day, now)
     if (offset === 0) return t("Later today", "Heute noch")
     if (offset === 1) return t("Tomorrow", "Morgen")
-    return german ? format(day, "EEEE, d. MMM", { locale: de }) : format(day, "EEEE, d MMM")
+    return formatDate(day, language, ["EEEE, d MMM", "EEEE, d. MMM"], { weekday: "long", day: "numeric", month: "short" })
 }
 
 /** "6:30 PM" / "18:30" */
-export function airingTimeLabel(airingAt: number, german: boolean) {
-    return format(new Date(airingAt * 1000), german ? "HH:mm" : "h:mm a")
+export function airingTimeLabel(airingAt: number, language: string) {
+    return formatTime(new Date(airingAt * 1000), language)
 }
 
 /**

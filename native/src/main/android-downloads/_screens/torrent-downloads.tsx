@@ -120,7 +120,7 @@ export function TorrentDownloads({ active }: { active: boolean }) {
                     { label: t("Progress", "Fortschritt"), value: `${Math.round(open.progress * 100)} % · ${open.size}` },
                     ...(open.status === "downloading" ? [{ label: t("Speed", "Tempo"), value: `↓ ${open.downSpeed} · ↑ ${open.upSpeed}` }] : []),
                     ...(open.status === "downloading" && etaLabel(open.eta, t) ? [{ label: t("Time left", "Restzeit"), value: etaLabel(open.eta, t, false) }] : []),
-                    { label: t("Peers", "Peers"), value: `${open.peers} · ${t(`${open.seeds} ${open.seeds === 1 ? "seeder" : "seeders"}`, `${open.seeds} Seeder`)}` },
+                    { label: t("Peers", "Peers"), value: `${open.peers} · ${open.seeds === 1 ? t("1 seeder", "1 Seeder") : t(`${open.seeds} seeders`, `${open.seeds} Seeder`)}` },
                     ...(open.contentPath ? [{ label: t("Saved to", "Speicherort"), value: open.contentPath }] : []),
                     ...(open.error ? [{ label: t("Error", "Fehler"), value: open.error }] : []),
                 ]} />

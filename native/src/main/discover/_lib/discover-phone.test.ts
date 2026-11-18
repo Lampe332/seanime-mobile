@@ -142,14 +142,14 @@ describe("phone discover schedule", () => {
 
     it("names days and times in the app language", () => {
         const now = new Date(2026, 9, 21, 9, 0).getTime()
-        expect(scheduleDayTitle(en, new Date(2026, 9, 21), now, false)).toBe("Later today")
-        expect(scheduleDayTitle(de, new Date(2026, 9, 21), now, true)).toBe("Heute noch")
-        expect(scheduleDayTitle(de, new Date(2026, 9, 22), now, true)).toBe("Morgen")
-        expect(scheduleDayTitle(en, new Date(2026, 9, 23), now, false)).toBe("Friday, 23 Oct")
-        expect(scheduleDayTitle(de, new Date(2026, 9, 23), now, true)).toBe("Freitag, 23. Okt.")
+        expect(scheduleDayTitle(en, new Date(2026, 9, 21), now, "en")).toBe("Later today")
+        expect(scheduleDayTitle(de, new Date(2026, 9, 21), now, "de")).toBe("Heute noch")
+        expect(scheduleDayTitle(de, new Date(2026, 9, 22), now, "de")).toBe("Morgen")
+        expect(scheduleDayTitle(en, new Date(2026, 9, 23), now, "en")).toBe("Friday, 23 Oct")
+        expect(scheduleDayTitle(de, new Date(2026, 9, 23), now, "de")).toBe("Freitag, 23. Okt.")
         const evening = new Date(2026, 9, 21, 18, 30).getTime() / 1000
-        expect(airingTimeLabel(evening, false)).toBe("6:30 PM")
-        expect(airingTimeLabel(evening, true)).toBe("18:30")
+        expect(airingTimeLabel(evening, "en")).toBe("6:30 PM")
+        expect(airingTimeLabel(evening, "de")).toBe("18:30")
         expect(scheduleFacts(en, 38)).toBe("38 episodes in the next 2 weeks")
         expect(scheduleFacts(de, 1)).toBe("1 Folge in den nächsten 2 Wochen")
         expect(scheduleFacts(en, 69, 5)).toBe("69 episodes in the next 5 days")

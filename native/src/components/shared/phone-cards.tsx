@@ -8,6 +8,7 @@ import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-preview-phone"
 import { mediaEntryHref } from "@/main/_features/media/_lib/media-card"
+import { seasonYearLabel as mediaSeasonYearLabel } from "@/main/_features/media/_lib/media-labels"
 import { getAnimeLibraryEntryAtom } from "@/main/_atoms/anime-library-collection.atoms"
 import { usePlaylistMenuItem } from "@/main/_features/playlists/_components/playlist-menu-item"
 import { usePluginCardMenuItems } from "@/main/_features/plugin/plugin-actions"
@@ -71,9 +72,7 @@ export const MEDIA_STATUS_LABELS: Record<string, [string, string]> = {
 
 /** "Fall 2026", in the app language; empty when AniList knows neither. */
 export function seasonYearLabel(t: Translate, media: { season?: string | null, seasonYear?: number | null, startDate?: { year?: number | null } | null }) {
-    const season = media.season ? t(...(SEASON_LABELS[media.season] ?? [media.season, media.season])) : ""
-    const year = media.seasonYear || media.startDate?.year || ""
-    return [season, year].filter(Boolean).join(" ")
+    return mediaSeasonYearLabel(t, media)
 }
 
 /** The last data a query had, so a refetch or a new key keeps the screen instead of showing bones again. */

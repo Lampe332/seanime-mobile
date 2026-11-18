@@ -39,7 +39,7 @@ export function DiscoverPhoneSchedule({ schedule }: { schedule: DiscoverSchedule
     const t = useTr()
     const router = useRouter()
     const offlineAware = useOfflineAware()
-    const german = getAppLanguage() === "de"
+    const language = getAppLanguage()
     // "Later today" / "Tomorrow" are counted from when the tab was opened; the query window changes at midnight anyway
     const [now] = React.useState(() => Date.now())
     const calendarReady = MENU_ENTRIES.some(entry => entry.id === "schedule" && entry.ready)
@@ -63,10 +63,10 @@ export function DiscoverPhoneSchedule({ schedule }: { schedule: DiscoverSchedule
         <View className="gap-6">
             {schedule.days.map(day => (
                 // Today in the accent, as in the calendar
-                <PhoneSection key={day.key} title={scheduleDayTitle(t, day.date, now, german)} count={day.items.length}
+                <PhoneSection key={day.key} title={scheduleDayTitle(t, day.date, now, language)} count={day.items.length}
                     titleClassName={isToday(day.date) ? "text-sm-accent" : undefined}>
                     <View className="gap-0.5 overflow-hidden rounded-surface">
-                        {day.items.map(item => <ScheduleRow key={item.id} item={item} german={german} />)}
+                        {day.items.map(item => <ScheduleRow key={item.id} item={item} language={language} />)}
                     </View>
                 </PhoneSection>
             ))}
@@ -93,7 +93,7 @@ function ScheduleBones({ label, short }: { label: string, short?: boolean }) {
 }
 
 /** An episode: cover, title, "Episode 5" (with the list status when on a list), time; long press for Preview. */
-const ScheduleRow = React.memo(function ScheduleRow({ item, german }: { item: Airing, german: boolean }) {
+const ScheduleRow = React.memo(function ScheduleRow({ item, language }: { item: Airing, language: string }) {
     const t = useTr()
     const fade = useImageFade()
     const media = item.media!
@@ -104,7 +104,7 @@ const ScheduleRow = React.memo(function ScheduleRow({ item, german }: { item: Ai
     const status = listStatusLabel(t, "anime", useDiscoverEntry("anime", media.id).listData?.status)
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
     const veiled = !!serverStatus?.settings?.anilist?.blurAdultContent && !!media.isAdult
-    const time = airingTimeLabel(item.airingAt, german)
+    const time = airingTimeLabel(item.airingAt, language)
     const episode = t(`Episode ${item.episode}`, `Folge ${item.episode}`)
     // the row's cover flies into the page it opens (cover-flight.tsx); a blurred one does not fly
     const coverUri = getImageUrl(media.coverImage?.large || media.coverImage?.medium || "")

@@ -4,10 +4,9 @@ import { useIncognito, useSetAppSwitches } from "@/api/hooks/app-switches.hooks"
 import { useLogout } from "@/api/hooks/auth.hooks"
 import { useListAnimeEntryEpisodeTabExtensions } from "@/api/hooks/extensions.hooks"
 import { useGetMobileOfflineSnapshot, useMobileOfflineSettings } from "@/api/hooks/mobile_offline.hooks"
-import { Tabs } from "@/components/ui/tabs/tabs"
 import { toast } from "@/components/ui/toast/toast-store"
 import { useAiringNotificationsSetting, useChapterNotificationsSetting, useTestAiringNotification } from "@/lib/airing/airing-hooks"
-import { type AppLanguage, appLanguageAtom, type Translate } from "@/lib/app-language"
+import { APP_LANGUAGES, appLanguageAtom, asAppLanguage, type Translate } from "@/lib/app-language"
 import { hapticsEnabledAtom, hasVibrator, playSound, soundsEnabledAtom } from "@/lib/feedback"
 import { resetNavigation } from "@/lib/nav/nav-store"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -30,7 +29,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query"
 import { useAtom } from "jotai"
 import React from "react"
-import { Platform, View } from "react-native"
+import { Platform } from "react-native"
 import { requestPinWidget } from "react-native-android-widget"
 
 /*
@@ -173,17 +172,15 @@ function AppFeedbackGroup({ t }: { t: Translate }) {
 }
 
 /**
- * Language of the app's own texts. The web app reloaded so native screens followed; here every text reads the language
- * atom, and the root layout passes it on to the server service's notification.
+ * Language of the app's own texts, each named in itself (English, Español, 日本語, …). The web app reloaded so native screens
+ * followed; here every text reads the language atom. Eight languages do not fit a segment row, so they are a select.
  */
 function LanguageGroup({ t }: { t: Translate }) {
     const [language, setLanguage] = useAtom(appLanguageAtom)
     return <SettingsGroup title={t("Language", "Sprache")}
         note={t("For the app's own screens: tabs, downloads, calendar, player menu.", "Für die eigenen Bildschirme der App: Tabs, Downloads, Kalender, Player-Menü.")}>
-        <View className="bg-sm-surface-raised p-2">
-            <Tabs variant="segment" value={language} onValueChange={next => setLanguage(next as AppLanguage)}
-                items={[{ value: "en", label: "English" }, { value: "de", label: "Deutsch" }]} />
-        </View>
+        <SelectRow label={t("App language", "App-Sprache")} value={language} options={[...APP_LANGUAGES]}
+            onChange={next => setLanguage(asAppLanguage(next) ?? "en")} />
     </SettingsGroup>
 }
 

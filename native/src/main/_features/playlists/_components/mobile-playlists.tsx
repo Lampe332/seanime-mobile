@@ -279,7 +279,7 @@ export function MobilePlaylists() {
                         <Thumbnail src={entry.media?.coverImage?.large} />
                         <View className="min-w-0 flex-1 gap-1">
                             <Text numberOfLines={2} className="font-semibold">{entry.media?.title?.userPreferred || entry.media?.title?.romaji}</Text>
-                            <Text className="text-[13px] text-sm-text-muted">{draft.episodes.filter(n => n.episode?.baseAnime?.id === entry.mediaId).length} {t("selected", "ausgewählt")}
+                            <Text className="text-[13px] text-sm-text-muted">{t(`${draft.episodes.filter(n => n.episode?.baseAnime?.id === entry.mediaId).length} selected`, `${draft.episodes.filter(n => n.episode?.baseAnime?.id === entry.mediaId).length} ausgewählt`)}
                                 {entry.libraryData ? ` · ${t("Local", "Lokal")}` : ""}</Text>
                         </View>
                         <Plus size={20} color={colors.smTextMuted} />

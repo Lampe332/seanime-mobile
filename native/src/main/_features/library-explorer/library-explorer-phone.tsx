@@ -7,7 +7,7 @@ import { ChipRow, PhoneEmpty } from "@/components/shared/phone-cards"
 import { Button } from "@/components/ui/button/button"
 import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
-import { type Translate, useTr } from "@/lib/app-language"
+import { plural, useTr } from "@/lib/app-language"
 import { upath } from "@/lib/helpers/upath"
 import { colors } from "@/lib/theme/tokens"
 import { UnmatchedPhoneSheet } from "@/main/_features/anime-library/_screens/library-phone"
@@ -47,7 +47,6 @@ import { ActivityIndicator, Pressable, View } from "react-native"
  * native sheets hand over directly.
  */
 
-const plural = (t: Translate, n: number, en: [string, string], de: [string, string]) => `${n} ${n === 1 ? t(en[0], de[0]) : t(en[1], de[1])}`
 
 /** Mounted in the main layout; the file tree loads on the first opening, not with every app start. */
 export function LibraryExplorerPhone() {
@@ -204,7 +203,7 @@ function ExplorerSheet() {
         )
     }
 
-    const filesIn = (node?: ExplorerNode) => plural(t, node?.localFileCount ?? 0, ["file", "files"], ["Datei", "Dateien"])
+    const filesIn = (node?: ExplorerNode) => plural(t, node?.localFileCount ?? 0, ["1 file", "{0} files"], ["1 Datei", "{0} Dateien"])
     return (
         <Sheet title={t("Library files", "Bibliotheksdateien")} open={open} onOpenChange={onOpenChange} className="min-h-[78%]">
             <SearchField value={query} onChangeText={setQuery} placeholder={t("Search file names", "Dateinamen suchen")} />
@@ -215,7 +214,7 @@ function ExplorerSheet() {
             {isLoading ? <LoadingRows label={t("Loading files", "Dateien werden geladen")} />
                 : !root ? <PhoneEmpty title={t("No library folder", "Kein Bibliotheksordner")} text={t("Choose one in Settings, then scan it.", "Wähle einen in den Einstellungen und scanne ihn dann.")} />
                     : flat ? (
-                        <SheetGroup title={filter ? t("Files", "Dateien") : t("Results", "Treffer")} intro={plural(t, flat.length, ["file", "files"], ["Datei", "Dateien"])}>
+                        <SheetGroup title={filter ? t("Files", "Dateien") : t("Results", "Treffer")} intro={plural(t, flat.length, ["1 file", "{0} files"], ["1 Datei", "{0} Dateien"])}>
                             {flat.length ? <RowGroup>{flat.slice(0, 200).map(fileRow)}</RowGroup>
                                 : <PhoneEmpty title={t("No file here", "Keine Datei")} text={q ? t("Try another part of the name.", "Versuch einen anderen Teil des Namens.") : undefined} />}
                         </SheetGroup>

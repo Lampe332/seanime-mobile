@@ -10,7 +10,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import { useTr } from "@/lib/app-language"
+import { plural, useTr } from "@/lib/app-language"
 import { copyToClipboard, openInAppBrowser } from "@/lib/helpers/browser"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
@@ -209,8 +209,7 @@ function MangaHeader({ entry, details, detailsLoading, wide, tablet, onMore }: {
                 </View>
             </View>
             <AnilistMediaEntryButton media={media} listData={listData} type="manga" />
-            {!!listData?.status && <Muted className="w-full capitalize">{listStatusLabel(t, "manga", listData.status)}{listData.repeat ? ` · ${listData.repeat} ${listData.repeat === 1
-                ? t("reread", "Wiederholung") : t("rereads", "Wiederholungen")}` : ""}</Muted>}
+            {!!listData?.status && <Muted className="w-full capitalize">{listStatusLabel(t, "manga", listData.status)}{listData.repeat ? ` · ${plural(t, listData.repeat, ["1 reread", "{0} rereads"], ["1 Wiederholung", "{0} Wiederholungen"])}` : ""}</Muted>}
         </View>
 
         {/* tablet.css: 18rem at the start; in the wide column it runs the column's width */}

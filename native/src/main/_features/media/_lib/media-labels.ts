@@ -13,9 +13,20 @@ export const SEASON_LABELS: Record<string, [string, string]> = {
 
 /** "Fall 2026", in the app language; empty when AniList knows neither */
 export function seasonYearLabel(t: Translate, media: { season?: string | null, seasonYear?: number | null, startDate?: { year?: number | null } | null }) {
-    const season = media.season ? t(...(SEASON_LABELS[media.season] ?? [media.season, media.season])) : ""
     const year = media.seasonYear || media.startDate?.year || ""
+    if (media.season && year && media.season in SEASON_LABELS) return seasonWithYear(t, media.season, year)
+    const season = media.season ? t(...(SEASON_LABELS[media.season] ?? [media.season, media.season])) : ""
     return [season, year].filter(Boolean).join(" ")
+}
+
+/** "Fall 2026" as one text, so each language orders season and year itself ("2026年秋"). */
+export function seasonWithYear(t: Translate, season: string, year: number | string) {
+    switch (season) {
+        case "WINTER": return t(`Winter ${year}`, `Winter ${year}`)
+        case "SPRING": return t(`Spring ${year}`, `Frühling ${year}`)
+        case "SUMMER": return t(`Summer ${year}`, `Sommer ${year}`)
+        default: return t(`Fall ${year}`, `Herbst ${year}`)
+    }
 }
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: "\"", "#39": "'", apos: "'", nbsp: " ", mdash: "—", ndash: "–", hellip: "…" }

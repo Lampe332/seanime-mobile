@@ -119,7 +119,7 @@ export function NativePlayer() {
                 case "error": {
                     const error = (payload as { error: string }).error
                     log.error("Error", withoutTokens(String(error ?? "")))
-                    toast.error(t("Playback error: ", "Wiedergabefehler: ") + error)
+                    toast.error(t(`Playback error: ${error}`, `Wiedergabefehler: ${error}`))
                     setState(draft => {
                         draft.playbackError = error
                     })

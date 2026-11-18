@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button/button"
 import { cn } from "@/components/ui/core/styling"
 import { Tabs } from "@/components/ui/tabs/tabs"
 import { Muted, Text } from "@/components/ui/text/text"
-import { getAppLanguage, useTr } from "@/lib/app-language"
+import { getAppLanguage, plural, useTr } from "@/lib/app-language"
+import { dateFnsLocale } from "@/lib/i18n/format"
 import { openInAppBrowser } from "@/lib/helpers/browser"
 import { userScoreColor } from "@/main/_features/media/_lib/media-card"
 import { useNakamaStatus } from "@/main/_features/nakama/nakama-manager"
@@ -49,7 +50,6 @@ import { player_onlineAtom } from "@/main/onlinestream/_lib/onlinestream-player.
 import { addSeconds } from "date-fns/addSeconds"
 import { format } from "date-fns/format"
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow"
-import { de } from "date-fns/locale/de"
 import { useCloseOnBack } from "@/components/ui/core/back-handler"
 import { useFocusEffect, useIsFocused, useLocalSearchParams } from "expo-router"
 import { useSetRouteParams } from "@/lib/route-params"
@@ -376,8 +376,7 @@ function EntryHeader({ entry, details, detailsLoading, wide, tablet, onEpisodes,
                 </View>
             </View>
             <AnilistMediaEntryButton media={media} listData={listData} type="anime" />
-            {!!listData?.status && <Muted className="w-full capitalize">{listStatusLabel(t, "anime", listData.status)}{listData.repeat ? ` · ${listData.repeat} ${listData.repeat === 1
-                ? t("rewatch", "Wiederholung") : t("rewatches", "Wiederholungen")}` : ""}</Muted>}
+            {!!listData?.status && <Muted className="w-full capitalize">{listStatusLabel(t, "anime", listData.status)}{listData.repeat ? ` · ${plural(t, listData.repeat, ["1 rewatch", "{0} rewatches"], ["1 Wiederholung", "{0} Wiederholungen"])}` : ""}</Muted>}
         </View>
 
         {!!onEpisodes && <Pressable accessibilityRole="button" onPress={onEpisodes}
@@ -465,7 +464,7 @@ function NextAiringEpisode({ entry }: { entry: Anime_Entry }) {
     const t = useTr()
     const next = entry.media?.nextAiringEpisode
     if (!next) return null
-    const locale = getAppLanguage() === "de" ? { locale: de } : undefined
+    const locale = dateFnsLocale(getAppLanguage())
     const at = addSeconds(new Date(), next.timeUntilAiring || 0)
     return <View className="flex-row flex-wrap items-center gap-2">
         <Text className="text-lg font-semibold">{t("Episode", "Folge")} {next.episode}</Text>

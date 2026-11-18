@@ -45,7 +45,7 @@ export type CheckState = { fetching: boolean, loading: boolean, error: boolean, 
 /** The status line of the panel, in the order the web notice decides it */
 export function updateStatusText(download: AppDownloadState, check: CheckState, t: Translate) {
     const percent = downloadPercent(download)
-    if (download.status === "installed") return t("Update successfully installed – Version ", "Update erfolgreich installiert – Version ") + download.version
+    if (download.status === "installed") return t(`Update successfully installed – Version ${download.version}`, `Update erfolgreich installiert – Version ${download.version}`)
     if (download.status === "verifying") return t("Verifying APK…", "APK wird geprüft…")
     if (download.status === "preparing") return t("Preparing installation…", "Installation wird vorbereitet…")
     if (download.status === "installing") return t("Installation requested…", "Installation angefordert…")

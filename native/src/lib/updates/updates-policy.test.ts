@@ -150,11 +150,11 @@ describe("since your last visit", () => {
 describe("day headings", () => {
     it("follow the app's language, not the device's", () => {
         const now = new Date(2026, 10, 15, 12).getTime()
-        expect(dayLabel(dayKey(now), now, false)).toBe("Today")
-        expect(dayLabel(dayKey(now), now, true)).toBe("Heute")
-        expect(dayLabel("2026-11-14", now, false)).toBe("Yesterday")
-        expect(dayLabel("2026-11-14", now, true)).toBe("Gestern")
-        expect(dayLabel("2026-11-13", now, false)).toBe("Friday, November 13")
-        expect(dayLabel("2026-11-13", now, true)).toBe("Freitag, 13. November")
+        expect(dayLabel(dayKey(now), now, "en")).toBe("Today")
+        expect(dayLabel(dayKey(now), now, "de")).toBe("Heute")
+        expect(dayLabel("2026-11-14", now, "en")).toBe("Yesterday")
+        expect(dayLabel("2026-11-14", now, "de")).toBe("Gestern")
+        expect(dayLabel("2026-11-13", now, "en")).toBe("Friday, November 13")
+        expect(dayLabel("2026-11-13", now, "de")).toBe("Freitag, 13. November")
     })
 })

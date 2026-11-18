@@ -9,7 +9,7 @@ import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { SwitchRow } from "@/components/ui/switch/switch"
 import { Tabs } from "@/components/ui/tabs/tabs"
 import { Heading, Muted, Text } from "@/components/ui/text/text"
-import { appLanguageAtom, useTr } from "@/lib/app-language"
+import { appLanguageAtom, plural, useTr } from "@/lib/app-language"
 import { getImageUrl } from "@/lib/server/assets"
 import { atomWithStorage } from "@/lib/storage"
 import { colors } from "@/lib/theme/tokens"
@@ -26,7 +26,6 @@ import {
     weekdayLabels,
 } from "@/main/schedule/_lib/schedule-phone"
 import { useGlobalScheduleCounts, useGlobalScheduleDay } from "@/main/schedule/_lib/use-global-schedule"
-import type { Locale } from "date-fns"
 import { addDays } from "date-fns/addDays"
 import { addMonths } from "date-fns/addMonths"
 import { format } from "date-fns/format"
@@ -37,7 +36,7 @@ import { parseISO } from "date-fns/parseISO"
 import { startOfDay } from "date-fns/startOfDay"
 import { startOfMonth } from "date-fns/startOfMonth"
 import { subMonths } from "date-fns/subMonths"
-import { de } from "date-fns/locale/de"
+import { formatDate } from "@/lib/i18n/format"
 import { Image } from "expo-image"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { useAtom, useAtomValue } from "jotai"
@@ -110,15 +109,17 @@ type PhoneScheduleProps = {
 }
 
 function useDateLocale() {
-    const german = useAtomValue(appLanguageAtom) === "de"
-    return { german, locale: german ? { locale: de } : undefined }
+    const language = useAtomValue(appLanguageAtom)
+    /** A date in the app language: English and German with their own patterns, the other languages through Intl. */
+    const date = (day: Date, en: string, de: string, options: Intl.DateTimeFormatOptions) => formatDate(day, language, [en, de], options)
+    return { language, date }
 }
 
 /** Android phone calendar: the next seven days as an agenda, or the month grid; filters live in a sheet. */
 function PhoneSchedule(props: PhoneScheduleProps) {
     const { days, eventsOn, isAllAnime, statuses, currentDate, selectedDate, loading, error } = props
     const t = useTr()
-    const { german, locale } = useDateLocale()
+    const { date } = useDateLocale()
     const { isTablet } = useTabletLayout()
     const [view, setView] = useAtom(phoneViewAtom)
     const [weekOffset, setWeekOffset] = React.useState(0)
@@ -137,19 +138,19 @@ function PhoneSchedule(props: PhoneScheduleProps) {
     const weekCount = weekEvents.reduce((n, d) => n + d.events.length, 0)
     const monthCount = days.filter(d => d.isCurrentMonth).reduce((n, d) => n + d.events.length, 0)
 
-    const episodes = (n: number) => `${n} ${n === 1 ? t("episode", "Folge") : t("episodes", "Folgen")}`
+    const episodes = (n: number) => plural(t, n, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])
     const dayTitle = (day: Date) => isToday(day) ? t("Today", "Heute") : isTomorrow(day) ? t("Tomorrow", "Morgen")
-        : format(day, german ? "EEEE, d. MMMM" : "EEEE, MMMM d", locale)
-    const range = `${format(week[0], german ? "d. MMM" : "MMM d", locale)} – ${format(week[6], german ? "d. MMM" : "MMM d", locale)}`
+        : date(day, "EEEE, MMMM d", "EEEE, d. MMMM", { weekday: "long", month: "long", day: "numeric" })
+    const range = `${date(week[0], "MMM d", "d. MMM", { month: "short", day: "numeric" })} – ${date(week[6], "MMM d", "d. MMM", { month: "short", day: "numeric" })}`
     const weekLabel = weekOffset === 0 ? t("next 7 days", "nächste 7 Tage") : range
     const facts = isAllAnime
         ? countsLoading ? t("Counting episodes on AniList…", "Folgen auf AniList werden gezählt …")
             : !allCounts ? t("All anime on AniList", "Alle Anime auf AniList")
                 : view === "week" ? `${episodes(countIn(week.map(d => format(d, "yyyy-MM-dd"))))} · ${weekLabel}`
-                    : `${episodes(countIn(days.filter(d => d.isCurrentMonth).map(d => d.date)))} · ${format(currentDate, "MMMM", locale)}`
+                    : `${episodes(countIn(days.filter(d => d.isCurrentMonth).map(d => d.date)))} · ${date(currentDate, "MMMM", "MMMM", { month: "long" })}`
         : loading ? t("Loading…", "Lädt …")
             : view === "week" ? `${episodes(weekCount)} · ${weekLabel}`
-                : `${episodes(monthCount)} · ${format(currentDate, "MMMM", locale)}`
+                : `${episodes(monthCount)} · ${date(currentDate, "MMMM", "MMMM", { month: "long" })}`
 
     const statusSummary = isAllAnime ? t("All anime, regardless of your list", "Alle Anime, unabhängig von deiner Liste")
         : statuses.length === STATUS_FILTERS.length ? t("All statuses", "Alle Status")
@@ -221,7 +222,7 @@ function PhoneSchedule(props: PhoneScheduleProps) {
                         onPrevious={() => goWeek(-1)} onNext={() => goWeek(1)} onToday={weekOffset !== 0 ? toToday : undefined} />
                     <Animated.View key={`week-${weekOffset}`} entering={entering} className="gap-4">
                         {isAllAnime ? <>
-                            <DayStrip week={week} selectedDate={selectedDate} onSelect={props.onSelectDate} locale={locale} counts={allCounts} />
+                            <DayStrip week={week} selectedDate={selectedDate} onSelect={props.onSelectDate} counts={allCounts} />
                             {status ?? <DayList key={selectedDate} title={dayTitle(parseISO(selectedDate))} events={eventsOn(parseISO(selectedDate))}
                                 indicateWatched={props.indicateWatched} episodes={episodes} />}
                         </> : status ?? (weekCount === 0
@@ -237,7 +238,7 @@ function PhoneSchedule(props: PhoneScheduleProps) {
 
             {view === "month" && (
                 <View className="gap-4">
-                    <Pager title={format(currentDate, "MMMM yyyy", locale)} previous={t("Previous month", "Vorheriger Monat")} next={t("Next month", "Nächster Monat")}
+                    <Pager title={date(currentDate, "MMMM yyyy", "MMMM yyyy", { month: "long", year: "numeric" })} previous={t("Previous month", "Vorheriger Monat")} next={t("Next month", "Nächster Monat")}
                         onPrevious={() => goMonth(-1)} onNext={() => goMonth(1)} onToday={!isSameMonth(currentDate, new Date()) ? toToday : undefined} />
                     <Animated.View key={`month-${format(currentDate, "yyyy-MM")}`} entering={entering} className="gap-4">
                         <MonthGrid days={days} selected={selected.date} weekStartsOn={props.weekStartsOn} counts={isAllAnime ? allCounts ?? {} : undefined} onSelect={selectDay} />
@@ -291,7 +292,8 @@ function DayColumns({ children }: { children: React.ReactNode }) {
     )
 }
 
-function DayStrip({ week, selectedDate, onSelect, locale, counts }: { week: Date[], selectedDate: string, onSelect: (date: string) => void, locale?: { locale: Locale }, counts?: Record<string, number> }) {
+function DayStrip({ week, selectedDate, onSelect, counts }: { week: Date[], selectedDate: string, onSelect: (date: string) => void, counts?: Record<string, number> }) {
+    const { date: dateText } = useDateLocale()
     return (
         <View className="flex-row gap-1">
             {week.map(day => {
@@ -301,10 +303,10 @@ function DayStrip({ week, selectedDate, onSelect, locale, counts }: { week: Date
                 const count = counts?.[date]
                 return (
                     <Pressable key={date} accessibilityRole="button" accessibilityState={{ selected: pressed }}
-                        accessibilityLabel={[format(day, "EEEE d", locale), count ? String(count) : ""].filter(Boolean).join(", ")}
+                        accessibilityLabel={[dateText(day, "EEEE d", "EEEE d", { weekday: "long", day: "numeric" }), count ? String(count) : ""].filter(Boolean).join(", ")}
                         onPress={() => onSelect(date)}
                         className={cn("min-h-[76px] flex-1 items-center gap-0.5 rounded-surface-sm py-2", pressed ? "bg-brand-500" : "active:bg-sm-surface-control")}>
-                        <Text className={cn("text-xs", pressed ? "text-white/85" : "text-sm-text-muted")}>{format(day, "EEEEEE", locale)}</Text>
+                        <Text className={cn("text-xs", pressed ? "text-white/85" : "text-sm-text-muted")}>{dateText(day, "EEEEEE", "EEEEEE", { weekday: "short" }).replace(/\.$/, "")}</Text>
                         <Text className={cn("text-[17px] font-semibold", pressed ? "text-white" : today ? "text-sm-accent" : "text-sm-text")}
                             style={{ fontVariant: ["tabular-nums"] }}>{format(day, "d")}</Text>
                         <Text className={cn("min-h-[14px] text-[11px] font-semibold leading-[14px]", pressed ? "text-white/85" : "text-sm-accent")}>{count || ""}</Text>
@@ -318,11 +320,11 @@ function DayStrip({ week, selectedDate, onSelect, locale, counts }: { week: Date
 /** `counts` replaces the per-day events for All anime, which loads only the chosen day's episodes. */
 export function MonthGrid({ days, selected, weekStartsOn, counts, onSelect }: { days: CalendarDayItem[], selected: string, weekStartsOn: number, counts?: Record<string, number>, onSelect: (date: string) => void }) {
     const t = useTr()
-    const { german } = useDateLocale()
+    const { language } = useDateLocale()
     return (
         <View className="gap-1">
             <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="flex-row">
-                {weekdayLabels(german, weekStartsOn).map(label => <Text key={label} className="flex-1 py-1 text-center text-xs text-sm-text-subtle">{label}</Text>)}
+                {weekdayLabels(language, weekStartsOn).map(label => <Text key={label} className="flex-1 py-1 text-center text-xs text-sm-text-subtle">{label}</Text>)}
             </View>
             <View accessibilityLabel={t("Days of the month", "Tage im Monat")} className="-m-0.5 flex-row flex-wrap">
                 {days.map(day => {
@@ -437,7 +439,7 @@ function FilterSheet(props: PhoneScheduleProps & { open: boolean, onOpenChange: 
  */
 export function ScheduleMonthCalendar({ items, loading, error, onRetry }: { items: Anime_ScheduleItem[] | undefined, loading: boolean, error: boolean, onRetry: () => void }) {
     const t = useTr()
-    const { german, locale } = useDateLocale()
+    const { date } = useDateLocale()
     const { isTablet } = useTabletLayout()
     const anilistListData = useAtomValue(__anilist_userAnimeListDataAtom)
     const weekStartsOn = useAtomValue(weekStartsOnAtom)
@@ -448,7 +450,7 @@ export function ScheduleMonthCalendar({ items, loading, error, onRetry }: { item
     const eventsOn = React.useCallback((day: Date) => scheduleEvents(items, day, anilistListData, null), [items, anilistListData])
     const days = React.useMemo(() => calendarDays(currentDate, weekStartsOn, eventsOn), [currentDate, weekStartsOn, eventsOn])
     const selected = days.find(d => d.date === selectedDate) ?? days.find(d => d.isCurrentMonth)!
-    const episodes = (n: number) => `${n} ${n === 1 ? t("episode", "Folge") : t("episodes", "Folgen")}`
+    const episodes = (n: number) => plural(t, n, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])
     const goMonth = (by: number) => {
         const next = startOfMonth(by > 0 ? addMonths(currentDate, 1) : subMonths(currentDate, 1))
         setStep(by)
@@ -469,10 +471,10 @@ export function ScheduleMonthCalendar({ items, loading, error, onRetry }: { item
         }
     }
     const day = parseISO(selected.date)
-    const title = isToday(day) ? t("Today", "Heute") : format(day, german ? "EEEE, d. MMMM" : "EEEE, MMMM d", locale)
+    const title = isToday(day) ? t("Today", "Heute") : date(day, "EEEE, MMMM d", "EEEE, d. MMMM", { weekday: "long", month: "long", day: "numeric" })
     return (
         <View className="gap-4">
-            <Pager title={format(currentDate, "MMMM yyyy", locale)} previous={t("Previous month", "Vorheriger Monat")} next={t("Next month", "Nächster Monat")}
+            <Pager title={date(currentDate, "MMMM yyyy", "MMMM yyyy", { month: "long", year: "numeric" })} previous={t("Previous month", "Vorheriger Monat")} next={t("Next month", "Nächster Monat")}
                 onPrevious={() => goMonth(-1)} onNext={() => goMonth(1)} onToday={!isSameMonth(currentDate, new Date()) ? toToday : undefined} />
             <Animated.View key={format(currentDate, "yyyy-MM")} entering={step ? stepIn(isTablet, step > 0) : undefined} className="gap-4">
                 <MonthGrid days={days} selected={selected.date} weekStartsOn={weekStartsOn} onSelect={selectDay} />

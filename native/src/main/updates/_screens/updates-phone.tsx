@@ -42,7 +42,7 @@ function UpdateRow({ t, item, fresh, onPress }: { t: Translate, item: UpdateItem
 
 export function UpdatesPhone() {
     const t = useTr()
-    const german = useAtomValue(appLanguageAtom) === "de"
+    const language = useAtomValue(appLanguageAtom)
     const router = useRouter()
     const mangaEnabled = !!useServerStatus()?.settings?.library?.enableManga
     const { items, loading, now } = useUpdateItems()
@@ -90,7 +90,7 @@ export function UpdatesPhone() {
                         text={t("New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.",
                             "Hier erscheinen neue Folgen der Anime, die du schaust oder planst, und neue Kapitel der Manga, die du liest.")} />
                 ) : groups.map(group => (
-                    <PhoneSection key={group.day} title={dayLabel(group.day, now, german)} count={group.items.length}>
+                    <PhoneSection key={group.day} title={dayLabel(group.day, now, language)} count={group.items.length}>
                         <View className="gap-0.5 overflow-hidden rounded-surface">
                             {group.items.map(item => <UpdateRow key={item.key} t={t} item={item} fresh={item.at > since} onPress={() => open(item)} />)}
                         </View>

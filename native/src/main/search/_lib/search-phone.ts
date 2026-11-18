@@ -13,6 +13,7 @@ import type { MangaEntryFilters } from "@/main/manga/_lib/manga-preferences"
 import { getMangaEntryUnreadState } from "@/main/manga/_lib/manga-unread"
 import { ADVANCED_SEARCH_MEDIA_TAGS } from "@/main/search/_lib/advanced-search-constants"
 import type { Translate } from "@/lib/app-language"
+import { seasonWithYear } from "@/main/_features/media/_lib/media-labels"
 import { anilist_getCurrentEpisodes } from "@/lib/helpers/media"
 
 /**
@@ -63,18 +64,15 @@ export type SearchOption<T extends string = string> = { value: T, en: string, de
 
 type SortOption = SearchOption<SearchSort> & {
     for?: SearchType
-    /** How the results title starts ("Highest rated"), or how it ends (" with the most episodes") */
-    title: [string, string]
-    suffix?: [string, string]
 }
 
 const SEARCH_SORTS: SortOption[] = [
-    { value: "SCORE_DESC", en: "Highest score", de: "Beste Wertung", title: ["Highest rated", "Bestbewertete"] },
-    { value: "TRENDING_DESC", en: "Trending", de: "Im Trend", title: ["Trending", "Angesagte"] },
-    { value: "POPULARITY_DESC", en: "Popular", de: "Beliebt", title: ["Popular", "Beliebte"] },
-    { value: "START_DATE_DESC", en: "Newest", de: "Neueste", title: ["Newest", "Neueste"] },
-    { value: "EPISODES_DESC", en: "Most episodes", de: "Meiste Folgen", for: "anime", title: ["", ""], suffix: [" with the most episodes", " mit den meisten Folgen"] },
-    { value: "CHAPTERS_DESC", en: "Most chapters", de: "Meiste Kapitel", for: "manga", title: ["", ""], suffix: [" with the most chapters", " mit den meisten Kapiteln"] },
+    { value: "SCORE_DESC", en: "Highest score", de: "Beste Wertung" },
+    { value: "TRENDING_DESC", en: "Trending", de: "Im Trend" },
+    { value: "POPULARITY_DESC", en: "Popular", de: "Beliebt" },
+    { value: "START_DATE_DESC", en: "Newest", de: "Neueste" },
+    { value: "EPISODES_DESC", en: "Most episodes", de: "Meiste Folgen", for: "anime" },
+    { value: "CHAPTERS_DESC", en: "Most chapters", de: "Meiste Kapitel", for: "manga" },
 ]
 
 export function searchSorts(type: SearchType) {
@@ -364,18 +362,43 @@ export function uniqueMedia<T extends { id: number }>(pages: SearchPage<T>[] | u
 export function searchTitle(t: Translate, state: SearchPhoneState) {
     const title = state.title.trim()
     if (title) return t(`Results for “${title}”`, `Treffer für „${title}“`)
-    const sort = SEARCH_SORTS.find(option => option.value === state.sort) ?? SEARCH_SORTS[0]
-    const season = find(SEARCH_SEASONS, state.season)
+    const sort = (SEARCH_SORTS.find(option => option.value === state.sort) ?? SEARCH_SORTS[0]).value
+    const genres = state.genres.map(genre => genreLabel(t, genre)).join(", ")
+    const subject = sortTitle(t, sort, state.type, genres)
+    if (!state.season && !state.year) return subject
+    // German names the genres last: "Bestbewertete Anime aus dem Herbst 2024: Action"
+    const plain = sortTitle(t, sort, state.type, "")
+    const genresAfter = genres ? `: ${genres}` : ""
+    if (state.season) {
+        const when = state.year ? seasonWithYear(t, state.season, state.year) : label(t, SEARCH_SEASONS, state.season)
+        return t(`${subject} from ${when}`, `${plain} aus dem ${when}${genresAfter}`)
+    }
+    return t(`${subject} from ${state.year}`, `${plain} aus dem Jahr ${state.year}${genresAfter}`)
+}
 
-    const fromEn = season || state.year ? ` from ${[season?.en, state.year].filter(Boolean).join(" ")}` : ""
-    const en = `${[sort.title[0], state.genres.join(", "), state.type].filter(Boolean).join(" ")}${sort.suffix?.[0] ?? ""}${fromEn}`
-
-    const fromDe = season ? ` aus dem ${season.de}${state.year ? ` ${state.year}` : ""}` : state.year ? ` aus dem Jahr ${state.year}` : ""
-    const genresDe = state.genres.map(genre => find(SEARCH_GENRES, genre)?.de ?? genre).join(", ")
-    const noun = state.type === "anime" ? "Anime" : "Manga"
-    const de = `${[sort.title[1], noun].filter(Boolean).join(" ")}${sort.suffix?.[1] ?? ""}${fromDe}${genresDe ? `: ${genresDe}` : ""}`
-
-    return t(en.charAt(0).toUpperCase() + en.slice(1), de)
+/** A sort's results title as one text per type, with the genres ("Action, Drama") in it when there are any. */
+function sortTitle(t: Translate, sort: string, type: SearchType, genres: string): string {
+    const anime = type === "anime"
+    switch (sort) {
+        case "TRENDING_DESC": return genres
+            ? anime ? t(`Trending ${genres} anime`, `Angesagte Anime: ${genres}`) : t(`Trending ${genres} manga`, `Angesagte Manga: ${genres}`)
+            : anime ? t("Trending anime", "Angesagte Anime") : t("Trending manga", "Angesagte Manga")
+        case "POPULARITY_DESC": return genres
+            ? anime ? t(`Popular ${genres} anime`, `Beliebte Anime: ${genres}`) : t(`Popular ${genres} manga`, `Beliebte Manga: ${genres}`)
+            : anime ? t("Popular anime", "Beliebte Anime") : t("Popular manga", "Beliebte Manga")
+        case "START_DATE_DESC": return genres
+            ? anime ? t(`Newest ${genres} anime`, `Neueste Anime: ${genres}`) : t(`Newest ${genres} manga`, `Neueste Manga: ${genres}`)
+            : anime ? t("Newest anime", "Neueste Anime") : t("Newest manga", "Neueste Manga")
+        case "EPISODES_DESC": return genres
+            ? t(`${genres} anime with the most episodes`, `Anime mit den meisten Folgen: ${genres}`)
+            : t("Anime with the most episodes", "Anime mit den meisten Folgen")
+        case "CHAPTERS_DESC": return genres
+            ? t(`${genres} manga with the most chapters`, `Manga mit den meisten Kapiteln: ${genres}`)
+            : t("Manga with the most chapters", "Manga mit den meisten Kapiteln")
+        default: return genres
+            ? anime ? t(`Highest rated ${genres} anime`, `Bestbewertete Anime: ${genres}`) : t(`Highest rated ${genres} manga`, `Bestbewertete Manga: ${genres}`)
+            : anime ? t("Highest rated anime", "Bestbewertete Anime") : t("Highest rated manga", "Bestbewertete Manga")
+    }
 }
 
 export type SearchFilterChip = {
@@ -459,7 +482,7 @@ export function resultCardFacts(t: Translate, type: SearchType, media: AL_BaseAn
     const anime = media as AL_BaseAnime
     const year = (type === "anime" ? anime.seasonYear : undefined) || media.startDate?.year || undefined
     const season = type === "anime" ? find(SEARCH_SEASONS, anime.season) : undefined
-    const seasonYear = [season && t(season.en, season.de), year].filter(Boolean).join(" ")
+    const seasonYear = season && year ? seasonWithYear(t, season.value, year) : [season && t(season.en, season.de), year].filter(Boolean).join(" ")
     const format = media.format ? label(t, [...SEARCH_ANIME_FORMATS, ...SEARCH_MANGA_FORMATS], media.format) : ""
     const series = !media.format || media.format === (type === "anime" ? "TV" : "MANGA")
     const when = series ? seasonYear : [format, year].filter(Boolean).join(" · ")
