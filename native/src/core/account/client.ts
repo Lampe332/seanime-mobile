@@ -272,7 +272,7 @@ export class AccountClient {
     login = async (email: string, authKey: string, challenge: string, signing: RequestSigner) => {
         const response = await this.send("POST", "auth/login", { json: { email, authKey, challenge, sigKey: this.sigKey(signing) }, signIn: signing })
         const body = await response.json() as Record<string, unknown>
-        if (response.status === 202) throw new MailConfirmationError(typeof body.message === "string" ? body.message : "Open the link we emailed you.", body)
+        if (response.status === 202) throw new MailConfirmationError(typeof body.message === "string" ? body.message : "Open the sign-in link in your email, then try again.", body)
         return body as LoginAnswer
     }
     /** S5: the link from the "Confirm your sign-in" mail */

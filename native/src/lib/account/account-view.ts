@@ -106,13 +106,13 @@ export function accountErrorText(t: Translate, error: unknown): string {
     const code = (error as { code?: string } | null)?.code
     const message = error instanceof Error ? error.message : ""
     if (code === "device_removed") return t("This device was removed from the account. Ask on another device to add it again.", "Dieses Gerät wurde aus dem Konto entfernt. Lass es auf einem anderen Gerät neu hinzufügen.")
-    if (code === "confirm_by_mail") return t("Many wrong passwords were tried for this email, so we sent you a link to confirm this sign-in. Open it, then press Continue.",
-        "Für diese E-Mail wurden viele falsche Passwörter probiert, deshalb haben wir dir einen Link zum Bestätigen geschickt. Öffne ihn und tippe dann auf Weiter.")
+    if (code === "confirm_by_mail") return t("Someone tried a lot of wrong passwords for this email lately. If yours was right, a sign-in link is in your inbox now. Open it, then press Continue.",
+        "Für diese E-Mail wurden zuletzt viele falsche Passwörter probiert. Wenn deins stimmt, liegt jetzt ein Anmelde-Link in deinem Postfach. Öffne ihn und tippe dann auf Weiter.")
     if (code === "owner_required") return t("Sign in with your password, use your recovery code or approve this device on another one.", "Melde dich mit deinem Passwort an, nutze deinen Wiederherstellungscode oder gib dieses Gerät auf einem anderen frei.")
     if (code === "approvals_paused") return t("The numbers didn't match three times, so approving devices is paused for an hour. Your password and recovery code still work.",
         "Die Zahlen passten dreimal nicht, deshalb sind Freigaben eine Stunde pausiert. Passwort und Wiederherstellungscode gehen weiter.")
-    if (code === "device_set_mismatch") return t("The device list changed meanwhile. Open it again and choose.", "Die Geräteliste hat sich inzwischen geändert. Öffne sie neu und wähle aus.")
-    if ((error as { name?: string } | null)?.name === "UntrustedDevicesError") return t("Only devices one of yours added and that are still signed in can keep the key.", "Nur Geräte, die eines deiner Geräte hinzugefügt hat und die noch angemeldet sind, können den Schlüssel behalten.")
+    if (code === "device_set_mismatch") return t("The device list changed in the meantime. Open it again and pick.", "Die Geräteliste hat sich inzwischen geändert. Öffne sie neu und wähle aus.")
+    if ((error as { name?: string } | null)?.name === "UntrustedDevicesError") return t("Only a device that one of yours added, and that is still signed in, can keep the key.", "Nur ein Gerät, das eines deiner Geräte hinzugefügt hat und noch angemeldet ist, kann den Schlüssel behalten.")
     if (status === 401 && /password/i.test(message)) return t("Wrong email or password.", "Falsche E-Mail oder falsches Passwort.")
     if (status === 401) return t("Wrong email or password.", "Falsche E-Mail oder falsches Passwort.")
     if (status === 429) return t("Too many tries. Wait a moment and try again.", "Zu viele Versuche. Warte kurz und versuch es noch mal.")

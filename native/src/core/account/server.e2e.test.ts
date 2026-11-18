@@ -987,7 +987,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const done = await changeKey(owner.deps, { deviceName: "Victim", password: PASSWORD, keep: await keepAll(owner) })
         expect((await owner.client.devices()).map(device => device.id)).not.toContain(t.deviceId)
         expect(done.dekId).not.toBe(o.dekId)
-    })
+    }, 30_000) // 250 D1 writes and six syncs: over 5 s on a busy machine (a parallel Gradle build)
 
     it("I5: every security change sends a mail and leaves an event", async () => {
         const email = "i5-fix4@example.org"
