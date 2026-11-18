@@ -14,6 +14,7 @@ import { accountErrorText, accountPhase, formatSas } from "@/lib/account/account
 import { useTr } from "@/lib/app-language"
 import { fillParts } from "@/lib/i18n/format"
 import { reloadAppAsync } from "expo"
+import { markAppReload } from "@/lib/reload-mark"
 import { usePreventScreenCapture } from "expo-screen-capture"
 import { useAtom, useAtomValue } from "jotai"
 import React from "react"
@@ -50,7 +51,10 @@ function ImportQuestion() {
         try {
             await importFromAccount()
             toast.success(t("Imported. The app starts again.", "Importiert. Die App startet neu."))
-            setTimeout(() => void reloadAppAsync("account import"), 800)
+            setTimeout(() => {
+                markAppReload()
+                void reloadAppAsync("account import")
+            }, 800)
         }
         catch (error) {
             setBusy(false)

@@ -5,6 +5,6 @@ import { redirectAppLink } from "@/lib/app-links-handler"
  * the old app's seanime:// links and AniList/MyAnimeList anime pages ("Open with Seanime") become app paths
  * (lib/app-links.ts, AppLinks.kt).
  */
-export function redirectSystemPath({ path }: { path: string, initial: boolean }) {
-    return redirectAppLink(path)
+export function redirectSystemPath({ path, initial }: { path: string, initial: boolean }) {
+    return redirectAppLink(path, initial)
 }

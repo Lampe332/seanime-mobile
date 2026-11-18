@@ -6,6 +6,7 @@ import { runCoreMangaCheck, runCoreMangaDownloadCheck, runCoreMangaWriteCheck } 
 import { runCoreInstallCheck, runCoreMappingCheck, runCoreStreamsCheck } from "@/api/client/core-streams-check"
 import { coreSendWaitingChanges, cutCoreFromAnilist, nameCoreWriteAccount, repeatCoreMove } from "@/api/client/core-switch"
 import { tr } from "@/lib/app-language"
+import { takeAppReloadMark } from "@/lib/reload-mark"
 import { anilistIdFromMal } from "@/lib/airing/anilist-public"
 import { checkChaptersForTest } from "@/lib/updates/chapter-check"
 import { queryClient } from "@/main/client-providers"
@@ -221,7 +222,11 @@ export function useAppLinkSources(language: string) {
 }
 
 /** For +native-intent.tsx: rewrites an incoming system link to the app path it opens. */
-export async function redirectAppLink(path: string): Promise<string> {
+/** This JS start is a reload (account import, backup restore): its launch link was handled before (lib/reload-mark.ts). */
+const startedByReload = takeAppReloadMark()
+
+export async function redirectAppLink(path: string, initial = false): Promise<string> {
+    if (initial && startedByReload) return "/"
     try {
         // the router may pass "/open?path=…" without the scheme: the host became the first path segment
         const target = appLinkTarget(/^\/(entry|open|core)(\?|$)/.test(path) ? `seanime://${path.slice(1)}` : path)

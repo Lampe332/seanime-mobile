@@ -9,6 +9,7 @@ import { hasSafetyBackup, lastSafetyBackup, pickBackup, restoreBackupFile, saveB
 import type { Translate } from "@/lib/app-language"
 import { LinkRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { reloadAppAsync } from "expo"
+import { markAppReload } from "@/lib/reload-mark"
 import React from "react"
 import { View } from "react-native"
 
@@ -89,7 +90,10 @@ export function BackupGroup({ t }: { t: Translate }) {
         try {
             await restoreBackupFile(file, mode)
             toast.success(t("Restored. The app starts again.", "Wiederhergestellt. Die App startet neu."))
-            setTimeout(() => void reloadAppAsync("backup restored"), 800)
+            setTimeout(() => {
+                markAppReload()
+                void reloadAppAsync("backup restored")
+            }, 800)
         }
         catch {
             setBusy(null)
