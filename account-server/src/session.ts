@@ -26,7 +26,7 @@ export async function newSession(
   userId: string,
   deviceId: string | null,
   key: SigKey,
-): Promise<{ token: string; statement: D1PreparedStatement }> {
+): Promise<{ token: string; tokenHash: string; statement: D1PreparedStatement }> {
   const token = toB64url(randomBytes(32));
   const t = now();
   // The session is bound to the signing key that signed the sign-in (plan 10.2b).
@@ -34,7 +34,21 @@ export async function newSession(
     `INSERT INTO sessions (token_hash, user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(await hashToken(token), userId, deviceId, t, t, t, key.alg, key.pub);
-  return { token, statement };
+  return { token, tokenHash: await hashToken(token), statement };
+}
+
+/**
+ * M-2: after a session was bound to a device row (in the same batch, right before), the row keeps that session's signing
+ * key. The device keeps the key across sign-ins, so a later login signed with it is known and never locked out.
+ */
+export function copyDeviceKey(env: Env, tokenHash: string): D1PreparedStatement {
+  return env.DB.prepare(
+    `UPDATE devices SET
+       sig_alg = (SELECT sig_alg FROM sessions WHERE token_hash = ?1),
+       sig_pub = (SELECT sig_pub FROM sessions WHERE token_hash = ?1)
+     WHERE id = (SELECT device_id FROM sessions WHERE token_hash = ?1)
+       AND user_id = (SELECT user_id FROM sessions WHERE token_hash = ?1)`,
+  ).bind(tokenHash);
 }
 
 /** The token and how it came: Bearer (the app) or the website's HttpOnly cookie. */

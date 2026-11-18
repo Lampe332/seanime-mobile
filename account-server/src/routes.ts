@@ -7,6 +7,7 @@ import { issueToken, VERIFY_TTL } from "./identity";
 import { issueChallenge, verifySignIn } from "./signature";
 import {
   clearSessionCookie,
+  copyDeviceKey,
   newSession,
   now,
   requireDevice,
@@ -134,7 +135,7 @@ export async function signup(ctx: Ctx): Promise<Response> {
   }
   const session = await newSession(env, userId, deviceId, body.sigKey);
   const verify = await issueToken(env, userId, "verify", VERIFY_TTL);
-  statements.push(session.statement, verify.statement);
+  statements.push(session.statement, copyDeviceKey(env, session.tokenHash), verify.statement);
   try {
     await env.DB.batch(statements);
   } catch (err) {
@@ -331,6 +332,7 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
         env.DB.prepare(
           "UPDATE sessions SET device_id = (SELECT id FROM devices WHERE user_id = ? AND device_pub = ?) WHERE token_hash = ?",
         ).bind(session.userId, d.devicePub, session.tokenHash),
+        copyDeviceKey(env, session.tokenHash),
       );
     }
   }
@@ -497,6 +499,7 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(deviceId, userId, d.name, d.devicePub, d.sealedDek, body.dekId, d.mac, t, t),
     env.DB.prepare("UPDATE sessions SET device_id = ? WHERE token_hash = ?").bind(deviceId, session.tokenHash),
+    copyDeviceKey(env, session.tokenHash),
   ]);
   await env.SNAPSHOTS.delete(snapKey(userId));
   await sendMail(env, user.email, { kind: "start_fresh" });

@@ -22,7 +22,7 @@ import { sendMail } from "./mail";
 import { fixedWindow, rateKey } from "./ratelimit";
 import type { Ctx } from "./routes";
 import { ApproveBody, ApproverNonceBody, DeviceRequestBody, RevealBody, Uuid } from "./schemas";
-import { now, requireDevice, requireSession, type Session } from "./session";
+import { copyDeviceKey, now, requireDevice, requireSession, type Session } from "./session";
 
 const REQUEST_TTL = 10 * 60;
 const MAX_OPEN = 3;
@@ -245,6 +245,7 @@ export async function approveRequest(ctx: Ctx): Promise<Response> {
       `UPDATE sessions SET device_id = (SELECT device_id FROM device_requests WHERE id = ?1 AND status = 'approved')
        WHERE user_id = ?2 AND token_hash = (SELECT session_hash FROM device_requests WHERE id = ?1 AND status = 'approved')`,
     ).bind(row.id, session.userId),
+    ...(row.session_hash ? [copyDeviceKey(env, row.session_hash)] : []),
   ]);
   if (!claim || claim.meta.changes === 0) throw new HttpError(409, "wrong_order", "The request changed. Reload it.");
   await sendMail(env, user.email, { kind: "new_device", deviceName: row.device_name });
