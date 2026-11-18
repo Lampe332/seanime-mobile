@@ -232,7 +232,7 @@ The third review (`security-review-3`) failed round 3. The fixes take rules away
 - I1 A device takes a DEK only through the password wrap, the recovery wrap, ONE approval confirmed on both devices, or a chain from the DEK it holds by a device it does not know as removed.
 - I2 A device hands out the real DEK only to the device whose number its user confirmed with "Yes", or by a key change to the devices the user kept.
 - I3 The password or the recovery code always allows joining, the key change and Start fresh. The DEK proof alone never does.
-- I4 The owner is never locked out for good. (Broken in round 4 by the shared mail cap, NEU4-1; holds since round Polish.)
+- I4 The owner is never locked out for good. (Broken in round 4 by the shared mail cap, NEU4-1; holds since round Polish; a stranger in the same network since NEU5-1.)
 - I5 Every security change (new device, sign-out, removal, key change, recovery code, Google link, Start fresh) sends a mail and leaves an event the app and the website list. (In round 4 the website showed none and the app list could be flooded, NEU4-5; holds since round Polish.)
 
 | ID | Severity | Finding | Status |
@@ -275,6 +275,17 @@ The fourth review (`security-review-4`) passed: no critical or high finding, I1 
 Earlier findings that were partly fixed in round 4: N-4, NEU3-5 and NEU3-6 are done with NEU4-1 (mail pots, known networks, the sec8 attack fails), NEU3-8 is done with NEU4-6.
 
 Still accepted, said plainly: someone who floods the reset pot daily can delay a reset asked for from a network the account never signed in from with its password. The owner who knows the password signs in through the link (its own pot); the owner at home or on a network he used before gets the reset mail.
+
+### Round NEU5 (after the fifth review)
+
+The fifth review passed the Polish round (no Critical, High or Medium) and found two Low and two Info items.
+
+| ID | Severity | Finding | Status |
+| --- | --- | --- | --- |
+| NEU5-1 | Low | A stranger in the owner's /24 (public Wi-Fi, carrier NAT) used up the reset pot of the owner's known network (10 a day per (email, /24)) and the request limit (3 an hour per (email, /24)); the owner's reset from home sent nothing (I4) | Fixed: from a known network the reset pot counts per address (IPv4 address, IPv6 /48: 5 an hour, 10 a day), and the whole network is capped at 50 a day per recipient instead of the cap across networks, so a mailbox flood is no bigger than before. The request limit (3 an hour) is per (email, address) everywhere; mails from unknown networks keep their pot per /24. Tests: server `neu5.test.ts` (18 resets from two other addresses of the home /24, then the owner's mail; 54 resets from 6 addresses: 50 mails), sec9 e1 against `wrangler dev`: owner mails 1. Still accepted: a stranger behind the same public address (the same Wi-Fi) or with 5 or more addresses in the owner's /24 can still delay the owner's reset for a day; the owner who knows the password is not affected |
+| NEU5-2 | Low | Website "Delete account" and "Disconnect Google" answered 429 while a stranger held the email's counter, though the owner had just signed in with the password | Fixed: `requirePassword` treats a password sign-in within the last 10 minutes like a device of the account (only the IP counter applies, a wrong password is still refused and counted per IP); an older password sign-in gets `403 reauth_required` instead of 429, and the website shows "Sign in again" for both actions. A session without a password check (Google) still gets 429. Tests: `neu5.test.ts`, sec9 e1: `DELETE with authKey: 204` |
+| NEU5-3 | Info | The approval quota per session (NEU4-4) lets a keyless session open many requests through new sessions | Accepted: the cap sits in the approval code (`approval.ts`), which this round leaves untouched; more noise on the owner's devices, no key at risk (I1, I2), and three "No" from a device still pause approvals |
+| NEU5-4 | Info | Older events of the same kind fell out of the list (only the newest of each kind was kept beside the newest 20) | Fixed: `GET /account` returns the newest 20 plus the newest 3 of each kind. Test: `neu5.test.ts` (two sign-outs, then 21 key changes: both listed) |
 
 ### Verification
 
