@@ -13,6 +13,11 @@
  * Key rule: a template's `${…}` parts become {0}, {1}, … in order ("Episode ${n}" -> "Episode {0}"); a translation uses the
  * same {n} in any order. An empty value means "not translated": the app shows the English text.
  *
+ * Plural rule: a value may be an object with one text per plural form of its language (PLURAL_CATEGORIES, the same list
+ * as src/lib/i18n/plural.ts), e.g. ru `{ "one": "{0} файл", "few": "{0} файла", "many": "{0} файлов" }`, optionally with
+ * `"count": "{1}"` when the number is not the first placeholder. It counts as translated when every form is filled; each
+ * form needs the key's placeholders. Rich texts keep their {n} as literal text in the key (`"Tap {0} to watch."`).
+ *
  * Where texts are found (src/**, files sorted by path, keys in order of first appearance):
  *  1. calls t(en, de) / tr(en, de) / translate(language, en, de): the English argument, through `?:`, `??`, `||`, parentheses and string arguments of
  *     helper calls (`count(n, "1 result", `${n} results`)`);
@@ -32,6 +37,8 @@ const NATIVE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const SRC = path.join(NATIVE, "src")
 const I18N = path.join(SRC, "lib", "i18n")
 export const LANGUAGES = ["es", "ru", "zh-Hans", "pt-BR", "fr", "ja"]
+/** The plural forms of each catalog language (src/lib/i18n/plural.ts; catalog.test.ts checks both lists match). */
+export const PLURAL_CATEGORIES = { "es": ["one", "other"], "ru": ["one", "few", "many"], "zh-Hans": ["other"], "pt-BR": ["one", "other"], "fr": ["one", "other"], "ja": ["other"] }
 const SKIP = [path.join(SRC, "api", "generated"), path.join(SRC, "core", "extensions", "contract"), I18N]
 const TR_NAMES = new Set(["t", "tr"])
 
@@ -166,8 +173,26 @@ const catalogPath = language => path.join(I18N, `${language}.json`)
 const readCatalog = language => fs.existsSync(catalogPath(language)) ? JSON.parse(fs.readFileSync(catalogPath(language), "utf8")) : {}
 const writeCatalog = (language, catalog) => fs.writeFileSync(catalogPath(language), JSON.stringify(catalog, null, 2) + "\n")
 
-function badPlaceholders(catalog) {
-    return Object.entries(catalog).filter(([key, value]) => value && placeholdersOf(key).join() !== placeholdersOf(value).join()).map(([key]) => key)
+/** A value is translated when it is a non-empty text or a plural object with every form of the language. */
+export const isTranslated = (value, language) => typeof value === "string" ? !!value
+    : !!value && (PLURAL_CATEGORIES[language] ?? ["other"]).every(category => !!value[category])
+
+/** What is wrong with a value's placeholders or plural forms, or undefined. */
+export function valueProblem(key, value, language) {
+    if (!value) return undefined
+    const want = placeholdersOf(key).join()
+    if (typeof value === "string") return placeholdersOf(value).join() === want ? undefined : "placeholders differ"
+    if (typeof value !== "object" || Array.isArray(value)) return "neither text nor plural object"
+    const categories = PLURAL_CATEGORIES[language] ?? ["other"]
+    const extra = Object.keys(value).filter(name => name !== "count" && !categories.includes(name))
+    if (extra.length) return `plural forms ${extra.join(", ")} do not exist in ${language} (${categories.join(", ")})`
+    if (value.count !== undefined && !placeholdersOf(key).includes(value.count)) return `count ${value.count} is no placeholder of the key`
+    const bad = categories.filter(category => value[category] && placeholdersOf(value[category]).join() !== want)
+    return bad.length ? `placeholders differ in ${bad.join(", ")}` : undefined
+}
+
+function badPlaceholders(catalog, language) {
+    return Object.entries(catalog).filter(([key, value]) => valueProblem(key, value, language)).map(([key, value]) => `${key}  (${valueProblem(key, value, language)})`)
 }
 
 function main(args) {
@@ -176,7 +201,7 @@ function main(args) {
         const language = args[1]
         const limit = Number(args[2] ?? Infinity)
         const catalog = readCatalog(language)
-        const missing = [...keys.keys()].filter(key => !catalog[key]).slice(0, limit)
+        const missing = [...keys.keys()].filter(key => !isTranslated(catalog[key], language)).slice(0, limit)
         process.stdout.write(JSON.stringify(Object.fromEntries(missing.map(key => [key, ""])), null, 2) + "\n")
         return 0
     }
@@ -188,8 +213,9 @@ function main(args) {
         const rejected = []
         for (const [key, value] of Object.entries(incoming)) {
             if (!value) continue
+            const problem = valueProblem(key, value, language)
             if (!keys.has(key)) rejected.push(`unknown key: ${key}`)
-            else if (placeholdersOf(key).join() !== placeholdersOf(value).join()) rejected.push(`placeholders differ: ${key}  ->  ${value}`)
+            else if (problem) rejected.push(`${problem}: ${key}  ->  ${JSON.stringify(value)}`)
             else { catalog[key] = value; merged++ }
         }
         writeCatalog(language, Object.fromEntries([...keys.keys()].map(key => [key, catalog[key] ?? ""]).concat(Object.entries(catalog).filter(([key]) => !keys.has(key)))))
@@ -206,8 +232,8 @@ function main(args) {
         const catalog = readCatalog(language)
         const orphans = Object.keys(catalog).filter(key => !keys.has(key))
         const added = [...keys.keys()].filter(key => !(key in catalog))
-        const done = [...keys.keys()].filter(key => catalog[key]).length
-        const bad = badPlaceholders(catalog)
+        const done = [...keys.keys()].filter(key => isTranslated(catalog[key], language)).length
+        const bad = badPlaceholders(catalog, language)
         const next = Object.fromEntries([...keys.keys()].map(key => [key, catalog[key] ?? ""])
             .concat(prune ? [] : orphans.map(key => [key, catalog[key]])))
         if (!check) writeCatalog(language, next)
@@ -215,7 +241,7 @@ function main(args) {
         if (bad.length) failed = true
         const percent = (100 * done / keys.size).toFixed(1)
         console.log(`${language.padEnd(7)} ${String(done).padStart(5)}/${keys.size}  ${percent.padStart(5)} %  new ${added.length}, orphaned ${orphans.length}${prune && orphans.length ? " (dropped)" : ""}, bad placeholders ${bad.length}`)
-        bad.forEach(key => console.log(`    bad placeholders: ${key}`))
+        bad.forEach(line => console.log(`    bad placeholders: ${line}`))
         if (orphans.length && !prune) orphans.slice(0, 20).forEach(key => console.log(`    orphaned: ${key}`))
     }
     if (innerText.length) {

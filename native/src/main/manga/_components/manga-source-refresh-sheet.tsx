@@ -5,7 +5,7 @@ import { PickRow, RowGroup } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { Sheet } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
-import { type Translate, useTr } from "@/lib/app-language"
+import { plural, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { __manga_preferencesHydratedAtom } from "@/main/manga/_lib/handle-manga-selected-provider"
 import { useAtomValue } from "jotai"
@@ -93,7 +93,7 @@ export function MangaSourceRefreshSheet({ open, onOpenChange, job }: { open: boo
                     ? t("Stopping after the current request", "Stoppt nach der laufenden Anfrage")
                     : job.stage === "refreshing" ? t("Refreshing selected sources", "Gewählte Quellen werden aktualisiert")
                         : t("Searching installed sources", "Installierte Quellen werden durchsucht")}</Text>
-                <Muted style={{ fontVariant: ["tabular-nums"] }}>{job.current} {t("of", "von")} {job.total}</Muted>
+                <Muted style={{ fontVariant: ["tabular-nums"] }}>{t(`${job.current} of ${job.total}`, `${job.current} von ${job.total}`)}</Muted>
             </View>
             <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: progress }} className="h-1.5 overflow-hidden rounded-full bg-sm-line-strong">
                 <View style={{ width: `${progress}%` }} className="h-full bg-sm-accent-strong" />
@@ -121,7 +121,7 @@ export function MangaSourceRefreshSheet({ open, onOpenChange, job }: { open: boo
                 </Pressable>)}
             </View>}
         </View> : <View className="gap-4">
-            <Muted>{providerCount} {providerCount === 1 ? t("installed provider", "installierte Quelle") : t("installed providers", "installierte Quellen")} · {t("Current and re-reading manga only", "Nur Manga, die du gerade (erneut) liest")}</Muted>
+            <Muted>{plural(t, providerCount, ["1 installed provider", "{0} installed providers"], ["1 installierte Quelle", "{0} installierte Quellen"])} · {t("Current and re-reading manga only", "Nur Manga, die du gerade (erneut) liest")}</Muted>
             <RowGroup>
                 {modes.map(option => <View key={option.value} className={option.discovery && discoveryDisabled ? "opacity-50" : undefined}
                     pointerEvents={option.discovery && discoveryDisabled ? "none" : "auto"}>
@@ -141,11 +141,11 @@ function Notice({ text }: { text: string }) {
 
 function refreshSummary(job: Manga_MangaSourceRefreshJob, t: Translate) {
     const parts = [
-        `${job.result.refreshed} ${t("refreshed", "aktualisiert")}`,
-        `${job.result.found} ${t("found", "gefunden")}`,
-        `${job.result.replaced} ${t("changed", "gewechselt")}`,
+        t(`${job.result.refreshed} refreshed`, `${job.result.refreshed} aktualisiert`),
+        t(`${job.result.found} found`, `${job.result.found} gefunden`),
+        t(`${job.result.replaced} changed`, `${job.result.replaced} gewechselt`),
     ]
-    if (job.result.notFound > 0) parts.push(`${job.result.notFound} ${t("not found", "nicht gefunden")}`)
-    if (job.result.failed > 0) parts.push(`${job.result.failed} ${t("failed", "fehlgeschlagen")}`)
+    if (job.result.notFound > 0) parts.push(t(`${job.result.notFound} not found`, `${job.result.notFound} nicht gefunden`))
+    if (job.result.failed > 0) parts.push(t(`${job.result.failed} failed`, `${job.result.failed} fehlgeschlagen`))
     return `${parts.join(", ")}.`
 }

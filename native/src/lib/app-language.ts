@@ -81,10 +81,20 @@ export function translate(language: AppLanguage, en: string, de: string): string
     if (!catalog) {
         const json = CATALOGS[language]
         if (!json) return en
-        catalog = compileCatalog(json)
+        catalog = compileCatalog(json, language)
         compiled.set(language, catalog)
     }
     return translateText(catalog, en)
+}
+
+/**
+ * A counted text in the app language: en and de are [one, other] whole texts with {0} for the number
+ * (["1 file", "{0} files"]). t() gets the finished English text ("5 files"), so a catalog picks its own plural form
+ * for the number (lib/i18n/plural.ts), e.g. Russian 1 / 2-4 / 5+. `shown` is the number as written ("1,234", "2.5").
+ */
+export function plural(t: Translate, n: number, en: [string, string], de: [string, string], shown = String(n)) {
+    const [enText, deText] = shown === "1" ? [en[0], de[0]] : [en[1], de[1]]
+    return t(enText.replace("{0}", shown), deText.replace("{0}", shown))
 }
 
 /** Picks the text for the current language outside of React. */

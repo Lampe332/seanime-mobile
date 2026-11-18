@@ -10,7 +10,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Dialog } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import { type Translate, useTr } from "@/lib/app-language"
+import { plural, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { colors } from "@/lib/theme/tokens"
@@ -88,7 +88,7 @@ export function MangaDownloads({ selectedId }: { selectedId: number }) {
         {!loaded && !failed && <View className="items-center py-10"><ActivityIndicator color={colors.smTextMuted} accessibilityLabel={t("Loading your manga …", "Deine Manga werden geladen …")} /></View>}
         {loaded && !selected && queue.length > 0 && <QueueBlock queue={queue} t={t} />}
         {loaded && !selectedId && <PhoneSection title={t("Your manga", "Deine Manga")}
-            count={`${groups.length} Manga · ${totalReady} ${t(totalReady === 1 ? "chapter offline" : "chapters offline", "Kapitel offline")}`}>
+            count={`${groups.length} Manga · ${plural(t, totalReady, ["1 chapter offline", "{0} chapters offline"], ["1 Kapitel offline", "{0} Kapitel offline"])}`}>
             {groups.length > 0 ? <MangaGrid groups={groups} t={t} onOpen={id => router.push(`/android-downloads?kind=manga&manga=${id}`)} />
                 : <PhoneEmpty title={t("Your manga to go", "Deine Manga für unterwegs")}
                     text={t("Download chapters on a manga page. They show up here with cover and offline reader.", "Lade Kapitel auf einer Manga-Seite herunter. Sie erscheinen hier mit Cover und Offline-Reader.")}>
@@ -155,8 +155,8 @@ function MangaCard({ group, width, t, onOpen }: { group: MangaDownloadGroup, wid
     return <Pressable accessibilityRole="button" onPress={() => onOpen(group.mediaId)} style={{ width }} className="gap-1 active:opacity-85">
         <View className="mb-1"><Cover media={media} width={width} title={title} /></View>
         <Text numberOfLines={2} className="text-[13px] font-medium leading-[18px]">{title}</Text>
-        <Text className="text-xs text-sm-text-subtle" style={{ fontVariant: ["tabular-nums"] }}>{ready} {t(ready === 1 ? "chapter ready" : "chapters ready", "Kapitel bereit")}</Text>
-        {group.queued.length > 0 && <Text className="text-xs font-semibold text-sm-accent">{group.queued.length} {t("pending", "ausstehend")}</Text>}
+        <Text className="text-xs text-sm-text-subtle" style={{ fontVariant: ["tabular-nums"] }}>{plural(t, ready, ["1 chapter ready", "{0} chapters ready"], ["1 Kapitel bereit", "{0} Kapitel bereit"])}</Text>
+        {group.queued.length > 0 && <Text className="text-xs font-semibold text-sm-accent">{t(`${group.queued.length} pending`, `${group.queued.length} ausstehend`)}</Text>}
     </Pressable>
 }
 
@@ -206,8 +206,8 @@ function MangaDetail({ group, queue, t, onChanged }: { group: MangaDownloadGroup
                 </View>
             </View>
             <View className="flex-row flex-wrap gap-x-4">
-                <Text className="text-sm text-sm-text-muted">{ready} {t(ready === 1 ? "chapter available offline" : "chapters available offline", "Kapitel offline verfügbar")}</Text>
-                {group.queued.length > 0 && <Text className="text-sm font-semibold text-sm-accent">{group.queued.length} {t("pending", "ausstehend")}</Text>}
+                <Text className="text-sm text-sm-text-muted">{plural(t, ready, ["1 chapter available offline", "{0} chapters available offline"], ["1 Kapitel offline verfügbar", "{0} Kapitel offline verfügbar"])}</Text>
+                {group.queued.length > 0 && <Text className="text-sm font-semibold text-sm-accent">{t(`${group.queued.length} pending`, `${group.queued.length} ausstehend`)}</Text>}
             </View>
             {!!description && <View className="border-b border-sm-line">
                 <Pressable accessibilityRole="button" accessibilityState={{ expanded: aboutOpen }} onPress={() => setAboutOpen(v => !v)} className="min-h-12 flex-row items-center gap-1.5 py-3">

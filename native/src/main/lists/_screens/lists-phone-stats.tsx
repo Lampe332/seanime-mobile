@@ -7,7 +7,7 @@ import { PhoneScreen } from "@/components/shared/phone-screen"
 import { barGrow, swapIn } from "@/components/ui/core/animations"
 import { cn } from "@/components/ui/core/styling"
 import { Text } from "@/components/ui/text/text"
-import { type Translate, useTr } from "@/lib/app-language"
+import { plural, type Translate, useTr } from "@/lib/app-language"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { formatScore, getListFacts, getPhoneLists, getStatsView, type ListType, type StatRow, statusLabel, type StatsView } from "@/main/lists/_lib/lists-phone"
 import React from "react"
@@ -80,15 +80,15 @@ function started(t: Translate, type: ListType, count: number) {
 function formats(t: Translate) {
     const locale = t("en-US", "de-DE")
     const number = (value: number, digits = 0) => value.toLocaleString(locale, { maximumFractionDigits: digits })
-    const plural = (value: string, one: [string, string], many: [string, string]) => value === "1" ? t(...one) : t(`${value} ${many[0]}`, `${value} ${many[1]}`)
+    const amount = (value: number, en: [string, string], de: [string, string], digits = 0) => plural(t, value, en, de, number(value, digits))
     return {
         number,
         /** Days with one decimal below 10 unless `digits` says otherwise */
-        days: (days: number, digits?: number) => plural(number(days, digits ?? (days < 10 ? 1 : 0)), ["1 day", "1 Tag"], ["days", "Tage"]),
-        hours: (value: number) => plural(number(value), ["1 hour", "1 Stunde"], ["hours", "Stunden"]),
-        chapters: (value: number) => plural(number(value), ["1 chapter", "1 Kapitel"], ["chapters", "Kapitel"]),
-        titles: (value: number) => plural(number(value), ["1 title", "1 Titel"], ["titles", "Titel"]),
-        started: (value: number) => plural(number(value), ["1 title started", "1 Titel begonnen"], ["titles started", "Titel begonnen"]),
+        days: (days: number, digits?: number) => amount(days, ["1 day", "{0} days"], ["1 Tag", "{0} Tage"], digits ?? (days < 10 ? 1 : 0)),
+        hours: (value: number) => amount(value, ["1 hour", "{0} hours"], ["1 Stunde", "{0} Stunden"]),
+        chapters: (value: number) => amount(value, ["1 chapter", "{0} chapters"], ["1 Kapitel", "{0} Kapitel"]),
+        titles: (value: number) => amount(value, ["1 title", "{0} titles"], ["1 Titel", "{0} Titel"]),
+        started: (value: number) => amount(value, ["1 title started", "{0} titles started"], ["1 Titel begonnen", "{0} Titel begonnen"]),
         mean: (score: number | undefined) => score ? number(score / 10, 1) : "–",
         avg: (score: number | undefined) => score ? t(`Score avg ${number(score / 10, 1)}`, `Ø-Bewertung ${number(score / 10, 1)}`) : "",
     }
