@@ -9,6 +9,8 @@
  *   node scripts/i18n-extract.mjs --missing es [N]   print up to N untranslated keys of es.json as a JSON object (key: "")
  *   node scripts/i18n-extract.mjs --merge es f.json  copy the non-empty values of f.json into es.json (known keys, same placeholders)
  *   node scripts/i18n-extract.mjs --report           also list the dynamic t() calls the script cannot read
+ *   node scripts/i18n-extract.mjs --unreached        also list [en, de]-shaped texts (rows, { foo, fooDe }) that are no key:
+ *                                                    a t() handed one of them at run time would stay English
  *
  * Key rule: a template's `${…}` parts become {0}, {1}, … in order ("Episode ${n}" -> "Episode {0}"); a translation uses the
  * same {n} in any order. An empty value means "not translated": the app shows the English text.
@@ -22,8 +24,9 @@
  *  1. calls t(en, de) / tr(en, de) / translate(language, en, de): the English argument, through `?:`, `??`, `||`, parentheses and string arguments of
  *     helper calls (`count(n, "1 result", `${n} results`)`);
  *  2. object literals with `en` + `de` or `fooEn` + `fooDe` properties;
- *  3. calls that hand `t`/`tr` on together with two string arrays (`plural(t, n, ["file", "files"], ["Datei", "Dateien"])`):
- *     the first array;
+ *  3. calls that hand `t`/`tr` on together with two string arrays (`plural(t, n, ["file", "files"], ["Datei", "Dateien"])`),
+ *     or two ["1 …", "{0} …"] arrays without t (`amount(n, ["1 title", "{0} titles"], […])`): the first array; calls with
+ *     two or more [en, de] pairs (`offlineAware(["Failed.", "Fehler."], [cond ? [...] : [...]])`): each English;
  *  4. tables of rows `[…, "English", "Deutsch"]` (an array or object of at least two rows of the same length, the last two
  *     elements words rather than code values, at least one row with two different texts);
  *  5. `const FOO_DE: Record<string, string> = { "English": "Deutsch" }`: the property names.
@@ -99,6 +102,12 @@ export function extract() {
     const keys = new Map() // key -> first place
     const dynamic = []
     const innerText = []
+    const pairs = [] // [en, de]-shaped literals anywhere: --unreached lists those whose English text is no key
+    const pair = (en, place) => {
+        // UI text, not a code value, SQL, a date pattern or an all-caps enum
+        const ui = !/\n/.test(en) && !/\w_\w/.test(en) && /\p{Ll}{2}/u.test(en) && (/^\p{Lu}\p{Ll}+/u.test(en) && en.length > 3 || /\p{L}+ \p{L}+/u.test(en))
+        if (ui && !pairs.some(known => known.en === en)) pairs.push({ en, place })
+    }
     const add = (node, file, src) => {
         const key = keyOf(node)
         if (!/\p{L}/u.test(key.replace(/\{\d+\}/g, ""))) return // no words: nothing to translate
@@ -140,10 +149,18 @@ export function extract() {
                     found.texts.forEach(text => add(text, file, src))
                 }
             }
-            // 3. plural(t, n, [en…], [de…])
-            if (ts.isCallExpression(node) && node.arguments.some(arg => ts.isIdentifier(arg) && TR_NAMES.has(arg.text))) {
+            // 3. plural(t, n, [en…], [de…]), also through a helper without t: amount(n, ["1 file", "{0} files"], ["1 Datei", "{0} Dateien"])
+            // 3b. a helper given [en, de] pairs: offlineAware(["Plain.", "Schlicht."], ["Offline.", "Offline."])
+            if (ts.isCallExpression(node)) {
                 const arrays = node.arguments.map(unwrap).filter(arg => ts.isArrayLiteralExpression(arg) && arg.elements.length && arg.elements.every(el => isText(unwrap(el))))
-                if (arrays.length >= 2) arrays[0].elements.forEach(el => add(unwrap(el), file, src))
+                const withT = node.arguments.some(arg => ts.isIdentifier(arg) && TR_NAMES.has(arg.text))
+                const pluralShaped = arrays.length === 2 && arrays.every(array => array.elements.length === 2 && /\{0\}/.test(keyOf(unwrap(array.elements[1]))))
+                if (arrays.length >= 2 && (withT || pluralShaped)) arrays[0].elements.forEach(el => add(unwrap(el), file, src))
+                else {
+                    const branches = arg => { arg = unwrap(arg); return ts.isConditionalExpression(arg) ? [...branches(arg.whenTrue), ...branches(arg.whenFalse)] : [arg] }
+                    const pairArgs = node.arguments.map(branches).filter(options => options.every(option => ts.isArrayLiteralExpression(option) && option.elements.length === 2 && rowEnglish(option)?.differs))
+                    if (pairArgs.length >= 2) pairArgs.flat().forEach(array => add(unwrap(array.elements[0]), file, src))
+                }
             }
             // 4. tables of [… , en, de] rows
             if (ts.isArrayLiteralExpression(node) || ts.isObjectLiteralExpression(node)) {
@@ -151,6 +168,22 @@ export function extract() {
                 const rows = items.map(rowEnglish)
                 if (items.length >= 2 && rows.every(Boolean) && rows.some(row => row.differs) && rows.every(row => row.size === rows[0].size)) {
                     rows.forEach(row => add(unwrap(row.en), file, src))
+                }
+            }
+            // pairs for --unreached: any array ending in two different texts, any { foo: "English", fooDe: "Deutsch" }
+            const pluralArgument = !!node.parent && ts.isCallExpression(node.parent) && node.parent.arguments.some(arg => ts.isIdentifier(arg) && TR_NAMES.has(arg.text))
+            // a row among non-text rows is a name/value list (SOAP arguments: [["InstanceID", 0], ["Channel", "Master"]])
+            const amongValues = !!node.parent && ts.isArrayLiteralExpression(node.parent) && node.parent.elements.some(el => !rowEnglish(el))
+            if (ts.isArrayLiteralExpression(node) && !pluralArgument && !amongValues) {
+                const row = rowEnglish(node)
+                const oneOther = node.elements.length === 2 && /\{0\}/.test(keyOf(unwrap(node.elements[1]))) // ["1 file", "{0} files"]
+                if (row?.differs && !oneOther && node.elements.length <= 4) pair(keyOf(row.en), where(node)) // a row, not a list of words
+            }
+            if (ts.isObjectLiteralExpression(node)) {
+                const props = new Map(node.properties.filter(ts.isPropertyAssignment).map(prop => [propName(prop), prop]))
+                for (const [name, prop] of props) {
+                    const value = name && props.has(name + "De") ? unwrap(prop.initializer) : undefined
+                    if (value && isText(value) && wordy(keyOf(value))) pair(keyOf(value), where(prop))
                 }
             }
             // 5. const FOO_DE: Record<string, string> = { "English": "Deutsch" }
@@ -163,7 +196,8 @@ export function extract() {
         }
         visit(src)
     }
-    return { keys, dynamic, innerText }
+    const unreached = pairs.filter(({ en }) => !keys.has(en)).map(({ en, place }) => `${place}  "${en}"`)
+    return { keys, dynamic, innerText, unreached }
 }
 
 /** The {n} placeholders of a text, sorted. */
@@ -196,7 +230,7 @@ function badPlaceholders(catalog, language) {
 }
 
 function main(args) {
-    const { keys, dynamic, innerText } = extract()
+    const { keys, dynamic, innerText, unreached } = extract()
     if (args[0] === "--missing") {
         const language = args[1]
         const limit = Number(args[2] ?? Infinity)
@@ -251,6 +285,10 @@ function main(args) {
     if (args.includes("--report")) {
         console.log(`\n${dynamic.length} t() calls with a computed English text (found only when its parts match rules 2-5):`)
         dynamic.forEach(line => console.log("  " + line))
+    }
+    if (args.includes("--unreached")) {
+        console.log(`\n${unreached.length} [en, de]-shaped texts that are no catalog key (a t() of them would stay English):`)
+        unreached.forEach(line => console.log("  " + line))
     }
     return failed ? 1 : 0
 }

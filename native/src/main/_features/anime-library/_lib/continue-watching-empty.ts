@@ -5,6 +5,6 @@
  * Discover for something new. The first is the filled button, the second the quiet one.
  */
 export const CONTINUE_WATCHING_EMPTY_ACTIONS = [
-    { id: "lists", href: "/lists", label: ["Your lists", "Deine Listen"] },
-    { id: "discover", href: "/discover", label: ["Discover anime", "Anime entdecken"] },
-] as const satisfies readonly { id: string, href: string, label: readonly [string, string] }[]
+    { id: "lists", href: "/lists", labelEn: "Your lists", labelDe: "Deine Listen" },
+    { id: "discover", href: "/discover", labelEn: "Discover anime", labelDe: "Anime entdecken" },
+] as const satisfies readonly { id: string, href: string, labelEn: string, labelDe: string }[]

@@ -23,6 +23,7 @@ import {
     SEASONS,
     TAG_CHIP_LIMIT,
 } from "@/main/lists/_lib/lists-phone"
+import { genreLabel } from "@/main/discover/_lib/discover-phone"
 import React from "react"
 import { View } from "react-native"
 
@@ -118,9 +119,9 @@ export function ListsFilterSheet(props: FilterSheetProps) {
             </SheetGroup>
 
             {genres.length > 0 && (
-                <SheetGroup title="Genres" intro={t("Titles must have every selected genre.", "Titel müssen alle gewählten Genres haben.")}
+                <SheetGroup title={t("Genres", "Genres")} intro={t("Titles must have every selected genre.", "Titel müssen alle gewählten Genres haben.")}
                     action={filters.genres.length > 0 ? clear(() => set({ genres: [] }), t("genres", "Genres")) : undefined}>
-                    <SplitChips label="Genres" chips={genres.map(plain)} selected={filters.genres} showCheck
+                    <SplitChips label={t("Genres", "Genres")} chips={genres.map(facet => ({ ...plain(facet), label: genreLabel(t, facet.value) }))} selected={filters.genres} showCheck
                         onToggle={value => setFilters(current => ({ ...current, genres: toggle(current.genres, value) }))} />
                 </SheetGroup>
             )}
@@ -161,12 +162,12 @@ export function ListsFilterSheet(props: FilterSheetProps) {
             )}
 
             {!!tagChips && (tagChips.available > 0 || filters.tags.length > 0) && (
-                <SheetGroup title="Tags" intro={t("Titles must have every selected tag.", "Titel müssen alle gewählten Tags haben.")}
+                <SheetGroup title={t("Tags", "Tags")} intro={t("Titles must have every selected tag.", "Titel müssen alle gewählten Tags haben.")}
                     action={filters.tags.length > 0 ? clear(() => set({ tags: [] }), t("tags", "Tags")) : undefined}>
                     {/* A typed query keeps its field, even when fewer tags remain than the field needs. */}
                     {(tagChips.available > TAG_CHIP_LIMIT || !!tagQuery) && <SearchField value={tagQuery} onChangeText={setTagQuery} placeholder={t("Search tags", "Tags suchen")} />}
                     {tagChips.chips.length > 0
-                        ? <SplitChips label="Tags" chips={tagChips.chips.map(plain)} selected={filters.tags} showCheck
+                        ? <SplitChips label={t("Tags", "Tags")} chips={tagChips.chips.map(plain)} selected={filters.tags} showCheck
                             onToggle={value => setFilters(current => ({ ...current, tags: toggle(current.tags, value) }))} />
                         : <Muted>{t("No tag matches the search.", "Kein Tag passt zur Suche.")}</Muted>}
                     {tagChips.chips.length < tagChips.total && (

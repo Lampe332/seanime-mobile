@@ -62,7 +62,7 @@ export function ContinueWatching({ episodes }: { episodes: Anime_Episode[] }) {
                     <View className="flex-row flex-wrap gap-2">
                         {CONTINUE_WATCHING_EMPTY_ACTIONS.map((action, index) => (
                             <Button key={action.id} intent={index === 0 ? "primary" : "secondary"} onPress={() => router.push(action.href)}>
-                                {t(action.label[0], action.label[1])}
+                                {t(action.labelEn, action.labelDe)}
                             </Button>
                         ))}
                     </View>

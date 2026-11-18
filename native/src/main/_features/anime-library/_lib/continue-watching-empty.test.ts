@@ -8,7 +8,7 @@ describe("empty Continue watching", () => {
         expect(CONTINUE_WATCHING_EMPTY_ACTIONS.map(action => action.href)).toEqual(["/lists", "/discover"])
         for (const action of CONTINUE_WATCHING_EMPTY_ACTIONS) {
             expect(existsSync(join(__dirname, "../../../../app/(main)", `${action.href.slice(1)}.tsx`)), action.href).toBe(true)
-            expect(action.label.every(text => text.length > 0)).toBe(true)
+            expect(action.labelEn.length > 0 && action.labelDe.length > 0).toBe(true)
         }
     })
 })
