@@ -7,7 +7,7 @@ import { usePressScale } from "@/components/ui/core/press"
 import { Text } from "@/components/ui/text/text"
 import { appLanguageAtom, translate } from "@/lib/app-language"
 import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
-import { isActive, MAX_NAV_ITEMS, menuTargets, navIcon, navLabel, type NavItem } from "@/lib/nav/nav-items"
+import { isActive, MAX_NAV_ITEMS, menuTargets, navIcon, navLabel, navTabLabel, type NavItem } from "@/lib/nav/nav-items"
 import { useAllNavItems } from "@/lib/nav/nav-store"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { updateDotOn } from "@/main/extensions/_lib/extension-updates"
@@ -58,7 +58,7 @@ function NavEntry({ item, active, dense, rail, railHeight, onPress, onLayout, st
     standIn: React.ReactNode
 }) {
     const language = useAtomValue(appLanguageAtom)
-    const label = navLabel(item.label, language)
+    const label = navTabLabel(item.label, language)
     // the setup tour points at the Menu button
     const tourRef = useTourTarget(item.isMenu ? TOUR_TARGETS.menu : null)
     // extension updates: a dot on Extensions, or on Menu while Extensions is in the Menu (extension-updates.ts)
@@ -75,7 +75,7 @@ function NavEntry({ item, active, dense, rail, railHeight, onPress, onLayout, st
             ref={tourRef}
             accessibilityRole={item.isMenu ? "button" : "tab"}
             accessibilityState={{ selected: active }}
-            accessibilityLabel={[label, dot ? translate(language, "updates available", "Updates verfügbar") : "", incognito ? translate(language, "incognito on", "Inkognito an") : ""].filter(Boolean).join(", ")}
+            accessibilityLabel={[navLabel(item.label, language), dot ? translate(language, "updates available", "Updates verfügbar") : "", incognito ? translate(language, "incognito on", "Inkognito an") : ""].filter(Boolean).join(", ")}
             onPress={() => {
                 if (item.isMenu) pressTourTarget(TOUR_TARGETS.menu)
                 onPress()

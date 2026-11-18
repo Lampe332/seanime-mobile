@@ -107,14 +107,14 @@ export function withSearchTitle(state: SearchPhoneState, title: string): SearchP
 
 /** The 18 genres of the desktop search, with German names. */
 export const SEARCH_GENRES: SearchOption[] = [
-    { value: "Action", en: "Action", de: "Action" }, { value: "Adventure", en: "Adventure", de: "Abenteuer" },
-    { value: "Comedy", en: "Comedy", de: "Komödie" }, { value: "Drama", en: "Drama", de: "Drama" }, { value: "Ecchi", en: "Ecchi", de: "Ecchi" },
-    { value: "Fantasy", en: "Fantasy", de: "Fantasy" }, { value: "Horror", en: "Horror", de: "Horror" },
-    { value: "Mahou Shoujo", en: "Mahou Shoujo", de: "Mahou Shoujo" }, { value: "Mecha", en: "Mecha", de: "Mecha" }, { value: "Music", en: "Music", de: "Musik" },
-    { value: "Mystery", en: "Mystery", de: "Mystery" }, { value: "Psychological", en: "Psychological", de: "Psychologisch" },
-    { value: "Romance", en: "Romance", de: "Romantik" }, { value: "Sci-Fi", en: "Sci-Fi", de: "Sci-Fi" },
-    { value: "Slice of Life", en: "Slice of Life", de: "Slice of Life" }, { value: "Sports", en: "Sports", de: "Sport" },
-    { value: "Supernatural", en: "Supernatural", de: "Übernatürlich" }, { value: "Thriller", en: "Thriller", de: "Thriller" },
+    { value: "Action", en: "[genre] Action", de: "Action" }, { value: "Adventure", en: "[genre] Adventure", de: "Abenteuer" },
+    { value: "Comedy", en: "[genre] Comedy", de: "Komödie" }, { value: "Drama", en: "[genre] Drama", de: "Drama" }, { value: "Ecchi", en: "[genre] Ecchi", de: "Ecchi" },
+    { value: "Fantasy", en: "[genre] Fantasy", de: "Fantasy" }, { value: "Horror", en: "[genre] Horror", de: "Horror" },
+    { value: "Mahou Shoujo", en: "[genre] Mahou Shoujo", de: "Mahou Shoujo" }, { value: "Mecha", en: "[genre] Mecha", de: "Mecha" }, { value: "Music", en: "[genre] Music", de: "Musik" },
+    { value: "Mystery", en: "[genre] Mystery", de: "Mystery" }, { value: "Psychological", en: "[genre] Psychological", de: "Psychologisch" },
+    { value: "Romance", en: "[genre] Romance", de: "Romantik" }, { value: "Sci-Fi", en: "[genre] Sci-Fi", de: "Sci-Fi" },
+    { value: "Slice of Life", en: "[genre] Slice of Life", de: "Slice of Life" }, { value: "Sports", en: "[genre] Sports", de: "Sport" },
+    { value: "Supernatural", en: "[genre] Supernatural", de: "Übernatürlich" }, { value: "Thriller", en: "[genre] Thriller", de: "Thriller" },
 ]
 
 export const SEARCH_ANIME_FORMATS: SearchOption<AL_MediaFormat>[] = [

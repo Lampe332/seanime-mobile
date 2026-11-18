@@ -31,6 +31,12 @@ app then shows English). `node scripts/i18n-extract.mjs` (in `native/`) adds new
 - `Unofficial · built on Seanime by 5rahim` stays English in every language.
 - Anime and Manga stay as they are (they are loanwords in all target languages; Japanese uses アニメ / マンガ,
   Chinese 动画 / 漫画, Russian аниме / манга).
+- A key may start with a context in brackets, which the app never shows: `[genre] Action` is the anime genre (动作,
+  アクション, Экшен), while a plain `Action` is a button action (操作). Translate only the text after the bracket and use
+  the word the anime sites of your language use for that genre.
+- `[tab] …` keys are the labels of the bottom bar, at most about 10 letters (CJK: 4 signs), or the bar shrinks them.
+  Shorten there when the full word is longer (fr `Téléch.`, pt-BR `Listas`); the plain key keeps the full word for menus
+  and titles.
 
 ## Terms
 

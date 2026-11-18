@@ -1,4 +1,5 @@
 import { AL_BaseAnime, AL_BaseManga } from "@/api/generated/types"
+import { translate } from "@/lib/app-language"
 import { MEDIA_STATUS_LABELS } from "@/main/_features/media/_lib/media-labels"
 import { describe, expect, it } from "vitest"
 import {
@@ -28,7 +29,7 @@ import {
     withSearchFilters,
 } from "./search-phone"
 
-const en = (english: string) => english
+const en = (english: string) => translate("en", english, "") // the real English side: without a key's "[genre] " context
 const de = (_: string, german: string) => german
 const params = (query: string) => new URLSearchParams(query)
 const state = (patch: Partial<SearchPhoneState>): SearchPhoneState => ({ ...SEARCH_DEFAULTS, ...patch })

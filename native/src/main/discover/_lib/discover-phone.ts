@@ -210,11 +210,11 @@ export function listStatusLabel(t: Translate, type: "anime" | "manga", status: A
 
 /** The 18 genres of the genre chips (Search's list) with German names; AniList still gets the English value. */
 const GENRE_LABELS: Record<string, [string, string]> = {
-    "Action": ["Action", "Action"], "Adventure": ["Adventure", "Abenteuer"], "Comedy": ["Comedy", "Komödie"], "Drama": ["Drama", "Drama"],
-    "Ecchi": ["Ecchi", "Ecchi"], "Fantasy": ["Fantasy", "Fantasy"], "Horror": ["Horror", "Horror"], "Mahou Shoujo": ["Mahou Shoujo", "Mahou Shoujo"],
-    "Mecha": ["Mecha", "Mecha"], "Music": ["Music", "Musik"], "Mystery": ["Mystery", "Mystery"], "Psychological": ["Psychological", "Psychologisch"],
-    "Romance": ["Romance", "Romantik"], "Sci-Fi": ["Sci-Fi", "Sci-Fi"], "Slice of Life": ["Slice of Life", "Slice of Life"], "Sports": ["Sports", "Sport"],
-    "Supernatural": ["Supernatural", "Übernatürlich"], "Thriller": ["Thriller", "Thriller"],
+    "Action": ["[genre] Action", "Action"], "Adventure": ["[genre] Adventure", "Abenteuer"], "Comedy": ["[genre] Comedy", "Komödie"], "Drama": ["[genre] Drama", "Drama"],
+    "Ecchi": ["[genre] Ecchi", "Ecchi"], "Fantasy": ["[genre] Fantasy", "Fantasy"], "Horror": ["[genre] Horror", "Horror"], "Mahou Shoujo": ["[genre] Mahou Shoujo", "Mahou Shoujo"],
+    "Mecha": ["[genre] Mecha", "Mecha"], "Music": ["[genre] Music", "Musik"], "Mystery": ["[genre] Mystery", "Mystery"], "Psychological": ["[genre] Psychological", "Psychologisch"],
+    "Romance": ["[genre] Romance", "Romantik"], "Sci-Fi": ["[genre] Sci-Fi", "Sci-Fi"], "Slice of Life": ["[genre] Slice of Life", "Slice of Life"], "Sports": ["[genre] Sports", "Sport"],
+    "Supernatural": ["[genre] Supernatural", "Übernatürlich"], "Thriller": ["[genre] Thriller", "Thriller"],
 }
 
 export function genreLabel(t: Translate, genre: string) {

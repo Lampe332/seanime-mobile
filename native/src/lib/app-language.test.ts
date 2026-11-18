@@ -47,6 +47,14 @@ describe("translate", () => {
         expect(translate("es", "A text no catalog has yet", "Ein Text, den noch kein Katalog hat")).toBe("A text no catalog has yet")
     })
 
+    it("keeps a genre apart from the same word as a button action, and never shows the context", () => {
+        expect(translate("zh-Hans", "[genre] Action", "Action")).toBe("动作")
+        expect(translate("zh-Hans", "Action", "Aktion")).toBe("操作")
+        expect(translate("ja", "[genre] Action", "Action")).toBe("アクション")
+        expect(translate("en", "[genre] Action", "Action")).toBe("Action")
+        expect(translate("es", "[genre] Not in any catalog", "x")).toBe("Not in any catalog")
+    })
+
     it("names every language in itself", () => {
         expect(APP_LANGUAGES.map(language => language.label)).toEqual(
             ["English", "Deutsch", "Español", "Русский", "简体中文", "Português (Brasil)", "Français", "日本語"])

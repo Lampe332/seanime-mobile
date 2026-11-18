@@ -73,18 +73,28 @@ export function getAppLanguage(): AppLanguage {
 
 export type Translate = (en: string, de: string) => string
 
+/**
+ * A context in front of an English text, `"[genre] Action"` or `"[tab] Downloads"`: the catalogs get a key of its own for a
+ * word that means something else elsewhere (the genre Action is no button action), English shows the text without it.
+ */
+const CONTEXT = /^\[[a-z]+\] /
+
+export function withoutContext(en: string): string {
+    return en.startsWith("[") ? en.replace(CONTEXT, "") : en
+}
+
 /** The text of a `t(en, de)` pair in a language: German and English inline, the others from their catalog. */
 export function translate(language: AppLanguage, en: string, de: string): string {
     if (language === "de") return de
-    if (language === "en") return en
+    if (language === "en") return withoutContext(en)
     let catalog = compiled.get(language)
     if (!catalog) {
         const json = CATALOGS[language]
-        if (!json) return en
+        if (!json) return withoutContext(en)
         catalog = compileCatalog(json, language)
         compiled.set(language, catalog)
     }
-    return translateText(catalog, en)
+    return withoutContext(translateText(catalog, en))
 }
 
 /**

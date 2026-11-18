@@ -138,6 +138,24 @@ export function navLabel(label: string, language: AppLanguage) {
     return translate(language, label, NAV_LABELS_DE[label] || label)
 }
 
+/**
+ * The words of the entries the bottom bar can show, as tab labels of their own: a catalog may shorten one that does not
+ * fit the bar ("Téléchargements" -> "Téléch."), while the menu and the screen titles keep the full word.
+ */
+const NAV_TAB_LABELS: Record<string, [string, string]> = {
+    "Home": ["[tab] Home", "Start"], "My Lists": ["[tab] My Lists", "Meine Listen"], "Discover": ["[tab] Discover", "Entdecken"],
+    "Search": ["[tab] Search", "Suche"], "Menu": ["[tab] Menu", "Menü"], "Downloads": ["[tab] Downloads", "Downloads"],
+    "Updates": ["[tab] Updates", "Updates"], "Schedule": ["[tab] Schedule", "Sendeplan"], "History": ["[tab] History", "Verlauf"],
+    "Manga": ["[tab] Manga", "Manga"], "Scan summaries": ["[tab] Scans", "Scans"], "Extensions": ["[tab] Extensions", "Erweiterungen"],
+    "Settings": ["[tab] Settings", "Einstellungen"], "Building blocks": ["[tab] Blocks", "Bausteine"],
+}
+
+/** The label of an entry in the bottom bar or the tablet rail; an entry without a tab label shows its menu word. */
+export function navTabLabel(label: string, language: AppLanguage) {
+    const pair = NAV_TAB_LABELS[label]
+    return pair ? translate(language, ...pair) : navLabel(label, language)
+}
+
 const ICON_BY_ID: Record<string, MobileIconName> = {
     "home": "home", "lists": "lists", "discover": "discover", "search": "search", "menu": "menu", "android-downloads": "download",
 }

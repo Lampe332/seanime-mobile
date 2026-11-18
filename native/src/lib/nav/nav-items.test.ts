@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { isActive, MAX_NAV_ITEMS, menuTargets, moveInBar, moveToBar, moveToMenu, navCount, navLabel, type NavItem, resolveNavItems, storedNavState } from "./nav-items"
+import { APP_LANGUAGES } from "@/lib/app-language"
+import { isActive, MAX_NAV_ITEMS, menuTargets, moveInBar, moveToBar, moveToMenu, navCount, navLabel, navTabLabel, type NavItem, resolveNavItems, storedNavState } from "./nav-items"
 
 const bar = (items: NavItem[]) => items.filter(it => it.placement === "nav").map(it => it.id)
 const edited = (result: ReturnType<typeof moveToBar>) => {
@@ -108,5 +109,18 @@ describe("bottom bar entries", () => {
         expect(navLabel("My Lists", "de")).toBe("Meine Listen")
         expect(navLabel("My Lists", "en")).toBe("My Lists")
         expect(navLabel("Unknown entry", "de")).toBe("Unknown entry")
+    })
+
+    it("gives the bar a short label where the menu word does not fit", () => {
+        expect(navTabLabel("Downloads", "fr")).toBe("Téléch.")
+        expect(navLabel("Downloads", "fr")).toBe("Téléchargements")
+        expect(navTabLabel("My Lists", "de")).toBe("Meine Listen")
+        expect(navTabLabel("Downloads", "en")).toBe("Downloads")
+        expect(navTabLabel("Unknown entry", "fr")).toBe("Unknown entry")
+        // "Meine Listen" (12) is the longest label the bar was made for, "Téléchargements" (15) shrank visibly; CJK 6 signs
+        const tooLong = APP_LANGUAGES.flatMap(({ value }) => menuTargets([]).map(target => navTabLabel(target.label, value))
+            .concat(["Home", "My Lists", "Discover", "Search", "Menu", "Downloads"].map(label => navTabLabel(label, value)))
+            .filter(label => [...label].length > (/[　-鿿]/.test(label) ? 6 : 13)).map(label => `${value}: ${label}`))
+        expect(tooLong).toEqual([])
     })
 })
