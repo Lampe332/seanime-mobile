@@ -161,7 +161,7 @@ Not verified: the hints on a device.
 
 ## Account & sync (4.2.0)
 
-Scope: the optional account server (`account-server/`, a Cloudflare Worker with D1 and R2), the account core in `native/src/core/account/`, its wiring in `native/src/lib/account/`, the native module `native/modules/core-sodium/` (libsodium and the Keystore signing key) and the account pages of the website. Reviewed on 2026-11-18 by source review plus attacks against a locally running Worker, then fixed in two rounds on the branch `account-sync`.
+Scope: the optional account server (`account-server/`, a Cloudflare Worker with D1 and R2), the account core in `native/src/core/account/`, its wiring in `native/src/lib/account/`, the native module `native/modules/core-sodium/` (libsodium and the Keystore signing key) and the account pages of the website. Reviewed on 2026-11-18 by source review plus attacks against a locally running Worker, fixed in two rounds on the branch `account-sync`, reviewed again (findings NEU-1 to NEU-12, I-11 to I-15) and fixed in a third round.
 
 ### Threat model in short
 
@@ -169,10 +169,10 @@ The promise: nobody but the user's own devices can read the synced data. That in
 
 | Boundary | Attacker | What protects |
 | --- | --- | --- |
-| Device and server | tampered server, D1 write access, insider | Everything is encrypted on the device (XChaCha20-Poly1305 under the DEK). Devices trust only what the DEK vouches for: device rows carry a MAC under the DEK, a new DEK needs a chain MAC from the old one, wraps and sealed keys are bound to their dekId, the Argon2id parameters have a floor and never go down. |
+| Device and server | tampered server, D1 write access, insider | Everything is encrypted on the device (XChaCha20-Poly1305 under the DEK). A device takes a DEK only on four ways: its password wrap, its recovery wrap, an approval box (`crypto_box` from the device whose number the user confirmed on both devices; the number comes from both device keys and both random values), or a key chain from the DEK it holds, boxed by the rotating device and naming it and the removed devices. Device rows carry a MAC under the DEK, wraps and boxes are bound to their dekId, the Argon2id parameters have a floor and never go down. Devices remember removed device keys and never seal to them or take their chains. |
 | Session and server | stolen token, captured request | Every request is signed with a key the device keeps (Android Keystore P-256, not exportable), with time window and one-time nonce. The token alone opens nothing. |
-| Account and sign-in | phished password, taken-over Google account, mailbox takeover | A session without the DEK cannot add a device, change a wrap, overwrite the data or rotate. A new device needs the DEK from an old device (approval with commitment and a number to compare) or the recovery code. Mails for every new device, Google link, recovery change, rotation and password change. |
-| Strangers | password guessing, lockout, mail flooding | Login attempts counted per IP and per (email, IP range) before the check; known devices never locked out; reset mails limited per (email, IP range). |
+| Account and sign-in | phished password, taken-over Google account, mailbox takeover | A session without the DEK cannot add a device, change a wrap, overwrite or read the data or rotate. A new device needs the DEK from an old device (approval v2, both devices ask) or the recovery code. A removed device key never binds again; until the rotation no device joins by DEK proof and only devices and sessions from before the removal rotate. Mails for every new or removed device, Google link, recovery change, rotation and password change. |
+| Strangers | password guessing, lockout, mail flooding | Login attempts counted per IP (IPv6 per /48), per (email, IP range) and per email before the check; known devices skip the email counters; mails anybody can trigger are capped per recipient; requests without a session pass the in-memory limiter before anything is written to D1. |
 | Website | script injection, other origins | CSP per page, Trusted Types on password pages, only the own origin allowed by the server, non-extractable WebCrypto key, nothing of the account kept after sign-out. |
 
 ### Findings and status
@@ -184,11 +184,11 @@ The promise: nobody but the user's own devices can read the synced data. That in
 | H-2 | High | `account/link-google` was a lasting backdoor | Fixed: needs the password, mails, shown in app and website, "Disconnect Google", removed on password reset |
 | M-1 | Medium | Approve and deny needed a sign-in within 10 minutes; deny failed silently | Fixed: a device session plus the screen lock; errors are shown |
 | M-2 | Medium | Five wrong logins from anywhere locked the owner out | Fixed: email counter per (email, IP range); a device whose stored signing key signs the login is never held up by it |
-| M-3 | Medium | No mail for a new device, Google link, recovery change or rotation | Fixed: mails for each |
-| M-4 | Medium | Rotation after removing a device did not run | Fixed: runs after a fresh sign-in, asks for the password when needed, never stops the sync |
+| M-3 | Medium | No mail for a new device, Google link, recovery change or rotation | Fixed: mails for each, and for a removed device (round 3) |
+| M-4 | Medium | Rotation after removing a device did not run | Fixed: removing in the app rotates in the same step; after a removal on the website a device from before the removal finishes it ("Finish removing a device"); the removed device can't (NEU-2) |
 | M-5 | Medium | A session without the DEK could overwrite the data and the recovery wrap | Fixed: only device sessions write data, wraps only by key holders |
 | N-1 | Low | Wraps and sealed keys were not bound to their dekId | Fixed |
-| N-2 | Low | 10 MB read and hashed before any check | Fixed: route size limit from `Content-Length` first; large bodies only on the two upload routes and only with an existing session and well-formed signature headers |
+| N-2 | Low | 10 MB read and hashed before any check | Fixed: route size limit from `Content-Length` first; large bodies only on the two upload routes, only with an existing session and well-formed signature headers, and the account's upload counter is counted before the body is read (NEU-11) |
 | N-3 | Low | A reset without code made every device drop the DEK | Fixed: on 401 only the token goes; DEK and device key stay until sign-in or sign-out |
 | N-4 | Low | Reset mails of another account could be blocked for an hour | Fixed: counted per (email, IP range) |
 | N-5 | Low | Parallel logins could pass the limit | Fixed: counted in one statement before the check, cleared after success |
@@ -205,11 +205,29 @@ The promise: nobody but the user's own devices can read the synced data. That in
 | I-8 | Info | `If-Match`, `X-Dek-Id`, `Content-Type` not signed | Accepted: only the TLS endpoint could change them; the dekId is bound into the package encryption anyway and the devices check it |
 | I-9 | Info | Password rule only on the client, heuristic | Accepted: the server never sees the password and cannot enforce a rule; Argon2id with a floor slows guessing |
 | I-10 | Info | Someone can register an unconfirmed account with another person's email | Accepted: the account is deleted after 7 days unconfirmed; Google sign-in of the owner is refused until then (support answer) |
+| NEU-1 | High | A new or signed-in-again device took any sealed DEK; the number was not confirmed on it and not bound to the key | Fixed: approval v2 (commitment v2, number from pkN, pkO, rN, rO, `crypto_box` from the approver bound to the request; the new device takes the key only after "Yes, same number" on itself); a device that keeps a matching DEK never goes to an approval; after an approval the data is imported only after asking |
+| NEU-2 | High (latent) | A removed device signed in again (Google) with its kept DEK and finished the rotation itself | Fixed: removed device keys never bind again (`removed_devices`), its sessions answer `device_removed` and the app drops the key, no new device row by DEK proof while a removal waits, only devices and sessions from before the removal rotate, only devices read the snapshot |
+| NEU-3 | Medium | A removed device plus a compromised server could inject a chain, and the legitimate rotation sealed to the removed row | Fixed for every removal a device knows of: chain v2 names the rotating device (whose own key boxes the new DEK) and the removed devices; devices keep a list of removed keys (own removals, chains they took, the server's list) and refuse such chains and sealing. Limit: a removal made only on the website that a compromised server hides before any device synced cannot be known to the devices; removing in the app is authentic |
+| NEU-4 | Medium | No global per-email limit; IPv6 counted per /128 | Fixed: per-email counter across networks (known devices skip it), IP counters and burst limiter per /48 |
+| NEU-5 | Medium | Mail flooding and D1 writes without an account | Fixed: reset and confirmation mails capped per recipient (5 per hour, 10 per day), Google nonce stateless, sign-in challenge checked before anything is written, every route without a session passes the in-memory limiter first |
+| NEU-6 | Low | A device that missed two rotations shows "someone may be trying to get in" | Accepted: the chain bridges one rotation on purpose (a longer chain would need old DEKs on the device); the text now names this case too, and signing in again brings the device back |
+| NEU-7 | Low | After a start fresh elsewhere the device dropped its key silently | Fixed: the sign-in says "Your account's key changed" and imports nothing |
+| NEU-8 | Low | No mail on removal; website promised an automatic rotation | Fixed: mail "A device was removed"; website and docs say to finish in the app |
+| NEU-9 | Low | The DEK proof is a static bearer value until the next rotation | Accepted: it is bound to account and dekId and renewed by every rotation; the server rules of NEU-2 take away what it was used for, and a compromised server could skip the check anyway |
+| NEU-10 | Low | A password change kept a linked Google sign-in | Fixed: a new password unlinks Google (mailed, shown in the app) |
+| NEU-11 | Low | Any token got 10 MB read and hashed | Fixed: upload counter before the body (see N-2) |
+| NEU-12 | Low | An approval could bind a session to an existing device row | Fixed: requests with a registered or removed device key are refused; every approval makes a new row; requests use a new device key; signing out removes the device's own row |
+| I-11 | Info | Device name and row id are not covered by the device MAC | Accepted: the server could rename a row, but it can't add or swap a key; the app shows unverified and removed rows as such |
+| I-12 | Info | `sm-kdf-seen` keeps an unsalted SHA-256 of the email in the browser | Accepted: it never leaves the browser and only maps the email to the Argon2 floor; the account page shows the email anyway |
+| I-13 | Info | Privacy text on known devices and the mail list | Fixed: says which counters a known device skips and lists every account mail |
+| I-14 | Info | Docs claimed more than the design gave | Fixed: docs and this audit describe approval v2, chain v2 and the limit of a website-only removal |
+| I-15 | Info | Every signed request writes a nonce row | Accepted: about 300 writes per active device and day; the free plan holds a few hundred devices, Workers Paid when it grows (plan 12) |
 
-Left as known limits: the app keeps its device key pair (for sealed DEKs) after signing out, so the same device public key can appear in two accounts; a device whose session the server ended keeps its signing key until sign-out, so signing in to another account without signing out reuses it. A server can still refuse service or hold back newer data; devices notice an older version but cannot force a newer one.
+Left as known limits: a device whose session the server ended keeps its signing key until sign-out, so signing in to another account without signing out reuses it. A server can still refuse service or hold back newer data; devices notice an older version but cannot force a newer one.
 
 ### Verification
 
 - Server: `npm run typecheck` 0 errors, `npx vitest run` all passed, with tests for each finding (lockout attempt with the known device still getting in, an unauthenticated 10 MB body refused before it is read, parallel logins not passing the limit, reset limit per IP range).
 - App core: `npx tsc --noEmit` 0 errors, the account tests including the end-to-end run against the real Worker in Miniflare (a P-256 signer like the Keystore's, lockout and kept key, sign-out makes a new key), full `npm test` passed, lint without new findings.
 - Device: self-test of libsodium and the Keystore key (sign in the Keystore, verify the `r || s` form outside it), then account creation, sync, copying the recovery code and deleting the account against a local Worker.
+- Round 3: server tests per finding (a removed key never binds again, a session or device from after a removal can't rotate, IPv6 /48 grouping, the per-email limit spares known devices, requests without a session write nothing to D1, mail cap per recipient, upload counted before the body); the review's attacks B1, B1b, B2, B3 and B5 as end-to-end tests with the real core (each fails: no foreign key taken, nothing imported or uploaded, a visible state) and again as scripts against `wrangler dev`; on the phone the self-test with the `crypto_box_easy` / `crypto_box_open_easy` vectors.
