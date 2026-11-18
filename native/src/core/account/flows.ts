@@ -66,12 +66,23 @@ async function deviceRow(deps: AccountDeps, userId: string, dekId: string, dek: 
  * server this session holds the key: without it a session cannot add a device or change a wrap (K-1, M-5).
  */
 async function registerDevice(deps: AccountDeps, userId: string, dekId: string, dek: Uint8Array, deviceName: string, wraps: { wrappedDek?: string, recoveryWrappedDek?: string } = {}): Promise<void> {
-    const answer = await deps.client.putKeys({
-        dekId,
-        dekProof: dekProof(deps.sodium, dek),
-        ...wraps,
-        device: await deviceRow(deps, userId, dekId, dek, deviceName),
-    })
+    let answer: { deviceId: string | null }
+    try {
+        answer = await deps.client.putKeys({
+            dekId,
+            dekProof: dekProof(deps.sodium, dek),
+            ...wraps,
+            device: await deviceRow(deps, userId, dekId, dek, deviceName),
+        })
+    }
+    catch (error) {
+        // NEU-2: this device was removed from the account: it drops the key it kept and its device keys
+        if (error instanceof AccountApiError && error.code === "device_removed") {
+            await deps.session.forgetDek()
+            await deps.session.forgetDeviceKeys()
+        }
+        throw error
+    }
     await deps.session.saveDek(dekId, dek)
     await deps.session.updateSession({ deviceId: answer.deviceId })
 }
