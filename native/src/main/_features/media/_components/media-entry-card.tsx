@@ -68,10 +68,10 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
         ? cardUnwatchedCount(media as AL_BaseAnime, listData?.progress, libraryData, nakamaLibraryData) : 0
     const veiled = !!serverStatus?.settings?.anilist?.blurAdultContent && !!media.isAdult
     const title = media.title?.userPreferred || ""
-    const season = cardSeasonLine(media)
+    const t = useTr()
+    const season = cardSeasonLine(t, media)
     const releasing = (media.status === "RELEASING" || media.status === "NOT_YET_RELEASED") && !hideReleasingBadge
     const score = withScore ? listData?.score : undefined
-    const t = useTr()
     const { setPreviewModalMediaId } = useMediaPreviewModal()
     const { openDirInLibraryExplorer } = useLibraryExplorer()
     const [menuAt, setMenuAt] = React.useState<CardMenuAnchor | null>(null)

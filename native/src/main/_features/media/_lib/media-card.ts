@@ -1,5 +1,7 @@
 import type { AL_BaseAnime, AL_BaseManga, Anime_EntryLibraryData, Anime_NakamaEntryLibraryData, Nullish } from "@/api/generated/types"
+import type { Translate } from "@/lib/app-language"
 import { anilist_getCurrentEpisodes } from "@/lib/helpers/media"
+import { seasonYearLabel } from "./media-labels"
 
 /*
  * What a media card shows, from media-entry-card.tsx / -components.tsx / anime-entry-card-unwatched-badge.tsx of the web
@@ -49,12 +51,9 @@ export function cardUnwatchedCount(media: Nullish<AL_BaseAnime>, progress: Nulli
     return count > 0 ? count : 0
 }
 
-/** "Fall 2023": the season capitalised and the year (seasonYear for anime, else the start year). */
-export function cardSeasonLine(media: Nullish<AL_BaseAnime | AL_BaseManga>) {
-    const season = (media as AL_BaseAnime | undefined)?.season
-    const year = (media as AL_BaseAnime | undefined)?.seasonYear ?? media?.startDate?.year
-    const name = season ? season.charAt(0) + season.slice(1).toLowerCase() : ""
-    return [name, year].filter(Boolean).join(" ")
+/** "Fall 2023" in the app language: the season and the year (seasonYear for anime, else the start year). */
+export function cardSeasonLine(t: Translate, media: Nullish<AL_BaseAnime | AL_BaseManga>) {
+    return media ? seasonYearLabel(t, media as AL_BaseAnime) : ""
 }
 
 /** The user's score badge colour (getScoreColor "user", as plain colours; Tailwind 4 has no bg-opacity). */

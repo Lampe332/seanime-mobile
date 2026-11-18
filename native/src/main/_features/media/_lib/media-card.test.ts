@@ -46,9 +46,12 @@ describe("unwatched count", () => {
 })
 
 describe("season line and score colour", () => {
-    it("capitalises the season", () => {
-        expect(cardSeasonLine(anime({ season: "FALL", seasonYear: 2023 }))).toBe("Fall 2023")
-        expect(cardSeasonLine(manga({ startDate: { year: 2020 } } as never))).toBe("2020")
+    it("names the season in the app language", () => {
+        const en = (en: string) => en
+        const de = (_: string, de: string) => de
+        expect(cardSeasonLine(en, anime({ season: "FALL", seasonYear: 2023 }))).toBe("Fall 2023")
+        expect(cardSeasonLine(de, anime({ season: "FALL", seasonYear: 2023 }))).toBe("Herbst 2023")
+        expect(cardSeasonLine(en, manga({ startDate: { year: 2020 } } as never))).toBe("2020")
     })
     it("steps through the user score colours", () => {
         expect(userScoreColor(30)).toContain("220, 38, 38")
