@@ -476,7 +476,7 @@ export function torrentDeviceFor(
         // phase 6f: the download module's service holds the process while the torrent client downloads
         keepRunning: watch.waiting(async (on: boolean, title: string) => {
             const module = (await import("../../../modules/core-download")).default
-            const done = await module.keepTorrents(on, title).catch(() => false)
+            const done = module ? await module.keepTorrents(on, title).catch(() => false) : false
             log.info(`torrent: process ${on ? (done ? "held in front" : "could not be held (app in the background)") : "released"}`)
             return done
         }, "torrent keep"),

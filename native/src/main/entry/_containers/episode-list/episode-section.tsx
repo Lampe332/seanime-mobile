@@ -41,6 +41,7 @@ import PencilLine from "lucide-react-native/icons/pencil-line"
 import Puzzle from "lucide-react-native/icons/puzzle"
 import Unlink from "lucide-react-native/icons/unlink"
 import { successFeedback } from "@/lib/feedback"
+import { TORRENTS_ON_DEVICE } from "@/lib/device-features"
 import React from "react"
 import { Pressable, TextInput, useWindowDimensions, View } from "react-native"
 
@@ -390,7 +391,7 @@ function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, underHe
                     title={episode.displayTitle} episodeTitle={episode.episodeTitle} episodeNumber={episode.episodeNumber} watchedProgress={watchedProgress}
                     action={<>
                         {/* The torrent sheet, searching this episode to download */}
-                        {hasTorrentProvider && <IconAction icon={Download} label={t("Download", "Herunterladen")} color="#fed7aa" onPress={() => {
+                        {TORRENTS_ON_DEVICE && hasTorrentProvider && <IconAction icon={Download} label={t("Download", "Herunterladen")} color="#fed7aa" onPress={() => {
                             setTorrentSearchEpisode(episode.episodeNumber)
                             React.startTransition(() => openTorrentSearch("download"))
                         }} />}

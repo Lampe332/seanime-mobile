@@ -5,7 +5,8 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { appLanguageAtom, useTr } from "@/lib/app-language"
 import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
 import { MAX_NAV_ITEMS, menuTargets, moveInBar, moveToBar, moveToMenu, navCount, navIcon, navLabel, type NavEditResult } from "@/lib/nav/nav-items"
-import { saveNavItems, useAllNavItems } from "@/lib/nav/nav-store"
+import { saveNavItems } from "@/lib/nav/nav-store"
+import { useDeviceNavItems } from "@/lib/nav/use-device-nav-items"
 import { colors } from "@/lib/theme/tokens"
 import { useAtomValue } from "jotai"
 import ArrowDown from "lucide-react-native/icons/arrow-down"
@@ -22,7 +23,7 @@ import { Pressable, View } from "react-native"
 export function NavigationEditor({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
     const t = useTr()
     const language = useAtomValue(appLanguageAtom)
-    const items = useAllNavItems()
+    const items = useDeviceNavItems()
     const [notice, setNotice] = React.useState<string | null>(null)
     const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
     React.useEffect(() => () => {

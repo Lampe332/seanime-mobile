@@ -56,6 +56,7 @@ import type { AxiosError } from "axios"
 import { Image } from "expo-image"
 import { useLocalSearchParams } from "expo-router"
 import { useSetRouteParams } from "@/lib/route-params"
+import { DOWNLOADS_ON_DEVICE } from "@/lib/device-features"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import ChevronLeft from "lucide-react-native/icons/chevron-left"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
@@ -525,8 +526,8 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
                         </Pressable>
                     })}
                 </View>
-                <EpisodeDownloadButton media={media} episodes={episodes} provider={provider} server={server} quality={quality} dubbed={dubbed}
-                    currentEpisode={currentEpisodeNumber} />
+                {DOWNLOADS_ON_DEVICE && <EpisodeDownloadButton media={media} episodes={episodes} provider={provider} server={server} quality={quality} dubbed={dubbed}
+                    currentEpisode={currentEpisodeNumber} />}
             </View>
             <View className="-mx-2 flex-row flex-wrap items-center">
                 {cycler.showButton && <QuietAction icon={RefreshCw} tone="warning" disabled={false}

@@ -38,6 +38,7 @@ import Search from "lucide-react-native/icons/search"
 import SlidersHorizontal from "lucide-react-native/icons/sliders-horizontal"
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover/popover"
 import { colors } from "@/lib/theme/tokens"
+import { DOWNLOADS_ON_DEVICE } from "@/lib/device-features"
 import { usePluginActions, useRunPluginAction } from "@/main/_features/plugin/plugin-actions"
 import { PluginWebviewSlot } from "@/main/_features/plugin/plugin-webview"
 import React from "react"
@@ -131,7 +132,7 @@ export function MangaLibraryPhone({ lists, rawLists, loading, error, onRetry, la
         body = <Notice text={offlineAware(["Your manga list could not be loaded.", "Deine Manga-Liste konnte nicht geladen werden."],
             ["No internet connection, so your manga list could not be loaded.", "Keine Internetverbindung, deshalb konnte deine Manga-Liste nicht geladen werden."])}>
             <TextAction label={t("Try again", "Erneut versuchen")} onPress={onRetry} />
-            <TextAction label={t("Read downloads", "Downloads lesen")} onPress={() => router.push("/android-downloads?kind=manga")} />
+            {DOWNLOADS_ON_DEVICE && <TextAction label={t("Read downloads", "Downloads lesen")} onPress={() => router.push("/android-downloads?kind=manga")} />}
         </Notice>
     } else if (loading) {
         body = <View accessibilityRole="progressbar" accessibilityLabel={t("Loading manga", "Manga werden geladen")} className="gap-3">

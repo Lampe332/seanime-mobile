@@ -4,6 +4,17 @@
     "version": "4.1.0",
     "orientation": "default",
     "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "com.seanime.app.iostest",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        },
+        "NSLocalNetworkUsageDescription": "Seanime looks for TVs in your home network to play episodes on them.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
     "android": {
       "package": "com.seanime.app.nativeapp",
       "allowBackup": false,

@@ -18,6 +18,7 @@ import { getCustomSourceMediaSiteUrl, isCustomSource } from "@/lib/server/utils"
 import { entryColumnGaps, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
+import { DOWNLOADS_ON_DEVICE } from "@/lib/device-features"
 import { MediaEntryCharactersSection } from "@/main/_features/media/_components/media-entry-characters-section"
 import { EntryAboutLinks } from "@/main/_features/media/_components/entry-about-links"
 import { MediaCardRow, MediaCardRowSkeleton } from "@/main/_features/media/_components/media-card-row"
@@ -238,11 +239,11 @@ function MangaHeader({ entry, details, detailsLoading, wide, tablet, onMore }: {
                 {tablet && <Text className="text-sm font-semibold">{t("More", "Mehr")}</Text>}
             </Pressable>
             {/* once in the top bar; the tablet keeps its word (TabletLabel) */}
-            <Pressable accessibilityRole="button" accessibilityLabel={t("Manga downloads", "Manga-Downloads")} onPress={() => router.push("/android-downloads?kind=manga")}
+            {DOWNLOADS_ON_DEVICE && <Pressable accessibilityRole="button" accessibilityLabel={t("Manga downloads", "Manga-Downloads")} onPress={() => router.push("/android-downloads?kind=manga")}
                 className={cn("h-12 flex-row items-center justify-center gap-2 rounded-full bg-sm-surface-raised active:bg-sm-accent-soft", tablet ? "pl-3.5 pr-[18px]" : "w-12")}>
                 <FolderDown size={tablet ? 18 : 22} color={tablet ? colors.smText : colors.smTextMuted} />
                 {tablet && <Text className="text-sm font-semibold">{t("Downloads", "Downloads")}</Text>}
-            </Pressable>
+            </Pressable>}
             <PluginPageButtons kind="manga" media={media} />
             <PluginTrayButton variant="bar" />
         </View>

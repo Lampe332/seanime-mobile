@@ -1,0 +1,104 @@
+# Builds an UNSIGNED iOS test app (.ipa) of native/ on a GitHub-hosted Mac (docs/IOS-MACHBARKEIT.md).
+# The .ipa is signed later on Windows with Sideloadly and a free Apple ID; nothing here needs a secret or an Apple account.
+# Draft: runs only by hand or on a push to the branch ios-test. Standard macOS runners are free for public repositories.
+name: iOS test build (unsigned)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ios-test
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-test-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-26
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: native/package-lock.json
+
+      # Expo SDK 58 needs Xcode 26.4 or newer: take the newest Xcode 26 of the image and stop early when it is older.
+      - name: Select Xcode
+        run: |
+          xcode="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+          version="$(xcodebuild -version | head -1 | awk '{print $2}')"
+          if [ "$(printf '%s\n' 26.4 "$version" | sort -V | head -1)" != "26.4" ]; then
+            echo "Xcode $version is older than 26.4" >&2
+            exit 1
+          fi
+
+      # postinstall applies native/patches (patch-package); the patches only touch Android and JS files
+      - run: npm ci
+
+      # Writes ios/ from app.json (its "ios" block: bundle id com.seanime.app.iostest, iPad, plain http) and runs pod install;
+      # expo-mpv's config plugin loads the MPVKit xcframeworks here
+      - name: Prebuild iOS
+        env:
+          CI: "1"
+        run: npx expo prebuild --platform ios --no-install && cd ios && pod install
+
+      # A free Apple ID cannot sign push notifications; local notifications do not need this entitlement
+      - name: Drop the push entitlement
+        run: |
+          for file in ios/*/*.entitlements; do
+            /usr/libexec/PlistBuddy -c "Delete :aps-environment" "$file" 2>/dev/null || true
+            cat "$file"
+          done
+
+      - name: Build (no signing)
+        run: |
+          workspace="$(ls -d ios/*.xcworkspace | head -1)"
+          scheme="$(basename "$workspace" .xcworkspace)"
+          echo "workspace=$workspace scheme=$scheme"
+          xcodebuild \
+            -workspace "$workspace" \
+            -scheme "$scheme" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            > build.log 2>&1 || { grep -E "error:" build.log | head -60; exit 1; }
+          tail -5 build.log
+
+      - name: Pack .ipa
+        run: |
+          mkdir -p out/Payload
+          cp -R build/Build/Products/Release-iphoneos/*.app out/Payload/
+          cd out && zip -qry Seanime-iOS-test-unsigned.ipa Payload
+          ls -l Seanime-iOS-test-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Seanime-iOS-test-unsigned
+          path: native/out/Seanime-iOS-test-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      # On a failed build: the full log for reading
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: xcodebuild-log
+          path: native/build.log
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,5 +1,5 @@
 // geschrieben nach: Muster des früheren Server-Moduls (lokales Expo-Modul, bis Stufe 8a-1), docs/EIGENER-KERN.md §4o; kein Server-Quelltext
-import { NativeModule, requireNativeModule } from "expo"
+import { NativeModule, requireOptionalNativeModule } from "expo"
 
 /*
  * The device's loader for single files (Kotlin, android/): what the module takes and sends, as it crosses the bridge.
@@ -81,4 +81,5 @@ type DeviceFacts = {
     feedbackState(): FeedbackState
 }
 
-export default requireNativeModule<SeanimeCoreDownloadModule & DeviceFacts>("SeanimeCoreDownload")
+/** null where the module is not built: iOS so far (expo-module.config.json lists Android only, docs/IOS-MACHBARKEIT.md §5) */
+export default requireOptionalNativeModule<SeanimeCoreDownloadModule & DeviceFacts>("SeanimeCoreDownload")

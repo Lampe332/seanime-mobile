@@ -79,6 +79,7 @@ export async function runCoreTorrentClientCheck(check: TorrentClientCheck): Prom
             if (!path) throw new Error("the torrent is not in the list")
             const info = await getInfoAsync(`file://${encodeURI(path)}`)
             const module = (await import("../../../modules/core-download")).default
+            if (!module) throw new Error("the download module is not available on this device")
             log(`client check: ${short(hash)} file ${info.exists ? `${info.size} bytes, SHA-256 ${await module.sha256(path)}` : "missing"}`)
         }
         if (check.step === "remove") {

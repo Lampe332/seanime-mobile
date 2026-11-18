@@ -31,6 +31,7 @@ const EVENTS = ["progress", "done", "failed"] as const
  */
 export async function deviceLoader(way: "" | "work" = ""): Promise<DeviceLoader> {
     const { default: module } = await import("../../../modules/core-download")
+    if (!module) throw new Error("Downloads are not available on this device")
     return {
         enqueue: request => module.enqueue({
             id: request.id,

@@ -8,7 +8,7 @@ import { Text } from "@/components/ui/text/text"
 import { appLanguageAtom } from "@/lib/app-language"
 import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
 import { isActive, MAX_NAV_ITEMS, menuTargets, navIcon, navLabel, type NavItem } from "@/lib/nav/nav-items"
-import { useAllNavItems } from "@/lib/nav/nav-store"
+import { useDeviceNavItems } from "@/lib/nav/use-device-nav-items"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { updateDotOn } from "@/main/extensions/_lib/extension-updates"
 import { useExtensionUpdateCount } from "@/main/extensions/_lib/use-extension-updates"
@@ -28,7 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
  * text follows the app language. The active pill glides from entry to entry (segment-glide, glide.tsx).
  */
 export function useNavItems() {
-    const all = useAllNavItems()
+    const all = useDeviceNavItems()
     return React.useMemo(() => all.filter(item => item.placement === "nav"), [all])
 }
 
@@ -305,7 +305,7 @@ export function NavMenu({ open, onClose, pathname, onOpen, rail, barItems, actio
     const language = useAtomValue(appLanguageAtom)
     const updates = useExtensionUpdateCount()
     const fresh = useUpdatesCount()
-    const allItems = useAllNavItems()
+    const allItems = useDeviceNavItems()
     // Manga only while it is on (Settings › More › Manga), as in the web sidebar
     const librarySettings = useServerStatus()?.settings?.library
     const mangaEnabled = !!librarySettings?.enableManga

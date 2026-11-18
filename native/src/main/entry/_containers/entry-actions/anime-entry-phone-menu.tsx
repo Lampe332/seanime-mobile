@@ -14,6 +14,7 @@ import { MENU_ENTRIES } from "@/lib/nav/nav-items"
 import { useRouter } from "@/lib/navigation"
 import { isCustomSource } from "@/lib/server/utils"
 import { colors } from "@/lib/theme/tokens"
+import { TORRENTS_ON_DEVICE } from "@/lib/device-features"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { __anime_hiddenEntryViewsAtom, getEntryTabSettings } from "@/main/entry/_lib/anime-entry-view"
 import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
@@ -65,7 +66,7 @@ export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibr
     const tabs = getEntryTabSettings(t, serverStatus)
     const { data: torrentProviders } = useAnimeListTorrentProviderExtensions()
     const openTorrentSearch = useSetAtom(__torrentSearch_selectionAtom)
-    const canDownloadTorrent = !!torrentProviders?.length && entry.media?.status !== "NOT_YET_RELEASED" && !entry._isNakamaEntry
+    const canDownloadTorrent = TORRENTS_ON_DEVICE && !!torrentProviders?.length &&entry.media?.status !== "NOT_YET_RELEASED" && !entry._isNakamaEntry
     // filler marking needed the server and did not come back; the sheet only has the specials' series link, which an anime
     // with AniDB data does not need (it would open empty)
     const hasSpecialsLink = !entry.anidbId

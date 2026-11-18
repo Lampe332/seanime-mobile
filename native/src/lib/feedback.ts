@@ -32,7 +32,7 @@ export function haptic(kind: HapticKind) {
 export function hasVibrator(): boolean {
     if (Platform.OS !== "android") return false
     try {
-        return DeviceFacts.feedbackState().hasVibrator
+        return DeviceFacts?.feedbackState().hasVibrator ?? false
     }
     catch {
         return false
@@ -46,8 +46,8 @@ export function playSound(name: "success") {
     if (name !== "success" || Platform.OS !== "android") return
     let allowed = false
     try {
-        const state = DeviceFacts.feedbackState()
-        allowed = soundAllowed(readStoredJSON(SOUNDS_KEY, true), state.ringerMode, state.musicActive)
+        const state = DeviceFacts?.feedbackState()
+        allowed = !!state && soundAllowed(readStoredJSON(SOUNDS_KEY, true), state.ringerMode, state.musicActive)
     }
     catch {
         allowed = false

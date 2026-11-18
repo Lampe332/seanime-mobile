@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/toast/toast-store"
 import { Muted, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
+import { TORRENTS_ON_DEVICE } from "@/lib/device-features"
 import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { AutoSelectGroup } from "@/main/settings/_screens/settings-auto-select"
@@ -118,9 +119,10 @@ export function SettingsTorrentsSection({ t, onOpen, onOpenExtensions }: {
 }) {
     return <>
         <ProvidersGroup t={t} onOpenExtensions={onOpenExtensions} />
-        <StreamingGroup t={t} />
+        {/* the app's own torrent client (streaming and downloads) exists on Android only so far */}
+        {TORRENTS_ON_DEVICE && <StreamingGroup t={t} />}
         <AutoSelectGroup t={t} />
-        <DownloadsGroup t={t} onOpen={onOpen} />
+        {TORRENTS_ON_DEVICE && <DownloadsGroup t={t} onOpen={onOpen} />}
         <DebridGroup t={t} />
     </>
 }

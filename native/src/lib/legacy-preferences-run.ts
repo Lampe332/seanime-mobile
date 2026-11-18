@@ -7,7 +7,9 @@ import DeviceFacts from "../../modules/core-download"
 import { copyLegacyPreferences } from "./legacy-preferences"
 import { storage } from "./storage"
 
-copyLegacyPreferences(storage, () => DeviceFacts.legacyPreferences())
+// no module on iOS, and no old app there whose preferences could be copied
+const facts = DeviceFacts
+if (facts) copyLegacyPreferences(storage, () => facts.legacyPreferences())
 
 // The 2.0.33 updater validated the downloaded APK as files/app-update/pending.apk and deleted it only after its own next
 // start, which never comes once this app replaced it; the native updater uses other file names there.

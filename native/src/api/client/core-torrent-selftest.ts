@@ -152,7 +152,11 @@ export async function runCoreTorrentSelfTest(test: TorrentSelfTest): Promise<voi
         const fileInfo = () => step("file", () => getInfoAsync(fileAddress))
         const found = await fileInfo()
         const size = found.exists ? found.size : -1
-        const sha256 = (await step("hash", async () => (await import("../../../modules/core-download")).default.sha256(fileAddress))).toLowerCase()
+        const sha256 = (await step("hash", async () => {
+            const module = (await import("../../../modules/core-download")).default
+            if (!module) throw new Error("the download module is not available on this device")
+            return module.sha256(fileAddress)
+        })).toLowerCase()
         const sizeOk = test.size === null ? size === first.size : size === test.size
         const hashOk = sha256 === test.sha256
         log(`loaded: ${size} bytes in ${seconds.toFixed(1)} s (${megabytes(size / seconds)} MB/s on average, ${megabytes(peakRate)} MB/s at most), size ${sizeOk ? "as expected" : "WRONG"}, SHA-256 ${hashOk ? "equal" : "DIFFERENT"}; ${downloadEvents} status events, ${gapText}`)

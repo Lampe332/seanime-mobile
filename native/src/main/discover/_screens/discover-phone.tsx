@@ -32,6 +32,7 @@ import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
+import { DOWNLOADS_ON_DEVICE } from "@/lib/device-features"
 import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-preview-phone"
 import { mediaEntryHref } from "@/main/_features/media/_lib/media-card"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -413,7 +414,7 @@ function TabNotice({ offline, retry }: { offline: boolean, retry: () => void }) 
         : offlineAware(["Discover couldn't be loaded.", "Entdecken konnte nicht geladen werden."],
             ["No internet connection, so Discover couldn't be loaded.", "Keine Internetverbindung, deshalb konnte Entdecken nicht geladen werden."])}>
         {!offline && <TextAction label={t("Try again", "Erneut versuchen")} onPress={retry} />}
-        <TextAction label={t("Watch downloads", "Downloads ansehen")} onPress={() => router.push("/android-downloads")} />
+        {DOWNLOADS_ON_DEVICE && <TextAction label={t("Watch downloads", "Downloads ansehen")} onPress={() => router.push("/android-downloads")} />}
     </Notice>
 }
 
