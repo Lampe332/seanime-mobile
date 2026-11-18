@@ -1,6 +1,6 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitte 2, 6.4, 6.6, 8: Passwort min. 10 + Stärke-Check) und core/account/sync.ts (SyncResult-Zustände)
 
-import type { ApprovalRequest } from "@/core/account/client"
+import type { AccountEvent, ApprovalRequest } from "@/core/account/client"
 import type { SyncResult } from "@/core/account/sync"
 import type { Translate } from "@/lib/app-language"
 
@@ -82,14 +82,37 @@ export function waitingRequests(requests: ApprovalRequest[], now: number): Appro
         .sort((a, b) => a.createdAt - b.createdAt)
 }
 
+/** I5: one line per security event of the account (the kinds of account-server/src/mail.ts SecurityMail) */
+export function eventText(t: Translate, event: AccountEvent): string {
+    const name = event.deviceName ?? t("A device", "Ein Gerät")
+    switch (event.kind) {
+        case "new_device": return t(`${name} was added`, `${name} wurde hinzugefügt`)
+        case "device_removed": return t(`${name} was removed`, `${name} wurde entfernt`)
+        case "device_signed_out": return t(`${name} signed out`, `${name} hat sich abgemeldet`)
+        case "key_rotated": return t("The encryption key was changed", "Der Schlüssel wurde gewechselt")
+        case "recovery_changed": return t("A new recovery code was saved", "Ein neuer Wiederherstellungscode wurde gespeichert")
+        case "password_changed": return t("The password was changed", "Das Passwort wurde geändert")
+        case "google_linked": return t("Google sign-in was added", "Google-Anmeldung wurde hinzugefügt")
+        case "google_unlinked": return t("Google sign-in was removed", "Google-Anmeldung wurde entfernt")
+        case "start_fresh": return t("The account started fresh", "Das Konto hat neu angefangen")
+        case "approvals_paused": return t("Approvals were paused after numbers didn't match", "Freigaben wurden pausiert, weil Zahlen nicht passten")
+        default: return event.kind
+    }
+}
+
 /** A short, readable reason for a failed account step */
 export function accountErrorText(t: Translate, error: unknown): string {
     const status = (error as { status?: number } | null)?.status
     const code = (error as { code?: string } | null)?.code
     const message = error instanceof Error ? error.message : ""
     if (code === "device_removed") return t("This device was removed from the account. Ask on another device to add it again.", "Dieses Gerät wurde aus dem Konto entfernt. Lass es auf einem anderen Gerät neu hinzufügen.")
-    if (code === "rotation_pending" || code === "rotation_not_allowed") return t("A removed device is waiting for its key change. Finish it on a device that was signed in before the removal.", "Ein entferntes Gerät wartet auf den Schlüsselwechsel. Schließ ihn auf einem Gerät ab, das schon vor dem Entfernen angemeldet war.")
-    if ((error as { name?: string } | null)?.name === "RemovedDeviceListedError") return t("A device you removed is in the account again, so the key was not changed. Someone may be trying to get in: change your password.", "Ein entferntes Gerät ist wieder im Konto, deshalb wurde der Schlüssel nicht gewechselt. Vielleicht versucht jemand reinzukommen: Ändere dein Passwort.")
+    if (code === "confirm_by_mail") return t("Many wrong passwords were tried for this email, so we sent you a link to confirm this sign-in. Open it, then press Continue.",
+        "Für diese E-Mail wurden viele falsche Passwörter probiert, deshalb haben wir dir einen Link zum Bestätigen geschickt. Öffne ihn und tippe dann auf Weiter.")
+    if (code === "owner_required") return t("Sign in with your password, use your recovery code or approve this device on another one.", "Melde dich mit deinem Passwort an, nutze deinen Wiederherstellungscode oder gib dieses Gerät auf einem anderen frei.")
+    if (code === "approvals_paused") return t("The numbers didn't match three times, so approving devices is paused for an hour. Your password and recovery code still work.",
+        "Die Zahlen passten dreimal nicht, deshalb sind Freigaben eine Stunde pausiert. Passwort und Wiederherstellungscode gehen weiter.")
+    if (code === "device_set_mismatch") return t("The device list changed meanwhile. Open it again and choose.", "Die Geräteliste hat sich inzwischen geändert. Öffne sie neu und wähle aus.")
+    if ((error as { name?: string } | null)?.name === "UntrustedDevicesError") return t("Only devices one of yours added and that are still signed in can keep the key.", "Nur Geräte, die eines deiner Geräte hinzugefügt hat und die noch angemeldet sind, können den Schlüssel behalten.")
     if (status === 401 && /password/i.test(message)) return t("Wrong email or password.", "Falsche E-Mail oder falsches Passwort.")
     if (status === 401) return t("Wrong email or password.", "Falsche E-Mail oder falsches Passwort.")
     if (status === 429) return t("Too many tries. Wait a moment and try again.", "Zu viele Versuche. Warte kurz und versuch es noch mal.")

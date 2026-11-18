@@ -4,10 +4,10 @@ import { corePackageEnvironment } from "@/api/client/core-switch"
 import { type AccountInfo, AccountClient, type ApprovalRequest, type HttpFetch } from "@/core/account/client"
 import {
     type ApproverTurn, type PendingApproval, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, confirmApproval, denyRequest, openRequests,
-    requestApproval, rotate,
+    requestApproval,
 } from "@/core/account/devices"
 import {
-    changePassword, completeRotation, createRecoveryCode, deleteAccount, loginEmail, removeDevice, signOut, signupEmail, startFresh, unlinkGoogle,
+    changeKey, changePassword, createRecoveryCode, deleteAccount, loginEmail, signOut, signupEmail, startFresh, unlinkGoogle,
     useRecoveryCode as openWithRecoveryCode,
 } from "@/core/account/flows"
 import { AccountSession, type AccountKind } from "@/core/account/session"
@@ -66,13 +66,8 @@ const engine = new SyncEngine({
         writePreferences: writeAppPreferences,
         safetyBackup: writeSafetyBackup,
     }),
+    // a key change never runs on its own: the account screen asks the user which devices keep the key (S2)
     now: Date.now,
-    // Google accounts rotate here while their sign-in is recent; email accounts need the password, so the sync goes on
-    // and the account screen asks for it ("Finish removing a device", M-4)
-    rotate: async () => {
-        await rotate(deps)
-        return true
-    },
 })
 
 /** "Galaxy S22" style name the other devices and the account list show */
@@ -256,14 +251,12 @@ export async function changeAccountPassword(currentPassword: string, newPassword
 /** The account's devices, each checked against the key: an unverified one was not added by any of the user's devices */
 export const listDevices = () => checkedDevices(deps)
 
-export async function removeAccountDevice(deviceId: string, password: string): Promise<void> {
-    await removeDevice(deps, { deviceId, deviceName: deviceName(), password })
-    await runSync("manual")
-}
-
-/** "Finish removing a device": the rotation the server asks for, with the password (email) or a recent sign-in (Google) */
-export async function finishKeyChange(password: string | undefined): Promise<void> {
-    await completeRotation(deps, { deviceName: deviceName(), password })
+/**
+ * "Change encryption key" (S2): a new key only for the devices the user kept (`keep`, device ids), every other device
+ * removed in the same step; with the password (email) or a recent sign-in (Google)
+ */
+export async function changeEncryptionKey(keep: string[], password: string | undefined): Promise<void> {
+    await changeKey(deps, { deviceName: deviceName(), password, keep })
     await refreshInfo()
     await runSync("manual")
 }

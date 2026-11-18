@@ -5,21 +5,20 @@ import { cn } from "@/components/ui/core/styling"
 import { Sheet } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import type { DeviceInfo } from "@/core/account/client"
-import type { PendingApproval } from "@/core/account/devices"
+import type { CheckedDevice, PendingApproval } from "@/core/account/devices"
 import {
-    accountAtom, accountInfoAtom, answerNumber, approvalDone, disconnectGoogle, finishKeyChange, approvalProgress, askForApproval, changeAccountPassword, createAccount, deleteSyncedData,
-    deleteWholeAccount, importDismissedAtom, keyNoticeAtom, lastSyncAtom, listDevices, newRecoveryCode, recoveryCodeUsable, removeAccountDevice, resendConfirmation, signIn, signOutHere,
+    accountAtom, accountInfoAtom, answerNumber, approvalDone, changeEncryptionKey, disconnectGoogle, approvalProgress, askForApproval, changeAccountPassword, createAccount, deleteSyncedData,
+    deleteWholeAccount, importDismissedAtom, keyNoticeAtom, lastSyncAtom, listDevices, newRecoveryCode, recoveryCodeUsable, resendConfirmation, signIn, signOutHere,
     startFreshHere, syncingAtom, syncNow, unlockWithRecoveryCode,
 } from "@/lib/account/account-app"
 import {
-    MIN_PASSWORD_LENGTH, accountErrorText, accountPhase, formatRecoveryCode, formatSas, passwordStrength, strengthLabel, syncedAgo,
+    MIN_PASSWORD_LENGTH, accountErrorText, accountPhase, eventText, formatRecoveryCode, formatSas, passwordStrength, strengthLabel, syncedAgo,
 } from "@/lib/account/account-view"
 import type { Translate } from "@/lib/app-language"
 import { copySecretToClipboard, openTab } from "@/lib/helpers/browser"
 import { colors } from "@/lib/theme/tokens"
 import { NoScreenshots } from "@/main/_features/account/account-prompts"
-import { ConfirmSheet, LinkRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
+import { ConfirmSheet, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue, useSetAtom } from "jotai"
 import React from "react"
@@ -74,6 +73,8 @@ function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "
     const [password, setPassword] = React.useState("")
     const [busy, setBusy] = React.useState(false)
     const [error, setError] = React.useState<string | null>(null)
+    // S5: the sign-in waits for the link in a mail; the same device signs in again after the user opened it
+    const [mailLink, setMailLink] = React.useState(false)
     const create = mode === "create"
     const strength = passwordStrength(password, email)
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
@@ -88,6 +89,7 @@ function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "
             else await signIn(email, password)
         }
         catch (failure) {
+            setMailLink((failure as Error | null)?.name === "MailConfirmationError")
             setError(accountErrorText(t, failure))
             setBusy(false)
         }
@@ -113,7 +115,7 @@ function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "
         </SettingsGroup>
         <View className="gap-3">
             <Button intent="primary" disabled={!ready} loading={busy} onPress={() => void submit()}>
-                {create ? t("Create account", "Konto erstellen") : t("Sign in", "Anmelden")}
+                {create ? t("Create account", "Konto erstellen") : mailLink ? t("Continue", "Weiter") : t("Sign in", "Anmelden")}
             </Button>
             {!create && <Button intent="text" disabled={busy} onPress={() => openTab(RESET_PAGE)}>{t("Forgot password", "Passwort vergessen")}</Button>}
             <Button intent="text" disabled={busy} onPress={onBack}>{t("Back", "Zurück")}</Button>
@@ -137,16 +139,22 @@ function ApproveOnPhone({ t }: { t: Translate }) {
     const account = useAtomValue(accountAtom)
     const notice = useAtomValue(keyNoticeAtom)
     const [attempt, setAttempt] = React.useState(0)
-    const [status, setStatus] = React.useState<"asking" | "waiting" | "compare" | "confirmed" | "denied" | "expired" | "failed">("asking")
+    const [status, setStatus] = React.useState<"asking" | "waiting" | "compare" | "confirmed" | "mismatch" | "denied" | "expired" | "failed">("asking")
     const [sas, setSas] = React.useState<string | null>(null)
     const [failure, setFailure] = React.useState<string | null>(null)
     const [sheet, setSheet] = React.useState<"recovery" | "fresh" | "signout" | null>(null)
     const [answering, setAnswering] = React.useState(false)
     const pendingRef = React.useRef<PendingApproval | null>(null)
+    // S1: "No" stops the polling at once; this request is over, "Ask again" makes a new one
+    const stopRef = React.useRef<() => void>(() => undefined)
 
     React.useEffect(() => {
         let alive = true
         let timer: ReturnType<typeof setTimeout> | null = null
+        stopRef.current = () => {
+            alive = false
+            if (timer) clearTimeout(timer)
+        }
         const poll = async (pending: PendingApproval) => {
             try {
                 const progress = await approvalProgress(pending)
@@ -186,9 +194,11 @@ function ApproveOnPhone({ t }: { t: Translate }) {
     async function answer(same: boolean) {
         const pending = pendingRef.current
         if (!pending || answering) return
+        if (!same) stopRef.current()
         setAnswering(true)
         try {
             const progress = await answerNumber(pending, same)
+            if (!same) return setStatus("mismatch")
             if (progress.state === "approved") return void approvalDone()
             if (progress.state === "denied" || progress.state === "expired") setStatus(progress.state)
             else if (progress.state === "compare" && progress.confirmed) setStatus("confirmed")
@@ -202,8 +212,10 @@ function ApproveOnPhone({ t }: { t: Translate }) {
         }
     }
 
-    const ended = status === "denied" || status === "expired" || status === "failed"
-    const statusText = status === "denied" ? t("The request was denied.", "Die Anfrage wurde abgelehnt.")
+    const ended = status === "mismatch" || status === "denied" || status === "expired" || status === "failed"
+    const statusText = status === "mismatch" ? t("Numbers didn't match. This could be an attack. Nothing was shared, and this request is over.",
+        "Die Zahlen passten nicht. Das könnte ein Angriff sein. Nichts wurde geteilt, diese Anfrage ist beendet.")
+        : status === "denied" ? t("The request was denied.", "Die Anfrage wurde abgelehnt.")
         : status === "expired" ? t("The request expired.", "Die Anfrage ist abgelaufen.")
             : status === "failed" ? failure ?? ""
                 : status === "compare" ? t("Does your other device show the same number?", "Zeigt dein anderes Gerät dieselbe Zahl?")
@@ -222,8 +234,9 @@ function ApproveOnPhone({ t }: { t: Translate }) {
                 "Öffne Seanime Mobile auf einem Gerät, das schon angemeldet ist. Es fragt, ob dieses Gerät sich anmelden darf.")}>
             <View className="items-center gap-2 bg-sm-surface-raised px-4 py-6">
                 <Text accessibilityLabel={sas ? sas.split("").join(" ") : undefined}
-                    className={cn("text-[34px] font-bold tracking-[3px]", !sas && "text-sm-text-subtle")}>{sas ? formatSas(sas) : "··· ···"}</Text>
-                <Text accessibilityRole={ended ? "alert" : undefined} className="text-center text-[15px] leading-[23px] text-sm-text-muted">{statusText}</Text>
+                    className={cn("text-[34px] font-bold tracking-[3px]", (!sas || ended) && "text-sm-text-subtle")}>{sas ? formatSas(sas) : "··· ···"}</Text>
+                <Text accessibilityRole={ended ? "alert" : undefined}
+                    className={cn("text-center text-[15px] leading-[23px]", status === "mismatch" ? "text-sm-danger" : "text-sm-text-muted")}>{statusText}</Text>
             </View>
             {status === "compare" && <View className="flex-row gap-2 bg-sm-surface px-4 py-3">
                 <Button intent="secondary" wrapperClassName="flex-1" disabled={answering} onPress={() => void answer(false)}>{t("No, different", "Nein, andere")}</Button>
@@ -263,9 +276,10 @@ function Overview({ t }: { t: Translate }) {
     const setImportDismissed = useSetAtom(importDismissedAtom)
     const queryClient = useQueryClient()
     const [now, setNow] = React.useState(Date.now)
-    const [sheet, setSheet] = React.useState<"recovery" | "password" | "signout" | "data" | "delete" | "rotate" | "google" | null>(null)
+    const [sheet, setSheet] = React.useState<"recovery" | "password" | "signout" | "data" | "delete" | "google" | null>(null)
     const [code, setCode] = React.useState<string | null>(null)
-    const [removing, setRemoving] = React.useState<DeviceInfo | null>(null)
+    // S2: "Change encryption key" with the device list; `off`: a device the user tapped Remove on starts unticked
+    const [keySheet, setKeySheet] = React.useState<{ off: string | null } | null>(null)
     const devices = useQuery({ queryKey: DEVICES_KEY, queryFn: listDevices })
 
     React.useEffect(() => {
@@ -295,8 +309,9 @@ function Overview({ t }: { t: Translate }) {
 
     const renewal = info?.recoveryRenewalNeeded || lastSync?.recoveryRenewalNeeded
     const syncNote = syncNoteFor(t, lastSync?.state)
-    // M-4: a removed device still knows the old key until one of the user's devices switches to a new one
+    // M-4, S4: a removed or signed-out device may still know the old key until the user changes it
     const keyChangePending = (info?.rotationRequired || lastSync?.rotationRequired) && lastSync?.state !== "key-untrusted"
+    const shortDate = (seconds: number) => new Date(seconds * 1000).toLocaleDateString(t("en-US", "de-DE"))
 
     return <View className="gap-6">
         {info && !info.emailVerified && <SettingsGroup title={t("Confirm your email", "Bestätige deine E-Mail")}
@@ -310,22 +325,29 @@ function Overview({ t }: { t: Translate }) {
                 note={t("Your account has data from another device", "Dein Konto hat Daten von einem anderen Gerät")} onPress={() => setImportDismissed(false)} />}
             <LinkRow label={syncing ? t("Syncing…", "Wird synchronisiert …") : t("Sync now", "Jetzt synchronisieren")} disabled={syncing}
                 value={syncedAgo(t, account.lastSyncAt, Math.max(now, account.lastSyncAt ?? 0))} note={syncNote} chevron={false} onPress={() => void syncNowPressed()} />
-            {keyChangePending && <LinkRow label={t("Finish removing a device", "Entfernen eines Geräts abschließen")} tone="accent"
-                note={account.kind === "email"
-                    ? t("A removed device can still read your data until the key changes. Enter your password to change it.", "Ein entferntes Gerät kann deine Daten lesen, bis der Schlüssel wechselt. Gib dein Passwort ein, um ihn zu wechseln.")
-                    : t("A removed device can still read your data until the key changes. Sign out and sign in with Google again to change it.", "Ein entferntes Gerät kann deine Daten lesen, bis der Schlüssel wechselt. Melde dich ab und wieder mit Google an, um ihn zu wechseln.")}
-                onPress={() => setSheet("rotate")} />}
         </SettingsGroup>
 
-        <SettingsGroup title={t("Devices", "Geräte")} note={t("Removing a device signs it out and changes the key, so it can't read anything new.", "Ein entferntes Gerät wird abgemeldet und der Schlüssel gewechselt, damit es nichts Neues mehr lesen kann.")}>
-            {devices.data?.map(device => <LinkRow key={device.id} label={device.name} tone={device.verified ? undefined : "danger"}
+        <SettingsGroup title={t("Devices", "Geräte")} note={t("Only the devices you keep get a new key. Removing a device or leaving it out signs it out for good, so it can't read anything new.",
+            "Nur die Geräte, die du behältst, bekommen einen neuen Schlüssel. Ein entferntes oder weggelassenes Gerät ist endgültig abgemeldet und kann nichts Neues mehr lesen.")}>
+            {devices.data?.map(device => <LinkRow key={device.id} label={device.name} tone={device.verified && !device.signedOut ? undefined : "danger"}
                 note={!device.verified
                     ? t("Not added by one of your devices. Remove it if you don't know it.", "Nicht von einem deiner Geräte hinzugefügt. Entferne es, wenn du es nicht kennst.")
-                    : device.current ? t("This device", "Dieses Gerät") : t(`Last seen ${new Date(device.lastSeenAt * 1000).toLocaleDateString(t("en-US", "de-DE"))}`, `Zuletzt ${new Date(device.lastSeenAt * 1000).toLocaleDateString("de-DE")}`)}
-                value={device.current ? undefined : t("Remove", "Entfernen")} chevron={!device.current} disabled={device.current} onPress={() => setRemoving(device)} />)}
+                    : device.signedOut ? t(`Signed out on ${shortDate(device.signedOutAt!)}. It gets no new key.`, `Abgemeldet am ${shortDate(device.signedOutAt!)}. Es bekommt keinen neuen Schlüssel.`)
+                        : device.current ? t("This device", "Dieses Gerät") : t(`Last seen ${shortDate(device.lastSeenAt)}`, `Zuletzt ${shortDate(device.lastSeenAt)}`)}
+                value={device.current ? undefined : t("Remove", "Entfernen")} chevron={!device.current} disabled={device.current} onPress={() => setKeySheet({ off: device.id })} />)}
             {devices.isError && <LinkRow label={t("Couldn't load the devices", "Geräte konnten nicht geladen werden")} value={t("Retry", "Nochmal")} onPress={() => void devices.refetch()} />}
             {devices.isPending && <LinkRow label={t("Loading…", "Wird geladen …")} chevron={false} disabled onPress={() => undefined} />}
+            <LinkRow label={t("Change encryption key", "Schlüssel wechseln")} tone={keyChangePending ? "accent" : undefined}
+                note={keyChangePending
+                    ? t("A device was removed or signed out. Until you change the key, it may still read what you sync.", "Ein Gerät wurde entfernt oder abgemeldet. Bis du den Schlüssel wechselst, kann es noch lesen, was du synchronisierst.")
+                    : t("Pick the devices that keep access. All others are removed.", "Wähle die Geräte, die Zugang behalten. Alle anderen werden entfernt.")}
+                onPress={() => setKeySheet({ off: null })} />
         </SettingsGroup>
+
+        {!!info?.events?.length && <SettingsGroup title={t("Security events", "Sicherheitsereignisse")}
+            note={t("Each one was also sent to your email.", "Jedes ging auch an deine E-Mail.")}>
+            {info.events.slice(0, 6).map((event, index) => <LinkRow key={`${event.at}-${index}`} label={eventText(t, event)} value={shortDate(event.at)} chevron={false} disabled onPress={() => undefined} />)}
+        </SettingsGroup>}
 
         <SettingsGroup title={t("Recovery code", "Wiederherstellungscode")}
             note={renewal ? t("Your recovery code stopped working when a device was removed. Save a new one.", "Dein Code gilt nicht mehr, seit ein Gerät entfernt wurde. Speichere einen neuen.")
@@ -363,15 +385,13 @@ function Overview({ t }: { t: Translate }) {
                 await deleteWholeAccount(password)
                 toast.success(t("Account deleted.", "Konto gelöscht."))
             }} />
-        <InputSheet t={t} open={sheet === "rotate"} onOpenChange={open => !open && setSheet(null)} title={t("Finish removing a device", "Entfernen eines Geräts abschließen")}
-            field={account.kind === "email" ? "password" : "none"}
-            text={t("Your devices switch to a new key, so a removed device can't read anything synced from now on.", "Deine Geräte wechseln zu einem neuen Schlüssel, damit ein entferntes Gerät ab jetzt nichts Neues mehr lesen kann.")}
-            placeholder={t("Your password", "Dein Passwort")} action={t("Change key", "Schlüssel wechseln")}
-            onSubmit={async password => {
-                await finishKeyChange(account.kind === "email" ? password : undefined)
+        {keySheet && devices.data && <ChangeKeySheet t={t} devices={devices.data} off={keySheet.off} password={account.kind === "email"}
+            onClose={() => setKeySheet(null)}
+            onSubmit={async (keep, password) => {
+                await changeEncryptionKey(keep, account.kind === "email" ? password : undefined)
                 void queryClient.invalidateQueries({ queryKey: DEVICES_KEY })
-                toast.success(t("Done. The removed device can't read anything new.", "Fertig. Das entfernte Gerät kann nichts Neues mehr lesen."))
-            }} />
+                toast.success(t("Done. Only the devices you kept can read what you sync from now on.", "Fertig. Nur die behaltenen Geräte können ab jetzt lesen, was du synchronisierst."))
+            }} />}
         <InputSheet t={t} open={sheet === "google"} onOpenChange={open => !open && setSheet(null)} title={t("Disconnect Google?", "Google trennen?")} danger
             text={t("Google can't be used to sign in to this account any more. You sign in with your email and password.", "Google kann danach nicht mehr zum Anmelden genutzt werden. Du meldest dich mit E-Mail und Passwort an.")}
             placeholder={t("Your password", "Dein Passwort")} action={t("Disconnect", "Trennen")}
@@ -379,22 +399,82 @@ function Overview({ t }: { t: Translate }) {
                 await disconnectGoogle(password)
                 toast.success(t("Google disconnected.", "Google getrennt."))
             }} />
-        <InputSheet t={t} open={removing !== null} onOpenChange={open => !open && setRemoving(null)} title={t(`Remove ${removing?.name ?? ""}?`, `${removing?.name ?? ""} entfernen?`)} danger
-            field={account.kind === "email" ? "password" : "none"}
-            text={t("The device is signed out and your devices switch to a new key right away, so it can't read anything synced from now on. Its own data stays on it.", "Das Gerät wird abgemeldet und deine Geräte wechseln sofort zu einem neuen Schlüssel, damit es ab jetzt nichts Synchronisiertes mehr lesen kann. Seine eigenen Daten bleiben darauf.")}
-            placeholder={t("Your password", "Dein Passwort")} action={t("Remove", "Entfernen")}
-            onSubmit={async password => {
-                if (removing) await removeAccountDevice(removing.id, password)
-                void queryClient.invalidateQueries({ queryKey: DEVICES_KEY })
-            }} />
     </View>
+}
+
+/**
+ * S2: "Change encryption key". Ticked devices keep access and get the new key; every other device is removed in the same
+ * step. Pre-ticked: devices one of yours added and that are still signed in. Unverified and signed-out devices can't be
+ * kept; this device always keeps it.
+ */
+function ChangeKeySheet({ t, devices, off, password, onClose, onSubmit }: {
+    t: Translate
+    devices: CheckedDevice[]
+    /** A device the user tapped Remove on: unticked at the start */
+    off: string | null
+    password: boolean
+    onClose: () => void
+    onSubmit: (keep: string[], password: string) => Promise<unknown>
+}) {
+    const [keep, setKeep] = React.useState(() => new Set(devices.filter(device => device.current || device.keepByDefault && device.id !== off).map(device => device.id)))
+    const [value, setValue] = React.useState("")
+    const [busy, setBusy] = React.useState(false)
+    const [error, setError] = React.useState<string | null>(null)
+    const leaving = devices.filter(device => !keep.has(device.id))
+    async function submit() {
+        if (busy || (password && !value)) return
+        setBusy(true)
+        setError(null)
+        try {
+            await onSubmit([...keep], value)
+            onClose()
+        }
+        catch (failure) {
+            setError(accountErrorText(t, failure))
+        }
+        finally {
+            setBusy(false)
+        }
+    }
+    return <Sheet title={t("Change encryption key", "Schlüssel wechseln")} open onOpenChange={next => !busy && !next && onClose()}
+        footer={<>
+            <Button intent="secondary" wrapperClassName="flex-1" disabled={busy} onPress={onClose}>{t("Cancel", "Abbrechen")}</Button>
+            <Button intent={leaving.length > 0 ? "danger" : "primary"} wrapperClassName="flex-1" disabled={password && !value} loading={busy} onPress={() => void submit()}>
+                {leaving.length > 0 ? t(`Remove ${leaving.length} and change`, `${leaving.length} entfernen, wechseln`) : t("Change key", "Wechseln")}
+            </Button>
+        </>}>
+        <View className="gap-3">
+            <Text className="text-[15px] leading-[23px] text-sm-text-muted">
+                {t("Your data gets a new key. Only the ticked devices get it; the others are removed and can't read anything you sync from now on.",
+                    "Deine Daten bekommen einen neuen Schlüssel. Nur die angehakten Geräte bekommen ihn; die anderen werden entfernt und können ab jetzt nichts mehr lesen, was du synchronisierst.")}
+            </Text>
+            <View className="gap-0.5">
+                {devices.map(device => <LocalSwitch key={device.id} label={device.name} checked={keep.has(device.id)}
+                    disabled={busy || device.current || !device.keepByDefault}
+                    note={device.current ? t("This device", "Dieses Gerät")
+                        : !device.verified ? t("Not added by one of your devices", "Nicht von einem deiner Geräte hinzugefügt")
+                            : device.signedOut ? t("Signed out", "Abgemeldet") : undefined}
+                    onCheckedChange={checked => setKeep(current => {
+                        const next = new Set(current)
+                        if (checked) next.add(device.id)
+                        else next.delete(device.id)
+                        return next
+                    })} />)}
+            </View>
+            {password && <TextInput value={value} onChangeText={setValue} placeholder={t("Your password", "Dein Passwort")} placeholderTextColor={colors.smTextSubtle}
+                accessibilityLabel={t("Your password", "Dein Passwort")} autoCapitalize="none" autoCorrect={false} secureTextEntry autoComplete="current-password"
+                returnKeyType="done" onSubmitEditing={() => void submit()} className={cn(FIELD, !!error && "border-2 border-sm-danger")} />}
+            {!!error && <Text accessibilityRole="alert" className="text-[13px] leading-[19.5px] text-sm-danger">{error}</Text>}
+        </View>
+    </Sheet>
 }
 
 function syncNoteFor(t: Translate, state: string | undefined): string | undefined {
     switch (state) {
-        case "key-changed": return t("This device was removed from the account. Sign out and sign in again.", "Dieses Gerät wurde aus dem Konto entfernt. Melde dich ab und wieder an.")
-        case "key-untrusted": return t("Sync stopped: the account's key changed, and none of your devices vouched for it. That happens after Start fresh on another device, when this device missed more than one key change, or when someone tries to get in. Sign out, then sign in again.",
-            "Sync gestoppt: Der Schlüssel des Kontos wurde gewechselt, ohne dass eines deiner Geräte das bestätigt hat. Das passiert nach Neu anfangen auf einem anderen Gerät, wenn dieses Gerät mehr als einen Schlüsselwechsel verpasst hat, oder wenn jemand reinzukommen versucht. Melde dich ab und wieder an.")
+        case "key-changed": return t("This device no longer gets the account's key. It can join again with your password, your recovery code or an approval from another device.",
+            "Dieses Gerät bekommt den Schlüssel des Kontos nicht mehr. Es kommt mit deinem Passwort, deinem Wiederherstellungscode oder einer Freigabe von einem anderen Gerät wieder rein.")
+        case "key-untrusted": return t("Sync stopped: the account's key changed, and none of your devices vouched for it. That happens after Start fresh on another device, when this device missed more than one key change, or when someone tries to get in. Nothing was imported or uploaded. This device can join again with your password, your recovery code or an approval from another device.",
+            "Sync gestoppt: Der Schlüssel des Kontos wurde gewechselt, ohne dass eines deiner Geräte das bestätigt hat. Das passiert nach Neu anfangen auf einem anderen Gerät, wenn dieses Gerät mehr als einen Schlüsselwechsel verpasst hat, oder wenn jemand reinzukommen versucht. Nichts wurde importiert oder hochgeladen. Dieses Gerät kommt mit deinem Passwort, deinem Wiederherstellungscode oder einer Freigabe von einem anderen Gerät wieder rein.")
         case "rate-limited": return t("Paused for a moment, too many syncs.", "Kurz pausiert, zu viele Syncs.")
         case "rollback-rejected": return t("The server sent older data than this device knows. Nothing was changed.", "Der Server schickte ältere Daten, als dieses Gerät kennt. Nichts wurde geändert.")
         default: return undefined

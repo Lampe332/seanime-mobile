@@ -86,9 +86,12 @@ function ApprovalSheet({ request, onClose }: { request: ApprovalRequest, onClose
     const [sas, setSas] = React.useState<string | null>(null)
     const [busy, setBusy] = React.useState(false)
     const [ended, setEnded] = React.useState<string | null>(null)
+    // NEU3-10: nothing is sent before the user asks for the number here
+    const [started, setStarted] = React.useState(false)
 
     // step 2: this device sends its random number, then waits until the new device revealed its own
     React.useEffect(() => {
+        if (!started) return
         let alive = true
         let timer: ReturnType<typeof setTimeout> | null = null
         const poll = async (current: ApproverTurn) => {
@@ -113,7 +116,7 @@ function ApprovalSheet({ request, onClose }: { request: ApprovalRequest, onClose
             alive = false
             if (timer) clearTimeout(timer)
         }
-    }, [request, t])
+    }, [request, started, t])
 
     async function approve() {
         if (!turn) return
@@ -149,20 +152,28 @@ function ApprovalSheet({ request, onClose }: { request: ApprovalRequest, onClose
     }
 
     return <Sheet title={t(`${request.deviceName} wants to sign in`, `${request.deviceName} möchte sich anmelden`)} open onOpenChange={open => !open && onClose()}
-        footer={ended ? <Button intent="secondary" wrapperClassName="flex-1" onPress={onClose}>{t("Close", "Schließen")}</Button> : <>
+        footer={ended ? <Button intent="secondary" wrapperClassName="flex-1" onPress={onClose}>{t("Close", "Schließen")}</Button> : !started ? <>
             <Button intent="secondary" wrapperClassName="flex-1" disabled={busy} onPress={() => void deny()}>{t("Deny", "Ablehnen")}</Button>
+            <Button intent="primary" wrapperClassName="flex-1" onPress={() => setStarted(true)}>{t("Show number", "Zahl zeigen")}</Button>
+        </> : <>
+            <Button intent="secondary" wrapperClassName="flex-1" disabled={busy} onPress={() => void deny()}>{t("No, different", "Nein, andere")}</Button>
             <Button intent="primary" wrapperClassName="flex-1" disabled={!sas} loading={busy} onPress={() => void approve()}>{t("Approve", "Freigeben")}</Button>
         </>}>
         <NoScreenshots id="account-approve" />
         <View className="gap-3">
             {ended
                 ? <Text className="text-[15px] leading-[23px] text-sm-text-muted">{endedText(t, ended)}</Text>
-                : sas
+                : !started
+                    ? <Text className="text-[15px] leading-[23px] text-sm-text-muted">
+                        {t(`If you're signing in on ${request.deviceName} right now, show the number and compare it with the one there. If not, deny.`,
+                            `Wenn du dich gerade auf ${request.deviceName} anmeldest, zeig die Zahl und vergleiche sie mit der dort. Wenn nicht, lehne ab.`)}
+                    </Text>
+                    : sas
                     ? <>
                         <Text accessibilityLabel={sas.split("").join(" ")} className="text-center text-[34px] font-bold tracking-[3px]">{formatSas(sas)}</Text>
                         <Text className="text-[15px] leading-[23px] text-sm-text-muted">
-                            {t(`Does ${request.deviceName} show the same number? Approve only then, and confirm it there too. It gets your synced data and keys.`,
-                                `Zeigt ${request.deviceName} dieselbe Zahl? Gib nur dann frei und bestätige sie dort auch. Das Gerät bekommt deine synchronisierten Daten und Schlüssel.`)}
+                            {t(`Does ${request.deviceName} show the same number? Approve only then, and confirm it there too. It gets your synced data and keys. If the numbers differ, tap No: this could be an attack.`,
+                                `Zeigt ${request.deviceName} dieselbe Zahl? Gib nur dann frei und bestätige sie dort auch. Das Gerät bekommt deine synchronisierten Daten und Schlüssel. Sind die Zahlen verschieden, tippe auf Nein: Das könnte ein Angriff sein.`)}
                         </Text>
                     </>
                     : <Muted className="text-[15px] leading-[23px]">{t("Getting the number…", "Zahl wird geholt …")}</Muted>}
