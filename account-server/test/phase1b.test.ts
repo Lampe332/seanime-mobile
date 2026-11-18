@@ -3,7 +3,7 @@ import { exports } from "cloudflare:workers";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { renderMail, type Mail } from "../src/mail";
-import { api, b64, clientKeys, DEFAULT_KDF, freshEmail, freshIp, rand, signed, signupUser, upload } from "./helpers";
+import { api, b64, clientKeys, DEFAULT_KDF, deviceKeys, freshEmail, freshIp, rand, signed, signupUser, upload } from "./helpers";
 
 // ---------------------------------------------------------------- helpers
 
@@ -49,6 +49,11 @@ describe("mail", () => {
       { kind: "new_device", deviceName: "Pixel <script>" },
       { kind: "password_changed" },
       { kind: "account_deleted" },
+      { kind: "start_fresh" },
+      { kind: "google_linked" },
+      { kind: "google_unlinked" },
+      { kind: "recovery_changed" },
+      { kind: "key_rotated" },
       { kind: "inactivity", deleteAt: nowS() + 14 * 86400 },
     ];
     for (const m of kinds) {
@@ -232,7 +237,7 @@ describe("google sign-in", () => {
     expect((await blocked.json<{ error: string }>()).error).toBe("account_exists");
 
     nonce = await googleNonce();
-    const link = await api("/v1/account/link-google", { token: u.token, body: { idToken: await signJwt(claims(nonce, { sub, email: u.email })), nonce } });
+    const link = await api("/v1/account/link-google", { token: u.token, body: { idToken: await signJwt(claims(nonce, { sub, email: u.email })), nonce, authKey: u.keys.authKey } });
     expect(link.status).toBe(204);
 
     nonce = await googleNonce();
@@ -242,14 +247,17 @@ describe("google sign-in", () => {
     expect(d.userId).toBe(u.userId);
     expect(d.dekId).toBe(u.keys.dekId);
 
-    // Linking needs a recent sign-in, and a Google account can belong to one account only.
+    // H-2: linking needs the password (a session alone is not enough), and a Google account belongs to one account only.
     const other = await signupUser();
-    await makeOld(other.userId);
     nonce = await googleNonce();
-    expect((await api("/v1/account/link-google", { token: other.token, body: { idToken: await signJwt(claims(nonce, { sub })), nonce } })).status).toBe(403);
+    const wrong = await api("/v1/account/link-google", { token: other.token, body: { idToken: await signJwt(claims(nonce, { sub })), nonce, authKey: b64(rand(32)) } });
+    expect(wrong.status).toBe(403);
+    expect((await wrong.json<{ error: string }>()).error).toBe("wrong_password");
+    nonce = await googleNonce();
+    expect((await api("/v1/account/link-google", { token: other.token, body: { idToken: await signJwt(claims(nonce, { sub })), nonce } })).status).toBe(400);
     const fresh = await login(other.email, other.keys.authKey);
     nonce = await googleNonce();
-    expect((await api("/v1/account/link-google", { token: fresh.sessionToken, body: { idToken: await signJwt(claims(nonce, { sub })), nonce } })).status).toBe(409);
+    expect((await api("/v1/account/link-google", { token: fresh.sessionToken, body: { idToken: await signJwt(claims(nonce, { sub })), nonce, authKey: other.keys.authKey } })).status).toBe(409);
   });
 });
 
@@ -294,7 +302,7 @@ describe("device approval", () => {
 
     expect((await api(`/v1/devices/requests/${req.id}/reveal`, { token: n, body: { reveal: req.reveal } })).status).toBe(200);
     const sealedDek = b64(rand(80));
-    const ok = await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek } });
+    const ok = await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek, mac: b64(rand(32)) } });
     expect(ok.status).toBe(200);
 
     const result = await (await api(`/v1/devices/requests/${req.id}`, { token: n })).json<{ status: string; sealedDek: string; dekId: string; deviceId: string }>();
@@ -317,16 +325,16 @@ describe("device approval", () => {
     const req = await openRequest(n);
     // reveal before rO, approve before reveal
     expect((await api(`/v1/devices/requests/${req.id}/reveal`, { token: n, body: { reveal: req.reveal } })).status).toBe(409);
-    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)) } })).status).toBe(409);
+    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(409);
     expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)) } })).status).toBe(200);
     expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)) } })).status).toBe(409);
-    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)) } })).status).toBe(409);
+    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(409);
 
     // A different rN than committed to: the request is dead.
     const wrong = await api(`/v1/devices/requests/${req.id}/reveal`, { token: n, body: { reveal: b64(rand(32)) } });
     expect(wrong.status).toBe(422);
     expect((await api(`/v1/devices/requests/${req.id}/reveal`, { token: n, body: { reveal: req.reveal } })).status).toBe(409);
-    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)) } })).status).toBe(409);
+    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(409);
     const st = await (await api(`/v1/devices/requests/${req.id}`, { token: n })).json<{ status: string; sealedDek?: string }>();
     expect(st.status).toBe("denied");
     expect(st.sealedDek).toBeUndefined();
@@ -350,17 +358,17 @@ describe("device approval", () => {
 
     await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)) } });
     await api(`/v1/devices/requests/${req.id}/reveal`, { token: n, body: { reveal: req.reveal } });
-    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: b.token, body: { dekId: b.keys.dekId, sealedDek: b64(rand(80)) } })).status).toBe(404);
+    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: b.token, body: { dekId: b.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(404);
 
     // Another device of account A that did not send rO cannot approve.
     const second = await newDeviceSession(a);
     const k = clientKeys();
-    await api("/v1/account/keys", { method: "PUT", token: second, body: { dekId: a.keys.dekId, device: { name: "Laptop", devicePub: k.devicePub, sealedDek: k.sealedDek } } });
-    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: second, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)) } })).status).toBe(403);
-    // Wrong dekId and an old sign-in are refused too.
-    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: "dek-other", sealedDek: b64(rand(80)) } })).status).toBe(409);
+    await api("/v1/account/keys", { method: "PUT", token: second, body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, device: { name: "Laptop", devicePub: k.devicePub, sealedDek: k.sealedDek, mac: b64(rand(32)) } } });
+    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: second, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(403);
+    // A wrong dekId is refused; an old sign-in is not (M-1: the device row and the screen lock count, not the login age).
+    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: "dek-other", sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(409);
     await makeOld(a.userId);
-    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)) } })).status).toBe(403);
+    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(200);
   });
 
   it("expires after 10 minutes, allows 3 open and 5 per hour, and deny blocks at once", async () => {
@@ -459,7 +467,7 @@ describe("password reset", () => {
 
     // A signed-in device that still holds the DEK delivers the new wrap.
     const newWrap = b64(rand(72));
-    expect((await api("/v1/account/keys", { method: "PUT", token: fresh.sessionToken, body: { dekId: u.keys.dekId, wrappedDek: newWrap } })).status).toBe(200);
+    expect((await api("/v1/account/keys", { method: "PUT", token: fresh.sessionToken, body: { dekId: u.keys.dekId, dekProof: u.keys.dekProof, wrappedDek: newWrap } })).status).toBe(200);
     const after = await login(u.email, k.authKey);
     expect(after.wrappedDek).toBe(newWrap);
     expect(after.rewrapNeeded).toBe(false);
@@ -477,7 +485,7 @@ describe("password reset", () => {
     expect(JSON.stringify(info)).not.toContain(u.keys.wrappedDek);
 
     const k = clientKeys();
-    const keys = { dekId: u.keys.dekId, wrappedDek: b64(rand(72)), recoveryWrappedDek: b64(rand(72)) };
+    const keys = { dekId: u.keys.dekId, dekProof: u.keys.dekProof, wrappedDek: b64(rand(72)), recoveryWrappedDek: b64(rand(72)) };
     const bad = await api("/v1/auth/reset", { body: { token, salt: k.salt, kdf: DEFAULT_KDF, authKey: k.authKey, keys: { ...keys, dekId: "dek-wrong" } } });
     expect(bad.status).toBe(409);
     const ok = await api("/v1/auth/reset", { body: { token, salt: k.salt, kdf: DEFAULT_KDF, authKey: k.authKey, keys } });
@@ -516,7 +524,7 @@ describe("DEK rotation", () => {
     const put = await api("/v1/account/keys", {
       method: "PUT",
       token: second,
-      body: { dekId: a.keys.dekId, device: { name: "Tablet", devicePub: k2.devicePub, sealedDek: k2.sealedDek } },
+      body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, device: { name: "Tablet", devicePub: k2.devicePub, sealedDek: k2.sealedDek, mac: b64(rand(32)) } },
     });
     const secondId = (await put.json<{ deviceId: string }>()).deviceId;
     const third = await newDeviceSession(a);
@@ -524,7 +532,7 @@ describe("DEK rotation", () => {
     const put3 = await api("/v1/account/keys", {
       method: "PUT",
       token: third,
-      body: { dekId: a.keys.dekId, device: { name: "Old phone", devicePub: k3.devicePub, sealedDek: k3.sealedDek } },
+      body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, device: { name: "Old phone", devicePub: k3.devicePub, sealedDek: k3.sealedDek, mac: b64(rand(32)) } },
     });
     const thirdId = (await put3.json<{ deviceId: string }>()).deviceId;
     expect((await upload(a.token, rand(64), 0, a.keys.dekId)).status).toBe(200);
@@ -537,11 +545,11 @@ describe("DEK rotation", () => {
     const sealedA = b64(rand(80));
     const sealed2 = b64(rand(80));
     const base = {
-      oldDekId: a.keys.dekId,
+      oldDekId: a.keys.dekId, dekProof: b64(rand(32)), chainMac: b64(rand(32)),
       dekId: newDek,
       devices: [
-        { deviceId: a.deviceId, sealedDek: sealedA },
-        { deviceId: secondId, sealedDek: sealed2 },
+        { deviceId: a.deviceId, sealedDek: sealedA, mac: b64(rand(32)) },
+        { deviceId: secondId, sealedDek: sealed2, mac: b64(rand(32)) },
       ],
       wrappedDek: b64(rand(72)),
       recoveryWrappedDek: b64(rand(72)),
@@ -549,7 +557,7 @@ describe("DEK rotation", () => {
     const blob = rand(128);
     // Missing device, removed device, stale version, missing snapshot.
     expect((await rotateRequest(a.token, { ...base, devices: base.devices.slice(0, 1) }, 1, blob)).status).toBe(409);
-    expect((await rotateRequest(a.token, { ...base, devices: [...base.devices, { deviceId: thirdId, sealedDek: sealed2 }] }, 1, blob)).status).toBe(409);
+    expect((await rotateRequest(a.token, { ...base, devices: [...base.devices, { deviceId: thirdId, sealedDek: sealed2, mac: b64(rand(32)) }] }, 1, blob)).status).toBe(409);
     expect((await rotateRequest(a.token, base, 0, blob)).status).toBe(409);
     expect((await rotateRequest(a.token, base, 1)).status).toBe(400);
     expect((await rotateRequest(a.token, { ...base, wrappedDek: undefined }, 1, blob)).status).toBe(400);
@@ -578,13 +586,13 @@ describe("DEK rotation", () => {
     const req = await openRequest(n);
     await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)) } });
     await api(`/v1/devices/requests/${req.id}/reveal`, { token: n, body: { reveal: req.reveal } });
-    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)) } })).status).toBe(409);
-    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: newDek, sealedDek: b64(rand(80)) } })).status).toBe(200);
+    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(409);
+    expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: newDek, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(200);
   });
 
   it("needs a device session with a recent sign-in", async () => {
     const a = await signupUser();
-    const meta = { oldDekId: a.keys.dekId, dekId: "dek-new", devices: [{ deviceId: a.deviceId, sealedDek: b64(rand(80)) }], wrappedDek: b64(rand(72)) };
+    const meta = { oldDekId: a.keys.dekId, dekProof: b64(rand(32)), chainMac: b64(rand(32)), dekId: "dek-new", devices: [{ deviceId: a.deviceId, sealedDek: b64(rand(80)), mac: b64(rand(32)) }], wrappedDek: b64(rand(72)) };
     const noDevice = await newDeviceSession(a);
     expect((await rotateRequest(noDevice, meta, 0)).status).toBe(403);
     await makeOld(a.userId);
@@ -602,7 +610,7 @@ describe("devices", () => {
       const res = await api("/v1/account/keys", {
         method: "PUT",
         token: s,
-        body: { dekId: a.keys.dekId, device: { name: `Phone ${i}`, devicePub: a.keys.devicePub, sealedDek: b64(rand(80)) } },
+        body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, device: { name: `Phone ${i}`, devicePub: a.keys.devicePub, sealedDek: b64(rand(80)), mac: b64(rand(32)) } },
       });
       expect(res.status).toBe(200);
       expect((await res.json<{ deviceId: string }>()).deviceId).toBe(a.deviceId);
@@ -673,5 +681,186 @@ describe("cron phase 1b", () => {
     expect((await takeMails(idle.email)).map((m) => m.subject)).toEqual(["Your account was deleted"]);
     expect(await userExists(back.userId)).toBe(true);
     expect(await takeMails(back.email)).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------- security review fix round 1 (18.11.)
+
+/** A Google session on account u: links a fresh Google identity with u's password, then signs in with it. */
+async function googleSessionFor(u: { token: string; email: string; keys: { authKey: string } }) {
+  const sub = String(100000000000 + Math.floor(Math.random() * 1e9));
+  let nonce = await googleNonce();
+  const link = await api("/v1/account/link-google", {
+    token: u.token,
+    body: { idToken: await signJwt(claims(nonce, { sub, email: u.email })), nonce, authKey: u.keys.authKey },
+  });
+  expect(link.status).toBe(204);
+  nonce = await googleNonce();
+  const res = await api("/v1/auth/google", { body: { idToken: await signJwt(claims(nonce, { sub, email: u.email })), nonce } });
+  expect(res.status).toBe(200);
+  return (await res.json<{ sessionToken: string }>()).sessionToken;
+}
+
+const fakeRotation = (oldDekId: string, devices: unknown[] = []) => ({
+  oldDekId,
+  dekId: `dek-${b64(rand(6))}`,
+  dekProof: b64(rand(32)),
+  chainMac: b64(rand(32)),
+  devices,
+});
+
+describe("key trust (K-1, M-5): only key holders change keys", () => {
+  it("a session without the DEK can neither add a device nor take over another device's row", async () => {
+    const a = await signupUser();
+    for (const token of [await newDeviceSession(a), await googleSessionFor(a)]) {
+      const own = await api("/v1/account/keys", { method: "PUT", token, body: { dekId: a.keys.dekId, device: deviceKeys("Galaxy S22") } });
+      expect(own.status).toBe(403);
+      expect((await own.json<{ error: string }>()).error).toBe("key_required");
+      // the victim's public key from GET devices, with a made-up proof: refused, the row stays the victim's
+      const steal = await api("/v1/account/keys", {
+        method: "PUT",
+        token,
+        body: { dekId: a.keys.dekId, dekProof: b64(rand(32)), device: deviceKeys("Galaxy S22", a.keys.devicePub) },
+      });
+      expect(steal.status).toBe(403);
+      // no device row, so no rotation either
+      expect((await rotateRequest(token, fakeRotation(a.keys.dekId), 0)).status).toBe(403);
+    }
+    const { devices } = await (await api("/v1/devices", { token: a.token })).json<{ devices: Array<{ id: string; mac: string }> }>();
+    expect(devices.map((d) => d.id)).toEqual([a.deviceId]);
+    expect(devices[0]!.mac).toBe(a.keys.mac);
+    expect((await api("/v1/sync/meta", { token: a.token })).status).toBe(200);
+  });
+
+  it("a session without a trusted device cannot upload, delete, change wraps or the password, or rotate", async () => {
+    const a = await signupUser();
+    expect((await upload(a.token, rand(64), 0, a.keys.dekId)).status).toBe(200);
+    const s = await newDeviceSession(a);
+    expect((await upload(s, rand(64), 1, a.keys.dekId)).status).toBe(403);
+    expect((await api("/v1/sync", { method: "DELETE", token: s })).status).toBe(403);
+    expect((await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, recoveryWrappedDek: b64(rand(72)) } })).status).toBe(403);
+    expect((await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, wrappedDek: b64(rand(72)) } })).status).toBe(403);
+    const k = clientKeys();
+    const password = { salt: k.salt, kdf: DEFAULT_KDF, authKey: k.authKey, wrappedDek: b64(rand(72)), dekId: a.keys.dekId };
+    expect((await api("/v1/account/password", { token: s, body: password })).status).toBe(403);
+    expect((await rotateRequest(s, fakeRotation(a.keys.dekId), 1)).status).toBe(403);
+    // nothing changed: snapshot, wraps and password are still the account's own
+    expect((await (await api("/v1/sync/meta", { token: a.token })).json<{ version: number }>()).version).toBe(1);
+    expect(await (await api("/v1/account", { token: a.token })).json()).toMatchObject({ hasRecovery: false });
+    expect((await login(a.email, a.keys.authKey)).wrappedDek).toBe(a.keys.wrappedDek);
+    // with the DEK proof the same session may (a key holder that signed in with its password)
+    expect((await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, recoveryWrappedDek: b64(rand(72)) } })).status).toBe(200);
+  });
+
+  it("a recovery reset without the right proof cannot overwrite the wraps", async () => {
+    const u = await signupUser();
+    const recovery = b64(rand(72));
+    expect((await api("/v1/account/keys", { method: "PUT", token: u.token, body: { dekId: u.keys.dekId, recoveryWrappedDek: recovery } })).status).toBe(200);
+    await takeMails(u.email);
+    await requestReset(u.email);
+    const token = tokenIn((await takeMails(u.email))[0], "/account/reset/");
+    const k = clientKeys();
+    const keys = { dekId: u.keys.dekId, dekProof: b64(rand(32)), wrappedDek: b64(rand(72)), recoveryWrappedDek: b64(rand(72)) };
+    expect((await api("/v1/auth/reset", { body: { token, salt: k.salt, kdf: DEFAULT_KDF, authKey: k.authKey, keys } })).status).toBe(403);
+    expect(await (await api("/v1/auth/reset/info", { body: { token } })).json()).toMatchObject({ recoveryWrappedDek: recovery });
+  });
+});
+
+describe("KDF floor (H-1)", () => {
+  it("refuses Argon2 parameters below 64 MiB and 3 passes, or above 256 MiB", async () => {
+    for (const kdf of [
+      { alg: "argon2id", m: 19456, t: 1, p: 1 },
+      { alg: "argon2id", m: 65536, t: 2, p: 1 },
+      { alg: "argon2id", m: 8, t: 1, p: 1 },
+      { alg: "argon2id", m: 1048576, t: 3, p: 1 },
+    ]) {
+      const k = clientKeys();
+      expect((await api("/v1/auth/signup", { body: { email: freshEmail(), salt: k.salt, kdf, authKey: k.authKey } })).status).toBe(400);
+    }
+  });
+});
+
+describe("Google link (H-2)", () => {
+  it("needs the password, is mailed and shown, can be disconnected, and a password reset removes it", async () => {
+    const u = await signupUser();
+    await takeMails(u.email);
+    const sub = "200000000001";
+    let nonce = await googleNonce();
+    const idToken = () => signJwt(claims(nonce, { sub, email: u.email }));
+    // a session alone (stolen token, website session) cannot link
+    expect((await api("/v1/account/link-google", { token: u.token, body: { idToken: await idToken(), nonce } })).status).toBe(400);
+    nonce = await googleNonce();
+    expect((await api("/v1/account/link-google", { token: u.token, body: { idToken: await idToken(), nonce, authKey: b64(rand(32)) } })).status).toBe(403);
+    nonce = await googleNonce();
+    expect((await api("/v1/account/link-google", { token: u.token, body: { idToken: await idToken(), nonce, authKey: u.keys.authKey } })).status).toBe(204);
+    expect((await takeMails(u.email)).map((m) => m.subject)).toEqual(["Google sign-in was added"]);
+    expect(await (await api("/v1/account", { token: u.token })).json()).toMatchObject({ googleLinked: true });
+
+    expect((await api("/v1/account/unlink-google", { token: u.token, body: { authKey: b64(rand(32)) } })).status).toBe(403);
+    expect((await api("/v1/account/unlink-google", { token: u.token, body: { authKey: u.keys.authKey } })).status).toBe(204);
+    expect((await takeMails(u.email)).map((m) => m.subject)).toEqual(["Google sign-in was removed"]);
+    expect(await (await api("/v1/account", { token: u.token })).json()).toMatchObject({ googleLinked: false });
+
+    // linked again (an attacker with a stolen password); the owner resets the password: the link is gone
+    nonce = await googleNonce();
+    expect((await api("/v1/account/link-google", { token: u.token, body: { idToken: await idToken(), nonce, authKey: u.keys.authKey } })).status).toBe(204);
+    await takeMails(u.email);
+    await requestReset(u.email);
+    const token = tokenIn((await takeMails(u.email))[0], "/account/reset/");
+    const k = clientKeys();
+    expect((await api("/v1/auth/reset", { body: { token, salt: k.salt, kdf: DEFAULT_KDF, authKey: k.authKey } })).status).toBe(200);
+    nonce = await googleNonce();
+    expect((await api("/v1/auth/google", { body: { idToken: await idToken(), nonce } })).status).toBe(409);
+    const fresh = await login(u.email, k.authKey);
+    expect(await (await api("/v1/account", { token: fresh.sessionToken })).json()).toMatchObject({ googleLinked: false });
+  });
+
+  it("a Google-only account cannot disconnect its only sign-in", async () => {
+    const nonce = await googleNonce();
+    const res = await api("/v1/auth/google", { body: { idToken: await signJwt(claims(nonce, { sub: "200000000002", email: freshEmail("g") })), nonce } });
+    const { sessionToken } = await res.json<{ sessionToken: string }>();
+    expect((await api("/v1/account/unlink-google", { token: sessionToken, body: { authKey: b64(rand(32)) } })).status).toBe(409);
+  });
+});
+
+describe("approval with an old sign-in (M-1)", () => {
+  it("deny works however old the sign-in is", async () => {
+    const a = await signupUser();
+    const n = await newDeviceSession(a);
+    const req = await openRequest(n);
+    await makeOld(a.userId);
+    expect((await api(`/v1/devices/requests/${req.id}/deny`, { token: a.token, method: "POST" })).status).toBe(204);
+    expect(await (await api(`/v1/devices/requests/${req.id}`, { token: n })).json()).toMatchObject({ status: "denied" });
+  });
+});
+
+describe("mails (M-3)", () => {
+  it("mails every new device, recovery change, rotation and start fresh", async () => {
+    const a = await signupUser();
+    await takeMails(a.email);
+    const s = await newDeviceSession(a);
+    const reg = await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, device: deviceKeys("Tablet") } });
+    expect(reg.status).toBe(200);
+    const tabletId = (await reg.json<{ deviceId: string }>()).deviceId;
+    expect((await takeMails(a.email)).map((m) => m.text)).toEqual([expect.stringContaining("A device was added to your account: Tablet.")]);
+
+    expect((await api("/v1/account/keys", { method: "PUT", token: a.token, body: { dekId: a.keys.dekId, recoveryWrappedDek: b64(rand(72)) } })).status).toBe(200);
+    expect((await takeMails(a.email)).map((m) => m.subject)).toEqual(["Your recovery code was changed"]);
+
+    const devices = [
+      { deviceId: a.deviceId, sealedDek: b64(rand(80)), mac: b64(rand(32)) },
+      { deviceId: tabletId, sealedDek: b64(rand(80)), mac: b64(rand(32)) },
+    ];
+    expect((await rotateRequest(a.token, { ...fakeRotation(a.keys.dekId, devices), wrappedDek: b64(rand(72)) }, 0)).status).toBe(200);
+    expect((await takeMails(a.email)).map((m) => m.subject)).toEqual(["Your account key was changed"]);
+
+    const fresh = await api("/v1/account/start-fresh", {
+      token: a.token,
+      body: { dekId: "dek-fresh", dekProof: b64(rand(32)), wrappedDek: b64(rand(72)), device: deviceKeys("Phone") },
+    });
+    expect(fresh.status).toBe(200);
+    expect((await takeMails(a.email)).map((m) => m.subject)).toEqual(["Your synced data was reset"]);
+    // start fresh starts a new key chain: the new key comes without a chain MAC
+    expect(await (await api("/v1/account/keys/device", { token: a.token })).json()).toMatchObject({ dekId: "dek-fresh", chainFrom: null, chainMac: null });
   });
 });

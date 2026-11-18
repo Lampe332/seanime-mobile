@@ -13,6 +13,10 @@ export type Mail =
   | { kind: "password_changed" }
   | { kind: "account_deleted" }
   | { kind: "start_fresh" }
+  | { kind: "google_linked" }
+  | { kind: "google_unlinked" }
+  | { kind: "recovery_changed" }
+  | { kind: "key_rotated" }
   | { kind: "inactivity"; deleteAt: number };
 
 interface Content {
@@ -54,7 +58,7 @@ function content(env: Env, mail: Mail): Content {
       return {
         subject: "New device signed in",
         lines: [
-          `A new device was approved for your account: ${mail.deviceName}.`,
+          `A device was added to your account: ${mail.deviceName}.`,
           "If this was not you, remove the device in your account settings and change your password.",
         ],
       };
@@ -81,6 +85,38 @@ function content(env: Env, mail: Mail): Content {
           "Someone chose Start fresh for your Seanime Mobile account.",
           "All synced data was deleted, every other device was removed and signed out, and a new key was created.",
           "If this was not you, reset your password right away and remove any device you do not know.",
+        ],
+      };
+    case "google_linked":
+      return {
+        subject: "Google sign-in was added",
+        lines: [
+          "A Google account was linked to your Seanime Mobile account. It can now be used to sign in.",
+          "If this was not you, open your account settings, choose Disconnect Google and change your password.",
+        ],
+      };
+    case "google_unlinked":
+      return {
+        subject: "Google sign-in was removed",
+        lines: [
+          "The Google account linked to your Seanime Mobile account was disconnected. Sign in with your email and password.",
+          "If this was not you, change your password right away.",
+        ],
+      };
+    case "recovery_changed":
+      return {
+        subject: "Your recovery code was changed",
+        lines: [
+          "A new recovery code was saved for your Seanime Mobile account. The old one no longer works.",
+          "If this was not you, remove any device you do not know and change your password.",
+        ],
+      };
+    case "key_rotated":
+      return {
+        subject: "Your account key was changed",
+        lines: [
+          "One of your devices switched your Seanime Mobile account to a new key, for example after a device was removed.",
+          "Your other devices pick it up on their own. If you did not remove a device, check your device list.",
         ],
       };
     case "inactivity":

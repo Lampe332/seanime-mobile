@@ -200,7 +200,7 @@ describe("start fresh", () => {
     const k = clientKeys();
     const res = await api("/v1/account/start-fresh", {
       token: u.token,
-      body: { dekId: k.dekId, wrappedDek: k.wrappedDek, device: { name: "Phone", devicePub: k.devicePub, sealedDek: k.sealedDek } },
+      body: { dekId: k.dekId, dekProof: k.dekProof, wrappedDek: k.wrappedDek, device: { name: "Phone", devicePub: k.devicePub, sealedDek: k.sealedDek, mac: b64(rand(32)) } },
     });
     expect(res.status).toBe(200);
     const mails = await sink.take(u.email);

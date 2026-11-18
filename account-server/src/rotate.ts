@@ -12,7 +12,8 @@
  * rejected everywhere (keys, snapshot upload, approval, reset).
  */
 import { HttpError, json, MAX_JSON_BYTES, readLimited } from "./http";
-import { MAX_SNAPSHOT_BYTES, snapKey, snapshotRow, type Ctx } from "./routes";
+import { sendMail } from "./mail";
+import { MAX_SNAPSHOT_BYTES, proofHash, snapKey, snapshotRow, type Ctx } from "./routes";
 import { RotateMeta } from "./schemas";
 import { now, requireDevice, requireRecentAuth, requireSession } from "./session";
 
@@ -71,10 +72,13 @@ export async function rotate(ctx: Ctx): Promise<Response> {
 
   const userId = session.userId;
   const user = await env.DB.prepare(
-    "SELECT dek_id, auth_hash, wrapped_dek, recovery_wrapped_dek, rewrap_needed, rotation_required, recovery_renewal_needed FROM users WHERE id = ?",
+    `SELECT email, dek_id, auth_hash, wrapped_dek, recovery_wrapped_dek, rewrap_needed, rotation_required, recovery_renewal_needed,
+       dek_proof, chain_from, chain_mac
+     FROM users WHERE id = ?`,
   )
     .bind(userId)
     .first<{
+      email: string;
       dek_id: string | null;
       auth_hash: string | null;
       wrapped_dek: string | null;
@@ -82,6 +86,9 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       rewrap_needed: number;
       rotation_required: number;
       recovery_renewal_needed: number;
+      dek_proof: string | null;
+      chain_from: string | null;
+      chain_mac: string | null;
     }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.dek_id !== meta.oldDekId) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
@@ -90,9 +97,9 @@ export async function rotate(ctx: Ctx): Promise<Response> {
   }
 
   // The new DEK must reach every remaining device, no more and no less.
-  const { results: devices } = await env.DB.prepare("SELECT id, sealed_dek, dek_id FROM devices WHERE user_id = ?")
+  const { results: devices } = await env.DB.prepare("SELECT id, sealed_dek, dek_id, mac FROM devices WHERE user_id = ?")
     .bind(userId)
-    .all<{ id: string; sealed_dek: string | null; dek_id: string | null }>();
+    .all<{ id: string; sealed_dek: string | null; dek_id: string | null; mac: string | null }>();
   const sent = new Set(meta.devices.map((d) => d.deviceId));
   if (sent.size !== meta.devices.length || sent.size !== devices.length || devices.some((d) => !sent.has(d.id))) {
     throw new HttpError(409, "device_set_mismatch", "Seal the new key for every device of the account.", {}, {
@@ -116,8 +123,9 @@ export async function rotate(ctx: Ctx): Promise<Response> {
   const next = current + 1;
   const switched = "(SELECT dek_id FROM users WHERE id = ?) = ?";
   const statements: D1PreparedStatement[] = [
+    // chain_from / chain_mac: the old DEK vouches for the new one; devices refuse a new key without it (K-1).
     env.DB.prepare(
-      `UPDATE users SET dek_id = ?, wrapped_dek = ?, recovery_wrapped_dek = ?,
+      `UPDATE users SET dek_id = ?, dek_proof = ?, chain_from = ?, chain_mac = ?, wrapped_dek = ?, recovery_wrapped_dek = ?,
          rewrap_needed = CASE WHEN ? IS NULL THEN rewrap_needed ELSE 0 END, rotation_required = 0,
          recovery_renewal_needed = ?
        WHERE id = ? AND dek_id = ?
@@ -125,6 +133,9 @@ export async function rotate(ctx: Ctx): Promise<Response> {
          AND (SELECT COUNT(*) FROM devices WHERE user_id = ?) = ?`,
     ).bind(
       meta.dekId,
+      await proofHash(meta.dekProof),
+      meta.oldDekId,
+      meta.chainMac,
       meta.wrappedDek ?? null,
       meta.recoveryWrappedDek ?? null,
       meta.wrappedDek ?? null,
@@ -138,8 +149,8 @@ export async function rotate(ctx: Ctx): Promise<Response> {
     ),
     ...meta.devices.map((d) =>
       env.DB.prepare(
-        `UPDATE devices SET sealed_dek = ?, dek_id = ? WHERE id = ? AND user_id = ? AND ${switched}`,
-      ).bind(d.sealedDek, meta.dekId, d.deviceId, userId, userId, meta.dekId),
+        `UPDATE devices SET sealed_dek = ?, dek_id = ?, mac = ? WHERE id = ? AND user_id = ? AND ${switched}`,
+      ).bind(d.sealedDek, meta.dekId, d.mac, d.deviceId, userId, userId, meta.dekId),
     ),
   ];
   if (parts.snapshot) {
@@ -168,11 +179,14 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       // Put D1 back so the account never points at a key the stored blob does not use.
       await env.DB.batch([
         env.DB.prepare(
-          `UPDATE users SET dek_id = ?, wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = ?, rotation_required = ?,
-             recovery_renewal_needed = ?
+          `UPDATE users SET dek_id = ?, dek_proof = ?, chain_from = ?, chain_mac = ?, wrapped_dek = ?, recovery_wrapped_dek = ?,
+             rewrap_needed = ?, rotation_required = ?, recovery_renewal_needed = ?
            WHERE id = ? AND dek_id = ?`,
         ).bind(
           user.dek_id,
+          user.dek_proof,
+          user.chain_from,
+          user.chain_mac,
           user.wrapped_dek,
           user.recovery_wrapped_dek,
           user.rewrap_needed,
@@ -182,9 +196,10 @@ export async function rotate(ctx: Ctx): Promise<Response> {
           meta.dekId,
         ),
         ...devices.map((d) =>
-          env.DB.prepare("UPDATE devices SET sealed_dek = ?, dek_id = ? WHERE id = ? AND user_id = ?").bind(
+          env.DB.prepare("UPDATE devices SET sealed_dek = ?, dek_id = ?, mac = ? WHERE id = ? AND user_id = ?").bind(
             d.sealed_dek,
             d.dek_id,
+            d.mac,
             d.id,
             userId,
           ),
@@ -198,5 +213,6 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       throw err;
     }
   }
+  await sendMail(env, user.email, { kind: "key_rotated" });
   return json({ dekId: meta.dekId, version: parts.snapshot ? next : current, recoveryRenewalNeeded: renewal === 1 });
 }

@@ -22,7 +22,7 @@ import { sendMail } from "./mail";
 import { fixedWindow, rateKey } from "./ratelimit";
 import type { Ctx } from "./routes";
 import { ApproveBody, ApproverNonceBody, DeviceRequestBody, RevealBody, Uuid } from "./schemas";
-import { now, requireDevice, requireRecentAuth, requireSession, type Session } from "./session";
+import { now, requireDevice, requireSession, type Session } from "./session";
 
 const REQUEST_TTL = 10 * 60;
 const MAX_OPEN = 3;
@@ -192,12 +192,15 @@ export async function postReveal(ctx: Ctx): Promise<Response> {
   return json({ id: row.id, status: "revealed" });
 }
 
-/** Step 5, the old device that sent rO approves with the DEK sealed to the new device key. */
+/**
+ * Step 5, the old device that sent rO approves with the DEK sealed to the new device key and its MAC for the new row.
+ * M-1: no recent sign-in needed; the approver is a session bound to a device row (only key holders have one), and the
+ * app asks for the device's screen lock before it sends this.
+ */
 export async function approveRequest(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
   const session = await requireSession(ctx.request, env);
   const deviceId = requireDevice(session);
-  requireRecentAuth(session);
   const body = await readJson(ctx.request, ApproveBody);
   const row = await loadRequest(ctx, session);
   requireOpen(row, "revealed");
@@ -219,17 +222,19 @@ export async function approveRequest(ctx: Ctx): Promise<Response> {
   const t = now();
   const [claim] = await env.DB.batch([
     env.DB.prepare(
-      `UPDATE device_requests SET status = 'approved', sealed_dek = ?, dek_id = ?
+      `UPDATE device_requests SET status = 'approved', sealed_dek = ?, dek_id = ?, device_mac = ?
        WHERE id = ? AND user_id = ? AND status = 'revealed' AND expires_at > ? AND approver_device_id = ?
          AND (SELECT dek_id FROM users WHERE id = ?) = ?`,
-    ).bind(body.sealedDek, body.dekId, row.id, session.userId, t, deviceId, session.userId, body.dekId),
-    // Same device key as an existing row (re-approval after a reinstall that kept the key) updates that row.
+    ).bind(body.sealedDek, body.dekId, body.mac, row.id, session.userId, t, deviceId, session.userId, body.dekId),
+    // Same device key as an existing row (re-approval of a device that kept its key) updates that row; the approver,
+    // a key holder, decided that after comparing the numbers.
     env.DB.prepare(
-      `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, created_at, last_seen_at)
-       SELECT ?, user_id, device_name, device_pub, sealed_dek, dek_id, ?, ? FROM device_requests
+      `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at)
+       SELECT ?, user_id, device_name, device_pub, sealed_dek, dek_id, device_mac, ?, ? FROM device_requests
        WHERE id = ? AND user_id = ? AND status = 'approved' AND device_id IS NULL
        ON CONFLICT(user_id, device_pub) DO UPDATE SET
-         name = excluded.name, sealed_dek = excluded.sealed_dek, dek_id = excluded.dek_id, last_seen_at = excluded.last_seen_at`,
+         name = excluded.name, sealed_dek = excluded.sealed_dek, dek_id = excluded.dek_id, mac = excluded.mac,
+         last_seen_at = excluded.last_seen_at`,
     ).bind(crypto.randomUUID(), t, t, row.id, session.userId),
     env.DB.prepare(
       `UPDATE device_requests SET device_id =
@@ -246,12 +251,11 @@ export async function approveRequest(ctx: Ctx): Promise<Response> {
   return json({ id: row.id, status: "approved" });
 }
 
-/** "Deny" on any device of the account blocks the request at once. */
+/** "Deny" on any device of the account blocks the request at once, however long ago that device signed in (M-1). */
 export async function denyRequest(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
   const session = await requireSession(ctx.request, env);
   requireDevice(session);
-  requireRecentAuth(session);
   const row = await loadRequest(ctx, session);
   if (row.status === "approved") throw new HttpError(409, "wrong_order", "This request was already approved.");
   await env.DB.prepare(

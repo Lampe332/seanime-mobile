@@ -1,11 +1,20 @@
-import { fromB64url, hmacSha256, safeEqual, toB64url } from "./crypto";
+import { fromB64url, hmacSha256, safeEqual, sha256, toB64url } from "./crypto";
 import { clientIp, HttpError, json, noContent, readJson, readLimited, requireMediaType } from "./http";
 import { burstLimit, clearKey, failureWait, fixedWindow, rateKey, recordFailure } from "./ratelimit";
 import { DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, StartFreshBody, Uuid } from "./schemas";
 import { sendMail } from "./mail";
 import { issueToken, VERIFY_TTL } from "./identity";
 import { issueChallenge, verifySignIn } from "./signature";
-import { clearSessionCookie, newSession, now, requireDevice, requireRecentAuth, requireSession, sessionCookie } from "./session";
+import {
+  clearSessionCookie,
+  newSession,
+  now,
+  requireDevice,
+  requireRecentAuth,
+  requireSession,
+  sessionCookie,
+  type Session,
+} from "./session";
 
 export interface Ctx {
   request: Request;
@@ -41,6 +50,32 @@ export function isUniqueViolation(err: unknown): boolean {
   return err instanceof Error && /UNIQUE constraint failed/i.test(err.message);
 }
 
+/**
+ * The server never sees the DEK. To tell a key holder from a session without the key (a taken-over Google account, a
+ * password reset by whoever controls the mailbox, a website session) it keeps SHA-256 of the client's DEK proof
+ * (KDF(DEK, 2, "sm-dkey"), see native/src/core/account/crypto.ts dekProof).
+ */
+export async function proofHash(proof: string): Promise<string> {
+  return toB64url(await sha256(fromB64url(proof)!));
+}
+
+async function proofMatches(stored: string | null, presented: string | undefined): Promise<boolean> {
+  if (!stored || !presented) return false;
+  const expected = fromB64url(stored);
+  const given = fromB64url(presented);
+  return expected !== null && given !== null && safeEqual(await sha256(given), expected);
+}
+
+/**
+ * K-1, M-5: only a key holder may add a device or change a wrap. That is a session bound to a device row (rows only come
+ * from key holders: first key, approval, proof, start fresh) or one that shows the DEK proof.
+ */
+export async function requireKeyHolder(session: Session, storedProof: string | null, presented: string | undefined): Promise<void> {
+  if (session.deviceId !== null) return;
+  if (await proofMatches(storedProof, presented)) return;
+  throw new HttpError(403, "key_required", "Only a device that holds the account key can do this.");
+}
+
 // ---------------------------------------------------------------- auth
 
 export async function prelogin(ctx: Ctx): Promise<Response> {
@@ -74,8 +109,8 @@ export async function signup(ctx: Ctx): Promise<Response> {
   const deviceId = body.keys ? crypto.randomUUID() : null;
   const statements: D1PreparedStatement[] = [
     env.DB.prepare(
-      `INSERT INTO users (id, email, kdf_salt, kdf_params, auth_hash, pepper_version, wrapped_dek, dek_id, created_at, last_active_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (id, email, kdf_salt, kdf_params, auth_hash, pepper_version, wrapped_dek, dek_id, dek_proof, created_at, last_active_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       userId,
       body.email,
@@ -85,6 +120,7 @@ export async function signup(ctx: Ctx): Promise<Response> {
       PEPPER_VERSION,
       body.keys?.wrappedDek ?? null,
       body.keys?.dekId ?? null,
+      body.keys ? await proofHash(body.keys.dekProof) : null,
       t,
       t,
     ),
@@ -93,9 +129,9 @@ export async function signup(ctx: Ctx): Promise<Response> {
     const d = body.keys.device;
     statements.push(
       env.DB.prepare(
-        `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, created_at, last_seen_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(deviceId, userId, d.name, d.devicePub, d.sealedDek, body.keys.dekId, t, t),
+        `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(deviceId, userId, d.name, d.devicePub, d.sealedDek, body.keys.dekId, d.mac, t, t),
     );
   }
   const session = await newSession(env, userId, deviceId, body.sigKey);
@@ -182,10 +218,10 @@ export async function logout(ctx: Ctx): Promise<Response> {
 export async function listDevices(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
   const { results } = await ctx.env.DB.prepare(
-    "SELECT id, name, device_pub, dek_id, created_at, last_seen_at FROM devices WHERE user_id = ? ORDER BY created_at",
+    "SELECT id, name, device_pub, dek_id, mac, created_at, last_seen_at FROM devices WHERE user_id = ? ORDER BY created_at",
   )
     .bind(session.userId)
-    .all<{ id: string; name: string; device_pub: string; dek_id: string | null; created_at: number; last_seen_at: number }>();
+    .all<{ id: string; name: string; device_pub: string; dek_id: string | null; mac: string | null; created_at: number; last_seen_at: number }>();
   return json({
     devices: results.map((d) => ({
       id: d.id,
@@ -193,6 +229,8 @@ export async function listDevices(ctx: Ctx): Promise<Response> {
       // Public keys only: a rotating device seals the new DEK to each of them (plan 5).
       devicePub: d.device_pub,
       dekId: d.dek_id,
+      // A key holder's MAC over the row: the devices seal only to rows with a valid one (K-1). The server can't check it.
+      mac: d.mac,
       createdAt: d.created_at,
       lastSeenAt: d.last_seen_at,
       current: d.id === session.deviceId,
@@ -223,68 +261,91 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, env);
   requireRecentAuth(session);
   const body = await readJson(ctx.request, KeysBody);
-  const user = await env.DB.prepare("SELECT dek_id, auth_hash FROM users WHERE id = ?")
+  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, dek_proof FROM users WHERE id = ?")
     .bind(session.userId)
-    .first<{ dek_id: string | null; auth_hash: string | null }>();
+    .first<{ email: string; dek_id: string | null; auth_hash: string | null; dek_proof: string | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
 
-  if (user.dek_id === null) {
-    // First DEK of the account (e.g. account created on the website). Password accounts need the password wrap.
+  const first = user.dek_id === null;
+  if (first) {
+    // First DEK of the account (e.g. account created on the website or with Google): it comes with its first device,
+    // its proof, and for password accounts the password wrap.
+    if (!body.device || body.dekProof === undefined) {
+      throw new HttpError(400, "invalid_request", "The first key needs its device and proof", {}, { fields: ["device", "dekProof"] });
+    }
     if (user.auth_hash !== null && body.wrappedDek === undefined) {
       throw new HttpError(400, "invalid_request", "wrappedDek is required for the first key", {}, { fields: ["wrappedDek"] });
     }
-  } else if (user.dek_id !== body.dekId) {
-    throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
+  } else {
+    if (user.dek_id !== body.dekId) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
+    // K-1, M-5: a session without the key can neither add a device nor overwrite a wrap.
+    await requireKeyHolder(session, user.dek_proof, body.dekProof);
   }
 
   const t = now();
   const statements: D1PreparedStatement[] = [
     env.DB.prepare(
-      `UPDATE users SET dek_id = ?,
+      `UPDATE users SET dek_id = ?, dek_proof = COALESCE(?, dek_proof),
          wrapped_dek = COALESCE(?, wrapped_dek),
          recovery_wrapped_dek = COALESCE(?, recovery_wrapped_dek),
          rewrap_needed = CASE WHEN ? IS NULL THEN rewrap_needed ELSE 0 END,
          recovery_renewal_needed = CASE WHEN ? IS NULL THEN recovery_renewal_needed ELSE 0 END
-       WHERE id = ? AND (dek_id IS NULL OR dek_id = ?)`,
+       WHERE id = ? AND ${first ? "dek_id IS NULL" : "dek_id = ?"}`,
     ).bind(
       body.dekId,
+      first ? await proofHash(body.dekProof!) : null,
       body.wrappedDek ?? null,
       body.recoveryWrappedDek ?? null,
       body.wrappedDek ?? null,
       body.recoveryWrappedDek ?? null,
       session.userId,
-      body.dekId,
+      ...(first ? [] : [body.dekId]),
     ),
   ];
   let deviceId = session.deviceId;
+  let newRow = false;
   if (body.device) {
     const d = body.device;
     if (deviceId) {
+      // The session's own row only, with its own key: never another device's row (K-1).
       statements.push(
         env.DB.prepare(
-          `UPDATE devices SET name = ?, device_pub = ?, sealed_dek = ?, dek_id = ?, last_seen_at = ?
-           WHERE id = ? AND user_id = ?`,
-        ).bind(d.name, d.devicePub, d.sealedDek, body.dekId, t, deviceId, session.userId),
+          `UPDATE devices SET name = ?, sealed_dek = ?, dek_id = ?, mac = ?, last_seen_at = ?
+           WHERE id = ? AND user_id = ? AND device_pub = ?`,
+        ).bind(d.name, d.sealedDek, body.dekId, d.mac, t, deviceId, session.userId, d.devicePub),
       );
     } else {
-      // A device is recognised by its key: a re-login of the same device updates its row, no duplicate.
+      // Only a key holder gets here (first key or DEK proof). A device that signs in again with the same key takes its
+      // old row back; any other session that still used that row is signed out.
+      newRow = true;
       statements.push(
         env.DB.prepare(
-          `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, created_at, last_seen_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(user_id, device_pub) DO UPDATE SET
-             name = excluded.name, sealed_dek = excluded.sealed_dek, dek_id = excluded.dek_id, last_seen_at = excluded.last_seen_at
+             name = excluded.name, sealed_dek = excluded.sealed_dek, dek_id = excluded.dek_id, mac = excluded.mac,
+             last_seen_at = excluded.last_seen_at
            RETURNING id`,
-        ).bind(crypto.randomUUID(), session.userId, d.name, d.devicePub, d.sealedDek, body.dekId, t, t),
+        ).bind(crypto.randomUUID(), session.userId, d.name, d.devicePub, d.sealedDek, body.dekId, d.mac, t, t),
+        env.DB.prepare(
+          `DELETE FROM sessions WHERE user_id = ? AND token_hash != ?
+             AND device_id = (SELECT id FROM devices WHERE user_id = ? AND device_pub = ?)`,
+        ).bind(session.userId, session.tokenHash, session.userId, d.devicePub),
         env.DB.prepare(
           "UPDATE sessions SET device_id = (SELECT id FROM devices WHERE user_id = ? AND device_pub = ?) WHERE token_hash = ?",
         ).bind(session.userId, d.devicePub, session.tokenHash),
       );
     }
   }
-  const [update, upsert] = await env.DB.batch(statements);
+  const [update, deviceWrite] = await env.DB.batch(statements);
   if (!update || update.meta.changes === 0) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
-  if (body.device && !session.deviceId) deviceId = (upsert?.results[0] as { id: string } | undefined)?.id ?? null;
+  if (body.device && session.deviceId && deviceWrite?.meta.changes === 0) {
+    throw new HttpError(409, "device_mismatch", "This session belongs to another device key.");
+  }
+  if (newRow) deviceId = (deviceWrite?.results[0] as { id: string } | undefined)?.id ?? null;
+  // M-3: every device that joins and every new recovery wrap is mailed to the account's address.
+  if (newRow) await sendMail(env, user.email, { kind: "new_device", deviceName: body.device!.name });
+  if (body.recoveryWrappedDek !== undefined) await sendMail(env, user.email, { kind: "recovery_changed" });
   return json({ dekId: body.dekId, deviceId });
 }
 
@@ -293,12 +354,14 @@ export async function changePassword(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, env);
   requireRecentAuth(session);
   const body = await readJson(ctx.request, PasswordBody);
-  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash FROM users WHERE id = ?")
+  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, dek_proof FROM users WHERE id = ?")
     .bind(session.userId)
-    .first<{ email: string; dek_id: string | null; auth_hash: string | null }>();
+    .first<{ email: string; dek_id: string | null; auth_hash: string | null; dek_proof: string | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.auth_hash === null) throw new HttpError(409, "no_password", "This account has no password.");
   if (user.dek_id !== body.dekId) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
+  // M-5: the new password wrap must come from a key holder, not from a Google sign-in that wants the password.
+  await requireKeyHolder(session, user.dek_proof, body.dekProof);
   const hash = toB64url(await authHash(env, body.authKey));
   await env.DB.batch([
     env.DB.prepare(
@@ -386,12 +449,14 @@ export async function getDeviceKey(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
   const deviceId = requireDevice(session);
   const row = await ctx.env.DB.prepare(
-    "SELECT dek_id, sealed_dek FROM devices WHERE id = ? AND user_id = ? AND sealed_dek IS NOT NULL AND dek_id IS NOT NULL",
+    `SELECT d.dek_id, d.sealed_dek, u.chain_from, u.chain_mac FROM devices d JOIN users u ON u.id = d.user_id
+     WHERE d.id = ? AND d.user_id = ? AND d.sealed_dek IS NOT NULL AND d.dek_id IS NOT NULL`,
   )
     .bind(deviceId, session.userId)
-    .first<{ dek_id: string; sealed_dek: string }>();
+    .first<{ dek_id: string; sealed_dek: string; chain_from: string | null; chain_mac: string | null }>();
   if (!row) throw new HttpError(404, "not_found", "This device has no key on the server.");
-  return json({ deviceId, dekId: row.dek_id, sealedDek: row.sealed_dek });
+  // The device takes the new key only if the old one vouches for it (chainMac over the new DEK, K-1).
+  return json({ deviceId, dekId: row.dek_id, sealedDek: row.sealed_dek, chainFrom: row.chain_from, chainMac: row.chain_mac });
 }
 
 /**
@@ -421,16 +486,19 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
     env.DB.prepare("DELETE FROM snapshots WHERE user_id = ?").bind(userId),
     env.DB.prepare("DELETE FROM device_requests WHERE user_id = ?").bind(userId),
     env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND token_hash != ?").bind(userId, session.tokenHash),
+    // this session may belong to an old device row: detach it first, or the row's ON DELETE CASCADE ends it
+    env.DB.prepare("UPDATE sessions SET device_id = NULL WHERE token_hash = ?").bind(session.tokenHash),
     env.DB.prepare("DELETE FROM devices WHERE user_id = ?").bind(userId),
+    // A new key chain starts: no chain MAC, so the account's other devices refuse the new key and ask their user.
     env.DB.prepare(
-      `UPDATE users SET dek_id = ?, wrapped_dek = ?, recovery_wrapped_dek = ?,
+      `UPDATE users SET dek_id = ?, dek_proof = ?, wrapped_dek = ?, recovery_wrapped_dek = ?, chain_from = NULL, chain_mac = NULL,
          rewrap_needed = 0, rotation_required = 0, recovery_renewal_needed = 0
        WHERE id = ?`,
-    ).bind(body.dekId, body.wrappedDek ?? null, body.recoveryWrappedDek ?? null, userId),
+    ).bind(body.dekId, await proofHash(body.dekProof), body.wrappedDek ?? null, body.recoveryWrappedDek ?? null, userId),
     env.DB.prepare(
-      `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, created_at, last_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(deviceId, userId, d.name, d.devicePub, d.sealedDek, body.dekId, t, t),
+      `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(deviceId, userId, d.name, d.devicePub, d.sealedDek, body.dekId, d.mac, t, t),
     env.DB.prepare("UPDATE sessions SET device_id = ? WHERE token_hash = ?").bind(deviceId, session.tokenHash),
   ]);
   await env.SNAPSHOTS.delete(snapKey(userId));
@@ -491,6 +559,8 @@ export async function getSnapshot(ctx: Ctx): Promise<Response> {
 export async function putSnapshot(ctx: Ctx): Promise<Response> {
   const { env, request } = ctx;
   const session = await requireSession(request, env);
+  // M-5: only a device that holds the key writes the synced data (no website or keyless session).
+  requireDevice(session);
   requireMediaType(request, "application/octet-stream");
 
   const ifMatch = (request.headers.get("If-Match") ?? "").replace(/^"(.*)"$/, "$1");
@@ -550,6 +620,7 @@ export async function putSnapshot(ctx: Ctx): Promise<Response> {
 
 export async function deleteSync(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
+  requireDevice(session);
   await ctx.env.SNAPSHOTS.delete(snapKey(session.userId));
   await ctx.env.DB.prepare("DELETE FROM snapshots WHERE user_id = ?").bind(session.userId).run();
   return noContent();

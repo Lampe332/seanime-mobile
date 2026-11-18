@@ -1,19 +1,21 @@
 /** Email verification, password reset (plan 6.8) and Google sign-in (plan 6.3). */
-import { randomBytes, sha256, toB64url } from "./crypto";
+import { fromB64url, randomBytes, safeEqual, sha256, toB64url } from "./crypto";
 import { verifyGoogleIdToken } from "./google";
 import { clientIp, HttpError, json, noContent, readJson } from "./http";
 import { sendMail } from "./mail";
-import { burstLimit, fixedWindow, rateKey } from "./ratelimit";
+import { burstLimit, failureWait, fixedWindow, rateKey, recordFailure } from "./ratelimit";
 import { authHash, type Ctx, isUniqueViolation, PEPPER_VERSION, withSession } from "./routes";
-import { GoogleBody, GoogleLoginBody, ResetBody, ResetRequestBody, TokenBody } from "./schemas";
+import { GoogleLoginBody, LinkGoogleBody, ResetBody, ResetRequestBody, TokenBody, UnlinkGoogleBody } from "./schemas";
 import { issueChallenge, verifySignIn } from "./signature";
-import { newSession, now, requireRecentAuth, requireSession } from "./session";
+import { newSession, now, requireSession } from "./session";
 
 export const VERIFY_TTL = 7 * 24 * 3600;
 export const RESET_TTL = 30 * 60;
 const GOOGLE_NONCE_TTL = 5 * 60;
 const RESEND_LIMIT = 3;
 const RESET_LIMIT_EMAIL = 3;
+const LOGIN_LIMIT_EMAIL = 5;
+const LOGIN_LIMIT_IP = 20;
 const HOUR = 3600;
 
 const tokenHash = async (token: string) => toB64url(await sha256(token));
@@ -110,12 +112,13 @@ interface ResetTarget {
   user_id: string;
   email: string;
   dek_id: string | null;
+  dek_proof: string | null;
   recovery_wrapped_dek: string | null;
 }
 
 async function resetTarget(env: Env, hash: string): Promise<ResetTarget> {
   const row = await env.DB.prepare(
-    `SELECT t.user_id, u.email, u.dek_id, u.recovery_wrapped_dek FROM tokens t JOIN users u ON u.id = t.user_id
+    `SELECT t.user_id, u.email, u.dek_id, u.dek_proof, u.recovery_wrapped_dek FROM tokens t JOIN users u ON u.id = t.user_id
      WHERE t.token_hash = ? AND t.purpose = 'reset' AND t.used_at IS NULL AND t.expires_at > ?`,
   )
     .bind(hash, now())
@@ -153,20 +156,27 @@ export async function resetPassword(ctx: Ctx): Promise<Response> {
       throw new HttpError(409, "no_recovery", "This account has no recovery code.");
     }
     if (body.keys.dekId !== target.dek_id) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
+    // M-5: the recovery code must really have opened the key; a mailbox alone must not overwrite the wraps.
+    const expected = target.dek_proof ? fromB64url(target.dek_proof) : null;
+    const given = fromB64url(body.keys.dekProof);
+    if (!expected || !given || !safeEqual(await sha256(given), expected)) {
+      throw new HttpError(403, "key_required", "The recovery code did not open the account key.");
+    }
   }
 
   const t = now();
   const auth = toB64url(await authHash(env, body.authKey));
   const owner = "(SELECT user_id FROM tokens WHERE token_hash = ? AND purpose = 'reset' AND used_at = ?)";
+  // H-2: a reset removes a linked Google sign-in; whoever linked one with a stolen password loses it here.
   const update = body.keys
     ? env.DB.prepare(
-        `UPDATE users SET kdf_salt = ?, kdf_params = ?, auth_hash = ?, pepper_version = ?, email_verified = 1,
+        `UPDATE users SET kdf_salt = ?, kdf_params = ?, auth_hash = ?, pepper_version = ?, email_verified = 1, google_sub = NULL,
            wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = 0, recovery_renewal_needed = 0
          WHERE id = ${owner} AND dek_id = ?`,
       ).bind(body.salt, JSON.stringify(body.kdf), auth, PEPPER_VERSION, body.keys.wrappedDek, body.keys.recoveryWrappedDek, hash, t, body.keys.dekId)
     : // Without recovery code no DEK is handed out: the password wrap is dropped (plan 6.8, 10.2).
       env.DB.prepare(
-        `UPDATE users SET kdf_salt = ?, kdf_params = ?, auth_hash = ?, pepper_version = ?, email_verified = 1,
+        `UPDATE users SET kdf_salt = ?, kdf_params = ?, auth_hash = ?, pepper_version = ?, email_verified = 1, google_sub = NULL,
            wrapped_dek = NULL,
            rewrap_needed = CASE WHEN dek_id IS NULL THEN 0 ELSE 1 END,
            rotation_required = CASE WHEN dek_id IS NULL THEN rotation_required ELSE 1 END
@@ -272,12 +282,37 @@ export async function googleLogin(ctx: Ctx): Promise<Response> {
   }, created ? 201 : 200);
 }
 
-/** Linking Google to a password account, only from a recent sign-in. */
+/**
+ * H-2: the password again (authKey), checked like a login and counted against the same limits, so a session alone (a
+ * stolen token, a website session) can neither add nor remove a Google sign-in. Returns the account's email.
+ */
+async function requirePassword(env: Env, request: Request, userId: string, authKey: string): Promise<string> {
+  const user = await env.DB.prepare("SELECT email, auth_hash, pepper_version FROM users WHERE id = ?")
+    .bind(userId)
+    .first<{ email: string; auth_hash: string | null; pepper_version: number | null }>();
+  if (!user) throw new HttpError(401, "unauthorized");
+  if (user.auth_hash === null) throw new HttpError(409, "no_password", "This account has no password.");
+  const emailKey = await rateKey(env, "login-email", user.email);
+  const ipKey = await rateKey(env, "login-ip", clientIp(request));
+  const wait = Math.max(await failureWait(env, emailKey, LOGIN_LIMIT_EMAIL), await failureWait(env, ipKey, LOGIN_LIMIT_IP));
+  if (wait > 0) {
+    throw new HttpError(429, "rate_limited", "Too many attempts. Try again later.", { "Retry-After": String(wait) }, { retryAfter: wait });
+  }
+  const stored = fromB64url(user.auth_hash);
+  const ok = stored !== null && safeEqual(await authHash(env, authKey), stored) && user.pepper_version === PEPPER_VERSION;
+  if (!ok) {
+    await env.DB.batch([recordFailure(env, emailKey), recordFailure(env, ipKey)]);
+    throw new HttpError(403, "wrong_password", "Wrong password.");
+  }
+  return user.email;
+}
+
+/** H-2: linking Google to a password account needs the password and is mailed to the account's address. */
 export async function linkGoogle(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
   const session = await requireSession(ctx.request, env);
-  requireRecentAuth(session);
-  const body = await readJson(ctx.request, GoogleBody);
+  const body = await readJson(ctx.request, LinkGoogleBody);
+  const email = await requirePassword(env, ctx.request, session.userId, body.authKey);
   const identity = await googleIdentity(env, body);
   let res: D1Result;
   try {
@@ -289,5 +324,20 @@ export async function linkGoogle(ctx: Ctx): Promise<Response> {
     throw err;
   }
   if (res.meta.changes === 0) throw new HttpError(409, "already_linked", "A Google account is already linked.");
+  await sendMail(env, email, { kind: "google_linked" });
+  return noContent();
+}
+
+/** H-2: "Disconnect Google". Only password accounts (else nothing would be left to sign in with); needs the password. */
+export async function unlinkGoogle(ctx: Ctx): Promise<Response> {
+  const { env } = ctx;
+  const session = await requireSession(ctx.request, env);
+  const body = await readJson(ctx.request, UnlinkGoogleBody);
+  const email = await requirePassword(env, ctx.request, session.userId, body.authKey);
+  const res = await env.DB.prepare("UPDATE users SET google_sub = NULL WHERE id = ? AND google_sub IS NOT NULL")
+    .bind(session.userId)
+    .run();
+  if (res.meta.changes === 0) throw new HttpError(409, "not_linked", "No Google account is linked.");
+  await sendMail(env, email, { kind: "google_unlinked" });
   return noContent();
 }

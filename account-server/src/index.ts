@@ -35,6 +35,7 @@ const routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
   ["POST", /^\/v1\/account\/password$/, r.changePassword],
   ["POST", /^\/v1\/account\/rotate$/, rotate],
   ["POST", /^\/v1\/account\/link-google$/, id.linkGoogle],
+  ["POST", /^\/v1\/account\/unlink-google$/, id.unlinkGoogle],
   ["GET", /^\/v1\/account$/, r.getAccount],
   ["DELETE", /^\/v1\/account$/, r.deleteAccount],
   ["GET", /^\/v1\/sync\/meta$/, r.syncMeta],

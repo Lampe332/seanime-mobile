@@ -170,7 +170,7 @@ describe("IDOR", () => {
     const reg = await api("/v1/account/keys", {
       method: "PUT",
       token: login.sessionToken,
-      body: { dekId: a.keys.dekId, device: { name: "Tablet", devicePub: k.devicePub, sealedDek: k.sealedDek } },
+      body: { dekId: a.keys.dekId, dekProof: a.keys.dekProof, device: { name: "Tablet", devicePub: k.devicePub, sealedDek: k.sealedDek, mac: b64(rand(32)) } },
     });
     expect(reg.status).toBe(200);
     const { deviceId: tablet } = await reg.json<{ deviceId: string }>();
@@ -198,13 +198,13 @@ describe("account", () => {
     const noWrap = await api("/v1/account/keys", {
       method: "PUT",
       token: w.token,
-      body: { dekId: k.dekId, device: { name: "Phone", devicePub: k.devicePub, sealedDek: k.sealedDek } },
+      body: { dekId: k.dekId, dekProof: k.dekProof, device: { name: "Phone", devicePub: k.devicePub, sealedDek: k.sealedDek, mac: b64(rand(32)) } },
     });
     expect(noWrap.status).toBe(400);
     const first = await api("/v1/account/keys", {
       method: "PUT",
       token: w.token,
-      body: { dekId: k.dekId, wrappedDek: k.wrappedDek, device: { name: "Phone", devicePub: k.devicePub, sealedDek: k.sealedDek } },
+      body: { dekId: k.dekId, dekProof: k.dekProof, wrappedDek: k.wrappedDek, device: { name: "Phone", devicePub: k.devicePub, sealedDek: k.sealedDek, mac: b64(rand(32)) } },
     });
     expect(first.status).toBe(200);
     const login = await (await api("/v1/auth/login", { body: { email: w.email, authKey: w.keys.authKey } })).json<{

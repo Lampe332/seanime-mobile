@@ -22,11 +22,12 @@ export const Email = z
 
 export const DEFAULT_KDF = { alg: "argon2id", m: 65536, t: 3, p: 1 } as const;
 
+/** The same range the app and the website accept (H-1): 64 to 256 MiB, 3 to 10 passes, one lane. */
 export const Kdf = z.strictObject({
   alg: z.literal("argon2id"),
-  m: z.number().int().min(19456).max(1048576), // KiB
-  t: z.number().int().min(1).max(10),
-  p: z.number().int().min(1).max(4),
+  m: z.number().int().min(65536).max(262144), // KiB
+  t: z.number().int().min(3).max(10),
+  p: z.literal(1),
 });
 
 export const Salt = b64Exact(16);
@@ -36,10 +37,15 @@ export const DekId = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/);
 export const DeviceName = z.string().trim().min(1).max(64);
 export const Uuid = z.uuid();
 
+/** A DEK holder's MAC over a device row (32 bytes) and the DEK proof (32 bytes), both base64url. */
+export const Mac = b64Exact(32);
+export const DekProof = b64Exact(32);
+
 export const DeviceKeys = z.strictObject({
   name: DeviceName,
   devicePub: DevicePub,
   sealedDek: b64Blob,
+  mac: Mac,
 });
 
 export const PreloginBody = z.strictObject({ email: Email });
@@ -64,6 +70,7 @@ export const SignupBody = z.strictObject({
     .strictObject({
       wrappedDek: b64Blob,
       dekId: DekId,
+      dekProof: DekProof,
       device: DeviceKeys,
     })
     .optional(),
@@ -79,6 +86,7 @@ export const LoginBody = z.strictObject({
 export const KeysBody = z
   .strictObject({
     dekId: DekId,
+    dekProof: DekProof.optional(),
     wrappedDek: b64Blob.optional(),
     recoveryWrappedDek: b64Blob.optional(),
     device: DeviceKeys.optional(),
@@ -93,6 +101,7 @@ export const PasswordBody = z.strictObject({
   authKey: AuthKey,
   wrappedDek: b64Blob,
   dekId: DekId,
+  dekProof: DekProof.optional(),
 });
 
 // ---------------------------------------------------------------- phase 1b
@@ -104,18 +113,19 @@ export const SealedDek = b64Blob;
 
 export const TokenBody = z.strictObject({ token: Token });
 
-export const GoogleBody = z.strictObject({
-  idToken: z
-    .string()
-    .min(20)
-    .max(4096)
-    .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/),
-  nonce: Nonce32,
-});
+const IdToken = z
+  .string()
+  .min(20)
+  .max(4096)
+  .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+
+/** Linking Google to a password account (H-2): the ID token with its nonce and the password again (authKey). */
+export const LinkGoogleBody = z.strictObject({ idToken: IdToken, nonce: Nonce32, authKey: AuthKey });
+export const UnlinkGoogleBody = z.strictObject({ authKey: AuthKey });
 
 /** Google sign-in: the ID token, its nonce, the challenge issued with the nonce and the new session's key. */
 export const GoogleLoginBody = z.strictObject({
-  idToken: GoogleBody.shape.idToken,
+  idToken: IdToken,
   nonce: Nonce32,
   challenge: Challenge,
   sigKey: SigKeyBody,
@@ -133,6 +143,8 @@ export const ResetBody = z.strictObject({
   keys: z
     .strictObject({
       dekId: DekId,
+      // proves the recovery code opened the DEK: a mailbox alone cannot overwrite the wraps (M-5)
+      dekProof: DekProof,
       wrappedDek: b64Blob,
       recoveryWrappedDek: b64Blob,
     })
@@ -148,13 +160,16 @@ export const DeviceRequestBody = z.strictObject({
 
 export const ApproverNonceBody = z.strictObject({ nonce: Nonce32 });
 export const RevealBody = z.strictObject({ reveal: Nonce32 });
-export const ApproveBody = z.strictObject({ dekId: DekId, sealedDek: SealedDek });
+export const ApproveBody = z.strictObject({ dekId: DekId, sealedDek: SealedDek, mac: Mac });
 
 export const RotateMeta = z.strictObject({
   oldDekId: DekId,
   dekId: DekId,
+  dekProof: DekProof,
+  /** The old DEK's MAC over the new one; devices take the new DEK only with it (K-1). */
+  chainMac: Mac,
   devices: z
-    .array(z.strictObject({ deviceId: Uuid, sealedDek: SealedDek }))
+    .array(z.strictObject({ deviceId: Uuid, sealedDek: SealedDek, mac: Mac }))
     .max(50),
   wrappedDek: b64Blob.optional(),
   recoveryWrappedDek: b64Blob.optional(),
@@ -163,6 +178,7 @@ export const RotateMeta = z.strictObject({
 /** Start fresh (plan 2, 6.3, 6.8): a new DEK for an account whose old one is lost; everything synced goes. */
 export const StartFreshBody = z.strictObject({
   dekId: DekId,
+  dekProof: DekProof,
   wrappedDek: b64Blob.optional(),
   recoveryWrappedDek: b64Blob.optional(),
   device: DeviceKeys,

@@ -24,7 +24,7 @@ async function addDevice(u: User, name: string) {
   const res = await api("/v1/account/keys", {
     method: "PUT",
     token,
-    body: { dekId: u.keys.dekId, device: { name, devicePub: keys.devicePub, sealedDek: keys.sealedDek } },
+    body: { dekId: u.keys.dekId, dekProof: u.keys.dekProof, device: { name, devicePub: keys.devicePub, sealedDek: keys.sealedDek, mac: b64(rand(32)) } },
   });
   expect(res.status).toBe(200);
   return { token, keys, deviceId: (await res.json<{ deviceId: string }>()).deviceId };
@@ -70,11 +70,15 @@ describe("devices and the device key", () => {
       deviceId: tablet.deviceId,
       dekId: a.keys.dekId,
       sealedDek: tablet.keys.sealedDek,
+      chainFrom: null,
+      chainMac: null,
     });
     expect(await json(await api("/v1/account/keys/device", { token: other.token }))).toEqual({
       deviceId: other.deviceId,
       dekId: other.keys.dekId,
       sealedDek: other.keys.sealedDek,
+      chainFrom: null,
+      chainMac: null,
     });
     // A session without a device (no key yet) and no session at all get nothing.
     const bare = (await login(a.email, a.keys.authKey)).sessionToken;
@@ -85,20 +89,22 @@ describe("devices and the device key", () => {
     const sealedA = b64(rand(80));
     const sealedTablet = b64(rand(80));
     const meta = {
-      oldDekId: a.keys.dekId,
+      oldDekId: a.keys.dekId, dekProof: b64(rand(32)), chainMac: b64(rand(32)),
       dekId: newDek,
       devices: [
-        { deviceId: a.deviceId, sealedDek: sealedA },
-        { deviceId: tablet.deviceId, sealedDek: sealedTablet },
+        { deviceId: a.deviceId, sealedDek: sealedA, mac: b64(rand(32)) },
+        { deviceId: tablet.deviceId, sealedDek: sealedTablet, mac: b64(rand(32)) },
       ],
       wrappedDek: b64(rand(72)),
     };
     expect((await exports.default.fetch(await signed(rotateRequest(a.token, meta, 0)))).status).toBe(200);
-    // The tablet keeps its session and picks up its newly sealed key.
+    // The tablet keeps its session and picks up its newly sealed key, with the old key's chain MAC for it (K-1).
     expect(await json(await api("/v1/account/keys/device", { token: tablet.token }))).toEqual({
       deviceId: tablet.deviceId,
       dekId: newDek,
       sealedDek: sealedTablet,
+      chainFrom: a.keys.dekId,
+      chainMac: meta.chainMac,
     });
     expect(await json(await api("/v1/account/keys/device", { token: other.token }))).toMatchObject({ dekId: other.keys.dekId });
   });
@@ -120,8 +126,9 @@ describe("start fresh", () => {
     const k = clientKeys();
     const body = {
       dekId: `dek-${b64(rand(6))}`,
+      dekProof: b64(rand(32)),
       wrappedDek: b64(rand(72)),
-      device: { name: "New phone", devicePub: k.devicePub, sealedDek: k.sealedDek },
+      device: { name: "New phone", devicePub: k.devicePub, sealedDek: k.sealedDek, mac: b64(rand(32)) },
     };
     const call = (token: string | undefined, b: unknown) => api("/v1/account/start-fresh", { token, body: b });
     expect((await call(fresh, { ...body, wrappedDek: undefined })).status).toBe(400);
@@ -145,7 +152,7 @@ describe("start fresh", () => {
     expect((await api("/v1/sync/meta", { token: tablet.token })).status).toBe(401);
     const { devices } = await json<{ devices: Array<{ id: string; devicePub: string; dekId: string }> }>(await api("/v1/devices", { token: fresh }));
     expect(devices).toEqual([expect.objectContaining({ id: deviceId, devicePub: k.devicePub, dekId: body.dekId, current: true })]);
-    expect(await json(await api("/v1/account/keys/device", { token: fresh }))).toEqual({ deviceId, dekId: body.dekId, sealedDek: k.sealedDek });
+    expect(await json(await api("/v1/account/keys/device", { token: fresh }))).toEqual({ deviceId, dekId: body.dekId, sealedDek: k.sealedDek, chainFrom: null, chainMac: null });
     expect(await json(await api("/v1/account", { token: fresh }))).toMatchObject({ dekId: body.dekId, hasRecovery: false });
     expect(await login(a.email, a.keys.authKey)).toMatchObject({ wrappedDek: body.wrappedDek, dekId: body.dekId });
     // Old key refused, new one works from version 0.
@@ -165,7 +172,7 @@ describe("start fresh", () => {
     const k = clientKeys();
     const res = await api("/v1/account/start-fresh", {
       token: a.token,
-      body: { dekId: "dek-new", wrappedDek: b64(rand(72)), device: { name: "Phone", devicePub: k.devicePub, sealedDek: k.sealedDek } },
+      body: { dekId: "dek-new", dekProof: b64(rand(32)), wrappedDek: b64(rand(72)), device: { name: "Phone", devicePub: k.devicePub, sealedDek: k.sealedDek, mac: b64(rand(32)) } },
     });
     expect(res.status).toBe(403);
     expect(await json(await api("/v1/sync/meta", { token: a.token }))).toMatchObject({ dekId: null });
@@ -260,7 +267,7 @@ describe("rotation", () => {
     const before = await state();
 
     const newDek = `dek-${b64(rand(6))}`;
-    const meta = { oldDekId: a.keys.dekId, dekId: newDek, devices: [{ deviceId: a.deviceId, sealedDek: b64(rand(80)) }], wrappedDek: b64(rand(72)) };
+    const meta = { oldDekId: a.keys.dekId, dekProof: b64(rand(32)), chainMac: b64(rand(32)), dekId: newDek, devices: [{ deviceId: a.deviceId, sealedDek: b64(rand(80)), mac: b64(rand(32)) }], wrappedDek: b64(rand(72)) };
     const brokenR2 = {
       put: async () => {
         throw new Error("R2 unavailable");

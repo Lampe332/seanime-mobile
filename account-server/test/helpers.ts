@@ -161,16 +161,26 @@ export async function challengeFor(email: string): Promise<string> {
   return (await res.json<{ challenge: string }>()).challenge;
 }
 
-/** What a real client would derive locally. The server only ever sees authKey and wrapped keys. */
+/**
+ * What a real client would derive locally. The server only ever sees authKey, wrapped keys, the DEK proof (it keeps its
+ * SHA-256) and device MACs (it cannot check them; random bytes stand in for them here).
+ */
 export function clientKeys() {
   return {
     salt: b64(rand(16)),
     authKey: b64(rand(32)),
     dekId: `dek-${b64(rand(6))}`,
+    dekProof: b64(rand(32)),
     wrappedDek: b64(rand(72)),
     devicePub: b64(rand(32)),
     sealedDek: b64(rand(80)),
+    mac: b64(rand(32)),
   };
+}
+
+/** A device row as the app sends it (name, public key, sealed DEK, the DEK holder's MAC). */
+export function deviceKeys(name = "Test Phone", devicePub = b64(rand(32))) {
+  return { name, devicePub, sealedDek: b64(rand(80)), mac: b64(rand(32)) };
 }
 
 export async function signupUser(opts: { withKeys?: boolean; ip?: string } = {}) {
@@ -189,7 +199,8 @@ export async function signupUser(opts: { withKeys?: boolean; ip?: string } = {})
             keys: {
               wrappedDek: keys.wrappedDek,
               dekId: keys.dekId,
-              device: { name: "Test Phone", devicePub: keys.devicePub, sealedDek: keys.sealedDek },
+              dekProof: keys.dekProof,
+              device: { name: "Test Phone", devicePub: keys.devicePub, sealedDek: keys.sealedDek, mac: keys.mac },
             },
           }
         : {}),
