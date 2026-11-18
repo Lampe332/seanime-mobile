@@ -43,7 +43,8 @@ import type { Sodium, SodiumKeyPair } from "./sodium"
  *    or by a key change to the devices the user kept in the list (rotate, an allowlist: every other row is removed).
  * I3 Owning the account (the password, or the recovery code) always allows joining, changing the key and Start fresh.
  *    The DEK proof alone never allows a sign-in, joining again or a key change (account-server routes.ts putKeys).
- * I4 The owner is never locked out for good: over the email's counter a right password signs in through a mailed link.
+ * I4 The owner is never locked out for good: over the email's counter a right password signs in through a mailed link
+ *    from a mail pot only the right password fills; a reset from a network the password signed in from skips the cap.
  * I5 Every change that matters for security (new device, sign-out, removal, key change, recovery code, Google link,
  *    Start fresh) sends a mail and leaves an event the app and the website list.
  */

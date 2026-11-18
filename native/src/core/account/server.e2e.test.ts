@@ -22,7 +22,7 @@ import {
     AccountCryptoError, DEFAULT_KDF, type Kdf, UnsafeKdfError, UntrustedDevicesError, UntrustedKeyChangeError, approvalTranscript, boxDek, chainMac, dekProof,
     deriveKeys, deviceMac, fromB64, openBoxedDek, toB64,
 } from "./crypto"
-import { type AccountDeps, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, confirmApproval, openRequests, requestApproval, rotate } from "./devices"
+import { type AccountDeps, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, confirmApproval, denyRequest, openRequests, requestApproval, rotate } from "./devices"
 import { changeKey, createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signOut, signupEmail, startFresh, useRecoveryCode } from "./flows"
 import { AccountSession, type SignerStore, sodiumSignerStore } from "./session"
 import type { Sodium } from "./sodium"
@@ -798,9 +798,12 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         for (let i = 0; i < 3; i++) {
             const pending = await requestApproval(fresh.deps, "Pixel 8")
             const [request] = (await openRequests(owner.deps)).filter(one => one.id === pending.id)
-            await answerRequest(owner.deps, request!)
+            const turn = await answerRequest(owner.deps, request!)
             await checkApproval(fresh.deps, pending)
-            expect(await confirmApproval(fresh.deps, pending, false)).toEqual({ state: "denied" })
+            await compareRequest(owner.deps, turn)
+            // NEU4-4: the "No" that counts is the owner's, on the device that showed the number
+            await denyRequest(owner.deps, pending.id)
+            expect(await checkApproval(fresh.deps, pending)).toEqual({ state: "denied" })
         }
         await expect(requestApproval(fresh.deps, "Pixel 8")).rejects.toMatchObject({ status: 429, code: "approvals_paused" })
         expect(await subjects(email, before)).toEqual(["New device sign-ins are paused"])
@@ -906,6 +909,53 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await subjects(email, before)).toEqual(["Confirm your sign-in"])
         expect(await phone.client.confirmLogin(token)).toEqual({ confirmed: true })
         expect(await loginEmail(phone.deps, { email, password: PASSWORD, deviceName: "New Phone" })).toMatchObject({ status: "ready" })
+    })
+
+    it("NEU4-1 / I4: the sec8 attack (54 resets from 18 networks, 20 wrong passwords) no longer keeps the owner out", async () => {
+        const email = "neu41-polish@example.org"
+        await accountWithData(email)
+        for (let n = 0; n < 18; n++) {
+            const stranger = install(undefined, `172.19.${n}.9`)
+            for (let i = 0; i < 3; i++) await stranger.client.resetRequest(email)
+        }
+        for (let i = 0; i < 20; i++) {
+            const guesser = install(undefined, `172.20.${i % 5}.9`)
+            const { challenge } = await guesser.client.prelogin(email)
+            await expect(guesser.client.login(email, toB64(sodium, random(32)), challenge, await freshSigner())).rejects.toThrow(UnauthorizedError)
+        }
+        await new Promise(resolve => setTimeout(resolve, 300))
+        const before = (await mails()).length
+        // the owner's new phone in a new network: the link comes from its own pot, which only the right password fills
+        const phone = install(undefined, "172.21.1.9")
+        await expect(loginEmail(phone.deps, { email, password: PASSWORD, deviceName: "New Phone" })).rejects.toThrow(MailConfirmationError)
+        const token = await nextMailToken(before, email)
+        expect(await phone.client.confirmLogin(token)).toEqual({ confirmed: true })
+        expect(await loginEmail(phone.deps, { email, password: PASSWORD, deviceName: "New Phone" })).toMatchObject({ status: "ready" })
+        expect(await phone.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        expect(await names(phone)).toEqual(["Mine"])
+    })
+
+    it("NEU4-4: a session without the key can't pause the owner's approvals with its own 'No'", async () => {
+        const email = "neu44-polish@example.org"
+        const owner = await accountWithData(email)
+        const thief = await keylessSession(email)
+        for (let i = 0; i < 3; i++) {
+            const pending = await requestApproval(thief.deps, "Thief")
+            const [request] = (await openRequests(owner.deps)).filter(one => one.id === pending.id)
+            await answerRequest(owner.deps, request!)
+            await checkApproval(thief.deps, pending)
+            expect(await confirmApproval(thief.deps, pending, false)).toEqual({ state: "denied" })
+        }
+        // the owner's own new phone still gets approved by the old one
+        const phone = await keylessSession(email)
+        const pending = await requestApproval(phone.deps, "Pixel 8")
+        const [request] = (await openRequests(owner.deps)).filter(one => one.id === pending.id)
+        const turn = await answerRequest(owner.deps, request!)
+        await checkApproval(phone.deps, pending)
+        expect(await compareRequest(owner.deps, turn)).toMatchObject({ state: "compare" })
+        await approveRequest(owner.deps, turn)
+        expect(await confirmApproval(phone.deps, pending, true)).toEqual({ state: "approved" })
+        expect(await phone.engine.importFromAccount()).toMatchObject({ state: "updated" })
     })
 
     it("c5 (accepted limit, documented): a device that learned a removal from a key change refuses the removed device's chains", async () => {

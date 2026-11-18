@@ -346,7 +346,8 @@ function Overview({ t }: { t: Translate }) {
 
         {!!info?.events?.length && <SettingsGroup title={t("Security events", "Sicherheitsereignisse")}
             note={t("Each one was also sent to your email.", "Jedes ging auch an deine E-Mail.")}>
-            {info.events.slice(0, 6).map((event, index) => <LinkRow key={`${event.at}-${index}`} label={eventText(t, event)} value={shortDate(event.at)} chevron={false} disabled onPress={() => undefined} />)}
+            {/* NEU4-5: all of them; the server sends the newest 20 and the newest of each kind, so none can be pushed out */}
+            {info.events.map((event, index) => <LinkRow key={`${event.at}-${index}`} label={eventText(t, event)} value={shortDate(event.at)} chevron={false} disabled onPress={() => undefined} />)}
         </SettingsGroup>}
 
         <SettingsGroup title={t("Recovery code", "Wiederherstellungscode")}
@@ -440,7 +441,7 @@ function ChangeKeySheet({ t, devices, off, password, onClose, onSubmit }: {
         footer={<>
             <Button intent="secondary" wrapperClassName="flex-1" disabled={busy} onPress={onClose}>{t("Cancel", "Abbrechen")}</Button>
             <Button intent={leaving.length > 0 ? "danger" : "primary"} wrapperClassName="flex-1" disabled={password && !value} loading={busy} onPress={() => void submit()}>
-                {leaving.length > 0 ? t(`Remove ${leaving.length} and change`, `${leaving.length} entfernen, wechseln`) : t("Change key", "Wechseln")}
+                {leaving.length > 0 ? t(`Remove ${leaving.length}`, `${leaving.length} entfernen`) : t("Change key", "Wechseln")}
             </Button>
         </>}>
         <View className="gap-3">
