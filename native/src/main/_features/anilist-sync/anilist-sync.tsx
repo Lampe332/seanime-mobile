@@ -82,7 +82,7 @@ export function AnilistSyncBar({ className }: { className?: string }) {
     const [open, setOpen] = React.useState(false)
     const sendNow = useSendNow()
     const n = state.waiting
-    const waitingText = t(`${n} change${n === 1 ? "" : "s"} waiting`, `${n} Änderung${n === 1 ? " wartet" : "en warten"}`)
+    const waitingText = (n === 1 ? t("1 change waiting", "1 Änderung wartet") : t(`${n} changes waiting`, `${n} Änderungen warten`))
 
     let text: string | null = null
     if (state.synced) text = t("Synced with AniList", "Mit AniList abgeglichen")
