@@ -8,6 +8,8 @@ import { PLURAL_CATEGORIES, pluralCategory, type PluralCategory } from "@/lib/i1
  * the value uses the same {n}, in any order. tr() only sees the finished text ("Episode 5"), so a text that is no key
  * itself is matched against the template keys, anchored at both ends, the one with the most fixed text first; a key
  * without fixed text, or with two placeholders side by side, never matches (it could split a value at any point).
+ * A literal key never goes to the templates, translated or not: the extractor puts every literal text of the code in
+ * every catalog, so only texts built from a template (or data) reach them.
  *
  * Plural rule: a value may be an object with one text per plural form of the language (lib/i18n/plural.ts), e.g. Russian
  * `{ "one": "{0} серия", "few": "{0} серии", "many": "{0} серий" }`. The form follows the number in the key's first
@@ -83,11 +85,13 @@ export function compileCatalog(json: CatalogJSON, language = ""): Catalog {
     const exact = new Map<string, CatalogValue>()
     const templates: Template[] = []
     for (const [key, value] of Object.entries(json)) {
-        if (!isTranslated(value, language)) continue
         if (!/\{\d+\}/.test(key)) {
-            exact.set(key, value)
+            // every literal text of the code is a key: one without a translation stays English instead of falling to a
+            // template ("Stream from your PC or home server" is no "{0} from {1}")
+            exact.set(key, isTranslated(value, language) ? value : key)
             continue
         }
+        if (!isTranslated(value, language)) continue
         const compiled = template(key, value)
         if (compiled) templates.push(compiled)
     }

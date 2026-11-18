@@ -26,6 +26,12 @@ describe("translateText", () => {
         expect(translateText(catalog, "Added later on another branch")).toBe("Added later on another branch")
     })
 
+    it("keeps a literal text out of a template that happens to fit it (Nakama in zh: no \"your PC or home server · Stream\")", () => {
+        const zh = compileCatalog({ "{0} from {1}": "{1} · {0}", "Stream from your PC or home server": "" }, "zh-Hans")
+        expect(translateText(zh, "Stream from your PC or home server")).toBe("Stream from your PC or home server")
+        expect(translateText(zh, "Action anime from 2024")).toBe("2024 · Action anime")
+    })
+
     it("fills a template's placeholders, also in another order", () => {
         expect(translateText(catalog, "Episode 12")).toBe("Episodio 12")
         expect(translateText(catalog, "3 of 10 downloaded")).toBe("Descargados: 10 de 3")
@@ -111,6 +117,19 @@ describe("language catalogs", () => {
             const bad = Object.entries(json).filter(([key, value]) => valueProblem(key, value, language) ||
                 formsOf(value).some(form => form && placeholdersOf(key).join() !== placeholdersOf(form).join()))
             expect(bad).toEqual([])
+        })
+
+        it(`${file}: no literal text goes to a template, translated or not`, () => {
+            const catalog = compileCatalog(json, language)
+            const literal = Object.entries(json).filter(([key]) => !/\{\d+\}/.test(key))
+            const wrong = literal.filter(([key, value]) => {
+                const own = typeof value === "string" ? value || key : translateText(compileCatalog({ [key]: value }, language), key)
+                return translateText(catalog, key) !== own
+            }).map(([key]) => key)
+            expect(wrong).toEqual([])
+            // the same with every literal untranslated: what a catalog behind the code would show
+            const empty = compileCatalog({ ...json, ...Object.fromEntries(literal.map(([key]) => [key, ""])) }, language)
+            expect(literal.filter(([key]) => translateText(empty, key) !== key).map(([key]) => key)).toEqual([])
         })
 
         it(`${file}: every translated template is found by its own key`, () => {
