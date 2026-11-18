@@ -87,6 +87,11 @@ export async function resolveTarget(target: AppLinkTarget): Promise<string | nul
         void runCoreMappingCheck(target.mediaId, target.provider, target.query, target.entry)
         return null
     }
+    if (target.kind === "core-sodium-selftest") {
+        // not waited for: the result is a dialog and the log ([SodiumSelfTest]); the release bundle leaves the file out (metro.config.js)
+        void import("./account-sodium-selftest").then(module => module.runAccountSodiumSelfTest())
+        return null
+    }
     if (target.kind === "core-torrent-selftest") {
         // not waited for: the result is in the log ([CoreTorrent]); loaded here, the test needs the device's modules
         void import("@/api/client/core-torrent-selftest").then(module => module.runCoreTorrentSelfTest(target))

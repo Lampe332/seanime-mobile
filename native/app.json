@@ -48,6 +48,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-secure-store",
       [
         "expo-status-bar",
         {

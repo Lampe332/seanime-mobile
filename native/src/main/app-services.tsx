@@ -1,4 +1,5 @@
 import { useMobileOfflineLiveSnapshot, useReportNetworkToServer } from "@/api/hooks/mobile_offline.hooks"
+import { useAccountService } from "@/main/_features/account/account-service"
 import { useAnilistSyncService } from "@/main/_features/anilist-sync/anilist-sync"
 import { useAiringScheduler } from "@/lib/airing/airing-hooks"
 import { appLanguageAtom } from "@/lib/app-language"
@@ -29,6 +30,8 @@ export function AppServices() {
     useMobileOfflineLiveSnapshot()
     // changes made without AniList go out at the start, when the network is back and when the app comes to the front
     useAnilistSyncService()
+    // the account's sync (only with an account): start, every 5 minutes in front, on leaving
+    useAccountService()
 
     React.useEffect(() => {
         reconcileAppUpdate()

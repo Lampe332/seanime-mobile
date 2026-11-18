@@ -1,0 +1,22 @@
+{
+  "name": "seanime-account",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "types": "wrangler types",
+    "migrate:local": "wrangler d1 migrations apply seanime-account --local"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.8.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0",
+    "wrangler": "4.164.0"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  }
+}

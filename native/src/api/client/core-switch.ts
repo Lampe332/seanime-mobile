@@ -1,4 +1,5 @@
 // geschrieben nach: docs/EIGENER-KERN.md §3 (der Schalter) und dem App-Code in src/api/client/ (buildSeaQuery, requests.ts); kein Server-Quelltext
+import type { PackageEnvironment } from "@/core/account/package"
 import { sqlDriverFor } from "@/api/client/core-database"
 import { NEEDS_THE_SERVER } from "@/lib/server/without-server"
 import { openOldData, secretStore } from "@/api/client/core-move"
@@ -118,6 +119,11 @@ export async function coreRestoreBackup(file: BackupFile, mode: RestoreMode, cur
     finally {
         watch.leave()
     }
+}
+
+/** The core's side of the account sync (core/account/package.ts): the same database, secrets and extensions as the backup */
+export function corePackageEnvironment(): PackageEnvironment {
+    return coreEnvironment()
 }
 
 /**

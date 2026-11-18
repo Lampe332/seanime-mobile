@@ -17,6 +17,8 @@ export type AppLinkTarget =
     | { kind: "core-anilist", reachable: boolean }
     /** Test and scratch app only: the sandbox for extensions proves its limits on this device (docs/EIGENER-KERN.md §4h). */
     | { kind: "core-sandbox-selftest" }
+    /** Test and scratch app only: the account's test vectors with the device's libsodium (lib/account-sodium-selftest.ts) */
+    | { kind: "core-sodium-selftest" }
     /** Test and scratch app only: logs what the app holds in memory (Hermes, read answers, sandboxes, torrent), §4p 5c-3 */
     | { kind: "core-memory" }
     /** Test and scratch app only: runs extension code brought to the device for this one test, with the real network (§4k). */
@@ -131,6 +133,8 @@ export function appLinkTarget(link: string | null | undefined, variant: string =
             if (anilist !== null) return anilist === "down" || anilist === "up" ? { kind: "core-anilist", reachable: anilist === "up" } : null
             const sandbox = query(uri.query, "sandbox")
             if (sandbox !== null) return sandbox === "selftest" ? { kind: "core-sandbox-selftest" } : sandbox === "practice" ? { kind: "core-sandbox-practice" } : null
+            const sodium = query(uri.query, "sodium")
+            if (sodium !== null) return sodium === "selftest" ? { kind: "core-sodium-selftest" } : null
             const cast = query(uri.query, "cast")
             if (cast !== null) return cast === "discover" ? { kind: "core-cast-check" } : cast === "outlet-check" ? { kind: "core-cast-outlet-check" } : null
             const torrent = query(uri.query, "torrent")

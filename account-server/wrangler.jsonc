@@ -1,0 +1,52 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "seanime-account",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-17",
+  // N-6: no invocation logs (they hold request data) and no traces. Only the Worker's own console lines are kept:
+  // route and error type, never an IP, email, token or body.
+  "observability": {
+    "enabled": true,
+    "redact_query_string": true,
+    "logs": { "enabled": true, "invocation_logs": false },
+    "traces": { "enabled": false }
+  },
+  "vars": {
+    "ALLOWED_ORIGIN": "https://seanimemobile.com",
+    // Base URL for links in emails (verify, reset).
+    "WEB_BASE_URL": "https://seanimemobile.com",
+    // Google signing keys. Only a test host (*.test, localhost) can replace Google's URL (src/google.ts jwksUrl).
+    "GOOGLE_JWKS_URL": "https://www.googleapis.com/oauth2/v3/certs"
+  },
+  // Values are set with `wrangler secret put`, never committed.
+  "secrets": {
+    "required": ["PEPPER_V1", "ENUM_SECRET", "GOOGLE_WEB_CLIENT_ID"]
+  },
+  // Placeholder IDs. Replace with the real resource IDs before the first deploy.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "seanime-account",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Cloudflare Email Service. The sender domain must be onboarded before the first deploy.
+  "send_email": [
+    { "name": "EMAIL", "allowed_sender_addresses": ["no-reply@seanimemobile.com"] }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "SNAPSHOTS",
+      "bucket_name": "seanime-account-snapshots"
+    }
+  ],
+  // Short burst limits per IP. Longer windows (15 min, 1 h) are counted in D1.
+  "ratelimits": [
+    { "name": "LOGIN_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    { "name": "SIGNUP_LIMITER", "namespace_id": "1002", "simple": { "limit": 5, "period": 60 } }
+  ],
+  "triggers": {
+    "crons": ["17 3 * * *"]
+  }
+}

@@ -28,6 +28,7 @@ import { useExtensionListener } from "@/main/_listeners/extensions.listeners"
 import { useInvalidateQueriesListener } from "@/main/_listeners/invalidate-queries.listeners"
 import { useMangaListener } from "@/main/_listeners/manga.listeners"
 import { MobileUpdateModal, MobileUpdatePanel } from "@/main/_features/update/mobile-update"
+import { AccountPrompts } from "@/main/_features/account/account-prompts"
 import { GlobalPlaylistManager } from "@/main/_features/playlists/_containers/global-playlist-manager"
 import { MobilePlaylists } from "@/main/_features/playlists/_components/mobile-playlists"
 import { ServerDataWrapper } from "@/main/server-data-wrapper"
@@ -140,6 +141,8 @@ function MainFrame() {
                 header={<MobileUpdatePanel />}
             />
             <MobileUpdateModal />
+            {/* the account's import question and the approval of a new device */}
+            <AccountPrompts />
             <MediaPreviewModal />
             <LibraryExplorerPhone />
             {/* Manga: source preferences from the server, the source refresh job, the reader over page and bar (2.8) */}
