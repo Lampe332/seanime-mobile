@@ -12,6 +12,7 @@ import {
 } from "@/lib/account/account-app"
 import { accountErrorText, accountPhase, formatSas } from "@/lib/account/account-view"
 import { useTr } from "@/lib/app-language"
+import { fillParts } from "@/lib/i18n/format"
 import { reloadAppAsync } from "expo"
 import { usePreventScreenCapture } from "expo-screen-capture"
 import { useAtom, useAtomValue } from "jotai"
@@ -64,8 +65,10 @@ function ImportQuestion() {
             <Button intent="primary" wrapperClassName="flex-1" loading={busy} onPress={() => void importNow()}>{t("Import", "Importieren")}</Button>
         </>}>
         <Text className="text-[15px] leading-[23px] text-sm-text-muted">
-            {t("Your settings, extensions, playlists, watch history and sign-ins from your account replace the ones on this device. A backup of this device is saved first, and Settings › App › Backup › Undo last restore brings it back.",
-                "Einstellungen, Erweiterungen, Playlists, Verlauf und Anmeldungen aus deinem Konto ersetzen die auf diesem Gerät. Vorher wird dieses Gerät gesichert, und Einstellungen › App › Sicherung › Letzte Wiederherstellung rückgängig holt es zurück.")}
+            {fillParts(t("Your settings, extensions, playlists, watch history and sign-ins from your account replace the ones on this device. A backup of this device is saved first, and {0} brings it back.",
+                "Einstellungen, Erweiterungen, Playlists, Verlauf und Anmeldungen aus deinem Konto ersetzen die auf diesem Gerät. Vorher wird dieses Gerät gesichert, und {0} holt es zurück."),
+            // the path in the words of the settings screens, so it matches what the user sees there in every language
+            [t("Settings", "Einstellungen"), t("App", "App"), t("Backup", "Sicherung"), t("Undo last restore", "Letzte Wiederherstellung rückgängig")].join(" › "))}
         </Text>
     </Sheet>
 }
@@ -165,20 +168,25 @@ function ApprovalSheet({ request, onClose }: { request: ApprovalRequest, onClose
                 ? <Text className="text-[15px] leading-[23px] text-sm-text-muted">{endedText(t, ended)}</Text>
                 : !started
                     ? <Text className="text-[15px] leading-[23px] text-sm-text-muted">
-                        {t(`If you're signing in on ${request.deviceName} right now, show the number and compare it with the one there. If not, deny.`,
-                            `Wenn du dich gerade auf ${request.deviceName} anmeldest, zeig die Zahl und vergleiche sie mit der dort. Wenn nicht, lehne ab.`)}
+                        {fillParts(t("If you're signing in on {0} right now, show the number and compare it with the one there. If not, deny.",
+                            "Wenn du dich gerade auf {0} anmeldest, zeig die Zahl und vergleiche sie mit der dort. Wenn nicht, lehne ab."), <DeviceName name={request.deviceName} />)}
                     </Text>
                     : sas
                     ? <>
                         <Text accessibilityLabel={sas.split("").join(" ")} className="text-center text-[34px] font-bold tracking-[3px]">{formatSas(sas)}</Text>
                         <Text className="text-[15px] leading-[23px] text-sm-text-muted">
-                            {t(`Does ${request.deviceName} show the same number? Approve only then, and confirm it there too. It gets your synced data and keys. If the numbers differ, tap No: this could be an attack.`,
-                                `Zeigt ${request.deviceName} dieselbe Zahl? Gib nur dann frei und bestätige sie dort auch. Das Gerät bekommt deine synchronisierten Daten und Schlüssel. Sind die Zahlen verschieden, tippe auf Nein: Das könnte ein Angriff sein.`)}
+                            {fillParts(t("Does {0} show the same number? Approve only then, and confirm it there too. It gets your synced data and keys. If the numbers differ, tap No: this could be an attack.",
+                                "Zeigt {0} dieselbe Zahl? Gib nur dann frei und bestätige sie dort auch. Das Gerät bekommt deine synchronisierten Daten und Schlüssel. Sind die Zahlen verschieden, tippe auf Nein: Das könnte ein Angriff sein."), <DeviceName name={request.deviceName} />)}
                         </Text>
                     </>
                     : <Muted className="text-[15px] leading-[23px]">{t("Getting the number…", "Zahl wird geholt …")}</Muted>}
         </View>
     </Sheet>
+}
+
+/** The asking device's name, bold inside a sentence: the user checks it before approving */
+function DeviceName({ name }: { name: string }) {
+    return <Text className="font-semibold text-sm-text">{name}</Text>
 }
 
 function endedText(t: ReturnType<typeof useTr>, ended: string): string {

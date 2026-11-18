@@ -3,7 +3,8 @@
 import { describe, expect, it } from "vitest"
 import type { ApprovalRequest } from "@/core/account/client"
 import { RELEASE_ACCOUNT_API, accountApiBase } from "./account-config"
-import { accountPhase, formatRecoveryCode, formatSas, passwordStrength, syncedAgo, waitingRequests } from "./account-view"
+import { type Translate, translate } from "@/lib/app-language"
+import { accountDate, accountPhase, formatRecoveryCode, formatSas, passwordStrength, syncedAgo, waitingRequests } from "./account-view"
 
 const en = (english: string) => english
 
@@ -50,6 +51,21 @@ describe("texts", () => {
         expect(syncedAgo(en, now - 2 * 60_000, now)).toBe("Synced 2 min ago")
         expect(syncedAgo(en, now - 3 * 3_600_000, now)).toBe("Synced 3 h ago")
         expect(syncedAgo(en, now - 26 * 3_600_000, now)).toBe("Synced 1 day ago")
+        expect(syncedAgo(en, now - 50 * 3_600_000, now)).toBe("Synced 2 days ago")
+    })
+    it("Synced … ago in German and from a catalog with plural forms", () => {
+        const de = (_english: string, german: string) => german
+        expect(syncedAgo(de, now - 60_000, now)).toBe("Vor 1 Min. synchronisiert")
+        expect(syncedAgo(de, now - 50 * 3_600_000, now)).toBe("Vor 2 Tagen synchronisiert")
+        const ru: Translate = (english, german) => translate("ru", english, german)
+        expect(syncedAgo(ru, now - 22 * 86_400_000, now)).toBe("Синхронизировано 22 дня назад")
+        expect(syncedAgo(ru, now - 25 * 86_400_000, now)).toBe("Синхронизировано 25 дней назад")
+    })
+    it("account dates follow the app language", () => {
+        const seconds = Date.parse("2026-01-05T12:00:00.000Z") / 1000
+        expect(accountDate("en", seconds)).toBe("1/5/2026")
+        expect(accountDate("de", seconds)).toBe("5.1.2026")
+        expect(accountDate("fr", seconds)).toBe("05/01/2026")
     })
     it("recovery code in groups of four", () => {
         expect(formatRecoveryCode("abcdefghijklmnopqrstuvwxyz")).toBe("ABCD EFGH IJKL MNOP QRST UVWX YZ")

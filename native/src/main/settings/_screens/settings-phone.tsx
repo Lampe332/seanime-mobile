@@ -62,18 +62,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
  * own, so the list always stays where it is (settings audit ca7374a/75d7fca).
  */
 
-const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, title: [string, string], summary: [string, string] }> = {
-    account: { icon: CircleUserRound, title: ["Account", "Konto"], summary: ["Sync settings and watch history between devices", "Einstellungen und Verlauf zwischen Geräten synchronisieren"] },
-    seanime: { icon: WandSparkles, title: ["App", "App"], summary: ["Episodes, language, extensions, navigation, account", "Folgen, Sprache, Erweiterungen, Navigation, Konto"] },
-    ui: { icon: Palette, title: ["Appearance", "Darstellung"], summary: ["Sorting, cards, loading pages", "Sortierung, Karten, Seiten laden"] },
-    playback: { icon: CirclePlay, title: ["Playback", "Wiedergabe"], summary: ["Player for your files, external player, next episode", "Player für deine Dateien, externer Player, nächste Folge"] },
-    library: { icon: Library, title: ["Local library", "Lokale Bibliothek"], summary: ["Folders, scanning, matching", "Ordner, Scannen, Zuordnung"] },
-    onlinestream: { icon: Globe, title: ["Online streaming", "Online-Streaming"], summary: ["Streaming and your anime lists", "Streaming und deine Anime-Listen"] },
-    torrents: { icon: Magnet, title: ["Torrents & debrid", "Torrents & Debrid"], summary: ["Providers, torrent streaming, downloads, debrid", "Anbieter, Torrent-Streaming, Downloads, Debrid"] },
-    manga: { icon: BookOpen, title: ["Manga", "Manga"], summary: ["Reading progress, default source", "Lesefortschritt, Standardquelle"] },
-    nakama: { icon: Users, title: ["Nakama", "Nakama"], summary: ["Stream from your PC or home server", "Vom PC oder Home-Server streamen"] },
-    logs: { icon: BookKey, title: ["Cache", "Cache"], summary: ["Manga and online streaming cache", "Manga- und Online-Streaming-Cache"] },
-    about: { icon: Info, title: ["About", "Über"], summary: ["Version, updates, Discord, legal", "Version, Updates, Discord, Rechtliches"] },
+const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, titleEn: string, titleDe: string, summaryEn: string, summaryDe: string }> = {
+    account: { icon: CircleUserRound, titleEn: "Account", titleDe: "Konto", summaryEn: "Sync settings and watch history between devices", summaryDe: "Einstellungen und Verlauf zwischen Geräten synchronisieren" },
+    seanime: { icon: WandSparkles, titleEn: "App", titleDe: "App", summaryEn: "Episodes, language, extensions, navigation, account", summaryDe: "Folgen, Sprache, Erweiterungen, Navigation, Konto" },
+    ui: { icon: Palette, titleEn: "Appearance", titleDe: "Darstellung", summaryEn: "Sorting, cards, loading pages", summaryDe: "Sortierung, Karten, Seiten laden" },
+    playback: { icon: CirclePlay, titleEn: "Playback", titleDe: "Wiedergabe", summaryEn: "Player for your files, external player, next episode", summaryDe: "Player für deine Dateien, externer Player, nächste Folge" },
+    library: { icon: Library, titleEn: "Local library", titleDe: "Lokale Bibliothek", summaryEn: "Folders, scanning, matching", summaryDe: "Ordner, Scannen, Zuordnung" },
+    onlinestream: { icon: Globe, titleEn: "Online streaming", titleDe: "Online-Streaming", summaryEn: "Streaming and your anime lists", summaryDe: "Streaming und deine Anime-Listen" },
+    torrents: { icon: Magnet, titleEn: "Torrents & debrid", titleDe: "Torrents & Debrid", summaryEn: "Providers, torrent streaming, downloads, debrid", summaryDe: "Anbieter, Torrent-Streaming, Downloads, Debrid" },
+    manga: { icon: BookOpen, titleEn: "Manga", titleDe: "Manga", summaryEn: "Reading progress, default source", summaryDe: "Lesefortschritt, Standardquelle" },
+    nakama: { icon: Users, titleEn: "Nakama", titleDe: "Nakama", summaryEn: "Stream from your PC or home server", summaryDe: "Vom PC oder Home-Server streamen" },
+    logs: { icon: BookKey, titleEn: "Cache", titleDe: "Cache", summaryEn: "Manga and online streaming cache", summaryDe: "Manga- und Online-Streaming-Cache" },
+    about: { icon: Info, titleEn: "About", titleDe: "Über", summaryEn: "Version, updates, Discord, legal", summaryDe: "Version, Updates, Discord, Rechtliches" },
 }
 
 const appVersion = () => Constants.expoConfig?.version ?? ""
@@ -130,7 +130,7 @@ export function SettingsPhone() {
                     <ArrowLeft size={24} color={colors.smText} />
                 </Pressable>
                 {/* r16: the title size of every page (28/32), not 26 */}
-                <Heading accessibilityRole="header" className="min-w-0 flex-1">{t(...current.title)}</Heading>
+                <Heading accessibilityRole="header" className="min-w-0 flex-1">{t(current.titleEn, current.titleDe)}</Heading>
             </View>
             <SectionContent id={shown} t={t} onOpen={setSection} tablet={false} />
         </PhoneScreen>
@@ -155,15 +155,15 @@ function SectionList({ t, onOpen, current, compact, notes = true }: {
             const item = SECTIONS[id]
             const Icon = item.icon
             const selected = id === current
-            return <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={`${t(...item.title)}, ${t(...item.summary)}`}
+            return <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={`${t(item.titleEn, item.titleDe)}, ${t(item.summaryEn, item.summaryDe)}`}
                 onPress={() => onOpen(id)}
                 className={cn("w-full flex-row items-center gap-3.5 px-4 active:bg-sm-surface-control",
                     current === undefined ? "min-h-16 py-3" : compact ? "min-h-[52px] py-2" : notes ? "min-h-[60px] py-3" : "min-h-14 py-3",
                     selected ? "bg-sm-surface-control" : "bg-sm-surface-raised")}>
                 <Icon size={22} color={colors.smAccent} />
                 <View className="min-w-0 flex-1 gap-0.5">
-                    <Text className={cn("text-base", selected && "font-semibold")}>{t(...item.title)}</Text>
-                    {notes && <Muted className={cn("text-[13px]", compact ? "leading-[17.5px]" : "leading-[19px]")}>{t(...item.summary)}</Muted>}
+                    <Text className={cn("text-base", selected && "font-semibold")}>{t(item.titleEn, item.titleDe)}</Text>
+                    {notes && <Muted className={cn("text-[13px]", compact ? "leading-[17.5px]" : "leading-[19px]")}>{t(item.summaryEn, item.summaryDe)}</Muted>}
                 </View>
                 {current === undefined && <ChevronRight size={18} color={colors.smTextSubtle} />}
             </Pressable>
@@ -198,7 +198,7 @@ function TwoPanes({ t, shown, onOpen }: { t: Translate, shown: SettingsSectionId
             </ScrollView>
             <ScrollView ref={paneRef} className="flex-1" style={{ maxWidth: window.width >= 1400 ? TABLET_READING_WIDTH : undefined }}
                 contentContainerClassName="gap-6" contentContainerStyle={{ paddingBottom: insets.bottom + 112 }}>
-                <Text accessibilityRole="header" className="text-[22px] font-bold leading-[27.5px] tracking-[-0.44px]">{t(...SECTIONS[shown].title)}</Text>
+                <Text accessibilityRole="header" className="text-[22px] font-bold leading-[27.5px] tracking-[-0.44px]">{t(SECTIONS[shown].titleEn, SECTIONS[shown].titleDe)}</Text>
                 <SectionContent id={shown} t={t} onOpen={open} tablet />
             </ScrollView>
         </View>

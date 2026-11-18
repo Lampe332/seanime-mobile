@@ -2,7 +2,8 @@
 
 import type { AccountEvent, ApprovalRequest } from "@/core/account/client"
 import type { SyncResult } from "@/core/account/sync"
-import type { Translate } from "@/lib/app-language"
+import { plural, type Translate } from "@/lib/app-language"
+import { formatDate } from "@/lib/i18n/format"
 
 /*
  * What the account screens show, without React: which state the account is in, "Synced 2 min ago", how strong a new
@@ -25,11 +26,16 @@ export function syncedAgo(t: Translate, lastSyncAt: number | null, now: number):
     if (lastSyncAt === null) return t("Not synced yet", "Noch nicht synchronisiert")
     const minutes = Math.max(0, Math.floor((now - lastSyncAt) / 60_000))
     if (minutes < 1) return t("Synced just now", "Gerade synchronisiert")
-    if (minutes < 60) return t(`Synced ${minutes} min ago`, `Vor ${minutes} Min. synchronisiert`)
+    if (minutes < 60) return plural(t, minutes, ["Synced 1 min ago", "Synced {0} min ago"], ["Vor 1 Min. synchronisiert", "Vor {0} Min. synchronisiert"])
     const hours = Math.floor(minutes / 60)
-    if (hours < 24) return t(`Synced ${hours} h ago`, `Vor ${hours} Std. synchronisiert`)
+    if (hours < 24) return plural(t, hours, ["Synced 1 h ago", "Synced {0} h ago"], ["Vor 1 Std. synchronisiert", "Vor {0} Std. synchronisiert"])
     const days = Math.floor(hours / 24)
-    return t(`Synced ${days} ${days === 1 ? "day" : "days"} ago`, `Vor ${days} ${days === 1 ? "Tag" : "Tagen"} synchronisiert`)
+    return plural(t, days, ["Synced 1 day ago", "Synced {0} days ago"], ["Vor 1 Tag synchronisiert", "Vor {0} Tagen synchronisiert"])
+}
+
+/** A day of the account screens (a device's last visit, a security event): "11/18/2026", "18.11.2026", the language's own form elsewhere */
+export function accountDate(language: string, seconds: number): string {
+    return formatDate(new Date(seconds * 1000), language, ["M/d/yyyy", "d.M.yyyy"], { day: "numeric", month: "numeric", year: "numeric" })
 }
 
 export const MIN_PASSWORD_LENGTH = 10

@@ -12,9 +12,9 @@ import {
     startFreshHere, syncingAtom, syncNow, unlockWithRecoveryCode,
 } from "@/lib/account/account-app"
 import {
-    MIN_PASSWORD_LENGTH, accountErrorText, accountPhase, eventText, formatRecoveryCode, formatSas, passwordStrength, strengthLabel, syncedAgo,
+    MIN_PASSWORD_LENGTH, accountDate, accountErrorText, accountPhase, eventText, formatRecoveryCode, formatSas, passwordStrength, strengthLabel, syncedAgo,
 } from "@/lib/account/account-view"
-import type { Translate } from "@/lib/app-language"
+import { appLanguageAtom, plural, type Translate } from "@/lib/app-language"
 import { copySecretToClipboard, openTab } from "@/lib/helpers/browser"
 import { colors } from "@/lib/theme/tokens"
 import { NoScreenshots } from "@/main/_features/account/account-prompts"
@@ -281,6 +281,7 @@ function Overview({ t }: { t: Translate }) {
     // S2: "Change encryption key" with the device list; `off`: a device the user tapped Remove on starts unticked
     const [keySheet, setKeySheet] = React.useState<{ off: string | null } | null>(null)
     const devices = useQuery({ queryKey: DEVICES_KEY, queryFn: listDevices })
+    const language = useAtomValue(appLanguageAtom)
 
     React.useEffect(() => {
         const id = setInterval(() => setNow(Date.now()), 30_000)
@@ -311,7 +312,7 @@ function Overview({ t }: { t: Translate }) {
     const syncNote = syncNoteFor(t, lastSync?.state)
     // M-4, S4: a removed or signed-out device may still know the old key until the user changes it
     const keyChangePending = (info?.rotationRequired || lastSync?.rotationRequired) && lastSync?.state !== "key-untrusted"
-    const shortDate = (seconds: number) => new Date(seconds * 1000).toLocaleDateString(t("en-US", "de-DE"))
+    const shortDate = (seconds: number) => accountDate(language, seconds)
 
     return <View className="gap-6">
         {info && !info.emailVerified && <SettingsGroup title={t("Confirm your email", "Bestätige deine E-Mail")}
@@ -441,7 +442,7 @@ function ChangeKeySheet({ t, devices, off, password, onClose, onSubmit }: {
         footer={<>
             <Button intent="secondary" wrapperClassName="flex-1" disabled={busy} onPress={onClose}>{t("Cancel", "Abbrechen")}</Button>
             <Button intent={leaving.length > 0 ? "danger" : "primary"} wrapperClassName="flex-1" disabled={password && !value} loading={busy} onPress={() => void submit()}>
-                {leaving.length > 0 ? t(`Remove ${leaving.length}`, `${leaving.length} entfernen`) : t("Change key", "Wechseln")}
+                {leaving.length > 0 ? plural(t, leaving.length, ["Remove 1 device", "Remove {0} devices"], ["1 Gerät entfernen", "{0} Geräte entfernen"]) : t("Change key", "Wechseln")}
             </Button>
         </>}>
         <View className="gap-3">
