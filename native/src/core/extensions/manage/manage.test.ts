@@ -484,19 +484,34 @@ describe("the changing interfaces, in the form of the recordings (phase 3e-2)", 
         await closeExtensionSandboxes(again)
     })
 
+    /*
+     * The two tests below measure who a piece of time is counted for, not how fast the core runs here. With the real clock
+     * the core's own run time on this machine (a sandbox closed, manifests checked) counted into its pieces, and under
+     * the load of the whole suite that alone went over 8 ms (24.7 ms seen). Their clock moves only by what the test says
+     * takes time: the screens' work and the waits on other threads. The core's code takes no time on it, so the result
+     * is the same on every run, and a wait the watch does not see still shows as a long piece.
+     */
+    function testClock() {
+        let at = 0
+        return { now: () => at, pass: (milliseconds: number) => void (at += milliseconds) }
+    }
+
     it("counts the screens' work during a file read as theirs, not the core's", async () => {
         const pieces: number[] = []
-        const watch = createBlockingWatch({ now: () => performance.now(), onPiece: milliseconds => void pieces.push(milliseconds), free: () => new Promise(resolve => setTimeout(resolve, 0)) })
+        const clock = testClock()
+        const watch = createBlockingWatch({ now: clock.now, onPiece: milliseconds => void pieces.push(milliseconds), free: () => new Promise(resolve => setTimeout(resolve, 0)) })
         // a file is read on another thread for 20 ms; meanwhile the screens run for 15 ms
-        const slow: ExtensionPlace = { ...place, folder: { ...place.folder, read: name => new Promise(resolve => setTimeout(() => resolve(files.get(name) ?? null), 20)) } }
+        const slow: ExtensionPlace = { ...place, folder: { ...place.folder, read: name => new Promise(resolve => setTimeout(() => {
+            clock.pass(20)
+            resolve(files.get(name) ?? null)
+        }, 20)) } }
         async function longestPiece(where: ExtensionPlace, joining = false) {
             // another request started the read already: this one joins it
             const other = joining ? readInstalled(where) : null
             if (joining) await new Promise(resolve => setTimeout(resolve, 1))
             pieces.length = 0
             const screens = new Promise<void>(resolve => setTimeout(() => {
-                const end = performance.now() + 15
-                while (performance.now() < end) { /* the screens' work */ }
+                clock.pass(15) // the screens' work
                 resolve()
             }, 5))
             watch.enter("list")
@@ -518,16 +533,19 @@ describe("the changing interfaces, in the form of the recordings (phase 3e-2)", 
 
     it("sees closing a sandbox that is still being opened as a wait (3f-2: 1150 ms at the S22)", async () => {
         const pieces: number[] = []
-        const watch = createBlockingWatch({ now: () => performance.now(), onPiece: milliseconds => void pieces.push(milliseconds), free: () => new Promise(resolve => setTimeout(resolve, 0)) })
+        const clock = testClock()
+        const watch = createBlockingWatch({ now: clock.now, onPiece: milliseconds => void pieces.push(milliseconds), free: () => new Promise(resolve => setTimeout(resolve, 0)) })
         // opening takes 30 ms on another thread; meanwhile the screens run for 15 ms
-        const slow: ExtensionPlace = { ...place, engine: () => new Promise(resolve => setTimeout(() => void place.engine().then(resolve), 30)) }
+        const slow: ExtensionPlace = { ...place, engine: () => new Promise(resolve => setTimeout(() => {
+            clock.pass(30)
+            void place.engine().then(resolve)
+        }, 30)) }
         async function closingPiece(where: ExtensionPlace) {
             const loader = new ExtensionLoader(where, async () => ({ memoryMb: 128, idleSeconds: 60 }))
             const stream = manifest("stream", "onlinestream-provider", "typescript", ONLINESTREAM_TS, { userConfig: USER_CONFIG })
             const using = loader.use(stream, { baseUrl: "https://mirror.example" }, async () => 1)
             const screens = new Promise<void>(resolve => setTimeout(() => {
-                const end = performance.now() + 15
-                while (performance.now() < end) { /* the screens' work */ }
+                clock.pass(15) // the screens' work
                 resolve()
             }, 5))
             pieces.length = 0
