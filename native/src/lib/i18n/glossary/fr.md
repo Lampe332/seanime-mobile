@@ -44,3 +44,12 @@ pas de tirets longs comme effet de style, espace normale avant `: ? ! ;`. Les ma
 | Widget | widget |
 | Backup | sauvegarde |
 | Add | Ajouter |
+| Account | compte |
+| Sync / synced | synchroniser / synchronisation / synchronisé |
+| Recovery code | code de récupération |
+| Encryption key / key | clé de chiffrement / clé |
+| Approve / approval (a new device) | approuver / approbation |
+| Start fresh | Repartir de zéro |
+| Security events | événements de sécurité |
+| Password / Email | mot de passe / e-mail |
+| Attack | attaque |

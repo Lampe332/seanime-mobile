@@ -44,6 +44,15 @@ Plurals: where a text has a number, use a form that works for 1, 2 and 5 (e.g. `
 | Widget | виджет |
 | Backup | резервная копия |
 | Add | Добавить |
+| Account | аккаунт |
+| Sync / synced | синхронизировать / синхронизация / синхронизировано |
+| Recovery code | код восстановления |
+| Encryption key / key | ключ шифрования / ключ |
+| Approve / approval (a new device) | подтвердить / подтверждение |
+| Start fresh | Начать заново |
+| Security events | события безопасности |
+| Password / Email | пароль / почта (email) |
+| Attack | атака |
 
 Never translated: Seanime, Seanime Mobile, AniList, MyAnimeList, Kitsu, AniDB, Nakama, Debrid, Real-Debrid, TorBox, Torrent, qBittorrent,
 Transmission, mpv, VLC, MX Player, Android, Play Protect, GitHub, Discord, Wi-Fi, APK, Chromecast, DLNA, Jellyfin, Plex.

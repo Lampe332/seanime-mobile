@@ -44,3 +44,12 @@ Markennamen bleiben: Seanime, Seanime Mobile, AniList, MyAnimeList, Kitsu, AniDB
 | Widget | 小组件 |
 | Backup | 备份 |
 | Add | 添加 |
+| Account | 账号 |
+| Sync / synced | 同步 / 已同步 |
+| Recovery code | 恢复码 |
+| Encryption key / key | 加密密钥 / 密钥 |
+| Approve / approval (a new device) | 批准 / 批准请求 |
+| Start fresh | 从头开始 |
+| Security events | 安全事件 |
+| Password / Email | 密码 / 邮箱 |
+| Attack | 攻击 |

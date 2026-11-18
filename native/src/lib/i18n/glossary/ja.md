@@ -43,3 +43,12 @@ Stil: UI-Kurzformen (保存, 削除, キャンセル), Erklärtexte in です/�
 | Widget | ウィジェット |
 | Backup | バックアップ |
 | Add | 追加 |
+| Account | アカウント |
+| Sync / synced | 同期 / 同期済み |
+| Recovery code | リカバリーコード |
+| Encryption key / key | 暗号化キー / キー |
+| Approve / approval (a new device) | 承認 / 承認リクエスト |
+| Start fresh | 最初からやり直す |
+| Security events | セキュリティイベント |
+| Password / Email | パスワード / メール |
+| Attack | 攻撃 |

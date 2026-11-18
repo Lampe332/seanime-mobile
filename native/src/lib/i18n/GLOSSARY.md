@@ -74,7 +74,20 @@ app then shows English). `node scripts/i18n-extract.mjs` (in `native/`) adds new
 | Widget | widget |
 | Backup | copia de seguridad |
 | Add | Agregar |
+| Account | cuenta |
+| Sync / synced | sincronizar / sincronización / sincronizado |
+| Recovery code | código de recuperación |
+| Encryption key / key | clave de cifrado / clave |
+| Approve / approval (a new device) | aprobar / aprobación |
+| Start fresh | Empezar de cero |
+| Security events | eventos de seguridad |
+| Password / Email | contraseña / correo |
+| Attack | ataque |
 
 Spanish is neutral (understood in Latin America and Spain): `Agregar`, `teléfono`, no `vosotros`, no regional slang.
+
+Account and security texts: the terms above are fixed in every language (account, sync, recovery code, encryption key,
+approve, device). Security warnings say plainly what happened and what to do; never soften "This could be an attack."
+or a "deleted for good".
 
 When you translate another language, add its column to this table with the same terms before you start, then follow it.

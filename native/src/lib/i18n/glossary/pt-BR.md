@@ -45,6 +45,15 @@ travessões (— ou –) como recurso de estilo. As marcas nunca são traduzidas
 | Widget | widget |
 | Backup | backup |
 | Add | Adicionar |
+| Account | conta |
+| Sync / synced | sincronizar / sincronização / sincronizado |
+| Recovery code | código de recuperação |
+| Encryption key / key | chave de criptografia / chave |
+| Approve / approval (a new device) | aprovar / aprovação |
+| Start fresh | Começar do zero |
+| Security events | eventos de segurança |
+| Password / Email | senha / e-mail |
+| Attack | ataque |
 | Screen | tela |
 | File / folder | arquivo / pasta |
 | Retry | Tentar de novo |
