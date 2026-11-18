@@ -232,8 +232,8 @@ The third review (`security-review-3`) failed round 3. The fixes take rules away
 - I1 A device takes a DEK only through the password wrap, the recovery wrap, ONE approval confirmed on both devices, or a chain from the DEK it holds by a device it does not know as removed.
 - I2 A device hands out the real DEK only to the device whose number its user confirmed with "Yes", or by a key change to the devices the user kept.
 - I3 The password or the recovery code always allows joining, the key change and Start fresh. The DEK proof alone never does.
-- I4 The owner is never locked out for good.
-- I5 Every security change (new device, sign-out, removal, key change, recovery code, Google link, Start fresh) sends a mail and leaves an event the app and the website list.
+- I4 The owner is never locked out for good. (Broken in round 4 by the shared mail cap, NEU4-1; holds since round Polish.)
+- I5 Every security change (new device, sign-out, removal, key change, recovery code, Google link, Start fresh) sends a mail and leaves an event the app and the website list. (In round 4 the website showed none and the app list could be flooded, NEU4-5; holds since round Polish.)
 
 | ID | Severity | Finding | Status |
 | --- | --- | --- | --- |
@@ -251,10 +251,30 @@ The third review (`security-review-3`) failed round 3. The fixes take rules away
 
 Accepted limits, said plainly:
 
-- A compromised server can hold a key change back from devices that did not make it. Until such a device takes the change (whose chain names the removed devices), a removed device that still knows the old key can, together with that server, hand it a chain of its own; the device then syncs under a key the removed device knows. Without a transparency log no device can tell. What helps: change the key on every device you still use after removing one (the screen shows the devices it reaches), and the mails come from the server's mail binding, which a compromised server can skip too (end-to-end test c5 shows the part that holds).
+- A compromised server can hold a key change back from devices that did not make it. Until such a device takes the change (whose chain names the removed devices), a removed device that still knows the old key can, together with that server, hand it a chain of its own; the device then syncs under a key the removed device knows. Without a transparency log no device can tell. What helps: change the key on every device you still use after removing one (the screen shows the devices it reaches), and the mails come from the server's mail binding, which a compromised server can skip too (end-to-end test c5 shows the part that holds). The same server can also hide a sign-out or a website removal from the device that changes the key: that device then still pre-ticks the signed-out device, and it gets the new key (review 4, d4).
 - A Google-only account has no password: its Google sign-in is the owner for Start fresh (deletes the synced data, mailed), not for the data (Nick's decision 18.11.: Google without a password stays).
-- Over the email's counter a stranger can make the owner open a mailed link once per sign-in from a new device or browser; devices of the account skip it. 50 reset or confirmation mails per day and recipient can be used up from 10 or more networks.
-- The sign-in link is only as safe as the mailbox: who has the password and the mailbox owns the account anyway (I3).
+- Over the email's counter a stranger can make the owner open a mailed link once per sign-in from a new device or browser; devices of the account skip it. Round 4 also said 50 mails per day could be used up "from 10 or more networks": 5 networks over about 4 hours were enough, and the result was a lockout (NEU4-1). Corrected in round Polish below.
+- The sign-in link is only as safe as the mailbox: who has the password and the mailbox owns the account anyway (I3). In round 4 an opened link also made the signing key that triggered it "known" for 15 minutes (NEU4-2); corrected in round Polish.
+
+### Round Polish (after the fourth review)
+
+The fourth review (`security-review-4`) passed: no critical or high finding, I1 to I3 held. It broke I4 and half of I5. The key protocol (I1 to I3) is unchanged in this round.
+
+| ID | Severity | Finding | Status |
+| --- | --- | --- | --- |
+| NEU4-1 | Medium | Reset mails and sign-in links shared one cap of 50 per recipient and day; a stranger used it up (54 resets from 18 networks) and held the email counter, so the owner's right password got "open the link" but no link, and no reset mail either (I4) | Fixed: each mail kind has its own pot (`mailAllowed(pot, ...)`). Sign-in links go out only after the right password, so a stranger can't touch that pot. A reset asked for from a network the account signed in from with its password (90 days, keyed hash in `rate_limits`) skips the reset cap across networks. Tests: server `polish.test.ts` "the sec8 attack ...", e2e "NEU4-1 / I4", sec8 d1 against `wrangler dev`. Chosen over "reset from a known device": the app has no reset screen, and the network rule needs no client change |
+| NEU4-2 | Low | An opened link made the signing key that triggered it "known" for 15 minutes (no email counter, rate oracle back); the page confirmed on load | Fixed: the link counts only for the same signing key with the right password, once; a wrong guess from that key still counts and gets 202. The confirm page sends nothing until "Yes, confirm this sign-in" is pressed. Binding to the right password does what a stored attempt hash would, without a new column |
+| NEU4-3 | Low | A linked Google sign-in could delete a password account | Fixed: same rule as Start fresh. A password account goes only with the password: typed again (website, checked and counted like a sign-in) or a password sign-in within 10 minutes (the app signs in again first) |
+| NEU4-4 | Low | Any session without the key could pause approvals with three own "No" and fill the account's request quota | Fixed: only a "No" from a device with its own row counts; open requests (3) and new ones per hour (5) count per session |
+| NEU4-5 | Low | The website showed no security events; the app showed 6 and a member device could push others out; the R2 failure path of a key change removed devices without mail or event | Fixed: `GET /account` returns the newest 20 plus the newest of each kind; the app shows all of them, the website lists them (text only); the R2 failure path mails and records each removed device |
+| NEU4-6 | Low | Docs claimed "never locked out", "a guesser learns nothing", "shown on your account page", "from 10 or more networks"; limit c5 missed the hidden sign-out | Fixed: this audit, the server README, the I4/I5 comment in `devices.ts` and the website's privacy text say what holds now; c5 names the hidden sign-out |
+| NEU4-7 | Info | More than 50 rows to leave out make the app's key change fail | Open (Info): remove signed-out rows on the website one by one |
+| NEU4-8 | Info | Device names land in security mails as they are | Open (Info): HTML is escaped |
+| NEU4-9 | Info | Every normal sign-out mails "Change encryption key"; the confirm page allowed `wasm-unsafe-eval` | CSP fixed (the confirm page no longer allows it); the sign-out mail stays (a trace is the point of S4) |
+
+Earlier findings that were partly fixed in round 4: N-4, NEU3-5 and NEU3-6 are done with NEU4-1 (mail pots, known networks, the sec8 attack fails), NEU3-8 is done with NEU4-6.
+
+Still accepted, said plainly: someone who floods the reset pot daily can delay a reset asked for from a network the account never signed in from with its password. The owner who knows the password signs in through the link (its own pot); the owner at home or on a network he used before gets the reset mail.
 
 ### Verification
 
