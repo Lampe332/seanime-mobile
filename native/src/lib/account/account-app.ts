@@ -3,7 +3,8 @@
 import { corePackageEnvironment } from "@/api/client/core-switch"
 import { type AccountInfo, AccountClient, type ApprovalRequest, type HttpFetch } from "@/core/account/client"
 import {
-    type ApproverTurn, type PendingApproval, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, denyRequest, openRequests, requestApproval, rotate,
+    type ApproverTurn, type PendingApproval, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, confirmApproval, denyRequest, openRequests,
+    requestApproval, rotate,
 } from "@/core/account/devices"
 import {
     changePassword, completeRotation, createRecoveryCode, deleteAccount, loginEmail, removeDevice, signOut, signupEmail, startFresh, unlinkGoogle,
@@ -102,6 +103,11 @@ export const accountInfoAtom = atom<AccountInfo | null>(null)
 export const approvalRequestsAtom = atom<ApprovalRequest[]>([])
 /** "Not now" on the import question: asked again at the next app start */
 export const importDismissedAtom = atom(false)
+/**
+ * What the account screen must tell after a sign-in or sync: "key-changed" (NEU-7: the account's key changed since this
+ * device last held it; nothing was imported) or "removed" (NEU-2: this device was removed; its key is gone)
+ */
+export const keyNoticeAtom = atom<"key-changed" | "removed" | null>(null)
 
 const store = getDefaultStore()
 
@@ -142,6 +148,13 @@ export async function runSync(trigger: SyncTrigger): Promise<SyncResult | null> 
         const result = await engine.sync(trigger)
         if (result.state === "skipped") return result
         store.set(lastSyncAtom, result)
+        if (result.state === "removed") {
+            // NEU-2: removed on another device or on the website: the key, the device keys and the session go at once
+            await session.clear()
+            await session.forgetDeviceKeys()
+            await session.forgetSigner()
+            store.set(keyNoticeAtom, "removed")
+        }
         if (result.state === "signed-out") {
             // the session ended on the server (expired, password reset, removed on another device): only the session goes.
             // The key stays until the user signs in again or signs out, so a reset without code keeps the data (N-3).
@@ -149,7 +162,7 @@ export async function runSync(trigger: SyncTrigger): Promise<SyncResult | null> 
         }
         if (result.state === "updated" || result.state === "merged") afterDataChange()
         await refreshAccount()
-        if (result.state !== "signed-out") await refreshInfo()
+        if (result.state !== "signed-out" && result.state !== "removed") await refreshInfo()
         return result
     }
     finally {
@@ -196,8 +209,12 @@ export async function createAccount(email: string, password: string): Promise<vo
 }
 
 export async function signIn(email: string, password: string): Promise<void> {
-    const result = await loginEmail(deps, { email: email.trim(), password, deviceName: deviceName() })
+    const result = await loginEmail(deps, { email: email.trim(), password, deviceName: deviceName() }).catch(error => {
+        if ((error as Error | null)?.name === "UntrustedKeyChangeError") store.set(keyNoticeAtom, "key-changed")
+        throw error
+    })
     recoveryWrappedDek = result.recoveryWrappedDek
+    store.set(keyNoticeAtom, result.keyChanged ? "key-changed" : null)
     await afterSignIn(result.status)
 }
 
@@ -272,8 +289,11 @@ export const resendConfirmation = () => client.resendVerification()
 
 export const askForApproval = (): Promise<PendingApproval> => requestApproval(deps, deviceName())
 export const approvalProgress = (pending: PendingApproval) => checkApproval(deps, pending)
+/** The user's answer here to "Does your other device show this number?" (approval v2: both devices ask) */
+export const answerNumber = (pending: PendingApproval, same: boolean) => confirmApproval(deps, pending, same)
 
 export async function approvalDone(): Promise<void> {
+    store.set(keyNoticeAtom, null)
     await afterSignIn("ready")
 }
 

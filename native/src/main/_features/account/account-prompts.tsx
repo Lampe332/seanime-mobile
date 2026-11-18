@@ -161,8 +161,8 @@ function ApprovalSheet({ request, onClose }: { request: ApprovalRequest, onClose
                     ? <>
                         <Text accessibilityLabel={sas.split("").join(" ")} className="text-center text-[34px] font-bold tracking-[3px]">{formatSas(sas)}</Text>
                         <Text className="text-[15px] leading-[23px] text-sm-text-muted">
-                            {t(`Approve only if ${request.deviceName} shows the same number. It gets your synced data and keys.`,
-                                `Gib nur frei, wenn ${request.deviceName} dieselbe Zahl zeigt. Das Gerät bekommt deine synchronisierten Daten und Schlüssel.`)}
+                            {t(`Does ${request.deviceName} show the same number? Approve only then, and confirm it there too. It gets your synced data and keys.`,
+                                `Zeigt ${request.deviceName} dieselbe Zahl? Gib nur dann frei und bestätige sie dort auch. Das Gerät bekommt deine synchronisierten Daten und Schlüssel.`)}
                         </Text>
                     </>
                     : <Muted className="text-[15px] leading-[23px]">{t("Getting the number…", "Zahl wird geholt …")}</Muted>}

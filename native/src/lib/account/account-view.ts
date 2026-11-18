@@ -14,7 +14,7 @@ export type AccountPhase = "loading" | "signed-out" | "needs-key" | "import" | "
 /** The state the screens follow; the last sync's answer decides between "import" and "ready" */
 export function accountPhase(input: { loaded: boolean, signedIn: boolean, hasKey: boolean, lastResult: Pick<SyncResult, "state"> | null }): AccountPhase {
     if (!input.loaded) return "loading"
-    if (!input.signedIn || input.lastResult?.state === "signed-out") return "signed-out"
+    if (!input.signedIn || input.lastResult?.state === "signed-out" || input.lastResult?.state === "removed") return "signed-out"
     if (!input.hasKey || input.lastResult?.state === "needs-key") return "needs-key"
     if (input.lastResult?.state === "import-available") return "import"
     return "ready"
@@ -85,7 +85,11 @@ export function waitingRequests(requests: ApprovalRequest[], now: number): Appro
 /** A short, readable reason for a failed account step */
 export function accountErrorText(t: Translate, error: unknown): string {
     const status = (error as { status?: number } | null)?.status
+    const code = (error as { code?: string } | null)?.code
     const message = error instanceof Error ? error.message : ""
+    if (code === "device_removed") return t("This device was removed from the account. Ask on another device to add it again.", "Dieses Gerät wurde aus dem Konto entfernt. Lass es auf einem anderen Gerät neu hinzufügen.")
+    if (code === "rotation_pending" || code === "rotation_not_allowed") return t("A removed device is waiting for its key change. Finish it on a device that was signed in before the removal.", "Ein entferntes Gerät wartet auf den Schlüsselwechsel. Schließ ihn auf einem Gerät ab, das schon vor dem Entfernen angemeldet war.")
+    if ((error as { name?: string } | null)?.name === "RemovedDeviceListedError") return t("A device you removed is in the account again, so the key was not changed. Someone may be trying to get in: change your password.", "Ein entferntes Gerät ist wieder im Konto, deshalb wurde der Schlüssel nicht gewechselt. Vielleicht versucht jemand reinzukommen: Ändere dein Passwort.")
     if (status === 401 && /password/i.test(message)) return t("Wrong email or password.", "Falsche E-Mail oder falsches Passwort.")
     if (status === 401) return t("Wrong email or password.", "Falsche E-Mail oder falsches Passwort.")
     if (status === 429) return t("Too many tries. Wait a moment and try again.", "Zu viele Versuche. Warte kurz und versuch es noch mal.")

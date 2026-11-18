@@ -8,8 +8,8 @@ import { toast } from "@/components/ui/toast/toast-store"
 import type { DeviceInfo } from "@/core/account/client"
 import type { PendingApproval } from "@/core/account/devices"
 import {
-    accountAtom, accountInfoAtom, approvalDone, disconnectGoogle, finishKeyChange, approvalProgress, askForApproval, changeAccountPassword, createAccount, deleteSyncedData, deleteWholeAccount,
-    importDismissedAtom, lastSyncAtom, listDevices, newRecoveryCode, recoveryCodeUsable, removeAccountDevice, resendConfirmation, signIn, signOutHere,
+    accountAtom, accountInfoAtom, answerNumber, approvalDone, disconnectGoogle, finishKeyChange, approvalProgress, askForApproval, changeAccountPassword, createAccount, deleteSyncedData,
+    deleteWholeAccount, importDismissedAtom, keyNoticeAtom, lastSyncAtom, listDevices, newRecoveryCode, recoveryCodeUsable, removeAccountDevice, resendConfirmation, signIn, signOutHere,
     startFreshHere, syncingAtom, syncNow, unlockWithRecoveryCode,
 } from "@/lib/account/account-app"
 import {
@@ -50,15 +50,23 @@ export function SettingsAccountSection({ t }: { t: Translate }) {
 
 function SignedOut({ t }: { t: Translate }) {
     const [step, setStep] = React.useState<"welcome" | "create" | "signin">("welcome")
+    const notice = useAtomValue(keyNoticeAtom)
     if (step === "create") return <CredentialsForm t={t} mode="create" onBack={() => setStep("welcome")} />
     if (step === "signin") return <CredentialsForm t={t} mode="signin" onBack={() => setStep("welcome")} />
-    return <SettingsGroup title={t("Sync between your devices", "Zwischen deinen Geräten synchronisieren")}
+    return <View className="gap-6">
+        {notice === "removed" && <SettingsGroup title={t("This device was removed", "Dieses Gerät wurde entfernt")}
+            note={t("It was removed from your account on another device or on the website, so its key was deleted here. The data on this device stays. Sign in again to ask for access.",
+                "Es wurde auf einem anderen Gerät oder auf der Website aus deinem Konto entfernt, deshalb wurde sein Schlüssel hier gelöscht. Die Daten auf diesem Gerät bleiben. Melde dich neu an, um wieder Zugang anzufragen.")}>
+            {null}
+        </SettingsGroup>}
+        <SettingsGroup title={t("Sync between your devices", "Zwischen deinen Geräten synchronisieren")}
         note={t("Settings, extensions, playlists and watch history go to your account, encrypted on this device. Only your devices can read them, not even we can. An account is optional.",
             "Einstellungen, Erweiterungen, Playlists und Verlauf gehen verschlüsselt in dein Konto. Lesen können sie nur deine Geräte, nicht einmal wir. Ein Konto ist freiwillig.")}>
         <LinkRow label={t("Continue with Google", "Weiter mit Google")} value={t("Coming soon", "Bald")} disabled chevron={false} onPress={() => undefined} />
         <LinkRow label={t("Create account", "Konto erstellen")} tone="accent" note={t("With your email and a password", "Mit E-Mail und Passwort")} onPress={() => setStep("create")} />
         <LinkRow label={t("Sign in", "Anmelden")} onPress={() => setStep("signin")} />
-    </SettingsGroup>
+        </SettingsGroup>
+    </View>
 }
 
 function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "signin", onBack: () => void }) {
@@ -127,11 +135,14 @@ function StrengthMeter({ t, score }: { t: Translate, score: 0 | 1 | 2 | 3 | 4 })
 
 function ApproveOnPhone({ t }: { t: Translate }) {
     const account = useAtomValue(accountAtom)
+    const notice = useAtomValue(keyNoticeAtom)
     const [attempt, setAttempt] = React.useState(0)
-    const [status, setStatus] = React.useState<"asking" | "waiting" | "compare" | "denied" | "expired" | "failed">("asking")
+    const [status, setStatus] = React.useState<"asking" | "waiting" | "compare" | "confirmed" | "denied" | "expired" | "failed">("asking")
     const [sas, setSas] = React.useState<string | null>(null)
     const [failure, setFailure] = React.useState<string | null>(null)
     const [sheet, setSheet] = React.useState<"recovery" | "fresh" | "signout" | null>(null)
+    const [answering, setAnswering] = React.useState(false)
+    const pendingRef = React.useRef<PendingApproval | null>(null)
 
     React.useEffect(() => {
         let alive = true
@@ -144,7 +155,8 @@ function ApproveOnPhone({ t }: { t: Translate }) {
                 if (progress.state === "denied" || progress.state === "expired") return setStatus(progress.state)
                 if (progress.state === "compare") {
                     setSas(progress.sas)
-                    setStatus("compare")
+                    // NEU-1: the key is taken only after the user said here that both devices show the same number
+                    setStatus(progress.confirmed ? "confirmed" : "compare")
                 }
                 else setStatus("waiting")
             }
@@ -157,7 +169,10 @@ function ApproveOnPhone({ t }: { t: Translate }) {
             }
             timer = setTimeout(() => void poll(pending), 2000)
         }
-        void askForApproval().then(pending => alive && void poll(pending), error => {
+        void askForApproval().then(pending => {
+            pendingRef.current = pending
+            if (alive) void poll(pending)
+        }, error => {
             if (!alive) return
             setFailure(accountErrorText(t, error))
             setStatus("failed")
@@ -168,15 +183,40 @@ function ApproveOnPhone({ t }: { t: Translate }) {
         }
     }, [attempt, t])
 
+    async function answer(same: boolean) {
+        const pending = pendingRef.current
+        if (!pending || answering) return
+        setAnswering(true)
+        try {
+            const progress = await answerNumber(pending, same)
+            if (progress.state === "approved") return void approvalDone()
+            if (progress.state === "denied" || progress.state === "expired") setStatus(progress.state)
+            else if (progress.state === "compare" && progress.confirmed) setStatus("confirmed")
+        }
+        catch (error) {
+            setFailure(accountErrorText(t, error))
+            setStatus("failed")
+        }
+        finally {
+            setAnswering(false)
+        }
+    }
+
     const ended = status === "denied" || status === "expired" || status === "failed"
     const statusText = status === "denied" ? t("The request was denied.", "Die Anfrage wurde abgelehnt.")
         : status === "expired" ? t("The request expired.", "Die Anfrage ist abgelaufen.")
             : status === "failed" ? failure ?? ""
-                : status === "compare" ? t("Check that your phone shows the same number, then approve there.", "Prüf, ob dein Handy dieselbe Zahl zeigt, und gib dort frei.")
-                    : t("Waiting for your other device…", "Warte auf dein anderes Gerät …")
+                : status === "compare" ? t("Does your other device show the same number?", "Zeigt dein anderes Gerät dieselbe Zahl?")
+                    : status === "confirmed" ? t("Now approve on your other device.", "Gib jetzt auf deinem anderen Gerät frei.")
+                        : t("Waiting for your other device…", "Warte auf dein anderes Gerät …")
 
     return <View className="gap-6">
         <NoScreenshots id="account-approve-here" />
+        {notice === "key-changed" && <SettingsGroup title={t("Your account's key changed", "Der Schlüssel deines Kontos hat sich geändert")}
+            note={t("Since this device last synced, the account switched to a key none of your devices vouched for. That happens after Start fresh on another device, or when someone tries to get in. Nothing was imported or uploaded. If you didn't start fresh, don't approve this device and change your password.",
+                "Seit dieses Gerät zuletzt synchronisiert hat, nutzt das Konto einen Schlüssel, den keines deiner Geräte bestätigt hat. Das passiert nach Neu anfangen auf einem anderen Gerät oder wenn jemand reinzukommen versucht. Nichts wurde importiert oder hochgeladen. Wenn du nicht neu angefangen hast, gib dieses Gerät nicht frei und ändere dein Passwort.")}>
+            {null}
+        </SettingsGroup>}
         <SettingsGroup title={t("Approve on your phone", "Auf deinem Handy freigeben")}
             note={t("Open Seanime Mobile on a device that is already signed in. It asks if this device may sign in.",
                 "Öffne Seanime Mobile auf einem Gerät, das schon angemeldet ist. Es fragt, ob dieses Gerät sich anmelden darf.")}>
@@ -185,6 +225,10 @@ function ApproveOnPhone({ t }: { t: Translate }) {
                     className={cn("text-[34px] font-bold tracking-[3px]", !sas && "text-sm-text-subtle")}>{sas ? formatSas(sas) : "··· ···"}</Text>
                 <Text accessibilityRole={ended ? "alert" : undefined} className="text-center text-[15px] leading-[23px] text-sm-text-muted">{statusText}</Text>
             </View>
+            {status === "compare" && <View className="flex-row gap-2 bg-sm-surface px-4 py-3">
+                <Button intent="secondary" wrapperClassName="flex-1" disabled={answering} onPress={() => void answer(false)}>{t("No, different", "Nein, andere")}</Button>
+                <Button intent="primary" wrapperClassName="flex-1" loading={answering} onPress={() => void answer(true)}>{t("Yes, same number", "Ja, dieselbe")}</Button>
+            </View>}
             {ended && <LinkRow label={t("Ask again", "Neu anfragen")} tone="accent" onPress={() => {
                 setStatus("asking")
                 setSas(null)
@@ -292,7 +336,7 @@ function Overview({ t }: { t: Translate }) {
         </SettingsGroup>
 
         <SettingsGroup title={t("Account", "Konto")}>
-            {account.kind === "email" && <LinkRow label={t("Change password", "Passwort ändern")} note={t("Signs out your other devices", "Meldet deine anderen Geräte ab")} onPress={() => setSheet("password")} />}
+            {account.kind === "email" && <LinkRow label={t("Change password", "Passwort ändern")} note={t("Signs out your other devices and disconnects Google", "Meldet deine anderen Geräte ab und trennt Google")} onPress={() => setSheet("password")} />}
             {account.kind === "email" && info?.googleLinked && <LinkRow label={t("Disconnect Google", "Google trennen")}
                 note={t("Google sign-in is linked to this account", "Google-Anmeldung ist mit diesem Konto verknüpft")} onPress={() => setSheet("google")} />}
             <LinkRow label={t("Sign out", "Abmelden")} note={t("The data on this device stays", "Die Daten auf diesem Gerät bleiben")} onPress={() => setSheet("signout")} />
@@ -337,7 +381,7 @@ function Overview({ t }: { t: Translate }) {
             }} />
         <InputSheet t={t} open={removing !== null} onOpenChange={open => !open && setRemoving(null)} title={t(`Remove ${removing?.name ?? ""}?`, `${removing?.name ?? ""} entfernen?`)} danger
             field={account.kind === "email" ? "password" : "none"}
-            text={t("The device is signed out and gets no new data. Its own data stays on it.", "Das Gerät wird abgemeldet und bekommt keine neuen Daten. Seine eigenen Daten bleiben darauf.")}
+            text={t("The device is signed out and your devices switch to a new key right away, so it can't read anything synced from now on. Its own data stays on it.", "Das Gerät wird abgemeldet und deine Geräte wechseln sofort zu einem neuen Schlüssel, damit es ab jetzt nichts Synchronisiertes mehr lesen kann. Seine eigenen Daten bleiben darauf.")}
             placeholder={t("Your password", "Dein Passwort")} action={t("Remove", "Entfernen")}
             onSubmit={async password => {
                 if (removing) await removeAccountDevice(removing.id, password)

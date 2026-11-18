@@ -31,7 +31,7 @@ describe("account states", () => {
 
 describe("approval requests", () => {
     const request = (id: string, status: ApprovalRequest["status"], createdAt: number, expiresAt = 10_000): ApprovalRequest => ({
-        id, deviceName: "Galaxy Tab", devicePub: "", commitment: "", approverNonce: null, reveal: null, status, createdAt, expiresAt,
+        id, deviceName: "Galaxy Tab", devicePub: "", commitment: "", approverNonce: null, approverPub: null, reveal: null, status, createdAt, expiresAt,
     })
     it("keeps the ones still waiting, oldest first", () => {
         const list = [request("b", "nonce", 20), request("a", "pending", 10), request("c", "approved", 5), request("d", "denied", 6), request("e", "pending", 7, 500)]
