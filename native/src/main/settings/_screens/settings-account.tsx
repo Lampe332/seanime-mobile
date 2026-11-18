@@ -324,8 +324,11 @@ function Overview({ t }: { t: Translate }) {
         <SettingsGroup title={t("Sync", "Synchronisierung")} note={account.email ?? undefined}>
             {lastSync?.state === "import-available" && <LinkRow label={t("Import your settings", "Einstellungen importieren")} tone="accent"
                 note={t("Your account has data from another device", "Dein Konto hat Daten von einem anderen Gerät")} onPress={() => setImportDismissed(false)} />}
+            {/* the status under the action, not beside it: as a value it took 55 % of the row, and in Russian the label broke
+                mid-word ("Синхронизирова/ть") while the status was cut ("Синхронизировано 5 м…") */}
             <LinkRow label={syncing ? t("Syncing…", "Wird synchronisiert …") : t("Sync now", "Jetzt synchronisieren")} disabled={syncing}
-                value={syncedAgo(t, account.lastSyncAt, Math.max(now, account.lastSyncAt ?? 0))} note={syncNote} chevron={false} onPress={() => void syncNowPressed()} />
+                note={[syncedAgo(t, account.lastSyncAt, Math.max(now, account.lastSyncAt ?? 0)), syncNote].filter(Boolean).join("\n")} chevron={false}
+                onPress={() => void syncNowPressed()} />
         </SettingsGroup>
 
         <SettingsGroup title={t("Devices", "Geräte")} note={t("Only the devices you keep get a new key. Removing a device or leaving it out signs it out for good, so it can't read anything new.",
@@ -439,12 +442,15 @@ function ChangeKeySheet({ t, devices, off, password, onClose, onSubmit }: {
         }
     }
     return <Sheet title={t("Change encryption key", "Schlüssel wechseln")} open onOpenChange={next => !busy && !next && onClose()}
-        footer={<>
-            <Button intent="secondary" wrapperClassName="flex-1" disabled={busy} onPress={onClose}>{t("Cancel", "Abbrechen")}</Button>
-            <Button intent={leaving.length > 0 ? "danger" : "primary"} wrapperClassName="flex-1" disabled={password && !value} loading={busy} onPress={() => void submit()}>
+        // stacked, each button the sheet's full width: side by side, "Удалить 1 устройство" or "Remover 1 dispositivo" is wider
+        // than half a phone's sheet, and the button's single line cuts it with an ellipsis; stacked always, so the footer does
+        // not jump while devices are ticked
+        footer={<View className="flex-1 gap-2">
+            <Button intent={leaving.length > 0 ? "danger" : "primary"} disabled={password && !value} loading={busy} onPress={() => void submit()}>
                 {leaving.length > 0 ? plural(t, leaving.length, ["Remove 1 device", "Remove {0} devices"], ["1 Gerät entfernen", "{0} Geräte entfernen"]) : t("Change key", "Wechseln")}
             </Button>
-        </>}>
+            <Button intent="secondary" disabled={busy} onPress={onClose}>{t("Cancel", "Abbrechen")}</Button>
+        </View>}>
         <View className="gap-3">
             <Text className="text-[15px] leading-[23px] text-sm-text-muted">
                 {t("Your data gets a new key. Only the ticked devices get it; the others are removed and can't read anything you sync from now on.",
