@@ -393,8 +393,8 @@ function Overview({ t }: { t: Translate }) {
 function syncNoteFor(t: Translate, state: string | undefined): string | undefined {
     switch (state) {
         case "key-changed": return t("This device was removed from the account. Sign out and sign in again.", "Dieses Gerät wurde aus dem Konto entfernt. Melde dich ab und wieder an.")
-        case "key-untrusted": return t("Sync stopped: the account's key changed, and none of your devices vouched for it. If you didn't start fresh on another device, someone may be trying to get in. Sign out, then sign in again.",
-            "Sync gestoppt: Der Schlüssel des Kontos wurde gewechselt, ohne dass eines deiner Geräte das bestätigt hat. Wenn du nicht auf einem anderen Gerät neu angefangen hast, versucht vielleicht jemand reinzukommen. Melde dich ab und wieder an.")
+        case "key-untrusted": return t("Sync stopped: the account's key changed, and none of your devices vouched for it. That happens after Start fresh on another device, when this device missed more than one key change, or when someone tries to get in. Sign out, then sign in again.",
+            "Sync gestoppt: Der Schlüssel des Kontos wurde gewechselt, ohne dass eines deiner Geräte das bestätigt hat. Das passiert nach Neu anfangen auf einem anderen Gerät, wenn dieses Gerät mehr als einen Schlüsselwechsel verpasst hat, oder wenn jemand reinzukommen versucht. Melde dich ab und wieder an.")
         case "rate-limited": return t("Paused for a moment, too many syncs.", "Kurz pausiert, zu viele Syncs.")
         case "rollback-rejected": return t("The server sent older data than this device knows. Nothing was changed.", "Der Server schickte ältere Daten, als dieses Gerät kennt. Nichts wurde geändert.")
         default: return undefined
