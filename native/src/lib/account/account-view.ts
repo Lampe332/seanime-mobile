@@ -3,7 +3,7 @@
 import type { AccountEvent, ApprovalRequest } from "@/core/account/client"
 import type { SyncResult } from "@/core/account/sync"
 import { plural, type Translate } from "@/lib/app-language"
-import { formatDate } from "@/lib/i18n/format"
+import { format } from "date-fns/format"
 
 /*
  * What the account screens show, without React: which state the account is in, "Synced 2 min ago", how strong a new
@@ -33,9 +33,25 @@ export function syncedAgo(t: Translate, lastSyncAt: number | null, now: number):
     return plural(t, days, ["Synced 1 day ago", "Synced {0} days ago"], ["Vor 1 Tag synchronisiert", "Vor {0} Tagen synchronisiert"])
 }
 
-/** A day of the account screens (a device's last visit, a security event): "11/18/2026", "18.11.2026", the language's own form elsewhere */
+/**
+ * The short date of each app language, as CLDR writes it (what Intl gives in Node). Fixed patterns, not Intl: Hermes on
+ * Android formatted zh-CN in the phone's own order ("18.11.2026" on a German phone, where ja gave "2026/11/18").
+ * A Map, not an object: scripts/i18n-extract.mjs reads an object with `en` and `de` as a text to translate.
+ */
+const ACCOUNT_DATE_PATTERNS = new Map([
+    ["en", "M/d/yyyy"],
+    ["de", "d.M.yyyy"],
+    ["es", "d/M/yyyy"],
+    ["ru", "dd.MM.yyyy"],
+    ["zh-Hans", "yyyy/M/d"],
+    ["pt-BR", "dd/MM/yyyy"],
+    ["fr", "dd/MM/yyyy"],
+    ["ja", "yyyy/M/d"],
+])
+
+/** A day of the account screens (a device's last visit, a security event): "11/18/2026", "18.11.2026", "2026/11/18" */
 export function accountDate(language: string, seconds: number): string {
-    return formatDate(new Date(seconds * 1000), language, ["M/d/yyyy", "d.M.yyyy"], { day: "numeric", month: "numeric", year: "numeric" })
+    return format(new Date(seconds * 1000), ACCOUNT_DATE_PATTERNS.get(language) ?? "M/d/yyyy")
 }
 
 export const MIN_PASSWORD_LENGTH = 10

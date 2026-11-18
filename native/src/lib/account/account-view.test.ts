@@ -1,6 +1,6 @@
 // geschrieben nach: lib/account/account-view.ts, lib/account/account-config.ts und Plan „Account + Sync“ (Abschnitte 2, 6.4, 6.6, 7); Werte erfunden
 
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type { ApprovalRequest } from "@/core/account/client"
 import { RELEASE_ACCOUNT_API, accountApiBase } from "./account-config"
 import { type Translate, translate } from "@/lib/app-language"
@@ -66,6 +66,35 @@ describe("texts", () => {
         expect(accountDate("en", seconds)).toBe("1/5/2026")
         expect(accountDate("de", seconds)).toBe("5.1.2026")
         expect(accountDate("fr", seconds)).toBe("05/01/2026")
+    })
+    it.each([
+        ["en", "11/18/2026", "1/5/2026"],
+        ["de", "18.11.2026", "5.1.2026"],
+        ["es", "18/11/2026", "5/1/2026"],
+        ["ru", "18.11.2026", "05.01.2026"],
+        ["zh-Hans", "2026/11/18", "2026/1/5"],
+        ["pt-BR", "18/11/2026", "05/01/2026"],
+        ["fr", "18/11/2026", "05/01/2026"],
+        ["ja", "2026/11/18", "2026/1/5"],
+    ])("account date in %s: %s, %s, without Intl", (language, november, january) => {
+        const at = (iso: string) => Date.parse(iso) / 1000
+        // Hermes on Android gave zh-CN the phone's order; the date must not depend on Intl at all
+        vi.stubGlobal("Intl", undefined)
+        try {
+            expect(accountDate(language, at("2026-11-18T12:00:00.000Z"))).toBe(november)
+            expect(accountDate(language, at("2026-01-05T12:00:00.000Z"))).toBe(january)
+        }
+        finally {
+            vi.unstubAllGlobals()
+        }
+    })
+    it("account dates match what CLDR (Intl in Node) writes for each language", () => {
+        const day = new Date(2026, 10, 18, 12)
+        const tags: Record<string, string> = { "en": "en-US", "de": "de-DE", "es": "es", "ru": "ru-RU", "zh-Hans": "zh-CN", "pt-BR": "pt-BR", "fr": "fr-FR", "ja": "ja-JP" }
+        for (const [language, tag] of Object.entries(tags)) {
+            const cldr = new Intl.DateTimeFormat(tag, { day: "numeric", month: "numeric", year: "numeric" }).format(day)
+            expect(accountDate(language, day.getTime() / 1000), language).toBe(cldr)
+        }
     })
     it("recovery code in groups of four", () => {
         expect(formatRecoveryCode("abcdefghijklmnopqrstuvwxyz")).toBe("ABCD EFGH IJKL MNOP QRST UVWX YZ")
