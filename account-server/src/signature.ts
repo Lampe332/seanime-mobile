@@ -35,7 +35,7 @@ const SIG_BYTES = 64;
 /** How long a nonce is remembered after its timestamp: longer than the window it could still be accepted in. */
 const NONCE_KEEP = MAX_SKEW_MS / 1000 + 60;
 /** Largest body any route accepts (rotate: snapshot + meta + multipart overhead); routes keep their own limits. */
-const MAX_BODY_BYTES = 10 * 1024 * 1024 + MAX_JSON_BYTES + 4096;
+export const MAX_BODY_BYTES = 10 * 1024 * 1024 + MAX_JSON_BYTES + 4096;
 
 const unauthorized = () => new HttpError(401, "unauthorized");
 const encoder = new TextEncoder();
@@ -49,14 +49,14 @@ function hex(bytes: Uint8Array): string {
 const digests = new WeakMap<Request, string>();
 
 /**
- * Reads the body once (bounded), remembers its SHA-256 for the signature check and hands the routes an identical
- * request whose body they can read as before.
+ * Reads the body once (at most `maxBytes`, the route's own limit; N-2), remembers its SHA-256 for the signature check
+ * and hands the routes an identical request whose body they can read as before.
  */
-export async function withBodyDigest(request: Request): Promise<Request> {
+export async function withBodyDigest(request: Request, maxBytes: number): Promise<Request> {
   let bytes: Uint8Array = new Uint8Array(0);
   let next = request;
   if (request.body !== null) {
-    bytes = await readLimited(request, MAX_BODY_BYTES);
+    bytes = await readLimited(request, Math.min(maxBytes, MAX_BODY_BYTES));
     next = new Request(request.url, { method: request.method, headers: request.headers, body: bytes });
   }
   digests.set(next, hex(await sha256(bytes)));
@@ -101,6 +101,21 @@ async function useOnce(env: Env, value: string, expiresAt: number): Promise<bool
     .bind(value, expiresAt)
     .run();
   return res.meta.changes > 0;
+}
+
+/** The three signature headers in their exact form and the time within the window; nothing is verified yet (N-2). */
+export function hasSignatureHeaders(request: Request): boolean {
+  const sig = request.headers.get(SIG_HEADER) ?? "";
+  const ts = request.headers.get(TS_HEADER) ?? "";
+  const nonce = request.headers.get(NONCE_HEADER) ?? "";
+  return (
+    sig.length === 86 &&
+    fromB64url(sig)?.byteLength === SIG_BYTES &&
+    /^\d{13}$/.test(ts) &&
+    Math.abs(Date.now() - Number(ts)) <= MAX_SKEW_MS &&
+    nonce.length === 22 &&
+    fromB64url(nonce)?.byteLength === NONCE_BYTES
+  );
 }
 
 /**

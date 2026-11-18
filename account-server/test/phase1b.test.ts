@@ -204,6 +204,9 @@ describe("google sign-in", () => {
   it("rejects wrong aud, iss, nonce, expired, unverified email and a wrong signature", async () => {
     const cases: Array<(n: string) => Promise<string>> = [
       (n) => signJwt(claims(n, { aud: "someone-else.apps.googleusercontent.com" })),
+      // I-1: several audiences without azp naming this client
+      (n) => signJwt(claims(n, { aud: [CLIENT_ID, "someone-else.apps.googleusercontent.com"] })),
+      (n) => signJwt(claims(n, { aud: [CLIENT_ID, "someone-else.apps.googleusercontent.com"], azp: "someone-else.apps.googleusercontent.com" })),
       (n) => signJwt(claims(n, { iss: "https://evil.example.com" })),
       (n) => signJwt(claims(n, { nonce: b64(rand(32)) })),
       (n) => signJwt(claims(n, { exp: nowS() - 600, iat: nowS() - 4200 })),
@@ -405,7 +408,7 @@ async function requestReset(email: string) {
   const exec = createExecutionContext();
   const request = new Request("https://api.example.com/v1/auth/reset-request", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "CF-Connecting-IP": freshIp() },
+    headers: { "Content-Type": "application/json", "CF-Connecting-IP": `10.254.254.${rand(1)[0]}` }, // one /24: the limit counts per email and IP range (N-4)
     body: JSON.stringify({ email }),
   });
   const res = await (worker.fetch as unknown as (r: Request, e: Env, c: ExecutionContext) => Promise<Response>)(request, env, exec);

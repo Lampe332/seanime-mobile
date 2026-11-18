@@ -3,15 +3,19 @@
   "name": "seanime-account",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-17",
+  // N-6: no invocation logs (they hold request data) and no traces. Only the Worker's own console lines are kept:
+  // route and error type, never an IP, email, token or body.
   "observability": {
     "enabled": true,
-    "traces": { "enabled": true }
+    "redact_query_string": true,
+    "logs": { "enabled": true, "invocation_logs": false },
+    "traces": { "enabled": false }
   },
   "vars": {
     "ALLOWED_ORIGIN": "https://seanimemobile.com",
     // Base URL for links in emails (verify, reset).
     "WEB_BASE_URL": "https://seanimemobile.com",
-    // Google signing keys. Tests point this at their own JWKS; production keeps Google's URL.
+    // Google signing keys. Only a test host (*.test, localhost) can replace Google's URL (src/google.ts jwksUrl).
     "GOOGLE_JWKS_URL": "https://www.googleapis.com/oauth2/v3/certs"
   },
   // Values are set with `wrangler secret put`, never committed.

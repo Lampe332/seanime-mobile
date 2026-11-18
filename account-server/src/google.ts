@@ -56,8 +56,22 @@ async function fetchKeys(url: string): Promise<KeyCache> {
   return { url, keys, fetchedAt: t, expiresAt: t + maxAge(res.headers.get("Cache-Control")) };
 }
 
+/** Google's key set. I-2: another URL is only taken for a test host (`*.test`, localhost), never a real one. */
+const GOOGLE_JWKS = "https://www.googleapis.com/oauth2/v3/certs";
+
+export function jwksUrl(configured: string | undefined): string {
+  if (!configured || configured === GOOGLE_JWKS) return GOOGLE_JWKS;
+  try {
+    const host = new URL(configured).hostname;
+    if (host.endsWith(".test") || host === "localhost" || host === "127.0.0.1") return configured;
+  } catch {
+    // not a URL
+  }
+  return GOOGLE_JWKS;
+}
+
 async function signingKey(env: Env, kid: string): Promise<CryptoKey | null> {
-  const url = env.GOOGLE_JWKS_URL;
+  const url = jwksUrl(env.GOOGLE_JWKS_URL);
   const t = now();
   if (!cache || cache.url !== url || cache.expiresAt <= t) {
     cache = await fetchKeys(url);
@@ -114,7 +128,11 @@ export async function verifyGoogleIdToken(env: Env, idToken: string, expectedNon
   const claims = decodeJson(p);
   const t = now();
   const aud = claims.aud;
-  const audOk = typeof aud === "string" ? aud === env.GOOGLE_WEB_CLIENT_ID : Array.isArray(aud) && aud.includes(env.GOOGLE_WEB_CLIENT_ID);
+  // I-1: several audiences only with `azp` naming our client (OIDC Core 3.1.3.7).
+  const audOk =
+    typeof aud === "string"
+      ? aud === env.GOOGLE_WEB_CLIENT_ID
+      : Array.isArray(aud) && aud.includes(env.GOOGLE_WEB_CLIENT_ID) && (aud.length === 1 || claims.azp === env.GOOGLE_WEB_CLIENT_ID);
   if (!env.GOOGLE_WEB_CLIENT_ID || !audOk) throw invalid();
   if (typeof claims.iss !== "string" || !ISSUERS.has(claims.iss)) throw invalid();
   if (typeof claims.exp !== "number" || claims.exp + SKEW_SECONDS < t) throw invalid();

@@ -3,10 +3,18 @@ import { cleanup } from "./cron";
 import * as approval from "./approval";
 import * as id from "./identity";
 import { rotate } from "./rotate";
-import { withBodyDigest } from "./signature";
+import { MAX_JSON_BYTES } from "./http";
+import { MAX_BODY_BYTES, withBodyDigest } from "./signature";
+import { precheckSession } from "./session";
 import * as r from "./routes";
 
 type Handler = (ctx: r.Ctx) => Promise<Response>;
+
+/** N-2: the only routes that take more than a JSON body; only an existing session with signature headers may send one. */
+const UPLOAD_LIMITS: Record<string, number> = {
+  "PUT /v1/sync/snapshot": r.MAX_SNAPSHOT_BYTES,
+  "POST /v1/account/rotate": MAX_BODY_BYTES,
+};
 
 const routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
   ["POST", /^\/v1\/auth\/prelogin$/, r.prelogin],
@@ -52,8 +60,12 @@ async function handle(request: Request, env: Env, isBrowser: boolean, exec: Exec
     if (!m) continue;
     pathMatched = true;
     if (method !== request.method) continue;
-    // The body is read once here so its hash can be checked against the request signature (signature.ts).
-    const req = await withBodyDigest(request);
+    // N-2: before any byte is read, the declared size must fit the route; large bodies only on the upload routes and
+    // only with an existing session and well-formed signature headers. Then the body is read once (bounded) so its
+    // hash can be checked against the request signature (signature.ts).
+    const upload = UPLOAD_LIMITS[`${method} ${pathname}`];
+    if (upload !== undefined) await precheckSession(request, env);
+    const req = await withBodyDigest(request, upload ?? MAX_JSON_BYTES);
     return handler({ request: req, env, isBrowser, params: { ...m.groups }, waitUntil: (p) => exec.waitUntil(p) });
   }
   throw pathMatched ? new HttpError(405, "method_not_allowed") : new HttpError(404, "not_found");

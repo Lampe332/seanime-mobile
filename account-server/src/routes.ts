@@ -1,6 +1,6 @@
 import { fromB64url, hmacSha256, safeEqual, sha256, toB64url } from "./crypto";
 import { clientIp, HttpError, json, noContent, readJson, readLimited, requireMediaType } from "./http";
-import { burstLimit, clearKey, failureWait, fixedWindow, rateKey, recordFailure } from "./ratelimit";
+import { burstLimit, fixedWindow, rateKey, reserveLogin } from "./ratelimit";
 import { DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, StartFreshBody, Uuid } from "./schemas";
 import { sendMail } from "./mail";
 import { issueToken, VERIFY_TTL } from "./identity";
@@ -29,8 +29,6 @@ export interface Ctx {
 export const PEPPER_VERSION = 1;
 const WRONG_LOGIN = "Wrong email or password";
 export const MAX_SNAPSHOT_BYTES = 10 * 1024 * 1024;
-const LOGIN_LIMIT_EMAIL = 5;
-const LOGIN_LIMIT_IP = 20;
 const SIGNUP_LIMIT_IP = 5;
 const UPLOAD_LIMIT = 30;
 const HOUR = 3600;
@@ -153,18 +151,18 @@ export async function login(ctx: Ctx): Promise<Response> {
   const ip = clientIp(request);
   await burstLimit(env.LOGIN_LIMITER, ip);
   const body = await readJson(request, LoginBody);
-
-  const emailKey = await rateKey(env, "login-email", body.email);
-  const ipKey = await rateKey(env, "login-ip", ip);
-  const wait = Math.max(
-    await failureWait(env, emailKey, LOGIN_LIMIT_EMAIL),
-    await failureWait(env, ipKey, LOGIN_LIMIT_IP),
-  );
-  if (wait > 0) throw new HttpError(429, "rate_limited", "Too many attempts. Try again later.", {
-    "Retry-After": String(wait),
-  }, { retryAfter: wait });
   // Signed with the new key and carrying an unused challenge: a captured login cannot be sent again.
   await verifySignIn(env, request, body.sigKey, body.challenge, `email:${body.email}`);
+
+  // M-2: a device whose row carries this signing key (it keeps the key across sign-ins) is never held up by the email
+  // counter; everybody else counts per (email, IP range), so nobody elsewhere can lock the owner out. N-5: counted
+  // before the check.
+  const known = await env.DB.prepare(
+    `SELECT 1 AS k FROM devices d JOIN users u ON u.id = d.user_id WHERE u.email = ? AND d.sig_alg = ? AND d.sig_pub = ?`,
+  )
+    .bind(body.email, body.sigKey.alg, body.sigKey.pub)
+    .first<{ k: number }>();
+  const onSuccess = await reserveLogin(env, ip, body.email, known !== null);
 
   const user = await env.DB.prepare(
     `SELECT id, auth_hash, pepper_version, kdf_params, wrapped_dek, dek_id, email_verified, rewrap_needed
@@ -186,14 +184,13 @@ export async function login(ctx: Ctx): Promise<Response> {
   // Compare against a zero buffer for unknown users so both paths do the same work.
   const match = safeEqual(presented, stored ?? new Uint8Array(32));
   if (!user || !stored || !match || user.pepper_version !== PEPPER_VERSION) {
-    await env.DB.batch([recordFailure(env, emailKey), recordFailure(env, ipKey)]);
     throw new HttpError(401, "wrong_credentials", WRONG_LOGIN);
   }
 
   const session = await newSession(env, user.id, null, body.sigKey);
   await env.DB.batch([
     session.statement,
-    clearKey(env, emailKey),
+    ...onSuccess,
     env.DB.prepare("UPDATE users SET last_active_at = ? WHERE id = ?").bind(now(), user.id),
   ]);
   return withSession(ctx, session.token, {

@@ -3,7 +3,7 @@ import { fromB64url, randomBytes, safeEqual, sha256, toB64url } from "./crypto";
 import { verifyGoogleIdToken } from "./google";
 import { clientIp, HttpError, json, noContent, readJson } from "./http";
 import { sendMail } from "./mail";
-import { burstLimit, failureWait, fixedWindow, rateKey, recordFailure } from "./ratelimit";
+import { burstLimit, fixedWindow, ipRange, rateKey, reserveLogin } from "./ratelimit";
 import { authHash, type Ctx, isUniqueViolation, PEPPER_VERSION, withSession } from "./routes";
 import { GoogleLoginBody, LinkGoogleBody, ResetBody, ResetRequestBody, TokenBody, UnlinkGoogleBody } from "./schemas";
 import { issueChallenge, verifySignIn } from "./signature";
@@ -14,8 +14,6 @@ export const RESET_TTL = 30 * 60;
 const GOOGLE_NONCE_TTL = 5 * 60;
 const RESEND_LIMIT = 3;
 const RESET_LIMIT_EMAIL = 3;
-const LOGIN_LIMIT_EMAIL = 5;
-const LOGIN_LIMIT_IP = 20;
 const HOUR = 3600;
 
 const tokenHash = async (token: string) => toB64url(await sha256(token));
@@ -79,14 +77,16 @@ export async function resendVerification(ctx: Ctx): Promise<Response> {
 // ---------------------------------------------------------------- password reset
 
 /**
- * Same answer for known and unknown emails. 3 per hour per email (the counter exists for unknown ones too).
+ * Same answer for known and unknown emails. 3 per hour per email and IP range (the counter exists for unknown ones too).
  * Token and mail for a known email run after the answer (waitUntil), so both answers take the same time.
  */
 export async function resetRequest(ctx: Ctx): Promise<Response> {
   const { env, request } = ctx;
-  await burstLimit(env.LOGIN_LIMITER, clientIp(request));
+  const ip = clientIp(request);
+  await burstLimit(env.LOGIN_LIMITER, ip);
   const { email } = await readJson(request, ResetRequestBody);
-  await fixedWindow(env, await rateKey(env, "reset-email", email), RESET_LIMIT_EMAIL, HOUR);
+  // N-4: per (email, IP range), so somebody elsewhere cannot use up the owner's reset mails.
+  await fixedWindow(env, await rateKey(env, "reset-email", `${email}|${ipRange(ip)}`), RESET_LIMIT_EMAIL, HOUR);
   const user = await env.DB.prepare("SELECT id FROM users WHERE email = ? AND auth_hash IS NOT NULL")
     .bind(email)
     .first<{ id: string }>();
@@ -292,18 +292,12 @@ async function requirePassword(env: Env, request: Request, userId: string, authK
     .first<{ email: string; auth_hash: string | null; pepper_version: number | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.auth_hash === null) throw new HttpError(409, "no_password", "This account has no password.");
-  const emailKey = await rateKey(env, "login-email", user.email);
-  const ipKey = await rateKey(env, "login-ip", clientIp(request));
-  const wait = Math.max(await failureWait(env, emailKey, LOGIN_LIMIT_EMAIL), await failureWait(env, ipKey, LOGIN_LIMIT_IP));
-  if (wait > 0) {
-    throw new HttpError(429, "rate_limited", "Too many attempts. Try again later.", { "Retry-After": String(wait) }, { retryAfter: wait });
-  }
+  // Counted before the check (N-5); the session is signed in already, but a stolen one must not guess freely.
+  const onSuccess = await reserveLogin(env, clientIp(request), user.email, false);
   const stored = fromB64url(user.auth_hash);
   const ok = stored !== null && safeEqual(await authHash(env, authKey), stored) && user.pepper_version === PEPPER_VERSION;
-  if (!ok) {
-    await env.DB.batch([recordFailure(env, emailKey), recordFailure(env, ipKey)]);
-    throw new HttpError(403, "wrong_password", "Wrong password.");
-  }
+  if (!ok) throw new HttpError(403, "wrong_password", "Wrong password.");
+  await env.DB.batch(onSuccess);
   return user.email;
 }
 

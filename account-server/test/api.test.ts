@@ -314,11 +314,13 @@ describe("sync", () => {
 describe("rate limits", () => {
   it("slows down logins per email with a growing wait, without a hard lock", async () => {
     const u = await signupUser();
+    // Email counters are kept per IP range (M-2): every attempt here comes from one /24, each from its own address.
+    const net = `10.${rand(1)[0]}.${rand(1)[0]}`;
     for (let i = 0; i < 5; i++) {
-      const r = await api("/v1/auth/login", { body: { email: u.email, authKey: b64(rand(32)) } });
+      const r = await api("/v1/auth/login", { ip: `${net}.${i + 1}`, body: { email: u.email, authKey: b64(rand(32)) } });
       expect(r.status).toBe(401);
     }
-    const blocked = await api("/v1/auth/login", { body: { email: u.email, authKey: u.keys.authKey } });
+    const blocked = await api("/v1/auth/login", { ip: `${net}.9`, body: { email: u.email, authKey: u.keys.authKey } });
     expect(blocked.status).toBe(429);
     const wait = Number(blocked.headers.get("Retry-After"));
     expect(wait).toBeGreaterThan(0);
@@ -326,7 +328,7 @@ describe("rate limits", () => {
 
     // Once the wait is over (simulated by moving the last failure back), the right password works again.
     await env.DB.prepare("UPDATE rate_limits SET last_at = last_at - 60 WHERE key LIKE 'login-email:%'").run();
-    const ok = await api("/v1/auth/login", { body: { email: u.email, authKey: u.keys.authKey } });
+    const ok = await api("/v1/auth/login", { ip: `${net}.10`, body: { email: u.email, authKey: u.keys.authKey } });
     expect(ok.status).toBe(200);
   });
 

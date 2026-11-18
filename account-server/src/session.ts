@@ -1,6 +1,6 @@
 import { fromB64url, randomBytes, sha256, toB64url } from "./crypto";
 import { HttpError } from "./http";
-import { verifyRequest, type SigKey } from "./signature";
+import { hasSignatureHeaders, verifyRequest, type SigKey } from "./signature";
 
 export const SESSION_IDLE_SECONDS = 90 * 24 * 3600;
 export const RECENT_AUTH_SECONDS = 10 * 60;
@@ -51,6 +51,19 @@ function tokenFromRequest(request: Request): { token: string; bearer: boolean } 
     if (name === COOKIE_NAME && value && /^[A-Za-z0-9_-]{43}$/.test(value)) return { token: value, bearer: false };
   }
   return null;
+}
+
+/**
+ * N-2: the cheap part of requireSession, before a large body is read: a token of a session that exists and signature
+ * headers of the right form. The signature itself covers the body hash and is checked later by requireSession.
+ */
+export async function precheckSession(request: Request, env: Env): Promise<void> {
+  const presented = tokenFromRequest(request);
+  if (presented === null || !hasSignatureHeaders(request)) throw new HttpError(401, "unauthorized");
+  const row = await env.DB.prepare("SELECT 1 AS k FROM sessions WHERE token_hash = ? AND last_used_at >= ?")
+    .bind(await hashToken(presented.token), now() - SESSION_IDLE_SECONDS)
+    .first<{ k: number }>();
+  if (!row) throw new HttpError(401, "unauthorized");
 }
 
 /**
