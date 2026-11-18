@@ -2,7 +2,7 @@ import { useGettingStarted } from "@/api/hooks/settings.hooks"
 import type { Status } from "@/api/generated/types"
 import { cn } from "@/components/ui/core/styling"
 import { Text } from "@/components/ui/text/text"
-import { type AppLanguage, appLanguageAtom, useTr } from "@/lib/app-language"
+import { APP_LANGUAGES, type AppLanguage, appLanguageAtom, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { buildGettingStartedPayload, DEFAULT_GETTING_STARTED_FEATURES } from "@/main/_features/getting-started/getting-started-payload"
 import { useSetServerStatus } from "@/main/_hooks/use-server-status"
@@ -77,9 +77,9 @@ export function MobileGettingStarted({ status, onPreviewStart }: { status: Statu
                 <View
                     accessibilityRole="radiogroup"
                     accessibilityLabel={t("Language", "Sprache")}
-                    className="flex-row gap-1 rounded-surface-sm bg-sm-surface-raised p-1"
+                    className="flex-row flex-wrap gap-1 rounded-surface-sm bg-sm-surface-raised p-1"
                 >
-                    {([["en", "English"], ["de", "Deutsch"]] as const).map(([value, label]) => {
+                    {APP_LANGUAGES.map(({ value, label }) => {
                         const checked = language === value
                         return (
                             <Pressable
@@ -87,7 +87,7 @@ export function MobileGettingStarted({ status, onPreviewStart }: { status: Statu
                                 accessibilityRole="radio"
                                 accessibilityState={{ checked }}
                                 onPress={() => chooseLanguage(value)}
-                                className={cn("min-h-12 flex-1 items-center justify-center rounded-[8px]", checked && "bg-sm-surface-control")}
+                                className={cn("min-h-12 grow basis-[45%] items-center justify-center rounded-[8px] px-2", checked && "bg-sm-surface-control")}
                             >
                                 <Text className={cn("text-[15px]", checked ? "font-semibold text-sm-text" : "font-medium text-sm-text-muted")}>{label}</Text>
                             </Pressable>
