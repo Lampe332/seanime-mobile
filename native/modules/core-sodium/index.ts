@@ -38,6 +38,17 @@ declare class SeanimeCoreSodiumModule extends NativeModule {
     to_base64(input: Uint8Array, variant: number): string
     /** Throws on text that is not base64 of this variant */
     from_base64(input: string, variant: number): Uint8Array
+    /** N-8: new ECDSA P-256 key in the Android Keystore (StrongBox, else TEE), not exportable; its uncompressed point (65 bytes) */
+    keystore_p256_create(alias: string): Promise<Uint8Array>
+    /** The uncompressed point of the key under `alias`, or null */
+    keystore_p256_public(alias: string): Uint8Array | null
+    /** SHA-256 + ECDSA with the Keystore key; r || s, 64 bytes (the form WebCrypto and the server verify) */
+    keystore_p256_sign(alias: string, message: Uint8Array): Promise<Uint8Array>
+    /** "strongbox", "tee", "software", "unknown" or "none" */
+    keystore_security_level(alias: string): string
+    keystore_delete(alias: string): void
+    /** Self-test: a raw r || s P-256 signature checked with the platform's ECDSA outside the Keystore */
+    p256_verify(publicKey: Uint8Array, message: Uint8Array, signature: Uint8Array): boolean
 }
 
 export default requireNativeModule<SeanimeCoreSodiumModule>("SeanimeCoreSodium")
