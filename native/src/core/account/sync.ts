@@ -1,8 +1,8 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitte 6.5, 6.6, 8 Rollback-Schutz, 10.2) und dem Server-Vertrag account-server/src/routes.ts (sync/meta, sync/snapshot mit If-Match und X-Dek-Id, account/keys/device)
 
 import type { RestoreMode } from "../backup/backup"
-import { AccountApiError, type AccountClient, ConflictError, RateLimitedError, ReauthRequiredError, UnauthorizedError } from "./client"
-import { AccountCryptoError } from "./crypto"
+import { AccountApiError, type AccountClient, ConflictError, RateLimitedError, UnauthorizedError } from "./client"
+import { AccountCryptoError, UntrustedKeyChangeError } from "./crypto"
 import { pickUpDeviceKey } from "./devices"
 import { type Gzip, type PackageEnvironment, type SyncPackage, applyPackage, makePackage, openPackage, packageHash, sealPackage } from "./package"
 import type { AccountSession, AccountState } from "./session"
@@ -19,7 +19,12 @@ import type { Sodium } from "./sodium"
  * - A newer package while this device changed nothing replaces the local state; with changes on both sides they merge
  *   (restoreBackup "merge", watch positions by time, package.ts).
  * - Another device rotated the DEK: this device fetches the new DEK sealed to its own key (account/keys/device) and
- *   syncs on; "key-changed" only when the server has no newer key for it (it was removed, or start fresh ran).
+ *   syncs on, but only when its current DEK vouches for the new one (chain MAC, devices.ts pickUpDeviceKey). Otherwise
+ *   "key-untrusted": start fresh ran elsewhere, or someone without the key (a taken-over Google account, a changed
+ *   server) tried to switch the account to a key of its own. The device then neither imports nor uploads.
+ *   "key-changed" when the server has no newer key for it (it was removed).
+ * - The server asks for a rotation (a device was removed): the sync tries it, and when it can't run here (the password
+ *   is needed, the sign-in is too old, an unverified device is in the list) it syncs on and keeps the flag (M-4).
  */
 
 export const SYNC_INTERVAL_MS = 5 * 60 * 1000
@@ -38,8 +43,10 @@ export type SyncOutcome =
     /** The account's newer package replaced the unchanged local state */
     | { state: "updated", version: number }
     | { state: "merged", version: number }
-    /** The account uses a key this device cannot get (the device was removed, or start fresh ran elsewhere) */
+    /** The account uses a key this device cannot get (the device was removed) */
     | { state: "key-changed" }
+    /** The account switched to a key this device's key does not vouch for (start fresh elsewhere, or an attack): sync stops */
+    | { state: "key-untrusted" }
     | { state: "rollback-rejected", version: number, highest: number }
     | { state: "rate-limited", retryAfter: number | null }
 
@@ -116,11 +123,13 @@ export class SyncEngine {
     private async withKeyPickup(work: () => Promise<SyncResult>): Promise<SyncResult> {
         const first = await work()
         if (first.state !== "key-changed") return first
+        const flags: SyncFlags = { rotationRequired: first.rotationRequired, rewrapNeeded: first.rewrapNeeded, recoveryRenewalNeeded: first.recoveryRenewalNeeded }
         try {
             if (!(await pickUpDeviceKey({ api: this.deps.api, session: this.deps.session, sodium: this.deps.sodium }))) return first
         }
         catch (error) {
-            // no key for this device on the server, or it does not open with this device's key
+            if (error instanceof UntrustedKeyChangeError) return { state: "key-untrusted", ...flags }
+            // no key for this device on the server
             if (error instanceof AccountApiError || error instanceof AccountCryptoError) return first
             throw error
         }
@@ -200,7 +209,10 @@ export class SyncEngine {
                 }
             }
             catch (error) {
-                if (!(error instanceof ReauthRequiredError)) throw error
+                // not possible here right now (password needed, old sign-in, unverified device, a race): the flag stays
+                // and the screens ask for what is missing; the sync itself goes on (M-4)
+                if (!(error instanceof AccountApiError || error instanceof AccountCryptoError)) throw error
+                if (error instanceof UnauthorizedError) return { state: "signed-out", ...NO_FLAGS }
             }
         }
         const current = meta

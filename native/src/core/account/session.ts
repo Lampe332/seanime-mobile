@@ -24,6 +24,8 @@ const KEYS = {
     dek: `${ACCOUNT_STORE_PREFIX}dek`,
     device: `${ACCOUNT_STORE_PREFIX}device-key`,
     sync: `${ACCOUNT_STORE_PREFIX}sync`,
+    /** Highest Argon2 parameters seen per email: a server that lowers them is refused (H-1) */
+    kdf: `${ACCOUNT_STORE_PREFIX}kdf`,
 } as const
 
 export function isAccountKey(key: string): boolean {
@@ -83,7 +85,9 @@ export class AccountSession {
     async load(): Promise<AccountState | null> {
         const session = await this.read<SessionInfo>(KEYS.session)
         if (!session) return null
-        const dek = await this.read<{ dekId: string, dek: string }>(KEYS.dek)
+        const stored = await this.read<{ userId?: string | null, dekId: string, dek: string }>(KEYS.dek)
+        // a DEK kept for another account (its session ended) is never this account's
+        const dek = stored && (stored.userId == null || stored.userId === session.userId) ? stored : null
         const sync = await this.read<SyncState>(KEYS.sync)
         return {
             ...session,
@@ -112,8 +116,33 @@ export class AccountSession {
         await this.write(KEYS.session, { ...current, ...patch })
     }
 
+    /** Stores the DEK together with the account it belongs to, so it outlives a session the server ended (N-3) */
     async saveDek(dekId: string, dek: Uint8Array): Promise<void> {
-        await this.write(KEYS.dek, { dekId, dek: toB64(this.sodium, dek) })
+        const session = await this.read<SessionInfo>(KEYS.session)
+        await this.write(KEYS.dek, { userId: session?.userId ?? null, dekId, dek: toB64(this.sodium, dek) })
+    }
+
+    /** The DEK this device holds, also after the session ended; null when there is none */
+    async keptKey(): Promise<{ userId: string | null, dekId: string, dek: Uint8Array } | null> {
+        const kept = await this.read<{ userId?: string | null, dekId: string, dek: string }>(KEYS.dek)
+        return kept ? { userId: kept.userId ?? null, dekId: kept.dekId, dek: fromB64(this.sodium, kept.dek, 32) } : null
+    }
+
+    async forgetDek(): Promise<void> {
+        await this.store.deleteItemAsync(KEYS.dek)
+    }
+
+    /** The highest Argon2 parameters this device saw for an email (H-1) */
+    async kdfFloor(email: string): Promise<{ m: number, t: number } | null> {
+        return (await this.read<Record<string, { m: number, t: number }>>(KEYS.kdf))?.[email.trim().toLowerCase()] ?? null
+    }
+
+    async rememberKdf(email: string, kdf: { m: number, t: number }): Promise<void> {
+        const all = (await this.read<Record<string, { m: number, t: number }>>(KEYS.kdf)) ?? {}
+        const key = email.trim().toLowerCase()
+        const seen = all[key]
+        all[key] = { m: Math.max(seen?.m ?? 0, kdf.m), t: Math.max(seen?.t ?? 0, kdf.t) }
+        await this.write(KEYS.kdf, all)
     }
 
     async updateSync(patch: Partial<SyncState>): Promise<SyncState> {
@@ -136,6 +165,15 @@ export class AccountSession {
      * device then updates its row on the server instead of adding a second one (account-server PUT account/keys).
      */
     async clear(everything = false): Promise<void> {
-        for (const key of [KEYS.session, KEYS.dek, KEYS.sync, ...(everything ? [KEYS.device] : [])]) await this.store.deleteItemAsync(key)
+        for (const key of [KEYS.session, KEYS.dek, KEYS.sync, ...(everything ? [KEYS.device, KEYS.kdf] : [])]) await this.store.deleteItemAsync(key)
+    }
+
+    /**
+     * The server ended the session (401: expired, password reset, removed elsewhere): only the token goes. The DEK, the
+     * device key pair and the sync state stay until the user signs in again or signs out (N-3), so a sign-in after a
+     * reset without code can wrap the kept DEK for the new password.
+     */
+    async dropSession(): Promise<void> {
+        await this.store.deleteItemAsync(KEYS.session)
     }
 }

@@ -1,12 +1,20 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitte 5 DEK-Rotation, 6.4 Freigabe, 6.9) und dem Server-Vertrag account-server/src/approval.ts, rotate.ts und routes.ts (GET devices mit devicePub, GET account/keys/device)
 
-import { AccountApiError, type AccountClient, type ApprovalRequest } from "./client"
+import { AccountApiError, type AccountClient, type ApprovalRequest, type DeviceInfo } from "./client"
 import {
     AccountCryptoError,
+    UntrustedDevicesError,
+    UntrustedKeyChangeError,
+    chainMac,
+    chainMacValid,
     commitment,
     commitmentMatches,
     decryptPackage,
+    dekProof,
+    deviceMac,
+    deviceMacValid,
     encryptPackage,
+    equalBytes,
     fromB64,
     newApprovalRandom,
     newDek,
@@ -81,7 +89,7 @@ export async function checkApproval(deps: AccountDeps, pending: PendingApproval)
         case "approved": {
             if (!request.sealedDek || !request.dekId || !request.deviceId) throw new AccountApiError(502, "invalid_request", "The approval came without a key.")
             const keys = await deviceKeys(deps)
-            const dek = openSealedDek(sodium, request.sealedDek, keys)
+            const dek = openSealedDek(sodium, request.sealedDek, request.dekId, keys)
             await session.saveDek(request.dekId, dek)
             await session.updateSession({ deviceId: request.deviceId })
             wipe(sodium, dek, pending.rN)
@@ -134,9 +142,44 @@ export async function approveRequest(deps: AccountDeps, turn: ApproverTurn): Pro
     if (!state?.dek || !state.dekId) throw new AccountCryptoError("this device has no key to share")
     const check = await compareRequest(deps, turn)
     if (check.state !== "compare") throw new AccountApiError(409, "wrong_order", `The request is ${check.state}.`)
-    const sealed = sealDek(deps.sodium, state.dek, fromB64(deps.sodium, turn.request.devicePub, 32))
-    await deps.client.approve(turn.request.id, state.dekId, sealed)
+    const devicePub = fromB64(deps.sodium, turn.request.devicePub, 32)
+    const sealed = sealDek(deps.sodium, state.dek, state.dekId, devicePub)
+    // the new device's row carries this device's MAC, so the other devices trust it too
+    const mac = deviceMac(deps.sodium, state.dek, { userId: state.userId, dekId: state.dekId, devicePub })
+    await deps.client.approve(turn.request.id, state.dekId, sealed, mac)
     wipe(deps.sodium, state.dek, turn.rO)
+}
+
+/* ---- The device list, checked against the DEK (K-1) ---- */
+
+export type CheckedDevice = DeviceInfo & { verified: boolean }
+
+/**
+ * The account's devices, each marked whether a holder of the current DEK added it (valid MAC). The server cannot add a
+ * verified device; an unverified one is shown as such and gets nothing sealed to it.
+ */
+export async function checkedDevices(deps: AccountDeps): Promise<CheckedDevice[]> {
+    const [state, devices] = await Promise.all([deps.session.load(), deps.client.devices()])
+    try {
+        return devices.map(device => ({ ...device, verified: !!state?.dek && !!state.dekId && deviceVerified(deps, state, device) }))
+    }
+    finally {
+        wipe(deps.sodium, state?.dek)
+    }
+}
+
+function deviceVerified(deps: AccountDeps, state: { userId: string, dek: Uint8Array | null, dekId: string | null, deviceKeys: { publicKey: Uint8Array } | null }, device: DeviceInfo): boolean {
+    if (!state.dek || !state.dekId || device.dekId !== state.dekId) return false
+    let pub: Uint8Array
+    try {
+        pub = fromB64(deps.sodium, device.devicePub, 32)
+    }
+    catch {
+        return false
+    }
+    // the row the server calls this device must hold this device's own key
+    if (device.current && (!state.deviceKeys || !equalBytes(pub, state.deviceKeys.publicKey))) return false
+    return deviceMacValid(deps.sodium, state.dek, { userId: state.userId, dekId: state.dekId, devicePub: pub }, device.mac)
 }
 
 export function denyRequest(deps: AccountDeps, requestId: string): Promise<void> {
@@ -148,19 +191,36 @@ export function denyRequest(deps: AccountDeps, requestId: string): Promise<void>
 /**
  * Another device rotated the DEK: this device fetches the new DEK the rotation sealed to its key and opens it with its
  * private key (email and Google accounts alike, no new sign-in). False when the server holds no newer key for it.
+ * The new DEK is taken only when this device's current DEK vouches for it (chain MAC, K-1): a key the server or a
+ * session without the DEK made up, an account reset by start fresh, or a jump over a rotation this device missed all end
+ * in UntrustedKeyChangeError; the device then imports and uploads nothing until the user signs in again.
  */
 export async function pickUpDeviceKey(deps: { api: Pick<AccountClient, "deviceKey">, session: AccountSession, sodium: Sodium }): Promise<boolean> {
     const state = await deps.session.load()
-    if (!state?.deviceKeys || !state.deviceId) return false
+    if (!state?.deviceKeys || !state.deviceId || !state.dek || !state.dekId) {
+        wipe(deps.sodium, state?.dek)
+        return false
+    }
     const key = await deps.api.deviceKey()
     if (key.deviceId !== state.deviceId || key.dekId === state.dekId) {
         wipe(deps.sodium, state.dek)
         return false
     }
-    const dek = openSealedDek(deps.sodium, key.sealedDek, state.deviceKeys)
-    await deps.session.saveDek(key.dekId, dek)
-    wipe(deps.sodium, dek, state.dek)
-    return true
+    let dek: Uint8Array | null = null
+    try {
+        dek = openSealedDek(deps.sodium, key.sealedDek, key.dekId, state.deviceKeys)
+        const binding = { userId: state.userId, oldDekId: state.dekId, newDekId: key.dekId }
+        if (key.chainFrom !== state.dekId || !chainMacValid(deps.sodium, state.dek, binding, dek, key.chainMac)) throw new UntrustedKeyChangeError()
+        await deps.session.saveDek(key.dekId, dek)
+        return true
+    }
+    catch (error) {
+        if (error instanceof AccountCryptoError) throw error instanceof UntrustedKeyChangeError ? error : new UntrustedKeyChangeError()
+        throw error
+    }
+    finally {
+        wipe(deps.sodium, dek, state.dek)
+    }
 }
 
 export type RotationResult = {
@@ -189,20 +249,28 @@ export async function rotate(deps: AccountDeps, keys: { encKey?: Uint8Array, rec
     const plain = snapshot ? decryptPackage(sodium, snapshot.bytes, state.dek, { userId: state.userId, version: snapshot.version, dekId: state.dekId }) : null
 
     const devices = await client.devices()
+    // only devices a DEK holder added get the new key; a row nobody vouches for stops the rotation (remove it first)
+    const untrusted = devices.filter(device => !deviceVerified(deps, state, device))
+    if (untrusted.length > 0) {
+        wipe(sodium, state.dek, plain)
+        throw new UntrustedDevicesError(untrusted.map(device => device.name))
+    }
     const dek = newDek(sodium)
     const dekId = newDekId(sodium)
     try {
         const sealed = devices.map(device => {
-            const pub = device.current ? state.deviceKeys!.publicKey : fromB64(sodium, device.devicePub, 32)
-            return { deviceId: device.id, sealedDek: sealDek(sodium, dek, pub) }
+            const devicePub = fromB64(sodium, device.devicePub, 32)
+            return { deviceId: device.id, sealedDek: sealDek(sodium, dek, dekId, devicePub), mac: deviceMac(sodium, dek, { userId: state.userId, dekId, devicePub }) }
         })
         const blob = plain ? encryptPackage(sodium, plain, dek, { userId: state.userId, version: meta.version + 1, dekId }) : null
         const result = await client.rotate({
             oldDekId: state.dekId,
             dekId,
+            dekProof: dekProof(sodium, dek),
+            chainMac: chainMac(sodium, state.dek, { userId: state.userId, oldDekId: state.dekId, newDekId: dekId }, dek),
             devices: sealed,
-            ...(keys.encKey ? { wrappedDek: wrapKey(sodium, dek, keys.encKey, state.userId, "password") } : {}),
-            ...(keys.recoveryKey ? { recoveryWrappedDek: wrapKey(sodium, dek, keys.recoveryKey, state.userId, "recovery") } : {}),
+            ...(keys.encKey ? { wrappedDek: wrapKey(sodium, dek, keys.encKey, state.userId, dekId, "password") } : {}),
+            ...(keys.recoveryKey ? { recoveryWrappedDek: wrapKey(sodium, dek, keys.recoveryKey, state.userId, dekId, "recovery") } : {}),
         }, blob, meta.version)
         await session.saveDek(dekId, dek)
         await session.updateSync({ highestVersion: Math.max(state.highestVersion, result.version) })

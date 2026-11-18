@@ -7,10 +7,17 @@ import { beforeAll, describe, expect, it } from "vitest"
 import {
     AccountCryptoError,
     DEFAULT_KDF,
+    UnsafeKdfError,
+    chainMac,
+    chainMacValid,
+    checkKdf,
     commitment,
     commitmentMatches,
     decryptPackage,
+    dekProof,
     deriveKeys,
+    deviceMac,
+    deviceMacValid,
     encryptPackage,
     newRecoveryCode,
     newSigningKeyPair,
@@ -52,6 +59,8 @@ const INPUT = {
     packageNonce: hex(bytes(24, 7)),
     version: 3,
     dekId: "dek-vector-1",
+    newDekId: "dek-vector-2",
+    newDek: hex(bytes(32, 180)),
     devicePub: hex(bytes(32, 1)),
     rN: hex(bytes(32, 33)),
     rO: hex(bytes(32, 65)),
@@ -76,15 +85,18 @@ type Vectors = {
         sealPublicKey: string
         sealedDek: string
         signature: string
+        deviceMac: string
+        dekProof: string
+        chainMac: string
     }
 }
 
 async function compute(): Promise<Vectors["output"] & { sealPrivateKey: Uint8Array }> {
     const { authKey, encKey } = await deriveKeys(sodium, INPUT.password, unhex(INPUT.salt), INPUT.kdf)
     const dek = unhex(INPUT.dek)
-    const wrappedPassword = wrapKey(fixedRandom(sodium, unhex(INPUT.wrapNonce)), dek, encKey, INPUT.userId, "password")
+    const wrappedPassword = wrapKey(fixedRandom(sodium, unhex(INPUT.wrapNonce)), dek, encKey, INPUT.userId, INPUT.dekId, "password")
     const { code, key } = newRecoveryCode(fixedRandom(sodium, unhex(INPUT.recoveryBytes)))
-    const wrappedRecovery = wrapKey(fixedRandom(sodium, unhex(INPUT.wrapNonce)), dek, key, INPUT.userId, "recovery")
+    const wrappedRecovery = wrapKey(fixedRandom(sodium, unhex(INPUT.wrapNonce)), dek, key, INPUT.userId, INPUT.dekId, "recovery")
     const pkg = encryptPackage(fixedRandom(sodium, unhex(INPUT.packageNonce)), new TextEncoder().encode(INPUT.packagePlain), dek, { userId: INPUT.userId, version: INPUT.version, dekId: INPUT.dekId })
     const seed = (sodium as unknown as { crypto_box_seed_keypair(seed: Uint8Array): { publicKey: Uint8Array, privateKey: Uint8Array } }).crypto_box_seed_keypair(unhex(INPUT.sealSeed))
     return {
@@ -99,7 +111,10 @@ async function compute(): Promise<Vectors["output"] & { sealPrivateKey: Uint8Arr
         sas: sas(sodium, unhex(INPUT.devicePub), unhex(INPUT.rN), unhex(INPUT.rO)),
         sealPublicKey: hex(seed.publicKey),
         sealPrivateKey: seed.privateKey,
-        sealedDek: sealDek(sodium, dek, seed.publicKey),
+        sealedDek: sealDek(sodium, dek, INPUT.dekId, seed.publicKey),
+        deviceMac: deviceMac(sodium, dek, { userId: INPUT.userId, dekId: INPUT.dekId, devicePub: unhex(INPUT.devicePub) }),
+        dekProof: dekProof(sodium, dek),
+        chainMac: chainMac(sodium, dek, { userId: INPUT.userId, oldDekId: INPUT.dekId, newDekId: INPUT.newDekId }, unhex(INPUT.newDek)),
         signature: hex(sodium.crypto_sign_detached(new TextEncoder().encode(INPUT.signMessage), unhex(INPUT.signSecretKey))),
     }
 }
@@ -136,7 +151,7 @@ describe("deriveKeys", () => {
             return sodium.crypto_pwhash(...args)
         } }
         const salt = unhex(INPUT.salt)
-        const kdf = { alg: "argon2id", m: 8, t: 1, p: 1 } as const
+        const kdf = DEFAULT_KDF
         const viaAsync = await deriveKeys(withAsync, INPUT.password, salt, kdf)
         const viaSync = await deriveKeys(sodium, INPUT.password, salt, kdf)
         expect(calls).toBe(1)
@@ -157,14 +172,14 @@ describe("test vectors", () => {
         const { sealedDek: storedSealed, ...storedDeterministic } = stored.output
         expect(deterministic).toEqual(storedDeterministic)
         // sealing is randomised: the stored value must open with the seeded key and give the DEK
-        expect(hex(openSealedDek(sodium, storedSealed, { publicKey: unhex(stored.output.sealPublicKey), privateKey: sealPrivateKey }))).toBe(INPUT.dek)
+        expect(hex(openSealedDek(sodium, storedSealed, INPUT.dekId, { publicKey: unhex(stored.output.sealPublicKey), privateKey: sealPrivateKey }))).toBe(INPUT.dek)
     })
 
     it("opens the stored wraps and package with the derived keys", () => {
         const stored = JSON.parse(readFileSync(VECTORS_FILE, "utf8")) as Vectors
         const encKey = unhex(stored.output.encKey)
-        expect(hex(unwrapKey(sodium, stored.output.wrappedPassword, encKey, INPUT.userId, "password"))).toBe(INPUT.dek)
-        expect(hex(unwrapKey(sodium, stored.output.wrappedRecovery, recoveryKeyFrom(sodium, stored.output.recoveryCode), INPUT.userId, "recovery"))).toBe(INPUT.dek)
+        expect(hex(unwrapKey(sodium, stored.output.wrappedPassword, encKey, INPUT.userId, INPUT.dekId, "password"))).toBe(INPUT.dek)
+        expect(hex(unwrapKey(sodium, stored.output.wrappedRecovery, recoveryKeyFrom(sodium, stored.output.recoveryCode), INPUT.userId, INPUT.dekId, "recovery"))).toBe(INPUT.dek)
         const plain = decryptPackage(sodium, unhex(stored.output.package), unhex(INPUT.dek), { userId: INPUT.userId, version: INPUT.version, dekId: INPUT.dekId })
         expect(new TextDecoder().decode(plain)).toBe(INPUT.packagePlain)
     })
@@ -196,22 +211,58 @@ describe("tampering", () => {
     it("a wrap opens only for its account, purpose and key, and not with a flipped bit", () => {
         const key = bytes(32, 1)
         const dek = bytes(32, 2)
-        const wrapped = wrapKey(sodium, dek, key, INPUT.userId, "password")
-        expect(unwrapKey(sodium, wrapped, key, INPUT.userId, "password")).toEqual(dek)
-        expect(() => unwrapKey(sodium, wrapped, key, INPUT.userId, "recovery")).toThrow(AccountCryptoError)
-        expect(() => unwrapKey(sodium, wrapped, key, "other-user", "password")).toThrow(AccountCryptoError)
-        expect(() => unwrapKey(sodium, wrapped, bytes(32, 3), INPUT.userId, "password")).toThrow(AccountCryptoError)
+        const wrapped = wrapKey(sodium, dek, key, INPUT.userId, INPUT.dekId, "password")
+        expect(unwrapKey(sodium, wrapped, key, INPUT.userId, INPUT.dekId, "password")).toEqual(dek)
+        expect(() => unwrapKey(sodium, wrapped, key, INPUT.userId, INPUT.dekId, "recovery")).toThrow(AccountCryptoError)
+        expect(() => unwrapKey(sodium, wrapped, key, "other-user", INPUT.dekId, "password")).toThrow(AccountCryptoError)
+        // N-1: an old wrap served under a new dekId does not open
+        expect(() => unwrapKey(sodium, wrapped, key, INPUT.userId, "dek-other", "password")).toThrow(AccountCryptoError)
+        expect(() => unwrapKey(sodium, wrapped, bytes(32, 3), INPUT.userId, INPUT.dekId, "password")).toThrow(AccountCryptoError)
         const raw = sodium.from_base64(wrapped, sodium.base64_variants.URLSAFE_NO_PADDING)
         raw[30]! ^= 0x80
-        expect(() => unwrapKey(sodium, toB64(sodium, raw), key, INPUT.userId, "password")).toThrow(AccountCryptoError)
+        expect(() => unwrapKey(sodium, toB64(sodium, raw), key, INPUT.userId, INPUT.dekId, "password")).toThrow(AccountCryptoError)
     })
 
-    it("a sealed DEK opens only with the device's key", () => {
+    it("a sealed DEK opens only with the device's key and only under its own dekId", () => {
         const one = sodium.crypto_box_keypair()
         const two = sodium.crypto_box_keypair()
-        const sealed = sealDek(sodium, bytes(32, 5), one.publicKey)
-        expect(openSealedDek(sodium, sealed, one)).toEqual(bytes(32, 5))
-        expect(() => openSealedDek(sodium, sealed, two)).toThrow(AccountCryptoError)
+        const sealed = sealDek(sodium, bytes(32, 5), "dek-a", one.publicKey)
+        expect(openSealedDek(sodium, sealed, "dek-a", one)).toEqual(bytes(32, 5))
+        expect(() => openSealedDek(sodium, sealed, "dek-a", two)).toThrow(AccountCryptoError)
+        // N-1: a server cannot hand out an old sealed key under a new id, nor a bare v1 seal
+        expect(() => openSealedDek(sodium, sealed, "dek-b", one)).toThrow(AccountCryptoError)
+        expect(() => openSealedDek(sodium, toB64(sodium, sodium.crypto_box_seal(bytes(32, 5), one.publicKey)), "dek-a", one)).toThrow(AccountCryptoError)
+    })
+
+    it("a device MAC and a chain MAC hold only for their DEK, account, ids and keys (K-1)", () => {
+        const dek = bytes(32, 40)
+        const pub = bytes(32, 41)
+        const binding = { userId: INPUT.userId, dekId: "dek-a", devicePub: pub }
+        const mac = deviceMac(sodium, dek, binding)
+        expect(deviceMacValid(sodium, dek, binding, mac)).toBe(true)
+        expect(deviceMacValid(sodium, bytes(32, 42), binding, mac)).toBe(false)
+        expect(deviceMacValid(sodium, dek, { ...binding, dekId: "dek-b" }, mac)).toBe(false)
+        expect(deviceMacValid(sodium, dek, { ...binding, devicePub: bytes(32, 43) }, mac)).toBe(false)
+        expect(deviceMacValid(sodium, dek, { ...binding, userId: "other" }, mac)).toBe(false)
+        expect(deviceMacValid(sodium, dek, binding, null)).toBe(false)
+        expect(deviceMacValid(sodium, dek, binding, "not base64!")).toBe(false)
+        const next = bytes(32, 44)
+        const link = { userId: INPUT.userId, oldDekId: "dek-a", newDekId: "dek-b" }
+        const chain = chainMac(sodium, dek, link, next)
+        expect(chainMacValid(sodium, dek, link, next, chain)).toBe(true)
+        expect(chainMacValid(sodium, dek, link, bytes(32, 45), chain)).toBe(false)
+        expect(chainMacValid(sodium, bytes(32, 46), link, next, chain)).toBe(false)
+        expect(chainMacValid(sodium, dek, { ...link, newDekId: "dek-c" }, next, chain)).toBe(false)
+        expect(dekProof(sodium, dek)).not.toBe(dekProof(sodium, next))
+        expect(dekProof(sodium, dek)).not.toBe(mac)
+    })
+
+    it("refuses KDF parameters below the floor, above the ceiling or below what was seen (H-1)", async () => {
+        for (const kdf of [{ m: 8, t: 1 }, { m: 19456, t: 1 }, { m: 65536, t: 2 }, { m: 262145, t: 3 }, { m: 65536, t: 11 }]) {
+            await expect(deriveKeys(sodium, "pw", bytes(16), { alg: "argon2id", p: 1, ...kdf })).rejects.toThrow(UnsafeKdfError)
+        }
+        expect(() => checkKdf(DEFAULT_KDF, { m: 131072, t: 3 })).toThrow(UnsafeKdfError)
+        expect(() => checkKdf({ ...DEFAULT_KDF, m: 131072 }, { m: 131072, t: 3 })).not.toThrow()
     })
 })
 

@@ -65,8 +65,9 @@ export class ReauthRequiredError extends AccountApiError {
 
 /* ---- Shapes of the answers ---- */
 
-export type DeviceKeysBody = { name: string, devicePub: string, sealedDek: string }
-export type SignupBody = { email: string, salt: string, kdf: Kdf, authKey: string, challenge: string, keys?: { wrappedDek: string, dekId: string, device: DeviceKeysBody } }
+/** `mac`: crypto.ts deviceMac under the DEK; without a valid one no device trusts the row */
+export type DeviceKeysBody = { name: string, devicePub: string, sealedDek: string, mac: string }
+export type SignupBody = { email: string, salt: string, kdf: Kdf, authKey: string, challenge: string, keys?: { wrappedDek: string, dekId: string, dekProof: string, device: DeviceKeysBody } }
 /** prelogin: the account's salt and KDF (a decoy for unknown emails) and the one-time challenge for login / signup */
 export type Prelogin = { salt: string, kdf: Kdf, challenge: string }
 /** The session's credentials as the device keeps them: the token and the Ed25519 private key (64 bytes) it signs with */
@@ -76,12 +77,15 @@ export type LoginAnswer = { userId: string, emailVerified: boolean, kdf: Kdf, wr
 export type GoogleAnswer = { userId: string, created: boolean, emailVerified: boolean, dekId: string | null, recoveryWrappedDek: string | null, sessionToken: string }
 /** `userId` is part of the recovery wrap's AAD, so a device without a stored account can still unwrap it */
 export type ResetInfo = { userId: string, dekId: string | null, hasRecovery: boolean, recoveryWrappedDek: string | null }
-export type ResetBody = { token: string, salt: string, kdf: Kdf, authKey: string, keys?: { dekId: string, wrappedDek: string, recoveryWrappedDek: string } }
-/** `devicePub`: the device's public key, a rotation seals the new DEK to it; `dekId`: the key its sealed DEK belongs to */
-export type DeviceInfo = { id: string, name: string, createdAt: number, lastSeenAt: number, current: boolean, devicePub: string, dekId: string | null }
-/** The DEK sealed to this session's device (after another device rotated it) */
-export type DeviceKey = { deviceId: string, dekId: string, sealedDek: string }
-export type StartFreshBody = { dekId: string, wrappedDek?: string, recoveryWrappedDek?: string, device: DeviceKeysBody }
+export type ResetBody = { token: string, salt: string, kdf: Kdf, authKey: string, keys?: { dekId: string, dekProof: string, wrappedDek: string, recoveryWrappedDek: string } }
+/**
+ * `devicePub`: the device's public key, a rotation seals the new DEK to it; `dekId`: the key its sealed DEK belongs to;
+ * `mac`: the DEK holder's MAC on the row (devices.ts checks it, the server cannot)
+ */
+export type DeviceInfo = { id: string, name: string, createdAt: number, lastSeenAt: number, current: boolean, devicePub: string, dekId: string | null, mac: string | null }
+/** The DEK sealed to this session's device (after another device rotated it) and the old DEK's chain MAC for it */
+export type DeviceKey = { deviceId: string, dekId: string, sealedDek: string, chainFrom: string | null, chainMac: string | null }
+export type StartFreshBody = { dekId: string, dekProof: string, wrappedDek?: string, recoveryWrappedDek?: string, device: DeviceKeysBody }
 /** GET account: what the account screen shows; never a key or hash */
 export type AccountInfo = {
     userId: string
@@ -97,8 +101,9 @@ export type AccountInfo = {
     /** A rotation without the recovery code dropped it: the user should save a new one */
     recoveryRenewalNeeded: boolean
 }
-export type KeysBody = { dekId: string, wrappedDek?: string, recoveryWrappedDek?: string, device?: DeviceKeysBody }
-export type PasswordBody = { salt: string, kdf: Kdf, authKey: string, wrappedDek: string, dekId: string }
+/** `dekProof`: crypto.ts dekProof; a session without its own device row needs it to change keys or add itself */
+export type KeysBody = { dekId: string, dekProof?: string, wrappedDek?: string, recoveryWrappedDek?: string, device?: DeviceKeysBody }
+export type PasswordBody = { salt: string, kdf: Kdf, authKey: string, wrappedDek: string, dekId: string, dekProof?: string }
 export type RequestStatus = "pending" | "nonce" | "revealed" | "approved" | "denied" | "expired"
 export type ApprovalRequest = {
     id: string
@@ -115,7 +120,16 @@ export type ApprovalRequest = {
     dekId?: string | null
     deviceId?: string | null
 }
-export type RotateMeta = { oldDekId: string, dekId: string, devices: { deviceId: string, sealedDek: string }[], wrappedDek?: string, recoveryWrappedDek?: string }
+export type RotateMeta = {
+    oldDekId: string
+    dekId: string
+    dekProof: string
+    /** crypto.ts chainMac: the old DEK vouches for the new one */
+    chainMac: string
+    devices: { deviceId: string, sealedDek: string, mac: string }[]
+    wrappedDek?: string
+    recoveryWrappedDek?: string
+}
 export type SyncMeta = { version: number, size: number, dekId: string | null, updatedAt: number | null, rotationRequired: boolean, rewrapNeeded: boolean, recoveryRenewalNeeded: boolean }
 export type Snapshot = { bytes: Uint8Array, version: number, dekId: string }
 
@@ -223,7 +237,8 @@ export class AccountClient {
     request = (id: string) => this.call<ApprovalRequest>("GET", `devices/requests/${encodeURIComponent(id)}`)
     sendNonce = (id: string, nonce: string) => this.call<{ id: string, status: RequestStatus }>("POST", `devices/requests/${encodeURIComponent(id)}/nonce`, { json: { nonce } })
     reveal = (id: string, reveal: string) => this.call<{ id: string, status: RequestStatus }>("POST", `devices/requests/${encodeURIComponent(id)}/reveal`, { json: { reveal } })
-    approve = (id: string, dekId: string, sealedDek: string) => this.call<{ id: string, status: RequestStatus }>("POST", `devices/requests/${encodeURIComponent(id)}/approve`, { json: { dekId, sealedDek } })
+    /** `mac`: the approver's deviceMac for the new device's row */
+    approve = (id: string, dekId: string, sealedDek: string, mac: string) => this.call<{ id: string, status: RequestStatus }>("POST", `devices/requests/${encodeURIComponent(id)}/approve`, { json: { dekId, sealedDek, mac } })
     deny = (id: string) => this.call<void>("POST", `devices/requests/${encodeURIComponent(id)}/deny`)
 
     /* account */
@@ -233,7 +248,9 @@ export class AccountClient {
     /** Needs a sign-in within the last 10 minutes; removes the synced data, every device and every other session */
     startFresh = (body: StartFreshBody) => this.call<{ dekId: string, deviceId: string }>("POST", "account/start-fresh", { json: body })
     changePassword = (body: PasswordBody) => this.call<void>("POST", "account/password", { json: body })
-    linkGoogle = (idToken: string, nonce: string) => this.call<void>("POST", "account/link-google", { json: { idToken, nonce } })
+    /** Both need the password again (authKey); the server mails the account's address (H-2) */
+    linkGoogle = (idToken: string, nonce: string, authKey: string) => this.call<void>("POST", "account/link-google", { json: { idToken, nonce, authKey } })
+    unlinkGoogle = (authKey: string) => this.call<void>("POST", "account/unlink-google", { json: { authKey } })
     deleteAccount = () => this.call<void>("DELETE", "account")
 
     /** DEK rotation: multipart/form-data with the parts `meta` (JSON) and `snapshot` (when the account has one) */

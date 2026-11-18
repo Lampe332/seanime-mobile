@@ -10,9 +10,16 @@ import type { Sodium, SodiumKeyPair } from "./sodium"
  * - Text is UTF-8; a password is NFKC-normalised first, so the app and the website derive the same key.
  * - masterKey = Argon2id13(password, salt[16], t, m KiB, p = 1), 32 bytes.
  * - authKey = KDF(masterKey, 1, "sm-auth"), encKey = KDF(masterKey, 2, "sm-encr") (crypto_kdf, contexts "sm-auth\0"/"sm-encr\0").
- * - wrap(key, wrappingKey) = nonce[24] || XChaCha20-Poly1305(key), AAD = "sm-wrap-v1" || userId || purpose.
+ * - KDF parameters are checked on the device, never trusted from the server: m 65536..262144 KiB, t 3..10, p 1
+ *   (a server that lowers them could guess the password offline; session.ts also remembers the highest seen per email).
+ * - wrap(key, wrappingKey) = nonce[24] || XChaCha20-Poly1305(key), AAD = "sm-wrap-v2\n" userId "\n" dekId "\n" purpose.
  * - Recovery code: 16 random bytes as 26 characters of RFC 4648 Base32; recoveryKey = BLAKE2b-256("sm-recovery-v1" || bytes).
- * - Sealed DEK: crypto_box_seal(DEK, devicePub).
+ * - Sealed DEK: crypto_box_seal("sm-seal-v2\n" dekId "\n" || DEK, devicePub); opening checks the dekId.
+ * - Keys from the DEK (crypto_kdf, context "sm-dkey\0"): 1 = device MAC key, 2 = DEK proof, 3 = chain MAC key.
+ *   deviceMac = BLAKE2b-256(key 1, "sm-device-v1\n" userId "\n" dekId "\n" || devicePub[32]): only a DEK holder can add a
+ *   device the others trust. dekProof = key 2 (the server keeps its SHA-256 and lets only a key holder change keys).
+ *   chainMac = BLAKE2b-256(key 3 of the OLD DEK, "sm-chain-v1\n" userId "\n" oldDekId "\n" newDekId "\n" || newDEK): a
+ *   device takes a new DEK only when the old one vouches for it. It never reveals the new DEK to an old-DEK holder.
  * - Package: "SMS" 0x01 || nonce[24] || XChaCha20-Poly1305(gzip(JSON)), AAD = "sm-snap-v1" || userId || version (8 bytes,
  *   big-endian) || dekId.
  * - Commitment = SHA-256(devicePub[32] || rN[32]) (the server's check); SAS = six digits from
@@ -25,11 +32,21 @@ export type Kdf = { alg: "argon2id", m: number, t: number, p: number }
 /** The server's default (account-server/src/schemas.ts DEFAULT_KDF): 64 MiB, 3 passes, 1 lane */
 export const DEFAULT_KDF: Kdf = { alg: "argon2id", m: 65536, t: 3, p: 1 }
 
+/** What the device accepts from a server: an account's parameters can rise, never fall below these (H-1) */
+export const KDF_LIMITS = { minM: 65536, maxM: 262144, minT: 3, maxT: 10 } as const
+
 export const AUTH_CONTEXT = "sm-auth"
 export const ENC_CONTEXT = "sm-encr"
+export const DEK_CONTEXT = "sm-dkey"
+const DEVICE_MAC_SUBKEY = 1
+const DEK_PROOF_SUBKEY = 2
+const CHAIN_MAC_SUBKEY = 3
 export type WrapPurpose = "password" | "recovery"
 
-const WRAP_AAD = "sm-wrap-v1"
+const WRAP_AAD = "sm-wrap-v2"
+const SEAL_PREFIX = "sm-seal-v2"
+const DEVICE_MAC_DOMAIN = "sm-device-v1"
+const CHAIN_MAC_DOMAIN = "sm-chain-v1"
 const SNAP_AAD = "sm-snap-v1"
 const RECOVERY_DOMAIN = "sm-recovery-v1"
 const PACKAGE_MAGIC = [0x53, 0x4d, 0x53, 0x01] // "SMS" 1
@@ -45,6 +62,30 @@ export class AccountCryptoError extends Error {
     constructor(message: string) {
         super(message)
         this.name = "AccountCryptoError"
+    }
+}
+
+/** The server offered a new DEK that the device's current DEK does not vouch for (start fresh elsewhere, or tampering) */
+export class UntrustedKeyChangeError extends AccountCryptoError {
+    constructor() {
+        super("the account's key changed in a way this device can't confirm")
+        this.name = "UntrustedKeyChangeError"
+    }
+}
+
+/** The device list holds devices no DEK holder added (K-1): nothing is sealed to them */
+export class UntrustedDevicesError extends AccountCryptoError {
+    constructor(readonly names: string[]) {
+        super(`unverified device in the account: ${names.join(", ")}`)
+        this.name = "UntrustedDevicesError"
+    }
+}
+
+/** KDF parameters below the floor, above the ceiling, or lower than this device saw for the account before */
+export class UnsafeKdfError extends AccountCryptoError {
+    constructor() {
+        super("the server asked for weaker password protection than this app allows")
+        this.name = "UnsafeKdfError"
     }
 }
 
@@ -103,8 +144,15 @@ export const newDeviceKeyPair = (sodium: Sodium): SodiumKeyPair => {
  * authKey (goes to the server) and encKey (never leaves the device) from the password. The master key is wiped.
  * Argon2id runs off the JS thread when the Sodium has crypto_pwhash_async (the device's module), so the screen keeps moving.
  */
+export function checkKdf(kdf: Kdf, floor?: { m: number, t: number } | null): void {
+    const ok = kdf?.alg === "argon2id" && kdf.p === 1
+        && Number.isSafeInteger(kdf.m) && kdf.m >= KDF_LIMITS.minM && kdf.m <= KDF_LIMITS.maxM
+        && Number.isSafeInteger(kdf.t) && kdf.t >= KDF_LIMITS.minT && kdf.t <= KDF_LIMITS.maxT
+    if (!ok || (floor && (kdf.m < floor.m || kdf.t < floor.t))) throw new UnsafeKdfError()
+}
+
 export async function deriveKeys(sodium: Sodium, password: string, salt: Uint8Array, kdf: Kdf): Promise<{ authKey: Uint8Array, encKey: Uint8Array }> {
-    if (kdf.alg !== "argon2id" || kdf.p !== 1) throw new AccountCryptoError("unsupported key derivation parameters")
+    checkKdf(kdf)
     if (salt.length !== SALT_BYTES) throw new AccountCryptoError("salt has the wrong length")
     const secret = utf8(password.normalize("NFKC"))
     let master: Uint8Array
@@ -130,19 +178,21 @@ export async function deriveKeys(sodium: Sodium, password: string, salt: Uint8Ar
 
 /* ---- Wrapping the DEK ---- */
 
-const wrapAad = (userId: string, purpose: WrapPurpose) => utf8(WRAP_AAD + userId + purpose)
+const lines = (...parts: string[]) => utf8(parts.join("\n"))
+const wrapAad = (userId: string, dekId: string, purpose: WrapPurpose) => lines(WRAP_AAD, userId, dekId, purpose)
 
-export function wrapKey(sodium: Sodium, key: Uint8Array, wrappingKey: Uint8Array, userId: string, purpose: WrapPurpose): string {
+/** The DEK wrapped for a password or recovery key; bound to account, DEK id and purpose (N-1) */
+export function wrapKey(sodium: Sodium, key: Uint8Array, wrappingKey: Uint8Array, userId: string, dekId: string, purpose: WrapPurpose): string {
     const nonce = sodium.randombytes_buf(NONCE_BYTES)
-    const sealed = sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(key, wrapAad(userId, purpose), null, nonce, wrappingKey)
+    const sealed = sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(key, wrapAad(userId, dekId, purpose), null, nonce, wrappingKey)
     return toB64(sodium, concat(nonce, sealed))
 }
 
-export function unwrapKey(sodium: Sodium, wrapped: string, wrappingKey: Uint8Array, userId: string, purpose: WrapPurpose): Uint8Array {
+export function unwrapKey(sodium: Sodium, wrapped: string, wrappingKey: Uint8Array, userId: string, dekId: string, purpose: WrapPurpose): Uint8Array {
     const bytes = fromB64(sodium, wrapped)
     if (bytes.length <= NONCE_BYTES) throw new AccountCryptoError("the key could not be unlocked")
     try {
-        const key = sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null, bytes.subarray(NONCE_BYTES), wrapAad(userId, purpose), bytes.subarray(0, NONCE_BYTES), wrappingKey)
+        const key = sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null, bytes.subarray(NONCE_BYTES), wrapAad(userId, dekId, purpose), bytes.subarray(0, NONCE_BYTES), wrappingKey)
         if (key.length !== KEY_BYTES) throw new Error("length")
         return key
     }
@@ -153,19 +203,117 @@ export function unwrapKey(sodium: Sodium, wrapped: string, wrappingKey: Uint8Arr
 
 /* ---- Device keys ---- */
 
-export function sealDek(sodium: Sodium, dek: Uint8Array, devicePub: Uint8Array): string {
-    return toB64(sodium, sodium.crypto_box_seal(dek, devicePub))
+const sealHead = (dekId: string) => utf8(`${SEAL_PREFIX}\n${dekId}\n`)
+
+/** The DEK and its id, sealed to a device's public key */
+export function sealDek(sodium: Sodium, dek: Uint8Array, dekId: string, devicePub: Uint8Array): string {
+    const plain = concat(sealHead(dekId), dek)
+    try {
+        return toB64(sodium, sodium.crypto_box_seal(plain, devicePub))
+    }
+    finally {
+        wipe(sodium, plain)
+    }
 }
 
-export function openSealedDek(sodium: Sodium, sealed: string, keys: SodiumKeyPair): Uint8Array {
+/** Opens a sealed DEK; it must carry the expected DEK id (a server cannot hand out an old key under a new id) */
+export function openSealedDek(sodium: Sodium, sealed: string, dekId: string, keys: SodiumKeyPair): Uint8Array {
+    let plain: Uint8Array | null = null
     try {
-        const dek = sodium.crypto_box_seal_open(fromB64(sodium, sealed), keys.publicKey, keys.privateKey)
-        if (dek.length !== KEY_BYTES) throw new Error("length")
-        return dek
+        plain = sodium.crypto_box_seal_open(fromB64(sodium, sealed), keys.publicKey, keys.privateKey)
+        const head = sealHead(dekId)
+        if (plain.length !== head.length + KEY_BYTES || !equalBytes(plain.subarray(0, head.length), head)) throw new Error("dekId")
+        return plain.slice(head.length)
     }
     catch {
         throw new AccountCryptoError("the sealed key could not be opened")
     }
+    finally {
+        wipe(sodium, plain)
+    }
+}
+
+/** Constant-time comparison of two byte strings */
+export function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
+    if (a.length !== b.length) return false
+    let diff = 0
+    for (let i = 0; i < a.length; i++) diff |= a[i]! ^ b[i]!
+    return diff === 0
+}
+
+/* ---- Keys from the DEK: device list, proof for the server, key chain (K-1) ---- */
+
+function dekSubkey(sodium: Sodium, dek: Uint8Array, id: number): Uint8Array {
+    if (dek.length !== KEY_BYTES) throw new AccountCryptoError("the key has the wrong length")
+    return sodium.crypto_kdf_derive_from_key(KEY_BYTES, id, DEK_CONTEXT, dek)
+}
+
+function keyedHash(sodium: Sodium, key: Uint8Array, message: Uint8Array): Uint8Array {
+    try {
+        return sodium.crypto_generichash(KEY_BYTES, message, key)
+    }
+    finally {
+        wipe(sodium, key, message)
+    }
+}
+
+export type DeviceBinding = { userId: string, dekId: string, devicePub: Uint8Array }
+
+function deviceMacBytes(sodium: Sodium, dek: Uint8Array, { userId, dekId, devicePub }: DeviceBinding): Uint8Array {
+    if (devicePub.length !== KEY_BYTES) throw new AccountCryptoError("device key has the wrong length")
+    return keyedHash(sodium, dekSubkey(sodium, dek, DEVICE_MAC_SUBKEY), concat(lines(DEVICE_MAC_DOMAIN, userId, dekId, ""), devicePub))
+}
+
+/** The MAC a DEK holder puts on a device row: the other devices trust (seal to) only rows with a valid one */
+export function deviceMac(sodium: Sodium, dek: Uint8Array, binding: DeviceBinding): string {
+    return toB64(sodium, deviceMacBytes(sodium, dek, binding))
+}
+
+export function deviceMacValid(sodium: Sodium, dek: Uint8Array, binding: DeviceBinding, mac: string | null | undefined): boolean {
+    if (!mac) return false
+    let given: Uint8Array
+    try {
+        given = fromB64(sodium, mac, KEY_BYTES)
+    }
+    catch {
+        return false
+    }
+    return equalBytes(deviceMacBytes(sodium, dek, binding), given)
+}
+
+/** Shown to the server to prove this device holds the DEK; the server keeps only its SHA-256 */
+export function dekProof(sodium: Sodium, dek: Uint8Array): string {
+    const proof = dekSubkey(sodium, dek, DEK_PROOF_SUBKEY)
+    try {
+        return toB64(sodium, proof)
+    }
+    finally {
+        wipe(sodium, proof)
+    }
+}
+
+export type ChainBinding = { userId: string, oldDekId: string, newDekId: string }
+
+function chainMacBytes(sodium: Sodium, oldDek: Uint8Array, { userId, oldDekId, newDekId }: ChainBinding, newDek: Uint8Array): Uint8Array {
+    if (newDek.length !== KEY_BYTES) throw new AccountCryptoError("the key has the wrong length")
+    return keyedHash(sodium, dekSubkey(sodium, oldDek, CHAIN_MAC_SUBKEY), concat(lines(CHAIN_MAC_DOMAIN, userId, oldDekId, newDekId, ""), newDek))
+}
+
+/** The old DEK vouches for the new one (rotation); a device takes a new DEK only with a valid chain MAC */
+export function chainMac(sodium: Sodium, oldDek: Uint8Array, binding: ChainBinding, newDek: Uint8Array): string {
+    return toB64(sodium, chainMacBytes(sodium, oldDek, binding, newDek))
+}
+
+export function chainMacValid(sodium: Sodium, oldDek: Uint8Array, binding: ChainBinding, newDek: Uint8Array, mac: string | null | undefined): boolean {
+    if (!mac) return false
+    let given: Uint8Array
+    try {
+        given = fromB64(sodium, mac, KEY_BYTES)
+    }
+    catch {
+        return false
+    }
+    return equalBytes(chainMacBytes(sodium, oldDek, binding, newDek), given)
 }
 
 /* ---- Recovery code ---- */

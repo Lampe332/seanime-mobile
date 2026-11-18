@@ -17,8 +17,8 @@ import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { playlists } from "../database/schema"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { AccountClient, type HttpFetch, UnauthorizedError } from "./client"
-import { type Kdf, deriveKeys, fromB64, toB64 } from "./crypto"
-import { type AccountDeps, answerRequest, approveRequest, checkApproval, compareRequest, openRequests, requestApproval, rotate } from "./devices"
+import { AccountCryptoError, DEFAULT_KDF, type Kdf, UnsafeKdfError, UntrustedDevicesError, dekProof, deriveKeys, deviceMac, fromB64, sealDek, toB64 } from "./crypto"
+import { type AccountDeps, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, openRequests, requestApproval, rotate } from "./devices"
 import { createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signupEmail, startFresh } from "./flows"
 import { AccountSession } from "./session"
 import type { Sodium } from "./sodium"
@@ -41,8 +41,8 @@ export class MailSink extends WorkerEntrypoint {
 }
 export default { fetch: () => Response.json(outbox) };
 `
-/** Fast test parameters inside the server's allowed range; the app uses DEFAULT_KDF */
-const KDF: Kdf = { alg: "argon2id", m: 19456, t: 1, p: 1 }
+/** The floor the app and the server accept (H-1): nothing faster is allowed any more */
+const KDF: Kdf = DEFAULT_KDF
 const EMAIL = "sync-test@example.org"
 const PASSWORD = "a long test password 1"
 
@@ -138,10 +138,10 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
     const mailCount = async () => ((await (await (await mf.getWorker("mail-sink")).fetch("http://mail-sink/")).json()) as unknown[]).length
 
     /** The reset mail goes out after the server answered (waitUntil): waits for a mail newer than `after` mails */
-    async function nextMailToken(after: number): Promise<string> {
+    async function nextMailToken(after: number, to = EMAIL): Promise<string> {
         for (let attempt = 0; attempt < 50; attempt++) {
             const mails = await (await (await mf.getWorker("mail-sink")).fetch("http://mail-sink/")).json() as { to: string, text: string }[]
-            const match = /#token=([A-Za-z0-9_-]{43})/.exec(mails.slice(after).filter(mail => mail.to === EMAIL).at(-1)?.text ?? "")
+            const match = /#token=([A-Za-z0-9_-]{43})/.exec(mails.slice(after).filter(mail => mail.to === to).at(-1)?.text ?? "")
             if (match) return match[1]!
             await new Promise(resolve => setTimeout(resolve, 50))
         }
@@ -323,4 +323,190 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await recording.login(EMAIL, toB64(sodium, authKey), challenge, sodium.crypto_sign_keypair())).toMatchObject({ sessionToken: expect.any(String) })
         expect((await fetch(seen.at(-1)!.url, seen.at(-1)!.init)).status).toBe(401)
     })
+
+    /* ---- Security review fix round 1 (18.11.): the server is not trusted, only the DEK is ---- */
+
+    const random = (n: number) => sodium.randombytes_buf(n)
+    const db = async () => (await mf.getD1Database("DB")) as unknown as D1Like
+
+    /** A new account with one device that uploaded one playlist */
+    async function accountWithData(email: string) {
+        // every test signs up from the same local address: the signup limit (5 per hour per IP) starts over
+        await (await db()).prepare("DELETE FROM rate_limits").bind().run()
+        const owner = install()
+        expect(await signupEmail(owner.deps, { email, password: PASSWORD, deviceName: "Victim", kdf: KDF })).toMatchObject({ status: "ready" })
+        await (await owner.db()).insert(playlists).values({ name: "Mine", episodes: [], createdAt: clock, updatedAt: clock })
+        expect(await owner.engine.sync("start")).toMatchObject({ state: "uploaded", version: 1 })
+        return owner
+    }
+
+    /** A signed-in session WITHOUT the DEK: to the server this is exactly what a taken-over Google account or a website session is */
+    async function keylessSession(email: string, password = PASSWORD) {
+        const one = install()
+        const { salt, kdf, challenge } = await one.client.prelogin(email)
+        const { authKey } = await deriveKeys(sodium, password, fromB64(sodium, salt, 16), kdf)
+        const signing = sodium.crypto_sign_keypair()
+        const login = await one.client.login(email, toB64(sodium, authKey), challenge, signing)
+        await one.session.saveSession({ userId: login.userId, sessionToken: login.sessionToken, signingKey: toB64(sodium, signing.privateKey), kind: "google", email: null, deviceId: null })
+        return one
+    }
+
+    /** The attacker's own key and device */
+    function attackerKeys(userId: string) {
+        const dek = random(32)
+        const dekId = toB64(sodium, random(16))
+        const keys = sodium.crypto_box_keypair()
+        const row = { name: "Galaxy S22", devicePub: toB64(sodium, keys.publicKey), sealedDek: sealDek(sodium, dek, dekId, keys.publicKey), mac: deviceMac(sodium, dek, { userId, dekId, devicePub: keys.publicKey }) }
+        return { dek, dekId, keys, row }
+    }
+
+    it("K-1 (a): a session without the key can neither add a device nor rotate; a server that does it anyway is refused by the device", async () => {
+        const victim = await accountWithData("k1-victim@example.org")
+        const before = (await victim.session.load())!
+        const attacker = await keylessSession("k1-victim@example.org")
+        const evil = attackerKeys(before.userId)
+        // the server refuses: no device without the key, not even on the victim's own row, and no rotation
+        await expect(attacker.client.putKeys({ dekId: before.dekId!, device: evil.row })).rejects.toMatchObject({ status: 403, code: "key_required" })
+        await expect(attacker.client.putKeys({ dekId: before.dekId!, dekProof: toB64(sodium, random(32)), device: { ...evil.row, devicePub: toB64(sodium, before.deviceKeys!.publicKey) } })).rejects.toMatchObject({ status: 403 })
+        await expect(attacker.client.rotate({ oldDekId: before.dekId!, dekId: evil.dekId, dekProof: dekProof(sodium, evil.dek), chainMac: toB64(sodium, random(32)), devices: [] }, null, 1)).rejects.toMatchObject({ status: 403 })
+        expect((await victim.client.devices()).map(device => device.name)).toEqual(["Victim"])
+
+        // a manipulated server (or anyone with D1 write access) puts the attacker's device in the list anyway
+        const d1 = await db()
+        await d1.prepare("INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)")
+            .bind(crypto.randomUUID(), before.userId, evil.row.name, evil.row.devicePub, evil.row.sealedDek, before.dekId, toB64(sodium, random(32))).run()
+        expect((await checkedDevices(victim.deps)).map(device => [device.name, device.verified]).sort()).toEqual([["Galaxy S22", false], ["Victim", true]])
+        // the victim's rotation seals nothing to it
+        await victim.session.updateSession({ kind: "google" })
+        await expect(rotate(victim.deps)).rejects.toThrow(UntrustedDevicesError)
+        // and switches the account to the attacker's key, sealed to the victim's device, with a made-up chain
+        await d1.prepare("UPDATE users SET dek_id = ?, chain_from = ?, chain_mac = ? WHERE id = ?").bind(evil.dekId, before.dekId, toB64(sodium, random(32)), before.userId).run()
+        await d1.prepare("UPDATE devices SET dek_id = ?, sealed_dek = ? WHERE user_id = ? AND name = 'Victim'")
+            .bind(evil.dekId, sealDek(sodium, evil.dek, evil.dekId, before.deviceKeys!.publicKey), before.userId).run()
+        await d1.prepare("UPDATE snapshots SET dek_id = ? WHERE user_id = ?").bind(evil.dekId, before.userId).run()
+        await (await victim.db()).insert(playlists).values({ name: "Local only", episodes: [], createdAt: clock, updatedAt: clock })
+
+        expect(await victim.engine.sync("manual")).toMatchObject({ state: "key-untrusted" })
+        expect(await victim.engine.importFromAccount()).toMatchObject({ state: "key-untrusted" })
+        const after = (await victim.session.load())!
+        expect(after.dekId).toBe(before.dekId)
+        expect(after.dek).toEqual(before.dek)
+        expect(await names(victim)).toEqual(["Local only", "Mine"])
+        // nothing was uploaded with any key
+        expect(await d1.prepare("SELECT version FROM snapshots WHERE user_id = ?").bind(before.userId).first()).toEqual({ version: 1 })
+    })
+
+    it("N-1 (b): an old password wrap or an old sealed key served under a new dekId is refused", async () => {
+        const email = "n1-victim@example.org"
+        const owner = await accountWithData(email)
+        const second = install()
+        expect(await loginEmail(second.deps, { email, password: PASSWORD, deviceName: "Second" })).toMatchObject({ status: "ready" })
+        const d1 = await db()
+        const old = (await d1.prepare("SELECT dek_id, wrapped_dek FROM users WHERE email = ?").bind(email).first<{ dek_id: string, wrapped_dek: string }>())!
+        const secondPub = toB64(sodium, (await second.session.load())!.deviceKeys!.publicKey)
+        const oldSealed = (await d1.prepare("SELECT sealed_dek FROM devices WHERE device_pub = ?").bind(secondPub).first<{ sealed_dek: string }>())!.sealed_dek
+        const { salt, kdf } = await owner.client.prelogin(email)
+        const rotated = await rotate(owner.deps, { encKey: (await deriveKeys(sodium, PASSWORD, fromB64(sodium, salt, 16), kdf)).encKey })
+        expect(rotated.dekId).not.toBe(old.dek_id)
+
+        await d1.prepare("UPDATE users SET wrapped_dek = ? WHERE email = ?").bind(old.wrapped_dek, email).run()
+        const fresh = install()
+        await expect(loginEmail(fresh.deps, { email, password: PASSWORD, deviceName: "Fresh" })).rejects.toThrow(AccountCryptoError)
+        expect((await fresh.session.load())?.dek ?? null).toBeNull()
+
+        await d1.prepare("UPDATE devices SET sealed_dek = ? WHERE device_pub = ?").bind(oldSealed, secondPub).run()
+        expect(await second.engine.sync("manual")).toMatchObject({ state: "key-untrusted" })
+        expect((await second.session.load())!.dekId).toBe(old.dek_id)
+    })
+
+    it("H-1 (c): KDF parameters from the server below the floor, or below what this device saw, are refused", async () => {
+        const proxied = (one: ReturnType<typeof install>, kdf: Kdf) => new AccountClient({
+            baseUrl,
+            sodium,
+            credentials: () => one.session.credentials(),
+            fetch: (async (url: string, init: RequestInit) => {
+                const response = await fetch(url, init)
+                if (!url.endsWith("/auth/prelogin")) return response
+                return new Response(JSON.stringify({ ...(await response.json() as object), kdf }), { status: response.status })
+            }) as unknown as HttpFetch,
+        })
+        const victim = install()
+        await expect(loginEmail({ ...victim.deps, client: proxied(victim, { alg: "argon2id", m: 8, t: 1, p: 1 }) }, { email: EMAIL, password: "a third long password 3", deviceName: "Victim" })).rejects.toThrow(UnsafeKdfError)
+        expect(await victim.session.load()).toBeNull()
+
+        const strong = install()
+        const email = "h1-strong@example.org"
+        await signupEmail(strong.deps, { email, password: PASSWORD, deviceName: "Strong", kdf: { alg: "argon2id", m: 131072, t: 3, p: 1 } })
+        await expect(loginEmail({ ...strong.deps, client: proxied(strong, DEFAULT_KDF) }, { email, password: PASSWORD, deviceName: "Strong" })).rejects.toThrow(UnsafeKdfError)
+    })
+
+    it("K-1 (d): start fresh by a session without the key stops the device visibly; it never switches to the new key", async () => {
+        const email = "d-victim@example.org"
+        const victim = await accountWithData(email)
+        const before = (await victim.session.load())!
+        const attacker = await keylessSession(email)
+        const evil = attackerKeys(before.userId)
+        // the attacker has no password key: its password wrap is made up
+        await attacker.client.startFresh({ dekId: evil.dekId, dekProof: dekProof(sodium, evil.dek), wrappedDek: toB64(sodium, random(72)), device: evil.row })
+
+        expect(await victim.engine.sync("manual")).toMatchObject({ state: "signed-out" })
+        // the app drops only the session (N-3): the key stays for a sign-in
+        await victim.session.dropSession()
+        expect(await victim.session.keptKey()).toMatchObject({ userId: before.userId, dekId: before.dekId })
+        // signing in again: the account's key changed without a chain, so the kept key and the sync state go and the made-up wrap does not open
+        await expect(loginEmail(victim.deps, { email, password: PASSWORD, deviceName: "Victim" })).rejects.toThrow(AccountCryptoError)
+        const after = (await victim.session.load())!
+        expect(after.dek).toBeNull()
+        expect(after.imported).toBe(false)
+        expect(await victim.engine.sync("manual")).toMatchObject({ state: "needs-key" })
+        expect(await names(victim)).toEqual(["Mine"])
+    })
+
+    it("(e) N-3 and M-4: a reset without code keeps the key through the 401, the next sign-in wraps it and finishes the rotation; a pending rotation never stops the sync", async () => {
+        const email = "e-normal@example.org"
+        const phone2 = await accountWithData(email)
+        const tablet2 = install()
+        expect(await loginEmail(tablet2.deps, { email, password: PASSWORD, deviceName: "Tablet" })).toMatchObject({ status: "ready" })
+        expect(await tablet2.engine.importFromAccount()).toMatchObject({ state: "updated", version: 1 })
+        const laptop2 = install()
+        expect(await loginEmail(laptop2.deps, { email, password: PASSWORD, deviceName: "Laptop" })).toMatchObject({ status: "ready" })
+
+        // the laptop is removed (as on the website): the server asks for a rotation; without the password here the sync goes on
+        await phone2.client.deleteDevice((await laptop2.session.load())!.deviceId!)
+        const withRotation = new SyncEngine({ api: tablet2.client, session: tablet2.session, sodium, gzip, local: coreLocalData(tablet2.environment, { appVersion: "4.2.0", preferences: () => ({}), isDeviceKey, writePreferences: () => undefined, safetyBackup: async () => undefined }), now: () => clock, rotate: async () => {
+            await rotate(tablet2.deps)
+            return true
+        } })
+        await (await tablet2.db()).insert(playlists).values({ name: "Tablet", episodes: [], createdAt: clock, updatedAt: clock })
+        expect(await withRotation.sync("manual")).toMatchObject({ state: "uploaded", version: 2, rotationRequired: true })
+
+        // reset without code on the website: every session ends
+        const web = install()
+        const mails = await mailCount()
+        await web.client.resetRequest(email)
+        const token = await nextMailToken(mails, email)
+        const newPassword = "a fourth long password 4"
+        const salt = sodium.randombytes_buf(16)
+        const { authKey } = await deriveKeys(sodium, newPassword, salt, DEFAULT_KDF)
+        expect(await web.client.reset({ token, salt: toB64(sodium, salt), kdf: DEFAULT_KDF, authKey: toB64(sodium, authKey) })).toEqual({ rewrapNeeded: true })
+        expect(await tablet2.engine.sync("manual")).toMatchObject({ state: "signed-out" })
+        await tablet2.session.dropSession()
+
+        // the tablet still holds the key: it wraps it for the new password and rotates right away
+        const keptId = (await tablet2.session.keptKey())!.dekId
+        expect(await loginEmail(tablet2.deps, { email, password: newPassword, deviceName: "Tablet" })).toMatchObject({ status: "ready" })
+        const meta = await tablet2.client.syncMeta()
+        expect(meta).toMatchObject({ rotationRequired: false, rewrapNeeded: false })
+        expect(meta.dekId).not.toBe(keptId)
+        expect((await checkedDevices(tablet2.deps)).every(device => device.verified)).toBe(true)
+
+        // the phone signs in with the new password, gets the new key from its wrap and is asked before importing
+        await phone2.session.dropSession()
+        expect(await loginEmail(phone2.deps, { email, password: newPassword, deviceName: "Victim" })).toMatchObject({ status: "ready" })
+        expect(await phone2.engine.sync("manual")).toMatchObject({ state: "import-available" })
+        expect(await phone2.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        expect(await names(phone2)).toEqual(["Mine", "Tablet"])
+    })
 })
+
+type D1Like = { prepare(sql: string): { bind(...values: unknown[]): { run(): Promise<unknown>, first<T = Record<string, unknown>>(): Promise<T | null> } } }
