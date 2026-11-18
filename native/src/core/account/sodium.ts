@@ -21,6 +21,10 @@ export interface Sodium {
     crypto_box_keypair(): SodiumKeyPair
     crypto_box_seal(message: Uint8Array, publicKey: Uint8Array): Uint8Array
     crypto_box_seal_open(ciphertext: Uint8Array, publicKey: Uint8Array, privateKey: Uint8Array): Uint8Array
+    /** Authenticated public-key encryption (approval v2, key chain v2): the receiver knows which key made it */
+    crypto_box_easy(message: Uint8Array, nonce: Uint8Array, publicKey: Uint8Array, privateKey: Uint8Array): Uint8Array
+    /** Throws when the box does not open with the sender's public key and the own private key */
+    crypto_box_open_easy(ciphertext: Uint8Array, nonce: Uint8Array, publicKey: Uint8Array, privateKey: Uint8Array): Uint8Array
     /** BLAKE2b */
     crypto_generichash(hashLength: number, message: Uint8Array, key?: Uint8Array | null): Uint8Array
     /** SHA-256: the server checks the approval commitment with it (account-server/src/approval.ts) */

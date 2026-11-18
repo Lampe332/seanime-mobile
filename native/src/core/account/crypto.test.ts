@@ -21,11 +21,12 @@ import {
     encryptPackage,
     newRecoveryCode,
     newSigningKeyPair,
-    openSealedDek,
+    boxDek,
+    openBoxedDek,
+    approvalTranscript,
     parseRecoveryCode,
     recoveryKeyFrom,
     sas,
-    sealDek,
     toB64,
     unwrapKey,
     wrapKey,
@@ -65,6 +66,9 @@ const INPUT = {
     rN: hex(bytes(32, 33)),
     rO: hex(bytes(32, 65)),
     sealSeed: hex(bytes(32, 150)),
+    // approval v2 / chain v2: the receiving device's seed and the box nonce (the sender is the sealSeed key pair)
+    boxSeed: hex(bytes(32, 120)),
+    boxNonce: hex(bytes(24, 90)),
     // Ed25519 secret key (seed || public key) of RFC 8032 section 7.1 test 1, signing a request line as the client builds it
     signSecretKey: `${RFC8032_SEED}${RFC8032_PUBLIC}`,
     signMessage: ["v1", "GET", "/v1/sync/meta", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "1763460000000", "AAECAwQFBgcICQoLDA0ODw", "-"].join("\n"),
@@ -83,7 +87,8 @@ type Vectors = {
         commitment: string
         sas: string
         sealPublicKey: string
-        sealedDek: string
+        boxPublicKey: string
+        boxedDek: string
         signature: string
         deviceMac: string
         dekProof: string
@@ -98,7 +103,9 @@ async function compute(): Promise<Vectors["output"] & { sealPrivateKey: Uint8Arr
     const { code, key } = newRecoveryCode(fixedRandom(sodium, unhex(INPUT.recoveryBytes)))
     const wrappedRecovery = wrapKey(fixedRandom(sodium, unhex(INPUT.wrapNonce)), dek, key, INPUT.userId, INPUT.dekId, "recovery")
     const pkg = encryptPackage(fixedRandom(sodium, unhex(INPUT.packageNonce)), new TextEncoder().encode(INPUT.packagePlain), dek, { userId: INPUT.userId, version: INPUT.version, dekId: INPUT.dekId })
-    const seed = (sodium as unknown as { crypto_box_seed_keypair(seed: Uint8Array): { publicKey: Uint8Array, privateKey: Uint8Array } }).crypto_box_seed_keypair(unhex(INPUT.sealSeed))
+    const seeded = (sodium as unknown as { crypto_box_seed_keypair(seed: Uint8Array): { publicKey: Uint8Array, privateKey: Uint8Array } })
+    const seed = seeded.crypto_box_seed_keypair(unhex(INPUT.sealSeed))
+    const receiver = seeded.crypto_box_seed_keypair(unhex(INPUT.boxSeed))
     return {
         authKey: hex(authKey),
         encKey: hex(encKey),
@@ -108,13 +115,16 @@ async function compute(): Promise<Vectors["output"] & { sealPrivateKey: Uint8Arr
         wrappedRecovery,
         package: hex(pkg),
         commitment: toB64(sodium, commitment(sodium, unhex(INPUT.devicePub), unhex(INPUT.rN))),
-        sas: sas(sodium, unhex(INPUT.devicePub), unhex(INPUT.rN), unhex(INPUT.rO)),
+        // approval v2: the new device's key, the approving device's key (the seeded one), rN, rO
+        sas: sas(sodium, unhex(INPUT.devicePub), seed.publicKey, unhex(INPUT.rN), unhex(INPUT.rO)),
         sealPublicKey: hex(seed.publicKey),
         sealPrivateKey: seed.privateKey,
-        sealedDek: sealDek(sodium, dek, INPUT.dekId, seed.publicKey),
+        boxPublicKey: hex(receiver.publicKey),
+        // a rotation's box from the seeded sender to the seeded receiver, with a fixed nonce: deterministic
+        boxedDek: boxDek(fixedRandom(sodium, unhex(INPUT.boxNonce)), dek, INPUT.dekId, { kind: "rotate", userId: INPUT.userId }, receiver.publicKey, seed),
         deviceMac: deviceMac(sodium, dek, { userId: INPUT.userId, dekId: INPUT.dekId, devicePub: unhex(INPUT.devicePub) }),
         dekProof: dekProof(sodium, dek),
-        chainMac: chainMac(sodium, dek, { userId: INPUT.userId, oldDekId: INPUT.dekId, newDekId: INPUT.newDekId }, unhex(INPUT.newDek)),
+        chainMac: chainMac(sodium, dek, { userId: INPUT.userId, oldDekId: INPUT.dekId, newDekId: INPUT.newDekId, rotatorPub: seed.publicKey, removed: [toB64(sodium, unhex(INPUT.devicePub))] }, unhex(INPUT.newDek)),
         signature: hex(sodium.crypto_sign_detached(new TextEncoder().encode(INPUT.signMessage), unhex(INPUT.signSecretKey))),
     }
 }
@@ -168,11 +178,13 @@ describe("test vectors", () => {
         }
         const stored = JSON.parse(readFileSync(VECTORS_FILE, "utf8")) as Vectors
         expect(stored.input).toEqual(INPUT)
-        const { sealedDek: _fresh, ...deterministic } = output
-        const { sealedDek: storedSealed, ...storedDeterministic } = stored.output
-        expect(deterministic).toEqual(storedDeterministic)
-        // sealing is randomised: the stored value must open with the seeded key and give the DEK
-        expect(hex(openSealedDek(sodium, storedSealed, INPUT.dekId, { publicKey: unhex(stored.output.sealPublicKey), privateKey: sealPrivateKey }))).toBe(INPUT.dek)
+        expect(output).toEqual(stored.output)
+        // the stored box opens for the seeded receiver, only with the seeded sender's key
+        const receiver = (sodium as unknown as { crypto_box_seed_keypair(seed: Uint8Array): { publicKey: Uint8Array, privateKey: Uint8Array } }).crypto_box_seed_keypair(unhex(INPUT.boxSeed))
+        const context = { kind: "rotate" as const, userId: INPUT.userId }
+        expect(hex(openBoxedDek(sodium, stored.output.boxedDek, INPUT.dekId, context, unhex(stored.output.sealPublicKey), receiver))).toBe(INPUT.dek)
+        expect(() => openBoxedDek(sodium, stored.output.boxedDek, INPUT.dekId, context, sodium.crypto_box_keypair().publicKey, receiver)).toThrow(AccountCryptoError)
+        expect(sealPrivateKey).toHaveLength(32)
     })
 
     it("opens the stored wraps and package with the derived keys", () => {
@@ -223,15 +235,21 @@ describe("tampering", () => {
         expect(() => unwrapKey(sodium, toB64(sodium, raw), key, INPUT.userId, INPUT.dekId, "password")).toThrow(AccountCryptoError)
     })
 
-    it("a sealed DEK opens only with the device's key and only under its own dekId", () => {
-        const one = sodium.crypto_box_keypair()
-        const two = sodium.crypto_box_keypair()
-        const sealed = sealDek(sodium, bytes(32, 5), "dek-a", one.publicKey)
-        expect(openSealedDek(sodium, sealed, "dek-a", one)).toEqual(bytes(32, 5))
-        expect(() => openSealedDek(sodium, sealed, "dek-a", two)).toThrow(AccountCryptoError)
-        // N-1: a server cannot hand out an old sealed key under a new id, nor a bare v1 seal
-        expect(() => openSealedDek(sodium, sealed, "dek-b", one)).toThrow(AccountCryptoError)
-        expect(() => openSealedDek(sodium, toB64(sodium, sodium.crypto_box_seal(bytes(32, 5), one.publicKey)), "dek-a", one)).toThrow(AccountCryptoError)
+    it("a boxed DEK opens only for the receiver, only with the sender's key, under its own dekId and use (NEU-1)", () => {
+        const sender = sodium.crypto_box_keypair()
+        const receiver = sodium.crypto_box_keypair()
+        const stranger = sodium.crypto_box_keypair()
+        const rotateCtx = { kind: "rotate" as const, userId: INPUT.userId }
+        const boxed = boxDek(sodium, bytes(32, 5), "dek-a", rotateCtx, receiver.publicKey, sender)
+        expect(openBoxedDek(sodium, boxed, "dek-a", rotateCtx, sender.publicKey, receiver)).toEqual(bytes(32, 5))
+        // anybody else's key made it (a server, a removed device): it does not open
+        expect(() => openBoxedDek(sodium, boxed, "dek-a", rotateCtx, stranger.publicKey, receiver)).toThrow(AccountCryptoError)
+        expect(() => openBoxedDek(sodium, boxed, "dek-a", rotateCtx, sender.publicKey, stranger)).toThrow(AccountCryptoError)
+        // N-1: not under another id, not for another use, and an anonymous sealed box (v1) never
+        expect(() => openBoxedDek(sodium, boxed, "dek-b", rotateCtx, sender.publicKey, receiver)).toThrow(AccountCryptoError)
+        expect(() => openBoxedDek(sodium, boxed, "dek-a", { kind: "own", userId: INPUT.userId }, sender.publicKey, receiver)).toThrow(AccountCryptoError)
+        expect(() => openBoxedDek(sodium, boxed, "dek-a", { kind: "approve", transcript: bytes(32, 9) }, sender.publicKey, receiver)).toThrow(AccountCryptoError)
+        expect(() => openBoxedDek(sodium, toB64(sodium, sodium.crypto_box_seal(bytes(32, 5), receiver.publicKey)), "dek-a", rotateCtx, sender.publicKey, receiver)).toThrow(AccountCryptoError)
     })
 
     it("a device MAC and a chain MAC hold only for their DEK, account, ids and keys (K-1)", () => {
@@ -247,12 +265,17 @@ describe("tampering", () => {
         expect(deviceMacValid(sodium, dek, binding, null)).toBe(false)
         expect(deviceMacValid(sodium, dek, binding, "not base64!")).toBe(false)
         const next = bytes(32, 44)
-        const link = { userId: INPUT.userId, oldDekId: "dek-a", newDekId: "dek-b" }
+        const rotator = bytes(32, 47)
+        const link = { userId: INPUT.userId, oldDekId: "dek-a", newDekId: "dek-b", rotatorPub: rotator, removed: ["removed-b", "removed-a"] }
         const chain = chainMac(sodium, dek, link, next)
         expect(chainMacValid(sodium, dek, link, next, chain)).toBe(true)
         expect(chainMacValid(sodium, dek, link, bytes(32, 45), chain)).toBe(false)
         expect(chainMacValid(sodium, bytes(32, 46), link, next, chain)).toBe(false)
         expect(chainMacValid(sodium, dek, { ...link, newDekId: "dek-c" }, next, chain)).toBe(false)
+        // chain v2: the rotating device and the removed list are covered; the list's order does not matter
+        expect(chainMacValid(sodium, dek, { ...link, rotatorPub: bytes(32, 48) }, next, chain)).toBe(false)
+        expect(chainMacValid(sodium, dek, { ...link, removed: ["removed-a"] }, next, chain)).toBe(false)
+        expect(chainMacValid(sodium, dek, { ...link, removed: ["removed-a", "removed-b"] }, next, chain)).toBe(true)
         expect(dekProof(sodium, dek)).not.toBe(dekProof(sodium, next))
         expect(dekProof(sodium, dek)).not.toBe(mac)
     })
@@ -288,19 +311,23 @@ describe("device approval values", () => {
         const pkN = sodium.crypto_box_keypair().publicKey
         const rN = bytes(32, 11)
         const rO = bytes(32, 12)
-        const onNew = sas(sodium, pkN, rN, rO)
-        const onOld = sas(sodium, Uint8Array.from(pkN), Uint8Array.from(rN), Uint8Array.from(rO))
+        const pkO = sodium.crypto_box_keypair().publicKey
+        const onNew = sas(sodium, pkN, pkO, rN, rO)
+        const onOld = sas(sodium, Uint8Array.from(pkN), Uint8Array.from(pkO), Uint8Array.from(rN), Uint8Array.from(rO))
         expect(onNew).toMatch(/^\d{6}$/)
         expect(onOld).toBe(onNew)
         const otherKey = sodium.crypto_box_keypair().publicKey
-        expect(sas(sodium, otherKey, rN, rO)).not.toBe(onNew)
-        expect(sas(sodium, pkN, rN, bytes(32, 13))).not.toBe(onNew)
+        expect(sas(sodium, otherKey, pkO, rN, rO)).not.toBe(onNew)
+        // approval v2: a server that swaps the approving device's key changes the number too
+        expect(sas(sodium, pkN, otherKey, rN, rO)).not.toBe(onNew)
+        expect(sas(sodium, pkN, pkO, rN, bytes(32, 13))).not.toBe(onNew)
+        expect(approvalTranscript(sodium, pkN, pkO, rN, rO)).toHaveLength(32)
         expect(commitmentMatches(sodium, otherKey, rN, commitment(sodium, pkN, rN))).toBe(false)
     })
 
     it("spreads the six digits evenly", () => {
         const counts = Array.from({ length: 10 }, () => 0)
-        for (let i = 0; i < 2000; i++) counts[Number(sas(sodium, bytes(32, i), bytes(32, i >> 8), bytes(32, 7))[0])]!++
+        for (let i = 0; i < 2000; i++) counts[Number(sas(sodium, bytes(32, i), bytes(32, 3), bytes(32, i >> 8), bytes(32, 7))[0])]!++
         for (const count of counts) expect(count).toBeGreaterThan(130)
     })
 

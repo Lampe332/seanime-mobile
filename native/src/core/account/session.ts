@@ -28,6 +28,8 @@ const KEYS = {
     kdf: `${ACCOUNT_STORE_PREFIX}kdf`,
     /** The libsodium fallback signing key (only on a device without Android Keystore) */
     signer: `${ACCOUNT_STORE_PREFIX}signing-key`,
+    /** Device keys this device knows as removed, per account (R3): never sealed to, their key chains refused */
+    removed: `${ACCOUNT_STORE_PREFIX}removed`,
 } as const
 
 /**
@@ -212,6 +214,30 @@ export class AccountSession {
         return keys ? { publicKey: fromB64(this.sodium, keys.publicKey, 32), privateKey: fromB64(this.sodium, keys.privateKey, 32) } : null
     }
 
+    /** Signing out: the device keys go too, so the next sign-in asks with a new device key (NEU-12) */
+    async forgetDeviceKeys(): Promise<void> {
+        await this.store.deleteItemAsync(KEYS.device)
+    }
+
+    /** Device keys (base64url) this device knows as removed from the account (R3) */
+    async removedDevices(userId: string): Promise<string[]> {
+        return (await this.read<Record<string, string[]>>(KEYS.removed))?.[userId] ?? []
+    }
+
+    /**
+     * Remembers removed device keys for the account: its own removals, the ones a trusted key chain names and the ones the
+     * server lists (trusting a list only ever leaves a device out). At most the newest 200.
+     */
+    async addRemoved(userId: string, pubs: string[]): Promise<void> {
+        if (pubs.length === 0) return
+        const all = (await this.read<Record<string, string[]>>(KEYS.removed)) ?? {}
+        const before = all[userId] ?? []
+        const next = [...new Set([...before, ...pubs])].slice(-200)
+        if (next.length === before.length) return
+        all[userId] = next
+        await this.write(KEYS.removed, all)
+    }
+
     async saveDeviceKeys(keys: SodiumKeyPair): Promise<void> {
         await this.write(KEYS.device, { publicKey: toB64(this.sodium, keys.publicKey), privateKey: toB64(this.sodium, keys.privateKey) })
     }
@@ -221,13 +247,13 @@ export class AccountSession {
      * device then updates its row on the server instead of adding a second one (account-server PUT account/keys).
      */
     async clear(everything = false): Promise<void> {
-        for (const key of [KEYS.session, KEYS.dek, KEYS.sync, ...(everything ? [KEYS.device, KEYS.kdf] : [])]) await this.store.deleteItemAsync(key)
+        for (const key of [KEYS.session, KEYS.dek, KEYS.sync, ...(everything ? [KEYS.device, KEYS.kdf, KEYS.removed] : [])]) await this.store.deleteItemAsync(key)
     }
 
     /**
-     * The server ended the session (401: expired, password reset, removed elsewhere): only the token goes. The DEK, the
-     * device key pair and the sync state stay until the user signs in again or signs out (N-3), so a sign-in after a
-     * reset without code can wrap the kept DEK for the new password.
+     * The server ended the session (401: expired, password reset): only the token goes. The DEK, the device key pair and
+     * the sync state stay until the user signs in again or signs out (N-3), so a sign-in after a reset without code can
+     * wrap the kept DEK for the new password. A removed device (401 device_removed) uses clear() instead (NEU-2).
      */
     async dropSession(): Promise<void> {
         await this.store.deleteItemAsync(KEYS.session)

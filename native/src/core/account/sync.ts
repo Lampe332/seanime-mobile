@@ -25,6 +25,8 @@ import type { Sodium } from "./sodium"
  *   "key-changed" when the server has no newer key for it (it was removed).
  * - The server asks for a rotation (a device was removed): the sync tries it, and when it can't run here (the password
  *   is needed, the sign-in is too old, an unverified device is in the list) it syncs on and keeps the flag (M-4).
+ * - Device keys the server lists as removed are remembered (R3): this device never seals a new key to them and never
+ *   takes a key chain one of them made. Believing that list can only leave a device out, never let one in.
  */
 
 export const SYNC_INTERVAL_MS = 5 * 60 * 1000
@@ -34,6 +36,8 @@ export type SyncTrigger = "interval" | "start" | "leave" | "manual"
 
 export type SyncOutcome =
     | { state: "signed-out" }
+    /** NEU-2: the server ended the session because this device was removed; the app drops the key and the session */
+    | { state: "removed" }
     /** Signed in, but the DEK is not on this device yet (approval or recovery code) */
     | { state: "needs-key" }
     | { state: "skipped" }
@@ -171,7 +175,7 @@ export class SyncEngine {
         catch (error) {
             if (error instanceof KeyChanged) return { state: "key-changed", ...flags }
             if (error instanceof Rollback) return { state: "rollback-rejected", version: error.version, highest: error.highest, ...flags }
-            if (error instanceof UnauthorizedError) return { state: "signed-out", ...flags }
+            if (error instanceof UnauthorizedError) return { state: error.code === "device_removed" ? "removed" : "signed-out", ...flags }
             if (error instanceof RateLimitedError) {
                 this.backoffUntil = this.deps.now() + (error.retryAfter ?? 60) * 1000
                 return { state: "rate-limited", retryAfter: error.retryAfter, ...flags }
@@ -212,7 +216,7 @@ export class SyncEngine {
                 // not possible here right now (password needed, old sign-in, unverified device, a race): the flag stays
                 // and the screens ask for what is missing; the sync itself goes on (M-4)
                 if (!(error instanceof AccountApiError || error instanceof AccountCryptoError)) throw error
-                if (error instanceof UnauthorizedError) return { state: "signed-out", ...NO_FLAGS }
+                if (error instanceof UnauthorizedError) return { state: error.code === "device_removed" ? "removed" : "signed-out", ...NO_FLAGS }
             }
         }
         const current = meta
@@ -276,11 +280,17 @@ export class SyncEngine {
         try {
             const state = await this.deps.session.load()
             if (!state) return { state: "signed-out", ...NO_FLAGS } as const
-            if (!state.dek || !state.dekId) return { state: "needs-key", ...NO_FLAGS } as const
-            return await this.deps.api.syncMeta()
+            if (!state.dek || !state.dekId) {
+                this.deps.sodium.memzero(state.dek ?? new Uint8Array(0))
+                return { state: "needs-key", ...NO_FLAGS } as const
+            }
+            this.deps.sodium.memzero(state.dek)
+            const meta = await this.deps.api.syncMeta()
+            if (meta.removedDevices?.length) await this.deps.session.addRemoved(state.userId, meta.removedDevices)
+            return meta
         }
         catch (error) {
-            if (error instanceof UnauthorizedError) return { state: "signed-out", ...NO_FLAGS } as const
+            if (error instanceof UnauthorizedError) return { state: error.code === "device_removed" ? "removed" : "signed-out", ...NO_FLAGS } as const
             if (error instanceof RateLimitedError) {
                 this.backoffUntil = this.deps.now() + (error.retryAfter ?? 60) * 1000
                 return { state: "rate-limited", retryAfter: error.retryAfter, ...NO_FLAGS } as const

@@ -48,7 +48,7 @@ export class RateLimitedError extends AccountApiError {
     }
 }
 
-/** 401: no or expired session, or wrong email / password */
+/** 401: no or expired session, or wrong email / password; code "device_removed": this device was removed (NEU-2) */
 export class UnauthorizedError extends AccountApiError {
     constructor(code: string, message: string, body: Record<string, unknown>) {
         super(401, code, message, body)
@@ -95,8 +95,11 @@ export type ResetBody = { token: string, salt: string, kdf: Kdf, authKey: string
  * `mac`: the DEK holder's MAC on the row (devices.ts checks it, the server cannot)
  */
 export type DeviceInfo = { id: string, name: string, createdAt: number, lastSeenAt: number, current: boolean, devicePub: string, dekId: string | null, mac: string | null }
-/** The DEK sealed to this session's device (after another device rotated it) and the old DEK's chain MAC for it */
-export type DeviceKey = { deviceId: string, dekId: string, sealedDek: string, chainFrom: string | null, chainMac: string | null }
+/**
+ * The DEK boxed to this session's device by the device that rotated it, and the old DEK's chain MAC (v2) over the new
+ * DEK, the rotating device's key and the device keys it left out as removed
+ */
+export type DeviceKey = { deviceId: string, dekId: string, sealedDek: string, chainFrom: string | null, chainMac: string | null, rotatorPub: string | null, removed: string[] }
 export type StartFreshBody = { dekId: string, dekProof: string, wrappedDek?: string, recoveryWrappedDek?: string, device: DeviceKeysBody }
 /** GET account: what the account screen shows; never a key or hash */
 export type AccountInfo = {
@@ -123,6 +126,8 @@ export type ApprovalRequest = {
     devicePub: string
     commitment: string
     approverNonce: string | null
+    /** Approval v2: the approving device's own key; it is in the number and made the box */
+    approverPub: string | null
     reveal: string | null
     status: RequestStatus
     createdAt: number
@@ -139,10 +144,13 @@ export type RotateMeta = {
     /** crypto.ts chainMac: the old DEK vouches for the new one */
     chainMac: string
     devices: { deviceId: string, sealedDek: string, mac: string }[]
+    /** Device keys left out as removed; the chain MAC covers them */
+    removed: string[]
     wrappedDek?: string
     recoveryWrappedDek?: string
 }
-export type SyncMeta = { version: number, size: number, dekId: string | null, updatedAt: number | null, rotationRequired: boolean, rewrapNeeded: boolean, recoveryRenewalNeeded: boolean }
+/** `removedDevices`: device keys removed from the account (trusting it can only leave a device out) */
+export type SyncMeta = { version: number, size: number, dekId: string | null, updatedAt: number | null, rotationRequired: boolean, rewrapNeeded: boolean, recoveryRenewalNeeded: boolean, removedDevices?: string[] }
 export type Snapshot = { bytes: Uint8Array, version: number, dekId: string }
 
 type Body = Record<string, unknown>
@@ -247,7 +255,8 @@ export class AccountClient {
     createRequest = (body: { deviceName: string, devicePub: string, commitment: string }) => this.call<{ id: string, status: RequestStatus, expiresAt: number }>("POST", "devices/requests", { json: body })
     openRequests = async () => (await this.call<{ requests: ApprovalRequest[] }>("GET", "devices/requests")).requests
     request = (id: string) => this.call<ApprovalRequest>("GET", `devices/requests/${encodeURIComponent(id)}`)
-    sendNonce = (id: string, nonce: string) => this.call<{ id: string, status: RequestStatus }>("POST", `devices/requests/${encodeURIComponent(id)}/nonce`, { json: { nonce } })
+    /** Approval v2: rO and this device's own key */
+    sendNonce = (id: string, nonce: string, approverPub: string) => this.call<{ id: string, status: RequestStatus }>("POST", `devices/requests/${encodeURIComponent(id)}/nonce`, { json: { nonce, approverPub } })
     reveal = (id: string, reveal: string) => this.call<{ id: string, status: RequestStatus }>("POST", `devices/requests/${encodeURIComponent(id)}/reveal`, { json: { reveal } })
     /** `mac`: the approver's deviceMac for the new device's row */
     approve = (id: string, dekId: string, sealedDek: string, mac: string) => this.call<{ id: string, status: RequestStatus }>("POST", `devices/requests/${encodeURIComponent(id)}/approve`, { json: { dekId, sealedDek, mac } })

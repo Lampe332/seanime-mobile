@@ -17,9 +17,12 @@ import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { playlists } from "../database/schema"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { AccountClient, type HttpFetch, RateLimitedError, type RequestSigner, UnauthorizedError } from "./client"
-import { AccountCryptoError, DEFAULT_KDF, type Kdf, UnsafeKdfError, UntrustedDevicesError, dekProof, deriveKeys, deviceMac, fromB64, sealDek, toB64 } from "./crypto"
-import { type AccountDeps, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, openRequests, requestApproval, rotate } from "./devices"
-import { createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signOut, signupEmail, startFresh } from "./flows"
+import {
+    AccountCryptoError, DEFAULT_KDF, type Kdf, RemovedDeviceListedError, UnsafeKdfError, UntrustedDevicesError, UntrustedKeyChangeError, approvalTranscript, boxDek, chainMac, dekProof,
+    deriveKeys, deviceMac, fromB64, toB64,
+} from "./crypto"
+import { type AccountDeps, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, confirmApproval, openRequests, requestApproval, rotate } from "./devices"
+import { completeRotation, createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signOut, signupEmail, startFresh } from "./flows"
 import { AccountSession, type SignerStore, sodiumSignerStore } from "./session"
 import type { Sodium } from "./sodium"
 import { SyncEngine, coreLocalData } from "./sync"
@@ -220,10 +223,13 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await compareRequest(phone.deps, turn)).toEqual({ state: "waiting" })
         const onLaptop = await checkApproval(laptop.deps, pending)
         const onPhone = await compareRequest(phone.deps, turn)
-        expect(onLaptop.state).toBe("compare")
+        expect(onLaptop).toMatchObject({ state: "compare", confirmed: false })
         expect(onPhone).toEqual(onLaptop)
         await approveRequest(phone.deps, turn)
-        expect(await checkApproval(laptop.deps, pending)).toEqual({ state: "approved" })
+        // approval v2 (NEU-1): the laptop takes the key only after its own user said the numbers are the same
+        expect(await checkApproval(laptop.deps, pending)).toEqual(onLaptop)
+        expect((await laptop.session.load())!.dek).toBeNull()
+        expect(await confirmApproval(laptop.deps, pending, true)).toEqual({ state: "approved" })
         const [phoneState, laptopState] = [await phone.session.load(), await laptop.session.load()]
         expect(laptopState!.dekId).toBe(phoneState!.dekId)
         expect(laptopState!.dek).toEqual(phoneState!.dek)
@@ -241,7 +247,8 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(rotated.recoveryNeedsRenewal).toBe(false)
         expect(await phone.client.syncMeta()).toMatchObject({ dekId: rotated.dekId, version: rotated.version, rotationRequired: false })
         await expect(laptop.client.syncMeta()).rejects.toThrow(UnauthorizedError)
-        expect(await laptop.engine.sync("manual")).toMatchObject({ state: "signed-out" })
+        // NEU-2: the removed device hears so (the app then drops its key and session)
+        expect(await laptop.engine.sync("manual")).toMatchObject({ state: "removed" })
 
         await (await phone.db()).insert(playlists).values({ name: "After rotation", episodes: [], createdAt: clock, updatedAt: clock })
         expect(await phone.engine.sync("manual")).toMatchObject({ state: "uploaded", version: rotated.version + 1 })
@@ -379,7 +386,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const dek = random(32)
         const dekId = toB64(sodium, random(16))
         const keys = sodium.crypto_box_keypair()
-        const row = { name: "Galaxy S22", devicePub: toB64(sodium, keys.publicKey), sealedDek: sealDek(sodium, dek, dekId, keys.publicKey), mac: deviceMac(sodium, dek, { userId, dekId, devicePub: keys.publicKey }) }
+        const row = { name: "Galaxy S22", devicePub: toB64(sodium, keys.publicKey), sealedDek: boxDek(sodium, dek, dekId, { kind: "own", userId }, keys.publicKey, keys), mac: deviceMac(sodium, dek, { userId, dekId, devicePub: keys.publicKey }) }
         return { dek, dekId, keys, row }
     }
 
@@ -391,7 +398,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         // the server refuses: no device without the key, not even on the victim's own row, and no rotation
         await expect(attacker.client.putKeys({ dekId: before.dekId!, device: evil.row })).rejects.toMatchObject({ status: 403, code: "key_required" })
         await expect(attacker.client.putKeys({ dekId: before.dekId!, dekProof: toB64(sodium, random(32)), device: { ...evil.row, devicePub: toB64(sodium, before.deviceKeys!.publicKey) } })).rejects.toMatchObject({ status: 403 })
-        await expect(attacker.client.rotate({ oldDekId: before.dekId!, dekId: evil.dekId, dekProof: dekProof(sodium, evil.dek), chainMac: toB64(sodium, random(32)), devices: [] }, null, 1)).rejects.toMatchObject({ status: 403 })
+        await expect(attacker.client.rotate({ oldDekId: before.dekId!, dekId: evil.dekId, dekProof: dekProof(sodium, evil.dek), chainMac: toB64(sodium, random(32)), devices: [], removed: [] }, null, 1)).rejects.toMatchObject({ status: 403 })
         expect((await victim.client.devices()).map(device => device.name)).toEqual(["Victim"])
 
         // a manipulated server (or anyone with D1 write access) puts the attacker's device in the list anyway
@@ -405,7 +412,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         // and switches the account to the attacker's key, sealed to the victim's device, with a made-up chain
         await d1.prepare("UPDATE users SET dek_id = ?, chain_from = ?, chain_mac = ? WHERE id = ?").bind(evil.dekId, before.dekId, toB64(sodium, random(32)), before.userId).run()
         await d1.prepare("UPDATE devices SET dek_id = ?, sealed_dek = ? WHERE user_id = ? AND name = 'Victim'")
-            .bind(evil.dekId, sealDek(sodium, evil.dek, evil.dekId, before.deviceKeys!.publicKey), before.userId).run()
+            .bind(evil.dekId, boxDek(sodium, evil.dek, evil.dekId, { kind: "rotate", userId: before.userId }, before.deviceKeys!.publicKey, evil.keys), before.userId).run()
         await d1.prepare("UPDATE snapshots SET dek_id = ? WHERE user_id = ?").bind(evil.dekId, before.userId).run()
         await (await victim.db()).insert(playlists).values({ name: "Local only", episodes: [], createdAt: clock, updatedAt: clock })
 
@@ -529,6 +536,191 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await phone2.engine.sync("manual")).toMatchObject({ state: "import-available" })
         expect(await phone2.engine.importFromAccount()).toMatchObject({ state: "updated" })
         expect(await names(phone2)).toEqual(["Mine", "Tablet"])
+    })
+
+    /* ---- Fix round 3: the attacks of the second review (B1, B1b, B2, B3, B5) against the real core ---- */
+
+    it("B1 (NEU-1): a new device takes no key the server approves on its own, nor one from a device whose number its user did not confirm", async () => {
+        const email = "b1-fix3@example.org"
+        const owner = await accountWithData(email)
+        const ownerState = (await owner.session.load())!
+        const fresh = await keylessSession(email)
+        const d1 = await db()
+        const evil = sodium.crypto_box_keypair()
+        const evilDek = random(32)
+        // (a) the server jumps the request to "approved" with a key of its own under the account's real dekId
+        const jumped = await requestApproval(fresh.deps, "New Phone")
+        await d1.prepare("UPDATE device_requests SET status = 'approved', approver_pub = ?, approver_nonce = ?, reveal = ?, sealed_dek = ?, dek_id = ?, device_id = ? WHERE id = ?")
+            .bind(toB64(sodium, evil.publicKey), toB64(sodium, random(32)), toB64(sodium, jumped.rN), boxDek(sodium, evilDek, ownerState.dekId!, { kind: "approve", transcript: random(32) }, jumped.devicePub, evil), ownerState.dekId, ownerState.deviceId, jumped.id).run()
+        await expect(checkApproval(fresh.deps, jumped)).rejects.toThrow(AccountCryptoError)
+        expect((await fresh.session.load())!.dek).toBeNull()
+        // (b) the server sits in between with its own key: this device shows a number the user's phone never shows
+        const between = await requestApproval(fresh.deps, "New Phone")
+        const rO = random(32)
+        await d1.prepare("UPDATE device_requests SET status = 'nonce', approver_pub = ?, approver_nonce = ? WHERE id = ?").bind(toB64(sodium, evil.publicKey), toB64(sodium, rO), between.id).run()
+        expect(await checkApproval(fresh.deps, between)).toMatchObject({ state: "compare", confirmed: false })
+        const transcript = approvalTranscript(sodium, between.devicePub, evil.publicKey, between.rN, rO)
+        await d1.prepare("UPDATE device_requests SET status = 'approved', sealed_dek = ?, dek_id = ?, device_id = ? WHERE id = ?")
+            .bind(boxDek(sodium, evilDek, ownerState.dekId!, { kind: "approve", transcript }, between.devicePub, evil), ownerState.dekId, ownerState.deviceId, between.id).run()
+        // "approved" on the server, but this device's user has not said the numbers match: nothing is taken
+        expect(await checkApproval(fresh.deps, between)).toMatchObject({ state: "compare", confirmed: false })
+        expect((await fresh.session.load())!.dek).toBeNull()
+        // the user's phone shows no such number: "No" ends it, also when the server calls it approved
+        expect(await confirmApproval(fresh.deps, between, false)).toEqual({ state: "denied" })
+        expect((await fresh.session.load())!.dek).toBeNull()
+        expect(await fresh.engine.sync("manual")).toMatchObject({ state: "needs-key" })
+    })
+
+    it("B1b (NEU-1): a device that keeps the account's key never goes to an approval, even when the server ends its session and hides the wrap", async () => {
+        const email = "b1b-fix3@example.org"
+        const victim = await accountWithData(email)
+        const before = (await victim.session.load())!
+        const d1 = await db()
+        await d1.prepare("DELETE FROM sessions WHERE user_id = ?").bind(before.userId).run()
+        await d1.prepare("UPDATE users SET wrapped_dek = NULL WHERE id = ?").bind(before.userId).run()
+        expect(await victim.engine.sync("manual")).toMatchObject({ state: "signed-out" })
+        await victim.session.dropSession()
+        expect(await loginEmail(victim.deps, { email, password: PASSWORD, deviceName: "Victim" })).toMatchObject({ status: "ready", keyChanged: false })
+        const after = (await victim.session.load())!
+        expect(after.dek).toEqual(before.dek)
+        expect(after.dekId).toBe(before.dekId)
+        // it put its password wrap back, and syncs on with its own key and data
+        expect(await d1.prepare("SELECT wrapped_dek IS NOT NULL AS w FROM users WHERE id = ?").bind(before.userId).first()).toEqual({ w: 1 })
+        expect(await victim.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 1 })
+        expect(await names(victim)).toEqual(["Mine"])
+    })
+
+    it("B2 (NEU-1, NEU-7): after someone else started fresh, the device says so, imports nothing and takes no key without its user's yes", async () => {
+        const email = "b2-fix3@example.org"
+        const victim = await accountWithData(email)
+        const before = (await victim.session.load())!
+        const attacker = await keylessSession(email)
+        const evil = attackerKeys(before.userId)
+        const started = await attacker.client.startFresh({ dekId: evil.dekId, dekProof: dekProof(sodium, evil.dek), wrappedDek: toB64(sodium, random(72)), device: evil.row })
+        await attacker.session.saveDeviceKeys(evil.keys)
+        await attacker.session.saveDek(evil.dekId, evil.dek)
+        await attacker.session.updateSession({ deviceId: started.deviceId })
+        expect(await victim.engine.sync("manual")).toMatchObject({ state: "signed-out" })
+        await victim.session.dropSession()
+        // signing in again: the key changed without a chain; the device says so instead of a bare error
+        await expect(loginEmail(victim.deps, { email, password: PASSWORD, deviceName: "Victim" })).rejects.toThrow(UntrustedKeyChangeError)
+        expect((await victim.session.load())!.dek).toBeNull()
+        // it asks for an approval (as a Google account would); the attacker's device answers and approves
+        const pending = await requestApproval(victim.deps, "Victim")
+        const [request] = await openRequests(attacker.deps)
+        const turn = await answerRequest(attacker.deps, request!)
+        expect(await checkApproval(victim.deps, pending)).toMatchObject({ state: "compare", confirmed: false })
+        await approveRequest(attacker.deps, turn)
+        expect(await checkApproval(victim.deps, pending)).toMatchObject({ state: "compare", confirmed: false })
+        expect((await victim.session.load())!.dek).toBeNull()
+        // none of the user's devices shows that number: "No"
+        expect(await confirmApproval(victim.deps, pending, false)).toEqual({ state: "denied" })
+        expect((await victim.session.load())!.dek).toBeNull()
+        expect(await victim.engine.sync("manual")).toMatchObject({ state: "needs-key" })
+        expect(await names(victim)).toEqual(["Mine"])
+    })
+
+    it("B3 (NEU-2): a removed device that kept the key can't bind again, read the data or rotate; the owner's rotation leaves it out", async () => {
+        const email = "b3-fix3@example.org"
+        const victim = await accountWithData(email)
+        const thief = install()
+        expect(await loginEmail(thief.deps, { email, password: PASSWORD, deviceName: "Stolen" })).toMatchObject({ status: "ready" })
+        const stolen = (await thief.session.load())!
+        const d1 = await db()
+        // removed on the website: a session of the account with a recent sign-in
+        const web = await keylessSession(email)
+        await web.client.deleteDevice(stolen.deviceId!)
+        // the thief keeps the app from syncing and signs in again like with Google (no password check), with the key it kept
+        const { salt, kdf, challenge } = await thief.client.prelogin(email)
+        const { authKey } = await deriveKeys(sodium, PASSWORD, fromB64(sodium, salt, 16), kdf)
+        const login = await thief.client.login(email, toB64(sodium, authKey), challenge, await thief.session.signer())
+        await thief.session.saveSession({ userId: login.userId, sessionToken: login.sessionToken, kind: "google", email: null, deviceId: null })
+        await d1.prepare("UPDATE sessions SET password_auth = 0 WHERE user_id = ? AND device_id IS NULL").bind(login.userId).run()
+        const kept = stolen.dek!
+        const own = stolen.deviceKeys!
+        const rowFor = (keys: { publicKey: Uint8Array, privateKey: Uint8Array }) => ({
+            name: "Stolen", devicePub: toB64(sodium, keys.publicKey),
+            sealedDek: boxDek(sodium, kept, stolen.dekId!, { kind: "own", userId: stolen.userId }, keys.publicKey, keys),
+            mac: deviceMac(sodium, kept, { userId: stolen.userId, dekId: stolen.dekId!, devicePub: keys.publicKey }),
+        })
+        await expect(thief.client.putKeys({ dekId: stolen.dekId!, dekProof: dekProof(sodium, kept), device: rowFor(own) })).rejects.toMatchObject({ status: 403, code: "device_removed" })
+        await expect(thief.client.putKeys({ dekId: stolen.dekId!, dekProof: dekProof(sodium, kept), device: rowFor(sodium.crypto_box_keypair()) })).rejects.toMatchObject({ status: 403, code: "rotation_pending" })
+        await expect(thief.client.snapshot()).rejects.toMatchObject({ status: 403 })
+        await expect(rotate(thief.deps)).rejects.toThrow(AccountCryptoError)
+        // the owner finishes the removal with the password; the chain names the removed key
+        const done = await completeRotation(victim.deps, { deviceName: "Victim", password: PASSWORD })
+        expect(done.dekId).not.toBe(stolen.dekId)
+        expect(await victim.client.syncMeta()).toMatchObject({ rotationRequired: false, dekId: done.dekId })
+        expect(await d1.prepare("SELECT chain_removed FROM users WHERE id = ?").bind(stolen.userId).first()).toEqual({ chain_removed: JSON.stringify([toB64(sodium, own.publicKey)]) })
+        // the old key's proof is worth nothing now
+        await expect(thief.client.putKeys({ dekId: stolen.dekId!, dekProof: dekProof(sodium, kept), device: rowFor(sodium.crypto_box_keypair()) })).rejects.toMatchObject({ status: 409 })
+    })
+
+    it("B5 (NEU-3): a removed device with a compromised server can't move the devices to its key, and the owner's rotation never seals to it", async () => {
+        const email = "b5-fix3@example.org"
+        const victim = await accountWithData(email)
+        const tab = install()
+        expect(await loginEmail(tab.deps, { email, password: PASSWORD, deviceName: "Tablet" })).toMatchObject({ status: "ready" })
+        expect(await tab.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        const removed = install()
+        expect(await loginEmail(removed.deps, { email, password: PASSWORD, deviceName: "Old Tablet" })).toMatchObject({ status: "ready" })
+        const r = (await removed.session.load())!
+        const d1 = await db()
+        const rRow = (await d1.prepare("SELECT * FROM devices WHERE id = ?").bind(r.deviceId).first<{ id: string, device_pub: string, sealed_dek: string, mac: string }>())!
+        // removed on the website; the user's devices sync once and keep the removed key from the server's list
+        const web = await keylessSession(email)
+        await web.client.deleteDevice(r.deviceId!)
+        expect(await victim.engine.sync("manual")).toMatchObject({ rotationRequired: true })
+        expect(await tab.engine.sync("manual")).toMatchObject({ rotationRequired: true })
+        const vState = (await victim.session.load())!
+        // (a) the removed device makes a valid chain from the old key to its own and boxes it with its own key
+        const evil = random(32)
+        const evilId = toB64(sodium, random(16))
+        const chain = chainMac(sodium, r.dek!, { userId: r.userId, oldDekId: r.dekId!, newDekId: evilId, rotatorPub: r.deviceKeys!.publicKey, removed: [] }, evil)
+        await d1.prepare("UPDATE users SET dek_id = ?, chain_from = ?, chain_mac = ?, chain_rotator = ?, chain_removed = '[]' WHERE id = ?")
+            .bind(evilId, r.dekId, chain, toB64(sodium, r.deviceKeys!.publicKey), r.userId).run()
+        for (const one of [victim, tab]) {
+            const s = (await one.session.load())!
+            await d1.prepare("UPDATE devices SET dek_id = ?, sealed_dek = ? WHERE id = ?")
+                .bind(evilId, boxDek(sodium, evil, evilId, { kind: "rotate", userId: r.userId }, s.deviceKeys!.publicKey, r.deviceKeys!), s.deviceId).run()
+        }
+        await d1.prepare("UPDATE snapshots SET dek_id = ? WHERE user_id = ?").bind(evilId, r.userId).run()
+        // (a') claiming the victim's phone as the rotating device does not help: only that phone's key makes its boxes
+        const tState = (await tab.session.load())!
+        expect(await victim.engine.sync("manual")).toMatchObject({ state: "key-untrusted" })
+        await d1.prepare("UPDATE users SET chain_rotator = ?, chain_mac = ? WHERE id = ?")
+            .bind(toB64(sodium, vState.deviceKeys!.publicKey), chainMac(sodium, r.dek!, { userId: r.userId, oldDekId: r.dekId!, newDekId: evilId, rotatorPub: vState.deviceKeys!.publicKey, removed: [] }, evil), r.userId).run()
+        expect(await tab.engine.sync("manual")).toMatchObject({ state: "key-untrusted" })
+        expect((await victim.session.load())!.dekId).toBe(vState.dekId)
+        expect((await tab.session.load())!.dekId).toBe(tState.dekId)
+        expect(await d1.prepare("SELECT version FROM snapshots WHERE user_id = ?").bind(r.userId).first()).toEqual({ version: 1 })
+        // (b) the server puts the account back and lists the removed device again (its MAC is valid under the current key)
+        await d1.prepare("UPDATE users SET dek_id = ?, chain_from = NULL, chain_mac = NULL, chain_rotator = NULL, chain_removed = NULL WHERE id = ?").bind(vState.dekId, r.userId).run()
+        await d1.prepare("UPDATE snapshots SET dek_id = ? WHERE user_id = ?").bind(vState.dekId, r.userId).run()
+        await d1.prepare("INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at) VALUES (?, ?, 'Galaxy S22', ?, ?, ?, ?, 0, 0)")
+            .bind(rRow.id, r.userId, rRow.device_pub, rRow.sealed_dek, vState.dekId, rRow.mac).run()
+        await expect(completeRotation(victim.deps, { deviceName: "Victim", password: PASSWORD })).rejects.toThrow(RemovedDeviceListedError)
+        expect(await d1.prepare("SELECT dek_id FROM devices WHERE id = ?").bind(rRow.id).first()).toEqual({ dek_id: vState.dekId })
+        expect(await d1.prepare("SELECT dek_id FROM users WHERE id = ?").bind(r.userId).first()).toEqual({ dek_id: vState.dekId })
+        expect((await checkedDevices(victim.deps)).find(device => device.devicePub === rRow.device_pub)?.verified).toBe(false)
+    })
+
+    it("R4: removing a device in the app rotates in the same step; the other device learns the removal from the chain and refuses that device's chains", async () => {
+        const email = "r4-fix3@example.org"
+        const owner = await accountWithData(email)
+        const other = install()
+        expect(await loginEmail(other.deps, { email, password: PASSWORD, deviceName: "Tablet" })).toMatchObject({ status: "ready" })
+        expect(await other.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        const gone = install()
+        expect(await loginEmail(gone.deps, { email, password: PASSWORD, deviceName: "Old Phone" })).toMatchObject({ status: "ready" })
+        const goneState = (await gone.session.load())!
+        const result = await removeDevice(owner.deps, { deviceId: goneState.deviceId!, deviceName: "Victim", password: PASSWORD })
+        expect(await owner.client.syncMeta()).toMatchObject({ rotationRequired: false, dekId: result.dekId })
+        expect(await other.engine.sync("manual")).toMatchObject({ state: "updated", version: result.version })
+        const otherState = (await other.session.load())!
+        expect(otherState.dekId).toBe(result.dekId)
+        expect(await other.session.removedDevices(otherState.userId)).toContain(toB64(sodium, goneState.deviceKeys!.publicKey))
+        expect(await gone.engine.sync("manual")).toMatchObject({ state: "removed" })
     })
 
     it("N-8 and M-2: a P-256 key like the Keystore's signs everything; the device keeps it, so a lockout of its email never stops it; signing out makes a new one", async () => {

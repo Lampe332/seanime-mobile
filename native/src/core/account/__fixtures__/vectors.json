@@ -22,6 +22,8 @@
         "rN": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
         "rO": "4142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f60",
         "sealSeed": "969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5",
+        "boxSeed": "78797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f9091929394959697",
+        "boxNonce": "5a5b5c5d5e5f606162636465666768696a6b6c6d6e6f7071",
         "signSecretKey": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
         "signMessage": "v1\nGET\n/v1/sync/meta\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n1763460000000\nAAECAwQFBgcICQoLDA0ODw\n-"
     },
@@ -33,13 +35,14 @@
         "recoveryKey": "6fbb13452d50219b81800e21c9030f3ea15c7be96c2a0bdc54cba0b57fe40d7b",
         "wrappedRecovery": "yMnKy8zNzs_Q0dLT1NXW19jZ2tvc3d7fsNJS3cnGsvNtnJ4H87-6Py0qzHnExoYh7-Pj2mhgTYg1yHMa9_kVvTqBikiJ_PIT",
         "package": "534d53010708090a0b0c0d0e0f101112131415161718191a1b1c1d1eec7b3c2cbab784d2477e8d63b8f6f767f1b598bac697f7252123e1e1eb7c847974",
-        "commitment": "IKfshGhPf-Ekyzcn0ElzSrC32i9S_K-875iez9kehws",
-        "sas": "077654",
+        "commitment": "9xBdk15mmPBpEJpObAOE7cYF-cdyYuMN5OM7ngAd-7U",
+        "sas": "595682",
         "sealPublicKey": "519711ad99a08bafb9675120ea05c06b5648811bbae1ead99465791ef56dbb2e",
-        "sealedDek": "V0aObyIDQ4FTqDkT5bYOfsJGQWJuUUKnLoS2hIbzhXzxFtNicDm8UElYh8gldnlOZvSoXQ7cfg_m1hftN3z-7KcUN3e9cPiX4n_JNvi53Htl78tnZ7HkUNaE5yNFg1Oizp49WhC9Dkc",
+        "boxPublicKey": "0ca2a49fd27479af26a25f6cbb98627f7190f0f9018b01179a4d8381f89f8f36",
+        "boxedDek": "WltcXV5fYGFiY2RlZmdoaWprbG1ub3BxLBSV-1c2JD5VUt9XDOq5XzLtUixeBj52krSjktcItkI6Ewk7JAJafQ8nUEiuDpbzccF8JJG5Lp5Jd1icxdvD640asSDi-FTQ7pBfYHJkBXQqoWKDswNx5NSkSlR00TRvOeLjxg-yup3LY7Mih8sDiB-PXQ",
         "deviceMac": "EQ80dUK7jEumO3ZPFwxB3_UtMWXZ5UnYuQbUXYF4qVs",
         "dekProof": "4_3HU_WTv9vc71Gc_h93pfn_DrY8ha9a0wPFfaP5crQ",
-        "chainMac": "GuK7waIkwGGeVIeHR3QIJLP9g-R437QA8OzKUo1Hc34",
+        "chainMac": "7xlT8jIpFWl9wd3Nvqp423C3LBTXjBvPlPCz4wBVk2E",
         "signature": "9afec2be3c2d26b434d20dd3129d7a36f681bbda84f2cd72b18a9883de8dde0eb96d35cd27c4b4f887b20a92a2ed5271d8446e90255dcef4f36b7b8104807a00"
     }
 }
