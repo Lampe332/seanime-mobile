@@ -5,7 +5,7 @@ import { GlidePill, GlideStandIn, useGlide } from "@/components/ui/core/glide"
 import { cn } from "@/components/ui/core/styling"
 import { usePressScale } from "@/components/ui/core/press"
 import { Text } from "@/components/ui/text/text"
-import { appLanguageAtom } from "@/lib/app-language"
+import { appLanguageAtom, translate } from "@/lib/app-language"
 import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
 import { isActive, MAX_NAV_ITEMS, menuTargets, navIcon, navLabel, type NavItem } from "@/lib/nav/nav-items"
 import { useAllNavItems } from "@/lib/nav/nav-store"
@@ -75,7 +75,7 @@ function NavEntry({ item, active, dense, rail, railHeight, onPress, onLayout, st
             ref={tourRef}
             accessibilityRole={item.isMenu ? "button" : "tab"}
             accessibilityState={{ selected: active }}
-            accessibilityLabel={[label, dot ? (language === "de" ? "Updates verfügbar" : "updates available") : "", incognito ? (language === "de" ? "Inkognito an" : "incognito on") : ""].filter(Boolean).join(", ")}
+            accessibilityLabel={[label, dot ? translate(language, "updates available", "Updates verfügbar") : "", incognito ? translate(language, "incognito on", "Inkognito an") : ""].filter(Boolean).join(", ")}
             onPress={() => {
                 if (item.isMenu) pressTourTarget(TOUR_TARGETS.menu)
                 onPress()
@@ -349,11 +349,11 @@ export function NavMenu({ open, onClose, pathname, onOpen, rail, barItems, actio
                     {header}
                     {/* the quick switch: stays open on a tap, so the change is seen */}
                     <MenuRow
-                        label={language === "de" ? "Inkognito-Modus" : "Incognito mode"}
+                        label={translate(language, "Incognito mode", "Inkognito-Modus")}
                         icon="incognito"
                         first
                         current={incognito}
-                        state={{ on: incognito, label: incognito ? (language === "de" ? "An" : "On") : (language === "de" ? "Aus" : "Off") }}
+                        state={{ on: incognito, label: incognito ? translate(language, "On", "An") : translate(language, "Off", "Aus") }}
                         onPress={() => setSwitches({ incognitoMode: !incognito })}
                     />
                     {entries.map((entry, i) => (
@@ -365,9 +365,9 @@ export function NavMenu({ open, onClose, pathname, onOpen, rail, barItems, actio
                             current={pathname === entry.href}
                             tourTarget={entry.href === "/extensions" ? TOUR_TARGETS.menuExtensions : undefined}
                             count={entry.href === "/extensions" ? updates : entry.href === "/updates" ? fresh : undefined}
-                            countLabel={entry.href === "/updates" ? (language === "de" ? `${fresh} neu` : `${fresh} new`)
-                                : updates === 1 ? (language === "de" ? "1 Update verfügbar" : "1 update available")
-                                    : language === "de" ? `${updates} Updates verfügbar` : `${updates} updates available`}
+                            countLabel={entry.href === "/updates" ? translate(language, `${fresh} new`, `${fresh} neu`)
+                                : updates === 1 ? translate(language, "1 update available", "1 Update verfügbar")
+                                    : translate(language, `${updates} updates available`, `${updates} Updates verfügbar`)}
                             onPress={() => onOpen(entry.href)}
                         />
                     ))}

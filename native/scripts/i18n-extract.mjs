@@ -14,7 +14,7 @@
  * same {n} in any order. An empty value means "not translated": the app shows the English text.
  *
  * Where texts are found (src/**, files sorted by path, keys in order of first appearance):
- *  1. calls t(en, de) / tr(en, de): the English argument, through `?:`, `??`, `||`, parentheses and string arguments of
+ *  1. calls t(en, de) / tr(en, de) / translate(language, en, de): the English argument, through `?:`, `??`, `||`, parentheses and string arguments of
  *     helper calls (`count(n, "1 result", `${n} results`)`);
  *  2. object literals with `en` + `de` or `fooEn` + `fooDe` properties;
  *  3. calls that hand `t`/`tr` on together with two string arrays (`plural(t, n, ["file", "files"], ["Datei", "Dateien"])`):
@@ -102,9 +102,10 @@ export function extract() {
         const where = node => `${path.relative(NATIVE, file).replaceAll("\\", "/")}:${src.getLineAndCharacterOfPosition(node.getStart()).line + 1}`
         const visit = node => {
             // 1. t(en, de)
-            if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && TR_NAMES.has(node.expression.text) && node.arguments.length === 2) {
+            const call = ts.isCallExpression(node) && ts.isIdentifier(node.expression) ? node.expression.text : ""
+            if (TR_NAMES.has(call) && node.arguments.length === 2 || call === "translate" && node.arguments.length === 3) {
                 const found = { texts: [], dynamic: false }
-                leaves(node.arguments[0], found)
+                leaves(node.arguments[call === "translate" ? 1 : 0], found)
                 for (const text of found.texts) {
                     add(text, file, src)
                     if (ts.isTemplateExpression(text)) {

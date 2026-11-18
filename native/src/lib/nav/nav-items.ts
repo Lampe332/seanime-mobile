@@ -1,4 +1,4 @@
-import type { AppLanguage } from "@/lib/app-language"
+import { type AppLanguage, translate } from "@/lib/app-language"
 import type { MobileIconName } from "@/lib/mobile-icons"
 
 /*
@@ -135,7 +135,7 @@ const NAV_LABELS_DE: Record<string, string> = {
 
 /** The shown text of an entry; the label itself stays the English key */
 export function navLabel(label: string, language: AppLanguage) {
-    return language === "de" ? (NAV_LABELS_DE[label] || label) : label
+    return translate(language, label, NAV_LABELS_DE[label] || label)
 }
 
 const ICON_BY_ID: Record<string, MobileIconName> = {
