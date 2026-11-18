@@ -54,7 +54,7 @@ let clock = Date.parse("2026-11-17T10:00:00.000Z")
 async function phone(server: FakeServer, options: { imported: boolean }) {
     const one = device(driver, () => clock)
     const session = new AccountSession(memoryStore(), sodium)
-    await session.saveSession({ userId: USER, sessionToken: "t".repeat(43), signingKey: "", kind: "email", email: "a@example.org", deviceId: "d" })
+    await session.saveSession({ userId: USER, sessionToken: "t".repeat(43), kind: "email", email: "a@example.org", deviceId: "d" })
     await session.saveDek(DEK_ID, bytes(32, 40))
     await session.updateSync({ imported: options.imported })
     let safetyBackups = 0

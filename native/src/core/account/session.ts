@@ -1,7 +1,7 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitte 5, 8: Speicher, Rollback-Schutz) und der API von expo-secure-store (getItemAsync/setItemAsync/deleteItemAsync)
 
-import type { SessionCredentials } from "./client"
-import { fromB64, toB64 } from "./crypto"
+import type { RequestSigner, SessionCredentials } from "./client"
+import { fromB64, newSigningKeyPair, toB64 } from "./crypto"
 import type { Sodium, SodiumKeyPair } from "./sodium"
 
 /*
@@ -26,7 +26,50 @@ const KEYS = {
     sync: `${ACCOUNT_STORE_PREFIX}sync`,
     /** Highest Argon2 parameters seen per email: a server that lowers them is refused (H-1) */
     kdf: `${ACCOUNT_STORE_PREFIX}kdf`,
+    /** The libsodium fallback signing key (only on a device without Android Keystore) */
+    signer: `${ACCOUNT_STORE_PREFIX}signing-key`,
 } as const
+
+/**
+ * Where the device keeps its request signing key (plan 10.2b). On the phone it is a P-256 key inside the Android Keystore
+ * that never leaves it (N-8, src/lib/account/keystore-signer.ts). The key stays across sign-ins of the account, also after
+ * the server ended a session, so the server knows the device at the next sign-in and never locks it out (M-2); signing
+ * out deletes it, so the next account gets a new one.
+ */
+export interface SignerStore {
+    /** The kept key, or a new one */
+    obtain(): Promise<RequestSigner>
+    /** The kept key, or null */
+    current(): Promise<RequestSigner | null>
+    remove(): Promise<void>
+}
+
+/**
+ * Ed25519 from libsodium with the private key in the secured storage: the core's own signer (tests) and the app's
+ * fallback on a device without Android Keystore.
+ */
+export function sodiumSignerStore(store: SecureStore, sodium: Sodium): SignerStore {
+    const signer = (privateKey: Uint8Array): RequestSigner => ({
+        alg: "ed25519",
+        publicKey: privateKey.slice(32, 64),
+        sign: async message => sodium.crypto_sign_detached(message, privateKey),
+    })
+    const current = async () => {
+        const stored = await store.getItemAsync(KEYS.signer)
+        return stored ? signer(fromB64(sodium, stored, 64)) : null
+    }
+    return {
+        current,
+        async obtain() {
+            const kept = await current()
+            if (kept) return kept
+            const { privateKey } = newSigningKeyPair(sodium)
+            await store.setItemAsync(KEYS.signer, toB64(sodium, privateKey))
+            return signer(privateKey)
+        },
+        remove: () => store.deleteItemAsync(KEYS.signer),
+    }
+}
 
 export function isAccountKey(key: string): boolean {
     return key.startsWith(ACCOUNT_STORE_PREFIX)
@@ -37,8 +80,6 @@ export type AccountKind = "email" | "google"
 export type SessionInfo = {
     userId: string
     sessionToken: string
-    /** base64url Ed25519 private key (64 bytes) this session signs every request with (plan 10.2b); made at sign-in */
-    signingKey: string
     kind: AccountKind
     email: string | null
     /** The server's id of this device, once it holds the DEK and is registered */
@@ -64,7 +105,11 @@ export type AccountState = SessionInfo & SyncState & {
 const EMPTY_SYNC: SyncState = { highestVersion: 0, lastHash: null, lastSyncAt: null, imported: false }
 
 export class AccountSession {
-    constructor(private readonly store: SecureStore, private readonly sodium: Sodium) {}
+    constructor(
+        private readonly store: SecureStore,
+        private readonly sodium: Sodium,
+        private readonly signers: SignerStore = sodiumSignerStore(store, sodium),
+    ) {}
 
     private async read<T>(key: string): Promise<T | null> {
         const text = await this.store.getItemAsync(key)
@@ -102,8 +147,19 @@ export class AccountSession {
     /** Token and signing key of the signed-in session (AccountClient signs with them), or null */
     async credentials(): Promise<SessionCredentials | null> {
         const session = await this.read<SessionInfo>(KEYS.session)
-        if (!session?.sessionToken || !session.signingKey) return null
-        return { sessionToken: session.sessionToken, signingKey: fromB64(this.sodium, session.signingKey, 64) }
+        if (!session?.sessionToken) return null
+        const signer = await this.signers.current()
+        return signer ? { sessionToken: session.sessionToken, signer } : null
+    }
+
+    /** The key a sign-in is signed with and its session bound to: the kept one, or a new one (M-2, N-8) */
+    signer(): Promise<RequestSigner> {
+        return this.signers.obtain()
+    }
+
+    /** Signing out: the signing key goes, the next sign-in (maybe another account) gets a new one (N-6) */
+    forgetSigner(): Promise<void> {
+        return this.signers.remove()
     }
 
     async saveSession(session: SessionInfo): Promise<void> {

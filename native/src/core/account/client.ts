@@ -1,18 +1,19 @@
 // geschrieben nach: dem Server-Vertrag account-server/src (index.ts Routen, routes.ts, identity.ts, approval.ts, rotate.ts, schemas.ts, http.ts; GET account, account/keys/device, account/start-fresh) und account-server/README.md
 
 import type { Kdf } from "./crypto"
-import type { Sodium, SodiumKeyPair } from "./sodium"
+import type { Sodium } from "./sodium"
 
 /*
  * Typed calls to the account server (`/v1`). The app sends `Authorization: Bearer <token>` and no `Origin` (the server
  * answers browsers with a cookie instead). Every non-2xx answer becomes an AccountApiError; 409 and 429 have their own
  * types, because the sync and the screens act on them (merge and retry, wait).
  *
- * Plan 10.2b: every request with a session is signed with the session's Ed25519 key (libsodium crypto_sign_detached),
+ * Plan 10.2b: every request with a session is signed with the session's key (RequestSigner: P-256 in the Android
+ * Keystore on the phone, N-8; Ed25519 from libsodium as the fallback and in tests),
  * see account-server/README.md "Signed requests": headers X-SM-Sig, X-SM-Ts, X-SM-Nonce over
  *   v1 \n METHOD \n path+query \n hex SHA-256 of the body \n ms \n nonce \n base64url(SHA-256(token)) or "-"
- * A sign-in (login, signup, Google) carries the server's one-time challenge and the new key's public half and is signed
- * with that new key (session id "-"); the new session is bound to it.
+ * A sign-in (login, signup, Google) carries the server's one-time challenge and the key's public half and is signed
+ * with that key (session id "-"); the new session is bound to it.
  */
 
 export type HttpFetch = (url: string, init: { method: string, headers: Record<string, string>, body?: string | Uint8Array }) => Promise<{
@@ -70,8 +71,19 @@ export type DeviceKeysBody = { name: string, devicePub: string, sealedDek: strin
 export type SignupBody = { email: string, salt: string, kdf: Kdf, authKey: string, challenge: string, keys?: { wrappedDek: string, dekId: string, dekProof: string, device: DeviceKeysBody } }
 /** prelogin: the account's salt and KDF (a decoy for unknown emails) and the one-time challenge for login / signup */
 export type Prelogin = { salt: string, kdf: Kdf, challenge: string }
-/** The session's credentials as the device keeps them: the token and the Ed25519 private key (64 bytes) it signs with */
-export type SessionCredentials = { sessionToken: string, signingKey: Uint8Array }
+/**
+ * A request signing key (plan 10.2b). The private half never leaves the signer: on the phone a P-256 key in the Android
+ * Keystore (N-8), else Ed25519 from libsodium. account-server/src/signature.ts verifies both.
+ */
+export interface RequestSigner {
+    readonly alg: "ed25519" | "p256"
+    /** Raw public key: 32 bytes (Ed25519) or the uncompressed P-256 point (65 bytes) */
+    readonly publicKey: Uint8Array
+    /** 64 bytes: Ed25519, or ECDSA P-256 with SHA-256 as r || s */
+    sign(message: Uint8Array): Promise<Uint8Array>
+}
+/** The session's credentials as the device keeps them: the token and the key it signs with */
+export type SessionCredentials = { sessionToken: string, signer: RequestSigner }
 export type SignupAnswer = { userId: string, deviceId: string | null, emailVerified: boolean, sessionToken: string }
 export type LoginAnswer = { userId: string, emailVerified: boolean, kdf: Kdf, wrappedDek: string | null, dekId: string | null, rewrapNeeded: boolean, sessionToken: string }
 export type GoogleAnswer = { userId: string, created: boolean, emailVerified: boolean, dekId: string | null, recoveryWrappedDek: string | null, sessionToken: string }
@@ -151,8 +163,8 @@ type SendInit = {
     headers?: Record<string, string>
     /** false: no session (sign-in steps, token links) */
     auth?: boolean
-    /** A sign-in: signed with this new key instead of the session's, session id "-" */
-    signIn?: SodiumKeyPair
+    /** A sign-in: signed with this key instead of the session's, session id "-" */
+    signIn?: RequestSigner
 }
 
 const SIGNATURE_VERSION = "v1"
@@ -166,13 +178,13 @@ export class AccountClient {
     }
 
     /** X-SM-Sig / X-SM-Ts / X-SM-Nonce for one request (account-server/src/signature.ts) */
-    private signature(method: string, url: string, body: Uint8Array, sessionId: string, privateKey: Uint8Array): Record<string, string> {
+    private async signature(method: string, url: string, body: Uint8Array, sessionId: string, signer: RequestSigner): Promise<Record<string, string>> {
         const { sodium } = this.options
         const pathAndQuery = /^[a-z]+:\/\/[^/]+(\/.*)$/i.exec(url)?.[1] ?? url
         const ts = String(Math.floor((this.options.now ?? Date.now)()))
         const nonce = this.b64(sodium.randombytes_buf(16))
         const text = [SIGNATURE_VERSION, method.toUpperCase(), pathAndQuery, hex(sodium.crypto_hash_sha256(body)), ts, nonce, sessionId].join("\n")
-        const signature = sodium.crypto_sign_detached(new TextEncoder().encode(text), privateKey)
+        const signature = await signer.sign(new TextEncoder().encode(text))
         return { "X-SM-Sig": this.b64(signature), "X-SM-Ts": ts, "X-SM-Nonce": nonce }
     }
 
@@ -188,14 +200,14 @@ export class AccountClient {
         const url = `${this.options.baseUrl.replace(/\/$/, "")}/v1/${path}`
         const bodyBytes = typeof body === "string" ? new TextEncoder().encode(body) : body ?? new Uint8Array(0)
         if (init.signIn) {
-            Object.assign(headers, this.signature(method, url, bodyBytes, "-", init.signIn.privateKey))
+            Object.assign(headers, await this.signature(method, url, bodyBytes, "-", init.signIn))
         }
         else if (init.auth !== false) {
             const credentials = await this.options.credentials()
             if (credentials) {
                 headers.Authorization = `Bearer ${credentials.sessionToken}`
                 const sessionId = this.b64(sodium.crypto_hash_sha256(new TextEncoder().encode(credentials.sessionToken)))
-                Object.assign(headers, this.signature(method, url, bodyBytes, sessionId, credentials.signingKey))
+                Object.assign(headers, await this.signature(method, url, bodyBytes, sessionId, credentials.signer))
             }
         }
         const response = await this.options.fetch(url, { method, headers, body })
@@ -203,8 +215,8 @@ export class AccountClient {
         return response
     }
 
-    private sigKey(keys: SodiumKeyPair) {
-        return { alg: "ed25519", pub: this.b64(keys.publicKey) }
+    private sigKey(signer: RequestSigner) {
+        return { alg: signer.alg, pub: this.b64(signer.publicKey) }
     }
 
     private async call<T>(method: string, path: string, init?: Parameters<AccountClient["send"]>[2]): Promise<T> {
@@ -215,9 +227,9 @@ export class AccountClient {
     /* auth */
     prelogin = (email: string) => this.call<Prelogin>("POST", "auth/prelogin", { json: { email }, auth: false })
     /** `signing`: the new session's key pair; it signs this request and the session is bound to it */
-    signup = (body: SignupBody, signing: SodiumKeyPair) =>
+    signup = (body: SignupBody, signing: RequestSigner) =>
         this.call<SignupAnswer>("POST", "auth/signup", { json: { ...body, sigKey: this.sigKey(signing) }, signIn: signing })
-    login = (email: string, authKey: string, challenge: string, signing: SodiumKeyPair) =>
+    login = (email: string, authKey: string, challenge: string, signing: RequestSigner) =>
         this.call<LoginAnswer>("POST", "auth/login", { json: { email, authKey, challenge, sigKey: this.sigKey(signing) }, signIn: signing })
     logout = () => this.call<void>("POST", "auth/logout")
     verifyEmail = (token: string) => this.call<{ emailVerified: boolean }>("POST", "auth/verify", { json: { token }, auth: false })
@@ -226,7 +238,7 @@ export class AccountClient {
     resetInfo = (token: string) => this.call<ResetInfo>("POST", "auth/reset/info", { json: { token }, auth: false })
     reset = (body: ResetBody) => this.call<{ rewrapNeeded: boolean }>("POST", "auth/reset", { json: body, auth: false })
     googleNonce = () => this.call<{ nonce: string, expiresAt: number, challenge: string }>("POST", "auth/google/nonce", { auth: false })
-    google = (idToken: string, nonce: string, challenge: string, signing: SodiumKeyPair) =>
+    google = (idToken: string, nonce: string, challenge: string, signing: RequestSigner) =>
         this.call<GoogleAnswer>("POST", "auth/google", { json: { idToken, nonce, challenge, sigKey: this.sigKey(signing) }, signIn: signing })
 
     /* devices */

@@ -16,7 +16,7 @@ import {
     MIN_PASSWORD_LENGTH, accountErrorText, accountPhase, formatRecoveryCode, formatSas, passwordStrength, strengthLabel, syncedAgo,
 } from "@/lib/account/account-view"
 import type { Translate } from "@/lib/app-language"
-import { copyToClipboard, openTab } from "@/lib/helpers/browser"
+import { copySecretToClipboard, openTab } from "@/lib/helpers/browser"
 import { colors } from "@/lib/theme/tokens"
 import { NoScreenshots } from "@/main/_features/account/account-prompts"
 import { ConfirmSheet, LinkRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
@@ -425,7 +425,7 @@ function RecoveryCodeSheet({ t, code, onDone }: { t: Translate, code: string | n
                     "Er öffnet deine synchronisierten Daten, wenn alle Geräte weg sind. Wer Code und E-Mail hat, kann sie lesen. Hier siehst du ihn nicht noch einmal.")}
             </Text>
             <View className="flex-row gap-2">
-                <Button intent="secondary" wrapperClassName="flex-1" onPress={() => void copyToClipboard(shown).then(() => toast.success(t("Copied.", "Kopiert.")))}>{t("Copy", "Kopieren")}</Button>
+                <Button intent="secondary" wrapperClassName="flex-1" onPress={() => void copySecretToClipboard(shown).then(() => toast.success(t("Copied. It leaves the clipboard in 60 seconds.", "Kopiert. In 60 Sekunden ist er wieder aus der Zwischenablage.")))}>{t("Copy", "Kopieren")}</Button>
                 <Button intent="secondary" wrapperClassName="flex-1" onPress={() => void Share.share({ message: shown })}>{t("Share", "Teilen")}</Button>
             </View>
         </View>

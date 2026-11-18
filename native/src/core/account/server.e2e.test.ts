@@ -16,11 +16,11 @@ import { isDeviceKey } from "@/lib/app-backup-keys"
 import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { playlists } from "../database/schema"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
-import { AccountClient, type HttpFetch, UnauthorizedError } from "./client"
+import { AccountClient, type HttpFetch, RateLimitedError, type RequestSigner, UnauthorizedError } from "./client"
 import { AccountCryptoError, DEFAULT_KDF, type Kdf, UnsafeKdfError, UntrustedDevicesError, dekProof, deriveKeys, deviceMac, fromB64, sealDek, toB64 } from "./crypto"
 import { type AccountDeps, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, openRequests, requestApproval, rotate } from "./devices"
-import { createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signupEmail, startFresh } from "./flows"
-import { AccountSession } from "./session"
+import { createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signOut, signupEmail, startFresh } from "./flows"
+import { AccountSession, type SignerStore, sodiumSignerStore } from "./session"
 import type { Sodium } from "./sodium"
 import { SyncEngine, coreLocalData } from "./sync"
 import { device, memoryStore, ready } from "./__fixtures__/harness"
@@ -43,6 +43,31 @@ export default { fetch: () => Response.json(outbox) };
 `
 /** The floor the app and the server accept (H-1): nothing faster is allowed any more */
 const KDF: Kdf = DEFAULT_KDF
+/** A signing key no session is bound to */
+const freshSigner = () => sodiumSignerStore(memoryStore(), sodium).obtain()
+
+/**
+ * The Keystore signer's contract (N-8) with WebCrypto: ECDSA P-256 + SHA-256, non-extractable, signature r || s (WebCrypto's
+ * own form; the device module unpacks the Keystore's DER into it), public key the uncompressed point.
+ */
+function p256SignerStore(): SignerStore {
+    let signer: RequestSigner | null = null
+    return {
+        current: async () => signer,
+        async obtain() {
+            if (signer) return signer
+            const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, false, ["sign", "verify"])
+            const publicKey = new Uint8Array(await crypto.subtle.exportKey("raw", pair.publicKey))
+            signer = {
+                alg: "p256",
+                publicKey,
+                sign: async message => new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, pair.privateKey, message.slice())),
+            }
+            return signer
+        },
+        remove: async () => void (signer = null),
+    }
+}
 const EMAIL = "sync-test@example.org"
 const PASSWORD = "a long test password 1"
 
@@ -99,7 +124,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const folder = path.join(SERVER, "migrations")
         for (const file of readdirSync(folder).filter(name => name.endsWith(".sql")).sort()) {
             const sql = readFileSync(path.join(folder, file), "utf8").split("\n").filter(line => !line.trim().startsWith("--")).join("\n")
-            for (const statement of sql.split(";").map(part => part.trim()).filter(Boolean)) await db.prepare(statement).run()
+            for (const statement of sqlStatements(sql)) await db.prepare(statement).run().catch((error: Error) => { throw new Error(`${file}: ${error.message}: ${statement}`) })
         }
     }, 120_000)
 
@@ -110,10 +135,10 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
     let clock = Date.parse("2026-11-17T10:00:00.000Z")
 
     /** One app install: core data, secured storage, client, sync engine */
-    function install() {
+    function install(signers?: SignerStore) {
         const one = device(driver, () => clock)
         const store = memoryStore()
-        const session = new AccountSession(store, sodium)
+        const session = new AccountSession(store, sodium, signers)
         const client = new AccountClient({ baseUrl, fetch: fetch as unknown as HttpFetch, sodium, credentials: () => session.credentials() })
         const deps: AccountDeps = { client, session, sodium }
         let backups = 0
@@ -184,9 +209,8 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         // a session without the DEK (as after a Google sign-in on a new device)
         const { salt, kdf, challenge } = await laptop.client.prelogin(EMAIL)
         const { authKey } = await deriveKeys(sodium, PASSWORD, fromB64(sodium, salt, 16), kdf)
-        const signing = sodium.crypto_sign_keypair()
-        const login = await laptop.client.login(EMAIL, toB64(sodium, authKey), challenge, signing)
-        await laptop.session.saveSession({ userId: login.userId, sessionToken: login.sessionToken, signingKey: toB64(sodium, signing.privateKey), kind: "email", email: EMAIL, deviceId: null })
+        const login = await laptop.client.login(EMAIL, toB64(sodium, authKey), challenge, await laptop.session.signer())
+        await laptop.session.saveSession({ userId: login.userId, sessionToken: login.sessionToken, kind: "email", email: EMAIL, deviceId: null })
 
         const pending = await requestApproval(laptop.deps, "Laptop")
         expect(await checkApproval(laptop.deps, pending)).toEqual({ state: "waiting" })
@@ -315,12 +339,12 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await recording.syncMeta()).toMatchObject({ version: 1 })
         expect((await fetch(seen.at(-1)!.url, seen.at(-1)!.init)).status).toBe(401)
 
-        const otherKey = new AccountClient({ baseUrl, fetch: fetch as unknown as HttpFetch, sodium, credentials: () => ({ sessionToken, signingKey: sodium.crypto_sign_keypair().privateKey }) })
+        const otherKey = new AccountClient({ baseUrl, fetch: fetch as unknown as HttpFetch, sodium, credentials: async () => ({ sessionToken, signer: await freshSigner() }) })
         await expect(otherKey.syncMeta()).rejects.toThrow(UnauthorizedError)
 
         const { salt, kdf, challenge } = await recording.prelogin(EMAIL)
         const { authKey } = await deriveKeys(sodium, password, fromB64(sodium, salt, 16), kdf)
-        expect(await recording.login(EMAIL, toB64(sodium, authKey), challenge, sodium.crypto_sign_keypair())).toMatchObject({ sessionToken: expect.any(String) })
+        expect(await recording.login(EMAIL, toB64(sodium, authKey), challenge, await freshSigner())).toMatchObject({ sessionToken: expect.any(String) })
         expect((await fetch(seen.at(-1)!.url, seen.at(-1)!.init)).status).toBe(401)
     })
 
@@ -345,9 +369,8 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const one = install()
         const { salt, kdf, challenge } = await one.client.prelogin(email)
         const { authKey } = await deriveKeys(sodium, password, fromB64(sodium, salt, 16), kdf)
-        const signing = sodium.crypto_sign_keypair()
-        const login = await one.client.login(email, toB64(sodium, authKey), challenge, signing)
-        await one.session.saveSession({ userId: login.userId, sessionToken: login.sessionToken, signingKey: toB64(sodium, signing.privateKey), kind: "google", email: null, deviceId: null })
+        const login = await one.client.login(email, toB64(sodium, authKey), challenge, await one.session.signer())
+        await one.session.saveSession({ userId: login.userId, sessionToken: login.sessionToken, kind: "google", email: null, deviceId: null })
         return one
     }
 
@@ -507,6 +530,46 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await phone2.engine.importFromAccount()).toMatchObject({ state: "updated" })
         expect(await names(phone2)).toEqual(["Mine", "Tablet"])
     })
+
+    it("N-8 and M-2: a P-256 key like the Keystore's signs everything; the device keeps it, so a lockout of its email never stops it; signing out makes a new one", async () => {
+        const email = "n8-keystore@example.org"
+        const one = install(p256SignerStore())
+        expect(await signupEmail(one.deps, { email, password: PASSWORD, deviceName: "Keystore phone" })).toMatchObject({ status: "ready" })
+        expect(await one.client.syncMeta()).toMatchObject({ version: 0 })
+        const key = (await one.session.signer()).publicKey
+        expect(key).toHaveLength(65)
+        const row = await (await db()).prepare("SELECT d.sig_alg AS alg, d.sig_pub AS pub FROM devices d JOIN users u ON u.id = d.user_id WHERE u.email = ?").bind(email).first<{ alg: string, pub: string }>()
+        expect(row).toEqual({ alg: "p256", pub: toB64(sodium, key) })
+
+        // somebody fails five times for this email (same network as the device here)
+        for (let i = 0; i < 5; i++) {
+            const { challenge } = await one.client.prelogin(email)
+            await expect(one.client.login(email, toB64(sodium, random(32)), challenge, await freshSigner())).rejects.toThrow(UnauthorizedError)
+        }
+        // a new browser on that network has to wait ...
+        await expect(loginEmail(install().deps, { email, password: PASSWORD, deviceName: "Stranger" })).rejects.toThrow(RateLimitedError)
+        // ... the device whose session the server ended (expired, reset) signs in again with its kept key and gets in
+        await one.session.dropSession()
+        expect(await loginEmail(one.deps, { email, password: PASSWORD, deviceName: "Keystore phone" })).toMatchObject({ status: "ready" })
+        expect((await one.session.signer()).publicKey).toEqual(key)
+
+        await signOut(one.deps)
+        expect(await one.session.credentials()).toBeNull()
+        expect((await one.session.signer()).publicKey).not.toEqual(key)
+    })
 })
+
+/** Statements of a migration file; a trigger body (BEGIN ... END) keeps its inner semicolons */
+function sqlStatements(sql: string): string[] {
+    const out: string[] = []
+    let pending = ""
+    for (const part of sql.split(";")) {
+        pending += pending ? `;${part}` : part
+        if (/CREATE\s+TRIGGER/i.test(pending) && !/END\s*$/i.test(pending.trim())) continue
+        if (pending.trim()) out.push(`${pending.trim()};`)
+        pending = ""
+    }
+    return out
+}
 
 type D1Like = { prepare(sql: string): { bind(...values: unknown[]): { run(): Promise<unknown>, first<T = Record<string, unknown>>(): Promise<T | null> } } }

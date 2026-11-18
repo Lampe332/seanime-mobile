@@ -6,6 +6,7 @@ import {
 import vectors from "@/core/account/__fixtures__/vectors.json"
 import type { Sodium } from "@/core/account/sodium"
 import { accountSodium } from "@/lib/account-sodium"
+import native from "../../modules/core-sodium"
 import { Alert } from "react-native"
 
 /*
@@ -119,6 +120,32 @@ export async function runAccountSodiumSelfTest(): Promise<string[]> {
         sodium.memzero(view)
         return filled && view.every(byte => byte === 0) && random.subarray(0, 8).some(byte => byte !== 0) && random.length === 64
     })
+
+    // N-8: the request signing key in the Android Keystore under a test alias (the account's own key is never touched):
+    // made in StrongBox or the TEE, 32 signatures in the server's r || s form checked outside the Keystore, a changed
+    // message refused, the key gone after delete
+    const alias = "seanime-account-selftest"
+    const start = performance.now()
+    try {
+        const point = await native.keystore_p256_create(alias)
+        const level = native.keystore_security_level(alias)
+        const message = utf8(input.signMessage)
+        let good = point.length === 65 && point[0] === 4 && (level === "strongbox" || level === "tee")
+        for (let i = 0; i < 32 && good; i++) {
+            const signature = await native.keystore_p256_sign(alias, message)
+            good = signature.length === 64 && native.p256_verify(point, message, signature)
+        }
+        const signature = await native.keystore_p256_sign(alias, message)
+        const changed = Uint8Array.from(message)
+        changed[0]! ^= 1
+        good = good && !native.p256_verify(point, changed, signature) && hex(native.keystore_p256_public(alias) ?? new Uint8Array(0)) === hex(point)
+        native.keystore_delete(alias)
+        good = good && native.keystore_p256_public(alias) === null
+        lines.push(`${good ? "PASS" : "FAIL"} Keystore P-256 sign+verify (${level}) ${Math.round(performance.now() - start)} ms`)
+    }
+    catch (error) {
+        lines.push(`FAIL Keystore P-256 (${error instanceof Error ? error.message : String(error)})`)
+    }
 
     const failed = lines.filter(line => line.startsWith("FAIL")).length
     lines.unshift(`libsodium ${failed === 0 ? "ALL PASS" : `${failed} FAIL`} (${lines.length} checks)`)

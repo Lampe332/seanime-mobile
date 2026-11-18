@@ -14,7 +14,6 @@ import {
     newDekId,
     newRecoveryCode,
     newSalt,
-    newSigningKeyPair,
     recoveryKeyFrom,
     sealDek,
     toB64,
@@ -23,8 +22,8 @@ import {
     wrapKey,
 } from "./crypto"
 import { type AccountDeps, type RotationResult, deviceKeys, rotate } from "./devices"
+import type { RequestSigner } from "./client"
 import type { AccountKind } from "./session"
-import type { SodiumKeyPair } from "./sodium"
 
 /*
  * The account steps the screens call. Each one leaves the secured storage (session.ts) in a known state:
@@ -72,18 +71,18 @@ async function registerDevice(deps: AccountDeps, userId: string, dekId: string, 
 }
 
 /**
- * Starts a new session bound to `signing` (the key that signed the sign-in). A DEK kept from an earlier session of the
+ * Starts a new session (bound on the server to the key that signed the sign-in, deps.session.signer()). A DEK kept from an earlier session of the
  * same account (also one the server ended, N-3) is returned when it is still the account's key. When the account's key
  * changed meanwhile (start fresh elsewhere, a rotation this device can't follow), the kept DEK and the sync state go:
  * the device asks before it imports and never merges into the new account automatically. A different account before
  * on this device is forgotten first.
  */
-async function startSession(deps: AccountDeps, userId: string, sessionToken: string, signing: SodiumKeyPair, kind: AccountKind, email: string | null, accountDekId: string | null) {
+async function startSession(deps: AccountDeps, userId: string, sessionToken: string, kind: AccountKind, email: string | null, accountDekId: string | null) {
     const kept = await deps.session.keptKey()
     const prior = await deps.session.load()
     if ((prior && prior.userId !== userId) || (kept && kept.userId !== userId)) await deps.session.clear()
-    await deps.session.saveSession({ userId, sessionToken, signingKey: toB64(deps.sodium, signing.privateKey), kind, email, deviceId: null })
-    wipe(deps.sodium, signing.privateKey, prior?.dek)
+    await deps.session.saveSession({ userId, sessionToken, kind, email, deviceId: null })
+    wipe(deps.sodium, prior?.dek)
     if (!kept || kept.userId !== userId) return null
     if (kept.dekId !== accountDekId) {
         await deps.session.forgetDek()
@@ -110,11 +109,11 @@ export async function signupEmail(deps: AccountDeps, input: { email: string, pas
     const salt = newSalt(sodium)
     const { authKey, encKey } = await deriveKeys(sodium, input.password, salt, kdf)
     const dek = newDek(sodium)
-    const signing = newSigningKeyPair(sodium)
+    const signing: RequestSigner = await deps.session.signer()
     try {
         const { challenge } = await client.prelogin(input.email)
         const answer = await client.signup({ email: input.email, salt: toB64(sodium, salt), kdf, authKey: toB64(sodium, authKey), challenge }, signing)
-        await startSession(deps, answer.userId, answer.sessionToken, signing, "email", input.email, null)
+        await startSession(deps, answer.userId, answer.sessionToken, "email", input.email, null)
         await deps.session.rememberKdf(input.email, kdf)
         await deps.session.updateSync({ imported: true, highestVersion: 0, lastHash: null, lastSyncAt: null })
         const dekId = newDekId(sodium)
@@ -131,10 +130,10 @@ async function signInEmail(deps: AccountDeps, input: { email: string, password: 
     const { client, sodium } = deps
     const { salt, kdf, challenge } = await preloginChecked(deps, input.email)
     const { authKey, encKey } = await deriveKeys(sodium, input.password, fromB64(sodium, salt, 16), kdf)
-    const signing = newSigningKeyPair(sodium)
+    const signing: RequestSigner = await deps.session.signer()
     try {
         const answer = await client.login(input.email, toB64(sodium, authKey), challenge, signing)
-        const kept = await startSession(deps, answer.userId, answer.sessionToken, signing, "email", input.email, answer.dekId)
+        const kept = await startSession(deps, answer.userId, answer.sessionToken, "email", input.email, answer.dekId)
         // the parameters worked for this account: from now on nothing lower is accepted for this email
         await deps.session.rememberKdf(input.email, kdf)
         const result = { userId: answer.userId, emailVerified: answer.emailVerified, created: false, recoveryWrappedDek: null, encKey }
@@ -314,9 +313,9 @@ export function googleNonce(deps: AccountDeps): Promise<{ nonce: string, expires
 /** Plan 6.3: the ID token comes from the screens (Credential Manager / Google Identity Services) with the nonce */
 export async function loginGoogle(deps: AccountDeps, input: { idToken: string, nonce: string, challenge: string, deviceName: string }): Promise<SignInResult> {
     const { sodium } = deps
-    const signing = newSigningKeyPair(sodium)
+    const signing: RequestSigner = await deps.session.signer()
     const answer = await deps.client.google(input.idToken, input.nonce, input.challenge, signing)
-    const kept = await startSession(deps, answer.userId, answer.sessionToken, signing, "google", null, answer.dekId)
+    const kept = await startSession(deps, answer.userId, answer.sessionToken, "google", null, answer.dekId)
     const result = { userId: answer.userId, emailVerified: answer.emailVerified, created: answer.created, recoveryWrappedDek: answer.recoveryWrappedDek }
     if (answer.dekId === null) {
         const dek = newDek(sodium)
@@ -470,6 +469,7 @@ export async function deleteAccount(deps: AccountDeps, input: { deviceName: stri
     wipe(deps.sodium, await reauth(deps, input.password, input.deviceName))
     await deps.client.deleteAccount()
     await deps.session.clear(true)
+    await deps.session.forgetSigner()
 }
 
 /** Signs out on this device: the session ends, the account's keys are forgotten, the app's data stays */
@@ -481,4 +481,6 @@ export async function signOut(deps: AccountDeps): Promise<void> {
         // offline or already expired: the device forgets the session anyway
     }
     await deps.session.clear()
+    // the next sign-in, maybe to another account, gets a new signing key: two accounts never share one (N-6)
+    await deps.session.forgetSigner()
 }

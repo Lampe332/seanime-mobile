@@ -14,6 +14,7 @@ import { SyncEngine, type SyncResult, type SyncTrigger, coreLocalData } from "@/
 import { accountSodium } from "@/lib/account-sodium"
 import { accountApiBase, checkAccountUrl } from "@/lib/account/account-config"
 import { waitingRequests } from "@/lib/account/account-view"
+import { keystoreSignerStore } from "@/lib/account/keystore-signer"
 import { type AppStateName, type SyncClock, createSyncClock } from "@/lib/account/sync-clock"
 import { isDeviceKey } from "@/lib/app-backup-keys"
 import { appPreferences, writeAppPreferences, writeSafetyBackup } from "@/lib/app-backup"
@@ -36,7 +37,8 @@ import { Platform } from "react-native"
 
 export const ACCOUNT_API = accountApiBase(APP_VARIANT_NAME, (APP_VARIANT as { accountApi?: string }).accountApi)
 
-const session = new AccountSession(SecureStore, accountSodium)
+// The request signing key lives in the Android Keystore (N-8); keystore-signer.ts falls back to libsodium only without one
+const session = new AccountSession(SecureStore, accountSodium, keystoreSignerStore(SecureStore, accountSodium))
 
 // expo/fetch: binary bodies and arrayBuffer() answers (the sealed package) on the native network stack
 // Every call is checked again at run time: the release sends nothing to the account server except over https.
@@ -46,7 +48,7 @@ const httpFetch: HttpFetch = (url, init) => expoFetch(checkAccountUrl(APP_VARIAN
     body: typeof init.body === "string" || init.body === undefined ? init.body : init.body.slice(),
 })
 
-// Each request is signed with the session's Ed25519 key from the secured storage (plan 10.2b)
+// Each request is signed with the session's key (plan 10.2b): P-256 in the Android Keystore
 const client = new AccountClient({ baseUrl: ACCOUNT_API, fetch: httpFetch, sodium: accountSodium, credentials: () => session.credentials() })
 
 const deps = { client, session, sodium: accountSodium }
