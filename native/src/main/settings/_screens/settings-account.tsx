@@ -321,7 +321,7 @@ function Overview({ t }: { t: Translate }) {
             {devices.data?.map(device => <LinkRow key={device.id} label={device.name} tone={device.verified ? undefined : "danger"}
                 note={!device.verified
                     ? t("Not added by one of your devices. Remove it if you don't know it.", "Nicht von einem deiner Geräte hinzugefügt. Entferne es, wenn du es nicht kennst.")
-                    : device.current ? t("This device", "Dieses Gerät") : t(`Last seen ${new Date(device.lastSeenAt).toLocaleDateString(t("en-US", "de-DE"))}`, `Zuletzt ${new Date(device.lastSeenAt).toLocaleDateString("de-DE")}`)}
+                    : device.current ? t("This device", "Dieses Gerät") : t(`Last seen ${new Date(device.lastSeenAt * 1000).toLocaleDateString(t("en-US", "de-DE"))}`, `Zuletzt ${new Date(device.lastSeenAt * 1000).toLocaleDateString("de-DE")}`)}
                 value={device.current ? undefined : t("Remove", "Entfernen")} chevron={!device.current} disabled={device.current} onPress={() => setRemoving(device)} />)}
             {devices.isError && <LinkRow label={t("Couldn't load the devices", "Geräte konnten nicht geladen werden")} value={t("Retry", "Nochmal")} onPress={() => void devices.refetch()} />}
             {devices.isPending && <LinkRow label={t("Loading…", "Wird geladen …")} chevron={false} disabled onPress={() => undefined} />}
