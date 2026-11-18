@@ -118,7 +118,7 @@ function MappingContent({ entry }: { entry: Manga_Entry }) {
             </>}>
             {selected && mappingPreview ? <View className="gap-1.5">
                 <Text className="text-[15px]">{selected.title}</Text>
-                <Muted>{t(`${mappingPreview.chapterCount} chapters · latest ${mappingPreview.latest || "unknown"}`, `${mappingPreview.chapterCount} Kapitel · neuestes ${mappingPreview.latest || "unbekannt"}`)}</Muted>
+                <Muted>{(mappingPreview.latest ? t(`${mappingPreview.chapterCount} chapters · latest ${mappingPreview.latest}`, `${mappingPreview.chapterCount} Kapitel · neuestes ${mappingPreview.latest}`) : t(`${mappingPreview.chapterCount} chapters · latest unknown`, `${mappingPreview.chapterCount} Kapitel · neuestes unbekannt`))}</Muted>
                 {!!mappingPreview.languages?.length && <Muted>{mappingPreview.languages.join(", ")}</Muted>}
             </View> : <Muted>{t("Chapters of this manga will be loaded from the selected title.", "Die Kapitel dieses Manga werden vom gewählten Titel geladen.")}</Muted>}
         </Dialog>

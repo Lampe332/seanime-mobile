@@ -110,7 +110,7 @@ function QueueBlock({ queue, t }: { queue: Models_ChapterDownloadQueueItem[], t:
     const loading = queue.filter(q => q.status === "downloading").length
     const fail = () => toast.error(t("Queue could not be changed", "Warteschlange konnte nicht geändert werden"))
     return <PhoneSection title={t("Queue", "Warteschlange")}
-        count={t(`${queue.length} ${queue.length === 1 ? "chapter" : "chapters"} · ${loading} loading`, `${queue.length} Kapitel · ${loading} werden geladen`)}>
+        count={queue.length === 1 ? t(`1 chapter · ${loading} loading`, `1 Kapitel · ${loading} werden geladen`) : t(`${queue.length} chapters · ${loading} loading`, `${queue.length} Kapitel · ${loading} werden geladen`)}>
         <View className="flex-row flex-wrap gap-2">
             <Button intent="secondary" disabled={busy} leftIcon={<Play size={18} color={colors.smText} />} onPress={() => start(undefined, { onError: fail })}>{t("Start / resume", "Starten / Fortsetzen")}</Button>
             <Button intent="secondary" disabled={busy} leftIcon={<Pause size={18} color={colors.smText} />} onPress={() => stop(undefined, { onError: fail })}>{t("Pause", "Pausieren")}</Button>

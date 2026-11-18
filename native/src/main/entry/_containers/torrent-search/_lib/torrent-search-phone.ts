@@ -100,7 +100,7 @@ export function torrentMeta(torrent: HibikeTorrent_AnimeTorrent, t: Translate, l
         torrent.resolution || "",
         torrent.formattedSize || "",
         // Providers without seeder counts send -1
-        torrent.seeders > 0 ? t(`${torrent.seeders} ${torrent.seeders === 1 ? "seeder" : "seeders"}`, `${torrent.seeders} Seeder`)
+        torrent.seeders > 0 ? (torrent.seeders === 1 ? t("1 seeder", "1 Seeder") : t(`${torrent.seeders} seeders`, `${torrent.seeders} Seeder`))
             : torrent.seeders < 0 ? t("Seeders unknown", "Seeder unbekannt") : t("No seeders", "Keine Seeder"),
         ago(torrent.date, language, now),
     ]

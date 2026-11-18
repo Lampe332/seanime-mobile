@@ -89,7 +89,7 @@ export function CustomSourcesPhone({ providerParam }: { providerParam?: string }
                     <View onLayout={event => setContentWidth(event.nativeEvent.layout.width)}>
                         {isLoading ? (contentWidth ? <GridBones label={t("Loading titles", "Titel werden geladen")} contentWidth={contentWidth} /> : null)
                             : isError ? (
-                                <Notice text={t(`${source?.name ?? "The source"} did not answer.`, `${source?.name ?? "Die Quelle"} hat nicht geantwortet.`)}>
+                                <Notice text={(source?.name ? t(`${source.name} did not answer.`, `${source.name} hat nicht geantwortet.`) : t("The source did not answer.", "Die Quelle hat nicht geantwortet."))}>
                                     <TextAction label={t("Try again", "Nochmal versuchen")} onPress={() => void refetch()} />
                                 </Notice>
                             ) : !media.length ? (

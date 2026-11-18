@@ -59,7 +59,7 @@ export function EpisodeDownloadButton({ media, episodes, provider, server, quali
             onSuccess: added => {
                 if (added) successFeedback()
                 toast.success(added
-                    ? t(`${added} ${added === 1 ? "episode" : "episodes"} queued`, `${added} ${added === 1 ? "Folge" : "Folgen"} eingeplant`)
+                    ? (added === 1 ? t("1 episode queued", "1 Folge eingeplant") : t(`${added} episodes queued`, `${added} Folgen eingeplant`))
                     : t("All selected episodes are already queued or saved", "Alle gewählten Folgen sind bereits eingeplant oder gespeichert"),
                 { action: { label: "Downloads", onClick: () => router.push("/android-downloads") } })
                 setOpen(false)
@@ -95,7 +95,7 @@ export function EpisodeDownloadButton({ media, episodes, provider, server, quali
         <Sheet compact title={t("Download episodes", "Folgen herunterladen")} open={open} onOpenChange={setOpen}
             footer={<Button wrapperClassName="flex-1" disabled={!selected.size || busy} loading={busy} onPress={submit}>
                 {busy ? t("Queuing …", "Wird eingeplant …")
-                    : t(`Download ${selected.size} ${selected.size === 1 ? "episode" : "episodes"}`, `${selected.size} ${selected.size === 1 ? "Folge" : "Folgen"} herunterladen`)}
+                    : (selected.size === 1 ? t("Download 1 episode", "1 Folge herunterladen") : t(`Download ${selected.size} episodes`, `${selected.size} Folgen herunterladen`))}
             </Button>}>
             <View className="gap-4">
                 <View className="flex-row items-center gap-3">
