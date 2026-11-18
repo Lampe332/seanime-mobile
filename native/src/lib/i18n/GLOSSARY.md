@@ -10,7 +10,14 @@ app then shows English). `node scripts/i18n-extract.mjs` (in `native/`) adds new
   Russian ты, Portuguese você, Japanese and Chinese plain polite UI style without honorific padding).
 - Keep every placeholder `{0}`, `{1}`, … (the test checks that a translation has the same set as its key); you may
   move them. They stand for numbers, names, titles or already translated parts. Singular and plural are separate keys
-  (`1 change waiting` / `{0} changes waiting`); for languages with more plural forms use the form that fits "many".
+  (`1 change waiting` / `{0} changes waiting`). When the number decides the form in your language, give the key an
+  object with one text per plural form instead of a string: Russian `{ "one": …, "few": …, "many": … }` (1, 21 / 2-4,
+  22 / 5-20, 25), French and Portuguese `{ "one": …, "other": … }` (`one` also covers 0). The number is the first
+  placeholder that holds one; add `"count": "{1}"` when it is another. Chinese and Japanese always use a plain string.
+- Rich texts keep a literal `{0}` in the key (`Tap {0} to watch.`): the app puts a bold button name or an icon there.
+  Move it wherever your sentence needs it, but keep it exactly once.
+- Dates, times, weekdays and months come from the app (Intl with the language's locale); season names are texts of
+  their own (`Fall {0}` = season and year), so write them in your language's order.
 - English words must not hide inside a placeholder: the script lists such calls ("English words inside ${…}"); split
   them in the code into separate `t()` calls instead of translating around them.
 - Keep leading and trailing spaces, line breaks (`\n`), quotes and punctuation that join texts (`·`, `–`, `:`).
