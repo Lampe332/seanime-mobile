@@ -158,3 +158,58 @@ Follow-up for F-04 to F-07 on `release-4.1.0`, run in `native/`:
 - `npx eslint` on the changed files: 0 errors
 
 Not verified: the hints on a device.
+
+## Account & sync (4.2.0)
+
+Scope: the optional account server (`account-server/`, a Cloudflare Worker with D1 and R2), the account core in `native/src/core/account/`, its wiring in `native/src/lib/account/`, the native module `native/modules/core-sodium/` (libsodium and the Keystore signing key) and the account pages of the website. Reviewed on 2026-11-18 by source review plus attacks against a locally running Worker, then fixed in two rounds on the branch `account-sync`.
+
+### Threat model in short
+
+The promise: nobody but the user's own devices can read the synced data. That includes the maintainer, Cloudflare, whoever runs or tampers with the server or its database, whoever takes over the user's Google account, and whoever learns the password once. Trust boundaries:
+
+| Boundary | Attacker | What protects |
+| --- | --- | --- |
+| Device and server | tampered server, D1 write access, insider | Everything is encrypted on the device (XChaCha20-Poly1305 under the DEK). Devices trust only what the DEK vouches for: device rows carry a MAC under the DEK, a new DEK needs a chain MAC from the old one, wraps and sealed keys are bound to their dekId, the Argon2id parameters have a floor and never go down. |
+| Session and server | stolen token, captured request | Every request is signed with a key the device keeps (Android Keystore P-256, not exportable), with time window and one-time nonce. The token alone opens nothing. |
+| Account and sign-in | phished password, taken-over Google account, mailbox takeover | A session without the DEK cannot add a device, change a wrap, overwrite the data or rotate. A new device needs the DEK from an old device (approval with commitment and a number to compare) or the recovery code. Mails for every new device, Google link, recovery change, rotation and password change. |
+| Strangers | password guessing, lockout, mail flooding | Login attempts counted per IP and per (email, IP range) before the check; known devices never locked out; reset mails limited per (email, IP range). |
+| Website | script injection, other origins | CSP per page, Trusted Types on password pages, only the own origin allowed by the server, non-extractable WebCrypto key, nothing of the account kept after sign-out. |
+
+### Findings and status
+
+| ID | Severity | Finding | Status |
+| --- | --- | --- | --- |
+| K-1 | Critical | A session without the DEK could add a device and force a rotation, then read and write all synced data | Fixed: DEK proof, device MACs, key chain, sealing only to verified devices, no overwriting of foreign device rows |
+| H-1 | High | The server chose the Argon2 strength; the app accepted any | Fixed: floor `m = 65536, t = 3`, ceiling, highest seen parameters kept per email (app and website) |
+| H-2 | High | `account/link-google` was a lasting backdoor | Fixed: needs the password, mails, shown in app and website, "Disconnect Google", removed on password reset |
+| M-1 | Medium | Approve and deny needed a sign-in within 10 minutes; deny failed silently | Fixed: a device session plus the screen lock; errors are shown |
+| M-2 | Medium | Five wrong logins from anywhere locked the owner out | Fixed: email counter per (email, IP range); a device whose stored signing key signs the login is never held up by it |
+| M-3 | Medium | No mail for a new device, Google link, recovery change or rotation | Fixed: mails for each |
+| M-4 | Medium | Rotation after removing a device did not run | Fixed: runs after a fresh sign-in, asks for the password when needed, never stops the sync |
+| M-5 | Medium | A session without the DEK could overwrite the data and the recovery wrap | Fixed: only device sessions write data, wraps only by key holders |
+| N-1 | Low | Wraps and sealed keys were not bound to their dekId | Fixed |
+| N-2 | Low | 10 MB read and hashed before any check | Fixed: route size limit from `Content-Length` first; large bodies only on the two upload routes and only with an existing session and well-formed signature headers |
+| N-3 | Low | A reset without code made every device drop the DEK | Fixed: on 401 only the token goes; DEK and device key stay until sign-in or sign-out |
+| N-4 | Low | Reset mails of another account could be blocked for an hour | Fixed: counted per (email, IP range) |
+| N-5 | Low | Parallel logins could pass the limit | Fixed: counted in one statement before the check, cleared after success |
+| N-6 | Low | Privacy text vs behaviour (browser key, logs) | Fixed: invocation logs and traces off, privacy page lists the browser key and the KDF memory, both deleted at sign-out; the app deletes its signing key at sign-out |
+| N-7 | Low | Recovery code copied without the sensitive flag | Fixed: `EXTRA_IS_SENSITIVE`, cleared after 60 seconds |
+| N-8 | Low | Signing key was a software key next to the token | Fixed: P-256 in the Android Keystore (StrongBox, else TEE); libsodium Ed25519 only on a phone without Keystore |
+| I-1 | Info | `aud` array accepted without `azp` | Fixed |
+| I-2 | Info | JWKS URL configurable | Fixed: another URL only for a test host |
+| I-3 | Info | Google's script runs on the same origin as the browser key | Accepted: `/account/` has no password field and Google is trusted for its own sign-in anyway; a separate origin is a hosting change for later |
+| I-4 | Info | No SRI on the website's modules | Accepted: all modules come from the same origin under a `script-src 'self'` CSP; SRI adds protection only for other origins |
+| I-5 | Info | libsodium source hash checked only at download | Accepted: needs an attacker on the build machine, who could change the build anyway |
+| I-6 | Info | JVM and JNI copies of secrets live until garbage collection | Accepted: the JavaScript copies are wiped; the runtime gives no reliable way to wipe the others |
+| I-7 | Info | Cleartext traffic allowed app-wide | Accepted: the app talks to Seanime servers and Nakama hosts on the local network over http; account requests are checked at run time and go only over https in the release |
+| I-8 | Info | `If-Match`, `X-Dek-Id`, `Content-Type` not signed | Accepted: only the TLS endpoint could change them; the dekId is bound into the package encryption anyway and the devices check it |
+| I-9 | Info | Password rule only on the client, heuristic | Accepted: the server never sees the password and cannot enforce a rule; Argon2id with a floor slows guessing |
+| I-10 | Info | Someone can register an unconfirmed account with another person's email | Accepted: the account is deleted after 7 days unconfirmed; Google sign-in of the owner is refused until then (support answer) |
+
+Left as known limits: the app keeps its device key pair (for sealed DEKs) after signing out, so the same device public key can appear in two accounts; a device whose session the server ended keeps its signing key until sign-out, so signing in to another account without signing out reuses it. A server can still refuse service or hold back newer data; devices notice an older version but cannot force a newer one.
+
+### Verification
+
+- Server: `npm run typecheck` 0 errors, `npx vitest run` all passed, with tests for each finding (lockout attempt with the known device still getting in, an unauthenticated 10 MB body refused before it is read, parallel logins not passing the limit, reset limit per IP range).
+- App core: `npx tsc --noEmit` 0 errors, the account tests including the end-to-end run against the real Worker in Miniflare (a P-256 signer like the Keystore's, lockout and kept key, sign-out makes a new key), full `npm test` passed, lint without new findings.
+- Device: self-test of libsodium and the Keystore key (sign in the Keystore, verify the `r || s` form outside it), then account creation, sync, copying the recovery code and deleting the account against a local Worker.
