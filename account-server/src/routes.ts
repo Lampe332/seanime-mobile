@@ -619,8 +619,9 @@ export async function putSnapshot(ctx: Ctx): Promise<Response> {
 }
 
 export async function deleteSync(ctx: Ctx): Promise<Response> {
+  // Any session of the account (also the website's): deleting the encrypted copy reveals nothing, and every signed-in
+  // device uploads its own data again at its next sync.
   const session = await requireSession(ctx.request, ctx.env);
-  requireDevice(session);
   await ctx.env.SNAPSHOTS.delete(snapKey(session.userId));
   await ctx.env.DB.prepare("DELETE FROM snapshots WHERE user_id = ?").bind(session.userId).run();
   return noContent();

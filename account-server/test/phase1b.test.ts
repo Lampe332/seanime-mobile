@@ -737,7 +737,6 @@ describe("key trust (K-1, M-5): only key holders change keys", () => {
     expect((await upload(a.token, rand(64), 0, a.keys.dekId)).status).toBe(200);
     const s = await newDeviceSession(a);
     expect((await upload(s, rand(64), 1, a.keys.dekId)).status).toBe(403);
-    expect((await api("/v1/sync", { method: "DELETE", token: s })).status).toBe(403);
     expect((await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, recoveryWrappedDek: b64(rand(72)) } })).status).toBe(403);
     expect((await api("/v1/account/keys", { method: "PUT", token: s, body: { dekId: a.keys.dekId, wrappedDek: b64(rand(72)) } })).status).toBe(403);
     const k = clientKeys();
