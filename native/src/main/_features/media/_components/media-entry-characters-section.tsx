@@ -40,7 +40,7 @@ export function MediaEntryCharactersSection({ details, loading }: {
                         <Pressable accessibilityRole="link" disabled={!node?.siteUrl} onPress={() => node?.siteUrl && openInAppBrowser(node.siteUrl)}>
                             <Text numberOfLines={2} className="text-[12.8px] font-semibold leading-[17.6px]">{node?.name?.full}</Text>
                         </Pressable>
-                        {!!node?.age && <Text className="text-xs leading-[16.2px]">{node.age} {t("years old", "Jahre alt")}</Text>}
+                        {!!node?.age && <Text className="text-xs leading-[16.2px]">{t(`${node.age} years old`, `${node.age} Jahre alt`)}</Text>}
                         <Text className="text-xs leading-[16.2px] text-sm-text-subtle">{role(edge.role)}</Text>
                         {!!node?.isFavourite && <Heart size={16} color="#db2777" fill="#db2777" />}
                     </View>

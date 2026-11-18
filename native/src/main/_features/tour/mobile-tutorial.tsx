@@ -2,6 +2,7 @@ import { useListOnlinestreamProviderExtensions } from "@/api/hooks/extensions.ho
 import { cn } from "@/components/ui/core/styling"
 import { Text } from "@/components/ui/text/text"
 import { tr } from "@/lib/app-language"
+import { fillParts } from "@/lib/i18n/format"
 import { atomWithStorage } from "@/lib/storage"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { isLoginModalOpenAtom } from "@/main/_atoms/server-status.atoms"
@@ -36,10 +37,16 @@ const wait = (ms: number) => () => new Promise<void>(resolve => setTimeout(resol
 function RepositoryStepText() {
     const [noSources] = React.useState(() => tourTargetData(TOUR_TARGETS.changeRepo) === "add")
     return noSources
-        ? <P>{tr("Seanime's own marketplace only has plugins. Tap ", "Der Marktplatz von Seanime hat nur Plugins. Tippe auf ")}<B>{tr("Add marketplace", "Marktplatz hinzufügen")}</B>
-            {tr(" to add a community marketplace with streaming and manga sources.", ", um einen Community-Marktplatz mit Streaming- und Manga-Quellen hinzuzufügen.")}</P>
-        : <P>{tr("Tap ", "Tippe auf ")}<B>{tr("Change", "Ändern")}</B>{tr(" to use another marketplace with streaming and manga sources.",
-            ", um einen anderen Marktplatz mit Streaming- und Manga-Quellen zu nutzen.")}</P>
+        ? <P>{fillParts(tr("Seanime's own marketplace only has plugins. Tap {0} to add a community marketplace with streaming and manga sources.",
+            "Der Marktplatz von Seanime hat nur Plugins. Tippe auf {0}, um einen Community-Marktplatz mit Streaming- und Manga-Quellen hinzuzufügen."),
+            <B>{tr("Add marketplace", "Marktplatz hinzufügen")}</B>)}</P>
+        : <P>{fillParts(tr("Tap {0} to use another marketplace with streaming and manga sources.",
+            "Tippe auf {0}, um einen anderen Marktplatz mit Streaming- und Manga-Quellen zu nutzen."), <B>{tr("Change", "Ändern")}</B>)}</P>
+}
+
+/** One sentence of a step, its {0}, {1}, … filled by bold button names. */
+function Line({ text, names, small }: { text: string, names: React.ReactNode[], small?: boolean }) {
+    return <P small={small}>{fillParts(text, ...names.map((name, i) => <B key={i}>{name}</B>))}</P>
 }
 
 export function getMobileTutorialSteps({ fromExtensions = false, tablet = false } = {}): TourStep[] {
@@ -62,8 +69,8 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             title: tr("Open the menu", "Menü öffnen"),
             // the tablet shows the menu in the rail on the left: the card sits beside it (T2)
             content: tablet
-                ? <P>{tr("Tap ", "Tippe links auf ")}<B>{tr("Menu", "Menü")}</B>{tr(" on the left.", ".")}</P>
-                : <P>{tr("Tap ", "Tippe unten auf ")}<B>{tr("Menu", "Menü")}</B>{tr(" at the bottom.", ".")}</P>,
+                ? <Line text={tr("Tap {0} on the left.", "Tippe links auf {0}.")} names={[tr("Menu", "Menü")]} />
+                : <Line text={tr("Tap {0} at the bottom.", "Tippe unten auf {0}.")} names={[tr("Menu", "Menü")]} />,
             placement: tablet ? "right" : "top",
             allowTargetInteraction: true,
             advanceOnTargetClick: true,
@@ -75,7 +82,7 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             id: "extensions",
             target: TOUR_TARGETS.menuExtensions,
             title: tr("Extensions", "Erweiterungen"),
-            content: <P>{tr("Tap ", "Tippe auf ")}<B>{tr("Extensions", "Erweiterungen")}</B>.</P>,
+            content: <Line text={tr("Tap {0}.", "Tippe auf {0}.")} names={[tr("Extensions", "Erweiterungen")]} />,
             placement: "left",
             // let the menu's slide-in settle before measuring
             prepare: wait(450),
@@ -90,7 +97,7 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             id: "marketplace-tab",
             target: TOUR_TARGETS.marketplaceTab,
             title: tr("Marketplace", "Marktplatz"),
-            content: <P>{tr("Open the ", "Öffne den Tab ")}<B>{tr("Marketplace", "Marktplatz")}</B>{tr(" tab.", ".")}</P>,
+            content: <Line text={tr("Open the {0} tab.", "Öffne den Tab {0}.")} names={[tr("Marketplace", "Marktplatz")]} />,
             placement: "bottom",
             allowTargetInteraction: true,
             advanceOnTargetClick: true,
@@ -115,8 +122,8 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             target: TOUR_TARGETS.repoSheet,
             title: tr("Paste the marketplace link", "Marktplatz-Link einfügen"),
             content: <View className="gap-2">
-                <P>{tr("Copy the link to a marketplace, tap ", "Kopiere den Link zu einem Marktplatz, tippe auf ")}<B>{tr("Paste link", "Link einfügen")}</B>
-                    {tr(", then ", " und dann auf ")}<B>{tr("Add", "Hinzufügen")}</B>.</P>
+                <Line text={tr("Copy the link to a marketplace, tap {0}, then {1}.", "Kopiere den Link zu einem Marktplatz, tippe auf {0} und dann auf {1}.")}
+                    names={[tr("Paste link", "Link einfügen"), tr("Add", "Hinzufügen")]} />
                 <P small>{tr("You can find Seanime marketplaces online in the Seanime community.",
                     "Marktplätze für Seanime findest du online in der Seanime-Community.")}</P>
             </View>,
@@ -134,7 +141,7 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             id: "streaming-tab",
             target: TOUR_TARGETS.typeChip("onlinestream-provider"),
             title: tr("Streaming sources", "Streaming-Quellen"),
-            content: <P>{tr("Tap ", "Tippe auf ")}<B>Streaming</B>{tr(" to see the anime sources of this repository.", ", um die Anime-Quellen dieses Repositorys zu sehen.")}</P>,
+            content: <Line text={tr("Tap {0} to see the anime sources of this repository.", "Tippe auf {0}, um die Anime-Quellen dieses Repositorys zu sehen.")} names={["Streaming"]} />,
             placement: "bottom",
             // wait for the repository sheet to close and the list to reload
             prepare: () => waitForTourTargetGone(TOUR_TARGETS.repoSheet),
@@ -149,8 +156,8 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             target: TOUR_TARGETS.install("onlinestream-provider"),
             title: tr("Install a source", "Quelle installieren"),
             content: <View className="gap-2">
-                <P>{tr("Tap the ", "Tippe neben einer Quelle auf den ")}<B>{tr("download button", "Download-Knopf")}</B>
-                    {tr(" next to a source to install it.", ", um sie zu installieren.")}</P>
+                <Line text={tr("Tap the {0} next to a source to install it.", "Tippe neben einer Quelle auf den {0}, um sie zu installieren.")}
+                    names={[tr("download button", "Download-Knopf")]} />
                 <P small>{tr("Sources in your language come first; the line under each name shows its language. You can install several and switch between them later.",
                     "Quellen in deiner Sprache stehen oben, die Zeile unter dem Namen zeigt die Sprache. Du kannst mehrere installieren und später wechseln.")}</P>
             </View>,
@@ -167,7 +174,7 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             id: "manga",
             target: TOUR_TARGETS.typeChip("manga-provider"),
             title: tr("Manga works the same way", "Manga funktioniert genauso"),
-            content: <P>{tr("Tap ", "Tippe auf ")}<B>Manga</B>{tr(" to see the manga sources of this repository.", ", um die Manga-Quellen dieses Repositorys zu sehen.")}</P>,
+            content: <Line text={tr("Tap {0} to see the manga sources of this repository.", "Tippe auf {0}, um die Manga-Quellen dieses Repositorys zu sehen.")} names={["Manga"]} />,
             placement: "bottom",
             prepare: wait(800),
             disableBack: true,
@@ -181,8 +188,8 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             id: "manga-install",
             target: TOUR_TARGETS.install("manga-provider"),
             title: tr("Install a manga source", "Manga-Quelle installieren"),
-            content: <P>{tr("Tap the ", "Tippe neben einer Manga-Quelle auf den ")}<B>{tr("download button", "Download-Knopf")}</B>
-                {tr(" next to a manga source to read and download chapters.", ", um Kapitel zu lesen und zu laden.")}</P>,
+            content: <Line text={tr("Tap the {0} next to a manga source to read and download chapters.", "Tippe neben einer Manga-Quelle auf den {0}, um Kapitel zu lesen und zu laden.")}
+                names={[tr("download button", "Download-Knopf")]} />,
             placement: "bottom",
             prepare: wait(600),
             disableBack: true,
@@ -198,14 +205,14 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             title: tr("You're all set", "Alles bereit"),
             content: <View className="gap-1.5">
                 {[
-                    <>{tr("Open any anime and tap ", "Öffne einen Anime und tippe auf ")}<B>Online streaming</B>{tr(" to watch.", ", um ihn zu schauen.")}</>,
-                    <><B>Download</B>{tr(" next to Subtitles / Dub saves the whole season or just the current episode to your phone.",
-                        " neben Subtitles / Dub speichert die ganze Staffel oder nur die aktuelle Folge auf dem Gerät.")}</>,
-                    <>{tr("Saved episodes and chapters are under ", "Gespeicherte Folgen und Kapitel findest du unten unter ")}<B>Downloads</B>
-                        {tr(" at the bottom, also offline.", ", auch offline.")}</>,
-                    <>{tr("Your sources are under ", "Deine Quellen stehen unter ")}<B>{tr("Extensions", "Erweiterungen")}</B>
-                        {tr(". Replay this tour any time from the ⋮ menu there.", ". Diese Tour startest du dort jederzeit wieder über das ⋮-Menü.")}</>,
-                ].map((line, i) => <View key={i} className="flex-row gap-2 pl-1"><P>•</P><View className="min-w-0 flex-1"><P>{line}</P></View></View>)}
+                    <Line key="0" text={tr("Open any anime and tap {0} to watch.", "Öffne einen Anime und tippe auf {0}, um ihn zu schauen.")} names={["Online streaming"]} />,
+                    <Line key="1" text={tr("{0} next to Subtitles / Dub saves the whole season or just the current episode to your phone.",
+                        "{0} neben Subtitles / Dub speichert die ganze Staffel oder nur die aktuelle Folge auf dem Gerät.")} names={["Download"]} />,
+                    <Line key="2" text={tr("Saved episodes and chapters are under {0} at the bottom, also offline.", "Gespeicherte Folgen und Kapitel findest du unten unter {0}, auch offline.")}
+                        names={["Downloads"]} />,
+                    <Line key="3" text={tr("Your sources are under {0}. Replay this tour any time from the ⋮ menu there.",
+                        "Deine Quellen stehen unter {0}. Diese Tour startest du dort jederzeit wieder über das ⋮-Menü.")} names={[tr("Extensions", "Erweiterungen")]} />,
+                ].map((line, i) => <View key={i} className="flex-row gap-2 pl-1"><P>•</P><View className="min-w-0 flex-1">{line}</View></View>)}
             </View>,
             nextLabel: tr("Done", "Fertig"),
             hero: "celebrate",

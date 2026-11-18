@@ -155,7 +155,7 @@ export function UpNextRow({ episodes, entry, watchHistory, onPlay }: {
                 {!!image && <Image source={getImageUrl(image)} contentFit="cover" style={{ position: "absolute", inset: 0 }} accessibilityIgnoresInvertColors />}
                 <View className="px-3 pb-3 pt-8" style={{ backgroundImage: "linear-gradient(180deg, rgba(12,12,14,0) 0%, rgba(12,12,14,0.85) 60%)" }}>
                     {!!episode.episodeTitle && <Text numberOfLines={1} className="text-[13px] text-sm-text-muted">{episode.episodeTitle}</Text>}
-                    <Text className="text-[15px] font-semibold">{episode.displayTitle}{minutes ? `  ·  ${minutes} ${t("min left", "Min. übrig")}` : ""}</Text>
+                    <Text className="text-[15px] font-semibold">{episode.displayTitle}{minutes ? `  ·  ${t(`${minutes} min left`, `${minutes} Min. übrig`)}` : ""}</Text>
                 </View>
                 {!!percent && <View className="absolute bottom-0 left-0 h-1 w-full bg-white/10"><View style={{ width: `${Math.min(100, percent)}%` }} className="h-full bg-brand-500" /></View>}
             </Pressable>
@@ -318,7 +318,7 @@ export function EpisodeInfoDialog({ episode, onClose }: { episode: Anime_Episode
     const summary = (episode.episodeMetadata?.summary || episode.episodeMetadata?.overview)?.replaceAll("`", "'")?.replace(/source:.*/gi, "")
     return <Dialog title={episode.displayTitle} open onOpenChange={open => !open && onClose()}>
         {!!episode.episodeTitle && <Text className="text-lg font-semibold">{episode.episodeTitle.replaceAll("`", "'")}</Text>}
-        <Muted>{episode.episodeMetadata?.airDate || t("Unknown airing date", "Sendedatum unbekannt")} - {episode.episodeMetadata?.length || "N/A"} {t("minutes", "Minuten")}</Muted>
+        <Muted>{episode.episodeMetadata?.airDate || t("Unknown airing date", "Sendedatum unbekannt")} - {t(`${episode.episodeMetadata?.length || "N/A"} minutes`, `${episode.episodeMetadata?.length || "N/A"} Minuten`)}</Muted>
         <Text className="text-sm-text-muted">{summary || t("No summary", "Keine Zusammenfassung")}</Text>
         <View className="h-px bg-sm-line" />
         <Muted numberOfLines={2}>{episode.localFile?.name || episode.localFile?.parsedInfo?.original}</Muted>

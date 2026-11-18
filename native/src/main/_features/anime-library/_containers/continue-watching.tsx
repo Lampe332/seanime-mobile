@@ -103,7 +103,7 @@ const ResumeTile = React.memo(function ResumeTile({ episode, width, spoilerActiv
             accessibilityState={{ disabled: !!episode.isInvalid }}
             disabled={!!episode.isInvalid}
             onPress={() => resumeHomeEpisode(episode, IN_APP_PLAYER_READY ? setPlayNext : (_id, ready) => ready(), url => router.push(url))}
-            accessibilityLabel={`${t("Continue", "Fortsetzen")}: ${title}, ${t("episode", "Folge")} ${episode.episodeNumber}`}
+            accessibilityLabel={t(`Continue: ${title}, episode ${episode.episodeNumber}`, `Fortsetzen: ${title}, Folge ${episode.episodeNumber}`)}
             // .home-resume-tile: 0 12px 28px -12px black/.7 (an Android elevation shadow drew a light rim the old tile does not have)
             style={{ width, minHeight: 216, boxShadow: "0 12px 28px -12px rgba(0,0,0,0.7)" }}
             className="justify-end overflow-hidden rounded-surface border border-white/5 bg-sm-surface-control"
@@ -127,7 +127,7 @@ const ResumeTile = React.memo(function ResumeTile({ episode, width, spoilerActiv
                 <View className="mt-[3px] flex-row flex-wrap gap-x-2.5 gap-y-1">
                     <Text className="text-[13px] text-sm-text-muted">{t("Episode", "Folge")} {episode.episodeNumber}{showTotal ? ` / ${total! - offset}` : ""}</Text>
                     {!!length && <Text className="text-[13px] text-sm-text-muted">{length} min</Text>}
-                    {!!minutesLeft && <Text className="text-[13px] text-sm-text-muted">{minutesLeft} {t("min left", "Min. übrig")}</Text>}
+                    {!!minutesLeft && <Text className="text-[13px] text-sm-text-muted">{t(`${minutesLeft} min left`, `${minutesLeft} Min. übrig`)}</Text>}
                 </View>
                 <View className={`mt-3 min-h-11 flex-row items-center gap-[7px] self-start rounded-full py-2 pl-[14px] pr-[18px] ${episode.isInvalid ? "bg-sm-surface-control" : "bg-brand-500"}`}>
                     <CirclePlayFilledIcon size={16} color={episode.isInvalid ? colors.smTextMuted : "#ffffff"} />

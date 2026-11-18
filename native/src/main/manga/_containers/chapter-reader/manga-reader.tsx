@@ -311,7 +311,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
                 <BarButton label={t("Close reader", "Leser schließen")} onPress={close}><X size={16} strokeWidth={2.5} color={colors.smText} /></BarButton>
                 <View accessibilityLabel={t("Chapter", "Kapitel")} className="flex-row items-center gap-1.5">
                     {reversed ? next : previous}
-                    <Text className="min-w-14 text-center text-sm font-semibold" style={{ fontVariant: ["tabular-nums"] }}>{t("Ch.", "Kap.")} {currentChapter?.chapterNumber}</Text>
+                    <Text className="min-w-14 text-center text-sm font-semibold" style={{ fontVariant: ["tabular-nums"] }}>{t(`Ch. ${currentChapter?.chapterNumber ?? ""}`, `Kap. ${currentChapter?.chapterNumber ?? ""}`)}</Text>
                     {reversed ? previous : next}
                 </View>
                 <View className="flex-1" />
