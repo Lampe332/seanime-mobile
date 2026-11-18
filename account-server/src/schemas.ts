@@ -127,7 +127,9 @@ const IdToken = z
 
 /** Linking Google to a password account (H-2): the ID token with its nonce and the password again (authKey). */
 export const LinkGoogleBody = z.strictObject({ idToken: IdToken, nonce: Nonce32, authKey: AuthKey });
-export const UnlinkGoogleBody = z.strictObject({ authKey: AuthKey });
+/** The password again (H-2, NEU4-3): unlinking Google, deleting a password account */
+export const AuthKeyBody = z.strictObject({ authKey: AuthKey });
+export const UnlinkGoogleBody = AuthKeyBody;
 
 /** Google sign-in: the ID token, its nonce, the challenge issued with the nonce and the new session's key. */
 export const GoogleLoginBody = z.strictObject({

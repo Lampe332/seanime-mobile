@@ -3,7 +3,7 @@ import { fromB64url, hmacSha256, randomBytes, safeEqual, sha256, toB64url } from
 import { verifyGoogleIdToken } from "./google";
 import { clientIp, HttpError, json, noContent, readJson } from "./http";
 import { notify, sendMail } from "./mail";
-import { burstLimit, fixedWindow, ipRange, mailAllowed, rateKey, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
+import { burstLimit, fixedWindow, ipRange, isKnownNetwork, mailAllowed, rateKey, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
 import { authHash, type Ctx, isUniqueViolation, PEPPER_VERSION, withSession } from "./routes";
 import { GoogleLoginBody, LinkGoogleBody, ResetBody, ResetRequestBody, TokenBody, UnlinkGoogleBody } from "./schemas";
 import { issueChallenge, useOnce, verifySignIn } from "./signature";
@@ -57,8 +57,9 @@ export async function verifyEmail(ctx: Ctx): Promise<Response> {
 }
 
 /**
- * S5: the link from the "Confirm your sign-in" mail (/account/confirm/#token=...). Marks that sign-in as confirmed; the
- * device or page that typed the password then presses Continue and signs in like a known device (once, 15 minutes).
+ * S5: the link from the "Confirm your sign-in" mail (/account/confirm/#token=...), sent when the owner presses the button
+ * on that page. Marks that sign-in as confirmed; the device or page that typed the password then presses Continue and
+ * signs in with the same key and the same password once within 15 minutes (NEU4-2: nothing else skips the counters).
  */
 export async function confirmLogin(ctx: Ctx): Promise<Response> {
   const { env, request } = ctx;
@@ -84,7 +85,7 @@ export async function resendVerification(ctx: Ctx): Promise<Response> {
   if (user.email_verified === 1) throw new HttpError(409, "already_verified", "Your email is already confirmed.");
   await fixedWindow(env, await rateKey(env, "verify-resend", session.userId), RESEND_LIMIT, HOUR);
   // NEU-5: also counted per address, across accounts and senders
-  if (!(await mailAllowed(env, user.email, clientIp(ctx.request)))) {
+  if (!(await mailAllowed(env, "verify", user.email, clientIp(ctx.request)))) {
     throw new HttpError(429, "rate_limited", "Too many emails to this address. Try again later.");
   }
   const issued = await issueToken(env, session.userId, "verify", VERIFY_TTL);
@@ -119,8 +120,9 @@ export async function resetRequest(ctx: Ctx): Promise<Response> {
 async function sendResetLink(env: Env, userId: string, email: string, ip: string): Promise<void> {
   try {
     // NEU-5, NEU3-6: a few reset mails per address and sender network, so a stranger never uses up the owner's
-    // (checked after the answer, which stays the same)
-    if (!(await mailAllowed(env, email, ip))) return;
+    // (checked after the answer, which stays the same). NEU4-1: their own pot; from a network the account signed in
+    // from with its password, the cap across networks does not apply, so strangers elsewhere can't silence the owner.
+    if (!(await mailAllowed(env, "reset", email, ip, await isKnownNetwork(env, userId, ip)))) return;
     const issued = await issueToken(env, userId, "reset", RESET_TTL);
     await env.DB.batch([
       env.DB.prepare("DELETE FROM tokens WHERE user_id = ? AND purpose = 'reset' AND used_at IS NULL").bind(userId),
@@ -322,7 +324,7 @@ export async function googleLogin(ctx: Ctx): Promise<Response> {
  * H-2: the password again (authKey), checked like a login and counted against the same limits, so a session alone (a
  * stolen token, a website session) can neither add nor remove a Google sign-in. Returns the account's email.
  */
-async function requirePassword(env: Env, request: Request, session: Session, authKey: string): Promise<string> {
+export async function requirePassword(env: Env, request: Request, session: Session, authKey: string): Promise<string> {
   const user = await env.DB.prepare("SELECT email, auth_hash, pepper_version FROM users WHERE id = ?")
     .bind(session.userId)
     .first<{ email: string; auth_hash: string | null; pepper_version: number | null }>();

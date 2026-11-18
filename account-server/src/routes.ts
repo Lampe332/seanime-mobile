@@ -1,9 +1,9 @@
 import { fromB64url, hmacSha256, randomBytes, safeEqual, sha256, toB64url } from "./crypto";
 import { clientIp, HttpError, json, noContent, readJson, readLimited, requireMediaType } from "./http";
-import { burstLimit, fixedWindow, ipKey, mailAllowed, rateKey, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
-import { DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, StartFreshBody, Uuid } from "./schemas";
+import { burstLimit, fixedWindow, ipKey, mailAllowed, rateKey, rememberNetwork, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
+import { AuthKeyBody, DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, StartFreshBody, Uuid } from "./schemas";
 import { notify, sendMail } from "./mail";
-import { issueToken, VERIFY_TTL } from "./identity";
+import { issueToken, requirePassword, VERIFY_TTL } from "./identity";
 import { issueChallenge, verifySignIn } from "./signature";
 import {
   clearSessionCookie,
@@ -138,7 +138,7 @@ export async function signup(ctx: Ctx): Promise<Response> {
   }
   const session = await newSession(env, userId, deviceId, body.sigKey, true);
   const verify = await issueToken(env, userId, "verify", VERIFY_TTL);
-  statements.push(session.statement, copyDeviceKey(env, session.tokenHash), verify.statement);
+  statements.push(session.statement, copyDeviceKey(env, session.tokenHash), verify.statement, await rememberNetwork(env, userId, ip));
   try {
     await env.DB.batch(statements);
   } catch (err) {
@@ -147,7 +147,7 @@ export async function signup(ctx: Ctx): Promise<Response> {
     throw err;
   }
   // NEU-5: confirmation mails count against the address's mail limit; over it, the link can be sent again later
-  if (await mailAllowed(env, body.email, ip)) await sendMail(env, body.email, { kind: "verify", token: verify.token });
+  if (await mailAllowed(env, "verify", body.email, ip)) await sendMail(env, body.email, { kind: "verify", token: verify.token });
   return withSession(ctx, session.token, { userId, deviceId, emailVerified: false }, 201);
 }
 
@@ -160,17 +160,6 @@ export async function login(ctx: Ctx): Promise<Response> {
   const ipBack = await reserveLoginIp(env, ip);
   // Signed with the new key and carrying an unused challenge: a captured login cannot be sent again.
   await verifySignIn(env, request, body.sigKey, body.challenge, `email:${body.email}`);
-
-  // M-2, S5: a device whose live row carries this signing key (it keeps the key across sign-ins), or a key whose sign-in
-  // the owner confirmed by mail, skips the email counters. N-5: counted before the check.
-  const known = await env.DB.prepare(
-    `SELECT 1 AS k FROM users u WHERE u.email = ?1 AND (
-       EXISTS (SELECT 1 FROM devices d WHERE d.user_id = u.id AND d.sig_alg = ?2 AND d.sig_pub = ?3 AND d.signed_out_at IS NULL)
-       OR EXISTS (SELECT 1 FROM login_links l WHERE l.user_id = u.id AND l.sig_pub = ?3 AND l.confirmed_at IS NOT NULL AND l.expires_at > ?4))`,
-  )
-    .bind(body.email, body.sigKey.alg, body.sigKey.pub, now())
-    .first<{ k: number }>();
-  const { onSuccess, confirmByMail } = await reserveLoginEmail(env, ip, body.email, known !== null);
 
   const user = await env.DB.prepare(
     `SELECT id, auth_hash, pepper_version, kdf_params, wrapped_dek, dek_id, email_verified, rewrap_needed
@@ -192,6 +181,21 @@ export async function login(ctx: Ctx): Promise<Response> {
   // Compare against a zero buffer for unknown users so both paths do the same work.
   const match = safeEqual(presented, stored ?? new Uint8Array(32));
   const right = user !== null && stored !== null && match && user.pepper_version === PEPPER_VERSION;
+
+  // M-2: a device whose live row carries this signing key (it keeps the key across sign-ins) skips the email counters.
+  // S5, NEU4-2: so does the one attempt a mailed link confirmed, and only that one: the same signing key with the right
+  // password, once. A wrong guess from that key still counts, so an opened link never makes a key "known".
+  const known = await env.DB.prepare(
+    `SELECT
+       EXISTS (SELECT 1 FROM devices d WHERE d.user_id = u.id AND d.sig_alg = ?2 AND d.sig_pub = ?3 AND d.signed_out_at IS NULL) AS device,
+       EXISTS (SELECT 1 FROM login_links l WHERE l.user_id = u.id AND l.sig_pub = ?3 AND l.confirmed_at IS NOT NULL AND l.expires_at > ?4) AS link
+     FROM users u WHERE u.email = ?1`,
+  )
+    .bind(body.email, body.sigKey.alg, body.sigKey.pub, now())
+    .first<{ device: number; link: number }>();
+  // N-5: counted before the answer
+  const { onSuccess, confirmByMail } = await reserveLoginEmail(env, ip, body.email, known?.device === 1 || (right && known?.link === 1));
+
   if (confirmByMail) {
     // S5: the same answer for a right and a wrong password; only the right one mails the owner a link, after the answer
     if (right && user) ctx.waitUntil(sendLoginLink(env, user.id, body.email, body.sigKey.pub, ip));
@@ -207,6 +211,7 @@ export async function login(ctx: Ctx): Promise<Response> {
     env.DB.prepare("UPDATE users SET last_active_at = ? WHERE id = ?").bind(now(), user.id),
     // a confirmed link works once
     env.DB.prepare("DELETE FROM login_links WHERE user_id = ? AND sig_pub = ?").bind(user.id, body.sigKey.pub),
+    await rememberNetwork(env, user.id, ip),
   ]);
   return withSession(ctx, session.token, {
     userId: user.id,
@@ -223,7 +228,8 @@ export async function login(ctx: Ctx): Promise<Response> {
 const LOGIN_LINK_TTL = 15 * 60;
 async function sendLoginLink(env: Env, userId: string, email: string, sigPub: string, ip: string): Promise<void> {
   try {
-    if (!(await mailAllowed(env, email, ip))) return;
+    // NEU4-1: its own pot; only the right password fills it, so a stranger can't use it up
+    if (!(await mailAllowed(env, "link", email, ip))) return;
     const token = toB64url(randomBytes(32));
     await env.DB.prepare("INSERT INTO login_links (token_hash, user_id, sig_pub, expires_at) VALUES (?, ?, ?, ?)")
       .bind(toB64url(await sha256(token)), userId, sigPub, now() + LOGIN_LINK_TTL)
@@ -537,10 +543,18 @@ export async function deleteUserData(env: Env, userId: string, onlyIf = "1 = 1")
 
 export async function deleteAccount(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
-  requireRecentAuth(session);
-  const user = await ctx.env.DB.prepare("SELECT email FROM users WHERE id = ?")
+  const user = await ctx.env.DB.prepare("SELECT email, auth_hash, recovery_proof FROM users WHERE id = ?")
     .bind(session.userId)
-    .first<{ email: string }>();
+    .first<{ email: string; auth_hash: string | null; recovery_proof: string | null }>();
+  // NEU4-3: the same rule as Start fresh. A password account goes only with its password: typed again here (the website
+  // sends it, checked and counted like a sign-in) or a password sign-in within the last 10 minutes (the app signs in
+  // again first). A linked Google sign-in alone is not enough.
+  if (user && user.auth_hash !== null && ctx.request.headers.get("Content-Type")?.startsWith("application/json")) {
+    await requirePassword(ctx.env, ctx.request, session, (await readJson(ctx.request, AuthKeyBody)).authKey);
+  } else {
+    requireRecentAuth(session);
+    if (user && user.auth_hash !== null && !(await isOwner(session, user))) throw ownerRequired();
+  }
   if (await deleteUserData(ctx.env, session.userId)) {
     if (user) await sendMail(ctx.env, user.email, { kind: "account_deleted" });
   }
@@ -569,9 +583,13 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
       recovery_renewal_needed: number;
     }>();
   if (!user) throw new HttpError(401, "unauthorized");
-  // I5: the newest security events, the same ones that were mailed
+  // I5: the newest security events, the same ones that were mailed. NEU4-5: plus the newest of each kind, so a flood of one
+  // kind never pushes another out of the list.
   const { results: events } = await ctx.env.DB.prepare(
-    "SELECT kind, device_name, at FROM account_events WHERE user_id = ? ORDER BY at DESC, id DESC LIMIT 20",
+    `SELECT kind, device_name, at FROM account_events WHERE user_id = ?1 AND (
+       id IN (SELECT id FROM account_events WHERE user_id = ?1 ORDER BY at DESC, id DESC LIMIT 20)
+       OR id IN (SELECT MAX(id) FROM account_events WHERE user_id = ?1 GROUP BY kind))
+     ORDER BY at DESC, id DESC`,
   )
     .bind(session.userId)
     .all<{ kind: string; device_name: string | null; at: number }>();

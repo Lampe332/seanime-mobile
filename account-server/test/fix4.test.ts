@@ -74,7 +74,8 @@ describe("S1: approvals", () => {
       const created = await api("/v1/devices/requests", { token: n, body: { deviceName: "Tablet", devicePub: b64(rand(32)), commitment: b64(rand(32)) } });
       expect(created.status).toBe(201);
       const { id } = await created.json<{ id: string }>();
-      expect((await api(`/v1/devices/requests/${id}/deny`, { token: i === 1 ? a.token : n, method: "POST" })).status).toBe(204);
+      // NEU4-4: only a "No" from a device with its own row counts (the owner's phone)
+      expect((await api(`/v1/devices/requests/${id}/deny`, { token: a.token, method: "POST" })).status).toBe(204);
     }
     const paused = await api("/v1/devices/requests", { token: n, body: { deviceName: "Tablet", devicePub: b64(rand(32)), commitment: b64(rand(32)) } });
     expect(paused.status).toBe(429);

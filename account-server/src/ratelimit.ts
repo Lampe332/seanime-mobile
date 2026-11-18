@@ -93,7 +93,7 @@ export function ipKey(ip: string): string {
 
 export const LOGIN_LIMIT_EMAIL = 5;
 export const LOGIN_LIMIT_IP = 20;
-/** NEU-4: per email across all networks; above it a right password needs the link in a mail (S5), nobody is locked out */
+/** NEU-4: per email across all networks; above it a right password needs the link in a mail (S5), from its own pot (NEU4-1) */
 export const LOGIN_LIMIT_EMAIL_GLOBAL = 20;
 
 const waiting = (wait: number) =>
@@ -153,19 +153,41 @@ export async function fixedWindow(env: Env, key: string, limit: number, windowSe
 }
 
 /**
- * NEU-5, NEU3-6: mails anybody can trigger for an address (reset links, confirmation links). Per (recipient, sender's IP
- * range), so a stranger uses up only the mails his own network may trigger, never the owner's; plus a high cap per
+ * NEU-5, NEU3-6: mails sent to an address on request (reset links, sign-in links, confirmation links). Per (recipient,
+ * sender's IP range), so a stranger uses up only the mails his own network may trigger, never the owner's; plus a cap per
  * recipient across all networks against using the service to flood a mailbox.
+ *
+ * NEU4-1: every kind has its own pot. Sign-in links only go out after the right password, so a stranger can't touch that
+ * pot; using up the reset pot no longer silences the sign-in link. A reset from a network the account signed in from with
+ * its password (knownNetwork) skips the reset pot's cap across networks.
  */
 export const MAIL_LIMIT_HOUR = 5;
 export const MAIL_LIMIT_DAY = 10;
 export const MAIL_LIMIT_DAY_ALL = 50;
+export type MailPot = "link" | "reset" | "verify";
+
+/** NEU4-1: how long a network the password signed in from counts as the owner's */
+const KNOWN_NETWORK_SECONDS = 90 * 24 * 3600;
+const knownNetworkKey = (env: Env, userId: string, ip: string) => rateKey(env, "known-net", `${userId}|${ipRange(ip)}`);
+
+/** NEU4-1: remembers the network of a sign-in with the right password (run with the sign-in) */
+export async function rememberNetwork(env: Env, userId: string, ip: string): Promise<D1PreparedStatement> {
+  const t = now();
+  return env.DB.prepare(
+    `INSERT INTO rate_limits (key, count, last_at, expires_at) VALUES (?1, 1, ?2, ?3)
+     ON CONFLICT(key) DO UPDATE SET last_at = ?2, expires_at = ?3`,
+  ).bind(await knownNetworkKey(env, userId, ip), t, t + KNOWN_NETWORK_SECONDS);
+}
+
+export async function isKnownNetwork(env: Env, userId: string, ip: string): Promise<boolean> {
+  return (await windowCount(env, await knownNetworkKey(env, userId, ip))) > 0;
+}
 
 /**
- * Counts one such mail to `email` from `ip` and says whether it may go. Never throws, so the answer to the sender stays
- * the same either way (no hint whether the address has an account).
+ * Counts one mail of `pot` to `email` from `ip` and says whether it may go. Never throws, so the answer to the sender
+ * stays the same either way (no hint whether the address has an account). `knownNetwork` skips the cap across networks.
  */
-export async function mailAllowed(env: Env, email: string, ip: string): Promise<boolean> {
+export async function mailAllowed(env: Env, pot: MailPot, email: string, ip: string, knownNetwork = false): Promise<boolean> {
   const sender = `${email}|${ipRange(ip)}`;
   const count = async (window: string, seconds: number, value = sender) => {
     const t = now();
@@ -177,12 +199,13 @@ export async function mailAllowed(env: Env, email: string, ip: string): Promise<
          expires_at = CASE WHEN rate_limits.expires_at <= ?2 THEN ?2 + ?3 ELSE rate_limits.expires_at END
        RETURNING count`,
     )
-      .bind(await rateKey(env, `mail-${window}`, value), t, seconds)
+      .bind(await rateKey(env, `mail-${pot}-${window}`, value), t, seconds)
       .first<{ count: number }>();
     return row?.count ?? Number.MAX_SAFE_INTEGER;
   };
   if ((await count("hour", 3600)) > MAIL_LIMIT_HOUR) return false;
   if ((await count("day", 24 * 3600)) > MAIL_LIMIT_DAY) return false;
+  if (knownNetwork) return true;
   return (await count("day-all", 24 * 3600, email)) <= MAIL_LIMIT_DAY_ALL;
 }
 

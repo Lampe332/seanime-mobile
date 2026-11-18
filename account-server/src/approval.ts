@@ -15,8 +15,8 @@
  * base64url of the 32-byte digest. A v1 commitment (without the prefix) never matches.
  *
  * The order is enforced: no reveal before rO (else N could pick rN after seeing rO and steer the SAS),
- * no approve before a valid reveal. A request expires after 10 minutes; at most 3 open per account
- * and 5 new per hour.
+ * no approve before a valid reveal. A request expires after 10 minutes; at most 3 open and 5 new per hour
+ * per session (NEU4-4).
  */
 import { fromB64url, safeEqual, sha256 } from "./crypto";
 import { HttpError, json, noContent, readJson } from "./http";
@@ -36,8 +36,14 @@ const PAUSE_SECONDS = 3600;
 
 const noKey = (env: Env, userId: string) => rateKey(env, "approval-no", userId);
 
-/** S1: counts a "No" (a number that did not match); the third within an hour pauses approvals for an hour and mails */
-async function countNo(env: Env, userId: string): Promise<void> {
+/**
+ * S1: counts a "No" (a number that did not match); the third within an hour pauses approvals for an hour and mails.
+ * NEU4-4: only a "No" from a device with a row of its own counts. A session without the key (the new device itself, a
+ * Google or password sign-in) can end its own request but never pause the owner's approvals.
+ */
+async function countNo(env: Env, session: Session): Promise<void> {
+  if (session.deviceId === null) return;
+  const userId = session.userId;
   const key = await noKey(env, userId);
   await fixedWindow(env, key, Number.MAX_SAFE_INTEGER, PAUSE_SECONDS);
   if ((await windowCount(env, key)) !== NO_LIMIT) return;
@@ -132,10 +138,11 @@ export async function createRequest(ctx: Ctx): Promise<Response> {
     .first<{ k: number }>();
   if (taken) throw new HttpError(409, "device_registered", "This device key already belongs to a device of the account.");
   const t = now();
+  // NEU4-4: open requests and new ones per hour count per session, so one sign-in can't use up the owner's
   const open = await env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM device_requests WHERE user_id = ? AND status IN ${OPEN} AND expires_at > ?`,
+    `SELECT COUNT(*) AS n FROM device_requests WHERE user_id = ? AND session_hash = ? AND status IN ${OPEN} AND expires_at > ?`,
   )
-    .bind(session.userId, t)
+    .bind(session.userId, session.tokenHash, t)
     .first<{ n: number }>();
   if ((open?.n ?? 0) >= MAX_OPEN) {
     throw new HttpError(429, "too_many_open_requests", "Too many open requests. Wait a few minutes.");
@@ -143,7 +150,7 @@ export async function createRequest(ctx: Ctx): Promise<Response> {
   if ((await windowCount(env, await noKey(env, session.userId))) >= NO_LIMIT) {
     throw new HttpError(429, "approvals_paused", "The numbers didn't match three times. Approving devices is paused for an hour.");
   }
-  await fixedWindow(env, await rateKey(env, "approval", session.userId), NEW_PER_HOUR, 3600);
+  await fixedWindow(env, await rateKey(env, "approval", session.tokenHash), NEW_PER_HOUR, 3600);
   const id = crypto.randomUUID();
   await env.DB.prepare(
     `INSERT INTO device_requests (id, user_id, device_name, device_pub, commitment, status, created_at, expires_at, session_hash)
@@ -217,7 +224,7 @@ export async function postReveal(ctx: Ctx): Promise<Response> {
     await env.DB.prepare("UPDATE device_requests SET status = 'denied' WHERE id = ? AND user_id = ?")
       .bind(row.id, session.userId)
       .run();
-    await countNo(env, session.userId);
+    await countNo(env, session);
     throw new HttpError(422, "commitment_mismatch", "The device check failed. Start again.");
   }
   const res = await env.DB.prepare(
@@ -309,6 +316,6 @@ export async function denyRequest(ctx: Ctx): Promise<Response> {
   )
     .bind(row.id, session.userId)
     .run();
-  if (res.meta.changes > 0) await countNo(env, session.userId);
+  if (res.meta.changes > 0) await countNo(env, session);
   return noContent();
 }

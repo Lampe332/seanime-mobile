@@ -253,6 +253,8 @@ export async function rotate(ctx: Ctx): Promise<Response> {
             ).bind(previous.version, previous.size, previous.dek_id, previous.updated_at, userId, next)
           : env.DB.prepare("DELETE FROM snapshots WHERE user_id = ? AND version = ?").bind(userId, next),
       ]);
+      // NEU4-5 (I5): the left-out devices stay removed, so the owner gets the mail and the event for each of them
+      for (const d of dropped) await notify(env, userId, user.email, { kind: "device_removed", deviceName: d.name });
       throw err;
     }
   }
