@@ -1,6 +1,6 @@
 import type { Locale } from "date-fns"
 import { format } from "date-fns/format"
-import { de } from "date-fns/locale/de"
+import { de as german } from "date-fns/locale/de"
 import { es } from "date-fns/locale/es"
 import { fr } from "date-fns/locale/fr"
 import { ja } from "date-fns/locale/ja"
@@ -21,7 +21,7 @@ const LOCALE_TAGS: Record<string, string> = {
     "ja": "ja-JP",
 }
 
-const DATE_FNS_LOCALES: Record<string, Locale> = { de, es, ru, "zh-Hans": zhCN, "pt-BR": ptBR, fr, ja }
+const DATE_FNS_LOCALES: Record<string, Locale> = { de: german, es, ru, "zh-Hans": zhCN, "pt-BR": ptBR, fr, ja }
 
 export function localeTag(language: string): string {
     return LOCALE_TAGS[language] ?? "en-US"
@@ -34,18 +34,18 @@ export function dateFnsLocale(language: string): { locale?: Locale } {
 }
 
 /**
- * A date in the app language. English and German keep their fixed date-fns patterns; the other languages get Intl's
+ * A date in the app language. English and German keep their fixed date-fns patterns ([en, de]); the other languages get Intl's
  * own order and words ("viernes, 23 de oct", "10月23日星期五").
  */
-export function formatDate(date: Date, language: string, patterns: { en: string, de: string }, options: Intl.DateTimeFormatOptions): string {
-    if (language === "de") return format(date, patterns.de, { locale: de })
-    if (language === "en" || !(language in LOCALE_TAGS)) return format(date, patterns.en)
+export function formatDate(date: Date, language: string, [en, de]: [string, string], options: Intl.DateTimeFormatOptions): string {
+    if (language === "de") return format(date, de, { locale: german })
+    if (language === "en" || !(language in LOCALE_TAGS)) return format(date, en)
     return new Intl.DateTimeFormat(localeTag(language), options).format(date)
 }
 
 /** A clock time: "6:30 PM" in English, "18:30" in German, the language's own form elsewhere. */
 export function formatTime(date: Date, language: string): string {
-    return formatDate(date, language, { en: "h:mm a", de: "HH:mm" }, { hour: "numeric", minute: "2-digit" })
+    return formatDate(date, language, ["h:mm a", "HH:mm"], { hour: "numeric", minute: "2-digit" })
 }
 
 /** Short weekday names from Monday to Sunday, without a trailing dot ("Mo", "lun", "пн", "月"). */

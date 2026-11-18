@@ -111,7 +111,7 @@ type PhoneScheduleProps = {
 function useDateLocale() {
     const language = useAtomValue(appLanguageAtom)
     /** A date in the app language: English and German with their own patterns, the other languages through Intl. */
-    const date = (day: Date, en: string, de: string, options: Intl.DateTimeFormatOptions) => formatDate(day, language, { en, de }, options)
+    const date = (day: Date, en: string, de: string, options: Intl.DateTimeFormatOptions) => formatDate(day, language, [en, de], options)
     return { language, date }
 }
 

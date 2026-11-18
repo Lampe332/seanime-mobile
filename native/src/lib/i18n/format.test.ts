@@ -4,7 +4,7 @@ import { dateFnsLocale, fillParts, formatDate, formatTime, localeTag, weekdayNam
 
 describe("formatDate", () => {
     const day = new Date(2026, 9, 23, 18, 30) // Friday
-    const long = { en: "EEEE, MMMM d", de: "EEEE, d. MMMM" }
+    const long = ["EEEE, MMMM d", "EEEE, d. MMMM"] as [string, string]
     const options: Intl.DateTimeFormatOptions = { weekday: "long", month: "long", day: "numeric" }
 
     it("keeps the English and German patterns", () => {
