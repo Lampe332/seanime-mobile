@@ -7,9 +7,12 @@ export async function rateKey(env: Env, kind: string, value: string): Promise<st
   return `${kind}:${toB64url(await hmacSha256(env.ENUM_SECRET, `rl:${kind}:${value}`))}`;
 }
 
-/** Short burst limiter from the Workers Rate Limiting binding. */
-export async function burstLimit(limiter: RateLimit, key: string): Promise<void> {
-  const { success } = await limiter.limit({ key });
+/**
+ * Short burst limiter from the Workers Rate Limiting binding: counted in memory at the edge, never in D1. Every route
+ * without a session calls it first, before anything is written to D1 (NEU-5). Keyed per ipKey (IPv6 per /48, NEU-4).
+ */
+export async function burstLimit(limiter: RateLimit, ip: string): Promise<void> {
+  const { success } = await limiter.limit({ key: ipKey(ip) });
   if (!success) throw tooMany(60);
 }
 
@@ -79,8 +82,19 @@ export function ipRange(ip: string): string {
   return `${groups.slice(0, 3).map((g) => g.replace(/^0+(?=.)/, "")).join(":")}::/48`;
 }
 
+/**
+ * The key per sender for IP counters and the burst limiter: an IPv4 address as it is, IPv6 per /48 (NEU-4: one
+ * connection gets a whole /64 or /48, so per address would be no limit at all).
+ */
+export function ipKey(ip: string): string {
+  const range = ipRange(ip);
+  return range.endsWith("/48") ? range : ip;
+}
+
 export const LOGIN_LIMIT_EMAIL = 5;
 export const LOGIN_LIMIT_IP = 20;
+/** NEU-4: per email across all networks, with the same growing wait; a known device of the account never counts here */
+export const LOGIN_LIMIT_EMAIL_GLOBAL = 20;
 
 /**
  * Login-style password check (login, and the password asked again for Google link/unlink): counts the attempt per IP
@@ -89,13 +103,20 @@ export const LOGIN_LIMIT_IP = 20;
  * gives this attempt back (clearing it would let somebody reset it with a login to an own account between guesses).
  */
 export async function reserveLogin(env: Env, ip: string, email: string, knownDevice: boolean): Promise<D1PreparedStatement[]> {
-  const ipKey = await rateKey(env, "login-ip", ip);
-  let wait = await reserveAttempt(env, ipKey, LOGIN_LIMIT_IP);
-  const onSuccess = [env.DB.prepare("UPDATE rate_limits SET count = MAX(count - 1, 0) WHERE key = ?").bind(ipKey)];
+  const ipCounter = await rateKey(env, "login-ip", ipKey(ip));
+  let wait = await reserveAttempt(env, ipCounter, LOGIN_LIMIT_IP);
+  const onSuccess = [env.DB.prepare("UPDATE rate_limits SET count = MAX(count - 1, 0) WHERE key = ?").bind(ipCounter)];
   if (wait === 0 && !knownDevice) {
     const emailKey = await rateKey(env, "login-email", `${email}|${ipRange(ip)}`);
     onSuccess.push(clearKey(env, emailKey));
     wait = await reserveAttempt(env, emailKey, LOGIN_LIMIT_EMAIL);
+  }
+  if (wait === 0 && !knownDevice) {
+    // NEU-4: guesses spread over many networks still meet one counter per email. It only gives back this attempt on a
+    // success, like the IP counter, so a sign-in of the owner never resets it for the guesser.
+    const globalKey = await rateKey(env, "login-email-all", email);
+    onSuccess.push(env.DB.prepare("UPDATE rate_limits SET count = MAX(count - 1, 0) WHERE key = ?").bind(globalKey));
+    wait = await reserveAttempt(env, globalKey, LOGIN_LIMIT_EMAIL_GLOBAL);
   }
   if (wait > 0) {
     throw new HttpError(429, "rate_limited", "Too many attempts. Try again later.", { "Retry-After": String(wait) }, { retryAfter: wait });
@@ -118,4 +139,32 @@ export async function fixedWindow(env: Env, key: string, limit: number, windowSe
     .first<{ count: number; expires_at: number }>();
   if (!row) throw new HttpError(500, "internal_error");
   if (row.count > limit) throw tooMany(row.expires_at - t);
+}
+
+/** NEU-5: mails anybody can trigger for an address (reset links, confirmation links), per recipient across all senders */
+export const MAIL_LIMIT_HOUR = 5;
+export const MAIL_LIMIT_DAY = 10;
+
+/**
+ * Counts one such mail to `email` and says whether it may go: at most MAIL_LIMIT_HOUR per hour and MAIL_LIMIT_DAY per
+ * day. Never throws, so the answer to the sender stays the same either way (no hint whether the address has an account).
+ */
+export async function mailAllowed(env: Env, email: string): Promise<boolean> {
+  const count = async (window: string, seconds: number) => {
+    const t = now();
+    const row = await env.DB.prepare(
+      `INSERT INTO rate_limits (key, count, last_at, expires_at) VALUES (?1, 1, ?2, ?2 + ?3)
+       ON CONFLICT(key) DO UPDATE SET
+         count = CASE WHEN rate_limits.expires_at <= ?2 THEN 1 ELSE rate_limits.count + 1 END,
+         last_at = ?2,
+         expires_at = CASE WHEN rate_limits.expires_at <= ?2 THEN ?2 + ?3 ELSE rate_limits.expires_at END
+       RETURNING count`,
+    )
+      .bind(await rateKey(env, `mail-${window}`, email), t, seconds)
+      .first<{ count: number }>();
+    return row?.count ?? Number.MAX_SAFE_INTEGER;
+  };
+  const hour = await count("hour", 3600);
+  if (hour > MAIL_LIMIT_HOUR) return false;
+  return (await count("day", 24 * 3600)) <= MAIL_LIMIT_DAY;
 }

@@ -1,12 +1,12 @@
 /** Email verification, password reset (plan 6.8) and Google sign-in (plan 6.3). */
-import { fromB64url, randomBytes, safeEqual, sha256, toB64url } from "./crypto";
+import { fromB64url, hmacSha256, randomBytes, safeEqual, sha256, toB64url } from "./crypto";
 import { verifyGoogleIdToken } from "./google";
 import { clientIp, HttpError, json, noContent, readJson } from "./http";
 import { sendMail } from "./mail";
-import { burstLimit, fixedWindow, ipRange, rateKey, reserveLogin } from "./ratelimit";
+import { burstLimit, fixedWindow, ipRange, mailAllowed, rateKey, reserveLogin } from "./ratelimit";
 import { authHash, type Ctx, isUniqueViolation, PEPPER_VERSION, withSession } from "./routes";
 import { GoogleLoginBody, LinkGoogleBody, ResetBody, ResetRequestBody, TokenBody, UnlinkGoogleBody } from "./schemas";
-import { issueChallenge, verifySignIn } from "./signature";
+import { issueChallenge, useOnce, verifySignIn } from "./signature";
 import { newSession, now, requireSession } from "./session";
 
 export const VERIFY_TTL = 7 * 24 * 3600;
@@ -65,6 +65,8 @@ export async function resendVerification(ctx: Ctx): Promise<Response> {
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.email_verified === 1) throw new HttpError(409, "already_verified", "Your email is already confirmed.");
   await fixedWindow(env, await rateKey(env, "verify-resend", session.userId), RESEND_LIMIT, HOUR);
+  // NEU-5: also counted per address, across accounts and senders
+  if (!(await mailAllowed(env, user.email))) throw new HttpError(429, "rate_limited", "Too many emails to this address. Try again later.");
   const issued = await issueToken(env, session.userId, "verify", VERIFY_TTL);
   await env.DB.batch([
     env.DB.prepare("DELETE FROM tokens WHERE user_id = ? AND purpose = 'verify' AND used_at IS NULL").bind(session.userId),
@@ -96,6 +98,8 @@ export async function resetRequest(ctx: Ctx): Promise<Response> {
 
 async function sendResetLink(env: Env, userId: string, email: string): Promise<void> {
   try {
+    // NEU-5: at most a few reset mails per address, whoever asks from wherever (checked after the answer, which stays the same)
+    if (!(await mailAllowed(env, email))) return;
     const issued = await issueToken(env, userId, "reset", RESET_TTL);
     await env.DB.batch([
       env.DB.prepare("DELETE FROM tokens WHERE user_id = ? AND purpose = 'reset' AND used_at IS NULL").bind(userId),
@@ -199,28 +203,39 @@ export async function resetPassword(ctx: Ctx): Promise<Response> {
 
 // ---------------------------------------------------------------- Google
 
+/**
+ * NEU-5: the nonce is stateless, time (4 bytes) || random (16) || HMAC (12), so asking for one writes nothing to D1.
+ * It is remembered as used only when a valid Google ID token comes with it.
+ */
+async function nonceMac(env: Env, head: Uint8Array): Promise<Uint8Array> {
+  return (await hmacSha256(env.ENUM_SECRET, `google-nonce:v1:${toB64url(head)}`)).slice(0, 12);
+}
+
 export async function googleNonce(ctx: Ctx): Promise<Response> {
   const { env, request } = ctx;
   await burstLimit(env.LOGIN_LIMITER, clientIp(request));
-  const nonce = toB64url(randomBytes(32));
   const t = now();
-  await env.DB.prepare("INSERT INTO google_nonces (nonce_hash, expires_at) VALUES (?, ?)")
-    .bind(toB64url(await sha256(nonce)), t + GOOGLE_NONCE_TTL)
-    .run();
+  const head = new Uint8Array(20);
+  new DataView(head.buffer).setUint32(0, t);
+  head.set(randomBytes(16), 4);
+  const raw = new Uint8Array(32);
+  raw.set(head, 0);
+  raw.set(await nonceMac(env, head), 20);
+  const nonce = toB64url(raw);
   // The sign-in with this nonce must also carry this one-time challenge, signed with the new key (plan 10.2b).
   return json({ nonce, expiresAt: t + GOOGLE_NONCE_TTL, challenge: await issueChallenge(env, `google:${nonce}`) });
 }
 
-/** Verifies the token, then uses up the nonce. A nonce works exactly once. */
+/** Verifies the token and the nonce (made here, not expired), then uses up the nonce. A nonce works exactly once. */
 async function googleIdentity(env: Env, body: { idToken: string; nonce: string }) {
-  const identity = await verifyGoogleIdToken(env, body.idToken, body.nonce);
+  const raw = fromB64url(body.nonce);
+  const expired = () => new HttpError(401, "invalid_nonce", "Google sign-in expired. Try again.");
+  if (!raw || raw.byteLength !== 32 || !safeEqual(raw.slice(20), await nonceMac(env, raw.slice(0, 20)))) throw expired();
+  const issued = new DataView(raw.buffer, raw.byteOffset).getUint32(0);
   const t = now();
-  const used = await env.DB.prepare(
-    "UPDATE google_nonces SET used_at = ? WHERE nonce_hash = ? AND used_at IS NULL AND expires_at > ?",
-  )
-    .bind(t, toB64url(await sha256(body.nonce)), t)
-    .run();
-  if (used.meta.changes === 0) throw new HttpError(401, "invalid_nonce", "Google sign-in expired. Try again.");
+  if (issued > t + 60 || t - issued > GOOGLE_NONCE_TTL) throw expired();
+  const identity = await verifyGoogleIdToken(env, body.idToken, body.nonce);
+  if (!(await useOnce(env, `g:${toB64url(await sha256(body.nonce))}`, issued + GOOGLE_NONCE_TTL + 60))) throw expired();
   return identity;
 }
 

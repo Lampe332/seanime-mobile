@@ -96,7 +96,7 @@ async function verifyWith(key: SigKey, signature: Uint8Array, data: Uint8Array):
 }
 
 /** Remembers a nonce (or used challenge) until `expiresAt`; false when it was seen before. */
-async function useOnce(env: Env, value: string, expiresAt: number): Promise<boolean> {
+export async function useOnce(env: Env, value: string, expiresAt: number): Promise<boolean> {
   const res = await env.DB.prepare("INSERT INTO used_nonces (nonce, expires_at) VALUES (?, ?) ON CONFLICT(nonce) DO NOTHING")
     .bind(value, expiresAt)
     .run();
@@ -158,23 +158,27 @@ export async function issueChallenge(env: Env, subject: string): Promise<string>
   return toB64url(out);
 }
 
-async function useChallenge(env: Env, challenge: string, subject: string): Promise<boolean> {
+/** The stateless part of a challenge check (MAC, subject, age); nothing is written. */
+async function checkChallenge(env: Env, challenge: string, subject: string): Promise<{ rand: string; expiresAt: number } | null> {
   const raw = fromB64url(challenge);
-  if (!raw || raw.byteLength !== CHALLENGE_BYTES) return false;
+  if (!raw || raw.byteLength !== CHALLENGE_BYTES) return null;
   const ts = raw.slice(0, 4);
   const rand = raw.slice(4, 20);
-  if (!safeEqual(raw.slice(20), await challengeMac(env, subject, ts, rand))) return false;
+  if (!safeEqual(raw.slice(20), await challengeMac(env, subject, ts, rand))) return null;
   const issued = new DataView(ts.buffer).getUint32(0);
   const t = Math.floor(Date.now() / 1000);
-  if (issued > t + 60 || t - issued > CHALLENGE_TTL) return false;
-  return useOnce(env, `c:${toB64url(rand)}`, issued + CHALLENGE_TTL + 60);
+  if (issued > t + 60 || t - issued > CHALLENGE_TTL) return null;
+  return { rand: toB64url(rand), expiresAt: issued + CHALLENGE_TTL + 60 };
 }
 
 /**
  * A sign-in request: signed with the new key it registers (session id "-") and carrying an unused challenge for
- * `subject`. Afterwards the key is bound to the new session.
+ * `subject`. Afterwards the key is bound to the new session. NEU-5: the challenge is checked before anything is
+ * written, so a request without a real challenge never reaches D1.
  */
 export async function verifySignIn(env: Env, request: Request, key: SigKey, challenge: string, subject: string): Promise<void> {
+  const checked = await checkChallenge(env, challenge, subject);
+  if (!checked) throw unauthorized();
   await verifyRequest(env, request, key, "-");
-  if (!(await useChallenge(env, challenge, subject))) throw unauthorized();
+  if (!(await useOnce(env, `c:${checked.rand}`, checked.expiresAt))) throw unauthorized();
 }

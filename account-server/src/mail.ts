@@ -10,6 +10,7 @@ export type Mail =
   | { kind: "verify"; token: string }
   | { kind: "reset"; token: string }
   | { kind: "new_device"; deviceName: string }
+  | { kind: "device_removed"; deviceName: string }
   | { kind: "password_changed" }
   | { kind: "account_deleted" }
   | { kind: "start_fresh" }
@@ -62,11 +63,20 @@ function content(env: Env, mail: Mail): Content {
           "If this was not you, remove the device in your account settings and change your password.",
         ],
       };
+    case "device_removed":
+      return {
+        subject: "A device was removed",
+        lines: [
+          `${mail.deviceName} was removed from your account and signed out.`,
+          "Open Seanime Mobile on one of your other devices and finish the removal there. Until then the removed device still knows the old key.",
+          "If this was not you, change your password and check your devices.",
+        ],
+      };
     case "password_changed":
       return {
         subject: "Your password was changed",
         lines: [
-          "The password of your Seanime Mobile account was changed. Other devices were signed out.",
+          "The password of your Seanime Mobile account was changed. Other devices were signed out and a linked Google sign-in was removed.",
           "If this was not you, reset your password right away.",
         ],
       };

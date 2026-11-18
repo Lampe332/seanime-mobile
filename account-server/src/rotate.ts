@@ -3,7 +3,8 @@
  * seals the new DEK to every remaining device and sends new password / recovery wraps. One request:
  *
  *   POST /v1/account/rotate   Content-Type: multipart/form-data   If-Match: <current snapshot version>
- *     part "meta":     JSON {oldDekId, dekId, devices: [{deviceId, sealedDek}], wrappedDek?, recoveryWrappedDek?}
+ *     part "meta":     JSON {oldDekId, dekId, dekProof, chainMac, devices: [{deviceId, sealedDek, mac}], removed,
+ *                            wrappedDek?, recoveryWrappedDek?}
  *     part "snapshot": the re-encrypted package (required when the account has a snapshot)
  *
  * D1 is changed in one batch (a transaction). Every statement after the first only applies when the first
@@ -73,7 +74,7 @@ export async function rotate(ctx: Ctx): Promise<Response> {
   const userId = session.userId;
   const user = await env.DB.prepare(
     `SELECT email, dek_id, auth_hash, wrapped_dek, recovery_wrapped_dek, rewrap_needed, rotation_required, recovery_renewal_needed,
-       dek_proof, chain_from, chain_mac
+       dek_proof, chain_from, chain_mac, chain_rotator, chain_removed, removed_at
      FROM users WHERE id = ?`,
   )
     .bind(userId)
@@ -89,15 +90,37 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       dek_proof: string | null;
       chain_from: string | null;
       chain_mac: string | null;
+      chain_rotator: string | null;
+      chain_removed: string | null;
+      removed_at: number | null;
     }>();
   if (!user) throw new HttpError(401, "unauthorized");
+  const rotator = await env.DB.prepare("SELECT device_pub, sig_pub, created_at FROM devices WHERE id = ? AND user_id = ?")
+    .bind(session.deviceId, userId)
+    .first<{ device_pub: string; sig_pub: string | null; created_at: number }>();
+  if (!rotator) throw new HttpError(403, "device_required", "Only a signed-in device can do this.");
+  // R4 / NEU-2: after a removal only a device from before it rotates, with a session from before the removal, one that
+  // checked the password, or one signed with the key that device kept (the same phone signed in again). A removed phone
+  // signed in again with Google has none of these: its row and keys are gone and can't come back.
+  if (
+    user.removed_at !== null &&
+    (rotator.created_at > user.removed_at ||
+      (session.createdAt > user.removed_at &&
+        !(session.passwordAuth && user.auth_hash !== null) &&
+        rotator.sig_pub !== session.sigPub))
+  ) {
+    throw new HttpError(403, "rotation_not_allowed", "Finish removing the device on a device that was signed in before.");
+  }
   if (user.dek_id !== meta.oldDekId) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
   if (user.auth_hash !== null && meta.wrappedDek === undefined) {
     throw new HttpError(400, "invalid_request", "wrappedDek is required for password accounts", {}, { fields: ["wrappedDek"] });
   }
 
   // The new DEK must reach every remaining device, no more and no less.
-  const { results: devices } = await env.DB.prepare("SELECT id, sealed_dek, dek_id, mac FROM devices WHERE user_id = ?")
+  const { results: devices } = await env.DB.prepare(
+    `SELECT id, sealed_dek, dek_id, mac FROM devices d WHERE user_id = ?
+       AND NOT EXISTS (SELECT 1 FROM removed_devices r WHERE r.user_id = d.user_id AND r.device_pub = d.device_pub)`,
+  )
     .bind(userId)
     .all<{ id: string; sealed_dek: string | null; dek_id: string | null; mac: string | null }>();
   const sent = new Set(meta.devices.map((d) => d.deviceId));
@@ -125,9 +148,10 @@ export async function rotate(ctx: Ctx): Promise<Response> {
   const statements: D1PreparedStatement[] = [
     // chain_from / chain_mac: the old DEK vouches for the new one; devices refuse a new key without it (K-1).
     env.DB.prepare(
-      `UPDATE users SET dek_id = ?, dek_proof = ?, chain_from = ?, chain_mac = ?, wrapped_dek = ?, recovery_wrapped_dek = ?,
+      `UPDATE users SET dek_id = ?, dek_proof = ?, chain_from = ?, chain_mac = ?, chain_rotator = ?, chain_removed = ?,
+         wrapped_dek = ?, recovery_wrapped_dek = ?,
          rewrap_needed = CASE WHEN ? IS NULL THEN rewrap_needed ELSE 0 END, rotation_required = 0,
-         recovery_renewal_needed = ?
+         recovery_renewal_needed = ?, removed_at = NULL
        WHERE id = ? AND dek_id = ?
          AND COALESCE((SELECT version FROM snapshots WHERE user_id = ?), 0) = ?
          AND (SELECT COUNT(*) FROM devices WHERE user_id = ?) = ?`,
@@ -136,6 +160,8 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       await proofHash(meta.dekProof),
       meta.oldDekId,
       meta.chainMac,
+      rotator.device_pub,
+      JSON.stringify(meta.removed),
       meta.wrappedDek ?? null,
       meta.recoveryWrappedDek ?? null,
       meta.wrappedDek ?? null,
@@ -179,19 +205,23 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       // Put D1 back so the account never points at a key the stored blob does not use.
       await env.DB.batch([
         env.DB.prepare(
-          `UPDATE users SET dek_id = ?, dek_proof = ?, chain_from = ?, chain_mac = ?, wrapped_dek = ?, recovery_wrapped_dek = ?,
-             rewrap_needed = ?, rotation_required = ?, recovery_renewal_needed = ?
+          `UPDATE users SET dek_id = ?, dek_proof = ?, chain_from = ?, chain_mac = ?, chain_rotator = ?, chain_removed = ?,
+             wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = ?, rotation_required = ?, recovery_renewal_needed = ?,
+             removed_at = ?
            WHERE id = ? AND dek_id = ?`,
         ).bind(
           user.dek_id,
           user.dek_proof,
           user.chain_from,
           user.chain_mac,
+          user.chain_rotator,
+          user.chain_removed,
           user.wrapped_dek,
           user.recovery_wrapped_dek,
           user.rewrap_needed,
           user.rotation_required,
           user.recovery_renewal_needed,
+          user.removed_at,
           userId,
           meta.dekId,
         ),

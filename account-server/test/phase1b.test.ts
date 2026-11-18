@@ -3,6 +3,8 @@ import { exports } from "cloudflare:workers";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { renderMail, type Mail } from "../src/mail";
+import { hmacSha256 } from "../src/crypto";
+import { issueChallenge } from "../src/signature";
 import { api, b64, clientKeys, DEFAULT_KDF, deviceKeys, freshEmail, freshIp, rand, signed, signupUser, upload } from "./helpers";
 
 // ---------------------------------------------------------------- helpers
@@ -226,9 +228,20 @@ describe("google sign-in", () => {
     const res = await api("/v1/auth/google", { body: { idToken: await signJwt(claims(unknown)), nonce: unknown } });
     expect(res.status).toBe(401);
     expect((await res.json<{ error: string }>()).error).toBe("unauthorized");
-    const nonce = await googleNonce();
-    await env.DB.prepare("UPDATE google_nonces SET expires_at = ? WHERE used_at IS NULL").bind(nowS() - 1).run();
-    expect((await api("/v1/auth/google", { body: { idToken: await signJwt(claims(nonce)), nonce } })).status).toBe(401);
+    // NEU-5: the nonce is stateless (time || random || HMAC); one older than 5 minutes, or with a wrong HMAC, is refused
+    const head = new Uint8Array(20);
+    new DataView(head.buffer).setUint32(0, nowS() - 301);
+    head.set(rand(16), 4);
+    const raw = new Uint8Array(32);
+    raw.set(head);
+    raw.set((await hmacSha256(env.ENUM_SECRET, `google-nonce:v1:${b64(head)}`)).slice(0, 12), 20);
+    const stale = b64(raw);
+    const staleChallenge = await issueChallenge(env, `google:${stale}`);
+    const old = await api("/v1/auth/google", { body: { idToken: await signJwt(claims(stale)), nonce: stale, challenge: staleChallenge, sigKey: { alg: "ed25519", pub: b64(rand(32)) } }, sign: false });
+    expect(old.status).toBe(401);
+    const fresh = await googleNonce();
+    const forged = b64(Uint8Array.from([...fromB64(fresh).slice(0, 31), fromB64(fresh)[31]! ^ 1]));
+    expect((await api("/v1/auth/google", { body: { idToken: await signJwt(claims(forged)), nonce: forged } })).status).toBe(401);
   });
 
   it("never links an existing password account automatically, only via account/link-google", async () => {
@@ -273,9 +286,12 @@ async function newDeviceSession(u: { email: string; keys: { authKey: string } })
 async function createRequest(token: string) {
   const devicePub = b64(rand(32));
   const rN = rand(32);
-  const input = new Uint8Array(64);
-  input.set(fromB64(devicePub));
-  input.set(rN, 32);
+  // approval v2: SHA-256("sm-commit-v2\n" || devicePub || rN)
+  const prefix = new TextEncoder().encode("sm-commit-v2\n");
+  const input = new Uint8Array(prefix.length + 64);
+  input.set(prefix);
+  input.set(fromB64(devicePub), prefix.length);
+  input.set(rN, prefix.length + 32);
   const commitment = b64(await sha256(input));
   const res = await api("/v1/devices/requests", { token, body: { deviceName: "New Tablet", devicePub, commitment } });
   return { res, devicePub, reveal: b64(rN), commitment };
@@ -299,7 +315,7 @@ describe("device approval", () => {
     expect(list.requests[0]!.commitment).toBe(req.commitment);
 
     const rO = b64(rand(32));
-    expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: rO } })).status).toBe(200);
+    expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: rO, approverPub: a.keys.devicePub } })).status).toBe(200);
     const seen = await (await api(`/v1/devices/requests/${req.id}`, { token: n })).json<{ approverNonce: string; status: string }>();
     expect(seen).toMatchObject({ approverNonce: rO, status: "nonce" });
 
@@ -329,8 +345,8 @@ describe("device approval", () => {
     // reveal before rO, approve before reveal
     expect((await api(`/v1/devices/requests/${req.id}/reveal`, { token: n, body: { reveal: req.reveal } })).status).toBe(409);
     expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(409);
-    expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)) } })).status).toBe(200);
-    expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)) } })).status).toBe(409);
+    expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)), approverPub: a.keys.devicePub } })).status).toBe(200);
+    expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)), approverPub: a.keys.devicePub } })).status).toBe(409);
     expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(409);
 
     // A different rN than committed to: the request is dead.
@@ -352,14 +368,14 @@ describe("device approval", () => {
     const bList = await (await api("/v1/devices/requests", { token: b.token })).json<{ requests: unknown[] }>();
     expect(bList.requests).toEqual([]);
     expect((await api(`/v1/devices/requests/${req.id}`, { token: b.token })).status).toBe(404);
-    expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: b.token, body: { nonce: b64(rand(32)) } })).status).toBe(404);
+    expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: b.token, body: { nonce: b64(rand(32)), approverPub: b.keys.devicePub } })).status).toBe(404);
     expect((await api(`/v1/devices/requests/${req.id}/deny`, { method: "POST", token: b.token })).status).toBe(404);
 
     // The new device cannot act as approver, and a session without device cannot list.
     expect((await api("/v1/devices/requests", { token: n })).status).toBe(403);
-    expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: n, body: { nonce: b64(rand(32)) } })).status).toBe(403);
+    expect((await api(`/v1/devices/requests/${req.id}/nonce`, { token: n, body: { nonce: b64(rand(32)), approverPub: b64(rand(32)) } })).status).toBe(403);
 
-    await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)) } });
+    await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)), approverPub: a.keys.devicePub } });
     await api(`/v1/devices/requests/${req.id}/reveal`, { token: n, body: { reveal: req.reveal } });
     expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: b.token, body: { dekId: b.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(404);
 
@@ -385,10 +401,10 @@ describe("device approval", () => {
     expect((await fourth.res.json<{ error: string }>()).error).toBe("too_many_open_requests");
 
     expect((await api(`/v1/devices/requests/${r1.id}/deny`, { method: "POST", token: a.token })).status).toBe(204);
-    expect((await api(`/v1/devices/requests/${r1.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)) } })).status).toBe(409);
+    expect((await api(`/v1/devices/requests/${r1.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)), approverPub: a.keys.devicePub } })).status).toBe(409);
 
     await env.DB.prepare("UPDATE device_requests SET expires_at = ? WHERE id = ?").bind(nowS() - 1, r2.id).run();
-    expect((await api(`/v1/devices/requests/${r2.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)) } })).status).toBe(410);
+    expect((await api(`/v1/devices/requests/${r2.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)), approverPub: a.keys.devicePub } })).status).toBe(410);
     const list = await (await api("/v1/devices/requests", { token: a.token })).json<{ requests: Array<{ id: string }> }>();
     expect(list.requests.map((r) => r.id)).toEqual([r3.id]);
 
@@ -508,7 +524,8 @@ describe("password reset", () => {
 
 function rotateRequest(token: string, meta: unknown, ifMatch: number, snapshot?: Uint8Array) {
   const form = new FormData();
-  form.append("meta", JSON.stringify(meta));
+  // chain v2: the removed device keys travel with every rotation (empty here unless a test sets them)
+  form.append("meta", JSON.stringify({ removed: [], ...(meta as object) }));
   if (snapshot) form.append("snapshot", new Blob([snapshot]), "snapshot.bin");
   return signed(
     new Request("https://api.example.com/v1/account/rotate", {
@@ -587,7 +604,7 @@ describe("DEK rotation", () => {
     expect((await rotateRequest(a.token, base, 2, blob)).status).toBe(409);
     const n = await newDeviceSession(a);
     const req = await openRequest(n);
-    await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)) } });
+    await api(`/v1/devices/requests/${req.id}/nonce`, { token: a.token, body: { nonce: b64(rand(32)), approverPub: a.keys.devicePub } });
     await api(`/v1/devices/requests/${req.id}/reveal`, { token: n, body: { reveal: req.reveal } });
     expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: a.keys.dekId, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(409);
     expect((await api(`/v1/devices/requests/${req.id}/approve`, { token: a.token, body: { dekId: newDek, sealedDek: b64(rand(80)), mac: b64(rand(32)) } })).status).toBe(200);

@@ -154,11 +154,12 @@ export const ResetBody = z.strictObject({
 export const DeviceRequestBody = z.strictObject({
   deviceName: DeviceName,
   devicePub: DevicePub,
-  /** base64url(SHA-256(devicePub bytes || rN bytes)), see approval.ts. */
+  /** base64url(SHA-256("sm-commit-v2\n" || devicePub bytes || rN bytes)), see approval.ts. */
   commitment: Nonce32,
 });
 
-export const ApproverNonceBody = z.strictObject({ nonce: Nonce32 });
+/** Approval v2: the approver's random rO and its own device key pkO (both go into the number) */
+export const ApproverNonceBody = z.strictObject({ nonce: Nonce32, approverPub: DevicePub });
 export const RevealBody = z.strictObject({ reveal: Nonce32 });
 export const ApproveBody = z.strictObject({ dekId: DekId, sealedDek: SealedDek, mac: Mac });
 
@@ -173,6 +174,8 @@ export const RotateMeta = z.strictObject({
     .max(50),
   wrappedDek: b64Blob.optional(),
   recoveryWrappedDek: b64Blob.optional(),
+  /** Chain v2: device keys the rotation leaves out as removed (the chain MAC covers them; the devices remember them) */
+  removed: z.array(DevicePub).max(50),
 });
 
 /** Start fresh (plan 2, 6.3, 6.8): a new DEK for an account whose old one is lost; everything synced goes. */

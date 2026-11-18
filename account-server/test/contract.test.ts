@@ -32,7 +32,7 @@ async function addDevice(u: User, name: string) {
 
 function rotateRequest(token: string, meta: unknown, ifMatch: number, snapshot?: Uint8Array) {
   const form = new FormData();
-  form.append("meta", JSON.stringify(meta));
+  form.append("meta", JSON.stringify({ removed: [], ...(meta as object) }));
   if (snapshot) form.append("snapshot", new Blob([snapshot]), "snapshot.bin");
   return new Request("https://api.example.com/v1/account/rotate", {
     method: "POST",
@@ -72,6 +72,8 @@ describe("devices and the device key", () => {
       sealedDek: tablet.keys.sealedDek,
       chainFrom: null,
       chainMac: null,
+      rotatorPub: null,
+      removed: [],
     });
     expect(await json(await api("/v1/account/keys/device", { token: other.token }))).toEqual({
       deviceId: other.deviceId,
@@ -79,6 +81,8 @@ describe("devices and the device key", () => {
       sealedDek: other.keys.sealedDek,
       chainFrom: null,
       chainMac: null,
+      rotatorPub: null,
+      removed: [],
     });
     // A session without a device (no key yet) and no session at all get nothing.
     const bare = (await login(a.email, a.keys.authKey)).sessionToken;
@@ -105,6 +109,9 @@ describe("devices and the device key", () => {
       sealedDek: sealedTablet,
       chainFrom: a.keys.dekId,
       chainMac: meta.chainMac,
+      // chain v2: the rotating device (its own key) and the device keys it left out
+      rotatorPub: a.keys.devicePub,
+      removed: [],
     });
     expect(await json(await api("/v1/account/keys/device", { token: other.token }))).toMatchObject({ dekId: other.keys.dekId });
   });
@@ -152,7 +159,7 @@ describe("start fresh", () => {
     expect((await api("/v1/sync/meta", { token: tablet.token })).status).toBe(401);
     const { devices } = await json<{ devices: Array<{ id: string; devicePub: string; dekId: string }> }>(await api("/v1/devices", { token: fresh }));
     expect(devices).toEqual([expect.objectContaining({ id: deviceId, devicePub: k.devicePub, dekId: body.dekId, current: true })]);
-    expect(await json(await api("/v1/account/keys/device", { token: fresh }))).toEqual({ deviceId, dekId: body.dekId, sealedDek: k.sealedDek, chainFrom: null, chainMac: null });
+    expect(await json(await api("/v1/account/keys/device", { token: fresh }))).toEqual({ deviceId, dekId: body.dekId, sealedDek: k.sealedDek, chainFrom: null, chainMac: null, rotatorPub: null, removed: [] });
     expect(await json(await api("/v1/account", { token: fresh }))).toMatchObject({ dekId: body.dekId, hasRecovery: false });
     expect(await login(a.email, a.keys.authKey)).toMatchObject({ wrappedDek: body.wrappedDek, dekId: body.dekId });
     // Old key refused, new one works from version 0.

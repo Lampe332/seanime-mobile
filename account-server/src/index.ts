@@ -6,6 +6,7 @@ import { rotate } from "./rotate";
 import { MAX_JSON_BYTES } from "./http";
 import { MAX_BODY_BYTES, withBodyDigest } from "./signature";
 import { precheckSession } from "./session";
+import { fixedWindow, rateKey } from "./ratelimit";
 import * as r from "./routes";
 
 type Handler = (ctx: r.Ctx) => Promise<Response>;
@@ -64,7 +65,12 @@ async function handle(request: Request, env: Env, isBrowser: boolean, exec: Exec
     // only with an existing session and well-formed signature headers. Then the body is read once (bounded) so its
     // hash can be checked against the request signature (signature.ts).
     const upload = UPLOAD_LIMITS[`${method} ${pathname}`];
-    if (upload !== undefined) await precheckSession(request, env);
+    if (upload !== undefined) {
+      // NEU-11: the account's upload counter is counted before a byte of the body is read, so even a valid token of an
+      // own free account reads at most UPLOAD_LIMIT large bodies per hour.
+      const { userId } = await precheckSession(request, env);
+      await fixedWindow(env, await rateKey(env, "upload", userId), r.UPLOAD_LIMIT, r.HOUR);
+    }
     const req = await withBodyDigest(request, upload ?? MAX_JSON_BYTES);
     return handler({ request: req, env, isBrowser, params: { ...m.groups }, waitUntil: (p) => exec.waitUntil(p) });
   }

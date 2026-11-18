@@ -12,6 +12,10 @@ export interface Session {
   userId: string;
   deviceId: string | null;
   authAt: number;
+  createdAt: number;
+  sigPub: string;
+  /** The sign-in checked the password (login, signup); Google sessions did not */
+  passwordAuth: boolean;
 }
 
 export const now = (): number => Math.floor(Date.now() / 1000);
@@ -26,14 +30,15 @@ export async function newSession(
   userId: string,
   deviceId: string | null,
   key: SigKey,
+  passwordAuth = false,
 ): Promise<{ token: string; tokenHash: string; statement: D1PreparedStatement }> {
   const token = toB64url(randomBytes(32));
   const t = now();
   // The session is bound to the signing key that signed the sign-in (plan 10.2b).
   const statement = env.DB.prepare(
-    `INSERT INTO sessions (token_hash, user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(await hashToken(token), userId, deviceId, t, t, t, key.alg, key.pub);
+    `INSERT INTO sessions (token_hash, user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub, password_auth)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(await hashToken(token), userId, deviceId, t, t, t, key.alg, key.pub, passwordAuth ? 1 : 0);
   return { token, tokenHash: await hashToken(token), statement };
 }
 
@@ -71,13 +76,27 @@ function tokenFromRequest(request: Request): { token: string; bearer: boolean } 
  * N-2: the cheap part of requireSession, before a large body is read: a token of a session that exists and signature
  * headers of the right form. The signature itself covers the body hash and is checked later by requireSession.
  */
-export async function precheckSession(request: Request, env: Env): Promise<void> {
+export async function precheckSession(request: Request, env: Env): Promise<{ userId: string }> {
   const presented = tokenFromRequest(request);
   if (presented === null || !hasSignatureHeaders(request)) throw new HttpError(401, "unauthorized");
-  const row = await env.DB.prepare("SELECT 1 AS k FROM sessions WHERE token_hash = ? AND last_used_at >= ?")
+  const row = await env.DB.prepare("SELECT user_id FROM sessions WHERE token_hash = ? AND last_used_at >= ?")
     .bind(await hashToken(presented.token), now() - SESSION_IDLE_SECONDS)
-    .first<{ k: number }>();
+    .first<{ user_id: string }>();
   if (!row) throw new HttpError(401, "unauthorized");
+  return { userId: row.user_id };
+}
+
+/**
+ * NEU-2: a session that ended because its device was removed answers "device_removed", so the device drops its key. Only
+ * looked up when the session is gone; a server that says it falsely can only make a device forget its key.
+ */
+async function missingSession(env: Env, tokenHash: string): Promise<HttpError> {
+  const removed = await env.DB.prepare("SELECT 1 AS k FROM removed_sessions WHERE token_hash = ? AND expires_at > ?")
+    .bind(tokenHash, now())
+    .first<{ k: number }>();
+  return removed
+    ? new HttpError(401, "device_removed", "This device was removed from the account.")
+    : new HttpError(401, "unauthorized");
 }
 
 /**
@@ -89,11 +108,20 @@ export async function requireSession(request: Request, env: Env): Promise<Sessio
   if (presented === null || fromB64url(presented.token)?.byteLength !== 32) throw new HttpError(401, "unauthorized");
   const tokenHash = await hashToken(presented.token);
   const row = await env.DB.prepare(
-    "SELECT user_id, device_id, auth_at, last_used_at, sig_alg, sig_pub FROM sessions WHERE token_hash = ?",
+    "SELECT user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub, password_auth FROM sessions WHERE token_hash = ?",
   )
     .bind(tokenHash)
-    .first<{ user_id: string; device_id: string | null; auth_at: number; last_used_at: number; sig_alg: string; sig_pub: string }>();
-  if (!row) throw new HttpError(401, "unauthorized");
+    .first<{
+      user_id: string;
+      device_id: string | null;
+      created_at: number;
+      auth_at: number;
+      last_used_at: number;
+      sig_alg: string;
+      sig_pub: string;
+      password_auth: number;
+    }>();
+  if (!row) throw await missingSession(env, tokenHash);
   const t = now();
   if (row.last_used_at < t - SESSION_IDLE_SECONDS) {
     await env.DB.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(tokenHash).run();
@@ -108,7 +136,15 @@ export async function requireSession(request: Request, env: Env): Promise<Sessio
       env.DB.prepare("UPDATE users SET last_active_at = ? WHERE id = ?").bind(t, row.user_id),
     ]);
   }
-  return { tokenHash, userId: row.user_id, deviceId: row.device_id, authAt: row.auth_at };
+  return {
+    tokenHash,
+    userId: row.user_id,
+    deviceId: row.device_id,
+    authAt: row.auth_at,
+    createdAt: row.created_at,
+    sigPub: row.sig_pub,
+    passwordAuth: row.password_auth === 1,
+  };
 }
 
 /** Sensitive actions need a credential check within the last 10 minutes. */

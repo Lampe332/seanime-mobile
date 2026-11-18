@@ -1,16 +1,18 @@
 /**
- * New-device approval with commitment (plan 6.4), the numeric-comparison scheme of Bluetooth.
+ * New-device approval v2 with commitment (plan 6.4), the numeric-comparison scheme of Bluetooth / ZRTP.
  *
- *   1. New device N:  POST devices/requests {deviceName, devicePub, commitment}
- *   2. Old device O:  GET  devices/requests, then POST devices/requests/:id/nonce {nonce = rO}
- *   3. N:             GET  devices/requests/:id (sees rO), then POST devices/requests/:id/reveal {reveal = rN}
- *   4. Server and O:  check SHA-256(devicePub || rN) == commitment. Both show SAS = 6 digits of H(pkN || rN || rO).
- *   5. O:             POST devices/requests/:id/approve {dekId, sealedDek = seal(DEK, pkN)} or .../deny
- *   6. N:             GET  devices/requests/:id -> sealedDek, dekId, deviceId
+ *   1. New device N:  POST devices/requests {deviceName, devicePub = pkN, commitment}
+ *   2. Old device O:  GET  devices/requests, then POST devices/requests/:id/nonce {nonce = rO, approverPub = pkO}
+ *   3. N:             GET  devices/requests/:id (sees rO, pkO), then POST devices/requests/:id/reveal {reveal = rN}
+ *   4. Server and O:  check the commitment. Both devices show SAS = 6 digits of SHA-256("sm-approve-v2\n" || pkN || pkO
+ *                     || rN || rO) and ask their user whether the other device shows the same number (NEU-1).
+ *   5. O:             POST devices/requests/:id/approve {dekId, sealedDek = crypto_box(DEK, pkN, skO), mac} or .../deny
+ *   6. N:             GET  devices/requests/:id -> sealedDek, dekId, deviceId; opens the box only with the pkO of the
+ *                     number its user confirmed. Either side may deny.
  *
- * Byte format of the commitment: devicePub is the raw 32-byte X25519 public key, rN and rO are 32 random
- * bytes each. All three travel as base64url without padding. commitment = SHA-256(pub[32] || rN[32]),
- * a plain concatenation of the decoded bytes (64 bytes in), sent as base64url of the 32-byte digest.
+ * Byte format of the commitment: devicePub is the raw 32-byte X25519 public key, rN and rO are 32 random bytes each.
+ * All travel as base64url without padding. commitment = SHA-256("sm-commit-v2\n" || pub[32] || rN[32]), sent as
+ * base64url of the 32-byte digest. A v1 commitment (without the prefix) never matches.
  *
  * The order is enforced: no reveal before rO (else N could pick rN after seeing rO and steer the SAS),
  * no approve before a valid reveal. A request expires after 10 minutes; at most 3 open per account
@@ -20,7 +22,7 @@ import { fromB64url, safeEqual, sha256 } from "./crypto";
 import { HttpError, json, noContent, readJson } from "./http";
 import { sendMail } from "./mail";
 import { fixedWindow, rateKey } from "./ratelimit";
-import type { Ctx } from "./routes";
+import { isUniqueViolation, removedError, wasRemoved, type Ctx } from "./routes";
 import { ApproveBody, ApproverNonceBody, DeviceRequestBody, RevealBody, Uuid } from "./schemas";
 import { copyDeviceKey, now, requireDevice, requireSession, type Session } from "./session";
 
@@ -45,19 +47,23 @@ interface RequestRow {
   expires_at: number;
   session_hash: string | null;
   approver_device_id: string | null;
+  approver_pub: string | null;
   device_id: string | null;
   dek_id: string | null;
 }
 
 /** Checks the commitment of the new device: SHA-256(devicePub || rN) == commitment, in constant time. */
+const COMMIT_PREFIX = new TextEncoder().encode("sm-commit-v2\n");
+
 export async function commitmentMatches(devicePub: string, reveal: string, commitment: string): Promise<boolean> {
   const pub = fromB64url(devicePub);
   const rN = fromB64url(reveal);
   const c = fromB64url(commitment);
   if (!pub || !rN || !c || pub.byteLength !== 32 || rN.byteLength !== 32 || c.byteLength !== 32) return false;
-  const input = new Uint8Array(64);
-  input.set(pub, 0);
-  input.set(rN, 32);
+  const input = new Uint8Array(COMMIT_PREFIX.length + 64);
+  input.set(COMMIT_PREFIX, 0);
+  input.set(pub, COMMIT_PREFIX.length);
+  input.set(rN, COMMIT_PREFIX.length + 32);
   return safeEqual(await sha256(input), c);
 }
 
@@ -89,6 +95,7 @@ function publicView(row: RequestRow) {
     devicePub: row.device_pub,
     commitment: row.commitment,
     approverNonce: row.approver_nonce,
+    approverPub: row.approver_pub,
     reveal: row.reveal,
     status: row.status !== "approved" && row.status !== "denied" && row.expires_at <= now() ? "expired" : row.status,
     createdAt: row.created_at,
@@ -102,6 +109,12 @@ export async function createRequest(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, env);
   if (session.deviceId !== null) throw new HttpError(409, "already_approved", "This device is already approved.");
   const body = await readJson(ctx.request, DeviceRequestBody);
+  // NEU-12: a request never takes over a device row; a removed device key never comes back (NEU-2)
+  if (await wasRemoved(env, session.userId, body.devicePub)) throw removedError();
+  const taken = await env.DB.prepare("SELECT 1 AS k FROM devices WHERE user_id = ? AND device_pub = ?")
+    .bind(session.userId, body.devicePub)
+    .first<{ k: number }>();
+  if (taken) throw new HttpError(409, "device_registered", "This device key already belongs to a device of the account.");
   const t = now();
   const open = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM device_requests WHERE user_id = ? AND status IN ${OPEN} AND expires_at > ?`,
@@ -158,11 +171,16 @@ export async function postNonce(ctx: Ctx): Promise<Response> {
   const row = await loadRequest(ctx, session);
   if (isRequester(row, session)) throw new HttpError(403, "forbidden");
   requireOpen(row, "pending");
+  // The approver's own device key: it goes into the number and seals the DEK (crypto_box), so it must be its row's key.
+  const own = await env.DB.prepare("SELECT device_pub FROM devices WHERE id = ? AND user_id = ?")
+    .bind(deviceId, session.userId)
+    .first<{ device_pub: string }>();
+  if (!own || own.device_pub !== body.approverPub) throw new HttpError(403, "wrong_approver", "Send this device's own key.");
   const res = await env.DB.prepare(
-    `UPDATE device_requests SET approver_nonce = ?, approver_device_id = ?, status = 'nonce'
+    `UPDATE device_requests SET approver_nonce = ?, approver_pub = ?, approver_device_id = ?, status = 'nonce'
      WHERE id = ? AND user_id = ? AND status = 'pending' AND expires_at > ?`,
   )
-    .bind(body.nonce, deviceId, row.id, session.userId, now())
+    .bind(body.nonce, body.approverPub, deviceId, row.id, session.userId, now())
     .run();
   if (res.meta.changes === 0) throw new HttpError(409, "wrong_order", "The request changed. Reload it.");
   return json({ id: row.id, status: "nonce" });
@@ -218,23 +236,22 @@ export async function approveRequest(ctx: Ctx): Promise<Response> {
   if (user.dek_id === null || user.dek_id !== body.dekId) {
     throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
   }
+  if (await wasRemoved(env, session.userId, row.device_pub)) throw removedError();
 
   const t = now();
-  const [claim] = await env.DB.batch([
+  let batch: D1Result[];
+  try {
+    batch = await env.DB.batch([
     env.DB.prepare(
       `UPDATE device_requests SET status = 'approved', sealed_dek = ?, dek_id = ?, device_mac = ?
        WHERE id = ? AND user_id = ? AND status = 'revealed' AND expires_at > ? AND approver_device_id = ?
          AND (SELECT dek_id FROM users WHERE id = ?) = ?`,
     ).bind(body.sealedDek, body.dekId, body.mac, row.id, session.userId, t, deviceId, session.userId, body.dekId),
-    // Same device key as an existing row (re-approval of a device that kept its key) updates that row; the approver,
-    // a key holder, decided that after comparing the numbers.
+    // NEU-12: always a new row; a device key that already has one fails here (UNIQUE) and the whole batch with it.
     env.DB.prepare(
       `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at)
        SELECT ?, user_id, device_name, device_pub, sealed_dek, dek_id, device_mac, ?, ? FROM device_requests
-       WHERE id = ? AND user_id = ? AND status = 'approved' AND device_id IS NULL
-       ON CONFLICT(user_id, device_pub) DO UPDATE SET
-         name = excluded.name, sealed_dek = excluded.sealed_dek, dek_id = excluded.dek_id, mac = excluded.mac,
-         last_seen_at = excluded.last_seen_at`,
+       WHERE id = ? AND user_id = ? AND status = 'approved' AND device_id IS NULL`,
     ).bind(crypto.randomUUID(), t, t, row.id, session.userId),
     env.DB.prepare(
       `UPDATE device_requests SET device_id =
@@ -246,18 +263,26 @@ export async function approveRequest(ctx: Ctx): Promise<Response> {
        WHERE user_id = ?2 AND token_hash = (SELECT session_hash FROM device_requests WHERE id = ?1 AND status = 'approved')`,
     ).bind(row.id, session.userId),
     ...(row.session_hash ? [copyDeviceKey(env, row.session_hash)] : []),
-  ]);
+    ]);
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new HttpError(409, "device_registered", "This device key already belongs to a device of the account.");
+    throw err;
+  }
+  const claim = batch[0];
   if (!claim || claim.meta.changes === 0) throw new HttpError(409, "wrong_order", "The request changed. Reload it.");
   await sendMail(env, user.email, { kind: "new_device", deviceName: row.device_name });
   return json({ id: row.id, status: "approved" });
 }
 
-/** "Deny" on any device of the account blocks the request at once, however long ago that device signed in (M-1). */
+/**
+ * "Deny" on any device of the account blocks the request at once, however long ago that device signed in (M-1). The new
+ * device may deny its own request too: its user saw a number the other device does not show (approval v2).
+ */
 export async function denyRequest(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
   const session = await requireSession(ctx.request, env);
-  requireDevice(session);
   const row = await loadRequest(ctx, session);
+  if (!isRequester(row, session)) requireDevice(session);
   if (row.status === "approved") throw new HttpError(409, "wrong_order", "This request was already approved.");
   await env.DB.prepare(
     `UPDATE device_requests SET status = 'denied' WHERE id = ? AND user_id = ? AND status IN ${OPEN}`,
