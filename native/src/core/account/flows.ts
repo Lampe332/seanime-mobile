@@ -17,12 +17,13 @@ import {
     newRecoveryCode,
     newSalt,
     recoveryKeyFrom,
+    recoveryProof,
     toB64,
     unwrapKey,
     wipe,
     wrapKey,
 } from "./crypto"
-import { type AccountDeps, type RotationResult, deviceKeys, rotate } from "./devices"
+import { type AccountDeps, type RotationResult, checkedDevices, deviceKeys, rotate } from "./devices"
 import type { RequestSigner } from "./client"
 import type { AccountKind } from "./session"
 
@@ -63,9 +64,10 @@ async function deviceRow(deps: AccountDeps, userId: string, dekId: string, dek: 
 
 /**
  * Registers this device with the DEK (sealed to its own key), plus the wraps given; stores the DEK. The DEK proof tells the
- * server this session holds the key: without it a session cannot add a device or change a wrap (K-1, M-5).
+ * server this session holds the key (K-1, M-5); S3: the server also wants the owner, a password sign-in or
+ * `recoveryProof`, unless this device takes its own live row back with the signing key it kept.
  */
-async function registerDevice(deps: AccountDeps, userId: string, dekId: string, dek: Uint8Array, deviceName: string, wraps: { wrappedDek?: string, recoveryWrappedDek?: string } = {}): Promise<void> {
+async function registerDevice(deps: AccountDeps, userId: string, dekId: string, dek: Uint8Array, deviceName: string, wraps: { wrappedDek?: string, recoveryWrappedDek?: string, recoveryProof?: string } = {}): Promise<void> {
     let answer: { deviceId: string | null }
     try {
         answer = await deps.client.putKeys({
@@ -202,40 +204,25 @@ async function signInEmail(deps: AccountDeps, input: { email: string, password: 
 }
 
 /**
- * A rotation the server asks for (a device was removed, a reset without code) runs right after a fresh sign-in, while the
- * password key and the recent sign-in are at hand (M-4). It never makes the sign-in fail: the sync keeps showing it.
+ * Plan 6.2. A key change the server asks for (a device was removed or signed out) is not run here: the user picks the
+ * devices that keep the key on the "Change encryption key" screen (S2). S5: MailConfirmationError when the sign-in
+ * waits for the mailed link; signing in again with this device after opening it goes through.
  */
-async function finishPendingRotation(deps: AccountDeps, encKey: Uint8Array | undefined): Promise<RotationResult | null> {
-    try {
-        if (!(await deps.client.syncMeta()).rotationRequired) return null
-        return await rotate(deps, encKey ? { encKey } : {})
-    }
-    catch (error) {
-        if (error instanceof AccountApiError || error instanceof AccountCryptoError) return null
-        throw error
-    }
-}
-
-/** Plan 6.2 */
 export async function loginEmail(deps: AccountDeps, input: { email: string, password: string, deviceName: string }): Promise<SignInResult> {
     const { encKey, ...result } = await signInEmail(deps, input)
-    try {
-        if (result.status === "ready") await finishPendingRotation(deps, encKey)
-    }
-    finally {
-        wipe(deps.sodium, encKey)
-    }
+    wipe(deps.sodium, encKey)
     return result
 }
 
 /**
- * M-4: "Finish removing a device" on a device that holds the DEK. Email accounts give their password (fresh sign-in, new
- * password wrap); Google accounts must have signed in within the last 10 minutes (the server answers reauth_required).
+ * "Change encryption key" (S2, M-4): a new key for the devices the user kept (`keep`, device ids); every other device is
+ * removed in the same step. Email accounts give their password (fresh sign-in, new password wrap); Google accounts must
+ * have signed in within the last 10 minutes (the server answers reauth_required).
  */
-export async function completeRotation(deps: AccountDeps, input: { deviceName: string, password?: string }): Promise<RotationResult> {
+export async function changeKey(deps: AccountDeps, input: { deviceName: string, password?: string, keep: string[] }): Promise<RotationResult> {
     const encKey = await reauth(deps, input.password, input.deviceName)
     try {
-        return await rotate(deps, encKey ? { encKey } : {})
+        return await rotate(deps, { keep: input.keep, encKey })
     }
     finally {
         wipe(deps.sodium, encKey)
@@ -300,14 +287,12 @@ export async function resetWithRecovery(deps: AccountDeps, input: { token: strin
     return loginEmail(deps, { email: input.email, password: input.newPassword, deviceName: input.deviceName })
 }
 
-export type ResetResult = SignInResult & { rotation: "done" | "not-needed" | "blocked" }
-
 /**
- * Plan 6.8 without code: the server drops the password wrap. A device that still holds the DEK wraps it for the new
- * password at sign-in and rotates the DEK; without one the account needs an approval, the recovery code or startFresh.
- * "blocked": the rotation could not run here (this device has no key; another device must do it after signing in).
+ * Plan 6.8 without code: the server drops the password wrap and asks for a key change. A device that still holds the DEK
+ * wraps it for the new password at sign-in; the key change then waits on the "Change encryption key" screen (S2).
+ * Without such a device the account needs an approval, the recovery code or startFresh ("needs-key").
  */
-export async function resetWithoutRecovery(deps: AccountDeps, input: { token: string, email: string, newPassword: string, deviceName: string, kdf?: Kdf }): Promise<ResetResult> {
+export async function resetWithoutRecovery(deps: AccountDeps, input: { token: string, email: string, newPassword: string, deviceName: string, kdf?: Kdf }): Promise<SignInResult> {
     const { client, sodium } = deps
     const kdf = input.kdf ?? DEFAULT_KDF
     const salt = newSalt(sodium)
@@ -318,16 +303,7 @@ export async function resetWithoutRecovery(deps: AccountDeps, input: { token: st
     finally {
         wipe(sodium, derived.authKey, derived.encKey)
     }
-    const { encKey, ...signedIn } = await signInEmail(deps, { email: input.email, password: input.newPassword, deviceName: input.deviceName })
-    try {
-        if (signedIn.status !== "ready") return { ...signedIn, rotation: "blocked" }
-        if (!(await client.syncMeta()).rotationRequired) return { ...signedIn, rotation: "not-needed" }
-        await rotate(deps, { encKey })
-        return { ...signedIn, rotation: "done" }
-    }
-    finally {
-        wipe(sodium, encKey)
-    }
+    return loginEmail(deps, { email: input.email, password: input.newPassword, deviceName: input.deviceName })
 }
 
 /* ---- Google ---- */
@@ -352,14 +328,13 @@ export async function loginGoogle(deps: AccountDeps, input: { idToken: string, n
         return { ...result, status: "ready" }
     }
     if (kept) {
+        // its own live row comes back with the signing key it kept (S3); a removed or signed-out device can't do this
         try {
             await registerDevice(deps, answer.userId, answer.dekId, kept.dek, input.deviceName)
         }
         finally {
             wipe(sodium, kept.dek)
         }
-        // the fresh Google sign-in is the re-login a pending rotation needs (M-4)
-        await finishPendingRotation(deps, undefined)
         return { ...result, status: "ready" }
     }
     return { ...result, status: "needs-key" }
@@ -409,7 +384,13 @@ export async function createRecoveryCode(deps: AccountDeps): Promise<string> {
     if (!state?.dek || !state.dekId) throw new AccountCryptoError("this device has no key")
     const { code, key } = newRecoveryCode(deps.sodium)
     try {
-        await deps.client.putKeys({ dekId: state.dekId, dekProof: dekProof(deps.sodium, state.dek), recoveryWrappedDek: wrapKey(deps.sodium, state.dek, key, state.userId, state.dekId, "recovery") })
+        await deps.client.putKeys({
+            dekId: state.dekId,
+            dekProof: dekProof(deps.sodium, state.dek),
+            recoveryWrappedDek: wrapKey(deps.sodium, state.dek, key, state.userId, state.dekId, "recovery"),
+            // S3: the server keeps its hash; showing it later lets a device join like the password does
+            recoveryProof: recoveryProof(deps.sodium, key),
+        })
         return code
     }
     finally {
@@ -417,14 +398,14 @@ export async function createRecoveryCode(deps: AccountDeps): Promise<string> {
     }
 }
 
-/** "Use recovery code" on a signed-in device without the DEK */
+/** "Use recovery code" on a signed-in device without the DEK; the code's proof shows the server the owner (S3, I3) */
 export async function useRecoveryCode(deps: AccountDeps, input: { code: string, recoveryWrappedDek: string, dekId: string, deviceName: string }): Promise<void> {
     const state = await deps.session.load()
     if (!state) throw new AccountApiError(401, "unauthorized", "Sign in first.")
     const key = recoveryKeyFrom(deps.sodium, input.code)
     try {
         const dek = unwrapKey(deps.sodium, input.recoveryWrappedDek, key, state.userId, input.dekId, "recovery")
-        await registerDevice(deps, state.userId, input.dekId, dek, input.deviceName)
+        await registerDevice(deps, state.userId, input.dekId, dek, input.deviceName, { recoveryProof: recoveryProof(deps.sodium, key) })
         wipe(deps.sodium, dek)
     }
     finally {
@@ -480,25 +461,17 @@ async function reauth(deps: AccountDeps, password: string | undefined, deviceNam
 }
 
 /**
- * Plan 6.9, R4: removing a device in the app is the rotation in the same step. This device remembers the removed key
- * (it never seals to it again and refuses a key chain it makes, NEU-3), the server ends its sessions, then the DEK is
- * rotated so the removed device can read nothing new. The other devices learn the removal from the chain.
+ * Plan 6.9, R4, S2: removing a device in the app is a key change that leaves it out (with the devices a key change
+ * leaves out anyway: unverified and signed-out ones). The server removes it in the same step, this device remembers it,
+ * and the kept devices learn it from the chain.
  */
 export async function removeDevice(deps: AccountDeps, input: { deviceId: string, deviceName: string, password?: string }): Promise<RotationResult> {
-    const encKey = await reauth(deps, input.password, input.deviceName)
-    try {
-        const target = (await deps.client.devices()).find(device => device.id === input.deviceId)
-        if (!target) throw new AccountApiError(404, "not_found", "This device is not in the account any more.")
-        if (target.current) throw new AccountApiError(409, "invalid_request", "Sign out to remove this device.")
-        const state = await deps.session.load()
-        wipe(deps.sodium, state?.dek)
-        if (state) await deps.session.addRemoved(state.userId, [target.devicePub])
-        await deps.client.deleteDevice(input.deviceId)
-        return await rotate(deps, encKey ? { encKey } : {}, [target.devicePub])
-    }
-    finally {
-        wipe(deps.sodium, encKey)
-    }
+    const devices = await checkedDevices(deps)
+    const target = devices.find(device => device.id === input.deviceId)
+    if (!target) throw new AccountApiError(404, "not_found", "This device is not in the account any more.")
+    if (target.current) throw new AccountApiError(409, "invalid_request", "Sign out to remove this device.")
+    const keep = devices.filter(device => device.keepByDefault && device.id !== input.deviceId).map(device => device.id)
+    return changeKey(deps, { deviceName: input.deviceName, password: input.password, keep })
 }
 
 /** Plan 6.9: everything on the server goes at once; the data on this device stays */

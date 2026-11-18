@@ -64,6 +64,17 @@ export class ReauthRequiredError extends AccountApiError {
     }
 }
 
+/**
+ * 202 on sign-in (S5): many wrong passwords were tried for this email, so the sign-in waits for the link the server
+ * mailed (only when the password was right). Open it, then sign in again with the same device: it goes through once.
+ */
+export class MailConfirmationError extends AccountApiError {
+    constructor(message: string, body: Record<string, unknown>) {
+        super(202, "confirm_by_mail", message, body)
+        this.name = "MailConfirmationError"
+    }
+}
+
 /* ---- Shapes of the answers ---- */
 
 /** `mac`: crypto.ts deviceMac under the DEK; without a valid one no device trusts the row */
@@ -94,13 +105,26 @@ export type ResetBody = { token: string, salt: string, kdf: Kdf, authKey: string
  * `devicePub`: the device's public key, a rotation seals the new DEK to it; `dekId`: the key its sealed DEK belongs to;
  * `mac`: the DEK holder's MAC on the row (devices.ts checks it, the server cannot)
  */
-export type DeviceInfo = { id: string, name: string, createdAt: number, lastSeenAt: number, current: boolean, devicePub: string, dekId: string | null, mac: string | null }
+export type DeviceInfo = {
+    id: string
+    name: string
+    createdAt: number
+    lastSeenAt: number
+    current: boolean
+    devicePub: string
+    dekId: string | null
+    mac: string | null
+    /** S4: when the device signed out (unix seconds); it gets no new key unless kept, and never comes back by itself */
+    signedOutAt?: number | null
+}
+/** I5: a security event the server mailed (kind as in account-server/src/mail.ts SecurityMail) */
+export type AccountEvent = { kind: string, deviceName: string | null, at: number }
 /**
  * The DEK boxed to this session's device by the device that rotated it, and the old DEK's chain MAC (v2) over the new
  * DEK, the rotating device's key and the device keys it left out as removed
  */
 export type DeviceKey = { deviceId: string, dekId: string, sealedDek: string, chainFrom: string | null, chainMac: string | null, rotatorPub: string | null, removed: string[] }
-export type StartFreshBody = { dekId: string, dekProof: string, wrappedDek?: string, recoveryWrappedDek?: string, device: DeviceKeysBody }
+export type StartFreshBody = { dekId: string, dekProof: string, wrappedDek?: string, device: DeviceKeysBody }
 /** GET account: what the account screen shows; never a key or hash */
 export type AccountInfo = {
     userId: string
@@ -115,9 +139,14 @@ export type AccountInfo = {
     rotationRequired: boolean
     /** A rotation without the recovery code dropped it: the user should save a new one */
     recoveryRenewalNeeded: boolean
+    /** I5: the newest security events, newest first */
+    events?: AccountEvent[]
 }
-/** `dekProof`: crypto.ts dekProof; a session without its own device row needs it to change keys or add itself */
-export type KeysBody = { dekId: string, dekProof?: string, wrappedDek?: string, recoveryWrappedDek?: string, device?: DeviceKeysBody }
+/**
+ * `dekProof`: crypto.ts dekProof; a session without its own device row needs it to change keys or add itself, and (S3)
+ * a password sign-in or `recoveryProof` (crypto.ts recoveryProof, also required with a new recovery wrap)
+ */
+export type KeysBody = { dekId: string, dekProof?: string, wrappedDek?: string, recoveryWrappedDek?: string, recoveryProof?: string, device?: DeviceKeysBody }
 export type PasswordBody = { salt: string, kdf: Kdf, authKey: string, wrappedDek: string, dekId: string, dekProof?: string }
 export type RequestStatus = "pending" | "nonce" | "revealed" | "approved" | "denied" | "expired"
 export type ApprovalRequest = {
@@ -143,13 +172,15 @@ export type RotateMeta = {
     dekProof: string
     /** crypto.ts chainMac: the old DEK vouches for the new one */
     chainMac: string
+    /** S2: the devices the user kept (this one among them); the server removes every other row */
     devices: { deviceId: string, sealedDek: string, mac: string }[]
-    /** Device keys left out as removed; the chain MAC covers them */
+    /** Device keys of the rows left out; the chain MAC covers them */
     removed: string[]
     wrappedDek?: string
     recoveryWrappedDek?: string
+    recoveryProof?: string
 }
-/** `removedDevices`: device keys removed from the account (trusting it can only leave a device out) */
+/** `removedDevices`: device keys the server says were removed (session.ts keeps them apart and bounded; they only leave a device out) */
 export type SyncMeta = { version: number, size: number, dekId: string | null, updatedAt: number | null, rotationRequired: boolean, rewrapNeeded: boolean, recoveryRenewalNeeded: boolean, removedDevices?: string[] }
 export type Snapshot = { bytes: Uint8Array, version: number, dekId: string }
 
@@ -237,8 +268,15 @@ export class AccountClient {
     /** `signing`: the new session's key pair; it signs this request and the session is bound to it */
     signup = (body: SignupBody, signing: RequestSigner) =>
         this.call<SignupAnswer>("POST", "auth/signup", { json: { ...body, sigKey: this.sigKey(signing) }, signIn: signing })
-    login = (email: string, authKey: string, challenge: string, signing: RequestSigner) =>
-        this.call<LoginAnswer>("POST", "auth/login", { json: { email, authKey, challenge, sigKey: this.sigKey(signing) }, signIn: signing })
+    /** S5: throws MailConfirmationError when the sign-in waits for the link in a mail */
+    login = async (email: string, authKey: string, challenge: string, signing: RequestSigner) => {
+        const response = await this.send("POST", "auth/login", { json: { email, authKey, challenge, sigKey: this.sigKey(signing) }, signIn: signing })
+        const body = await response.json() as Record<string, unknown>
+        if (response.status === 202) throw new MailConfirmationError(typeof body.message === "string" ? body.message : "Open the link we emailed you.", body)
+        return body as LoginAnswer
+    }
+    /** S5: the link from the "Confirm your sign-in" mail */
+    confirmLogin = (token: string) => this.call<{ confirmed: boolean }>("POST", "auth/login/confirm", { json: { token }, auth: false })
     logout = () => this.call<void>("POST", "auth/logout")
     verifyEmail = (token: string) => this.call<{ emailVerified: boolean }>("POST", "auth/verify", { json: { token }, auth: false })
     resendVerification = () => this.call<void>("POST", "auth/verify/resend")

@@ -16,13 +16,14 @@ import { isDeviceKey } from "@/lib/app-backup-keys"
 import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { playlists } from "../database/schema"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
-import { AccountClient, type HttpFetch, RateLimitedError, type RequestSigner, UnauthorizedError } from "./client"
+import { createHmac } from "node:crypto"
+import { AccountClient, type HttpFetch, MailConfirmationError, RateLimitedError, type RequestSigner, UnauthorizedError } from "./client"
 import {
-    AccountCryptoError, DEFAULT_KDF, type Kdf, RemovedDeviceListedError, UnsafeKdfError, UntrustedDevicesError, UntrustedKeyChangeError, approvalTranscript, boxDek, chainMac, dekProof,
-    deriveKeys, deviceMac, fromB64, toB64,
+    AccountCryptoError, DEFAULT_KDF, type Kdf, UnsafeKdfError, UntrustedDevicesError, UntrustedKeyChangeError, approvalTranscript, boxDek, chainMac, dekProof,
+    deriveKeys, deviceMac, fromB64, openBoxedDek, toB64,
 } from "./crypto"
 import { type AccountDeps, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, confirmApproval, openRequests, requestApproval, rotate } from "./devices"
-import { completeRotation, createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signOut, signupEmail, startFresh } from "./flows"
+import { changeKey, createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signOut, signupEmail, startFresh, useRecoveryCode } from "./flows"
 import { AccountSession, type SignerStore, sodiumSignerStore } from "./session"
 import type { Sodium } from "./sodium"
 import { SyncEngine, coreLocalData } from "./sync"
@@ -137,12 +138,13 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
 
     let clock = Date.parse("2026-11-17T10:00:00.000Z")
 
-    /** One app install: core data, secured storage, client, sync engine */
-    function install(signers?: SignerStore) {
+    /** One app install: core data, secured storage, client, sync engine; `ip`: the sender address the server sees */
+    function install(signers?: SignerStore, ip?: string) {
         const one = device(driver, () => clock)
         const store = memoryStore()
         const session = new AccountSession(store, sodium, signers)
-        const client = new AccountClient({ baseUrl, fetch: fetch as unknown as HttpFetch, sodium, credentials: () => session.credentials() })
+        const send = (ip ? (url: string, init: { headers: Record<string, string> }) => fetch(url, { ...init, headers: { ...init.headers, "CF-Connecting-IP": ip } } as RequestInit) : fetch) as unknown as HttpFetch
+        const client = new AccountClient({ baseUrl, fetch: send, sodium, credentials: () => session.credentials() })
         const deps: AccountDeps = { client, session, sodium }
         let backups = 0
         const local = coreLocalData(one.environment, {
@@ -158,8 +160,8 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         return { ...one, store, session, client, deps, engine, backups: () => backups }
     }
 
-    async function encKeyFor(client: AccountClient, password: string): Promise<Uint8Array> {
-        const { salt, kdf } = await client.prelogin(EMAIL)
+    async function encKeyFor(client: AccountClient, password: string, email = EMAIL): Promise<Uint8Array> {
+        const { salt, kdf } = await client.prelogin(email)
         return (await deriveKeys(sodium, password, fromB64(sodium, salt, 16), kdf)).encKey
     }
 
@@ -185,6 +187,8 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         laptop = install()
     })
     const names = async (one: ReturnType<typeof install>) => (await (await one.db()).select().from(playlists)).map(row => row.name).sort()
+    /** S2: what the "Change encryption key" screen ticks by default */
+    const keepAll = async (one: ReturnType<typeof install>) => (await checkedDevices(one.deps)).filter(device => device.keepByDefault).map(device => device.id)
 
     it("signup → upload → second device signs in → import → same data, both ways", async () => {
         expect(await signupEmail(phone.deps, { email: EMAIL, password: PASSWORD, deviceName: "Phone", kdf: KDF })).toMatchObject({ status: "ready" })
@@ -274,7 +278,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
     it("a rotation without the recovery code says the code needs renewal, a new code clears it", async () => {
         await loginEmail(phone.deps, { email: EMAIL, password: PASSWORD, deviceName: "Phone" })
         await createRecoveryCode(phone.deps)
-        const rotated = await rotate(phone.deps, { encKey: await encKeyFor(phone.client, PASSWORD) })
+        const rotated = await rotate(phone.deps, { keep: await keepAll(phone), encKey: await encKeyFor(phone.client, PASSWORD) })
         expect(rotated).toMatchObject({ recoveryRenewed: false, recoveryNeedsRenewal: true })
         expect(await tablet.engine.sync("manual")).toMatchObject({ state: "updated", recoveryRenewalNeeded: true })
         expect((await tablet.session.load())!.dekId).toBe(rotated.dekId)
@@ -307,7 +311,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         await lonely.client.resetRequest(EMAIL)
         const token = await nextMailToken(mails)
         const password = "a third long password 3"
-        expect(await resetWithoutRecovery(lonely.deps, { token, email: EMAIL, newPassword: password, deviceName: "Lonely", kdf: KDF })).toMatchObject({ status: "needs-key", rotation: "blocked" })
+        expect(await resetWithoutRecovery(lonely.deps, { token, email: EMAIL, newPassword: password, deviceName: "Lonely", kdf: KDF })).toMatchObject({ status: "needs-key" })
         expect(await lonely.engine.sync("manual")).toMatchObject({ state: "needs-key" })
 
         const witness = install()
@@ -406,9 +410,10 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         await d1.prepare("INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)")
             .bind(crypto.randomUUID(), before.userId, evil.row.name, evil.row.devicePub, evil.row.sealedDek, before.dekId, toB64(sodium, random(32))).run()
         expect((await checkedDevices(victim.deps)).map(device => [device.name, device.verified]).sort()).toEqual([["Galaxy S22", false], ["Victim", true]])
-        // the victim's rotation seals nothing to it
+        // the victim's key change can't keep it (S2: it is not even ticked)
         await victim.session.updateSession({ kind: "google" })
-        await expect(rotate(victim.deps)).rejects.toThrow(UntrustedDevicesError)
+        expect(await keepAll(victim)).toEqual([before.deviceId])
+        await expect(rotate(victim.deps, { keep: (await victim.client.devices()).map(device => device.id) })).rejects.toThrow(UntrustedDevicesError)
         // and switches the account to the attacker's key, sealed to the victim's device, with a made-up chain
         await d1.prepare("UPDATE users SET dek_id = ?, chain_from = ?, chain_mac = ? WHERE id = ?").bind(evil.dekId, before.dekId, toB64(sodium, random(32)), before.userId).run()
         await d1.prepare("UPDATE devices SET dek_id = ?, sealed_dek = ? WHERE user_id = ? AND name = 'Victim'")
@@ -436,7 +441,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const secondPub = toB64(sodium, (await second.session.load())!.deviceKeys!.publicKey)
         const oldSealed = (await d1.prepare("SELECT sealed_dek FROM devices WHERE device_pub = ?").bind(secondPub).first<{ sealed_dek: string }>())!.sealed_dek
         const { salt, kdf } = await owner.client.prelogin(email)
-        const rotated = await rotate(owner.deps, { encKey: (await deriveKeys(sodium, PASSWORD, fromB64(sodium, salt, 16), kdf)).encKey })
+        const rotated = await rotate(owner.deps, { keep: await keepAll(owner), encKey: (await deriveKeys(sodium, PASSWORD, fromB64(sodium, salt, 16), kdf)).encKey })
         expect(rotated.dekId).not.toBe(old.dek_id)
 
         await d1.prepare("UPDATE users SET wrapped_dek = ? WHERE email = ?").bind(old.wrapped_dek, email).run()
@@ -492,7 +497,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await names(victim)).toEqual(["Mine"])
     })
 
-    it("(e) N-3 and M-4: a reset without code keeps the key through the 401, the next sign-in wraps it and finishes the rotation; a pending rotation never stops the sync", async () => {
+    it("(e) N-3 and M-4: a reset without code keeps the key through the 401, the next sign-in wraps it; a pending key change never stops the sync and runs only when the user picks the devices", async () => {
         const email = "e-normal@example.org"
         const phone2 = await accountWithData(email)
         const tablet2 = install()
@@ -501,14 +506,10 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const laptop2 = install()
         expect(await loginEmail(laptop2.deps, { email, password: PASSWORD, deviceName: "Laptop" })).toMatchObject({ status: "ready" })
 
-        // the laptop is removed (as on the website): the server asks for a rotation; without the password here the sync goes on
+        // the laptop is removed (as on the website): the server asks for a key change; the sync goes on and reports it
         await phone2.client.deleteDevice((await laptop2.session.load())!.deviceId!)
-        const withRotation = new SyncEngine({ api: tablet2.client, session: tablet2.session, sodium, gzip, local: coreLocalData(tablet2.environment, { appVersion: "4.2.0", preferences: () => ({}), isDeviceKey, writePreferences: () => undefined, safetyBackup: async () => undefined }), now: () => clock, rotate: async () => {
-            await rotate(tablet2.deps)
-            return true
-        } })
         await (await tablet2.db()).insert(playlists).values({ name: "Tablet", episodes: [], createdAt: clock, updatedAt: clock })
-        expect(await withRotation.sync("manual")).toMatchObject({ state: "uploaded", version: 2, rotationRequired: true })
+        expect(await tablet2.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 2, rotationRequired: true })
 
         // reset without code on the website: every session ends
         const web = install()
@@ -522,9 +523,11 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await tablet2.engine.sync("manual")).toMatchObject({ state: "signed-out" })
         await tablet2.session.dropSession()
 
-        // the tablet still holds the key: it wraps it for the new password and rotates right away
+        // the tablet still holds the key: it wraps it for the new password; the user then changes the key there
         const keptId = (await tablet2.session.keptKey())!.dekId
         expect(await loginEmail(tablet2.deps, { email, password: newPassword, deviceName: "Tablet" })).toMatchObject({ status: "ready" })
+        expect(await tablet2.client.syncMeta()).toMatchObject({ rotationRequired: true, rewrapNeeded: false, dekId: keptId })
+        await changeKey(tablet2.deps, { deviceName: "Tablet", password: newPassword, keep: await keepAll(tablet2) })
         const meta = await tablet2.client.syncMeta()
         expect(meta).toMatchObject({ rotationRequired: false, rewrapNeeded: false })
         expect(meta.dekId).not.toBe(keptId)
@@ -644,14 +647,15 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
             mac: deviceMac(sodium, kept, { userId: stolen.userId, dekId: stolen.dekId!, devicePub: keys.publicKey }),
         })
         await expect(thief.client.putKeys({ dekId: stolen.dekId!, dekProof: dekProof(sodium, kept), device: rowFor(own) })).rejects.toMatchObject({ status: 403, code: "device_removed" })
-        await expect(thief.client.putKeys({ dekId: stolen.dekId!, dekProof: dekProof(sodium, kept), device: rowFor(sodium.crypto_box_keypair()) })).rejects.toMatchObject({ status: 403, code: "rotation_pending" })
+        // S3: the copied key's proof is no account: without the password or the recovery code no new row either
+        await expect(thief.client.putKeys({ dekId: stolen.dekId!, dekProof: dekProof(sodium, kept), device: rowFor(sodium.crypto_box_keypair()) })).rejects.toMatchObject({ status: 403, code: "owner_required" })
         await expect(thief.client.snapshot()).rejects.toMatchObject({ status: 403 })
-        await expect(rotate(thief.deps)).rejects.toThrow(AccountCryptoError)
-        // the owner finishes the removal with the password; the chain names the removed key
-        const done = await completeRotation(victim.deps, { deviceName: "Victim", password: PASSWORD })
+        await expect(rotate(thief.deps, { keep: [] })).rejects.toThrow(AccountCryptoError)
+        // the owner changes the key with the password; only the owner's device keeps it
+        const done = await changeKey(victim.deps, { deviceName: "Victim", password: PASSWORD, keep: await keepAll(victim) })
         expect(done.dekId).not.toBe(stolen.dekId)
         expect(await victim.client.syncMeta()).toMatchObject({ rotationRequired: false, dekId: done.dekId })
-        expect(await d1.prepare("SELECT chain_removed FROM users WHERE id = ?").bind(stolen.userId).first()).toEqual({ chain_removed: JSON.stringify([toB64(sodium, own.publicKey)]) })
+        expect((await victim.client.devices()).map(device => device.name)).toEqual(["Victim"])
         // the old key's proof is worth nothing now
         await expect(thief.client.putKeys({ dekId: stolen.dekId!, dekProof: dekProof(sodium, kept), device: rowFor(sodium.crypto_box_keypair()) })).rejects.toMatchObject({ status: 409 })
     })
@@ -699,10 +703,13 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         await d1.prepare("UPDATE snapshots SET dek_id = ? WHERE user_id = ?").bind(vState.dekId, r.userId).run()
         await d1.prepare("INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at) VALUES (?, ?, 'Galaxy S22', ?, ?, ?, ?, 0, 0)")
             .bind(rRow.id, r.userId, rRow.device_pub, rRow.sealed_dek, vState.dekId, rRow.mac).run()
-        await expect(completeRotation(victim.deps, { deviceName: "Victim", password: PASSWORD })).rejects.toThrow(RemovedDeviceListedError)
-        expect(await d1.prepare("SELECT dek_id FROM devices WHERE id = ?").bind(rRow.id).first()).toEqual({ dek_id: vState.dekId })
-        expect(await d1.prepare("SELECT dek_id FROM users WHERE id = ?").bind(r.userId).first()).toEqual({ dek_id: vState.dekId })
-        expect((await checkedDevices(victim.deps)).find(device => device.devicePub === rRow.device_pub)?.verified).toBe(false)
+        expect((await checkedDevices(victim.deps)).find(device => device.devicePub === rRow.device_pub)).toMatchObject({ verified: false, keepByDefault: false })
+        await expect(rotate(victim.deps, { keep: [rRow.id], encKey: await encKeyFor(victim.client, PASSWORD, email) })).rejects.toThrow(UntrustedDevicesError)
+        // S2: the owner's key change leaves it out (and removes it again); the removed device can't open the new key
+        const done = await changeKey(victim.deps, { deviceName: "Victim", password: PASSWORD, keep: await keepAll(victim) })
+        expect(await d1.prepare("SELECT COUNT(*) AS n FROM devices WHERE id = ?").bind(rRow.id).first()).toEqual({ n: 0 })
+        const sealed = (await d1.prepare("SELECT sealed_dek FROM devices WHERE user_id = ?").bind(r.userId).all<{ sealed_dek: string }>()).results
+        for (const row of sealed) expect(() => openBoxedDek(sodium, row.sealed_dek, done.dekId, { kind: "rotate", userId: r.userId }, vState.deviceKeys!.publicKey, r.deviceKeys!)).toThrow()
     })
 
     it("R4: removing a device in the app rotates in the same step; the other device learns the removal from the chain and refuses that device's chains", async () => {
@@ -721,6 +728,278 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(otherState.dekId).toBe(result.dekId)
         expect(await other.session.removedDevices(otherState.userId)).toContain(toB64(sodium, goneState.deviceKeys!.publicKey))
         expect(await gone.engine.sync("manual")).toMatchObject({ state: "removed" })
+    })
+
+    /* ---- Fix round 4: the attacks of the third review (c1 to c9) and the invariants I1 to I5 (devices.ts) ---- */
+
+    const mails = async () => (await (await (await mf.getWorker("mail-sink")).fetch("http://mail-sink/")).json()) as { to: string, subject: string, text: string }[]
+    const subjects = async (to: string, from: number) => (await mails()).slice(from).filter(mail => mail.to === to).map(mail => mail.subject)
+    const googleStyle = async (one: ReturnType<typeof install>) => {
+        // to the server a Google sign-in is a session without a password check
+        const token = (await one.session.credentials())!.sessionToken
+        const hash = Buffer.from(sodium.crypto_hash_sha256(new TextEncoder().encode(token))).toString("base64url")
+        await (await db()).prepare("UPDATE sessions SET password_auth = 0 WHERE token_hash = ?").bind(hash).run()
+    }
+
+    it("c1, c1b / I1, I2 (NEU3-1): a request shows one number; after 'No' or a swapped value it is over, nothing is ever taken from it", async () => {
+        const email = "c1-fix4@example.org"
+        const owner = await accountWithData(email)
+        const fresh = await keylessSession(email)
+        const d1 = await db()
+        const pending = await requestApproval(fresh.deps, "Pixel 8")
+        const [request] = await openRequests(owner.deps)
+        const turn = await answerRequest(owner.deps, request!)
+        const real = (await d1.prepare("SELECT approver_pub, approver_nonce FROM device_requests WHERE id = ?").bind(pending.id).first<{ approver_pub: string, approver_nonce: string }>())!
+        // c1: the server shows the new phone its own key, so the numbers differ, and the user taps "No"
+        const evil = sodium.crypto_box_keypair()
+        await d1.prepare("UPDATE device_requests SET approver_pub = ?, approver_nonce = ? WHERE id = ?").bind(toB64(sodium, evil.publicKey), toB64(sodium, random(32)), pending.id).run()
+        const first = await checkApproval(fresh.deps, pending)
+        await d1.prepare("UPDATE device_requests SET approver_pub = ?, approver_nonce = ? WHERE id = ?").bind(real.approver_pub, real.approver_nonce, pending.id).run()
+        const onOwner = await compareRequest(owner.deps, turn)
+        expect(first).toMatchObject({ state: "compare" })
+        expect(onOwner).toMatchObject({ state: "compare" })
+        expect(first).not.toEqual(onOwner)
+        expect(await confirmApproval(fresh.deps, pending, false)).toEqual({ state: "denied" })
+        // the server ignores the "No" and turns the request into one whose number matches the owner's phone (c1b: the
+        // owner's phone then really approves, boxing the real key): the new phone shows no second number and takes nothing
+        await d1.prepare("UPDATE device_requests SET status = 'revealed' WHERE id = ?").bind(pending.id).run()
+        await approveRequest(owner.deps, turn)
+        expect(await checkApproval(fresh.deps, pending)).toEqual({ state: "denied" })
+        expect(await confirmApproval(fresh.deps, pending, true)).toEqual({ state: "denied" })
+        expect((await fresh.session.load())!.dek).toBeNull()
+
+        // a value swapped while the number shows ends the request too (a new sign-in: the server bound the first one)
+        const fresh2 = await keylessSession(email)
+        const second = await requestApproval(fresh2.deps, "Pixel 8")
+        const [request2] = (await openRequests(owner.deps)).filter(one => one.id === second.id)
+        await answerRequest(owner.deps, request2!)
+        expect(await checkApproval(fresh2.deps, second)).toMatchObject({ state: "compare" })
+        await d1.prepare("UPDATE device_requests SET approver_pub = ? WHERE id = ?").bind(toB64(sodium, evil.publicKey), second.id).run()
+        await expect(checkApproval(fresh2.deps, second)).rejects.toThrow(AccountCryptoError)
+        expect(await checkApproval(fresh2.deps, second)).toEqual({ state: "denied" })
+        expect(await d1.prepare("SELECT status FROM device_requests WHERE id = ?").bind(second.id).first()).toEqual({ status: "denied" })
+
+        // the legitimate way still works: a new request, the same number on both, "Yes" on both
+        const third = await requestApproval(fresh2.deps, "Pixel 8")
+        const [request3] = (await openRequests(owner.deps)).filter(one => one.id === third.id)
+        const turn3 = await answerRequest(owner.deps, request3!)
+        const shown = await checkApproval(fresh2.deps, third)
+        expect(await compareRequest(owner.deps, turn3)).toEqual(shown)
+        await approveRequest(owner.deps, turn3)
+        expect(await confirmApproval(fresh2.deps, third, true)).toEqual({ state: "approved" })
+        expect((await fresh2.session.load())!.dek).toEqual((await owner.session.load())!.dek)
+    })
+
+    it("S1: three 'No' within an hour pause approvals for an hour, mailed and listed", async () => {
+        const email = "s1-fix4@example.org"
+        const owner = await accountWithData(email)
+        const fresh = await keylessSession(email)
+        const before = (await mails()).length
+        for (let i = 0; i < 3; i++) {
+            const pending = await requestApproval(fresh.deps, "Pixel 8")
+            const [request] = (await openRequests(owner.deps)).filter(one => one.id === pending.id)
+            await answerRequest(owner.deps, request!)
+            await checkApproval(fresh.deps, pending)
+            expect(await confirmApproval(fresh.deps, pending, false)).toEqual({ state: "denied" })
+        }
+        await expect(requestApproval(fresh.deps, "Pixel 8")).rejects.toMatchObject({ status: 429, code: "approvals_paused" })
+        expect(await subjects(email, before)).toEqual(["New device sign-ins are paused"])
+        expect((await owner.client.account()).events?.[0]).toMatchObject({ kind: "approvals_paused" })
+    })
+
+    it("c2 / I3 (NEU3-2): the only device removed on the website; back in with the recovery code and with the password, data there; the key change and Start fresh work", async () => {
+        const email = "c2-fix4@example.org"
+        const owner = await accountWithData(email)
+        const code = await createRecoveryCode(owner.deps)
+        const web = await keylessSession(email)
+        await web.client.deleteDevice((await owner.session.load())!.deviceId!)
+        expect(await owner.engine.sync("manual")).toMatchObject({ state: "removed" })
+        const d1 = await db()
+        const wrap = (await d1.prepare("SELECT recovery_wrapped_dek, dek_id FROM users WHERE email = ?").bind(email).first<{ recovery_wrapped_dek: string, dek_id: string }>())!
+        // a Google-style session (as on a Google account) gets in with the recovery code
+        const viaCode = await keylessSession(email)
+        await googleStyle(viaCode)
+        await useRecoveryCode(viaCode.deps, { code, recoveryWrappedDek: wrap.recovery_wrapped_dek, dekId: wrap.dek_id, deviceName: "Recovered" })
+        expect(await viaCode.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        expect(await names(viaCode)).toEqual(["Mine"])
+        // a new phone gets in with the password, data there
+        const phone = install()
+        expect(await loginEmail(phone.deps, { email, password: PASSWORD, deviceName: "New Phone" })).toMatchObject({ status: "ready" })
+        expect(await phone.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        expect(await names(phone)).toEqual(["Mine"])
+        // and changes the key; the removed phone is not in the list any more
+        await changeKey(phone.deps, { deviceName: "New Phone", password: PASSWORD, keep: await keepAll(phone) })
+        expect(await phone.client.syncMeta()).toMatchObject({ rotationRequired: false })
+        expect(await viaCode.engine.sync("manual")).toMatchObject({ state: "updated" })
+        expect((await viaCode.session.load())!.dekId).toBe((await phone.session.load())!.dekId)
+
+        // Start fresh after the only device was removed (email account)
+        const other = await accountWithData("c2b-fresh@example.org")
+        const web2 = await keylessSession("c2b-fresh@example.org")
+        await web2.client.deleteDevice((await other.session.load())!.deviceId!)
+        const lonely = install()
+        await expect(startFresh(lonely.deps, { deviceName: "Lonely", password: PASSWORD })).rejects.toThrow()
+        expect(await loginEmail(lonely.deps, { email: "c2b-fresh@example.org", password: PASSWORD, deviceName: "Lonely" })).toMatchObject({ status: "ready" })
+        const started = await startFresh(lonely.deps, { deviceName: "Lonely", password: PASSWORD })
+        expect(await lonely.client.devices()).toEqual([expect.objectContaining({ id: started.deviceId, current: true })])
+    })
+
+    it("c2b / I3 (NEU3-2): a device that missed a key change by a device removed later stops visibly, then gets back in with the password", async () => {
+        const email = "c2b-fix4@example.org"
+        const owner = await accountWithData(email)
+        const late = install()
+        expect(await loginEmail(late.deps, { email, password: PASSWORD, deviceName: "Late" })).toMatchObject({ status: "ready" })
+        expect(await late.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        // the owner changes the key while the late phone is offline; then the owner's phone is removed on the website
+        await changeKey(owner.deps, { deviceName: "Victim", password: PASSWORD, keep: await keepAll(owner) })
+        const web = await keylessSession(email)
+        await web.client.deleteDevice((await owner.session.load())!.deviceId!)
+        expect(await late.engine.sync("manual")).toMatchObject({ state: "key-untrusted" })
+        // the app's text: join again with the password. It works, the data is there
+        await signOut(late.deps)
+        expect(await loginEmail(late.deps, { email, password: PASSWORD, deviceName: "Late" })).toMatchObject({ status: "ready" })
+        expect(await late.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        expect(await names(late)).toEqual(["Mine"])
+    })
+
+    it("c3 / I3, I5 (NEU3-4): a thief who signs out leaves a trace, can't join again with the copied key, and the owner's key change shuts it out", async () => {
+        const email = "c3-fix4@example.org"
+        const owner = await accountWithData(email)
+        const thief = install()
+        expect(await loginEmail(thief.deps, { email, password: PASSWORD, deviceName: "Stolen Tab" })).toMatchObject({ status: "ready" })
+        const copied = (await thief.session.load())!
+        const before = (await mails()).length
+        await signOut(thief.deps)
+        // the owner sees it: signed out in the list, a mail, an event, and a key change asked for
+        const listed = (await checkedDevices(owner.deps)).find(device => device.name === "Stolen Tab")
+        expect(listed).toMatchObject({ signedOut: true, keepByDefault: false })
+        expect(await subjects(email, before)).toEqual(["A device signed out"])
+        expect((await owner.client.account()).events?.[0]).toMatchObject({ kind: "device_signed_out", deviceName: "Stolen Tab" })
+        expect(await owner.engine.sync("manual")).toMatchObject({ rotationRequired: true })
+        // the thief signs in like with Google and shows the copied key's proof: refused
+        const back = await keylessSession(email)
+        await googleStyle(back)
+        const keys = sodium.crypto_box_keypair()
+        const row = { name: "Stolen Tab", devicePub: toB64(sodium, keys.publicKey), sealedDek: boxDek(sodium, copied.dek!, copied.dekId!, { kind: "own", userId: copied.userId }, keys.publicKey, keys), mac: deviceMac(sodium, copied.dek!, { userId: copied.userId, dekId: copied.dekId!, devicePub: keys.publicKey }) }
+        await expect(back.client.putKeys({ dekId: copied.dekId!, dekProof: dekProof(sodium, copied.dek!), device: row })).rejects.toMatchObject({ status: 403, code: "owner_required" })
+        // the owner changes the key; the copied key reads nothing new
+        const done = await changeKey(owner.deps, { deviceName: "Victim", password: PASSWORD, keep: await keepAll(owner) })
+        expect(done.dekId).not.toBe(copied.dekId)
+        expect((await owner.client.devices()).map(device => device.name)).toEqual(["Victim"])
+    })
+
+    it("c4 / I4 (NEU3-5): over the email's counter nobody is locked out; the right password signs in through the mailed link", async () => {
+        const email = "c4-fix4@example.org"
+        await accountWithData(email)
+        for (let i = 0; i < 20; i++) {
+            const guesser = install(undefined, `198.${i}.7.9`)
+            const { challenge } = await guesser.client.prelogin(email)
+            await expect(guesser.client.login(email, toB64(sodium, random(32)), challenge, await freshSigner())).rejects.toThrow(UnauthorizedError)
+        }
+        const before = (await mails()).length
+        const phone = install(undefined, "203.0.113.20")
+        await expect(loginEmail(phone.deps, { email, password: PASSWORD, deviceName: "New Phone" })).rejects.toThrow(MailConfirmationError)
+        // a wrong password gets the same answer, without a mail
+        const guess = install(undefined, "203.0.114.20")
+        await expect(loginEmail(guess.deps, { email, password: "a wrong long password 9", deviceName: "Guess" })).rejects.toThrow(MailConfirmationError)
+        const token = await nextMailToken(before, email)
+        expect(await subjects(email, before)).toEqual(["Confirm your sign-in"])
+        expect(await phone.client.confirmLogin(token)).toEqual({ confirmed: true })
+        expect(await loginEmail(phone.deps, { email, password: PASSWORD, deviceName: "New Phone" })).toMatchObject({ status: "ready" })
+    })
+
+    it("c5 (accepted limit, documented): a device that learned a removal from a key change refuses the removed device's chains", async () => {
+        const email = "c5-fix4@example.org"
+        const owner = await accountWithData(email)
+        const other = install()
+        expect(await loginEmail(other.deps, { email, password: PASSWORD, deviceName: "Pixel 8" })).toMatchObject({ status: "ready" })
+        expect(await other.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        const removed = install()
+        expect(await loginEmail(removed.deps, { email, password: PASSWORD, deviceName: "Tab" })).toMatchObject({ status: "ready" })
+        const r = (await removed.session.load())!
+        const done = await removeDevice(owner.deps, { deviceId: r.deviceId!, deviceName: "Victim", password: PASSWORD })
+        expect(await other.engine.sync("manual")).toMatchObject({ state: "updated" })
+        // the server now hands the other phone a chain the removed tablet made from the old key: refused, even with the
+        // tablet claiming the current key as the old one is impossible (it never held it)
+        const o = (await other.session.load())!
+        expect(o.dekId).toBe(done.dekId)
+        expect(await other.session.removedDevices(o.userId)).toContain(toB64(sodium, r.deviceKeys!.publicKey))
+        const evil = random(32)
+        const evilId = toB64(sodium, random(16))
+        const d1 = await db()
+        await d1.prepare("UPDATE users SET dek_id = ?, chain_from = ?, chain_mac = ?, chain_rotator = ?, chain_removed = '[]' WHERE id = ?")
+            .bind(evilId, r.dekId, chainMac(sodium, r.dek!, { userId: r.userId, oldDekId: r.dekId!, newDekId: evilId, rotatorPub: r.deviceKeys!.publicKey, removed: [] }, evil), toB64(sodium, r.deviceKeys!.publicKey), r.userId).run()
+        await d1.prepare("UPDATE devices SET dek_id = ?, sealed_dek = ? WHERE id = ?").bind(evilId, boxDek(sodium, evil, evilId, { kind: "rotate", userId: r.userId }, o.deviceKeys!.publicKey, r.deviceKeys!), o.deviceId).run()
+        await d1.prepare("UPDATE snapshots SET dek_id = ? WHERE user_id = ?").bind(evilId, r.userId).run()
+        expect(await other.engine.sync("manual")).toMatchObject({ state: "key-untrusted" })
+        expect((await other.session.load())!.dekId).toBe(done.dekId)
+    })
+
+    it("c7 (NEU3-6): a stranger uses up only his own network's reset mails, never the owner's", async () => {
+        const email = "c7-fix4@example.org"
+        await accountWithData(email)
+        const before = (await mails()).length
+        const stranger = install(undefined, "203.0.113.70")
+        for (let i = 0; i < 6; i++) await stranger.client.resetRequest(email).catch(() => undefined)
+        const owner = install(undefined, "198.51.100.70")
+        await new Promise(resolve => setTimeout(resolve, 300))
+        const strangers = (await subjects(email, before)).length
+        expect(strangers).toBeLessThanOrEqual(3)
+        await owner.client.resetRequest(email)
+        await nextMailToken(before + strangers, email)
+    })
+
+    it("c8 (NEU3-7): a waiting sender writes no sign-in nonce or challenge", async () => {
+        const d1 = await db()
+        const count = async () => (await d1.prepare("SELECT COUNT(*) AS n FROM used_nonces").bind().first<{ n: number }>())!.n
+        const flood = install(undefined, "192.0.2.80")
+        for (let i = 0; i < 20; i++) {
+            const { challenge } = await flood.client.prelogin("c8-nobody@example.org")
+            await flood.client.login("c8-nobody@example.org", toB64(sodium, random(32)), challenge, await freshSigner()).catch(() => undefined)
+        }
+        const before = await count()
+        for (let i = 0; i < 4; i++) {
+            const { challenge } = await flood.client.prelogin("c8-nobody@example.org")
+            await expect(flood.client.login("c8-nobody@example.org", toB64(sodium, random(32)), challenge, await freshSigner())).rejects.toThrow(RateLimitedError)
+        }
+        expect(await count()).toBe(before)
+    })
+
+    it("c9 / I2 (NEU3-3): a flood of made-up removed keys from the server never makes a device forget its own removal", async () => {
+        const email = "c9-fix4@example.org"
+        const owner = await accountWithData(email)
+        const tab = install()
+        expect(await loginEmail(tab.deps, { email, password: PASSWORD, deviceName: "Tab" })).toMatchObject({ status: "ready" })
+        const t = (await tab.session.load())!
+        await removeDevice(owner.deps, { deviceId: t.deviceId!, deviceName: "Victim", password: PASSWORD })
+        const o = (await owner.session.load())!
+        const d1 = await db()
+        for (let i = 0; i < 250; i++) await d1.prepare("INSERT INTO removed_devices (user_id, device_pub, removed_at) VALUES (?, ?, ?)").bind(o.userId, toB64(sodium, random(32)), 4_000_000_000 + i).run()
+        for (let i = 0; i < 6; i++) await owner.engine.sync("manual")
+        expect(await owner.session.removedDevices(o.userId)).toContain(toB64(sodium, t.deviceKeys!.publicKey))
+        // the server puts the tablet's row back with a MAC under the current key (as if it had never been removed): it is
+        // not ticked and can't be kept
+        const mac = deviceMac(sodium, o.dek!, { userId: o.userId, dekId: o.dekId!, devicePub: t.deviceKeys!.publicKey })
+        await d1.prepare("INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at) VALUES (?, ?, 'Tab', ?, 'x', ?, ?, 0, 0)")
+            .bind(t.deviceId, o.userId, toB64(sodium, t.deviceKeys!.publicKey), o.dekId, mac).run()
+        expect((await checkedDevices(owner.deps)).find(device => device.id === t.deviceId)).toMatchObject({ keepByDefault: false })
+        await expect(rotate(owner.deps, { keep: [t.deviceId!], encKey: await encKeyFor(owner.client, PASSWORD, email) })).rejects.toThrow(UntrustedDevicesError)
+        const done = await changeKey(owner.deps, { deviceName: "Victim", password: PASSWORD, keep: await keepAll(owner) })
+        expect((await owner.client.devices()).map(device => device.id)).not.toContain(t.deviceId)
+        expect(done.dekId).not.toBe(o.dekId)
+    })
+
+    it("I5: every security change sends a mail and leaves an event", async () => {
+        const email = "i5-fix4@example.org"
+        const owner = await accountWithData(email)
+        const tab = install()
+        expect(await loginEmail(tab.deps, { email, password: PASSWORD, deviceName: "Tab" })).toMatchObject({ status: "ready" })
+        await createRecoveryCode(owner.deps)
+        await changeKey(owner.deps, { deviceName: "Victim", password: PASSWORD, keep: [(await owner.session.load())!.deviceId!] })
+        const kinds = (await owner.client.account()).events!.map(event => event.kind)
+        // newest first; the owner's re-sign-in for the key change takes its own row back and is no new device
+        expect(kinds).toEqual(["key_rotated", "device_removed", "recovery_changed", "new_device", "new_device"])
+        expect(await subjects(email, 0)).toEqual(expect.arrayContaining(["New device signed in", "Your recovery code was changed", "A device was removed", "Your account key was changed"]))
     })
 
     it("N-8 and M-2: a P-256 key like the Keystore's signs everything; the device keeps it, so a lockout of its email never stops it; signing out makes a new one", async () => {
@@ -764,4 +1043,4 @@ function sqlStatements(sql: string): string[] {
     return out
 }
 
-type D1Like = { prepare(sql: string): { bind(...values: unknown[]): { run(): Promise<unknown>, first<T = Record<string, unknown>>(): Promise<T | null> } } }
+type D1Like = { prepare(sql: string): { bind(...values: unknown[]): { run(): Promise<unknown>, first<T = Record<string, unknown>>(): Promise<T | null>, all<T = Record<string, unknown>>(): Promise<{ results: T[] }> } } }

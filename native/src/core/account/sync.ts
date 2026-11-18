@@ -23,10 +23,9 @@ import type { Sodium } from "./sodium"
  *   "key-untrusted": start fresh ran elsewhere, or someone without the key (a taken-over Google account, a changed
  *   server) tried to switch the account to a key of its own. The device then neither imports nor uploads.
  *   "key-changed" when the server has no newer key for it (it was removed).
- * - The server asks for a rotation (a device was removed): the sync tries it, and when it can't run here (the password
- *   is needed, the sign-in is too old, an unverified device is in the list) it syncs on and keeps the flag (M-4).
- * - Device keys the server lists as removed are remembered (R3): this device never seals a new key to them and never
- *   takes a key chain one of them made. Believing that list can only leave a device out, never let one in.
+ * - The server asks for a key change (a device was removed or signed out): the sync goes on and reports the flag; the
+ *   user changes the key on the "Change encryption key" screen and picks the devices that keep it (S2). Nothing rotates
+ *   on its own, so the new key never reaches a device the user did not keep.
  */
 
 export const SYNC_INTERVAL_MS = 5 * 60 * 1000
@@ -108,8 +107,6 @@ export class SyncEngine {
         gzip: Gzip
         local: LocalData
         now: () => number
-        /** Rotates the DEK when the server asks for it (devices.ts rotate); false or ReauthRequiredError: not now */
-        rotate?: () => Promise<boolean>
     }) {}
 
     /** Whether a trigger should run now: the 5-minute tick only after 5 minutes, the others always */
@@ -202,24 +199,8 @@ export class SyncEngine {
     private async run(trigger: SyncTrigger): Promise<SyncResult> {
         const loaded = await this.deps.session.load()
         if (loaded && !this.isDue(trigger, loaded)) return { state: "skipped", ...NO_FLAGS }
-        let meta = await this.metaOrState()
-        if ("state" in meta) return meta
-        if (meta.rotationRequired && this.deps.rotate) {
-            try {
-                if (await this.deps.rotate()) {
-                    const again = await this.metaOrState()
-                    if ("state" in again) return again
-                    meta = again
-                }
-            }
-            catch (error) {
-                // not possible here right now (password needed, old sign-in, unverified device, a race): the flag stays
-                // and the screens ask for what is missing; the sync itself goes on (M-4)
-                if (!(error instanceof AccountApiError || error instanceof AccountCryptoError)) throw error
-                if (error instanceof UnauthorizedError) return { state: error.code === "device_removed" ? "removed" : "signed-out", ...NO_FLAGS }
-            }
-        }
-        const current = meta
+        const current = await this.metaOrState()
+        if ("state" in current) return current
         const flags: SyncFlags = { rotationRequired: current.rotationRequired, rewrapNeeded: current.rewrapNeeded, recoveryRenewalNeeded: current.recoveryRenewalNeeded === true }
         return this.guard(async state => {
             const { session, local, sodium, api, now } = this.deps
@@ -286,7 +267,7 @@ export class SyncEngine {
             }
             this.deps.sodium.memzero(state.dek)
             const meta = await this.deps.api.syncMeta()
-            if (meta.removedDevices?.length) await this.deps.session.addRemoved(state.userId, meta.removedDevices)
+            await this.deps.session.addServerRemoved(state.userId, meta.removedDevices)
             return meta
         }
         catch (error) {

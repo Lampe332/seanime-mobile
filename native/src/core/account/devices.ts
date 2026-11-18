@@ -1,9 +1,8 @@
-// geschrieben nach: Plan „Account + Sync“ (Abschnitte 5 DEK-Rotation, 6.4 Freigabe, 6.9, Bau-Stand Fix-Design 2 R1–R3) und dem Server-Vertrag account-server/src/approval.ts, rotate.ts und routes.ts (GET devices, GET account/keys/device, sync/meta removedDevices)
+// geschrieben nach: Plan „Account + Sync“ (Abschnitte 5 DEK-Rotation, 6.4 Freigabe, 6.9, Bau-Stand Fix-Design 2 R1–R3 und Fix-Design 3 S1–S6) und dem Server-Vertrag account-server/src/approval.ts, rotate.ts und routes.ts (GET devices, GET account/keys/device)
 
 import { AccountApiError, type AccountClient, type ApprovalRequest, type DeviceInfo } from "./client"
 import {
     AccountCryptoError,
-    RemovedDeviceListedError,
     UntrustedDevicesError,
     UntrustedKeyChangeError,
     approvalTranscript,
@@ -24,6 +23,7 @@ import {
     newDekId,
     newDeviceKeyPair,
     openBoxedDek,
+    recoveryProof,
     sasOf,
     toB64,
     wipe,
@@ -33,9 +33,19 @@ import type { AccountSession } from "./session"
 import type { Sodium, SodiumKeyPair } from "./sodium"
 
 /*
- * R1: a device takes a DEK only on four authentic ways: the password wrap, the recovery wrap (flows.ts), the approval box
- * from the device whose number the user confirmed on THIS device, and a key chain from the DEK it holds, made by a device
- * it does not know as removed. Never from an anonymous sealed box, and never because the server says so.
+ * Invariants of the account (fix design 3). The server is not trusted with keys; each one is a test in
+ * server.e2e.test.ts (named after it) against the real Worker.
+ *
+ * I1 A device takes a DEK only through: the password wrap, the recovery wrap (flows.ts), ONE approval its user confirmed
+ *    on BOTH devices (exactly one number per request: "No", a timeout or any swapped value ends the request for good),
+ *    or a key chain from the DEK it holds, made by a device it does not know as removed (pickUpDeviceKey).
+ * I2 A device hands out the real DEK only to the device whose number its user confirmed with "Yes" here (approveRequest),
+ *    or by a key change to the devices the user kept in the list (rotate, an allowlist: every other row is removed).
+ * I3 Owning the account (the password, or the recovery code) always allows joining, changing the key and Start fresh.
+ *    The DEK proof alone never allows a sign-in, joining again or a key change (account-server routes.ts putKeys).
+ * I4 The owner is never locked out for good: over the email's counter a right password signs in through a mailed link.
+ * I5 Every change that matters for security (new device, sign-out, removal, key change, recovery code, Google link,
+ *    Start fresh) sends a mail and leaves an event the app and the website list.
  */
 
 export type AccountDeps = { client: AccountClient, session: AccountSession, sodium: Sodium }
@@ -49,7 +59,7 @@ export async function deviceKeys(deps: AccountDeps): Promise<SodiumKeyPair> {
     return keys
 }
 
-/* ---- New device (plan 6.4 steps 1, 3, 6; approval v2) ---- */
+/* ---- New device (plan 6.4 steps 1, 3, 6; approval v2, S1) ---- */
 
 export type PendingApproval = {
     id: string
@@ -58,10 +68,12 @@ export type PendingApproval = {
     rN: Uint8Array
     /** This device sent rN (only after it saw rO); an approval that never passed through here is refused */
     revealed: boolean
-    /** The number shown, with the other device's key and random value it came from */
+    /** The ONE number this request shows, with the other device's key and random value it came from; never replaced */
     shown: { sas: string, approverPub: string, approverNonce: string } | null
-    /** The number the user confirmed on this device ("Yes, it's the same"); the key is taken only then */
-    confirmed: string | null
+    /** The user confirmed the shown number on this device ("Yes, same number"); the key is taken only then */
+    confirmed: boolean
+    /** S1: "No", a timeout, a denial or a swapped value ended the request for good; nothing is taken from it any more */
+    ended: boolean
 }
 
 export type ApprovalProgress =
@@ -74,7 +86,7 @@ export type ApprovalProgress =
 
 /**
  * Step 1: asks the account's devices to approve this one, with a new device key pair (a request never takes over an
- * existing device row, NEU-12). Keep the result in memory until the request ends.
+ * existing device row, NEU-12). Keep the result in memory until the request ends; a new attempt is a new request.
  */
 export async function requestApproval(deps: AccountDeps, deviceName: string): Promise<PendingApproval> {
     const keys = newDeviceKeyPair(deps.sodium)
@@ -85,90 +97,106 @@ export async function requestApproval(deps: AccountDeps, deviceName: string): Pr
         devicePub: toB64(deps.sodium, keys.publicKey),
         commitment: toB64(deps.sodium, commitment(deps.sodium, keys.publicKey, rN)),
     })
-    return { id: created.id, expiresAt: created.expiresAt, devicePub: keys.publicKey, rN, revealed: false, shown: null, confirmed: null }
+    return { id: created.id, expiresAt: created.expiresAt, devicePub: keys.publicKey, rN, revealed: false, shown: null, confirmed: false, ended: false }
 }
 
 const changed = () => new AccountCryptoError("the request was changed on the way; nothing was taken")
 
-function showNumber(deps: AccountDeps, pending: PendingApproval, request: ApprovalRequest): { sas: string, transcript: Uint8Array } {
+/** S1: the request is over on this device; the server hears "deny" (best effort, a server that ignores it changes nothing) */
+async function endRequest(deps: AccountDeps, pending: PendingApproval): Promise<void> {
+    if (pending.ended) return
+    pending.ended = true
+    pending.confirmed = false
+    wipe(deps.sodium, pending.rN)
+    try {
+        await deps.client.deny(pending.id)
+    }
+    catch (error) {
+        if (!(error instanceof AccountApiError)) throw error
+    }
+}
+
+function showNumber(deps: AccountDeps, pending: PendingApproval, request: ApprovalRequest): { sas: string, transcript: Uint8Array } | null {
     const { sodium } = deps
+    // NEU3-1: once a number was shown, the other device's key and random value are fixed for this request
+    if (pending.shown && (pending.shown.approverPub !== request.approverPub || pending.shown.approverNonce !== request.approverNonce)) return null
     const approverPub = fromB64(sodium, request.approverPub ?? "", 32)
     const rO = fromB64(sodium, request.approverNonce ?? "", 32)
     const transcript = approvalTranscript(sodium, pending.devicePub, approverPub, pending.rN, rO)
-    const shown = sasOf(transcript)
-    // the server may not swap the other device's key or random value once the number is on the screen
-    if (pending.shown && (pending.shown.approverPub !== request.approverPub || pending.shown.approverNonce !== request.approverNonce)) throw changed()
-    pending.shown = { sas: shown, approverPub: request.approverPub!, approverNonce: request.approverNonce! }
-    return { sas: shown, transcript }
+    const sas = sasOf(transcript)
+    pending.shown ??= { sas, approverPub: request.approverPub!, approverNonce: request.approverNonce! }
+    return { sas, transcript }
 }
 
 /**
  * Steps 3 and 6, called while "Approve on your phone" shows: reveals rN once the other device sent its key and rO (never
- * before), shows the number, and takes the DEK only when (a) the user confirmed the same number on THIS device, (b) the
- * box opens with the key of the device that number belongs to and (c) it is bound to this request (NEU-1). An approval
- * the server made up, or one with another key, never opens.
+ * before), shows the number, and takes the DEK only when (a) the user confirmed that number on THIS device, (b) the box
+ * opens with the key of the device that number belongs to and (c) it is bound to this request (NEU-1). S1 (NEU3-1): a
+ * request shows exactly one number; once it ended ("No", denied, expired, a swapped value) it only ever says "denied".
  */
 export async function checkApproval(deps: AccountDeps, pending: PendingApproval): Promise<ApprovalProgress> {
     const { client, session, sodium } = deps
+    if (pending.ended) return { state: "denied" }
     const request = await client.request(pending.id)
-    if (request.devicePub !== toB64(sodium, pending.devicePub)) throw changed()
+    const fail = async () => {
+        await endRequest(deps, pending)
+        return changed()
+    }
+    if (request.devicePub !== toB64(sodium, pending.devicePub)) throw await fail()
     switch (request.status) {
         case "pending":
             return { state: "waiting" }
         case "denied":
         case "expired":
+            pending.ended = true
+            pending.confirmed = false
             wipe(sodium, pending.rN)
             return { state: request.status }
         case "nonce":
         case "revealed": {
-            if (request.status === "revealed" && !pending.revealed) throw changed()
-            const { sas } = showNumber(deps, pending, request)
+            if (request.status === "revealed" && !pending.revealed) throw await fail()
+            const shown = showNumber(deps, pending, request)
+            if (!shown) throw await fail()
             if (!pending.revealed) {
                 await client.reveal(pending.id, toB64(sodium, pending.rN))
                 pending.revealed = true
             }
-            return { state: "compare", sas, confirmed: pending.confirmed === sas }
+            return { state: "compare", sas: shown.sas, confirmed: pending.confirmed }
         }
         case "approved": {
-            if (!pending.revealed) throw changed()
-            const { sas, transcript } = showNumber(deps, pending, request)
+            if (!pending.revealed) throw await fail()
+            const shown = showNumber(deps, pending, request)
+            if (!shown) throw await fail()
             // the other device approved; this one waits until its own user said the numbers are the same
-            if (pending.confirmed === null) return { state: "compare", sas, confirmed: false }
-            if (pending.confirmed !== sas) throw changed()
+            if (!pending.confirmed) return { state: "compare", sas: shown.sas, confirmed: false }
             if (!request.sealedDek || !request.dekId || !request.deviceId) throw new AccountApiError(502, "invalid_request", "The approval came without a key.")
             const keys = await session.deviceKeys()
-            if (!keys || !equalBytes(keys.publicKey, pending.devicePub)) throw changed()
-            const dek = openBoxedDek(sodium, request.sealedDek, request.dekId, { kind: "approve", transcript }, fromB64(sodium, request.approverPub!, 32), keys)
+            if (!keys || !equalBytes(keys.publicKey, pending.devicePub)) throw await fail()
+            const dek = openBoxedDek(sodium, request.sealedDek, request.dekId, { kind: "approve", transcript: shown.transcript }, fromB64(sodium, request.approverPub!, 32), keys)
             await session.saveDek(request.dekId, dek)
             await session.updateSession({ deviceId: request.deviceId })
             // the account's data is never applied without asking: the import question comes first
             await session.updateSync({ imported: false, highestVersion: 0, lastHash: null, lastSyncAt: null })
             wipe(sodium, dek, pending.rN)
+            pending.ended = true
             return { state: "approved" }
         }
     }
 }
 
 /**
- * The user's answer on this device to "Does your other device show this number?". No: the request is denied right away.
- * Yes: the key is taken as soon as the other device approved (checkApproval).
+ * The user's answer on this device to "Does your other device show this number?". No (S1): the request ends for good on
+ * both sides, nothing is ever taken from it; a new attempt is a new request with new keys. Yes: the key is taken as soon
+ * as the other device approved (checkApproval).
  */
 export async function confirmApproval(deps: AccountDeps, pending: PendingApproval, same: boolean): Promise<ApprovalProgress> {
+    if (pending.ended) return { state: "denied" }
     if (!pending.shown) throw new AccountCryptoError("there is no number to confirm yet")
     if (!same) {
-        try {
-            await deps.client.deny(pending.id)
-        }
-        catch (error) {
-            // the server may say it is approved already: this device refuses it anyway, it never opens the key
-            if (!(error instanceof AccountApiError)) throw error
-        }
-        wipe(deps.sodium, pending.rN)
-        pending.confirmed = null
-        pending.shown = null
+        await endRequest(deps, pending)
         return { state: "denied" }
     }
-    pending.confirmed = pending.shown.sas
+    pending.confirmed = true
     return checkApproval(deps, pending)
 }
 
@@ -181,7 +209,10 @@ export function openRequests(deps: AccountDeps): Promise<ApprovalRequest[]> {
     return deps.client.openRequests()
 }
 
-/** Step 2: this device answers a request with its random rO and its own device key (both go into the number) */
+/**
+ * Step 2, only after the user tapped "Show number" (NEU3-10): this device answers a request with its random rO and its own
+ * device key (both go into the number)
+ */
 export async function answerRequest(deps: AccountDeps, request: ApprovalRequest): Promise<ApproverTurn> {
     const state = await deps.session.load()
     wipe(deps.sodium, state?.dek)
@@ -219,7 +250,8 @@ async function checkedTurn(deps: AccountDeps, turn: ApproverTurn): Promise<{ pro
 
 /**
  * Step 4: once the new device revealed rN, checks its commitment (made before it knew rO) and that the server swapped
- * neither key nor rO. A failed check denies the request. Returns the number to compare.
+ * neither key nor rO. A failed check denies the request. Returns the number to compare (one per request: rO, the new
+ * device's key and its committed rN are fixed).
  */
 export async function compareRequest(deps: AccountDeps, turn: ApproverTurn): Promise<ApprovalProgress> {
     return (await checkedTurn(deps, turn)).progress
@@ -246,9 +278,20 @@ export async function approveRequest(deps: AccountDeps, turn: ApproverTurn): Pro
     }
 }
 
+export function denyRequest(deps: AccountDeps, requestId: string): Promise<void> {
+    return deps.client.deny(requestId)
+}
+
 /* ---- The device list, checked against the DEK (K-1) ---- */
 
-export type CheckedDevice = DeviceInfo & { verified: boolean }
+export type CheckedDevice = DeviceInfo & {
+    /** A holder of the current DEK added it (valid MAC) and this device does not know it as removed */
+    verified: boolean
+    /** S4: it signed out (it may have kept the old key) */
+    signedOut: boolean
+    /** S2: whether a key change keeps it unless the user says otherwise: verified and not signed out */
+    keepByDefault: boolean
+}
 
 /**
  * The account's devices, each marked whether a holder of the current DEK added it (valid MAC) and it is no device this
@@ -258,7 +301,11 @@ export async function checkedDevices(deps: AccountDeps): Promise<CheckedDevice[]
     const [state, devices] = await Promise.all([deps.session.load(), deps.client.devices()])
     try {
         const removed = state ? new Set(await deps.session.removedDevices(state.userId)) : new Set<string>()
-        return devices.map(device => ({ ...device, verified: !!state?.dek && !!state.dekId && !removed.has(device.devicePub) && deviceVerified(deps, state, device) }))
+        return devices.map(device => {
+            const verified = !!state && !removed.has(device.devicePub) && deviceVerified(deps, state, device)
+            const signedOut = device.signedOutAt != null
+            return { ...device, verified, signedOut, keepByDefault: verified && !signedOut }
+        })
     }
     finally {
         wipe(deps.sodium, state?.dek)
@@ -279,11 +326,7 @@ function deviceVerified(deps: AccountDeps, state: { userId: string, dek: Uint8Ar
     return deviceMacValid(deps.sodium, state.dek, { userId: state.userId, dekId: state.dekId, devicePub: pub }, device.mac)
 }
 
-export function denyRequest(deps: AccountDeps, requestId: string): Promise<void> {
-    return deps.client.deny(requestId)
-}
-
-/* ---- DEK rotation (plan 5, 6.9; chain v2, R3) ---- */
+/* ---- DEK rotation (plan 5, 6.9; chain v2, R3; allowlist, S2) ---- */
 
 /**
  * Another device rotated the DEK: this device fetches the new DEK boxed to its key and takes it only when (a) the
@@ -337,40 +380,41 @@ export type RotationResult = {
 const MAX_REMOVED = 50
 
 /**
- * A new DEK: the stored package re-encrypted with it, boxed from this device to every device of the account, new password
- * wrap (`encKey`, required for email accounts) and recovery wrap (`recoveryKey`, else the old recovery code stops working).
- * Devices this one knows as removed (its own removals, `removedNow`, the chains it took, the server's list) are never
- * sealed to: when the server lists one again the rotation stops with RemovedDeviceListedError (NEU-3). The chain names
- * this device as the rotating one and the removed devices, so the other devices learn them.
+ * "Change encryption key" (S2, I2): a new DEK, the stored package re-encrypted with it, boxed from this device ONLY to the
+ * devices in `keep` (device ids; this device always keeps it) and every other row of the account removed in the same
+ * step. A kept device must be verified, not signed out and not known here as removed, else UntrustedDevicesError. New
+ * password wrap (`encKey`, required for email accounts) and recovery wrap (`recoveryKey`, else the old recovery code stops
+ * working). The chain names this device and the devices left out, so the kept devices learn them.
  * Needs a sign-in within the last 10 minutes (the server answers ReauthRequiredError otherwise).
  */
-export async function rotate(deps: AccountDeps, keys: { encKey?: Uint8Array, recoveryKey?: Uint8Array } = {}, removedNow: string[] = []): Promise<RotationResult> {
+export async function rotate(deps: AccountDeps, choice: { keep: string[], encKey?: Uint8Array, recoveryKey?: Uint8Array }): Promise<RotationResult> {
     const { client, session, sodium } = deps
     const state = await session.load()
     if (!state?.dek || !state.dekId || !state.deviceKeys || !state.deviceId) throw new AccountCryptoError("this device has no key to rotate")
-    if (state.kind === "email" && !keys.encKey) throw new AccountCryptoError("the password is needed to rotate the key")
+    if (state.kind === "email" && !choice.encKey) throw new AccountCryptoError("the password is needed to rotate the key")
 
     let plain: Uint8Array | null = null
     const dek = newDek(sodium)
     try {
         const meta = await client.syncMeta()
         if (meta.dekId !== null && meta.dekId !== state.dekId) throw new AccountApiError(409, "dek_mismatch", "The account uses a different key.")
-        const removed = [...new Set([...(await session.removedDevices(state.userId)), ...(meta.removedDevices ?? []), ...removedNow])]
-        await session.addRemoved(state.userId, removed)
         const snapshot = meta.version > 0 ? await client.snapshot() : null
         if (snapshot && (snapshot.version !== meta.version || snapshot.version < state.highestVersion)) throw new AccountApiError(409, "version_conflict", "The synced data changed. Try again.")
         plain = snapshot ? decryptPackage(sodium, snapshot.bytes, state.dek, { userId: state.userId, version: snapshot.version, dekId: state.dekId }) : null
 
+        const known = new Set(await session.removedDevices(state.userId))
+        const wanted = new Set([...choice.keep, state.deviceId])
         const devices = await client.devices()
-        const relisted = devices.filter(device => removed.includes(device.devicePub))
-        if (relisted.length > 0) throw new RemovedDeviceListedError(relisted.map(device => device.name))
-        // only devices a DEK holder added get the new key; a row nobody vouches for stops the rotation (remove it first)
-        const untrusted = devices.filter(device => !deviceVerified(deps, state, device))
-        if (untrusted.length > 0) throw new UntrustedDevicesError(untrusted.map(device => device.name))
+        if ([...wanted].some(id => !devices.some(device => device.id === id))) throw new AccountApiError(409, "device_set_mismatch", "The device list changed. Reload it and choose again.")
+        const kept = devices.filter(device => wanted.has(device.id))
+        // only devices a DEK holder added, still signed in and not removed get the new key
+        const refused = kept.filter(device => device.signedOutAt != null || known.has(device.devicePub) || !deviceVerified(deps, state, device))
+        if (refused.length > 0) throw new UntrustedDevicesError(refused.map(device => device.name))
+        const left = devices.filter(device => !wanted.has(device.id)).map(device => device.devicePub)
+        if (left.length > MAX_REMOVED) throw new AccountApiError(409, "device_set_mismatch", "Too many devices to leave out at once.")
 
         const dekId = newDekId(sodium)
-        const chainRemoved = removed.slice(-MAX_REMOVED)
-        const sealed = devices.map(device => {
+        const sealed = kept.map(device => {
             const devicePub = fromB64(sodium, device.devicePub, 32)
             return {
                 deviceId: device.id,
@@ -379,20 +423,24 @@ export async function rotate(deps: AccountDeps, keys: { encKey?: Uint8Array, rec
             }
         })
         const blob = plain ? encryptPackage(sodium, plain, dek, { userId: state.userId, version: meta.version + 1, dekId }) : null
-        const binding = { userId: state.userId, oldDekId: state.dekId, newDekId: dekId, rotatorPub: state.deviceKeys.publicKey, removed: chainRemoved }
+        const binding = { userId: state.userId, oldDekId: state.dekId, newDekId: dekId, rotatorPub: state.deviceKeys.publicKey, removed: left }
         const result = await client.rotate({
             oldDekId: state.dekId,
             dekId,
             dekProof: dekProof(sodium, dek),
             chainMac: chainMac(sodium, state.dek, binding, dek),
             devices: sealed,
-            removed: chainRemoved,
-            ...(keys.encKey ? { wrappedDek: wrapKey(sodium, dek, keys.encKey, state.userId, dekId, "password") } : {}),
-            ...(keys.recoveryKey ? { recoveryWrappedDek: wrapKey(sodium, dek, keys.recoveryKey, state.userId, dekId, "recovery") } : {}),
+            removed: left,
+            ...(choice.encKey ? { wrappedDek: wrapKey(sodium, dek, choice.encKey, state.userId, dekId, "password") } : {}),
+            ...(choice.recoveryKey
+                ? { recoveryWrappedDek: wrapKey(sodium, dek, choice.recoveryKey, state.userId, dekId, "recovery"), recoveryProof: recoveryProof(sodium, choice.recoveryKey) }
+                : {}),
         }, blob, meta.version)
+        // the devices left out are this device's own removals: never sealed to again, their chains refused
+        await session.addRemoved(state.userId, left)
         await session.saveDek(dekId, dek)
         await session.updateSync({ highestVersion: Math.max(state.highestVersion, result.version) })
-        return { dekId, version: result.version, recoveryRenewed: keys.recoveryKey !== undefined, recoveryNeedsRenewal: result.recoveryRenewalNeeded === true }
+        return { dekId, version: result.version, recoveryRenewed: choice.recoveryKey !== undefined, recoveryNeedsRenewal: result.recoveryRenewalNeeded === true }
     }
     finally {
         wipe(sodium, dek, plain, state.dek)

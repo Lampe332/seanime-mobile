@@ -106,6 +106,9 @@ export type AccountState = SessionInfo & SyncState & {
 
 const EMPTY_SYNC: SyncState = { highestVersion: 0, lastHash: null, lastSyncAt: null, imported: false }
 
+/** Removed device keys of one account: `own` the DEK vouched for (never dropped), `server` from sync/meta (bounded) */
+type RemovedLists = { own: string[], server: string[] }
+
 export class AccountSession {
     constructor(
         private readonly store: SecureStore,
@@ -219,21 +222,41 @@ export class AccountSession {
         await this.store.deleteItemAsync(KEYS.device)
     }
 
-    /** Device keys (base64url) this device knows as removed from the account (R3) */
+    /** Device keys (base64url) this device knows as removed from the account (R3): its own list and the server's */
     async removedDevices(userId: string): Promise<string[]> {
-        return (await this.read<Record<string, string[]>>(KEYS.removed))?.[userId] ?? []
+        const lists = (await this.read<Record<string, RemovedLists | string[]>>(KEYS.removed))?.[userId]
+        if (Array.isArray(lists)) return lists
+        return [...new Set([...(lists?.own ?? []), ...(lists?.server ?? [])])]
     }
 
     /**
-     * Remembers removed device keys for the account: its own removals, the ones a trusted key chain names and the ones the
-     * server lists (trusting a list only ever leaves a device out). At most the newest 200.
+     * Remembers removed device keys the DEK vouched for (S2, NEU3-3): this device's own removals and the ones a key chain
+     * names. Only DEK holders add them, so nothing is ever pushed out of this list.
      */
     async addRemoved(userId: string, pubs: string[]): Promise<void> {
-        if (pubs.length === 0) return
-        const all = (await this.read<Record<string, string[]>>(KEYS.removed)) ?? {}
-        const before = all[userId] ?? []
-        const next = [...new Set([...before, ...pubs])].slice(-200)
-        if (next.length === before.length) return
+        await this.updateRemoved(userId, lists => ({ ...lists, own: [...new Set([...lists.own, ...pubs])] }))
+    }
+
+    /**
+     * The server's list (sync/meta), kept apart (NEU3-3): only well-formed device keys, at most 50 per answer and 200 in
+     * all; once full, new server entries are dropped, never the own ones. Believing it can only leave a device out.
+     */
+    async addServerRemoved(userId: string, pubs: unknown): Promise<void> {
+        if (!Array.isArray(pubs)) return
+        const valid = pubs.filter((pub): pub is string => typeof pub === "string" && /^[A-Za-z0-9_-]{43}$/.test(pub)).slice(0, 50)
+        await this.updateRemoved(userId, lists => {
+            const room = Math.max(0, 200 - lists.server.length)
+            const fresh = valid.filter(pub => !lists.server.includes(pub) && !lists.own.includes(pub)).slice(0, room)
+            return { ...lists, server: [...lists.server, ...fresh] }
+        })
+    }
+
+    private async updateRemoved(userId: string, change: (lists: RemovedLists) => RemovedLists): Promise<void> {
+        const all = (await this.read<Record<string, RemovedLists | string[]>>(KEYS.removed)) ?? {}
+        const stored = all[userId]
+        const before: RemovedLists = Array.isArray(stored) ? { own: stored, server: [] } : { own: stored?.own ?? [], server: stored?.server ?? [] }
+        const next = change(before)
+        if (next.own.length === before.own.length && next.server.length === before.server.length) return
         all[userId] = next
         await this.write(KEYS.removed, all)
     }

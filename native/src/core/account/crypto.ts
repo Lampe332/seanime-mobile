@@ -80,15 +80,7 @@ export class UntrustedKeyChangeError extends AccountCryptoError {
     }
 }
 
-/** A device this device knows as removed is listed again (R3, NEU-3): nothing is sealed to it, the rotation stops */
-export class RemovedDeviceListedError extends AccountCryptoError {
-    constructor(readonly names: string[]) {
-        super(`a removed device is in the account again: ${names.join(", ")}`)
-        this.name = "RemovedDeviceListedError"
-    }
-}
-
-/** The device list holds devices no DEK holder added (K-1): nothing is sealed to them */
+/** A key change was asked to keep a device no DEK holder added, one this device knows as removed, or one that signed out */
 export class UntrustedDevicesError extends AccountCryptoError {
     constructor(readonly names: string[]) {
         super(`unverified device in the account: ${names.join(", ")}`)
@@ -401,6 +393,23 @@ export function recoveryKeyFrom(sodium: Sodium, code: string): Uint8Array {
     }
     finally {
         wipe(sodium, bytes, input)
+    }
+}
+
+const RECOVERY_PROOF_CONTEXT = "sm-rcvr"
+
+/**
+ * S3: shown to the server to prove the owner has the recovery code (the server keeps only its SHA-256). Unlike the DEK
+ * proof a copied DEK can't make it, so it lets a device join the account like the password does.
+ */
+export function recoveryProof(sodium: Sodium, recoveryKey: Uint8Array): string {
+    if (recoveryKey.length !== KEY_BYTES) throw new AccountCryptoError("the key has the wrong length")
+    const proof = sodium.crypto_kdf_derive_from_key(KEY_BYTES, 1, RECOVERY_PROOF_CONTEXT, recoveryKey)
+    try {
+        return toB64(sodium, proof)
+    }
+    finally {
+        wipe(sodium, proof)
     }
 }
 
