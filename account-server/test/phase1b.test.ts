@@ -114,16 +114,19 @@ describe("mail", () => {
     }
   });
 
-  it("links only to the website and loads nothing", () => {
+  it("links only to the website, Discord and Ko-fi and loads nothing", () => {
     const base = env.WEB_BASE_URL;
+    const outside = ["https://discord.gg/dxJdj5Dqt9", "https://ko-fi.com/lampe332"];
+    const count = (html: string, s: string) => html.split(s).length - 1;
     for (const m of ALL_MAILS) {
       const { html } = renderMail(env, m, "owner@example.com");
-      expect(html).not.toMatch(/http:\/\/|<img|<script|<link|<iframe|<object|src=|url\(|@import/i);
-      // every "//" belongs to a link on the website's own host
-      expect(html.split("//").length).toBe(html.split(`${base}`).length);
+      expect(html).not.toMatch(/http:\/\/|<img|<script|<link|<iframe|<object|src=|url\(|@import|@font-face/i);
+      // every "//" belongs to a link on the website's own host, the Discord invite or the Ko-fi page
+      expect(count(html, "//")).toBe(count(html, base) + outside.reduce((n, u) => n + count(html, u), 0));
       const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((h) => decode(h[1]!));
       expect(hrefs.length).toBeGreaterThan(0);
-      for (const h of hrefs) expect(h === base || h.startsWith(`${base}/account/`)).toBe(true);
+      for (const h of hrefs) expect(h === base || h.startsWith(`${base}/account/`) || outside.includes(h)).toBe(true);
+      for (const u of outside) expect(hrefs).toContain(u);
       if ("token" in m) expect(hrefs).toContain(`${base}/account/${m.kind === "reset" ? "reset" : m.kind === "verify" ? "verify" : "confirm"}/#token=${m.token}`);
     }
   });
