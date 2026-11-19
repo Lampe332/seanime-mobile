@@ -13,6 +13,8 @@ import {
     otherShowKeys,
     factsSentence,
     resolutionLabel,
+    SEED_BAR_PATHS,
+    seedBars,
     seedHealth,
     seedIconBox,
     sizeText,
@@ -159,6 +161,12 @@ describe("torrentFacts", () => {
 
     it("grades the seeders: none red, under 10 yellow, from 10 green", () => {
         expect([-1, 0, 9, 10].map(seedHealth)).toEqual(["unknown", "none", "low", "good"])
+    })
+
+    // 4.2.0 E (S22, Frieren): with one seeder only the dot and one bar were drawn, the icon looked tiny
+    it("always draws the four marks of the seeder icon and fills as many as the seeders earn", () => {
+        expect(SEED_BAR_PATHS).toHaveLength(4)
+        expect((["unknown", "none", "low", "good"] as const).map(seedBars)).toEqual([1, 1, 2, 4])
     })
 
     it("says the whole card in one sentence", () => {

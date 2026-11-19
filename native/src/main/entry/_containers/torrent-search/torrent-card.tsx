@@ -10,7 +10,9 @@ import {
     factsSentence,
     headParts,
     magnetLinkOf,
+    SEED_BAR_PATHS,
     type SeedHealth,
+    seedBars,
     seedIconBox,
     torrentFacts,
     whole,
@@ -19,11 +21,9 @@ import { decodeEntities } from "@/main/entry/_containers/torrent-search/_lib/tor
 import * as Clipboard from "expo-clipboard"
 import Check from "lucide-react-native/icons/check"
 import Copy from "lucide-react-native/icons/copy"
-import SignalHigh from "lucide-react-native/icons/signal-high"
-import SignalLow from "lucide-react-native/icons/signal-low"
-import SignalZero from "lucide-react-native/icons/signal-zero"
 import React from "react"
 import { Pressable, View } from "react-native"
+import Svg, { Path } from "react-native-svg"
 
 /*
  * One torrent as a card, the same in the stream list, the download list (with a box to pick it) and the download sheet:
@@ -42,11 +42,23 @@ import { Pressable, View } from "react-native"
 
 export type TorrentCardMode = "stream" | "pick" | "show"
 
-const HEALTH: Record<SeedHealth, { Icon: typeof SignalHigh, color: string }> = {
-    unknown: { Icon: SignalZero, color: colors.smTextSubtle },
-    none: { Icon: SignalZero, color: colors.smDanger },
-    low: { Icon: SignalLow, color: colors.smWarning },
-    good: { Icon: SignalHigh, color: colors.smSuccess },
+const HEALTH: Record<SeedHealth, string> = {
+    unknown: colors.smTextSubtle,
+    none: colors.smDanger,
+    low: colors.smWarning,
+    good: colors.smSuccess,
+}
+
+/** The marks not reached (4.2.0 E): a quiet tone that still shows on the raised card, so the icon keeps its four-bar size */
+const SEED_BAR_EMPTY = colors.muted
+
+/** Lucide's signal icon with every bar drawn: the reached ones in the health colour, the others quiet */
+function SeedBars({ health }: { health: SeedHealth }) {
+    const filled = seedBars(health)
+    return <Svg width={SEED_ICON.size} height={SEED_ICON.size} viewBox="0 0 24 24" fill="none" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+        style={{ marginTop: SEED_ICON.top }}>
+        {SEED_BAR_PATHS.map((d, index) => <Path key={d} d={d} stroke={index < filled ? HEALTH[health] : SEED_BAR_EMPTY} />)}
+    </Svg>
 }
 
 const DIGITS = { fontVariant: ["tabular-nums"] } as const
@@ -103,7 +115,6 @@ export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t,
         torrent.isBestRelease ? t("Best release", "Bestes Release") : "",
     ].filter(Boolean)
     const tags = [...marks.slice(best ? 1 : 0), ...facts.tech]
-    const { Icon, color } = HEALTH[facts.health]
     const copy = () => void copyMagnetWithToast(torrent, t)
     const tap = mode !== "show" && !disabled && onChoose ? () => onChoose(torrent) : undefined
 
@@ -140,7 +151,7 @@ export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t,
             {hasHead && <Text numberOfLines={2} className={cn("text-[13px] leading-[18px] text-sm-text-subtle", hasMagnet && "pr-3")}>{name}</Text>}
             {/* numbers and tags flow as one text, each fact whole; the icon stands at the first line */}
             <View className={cn("flex-row items-start gap-1.5", hasMagnet && "pr-3")}>
-                <View className="h-[18px]"><Icon size={SEED_ICON.size} color={color} strokeWidth={2.5} style={{ marginTop: SEED_ICON.top }} /></View>
+                <View className="h-[18px]"><SeedBars health={facts.health} /></View>
                 <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-sm-text-muted" style={DIGITS}>
                     {/* "Best match" leads the flow instead of a row of its own: the one card is a line shorter */}
                     {best && <Text className="text-[13px] font-semibold leading-[18px] text-sm-accent">{`★ ${whole(marks[0]!)}`}</Text>}

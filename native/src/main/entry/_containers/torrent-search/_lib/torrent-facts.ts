@@ -54,6 +54,17 @@ export function resolutionLabel(text: string | undefined): string {
     return height ? `${Number(height[1])}p` : ""
 }
 
+/** Lucide's signal geometry (24 grid): a dot and three bars rising from the baseline y 20 */
+export const SEED_BAR_PATHS = ["M2 20h.01", "M7 20v-4", "M12 20v-8", "M17 20V8"] as const
+
+/**
+ * How many of the four marks of the seeder icon are filled (4.2.0 E): the rest are drawn in a quiet tone, so one filled
+ * bar reads as one of four, not as a small icon. Good: all, low: the dot and one bar, none and unknown: the dot.
+ */
+export function seedBars(health: SeedHealth): number {
+    return health === "good" ? 4 : health === "low" ? 2 : 1
+}
+
 /**
  * The seeder icon's box for a text line of `fontSize` on `lineHeight` (4.2.0 E: at 15 dp beside 13 dp text its bars were
  * a dot). Lucide's signal bars stand in the lower half of the icon (y 8 to 20 of 24), so the full bar is half the box: the

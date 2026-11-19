@@ -84,6 +84,12 @@ describe("torrent card", () => {
         expect(card).toMatch(/\{mode === "pick" && <View className="h-5 justify-center"><PickBox/)
     })
 
+    it("draws the seeder bars not reached in a visible quiet token, not left out", () => {
+        expect(card).toMatch(/const SEED_BAR_EMPTY = colors\.muted/)
+        expect(card).toMatch(/stroke=\{index < filled \? HEALTH\[health\] : SEED_BAR_EMPTY\}/)
+        expect(card).not.toMatch(/lucide-react-native\/icons\/signal/)
+    })
+
     it("uses the one accent only for Best match and tabular figures for the numbers", () => {
         expect(card.match(/sm-accent(?!-strong)/g)?.length).toBe(1)
         expect(card).toMatch(/fontVariant: \["tabular-nums"\]/)
