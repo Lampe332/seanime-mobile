@@ -1,4 +1,4 @@
-import { localStore } from "@/lib/storage"
+import { followStore, localStore } from "@/lib/storage"
 import { atomWithStorage } from "jotai/utils"
 
 export interface MediaCorePreferences {
@@ -111,3 +111,5 @@ export const mediaCorePreferencesAtom = atomWithStorage<MediaCorePreferences>(
     customStorage,
     { getOnInit: true }
 )
+// its own storage (the migration above), so it is told apart here: the account sync may bring newer player preferences
+followStore(PREFERENCES_KEY, mediaCorePreferencesAtom, () => customStorage.getItem(PREFERENCES_KEY, mediaCoreDefaultPreferences))

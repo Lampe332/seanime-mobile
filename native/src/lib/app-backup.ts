@@ -4,7 +4,7 @@ import { coreMakeBackup, coreRestoreBackup } from "@/api/client/core-switch"
 import { type BackupFile, type BackupSummary, type RestoreMode, backupSummary, readBackup } from "@/core"
 import { isDeviceKey, withoutDeviceKeys } from "@/lib/app-backup-keys"
 import { pickFiles, saveExport } from "@/lib/file-transfer"
-import { storage } from "@/lib/storage"
+import { storage, writeStoredValues } from "@/lib/storage"
 import * as Application from "expo-application"
 import { Directory, File, Paths } from "expo-file-system"
 
@@ -90,8 +90,8 @@ export async function writeSafetyBackup(): Promise<void> {
 /** Preferences from a backup or the account into the app's store; `removed`: keys the account's sync knows as removed */
 export function writeAppPreferences(preferences: Record<string, string>, removed: string[] = []): void {
     // the device's own keys are never written from a file (app-backup-keys.ts); the app's backups do not hold them
-    for (const [key, value] of Object.entries(withoutDeviceKeys(preferences))) storage.set(key, value)
-    for (const key of removed) if (!isDeviceKey(key)) storage.remove(key)
+    // the atoms that hold these keys read them again (storage.ts): the screens show the new values without a restart
+    writeStoredValues(withoutDeviceKeys(preferences), removed.filter(key => !isDeviceKey(key)))
 }
 
 export function hasSafetyBackup(): boolean {

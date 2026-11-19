@@ -1,4 +1,5 @@
-import { atomWithStorage as jotaiAtomWithStorage, createJSONStorage } from "jotai/utils"
+import { type WritableAtom, getDefaultStore } from "jotai"
+import { RESET, atomWithStorage as jotaiAtomWithStorage, createJSONStorage } from "jotai/utils"
 import { createMMKV } from "react-native-mmkv"
 
 /**
@@ -53,5 +54,28 @@ export function readStoredJSON<T>(key: string, fallback: T): T {
  * stored value; the web app needed `getOnInit` for that and flashed the default elsewhere.
  */
 export function atomWithStorage<T>(key: string, initialValue: T) {
-    return jotaiAtomWithStorage<T>(key, initialValue, createJSONStorage<T>(() => localStore), { getOnInit: true })
+    const json = createJSONStorage<T>(() => localStore)
+    const made = jotaiAtomWithStorage<T>(key, initialValue, json, { getOnInit: true })
+    followStore(key, made, () => json.getItem(key, initialValue))
+    return made
+}
+
+/** How each stored atom reads its key again, by key (writeStoredValues) */
+const followers = new Map<string, (() => void)[]>()
+
+/**
+ * Makes an atom follow its key when something other than the atom writes the store: it is then set to `read()`, or reset
+ * to its default when the key is gone. An atom reads the store only when it is made and when it is mounted, so without
+ * this a value the account sync brought stayed invisible (and was overwritten by the old one at the next change).
+ */
+export function followStore<T>(key: string, stored: WritableAtom<T, [T | typeof RESET], unknown>, read: () => T): void {
+    const reread = () => void getDefaultStore().set(stored, storage.contains(key) ? read() : RESET)
+    followers.set(key, [...followers.get(key) ?? [], reread])
+}
+
+/** Writes values into the store from outside the atoms (the account sync, a restore) and takes the `removed` keys out */
+export function writeStoredValues(values: Record<string, string>, removed: string[]): void {
+    for (const [key, value] of Object.entries(values)) storage.set(key, value)
+    for (const key of removed) storage.remove(key)
+    for (const key of [...Object.keys(values), ...removed]) for (const reread of followers.get(key) ?? []) reread()
 }
