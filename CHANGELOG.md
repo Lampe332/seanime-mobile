@@ -9,6 +9,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 🎉 Account: Device list with security events, removing a device and changing the encryption key for only the devices you keep
 - 🎉 Account: Optional recovery code for when all your devices are gone at once, and a password reset by email
 - 🎉 Settings: The app now speaks eight languages: English, German, Spanish, Russian, Simplified Chinese, Brazilian Portuguese, French and Japanese. It follows the phone's language and can be changed under Settings
+- 🎉 Tour: The setup tour now shows the account. After updating from 4.1.0 you see this one card once, not the whole tour again
 - 🎉 Pull to refresh: Pull down on My lists, Updates, Schedule and History to load them again
 - ⚡️ Cast: The TV sheet keeps its height while it searches, connects and lists your TVs
 - ⚡️ Filters: "Show all tags" looks the same in My lists and Search
