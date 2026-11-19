@@ -231,6 +231,15 @@ export class SyncEngine {
         })
     }
 
+    /**
+     * Runs a step that ends or changes the account on this device (sign-out, a removed device's clean-up, deleting the
+     * account) between two syncs, never during one: a sync that is still running would write its sync state back after
+     * the step cleared it, and the next sign-in would find it.
+     */
+    exclusive<T>(work: () => Promise<T>): Promise<T> {
+        return this.serial(work)
+    }
+
     private serial<T>(work: () => Promise<T>): Promise<T> {
         const next = this.queue.then(work, work)
         this.queue = next.catch(() => undefined)

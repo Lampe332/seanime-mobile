@@ -151,9 +151,11 @@ export async function runSync(trigger: SyncTrigger): Promise<SyncResult | null> 
         store.set(lastSyncAtom, result)
         if (result.state === "removed") {
             // NEU-2: removed on another device or on the website: the key, the device keys and the session go at once
-            await session.clear()
-            await session.forgetDeviceKeys()
-            await session.forgetSigner()
+            await engine.exclusive(async () => {
+                await session.clear()
+                await session.forgetDeviceKeys()
+                await session.forgetSigner()
+            })
             store.set(keyNoticeAtom, "removed")
         }
         if (result.state === "signed-out") {
@@ -228,7 +230,8 @@ export async function importFromAccount(): Promise<SyncResult> {
 }
 
 export async function signOutHere(): Promise<void> {
-    await signOut(deps)
+    // after a sync that is still running, so it cannot write its sync state back into the cleared storage
+    await engine.exclusive(() => signOut(deps))
     store.set(lastSyncAtom, null)
     await refreshAccount()
 }
@@ -241,7 +244,7 @@ export async function deleteSyncedData(): Promise<void> {
 }
 
 export async function deleteWholeAccount(password: string): Promise<void> {
-    await deleteAccount(deps, { deviceName: deviceName(), password })
+    await engine.exclusive(() => deleteAccount(deps, { deviceName: deviceName(), password }))
     store.set(lastSyncAtom, null)
     await refreshAccount()
 }

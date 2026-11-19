@@ -10,6 +10,8 @@ import { beforeAll, describe, expect, it } from "vitest"
 import { anilistChanges, playlists, settingsSections, watchPositions } from "../database/schema"
 import { DEBRID_KEY_SECRET } from "../debrid/debrid"
 import { AccountApiError, ConflictError, type Snapshot, type SyncMeta } from "./client"
+import type { AccountDeps } from "./devices"
+import { signOut } from "./flows"
 import { AccountSession } from "./session"
 import type { Sodium } from "./sodium"
 import { decryptPackage } from "./crypto"
@@ -43,6 +45,7 @@ class FakeServer implements SyncApi {
         throw new AccountApiError(404, "not_found", "no key")
     }
     snapshot = async (): Promise<Snapshot | null> => this.oldSnapshot ?? (this.blob ? { bytes: this.blob, version: this.version, dekId: DEK_ID } : null)
+    logout = async () => undefined
     /** Like routes.ts deleteSync: the data goes, the version counts on */
     deleteSync = async () => {
         if (this.version === 0) return
@@ -66,7 +69,8 @@ let clock = Date.parse("2026-11-17T10:00:00.000Z")
 
 async function phone(server: FakeServer, options: { imported: boolean }) {
     const one = device(driver, () => clock)
-    const session = new AccountSession(memoryStore(), sodium)
+    const store = memoryStore()
+    const session = new AccountSession(store, sodium)
     await session.saveSession({ userId: USER, sessionToken: "t".repeat(43), kind: "email", email: "a@example.org", deviceId: "d" })
     await session.saveDek(DEK_ID, bytes(32, 40))
     await session.updateSync({ imported: options.imported })
@@ -84,7 +88,7 @@ async function phone(server: FakeServer, options: { imported: boolean }) {
         safetyBackup: async () => void safetyBackups++,
     })
     const engine = new SyncEngine({ api: server, session, sodium, gzip, local, now: () => clock })
-    return { ...one, session, engine, safetyBackups: () => safetyBackups }
+    return { ...one, store, session, engine, safetyBackups: () => safetyBackups }
 }
 
 const playlist = (name: string) => ({ name, episodes: [], createdAt: clock, updatedAt: clock })
@@ -401,5 +405,33 @@ describe("deleting the synced data", () => {
         expect(await a.engine.sync("manual")).toMatchObject({ state: "rollback-rejected", version: 1, highest: 2 })
         server.overrideMeta = { version: 0, size: 0, dekId: null }
         expect(await a.engine.sync("manual")).toMatchObject({ state: "rollback-rejected", version: 0, highest: 2 })
+    })
+})
+
+describe("signing out while a sync runs", () => {
+    it("waits for the sync and leaves nothing of the account behind: the next sign-in starts clean", async () => {
+        const server = new FakeServer()
+        const a = await phone(server, { imported: true })
+        await (await a.db()).insert(playlists).values(playlist("Evening"))
+        // the upload is on its way when the user signs out
+        let uploading!: () => void
+        let arrive!: () => void
+        const started = new Promise<void>(resolve => uploading = resolve)
+        const arrived = new Promise<void>(resolve => arrive = resolve)
+        const put = server.putSnapshot
+        server.putSnapshot = async (...upload) => {
+            uploading()
+            await arrived
+            return put(...upload)
+        }
+        const syncing = a.engine.sync("manual")
+        await started
+        const deps = { client: server, session: a.session, sodium } as unknown as AccountDeps
+        const out = a.engine.exclusive(() => signOut(deps))
+        arrive()
+        await Promise.all([syncing, out])
+        expect(await a.session.load()).toBeNull()
+        // no sync state of the old account (imported, highest version, hash) waits for whoever signs in next
+        expect([...a.store.items.keys()].filter(key => key.startsWith("seanime-account."))).toEqual([])
     })
 })
