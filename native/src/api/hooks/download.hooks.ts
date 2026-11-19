@@ -2,6 +2,7 @@ import { useServerMutation } from "@/api/client/requests"
 import { DownloadTorrentFile_Variables } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useDownloadTorrentFile(onSuccess?: () => void) {
     return useServerMutation<boolean, DownloadTorrentFile_Variables>({
@@ -9,7 +10,7 @@ export function useDownloadTorrentFile(onSuccess?: () => void) {
         method: API_ENDPOINTS.DOWNLOAD.DownloadTorrentFile.methods[0],
         mutationKey: [API_ENDPOINTS.DOWNLOAD.DownloadTorrentFile.key],
         onSuccess: async () => {
-            toast.success("Files downloaded")
+            toast.success(tr("Files downloaded", "Dateien heruntergeladen"))
             onSuccess?.()
         },
     })

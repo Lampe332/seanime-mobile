@@ -1,4 +1,6 @@
+import { coreErrorText } from "@/api/client/core-error-text"
 import { coreRequestFor, serverOffError } from "@/api/client/core-switch"
+import { tr } from "@/lib/app-language"
 import { toast } from "@/components/ui/toast/toast-store"
 import { serverAuthTokenAtom } from "@/main/_atoms/server-status.atoms"
 import { requestErrorSummary } from "@/lib/helpers/log-safe"
@@ -125,7 +127,7 @@ export function useServerMutation<R = void, V = void>(
             console.log("Mutation error", requestErrorSummary(error))
             const errorMsg = _handleSeaError(error.response?.data)
             if (errorMsg.includes("feature disabled")) {
-                toast.warning("This feature is disabled")
+                toast.warning(tr("This feature is disabled", "Diese Funktion ist deaktiviert"))
                 return
             }
             toast.error(errorMsg)
@@ -204,27 +206,29 @@ export function useServerQuery<R, V = any>(
 //----------------------------------------------------------------------------------------------------------------------
 
 function _handleSeaError(data: any): string {
-    if (typeof data === "string") return "Server Error: " + data
+    if (typeof data === "string") return tr(`Server error: ${data}`, `Serverfehler: ${data}`)
 
     const err = data?.error as string
 
-    if (!err) return "Unknown error"
+    if (!err) return tr("Unknown error", "Unbekannter Fehler")
 
     if (err.includes("Too many requests"))
-        return "AniList: Too many requests, please wait a moment and try again."
+        return tr("AniList: Too many requests, please wait a moment and try again.", "AniList: Zu viele Anfragen, bitte warte kurz und versuche es erneut.")
 
     try {
         const graphqlErr = JSON.parse(err) as any
         console.log("AniList error", graphqlErr)
         if (graphqlErr.graphqlErrors && graphqlErr.graphqlErrors.length > 0 && !!graphqlErr.graphqlErrors[0]?.message) {
-            return "AniList error: " + graphqlErr.graphqlErrors[0]?.message
+            const message = String(graphqlErr.graphqlErrors[0]?.message)
+            return tr(`AniList error: ${message}`, `AniList-Fehler: ${message}`)
         }
-        return "AniList error"
+        return tr("AniList error", "AniList-Fehler")
     }
     catch (e) {
         if (err.includes("no cached data") || err.includes("cache lookup failed")) {
             return ""
         }
-        return "Error: " + err
+        const text = coreErrorText(err)
+        return tr(`Error: ${text}`, `Fehler: ${text}`)
     }
 }

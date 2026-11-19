@@ -5,6 +5,7 @@ import { useRefreshLibraryExplorerFileTree } from "@/api/generated/library_explo
 import { Anime_LocalFile } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useScanLocalFiles(onSuccess?: () => void) {
     const queryClient = useQueryClient()
@@ -16,7 +17,7 @@ export function useScanLocalFiles(onSuccess?: () => void) {
         mutationKey: [API_ENDPOINTS.SCAN.ScanLocalFiles.key],
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
-            toast.success("Library scanned")
+            toast.success(tr("Library scanned", "Bibliothek gescannt"))
             refreshLibraryExplorerTree()
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetMissingEpisodes.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key] })

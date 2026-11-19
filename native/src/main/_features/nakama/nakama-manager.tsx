@@ -1,3 +1,4 @@
+import { coreErrorText } from "@/api/client/core-error-text"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import type { Nakama_NakamaStatus, Nakama_WatchPartySession } from "@/api/generated/types"
 import {
@@ -123,7 +124,7 @@ export function NakamaManager() {
             refetchStatus()
         },
     })
-    const failure = (what: string) => (error: Error) => toast.error(`${what}: ${error.message}`)
+    const failure = (what: string) => (error: Error) => toast.error(`${what}: ${coreErrorText(error.message)}`)
 
     const actions: NakamaActions = {
         reconnect: () => reconnectToHost({}, { ...after(t("Reconnection started", "Verbindung wird neu aufgebaut")), onError: failure(t("Could not reconnect", "Neuverbindung fehlgeschlagen")) }),

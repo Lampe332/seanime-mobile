@@ -7,6 +7,7 @@ import { useSetServerStatus } from "@/main/_hooks/use-server-status"
 import { useQueryClient } from "@tanstack/react-query"
 import { useSetAtom } from "jotai/react"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useGettingStarted() {
     const queryClient = useQueryClient()
@@ -34,7 +35,7 @@ export function useSaveSettings() {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetMissingEpisodes.key] })
-            toast.success("Settings saved")
+            toast.success(tr("Settings saved", "Einstellungen gespeichert"))
         },
     })
 }
@@ -56,7 +57,7 @@ export function usePatchSetting() {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetMissingEpisodes.key] })
-            toast.success("Settings updated")
+            toast.success(tr("Settings updated", "Einstellungen aktualisiert"))
         },
     })
 }

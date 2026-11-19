@@ -110,7 +110,7 @@ export function useHandlePlayMedia() {
             (forcePlaybackMethod && forcePlaybackMethod === "externalPlayerLink")
         ) {
             if (!externalPlayerLink) {
-                toast.error("External player link is not set.")
+                toast.error(tr("External player link is not set.", "Kein Link für den externen Player festgelegt."))
                 return
             }
 

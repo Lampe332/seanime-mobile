@@ -5,6 +5,7 @@ import { AL_ListManga, AL_MangaCollection, AL_MangaDetailsById_Media, HibikeMang
 import { getEntryPreloadStaleTime } from "@/lib/entry-preloader"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useGetRawAnilistMangaCollection() {
     return useServerQuery<AL_MangaCollection>({
@@ -178,7 +179,7 @@ export function useMangaManualMapping() {
         method: API_ENDPOINTS.MANGA.MangaManualMapping.methods[0],
         mutationKey: [API_ENDPOINTS.MANGA.MangaManualMapping.key],
         onSuccess: async () => {
-            toast.success("Mapping added")
+            toast.success(tr("Mapping added", "Zuordnung hinzugefügt"))
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntryChapters.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntryPages.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaMapping.key] })
@@ -204,7 +205,7 @@ export function useRemoveMangaMapping() {
         method: API_ENDPOINTS.MANGA.RemoveMangaMapping.methods[0],
         mutationKey: [API_ENDPOINTS.MANGA.RemoveMangaMapping.key],
         onSuccess: async () => {
-            toast.info("Mapping removed")
+            toast.info(tr("Mapping removed", "Zuordnung entfernt"))
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntryChapters.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntryPages.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaMapping.key] })

@@ -2,6 +2,7 @@ import { ExtensionRepo_OnlinestreamProviderExtensionItem, Onlinestream_EpisodeLi
 import { logger, useLatestFunction } from "@/lib/helpers/debug"
 import React from "react"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 import {
     getRefreshKey,
     markSourceRefreshed,
@@ -119,7 +120,7 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
         setTrialState(null)
         setUrl(null)
         setPlaybackError("No working providers found")
-        toast.error("No working providers found")
+        toast.error(tr("No working providers found", "Kein funktionierender Anbieter gefunden"))
     })
 
     const goToNextProvider = useLatestFunction((reason: string) => {
@@ -274,7 +275,7 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
         if (!trialRef.current) return
         setTrialState(null)
         setDetectedFailure(null)
-        toast.info("Stopped trying providers")
+        toast.info(tr("Stopped trying providers", "Anbietersuche beendet"))
     })
 
     React.useEffect(() => {

@@ -19,6 +19,7 @@ import {
 import { getEntryPreloadStaleTime } from "@/lib/entry-preloader"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useGetAnimeCollection() {
     return useServerQuery<AL_AnimeCollection>({
@@ -53,7 +54,7 @@ export function useRefreshAnimeCollection() {
         method: API_ENDPOINTS.ANILIST.GetAnimeCollection.methods[1],
         mutationKey: [API_ENDPOINTS.ANILIST.GetAnimeCollection.key],
         onSuccess: async () => {
-            toast.success("AniList is up-to-date")
+            toast.success(tr("AniList is up-to-date", "AniList ist aktuell"))
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetAnimeCollection.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetRawAnimeCollection.key] })
@@ -77,7 +78,7 @@ export function useEditAnilistListEntry(id: Nullish<string | number>, type: "ani
         method: API_ENDPOINTS.ANILIST.EditAnilistListEntry.methods[0],
         mutationKey: [API_ENDPOINTS.ANILIST.EditAnilistListEntry.key, String(id)],
         onSuccess: async () => {
-            toast.success("Entry updated")
+            toast.success(tr("Entry updated", "Eintrag aktualisiert"))
             if (type === "anime") {
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key, String(id)] })
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
@@ -112,7 +113,7 @@ export function useDeleteAnilistListEntry(id: Nullish<string | number>, type: "a
         method: API_ENDPOINTS.ANILIST.DeleteAnilistListEntry.methods[0],
         mutationKey: [API_ENDPOINTS.ANILIST.DeleteAnilistListEntry.key],
         onSuccess: async () => {
-            toast.success("Entry deleted")
+            toast.success(tr("Entry deleted", "Eintrag gelöscht"))
             if (type === "anime") {
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key, String(id)] })
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })

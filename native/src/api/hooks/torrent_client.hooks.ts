@@ -38,19 +38,19 @@ export function useTorrentClientAction(onSuccess?: (variables: TorrentClientActi
 
             if (variables.action === "set-limits") {
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
-                toast.success("Global speed limits updated")
+                toast.success(tr("Global speed limits updated", "Globale Geschwindigkeitslimits aktualisiert"))
             } else if (variables.action === "move-storage") {
-                toast.success("Torrent files moved successfully")
+                toast.success(tr("Torrent files moved successfully", "Torrent-Dateien verschoben"))
             } else if (variables.action === "rename") {
-                toast.success("Torrent renamed")
+                toast.success(tr("Torrent renamed", "Torrent umbenannt"))
             } else if (variables.action === "add-magnet") {
-                toast.success("Magnet link added")
+                toast.success(tr("Magnet link added", "Magnet-Link hinzugefügt"))
             } else if (variables.action === "reannounce") {
-                toast.success("Reannounced to trackers")
+                toast.success(tr("Reannounced to trackers", "Erneut bei den Trackern gemeldet"))
             } else if (variables.action === "add-tracker") {
-                toast.success("Tracker added")
+                toast.success(tr("Tracker added", "Tracker hinzugefügt"))
             } else if (variables.action === "remove-tracker") {
-                toast.success("Tracker removed")
+                toast.success(tr("Tracker removed", "Tracker entfernt"))
             }
 
             onSuccess?.(variables)

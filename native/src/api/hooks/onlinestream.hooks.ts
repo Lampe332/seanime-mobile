@@ -18,6 +18,7 @@ import {
 } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useGetOnlineStreamEpisodeList(id: Nullish<string | number>, provider: Nullish<string>, dubbed: boolean) {
     return useServerQuery<Onlinestream_EpisodeListResponse, GetOnlineStreamEpisodeList_Variables>({
@@ -95,7 +96,7 @@ export function useOnlineStreamEmptyCache() {
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ONLINESTREAM.GetOnlinestreamMapping.key] })
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ONLINESTREAM.GetOnlineStreamEpisodeList.key] })
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ONLINESTREAM.GetOnlineStreamEpisodeSource.key] })
-            toast.info("Stream cache emptied")
+            toast.info(tr("Stream cache emptied", "Stream-Cache geleert"))
         },
     })
 }
@@ -120,7 +121,7 @@ export function useOnlinestreamManualMapping() {
         method: API_ENDPOINTS.ONLINESTREAM.OnlinestreamManualMapping.methods[0],
         mutationKey: [API_ENDPOINTS.ONLINESTREAM.OnlinestreamManualMapping.key],
         onSuccess: async () => {
-            toast.success("Mapping added")
+            toast.success(tr("Mapping added", "Zuordnung hinzugefügt"))
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ONLINESTREAM.GetOnlinestreamMapping.key] })
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ONLINESTREAM.GetOnlineStreamEpisodeList.key] })
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ONLINESTREAM.GetOnlineStreamEpisodeSource.key] })
@@ -146,7 +147,7 @@ export function useRemoveOnlinestreamMapping() {
         method: API_ENDPOINTS.ONLINESTREAM.RemoveOnlinestreamMapping.methods[0],
         mutationKey: [API_ENDPOINTS.ONLINESTREAM.RemoveOnlinestreamMapping.key],
         onSuccess: async () => {
-            toast.info("Mapping removed")
+            toast.info(tr("Mapping removed", "Zuordnung entfernt"))
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ONLINESTREAM.GetOnlinestreamMapping.key] })
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ONLINESTREAM.GetOnlineStreamEpisodeList.key] })
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ONLINESTREAM.GetOnlineStreamEpisodeSource.key] })

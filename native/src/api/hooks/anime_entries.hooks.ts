@@ -5,6 +5,7 @@ import { AL_BaseAnime, Anime_Entry, Anime_LocalFile, Anime_MissingEpisodes, Anim
 import { getEntryPreloadStaleTime } from "@/lib/entry-preloader"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useGetAnimeEntry(id: Nullish<string | number>) {
     return useServerQuery<Anime_Entry>({
@@ -54,7 +55,7 @@ export function useAnimeEntryManualMatch() {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key] })
             queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.LIBRARY_EXPLORER.GetLibraryExplorerFileTree.key] })
-            toast.success("Files matched")
+            toast.success(tr("Files matched", "Dateien zugeordnet"))
         },
     })
 }
@@ -113,7 +114,7 @@ export function useUpdateAnimeEntryProgress(id: Nullish<string | number>, episod
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key, String(id)] })
             }
             if (showToast) {
-                toast.success("Progress updated successfully")
+                toast.success(tr("Progress updated successfully", "Fortschritt aktualisiert"))
             }
         },
     })

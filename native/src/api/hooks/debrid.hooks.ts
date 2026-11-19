@@ -61,7 +61,7 @@ export function useDebridCancelStream() {
         method: API_ENDPOINTS.DEBRID.DebridCancelStream.methods[0],
         mutationKey: [API_ENDPOINTS.DEBRID.DebridCancelStream.key],
         onSuccess: async () => {
-            toast.success("Stream cancelled")
+            toast.success(tr("Stream cancelled", "Stream abgebrochen"))
         },
     })
 }

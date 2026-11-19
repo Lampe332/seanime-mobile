@@ -11,6 +11,7 @@ import { atomWithStorage } from "@/lib/storage"
 import React from "react"
 import { toast } from "@/components/ui/toast/toast-store"
 import { defaultMangaProvider, getActiveMangaFilters, MangaEntryFilters, withInstalledProviders } from "./manga-preferences"
+import { tr } from "@/lib/app-language"
 
 export type { MangaEntryFilters } from "./manga-preferences"
 
@@ -50,7 +51,7 @@ function useSaveMangaPreference() {
             }
         }
         catch {
-            toast.error("Could not save manga preference")
+            toast.error(tr("Could not save manga preference", "Manga-Vorliebe konnte nicht gespeichert werden"))
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaPreferences.key] })
         }
     }, [queryClient, seaFetch])

@@ -10,6 +10,7 @@ import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Models_TorrentstreamSettings, Nullish, Torrentstream_BatchHistoryResponse, Torrentstream_FilePreview } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useSaveTorrentstreamSettings() {
     const qc = useQueryClient()
@@ -41,7 +42,7 @@ export function useTorrentstreamStopStream() {
         method: API_ENDPOINTS.TORRENTSTREAM.TorrentstreamStopStream.methods[0],
         mutationKey: [API_ENDPOINTS.TORRENTSTREAM.TorrentstreamStopStream.key],
         onSuccess: async () => {
-            toast.success("Stream stopped")
+            toast.success(tr("Stream stopped", "Stream gestoppt"))
         },
     })
 }

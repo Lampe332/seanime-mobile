@@ -8,6 +8,7 @@ import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Manga_DownloadListItem, Manga_MediaDownloadData, Models_ChapterDownloadQueueItem, Nullish } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useDownloadMangaChapters(id: Nullish<string | number>, provider: Nullish<string>) {
     const queryClient = useQueryClient()
@@ -50,7 +51,7 @@ export function useStartMangaDownloadQueue() {
         mutationKey: [API_ENDPOINTS.MANGA_DOWNLOAD.StartMangaDownloadQueue.key],
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA_DOWNLOAD.GetMangaDownloadQueue.key] })
-            toast.info("Downloading chapters")
+            toast.info(tr("Downloading chapters", "Kapitel werden heruntergeladen"))
         },
     })
 }
@@ -64,7 +65,7 @@ export function useStopMangaDownloadQueue() {
         mutationKey: [API_ENDPOINTS.MANGA_DOWNLOAD.StopMangaDownloadQueue.key],
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA_DOWNLOAD.GetMangaDownloadQueue.key] })
-            toast.success("Download queue stopped")
+            toast.success(tr("Download queue stopped", "Download-Warteschlange angehalten"))
         },
     })
 }
@@ -78,7 +79,7 @@ export function useClearAllChapterDownloadQueue() {
         mutationKey: [API_ENDPOINTS.MANGA_DOWNLOAD.ClearAllChapterDownloadQueue.key],
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA_DOWNLOAD.GetMangaDownloadQueue.key] })
-            toast.success("Download queue cleared")
+            toast.success(tr("Download queue cleared", "Download-Warteschlange geleert"))
         },
     })
 }
@@ -92,7 +93,7 @@ export function useResetErroredChapterDownloadQueue() {
         mutationKey: [API_ENDPOINTS.MANGA_DOWNLOAD.ResetErroredChapterDownloadQueue.key],
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA_DOWNLOAD.GetMangaDownloadQueue.key] })
-            toast.success("Reset errored chapters")
+            toast.success(tr("Reset errored chapters", "Fehlerhafte Kapitel zurückgesetzt"))
         },
     })
 }
@@ -105,7 +106,7 @@ export function useDeleteMangaDownloadedChapters(id: Nullish<string | number>, p
         mutationKey: [API_ENDPOINTS.MANGA_DOWNLOAD.DeleteMangaDownloadedChapters.key, String(id), provider],
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA_DOWNLOAD.GetMangaDownloadData.key] })
-            toast.success("Chapters deleted")
+            toast.success(tr("Chapters deleted", "Kapitel gelöscht"))
         },
     })
 }

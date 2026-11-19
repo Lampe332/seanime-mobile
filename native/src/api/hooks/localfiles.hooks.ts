@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Anime_LocalFile } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useLocalFileBulkAction() {
     const qc = useQueryClient()
@@ -43,7 +44,7 @@ export function useUpdateLocalFileData() {
         method: API_ENDPOINTS.LOCALFILES.UpdateLocalFileData.methods[0],
         mutationKey: [API_ENDPOINTS.LOCALFILES.UpdateLocalFileData.key],
         onSuccess: async () => {
-            toast.success("File metadata updated")
+            toast.success(tr("File metadata updated", "Datei-Metadaten aktualisiert"))
             qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
             qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key] })
             qc.invalidateQueries({ queryKey: [API_ENDPOINTS.LIBRARY_EXPLORER.GetLibraryExplorerFileTree.key] })
@@ -75,7 +76,7 @@ export function useDeleteLocalFiles() {
         method: API_ENDPOINTS.LOCALFILES.DeleteLocalFiles.methods[0],
         mutationKey: [API_ENDPOINTS.LOCALFILES.DeleteLocalFiles.key],
         onSuccess: async () => {
-            toast.success("Files deleted")
+            toast.success(tr("Files deleted", "Dateien gelöscht"))
             qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
             qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetAnimeEntry.key] })
             qc.invalidateQueries({ queryKey: [API_ENDPOINTS.LIBRARY_EXPLORER.GetLibraryExplorerFileTree.key] })
@@ -89,7 +90,7 @@ export function useRemoveEmptyDirectories() {
         method: API_ENDPOINTS.LOCALFILES.RemoveEmptyDirectories.methods[0],
         mutationKey: [API_ENDPOINTS.LOCALFILES.RemoveEmptyDirectories.key],
         onSuccess: async () => {
-            toast.success("Empty directories removed")
+            toast.success(tr("Empty directories removed", "Leere Ordner entfernt"))
         },
     })
 }

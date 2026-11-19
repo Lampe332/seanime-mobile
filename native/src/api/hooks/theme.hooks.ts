@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Models_Theme } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useUpdateTheme() {
     const queryClient = useQueryClient()
@@ -14,7 +15,7 @@ export function useUpdateTheme() {
         mutationKey: [API_ENDPOINTS.THEME.UpdateTheme.key],
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetStatus.key] })
-            toast.success("UI settings saved")
+            toast.success(tr("UI settings saved", "Oberflächen-Einstellungen gespeichert"))
         },
     })
 }

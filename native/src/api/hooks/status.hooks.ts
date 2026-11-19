@@ -5,6 +5,7 @@ import { Models_HomeItem, Status } from "@/api/generated/types"
 import { copyToClipboard } from "@/lib/helpers/browser"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
+import { tr } from "@/lib/app-language"
 
 export function useGetStatus() {
     return useServerQuery<Status>({
@@ -25,14 +26,14 @@ export function useGetLatestLogContent() {
         method: API_ENDPOINTS.STATUS.GetLatestLogContent.methods[0],
         mutationKey: [API_ENDPOINTS.STATUS.GetLatestLogContent.key],
         onSuccess: async data => {
-            if (!data) return toast.error("Couldn't fetch logs")
+            if (!data) return toast.error(tr("Couldn't fetch logs", "Logs konnten nicht geladen werden"))
             try {
                 await copyToClipboard(data)
-                toast.success("Copied to clipboard")
+                toast.success(tr("Copied to clipboard", "In die Zwischenablage kopiert"))
             }
             catch (err: any) {
                 console.error("Clipboard write error:", err)
-                toast.error("Failed to copy logs: " + err.message)
+                toast.error(tr(`Failed to copy logs: ${err.message}`, `Logs konnten nicht kopiert werden: ${err.message}`))
             }
         },
     })
@@ -58,7 +59,7 @@ export function useUpdateHomeItems() {
         mutationKey: [API_ENDPOINTS.STATUS.UpdateHomeItems.key],
         onSuccess: async () => {
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetHomeItems.key] })
-            toast.success("Home screen updated")
+            toast.success(tr("Home screen updated", "Startseite aktualisiert"))
         },
     })
 }
