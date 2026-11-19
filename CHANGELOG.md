@@ -6,7 +6,6 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 
 - 🎉 Account: Optional account with email and password. It keeps your settings, playback positions, history, playlists, extensions and their keys in sync across your devices
 - 🎉 Account: End-to-end encrypted. The key stays on your devices, so the server only stores data it can't read
-- 🎉 Account: A new device gets in after you approve it on a device you already use. Both show the same 6-digit number, and a No on either side ends the request
 - 🎉 Account: Device list with security events, removing a device and changing the encryption key for only the devices you keep
 - 🎉 Account: Optional recovery code for when all your devices are gone at once, and a password reset by email
 - 🎉 Settings: The app now speaks eight languages: English, German, Spanish, Russian, Simplified Chinese, Brazilian Portuguese, French and Japanese. It follows the phone's language and can be changed under Settings
