@@ -49,6 +49,11 @@ declare class SeanimeCoreDownloadModule extends NativeModule<CoreDownloadEvents 
     forget(id: string): Promise<void>
     /** Phase 6f: an ongoing notice and a wake lock hold the process while the torrent client downloads; false: not started (from the background) */
     keepTorrents(on: boolean, title: string): Promise<boolean>
+    /**
+     * 4.2.0: rewrites that notice (same number, quiet) with the torrents' progress: `done` of `total` as the bar, `total`
+     * 0 a bar without end; tapping opens `link` ("": the app). Never starts the service; false: it does not run.
+     */
+    updateTorrentNotice(title: string, text: string, done: number, total: number, link: string): Promise<boolean>
     /** Lower-case hex of a file inside the app's own storage */
     sha256(path: string): Promise<string>
     /** Removes a file or folder inside the app's own storage with everything in it; false when something stayed */

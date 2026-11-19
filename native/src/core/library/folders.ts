@@ -171,3 +171,44 @@ export function scanAtStart(environment: CoreEnvironment): void {
 export function forgetScanAtStart(): void {
     scannedAtStart = false
 }
+
+let refreshing: Promise<void> | null = null
+let refreshAgain = false
+
+const plainFolder = (path: string) => (path.startsWith("file://") ? decodeURIComponent(path.slice("file://".length)) : path).replace(/\/+$/, "")
+
+/**
+ * 4.2.0: after a torrent of the client finished (torrent/client.ts), the library reads its folders again, so the
+ * episode is in the app at once and not only after the next start. Only for a folder inside a library folder; told like
+ * the scan at the start. One that finishes during the scan brings one scan more after it. Unasked work, after the call.
+ */
+export function refreshAfterDownload(environment: CoreEnvironment, folder: string): Promise<void> {
+    if (!environment.localFolders) return Promise.resolve()
+    if (refreshing) {
+        refreshAgain = true
+        return refreshing
+    }
+    const work = async () => {
+        const inside = plainFolder(folder)
+        const roots = (await libraryFolders(environment)).map(plainFolder)
+        if (!roots.some(root => inside === root || inside.startsWith(`${root}/`))) return
+        do {
+            refreshAgain = false
+            emitCoreEvent("auto-scan-started", "")
+            try {
+                await scanLocalFiles({ path: {}, query: null, body: { enhanced: false, skipLockedFiles: true, skipIgnoredFiles: true } }, environment)
+            }
+            catch {
+                // a scan the user started runs already (409) or the folders cannot be read: the next scan finds the files
+            }
+            finally {
+                emitCoreEvent("auto-scan-completed", "")
+            }
+        } while (refreshAgain)
+    }
+    const run = environment.unasked ? environment.unasked("library scan after a torrent download", work) : work()
+    refreshing = run.then(() => undefined, () => undefined).finally(() => {
+        refreshing = null
+    })
+    return refreshing
+}
