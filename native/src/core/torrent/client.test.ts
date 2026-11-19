@@ -102,6 +102,10 @@ function deviceRun(): TorrentDevice {
             one(infoHash).paused = paused
             calls.push(`${paused ? "pause" : "resume"} ${infoHash.slice(0, 2)}`)
         },
+        setQueued: async (infoHash, queued) => {
+            one(infoHash)
+            calls.push(`${queued ? "queue" : "unqueue"} ${infoHash.slice(0, 2)}`)
+        },
         setPieceDeadlines: async () => undefined,
         serve: async () => "",
         remove: async (infoHash, deleteFiles) => {
@@ -185,7 +189,8 @@ describe("torrent client in the core", () => {
 
     it("downloads into the library's folder with only the missing episodes, listed in the app's form", async () => {
         expect(await download()).toBe(true)
-        expect(calls).toEqual(["add ab /storage/emulated/0/Anime/Show", "priority 0=0", "priority 3=0"])
+        // queued last, when its files are chosen
+        expect(calls).toEqual(["add ab /storage/emulated/0/Anime/Show", "priority 0=0", "priority 3=0", "queue ab"])
         const [torrent] = (await list())!
         expect(Object.keys(torrent).sort()).toEqual(Object.keys(TORRENT_FIELDS).sort())
         for (const [field, kind] of Object.entries(TORRENT_FIELDS)) expect(typeof torrent[field], field).toBe(kind)
@@ -282,6 +287,98 @@ describe("limits and the download queue (4.2.0)", () => {
         expect(seen.at(-1)).toEqual({ downloadLimit: 1024 * 1024, uploadLimit: 128 * 1024, activeDownloads: 2, stopWhenFinished: true })
     })
 
+    /**
+     * A session whose queue is full, as libtorrent runs it: a queued torrent is paused, and a paused magnet link gets
+     * no file list from its peers. The list is there once the torrent has run (not queued) for two seconds in all.
+     */
+    function fullQueue(): TorrentDevice {
+        const device = deviceRun()
+        let added = false
+        let waiting = false
+        let ranMs = 0
+        let runningSince = 0
+        const ran = () => ranMs + (added && !waiting ? clock - runningSince : 0)
+        return {
+            ...device,
+            addMagnet: async (uri, folder) => {
+                if (!added) runningSince = clock
+                added = true
+                return device.addMagnet(uri, folder)
+            },
+            setQueued: async (infoHash, on) => {
+                await device.setQueued?.(infoHash, on)
+                if (on === waiting) return
+                if (on) ranMs = ran()
+                else runningSince = clock
+                waiting = on
+            },
+            status: async infoHash => {
+                const status = await device.status(infoHash)
+                return { ...status, state: waiting ? "queued" : status.state, downRate: waiting ? 0 : status.downRate, hasMetadata: ran() >= 2000 }
+            },
+        }
+    }
+
+    it("queues a magnet link only after its files are chosen: behind a full queue it still gets its file list", async () => {
+        current = fullQueue()
+        expect(await download()).toBe(true)
+        expect(calls).toEqual(["add ab /storage/emulated/0/Anime/Show", "priority 0=0", "priority 3=0", "queue ab"])
+        expect((await list())![0]).toMatchObject({ hash: BATCH })
+        expect(disk.get(BATCH)?.priorities).toEqual({ 0: 0, 3: 0 })
+    })
+
+    it("takes a torrent that waits without its file list out of the queue until its files are chosen", async () => {
+        const device = fullQueue()
+        current = device
+        // added without a choice of files: queued at once, behind the others, before any peer gave the list
+        await download({ smartSelect: { enabled: false, missingEpisodeNumbers: [] } })
+        expect(calls).toEqual(["add ab /storage/emulated/0/Anime/Show", "queue ab"])
+        expect((await device.status(BATCH)).hasMetadata).toBe(false)
+        calls = []
+        // asked for again, now with a choice
+        await download()
+        expect(calls).toEqual(["add ab /storage/emulated/0/Anime/Show", "unqueue ab", "priority 0=0", "priority 3=0", "queue ab"])
+    })
+
+    it("queues every torrent of the sheet, also when the files of one cannot be chosen", async () => {
+        const device = deviceRun()
+        current = { ...device, files: async infoHash => {
+            if (infoHash === BATCH) throw new Error("ERR_TORRENT: the torrent has no file list yet")
+            return device.files(infoHash)
+        } }
+        await expect(download()).rejects.toThrow(/no file list/)
+        expect(calls).toEqual(["add ab /storage/emulated/0/Anime/Show", "queue ab"])
+    })
+
+    it("says again which torrents are queued after a restart and before a resume (the module forgets it for a paused one)", async () => {
+        await download({ smartSelect: { enabled: false, missingEpisodeNumbers: [] } })
+        await download({ torrents: [{ name: "Single", infoHash: SINGLE }] })
+        await act(SINGLE, "pause")
+        forgetTorrentClient()
+        forgetTorrentStream()
+        current = deviceRun()
+        calls = []
+        resumeClientAtStart(environment)
+        await settled()
+        await settled()
+        expect(calls).toEqual(["queue ab", "queue cd"])
+        calls = []
+        await act(SINGLE, "resume")
+        // into the queue first, so the resume hands it to the queue instead of starting it past the others
+        expect(calls).toEqual(["queue cd", "resume cd"])
+        calls = []
+        await act(SINGLE, "pause")
+        expect(calls).toEqual(["pause cd"])
+    })
+
+    it("downloads as before on a device without a queue", async () => {
+        current = { ...deviceRun(), setQueued: undefined }
+        expect(await download()).toBe(true)
+        await act(BATCH, "pause")
+        await act(BATCH, "resume")
+        expect(calls).toEqual(["add ab /storage/emulated/0/Anime/Show", "priority 0=0", "priority 3=0", "pause ab", "resume ab"])
+    })
+
     it("lists a waiting torrent with its place in the queue", async () => {
         const device = deviceRun()
         current = { ...device, status: async infoHash => ({ ...(await device.status(infoHash)), state: "queued", downRate: 0, queuePosition: 2 }) }
@@ -346,7 +443,8 @@ describe("the torrent client's notices and checks (4.2.0)", () => {
         metadata = true
         await tick()
         await settled()
-        expect(calls).toEqual(["add ab /storage/emulated/0/Anime/Show", "priority 0=0", "priority 3=0"])
+        // queued only now, after the files are chosen (not before: a queued torrent without a file list gets none)
+        expect(calls).toEqual(["add ab /storage/emulated/0/Anime/Show", "priority 0=0", "priority 3=0", "queue ab"])
     })
 
     it("refuses what does not fit into the free storage with the numbers, before it loads", async () => {

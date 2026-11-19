@@ -89,7 +89,7 @@ export type TorrentStatus = {
     trackerError: string
     /** Web seed addresses the torrent has */
     webSeeds: number
-    /** Where a queued torrent stands among those still downloading, from 0; -1: not in the queue */
+    /** Where a queued torrent stands among the queued ones that still download, from 0; -1: not in the queue */
     queuePosition: number
 }
 
@@ -127,7 +127,10 @@ export function plainPath(address: string): string {
     return path.length > 1 ? path.replace(/\/+$/, "") || "/" : path
 }
 
-const BASE64_URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+/** A path with `.` or `..` in it names another place than it reads */
+export const hasDotSegment = (path: string) => path.split("/").some(part => part === "." || part === "..")
+
+const BASE64_URL ="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
 /** The bytes of a base64url text (a `.torrent` file inside a link); null when it is none */
 export function base64UrlBytes(text: string): Uint8Array | null {
@@ -218,6 +221,8 @@ export type TorrentClient = ReturnType<typeof createTorrentClient>
 
 export function createTorrentClient(native: TorrentNative) {
     const listeners = new Set<(statuses: TorrentStatus[]) => void>()
+    // the running session's own folder (state, resume data), "" without a session: nothing is moved into it
+    let sessionFolder = ""
     // called by the module once per second with every torrent of the session
     const onNative = (statuses: unknown) => {
         if (listeners.size === 0 || !Array.isArray(statuses)) return
@@ -246,19 +251,26 @@ export function createTorrentClient(native: TorrentNative) {
 
     return {
         /** Starts the session; the torrents of the last one come back from their resume data. Fails while one runs. */
-        start: (settings: TorrentSettings) => call(() => native.start({
-            folder: plainPath(settings.folder),
-            listenPort: whole(settings.listenPort ?? 0, "the port"),
-            connections: whole(settings.connections ?? DEFAULT_CONNECTIONS, "the number of connections"),
-            dht: settings.dht ?? true,
-            lsd: settings.lsd ?? true,
-            trackers: settings.trackers ?? true,
-            pex: settings.pex ?? true,
-            portMapping: settings.portMapping ?? true,
-            utp: settings.utp ?? true,
-        }, onNative)),
+        start: (settings: TorrentSettings) => call(async () => {
+            const folder = plainPath(settings.folder)
+            await native.start({
+                folder,
+                listenPort: whole(settings.listenPort ?? 0, "the port"),
+                connections: whole(settings.connections ?? DEFAULT_CONNECTIONS, "the number of connections"),
+                dht: settings.dht ?? true,
+                lsd: settings.lsd ?? true,
+                trackers: settings.trackers ?? true,
+                pex: settings.pex ?? true,
+                portMapping: settings.portMapping ?? true,
+                utp: settings.utp ?? true,
+            }, onNative)
+            sessionFolder = folder
+        }),
         /** Saves resume data and state and ends the session; nothing happens without one */
-        stop: () => call(() => native.stop()),
+        stop: () => call(async () => {
+            await native.stop()
+            sessionFolder = ""
+        }),
         /** The answer is the info hash; a torrent the session has already is answered with its hash */
         addMagnet: (uri: string, saveFolder: string) => call(async () => {
             if (!/^magnet:\?/i.test(uri)) throw new TorrentError("that is no magnet link")
@@ -296,8 +308,17 @@ export function createTorrentClient(native: TorrentNative) {
                 stopWhenFinished: limits.stopWhenFinished,
             })
         }),
-        /** 4.2.0: moves the torrent's files to another folder (a path or `file://`); the answer comes when they are there */
-        moveStorage: (infoHash: string, folder: string) => call(() => native.moveStorage(hash(infoHash), plainPath(folder))),
+        /**
+         * 4.2.0: moves the torrent's files to another folder (a path or `file://`); the answer comes when they are there.
+         * Nothing there is replaced: a file of the same name in the folder fails the move.
+         */
+        moveStorage: (infoHash: string, folder: string) => call(async () => {
+            const path = plainPath(folder)
+            // the module checks the real place (links resolved, other torrents' folders); what the text shows is refused here
+            if (hasDotSegment(path)) throw new TorrentError("the folder to move to must be a plain path, without . or ..")
+            if (sessionFolder && (path === sessionFolder || path.startsWith(`${sessionFolder}/`))) throw new TorrentError("the files cannot be moved into the session's own folder")
+            await native.moveStorage(hash(infoHash), path)
+        }),
         /** Piece `firstPiece + n` is wanted within `firstMs + n * stepMs` milliseconds, for `count` pieces */
         setPieceDeadlines: (infoHash: string, firstPiece: number, count: number, firstMs: number, stepMs: number) => call(() => native.setPieceDeadlines(
             hash(infoHash), whole(firstPiece, "the first piece"), whole(count, "the number of pieces"), whole(firstMs, "the first deadline"), whole(stepMs, "the step"),
@@ -396,11 +417,6 @@ export function torrentDeviceFor(
             log.info(`torrent: the limits could not be set (${error instanceof Error ? error.message : String(error)})`)
         }
     }
-    /** A torrent with a folder of its own is a download (the torrent client), not a stream: it takes its turn in the queue */
-    const queue = async (torrent: TorrentClient, infoHash: string, folder?: string) => {
-        if (!folder) return
-        await torrent.setQueued(infoHash, true).catch(error => log.info(`torrent: ${short(infoHash)} could not be queued (${error instanceof Error ? error.message : String(error)})`))
-    }
     // when each torrent was added, for the log line of its file list (metadata from peers for a magnet)
     const addedAt = new Map<string, number>()
     let listed = new Set<string>()
@@ -481,8 +497,8 @@ export function torrentDeviceFor(
             if (running) await running.then(tellLimits, () => {})
         }, "torrent"),
         addMagnet: call(async (torrent, uri: string, folder?: string) => {
+            // never queued here: a torrent that waits in the queue is paused and gets no file list (see setQueued)
             const infoHash = await torrent.addMagnet(uri, folder || saveFolder)
-            await queue(torrent, infoHash, folder)
             addedAt.set(infoHash, Date.now())
             log.info(`torrent: magnet added (${short(infoHash)}, trackers ${(uri.match(/[?&]tr=/g) ?? []).length}, web seeds ${(uri.match(/[?&]ws=/g) ?? []).length})`)
             logStart(torrent, infoHash)
@@ -497,7 +513,6 @@ export function torrentDeviceFor(
                 const bytes = new Uint8Array(await response.arrayBuffer())
                 if (bytes.byteLength > TORRENT_FILE_LIMIT) throw new TorrentError("the torrent file is too large")
                 const infoHash = await torrent.addTorrentFile(bytes, folder || saveFolder)
-                await queue(torrent, infoHash, folder)
                 addedAt.set(infoHash, Date.now())
                 log.info(`torrent: torrent file added (${short(infoHash)}, ${bytes.byteLength} bytes)`)
                 logStart(torrent, infoHash)
@@ -527,6 +542,11 @@ export function torrentDeviceFor(
         setPaused: call(async (torrent, infoHash: string, paused: boolean) => {
             await torrent.setPaused(infoHash, paused)
             log.info(`torrent: ${short(infoHash)} ${paused ? "paused" : "resumed"}`)
+        }),
+        // 4.2.0: the torrent client's downloads take their turn; asked by the core once the files of one are chosen
+        setQueued: call(async (torrent, infoHash: string, queued: boolean) => {
+            await torrent.setQueued(infoHash, queued)
+            log.info(`torrent: ${short(infoHash)} ${queued ? "into the queue" : "out of the queue"}`)
         }),
         // phase 6f: the download module's service holds the process while the torrent client downloads
         keepRunning: watch.waiting(async (on: boolean, title: string) => {

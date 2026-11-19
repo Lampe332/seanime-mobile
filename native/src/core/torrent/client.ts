@@ -43,6 +43,12 @@ import {
  * 4.2.0 (torrent-notice.ts): that notice shows the progress once a second, a torrent's end gets a notice of its own and
  * the library reads the folder of a finished one again. A running stream's torrent can be kept from the player
  * (`keepTorrentStream`): it becomes one of the client's.
+ *
+ * 4.2.0, the download queue: every torrent of the client takes its turn in it, so the row `client:<info hash>` is also
+ * what says "queued". The module forgets that for a torrent the user paused when the app ends (a pause takes
+ * libtorrent's queue flag out of the resume data), so the core says it again at the app's start and before a resume
+ * (`enqueue`). A torrent is queued only after its files are chosen: one that waits in the queue is paused and gets no
+ * file list from its peers.
  */
 
 type Json = Record<string, unknown>
@@ -66,6 +72,12 @@ async function clientRows(environment: CoreEnvironment): Promise<ClientRow[]> {
 export async function hasClientTorrents(environment: CoreEnvironment): Promise<boolean> {
     if (!environment.database) return false
     return (await clientRows(environment)).length > 0
+}
+
+/** Into the download queue (4.2.0). A device without a queue, or a torrent it cannot queue, downloads outside it. */
+async function enqueue(device: TorrentDevice, infoHash: string): Promise<void> {
+    if (!device.setQueued) return
+    await device.setQueued(infoHash, true).catch(error => device.note?.(`torrent client: a torrent could not be queued (${error instanceof Error ? error.message : String(error)})`))
 }
 
 /* ---- Holding the process while something downloads ---- */
@@ -140,6 +152,8 @@ async function chooseLater(device: TorrentDevice, environment: CoreEnvironment, 
     await chooseFiles(device, status.infoHash, choice, environment).catch(error => {
         device.note?.(`torrent client: files could not be chosen later (${error instanceof Error ? error.message : String(error)})`)
     })
+    // the files are chosen (or could not be): now the torrent takes its turn in the queue
+    await enqueue(device, status.infoHash)
 }
 
 /** Listens to the session while the client has torrents: the process is held exactly while one of them loads */
@@ -178,7 +192,10 @@ export function resumeClientAtStart(environment: CoreEnvironment): void {
         const device = await deviceOf(environment)
         let back = 0
         for (const row of rows) {
-            if (await device.status(row.hash).then(() => true, () => false)) back++
+            if (!(await device.status(row.hash).then(() => true, () => false))) continue
+            back++
+            // the module no longer knows that a torrent paused before the restart belongs to the queue
+            await enqueue(device, row.hash)
         }
         device.note?.(`torrent client: ${back} of ${rows.length} torrents back after the start`)
         await watchClient(device, environment)
@@ -257,6 +274,8 @@ export async function torrentClientAction(request: CoreRequest, environment: Cor
     const device = await deviceOf(environment)
     if (action === "pause" || action === "resume") {
         if (!device.setPaused) throw new CoreError("torrents cannot be paused here")
+        // a resumed torrent takes its turn again, also when the start's enqueue has not come to it yet
+        if (action === "resume") await enqueue(device, hash)
         await device.setPaused(hash, action === "pause")
     }
     else {
@@ -305,6 +324,11 @@ function choiceOf(body: Json): FileChoice | null {
 
 /** The files to load (choiceOf) → the bytes of the files loaded */
 async function chooseFiles(device: TorrentDevice, infoHash: string, { smart, deselected }: FileChoice, environment: CoreEnvironment): Promise<number> {
+    // a torrent the session had already may wait in the queue without its file list, and would never get it there
+    if (device.setQueued) {
+        const status = await device.status(infoHash)
+        if (status.state === "queued" && !status.hasMetadata) await device.setQueued(infoHash, false).catch(() => undefined)
+    }
     const files = await filesOf(device, infoHash, environment)
     const wanted = new Set(smart.length === 0
         ? files.map(file => file.index)
@@ -375,16 +399,24 @@ export async function torrentClientDownload(request: CoreRequest, environment: C
                 addedAt: new Date(environment.now()).toISOString(),
             })
             let bytes: number | null = null
-            if (choice) {
-                try {
-                    bytes = await chooseFiles(device, infoHash, choice, environment)
+            try {
+                if (choice) {
+                    try {
+                        bytes = await chooseFiles(device, infoHash, choice, environment)
+                    }
+                    catch (error) {
+                        // no file list within the patience (a magnet without peers yet): it is in the list and goes on
+                        if (!(error instanceof CoreError && error.status === 504)) throw error
+                        choosing.set(infoHash, choice)
+                        device.note?.("torrent client: no file list yet, the files are chosen once it is there")
+                    }
                 }
-                catch (error) {
-                    // no file list within the patience (a magnet without peers yet): it is in the list and goes on
-                    if (!(error instanceof CoreError && error.status === 504)) throw error
-                    choosing.set(infoHash, choice)
-                    device.note?.("torrent client: no file list yet, the files are chosen once it is there")
-                }
+            }
+            finally {
+                // only now: queued before its file list, a magnet link behind `activeDownloads` running downloads would be
+                // paused, get no list, and later load every file instead of the chosen ones. One still waiting for its
+                // list is queued by chooseLater.
+                if (!choosing.has(infoHash)) await enqueue(device, infoHash)
             }
             // a new torrent whose chosen files do not fit goes again, before more than its first pieces came
             const fresh = !had.has(infoHash) && runningTorrentStream()?.infoHash !== infoHash

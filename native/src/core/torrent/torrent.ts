@@ -100,6 +100,11 @@ export type TorrentDevice = {
     setSequential: (infoHash: string, on: boolean) => Promise<void>
     /** Phase 6f, the torrent client: kept in the torrent's resume data. Missing: the device cannot pause. */
     setPaused?: (infoHash: string, paused: boolean) => Promise<void>
+    /**
+     * 4.2.0: into the download queue or out of it. A waiting torrent is paused and gets no file list from its peers, so
+     * the torrent client queues one only after its files are chosen (client.ts). Missing: the device has no queue.
+     */
+    setQueued?: (infoHash: string, queued: boolean) => Promise<void>
     /** Phase 6f: holds the app's process in front while the torrent client downloads (a notice); the answer: whether it did */
     keepRunning?: (on: boolean, title: string) => Promise<boolean>
     /** 4.2.0: moves the torrent's files to another folder and goes on from there. Missing: the device cannot. */
