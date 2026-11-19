@@ -20,8 +20,9 @@
   },
   // Values are set with `wrangler secret put`, never committed. GOOGLE_WEB_CLIENT_ID is optional: without it every
   // Google sign-in is refused (src/google.ts), which is how 4.2.0 ships (Google sign-in is hidden in the app).
+  // ESCROW_KEY: 32 random bytes, base64url; seals the key of accounts that turned on "code only" (src/codelogin.ts).
   "secrets": {
-    "required": ["PEPPER_V1", "ENUM_SECRET"]
+    "required": ["PEPPER_V1", "ENUM_SECRET", "ESCROW_KEY"]
   },
   // Reached only through its own domain; no workers.dev or preview URLs.
   "routes": [{ "pattern": "api.seanimemobile.com", "custom_domain": true }],

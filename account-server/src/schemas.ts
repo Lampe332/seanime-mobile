@@ -188,6 +188,8 @@ export const RotateMeta = z
     recoveryProof: DekProof.optional(),
     /** Chain v2: device keys the rotation leaves out (the chain MAC covers them; the devices remember them) */
     removed: z.array(DevicePub).max(50),
+    /** "Code only" is on: the new raw DEK, sealed again under ESCROW_KEY (required then, ignored otherwise) */
+    escrowDek: b64Exact(32).optional(),
   })
   .refine((b) => b.recoveryWrappedDek === undefined || b.recoveryProof !== undefined, {
     message: "A recovery wrap needs its proof",
@@ -200,4 +202,32 @@ export const StartFreshBody = z.strictObject({
   dekProof: DekProof,
   wrappedDek: b64Blob.optional(),
   device: DeviceKeys,
+});
+
+// ---------------------------------------------------------------- sign in with a code (4.2.0)
+
+/** A six digit code from the sign-in mail (leading zeros allowed) */
+export const SignInCode = z.string().regex(/^[0-9]{6}$/);
+
+export const CodeRequestBody = z.strictObject({ email: Email });
+
+/** Signed like auth/login: challenge from auth/prelogin, the new session's key */
+export const CodeLoginBody = z.strictObject({
+  email: Email,
+  code: SignInCode,
+  challenge: Challenge,
+  sigKey: SigKeyBody,
+});
+
+/** "Code only" on: the raw DEK (32 bytes) and the password again */
+export const EscrowBody = z.strictObject({ dek: b64Exact(32), authKey: AuthKey });
+
+/** A new password after a code sign-in; the DEK proof is needed while the session has no device row (like account/password) */
+export const AfterCodeBody = z.strictObject({
+  authKey: AuthKey,
+  salt: Salt,
+  kdf: Kdf,
+  wrappedDek: b64Blob,
+  dekId: DekId,
+  dekProof: DekProof.optional(),
 });

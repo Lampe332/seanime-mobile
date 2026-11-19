@@ -101,7 +101,7 @@ export interface ApiOptions {
   signOpts?: SignOptions;
 }
 
-const SIGN_IN = new Set(["/v1/auth/login", "/v1/auth/signup", "/v1/auth/google"]);
+const SIGN_IN = new Set(["/v1/auth/login", "/v1/auth/signup", "/v1/auth/google", "/v1/auth/code/login"]);
 
 /**
  * Calls the worker like the app does: requests with a session are signed with the session's key; a sign-in without

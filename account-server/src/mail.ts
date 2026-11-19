@@ -13,7 +13,7 @@ export type Mail =
   | { kind: "reset"; token: string }
   | { kind: "new_device"; deviceName: string }
   | { kind: "device_removed"; deviceName: string }
-  | { kind: "password_changed" }
+  | { kind: "password_changed"; afterCode?: boolean }
   | { kind: "account_deleted" }
   | { kind: "start_fresh" }
   | { kind: "google_linked" }
@@ -23,6 +23,9 @@ export type Mail =
   | { kind: "device_signed_out"; deviceName: string }
   | { kind: "approvals_paused" }
   | { kind: "confirm_sign_in"; token: string }
+  | { kind: "sign_in_code"; code: string }
+  | { kind: "code_only_on" }
+  | { kind: "code_only_off" }
   | { kind: "inactivity"; deleteAt: number };
 
 /** Mails about a change to the account's security; each one is also kept as a visible event (I5) */
@@ -39,7 +42,9 @@ export type SecurityMail = Extract<
       | "google_unlinked"
       | "recovery_changed"
       | "key_rotated"
-      | "approvals_paused";
+      | "approvals_paused"
+      | "code_only_on"
+      | "code_only_off";
   }
 >;
 
@@ -110,7 +115,9 @@ function content(env: Env, mail: Mail): Content {
       return {
         subject: "Your password was changed",
         lines: [
-          "The password of your Seanime Mobile account was changed. Other devices were signed out and a linked Google sign-in was removed.",
+          mail.afterCode
+            ? "The password of your Seanime Mobile account was changed after a sign-in with an email code. Your devices stay signed in and a linked Google sign-in was removed."
+            : "The password of your Seanime Mobile account was changed. Other devices were signed out and a linked Google sign-in was removed.",
         ],
         notice: "If this was not you, reset your password right away.",
         reason: SECURITY_REASON,
@@ -196,6 +203,37 @@ function content(env: Env, mail: Mail): Content {
         link: { label: "Confirm sign-in", url: `${base}/account/confirm/#token=${mail.token}` },
         notice: "If this was not you, do not open the link and change your password.",
         reason: "Someone signed in to the Seanime Mobile account that uses this address.",
+      };
+    case "sign_in_code":
+      return {
+        subject: "Your Seanime Mobile sign-in code",
+        lines: [
+          "Someone asked to sign in to your Seanime Mobile account with a code. Type this code in the app.",
+          "The code works for 10 minutes and only once.",
+        ],
+        fact: { label: "Sign-in code", value: mail.code },
+        notice: "If this was not you, ignore this email. Your password stays the same.",
+        reason: "Someone asked for a sign-in code for this address.",
+      };
+    case "code_only_on":
+      return {
+        subject: "Sign-in with an email code only was turned on",
+        lines: [
+          "A code sent to this address now signs you in to Seanime Mobile with all your synced data, no password needed.",
+          "For that the server keeps a copy of your key, so Seanime Mobile can read your synced data while this is on. Turn it off in Settings > Account to keep it end-to-end encrypted.",
+        ],
+        notice: "If this was not you, turn it off in Settings > Account on one of your devices and change your password.",
+        reason: SECURITY_REASON,
+      };
+    case "code_only_off":
+      return {
+        subject: "Sign-in with an email code only was turned off",
+        lines: [
+          "The server's copy of your key was deleted. Your synced data is end-to-end encrypted again.",
+          "A code from this address still signs you in. A new device then needs another device, your recovery code or your password to unlock your data.",
+        ],
+        notice: "If this was not you, check your devices and change your password.",
+        reason: SECURITY_REASON,
       };
     case "inactivity": {
       const date = formatDate(mail.deleteAt);

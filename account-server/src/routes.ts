@@ -66,16 +66,27 @@ export async function proofMatches(stored: string | null, presented: string | un
   return expected !== null && given !== null && safeEqual(await sha256(given), expected);
 }
 
-const keyRequired = () => new HttpError(403, "key_required", "Only a device that holds the account key can do this.");
+export const keyRequired = () => new HttpError(403, "key_required", "Only a device that holds the account key can do this.");
 const ownerRequired = () =>
   new HttpError(403, "owner_required", "Sign in with your password, use your recovery code or approve this device on another one.");
 
 /**
  * S3 (I3): a session owns the account when its sign-in checked the password (within the last 10 minutes, checked by the
  * caller) or it shows the recovery proof. The DEK proof alone never does: a copied key is no account.
+ * `codeOwns`: where the caller lets a code sign-in (the mailbox) count as well: joining an account whose owner turned on
+ * "code only", and Start fresh (the mailbox could get there through a reset anyway).
  */
-async function isOwner(session: Session, user: { auth_hash: string | null; recovery_proof: string | null }, recoveryProof?: string): Promise<boolean> {
-  return (session.passwordAuth && user.auth_hash !== null) || (await proofMatches(user.recovery_proof, recoveryProof));
+async function isOwner(
+  session: Session,
+  user: { auth_hash: string | null; recovery_proof: string | null },
+  recoveryProof?: string,
+  codeOwns = false,
+): Promise<boolean> {
+  return (
+    (session.passwordAuth && user.auth_hash !== null) ||
+    (codeOwns && session.codeAuth) ||
+    (await proofMatches(user.recovery_proof, recoveryProof))
+  );
 }
 
 // ---------------------------------------------------------------- auth
@@ -382,9 +393,16 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, env);
   requireRecentAuth(session);
   const body = await readJson(ctx.request, KeysBody);
-  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, dek_proof, recovery_proof FROM users WHERE id = ?")
+  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, dek_proof, recovery_proof, escrow_dek FROM users WHERE id = ?")
     .bind(session.userId)
-    .first<{ email: string; dek_id: string | null; auth_hash: string | null; dek_proof: string | null; recovery_proof: string | null }>();
+    .first<{
+      email: string;
+      dek_id: string | null;
+      auth_hash: string | null;
+      dek_proof: string | null;
+      recovery_proof: string | null;
+      escrow_dek: string | null;
+    }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (body.device && (await wasRemoved(env, session.userId, body.device.devicePub))) throw removedError();
 
@@ -413,7 +431,8 @@ export async function putKeys(ctx: Ctx): Promise<Response> {
         )
           .bind(session.userId, body.device.devicePub, session.sigPub)
           .first()) !== null;
-      if (!reclaim && !(await isOwner(session, user, body.recoveryProof))) throw ownerRequired();
+      // "Code only" (opt-in): the owner chose that a code from the mailbox brings a device in with the key
+      if (!reclaim && !(await isOwner(session, user, body.recoveryProof, user.escrow_dek !== null))) throw ownerRequired();
     }
   }
 
@@ -532,7 +551,7 @@ export async function changePassword(ctx: Ctx): Promise<Response> {
 export async function deleteUserData(env: Env, userId: string, onlyIf = "1 = 1"): Promise<boolean> {
   const guard = `EXISTS (SELECT 1 FROM users WHERE id = ? AND ${onlyIf})`;
   const results = await env.DB.batch(
-    ["sessions", "devices", "tokens", "device_requests", "snapshots", "removed_devices", "removed_sessions", "login_links", "account_events"]
+    ["sessions", "devices", "tokens", "device_requests", "snapshots", "removed_devices", "removed_sessions", "login_links", "account_events", "sign_in_codes"]
       .map((table) => env.DB.prepare(`DELETE FROM ${table} WHERE user_id = ? AND ${guard}`).bind(userId, userId))
       .concat(env.DB.prepare(`DELETE FROM users WHERE id = ? AND ${onlyIf}`).bind(userId)),
   );
@@ -566,7 +585,7 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
   const user = await ctx.env.DB.prepare(
     `SELECT email, email_verified, google_sub, auth_hash, recovery_wrapped_dek, dek_id, created_at,
-       rewrap_needed, rotation_required, recovery_renewal_needed
+       rewrap_needed, rotation_required, recovery_renewal_needed, escrow_dek IS NOT NULL AS code_only
      FROM users WHERE id = ?`,
   )
     .bind(session.userId)
@@ -581,6 +600,7 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
       rewrap_needed: number;
       rotation_required: number;
       recovery_renewal_needed: number;
+      code_only: number;
     }>();
   if (!user) throw new HttpError(401, "unauthorized");
   // I5: the newest security events, the same ones that were mailed. NEU4-5: plus the newest of each kind, so a flood of one
@@ -607,6 +627,8 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
     rewrapNeeded: user.rewrap_needed === 1,
     rotationRequired: user.rotation_required === 1,
     recoveryRenewalNeeded: user.recovery_renewal_needed === 1,
+    // "Sign in with an email code only" is on: the server keeps a copy of the key (never sent here)
+    codeOnly: user.code_only === 1,
   });
 }
 
@@ -659,12 +681,15 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
     .bind(session.userId)
     .first<{ email: string; dek_id: string | null; auth_hash: string | null; recovery_proof: string | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
-  if (user.auth_hash !== null && body.wrappedDek === undefined) {
+  // After a code sign-in the password may be forgotten: then the new key has no password wrap yet (rewrapNeeded), and
+  // account/password/after-code sets a new password for it.
+  if (user.auth_hash !== null && body.wrappedDek === undefined && !session.codeAuth) {
     throw new HttpError(400, "invalid_request", "wrappedDek is required for password accounts", {}, { fields: ["wrappedDek"] });
   }
-  // S3 (I3): a password account starts fresh only right after its password. A Google-only account has none; its recent
-  // Google sign-in is the owner's (Nick 18.11.: Google without a password stays). Either way mailed and listed.
-  if (user.auth_hash !== null && !(await isOwner(session, user))) throw ownerRequired();
+  // S3 (I3): a password account starts fresh only right after its password, or a code from its mailbox (which could reset
+  // the password as well). A Google-only account has none; its recent Google sign-in is the owner's (Nick 18.11.: Google
+  // without a password stays). Either way mailed and listed.
+  if (user.auth_hash !== null && !(await isOwner(session, user, undefined, true))) throw ownerRequired();
   if (user.dek_id === body.dekId) throw new HttpError(400, "invalid_request", "dekId must be new", {}, { fields: ["dekId"] });
   if (await wasRemoved(env, session.userId, body.device.devicePub)) throw removedError();
 
@@ -680,13 +705,19 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
     env.DB.prepare("UPDATE sessions SET device_id = NULL WHERE token_hash = ?").bind(session.tokenHash),
     env.DB.prepare("DELETE FROM devices WHERE user_id = ?").bind(userId),
     // A new key chain starts: no chain MAC, so the account's other devices refuse the new key and ask their user. The
-    // old recovery code can't open the new key: its wrap and proof go.
+    // old recovery code can't open the new key: its wrap and proof go, and so does the "code only" copy of the old key.
     env.DB.prepare(
       `UPDATE users SET dek_id = ?, dek_proof = ?, wrapped_dek = ?, recovery_wrapped_dek = NULL, recovery_proof = NULL,
-         chain_from = NULL, chain_mac = NULL, chain_rotator = NULL, chain_removed = NULL, rewrap_needed = 0,
-         rotation_required = 0, recovery_renewal_needed = 0
+         chain_from = NULL, chain_mac = NULL, chain_rotator = NULL, chain_removed = NULL, rewrap_needed = ?,
+         rotation_required = 0, recovery_renewal_needed = 0, escrow_dek = NULL
        WHERE id = ?`,
-    ).bind(body.dekId, await proofHash(body.dekProof), body.wrappedDek ?? null, userId),
+    ).bind(
+      body.dekId,
+      await proofHash(body.dekProof),
+      body.wrappedDek ?? null,
+      user.auth_hash !== null && body.wrappedDek === undefined ? 1 : 0,
+      userId,
+    ),
     env.DB.prepare(
       `INSERT INTO devices (id, user_id, name, device_pub, sealed_dek, dek_id, mac, created_at, last_seen_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,

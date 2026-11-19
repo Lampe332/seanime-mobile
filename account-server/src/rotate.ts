@@ -13,6 +13,7 @@
  * written afterwards; if that fails, the key rows are put back. Afterwards wraps of the old dekId are
  * rejected everywhere (keys, snapshot upload, approval, reset).
  */
+import { sealEscrow } from "./codelogin";
 import { HttpError, json, MAX_JSON_BYTES, readLimited } from "./http";
 import { notify } from "./mail";
 import { MAX_SNAPSHOT_BYTES, proofHash, removeDeviceStatements, snapKey, snapshotRow, type Ctx } from "./routes";
@@ -75,7 +76,7 @@ export async function rotate(ctx: Ctx): Promise<Response> {
   const userId = session.userId;
   const user = await env.DB.prepare(
     `SELECT email, dek_id, auth_hash, wrapped_dek, recovery_wrapped_dek, recovery_proof, rewrap_needed, rotation_required,
-       recovery_renewal_needed, dek_proof, chain_from, chain_mac, chain_rotator, chain_removed
+       recovery_renewal_needed, dek_proof, chain_from, chain_mac, chain_rotator, chain_removed, escrow_dek
      FROM users WHERE id = ?`,
   )
     .bind(userId)
@@ -94,12 +95,18 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       chain_mac: string | null;
       chain_rotator: string | null;
       chain_removed: string | null;
+      escrow_dek: string | null;
     }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.dek_id !== meta.oldDekId) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
   if (user.auth_hash !== null && meta.wrappedDek === undefined) {
     throw new HttpError(400, "invalid_request", "wrappedDek is required for password accounts", {}, { fields: ["wrappedDek"] });
   }
+  // "Code only" is on: its copy follows the new key in the same step, or the rotation does not happen
+  if (user.escrow_dek !== null && meta.escrowDek === undefined) {
+    throw new HttpError(409, "escrow_required", "Sign-in with an email code only is on: send the new key for it too.");
+  }
+  const escrow = user.escrow_dek !== null ? await sealEscrow(env, userId, meta.dekId, meta.escrowDek!) : null;
 
   // S2 (I2): an allowlist. The new DEK goes to the devices the user kept (live rows, the rotating one among them); every
   // other row of the account is removed in the same batch and named in `removed`, so the chain tells the other devices.
@@ -157,8 +164,8 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       `UPDATE users SET dek_id = ?, dek_proof = ?, chain_from = ?, chain_mac = ?, chain_rotator = ?, chain_removed = ?,
          wrapped_dek = ?, recovery_wrapped_dek = ?, recovery_proof = ?,
          rewrap_needed = CASE WHEN ? IS NULL THEN rewrap_needed ELSE 0 END, rotation_required = 0,
-         recovery_renewal_needed = ?
-       WHERE id = ? AND dek_id = ?
+         recovery_renewal_needed = ?, escrow_dek = ?
+       WHERE id = ? AND dek_id = ? AND (escrow_dek IS NULL) = ?
          AND COALESCE((SELECT version FROM snapshots WHERE user_id = ?), 0) = ?
          AND (SELECT COUNT(*) FROM devices WHERE user_id = ?) = ?`,
     ).bind(
@@ -173,8 +180,10 @@ export async function rotate(ctx: Ctx): Promise<Response> {
       meta.recoveryProof !== undefined ? await proofHash(meta.recoveryProof) : null,
       meta.wrappedDek ?? null,
       renewal,
+      escrow,
       userId,
       meta.oldDekId,
+      user.escrow_dek === null ? 1 : 0,
       userId,
       current,
       userId,
@@ -221,7 +230,7 @@ export async function rotate(ctx: Ctx): Promise<Response> {
         env.DB.prepare(
           `UPDATE users SET dek_id = ?, dek_proof = ?, chain_from = ?, chain_mac = ?, chain_rotator = ?, chain_removed = ?,
              wrapped_dek = ?, recovery_wrapped_dek = ?, recovery_proof = ?, rewrap_needed = ?, rotation_required = ?,
-             recovery_renewal_needed = ?
+             recovery_renewal_needed = ?, escrow_dek = ?
            WHERE id = ? AND dek_id = ?`,
         ).bind(
           user.dek_id,
@@ -236,6 +245,7 @@ export async function rotate(ctx: Ctx): Promise<Response> {
           user.rewrap_needed,
           dropped.length > 0 ? 1 : user.rotation_required,
           user.recovery_renewal_needed,
+          user.escrow_dek,
           userId,
           meta.dekId,
         ),

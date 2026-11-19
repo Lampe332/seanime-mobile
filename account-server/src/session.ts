@@ -16,6 +16,8 @@ export interface Session {
   sigPub: string;
   /** The sign-in checked the password (login, signup); Google sessions did not */
   passwordAuth: boolean;
+  /** The sign-in used a code from an email (auth/code/login) */
+  codeAuth: boolean;
 }
 
 export const now = (): number => Math.floor(Date.now() / 1000);
@@ -31,14 +33,15 @@ export async function newSession(
   deviceId: string | null,
   key: SigKey,
   passwordAuth = false,
+  codeAuth = false,
 ): Promise<{ token: string; tokenHash: string; statement: D1PreparedStatement }> {
   const token = toB64url(randomBytes(32));
   const t = now();
   // The session is bound to the signing key that signed the sign-in (plan 10.2b).
   const statement = env.DB.prepare(
-    `INSERT INTO sessions (token_hash, user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub, password_auth)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(await hashToken(token), userId, deviceId, t, t, t, key.alg, key.pub, passwordAuth ? 1 : 0);
+    `INSERT INTO sessions (token_hash, user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub, password_auth, code_auth)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(await hashToken(token), userId, deviceId, t, t, t, key.alg, key.pub, passwordAuth ? 1 : 0, codeAuth ? 1 : 0);
   return { token, tokenHash: await hashToken(token), statement };
 }
 
@@ -108,7 +111,7 @@ export async function requireSession(request: Request, env: Env): Promise<Sessio
   if (presented === null || fromB64url(presented.token)?.byteLength !== 32) throw new HttpError(401, "unauthorized");
   const tokenHash = await hashToken(presented.token);
   const row = await env.DB.prepare(
-    "SELECT user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub, password_auth FROM sessions WHERE token_hash = ?",
+    "SELECT user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub, password_auth, code_auth FROM sessions WHERE token_hash = ?",
   )
     .bind(tokenHash)
     .first<{
@@ -120,6 +123,7 @@ export async function requireSession(request: Request, env: Env): Promise<Sessio
       sig_alg: string;
       sig_pub: string;
       password_auth: number;
+      code_auth: number;
     }>();
   if (!row) throw await missingSession(env, tokenHash);
   const t = now();
@@ -144,6 +148,7 @@ export async function requireSession(request: Request, env: Env): Promise<Sessio
     createdAt: row.created_at,
     sigPub: row.sig_pub,
     passwordAuth: row.password_auth === 1,
+    codeAuth: row.code_auth === 1,
   };
 }
 

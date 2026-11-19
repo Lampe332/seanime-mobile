@@ -1,6 +1,7 @@
 import { errorResponse, finalize, HttpError, preflight } from "./http";
 import { cleanup } from "./cron";
 import * as approval from "./approval";
+import * as code from "./codelogin";
 import * as id from "./identity";
 import { rotate } from "./rotate";
 import { MAX_JSON_BYTES } from "./http";
@@ -28,6 +29,8 @@ const routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
   ["POST", /^\/v1\/auth\/reset-request$/, id.resetRequest],
   ["POST", /^\/v1\/auth\/reset\/info$/, id.resetInfo],
   ["POST", /^\/v1\/auth\/reset$/, id.resetPassword],
+  ["POST", /^\/v1\/auth\/code\/request$/, code.codeRequest],
+  ["POST", /^\/v1\/auth\/code\/login$/, code.codeLogin],
   ["POST", /^\/v1\/auth\/google\/nonce$/, id.googleNonce],
   ["POST", /^\/v1\/auth\/google$/, id.googleLogin],
   ["GET", /^\/v1\/devices$/, r.listDevices],
@@ -43,6 +46,9 @@ const routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
   ["GET", /^\/v1\/account\/keys\/device$/, r.getDeviceKey],
   ["POST", /^\/v1\/account\/start-fresh$/, r.startFresh],
   ["POST", /^\/v1\/account\/password$/, r.changePassword],
+  ["POST", /^\/v1\/account\/password\/after-code$/, code.passwordAfterCode],
+  ["PUT", /^\/v1\/account\/escrow$/, code.putEscrow],
+  ["DELETE", /^\/v1\/account\/escrow$/, code.deleteEscrow],
   ["POST", /^\/v1\/account\/rotate$/, rotate],
   ["POST", /^\/v1\/account\/link-google$/, id.linkGoogle],
   ["POST", /^\/v1\/account\/unlink-google$/, id.unlinkGoogle],

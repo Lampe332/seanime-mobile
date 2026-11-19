@@ -164,7 +164,7 @@ export async function fixedWindow(env: Env, key: string, limit: number, windowSe
 export const MAIL_LIMIT_HOUR = 5;
 export const MAIL_LIMIT_DAY = 10;
 export const MAIL_LIMIT_DAY_ALL = 50;
-export type MailPot = "link" | "reset" | "verify";
+export type MailPot = "link" | "reset" | "verify" | "code";
 
 /** NEU4-1: how long a network the password signed in from counts as the owner's */
 const KNOWN_NETWORK_SECONDS = 90 * 24 * 3600;

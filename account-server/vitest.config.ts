@@ -16,6 +16,8 @@ export default defineConfig(async () => {
           bindings: {
             PEPPER_V1: "dev-pepper-not-secret-0123456789abcdef",
             ENUM_SECRET: "dev-enum-secret-not-secret-0123456789",
+            // 32 bytes base64url ("escrow-test-key-not-secret-01234")
+            ESCROW_KEY: "ZXNjcm93LXRlc3Qta2V5LW5vdC1zZWNyZXQtMDEyMzQ",
             GOOGLE_WEB_CLIENT_ID: "test-client.apps.googleusercontent.com",
             // Test-only JWKS host; the tests answer it with their own RSA key.
             GOOGLE_JWKS_URL: "https://jwks.test/certs",

@@ -207,6 +207,7 @@ describe("GET account", () => {
       rewrapNeeded: false,
       rotationRequired: false,
       recoveryRenewalNeeded: false,
+      codeOnly: false,
     });
     for (const secret of [a.keys.wrappedDek, a.keys.authKey, a.keys.salt, a.keys.sealedDek]) expect(text).not.toContain(secret);
     expect(await json(await api("/v1/account", { token: other.token }))).toMatchObject({ userId: other.userId, email: other.email });
