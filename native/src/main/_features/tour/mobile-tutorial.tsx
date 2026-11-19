@@ -7,10 +7,12 @@ import { atomWithStorage } from "@/lib/storage"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { isLoginModalOpenAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { accountAtom } from "@/lib/account/account-app"
+import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai"
 import React from "react"
 import { View } from "react-native"
 import { tour, type TourStep, useTourState } from "./tour"
+import { accountTourAction } from "./tour-logic"
 import { TOUR_TARGETS, tourTargetData, waitForTourTargetGone } from "./tour-targets"
 
 /*
@@ -19,6 +21,8 @@ import { TOUR_TARGETS, tourTargetData, waitForTourTargetGone } from "./tour-targ
  * screen shows them. Its targets are registered by the bar, the Menu, the Extensions tab and its marketplace.
  */
 export const mobileTutorialSeenAtom = atomWithStorage<boolean>("sea-mobile-tutorial-seen", false)
+/** The account card was shown, in the setup tour or on its own after the update to 4.2.0 (accountTourAction) */
+export const accountTourSeenAtom = atomWithStorage<boolean>("sea-account-tour-seen", false)
 
 function P({ children, small }: { children: React.ReactNode, small?: boolean }) {
     return <Text className={cn(small ? "text-xs leading-[18px]" : "text-sm leading-[22px]", "text-sm-text-muted")}>{children}</Text>
@@ -47,6 +51,32 @@ function RepositoryStepText() {
 /** One sentence of a step, its {0}, {1}, … filled by bold button names. */
 function Line({ text, names, small }: { text: string, names: React.ReactNode[], small?: boolean }) {
     return <P small={small}>{fillParts(text, ...names.map((name, i) => <B key={i}>{name}</B>))}</P>
+}
+
+/** The optional account (Settings › Account): what it syncs, that it is end-to-end encrypted and where to find it */
+function accountStep(): TourStep {
+    return {
+        id: "account",
+        title: tr("Sync between your devices", "Zwischen deinen Geräten synchronisieren"),
+        content: <View className="gap-2">
+            <P>{tr("An account is optional. Create one with your email and a password, and your settings, watch positions, history, playlists and extensions stay in sync across your devices.",
+                "Ein Konto ist freiwillig. Leg eins mit E-Mail und Passwort an, dann bleiben Einstellungen, Wiedergabe-Positionen, Verlauf, Playlists und Erweiterungen auf deinen Geräten gleich.")}</P>
+            <Line text={tr("Find it under {0}.", "Du findest es unter {0}.")}
+                names={[[tr("Menu", "Menü"), tr("Settings", "Einstellungen"), tr("Account", "Konto")].join(" › ")]} />
+            <P small>{tr("Everything is end-to-end encrypted. The key stays on your devices, so our server can't read your data. Your AniList lists stay with AniList.",
+                "Alles ist Ende-zu-Ende-verschlüsselt. Der Schlüssel bleibt auf deinen Geräten, unser Server kann deine Daten nicht lesen. Deine AniList-Listen bleiben bei AniList.")}</P>
+        </View>,
+        disableBack: true,
+        ignoreOutsideClick: true,
+        // a device already signed in needs no card
+        condition: () => !getDefaultStore().get(accountAtom).signedIn,
+        conditionFailBehavior: "skip",
+    }
+}
+
+/** The account card on its own, for users who knew the setup tour before it had that card (accountTourAction) */
+export function getAccountTourSteps(): TourStep[] {
+    return [{ ...accountStep(), hero: "intro" }]
 }
 
 export function getMobileTutorialSteps({ fromExtensions = false, tablet = false } = {}): TourStep[] {
@@ -200,6 +230,7 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             // repositories without manga sources go straight to the end
             targetNotFoundBehavior: "skip",
         },
+        accountStep(),
         {
             id: "done",
             title: tr("You're all set", "Alles bereit"),
@@ -226,19 +257,27 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
 
 export function useStartMobileTutorial() {
     const setSeen = useSetAtom(mobileTutorialSeenAtom)
+    const setAccountTourSeen = useSetAtom(accountTourSeenAtom)
     const tablet = useIsTabletScreen()
     return React.useCallback((options?: { fromExtensions?: boolean }) => {
-        tour.start(getMobileTutorialSteps({ ...options, tablet }), "mobile-tutorial", () => setSeen(true))
-    }, [setSeen, tablet])
+        tour.start(getMobileTutorialSteps({ ...options, tablet }), "mobile-tutorial", () => {
+            setSeen(true)
+            // the tour has the account card
+            setAccountTourSeen(true)
+        })
+    }, [setSeen, setAccountTourSeen, tablet])
 }
 
 /**
  * Starts the tutorial once, after the first login on the Android app. Users who already have a streaming extension
- * (e.g. after an update) are marked as done silently.
+ * (e.g. after an update) are marked as done silently. Who knew the tutorial before it had the account card (the update
+ * from 4.1.0) gets that card once on its own.
  */
 export function MobileTutorialListener() {
     const serverStatus = useServerStatus()
     const [seen, setSeen] = useAtom(mobileTutorialSeenAtom)
+    const [accountTourSeen, setAccountTourSeen] = useAtom(accountTourSeenAtom)
+    const account = useAtomValue(accountAtom)
     const { active } = useTourState()
     const startTutorial = useStartMobileTutorial()
     const { data: streamingExtensions, isSuccess } = useListOnlinestreamProviderExtensions()
@@ -247,7 +286,22 @@ export function MobileTutorialListener() {
     const loginModalOpen = useAtomValue(isLoginModalOpenAtom)
 
     const hasStreamingSource = isSuccess && !!streamingExtensions?.length
-    const ready = !seen && isSuccess && !hasStreamingSource && !loginModalOpen && !!serverStatus?.settings && !!serverStatus?.user
+    const screenFree = !loginModalOpen && !!serverStatus?.settings && !!serverStatus?.user
+    const ready = !seen && isSuccess && !hasStreamingSource && screenFree
+    const accountAction = accountTourAction({ tutorialSeen: seen, accountTourSeen, accountLoaded: account.loaded, signedIn: account.signedIn })
+
+    React.useEffect(() => {
+        if (accountAction === "mark-seen") setAccountTourSeen(true)
+    }, [accountAction, setAccountTourSeen])
+
+    React.useEffect(() => {
+        if (accountAction !== "show" || !screenFree || active || started.current) return
+        const timer = setTimeout(() => {
+            started.current = true
+            tour.start(getAccountTourSteps(), "account-tour", () => setAccountTourSeen(true))
+        }, 1500)
+        return () => clearTimeout(timer)
+    }, [accountAction, screenFree, active, setAccountTourSeen])
 
     React.useEffect(() => {
         if (!seen && hasStreamingSource) setSeen(true)

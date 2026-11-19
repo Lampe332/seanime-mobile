@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
-    cardButtons, cardEnterFrom, cardWidth, computePopoverPosition, dimStrips, followBackIndex, irisRect, isOffScreen, mixRect, nextIndex, padRect,
+    accountTourAction, cardButtons, cardEnterFrom, cardWidth, computePopoverPosition, dimStrips, followBackIndex, irisRect, isOffScreen, mixRect, nextIndex, padRect,
     prevIndex, resolvePlacement, spotlightPath,
 } from "./tour-logic"
 
@@ -39,6 +39,7 @@ const steps = [
     { id: "install", target: "marketplace-install:onlinestream-provider" },
     { id: "manga", target: "marketplace-type:manga-provider", disableBack: true },
     { id: "manga-install", target: "marketplace-install:manga-provider", disableBack: true },
+    { id: "account", disableBack: true },
     { id: "done", disableBack: true },
 ]
 
@@ -65,19 +66,47 @@ describe("tour step order", () => {
         // the welcome card has no target and is never a place to return to
         expect(followBackIndex(steps, 1, () => true)).toBe(-1)
     })
+
+    it("shows the account card right before the finale, one way like the finale", () => {
+        const account = steps.findIndex(step => step.id === "account")
+        expect(nextIndex(steps, account)).toBe(steps.findIndex(step => step.id === "done"))
+        expect(prevIndex(steps, account)).toBeNull()
+    })
+})
+
+describe("the account card after an update (4.2.0)", () => {
+    const base = { tutorialSeen: true, accountTourSeen: false, accountLoaded: true, signedIn: false }
+    it("shows the card once to who knew the setup tour before it had the card", () => {
+        expect(accountTourAction(base)).toBe("show")
+        expect(accountTourAction({ ...base, accountTourSeen: true })).toBeNull()
+    })
+    it("leaves a fresh install to the setup tour, which has the card", () => {
+        expect(accountTourAction({ ...base, tutorialSeen: false })).toBeNull()
+    })
+    it("waits for the account to load and marks a signed-in device seen without a card", () => {
+        expect(accountTourAction({ ...base, accountLoaded: false })).toBeNull()
+        expect(accountTourAction({ ...base, signedIn: true })).toBe("mark-seen")
+    })
+    it("the card on its own has only Done", () => {
+        expect(cardButtons({ disableBack: true }, 0, 1, true)).toEqual({ skip: false, back: false, next: true })
+    })
 })
 
 describe("tour card buttons", () => {
     it("a tap-to-continue step shows only Skip next to its target", () => {
-        expect(cardButtons({ hideNextButton: true }, 3, 11, false)).toEqual({ skip: true, back: false, next: false })
+        expect(cardButtons({ hideNextButton: true }, 3, 12, false)).toEqual({ skip: true, back: false, next: false })
     })
 
     it("the same step as a centred fallback gets Next and Back (F5)", () => {
-        expect(cardButtons({ hideNextButton: true }, 3, 11, true)).toEqual({ skip: true, back: true, next: true })
+        expect(cardButtons({ hideNextButton: true }, 3, 12, true)).toEqual({ skip: true, back: true, next: true })
+    })
+
+    it("the account card keeps Skip but has no Back", () => {
+        expect(cardButtons({ disableBack: true }, 10, 12, true)).toEqual({ skip: true, back: false, next: true })
     })
 
     it("the finale has no Skip and no Back", () => {
-        expect(cardButtons({ disableBack: true }, 10, 11, true)).toEqual({ skip: false, back: false, next: true })
+        expect(cardButtons({ disableBack: true }, 11, 12, true)).toEqual({ skip: false, back: false, next: true })
     })
 })
 

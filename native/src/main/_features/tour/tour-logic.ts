@@ -164,6 +164,16 @@ export function cardButtons(step: { hideNextButton?: boolean, disableBack?: bool
     }
 }
 
+/**
+ * The account card on its own (4.2.0): who finished or skipped the setup tour before it had the account step (an update
+ * from 4.1.0) sees that card once. A fresh install sees it inside the setup tour, whose end marks it seen too; a device
+ * already signed in to an account needs no card and is marked seen silently. null: wait (or nothing to do).
+ */
+export function accountTourAction(s: { tutorialSeen: boolean, accountTourSeen: boolean, accountLoaded: boolean, signedIn: boolean }): "show" | "mark-seen" | null {
+    if (!s.tutorialSeen || s.accountTourSeen || !s.accountLoaded) return null
+    return s.signedIn ? "mark-seen" : "show"
+}
+
 /** Is a cutout centre-able on screen, or does its target first have to be scrolled into view */
 export function isOffScreen(r: Rect, viewport: Viewport, insetTop: number, insetBottom: number) {
     return r.top < insetTop || r.top + r.height > viewport.height - insetBottom
