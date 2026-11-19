@@ -62,7 +62,8 @@ export async function runCoreTorrentSearchCheck(mediaId: number, episodeNumber: 
     log(`${side} auto-select profile: ${profile.error ?? `dbId ${profile.value?.dbId}, fields ${Object.keys(profile.value ?? {}).length}`} (${profile.ms} ms)`)
     if (profile.value) {
         const startYear = (media.startDate as { year?: number } | undefined)?.year ?? 0
-        const chosen = chooseTorrent(all, profile.value, { episodeNumber, preferredResolution: "", startYear })
+        const format = typeof media.format === "string" ? media.format : ""
+        const chosen = chooseTorrent(all, profile.value, { episodeNumber, preferredResolution: "", startYear, format })
         log(`auto select (core rule) from ${all.length}: ${chosen ? `provider ${providers.indexOf(chosen.torrent.provider) + 1}, fields ${Object.keys(chosen.torrent).sort().join("/")}, resolution ${chosen.resolution || "-"}, batch ${chosen.batch}, episodes read ${chosen.episodes.length}, seeders ${chosen.torrent.seeders > 0 ? "> 0" : "0"}, magnet ${chosen.torrent.magnetLink ? "yes" : "no"}, infoHash ${chosen.torrent.infoHash ? "yes" : "no"}` : "none fits"}`)
     }
     log("search check done")

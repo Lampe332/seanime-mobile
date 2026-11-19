@@ -82,15 +82,8 @@ export function shouldLookForBatches(kind: TorrentSheetKind, downloadInfo: Pick<
     return !!downloadInfo?.canBatch && !(end && subMonths(now, 1) < end)
 }
 
-/** Release names sometimes come with HTML entities from the provider ("Returner&#39;s") */
-export function decodeEntities(text: string) {
-    return text.replace(/&(#\d+|#x[\da-f]+|amp|lt|gt|quot|apos|nbsp);/gi, (match, code: string) => {
-        const lower = code.toLowerCase()
-        if (lower.startsWith("#x")) return String.fromCodePoint(parseInt(lower.slice(2), 16))
-        if (lower.startsWith("#")) return String.fromCodePoint(parseInt(lower.slice(1), 10))
-        return ({ amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: " " } as Record<string, string>)[lower] ?? match
-    })
-}
+/** Release names sometimes come with HTML entities from the provider ("Returner&#39;s"); the core reads them decoded too */
+export { decodeEntities } from "@/core/torrent/autoselect"
 
 type AgoUnit = "hour" | "day" | "month" | "year"
 

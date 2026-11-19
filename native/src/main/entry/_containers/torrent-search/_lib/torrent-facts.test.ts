@@ -204,6 +204,22 @@ describe("Best match", () => {
         expect(bestMatchKey(shown, emptyProfile(), 1, "")).toBe(hash(3))
     })
 
+    // 4.2.0 E (Pixel Tablet): the card read "A&amp;C · Ep 1 · v2" and was Best match for episode 1 of the series
+    it("shows a film as a film with its group decoded, and marks it only for a film", () => {
+        const name = "[A&amp;C] One Piece - Movie 01 (BD 1080p HEVC) [Multi-Subs] [v2]"
+        const movie = torrent(name, { infoHash: hash(5), seeders: 6, size: 19_219_633_356 })
+        expect(factsHead(torrentFacts(movie, read(name), de, "de", { now: NOW }))).toBe("A&C · Film 1 · v2")
+        expect(factsHead(torrentFacts(torrent(name, { releaseGroup: "A&amp;C" }), undefined, en, "en", { now: NOW }))).toBe("A&C · Movie")
+        expect(torrentFacts(torrent("[Judas] One Piece - Movies 01-14 [1080p]"), read("[Judas] One Piece - Movies 01-14 [1080p]"), en, "en").episode).toBe("Movies 1–14")
+        expect(bestMatchKey([movie], emptyProfile(), 1, "", 1999, "TV")).toBe("")
+        expect(bestMatchKey([movie], emptyProfile(), 1, "", 2000, "MOVIE")).toBe(hash(5))
+        // the real episode 1, a batch and a second version keep their reading
+        const episode = "[SubsPlease] One Piece - 01v2 (1080p) [ABCD1234].mkv"
+        expect(factsHead(torrentFacts(torrent(episode), read(episode), en, "en"))).toBe("SubsPlease · Ep 1 · v2")
+        expect(torrentFacts(torrent(JUDAS), read(JUDAS), en, "en").episode).toBe("Batch")
+        expect(bestMatchKey([torrent(episode, { infoHash: hash(6) }), movie], emptyProfile(), 1, "", 1999, "TV")).toBe(hash(6))
+    })
+
     it("knows a result by its info hash, else its link", () => {
         expect(torrentKey(list[1]!)).toBe(hash(2))
         expect(torrentKey(torrent("x", { infoHash: "", link: "https://nyaa.si/view/1" }))).toBe("https://nyaa.si/view/1")

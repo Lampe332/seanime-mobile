@@ -214,7 +214,8 @@ export async function autoSelectTorrent(environment: StreamEnvironment, mediaId:
     if (torrents.length === 0 && answers.every(answer => answer.status === "rejected")) throw (answers[0] as PromiseRejectedResult).reason
     const startDate = built.media.startDate as { year?: unknown } | undefined
     const startYear = typeof startDate?.year === "number" ? startDate.year : 0
-    const read = chooseTorrent(torrents, profile, { episodeNumber, preferredResolution, startYear })
+    const format = typeof built.media.format === "string" ? built.media.format : ""
+    const read = chooseTorrent(torrents, profile, { episodeNumber, preferredResolution, startYear, format })
     if (!read) throw new CoreError(`auto select found no torrent for episode ${episodeNumber} (${torrents.length} looked at)`, 404)
     return { torrent: read.torrent, read, asked, found: torrents.length }
 }

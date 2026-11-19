@@ -1374,6 +1374,8 @@
   "Saved offline": "オフライン保存済み",
   "Use mobile data?": "モバイルデータを使いますか？",
   "You are not on Wi-Fi. A torrent can use several gigabytes of mobile data.": "Wi-Fiに接続されていません。Torrentは、モバイルデータを数ギガバイト使うことがあります。",
+  "Movies {0}–{1}": "映画 {0}–{1}",
+  "Movie {0}": "映画 {0}",
   "Ep {0}–{1}": "第{0}–{1}話",
   "Batch": "一括",
   "Multi audio": "多言語音声",

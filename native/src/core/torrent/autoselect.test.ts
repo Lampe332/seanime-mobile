@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { type AutoSelectProfile, type FoundTorrent, chooseTorrent, emptyProfile, profileOf } from "./autoselect"
+import { type AutoSelectProfile, type FoundTorrent, chooseTorrent, decodeEntities, emptyProfile, isMovieRelease, profileOf, readTorrent } from "./autoselect"
 
 // 4.2.0 (Chamok): "Prefer larger files" and the minimum seeders, with release names as Nyaa lists them
 const HASH = "ab".repeat(20)
@@ -105,5 +105,43 @@ describe("auto-select: a name dated for another show", () => {
         expect(onePiece([LIVE_ACTION], 0)).toBe(LIVE_ACTION.name)
         const conan = nyaa("[Group] Detective Conan - 2001 [1080p]", GiB, 30)
         expect(chooseTorrent([conan], emptyProfile(), { episodeNumber: 2001, preferredResolution: "", startYear: 1996 })?.torrent.name).toBe(conan.name)
+    })
+})
+
+// 4.2.0 E (Pixel Tablet): "[A&C] One Piece - Movie 01" was Best match for episode 1 of the series
+describe("auto-select: a film for a series", () => {
+    const MOVIE = nyaa("[A&amp;C] One Piece - Movie 01 (BD 1080p HEVC) [Multi-Subs] [v2]", 17.9 * GiB, 6)
+    const EPISODE = nyaa("[SubsPlease] One Piece - 1 (720p) [ABCD1234].mkv", 300 * 1024 ** 2, 5)
+    const choose = (list: FoundTorrent[], format: string, episodeNumber = 1) =>
+        chooseTorrent(list, emptyProfile(), { episodeNumber, preferredResolution: "", startYear: 1999, format })?.torrent.name ?? null
+
+    it("reads films by the parser's type and by the words for them, decoding the name first", () => {
+        expect(readTorrent(MOVIE)).toMatchObject({ movie: true, group: "a&c" })
+        expect(readTorrent(nyaa("[Group] One Piece Film Red (1080p)", GiB, 9)).movie).toBe(true)
+        expect(readTorrent(nyaa("[X] Kimetsu no Yaiba Gekijouban - Mugen Ressha-hen (1080p)", GiB, 9)).movie).toBe(true)
+        expect(readTorrent(EPISODE).movie).toBe(false)
+        expect(readTorrent(nyaa("[Group] One Piece (1999) - 001-1085 [1080p] (Batch)", 900 * GiB, 40)).movie).toBe(false)
+        expect(isMovieRelease("[SubsPlease] Frieren - 01v2 (1080p)", [])).toBe(false)
+    })
+
+    it("leaves a film out for a series, never for a film", () => {
+        expect(choose([MOVIE], "TV")).toBeNull()
+        expect(choose([MOVIE, EPISODE], "TV")).toBe(EPISODE.name)
+        expect(choose([MOVIE], "MOVIE")).toBe(MOVIE.name)
+        // the format unknown: as before
+        expect(choose([MOVIE], "")).toBe(MOVIE.name)
+    })
+
+    it("keeps the real episode 1, a batch and a second version", () => {
+        expect(choose([EPISODE], "TV")).toBe(EPISODE.name)
+        const batch = nyaa("[Group] One Piece (001-100) [1080p] [Batch]", 90 * GiB, 40)
+        expect(choose([batch], "TV")).toBe(batch.name)
+        const v2 = nyaa("[SubsPlease] One Piece - 01v2 (1080p) [ABCD1234].mkv", GiB, 40)
+        expect(choose([v2], "TV")).toBe(v2.name)
+    })
+
+    it("decodes entities in the provider's group too", () => {
+        expect(readTorrent({ ...EPISODE, releaseGroup: "A&amp;C" }).group).toBe("a&c")
+        expect(decodeEntities("[A&amp;C] One Piece")).toBe("[A&C] One Piece")
     })
 })

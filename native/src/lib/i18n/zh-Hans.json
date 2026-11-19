@@ -1374,6 +1374,8 @@
   "Saved offline": "已离线保存",
   "Use mobile data?": "使用移动数据？",
   "You are not on Wi-Fi. A torrent can use several gigabytes of mobile data.": "你没有连接 Wi-Fi。一个 Torrent 可能会用掉好几 GB 的移动数据。",
+  "Movies {0}–{1}": "剧场版 {0}–{1}",
+  "Movie {0}": "剧场版 {0}",
   "Ep {0}–{1}": "第 {0}–{1} 集",
   "Batch": "合集",
   "Multi audio": "多音轨",

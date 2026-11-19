@@ -1,6 +1,6 @@
 import type { Habari_Metadata, HibikeTorrent_AnimeTorrent } from "@/api/generated/types"
 import type { Translate } from "@/lib/app-language"
-import { type AutoSelectProfile, type FoundTorrent, chooseTorrent } from "@/core/torrent/autoselect"
+import { type AutoSelectProfile, type FoundTorrent, chooseTorrent, decodeEntities, isMovieRelease } from "@/core/torrent/autoselect"
 import { magnetOf } from "@/core/torrent/torrent"
 import { CODECS, isBatchRelease, SOURCES, TEN_BIT } from "@/main/entry/_containers/torrent-search/_lib/torrent-filters"
 import { ago } from "@/main/entry/_containers/torrent-search/_lib/torrent-search-phone"
@@ -124,9 +124,9 @@ function sourceOf(sources: string[], name: string): string {
     return ""
 }
 
-/** A group as the provider or the parser names it, unless it is a list of languages in brackets ("[JAP/ENG/SPA]") */
+/** A group as the provider or the parser names it ("A&amp;C" decoded), unless it is a list of languages in brackets ("[JAP/ENG/SPA]") */
 function groupOf(group: string | undefined): string {
-    const text = group?.trim() ?? ""
+    const text = decodeEntities(group ?? "").trim()
     return text && !/[/,+]/.test(text) ? text : ""
 }
 
@@ -139,14 +139,19 @@ export const whole = (fact: string) => fact.replace(/ /g, " ")
  */
 export function torrentFacts(torrent: HibikeTorrent_AnimeTorrent, parsed: Habari_Metadata | undefined, t: Translate, language: string,
     options: { provider?: string, now?: number } = {}): TorrentFacts {
-    const name = torrent.name ?? ""
+    const name = decodeEntities(torrent.name ?? "")
     const lowerName = lower(name)
     const episodes = episodesOf(torrent, parsed)
     const batch = isBatchRelease(torrent) || list(parsed?.release_information).some(term => /^(?:batch|complete)$/i.test(term))
     const range = episodes.length === 2 && episodes[0]! < episodes[1]!
-    const episode = range ? t(`Ep ${episodes[0]}–${episodes[1]}`, `Folge ${episodes[0]}–${episodes[1]}`)
-        : batch ? t("Batch", "Batch")
-            : episodes.length >= 1 ? t(`Ep ${episodes[0]}`, `Folge ${episodes[0]}`) : ""
+    // a film's number counts films (4.2.0 E: "[A&C] One Piece - Movie 01" read as "Ep 1")
+    const movie = isMovieRelease(name, parsed?.anime_type)
+    const episode = movie
+        ? range ? t(`Movies ${episodes[0]}–${episodes[1]}`, `Filme ${episodes[0]}–${episodes[1]}`)
+            : episodes.length >= 1 ? t(`Movie ${episodes[0]}`, `Film ${episodes[0]}`) : t("Movie", "Film")
+        : range ? t(`Ep ${episodes[0]}–${episodes[1]}`, `Folge ${episodes[0]}–${episodes[1]}`)
+            : batch ? t("Batch", "Batch")
+                : episodes.length >= 1 ? t(`Ep ${episodes[0]}`, `Folge ${episodes[0]}`) : ""
     // a batch over several seasons ("Frieren S1 and S2") is read with each of them: shown as their range, "S1–S2"
     const seasons = list(parsed?.season_number).map(Number).filter(number => Number.isInteger(number) && number > 0)
     const first = seasons.length ? Math.min(...seasons) : 0
@@ -233,13 +238,14 @@ export function torrentKey(torrent: Pick<HibikeTorrent_AnimeTorrent, "infoHash" 
 /**
  * The torrent auto-select would take from these (autoselect.ts `chooseTorrent` with the user's profile), as its key;
  * "" when none fits. `episodeNumber` 0: any episode. `startYear`: the anime's (AniList `startDate.year`), so a name dated
- * for another show (the live-action series, a remake) is no match; 0: unknown.
+ * for another show (the live-action series, a remake) is no match; 0: unknown. `format`: the anime's AniList format, so a
+ * film is no match for a series; "": unknown.
  */
 export function bestMatchKey(torrents: HibikeTorrent_AnimeTorrent[], profile: AutoSelectProfile, episodeNumber: number, preferredResolution: string,
-    startYear = 0): string {
+    startYear = 0, format = ""): string {
     if (!torrents.length) return ""
     const found = torrents.map(torrent => ({ ...torrent, provider: torrent.provider ?? "" }) as unknown as FoundTorrent)
-    const chosen = chooseTorrent(found, profile, { episodeNumber, preferredResolution, startYear })
+    const chosen = chooseTorrent(found, profile, { episodeNumber, preferredResolution, startYear, format })
     return chosen ? torrentKey(chosen.torrent as unknown as HibikeTorrent_AnimeTorrent) : ""
 }
 

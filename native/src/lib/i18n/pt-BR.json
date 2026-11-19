@@ -1464,6 +1464,8 @@
   "Saved offline": "Salvo offline",
   "Use mobile data?": "Usar dados móveis?",
   "You are not on Wi-Fi. A torrent can use several gigabytes of mobile data.": "Você não está no Wi-Fi. Um torrent pode usar vários gigabytes de dados móveis.",
+  "Movies {0}–{1}": "Filmes {0}–{1}",
+  "Movie {0}": "Filme {0}",
   "Ep {0}–{1}": "Ep. {0}–{1}",
   "Batch": "Batch",
   "Multi audio": "Multiáudio",

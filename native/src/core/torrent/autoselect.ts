@@ -23,6 +23,7 @@ import type { CoreEnvironment, CoreRequest } from "../registry"
  *    within one of the anime's start year. That is the live-action series ("ONE.PIECE.2023.S01E01…" for the One Piece
  *    of 1999), the remake for the original and the original for the remake ("Hunter x Hunter (2011)"). A later season
  *    named with the series' earlier year ("Frieren (2023) S02E05") stays in; without a start year nothing is read.
+ *    A film (`isMovieRelease`, "One Piece - Movie 01") is out for an anime whose format is known and not MOVIE (4.2.0 E).
  * 2. The rest is ordered by: the way to the data (counted seeders, then a web seed in the magnet link, then an unknown
  *    number with a `.torrent` file) → resolution (the profile's order, else the settings' preferred resolution first, else the
  *    higher one) → preferences (+1 for each "prefer" that applies, −1 for each "avoid") plus one for each preferred
@@ -137,8 +138,11 @@ export type FoundTorrent = Json & {
     isBestRelease: boolean
 }
 
-/** `startYear`: the year the anime began (AniList `startDate.year`); 0 or left out: the names' years are not read */
-export type AutoSelectWanted = { episodeNumber: number, preferredResolution: string, startYear?: number }
+/**
+ * `startYear`: the year the anime began (AniList `startDate.year`); 0 or left out: the names' years are not read.
+ * `format`: the anime's AniList format; any but "MOVIE" rules films out, "" or left out: unknown, nothing ruled out.
+ */
+export type AutoSelectWanted = { episodeNumber: number, preferredResolution: string, startYear?: number, format?: string }
 
 const lower = (text: unknown) => (typeof text === "string" ? text.toLowerCase() : "")
 const listOf = (value: unknown): string[] => (Array.isArray(value) ? value.map(lower).filter(Boolean) : typeof value === "string" && value ? [value.toLowerCase()] : [])
@@ -155,6 +159,24 @@ export function bytesOf(text: string | undefined): number {
     return Math.round(Number(found[1]!.replace(",", ".")) * (UNITS[unit] ?? 0))
 }
 
+/** Release names sometimes come with HTML entities from the provider ("Returner&#39;s", "[A&amp;C]") */
+export function decodeEntities(text: string) {
+    return text.replace(/&(#\d+|#x[\da-f]+|amp|lt|gt|quot|apos|nbsp);/gi, (match, code: string) => {
+        const lower = code.toLowerCase()
+        if (lower.startsWith("#x")) return String.fromCodePoint(parseInt(lower.slice(2), 16))
+        if (lower.startsWith("#")) return String.fromCodePoint(parseInt(lower.slice(1), 10))
+        return ({ amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: " " } as Record<string, string>)[lower] ?? match
+    })
+}
+
+/**
+ * A film rather than an episode (4.2.0 E): the parser's type ("Movie", "Movies"), or a word for it in the name ("Film
+ * Red", "Gekijouban", "劇場版"). Its number counts films: "One Piece - Movie 01" is no episode 1 of the series.
+ */
+export function isMovieRelease(name: string, animeTypes: unknown): boolean {
+    return listOf(animeTypes).some(type => type === "movie" || type === "movies") || /\b(?:movies?|film|gekijou?ban)\b|劇場版/i.test(name)
+}
+
 /** What the name of a torrent says, read once */
 export type ReadTorrent = {
     torrent: FoundTorrent
@@ -169,16 +191,19 @@ export type ReadTorrent = {
     multipleSubs: boolean
     /** The seasons the name numbers ("S2", "2nd Season", "Season 2") */
     seasons: number[]
+    /** A film (isMovieRelease): only an anime that is a film takes it */
+    movie: boolean
 }
 
 export function readTorrent(torrent: FoundTorrent): ReadTorrent {
-    const read = parse(torrent.name ?? "") as unknown as Json
+    const decoded = decodeEntities(torrent.name ?? "")
+    const read = parse(decoded) as unknown as Json
     const episodes = listOf(read.episode_number).flatMap(text => {
         const range = /^(\d+)\s*[-~]\s*(\d+)$/.exec(text)
         return range ? [Number(range[1]), Number(range[2])] : [Number(text)]
     }).filter(number => Number.isFinite(number))
     const own = typeof torrent.episodeNumber === "number" && torrent.episodeNumber > 0 ? torrent.episodeNumber : 0
-    const name = lower(torrent.name)
+    const name = lower(decoded)
     // a range of episodes in the name ("(01-12)", " 13-24 "), which the parser leaves in the title
     const range = /(?:^|[\s([_])(\d{1,4})\s*[-~]\s*(\d{1,4})(?=$|[\s)\]_])/.exec(name)
     if (episodes.length === 0 && range && Number(range[1]) < Number(range[2])) episodes.push(Number(range[1]), Number(range[2]))
@@ -190,7 +215,7 @@ export function readTorrent(torrent: FoundTorrent): ReadTorrent {
     return {
         torrent,
         resolution: lower(torrent.resolution) || lower(read.video_resolution),
-        group: lower(torrent.releaseGroup) || lower(read.release_group),
+        group: lower(decodeEntities(torrent.releaseGroup ?? "")) || lower(read.release_group),
         episodes: own ? [own] : episodes,
         batch: torrent.isBatch === true || (own === 0 && (episodes.length !== 1 || /\b(batch|complete|season)\b/.test(name))),
         languages: [...languages, ...subtitles],
@@ -199,6 +224,7 @@ export function readTorrent(torrent: FoundTorrent): ReadTorrent {
         multipleAudio: /\b(dual|multi)[ ._-]?audio\b/.test(name) || audio.some(term => /dual|multi/.test(term)) || languages.length > 1,
         multipleSubs: /\bmulti[ ._-]?subs?\b/.test(name) || subtitles.some(term => /multi/.test(term)) || subtitles.length > 1,
         seasons,
+        movie: isMovieRelease(name, read.anime_type),
     }
 }
 
@@ -303,6 +329,7 @@ export function chooseTorrent(torrents: FoundTorrent[], profile: AutoSelectProfi
         if (!read.batch && read.episodes.length > 0 && wanted.episodeNumber > 0 && !read.episodes.includes(wanted.episodeNumber)) return false
         if (read.batch && read.episodes.length === 2 && wanted.episodeNumber > 0 && (wanted.episodeNumber < read.episodes[0]! || wanted.episodeNumber > read.episodes[1]!)) return false
         if (namesOtherYear(read, wanted.startYear ?? 0, wanted.episodeNumber)) return false
+        if (read.movie && !!wanted.format && wanted.format !== "MOVIE") return false
         return true
     })
 
