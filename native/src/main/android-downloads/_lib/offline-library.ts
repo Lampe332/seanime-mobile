@@ -1,6 +1,7 @@
 import type { MobileOfflineBatch_Variables } from "@/api/generated/endpoint.types"
 import type { AL_BaseAnime, MobileOffline_Item, MobileOffline_Snapshot, Onlinestream_Episode } from "@/api/generated/types"
 import type { Translate } from "@/lib/app-language"
+import { formatNumber } from "@/lib/i18n/format"
 
 /*
  * Rules of the Downloads tab (web android-downloads/offline-library.ts + page.tsx, OfflineActivity.kt), on the Go
@@ -76,8 +77,8 @@ export function followingEpisode(items: OfflineItem[], current: OfflineItem): Of
 // No-break space: a narrow card must not leave the unit alone on the next line ("1.4" / "GB")
 export function formatSize(bytes: number, language: string): string {
     return bytes >= 1024 ** 3
-        ? `${(bytes / 1024 ** 3).toLocaleString(language, { maximumFractionDigits: 1 })} GB`
-        : `${(bytes / 1024 ** 2).toLocaleString(language, { maximumFractionDigits: 0 })} MB`
+        ? `${formatNumber(bytes / 1024 ** 3, language, 1)} GB`
+        : `${formatNumber(bytes / 1024 ** 2, language)} MB`
 }
 
 export const clock = (positionMs: number) =>

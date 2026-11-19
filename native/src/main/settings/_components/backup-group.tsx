@@ -6,12 +6,13 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { type BackupFile, type BackupSummary, type RestoreMode, backupFileName } from "@/core"
 import { hasSafetyBackup, lastSafetyBackup, pickBackup, restoreBackupFile, saveBackupToDevice, shareBackup } from "@/lib/app-backup"
-import type { Translate } from "@/lib/app-language"
+import { getAppLanguage, type Translate } from "@/lib/app-language"
 import { LinkRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { reloadAppAsync } from "expo"
 import { markAppReload } from "@/lib/reload-mark"
 import React from "react"
 import { View } from "react-native"
+import { formatDate } from "@/lib/i18n/format"
 
 /*
  * Back up / Restore (Settings → App): all of the app's data as one file for a new phone or a new install. Restore shows
@@ -37,7 +38,7 @@ function summaryLines(t: Translate, summary: BackupSummary): string[] {
 
 function madeOn(t: Translate, summary: BackupSummary): string {
     const date = summary.createdAt ? new Date(summary.createdAt) : null
-    const when = date && !Number.isNaN(date.getTime()) ? date.toLocaleString(t("en-US", "de-DE")) : "?"
+    const when = date && !Number.isNaN(date.getTime()) ? formatDate(date, getAppLanguage(), "dateTime") : "?"
     return t(`Made ${when} with version ${summary.appVersion || "?"}.`, `Erstellt ${when} mit Version ${summary.appVersion || "?"}.`)
 }
 

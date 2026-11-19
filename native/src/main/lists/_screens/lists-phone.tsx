@@ -13,7 +13,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Tabs } from "@/components/ui/tabs/tabs"
 import { toast } from "@/components/ui/toast/toast-store"
 import { Text } from "@/components/ui/text/text"
-import { plural, type Translate, useTr } from "@/lib/app-language"
+import { getAppLanguage, plural, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { atomWithStorage } from "@/lib/storage"
 import { colors } from "@/lib/theme/tokens"
@@ -66,6 +66,7 @@ import { BackHandler, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { useSwapStyle } from "@/components/ui/core/swap"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { formatNumber } from "@/lib/i18n/format"
 
 /*
  * Android phone "My lists" (lists-phone.tsx + lists-phone.css): the anime and manga list by status as cover grids
@@ -308,8 +309,8 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
     const loading = query.isPending
     const failed = query.isError && !query.data
     const ready = !loading && !failed
-    const locale = t("en-US", "de-DE")
-    const count = (value: number) => value.toLocaleString(locale)
+    const language = getAppLanguage()
+    const count = (value: number) => formatNumber(value, language)
     const factsText = loading ? t("Loading your list…", "Deine Liste wird geladen …")
         : failed ? t("Not loaded", "Nicht geladen")
             : [

@@ -1,5 +1,5 @@
 import { type AppLanguage, translate } from "@/lib/app-language"
-import { localeTag } from "@/lib/i18n/format"
+import { formatDate } from "@/lib/i18n/format"
 // geschrieben nach: Plan „Updates-Seite + Benachrichtigung neue Manga-Kapitel“ (belege 2026-11-15 P-plan, Vorbild Mihon/Kotatsu-Updates), den App-Typen Anime_ScheduleItem/Manga_Collection und core/manga/library.ts (chapterNumberOf); eigene Regel
 
 import { chapterNumberOf } from "@/core/manga/library"
@@ -199,5 +199,5 @@ export function dayLabel(day: string, now: number, language: AppLanguage): strin
     if (day === dayKey(now)) return translate(language, "Today", "Heute")
     if (day === dayKey(now - DAY_MS)) return translate(language, "Yesterday", "Gestern")
     const [year, month, date] = day.split("-").map(Number)
-    return new Date(year, month - 1, date).toLocaleDateString(localeTag(language), { weekday: "long", day: "numeric", month: "long" })
+    return formatDate(new Date(year, month - 1, date), language, "weekdayDayMonth")
 }

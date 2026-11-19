@@ -127,7 +127,7 @@ export function scheduleDayTitle(t: Translate, day: Date, now: number, language:
     const offset = differenceInCalendarDays(day, now)
     if (offset === 0) return t("Later today", "Heute noch")
     if (offset === 1) return t("Tomorrow", "Morgen")
-    return formatDate(day, language, ["EEEE, d MMM", "EEEE, d. MMM"], { weekday: "long", day: "numeric", month: "short" })
+    return formatDate(day, language, "weekdayDayShortMonth")
 }
 
 /** "6:30 PM" / "18:30" */

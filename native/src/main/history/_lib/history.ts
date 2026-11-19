@@ -2,7 +2,7 @@
 
 import type { Continuity_WatchHistory } from "@/api/generated/types"
 import { type AppLanguage, translate } from "@/lib/app-language"
-import { localeTag } from "@/lib/i18n/format"
+import { formatDate, formatTime } from "@/lib/i18n/format"
 import type { MangaReaderResumeLocation } from "@/main/manga/_lib/manga-chapter-reader.atoms"
 
 /*
@@ -52,8 +52,6 @@ const dayKey = (time: number) => {
     return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 }
 
-const locale = localeTag
-
 /** The entries (newest first) in days of the device's time zone */
 export function groupByDay(entries: HistoryEntry[], now: number, language: AppLanguage): HistoryDay[] {
     const today = dayKey(now)
@@ -68,7 +66,7 @@ export function groupByDay(entries: HistoryEntry[], now: number, language: AppLa
             const date = new Date(entry.at)
             const label = key === today ? translate(language, "Today", "Heute")
                 : key === dayKey(yesterday.getTime()) ? translate(language, "Yesterday", "Gestern")
-                    : date.toLocaleDateString(locale(language), { weekday: "short", day: "numeric", month: "short", ...(date.getFullYear() !== thisYear ? { year: "numeric" } : {}) })
+                    : formatDate(date, language, date.getFullYear() !== thisYear ? "shortDayYear" : "shortDay")
             day = { key, label, entries: [] }
             days.push(day)
         }
@@ -79,7 +77,7 @@ export function groupByDay(entries: HistoryEntry[], now: number, language: AppLa
 
 /** "21:04" */
 export function timeOfDay(at: number, language: string): string {
-    return new Date(at).toLocaleTimeString(locale(language), { hour: "2-digit", minute: "2-digit" })
+    return formatTime(new Date(at), language)
 }
 
 /** "Episode 3 · 12:40 left" / "Chapter 12 · page 5" */

@@ -4,7 +4,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Dialog } from "@/components/ui/sheet/sheet"
 import { Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import { type Translate, useTr } from "@/lib/app-language"
+import { getAppLanguage, type Translate, useTr } from "@/lib/app-language"
 import { currentVersion } from "@/lib/app-updates/app-updater"
 import {
     autoOpensFor, changelogLines, downloadPercent, installReady, isBusy, isCriticalUpdate, NOTIFIED_UPDATE_KEY, updateHint, updateNoticeOpens, updateStatusText,
@@ -16,6 +16,7 @@ import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { atom, useAtom, useSetAtom } from "jotai"
 import React from "react"
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native"
+import { formatNumber } from "@/lib/i18n/format"
 
 /*
  * The update notice (web _features/update/mobile-update-modal.tsx + mobile-update.css): a panel at the top of the Menu
@@ -84,7 +85,7 @@ function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) 
     const installed = complete ? state.version : s.data?.current_version
     const percent = downloadPercent(state)
     const hint = updateHint(state, t)
-    const mb = (bytes: number) => new Intl.NumberFormat(t("en", "de"), { maximumFractionDigits: 1 }).format(bytes / (1024 * 1024)) + " MB"
+    const mb = (bytes: number) => formatNumber(bytes / (1024 * 1024), getAppLanguage(), 1) + " MB"
     const tone = failed || check.error ? "#fda4af" : ACCENT
     return (
         <View accessibilityLabel={t("App update", "App-Update")} className={cn(inDialog ? "py-1" : "p-4")}>

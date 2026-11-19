@@ -7,12 +7,13 @@ import { PhoneScreen } from "@/components/shared/phone-screen"
 import { barGrow, swapIn } from "@/components/ui/core/animations"
 import { cn } from "@/components/ui/core/styling"
 import { Text } from "@/components/ui/text/text"
-import { plural, type Translate, useTr } from "@/lib/app-language"
+import { getAppLanguage, plural, type Translate, useTr } from "@/lib/app-language"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { formatScore, getListFacts, getPhoneLists, getStatsView, type ListType, type StatRow, statusLabel, type StatsView } from "@/main/lists/_lib/lists-phone"
 import React from "react"
 import { Pressable, View } from "react-native"
 import Animated from "react-native-reanimated"
+import { formatNumber } from "@/lib/i18n/format"
 
 type Bar = { key: string, label: string, value: string, ratio: number, meta?: string }
 
@@ -72,14 +73,14 @@ export function ListsStats({ type, typeSwitch, actions }: { type: ListType, type
 }
 
 function started(t: Translate, type: ListType, count: number) {
-    const n = count.toLocaleString(t("en-US", "de-DE"))
+    const n = formatNumber(count, getAppLanguage())
     return type === "anime" ? t(`${n} anime started`, `${n} Anime begonnen`) : t(`${n} manga started`, `${n} Manga begonnen`)
 }
 
 /** Numbers in the app language: "5,320" / "5.320", "41 days" / "41 Tage". */
 function formats(t: Translate) {
-    const locale = t("en-US", "de-DE")
-    const number = (value: number, digits = 0) => value.toLocaleString(locale, { maximumFractionDigits: digits })
+    const language = getAppLanguage()
+    const number = (value: number, digits = 0) => formatNumber(value, language, digits)
     const amount = (value: number, en: [string, string], de: [string, string], digits = 0) => plural(t, value, en, de, number(value, digits))
     return {
         number,

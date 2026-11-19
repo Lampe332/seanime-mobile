@@ -15,6 +15,8 @@ import React from "react"
 import { Pressable, ScrollView, TextInput, View } from "react-native"
 import { PluginClientEvents, PluginServerEvents, usePluginListen, usePluginSend } from "./plugin-events"
 import { cssLength, pluginBoxLook, pluginIconButton, pluginSelectOptions, type PluginSelectValue, toNativeStyle } from "./plugin-logic"
+import { getAppLanguage } from "@/lib/app-language"
+import { formatDate } from "@/lib/i18n/format"
 
 /*
  * The components a plugin draws (web components/registry.tsx + registry-components.tsx), as native views in the phone
@@ -300,7 +302,7 @@ function PluginForm(props: Record<string, unknown>) {
                             onPress={() => DateTimePickerAndroid.open({ value: date && !isNaN(date.getTime()) ? date : new Date(), mode: "date",
                                 onValueChange: (_event, picked) => picked && set(field.name, picked) })}
                             className="min-h-12 justify-center rounded-surface bg-sm-surface-raised px-4 active:bg-sm-surface-control">
-                            <Text className="text-base">{date && !isNaN(date.getTime()) ? date.toLocaleDateString() : field.placeholder || "—"}</Text>
+                            <Text className="text-base">{date && !isNaN(date.getTime()) ? formatDate(date, getAppLanguage(), "numeric") : field.placeholder || "—"}</Text>
                         </Pressable>
                     </View>
                 }

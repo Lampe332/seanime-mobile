@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button/button"
 import { Dialog, Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Muted } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import { type Translate, useTr } from "@/lib/app-language"
+import { getAppLanguage, type Translate, useTr } from "@/lib/app-language"
 import { successFeedback } from "@/lib/feedback"
 import { copyToClipboard } from "@/lib/helpers/browser"
 import { MENU_ENTRIES } from "@/lib/nav/nav-items"
@@ -45,6 +45,7 @@ import Unplug from "lucide-react-native/icons/unplug"
 import User from "lucide-react-native/icons/user"
 import React from "react"
 import { participantTags, watchPartyMembership } from "./nakama-status"
+import { formatDate } from "@/lib/i18n/format"
 
 /*
  * Nakama (web _features/nakama/nakama-manager.tsx + nakama-phone.tsx/.css): the status from the server's websocket, the
@@ -272,7 +273,7 @@ function NakamaPhoneContent({ t, status, roomsAvailable, hostPassword, actions: 
                     <ActionRow icon={KeyRound} label={t("Passcode", "Passwort")} note={hostPassword || t("No password set", "Kein Passwort gesetzt")}
                         trailing={hostPassword ? <CopyMark /> : undefined} disabled={!hostPassword} onPress={() => copy(hostPassword)} />
                     {!!room.expiresAt && <ActionRow icon={Clock} label={t("Expires", "Läuft ab")}
-                        value={new Date(room.expiresAt).toLocaleString(t("en-US", "de-DE"), { dateStyle: "short", timeStyle: "short" })} />}
+                        value={formatDate(new Date(room.expiresAt), getAppLanguage(), "dateTime")} />}
                     <ActionRow icon={Unplug} tone="danger" disabled={a.disconnectingRoom} onPress={a.disconnectRoom}
                         label={a.disconnectingRoom ? t("Disconnecting…", "Trennt …") : t("Close the room", "Raum schließen")} />
                 </RowGroup>

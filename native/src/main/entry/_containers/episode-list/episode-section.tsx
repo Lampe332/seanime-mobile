@@ -10,7 +10,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Dialog, Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Muted, SectionTitle, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import { useTr } from "@/lib/app-language"
+import { getAppLanguage, useTr } from "@/lib/app-language"
 import { openInAppBrowser } from "@/lib/helpers/browser"
 import { getImageUrl } from "@/lib/server/assets"
 import { useEpisodeSpoilerState } from "@/lib/theme/anime-spoilers"
@@ -43,6 +43,7 @@ import Unlink from "lucide-react-native/icons/unlink"
 import { successFeedback } from "@/lib/feedback"
 import React from "react"
 import { Pressable, TextInput, useWindowDimensions, View } from "react-native"
+import { formatDate } from "@/lib/i18n/format"
 
 /*
  * The local library tab of an anime page (episode-section.tsx, episode-item.tsx, episode-grid-item.tsx,
@@ -400,7 +401,7 @@ function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, underHe
                     <View className="mt-1 flex-row items-center gap-1">
                         <CalendarDays size={14} color={colors.smTextMuted} />
                         <Text className="text-sm text-sm-text-muted">{episode.episodeMetadata?.airDate
-                            ? `${t("Aired on", "Ausgestrahlt am")} ${new Date(episode.episodeMetadata.airDate).toLocaleDateString(t("en-US", "de-DE"))}`
+                            ? `${t("Aired on", "Ausgestrahlt am")} ${formatDate(new Date(episode.episodeMetadata.airDate), getAppLanguage(), "numeric")}`
                             : t("Aired", "Ausgestrahlt")}</Text>
                     </View>
                 </EpisodeRow>
