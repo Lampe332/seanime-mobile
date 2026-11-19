@@ -44,21 +44,29 @@ const fromB64 = (s: string) => Uint8Array.from(atob(s.replace(/-/g, "+").replace
 // ---------------------------------------------------------------- mail layer
 
 describe("mail", () => {
+  const ALL_MAILS: Mail[] = [
+    { kind: "verify", token: "t".repeat(43) },
+    { kind: "reset", token: "t".repeat(43) },
+    { kind: "confirm_sign_in", token: "t".repeat(43) },
+    { kind: "new_device", deviceName: "Pixel <script>" },
+    { kind: "device_removed", deviceName: "Tablet" },
+    { kind: "device_signed_out", deviceName: "Laptop" },
+    { kind: "password_changed" },
+    { kind: "account_deleted" },
+    { kind: "start_fresh" },
+    { kind: "google_linked" },
+    { kind: "google_unlinked" },
+    { kind: "recovery_changed" },
+    { kind: "key_rotated" },
+    { kind: "approvals_paused" },
+    { kind: "inactivity", deleteAt: nowS() + 14 * 86400 },
+  ];
+  const decode = (s: string) => s.replace(/&#(\d+);/g, (_, n: string) => String.fromCharCode(Number(n)));
+  const visible = (html: string) =>
+    decode(html.replace(/<head>[\s\S]*<\/head>/, "").replace(/<br>/g, "\n").replace(/<[^>]+>/g, "").replace(/[ \t]*\n[ \t]*/g, "\n"));
+
   it("renders every mail in English without dashes, from no-reply", async () => {
-    const kinds: Mail[] = [
-      { kind: "verify", token: "t".repeat(43) },
-      { kind: "reset", token: "t".repeat(43) },
-      { kind: "new_device", deviceName: "Pixel <script>" },
-      { kind: "password_changed" },
-      { kind: "account_deleted" },
-      { kind: "start_fresh" },
-      { kind: "google_linked" },
-      { kind: "google_unlinked" },
-      { kind: "recovery_changed" },
-      { kind: "key_rotated" },
-      { kind: "inactivity", deleteAt: nowS() + 14 * 86400 },
-    ];
-    for (const m of kinds) {
+    for (const m of ALL_MAILS) {
       const r = renderMail(env, m);
       expect(r.subject.length).toBeGreaterThan(5);
       for (const part of [r.subject, r.text, r.html]) {
@@ -69,6 +77,51 @@ describe("mail", () => {
     const u = await signupUser();
     const [mail] = await takeMails(u.email);
     expect(mail?.from).toEqual({ email: "no-reply@seanimemobile.com", name: "Seanime Mobile" });
+    expect(mail?.html).toContain(u.email);
+  });
+
+  it("every mail has an HTML and a plain-text part with the same content", () => {
+    for (const m of ALL_MAILS) {
+      const { subject, text, html } = renderMail(env, m, "owner@example.com");
+      expect(html.startsWith("<!doctype html>")).toBe(true);
+      expect(html).toContain(`<title>${subject}</title>`);
+      expect(text).not.toMatch(/<(p|a|td|table|br|!doctype)\b/i);
+      expect(text).toContain("Sent by Seanime Mobile to owner@example.com.");
+      const shown = visible(html);
+      const raw = decode(html);
+      for (const line of text.split("\n").filter(Boolean)) {
+        const [label, value] = line.split(/: (.+)/);
+        const found = shown.includes(line) || raw.includes(line) || (!!value && shown.includes(label!) && raw.includes(value));
+        expect(found, `${m.kind}: "${line}" missing in HTML`).toBe(true);
+      }
+    }
+  });
+
+  it("escapes hostile device names and addresses in the HTML", () => {
+    const evil = '<script>alert(1)</script>"><img src=x onerror=alert(1)>';
+    const tags = (html: string) => html.match(/<[a-z!/]/gi)?.length;
+    for (const kind of ["new_device", "device_removed", "device_signed_out"] as const) {
+      const bad = renderMail(env, { kind, deviceName: evil }, `"><b>x@example.com`);
+      const good = renderMail(env, { kind, deviceName: "Phone" }, "x@example.com");
+      expect(bad.html).not.toMatch(/<script|<img|<b>/i);
+      expect(tags(bad.html)).toBe(tags(good.html));
+      expect(bad.html).toContain("&#60;script&#62;alert(1)&#60;/script&#62;&#34;&#62;&#60;img src=x");
+      expect(bad.text).toContain(evil);
+    }
+  });
+
+  it("links only to the website and loads nothing", () => {
+    const base = env.WEB_BASE_URL;
+    for (const m of ALL_MAILS) {
+      const { html } = renderMail(env, m, "owner@example.com");
+      expect(html).not.toMatch(/http:\/\/|<img|<script|<link|<iframe|<object|src=|url\(|@import/i);
+      // every "//" belongs to a link on the website's own host
+      expect(html.split("//").length).toBe(html.split(`${base}`).length);
+      const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((h) => decode(h[1]!));
+      expect(hrefs.length).toBeGreaterThan(0);
+      for (const h of hrefs) expect(h === base || h.startsWith(`${base}/account/`)).toBe(true);
+      if ("token" in m) expect(hrefs).toContain(`${base}/account/${m.kind === "reset" ? "reset" : m.kind === "verify" ? "verify" : "confirm"}/#token=${m.token}`);
+    }
   });
 });
 
