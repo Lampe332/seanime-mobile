@@ -190,6 +190,12 @@ No. The local account keeps lists and progress on the device, and *Upload local 
 
 Found a bug or have an idea? [Open an issue](https://github.com/Lampe332/seanime-mobile/issues) with your device model, Android version and app version (*Settings → About*). For questions, help with setup or just to chat, join the [Discord server](https://discord.gg/dxJdj5Dqt9).
 
+## Support
+
+Seanime Mobile is free and stays free: no ads, no paywalled features. I build it in my spare time, so if the app is useful to you and you'd like to say thanks, you can buy me a coffee on Ko-fi. It's completely optional, and a bug report or a star helps too.
+
+[![Support on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/lampe332)
+
 ## Build it yourself
 
 The app lives in `native/`: React Native and Expo in TypeScript, the core in `native/src/core/`, the native modules in `native/modules/`. Build instructions are in [docs/BUILD.md](docs/BUILD.md).
