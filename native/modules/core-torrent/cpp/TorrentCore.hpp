@@ -16,6 +16,7 @@
 
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/session.hpp>
+#include <libtorrent/settings_pack.hpp>
 #include <libtorrent/torrent_handle.hpp>
 
 #include "StreamServer.hpp"
@@ -32,6 +33,18 @@ namespace seanime::torrent {
     bool pex = true;
     bool portMapping = true;
     bool utp = true;
+  };
+
+  /** 4.2.0: what the session may use. A torrent that is served to the player (a stream) stays outside all of it. */
+  struct Limits {
+    /** Bytes per second, all downloads together; 0: no limit */
+    int downloadLimit = 0;
+    /** Bytes per second, all uploads together; 0: no limit */
+    int uploadLimit = 0;
+    /** How many queued torrents download at once */
+    int activeDownloads = 3;
+    /** A torrent that has everything it wants is paused instead of shared on */
+    bool stopWhenFinished = false;
   };
 
   struct FileEntry {
@@ -68,6 +81,8 @@ namespace seanime::torrent {
     std::string trackerError;
     /** Web seed addresses the torrent has */
     int webSeeds = 0;
+    /** Where a queued torrent stands among the torrents still downloading, from 0; -1: not in the queue */
+    int queuePosition = -1;
   };
 
   /**
@@ -102,6 +117,16 @@ namespace seanime::torrent {
     void setSequential(const std::string& infoHash, bool on);
     /** Pauses or resumes one torrent; the state goes into its resume data at once, so it survives a restart */
     void setPaused(const std::string& infoHash, bool paused);
+    /**
+     * 4.2.0: into the download queue or out of it. A queued torrent is libtorrent's "auto managed": of them only
+     * `Limits::activeDownloads` download at once, the others wait (state "queued"); the flag lies in the resume data.
+     * Nothing happens for a torrent that is served: a stream is never queued.
+     */
+    void setQueued(const std::string& infoHash, bool queued);
+    /** 4.2.0: the limits from now on, for a running session at once and for the next one */
+    void setLimits(const Limits& limits);
+    /** 4.2.0: moves the torrent's files to another folder; `done` is called on the session's thread when they are there */
+    void moveStorage(const std::string& infoHash, const std::string& savePath, Done done);
     void setPieceDeadlines(const std::string& infoHash, int firstPiece, int count, int firstMs, int stepMs);
     void clearDeadlines(const std::string& infoHash);
     Status status(const std::string& infoHash);
@@ -150,6 +175,10 @@ namespace seanime::torrent {
       int trackersOk = 0;
       int trackersFailed = 0;
       std::string trackerError;
+      /** In the download queue (setQueued); a pause of the user's takes libtorrent's flag away, this stays */
+      bool queued = false;
+      /** Served to the player or shared to a TV: outside the queue, the download limit and the stop when finished */
+      bool served = false;
     };
     struct Removal {
       bool deleteFiles = false;
@@ -171,6 +200,16 @@ namespace seanime::torrent {
     void requestSave(const libtorrent::torrent_handle& handle);
     void writeResume(const libtorrent::add_torrent_params& params);
     void finishRemoval(const std::string& infoHash, bool deleted, const std::string& error);
+    /** The queue's size and the upload limit as libtorrent's settings */
+    void limitsInto(libtorrent::settings_pack& pack) const;
+    /**
+     * The download limit, so that it never brakes a stream: without a served torrent it is the session's; while one
+     * is served the session has none and every other torrent carries the limit itself.
+     */
+    void applyRates();
+    /** A torrent the outlet serves from now on: out of the queue, running, without a limit (TorrentServe.cpp) */
+    void markServed(Entry& found);
+    void finishMove(const libtorrent::torrent_handle& handle, const std::string& error);
 
     // shared with other threads
     std::mutex mutex_;
@@ -185,6 +224,10 @@ namespace seanime::torrent {
     Tick tick_;
     std::map<std::string, Entry> torrents_;
     std::map<std::string, Removal> removals_;
+    /** Kept across sessions: what the app last asked for */
+    Limits limits_;
+    /** Who waits for the files of which torrent to be moved */
+    std::map<std::string, Done> moves_;
     int savesOut_ = 0;
     std::uint64_t ticks_ = 0;
     /** The DHT's nodes as the session's statistics last said, and where they stand in those */

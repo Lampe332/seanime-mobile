@@ -105,6 +105,36 @@ namespace margelo::nitro::seanime::coretorrent {
       return onThread<void>([infoHash, paused](Core& core) { core.setPaused(infoHash, paused); });
     }
 
+    std::shared_ptr<Promise<void>> setQueued(const std::string& infoHash, bool queued) override {
+      return onThread<void>([infoHash, queued](Core& core) { core.setQueued(infoHash, queued); });
+    }
+
+    std::shared_ptr<Promise<void>> setLimits(const CoreTorrentLimits& limits) override {
+      if (!whole(limits.downloadLimit) || !whole(limits.uploadLimit) || !whole(limits.activeDownloads)) return failed<void>("the limits are out of range");
+      ::seanime::torrent::Limits wanted;
+      wanted.downloadLimit = static_cast<int>(limits.downloadLimit);
+      wanted.uploadLimit = static_cast<int>(limits.uploadLimit);
+      wanted.activeDownloads = static_cast<int>(limits.activeDownloads);
+      wanted.stopWhenFinished = limits.stopWhenFinished;
+      return onThread<void>([wanted](Core& core) { core.setLimits(wanted); });
+    }
+
+    std::shared_ptr<Promise<void>> moveStorage(const std::string& infoHash, const std::string& savePath) override {
+      auto promise = Promise<void>::create();
+      std::shared_ptr<Core> core = core_;
+      core_->post([promise, core, infoHash, savePath]() {
+        try {
+          core->moveStorage(infoHash, savePath, [promise](const std::string& error) {
+            if (error.empty()) promise->resolve();
+            else promise->reject(failure(error));
+          });
+        } catch (const std::exception& error) {
+          promise->reject(failure(error.what()));
+        }
+      });
+      return promise;
+    }
+
     std::shared_ptr<Promise<void>> setPieceDeadlines(const std::string& infoHash, double firstPiece, double count, double firstMs, double stepMs) override {
       if (!whole(firstPiece) || !whole(count) || !whole(firstMs) || !whole(stepMs)) return failed<void>("the numbers are out of range");
       return onThread<void>([infoHash, firstPiece, count, firstMs, stepMs](Core& core) {
@@ -166,7 +196,7 @@ namespace margelo::nitro::seanime::coretorrent {
                                static_cast<double>(status.seeds), static_cast<double>(status.piecesHave), static_cast<double>(status.pieces),
                                static_cast<double>(status.bytesDone), static_cast<double>(status.bytesWanted), static_cast<double>(status.peersKnown),
                                static_cast<double>(status.dhtNodes), static_cast<double>(status.trackersOk), static_cast<double>(status.trackersFailed),
-                               status.trackerError, static_cast<double>(status.webSeeds));
+                               status.trackerError, static_cast<double>(status.webSeeds), static_cast<double>(status.queuePosition));
     }
 
     /** Runs `work` on the session's thread and answers the promise from there */

@@ -23,6 +23,18 @@ export interface CoreTorrentSettings {
     utp: boolean
 }
 
+/** What the session may use (4.2.0). They hold for the torrents the app downloads; a torrent that is streamed stays outside. */
+export interface CoreTorrentLimits {
+    /** Bytes per second for all downloads together; 0: no limit. Lifted for a torrent that is served to the player. */
+    downloadLimit: number
+    /** Bytes per second for all uploads together; 0: no limit */
+    uploadLimit: number
+    /** How many queued torrents (`setQueued`) download at once; the others wait in their order */
+    activeDownloads: number
+    /** A torrent that has everything it wants is paused instead of shared on; not one that is served */
+    stopWhenFinished: boolean
+}
+
 /** One file of a torrent. Pieces count from 0; `pieceEnd` is the last piece that holds bytes of the file. */
 export interface CoreTorrentFile {
     index: number
@@ -39,7 +51,7 @@ export interface CoreTorrentStatus {
     /** 40 hex digits, lower case */
     infoHash: string
     name: string
-    /** "checking" | "metadata" | "downloading" | "finished" | "seeding" | "paused" */
+    /** "checking" | "metadata" | "downloading" | "finished" | "seeding" | "paused" | "queued" (waits for its turn) */
     state: string
     /** Why the torrent stands still; "" for no error */
     error: string
@@ -68,6 +80,8 @@ export interface CoreTorrentStatus {
     trackerError: string
     /** Web seed addresses the torrent has (BEP 19) */
     webSeeds: number
+    /** Where a queued torrent (`setQueued`) stands among the torrents still downloading, from 0; -1: not in the queue */
+    queuePosition: number
 }
 
 /**
@@ -97,6 +111,19 @@ export interface CoreTorrent extends HybridObject<{ ios: "c++", android: "c++" }
     setSequential(infoHash: string, on: boolean): Promise<void>
     /** Pauses or resumes one torrent (phase 6f); kept in its resume data, so a paused torrent stays paused after a restart */
     setPaused(infoHash: string, paused: boolean): Promise<void>
+    /**
+     * 4.2.0: takes a torrent into the download queue (or out of it). Of the queued torrents only `activeDownloads`
+     * (`setLimits`) download at once, the rest wait as "queued"; kept in the resume data. A torrent that is served
+     * (`serve`, `shareTorrent`) leaves the queue and runs.
+     */
+    setQueued(infoHash: string, queued: boolean): Promise<void>
+    /** 4.2.0: the limits of the running session, from now on; they are kept with the session's state */
+    setLimits(limits: CoreTorrentLimits): Promise<void>
+    /**
+     * 4.2.0: moves the files of a torrent to another folder (a plain path) and goes on from there; files of the same
+     * name there are replaced. The answer comes when they are moved.
+     */
+    moveStorage(infoHash: string, savePath: string): Promise<void>
     /** Piece `firstPiece + n` is wanted within `firstMs + n * stepMs` milliseconds, for `count` pieces */
     setPieceDeadlines(infoHash: string, firstPiece: number, count: number, firstMs: number, stepMs: number): Promise<void>
     clearDeadlines(infoHash: string): Promise<void>

@@ -30,7 +30,9 @@ import { TextInput, View } from "react-native"
  */
 
 type Kind = "torrentstream" | "debrid"
-type Row<K extends Kind> = K extends "torrentstream" ? Models_TorrentstreamSettings : Models_DebridSettings
+/** `stopSeedingWhenFinished` is the app's own field of the row (4.2.0, core/torrent/torrent.ts), not one of the server's type */
+type TorrentstreamRow = Models_TorrentstreamSettings & { stopSeedingWhenFinished?: boolean }
+type Row<K extends Kind> = K extends "torrentstream" ? TorrentstreamRow : Models_DebridSettings
 
 const STATUS_FIELD = { torrentstream: "torrentstreamSettings", debrid: "debridSettings" } as const
 const SAVE = { torrentstream: API_ENDPOINTS.TORRENTSTREAM.SaveTorrentstreamSettings, debrid: API_ENDPOINTS.DEBRID.SaveDebridSettings }
@@ -203,7 +205,10 @@ function DownloadsGroup({ t, onOpen }: { t: Translate, onOpen: (id: SettingsSect
             onChange={next => void save("torrent.seanimeUploadLimit", Number(next))} />
         <SelectRow label={t("Downloads at the same time", "Gleichzeitige Downloads")} value={String(active)}
             options={Array.from(new Set([1, 2, 3, 4, 5, active])).sort((a, b) => a - b).map(n => ({ value: String(n), label: String(n) }))}
+            note={t("The others wait for their turn. A stream never waits.", "Die anderen warten, bis sie dran sind. Ein Stream wartet nie.")}
             onChange={next => void save("torrent.seanimeMaxActiveDownloads", Number(next))} />
+        <RowSwitch kind="torrentstream" field="stopSeedingWhenFinished" label={t("Stop sharing when finished", "Teilen beenden, wenn fertig")}
+            note={t("Pauses a download once it is complete instead of sharing it on.", "Pausiert einen Download, sobald er fertig ist, statt ihn weiter zu teilen.")} />
     </SettingsGroup>
 }
 

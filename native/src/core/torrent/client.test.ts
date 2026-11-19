@@ -7,7 +7,8 @@ import { type CoreDatabase, openCoreDatabase } from "../database/database"
 import { coreAnswerFor } from "../index"
 import type { CoreEnvironment } from "../registry"
 import { clientStatusOf, etaOf, forgetTorrentClient, resumeClientAtStart } from "./client"
-import { type TorrentDevice, type TorrentDeviceFile, type TorrentDeviceStatus, forgetTorrentStream } from "./torrent"
+import { settingsSections } from "../database/schema"
+import { type TorrentDevice, type TorrentDeviceFile, type TorrentDeviceStatus, type TorrentLimits, forgetTorrentStream, limitsOf } from "./torrent"
 
 type Json = Record<string, unknown>
 
@@ -221,5 +222,41 @@ describe("torrent client in the core", () => {
             expect(STATUSES).toContain(word)
         }
         expect(clientStatusOf({ ...base, error: "disk full" })).toBe("error")
+    })
+})
+
+describe("limits and the download queue (4.2.0)", () => {
+    const NONE: TorrentLimits = { downloadLimit: 0, uploadLimit: 0, activeDownloads: 3, stopWhenFinished: false }
+
+    it("reads the limits of the settings: KiB per second as bytes, three downloads at once and sharing on unless set", () => {
+        expect(limitsOf(null, null)).toEqual(NONE)
+        expect(limitsOf({ seanimeDownloadLimit: 0, seanimeUploadLimit: 0, seanimeMaxActiveDownloads: 0 }, { stopSeedingWhenFinished: false })).toEqual(NONE)
+        expect(limitsOf({ seanimeDownloadLimit: 2048, seanimeUploadLimit: 64, seanimeMaxActiveDownloads: 1 }, { stopSeedingWhenFinished: true }))
+            .toEqual({ downloadLimit: 2048 * 1024, uploadLimit: 64 * 1024, activeDownloads: 1, stopWhenFinished: true })
+        expect(limitsOf({ seanimeDownloadLimit: -5, seanimeUploadLimit: "64", seanimeMaxActiveDownloads: 2.5 }, { stopSeedingWhenFinished: "yes" })).toEqual(NONE)
+        expect(limitsOf({ seanimeDownloadLimit: 1e12, seanimeMaxActiveDownloads: 5000 }, null)).toMatchObject({ downloadLimit: 1024 * 1024 * 1024, activeDownloads: 100 })
+    })
+
+    it("hands the saved limits to the device with every request, so a change reaches a running session", async () => {
+        const seen: TorrentLimits[] = []
+        current = { ...deviceRun(), useLimits: async limits => void seen.push(limits) }
+        await download()
+        expect(seen.at(-1)).toEqual(NONE)
+
+        const opened = await environment.database()
+        await opened.insert(settingsSections).values({ section: "torrent", content: { seanimeDownloadLimit: 1024, seanimeUploadLimit: 128, seanimeMaxActiveDownloads: 2 }, changedAt: clock })
+        await coreAnswerFor("PATCH", "/api/v1/torrentstream/settings")!({ query: undefined, body: { settings: { stopSeedingWhenFinished: true } } }, environment)
+        await list()
+        expect(seen.at(-1)).toEqual({ downloadLimit: 1024 * 1024, uploadLimit: 128 * 1024, activeDownloads: 2, stopWhenFinished: true })
+    })
+
+    it("lists a waiting torrent with its place in the queue", async () => {
+        const device = deviceRun()
+        current = { ...device, status: async infoHash => ({ ...(await device.status(infoHash)), state: "queued", downRate: 0, queuePosition: 2 }) }
+        await download()
+        expect((await list())![0]).toMatchObject({ hash: BATCH, queueIndex: 2, eta: "No ETA" })
+        // a device that says nothing of a queue, or a torrent outside it (-1), lists 0 as before
+        current = { ...device, status: async infoHash => ({ ...(await device.status(infoHash)), queuePosition: -1 }) }
+        expect((await list())![0]).toMatchObject({ queueIndex: 0 })
     })
 })

@@ -85,6 +85,8 @@ namespace seanime::torrent {
     file.size = layout.file_size(lt::file_index_t{index});
     file.pieceLength = info->piece_length();
     found.pieces = info->num_pieces();
+    // 4.2.0: the stream comes first, the queue and the limits are for the other torrents
+    markServed(found);
     if (found.handle.file_priority(lt::file_index_t{index}) == lt::dont_download) found.handle.file_priority(lt::file_index_t{index}, lt::default_priority);
     return file;
   }

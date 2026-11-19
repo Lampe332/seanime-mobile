@@ -155,7 +155,7 @@ export function clientTorrentOf(row: ClientRow, status: TorrentDeviceStatus | nu
         peers: status?.peers ?? 0,
         ratio: 0,
         addedAt: row.addedAt,
-        queueIndex: 0,
+        queueIndex: Math.max(0, status?.queuePosition ?? 0),
         forceStart: false,
         sequential: false,
         error: status ? status.error : "the torrent is no longer in the session",

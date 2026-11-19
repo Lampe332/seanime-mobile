@@ -2,7 +2,7 @@
 import { NitroModules } from "react-native-nitro-modules"
 import type { CoreTorrent } from "./src/CoreTorrent.nitro"
 
-export type { CoreTorrent, CoreTorrentFile, CoreTorrentSettings, CoreTorrentStatus } from "./src/CoreTorrent.nitro"
+export type { CoreTorrent, CoreTorrentFile, CoreTorrentLimits, CoreTorrentSettings, CoreTorrentStatus } from "./src/CoreTorrent.nitro"
 
 /**
  * The one BitTorrent session of the app, on a thread of its own (cpp/TorrentCore.cpp, shared C++ around libtorrent).

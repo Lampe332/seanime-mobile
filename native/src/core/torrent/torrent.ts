@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm"
 import { listDataOf } from "../anilist/changes"
 import { storedEntry } from "../anilist/store"
 import { inOrder } from "../database/database"
-import { torrentKept } from "../database/schema"
+import { settingsSections, torrentKept } from "../database/schema"
 import { CoreError } from "../errors"
 import { emitCoreEvent } from "../events"
 import { parse } from "../extensions/helpers/prelude/habari"
@@ -53,6 +53,20 @@ export type TorrentDeviceStatus = {
     trackersOk?: number
     trackersFailed?: number
     webSeeds?: number
+    /** 4.2.0: where a torrent of the download queue stands, from 0; -1 or missing: not in the queue */
+    queuePosition?: number
+}
+
+/** 4.2.0: what the session may use; a stream is outside all of it (modules/core-torrent) */
+export type TorrentLimits = {
+    /** Bytes per second, all downloads together; 0: no limit */
+    downloadLimit: number
+    /** Bytes per second, all uploads together; 0: no limit */
+    uploadLimit: number
+    /** How many downloads of the torrent client run at once; the others wait as "queued" */
+    activeDownloads: number
+    /** A download that is complete is paused instead of shared on */
+    stopWhenFinished: boolean
 }
 
 /** What of the saved torrent stream settings the device's session uses when it starts next */
@@ -67,6 +81,8 @@ export type TorrentSessionSettings = {
 export type TorrentDevice = {
     /** The settings the session starts with the next time it starts (a running session keeps its own) */
     useSettings?: (settings: TorrentSessionSettings) => void
+    /** 4.2.0: the limits, for a running session at once, else for the next one. Missing: the device has none. */
+    useLimits?: (limits: TorrentLimits) => Promise<void>
     /** The answer is the info hash (40 hex digits, lower case); a torrent the session has already answers with its hash */
     addMagnet: (uri: string, folder?: string) => Promise<string>
     /**
@@ -83,6 +99,8 @@ export type TorrentDevice = {
     setPaused?: (infoHash: string, paused: boolean) => Promise<void>
     /** Phase 6f: holds the app's process in front while the torrent client downloads (a notice); the answer: whether it did */
     keepRunning?: (on: boolean, title: string) => Promise<boolean>
+    /** 4.2.0: moves the torrent's files to another folder and goes on from there. Missing: the device cannot. */
+    moveStorage?: (infoHash: string, folder: string) => Promise<void>
     setPieceDeadlines: (infoHash: string, firstPiece: number, count: number, firstMs: number, stepMs: number) => Promise<void>
     /** The address of the file at the module's outlet */
     serve: (infoHash: string, index: number) => Promise<string>
@@ -114,7 +132,9 @@ const MIME: Record<string, string> = { mp4: "video/mp4", m4v: "video/mp4", mkv: 
 
 export async function deviceOf(environment: CoreEnvironment): Promise<TorrentDevice> {
     if (!environment.torrent) throw new CoreError("torrents are not available here")
-    return environment.torrent()
+    const device = await environment.torrent()
+    await applySavedLimits(device, environment)
+    return device
 }
 
 /* ---- What the core keeps: the settings and, per anime, the batch last streamed from ---- */
@@ -143,6 +163,8 @@ export const TORRENT_SETTINGS: Json = {
     enabled: false, autoSelect: true, preferredResolution: "", disableIPV6: false, downloadDir: "", addToLibrary: false,
     torrentClientHost: "", torrentClientPort: 0, streamingServerHost: "", streamingServerPort: 0, includeInLibrary: false,
     streamUrlAddress: "", slowSeeding: false, preloadNextStream: false, disableAcceleratedStartup: false,
+    // the app's own (4.2.0), not a field of the server's row: a complete download is paused instead of shared on
+    stopSeedingWhenFinished: false,
 }
 
 /** PATCH /api/v1/torrentstream/settings with the area on: kept by the core → the saved settings */
@@ -169,6 +191,41 @@ export function sessionSettingsOf(settings: Json | null): TorrentSessionSettings
     return {
         downloadDir: /^(\/|file:\/\/\/)/.test(folder) ? folder : "",
         listenPort: typeof port === "number" && Number.isInteger(port) && port > 0 && port <= 65535 ? port : 0,
+    }
+}
+
+/** How many downloads run at once before the user chose (the settings' own start value, and the screen's) */
+export const ACTIVE_DOWNLOADS = 3
+/** The most a limit can be: 1 GiB per second, far above any line and well inside the module's whole numbers */
+const LIMIT_MOST_KB = 1024 * 1024
+
+/**
+ * 4.2.0: the limits the session gets, from the settings' section `torrent` (`seanimeDownloadLimit` and
+ * `seanimeUploadLimit` in KiB per second as the screen shows them, 0: none; `seanimeMaxActiveDownloads`) and the
+ * torrent stream row (`stopSeedingWhenFinished`). Anything that is no such number counts as not set.
+ */
+export function limitsOf(section: Json | null, settings: Json | null): TorrentLimits {
+    const kb = (value: unknown) => (typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.min(Math.floor(value), LIMIT_MOST_KB) * 1024 : 0)
+    const active = section?.seanimeMaxActiveDownloads
+    return {
+        downloadLimit: kb(section?.seanimeDownloadLimit),
+        uploadLimit: kb(section?.seanimeUploadLimit),
+        activeDownloads: typeof active === "number" && Number.isInteger(active) && active >= 1 ? Math.min(active, 100) : ACTIVE_DOWNLOADS,
+        stopWhenFinished: settings?.stopSeedingWhenFinished === true,
+    }
+}
+
+/** Every use of the session passes here (deviceOf), so a change of the settings reaches a running session with the next request */
+async function applySavedLimits(device: TorrentDevice, environment: CoreEnvironment): Promise<void> {
+    if (!device.useLimits || !environment.database) return
+    try {
+        const database = await environment.database()
+        const rows = await inOrder(database, () => database.select({ content: settingsSections.content }).from(settingsSections).where(eq(settingsSections.section, "torrent")))
+        const section = rows.length > 0 && isRecord(rows[0].content) ? rows[0].content : null
+        await device.useLimits(limitsOf(section, await kept(environment, SETTINGS_KEY)))
+    }
+    catch {
+        // settings that cannot be read: the session keeps the limits it has
     }
 }
 
