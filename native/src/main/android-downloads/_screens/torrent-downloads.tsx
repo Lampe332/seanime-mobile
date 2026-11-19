@@ -7,6 +7,7 @@ import { Sheet } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
+import { type TorrentGroupKey, torrentGroups } from "@/main/android-downloads/_lib/torrent-groups"
 import Pause from "lucide-react-native/icons/pause"
 import Play from "lucide-react-native/icons/play"
 import React from "react"
@@ -80,10 +81,14 @@ export function TorrentDownloads({ active }: { active: boolean }) {
     </Notice>
     if (isLoading) return <View className="items-center py-12"><ActivityIndicator color={colors.smTextMuted} accessibilityLabel={t("Loading your torrents …", "Deine Torrents werden geladen …")} /></View>
 
-    const groups = [
-        { key: "active", rows: torrents.filter(torrent => torrent.status !== "seeding"), title: t("Downloading", "Wird geladen") },
-        { key: "done", rows: torrents.filter(torrent => torrent.status === "seeding"), title: t("Done", "Fertig") },
-    ].filter(group => group.rows.length > 0)
+    // only the torrents that load count as downloading (4.2.0 E: five paused ones at 100 % said "Downloading 5")
+    const titles: Record<TorrentGroupKey, string> = {
+        downloading: t("Downloading", "Wird geladen"),
+        waiting: t("Waiting", "Wartet"),
+        stopped: t("Stopped", "Angehalten"),
+        done: t("Done", "Fertig"),
+    }
+    const groups = torrentGroups(torrents).map(group => ({ ...group, title: titles[group.key] }))
 
     return <View className="gap-6">
         {torrents.length === 0 && <PhoneEmpty title={t("No torrents", "Keine Torrents")}
@@ -94,10 +99,10 @@ export function TorrentDownloads({ active }: { active: boolean }) {
                 {group.rows.map(torrent => <View key={torrent.hash} className="flex-row items-center bg-sm-surface-raised pr-1">
                     <Pressable accessibilityRole="button" onPress={() => setOpenHash(torrent.hash)} className="min-h-[72px] min-w-0 flex-1 justify-center gap-0.5 px-3 py-2.5 active:bg-sm-surface-control">
                         <Text className="text-[15px] font-semibold leading-5" numberOfLines={2}>{torrent.name}</Text>
-                        {group.key === "active" && <ProgressLine value={torrent.progress * 100} label={t(`${torrent.name} download`, `Download ${torrent.name}`)} />}
+                        {group.key !== "done" && <ProgressLine value={torrent.progress * 100} label={t(`${torrent.name} download`, `Download ${torrent.name}`)} />}
                         <Muted className="text-[13px]" style={{ fontVariant: ["tabular-nums"] }}>{rowMeta(torrent, t)}</Muted>
                     </Pressable>
-                    {group.key === "active" && <Button intent="icon" disabled={isPending} onPress={() => run(torrent, canResume(torrent) ? "resume" : "pause")}
+                    {group.key !== "done" && <Button intent="icon" disabled={isPending} onPress={() => run(torrent, canResume(torrent) ? "resume" : "pause")}
                         accessibilityLabel={canResume(torrent) ? t(`Resume ${torrent.name}`, `${torrent.name} fortsetzen`) : t(`Pause ${torrent.name}`, `${torrent.name} pausieren`)}>
                         {canResume(torrent) ? <Play size={20} color={colors.smTextMuted} /> : <Pause size={20} color={colors.smTextMuted} />}
                     </Button>}

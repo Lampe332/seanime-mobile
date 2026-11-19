@@ -34,6 +34,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 🦺 Updates: Fixed a failed load showing "No new episodes or chapters this week". The page now says what failed and offers Try again
 - 🦺 Torrents: Fixed a download reporting an error when its file list took longer than 60 seconds. It keeps loading, and your file choice applies once the list arrives
 - 🦺 Auto select: Fixed "Best match" and auto select taking a live-action series or a remake with the same title, such as the 2023 One Piece series for the anime. A year in the release name that doesn't fit the anime now rules the release out
+- 🦺 Torrents: Fixed the Torrents tab counting paused and queued torrents as "Downloading". The list now has its own sections for downloading, waiting, stopped and done torrents
 
 ## 4.1.0 — 17.11.2026 (versionCode 40100)
 
