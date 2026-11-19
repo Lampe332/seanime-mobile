@@ -1,12 +1,14 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitte 6.5, 6.6, 8, 13) und dem Verhalten von account-server/src/routes.ts (syncMeta, putSnapshot mit If-Match/409); Werte erfunden
 
+import { eq } from "drizzle-orm"
 import { createRequire } from "node:module"
 import { gunzipSync, gzipSync } from "fflate"
 import { sqlDriverFor } from "@/api/client/core-database"
 import { isDeviceKey } from "@/lib/app-backup-keys"
 import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { beforeAll, describe, expect, it } from "vitest"
-import { anilistChanges, playlists, watchPositions } from "../database/schema"
+import { anilistChanges, playlists, settingsSections, watchPositions } from "../database/schema"
+import { DEBRID_KEY_SECRET } from "../debrid/debrid"
 import { AccountApiError, ConflictError, type Snapshot, type SyncMeta } from "./client"
 import { AccountSession } from "./session"
 import type { Sodium } from "./sodium"
@@ -63,13 +65,16 @@ async function phone(server: FakeServer, options: { imported: boolean }) {
     await session.saveDek(DEK_ID, bytes(32, 40))
     await session.updateSync({ imported: options.imported })
     let safetyBackups = 0
+    let ledger: string | null = null
     const local = coreLocalData(one.environment, {
         appVersion: "4.2.0",
         preferences: () => Object.fromEntries(one.preferences),
         isDeviceKey,
-        writePreferences: preferences => {
+        writePreferences: (preferences, removed) => {
             for (const [key, value] of Object.entries(preferences)) one.preferences.set(key, value)
+            for (const key of removed) one.preferences.delete(key)
         },
+        ledger: { read: () => ledger, write: text => void (ledger = text) },
         safetyBackup: async () => void safetyBackups++,
     })
     const engine = new SyncEngine({ api: server, session, sodium, gzip, local, now: () => clock })
@@ -238,5 +243,108 @@ describe("sync engine", () => {
         server.overrideMeta = { dekId: "dek-2", rotationRequired: true, rewrapNeeded: true }
         expect(await a.engine.sync("manual")).toEqual({ state: "key-changed", rotationRequired: true, rewrapNeeded: true, recoveryRenewalNeeded: false })
         expect(server.uploads).toBe(1)
+    })
+})
+
+/** Two devices of one account, both holding the same synced state */
+async function pair(fill: (a: Awaited<ReturnType<typeof phone>>) => Promise<void> = async () => undefined) {
+    const server = new FakeServer()
+    const a = await phone(server, { imported: true })
+    await fill(a)
+    await a.engine.sync("start")
+    const b = await phone(server, { imported: false })
+    await b.engine.importFromAccount()
+    return { server, a, b }
+}
+type Phone = Awaited<ReturnType<typeof phone>>
+const names = async (one: Phone) => (await (await one.db()).select().from(playlists)).map(row => row.name).sort()
+const section = async (one: Phone, name: string) => (await (await one.db()).select().from(settingsSections).where(eq(settingsSections.section, name)))[0]?.content
+const setSection = async (one: Phone, name: string, content: Record<string, unknown>) => {
+    await (await one.db()).insert(settingsSections).values({ section: name, content, changedAt: clock })
+        .onConflictDoUpdate({ target: settingsSections.section, set: { content, changedAt: clock } })
+}
+
+describe("two devices that changed different things between two syncs", () => {
+    it("a setting, a preference and a key changed on one device survive the other device's merge", async () => {
+        const { a, b } = await pair(async one => {
+            await setSection(one, "library", { autoUpdate: false })
+            one.preferences.set("sea-theme", "\"dark\"")
+            one.secrets.set(DEBRID_KEY_SECRET, "old-key")
+        })
+        clock += 60_000
+        await setSection(a, "library", { autoUpdate: true })
+        a.preferences.set("sea-theme", "\"light\"")
+        a.secrets.set(DEBRID_KEY_SECRET, "new-key")
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+
+        clock += 60_000
+        await (await b.db()).insert(playlists).values(playlist("From B"))
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "updated" })
+        for (const one of [a, b]) {
+            expect(await section(one, "library")).toEqual({ autoUpdate: true })
+            expect(one.preferences.get("sea-theme")).toBe("\"light\"")
+            expect(one.secrets.get(DEBRID_KEY_SECRET)).toBe("new-key")
+            expect(await names(one)).toEqual(["From B"])
+        }
+        // both hold the same now: nothing more to send
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+    })
+
+    it("a deleted playlist, an uninstalled extension and a removed preference do not come back", async () => {
+        const { a, b } = await pair(async one => {
+            await (await one.db()).insert(playlists).values([playlist("Keep"), playlist("Drop"), playlist("Drop on B")])
+            one.files.set("ext-a.json", "{\"id\":\"ext-a\"}")
+            one.files.set("ext-b.json", "{\"id\":\"ext-b\"}")
+            one.preferences.set("sea-old", "\"x\"")
+        })
+        clock += 60_000
+        await (await a.db()).delete(playlists).where(eq(playlists.name, "Drop"))
+        a.files.delete("ext-b.json")
+        a.preferences.delete("sea-old")
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+
+        clock += 60_000
+        // B removed something too: the device that merges keeps its own removal against the account's older copy
+        await (await b.db()).delete(playlists).where(eq(playlists.name, "Drop on B"))
+        await (await b.db()).insert(playlists).values(playlist("From B"))
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "updated" })
+        for (const one of [a, b]) {
+            expect(await names(one)).toEqual(["From B", "Keep"])
+            expect([...one.files.keys()]).toEqual(["ext-a.json"])
+            expect(one.preferences.has("sea-old")).toBe(false)
+        }
+    })
+
+    it("the same setting changed on both: the later change wins, whichever device merges", async () => {
+        const { a, b } = await pair(one => setSection(one, "library", { autoUpdate: false }))
+        clock += 60_000
+        await setSection(b, "library", { autoUpdate: false, onB: true })
+        b.preferences.set("sea-volume", "\"1\"")
+        clock += 60_000
+        await setSection(a, "library", { autoUpdate: true, onA: true })
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+        // B merges and holds the older change: A's later one wins on B too, B's own preference stays
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "updated" })
+        for (const one of [a, b]) {
+            expect(await section(one, "library")).toEqual({ autoUpdate: true, onA: true })
+            expect(one.preferences.get("sea-volume")).toBe("\"1\"")
+        }
+    })
+
+    it("a playlist made again after it was deleted elsewhere is kept", async () => {
+        const { a, b } = await pair(async one => void await (await one.db()).insert(playlists).values(playlist("Evening")))
+        clock += 60_000
+        await (await a.db()).delete(playlists)
+        await a.engine.sync("manual")
+        clock += 60_000
+        await (await b.db()).delete(playlists)
+        await (await b.db()).insert(playlists).values({ ...playlist("Evening"), episodes: [{ n: 1 }] })
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
+        await a.engine.sync("manual")
+        for (const one of [a, b]) expect((await (await one.db()).select().from(playlists)).map(row => [row.name, row.episodes])).toEqual([["Evening", [{ n: 1 }]]])
     })
 })

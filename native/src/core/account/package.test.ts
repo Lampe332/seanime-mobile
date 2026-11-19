@@ -13,7 +13,7 @@ import { DEBRID_KEY_SECRET } from "../debrid/debrid"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { NAKAMA_PASSWORD_SECRET } from "../nakama/guest"
 import { AccountCryptoError } from "./crypto"
-import { applyPackage, makePackage, openPackage, packageHash, sealPackage } from "./package"
+import { applyPackage, ledgerStamps, makePackage, mergePackages, openPackage, packageHash, readPackage, sealPackage, stampChanges } from "./package"
 import type { Sodium } from "./sodium"
 import { bytes, device as makeDevice, ready } from "./__fixtures__/harness"
 
@@ -133,5 +133,50 @@ describe("applying a package", () => {
         await db.insert(watchPositions).values({ mediaId: 21, kind: "onlinestream", episodeNumber: 4, positionSeconds: 50, durationSeconds: 1400, filepath: "", addedAt: CLOCK, changedAt: CLOCK + 1, expiresAt: null })
         await applyPackage(two.environment, pkg, "merge", { preferences: {}, isDeviceKey })
         expect((await db.select().from(watchPositions))[0]).toMatchObject({ episodeNumber: 4, positionSeconds: 50 })
+    })
+})
+
+describe("change times and removals", () => {
+    it("a package of a build without change times still merges, and what this device removed does not come back from it", async () => {
+        const old = await makePackage((await filled()).environment, app(PREFERENCES))
+        expect(old.stamps).toBeUndefined()
+        const read = readPackage(JSON.stringify(old))
+        expect(read).toEqual(old)
+
+        const two = device(() => CLOCK)
+        await (await two.db()).insert(settingsSections).values({ section: "torrent", content: { defaultTorrentClient: "transmission" }, changedAt: CLOCK })
+        const removed = { changed: {}, deleted: { "x/ext-a.json": CLOCK, "p/seanime-mobile-language": CLOCK } }
+        const applied = await applyPackage(two.environment, read, "merge", { preferences: {}, isDeviceKey, stamps: removed })
+        expect(two.files.has("ext-a.json")).toBe(false)
+        expect(applied.preferences["seanime-mobile-language"]).toBeUndefined()
+        expect(applied.preferences["debrid-settings"]).toBeDefined()
+        // on a tie the device's own row stays, as before the times were kept; the rows it lacks arrive
+        const sections = Object.fromEntries((await (await two.db()).select().from(settingsSections)).map(row => [row.section, row.content]))
+        expect(sections).toEqual({ torrent: { defaultTorrentClient: "transmission", qbittorrentPassword: "hunter2" }, nakama: { enabled: true, remoteServerPassword: "nakama-pass" } })
+        expect(applied.stamps.deleted["x/ext-a.json"]).toBe(CLOCK)
+    })
+
+    it("the times travel in the package; what is no time is dropped when it is read", async () => {
+        const pkg = { ...await makePackage((await filled()).environment, app({})), stamps: { changed: { "p/a": 5, "p/b": "soon" }, deleted: { "p/c": 7, "p/d": null } } }
+        expect(readPackage(JSON.stringify(pkg)).stamps).toEqual({ changed: { "p/a": 5 }, deleted: { "p/c": 7 } })
+    })
+
+    it("the ledger: a changed part gets the time of the change, a missing one a removal, a returned one loses its removal", async () => {
+        const items = (preferences: Record<string, string>) => new Map(Object.entries(preferences).map(([key, value]) => [`p/${key}`, value as unknown]))
+        const first = stampChanges(null, items({ a: "1", b: "1" }), 100)
+        expect(ledgerStamps(first)).toEqual({ changed: { "p/a": 0, "p/b": 0 }, deleted: {} })
+        const second = stampChanges(first, items({ a: "2" }), 200)
+        expect(ledgerStamps(second)).toEqual({ changed: { "p/a": 200 }, deleted: { "p/b": 200 } })
+        expect(ledgerStamps(stampChanges(second, items({ a: "2" }), 300))).toEqual(ledgerStamps(second))
+        // a device whose clock went back still orders its own changes
+        expect(ledgerStamps(stampChanges(second, items({ a: "3", b: "1" }), 150))).toEqual({ changed: { "p/a": 201, "p/b": 201 }, deleted: {} })
+    })
+
+    it("a merge keeps two playlists of one name, and takes another device's playlist without its database number", async () => {
+        const row = (dbId: number, name: string, updatedAt: number) => ({ dbId, name, episodes: [], createdAt: CLOCK, updatedAt })
+        const base = await makePackage(device(() => CLOCK).environment, app({}))
+        const mine = { ...base, tables: { ...base.tables, playlists: [row(1, "Same", CLOCK), row(2, "Same", CLOCK), row(3, "Old", CLOCK)] } }
+        const theirs = { ...base, tables: { ...base.tables, playlists: [row(1, "Theirs", CLOCK), row(9, "Old", CLOCK + 5)] } }
+        expect(mergePackages(mine, theirs).tables.playlists).toEqual([row(1, "Same", CLOCK), row(2, "Same", CLOCK), row(3, "Old", CLOCK + 5), { name: "Theirs", episodes: [], createdAt: CLOCK, updatedAt: CLOCK }])
     })
 })

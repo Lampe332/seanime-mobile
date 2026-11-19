@@ -87,10 +87,11 @@ export async function writeSafetyBackup(): Promise<void> {
     safetyFile().write(JSON.stringify(before))
 }
 
-/** Preferences from a backup or the account into the app's store */
-export function writeAppPreferences(preferences: Record<string, string>): void {
+/** Preferences from a backup or the account into the app's store; `removed`: keys the account's sync knows as removed */
+export function writeAppPreferences(preferences: Record<string, string>, removed: string[] = []): void {
     // the device's own keys are never written from a file (app-backup-keys.ts); the app's backups do not hold them
     for (const [key, value] of Object.entries(withoutDeviceKeys(preferences))) storage.set(key, value)
+    for (const key of removed) if (!isDeviceKey(key)) storage.remove(key)
 }
 
 export function hasSafetyBackup(): boolean {

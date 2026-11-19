@@ -20,6 +20,7 @@ import { type AppStateName, type SyncClock, createSyncClock } from "@/lib/accoun
 import { isDeviceKey } from "@/lib/app-backup-keys"
 import { appPreferences, writeAppPreferences, writeSafetyBackup } from "@/lib/app-backup"
 import { APP_VARIANT, APP_VARIANT_NAME } from "@/lib/app-variant"
+import { storage } from "@/lib/storage"
 import * as Application from "expo-application"
 import { fetch as expoFetch } from "expo/fetch"
 import * as LocalAuthentication from "expo-local-authentication"
@@ -54,6 +55,9 @@ const client = new AccountClient({ baseUrl: ACCOUNT_API, fetch: httpFetch, sodiu
 
 const deps = { client, session, sodium: accountSodium }
 
+/** Named like the core's own switches, so app-backup-keys.ts keeps it out of every backup and package */
+const SYNC_LEDGER_KEY = "seanime-core-sync-ledger"
+
 const engine = new SyncEngine({
     api: client,
     session,
@@ -65,6 +69,8 @@ const engine = new SyncEngine({
         isDeviceKey,
         writePreferences: writeAppPreferences,
         safetyBackup: writeSafetyBackup,
+        // the change times of the synced parts (core/account/package.ts): this device's own, a device key of the store
+        ledger: { read: () => storage.getString(SYNC_LEDGER_KEY) ?? null, write: text => storage.set(SYNC_LEDGER_KEY, text) },
     }),
     // a key change never runs on its own: the account screen asks the user which devices keep the key (S2)
     now: Date.now,

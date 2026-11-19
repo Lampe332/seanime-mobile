@@ -147,14 +147,17 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const client = new AccountClient({ baseUrl, fetch: send, sodium, credentials: () => session.credentials() })
         const deps: AccountDeps = { client, session, sodium }
         let backups = 0
+        let ledger: string | null = null
         const local = coreLocalData(one.environment, {
             appVersion: "4.2.0",
             preferences: () => Object.fromEntries(one.preferences),
             isDeviceKey,
-            writePreferences: preferences => {
+            writePreferences: (preferences, removed) => {
                 for (const [key, value] of Object.entries(preferences)) one.preferences.set(key, value)
+                for (const key of removed) one.preferences.delete(key)
             },
             safetyBackup: async () => void backups++,
+            ledger: { read: () => ledger, write: text => void (ledger = text) },
         })
         const engine = new SyncEngine({ api: client, session, sodium, gzip, local, now: () => clock })
         return { ...one, store, session, client, deps, engine, backups: () => backups }

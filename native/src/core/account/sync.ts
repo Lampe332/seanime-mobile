@@ -4,7 +4,10 @@ import type { RestoreMode } from "../backup/backup"
 import { AccountApiError, type AccountClient, ConflictError, RateLimitedError, UnauthorizedError } from "./client"
 import { AccountCryptoError, UntrustedKeyChangeError } from "./crypto"
 import { pickUpDeviceKey } from "./devices"
-import { type Gzip, type PackageEnvironment, type SyncPackage, applyPackage, makePackage, openPackage, packageHash, sealPackage } from "./package"
+import {
+    type Gzip, type Ledger, type PackageEnvironment, type SyncPackage, applyPackage, ledgerStamps, makePackage, openPackage, packageHash, packageItems, sealPackage,
+    settledLedger, stampChanges,
+} from "./package"
 import type { AccountSession, AccountState } from "./session"
 import type { Sodium } from "./sodium"
 
@@ -17,7 +20,8 @@ import type { Sodium } from "./sodium"
  * - Rollback: the device remembers the highest version it saw and refuses an older one; the package's AAD binds it to
  *   account, version and DEK, so the server can neither swap packages nor pass an old one off as new.
  * - A newer package while this device changed nothing replaces the local state; with changes on both sides they merge
- *   (restoreBackup "merge", watch positions by time, package.ts).
+ *   part by part, the newer change wins and a removal stays one (package.ts mergePackages; each device keeps the change
+ *   times of its parts in a ledger, LedgerStore).
  * - Another device rotated the DEK: this device fetches the new DEK sealed to its own key (account/keys/device) and
  *   syncs on, but only when its current DEK vouches for the new one (chain MAC, devices.ts pickUpDeviceKey). Otherwise
  *   "key-untrusted": start fresh ran elsewhere, or someone without the key (a taken-over Google account, a changed
@@ -58,10 +62,13 @@ export type SyncFlags = { rotationRequired: boolean, rewrapNeeded: boolean, reco
 export type SyncResult = SyncOutcome & SyncFlags
 const NO_FLAGS: SyncFlags = { rotationRequired: false, rewrapNeeded: false, recoveryRenewalNeeded: false }
 
-/** This device's data, as a package and back (package.ts does the work; the app adds its preferences and safety backup) */
+/**
+ * This device's data, as a package and back (package.ts does the work; the app adds its preferences and safety backup).
+ * `account` is the signed-in account's id: the change times a device keeps belong to one account.
+ */
 export interface LocalData {
-    make(): Promise<SyncPackage>
-    apply(pkg: SyncPackage, mode: RestoreMode): Promise<void>
+    make(account: string): Promise<SyncPackage>
+    apply(pkg: SyncPackage, mode: RestoreMode, account: string): Promise<void>
     /** A local backup before an import replaces the device's state */
     safetyBackup(): Promise<void>
 }
@@ -72,16 +79,69 @@ export function coreLocalData(environment: PackageEnvironment, app: {
     preferences: () => Record<string, string>
     /** lib/app-backup-keys.ts isDeviceKey */
     isDeviceKey: (key: string) => boolean
-    writePreferences: (preferences: Record<string, string>) => void
+    /** Writes `preferences` into the app's store and takes the `removed` keys out of it */
+    writePreferences: (preferences: Record<string, string>, removed: string[]) => void
     safetyBackup: () => Promise<void>
+    /** Where the device keeps the change times of its parts (the app: one key of its store that isDeviceKey names) */
+    ledger: LedgerStore
 }): LocalData {
+    const side = () => ({ appVersion: app.appVersion, preferences: app.preferences(), isDeviceKey: app.isDeviceKey })
+
+    // The ledger of the secured storage's values lives there too: a hash of a password never lies in the app's store
+    const readLedger = async (account: string): Promise<Ledger | null> => {
+        const parts = [await app.ledger.read(), await environment.secret(SECRET_LEDGER)].map(text => parseLedger(text, account))
+        if (!parts[0]) return null
+        return { items: { ...parts[0].items, ...parts[1]?.items }, deleted: { ...parts[0].deleted, ...parts[1]?.deleted } }
+    }
+    const writeLedger = async (account: string, ledger: Ledger): Promise<void> => {
+        const part = (secret: boolean) => {
+            const mine = (record: Record<string, unknown>) => Object.fromEntries(Object.entries(record).filter(([key]) => key.startsWith("s/") === secret))
+            return JSON.stringify({ account, items: mine(ledger.items), deleted: mine(ledger.deleted) })
+        }
+        const [open, secret] = [part(false), part(true)]
+        if (await app.ledger.read() !== open) await app.ledger.write(open)
+        if (environment.keepSecret && await environment.secret(SECRET_LEDGER) !== secret) await environment.keepSecret(SECRET_LEDGER, secret)
+    }
+    /** The device's package with the change times of its parts; what changed since the last look is stamped now */
+    const look = async (account: string): Promise<SyncPackage> => {
+        const pkg = await makePackage(environment, side())
+        const ledger = stampChanges(await readLedger(account), packageItems(pkg), environment.now())
+        await writeLedger(account, ledger)
+        return { ...pkg, stamps: ledgerStamps(ledger) }
+    }
+
     return {
-        make: () => makePackage(environment, { appVersion: app.appVersion, preferences: app.preferences(), isDeviceKey: app.isDeviceKey }),
-        apply: async (pkg, mode) => {
-            const { preferences } = await applyPackage(environment, pkg, mode, { preferences: app.preferences(), isDeviceKey: app.isDeviceKey })
-            app.writePreferences(preferences)
+        make: look,
+        apply: async (pkg, mode, account) => {
+            const mine = mode === "merge" ? await look(account) : null
+            const applied = await applyPackage(environment, pkg, mode, { ...side(), stamps: mine?.stamps })
+            app.writePreferences(applied.preferences, applied.removedPreferences)
+            // the device's parts as they are now carry the times the package gave them: nothing of it counts as a change here
+            await writeLedger(account, settledLedger(await readLedger(account), packageItems(await makePackage(environment, side())), applied.stamps))
         },
         safetyBackup: app.safetyBackup,
+    }
+}
+
+/** One text the device keeps (the ledger of its parts' change times) */
+export interface LedgerStore {
+    read(): string | null | Promise<string | null>
+    write(text: string): void | Promise<void>
+}
+
+/** The ledger's part for the values of the secured storage, kept in the secured storage itself */
+const SECRET_LEDGER = "seanime-account.sync-ledger"
+
+function parseLedger(text: string | null, account: string): Ledger | null {
+    if (!text) return null
+    try {
+        const stored = JSON.parse(text) as { account?: unknown, items?: Ledger["items"], deleted?: Ledger["deleted"] }
+        // another account's times say nothing about this one's parts
+        if (stored.account !== account || typeof stored.items !== "object" || stored.items === null) return null
+        return { items: stored.items, deleted: stored.deleted ?? {} }
+    }
+    catch {
+        return null
     }
 }
 
@@ -148,8 +208,8 @@ export class SyncEngine {
             }
             await this.deps.local.safetyBackup()
             const remote = await this.download(state)
-            await this.deps.local.apply(remote.pkg, "replace")
-            const hash = packageHash(this.deps.sodium, await this.deps.local.make())
+            await this.deps.local.apply(remote.pkg, "replace", state.userId)
+            const hash = packageHash(this.deps.sodium, await this.deps.local.make(state.userId))
             await this.deps.session.updateSync({ imported: true, highestVersion: remote.version, lastHash: hash, lastSyncAt: this.deps.now() })
             return { state: "updated", version: remote.version, ...flags }
         })))
@@ -210,7 +270,7 @@ export class SyncEngine {
                 await session.updateSync({ imported: true })
             }
 
-            let pkg = await local.make()
+            let pkg = await local.make(state.userId)
             let hash = packageHash(sodium, pkg)
             let base = current.version
             let merged = false
@@ -218,13 +278,13 @@ export class SyncEngine {
                 const remote = await this.download(state)
                 if (hash === state.lastHash) {
                     // nothing changed here since the last sync: the account's state is the newer one
-                    await local.apply(remote.pkg, "replace")
-                    await session.updateSync({ highestVersion: remote.version, lastHash: packageHash(sodium, await local.make()), lastSyncAt: now() })
+                    await local.apply(remote.pkg, "replace", state.userId)
+                    await session.updateSync({ highestVersion: remote.version, lastHash: packageHash(sodium, await local.make(state.userId)), lastSyncAt: now() })
                     return { state: "updated", version: remote.version, ...flags }
                 }
-                await local.apply(remote.pkg, "merge")
+                await local.apply(remote.pkg, "merge", state.userId)
                 await session.updateSync({ highestVersion: remote.version })
-                pkg = await local.make()
+                pkg = await local.make(state.userId)
                 hash = packageHash(sodium, pkg)
                 base = remote.version
                 merged = true
@@ -246,10 +306,10 @@ export class SyncEngine {
                 }
                 // another device was faster: its package, merged with this device's, goes up as the next version
                 const remote = await this.download(state)
-                await local.apply(remote.pkg, "merge")
+                await local.apply(remote.pkg, "merge", state.userId)
                 await session.updateSync({ highestVersion: remote.version })
                 state.highestVersion = remote.version
-                pkg = await local.make()
+                pkg = await local.make(state.userId)
                 hash = packageHash(sodium, pkg)
                 base = remote.version
                 merged = true

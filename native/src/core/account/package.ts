@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm"
 import { type BackupFile, type BackupTable, type RestoreMode, makeBackup, readBackup, restoreBackup, withoutSecrets } from "../backup/backup"
 import { type CoreDatabase, inOrder } from "../database/database"
-import { extensionUserConfigs, settingsSections, torrentKept, watchPositions } from "../database/schema"
+import { extensionUserConfigs, settingsSections, torrentKept } from "../database/schema"
 import { DEBRID_KEY_SECRET } from "../debrid/debrid"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { NAKAMA_PASSWORD_SECRET } from "../nakama/guest"
@@ -64,9 +64,17 @@ function withoutDeviceTables<T extends BackupFile>(file: T): T {
     return { ...file, tables }
 }
 
+/**
+ * When each part of a package last changed (`changed`) and what was removed and when (`deleted`), by the part's key
+ * (packageItems). Unix milliseconds of the device that made the change.
+ */
+export type Stamps = { changed: Record<string, number>, deleted: Record<string, number> }
+
 export type SyncPackage = BackupFile & {
     /** Values of the secured storage (SYNCED_SECRETS), by name */
     secrets: Record<string, string>
+    /** Missing in a package of a build before the times were kept: its rows then count by their own changedAt, the rest as oldest */
+    stamps?: Stamps
 }
 
 type Json = Record<string, unknown>
@@ -128,7 +136,14 @@ export function readPackage(text: string): SyncPackage {
             if (typeof value === "string" && value !== "") secrets[name] = value
         }
     }
-    return { ...withoutDeviceTables(file), preferences: packagePreferences(file.preferences, () => false), secrets }
+    const stamps = readStamps(parsed.stamps)
+    return { ...withoutDeviceTables(file), preferences: packagePreferences(file.preferences, () => false), secrets, ...(stamps ? { stamps } : {}) }
+}
+
+function readStamps(value: unknown): Stamps | null {
+    if (!isRecord(value)) return null
+    const times = (part: unknown) => Object.fromEntries(Object.entries(isRecord(part) ? part : {}).filter((entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1])))
+    return { changed: times(value.changed), deleted: times(value.deleted) }
 }
 
 /* ---- Applying a package ---- */
@@ -151,7 +166,236 @@ function fillSecrets(into: unknown, from: unknown): unknown {
     return result
 }
 
-async function applySecretColumns(database: CoreDatabase, pkg: SyncPackage, mode: RestoreMode): Promise<void> {
+/* ---- The parts of a package, their change times and the merge ---- */
+
+/*
+ * Two devices change different things between two syncs, so a merge goes part by part: a row of a table, a preference, an
+ * extension's file, a secret. For each part the newer change wins, and a part that was removed stays removed until it
+ * is made again later (a tombstone in `deleted`), so a deleted playlist or an uninstalled extension does not come back
+ * from the other device.
+ * The tables hold no time of removal and the preferences no time at all, so each device keeps a ledger (LedgerStore in
+ * sync.ts): the content hash and change time of every part it last saw. Before a package is made the device's data is
+ * compared with it; what differs was changed since, what is gone was removed. The times travel in the package (Stamps).
+ */
+
+/** How a table's rows are told apart across devices (never by a number the database gave them) */
+const ROW_KEYS = {
+    settings: ["section"],
+    appearance: ["id"],
+    watchPositions: ["mediaId"],
+    extensionConfigs: ["id"],
+    sandboxSettings: ["id"],
+    onlinestreamMappings: ["provider", "mediaId"],
+    mangaMappings: ["provider", "mediaId"],
+    mangaPreferences: ["mediaId"],
+    offlineSettings: ["id"],
+    silencedAnime: ["anilistId"],
+    metadataParents: ["mediaId"],
+    playlists: ["name"],
+    torrentKept: ["key"],
+} as const satisfies Record<Exclude<BackupTable, "homeItems" | (typeof DEVICE_TABLES)[number]>, readonly string[]>
+type RowTable = keyof typeof ROW_KEYS
+const ROW_TABLES = Object.keys(ROW_KEYS) as RowTable[]
+/** The number a device's database gave a row: not part of its content, and never carried to another device's row */
+const OWN_NUMBER: Partial<Record<string, string>> = { playlists: "dbId", metadataParents: "id" }
+/** The home screen is one arrangement: taken or left as a whole */
+const HOME = "t/homeItems"
+const SECRET_PART = "s/"
+const PREFERENCE_PART = "p/"
+
+const tableOf = (key: string) => key.split("/")[1]!
+
+/** Every part of a package by its key: `t/<table>/<row key>`, `x/<extension file>`, `d/<disabled extension>`, `l/<list kind>`, `p/<preference>`, `s/<secret>` */
+export function packageItems(pkg: SyncPackage): Map<string, unknown> {
+    const items = new Map<string, unknown>()
+    const put = (key: string, value: unknown) => {
+        // two rows of one name (playlists may share theirs) stay two parts
+        let free = key
+        for (let n = 2; items.has(free); n++) free = `${key}#${n}`
+        items.set(free, value)
+    }
+    for (const name of ROW_TABLES) {
+        for (const row of pkg.tables[name] ?? []) put(`t/${name}/${ROW_KEYS[name].map(column => String(row[column])).join("/")}`, row)
+    }
+    if ((pkg.tables.homeItems?.length ?? 0) > 0) items.set(HOME, pkg.tables.homeItems)
+    for (const [name, text] of Object.entries(pkg.extensions.files)) items.set(`x/${name}`, text)
+    for (const id of pkg.extensions.disabled) items.set(`d/${id}`, true)
+    for (const [kind, collection] of Object.entries(pkg.localLists ?? {})) items.set(`l/${kind}`, collection)
+    for (const [key, text] of Object.entries(pkg.preferences)) items.set(PREFERENCE_PART + key, text)
+    for (const [name, value] of Object.entries(pkg.secrets)) items.set(SECRET_PART + name, value)
+    return items
+}
+
+/** `base` with the given parts as its whole content */
+function packageFrom(base: SyncPackage, items: Map<string, unknown>, stamps: Stamps): SyncPackage {
+    const tables: SyncPackage["tables"] = { homeItems: (items.get(HOME) as Json[] | undefined) ?? [] }
+    for (const name of ROW_TABLES) tables[name] = []
+    const files: Record<string, string> = {}
+    const disabled: string[] = []
+    const lists: Record<string, unknown> = {}
+    const preferences: Record<string, string> = {}
+    const secrets: Record<string, string> = {}
+    for (const [key, value] of items) {
+        const name = key.slice(2)
+        if (key === HOME) continue
+        if (key.startsWith("t/")) tables[tableOf(key) as RowTable]!.push(value as Json)
+        else if (key.startsWith("x/")) files[name] = value as string
+        else if (key.startsWith("d/")) disabled.push(name)
+        else if (key.startsWith("l/")) lists[name] = value
+        else if (key.startsWith(PREFERENCE_PART)) preferences[name] = value as string
+        else if (key.startsWith(SECRET_PART)) secrets[name] = value as string
+    }
+    return {
+        ...base,
+        tables,
+        extensions: { files, disabled: disabled.sort() },
+        localLists: Object.keys(lists).length > 0 ? lists as SyncPackage["localLists"] : null,
+        preferences,
+        secrets,
+        stamps,
+    }
+}
+
+/** A part's content as text, the same on every device: without the number its database gave the row */
+function contentOf(key: string, value: unknown): string {
+    const own = key.startsWith("t/") ? OWN_NUMBER[tableOf(key)] : undefined
+    if (!own || !isRecord(value)) return JSON.stringify(canonical(value))
+    const { [own]: _own, ...content } = value
+    return JSON.stringify(canonical(content))
+}
+
+/** The time a row carries itself (changedAt / updatedAt); 0 for everything that has none */
+function ownTime(key: string, value: unknown): number {
+    if (!key.startsWith("t/") || !isRecord(value)) return 0
+    const time = value.changedAt ?? value.updatedAt
+    return typeof time === "number" && Number.isFinite(time) ? time : 0
+}
+
+/** The change times of a package's parts: its stamps, and for a package without them the rows' own times */
+function stampsOf(pkg: SyncPackage, items = packageItems(pkg)): Stamps {
+    const changed: Record<string, number> = {}
+    for (const [key, value] of items) changed[key] = pkg.stamps?.changed[key] ?? ownTime(key, value)
+    const deleted = Object.fromEntries(Object.entries(pkg.stamps?.deleted ?? {}).filter(([key]) => !items.has(key)))
+    return { changed, deleted }
+}
+
+/** What this device last saw of each part: `[content hash, change time]`, and the removed parts with their time */
+export type Ledger = { items: Record<string, [hash: number, time: number]>, deleted: Record<string, number> }
+
+/** cyrb53: a 53-bit hash of a text, enough to see that a part changed */
+function hashOf(text: string): number {
+    let h1 = 0xdeadbeef
+    let h2 = 0x41c6ce57
+    for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i)
+        h1 = Math.imul(h1 ^ code, 2654435761)
+        h2 = Math.imul(h2 ^ code, 1597334677)
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909)
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909)
+    return 4294967296 * (2097151 & h2) + (h1 >>> 0)
+}
+
+/**
+ * The ledger after a look at the device's data: a part whose content differs from the ledger changed since (its own
+ * newer changedAt, else now), a part the ledger knew and the device no longer has was removed now. Without a ledger
+ * (first sync of this account here) every part starts with its own time and nothing counts as removed.
+ */
+export function stampChanges(before: Ledger | null, items: Map<string, unknown>, now: number): Ledger {
+    const ledger: Ledger = { items: {}, deleted: {} }
+    for (const [key, value] of items) {
+        const hash = hashOf(contentOf(key, value))
+        const known = before?.items[key]
+        if (known && known[0] === hash) {
+            ledger.items[key] = known
+            continue
+        }
+        const own = ownTime(key, value)
+        if (!before) {
+            ledger.items[key] = [hash, own]
+            continue
+        }
+        const last = Math.max(known?.[1] ?? 0, before.deleted[key] ?? 0)
+        ledger.items[key] = [hash, own > last && own <= now ? own : Math.max(now, last + 1)]
+    }
+    for (const [key, time] of Object.entries(before?.deleted ?? {})) if (!items.has(key)) ledger.deleted[key] = time
+    for (const [key, known] of Object.entries(before?.items ?? {})) if (!items.has(key)) ledger.deleted[key] = Math.max(now, known[1] + 1)
+    return ledger
+}
+
+/** The ledger after a package was applied: the device's parts as they are now, with the times the package gave them */
+export function settledLedger(before: Ledger | null, items: Map<string, unknown>, stamps: Stamps): Ledger {
+    const ledger: Ledger = { items: {}, deleted: {} }
+    for (const [key, value] of items) {
+        const hash = hashOf(contentOf(key, value))
+        const known = before?.items[key]
+        ledger.items[key] = [hash, stamps.changed[key] ?? (known && known[0] === hash ? known[1] : ownTime(key, value))]
+    }
+    for (const [key, time] of Object.entries(stamps.deleted)) if (!items.has(key)) ledger.deleted[key] = time
+    return ledger
+}
+
+export function ledgerStamps(ledger: Ledger): Stamps {
+    return { changed: Object.fromEntries(Object.entries(ledger.items).map(([key, known]) => [key, known[1]])), deleted: { ...ledger.deleted } }
+}
+
+/**
+ * The device's package and the account's as one: per part the newer change, the device's on a tie (so against a package
+ * without times the device's part stays, as before the times were kept). A removal counts like a change. A secret is
+ * never removed from a device by another device's removal; the device that removed it does not take it back either.
+ */
+export function mergePackages(local: SyncPackage, remote: SyncPackage): SyncPackage {
+    const mine = packageItems(local)
+    const theirs = packageItems(remote)
+    const myStamps = stampsOf(local, mine)
+    const theirStamps = stampsOf(remote, theirs)
+    const items = new Map<string, unknown>()
+    const stamps: Stamps = { changed: {}, deleted: {} }
+    const keep = (key: string, value: unknown, time: number) => {
+        items.set(key, value)
+        stamps.changed[key] = time
+    }
+    for (const key of new Set([...mine.keys(), ...theirs.keys(), ...Object.keys(myStamps.deleted), ...Object.keys(theirStamps.deleted)])) {
+        const here = mine.has(key)
+        const there = theirs.has(key)
+        const myTime = here ? myStamps.changed[key]! : myStamps.deleted[key]
+        const theirTime = there ? theirStamps.changed[key]! : theirStamps.deleted[key]
+        if (here && there) {
+            const [a, b] = [mine.get(key), theirs.get(key)]
+            if (contentOf(key, a) === contentOf(key, b)) keep(key, a, Math.max(myTime!, theirTime!))
+            else if (theirTime! > myTime!) keep(key, withOwnNumber(key, b, a), theirTime!)
+            else keep(key, withSecretsFilled(key, a, b), myTime!)
+        }
+        else if (here) {
+            if (theirTime !== undefined && theirTime > myTime! && !key.startsWith(SECRET_PART)) stamps.deleted[key] = theirTime
+            else keep(key, mine.get(key), myTime!)
+        }
+        else if (there) {
+            if (myTime !== undefined && myTime >= theirTime!) stamps.deleted[key] = myTime
+            else keep(key, withOwnNumber(key, theirs.get(key), undefined), theirTime!)
+        }
+        else stamps.deleted[key] = Math.max(myTime ?? 0, theirTime ?? 0)
+    }
+    return packageFrom(local, items, stamps)
+}
+
+/** Another device's row for this device: with the number this device's own row has, or none (the database gives one) */
+function withOwnNumber(key: string, row: unknown, mine: unknown): unknown {
+    const own = key.startsWith("t/") ? OWN_NUMBER[tableOf(key)] : undefined
+    if (!own || !isRecord(row)) return row
+    const { [own]: _theirs, ...content } = row
+    return isRecord(mine) && mine[own] !== undefined ? { ...content, [own]: mine[own] } : content
+}
+
+/** The device's row that won, with the passwords and keys only the other device's row has */
+function withSecretsFilled(key: string, mine: unknown, theirs: unknown): unknown {
+    const column = key.startsWith("t/") ? (SECRET_TABLES as Record<string, { column: string } | undefined>)[tableOf(key)]?.column : undefined
+    if (!column || !isRecord(mine) || !isRecord(theirs)) return mine
+    return { ...mine, [column]: fillSecrets(mine[column], theirs[column]) }
+}
+
+/** The columns `restoreBackup` strips of their secrets, as the package has them */
+async function applySecretColumns(database: CoreDatabase, pkg: SyncPackage): Promise<void> {
     for (const name of Object.keys(SECRET_TABLES) as SecretTable[]) {
         const { table, key, column } = SECRET_TABLES[name]
         const keyColumn = (table as unknown as Record<string, Parameters<typeof eq>[0]>)[key]!
@@ -159,44 +403,46 @@ async function applySecretColumns(database: CoreDatabase, pkg: SyncPackage, mode
             const id = row[key]
             if (typeof id !== "string") continue
             const [current] = await inOrder(database, () => database.select().from(table).where(eq(keyColumn, id))) as Json[]
-            if (!current) continue
-            const value = mode === "replace" ? row[column] : fillSecrets(current[column], row[column])
-            if (JSON.stringify(value) === JSON.stringify(current[column])) continue
-            await inOrder(database, () => database.update(table).set({ [column]: value } as never).where(eq(keyColumn, id)))
+            if (!current || JSON.stringify(row[column]) === JSON.stringify(current[column])) continue
+            await inOrder(database, () => database.update(table).set({ [column]: row[column] } as never).where(eq(keyColumn, id)))
         }
     }
 }
 
-/** In a merge the newer watch position wins (changedAt), the device's or the package's */
-async function newerWatchPositions(database: CoreDatabase, pkg: SyncPackage): Promise<void> {
-    for (const row of pkg.tables.watchPositions ?? []) {
-        const mediaId = row.mediaId
-        if (typeof mediaId !== "number" || typeof row.changedAt !== "number") continue
-        const [current] = await inOrder(database, () => database.select().from(watchPositions).where(eq(watchPositions.mediaId, mediaId)))
-        if (!current || current.changedAt >= row.changedAt) continue
-        await inOrder(database, () => database.update(watchPositions).set(row as never).where(eq(watchPositions.mediaId, mediaId)))
-    }
+export type AppliedPackage = {
+    /** The preferences the app writes into its own store (only the ones that differ from what it has) */
+    preferences: Record<string, string>
+    /** Preferences the package knows as removed: the app takes them out of its store */
+    removedPreferences: string[]
+    /** The change times of what the device holds now, for its ledger (settledLedger) */
+    stamps: Stamps
 }
 
 /**
  * Puts a package into this device. "replace": the package's state wins (import on a new device, or newer data while
- * this device changed nothing); "merge": the device's rows stay and the package adds what is missing, watch positions go
- * by time, secrets the device lacks are filled in. Returns the preferences the app writes into its own store.
- * A secret the package does not hold is never removed from the device.
+ * this device changed nothing); "merge": part by part the newer change wins (mergePackages; `current.stamps` are the
+ * device's own change times). A secret the package does not hold is never removed from the device.
  */
-export async function applyPackage(environment: PackageEnvironment, pkg: SyncPackage, mode: RestoreMode, current: { preferences: Record<string, string>, isDeviceKey: (key: string) => boolean }): Promise<{ preferences: Record<string, string> }> {
+export async function applyPackage(environment: PackageEnvironment, pkg: SyncPackage, mode: RestoreMode, current: { preferences: Record<string, string>, isDeviceKey: (key: string) => boolean, stamps?: Stamps }): Promise<AppliedPackage> {
     if (!environment.keepSecret) throw new Error("the secured storage cannot be written here")
-    pkg = withoutDeviceTables(pkg)
-    await restoreBackup(environment, pkg, mode, { preferences: current.preferences })
-    const database = await environment.database()
-    await applySecretColumns(database, pkg, mode)
-    if (mode === "merge") await newerWatchPositions(database, pkg)
-    for (const [name, value] of Object.entries(pkg.secrets)) {
-        if (mode === "merge" && await environment.secret(name)) continue
-        await environment.keepSecret(name, value)
+    let wanted = withoutDeviceTables(pkg)
+    if (mode === "merge") {
+        const mine = await makePackage(environment, { appVersion: pkg.appVersion, preferences: current.preferences, isDeviceKey: current.isDeviceKey })
+        wanted = mergePackages({ ...mine, stamps: current.stamps }, wanted)
     }
-    const preferences = mode === "replace"
-        ? pkg.preferences
-        : Object.fromEntries(Object.entries(pkg.preferences).filter(([key]) => !(key in current.preferences)))
-    return { preferences: packagePreferences(preferences, current.isDeviceKey) }
+    await restoreBackup(environment, wanted, "replace", { preferences: current.preferences })
+    await applySecretColumns(await environment.database(), wanted)
+    for (const [name, value] of Object.entries(wanted.secrets)) {
+        if (await environment.secret(name) !== value) await environment.keepSecret(name, value)
+    }
+    const stamps = stampsOf(wanted)
+    const theirs = packagePreferences(wanted.preferences, current.isDeviceKey)
+    const removedPreferences = Object.keys(stamps.deleted)
+        .filter(key => key.startsWith(PREFERENCE_PART)).map(key => key.slice(PREFERENCE_PART.length))
+        .filter(key => key in current.preferences && !current.isDeviceKey(key) && !isAccountKey(key))
+    return {
+        preferences: Object.fromEntries(Object.entries(theirs).filter(([key, value]) => current.preferences[key] !== value)),
+        removedPreferences,
+        stamps,
+    }
 }
