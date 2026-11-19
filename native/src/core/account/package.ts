@@ -302,11 +302,22 @@ function fieldsByContainer(items: Map<string, unknown>): Map<string, Json> {
     return fields
 }
 
+/**
+ * A split row whose field column is null: made empty by the app on first use (an extension's config, manage.ts
+ * savedUserConfig). It holds no fields yet, so it removes none of another device's and never replaces another device's
+ * row that holds some; only fields a device removed are removals.
+ */
+function isEmptyRow(key: string, value: unknown): boolean {
+    const column = key.startsWith("t/") ? FIELD_COLUMNS[tableOf(key) as RowTable] : undefined
+    return column !== undefined && isRecord(value) && value[column] === null
+}
+
 /** A row or preference with its field parts put back (as the device's database or store holds it); any other part as it is */
 function wholeOf(key: string, value: unknown, fields: Json = {}): unknown {
     if (key.startsWith(PREFERENCE_PART)) return FIELD_PREFERENCES.has(key.slice(PREFERENCE_PART.length)) && value === OBJECT ? JSON.stringify(fields) : value
     const column = key.startsWith("t/") ? FIELD_COLUMNS[tableOf(key) as RowTable] : undefined
-    return column && isRecord(value) && value[column] === undefined ? { ...value, [column]: fields } : value
+    const filled = isEmptyRow(key, value) && Object.keys(fields).length > 0
+    return column && isRecord(value) && (value[column] === undefined || filled) ? { ...value, [column]: fields } : value
 }
 
 /** `base` with the given parts as its whole content */
@@ -555,7 +566,9 @@ export function mergePackages(local: SyncPackage, remote: SyncPackage): MergedPa
         if (here && there) {
             const [a, b] = [mine.get(key), theirs.get(key)]
             if (contentOf(key, a) === contentOf(key, b)) keep(key, a, Math.max(myTime!, theirTime!))
-            else if (theirTime! > myTime!) keep(key, withOwnNumber(key, b, a), theirTime!)
+            // a row the app made empty gives way to one that holds fields, whatever their times
+            else if (isEmptyRow(key, a) && !isEmptyRow(key, b)) keep(key, withOwnNumber(key, b, a), theirTime!)
+            else if (theirTime! > myTime! && !(isEmptyRow(key, b) && !isEmptyRow(key, a))) keep(key, withOwnNumber(key, b, a), theirTime!)
             else {
                 keep(key, withSecretsFilled(key, a, b), won(myTime!, theirTime))
                 ahead = true

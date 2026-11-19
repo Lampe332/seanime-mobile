@@ -447,6 +447,63 @@ describe("C1: two devices change different fields of one row or one preference",
             expect(one.preferences.get(TRACKS)).toBe(JSON.stringify({ 1: "en", 2: "de", 3: "ja" }))
         }
     })
+
+    // B1 of verify-sync-3 (probe p7): manage.ts savedUserConfig makes a row without values the first time an extension is asked for
+    for (const order of ["saver first", "empty row first"] as const) {
+        for (const later of ["empty row", "values"] as const) {
+            it(`B1: an extension config row the app made empty never removes the config another device saved (${order}, ${later} later)`, async () => {
+                const { a, b } = await pair()
+                clock += 60_000
+                const emptyRow = async () => {
+                    await (await a.db()).insert(extensionUserConfigs).values({ id: "ext-a", version: null, values: null, origin: "server", changedAt: clock }).onConflictDoNothing()
+                }
+                if (later === "empty row") {
+                    await setExtensionValues(b, { language: "de", apiKey: "k" })
+                    clock += 60_000
+                    await emptyRow()
+                }
+                else {
+                    await emptyRow()
+                    clock += 60_000
+                    await setExtensionValues(b, { language: "de", apiKey: "k" })
+                }
+                clock += 60_000
+                const devices = order === "saver first" ? [b, a] : [a, b]
+                for (let round = 0; round < 3; round++) for (const one of devices) await one.engine.sync("manual")
+                for (const one of [a, b]) {
+                    const [row] = await (await one.db()).select().from(extensionUserConfigs)
+                    expect(row).toMatchObject({ version: 1, values: { language: "de", apiKey: "k" } })
+                    expect(await one.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+                }
+            })
+        }
+    }
+
+    it("B1: a settings section, a look and preferences made empty on first use never remove the fields another device saved", async () => {
+        for (const order of ["saver first", "empty first"] as const) {
+            const { a, b } = await pair()
+            clock += 60_000
+            await setSection(b, "library", { autoUpdate: true })
+            await setLooks(b, { accent: "red" })
+            b.preferences.set(PLAYER, JSON.stringify({ autoSkip: true }))
+            b.preferences.set(TRACKS, JSON.stringify({ 1: "en" }))
+            clock += 60_000
+            await setSection(a, "library", {})
+            await setLooks(a, {})
+            a.preferences.set(PLAYER, "{}")
+            a.preferences.set(TRACKS, "{}")
+            clock += 60_000
+            const devices = order === "saver first" ? [b, a] : [a, b]
+            for (let round = 0; round < 3; round++) for (const one of devices) await one.engine.sync("manual")
+            for (const one of [a, b]) {
+                expect(await section(one, "library")).toEqual({ autoUpdate: true })
+                expect(await looks(one)).toEqual({ accent: "red" })
+                expect(JSON.parse(one.preferences.get(PLAYER)!)).toEqual({ autoSkip: true })
+                expect(JSON.parse(one.preferences.get(TRACKS)!)).toEqual({ 1: "en" })
+                expect(await one.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+            }
+        }
+    })
 })
 
 describe("C3: the app's language belongs to the device", () => {
