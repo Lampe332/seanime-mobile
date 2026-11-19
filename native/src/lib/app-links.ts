@@ -32,6 +32,8 @@ export type AppLinkTarget =
     | { kind: "core-cast-outlet-check" }
     | { kind: "core-torrent-stream-check", file: string, peerHost: string, peerPort: number, size: number, parts: { first: number, last: number, sha256: string }[], mediaId: number }
     | { kind: "core-torrent-client-check", step: "start" | "add" | "peer" | "list" | "pause" | "resume" | "remove" | "remove-keep-files" | "hash", hash: string, file: string, peerHost: string, peerPort: number, folder: string }
+    /** Test and scratch app only: a check link that cannot be read, said in the log with the reason instead of dropped (4.2.0 E) */
+    | { kind: "core-check-refused", check: string, reason: string }
     /** Test and scratch app only: reads the online streams of these anime, as the hooks would, and logs a summary (§4m). Nothing is changed. */
     | { kind: "core-streams-check", mediaIds: number[], query: string, searchOnly: string[] }
     /** Test and scratch app only: installs one extension through the screens' door and logs time and longest piece (§4m 3f-3) */
@@ -165,9 +167,12 @@ export function appLinkTarget(link: string | null | undefined, variant: string =
                     const step = query(uri.query, "do") ?? ""
                     const hash = (query(uri.query, "hash") ?? "").toLowerCase()
                     const folder = query(uri.query, "folder") ?? "check"
-                    if (!["start", "add", "peer", "list", "pause", "resume", "remove", "remove-keep-files", "hash"].includes(step) || !/^[a-z0-9-]{1,20}$/.test(folder)) return null
-                    if (step === "add" && (!/^[A-Za-z0-9_-]{20,}$/.test(file) || !peer?.[1] || peerPort < 1 || peerPort > 65535)) return null
-                    if (!["start", "add", "list"].includes(step) && !/^[0-9a-f]{40}$/.test(hash)) return null
+                    // a link that cannot be read is said in the log (4.2.0 E): dropped, it looked like a step that ran
+                    const refused = (reason: string): AppLinkTarget => ({ kind: "core-check-refused", check: "torrent client-check", reason })
+                    if (!["start", "add", "peer", "list", "pause", "resume", "remove", "remove-keep-files", "hash"].includes(step)) return refused(`unknown step "${step}"`)
+                    if (!/^[a-z0-9-]{1,20}$/.test(folder)) return refused("folder must be 1 to 20 of a-z, 0-9, -")
+                    if (step === "add" && (!/^[A-Za-z0-9_-]{20,}$/.test(file) || !peer?.[1] || peerPort < 1 || peerPort > 65535)) return refused("add needs file=<.torrent base64url> and peer=<IP>:<port>")
+                    if (!["start", "add", "list"].includes(step) && !/^[0-9a-f]{40}$/.test(hash)) return refused(`${step} needs hash=<40 hex>`)
                     return { kind: "core-torrent-client-check", step: step as "start", hash, file, peerHost: peer?.[1] ?? "", peerPort: peer?.[1] ? peerPort : 0, folder }
                 }
                 const sha256 = (query(uri.query, "sha256") ?? "").toLowerCase()

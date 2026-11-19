@@ -160,3 +160,23 @@ describe("core links", () => {
         }
     })
 })
+
+// 4.2.0 E (S22): a client-check link the app could not read went to Home without a word
+describe("torrent client-check links", () => {
+    const HASH = "c9e15763f722f23e98a29decdfae341b98d53056"
+    it("takes each step with its hash", () => {
+        expect(appLinkTarget(`seanime-native://core?torrent=client-check&do=remove&hash=${HASH}`, "test"))
+            .toEqual({ kind: "core-torrent-client-check", step: "remove", hash: HASH, file: "", peerHost: "", peerPort: 0, folder: "check" })
+    })
+
+    it("refuses a link it cannot read with the reason, instead of dropping it", () => {
+        expect(appLinkTarget("seanime-native://core?torrent=client-check&do=remove", "test"))
+            .toEqual({ kind: "core-check-refused", check: "torrent client-check", reason: "remove needs hash=<40 hex>" })
+        expect(appLinkTarget(`seanime-native://core?torrent=client-check&do=delete&hash=${HASH}`, "test"))
+            .toEqual({ kind: "core-check-refused", check: "torrent client-check", reason: "unknown step \"delete\"" })
+        expect(appLinkTarget("seanime-native://core?torrent=client-check&do=add&peer=127.0.0.1:9&folder=x", "test"))
+            .toEqual({ kind: "core-check-refused", check: "torrent client-check", reason: "add needs file=<.torrent base64url> and peer=<IP>:<port>" })
+        // the release takes no core link at all
+        expect(appLinkTarget(`seanime://core?torrent=client-check&do=remove&hash=${HASH}`, "release")).toBeNull()
+    })
+})

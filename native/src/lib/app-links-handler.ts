@@ -114,8 +114,12 @@ export async function resolveTarget(target: AppLinkTarget): Promise<string | nul
         return null
     }
     if (target.kind === "core-torrent-client-check") {
-        // phase 6f: one step of the torrent client, the numbers in the log ([CoreTorrent])
-        void import("@/api/client/core-torrent-client-check").then(module => module.runCoreTorrentClientCheck(target))
+        // phase 6f: one step of the torrent client, the numbers in the log ([CoreTorrent]); links run one after another (4.2.0 E)
+        void import("@/api/client/core-torrent-client-check").then(module => module.queueCoreTorrentClientCheck(target))
+        return null
+    }
+    if (target.kind === "core-check-refused") {
+        console.log(`[Core] info ${target.check} link refused: ${target.reason}`)
         return null
     }
     if (target.kind === "core-torrent-stream-check") {

@@ -1,4 +1,5 @@
 // geschrieben nach: Muster core-torrent-stream-check.ts (Prüf-Link nur Test- und scratch-App), docs/EIGENER-KERN.md §4q Phase 6f; kein Server-Quelltext
+import { inTurns } from "@/api/client/check-turns"
 import { buildSeaQuery } from "@/api/client/requests"
 import { logger } from "@/lib/helpers/debug"
 import { documentDirectory, getInfoAsync } from "expo-file-system/legacy"
@@ -31,6 +32,17 @@ const short = (hash: string) => `${hash.slice(0, 8)}…`
 type Listed = { hash: string, name: string, status: string, progress: number, size: string, contentPath: string, error: string }
 
 const list = () => buildSeaQuery<Listed[] | null>({ endpoint: "/api/v1/torrent-client/list", method: "GET" })
+
+const turns = inTurns()
+
+/**
+ * The link's way in (4.2.0 E): every link is logged when it arrives and runs after the one before. Five remove links in
+ * a row ran into each other, and only the first torrent went away.
+ */
+export function queueCoreTorrentClientCheck(check: TorrentClientCheck): Promise<void> {
+    return turns(() => runCoreTorrentClientCheck(check), ahead =>
+        log(`client check ${check.step}${check.hash ? ` ${short(check.hash)}` : ""} received${ahead > 0 ? `, waits for ${ahead} before it` : ""}`))
+}
 
 export async function runCoreTorrentClientCheck(check: TorrentClientCheck): Promise<void> {
     const since = Date.now()
