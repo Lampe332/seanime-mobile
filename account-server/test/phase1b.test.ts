@@ -114,6 +114,28 @@ describe("mail", () => {
     }
   });
 
+  it("gives Gmail's dark mode nothing to recolor: light text only, light fills only as gradients", () => {
+    // Gmail on Android turns light backgrounds dark and dark text light, and leaves background-image alone
+    const lightness = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+      return (Math.max(r!, g!, b!) + Math.min(r!, g!, b!)) / 2;
+    };
+    for (const m of ALL_MAILS) {
+      const { html } = renderMail(env, m, "owner@example.com");
+      const body = html.replace(/<head>[\s\S]*<\/head>/, "");
+      for (const [tag] of body.matchAll(/<[a-z][^>]*>/gi)) {
+        const style = /style="([^"]*)"/.exec(tag)?.[1] ?? "";
+        for (const [, hex] of style.matchAll(/(?:^|;)color:(#[0-9a-f]{6})/gi)) {
+          expect(lightness(hex!), `${m.kind}: dark text ${hex} in ${tag}`).toBeGreaterThanOrEqual(0.5);
+        }
+        const fills = [...style.matchAll(/(?:^|;)background(?:-color)?:(#[0-9a-f]{6})/gi), ...tag.matchAll(/bgcolor="(#[0-9a-f]{6})"/gi)];
+        for (const [, hex] of fills) {
+          if (lightness(hex!) > 0.5) expect(style, `${m.kind}: light fill ${hex} in ${tag}`).toContain("background-image:");
+        }
+      }
+    }
+  });
+
   it("links only to the website, Discord and Ko-fi and loads nothing", () => {
     const base = env.WEB_BASE_URL;
     const outside = ["https://discord.gg/dxJdj5Dqt9", "https://ko-fi.com/lampe332"];

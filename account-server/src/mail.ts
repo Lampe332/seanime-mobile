@@ -55,7 +55,7 @@ interface Fact {
 
 interface Content {
   subject: string;
-  /** What kind of mail this is, shown as the pill and in the band */
+  /** What kind of mail this is, shown in the band */
   tag: string;
   lines: string[];
   /** Values worth seeing at a glance (a device, a time, the next step), shown as tiles */
@@ -318,22 +318,32 @@ function escapeHtml(s: string): string {
 
 // ---------------------------------------------------------------- HTML layout
 
-// Colors and type from the website (seanimemobile.com, assets/css/style.css): ink ground, paper panels with a hard
-// violet drop, one yellow. No web fonts: both stacks name the website's faces first and fall back to system faces.
+// Colors and type from the website (seanimemobile.com, assets/css/style.css): ink ground, violet, one yellow.
+// No web fonts: both stacks name the website's faces first and fall back to system faces.
+//
+// Dark mode. The mail is dark by design, like the website, so mail apps find little to recolor:
+// - Gmail on Android ignores color-scheme and prefers-color-scheme and recolors on its own: light backgrounds turn
+//   dark, dark text turns light, dark backgrounds and light text stay (partial inversion; Litmus, quoted in
+//   courier.com/blog/dark-mode-email-design). So every background here is dark and every text is light. The one light
+//   fill, the yellow bar, is a one-color linear-gradient, which Gmail leaves alone (html-email-guide.vercel.app).
+// - Dark fills are left unprotected on purpose. Gmail on iOS inverts everything, text included: an unprotected dark
+//   background turns light together with its text, while a protected one would stay dark under darkened text.
+// - Apple Mail, iOS Mail and Outlook.com read color-scheme "light dark" and keep the colors as they are.
+// Layout: phone first in the inline styles (Gmail with a non-Google account drops <style>), larger sizes from 521px.
 const C = {
   ink: "#0b0a1c",
-  ink2: "#15132f",
-  ink3: "#1f1c47",
-  paper: "#f4eee1",
-  white: "#fffdf7",
+  /** the one panel */
+  card: "#17153a",
+  /** rows and dividers inside the panel */
+  line: "#2e2a66",
   violet: "#6f5cff",
-  violet2: "#4b3bdc",
-  violetHi: "#aea3ff",
+  /** button and band fill: dark enough that no mail app recolors it; white text on it is 8.9:1 */
+  deep: "#3f30c8",
+  violetHi: "#b3a9ff",
   sun: "#ffd938",
+  white: "#fffdf7",
   text: "#f6f1e7",
-  dim: "#c9c4c0",
-  muted: "#55516a",
-  edge: "#4a4766",
+  dim: "#c9c4d6",
 };
 const DISPLAY = "'Dela Gothic One','Arial Black','Segoe UI Black',Helvetica,Arial,sans-serif";
 const BODY = "Figtree,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -341,72 +351,42 @@ const T = 'role="presentation" cellpadding="0" cellspacing="0" border="0"';
 /** The logo's gradient; mail apps without CSS gradients show the flat violet bgcolor instead */
 const LOGO_GRADIENT = "linear-gradient(135deg,#8b3cff 0%,#d23cf0 55%,#ff4d7a 100%)";
 const LOGO_GRADIENT_WIDE = "linear-gradient(90deg,#8b3cff 0%,#d23cf0 55%,#ff4d7a 100%)";
-
-// Dark colors for mail apps that know prefers-color-scheme (Apple Mail, iOS Mail, Outlook for Mac) and for
-// Outlook.com's dark mode, which marks recolored elements with data-ogsc. Gmail recolors on its own.
-const DARK = `.sm-card{background:${C.ink2} !important;border-color:#3b3866 !important}
-.sm-drop{border-color:${C.violet2} !important}
-.sm-ink{color:${C.text} !important}
-.sm-muted{color:${C.dim} !important}
-.sm-link{color:${C.violetHi} !important}
-.sm-label{color:${C.violetHi} !important}
-.sm-tile{background:${C.ink3} !important;border-color:#5a5690 !important}
-.sm-tdrop{border-color:${C.ink} !important}
-.sm-digit{background:${C.ink} !important;border-color:#8f7fff !important;color:${C.sun} !important}
-.sm-note{background:${C.sun} !important}
-.sm-note-h,.sm-note-t{color:${C.ink} !important}
-.sm-note-i,.sm-note-a{background:${C.ink} !important;color:${C.sun} !important}`;
-const ogsc = (css: string) => css.replace(/(^|\n|,)\.sm-/g, "$1[data-ogsc] .sm-");
+/** A light fill that Gmail's dark mode must not darken: bgcolor for Outlook, the same color as a gradient for the rest */
+const keep = (color: string) => `background-color:${color};background-image:linear-gradient(${color},${color})`;
 
 const HEAD_CSS = `:root{color-scheme:light dark;supported-color-schemes:light dark}
-body{margin:0;padding:0;-webkit-text-size-adjust:100%}
+body{margin:0;padding:0;-webkit-text-size-adjust:100%;background:${C.ink}}
 a{text-decoration:none}
-@media (max-width:520px){
-.sm-gut{padding-left:12px !important;padding-right:12px !important}
-.sm-pad{padding:24px 18px 24px !important}
-.sm-h1{font-size:26px !important}
+@media (min-width:521px){
+.sm-gut{padding-left:16px !important;padding-right:16px !important}
+.sm-pad{padding:38px 40px 40px !important}
+.sm-px{padding-left:40px !important;padding-right:40px !important}
+.sm-h1{font-size:34px !important}
+.sm-band{font-size:18px !important;padding:13px 0 12px !important}
+.sm-btnw{width:auto !important}
+.sm-btn{padding:16px 36px !important}
+.sm-dcell{padding-right:10px !important}
+.sm-digit{width:52px !important;height:64px !important;font-size:34px !important;line-height:64px !important}
 .sm-word{font-size:30px !important}
-.sm-col{display:block !important;width:100% !important;padding:0 0 12px !important}
-.sm-dcell{padding-right:5px !important}
-.sm-digit{width:36px !important;height:50px !important;font-size:25px !important;line-height:50px !important}
-.sm-band{font-size:16px !important}
 }
-@media (prefers-color-scheme:dark){
-${DARK}
-}
-${ogsc(DARK)}`;
-
-/** A hard offset drop like the website's box-shadow, made of a right and a bottom border, so Gmail shows it too */
-function drop(inner: string, o: { color: string; size: number; radius: number; cls?: string; full?: boolean }): string {
-  return `<table ${T}${o.full ? ' width="100%"' : ""}><tr><td${o.cls ? ` class="${o.cls}"` : ""} style="border-right:${o.size}px solid ${o.color};border-bottom:${o.size}px solid ${o.color};border-radius:${o.radius}px">${inner}</td></tr></table>`;
-}
+@media (max-width:359px){
+.sm-dcell{padding-right:4px !important}
+.sm-digit{width:36px !important;height:48px !important;font-size:24px !important;line-height:48px !important}
+}`;
 
 function paragraph(line: string, first: boolean): string {
-  const size = first ? 18 : 16;
-  return `<p class="sm-ink" style="margin:${first ? 0 : 12}px 0 0;font-family:${BODY};font-size:${size}px;line-height:1.55;font-weight:${first ? 600 : 400};color:${C.ink}">${escapeHtml(line)}</p>`;
+  return `<p style="margin:${first ? 20 : 14}px 0 0;font-family:${BODY};font-size:16px;line-height:1.6;font-weight:${first ? 600 : 400};color:${C.text}">${escapeHtml(line)}</p>`;
 }
 
-function tile(f: Fact): string {
-  const inner = `<table ${T} width="100%"><tr><td class="sm-tile" bgcolor="${C.white}" style="background:${C.white};border:2px solid ${C.ink};border-radius:14px;padding:12px 16px 13px">
-<p class="sm-label" style="margin:0 0 3px;font-family:${BODY};font-size:13px;line-height:1.3;font-weight:800;color:${C.violet2}">${escapeHtml(f.label)}</p>
-<p class="sm-ink" style="margin:0;font-family:${BODY};font-size:18px;line-height:1.3;font-weight:800;color:${C.ink};word-break:break-word">${escapeHtml(f.value)}</p>
-</td></tr></table>`;
-  return drop(inner, { color: C.ink, size: 4, radius: 16, cls: "sm-tdrop", full: true });
-}
-
-/** Tiles two to a row; on a phone they stack */
-function tiles(facts: Fact[]): string {
-  const rows: string[] = [];
-  for (let i = 0; i < facts.length; i += 2) {
-    const a = facts[i]!;
-    const b = facts[i + 1];
-    rows.push(
-      b
-        ? `<tr><td class="sm-col" width="50%" valign="top" style="width:50%;padding:0 6px 12px 0">${tile(a)}</td><td class="sm-col" width="50%" valign="top" style="width:50%;padding:0 0 12px 6px">${tile(b)}</td></tr>`
-        : `<tr><td class="sm-col" colspan="2" valign="top" style="padding:0 0 12px">${tile(a)}</td></tr>`,
-    );
-  }
-  return `<table ${T} width="100%" style="margin:24px 0 0">${rows.join("")}</table>`;
+/** Values worth seeing at a glance, as label and value rows */
+function facts(list: Fact[]): string {
+  const rows = list
+    .map((f) => {
+      const edge = `border-top:1px solid ${C.line}`;
+      return `<tr><td width="40%" valign="top" style="width:40%;padding:12px 12px 12px 0;${edge};font-family:${BODY};font-size:14px;line-height:1.45;color:${C.dim}">${escapeHtml(f.label)}</td><td valign="top" style="padding:12px 0;${edge};font-family:${BODY};font-size:16px;line-height:1.45;font-weight:700;color:${C.text};word-break:break-word">${escapeHtml(f.value)}</td></tr>`;
+    })
+    .join("");
+  return `<table ${T} width="100%" style="margin:26px 0 0;border-collapse:collapse">${rows}</table>`;
 }
 
 /** The code in large single boxes, plus one line to copy it from (copying table cells adds tabs) */
@@ -414,79 +394,72 @@ function codeBoxes(code: string): string {
   const cells = [...code]
     .map(
       (d, i, all) =>
-        `<td class="sm-dcell" style="padding-right:${i === all.length - 1 ? 0 : 8}px">${drop(
-          `<table ${T}><tr><td class="sm-digit" width="50" height="64" align="center" bgcolor="${C.white}" style="width:50px;height:64px;background:${C.white};border:2.5px solid ${C.ink};border-radius:12px;font-family:${DISPLAY};font-size:34px;line-height:64px;font-weight:900;color:${C.ink};text-align:center">${escapeHtml(d)}</td></tr></table>`,
-          { color: C.violet, size: 4, radius: 14, cls: "sm-drop" },
-        )}</td>`,
+        `<td${i === all.length - 1 ? "" : ` class="sm-dcell" style="padding-right:6px"`}><table ${T}><tr><td class="sm-digit" width="40" height="54" align="center" bgcolor="${C.ink}" style="width:40px;height:54px;background:${C.ink};border:2px solid ${C.violet};border-radius:10px;font-family:${DISPLAY};font-size:28px;line-height:54px;font-weight:900;color:${C.sun};text-align:center">${escapeHtml(d)}</td></tr></table></td>`,
     )
     .join("");
-  return `<p class="sm-label" style="margin:26px 0 10px;font-family:${BODY};font-size:13px;line-height:1.3;font-weight:800;color:${C.violet2}">Sign-in code</p>
+  return `<p style="margin:26px 0 10px;font-family:${BODY};font-size:14px;line-height:1.3;font-weight:700;color:${C.violetHi}">Sign-in code</p>
 <table ${T}><tr>${cells}</tr></table>
-<p class="sm-muted" style="margin:14px 0 0;font-family:${BODY};font-size:14px;line-height:1.5;color:${C.muted}">To copy it: <span class="sm-ink" style="font-weight:800;letter-spacing:0.16em;color:${C.ink};-webkit-user-select:all;user-select:all">${escapeHtml(code)}</span></p>`;
+<p style="margin:14px 0 0;font-family:${BODY};font-size:14px;line-height:1.5;color:${C.dim}">To copy it: <span style="font-weight:800;letter-spacing:0.16em;color:${C.text};-webkit-user-select:all;user-select:all">${escapeHtml(code)}</span></p>`;
 }
 
+/** Full width on a phone, sized to its label from 521px; the label never wraps */
 function button(link: { label: string; url: string }): string {
   const href = escapeHtml(link.url);
-  const pill = `<table ${T}><tr><td bgcolor="${C.sun}" style="background:${C.sun};border:2.5px solid ${C.ink};border-radius:999px">
-<a href="${href}" target="_blank" style="display:inline-block;padding:16px 30px;font-family:${BODY};font-size:17px;line-height:1.2;font-weight:800;color:${C.ink};text-decoration:none;border-radius:999px">${escapeHtml(link.label)} &#8594;</a>
-</td></tr></table>`;
-  return `<table ${T} style="margin:26px 0 0"><tr><td>${drop(pill, { color: C.violet, size: 5, radius: 999 })}</td></tr></table>
-<p class="sm-muted" style="margin:16px 0 0;font-family:${BODY};font-size:13px;line-height:1.5;color:${C.muted}">If the button does not open, copy this link into your browser:<br>
-<a class="sm-link" href="${href}" target="_blank" style="color:${C.violet2};text-decoration:underline;word-break:break-all">${href}</a></p>`;
+  return `<table ${T} width="100%" class="sm-btnw" style="margin:28px 0 0"><tr><td align="center" bgcolor="${C.deep}" style="background:${C.deep};border-radius:999px">
+<a class="sm-btn" href="${href}" target="_blank" style="display:block;padding:16px 22px;font-family:${BODY};font-size:17px;line-height:1.2;font-weight:800;color:${C.white};text-decoration:none;text-align:center;white-space:nowrap;border-radius:999px">${escapeHtml(link.label)}&nbsp;&#8594;</a>
+</td></tr></table>
+<p style="margin:16px 0 0;font-family:${BODY};font-size:13px;line-height:1.5;color:${C.dim}">If the button does not open, copy this link into your browser:<br>
+<a href="${href}" target="_blank" style="color:${C.violetHi};text-decoration:underline;word-break:break-all">${href}</a></p>`;
 }
 
-/** The "Not you?" box. Security mails also get a way to check the account on the website. */
+/** The "Not you?" part, set apart by a divider. Security mails also get a way to check the account on the website. */
 function notice(text: string, check: string | undefined): string {
   const action = check
-    ? `<table ${T} style="margin:14px 0 0"><tr><td class="sm-note-a" bgcolor="${C.sun}" style="background:${C.sun};border-radius:999px;color:${C.ink}">
-<a class="sm-note-a" href="${escapeHtml(check)}" target="_blank" style="display:inline-block;padding:10px 18px;font-family:${BODY};font-size:15px;line-height:1.2;font-weight:800;color:${C.ink};text-decoration:none;border-radius:999px;background:${C.sun}">Check your account &#8594;</a>
-</td></tr></table>`
+    ? `<p style="margin:12px 0 0;font-family:${BODY};font-size:15px;line-height:1.4;font-weight:800"><a href="${escapeHtml(check)}" target="_blank" style="color:${C.sun};text-decoration:underline;white-space:nowrap">Check your account&nbsp;&#8594;</a></p>`
     : "";
-  return `<table ${T} width="100%" style="margin:26px 0 0"><tr><td class="sm-note" bgcolor="${C.ink}" style="background:${C.ink};border-radius:18px;padding:18px 20px 20px">
-<table ${T} width="100%"><tr>
-<td width="34" valign="top" style="width:34px;padding:0 12px 0 0"><table ${T}><tr><td class="sm-note-i" width="32" height="32" align="center" bgcolor="${C.sun}" style="width:32px;height:32px;border-radius:50%;background:${C.sun};font-family:${DISPLAY};font-size:19px;line-height:32px;font-weight:900;color:${C.ink};text-align:center">!</td></tr></table></td>
-<td valign="top">
-<p class="sm-note-h" style="margin:2px 0 0;font-family:${DISPLAY};font-size:19px;line-height:1.2;font-weight:900;color:${C.sun}">Not you?</p>
-<p class="sm-note-t" style="margin:6px 0 0;font-family:${BODY};font-size:15px;line-height:1.5;font-weight:600;color:${C.text}">${escapeHtml(text)}</p>
+  return `<table ${T} width="100%" style="margin:30px 0 0"><tr><td style="padding:22px 0 0;border-top:2px solid ${C.line}">
+<p style="margin:0;font-family:${BODY};font-size:17px;line-height:1.3;font-weight:800;color:${C.sun}">&#10022;&nbsp;Not you?</p>
+<p style="margin:6px 0 0;font-family:${BODY};font-size:15px;line-height:1.55;color:${C.text}">${escapeHtml(text)}</p>
 ${action}
-</td></tr></table>
 </td></tr></table>`;
 }
 
-/** The website's yellow ticker: the mail's kind and the name, between four-point stars */
+/** The website's ticker: the mail's kind and the name, between four-point stars */
 function band(tag: string): string {
-  const star = `<span style="color:${C.violet2}">&#10022;</span>`;
+  const star = `<span style="color:${C.sun}">&#10022;</span>`;
   const words = Array.from({ length: 4 }, () => `${escapeHtml(tag)} ${star} ${escapeHtml(SIGNOFF)} ${star}`).join(" ");
-  return `<table ${T} width="100%" style="table-layout:fixed"><tr><td bgcolor="${C.sun}" style="background:${C.sun};border-top:2.5px solid ${C.ink};border-bottom:2.5px solid ${C.ink};box-shadow:0 7px 0 rgba(0,0,0,0.35)">
-<div class="sm-band" style="white-space:nowrap;overflow:hidden;padding:13px 0 12px;text-indent:-34px;font-family:${DISPLAY};font-size:19px;line-height:1.1;font-weight:900;color:${C.ink}">${words}</div>
+  return `<table ${T} width="100%" style="table-layout:fixed"><tr><td bgcolor="${C.deep}" style="background:${C.deep}">
+<div class="sm-band" style="white-space:nowrap;overflow:hidden;padding:11px 0 10px;text-indent:-30px;font-family:${DISPLAY};font-size:15px;line-height:1.1;font-weight:900;color:${C.white}">${words}</div>
 </td></tr></table>`;
 }
 
-/** The website's paper panel: ink outline and a hard violet drop */
-function card(inner: string): string {
-  const panel = `<table ${T} width="100%"><tr><td class="sm-card sm-pad" bgcolor="${C.paper}" style="background:${C.paper};border:2.5px solid ${C.ink};border-radius:24px;padding:32px 32px 32px">${inner}</td></tr></table>`;
-  return drop(panel, { color: C.violet, size: 8, radius: 26, cls: "sm-drop", full: true });
-}
-
-function footPill(label: string, url: string): string {
-  return `<td style="padding:0 8px 8px 0"><table ${T}><tr><td style="border:1.5px solid ${C.edge};border-radius:999px"><a href="${escapeHtml(url)}" target="_blank" style="display:inline-block;padding:8px 14px;font-family:${BODY};font-size:13px;line-height:1.2;font-weight:700;color:${C.text};text-decoration:none">${escapeHtml(label)}</a></td></tr></table></td>`;
+function footLink(label: string, url: string): string {
+  return `<a href="${escapeHtml(url)}" target="_blank" style="color:${C.violetHi};font-weight:700;text-decoration:none;white-space:nowrap">${escapeHtml(label)}</a>`;
 }
 
 function layout(c: Content, base: string, to: string | undefined, check: string | undefined): string {
   const site = base.replace(/^https?:\/\//, "");
   const body = [
+    `<h1 class="sm-h1" style="margin:0;font-family:${DISPLAY};font-size:25px;line-height:1.15;font-weight:900;letter-spacing:-0.01em;color:${C.text}">${escapeHtml(c.subject)}</h1>`,
+    `<table ${T} style="margin:16px 0 0"><tr><td width="64" height="5" style="width:64px;height:5px;line-height:5px;font-size:0;border-radius:5px;${keep(C.sun)}">&nbsp;</td></tr></table>`,
     ...c.lines.map((l, i) => paragraph(l, i === 0)),
     c.code ? codeBoxes(c.code) : "",
-    c.facts?.length ? tiles(c.facts) : "",
+    c.facts?.length ? facts(c.facts) : "",
     c.link ? button(c.link) : "",
     c.notice ? notice(c.notice, check) : "",
   ].join("\n");
   const foot = (html: string, top: number) =>
-    `<p style="margin:${top}px 0 0;font-family:${BODY};font-size:14px;line-height:1.6;color:${C.dim}">${html}</p>`;
+    `<p style="margin:${top}px 0 0;font-family:${BODY};font-size:14px;line-height:1.6;color:${C.dim};word-break:break-word">${html}</p>`;
   const sentTo = to
     ? `Sent by ${escapeHtml(SIGNOFF)} to <span style="color:${C.text};font-weight:700">${escapeHtml(to)}</span>.`
     : `Sent by ${escapeHtml(SIGNOFF)}.`;
-  const dots = `background-image:radial-gradient(circle,rgba(111,92,255,0.22) 0 1.5px,transparent 1.6px);background-size:11px 11px`;
+  const dot = `<span style="color:${C.dim}">&nbsp;&nbsp;&#183;&nbsp;&nbsp;</span>`;
+  const wide = (inner: string, pad: string) =>
+    `<tr><td align="center" class="sm-gut" style="padding:${pad}">
+<!--[if mso]><table ${T} width="600"><tr><td><![endif]-->
+<table ${T} width="100%" style="max-width:600px">${inner}</table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr>`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -498,39 +471,30 @@ function layout(c: Content, base: string, to: string | undefined, check: string 
 <style>${HEAD_CSS}</style>
 </head>
 <body style="margin:0;padding:0;background:${C.ink}">
-<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${C.ink}">${escapeHtml(c.lines[0] ?? c.subject)}</div>
-<table ${T} width="100%" bgcolor="${C.ink}" style="background-color:${C.ink};${dots}">
-<tr><td height="5" bgcolor="${C.violet}" style="height:5px;line-height:5px;font-size:0;background:${C.violet};background-image:${LOGO_GRADIENT_WIDE}">&nbsp;</td></tr>
-<tr><td align="center" class="sm-gut" style="padding:24px 16px 0">
-<!--[if mso]><table ${T} width="600"><tr><td><![endif]-->
-<table ${T} width="100%" style="max-width:600px"><tr><td><table ${T}><tr>
-<td width="38" height="38" align="center" bgcolor="${C.violet}" style="width:38px;height:38px;border-radius:11px;background:${C.violet};background-image:${LOGO_GRADIENT};font-family:${DISPLAY};font-size:23px;line-height:38px;font-weight:900;color:#ffffff;text-align:center">S</td>
-<td style="padding-left:12px;font-family:${DISPLAY};font-size:19px;line-height:38px;font-weight:900;letter-spacing:-0.01em;color:${C.text}">${escapeHtml(SIGNOFF)}</td>
-</tr></table></td></tr></table>
-<!--[if mso]></td></tr></table><![endif]-->
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${C.text}">${escapeHtml(c.lines[0] ?? c.subject)}</div>
+<table ${T} width="100%" bgcolor="${C.ink}" style="background-color:${C.ink}">
+<tr><td height="4" bgcolor="${C.violet}" style="height:4px;line-height:4px;font-size:0;background:${C.violet};background-image:${LOGO_GRADIENT_WIDE}">&nbsp;</td></tr>
+${wide(
+  `<tr><td class="sm-px" style="padding:0 20px"><table ${T}><tr>
+<td width="34" height="34" align="center" bgcolor="${C.violet}" style="width:34px;height:34px;border-radius:10px;background:${C.violet};background-image:${LOGO_GRADIENT};font-family:${DISPLAY};font-size:20px;line-height:34px;font-weight:900;color:${C.white};text-align:center">S</td>
+<td style="padding-left:11px;font-family:${DISPLAY};font-size:18px;line-height:34px;font-weight:900;letter-spacing:-0.01em;color:${C.text}">${escapeHtml(SIGNOFF)}</td>
+</tr></table></td></tr>`,
+  "20px 10px 0",
+)}
+<tr><td style="padding:20px 0 0">${band(c.tag)}</td></tr>
+${wide(
+  `<tr><td class="sm-pad" bgcolor="${C.card}" style="background:${C.card};border-radius:20px;padding:26px 20px 28px">
+${body}
 </td></tr>
-<tr><td style="padding:24px 0 0">${band(c.tag)}</td></tr>
-<tr><td align="center" class="sm-gut" style="padding:36px 16px 44px">
-<!--[if mso]><table ${T} width="600"><tr><td><![endif]-->
-<table ${T} width="100%" style="max-width:600px">
-<tr><td style="padding:0 0 28px">
-<table ${T} width="100%"><tr>
-<td valign="middle"><table ${T} style="transform:rotate(-3deg)"><tr><td bgcolor="${C.sun}" style="background:${C.sun};border:2px solid ${C.ink};border-radius:999px;box-shadow:3px 3px 0 ${C.violet};padding:7px 15px 8px;font-family:${DISPLAY};font-size:15px;line-height:1.1;font-weight:900;color:${C.ink}">${escapeHtml(c.tag)}</td></tr></table></td>
-<td align="right" valign="middle" style="font-family:${DISPLAY};line-height:1;text-align:right"><span style="font-size:22px;color:${C.violet}">&#10022;</span>&nbsp;<span style="font-size:40px;color:${C.sun}">&#10022;</span></td>
-</tr></table>
-<h1 class="sm-h1" style="margin:20px 0 0;font-family:${DISPLAY};font-size:38px;line-height:1.08;font-weight:900;letter-spacing:-0.012em;color:${C.text}">${escapeHtml(c.subject)}</h1>
-<table ${T} style="margin:16px 0 0"><tr><td width="120" height="6" bgcolor="${C.sun}" style="width:120px;height:6px;line-height:6px;font-size:0;border-radius:6px;background:${C.sun}">&nbsp;</td></tr></table>
-</td></tr>
-<tr><td>${card(body)}</td></tr>
-<tr><td style="padding:46px 2px 0">
-<p class="sm-word" style="margin:0;font-family:${DISPLAY};font-size:42px;line-height:1;font-weight:900;letter-spacing:-0.02em;color:${C.text}">${escapeHtml(SIGNOFF)}</p>
-${foot(escapeHtml(c.reason), 18)}
+<tr><td class="sm-px" style="padding:34px 20px 0">
+<p class="sm-word" style="margin:0;font-family:${DISPLAY};font-size:24px;line-height:1.1;font-weight:900;letter-spacing:-0.015em;color:${C.text}">${escapeHtml(SIGNOFF)}</p>
+${foot(escapeHtml(c.reason), 12)}
 ${foot(sentTo, 4)}
-<table ${T} style="margin:18px 0 0"><tr>${footPill(site, base)}${footPill("Discord", DISCORD)}${footPill("Ko-fi", KOFI)}</tr></table>
-</td></tr>
+<p style="margin:14px 0 0;font-family:${BODY};font-size:14px;line-height:1.9">${footLink(site, base)}${dot}${footLink("Discord", DISCORD)}${dot}${footLink("Ko-fi", KOFI)}</p>
+</td></tr>`,
+  "24px 10px 40px",
+)}
 </table>
-<!--[if mso]></td></tr></table><![endif]-->
-</td></tr></table>
 </body>
 </html>`;
 }
