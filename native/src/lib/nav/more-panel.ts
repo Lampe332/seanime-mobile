@@ -1,6 +1,7 @@
 import type { SyncResult } from "@/core/account/sync"
 import { accountPhase, syncedAgo } from "@/lib/account/account-view"
 import type { Translate } from "@/lib/app-language"
+import { KOFI_URL } from "@/main/settings/_lib/legal"
 
 /*
  * The More panel without React: the profile head on top (AniList and the Seanime account) and where "Customize Home" sits.
@@ -52,6 +53,14 @@ export function moreProfile(t: Translate, input: MoreProfileInput): MoreProfile 
  */
 export function profileHeadOpens(user: { isSimulated?: boolean } | null | undefined): "anilist-sign-in" | "account" {
     return user?.isSimulated ? "anilist-sign-in" : "account"
+}
+
+/**
+ * The quiet last row of More (phone and tablet alike, one panel): Nick's Ko-fi page, opened outside the app. Not an entry
+ * of the bar or of Customize navigation, only this link.
+ */
+export function moreSupportRow(t: Translate) {
+    return { label: t("Support on Ko-fi", "Auf Ko-fi unterstützen"), href: KOFI_URL }
 }
 
 /** Icons a Home head may carry at most: Search, Plugins, Playlists, Library and Customize, 48dp each */

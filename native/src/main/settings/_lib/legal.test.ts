@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { contactHref, DISCORD_INVITE, imprintLine, LEGAL, shortLink } from "./legal"
+import { contactHref, DISCORD_INVITE, imprintLine, KOFI_URL, LEGAL, shortLink } from "./legal"
 
 describe("Legal", () => {
     it("shows the imprint as on the website", () => {
@@ -26,5 +26,10 @@ describe("Legal", () => {
 
     it("invites to the Discord server over https", () => {
         expect(DISCORD_INVITE).toBe("https://discord.gg/dxJdj5Dqt9")
+    })
+
+    it("leads to Nick's Ko-fi page over https", () => {
+        expect(KOFI_URL).toBe("https://ko-fi.com/lampe332")
+        expect(shortLink(KOFI_URL)).toBe("ko-fi.com/lampe332")
     })
 })

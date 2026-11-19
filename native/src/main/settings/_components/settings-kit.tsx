@@ -18,6 +18,7 @@ import { withStoredOption, type Option } from "@/main/settings/_lib/settings-pho
 import { useQueryClient } from "@tanstack/react-query"
 import { atom, useAtomValue, useSetAtom, useStore } from "jotai"
 import get from "lodash/get"
+import type { LucideIcon } from "lucide-react-native"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
 import React from "react"
 import { Pressable, TextInput, View } from "react-native"
@@ -253,7 +254,7 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
  * keeps its full width and the label wraps instead; a long one (a path) stops at 55 % with an ellipsis (settings audit
  * 98fa4e2: values were cut to "No…" and "De…").
  */
-export function LinkRow({ label, value, note, onPress, disabled, tone, chevron = true, sub }: {
+export function LinkRow({ label, value, note, onPress, disabled, tone, chevron = true, sub, icon: Icon }: {
     label: string
     value?: string
     note?: string
@@ -262,11 +263,14 @@ export function LinkRow({ label, value, note, onPress, disabled, tone, chevron =
     tone?: "danger" | "accent"
     chevron?: boolean
     sub?: boolean
+    /** a small muted icon in front of the label (About › Support) */
+    icon?: LucideIcon
 }) {
     return (
         <Pressable accessibilityRole="button" accessibilityLabel={[label, value, note].filter(Boolean).join(", ")} accessibilityState={{ disabled: !!disabled }}
             disabled={disabled} onPress={onPress}
             className={cn("min-h-[52px] w-full flex-row items-center gap-3 bg-sm-surface-raised px-4 py-2.5 active:bg-sm-surface-control", disabled && "opacity-60", sub && SUB)}>
+            {!!Icon && <Icon size={20} color={colors.smTextMuted} />}
             <View className="min-w-0 flex-1 gap-0.5">
                 <Text className={cn("text-[15px]", tone === "danger" && "text-sm-danger", tone === "accent" && "text-sm-accent")}>{label}</Text>
                 {!!note && <Muted className="text-[13px] leading-[19px]">{note}</Muted>}

@@ -8,7 +8,10 @@ import { Text } from "@/components/ui/text/text"
 import { appLanguageAtom, translate } from "@/lib/app-language"
 import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
 import { MAX_NAV_ITEMS, navHighlight, menuTargets, navIcon, navItemLabel, navItemTabLabel, navLabel, type NavItem } from "@/lib/nav/nav-items"
+import { moreSupportRow } from "@/lib/nav/more-panel"
 import { useAllNavItems } from "@/lib/nav/nav-store"
+import { openTab } from "@/lib/helpers/browser"
+import Heart from "lucide-react-native/icons/heart"
 import { MoreProfileHead } from "@/components/navigation/more-profile-head"
 import { settingsHref } from "@/main/settings/_lib/settings-phone"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -280,6 +283,26 @@ function MenuRow({ label, icon, current, first, tourTarget, onPress, count, coun
 }
 
 /**
+ * The last row of More (moreSupportRow): smaller and dimmer than the entries above it, a heart without its tile, the label
+ * on the same line as theirs; opens Ko-fi outside the app.
+ */
+function SupportRow({ label, onPress }: { label: string, onPress: () => void }) {
+    const { animatedStyle, pressIn, pressOut } = usePressScale(0.975)
+    return (
+        <Animated.View style={animatedStyle}>
+            <View pointerEvents="none" className="absolute left-16 right-3 top-0 h-px bg-white/5" />
+            <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={onPress} onPressIn={pressIn} onPressOut={pressOut}
+                className="min-h-11 flex-row items-center gap-3.5 rounded-[16px] pl-2.5 pr-3 active:bg-white/8">
+                <View className="w-[38px] items-center">
+                    <Heart size={17} strokeWidth={1.8} color="rgba(255,255,255,0.5)" />
+                </View>
+                <Text numberOfLines={1} className="flex-1 text-[13.5px] font-medium text-white/60">{label}</Text>
+            </Pressable>
+        </Animated.View>
+    )
+}
+
+/**
  * More (the old Menu, renamed in 4.2.0): the panel that unfolds above the bar (phone) or beside the rail (tablet). On top
  * the profile head, then the destinations that are not in the bar (Search among them in the default bar). It lists only
  * screens that exist (MENU_ENTRIES.ready). Back or a tap outside closes it.
@@ -318,6 +341,7 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
     if (!open) return null
 
     // Bar entries given back to the Menu (Customize navigation) and the ready screens that are not in the bar
+    const support = moreSupportRow((en, de) => translate(language, en, de))
     const entries = menuTargets(allItems).filter(e => !barItems.some(b => b.href === e.href)
         && (mangaEnabled || e.href !== "/manga")
         && (hasLibrary || e.href !== "/scan-summaries"))
@@ -390,6 +414,10 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
                             }}
                         />
                     ))}
+                    <SupportRow label={support.label} onPress={() => {
+                        onClose()
+                        openTab(support.href)
+                    }} />
                 </ScrollView>
             </Animated.View>
         </View>

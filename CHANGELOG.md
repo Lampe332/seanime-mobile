@@ -19,6 +19,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 🎉 Torrents: Pick single files of a batch before downloading, with the total size and your free space shown
 - 🎉 Torrents: Copy the magnet link of any result with the copy button or a long press
 - 🎉 Auto select: New option to prefer the larger file
+- 🎉 Support: You can now support Seanime Mobile on Ko-fi from Settings > About and the More menu
 - ⚡️ Torrents: Result cards show group, resolution, episode or batch, season, seeders and leechers with a health icon, codec, source, audio and subtitles. The app reads them from the release name when the provider leaves them out
 - ⚡️ Torrents: "Best match" marks the torrent that auto select would pick, and the new sort "Largest" puts the biggest releases first
 - ⚡️ Torrent search: Filters fold away, so the results come first

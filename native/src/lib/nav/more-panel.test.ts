@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { translate } from "@/lib/app-language"
-import { customizeInHomeHead, moreProfile, type MoreProfileInput, profileHeadOpens } from "./more-panel"
+import { customizeInHomeHead, moreProfile, type MoreProfileInput, moreSupportRow, profileHeadOpens } from "./more-panel"
 
 const en = (english: string, german: string) => translate("en", english, german)
 const de = (english: string, german: string) => translate("de", english, german)
@@ -49,6 +49,23 @@ describe("More panel profile head", () => {
         expect(moreProfile(en, input({ account: { ...signedIn, lastSyncAt: null } })).line).toBe("you@example.com · Not synced yet")
         // a session the server ended counts as signed out
         expect(moreProfile(en, input({ lastResult: { state: "signed-out" } })).line).toBe("Sync between your devices")
+    })
+})
+
+describe("Support row at the foot of More", () => {
+    it("opens Nick's Ko-fi page, its label in the app language", () => {
+        expect(moreSupportRow(en)).toEqual({ label: "Support on Ko-fi", href: "https://ko-fi.com/lampe332" })
+        expect(moreSupportRow(de).label).toBe("Auf Ko-fi unterstützen")
+    })
+
+    it("is the panel's last row, after the entries and actions, on the phone and the tablet (one panel for both)", () => {
+        const nav = readFileSync(join(__dirname, "..", "..", "components/navigation/app-navigation.tsx"), "utf8")
+        const actions = nav.indexOf("{actions.map(")
+        const support = nav.indexOf("<SupportRow ")
+        expect(actions).toBeGreaterThan(0)
+        expect(support).toBeGreaterThan(actions)
+        expect(nav.indexOf("</ScrollView>", support)).toBeGreaterThan(support)
+        expect(nav).toMatch(/openTab\(support\.href\)/)
     })
 })
 

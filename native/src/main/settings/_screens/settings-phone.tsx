@@ -19,7 +19,7 @@ import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { SakuraBurst } from "@/main/settings/_components/sakura-burst"
 import { UpdateCheckRow } from "@/main/settings/_components/settings-app-services"
 import { LinkRow, SettingsGroup, SettingSwitch } from "@/main/settings/_components/settings-kit"
-import { contactHref, DISCORD_INVITE, LEGAL, shortLink } from "@/main/settings/_lib/legal"
+import { contactHref, DISCORD_INVITE, KOFI_URL, LEGAL, shortLink } from "@/main/settings/_lib/legal"
 import { sectionFromTab, SETTINGS_SECTIONS, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 import { NO_TAPS, secretMessage, TAP_RESET_MS, tapHint, versionTap } from "@/main/settings/_lib/version-taps"
 import { SettingsAccountSection } from "@/main/settings/_screens/settings-account"
@@ -43,6 +43,7 @@ import ChevronRight from "lucide-react-native/icons/chevron-right"
 import CirclePlay from "lucide-react-native/icons/circle-play"
 import CircleUserRound from "lucide-react-native/icons/circle-user-round"
 import Globe from "lucide-react-native/icons/globe"
+import Heart from "lucide-react-native/icons/heart"
 import Info from "lucide-react-native/icons/info"
 import Library from "lucide-react-native/icons/library"
 import Magnet from "lucide-react-native/icons/magnet"
@@ -282,6 +283,8 @@ function SettingsAboutSection({ t }: { t: Translate }) {
         <SettingsGroup title={t("Community", "Community")}
             note={t("Questions, help with setup and news about the app.", "Fragen, Hilfe bei der Einrichtung und Neuigkeiten zur App.")}>
             <LinkRow label="Discord" value={shortLink(DISCORD_INVITE)} onPress={() => openTab(DISCORD_INVITE)} />
+            <LinkRow icon={Heart} label={t("Support Seanime Mobile", "Seanime Mobile unterstützen")}
+                note={t("Buy me a coffee on Ko-fi", "Spendier mir einen Kaffee auf Ko-fi")} onPress={() => openTab(KOFI_URL)} />
         </SettingsGroup>
         <LegalGroup t={t} />
         {/* keyed: tapping it out again while it falls starts a new one */}
