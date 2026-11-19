@@ -181,6 +181,7 @@
       ],
       "./plugins/with-notification-icon",
       "./plugins/with-single-react-root",
+      "./plugins/with-no-focus-highlight",
       "expo-notifications",
       "expo-mpv"
     ],
