@@ -1,6 +1,6 @@
 // geschrieben nach: widget-task.tsx (gleiche Bibliothek, gleicher Speicher) – eigener Entwurf für "Continue watching".
 import type { Anime_Episode } from "@/api/generated/types"
-import { appLanguageAtom, getAppLanguage } from "@/lib/app-language"
+import { appLanguageAtom, tr } from "@/lib/app-language"
 import { storage } from "@/lib/storage"
 import { useAtomValue } from "jotai"
 import React from "react"
@@ -18,7 +18,7 @@ import { continueEntries, continueTexts, createContinueStore } from "./continue-
 const store = createContinueStore(storage)
 
 export function continueView(info: Pick<WidgetInfo, "height">) {
-    const texts = continueTexts(getAppLanguage() === "de")
+    const texts = continueTexts(tr)
     return <ContinueWidget entries={store.entries()} heightDp={info.height} title={texts.title} empty={texts.empty} episodeText={texts.episode} />
 }
 

@@ -2,6 +2,7 @@ import type { Anime_Episode } from "@/api/generated/types"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
+import { type AppLanguage, translate } from "@/lib/app-language"
 import { continueEntries, continueLayout, continueTexts, createContinueStore } from "./continue-widget-data"
 
 const episode = (id: number | undefined, number: number, extra: Partial<Anime_Episode> = {}): Anime_Episode => ({
@@ -49,11 +50,19 @@ describe("continue widget layout", () => {
 })
 
 describe("continue widget texts", () => {
-    it("names the app Seanime Mobile in English and German", () => {
-        expect(continueTexts(false).empty).toBe("Nothing to continue – open Seanime Mobile")
-        expect(continueTexts(true).empty).toBe("Nichts zum Weiterschauen – Seanime Mobile öffnen")
-        expect(continueTexts(false).episode(7)).toBe("Episode 7")
-        expect(continueTexts(true).episode(7)).toBe("Folge 7")
+    const words = (language: AppLanguage) => continueTexts((en, de) => translate(language, en, de))
+
+    it("names the app Seanime Mobile in every language", () => {
+        expect(words("en").empty).toBe("Nothing to continue. Open Seanime Mobile")
+        expect(words("de").empty).toBe("Nichts zum Weiterschauen. Seanime Mobile öffnen")
+        expect(words("en").episode(7)).toBe("Episode 7")
+        expect(words("de").episode(7)).toBe("Folge 7")
+        expect(words("zh-Hans").episode(7)).toBe("第7集")
+        expect(words("ja").episode(7)).toBe("第7話")
+        for (const language of ["es", "ru", "zh-Hans", "pt-BR", "fr", "ja"] as const) {
+            expect(words(language).title).not.toBe("Continue watching")
+            expect(words(language).empty).toContain("Seanime Mobile")
+        }
     })
 })
 

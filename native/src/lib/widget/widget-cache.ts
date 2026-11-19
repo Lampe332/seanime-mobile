@@ -1,3 +1,5 @@
+import { formatDate } from "@/lib/i18n/format"
+
 /**
  * The widget's last list (WidgetCache.kt). Entries keep their airing time, so the countdowns stay right on every redraw
  * without a fetch. The list is fresh for a few hours or until its first episode airs (then the next one is unknown);
@@ -94,14 +96,14 @@ export function countdown(seconds: number): string {
     return days > 0 ? `${days}d ${hours}h` : `${hours}h ${minutes}m`
 }
 
-/** HH:mm, with the date when it is not from today ("MMM d, HH:mm" / "dd.MM., HH:mm"). */
-export function stampText(millis: number, now: number, german: boolean): string {
+/** HH:mm, with the date when it is not from today ("Nov 4, 09:07", "04.11., 09:07", "11月4日 09:07"). */
+export function stampText(millis: number, now: number, language: string): string {
     const date = new Date(millis)
     const today = new Date(now)
     const pad = (n: number) => String(n).padStart(2, "0")
     const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`
     if (date.toDateString() === today.toDateString()) return time
-    if (german) return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}., ${time}`
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    return `${months[date.getMonth()]} ${date.getDate()}, ${time}`
+    if (language === "de") return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}., ${time}`
+    const separator = language === "zh-Hans" || language === "ja" ? " " : ", "
+    return `${formatDate(date, language, "dayShortMonth")}${separator}${time}`
 }

@@ -77,8 +77,10 @@ describe("widget texts", () => {
     })
     it("stamps today with the time only, other days with the date", () => {
         const now = new Date(2026, 10, 5, 18, 0).getTime()
-        expect(stampText(new Date(2026, 10, 5, 9, 7).getTime(), now, true)).toBe("09:07")
-        expect(stampText(new Date(2026, 10, 4, 9, 7).getTime(), now, true)).toBe("04.11., 09:07")
-        expect(stampText(new Date(2026, 10, 4, 9, 7).getTime(), now, false)).toBe("Nov 4, 09:07")
+        expect(stampText(new Date(2026, 10, 5, 9, 7).getTime(), now, "de")).toBe("09:07")
+        expect(stampText(new Date(2026, 10, 4, 9, 7).getTime(), now, "de")).toBe("04.11., 09:07")
+        expect(stampText(new Date(2026, 10, 4, 9, 7).getTime(), now, "en")).toBe("Nov 4, 09:07")
+        expect(stampText(new Date(2026, 10, 4, 9, 7).getTime(), now, "zh-Hans")).toBe("11月4日 09:07")
+        expect(stampText(new Date(2026, 10, 4, 9, 7).getTime(), now, "fr")).toBe("4 nov., 09:07")
     })
 })

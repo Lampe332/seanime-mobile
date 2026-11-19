@@ -1,3 +1,4 @@
+import { type AppLanguage, translate } from "@/lib/app-language"
 import { describe, expect, it } from "vitest"
 import {
     chapterItems,
@@ -113,10 +114,14 @@ describe("chapters", () => {
         expect(feed.map(item => [item.key, item.at])).toEqual([["c-7-11", now], ["c-7-10", now - 2 * HOUR]])
     })
 
-    it("words the notification in English and German", () => {
-        expect(chapterNotice("One Piece", [1130], false)).toBe("New chapter: One Piece Ch. 1130")
-        expect(chapterNotice("One Piece", [1129, 1130], false)).toBe("New chapters: One Piece Ch. 1129–1130")
-        expect(chapterNotice("One Piece", [1130], true)).toBe("Neues Kapitel: One Piece Kap. 1130")
+    it("words the notification in the app language", () => {
+        const notice = (language: AppLanguage, numbers: number[]) => chapterNotice("One Piece", numbers, (en, de) => translate(language, en, de))
+        expect(notice("en", [1130])).toBe("New chapter: One Piece Ch. 1130")
+        expect(notice("en", [1129, 1130])).toBe("New chapters: One Piece Ch. 1129–1130")
+        expect(notice("de", [1130])).toBe("Neues Kapitel: One Piece Kap. 1130")
+        expect(notice("fr", [1130])).toBe("Nouveau chapitre : One Piece ch. 1130")
+        expect(notice("ru", [1129, 1130])).toBe("Новые главы: One Piece, гл. 1129–1130")
+        expect(notice("ja", [1130])).toBe("新しいチャプター：One Piece 第1130話")
     })
 })
 
@@ -156,5 +161,6 @@ describe("day headings", () => {
         expect(dayLabel("2026-11-14", now, "de")).toBe("Gestern")
         expect(dayLabel("2026-11-13", now, "en")).toBe("Friday, November 13")
         expect(dayLabel("2026-11-13", now, "de")).toBe("Freitag, 13. November")
+        expect(dayLabel("2026-11-13", now, "zh-Hans")).toBe("11月13日星期五")
     })
 })

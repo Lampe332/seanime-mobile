@@ -1,6 +1,6 @@
 // geschrieben nach: lib/airing/airing-notifier.ts (Kanal, Berechtigung, Hintergrund-Job), den Kern-Routen GET /api/v1/manga/collection, /manga/preferences, /extensions/list/manga-provider, /status und POST /manga/chapters (core/manga/manga.ts hält die Kapitelliste 1 h) und dem Plan „Updates-Seite + Benachrichtigung neue Manga-Kapitel“; eigene Regel
 
-import { getAppLanguage, tr } from "@/lib/app-language"
+import { tr } from "@/lib/app-language"
 import { mangaLink } from "@/lib/app-links"
 import { atomWithStorage, readStoredJSON, storage } from "@/lib/storage"
 import * as Notifications from "expo-notifications"
@@ -117,7 +117,7 @@ async function announce(manga: MangaCandidate, numbers: number[]) {
     await Notifications.scheduleNotificationAsync({
         identifier: `chapter-${manga.mediaId}`,
         content: {
-            title: chapterNotice(manga.title, numbers, getAppLanguage() === "de"),
+            title: chapterNotice(manga.title, numbers, tr),
             // tapping opens the manga page (app-links.ts `manga?id=`)
             data: { url: mangaLink(manga.mediaId) },
             autoDismiss: true,

@@ -44,7 +44,7 @@ function view() {
 }
 
 function stamp() {
-    return stampText(cache.savedAt(), Date.now(), getAppLanguage() === "de")
+    return stampText(cache.savedAt(), Date.now(), getAppLanguage())
 }
 
 async function fetchUpcoming(): Promise<FetchedEntry[]> {

@@ -1,4 +1,4 @@
-import { type AppLanguage, translate } from "@/lib/app-language"
+import { type AppLanguage, translate, type Translate } from "@/lib/app-language"
 import { formatDate } from "@/lib/i18n/format"
 // geschrieben nach: Plan „Updates-Seite + Benachrichtigung neue Manga-Kapitel“ (belege 2026-11-15 P-plan, Vorbild Mihon/Kotatsu-Updates), den App-Typen Anime_ScheduleItem/Manga_Collection und core/manga/library.ts (chapterNumberOf); eigene Regel
 
@@ -179,19 +179,14 @@ export function groupByDay(items: readonly UpdateItem[]): { day: string, items: 
     return groups
 }
 
-/** "Ch. 12" or "Ch. 11–13" (several at once) */
-export function chapterRange(numbers: readonly number[]): string {
-    if (numbers.length === 0) return ""
+/** The notification's title in the app language: "New chapter: <title> Ch. N", "New chapters: <title> Ch. 11–13" */
+export function chapterNotice(title: string, numbers: readonly number[], t: Translate): string {
+    if (numbers.length === 0) return title
     const low = Math.min(...numbers)
     const high = Math.max(...numbers)
-    return low === high ? `Ch. ${high}` : `Ch. ${low}–${high}`
-}
-
-/** The notification's title: "New chapter: <title> Ch. N" (EN) / "Neues Kapitel: <title> Kap. N" (DE) */
-export function chapterNotice(title: string, numbers: readonly number[], german: boolean): string {
-    const range = chapterRange(numbers)
-    if (german) return `${numbers.length > 1 ? "Neue Kapitel" : "Neues Kapitel"}: ${title} ${range.replace("Ch.", "Kap.")}`
-    return `${numbers.length > 1 ? "New chapters" : "New chapter"}: ${title} ${range}`
+    return low === high
+        ? t(`New chapter: ${title} Ch. ${high}`, `Neues Kapitel: ${title} Kap. ${high}`)
+        : t(`New chapters: ${title} Ch. ${low}–${high}`, `Neue Kapitel: ${title} Kap. ${low}–${high}`)
 }
 
 /** A day's heading: "Today", "Yesterday" or the date in the app's language (not the device's), "Friday, November 13" / "Freitag, 13. November" */

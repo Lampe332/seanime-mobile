@@ -1,6 +1,7 @@
 // geschrieben nach: Home "Continue watching" (main/_features/anime-library/_containers/continue-watching.tsx) und
 // widget-cache.ts (gleiche Speicherart) – eigener Entwurf, kein Vorbild in der alten App.
 import type { Anime_Episode } from "@/api/generated/types"
+import type { Translate } from "@/lib/app-language"
 import type { KeyValue } from "./widget-cache"
 
 /**
@@ -46,9 +47,12 @@ export function continueLayout(heightDp: number): { header: boolean, rows: numbe
     return { header: true, rows: Math.max(1, Math.min(MAX_ROWS, rows)) }
 }
 
-export const continueTexts = (german: boolean) => german
-    ? { title: "Weiterschauen", empty: "Nichts zum Weiterschauen – Seanime Mobile öffnen", episode: (n: number) => `Folge ${n}` }
-    : { title: "Continue watching", empty: "Nothing to continue – open Seanime Mobile", episode: (n: number) => `Episode ${n}` }
+/** The widget's words in the app language */
+export const continueTexts = (t: Translate) => ({
+    title: t("Continue watching", "Weiterschauen"),
+    empty: t("Nothing to continue. Open Seanime Mobile", "Nichts zum Weiterschauen. Seanime Mobile öffnen"),
+    episode: (n: number) => t(`Episode ${n}`, `Folge ${n}`),
+})
 
 const KEY_DATA = "widget.continue_data"
 
