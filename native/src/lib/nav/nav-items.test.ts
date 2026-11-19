@@ -206,7 +206,27 @@ describe("which entry the bar and the rail light up", () => {
         expect(navHighlight(items, "/", false)).toBe("home")
         expect(navHighlight(items, "/lists/watching", false)).toBe("lists")
         expect(navHighlight(items, "/android-downloads", false)).toBe("android-downloads")
-        // a page with no entry in the bar (Settings, opened from More) lights none
-        expect(navHighlight(items, "/settings", false)).toBeNull()
+    })
+
+    // 4.2.0 E (Pixel Tablet): Extensions or Settings, opened from More, lit no entry at all
+    it("lights More on a page opened from More: its screens and Search of the default bar", () => {
+        for (const page of ["/settings", "/extensions", "/search", "/updates", "/schedule", "/history", "/manga", "/scan-summaries"]) {
+            expect(navHighlight(items, page, false)).toBe("menu")
+        }
+        // an anime or manga page is opened from a card, not from More
+        expect(navHighlight(items, "/entry", false)).toBeNull()
+        expect(navHighlight(items, "/manga/entry", false)).toBeNull()
+    })
+
+    it("lights a page's own entry when the user's bar holds it, and More for a bar entry given back to More", () => {
+        const saved = resolveNavItems({ items: [
+            { id: "home", href: "/", label: "Home", matchExact: true, placement: "nav" },
+            { id: "settings", href: "/settings", label: "Settings", matchExact: false, placement: "nav" },
+            { id: "discover", href: "/discover", label: "Discover", matchExact: false, placement: "float" },
+            { id: "menu", href: null, label: "Menu", matchExact: false, placement: "nav", isMenu: true },
+        ] }).filter(item => item.placement === "nav")
+        expect(navHighlight(saved, "/settings", false)).toBe("settings")
+        expect(navHighlight(saved, "/discover", false)).toBe("menu")
+        expect(navHighlight(saved, "/extensions", false)).toBe("menu")
     })
 })
