@@ -1,4 +1,4 @@
-import { PHONE_PAGE_TINT, usePageTop } from "@/components/shared/phone-screen"
+import { PHONE_PAGE_TINT, usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
 import { cn } from "@/components/ui/core/styling"
 import type { Manga_CollectionEntry, Manga_CollectionList, Manga_MangaLatestChapterNumberItem } from "@/api/generated/types"
 import { useUpdateTheme } from "@/api/hooks/theme.hooks"
@@ -79,6 +79,7 @@ export function MangaLibraryPhone({ lists, rawLists, loading, error, onRetry, la
     const top = usePageTop()
     const barHeight = useNavBarHeight()
     const { rail } = useTabletLayout()
+    const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const offlineAware = useOfflineAware()
     const blurAdult = !!serverStatus?.settings?.anilist?.blurAdultContent
     const showUnread = !!ts.showMangaUnreadCount
@@ -221,7 +222,7 @@ export function MangaLibraryPhone({ lists, rawLists, loading, error, onRetry, la
                     maintainVisibleContentPosition={{ disabled: true }}
                     showsVerticalScrollIndicator={false}
                     style={{ marginHorizontal: -grid.gap / 2 }}
-                    contentContainerStyle={{ paddingTop: top, paddingBottom: (rail ? 32 : barHeight + 32) + insets.bottom }}
+                    contentContainerStyle={{ paddingTop: top, paddingBottom: pageBottom }}
                 />
             </View>
             <FilterSheet open={filtersOpen} onOpenChange={setFiltersOpen} t={t} rawLists={rawLists} status={status} resultCount={entries.length} onReset={resetFilters} />

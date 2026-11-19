@@ -33,11 +33,13 @@ export function HistoryPhone() {
     const router = useRouter()
     const { setPlayNext } = usePlayNext()
     const incognito = useIncognito()
-    const { data: watchHistory, isLoading } = useGetContinuityWatchHistory()
+    const { data: watchHistory, isLoading, refetch: refetchHistory } = useGetContinuityWatchHistory()
     const [locations, setLocations] = useAtom(__manga_resumeLocationsAtom)
     const entries = React.useMemo(() => historyEntries(animeHistory(watchHistory), mangaHistory(locations)), [watchHistory, locations])
     const ids = React.useMemo(() => [...new Set(entries.map(entry => entry.mediaId))].sort((a, b) => a - b), [entries])
-    const { data: media } = useHistoryMedia(ids)
+    const { data: media, refetch: refetchMedia } = useHistoryMedia(ids)
+    // pull to refresh: the watch history and the titles again (read only); manga places live on this device
+    const refresh = () => Promise.all([refetchHistory(), ids.length > 0 ? refetchMedia() : null])
     // the day the screen was opened ("Today"): read once, not on every render
     const [now] = React.useState(() => Date.now())
     const days = React.useMemo(() => groupByDay(entries, now, language), [entries, now, language])
@@ -58,7 +60,7 @@ export function HistoryPhone() {
         || (entry.kind === "anime" ? t("Anime", "Anime") : t("Manga", "Manga"))
 
     return (
-        <PhoneScreen title={t("History", "Verlauf")}
+        <PhoneScreen title={t("History", "Verlauf")} onRefresh={refresh}
             subtitle={entries.length ? t(`${entries.length} titles`, `${entries.length} Titel`) : undefined}
             actions={entries.length ? <TextAction label={t("Clear history", "Verlauf löschen")} onPress={() => setClearing(true)} /> : undefined}>
             {incognito && (

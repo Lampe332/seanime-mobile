@@ -6,6 +6,7 @@ import { MangaSourceRefreshSheet } from "@/main/manga/_components/manga-source-r
 import { useGetHomeItems } from "@/api/hooks/status.hooks"
 import { useUpdateTheme } from "@/api/hooks/theme.hooks"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
+import { usePageBottomPad } from "@/components/shared/phone-screen"
 import { Button } from "@/components/ui/button/button"
 import { cn } from "@/components/ui/core/styling"
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover/popover"
@@ -77,6 +78,7 @@ export function HomeScreen() {
     const window = useWindowDimensions()
     const barHeight = useNavBarHeight()
     const { rail } = useTabletLayout()
+    const pageBottom = usePageBottomPad(rail ? 32 : barHeight + 32)
     const { data: savedItems, isLoading: loadingItems, isError: itemsError, refetch: retryItems } = useGetHomeItems()
     const { isError: collectionError, refetch: retryCollection } = useGetLibraryCollection()
     const library = useHandleLibraryCollection()
@@ -138,7 +140,7 @@ export function HomeScreen() {
         <>
             <ScrollView
                 className="flex-1"
-                contentContainerStyle={{ minHeight: window.height, paddingBottom: rail ? 32 : barHeight + 32, ...(!rail ? { backgroundImage: tint } : null) }}
+                contentContainerStyle={{ minHeight: window.height, paddingBottom: pageBottom, ...(!rail ? { backgroundImage: tint } : null) }}
             >
                 <HomeMobileHeader actions={actions} />
                 <View className={cn("w-full px-4", !rail && "max-w-[1152px] self-center")}>

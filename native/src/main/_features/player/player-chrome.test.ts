@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
-    backStep, boxFrame, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand, miniPlayerShown, playlistButtonBottom,
+    backStep, boxFrame, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand, miniPlayerShown, pageBottomPad, playlistButtonBottom,
     orientationTarget, playerView, progressFraction, scrollTarget, viewTurn,
 } from "./player-chrome"
 import { BOX_COMPACT_HEIGHT, boxControlSizes, controlSizes } from "./control-sizes"
@@ -106,6 +106,18 @@ describe("player frame (r21)", () => {
         expect(lifted).toBeGreaterThanOrEqual(bar.bottom + bar.height)
         const card = miniFrame({ width: 1280, rail: true, navBar: 0, insets: { bottom: 0, left: 0, right: 0 } })
         expect(playlistButtonBottom({ rail: true, navBar: 0, insetBottom: 0, mini: card })).toBe(card.bottom + card.height + 16)
+    })
+
+    it("a page's end scrolls out from under the mini player", () => {
+        const base = 56 + 32 + 24
+        expect(pageBottomPad(base, null)).toBe(base)
+        const bar = miniFrame({ width: 412, rail: false, navBar: 56, insets: { bottom: 24, left: 0, right: 0 } })
+        expect(pageBottomPad(base, bar)).toBe(bar.bottom + bar.height + 32)
+        expect(pageBottomPad(base, bar)).toBeGreaterThan(base)
+        const card = miniFrame({ width: 1280, rail: true, navBar: 0, insets: { bottom: 0, left: 0, right: 0 } })
+        expect(pageBottomPad(32, card)).toBe(card.bottom + card.height + 32)
+        // a page with more room of its own keeps it
+        expect(pageBottomPad(1000, bar)).toBe(1000)
     })
 
     it("the mini player shows only while open, small and without its box on the page", () => {

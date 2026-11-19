@@ -27,7 +27,7 @@ const BARS_SHOWN = 5
  * "Started anime" is AniList's own total, which leaves Planning out; the planned titles stand next to it, so the list's
  * "336 anime" and the stats' "312" add up instead of looking like a bug (2.0.33, see lists-phone.ts `getListFacts`).
  */
-export function ListsStats({ type, typeSwitch, actions }: { type: ListType, typeSwitch: React.ReactNode, actions: React.ReactNode }) {
+export function ListsStats({ type, typeSwitch, actions, onRefresh }: { type: ListType, typeSwitch: React.ReactNode, actions: React.ReactNode, onRefresh: () => Promise<unknown> }) {
     const t = useTr()
     const offlineAware = useOfflineAware()
     const query = useGetAniListStats(true)
@@ -56,7 +56,7 @@ export function ListsStats({ type, typeSwitch, actions }: { type: ListType, type
                         : t(`${f.chapters(view.chapters)} read`, `${f.chapters(view.chapters)} gelesen`)].filter(Boolean).join(" · ")
 
     return (
-        <PhoneScreen title={t("My lists", "Meine Listen")} subtitle={facts} actions={actions}>
+        <PhoneScreen title={t("My lists", "Meine Listen")} subtitle={facts} actions={actions} onRefresh={onRefresh}>
             {typeSwitch}
             {failed ? <Notice text={offlineAware(["Your stats could not be loaded.", "Deine Statistik konnte nicht geladen werden."],
                     ["No internet connection, so your stats could not be loaded.", "Keine Internetverbindung, deshalb konnte deine Statistik nicht geladen werden."])}>

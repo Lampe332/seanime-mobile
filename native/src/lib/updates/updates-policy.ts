@@ -160,6 +160,16 @@ export function newCount(items: readonly UpdateItem[], since: number): number {
     return items.filter(item => item.at > since).length
 }
 
+/**
+ * What the Updates page shows: bones while nothing is there yet (a retry too), a failure with "Try again" instead of the
+ * empty week (a failed load is not "nothing new"), else the empty week or the list. `notice`: a list with a failed part.
+ */
+export function updatesView(s: { count: number, loading: boolean, failed: boolean }): { body: "loading" | "failed" | "empty" | "list", notice: boolean } {
+    if (s.count > 0) return { body: "list", notice: s.failed && !s.loading }
+    if (s.loading) return { body: "loading", notice: false }
+    return { body: s.failed ? "failed" : "empty", notice: false }
+}
+
 /** Local calendar day "yyyy-MM-dd" of a time */
 export function dayKey(at: number): string {
     const date = new Date(at)

@@ -145,6 +145,14 @@ export function playlistButtonBottom(s: { rail: boolean, navBar: number, insetBo
 }
 
 /**
+ * The room under a page's content: its own (bar, system inset and 32dp) or, while the mini player shows, 32dp above the
+ * mini player, so the end of the page can be scrolled out from under it.
+ */
+export function pageBottomPad(base: number, mini: MiniFrame | null): number {
+    return mini ? Math.max(base, mini.bottom + mini.height + 32) : base
+}
+
+/**
  * What a loaded file does first. mpv keeps its pause flag across files, so an episode picked while the last one was paused
  * loaded paused (r21 test); with "Auto play" a new episode starts (old `<video autoplay>`) unless a pause came in while it
  * loaded (`playOnLoad` false); without it the file waits paused (2.0.x "Auto play" off).

@@ -1,4 +1,4 @@
-import { PHONE_PAGE_TINT, PhoneHeadTray, usePageTop } from "@/components/shared/phone-screen"
+import { PHONE_PAGE_TINT, PhoneHeadTray, usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
 import { HEAD_ACTIONS_STYLE } from "@/components/shared/page-head"
 import { buildSeaQuery } from "@/api/client/requests"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
@@ -104,6 +104,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     const top = usePageTop()
     const barHeight = useNavBarHeight()
     const { rail, isTablet } = useTabletLayout()
+    const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const { height } = useWindowDimensions()
     const offlineAware = useOfflineAware()
 
@@ -333,7 +334,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                     keyboardDismissMode="on-drag"
                     showsVerticalScrollIndicator={false}
                     style={{ marginHorizontal: -grid.gap / 2 }}
-                    contentContainerStyle={{ paddingTop: top, paddingBottom: (rail ? 32 : barHeight + 32) + insets.bottom }}
+                    contentContainerStyle={{ paddingTop: top, paddingBottom: pageBottom }}
                 />
             </View>
             {/* After two screens of results, a button above the bottom bar goes back to the field, sort and filters */}

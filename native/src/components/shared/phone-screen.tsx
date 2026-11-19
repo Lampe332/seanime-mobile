@@ -1,11 +1,16 @@
 import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted } from "@/components/ui/text/text"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
+import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
+import { player_boxSlotAtom, player_nowAtom } from "@/main/_features/player/player-box"
+import { type MiniFrame, miniFrame, miniPlayerShown, pageBottomPad } from "@/main/_features/player/player-chrome"
+import { player_miniAtom } from "@/main/_features/player/player.atoms"
 import { type TourScrollHost, TourScrollContext } from "@/main/_features/tour/tour-targets"
 import { PluginTrayButton } from "@/main/_features/plugin/plugin-tray"
+import { useAtomValue } from "jotai"
 import React from "react"
-import { ScrollView, useWindowDimensions, View } from "react-native"
+import { RefreshControl, ScrollView, useWindowDimensions, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { HEAD_ACTIONS_STYLE } from "./page-head"
 import { pageTop } from "./page-top"
@@ -32,26 +37,64 @@ export function PhoneHeadTray() {
     return rail ? null : <PluginTrayButton variant="bar" />
 }
 
+/** The mini player's frame while it shows (player-screen.tsx places it the same way), else null */
+export function useMiniPlayerFrame(): MiniFrame | null {
+    const insets = useSafeAreaInsets()
+    const navBar = useNavBarHeight()
+    const { rail } = useTabletLayout()
+    const { width } = useWindowDimensions()
+    const now = useAtomValue(player_nowAtom)
+    const slot = useAtomValue(player_boxSlotAtom)
+    const small = useAtomValue(player_miniAtom)
+    return miniPlayerShown(small, now, slot?.owner) ? miniFrame({ width, rail, navBar, insets }) : null
+}
+
+/** A page's room under its content (`base`), raised above the mini player while that shows (player-chrome pageBottomPad) */
+export function usePageBottomPad(base: number): number {
+    return pageBottomPad(base, useMiniPlayerFrame())
+}
+
+/**
+ * Pull to refresh for a page's scroll view (its `refreshControl`; undefined without `onRefresh`): the spinner in the
+ * accent colour under the page's top inset, until the promise settles. A second pull while it runs does nothing.
+ */
+export function usePullRefresh(onRefresh: (() => Promise<unknown>) | undefined, top: number) {
+    const [refreshing, setRefreshing] = React.useState(false)
+    if (!onRefresh) return undefined
+    const pull = () => {
+        if (refreshing) return
+        setRefreshing(true)
+        void onRefresh().catch(() => undefined).finally(() => setRefreshing(false))
+    }
+    return <RefreshControl refreshing={refreshing} onRefresh={pull} progressViewOffset={top} colors={[colors.smAccent]}
+        progressBackgroundColor={colors.smSurfaceRaised} tintColor={colors.smAccent} />
+}
+
 /*
  * The frame of a phone tab (phone-screen.css `[data-phone-screen]`): 16dp side padding, 24dp between blocks, at most
  * 72rem wide, room for the bottom bar under the content, and the page tint of the phone tabs: the brand colour easing
  * out over the top 32rem. On a tablet the shared ground (tablet.css) carries the tint instead, behind rail and page.
  * The head is `.ps-header`: the title (28dp bold) with its facts line under it and the actions on the right.
  * The setup tour can scroll a target of this screen into the middle (the web's `scrollIntoView({ block: "center" })`).
+ * With `onRefresh` the page reloads on a pull from the top; the spinner stays until its promise settles.
  */
-export function PhoneScreen({ title, subtitle, actions, children, className }: {
+export function PhoneScreen({ title, subtitle, actions, children, className, onRefresh }: {
     /** without a title (and actions) the screen has no head, e.g. the content gate */
     title?: string
     subtitle?: string
     actions?: React.ReactNode
     children?: React.ReactNode
     className?: string
+    onRefresh?: () => Promise<unknown>
 }) {
     const insets = useSafeAreaInsets()
     const top = usePageTop()
     const barHeight = useNavBarHeight()
     const { rail } = useTabletLayout()
     const { height } = useWindowDimensions()
+    // the phone bar overlays the page; the tablet rail sits beside it
+    const bottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
+    const refreshControl = usePullRefresh(onRefresh, top)
     const scrollRef = React.useRef<React.ComponentRef<typeof ScrollView>>(null)
     const offset = React.useRef(0)
     const tourScroll = React.useMemo<TourScrollHost>(() => ({
@@ -64,12 +107,12 @@ export function PhoneScreen({ title, subtitle, actions, children, className }: {
                 className="flex-1"
                 onScroll={event => { offset.current = event.nativeEvent.contentOffset.y }}
                 scrollEventThrottle={64}
+                refreshControl={refreshControl}
                 contentContainerStyle={{
                     // at least a screen tall, so the tint (in dp from the top) never ends at the content edge
                     minHeight: height,
                     paddingTop: top,
-                    // the phone bar overlays the page; the tablet rail sits beside it
-                    paddingBottom: (rail ? 32 : barHeight + 32) + insets.bottom,
+                    paddingBottom: bottom,
                     ...(!rail ? { backgroundImage: PHONE_PAGE_TINT } : null),
                 }}
                 contentContainerClassName={cn("w-full gap-6 px-4", !rail && "max-w-[1152px] self-center", className)}

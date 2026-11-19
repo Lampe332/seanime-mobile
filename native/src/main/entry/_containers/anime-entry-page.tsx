@@ -55,7 +55,7 @@ import { useFocusEffect, useIsFocused, useLocalSearchParams } from "expo-router"
 import { useSetRouteParams } from "@/lib/route-params"
 import { Image } from "expo-image"
 import { useCoverFlightPageBackSteps, useCoverFlightTarget } from "@/components/shared/cover-flight"
-import { usePageTop } from "@/components/shared/phone-screen"
+import { usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { useAtom, useAtomValue } from "jotai"
 import BadgeCheck from "lucide-react-native/icons/badge-check"
@@ -137,6 +137,7 @@ export function AnimeEntryPage() {
     const top = usePageTop()
     const barHeight = useNavBarHeight()
     const { rail, isTablet, window } = useTabletLayout()
+    const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const wide = isTablet && window.width >= WIDE_MIN_WIDTH
     const [moreOpen, setMoreOpen] = React.useState(false)
     // The jump glides down the page instead of cutting (mobile-anime-header.tsx glideToEpisodes), except with reduced motion
@@ -274,7 +275,7 @@ export function AnimeEntryPage() {
     // (on the phone the head's `pt-4`)
     const scrollPadding = {
         paddingTop: top + (rail ? 16 : 0),
-        paddingBottom: (rail ? 32 : barHeight + 32) + insets.bottom,
+        paddingBottom: pageBottom,
     }
 
     // the long online list draws only the rows near the screen and follows the scrolling (windowed-rows.tsx, r18)

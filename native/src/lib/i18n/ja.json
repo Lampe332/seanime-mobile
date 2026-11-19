@@ -2553,7 +2553,11 @@
   "{0} new since your last visit": "前回の訪問から新着{0}件",
   "Nothing new since your last visit": "前回の訪問から新着はありません",
   "Mark all as seen": "すべて確認済みにする",
+  "Some updates could not be loaded.": "一部のアップデートを読み込めませんでした。",
+  "No internet connection, so some updates could not be loaded.": "ネットに接続されていないため、一部のアップデートを読み込めませんでした。",
   "Loading updates": "更新情報を読み込み中",
+  "Updates could not be loaded.": "アップデートを読み込めませんでした。",
+  "No internet connection, so updates could not be loaded.": "ネットに接続されていないため、アップデートを読み込めませんでした。",
   "No new episodes or chapters this week": "今週、新しいエピソードやチャプターはありません",
   "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "視聴中や視聴予定のアニメの新エピソード、読んでいるマンガの新チャプターがここに表示されます。"
 }

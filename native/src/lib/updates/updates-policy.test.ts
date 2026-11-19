@@ -17,6 +17,7 @@ import {
     newCount,
     sinceOf,
     UPDATES_WINDOW_MS,
+    updatesView,
 } from "./updates-policy"
 
 const HOUR = 3600_000
@@ -162,5 +163,23 @@ describe("day headings", () => {
         expect(dayLabel("2026-11-13", now, "en")).toBe("Friday, November 13")
         expect(dayLabel("2026-11-13", now, "de")).toBe("Freitag, 13. November")
         expect(dayLabel("2026-11-13", now, "zh-Hans")).toBe("11月13日星期五")
+    })
+})
+
+describe("page state", () => {
+    it("a failed load shows the failure, not the empty week", () => {
+        expect(updatesView({ count: 0, loading: false, failed: true })).toEqual({ body: "failed", notice: false })
+        expect(updatesView({ count: 0, loading: false, failed: false })).toEqual({ body: "empty", notice: false })
+    })
+
+    it("loading and retrying show bones until something is there", () => {
+        expect(updatesView({ count: 0, loading: true, failed: false }).body).toBe("loading")
+        expect(updatesView({ count: 0, loading: true, failed: true }).body).toBe("loading")
+    })
+
+    it("items stay on screen; a failed part adds a notice", () => {
+        expect(updatesView({ count: 3, loading: false, failed: false })).toEqual({ body: "list", notice: false })
+        expect(updatesView({ count: 3, loading: false, failed: true })).toEqual({ body: "list", notice: true })
+        expect(updatesView({ count: 3, loading: true, failed: true })).toEqual({ body: "list", notice: false })
     })
 })

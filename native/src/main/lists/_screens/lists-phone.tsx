@@ -1,4 +1,4 @@
-import { PHONE_PAGE_TINT, usePageTop } from "@/components/shared/phone-screen"
+import { PHONE_PAGE_TINT, usePageBottomPad, usePageTop, usePullRefresh } from "@/components/shared/phone-screen"
 import { useServerMutation } from "@/api/client/requests"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import type { AL_AnimeCollection, AL_BaseAnime, AL_BaseManga } from "@/api/generated/types"
@@ -116,7 +116,9 @@ export function ListsPhone() {
         return () => sub.remove()
     }, [stats]))
     useFocusEffect(React.useCallback(() => () => setStatsOpen(false), []))
-    const { mutate: refresh, isPending: refreshing } = useRefreshLists(t)
+    const { mutate: refresh, mutateAsync: refreshAsync, isPending: refreshing } = useRefreshLists(t)
+    // pull to refresh: the same "Refresh AniList" (read only), its spinner held by the page until AniList answered
+    const pullRefresh = () => refreshing ? Promise.resolve() : refreshAsync()
 
     const refreshButton = <ListsAction icon={RefreshCcw} label={t("Refresh", "Aktualisieren")} spinning={refreshing}
         accessibilityLabel={refreshing ? t("Refreshing AniList", "AniList wird aktualisiert") : t("Refresh AniList", "AniList aktualisieren")}
@@ -134,8 +136,8 @@ export function ListsPhone() {
     const headerStats = enableManga ? null : statsButton(false)
 
     return stats
-        ? <ListsStats type={type} typeSwitch={typeSwitch} actions={<>{refreshButton}{headerStats}</>} />
-        : <ListsCollection key={type} type={type} typeSwitch={typeSwitch} refreshButton={refreshButton} statsButton={headerStats} swapOnMount={typeSwitched} />
+        ? <ListsStats type={type} typeSwitch={typeSwitch} actions={<>{refreshButton}{headerStats}</>} onRefresh={pullRefresh} />
+        : <ListsCollection key={type} type={type} typeSwitch={typeSwitch} refreshButton={refreshButton} statsButton={headerStats} swapOnMount={typeSwitched} onRefresh={pullRefresh} />
 }
 
 /**
@@ -209,9 +211,9 @@ function useNow() {
 /** A title in the local (or Nakama) library: the desktop card's library mark and its unwatched files. */
 type LibraryInfo = { local: boolean, unwatched: number | null }
 
-type CollectionProps = { type: ListType, typeSwitch: React.ReactNode, refreshButton: React.ReactNode, statsButton: React.ReactNode, swapOnMount: boolean }
+type CollectionProps = { type: ListType, typeSwitch: React.ReactNode, refreshButton: React.ReactNode, statsButton: React.ReactNode, swapOnMount: boolean, onRefresh: () => Promise<unknown> }
 
-function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnMount }: CollectionProps) {
+function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnMount, onRefresh }: CollectionProps) {
     const t = useTr()
     const router = useRouter()
     const serverStatus = useServerStatus()
@@ -219,6 +221,7 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
     const insets = useSafeAreaInsets()
     const barHeight = useNavBarHeight()
     const { rail } = useTabletLayout()
+    const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const offlineAware = useOfflineAware()
     const showAdult = !!serverStatus?.settings?.anilist?.enableAdultContent
     const blurAdult = !!serverStatus?.settings?.anilist?.blurAdultContent
@@ -324,6 +327,7 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
     const list = React.useRef<FlashListRef<ListEntry>>(null)
     // the same top as every page (page-top.ts)
     const topPadding = usePageTop()
+    const refreshControl = usePullRefresh(onRefresh, topPadding)
     // Where the switch, search and pills start: "Back to top" and a focused search scroll there, not to the title.
     const controlsY = React.useRef(0)
     const searchY = React.useRef(0)
@@ -468,7 +472,8 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
                     keyboardDismissMode="on-drag"
                     showsVerticalScrollIndicator={false}
                     style={{ marginHorizontal: -grid.gap / 2 }}
-                    contentContainerStyle={{ paddingTop: topPadding, paddingBottom: (rail ? 32 : barHeight + 32) + insets.bottom }}
+                    refreshControl={refreshControl}
+                    contentContainerStyle={{ paddingTop: topPadding, paddingBottom: pageBottom }}
                 />
             </View>
             <ListsFilterSheet open={sheetOpen} onOpenChange={setSheetOpen} type={type} lists={lists} status={status}

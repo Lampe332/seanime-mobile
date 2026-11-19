@@ -2553,7 +2553,11 @@
   "{0} new since your last visit": "自上次访问以来有 {0} 项更新",
   "Nothing new since your last visit": "自上次访问以来没有更新",
   "Mark all as seen": "全部标记为已查看",
+  "Some updates could not be loaded.": "部分更新加载失败。",
+  "No internet connection, so some updates could not be loaded.": "没有网络连接，部分更新加载失败。",
   "Loading updates": "正在加载更新",
+  "Updates could not be loaded.": "更新加载失败。",
+  "No internet connection, so updates could not be loaded.": "没有网络连接，更新加载失败。",
   "No new episodes or chapters this week": "本周没有新剧集或新章节",
   "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "你在看或计划看的动画的新剧集，以及你在读的漫画的新章节，会显示在这里。"
 }

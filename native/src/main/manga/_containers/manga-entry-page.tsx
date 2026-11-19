@@ -33,7 +33,7 @@ import { useMangaChapterTotal } from "@/main/manga/_lib/use-manga-chapter-total"
 import { useFocusEffect, useLocalSearchParams } from "expo-router"
 import { Image } from "expo-image"
 import { useCoverFlightTarget } from "@/components/shared/cover-flight"
-import { usePageTop } from "@/components/shared/phone-screen"
+import { usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { useAtomValue, useSetAtom } from "jotai"
 import BookOpen from "lucide-react-native/icons/book-open"
@@ -83,6 +83,7 @@ export function MangaEntryPage() {
     const top = usePageTop()
     const barHeight = useNavBarHeight()
     const { rail, isTablet, window } = useTabletLayout()
+    const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const wide = isTablet && window.width >= WIDE_MIN_WIDTH
     const [moreOpen, setMoreOpen] = React.useState(false)
     const reduceMotion = useReducedMotion()
@@ -123,7 +124,7 @@ export function MangaEntryPage() {
     // the same top as every page (page-top.ts) + `[data-mobile-anime]`'s 1rem (on the phone the head's `pt-4`)
     const scrollPadding = {
         paddingTop: top + (rail ? 16 : 0),
-        paddingBottom: (rail ? 32 : barHeight + 32) + insets.bottom,
+        paddingBottom: pageBottom,
     }
 
     return <>

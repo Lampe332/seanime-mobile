@@ -21,17 +21,25 @@ function useNow(stepMs: number = 5 * 60 * 1000) {
     return now
 }
 
-/** New episodes (list schedule) and found chapters of the window, newest first */
-export function useUpdateItems(): { items: UpdateItem[], loading: boolean, now: number } {
-    const { data: schedule, isLoading } = useGetAnimeCollectionSchedule()
-    const { data: collection } = useGetAnimeCollection()
+/**
+ * New episodes (list schedule) and found chapters of the window, newest first; `failed` when the schedule or the list
+ * could not be loaded, `refetch` loads both again (read only).
+ */
+export function useUpdateItems(): { items: UpdateItem[], loading: boolean, failed: boolean, now: number, refetch: () => Promise<unknown> } {
+    const scheduleQuery = useGetAnimeCollectionSchedule()
+    const collectionQuery = useGetAnimeCollection()
+    const schedule = scheduleQuery.data
+    const collection = collectionQuery.data
+    const { refetch: refetchSchedule } = scheduleQuery
+    const { refetch: refetchCollection } = collectionQuery
+    const refetch = React.useCallback(() => Promise.all([refetchSchedule(), refetchCollection()]), [refetchSchedule, refetchCollection])
     const chapters = React.useSyncExternalStore(subscribeChapterFeed, readChapterFeed)
     const now = useNow()
     const items = React.useMemo(() => newestFirst([
         ...episodeUpdates(schedule ?? [], listStatuses(collection), now),
         ...chapters.filter(item => item.at > now - UPDATES_WINDOW_MS && item.at <= now + 60_000),
     ]), [schedule, collection, chapters, now])
-    return { items, loading: isLoading, now }
+    return { items, loading: scheduleQuery.isLoading, failed: scheduleQuery.isError || collectionQuery.isError, now, refetch }
 }
 
 /** The Menu's count: what is new since the last visit */

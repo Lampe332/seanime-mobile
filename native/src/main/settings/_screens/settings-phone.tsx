@@ -1,6 +1,6 @@
 import { APP_UPDATE_QUERY_KEY, useCheckForUpdates } from "@/api/hooks/releases.hooks"
 import { LoadingRows } from "@/components/shared/phone-kit"
-import { PhoneScreen, usePageTop } from "@/components/shared/phone-screen"
+import { PhoneScreen, usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
 import { useCloseOnBack } from "@/components/ui/core/back-handler"
 import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted, Text } from "@/components/ui/text/text"
@@ -177,6 +177,7 @@ function SectionList({ t, onOpen, current, compact, notes = true }: {
  */
 function TwoPanes({ t, shown, onOpen }: { t: Translate, shown: SettingsSectionId, onOpen: (id: SettingsSectionId) => void }) {
     const insets = useSafeAreaInsets()
+    const paneBottom = usePageBottomPad(insets.bottom + 112)
     const top = usePageTop()
     const { window } = useTabletLayout()
     const wide = window.width >= 1024
@@ -197,7 +198,7 @@ function TwoPanes({ t, shown, onOpen }: { t: Translate, shown: SettingsSectionId
                 <SectionList t={t} onOpen={open} current={shown} notes={wide} compact={wide && window.height <= 900} />
             </ScrollView>
             <ScrollView ref={paneRef} className="flex-1" style={{ maxWidth: window.width >= 1400 ? TABLET_READING_WIDTH : undefined }}
-                contentContainerClassName="gap-6" contentContainerStyle={{ paddingBottom: insets.bottom + 112 }}>
+                contentContainerClassName="gap-6" contentContainerStyle={{ paddingBottom: paneBottom }}>
                 <Text accessibilityRole="header" className="text-[22px] font-bold leading-[27.5px] tracking-[-0.44px]">{t(SECTIONS[shown].titleEn, SECTIONS[shown].titleDe)}</Text>
                 <SectionContent id={shown} t={t} onOpen={open} tablet />
             </ScrollView>

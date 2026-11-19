@@ -2559,7 +2559,11 @@
   "{0} new since your last visit": "{0} nuevos desde tu última visita",
   "Nothing new since your last visit": "Nada nuevo desde tu última visita",
   "Mark all as seen": "Marcar todo como visto",
+  "Some updates could not be loaded.": "No se pudieron cargar algunas actualizaciones.",
+  "No internet connection, so some updates could not be loaded.": "Sin conexión a internet, así que no se pudieron cargar algunas actualizaciones.",
   "Loading updates": "Cargando novedades",
+  "Updates could not be loaded.": "No se pudieron cargar las actualizaciones.",
+  "No internet connection, so updates could not be loaded.": "Sin conexión a internet, así que no se pudieron cargar las actualizaciones.",
   "No new episodes or chapters this week": "No hay episodios ni capítulos nuevos esta semana",
   "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "Aquí aparecen los episodios nuevos del anime que ves o planeas ver y los capítulos nuevos del manga que lees."
 }

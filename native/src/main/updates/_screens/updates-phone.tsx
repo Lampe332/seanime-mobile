@@ -1,14 +1,14 @@
 // geschrieben nach: Plan „Updates-Seite + Benachrichtigung neue Manga-Kapitel“ (Vorbild Mihon/Kotatsu-Updates) und dem Stil von scan-summaries-phone.tsx (PhoneScreen, PhoneSection, Zeilen mit Cover); eigene Regel
 
-import { PhoneEmpty, PhoneSection } from "@/components/shared/phone-cards"
-import { LoadingRows, TextAction } from "@/components/shared/phone-kit"
+import { PhoneEmpty, PhoneSection, useOfflineAware } from "@/components/shared/phone-cards"
+import { LoadingRows, Notice, TextAction } from "@/components/shared/phone-kit"
 import { PhoneScreen } from "@/components/shared/phone-screen"
 import { Text } from "@/components/ui/text/text"
 import { appLanguageAtom, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { checkNewChapters, PAGE_MAX, PAGE_MIN_AGE_MS } from "@/lib/updates/chapter-check"
 import { updatesLastVisitAtom, useUpdateItems } from "@/lib/updates/use-updates"
-import { dayLabel, groupByDay, newCount, sinceOf, type UpdateItem } from "@/lib/updates/updates-policy"
+import { dayLabel, groupByDay, newCount, sinceOf, type UpdateItem, updatesView } from "@/lib/updates/updates-policy"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { Image } from "expo-image"
 import { useAtom, useAtomValue } from "jotai"
@@ -45,7 +45,8 @@ export function UpdatesPhone() {
     const language = useAtomValue(appLanguageAtom)
     const router = useRouter()
     const mangaEnabled = !!useServerStatus()?.settings?.library?.enableManga
-    const { items, loading, now } = useUpdateItems()
+    const offlineAware = useOfflineAware()
+    const { items, loading, failed, now, refetch } = useUpdateItems()
     const [lastVisit, setLastVisit] = useAtom(updatesLastVisitAtom)
     // the dots compare with the visit before this one; opening the page is the new visit
     const [since, setSince] = React.useState(() => sinceOf(lastVisit, Date.now()))
@@ -54,20 +55,28 @@ export function UpdatesPhone() {
         // only on opening
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-    // the check of this visit runs from the start; without manga it never shows
+    // the check of this visit runs from the start; without manga it never shows. A check that could not start (the
+    // manga list did not load) counts as a failed part of the page; one source that fails is only skipped.
     const [checking, setChecking] = React.useState(true)
+    const [checkFailed, setCheckFailed] = React.useState(false)
+    const check = React.useCallback(() => !mangaEnabled ? Promise.resolve()
+        : checkNewChapters({ max: PAGE_MAX, minAgeMs: PAGE_MIN_AGE_MS, notify: false })
+            .then(() => setCheckFailed(false), () => setCheckFailed(true))
+            .finally(() => setChecking(false)), [mangaEnabled])
     React.useEffect(() => {
-        if (!mangaEnabled) return
-        let alive = true
-        void checkNewChapters({ max: PAGE_MAX, minAgeMs: PAGE_MIN_AGE_MS, notify: false })
-            .catch(() => 0)
-            .finally(() => {
-                if (alive) setChecking(false)
-            })
-        return () => {
-            alive = false
-        }
-    }, [mangaEnabled])
+        void check()
+    }, [check])
+    // pull to refresh and "Try again": the schedule and the list again (read only) and the chapter check
+    const reload = React.useCallback(() => {
+        setChecking(true)
+        return Promise.all([refetch(), check()])
+    }, [refetch, check])
+    const [retrying, setRetrying] = React.useState(false)
+    const retry = () => {
+        setRetrying(true)
+        void reload().finally(() => setRetrying(false))
+    }
+    const view = updatesView({ count: items.length, loading: loading || retrying, failed: failed || checkFailed })
 
     const fresh = newCount(items, since)
     const groups = React.useMemo(() => groupByDay(items), [items])
@@ -78,14 +87,25 @@ export function UpdatesPhone() {
     }
     const subtitle = checking && mangaEnabled ? t("Looking for new chapters…", "Suche nach neuen Kapiteln…")
         : fresh > 0 ? t(`${fresh} new since your last visit`, `${fresh} neu seit deinem letzten Besuch`)
-            : t("Nothing new since your last visit", "Nichts Neues seit deinem letzten Besuch")
+            : view.body === "failed" ? undefined
+                : t("Nothing new since your last visit", "Nichts Neues seit deinem letzten Besuch")
     const open = (item: UpdateItem) => router.push(item.kind === "episode" ? `/entry?id=${item.mediaId}` : `/manga/entry?id=${item.mediaId}`)
+    const tryAgain = <TextAction label={t("Try again", "Erneut versuchen")} onPress={retry} />
 
     return (
-        <PhoneScreen title={t("Updates", "Updates")} subtitle={subtitle}
+        <PhoneScreen title={t("Updates", "Updates")} subtitle={subtitle} onRefresh={reload}
             actions={<TextAction label={t("Mark all as seen", "Alle als gesehen markieren")} onPress={markSeen} disabled={fresh === 0} />}>
-            {loading && items.length === 0 ? <LoadingRows label={t("Loading updates", "Updates werden geladen")} count={4} />
-                : items.length === 0 ? (
+            {view.notice && <Notice text={offlineAware(["Some updates could not be loaded.", "Einige Updates konnten nicht geladen werden."],
+                ["No internet connection, so some updates could not be loaded.", "Keine Internetverbindung, deshalb konnten einige Updates nicht geladen werden."])}>
+                {tryAgain}
+            </Notice>}
+            {view.body === "loading" ? <LoadingRows label={t("Loading updates", "Updates werden geladen")} count={4} />
+                : view.body === "failed" ? (
+                    <Notice text={offlineAware(["Updates could not be loaded.", "Updates konnten nicht geladen werden."],
+                        ["No internet connection, so updates could not be loaded.", "Keine Internetverbindung, deshalb konnten die Updates nicht geladen werden."])}>
+                        {tryAgain}
+                    </Notice>
+                ) : view.body === "empty" ? (
                     <PhoneEmpty title={t("No new episodes or chapters this week", "Diese Woche keine neuen Folgen oder Kapitel")}
                         text={t("New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.",
                             "Hier erscheinen neue Folgen der Anime, die du schaust oder planst, und neue Kapitel der Manga, die du liest.")} />
