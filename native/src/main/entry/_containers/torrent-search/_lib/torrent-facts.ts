@@ -2,7 +2,7 @@ import type { Habari_Metadata, HibikeTorrent_AnimeTorrent } from "@/api/generate
 import type { Translate } from "@/lib/app-language"
 import { type AutoSelectProfile, type FoundTorrent, chooseTorrent } from "@/core/torrent/autoselect"
 import { magnetOf } from "@/core/torrent/torrent"
-import { isBatchRelease } from "@/main/entry/_containers/torrent-search/_lib/torrent-filters"
+import { CODECS, isBatchRelease, SOURCES, TEN_BIT } from "@/main/entry/_containers/torrent-search/_lib/torrent-filters"
 import { ago } from "@/main/entry/_containers/torrent-search/_lib/torrent-search-phone"
 
 /*
@@ -94,20 +94,30 @@ function episodesOf(torrent: Pick<HibikeTorrent_AnimeTorrent, "name" | "episodeN
     return range && Number(range[1]) < Number(range[2]) ? [Number(range[1]), Number(range[2])] : []
 }
 
-function codecOf(terms: string[]): string {
-    if (terms.some(term => /hevc|[xh]\.?265/.test(term))) return "HEVC"
-    if (terms.some(term => /^av1$/.test(term))) return "AV1"
-    if (terms.some(term => /^avc$|[xh]\.?264/.test(term))) return "AVC"
+/** The parser's video words, else the words the codec filter finds in the name (so a card agrees with the filter) */
+function codecOf(terms: string[], name: string): string {
+    if (terms.some(term => /hevc|[xh]\.?265/.test(term)) || CODECS.hevc.test(name)) return "HEVC"
+    if (terms.some(term => /^av1$/.test(term)) || CODECS.av1.test(name)) return "AV1"
+    if (terms.some(term => /^avc$|[xh]\.?264/.test(term)) || CODECS.avc.test(name)) return "AVC"
     return ""
 }
 
-function sourceOf(sources: string[]): string {
-    if (sources.some(source => /^(?:bd|bdrip|bd-rip|bluray|blu-ray|blu ray)$/.test(source))) return "BluRay"
-    if (sources.some(source => /^(?:web|web-?dl|webdl|web-?rip|webrip|amzn|cr|nf|dsnp|webcast)$/.test(source))) return "WEB"
+function sourceOf(sources: string[], name: string): string {
+    if (sources.some(source => /^(?:bd|bdrip|bd-rip|bluray|blu-ray|blu ray)$/.test(source)) || SOURCES.bluray.test(name)) return "BluRay"
+    if (sources.some(source => /^(?:web|web-?dl|webdl|web-?rip|webrip|amzn|cr|nf|dsnp|webcast)$/.test(source)) || SOURCES.web.test(name)) return "WEB"
     if (sources.some(source => /dvd|r2j/.test(source))) return "DVD"
     if (sources.some(source => /tv/.test(source))) return "TV"
     return ""
 }
+
+/** A group as the provider or the parser names it, unless it is a list of languages in brackets ("[JAP/ENG/SPA]") */
+function groupOf(group: string | undefined): string {
+    const text = group?.trim() ?? ""
+    return text && !/[/,+]/.test(text) ? text : ""
+}
+
+/** A fact that wraps as one piece ("3 months ago"), so a long line breaks only between facts */
+export const whole = (fact: string) => fact.replace(/ /g, " ")
 
 /**
  * Every fact of one torrent for its card. `parsed` is the name as $habari reads it (the search's `torrentMetadata`, or
@@ -132,16 +142,16 @@ export function torrentFacts(torrent: HibikeTorrent_AnimeTorrent, parsed: Habari
     const dualAudio = !multiAudio && (/dual[-_. ]?audio|\bdual\b/.test(lowerName) || audio.some(term => /dual/.test(term)))
     const multiSubs = /multi[-_. ]?subs?\b|multiple[-_. ]?subtitles?/.test(lowerName) || subtitles.some(term => /multi/.test(term))
     const tech = [
-        codecOf(terms),
-        terms.some(term => /10-?bits?|hi10/.test(term)) || /10[-_. ]?bits?|\bhi10p?\b/.test(lowerName) ? "10bit" : "",
-        sourceOf(list(parsed?.source).map(lower)),
+        codecOf(terms, name),
+        terms.some(term => /10-?bits?|hi10/.test(term)) || TEN_BIT.test(name) ? "10bit" : "",
+        sourceOf(list(parsed?.source).map(lower), name),
         multiAudio ? t("Multi audio", "Mehrere Tonspuren") : dualAudio ? t("Dual audio", "Dual Audio") : "",
         multiSubs ? t("Multi subs", "Mehrere Untertitel") : "",
     ].filter(Boolean)
 
     const seeders = torrent.seeders
     return {
-        group: torrent.releaseGroup || parsed?.release_group || trailingGroup(name),
+        group: groupOf(torrent.releaseGroup) || groupOf(parsed?.release_group) || trailingGroup(name),
         episode,
         season: season > 0 ? `S${season}` : "",
         version: version > 1 ? `v${version}` : "",
@@ -167,6 +177,11 @@ export function factsHead(facts: TorrentFacts): string {
 /** The card's numbers line: "332 seeders · 18 leechers · 1.4 GiB · 3 days ago · Nyaa" */
 export function factsLine(facts: TorrentFacts): string {
     return [facts.seeders, facts.leechers, facts.size, facts.age, facts.provider].filter(Boolean).join(" · ")
+}
+
+/** The same line for the screen: each fact kept on one line when it wraps, the dot staying at the end of the line */
+export function factsLineWrapped(facts: TorrentFacts): string {
+    return [facts.seeders, facts.leechers, facts.size, facts.age, facts.provider].filter(Boolean).map(whole).join(" · ")
 }
 
 /** The whole card as one sentence for screen readers */

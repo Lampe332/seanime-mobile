@@ -48,16 +48,17 @@ export const LANGUAGE_SEARCH_WORD: Partial<Record<TorrentLanguage, string>> = {
     de: "German", fr: "VOSTFR", es: "Spanish", it: "ITA", pt: "Portuguese", ru: "Russian", ar: "Arabic", zh: "Chinese",
 }
 
-const CODECS: Record<TorrentCodec, RegExp> = {
+/** Also read by the cards (torrent-facts.ts), so a card names the codec and source the filters find */
+export const CODECS: Record<TorrentCodec, RegExp> = {
     hevc: /hevc|[xh][-_. ]?265/i,
     avc: /\bavc\b|[xh][-_. ]?264/i,
     av1: /\bav1\b/i,
 }
-const SOURCES: Record<TorrentSource, RegExp> = {
+export const SOURCES: Record<TorrentSource, RegExp> = {
     bluray: /blu[-_. ]?ray|\bbd(?:rip|remux|mv)?\b/i,
     web: /\bweb(?:[-_. ]?(?:dl|rip))?\b/i,
 }
-const TEN_BIT = /10[-_. ]?bits?|\bhi10p?\b/i
+export const TEN_BIT = /10[-_. ]?bits?|\bhi10p?\b/i
 
 // Batches: flagged by the provider, or named as a complete release, an episode range (01-12) or a season (S01, Season 2)
 // that no episode number follows ("S3 - 08", "S02E05" are single episodes; "S01 1080p" is not one)

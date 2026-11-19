@@ -7,6 +7,7 @@ import {
     copyMagnet,
     factsHead,
     factsLine,
+    factsLineWrapped,
     factsSentence,
     resolutionLabel,
     seedHealth,
@@ -111,6 +112,27 @@ describe("torrentFacts", () => {
         expect(factsHead(facts)).toBe("SubsPlease · S2 · Folge 5")
         expect(factsLine(facts)).toBe("1 Seeder · 1 Leecher · 1.4 GiB · vor 3 Tagen")
         expect(torrentFacts(torrent(SUBSPLEASE, { seeders: 0 }), read(SUBSPLEASE), de, "de").seeders).toBe("Keine Seeder")
+    })
+
+    // names as Nyaa listed them for Frieren season 2 on 19.11.2026 (device check)
+    it("reads the Nyaa batches of Frieren season 2 like the filters do", () => {
+        const subsplease = "[SubsPlease] Sousou no Frieren S2 (01-10) (1080p) [Batch]"
+        expect(factsHead(torrentFacts(torrent(subsplease), read(subsplease), en, "en"))).toBe("SubsPlease · S2 · Ep 1–10")
+        // a list of languages in brackets is no group
+        const languages = "Frieren Beyond Journeys End S02 1080p BD Remux FLAC [JAP/ENG/SPA]- AF"
+        const remux = torrentFacts(torrent(languages), read(languages), en, "en")
+        expect(remux.group).toBe("")
+        expect(remux.tech).toContain("BluRay")
+        // Nyaa's extension sends the same bracket as releaseGroup
+        expect(torrentFacts(torrent(languages, { releaseGroup: "JAP/ENG/SPA" }), read(languages), en, "en").group).toBe("")
+        // "BD" inside a dotted bracket: the source filter's reading of the name
+        const ironclad = "[Ironclad] Sousou no Frieren - S02 [BD.1080p.AV1]"
+        expect(torrentFacts(torrent(ironclad), read(ironclad), en, "en").tech).toEqual(["AV1", "BluRay"])
+    })
+
+    it("keeps each fact on one line when the line wraps", () => {
+        const facts = torrentFacts(torrent(SUBSPLEASE), read(SUBSPLEASE), en, "en", { provider: "Internet Archive", now: NOW })
+        expect(factsLineWrapped(facts)).toBe("332 seeders · 18 leechers · 1.4 GiB · 3 days ago · Internet Archive")
     })
 
     it("grades the seeders: none red, under 10 yellow, from 10 green", () => {

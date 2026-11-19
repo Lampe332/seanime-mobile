@@ -7,11 +7,12 @@ import { colors } from "@/lib/theme/tokens"
 import {
     copyMagnet,
     factsHead,
-    factsLine,
+    factsLineWrapped,
     factsSentence,
     magnetLinkOf,
     type SeedHealth,
     torrentFacts,
+    whole,
 } from "@/main/entry/_containers/torrent-search/_lib/torrent-facts"
 import { decodeEntities } from "@/main/entry/_containers/torrent-search/_lib/torrent-search-phone"
 import * as Clipboard from "expo-clipboard"
@@ -109,16 +110,18 @@ export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t,
                 </View>}
             </View>
             {!!head && <Text numberOfLines={2} className="text-[13px] leading-[18px] text-sm-text-subtle">{name}</Text>}
-            <View className="flex-row items-center gap-1.5">
-                <Icon size={14} color={color} strokeWidth={2.5} />
-                <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-sm-text-muted" style={DIGITS}>{factsLine(facts)}</Text>
+            {/* the icon stands at the first line when the facts wrap */}
+            <View className="flex-row items-start gap-1.5">
+                <View className="h-[18px] justify-center"><Icon size={15} color={color} strokeWidth={2.5} /></View>
+                <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-sm-text-muted" style={DIGITS}>{factsLineWrapped(facts)}</Text>
             </View>
-            {(best || tags.length > 0) && <View className="flex-row flex-wrap items-center gap-x-1.5">
-                {best && <View className="flex-row items-center gap-1">
-                    <Star size={13} color={colors.smAccent} fill={colors.smAccent} />
-                    <Text className="text-[13px] font-semibold leading-[18px] text-sm-accent">{marks[0]}</Text>
-                </View>}
-                {tags.length > 0 && <Text className="text-[13px] leading-[18px] text-sm-text-muted">{(best ? "· " : "") + tags.join(" · ")}</Text>}
+            {(best || tags.length > 0) && <View className="flex-row items-start gap-1">
+                {best && <View className="h-[18px] justify-center"><Star size={13} color={colors.smAccent} fill={colors.smAccent} /></View>}
+                <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-sm-text-muted">
+                    {best && <Text className="text-[13px] font-semibold leading-[18px] text-sm-accent">{marks[0]}</Text>}
+                    {/* the dot stays at the end of a line when the tags wrap */}
+                    {(best && tags.length ? " · " : "") + tags.map(whole).join(" · ")}
+                </Text>
             </View>}
         </View>
 
