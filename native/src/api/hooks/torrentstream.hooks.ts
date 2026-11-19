@@ -47,6 +47,20 @@ export function useTorrentstreamStopStream() {
     })
 }
 
+/** 4.2.0 "Keep in library": the running stream's torrent into the torrent client, its files into `destination` */
+export function useTorrentstreamKeep(onError: (error: SeaError) => void) {
+    const qc = useQueryClient()
+    return useServerMutation<{ hash: string, destination: string }, { destination: string }>({
+        endpoint: API_ENDPOINTS.TORRENTSTREAM.TorrentstreamKeep.endpoint,
+        method: API_ENDPOINTS.TORRENTSTREAM.TorrentstreamKeep.methods[0],
+        mutationKey: [API_ENDPOINTS.TORRENTSTREAM.TorrentstreamKeep.key],
+        onSuccess: async () => {
+            await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.TORRENT_CLIENT.GetActiveTorrentList.key] })
+        },
+        onError,
+    })
+}
+
 export function useGetTorrentstreamTorrentFilePreviews(variables: Partial<GetTorrentstreamTorrentFilePreviews_Variables>, enabled: boolean) {
     return useServerQuery<Array<Torrentstream_FilePreview>, GetTorrentstreamTorrentFilePreviews_Variables>({
         endpoint: API_ENDPOINTS.TORRENTSTREAM.GetTorrentstreamTorrentFilePreviews.endpoint,

@@ -99,6 +99,11 @@ class CoreDownloadModule : Module() {
         // phase 6f: holds the process in front while the core's torrent client downloads (TorrentKeep.kt)
         AsyncFunction("keepTorrents") { on: Boolean, title: String -> TorrentKeepService.keep(context.applicationContext, on, title) }
 
+        // 4.2.0: that service's notice with the torrents' progress, about once a second; never starts the service
+        AsyncFunction("updateTorrentNotice") { title: String, text: String, done: Double, total: Double, link: String ->
+            TorrentKeepService.update(context.applicationContext, title, text, done.toLong(), total.toLong(), link)
+        }
+
         AsyncFunction("sha256") { path: String ->
             val file = LoaderWays.ownFile(context, path)
             val digest = MessageDigest.getInstance("SHA-256")

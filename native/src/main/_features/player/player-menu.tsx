@@ -35,6 +35,8 @@ import Download from "lucide-react-native/icons/download"
 import ExternalLink from "lucide-react-native/icons/external-link"
 import FastForward from "lucide-react-native/icons/fast-forward"
 import FileText from "lucide-react-native/icons/file-text"
+import FolderCheck from "lucide-react-native/icons/folder-check"
+import FolderDown from "lucide-react-native/icons/folder-down"
 import Gauge from "lucide-react-native/icons/gauge"
 import Paintbrush from "lucide-react-native/icons/paintbrush"
 import Palette from "lucide-react-native/icons/palette"
@@ -52,6 +54,7 @@ import { useKeyboardHeight } from "@/components/ui/core/use-keyboard-height"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { type PlayerTrack, sleepTimerFrom, sleepTimerRemainingMs } from "./player-logic"
+import { type KeepState, keepRowOf } from "./keep-stream"
 import {
     CAPTION_BACKGROUND_OPACITIES,
     CAPTION_FONT_SIZES,
@@ -60,6 +63,7 @@ import {
     landscapeMenuPlacement,
     languageSummary,
     listSummary,
+    menuGroupLayout,
     narrowRows,
     optionLabel,
     PHONE_LANGUAGES,
@@ -172,6 +176,9 @@ export function PlayerMenu(props: {
     onQuality?: (quality: string) => void
     onSave?: () => void
     saving?: boolean
+    /** 4.2.0 "Keep in library": only while a torrent stream plays (keep-stream.ts) */
+    onKeep?: () => void
+    keepState?: KeepState
     /** called before a "Translate subtitles" setting is written (the player may start a translation) */
     onTranslateSettings?: () => void
 }) {
@@ -246,7 +253,7 @@ export function PlayerMenu(props: {
 }
 
 function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, onAudio, onSubtitle, speed, onSpeed, onExternal, qualities, quality, onQuality,
-    onSave, saving, onTranslateSettings, open, back, close, landscape, width }: React.ComponentProps<typeof PlayerMenu> & {
+    onSave, saving, onKeep, keepState, onTranslateSettings, open, back, close, landscape, width }: React.ComponentProps<typeof PlayerMenu> & {
     back: () => void
     close: () => void
     landscape: boolean
@@ -308,9 +315,8 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
 
     if (page === "main") {
         // landscape: the groups side by side, at least 14.5rem each (grid auto-fit), the title hidden
-        const inner = width - 16
-        const columns = landscape ? Math.max(1, Math.floor((inner + 8) / (232 + 8))) : 1
-        const groupWidth = landscape ? (inner - (columns - 1) * 8) / columns : undefined
+        const { groupWidth } = menuGroupLayout(width, landscape)
+        const keepRow = keepRowOf(!!onKeep, keepState ?? "idle", t)
         const groups = [
             <MenuGroup key="playback" width={groupWidth} title={t("Playback", "Wiedergabe")}>
                 <LinkRow icon={Gauge} label={t("Speed", "Geschwindigkeit")} value={`${speed.toFixed(2)}x`} onPress={() => onPageChange("speed")} />
@@ -337,6 +343,7 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
                     <ActionRow icon={Download} label={saving ? t("Preparing download …", "Download wird vorbereitet …") : t("Save this episode", "Diese Folge speichern")}
                         disabled={saving} onPress={onSave} />
                 )}
+                {!!keepRow && !!onKeep && <ActionRow icon={keepState === "kept" ? FolderCheck : FolderDown} label={keepRow.label} disabled={keepRow.disabled} onPress={onKeep} />}
             </MenuGroup>,
         ]
         return (

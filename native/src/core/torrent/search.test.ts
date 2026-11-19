@@ -12,7 +12,17 @@ import { coreAnswerFor } from "../index"
 import { type CoreEnvironment } from "../registry"
 import { type AutoSelectProfile, type FoundTorrent, bytesOf, chooseTorrent, emptyProfile, namesWebSeed, providersWithoutCount } from "./autoselect"
 import { distanceOf, torrentOut } from "./search"
-import { type TorrentDevice, type TorrentSessionSettings, forgetTorrentStream, runningTorrentStream, sessionSettingsOf } from "./torrent"
+import {
+    PRELOAD_PRIORITY,
+    type TorrentDevice,
+    type TorrentDeviceStatus,
+    type TorrentSessionSettings,
+    forgetTorrentStream,
+    preloadedTorrent,
+    runningTorrentStream,
+    sessionSettingsOf,
+    torrentHearsPlayer,
+} from "./torrent"
 import recorded from "./search.recorded.json"
 
 const HASH_A = "a".repeat(40)
@@ -316,6 +326,82 @@ describe("the stream with auto select, the provider's magnet link and the saved 
         await ask("POST", "/api/v1/torrentstream/start", { mediaId: 105333, episodeNumber: 1, aniDBEpisode: "1", autoSelect: false, torrent, playbackType: "none", clientId: "" })
         expect(calls).toContain("plain infoHash https://plain.example/1")
         expect(added).toEqual([`magnet:?xt=urn:btih:${"d".repeat(40)}`])
+    })
+
+    it("4.2.0: preloads the next episode's torrent the auto select picks, from 90 % once the stream's file is loaded, beside the stream", async () => {
+        const HASH_E = "e".repeat(40)
+        const HASH_F = "f".repeat(40)
+        // a provider with one torrent per episode
+        const NEXT_TS = `/// <reference path="./anime-torrent-provider.d.ts" />
+class Provider {
+    getSettings(): AnimeProviderSettings {
+        return { canSmartSearch: true, smartSearchFilters: ["episodeNumber"], supportsAdult: false, type: "main" }
+    }
+    private one(episode: number): AnimeTorrent[] {
+        const hash = episode === 1 ? "${HASH_E}" : "${HASH_F}"
+        return [{ name: "[Delta] Dr. Stone - 0" + episode + " [1080p].mkv", date: "2026-01-01T00:00:00Z", size: 500000000, formattedSize: "500 MB",
+            seeders: 30, leechers: 1, downloadCount: 3, link: "https://tracker.example/" + episode, downloadUrl: "", magnetLink: "magnet:?xt=urn:btih:" + hash,
+            infoHash: hash, isBestRelease: false, confirmed: false, resolution: "1080p", episodeNumber: episode, releaseGroup: "Delta" }]
+    }
+    async search(opts: AnimeSearchOptions): Promise<AnimeTorrent[]> { return this.one(1) }
+    async smartSearch(opts: AnimeSmartSearchOptions): Promise<AnimeTorrent[]> { return this.one(opts.episodeNumber) }
+    async getTorrentInfoHash(torrent: AnimeTorrent): Promise<string> { return torrent.infoHash || "" }
+    async getTorrentMagnetLink(torrent: AnimeTorrent): Promise<string> { return torrent.magnetLink || "" }
+    async getLatest(): Promise<AnimeTorrent[]> { return [] }
+}`
+        files = new Map([["next.json", manifest("next", NEXT_TS)]])
+        const listeners: ((statuses: TorrentDeviceStatus[]) => void)[] = []
+        const done: string[] = []
+        const background: Promise<unknown>[] = []
+        const before = { ...device }
+        const more = environment as unknown as Record<string, unknown>
+        Object.assign(device, {
+            files: async (infoHash: string) => [{ index: 0, path: `Show/[Delta] Dr. Stone - 0${infoHash === HASH_E ? 1 : 2} [1080p].mkv`, size: 900, pieceStart: 0, pieceEnd: 9 }],
+            onStatus: (listener: (statuses: TorrentDeviceStatus[]) => void) => {
+                listeners.push(listener)
+                return () => void listeners.splice(listeners.indexOf(listener), 1)
+            },
+            setFilePriority: async (infoHash: string, index: number, priority: number) => void done.push(`${infoHash[0]} priority ${index}=${priority}`),
+            remove: async (infoHash: string) => void done.push(`${infoHash[0]} removed`),
+        })
+        more.offline = async () => ({ network: async () => ({ known: true, connected: true, metered: false }) })
+        more.unasked = (_what: string, work: () => Promise<unknown>) => {
+            const running = work()
+            background.push(running)
+            return running
+        }
+        try {
+            await ask("PATCH", "/api/v1/torrentstream/settings", { settings: { preloadNextStream: true } })
+            await ask("POST", "/api/v1/torrentstream/start", { mediaId: 105333, episodeNumber: 1, aniDBEpisode: "1", autoSelect: true, playbackType: "none", clientId: "" })
+            expect(runningTorrentStream()?.infoHash).toBe(HASH_E)
+            const id = `core-torrent-${now}`
+            const hear = (share: number) => torrentHearsPlayer({ type: "video-status", payload: { id, currentTime: share * 1440, duration: 1440 } }, environment)
+            const loaded = (yes: boolean) => listeners.forEach(listener => listener([{ infoHash: HASH_E, state: "downloading", error: "", hasMetadata: true, progress: 0, downRate: 0, upRate: 0, peers: 0, seeds: 0, bytesDone: yes ? 900 : 100, bytesWanted: 900 }]))
+            done.length = 0
+            // 95 % but the stream's file still loads: the second torrent waits; loaded but at 50 %: waits as well
+            loaded(false)
+            expect(await hear(0.95)).toBe("")
+            loaded(true)
+            expect(await hear(0.5)).toBe("")
+            expect(added).toEqual([`magnet:?xt=urn:btih:${HASH_E}`])
+            // both: the auto select's torrent of episode 2 comes beside the stream, only its episode wanted, lowest priority
+            expect(await hear(0.9)).toBe("preloading the next episode: looking for its torrent")
+            await Promise.all(background)
+            expect(added).toEqual([`magnet:?xt=urn:btih:${HASH_E}`, `magnet:?xt=urn:btih:${HASH_F}`])
+            expect(preloadedTorrent()).toBe(HASH_F)
+            expect(done).toEqual([`f priority 0=${PRELOAD_PRIORITY}`])
+            expect(runningTorrentStream()?.infoHash).toBe(HASH_E)
+            // the next episode's stream takes it over; the old stream's torrent goes, the preloaded one stays
+            await ask("POST", "/api/v1/torrentstream/start", { mediaId: 105333, episodeNumber: 2, aniDBEpisode: "2", autoSelect: true, playbackType: "none", clientId: "" })
+            expect(runningTorrentStream()?.infoHash).toBe(HASH_F)
+            expect(preloadedTorrent()).toBeNull()
+            expect(done).toEqual([`f priority 0=${PRELOAD_PRIORITY}`, "e removed", "f priority 0=7"])
+        }
+        finally {
+            Object.assign(device, before)
+            delete more.offline
+            delete more.unasked
+        }
     })
 
     it("hands the saved download folder and port to the session", async () => {

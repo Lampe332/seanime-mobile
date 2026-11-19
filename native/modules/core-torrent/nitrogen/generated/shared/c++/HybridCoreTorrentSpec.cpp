@@ -23,6 +23,9 @@ namespace margelo::nitro::seanime::coretorrent {
       prototype.registerHybridMethod("setFilePriority", &HybridCoreTorrentSpec::setFilePriority);
       prototype.registerHybridMethod("setSequential", &HybridCoreTorrentSpec::setSequential);
       prototype.registerHybridMethod("setPaused", &HybridCoreTorrentSpec::setPaused);
+      prototype.registerHybridMethod("setQueued", &HybridCoreTorrentSpec::setQueued);
+      prototype.registerHybridMethod("setLimits", &HybridCoreTorrentSpec::setLimits);
+      prototype.registerHybridMethod("moveStorage", &HybridCoreTorrentSpec::moveStorage);
       prototype.registerHybridMethod("setPieceDeadlines", &HybridCoreTorrentSpec::setPieceDeadlines);
       prototype.registerHybridMethod("clearDeadlines", &HybridCoreTorrentSpec::clearDeadlines);
       prototype.registerHybridMethod("status", &HybridCoreTorrentSpec::status);

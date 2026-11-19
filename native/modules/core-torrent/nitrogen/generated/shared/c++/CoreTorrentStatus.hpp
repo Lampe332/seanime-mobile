@@ -59,10 +59,11 @@ namespace margelo::nitro::seanime::coretorrent {
     double trackersFailed     SWIFT_PRIVATE;
     std::string trackerError     SWIFT_PRIVATE;
     double webSeeds     SWIFT_PRIVATE;
+    double queuePosition     SWIFT_PRIVATE;
 
   public:
     CoreTorrentStatus() = default;
-    explicit CoreTorrentStatus(std::string infoHash, std::string name, std::string state, std::string error, bool hasMetadata, double progress, double downRate, double upRate, double peers, double seeds, double piecesHave, double pieces, double bytesDone, double bytesWanted, double peersKnown, double dhtNodes, double trackersOk, double trackersFailed, std::string trackerError, double webSeeds): infoHash(infoHash), name(name), state(state), error(error), hasMetadata(hasMetadata), progress(progress), downRate(downRate), upRate(upRate), peers(peers), seeds(seeds), piecesHave(piecesHave), pieces(pieces), bytesDone(bytesDone), bytesWanted(bytesWanted), peersKnown(peersKnown), dhtNodes(dhtNodes), trackersOk(trackersOk), trackersFailed(trackersFailed), trackerError(trackerError), webSeeds(webSeeds) {}
+    explicit CoreTorrentStatus(std::string infoHash, std::string name, std::string state, std::string error, bool hasMetadata, double progress, double downRate, double upRate, double peers, double seeds, double piecesHave, double pieces, double bytesDone, double bytesWanted, double peersKnown, double dhtNodes, double trackersOk, double trackersFailed, std::string trackerError, double webSeeds, double queuePosition): infoHash(infoHash), name(name), state(state), error(error), hasMetadata(hasMetadata), progress(progress), downRate(downRate), upRate(upRate), peers(peers), seeds(seeds), piecesHave(piecesHave), pieces(pieces), bytesDone(bytesDone), bytesWanted(bytesWanted), peersKnown(peersKnown), dhtNodes(dhtNodes), trackersOk(trackersOk), trackersFailed(trackersFailed), trackerError(trackerError), webSeeds(webSeeds), queuePosition(queuePosition) {}
 
   public:
     friend bool operator==(const CoreTorrentStatus& lhs, const CoreTorrentStatus& rhs) = default;
@@ -97,7 +98,8 @@ namespace margelo::nitro {
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "trackersOk"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "trackersFailed"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "trackerError"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "webSeeds")))
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "webSeeds"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "queuePosition")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::seanime::coretorrent::CoreTorrentStatus& arg) {
@@ -122,6 +124,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "trackersFailed"), JSIConverter<double>::toJSI(runtime, arg.trackersFailed));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "trackerError"), JSIConverter<std::string>::toJSI(runtime, arg.trackerError));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "webSeeds"), JSIConverter<double>::toJSI(runtime, arg.webSeeds));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "queuePosition"), JSIConverter<double>::toJSI(runtime, arg.queuePosition));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -152,6 +155,7 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "trackersFailed")))) return false;
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "trackerError")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "webSeeds")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "queuePosition")))) return false;
       return true;
     }
   };

@@ -19,6 +19,8 @@ namespace margelo::nitro::seanime::coretorrent { struct CoreTorrentSettings; }
 namespace margelo::nitro::seanime::coretorrent { struct CoreTorrentStatus; }
 // Forward declaration of `CoreTorrentFile` to properly resolve imports.
 namespace margelo::nitro::seanime::coretorrent { struct CoreTorrentFile; }
+// Forward declaration of `CoreTorrentLimits` to properly resolve imports.
+namespace margelo::nitro::seanime::coretorrent { struct CoreTorrentLimits; }
 
 #include <NitroModules/Promise.hpp>
 #include "CoreTorrentSettings.hpp"
@@ -28,6 +30,7 @@ namespace margelo::nitro::seanime::coretorrent { struct CoreTorrentFile; }
 #include <string>
 #include <NitroModules/ArrayBuffer.hpp>
 #include "CoreTorrentFile.hpp"
+#include "CoreTorrentLimits.hpp"
 
 namespace margelo::nitro::seanime::coretorrent {
 
@@ -69,6 +72,9 @@ namespace margelo::nitro::seanime::coretorrent {
       virtual std::shared_ptr<Promise<void>> setFilePriority(const std::string& infoHash, double index, double priority) = 0;
       virtual std::shared_ptr<Promise<void>> setSequential(const std::string& infoHash, bool on) = 0;
       virtual std::shared_ptr<Promise<void>> setPaused(const std::string& infoHash, bool paused) = 0;
+      virtual std::shared_ptr<Promise<void>> setQueued(const std::string& infoHash, bool queued) = 0;
+      virtual std::shared_ptr<Promise<void>> setLimits(const CoreTorrentLimits& limits) = 0;
+      virtual std::shared_ptr<Promise<void>> moveStorage(const std::string& infoHash, const std::string& savePath) = 0;
       virtual std::shared_ptr<Promise<void>> setPieceDeadlines(const std::string& infoHash, double firstPiece, double count, double firstMs, double stepMs) = 0;
       virtual std::shared_ptr<Promise<void>> clearDeadlines(const std::string& infoHash) = 0;
       virtual std::shared_ptr<Promise<CoreTorrentStatus>> status(const std::string& infoHash) = 0;

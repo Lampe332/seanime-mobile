@@ -50,6 +50,8 @@ namespace seanime::torrent {
     constexpr auto STOP_PATIENCE = std::chrono::seconds(5);
     /** A removal the disk thread never answers ends with an error after this long */
     constexpr auto REMOVAL_PATIENCE = std::chrono::seconds(20);
+    /** "No limit" for libtorrent's queue: its counters know no -1, a limit of 0 or less pauses every queued torrent */
+    constexpr int NO_QUEUE_LIMIT = 1000000;
 
     std::string hex(const lt::sha1_hash& hash) {
       std::ostringstream out;
@@ -123,8 +125,15 @@ namespace seanime::torrent {
 #endif
     }
 
+    /** Whether `path` is `folder` or lies below it; both canonical (weakly_canonical) already */
+    bool within(const fs::path& path, const fs::path& folder) {
+      const fs::path rest = path.lexically_relative(folder);
+      return !rest.empty() && *rest.begin() != "..";
+    }
+
     const char* stateName(const lt::torrent_status& status) {
-      if (status.flags & lt::torrent_flags::paused) return "paused";
+      // paused by the queue (auto managed) is waiting for its turn; paused without it is the user's pause
+      if (status.flags & lt::torrent_flags::paused) return (status.flags & lt::torrent_flags::auto_managed) ? "queued" : "paused";
       switch (status.state) {
         case lt::torrent_status::checking_files:
         case lt::torrent_status::checking_resume_data: return "checking";
@@ -227,6 +236,10 @@ namespace seanime::torrent {
     pack.set_bool(lt::settings_pack::enable_natpmp, settings.portMapping);
     pack.set_bool(lt::settings_pack::enable_outgoing_utp, settings.utp);
     pack.set_bool(lt::settings_pack::enable_incoming_utp, settings.utp);
+    // the state of the last session carries its limits; what the app asked for last in this run comes over them
+    limitsInto(pack);
+    sessionDownLimit_ = std::max(0, limits_.downloadLimit);
+    pack.set_int(lt::settings_pack::download_rate_limit, sessionDownLimit_);
     // plain read/write calls instead of memory mapped files (§4q: mapped files count as the app's memory on Android)
     params.disk_io_constructor = lt::pread_disk_io_constructor;
 
@@ -266,10 +279,17 @@ namespace seanime::torrent {
       lt::add_torrent_params resume = lt::read_resume_data(lt::span<char const>(bytes.data(), static_cast<std::ptrdiff_t>(bytes.size())), error);
       if (error) continue;
       applyFlags(resume, true);
+      // Only what the resume data still says: a torrent the user paused lost the flag with the pause (setPaused), so
+      // it comes back as not queued. The app knows which torrents are queued and says so again (setQueued).
+      const bool queued = static_cast<bool>(resume.flags & lt::torrent_flags::auto_managed);
       lt::torrent_handle handle = session_->add_torrent(std::move(resume), error);
       if (error || !handle.is_valid()) continue;
-      torrents_[hex(handle.info_hashes().get_best())] = Entry{handle};
+      Entry& back = torrents_[hex(handle.info_hashes().get_best())];
+      back.handle = handle;
+      back.queued = queued;
     }
+    // a limit of its own a torrent carried while a stream ran (applyRates) lies in its resume data: taken off again
+    applyRates();
   }
 
   void TorrentCore::stop() {
@@ -292,6 +312,10 @@ namespace seanime::torrent {
       if (removal.done) removal.done("the session stopped");
     }
     removals_.clear();
+    for (auto& [infoHash, done] : moves_) {
+      if (done) done("the session stopped");
+    }
+    moves_.clear();
     torrents_.clear();
     tick_ = nullptr;
     session_->set_alert_notify([]() {});
@@ -301,10 +325,10 @@ namespace seanime::torrent {
   }
 
   void TorrentCore::applyFlags(lt::add_torrent_params& params, bool keepPaused) const {
-    // no queue: a torrent the app adds runs, one the user paused (phase 6f) stays paused after a restart
-    const bool paused = keepPaused && (params.flags & lt::torrent_flags::paused);
-    params.flags &= ~(lt::torrent_flags::auto_managed | lt::torrent_flags::paused);
-    if (paused) params.flags |= lt::torrent_flags::paused;
+    // A torrent the app adds runs, outside the queue until `setQueued` says otherwise. One that comes back from its
+    // resume data keeps both flags: paused by the user (phase 6f) stays paused, queued (4.2.0) stays in the queue,
+    // unless the user had paused it (then the resume data holds no queue flag, see start).
+    if (!keepPaused) params.flags &= ~(lt::torrent_flags::auto_managed | lt::torrent_flags::paused);
     setFlag(params.flags, lt::torrent_flags::disable_dht, !settings_.dht);
     setFlag(params.flags, lt::torrent_flags::disable_lsd, !settings_.lsd);
     setFlag(params.flags, lt::torrent_flags::disable_pex, !settings_.pex);
@@ -324,7 +348,12 @@ namespace seanime::torrent {
     lt::error_code error;
     lt::torrent_handle handle = session_->add_torrent(std::move(params), error);
     if (error) throw std::runtime_error("the torrent cannot be added: " + error.message());
-    torrents_[infoHash] = Entry{handle};
+    Entry& made = torrents_[infoHash];
+    made.handle = handle;
+    // it runs from now on: counted among the loading torrents before its first status says so
+    made.loading = true;
+    // while a stream runs, a new torrent carries its share of the download limit itself
+    applyRates();
     return infoHash;
   }
 
@@ -357,7 +386,15 @@ namespace seanime::torrent {
     std::string key = lower(infoHash);
     lt::torrent_handle handle = found.handle;
     failReaders(key, "the torrent was removed");
+    const bool wasServed = found.served;
+    if (auto move = moves_.find(key); move != moves_.end()) {
+      Done moved = std::move(move->second);
+      moves_.erase(move);
+      if (moved) moved("the torrent was removed");
+    }
     torrents_.erase(key);
+    // the stream is gone: the download limit is the session's again
+    if (wasServed) applyRates();
     std::error_code ignored;
     fs::remove(resumeFile(settings_, key), ignored);
     // A magnet link without its file list has no files yet, and libtorrent answers a request to delete them with
@@ -430,10 +467,159 @@ namespace seanime::torrent {
 
   void TorrentCore::setPaused(const std::string& infoHash, bool paused) {
     Entry& found = entry(infoHash);
-    // not auto-managed (applyFlags), so the state is the user's until changed again
-    if (paused) found.handle.pause();
-    else found.handle.resume();
+    if (paused) {
+      // libtorrent would start an auto managed torrent again: the flag goes, so the pause is the user's until changed
+      found.handle.unset_flags(lt::torrent_flags::auto_managed);
+      found.handle.pause();
+    } else if (found.queued && !found.served) {
+      // back into the queue, which starts it when it is its turn
+      found.handle.set_flags(lt::torrent_flags::auto_managed);
+    } else {
+      found.handle.resume();
+    }
     requestSave(found.handle);
+  }
+
+  void TorrentCore::setQueued(const std::string& infoHash, bool queued) {
+    Entry& found = entry(infoHash);
+    // a stream is never queued
+    if (found.served) return;
+    found.queued = queued;
+    const lt::torrent_flags_t flags = found.handle.flags();
+    const bool paused = static_cast<bool>(flags & lt::torrent_flags::paused);
+    const bool managed = static_cast<bool>(flags & lt::torrent_flags::auto_managed);
+    if (queued) {
+      // a torrent the user paused stays paused; it joins the queue when it is resumed (setPaused)
+      if (!paused || managed) found.handle.set_flags(lt::torrent_flags::auto_managed);
+    } else {
+      found.handle.unset_flags(lt::torrent_flags::auto_managed);
+      // it waited for its turn: now it runs
+      if (paused && managed) found.handle.resume();
+    }
+    requestSave(found.handle);
+  }
+
+  void TorrentCore::limitsInto(lt::settings_pack& pack) const {
+    pack.set_int(lt::settings_pack::active_downloads, std::max(1, limits_.activeDownloads));
+    // the queue is for downloads only: a finished torrent is shared on as before, however many there are
+    pack.set_int(lt::settings_pack::active_seeds, NO_QUEUE_LIMIT);
+    pack.set_int(lt::settings_pack::active_limit, NO_QUEUE_LIMIT);
+    pack.set_int(lt::settings_pack::upload_rate_limit, std::max(0, limits_.uploadLimit));
+    // libtorrent's default (true) takes the estimated TCP/IP overhead of all traffic out of the rate limiters
+    // (peer_connection::second_tick, use_quota_overhead with download and upload overhead): the acknowledgements of
+    // what a stream downloads would use up the upload limit, its requests for pieces would wait for upload quota, and
+    // so the upload limit would brake the stream. The limits count what BitTorrent itself sends and receives.
+    pack.set_bool(lt::settings_pack::rate_limit_ip_overhead, false);
+  }
+
+  void TorrentCore::setLimits(const Limits& limits) {
+    if (limits.downloadLimit < 0 || limits.uploadLimit < 0 || limits.activeDownloads < 1) throw std::runtime_error("the limits are out of range");
+    limits_ = limits;
+    if (!session_) return;
+    lt::settings_pack pack;
+    limitsInto(pack);
+    session_->apply_settings(std::move(pack));
+    applyRates();
+  }
+
+  void TorrentCore::applyRates() {
+    if (!session_) return;
+    const int limit = std::max(0, limits_.downloadLimit);
+    bool streaming = false;
+    int loading = 0;
+    for (const auto& [infoHash, found] : torrents_) {
+      streaming = streaming || found.served;
+      if (!found.served && found.loading) loading++;
+    }
+    const int session = streaming ? 0 : limit;
+    if (session != sessionDownLimit_) {
+      lt::settings_pack pack;
+      pack.set_int(lt::settings_pack::download_rate_limit, session);
+      session_->apply_settings(std::move(pack));
+      sessionDownLimit_ = session;
+    }
+    // While a stream runs, the limit is shared out evenly among the other torrents that load, so their sum stays at
+    // the limit (each carrying the whole limit would make it N times the limit). At least 1: 0 means "no limit" to
+    // libtorrent, so with a limit below one byte per torrent the sum is that many bytes over. A torrent that does not
+    // load carries the share as well, for the moment it starts; the shares follow with the next tick.
+    const int share = streaming && limit > 0 ? std::max(1, limit / std::max(1, loading)) : 0;
+    for (auto& [infoHash, found] : torrents_) {
+      // 0: no limit of its own
+      const int own = found.served ? 0 : share;
+      if (own == found.ownLimit) continue;
+      try {
+        found.handle.set_download_limit(own);
+        found.ownLimit = own;
+      } catch (...) {
+        // a handle libtorrent has let go of meanwhile
+      }
+    }
+  }
+
+  void TorrentCore::markServed(Entry& found) {
+    if (found.served) return;
+    found.served = true;
+    found.queued = false;
+    // out of the queue and running, also when the user or the stop when finished had paused it
+    found.handle.unset_flags(lt::torrent_flags::auto_managed);
+    found.handle.resume();
+    applyRates();
+  }
+
+  void TorrentCore::moveStorage(const std::string& infoHash, const std::string& savePath, Done done) {
+    Entry& found = entry(infoHash);
+    if (savePath.empty() || savePath[0] != '/') throw std::runtime_error("the files need a folder to be moved to");
+    const fs::path asked(savePath);
+    for (const fs::path& part : asked) {
+      if (part == "..") throw std::runtime_error("the folder to move to must be a plain path, without ..");
+    }
+    // the real place, links resolved (the folder itself need not be there yet)
+    std::error_code failed;
+    const fs::path target = fs::weakly_canonical(asked, failed);
+    if (failed) throw std::runtime_error("the folder to move to cannot be read: " + failed.message());
+    const fs::path own = fs::weakly_canonical(fs::path(settings_.folder), failed);
+    if (failed || within(target, own)) throw std::runtime_error("the files cannot be moved into the session's own folder");
+    const std::string key = lower(infoHash);
+    // Not into the folder of another torrent's files either. That is the folder a torrent of several files makes below
+    // where it is saved; the place itself is shared (every download of an anime is saved to the anime's folder).
+    for (auto& [otherHash, other] : torrents_) {
+      if (otherHash == key) continue;
+      fs::path root;
+      try {
+        std::shared_ptr<const lt::torrent_info> info = other.handle.torrent_file();
+        if (!info || info->layout().num_files() < 1) continue;
+        const fs::path first(info->layout().file_path(lt::file_index_t{0}));
+        if (!first.has_parent_path()) continue;
+        std::error_code unread;
+        root = fs::weakly_canonical(fs::path(other.handle.status(lt::torrent_handle::query_save_path).save_path) / *first.begin(), unread);
+        if (unread) continue;
+      } catch (...) {
+        // a handle libtorrent has let go of meanwhile
+        continue;
+      }
+      if (within(target, root)) throw std::runtime_error("the files cannot be moved into the folder of another torrent");
+    }
+    if (moves_.count(key)) throw std::runtime_error("the files are being moved already");
+    // Nothing in the folder is replaced: a file of the same name there fails the move, and no file is moved
+    // (libtorrent checks before it starts). The answer is an alert, read on this thread after this call, so the
+    // waiter is noted after the call: a call that throws leaves none behind.
+    found.handle.move_storage(target.string(), lt::move_flags_t::fail_if_exist);
+    moves_[key] = std::move(done);
+  }
+
+  void TorrentCore::finishMove(const lt::torrent_handle& handle, const std::string& error) {
+    std::string infoHash;
+    try {
+      if (handle.is_valid()) infoHash = hex(handle.info_hashes().get_best());
+    } catch (...) {
+    }
+    auto found = moves_.find(infoHash);
+    if (found == moves_.end()) return;
+    Done done = std::move(found->second);
+    moves_.erase(found);
+    // the new place goes into the resume data at once, so a restart finds the files
+    if (error.empty()) requestSave(handle);
+    if (done) done(error);
   }
 
   void TorrentCore::setPieceDeadlines(const std::string& infoHash, int firstPiece, int count, int firstMs, int stepMs) {
@@ -482,10 +668,24 @@ namespace seanime::torrent {
     out.trackersFailed = found.trackersFailed;
     out.trackerError = found.trackerError;
     out.webSeeds = static_cast<int>(found.handle.url_seeds().size());
+    // libtorrent's place counts every torrent that still downloads (-1 for a complete one), queued or not
+    found.place = (status.flags & lt::torrent_flags::auto_managed) ? static_cast<int>(status.queue_position) : -1;
+    found.loading = !(status.flags & lt::torrent_flags::paused) && status.state != lt::torrent_status::finished && status.state != lt::torrent_status::seeding;
+    out.queuePosition = queuePlace(found);
     return out;
   }
 
+  int TorrentCore::queuePlace(const Entry& found) const {
+    if (found.place < 0) return -1;
+    int before = 0;
+    for (const auto& [infoHash, other] : torrents_) {
+      if (other.place >= 0 && other.place < found.place) before++;
+    }
+    return before;
+  }
+
   Status TorrentCore::status(const std::string& infoHash) {
+    // the places of the other torrents are those of the last tick, a second old at most
     return statusOf(lower(infoHash), entry(infoHash));
   }
 
@@ -545,6 +745,10 @@ namespace seanime::torrent {
           found->trackersFailed++;
           found->trackerError = refused->error ? refused->error.message() : std::string(refused->error_message());
         }
+      } else if (auto* moved = lt::alert_cast<lt::storage_moved_alert>(alert)) {
+        finishMove(moved->handle, "");
+      } else if (auto* unmoved = lt::alert_cast<lt::storage_moved_failed_alert>(alert)) {
+        finishMove(unmoved->handle, "the files cannot be moved: " + unmoved->error.message());
       } else if (auto* failed = lt::alert_cast<lt::torrent_delete_failed_alert>(alert)) {
         finishRemoval(hex(failed->info_hashes.get_best()), true, "the files cannot be deleted: " + failed->error.message());
       }
@@ -560,11 +764,26 @@ namespace seanime::torrent {
     for (auto& [infoHash, found] : torrents_) {
       try {
         all.push_back(statusOf(infoHash, found));
+        // 4.2.0 "stop sharing when finished": a torrent that has all it wants is paused, by the user's kind of pause.
+        // Not a served one (a stream goes on), and not one of which nothing is wanted (added for its file list only).
+        const Status& now = all.back();
+        if (limits_.stopWhenFinished && !found.served && now.bytesWanted > 0 && (now.state == "finished" || now.state == "seeding")) {
+          found.handle.unset_flags(lt::torrent_flags::auto_managed);
+          found.handle.pause();
+          requestSave(found.handle);
+        }
         if (ticks_ % SAVE_EVERY_TICKS == 0 && found.handle.need_save_resume_data()) requestSave(found.handle);
       } catch (...) {
         // a handle libtorrent has let go of meanwhile: left out
       }
     }
+    // the places in the queue once every torrent's own is known (statusOf saw the others as they were a tick ago)
+    for (Status& one : all) {
+      auto found = torrents_.find(one.infoHash);
+      if (found != torrents_.end()) one.queuePosition = queuePlace(found->second);
+    }
+    // the shares of the download limit follow the torrents that load now (nothing happens while nothing changed)
+    applyRates();
     if (!all.empty() && tick_) tick_(all);
 
     auto now = Clock::now();

@@ -8,7 +8,7 @@ const HASH = "0123456789abcdef0123456789abcdef01234567"
 const status = (over: Record<string, unknown> = {}) => ({
     infoHash: HASH, name: "test.bin", state: "downloading", error: "", hasMetadata: true, progress: 0.5, downRate: 1000, upRate: 0,
     peers: 1, seeds: 1, piecesHave: 100, pieces: 200, bytesDone: 500, bytesWanted: 1000,
-    peersKnown: 4, dhtNodes: 120, trackersOk: 1, trackersFailed: 0, trackerError: "", webSeeds: 0, ...over,
+    peersKnown: 4, dhtNodes: 120, trackersOk: 1, trackersFailed: 0, trackerError: "", webSeeds: 0, queuePosition: -1, ...over,
 })
 
 /** Stands in for the native module: records every call and answers what the test says */
@@ -21,7 +21,7 @@ function fakeNative(answers: Partial<Record<keyof TorrentNative, unknown>> = {})
         const answer = answers[name]
         return answer instanceof Error ? Promise.reject(answer) : Promise.resolve(answer)
     }
-    const names: (keyof TorrentNative)[] = ["start", "stop", "addMagnet", "addTorrentFile", "remove", "files", "setFilePriority", "setSequential", "setPaused", "setPieceDeadlines", "clearDeadlines", "status", "connectPeer", "shareFile", "shareTorrent", "unshare"]
+    const names: (keyof TorrentNative)[] = ["start", "stop", "addMagnet", "addTorrentFile", "remove", "files", "setFilePriority", "setSequential", "setPaused", "setQueued", "setLimits", "moveStorage", "setPieceDeadlines", "clearDeadlines", "status", "connectPeer", "shareFile", "shareTorrent", "unshare"]
     const native = Object.fromEntries(names.map(name => [name, method(name)])) as unknown as TorrentNative
     return { native, calls, send: (statuses: unknown) => onStatus(statuses as never[]) }
 }
@@ -345,5 +345,136 @@ describe("torrent shell: shares into the network (phase 7b)", () => {
         await expect(client.shareTorrent("nohash", 0, "")).rejects.toBeInstanceOf(TorrentError)
         await client.unshare()
         expect(calls.map(call => call.name)).toEqual(["shareFile", "shareTorrent", "unshare"])
+    })
+})
+
+describe("limits, the download queue and moving files (4.2.0)", () => {
+    const watch = { waiting: (work: unknown) => work } as never
+    const folders = async (): Promise<TorrentFolders> => ({
+        cacheDirectory: "file:///cache/", documentDirectory: "file:///docs/",
+        getInfoAsync: async () => ({ exists: false }), readDirectoryAsync: async () => [], deleteAsync: async () => undefined,
+    })
+    const LIMITS = { downloadLimit: 512 * 1024, uploadLimit: 64 * 1024, activeDownloads: 2, stopWhenFinished: true }
+    const quiet = async (work: () => Promise<void>) => {
+        const spy = vi.spyOn(console, "log").mockImplementation(() => {})
+        try {
+            await work()
+        }
+        finally {
+            spy.mockRestore()
+        }
+    }
+
+    it("hands the module checked limits, the queue flag and a plain path to move to", async () => {
+        const { native, calls } = fakeNative({})
+        const client = createTorrentClient(native)
+        await client.setLimits(LIMITS)
+        await client.setQueued(HASH.toUpperCase(), true)
+        await client.moveStorage(HASH, "file:///storage/emulated/0/Anime/My%20Show/")
+        expect(calls).toEqual([
+            { name: "setLimits", args: [LIMITS] },
+            { name: "setQueued", args: [HASH, true] },
+            { name: "moveStorage", args: [HASH, "/storage/emulated/0/Anime/My Show"] },
+        ])
+        for (const wrong of [{ activeDownloads: 0 }, { activeDownloads: 1.5 }, { downloadLimit: -1 }, { uploadLimit: Number.NaN }]) {
+            await expect(client.setLimits({ ...LIMITS, ...wrong })).rejects.toBeInstanceOf(TorrentError)
+        }
+        await expect(client.setQueued("nope", true)).rejects.toBeInstanceOf(TorrentError)
+        await expect(client.moveStorage(HASH, "content://tree/1")).rejects.toBeInstanceOf(TorrentError)
+        expect(calls).toHaveLength(3)
+    })
+
+    it("tells a failed move as the module words it", async () => {
+        const client = createTorrentClient(fakeNative({ moveStorage: new Error("ERR_TORRENT: the files cannot be moved: No space left on device") }).native)
+        await expect(client.moveStorage(HASH, "/storage/emulated/0/Anime")).rejects.toThrow(/^the files cannot be moved: No space left on device$/)
+    })
+
+    it("reads a waiting torrent and its place in the queue; a module without the queue says -1", () => {
+        expect(readTorrentStatus(status({ state: "queued", queuePosition: 2 }))).toEqual(status({ state: "queued", queuePosition: 2 }))
+        const old: Record<string, unknown> = status()
+        delete old.queuePosition
+        expect(readTorrentStatus(old)?.queuePosition).toBe(-1)
+    })
+
+    it("refuses to move files to a path with . or .. in it, or into the running session's own folder", async () => {
+        const { native, calls } = fakeNative({})
+        const client = createTorrentClient(native)
+        for (const wrong of ["/storage/emulated/0/Anime/../../../data/data/other", "/storage/emulated/0/..", "file:///storage/emulated/0/Anime/%2E%2E/x", "/storage/./Anime", "/.."]) {
+            await expect(client.moveStorage(HASH, wrong), wrong).rejects.toThrow(/plain path, without \. or \.\./)
+        }
+        // names that only look alike are folders like any other
+        await client.moveStorage(HASH, "/storage/emulated/0/Anime/..hidden/Show.../")
+        expect(calls).toEqual([{ name: "moveStorage", args: [HASH, "/storage/emulated/0/Anime/..hidden/Show..."] }])
+
+        await client.start({ folder: "file:///data/user/0/app/files/core-torrent/" })
+        for (const inside of ["/data/user/0/app/files/core-torrent", "/data/user/0/app/files/core-torrent/", "file:///data/user/0/app/files/core-torrent/resume"]) {
+            await expect(client.moveStorage(HASH, inside), inside).rejects.toThrow(/session's own folder/)
+        }
+        // a folder beside it whose name only starts the same
+        await client.moveStorage(HASH, "/data/user/0/app/files/core-torrent-streams")
+        expect(calls.filter(call => call.name === "moveStorage")).toHaveLength(2)
+        // without a session there is no such folder
+        await client.stop()
+        await client.moveStorage(HASH, "/data/user/0/app/files/core-torrent")
+        expect(calls.filter(call => call.name === "moveStorage")).toHaveLength(3)
+    })
+
+    it("never queues a torrent when it adds it (a waiting magnet link gets no file list); the core asks for the queue", async () => {
+        const { native, calls } = fakeNative({ addMagnet: HASH })
+        const device = torrentDeviceFor(watch, async () => createTorrentClient(native), folders)
+        await quiet(async () => {
+            await device.addMagnet(`magnet:?xt=urn:btih:${HASH}`)
+            await device.addMagnet(`magnet:?xt=urn:btih:${HASH}`, "/storage/emulated/0/Anime/Show")
+            expect(calls.map(call => call.name)).toEqual(["start", "addMagnet", "addMagnet"])
+            await device.setQueued?.(HASH, true)
+            await device.setQueued?.(HASH, false)
+            await device.stop()
+        })
+        expect(calls.map(call => call.name)).toEqual(["start", "addMagnet", "addMagnet", "setQueued", "setQueued", "stop"])
+        expect(calls[3].args).toEqual([HASH, true])
+        expect(calls[4].args).toEqual([HASH, false])
+    })
+
+    it("tells a torrent the module cannot queue as the module words it", async () => {
+        const { native } = fakeNative({ addMagnet: HASH, setQueued: new Error("ERR_TORRENT: the session has no such torrent") })
+        const device = torrentDeviceFor(watch, async () => createTorrentClient(native), folders)
+        await quiet(async () => {
+            await device.addMagnet(`magnet:?xt=urn:btih:${HASH}`, "/storage/emulated/0/Anime/Show")
+            await expect(device.setQueued?.(HASH, true)).rejects.toThrow(/^the session has no such torrent$/)
+            await device.stop()
+        })
+    })
+
+    it("tells a session its limits when it starts and again only when they change; no session starts for them", async () => {
+        const { native, calls } = fakeNative({ addMagnet: HASH })
+        const device = torrentDeviceFor(watch, async () => createTorrentClient(native), folders)
+        const told = () => calls.filter(call => call.name === "setLimits").map(call => call.args[0])
+        await quiet(async () => {
+            await device.useLimits?.(LIMITS)
+            expect(calls).toEqual([])
+            await device.addMagnet(`magnet:?xt=urn:btih:${HASH}`)
+            expect(calls.map(call => call.name)).toEqual(["start", "setLimits", "addMagnet"])
+            await device.useLimits?.({ ...LIMITS })
+            expect(told()).toEqual([LIMITS])
+            await device.useLimits?.({ ...LIMITS, downloadLimit: 0 })
+            expect(told()).toEqual([LIMITS, { ...LIMITS, downloadLimit: 0 }])
+            // the next session hears them again
+            await device.stop()
+            await device.addMagnet(`magnet:?xt=urn:btih:${HASH}`)
+            expect(told()).toHaveLength(3)
+            await device.stop()
+        })
+    })
+
+    it("asks again after limits the module refused", async () => {
+        const { native, calls } = fakeNative({ addMagnet: HASH, setLimits: new Error("ERR_TORRENT: the limits are out of range") })
+        const device = torrentDeviceFor(watch, async () => createTorrentClient(native), folders)
+        await quiet(async () => {
+            await device.useLimits?.(LIMITS)
+            await device.addMagnet(`magnet:?xt=urn:btih:${HASH}`)
+            await device.useLimits?.(LIMITS)
+            await device.stop()
+        })
+        expect(calls.filter(call => call.name === "setLimits")).toHaveLength(2)
     })
 })

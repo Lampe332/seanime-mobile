@@ -49,6 +49,8 @@ import Svg, { Path, Text as SvgText } from "react-native-svg"
 import { type MenuAnchor, PlayerMenu, type PlayerMenuPage } from "./player-menu"
 import { assStyleCount, colourProperties, subtitleKind, subtitleLookProperties, timeBarPieces, type TimeBarPiece } from "./player-menu-logic"
 import { mpvVolume, VolumeButton, VolumePanel } from "./player-volume"
+import { PlayerLoading, usePickAnotherTorrent } from "./torrent-stream-overlay"
+import { offersOtherTorrent } from "./torrent-stream-state"
 import {
     activeSkipSegment,
     aniSkipSegments,
@@ -113,6 +115,7 @@ import { successFeedback } from "@/lib/feedback"
 import type { OnlinePlayback } from "@/main/onlinestream/_lib/onlinestream-player.atoms"
 import { preferredOnlineSubtitle } from "@/main/onlinestream/_lib/onlinestream-source"
 import { usePlayerLoadEvents } from "./player-load-events"
+import { useKeepStream } from "./use-keep-stream"
 import { usePlayerContinuity } from "./player-continuity"
 import { type PlayerCommands, usePlayerServer } from "./use-player-server"
 import { usePlaylistManager } from "@/main/_features/playlists/_containers/global-playlist-manager"
@@ -371,6 +374,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
             },
         })
     }
+
+    // ── "Keep in library" (torrent streams, 4.2.0): the stream's torrent into the torrent client ──
+    const keepStream = useKeepStream(info, !!offline, !!online)
 
     // ── Helpers ──
     const scheduleHide = React.useCallback(() => {
@@ -848,6 +854,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         return () => sub.remove()
     }, [fullscreen])
     const errorText = playbackError ?? videoError
+    // a server stream that is or may become a torrent stream (before "watch" the kind is not known): its state is shown
+    const torrentStream = !offline && !online && (!info || info.streamType === "torrent")
+    const pickAnotherTorrent = usePickAnotherTorrent()
 
     const barTiming = { duration: reduceMotion ? 0 : barsShown ? BAR_IN_MS : BAR_OUT_MS, easing: BAR_EASE }
     const barStyle = useAnimatedStyle(() => ({
@@ -1027,18 +1036,22 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     />
 
                     {(buffering || !source) && !errorText && (
-                        <View pointerEvents="none" className="absolute inset-0 items-center justify-center gap-3">
-                            <ActivityIndicator color="#fff" size="large" />
-                            {!!loadingState && <Text className="px-8 text-center text-[15px] text-white/80">{loadingState}</Text>}
-                        </View>
+                        <PlayerLoading loadingState={loadingState} torrent={torrentStream} midStream={loaded && !!source} />
                     )}
 
                     {!!errorText && (
                         <View className="absolute inset-0 items-center justify-center gap-4 bg-black/80 px-8">
                             <Text className="text-center text-[15px] text-white">{errorText}</Text>
-                            <Pressable accessibilityRole="button" onPress={() => void close()} className="rounded-full bg-white/15 px-5 py-2.5 active:bg-white/25">
-                                <Text className="font-semibold text-white">{t("Close", "Schließen")}</Text>
-                            </Pressable>
+                            <View className="flex-row flex-wrap justify-center gap-2">
+                                {torrentStream && offersOtherTorrent(errorText) && pickAnotherTorrent && (
+                                    <Pressable accessibilityRole="button" onPress={() => pickAnotherTorrent(() => void close())} className="rounded-full bg-white/15 px-5 py-2.5 active:bg-white/25">
+                                        <Text className="font-semibold text-white">{t("Pick another torrent", "Anderen Torrent wählen")}</Text>
+                                    </Pressable>
+                                )}
+                                <Pressable accessibilityRole="button" onPress={() => void close()} className="rounded-full bg-white/15 px-5 py-2.5 active:bg-white/25">
+                                    <Text className="font-semibold text-white">{t("Close", "Schließen")}</Text>
+                                </Pressable>
+                            </View>
                         </View>
                     )}
 
@@ -1266,6 +1279,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                 onQuality={value => onlineEvents?.current?.quality(value)}
                 onSave={online?.download ? saveEpisode : undefined}
                 saving={saving}
+                onKeep={keepStream.onKeep}
+                keepState={keepStream.keepState}
                 onExternal={packageName => {
                     if (!info?.streamUrl) return
                     mpv.current?.pause().catch(() => {})
