@@ -862,6 +862,7 @@
   "Sleep timer: paused": "Minuterie de sommeil : en pause",
   "The stream stopped early.": "Le flux s'est arrêté plus tôt que prévu.",
   "Sleep timer: stopped after this episode": "Minuterie de sommeil : arrêt après cet épisode",
+  "Pick another torrent": "Choisir un autre torrent",
   "Previous episode": "Épisode précédent",
   "Picture in picture": "Image dans l'image",
   "Next episode in {0}": "Épisode suivant dans {0}",
@@ -890,6 +891,17 @@
   "This subtitle track has no text to translate.": "Cette piste de sous-titres ne contient aucun texte à traduire.",
   "The app's server did not answer.": "Le serveur de l'app n'a pas répondu.",
   "The subtitle track could not be read.": "La piste de sous-titres n'a pas pu être lue.",
+  "1 peer": "1 pair",
+  "{0} peers": "{0} pairs",
+  "1 seeder": "1 seeder",
+  "{0} seeders": {
+    "one": "{0} seeder",
+    "other": "{0} seeders"
+  },
+  "Waiting for peers": "En attente de pairs",
+  "Finding peers": "Recherche de pairs",
+  "Getting file list": "Récupération de la liste des fichiers",
+  "{0} loaded": "{0} chargé",
   "Chinese": "Chinois",
   "French": "Français",
   "Spanish": "Espagnol",
@@ -1203,11 +1215,6 @@
   "Resume": "Reprendre",
   "Time left": "Temps restant",
   "Peers": "Pairs",
-  "1 seeder": "1 seeder",
-  "{0} seeders": {
-    "one": "{0} seeder",
-    "other": "{0} seeders"
-  },
   "Saved to": "Enregistré dans",
   "The torrent is removed and everything it downloaded is deleted from this device.": "Le torrent est retiré et tout ce qu'il a téléchargé est supprimé de cet appareil.",
   "Remove from the list": "Retirer de la liste",

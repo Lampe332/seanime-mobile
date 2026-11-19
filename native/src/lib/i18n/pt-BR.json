@@ -856,6 +856,7 @@
   "Sleep timer: paused": "Timer de soneca: pausado",
   "The stream stopped early.": "O stream parou antes da hora.",
   "Sleep timer: stopped after this episode": "Timer de soneca: parou depois deste episódio",
+  "Pick another torrent": "Escolher outro torrent",
   "Previous episode": "Episódio anterior",
   "Picture in picture": "Picture in picture",
   "Next episode in {0}": "Próximo episódio em {0}",
@@ -884,6 +885,17 @@
   "This subtitle track has no text to translate.": "Esta faixa de legenda não tem texto para traduzir.",
   "The app's server did not answer.": "O servidor do app não respondeu.",
   "The subtitle track could not be read.": "Não foi possível ler a faixa de legenda.",
+  "1 peer": "1 peer",
+  "{0} peers": "{0} peers",
+  "1 seeder": "1 seeder",
+  "{0} seeders": {
+    "one": "{0} seeder",
+    "other": "{0} seeders"
+  },
+  "Waiting for peers": "Aguardando peers",
+  "Finding peers": "Procurando peers",
+  "Getting file list": "Obtendo a lista de arquivos",
+  "{0} loaded": "{0} carregado",
   "Chinese": "Chinês",
   "French": "Francês",
   "Spanish": "Espanhol",
@@ -1194,11 +1206,6 @@
   "Resume": "Retomar",
   "Time left": "Tempo restante",
   "Peers": "Peers",
-  "1 seeder": "1 seeder",
-  "{0} seeders": {
-    "one": "{0} seeder",
-    "other": "{0} seeders"
-  },
   "Saved to": "Salvo em",
   "The torrent is removed and everything it downloaded is deleted from this device.": "O torrent é removido e tudo o que ele baixou é excluído deste dispositivo.",
   "Remove from the list": "Remover da lista",

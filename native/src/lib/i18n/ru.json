@@ -856,6 +856,7 @@
   "Sleep timer: paused": "Таймер сна: пауза",
   "The stream stopped early.": "Поток остановился раньше времени.",
   "Sleep timer: stopped after this episode": "Таймер сна: остановка после этой серии",
+  "Pick another torrent": "Выбрать другой торрент",
   "Previous episode": "Предыдущая серия",
   "Picture in picture": "Картинка в картинке",
   "Next episode in {0}": "Следующая серия через {0}",
@@ -878,6 +879,22 @@
   "This subtitle track has no text to translate.": "В этой дорожке субтитров нет текста для перевода.",
   "The app's server did not answer.": "Сервер приложения не ответил.",
   "The subtitle track could not be read.": "Не удалось прочитать дорожку субтитров.",
+  "1 peer": "1 пир",
+  "{0} peers": {
+    "one": "{0} пир",
+    "few": "{0} пира",
+    "many": "{0} пиров"
+  },
+  "1 seeder": "1 сидер",
+  "{0} seeders": {
+    "one": "{0} сидер",
+    "few": "{0} сидера",
+    "many": "{0} сидеров"
+  },
+  "Waiting for peers": "Ожидание пиров",
+  "Finding peers": "Поиск пиров",
+  "Getting file list": "Получение списка файлов",
+  "{0} loaded": "{0} загружено",
   "Chinese": "Китайский",
   "French": "Французский",
   "Spanish": "Испанский",
@@ -1186,12 +1203,6 @@
   "Resume": "Продолжить",
   "Time left": "Осталось времени",
   "Peers": "Пиры",
-  "1 seeder": "1 сидер",
-  "{0} seeders": {
-    "one": "{0} сидер",
-    "few": "{0} сидера",
-    "many": "{0} сидеров"
-  },
   "Saved to": "Сохранено в",
   "The torrent is removed and everything it downloaded is deleted from this device.": "Torrent удаляется вместе со всем, что он скачал, с этого устройства.",
   "Remove from the list": "Убрать из списка",

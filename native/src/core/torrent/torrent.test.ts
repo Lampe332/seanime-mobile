@@ -215,7 +215,7 @@ describe("a stream", () => {
         for (const listener of listeners) listener([status(OTHER), status(HASH)])
         await settled()
         expect(events).toEqual([{ type: "torrentstream-state", payload: streamStateOf(status(HASH), 950) }])
-        expect(streamStateOf(status(HASH), 950)).toEqual({ state: "downloading", status: { uploadProgress: 0, downloadProgress: 250, progressPercentage: 25, downloadSpeed: "2.5 MB/s", uploadSpeed: "0 B/s", size: "950 B", seeders: 2 } })
+        expect(streamStateOf(status(HASH), 950)).toEqual({ state: "downloading", status: { uploadProgress: 0, downloadProgress: 250, progressPercentage: 25, downloadSpeed: "2.5 MB/s", uploadSpeed: "0 B/s", size: "950 B", seeders: 2, peers: 3, downloadRate: 2_500_000 } })
 
         // another torrent: the first one goes with what it loaded; stopping removes the second and ends the session
         calls = []
@@ -284,6 +284,21 @@ describe("a magnet link whose file list does not come (phase 6b-3)", () => {
         await settled()
         expect(player().at(-1)).toMatchObject({ type: "abort-open", payload: expect.stringContaining("no peer was reached") })
         expect(runningTorrentStream()).toBeNull()
+    })
+
+    it("sends its state while the list does not come (no file yet: size 0) and stops sending once the start failed", async () => {
+        metadataAfter = Number.MAX_SAFE_INTEGER
+        const waiting = status(HASH, { state: "metadata", hasMetadata: false, progress: 0, downRate: 0, peers: 0, seeds: 0 })
+        let ticks = 0
+        current = { ...device, wait: async milliseconds => {
+            clock += milliseconds
+            if (ticks++ === 0) for (const listener of listeners) listener([waiting])
+        } }
+        await expect(start()).rejects.toThrow(/file list did not come/)
+        await settled()
+        expect(events.filter(event => event.type === "torrentstream-state").map(event => event.payload))
+            .toEqual([{ state: "metadata", status: expect.objectContaining({ size: "0 B", seeders: 0, peers: 0, downloadRate: 0 }) }])
+        expect(listeners).toHaveLength(0)
     })
 
     it("tells apart peers that were not reached from peers that do not have the list, and a device without numbers", () => {

@@ -333,9 +333,10 @@ export const amount = (bytes: number) => {
 }
 
 /**
- * What goes out once per second while a stream runs (`torrentstream-state`). The app has no listener for it and no
- * message of this kind was recorded: `status` has the fields of the app's type Torrentstream_TorrentStatus, `state`
- * is the module's word for the torrent.
+ * What goes out once per second while a stream runs (`torrentstream-state`), from the torrent's adding on (the file list
+ * wait included, `size` 0 until the file is chosen). No message of this kind was recorded: `status` has the fields of
+ * the app's type Torrentstream_TorrentStatus plus `peers` and `downloadRate` (bytes per second) for the player's loading
+ * screen (player/torrent-stream-state.ts), `state` is the module's word for the torrent.
  */
 export function streamStateOf(status: TorrentDeviceStatus, size: number): Json {
     return {
@@ -348,6 +349,8 @@ export function streamStateOf(status: TorrentDeviceStatus, size: number): Json {
             uploadSpeed: `${amount(status.upRate)}/s`,
             size: amount(size),
             seeders: status.seeds,
+            peers: status.peers,
+            downloadRate: status.downRate,
         },
     }
 }
@@ -453,6 +456,7 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
         if (shown) emitCoreEvent("native-player", { type: "open-and-await", payload: text })
     }
     let added = ""
+    let unlisten: (() => void) | null = null
     try {
         if (!isRecord(body.torrent)) tell("Looking for a torrent…")
         const { torrent, magnet } = await torrentOf(body, environment, finder)
@@ -464,6 +468,13 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
         if (previewed && previewed !== infoHash) await drop(device, previewed)
         previewed = null
 
+        // the state from here on, so the player shows peers and seeders while the file list comes as well
+        let size = 0
+        unlisten = device.onStatus(statuses => {
+            const mine = statuses.find(status => status.infoHash === infoHash)
+            if (mine) emitCoreEvent("torrentstream-state", streamStateOf(mine, size))
+        })
+
         tell("Waiting for the torrent's file list…")
         const files = await filesOf(device, infoHash, environment)
         const seasons = (parse(typeof torrent.name === "string" ? torrent.name : "") as { season_number?: string[] }).season_number ?? []
@@ -473,6 +484,7 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
         if (!choice && files.filter(isVideo).length > 1) choice = fileChoiceOf(files, { ...wanted, episodeCount: await episodeCountOf(environment, mediaId) })
         if (!choice) throw new CoreError(`no file of the torrent fits episode ${episodeNumber}`, 404)
         const chosen = choice.file
+        size = chosen.size
         device.note?.(`file ${chosen.index} of ${files.length} chosen for episode ${episodeNumber}: ${choice.how}`)
 
         tell("Loading the start of the episode…")
@@ -499,10 +511,6 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
             })
         }
 
-        const unlisten = device.onStatus(statuses => {
-            const mine = statuses.find(status => status.infoHash === infoHash)
-            if (mine) emitCoreEvent("torrentstream-state", streamStateOf(mine, chosen.size))
-        })
         running = { infoHash, index: chosen.index, mediaId, episodeNumber, unlisten }
 
         if (shown) {
@@ -523,6 +531,8 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
         return true
     }
     catch (error) {
+        // a stream that never ran stops its state here; a running one in endRunning
+        if (unlisten && running?.unlisten !== unlisten) unlisten()
         if (running?.infoHash === added) await endRunning(device)
         else if (added) await drop(device, added)
         if (shown) emitCoreEvent("native-player", { type: "abort-open", payload: error instanceof Error ? error.message : String(error) })
