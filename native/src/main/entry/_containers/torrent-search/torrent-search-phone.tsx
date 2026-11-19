@@ -1,15 +1,16 @@
 import type { Anime_Entry, HibikeTorrent_AnimeTorrent } from "@/api/generated/types"
+import { useGetAutoSelectProfile } from "@/api/hooks/auto_select.hooks"
 import { useDebridAddTorrents } from "@/api/hooks/debrid.hooks"
 import { useTorrentClientDownload } from "@/api/hooks/torrent_client.hooks"
 import { Choices, LoadingRows, Notice, PickRow, RowGroup, SearchField, TextAction } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { EmptyState } from "@/components/ui/card/card"
 import { swapIn } from "@/components/ui/core/animations"
-import { cn } from "@/components/ui/core/styling"
 import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Tabs } from "@/components/ui/tabs/tabs"
-import { Muted, Text } from "@/components/ui/text/text"
+import { Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
+import type { AutoSelectProfile } from "@/core/torrent/autoselect"
 import { getAppLanguage, type Translate, useTr } from "@/lib/app-language"
 import { MENU_ENTRIES } from "@/lib/nav/nav-items"
 import { useRouter } from "@/lib/navigation"
@@ -20,6 +21,7 @@ import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { useHandleStartDebridStream } from "@/main/entry/_containers/debrid-stream/_lib/handle-debrid-stream"
 import { Torrent_SearchType, useHandleTorrentSearch } from "@/main/entry/_containers/torrent-search/_lib/handle-torrent-search"
 import { useMeteredGuard } from "@/main/entry/_containers/torrent-search/_lib/metered-guard"
+import { bestMatchKey, torrentKey } from "@/main/entry/_containers/torrent-search/_lib/torrent-facts"
 import {
     filterTorrents,
     LANGUAGE_SEARCH_WORD,
@@ -35,7 +37,6 @@ import {
     __torrentSearchPhone_providersAtom,
     __torrentSearchPhone_sortAtom,
     canSmartSelect,
-    decodeEntities,
     downloadError,
     episodeList,
     getDefaultDestination,
@@ -46,15 +47,15 @@ import {
     streamKind,
     toggled,
     type TorrentSheetKind,
-    torrentMeta,
 } from "@/main/entry/_containers/torrent-search/_lib/torrent-search-phone"
+import { useTorrentReads } from "@/main/entry/_containers/torrent-search/_lib/use-torrent-reads"
+import { TorrentCard } from "@/main/entry/_containers/torrent-search/torrent-card"
 import { __torrentSearch_selectionAtom, type TorrentSelectionType } from "@/main/entry/_containers/torrent-search/torrent-search.atoms"
 import { useHandleStartTorrentStream } from "@/main/entry/_containers/torrent-stream/_lib/handle-torrent-stream"
 import { useTorrentSearchSelectedStreamEpisode } from "@/main/entry/_containers/torrent-stream/torrent-stream.atoms"
 import { useAtom } from "jotai"
-import Check from "lucide-react-native/icons/check"
 import React from "react"
-import { Pressable, TextInput, View } from "react-native"
+import { TextInput, View } from "react-native"
 import Animated from "react-native-reanimated"
 
 /*
@@ -220,6 +221,7 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
         { value: "seeders", label: t("Most seeders", "Meiste Seeder") },
         { value: "newest", label: t("Newest", "Neueste") },
         { value: "smallest", label: t("Smallest", "Kleinste") },
+        { value: "largest", label: t("Largest", "Größte") },
     ]
     const debridOn = !!serverStatus?.debridSettings?.enabled
     // Only the debrid stream uses the debrid cache; the built-in client and torrent streaming download from peers
@@ -280,6 +282,29 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
         else void metered.guard(start)
     }
     const noEpisodeData = kind !== "download" && !!torrentSearchStreamEpisode && !torrentSearchStreamEpisode.aniDBEpisode
+    // One function for every card, so a card only draws again when its own torrent, reading or state changes
+    const chooseRef = React.useRef(choose)
+    React.useLayoutEffect(() => {
+        chooseRef.current = choose
+    })
+    const onChoose = React.useCallback((torrent: HibikeTorrent_AnimeTorrent) => chooseRef.current(torrent), [])
+
+    // What the names say (group, resolution, codec …): the search's own readings, the rest read a few per turn
+    const readOf = useTorrentReads(found, data?.torrentMetadata)
+    // "Best match": the one auto-select would take from the shown results, with the user's profile and resolution
+    const { data: profile } = useGetAutoSelectProfile()
+    const preferredResolution = serverStatus?.torrentstreamSettings?.preferredResolution ?? ""
+    const wantedEpisode = kind === "download" ? (smart && !batchOnly ? smartSearchEpisode : 0) : torrentSearchStreamEpisode?.episodeNumber ?? 0
+    const [best, setBest] = React.useState("")
+    const shownKey = torrents.map(torrentKey).join("\n")
+    React.useEffect(() => {
+        // after the frame that shows the cards: the rule reads every name once more
+        const timer = setTimeout(() => setBest(profile && shownKey
+            ? bestMatchKey(torrents, profile as unknown as AutoSelectProfile, wantedEpisode, preferredResolution) : ""), 0)
+        return () => clearTimeout(timer)
+        // the joined keys stand for the shown list: a new array of the same torrents must not choose again
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [shownKey, profile, wantedEpisode, preferredResolution])
 
     const missing = downloadInfo?.episodesToDownload?.map(item => item.episodeNumber).sort((a, b) => a - b) ?? []
     const context = kind === "download"
@@ -385,15 +410,10 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
                                 </EmptyState>
                                 // A new sort order rises in instead of the rows jumping to their new places in one frame
                                 : <Animated.View key={sort} entering={swapIn(isTablet)} className="gap-0.5 overflow-hidden rounded-surface">
-                                    {torrents.map(torrent => {
-                                        const isCached = !!torrent.infoHash && !!cached[torrent.infoHash]
-                                        const meta = torrentMeta(torrent, t, language, isCached, providers.length > 1 ? providerName(torrent.provider) : "")
-                                        const name = decodeEntities(torrent.name)
-                                        return kind === "download"
-                                            ? <TorrentPick key={torrent.infoHash || torrent.link} name={name} meta={meta}
-                                                checked={picked.some(item => item.infoHash === torrent.infoHash)} onPress={() => choose(torrent)} />
-                                            : <TorrentRow key={torrent.infoHash || torrent.link} name={name} meta={meta} disabled={!canStream} onPress={() => choose(torrent)} />
-                                    })}
+                                    {torrents.map(torrent => <TorrentCard key={torrentKey(torrent)} torrent={torrent} parsed={readOf(torrent)} t={t} language={language}
+                                        mode={kind === "download" ? "pick" : "stream"} provider={providerName(torrent.provider)} best={best === torrentKey(torrent)}
+                                        cached={!!torrent.infoHash && !!cached[torrent.infoHash]} checked={kind === "download" && picked.some(item => item.infoHash === torrent.infoHash)}
+                                        disabled={kind !== "download" && !canStream} onChoose={onChoose} />)}
                                 </Animated.View>}
             </SheetGroup>
         </>}
@@ -420,30 +440,6 @@ function EpisodeField({ label, value, onChange }: { label: string, value: string
     </View>
 }
 
-/** `.tsp-row`: the release name (two lines) over its facts; a tap streams it */
-function TorrentRow({ name, meta, disabled, onPress }: { name: string, meta: string, disabled?: boolean, onPress: () => void }) {
-    return <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} accessibilityLabel={`${name}, ${meta}`}
-        onPress={onPress} className="min-h-14 gap-1 bg-sm-surface-raised px-4 py-3 active:bg-sm-surface-control">
-        <Text numberOfLines={2} className="text-[15px] font-semibold leading-[20px]">{name}</Text>
-        <Muted className="leading-[19px]">{meta}</Muted>
-    </Pressable>
-}
-
-/** `.tsp .ps-pick`: a box on the left, then the release as in the stream rows; several can be picked for a download */
-function TorrentPick({ name, meta, checked, onPress }: { name: string, meta: string, checked: boolean, onPress: () => void }) {
-    return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel={`${name}, ${meta}`} onPress={onPress}
-        className="min-h-[52px] flex-row items-center gap-3.5 bg-sm-surface-raised px-4 py-2.5 active:bg-sm-surface-control">
-        <View className={cn("h-[22px] w-[22px] items-center justify-center rounded-[6px]", checked ? "bg-sm-accent-strong" : "border-2 border-sm-text-subtle")}>
-            {checked && <Check size={16} color="#ffffff" strokeWidth={3} />}
-        </View>
-        {/* `.ps-pick-text`: .125rem between name and facts (the stream row's `.tsp-row` keeps .25rem) */}
-        <View className="min-w-0 flex-1 gap-0.5">
-            <Text numberOfLines={2} className="text-[15px] font-semibold leading-[20px]">{name}</Text>
-            <Muted className="leading-[19px]">{meta}</Muted>
-        </View>
-    </Pressable>
-}
-
 /** Destination and episode choice, then the download through the app's own torrent client (or the debrid service). */
 function TorrentDownloadSheet({ entry, torrents: shown, t, onBack, onDone }: {
     entry: Anime_Entry
@@ -468,6 +464,7 @@ function TorrentDownloadSheet({ entry, torrents: shown, t, onBack, onDone }: {
     const metered = useMeteredGuard(t)
     const settingsReady = MENU_ENTRIES.some(e => e.id === "settings" && e.ready)
     const language = getAppLanguage()
+    const readOf = useTorrentReads(torrents)
     const toDownloads = () => {
         onDone()
         router.push("/android-downloads?kind=torrents")
@@ -497,10 +494,7 @@ function TorrentDownloadSheet({ entry, torrents: shown, t, onBack, onDone }: {
         </>}>
         <SheetGroup title={torrents.length === 1 ? t("Torrent", "Torrent") : t(`${torrents.length} torrents`, `${torrents.length} Torrents`)}>
             <RowGroup>
-                {torrents.map(torrent => <View key={torrent.infoHash || torrent.link} className="min-h-14 gap-1 bg-sm-surface-raised px-4 py-3">
-                    <Text numberOfLines={2} className="text-[15px] font-semibold leading-[20px]">{decodeEntities(torrent.name)}</Text>
-                    <Muted className="leading-[19px]">{torrentMeta(torrent, t, language, false)}</Muted>
-                </View>)}
+                {torrents.map(torrent => <TorrentCard key={torrentKey(torrent)} torrent={torrent} parsed={readOf(torrent)} t={t} language={language} mode="show" />)}
             </RowGroup>
         </SheetGroup>
         {debridOn && <SheetGroup title={t("Download with", "Laden über")}>

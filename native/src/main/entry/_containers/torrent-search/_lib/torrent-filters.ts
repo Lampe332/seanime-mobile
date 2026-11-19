@@ -24,7 +24,7 @@ export type TorrentFilters = {
     text?: string
 }
 
-export type TorrentSort = "best" | "seeders" | "newest" | "smallest"
+export type TorrentSort = "best" | "seeders" | "newest" | "smallest" | "largest"
 
 // How release names mark audio or subtitle languages: German, Deutsch, GER, GerDub, VOSTFR, SUB ITA, PT-BR, CHS, 简繁 …
 const LANGUAGES: Record<Exclude<TorrentLanguage, "en">, RegExp> = {
@@ -137,6 +137,9 @@ export function sortTorrents<T extends HibikeTorrent_AnimeTorrent>(torrents: T[]
             return list.sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0))
         case "smallest":
             return list.sort((a, b) => (a.size || Number.MAX_SAFE_INTEGER) - (b.size || Number.MAX_SAFE_INTEGER))
+        case "largest":
+            // the best quality first for those who download it; an unknown size (0) goes last
+            return list.sort((a, b) => (b.size || 0) - (a.size || 0))
         default:
             // !! because providers may leave isBestRelease out, and Number(undefined) is NaN
             return list.sort((a, b) => Number(!!b.isBestRelease) - Number(!!a.isBestRelease) || b.seeders - a.seeders)

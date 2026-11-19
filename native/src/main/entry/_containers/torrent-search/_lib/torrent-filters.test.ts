@@ -176,6 +176,12 @@ describe("sortTorrents", () => {
         expect(sortTorrents(list, "seeders").map(t => t.name)).toEqual(["c", "b", "a"])
         expect(sortTorrents(list, "newest").map(t => t.name)).toEqual(["c", "a", "b"])
         expect(sortTorrents(list, "smallest").map(t => t.name)).toEqual(["b", "c", "a"])
+        expect(sortTorrents(list, "largest").map(t => t.name)).toEqual(["a", "c", "b"])
+    })
+
+    it("puts torrents of unknown size (0) last when the largest come first", () => {
+        const sized = [torrent("unknown", { size: 0 }), torrent("batch", { size: 9_000_000_000 }), torrent("episode", { size: 1_400_000_000 })]
+        expect(sortTorrents(sized, "largest").map(t => t.name)).toEqual(["batch", "episode", "unknown"])
     })
 })
 
