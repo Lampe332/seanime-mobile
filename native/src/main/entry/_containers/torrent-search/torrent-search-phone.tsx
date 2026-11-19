@@ -1,7 +1,8 @@
 import type { Anime_Entry, HibikeTorrent_AnimeTorrent } from "@/api/generated/types"
 import { useGetAutoSelectProfile } from "@/api/hooks/auto_select.hooks"
 import { useDebridAddTorrents } from "@/api/hooks/debrid.hooks"
-import { useTorrentClientDownload } from "@/api/hooks/torrent_client.hooks"
+import { useTorrentClientDownload, useTorrentFileList } from "@/api/hooks/torrent_client.hooks"
+import { ChipRow } from "@/components/shared/phone-cards"
 import { Choices, LoadingRows, Notice, PickRow, RowGroup, SearchField, TextAction } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { EmptyState } from "@/components/ui/card/card"
@@ -21,7 +22,15 @@ import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { useHandleStartDebridStream } from "@/main/entry/_containers/debrid-stream/_lib/handle-debrid-stream"
 import { Torrent_SearchType, useHandleTorrentSearch } from "@/main/entry/_containers/torrent-search/_lib/handle-torrent-search"
 import { useMeteredGuard } from "@/main/entry/_containers/torrent-search/_lib/metered-guard"
-import { bestMatchKey, torrentKey } from "@/main/entry/_containers/torrent-search/_lib/torrent-facts"
+import {
+    chosenBytes,
+    defaultFileChoice,
+    fileChoiceRequest,
+    fileRowsOf,
+    spaceStateOf,
+    wantsFileChoice,
+} from "@/main/entry/_containers/torrent-search/_lib/file-choice"
+import { bestMatchKey, sizeText, torrentFacts, torrentKey } from "@/main/entry/_containers/torrent-search/_lib/torrent-facts"
 import {
     filterTorrents,
     LANGUAGE_SEARCH_WORD,
@@ -33,12 +42,15 @@ import {
     type TorrentSource,
 } from "@/main/entry/_containers/torrent-search/_lib/torrent-filters"
 import {
+    __torrentSearchPhone_filtersOpenAtom,
     __torrentSearchPhone_languagesAtom,
     __torrentSearchPhone_providersAtom,
     __torrentSearchPhone_sortAtom,
+    activeFilterLabels,
     canSmartSelect,
     downloadError,
     episodeList,
+    filtersLine,
     getDefaultDestination,
     RESOLUTIONS,
     shouldLookForBatches,
@@ -50,9 +62,11 @@ import {
 } from "@/main/entry/_containers/torrent-search/_lib/torrent-search-phone"
 import { useTorrentReads } from "@/main/entry/_containers/torrent-search/_lib/use-torrent-reads"
 import { TorrentCard } from "@/main/entry/_containers/torrent-search/torrent-card"
+import { TorrentFileChoice } from "@/main/entry/_containers/torrent-search/torrent-file-choice"
 import { __torrentSearch_selectionAtom, type TorrentSelectionType } from "@/main/entry/_containers/torrent-search/torrent-search.atoms"
 import { useHandleStartTorrentStream } from "@/main/entry/_containers/torrent-stream/_lib/handle-torrent-stream"
 import { useTorrentSearchSelectedStreamEpisode } from "@/main/entry/_containers/torrent-stream/torrent-stream.atoms"
+import { Paths } from "expo-file-system"
 import { useAtom } from "jotai"
 import React from "react"
 import { TextInput, View } from "react-native"
@@ -184,6 +198,7 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
     const [codecs, setCodecs] = React.useState<TorrentCodec[]>([])
     const [sources, setSources] = React.useState<TorrentSource[]>([])
     const [maxSize, setMaxSize] = React.useState(0)
+    const [filtersOpen, setFiltersOpen] = useAtom(__torrentSearchPhone_filtersOpenAtom)
     const [showMore, setShowMore] = React.useState(false)
     const [resultText, setResultText] = React.useState("")
     const [sort, setSort] = useAtom(__torrentSearchPhone_sortAtom)
@@ -216,6 +231,18 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
         { value: "multi", label: "Multi-Sub" },
     ]
     const moreOn = codecs.length + sources.length + (maxSize ? 1 : 0)
+    const codecChips = [{ value: "hevc", label: "HEVC (x265)" }, { value: "avc", label: "AVC (x264)" }, { value: "av1", label: "AV1" }]
+    const sourceChips = [{ value: "bluray", label: "Blu-ray" }, { value: "web", label: "WEB" }]
+    // what the closed filters' head counts and its line names
+    const filterLabels = activeFilterLabels({ resolution: smartSearchResolution, flags: activeFlags, languages, codecs, sources, maxSize }, (what, value) => {
+        const chips: { value: string, label: string }[] = what === "flags" ? flags : what === "languages" ? languageChips : what === "codecs" ? codecChips : what === "sources" ? sourceChips : []
+        if (what === "resolution") return `${value}p`
+        if (what === "maxSize") return sizeLabel(Number(value))
+        return chips.find(chip => chip.value === value)?.label ?? value
+    })
+    const searched = smart
+        ? kind === "download" && !batchOnly ? t(`Episode ${smartSearchEpisode}`, `Folge ${smartSearchEpisode}`) : ""
+        : globalFilter.trim() ? t(`Title "${globalFilter.trim()}"`, `Titel „${globalFilter.trim()}“`) : ""
     const sorts: { value: TorrentSort, label: string }[] = [
         { value: "best", label: t("Recommended", "Empfohlen") },
         { value: "seeders", label: t("Most seeders", "Meiste Seeder") },
@@ -328,53 +355,70 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
             description={t("Torrents are found by provider extensions. Install one under Extensions.", "Torrents finden Anbieter-Erweiterungen. Installiere eine unter Erweiterungen.")}>
             {extensionsReady && <Button onPress={openExtensions}>{t("Open Extensions", "Erweiterungen öffnen")}</Button>}
         </EmptyState> : <>
-            {/* `.tsp .ps-sheet-group`: .75rem between head, note and content */}
-            {(providerExtensions?.length ?? 0) > 0 && <SheetGroup className={TSP_GROUP} title={t("Providers", "Anbieter")}
-                intro={(providerExtensions?.length ?? 0) > 1
-                    ? t("All chosen providers are searched at the same time.", "Alle gewählten Anbieter werden gleichzeitig durchsucht.")
-                    : t("Add more torrent providers to search them all at once.", "Füge weitere Torrent-Anbieter hinzu, um alle gleichzeitig zu durchsuchen.")}
-                action={extensionsReady ? <TextAction label={t("Add", "Hinzufügen")} onPress={openExtensions} /> : undefined}>
-                <Choices label={t("Providers", "Anbieter")} showCheck chips={(providerExtensions ?? []).map(ext => ({ value: ext.id, label: ext.name }))}
-                    selected={providers} onToggle={id => setSavedProviders(toggleProvider(providers, id))} />
-            </SheetGroup>}
-
-            <SheetGroup className={TSP_GROUP} title={t("Search", "Suche")}>
-                {canSmart && <Tabs value={searchType} onValueChange={value => setSearchType(value as Torrent_SearchType)}
-                    items={[{ value: Torrent_SearchType.SMART, label: t("Episode", "Folge") }, { value: Torrent_SearchType.SIMPLE, label: t("Title", "Titel") }]} />}
-                {!smart && <SearchField value={globalFilter} onChangeText={setGlobalFilter} placeholder={t("Search torrents", "Torrents suchen")} />}
-                {smart && kind === "download" && !batchOnly && <EpisodeField label={t("Episode", "Folge")} value={String(smartSearchEpisode)}
-                    onChange={value => setSmartSearchEpisode(Number(value) || 1)} />}
-                <Choices label={t("Resolution", "Auflösung")} chips={[{ value: "", label: t("Any", "Alle") }, ...RESOLUTIONS.map(value => ({ value, label: `${value}p` }))]}
-                    selected={[smartSearchResolution]} onToggle={value => setSmartSearchResolution(value)} />
-                <Choices label={t("Filters", "Filter")} showCheck chips={flags} selected={activeFlags} onToggle={toggleFlag} />
-            </SheetGroup>
-
-            <SheetGroup className={TSP_GROUP} title={t("Language", "Sprache")}
-                intro={t("Audio or subtitles, as the release name says. Untagged releases count as English.",
-                    "Ton oder Untertitel, wie im Release-Namen angegeben. Releases ohne Angabe zählen als Englisch.")}>
-                <Choices label={t("Language", "Sprache")} showCheck chips={languageChips} selected={languages}
-                    onToggle={value => setLanguages(toggled(languages, value as TorrentLanguage))} />
-            </SheetGroup>
-
-            <SheetGroup className={TSP_GROUP} title={t("More filters", "Weitere Filter")}
-                action={<TextAction expanded={showMore} onPress={() => setShowMore(!showMore)}
-                    label={showMore ? t("Hide", "Ausblenden") : moreOn ? t(`Show · ${moreOn} on`, `Anzeigen · ${moreOn} an`) : t("Show", "Anzeigen")} />}>
-                {showMore && <>
-                    <FilterField label="Codec">
-                        <Choices label="Codec" showCheck selected={codecs}
-                            chips={[{ value: "hevc", label: "HEVC (x265)" }, { value: "avc", label: "AVC (x264)" }, { value: "av1", label: "AV1" }]}
-                            onToggle={value => setCodecs(toggled(codecs, value as TorrentCodec))} />
+            {/*
+              * 4.2.0 (A2): the search and its filters fold away above the results (closed at first, kept open or closed
+              * for the next search), so the first screen shows cards. Closed, a line says what is searched and filtered.
+              * `.tsp .ps-sheet-group`: .75rem between head, note and content.
+              */}
+            <SheetGroup className={TSP_GROUP} title={filterLabels.length ? t(`Filters · ${filterLabels.length}`, `Filter · ${filterLabels.length}`) : t("Filters", "Filter")}
+                action={<TextAction expanded={filtersOpen} onPress={() => setFiltersOpen(!filtersOpen)}
+                    accessibilityLabel={filtersOpen ? t("Hide filters", "Filter ausblenden") : t("Show filters", "Filter anzeigen")}
+                    label={filtersOpen ? t("Hide", "Ausblenden") : t("Show", "Anzeigen")} />}>
+                {!filtersOpen && <Text numberOfLines={2} className="-mt-1.5 text-[13px] leading-[19px] text-sm-text-muted">
+                    {filtersLine(searched, filterLabels) || t("All results, no filter on.", "Alle Treffer, kein Filter an.")}
+                </Text>}
+                {filtersOpen && <>
+                    {(providerExtensions?.length ?? 0) > 0 && <FilterField label={t("Providers", "Anbieter")}
+                        note={(providerExtensions?.length ?? 0) > 1
+                            ? t("All chosen providers are searched at the same time.", "Alle gewählten Anbieter werden gleichzeitig durchsucht.")
+                            : t("Add more torrent providers to search them all at once.", "Füge weitere Torrent-Anbieter hinzu, um alle gleichzeitig zu durchsuchen.")}
+                        action={extensionsReady ? <TextAction label={t("Add", "Hinzufügen")} onPress={openExtensions} /> : undefined}>
+                        <Choices label={t("Providers", "Anbieter")} showCheck chips={(providerExtensions ?? []).map(ext => ({ value: ext.id, label: ext.name }))}
+                            selected={providers} onToggle={id => setSavedProviders(toggleProvider(providers, id))} />
+                    </FilterField>}
+                    <FilterField label={t("Search", "Suche")}>
+                        {canSmart && <Tabs value={searchType} onValueChange={value => setSearchType(value as Torrent_SearchType)}
+                            items={[{ value: Torrent_SearchType.SMART, label: t("Episode", "Folge") }, { value: Torrent_SearchType.SIMPLE, label: t("Title", "Titel") }]} />}
+                        {!smart && <SearchField value={globalFilter} onChangeText={setGlobalFilter} placeholder={t("Search torrents", "Torrents suchen")} />}
+                        {smart && kind === "download" && !batchOnly && <EpisodeField label={t("Episode", "Folge")} value={String(smartSearchEpisode)}
+                            onChange={value => setSmartSearchEpisode(Number(value) || 1)} />}
                     </FilterField>
-                    <FilterField label={t("Source", "Quelle")}>
-                        <Choices label={t("Source", "Quelle")} showCheck selected={sources}
-                            chips={[{ value: "bluray", label: "Blu-ray" }, { value: "web", label: "WEB" }]}
-                            onToggle={value => setSources(toggled(sources, value as TorrentSource))} />
+                    <FilterField label={t("Resolution", "Auflösung")}>
+                        <Choices label={t("Resolution", "Auflösung")} chips={[{ value: "", label: t("Any", "Alle") }, ...RESOLUTIONS.map(value => ({ value, label: `${value}p` }))]}
+                            selected={[smartSearchResolution]} onToggle={value => setSmartSearchResolution(value)} />
                     </FilterField>
-                    <FilterField label={t("Largest size", "Höchstens")}>
-                        <Choices label={t("Largest size", "Höchstens")} selected={[String(maxSize)]}
-                            chips={[{ value: "0", label: t("Any size", "Jede Größe") }, ...SIZES.map(bytes => ({ value: String(bytes), label: sizeLabel(bytes) }))]}
-                            onToggle={value => setMaxSize(Number(value))} />
+                    <FilterField label={t("Show only", "Nur zeigen")}>
+                        <Choices label={t("Show only", "Nur zeigen")} showCheck chips={flags} selected={activeFlags} onToggle={toggleFlag} />
                     </FilterField>
+                    <FilterField label={t("Language", "Sprache")}
+                        note={t("Audio or subtitles, as the release name says. Untagged releases count as English.",
+                            "Ton oder Untertitel, wie im Release-Namen angegeben. Releases ohne Angabe zählen als Englisch.")}>
+                        <Choices label={t("Language", "Sprache")} showCheck chips={languageChips} selected={languages}
+                            onToggle={value => setLanguages(toggled(languages, value as TorrentLanguage))} />
+                    </FilterField>
+                    {/* the rarer ones stay folded inside the open filters, as before 4.2.0 */}
+                    <FilterField label={t("More filters", "Weitere Filter")}
+                        action={<TextAction expanded={showMore} onPress={() => setShowMore(!showMore)}
+                            label={showMore ? t("Hide", "Ausblenden") : moreOn ? t(`Show · ${moreOn} on`, `Anzeigen · ${moreOn} an`) : t("Show", "Anzeigen")} />}>
+                        {showMore && <>
+                            <FilterField label="Codec">
+                                <Choices label="Codec" showCheck selected={codecs} chips={codecChips}
+                                    onToggle={value => setCodecs(toggled(codecs, value as TorrentCodec))} />
+                            </FilterField>
+                            <FilterField label={t("Source", "Quelle")}>
+                                <Choices label={t("Source", "Quelle")} showCheck selected={sources} chips={sourceChips}
+                                    onToggle={value => setSources(toggled(sources, value as TorrentSource))} />
+                            </FilterField>
+                            <FilterField label={t("Largest size", "Höchstens")}>
+                                <Choices label={t("Largest size", "Höchstens")} selected={[String(maxSize)]}
+                                    chips={[{ value: "0", label: t("Any size", "Jede Größe") }, ...SIZES.map(bytes => ({ value: String(bytes), label: sizeLabel(bytes) }))]}
+                                    onToggle={value => setMaxSize(Number(value))} />
+                            </FilterField>
+                        </>}
+                    </FilterField>
+                    {filterLabels.length > 0 && <View className="flex-row">
+                        <TextAction label={t("Clear filters", "Filter zurücksetzen")} onPress={clearFilters} />
+                    </View>}
                 </>}
             </SheetGroup>
 
@@ -387,7 +431,8 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
             <SheetGroup className={TSP_GROUP} title={resultsTitle} intro={kind === "debrid" && debridOn ? t("Cached torrents start at once.", "Gecachte Torrents starten sofort.") : undefined}>
                 {found.length > 0 && <>
                     <SearchField value={resultText} onChangeText={setResultText} placeholder={t("Search results: group, HEVC, -720p …", "In Treffern suchen: Gruppe, HEVC, -720p …")} />
-                    <Choices label={t("Sort by", "Sortieren nach")} chips={sorts} selected={[sort]} onToggle={value => setSort(value as TorrentSort)} />
+                    {/* one row that scrolls sideways: five sort chips took two rows before the first card */}
+                    <ChipRow label={t("Sort by", "Sortieren nach")} chips={sorts} selected={[sort]} onSelect={value => setSort(value as TorrentSort)} />
                 </>}
                 {isLoading ? <LoadingRows label={t("Searching torrents", "Torrents werden gesucht")} />
                     : isError ? <Notice text={t("The provider did not answer.", "Der Anbieter hat nicht geantwortet.")}>
@@ -424,11 +469,28 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
 /** torrent-search-phone.css `.tsp .ps-sheet-group { gap: .75rem }` (the plain sheet group has .625rem) */
 const TSP_GROUP = "gap-3"
 
-function FilterField({ label, children }: { label: string, children: React.ReactNode }) {
+/** One filter inside the open filters: its name (an action beside it), a note, the choices */
+function FilterField({ label, note, action, children }: { label: string, note?: string, action?: React.ReactNode, children: React.ReactNode }) {
     return <View className="gap-1.5">
-        <Text className="text-sm font-semibold">{label}</Text>
+        {action
+            ? <View className="min-h-6 flex-row items-center justify-between gap-3">
+                <Text className="min-w-0 flex-1 text-sm font-semibold">{label}</Text>
+                <View className="-my-3 -mr-2">{action}</View>
+            </View>
+            : <Text className="text-sm font-semibold">{label}</Text>}
+        {!!note && <Text className="text-[13px] leading-[19px] text-sm-text-muted">{note}</Text>}
         {children}
     </View>
+}
+
+/** The phone's free storage (expo-file-system, a quick synchronous read, as the Downloads tab shows it); null: not known */
+function readFreeSpace(): number | null {
+    try {
+        return Paths.availableDiskSpace
+    }
+    catch {
+        return null
+    }
 }
 
 /** `.ps-field` with digits only: the episode searched for */
@@ -465,6 +527,25 @@ function TorrentDownloadSheet({ entry, torrents: shown, t, onBack, onDone }: {
     const settingsReady = MENU_ENTRIES.some(e => e.id === "settings" && e.ready)
     const language = getAppLanguage()
     const readOf = useTorrentReads(torrents)
+    // 4.2.0 (A2): one batch torrent lists its files to choose from (the stream's file chooser's list)
+    const only = torrents.length === 1 ? torrents[0] : undefined
+    const onlyRead = only ? readOf(only) : undefined
+    const batchByName = React.useMemo(() => !!only && torrentFacts(only, onlyRead, t, language).batch, [only, onlyRead, t, language])
+    const choosing = !viaDebrid && wantsFileChoice(torrents, batchByName)
+    const fileList = useTorrentFileList(only, !!shown && choosing)
+    const rows = React.useMemo(() => fileRowsOf(fileList.data), [fileList.data])
+    // the choice a list starts from (the missing episodes, else every file); a new list starts again from its own
+    const missingKey = missing.join(",")
+    const startChoice = React.useMemo(() => rows.length ? defaultFileChoice(rows, missingKey ? missingKey.split(",").map(Number) : [], smartSelect) : null,
+        [rows, missingKey, smartSelect])
+    const [picks, setPicks] = React.useState<{ from: Set<number> | null, chosen: Set<number> } | null>(null)
+    const chosen = picks && picks.from === startChoice ? picks.chosen : startChoice
+    const setChosen = (next: Set<number>) => setPicks({ from: startChoice, chosen: next })
+    const listWaiting = choosing && fileList.isLoading
+    const listed = choosing && !!chosen && rows.length > 0
+    const chosenSize = listed ? chosenBytes(rows, chosen) : 0
+    const free = listed ? readFreeSpace() : null
+    const noRoom = listed && spaceStateOf(chosenSize, free) === "full"
     const toDownloads = () => {
         onDone()
         router.push("/android-downloads?kind=torrents")
@@ -478,10 +559,13 @@ function TorrentDownloadSheet({ entry, torrents: shown, t, onBack, onDone }: {
         if (!torrents.length || !media || !destination) return
         // The debrid service downloads the torrent and the server fetches the finished files from it
         if (debrid) return addToDebrid({ torrents, destination, media })
+        if (listWaiting || (listed && (chosen.size === 0 || noRoom))) return
         void metered.guard(() => mutate({
             torrents,
             destination,
-            smartSelect: { enabled: smartSelect && onlyMissing, missingEpisodeNumbers: smartSelect && onlyMissing ? missing : [] },
+            // the files left out go by the request's own `deselect` (client.ts choiceOf)
+            ...(listed ? fileChoiceRequest(rows, chosen)
+                : { smartSelect: { enabled: smartSelect && onlyMissing, missingEpisodeNumbers: smartSelect && onlyMissing ? missing : [] } }),
             media,
         }))
     }
@@ -489,8 +573,9 @@ function TorrentDownloadSheet({ entry, torrents: shown, t, onBack, onDone }: {
     return <Sheet title={t("Download", "Herunterladen")} open={!!shown} onOpenChange={open => !open && onBack()}
         footer={<>
             <Button intent="secondary" size="lg" wrapperClassName="flex-1" onPress={onBack}>{t("Back", "Zurück")}</Button>
-            <Button size="lg" wrapperClassName="flex-[2]" disabled={!destination || isPending || isAddingToDebrid} loading={isPending || isAddingToDebrid}
-                onPress={start}>{t("Start download", "Download starten")}</Button>
+            <Button size="lg" wrapperClassName="flex-[2]" loading={isPending || isAddingToDebrid}
+                disabled={!destination || isPending || isAddingToDebrid || listWaiting || (listed && (chosen.size === 0 || noRoom))}
+                onPress={start}>{listed && chosenSize > 0 ? t(`Download · ${sizeText(chosenSize)}`, `Laden · ${sizeText(chosenSize)}`) : t("Start download", "Download starten")}</Button>
         </>}>
         <SheetGroup title={torrents.length === 1 ? t("Torrent", "Torrent") : t(`${torrents.length} torrents`, `${torrents.length} Torrents`)}>
             <RowGroup>
@@ -505,7 +590,10 @@ function TorrentDownloadSheet({ entry, torrents: shown, t, onBack, onDone }: {
                     label={t("Debrid service", "Debrid-Dienst")} note={t("Faster, also without seeders", "Schneller, auch ohne Seeder")} />
             </RowGroup>
         </SheetGroup>}
-        {smartSelect && !debrid && <SheetGroup title={t("Episodes", "Folgen")}>
+        {choosing && <TorrentFileChoice t={t} rows={rows} chosen={chosen} onChange={setChosen} loading={listWaiting} failed={fileList.isError}
+            onRetry={() => void fileList.refetch()} free={free} />}
+        {/* without a list to choose from: the whole torrent or only the missing episodes, as before */}
+        {smartSelect && !debrid && !listed && !listWaiting && <SheetGroup title={t("Episodes", "Folgen")}>
             <RowGroup>
                 <PickRow radio checked={onlyMissing} onPress={() => setOnlyMissing(true)}
                     label={t("Only the episodes you are missing", "Nur fehlende Folgen")} note={episodeList(missing.slice().sort((a, b) => a - b))} />

@@ -1,7 +1,12 @@
 import { SeaError, useServerMutation, useServerQuery } from "@/api/client/requests"
-import { TorrentClientAction_Variables, TorrentClientDownload_Variables, TorrentClientGetFiles_Variables } from "@/api/generated/endpoint.types"
+import {
+    GetTorrentstreamTorrentFilePreviews_Variables,
+    TorrentClientAction_Variables,
+    TorrentClientDownload_Variables,
+    TorrentClientGetFiles_Variables,
+} from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
-import { HibikeTorrent_AnimeTorrent, Nullish, TorrentClient_Torrent } from "@/api/generated/types"
+import { HibikeTorrent_AnimeTorrent, Nullish, TorrentClient_Torrent, Torrentstream_FilePreview } from "@/api/generated/types"
 import { useQueryClient } from "@tanstack/react-query"
 import React from "react"
 import { toast } from "@/components/ui/toast/toast-store"
@@ -70,6 +75,25 @@ export function useTorrentClientDownload(onSuccess?: () => void, onError?: (erro
             onSuccess?.()
         },
         ...(onError ? { onError } : {}),
+    })
+}
+
+/**
+ * 4.2.0: the video files of one torrent for the download sheet's file choice (torrent-file-previews with `listOnly`: the
+ * core lets the torrent go once the list is read). Asked once per torrent; the wait for a magnet's list can take a minute.
+ */
+export function useTorrentFileList(torrent: Nullish<HibikeTorrent_AnimeTorrent>, enabled: boolean) {
+    return useServerQuery<Torrentstream_FilePreview[], GetTorrentstreamTorrentFilePreviews_Variables>({
+        endpoint: API_ENDPOINTS.TORRENTSTREAM.GetTorrentstreamTorrentFilePreviews.endpoint,
+        method: API_ENDPOINTS.TORRENTSTREAM.GetTorrentstreamTorrentFilePreviews.methods[0],
+        queryKey: [API_ENDPOINTS.TORRENTSTREAM.GetTorrentstreamTorrentFilePreviews.key, "list-only", torrent?.infoHash || torrent?.link || torrent?.name],
+        data: { torrent: torrent ?? undefined, episodeNumber: 0, listOnly: true },
+        enabled: enabled && !!torrent,
+        staleTime: Infinity,
+        retry: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        muteError: true,
     })
 }
 

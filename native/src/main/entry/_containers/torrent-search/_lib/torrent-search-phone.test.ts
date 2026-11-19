@@ -1,6 +1,11 @@
 import type { HibikeTorrent_AnimeTorrent } from "@/api/generated/types"
+import { readStoredJSON } from "@/lib/storage"
+import { createStore } from "jotai"
 import { describe, expect, it } from "vitest"
 import {
+    __torrentSearchPhone_filtersOpenAtom,
+    activeFilterLabels,
+    filtersLine,
     ago,
     canSmartSelect,
     decodeEntities,
@@ -143,5 +148,35 @@ describe("getDefaultDestination", () => {
     it("cleans folder names", () => {
         expect(sanitizeDirectoryName("..a<b>c..")).toBe("a b c")
         expect(sanitizeDirectoryName("   ")).toBe("Untitled")
+    })
+})
+
+// 4.2.0 (A2): the filters fold away; their head counts what is on, the closed line names it
+describe("the folded filters", () => {
+    const none = { resolution: "", flags: [], languages: [], codecs: [], sources: [], maxSize: 0 }
+    const label = (kind: string, value: string) => `${kind}:${value}`
+
+    it("counts nothing when no filter is on, and says what is searched", () => {
+        expect(activeFilterLabels(none, label)).toEqual([])
+        expect(filtersLine("", [])).toBe("")
+        expect(filtersLine("Episode 5", [])).toBe("Episode 5")
+    })
+
+    it("counts each chosen value, in the order the open filters show them", () => {
+        const on = { resolution: "1080", flags: ["batch", "dual"], languages: ["de"], codecs: ["hevc"], sources: ["bluray"], maxSize: 2_000_000_000 }
+        const labels = activeFilterLabels(on, label)
+        expect(labels).toEqual(["resolution:1080", "flags:batch", "flags:dual", "languages:de", "codecs:hevc", "sources:bluray", "maxSize:2000000000"])
+        expect(labels.length).toBe(7)
+        expect(filtersLine('Title "Sousou no Frieren"', ["1080p", "Whole season", "German"])).toBe('Title "Sousou no Frieren" · 1080p · Whole season · German')
+    })
+
+    it("starts closed and keeps the choice for the next search", () => {
+        const store = createStore()
+        expect(store.get(__torrentSearchPhone_filtersOpenAtom)).toBe(false)
+        store.set(__torrentSearchPhone_filtersOpenAtom, true)
+        expect(store.get(__torrentSearchPhone_filtersOpenAtom)).toBe(true)
+        expect(readStoredJSON("sea-torrent-search-phone-filters-open", false)).toBe(true)
+        store.set(__torrentSearchPhone_filtersOpenAtom, false)
+        expect(readStoredJSON("sea-torrent-search-phone-filters-open", true)).toBe(false)
     })
 })

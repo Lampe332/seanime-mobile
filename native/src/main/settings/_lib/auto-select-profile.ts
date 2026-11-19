@@ -28,6 +28,8 @@ export type AutoSelectForm = {
     /** "" or a size such as "200MB", "1.5GB" */
     minSize: string
     maxSize: string
+    /** 4.2.0: off keeps the 4.1 choice (more seeders, then the smaller file) */
+    preferLargerFiles: boolean
 }
 
 export const EMPTY_FORM: AutoSelectForm = {
@@ -48,6 +50,7 @@ export const EMPTY_FORM: AutoSelectForm = {
     minSeeders: "",
     minSize: "",
     maxSize: "",
+    preferLargerFiles: false,
 }
 
 function preference(value: string | null | undefined): Anime_AutoSelectPreference {
@@ -78,6 +81,7 @@ export function profileToForm(profile: Anime_AutoSelectProfile | null | undefine
         minSeeders: profile.minSeeders ? String(profile.minSeeders) : "",
         minSize: (profile.minSize ?? "").trim(),
         maxSize: (profile.maxSize ?? "").trim(),
+        preferLargerFiles: profile.preferLargerFiles === true,
     }
 }
 
@@ -102,6 +106,7 @@ export function formToProfile(form: AutoSelectForm, dbId = 0): Anime_AutoSelectP
         minSeeders: Number(form.minSeeders) || 0,
         minSize: form.minSize.trim(),
         maxSize: form.maxSize.trim(),
+        preferLargerFiles: form.preferLargerFiles,
     }
 }
 

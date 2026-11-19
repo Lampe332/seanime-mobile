@@ -263,7 +263,7 @@ describe("the file chooser", () => {
         const previews = await ask("torrent-file-previews", { torrent: { infoHash: HASH }, episodeNumber: 3 }) as Json[]
         expect(calls).toEqual([`add magnet:?xt=urn:btih:${HASH}`, "priority 0=0", "priority 1=0", "priority 2=0", "priority 3=0", "priority 4=0"])
         expect(previews.map(preview => [preview.index, preview.episodeNumber, preview.isLikely])).toEqual([[0, 1, false], [1, 2, false], [2, 3, true], [3, 3, true]])
-        expect(previews[2]).toEqual({ path: BATCH[2].path, displayPath: "Show", displayTitle: "Episode 3", episodeNumber: 3, relativeEpisodeNumber: 3, isLikely: true, index: 2 })
+        expect(previews[2]).toEqual({ path: BATCH[2].path, displayPath: "Show", displayTitle: "Episode 3", episodeNumber: 3, relativeEpisodeNumber: 3, isLikely: true, index: 2, size: 950 })
         // looking at another torrent lets the first one go; a stream of the looked-at one keeps it
         calls = []
         await ask("torrent-file-previews", { torrent: { infoHash: OTHER }, episodeNumber: 1 })
@@ -271,6 +271,24 @@ describe("the file chooser", () => {
         calls = []
         await start({ torrent: { infoHash: OTHER }, playbackType: "none" })
         expect(calls.filter(call => call.startsWith("remove"))).toEqual([])
+    })
+
+    // 4.2.0 (A2): the download sheet's file choice reads the list and lets the torrent go, so the download adds it afresh
+    it("lets the torrent go after the list for the download sheet, and ends the empty session", async () => {
+        const previews = await ask("torrent-file-previews", { torrent: { infoHash: HASH }, episodeNumber: 0, listOnly: true }) as Json[]
+        expect(previews.map(preview => [preview.index, preview.size])).toEqual([[0, 900], [1, 900], [2, 950], [3, 300]])
+        expect(calls.slice(-2)).toEqual(["remove ab true", "stop"])
+        // a later look of the stream's file chooser has nothing to let go
+        calls = []
+        await ask("torrent-file-previews", { torrent: { infoHash: OTHER }, episodeNumber: 1 })
+        expect(calls.filter(call => call.startsWith("remove"))).toEqual([])
+    })
+
+    it("leaves a running stream's torrent and its priorities alone", async () => {
+        await start({ playbackType: "none" })
+        calls = []
+        await ask("torrent-file-previews", { torrent: { infoHash: HASH }, episodeNumber: 3, listOnly: true })
+        expect(calls.filter(call => !call.startsWith("add"))).toEqual([])
     })
 })
 

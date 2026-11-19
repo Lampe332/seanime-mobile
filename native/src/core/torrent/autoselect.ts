@@ -23,7 +23,8 @@ import type { CoreEnvironment, CoreRequest } from "../registry"
  *    number with a `.torrent` file) → resolution (the profile's order, else the settings' preferred resolution first, else the
  *    higher one) → preferences (+1 for each "prefer" that applies, −1 for each "avoid") plus one for each preferred
  *    language, codec and source found → release group (the profile's order, listed ones first) → provider (the
- *    profile's order) → seeders → the smaller download.
+ *    profile's order) → seeders → the smaller download. With `preferLargerFiles` (4.2.0, off by default) the larger
+ *    download comes right after the provider, before the seeders: among equals the bigger release, the better quality.
  * 3. The first one wins; none left: no choice (the caller says so).
  */
 
@@ -50,6 +51,8 @@ export type AutoSelectProfile = {
     minSeeders?: number
     minSize?: string
     maxSize?: string
+    /** 4.2.0: among otherwise equal torrents the larger one before the one with more seeders; only kept when true */
+    preferLargerFiles?: boolean
 }
 
 const PROFILE_KEY = "autoselect-profile"
@@ -81,6 +84,7 @@ export function profileOf(value: unknown): AutoSelectProfile {
     if (typeof value.minSeeders === "number" && Number.isInteger(value.minSeeders) && value.minSeeders >= 0) profile.minSeeders = value.minSeeders
     if (typeof value.minSize === "string" && value.minSize !== "") profile.minSize = value.minSize
     if (typeof value.maxSize === "string" && value.maxSize !== "") profile.maxSize = value.maxSize
+    if (value.preferLargerFiles === true) profile.preferLargerFiles = true
     return profile
 }
 
@@ -286,13 +290,16 @@ export function chooseTorrent(torrents: FoundTorrent[], profile: AutoSelectProfi
         + preferenceScore(profile.multipleSubsPreference, read.multipleSubs)
         + Number(contains(read.languages, languages)) + Number(contains(read.codecs, codecs)) + Number(contains(read.sources, sources))
 
+    const larger = profile.preferLargerFiles === true
+    const bytes = (read: ReadTorrent) => read.torrent.size ?? 0
     fitting.sort((a, b) =>
         way(a) - way(b)
         || resolutionRank(a) - resolutionRank(b)
         || score(b) - score(a)
         || (groups.length > 0 ? rankIn(groups, a.group) - rankIn(groups, b.group) : 0)
         || (providers.length > 0 ? rankIn(providers, lower(a.torrent.provider)) - rankIn(providers, lower(b.torrent.provider)) : 0)
+        || (larger ? bytes(b) - bytes(a) : 0)
         || seeders(b) - seeders(a)
-        || (a.torrent.size ?? 0) - (b.torrent.size ?? 0))
+        || bytes(a) - bytes(b))
     return fitting[0] ?? null
 }

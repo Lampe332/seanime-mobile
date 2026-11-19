@@ -15,8 +15,14 @@ describe("auto-select profile", () => {
             preferredLanguages: ["jp, jpn"], preferredCodecs: ["HEVC, x265"], preferredSources: ["BDRip, BD RIP"],
             multipleAudioPreference: "avoid", multipleSubsPreference: "prefer", batchPreference: "never", bestReleasePreference: "only",
             requireLanguage: true, requireCodec: false, requireSource: true, minSeeders: 5, minSize: "200MB", maxSize: "1.5GB",
+            preferLargerFiles: true,
         } as Anime_AutoSelectProfile
         expect(formToProfile(profileToForm(profile), 4)).toEqual(profile)
+    })
+
+    it("keeps prefer larger files off for a profile saved before 4.2.0", () => {
+        expect(profileToForm({ dbId: 1, minSeeders: 3 } as Anime_AutoSelectProfile).preferLargerFiles).toBe(false)
+        expect(formToProfile({ ...EMPTY_FORM, preferLargerFiles: true }).preferLargerFiles).toBe(true)
     })
 
     it("sends numbers and sizes the way the server reads them", () => {

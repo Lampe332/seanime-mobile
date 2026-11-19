@@ -148,6 +148,10 @@ function AutoSelectSheet({ t, onClose, dbId, stored }: { t: Translate, onClose: 
                 <ChipPicker label={t("Resolution", "Auflösung")} chips={resolutionChips} selected={draft.resolutions} onToggle={toggle("resolutions")} />
                 <ChipPicker label={t("Providers (max. 3)", "Anbieter (max. 3)")} chips={providerChips} selected={draft.providers} onToggle={toggle("providers", MAX_PROVIDERS)}
                     empty={t("No torrent provider is installed.", "Kein Torrent-Anbieter installiert.")} />
+                <SwitchRow label={t("Prefer larger files", "Größere Dateien bevorzugen")} checked={draft.preferLargerFiles}
+                    description={t("When two torrents are otherwise equal, the larger one wins, even with fewer seeders. Set minimum seeders below to keep slow ones out.",
+                        "Sind zwei Torrents sonst gleich, gewinnt der größere, auch mit weniger Seedern. Mit der Mindestanzahl Seeder unten bleiben langsame draußen.")}
+                    onCheckedChange={value => set("preferLargerFiles", value)} />
             </Rows>
         </SheetGroup>
 
@@ -187,7 +191,8 @@ function AutoSelectSheet({ t, onClose, dbId, stored }: { t: Translate, onClose: 
 
         <SheetGroup title={t("Limits", "Grenzen")}>
             <Field label={t("Minimum seeders", "Mindestanzahl Seeder")} value={draft.minSeeders} placeholder="0" numeric
-                onChange={value => set("minSeeders", value.replace(/[^0-9]/g, ""))} />
+                onChange={value => set("minSeeders", value.replace(/[^0-9]/g, ""))}
+                note={t("Torrents with fewer seeders are never picked. Empty means no minimum.", "Torrents mit weniger Seedern werden nie gewählt. Leer heißt kein Minimum.")} />
             <Field label={t("Minimum size", "Mindestgröße")} placeholder="200MB" value={draft.minSize} onChange={value => set("minSize", value)}
                 error={errors.minSize ? sizeError(t, errors.minSize) : undefined}
                 note={t("For example 200MB or 1.5GB. Empty means no limit.", "Zum Beispiel 200MB oder 1.5GB. Leer heißt keine Grenze.")} />

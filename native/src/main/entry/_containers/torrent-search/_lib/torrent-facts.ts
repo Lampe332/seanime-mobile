@@ -18,6 +18,8 @@ export type TorrentFacts = {
     group: string
     /** "Ep 5", "Ep 1–12", "Batch" or "" */
     episode: string
+    /** A whole season or a range of episodes ("Ep 1–12", "Batch") */
+    batch: boolean
     /** "S2" or "" */
     season: string
     /** "v2" or "" (a first version is not shown) */
@@ -129,7 +131,8 @@ export function torrentFacts(torrent: HibikeTorrent_AnimeTorrent, parsed: Habari
     const lowerName = lower(name)
     const episodes = episodesOf(torrent, parsed)
     const batch = isBatchRelease(torrent) || list(parsed?.release_information).some(term => /^(?:batch|complete)$/i.test(term))
-    const episode = episodes.length === 2 && episodes[0]! < episodes[1]! ? t(`Ep ${episodes[0]}–${episodes[1]}`, `Folge ${episodes[0]}–${episodes[1]}`)
+    const range = episodes.length === 2 && episodes[0]! < episodes[1]!
+    const episode = range ? t(`Ep ${episodes[0]}–${episodes[1]}`, `Folge ${episodes[0]}–${episodes[1]}`)
         : batch ? t("Batch", "Batch")
             : episodes.length >= 1 ? t(`Ep ${episodes[0]}`, `Folge ${episodes[0]}`) : ""
     const season = Number(list(parsed?.season_number)[0])
@@ -153,6 +156,7 @@ export function torrentFacts(torrent: HibikeTorrent_AnimeTorrent, parsed: Habari
     return {
         group: groupOf(torrent.releaseGroup) || groupOf(parsed?.release_group) || trailingGroup(name),
         episode,
+        batch: range || batch,
         season: season > 0 ? `S${season}` : "",
         version: version > 1 ? `v${version}` : "",
         resolution: resolutionLabel(torrent.resolution) || resolutionLabel(parsed?.video_resolution),
@@ -172,6 +176,23 @@ export function torrentFacts(torrent: HibikeTorrent_AnimeTorrent, parsed: Habari
 /** The card's head: "SubsPlease · S2 · Ep 5 · v2" */
 export function factsHead(facts: TorrentFacts): string {
     return [facts.group, facts.season, facts.episode, facts.version].filter(Boolean).join(" · ")
+}
+
+/**
+ * The head in two parts (4.2.0, A2): the group, which may be cut short, and the rest ("S2 · Ep 5 · v2"), which never is.
+ * Beside the pick box a long group cut the head to "SubsPlease · S2 · Ep…", so the episode was lost.
+ */
+export function headParts(facts: TorrentFacts): { group: string, rest: string } {
+    return { group: facts.group, rest: [facts.season, facts.episode, facts.version].filter(Boolean).join(" · ") }
+}
+
+/**
+ * The numbers and the tags in one flowing text (4.2.0, A2): "332 seeders · 18 leechers · 1.4 GiB · 3 days ago · Nyaa ·
+ * HEVC · 10bit". Two lines of their own each left half a line empty; flowing, the card is a line shorter. Each fact wraps whole.
+ */
+export function factsFlow(facts: TorrentFacts, tags: string[] = []): string {
+    // a fixed space before the dot: the dot stays at the end of a line when the text wraps
+    return [facts.seeders, facts.leechers, facts.size, facts.age, facts.provider, ...tags].filter(Boolean).map(whole).join(" · ")
 }
 
 /** The card's numbers line: "332 seeders · 18 leechers · 1.4 GiB · 3 days ago · Nyaa" */

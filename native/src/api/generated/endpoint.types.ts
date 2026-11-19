@@ -1838,6 +1838,8 @@ export type GetTorrentstreamTorrentFilePreviews_Variables = {
     torrent?: HibikeTorrent_AnimeTorrent
     episodeNumber: number
     media?: AL_BaseAnime
+    /** The app's own core (4.2.0, the download sheet): read the list, then let the torrent go */
+    listOnly?: boolean
 }
 
 /**

@@ -6,9 +6,9 @@ import type { Translate } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
 import {
     copyMagnet,
-    factsHead,
-    factsLineWrapped,
+    factsFlow,
     factsSentence,
+    headParts,
     magnetLinkOf,
     type SeedHealth,
     torrentFacts,
@@ -21,18 +21,20 @@ import Copy from "lucide-react-native/icons/copy"
 import SignalHigh from "lucide-react-native/icons/signal-high"
 import SignalLow from "lucide-react-native/icons/signal-low"
 import SignalZero from "lucide-react-native/icons/signal-zero"
-import Star from "lucide-react-native/icons/star"
 import React from "react"
 import { Pressable, View } from "react-native"
 
 /*
  * One torrent as a card, the same in the stream list, the download list (with a box to pick it) and the download sheet:
  *
- *   SubsPlease · S2 · Ep 5 · v2                                1080p
+ *   SubsPlease · S2 · Ep 5 · v2                         1080p  [copy]
  *   [SubsPlease] Sousou no Frieren S2 - 05 (1080p) [4277EF46].mkv        (quiet, two lines)
- *   ▮ 332 seeders · 18 leechers · 1.4 GiB · 3 days ago · Nyaa      [copy]
- *   ★ Best match · HEVC · 10bit · BluRay · Dual audio · Multi subs
+ *   ▮ ★ Best match · 332 seeders · 18 leechers · 1.4 GiB · 3 days ago · Nyaa · HEVC · 10bit · BluRay · Dual audio
+ *     (Best match on one card only)
  *
+ * 4.2.0 (A2): the copy button sits in the head's row and the numbers, the marks and the tags flow as one text, so the
+ * lines below the head have nearly the card's whole width (S22, pick box: about 100 dp, the longest ones under 140);
+ * a long group is cut short before the episode is (headParts).
  * Surfaces step in tone, nothing has a line or a shadow; the one accent is "Best match". A long press (or the copy
  * button, or the screen reader's action) copies the magnet link.
  */
@@ -48,12 +50,22 @@ const HEALTH: Record<SeedHealth, { Icon: typeof SignalHigh, color: string }> = {
 
 const DIGITS = { fontVariant: ["tabular-nums"] } as const
 
+/** The copy button's 48 dp around the 20 dp head row: 14 dp up into the card's top padding and down beside the name */
+const COPY_PLACE = { marginVertical: -14 } as const
+
 /** Copies the magnet link and says so in a toast */
 export async function copyMagnetWithToast(torrent: HibikeTorrent_AnimeTorrent, t: Translate) {
     const copied = await copyMagnet(torrent, Clipboard.setStringAsync).catch(() => null)
     if (copied) toast.success(t("Magnet link copied", "Magnet-Link kopiert"))
     else toast.error(copied === null ? t("Couldn't copy the magnet link", "Magnet-Link konnte nicht kopiert werden")
         : t("This torrent has no magnet link", "Dieser Torrent hat keinen Magnet-Link"))
+}
+
+/** The pick box of a card and of a file in the download sheet's file choice (22 dp, the one outlined thing) */
+export function PickBox({ checked }: { checked: boolean }) {
+    return <View className={cn("h-[22px] w-[22px] items-center justify-center rounded-[6px]", checked ? "bg-sm-accent-strong" : "border-2 border-sm-text-subtle")}>
+        {checked && <Check size={16} color="#ffffff" strokeWidth={3} />}
+    </View>
 }
 
 export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t, language, mode, provider, best, cached, checked, disabled, onChoose }: {
@@ -76,7 +88,8 @@ export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t,
 }) {
     const facts = React.useMemo(() => torrentFacts(torrent, parsed, t, language, { provider }), [torrent, parsed, t, language, provider])
     const name = React.useMemo(() => decodeEntities(torrent.name), [torrent.name])
-    const head = factsHead(facts)
+    const { group, rest } = headParts(facts)
+    const hasHead = !!(group || rest)
     const hasMagnet = !!magnetLinkOf(torrent)
     const marks = [
         best ? t("[torrent] Best match", "Bester Treffer") : "",
@@ -96,38 +109,38 @@ export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t,
         onAccessibilityAction={event => event.nativeEvent.actionName === "longpress" && copy()}
         onPress={tap}
         onLongPress={copy}
-        className={cn("min-h-14 flex-row items-center gap-3 bg-sm-surface-raised py-2.5 pl-4", hasMagnet ? "pr-1" : "pr-4",
+        className={cn("min-h-14 flex-row items-start gap-3 bg-sm-surface-raised pb-2.5 pl-4 pt-3", hasMagnet ? "pr-1" : "pr-4",
             mode !== "show" && "active:bg-sm-surface-control")}>
-        {mode === "pick" && <View className={cn("h-[22px] w-[22px] items-center justify-center rounded-[6px]", checked ? "bg-sm-accent-strong" : "border-2 border-sm-text-subtle")}>
-            {checked && <Check size={16} color="#ffffff" strokeWidth={3} />}
-        </View>}
+        {/* the box stands at the head's row */}
+        {mode === "pick" && <View className="h-5 justify-center"><PickBox checked={!!checked} /></View>}
 
         <View className="min-w-0 flex-1 gap-1">
             <View className="flex-row items-center gap-2">
-                <Text numberOfLines={head ? 1 : 2} className="min-w-0 flex-1 text-[15px] font-semibold leading-[20px]">{head || name}</Text>
+                {hasHead
+                    // the group gives way first: "Erai-raws…  · S2 · Ep 5" rather than "Erai-raws · S2 · E…"
+                    ? <View className="min-w-0 flex-1 flex-row">
+                        {!!group && <Text numberOfLines={1} className="min-w-0 shrink text-[15px] font-semibold leading-[20px]">{group}</Text>}
+                        {!!rest && <Text numberOfLines={1} className="shrink-0 text-[15px] font-semibold leading-[20px]" style={DIGITS}>{group ? ` · ${rest}` : rest}</Text>}
+                    </View>
+                    : <Text numberOfLines={2} className="min-w-0 flex-1 text-[15px] font-semibold leading-[20px]">{name}</Text>}
                 {!!facts.resolution && <View className="rounded-full bg-sm-surface-control px-2 py-px">
                     <Text className="text-xs font-semibold leading-[18px] text-sm-text" style={DIGITS}>{facts.resolution}</Text>
                 </View>}
+                {hasMagnet && <Pressable accessibilityRole="button" accessibilityLabel={t("Copy magnet link", "Magnet-Link kopieren")} onPress={copy} hitSlop={4}
+                    style={COPY_PLACE} className="h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control">
+                    <Copy size={18} color={colors.smTextSubtle} />
+                </Pressable>}
             </View>
-            {!!head && <Text numberOfLines={2} className="text-[13px] leading-[18px] text-sm-text-subtle">{name}</Text>}
-            {/* the icon stands at the first line when the facts wrap */}
-            <View className="flex-row items-start gap-1.5">
+            {hasHead && <Text numberOfLines={2} className={cn("text-[13px] leading-[18px] text-sm-text-subtle", hasMagnet && "pr-3")}>{name}</Text>}
+            {/* numbers and tags flow as one text, each fact whole; the icon stands at the first line */}
+            <View className={cn("flex-row items-start gap-1.5", hasMagnet && "pr-3")}>
                 <View className="h-[18px] justify-center"><Icon size={15} color={color} strokeWidth={2.5} /></View>
-                <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-sm-text-muted" style={DIGITS}>{factsLineWrapped(facts)}</Text>
-            </View>
-            {(best || tags.length > 0) && <View className="flex-row items-start gap-1">
-                {best && <View className="h-[18px] justify-center"><Star size={13} color={colors.smAccent} fill={colors.smAccent} /></View>}
-                <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-sm-text-muted">
-                    {best && <Text className="text-[13px] font-semibold leading-[18px] text-sm-accent">{marks[0]}</Text>}
-                    {/* the dot stays at the end of a line when the tags wrap */}
-                    {(best && tags.length ? " · " : "") + tags.map(whole).join(" · ")}
+                <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-sm-text-muted" style={DIGITS}>
+                    {/* "Best match" leads the flow instead of a row of its own: the one card is a line shorter */}
+                    {best && <Text className="text-[13px] font-semibold leading-[18px] text-sm-accent">{`★ ${whole(marks[0]!)}`}</Text>}
+                    {(best ? " · " : "") + factsFlow(facts, tags)}
                 </Text>
-            </View>}
+            </View>
         </View>
-
-        {hasMagnet && <Pressable accessibilityRole="button" accessibilityLabel={t("Copy magnet link", "Magnet-Link kopieren")} onPress={copy} hitSlop={4}
-            className="h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control">
-            <Copy size={18} color={colors.smTextSubtle} />
-        </Pressable>}
     </Pressable>
 })

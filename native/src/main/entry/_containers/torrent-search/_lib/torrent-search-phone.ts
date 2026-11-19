@@ -38,6 +38,30 @@ export const __torrentSearchPhone_providersAtom = atomWithStorage<string[]>("sea
 export const __torrentSearchPhone_languagesAtom = atomWithStorage<TorrentLanguage[]>(LANGUAGES_KEY,
     initialTorrentLanguages(storage.getString(LEGACY_GERMAN_KEY), readStoredJSON<TorrentLanguage[] | undefined>(LANGUAGES_KEY, undefined)))
 export const __torrentSearchPhone_sortAtom = atomWithStorage<TorrentSort>("sea-torrent-search-phone-sort", "best")
+/** 4.2.0 (A2): whether the search and its filters are open above the results; closed at first, so the cards come first */
+export const __torrentSearchPhone_filtersOpenAtom = atomWithStorage<boolean>("sea-torrent-search-phone-filters-open", false)
+
+export type ActiveFilters = { resolution: string, flags: string[], languages: string[], codecs: string[], sources: string[], maxSize: number }
+
+/**
+ * The filters that are on, in the order the open filters show them, each as `label` names it; the length is the count on
+ * the filters' head ("Filters · 3"). A choice of providers or of episode/title search is no filter.
+ */
+export function activeFilterLabels(active: ActiveFilters, label: (kind: keyof ActiveFilters, value: string) => string): string[] {
+    return [
+        ...(active.resolution ? [label("resolution", active.resolution)] : []),
+        ...active.flags.map(value => label("flags", value)),
+        ...active.languages.map(value => label("languages", value)),
+        ...active.codecs.map(value => label("codecs", value)),
+        ...active.sources.map(value => label("sources", value)),
+        ...(active.maxSize > 0 ? [label("maxSize", String(active.maxSize))] : []),
+    ].filter(Boolean)
+}
+
+/** The line under the closed filters: what is searched, then the filters that are on ("Title "Frieren" · 1080p · German") */
+export function filtersLine(searched: string, labels: string[]): string {
+    return [searched, ...labels].filter(Boolean).join(" · ")
+}
 
 /** Phones pick the episode's file from a batch automatically; the desktop file pickers are not used here. */
 export function streamKind(type: TorrentSelectionType | undefined): TorrentSheetKind | undefined {

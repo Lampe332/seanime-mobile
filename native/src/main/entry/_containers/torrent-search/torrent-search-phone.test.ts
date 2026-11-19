@@ -6,9 +6,32 @@ import { describe, expect, it } from "vitest"
 describe("torrent search sheet", () => {
     const source = readFileSync(join(__dirname, "torrent-search-phone.tsx"), "utf8")
 
-    it("spaces its five groups .75rem apart inside (.tsp .ps-sheet-group)", () => {
+    // 4.2.0 (A2): the four filter groups became one group that folds away, so the first screen shows cards
+    it("spaces its two groups (filters, results) .75rem apart inside (.tsp .ps-sheet-group)", () => {
         expect(source).toMatch(/const TSP_GROUP = "gap-3"/)
-        expect(source.match(/<SheetGroup className=\{TSP_GROUP\}/g)?.length).toBe(5)
+        expect(source.match(/<SheetGroup className=\{TSP_GROUP\}/g)?.length).toBe(2)
+    })
+
+    it("folds the filters away, closed at first and kept, with the count on the head and a line when closed", () => {
+        expect(source).toMatch(/useAtom\(__torrentSearchPhone_filtersOpenAtom\)/)
+        expect(source).toMatch(/\{filtersOpen && <>/)
+        expect(source).toMatch(/\{!filtersOpen && <Text numberOfLines=\{2\}/)
+        expect(source).toMatch(/t\(`Filters · \$\{filterLabels\.length\}`/)
+        expect(source).toMatch(/<TextAction expanded=\{filtersOpen\}/)
+    })
+
+    it("keeps the search in results and the sort outside the filters, the sort in one sideways row", () => {
+        const results = source.slice(source.indexOf("title={resultsTitle}"))
+        expect(results).toMatch(/<SearchField value=\{resultText\}/)
+        expect(results).toMatch(/<ChipRow label=\{t\("Sort by", "Sortieren nach"\)\} chips=\{sorts\}/)
+    })
+
+    it("lets one batch torrent's files be chosen, through the request's own deselect", () => {
+        expect(source).toMatch(/useTorrentFileList\(only, !!shown && choosing\)/)
+        expect(source).toMatch(/fileChoiceRequest\(rows, chosen\)/)
+        expect(source).toMatch(/<TorrentFileChoice /)
+        // no start while the list comes: the core adds the torrent for its list and lets it go after
+        expect(source).toMatch(/disabled=\{[^}]*listWaiting/)
     })
 
     it("puts the results note under the head, before the results", () => {
@@ -47,6 +70,15 @@ describe("torrent card", () => {
         expect(card).not.toMatch(/shadow-|shadow[A-Z]|elevation[=:]/)
         expect(card.match(/border-/g)?.length).toBe(2)
         expect(card).toMatch(/"border-2 border-sm-text-subtle"/)
+    })
+
+    // 4.2.0 (A2): the copy button in the head's row, numbers and tags in one flowing text, the group cut before the episode
+    it("keeps the episode in sight beside the pick box and lets the lines below the head use the width", () => {
+        expect(card).toMatch(/<Text numberOfLines=\{1\} className="min-w-0 shrink [^"]*">\{group\}<\/Text>/)
+        expect(card).toMatch(/className="shrink-0 [^"]*"[^>]*>\{group \? ` · \$\{rest\}` : rest\}/)
+        expect(card).toMatch(/factsFlow\(facts, tags\)/)
+        expect(card).toMatch(/const COPY_PLACE = \{ marginVertical: -14 \}/)
+        expect(card).toMatch(/\{mode === "pick" && <View className="h-5 justify-center"><PickBox/)
     })
 
     it("uses the one accent only for Best match and tabular figures for the numbers", () => {

@@ -884,6 +884,9 @@ async function preloadOtherTorrent(now: Running, episodeCount: number, environme
 /**
  * POST /api/v1/torrentstream/torrent-file-previews: the video files of a torrent for the file chooser, each with the
  * episode its name numbers. The torrent is added for its file list only: nothing of it is loaded until a stream starts.
+ * 4.2.0: each file with its `size`. `listOnly` (the download sheet's file choice): the torrent goes again as soon as its
+ * list is read, so the download adds it afresh into the anime's folder. A torrent the stream, the next-episode preload or
+ * the torrent client has keeps its priorities either way.
  */
 export async function torrentFilePreviews(request: CoreRequest, environment: CoreEnvironment, finder?: TorrentFinder): Promise<Json[]> {
     const body = bodyOf(request)
@@ -892,26 +895,37 @@ export async function torrentFilePreviews(request: CoreRequest, environment: Cor
     const device = await deviceOf(environment)
     await applySavedSettings(device, environment)
     const infoHash = await addTorrent(device, torrent, magnet)
-    const streamed = running?.infoHash === infoHash
-    if (!streamed) {
+    const held = running?.infoHash === infoHash || preloaded === infoHash || await isClientTorrent(environment, infoHash).catch(() => false)
+    const passing = body.listOnly === true && !held && previewed !== infoHash
+    if (!held && !passing) {
         if (previewed && previewed !== infoHash) await drop(device, previewed)
         previewed = infoHash
     }
-    const files = await filesOf(device, infoHash, environment)
-    if (!streamed) {
-        for (const file of files) await device.setFilePriority(infoHash, file.index, 0)
-    }
-    return files.filter(isVideo).map(file => {
-        const name = nameOf(file.path)
-        const { episode } = episodeOfName(file.path)
-        return {
-            path: file.path,
-            displayPath: file.path.slice(0, Math.max(0, file.path.length - name.length - 1)),
-            displayTitle: episode ? `Episode ${episode}` : name,
-            episodeNumber: episode,
-            relativeEpisodeNumber: episode,
-            isLikely: episode !== 0 && episode === episodeNumber,
-            index: file.index,
+    try {
+        const files = await filesOf(device, infoHash, environment)
+        if (!held) {
+            for (const file of files) await device.setFilePriority(infoHash, file.index, 0)
         }
-    })
+        return files.filter(isVideo).map(file => {
+            const name = nameOf(file.path)
+            const { episode } = episodeOfName(file.path)
+            return {
+                path: file.path,
+                displayPath: file.path.slice(0, Math.max(0, file.path.length - name.length - 1)),
+                displayTitle: episode ? `Episode ${episode}` : name,
+                episodeNumber: episode,
+                relativeEpisodeNumber: episode,
+                isLikely: episode !== 0 && episode === episodeNumber,
+                index: file.index,
+                size: file.size,
+            }
+        })
+    }
+    finally {
+        if (passing) {
+            await drop(device, infoHash)
+            // the session ends when nothing else is in it, as after a stream
+            if (!running && !previewed && !preloaded && !(await hasClientTorrents(environment).catch(() => true))) await device.stop().catch(() => undefined)
+        }
+    }
 }

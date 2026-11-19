@@ -5,8 +5,10 @@ import { describe, expect, it } from "vitest"
 import {
     bestMatchKey,
     copyMagnet,
+    factsFlow,
     factsHead,
     factsLine,
+    headParts,
     factsLineWrapped,
     factsSentence,
     resolutionLabel,
@@ -212,5 +214,32 @@ describe("reading names in turns", () => {
         stop()
         turns.shift()!()
         expect(readingOf("[Stop] Test - 01 [720p].mkv")).toBeUndefined()
+    })
+})
+
+// 4.2.0 (A2): beside the pick box the head was cut to "SubsPlease · S2 · Ep…"; the group gives way, the episode stays
+describe("the card's head and its flowing facts", () => {
+    it("splits the head into the group and the part that is never cut", () => {
+        expect(headParts(torrentFacts(torrent(SUBSPLEASE), read(SUBSPLEASE), en, "en"))).toEqual({ group: "SubsPlease", rest: "S2 · Ep 5" })
+        expect(headParts(torrentFacts(torrent(ERAI), read(ERAI), en, "en"))).toEqual({ group: "Erai-raws", rest: "S2 · Ep 5 · v2" })
+        expect(headParts(torrentFacts(torrent(JUDAS), read(JUDAS), de, "de"))).toEqual({ group: "Judas", rest: "S2 · Batch" })
+        // no group read: the rest alone
+        expect(headParts(torrentFacts(torrent("Sousou no Frieren - 05 [1080p]"), read("Sousou no Frieren - 05 [1080p]"), en, "en")).group).toBe("")
+    })
+
+    it("knows a whole season or a range of episodes (the download sheet offers the files then)", () => {
+        expect(torrentFacts(torrent(JUDAS), read(JUDAS), en, "en").batch).toBe(true)
+        expect(torrentFacts(torrent(ASW), read(ASW), en, "en").batch).toBe(true)
+        expect(torrentFacts(torrent(KAF), read(KAF), en, "en").batch).toBe(true)
+        expect(torrentFacts(torrent(SUBSPLEASE), read(SUBSPLEASE), en, "en").batch).toBe(false)
+    })
+
+    it("lets the numbers and the tags flow in one text, each fact whole", () => {
+        const facts = torrentFacts(torrent(JUDAS), read(JUDAS), en, "en", { provider: "Nyaa", now: NOW })
+        const flow = factsFlow(facts, ["Cached", ...facts.tech])
+        expect(flow.replace(/ /g, " ")).toBe("332 seeders · 18 leechers · 1.4 GiB · 3 days ago · Nyaa · Cached · HEVC · 10bit · Multi subs")
+        // a line breaks only after a dot, never inside a fact
+        expect(flow.split("· ").every(part => !part.includes(" "))).toBe(true)
+        expect(factsFlow(facts)).toBe(factsLineWrapped(facts))
     })
 })

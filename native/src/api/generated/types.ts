@@ -1378,6 +1378,10 @@ export type Anime_AutoSelectProfile = {
     minSeeders?: number
     minSize?: string
     maxSize?: string
+    /**
+     * The app's own (4.2.0): among otherwise equal torrents the larger one wins before the seeders
+     */
+    preferLargerFiles?: boolean
 }
 
 /**
@@ -5224,6 +5228,8 @@ export type Torrentstream_FilePreview = {
     relativeEpisodeNumber: number
     isLikely: boolean
     index: number
+    /** The app's own core (4.2.0): the file's bytes */
+    size?: number
 }
 
 /**
