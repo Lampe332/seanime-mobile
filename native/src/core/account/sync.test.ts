@@ -4,10 +4,10 @@ import { eq } from "drizzle-orm"
 import { createRequire } from "node:module"
 import { gunzipSync, gzipSync } from "fflate"
 import { sqlDriverFor } from "@/api/client/core-database"
-import { isDeviceKey } from "@/lib/app-backup-keys"
+import { isDeviceKey, isSyncDeviceKey } from "@/lib/app-backup-keys"
 import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { beforeAll, describe, expect, it } from "vitest"
-import { anilistChanges, extensionUserConfigs, playlists, settingsSections, watchPositions } from "../database/schema"
+import { anilistChanges, appearance, extensionUserConfigs, playlists, settingsSections, watchPositions } from "../database/schema"
 import { DEBRID_KEY_SECRET } from "../debrid/debrid"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { AccountApiError, ConflictError, type Snapshot, type SyncMeta } from "./client"
@@ -79,10 +79,12 @@ async function phone(server: FakeServer, options: { imported: boolean, patienceM
     let safetyBackups = 0
     let ledger: string | null = null
     const ledgerStore = { read: () => ledger, write: (text: string) => void (ledger = text) }
+    // the app hands in isSyncDeviceKey (account-app.ts); a build before C3 handed in the file backup's isDeviceKey
+    let deviceKeys = isSyncDeviceKey
     const local = coreLocalData(one.environment, {
         appVersion: "4.2.0",
         preferences: () => Object.fromEntries(one.preferences),
-        isDeviceKey,
+        isDeviceKey: key => deviceKeys(key),
         writePreferences: (preferences, removed) => {
             for (const [key, value] of Object.entries(preferences)) one.preferences.set(key, value)
             for (const key of removed) one.preferences.delete(key)
@@ -91,7 +93,7 @@ async function phone(server: FakeServer, options: { imported: boolean, patienceM
         safetyBackup: async () => void safetyBackups++,
     })
     const engine = new SyncEngine({ api: server, session, sodium, gzip, local, now, patienceMs: options.patienceMs })
-    return { ...one, store, session, engine, safetyBackups: () => safetyBackups, ledger: () => ledger, ledgerStore }
+    return { ...one, store, session, engine, safetyBackups: () => safetyBackups, ledger: () => ledger, ledgerStore, useDeviceKeys: (keys: (key: string) => boolean) => void (deviceKeys = keys) }
 }
 
 const playlist = (name: string) => ({ name, episodes: [], createdAt: clock, updatedAt: clock })
@@ -339,11 +341,12 @@ describe("two devices that changed different things between two syncs", () => {
         clock += 60_000
         await setSection(a, "library", { autoUpdate: true, onA: true })
         expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
-        // B merges and holds the older change: A's later one wins on B too, B's own preference stays
+        // B merges and holds the older change of autoUpdate: A's later one wins on B too; each field is its own part,
+        // so the field only B set and B's own preference stay
         expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
         expect(await a.engine.sync("manual")).toMatchObject({ state: "updated" })
         for (const one of [a, b]) {
-            expect(await section(one, "library")).toEqual({ autoUpdate: true, onA: true })
+            expect(await section(one, "library")).toEqual({ autoUpdate: true, onA: true, onB: true })
             expect(one.preferences.get("sea-volume")).toBe("\"1\"")
         }
     })
@@ -359,6 +362,132 @@ describe("two devices that changed different things between two syncs", () => {
         expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
         await a.engine.sync("manual")
         for (const one of [a, b]) expect((await (await one.db()).select().from(playlists)).map(row => [row.name, row.episodes])).toEqual([["Evening", [{ n: 1 }]]])
+    })
+})
+
+const looks = async (one: Phone) => (await (await one.db()).select().from(appearance))[0]?.content
+const setLooks = async (one: Phone, content: Record<string, unknown>) => {
+    await (await one.db()).insert(appearance).values({ id: 1, content, createdAt: clock, changedAt: clock })
+        .onConflictDoUpdate({ target: appearance.id, set: { content, changedAt: clock } })
+}
+const extensionValues = async (one: Phone) => (await (await one.db()).select().from(extensionUserConfigs))[0]?.values
+const setExtensionValues = async (one: Phone, values: Record<string, string>) => {
+    await (await one.db()).insert(extensionUserConfigs).values({ id: "ext-a", version: 1, values, origin: "core", changedAt: clock })
+        .onConflictDoUpdate({ target: extensionUserConfigs.id, set: { values, changedAt: clock } })
+}
+const PLAYER = "sea-video-core-settings"
+const TRACKS = "sea-player-track-memory"
+
+describe("C1: two devices change different fields of one row or one preference", () => {
+    it("the device test: the S22 turns one switch off, the tablet another of the same page; after S22, tablet, S22 both are off on both", async () => {
+        const { a: s22, b: tablet } = await pair(one => setLooks(one, { unwatchedCount: true, unreadCount: true, accent: "blue" }))
+        clock += 60_000
+        await setLooks(s22, { unwatchedCount: false, unreadCount: true, accent: "blue" })
+        clock += 60_000
+        await setLooks(tablet, { unwatchedCount: true, unreadCount: false, accent: "blue" })
+        expect(await s22.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+        expect(await tablet.engine.sync("manual")).toMatchObject({ state: "merged" })
+        expect(await s22.engine.sync("manual")).toMatchObject({ state: "updated" })
+        for (const one of [s22, tablet]) expect(await looks(one)).toEqual({ unwatchedCount: false, unreadCount: false, accent: "blue" })
+        for (const one of [s22, tablet]) expect(await one.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+    })
+
+    it("the same for a settings section, an extension's config and preferences that hold an object or a map, with a field removed", async () => {
+        const { a, b } = await pair(async one => {
+            await setSection(one, "library", { autoUpdate: false, scanOnStart: false })
+            await setExtensionValues(one, { language: "en", quality: "720" })
+            one.preferences.set(PLAYER, JSON.stringify({ autoSkip: false, subtitles: "off" }))
+            one.preferences.set(TRACKS, JSON.stringify({ 1: "en", 2: "de" }))
+        })
+        clock += 60_000
+        await setSection(a, "library", { autoUpdate: true, scanOnStart: false })
+        await setExtensionValues(a, { language: "de", quality: "720" })
+        a.preferences.set(PLAYER, JSON.stringify({ autoSkip: true, subtitles: "off" }))
+        a.preferences.set(TRACKS, JSON.stringify({ 1: "en", 2: "de", 3: "ja" }))
+        clock += 60_000
+        await setSection(b, "library", { autoUpdate: false, scanOnStart: true })
+        await setExtensionValues(b, { language: "en", quality: "1080" })
+        b.preferences.set(PLAYER, JSON.stringify({ autoSkip: false, subtitles: "on" }))
+        b.preferences.set(TRACKS, JSON.stringify({ 1: "en", 4: "fr" }))
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "updated" })
+        for (const one of [a, b]) {
+            expect(await section(one, "library")).toEqual({ autoUpdate: true, scanOnStart: true })
+            expect(await extensionValues(one)).toEqual({ language: "de", quality: "1080" })
+            expect(JSON.parse(one.preferences.get(PLAYER)!)).toEqual({ autoSkip: true, subtitles: "on" })
+            // A added 3, B removed 2 and added 4
+            expect(JSON.parse(one.preferences.get(TRACKS)!)).toEqual({ 1: "en", 3: "ja", 4: "fr" })
+        }
+        for (const one of [a, b]) expect(await one.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+        // the device that changed nothing keeps its preference's text as it was written
+        expect(a.preferences.get(PLAYER)).toBe(JSON.stringify({ autoSkip: true, subtitles: "on" }))
+    })
+
+    it("the same field changed on both: the later change wins; a row changed after another device removed it comes back whole", async () => {
+        const { a, b } = await pair(async one => {
+            await setLooks(one, { unwatchedCount: true, accent: "blue" })
+            await setExtensionValues(one, { language: "en", quality: "720" })
+            one.preferences.set(TRACKS, JSON.stringify({ 1: "en", 2: "de" }))
+        })
+        clock += 60_000
+        await setLooks(b, { unwatchedCount: false, accent: "blue" })
+        await (await b.db()).delete(extensionUserConfigs)
+        b.preferences.delete(TRACKS)
+        clock += 60_000
+        await setLooks(a, { unwatchedCount: true, accent: "red" })
+        await setExtensionValues(a, { language: "en", quality: "1080" })
+        a.preferences.set(TRACKS, JSON.stringify({ 1: "en", 2: "de", 3: "ja" }))
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "merged" })
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "updated" })
+        for (const one of [a, b]) {
+            expect(await looks(one)).toEqual({ unwatchedCount: false, accent: "red" })
+            expect(await extensionValues(one)).toEqual({ language: "en", quality: "1080" })
+            expect(one.preferences.get(TRACKS)).toBe(JSON.stringify({ 1: "en", 2: "de", 3: "ja" }))
+        }
+    })
+})
+
+describe("C3: the app's language belongs to the device", () => {
+    const LANGUAGE = "seanime-mobile-language"
+
+    it("is never sent, never taken by a merge or an import, and a ledger of an older build that knew it names no removal", async () => {
+        const { server, a, b } = await pair(async one => {
+            one.preferences.set(LANGUAGE, "\"de\"")
+            one.preferences.set("sea-theme", "\"dark\"")
+        })
+        expect(b.preferences.has(LANGUAGE)).toBe(false)
+        expect(b.preferences.get("sea-theme")).toBe("\"dark\"")
+        b.preferences.set(LANGUAGE, "\"en\"")
+        clock += 60_000
+        a.preferences.set(LANGUAGE, "\"ru\"")
+        a.preferences.set("sea-theme", "\"light\"")
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "updated" })
+        expect([a.preferences.get(LANGUAGE), b.preferences.get(LANGUAGE)]).toEqual(["\"ru\"", "\"en\""])
+        expect(b.preferences.get("sea-theme")).toBe("\"light\"")
+
+        // a package of an older build that still carries a language brings none
+        const old = await makePackage(a.environment, { appVersion: "4.2.0", preferences: { [LANGUAGE]: "\"ja\"" }, isDeviceKey })
+        upload(server, { ...old, stamps: { changed: { [`p/${LANGUAGE}`]: clock + 60_000 }, deleted: {} } })
+        await b.engine.sync("manual")
+        expect(b.preferences.get(LANGUAGE)).toBe("\"en\"")
+
+        // a device whose older build synced the language: after the update its ledger names no removal of it
+        const c = await phone(server, { imported: false })
+        c.useDeviceKeys(isDeviceKey)
+        c.preferences.set(LANGUAGE, "\"fr\"")
+        await c.engine.importFromAccount()
+        await c.engine.sync("manual")
+        expect(c.ledger()).toContain(`p/${LANGUAGE}`)
+        c.useDeviceKeys(isSyncDeviceKey)
+        clock += 60_000
+        c.preferences.set("sea-theme", "\"sepia\"")
+        expect(await c.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+        const sent = readPackage(new TextDecoder().decode(gunzipSync(sodiumOpen(server.blob!, server.version))))
+        expect(sent.preferences[LANGUAGE]).toBeUndefined()
+        expect(sent.stamps?.deleted[`p/${LANGUAGE}`]).toBeUndefined()
     })
 })
 
@@ -528,6 +657,7 @@ describe("whatever the devices do and in whatever order they sync", () => {
     const state = async (one: Phone) => ({
         playlists: await names(one),
         library: await section(one, "library"),
+        looks: await looks(one),
         preferences: Object.fromEntries([...one.preferences].sort()),
         files: [...one.files.keys()].sort(),
     })
@@ -548,7 +678,7 @@ describe("whatever the devices do and in whatever order they sync", () => {
                 // every third step happens in the same millisecond as the one before
                 if (roll(3) > 0) clock += 1 + roll(120_000)
                 const name = `list-${roll(4)}`
-                switch (roll(9)) {
+                switch (roll(12)) {
                     case 0: {
                         if (!(await names(one)).includes(name)) await (await one.db()).insert(playlists).values({ ...playlist(name), updatedAt: clock + (one === b ? 86_400_000 : one === c ? -86_400_000 : 0) })
                         break
@@ -566,6 +696,21 @@ describe("whatever the devices do and in whatever order they sync", () => {
                     case 6: {
                         if (roll(2)) one.secrets.set(DEBRID_KEY_SECRET, `key-${roll(3)}`)
                         else one.secrets.delete(DEBRID_KEY_SECRET)
+                        break
+                    }
+                    // C1: a field of one row and an entry of a map, changed or removed on any device
+                    case 7: {
+                        const content = { ...await looks(one) }
+                        if (roll(3) === 0) delete content[`f${roll(3)}`]
+                        else content[`f${roll(3)}`] = roll(4)
+                        await setLooks(one, content)
+                        break
+                    }
+                    case 8: {
+                        const map = JSON.parse(one.preferences.get(TRACKS) ?? "{}") as Record<string, number>
+                        if (roll(3) === 0) delete map[roll(4)]
+                        else map[roll(4)] = roll(3)
+                        one.preferences.set(TRACKS, JSON.stringify(map))
                         break
                     }
                     default: await one.engine.sync("manual")
@@ -607,11 +752,13 @@ describe("the change times a device keeps", () => {
             one.preferences.set("sea-server-auth-token", `"${jwt}"`)
             one.secrets.set(DEBRID_KEY_SECRET, "key")
         })
-        const SECRET = ["t/settings/torrent", "t/settings/library", "t/extensionConfigs/ext-a", "p/debrid-settings", "p/sea-server-auth-token", `s/${DEBRID_KEY_SECRET}`]
+        // each field of a settings section and of an extension's config is a part of its own (C1), with its row's place
+        const fields = ["t/settings/torrent\u001fdefaultTorrentClient", "t/settings/torrent\u001fqbittorrentPassword", "t/settings/library\u001fautoUpdate", "t/extensionConfigs/ext-a\u001fapiKey"]
+        const SECRET = ["t/settings/torrent", "t/settings/library", "t/extensionConfigs/ext-a", "p/debrid-settings", "p/sea-server-auth-token", `s/${DEBRID_KEY_SECRET}`, ...fields.map(key => `f/${key}`)]
         for (const one of [a, b]) {
             const open = Object.keys((JSON.parse(one.ledger()!) as { items: Record<string, unknown> }).items)
             expect(open).toEqual(expect.arrayContaining(["t/playlists/Evening", "p/sea-theme"]))
-            expect(open.filter(key => SECRET.includes(key) || /^(s\/|t\/(settings|extensionConfigs|torrentKept)\/)/.test(key))).toEqual([])
+            expect(open.filter(key => SECRET.includes(key) || /^(f\/)?(s\/|t\/(settings|extensionConfigs|torrentKept)\/)/.test(key))).toEqual([])
             const secured = Object.keys((JSON.parse(one.secrets.get("seanime-core-sync-ledger")!) as { items: Record<string, unknown> }).items)
             expect(secured.sort()).toEqual([...SECRET].sort())
         }

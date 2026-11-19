@@ -8,12 +8,12 @@ import { isDeviceKey } from "@/lib/app-backup-keys"
 import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { beforeAll, describe, expect, it } from "vitest"
 import { makeBackup } from "../backup/backup"
-import { extensionUserConfigs, settingsSections, watchPositions } from "../database/schema"
+import { appearance, extensionUserConfigs, settingsSections, watchPositions } from "../database/schema"
 import { DEBRID_KEY_SECRET } from "../debrid/debrid"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { NAKAMA_PASSWORD_SECRET } from "../nakama/guest"
 import { AccountCryptoError } from "./crypto"
-import { applyPackage, ledgerStamps, makePackage, mergePackages, openPackage, packageHash, readPackage, sealPackage, stampChanges } from "./package"
+import { applyPackage, ledgerStamps, makePackage, mergePackages, openPackage, packageHash, packageItems, readPackage, sealPackage, stampChanges } from "./package"
 import type { Sodium } from "./sodium"
 import { bytes, device as makeDevice, ready } from "./__fixtures__/harness"
 
@@ -170,6 +170,40 @@ describe("change times and removals", () => {
         expect(ledgerStamps(stampChanges(second, items({ a: "2" }), 300))).toEqual(ledgerStamps(second))
         // a device whose clock went back still orders its own changes
         expect(ledgerStamps(stampChanges(second, items({ a: "3", b: "1" }), 150))).toEqual({ changed: { "p/a": 201, "p/b": 201 }, deleted: {} })
+    })
+
+    it("C1: a ledger and a package of the row-wide form still count: an unchanged row keeps its time, the row's time stands for its fields", async () => {
+        const looks = async (content: Record<string, unknown>, changedAt: number, preferences: Record<string, string>) => {
+            const one = device(() => CLOCK)
+            await (await one.db()).insert(appearance).values({ id: 1, content, createdAt: CLOCK, changedAt })
+            return makePackage(one.environment, app(preferences))
+        }
+        const PLAYER = "sea-video-core-settings"
+        const pkg = await looks({ x: true, y: true }, 300, { [PLAYER]: "{\"a\":1,\"b\":1}" })
+        // the ledger of a build before field parts: one entry per row and per preference, hashed whole, at time 500
+        const whole = new Map<string, unknown>([["t/appearance/1", pkg.tables.appearance![0]], [`p/${PLAYER}`, pkg.preferences[PLAYER]]])
+        const legacy = { items: Object.fromEntries(Object.entries(stampChanges(null, whole, 0).items).map(([key, [hash]]) => [key, [hash, 500] as [number, number]])), deleted: {} }
+        const items = packageItems(pkg)
+        expect(items.size).toBeGreaterThan(whole.size)
+        // nothing changed: every part keeps the row's or the preference's time, nothing counts as removed
+        const settled = ledgerStamps(stampChanges(legacy, items, 9_000))
+        expect(new Set(Object.values(settled.changed))).toEqual(new Set([500]))
+        expect(settled.deleted).toEqual({})
+        // something changed since: the row-wide entry cannot tell which field, so all of that row count as changed, as before
+        const changed = await looks({ x: true, y: false }, 9_000, { [PLAYER]: "{\"a\":1,\"b\":1}" })
+        const after = ledgerStamps(stampChanges(legacy, packageItems(changed), 9_100)).changed
+        const field = (name: string) => Object.keys(after).find(key => key.startsWith("f/") && key.endsWith(name))!
+        expect([after[field("x")], after[field("y")], after[field("a")], after[field("b")]]).toEqual([9_000, 9_000, 500, 500])
+        // from then on the ledger holds the fields: the next change counts for its own field only
+        const next = stampChanges(stampChanges(legacy, packageItems(changed), 9_100), packageItems(await looks({ x: false, y: false }, 9_500, {})), 9_600)
+        expect([ledgerStamps(next).changed[field("x")], ledgerStamps(next).changed[field("y")]]).toEqual([9_500, 9_000])
+
+        // a package of the row-wide form: the row's time counts for each of its fields against the device's own field times
+        const mine = await looks({ x: false, y: true }, 900, {})
+        const mineItems = [...packageItems(mine).keys()]
+        const mineStamps = { changed: Object.fromEntries(mineItems.map(key => [key, key.endsWith("x") ? 900 : 100])), deleted: {} }
+        const theirs = { ...await looks({ x: true, y: false }, 800, {}), stamps: { changed: { "t/appearance/1": 800 }, deleted: {} } }
+        expect(mergePackages({ ...mine, stamps: mineStamps }, theirs).pkg.tables.appearance![0]).toMatchObject({ content: { x: false, y: false } })
     })
 
     it("a merge keeps two playlists of one name, and takes another device's playlist without its database number", async () => {

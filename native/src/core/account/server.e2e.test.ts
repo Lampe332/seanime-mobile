@@ -12,9 +12,9 @@ import path from "node:path"
 import { gunzipSync, gzipSync } from "fflate"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { sqlDriverFor } from "@/api/client/core-database"
-import { isDeviceKey } from "@/lib/app-backup-keys"
+import { isSyncDeviceKey } from "@/lib/app-backup-keys"
 import { openDatabaseSync } from "../../../test/expo-sqlite"
-import { playlists } from "../database/schema"
+import { appearance, playlists } from "../database/schema"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { createHmac } from "node:crypto"
 import { AccountClient, type HttpFetch, MailConfirmationError, RateLimitedError, type RequestSigner, UnauthorizedError } from "./client"
@@ -163,7 +163,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const local = coreLocalData(one.environment, {
             appVersion: "4.2.0",
             preferences: () => Object.fromEntries(one.preferences),
-            isDeviceKey,
+            isDeviceKey: isSyncDeviceKey,
             writePreferences: (preferences, removed) => {
                 for (const [key, value] of Object.entries(preferences)) one.preferences.set(key, value)
                 for (const key of removed) one.preferences.delete(key)
@@ -1178,6 +1178,39 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await fresh.engine.sync("manual")).toMatchObject({ state: "updated" })
         expect(await names(fresh)).toEqual(["Mine"])
         for (const device of [one, two, fresh]) expect(await device.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+    })
+
+    it("C1: two devices turn off two different switches of one page (one row) and a field each of a player preference: after S22, tablet, S22 both keep both", async () => {
+        const email = "c1-fields@example.org"
+        const PLAYER = "sea-video-core-settings"
+        const looks = async (one: ReturnType<typeof install>) => (await (await one.db()).select().from(appearance))[0]?.content
+        const setLooks = async (one: ReturnType<typeof install>, content: Record<string, unknown>) => {
+            await (await one.db()).insert(appearance).values({ id: 1, content, createdAt: clock, changedAt: clock })
+                .onConflictDoUpdate({ target: appearance.id, set: { content, changedAt: clock } })
+        }
+        const s22 = await accountWithData(email)
+        await setLooks(s22, { unwatchedCount: true, unreadCount: true })
+        s22.preferences.set(PLAYER, JSON.stringify({ autoSkip: false, subtitles: "off" }))
+        expect(await s22.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 2 })
+        const tablet = install()
+        await loginEmail(tablet.deps, { email, password: PASSWORD, deviceName: "Tablet" })
+        expect(await tablet.engine.importFromAccount()).toMatchObject({ state: "updated", version: 2 })
+
+        clock += 60_000
+        await setLooks(s22, { unwatchedCount: false, unreadCount: true })
+        s22.preferences.set(PLAYER, JSON.stringify({ autoSkip: true, subtitles: "off" }))
+        clock += 60_000
+        await setLooks(tablet, { unwatchedCount: true, unreadCount: false })
+        tablet.preferences.set(PLAYER, JSON.stringify({ autoSkip: false, subtitles: "on" }))
+        expect(await s22.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 3 })
+        expect(await tablet.engine.sync("manual")).toMatchObject({ state: "merged", version: 4 })
+        expect(await s22.engine.sync("manual")).toMatchObject({ state: "updated", version: 4 })
+        for (const device of [s22, tablet]) {
+            expect(await looks(device)).toEqual({ unwatchedCount: false, unreadCount: false })
+            expect(JSON.parse(device.preferences.get(PLAYER)!)).toEqual({ autoSkip: true, subtitles: "on" })
+            expect(await names(device)).toEqual(["Mine"])
+            expect(await device.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 4 })
+        }
     })
 
     it("F4: a device that does not trust the account's key gives its password again and the connection drops: it stays as it was, never signed in without the key", async () => {

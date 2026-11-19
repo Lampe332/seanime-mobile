@@ -17,7 +17,7 @@ import { accountApiBase, checkAccountUrl } from "@/lib/account/account-config"
 import { waitingRequests } from "@/lib/account/account-view"
 import { keystoreSignerStore } from "@/lib/account/keystore-signer"
 import { type AppStateName, type SyncClock, createSyncClock } from "@/lib/account/sync-clock"
-import { isDeviceKey } from "@/lib/app-backup-keys"
+import { isSyncDeviceKey } from "@/lib/app-backup-keys"
 import { appPreferences, writeAppPreferences, writeSafetyBackup } from "@/lib/app-backup"
 import { APP_VARIANT, APP_VARIANT_NAME } from "@/lib/app-variant"
 import { storage } from "@/lib/storage"
@@ -66,7 +66,7 @@ const engine = new SyncEngine({
     local: coreLocalData(corePackageEnvironment(), {
         appVersion: Application.nativeApplicationVersion ?? "",
         preferences: appPreferences,
-        isDeviceKey,
+        isDeviceKey: isSyncDeviceKey,
         writePreferences: writeAppPreferences,
         safetyBackup: writeSafetyBackup,
         // the change times of the synced parts (core/account/package.ts): this device's own, a device key of the store

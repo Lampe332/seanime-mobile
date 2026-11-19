@@ -203,9 +203,54 @@ const HOME = "t/homeItems"
 const SECRET_PART = "s/"
 const PREFERENCE_PART = "p/"
 
-const tableOf = (key: string) => key.split("/")[1]!
+/*
+ * Rows and preferences whose fields two devices change apart (a switch each on one settings page, an extension's
+ * config value, a player setting, an entry each in a map by media): each top-level field is its own part
+ * (`f/<row or preference key>\u001f<field>`), so one device's change of a field never undoes another device's change of
+ * another field (C1 of the device test). The row keeps its other columns as its own part (its changedAt changes with
+ * every field, so it is never older than its fields); a preference keeps the text "{}". A removed field is a removal
+ * like any other; a field goes with its row or preference when that is removed.
+ * Not split: rows and objects whose fields only make sense together (a mapping, a watch position, a playlist, a torrent
+ * the user kept, the autoplay state, the sandbox limits, …).
+ */
+const FIELD_COLUMNS: Partial<Record<RowTable, string>> = { settings: "content", appearance: "content", extensionConfigs: "values" }
+const FIELD_PREFERENCES = new Set([
+    "sea-video-core-settings",
+    "sea-video-core-keybindings",
+    "sea-media-core-preferences",
+    "sea-player-track-memory",
+    "sea-manga-resume-locations",
+    "sea-manga-entry-reader-settings",
+    "sea-manga-entry-provider",
+    "sea-manga-entry-filters",
+    "sea-onlinestream-provider-by-media",
+    "sea-onlinestream-dubbed-preference-by-media",
+    "sea-onlinestream-audio-track-preference-by-media",
+    "sea-onlinestream-subtitle-preference-by-media",
+    "sea-anime-spoilers-unhidden-media",
+])
+const FIELD_PART = "f/"
+const FIELD = "\u001f"
+/** What a split preference holds as its own part: its fields are parts of their own */
+const OBJECT = "{}"
 
-/** Every part of a package by its key: `t/<table>/<row key>`, `x/<extension file>`, `d/<disabled extension>`, `l/<list kind>`, `p/<preference>`, `s/<secret>` */
+const tableOf = (key: string) => key.split("/")[1]!
+const isField = (key: string) => key.startsWith(FIELD_PART)
+/** The row or preference a field part belongs to */
+const containerOf = (key: string) => key.slice(FIELD_PART.length, key.indexOf(FIELD))
+const fieldOf = (key: string) => key.slice(key.indexOf(FIELD) + 1)
+
+function objectIn(text: string): Json | null {
+    try {
+        const value: unknown = JSON.parse(text)
+        return isRecord(value) ? value : null
+    }
+    catch {
+        return null
+    }
+}
+
+/** Every part of a package by its key: `t/<table>/<row key>`, `x/<extension file>`, `d/<disabled extension>`, `l/<list kind>`, `p/<preference>`, `s/<secret>`, `f/<row or preference>\u001f<field>` */
 export function packageItems(pkg: SyncPackage): Map<string, unknown> {
     const items = new Map<string, unknown>()
     const put = (key: string, value: unknown) => {
@@ -213,17 +258,55 @@ export function packageItems(pkg: SyncPackage): Map<string, unknown> {
         let free = key
         for (let n = 2; items.has(free); n++) free = `${key}#${n}`
         items.set(free, value)
+        return free
+    }
+    const putFields = (container: string, fields: Json) => {
+        for (const [field, value] of Object.entries(fields)) items.set(FIELD_PART + container + FIELD + field, value)
     }
     for (const name of ROW_TABLES) {
-        for (const row of pkg.tables[name] ?? []) put(`t/${name}/${ROW_KEYS[name].map(column => String(row[column])).join("/")}`, row)
+        const column = FIELD_COLUMNS[name]
+        for (const row of pkg.tables[name] ?? []) {
+            const key = `t/${name}/${ROW_KEYS[name].map(column => String(row[column])).join("/")}`
+            const fields = column ? row[column] : undefined
+            if (!column || !isRecord(fields)) {
+                put(key, row)
+                continue
+            }
+            const { [column]: _fields, ...rest } = row
+            putFields(put(key, rest), fields)
+        }
     }
     if ((pkg.tables.homeItems?.length ?? 0) > 0) items.set(HOME, pkg.tables.homeItems)
     for (const [name, text] of Object.entries(pkg.extensions.files)) items.set(`x/${name}`, text)
     for (const id of pkg.extensions.disabled) items.set(`d/${id}`, true)
     for (const [kind, collection] of Object.entries(pkg.localLists ?? {})) items.set(`l/${kind}`, collection)
-    for (const [key, text] of Object.entries(pkg.preferences)) items.set(PREFERENCE_PART + key, text)
+    for (const [key, text] of Object.entries(pkg.preferences)) {
+        const fields = FIELD_PREFERENCES.has(key) ? objectIn(text) : null
+        items.set(PREFERENCE_PART + key, fields ? OBJECT : text)
+        if (fields) putFields(PREFERENCE_PART + key, fields)
+    }
     for (const [name, value] of Object.entries(pkg.secrets)) items.set(SECRET_PART + name, value)
     return items
+}
+
+/** The fields of each split row and preference among the parts, in their order */
+function fieldsByContainer(items: Map<string, unknown>): Map<string, Json> {
+    const fields = new Map<string, Json>()
+    for (const [key, value] of items) {
+        if (!isField(key)) continue
+        const container = containerOf(key)
+        const into = fields.get(container) ?? {}
+        into[fieldOf(key)] = value
+        fields.set(container, into)
+    }
+    return fields
+}
+
+/** A row or preference with its field parts put back (as the device's database or store holds it); any other part as it is */
+function wholeOf(key: string, value: unknown, fields: Json = {}): unknown {
+    if (key.startsWith(PREFERENCE_PART)) return FIELD_PREFERENCES.has(key.slice(PREFERENCE_PART.length)) && value === OBJECT ? JSON.stringify(fields) : value
+    const column = key.startsWith("t/") ? FIELD_COLUMNS[tableOf(key) as RowTable] : undefined
+    return column && isRecord(value) && value[column] === undefined ? { ...value, [column]: fields } : value
 }
 
 /** `base` with the given parts as its whole content */
@@ -235,14 +318,15 @@ function packageFrom(base: SyncPackage, items: Map<string, unknown>, stamps: Sta
     const lists: Record<string, unknown> = {}
     const preferences: Record<string, string> = {}
     const secrets: Record<string, string> = {}
+    const fields = fieldsByContainer(items)
     for (const [key, value] of items) {
         const name = key.slice(2)
-        if (key === HOME) continue
-        if (key.startsWith("t/")) tables[tableOf(key) as RowTable]!.push(value as Json)
+        if (key === HOME || isField(key)) continue
+        if (key.startsWith("t/")) tables[tableOf(key) as RowTable]!.push(wholeOf(key, value, fields.get(key)) as Json)
         else if (key.startsWith("x/")) files[name] = value as string
         else if (key.startsWith("d/")) disabled.push(name)
         else if (key.startsWith("l/")) lists[name] = value
-        else if (key.startsWith(PREFERENCE_PART)) preferences[name] = value as string
+        else if (key.startsWith(PREFERENCE_PART)) preferences[name] = wholeOf(key, value, fields.get(key)) as string
         else if (key.startsWith(SECRET_PART)) secrets[name] = value as string
     }
     return {
@@ -271,10 +355,19 @@ function ownTime(key: string, value: unknown): number {
     return typeof time === "number" && Number.isFinite(time) ? time : 0
 }
 
-/** The change times of a package's parts: its stamps, and for a package without them the rows' own times */
+/** The time a part carries itself: a row's own, for a field its row's */
+function timeOf(key: string, items: Map<string, unknown>): number {
+    const row = isField(key) ? containerOf(key) : key
+    return ownTime(row, items.get(row))
+}
+
+/**
+ * The change times of a package's parts: its stamps, and for a package without them the rows' own times. A package of
+ * a build before field parts stamped the row or preference: its time counts for each of its fields.
+ */
 function stampsOf(pkg: SyncPackage, items = packageItems(pkg)): Stamps {
     const changed: Record<string, number> = {}
-    for (const [key, value] of items) changed[key] = pkg.stamps?.changed[key] ?? ownTime(key, value)
+    for (const key of items.keys()) changed[key] = pkg.stamps?.changed[key] ?? (isField(key) ? pkg.stamps?.changed[containerOf(key)] : undefined) ?? timeOf(key, items)
     const deleted = Object.fromEntries(Object.entries(pkg.stamps?.deleted ?? {}).filter(([key]) => !items.has(key)))
     return { changed, deleted }
 }
@@ -303,9 +396,24 @@ function hashOf(text: string): number {
  * `settling`: the times of a package whose applying was cut short before its ledger was written (sync.ts). A part
  * that differs from the ledger came from that package and keeps its time; a part the package brings or removes and
  * the device lacks counts as no removal of the device. Nothing of it is a change made here.
+ * A ledger of a build before field parts hashed a split row or preference whole: while that still matches, the row,
+ * the preference and their fields keep its time; when it no longer does, which field changed is unknown and all count.
+ * A field goes with its row or preference: no removal of its own when they are gone.
  */
 export function stampChanges(before: Ledger | null, items: Map<string, unknown>, now: number, settling?: Stamps): Ledger {
     const ledger: Ledger = { items: {}, deleted: {} }
+    const fields = fieldsByContainer(items)
+    const wholeKnown = new Map<string, [number, number] | undefined>()
+    /** The ledger's entry of a split row or preference when it is of the old form and still matches the whole of it */
+    const unchangedWhole = (container: string) => {
+        if (!wholeKnown.has(container)) {
+            const known = before?.items[container]
+            const value = items.get(container)
+            const whole = wholeOf(container, value, fields.get(container))
+            wholeKnown.set(container, known && whole !== value && known[0] === hashOf(contentOf(container, whole)) ? known : undefined)
+        }
+        return wholeKnown.get(container)
+    }
     for (const [key, value] of items) {
         const hash = hashOf(contentOf(key, value))
         const known = before?.items[key]
@@ -313,22 +421,29 @@ export function stampChanges(before: Ledger | null, items: Map<string, unknown>,
             ledger.items[key] = known
             continue
         }
+        const container = isField(key) ? containerOf(key) : key
+        const whole = !known || container === key ? unchangedWhole(container) : undefined
+        if (whole) {
+            ledger.items[key] = [hash, whole[1]]
+            continue
+        }
         const brought = settling?.changed[key]
         if (typeof brought === "number") {
             ledger.items[key] = [hash, brought]
             continue
         }
-        const own = ownTime(key, value)
+        const own = timeOf(key, items)
         if (!before) {
             ledger.items[key] = [hash, own]
             continue
         }
-        const last = Math.max(known?.[1] ?? 0, before.deleted[key] ?? 0)
+        const last = Math.max(known?.[1] ?? before.items[container]?.[1] ?? 0, before.deleted[key] ?? 0)
         ledger.items[key] = [hash, own > last && own <= now ? own : Math.max(now, last + 1)]
     }
-    for (const [key, time] of Object.entries(before?.deleted ?? {})) if (!items.has(key)) ledger.deleted[key] = time
+    const goneWithItsRow = (key: string) => isField(key) && !items.has(containerOf(key))
+    for (const [key, time] of Object.entries(before?.deleted ?? {})) if (!items.has(key) && !goneWithItsRow(key)) ledger.deleted[key] = time
     for (const [key, known] of Object.entries(before?.items ?? {})) {
-        if (items.has(key)) continue
+        if (items.has(key) || goneWithItsRow(key)) continue
         const removed = settling?.deleted[key]
         if (typeof removed === "number") ledger.deleted[key] = removed
         else if (typeof settling?.changed[key] !== "number") ledger.deleted[key] = Math.max(now, known[1] + 1)
@@ -342,7 +457,7 @@ export function settledLedger(before: Ledger | null, items: Map<string, unknown>
     for (const [key, value] of items) {
         const hash = hashOf(contentOf(key, value))
         const known = before?.items[key]
-        ledger.items[key] = [hash, stamps.changed[key] ?? (known && known[0] === hash ? known[1] : ownTime(key, value))]
+        ledger.items[key] = [hash, stamps.changed[key] ?? (known && known[0] === hash ? known[1] : timeOf(key, items))]
     }
     for (const [key, time] of Object.entries(stamps.deleted)) if (!items.has(key)) ledger.deleted[key] = time
     return ledger
@@ -367,6 +482,10 @@ export function ledgerStamps(ledger: Ledger): Stamps {
 /** Whether a part may hold a password, key or token: the device keeps its ledger entry in the secured storage (sync.ts) */
 export function mayHoldSecret(key: string, value?: unknown): boolean {
     if (key.startsWith(SECRET_PART)) return true
+    if (isField(key)) {
+        const container = containerOf(key)
+        return container.startsWith("t/") ? mayHoldSecret(container) : mayHoldSecret(container, JSON.stringify({ [fieldOf(key)]: value }))
+    }
     if (key.startsWith("t/")) return tableOf(key) in SECRET_TABLES
     if (!key.startsWith(PREFERENCE_PART) || typeof value !== "string") return false
     const name = key.slice(PREFERENCE_PART.length)
@@ -394,12 +513,14 @@ export type MergedPackage = {
  * counts as the newer one from then on, so every device settles on the same part.
  * A secret is never removed from a device by another device's removal, and the device that removed it does not take it
  * back either: each keeps its own state of it, and neither sends it to the other again.
+ * Fields (split rows and preferences) merge one by one where both devices hold their row; a row only one device holds
+ * after the merge (made there, or changed there after the other removed it) comes with that device's fields as they are.
  */
 export function mergePackages(local: SyncPackage, remote: SyncPackage): MergedPackage {
     const mine = packageItems(local)
     const theirs = packageItems(remote)
-    const myStamps = stampsOf(local, mine)
-    const theirStamps = stampsOf(remote, theirs)
+    const myStamps = lifted(stampsOf(local, mine), mine)
+    const theirStamps = lifted(stampsOf(remote, theirs), theirs)
     const items = new Map<string, unknown>()
     const stamps: Stamps = { changed: {}, deleted: {} }
     let ahead = false
@@ -409,7 +530,23 @@ export function mergePackages(local: SyncPackage, remote: SyncPackage): MergedPa
     }
     /** The time of a part or removal of the device that stays against the account's */
     const won = (myTime: number, theirTime: number | undefined) => theirTime !== undefined && theirTime >= myTime ? theirTime + 1 : myTime
-    for (const key of new Set([...mine.keys(), ...theirs.keys(), ...Object.keys(myStamps.deleted), ...Object.keys(theirStamps.deleted)])) {
+    const keys = new Set([...mine.keys(), ...theirs.keys(), ...Object.keys(myStamps.deleted), ...Object.keys(theirStamps.deleted)])
+    for (const key of keys) if (!isField(key)) mergePart(key)
+    for (const key of keys) {
+        if (!isField(key)) continue
+        const container = containerOf(key)
+        if (!items.has(container)) continue
+        const [here, there] = [mine.has(container), theirs.has(container)]
+        if (here && there) mergePart(key)
+        else {
+            const [side, sideStamps] = here ? [mine, myStamps] : [theirs, theirStamps]
+            if (side.has(key)) keep(key, side.get(key), sideStamps.changed[key]!)
+            else if (sideStamps.deleted[key] !== undefined) stamps.deleted[key] = sideStamps.deleted[key]
+        }
+    }
+    return { pkg: packageFrom(local, items, stamps), ahead }
+
+    function mergePart(key: string) {
         const here = mine.has(key)
         const there = theirs.has(key)
         const secret = key.startsWith(SECRET_PART)
@@ -447,7 +584,19 @@ export function mergePackages(local: SyncPackage, remote: SyncPackage): MergedPa
             if (theirTime === undefined && !secret) ahead = true
         }
     }
-    return { pkg: packageFrom(local, items, stamps), ahead }
+}
+
+/**
+ * A split row's or preference's time is the newest of its own and its fields': a field changed after another device
+ * removed its row or preference brings it back. (A row's own changedAt already does this; a preference's "{}" does not.)
+ */
+function lifted(stamps: Stamps, items: Map<string, unknown>): Stamps {
+    const changed = { ...stamps.changed }
+    for (const key of items.keys()) {
+        const container = isField(key) ? containerOf(key) : undefined
+        if (container !== undefined && items.has(container)) changed[container] = Math.max(changed[container]!, changed[key]!)
+    }
+    return { changed, deleted: stamps.deleted }
 }
 
 /** Another device's row for this device: with the number this device's own row has, or none (the database gives one) */
@@ -458,10 +607,14 @@ function withOwnNumber(key: string, row: unknown, mine: unknown): unknown {
     return isRecord(mine) && mine[own] !== undefined ? { ...content, [own]: mine[own] } : content
 }
 
-/** The device's row that won, with the passwords and keys only the other device's row has */
+/** The device's row (or field of a row) that won, with the passwords and keys only the other device's has */
 function withSecretsFilled(key: string, mine: unknown, theirs: unknown): unknown {
-    const column = key.startsWith("t/") ? (SECRET_TABLES as Record<string, { column: string } | undefined>)[tableOf(key)]?.column : undefined
-    if (!column || !isRecord(mine) || !isRecord(theirs)) return mine
+    const row = isField(key) ? containerOf(key) : key
+    const column = row.startsWith("t/") ? (SECRET_TABLES as Record<string, { column: string } | undefined>)[tableOf(row)]?.column : undefined
+    if (!column) return mine
+    if (row !== key) return fillSecrets(mine, theirs)
+    // a split row's column lies in its field parts
+    if (!isRecord(mine) || !isRecord(theirs) || mine[column] === undefined) return mine
     return { ...mine, [column]: fillSecrets(mine[column], theirs[column]) }
 }
 
@@ -500,7 +653,8 @@ export type AppliedPackage = {
  */
 export async function applyPackage(environment: PackageEnvironment, pkg: SyncPackage, mode: RestoreMode, current: { preferences: Record<string, string>, isDeviceKey: (key: string) => boolean, stamps?: Stamps }, beforeWriting?: (stamps: Stamps) => Promise<void>): Promise<AppliedPackage> {
     if (!environment.keepSecret) throw new Error("the secured storage cannot be written here")
-    let wanted = withoutDeviceTables(pkg)
+    // the device's own preferences (its language, C3) are never taken from a package, also not from an older build's
+    let wanted = { ...withoutDeviceTables(pkg), preferences: packagePreferences(pkg.preferences, current.isDeviceKey) }
     let ahead = false
     if (mode === "merge") {
         const mine = await makePackage(environment, { appVersion: pkg.appVersion, preferences: current.preferences, isDeviceKey: current.isDeviceKey })

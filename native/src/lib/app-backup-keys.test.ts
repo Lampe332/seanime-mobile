@@ -1,7 +1,7 @@
 // geschrieben nach: lib/app-backup-keys.ts; Werte erfunden, keine Anfrage verlässt den Test
 
 import { describe, expect, it } from "vitest"
-import { isDeviceKey, withoutDeviceKeys } from "./app-backup-keys"
+import { isDeviceKey, isSyncDeviceKey, withoutDeviceKeys } from "./app-backup-keys"
 
 describe("the keys a backup may carry", () => {
     it("keeps the user's choices", () => {
@@ -28,6 +28,13 @@ describe("the keys a backup may carry", () => {
             "seanime-mobile-anilist-user": "\"someone\"",
         }
         expect(withoutDeviceKeys(fromFile)).toEqual({ "seanime-mobile-language": "\"en\"" })
+    })
+
+    it("the app's language travels in the file backup, never in the account's sync", () => {
+        expect(isDeviceKey("seanime-mobile-language")).toBe(false)
+        expect(isSyncDeviceKey("seanime-mobile-language")).toBe(true)
+        expect(isSyncDeviceKey("seanime-client-id")).toBe(true)
+        expect(isSyncDeviceKey("marketplace-url")).toBe(false)
     })
 
     it("matches whole names only where the list says so", () => {

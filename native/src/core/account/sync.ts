@@ -97,7 +97,7 @@ export interface LocalData {
 export function coreLocalData(environment: PackageEnvironment, app: {
     appVersion: string
     preferences: () => Record<string, string>
-    /** lib/app-backup-keys.ts isDeviceKey */
+    /** lib/app-backup-keys.ts isSyncDeviceKey: the file backup's device keys and the app's language */
     isDeviceKey: (key: string) => boolean
     /** Writes `preferences` into the app's store and takes the `removed` keys out of it */
     writePreferences: (preferences: Record<string, string>, removed: string[]) => void
@@ -116,7 +116,10 @@ export function coreLocalData(environment: PackageEnvironment, app: {
     const readLedger = async (account: string): Promise<Ledger | null> => {
         const parts = [await app.ledger.read(), await environment.secret(SECRET_LEDGER)].map(text => parseLedger(text, account))
         if (!parts[0]) return null
-        return { items: { ...parts[0].items, ...parts[1]?.items }, deleted: { ...parts[0].deleted, ...parts[1]?.deleted } }
+        // a preference that belongs to the device (the app's language since C3) has no time here: the entry an older build
+        // kept for it names no removal (package.ts packageItems: a preference's part is "p/<key>")
+        const synced = <T>(record: Record<string, T>) => Object.fromEntries(Object.entries(record).filter(([key]) => !(key.startsWith("p/") && app.isDeviceKey(key.slice(2)))))
+        return { items: synced({ ...parts[0].items, ...parts[1]?.items }), deleted: synced({ ...parts[0].deleted, ...parts[1]?.deleted }) }
     }
     /** `items`: the device's parts the ledger was made from (their content tells which of them may hold a secret) */
     const writeLedger = async (account: string, ledger: Ledger, items: Map<string, unknown>): Promise<void> => {

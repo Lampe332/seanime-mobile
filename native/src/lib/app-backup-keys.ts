@@ -23,6 +23,17 @@ export function isDeviceKey(key: string): boolean {
     return DEVICE_KEYS.some(pattern => pattern.test(key))
 }
 
+/**
+ * Keys the account's sync keeps on each device although a file backup carries them: the app's language is chosen per
+ * device (a tablet set to German must not switch the phone). The file backup is the user's own step and keeps it.
+ */
+const SYNC_DEVICE_KEYS = [/^seanime-mobile-language$/]
+
+/** isDeviceKey for the account's sync (account-app.ts): what never goes into a sync package and is never taken from one */
+export function isSyncDeviceKey(key: string): boolean {
+    return isDeviceKey(key) || SYNC_DEVICE_KEYS.some(pattern => pattern.test(key))
+}
+
 /** The preferences without the device's own keys: what a backup takes along and what a restore may write */
 export function withoutDeviceKeys(preferences: Record<string, string>): Record<string, string> {
     return Object.fromEntries(Object.entries(preferences).filter(([key]) => !isDeviceKey(key)))
