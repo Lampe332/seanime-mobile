@@ -54,6 +54,18 @@ export function resolutionLabel(text: string | undefined): string {
     return height ? `${Number(height[1])}p` : ""
 }
 
+/**
+ * The seeder icon's box for a text line of `fontSize` on `lineHeight` (4.2.0 E: at 15 dp beside 13 dp text its bars were
+ * a dot). Lucide's signal bars stand in the lower half of the icon (y 8 to 20 of 24), so the full bar is half the box: the
+ * box is twice the cap height (about 0.73 em), and `top` moves it so the bars stand on the text's baseline (about 0.5 of
+ * the leading plus 0.97 em down the line, Inter's ascent).
+ */
+export function seedIconBox(fontSize: number, lineHeight: number): { size: number, top: number } {
+    const size = Math.round(fontSize * 0.73 * 2)
+    const baseline = (lineHeight - fontSize * 1.21) / 2 + fontSize * 0.97
+    return { size, top: Math.round(baseline - size * 20 / 24) }
+}
+
 /** Binary units like the providers write them: "1.4 GiB", "700 MiB"; "" for an unknown size (0) */
 export function sizeText(bytes: number): string {
     if (!(bytes > 0)) return ""

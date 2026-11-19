@@ -11,6 +11,7 @@ import {
     headParts,
     magnetLinkOf,
     type SeedHealth,
+    seedIconBox,
     torrentFacts,
     whole,
 } from "@/main/entry/_containers/torrent-search/_lib/torrent-facts"
@@ -49,6 +50,9 @@ const HEALTH: Record<SeedHealth, { Icon: typeof SignalHigh, color: string }> = {
 }
 
 const DIGITS = { fontVariant: ["tabular-nums"] } as const
+
+/** The seeder icon sized to the flow line beside it (13 dp on 18 dp), its bars on the text's baseline (4.2.0 E) */
+const SEED_ICON = seedIconBox(13, 18)
 
 /** The copy button's 48 dp around the 20 dp head row: 14 dp up into the card's top padding and down beside the name */
 const COPY_PLACE = { marginVertical: -14 } as const
@@ -134,7 +138,7 @@ export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t,
             {hasHead && <Text numberOfLines={2} className={cn("text-[13px] leading-[18px] text-sm-text-subtle", hasMagnet && "pr-3")}>{name}</Text>}
             {/* numbers and tags flow as one text, each fact whole; the icon stands at the first line */}
             <View className={cn("flex-row items-start gap-1.5", hasMagnet && "pr-3")}>
-                <View className="h-[18px] justify-center"><Icon size={15} color={color} strokeWidth={2.5} /></View>
+                <View className="h-[18px]"><Icon size={SEED_ICON.size} color={color} strokeWidth={2.5} style={{ marginTop: SEED_ICON.top }} /></View>
                 <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-sm-text-muted" style={DIGITS}>
                     {/* "Best match" leads the flow instead of a row of its own: the one card is a line shorter */}
                     {best && <Text className="text-[13px] font-semibold leading-[18px] text-sm-accent">{`★ ${whole(marks[0]!)}`}</Text>}

@@ -13,6 +13,7 @@ import {
     factsSentence,
     resolutionLabel,
     seedHealth,
+    seedIconBox,
     sizeText,
     torrentFacts,
     torrentKey,
@@ -143,6 +144,15 @@ describe("torrentFacts", () => {
     it("keeps each fact on one line when the line wraps", () => {
         const facts = torrentFacts(torrent(SUBSPLEASE), read(SUBSPLEASE), en, "en", { provider: "Internet Archive", now: NOW })
         expect(factsLineWrapped(facts)).toBe("332 seeders · 18 leechers · 1.4 GiB · 3 days ago · Internet Archive")
+    })
+
+    it("sizes the seeder icon to its text line: the full bar as tall as a capital, standing on the baseline (4.2.0 E)", () => {
+        const { size, top } = seedIconBox(13, 18)
+        expect(size).toBe(19)
+        // the full bar (half the box) is at least the cap height of 13 dp text; the old 15 dp box gave 7.5 dp
+        expect(size / 2).toBeGreaterThanOrEqual(13 * 0.7)
+        // the bars' foot (y 20 of 24) on the baseline, about 13.7 dp down the 18 dp line
+        expect(top + size * 20 / 24).toBeCloseTo(13.7, 0)
     })
 
     it("grades the seeders: none red, under 10 yellow, from 10 green", () => {
