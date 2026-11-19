@@ -6,10 +6,12 @@ import { sqlDriverFor } from "@/api/client/core-database"
 import { isDeviceKey } from "@/lib/app-backup-keys"
 import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { beforeAll, describe, expect, it } from "vitest"
-import { playlists, watchPositions } from "../database/schema"
+import { anilistChanges, playlists, watchPositions } from "../database/schema"
 import { AccountApiError, ConflictError, type Snapshot, type SyncMeta } from "./client"
 import { AccountSession } from "./session"
 import type { Sodium } from "./sodium"
+import { decryptPackage } from "./crypto"
+import { applyPackage, makePackage, readPackage } from "./package"
 import { SYNC_INTERVAL_MS, type SyncApi, SyncEngine, coreLocalData } from "./sync"
 import { bytes, device, memoryStore, ready } from "./__fixtures__/harness"
 
@@ -48,6 +50,9 @@ class FakeServer implements SyncApi {
         return { version: this.version, size: bytes.length, updatedAt: 0 }
     }
 }
+
+/** The plaintext (still gzipped) of a package on the fake server */
+const sodiumOpen = (blob: Uint8Array, version: number) => decryptPackage(sodium, blob, bytes(32, 40), { userId: USER, version, dekId: DEK_ID })
 
 let clock = Date.parse("2026-11-17T10:00:00.000Z")
 
@@ -139,6 +144,48 @@ describe("sync engine", () => {
         expect(await a.engine.sync("manual")).toMatchObject({ state: "updated", version: 3 })
         expect((await (await a.db()).select().from(playlists)).map(row => row.name).sort()).toEqual(["From A", "From B"])
         expect((await (await a.db()).select().from(watchPositions))[0]).toMatchObject({ episodeNumber: 3, positionSeconds: 99 })
+    })
+
+    it("the changes waiting for AniList stay on the device that made them: never uploaded, never taken from the account", async () => {
+        const server = new FakeServer()
+        const waiting = (mediaId: number, progress: number) => ({ account: "5", mediaId, kind: "ANIME", action: "update", change: { progress }, createdAt: clock, changedAt: clock })
+        const queue = async (one: { db: () => Promise<any> }) => (await (await one.db()).select().from(anilistChanges)).map((row: { mediaId: number, change: unknown }) => [row.mediaId, row.change])
+        const a = await phone(server, { imported: true })
+        await (await a.db()).insert(anilistChanges).values(waiting(7, 3))
+        expect(await a.engine.sync("start")).toMatchObject({ state: "uploaded", version: 1 })
+        expect(new TextDecoder().decode(gzip.gunzip(sodiumOpen(server.blob!, 1)))).not.toContain("waitingChanges")
+
+        // import and "newer package, nothing changed here": B's own queue stays, A's never arrives
+        const b = await phone(server, { imported: false })
+        await (await b.db()).insert(anilistChanges).values(waiting(9, 1))
+        await b.engine.importFromAccount()
+        expect(await queue(b)).toEqual([[9, { progress: 1 }]])
+        await (await a.db()).insert(playlists).values(playlist("From A"))
+        await a.engine.sync("manual")
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "updated" })
+        expect(await queue(b)).toEqual([[9, { progress: 1 }]])
+
+        // merge on both sides: no change is doubled or carried over, and a change in the queue alone is no upload
+        await (await a.db()).insert(playlists).values(playlist("A again"))
+        await (await b.db()).insert(playlists).values(playlist("B again"))
+        await a.engine.sync("manual")
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
+        expect(await queue(b)).toEqual([[9, { progress: 1 }]])
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "updated" })
+        expect(await queue(a)).toEqual([[7, { progress: 3 }]])
+        await (await a.db()).insert(anilistChanges).values(waiting(8, 2))
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+    })
+
+    it("a package of an older build that still carries waiting changes brings none onto the device", async () => {
+        const one = await phone(new FakeServer(), { imported: true })
+        const old = { ...await makePackage(one.environment, { appVersion: "4.2.0", preferences: {}, isDeviceKey }) }
+        old.tables = { ...old.tables, waitingChanges: [{ id: 1, account: "5", mediaId: 7, kind: "ANIME", action: "update", change: { progress: 1 }, attempts: 0, lastError: null, createdAt: clock, changedAt: clock }] }
+        const two = await phone(new FakeServer(), { imported: true })
+        for (const mode of ["replace", "merge"] as const) {
+            await applyPackage(two.environment, readPackage(JSON.stringify(old)), mode, { preferences: {}, isDeviceKey })
+            expect(await (await two.db()).select().from(anilistChanges)).toEqual([])
+        }
     })
 
     it("409 on upload: another device was faster between meta and upload", async () => {

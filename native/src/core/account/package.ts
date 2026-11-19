@@ -1,7 +1,7 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitte 3, 5, 6.5, 6.6), core/backup/backup.ts (makeBackup, readBackup, restoreBackup, withoutSecrets, preferencesWithoutSecrets) und lib/app-backup-keys.ts (isDeviceKey, von der App hereingereicht)
 
 import { eq } from "drizzle-orm"
-import { type BackupFile, type RestoreMode, makeBackup, readBackup, restoreBackup, withoutSecrets } from "../backup/backup"
+import { type BackupFile, type BackupTable, type RestoreMode, makeBackup, readBackup, restoreBackup, withoutSecrets } from "../backup/backup"
 import { type CoreDatabase, inOrder } from "../database/database"
 import { extensionUserConfigs, settingsSections, torrentKept, watchPositions } from "../database/schema"
 import { DEBRID_KEY_SECRET } from "../debrid/debrid"
@@ -29,7 +29,9 @@ import type { Sodium } from "./sodium"
  * 3. App preferences that `preferencesWithoutSecrets` drops (a key named like a secret, a JWT value, secret JSON fields).
  *
  * Never in the package: the device's own keys (the app's isDeviceKey, lib/app-backup-keys.ts), the account's own keys
- * and session (isAccountKey, session.ts; they live only in the secured storage), downloads.
+ * and session (isAccountKey, session.ts; they live only in the secured storage), downloads, and the changes still
+ * waiting for AniList (DEVICE_TABLES): each device sends its own, so nothing reaches AniList twice or from a device the
+ * user did not act on. The file backup keeps them (a restore is the user's own step on that device).
  *
  * The core imports no package (core.test.ts): gzip (fflate) and isDeviceKey come from the app, like libsodium.
  */
@@ -53,6 +55,15 @@ const SECRET_TABLES = {
 } as const
 type SecretTable = keyof typeof SECRET_TABLES
 
+/** Tables of the backup that stay on the device: never put into a package, never taken from one (also not an older build's) */
+const DEVICE_TABLES = ["waitingChanges"] as const satisfies readonly BackupTable[]
+
+function withoutDeviceTables<T extends BackupFile>(file: T): T {
+    const tables = { ...file.tables }
+    for (const name of DEVICE_TABLES) delete tables[name]
+    return { ...file, tables }
+}
+
 export type SyncPackage = BackupFile & {
     /** Values of the secured storage (SYNCED_SECRETS), by name */
     secrets: Record<string, string>
@@ -72,7 +83,7 @@ async function rawRows(database: CoreDatabase, name: SecretTable): Promise<Json[
 
 /** The package of this device: the backup, its stripped columns with their secrets, the preferences and the secured storage */
 export async function makePackage(environment: PackageEnvironment, app: AppSide): Promise<SyncPackage> {
-    const file = await makeBackup(environment, { appVersion: app.appVersion, preferences: app.preferences })
+    const file = withoutDeviceTables(await makeBackup(environment, { appVersion: app.appVersion, preferences: app.preferences }))
     const database = await environment.database()
     for (const name of Object.keys(SECRET_TABLES) as SecretTable[]) file.tables[name] = await rawRows(database, name)
     const secrets: Record<string, string> = {}
@@ -117,7 +128,7 @@ export function readPackage(text: string): SyncPackage {
             if (typeof value === "string" && value !== "") secrets[name] = value
         }
     }
-    return { ...file, preferences: packagePreferences(file.preferences, () => false), secrets }
+    return { ...withoutDeviceTables(file), preferences: packagePreferences(file.preferences, () => false), secrets }
 }
 
 /* ---- Applying a package ---- */
@@ -175,6 +186,7 @@ async function newerWatchPositions(database: CoreDatabase, pkg: SyncPackage): Pr
  */
 export async function applyPackage(environment: PackageEnvironment, pkg: SyncPackage, mode: RestoreMode, current: { preferences: Record<string, string>, isDeviceKey: (key: string) => boolean }): Promise<{ preferences: Record<string, string> }> {
     if (!environment.keepSecret) throw new Error("the secured storage cannot be written here")
+    pkg = withoutDeviceTables(pkg)
     await restoreBackup(environment, pkg, mode, { preferences: current.preferences })
     const database = await environment.database()
     await applySecretColumns(database, pkg, mode)
