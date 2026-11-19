@@ -11,8 +11,9 @@ import { streamStartError } from "@/main/_features/native-player/stream-start-er
 import { useQueryClient } from "@tanstack/react-query"
 import { useAtom, useSetAtom } from "jotai"
 import React from "react"
-import { player_miniAtom, player_offlineItemAtom } from "./player.atoms"
+import { player_miniAtom, player_offlineItemAtom, player_torrentStateAtom } from "./player.atoms"
 import { PlayerScreen } from "./player-screen"
+import { heardStreamState, offersOtherTorrent } from "./torrent-stream-state"
 import { useGetMobileOfflineSnapshot, useMobileOfflinePosition } from "@/api/hooks/mobile_offline.hooks"
 import { followingEpisode } from "@/main/android-downloads/_lib/offline-library"
 import { offlinePlayback, offlinePlaybackInfo } from "@/main/android-downloads/_lib/offline-playback"
@@ -62,11 +63,22 @@ export function NativePlayer() {
         qc.invalidateQueries({ queryKey: [API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistoryItem.key] })
     }, [state, qc])
 
+    const setTorrentState = useSetAtom(player_torrentStateAtom)
     const reset = React.useCallback(() => {
         if (abortTimer.current) clearTimeout(abortTimer.current)
         setState(nativePlayer_initialState)
         setMini(false)
-    }, [setState, setMini])
+        setTorrentState(null)
+    }, [setState, setMini, setTorrentState])
+
+    // the core's torrent state, once per second while a torrent stream starts and plays (the loading screen's numbers)
+    useWebsocketMessageListener({
+        type: WSEvents.TORRENTSTREAM_STATE,
+        onMessage: (payload: unknown) => {
+            const heard = heardStreamState(payload, Date.now())
+            if (heard) setTorrentState(heard)
+        },
+    })
 
     useWebsocketMessageListener({
         type: WSEvents.NATIVE_PLAYER,
@@ -75,7 +87,11 @@ export function NativePlayer() {
                 case "open-and-await":
                     log.info("Open and await", payload)
                     if (abortTimer.current) clearTimeout(abortTimer.current)
-                    if (!activeRef.current) setMini(false)
+                    if (!activeRef.current) {
+                        setMini(false)
+                        // a new stream: nothing of an earlier torrent's numbers
+                        setTorrentState(null)
+                    }
                     // a server stream replaces an offline episode or an online stream
                     setOfflineItem(null)
                     endOnline()
@@ -97,8 +113,9 @@ export function NativePlayer() {
                         draft.playbackError = payload as string
                         draft.playbackInfo = null
                     })
-                    // the error stays readable for a moment, then the player closes (web: 3 s)
-                    abortTimer.current = setTimeout(reset, 3000)
+                    // the error stays readable for a moment, then the player closes (web: 3 s); a torrent nobody shares
+                    // stays until the user closes it or picks another torrent (player-screen.tsx)
+                    if (!offersOtherTorrent(payload as string)) abortTimer.current = setTimeout(reset, 3000)
                     break
                 case "watch": {
                     // never the stream link: it carries the server's token (library) or a debrid/provider address
@@ -108,6 +125,7 @@ export function NativePlayer() {
                     const info = payload as NativePlayer_PlaybackInfo
                     // a file of the user's library opened by the core (§4p, 5b-1): the address is the device's own, no token in it
                     if (info.streamUrl?.startsWith("file://")) log.info("Watch local file", info.streamUrl)
+                    if (info.streamType !== "torrent") setTorrentState(null)
                     setState(draft => {
                         draft.active = true
                         draft.playbackInfo = info

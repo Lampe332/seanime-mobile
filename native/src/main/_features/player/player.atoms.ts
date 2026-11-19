@@ -2,6 +2,7 @@ import type { MobileOffline_Item } from "@/api/generated/types"
 import { atomWithStorage } from "@/lib/storage"
 import { atom } from "jotai"
 import type { TrackMemory } from "./player-logic"
+import type { HeardStreamState } from "./torrent-stream-state"
 
 /**
  * The player is small (r22): it plays in the box of its anime page while that page is on screen, else in the mini player
@@ -20,3 +21,6 @@ export const player_castingAtom = atom(false)
 
 /** The saved episode the player plays from the offline library (Downloads, "On this device"); null for server streams. */
 export const player_offlineItemAtom = atom<MobileOffline_Item | null>(null)
+
+/** The torrent stream's last state (`torrentstream-state`, heard in native-player.tsx); null: none or the player closed */
+export const player_torrentStateAtom = atom<HeardStreamState | null>(null)
