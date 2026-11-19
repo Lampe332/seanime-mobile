@@ -57,3 +57,53 @@ describe("auto-select: minimum seeders", () => {
         expect(profileOf({ minSeeders: 2.5 }).minSeeders).toBeUndefined()
     })
 })
+
+// 4.2.0 E (S22): One Piece episode 1 gave "Best match" to the live-action series of 2023, all three from Internet Archive
+describe("auto-select: a name dated for another show", () => {
+    const archive = (name: string, size: number): FoundTorrent => ({
+        provider: "internet-archive", name, size, seeders: 1, downloadUrl: `https://archive.org/download/${encodeURIComponent(name)}.torrent`, isBestRelease: false,
+    })
+    const LIVE_ACTION = archive("ONE.PIECE.2023.S01E01.ROMANCE.DAWN.1080p.NF.WEB-DL.x265.10Bit.6CH-PSA", 8.1 * GiB)
+    const OP_001 = archive("One Piece 001", 87.5 * 1024 ** 2)
+    const OP_HQ = archive("One Piece - 001 - Im gonna be King of the Pirates HQ{C_P}.mp4", 678.9 * 1024 ** 2)
+    const onePiece = (list: FoundTorrent[], startYear = 1999) =>
+        chooseTorrent(list, emptyProfile(), { episodeNumber: 1, preferredResolution: "", startYear })?.torrent.name ?? null
+
+    it("leaves out the live-action series of 2023 for the anime of 1999", () => {
+        expect(onePiece([OP_001, OP_HQ, LIVE_ACTION])).not.toBe(LIVE_ACTION.name)
+        expect(onePiece([LIVE_ACTION])).toBeNull()
+    })
+
+    it("leaves out another show of the same name: the remake for the original, the original for the remake", () => {
+        const hxh2011 = nyaa("[DB] Hunter x Hunter (2011) - 001 [1080p][HEVC 10bit]", 300 * 1024 ** 2, 50)
+        const hxh1999 = nyaa("[Judas] Hunter x Hunter (1999) - 001 [720p]", 200 * 1024 ** 2, 20)
+        const hunter = (startYear: number) => chooseTorrent([hxh2011, hxh1999], emptyProfile(), { episodeNumber: 1, preferredResolution: "", startYear })?.torrent.name
+        expect(hunter(1999)).toBe(hxh1999.name)
+        expect(hunter(2011)).toBe(hxh2011.name)
+    })
+
+    it("keeps names without a year, with the start year or a year beside it", () => {
+        const subsplease = nyaa("[SubsPlease] One Piece - 1100 (1080p) [ABCD2023].mkv", 1.4 * GiB, 900)
+        expect(chooseTorrent([subsplease], emptyProfile(), { episodeNumber: 1100, preferredResolution: "", startYear: 1999 })?.torrent.name).toBe(subsplease.name)
+        const fruits = nyaa("[Judas] Fruits Basket (2019) - 01 [1080p]", GiB, 30)
+        expect(chooseTorrent([fruits], emptyProfile(), { episodeNumber: 1, preferredResolution: "", startYear: 2019 })?.torrent.name).toBe(fruits.name)
+        // AniList says the winter season begins in January, a group may write the year it was announced
+        const early = nyaa("Sousou.no.Frieren.2023.S01E01.1080p.WEB-DL", GiB, 30)
+        expect(chooseTorrent([early], emptyProfile(), { episodeNumber: 1, preferredResolution: "", startYear: 2024 })?.torrent.name).toBe(early.name)
+        const batch = nyaa("[Group] One Piece (1999) - 001-1085 [1080p] (Batch)", 900 * GiB, 40)
+        expect(onePiece([batch])).toBe(batch.name)
+    })
+
+    it("keeps a later season named with the year the series began, and S2 releases", () => {
+        const s2 = (name: string) => chooseTorrent([nyaa(name, GiB, 30)], emptyProfile(), { episodeNumber: 5, preferredResolution: "", startYear: 2026 })?.torrent.name
+        expect(s2("Sousou no Frieren (2023) - S02E05 - 1080p WEB-DL")).toBe("Sousou no Frieren (2023) - S02E05 - 1080p WEB-DL")
+        expect(s2(SUBSPLEASE.name)).toBe(SUBSPLEASE.name)
+        expect(s2(ERAI.name)).toBe(ERAI.name)
+    })
+
+    it("does not read the year without a start year, and no episode number as a year", () => {
+        expect(onePiece([LIVE_ACTION], 0)).toBe(LIVE_ACTION.name)
+        const conan = nyaa("[Group] Detective Conan - 2001 [1080p]", GiB, 30)
+        expect(chooseTorrent([conan], emptyProfile(), { episodeNumber: 2001, preferredResolution: "", startYear: 1996 })?.torrent.name).toBe(conan.name)
+    })
+})

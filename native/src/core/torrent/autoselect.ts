@@ -18,7 +18,11 @@ import type { CoreEnvironment, CoreRequest } from "../registry"
  *    phases 6b-3, 6e), fewer counted seeders than the profile's minimum, a term of `excludeTerms` in the name, outside `minSize`/`maxSize`,
  *    a resolution the profile does not list (when it lists some), a preference "never" that applies (batch, best
  *    release, several audio tracks, several subtitles), a preference "only" that does not, a required language, codec
- *    or source that is missing, and a torrent of another episode (a batch, or a name without an episode, stays in).
+ *    or source that is missing, a torrent of another episode (a batch, or a name without an episode, stays in), and a
+ *    name dated for another show (4.2.0 E, `namesOtherYear`): it carries a year as a word, and none of its years lies
+ *    within one of the anime's start year. That is the live-action series ("ONE.PIECE.2023.S01E01…" for the One Piece
+ *    of 1999), the remake for the original and the original for the remake ("Hunter x Hunter (2011)"). A later season
+ *    named with the series' earlier year ("Frieren (2023) S02E05") stays in; without a start year nothing is read.
  * 2. The rest is ordered by: the way to the data (counted seeders, then a web seed in the magnet link, then an unknown
  *    number with a `.torrent` file) → resolution (the profile's order, else the settings' preferred resolution first, else the
  *    higher one) → preferences (+1 for each "prefer" that applies, −1 for each "avoid") plus one for each preferred
@@ -133,7 +137,8 @@ export type FoundTorrent = Json & {
     isBestRelease: boolean
 }
 
-export type AutoSelectWanted = { episodeNumber: number, preferredResolution: string }
+/** `startYear`: the year the anime began (AniList `startDate.year`); 0 or left out: the names' years are not read */
+export type AutoSelectWanted = { episodeNumber: number, preferredResolution: string, startYear?: number }
 
 const lower = (text: unknown) => (typeof text === "string" ? text.toLowerCase() : "")
 const listOf = (value: unknown): string[] => (Array.isArray(value) ? value.map(lower).filter(Boolean) : typeof value === "string" && value ? [value.toLowerCase()] : [])
@@ -162,6 +167,8 @@ export type ReadTorrent = {
     sources: string[]
     multipleAudio: boolean
     multipleSubs: boolean
+    /** The seasons the name numbers ("S2", "2nd Season", "Season 2") */
+    seasons: number[]
 }
 
 export function readTorrent(torrent: FoundTorrent): ReadTorrent {
@@ -178,6 +185,8 @@ export function readTorrent(torrent: FoundTorrent): ReadTorrent {
     const audio = listOf(read.audio_term)
     const subtitles = listOf(read.subtitles)
     const languages = listOf(read.language)
+    const seasons = [...listOf(read.season_number).map(Number), ...[...name.matchAll(/\b(\d{1,2})(?:st|nd|rd|th)[ ._-]season\b|\bseason[ ._-]?(\d{1,2})\b/g)]
+        .map(found => Number(found[1] ?? found[2]))].filter(number => Number.isFinite(number) && number > 0)
     return {
         torrent,
         resolution: lower(torrent.resolution) || lower(read.video_resolution),
@@ -189,7 +198,25 @@ export function readTorrent(torrent: FoundTorrent): ReadTorrent {
         sources: listOf(read.source),
         multipleAudio: /\b(dual|multi)[ ._-]?audio\b/.test(name) || audio.some(term => /dual|multi/.test(term)) || languages.length > 1,
         multipleSubs: /\bmulti[ ._-]?subs?\b/.test(name) || subtitles.some(term => /multi/.test(term)) || subtitles.length > 1,
+        seasons,
     }
+}
+
+/** The years a name carries as a word ("ONE.PIECE.2023.S01E01", "Hunter x Hunter (2011)"); an episode it numbers is no year */
+export function yearsIn(name: string, episodes: number[] = []): number[] {
+    return [...name.matchAll(/(?:^|[\s._([-])((?:19|20)\d{2})(?=$|[\s._)\]-])/g)].map(found => Number(found[1])).filter(year => !episodes.includes(year))
+}
+
+/**
+ * Whether the name is dated for another show than the anime that began in `startYear` (see the head of this file, step
+ * 1). The wanted episode is no year either: the parser reads "Detective Conan - 2001" as a year, not as episode 2001.
+ */
+export function namesOtherYear(read: Pick<ReadTorrent, "torrent" | "episodes" | "seasons">, startYear: number, episodeNumber = 0): boolean {
+    if (!(startYear > 0)) return false
+    const years = yearsIn(read.torrent.name ?? "", [...read.episodes, episodeNumber])
+    if (years.length === 0 || years.some(year => Math.abs(year - startYear) <= 1)) return false
+    // a later season named with the year the series began ("Shingeki no Kyojin (2013) S04")
+    return !(read.seasons.some(season => season >= 2) && years.every(year => year < startYear))
 }
 
 const contains = (found: string[], wanted: string[]) => wanted.some(item => found.some(one => one.includes(item)))
@@ -275,6 +302,7 @@ export function chooseTorrent(torrents: FoundTorrent[], profile: AutoSelectProfi
         if (profile.requireSource && sources.length > 0 && !contains(read.sources, sources)) return false
         if (!read.batch && read.episodes.length > 0 && wanted.episodeNumber > 0 && !read.episodes.includes(wanted.episodeNumber)) return false
         if (read.batch && read.episodes.length === 2 && wanted.episodeNumber > 0 && (wanted.episodeNumber < read.episodes[0]! || wanted.episodeNumber > read.episodes[1]!)) return false
+        if (namesOtherYear(read, wanted.startYear ?? 0, wanted.episodeNumber)) return false
         return true
     })
 

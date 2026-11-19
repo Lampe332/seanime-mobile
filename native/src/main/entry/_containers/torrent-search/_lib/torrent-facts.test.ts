@@ -170,6 +170,22 @@ describe("Best match", () => {
         expect(bestMatchKey([], emptyProfile(), 5, "")).toBe("")
     })
 
+    it("does not mark the live-action series for the anime (4.2.0 E, S22: One Piece episode 1)", () => {
+        // as Internet Archive listed them: one seeder each (no count), a .torrent file over HTTPS, only the live action names 1080p
+        const archive = (name: string, n: number, size: number) => torrent(name, {
+            provider: "internet-archive", infoHash: hash(n), seeders: 1, leechers: 0, size, downloadUrl: `https://archive.org/download/x${n}/x${n}.torrent`,
+        })
+        const shown = [
+            archive("One Piece 001", 1, 91_750_400),
+            archive("One Piece - 001 - Im gonna be King of the Pirates HQ{C_P}.mp4", 2, 711_884_390),
+            archive("ONE.PIECE.2023.S01E01.ROMANCE.DAWN.1080p.NF.WEB-DL.x265.10Bit.6CH-PSA", 3, 8_697_308_774),
+        ]
+        expect(bestMatchKey(shown, emptyProfile(), 1, "", 1999)).not.toBe(hash(3))
+        expect(bestMatchKey(shown, emptyProfile(), 1, "", 1999)).not.toBe("")
+        // without the anime's start year the rule cannot tell (as before)
+        expect(bestMatchKey(shown, emptyProfile(), 1, "")).toBe(hash(3))
+    })
+
     it("knows a result by its info hash, else its link", () => {
         expect(torrentKey(list[1]!)).toBe(hash(2))
         expect(torrentKey(torrent("x", { infoHash: "", link: "https://nyaa.si/view/1" }))).toBe("https://nyaa.si/view/1")

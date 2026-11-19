@@ -217,12 +217,14 @@ export function torrentKey(torrent: Pick<HibikeTorrent_AnimeTorrent, "infoHash" 
 
 /**
  * The torrent auto-select would take from these (autoselect.ts `chooseTorrent` with the user's profile), as its key;
- * "" when none fits. `episodeNumber` 0: any episode.
+ * "" when none fits. `episodeNumber` 0: any episode. `startYear`: the anime's (AniList `startDate.year`), so a name dated
+ * for another show (the live-action series, a remake) is no match; 0: unknown.
  */
-export function bestMatchKey(torrents: HibikeTorrent_AnimeTorrent[], profile: AutoSelectProfile, episodeNumber: number, preferredResolution: string): string {
+export function bestMatchKey(torrents: HibikeTorrent_AnimeTorrent[], profile: AutoSelectProfile, episodeNumber: number, preferredResolution: string,
+    startYear = 0): string {
     if (!torrents.length) return ""
     const found = torrents.map(torrent => ({ ...torrent, provider: torrent.provider ?? "" }) as unknown as FoundTorrent)
-    const chosen = chooseTorrent(found, profile, { episodeNumber, preferredResolution })
+    const chosen = chooseTorrent(found, profile, { episodeNumber, preferredResolution, startYear })
     return chosen ? torrentKey(chosen.torrent as unknown as HibikeTorrent_AnimeTorrent) : ""
 }
 

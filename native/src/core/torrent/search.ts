@@ -212,7 +212,9 @@ export async function autoSelectTorrent(environment: StreamEnvironment, mediaId:
     const answers = await Promise.allSettled(asked.map(async id => smartSearch(await providerOf(environment, id), built.media, built.metadata, wanted)))
     const torrents = answers.flatMap(answer => (answer.status === "fulfilled" ? answer.value : []))
     if (torrents.length === 0 && answers.every(answer => answer.status === "rejected")) throw (answers[0] as PromiseRejectedResult).reason
-    const read = chooseTorrent(torrents, profile, { episodeNumber, preferredResolution })
+    const startDate = built.media.startDate as { year?: unknown } | undefined
+    const startYear = typeof startDate?.year === "number" ? startDate.year : 0
+    const read = chooseTorrent(torrents, profile, { episodeNumber, preferredResolution, startYear })
     if (!read) throw new CoreError(`auto select found no torrent for episode ${episodeNumber} (${torrents.length} looked at)`, 404)
     return { torrent: read.torrent, read, asked, found: torrents.length }
 }

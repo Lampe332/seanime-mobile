@@ -322,16 +322,17 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
     const { data: profile } = useGetAutoSelectProfile()
     const preferredResolution = serverStatus?.torrentstreamSettings?.preferredResolution ?? ""
     const wantedEpisode = kind === "download" ? (smart && !batchOnly ? smartSearchEpisode : 0) : torrentSearchStreamEpisode?.episodeNumber ?? 0
+    const startYear = entry.media?.startDate?.year ?? 0
     const [best, setBest] = React.useState("")
     const shownKey = torrents.map(torrentKey).join("\n")
     React.useEffect(() => {
         // after the frame that shows the cards: the rule reads every name once more
         const timer = setTimeout(() => setBest(profile && shownKey
-            ? bestMatchKey(torrents, profile as unknown as AutoSelectProfile, wantedEpisode, preferredResolution) : ""), 0)
+            ? bestMatchKey(torrents, profile as unknown as AutoSelectProfile, wantedEpisode, preferredResolution, startYear) : ""), 0)
         return () => clearTimeout(timer)
         // the joined keys stand for the shown list: a new array of the same torrents must not choose again
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [shownKey, profile, wantedEpisode, preferredResolution])
+    }, [shownKey, profile, wantedEpisode, preferredResolution, startYear])
 
     const missing = downloadInfo?.episodesToDownload?.map(item => item.episodeNumber).sort((a, b) => a - b) ?? []
     const context = kind === "download"
