@@ -97,6 +97,13 @@ export interface RequestSigner {
 export type SessionCredentials = { sessionToken: string, signer: RequestSigner }
 export type SignupAnswer = { userId: string, deviceId: string | null, emailVerified: boolean, sessionToken: string }
 export type LoginAnswer = { userId: string, emailVerified: boolean, kdf: Kdf, wrappedDek: string | null, dekId: string | null, rewrapNeeded: boolean, sessionToken: string }
+/**
+ * Sign-in with a mailed code: the login answer plus `escrowDek` (the raw DEK, base64url) when the account turned on
+ * "code only", else null. `recoveryWrappedDek`: the recovery wrap, so the code can open the key on this device (as Google)
+ */
+export type CodeLoginAnswer = LoginAnswer & { codeLogin: true, escrowDek: string | null, recoveryWrappedDek?: string | null }
+/** "Set a new password" right after a code sign-in: a new password for the DEK the session already holds */
+export type PasswordAfterCodeBody = { authKey: string, salt: string, kdf: Kdf, wrappedDek: string, dekId: string }
 export type GoogleAnswer = { userId: string, created: boolean, emailVerified: boolean, dekId: string | null, recoveryWrappedDek: string | null, sessionToken: string }
 /** `userId` is part of the recovery wrap's AAD, so a device without a stored account can still unwrap it */
 export type ResetInfo = { userId: string, dekId: string | null, hasRecovery: boolean, recoveryWrappedDek: string | null }
@@ -139,6 +146,8 @@ export type AccountInfo = {
     rotationRequired: boolean
     /** A rotation without the recovery code dropped it: the user should save a new one */
     recoveryRenewalNeeded: boolean
+    /** "Sign in with an email code only": the server holds the DEK (escrow) and can read the synced data */
+    codeOnly?: boolean
     /** I5: the newest security events, newest first */
     events?: AccountEvent[]
 }
@@ -179,6 +188,8 @@ export type RotateMeta = {
     wrappedDek?: string
     recoveryWrappedDek?: string
     recoveryProof?: string
+    /** The new DEK in the clear, required while "code only" is on (the server replaces its escrow package) */
+    escrowDek?: string
 }
 /** `removedDevices`: device keys the server says were removed (session.ts keeps them apart and bounded; they only leave a device out) */
 export type SyncMeta = { version: number, size: number, dekId: string | null, updatedAt: number | null, rotationRequired: boolean, rewrapNeeded: boolean, recoveryRenewalNeeded: boolean, removedDevices?: string[] }
@@ -316,6 +327,11 @@ export class AccountClient {
     googleNonce = () => this.call<{ nonce: string, expiresAt: number, challenge: string }>("POST", "auth/google/nonce", { auth: false })
     google = (idToken: string, nonce: string, challenge: string, signing: RequestSigner) =>
         this.call<GoogleAnswer>("POST", "auth/google", { json: { idToken, nonce, challenge, sigKey: this.sigKey(signing) }, signIn: signing })
+    /** Mails a 6-digit sign-in code; the same answer for every address */
+    requestCode = (email: string) => this.call<{ sent: boolean }>("POST", "auth/code/request", { json: { email }, auth: false })
+    /** Sign-in with the mailed code, signed like login (challenge from prelogin); 401 invalid_code for any wrong code */
+    codeLogin = (email: string, code: string, challenge: string, signing: RequestSigner) =>
+        this.call<CodeLoginAnswer>("POST", "auth/code/login", { json: { email, code, challenge, sigKey: this.sigKey(signing) }, signIn: signing })
 
     /* devices */
     devices = async () => (await this.call<{ devices: DeviceInfo[] }>("GET", "devices")).devices
@@ -341,6 +357,12 @@ export class AccountClient {
     linkGoogle = (idToken: string, nonce: string, authKey: string) => this.call<void>("POST", "account/link-google", { json: { idToken, nonce, authKey } })
     unlinkGoogle = (authKey: string) => this.call<void>("POST", "account/unlink-google", { json: { authKey } })
     deleteAccount = () => this.call<void>("DELETE", "account")
+    /** "Code only" on: the DEK goes to the server (base64url), with the password's authKey */
+    putEscrow = (dek: string, authKey: string) => this.call<void>("PUT", "account/escrow", { json: { dek, authKey } })
+    /** "Code only" off: the server deletes its package at once */
+    deleteEscrow = () => this.call<void>("DELETE", "account/escrow")
+    /** Only a session from auth/code/login, at most 15 minutes old, and only for the account's current dekId */
+    setPasswordAfterCode = (body: PasswordAfterCodeBody) => this.call<void>("POST", "account/password/after-code", { json: body })
 
     /** DEK rotation: multipart/form-data with the parts `meta` (JSON) and `snapshot` (when the account has one) */
     rotate = (meta: RotateMeta, snapshot: Uint8Array | null, ifMatch: number) => {

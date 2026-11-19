@@ -3,6 +3,7 @@
 import { AccountApiError } from "./client"
 import {
     AccountCryptoError,
+    UntrustedEscrowError,
     UntrustedKeyChangeError,
     DEFAULT_KDF,
     type Kdf,
@@ -11,6 +12,7 @@ import {
     dekProof,
     deriveKeys,
     deviceMac,
+    deviceMacValid,
     fromB64,
     newDek,
     newDekId,
@@ -116,9 +118,9 @@ async function startSession(deps: AccountDeps, userId: string, sessionToken: str
      * that, it does not become "signed in without the key"). Only a removed device (NEU-2) stays signed in without the
      * key: it has to ask for an approval.
      */
-    const finish = async (work: () => Promise<void>): Promise<void> => {
+    const finish = async <T>(work: () => Promise<T>): Promise<T> => {
         try {
-            await work()
+            return await work()
         }
         catch (error) {
             if (!(error instanceof AccountApiError && error.code === "device_removed")) {
@@ -266,7 +268,9 @@ export async function loginEmail(deps: AccountDeps, input: { email: string, pass
 export async function changeKey(deps: AccountDeps, input: { deviceName: string, password?: string, keep: string[] }): Promise<RotationResult> {
     const encKey = await reauth(deps, input.password, input.deviceName)
     try {
-        return await rotate(deps, { keep: input.keep, encKey })
+        // "code only": the server keeps the new key as well, or it refuses the change (409 escrow_required)
+        const escrow = (await deps.client.account()).codeOnly === true
+        return await rotate(deps, { keep: input.keep, encKey, escrow })
     }
     finally {
         wipe(deps.sodium, encKey)
@@ -348,6 +352,141 @@ export async function resetWithoutRecovery(deps: AccountDeps, input: { token: st
         wipe(sodium, derived.authKey, derived.encKey)
     }
     return loginEmail(deps, { email: input.email, password: input.newPassword, deviceName: input.deviceName })
+}
+
+/* ---- Sign-in code ---- */
+
+/** Mails a 6-digit sign-in code; the server answers the same for every address */
+export function requestSignInCode(deps: AccountDeps, email: string): Promise<{ sent: boolean }> {
+    return deps.client.requestCode(email)
+}
+
+export type CodeSignInResult = SignInResult & {
+    /** The key came from the server: the account has "code only" on */
+    escrow: boolean
+}
+
+/**
+ * The DEK the server handed over must make the MAC of at least one of the account's device rows, when it has any: a
+ * server that never held the key can't make up one that does (I1), so a device of an account without "code only" never
+ * takes a key the server invented.
+ */
+async function checkEscrowDek(deps: AccountDeps, userId: string, dekId: string, dek: Uint8Array): Promise<void> {
+    const rows = (await deps.client.devices()).filter(device => device.dekId === dekId && device.mac)
+    if (rows.length === 0) return
+    const vouched = rows.some(device => {
+        try {
+            return deviceMacValid(deps.sodium, dek, { userId, dekId, devicePub: fromB64(deps.sodium, device.devicePub, 32) }, device.mac)
+        }
+        catch {
+            return false
+        }
+    })
+    if (!vouched) throw new UntrustedEscrowError()
+}
+
+/**
+ * Sign-in with the mailed code (signed like login, the challenge from prelogin). With "code only" on, the server hands
+ * over the DEK (escrowDek): this device takes it and is ready. Otherwise the device is signed in with its data locked
+ * ("needs-key") and unlocks it as any new device: an approval, the recovery code, or Start fresh. A device that still
+ * holds the account's key takes its own row back, as with a password. An account without a password (Google only) is
+ * kept as a Google session, so the steps that ask for a password don't.
+ */
+export async function loginWithCode(deps: AccountDeps, input: { email: string, code: string, deviceName: string }): Promise<CodeSignInResult> {
+    const { client, sodium } = deps
+    const { challenge } = await client.prelogin(input.email)
+    const signing: RequestSigner = await deps.session.signer()
+    const answer = await client.codeLogin(input.email, input.code, challenge, signing)
+    const { kept, stale, keyChanged, finish } = await startSession(deps, answer.userId, answer.sessionToken, "email", input.email, answer.dekId)
+    let escrowDek: Uint8Array | null = null
+    try {
+        const info = await finish(() => client.account())
+        if (!info.hasPassword) await deps.session.updateSession({ kind: "google", email: null })
+        const result = { userId: answer.userId, emailVerified: answer.emailVerified, created: false, recoveryWrappedDek: answer.recoveryWrappedDek ?? null, keyChanged, escrow: false }
+        const dekId = answer.dekId
+        if (kept && dekId) {
+            await finish(() => registerDevice(deps, answer.userId, dekId, kept.dek, input.deviceName))
+            return { ...result, status: "ready" }
+        }
+        const escrowText = answer.escrowDek
+        if (escrowText && dekId) {
+            await finish(async () => {
+                escrowDek = fromB64(sodium, escrowText, 32)
+                await checkEscrowDek(deps, answer.userId, dekId, escrowDek)
+                await registerDevice(deps, answer.userId, dekId, escrowDek, input.deviceName)
+            })
+            return { ...result, status: "ready", escrow: true }
+        }
+        if (dekId === null && !info.hasPassword) {
+            // a Google account without a key yet: the first app device makes it, as at a Google sign-in
+            const dek = newDek(sodium)
+            await deps.session.updateSync({ imported: true })
+            try {
+                await finish(() => registerDevice(deps, answer.userId, newDekId(sodium), dek, input.deviceName))
+            }
+            finally {
+                wipe(sodium, dek)
+            }
+            return { ...result, status: "ready" }
+        }
+        return { ...result, status: "needs-key" }
+    }
+    finally {
+        wipe(sodium, kept?.dek, stale?.dek, escrowDek)
+    }
+}
+
+/**
+ * "Set a new password" right after a code sign-in (route password/after-code, at most 15 minutes after it): new salt,
+ * KDF and authKey as at sign-up, the DEK this device holds wrapped for the new password. Other sessions stay.
+ */
+export async function setNewPasswordAfterCode(deps: AccountDeps, input: { newPassword: string, kdf?: Kdf }): Promise<void> {
+    const { sodium } = deps
+    const state = await deps.session.load()
+    if (!state?.dek || !state.dekId) {
+        wipe(sodium, state?.dek)
+        throw new AccountCryptoError("this device has no key; unlock it first")
+    }
+    const email = state.email ?? (await deps.client.account()).email
+    const kdf = input.kdf ?? DEFAULT_KDF
+    const salt = newSalt(sodium)
+    const { authKey, encKey } = await deriveKeys(sodium, input.newPassword, salt, kdf)
+    try {
+        await deps.client.setPasswordAfterCode({
+            authKey: toB64(sodium, authKey),
+            salt: toB64(sodium, salt),
+            kdf,
+            wrappedDek: wrapKey(sodium, state.dek, encKey, state.userId, state.dekId, "password"),
+            dekId: state.dekId,
+        })
+        await deps.session.rememberKdf(email, kdf)
+        // the account has a password now: the steps that need one ask for it
+        if (state.kind !== "email" || state.email !== email) await deps.session.updateSession({ kind: "email", email })
+    }
+    finally {
+        wipe(sodium, authKey, encKey, state.dek)
+    }
+}
+
+/**
+ * "Sign in with an email code only" on: the password again (its authKey, checked like the other password prompts), then
+ * the DEK goes to the server, which can read the synced data from now on. Only the user turns it on.
+ */
+export async function enableCodeOnly(deps: AccountDeps, input: { password: string }): Promise<void> {
+    const authKey = await passwordAuthKey(deps, input.password)
+    const state = await deps.session.load()
+    try {
+        if (!state?.dek || !state.dekId) throw new AccountCryptoError("this device has no key")
+        await deps.client.putEscrow(toB64(deps.sodium, state.dek), toB64(deps.sodium, authKey))
+    }
+    finally {
+        wipe(deps.sodium, authKey, state?.dek)
+    }
+}
+
+/** "Code only" off: the server deletes the key it kept, at once; the data is end-to-end encrypted again */
+export function disableCodeOnly(deps: AccountDeps): Promise<void> {
+    return deps.client.deleteEscrow()
 }
 
 /* ---- Google ---- */

@@ -81,6 +81,14 @@ export class UntrustedKeyChangeError extends AccountCryptoError {
 }
 
 /** A key change was asked to keep a device no DEK holder added, one this device knows as removed, or one that signed out */
+/** Code sign-in: the key the server handed over ("code only") opens none of the account's device rows; nothing was taken */
+export class UntrustedEscrowError extends AccountCryptoError {
+    constructor() {
+        super("the key from the server doesn't match your devices")
+        this.name = "UntrustedEscrowError"
+    }
+}
+
 export class UntrustedDevicesError extends AccountCryptoError {
     constructor(readonly names: string[]) {
         super(`unverified device in the account: ${names.join(", ")}`)
