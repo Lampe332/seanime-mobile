@@ -18,16 +18,20 @@
     // Google signing keys. Only a test host (*.test, localhost) can replace Google's URL (src/google.ts jwksUrl).
     "GOOGLE_JWKS_URL": "https://www.googleapis.com/oauth2/v3/certs"
   },
-  // Values are set with `wrangler secret put`, never committed.
+  // Values are set with `wrangler secret put`, never committed. GOOGLE_WEB_CLIENT_ID is optional: without it every
+  // Google sign-in is refused (src/google.ts), which is how 4.2.0 ships (Google sign-in is hidden in the app).
   "secrets": {
-    "required": ["PEPPER_V1", "ENUM_SECRET", "GOOGLE_WEB_CLIENT_ID"]
+    "required": ["PEPPER_V1", "ENUM_SECRET"]
   },
-  // Placeholder IDs. Replace with the real resource IDs before the first deploy.
+  // Reached only through its own domain; no workers.dev or preview URLs.
+  "routes": [{ "pattern": "api.seanimemobile.com", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "seanime-account",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "78a6f6d2-113d-476b-97f9-14cd58bc0c91",
       "migrations_dir": "migrations"
     }
   ],
