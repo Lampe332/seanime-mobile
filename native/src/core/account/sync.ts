@@ -19,6 +19,8 @@ import type { Sodium } from "./sodium"
  *   imports (a local backup is made before) — so a fresh install can never overwrite the account.
  * - Rollback: the device remembers the highest version it saw and refuses an older one; the package's AAD binds it to
  *   account, version and DEK, so the server can neither swap packages nor pass an old one off as new.
+ * - "Delete synced data" never lowers the version: the server counts on and says "no data" (size 0). A device that meets
+ *   that takes nothing and uploads its own data as the next version.
  * - A newer package while this device changed nothing replaces the local state; with changes on both sides they merge
  *   part by part, the newer change wins and a removal stays one (package.ts mergePackages; each device keeps the change
  *   times of its parts in a ledger, LedgerStore).
@@ -145,7 +147,10 @@ function parseLedger(text: string | null, account: string): Ledger | null {
     }
 }
 
-export type SyncApi = Pick<AccountClient, "syncMeta" | "snapshot" | "putSnapshot" | "deviceKey">
+export type SyncApi = Pick<AccountClient, "syncMeta" | "snapshot" | "putSnapshot" | "deviceKey" | "deleteSync">
+
+/** After "Delete synced data" the server keeps the version (counted on) with size 0: a version, but nothing to take */
+const holdsData = (meta: { version: number, size: number }) => meta.version > 0 && meta.size > 0
 
 class KeyChanged extends Error {}
 class Rollback extends Error {
@@ -202,9 +207,9 @@ export class SyncEngine {
         return this.serial(() => this.withKeyPickup(() => this.guard(async (state, flags) => {
             const meta = await this.deps.api.syncMeta()
             this.check(state, meta)
-            if (meta.version === 0) {
-                await this.deps.session.updateSync({ imported: true })
-                return { state: "up-to-date", version: 0, ...flags }
+            if (!holdsData(meta)) {
+                await this.deps.session.updateSync({ imported: true, highestVersion: Math.max(state.highestVersion, meta.version) })
+                return { state: "up-to-date", version: meta.version, ...flags }
             }
             await this.deps.local.safetyBackup()
             const remote = await this.download(state)
@@ -213,6 +218,17 @@ export class SyncEngine {
             await this.deps.session.updateSync({ imported: true, highestVersion: remote.version, lastHash: hash, lastSyncAt: this.deps.now() })
             return { state: "updated", version: remote.version, ...flags }
         })))
+    }
+
+    /**
+     * "Delete synced data": the account's package goes. The highest version seen stays (the server counts on, a lower one
+     * is still a rollback); without the hash this device uploads its data again at its next sync.
+     */
+    deleteSynced(): Promise<void> {
+        return this.serial(async () => {
+            await this.deps.api.deleteSync()
+            await this.deps.session.updateSync({ lastHash: null, lastSyncAt: null })
+        })
     }
 
     private serial<T>(work: () => Promise<T>): Promise<T> {
@@ -266,7 +282,7 @@ export class SyncEngine {
             const { session, local, sodium, api, now } = this.deps
             this.check(state, current)
             if (!state.imported) {
-                if (current.version > 0) return { state: "import-available", version: current.version, ...flags }
+                if (holdsData(current)) return { state: "import-available", version: current.version, ...flags }
                 await session.updateSync({ imported: true })
             }
 
@@ -274,7 +290,11 @@ export class SyncEngine {
             let hash = packageHash(sodium, pkg)
             let base = current.version
             let merged = false
-            if (current.version > state.highestVersion) {
+            if (!holdsData(current)) {
+                // nothing in the account (never was, or deleted): this device's data goes up as the next version
+                if (current.version > state.highestVersion) await session.updateSync({ highestVersion: current.version })
+            }
+            else if (current.version > state.highestVersion) {
                 const remote = await this.download(state)
                 if (hash === state.lastHash) {
                     // nothing changed here since the last sync: the account's state is the newer one

@@ -235,8 +235,7 @@ export async function signOutHere(): Promise<void> {
 
 /** The synced package goes from the server; this device uploads its data again at the next sync while signed in */
 export async function deleteSyncedData(): Promise<void> {
-    await client.deleteSync()
-    await session.updateSync({ highestVersion: 0, lastHash: null, lastSyncAt: null })
+    await engine.deleteSynced()
     store.set(lastSyncAtom, null)
     await refreshAccount()
 }

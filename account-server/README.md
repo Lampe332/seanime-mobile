@@ -43,7 +43,7 @@ Storage: D1 (`DB`) for accounts, sessions, devices and wrapped keys; R2 (`SNAPSH
 | DELETE | `account` | Sign-in within the last 10 min required. Removes D1 rows and the R2 blob at once. |
 | GET | `sync/meta` | Also `rotationRequired`, `rewrapNeeded`, `recoveryRenewalNeeded` and `removedDevices` (device keys removed from the account; the devices remember them). `GET sync/snapshot` needs a device session. |
 | GET/PUT | `sync/snapshot` | PUT only from a device session, needs `If-Match: <version>`, `X-Dek-Id` and `Content-Length`, body `application/octet-stream`, max 10 MB. |
-| DELETE | `sync` | |
+| DELETE | `sync` | Deletes the stored package. The version counts on and stays (`sync/meta` then says `size: 0`, `dekId: null`), so no device sees an older version; the next upload builds on it. |
 
 Sessions: 256-bit random token, only its SHA-256 is stored, 90 days idle timeout. The app sends `Authorization: Bearer <token>`. Requests from `https://seanimemobile.com` get the `__Host-sid` cookie instead. Every other `Origin` is rejected.
 

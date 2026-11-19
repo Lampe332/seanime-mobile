@@ -43,6 +43,12 @@ class FakeServer implements SyncApi {
         throw new AccountApiError(404, "not_found", "no key")
     }
     snapshot = async (): Promise<Snapshot | null> => this.oldSnapshot ?? (this.blob ? { bytes: this.blob, version: this.version, dekId: DEK_ID } : null)
+    /** Like routes.ts deleteSync: the data goes, the version counts on */
+    deleteSync = async () => {
+        if (this.version === 0) return
+        if (this.blob) this.version++
+        this.blob = null
+    }
     putSnapshot = async (bytes: Uint8Array, ifMatch: number, dekId: string) => {
         if (dekId !== DEK_ID) throw new ConflictError("dek_mismatch", "different key", {})
         if (ifMatch !== this.version) throw new ConflictError("version_conflict", "changed", { version: this.version })
@@ -346,5 +352,54 @@ describe("two devices that changed different things between two syncs", () => {
         expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
         await a.engine.sync("manual")
         for (const one of [a, b]) expect((await (await one.db()).select().from(playlists)).map(row => [row.name, row.episodes])).toEqual([["Evening", [{ n: 1 }]]])
+    })
+})
+
+describe("deleting the synced data", () => {
+    it("the other devices see no rollback: each uploads its own data again and they sync on", async () => {
+        const { server, a, b } = await pair(async one => void await (await one.db()).insert(playlists).values(playlist("Evening")))
+        expect(server.version).toBe(1)
+        await a.engine.deleteSynced()
+        expect(server).toMatchObject({ version: 2, blob: null })
+
+        // B saw version 1 and now meets version 2 without data
+        clock += 60_000
+        await (await b.db()).insert(playlists).values(playlist("From B"))
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 3 })
+        // A deleted and has not uploaded since: it merges B's package with its own data
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "merged", version: 4 })
+        expect(await names(a)).toEqual(["Evening", "From B"])
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "updated", version: 4 })
+        expect(await names(b)).toEqual(["Evening", "From B"])
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 4 })
+    })
+
+    it("the device that deleted uploads again at its next sync, also with nothing changed", async () => {
+        const { server, a } = await pair()
+        await a.engine.deleteSynced()
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 3 })
+        expect(server.blob).not.toBeNull()
+    })
+
+    it("a new device is not asked to import data that is gone", async () => {
+        const { server, a } = await pair()
+        await a.engine.deleteSynced()
+        const c = await phone(server, { imported: false })
+        await (await c.db()).insert(playlists).values(playlist("Fresh install"))
+        expect(await c.engine.sync("start")).toMatchObject({ state: "uploaded", version: 3 })
+        const d = await phone(server, { imported: false })
+        await a.engine.deleteSynced()
+        expect(await d.engine.importFromAccount()).toMatchObject({ state: "up-to-date" })
+        expect(await d.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 5 })
+    })
+
+    it("a version below the one this device saw is still refused, with or without data", async () => {
+        const { server, a } = await pair()
+        await (await a.db()).insert(playlists).values(playlist("Two"))
+        await a.engine.sync("manual")
+        server.overrideMeta = { version: 1, size: 0, dekId: null }
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "rollback-rejected", version: 1, highest: 2 })
+        server.overrideMeta = { version: 0, size: 0, dekId: null }
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "rollback-rejected", version: 0, highest: 2 })
     })
 })

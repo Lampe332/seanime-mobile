@@ -1055,6 +1055,30 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         expect(await subjects(email, 0)).toEqual(expect.arrayContaining(["New device signed in", "Your recovery code was changed", "A device was removed", "Your account key was changed"]))
     })
 
+    it("delete synced data: the server counts the version on, the other device uploads again, and a key change still works", async () => {
+        const email = "delete-synced@example.org"
+        const [one, two] = [install(), install()]
+        await signupEmail(one.deps, { email, password: PASSWORD, deviceName: "One", kdf: KDF })
+        await (await one.db()).insert(playlists).values({ name: "Evening", episodes: [], createdAt: clock, updatedAt: clock })
+        expect(await one.engine.sync("start")).toMatchObject({ state: "uploaded", version: 1 })
+        await loginEmail(two.deps, { email, password: PASSWORD, deviceName: "Two" })
+        expect(await two.engine.importFromAccount()).toMatchObject({ state: "updated", version: 1 })
+
+        await one.engine.deleteSynced()
+        expect(await one.client.syncMeta()).toMatchObject({ version: 2, size: 0, dekId: null })
+        expect(await one.client.snapshot()).toBeNull()
+        // a key change with no data in the account
+        await changeKey(one.deps, { deviceName: "One", password: PASSWORD, keep: await keepAll(one) })
+        expect(await one.client.syncMeta()).toMatchObject({ version: 2, size: 0 })
+
+        // the other device saw version 1: no rollback, it follows the key change and uploads its own data
+        expect(await two.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 3 })
+        expect(await one.engine.sync("manual")).toMatchObject({ state: "merged", version: 4 })
+        expect(await names(one)).toEqual(["Evening"])
+        expect(await two.engine.sync("manual")).toMatchObject({ state: "updated", version: 4 })
+        expect(await two.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 4 })
+    })
+
     it("N-8 and M-2: a P-256 key like the Keystore's signs everything; the device keeps it, so a lockout of its email never stops it; signing out makes a new one", async () => {
         const email = "n8-keystore@example.org"
         const one = install(p256SignerStore())

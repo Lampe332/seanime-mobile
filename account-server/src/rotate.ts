@@ -140,7 +140,8 @@ export async function rotate(ctx: Ctx): Promise<Response> {
   if (Number(ifMatch) !== current) {
     throw new HttpError(409, "version_conflict", "The snapshot changed. Download, merge and retry.", {}, { version: current });
   }
-  if (previous && !parts.snapshot) {
+  // A row of size 0 is the version kept after DELETE sync: there is no data to encrypt anew.
+  if (previous && previous.size > 0 && !parts.snapshot) {
     throw new HttpError(400, "invalid_request", "The re-encrypted snapshot is required", {}, { fields: ["snapshot"] });
   }
 

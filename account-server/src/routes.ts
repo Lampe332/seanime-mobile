@@ -726,9 +726,10 @@ export async function syncMeta(ctx: Ctx): Promise<Response> {
       .all<{ device_pub: string }>(),
   ]);
   return json({
+    // After DELETE sync the version stays (counted on) with size 0: no data, and no key it would be bound to.
     version: row?.version ?? 0,
     size: row?.size ?? 0,
-    dekId: row?.dek_id ?? null,
+    dekId: row && row.size > 0 ? row.dek_id : null,
     updatedAt: row?.updated_at ?? null,
     // A device was removed (or the password reset without code): rotate the DEK via account/rotate.
     rotationRequired: flags?.rotation_required === 1,
@@ -823,7 +824,12 @@ export async function deleteSync(ctx: Ctx): Promise<Response> {
   // Any session of the account (also the website's): deleting the encrypted copy reveals nothing, and every signed-in
   // device uploads its own data again at its next sync.
   const session = await requireSession(ctx.request, ctx.env);
+  // The version counts on instead of starting at 0 again: the devices refuse a version below the highest they saw
+  // (rollback), so a reset would stop every other device's sync for good. Size 0 marks "no data"; the next upload
+  // builds on this version.
+  await ctx.env.DB.prepare("UPDATE snapshots SET version = version + 1, size = 0, updated_at = ? WHERE user_id = ? AND size > 0")
+    .bind(now(), session.userId)
+    .run();
   await ctx.env.SNAPSHOTS.delete(snapKey(session.userId));
-  await ctx.env.DB.prepare("DELETE FROM snapshots WHERE user_id = ?").bind(session.userId).run();
   return noContent();
 }

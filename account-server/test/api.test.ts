@@ -292,7 +292,34 @@ describe("sync", () => {
 
     expect((await api("/v1/sync", { method: "DELETE", token: a.token })).status).toBe(204);
     expect((await api("/v1/sync/snapshot", { token: a.token })).status).toBe(404);
-    expect((await (await api("/v1/sync/meta", { token: a.token })).json<{ version: number }>()).version).toBe(0);
+  });
+
+  it("deleting the synced data counts the version on: the other devices never see an older one", async () => {
+    const a = await signupUser();
+    // nothing stored yet: nothing to count on
+    expect((await api("/v1/sync", { method: "DELETE", token: a.token })).status).toBe(204);
+    expect(await (await api("/v1/sync/meta", { token: a.token })).json()).toMatchObject({ version: 0, size: 0, dekId: null });
+
+    expect((await upload(a.token, rand(256), 0, a.keys.dekId)).status).toBe(200);
+    expect((await upload(a.token, rand(256), 1, a.keys.dekId)).status).toBe(200);
+    expect((await api("/v1/sync", { method: "DELETE", token: a.token })).status).toBe(204);
+    expect((await api("/v1/sync/snapshot", { token: a.token })).status).toBe(404);
+    // version 3 with no data: a device that saw version 2 does not take it for a rollback
+    expect(await (await api("/v1/sync/meta", { token: a.token })).json()).toMatchObject({ version: 3, size: 0, dekId: null });
+    // deleting again changes nothing more
+    expect((await api("/v1/sync", { method: "DELETE", token: a.token })).status).toBe(204);
+    expect(await (await api("/v1/sync/meta", { token: a.token })).json()).toMatchObject({ version: 3, size: 0 });
+
+    // the next upload builds on the counted version, never on 0 again
+    expect((await upload(a.token, rand(256), 0, a.keys.dekId)).status).toBe(409);
+    const blob = rand(128);
+    const next = await upload(a.token, blob, 3, a.keys.dekId);
+    expect(next.status).toBe(200);
+    expect((await next.json<{ version: number }>()).version).toBe(4);
+    const get = await api("/v1/sync/snapshot", { token: a.token });
+    expect(get.headers.get("X-Snapshot-Version")).toBe("4");
+    expect(new Uint8Array(await get.arrayBuffer())).toEqual(blob);
+    expect(await (await api("/v1/sync/meta", { token: a.token })).json()).toMatchObject({ version: 4, size: 128, dekId: a.keys.dekId });
   });
 
   it("rejects snapshots over 10 MB and non-binary uploads", async () => {
