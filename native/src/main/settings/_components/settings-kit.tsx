@@ -163,12 +163,22 @@ export function useThemeValue<K extends Exclude<keyof Models_Theme, "id">>(field
 }
 
 /** `.pst-group`: a small heading over raised rows, an optional note under the heading */
-export function SettingsGroup({ title, note, children }: { title?: string, note?: string, children: React.ReactNode }) {
+export function SettingsGroup({ title, note, notice, children }: {
+    title?: string
+    note?: string
+    /**
+     * A Notice of its own above the rows (4.2.0 E: inside the rows its round corners sat on the square top of the next
+     * row, the rows looked stuck to it); the rows keep their own rounded block below it
+     */
+    notice?: React.ReactNode
+    children: React.ReactNode
+}) {
     return (
         <View className="min-w-0 gap-2">
             {/* 2.0.32 measured at the S22 (App area): ~6dp more above the heading and ~8dp more under it than the bare gap */}
             {!!title && <Text accessibilityRole="header" className="mb-2 mt-1.5 px-1 text-[13px] font-semibold tracking-[0.26px] text-sm-text-muted">{title}</Text>}
             {!!note && <Text className="-mt-1 px-1 text-[13px] leading-[19.5px] text-sm-text-subtle">{note}</Text>}
+            {notice}
             <View className="gap-0.5 overflow-hidden rounded-surface">{children}</View>
         </View>
     )

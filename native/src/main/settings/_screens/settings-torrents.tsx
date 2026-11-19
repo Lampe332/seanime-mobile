@@ -192,11 +192,11 @@ function DownloadsGroup({ t, onOpen }: { t: Translate, onOpen: (id: SettingsSect
     const unlimited = t("Unlimited", "Unbegrenzt")
 
     return <SettingsGroup title={t("Downloads", "Downloads")}
-        note={t("Downloaded torrents are saved to your local library folder.", "Geladene Torrents werden in deinem lokalen Bibliotheksordner gespeichert.")}>
-        {noFolder && <Notice text={t("No library folder is set yet. Choose one before you download.",
+        note={t("Downloaded torrents are saved to your local library folder.", "Geladene Torrents werden in deinem lokalen Bibliotheksordner gespeichert.")}
+        notice={noFolder && <Notice text={t("No library folder is set yet. Choose one before you download.",
             "Es ist noch kein Bibliotheksordner gesetzt. Wähle einen, bevor du etwas lädst.")}>
             <TextAction label={t("Open Local library", "Lokale Bibliothek öffnen")} onPress={() => onOpen("library")} />
-        </Notice>}
+        </Notice>}>
         <SelectRow label={t("Download limit", "Download-Limit")} value={String(download)}
             options={limitOptions([0, 512, 1024, 2048, 5120, 10240, 20480], download, unlimited)}
             onChange={next => void save("torrent.seanimeDownloadLimit", Number(next))} />

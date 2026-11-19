@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { storage } from "@/lib/storage"
 import { type MediaCorePreferences, mediaCorePreferencesAtom } from "@/main/_features/media-core/media-core-preferences"
 import { vc_autoNextAtom } from "@/main/_features/video-core/video-core.atoms"
@@ -100,5 +102,23 @@ describe("memory", () => {
         expect(formatBytes(0)).toBe("0 B")
         expect(formatBytes(1536)).toBe("1.5 KB")
         expect(formatBytes(3 * 1024 * 1024)).toBe("3 MB")
+    })
+})
+
+// 4.2.0 E (Pixel Tablet): in Torrents › Downloads the limits sat square-cornered right under the library folder notice
+describe("a notice above a group's rows", () => {
+    const read = (file: string) => readFileSync(join(__dirname, "..", file), "utf8")
+
+    it("stands on its own above the rows' rounded block, 8dp apart", () => {
+        const kit = read("_components/settings-kit.tsx")
+        expect(kit).toMatch(/\{notice\}\s*<View className="gap-0\.5 overflow-hidden rounded-surface">\{children\}<\/View>/)
+        expect(kit).toMatch(/<View className="min-w-0 gap-2">/)
+    })
+
+    it("is how Downloads shows the missing library folder", () => {
+        const downloads = read("_screens/settings-torrents.tsx")
+        const group = downloads.slice(downloads.indexOf("function DownloadsGroup"), downloads.indexOf("const DEBRID_PROVIDERS"))
+        expect(group).toMatch(/notice=\{noFolder && <Notice /)
+        expect(group).not.toMatch(/[^=]\{noFolder && <Notice /)
     })
 })
