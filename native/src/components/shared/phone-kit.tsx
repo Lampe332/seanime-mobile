@@ -115,18 +115,14 @@ export function SearchField({ value, onChangeText, placeholder, inputRef, onSubm
 }) {
     const t = useTr()
     // the field lets go of the keyboard when its page is left (page-focus.ts); the caller's ref gets the same field
-    const own = React.useRef<TextInputInstance | null>(null)
+    const own = React.useRef<TextInputInstance>(null)
     useReleaseFocusOnLeave(own)
-    const setRef = React.useCallback((field: TextInputInstance | null) => {
-        own.current = field
-        if (typeof inputRef === "function") inputRef(field)
-        else if (inputRef) inputRef.current = field
-    }, [inputRef])
+    React.useImperativeHandle(inputRef, () => own.current!, [])
     return (
         <View className="min-h-12 flex-row items-center rounded-full bg-sm-surface-raised">
             <View className="pl-4 pr-2.5"><Search size={18} color={colors.smTextSubtle} /></View>
             <TextInput
-                ref={setRef}
+                ref={own}
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
