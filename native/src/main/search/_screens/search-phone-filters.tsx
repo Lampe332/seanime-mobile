@@ -126,7 +126,7 @@ function FilterGroups({ t, draft, onDraft, adultAllowed }: { t: Translate, draft
                 ? <Choices label={t("Tags", "Tags")} chips={tags.tags.map(tag => ({ value: tag, label: tag }))} selected={draft.tags} showCheck
                     onToggle={tag => change({ tags: toggleValue(draft.tags, tag) })} />
                 : <Muted>{t(`No tag matches “${tagQuery.trim()}”.`, `Kein Tag passt zu „${tagQuery.trim()}“.`)}</Muted>}
-            {tags.more && <View className="-ml-2 self-start"><TextAction label={t(`Show all ${tags.total}`, `Alle ${tags.total} zeigen`)} onPress={() => setAllTags(true)} /></View>}
+            {tags.more && <View className="-ml-2 self-start"><TextAction label={t(`Show all ${tags.total} tags`, `Alle ${tags.total} Tags zeigen`)} onPress={() => setAllTags(true)} /></View>}
         </SheetGroup>
     </>
 }

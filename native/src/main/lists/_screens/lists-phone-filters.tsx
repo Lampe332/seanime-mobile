@@ -1,4 +1,4 @@
-import { Choices, FORMAT_LABELS, MoreAction, SearchField, TextAction } from "@/components/shared/phone-kit"
+import { Choices, FORMAT_LABELS, SearchField, TextAction } from "@/components/shared/phone-kit"
 import { SEASON_LABELS, useLastData } from "@/components/shared/phone-cards"
 import { Button } from "@/components/ui/button/button"
 import { Select } from "@/components/ui/select/select"
@@ -171,8 +171,8 @@ export function ListsFilterSheet(props: FilterSheetProps) {
                             onToggle={value => setFilters(current => ({ ...current, tags: toggle(current.tags, value) }))} />
                         : <Muted>{t("No tag matches the search.", "Kein Tag passt zur Suche.")}</Muted>}
                     {tagChips.chips.length < tagChips.total && (
-                        // lists-phone-filters.tsx: a `.ps-more` line here, not the search sheet's text action
-                        <MoreAction label={t(`Show all ${tagChips.total} tags`, `Alle ${tagChips.total} Tags zeigen`)} onPress={() => setAllTags(true)} />
+                        // the same accent text action as the search sheet's "Show all"
+                        <View className="-ml-2 self-start"><TextAction label={t(`Show all ${tagChips.total} tags`, `Alle ${tagChips.total} Tags zeigen`)} onPress={() => setAllTags(true)} /></View>
                     )}
                 </SheetGroup>
             )}

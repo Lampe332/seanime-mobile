@@ -6,9 +6,10 @@ import { describe, expect, it } from "vitest"
 const read = (path: string) => readFileSync(join(__dirname, path), "utf8")
 
 describe("UI round 5", () => {
-    it("shows all list filter tags with a quiet .ps-more line, not an accent action", () => {
-        const source = read("lists/_screens/lists-phone-filters.tsx")
-        expect(source).toMatch(/<MoreAction label=\{t\(`Show all \$\{tagChips\.total\} tags`/)
+    // 4.2.0: the lists sheet's quiet .ps-more line became the search sheet's accent text action, one "Show all" for both
+    it("shows all filter tags with the same text action in the lists and the search sheet", () => {
+        expect(read("lists/_screens/lists-phone-filters.tsx")).toMatch(/<View className="-ml-2 self-start"><TextAction label=\{t\(`Show all \$\{tagChips\.total\} tags`/)
+        expect(read("search/_screens/search-phone-filters.tsx")).toMatch(/<View className="-ml-2 self-start"><TextAction label=\{t\(`Show all \$\{tags\.total\} tags`/)
     })
 
     it("gives the empty downloads' Search anime the .mdl-secondary padding (1rem)", () => {

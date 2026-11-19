@@ -222,15 +222,6 @@ export function TextAction({ label, onPress, disabled, expanded, accessibilityLa
     )
 }
 
-/** `.ps-more`: a quiet centred "show more" line, 48dp tall, .875rem in the muted colour */
-export function MoreAction({ label, onPress }: { label: string, onPress: () => void }) {
-    return (
-        <Pressable accessibilityRole="button" onPress={onPress} className="min-h-12 flex-row items-center justify-center gap-2 px-4 py-2">
-            <Text className="text-sm leading-[21px] text-sm-text-muted">{label}</Text>
-        </Pressable>
-    )
-}
-
 /** `.ps-loading` with row bones: the shape of a list that is still loading */
 export function LoadingRows({ label, count = 4 }: { label: string, count?: number }) {
     return (
