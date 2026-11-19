@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { translate } from "@/lib/app-language"
-import { customizeInHomeHead, moreProfile, type MoreProfileInput } from "./more-panel"
+import { customizeInHomeHead, moreProfile, type MoreProfileInput, profileHeadOpens } from "./more-panel"
 
 const en = (english: string, german: string) => translate("en", english, german)
 const de = (english: string, german: string) => translate("de", english, german)
@@ -61,5 +63,25 @@ describe("Customize Home: head or More", () => {
         expect(customizeInHomeHead({ rail: false, windowWidth: 780 })).toBe(true)
         expect(customizeInHomeHead({ rail: true, windowWidth: 600 })).toBe(true)
         expect(customizeInHomeHead({ rail: true, windowWidth: 1280 })).toBe(true)
+    })
+})
+
+// 4.2.0 E (Pixel Tablet): without AniList the head said "Sign in to AniList" and a "Sign in" row under it said it again
+describe("signing in to AniList from More", () => {
+    const read = (file: string) => readFileSync(join(__dirname, "..", "..", file), "utf8")
+
+    it("is the profile head while the app runs on the local account, else the head opens Settings › Account", () => {
+        expect(profileHeadOpens({ isSimulated: true })).toBe("anilist-sign-in")
+        expect(profileHeadOpens({ isSimulated: false })).toBe("account")
+        expect(profileHeadOpens(null)).toBe("account")
+    })
+
+    it("has no Sign in row of its own any more, on the phone and the tablet (one panel for both)", () => {
+        const layout = read("app/(main)/_layout.tsx")
+        expect(layout).not.toMatch(/id: "sign-in"/)
+        expect(layout).toMatch(/onSignIn=\{\(\) => setLoginModal\(true\)\}/)
+        const head = read("components/navigation/more-profile-head.tsx")
+        expect(head).toMatch(/onPress=\{signIn \? onSignIn : onPress\}/)
+        expect(read("components/navigation/app-navigation.tsx")).toMatch(/<MoreProfileHead onPress=\{[^}]*\}\s*onSignIn=/)
     })
 })

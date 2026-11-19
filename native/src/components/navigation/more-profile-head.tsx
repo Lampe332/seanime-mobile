@@ -2,7 +2,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Text } from "@/components/ui/text/text"
 import { accountAtom, lastSyncAtom } from "@/lib/account/account-app"
 import { useTr } from "@/lib/app-language"
-import { moreProfile } from "@/lib/nav/more-panel"
+import { moreProfile, profileHeadOpens } from "@/lib/nav/more-panel"
 import { accountLoadFailedAtom } from "@/main/_features/account/account-service"
 import { useCurrentUser } from "@/main/_hooks/use-server-status"
 import { Image } from "expo-image"
@@ -15,11 +15,18 @@ import { Pressable, View } from "react-native"
 /*
  * The top of the More panel (4.2.0, Nick): who is signed in. The AniList avatar and name (without AniList a neutral avatar
  * and "Sign in to AniList"), under them the Seanime account ("you@mail.com · Synced 2 min ago", or "Sync between your
- * devices"). The whole row opens Settings › Account. The same row on the phone panel and beside the tablet rail.
+ * devices"). The whole row opens Settings › Account, or AniList's sign-in while there is no AniList (the panel's only
+ * way there, 4.2.0 E). The same row on the phone panel and beside the tablet rail.
  */
-export function MoreProfileHead({ onPress }: { onPress: () => void }) {
+export function MoreProfileHead({ onPress, onSignIn }: {
+    /** opens Settings › Account */
+    onPress: () => void
+    /** opens AniList's sign-in: the head's way while the app runs on the local account (profileHeadOpens) */
+    onSignIn: () => void
+}) {
     const t = useTr()
     const user = useCurrentUser()
+    const signIn = profileHeadOpens(user) === "anilist-sign-in"
     const account = useAtomValue(accountAtom)
     const lastResult = useAtomValue(lastSyncAtom)
     const loadFailed = useAtomValue(accountLoadFailedAtom)
@@ -38,8 +45,8 @@ export function MoreProfileHead({ onPress }: { onPress: () => void }) {
             <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={[profile.title, profile.line].filter(Boolean).join(", ")}
-                accessibilityHint={t("Opens your account settings", "Öffnet deine Kontoeinstellungen")}
-                onPress={onPress}
+                accessibilityHint={signIn ? t("Opens the AniList sign-in", "Öffnet die AniList-Anmeldung") : t("Opens your account settings", "Öffnet deine Kontoeinstellungen")}
+                onPress={signIn ? onSignIn : onPress}
                 className="min-h-16 flex-row items-center gap-3 rounded-[16px] py-2 pl-2 pr-2.5 active:bg-white/8"
             >
                 {profile.avatar

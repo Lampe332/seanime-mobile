@@ -287,11 +287,13 @@ function MenuRow({ label, icon, current, first, tourTarget, onPress, count, coun
 /** A menu row that runs an action instead of opening a page (the sidebar's buttons, e.g. "Sign in") */
 export type NavMenuAction = { id: string, label: string, icon: MobileIconName, onPress: () => void }
 
-export function NavMenu({ open, onClose, pathname, onOpen, rail, barItems, actions = [], header }: {
+export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barItems, actions = [], header }: {
     open: boolean
     onClose: () => void
     pathname: string
     onOpen: (href: string) => void
+    /** AniList's sign-in, opened by the profile head while there is no AniList (MoreProfileHead) */
+    onSignIn: () => void
     rail: boolean
     barItems: NavItem[]
     actions?: NavMenuAction[]
@@ -345,8 +347,11 @@ export function NavMenu({ open, onClose, pathname, onOpen, rail, barItems, actio
                 className="rounded-menu border border-menu-border p-2"
             >
                 <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-                    {/* who is signed in (AniList, the Seanime account); opens Settings › Account */}
-                    <MoreProfileHead onPress={() => onOpen(settingsHref("account"))} />
+                    {/* who is signed in (AniList, the Seanime account); opens Settings › Account, without AniList its sign-in */}
+                    <MoreProfileHead onPress={() => onOpen(settingsHref("account"))} onSignIn={() => {
+                        onClose()
+                        onSignIn()
+                    }} />
                     {header}
                     {/* the quick switch: stays open on a tap, so the change is seen */}
                     <MenuRow

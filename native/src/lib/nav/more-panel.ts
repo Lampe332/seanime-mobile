@@ -45,6 +45,15 @@ export function moreProfile(t: Translate, input: MoreProfileInput): MoreProfile 
     return { ...head, line: [account.email, synced].filter(Boolean).join(" · "), lineTone: "muted" }
 }
 
+/**
+ * Where a tap on the profile head leads (4.2.0 E): while the app runs on the local stand-in account (`isSimulated`) the
+ * head says "Sign in to AniList" and opens AniList's sign-in, which was also a "Sign in" row further down (shown twice);
+ * else Settings › Account.
+ */
+export function profileHeadOpens(user: { isSimulated?: boolean } | null | undefined): "anilist-sign-in" | "account" {
+    return user?.isSimulated ? "anilist-sign-in" : "account"
+}
+
 /** Icons a Home head may carry at most: Search, Plugins, Playlists, Library and Customize, 48dp each */
 const HOME_HEAD_MAX_ACTIONS = 5
 const HEAD_ACTION = 48

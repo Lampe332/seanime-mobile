@@ -71,10 +71,9 @@ function MainFrame() {
     useMangaCollectionLoader()
     // extension updates: at most one check a day at start, the Menu shows the count (extension-updates.ts)
     useDailyExtensionUpdateCheck()
-    // Signing out sits in Settings › App › Account; signing in is a Menu action while no account is stored (main-sidebar.tsx)
-    const menuActions: NavMenuAction[] = user?.isSimulated
-        ? [{ id: "sign-in", label: "Sign in", icon: "fallback", onPress: () => setLoginModal(true) }]
-        : []
+    // Signing out sits in Settings › App › Account; signing in is the More panel's profile head ("Sign in to AniList") while
+    // no account is stored, no longer a "Sign in" row of its own under it as well (4.2.0 E, profileHeadOpens)
+    const menuActions: NavMenuAction[] = []
     // A phone head too narrow for the title and all of Home's icons hands "Customize" to More (customizeInHomeHead);
     // it opens Home and its sheet there
     const { width: windowWidth } = useWindowDimensions()
@@ -147,6 +146,7 @@ function MainFrame() {
                 onClose={() => setMenuOpen(false)}
                 pathname={pathname}
                 onOpen={go}
+                onSignIn={() => setLoginModal(true)}
                 rail={rail}
                 barItems={items}
                 actions={menuActions}
