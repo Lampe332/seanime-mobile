@@ -60,6 +60,10 @@ describe("mail", () => {
     { kind: "key_rotated" },
     { kind: "approvals_paused" },
     { kind: "inactivity", deleteAt: nowS() + 14 * 86400 },
+    { kind: "sign_in_code", code: "042917" },
+    { kind: "code_only_on" },
+    { kind: "code_only_off" },
+    { kind: "password_changed", afterCode: true },
   ];
   const decode = (s: string) => s.replace(/&#(\d+);/g, (_, n: string) => String.fromCharCode(Number(n)));
   const visible = (html: string) =>
