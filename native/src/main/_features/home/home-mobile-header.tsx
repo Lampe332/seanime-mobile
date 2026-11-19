@@ -6,6 +6,7 @@ import { colors } from "@/lib/theme/tokens"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useRouter } from "@/lib/navigation"
+import { searchHeadLink } from "@/main/search/_lib/search-phone"
 import { Image } from "expo-image"
 import Search from "lucide-react-native/icons/search"
 import React from "react"
@@ -71,8 +72,8 @@ function HomeBanner({ image, opacity, position }: { image: string, opacity: numb
 export function SearchHeadAction({ href }: { href: string }) {
     const t = useTr()
     const router = useRouter()
-    // a link with params replaces the open search once per tap (search-phone.tsx stamps arrivals by `at`)
-    return <HomeHeaderAction icon={Search} label={t("Search", "Suche")} onPress={() => router.push(href.includes("?") ? `${href}&at=${Date.now()}` : href)} />
+    // each tap lands in the search field; a link with params replaces the open search once per tap (searchHeadLink)
+    return <HomeHeaderAction icon={Search} label={t("Search", "Suche")} onPress={() => router.push(searchHeadLink(href, Date.now()))} />
 }
 
 /**

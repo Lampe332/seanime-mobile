@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { AL_BaseAnime, AL_BaseManga } from "@/api/generated/types"
 import { translate } from "@/lib/app-language"
 import { MEDIA_STATUS_LABELS } from "@/main/_features/media/_lib/media-labels"
@@ -15,6 +17,7 @@ import {
     SEARCH_DEFAULTS,
     searchAnnouncement,
     searchFilterChips,
+    searchHeadLink,
     searchParamsKey,
     SearchPhoneState,
     searchStateFromParams,
@@ -68,6 +71,23 @@ describe("phone search: links", () => {
         expect(searchParamsKey(params("foo=1"))).toBe("")
         expect(searchParamsKey(params("sorting=SCORE_DESC&foo=1&year=2024"))).toBe("sorting=SCORE_DESC&year=2024")
         expect(searchParamsKey(params("year=2024&sorting=SCORE_DESC"))).toBe(searchParamsKey(params("sorting=SCORE_DESC&year=2024")))
+    })
+
+    // 4.2.0 E (Pixel Tablet): the magnifier opened Search without the focus in the field, the typing went nowhere
+    it("stamps the magnifier's link so the field takes the focus, without replacing the last search", () => {
+        expect(searchHeadLink("/search", 7)).toBe("/search?focus=7")
+        expect(searchHeadLink("/search?type=manga", 7)).toBe("/search?type=manga&at=7&focus=7")
+        const query = (link: string) => params(link.slice(link.indexOf("?") + 1))
+        expect(query(searchHeadLink("/search", 7)).get("focus")).toBe("7")
+        expect(searchParamsKey(query(searchHeadLink("/search", 7)))).toBe("")
+        expect(searchParamsKey(query(searchHeadLink("/search?type=manga", 7)))).toBe("type=manga")
+    })
+
+    it("focuses the field on the stamped arrival", () => {
+        const screen = readFileSync(join(__dirname, "..", "_screens", "search-phone.tsx"), "utf8")
+        expect(screen).toMatch(/const focusStamp = linkParams\.get\("focus"\)/)
+        expect(screen).toMatch(/if \(focusStamp\) inputRef\.current\?\.focus\(\)/)
+        expect(screen).toMatch(/autoFocus=\{!!focusStamp\}/)
     })
 })
 

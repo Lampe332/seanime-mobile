@@ -198,6 +198,15 @@ const PARAM_KEYS = ["type", "sorting", "genre", "tags", "status", "format", "sea
 
 type Params = { get(name: string): string | null }
 
+/**
+ * The magnifier's link in the heads of Home and Discover (4.2.0 E): stamped with `focus`, so each tap puts the typing
+ * into the field (it is no search param, the last search stays); a link with params replaces the open search once per
+ * tap (`at`).
+ */
+export function searchHeadLink(href: string, now: number) {
+    return href.includes("?") ? `${href}&at=${now}&focus=${now}` : `${href}?focus=${now}`
+}
+
 /** The params this screen reads, as one string ("" without any): the same string twice is the same arrival. */
 export function searchParamsKey(params: Params) {
     return PARAM_KEYS.map(key => [key, params.get(key)?.trim()] as const).filter(([, value]) => !!value)

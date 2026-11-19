@@ -150,6 +150,12 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         inputRef.current?.focus()
     }
     // A result opens over this screen, which stays mounted: the field lets go of the focus when the screen does (SearchField)
+    // The magnifier of Home and Discover stamps its link (searchHeadLink): each tap puts the typing into the field, the
+    // first one as the screen mounts (autoFocus), a later one on the mounted screen
+    const focusStamp = linkParams.get("focus")
+    React.useEffect(() => {
+        if (focusStamp) inputRef.current?.focus()
+    }, [focusStamp])
 
     const variables = React.useMemo(() => searchVariables(state, adultAllowed), [state, adultAllowed])
     const searchKey = JSON.stringify([state.type, variables])
@@ -260,7 +266,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                         <SearchField value={input} onChangeText={onInput} onSubmit={() => {
                             commitTitle(input)
                             remember(input)
-                        }} inputRef={inputRef}
+                        }} inputRef={inputRef} autoFocus={!!focusStamp}
                             placeholder={state.type === "anime" ? t("Search anime", "Anime suchen") : t("Search manga", "Manga suchen")} />
                     </View>
                 </View>

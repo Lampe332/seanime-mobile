@@ -101,7 +101,7 @@ export function PickRow({ checked, radio, label, note, media, onPress }: {
     )
 }
 
-export function SearchField({ value, onChangeText, placeholder, inputRef, onSubmit, onFocus }: {
+export function SearchField({ value, onChangeText, placeholder, inputRef, onSubmit, onFocus, autoFocus }: {
     value: string
     onChangeText: (value: string) => void
     placeholder: string
@@ -110,6 +110,8 @@ export function SearchField({ value, onChangeText, placeholder, inputRef, onSubm
     onSubmit?: () => void
     /** e.g. scroll the field to the top, so the hits show above the keyboard (My lists) */
     onFocus?: () => void
+    /** takes the focus as it mounts (Search opened by a magnifier) */
+    autoFocus?: boolean
 }) {
     const t = useTr()
     // the field lets go of the keyboard when its page is left (page-focus.ts); the caller's ref gets the same field
@@ -135,6 +137,7 @@ export function SearchField({ value, onChangeText, placeholder, inputRef, onSubm
                 returnKeyType="search"
                 onSubmitEditing={onSubmit}
                 onFocus={onFocus}
+                autoFocus={autoFocus}
                 numberOfLines={1}
                 className="min-h-12 flex-1 font-sans text-base text-sm-text"
             />
