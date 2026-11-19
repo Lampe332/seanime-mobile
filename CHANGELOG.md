@@ -11,12 +11,28 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 🎉 Settings: The app now speaks eight languages: English, German, Spanish, Russian, Simplified Chinese, Brazilian Portuguese, French and Japanese. It follows the phone's language and can be changed under Settings
 - 🎉 Tour: The setup tour now shows the account. After updating from 4.1.0 you see this one card once, not the whole tour again
 - 🎉 Pull to refresh: Pull down on My lists, Updates, Schedule and History to load them again
+- 🎉 Torrents: Downloads show their progress in the notification, with percent, speed and time left, and you get a notice when a download finishes or fails
+- 🎉 Torrents: A loading stream shows what is happening: stage, loaded share, speed, peers and seeders, plus a hint when it waits for peers. With no seeders you can pick another torrent right away
+- 🎉 Torrents: "Keep in library" in the player menu keeps the streamed torrent as a download instead of deleting it when the player closes
+- 🎉 Torrents: "Preload next episode" now loads the next episode while you watch. It never slows the running stream and never uses mobile data
+- 🎉 Torrents: Download and upload speed limits, a download queue and "Stop sharing when finished" under Settings > Torrents
+- 🎉 Torrents: Pick single files of a batch before downloading, with the total size and your free space shown
+- 🎉 Torrents: Copy the magnet link of any result with the copy button or a long press
+- 🎉 Auto select: New option to prefer the larger file
+- ⚡️ Torrents: Result cards show group, resolution, episode or batch, season, seeders and leechers with a health icon, codec, source, audio and subtitles. The app reads them from the release name when the provider leaves them out
+- ⚡️ Torrents: "Best match" marks the torrent that auto select would pick, and the new sort "Largest" puts the biggest releases first
+- ⚡️ Torrent search: Filters fold away, so the results come first
+- ⚡️ Torrents: A finished download shows up in your library right away
+- ⚡️ Torrents: A download that does not fit into your free storage is refused before it starts, with the numbers
+- ⚡️ Navigation: The bottom bar now has five entries: Home, My Lists, Discover, Downloads and More. Search sits in More and as a button on Home and Discover. A bar you customized stays as it is; Settings > App > Reset navigation gives you the new one
+- ⚡️ More: The menu starts with your AniList profile and your Seanime account
 - ⚡️ Cast: The TV sheet keeps its height while it searches, connects and lists your TVs
 - ⚡️ Filters: "Show all tags" looks the same in My lists and Search
 - 🦺 App links: Fixed the launch link running again after the app restarted itself
 - 🦺 Mini player: Fixed it covering the end of a page. Pages now scroll far enough to show their last row above it
 - 🦺 Downloads: Fixed the storage line counting only episodes. Downloaded manga chapters count too
 - 🦺 Updates: Fixed a failed load showing "No new episodes or chapters this week". The page now says what failed and offers Try again
+- 🦺 Torrents: Fixed a download reporting an error when its file list took longer than 60 seconds. It keeps loading, and your file choice applies once the list arrives
 
 ## 4.1.0 — 17.11.2026 (versionCode 40100)
 
