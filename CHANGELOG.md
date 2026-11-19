@@ -9,7 +9,13 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 🎉 Account: Device list with security events, removing a device and changing the encryption key for only the devices you keep
 - 🎉 Account: Optional recovery code for when all your devices are gone at once, and a password reset by email
 - 🎉 Settings: The app now speaks eight languages: English, German, Spanish, Russian, Simplified Chinese, Brazilian Portuguese, French and Japanese. It follows the phone's language and can be changed under Settings
+- 🎉 Pull to refresh: Pull down on My lists, Updates, Schedule and History to load them again
+- ⚡️ Cast: The TV sheet keeps its height while it searches, connects and lists your TVs
+- ⚡️ Filters: "Show all tags" looks the same in My lists and Search
 - 🦺 App links: Fixed the launch link running again after the app restarted itself
+- 🦺 Mini player: Fixed it covering the end of a page. Pages now scroll far enough to show their last row above it
+- 🦺 Downloads: Fixed the storage line counting only episodes. Downloaded manga chapters count too
+- 🦺 Updates: Fixed a failed load showing "No new episodes or chapters this week". The page now says what failed and offers Try again
 
 ## 4.1.0 — 17.11.2026 (versionCode 40100)
 
