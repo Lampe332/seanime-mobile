@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { APP_LANGUAGES } from "@/lib/app-language"
 import {
+    DEFAULT_NAV_ITEMS,
     isActive,
     MAX_NAV_ITEMS,
     menuTargets,
@@ -8,6 +9,7 @@ import {
     moveToBar,
     moveToMenu,
     navCount,
+    navHighlight,
     navItemLabel,
     navItemTabLabel,
     navLabel,
@@ -189,5 +191,22 @@ describe("bottom bar entries", () => {
         // "[tab] More" has its own short word in every language (not the English fallback)
         const moreTab = APP_LANGUAGES.map(({ value }) => [value, navItemTabLabel({ label: "Menu", isMenu: true }, value)])
         expect(Object.fromEntries(moreTab)).toEqual({ "en": "More", "de": "Mehr", "es": "Más", "ru": "Ещё", "zh-Hans": "更多", "pt-BR": "Mais", "fr": "Plus", "ja": "その他" })
+    })
+})
+
+// 4.2.0 E (S22): with More open, Home and More were both lit
+describe("which entry the bar and the rail light up", () => {
+    const items = DEFAULT_NAV_ITEMS.filter(item => item.placement === "nav")
+    it("lights only More while its panel is open", () => {
+        expect(navHighlight(items, "/", true)).toBe("menu")
+        expect(navHighlight(items, "/lists/watching", true)).toBe("menu")
+    })
+
+    it("lights the page's entry again once the panel is closed", () => {
+        expect(navHighlight(items, "/", false)).toBe("home")
+        expect(navHighlight(items, "/lists/watching", false)).toBe("lists")
+        expect(navHighlight(items, "/android-downloads", false)).toBe("android-downloads")
+        // a page with no entry in the bar (Settings, opened from More) lights none
+        expect(navHighlight(items, "/settings", false)).toBeNull()
     })
 })

@@ -7,7 +7,7 @@ import { usePressScale } from "@/components/ui/core/press"
 import { Text } from "@/components/ui/text/text"
 import { appLanguageAtom, translate } from "@/lib/app-language"
 import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
-import { isActive, MAX_NAV_ITEMS, menuTargets, navIcon, navItemLabel, navItemTabLabel, navLabel, type NavItem } from "@/lib/nav/nav-items"
+import { MAX_NAV_ITEMS, navHighlight, menuTargets, navIcon, navItemLabel, navItemTabLabel, navLabel, type NavItem } from "@/lib/nav/nav-items"
 import { useAllNavItems } from "@/lib/nav/nav-store"
 import { MoreProfileHead } from "@/components/navigation/more-profile-head"
 import { settingsHref } from "@/main/settings/_lib/settings-phone"
@@ -131,8 +131,9 @@ export function NavBar({ items, pathname, menuOpen, onNavigate, onMenu }: NavPro
     const insets = useSafeAreaInsets()
     const barHeight = useNavBarHeight()
     const dense = items.length >= MAX_NAV_ITEMS
-    // as in the rail: the gliding pill stays on the page's entry, the open Menu gets a pill of its own (2.0.32 S22)
-    const glide = useGlide(activeKey(items, pathname))
+    // one entry lit (4.2.0 E): the open More with a pill of its own, else the page's entry with the gliding pill
+    const lit = navHighlight(items, pathname, menuOpen)
+    const glide = useGlide(menuOpen ? null : lit)
     return (
         <View
             accessibilityRole="tablist"
@@ -149,8 +150,8 @@ export function NavBar({ items, pathname, menuOpen, onNavigate, onMenu }: NavPro
                         dense={dense}
                         rail={false}
                         railHeight={0}
-                        // UIBottomNav.kt marks the Menu button on its own (data-active), the page's entry keeps its pill
-                        active={item.isMenu ? menuOpen : isActive(item, pathname)}
+                        // the one lit entry (navHighlight): More while its panel is open, else the page's entry
+                        active={item.id === lit}
                         onPress={() => item.isMenu ? onMenu() : onNavigate(item)}
                         onLayout={glide.onOptionLayout(item.id)}
                         standIn={item.isMenu
@@ -163,17 +164,12 @@ export function NavBar({ items, pathname, menuOpen, onNavigate, onMenu }: NavPro
     )
 }
 
-/** The entry that carries the gliding pill: the page's entry (an open Menu has a pill of its own) */
-function activeKey(items: NavItem[], pathname: string) {
-    const active = items.find(item => !item.isMenu && isActive(item, pathname))
-    return active ? active.id : null
-}
-
 /** Tablet (≥600dp window on a tablet screen): the rail down the left edge, the app's mark on top */
 export function NavRail({ items, pathname, menuOpen, onNavigate, onMenu, short }: NavProps & { short: boolean }) {
     const insets = useSafeAreaInsets()
-    // the gliding pill stays on the page's entry; the open Menu gets a pill of its own (below)
-    const glide = useGlide(activeKey(items, pathname))
+    // one entry lit, as in the bar: the open More (its own pill, below), else the page's entry with the gliding pill
+    const lit = navHighlight(items, pathname, menuOpen)
+    const glide = useGlide(menuOpen ? null : lit)
     return (
         <View
             accessibilityRole="tablist"
@@ -197,8 +193,8 @@ export function NavRail({ items, pathname, menuOpen, onNavigate, onMenu, short }
                         dense={false}
                         rail
                         railHeight={short ? sizes.tabletRailItemHeightShort : sizes.tabletRailItemHeight}
-                        // UIBottomNav.kt marks the Menu button on its own (data-active), the page's entry keeps its pill
-                        active={item.isMenu ? menuOpen : isActive(item, pathname)}
+                        // the one lit entry (navHighlight): More while its panel is open, else the page's entry
+                        active={item.id === lit}
                         onPress={() => item.isMenu ? onMenu() : onNavigate(item)}
                         onLayout={glide.onOptionLayout(item.id)}
                         standIn={item.isMenu

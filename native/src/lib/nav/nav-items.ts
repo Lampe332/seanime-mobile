@@ -130,6 +130,15 @@ export function isActive(item: NavItem, pathname: string) {
     return pathname === item.href || pathname.startsWith(item.href + "/")
 }
 
+/**
+ * The one entry the bar (or the tablet rail) lights up: More while its panel is open, else the page's entry; null when
+ * the page has none in the bar. 4.2.0 E (S22): the open panel lit More and Home at once.
+ */
+export function navHighlight(items: NavItem[], pathname: string, menuOpen: boolean): string | null {
+    if (menuOpen) return items.find(item => item.isMenu)?.id ?? null
+    return items.find(item => isActive(item, pathname))?.id ?? null
+}
+
 const NAV_LABELS_DE: Record<string, string> = {
     "Home": "Start", "My Lists": "Meine Listen", "My lists": "Meine Listen", "Discover": "Entdecken", "Search": "Suche",
     "Menu": "Menü", "Schedule": "Sendeplan", "Scan summaries": "Scan-Berichte", "History": "Verlauf", "More": "Mehr",

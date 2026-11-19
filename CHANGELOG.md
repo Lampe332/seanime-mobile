@@ -26,6 +26,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - ⚡️ Torrents: A download that does not fit into your free storage is refused before it starts, with the numbers
 - ⚡️ Navigation: The bottom bar now has five entries: Home, My Lists, Discover, Downloads and More. Search sits in More and as a button on Home and Discover. A bar you customized stays as it is; Settings > App > Reset navigation gives you the new one
 - ⚡️ More: The menu starts with your AniList profile and your Seanime account
+- ⚡️ More: While the panel is open, only More is highlighted in the bar and the tablet rail. Closing it highlights your page again
 - ⚡️ Cast: The TV sheet keeps its height while it searches, connects and lists your TVs
 - ⚡️ Filters: "Show all tags" looks the same in My lists and Search
 - 🦺 App links: Fixed the launch link running again after the app restarted itself
