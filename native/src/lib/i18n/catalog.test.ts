@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
 import { PLURAL_CATEGORIES as SCRIPT_PLURALS, valueProblem } from "../../../scripts/i18n-extract.mjs"
-import { compileCatalog, type CatalogJSON, formsOf, placeholdersOf, translateText } from "./catalog"
+import { compileCatalog, type CatalogJSON, formsOf, numberOf, placeholdersOf, translateText } from "./catalog"
 import { PLURAL_CATEGORIES, pluralCategory } from "./plural"
 
 describe("translateText", () => {
@@ -66,6 +66,16 @@ describe("plural values", () => {
         expect(["1", "2", "4", "5", "11", "12", "21", "22", "25", "111", "1 234"].map(n => translateText(ru, `${n} files`))).toEqual([
             "1 файл", "2 файла", "4 файла", "5 файлов", "11 файлов", "12 файлов", "21 файл", "22 файла", "25 файлов", "111 файлов", "1 234 файла",
         ])
+    })
+
+    it("reads decimals and thousands in the number, not one long whole number", () => {
+        expect(["1,5", "2.5", "21,5"].map(n => translateText(ru, `${n} files`))).toEqual(["1,5 файла", "2.5 файла", "21,5 файла"])
+        expect(["1,000", "1.001", "1 002", "1 005"].map(n => translateText(ru, `${n} files`))).toEqual([
+            "1,000 файлов", "1.001 файл", "1 002 файла", "1 005 файлов",
+        ])
+        expect([numberOf("1,5"), numberOf("1.234.567,5"), numberOf("12"), numberOf("abc"), numberOf("1,5,")]).toEqual([1.5, 1234567.5, 12, undefined, undefined])
+        const fr = compileCatalog({ "{0} hours": { one: "{0} heure", other: "{0} heures" } }, "fr")
+        expect(["0", "1,5", "2"].map(n => translateText(fr, `${n} hours`))).toEqual(["0 heure", "1,5 heure", "2 heures"])
     })
 
     it("follows the placeholder named by count", () => {

@@ -11,12 +11,12 @@ Stil: UI-Kurzformen (保存, 削除, キャンセル), Erklärtexte in です/�
 | Chapter | チャプター (Manga: 第{0}話 nur bei Nummer) |
 | Season (anime) | シーズン |
 | Library | ライブラリ |
-| My lists | マイリスト |
+| My lists | マイリスト (Tab-Kurzform: リスト) |
 | Discover | 見つける |
 | Schedule (calendar) | スケジュール |
 | Settings | 設定 |
 | Search | 検索 |
-| Download / Downloads | ダウンロード |
+| Download / Downloads | ダウンロード (Tab-Kurzform: DL) |
 | Continue watching | 続きを見る |
 | Watch history | 視聴履歴 |
 | Playlist | プレイリスト |

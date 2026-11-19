@@ -1,5 +1,5 @@
 /**
- * Plural forms of the catalog languages, for whole numbers (the app only counts whole things). Own rules instead of
+ * Plural forms of the catalog languages, for whole numbers and the few decimals the app shows ("1,5 часа"). Own rules instead of
  * Intl.PluralRules: Hermes on Android does not have it. The rules follow CLDR for integers; Spanish, French and
  * Portuguese also have a "many" form for round millions ("1 millón de"), which never comes up in the app and falls
  * back to "other". English and German stay inline (`n === 1 ? … : …`), so they are not here.
@@ -20,6 +20,8 @@ export function pluralCategory(language: string, count: number): PluralCategory 
     const n = Math.abs(Math.trunc(count))
     switch (language) {
         case "ru": {
+            // a fraction ("1,5 серии") takes CLDR's "other", which is the genitive singular of "few"
+            if (!Number.isInteger(count)) return "few"
             const last = n % 10
             const lastTwo = n % 100
             if (last === 1 && lastTwo !== 11) return "one"

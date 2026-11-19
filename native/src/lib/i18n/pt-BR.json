@@ -1,8 +1,47 @@
 {
+  "not logged in to AniList": "Você não está conectado ao AniList",
+  "AniList could not be reached": "Não foi possível acessar o AniList",
+  "AniList's answer could not be read": "Não foi possível ler a resposta do AniList",
+  "AniList's rate limit is reached": "O limite de solicitações do AniList foi atingido",
+  "cache-only mode is on, AniList is not asked": "O modo somente cache está ativo, o AniList não é consultado",
+  "Not Found.": "Não encontrado.",
+  "extension not found": "Extensão não encontrada",
+  "manga not found": "Mangá não encontrado",
+  "no torrent chosen": "Nenhum torrent escolhido",
+  "no library folder is set": "Nenhuma pasta da biblioteca definida",
+  "downloads are not available here": "Downloads não estão disponíveis aqui",
+  "DLNA is not available here": "DLNA não está disponível aqui",
+  "the secured storage is not available here": "O armazenamento seguro não está disponível aqui",
+  "debrid: the stream was cancelled": "Debrid: o stream foi cancelado",
+  "the torrent has neither a magnet link nor an info hash, and its provider gave none": "O torrent não tem link magnet nem info hash, e o provedor não forneceu nenhum",
+  "no file of the torrent fits episode {0}": "Nenhum arquivo do torrent corresponde ao episódio {0}",
+  "auto select found no torrent for episode {0} ({1} looked at)": "A seleção automática não encontrou torrent para o episódio {0} ({1} verificados)",
+  "{0}: no matching entry found, choose one by hand": "{0}: nenhuma entrada correspondente encontrada, escolha uma manualmente",
+  "torrent provider not found: {0}": "Provedor de torrents não encontrado: {0}",
+  "online stream provider not found: {0}": "Provedor de streaming não encontrado: {0}",
+  "manga provider not found: {0}": "Provedor de mangá não encontrado: {0}",
+  "the torrent stopped: {0}": "O torrent parou: {0}",
+  "the backup was made by a newer app version ({0}); update the app first": "O backup foi feito por uma versão mais nova do app ({0}); atualize o app primeiro",
   "Download finished": "Download concluído",
   "Download failed": "Falha no download",
   "Episode downloads": "Downloads de episódios",
+  "This feature is disabled": "Este recurso está desativado",
+  "Server error: {0}": "Erro do servidor: {0}",
+  "Unknown error": "Erro desconhecido",
+  "AniList: Too many requests, please wait a moment and try again.": "AniList: muitas solicitações, espere um pouco e tente de novo.",
+  "AniList error: {0}": "Erro do AniList: {0}",
+  "AniList error": "Erro do AniList",
+  "Error: {0}": "Erro: {0}",
+  "AniList is up-to-date": "O AniList está atualizado",
+  "Entry updated": "Entrada atualizada",
+  "Entry deleted": "Entrada excluída",
+  "Media added successfully": "Título adicionado",
+  "Files matched": "Arquivos associados",
+  "Progress updated successfully": "Progresso atualizado",
+  "Successfully authenticated": "Login feito",
+  "Successfully logged out": "Logout feito",
   "Torrent added": "Torrent adicionado",
+  "Stream cancelled": "Stream cancelado",
   "Playing on the TV, but it could not jump to {0}. It started from the beginning.": "Reproduzindo na TV, mas não foi possível pular para {0}. Começou do início.",
   "Playing on the TV, but it could not jump to your position. It started from the beginning.": "Reproduzindo na TV, mas não foi possível pular para a sua posição. Começou do início.",
   "This TV is gone, search again.": "Essa TV não está mais disponível. Busque de novo.",
@@ -14,6 +53,26 @@
   "The TV did not take the other track.": "A TV não aceitou a outra faixa.",
   "No TV is connected.": "Nenhuma TV conectada.",
   "This video cannot be cast.": "Não dá para transmitir este vídeo.",
+  "Files downloaded": "Arquivos baixados",
+  "Extension uninstalled successfully.": "Extensão desinstalada.",
+  "Extension updated successfully.": "Extensão atualizada.",
+  "Config saved successfully.": "Configurações salvas.",
+  "Extension reloaded successfully.": "Extensão recarregada.",
+  "Plugin permissions granted successfully.": "Permissões do plugin concedidas.",
+  "File metadata updated": "Metadados do arquivo atualizados",
+  "Files deleted": "Arquivos excluídos",
+  "Empty directories removed": "Pastas vazias removidas",
+  "Downloading chapters": "Baixando capítulos",
+  "Download queue stopped": "Fila de downloads parada",
+  "Download queue cleared": "Fila de downloads limpa",
+  "Reset errored chapters": "Capítulos com erro redefinidos",
+  "Chapters deleted": "Capítulos excluídos",
+  "Mapping added": "Associação adicionada",
+  "Mapping removed": "Associação removida",
+  "Filler data fetched": "Dados de filler obtidos",
+  "Filler data removed": "Dados de filler removidos",
+  "Metadata updated": "Metadados atualizados",
+  "Metadata removed": "Metadados removidos",
   "The source link expired or was refused. Retry, or download from another server.": "O link da fonte expirou ou foi recusado. Tente de novo ou baixe de outro servidor.",
   "The connection dropped. Retry when you are online.": "A conexão caiu. Tente de novo quando estiver online.",
   "The phone's storage is full. Free up space, then retry.": "O armazenamento do celular está cheio. Libere espaço e tente de novo.",
@@ -21,10 +80,27 @@
   "Unknown error. Retry, or download from another server.": "Erro desconhecido. Tente de novo ou baixe de outro servidor.",
   "Waiting for Wi-Fi": "Aguardando Wi-Fi",
   "Waiting for internet": "Aguardando internet",
+  "Stream cache emptied": "Cache de streams esvaziado",
   "Playlist created": "Playlist criada",
   "Playlist updated": "Playlist atualizada",
   "Playlist deleted": "Playlist excluída",
+  "Library scanned": "Biblioteca escaneada",
+  "Settings saved": "Configurações salvas",
+  "Settings updated": "Configurações atualizadas",
+  "Couldn't fetch logs": "Não foi possível obter os logs",
+  "Copied to clipboard": "Copiado para a área de transferência",
+  "Failed to copy logs: {0}": "Não foi possível copiar os logs: {0}",
+  "Home screen updated": "Tela inicial atualizada",
+  "UI settings saved": "Configurações da interface salvas",
+  "Global speed limits updated": "Limites de velocidade globais atualizados",
+  "Torrent files moved successfully": "Arquivos do torrent movidos",
+  "Torrent renamed": "Torrent renomeado",
+  "Magnet link added": "Link magnet adicionado",
+  "Reannounced to trackers": "Anunciado de novo aos trackers",
+  "Tracker added": "Tracker adicionado",
+  "Tracker removed": "Tracker removido",
   "Download started": "Download iniciado",
+  "Stream stopped": "Stream parado",
   "Building blocks": "Blocos de construção",
   "Components, states and tokens of the app": "Componentes, estados e tokens do app",
   "Language": "Idioma",
@@ -100,9 +176,15 @@
   "Incognito mode": "Modo anônimo",
   "On": "Ativado",
   "Off": "Desativado",
-  "{0} new": "{0} novos",
+  "{0} new": {
+    "one": "{0} novo",
+    "other": "{0} novos"
+  },
   "1 update available": "1 atualização disponível",
-  "{0} updates available": "{0} atualizações disponíveis",
+  "{0} updates available": {
+    "one": "{0} atualização disponível",
+    "other": "{0} atualizações disponíveis"
+  },
   "Winter": "Inverno",
   "Spring": "Primavera",
   "Summer": "Verão",
@@ -133,8 +215,14 @@
   "Synced 1 h ago": "Sincronizado há 1 h",
   "Synced {0} h ago": "Sincronizado há {0} h",
   "Synced 1 day ago": "Sincronizado há 1 dia",
-  "Synced {0} days ago": "Sincronizado há {0} dias",
-  "At least {0} characters": "Pelo menos {0} caracteres",
+  "Synced {0} days ago": {
+    "one": "Sincronizado há {0} dia",
+    "other": "Sincronizado há {0} dias"
+  },
+  "At least {0} characters": {
+    "one": "Pelo menos {0} caractere",
+    "other": "Pelo menos {0} caracteres"
+  },
   "Easy to guess": "Fácil de adivinhar",
   "Okay": "Razoável",
   "Good": "Boa",
@@ -239,8 +327,13 @@
   "[tab] Settings": "Ajustes",
   "[tab] Blocks": "Blocos",
   "New chapters": "Novos capítulos",
+  "New chapter: {0} Ch. {1}": "Novo capítulo: {0} cap. {1}",
+  "New chapters: {0} Ch. {1}–{2}": "Novos capítulos: {0} cap. {1}–{2}",
   "Today": "Hoje",
   "Yesterday": "Ontem",
+  "Continue watching": "Continuar assistindo",
+  "Nothing to continue. Open Seanime Mobile": "Nada para continuar. Abra o Seanime Mobile",
+  "Episode {0}": "Episódio {0}",
   "As of {0}": "Em {0}",
   "Loading …": "Carregando …",
   "No upcoming episodes on your list": "Nenhum episódio novo na sua lista",
@@ -271,7 +364,10 @@
   "This request was denied.": "Esta solicitação foi recusada.",
   "This request expired. The other device can ask again.": "Esta solicitação expirou. O outro dispositivo pode pedir de novo.",
   "1 change waiting": "1 alteração pendente",
-  "{0} changes waiting": "{0} alterações pendentes",
+  "{0} changes waiting": {
+    "one": "{0} alteração pendente",
+    "other": "{0} alterações pendentes"
+  },
   "Synced with AniList": "Sincronizado com o AniList",
   "Offline – {0}, sent later": "Offline: {0}, envio depois",
   "Offline – changes are saved and sent later": "Offline: as alterações são salvas e enviadas depois",
@@ -282,7 +378,6 @@
   "Send now": "Enviar agora",
   "Progress, status and scores you change are saved on this device first and show right away. When AniList can be reached again, the app sends them on its own, in the order you made them.": "Progresso, status e notas que você altera são salvos primeiro neste dispositivo e aparecem na hora. Quando o AniList voltar a responder, o app envia tudo sozinho, na ordem em que você fez.",
   "If you watched further on another device in the meantime, the higher progress on AniList is kept.": "Se você assistiu mais em outro dispositivo nesse meio tempo, o progresso maior no AniList é mantido.",
-  "Continue watching": "Continuar assistindo",
   "No episodes to continue. Choose a series from your library.": "Nenhum episódio para continuar. Escolha uma série da sua biblioteca.",
   "Continue: {0}, episode {1}": "Continuar: {0}, episódio {1}",
   "Episode": "Episódio",
@@ -294,19 +389,27 @@
   "Reset": "Redefinir",
   "Filter currently watching": "Filtrar o que está assistindo",
   "Filter": "Filtrar",
-  "Show {0} series": "Mostrar {0} séries",
+  "Show {0} series": {
+    "one": "Mostrar {0} série",
+    "other": "Mostrar {0} séries"
+  },
   "Unwatched episodes only": "Só episódios não assistidos",
   "Genres": "Gêneros",
-  "Library scanned": "Biblioteca escaneada",
   "Your lists": "Suas listas",
   "Discover anime": "Descobrir animes",
   "1 episode": "1 episódio",
-  "{0} episodes": "{0} episódios",
+  "{0} episodes": {
+    "one": "{0} episódio",
+    "other": "{0} episódios"
+  },
   "Library": "Biblioteca",
   "Local library, {0} need attention": "Biblioteca local, {0} precisam de atenção",
   "Local library": "Biblioteca local",
   "1 file has no anime yet": "1 arquivo ainda sem anime",
-  "{0} files have no anime yet": "{0} arquivos ainda sem anime",
+  "{0} files have no anime yet": {
+    "one": "{0} arquivo ainda sem anime",
+    "other": "{0} arquivos ainda sem anime"
+  },
   "Pick the anime they belong to": "Escolha o anime a que pertencem",
   "1 anime is hidden": "1 anime está oculto",
   "{0} anime are hidden": "{0} animes estão ocultos",
@@ -325,7 +428,10 @@
   "Folders": "Pastas",
   "Anime": "Anime",
   "1 file": "1 arquivo",
-  "{0} files": "{0} arquivos",
+  "{0} files": {
+    "one": "{0} arquivo",
+    "other": "{0} arquivos"
+  },
   "Needs you": "Precisa de você",
   "Unmatched files": "Arquivos sem associação",
   "Hidden anime": "Animes ocultos",
@@ -353,9 +459,11 @@
   "Plugins": "Plugins",
   "Files ignored": "Arquivos ignorados",
   "Ignore": "Ignorar",
-  "Files matched": "Arquivos associados",
   "Match 1 file": "Associar 1 arquivo",
-  "Match {0} files": "Associar {0} arquivos",
+  "Match {0} files": {
+    "one": "Associar {0} arquivo",
+    "other": "Associar {0} arquivos"
+  },
   "Match": "Associar",
   "Folder {0} of {1}": "Pasta {0} de {1}",
   "Previous folder": "Pasta anterior",
@@ -370,7 +478,6 @@
   "{0} of {1} picked": "{0} de {1} escolhidos",
   "Pick none": "Escolher nenhum",
   "Pick all": "Escolher todos",
-  "Episode {0}": "Episódio {0}",
   "AniList ID {0}": "ID do AniList {0}",
   "Unmatch": "Desassociar",
   "Add to AniList": "Adicionar ao AniList",
@@ -379,7 +486,10 @@
   "Files unmatched": "Arquivos desassociados",
   "Scans include these files again": "As varreduras incluem esses arquivos de novo",
   "Stop ignoring 1 file": "Parar de ignorar 1 arquivo",
-  "Stop ignoring {0} files": "Parar de ignorar {0} arquivos",
+  "Stop ignoring {0} files": {
+    "one": "Parar de ignorar {0} arquivo",
+    "other": "Parar de ignorar {0} arquivos"
+  },
   "Stop ignoring": "Parar de ignorar",
   "No ignored files": "Nenhum arquivo ignorado",
   "Files you ignore are skipped by every scan.": "Arquivos ignorados são pulados em toda varredura.",
@@ -399,6 +509,8 @@
   "Get started": "Começar",
   "Featured": "Destaques",
   "Trending now": "Em alta agora",
+  "Upcoming episodes": "Próximos episódios",
+  "Based on your anime list": "Com base na sua lista de anime",
   "Home could not load": "Não foi possível carregar o Início",
   "Your saved layout is still available. Try loading it again.": "Seu layout salvo continua disponível. Tente carregar de novo.",
   "Try again": "Tentar de novo",
@@ -441,7 +553,6 @@
   "Anime or manga from your AniList lists with the statuses you pick, or from one of your custom lists.": "Animes ou mangás das suas listas do AniList com os status que você escolher, ou de uma das suas listas personalizadas.",
   "Local anime library": "Biblioteca local de animes",
   "A complete grid of the anime found in your scanned local library folder.": "Uma grade completa dos animes encontrados na pasta da sua biblioteca local escaneada.",
-  "Upcoming episodes": "Próximos episódios",
   "A carousel of upcoming episodes of the anime in your library.": "Um carrossel com os próximos episódios dos animes da sua biblioteca.",
   "Aired recently": "Exibidos recentemente",
   "A carousel of anime episodes that aired recently, including series that are not on your lists.": "Um carrossel com episódios de anime exibidos recentemente, incluindo séries que não estão nas suas listas.",
@@ -539,7 +650,10 @@
   "Rereading": "Relendo",
   "Loading…": "Carregando…",
   "This title could not be loaded.": "Não foi possível carregar este título.",
-  "{0} chapters": "{0} capítulos",
+  "{0} chapters": {
+    "one": "{0} capítulo",
+    "other": "{0} capítulos"
+  },
   "Less": "Menos",
   "Open page": "Abrir página",
   "Progress updated": "Progresso atualizado",
@@ -572,7 +686,6 @@
   "Builds the connection to the host again": "Refaz a conexão com o host",
   "Nakama is not active": "O Nakama não está ativo",
   "Set up Nakama in the settings to connect to a host or to start hosting.": "Configure o Nakama nas configurações para se conectar a um host ou começar a hospedar.",
-  "Copied to clipboard": "Copiado para a área de transferência",
   "You're hosting": "Você é o host",
   "Connection mode": "Modo de conexão",
   "Cloud room": "Sala na nuvem",
@@ -750,8 +863,14 @@
   "Skip {0}": "Pular {0}",
   "Exit fullscreen": "Sair da tela cheia",
   "Fullscreen": "Tela cheia",
-  "Back {0} seconds": "Voltar {0} segundos",
-  "Forward {0} seconds": "Avançar {0} segundos",
+  "Back {0} seconds": {
+    "one": "Voltar {0} segundo",
+    "other": "Voltar {0} segundos"
+  },
+  "Forward {0} seconds": {
+    "one": "Avançar {0} segundo",
+    "other": "Avançar {0} segundos"
+  },
   "Open player": "Abrir player",
   "Close player": "Fechar player",
   "Volume": "Volume",
@@ -940,7 +1059,6 @@
   "What’s new": "Novidades",
   "No release notes provided.": "Sem notas da versão.",
   "Update successfully installed – Version ": "Atualização instalada com sucesso: versão ",
-  "This feature is disabled": "Este recurso está desativado",
   "Sending stream to player…": "Enviando o stream para o player…",
   "Can't reach the Nakama host. The app keeps trying once a minute.": "Não foi possível acessar o host do Nakama. O app tenta de novo a cada minuto.",
   "Episode downloads continue on Wi-Fi.": "Os downloads de episódios continuam no Wi-Fi.",
@@ -969,7 +1087,10 @@
   "Continue offline": "Continuar offline",
   "{0}: resume episode {1} at {2}": "{0}: retomar o episódio {1} em {2}",
   "at {0}": "em {0}",
-  "{0} anime selected": "{0} animes selecionados",
+  "{0} anime selected": {
+    "one": "{0} anime selecionado",
+    "other": "{0} animes selecionados"
+  },
   "Your anime": "Seus animes",
   "Delete selected": "Excluir selecionados",
   "Filter downloads": "Filtrar downloads",
@@ -1001,7 +1122,10 @@
   "Less than 256 MB free. Downloads start again once you free up storage.": "Menos de 256 MB livres. Os downloads recomeçam quando você liberar espaço.",
   "{0} min": "{0} min",
   "1 episode saved": "1 episódio salvo",
-  "{0} episodes saved": "{0} episódios salvos",
+  "{0} episodes saved": {
+    "one": "{0} episódio salvo",
+    "other": "{0} episódios salvos"
+  },
   "Resume episode {0} at {1}": "Retomar o episódio {0} em {1}",
   "Watch episode {0}": "Assistir ao episódio {0}",
   "About this anime": "Sobre este anime",
@@ -1014,7 +1138,10 @@
   "Loading your manga …": "Carregando seus mangás …",
   "Your manga": "Seus mangás",
   "1 chapter offline": "1 capítulo offline",
-  "{0} chapters offline": "{0} capítulos offline",
+  "{0} chapters offline": {
+    "one": "{0} capítulo offline",
+    "other": "{0} capítulos offline"
+  },
   "Your manga to go": "Seus mangás para levar",
   "Download chapters on a manga page. They show up here with cover and offline reader.": "Baixe capítulos na página de um mangá. Eles aparecem aqui com capa e leitor offline.",
   "Search manga": "Buscar mangá",
@@ -1022,21 +1149,31 @@
   "Queue could not be changed": "Não foi possível alterar a fila",
   "Queue": "Fila",
   "1 chapter · {0} loading": "1 capítulo · {0} carregando",
-  "{0} chapters · {1} loading": "{0} capítulos · {1} carregando",
+  "{0} chapters · {1} loading": {
+    "one": "{0} capítulo · {1} carregando",
+    "other": "{0} capítulos · {1} carregando"
+  },
   "Start / resume": "Iniciar / retomar",
   "Manga cover": "Capa do mangá",
   "1 chapter ready": "1 capítulo pronto",
-  "{0} chapters ready": "{0} capítulos prontos",
+  "{0} chapters ready": {
+    "one": "{0} capítulo pronto",
+    "other": "{0} capítulos prontos"
+  },
   "{0} pending": "{0} pendentes",
   "Chapter is being prepared. Please open it again in a moment.": "O capítulo está sendo preparado. Abra-o de novo daqui a pouco.",
   "Downloading …": "Baixando …",
   "Failed · try again": "Falhou · tente de novo",
   "Waiting to download": "Aguardando download",
   "1 chapter available offline": "1 capítulo disponível offline",
-  "{0} chapters available offline": "{0} capítulos disponíveis offline",
+  "{0} chapters available offline": {
+    "one": "{0} capítulo disponível offline",
+    "other": "{0} capítulos disponíveis offline"
+  },
   "About this manga": "Sobre este mangá",
   "Your chapters": "Seus capítulos",
   "Read chapter {0}": "Ler o capítulo {0}",
+  "Chapter {0}": "Capítulo {0}",
   "Chapter": "Capítulo",
   "Read": "Ler",
   "Delete chapter {0}": "Excluir o capítulo {0}",
@@ -1060,7 +1197,10 @@
   "Time left": "Tempo restante",
   "Peers": "Peers",
   "1 seeder": "1 seeder",
-  "{0} seeders": "{0} seeders",
+  "{0} seeders": {
+    "one": "{0} seeder",
+    "other": "{0} seeders"
+  },
   "Saved to": "Salvo em",
   "The torrent is removed and everything it downloaded is deleted from this device.": "O torrent é removido e tudo o que ele baixou é excluído deste dispositivo.",
   "Remove from the list": "Remover da lista",
@@ -1091,11 +1231,20 @@
   "Later today": "Hoje mais tarde",
   "Tomorrow": "Amanhã",
   "1 episode in the next 2 weeks": "1 episódio nas próximas 2 semanas",
-  "{0} episodes in the next 2 weeks": "{0} episódios nas próximas 2 semanas",
+  "{0} episodes in the next 2 weeks": {
+    "one": "{0} episódio nas próximas 2 semanas",
+    "other": "{0} episódios nas próximas 2 semanas"
+  },
   "1 episode later today": "1 episódio hoje mais tarde",
-  "{0} episodes later today": "{0} episódios hoje mais tarde",
+  "{0} episodes later today": {
+    "one": "{0} episódio hoje mais tarde",
+    "other": "{0} episódios hoje mais tarde"
+  },
   "1 episode in the next {0} days": "1 episódio nos próximos {0} dias",
-  "{0} episodes in the next {1} days": "{0} episódios nos próximos {1} dias",
+  "{0} episodes in the next {1} days": {
+    "one": "{0} episódio nos próximos {1} dias",
+    "other": "{0} episódios nos próximos {1} dias"
+  },
   "[genre] Action": "Ação",
   "[genre] Adventure": "Aventura",
   "[genre] Comedy": "Comédia",
@@ -1186,7 +1335,10 @@
   "No cover": "Sem capa",
   "Your progress": "Seu progresso",
   "1 rewatch": "assistido de novo 1 vez",
-  "{0} rewatches": "assistido de novo {0} vezes",
+  "{0} rewatches": {
+    "one": "assistido de novo {0} vez",
+    "other": "assistido de novo {0} vezes"
+  },
   "Episodes & playback": "Episódios e reprodução",
   "No description available.": "Nenhuma descrição disponível.",
   "More for this anime": "Mais deste anime",
@@ -1220,16 +1372,28 @@
   "Special offset": "Deslocamento do especial",
   "0 = the series' first specials, 1 = the second, and so on": "0 = os primeiros especiais da série, 1 = os segundos, e assim por diante",
   "Delete 1 file?": "Excluir 1 arquivo?",
-  "Delete {0} files?": "Excluir {0} arquivos?",
+  "Delete {0} files?": {
+    "one": "Excluir {0} arquivo?",
+    "other": "Excluir {0} arquivos?"
+  },
   "Unmatch 1 file?": "Desfazer associação de 1 arquivo?",
-  "Unmatch {0} files?": "Desfazer associação de {0} arquivos?",
+  "Unmatch {0} files?": {
+    "one": "Desfazer associação de {0} arquivo?",
+    "other": "Desfazer associação de {0} arquivos?"
+  },
   "The files are deleted from this device. This can't be undone.": "Os arquivos são excluídos deste dispositivo. Isso não pode ser desfeito.",
   "The files stay on this device and wait under unmatched files until you pick an anime for them.": "Os arquivos ficam neste dispositivo, esperando em arquivos sem associação até você escolher um anime para eles.",
   "Pick files": "Escolher arquivos",
   "Delete 1 file": "Excluir 1 arquivo",
-  "Delete {0} files": "Excluir {0} arquivos",
+  "Delete {0} files": {
+    "one": "Excluir {0} arquivo",
+    "other": "Excluir {0} arquivos"
+  },
   "Unmatch 1 file": "Desfazer associação de 1 arquivo",
-  "Unmatch {0} files": "Desfazer associação de {0} arquivos",
+  "Unmatch {0} files": {
+    "one": "Desfazer associação de {0} arquivo",
+    "other": "Desfazer associação de {0} arquivos"
+  },
   "No files": "Sem arquivos",
   "Not in the Nakama's library": "Não está na biblioteca do Nakama",
   "Not in your library": "Não está na sua biblioteca",
@@ -1245,7 +1409,10 @@
   "Unlock file": "Desbloquear arquivo",
   "Lock file": "Bloquear arquivo",
   "Unknown airing date": "Data de exibição desconhecida",
-  "{0} minutes": "{0} minutos",
+  "{0} minutes": {
+    "one": "{0} minuto",
+    "other": "{0} minutos"
+  },
   "No summary": "Sem resumo",
   "AniDB Episode": "Episódio do AniDB",
   "Open on AniDB": "Abrir no AniDB",
@@ -1261,9 +1428,9 @@
   "You have not watched nor downloaded the following:": "Você não assistiu nem baixou os seguintes:",
   "Download": "Baixar",
   "Episode info": "Informações do episódio",
-  "Aired on": "Exibido em",
   "Aired": "Exibido",
   "And more...": "E mais...",
+  "Aired on {0}": "Exibido em {0}",
   "Manage": "Gerenciar",
   "Play episode {0} offline": "Reproduzir o episódio {0} offline",
   "Saved offline": "Salvo offline",
@@ -1315,7 +1482,10 @@
   "Searching torrents": "Buscando torrents",
   "The provider did not answer.": "O provedor não respondeu.",
   "No torrents match the filters": "Nenhum torrent combina com os filtros",
-  "The filters hide {0} results.": "Os filtros ocultam {0} resultados.",
+  "The filters hide {0} results.": {
+    "one": "Os filtros ocultam {0} resultado.",
+    "other": "Os filtros ocultam {0} resultados."
+  },
   " {0} multi-sub releases often hold more subtitle languages without naming them.": " {0} releases multi-sub costumam ter mais idiomas de legenda sem citá-los.",
   " Releases in a language are often only found with \"{0}\" in the search.": " Releases em um idioma muitas vezes só aparecem com \"{0}\" na busca.",
   "Add Multi-Sub": "Adicionar Multi-Sub",
@@ -1327,7 +1497,10 @@
   "Search by title": "Buscar por título",
   "Start download": "Iniciar download",
   "Torrent": "Torrent",
-  "{0} torrents": "{0} torrents",
+  "{0} torrents": {
+    "one": "{0} torrent",
+    "other": "{0} torrents"
+  },
   "Download with": "Baixar com",
   "Torrent client": "Cliente de torrent",
   "Loads from other people's devices": "Baixa dos dispositivos de outras pessoas",
@@ -1353,6 +1526,7 @@
   "< 1 min left": "< 1 min restante",
   "≈ {0} min left": "≈ {0} min restantes",
   "≈ {0} h {1} min left": "≈ {0} h {1} min restantes",
+  "External player link is not set.": "O link do player externo não está definido.",
   "Streaming": "Streaming",
   "Streaming source": "Fonte de streaming",
   "No streaming sources": "Nenhuma fonte de streaming",
@@ -1375,7 +1549,10 @@
   "Marketplace added": "Marketplace adicionado",
   "Official marketplace": "Marketplace oficial",
   "1 extension": "1 extensão",
-  "{0} extensions": "{0} extensões",
+  "{0} extensions": {
+    "one": "{0} extensão",
+    "other": "{0} extensões"
+  },
   "Reload marketplace": "Recarregar marketplace",
   "No streaming or manga sources here": "Nenhuma fonte de streaming ou mangá aqui",
   "No manga sources here": "Nenhuma fonte de mangá aqui",
@@ -1465,16 +1642,25 @@
   "Fill out the required configuration options.": "Preencha as opções de configuração obrigatórias.",
   "Changes": "Alterações",
   "You can edit the code of the extension here.": "Você pode editar aqui o código da extensão.",
-  "Show more ({0} lines)": "Mostrar mais ({0} linhas)",
+  "Show more ({0} lines)": {
+    "one": "Mostrar mais ({0} linha)",
+    "other": "Mostrar mais ({0} linhas)"
+  },
   "Could not check for updates": "Não foi possível buscar atualizações",
   "All extensions are up to date": "Todas as extensões estão atualizadas",
   "1 extension updated": "1 extensão atualizada",
-  "{0} extensions updated": "{0} extensões atualizadas",
+  "{0} extensions updated": {
+    "one": "{0} extensão atualizada",
+    "other": "{0} extensões atualizadas"
+  },
   "Loading extensions…": "Carregando extensões…",
   "Not loaded": "Não carregada",
   "installed": "instaladas",
   "1 update": "1 atualização",
-  "{0} updates": "{0} atualizações",
+  "{0} updates": {
+    "one": "{0} atualização",
+    "other": "{0} atualizações"
+  },
   "1 needs attention": "1 precisa de atenção",
   "{0} need attention": "{0} precisam de atenção",
   "Checking for updates": "Buscando atualizações",
@@ -1497,7 +1683,10 @@
   "No extension matches": "Nenhuma extensão combina",
   "The search looks at names, descriptions and IDs.": "A busca olha nomes, descrições e IDs.",
   "Clear search": "Limpar busca",
-  "{0} titles": "{0} títulos",
+  "{0} titles": {
+    "one": "{0} título",
+    "other": "{0} títulos"
+  },
   "Clear history": "Limpar histórico",
   "Incognito: nothing new is added": "Anônimo: nada novo é adicionado",
   "Loading history": "Carregando histórico",
@@ -1514,9 +1703,15 @@
   "{0} d": "{0} d",
   "1 minute": "1 minuto",
   "1 hour": "1 hora",
-  "{0} hours": "{0} horas",
+  "{0} hours": {
+    "one": "{0} hora",
+    "other": "{0} horas"
+  },
   "1 day": "1 dia",
-  "{0} days": "{0} dias",
+  "{0} days": {
+    "one": "{0} dia",
+    "other": "{0} dias"
+  },
   "SCORE_DESC": "SCORE_DESC",
   "SCORE": "SCORE",
   "TITLE": "TITLE",
@@ -1643,12 +1838,26 @@
   "Ep {0} in {1}": "Ep. {0} em {1}",
   "Ch. {0} / {1}": "Cap. {0} / {1}",
   "Ch. {0}": "Cap. {0}",
-  "{0} of {1} episodes watched": "{0} de {1} episódios assistidos",
+  "{0} of {1} episodes watched": {
+    "count": "{1}",
+    "one": "{0} de {1} episódio assistido",
+    "other": "{0} de {1} episódios assistidos"
+  },
   "1 episode watched": "1 episódio assistido",
-  "{0} episodes watched": "{0} episódios assistidos",
-  "{0} of {1} chapters read": "{0} de {1} capítulos lidos",
+  "{0} episodes watched": {
+    "one": "{0} episódio assistido",
+    "other": "{0} episódios assistidos"
+  },
+  "{0} of {1} chapters read": {
+    "count": "{1}",
+    "one": "{0} de {1} capítulo lido",
+    "other": "{0} de {1} capítulos lidos"
+  },
   "1 chapter read": "1 capítulo lido",
-  "{0} chapters read": "{0} capítulos lidos",
+  "{0} chapters read": {
+    "one": "{0} capítulo lido",
+    "other": "{0} capítulos lidos"
+  },
   "1 new episode": "1 novo episódio",
   "{0} new episodes": "{0} novos episódios",
   "1 new chapter": "1 novo capítulo",
@@ -1703,7 +1912,7 @@
   "Chapter {0} not found in this source": "Capítulo {0} não encontrado nesta fonte",
   "Resume reading": "Continuar lendo",
   "Start reading": "Começar a ler",
-  "Page": "Página",
+  "Page {0}": "Página {0}",
   "Online reading": "Leitura online",
   "Downloaded": "Baixado",
   "Source & reading options": "Opções de fonte e leitura",
@@ -1759,10 +1968,15 @@
   "Search results": "Resultados da busca",
   "Use this title?": "Usar este título?",
   "Use title": "Usar título",
-  "{0} chapters · latest {1}": "{0} capítulos · último {1}",
-  "{0} chapters · latest unknown": "{0} capítulos · último desconhecido",
+  "{0} chapters · latest {1}": {
+    "one": "{0} capítulo · último {1}",
+    "other": "{0} capítulos · último {1}"
+  },
+  "{0} chapters · latest unknown": {
+    "one": "{0} capítulo · último desconhecido",
+    "other": "{0} capítulos · último desconhecido"
+  },
   "Chapters of this manga will be loaded from the selected title.": "Os capítulos deste mangá serão carregados a partir do título selecionado.",
-  "Page {0}": "Página {0}",
   "Load the page again": "Carregar a página de novo",
   "Reader settings": "Configurações do leitor",
   "Mode": "Modo",
@@ -1778,6 +1992,7 @@
   "Tap the middle to show or hide controls": "Toque no meio para mostrar ou ocultar os controles",
   "Hide controls while scrolling down": "Ocultar controles ao rolar para baixo",
   "Page offset": "Deslocamento da página",
+  "Page": "Página",
   "Whole page": "Página inteira",
   "Fit width": "Ajustar à largura",
   "Overflow": "Transbordar",
@@ -1808,13 +2023,16 @@
   "Close reader": "Fechar leitor",
   "This manga could not be loaded.": "Não foi possível carregar este mangá.",
   "1 reread": "relido 1 vez",
-  "{0} rereads": "relido {0} vezes",
+  "{0} rereads": {
+    "one": "relido {0} vez",
+    "other": "relido {0} vezes"
+  },
   "More for this manga": "Mais deste mangá",
   "Manga downloads": "Downloads de mangá",
   "Open in website": "Abrir no site",
   "The source's own page": "A página própria da fonte",
   " (Movie)": " (Filme)",
-  "Downloading chapters": "Baixando capítulos",
+  "Could not save manga preference": "Não foi possível salvar a preferência do mangá",
   "UNREAD_CHAPTERS_DESC": "UNREAD_CHAPTERS_DESC",
   "UNREAD_CHAPTERS": "UNREAD_CHAPTERS",
   "with new chapters": "com novos capítulos",
@@ -1842,14 +2060,16 @@
   "No metadata": "Sem metadados",
   "Opened in your player": "Aberto no seu player",
   "Episode not found.": "Episódio não encontrado.",
-  "External player link is not set.": "O link do player externo não está definido.",
   "External player": "Player externo",
   "A tap opens the episode in your external player": "Um toque abre o episódio no seu player externo",
   "The anime's page": "A página do anime",
   "No downloaded episodes": "Nenhum episódio baixado",
   "Only episodes on this device can open in an external player.": "Só episódios deste dispositivo podem abrir em um player externo.",
   "1 episode queued": "1 episódio na fila",
-  "{0} episodes queued": "{0} episódios na fila",
+  "{0} episodes queued": {
+    "one": "{0} episódio na fila",
+    "other": "{0} episódios na fila"
+  },
   "All selected episodes are already queued or saved": "Todos os episódios selecionados já estão na fila ou salvos",
   "From ep. {0}": "A partir do ep. {0}",
   "This episode": "Este episódio",
@@ -1857,7 +2077,10 @@
   "Download episodes": "Baixar episódios",
   "Queuing …": "Colocando na fila …",
   "Download 1 episode": "Baixar 1 episódio",
-  "Download {0} episodes": "Baixar {0} episódios",
+  "Download {0} episodes": {
+    "one": "Baixar {0} episódio",
+    "other": "Baixar {0} episódios"
+  },
   "Original audio": "Áudio original",
   "Quick selection": "Seleção rápida",
   "Clear selection": "Limpar seleção",
@@ -1895,6 +2118,8 @@
   "Clears the saved sources of this anime. Use it when an episode does not load or stops.": "Limpa as fontes salvas deste anime. Use quando um episódio não carregar ou travar.",
   "Clearing …": "Limpando …",
   "Clear stream cache": "Limpar cache de streams",
+  "No working providers found": "Nenhum provedor funcionando encontrado",
+  "Stopped trying providers": "Parou de testar provedores",
   "Part": "Parte",
   "Episode title": "Título do episódio",
   "The scanner crashed on this file. Please report it on GitHub.": "O scanner travou neste arquivo. Avise no GitHub, por favor.",
@@ -1904,9 +2129,15 @@
   "on your AniList": "no seu AniList",
   "not on your AniList": "fora do seu AniList",
   "1 error": "1 erro",
-  "{0} errors": "{0} erros",
+  "{0} errors": {
+    "one": "{0} erro",
+    "other": "{0} erros"
+  },
   "1 warning": "1 aviso",
-  "{0} warnings": "{0} avisos",
+  "{0} warnings": {
+    "one": "{0} aviso",
+    "other": "{0} avisos"
+  },
   "Open anime": "Abrir anime",
   "1 anime": "1 anime",
   "{0} not matched": "{0} sem associação",
@@ -1990,7 +2221,10 @@
   "No manga match": "Nenhum mangá combina",
   "More than {0} results": "Mais de {0} resultados",
   "1 result": "1 resultado",
-  "{0} results": "{0} resultados",
+  "{0} results": {
+    "one": "{0} resultado",
+    "other": "{0} resultados"
+  },
   "Show results": "Mostrar resultados",
   "Airing status": "Status de exibição",
   "Publishing status": "Status de publicação",
@@ -2178,7 +2412,10 @@
   "Disconnect": "Desconectar",
   "Google disconnected.": "Google desconectado.",
   "Remove 1 device": "Remover 1 dispositivo",
-  "Remove {0} devices": "Remover {0} dispositivos",
+  "Remove {0} devices": {
+    "one": "Remover {0} dispositivo",
+    "other": "Remover {0} dispositivos"
+  },
   "Change key": "Trocar chave",
   "Your data gets a new key. Only the ticked devices get it; the others are removed and can't read anything you sync from now on.": "Seus dados recebem uma chave nova. Só os dispositivos marcados recebem a chave; os outros são removidos e não conseguem ler mais nada do que você sincronizar.",
   "Not added by one of your devices": "Não foi adicionado por um dos seus dispositivos",
@@ -2475,7 +2712,6 @@
   "When touched": "Ao tocar",
   "When touched, sooner": "Ao tocar, mais cedo",
   "When on screen": "Quando aparece na tela",
-  "Chapter {0}": "Capítulo {0}",
   "new": "novos",
   "Looking for new chapters…": "Buscando novos capítulos…",
   "{0} new since your last visit": "{0} novos desde a sua última visita",

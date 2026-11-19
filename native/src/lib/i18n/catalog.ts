@@ -50,15 +50,28 @@ export function formsOf(value: CatalogValue): string[] {
     return typeof value === "string" ? [value] : Object.entries(value).filter(([name]) => name !== "count").map(([, text]) => text as string)
 }
 
+/**
+ * The number a placeholder's text writes, in English or the app language's writing: "1,234", "1.234", "1 234" group
+ * thousands (a separator before exactly three digits), "1,5" and "2.5" have decimals. Undefined for a text that is no number.
+ */
+export function numberOf(text: string): number | undefined {
+    const compact = text.replace(/[\s  ]/g, "")
+    if (!/^\d+([.,]\d+)*$/.test(compact)) return undefined
+    const groups = compact.split(/[.,]/)
+    const last = groups[groups.length - 1]
+    if (groups.length > 1 && last.length !== 3) return Number(`${groups.slice(0, -1).join("")}.${last}`)
+    return Number(groups.join(""))
+}
+
 /** The form of a plural value for the numbers in `values` (placeholder index -> text). */
 function pick(value: CatalogValue, language: string, values: Map<string, string>): string {
     if (typeof value === "string") return value
     const named = value.count?.match(/^\{(\d+)\}$/)?.[1]
     const counts = (named ? [values.get(named)] : [...values.keys()].sort().map(index => values.get(index)))
-        .map(text => text?.replace(/[\s.,  ]/g, ""))
-        .filter((text): text is string => !!text && /^\d+$/.test(text))
+        .map(text => text === undefined ? undefined : numberOf(text))
+        .filter((count): count is number => count !== undefined)
     const forms = PLURAL_CATEGORIES[language] ?? ["other"]
-    const category = counts.length ? pluralCategory(language, Number(counts[0])) : forms[forms.length - 1]
+    const category = counts.length ? pluralCategory(language, counts[0]) : forms[forms.length - 1]
     return value[category] ?? value.other ?? value[forms[forms.length - 1]] ?? ""
 }
 
