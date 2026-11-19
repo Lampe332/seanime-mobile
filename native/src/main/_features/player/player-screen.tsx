@@ -115,6 +115,7 @@ import { successFeedback } from "@/lib/feedback"
 import type { OnlinePlayback } from "@/main/onlinestream/_lib/onlinestream-player.atoms"
 import { preferredOnlineSubtitle } from "@/main/onlinestream/_lib/onlinestream-source"
 import { usePlayerLoadEvents } from "./player-load-events"
+import { useKeepStream } from "./use-keep-stream"
 import { usePlayerContinuity } from "./player-continuity"
 import { type PlayerCommands, usePlayerServer } from "./use-player-server"
 import { usePlaylistManager } from "@/main/_features/playlists/_containers/global-playlist-manager"
@@ -373,6 +374,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
             },
         })
     }
+
+    // ── "Keep in library" (torrent streams, 4.2.0): the stream's torrent into the torrent client ──
+    const keepStream = useKeepStream(info, !!offline, !!online)
 
     // ── Helpers ──
     const scheduleHide = React.useCallback(() => {
@@ -1275,6 +1279,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                 onQuality={value => onlineEvents?.current?.quality(value)}
                 onSave={online?.download ? saveEpisode : undefined}
                 saving={saving}
+                onKeep={keepStream.onKeep}
+                keepState={keepStream.keepState}
                 onExternal={packageName => {
                     if (!info?.streamUrl) return
                     mpv.current?.pause().catch(() => {})

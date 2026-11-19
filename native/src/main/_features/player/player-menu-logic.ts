@@ -52,6 +52,21 @@ export function landscapeMenuPlacement(screen: { width: number, height: number }
     return { width, top, left, maxHeight }
 }
 
+/** The narrowest a group of the main page gets side by side (grid auto-fit, 14.5rem) */
+export const MENU_GROUP_MIN_WIDTH = 232
+
+/**
+ * The main page's groups (Playback, Language, Display, More with "Keep in library"): one column in portrait (phone and
+ * tablet: the menu docks across the width), side by side in landscape, as many as fit at 14.5rem with 8dp between.
+ * `width` is the menu's own width (landscapeMenuPlacement or the window).
+ */
+export function menuGroupLayout(width: number, landscape: boolean): { columns: number, groupWidth: number | undefined } {
+    const inner = width - 16
+    if (!landscape) return { columns: 1, groupWidth: undefined }
+    const columns = Math.max(1, Math.floor((inner + 8) / (MENU_GROUP_MIN_WIDTH + 8)))
+    return { columns, groupWidth: (inner - (columns - 1) * 8) / columns }
+}
+
 /** `.vc-phone-row-value`: at most 45 % of the row; tablet.css lets two-language values take 62 % */
 export function rowValueMaxWidth(isTablet: boolean) {
     return isTablet ? "62%" : "45%"

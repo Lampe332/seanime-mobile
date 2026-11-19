@@ -88,7 +88,7 @@ import {
     withTorrentSettings,
 } from "./torrent/torrent"
 import { deleteAutoSelectProfile, getAutoSelectProfile, saveAutoSelectProfile } from "./torrent/autoselect"
-import { torrentClientAction, torrentClientDownload, torrentClientList } from "./torrent/client"
+import { keepTorrentStream, torrentClientAction, torrentClientDownload, torrentClientList } from "./torrent/client"
 import { cancelDebridStream, debridFilePreviews, debridTorrents, saveDebridSettings, startDebridStream, withDebridSettings } from "./debrid/debrid"
 import { REMOVED_ROUTES } from "./removed/removed"
 import { type NakamaSocketOpener, hostShares, keepNakamaPassword, nakamaSettingsChanged, playHostFile, reconnectToHost, removeStaleConnections, touchesNakama, withHostFiles, withHostLibrary, withNakamaPassword } from "./nakama/guest"
@@ -320,6 +320,8 @@ export const CORE_ROUTES: CoreRoute[] = [
     // played by the app's player; since 6c-1 also auto select and the provider's magnet link; debrid stays with the server (6c-2)
     { area: "torrent", method: "POST", endpoint: "/api/v1/torrentstream/start", answer: (request, environment) => startTorrentStream(request, environment, () => streams(environment)) },
     { area: "torrent", method: "POST", endpoint: "/api/v1/torrentstream/stop", answer: stopTorrentStream },
+    // 4.2.0, the app's own: "Keep in library" in the player, the stream's torrent into the torrent client
+    { area: "torrent", method: "POST", endpoint: "/api/v1/torrentstream/keep", answer: keepTorrentStream },
     { area: "torrent", method: "POST", endpoint: "/api/v1/torrentstream/torrent-file-previews", answer: (request, environment) => torrentFilePreviews(request, environment, () => streams(environment)) },
     // torrent client (phase 6f): downloads in the same session, kept across restarts, into the library's folder
     { area: "torrent", method: "GET", endpoint: "/api/v1/torrent-client/list", answer: torrentClientList },

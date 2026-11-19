@@ -1938,6 +1938,12 @@ export const API_ENDPOINTS = {
             methods: ["POST"],
             endpoint: "/api/v1/torrentstream/stop",
         },
+        /** The app's own (4.2.0, player "Keep in library"): the running stream's torrent goes into the torrent client */
+        TorrentstreamKeep: {
+            key: "TORRENTSTREAM-torrentstream-keep",
+            methods: ["POST"],
+            endpoint: "/api/v1/torrentstream/keep",
+        },
         /**
          *  @description
          *  Route returns the most recent batch selected.

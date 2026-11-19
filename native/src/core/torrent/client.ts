@@ -41,7 +41,8 @@ import {
  * `torrent_kept` under `client:<info hash>`. While one of them downloads, the device holds the app's process in front
  * (`keepRunning`: a notice of the download module), else Android freezes a process in the background.
  * 4.2.0 (torrent-notice.ts): that notice shows the progress once a second, a torrent's end gets a notice of its own and
- * the library reads the folder of a finished one again.
+ * the library reads the folder of a finished one again. A running stream's torrent can be kept from the player
+ * (`keepTorrentStream`): it becomes one of the client's.
  */
 
 type Json = Record<string, unknown>
@@ -401,4 +402,49 @@ export async function torrentClientDownload(request: CoreRequest, environment: C
     }
     if (before.length === 0) void noticesOf(device)?.ask().catch(() => undefined)
     return true
+}
+
+/* ---- POST /api/v1/torrentstream/keep (4.2.0, "Keep in library") ---- */
+
+/**
+ * POST /api/v1/torrentstream/keep, the app's own: the running stream's torrent goes into the torrent client instead of
+ * away with its files when the player closes, and its files move into the destination (the anime's folder in the
+ * library, as the download sheet names it) → `{ hash, destination }`. The stream goes on all the while; its file
+ * priorities stay as the stream set them (only the watched file, the others 0). The row comes first, so a player closed
+ * during the move does not remove the torrent; a move that fails takes the row back (libtorrent leaves the files where
+ * they were), and a stream that ended meanwhile then goes as it would have.
+ */
+export async function keepTorrentStream(request: CoreRequest, environment: CoreEnvironment): Promise<Json> {
+    const body = isRecord(request.body) ? request.body : {}
+    const folder = folderOf(body.destination)
+    if (!folder) throw new CoreError("the destination must be a folder on the phone (a path starting with /)", 400)
+    const stream = runningTorrentStream()
+    if (!stream) throw new CoreError("no torrent stream is running", 409)
+    const { infoHash } = stream
+    const device = await deviceOf(environment)
+    const rows = await clientRows(environment)
+    const had = rows.find(row => row.hash === infoHash)
+    if (had) return { hash: infoHash, destination: had.destination }
+    if (!device.moveStorage) throw new CoreError("the files cannot be moved on this device")
+    const file = (await device.files(infoHash)).find(one => one.index === stream.index)
+    const free = await freeBytesOf(environment)
+    if (file && free !== null && file.size > free) throw new CoreError(spaceText(file.size, free, wordsOf(device)), 507)
+    const key = `${PREFIX}${infoHash}`
+    const name = await device.status(infoHash).then(status => status.name ?? "", () => "")
+    await keep(environment, key, { hash: infoHash, name, destination: folder, mediaId: stream.mediaId, addedAt: new Date(environment.now()).toISOString() })
+    try {
+        await device.moveStorage(infoHash, folder)
+    }
+    catch (error) {
+        await keep(environment, key, null)
+        if (runningTorrentStream()?.infoHash !== infoHash) {
+            await device.remove(infoHash, true).catch(() => undefined)
+            if (!(await hasClientTorrents(environment))) await device.stop().catch(() => undefined)
+        }
+        await watchClient(device, environment)
+        throw new CoreError(`the files could not be moved: ${error instanceof Error ? error.message : String(error)}`)
+    }
+    device.note?.("torrent client: the stream's torrent was kept, its files moved")
+    await watchClient(device, environment)
+    return { hash: infoHash, destination: folder }
 }

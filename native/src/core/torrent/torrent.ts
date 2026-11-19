@@ -25,6 +25,9 @@ import { autoSelectTorrent, magnetFromProvider } from "./search"
  * Since 6c-1: without a torrent and with `autoSelect` the core finds one itself (search.ts, rule in autoselect.ts), a
  * torrent without magnet link and info hash is asked of its provider, and the saved settings reach the session
  * (`sessionSettingsOf`). Not here (6c-2): debrid.
+ *
+ * 4.2.0: a stream's torrent the user kept from the player belongs to the torrent client (client.ts keepTorrentStream)
+ * and is never removed with the stream; with `preloadNextStream` on, the next episode loads ahead (`preloadHearsPlayer`).
  */
 
 type Json = Record<string, unknown>
@@ -360,17 +363,52 @@ export function chooseFile(files: TorrentDeviceFile[], wanted: FileWanted): Torr
 
 /* ---- The stream ---- */
 
-type Running = { infoHash: string, index: number, mediaId: number, episodeNumber: number, unlisten: () => void }
+type Running = {
+    infoHash: string
+    index: number
+    mediaId: number
+    episodeNumber: number
+    unlisten: () => void
+    /** The id of the player's "watch": the player's status messages with it are this stream's */
+    playerId: string
+    /** 4.2.0, for the next episode: the torrent's files, the season its name gives, whether the core picked the torrent */
+    files: TorrentDeviceFile[]
+    season: number
+    autoSelected: boolean
+    finder?: TorrentFinder
+    /** Where the next episode comes from, once read (nextWayOf); null: not read yet */
+    next: NextWay | null
+    /** The session's last status of the torrent (once per second) */
+    last: TorrentDeviceStatus | null
+    /** "": not yet, "busy": under way, "done": started or nothing to do */
+    preload: "" | "busy" | "done"
+    /** When the settings or the network were last asked for the preload (they may say yes later) */
+    preloadAskedAt: number
+}
 
 let running: Running | null = null
 /** A torrent added only for its file list (the file chooser), not loaded */
 let previewed: string | null = null
+/** 4.2.0: another torrent than the stream's, added ahead for the next episode; a stream of it takes it over */
+let preloaded: string | null = null
 
-/** For tests: nothing runs, nothing was looked at */
+/** For tests: nothing runs, nothing was looked at, nothing is preloaded */
 export function forgetTorrentStream() {
     running?.unlisten()
     running = null
     previewed = null
+    preloaded = null
+}
+
+/** The torrent preloaded for the next episode (tests, the log) */
+export function preloadedTorrent(): string | null {
+    return preloaded
+}
+
+/** Whether a torrent of the session is one of the torrent client's (client.ts keeps them under `client:<info hash>`) */
+export async function isClientTorrent(environment: CoreEnvironment, infoHash: string): Promise<boolean> {
+    if (!environment.database) return false
+    return (await kept(environment, `client:${infoHash}`)) !== null
 }
 
 /** The stream that runs, for the log and the checks: no address, no name */
@@ -421,11 +459,17 @@ async function drop(device: TorrentDevice, infoHash: string) {
     }
 }
 
-async function endRunning(device: TorrentDevice, except = "") {
+/** A stream's torrent goes with its files, unless the torrent client has it (kept from the player, or downloaded) */
+async function release(device: TorrentDevice, environment: CoreEnvironment, infoHash: string) {
+    if (await isClientTorrent(environment, infoHash).catch(() => false)) return
+    await drop(device, infoHash)
+}
+
+async function endRunning(device: TorrentDevice, environment: CoreEnvironment, except = "") {
     const old = running
     running = null
     old?.unlisten()
-    if (old && old.infoHash !== except) await drop(device, old.infoHash)
+    if (old && old.infoHash !== except) await release(device, environment, old.infoHash)
 }
 
 /**
@@ -441,10 +485,11 @@ export function noFileListText(status: TorrentDeviceStatus, waitedMs: number): s
     return `the torrent's file list did not come within ${Math.round(waitedMs / 1000)} s: ${why} (${numbers.join(", ")}). Another torrent with more seeders may start.`
 }
 
-/** The file list of a torrent; a magnet link gets it from its peers first */
-export async function filesOf(device: TorrentDevice, infoHash: string, environment: CoreEnvironment): Promise<TorrentDeviceFile[]> {
+/** The file list of a torrent; a magnet link gets it from its peers first. `wanted` false: the wait ends at once. */
+export async function filesOf(device: TorrentDevice, infoHash: string, environment: CoreEnvironment, wanted: () => boolean = () => true): Promise<TorrentDeviceFile[]> {
     const until = environment.now() + METADATA_PATIENCE_MS
     for (;;) {
+        if (!wanted()) throw new CoreError("the torrent is no longer wanted")
         const status = await device.status(infoHash)
         if (status.error) throw new CoreError(`the torrent stopped: ${status.error}`)
         if (status.hasMetadata) return device.files(infoHash)
@@ -521,15 +566,20 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
         tell("Adding the torrent…")
         const infoHash = await addTorrent(device, torrent, magnet)
         added = infoHash
-        await endRunning(device, infoHash)
-        if (previewed && previewed !== infoHash) await drop(device, previewed)
+        await endRunning(device, environment, infoHash)
+        if (previewed && previewed !== infoHash) await release(device, environment, previewed)
         previewed = null
+        // a torrent preloaded for this episode is taken over; one for another episode goes
+        if (preloaded && preloaded !== infoHash) await release(device, environment, preloaded)
+        preloaded = null
 
         // the state from here on, so the player shows peers and seeders while the file list comes as well
         let size = 0
         unlisten = device.onStatus(statuses => {
             const mine = statuses.find(status => status.infoHash === infoHash)
-            if (mine) emitCoreEvent("torrentstream-state", streamStateOf(mine, size))
+            if (!mine) return
+            if (running?.infoHash === infoHash) running.last = mine
+            emitCoreEvent("torrentstream-state", streamStateOf(mine, size))
         })
 
         tell("Waiting for the torrent's file list…")
@@ -545,8 +595,10 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
         device.note?.(`file ${chosen.index} of ${files.length} chosen for episode ${episodeNumber}: ${choice.how}`)
 
         tell("Loading the start of the episode…")
+        // a torrent of the torrent client keeps the files it loads (4.2.0: kept from the player, or downloaded)
+        const inClient = await isClientTorrent(environment, infoHash)
         for (const file of files) {
-            if (file.index !== chosen.index) await device.setFilePriority(infoHash, file.index, 0)
+            if (!inClient && file.index !== chosen.index) await device.setFilePriority(infoHash, file.index, 0)
         }
         await device.setFilePriority(infoHash, chosen.index, 7)
         await device.setSequential(infoHash, true)
@@ -568,13 +620,18 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
             })
         }
 
-        running = { infoHash, index: chosen.index, mediaId, episodeNumber, unlisten }
+        const playerId = `core-torrent-${environment.now()}`
+        running = {
+            infoHash, index: chosen.index, mediaId, episodeNumber, unlisten, playerId,
+            files, season: wanted.season ?? 0, autoSelected: !isRecord(body.torrent), finder,
+            next: null, last: null, preload: "", preloadAskedAt: Number.NEGATIVE_INFINITY,
+        }
 
         if (shown) {
             emitCoreEvent("native-player", {
                 type: "watch",
                 payload: {
-                    id: `core-torrent-${environment.now()}`,
+                    id: playerId,
                     streamType: "torrent",
                     streamPath: chosen.path,
                     mimeType: mimeOf(chosen.path),
@@ -590,8 +647,8 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
     catch (error) {
         // a stream that never ran stops its state here; a running one in endRunning
         if (unlisten && running?.unlisten !== unlisten) unlisten()
-        if (running?.infoHash === added) await endRunning(device)
-        else if (added) await drop(device, added)
+        if (running?.infoHash === added) await endRunning(device, environment)
+        else if (added) await release(device, environment, added)
         if (shown) emitCoreEvent("native-player", { type: "abort-open", payload: error instanceof Error ? error.message : String(error) })
         throw error
     }
@@ -621,9 +678,11 @@ export async function playerExtrasOf(environment: CoreEnvironment, mediaId: numb
 /** POST /api/v1/torrentstream/stop: the stream's torrent is removed with what it loaded, the session ends → true */
 export async function stopTorrentStream(_request: CoreRequest, environment: CoreEnvironment): Promise<true> {
     const device = await deviceOf(environment)
-    await endRunning(device)
-    if (previewed) await drop(device, previewed)
+    await endRunning(device, environment)
+    if (previewed) await release(device, environment, previewed)
     previewed = null
+    if (preloaded) await release(device, environment, preloaded)
+    preloaded = null
     // the torrent client's downloads (phase 6f) run in the same session: it ends only without them
     if (!(await hasClientTorrents(environment))) await device.stop()
     return true
@@ -638,11 +697,183 @@ export function closesTorrentStream(message: { type: string, payload?: unknown }
     return message.type === "video-terminated" && isRecord(message.payload) && message.payload.playbackType === "torrent"
 }
 
-/** The player closed the torrent stream: like `stop`, the torrent is removed with what it loaded and the session ends */
+/**
+ * The player closed the torrent stream: like `stop`, the torrent is removed with what it loaded (a torrent the user kept
+ * stays in the torrent client) and the session ends. 4.2.0: the player's status of the stream may start the preload of
+ * the next episode (`preloadHearsPlayer`).
+ */
 export async function torrentHearsPlayer(message: { type: string, payload?: unknown }, environment: CoreEnvironment): Promise<string> {
-    if (!closesTorrentStream(message) || (!running && !previewed)) return ""
+    if (!closesTorrentStream(message)) return preloadHearsPlayer(message, environment)
+    if (!running && !previewed && !preloaded) return ""
+    const keptOne = running ? await isClientTorrent(environment, running.infoHash).catch(() => false) : false
     await stopTorrentStream({ path: {}, query: undefined, body: undefined } as CoreRequest, environment)
-    return "torrent stream stopped, its torrent removed with its files"
+    return keptOne ? "torrent stream stopped, its torrent stays in the torrent client" : "torrent stream stopped, its torrent removed with its files"
+}
+
+/* ---- 4.2.0: the next episode, loaded ahead ("Preload the next episode", `preloadNextStream`) ---- */
+
+/** The share of the episode watched from which the next one may load */
+export const PRELOAD_AT = 0.9
+/** The settings or the network said no: asked again after this long at the soonest */
+export const PRELOAD_RETRY_MS = 30_000
+/** libtorrent's lowest priority that loads: below every file of a stream (7) and of a download (4) */
+export const PRELOAD_PRIORITY = 1
+
+/** Where the next episode comes from: a file of the stream's torrent, another torrent the core picks, or nowhere */
+export type NextWay = { kind: "same", index: number } | { kind: "other", episodeCount: number } | { kind: "none" }
+
+/**
+ * Whether the next episode may start loading. The stream's own torrent: once its file is loaded, or from 90 % watched
+ * (the next file's priority is below the stream's, so it only takes what the stream leaves). Another torrent: from 90 %
+ * watched and only once the stream's file is loaded, so the second torrent never takes bandwidth the stream still needs.
+ */
+export function preloadDue(kind: NextWay["kind"], watched: number, loaded: boolean): boolean {
+    if (kind === "same") return loaded || watched >= PRELOAD_AT
+    if (kind === "other") return loaded && watched >= PRELOAD_AT
+    return false
+}
+
+/** Whether the session has all of the torrent the stream wants */
+export const allLoaded = (status: TorrentDeviceStatus | null) => !!status && status.bytesWanted > 0 && status.bytesDone >= status.bytesWanted
+
+/**
+ * Why nothing may be preloaded now ("": it may): the setting is off, or the phone is on mobile data or a network it has
+ * not told about. A start over mobile data asks the user first (metered-guard.tsx); a preload cannot ask, so it waits.
+ */
+async function preloadRefusal(environment: CoreEnvironment): Promise<string> {
+    if ((await kept(environment, SETTINGS_KEY))?.preloadNextStream !== true) return "off"
+    const network = environment.offline ? await environment.offline().then(device => device.network()).catch(() => null) : null
+    if (!network?.known || !network.connected) return "the network is not known"
+    if (network.metered) return "mobile data"
+    return ""
+}
+
+/** The next episode's way: its file in the stream's torrent, else (the core picked the torrent) another torrent */
+async function nextWayOf(now: Running, environment: CoreEnvironment): Promise<NextWay> {
+    const episode = now.episodeNumber + 1
+    const wanted: FileWanted = { episodeNumber: episode, season: now.season }
+    let count: number | null = null
+    const countOf = async () => count ??= await episodeCountOf(environment, now.mediaId)
+    let choice = fileChoiceOf(now.files, wanted)
+    if (!choice && now.files.filter(isVideo).length > 1) choice = fileChoiceOf(now.files, { ...wanted, episodeCount: await countOf() })
+    if (choice && choice.file.index !== now.index) return { kind: "same", index: choice.file.index }
+    if (!now.autoSelected || !now.finder) return { kind: "none" }
+    const episodeCount = await countOf()
+    // the last episode has no next one
+    if (episodeCount > 0 && episode > episodeCount) return { kind: "none" }
+    return { kind: "other", episodeCount }
+}
+
+/**
+ * The player's status of the running stream (`video-status` and the like, with `currentTime` and `duration`): when the
+ * next episode is due (preloadDue) and may load (preloadRefusal), it starts loading in the background. Never touches the
+ * running stream's torrent beyond the next file's low priority, never ends it. → a line for the log ("": nothing).
+ */
+async function preloadHearsPlayer(message: { type: string, payload?: unknown }, environment: CoreEnvironment): Promise<string> {
+    const now = running
+    const payload = isRecord(message.payload) ? message.payload : null
+    if (!now || now.preload !== "" || !payload || payload.id !== now.playerId) return ""
+    const { currentTime, duration } = payload
+    if (typeof currentTime !== "number" || typeof duration !== "number" || !Number.isFinite(currentTime) || !(duration > 0)) return ""
+    const watched = currentTime / duration
+    const loaded = allLoaded(now.last)
+    // neither way is due yet
+    if (!loaded && watched < PRELOAD_AT) return ""
+    now.preload = "busy"
+    try {
+        now.next ??= await nextWayOf(now, environment)
+        if (now.next.kind === "none") {
+            now.preload = "done"
+            return ""
+        }
+        if (!preloadDue(now.next.kind, watched, loaded) || environment.now() - now.preloadAskedAt < PRELOAD_RETRY_MS) {
+            now.preload = ""
+            return ""
+        }
+        now.preloadAskedAt = environment.now()
+        const refusal = await preloadRefusal(environment)
+        if (refusal) {
+            now.preload = ""
+            return refusal === "off" ? "" : `next episode not preloaded: ${refusal}`
+        }
+    }
+    catch (error) {
+        now.preload = ""
+        throw error
+    }
+    const way = now.next
+    const work = async () => {
+        try {
+            if (way.kind === "same") await preloadSameTorrent(now, way.index, environment)
+            else if (way.kind === "other") await preloadOtherTorrent(now, way.episodeCount, environment)
+        }
+        catch (error) {
+            (await deviceOf(environment).catch(() => null))?.note?.(`next episode not preloaded (${error instanceof Error ? error.message : String(error)})`)
+        }
+        finally {
+            now.preload = "done"
+        }
+    }
+    void (environment.unasked ? environment.unasked("torrent preload", work) : work()).catch(() => undefined)
+    return way.kind === "same" ? `preloading the next episode: file ${way.index} of the stream's torrent` : "preloading the next episode: looking for its torrent"
+}
+
+/** The next episode is a file of the stream's own torrent: only that file is wanted, at the lowest priority */
+async function preloadSameTorrent(now: Running, index: number, environment: CoreEnvironment): Promise<void> {
+    if (running !== now) return
+    const device = await deviceOf(environment)
+    await device.setFilePriority(now.infoHash, index, PRELOAD_PRIORITY)
+    device.note?.(`next episode: file ${index} of the stream's torrent at the lowest priority`)
+}
+
+/**
+ * The next episode needs another torrent: the one the core's auto select picks for it (the player's next episode picks it
+ * the same way), added beside the stream into the streams' folder, with only the episode's file wanted at the lowest
+ * priority. The stream's torrent stays as it is. A stream that ends meanwhile takes the preload with it.
+ */
+async function preloadOtherTorrent(now: Running, episodeCount: number, environment: CoreEnvironment): Promise<void> {
+    const episode = now.episodeNumber + 1
+    const { torrent, magnet } = await torrentOf({ autoSelect: true, mediaId: now.mediaId, episodeNumber: episode }, environment, now.finder)
+    if (running !== now) return
+    const device = await deviceOf(environment)
+    const infoHash = await addTorrent(device, torrent, magnet)
+    // the stream's own torrent after all (its file was not found by name), or one the torrent client has: left as it is
+    if (infoHash === now.infoHash || await isClientTorrent(environment, infoHash)) return
+    if (running !== now) {
+        await release(device, environment, infoHash)
+        return
+    }
+    if (preloaded && preloaded !== infoHash) await release(device, environment, preloaded)
+    preloaded = infoHash
+    let files: TorrentDeviceFile[]
+    try {
+        // asked no more once the preload is gone (a stopped session is not started again for it)
+        files = await filesOf(device, infoHash, environment, () => preloaded === infoHash)
+    }
+    catch (error) {
+        if (preloaded === infoHash) {
+            preloaded = null
+            await release(device, environment, infoHash)
+        }
+        throw error
+    }
+    const seasons = (parse(typeof torrent.name === "string" ? torrent.name : "") as { season_number?: string[] }).season_number ?? []
+    const choice = fileChoiceOf(files, { episodeNumber: episode, season: seasons.length === 1 ? positive(seasons[0]) : 0, episodeCount })
+    // a stream took the torrent over meanwhile (it sets the priorities itself), or the player closed
+    if (preloaded !== infoHash) return
+    if (!choice) {
+        preloaded = null
+        await release(device, environment, infoHash)
+        device.note?.(`next episode not preloaded: no file of the torrent fits episode ${episode}`)
+        return
+    }
+    for (const file of files) {
+        if (preloaded !== infoHash) return
+        await device.setFilePriority(infoHash, file.index, file.index === choice.file.index ? PRELOAD_PRIORITY : 0)
+    }
+    if (preloaded !== infoHash) return
+    await device.setSequential(infoHash, true)
+    device.note?.(`next episode: file ${choice.file.index} of another torrent at the lowest priority`)
 }
 
 /**
