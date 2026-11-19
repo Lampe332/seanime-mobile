@@ -25,13 +25,15 @@ import {
 } from "./crypto"
 import { type AccountDeps, type RotationResult, checkedDevices, deviceKeys, rotate } from "./devices"
 import type { RequestSigner } from "./client"
-import type { AccountKind } from "./session"
+import type { AccountKind, SessionInfo } from "./session"
 
 /*
  * The account steps the screens call. Each one leaves the secured storage (session.ts) in a known state:
  * "ready" = signed in and the DEK is on this device (sync can run; on an account with data the sync engine then reports
  * "import-available"), "needs-key" = signed in, the DEK must come from another device (devices.ts requestApproval) or
  * the recovery code (useRecoveryCode).
+ * A sign-in that fails after the server made the session (the connection drops before the device is registered) is taken
+ * back (startSession `undo`): never "signed in without the key" by accident, where the screens offer Start fresh.
  * The userId is part of every wrap's AAD and is only known after the server answered, so a new account gets its first
  * DEK with a second call (PUT account/keys) right after sign-up; the server accepts that for a fresh session.
  */
@@ -100,16 +102,36 @@ async function startSession(deps: AccountDeps, userId: string, sessionToken: str
     const kept = await deps.session.keptKey()
     const prior = await deps.session.load()
     if ((prior && prior.userId !== userId) || (kept && kept.userId !== userId)) await deps.session.clear()
+    // the session this device had for the same account (it gave its password again): what a failed sign-in goes back to
+    const before: SessionInfo | null = prior && prior.userId === userId
+        ? { userId, sessionToken: prior.sessionToken, kind: prior.kind, email: prior.email, deviceId: prior.deviceId }
+        : null
     await deps.session.saveSession({ userId, sessionToken, kind, email, deviceId: null })
     wipe(deps.sodium, prior?.dek)
-    if (!kept || kept.userId !== userId) return { kept: null, keyChanged: false }
+    /**
+     * Registers the device (`work`); when that fails the new session is taken back, so the user just signs in again.
+     * Only a removed device (NEU-2) stays signed in without the key: it has to ask for an approval.
+     */
+    const finish = async (work: () => Promise<void>): Promise<void> => {
+        try {
+            await work()
+        }
+        catch (error) {
+            if (!(error instanceof AccountApiError && error.code === "device_removed")) {
+                if (before) await deps.session.saveSession(before)
+                else await deps.session.dropSession()
+            }
+            throw error
+        }
+    }
+    if (!kept || kept.userId !== userId) return { kept: null, keyChanged: false, finish }
     if (kept.dekId !== accountDekId) {
         await deps.session.forgetDek()
         await deps.session.updateSync({ imported: false, highestVersion: 0, lastHash: null, lastSyncAt: null })
         wipe(deps.sodium, kept.dek)
-        return { kept: null, keyChanged: true }
+        return { kept: null, keyChanged: true, finish }
     }
-    return { kept, keyChanged: false }
+    return { kept, keyChanged: false, finish }
 }
 
 /** prelogin's KDF parameters, refused below the floor or below what this device saw for the email before (H-1) */
@@ -132,11 +154,12 @@ export async function signupEmail(deps: AccountDeps, input: { email: string, pas
     try {
         const { challenge } = await client.prelogin(input.email)
         const answer = await client.signup({ email: input.email, salt: toB64(sodium, salt), kdf, authKey: toB64(sodium, authKey), challenge }, signing)
-        await startSession(deps, answer.userId, answer.sessionToken, "email", input.email, null)
+        const { finish } = await startSession(deps, answer.userId, answer.sessionToken, "email", input.email, null)
         await deps.session.rememberKdf(input.email, kdf)
         await deps.session.updateSync({ imported: true, highestVersion: 0, lastHash: null, lastSyncAt: null })
         const dekId = newDekId(sodium)
-        await registerDevice(deps, answer.userId, dekId, dek, input.deviceName, { wrappedDek: wrapKey(sodium, dek, encKey, answer.userId, dekId, "password") })
+        // when this fails the account exists without a key: the next sign-in makes it (signInEmail, dekId === null)
+        await finish(() => registerDevice(deps, answer.userId, dekId, dek, input.deviceName, { wrappedDek: wrapKey(sodium, dek, encKey, answer.userId, dekId, "password") }))
         return { userId: answer.userId, status: "ready", emailVerified: answer.emailVerified, created: true, recoveryWrappedDek: null, keyChanged: false }
     }
     finally {
@@ -152,7 +175,7 @@ async function signInEmail(deps: AccountDeps, input: { email: string, password: 
     const signing: RequestSigner = await deps.session.signer()
     try {
         const answer = await client.login(input.email, toB64(sodium, authKey), challenge, signing)
-        const { kept, keyChanged } = await startSession(deps, answer.userId, answer.sessionToken, "email", input.email, answer.dekId)
+        const { kept, keyChanged, finish } = await startSession(deps, answer.userId, answer.sessionToken, "email", input.email, answer.dekId)
         // the parameters worked for this account: from now on nothing lower is accepted for this email
         await deps.session.rememberKdf(input.email, kdf)
         const result = { userId: answer.userId, emailVerified: answer.emailVerified, created: false, recoveryWrappedDek: null, keyChanged, encKey }
@@ -160,8 +183,9 @@ async function signInEmail(deps: AccountDeps, input: { email: string, password: 
             if (kept && answer.dekId) {
                 // NEU-1: a device that still holds the account's key never goes to an approval; it signs in with its own
                 // key and wraps it for the password again when the server has no wrap (after a reset without code)
-                await registerDevice(deps, answer.userId, answer.dekId, kept.dek, input.deviceName,
-                    answer.wrappedDek ? {} : { wrappedDek: wrapKey(sodium, kept.dek, encKey, answer.userId, answer.dekId, "password") })
+                const dekId = answer.dekId
+                await finish(() => registerDevice(deps, answer.userId, dekId, kept.dek, input.deviceName,
+                    answer.wrappedDek ? {} : { wrappedDek: wrapKey(sodium, kept.dek, encKey, answer.userId, dekId, "password") }))
                 return { ...result, status: "ready" }
             }
             if (answer.wrappedDek && answer.dekId) {
@@ -175,8 +199,13 @@ async function signInEmail(deps: AccountDeps, input: { email: string, password: 
                     if (keyChanged && error instanceof AccountCryptoError) throw new UntrustedKeyChangeError()
                     throw error
                 }
-                await registerDevice(deps, answer.userId, answer.dekId, dek, input.deviceName)
-                wipe(sodium, dek)
+                const dekId = answer.dekId
+                try {
+                    await finish(() => registerDevice(deps, answer.userId, dekId, dek, input.deviceName))
+                }
+                finally {
+                    wipe(sodium, dek)
+                }
                 return { ...result, status: "ready" }
             }
             if (answer.dekId === null) {
@@ -184,8 +213,12 @@ async function signInEmail(deps: AccountDeps, input: { email: string, password: 
                 const dek = newDek(sodium)
                 const dekId = newDekId(sodium)
                 await deps.session.updateSync({ imported: true })
-                await registerDevice(deps, answer.userId, dekId, dek, input.deviceName, { wrappedDek: wrapKey(sodium, dek, encKey, answer.userId, dekId, "password") })
-                wipe(sodium, dek)
+                try {
+                    await finish(() => registerDevice(deps, answer.userId, dekId, dek, input.deviceName, { wrappedDek: wrapKey(sodium, dek, encKey, answer.userId, dekId, "password") }))
+                }
+                finally {
+                    wipe(sodium, dek)
+                }
                 return { ...result, status: "ready" }
             }
             return { ...result, status: "needs-key" }
@@ -318,19 +351,24 @@ export async function loginGoogle(deps: AccountDeps, input: { idToken: string, n
     const { sodium } = deps
     const signing: RequestSigner = await deps.session.signer()
     const answer = await deps.client.google(input.idToken, input.nonce, input.challenge, signing)
-    const { kept, keyChanged } = await startSession(deps, answer.userId, answer.sessionToken, "google", null, answer.dekId)
+    const { kept, keyChanged, finish } = await startSession(deps, answer.userId, answer.sessionToken, "google", null, answer.dekId)
     const result = { userId: answer.userId, emailVerified: answer.emailVerified, created: answer.created, recoveryWrappedDek: answer.recoveryWrappedDek, keyChanged }
     if (answer.dekId === null) {
         const dek = newDek(sodium)
         await deps.session.updateSync({ imported: true })
-        await registerDevice(deps, answer.userId, newDekId(sodium), dek, input.deviceName)
-        wipe(sodium, dek)
+        try {
+            await finish(() => registerDevice(deps, answer.userId, newDekId(sodium), dek, input.deviceName))
+        }
+        finally {
+            wipe(sodium, dek)
+        }
         return { ...result, status: "ready" }
     }
     if (kept) {
         // its own live row comes back with the signing key it kept (S3); a removed or signed-out device can't do this
+        const dekId = answer.dekId
         try {
-            await registerDevice(deps, answer.userId, answer.dekId, kept.dek, input.deviceName)
+            await finish(() => registerDevice(deps, answer.userId, dekId, kept.dek, input.deviceName))
         }
         finally {
             wipe(sodium, kept.dek)

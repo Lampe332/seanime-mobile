@@ -143,7 +143,13 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const one = device(driver, () => clock)
         const store = memoryStore()
         const session = new AccountSession(store, sodium, signers)
-        const send = (ip ? (url: string, init: { headers: Record<string, string> }) => fetch(url, { ...init, headers: { ...init.headers, "CF-Connecting-IP": ip } } as RequestInit) : fetch) as unknown as HttpFetch
+        const reach = (ip ? (url: string, init: { headers: Record<string, string> }) => fetch(url, { ...init, headers: { ...init.headers, "CF-Connecting-IP": ip } } as RequestInit) : fetch) as unknown as HttpFetch
+        /** `fails`: the requests that never reach the server, like a connection that drops */
+        const net: { fails: ((method: string, url: string) => boolean) | null } = { fails: null }
+        const send: HttpFetch = async (url, init) => {
+            if (net.fails?.(init.method, url)) throw new TypeError("Network request failed")
+            return reach(url, init)
+        }
         const client = new AccountClient({ baseUrl, fetch: send, sodium, credentials: () => session.credentials() })
         const deps: AccountDeps = { client, session, sodium }
         let backups = 0
@@ -160,7 +166,7 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
             ledger: { read: () => ledger, write: text => void (ledger = text) },
         })
         const engine = new SyncEngine({ api: client, session, sodium, gzip, local, now: () => clock })
-        return { ...one, store, session, client, deps, engine, backups: () => backups }
+        return { ...one, store, session, client, deps, engine, net, backups: () => backups }
     }
 
     async function encKeyFor(client: AccountClient, password: string, email = EMAIL): Promise<Uint8Array> {
@@ -1053,6 +1059,40 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         // newest first; the owner's re-sign-in for the key change takes its own row back and is no new device
         expect(kinds).toEqual(["key_rotated", "device_removed", "recovery_changed", "new_device", "new_device"])
         expect(await subjects(email, 0)).toEqual(expect.arrayContaining(["New device signed in", "Your recovery code was changed", "A device was removed", "Your account key was changed"]))
+    })
+
+    it("a connection that drops in the middle of a sign-in leaves no half session: signing in again simply works", async () => {
+        const email = "half-sign-in@example.org"
+        const registering = (method: string, url: string) => method === "PUT" && url.endsWith("/account/keys")
+        // sign-up: the account exists, the key did not arrive
+        const one = install()
+        one.net.fails = registering
+        await expect(signupEmail(one.deps, { email, password: PASSWORD, deviceName: "One", kdf: KDF })).rejects.toThrow("Network request failed")
+        expect(await one.session.load()).toBeNull()
+        one.net.fails = null
+        expect(await loginEmail(one.deps, { email, password: PASSWORD, deviceName: "One" })).toMatchObject({ status: "ready" })
+        await (await one.db()).insert(playlists).values({ name: "Evening", episodes: [], createdAt: clock, updatedAt: clock })
+        expect(await one.engine.sync("start")).toMatchObject({ state: "uploaded", version: 1 })
+
+        // a second device: the password opened the key, registering the device failed
+        const two = install()
+        two.net.fails = registering
+        await expect(loginEmail(two.deps, { email, password: PASSWORD, deviceName: "Two" })).rejects.toThrow("Network request failed")
+        // not "signed in without the key" (which offers Start fresh and would delete the account's data)
+        expect(await two.session.load()).toBeNull()
+        expect(await two.engine.sync("start")).toMatchObject({ state: "signed-out" })
+        two.net.fails = null
+        expect(await loginEmail(two.deps, { email, password: PASSWORD, deviceName: "Two" })).toMatchObject({ status: "ready" })
+        expect(await two.engine.importFromAccount()).toMatchObject({ state: "updated", version: 1 })
+        expect(await names(two)).toEqual(["Evening"])
+
+        // a signed-in device that gives its password again (key change, recovery code) stays signed in as it was
+        const before = await one.session.load()
+        one.net.fails = registering
+        await expect(loginEmail(one.deps, { email, password: PASSWORD, deviceName: "One" })).rejects.toThrow("Network request failed")
+        one.net.fails = null
+        expect(await one.session.load()).toMatchObject({ sessionToken: before!.sessionToken, deviceId: before!.deviceId, dekId: before!.dekId })
+        expect(await one.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 1 })
     })
 
     it("delete synced data: the server counts the version on, the other device uploads again, and a key change still works", async () => {
