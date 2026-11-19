@@ -1,4 +1,5 @@
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
+import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
 import { cn } from "@/components/ui/core/styling"
 import { Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
@@ -111,11 +112,19 @@ export function SearchField({ value, onChangeText, placeholder, inputRef, onSubm
     onFocus?: () => void
 }) {
     const t = useTr()
+    // the field lets go of the keyboard when its page is left (page-focus.ts); the caller's ref gets the same field
+    const own = React.useRef<TextInputInstance | null>(null)
+    useReleaseFocusOnLeave(own)
+    const setRef = React.useCallback((field: TextInputInstance | null) => {
+        own.current = field
+        if (typeof inputRef === "function") inputRef(field)
+        else if (inputRef) inputRef.current = field
+    }, [inputRef])
     return (
         <View className="min-h-12 flex-row items-center rounded-full bg-sm-surface-raised">
             <View className="pl-4 pr-2.5"><Search size={18} color={colors.smTextSubtle} /></View>
             <TextInput
-                ref={inputRef}
+                ref={setRef}
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}

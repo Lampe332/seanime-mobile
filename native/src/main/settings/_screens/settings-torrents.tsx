@@ -5,6 +5,7 @@ import type { Models_DebridSettings, Models_TorrentstreamSettings } from "@/api/
 import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
 import { Notice, TextAction } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
+import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
 import { cn } from "@/components/ui/core/styling"
 import { SwitchRow } from "@/components/ui/switch/switch"
 import { toast } from "@/components/ui/toast/toast-store"
@@ -19,7 +20,7 @@ import { debridProviderPatch, debridSwitchPatch, keyCheckDetail, limitOptions, t
 import { useQueryClient } from "@tanstack/react-query"
 import { useAtomValue, useStore } from "jotai"
 import React from "react"
-import { TextInput, View } from "react-native"
+import { TextInput, type TextInputInstance, View } from "react-native"
 
 /*
  * Torrents & debrid (settings-phone-torrents.tsx): the torrent search provider, torrent streaming, auto-select, downloads
@@ -315,6 +316,8 @@ function ApiKeyField({ t, providerName, hasKey, check, onSave }: {
 }) {
     const [draft, setDraft] = React.useState("")
     const [saving, setSaving] = React.useState(false)
+    const field = React.useRef<TextInputInstance>(null)
+    useReleaseFocusOnLeave(field)
     const note = check.state === "checking" ? t("Checking the key…", "Schlüssel wird geprüft …")
         : check.state === "ok" ? t(`Connected to ${providerName}.`, `Mit ${providerName} verbunden.`)
             : hasKey ? t("A key is saved. Enter a new one to replace it.", "Ein Schlüssel ist gespeichert. Gib einen neuen ein, um ihn zu ersetzen.")
@@ -330,7 +333,7 @@ function ApiKeyField({ t, providerName, hasKey, check, onSave }: {
     return (
         <View className="gap-2 bg-sm-surface-raised py-3 pl-8 pr-4">
             <Text className="text-[15px]">{t("API key", "API-Schlüssel")}</Text>
-            <TextInput value={draft} onChangeText={setDraft} secureTextEntry autoComplete="off" autoCapitalize="none" autoCorrect={false}
+            <TextInput ref={field} value={draft} onChangeText={setDraft} secureTextEntry autoComplete="off" autoCapitalize="none" autoCorrect={false}
                 accessibilityLabel={t("API key", "API-Schlüssel")} returnKeyType="done" onSubmitEditing={() => void submit()}
                 placeholder={hasKey ? t("Saved key", "Gespeicherter Schlüssel") : t("Paste your API key", "API-Schlüssel einfügen")}
                 placeholderTextColor={colors.smTextSubtle}

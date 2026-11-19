@@ -12,7 +12,7 @@ import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useTourTarget } from "@/main/_features/tour/tour-targets"
 import * as DialogPrimitive from "@rn-primitives/dialog"
 import React from "react"
-import { Pressable, ScrollView, StyleSheet, View } from "react-native"
+import { Keyboard, Pressable, ScrollView, StyleSheet, View } from "react-native"
 import Animated from "react-native-reanimated"
 import Svg, { Path } from "react-native-svg"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -46,6 +46,20 @@ const CLOSE_GLYPH = "M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 
 const OUT_OF_FLOW = { display: "none" } as const
 
 const claimTouch = () => true
+
+/**
+ * A sheet or dialog that opens or closes takes the keyboard down: a field of the page under it (or of the sheet before
+ * it) does not keep the focus, which brought the keyboard back up with the old text once the sheet went (page-focus.ts).
+ * Opened from the start counts as opening.
+ */
+function useDismissKeyboardOnToggle(open: boolean) {
+    const shown = React.useRef(false)
+    React.useEffect(() => {
+        if (shown.current === open) return
+        shown.current = open
+        Keyboard.dismiss()
+    }, [open])
+}
 
 function CloseButton({ top = 8 }: { top?: number }) {
     const t = useTr()
@@ -130,6 +144,7 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
     workspace?: boolean
 }) {
     const portalKey = usePortalKey()
+    useDismissKeyboardOnToggle(open)
     const insets = useSafeAreaInsets()
     const tourRef = useTourTarget(open && tourTarget ? tourTarget : null)
     const { isTablet, window } = useTabletLayout()
@@ -210,6 +225,7 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
 /** A centred dialog (UI-Modal): a question or a short form; at most 32rem wide like everything on a tablet. */
 export function Dialog({ open, onOpenChange, title, description, children, footer, className }: BaseProps) {
     const portalKey = usePortalKey()
+    useDismissKeyboardOnToggle(open)
     // centred in the room above an open keyboard
     const keyboard = useKeyboardHeight()
     return (

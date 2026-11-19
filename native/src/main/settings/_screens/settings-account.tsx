@@ -1,6 +1,7 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitt 2 Nutzer-Erlebnis, 6.1–6.9, 8 UI-Liste) und settings-kit.tsx / backup-group.tsx (Zeilen, Sheets, Felder)
 
 import { Button } from "@/components/ui/button/button"
+import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
 import { cn } from "@/components/ui/core/styling"
 import { Sheet } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
@@ -26,7 +27,7 @@ import { useAtomValue, useSetAtom } from "jotai"
 import React from "react"
 import Eye from "lucide-react-native/icons/eye"
 import EyeOff from "lucide-react-native/icons/eye-off"
-import { Pressable, Share, TextInput, View } from "react-native"
+import { Pressable, Share, TextInput, type TextInputInstance, View } from "react-native"
 
 /*
  * Settings › Account. Signed out: Create account, Sign in (Google sign-in is not part of 4.2.0). A new device without the
@@ -95,6 +96,9 @@ function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "
     // S5: the sign-in waits for the link in a mail; the same device signs in again after the user opened it
     const [mailLink, setMailLink] = React.useState(false)
     const create = mode === "create"
+    // Settings stays mounted under the next page: the field lets go of the keyboard then (page-focus.ts)
+    const emailRef = React.useRef<TextInputInstance>(null)
+    useReleaseFocusOnLeave(emailRef)
     const strength = passwordStrength(password, email)
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
     const ready = emailOk && (create ? strength >= 2 && repeat === password : password.length > 0) && !busy
@@ -121,7 +125,7 @@ function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "
                     "Dieses Passwort brauchst du auf jedem neuen Gerät. Sind Passwort und alle Geräte weg, sind die synchronisierten Daten weg. Ein Wiederherstellungscode hilft, du kannst gleich danach einen speichern.")
                 : undefined}>
             <View className="gap-2 bg-sm-surface px-0 py-1">
-                <TextInput value={email} onChangeText={setEmail} placeholder={t("Email", "E-Mail")} placeholderTextColor={colors.smTextSubtle}
+                <TextInput ref={emailRef} value={email} onChangeText={setEmail} placeholder={t("Email", "E-Mail")} placeholderTextColor={colors.smTextSubtle}
                     accessibilityLabel={t("Email", "E-Mail")} autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress"
                     keyboardType="email-address" returnKeyType="next" className={FIELD} />
                 <PasswordField t={t} value={password} onChangeText={setPassword} label={t("Password", "Passwort")} newPassword={create}
@@ -164,8 +168,10 @@ function PasswordField({ t, value, onChangeText, label, newPassword, returnKeyTy
 }) {
     const [shown, setShown] = React.useState(false)
     const Icon = shown ? EyeOff : Eye
+    const ref = React.useRef<TextInputInstance>(null)
+    useReleaseFocusOnLeave(ref)
     return <View className="justify-center">
-        <TextInput value={value} onChangeText={onChangeText} placeholder={label} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
+        <TextInput ref={ref} value={value} onChangeText={onChangeText} placeholder={label} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
             autoCapitalize="none" autoCorrect={false} secureTextEntry={!shown} autoComplete={newPassword ? "new-password" : "current-password"}
             textContentType={newPassword ? "newPassword" : "password"} returnKeyType={returnKeyType} onSubmitEditing={onSubmitEditing}
             className={cn(FIELD, "pr-14", invalid && "border-2 border-sm-danger")} />

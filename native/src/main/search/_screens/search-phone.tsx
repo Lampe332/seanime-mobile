@@ -149,9 +149,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         // The ✕ goes away with the words; the field keeps the focus (and the keyboard) for new ones.
         inputRef.current?.focus()
     }
-    // A result opens over this screen, which stays mounted: a field that kept the focus brings its keyboard back up there
-    // whenever Android gives the window the focus again (a sheet or dialog closes), so it lets go when the screen does.
-    useFocusEffect(React.useCallback(() => () => inputRef.current?.blur(), []))
+    // A result opens over this screen, which stays mounted: the field lets go of the focus when the screen does (SearchField)
 
     const variables = React.useMemo(() => searchVariables(state, adultAllowed), [state, adultAllowed])
     const searchKey = JSON.stringify([state.type, variables])

@@ -4,6 +4,7 @@ import { useGetMangaSourceRefresh, useStartMangaSourceRefresh } from "@/api/hook
 import { ActionRow, RowGroup } from "@/components/shared/phone-kit"
 import { PhoneEmpty } from "@/components/shared/phone-cards"
 import { Button } from "@/components/ui/button/button"
+import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
 import { cn } from "@/components/ui/core/styling"
 import { Select } from "@/components/ui/select/select"
 import { Dialog, Sheet } from "@/components/ui/sheet/sheet"
@@ -49,7 +50,7 @@ import RotateCw from "lucide-react-native/icons/rotate-cw"
 import Search from "lucide-react-native/icons/search"
 import Trash2 from "lucide-react-native/icons/trash"
 import React from "react"
-import { ActivityIndicator, Pressable, TextInput, View } from "react-native"
+import { ActivityIndicator, Pressable, TextInput, type TextInputInstance, View } from "react-native"
 
 /*
  * The manga page's chapters (chapter-list.tsx + downloaded-chapter-list.tsx, mobile-anime.css `.mobile-chapter*`):
@@ -106,6 +107,9 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
     const [allOrder, setAllOrder] = useAtom(__manga_chapterListOrderAtom)
     const [unreadOrder, setUnreadOrder] = useAtom(__manga_unreadChapterListOrderAtom)
     const [jumpText, setJumpText] = React.useState("")
+    // the manga page stays mounted under the next one: the field lets go of the keyboard then (page-focus.ts)
+    const jumpField = React.useRef<TextInputInstance>(null)
+    useReleaseFocusOnLeave(jumpField)
     const [highlightedChapterId, setHighlightedChapterId] = React.useState<string | null>(null)
     const [mobileTab, setMobileTab] = React.useState<"online" | "downloaded">("online")
     const savedChapters = useMangaEntryDownloadedChapters()
@@ -289,7 +293,7 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
                             </Pressable>
                             <View accessibilityRole="search" className="min-h-12 w-full flex-row items-center rounded-full bg-sm-surface-raised pl-4">
                                 <Hash size={17} color={colors.smTextSubtle} />
-                                <TextInput value={jumpText} onChangeText={setJumpText} placeholder={t("Go to chapter", "Zu Kapitel springen")} placeholderTextColor={colors.smTextSubtle}
+                                <TextInput ref={jumpField} value={jumpText} onChangeText={setJumpText} placeholder={t("Go to chapter", "Zu Kapitel springen")} placeholderTextColor={colors.smTextSubtle}
                                     accessibilityLabel={t("Chapter number", "Kapitelnummer")} keyboardType="decimal-pad" returnKeyType="go" onSubmitEditing={jumpToChapter}
                                     className="min-h-12 min-w-0 flex-1 pl-2.5 pr-1 font-sans text-base text-sm-text" />
                                 <Pressable accessibilityRole="button" accessibilityLabel={t("Go", "Los")} disabled={!jumpText.trim()} onPress={jumpToChapter}

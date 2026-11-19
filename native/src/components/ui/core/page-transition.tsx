@@ -1,6 +1,7 @@
 import { DISTANCE, pageRiseFrom, swapTiming } from "@/lib/motion"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { coverFlightRunning } from "@/components/shared/cover-flight-store"
+import { PageFocusContext } from "@/components/ui/core/page-focus"
 import { type TabSlotProps } from "expo-router/ui"
 import React from "react"
 import { StyleSheet, View } from "react-native"
@@ -65,7 +66,10 @@ export const renderPage: NonNullable<TabSlotProps["renderFn"]> = (descriptor, { 
             importantForAccessibility={isFocused ? "auto" : "no-hide-descendants"}
             accessibilityElementsHidden={!isFocused}
         >
-            <PageEnter focused={isFocused}>{descriptor.render()}</PageEnter>
+            {/* a text field on a page left behind lets go of the keyboard (page-focus.ts) */}
+            <PageFocusContext.Provider value={isFocused}>
+                <PageEnter focused={isFocused}>{descriptor.render()}</PageEnter>
+            </PageFocusContext.Provider>
         </View>
     )
 }

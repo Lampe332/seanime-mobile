@@ -3,6 +3,7 @@ import { useDeleteAutoSelectProfile, useGetAutoSelectProfile, useSaveAutoSelectP
 import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
 import { TextAction } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
+import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
 import { cn } from "@/components/ui/core/styling"
 import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { SwitchRow } from "@/components/ui/switch/switch"
@@ -29,7 +30,7 @@ import type { Option } from "@/main/settings/_lib/settings-phone"
 import Plus from "lucide-react-native/icons/plus"
 import X from "lucide-react-native/icons/x"
 import React from "react"
-import { Pressable, TextInput, View } from "react-native"
+import { Pressable, TextInput, type TextInputInstance, View } from "react-native"
 
 /*
  * Auto-select profile (settings-phone-auto-select.tsx): what the app prefers when it picks a torrent by itself while
@@ -259,6 +260,8 @@ function TokenList({ t, label, placeholder, items, onChange, note }: {
     note?: string
 }) {
     const [text, setText] = React.useState("")
+    const field = React.useRef<TextInputInstance>(null)
+    useReleaseFocusOnLeave(field)
     const add = () => {
         onChange(addToken(items, text))
         setText("")
@@ -267,7 +270,7 @@ function TokenList({ t, label, placeholder, items, onChange, note }: {
         <View className="min-w-0 gap-2">
             <Text className="text-sm font-semibold">{label}</Text>
             <View className="flex-row gap-2">
-                <TextInput value={text} onChangeText={setText} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
+                <TextInput ref={field} value={text} onChangeText={setText} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
                     autoCapitalize="none" autoCorrect={false} returnKeyType="done" onSubmitEditing={() => text.trim() && add()} className={cn(INPUT, "min-w-0 flex-1")} />
                 <Button intent="secondary" size="lg" disabled={!text.trim()} onPress={add} leftIcon={<Plus size={18} color={colors.smText} />}>
                     {t("Add", "Hinzufügen")}
@@ -295,10 +298,12 @@ function Field({ label, value, placeholder, onChange, note, error, numeric }: {
     error?: string
     numeric?: boolean
 }) {
+    const field = React.useRef<TextInputInstance>(null)
+    useReleaseFocusOnLeave(field)
     return (
         <View className="gap-2">
             <Text className="text-sm font-semibold">{label}</Text>
-            <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
+            <TextInput ref={field} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
                 autoCapitalize="none" autoCorrect={false} keyboardType={numeric ? "number-pad" : "default"} returnKeyType="done"
                 className={cn(INPUT, !!error && "border-2 border-sm-danger")} />
             {(!!error || !!note) && <Text accessibilityRole={error ? "alert" : undefined}
