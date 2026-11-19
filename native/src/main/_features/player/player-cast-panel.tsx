@@ -159,25 +159,29 @@ export function CastSheet({ cast: c, title, hasNext, onNext }: { cast: PlayerCas
         <Sheet open={open} onOpenChange={setOpen} title={casting ? t("Playing on TV", "Läuft auf dem Fernseher") : t("Cast to a TV", "Auf Fernseher übertragen")}
             footer={leaveInFoot ? <CastLeave t={t} state={state} hasNext={hasNext} row /> : undefined}>
             <View className="gap-5">
-                {state.phase === "searching" && <Waiting text={t("Looking for TVs in your Wi-Fi…", "Suche Fernseher im WLAN …")} />}
-                {state.phase === "connecting" && <Waiting text={t(`Connecting to ${state.device ?? ""}…`, `Verbinde mit ${state.device ?? ""} …`)} />}
+                {/* searching, connecting and the TV list share one least height (about "No TV found" with "Search again"),
+                    so the sheet does not jump between them */}
+                {!casting && <View className="min-h-60 gap-5">
+                    {state.phase === "searching" && <Waiting text={t("Looking for TVs in your Wi-Fi…", "Suche Fernseher im WLAN …")} />}
+                    {state.phase === "connecting" && <Waiting text={t(`Connecting to ${state.device ?? ""}…`, `Verbinde mit ${state.device ?? ""} …`)} />}
 
-                {state.phase === "idle" && state.devices.length > 0 && (
-                    <SheetGroup title={t("TVs in your Wi-Fi", "Fernseher im WLAN")}>
-                        <RowGroup>
-                            {state.devices.map(device => (
-                                <ActionRow key={device.id} icon={device.kind === "googlecast" ? Cast : Tv} label={device.name} note={castKindLabel(device.kind, t)}
-                                    chevron onPress={() => start(device)} />
-                            ))}
-                        </RowGroup>
-                    </SheetGroup>
-                )}
-                {state.phase === "idle" && state.devices.length === 0 && <NoTv t={t} />}
-                {state.phase === "idle" && (
-                    <Button intent="secondary" leftIcon={<RefreshCw size={18} color={colors.smText} />} onPress={() => cast.discover()}>
-                        {t("Search again", "Erneut suchen")}
-                    </Button>
-                )}
+                    {state.phase === "idle" && state.devices.length > 0 && (
+                        <SheetGroup title={t("TVs in your Wi-Fi", "Fernseher im WLAN")}>
+                            <RowGroup>
+                                {state.devices.map(device => (
+                                    <ActionRow key={device.id} icon={device.kind === "googlecast" ? Cast : Tv} label={device.name} note={castKindLabel(device.kind, t)}
+                                        chevron onPress={() => start(device)} />
+                                ))}
+                            </RowGroup>
+                        </SheetGroup>
+                    )}
+                    {state.phase === "idle" && state.devices.length === 0 && <NoTv t={t} />}
+                    {state.phase === "idle" && (
+                        <Button intent="secondary" wrapperClassName="mt-auto" leftIcon={<RefreshCw size={18} color={colors.smText} />} onPress={() => cast.discover()}>
+                            {t("Search again", "Erneut suchen")}
+                        </Button>
+                    )}
+                </View>}
 
                 {casting && <CastRemote t={t} state={state} title={title} onNext={hasNext ? onNext : undefined} leaveInFoot={leaveInFoot} />}
 
@@ -189,7 +193,7 @@ export function CastSheet({ cast: c, title, hasNext, onNext }: { cast: PlayerCas
 
 function Waiting({ text }: { text: string }) {
     return (
-        <View accessibilityRole="progressbar" accessibilityLabel={text} className="min-h-24 flex-row items-center justify-center gap-3 rounded-surface bg-sm-surface-raised px-4">
+        <View accessibilityRole="progressbar" accessibilityLabel={text} className="min-h-24 flex-1 flex-row items-center justify-center gap-3 rounded-surface bg-sm-surface-raised px-4">
             <ActivityIndicator color={colors.smAccent} />
             <Text className="shrink text-[15px]">{text}</Text>
         </View>
