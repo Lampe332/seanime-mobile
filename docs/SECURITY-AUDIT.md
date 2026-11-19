@@ -287,6 +287,22 @@ The fifth review passed the Polish round (no Critical, High or Medium) and found
 | NEU5-3 | Info | The approval quota per session (NEU4-4) lets a keyless session open many requests through new sessions | Accepted: the cap sits in the approval code (`approval.ts`), which this round leaves untouched; more noise on the owner's devices, no key at risk (I1, I2), and three "No" from a device still pause approvals |
 | NEU5-4 | Info | Older events of the same kind fell out of the list (only the newest of each kind was kept beside the newest 20) | Fixed: `GET /account` returns the newest 20 plus the newest 3 of each kind. Test: `neu5.test.ts` (two sign-outs, then 21 key changes: both listed) |
 
+### Round sync data (state and data-loss fixes, no change to the key protocol)
+
+Found by a code review of the sync core, not on a device. I1 to I5, the approval, the key chain and the request signatures are unchanged.
+
+| Finding | Severity | Status |
+|---|---|---|
+| The changes waiting for AniList travelled in the package: a second device could send the same change again or an older progress | High | Fixed: they stay on the device that made them (`package.ts` `DEVICE_TABLES`), are never put into a package and never taken from one, also not from an older build's. The file backup still carries them |
+| A merge kept everything the device had ("local always wins"), so a change from one device was undone by the next device that merged; deleted playlists and uninstalled extensions came back | High | Fixed: per part (table row, preference, extension file, secret) the newer change wins, a removal is a tombstone (`package.ts` `mergePackages`). Each device keeps the change times in a ledger; the ledger of the secured storage's values lives in the secured storage, so no hash of a password lies in the app's store. Packages without times are still read |
+| "Delete synced data" set the server's version to 0; every other device then refused it as a rollback for good | High | Fixed: the server counts the version on and keeps it with size 0 (`routes.ts` `deleteSync`). A device that meets a version without data takes nothing and uploads its own. The rollback check itself is unchanged: a version below the highest one seen is refused, with or without data |
+| A connection that dropped between "session made" and "device registered" left an email user signed in without the key, where Start fresh is offered | Medium | Fixed: the sign-in is taken back (`flows.ts` `startSession`), signing in again works. A removed device stays as it was (NEU-2) |
+| Preferences written by a sync stayed invisible until the atom was mounted again | Medium | Fixed: `lib/storage.ts` `writeStoredValues` |
+| A sync still running wrote its state back after a sign-out cleared it | Low | Fixed: sign-out, a removed device's clean-up and deleting the account run through the sync queue (`SyncEngine.exclusive`) |
+| After the server ended a session (password change elsewhere, account deleted) the key, the sync state and the device keys stay | Low | Not changed, on purpose: this is N-3. A reset without the recovery code ends every session, and the key each device kept is then the only way to the data; the device cannot tell that 401 from the one after an account deletion. Removing the key here would lose the data in exactly that case |
+
+Accepted limits: a change counts from the moment the device notices it (its next sync) unless the row carries its own time, and the order across devices follows their clocks; a device whose clock runs ahead wins conflicts until the others pass it. The local lists of an account without AniList are taken as a whole (the newer list of each kind), not entry by entry.
+
 ### Verification
 
 - Server: `npm run typecheck` 0 errors, `npx vitest run` all passed, with tests for each finding (lockout attempt with the known device still getting in, an unauthenticated 10 MB body refused before it is read, parallel logins not passing the limit, reset limit per IP range).

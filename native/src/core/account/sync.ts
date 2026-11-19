@@ -132,7 +132,7 @@ export interface LedgerStore {
 }
 
 /** The ledger's part for the values of the secured storage, kept in the secured storage itself */
-const SECRET_LEDGER = "seanime-account.sync-ledger"
+const SECRET_LEDGER = "seanime-core-sync-ledger"
 
 function parseLedger(text: string | null, account: string): Ledger | null {
     if (!text) return null
