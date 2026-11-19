@@ -117,12 +117,12 @@ describe("the code sign-in calls (contract 1-4)", () => {
         const { client, session } = deps(server.fetch)
         const signer = await session.signer()
         await session.saveSession({ userId: USER, sessionToken: TOKEN, kind: "email", email: EMAIL, deviceId: "dev-1" })
-        await client.putEscrow("dek-b64", "auth-b64")
+        await client.putEscrow("dek-b64", "proof-b64", "auth-b64")
         await client.deleteEscrow()
         const body = { authKey: "a", salt: "s", kdf: DEFAULT_KDF, wrappedDek: "w", dekId: DEK_ID }
         await client.setPasswordAfterCode(body)
         const sessionId = toB64(sodium, sodium.crypto_hash_sha256(new TextEncoder().encode(TOKEN)))
-        expect(server.last("PUT", "/v1/account/escrow")!.json).toEqual({ dek: "dek-b64", authKey: "auth-b64" })
+        expect(server.last("PUT", "/v1/account/escrow")!.json).toEqual({ dek: "dek-b64", dekProof: "proof-b64", authKey: "auth-b64" })
         expect(server.last("POST", "/v1/account/password/after-code")!.json).toEqual(body)
         for (const request of server.seen) {
             expect(request.headers.Authorization).toBe(`Bearer ${TOKEN}`)
@@ -298,7 +298,7 @@ describe("code only (escrow)", () => {
         const { d } = await signedInDevice(server.fetch, dek)
         await enableCodeOnly(d, { password: PASSWORD })
         const { authKey } = await deriveKeys(sodium, PASSWORD, salt, DEFAULT_KDF)
-        expect(server.last("PUT", "/v1/account/escrow")!.json).toEqual({ dek: toB64(sodium, dek), authKey: toB64(sodium, authKey) })
+        expect(server.last("PUT", "/v1/account/escrow")!.json).toEqual({ dek: toB64(sodium, dek), dekProof: dekProof(sodium, dek), authKey: toB64(sodium, authKey) })
     })
 
     it("off: one DELETE, nothing else", async () => {

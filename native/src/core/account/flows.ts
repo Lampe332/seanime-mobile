@@ -479,7 +479,7 @@ export async function enableCodeOnly(deps: AccountDeps, input: { password: strin
     const state = await deps.session.load()
     try {
         if (!state?.dek || !state.dekId) throw new AccountCryptoError("this device has no key")
-        await deps.client.putEscrow(toB64(deps.sodium, state.dek), toB64(deps.sodium, authKey))
+        await deps.client.putEscrow(toB64(deps.sodium, state.dek), dekProof(deps.sodium, state.dek), toB64(deps.sodium, authKey))
     }
     finally {
         wipe(deps.sodium, authKey, state?.dek)

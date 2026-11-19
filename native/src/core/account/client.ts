@@ -361,7 +361,7 @@ export class AccountClient {
      * "Code only" on: the DEK goes to the server (base64url), with the password's authKey. Needs a session with a device
      * row (403 device_required); wrong password 403 wrong_password; an account without a key 409 no_key
      */
-    putEscrow = (dek: string, authKey: string) => this.call<void>("PUT", "account/escrow", { json: { dek, authKey } })
+    putEscrow = (dek: string, dekProof: string, authKey: string) => this.call<void>("PUT", "account/escrow", { json: { dek, dekProof, authKey } })
     /** "Code only" off: the server deletes its package at once */
     deleteEscrow = () => this.call<void>("DELETE", "account/escrow")
     /** Only a session from auth/code/login, at most 15 minutes old, and only for the account's current dekId */
