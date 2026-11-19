@@ -9,7 +9,7 @@ import { type CoreEvent, onCoreEvent } from "../events"
 import { type CoreEnvironment, type CoreMethod, matchCoreRoute } from "../registry"
 import { METADATA_URL } from "./metadata"
 import { bestMatch, fileMetadataOf, readName, titleScore } from "./local-files"
-import { forgetScanAtStart } from "./folders"
+import { forgetScanAtStart, refreshAfterDownload } from "./folders"
 import type { LocalFolderEntry } from "./scan"
 import homeRecorded from "./home.recorded.json"
 import recorded from "./library.recorded.json"
@@ -414,6 +414,17 @@ describe("the folders beyond the scan (5b-2)", () => {
         await ask("GET", "/api/v1/library/collection")
         await flush()
         expect(events.some(event => event.type === "auto-scan-started")).toBe(false)
+    })
+
+    it("after a torrent download (4.2.0): reads the folders again for a folder inside the library, not for one outside", async () => {
+        await lists()
+        await refreshAfterDownload(environment, "/storage/made/Elsewhere")
+        await flush()
+        expect(events.some(event => event.type === "auto-scan-started")).toBe(false)
+        await refreshAfterDownload(environment, `file://${ROOT}/Dr.%20STONE`)
+        await flush()
+        expect(events.map(event => event.type).filter(type => type.startsWith("auto-scan"))).toEqual(["auto-scan-started", "auto-scan-completed"])
+        expect(((await ask("GET", "/api/v1/library/scan-summaries")) as Json[])).toHaveLength(1)
     })
 })
 

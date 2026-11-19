@@ -225,7 +225,11 @@ internal object LoaderNotice {
 
     fun id(number: Int) = 47_110_000 + number
 
-    fun build(context: Context, title: String, bytes: Long, total: Long): Notification {
+    /**
+     * `text`: the line under the title instead of "<percent> %" (the torrent client's notice, TorrentKeep.kt); `link`:
+     * tapping opens it in the app instead of just opening the app.
+     */
+    fun build(context: Context, title: String, bytes: Long, total: Long, text: String? = null, link: String? = null): Notification {
         if (Build.VERSION.SDK_INT >= 26) {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (manager.getNotificationChannel(CHANNEL) == null) {
@@ -245,12 +249,17 @@ internal object LoaderNotice {
         if (total > 0L && bytes >= 0L) {
             val percent = (bytes * 100L / total).toInt().coerceIn(0, 100)
             builder.setProgress(100, percent, false)
-            builder.setContentText("$percent %")
+            builder.setContentText(text ?: "$percent %")
         } else {
             builder.setProgress(0, 0, true)
+            if (text != null) builder.setContentText(text)
         }
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
-        if (launch != null) {
+        if (link != null) {
+            val open = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(link)).setPackage(context.packageName)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            builder.setContentIntent(PendingIntent.getActivity(context, link.hashCode(), open, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
+        } else if (launch != null) {
             builder.setContentIntent(PendingIntent.getActivity(context, 0, launch, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
         }
         return builder.build()

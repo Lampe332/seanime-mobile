@@ -1,5 +1,8 @@
 // geschrieben nach: docs/EIGENER-KERN.md §4q (Phase 6b-1) und der Schnittstelle des eigenen Moduls (modules/core-torrent/src/CoreTorrent.nitro.ts), BEP 3 (Info-Hash); kein Server-Quelltext
 import type { BlockingWatch, TorrentDevice, TorrentSessionSettings } from "@/core"
+import type { TorrentNoticeHost } from "@/core/torrent/torrent-notice"
+import { tr } from "@/lib/app-language"
+import { shortcutLink } from "@/lib/app-links"
 import { logger } from "@/lib/helpers/debug"
 import type { CoreTorrent } from "../../../modules/core-torrent/src/CoreTorrent.nitro"
 
@@ -353,7 +356,7 @@ export function torrentDeviceFor(
     watch: BlockingWatch,
     client: () => Promise<TorrentClient> = deviceTorrent,
     folders: () => Promise<TorrentFolders> = () => import("expo-file-system/legacy"),
-): TorrentDevice {
+): TorrentDevice & TorrentNoticeHost {
     // the saved settings (core/torrent/torrent.ts, sessionSettingsOf) for the next start of the session
     let wanted: TorrentSessionSettings = { downloadDir: "", listenPort: 0 }
     // when each torrent was added, for the log line of its file list (metadata from peers for a magnet)
@@ -480,6 +483,19 @@ export function torrentDeviceFor(
             log.info(`torrent: process ${on ? (done ? "held in front" : "could not be held (app in the background)") : "released"}`)
             return done
         }, "torrent keep"),
+        // 4.2.0 (core/torrent/torrent-notice.ts): the progress in that notice, a notice at a torrent's end; tapping opens Downloads
+        notices: {
+            t: tr,
+            update: watch.waiting(async ({ title, text, done, total }) => {
+                const module = (await import("../../../modules/core-download")).default
+                return module.updateTorrentNotice(title, text, done, total, shortcutLink("/android-downloads")).catch(() => false)
+            }, "torrent notice"),
+            end: watch.waiting(async (hash: string, title: string, text: string) => {
+                const module = (await import("../../../modules/core-download")).default
+                return module.notice(`torrent-${hash}`, title, text, tr("Episode downloads", "Folgen-Downloads"), shortcutLink("/android-downloads")).catch(() => false)
+            }, "torrent end notice"),
+            ask: async () => (await import("@/main/android-downloads/_lib/download-notifications")).askForDownloadNotices(),
+        },
         setPieceDeadlines: call((torrent, infoHash: string, firstPiece: number, count: number, firstMs: number, stepMs: number) => torrent.setPieceDeadlines(infoHash, firstPiece, count, firstMs, stepMs)),
         serve: call(async (torrent, infoHash: string, index: number) => {
             const address = await torrent.serve(infoHash, index)
