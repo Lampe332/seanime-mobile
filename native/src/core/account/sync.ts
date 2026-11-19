@@ -5,7 +5,7 @@ import { AccountApiError, type AccountClient, ConflictError, RateLimitedError, U
 import { AccountCryptoError, UntrustedKeyChangeError } from "./crypto"
 import { pickUpDeviceKey } from "./devices"
 import {
-    type Gzip, type Ledger, type PackageEnvironment, type SyncPackage, applyPackage, joiningLedger, ledgerStamps, makePackage, mayHoldSecret, openPackage, packageHash,
+    type Gzip, type Ledger, type PackageEnvironment, type Stamps, type SyncPackage, applyPackage, joiningLedger, ledgerStamps, makePackage, mayHoldSecret, openPackage, packageHash,
     packageItems, sealPackage, settledLedger, stampChanges,
 } from "./package"
 import type { AccountSession, AccountState } from "./session"
@@ -128,12 +128,31 @@ export function coreLocalData(environment: PackageEnvironment, app: {
         if (await app.ledger.read() !== open) await app.ledger.write(open)
         if (environment.keepSecret && await environment.secret(SECRET_LEDGER) !== secret) await environment.keepSecret(SECRET_LEDGER, secret)
     }
+    /*
+     * A package's parts are written before the ledger that gives them their times. Until that ledger is written, the
+     * times lie in the secured storage (SETTLING: part names and times, no value and no hash), so that an applying cut
+     * short (the app killed during the "leave" sync, an error) never counts as this device's change at the next look.
+     */
+    const readSettling = async (account: string): Promise<Stamps | null> => {
+        const text = await environment.secret(SETTLING)
+        if (!text) return null
+        try {
+            const stored = JSON.parse(text) as { account?: unknown, changed?: Stamps["changed"], deleted?: Stamps["deleted"] }
+            if (stored.account !== account || typeof stored.changed !== "object" || stored.changed === null) return null
+            return { changed: stored.changed, deleted: stored.deleted ?? {} }
+        }
+        catch {
+            return null
+        }
+    }
     /** The device's package with the change times of its parts; what changed since the last look is stamped now */
     const look = async (account: string): Promise<SyncPackage> => {
         const pkg = await makePackage(environment, side())
         const items = packageItems(pkg)
-        const ledger = stampChanges(await readLedger(account), items, environment.now())
+        const settling = await readSettling(account)
+        const ledger = stampChanges(await readLedger(account), items, environment.now(), settling ?? undefined)
         await writeLedger(account, ledger, items)
+        if (settling && environment.keepSecret) await environment.keepSecret(SETTLING, null)
         return { ...pkg, stamps: ledgerStamps(ledger) }
     }
 
@@ -141,16 +160,19 @@ export function coreLocalData(environment: PackageEnvironment, app: {
         make: look,
         apply: async (pkg, mode, account) => {
             const mine = mode === "merge" ? await look(account) : null
-            const applied = await applyPackage(environment, pkg, mode, { ...side(), stamps: mine?.stamps })
+            const applied = await applyPackage(environment, pkg, mode, { ...side(), stamps: mine?.stamps },
+                stamps => environment.keepSecret!(SETTLING, JSON.stringify({ account, ...stamps })))
             app.writePreferences(applied.preferences, applied.removedPreferences)
             // the device's parts as they are now carry the times the package gave them: nothing of it counts as a change here
             const items = packageItems(await makePackage(environment, side()))
             await writeLedger(account, settledLedger(await readLedger(account), items, applied.stamps), items)
+            await environment.keepSecret!(SETTLING, null)
             return { ahead: applied.ahead }
         },
         startOver: async account => {
             const items = packageItems(await makePackage(environment, side()))
             await writeLedger(account, joiningLedger(items), items)
+            if (environment.keepSecret && await environment.secret(SETTLING) !== null) await environment.keepSecret(SETTLING, null)
         },
         safetyBackup: app.safetyBackup,
     }
@@ -164,6 +186,8 @@ export interface LedgerStore {
 
 /** The ledger's part for the values of the secured storage, kept in the secured storage itself */
 const SECRET_LEDGER = "seanime-core-sync-ledger"
+/** The change times of a package being applied, until the ledger has them (coreLocalData) */
+const SETTLING = "seanime-core-sync-settling"
 
 function parseLedger(text: string | null, account: string): Ledger | null {
     if (!text) return null

@@ -321,6 +321,8 @@ What the server can still do to the data by lying or leaving out (it could befor
 
 Accepted limits of this round: a device that joins without importing (the account is empty, or the server says so) keeps the parts the account lacks and gives way wherever the account holds the same part, also to a removal; its state before is in the local backup ("Undo last restore"). A package from a build without change times no longer removes anything on a device that holds more (only pre-release builds made such packages).
 
+Found by the second independent check (N2) and fixed: a merge cut short between writing the parts and writing their ledger (app killed during the "leave" sync, an error) made the device stamp the taken parts as its own change of now at the next sync, so an older extension file, preference or secret could undo a newer change on every device; now the package's change times lie in the secured storage (part names and times only, no value or hash) from before the first write until the ledger has them, and a sync that finds them counts what differs from the ledger as brought by that package, never as a change of the device (`sync.ts` `coreLocalData`, `package.ts` `stampChanges`; test: `sync.test.ts` N2, cut at every write).
+
 ### Verification
 
 - Server: `npm run typecheck` 0 errors, `npx vitest run` all passed, with tests for each finding (lockout attempt with the known device still getting in, an unauthenticated 10 MB body refused before it is read, parallel logins not passing the limit, reset limit per IP range).

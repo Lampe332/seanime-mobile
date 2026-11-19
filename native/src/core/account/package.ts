@@ -300,14 +300,22 @@ function hashOf(text: string): number {
  * The ledger after a look at the device's data: a part whose content differs from the ledger changed since (its own
  * newer changedAt, else now), a part the ledger knew and the device no longer has was removed now. Without a ledger
  * (first sync of this account here) every part starts with its own time and nothing counts as removed.
+ * `settling`: the times of a package whose applying was cut short before its ledger was written (sync.ts). A part
+ * that differs from the ledger came from that package and keeps its time; a part the package brings or removes and
+ * the device lacks counts as no removal of the device. Nothing of it is a change made here.
  */
-export function stampChanges(before: Ledger | null, items: Map<string, unknown>, now: number): Ledger {
+export function stampChanges(before: Ledger | null, items: Map<string, unknown>, now: number, settling?: Stamps): Ledger {
     const ledger: Ledger = { items: {}, deleted: {} }
     for (const [key, value] of items) {
         const hash = hashOf(contentOf(key, value))
         const known = before?.items[key]
         if (known && known[0] === hash) {
             ledger.items[key] = known
+            continue
+        }
+        const brought = settling?.changed[key]
+        if (typeof brought === "number") {
+            ledger.items[key] = [hash, brought]
             continue
         }
         const own = ownTime(key, value)
@@ -319,7 +327,12 @@ export function stampChanges(before: Ledger | null, items: Map<string, unknown>,
         ledger.items[key] = [hash, own > last && own <= now ? own : Math.max(now, last + 1)]
     }
     for (const [key, time] of Object.entries(before?.deleted ?? {})) if (!items.has(key)) ledger.deleted[key] = time
-    for (const [key, known] of Object.entries(before?.items ?? {})) if (!items.has(key)) ledger.deleted[key] = Math.max(now, known[1] + 1)
+    for (const [key, known] of Object.entries(before?.items ?? {})) {
+        if (items.has(key)) continue
+        const removed = settling?.deleted[key]
+        if (typeof removed === "number") ledger.deleted[key] = removed
+        else if (typeof settling?.changed[key] !== "number") ledger.deleted[key] = Math.max(now, known[1] + 1)
+    }
     return ledger
 }
 
@@ -482,8 +495,10 @@ export type AppliedPackage = {
  * Puts a package into this device. "replace": the package's state wins (only the import the user asked for on a new
  * device); "merge": part by part the newer change wins (mergePackages; `current.stamps` are the device's own change
  * times). A secret the package does not hold is never removed from the device.
+ * `beforeWriting` gets the change times of what the device will hold, before anything is written (sync.ts keeps them
+ * until its ledger has them).
  */
-export async function applyPackage(environment: PackageEnvironment, pkg: SyncPackage, mode: RestoreMode, current: { preferences: Record<string, string>, isDeviceKey: (key: string) => boolean, stamps?: Stamps }): Promise<AppliedPackage> {
+export async function applyPackage(environment: PackageEnvironment, pkg: SyncPackage, mode: RestoreMode, current: { preferences: Record<string, string>, isDeviceKey: (key: string) => boolean, stamps?: Stamps }, beforeWriting?: (stamps: Stamps) => Promise<void>): Promise<AppliedPackage> {
     if (!environment.keepSecret) throw new Error("the secured storage cannot be written here")
     let wanted = withoutDeviceTables(pkg)
     let ahead = false
@@ -493,12 +508,13 @@ export async function applyPackage(environment: PackageEnvironment, pkg: SyncPac
         wanted = merged.pkg
         ahead = merged.ahead
     }
+    const stamps = stampsOf(wanted)
+    await beforeWriting?.(stamps)
     await restoreBackup(environment, wanted, "replace", { preferences: current.preferences })
     await applySecretColumns(await environment.database(), wanted)
     for (const [name, value] of Object.entries(wanted.secrets)) {
         if (await environment.secret(name) !== value) await environment.keepSecret(name, value)
     }
-    const stamps = stampsOf(wanted)
     const theirs = packagePreferences(wanted.preferences, current.isDeviceKey)
     const removedPreferences = Object.keys(stamps.deleted)
         .filter(key => key.startsWith(PREFERENCE_PART)).map(key => key.slice(PREFERENCE_PART.length))

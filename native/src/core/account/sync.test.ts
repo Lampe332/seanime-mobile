@@ -78,6 +78,7 @@ async function phone(server: FakeServer, options: { imported: boolean, patienceM
     await session.updateSync({ imported: options.imported })
     let safetyBackups = 0
     let ledger: string | null = null
+    const ledgerStore = { read: () => ledger, write: (text: string) => void (ledger = text) }
     const local = coreLocalData(one.environment, {
         appVersion: "4.2.0",
         preferences: () => Object.fromEntries(one.preferences),
@@ -86,11 +87,11 @@ async function phone(server: FakeServer, options: { imported: boolean, patienceM
             for (const [key, value] of Object.entries(preferences)) one.preferences.set(key, value)
             for (const key of removed) one.preferences.delete(key)
         },
-        ledger: { read: () => ledger, write: text => void (ledger = text) },
+        ledger: ledgerStore,
         safetyBackup: async () => void safetyBackups++,
     })
     const engine = new SyncEngine({ api: server, session, sodium, gzip, local, now, patienceMs: options.patienceMs })
-    return { ...one, store, session, engine, safetyBackups: () => safetyBackups, ledger: () => ledger }
+    return { ...one, store, session, engine, safetyBackups: () => safetyBackups, ledger: () => ledger, ledgerStore }
 }
 
 const playlist = (name: string) => ({ name, episodes: [], createdAt: clock, updatedAt: clock })
@@ -589,7 +590,8 @@ describe("whatever the devices do and in whatever order they sync", () => {
             const first = await state(devices[0]!)
             for (const one of devices) expect(await state(one), `seed ${seed}`).toEqual(first)
         }
-    })
+    // 40 seeds take a few seconds alone and more under the whole suite's load
+    }, 30_000)
 })
 
 describe("the change times a device keeps", () => {
@@ -621,6 +623,61 @@ describe("the change times a device keeps", () => {
         expect(await b.engine.sync("manual")).toMatchObject({ state: "updated" })
         expect(await section(b, "torrent")).toEqual({ defaultTorrentClient: "qbittorrent", qbittorrentPassword: "hunter3" })
         expect(b.preferences.get("debrid-settings")).toBe(JSON.stringify({ provider: "torbox", apiKey: "other" }))
+    })
+
+    it("N2: a merge cut short at any write between the data and its change times is no change of the device: a newer change elsewhere still wins", async () => {
+        /** From the `at`-th write of the device on (extension files, secured storage, preferences, ledger) every write fails, as in an app that was killed */
+        const killAt = (one: Phone, at: number) => {
+            let writes = 0
+            const killed = () => {
+                if (++writes > at) throw new Error("killed")
+            }
+            const undo: (() => void)[] = []
+            for (const map of [one.files, one.secrets, one.preferences] as Map<string, string>[]) {
+                const { set: put, delete: remove } = map
+                map.set = (key, value) => (killed(), put.call(map, key, value))
+                map.delete = key => (killed(), remove.call(map, key))
+                undo.push(() => Object.assign(map, { set: put, delete: remove }))
+            }
+            const { write } = one.ledgerStore
+            one.ledgerStore.write = text => (killed(), write(text))
+            undo.push(() => void (one.ledgerStore.write = write))
+            return { revive: () => undo.forEach(step => step()) }
+        }
+        const values = (one: Phone) => [one.files.get("ext-a.json"), one.preferences.get("sea-x"), one.secrets.get(DEBRID_KEY_SECRET)]
+        const set = (one: Phone, v: number) => {
+            one.files.set("ext-a.json", `{"v":${v}}`)
+            one.preferences.set("sea-x", `"${v}"`)
+            one.secrets.set(DEBRID_KEY_SECRET, `k${v}`)
+        }
+
+        let cuts = 0
+        for (let at = 0; ; at++) {
+            const { a, b } = await pair(async one => set(one, 0))
+            clock += 60_000
+            set(a, 1)
+            expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+            clock += 60_000
+            const kill = killAt(b, at)
+            const cut = await b.engine.sync("manual").then(() => false, error => {
+                expect(String(error)).toContain("killed")
+                return true
+            })
+            kill.revive()
+            clock += 60_000
+            set(a, 2)
+            expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+            clock += 60_000
+            await b.engine.sync("manual")
+            await a.engine.sync("manual")
+            for (const one of [a, b]) expect(values(one), `cut at write ${at}`).toEqual(["{\"v\":2}", "\"2\"", "k2"])
+            expect(await b.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+            expect(await a.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+            if (!cut) break
+            cuts++
+        }
+        // cut before and after each write: the note of the times, the file, the key, the preference, both parts of the ledger, the note's removal
+        expect(cuts).toBeGreaterThanOrEqual(7)
     })
 })
 
