@@ -7,7 +7,7 @@ import {
     DEFAULT_KDF, dekProof, deriveKeys, deviceMac, fromB64, newDek, newDeviceKeyPair, newRecoveryCode, toB64, unwrapKey, wrapKey,
 } from "./crypto"
 import type { AccountDeps } from "./devices"
-import { changeKey, disableCodeOnly, enableCodeOnly, loginWithCode, requestSignInCode, setNewPasswordAfterCode, useRecoveryCode } from "./flows"
+import { changeKey, disableCodeOnly, enableCodeOnly, loginWithCode, requestSignInCode, setNewPasswordAfterCode, startFresh, useRecoveryCode } from "./flows"
 import { AccountSession } from "./session"
 import type { Sodium } from "./sodium"
 import { bytes, memoryStore, ready } from "./__fixtures__/harness"
@@ -103,9 +103,9 @@ describe("the code sign-in calls (contract 1-4)", () => {
     it("a wrong or expired code is a 401 invalid_code", async () => {
         const server = fakeServer({ "POST /v1/auth/code/login": () => ({ status: 401, json: { error: "invalid_code", message: "The code is wrong or expired." } }) })
         const { client, session } = deps(server.fetch)
-        const failure = await client.codeLogin(EMAIL, "000000", "challenge-1", await session.signer()).catch(error => error)
+        const failure: unknown = await client.codeLogin(EMAIL, "000000", "challenge-1", await session.signer()).catch((error: unknown) => error)
         expect(failure).toBeInstanceOf(UnauthorizedError)
-        expect(failure.code).toBe("invalid_code")
+        expect((failure as UnauthorizedError).code).toBe("invalid_code")
     })
 
     it("escrow on and off and the new password go with the session, signed with its key", async () => {
@@ -156,7 +156,7 @@ describe("loginWithCode", () => {
         expect(keys).toMatchObject({ dekId: DEK_ID, dekProof: dekProof(sodium, dek) })
         expect(keys.recoveryProof).toBeUndefined()
         const state = await d.session.load()
-        expect(state).toMatchObject({ userId: USER, kind: "email", email: EMAIL, deviceId: "dev-new", dekId: DEK_ID })
+        expect(state).toMatchObject({ userId: USER, kind: "email", email: EMAIL, deviceId: "dev-new", dekId: DEK_ID, codeLogin: true })
         expect(toB64(sodium, state!.dek!)).toBe(toB64(sodium, dek))
     })
 
@@ -243,10 +243,42 @@ describe("after a code sign-in", () => {
         const body = server.last("POST", "/v1/account/password/after-code")!.json as { authKey: string, salt: string, kdf: typeof DEFAULT_KDF, wrappedDek: string, dekId: string }
         expect(body.dekId).toBe(DEK_ID)
         expect(body.kdf).toEqual(DEFAULT_KDF)
+        // the DEK proof goes along: a session without a device row needs it (403 key_required)
+        expect((body as { dekProof?: string }).dekProof).toBe(dekProof(sodium, dek))
         const { authKey, encKey } = await deriveKeys(sodium, PASSWORD, fromB64(sodium, body.salt, 16), body.kdf)
         expect(body.authKey).toBe(toB64(sodium, authKey))
         expect(toB64(sodium, unwrapKey(sodium, body.wrappedDek, encKey, USER, DEK_ID, "password"))).toBe(toB64(sodium, dek))
         expect(await d.session.kdfFloor(EMAIL)).toEqual({ m: DEFAULT_KDF.m, t: DEFAULT_KDF.t })
+    })
+
+    it("Start fresh from a code session goes without the password and without a password wrap; a new password follows", async () => {
+        let fresh: Record<string, unknown> | null = null
+        const server = fakeServer({
+            "POST /v1/auth/prelogin": prelogin(),
+            "POST /v1/auth/code/login": codeAnswer({}),
+            "GET /v1/account": accountInfo(),
+            "POST /v1/account/start-fresh": request => {
+                fresh = request.json
+                return { json: { dekId: request.json!.dekId, deviceId: "dev-fresh" } }
+            },
+            "POST /v1/account/password/after-code": () => ({}),
+        })
+        const d = deps(server.fetch)
+        expect((await loginWithCode(d, { email: EMAIL, code: "123456", deviceName: "Tab S9" })).status).toBe("needs-key")
+        await startFresh(d, { deviceName: "Tab S9" })
+        expect(server.last("POST", "/v1/auth/login")).toBeUndefined()
+        expect(fresh).not.toBeNull()
+        expect(fresh!.wrappedDek).toBeUndefined()
+        const state = await d.session.load()
+        expect(state).toMatchObject({ deviceId: "dev-fresh", dekId: fresh!.dekId })
+        await setNewPasswordAfterCode(d, { newPassword: PASSWORD })
+        expect(server.last("POST", "/v1/account/password/after-code")!.json).toMatchObject({ dekId: fresh!.dekId })
+    })
+
+    it("a password session still gives the password for Start fresh", async () => {
+        const server = fakeServer({ "POST /v1/auth/prelogin": prelogin() })
+        const { d } = await signedInDevice(server.fetch, newDek(sodium))
+        await expect(startFresh(d, { deviceName: "Tab S9" })).rejects.toThrow(/password/)
     })
 
     it("a new password needs the unlocked key", async () => {

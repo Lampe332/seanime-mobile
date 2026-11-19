@@ -103,7 +103,7 @@ export type LoginAnswer = { userId: string, emailVerified: boolean, kdf: Kdf, wr
  */
 export type CodeLoginAnswer = LoginAnswer & { codeLogin: true, escrowDek: string | null, recoveryWrappedDek?: string | null }
 /** "Set a new password" right after a code sign-in: a new password for the DEK the session already holds */
-export type PasswordAfterCodeBody = { authKey: string, salt: string, kdf: Kdf, wrappedDek: string, dekId: string }
+export type PasswordAfterCodeBody = { authKey: string, salt: string, kdf: Kdf, wrappedDek: string, dekId: string, dekProof?: string }
 export type GoogleAnswer = { userId: string, created: boolean, emailVerified: boolean, dekId: string | null, recoveryWrappedDek: string | null, sessionToken: string }
 /** `userId` is part of the recovery wrap's AAD, so a device without a stored account can still unwrap it */
 export type ResetInfo = { userId: string, dekId: string | null, hasRecovery: boolean, recoveryWrappedDek: string | null }
@@ -357,7 +357,10 @@ export class AccountClient {
     linkGoogle = (idToken: string, nonce: string, authKey: string) => this.call<void>("POST", "account/link-google", { json: { idToken, nonce, authKey } })
     unlinkGoogle = (authKey: string) => this.call<void>("POST", "account/unlink-google", { json: { authKey } })
     deleteAccount = () => this.call<void>("DELETE", "account")
-    /** "Code only" on: the DEK goes to the server (base64url), with the password's authKey */
+    /**
+     * "Code only" on: the DEK goes to the server (base64url), with the password's authKey. Needs a session with a device
+     * row (403 device_required); wrong password 403 wrong_password; an account without a key 409 no_key
+     */
     putEscrow = (dek: string, authKey: string) => this.call<void>("PUT", "account/escrow", { json: { dek, authKey } })
     /** "Code only" off: the server deletes its package at once */
     deleteEscrow = () => this.call<void>("DELETE", "account/escrow")

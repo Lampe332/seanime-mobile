@@ -9,13 +9,15 @@ import { toast } from "@/components/ui/toast/toast-store"
 import type { CheckedDevice, PendingApproval } from "@/core/account/devices"
 import {
     accountAtom, accountInfoAtom, answerNumber, approvalDone, changeEncryptionKey, denyApproval, disconnectGoogle, approvalProgress, askForApproval, changeAccountPassword, createAccount,
-    deleteSyncedData, deleteWholeAccount, importDismissedAtom, keyNoticeAtom, lastSyncAtom, listDevices, newRecoveryCode, recoveryCodeUsable, resendConfirmation, signIn,
-    signOutHere, startFreshHere, syncingAtom, syncNow, unlockWithRecoveryCode,
+    deleteSyncedData, deleteWholeAccount, importDismissedAtom, keyNoticeAtom, lastSyncAtom, listDevices, newPasswordOfferAtom, newRecoveryCode, recoveryCodeUsable,
+    resendConfirmation, sendSignInCode, setNewPassword, signIn, signInWithCode, signedInWithCode, signOutHere, skipNewPassword, startFreshHere, syncingAtom, syncNow, turnOffCodeOnly,
+    turnOnCodeOnly, unlockWithRecoveryCode,
 } from "@/lib/account/account-app"
 import {
-    MIN_PASSWORD_LENGTH, accountDate, accountErrorText, accountPhase, eventText, formatRecoveryCode, formatSas, passwordStrength, repeatMismatch, startApprovalAttempt,
-    strengthLabel, syncedAgo,
+    CODE_LENGTH, type CodeEdit, MIN_PASSWORD_LENGTH, accountDate, accountErrorText, accountPhase, backspaceInCode, codeOf, eventText, formatRecoveryCode, formatSas,
+    passwordStrength, repeatMismatch, resendWait, startApprovalAttempt, strengthLabel, syncedAgo, typeInCode,
 } from "@/lib/account/account-view"
+import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { accountLoadFailedAtom, retryAccountLoad } from "@/main/_features/account/account-service"
 import { appLanguageAtom, plural, type Translate } from "@/lib/app-language"
 import { copySecretToClipboard, openTab } from "@/lib/helpers/browser"
@@ -68,10 +70,16 @@ function LoadFailed({ t }: { t: Translate }) {
 /* ---- Signed out ---- */
 
 function SignedOut({ t }: { t: Translate }) {
-    const [step, setStep] = React.useState<"welcome" | "create" | "signin">("welcome")
+    const [step, setStep] = React.useState<"welcome" | "create" | "signin" | "code">("welcome")
+    // the address typed on the password form goes along to the code form
+    const [codeEmail, setCodeEmail] = React.useState("")
     const notice = useAtomValue(keyNoticeAtom)
     if (step === "create") return <CredentialsForm t={t} mode="create" onBack={() => setStep("welcome")} />
-    if (step === "signin") return <CredentialsForm t={t} mode="signin" onBack={() => setStep("welcome")} />
+    if (step === "signin") return <CredentialsForm t={t} mode="signin" onBack={() => setStep("welcome")} onCode={email => {
+        setCodeEmail(email)
+        setStep("code")
+    }} />
+    if (step === "code") return <CodeSignIn t={t} initialEmail={codeEmail} onBack={() => setStep("signin")} />
     return <View className="gap-6">
         {notice === "removed" && <SettingsGroup title={t("This device was removed", "Dieses Gerät wurde entfernt")}
             note={t("It was removed from your account on another device or on the website, so its key was deleted here. The data on this device stays. Sign in again to ask for access.",
@@ -87,7 +95,7 @@ function SignedOut({ t }: { t: Translate }) {
     </View>
 }
 
-function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "signin", onBack: () => void }) {
+function CredentialsForm({ t, mode, onBack, onCode }: { t: Translate, mode: "create" | "signin", onBack: () => void, onCode?: (email: string) => void }) {
     const [email, setEmail] = React.useState("")
     const [password, setPassword] = React.useState("")
     const [repeat, setRepeat] = React.useState("")
@@ -139,9 +147,155 @@ function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "
             <Button intent="primary" disabled={!ready} loading={busy} onPress={() => void submit()}>
                 {create ? t("Create account", "Konto erstellen") : mailLink ? t("Continue", "Weiter") : t("Sign in", "Anmelden")}
             </Button>
+            {!create && onCode && <Button intent="secondary" disabled={busy} onPress={() => onCode(email.trim())}>{t("Sign in with a code instead", "Stattdessen mit Code anmelden")}</Button>}
             {!create && <Button intent="text" disabled={busy} onPress={() => openTab(RESET_PAGE)}>{t("Forgot password", "Passwort vergessen")}</Button>}
             <Button intent="text" disabled={busy} onPress={onBack}>{t("Back", "Zurück")}</Button>
         </View>
+    </View>
+}
+
+const EMPTY_CODE = Array.from({ length: CODE_LENGTH }, () => "")
+
+/**
+ * Sign-in with a code: the email, then the 6-digit code from the mail in six boxes (a pasted code spreads over them, a
+ * whole one signs in at once). Without "code only" the device then shows the ways to unlock the data (ApproveOnPhone).
+ */
+function CodeSignIn({ t, initialEmail, onBack }: { t: Translate, initialEmail: string, onBack: () => void }) {
+    const [email, setEmail] = React.useState(initialEmail)
+    const [sentTo, setSentTo] = React.useState<string | null>(null)
+    const [sentAt, setSentAt] = React.useState<number | null>(null)
+    const [now, setNow] = React.useState(Date.now)
+    const [digits, setDigits] = React.useState(EMPTY_CODE)
+    const [busy, setBusy] = React.useState<"send" | "check" | null>(null)
+    // the error itself, worded at render (a language change words it anew)
+    const [failure, setFailure] = React.useState<unknown>(null)
+    const emailRef = React.useRef<TextInputInstance>(null)
+    const boxes = React.useRef<(TextInputInstance | null)[]>([])
+    useReleaseFocusOnLeave(emailRef)
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+    const wait = resendWait(sentAt, now)
+    const waiting = wait > 0
+    const code = codeOf(digits)
+
+    React.useEffect(() => {
+        if (!waiting) return
+        const id = setInterval(() => setNow(Date.now()), 1000)
+        return () => clearInterval(id)
+    }, [waiting])
+
+    async function send() {
+        if (!emailOk || busy || waiting) return
+        setBusy("send")
+        setFailure(null)
+        try {
+            await sendSignInCode(email)
+            const at = Date.now()
+            setSentTo(email.trim())
+            setSentAt(at)
+            setNow(at)
+            setDigits(EMPTY_CODE)
+            setTimeout(() => boxes.current[0]?.focus(), 50)
+        }
+        catch (error) {
+            setFailure(error)
+        }
+        finally {
+            setBusy(null)
+        }
+    }
+
+    async function check(value: string) {
+        if (!sentTo || busy) return
+        setBusy("check")
+        setFailure(null)
+        try {
+            // on success the account screen moves on (ready, or the ways to unlock the data)
+            await signInWithCode(sentTo, value)
+        }
+        catch (error) {
+            setFailure(error)
+            setDigits(EMPTY_CODE)
+            setBusy(null)
+            setTimeout(() => boxes.current[0]?.focus(), 50)
+        }
+    }
+
+    function edit(change: CodeEdit) {
+        setDigits(change.digits)
+        setFailure(null)
+        boxes.current[change.focus]?.focus()
+        const whole = codeOf(change.digits)
+        if (whole) void check(whole)
+    }
+
+    if (sentTo === null) return <View className="gap-6">
+        <SettingsGroup title={t("Sign in with a code", "Mit Code anmelden")}
+            note={t("We email you a 6-digit code. You don't need your password for it.", "Wir schicken dir einen 6-stelligen Code per E-Mail. Dein Passwort brauchst du dafür nicht.")}>
+            <View className="gap-2 bg-sm-surface px-0 py-1">
+                <TextInput ref={emailRef} value={email} onChangeText={setEmail} placeholder={t("Email", "E-Mail")} placeholderTextColor={colors.smTextSubtle}
+                    accessibilityLabel={t("Email", "E-Mail")} autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress"
+                    keyboardType="email-address" returnKeyType="send" onSubmitEditing={() => void send()} className={FIELD} />
+                {failure !== null && <Text accessibilityRole="alert" className="px-1 text-[13px] leading-[19.5px] text-sm-danger">{accountErrorText(t, failure, "code")}</Text>}
+            </View>
+        </SettingsGroup>
+        <View className="gap-3">
+            <Button intent="primary" disabled={!emailOk || waiting} loading={busy === "send"} onPress={() => void send()}>
+                {waiting ? t(`Send code in ${wait} s`, `Code senden in ${wait} s`) : t("Send code", "Code senden")}
+            </Button>
+            <Button intent="text" disabled={!!busy} onPress={onBack}>{t("Back", "Zurück")}</Button>
+        </View>
+    </View>
+
+    return <View className="gap-6">
+        <SettingsGroup title={t("Enter the code", "Code eingeben")}
+            note={t(`We sent a 6-digit code to ${sentTo}. It works for 10 minutes.`, `Wir haben einen 6-stelligen Code an ${sentTo} geschickt. Er gilt 10 Minuten.`)}>
+            <View className="gap-2 bg-sm-surface px-0 py-1">
+                <CodeBoxes t={t} digits={digits} boxes={boxes} disabled={busy === "check"} invalid={failure !== null} onEdit={edit} />
+                {failure !== null && <Text accessibilityRole="alert" className="px-1 text-[13px] leading-[19.5px] text-sm-danger">{accountErrorText(t, failure, "code")}</Text>}
+            </View>
+        </SettingsGroup>
+        <View className="gap-3">
+            <Button intent="primary" disabled={!code} loading={busy === "check"} onPress={() => code && void check(code)}>{t("Sign in", "Anmelden")}</Button>
+            <Button intent="secondary" disabled={waiting || !!busy} loading={busy === "send"} onPress={() => void send()}>
+                {waiting ? t(`Send a new code in ${wait} s`, `Neuen Code senden in ${wait} s`) : t("Send a new code", "Neuen Code senden")}
+            </Button>
+            <Button intent="text" disabled={!!busy} onPress={() => {
+                setSentTo(null)
+                setFailure(null)
+                setDigits(EMPTY_CODE)
+            }}>{t("Use another email", "Andere E-Mail nutzen")}</Button>
+        </View>
+    </View>
+}
+
+/**
+ * Six boxes, one digit each, on the number pad. The phone's keyboard can fill the code from the mail (oneTimeCode /
+ * sms-otp on the first box); a paste anywhere spreads over the boxes (account-view.ts typeInCode). A tablet gets larger
+ * boxes, never stretched over the whole pane.
+ */
+function CodeBoxes({ t, digits, boxes, disabled, invalid, onEdit }: {
+    t: Translate
+    digits: string[]
+    boxes: React.RefObject<(TextInputInstance | null)[]>
+    disabled: boolean
+    invalid: boolean
+    onEdit: (change: CodeEdit) => void
+}) {
+    const { isTablet } = useTabletLayout()
+    // all six let go of the keyboard when the page is left (RN blurs only the focused one)
+    const allBoxes = React.useRef({ blur: () => boxes.current.forEach(box => box?.blur()) })
+    useReleaseFocusOnLeave(allBoxes)
+    return <View accessibilityLabel={t("Sign-in code", "Anmeldecode")} className="w-full flex-row gap-2" style={{ maxWidth: isTablet ? 440 : 380 }}>
+        {digits.map((digit, index) => <TextInput key={index} ref={box => {
+            boxes.current[index] = box
+        }} value={digit} editable={!disabled} onChangeText={text => onEdit(typeInCode(digits, index, text))}
+            onKeyPress={event => {
+                if (event.nativeEvent.key === "Backspace") onEdit(backspaceInCode(digits, index))
+            }}
+            keyboardType="number-pad" inputMode="numeric" textContentType="oneTimeCode" autoComplete={index === 0 ? "sms-otp" : "off"} autoCorrect={false}
+            selectTextOnFocus caretHidden accessibilityLabel={t(`Digit ${index + 1} of 6`, `Ziffer ${index + 1} von 6`)}
+            className={cn("min-w-0 flex-1 rounded-surface bg-sm-surface-raised text-center font-sans font-semibold text-sm-text", isTablet ? "h-16 text-[26px]" : "h-14 text-[22px]",
+                invalid && "border-2 border-sm-danger")} />)}
     </View>
 }
 
@@ -211,6 +365,8 @@ function ApproveOnPhone({ t }: { t: Translate }) {
     const [failure, setFailure] = React.useState<unknown>(null)
     const [sheet, setSheet] = React.useState<"recovery" | "fresh" | "signout" | null>(null)
     const [answering, setAnswering] = React.useState(false)
+    // a code sign-in starts fresh without the password; a new one is offered right after
+    const askPassword = account.kind === "email" && !signedInWithCode()
     const pendingRef = React.useRef<PendingApproval | null>(null)
     // S1: "No" stops the polling at once; this request is over, "Ask again" makes a new one
     const pauseRef = React.useRef<() => void>(() => undefined)
@@ -312,11 +468,11 @@ function ApproveOnPhone({ t }: { t: Translate }) {
         <InputSheet t={t} open={sheet === "recovery"} onOpenChange={open => !open && setSheet(null)} title={t("Use recovery code", "Wiederherstellungscode nutzen")}
             text={t("Enter the 26 characters of your recovery code. Spaces don't matter.", "Gib die 26 Zeichen deines Codes ein. Leerzeichen sind egal.")}
             field="code" placeholder="ABCD EFGH …" action={t("Unlock", "Entsperren")} onSubmit={code => unlockWithRecoveryCode(code)} />
-        <InputSheet t={t} open={sheet === "fresh"} onOpenChange={open => !open && setSheet(null)} title={t("Start fresh?", "Neu anfangen?")} danger field={account.kind === "email" ? "password" : "none"}
+        <InputSheet t={t} open={sheet === "fresh"} onOpenChange={open => !open && setSheet(null)} title={t("Start fresh?", "Neu anfangen?")} danger field={askPassword ? "password" : "none"}
             text={t("Your synced data in the account is deleted for good and every other device is signed out. The data on this device stays and becomes the account's new data. Do this only if you have no other device and no recovery code.",
                 "Die synchronisierten Daten im Konto werden endgültig gelöscht und alle anderen Geräte abgemeldet. Die Daten auf diesem Gerät bleiben und werden die neuen Daten des Kontos. Mach das nur, wenn du kein anderes Gerät und keinen Code hast.")}
             placeholder={t("Your password", "Dein Passwort")} action={t("Start fresh", "Neu anfangen")}
-            onSubmit={password => startFreshHere(account.kind === "email" ? password : undefined)} />
+            onSubmit={password => startFreshHere(askPassword ? password : undefined)} />
         <ConfirmSheet open={sheet === "signout"} onOpenChange={open => !open && setSheet(null)} title={t("Sign out?", "Abmelden?")}
             text={t("The data on this device stays.", "Die Daten auf diesem Gerät bleiben.")} action={t("Sign out", "Abmelden")} onConfirm={() => void signOutHere()} />
     </View>
@@ -332,8 +488,10 @@ function Overview({ t }: { t: Translate }) {
     const setImportDismissed = useSetAtom(importDismissedAtom)
     const queryClient = useQueryClient()
     const [now, setNow] = React.useState(Date.now)
-    const [sheet, setSheet] = React.useState<"recovery" | "password" | "signout" | "data" | "delete" | "google" | null>(null)
+    const [sheet, setSheet] = React.useState<"recovery" | "password" | "signout" | "data" | "delete" | "google" | "code-only" | "new-password" | null>(null)
     const [code, setCode] = React.useState<string | null>(null)
+    const passwordOffer = useAtomValue(newPasswordOfferAtom)
+    const [codeOnlyBusy, setCodeOnlyBusy] = React.useState(false)
     // S2: "Change encryption key" with the device list; `off`: a device the user tapped Remove on starts unticked
     const [keySheet, setKeySheet] = React.useState<{ off: string | null } | null>(null)
     const devices = useQuery({ queryKey: DEVICES_KEY, queryFn: listDevices })
@@ -364,6 +522,21 @@ function Overview({ t }: { t: Translate }) {
         }
     }
 
+    /** "Code only" off at once: the server deletes its copy of the key */
+    async function codeOnlyOff() {
+        setCodeOnlyBusy(true)
+        try {
+            await turnOffCodeOnly()
+            toast.success(t("Code-only sign-in is off. Your synced data is end-to-end encrypted again.", "Nur-Code-Anmeldung ist aus. Deine synchronisierten Daten sind wieder Ende-zu-Ende-verschlüsselt."))
+        }
+        catch (error) {
+            toast.error(accountErrorText(t, error))
+        }
+        finally {
+            setCodeOnlyBusy(false)
+        }
+    }
+
     const renewal = info?.recoveryRenewalNeeded || lastSync?.recoveryRenewalNeeded
     const syncNote = syncNoteFor(t, lastSync?.state)
     // M-4, S4: a removed or signed-out device may still know the old key until the user changes it
@@ -371,6 +544,12 @@ function Overview({ t }: { t: Translate }) {
     const shortDate = (seconds: number) => accountDate(language, seconds)
 
     return <View className="gap-6">
+        {passwordOffer && <SettingsGroup title={t("Set a new password", "Neues Passwort festlegen")}
+            note={t("You signed in with a code. Set a new password now if you forgot the old one. Your other devices stay signed in.",
+                "Du hast dich mit einem Code angemeldet. Leg jetzt ein neues Passwort fest, falls du das alte vergessen hast. Deine anderen Geräte bleiben angemeldet.")}>
+            <LinkRow label={t("Set a new password", "Neues Passwort festlegen")} tone="accent" onPress={() => setSheet("new-password")} />
+            <LinkRow label={t("Not now", "Jetzt nicht")} chevron={false} onPress={skipNewPassword} />
+        </SettingsGroup>}
         {info && !info.emailVerified && <SettingsGroup title={t("Confirm your email", "Bestätige deine E-Mail")}
             note={t(`We sent a link to ${info.email}. Nothing is blocked until then; unconfirmed accounts are deleted after 7 days.`,
                 `Wir haben einen Link an ${info.email} geschickt. Bis dahin ist nichts gesperrt; unbestätigte Konten werden nach 7 Tagen gelöscht.`)}>
@@ -426,6 +605,11 @@ function Overview({ t }: { t: Translate }) {
             {account.kind === "email" && <LinkRow label={t("Change password", "Passwort ändern")} note={t("Signs out your other devices", "Meldet deine anderen Geräte ab")} onPress={() => setSheet("password")} />}
             {account.kind === "email" && info?.googleLinked && <LinkRow label={t("Disconnect Google", "Google trennen")}
                 note={t("Google sign-in is linked to this account", "Google-Anmeldung ist mit diesem Konto verknüpft")} onPress={() => setSheet("google")} />}
+            {/* opt-in: on, the server holds the key; turning it on asks for the password, turning it off is immediate */}
+            {account.kind === "email" && info?.hasPassword && <LocalSwitch label={t("Sign in with an email code only", "Nur mit E-Mail-Code anmelden")}
+                note={t("Seanime can then read your synced data. Off keeps it end-to-end encrypted.", "Seanime kann deine synchronisierten Daten dann lesen. Aus bleiben sie Ende-zu-Ende-verschlüsselt.")}
+                checked={info.codeOnly === true} disabled={codeOnlyBusy}
+                onCheckedChange={checked => checked ? setSheet("code-only") : void codeOnlyOff()} />}
             <LinkRow label={t("Sign out", "Abmelden")} note={t("The data on this device stays", "Die Daten auf diesem Gerät bleiben")} onPress={() => setSheet("signout")} />
             <LinkRow label={t("Delete synced data", "Synchronisierte Daten löschen")} tone="danger" onPress={() => setSheet("data")} />
             <LinkRow label={t("Delete account", "Konto löschen")} tone="danger" onPress={() => setSheet("delete")} />
@@ -464,7 +648,68 @@ function Overview({ t }: { t: Translate }) {
                 await disconnectGoogle(password)
                 toast.success(t("Google disconnected.", "Google getrennt."))
             }} />
+        <InputSheet t={t} open={sheet === "code-only"} onOpenChange={open => !open && setSheet(null)} title={t("Sign in with a code only?", "Nur mit Code anmelden?")} danger
+            text={t("Seanime's server gets the key to your synced data and can read it: settings, history, playlists, extensions and their keys. A code from your email is then enough to get everything on a new device, without your password or another device. Anyone who gets into your email can read your synced data too. You can turn it off any time; the server's copy of the key is deleted at once.",
+                "Der Server von Seanime bekommt den Schlüssel zu deinen synchronisierten Daten und kann sie lesen: Einstellungen, Verlauf, Playlists, Erweiterungen und ihre Schlüssel. Ein Code aus deiner E-Mail reicht dann, um auf einem neuen Gerät alles zu bekommen, ohne Passwort und ohne anderes Gerät. Wer in dein E-Mail-Postfach kommt, kann deine synchronisierten Daten dann auch lesen. Du kannst es jederzeit ausschalten; die Kopie des Schlüssels auf dem Server wird dann sofort gelöscht.")}
+            placeholder={t("Your password", "Dein Passwort")} action={t("Turn on", "Einschalten")}
+            onSubmit={async password => {
+                await turnOnCodeOnly(password)
+                toast.success(t("Code-only sign-in is on.", "Nur-Code-Anmeldung ist an."))
+            }} />
+        <NewPasswordSheet t={t} open={sheet === "new-password"} onOpenChange={open => !open && setSheet(null)} email={account.email ?? info?.email ?? ""} googleLinked={!!info?.googleLinked} />
     </View>
+}
+
+/** "Set a new password" after a code sign-in: no current password, only the new one twice */
+function NewPasswordSheet({ t, open, onOpenChange, email, googleLinked }: { t: Translate, open: boolean, onOpenChange: (open: boolean) => void, email: string, googleLinked: boolean }) {
+    const [next, setNext] = React.useState("")
+    const [repeat, setRepeat] = React.useState("")
+    const [busy, setBusy] = React.useState(false)
+    const [error, setError] = React.useState<string | null>(null)
+    const strength = passwordStrength(next, email)
+    const ready = strength >= 2 && repeat === next
+    const close = () => {
+        setNext("")
+        setRepeat("")
+        setError(null)
+        onOpenChange(false)
+    }
+    async function submit() {
+        if (busy || !ready) return
+        setBusy(true)
+        setError(null)
+        try {
+            await setNewPassword(next)
+            toast.success(t("New password set.", "Neues Passwort festgelegt."))
+            close()
+        }
+        catch (failure) {
+            // the server allows it only within 15 minutes of the code sign-in
+            setError((failure as { code?: string } | null)?.code === "reauth_required"
+                ? t("This works only within 15 minutes of signing in with a code. Sign out, then sign in with a new code.", "Das geht nur innerhalb von 15 Minuten nach der Anmeldung mit Code. Melde dich ab und dann mit einem neuen Code an.")
+                : accountErrorText(t, failure))
+        }
+        finally {
+            setBusy(false)
+        }
+    }
+    return <Sheet title={t("Set a new password", "Neues Passwort festlegen")} open={open} onOpenChange={value => !busy && !value && close()}
+        footer={<>
+            <Button intent="secondary" wrapperClassName="flex-1" disabled={busy} onPress={close}>{t("Cancel", "Abbrechen")}</Button>
+            <Button intent="primary" wrapperClassName="flex-1" disabled={!ready} loading={busy} onPress={() => void submit()}>{t("Save", "Speichern")}</Button>
+        </>}>
+        <View className="gap-3">
+            <Text className="text-[15px] leading-[23px] text-sm-text-muted">
+                {t("You need this password on every new device, unless you sign in with a code.", "Dieses Passwort brauchst du auf jedem neuen Gerät, außer du meldest dich mit einem Code an.")}
+                {googleLinked ? ` ${t("Google sign-in is removed from the account.", "Die Google-Anmeldung wird vom Konto entfernt.")}` : ""}
+            </Text>
+            <PasswordField t={t} value={next} onChangeText={setNext} label={t(`New password (${MIN_PASSWORD_LENGTH}+ characters)`, `Neues Passwort (${MIN_PASSWORD_LENGTH}+ Zeichen)`)}
+                newPassword returnKeyType="next" />
+            <StrengthMeter t={t} score={strength} />
+            <RepeatField t={t} label={t("Repeat new password", "Neues Passwort wiederholen")} password={next} value={repeat} onChangeText={setRepeat} onSubmitEditing={() => void submit()} />
+            {!!error && <Text accessibilityRole="alert" className="text-[13px] leading-[19.5px] text-sm-danger">{error}</Text>}
+        </View>
+    </Sheet>
 }
 
 /**

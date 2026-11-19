@@ -303,5 +303,8 @@ describe("the six boxes of the sign-in code", () => {
         expect(accountErrorText(en, new RateLimitedError("rate_limited", "x", {}, 600), "code")).toBe("Too many codes or tries. Try again in 10 minutes.")
         expect(accountErrorText(en, new RateLimitedError("rate_limited", "x", {}, null), "code")).toBe("Too many codes or tries. Wait a while and try again.")
         expect(accountErrorText(en, new UntrustedEscrowError())).toMatch(/doesn't match your devices/)
+        // PUT account/escrow: a wrong password is a 403 there
+        expect(accountErrorText(en, new AccountApiError(403, "wrong_password", "x"))).toBe("Wrong password.")
+        expect(accountErrorText(en, new AccountApiError(403, "device_required", "x"))).toMatch(/isn't registered/)
     })
 })

@@ -21,7 +21,8 @@ describe("a text field lets go of the keyboard when its page is left", () => {
 
     it("lets every search field and the text fields on pages go", () => {
         expect(read("components/shared/phone-kit.tsx")).toMatch(/useReleaseFocusOnLeave\(own\)/)
-        expect(read("main/settings/_screens/settings-account.tsx").match(/useReleaseFocusOnLeave\(/g)).toHaveLength(2)
+        // the email of sign-in / create, the password fields, the email of the code sign-in and its six code boxes
+        expect(read("main/settings/_screens/settings-account.tsx").match(/useReleaseFocusOnLeave\(/g)).toHaveLength(4)
         expect(read("main/settings/_screens/settings-torrents.tsx")).toMatch(/useReleaseFocusOnLeave\(field\)/)
         expect(read("main/settings/_screens/settings-auto-select.tsx").match(/useReleaseFocusOnLeave\(field\)/g)).toHaveLength(2)
         expect(read("main/manga/_containers/chapter-list/chapter-list.tsx")).toMatch(/useReleaseFocusOnLeave\(jumpField\)/)

@@ -119,6 +119,8 @@ export function eventText(t: Translate, event: AccountEvent): string {
         case "google_unlinked": return t("Google sign-in was removed", "Google-Anmeldung wurde entfernt")
         case "start_fresh": return t("The account started fresh", "Das Konto hat neu angefangen")
         case "approvals_paused": return t("Approvals were paused after numbers didn't match", "Freigaben wurden pausiert, weil Zahlen nicht passten")
+        case "code_only_on": return t("Code-only sign-in was turned on", "Nur-Code-Anmeldung wurde eingeschaltet")
+        case "code_only_off": return t("Code-only sign-in was turned off", "Nur-Code-Anmeldung wurde ausgeschaltet")
         default: return event.kind
     }
 }
@@ -289,6 +291,8 @@ export function accountErrorText(t: Translate, error: unknown, where?: "sign-in"
     }
     if ((error as { name?: string } | null)?.name === "UntrustedEscrowError") return t("The server sent a key that doesn't match your devices, so this device didn't take it. Sign in with your password or approve this device on another one.",
         "Der Server hat einen Schlüssel geschickt, der nicht zu deinen Geräten passt, deshalb hat dieses Gerät ihn nicht genommen. Melde dich mit deinem Passwort an oder gib dieses Gerät auf einem anderen frei.")
+    if (code === "device_required") return t("This device isn't registered in the account yet. Sync once, then try again.", "Dieses Gerät ist noch nicht im Konto eingetragen. Synchronisiere einmal und versuch es dann noch mal.")
+    if (code === "no_key") return t("Your account has no key yet. Sync once, then try again.", "Dein Konto hat noch keinen Schlüssel. Synchronisiere einmal und versuch es dann noch mal.")
     if (code === "device_removed") return t("This device was removed from the account. Ask on another device to add it again.", "Dieses Gerät wurde aus dem Konto entfernt. Lass es auf einem anderen Gerät neu hinzufügen.")
     if (code === "confirm_by_mail") return signIn
         ? t("Someone tried a lot of wrong passwords for this email lately. If yours was right, a sign-in link is in your inbox now. Open it, then press Continue.",

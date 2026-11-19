@@ -254,6 +254,11 @@ export async function setNewPassword(newPassword: string): Promise<void> {
     await refreshInfo()
 }
 
+/** This session came from a code: Start fresh needs no password, a new one is offered afterwards */
+export function signedInWithCode(): boolean {
+    return codeSession
+}
+
 export function skipNewPassword(): void {
     store.set(newPasswordOfferAtom, false)
 }

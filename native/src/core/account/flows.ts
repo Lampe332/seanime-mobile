@@ -401,7 +401,7 @@ export async function loginWithCode(deps: AccountDeps, input: { email: string, c
     let escrowDek: Uint8Array | null = null
     try {
         const info = await finish(() => client.account())
-        if (!info.hasPassword) await deps.session.updateSession({ kind: "google", email: null })
+        await deps.session.updateSession({ codeLogin: true, ...(info.hasPassword ? {} : { kind: "google" as const, email: null }) })
         const result = { userId: answer.userId, emailVerified: answer.emailVerified, created: false, recoveryWrappedDek: answer.recoveryWrappedDek ?? null, keyChanged, escrow: false }
         const dekId = answer.dekId
         if (kept && dekId) {
@@ -437,8 +437,9 @@ export async function loginWithCode(deps: AccountDeps, input: { email: string, c
 }
 
 /**
- * "Set a new password" right after a code sign-in (route password/after-code, at most 15 minutes after it): new salt,
- * KDF and authKey as at sign-up, the DEK this device holds wrapped for the new password. Other sessions stay.
+ * "Set a new password" right after a code sign-in (route password/after-code, at most 15 minutes after it, else 403
+ * reauth_required): new salt, KDF and authKey as at sign-up, the DEK this device holds wrapped for the new password and
+ * its proof (needed while the session has no device row). Other sessions stay; the server drops a linked Google sign-in.
  */
 export async function setNewPasswordAfterCode(deps: AccountDeps, input: { newPassword: string, kdf?: Kdf }): Promise<void> {
     const { sodium } = deps
@@ -458,6 +459,7 @@ export async function setNewPasswordAfterCode(deps: AccountDeps, input: { newPas
             kdf,
             wrappedDek: wrapKey(sodium, state.dek, encKey, state.userId, state.dekId, "password"),
             dekId: state.dekId,
+            dekProof: dekProof(sodium, state.dek),
         })
         await deps.session.rememberKdf(email, kdf)
         // the account has a password now: the steps that need one ask for it
@@ -612,7 +614,10 @@ export async function useRecoveryCode(deps: AccountDeps, input: { code: string, 
  */
 export async function startFresh(deps: AccountDeps, input: { deviceName: string, password?: string }): Promise<{ dekId: string, deviceId: string }> {
     const { sodium } = deps
-    const encKey = await reauth(deps, input.password, input.deviceName)
+    // a code sign-in owns the account for Start fresh: the new key gets no password wrap yet, setNewPasswordAfterCode adds it
+    const before = await deps.session.load()
+    wipe(sodium, before?.dek)
+    const encKey = input.password === undefined && before?.codeLogin ? undefined : await reauth(deps, input.password, input.deviceName)
     const dek = newDek(sodium)
     try {
         const state = await deps.session.load()
