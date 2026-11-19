@@ -5,7 +5,9 @@ import { getAssetUrl } from "@/lib/server/assets"
 import { colors } from "@/lib/theme/tokens"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
+import { useRouter } from "@/lib/navigation"
 import { Image } from "expo-image"
+import Search from "lucide-react-native/icons/search"
 import React from "react"
 import { Pressable, View } from "react-native"
 import { usePageTop } from "@/components/shared/phone-screen"
@@ -60,6 +62,17 @@ function HomeBanner({ image, opacity, position }: { image: string, opacity: numb
             <View className="absolute inset-0" style={{ backgroundImage: "linear-gradient(180deg, rgba(17,15,31,0) 55%, rgb(17,15,31) 100%)" }} />
         </View>
     )
+}
+
+/**
+ * Search in a page head (Home, Discover; 4.2.0): Search left the default bar, so its magnifier sits where the page starts.
+ * The same 48dp icon (a word pill on a tablet) as the other head actions. `href`: "/search" or "/search?type=manga".
+ */
+export function SearchHeadAction({ href }: { href: string }) {
+    const t = useTr()
+    const router = useRouter()
+    // a link with params replaces the open search once per tap (search-phone.tsx stamps arrivals by `at`)
+    return <HomeHeaderAction icon={Search} label={t("Search", "Suche")} onPress={() => router.push(href.includes("?") ? `${href}&at=${Date.now()}` : href)} />
 }
 
 /**

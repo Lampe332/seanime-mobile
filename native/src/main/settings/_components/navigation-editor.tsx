@@ -4,7 +4,7 @@ import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { appLanguageAtom, useTr } from "@/lib/app-language"
 import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
-import { MAX_NAV_ITEMS, menuTargets, moveInBar, moveToBar, moveToMenu, navCount, navIcon, navLabel, type NavEditResult } from "@/lib/nav/nav-items"
+import { MAX_NAV_ITEMS, menuTargets, moveInBar, moveToBar, moveToMenu, navCount, navIcon, navItemLabel, navLabel, type NavEditResult } from "@/lib/nav/nav-items"
 import { saveNavItems, useAllNavItems } from "@/lib/nav/nav-store"
 import { colors } from "@/lib/theme/tokens"
 import { useAtomValue } from "jotai"
@@ -56,7 +56,7 @@ export function NavigationEditor({ open, onOpenChange }: { open: boolean, onOpen
         <SheetGroup title={t("In the bar", "In der Leiste")}>
             <View className="gap-0.5 overflow-hidden rounded-surface">
                 {bar.map((item, i) => {
-                    const label = navLabel(item.label, language)
+                    const label = navItemLabel(item, language)
                     return <EditRow key={item.id} icon={item.isMenu ? "menu" : navIcon(item)} label={label}
                         accessibilityLabel={item.isMenu ? t(`${label} – always stays in the bar`, `${label} – bleibt immer in der Leiste`)
                             : t(`${label} – move back to the menu`, `${label} – zurück ins Menü geben`)}

@@ -35,8 +35,10 @@ import { ServerDataWrapper } from "@/main/server-data-wrapper"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { usePathname } from "expo-router"
 import { TabList, Tabs, TabSlot, TabTrigger } from "expo-router/ui"
+import { customizeInHomeHead } from "@/lib/nav/more-panel"
+import { __home_settingsModalOpen } from "@/main/_features/home/home-settings-sheet"
 import React from "react"
-import { View } from "react-native"
+import { useWindowDimensions, View } from "react-native"
 
 /*
  * The app's frame (web app/(main)/layout + the native bar of UIBottomNav.kt): every main screen is a tab of one headless
@@ -73,6 +75,16 @@ function MainFrame() {
     const menuActions: NavMenuAction[] = user?.isSimulated
         ? [{ id: "sign-in", label: "Sign in", icon: "fallback", onPress: () => setLoginModal(true) }]
         : []
+    // A phone head too narrow for the title and all of Home's icons hands "Customize" to More (customizeInHomeHead);
+    // it opens Home and its sheet there
+    const { width: windowWidth } = useWindowDimensions()
+    const setCustomizeHome = useSetAtom(__home_settingsModalOpen)
+    if (!customizeInHomeHead({ rail, windowWidth })) {
+        menuActions.unshift({ id: "customize-home", label: "Customize Home", icon: "grip", onPress: () => {
+            if (pathname !== "/") router.push("/")
+            setCustomizeHome(true)
+        } })
+    }
     // Nakama opens its sheet from the Menu while it is turned on; a host shows its connected devices (main-sidebar.tsx)
     const serverStatus = useServerStatus()
     const nakamaStatus = useNakamaStatus()
