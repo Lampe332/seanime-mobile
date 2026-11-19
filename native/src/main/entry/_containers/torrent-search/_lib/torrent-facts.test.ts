@@ -41,6 +41,14 @@ const ASW = "[ASW] Sousou no Frieren - 01-28 [1080p HEVC x265 10Bit][AAC]"
 const DUAL = "[Kaizoku] Sousou no Frieren S02E05 [1080p][x265 10bit][Dual Audio]"
 
 describe("torrentFacts", () => {
+    it("names every season of a batch over several (4.2.0 E, S22: \"Frieren S1 and S2\" said only S1)", () => {
+        const both = "Frieren S1 and S2"
+        expect(factsHead(torrentFacts(torrent(both, { isBatch: true }), read(both), en, "en", { now: NOW }))).toBe("S1–S2 · Batch")
+        // one season stays as it was
+        expect(torrentFacts(torrent("Frieren S2"), read("Frieren S2"), en, "en", { now: NOW }).season).toBe("S2")
+        expect(torrentFacts(torrent(SUBSPLEASE), read(SUBSPLEASE), en, "en", { now: NOW }).season).toBe("S2")
+    })
+
     it("reads group, season, episode and resolution from the name when the provider sends none", () => {
         const facts = torrentFacts(torrent(SUBSPLEASE), read(SUBSPLEASE), en, "en", { provider: "Nyaa", now: NOW })
         expect(factsHead(facts)).toBe("SubsPlease · S2 · Ep 5")

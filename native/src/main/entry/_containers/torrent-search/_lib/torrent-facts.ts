@@ -20,7 +20,7 @@ export type TorrentFacts = {
     episode: string
     /** A whole season or a range of episodes ("Ep 1–12", "Batch") */
     batch: boolean
-    /** "S2" or "" */
+    /** "S2", "S1–S2" (a batch over several seasons) or "" */
     season: string
     /** "v2" or "" (a first version is not shown) */
     version: string
@@ -135,7 +135,10 @@ export function torrentFacts(torrent: HibikeTorrent_AnimeTorrent, parsed: Habari
     const episode = range ? t(`Ep ${episodes[0]}–${episodes[1]}`, `Folge ${episodes[0]}–${episodes[1]}`)
         : batch ? t("Batch", "Batch")
             : episodes.length >= 1 ? t(`Ep ${episodes[0]}`, `Folge ${episodes[0]}`) : ""
-    const season = Number(list(parsed?.season_number)[0])
+    // a batch over several seasons ("Frieren S1 and S2") is read with each of them: shown as their range, "S1–S2"
+    const seasons = list(parsed?.season_number).map(Number).filter(number => Number.isInteger(number) && number > 0)
+    const first = seasons.length ? Math.min(...seasons) : 0
+    const last = seasons.length ? Math.max(...seasons) : 0
     const version = Number(list(parsed?.release_version)[0])
 
     const terms = list(parsed?.video_term).map(lower)
@@ -157,7 +160,7 @@ export function torrentFacts(torrent: HibikeTorrent_AnimeTorrent, parsed: Habari
         group: groupOf(torrent.releaseGroup) || groupOf(parsed?.release_group) || trailingGroup(name),
         episode,
         batch: range || batch,
-        season: season > 0 ? `S${season}` : "",
+        season: last > first ? `S${first}–S${last}` : first > 0 ? `S${first}` : "",
         version: version > 1 ? `v${version}` : "",
         resolution: resolutionLabel(torrent.resolution) || resolutionLabel(parsed?.video_resolution),
         health: seedHealth(seeders),
