@@ -7,13 +7,15 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import type { CheckedDevice, PendingApproval } from "@/core/account/devices"
 import {
-    accountAtom, accountInfoAtom, answerNumber, approvalDone, changeEncryptionKey, disconnectGoogle, approvalProgress, askForApproval, changeAccountPassword, createAccount, deleteSyncedData,
-    deleteWholeAccount, importDismissedAtom, keyNoticeAtom, lastSyncAtom, listDevices, newRecoveryCode, recoveryCodeUsable, resendConfirmation, signIn, signOutHere,
-    startFreshHere, syncingAtom, syncNow, unlockWithRecoveryCode,
+    accountAtom, accountInfoAtom, answerNumber, approvalDone, changeEncryptionKey, denyApproval, disconnectGoogle, approvalProgress, askForApproval, changeAccountPassword, createAccount,
+    deleteSyncedData, deleteWholeAccount, importDismissedAtom, keyNoticeAtom, lastSyncAtom, listDevices, newRecoveryCode, recoveryCodeUsable, resendConfirmation, signIn,
+    signOutHere, startFreshHere, syncingAtom, syncNow, unlockWithRecoveryCode,
 } from "@/lib/account/account-app"
 import {
-    MIN_PASSWORD_LENGTH, accountDate, accountErrorText, accountPhase, eventText, formatRecoveryCode, formatSas, passwordStrength, strengthLabel, syncedAgo,
+    MIN_PASSWORD_LENGTH, accountDate, accountErrorText, accountPhase, eventText, formatRecoveryCode, formatSas, passwordStrength, repeatMismatch, startApprovalAttempt,
+    strengthLabel, syncedAgo,
 } from "@/lib/account/account-view"
+import { accountLoadFailedAtom, retryAccountLoad } from "@/main/_features/account/account-service"
 import { appLanguageAtom, plural, type Translate } from "@/lib/app-language"
 import { copySecretToClipboard, openTab } from "@/lib/helpers/browser"
 import { colors } from "@/lib/theme/tokens"
@@ -22,10 +24,12 @@ import { ConfirmSheet, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settin
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue, useSetAtom } from "jotai"
 import React from "react"
-import { Share, TextInput, View } from "react-native"
+import Eye from "lucide-react-native/icons/eye"
+import EyeOff from "lucide-react-native/icons/eye-off"
+import { Pressable, Share, TextInput, View } from "react-native"
 
 /*
- * Settings › Account. Signed out: Continue with Google (coming soon), Create account, Sign in. A new device without the
+ * Settings › Account. Signed out: Create account, Sign in (Google sign-in is not part of 4.2.0). A new device without the
  * account's key: "Approve on your phone" with the number, the recovery code or Start fresh. Signed in: when it last
  * synced, Sync now, the devices, the recovery code, password, sign out and the two deletes. The account is optional:
  * without one nothing in the app changes.
@@ -38,11 +42,26 @@ const DEVICES_KEY = ["account", "devices"]
 export function SettingsAccountSection({ t }: { t: Translate }) {
     const account = useAtomValue(accountAtom)
     const lastSync = useAtomValue(lastSyncAtom)
+    const loadFailed = useAtomValue(accountLoadFailedAtom)
     const phase = accountPhase({ loaded: account.loaded, signedIn: account.signedIn, hasKey: account.hasKey, lastResult: lastSync })
+    if (phase === "loading" && loadFailed) return <LoadFailed t={t} />
     if (phase === "loading") return <Muted className="px-1 text-[15px]">{t("Loading…", "Wird geladen …")}</Muted>
     if (phase === "signed-out") return <SignedOut t={t} />
     if (phase === "needs-key") return <ApproveOnPhone t={t} />
     return <Overview t={t} />
+}
+
+/** The secured storage could not be read at start; without this the screen said "Loading…" for good */
+function LoadFailed({ t }: { t: Translate }) {
+    const [busy, setBusy] = React.useState(false)
+    return <SettingsGroup title={t("Couldn't load your account", "Konto konnte nicht geladen werden")}
+        note={t("This device's secure storage didn't answer. Your data on this device is fine.", "Der sichere Speicher dieses Geräts hat nicht geantwortet. Deine Daten auf diesem Gerät sind in Ordnung.")}>
+        <LinkRow label={busy ? t("Loading…", "Wird geladen …") : t("Try again", "Nochmal versuchen")} tone="accent" disabled={busy} chevron={false}
+            onPress={() => {
+                setBusy(true)
+                void retryAccountLoad().finally(() => setBusy(false))
+            }} />
+    </SettingsGroup>
 }
 
 /* ---- Signed out ---- */
@@ -61,7 +80,6 @@ function SignedOut({ t }: { t: Translate }) {
         <SettingsGroup title={t("Sync between your devices", "Zwischen deinen Geräten synchronisieren")}
         note={t("Settings, extensions, playlists and watch history go to your account, encrypted on this device. Only your devices can read them, not even we can. An account is optional.",
             "Einstellungen, Erweiterungen, Playlists und Verlauf gehen verschlüsselt in dein Konto. Lesen können sie nur deine Geräte, nicht einmal wir. Ein Konto ist freiwillig.")}>
-        <LinkRow label={t("Continue with Google", "Weiter mit Google")} value={t("Coming soon", "Bald")} disabled chevron={false} onPress={() => undefined} />
         <LinkRow label={t("Create account", "Konto erstellen")} tone="accent" note={t("With your email and a password", "Mit E-Mail und Passwort")} onPress={() => setStep("create")} />
         <LinkRow label={t("Sign in", "Anmelden")} onPress={() => setStep("signin")} />
         </SettingsGroup>
@@ -71,6 +89,7 @@ function SignedOut({ t }: { t: Translate }) {
 function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "signin", onBack: () => void }) {
     const [email, setEmail] = React.useState("")
     const [password, setPassword] = React.useState("")
+    const [repeat, setRepeat] = React.useState("")
     const [busy, setBusy] = React.useState(false)
     const [error, setError] = React.useState<string | null>(null)
     // S5: the sign-in waits for the link in a mail; the same device signs in again after the user opened it
@@ -78,7 +97,7 @@ function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "
     const create = mode === "create"
     const strength = passwordStrength(password, email)
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-    const ready = emailOk && (create ? strength >= 2 : password.length > 0) && !busy
+    const ready = emailOk && (create ? strength >= 2 && repeat === password : password.length > 0) && !busy
 
     async function submit() {
         if (!ready) return
@@ -90,7 +109,7 @@ function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "
         }
         catch (failure) {
             setMailLink((failure as Error | null)?.name === "MailConfirmationError")
-            setError(accountErrorText(t, failure))
+            setError(accountErrorText(t, failure, "sign-in"))
             setBusy(false)
         }
     }
@@ -105,11 +124,10 @@ function CredentialsForm({ t, mode, onBack }: { t: Translate, mode: "create" | "
                 <TextInput value={email} onChangeText={setEmail} placeholder={t("Email", "E-Mail")} placeholderTextColor={colors.smTextSubtle}
                     accessibilityLabel={t("Email", "E-Mail")} autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress"
                     keyboardType="email-address" returnKeyType="next" className={FIELD} />
-                <TextInput value={password} onChangeText={setPassword} placeholder={t("Password", "Passwort")} placeholderTextColor={colors.smTextSubtle}
-                    accessibilityLabel={t("Password", "Passwort")} autoCapitalize="none" autoCorrect={false} secureTextEntry
-                    autoComplete={create ? "new-password" : "current-password"} textContentType={create ? "newPassword" : "password"}
-                    returnKeyType="go" onSubmitEditing={() => void submit()} className={FIELD} />
+                <PasswordField t={t} value={password} onChangeText={setPassword} label={t("Password", "Passwort")} newPassword={create}
+                    returnKeyType={create ? "next" : "go"} onSubmitEditing={create ? undefined : () => void submit()} />
                 {create && <StrengthMeter t={t} score={strength} />}
+                {create && <RepeatField t={t} label={t("Repeat password", "Passwort wiederholen")} password={password} value={repeat} onChangeText={setRepeat} onSubmitEditing={() => void submit()} />}
                 {!!error && <Text accessibilityRole="alert" className="px-1 text-[13px] leading-[19.5px] text-sm-danger">{error}</Text>}
             </View>
         </SettingsGroup>
@@ -133,6 +151,48 @@ function StrengthMeter({ t, score }: { t: Translate, score: 0 | 1 | 2 | 3 | 4 })
     </View>
 }
 
+/** A password field with a Show / Hide button, so a typo can be seen before it locks the user out */
+function PasswordField({ t, value, onChangeText, label, newPassword, returnKeyType, onSubmitEditing, invalid }: {
+    t: Translate
+    value: string
+    onChangeText: (value: string) => void
+    label: string
+    newPassword?: boolean
+    returnKeyType?: "next" | "go" | "done"
+    onSubmitEditing?: () => void
+    invalid?: boolean
+}) {
+    const [shown, setShown] = React.useState(false)
+    const Icon = shown ? EyeOff : Eye
+    return <View className="justify-center">
+        <TextInput value={value} onChangeText={onChangeText} placeholder={label} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
+            autoCapitalize="none" autoCorrect={false} secureTextEntry={!shown} autoComplete={newPassword ? "new-password" : "current-password"}
+            textContentType={newPassword ? "newPassword" : "password"} returnKeyType={returnKeyType} onSubmitEditing={onSubmitEditing}
+            className={cn(FIELD, "pr-14", invalid && "border-2 border-sm-danger")} />
+        <Pressable accessibilityRole="button" accessibilityLabel={shown ? t("Hide password", "Passwort verbergen") : t("Show password", "Passwort zeigen")}
+            onPress={() => setShown(value => !value)} className="absolute right-1 h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control">
+            <Icon size={20} color={colors.smTextMuted} />
+        </Pressable>
+    </View>
+}
+
+/** The new password a second time; says so as soon as the two differ */
+function RepeatField({ t, label, password, value, onChangeText, onSubmitEditing }: {
+    t: Translate
+    label: string
+    password: string
+    value: string
+    onChangeText: (value: string) => void
+    onSubmitEditing?: () => void
+}) {
+    const mismatch = repeatMismatch(password, value)
+    return <>
+        <PasswordField t={t} value={value} onChangeText={onChangeText} label={label} newPassword
+            returnKeyType="done" onSubmitEditing={onSubmitEditing} invalid={mismatch} />
+        {mismatch && <Text accessibilityRole="alert" className="px-1 text-[13px] leading-[19.5px] text-sm-danger">{t("The passwords don't match.", "Die Passwörter stimmen nicht überein.")}</Text>}
+    </>
+}
+
 /* ---- New device without the key ---- */
 
 function ApproveOnPhone({ t }: { t: Translate }) {
@@ -141,24 +201,28 @@ function ApproveOnPhone({ t }: { t: Translate }) {
     const [attempt, setAttempt] = React.useState(0)
     const [status, setStatus] = React.useState<"asking" | "waiting" | "compare" | "confirmed" | "mismatch" | "denied" | "expired" | "failed">("asking")
     const [sas, setSas] = React.useState<string | null>(null)
-    const [failure, setFailure] = React.useState<string | null>(null)
+    // the error itself, worded at render: a language change neither keeps an old text nor starts a new request
+    const [failure, setFailure] = React.useState<unknown>(null)
     const [sheet, setSheet] = React.useState<"recovery" | "fresh" | "signout" | null>(null)
     const [answering, setAnswering] = React.useState(false)
     const pendingRef = React.useRef<PendingApproval | null>(null)
     // S1: "No" stops the polling at once; this request is over, "Ask again" makes a new one
-    const stopRef = React.useRef<() => void>(() => undefined)
+    const pauseRef = React.useRef<() => void>(() => undefined)
 
     React.useEffect(() => {
-        let alive = true
-        let timer: ReturnType<typeof setTimeout> | null = null
-        stopRef.current = () => {
-            alive = false
-            if (timer) clearTimeout(timer)
-        }
-        const poll = async (pending: PendingApproval) => {
-            try {
-                const progress = await approvalProgress(pending)
-                if (!alive) return
+        const attemptRun = startApprovalAttempt({
+            ask: askForApproval,
+            progress: approvalProgress,
+            // before a number was shown there is nothing to answer: the request is only denied on the server
+            end: pending => pending.shown ? answerNumber(pending, false) : denyApproval(pending.id),
+            wait: (ms, run) => {
+                const timer = setTimeout(run, ms)
+                return () => clearTimeout(timer)
+            },
+            onPending: pending => {
+                pendingRef.current = pending
+            },
+            onProgress: progress => {
                 if (progress.state === "approved") return void approvalDone()
                 if (progress.state === "denied" || progress.state === "expired") return setStatus(progress.state)
                 if (progress.state === "compare") {
@@ -167,34 +231,20 @@ function ApproveOnPhone({ t }: { t: Translate }) {
                     setStatus(progress.confirmed ? "confirmed" : "compare")
                 }
                 else setStatus("waiting")
-            }
-            catch (error) {
-                if (alive) {
-                    setFailure(accountErrorText(t, error))
-                    setStatus("failed")
-                }
-                return
-            }
-            timer = setTimeout(() => void poll(pending), 2000)
-        }
-        void askForApproval().then(pending => {
-            pendingRef.current = pending
-            if (alive) void poll(pending)
-        }, error => {
-            if (!alive) return
-            setFailure(accountErrorText(t, error))
-            setStatus("failed")
+            },
+            onError: error => {
+                setFailure(error)
+                setStatus("failed")
+            },
         })
-        return () => {
-            alive = false
-            if (timer) clearTimeout(timer)
-        }
-    }, [attempt, t])
+        pauseRef.current = attemptRun.pause
+        return attemptRun.stop
+    }, [attempt])
 
     async function answer(same: boolean) {
         const pending = pendingRef.current
         if (!pending || answering) return
-        if (!same) stopRef.current()
+        if (!same) pauseRef.current()
         setAnswering(true)
         try {
             const progress = await answerNumber(pending, same)
@@ -204,7 +254,7 @@ function ApproveOnPhone({ t }: { t: Translate }) {
             else if (progress.state === "compare" && progress.confirmed) setStatus("confirmed")
         }
         catch (error) {
-            setFailure(accountErrorText(t, error))
+            setFailure(error)
             setStatus("failed")
         }
         finally {
@@ -217,7 +267,7 @@ function ApproveOnPhone({ t }: { t: Translate }) {
         "Die Zahlen passten nicht. Das könnte ein Angriff sein. Nichts wurde geteilt, diese Anfrage ist beendet.")
         : status === "denied" ? t("The request was denied.", "Die Anfrage wurde abgelehnt.")
         : status === "expired" ? t("The request expired.", "Die Anfrage ist abgelaufen.")
-            : status === "failed" ? failure ?? ""
+            : status === "failed" ? accountErrorText(t, failure)
                 : status === "compare" ? t("Does your other device show the same number?", "Zeigt dein anderes Gerät dieselbe Zahl?")
                     : status === "confirmed" ? t("Now approve on your other device.", "Gib jetzt auf deinem anderen Gerät frei.")
                         : t("Waiting for your other device…", "Warte auf dein anderes Gerät …")
@@ -329,6 +379,9 @@ function Overview({ t }: { t: Translate }) {
             <LinkRow label={syncing ? t("Syncing…", "Wird synchronisiert …") : t("Sync now", "Jetzt synchronisieren")} disabled={syncing}
                 note={[syncedAgo(t, account.lastSyncAt, Math.max(now, account.lastSyncAt ?? 0)), syncNote].filter(Boolean).join("\n")} chevron={false}
                 onPress={() => void syncNowPressed()} />
+            {/* the device keeps its old key: it joins again only through a new sign-in (password, recovery code or approval) */}
+            {(lastSync?.state === "key-untrusted" || lastSync?.state === "key-changed") && <LinkRow label={t("Sign out to join again", "Abmelden, um wieder reinzukommen")}
+                tone="accent" note={t("The data on this device stays", "Die Daten auf diesem Gerät bleiben")} onPress={() => setSheet("signout")} />}
         </SettingsGroup>
 
         <SettingsGroup title={t("Devices", "Geräte")} note={t("Only the devices you keep get a new key. Removing a device or leaving it out signs it out for good, so it can't read anything new.",
@@ -345,7 +398,8 @@ function Overview({ t }: { t: Translate }) {
                 note={keyChangePending
                     ? t("A device was removed or signed out. Until you change the key, it may still read what you sync.", "Ein Gerät wurde entfernt oder abgemeldet. Bis du den Schlüssel wechselst, kann es noch lesen, was du synchronisierst.")
                     : t("Pick the devices that keep access. All others are removed.", "Wähle die Geräte, die Zugang behalten. Alle anderen werden entfernt.")}
-                onPress={() => setKeySheet({ off: null })} />
+                // the sheet needs the device list: without it the row waits (the Loading / Retry row above says why)
+                disabled={!devices.data} onPress={() => devices.data && setKeySheet({ off: null })} />
         </SettingsGroup>
 
         {!!info?.events?.length && <SettingsGroup title={t("Security events", "Sicherheitsereignisse")}
@@ -363,7 +417,7 @@ function Overview({ t }: { t: Translate }) {
         </SettingsGroup>
 
         <SettingsGroup title={t("Account", "Konto")}>
-            {account.kind === "email" && <LinkRow label={t("Change password", "Passwort ändern")} note={t("Signs out your other devices and disconnects Google", "Meldet deine anderen Geräte ab und trennt Google")} onPress={() => setSheet("password")} />}
+            {account.kind === "email" && <LinkRow label={t("Change password", "Passwort ändern")} note={t("Signs out your other devices", "Meldet deine anderen Geräte ab")} onPress={() => setSheet("password")} />}
             {account.kind === "email" && info?.googleLinked && <LinkRow label={t("Disconnect Google", "Google trennen")}
                 note={t("Google sign-in is linked to this account", "Google-Anmeldung ist mit diesem Konto verknüpft")} onPress={() => setSheet("google")} />}
             <LinkRow label={t("Sign out", "Abmelden")} note={t("The data on this device stays", "Die Daten auf diesem Gerät bleiben")} onPress={() => setSheet("signout")} />
@@ -479,10 +533,10 @@ function ChangeKeySheet({ t, devices, off, password, onClose, onSubmit }: {
 
 function syncNoteFor(t: Translate, state: string | undefined): string | undefined {
     switch (state) {
-        case "key-changed": return t("This device no longer gets the account's key. It can join again with your password, your recovery code or an approval from another device.",
-            "Dieses Gerät bekommt den Schlüssel des Kontos nicht mehr. Es kommt mit deinem Passwort, deinem Wiederherstellungscode oder einer Freigabe von einem anderen Gerät wieder rein.")
-        case "key-untrusted": return t("Sync stopped: the account's key changed, and none of your devices vouched for it. That happens after Start fresh on another device, when this device missed more than one key change, or when someone tries to get in. Nothing was imported or uploaded. This device can join again with your password, your recovery code or an approval from another device.",
-            "Sync gestoppt: Der Schlüssel des Kontos wurde gewechselt, ohne dass eines deiner Geräte das bestätigt hat. Das passiert nach Neu anfangen auf einem anderen Gerät, wenn dieses Gerät mehr als einen Schlüsselwechsel verpasst hat, oder wenn jemand reinzukommen versucht. Nichts wurde importiert oder hochgeladen. Dieses Gerät kommt mit deinem Passwort, deinem Wiederherstellungscode oder einer Freigabe von einem anderen Gerät wieder rein.")
+        case "key-changed": return t("This device no longer gets the account's key. To join again, sign out and sign in with your password, your recovery code or an approval from another device.",
+            "Dieses Gerät bekommt den Schlüssel des Kontos nicht mehr. Um wieder reinzukommen, melde dich ab und neu an, mit deinem Passwort, deinem Wiederherstellungscode oder einer Freigabe von einem anderen Gerät.")
+        case "key-untrusted": return t("Sync stopped: the account's key changed, and none of your devices vouched for it. That happens after Start fresh on another device, when this device missed more than one key change, or when someone tries to get in. Nothing was imported or uploaded. To join again, sign out and sign in with your password, your recovery code or an approval from another device.",
+            "Sync gestoppt: Der Schlüssel des Kontos wurde gewechselt, ohne dass eines deiner Geräte das bestätigt hat. Das passiert nach Neu anfangen auf einem anderen Gerät, wenn dieses Gerät mehr als einen Schlüsselwechsel verpasst hat, oder wenn jemand reinzukommen versucht. Nichts wurde importiert oder hochgeladen. Um wieder reinzukommen, melde dich ab und neu an, mit deinem Passwort, deinem Wiederherstellungscode oder einer Freigabe von einem anderen Gerät.")
         case "rate-limited": return t("Paused for a moment, too many syncs.", "Kurz pausiert, zu viele Syncs.")
         case "rollback-rejected": return t("The server sent older data than this device knows. Nothing was changed.", "Der Server schickte ältere Daten, als dieses Gerät kennt. Nichts wurde geändert.")
         default: return undefined
@@ -567,17 +621,21 @@ function RecoveryCodeSheet({ t, code, onDone }: { t: Translate, code: string | n
 function ChangePasswordSheet({ t, open, onOpenChange, email }: { t: Translate, open: boolean, onOpenChange: (open: boolean) => void, email: string }) {
     const [current, setCurrent] = React.useState("")
     const [next, setNext] = React.useState("")
+    const [repeat, setRepeat] = React.useState("")
     const [busy, setBusy] = React.useState(false)
     const [error, setError] = React.useState<string | null>(null)
     const strength = passwordStrength(next, email)
+    // a typo here would sign out every other device with a password nobody knows
+    const ready = !!current && strength >= 2 && repeat === next
     const close = () => {
         setCurrent("")
         setNext("")
+        setRepeat("")
         setError(null)
         onOpenChange(false)
     }
     async function submit() {
-        if (busy || !current || strength < 2) return
+        if (busy || !ready) return
         setBusy(true)
         setError(null)
         try {
@@ -595,15 +653,14 @@ function ChangePasswordSheet({ t, open, onOpenChange, email }: { t: Translate, o
     return <Sheet title={t("Change password", "Passwort ändern")} open={open} onOpenChange={value => !busy && !value && close()}
         footer={<>
             <Button intent="secondary" wrapperClassName="flex-1" disabled={busy} onPress={close}>{t("Cancel", "Abbrechen")}</Button>
-            <Button intent="primary" wrapperClassName="flex-1" disabled={!current || strength < 2} loading={busy} onPress={() => void submit()}>{t("Change", "Ändern")}</Button>
+            <Button intent="primary" wrapperClassName="flex-1" disabled={!ready} loading={busy} onPress={() => void submit()}>{t("Change", "Ändern")}</Button>
         </>}>
         <View className="gap-3">
-            <TextInput value={current} onChangeText={setCurrent} placeholder={t("Current password", "Aktuelles Passwort")} placeholderTextColor={colors.smTextSubtle}
-                accessibilityLabel={t("Current password", "Aktuelles Passwort")} autoCapitalize="none" autoCorrect={false} secureTextEntry autoComplete="current-password" className={FIELD} />
-            <TextInput value={next} onChangeText={setNext} placeholder={t(`New password (${MIN_PASSWORD_LENGTH}+ characters)`, `Neues Passwort (${MIN_PASSWORD_LENGTH}+ Zeichen)`)}
-                placeholderTextColor={colors.smTextSubtle} accessibilityLabel={t("New password", "Neues Passwort")} autoCapitalize="none" autoCorrect={false} secureTextEntry
-                autoComplete="new-password" className={FIELD} />
+            <PasswordField t={t} value={current} onChangeText={setCurrent} label={t("Current password", "Aktuelles Passwort")} returnKeyType="next" />
+            <PasswordField t={t} value={next} onChangeText={setNext} label={t(`New password (${MIN_PASSWORD_LENGTH}+ characters)`, `Neues Passwort (${MIN_PASSWORD_LENGTH}+ Zeichen)`)}
+                newPassword returnKeyType="next" />
             <StrengthMeter t={t} score={strength} />
+            <RepeatField t={t} label={t("Repeat new password", "Neues Passwort wiederholen")} password={next} value={repeat} onChangeText={setRepeat} onSubmitEditing={() => void submit()} />
             {!!error && <Text accessibilityRole="alert" className="text-[13px] leading-[19.5px] text-sm-danger">{error}</Text>}
         </View>
     </Sheet>

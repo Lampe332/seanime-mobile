@@ -10,7 +10,7 @@ import {
     accountAtom, answerApproval, approvalRequestsAtom, approveApproval, compareApproval, confirmWithDeviceLock, denyApproval, importDismissedAtom,
     importFromAccount, lastSyncAtom,
 } from "@/lib/account/account-app"
-import { accountErrorText, accountPhase, formatSas } from "@/lib/account/account-view"
+import { accountErrorText, accountPhase, formatSas, importFailureText } from "@/lib/account/account-view"
 import { useTr } from "@/lib/app-language"
 import { fillParts } from "@/lib/i18n/format"
 import { reloadAppAsync } from "expo"
@@ -49,7 +49,12 @@ function ImportQuestion() {
     async function importNow() {
         setBusy(true)
         try {
-            await importFromAccount()
+            // a blocked import (rate limit, a key this device can't open, an ended session …) comes back as a state, not an error
+            const failure = importFailureText(t, await importFromAccount())
+            if (failure) {
+                setBusy(false)
+                return void toast.error(failure)
+            }
             toast.success(t("Imported. The app starts again.", "Importiert. Die App startet neu."))
             setTimeout(() => {
                 markAppReload()

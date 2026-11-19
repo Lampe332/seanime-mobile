@@ -1,6 +1,7 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitte 2, 6.4, 6.6, 8: Passwort min. 10 + Stärke-Check) und core/account/sync.ts (SyncResult-Zustände)
 
 import type { AccountEvent, ApprovalRequest } from "@/core/account/client"
+import type { ApprovalProgress } from "@/core/account/devices"
 import type { SyncResult } from "@/core/account/sync"
 import { plural, type Translate } from "@/lib/app-language"
 import { format } from "date-fns/format"
@@ -122,21 +123,121 @@ export function eventText(t: Translate, event: AccountEvent): string {
     }
 }
 
-/** A short, readable reason for a failed account step */
-export function accountErrorText(t: Translate, error: unknown): string {
+/**
+ * What an import that came back without throwing means: null when the account's data is on this device now (the app then
+ * starts again), otherwise why nothing was imported. importFromAccount reports these states instead of throwing.
+ */
+export function importFailureText(t: Translate, result: Pick<SyncResult, "state">): string | null {
+    switch (result.state) {
+        case "updated":
+        case "up-to-date": return null
+        case "rate-limited": return t("Too many syncs right now. Nothing was imported. Wait a moment and try again.", "Gerade zu viele Syncs. Nichts wurde importiert. Warte kurz und versuch es noch mal.")
+        case "signed-out": return t("Your session ended. Nothing was imported. Sign in again.", "Deine Sitzung ist abgelaufen. Nichts wurde importiert. Melde dich neu an.")
+        case "removed": return t("This device was removed from the account. Nothing was imported.", "Dieses Gerät wurde aus dem Konto entfernt. Nichts wurde importiert.")
+        case "rollback-rejected": return t("The server sent older data than this device knows. Nothing was imported.", "Der Server schickte ältere Daten, als dieses Gerät kennt. Nichts wurde importiert.")
+        case "needs-key":
+        case "key-changed":
+        case "key-untrusted": return t("This device can't open the account's data with its key. Nothing was imported.", "Dieses Gerät kann die Daten des Kontos mit seinem Schlüssel nicht öffnen. Nichts wurde importiert.")
+        default: return t("Nothing was imported. Try again.", "Nichts wurde importiert. Versuch es noch mal.")
+    }
+}
+
+/** The new password and its repeat differ (not while the repeat is still a start of the password) */
+export function repeatMismatch(password: string, repeat: string): boolean {
+    return repeat !== "" && !password.startsWith(repeat)
+}
+
+const APPROVAL_POLL_MS = 2000
+
+/**
+ * One "Approve on your phone" request on the new device: asks, then polls every 2 s until it is approved, denied or
+ * expired. `stop()` (leaving the screen, "Ask again") also ends the request on the server, so no request stays open
+ * behind the screen: the server allows 3 open ones, and the other device would keep asking about each. A failure ends it
+ * too. `pause()` only stops polling ("No, different" ends the request itself).
+ */
+export function startApprovalAttempt<P extends { ended: boolean }>(deps: {
+    ask: () => Promise<P>
+    progress: (pending: P) => Promise<ApprovalProgress>
+    /** Ends the request on the server (best effort) */
+    end: (pending: P) => Promise<unknown>
+    wait: (ms: number, run: () => void) => () => void
+    onPending: (pending: P) => void
+    onProgress: (progress: ApprovalProgress) => void
+    onError: (error: unknown) => void
+}): { pause: () => void, stop: () => void } {
+    let alive = true
+    let pending: P | null = null
+    let ended = false
+    let cancelTimer = () => undefined as void
+    const pause = () => {
+        alive = false
+        cancelTimer()
+    }
+    const end = () => {
+        if (!pending || pending.ended || ended) return
+        ended = true
+        void deps.end(pending).catch(() => undefined)
+    }
+    const poll = async (current: P) => {
+        let progress: ApprovalProgress
+        try {
+            progress = await deps.progress(current)
+        }
+        catch (error) {
+            if (!alive) return
+            pause()
+            end()
+            return deps.onError(error)
+        }
+        // an approval that arrived while the screen closed still counts: the key is on this device already
+        if (!alive && progress.state !== "approved") return
+        deps.onProgress(progress)
+        if (progress.state === "approved" || progress.state === "denied" || progress.state === "expired") return pause()
+        cancelTimer = deps.wait(APPROVAL_POLL_MS, () => void poll(current))
+    }
+    deps.ask().then(created => {
+        pending = created
+        if (!alive) return end()
+        deps.onPending(created)
+        void poll(created)
+    }, error => {
+        if (!alive) return
+        alive = false
+        deps.onError(error)
+    })
+    return {
+        pause,
+        stop: () => {
+            pause()
+            end()
+        },
+    }
+}
+
+/**
+ * A short, readable reason for a failed account step. `where: "sign-in"`: the sign-in form, the only place where a 401
+ * means a wrong email or password and where a Continue button follows the mailed link; elsewhere a 401 is a session that
+ * ended (or, in a step that asks for the password again, a wrong password).
+ */
+export function accountErrorText(t: Translate, error: unknown, where?: "sign-in"): string {
     const status = (error as { status?: number } | null)?.status
     const code = (error as { code?: string } | null)?.code
     const message = error instanceof Error ? error.message : ""
+    const signIn = where === "sign-in"
     if (code === "device_removed") return t("This device was removed from the account. Ask on another device to add it again.", "Dieses Gerät wurde aus dem Konto entfernt. Lass es auf einem anderen Gerät neu hinzufügen.")
-    if (code === "confirm_by_mail") return t("Someone tried a lot of wrong passwords for this email lately. If yours was right, a sign-in link is in your inbox now. Open it, then press Continue.",
-        "Für diese E-Mail wurden zuletzt viele falsche Passwörter probiert. Wenn deins stimmt, liegt jetzt ein Anmelde-Link in deinem Postfach. Öffne ihn und tippe dann auf Weiter.")
+    if (code === "confirm_by_mail") return signIn
+        ? t("Someone tried a lot of wrong passwords for this email lately. If yours was right, a sign-in link is in your inbox now. Open it, then press Continue.",
+            "Für diese E-Mail wurden zuletzt viele falsche Passwörter probiert. Wenn deins stimmt, liegt jetzt ein Anmelde-Link in deinem Postfach. Öffne ihn und tippe dann auf Weiter.")
+        : t("Someone tried a lot of wrong passwords for this email lately. If yours was right, a sign-in link is in your inbox now. Open it, then try again.",
+            "Für diese E-Mail wurden zuletzt viele falsche Passwörter probiert. Wenn deins stimmt, liegt jetzt ein Anmelde-Link in deinem Postfach. Öffne ihn und versuch es dann noch mal.")
     if (code === "owner_required") return t("Sign in with your password, use your recovery code or approve this device on another one.", "Melde dich mit deinem Passwort an, nutze deinen Wiederherstellungscode oder gib dieses Gerät auf einem anderen frei.")
     if (code === "approvals_paused") return t("The numbers didn't match three times, so approving devices is paused for an hour. Your password and recovery code still work.",
         "Die Zahlen passten dreimal nicht, deshalb sind Freigaben eine Stunde pausiert. Passwort und Wiederherstellungscode gehen weiter.")
     if (code === "device_set_mismatch") return t("The device list changed in the meantime. Open it again and pick.", "Die Geräteliste hat sich inzwischen geändert. Öffne sie neu und wähle aus.")
     if ((error as { name?: string } | null)?.name === "UntrustedDevicesError") return t("Only a device that one of yours added, and that is still signed in, can keep the key.", "Nur ein Gerät, das eines deiner Geräte hinzugefügt hat und noch angemeldet ist, kann den Schlüssel behalten.")
-    if (status === 401 && /password/i.test(message)) return t("Wrong email or password.", "Falsche E-Mail oder falsches Passwort.")
-    if (status === 401) return t("Wrong email or password.", "Falsche E-Mail oder falsches Passwort.")
+    if (status === 401 && signIn) return t("Wrong email or password.", "Falsche E-Mail oder falsches Passwort.")
+    if ((status === 401 && code === "wrong_credentials") || code === "wrong_password") return t("Wrong password.", "Falsches Passwort.")
+    if (status === 401) return t("Your session ended. Sign in again.", "Deine Sitzung ist abgelaufen. Melde dich neu an.")
     if (status === 429) return t("Too many tries. Wait a moment and try again.", "Zu viele Versuche. Warte kurz und versuch es noch mal.")
     if (status === 409 && /exist|taken|already/i.test(message)) return t("There is already an account with this email. Sign in instead.", "Mit dieser E-Mail gibt es schon ein Konto. Melde dich an.")
     if (status === undefined && /network|fetch|failed to/i.test(message)) return t("No connection to the account server.", "Keine Verbindung zum Konto-Server.")

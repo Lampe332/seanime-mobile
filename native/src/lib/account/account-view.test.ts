@@ -4,7 +4,12 @@ import { describe, expect, it, vi } from "vitest"
 import type { ApprovalRequest } from "@/core/account/client"
 import { RELEASE_ACCOUNT_API, accountApiBase } from "./account-config"
 import { type Translate, translate } from "@/lib/app-language"
-import { accountDate, accountPhase, formatRecoveryCode, formatSas, passwordStrength, syncedAgo, waitingRequests } from "./account-view"
+import { AccountApiError, MailConfirmationError, UnauthorizedError } from "@/core/account/client"
+import type { ApprovalProgress } from "@/core/account/devices"
+import {
+    accountDate, accountErrorText, accountPhase, formatRecoveryCode, formatSas, importFailureText, passwordStrength, repeatMismatch, startApprovalAttempt, syncedAgo,
+    waitingRequests,
+} from "./account-view"
 
 const en = (english: string) => english
 
@@ -112,6 +117,126 @@ describe("password strength", () => {
     it("long, varied passwords are strong", () => {
         expect(passwordStrength("Kettle-Nebula-41-Orbit")).toBe(4)
         expect(passwordStrength("aaaaaaaaaaaa")).toBe(0)
+    })
+})
+
+describe("import result", () => {
+    it("only an import that brought the data counts as done", () => {
+        expect(importFailureText(en, { state: "updated" })).toBeNull()
+        expect(importFailureText(en, { state: "up-to-date" })).toBeNull()
+    })
+    it.each(["rate-limited", "removed", "signed-out", "rollback-rejected", "key-untrusted", "key-changed", "needs-key"] as const)("%s is a failure with a reason", state => {
+        expect(importFailureText(en, { state })).toMatch(/Nothing was imported/)
+    })
+})
+
+describe("repeated password", () => {
+    it("no complaint while the repeat is empty or still a start of the password", () => {
+        expect(repeatMismatch("Kettle-Nebula-41", "")).toBe(false)
+        expect(repeatMismatch("Kettle-Nebula-41", "Kettle-")).toBe(false)
+        expect(repeatMismatch("Kettle-Nebula-41", "Kettle-Nebula-41")).toBe(false)
+    })
+    it("a typo or a longer repeat is a mismatch", () => {
+        expect(repeatMismatch("Kettle-Nebula-41", "Kettle-Nebola")).toBe(true)
+        expect(repeatMismatch("Kettle-Nebula-41", "Kettle-Nebula-411")).toBe(true)
+    })
+})
+
+describe("error texts", () => {
+    const wrongLogin = new UnauthorizedError("wrong_credentials", "Wrong email or password", {})
+    const sessionGone = new UnauthorizedError("unauthorized", "", {})
+    it("a 401 at sign-in is a wrong email or password", () => {
+        expect(accountErrorText(en, wrongLogin, "sign-in")).toBe("Wrong email or password.")
+        expect(accountErrorText(en, sessionGone, "sign-in")).toBe("Wrong email or password.")
+    })
+    it("elsewhere a 401 is an ended session, or a wrong password in a step that asked for it", () => {
+        expect(accountErrorText(en, sessionGone)).toBe("Your session ended. Sign in again.")
+        expect(accountErrorText(en, new AccountApiError(401, "unauthorized", "Sign in first."))).toBe("Your session ended. Sign in again.")
+        expect(accountErrorText(en, wrongLogin)).toBe("Wrong password.")
+        expect(accountErrorText(en, new AccountApiError(403, "wrong_password", "Wrong password."))).toBe("Wrong password.")
+    })
+    it("the mailed link mentions Continue only on the sign-in form", () => {
+        const mail = new MailConfirmationError("Open the link", {})
+        expect(accountErrorText(en, mail, "sign-in")).toMatch(/press Continue\.$/)
+        expect(accountErrorText(en, mail)).toMatch(/then try again\.$/)
+        expect(accountErrorText(en, mail)).not.toMatch(/Continue/)
+    })
+})
+
+describe("approval attempt on the new device", () => {
+    type Pending = { id: string, ended: boolean }
+    const flush = () => new Promise(resolve => setTimeout(resolve, 0))
+    function setup(answers: (ApprovalProgress | Error)[]) {
+        const pending: Pending = { id: "req-1", ended: false }
+        const ended: string[] = []
+        const seen: string[] = []
+        const errors: unknown[] = []
+        let tick: (() => void) | null = null
+        const run = startApprovalAttempt<Pending>({
+            ask: async () => pending,
+            progress: async current => {
+                const next = answers.shift() ?? { state: "waiting" }
+                if (next instanceof Error) throw next
+                if (next.state !== "waiting" && next.state !== "compare") current.ended = true
+                return next
+            },
+            end: async current => void ended.push(current.id),
+            wait: (_ms, run) => {
+                tick = run
+                return () => {
+                    tick = null
+                }
+            },
+            onPending: () => undefined,
+            onProgress: progress => void seen.push(progress.state),
+            onError: error => void errors.push(error),
+        })
+        return { run, ended, seen, errors, pending, next: async () => {
+            tick?.()
+            await flush()
+        } }
+    }
+
+    it("leaving the screen ends the open request on the server, once", async () => {
+        const attempt = setup([])
+        await flush()
+        expect(attempt.seen).toEqual(["waiting"])
+        attempt.run.stop()
+        attempt.run.stop()
+        await flush()
+        expect(attempt.ended).toEqual(["req-1"])
+        await attempt.next()
+        expect(attempt.seen).toEqual(["waiting"])
+    })
+    it("a request that is still being created ends as soon as it exists", async () => {
+        const attempt = setup([])
+        attempt.run.stop()
+        await flush()
+        expect(attempt.ended).toEqual(["req-1"])
+        expect(attempt.seen).toEqual([])
+    })
+    it("a failed check ends the request and reports the error", async () => {
+        const attempt = setup([new Error("offline")])
+        await flush()
+        expect(attempt.errors).toHaveLength(1)
+        expect(attempt.ended).toEqual(["req-1"])
+    })
+    it("an approved, denied or expired request is not ended again", async () => {
+        const attempt = setup([{ state: "waiting" }, { state: "approved" }])
+        await flush()
+        await attempt.next()
+        expect(attempt.seen).toEqual(["waiting", "approved"])
+        attempt.run.stop()
+        await flush()
+        expect(attempt.ended).toEqual([])
+    })
+    it("pause only stops polling (No, different ends the request itself)", async () => {
+        const attempt = setup([{ state: "compare", sas: "482913", confirmed: false }])
+        await flush()
+        attempt.run.pause()
+        await attempt.next()
+        expect(attempt.seen).toEqual(["compare"])
+        expect(attempt.ended).toEqual([])
     })
 })
 
