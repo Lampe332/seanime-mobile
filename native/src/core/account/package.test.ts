@@ -177,6 +177,31 @@ describe("change times and removals", () => {
         const base = await makePackage(device(() => CLOCK).environment, app({}))
         const mine = { ...base, tables: { ...base.tables, playlists: [row(1, "Same", CLOCK), row(2, "Same", CLOCK), row(3, "Old", CLOCK)] } }
         const theirs = { ...base, tables: { ...base.tables, playlists: [row(1, "Theirs", CLOCK), row(9, "Old", CLOCK + 5)] } }
-        expect(mergePackages(mine, theirs).tables.playlists).toEqual([row(1, "Same", CLOCK), row(2, "Same", CLOCK), row(3, "Old", CLOCK + 5), { name: "Theirs", episodes: [], createdAt: CLOCK, updatedAt: CLOCK }])
+        expect(mergePackages(mine, theirs).pkg.tables.playlists).toEqual([row(1, "Same", CLOCK), row(2, "Same", CLOCK), row(3, "Old", CLOCK + 5), { name: "Theirs", episodes: [], createdAt: CLOCK, updatedAt: CLOCK }])
+    })
+
+    it("a merge says whether the device holds something the account's package does not, and settles a tie for the device", async () => {
+        const base = await makePackage(device(() => CLOCK).environment, app({}))
+        const pkg = (preferences: Record<string, string>, secrets: Record<string, string>, stamps: { changed: Record<string, number>, deleted: Record<string, number> }) => ({ ...base, preferences, secrets, stamps })
+        const none = { changed: {}, deleted: {} }
+        // the package of a device that never held the account's data names no removal: nothing goes, and the device is ahead
+        const kept = mergePackages(pkg({ a: "1", b: "1" }, { [ACCOUNT_TOKEN_SECRET]: "t" }, { changed: { "p/a": 5, "p/b": 5 }, deleted: {} }), pkg({ c: "1" }, {}, { changed: { "p/c": 9 }, deleted: {} }))
+        expect(kept.pkg.preferences).toEqual({ a: "1", b: "1", c: "1" })
+        expect(kept.pkg.secrets).toEqual({ [ACCOUNT_TOKEN_SECRET]: "t" })
+        expect(kept.ahead).toBe(true)
+        // everything the device has is in the package, or older than it: nothing to send
+        const behind = mergePackages(pkg({ a: "1", b: "1" }, {}, { changed: { "p/a": 5, "p/b": 5 }, deleted: {} }), pkg({ a: "2" }, {}, { changed: { "p/a": 6 }, deleted: { "p/b": 7 } }))
+        expect(behind.pkg.preferences).toEqual({ a: "2" })
+        expect(behind).toMatchObject({ ahead: false, pkg: { stamps: { changed: { "p/a": 6 }, deleted: { "p/b": 7 } } } })
+        // a tie: the device's part stays and is the newer one from now on, so the other device takes it
+        const tie = mergePackages(pkg({ a: "mine" }, {}, { changed: { "p/a": 5 }, deleted: {} }), pkg({ a: "theirs" }, {}, { changed: { "p/a": 5 }, deleted: {} }))
+        expect(tie).toMatchObject({ ahead: true, pkg: { preferences: { a: "mine" }, stamps: { changed: { "p/a": 6 } } } })
+        expect(mergePackages(pkg({ a: "theirs" }, {}, { changed: { "p/a": 5 }, deleted: {} }), tie.pkg)).toMatchObject({ ahead: false, pkg: { preferences: { a: "mine" } } })
+        // a secret: removed elsewhere later, it stays here; removed here, it is not taken back; neither is a reason to send
+        const token = { [ACCOUNT_TOKEN_SECRET]: "t" }
+        const key = `s/${ACCOUNT_TOKEN_SECRET}`
+        expect(mergePackages(pkg({}, token, { changed: { [key]: 5 }, deleted: {} }), pkg({}, {}, { changed: {}, deleted: { [key]: 9 } }))).toMatchObject({ ahead: false, pkg: { secrets: token } })
+        expect(mergePackages(pkg({}, {}, { changed: {}, deleted: { [key]: 9 } }), pkg({}, token, { changed: { [key]: 5 }, deleted: {} }))).toMatchObject({ ahead: false, pkg: { secrets: {} } })
+        expect(mergePackages(pkg({}, {}, none), pkg({}, {}, none)).ahead).toBe(false)
     })
 })

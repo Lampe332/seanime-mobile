@@ -1,7 +1,7 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitte 3, 5, 6.5, 6.6), core/backup/backup.ts (makeBackup, readBackup, restoreBackup, withoutSecrets, preferencesWithoutSecrets) und lib/app-backup-keys.ts (isDeviceKey, von der App hereingereicht)
 
 import { eq } from "drizzle-orm"
-import { type BackupFile, type BackupTable, type RestoreMode, makeBackup, readBackup, restoreBackup, withoutSecrets } from "../backup/backup"
+import { type BackupFile, type BackupTable, type RestoreMode, makeBackup, preferencesWithoutSecrets, readBackup, restoreBackup, withoutSecrets } from "../backup/backup"
 import { type CoreDatabase, inOrder } from "../database/database"
 import { extensionUserConfigs, settingsSections, torrentKept } from "../database/schema"
 import { DEBRID_KEY_SECRET } from "../debrid/debrid"
@@ -335,48 +335,106 @@ export function settledLedger(before: Ledger | null, items: Map<string, unknown>
     return ledger
 }
 
+/** The change time of all a device holds when it joins an account without importing: before any change made in the account */
+const BEFORE_THE_ACCOUNT = -1
+
+/**
+ * The ledger of a device that joins the account anew without importing (the account has no data, or so the server
+ * says): all it holds counts as older than anything the account's devices hold, and nothing as removed by it. Its
+ * package can so add parts to the other devices, never replace or remove one of theirs.
+ */
+export function joiningLedger(items: Map<string, unknown>): Ledger {
+    return { items: Object.fromEntries([...items].map(([key, value]) => [key, [hashOf(contentOf(key, value)), BEFORE_THE_ACCOUNT]])), deleted: {} }
+}
+
 export function ledgerStamps(ledger: Ledger): Stamps {
     return { changed: Object.fromEntries(Object.entries(ledger.items).map(([key, known]) => [key, known[1]])), deleted: { ...ledger.deleted } }
 }
 
+/** Whether a part may hold a password, key or token: the device keeps its ledger entry in the secured storage (sync.ts) */
+export function mayHoldSecret(key: string, value?: unknown): boolean {
+    if (key.startsWith(SECRET_PART)) return true
+    if (key.startsWith("t/")) return tableOf(key) in SECRET_TABLES
+    if (!key.startsWith(PREFERENCE_PART) || typeof value !== "string") return false
+    const name = key.slice(PREFERENCE_PART.length)
+    if (!(name in preferencesWithoutSecrets({ [name]: value }))) return true
+    try {
+        const parsed: unknown = JSON.parse(value)
+        return JSON.stringify(withoutSecrets(parsed)) !== JSON.stringify(parsed)
+    }
+    catch {
+        return false
+    }
+}
+
+export type MergedPackage = {
+    pkg: SyncPackage
+    /** The device holds something the account's package does not (a part, a newer change, a removal): worth an upload */
+    ahead: boolean
+}
+
 /**
- * The device's package and the account's as one: per part the newer change, the device's on a tie (so against a package
- * without times the device's part stays, as before the times were kept). A removal counts like a change. A secret is
- * never removed from a device by another device's removal; the device that removed it does not take it back either.
+ * The device's package and the account's as one: per part the newer change; a removal counts like a change. A part the
+ * account's package does not know (no part, no removal) always stays: a package can come from a device that never held
+ * the account's data, and it removes nothing it never saw.
+ * On a tie the device's part stays (so against a package without times it does, as before the times were kept) and
+ * counts as the newer one from then on, so every device settles on the same part.
+ * A secret is never removed from a device by another device's removal, and the device that removed it does not take it
+ * back either: each keeps its own state of it, and neither sends it to the other again.
  */
-export function mergePackages(local: SyncPackage, remote: SyncPackage): SyncPackage {
+export function mergePackages(local: SyncPackage, remote: SyncPackage): MergedPackage {
     const mine = packageItems(local)
     const theirs = packageItems(remote)
     const myStamps = stampsOf(local, mine)
     const theirStamps = stampsOf(remote, theirs)
     const items = new Map<string, unknown>()
     const stamps: Stamps = { changed: {}, deleted: {} }
+    let ahead = false
     const keep = (key: string, value: unknown, time: number) => {
         items.set(key, value)
         stamps.changed[key] = time
     }
+    /** The time of a part or removal of the device that stays against the account's */
+    const won = (myTime: number, theirTime: number | undefined) => theirTime !== undefined && theirTime >= myTime ? theirTime + 1 : myTime
     for (const key of new Set([...mine.keys(), ...theirs.keys(), ...Object.keys(myStamps.deleted), ...Object.keys(theirStamps.deleted)])) {
         const here = mine.has(key)
         const there = theirs.has(key)
+        const secret = key.startsWith(SECRET_PART)
         const myTime = here ? myStamps.changed[key]! : myStamps.deleted[key]
         const theirTime = there ? theirStamps.changed[key]! : theirStamps.deleted[key]
         if (here && there) {
             const [a, b] = [mine.get(key), theirs.get(key)]
             if (contentOf(key, a) === contentOf(key, b)) keep(key, a, Math.max(myTime!, theirTime!))
             else if (theirTime! > myTime!) keep(key, withOwnNumber(key, b, a), theirTime!)
-            else keep(key, withSecretsFilled(key, a, b), myTime!)
+            else {
+                keep(key, withSecretsFilled(key, a, b), won(myTime!, theirTime))
+                ahead = true
+            }
         }
         else if (here) {
-            if (theirTime !== undefined && theirTime > myTime! && !key.startsWith(SECRET_PART)) stamps.deleted[key] = theirTime
-            else keep(key, mine.get(key), myTime!)
+            if (theirTime !== undefined && theirTime > myTime!) {
+                // removed elsewhere later: gone here too, except a secret, which stays here and is not sent back
+                if (secret) keep(key, mine.get(key), myTime!)
+                else stamps.deleted[key] = theirTime
+            }
+            else {
+                keep(key, mine.get(key), won(myTime!, theirTime))
+                ahead = true
+            }
         }
         else if (there) {
-            if (myTime !== undefined && myTime >= theirTime!) stamps.deleted[key] = myTime
+            if (myTime !== undefined && myTime >= theirTime!) {
+                stamps.deleted[key] = won(myTime, theirTime)
+                if (!secret) ahead = true
+            }
             else keep(key, withOwnNumber(key, theirs.get(key), undefined), theirTime!)
         }
-        else stamps.deleted[key] = Math.max(myTime ?? 0, theirTime ?? 0)
+        else {
+            stamps.deleted[key] = Math.max(myTime ?? 0, theirTime ?? 0)
+            if (theirTime === undefined && !secret) ahead = true
+        }
     }
-    return packageFrom(local, items, stamps)
+    return { pkg: packageFrom(local, items, stamps), ahead }
 }
 
 /** Another device's row for this device: with the number this device's own row has, or none (the database gives one) */
@@ -416,19 +474,24 @@ export type AppliedPackage = {
     removedPreferences: string[]
     /** The change times of what the device holds now, for its ledger (settledLedger) */
     stamps: Stamps
+    /** After a merge: the device holds something the package does not (mergePackages); false after a replace */
+    ahead: boolean
 }
 
 /**
- * Puts a package into this device. "replace": the package's state wins (import on a new device, or newer data while
- * this device changed nothing); "merge": part by part the newer change wins (mergePackages; `current.stamps` are the
- * device's own change times). A secret the package does not hold is never removed from the device.
+ * Puts a package into this device. "replace": the package's state wins (only the import the user asked for on a new
+ * device); "merge": part by part the newer change wins (mergePackages; `current.stamps` are the device's own change
+ * times). A secret the package does not hold is never removed from the device.
  */
 export async function applyPackage(environment: PackageEnvironment, pkg: SyncPackage, mode: RestoreMode, current: { preferences: Record<string, string>, isDeviceKey: (key: string) => boolean, stamps?: Stamps }): Promise<AppliedPackage> {
     if (!environment.keepSecret) throw new Error("the secured storage cannot be written here")
     let wanted = withoutDeviceTables(pkg)
+    let ahead = false
     if (mode === "merge") {
         const mine = await makePackage(environment, { appVersion: pkg.appVersion, preferences: current.preferences, isDeviceKey: current.isDeviceKey })
-        wanted = mergePackages({ ...mine, stamps: current.stamps }, wanted)
+        const merged = mergePackages({ ...mine, stamps: current.stamps }, wanted)
+        wanted = merged.pkg
+        ahead = merged.ahead
     }
     await restoreBackup(environment, wanted, "replace", { preferences: current.preferences })
     await applySecretColumns(await environment.database(), wanted)
@@ -444,5 +507,6 @@ export async function applyPackage(environment: PackageEnvironment, pkg: SyncPac
         preferences: Object.fromEntries(Object.entries(theirs).filter(([key, value]) => current.preferences[key] !== value)),
         removedPreferences,
         stamps,
+        ahead,
     }
 }

@@ -224,13 +224,15 @@ export async function signIn(email: string, password: string): Promise<void> {
 /** Import: the core makes a local backup first, then the account's data replaces this device's */
 export async function importFromAccount(): Promise<SyncResult> {
     const result = await engine.importFromAccount()
-    store.set(lastSyncAtom, result)
+    // "skipped": the import was given up because the user signed out meanwhile
+    if (result.state !== "skipped") store.set(lastSyncAtom, result)
     await refreshAccount()
     return result
 }
 
 export async function signOutHere(): Promise<void> {
-    // after a sync that is still running, so it cannot write its sync state back into the cleared storage
+    // after a sync that is still running, so it cannot write its sync state back into the cleared storage; a sync that
+    // hangs is given up after a moment (SyncEngine.exclusive), and the server gets only a moment to answer the sign-out
     await engine.exclusive(() => signOut(deps))
     store.set(lastSyncAtom, null)
     await refreshAccount()

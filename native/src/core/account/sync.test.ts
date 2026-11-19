@@ -7,15 +7,16 @@ import { sqlDriverFor } from "@/api/client/core-database"
 import { isDeviceKey } from "@/lib/app-backup-keys"
 import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { beforeAll, describe, expect, it } from "vitest"
-import { anilistChanges, playlists, settingsSections, watchPositions } from "../database/schema"
+import { anilistChanges, extensionUserConfigs, playlists, settingsSections, watchPositions } from "../database/schema"
 import { DEBRID_KEY_SECRET } from "../debrid/debrid"
+import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { AccountApiError, ConflictError, type Snapshot, type SyncMeta } from "./client"
 import type { AccountDeps } from "./devices"
 import { signOut } from "./flows"
 import { AccountSession } from "./session"
 import type { Sodium } from "./sodium"
 import { decryptPackage } from "./crypto"
-import { applyPackage, makePackage, readPackage } from "./package"
+import { applyPackage, makePackage, readPackage, sealPackage } from "./package"
 import { SYNC_INTERVAL_MS, type SyncApi, SyncEngine, coreLocalData } from "./sync"
 import { bytes, device, memoryStore, ready } from "./__fixtures__/harness"
 
@@ -67,8 +68,9 @@ const sodiumOpen = (blob: Uint8Array, version: number) => decryptPackage(sodium,
 
 let clock = Date.parse("2026-11-17T10:00:00.000Z")
 
-async function phone(server: FakeServer, options: { imported: boolean }) {
-    const one = device(driver, () => clock)
+async function phone(server: FakeServer, options: { imported: boolean, patienceMs?: number, clockOff?: number }) {
+    const now = () => clock + (options.clockOff ?? 0)
+    const one = device(driver, now)
     const store = memoryStore()
     const session = new AccountSession(store, sodium)
     await session.saveSession({ userId: USER, sessionToken: "t".repeat(43), kind: "email", email: "a@example.org", deviceId: "d" })
@@ -87,8 +89,8 @@ async function phone(server: FakeServer, options: { imported: boolean }) {
         ledger: { read: () => ledger, write: text => void (ledger = text) },
         safetyBackup: async () => void safetyBackups++,
     })
-    const engine = new SyncEngine({ api: server, session, sodium, gzip, local, now: () => clock })
-    return { ...one, store, session, engine, safetyBackups: () => safetyBackups }
+    const engine = new SyncEngine({ api: server, session, sodium, gzip, local, now, patienceMs: options.patienceMs })
+    return { ...one, store, session, engine, safetyBackups: () => safetyBackups, ledger: () => ledger }
 }
 
 const playlist = (name: string) => ({ name, episodes: [], createdAt: clock, updatedAt: clock })
@@ -359,6 +361,269 @@ describe("two devices that changed different things between two syncs", () => {
     })
 })
 
+/** Puts a package on the server as the next version, as another device of the account would */
+function upload(server: FakeServer, pkg: Parameters<typeof sealPackage>[2]) {
+    server.blob = sealPackage(sodium, gzip, pkg, bytes(32, 40), { userId: USER, version: server.version + 1, dekId: DEK_ID })
+    server.version++
+}
+
+describe("a package is never taken as it is", () => {
+    it("F1: after the synced data was deleted on the website a fresh device syncs first: the other devices keep their data and bring it back", async () => {
+        const { server, a, b } = await pair(async one => void await (await one.db()).insert(playlists).values([playlist("Evening"), playlist("Morning")]))
+        // deleted on the website: no device of the account knows
+        await server.deleteSync()
+        const fresh = await phone(server, { imported: false })
+        expect(await fresh.engine.sync("start")).toMatchObject({ state: "uploaded", version: 3 })
+
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "merged", version: 4 })
+        expect(await names(a)).toEqual(["Evening", "Morning"])
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "updated", version: 4 })
+        expect(await names(b)).toEqual(["Evening", "Morning"])
+        expect(await fresh.engine.sync("manual")).toMatchObject({ state: "updated", version: 4 })
+        expect(await names(fresh)).toEqual(["Evening", "Morning"])
+        for (const one of [a, b, fresh]) expect(await one.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 4 })
+    })
+
+    it("F1b: a server that tells only a fresh device 'no data' gets its package, and still empties no other device", async () => {
+        const { server, a, b } = await pair(async one => {
+            await (await one.db()).insert(playlists).values([playlist("Evening"), playlist("Morning")])
+            await setSection(one, "library", { autoUpdate: true })
+            one.preferences.set("sea-theme", "\"dark\"")
+            one.secrets.set(DEBRID_KEY_SECRET, "key")
+            one.files.set("ext-a.json", "{\"id\":\"ext-a\"}")
+        })
+        // the fresh device holds other values for the same parts, changed later than the account's
+        clock += 60_000
+        const fresh = await phone(server, { imported: false })
+        await (await fresh.db()).insert(playlists).values([playlist("Fresh list"), { ...playlist("Evening"), episodes: [{ n: 9 }] }])
+        await setSection(fresh, "library", { autoUpdate: false })
+        fresh.preferences.set("sea-theme", "\"light\"")
+        fresh.secrets.set(DEBRID_KEY_SECRET, "other-key")
+        fresh.files.set("ext-a.json", "{\"id\":\"ext-a\",\"v\":2}")
+        server.overrideMeta = { size: 0, dekId: null }
+        expect(await fresh.engine.sync("start")).toMatchObject({ state: "uploaded", version: 2 })
+        server.overrideMeta = {}
+        // its state went into a local backup first, as before an import
+        expect(fresh.safetyBackups()).toBe(1)
+
+        // the server hands the fresh device's validly sealed package to the devices that changed nothing: it can add a
+        // part to them, never replace or remove one of theirs
+        const account = async (one: Phone) => {
+            expect(await names(one)).toEqual(["Evening", "Fresh list", "Morning"])
+            expect((await (await one.db()).select().from(playlists).where(eq(playlists.name, "Evening")))[0]?.episodes).toEqual([])
+            expect(await section(one, "library")).toEqual({ autoUpdate: true })
+            expect(one.preferences.get("sea-theme")).toBe("\"dark\"")
+            expect(one.secrets.get(DEBRID_KEY_SECRET)).toBe("key")
+            expect([...one.files]).toEqual([["ext-a.json", "{\"id\":\"ext-a\"}"]])
+        }
+        for (const one of [a, b]) {
+            await one.engine.sync("manual")
+            await account(one)
+        }
+        // the fresh device ends with the account's data, whichever of them the server lets merge first
+        expect(await fresh.engine.sync("manual")).toMatchObject({ state: "updated" })
+        await account(fresh)
+        for (const one of [a, b, fresh]) expect(await one.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+    })
+
+    it("F1b: the fresh device merging first changes nothing: its parts count as older than the account's", async () => {
+        const { server, a } = await pair(async one => {
+            await (await one.db()).insert(playlists).values(playlist("Evening"))
+            one.preferences.set("sea-theme", "\"dark\"")
+            one.secrets.set(DEBRID_KEY_SECRET, "key")
+        })
+        const real = { blob: server.blob!, version: server.version }
+        const fresh = await phone(server, { imported: false })
+        fresh.preferences.set("sea-theme", "\"light\"")
+        fresh.secrets.set(DEBRID_KEY_SECRET, "other-key")
+        // the server says "no data, version 0", keeps the fresh device's package to itself and then shows the real one
+        server.overrideMeta = { version: 0, size: 0, dekId: null }
+        server.version = 0
+        expect(await fresh.engine.sync("start")).toMatchObject({ state: "uploaded", version: 1 })
+        clock += 60_000
+        await (await a.db()).insert(playlists).values(playlist("Morning"))
+        server.overrideMeta = {}
+        Object.assign(server, real)
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 2 })
+        // the fresh device now merges the account's package, with times of 0 on parts nobody changed since the first sync
+        expect(await fresh.engine.sync("manual")).toMatchObject({ state: "updated", version: 2 })
+        expect(fresh.preferences.get("sea-theme")).toBe("\"dark\"")
+        expect(fresh.secrets.get(DEBRID_KEY_SECRET)).toBe("key")
+        expect(await names(fresh)).toEqual(["Evening", "Morning"])
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 2 })
+        expect(a.preferences.get("sea-theme")).toBe("\"dark\"")
+    })
+
+    it("a device that signs in again starts over: what it removed while signed out is no removal for the others", async () => {
+        const { server, a, b } = await pair(async one => void await (await one.db()).insert(playlists).values([playlist("Evening"), playlist("Morning")]))
+        // B's session ended and the account's key changed meanwhile: B is a new device of the account again (flows.ts startSession)
+        clock += 60_000
+        await (await b.db()).delete(playlists)
+        await b.session.updateSync({ imported: false, highestVersion: 0, lastHash: null, lastSyncAt: null })
+        server.overrideMeta = { size: 0, dekId: null }
+        expect(await b.engine.sync("start")).toMatchObject({ state: "uploaded", version: 2 })
+        server.overrideMeta = {}
+        await a.engine.sync("manual")
+        expect(await names(a)).toEqual(["Evening", "Morning"])
+    })
+
+    it("F2: a secret removed on one device stays removed there and stays on the others, also when that device changed nothing since", async () => {
+        const { a, b } = await pair(async one => void one.secrets.set(ACCOUNT_TOKEN_SECRET, "anilist-token"))
+        clock += 60_000
+        a.secrets.delete(ACCOUNT_TOKEN_SECRET)
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+        clock += 60_000
+        await (await b.db()).insert(playlists).values(playlist("From B"))
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
+        expect(b.secrets.get(ACCOUNT_TOKEN_SECRET)).toBe("anilist-token")
+
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "updated" })
+        expect(a.secrets.has(ACCOUNT_TOKEN_SECRET)).toBe(false)
+        expect(await names(a)).toEqual(["From B"])
+        // each keeps its own state of the secret, and neither sends it to the other again
+        for (const one of [b, a, b]) expect(await one.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+        expect(b.secrets.get(ACCOUNT_TOKEN_SECRET)).toBe("anilist-token")
+
+        // signing in to AniList again on A is a newer change: it reaches B
+        clock += 60_000
+        a.secrets.set(ACCOUNT_TOKEN_SECRET, "new-token")
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "updated" })
+        expect(b.secrets.get(ACCOUNT_TOKEN_SECRET)).toBe("new-token")
+    })
+
+    it("F3: a package without change times does not overwrite a newer change of a device that changed nothing since its last sync", async () => {
+        const { server, a, b } = await pair(one => setSection(one, "library", { v: "old" }))
+        clock += 60_000
+        await setSection(a, "library", { v: "new" })
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 2 })
+        // an older build uploads its state: the old setting, no times
+        const old = await makePackage(b.environment, { appVersion: "4.2.0", preferences: {}, isDeviceKey })
+        expect(old.stamps).toBeUndefined()
+        upload(server, old)
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "merged", version: 4 })
+        expect(await section(a, "library")).toEqual({ v: "new" })
+    })
+
+    it("the same part changed in the same millisecond on two devices: both settle on one, nobody keeps sending", async () => {
+        const { a, b } = await pair(one => setSection(one, "library", { v: 0 }))
+        clock += 60_000
+        a.preferences.set("sea-theme", "\"light\"")
+        b.preferences.set("sea-theme", "\"dark\"")
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "merged" })
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "updated" })
+        expect(a.preferences.get("sea-theme")).toBe(b.preferences.get("sea-theme"))
+        for (const one of [b, a, b]) expect(await one.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+    })
+})
+
+describe("whatever the devices do and in whatever order they sync", () => {
+    /** A fixed sequence of "random" numbers below `below` */
+    const dice = (seed: number) => (below: number) => {
+        seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff
+        return seed % below
+    }
+    const state = async (one: Phone) => ({
+        playlists: await names(one),
+        library: await section(one, "library"),
+        preferences: Object.fromEntries([...one.preferences].sort()),
+        files: [...one.files.keys()].sort(),
+    })
+
+    it("they end with the same data and stop sending: three devices, clocks apart, same-millisecond changes, a late joiner", async () => {
+        for (let seed = 1; seed <= 40; seed++) {
+            const roll = dice(seed)
+            const server = new FakeServer()
+            const a = await phone(server, { imported: true })
+            await a.engine.sync("start")
+            const b = await phone(server, { imported: false, clockOff: 86_400_000 })
+            await b.engine.importFromAccount()
+            const c = await phone(server, { imported: false, clockOff: -86_400_000 })
+            await c.engine.importFromAccount()
+            const devices = [a, b, c]
+            for (let step = 0; step < 40; step++) {
+                const one = devices[roll(devices.length)]!
+                // every third step happens in the same millisecond as the one before
+                if (roll(3) > 0) clock += 1 + roll(120_000)
+                const name = `list-${roll(4)}`
+                switch (roll(9)) {
+                    case 0: {
+                        if (!(await names(one)).includes(name)) await (await one.db()).insert(playlists).values({ ...playlist(name), updatedAt: clock + (one === b ? 86_400_000 : one === c ? -86_400_000 : 0) })
+                        break
+                    }
+                    case 1: await (await one.db()).delete(playlists).where(eq(playlists.name, name)); break
+                    case 2: one.preferences.set(`sea-${roll(3)}`, `"${roll(5)}"`); break
+                    case 3: one.preferences.delete(`sea-${roll(3)}`); break
+                    case 4: await setSection(one, "library", { v: roll(5) }); break
+                    case 5: {
+                        if (roll(2)) one.files.set(`ext-${roll(2)}.json`, `{"v":${roll(3)}}`)
+                        else one.files.delete(`ext-${roll(2)}.json`)
+                        break
+                    }
+                    // a secret may end up different on the devices (a removal stays on its device): it must not keep them sending
+                    case 6: {
+                        if (roll(2)) one.secrets.set(DEBRID_KEY_SECRET, `key-${roll(3)}`)
+                        else one.secrets.delete(DEBRID_KEY_SECRET)
+                        break
+                    }
+                    default: await one.engine.sync("manual")
+                }
+                // now and then a device that just signed in joins, told by the server that there is nothing to import
+                if (step === 20 && seed % 3 === 0) {
+                    const late = await phone(server, { imported: false })
+                    late.preferences.set("sea-late", "\"1\"")
+                    server.overrideMeta = { size: 0, dekId: null }
+                    await late.engine.sync("start")
+                    server.overrideMeta = {}
+                    devices.push(late)
+                }
+            }
+            // a few rounds until every device says it has nothing to do
+            let quiet = false
+            for (let round = 0; round < 8 && !quiet; round++) {
+                quiet = true
+                for (const one of devices) if ((await one.engine.sync("manual")).state !== "up-to-date") quiet = false
+            }
+            expect(quiet, `seed ${seed}: the devices keep sending`).toBe(true)
+            const first = await state(devices[0]!)
+            for (const one of devices) expect(await state(one), `seed ${seed}`).toEqual(first)
+        }
+    })
+})
+
+describe("the change times a device keeps", () => {
+    it("F5: of anything that may hold a password, key or token they lie in the secured storage, never as a hash in the app's store", async () => {
+        const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl"
+        const { a, b } = await pair(async one => {
+            await setSection(one, "torrent", { defaultTorrentClient: "qbittorrent", qbittorrentPassword: "hunter2" })
+            await setSection(one, "library", { autoUpdate: true })
+            await (await one.db()).insert(extensionUserConfigs).values({ id: "ext-a", version: 1, values: { apiKey: "abc123" }, origin: "core", changedAt: clock })
+            await (await one.db()).insert(playlists).values(playlist("Evening"))
+            one.preferences.set("sea-theme", "\"dark\"")
+            one.preferences.set("debrid-settings", JSON.stringify({ provider: "realdebrid", apiKey: "debrid-pref-key" }))
+            one.preferences.set("sea-server-auth-token", `"${jwt}"`)
+            one.secrets.set(DEBRID_KEY_SECRET, "key")
+        })
+        const SECRET = ["t/settings/torrent", "t/settings/library", "t/extensionConfigs/ext-a", "p/debrid-settings", "p/sea-server-auth-token", `s/${DEBRID_KEY_SECRET}`]
+        for (const one of [a, b]) {
+            const open = Object.keys((JSON.parse(one.ledger()!) as { items: Record<string, unknown> }).items)
+            expect(open).toEqual(expect.arrayContaining(["t/playlists/Evening", "p/sea-theme"]))
+            expect(open.filter(key => SECRET.includes(key) || /^(s\/|t\/(settings|extensionConfigs|torrentKept)\/)/.test(key))).toEqual([])
+            const secured = Object.keys((JSON.parse(one.secrets.get("seanime-core-sync-ledger")!) as { items: Record<string, unknown> }).items)
+            expect(secured.sort()).toEqual([...SECRET].sort())
+        }
+        // their changes still travel
+        clock += 60_000
+        await setSection(a, "torrent", { defaultTorrentClient: "qbittorrent", qbittorrentPassword: "hunter3" })
+        a.preferences.set("debrid-settings", JSON.stringify({ provider: "torbox", apiKey: "other" }))
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "uploaded" })
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "updated" })
+        expect(await section(b, "torrent")).toEqual({ defaultTorrentClient: "qbittorrent", qbittorrentPassword: "hunter3" })
+        expect(b.preferences.get("debrid-settings")).toBe(JSON.stringify({ provider: "torbox", apiKey: "other" }))
+    })
+})
+
 describe("deleting the synced data", () => {
     it("the other devices see no rollback: each uploads its own data again and they sync on", async () => {
         const { server, a, b } = await pair(async one => void await (await one.db()).insert(playlists).values(playlist("Evening")))
@@ -370,12 +635,12 @@ describe("deleting the synced data", () => {
         clock += 60_000
         await (await b.db()).insert(playlists).values(playlist("From B"))
         expect(await b.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 3 })
-        // A deleted and has not uploaded since: it merges B's package with its own data
-        expect(await a.engine.sync("manual")).toMatchObject({ state: "merged", version: 4 })
+        // A deleted and has not uploaded since: B's package holds all A has, so A takes it and has nothing to send
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "updated", version: 3 })
         expect(await names(a)).toEqual(["Evening", "From B"])
-        expect(await b.engine.sync("manual")).toMatchObject({ state: "updated", version: 4 })
+        expect(await b.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 3 })
         expect(await names(b)).toEqual(["Evening", "From B"])
-        expect(await a.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 4 })
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 3 })
     })
 
     it("the device that deleted uploads again at its next sync, also with nothing changed", async () => {
@@ -433,5 +698,35 @@ describe("signing out while a sync runs", () => {
         expect(await a.session.load()).toBeNull()
         // no sync state of the old account (imported, highest version, hash) waits for whoever signs in next
         expect([...a.store.items.keys()].filter(key => key.startsWith("seanime-account."))).toEqual([])
+    })
+
+    it("F6: a sync that hangs does not hold up the sign-out: it is given up and writes nothing more", async () => {
+        const server = new FakeServer()
+        const a = await phone(server, { imported: true, patienceMs: 30 })
+        await (await a.db()).insert(playlists).values(playlist("Evening"))
+        // the upload gets no answer while the user signs out
+        let uploading!: () => void
+        let arrive!: () => void
+        const started = new Promise<void>(resolve => uploading = resolve)
+        const arrived = new Promise<void>(resolve => arrive = resolve)
+        const put = server.putSnapshot
+        server.putSnapshot = async (...upload) => {
+            uploading()
+            await arrived
+            return put(...upload)
+        }
+        const syncing = a.engine.sync("manual")
+        await started
+        const deps = { client: server, session: a.session, sodium } as unknown as AccountDeps
+        await a.engine.exclusive(() => signOut(deps))
+        expect(await a.session.load()).toBeNull()
+
+        // the answer comes after all: the sync that was given up changes nothing
+        arrive()
+        expect(await syncing).toMatchObject({ state: "skipped" })
+        expect([...a.store.items.keys()].filter(key => key.startsWith("seanime-account."))).toEqual([])
+        // and the next sync does not wait behind it
+        server.putSnapshot = put
+        expect(await a.engine.sync("manual")).toMatchObject({ state: "signed-out" })
     })
 })

@@ -144,11 +144,17 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const store = memoryStore()
         const session = new AccountSession(store, sodium, signers)
         const reach = (ip ? (url: string, init: { headers: Record<string, string> }) => fetch(url, { ...init, headers: { ...init.headers, "CF-Connecting-IP": ip } } as RequestInit) : fetch) as unknown as HttpFetch
-        /** `fails`: the requests that never reach the server, like a connection that drops */
-        const net: { fails: ((method: string, url: string) => boolean) | null } = { fails: null }
+        /**
+         * `fails`: the requests that never reach the server, like a connection that drops. `lies`: what a compromised
+         * server answers this device instead of the true JSON answer.
+         */
+        const net: { fails: ((method: string, url: string) => boolean) | null, lies: ((method: string, url: string, answer: unknown) => unknown) | null } = { fails: null, lies: null }
         const send: HttpFetch = async (url, init) => {
             if (net.fails?.(init.method, url)) throw new TypeError("Network request failed")
-            return reach(url, init)
+            const answer = await reach(url, init)
+            const lie = net.lies
+            if (!lie) return answer
+            return { status: answer.status, headers: answer.headers, json: async () => lie(init.method, url, await answer.json()), arrayBuffer: () => answer.arrayBuffer() }
         }
         const client = new AccountClient({ baseUrl, fetch: send, sodium, credentials: () => session.credentials() })
         const deps: AccountDeps = { client, session, sodium }
@@ -1113,10 +1119,95 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
 
         // the other device saw version 1: no rollback, it follows the key change and uploads its own data
         expect(await two.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 3 })
-        expect(await one.engine.sync("manual")).toMatchObject({ state: "merged", version: 4 })
+        // the device that deleted holds nothing that package lacks: it takes it and has nothing to send
+        expect(await one.engine.sync("manual")).toMatchObject({ state: "updated", version: 3 })
         expect(await names(one)).toEqual(["Evening"])
+        expect(await two.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 3 })
+    })
+
+    it("F1: the synced data is deleted on the website and a fresh device syncs first: no other device loses its data, all end with it", async () => {
+        const email = "f1-website-delete@example.org"
+        const one = await accountWithData(email)
+        const two = install()
+        await loginEmail(two.deps, { email, password: PASSWORD, deviceName: "Two" })
+        expect(await two.engine.importFromAccount()).toMatchObject({ state: "updated", version: 1 })
+        // on the website: neither device knows, both still hold the hash of what they synced last
+        const web = await keylessSession(email)
+        await web.client.deleteSync()
+        expect(await web.client.syncMeta()).toMatchObject({ version: 2, size: 0, dekId: null })
+
+        const fresh = install()
+        expect(await loginEmail(fresh.deps, { email, password: PASSWORD, deviceName: "Fresh" })).toMatchObject({ status: "ready" })
+        expect(await fresh.engine.sync("start")).toMatchObject({ state: "uploaded", version: 3 })
+
+        expect(await one.engine.sync("manual")).toMatchObject({ state: "merged", version: 4 })
+        expect(await names(one)).toEqual(["Mine"])
         expect(await two.engine.sync("manual")).toMatchObject({ state: "updated", version: 4 })
-        expect(await two.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 4 })
+        expect(await names(two)).toEqual(["Mine"])
+        expect(await fresh.engine.sync("manual")).toMatchObject({ state: "updated", version: 4 })
+        expect(await names(fresh)).toEqual(["Mine"])
+        for (const device of [one, two, fresh]) expect(await device.engine.sync("manual")).toMatchObject({ state: "up-to-date", version: 4 })
+    })
+
+    it("F1b: a compromised server tells only a fresh device 'no data' and gets its sealed package for the next version: it empties no device with it", async () => {
+        const email = "f1b-size-zero@example.org"
+        const one = await accountWithData(email)
+        one.secrets.set(ACCOUNT_TOKEN_SECRET, "anilist-token")
+        one.preferences.set("sea-theme", "\"dark\"")
+        expect(await one.engine.sync("manual")).toMatchObject({ state: "uploaded", version: 2 })
+        const two = install()
+        await loginEmail(two.deps, { email, password: PASSWORD, deviceName: "Two" })
+        expect(await two.engine.importFromAccount()).toMatchObject({ state: "updated", version: 2 })
+
+        const fresh = install()
+        expect(await loginEmail(fresh.deps, { email, password: PASSWORD, deviceName: "Fresh" })).toMatchObject({ status: "ready" })
+        fresh.net.lies = (method, url, answer) => method === "GET" && url.endsWith("/sync/meta") ? { ...answer as object, size: 0, dekId: null } : answer
+        // no import question, and the upload is accepted: the server now holds a package of the fresh device, bound to version 3
+        expect(await fresh.engine.sync("start")).toMatchObject({ state: "uploaded", version: 3 })
+        fresh.net.lies = null
+        expect(await one.client.syncMeta()).toMatchObject({ version: 3 })
+
+        // the devices that changed nothing get it as the account's newer package
+        for (const device of [one, two]) {
+            await device.engine.sync("manual")
+            expect(await names(device)).toEqual(["Mine"])
+            expect(device.secrets.get(ACCOUNT_TOKEN_SECRET)).toBe("anilist-token")
+            expect(device.preferences.get("sea-theme")).toBe("\"dark\"")
+        }
+        // and what the attack leaves behind is the account's data on every device
+        expect(await fresh.engine.sync("manual")).toMatchObject({ state: "updated" })
+        expect(await names(fresh)).toEqual(["Mine"])
+        for (const device of [one, two, fresh]) expect(await device.engine.sync("manual")).toMatchObject({ state: "up-to-date" })
+    })
+
+    it("F4: a device that does not trust the account's key gives its password again and the connection drops: it stays as it was, never signed in without the key", async () => {
+        const email = "f4-untrusted-retry@example.org"
+        const owner = await accountWithData(email)
+        const late = install()
+        expect(await loginEmail(late.deps, { email, password: PASSWORD, deviceName: "Late" })).toMatchObject({ status: "ready" })
+        expect(await late.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        // as in c2b: a key change the late device missed, by a device removed afterwards
+        await changeKey(owner.deps, { deviceName: "Victim", password: PASSWORD, keep: await keepAll(owner) })
+        const web = await keylessSession(email)
+        await web.client.deleteDevice((await owner.session.load())!.deviceId!)
+        expect(await late.engine.sync("manual")).toMatchObject({ state: "key-untrusted" })
+        const before = (await late.session.load())!
+
+        // the password again while the session lives; registering the device does not get through
+        late.net.fails = (method, url) => method === "PUT" && url.endsWith("/account/keys")
+        await expect(loginEmail(late.deps, { email, password: PASSWORD, deviceName: "Late" })).rejects.toThrow("Network request failed")
+        late.net.fails = null
+        expect(await late.session.load()).toMatchObject({
+            sessionToken: before.sessionToken, deviceId: before.deviceId, dekId: before.dekId, dek: before.dek,
+            imported: before.imported, highestVersion: before.highestVersion, lastHash: before.lastHash,
+        })
+        expect(await late.engine.sync("manual")).toMatchObject({ state: "key-untrusted" })
+        expect(await names(late)).toEqual(["Mine"])
+
+        // with the connection back the password gets the device in, and the data is there
+        expect(await loginEmail(late.deps, { email, password: PASSWORD, deviceName: "Late" })).toMatchObject({ status: "ready", keyChanged: true })
+        expect(await late.engine.importFromAccount()).toMatchObject({ state: "updated" })
+        expect(await names(late)).toEqual(["Mine"])
     })
 
     it("N-8 and M-2: a P-256 key like the Keystore's signs everything; the device keeps it, so a lockout of its email never stops it; signing out makes a new one", async () => {

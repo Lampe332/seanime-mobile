@@ -108,9 +108,13 @@ async function startSession(deps: AccountDeps, userId: string, sessionToken: str
         : null
     await deps.session.saveSession({ userId, sessionToken, kind, email, deviceId: null })
     wipe(deps.sodium, prior?.dek)
+    /** Puts back what this sign-in dropped before the device was registered (the kept key and the sync state) */
+    let undo: () => Promise<void> = async () => undefined
     /**
-     * Registers the device (`work`); when that fails the new session is taken back, so the user just signs in again.
-     * Only a removed device (NEU-2) stays signed in without the key: it has to ask for an approval.
+     * Registers the device (`work`); when that fails the sign-in is taken back as a whole, so the user just signs in
+     * again: the new session goes, and a key this sign-in dropped comes back (a device that was "key-untrusted" stays
+     * that, it does not become "signed in without the key"). Only a removed device (NEU-2) stays signed in without the
+     * key: it has to ask for an approval.
      */
     const finish = async (work: () => Promise<void>): Promise<void> => {
         try {
@@ -118,20 +122,27 @@ async function startSession(deps: AccountDeps, userId: string, sessionToken: str
         }
         catch (error) {
             if (!(error instanceof AccountApiError && error.code === "device_removed")) {
+                await undo()
                 if (before) await deps.session.saveSession(before)
                 else await deps.session.dropSession()
             }
             throw error
         }
     }
-    if (!kept || kept.userId !== userId) return { kept: null, keyChanged: false, finish }
+    if (!kept || kept.userId !== userId) return { kept: null, stale: null, keyChanged: false, finish }
     if (kept.dekId !== accountDekId) {
+        const sync = await deps.session.updateSync({})
         await deps.session.forgetDek()
         await deps.session.updateSync({ imported: false, highestVersion: 0, lastHash: null, lastSyncAt: null })
-        wipe(deps.sodium, kept.dek)
-        return { kept: null, keyChanged: true, finish }
+        undo = async () => {
+            // while the new session is still stored: the key is kept for this account
+            await deps.session.saveDek(kept.dekId, kept.dek)
+            await deps.session.updateSync(sync)
+        }
+        // `stale`: the key the account no longer uses, held only for `undo`; the caller wipes it
+        return { kept: null, stale: kept, keyChanged: true, finish }
     }
-    return { kept, keyChanged: false, finish }
+    return { kept, stale: null, keyChanged: false, finish }
 }
 
 /** prelogin's KDF parameters, refused below the floor or below what this device saw for the email before (H-1) */
@@ -175,7 +186,7 @@ async function signInEmail(deps: AccountDeps, input: { email: string, password: 
     const signing: RequestSigner = await deps.session.signer()
     try {
         const answer = await client.login(input.email, toB64(sodium, authKey), challenge, signing)
-        const { kept, keyChanged, finish } = await startSession(deps, answer.userId, answer.sessionToken, "email", input.email, answer.dekId)
+        const { kept, stale, keyChanged, finish } = await startSession(deps, answer.userId, answer.sessionToken, "email", input.email, answer.dekId)
         // the parameters worked for this account: from now on nothing lower is accepted for this email
         await deps.session.rememberKdf(input.email, kdf)
         const result = { userId: answer.userId, emailVerified: answer.emailVerified, created: false, recoveryWrappedDek: null, keyChanged, encKey }
@@ -224,7 +235,7 @@ async function signInEmail(deps: AccountDeps, input: { email: string, password: 
             return { ...result, status: "needs-key" }
         }
         finally {
-            wipe(sodium, kept?.dek)
+            wipe(sodium, kept?.dek, stale?.dek)
         }
     }
     catch (error) {
@@ -351,7 +362,7 @@ export async function loginGoogle(deps: AccountDeps, input: { idToken: string, n
     const { sodium } = deps
     const signing: RequestSigner = await deps.session.signer()
     const answer = await deps.client.google(input.idToken, input.nonce, input.challenge, signing)
-    const { kept, keyChanged, finish } = await startSession(deps, answer.userId, answer.sessionToken, "google", null, answer.dekId)
+    const { kept, stale, keyChanged, finish } = await startSession(deps, answer.userId, answer.sessionToken, "google", null, answer.dekId)
     const result = { userId: answer.userId, emailVerified: answer.emailVerified, created: answer.created, recoveryWrappedDek: answer.recoveryWrappedDek, keyChanged }
     if (answer.dekId === null) {
         const dek = newDek(sodium)
@@ -360,10 +371,11 @@ export async function loginGoogle(deps: AccountDeps, input: { idToken: string, n
             await finish(() => registerDevice(deps, answer.userId, newDekId(sodium), dek, input.deviceName))
         }
         finally {
-            wipe(sodium, dek)
+            wipe(sodium, dek, stale?.dek)
         }
         return { ...result, status: "ready" }
     }
+    wipe(sodium, stale?.dek)
     if (kept) {
         // its own live row comes back with the signing key it kept (S3); a removed or signed-out device can't do this
         const dekId = answer.dekId
