@@ -10,6 +10,7 @@ import {
     factsLine,
     headParts,
     factsLineWrapped,
+    otherShowKeys,
     factsSentence,
     resolutionLabel,
     seedHealth,
@@ -18,6 +19,7 @@ import {
     torrentFacts,
     torrentKey,
 } from "./torrent-facts"
+import { sortTorrents } from "./torrent-filters"
 import { NAMES_PER_TURN, readingOf, readNamesInTurns } from "./use-torrent-reads"
 
 const en = (a: string) => a
@@ -218,6 +220,41 @@ describe("Best match", () => {
         expect(factsHead(torrentFacts(torrent(episode), read(episode), en, "en"))).toBe("SubsPlease · Ep 1 · v2")
         expect(torrentFacts(torrent(JUDAS), read(JUDAS), en, "en").episode).toBe("Batch")
         expect(bestMatchKey([torrent(episode, { infoHash: hash(6) }), movie], emptyProfile(), 1, "", 1999, "TV")).toBe(hash(6))
+    })
+
+    // 4.2.0 E (S22 retest): "Recommended" put "[A&C] One Piece - Movie 01" above the Best match, the live action read "Ep 1"
+    it("orders Recommended like auto-select: the Best match first, the film and the live action last", () => {
+        const nyaa = (name: string, n: number, seeders: number, size: number) => torrent(name, { infoHash: hash(n), seeders, leechers: 0, size })
+        const archive = (name: string, n: number, size: number) => torrent(name, {
+            provider: "internet-archive", infoHash: hash(n), seeders: 1, leechers: 0, size, downloadUrl: `https://archive.org/download/x${n}/x${n}.torrent`,
+        })
+        const LIVE_ACTION = "ONE.PIECE.2023.S01E01.ROMANCE.DAWN.1080p.NF.WEB-DL.x265.10Bit.6CH-PSA"
+        // as the providers listed them on the S22: the film on Nyaa with 7 seeders, the rest on Internet Archive
+        const shown = [
+            nyaa("[A&amp;C] One Piece - Movie 01 (BD 1080p HEVC) [Multi-Subs] [v2]", 1, 7, 19_219_633_356),
+            archive("One Piece 001", 2, 91_750_400),
+            archive("One Piece - 001 - Im gonna be King of the Pirates HQ{C_P}.mp4", 3, 711_884_390),
+            archive(LIVE_ACTION, 4, 8_697_308_774),
+        ]
+        const best = bestMatchKey(shown, emptyProfile(), 1, "", 1999, "TV")
+        const other = new Set(otherShowKeys(shown, 1, 1999, "TV"))
+        expect(other).toEqual(new Set([hash(1), hash(4)]))
+        const place = (item: HibikeTorrent_AnimeTorrent) => torrentKey(item) === best ? 0 : other.has(torrentKey(item)) ? 2 : 1
+        const order = sortTorrents(shown, "best", place).map(torrentKey)
+        expect(order[0]).toBe(best)
+        expect(order.slice(2).sort()).toEqual([hash(1), hash(4)])
+        // the other sorts stay as they were
+        expect(sortTorrents(shown, "seeders", place).map(torrentKey)[0]).toBe(hash(1))
+        expect(sortTorrents(shown, "largest", place).map(torrentKey)).toEqual([hash(1), hash(4), hash(3), hash(2)])
+        // without the anime's year and format nothing is read as another show
+        expect(otherShowKeys(shown, 1)).toEqual([])
+        // Frieren's own releases stay where they were
+        expect(otherShowKeys([torrent(SUBSPLEASE), torrent(JUDAS), torrent(ERAI)], 5, 2026, "TV")).toEqual([])
+
+        // the live action's card names its year, not "S1 · Ep 1" of the anime; the film stays "Movie 1"
+        expect(factsHead(torrentFacts(shown[3]!, read(LIVE_ACTION), en, "en", { otherShow: true }))).toBe("PSA · 2023")
+        expect(factsHead(torrentFacts(shown[3]!, read(LIVE_ACTION), en, "en"))).toBe("PSA · S1 · Ep 1")
+        expect(factsHead(torrentFacts(shown[0]!, read(shown[0]!.name), en, "en", { otherShow: true }))).toBe("A&C · Movie 1 · v2")
     })
 
     it("knows a result by its info hash, else its link", () => {

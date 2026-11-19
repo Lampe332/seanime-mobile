@@ -245,6 +245,14 @@ export function namesOtherYear(read: Pick<ReadTorrent, "torrent" | "episodes" | 
     return !(read.seasons.some(season => season >= 2) && years.every(year => year < startYear))
 }
 
+/**
+ * Whether the torrent is of another show than the wanted anime (step 1's last two cases): a name dated for another show,
+ * or a film for an anime whose format is known and not MOVIE. The torrent search's "Recommended" order puts these last.
+ */
+export function isOtherShow(read: Pick<ReadTorrent, "torrent" | "episodes" | "seasons" | "movie">, wanted: Pick<AutoSelectWanted, "episodeNumber" | "startYear" | "format">): boolean {
+    return namesOtherYear(read, wanted.startYear ?? 0, wanted.episodeNumber) || (read.movie && !!wanted.format && wanted.format !== "MOVIE")
+}
+
 const contains = (found: string[], wanted: string[]) => wanted.some(item => found.some(one => one.includes(item)))
 const rankIn = (list: string[], value: string) => {
     const at = list.findIndex(item => value === item || value.includes(item))
@@ -328,9 +336,7 @@ export function chooseTorrent(torrents: FoundTorrent[], profile: AutoSelectProfi
         if (profile.requireSource && sources.length > 0 && !contains(read.sources, sources)) return false
         if (!read.batch && read.episodes.length > 0 && wanted.episodeNumber > 0 && !read.episodes.includes(wanted.episodeNumber)) return false
         if (read.batch && read.episodes.length === 2 && wanted.episodeNumber > 0 && (wanted.episodeNumber < read.episodes[0]! || wanted.episodeNumber > read.episodes[1]!)) return false
-        if (namesOtherYear(read, wanted.startYear ?? 0, wanted.episodeNumber)) return false
-        if (read.movie && !!wanted.format && wanted.format !== "MOVIE") return false
-        return true
+        return !isOtherShow(read, wanted)
     })
 
     const resolutionRank = (read: ReadTorrent) => {

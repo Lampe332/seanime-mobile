@@ -179,6 +179,13 @@ describe("sortTorrents", () => {
         expect(sortTorrents(list, "largest").map(t => t.name)).toEqual(["a", "c", "b"])
     })
 
+    it("puts the place first for Recommended only (0 the Best match, 2 another show)", () => {
+        const place = (item: HibikeTorrent_AnimeTorrent) => item.name === "a" ? 0 : item.name === "b" ? 2 : 1
+        expect(sortTorrents(list, "best", place).map(t => t.name)).toEqual(["a", "c", "b"])
+        expect(sortTorrents(list, "seeders", place).map(t => t.name)).toEqual(["c", "b", "a"])
+        expect(sortTorrents(list, "newest", place).map(t => t.name)).toEqual(["c", "a", "b"])
+    })
+
     it("puts torrents of unknown size (0) last when the largest come first", () => {
         const sized = [torrent("unknown", { size: 0 }), torrent("batch", { size: 9_000_000_000 }), torrent("episode", { size: 1_400_000_000 })]
         expect(sortTorrents(sized, "largest").map(t => t.name)).toEqual(["batch", "episode", "unknown"])

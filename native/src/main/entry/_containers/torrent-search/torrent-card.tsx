@@ -72,7 +72,7 @@ export function PickBox({ checked }: { checked: boolean }) {
     </View>
 }
 
-export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t, language, mode, provider, best, cached, checked, disabled, onChoose }: {
+export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t, language, mode, provider, best, otherShow, cached, checked, disabled, onChoose }: {
     torrent: HibikeTorrent_AnimeTorrent
     /** The name as $habari reads it (use-torrent-reads.ts); undefined while it is being read */
     parsed: Habari_Metadata | undefined
@@ -83,6 +83,8 @@ export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t,
     provider?: string
     /** The one auto-select would take */
     best?: boolean
+    /** Of another show than the anime (otherShowKeys): the head names the year instead of an episode */
+    otherShow?: boolean
     /** In the debrid service's cache */
     cached?: boolean
     checked?: boolean
@@ -90,7 +92,7 @@ export const TorrentCard = React.memo(function TorrentCard({ torrent, parsed, t,
     disabled?: boolean
     onChoose?: (torrent: HibikeTorrent_AnimeTorrent) => void
 }) {
-    const facts = React.useMemo(() => torrentFacts(torrent, parsed, t, language, { provider }), [torrent, parsed, t, language, provider])
+    const facts = React.useMemo(() => torrentFacts(torrent, parsed, t, language, { provider, otherShow }), [torrent, parsed, t, language, provider, otherShow])
     const name = React.useMemo(() => decodeEntities(torrent.name), [torrent.name])
     const { group, rest } = headParts(facts)
     const hasHead = !!(group || rest)

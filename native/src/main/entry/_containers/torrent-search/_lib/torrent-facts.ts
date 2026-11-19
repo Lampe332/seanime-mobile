@@ -1,6 +1,6 @@
 import type { Habari_Metadata, HibikeTorrent_AnimeTorrent } from "@/api/generated/types"
 import type { Translate } from "@/lib/app-language"
-import { type AutoSelectProfile, type FoundTorrent, chooseTorrent, decodeEntities, isMovieRelease } from "@/core/torrent/autoselect"
+import { type AutoSelectProfile, type FoundTorrent, chooseTorrent, decodeEntities, isMovieRelease, isOtherShow, readTorrent, yearsIn } from "@/core/torrent/autoselect"
 import { magnetOf } from "@/core/torrent/torrent"
 import { CODECS, isBatchRelease, SOURCES, TEN_BIT } from "@/main/entry/_containers/torrent-search/_lib/torrent-filters"
 import { ago } from "@/main/entry/_containers/torrent-search/_lib/torrent-search-phone"
@@ -16,7 +16,7 @@ export type SeedHealth = "unknown" | "none" | "low" | "good"
 export type TorrentFacts = {
     /** "SubsPlease"; "" when neither the provider nor the name says */
     group: string
-    /** "Ep 5", "Ep 1–12", "Batch" or "" */
+    /** "Ep 5", "Ep 1–12", "Batch", "Movie 1", the year of a release of another show ("2023") or "" */
     episode: string
     /** A whole season or a range of episodes ("Ep 1–12", "Batch") */
     batch: boolean
@@ -138,7 +138,7 @@ export const whole = (fact: string) => fact.replace(/ /g, " ")
  * read on the phone); without it only the provider's fields and the name's batch marks count.
  */
 export function torrentFacts(torrent: HibikeTorrent_AnimeTorrent, parsed: Habari_Metadata | undefined, t: Translate, language: string,
-    options: { provider?: string, now?: number } = {}): TorrentFacts {
+    options: { provider?: string, now?: number, otherShow?: boolean } = {}): TorrentFacts {
     const name = decodeEntities(torrent.name ?? "")
     const lowerName = lower(name)
     const episodes = episodesOf(torrent, parsed)
@@ -146,7 +146,10 @@ export function torrentFacts(torrent: HibikeTorrent_AnimeTorrent, parsed: Habari
     const range = episodes.length === 2 && episodes[0]! < episodes[1]!
     // a film's number counts films (4.2.0 E: "[A&C] One Piece - Movie 01" read as "Ep 1")
     const movie = isMovieRelease(name, parsed?.anime_type)
-    const episode = movie
+    // a release dated for another show (otherShowKeys, "ONE.PIECE.2023.S01E01" for the One Piece of 1999) names its year,
+    // not a season and an episode of this anime
+    const dated = !!options.otherShow && !movie
+    const episode = dated ? yearsIn(name, episodes).join("/") : movie
         ? range ? t(`Movies ${episodes[0]}–${episodes[1]}`, `Filme ${episodes[0]}–${episodes[1]}`)
             : episodes.length >= 1 ? t(`Movie ${episodes[0]}`, `Film ${episodes[0]}`) : t("Movie", "Film")
         : range ? t(`Ep ${episodes[0]}–${episodes[1]}`, `Folge ${episodes[0]}–${episodes[1]}`)
@@ -177,7 +180,7 @@ export function torrentFacts(torrent: HibikeTorrent_AnimeTorrent, parsed: Habari
         group: groupOf(torrent.releaseGroup) || groupOf(parsed?.release_group) || trailingGroup(name),
         episode,
         batch: range || batch,
-        season: last > first ? `S${first}–S${last}` : first > 0 ? `S${first}` : "",
+        season: dated ? "" : last > first ? `S${first}–S${last}` : first > 0 ? `S${first}` : "",
         version: version > 1 ? `v${version}` : "",
         resolution: resolutionLabel(torrent.resolution) || resolutionLabel(parsed?.video_resolution),
         health: seedHealth(seeders),
@@ -244,9 +247,20 @@ export function torrentKey(torrent: Pick<HibikeTorrent_AnimeTorrent, "infoHash" 
 export function bestMatchKey(torrents: HibikeTorrent_AnimeTorrent[], profile: AutoSelectProfile, episodeNumber: number, preferredResolution: string,
     startYear = 0, format = ""): string {
     if (!torrents.length) return ""
-    const found = torrents.map(torrent => ({ ...torrent, provider: torrent.provider ?? "" }) as unknown as FoundTorrent)
-    const chosen = chooseTorrent(found, profile, { episodeNumber, preferredResolution, startYear, format })
+    const chosen = chooseTorrent(torrents.map(foundOf), profile, { episodeNumber, preferredResolution, startYear, format })
     return chosen ? torrentKey(chosen.torrent as unknown as HibikeTorrent_AnimeTorrent) : ""
+}
+
+const foundOf = (torrent: HibikeTorrent_AnimeTorrent) => ({ ...torrent, provider: torrent.provider ?? "" }) as unknown as FoundTorrent
+
+/**
+ * The keys of the torrents of another show than the anime (autoselect.ts `isOtherShow`: a name dated for another show,
+ * a film for a series), which auto-select never takes; "Recommended" puts them last and their cards claim no episode.
+ * Without the anime's start year and format nothing is read.
+ */
+export function otherShowKeys(torrents: HibikeTorrent_AnimeTorrent[], episodeNumber: number, startYear = 0, format = ""): string[] {
+    if (!(startYear > 0) && !format) return []
+    return torrents.filter(torrent => isOtherShow(readTorrent(foundOf(torrent)), { episodeNumber, startYear, format })).map(torrentKey)
 }
 
 /** The magnet link a card copies: the provider's, else one made of the info hash; "" when it has neither */

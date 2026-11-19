@@ -49,7 +49,10 @@ describe("torrent search sheet", () => {
 
     it("marks the one auto-select would take and offers the largest first", () => {
         expect(source).toMatch(/best=\{best === torrentKey\(torrent\)\}/)
-        expect(source).toMatch(/bestMatchKey\(torrents, profile/)
+        expect(source).toMatch(/bestMatchKey\(shown, profile/)
+        // 4.2.0 E: "Recommended" follows the same reading, the Best match first and releases of another show last
+        expect(source).toMatch(/sortTorrents\(shown, sort, torrent =>/)
+        expect(source).toMatch(/otherShow: new Set\(otherShowKeys\(shown,/)
         expect(source).toMatch(/\{ value: "largest", label: t\("Largest", "Größte"\) \}/)
     })
 })

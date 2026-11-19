@@ -30,7 +30,7 @@ import {
     spaceStateOf,
     wantsFileChoice,
 } from "@/main/entry/_containers/torrent-search/_lib/file-choice"
-import { bestMatchKey, sizeText, torrentFacts, torrentKey } from "@/main/entry/_containers/torrent-search/_lib/torrent-facts"
+import { bestMatchKey, otherShowKeys, sizeText, torrentFacts, torrentKey } from "@/main/entry/_containers/torrent-search/_lib/torrent-facts"
 import {
     filterTorrents,
     LANGUAGE_SEARCH_WORD,
@@ -258,7 +258,13 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
         return smart ? (data?.previews ?? []).map(preview => preview.torrent).filter((item): item is HibikeTorrent_AnimeTorrent => !!item) : data?.torrents ?? []
     }, [data?.previews, data?.torrents, smart])
     const filters = { resolution: smartSearchResolution, batch: batchOnly, languages, dualAudio, seeded, tenBit, codecs, sources, maxSize, text: resultText }
-    const torrents = sortTorrents(filterTorrents(found, filters, batchOnly && providerBatch), sort)
+    const shown = filterTorrents(found, filters, batchOnly && providerBatch)
+    // "Recommended" follows auto-select (4.2.0 E): the Best match first, a film or the live action it leaves out last
+    const [reading, setReading] = React.useState(NO_READING)
+    const torrents = sortTorrents(shown, sort, torrent => {
+        const key = torrentKey(torrent)
+        return key === reading.best ? 0 : reading.otherShow.has(key) ? 2 : 1
+    })
     const clearFilters = () => {
         setBatchOnly(false)
         setLanguages([])
@@ -324,16 +330,19 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
     const wantedEpisode = kind === "download" ? (smart && !batchOnly ? smartSearchEpisode : 0) : torrentSearchStreamEpisode?.episodeNumber ?? 0
     const startYear = entry.media?.startDate?.year ?? 0
     const format = entry.media?.format ?? ""
-    const [best, setBest] = React.useState("")
-    const shownKey = torrents.map(torrentKey).join("\n")
+    // the filtered list before sorting: a new sort order must not read again
+    const shownKey = shown.map(torrentKey).join("\n")
     React.useEffect(() => {
         // after the frame that shows the cards: the rule reads every name once more
-        const timer = setTimeout(() => setBest(profile && shownKey
-            ? bestMatchKey(torrents, profile as unknown as AutoSelectProfile, wantedEpisode, preferredResolution, startYear, format) : ""), 0)
+        const timer = setTimeout(() => setReading(profile && shownKey ? {
+            best: bestMatchKey(shown, profile as unknown as AutoSelectProfile, wantedEpisode, preferredResolution, startYear, format),
+            otherShow: new Set(otherShowKeys(shown, wantedEpisode, startYear, format)),
+        } : NO_READING), 0)
         return () => clearTimeout(timer)
         // the joined keys stand for the shown list: a new array of the same torrents must not choose again
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shownKey, profile, wantedEpisode, preferredResolution, startYear, format])
+    const best = reading.best
 
     const missing = downloadInfo?.episodesToDownload?.map(item => item.episodeNumber).sort((a, b) => a - b) ?? []
     const context = kind === "download"
@@ -459,6 +468,7 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
                                 : <Animated.View key={sort} entering={swapIn(isTablet)} className="gap-0.5 overflow-hidden rounded-surface">
                                     {torrents.map(torrent => <TorrentCard key={torrentKey(torrent)} torrent={torrent} parsed={readOf(torrent)} t={t} language={language}
                                         mode={kind === "download" ? "pick" : "stream"} provider={providerName(torrent.provider)} best={best === torrentKey(torrent)}
+                                        otherShow={reading.otherShow.has(torrentKey(torrent))}
                                         cached={!!torrent.infoHash && !!cached[torrent.infoHash]} checked={kind === "download" && picked.some(item => item.infoHash === torrent.infoHash)}
                                         disabled={kind !== "download" && !canStream} onChoose={onChoose} />)}
                                 </Animated.View>}
@@ -467,6 +477,9 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
         {metered.dialog}
     </>
 }
+
+/** The auto-select reading of the shown results before it is read: no Best match, none of another show */
+const NO_READING: { best: string, otherShow: ReadonlySet<string> } = { best: "", otherShow: new Set() }
 
 /** torrent-search-phone.css `.tsp .ps-sheet-group { gap: .75rem }` (the plain sheet group has .625rem) */
 const TSP_GROUP = "gap-3"

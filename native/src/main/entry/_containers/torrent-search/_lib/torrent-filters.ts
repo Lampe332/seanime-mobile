@@ -128,8 +128,12 @@ export function filterTorrents<T extends HibikeTorrent_AnimeTorrent>(torrents: T
         && matchesText(torrent, filters.text))
 }
 
-/** "best": best releases first, then the most seeded (the order the providers rank by stays for equal ones). */
-export function sortTorrents<T extends HibikeTorrent_AnimeTorrent>(torrents: T[], sort: TorrentSort): T[] {
+/**
+ * "best": by `place` first (4.2.0 E, the auto-select reading: 0 the Best match, 1 the rest, 2 releases of another show
+ * such as a film or the live action, which auto-select leaves out), then best releases, then the most seeded (the order
+ * the providers rank by stays for equal ones). The other sorts ignore `place`.
+ */
+export function sortTorrents<T extends HibikeTorrent_AnimeTorrent>(torrents: T[], sort: TorrentSort, place: (torrent: T) => number = () => 1): T[] {
     const list = [...torrents]
     switch (sort) {
         case "seeders":
@@ -143,7 +147,7 @@ export function sortTorrents<T extends HibikeTorrent_AnimeTorrent>(torrents: T[]
             return list.sort((a, b) => (b.size || 0) - (a.size || 0))
         default:
             // !! because providers may leave isBestRelease out, and Number(undefined) is NaN
-            return list.sort((a, b) => Number(!!b.isBestRelease) - Number(!!a.isBestRelease) || b.seeders - a.seeders)
+            return list.sort((a, b) => place(a) - place(b) || Number(!!b.isBestRelease) - Number(!!a.isBestRelease) || b.seeders - a.seeders)
     }
 }
 
