@@ -80,7 +80,7 @@ export interface CoreTorrentStatus {
     trackerError: string
     /** Web seed addresses the torrent has (BEP 19) */
     webSeeds: number
-    /** Where a queued torrent (`setQueued`) stands among the torrents still downloading, from 0; -1: not in the queue */
+    /** Where a queued torrent (`setQueued`) stands among the queued torrents that still download, from 0; -1: not in the queue */
     queuePosition: number
 }
 
@@ -113,15 +113,17 @@ export interface CoreTorrent extends HybridObject<{ ios: "c++", android: "c++" }
     setPaused(infoHash: string, paused: boolean): Promise<void>
     /**
      * 4.2.0: takes a torrent into the download queue (or out of it). Of the queued torrents only `activeDownloads`
-     * (`setLimits`) download at once, the rest wait as "queued"; kept in the resume data. A torrent that is served
+     * (`setLimits`) download at once, the rest wait as "queued" (paused: a magnet link gets no file list while it waits).
+     * Kept in the resume data until the torrent is paused; say it again after a restart. A torrent that is served
      * (`serve`, `shareTorrent`) leaves the queue and runs.
      */
     setQueued(infoHash: string, queued: boolean): Promise<void>
     /** 4.2.0: the limits of the running session, from now on; they are kept with the session's state */
     setLimits(limits: CoreTorrentLimits): Promise<void>
     /**
-     * 4.2.0: moves the files of a torrent to another folder (a plain path) and goes on from there; files of the same
-     * name there are replaced. The answer comes when they are moved.
+     * 4.2.0: moves the files of a torrent to another folder (a plain path without "..", not the session's own folder,
+     * not the folder of another torrent's files) and goes on from there. A file of the same name there fails the move:
+     * nothing is replaced. The answer comes when they are moved.
      */
     moveStorage(infoHash: string, savePath: string): Promise<void>
     /** Piece `firstPiece + n` is wanted within `firstMs + n * stepMs` milliseconds, for `count` pieces */

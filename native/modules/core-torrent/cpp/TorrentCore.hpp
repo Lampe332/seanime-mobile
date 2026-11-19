@@ -81,7 +81,7 @@ namespace seanime::torrent {
     std::string trackerError;
     /** Web seed addresses the torrent has */
     int webSeeds = 0;
-    /** Where a queued torrent stands among the torrents still downloading, from 0; -1: not in the queue */
+    /** Where a queued torrent stands among the queued torrents that still download, from 0; -1: not in the queue */
     int queuePosition = -1;
   };
 
@@ -119,13 +119,19 @@ namespace seanime::torrent {
     void setPaused(const std::string& infoHash, bool paused);
     /**
      * 4.2.0: into the download queue or out of it. A queued torrent is libtorrent's "auto managed": of them only
-     * `Limits::activeDownloads` download at once, the others wait (state "queued"); the flag lies in the resume data.
+     * `Limits::activeDownloads` download at once, the others wait (state "queued"). The flag lies in the resume data
+     * until the user pauses the torrent; after a restart the app says again which torrents are queued. A waiting
+     * torrent is paused and gets no file list from its peers: a magnet link is queued after its files are chosen.
      * Nothing happens for a torrent that is served: a stream is never queued.
      */
     void setQueued(const std::string& infoHash, bool queued);
     /** 4.2.0: the limits from now on, for a running session at once and for the next one */
     void setLimits(const Limits& limits);
-    /** 4.2.0: moves the torrent's files to another folder; `done` is called on the session's thread when they are there */
+    /**
+     * 4.2.0: moves the torrent's files to another folder; `done` is called on the session's thread when they are there.
+     * The folder is an absolute path without "..", outside the session's own folder and outside the folder of another
+     * torrent's files; a file of the same name there fails the move (nothing is replaced).
+     */
     void moveStorage(const std::string& infoHash, const std::string& savePath, Done done);
     void setPieceDeadlines(const std::string& infoHash, int firstPiece, int count, int firstMs, int stepMs);
     void clearDeadlines(const std::string& infoHash);
@@ -175,10 +181,22 @@ namespace seanime::torrent {
       int trackersOk = 0;
       int trackersFailed = 0;
       std::string trackerError;
-      /** In the download queue (setQueued); a pause of the user's takes libtorrent's flag away, this stays */
+      /**
+       * In the download queue (setQueued), as far as this run of the session knows. A pause of the user's takes
+       * libtorrent's flag (auto managed) away and this stays, so a resume in the same run finds the queue again. It
+       * does not outlive the session: after a restart it is read from the resume data, where a torrent the user had
+       * paused carries no flag. The app keeps which torrents are queued and calls setQueued again at its start and
+       * before it resumes one (src/core/torrent/client.ts).
+       */
       bool queued = false;
       /** Served to the player or shared to a TV: outside the queue, the download limit and the stop when finished */
       bool served = false;
+      /** From the last status: libtorrent's place among all torrents that still download, for a queued one (-1: none) */
+      int place = -1;
+      /** From the last status: neither paused nor complete, so it takes a share of the download limit (applyRates) */
+      bool loading = false;
+      /** The download limit of its own it was last given (-1: none given in this session) */
+      int ownLimit = -1;
     };
     struct Removal {
       bool deleteFiles = false;
@@ -204,9 +222,11 @@ namespace seanime::torrent {
     void limitsInto(libtorrent::settings_pack& pack) const;
     /**
      * The download limit, so that it never brakes a stream: without a served torrent it is the session's; while one
-     * is served the session has none and every other torrent carries the limit itself.
+     * is served the session has none and the other torrents share the limit among those of them that load.
      */
     void applyRates();
+    /** Where a queued torrent stands among the queued ones that still download, from 0; -1: not one of them */
+    int queuePlace(const Entry& found) const;
     /** A torrent the outlet serves from now on: out of the queue, running, without a limit (TorrentServe.cpp) */
     void markServed(Entry& found);
     void finishMove(const libtorrent::torrent_handle& handle, const std::string& error);
@@ -226,6 +246,8 @@ namespace seanime::torrent {
     std::map<std::string, Removal> removals_;
     /** Kept across sessions: what the app last asked for */
     Limits limits_;
+    /** The download limit the running session was last given (-1: none yet) */
+    int sessionDownLimit_ = -1;
     /** Who waits for the files of which torrent to be moved */
     std::map<std::string, Done> moves_;
     int savesOut_ = 0;
