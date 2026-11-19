@@ -29,15 +29,21 @@ export type NavItem = {
     isMenu?: boolean
 }
 
+const DOWNLOADS_ITEM: NavItem = { id: "android-downloads", href: "/android-downloads", label: "Downloads", matchExact: true, placement: "nav" }
+
+/**
+ * The bar of a new install (4.2.0): Home, My Lists, Discover, Downloads, More. Search floats: it is listed in More and sits
+ * as a magnifier in the heads of Home and Discover. A saved bar keeps its own entries (resolveNavItems); "Reset navigation"
+ * (Settings › App) brings this one. The More button keeps id "menu" and the old storage key "Menu" (saved bars hold it).
+ */
 export const DEFAULT_NAV_ITEMS: NavItem[] = [
     { id: "home", href: "/", label: "Home", matchExact: true, placement: "nav" },
     { id: "lists", href: "/lists", label: "My Lists", matchExact: false, placement: "nav" },
     { id: "discover", href: "/discover", label: "Discover", matchExact: false, placement: "nav" },
-    { id: "search", href: "/search", label: "Search", matchExact: false, placement: "nav" },
+    { id: "search", href: "/search", label: "Search", matchExact: false, placement: "float" },
+    DOWNLOADS_ITEM,
     { id: "menu", href: null, label: "Menu", matchExact: false, placement: "nav", isMenu: true },
 ]
-
-const DOWNLOADS_ITEM: NavItem = { id: "android-downloads", href: "/android-downloads", label: "Downloads", matchExact: true, placement: "nav" }
 
 /** Destinations the bar never shows again (the desktop torrent pages the Android app removed) */
 const REMOVED_HREF = /^\/(torrent-list|torrent-client|auto-downloader)(\/|$)/
@@ -130,12 +136,17 @@ const NAV_LABELS_DE: Record<string, string> = {
     "Refresh AniList": "AniList aktualisieren", "Extensions": "Erweiterungen", "Settings": "Einstellungen",
     "Sign out": "Abmelden", "Sign in": "Anmelden", "Login": "Anmelden",
     // added by the native app
-    "Downloads": "Downloads", "Server status": "Server-Status", "Building blocks": "Bausteine",
+    "Downloads": "Downloads", "Server status": "Server-Status", "Building blocks": "Bausteine", "Customize Home": "Home anpassen",
 }
 
 /** The shown text of an entry; the label itself stays the English key */
 export function navLabel(label: string, language: AppLanguage) {
     return translate(language, label, NAV_LABELS_DE[label] || label)
+}
+
+/** The word of a bar entry: the More button says "More" whatever its stored key ("Menu" in saved bars) */
+export function navItemLabel(item: Pick<NavItem, "label" | "isMenu">, language: AppLanguage) {
+    return navLabel(item.isMenu ? "More" : item.label, language)
 }
 
 /**
@@ -144,7 +155,7 @@ export function navLabel(label: string, language: AppLanguage) {
  */
 const NAV_TAB_LABELS: Record<string, [string, string]> = {
     "Home": ["[tab] Home", "Start"], "My Lists": ["[tab] My Lists", "Meine Listen"], "Discover": ["[tab] Discover", "Entdecken"],
-    "Search": ["[tab] Search", "Suche"], "Menu": ["[tab] Menu", "Menü"], "Downloads": ["[tab] Downloads", "Downloads"],
+    "Search": ["[tab] Search", "Suche"], "Menu": ["[tab] Menu", "Menü"], "More": ["[tab] More", "Mehr"], "Downloads": ["[tab] Downloads", "Downloads"],
     "Updates": ["[tab] Updates", "Updates"], "Schedule": ["[tab] Schedule", "Sendeplan"], "History": ["[tab] History", "Verlauf"],
     "Manga": ["[tab] Manga", "Manga"], "Scan summaries": ["[tab] Scans", "Scans"], "Extensions": ["[tab] Extensions", "Erweiterungen"],
     "Settings": ["[tab] Settings", "Einstellungen"], "Building blocks": ["[tab] Blocks", "Bausteine"],
@@ -154,6 +165,11 @@ const NAV_TAB_LABELS: Record<string, [string, string]> = {
 export function navTabLabel(label: string, language: AppLanguage) {
     const pair = NAV_TAB_LABELS[label]
     return pair ? translate(language, ...pair) : navLabel(label, language)
+}
+
+/** navTabLabel of a bar entry; the More button shows "[tab] More" (navItemLabel) */
+export function navItemTabLabel(item: Pick<NavItem, "label" | "isMenu">, language: AppLanguage) {
+    return navTabLabel(item.isMenu ? "More" : item.label, language)
 }
 
 const ICON_BY_ID: Record<string, MobileIconName> = {

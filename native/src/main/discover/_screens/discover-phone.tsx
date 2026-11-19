@@ -33,6 +33,7 @@ import { getImageUrl } from "@/lib/server/assets"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-preview-phone"
+import { SearchHeadAction } from "@/main/_features/home/home-mobile-header"
 import { mediaEntryHref } from "@/main/_features/media/_lib/media-card"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import {
@@ -124,8 +125,10 @@ export function DiscoverPhone() {
     ]
 
     return (
-        // No search or calendar buttons: Search sits in the navigation and the calendar is the Schedule tab right below
-        <PhoneScreen title={t("Discover", "Entdecken")} subtitle={facts}>
+        // Search left the default bar (4.2.0): its magnifier sits in the head, on the Manga tab for manga. No calendar
+        // button: the calendar is the Schedule tab right below
+        <PhoneScreen title={t("Discover", "Entdecken")} subtitle={facts}
+            actions={<SearchHeadAction href={tab === "manga" ? "/search?type=manga" : "/search"} />}>
             <View className={cn(rail && "w-full max-w-[416px]")}>
                 <Tabs variant="segment" value={tab} onValueChange={selectTab} items={tabs} />
             </View>

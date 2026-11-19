@@ -62,7 +62,7 @@ function accountStep(): TourStep {
             <P>{tr("An account is optional. Create one with your email and a password, and your settings, watch positions, history, playlists and extensions stay in sync across your devices.",
                 "Ein Konto ist freiwillig. Leg eins mit E-Mail und Passwort an, dann bleiben Einstellungen, Wiedergabe-Positionen, Verlauf, Playlists und Erweiterungen auf deinen Geräten gleich.")}</P>
             <Line text={tr("Find it under {0}.", "Du findest es unter {0}.")}
-                names={[[tr("Menu", "Menü"), tr("Settings", "Einstellungen"), tr("Account", "Konto")].join(" › ")]} />
+                names={[[tr("More", "Mehr"), tr("Settings", "Einstellungen"), tr("Account", "Konto")].join(" › ")]} />
             <P small>{tr("Everything is end-to-end encrypted. The key stays on your devices, so our server can't read your data. Your AniList lists stay with AniList.",
                 "Alles ist Ende-zu-Ende-verschlüsselt. Der Schlüssel bleibt auf deinen Geräten, unser Server kann deine Daten nicht lesen. Deine AniList-Listen bleiben bei AniList.")}</P>
         </View>,
@@ -99,8 +99,8 @@ export function getMobileTutorialSteps({ fromExtensions = false, tablet = false 
             title: tr("Open the menu", "Menü öffnen"),
             // the tablet shows the menu in the rail on the left: the card sits beside it (T2)
             content: tablet
-                ? <Line text={tr("Tap {0} on the left.", "Tippe links auf {0}.")} names={[tr("Menu", "Menü")]} />
-                : <Line text={tr("Tap {0} at the bottom.", "Tippe unten auf {0}.")} names={[tr("Menu", "Menü")]} />,
+                ? <Line text={tr("Tap {0} on the left.", "Tippe links auf {0}.")} names={[tr("More", "Mehr")]} />
+                : <Line text={tr("Tap {0} at the bottom.", "Tippe unten auf {0}.")} names={[tr("More", "Mehr")]} />,
             placement: tablet ? "right" : "top",
             allowTargetInteraction: true,
             advanceOnTargetClick: true,

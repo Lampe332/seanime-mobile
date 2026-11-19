@@ -57,7 +57,8 @@ import { usePluginActions, useRunPluginAction } from "@/main/_features/plugin/pl
 import { PluginTrayButton } from "@/main/_features/plugin/plugin-tray"
 import { PluginWebviewSlot } from "@/main/_features/plugin/plugin-webview"
 import { HomeDiscoverFeature, LibraryUpcomingEpisodes } from "./home-discover-sections"
-import { HomeMobileHeader, HomeHeaderAction } from "./home-mobile-header"
+import { HomeMobileHeader, HomeHeaderAction, SearchHeadAction } from "./home-mobile-header"
+import { customizeInHomeHead } from "@/lib/nav/more-panel"
 import { AnilistSyncBar } from "@/main/_features/anilist-sync/anilist-sync"
 import { HomeScheduleCalendar } from "./home-schedule-calendar"
 import { HOME_ITEMS_PENDING, hasSectionGapBefore, resolveHomeItems, withCurrentSchema } from "./home-layout"
@@ -68,8 +69,8 @@ import { isAnimeLibraryItemsOnly } from "./home-items.utils"
  * Android Home (home-screen.tsx + home-mobile.css): the head with its actions, then the saved sections in their order.
  * One faint, static theme-colour tint runs from the head into Home (no seam, image, blur or scroll work).
  *
- * Header actions: Plugins with the pinned plugins (2.17, the top navbar's PluginSidebarTray), Playlists (while the library
- * has entries, 2.14), the local library and Customize. The plugin slots `after-home-screen-toolbar` (under the head) and
+ * Header actions: Search (4.2.0), Plugins with the pinned plugins (2.17, the top navbar's PluginSidebarTray), Playlists (while
+ * the library has entries, 2.14), the local library and Customize (in More on a narrow phone, customizeInHomeHead). The plugin slots `after-home-screen-toolbar` (under the head) and
  * `home-screen-bottom` (after the sections) show plugin pages (2.17).
  */
 export function HomeScreen() {
@@ -89,12 +90,15 @@ export function HomeScreen() {
     const homeItems = React.useMemo(() => resolveHomeItems(savedItems), [savedItems])
     const hasLibraryPath = !!serverStatus?.settings?.library?.libraryPath
 
+    // Search floats out of the default bar (4.2.0): its magnifier leads the head. A phone too narrow for all five icons
+    // lists Customize in More instead (customizeInHomeHead)
     const actions = (
         <>
+            <SearchHeadAction href="/search" />
             <PluginTrayButton variant="home" />
             {library.hasEntries && <PlaylistsAction />}
             {!library.isNakamaLibrary && hasLibraryPath && <LibraryPhoneAction />}
-            <CustomizeAction />
+            {customizeInHomeHead({ rail, windowWidth: window.width }) && <CustomizeAction />}
         </>
     )
 

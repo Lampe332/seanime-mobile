@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest"
 import { APP_LANGUAGES } from "@/lib/app-language"
-import { isActive, MAX_NAV_ITEMS, menuTargets, moveInBar, moveToBar, moveToMenu, navCount, navLabel, navTabLabel, type NavItem, resolveNavItems, storedNavState } from "./nav-items"
+import {
+    isActive,
+    MAX_NAV_ITEMS,
+    menuTargets,
+    moveInBar,
+    moveToBar,
+    moveToMenu,
+    navCount,
+    navItemLabel,
+    navItemTabLabel,
+    navLabel,
+    navTabLabel,
+    type NavItem,
+    resolveNavItems,
+    storedNavState,
+} from "./nav-items"
 
 const bar = (items: NavItem[]) => items.filter(it => it.placement === "nav").map(it => it.id)
 const edited = (result: ReturnType<typeof moveToBar>) => {
@@ -13,7 +28,7 @@ describe("customize navigation", () => {
 
     it("gives a bar entry back to the Menu, which then lists it first", () => {
         const items = edited(moveToMenu(defaults, "discover"))
-        expect(bar(items)).toEqual(["home", "lists", "search", "menu", "android-downloads"])
+        expect(bar(items)).toEqual(["home", "lists", "android-downloads", "menu"])
         expect(menuTargets(items)[0]).toMatchObject({ id: "discover", href: "/discover" })
     })
 
@@ -24,14 +39,25 @@ describe("customize navigation", () => {
         expect(hrefs).not.toContain("/building-blocks")
     })
 
+    it("lists the floating Search first in More (4.2.0 default bar)", () => {
+        expect(menuTargets(defaults)[0]).toMatchObject({ id: "search", href: "/search", icon: "search" })
+    })
+
     it("never moves the Menu button out of the bar", () => {
         expect(moveToMenu(defaults, "menu")).toEqual({ refused: "fixed" })
     })
 
-    it("brings a Menu entry into the bar after the last entry, and the Menu stops listing it", () => {
+    it("brings a Menu entry into the bar in front of More (the last entry), and the Menu stops listing it", () => {
         const items = edited(moveToBar(defaults, { label: "Schedule", href: "/schedule" }))
-        expect(bar(items)).toEqual(["home", "lists", "discover", "search", "menu", "android-downloads", "__float_Schedule"])
+        expect(bar(items)).toEqual(["home", "lists", "discover", "android-downloads", "__float_Schedule", "menu"])
         expect(menuTargets(items).some(target => target.href === "/schedule")).toBe(false)
+    })
+
+    it("brings the floating Search back into the bar once, in front of More", () => {
+        const items = edited(moveToBar(defaults, { label: "Search", href: "/search" }))
+        expect(bar(items)).toEqual(["home", "lists", "discover", "android-downloads", "search", "menu"])
+        expect(items.filter(it => it.href === "/search")).toHaveLength(1)
+        expect(menuTargets(items).some(target => target.href === "/search")).toBe(false)
     })
 
     it("puts a default entry back in its place instead of adding it twice", () => {
@@ -42,6 +68,7 @@ describe("customize navigation", () => {
 
     it("refuses an eighth entry", () => {
         let items = edited(moveToBar(defaults, { label: "Schedule", href: "/schedule" }))
+        items = edited(moveToBar(items, { label: "Search", href: "/search" }))
         expect(navCount(items)).toBe(MAX_NAV_ITEMS)
         expect(moveToBar(items, { label: "Settings", href: "/settings" })).toEqual({ refused: "full" })
         items = edited(moveToMenu(items, "search"))
@@ -50,9 +77,11 @@ describe("customize navigation", () => {
 
     it("moves an entry one place along the bar, past the Menu button too, and stops at the ends", () => {
         expect(bar(moveInBar(defaults, "lists", -1)).slice(0, 2)).toEqual(["lists", "home"])
-        expect(bar(moveInBar(defaults, "search", 1))).toEqual(["home", "lists", "discover", "menu", "search", "android-downloads"])
+        expect(bar(moveInBar(defaults, "android-downloads", 1))).toEqual(["home", "lists", "discover", "menu", "android-downloads"])
         expect(moveInBar(defaults, "home", -1)).toBe(defaults)
-        expect(moveInBar(defaults, "android-downloads", 1)).toBe(defaults)
+        expect(moveInBar(defaults, "menu", 1)).toBe(defaults)
+        // a floating entry has no place in the bar to move
+        expect(moveInBar(defaults, "search", 1)).toBe(defaults)
     })
 
     it("stores the list, the order and the placements that resolveNavItems reads back", () => {
@@ -66,8 +95,43 @@ describe("customize navigation", () => {
 
 // Rules of UIBottomNav.kt (loadNavItems, prepareNavItems, dedupe, navLabel) for the native bar.
 describe("bottom bar entries", () => {
-    it("has the app's default bar: Home, My Lists, Discover, Search, Menu, Downloads", () => {
-        expect(resolveNavItems({}).map(i => i.label)).toEqual(["Home", "My Lists", "Discover", "Search", "Menu", "Downloads"])
+    it("has the 4.2.0 default bar: Home, My Lists, Discover, Downloads, More; Search floats in More", () => {
+        const items = resolveNavItems({})
+        expect(items.map(i => i.label)).toEqual(["Home", "My Lists", "Discover", "Search", "Downloads", "Menu"])
+        const shown = items.filter(it => it.placement === "nav")
+        expect(shown.map(it => navItemTabLabel(it, "en"))).toEqual(["Home", "My Lists", "Discover", "Downloads", "More"])
+        expect(shown.map(it => navItemTabLabel(it, "de"))).toEqual(["Start", "Meine Listen", "Entdecken", "Downloads", "Mehr"])
+        expect(items.find(it => it.id === "search")?.placement).toBe("float")
+        // Material 3 navigation bar: 3 to 5 destinations
+        expect(navCount(items)).toBe(5)
+    })
+
+    it("shows the More button as More, also when a saved bar still holds the old key Menu", () => {
+        const saved = resolveNavItems({ items: [{ id: "menu", label: "Menu", isMenu: true, placement: "nav" }] })
+        const more = saved.find(it => it.isMenu)!
+        expect(more.label).toBe("Menu")
+        expect(navItemTabLabel(more, "en")).toBe("More")
+        expect(navItemLabel(more, "de")).toBe("Mehr")
+        expect(navItemTabLabel(more, "ru")).toBe("Ещё")
+        expect(navItemTabLabel(more, "ja")).toBe("その他")
+        // the other entries keep their own word
+        expect(navItemTabLabel({ label: "Downloads" }, "fr")).toBe("Téléch.")
+    })
+
+    it("leaves a saved bar of the old default as it is (no migration)", () => {
+        const oldDefault = [
+            { id: "home", href: "/", label: "Home", matchExact: true, placement: "nav" },
+            { id: "lists", href: "/lists", label: "My Lists", matchExact: false, placement: "nav" },
+            { id: "discover", href: "/discover", label: "Discover", matchExact: false, placement: "nav" },
+            { id: "search", href: "/search", label: "Search", matchExact: false, placement: "nav" },
+            { id: "menu", href: null, label: "Menu", matchExact: false, placement: "nav", isMenu: true },
+            { id: "android-downloads", href: "/android-downloads", label: "Downloads", matchExact: true, placement: "nav" },
+        ]
+        const items = resolveNavItems(JSON.parse(JSON.stringify(storedNavState(oldDefault as NavItem[]))) as Record<string, unknown>)
+        expect(items.map(it => [it.id, it.placement])).toEqual(oldDefault.map(it => [it.id, it.placement]))
+        // a bar stored the old way (order and placement only, UIBottomNav.kt) keeps Search where it was
+        const legacy = resolveNavItems({ order: ["home", "lists", "discover", "search", "menu"], placement: { search: "nav" } })
+        expect(legacy.filter(it => it.placement === "nav").map(it => it.id)).toContain("search")
     })
 
     it("keeps a saved full bar, adds Downloads and drops the removed Offline and torrent pages", () => {
@@ -119,8 +183,11 @@ describe("bottom bar entries", () => {
         expect(navTabLabel("Unknown entry", "fr")).toBe("Unknown entry")
         // "Meine Listen" (12) is the longest label the bar was made for, "Téléchargements" (15) shrank visibly; CJK 6 signs
         const tooLong = APP_LANGUAGES.flatMap(({ value }) => menuTargets([]).map(target => navTabLabel(target.label, value))
-            .concat(["Home", "My Lists", "Discover", "Search", "Menu", "Downloads"].map(label => navTabLabel(label, value)))
+            .concat(["Home", "My Lists", "Discover", "Search", "Menu", "More", "Downloads"].map(label => navTabLabel(label, value)))
             .filter(label => [...label].length > (/[　-鿿]/.test(label) ? 6 : 13)).map(label => `${value}: ${label}`))
         expect(tooLong).toEqual([])
+        // "[tab] More" has its own short word in every language (not the English fallback)
+        const moreTab = APP_LANGUAGES.map(({ value }) => [value, navItemTabLabel({ label: "Menu", isMenu: true }, value)])
+        expect(Object.fromEntries(moreTab)).toEqual({ "en": "More", "de": "Mehr", "es": "Más", "ru": "Ещё", "zh-Hans": "更多", "pt-BR": "Mais", "fr": "Plus", "ja": "その他" })
     })
 })

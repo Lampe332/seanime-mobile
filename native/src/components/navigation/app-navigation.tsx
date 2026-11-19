@@ -7,8 +7,10 @@ import { usePressScale } from "@/components/ui/core/press"
 import { Text } from "@/components/ui/text/text"
 import { appLanguageAtom, translate } from "@/lib/app-language"
 import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
-import { isActive, MAX_NAV_ITEMS, menuTargets, navIcon, navLabel, navTabLabel, type NavItem } from "@/lib/nav/nav-items"
+import { isActive, MAX_NAV_ITEMS, menuTargets, navIcon, navItemLabel, navItemTabLabel, navLabel, type NavItem } from "@/lib/nav/nav-items"
 import { useAllNavItems } from "@/lib/nav/nav-store"
+import { MoreProfileHead } from "@/components/navigation/more-profile-head"
+import { settingsHref } from "@/main/settings/_lib/settings-phone"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { updateDotOn } from "@/main/extensions/_lib/extension-updates"
 import { useExtensionUpdateCount } from "@/main/extensions/_lib/use-extension-updates"
@@ -58,7 +60,7 @@ function NavEntry({ item, active, dense, rail, railHeight, onPress, onLayout, st
     standIn: React.ReactNode
 }) {
     const language = useAtomValue(appLanguageAtom)
-    const label = navTabLabel(item.label, language)
+    const label = navItemTabLabel(item, language)
     // the setup tour points at the Menu button
     const tourRef = useTourTarget(item.isMenu ? TOUR_TARGETS.menu : null)
     // extension updates: a dot on Extensions, or on Menu while Extensions is in the Menu (extension-updates.ts)
@@ -75,7 +77,7 @@ function NavEntry({ item, active, dense, rail, railHeight, onPress, onLayout, st
             ref={tourRef}
             accessibilityRole={item.isMenu ? "button" : "tab"}
             accessibilityState={{ selected: active }}
-            accessibilityLabel={[navLabel(item.label, language), dot ? translate(language, "updates available", "Updates verfügbar") : "", incognito ? translate(language, "incognito on", "Inkognito an") : ""].filter(Boolean).join(", ")}
+            accessibilityLabel={[navItemLabel(item, language), dot ? translate(language, "updates available", "Updates verfügbar") : "", incognito ? translate(language, "incognito on", "Inkognito an") : ""].filter(Boolean).join(", ")}
             onPress={() => {
                 if (item.isMenu) pressTourTarget(TOUR_TARGETS.menu)
                 onPress()
@@ -282,8 +284,9 @@ function MenuRow({ label, icon, current, first, tourTarget, onPress, count, coun
 }
 
 /**
- * The Menu: the panel that unfolds above the bar (phone) or beside the rail (tablet) with the destinations that are not in
- * the bar. It lists only screens that exist (MENU_ENTRIES.ready). Back or a tap outside closes it.
+ * More (the old Menu, renamed in 4.2.0): the panel that unfolds above the bar (phone) or beside the rail (tablet). On top
+ * the profile head, then the destinations that are not in the bar (Search among them in the default bar). It lists only
+ * screens that exist (MENU_ENTRIES.ready). Back or a tap outside closes it.
  */
 /** A menu row that runs an action instead of opening a page (the sidebar's buttons, e.g. "Sign in") */
 export type NavMenuAction = { id: string, label: string, icon: MobileIconName, onPress: () => void }
@@ -326,7 +329,7 @@ export function NavMenu({ open, onClose, pathname, onOpen, rail, barItems, actio
 
     return (
         <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-            <Pressable accessibilityLabel={navLabel("Menu", language)} onPress={onClose} style={StyleSheet.absoluteFill} />
+            <Pressable accessibilityLabel={navLabel("More", language)} onPress={onClose} style={StyleSheet.absoluteFill} />
             <Animated.View
                 entering={menuIn(rail)}
                 exiting={menuOut}
@@ -346,6 +349,8 @@ export function NavMenu({ open, onClose, pathname, onOpen, rail, barItems, actio
                 className="rounded-menu border border-menu-border p-2"
             >
                 <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+                    {/* who is signed in (AniList, the Seanime account); opens Settings › Account */}
+                    <MoreProfileHead onPress={() => onOpen(settingsHref("account"))} />
                     {header}
                     {/* the quick switch: stays open on a tap, so the change is seen */}
                     <MenuRow
