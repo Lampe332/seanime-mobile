@@ -103,10 +103,7 @@ export function useUninstallExternalExtension() {
         endpoint: API_ENDPOINTS.EXTENSIONS.UninstallExternalExtension.endpoint,
         method: API_ENDPOINTS.EXTENSIONS.UninstallExternalExtension.methods[0],
         mutationKey: [API_ENDPOINTS.EXTENSIONS.UninstallExternalExtension.key],
-        onSuccess: async () => {
-            // DEVNOTE: No need to refetch, the websocket listener will do it
-            toast.success(tr("Extension uninstalled successfully.", "Erweiterung deinstalliert."))
-        },
+        // DEVNOTE: No need to refetch, the websocket listener will do it; the sheet names the extension in its toast
     })
 }
 
@@ -250,7 +247,7 @@ export function useSetExternalExtensionDisabled() {
         method: API_ENDPOINTS.EXTENSIONS.SetExternalExtensionDisabled.methods[0],
         mutationKey: [API_ENDPOINTS.EXTENSIONS.SetExternalExtensionDisabled.key],
         onSuccess: async (_data, variables) => {
-            toast.success(variables.disabled ? "Extension disabled." : "Extension enabled.")
+            toast.success(variables.disabled ? tr("Extension disabled.", "Erweiterung deaktiviert.") : tr("Extension enabled.", "Erweiterung aktiviert."))
         },
     })
 }

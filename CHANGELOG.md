@@ -37,6 +37,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 🦺 Auto select: Fixed "Best match" and auto select taking a live-action series or a remake with the same title, such as the 2023 One Piece series for the anime. A year in the release name that doesn't fit the anime now rules the release out
 - 🦺 Torrents: Fixed the Torrents tab counting paused and queued torrents as "Downloading". The list now has its own sections for downloading, waiting, stopped and done torrents
 - 🦺 Auto select: Fixed it taking a movie release for an episode of a series, such as "One Piece - Movie 01" for episode 1. Movie releases now only count for anime that are movies
+- 🦺 Extensions: Fixed the messages after installing, updating, removing, turning on or off an extension showing in English. They now use the app language and name the extension
 - 🦺 Keyboard: Fixed the keyboard popping up with old search text on another page after a tap or a swipe. A search field now lets go when you leave its page or a sheet opens
 
 ## 4.1.0 — 17.11.2026 (versionCode 40100)

@@ -239,9 +239,9 @@ function MarketRow({ t, extension, installed, onOpen, tourOn }: { t: Translate, 
                     onPress={() => {
                         pressTourTarget(installTarget)
                         install({ manifestUri: extension.manifestURI }, {
-                            onSuccess: response => {
+                            onSuccess: () => {
                                 setJustInstalled(true)
-                                toast.success(response?.message || t("Installed", "Installiert"))
+                                toast.success(t(`Installed ${name}`, `${name} installiert`))
                             },
                         })
                     }}

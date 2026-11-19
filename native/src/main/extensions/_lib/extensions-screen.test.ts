@@ -1,4 +1,6 @@
 import type { Extension_Extension, ExtensionRepo_AllExtensions } from "@/api/generated/types"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { findSelection, installedExtensionIds, isInsecureAddress, isWebUrl, lineDiff, marketplaceView, OVERVIEW_ROWS, userConfigValues } from "./extensions-screen"
 
@@ -131,5 +133,30 @@ describe("userConfigValues", () => {
     it("saves every field, typed value or default", () => {
         expect(userConfigValues([{ name: "a", default: "1" }, { name: "b" }, { name: "c", default: "x" }], { c: "typed" }))
             .toEqual({ a: "1", b: "", c: "typed" })
+    })
+})
+
+// 4.2.0 E (Pixel Tablet): "Successfully installed Nyaa" came in English with the app in German (the core's message)
+describe("extension toasts", () => {
+    const screens = ["extensions-phone-marketplace.tsx", "extensions-phone-sheets.tsx"]
+        .map(file => readFileSync(join(__dirname, "..", "_screens", file), "utf8")).join("\n")
+    const hooks = readFileSync(join(__dirname, "..", "..", "..", "api", "hooks", "extensions.hooks.ts"), "utf8")
+
+    it("say install, update and removal in the app language with the extension's name", () => {
+        expect(screens).not.toMatch(/response\?\.message/)
+        expect(screens).toMatch(/t\(`Installed \$\{name\}`, `\$\{name\} installiert`\)/)
+        expect(screens).toMatch(/t\(`Updated \$\{extension\.name \|\| extension\.id\}`/)
+        expect(screens).toMatch(/t\(`Uninstalled \$\{extension\.name \|\| extension\.id\}`/)
+        expect(hooks).not.toMatch(/toast\.success\("/)
+    })
+
+    it("are translated in every catalog", () => {
+        for (const language of ["es", "ru", "zh-Hans", "pt-BR", "fr", "ja"]) {
+            const catalog = JSON.parse(readFileSync(join(__dirname, "..", "..", "..", "lib", "i18n", `${language}.json`), "utf8")) as Record<string, string>
+            for (const key of ["Installed {0}", "Updated {0}", "Uninstalled {0}", "Extension disabled.", "Extension enabled."]) {
+                expect(catalog[key], `${language}: ${key}`).toBeTruthy()
+                if (key.includes("{0}")) expect(catalog[key]).toContain("{0}")
+            }
+        }
     })
 })

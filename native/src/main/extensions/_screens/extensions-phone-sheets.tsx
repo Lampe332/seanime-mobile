@@ -243,8 +243,9 @@ export function ExtensionSheet(props: ExtensionSheetProps) {
     const busy = uninstalling || toggling
 
     const installUpdate = () => install({ manifestUri: (fetchedNewer && latest!.manifestURI) || updateData?.manifestURI || extension.manifestURI }, {
-        onSuccess: response => {
-            toast.success(response?.message || t("Updated", "Aktualisiert"))
+        onSuccess: () => {
+            // in the app language: the core's message is English ("Successfully installed Nyaa")
+            toast.success(t(`Updated ${extension.name || extension.id}`, `${extension.name || extension.id} aktualisiert`))
             resetLatest()
         },
     })
@@ -333,7 +334,10 @@ export function ExtensionSheet(props: ExtensionSheetProps) {
                     <Button intent="secondary" onPress={() => setConfirmOpen(false)}>{t("Cancel", "Abbrechen")}</Button>
                     <Button intent="danger" onPress={() => {
                         setConfirmOpen(false)
-                        uninstall({ id: extension.id }, { onSuccess: () => props.onOpenChange(false) })
+                        uninstall({ id: extension.id }, { onSuccess: () => {
+                            toast.success(t(`Uninstalled ${extension.name || extension.id}`, `${extension.name || extension.id} deinstalliert`))
+                            props.onOpenChange(false)
+                        } })
                     }}>{t("Uninstall", "Deinstallieren")}</Button>
                 </>} />
         </Sheet>
@@ -354,7 +358,7 @@ export function MarketplaceSheet({ t, open, onOpenChange, extension, installed }
             footer={installed
                 ? <View className="min-h-12 flex-1 flex-row items-center justify-center gap-2"><Check size={18} color={colors.smTextMuted} /><Text className="font-semibold text-sm-text-muted">{t("Installed", "Installiert")}</Text></View>
                 : <Button size="lg" wrapperClassName="flex-1" loading={installing} leftIcon={<Download size={18} color="#ffffff" />}
-                    onPress={() => install({ manifestUri: extension.manifestURI }, { onSuccess: response => toast.success(response?.message || t("Installed", "Installiert")) })}>
+                    onPress={() => install({ manifestUri: extension.manifestURI }, { onSuccess: () => toast.success(t(`Installed ${extension.name || extension.id}`, `${extension.name || extension.id} installiert`)) })}>
                     {t("Install", "Installieren")}
                 </Button>}>
             {!installed && (isInsecureAddress(extension.manifestURI) || isInsecureAddress(extension.payloadURI)) && <InsecureLinkHint t={t} />}
@@ -476,8 +480,8 @@ export function AddExtensionSheet({ t, open, onOpenChange, installedIds, onBrows
                         {installedIds.has(found.id)
                             ? <View className="min-h-12 flex-row items-center justify-center gap-2"><Check size={18} color={colors.smTextMuted} /><Text className="font-semibold text-sm-text-muted">{t("Already installed", "Schon installiert")}</Text></View>
                             : <Button loading={installing} leftIcon={<Download size={18} color="#ffffff" />} onPress={() => install({ manifestUri: found.manifestURI }, {
-                                onSuccess: response => {
-                                    toast.success(response?.message || t("Installed", "Installiert"))
+                                onSuccess: () => {
+                                    toast.success(t(`Installed ${found.name || found.id}`, `${found.name || found.id} installiert`))
                                     onOpenChange(false)
                                 },
                             })}>{t("Install", "Installieren")}</Button>}
