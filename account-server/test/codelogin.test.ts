@@ -6,7 +6,7 @@ import worker from "../src/index";
 import { newCode } from "../src/codelogin";
 import { cleanup } from "../src/cron";
 import { rateKey } from "../src/ratelimit";
-import { api, b64, clientKeys, DEFAULT_KDF, freshEmail, freshIp, rand, signed, signupUser } from "./helpers";
+import { api, b64, challengeFor, clientKeys, DEFAULT_KDF, freshEmail, freshIp, newKey, rand, signed, signupUser } from "./helpers";
 
 interface SentMail {
   subject: string;
@@ -68,7 +68,7 @@ async function signInWithCode(email: string): Promise<CodeSession> {
 }
 
 async function turnOn(u: User, dek = b64(rand(32))) {
-  const res = await api("/v1/account/escrow", { method: "PUT", token: u.token, body: { dek, authKey: u.keys.authKey } });
+  const res = await api("/v1/account/escrow", { method: "PUT", token: u.token, body: { dek, dekProof: u.keys.dekProof, authKey: u.keys.authKey } });
   expect(res.status).toBe(204);
   return dek;
 }
@@ -231,7 +231,7 @@ describe("code sign-in", () => {
     const u = await signupUser();
     const password = await json(await api("/v1/auth/login", { body: { email: u.email, authKey: u.keys.authKey } }));
     const code = await signInWithCode(u.email);
-    expect(Object.keys(code).sort()).toEqual([...Object.keys(password), "codeLogin", "escrowDek"].sort());
+    expect(Object.keys(code).sort()).toEqual([...Object.keys(password), "codeLogin", "escrowDek", "recoveryWrappedDek"].sort());
     expect(code).toMatchObject({
       userId: u.userId,
       emailVerified: true,
@@ -266,7 +266,7 @@ describe("code only (escrow)", () => {
   it("turns on only with the right password from a device, and hands the key to a code sign-in", async () => {
     const u = await signupUser();
     const dek = b64(rand(32));
-    const bad = await api("/v1/account/escrow", { method: "PUT", token: u.token, body: { dek, authKey: b64(rand(32)) } });
+    const bad = await api("/v1/account/escrow", { method: "PUT", token: u.token, body: { dek, dekProof: u.keys.dekProof, authKey: b64(rand(32)) } });
     expect(bad.status).toBe(403);
     expect(await json(bad)).toMatchObject({ error: "wrong_password" });
     expect((await escrowRow(u.userId))?.escrow_dek).toBeNull();
@@ -451,5 +451,180 @@ describe("cron", () => {
     await cleanup(env);
     const left = await env.DB.prepare("SELECT user_id FROM sign_in_codes WHERE user_id IN (?, ?, ?)").bind(a.userId, b.userId, c.userId).all<{ user_id: string }>();
     expect(left.results.map((r) => r.user_id)).toEqual([c.userId]);
+  });
+});
+
+describe("review 4.2.0 (M1 to N4)", () => {
+  /** A network of its own, distinct /24 from freshIp's 10.x */
+  const net = () => `172.${16 + (rand(1)[0]! % 16)}.${rand(1)[0]}.${1 + (rand(1)[0]! % 200)}`;
+  const t = () => Math.floor(Date.now() / 1000);
+  /** The owner signs in with a code once from `ip`: that network is the owner's from then on */
+  async function ownerAt(ip: string) {
+    const u = await signupUser();
+    expect((await requestCode(u.email, ip)).res.status).toBe(200);
+    expect((await codeLogin(u.email, await mailedCode(u.email), ip)).status).toBe(200);
+    return u;
+  }
+  const toGoogleOnly = (userId: string) =>
+    env.DB.prepare("UPDATE users SET auth_hash = NULL, pepper_version = NULL, google_sub = ? WHERE id = ?").bind(`g-${b64(rand(6))}`, userId).run();
+
+  it("M1: 20 wrong tries from strangers' networks never hold up the owner's network", async () => {
+    const home = net();
+    const u = await ownerAt(home);
+    // the owner's first sign-in came from a network not known yet and counted as one of the 20
+    for (let i = 0; i < 19; i++) expect((await codeLogin(u.email, "000000", net())).status).toBe(401);
+    expect((await codeLogin(u.email, "000000", net())).status).toBe(429);
+    expect((await requestCode(u.email, home)).res.status).toBe(200);
+    expect((await codeLogin(u.email, await mailedCode(u.email), home)).status).toBe(200);
+  });
+
+  it("M1: 60 code requests from 20 strangers' networks never silence the owner's code mail", async () => {
+    const home = net();
+    const u = await ownerAt(home);
+    for (let n = 0; n < 20; n++) {
+      const stranger = net();
+      for (let i = 0; i < 3; i++) await requestCode(u.email, stranger);
+    }
+    await sink.take(u.email);
+    expect((await requestCode(u.email, home)).res.status).toBe(200);
+    expect((await codeLogin(u.email, await mailedCode(u.email), home)).status).toBe(200);
+  });
+
+  it("N2: 50 tries a week from strangers' networks, the owner's network is not counted", async () => {
+    const home = net();
+    const u = await ownerAt(home);
+    // the owner's first code sign-in came from a network not known yet: it counted
+    const week = async () => env.DB.prepare("SELECT count FROM rate_limits WHERE key = ?").bind(await rateKey(env, "code-try-week", u.email)).first();
+    expect(await week()).toEqual({ count: 1 });
+    await codeLogin(u.email, "000000", net());
+    expect(await week()).toEqual({ count: 2 });
+    expect((await requestCode(u.email, home)).res.status).toBe(200);
+    expect((await codeLogin(u.email, await mailedCode(u.email), home)).status).toBe(200);
+    expect(await week()).toEqual({ count: 2 });
+    await env.DB.prepare("UPDATE rate_limits SET count = 50, expires_at = ? WHERE key = ?")
+      .bind(t() + 6 * 24 * 3600, await rateKey(env, "code-try-week", u.email))
+      .run();
+    expect((await requestCode(u.email, home)).res.status).toBe(200);
+    const code = await mailedCode(u.email);
+    const stranger = await codeLogin(u.email, code, net());
+    expect(stranger.status).toBe(429);
+    expect(stranger.headers.get("Retry-After")).not.toBeNull();
+    expect((await codeLogin(u.email, code, home)).status).toBe(200);
+  });
+
+  it("N2: the owner's network has its own cap of 20 tries a day", async () => {
+    const home = net();
+    const u = await ownerAt(home);
+    await env.DB.prepare("INSERT INTO rate_limits (key, count, last_at, expires_at) VALUES (?, 20, ?, ?)")
+      .bind(await rateKey(env, "code-try-net", `${u.email}|${home.split(".").slice(0, 3).join(".")}.0/24`), t(), t() + 3600)
+      .run();
+    expect((await codeLogin(u.email, "000000", home)).status).toBe(429);
+    // strangers elsewhere are not held up by it, and neither is the owner on another network
+    expect((await codeLogin(u.email, "000000", net())).status).toBe(401);
+  });
+
+  it("M2: a Google-only account gets no code, the same answer as an unknown address", async () => {
+    const u = await signupUser();
+    await toGoogleOnly(u.userId);
+    await sink.take(u.email);
+    const ghost = await requestCode(freshEmail("ghost"));
+    const google = await requestCode(u.email);
+    expect(google.res.status).toBe(200);
+    expect(await google.res.text()).toBe(await ghost.res.text());
+    expect(await sink.take(u.email)).toHaveLength(0);
+    expect(await env.DB.prepare("SELECT 1 FROM sign_in_codes WHERE user_id = ?").bind(u.userId).first()).toBeNull();
+  });
+
+  it("M2: a code from before the password went never signs in", async () => {
+    const u = await signupUser();
+    const code = await freshCode(u.email);
+    await toGoogleOnly(u.userId);
+    const res = await codeLogin(u.email, code);
+    expect(res.status).toBe(401);
+    expect(await json(res)).toMatchObject({ error: "invalid_code" });
+  });
+
+  it("M2: a code session of a Google-only account owns nothing", async () => {
+    const u = await signupUser();
+    const s = await signInWithCode(u.email);
+    await toGoogleOnly(u.userId);
+    const k = clientKeys();
+    const fresh = await api("/v1/account/start-fresh", {
+      token: s.sessionToken,
+      body: { dekId: k.dekId, dekProof: k.dekProof, device: { name: "Phone", devicePub: k.devicePub, sealedDek: k.sealedDek, mac: k.mac } },
+    });
+    expect(fresh.status).toBe(403);
+    expect(await json(fresh)).toMatchObject({ error: "owner_required" });
+    const after = await api("/v1/account/password/after-code", {
+      token: s.sessionToken,
+      body: { authKey: b64(rand(32)), salt: b64(rand(16)), kdf: DEFAULT_KDF, wrappedDek: b64(rand(72)), dekId: u.keys.dekId, dekProof: u.keys.dekProof },
+    });
+    expect(after.status).toBe(409);
+    expect(await json(after)).toMatchObject({ error: "no_password" });
+    const del = await api("/v1/account", { method: "DELETE", token: s.sessionToken });
+    expect(del.status).toBe(403);
+    expect(await json(del)).toMatchObject({ error: "owner_required" });
+    expect(await env.DB.prepare("SELECT auth_hash, google_sub IS NOT NULL AS g FROM users WHERE id = ?").bind(u.userId).first()).toEqual({
+      auth_hash: null,
+      g: 1,
+    });
+  });
+
+  it("N1: a code session removes devices only with code only on", async () => {
+    const u = await signupUser();
+    const s = await signInWithCode(u.email);
+    const res = await api(`/v1/devices/${u.deviceId}`, { method: "DELETE", token: s.sessionToken });
+    expect(res.status).toBe(403);
+    expect(await json(res)).toMatchObject({ error: "owner_required" });
+    expect(await env.DB.prepare("SELECT 1 AS k FROM devices WHERE id = ?").bind(u.deviceId).first()).toEqual({ k: 1 });
+
+    const v = await signupUser();
+    await turnOn(v);
+    const sv = await signInWithCode(v.email);
+    expect((await api(`/v1/devices/${v.deviceId}`, { method: "DELETE", token: sv.sessionToken })).status).toBe(204);
+  });
+
+  it("N3: code only needs the DEK proof of the account's current key", async () => {
+    const u = await signupUser();
+    const dek = b64(rand(32));
+    const put = (body: Record<string, unknown>) => api("/v1/account/escrow", { method: "PUT", token: u.token, body });
+    expect((await put({ dek, authKey: u.keys.authKey })).status).toBe(400);
+    const stale = await put({ dek, dekProof: b64(rand(32)), authKey: u.keys.authKey });
+    expect(stale.status).toBe(409);
+    expect(await json(stale)).toMatchObject({ error: "dek_mismatch" });
+    expect((await escrowRow(u.userId))?.escrow_dek).toBeNull();
+    expect((await put({ dek, dekProof: u.keys.dekProof, authKey: u.keys.authKey })).status).toBe(204);
+  });
+
+  it("N4: a broken ESCROW_KEY neither uses up the code nor leaves a session", async () => {
+    const u = await signupUser();
+    const dek = await turnOn(u);
+    const code = await freshCode(u.email);
+    const key = await newKey();
+    const request = await signed(
+      new Request("https://api.example.com/v1/auth/code/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "CF-Connecting-IP": freshIp() },
+        body: JSON.stringify({ email: u.email, code, challenge: await challengeFor(u.email), sigKey: { alg: key.alg, pub: key.pub } }),
+      }),
+      key,
+    );
+    // a view of env with the secret missing (env itself stays untouched for the other tests)
+    const broken = new Proxy(env, { get: (target, name) => (name === "ESCROW_KEY" ? "" : Reflect.get(target, name)) });
+    const res = await workerFetch(request, broken, createExecutionContext());
+    expect(res.status).toBe(500);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM sessions WHERE user_id = ? AND code_auth = 1").bind(u.userId).first()).toEqual({ n: 0 });
+    expect(await env.DB.prepare("SELECT 1 AS k FROM sign_in_codes WHERE user_id = ?").bind(u.userId).first()).toEqual({ k: 1 });
+    const ok = await codeLogin(u.email, code);
+    expect(ok.status).toBe(200);
+    expect(await json(ok)).toMatchObject({ escrowDek: dek });
+  });
+
+  it("answers recoveryWrappedDek like auth/google", async () => {
+    const u = await signupUser();
+    const wrap = b64(rand(72));
+    await env.DB.prepare("UPDATE users SET recovery_wrapped_dek = ? WHERE id = ?").bind(wrap, u.userId).run();
+    expect(await signInWithCode(u.email)).toMatchObject({ recoveryWrappedDek: wrap });
+    expect(await signInWithCode((await signupUser()).email)).toMatchObject({ recoveryWrappedDek: null });
   });
 });

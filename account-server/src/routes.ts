@@ -74,7 +74,8 @@ const ownerRequired = () =>
  * S3 (I3): a session owns the account when its sign-in checked the password (within the last 10 minutes, checked by the
  * caller) or it shows the recovery proof. The DEK proof alone never does: a copied key is no account.
  * `codeOwns`: where the caller lets a code sign-in (the mailbox) count as well: joining an account whose owner turned on
- * "code only", and Start fresh (the mailbox could get there through a reset anyway).
+ * "code only", and Start fresh (the mailbox could get there through a reset anyway). M2: never for an account without a
+ * password, which has no reset either; its mailbox alone owns nothing.
  */
 async function isOwner(
   session: Session,
@@ -84,7 +85,7 @@ async function isOwner(
 ): Promise<boolean> {
   return (
     (session.passwordAuth && user.auth_hash !== null) ||
-    (codeOwns && session.codeAuth) ||
+    (codeOwns && session.codeAuth && user.auth_hash !== null) ||
     (await proofMatches(user.recovery_proof, recoveryProof))
   );
 }
@@ -315,12 +316,19 @@ export async function listDevices(ctx: Ctx): Promise<Response> {
 /**
  * Removes a device (plan 6.9, the website's way; the app removes by leaving a device out of a key change, rotate.ts).
  * NEU-2: its sessions hear "device_removed" from now on (the app then drops the key), its device key can never be bound
- * to the account again, and the account is asked to change the key. M-3, I5: mailed and listed.
+ * to the account again, and the account is asked to change the key. M-3, I5: mailed and listed. N1: a code session only
+ * as the owner (with "code only" on), never by the mailbox alone.
  */
 export async function deleteDevice(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
   const session = await requireSession(ctx.request, env);
   requireRecentAuth(session);
+  if (session.codeAuth) {
+    const user = await env.DB.prepare("SELECT auth_hash, recovery_proof, escrow_dek FROM users WHERE id = ?")
+      .bind(session.userId)
+      .first<{ auth_hash: string | null; recovery_proof: string | null; escrow_dek: string | null }>();
+    if (!user || !(await isOwner(session, user, undefined, user.escrow_dek !== null))) throw ownerRequired();
+  }
   const id = Uuid.safeParse(ctx.params.id);
   if (!id.success) throw new HttpError(404, "not_found");
   const row = await env.DB.prepare(
@@ -573,6 +581,8 @@ export async function deleteAccount(ctx: Ctx): Promise<Response> {
   } else {
     requireRecentAuth(session);
     if (user && user.auth_hash !== null && !(await isOwner(session, user))) throw ownerRequired();
+    // M2: an account without a password goes with its Google sign-in, never with a code from its mailbox
+    if (user && user.auth_hash === null && session.codeAuth) throw ownerRequired();
   }
   if (await deleteUserData(ctx.env, session.userId)) {
     if (user) await sendMail(ctx.env, user.email, { kind: "account_deleted" });
@@ -690,6 +700,8 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
   // the password as well). A Google-only account has none; its recent Google sign-in is the owner's (Nick 18.11.: Google
   // without a password stays). Either way mailed and listed.
   if (user.auth_hash !== null && !(await isOwner(session, user, undefined, true))) throw ownerRequired();
+  // M2: a code never owns an account without a password
+  if (user.auth_hash === null && session.codeAuth) throw ownerRequired();
   if (user.dek_id === body.dekId) throw new HttpError(400, "invalid_request", "dekId must be new", {}, { fields: ["dekId"] });
   if (await wasRemoved(env, session.userId, body.device.devicePub)) throw removedError();
 

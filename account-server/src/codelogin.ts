@@ -10,7 +10,7 @@ import { fromB64url, hmacSha256, randomBytes, safeEqual, toB64url } from "./cryp
 import { clientIp, HttpError, json, noContent, readJson } from "./http";
 import { requirePassword } from "./identity";
 import { notify, sendMail } from "./mail";
-import { burstLimit, fixedWindow, ipKey, isKnownNetwork, mailAllowed, rateKey, reserveLoginIp } from "./ratelimit";
+import { burstLimit, fixedWindow, ipKey, ipRange, isKnownNetwork, mailAllowed, rateKey, rememberNetwork, reserveLoginIp } from "./ratelimit";
 import { authHash, type Ctx, HOUR, keyRequired, PEPPER_VERSION, proofMatches, withSession } from "./routes";
 import { AfterCodeBody, CodeLoginBody, CodeRequestBody, DEFAULT_KDF, EscrowBody } from "./schemas";
 import { newSession, now, requireDevice, requireSession } from "./session";
@@ -20,11 +20,19 @@ export const CODE_TTL = 10 * 60;
 export const CODE_MAX_ATTEMPTS = 5;
 /** Codes asked for per hour per (email, IP address or IPv6 /48), like reset links */
 export const CODE_LIMIT_EMAIL = 3;
-/** Code tries per email per day across all networks, so guessing stays far from the 10^6 codes */
+/** Code tries per email per day across all networks the account never signed in from, so guessing stays far from 10^6 */
 export const CODE_TRIES_EMAIL_DAY = 20;
+/**
+ * N2: and per week across those networks. 20 a day alone allow ~7300 tries a year (0.7 % to hit one code); 50 a week
+ * allow ~2600 (0.26 %). A fixed cap, not a growing wait: it only ever holds up strangers' networks, never the owner's.
+ */
+export const CODE_TRIES_EMAIL_WEEK = 50;
+/** M1: a network the account signed in from (NEU4-1) has its own cap per day instead, which strangers elsewhere can't use up */
+export const CODE_TRIES_NETWORK_DAY = 20;
 /** How long a code sign-in may set a new password without the old one */
 export const AFTER_CODE_SECONDS = 15 * 60;
 const DAY = 24 * 3600;
+const WEEK = 7 * DAY;
 
 const invalidCode = () => new HttpError(401, "invalid_code", "This code is wrong or expired.");
 
@@ -99,7 +107,9 @@ export async function codeRequest(ctx: Ctx): Promise<Response> {
   await burstLimit(env.LOGIN_LIMITER, ip);
   const { email } = await readJson(request, CodeRequestBody);
   await fixedWindow(env, await rateKey(env, "code-email", `${email}|${ipKey(ip)}`), CODE_LIMIT_EMAIL, HOUR);
-  const user = await env.DB.prepare("SELECT id FROM users WHERE email = ?").bind(email).first<{ id: string }>();
+  // M2: only accounts with a password get a code (like a reset link); a Google-only account answers like an unknown one,
+  // or its mailbox alone would own it
+  const user = await env.DB.prepare("SELECT id FROM users WHERE email = ? AND auth_hash IS NOT NULL").bind(email).first<{ id: string }>();
   if (user) ctx.waitUntil(sendCode(env, user.id, email, ip));
   return json({ sent: true });
 }
@@ -135,27 +145,36 @@ export async function codeLogin(ctx: Ctx): Promise<Response> {
   // the login counter per IP first, like auth/login (NEU3-7)
   const ipBack = await reserveLoginIp(env, ip);
   await verifySignIn(env, request, body.sigKey, body.challenge, `email:${body.email}`);
-  // across networks, counted for unknown emails too
-  await fixedWindow(env, await rateKey(env, "code-try-all", body.email), CODE_TRIES_EMAIL_DAY, DAY);
+  // M2: never for an account without a password, even with a code from before
+  const account = await env.DB.prepare("SELECT id FROM users WHERE email = ? AND auth_hash IS NOT NULL")
+    .bind(body.email)
+    .first<{ id: string }>();
+  // M1 (like NEU4-1): a network the account signed in from has its own cap; every other one counts per email across
+  // networks, per day and per week (N2), so strangers there are held up and the owner's network never is. The same work
+  // for unknown emails, which always count across networks.
+  if (await isKnownNetwork(env, account?.id ?? "-", ip)) {
+    await fixedWindow(env, await rateKey(env, "code-try-net", `${body.email}|${ipRange(ip)}`), CODE_TRIES_NETWORK_DAY, DAY);
+  } else {
+    await fixedWindow(env, await rateKey(env, "code-try-all", body.email), CODE_TRIES_EMAIL_DAY, DAY);
+    await fixedWindow(env, await rateKey(env, "code-try-week", body.email), CODE_TRIES_EMAIL_WEEK, WEEK);
+  }
 
   const row = await env.DB.prepare(
     `UPDATE sign_in_codes SET attempts = attempts + 1
-     WHERE user_id = (SELECT id FROM users WHERE email = ?) AND expires_at > ? AND attempts < ?
+     WHERE user_id = ? AND expires_at > ? AND attempts < ?
      RETURNING user_id, code_hash`,
   )
-    .bind(body.email, now(), CODE_MAX_ATTEMPTS)
+    .bind(account?.id ?? "", now(), CODE_MAX_ATTEMPTS)
     .first<{ user_id: string; code_hash: string }>();
   // the same work without a code: an HMAC and a compare against zeros
   const presented = await codeHash(env, row?.user_id ?? "-", body.code);
   const stored = row ? fromB64url(row.code_hash) : null;
   const match = safeEqual(presented, stored ?? new Uint8Array(32));
   if (!row || !stored || !match) throw invalidCode();
-  const used = await env.DB.prepare("DELETE FROM sign_in_codes WHERE user_id = ? AND code_hash = ? RETURNING user_id")
-    .bind(row.user_id, row.code_hash)
-    .first();
-  if (!used) throw invalidCode();
 
-  const user = await env.DB.prepare("SELECT id, kdf_params, wrapped_dek, dek_id, rewrap_needed, escrow_dek FROM users WHERE id = ?")
+  const user = await env.DB.prepare(
+    "SELECT id, kdf_params, wrapped_dek, dek_id, rewrap_needed, escrow_dek, recovery_wrapped_dek FROM users WHERE id = ?",
+  )
     .bind(row.user_id)
     .first<{
       id: string;
@@ -164,14 +183,24 @@ export async function codeLogin(ctx: Ctx): Promise<Response> {
       dek_id: string | null;
       rewrap_needed: number;
       escrow_dek: string | null;
+      recovery_wrapped_dek: string | null;
     }>();
   if (!user) throw invalidCode();
+  // N4: opened before the code is used up, so a missing or broken ESCROW_KEY (500) leaves the code and no session.
+  // Only when the owner turned on "code only"; otherwise the device unlocks like any new one.
+  const escrowDek = user.escrow_dek && user.dek_id ? await openEscrow(env, user.id, user.dek_id, user.escrow_dek) : null;
+  const used = await env.DB.prepare("DELETE FROM sign_in_codes WHERE user_id = ? AND code_hash = ? RETURNING user_id")
+    .bind(row.user_id, row.code_hash)
+    .first();
+  if (!used) throw invalidCode();
   const session = await newSession(env, user.id, null, body.sigKey, false, true);
   await env.DB.batch([
     session.statement,
     ipBack,
     // the code came to this address, so it is confirmed now (like a reset)
     env.DB.prepare("UPDATE users SET last_active_at = ?, email_verified = 1 WHERE id = ?").bind(now(), user.id),
+    // M1: this network is the owner's from now on (NEU4-1)
+    await rememberNetwork(env, user.id, ip),
   ]);
   return withSession(ctx, session.token, {
     userId: user.id,
@@ -181,8 +210,9 @@ export async function codeLogin(ctx: Ctx): Promise<Response> {
     dekId: user.dek_id,
     rewrapNeeded: user.rewrap_needed === 1,
     codeLogin: true,
-    // only when the owner turned on "code only"; otherwise the device unlocks like any new one
-    escrowDek: user.escrow_dek && user.dek_id ? await openEscrow(env, user.id, user.dek_id, user.escrow_dek) : null,
+    // like auth/google: the device may unlock with the recovery code
+    recoveryWrappedDek: user.recovery_wrapped_dek,
+    escrowDek,
   });
 }
 
@@ -198,9 +228,13 @@ export async function putEscrow(ctx: Ctx): Promise<Response> {
   requireDevice(session);
   const body = await readJson(ctx.request, EscrowBody);
   const email = await requirePassword(env, ctx.request, session, body.authKey);
-  const user = await env.DB.prepare("SELECT dek_id FROM users WHERE id = ?").bind(session.userId).first<{ dek_id: string | null }>();
+  const user = await env.DB.prepare("SELECT dek_id, dek_proof FROM users WHERE id = ?")
+    .bind(session.userId)
+    .first<{ dek_id: string | null; dek_proof: string | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
   if (user.dek_id === null) throw new HttpError(409, "no_key", "This account has no key yet.");
+  // N3: the proof of the key the device holds must be the account's, so a device with an older key never seals that one
+  if (!(await proofMatches(user.dek_proof, body.dekProof))) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
   const box = await sealEscrow(env, session.userId, user.dek_id, body.dek);
   const res = await env.DB.prepare("UPDATE users SET escrow_dek = ? WHERE id = ? AND dek_id = ?")
     .bind(box, session.userId, user.dek_id)
@@ -235,17 +269,19 @@ export async function passwordAfterCode(ctx: Ctx): Promise<Response> {
     throw new HttpError(403, "reauth_required", "Sign in with a code again to continue.");
   }
   const body = await readJson(ctx.request, AfterCodeBody);
-  const user = await env.DB.prepare("SELECT email, dek_id, dek_proof FROM users WHERE id = ?")
+  const user = await env.DB.prepare("SELECT email, dek_id, dek_proof, auth_hash FROM users WHERE id = ?")
     .bind(session.userId)
-    .first<{ email: string; dek_id: string | null; dek_proof: string | null }>();
+    .first<{ email: string; dek_id: string | null; dek_proof: string | null; auth_hash: string | null }>();
   if (!user) throw new HttpError(401, "unauthorized");
+  // M2: a mailbox never gives a Google-only account a password (it would own the account then)
+  if (user.auth_hash === null) throw new HttpError(409, "no_password", "This account has no password.");
   if (user.dek_id === null || user.dek_id !== body.dekId) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
   if (session.deviceId === null && !(await proofMatches(user.dek_proof, body.dekProof))) throw keyRequired();
   const hash = toB64url(await authHash(env, body.authKey));
   const res = await env.DB.prepare(
     `UPDATE users SET kdf_salt = ?, kdf_params = ?, auth_hash = ?, pepper_version = ?, wrapped_dek = ?, rewrap_needed = 0,
        google_sub = NULL
-     WHERE id = ? AND dek_id = ?`,
+     WHERE id = ? AND dek_id = ? AND auth_hash IS NOT NULL`,
   )
     .bind(body.salt, JSON.stringify(body.kdf), hash, PEPPER_VERSION, body.wrappedDek, session.userId, body.dekId)
     .run();

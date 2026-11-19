@@ -219,8 +219,8 @@ export const CodeLoginBody = z.strictObject({
   sigKey: SigKeyBody,
 });
 
-/** "Code only" on: the raw DEK (32 bytes) and the password again */
-export const EscrowBody = z.strictObject({ dek: b64Exact(32), authKey: AuthKey });
+/** "Code only" on: the raw DEK (32 bytes), its DEK proof (N3, must be the account's) and the password again */
+export const EscrowBody = z.strictObject({ dek: b64Exact(32), dekProof: DekProof, authKey: AuthKey });
 
 /** A new password after a code sign-in; the DEK proof is needed while the session has no device row (like account/password) */
 export const AfterCodeBody = z.strictObject({
