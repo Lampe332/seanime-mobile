@@ -1,6 +1,6 @@
 import { createStore } from "jotai"
 import { afterEach, describe, expect, it } from "vitest"
-import { APP_LANGUAGES, appLanguageAtom, asAppLanguage, getAppLanguage, languageForLocale, tr, translate } from "./app-language"
+import { APP_LANGUAGES, type AppLanguage, appLanguageAtom, asAppLanguage, getAppLanguage, languageForLocale, plural, tr, translate } from "./app-language"
 import es from "./i18n/es.json"
 import { storage } from "./storage"
 
@@ -79,5 +79,17 @@ describe("stored language", () => {
         storage.set(KEY, JSON.stringify("xx"))
         expect(asAppLanguage(getAppLanguage())).toBeDefined()
         expect(getAppLanguage()).not.toBe("xx")
+    })
+})
+
+describe("plural", () => {
+    // C2 of the device test: a playlist with one episode showed "1 episodes"
+    const episodes = (language: AppLanguage, n: number) => plural((en, de) => translate(language, en, de), n, ["1 episode", "{0} episodes"], ["1 Episode", "{0} Episoden"])
+
+    it("counts episodes in the form of each language", () => {
+        expect([1, 2].map(n => episodes("en", n))).toEqual(["1 episode", "2 episodes"])
+        expect([1, 2].map(n => episodes("de", n))).toEqual(["1 Episode", "2 Episoden"])
+        expect([1, 3, 5, 21].map(n => episodes("ru", n))).toEqual(["1 серия", "3 серии", "5 серий", "21 серия"])
+        expect([1, 2].map(n => episodes("fr", n))).toEqual(["1 épisode", "2 épisodes"])
     })
 })

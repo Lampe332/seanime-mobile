@@ -6,12 +6,12 @@ import { cn } from "@/components/ui/core/styling"
 import { Sheet } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import { useTr } from "@/lib/app-language"
+import { plural, useTr } from "@/lib/app-language"
 import { successFeedback } from "@/lib/feedback"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
 import { askForDownloadNotices } from "@/main/android-downloads/_lib/download-notifications"
-import { activePreset, batchRequest, downloadPresets, episodeWord, storedEpisodes } from "@/main/android-downloads/_lib/offline-library"
+import { activePreset, batchRequest, downloadPresets, storedEpisodes } from "@/main/android-downloads/_lib/offline-library"
 import { Image } from "expo-image"
 import Download from "lucide-react-native/icons/download"
 import React from "react"
@@ -102,7 +102,7 @@ export function EpisodeDownloadButton({ media, episodes, provider, server, quali
                     {!!cover && <Image source={cover} contentFit="cover" style={{ width: 48, height: 68, borderRadius: 8 }} accessibilityIgnoresInvertColors />}
                     <View className="min-w-0 flex-1 gap-0.5">
                         <Text numberOfLines={2} className="text-[15px] font-semibold">{media.title?.userPreferred || media.title?.romaji}</Text>
-                        <Muted className="text-[13px]">{[`${all.length} ${episodeWord(all.length, t)}`, dubbed ? "Dub" : t("Original audio", "Originalton"), provider, quality || "Auto"].filter(Boolean).join(" · ")}</Muted>
+                        <Muted className="text-[13px]">{[plural(t, all.length, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"]), dubbed ? "Dub" : t("Original audio", "Originalton"), provider, quality || "Auto"].filter(Boolean).join(" · ")}</Muted>
                     </View>
                 </View>
                 <View className="flex-row flex-wrap gap-2" accessibilityLabel={t("Quick selection", "Schnellauswahl")}>

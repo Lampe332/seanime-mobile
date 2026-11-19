@@ -87,8 +87,6 @@ export const clock = (positionMs: number) =>
 /** AniList descriptions carry HTML; the detail shows plain text. */
 export const plainText = (value?: string) => (value ?? "").replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").trim()
 
-export const episodeWord = (count: number, t: Translate) => count === 1 ? t("episode", "Folge") : t("episodes", "Folgen")
-
 export const totalBytes = (items: OfflineItem[]) => items.reduce((sum, item) => sum + item.bytes, 0)
 
 /** Bytes in folders (expo-file-system's Directory.size, the saved manga chapters); a missing or unreadable folder counts 0 */

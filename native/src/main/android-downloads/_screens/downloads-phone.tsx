@@ -32,7 +32,7 @@ import X from "lucide-react-native/icons/x"
 import React from "react"
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native"
 import {
-    animeKey, canResume, clock, type DownloadFilter, episodeWord, filterGroups, folderBytes, formatSize, groupItems, isActive, nextEpisode, offlineColumns,
+    animeKey, canResume, clock, type DownloadFilter, filterGroups, folderBytes, formatSize, groupItems, isActive, nextEpisode, offlineColumns,
     type OfflineGroup, type OfflineItem, plainText, resumeAction, showsProgress, STARTED_MS, startedItems, stateLabel, totalBytes, watchedShare,
 } from "../_lib/offline-library"
 import { usePlayOffline } from "../_lib/use-offline"
@@ -118,7 +118,7 @@ export function DownloadsPhone({ kind, animeKey: selectedKey, mangaId = 0 }: {
     // nothing saved yet: one plain line instead of "0 Anime · 0 episodes · 0 MB" (S22 15.11.)
     const facts = kind === "anime" && snapshot
         ? items.length === 0 ? t("Nothing downloaded yet", "Noch nichts heruntergeladen")
-            : `${t(`${groups.length} anime`, `${groups.length} Anime`)} · ${items.length} ${episodeWord(items.length, t)} · ${size(totalBytes(items))}`
+            : `${t(`${groups.length} anime`, `${groups.length} Anime`)} · ${plural(t, items.length, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])} · ${size(totalBytes(items))}`
         : kind === "torrents" ? t("Saved to your library folder", "In deinem Bibliotheksordner gespeichert") : t("Saved on this device", "Auf diesem Gerät gespeichert")
 
     let body: React.ReactNode
@@ -168,7 +168,7 @@ export function DownloadsPhone({ kind, animeKey: selectedKey, mangaId = 0 }: {
             <RowGroup>
                 {deletingGroups.map(group => <View key={group.key} className="gap-0.5 bg-sm-surface-raised px-3.5 py-2.5">
                     <Text className="text-[15px] font-semibold">{group.items[0].title}</Text>
-                    <Muted className="text-[13px]">{group.items.length} {episodeWord(group.items.length, t)} · {size(totalBytes(group.items))}</Muted>
+                    <Muted className="text-[13px]">{plural(t, group.items.length, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])} · {size(totalBytes(group.items))}</Muted>
                 </View>)}
             </RowGroup>
         </Dialog>
@@ -328,7 +328,7 @@ function Overview({ items, groups, waiting, wifiOnly, size, selecting, picked, s
                             </View>
                             <Text numberOfLines={2} className="text-[13px] font-medium leading-[18px]">{item.title}</Text>
                             <Text className="text-xs text-sm-text-subtle" style={{ fontVariant: ["tabular-nums"] }}>
-                                {[ready ? `${ready} ${episodeWord(ready, t)}` : null, size(totalBytes(group.items))].filter(Boolean).join(" · ")}
+                                {[ready ? plural(t, ready, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"]) : null, size(totalBytes(group.items))].filter(Boolean).join(" · ")}
                             </Text>
                             {pending > 0 && <Text className="text-xs text-sm-accent">{pending} {t("pending", "ausstehend")}</Text>}
                         </Pressable>

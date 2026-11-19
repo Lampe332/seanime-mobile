@@ -333,7 +333,7 @@ export function MonthGrid({ days, selected, weekStartsOn, counts, onSelect }: { 
                     return (
                         <View key={day.date} style={{ width: `${100 / 7}%` }} className="p-0.5">
                             <Pressable accessibilityRole="button" accessibilityState={{ selected: pressed }} onPress={() => onSelect(day.date)}
-                                accessibilityLabel={`${format(parseISO(day.date), "dd.MM.yyyy")}, ${count} ${t("episodes", "Folgen")}${day.isToday ? t(", today", ", heute") : ""}`}
+                                accessibilityLabel={`${format(parseISO(day.date), "dd.MM.yyyy")}, ${plural(t, count, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])}${day.isToday ? t(", today", ", heute") : ""}`}
                                 className={cn("min-h-[52px] items-center justify-center gap-0.5 rounded-surface-sm",
                                     pressed ? "bg-brand-500" : count > 0 ? "bg-sm-surface-raised active:bg-sm-surface-control" : "active:bg-sm-surface-control",
                                     !day.isCurrentMonth && "opacity-40")}>

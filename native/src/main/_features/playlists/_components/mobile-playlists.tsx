@@ -8,7 +8,7 @@ import { Select } from "@/components/ui/select/select"
 import { Sheet } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import { type Translate, useTr } from "@/lib/app-language"
+import { type Translate, plural, useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
 import { useHasDebridService, useHasOnlineStreaming, useHasTorrentStreaming } from "@/main/_hooks/use-server-status"
 import { Image } from "expo-image"
@@ -172,7 +172,7 @@ export function MobilePlaylists() {
         : step === "episodes" ? t("Select episodes", "Episoden auswählen") : step === "delete" ? t("Delete playlist?", "Playlist löschen?")
             : draft.dbId !== undefined ? t("Edit playlist", "Playlist bearbeiten") : t("New playlist", "Neue Playlist")
     const subtitle = step === "episodes" ? (media?.media?.title?.userPreferred || media?.media?.title?.romaji)
-        : step !== "list" ? `${draft.episodes.length} / ${MAX_PLAYLIST_EPISODES} ${t("episodes", "Episoden")}` : undefined
+        : step !== "list" ? `${draft.episodes.length} / ${plural(t, MAX_PLAYLIST_EPISODES, ["1 episode", "{0} episodes"], ["1 Episode", "{0} Episoden"])}` : undefined
 
     const footer = step === "list"
         ? <Button size="lg" wrapperClassName="flex-1" disabled={libraryLoading} onPress={() => openEditor()}>
@@ -207,7 +207,7 @@ export function MobilePlaylists() {
                         <Thumbnail src={playlist.episodes?.[0]?.episode?.baseAnime?.coverImage?.large} />
                         <View className="min-w-0 flex-1 gap-1">
                             <Text className="font-semibold">{playlist.name}</Text>
-                            <Text className="text-[13px] text-sm-text-muted">{playlist.episodes?.length ?? 0} {t("episodes", "Episoden")}</Text>
+                            <Text className="text-[13px] text-sm-text-muted">{plural(t, playlist.episodes?.length ?? 0, ["1 episode", "{0} episodes"], ["1 Episode", "{0} Episoden"])}</Text>
                         </View>
                         <View className="flex-row gap-1">
                             <RoundAction label={`${manager.selectedMedia ? t("Add to", "Hinzufügen zu") : t("Edit", "Bearbeiten")}: ${playlist.name}`}
