@@ -4,11 +4,12 @@ import { describe, expect, it, vi } from "vitest"
 import type { ApprovalRequest } from "@/core/account/client"
 import { RELEASE_ACCOUNT_API, accountApiBase } from "./account-config"
 import { type Translate, translate } from "@/lib/app-language"
-import { AccountApiError, MailConfirmationError, UnauthorizedError } from "@/core/account/client"
+import { AccountApiError, MailConfirmationError, RateLimitedError, UnauthorizedError } from "@/core/account/client"
+import { UntrustedEscrowError } from "@/core/account/crypto"
 import type { ApprovalProgress } from "@/core/account/devices"
 import {
-    accountDate, accountErrorText, accountPhase, formatRecoveryCode, formatSas, importFailureText, passwordStrength, repeatMismatch, startApprovalAttempt, syncedAgo,
-    waitingRequests,
+    accountDate, accountErrorText, accountPhase, backspaceInCode, codeOf, formatRecoveryCode, formatSas, importFailureText, passwordStrength, repeatMismatch, resendWait,
+    startApprovalAttempt, syncedAgo, typeInCode, waitingRequests,
 } from "./account-view"
 
 const en = (english: string) => english
@@ -250,5 +251,60 @@ describe("account server address", () => {
         expect(accountApiBase("scratch", "https://staging.example.com/")).toBe("https://staging.example.com")
         expect(accountApiBase("test", "http://192.168.1.20:8787")).toBe(RELEASE_ACCOUNT_API)
         expect(accountApiBase("test", undefined)).toBe(RELEASE_ACCOUNT_API)
+    })
+})
+
+describe("the six boxes of the sign-in code", () => {
+    const empty = ["", "", "", "", "", ""]
+
+    it("a digit fills its box and moves on; only digits count", () => {
+        expect(typeInCode(empty, 0, "4")).toEqual({ digits: ["4", "", "", "", "", ""], focus: 1 })
+        expect(typeInCode(empty, 2, "a")).toEqual({ digits: empty, focus: 2 })
+        expect(typeInCode(["4", "", "", "", "", ""], 0, "4x")).toEqual({ digits: ["4", "", "", "", "", ""], focus: 0 })
+        // the last box keeps the focus
+        expect(typeInCode(["1", "2", "3", "4", "5", ""], 5, "6")).toEqual({ digits: ["1", "2", "3", "4", "5", "6"], focus: 5 })
+    })
+
+    it("typing over a filled box keeps the new digit, whichever side the cursor was on", () => {
+        expect(typeInCode(["4", "", "", "", "", ""], 0, "47").digits[0]).toBe("7")
+        expect(typeInCode(["4", "", "", "", "", ""], 0, "74").digits[0]).toBe("7")
+        expect(typeInCode(["4", "", "", "", "", ""], 0, "44")).toEqual({ digits: ["4", "", "", "", "", ""], focus: 1 })
+    })
+
+    it("a pasted code spreads over the boxes; a whole one from the first box, wherever it was pasted", () => {
+        expect(typeInCode(empty, 3, "012 345")).toEqual({ digits: ["0", "1", "2", "3", "4", "5"], focus: 5 })
+        expect(typeInCode(empty, 0, "Your code: 987654.")).toEqual({ digits: ["9", "8", "7", "6", "5", "4"], focus: 5 })
+        expect(typeInCode(empty, 2, "12")).toEqual({ digits: ["", "", "1", "2", "", ""], focus: 4 })
+        expect(typeInCode(empty, 4, "123")).toEqual({ digits: ["", "", "", "", "1", "2"], focus: 5 })
+    })
+
+    it("emptying a box keeps it; Backspace in an empty box clears the one before and moves there", () => {
+        const filled = ["1", "2", "3", "", "", ""]
+        expect(typeInCode(filled, 2, "")).toEqual({ digits: ["1", "2", "", "", "", ""], focus: 2 })
+        expect(backspaceInCode(filled, 3)).toEqual({ digits: ["1", "2", "", "", "", ""], focus: 2 })
+        expect(backspaceInCode(filled, 2)).toEqual({ digits: filled, focus: 2 })
+        expect(backspaceInCode(empty, 0)).toEqual({ digits: empty, focus: 0 })
+    })
+
+    it("the code is whole only with six digits; leading zeros stay", () => {
+        expect(codeOf(["0", "0", "1", "2", "3", "4"])).toBe("001234")
+        expect(codeOf(["0", "0", "1", "2", "3", ""])).toBeNull()
+    })
+
+    it("a new code can be asked for 60 seconds after the last", () => {
+        expect(resendWait(null, 5000)).toBe(0)
+        expect(resendWait(1000, 1000)).toBe(60)
+        expect(resendWait(1000, 60_500)).toBe(1)
+        expect(resendWait(1000, 61_000)).toBe(0)
+    })
+
+    it("errors of the code steps", () => {
+        expect(accountErrorText(en, new UnauthorizedError("invalid_code", "invalid_code", {}), "code")).toBe("That code is wrong or expired.")
+        expect(accountErrorText(en, new RateLimitedError("rate_limited", "x", {}, 600), "code")).toBe("Too many codes or tries. Try again in 10 minutes.")
+        expect(accountErrorText(en, new RateLimitedError("rate_limited", "x", {}, null), "code")).toBe("Too many codes or tries. Wait a while and try again.")
+        expect(accountErrorText(en, new UntrustedEscrowError())).toMatch(/doesn't match your devices/)
+        // PUT account/escrow: a wrong password is a 403 there
+        expect(accountErrorText(en, new AccountApiError(403, "wrong_password", "x"))).toBe("Wrong password.")
+        expect(accountErrorText(en, new AccountApiError(403, "device_required", "x"))).toMatch(/isn't registered/)
     })
 })

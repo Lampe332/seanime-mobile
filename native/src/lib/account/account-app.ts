@@ -7,8 +7,8 @@ import {
     requestApproval,
 } from "@/core/account/devices"
 import {
-    changeKey, changePassword, createRecoveryCode, deleteAccount, loginEmail, signOut, signupEmail, startFresh, unlinkGoogle,
-    useRecoveryCode as openWithRecoveryCode,
+    changeKey, changePassword, createRecoveryCode, deleteAccount, disableCodeOnly, enableCodeOnly, loginEmail, loginWithCode, requestSignInCode, setNewPasswordAfterCode, signOut,
+    signupEmail, startFresh, unlinkGoogle, useRecoveryCode as openWithRecoveryCode,
 } from "@/core/account/flows"
 import { AccountSession, type AccountKind } from "@/core/account/session"
 import { SyncEngine, type SyncResult, type SyncTrigger, coreLocalData } from "@/core/account/sync"
@@ -109,6 +109,8 @@ export const importDismissedAtom = atom(false)
  * device last held it; nothing was imported) or "removed" (NEU-2: this device was removed; its key is gone)
  */
 export const keyNoticeAtom = atom<"key-changed" | "removed" | null>(null)
+/** After a code sign-in once the data is unlocked: offer "Set a new password" (skippable, route password/after-code) */
+export const newPasswordOfferAtom = atom(false)
 
 const store = getDefaultStore()
 
@@ -197,10 +199,13 @@ export function syncNow(): Promise<unknown> {
 /* ---- Steps of the screens ---- */
 
 let recoveryWrappedDek: string | null = null
+/** This session came from a sign-in code: once the data is unlocked the account screen offers a new password */
+let codeSession = false
 
 async function afterSignIn(status: "ready" | "needs-key") {
     store.set(lastSyncAtom, null)
     store.set(importDismissedAtom, false)
+    store.set(newPasswordOfferAtom, codeSession && status === "ready")
     await refreshAccount()
     if (status === "ready") await runSync("start")
     else await refreshInfo()
@@ -208,6 +213,7 @@ async function afterSignIn(status: "ready" | "needs-key") {
 
 export async function createAccount(email: string, password: string): Promise<void> {
     const result = await signupEmail(deps, { email: email.trim(), password, deviceName: deviceName() })
+    codeSession = false
     await afterSignIn(result.status)
 }
 
@@ -217,8 +223,56 @@ export async function signIn(email: string, password: string): Promise<void> {
         throw error
     })
     recoveryWrappedDek = result.recoveryWrappedDek
+    codeSession = false
     store.set(keyNoticeAtom, result.keyChanged ? "key-changed" : null)
     await afterSignIn(result.status)
+}
+
+/** Mails a 6-digit sign-in code to the address */
+export async function sendSignInCode(email: string): Promise<void> {
+    await requestSignInCode(deps, email.trim())
+}
+
+/**
+ * Sign-in with the mailed code. With "code only" on the data is here at once; otherwise the account screen shows the
+ * ways to unlock it (another device, the recovery code, Start fresh)
+ */
+export async function signInWithCode(email: string, code: string): Promise<void> {
+    const result = await loginWithCode(deps, { email: email.trim(), code, deviceName: deviceName() })
+    recoveryWrappedDek = result.recoveryWrappedDek
+    codeSession = true
+    store.set(keyNoticeAtom, result.keyChanged ? "key-changed" : null)
+    await afterSignIn(result.status)
+}
+
+/** "Set a new password" after a code sign-in; other devices stay signed in */
+export async function setNewPassword(newPassword: string): Promise<void> {
+    await setNewPasswordAfterCode(deps, { newPassword })
+    codeSession = false
+    store.set(newPasswordOfferAtom, false)
+    await refreshAccount()
+    await refreshInfo()
+}
+
+/** This session came from a code: Start fresh needs no password, a new one is offered afterwards */
+export function signedInWithCode(): boolean {
+    return codeSession
+}
+
+export function skipNewPassword(): void {
+    store.set(newPasswordOfferAtom, false)
+}
+
+/** "Sign in with an email code only" on: needs the password; the server can read the synced data from then on */
+export async function turnOnCodeOnly(password: string): Promise<void> {
+    await enableCodeOnly(deps, { password })
+    await refreshInfo()
+}
+
+/** "Code only" off: the server's copy of the key is deleted at once */
+export async function turnOffCodeOnly(): Promise<void> {
+    await disableCodeOnly(deps)
+    await refreshInfo()
 }
 
 /** Import: the core makes a local backup first, then the account's data replaces this device's */
@@ -234,6 +288,8 @@ export async function signOutHere(): Promise<void> {
     // after a sync that is still running, so it cannot write its sync state back into the cleared storage; a sync that
     // hangs is given up after a moment (SyncEngine.exclusive), and the server gets only a moment to answer the sign-out
     await engine.exclusive(() => signOut(deps))
+    codeSession = false
+    store.set(newPasswordOfferAtom, false)
     store.set(lastSyncAtom, null)
     await refreshAccount()
 }
@@ -314,6 +370,8 @@ export async function unlockWithRecoveryCode(code: string): Promise<void> {
 
 export async function startFreshHere(password: string | undefined): Promise<void> {
     await startFresh(deps, { deviceName: deviceName(), password })
+    // Start fresh signed in again with the password (email accounts): no new one to offer
+    if (password !== undefined) codeSession = false
     await afterSignIn("ready")
 }
 

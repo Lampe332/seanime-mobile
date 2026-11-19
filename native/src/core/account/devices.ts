@@ -386,9 +386,10 @@ const MAX_REMOVED = 50
  * step. A kept device must be verified, not signed out and not known here as removed, else UntrustedDevicesError. New
  * password wrap (`encKey`, required for email accounts) and recovery wrap (`recoveryKey`, else the old recovery code stops
  * working). The chain names this device and the devices left out, so the kept devices learn them.
- * Needs a sign-in within the last 10 minutes (the server answers ReauthRequiredError otherwise).
+ * Needs a sign-in within the last 10 minutes (the server answers ReauthRequiredError otherwise). `escrow`: the account has
+ * "code only" on, so the new DEK goes to the server too (else it answers 409 escrow_required).
  */
-export async function rotate(deps: AccountDeps, choice: { keep: string[], encKey?: Uint8Array, recoveryKey?: Uint8Array }): Promise<RotationResult> {
+export async function rotate(deps: AccountDeps, choice: { keep: string[], encKey?: Uint8Array, recoveryKey?: Uint8Array, escrow?: boolean }): Promise<RotationResult> {
     const { client, session, sodium } = deps
     const state = await session.load()
     if (!state?.dek || !state.dekId || !state.deviceKeys || !state.deviceId) throw new AccountCryptoError("this device has no key to rotate")
@@ -436,6 +437,7 @@ export async function rotate(deps: AccountDeps, choice: { keep: string[], encKey
             ...(choice.recoveryKey
                 ? { recoveryWrappedDek: wrapKey(sodium, dek, choice.recoveryKey, state.userId, dekId, "recovery"), recoveryProof: recoveryProof(sodium, choice.recoveryKey) }
                 : {}),
+            ...(choice.escrow ? { escrowDek: toB64(sodium, dek) } : {}),
         }, blob, meta.version)
         // the devices left out are this device's own removals: never sealed to again, their chains refused
         await session.addRemoved(state.userId, left)

@@ -86,6 +86,8 @@ export type SessionInfo = {
     email: string | null
     /** The server's id of this device, once it holds the DEK and is registered */
     deviceId: string | null
+    /** The session came from a sign-in code (the mailbox, not the password): Start fresh goes without the password */
+    codeLogin?: boolean
 }
 
 export type SyncState = {

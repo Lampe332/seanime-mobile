@@ -119,6 +119,8 @@ export function eventText(t: Translate, event: AccountEvent): string {
         case "google_unlinked": return t("Google sign-in was removed", "Google-Anmeldung wurde entfernt")
         case "start_fresh": return t("The account started fresh", "Das Konto hat neu angefangen")
         case "approvals_paused": return t("Approvals were paused after numbers didn't match", "Freigaben wurden pausiert, weil Zahlen nicht passten")
+        case "code_only_on": return t("Code-only sign-in was turned on", "Nur-Code-Anmeldung wurde eingeschaltet")
+        case "code_only_off": return t("Code-only sign-in was turned off", "Nur-Code-Anmeldung wurde ausgeschaltet")
         default: return event.kind
     }
 }
@@ -140,6 +142,58 @@ export function importFailureText(t: Translate, result: Pick<SyncResult, "state"
         case "key-untrusted": return t("This device can't open the account's data with its key. Nothing was imported.", "Dieses Gerät kann die Daten des Kontos mit seinem Schlüssel nicht öffnen. Nichts wurde importiert.")
         default: return t("Nothing was imported. Try again.", "Nichts wurde importiert. Versuch es noch mal.")
     }
+}
+
+/* ---- The sign-in code: six boxes, one digit each ---- */
+
+export const CODE_LENGTH = 6
+/** How long "Send a new code" waits after a code was sent */
+export const CODE_RESEND_SECONDS = 60
+
+export type CodeEdit = { digits: string[], focus: number }
+
+const codeBoxes = (digits: readonly string[]) => Array.from({ length: CODE_LENGTH }, (_, i) => digits[i] ?? "")
+
+/**
+ * A box's text changed: only digits count. A box that held a digit and got a second one keeps the new one and moves on;
+ * more digits (a pasted or keyboard-filled code) spread over the next boxes, a whole code over all six from the first.
+ * An emptied box stays focused (Backspace on an empty box is backspaceInCode).
+ */
+export function typeInCode(digits: readonly string[], index: number, text: string): CodeEdit {
+    const next = codeBoxes(digits)
+    if (text === "") {
+        next[index] = ""
+        return { digits: next, focus: index }
+    }
+    const previous = next[index]
+    let typed = text.replace(/\D/g, "")
+    // a letter or a sign: nothing changes
+    if (typed === "" || (previous !== "" && typed === previous)) return { digits: next, focus: index }
+    if (previous !== "" && typed.length === 2 && typed.includes(previous)) typed = typed.startsWith(previous) ? typed.slice(1) : typed.slice(0, 1)
+    const start = typed.length >= CODE_LENGTH ? 0 : index
+    const placed = typed.slice(0, CODE_LENGTH - start)
+    for (let i = 0; i < placed.length; i++) next[start + i] = placed[i]!
+    return { digits: next, focus: Math.min(start + placed.length, CODE_LENGTH - 1) }
+}
+
+/** Backspace in an empty box clears the box before it and moves there (a box with a digit is emptied by typeInCode) */
+export function backspaceInCode(digits: readonly string[], index: number): CodeEdit {
+    const next = codeBoxes(digits)
+    if (next[index] !== "" || index === 0) return { digits: next, focus: index }
+    next[index - 1] = ""
+    return { digits: next, focus: index - 1 }
+}
+
+/** The whole code once all six boxes hold a digit, else null */
+export function codeOf(digits: readonly string[]): string | null {
+    const code = codeBoxes(digits).join("")
+    return /^\d{6}$/.test(code) ? code : null
+}
+
+/** Seconds until "Send a new code" works again (0: now) */
+export function resendWait(sentAt: number | null, now: number): number {
+    if (sentAt === null) return 0
+    return Math.max(0, Math.ceil((sentAt + CODE_RESEND_SECONDS * 1000 - now) / 1000))
 }
 
 /** The new password and its repeat differ (not while the repeat is still a start of the password) */
@@ -217,13 +271,28 @@ export function startApprovalAttempt<P extends { ended: boolean }>(deps: {
 /**
  * A short, readable reason for a failed account step. `where: "sign-in"`: the sign-in form, the only place where a 401
  * means a wrong email or password and where a Continue button follows the mailed link; elsewhere a 401 is a session that
- * ended (or, in a step that asks for the password again, a wrong password).
+ * ended (or, in a step that asks for the password again, a wrong password). `where: "code"`: the sign-in code steps, where
+ * a 429 says how long to wait.
  */
-export function accountErrorText(t: Translate, error: unknown, where?: "sign-in"): string {
+export function accountErrorText(t: Translate, error: unknown, where?: "sign-in" | "code"): string {
     const status = (error as { status?: number } | null)?.status
     const code = (error as { code?: string } | null)?.code
     const message = error instanceof Error ? error.message : ""
     const signIn = where === "sign-in"
+    if (code === "invalid_code") return t("That code is wrong or expired.", "Der Code ist falsch oder abgelaufen.")
+    if (status === 429 && where === "code") {
+        const retryAfter = (error as { retryAfter?: number | null } | null)?.retryAfter
+        if (typeof retryAfter === "number" && retryAfter > 0) {
+            const minutes = Math.ceil(retryAfter / 60)
+            return plural(t, minutes, ["Too many codes or tries. Try again in 1 minute.", "Too many codes or tries. Try again in {0} minutes."],
+                ["Zu viele Codes oder Versuche. Versuch es in 1 Minute noch mal.", "Zu viele Codes oder Versuche. Versuch es in {0} Minuten noch mal."])
+        }
+        return t("Too many codes or tries. Wait a while and try again.", "Zu viele Codes oder Versuche. Warte eine Weile und versuch es noch mal.")
+    }
+    if ((error as { name?: string } | null)?.name === "UntrustedEscrowError") return t("The server sent a key that doesn't match your devices, so this device didn't take it. Sign in with your password or approve this device on another one.",
+        "Der Server hat einen Schlüssel geschickt, der nicht zu deinen Geräten passt, deshalb hat dieses Gerät ihn nicht genommen. Melde dich mit deinem Passwort an oder gib dieses Gerät auf einem anderen frei.")
+    if (code === "device_required") return t("This device isn't registered in the account yet. Sync once, then try again.", "Dieses Gerät ist noch nicht im Konto eingetragen. Synchronisiere einmal und versuch es dann noch mal.")
+    if (code === "no_key") return t("Your account has no key yet. Sync once, then try again.", "Dein Konto hat noch keinen Schlüssel. Synchronisiere einmal und versuch es dann noch mal.")
     if (code === "device_removed") return t("This device was removed from the account. Ask on another device to add it again.", "Dieses Gerät wurde aus dem Konto entfernt. Lass es auf einem anderen Gerät neu hinzufügen.")
     if (code === "confirm_by_mail") return signIn
         ? t("Someone tried a lot of wrong passwords for this email lately. If yours was right, a sign-in link is in your inbox now. Open it, then press Continue.",
