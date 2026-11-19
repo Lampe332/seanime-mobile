@@ -204,6 +204,29 @@ type SendInit = {
     auth?: boolean
     /** A sign-in: signed with this key instead of the session's, session id "-" */
     signIn?: RequestSigner
+    /** How long the answer may take (REQUEST_TIMEOUT_MS) */
+    patience?: number
+}
+
+/** A request without an answer in this time fails like a dropped connection: no step of the app waits for ever */
+export const REQUEST_TIMEOUT_MS = 30_000
+/** The package itself, up or down, may take longer on a slow connection */
+export const TRANSFER_TIMEOUT_MS = 120_000
+/** Signing out does not wait long for the server: the device forgets the session anyway (flows.ts signOut) */
+export const LOGOUT_TIMEOUT_MS = 5000
+
+/** `work`, or the failure of a dropped connection (the text React Native gives it) when it does not end in time */
+function inTime<T>(work: Promise<T>, ms: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new TypeError("Network request failed")), ms)
+        work.then(value => {
+            clearTimeout(timer)
+            resolve(value)
+        }, error => {
+            clearTimeout(timer)
+            reject(error)
+        })
+    })
 }
 
 const SIGNATURE_VERSION = "v1"
@@ -249,9 +272,16 @@ export class AccountClient {
                 Object.assign(headers, await this.signature(method, url, bodyBytes, sessionId, credentials.signer))
             }
         }
-        const response = await this.options.fetch(url, { method, headers, body })
-        if (response.status >= 400) throw await toError(response)
-        return response
+        const patience = init.patience ?? REQUEST_TIMEOUT_MS
+        const response = await inTime(this.options.fetch(url, { method, headers, body }), patience)
+        if (response.status >= 400) throw await inTime(toError(response), patience)
+        // the answer's body has to arrive in time as well
+        return {
+            status: response.status,
+            headers: response.headers,
+            json: () => inTime(response.json(), patience),
+            arrayBuffer: () => inTime(response.arrayBuffer(), patience),
+        }
     }
 
     private sigKey(signer: RequestSigner) {
@@ -277,7 +307,7 @@ export class AccountClient {
     }
     /** S5: the link from the "Confirm your sign-in" mail */
     confirmLogin = (token: string) => this.call<{ confirmed: boolean }>("POST", "auth/login/confirm", { json: { token }, auth: false })
-    logout = () => this.call<void>("POST", "auth/logout")
+    logout = () => this.call<void>("POST", "auth/logout", { patience: LOGOUT_TIMEOUT_MS })
     verifyEmail = (token: string) => this.call<{ emailVerified: boolean }>("POST", "auth/verify", { json: { token }, auth: false })
     resendVerification = () => this.call<void>("POST", "auth/verify/resend")
     resetRequest = (email: string) => this.call<{ ok: boolean, message: string }>("POST", "auth/reset-request", { json: { email }, auth: false })
@@ -329,7 +359,7 @@ export class AccountClient {
     snapshot = async (): Promise<Snapshot | null> => {
         let response
         try {
-            response = await this.send("GET", "sync/snapshot", { headers: { Accept: "application/octet-stream" } })
+            response = await this.send("GET", "sync/snapshot", { headers: { Accept: "application/octet-stream" }, patience: TRANSFER_TIMEOUT_MS })
         }
         catch (error) {
             if (error instanceof AccountApiError && error.status === 404) return null
@@ -344,6 +374,7 @@ export class AccountClient {
     putSnapshot = (bytes: Uint8Array, ifMatch: number, dekId: string) => this.call<{ version: number, size: number, updatedAt: number }>("PUT", "sync/snapshot", {
         bytes,
         headers: { "Content-Type": "application/octet-stream", "If-Match": String(ifMatch), "X-Dek-Id": dekId },
+        patience: TRANSFER_TIMEOUT_MS,
     })
 }
 
