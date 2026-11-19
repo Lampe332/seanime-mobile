@@ -1,8 +1,8 @@
 import type { AL_BaseAnime, MobileOffline_Snapshot, Onlinestream_Episode } from "@/api/generated/types"
 import { describe, expect, it } from "vitest"
 import {
-    activePreset, batchRequest, canResume, clock, downloadPresets, filterGroups, followingEpisode, formatSize, groupItems, nextEpisode, noticeName, offlineColumns,
-    type OfflineItem, offlineNotices, plainText, resumeAction, showsProgress, startedItems, stateLabel, storedEpisodes, watchedShare,
+    activePreset, batchRequest, canResume, clock, downloadPresets, filterGroups, folderBytes, followingEpisode, formatSize, groupItems, nextEpisode, noticeName, offlineColumns,
+    type OfflineItem, offlineNotices, plainText, resumeAction, showsProgress, startedItems, stateLabel, storedEpisodes, totalBytes, watchedShare,
 } from "./offline-library"
 
 const en = (en: string) => en
@@ -65,6 +65,16 @@ describe("offline library", () => {
         expect(formatSize(300 * 1024 ** 2, "de")).toBe("300 MB")
         expect(clock(83000)).toBe("01:23")
         expect(plainText("A<br>B &amp; <i>C</i>")).toBe("A B & C")
+    })
+
+    it("counts the manga folders into the storage used by downloads", () => {
+        const unreadable = { get size(): number | null { throw new Error("no access") } }
+        const manga = folderBytes([{ size: 40 * 1024 ** 2 }, { size: null }, unreadable, { size: Number.NaN }, { size: 2 * 1024 ** 2 }])
+        expect(manga).toBe(42 * 1024 ** 2)
+        // the tablet showed "0 MB" with 42 MB of chapters and no episode
+        expect(totalBytes([]) + manga).toBe(42 * 1024 ** 2)
+        expect(totalBytes([item("1"), item("2")]) + manga).toBe(642 * 1024 ** 2)
+        expect(folderBytes([])).toBe(0)
     })
 
     it("uses one column on phones and 320dp cells from 600dp", () => {

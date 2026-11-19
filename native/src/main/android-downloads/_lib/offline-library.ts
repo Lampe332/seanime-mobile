@@ -91,6 +91,18 @@ export const episodeWord = (count: number, t: Translate) => count === 1 ? t("epi
 
 export const totalBytes = (items: OfflineItem[]) => items.reduce((sum, item) => sum + item.bytes, 0)
 
+/** Bytes in folders (expo-file-system's Directory.size, the saved manga chapters); a missing or unreadable folder counts 0 */
+export function folderBytes(folders: { readonly size: number | null }[]): number {
+    return folders.reduce((sum, folder) => {
+        try {
+            const size = folder.size ?? 0
+            return Number.isFinite(size) && size > 0 ? sum + size : sum
+        } catch {
+            return sum
+        }
+    }, 0)
+}
+
 /** Columns of the saved episodes (OfflineActivity.kt columns()): one on phones, a grid of 320dp cells from 600dp. */
 export function offlineColumns(widthDp: number): number {
     if (widthDp < 600) return 1

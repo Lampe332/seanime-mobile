@@ -21,6 +21,8 @@ import { AppState } from "react-native"
  */
 
 /** The folder of the offline files inside the app's own data; an episode lies in `episodes/<id>/`, its pictures in `artwork/` */
+/** The saved manga chapters of the core (core/manga/downloads.ts), under the app's documents */
+export const MANGA_FOLDER = "core-manga"
 const FOLDER = "core-offline"
 
 function networkOf(state: NetworkLike): OfflineNetwork {
@@ -53,7 +55,7 @@ export function offlineDeviceFor(watch: BlockingWatch): Promise<OfflineDevice> {
             },
             root: new Directory(Paths.document, FOLDER).uri.replace(/\/+$/, ""),
             // the saved manga chapters (core/manga/downloads.ts): `<provider>/<mediaId>/<chapter>/`
-            mangaRoot: new Directory(Paths.document, "core-manga").uri.replace(/\/+$/, ""),
+            mangaRoot: new Directory(Paths.document, MANGA_FOLDER).uri.replace(/\/+$/, ""),
             // by the module, off the app's thread: removing a saved episode of 702 MB here held it for 50.6 ms
             removeFolder: watch.waiting(loader.removeFolder, "folder remove"),
             network: watch.waiting(async () => networkOf(await NetInfo.fetch()), "network state"),

@@ -16,8 +16,10 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { appLanguageAtom, plural, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
+import { MANGA_FOLDER } from "@/api/client/core-offline"
+import { OLD_MANGA_FOLDER } from "@/core"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
-import { Paths } from "expo-file-system"
+import { Directory, Paths } from "expo-file-system"
 import { useIsFocused } from "expo-router"
 import { useAtomValue } from "jotai"
 import ArrowLeft from "lucide-react-native/icons/arrow-left"
@@ -30,7 +32,7 @@ import X from "lucide-react-native/icons/x"
 import React from "react"
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native"
 import {
-    animeKey, canResume, clock, type DownloadFilter, episodeWord, filterGroups, formatSize, groupItems, isActive, nextEpisode, offlineColumns,
+    animeKey, canResume, clock, type DownloadFilter, episodeWord, filterGroups, folderBytes, formatSize, groupItems, isActive, nextEpisode, offlineColumns,
     type OfflineGroup, type OfflineItem, plainText, resumeAction, showsProgress, STARTED_MS, startedItems, stateLabel, totalBytes, watchedShare,
 } from "../_lib/offline-library"
 import { usePlayOffline } from "../_lib/use-offline"
@@ -340,7 +342,7 @@ function Overview({ items, groups, waiting, wifiOnly, size, selecting, picked, s
                 </PhoneEmpty>}
         </PhoneSection>
 
-        {!selecting && <DownloadSettings wifiOnly={wifiOnly} usedBytes={totalBytes(items)} size={size} />}
+        {!selecting && <DownloadSettings wifiOnly={wifiOnly} episodeBytes={totalBytes(items)} size={size} />}
     </>
 }
 
@@ -352,9 +354,23 @@ function readFreeSpace(): number | null {
     }
 }
 
+/**
+ * The saved manga chapters on the device: the core's folder and the server's old one (read in place). Directory.size walks
+ * every page file synchronously, so it runs once per visit of the tab, after the first frame.
+ */
+function useMangaBytes(): number {
+    const [bytes, setBytes] = React.useState(0)
+    React.useEffect(() => {
+        const timer = setTimeout(() => setBytes(folderBytes([new Directory(Paths.document, MANGA_FOLDER), new Directory(Paths.document, OLD_MANGA_FOLDER)])), 0)
+        return () => clearTimeout(timer)
+    }, [])
+    return bytes
+}
+
 /** "Wi-Fi only" (old SeanimeAndroid get/setDownloadsWifiOnly, now in the Go queue) and the phone's storage. */
-function DownloadSettings({ wifiOnly, usedBytes, size }: { wifiOnly: boolean, usedBytes: number, size: (bytes: number) => string }) {
+function DownloadSettings({ wifiOnly, episodeBytes, size }: { wifiOnly: boolean, episodeBytes: number, size: (bytes: number) => string }) {
     const t = useTr()
+    const usedBytes = episodeBytes + useMangaBytes()
     const { rail } = useTabletLayout()
     const { mutate: saveSettings, isPending } = useMobileOfflineSettings()
     const switches = useAppSwitches().data
