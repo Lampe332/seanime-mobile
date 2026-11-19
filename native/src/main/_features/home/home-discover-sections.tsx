@@ -82,6 +82,7 @@ export function HomeDiscoverFeature() {
  * restarts the wait. Off with the theme's "disable carousel auto scroll" and with reduced motion.
  */
 export function LibraryUpcomingEpisodes({ hasEntries }: { hasEntries: boolean }) {
+    const t = useTr()
     const { data } = useGetUpcomingEpisodes()
     const { width } = useWindowDimensions()
     const { rail } = useTabletLayout()
@@ -99,10 +100,9 @@ export function LibraryUpcomingEpisodes({ hasEntries }: { hasEntries: boolean })
     if (!hasEntries || !episodes.length) return null
     return (
         <View className="gap-3">
-            {/* The section's words are English in 2.0.33 as well */}
             <View>
-                <SectionTitle>Upcoming episodes</SectionTitle>
-                <Text className="text-sm-text-muted">Based on your anime list</Text>
+                <SectionTitle>{t("Upcoming episodes", "Kommende Folgen")}</SectionTitle>
+                <Text className="text-sm-text-muted">{t("Based on your anime list", "Aus deiner Anime-Liste")}</Text>
             </View>
             <FlashList
                 ref={list}
@@ -176,7 +176,7 @@ const UpcomingCard = React.memo(function UpcomingCard({ item, width, spoilerActi
     const { coverRef, onLoad, hidden, open } = useCoverFlightSource(item.mediaId, veiled ? "" : shownUri,
         getImageUrl(anime?.coverImage?.extraLarge || anime?.coverImage?.large || ""), UPCOMING_LOOK)
     return (
-        <Pressable accessibilityRole="link" accessibilityLabel={`${title}, ${t("Episode", "Folge")} ${item.episodeNumber}, ${when}`}
+        <Pressable accessibilityRole="link" accessibilityLabel={`${title}, ${t(`Episode ${item.episodeNumber}`, `Folge ${item.episodeNumber}`)}, ${when}`}
             onPress={() => open(`/entry?id=${item.mediaId}`)} style={{ width }} className="gap-2 active:opacity-85">
             <View ref={coverRef} collapsable={false} className="aspect-[2/1] w-full overflow-hidden rounded-xl bg-sm-surface">
                 {!!shownUri && <Image source={shownUri} contentFit="cover" blurRadius={veiled ? 24 : 0} recyclingKey={String(item.mediaId)}

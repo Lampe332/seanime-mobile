@@ -305,7 +305,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
                 <Slider min={0} max={pageCount - 1} step={1}
                     value={reversed ? pageCount - 1 - Math.min(currentPageIndex, pageCount - 1) : Math.min(currentPageIndex, pageCount - 1)}
                     onValueChange={value => changePage(reversed ? pageCount - 1 - value : value)}
-                    accessibilityLabel={`${t("Page", "Seite")} ${currentPageIndex + 1} / ${pageCount}`} />
+                    accessibilityLabel={`${t(`Page ${currentPageIndex + 1}`, `Seite ${currentPageIndex + 1}`)} / ${pageCount}`} />
             </View>}
             <View style={{ height: BAR_HEIGHT + insets.bottom, paddingBottom: insets.bottom }} className="flex-row items-center gap-2 bg-[rgba(20,20,22,0.96)] px-2">
                 <BarButton label={t("Close reader", "Leser schließen")} onPress={close}><X size={16} strokeWidth={2.5} color={colors.smText} /></BarButton>

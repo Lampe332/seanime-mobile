@@ -557,7 +557,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         <StreamPageSkeleton />
     </View>
 
-    const heading = currentEpisodeNumber !== null ? `${t("Episode", "Folge")} ${currentEpisodeNumber}` : t("Episodes", "Episoden")
+    const heading = currentEpisodeNumber !== null ? t(`Episode ${currentEpisodeNumber}`, `Folge ${currentEpisodeNumber}`) : t("Episodes", "Episoden")
     const card = currentEpisode?.image || currentEpisode?.metadata?.episodeMetadata?.image || media.bannerImage || media.coverImage?.extraLarge || media.coverImage?.large
 
     return <View className="min-w-0">
@@ -608,7 +608,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
                 {viewMode === "list" ? <>
                     {/* r18: only the rows near the screen are drawn (Black Clover 170, long series 1000+) */}
                     <WindowedRows items={sortedEpisodes} keyOf={onlineEpisodeKey} estimate={ONLINE_ROW_ESTIMATE} renderItem={episode => {
-                        const title = media.format === "MOVIE" ? t("Complete movie", "Ganzer Film") : `${t("Episode", "Folge")} ${episode.number}`
+                        const title = media.format === "MOVIE" ? t("Complete movie", "Ganzer Film") : t(`Episode ${episode.number}`, `Folge ${episode.number}`)
                         const selected = episode.number === currentEpisodeNumber
                         return <View className={cn(selected && "rounded-[10px] bg-sm-accent-soft")}>
                             <EpisodeRow mobileEntry media={media} image={episode.image} title={title} episodeTitle={episode.title}
@@ -625,7 +625,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
                         const selected = episode.number === currentEpisodeNumber
                         const watched = !!progress && episode.number <= progress
                         return <Pressable key={episode.number} accessibilityRole="button" accessibilityState={{ selected, disabled: episodeLoading }}
-                            accessibilityLabel={`${t("Episode", "Folge")} ${episode.number}${episode.title ? ` · ${episode.title}` : ""}`}
+                            accessibilityLabel={`${t(`Episode ${episode.number}`, `Folge ${episode.number}`)}${episode.title ? ` · ${episode.title}` : ""}`}
                             disabled={episodeLoading} onPress={() => selectEpisode(episode.number)}
                             className={cn("h-12 min-w-12 items-center justify-center rounded-surface-sm px-3",
                                 selected ? "bg-brand-500" : episode.isFiller ? "bg-orange-900/60" : "bg-sm-surface-raised active:bg-sm-surface-control",

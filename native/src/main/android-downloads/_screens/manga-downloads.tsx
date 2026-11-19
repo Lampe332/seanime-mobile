@@ -225,7 +225,7 @@ function MangaDetail({ group, queue, t, onChanged }: { group: MangaDownloadGroup
                     const openable = isReady && readable.some(c => c.provider === ch.provider && c.chapters?.some(item => item.id === ch.chapterId))
                     return <View key={`${ch.provider}:${ch.chapterId}`} className="min-h-14 flex-row items-center bg-sm-surface-raised">
                         <Pressable accessibilityRole="button" disabled={!openable} onPress={() => open(ch.provider, ch.chapterId)}
-                            accessibilityLabel={isReady ? t(`Read chapter ${ch.chapterNumber}`, `Kapitel ${ch.chapterNumber} lesen`) : `${t("Chapter", "Kapitel")} ${ch.chapterNumber}`}
+                            accessibilityLabel={isReady ? t(`Read chapter ${ch.chapterNumber}`, `Kapitel ${ch.chapterNumber} lesen`) : t(`Chapter ${ch.chapterNumber}`, `Kapitel ${ch.chapterNumber}`)}
                             className="min-h-14 min-w-0 flex-1 flex-row items-center gap-3 px-4 py-2 active:bg-sm-surface-control">
                             <View className="min-w-0 flex-1 gap-0.5">
                                 <Text className="text-[15px]">{t("Chapter", "Kapitel")} {ch.chapterNumber}</Text>
@@ -245,7 +245,7 @@ function MangaDetail({ group, queue, t, onChanged }: { group: MangaDownloadGroup
             </View>
         </PhoneSection>
         <Dialog title={t("Delete chapter from device?", "Kapitel vom Gerät löschen?")} open={!!deleting} onOpenChange={value => { if (!value) setDeleting(null) }}
-            description={`${title} · ${t("Chapter", "Kapitel")} ${deleting?.chapterNumber ?? ""}`}
+            description={`${title} · ${t(`Chapter ${deleting?.chapterNumber ?? ""}`, `Kapitel ${deleting?.chapterNumber ?? ""}`)}`}
             footer={<>
                 <Button intent="secondary" wrapperClassName="flex-1" onPress={() => setDeleting(null)}>{t("Cancel", "Abbrechen")}</Button>
                 <Button intent="danger" wrapperClassName="flex-1" onPress={() => {

@@ -172,7 +172,7 @@ export function DownloadsPhone({ kind, animeKey: selectedKey, mangaId = 0 }: {
         </Dialog>
 
         <Dialog title={t("Delete episode from device?", "Folge vom Gerät löschen?")} open={!!deleting} onOpenChange={open => { if (!open) setDeleting(null) }}
-            description={deleting ? `${deleting.title ?? ""} · ${t("Episode", "Folge")} ${deleting.episode} · ${size(deleting.bytes)}` : undefined}
+            description={deleting ? `${deleting.title ?? ""} · ${t(`Episode ${deleting.episode}`, `Folge ${deleting.episode}`)} · ${size(deleting.bytes)}` : undefined}
             footer={<>
                 <Button intent="secondary" wrapperClassName="flex-1" onPress={() => setDeleting(null)}>{t("Cancel", "Abbrechen")}</Button>
                 <Button intent="danger" wrapperClassName="flex-1" onPress={() => { if (deleting) act(deleting, "remove"); setDeleting(null) }}>{t("Delete", "Löschen")}</Button>
@@ -477,7 +477,7 @@ function EpisodeRow({ item, width, size, onAction, onPlay, onDelete }: {
         : pendingMeta(item, t)
     return <View style={{ width }} className="flex-row items-center border-b border-sm-line">
         <Pressable accessibilityRole="button" disabled={!item.ready} onPress={() => onPlay(item)}
-            accessibilityLabel={item.ready ? t(`Play episode ${item.episode}`, `Folge ${item.episode} abspielen`) : `${t("Episode", "Folge")} ${item.episode}`}
+            accessibilityLabel={item.ready ? t(`Play episode ${item.episode}`, `Folge ${item.episode} abspielen`) : t(`Episode ${item.episode}`, `Folge ${item.episode}`)}
             className="min-h-[72px] min-w-0 flex-1 flex-row items-center gap-3.5 px-1 py-2.5 active:bg-sm-surface-raised">
             <View className="aspect-video w-24 overflow-hidden rounded-lg">
                 <Artwork asset={item.episodeImageAsset || item.bannerAsset} url={item.episodeImageUrl || item.bannerUrl} className="absolute inset-0" iconSize={20} />
@@ -487,7 +487,7 @@ function EpisodeRow({ item, width, size, onAction, onPlay, onDelete }: {
             <View className="min-w-0 flex-1 gap-0.5">
                 <Text numberOfLines={1} className="text-xs text-sm-text-subtle">{t("Episode", "Folge")} {item.episode}</Text>
                 <Text numberOfLines={2} className={cn("text-[15px] font-semibold leading-5", !item.ready && "text-sm-text-muted")}>
-                    {item.episodeTitle || `${t("Episode", "Folge")} ${item.episode}`}
+                    {item.episodeTitle || t(`Episode ${item.episode}`, `Folge ${item.episode}`)}
                 </Text>
                 {showsProgress(item) && <ProgressLine value={item.progress} label={t(`Episode ${item.episode} download`, `Download Folge ${item.episode}`)} />}
                 <Text className={cn("text-[13px]", item.status === "failed" ? "text-sm-danger" : "text-sm-text-muted")} style={{ fontVariant: ["tabular-nums"] }}>{meta}</Text>

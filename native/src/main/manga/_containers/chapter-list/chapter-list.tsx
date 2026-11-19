@@ -181,7 +181,7 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
     React.useEffect(() => {
         setReadAction(readingChapter ? {
             label: resumeChapter ? t("Resume reading", "Weiterlesen") : entry.listData?.progress ? t("Continue reading", "Weiterlesen") : t("Start reading", "Lesen beginnen"),
-            detail: `${t("Chapter", "Kapitel")} ${readingChapter.chapter}${resumeChapter ? ` · ${t("Page", "Seite")} ${resumeLocation.pageIndex + 1}` : ""}`,
+            detail: `${t(`Chapter ${readingChapter.chapter}`, `Kapitel ${readingChapter.chapter}`)}${resumeChapter ? ` · ${t(`Page ${resumeLocation.pageIndex + 1}`, `Seite ${resumeLocation.pageIndex + 1}`)}` : ""}`,
             onPress: () => open(readingChapter),
         } : null)
     }, [readingChapter, resumeChapter, resumeLocation, entry.listData?.progress, open, setReadAction, t])
@@ -309,13 +309,13 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
                                 const language = chapter.language ? LANGUAGES_LIST[chapter.language]?.nativeName || chapter.language : null
                                 // titles that only repeat the number ("Chapter 2") do not get the number again underneath
                                 const repeatsNumber = !chapter.title || chapter.title.trim().toLowerCase().replace(/^(chapter|ch\.?|kapitel)\s*/, "") === String(chapter.chapter).toLowerCase()
-                                const meta = [repeatsNumber ? null : `${t("Chapter", "Kapitel")} ${chapter.chapter}`, chapter.scanlator,
+                                const meta = [repeatsNumber ? null : t(`Chapter ${chapter.chapter}`, `Kapitel ${chapter.chapter}`), chapter.scanlator,
                                     selectedExtension?.settings?.supportsMultiLanguage ? language : null].filter(Boolean).join(" · ")
                                 const read = !isUnread(chapter)
                                 return <View key={chapter.id} onLayout={event => onRowLayout(chapter.id, event.nativeEvent.layout.y)}
                                     className={cn("flex-row items-center gap-1 border-b border-sm-line", highlightedChapterId === chapter.id && "rounded-lg bg-sm-accent-soft")}>
                                     <Pressable accessibilityRole="button" onPress={() => open(chapter)} className="min-h-14 min-w-0 flex-1 justify-center gap-0.5 px-1 py-2.5 active:bg-sm-surface-raised">
-                                        <Text numberOfLines={2} className={cn("text-[15px] leading-[20.25px]", read ? "font-medium text-sm-text-subtle" : "font-[550]")}>{chapter.title || `${t("Chapter", "Kapitel")} ${chapter.chapter}`}</Text>
+                                        <Text numberOfLines={2} className={cn("text-[15px] leading-[20.25px]", read ? "font-medium text-sm-text-subtle" : "font-[550]")}>{chapter.title || t(`Chapter ${chapter.chapter}`, `Kapitel ${chapter.chapter}`)}</Text>
                                         {!!meta && <Text numberOfLines={1} className="text-xs text-sm-text-subtle">{meta}</Text>}
                                     </Pressable>
                                     {canDownload && <Pressable accessibilityRole="button" disabled={isSendingDownloadRequest} onPress={() => downloadChapters([chapter])}

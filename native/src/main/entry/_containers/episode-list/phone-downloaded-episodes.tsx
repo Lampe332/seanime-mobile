@@ -33,7 +33,7 @@ export function PhoneDownloadedEpisodes({ mediaId }: { mediaId: number }) {
         </View>
         <View className="gap-0.5 overflow-hidden rounded-surface bg-sm-surface">
             {episodes.map(episode => {
-                const label = `${t("Episode", "Folge")} ${episode.episode}`
+                const label = t(`Episode ${episode.episode}`, `Folge ${episode.episode}`)
                 return <Pressable key={episode.id} accessibilityRole="button" disabled={!episode.ready} onPress={() => play(episode)}
                     accessibilityLabel={episode.ready ? t(`Play episode ${episode.episode} offline`, `Folge ${episode.episode} offline abspielen`) : label}
                     className="min-h-[72px] flex-row items-center gap-3.5 bg-sm-surface-raised px-3 py-2.5 active:bg-sm-surface-control">

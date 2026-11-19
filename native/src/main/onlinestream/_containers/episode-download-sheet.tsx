@@ -123,11 +123,11 @@ export function EpisodeDownloadButton({ media, episodes, provider, server, quali
                     {all.map(episode => existing.has(episode.number)
                         ? <View key={episode.number} className="min-h-[52px] flex-row items-center gap-3.5 bg-sm-surface-raised px-4 py-2.5 opacity-70">
                             <Text className="w-[22px] text-center text-sm text-sm-text-subtle" style={{ fontVariant: ["tabular-nums"] }}>{episode.number}</Text>
-                            <Text numberOfLines={1} className="min-w-0 flex-1 text-[15px] text-sm-text-muted">{episode.title || episode.metadata?.episodeTitle || `${t("Episode", "Folge")} ${episode.number}`}</Text>
+                            <Text numberOfLines={1} className="min-w-0 flex-1 text-[15px] text-sm-text-muted">{episode.title || episode.metadata?.episodeTitle || t(`Episode ${episode.number}`, `Folge ${episode.number}`)}</Text>
                             <Text className="text-[13px] text-sm-accent">{t("Saved", "Gespeichert")}</Text>
                         </View>
                         : <PickRow key={episode.number} checked={selected.has(episode.number)} onPress={() => toggle(episode.number)}
-                            label={`${episode.number} · ${episode.title || episode.metadata?.episodeTitle || `${t("Episode", "Folge")} ${episode.number}`}`} />)}
+                            label={`${episode.number} · ${episode.title || episode.metadata?.episodeTitle || t(`Episode ${episode.number}`, `Folge ${episode.number}`)}`} />)}
                 </RowGroup>
                 <Muted accessibilityLiveRegion="polite" className="text-[13px]">
                     {selected.size} {t("selected", "ausgewählt")} · {t("Saved episodes are skipped, the queue keeps running in the background.", "Gespeicherte Folgen werden übersprungen, die Warteschlange läuft im Hintergrund weiter.")}

@@ -375,7 +375,7 @@ function EventRow({ event, indicateWatched }: { event: CalendarEvent, indicateWa
     const t = useTr()
     const fade = useImageFade()
     const watched = event.isWatched && indicateWatched
-    const what = event.isMovie ? t("Movie", "Film") : `${t("Episode", "Folge")} ${event.episode}`
+    const what = event.isMovie ? t("Movie", "Film") : t(`Episode ${event.episode}`, `Folge ${event.episode}`)
     // the row's cover flies into the page it opens (cover-flight.tsx), dimmed like the row shows it when watched
     const coverUri = event.image ? getImageUrl(event.image) : ""
     const { coverRef, onLoad, hidden, open } = useCoverFlightSource(event.mediaId, coverUri, undefined, watched ? WATCHED_LOOK : undefined)

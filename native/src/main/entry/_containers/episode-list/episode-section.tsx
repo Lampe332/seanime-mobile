@@ -10,7 +10,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Dialog, Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Muted, SectionTitle, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import { getAppLanguage, useTr } from "@/lib/app-language"
+import { getAppLanguage, type Translate, useTr } from "@/lib/app-language"
 import { openInAppBrowser } from "@/lib/helpers/browser"
 import { getImageUrl } from "@/lib/server/assets"
 import { useEpisodeSpoilerState } from "@/lib/theme/anime-spoilers"
@@ -401,7 +401,7 @@ function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, underHe
                     <View className="mt-1 flex-row items-center gap-1">
                         <CalendarDays size={14} color={colors.smTextMuted} />
                         <Text className="text-sm text-sm-text-muted">{episode.episodeMetadata?.airDate
-                            ? `${t("Aired on", "Ausgestrahlt am")} ${formatDate(new Date(episode.episodeMetadata.airDate), getAppLanguage(), "numeric")}`
+                            ? airedOn(t, episode.episodeMetadata.airDate)
                             : t("Aired", "Ausgestrahlt")}</Text>
                     </View>
                 </EpisodeRow>
@@ -412,3 +412,8 @@ function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, underHe
     </View>
 }
 
+/** "Aired on 10/23/2026" in the app language */
+function airedOn(t: Translate, airDate: string) {
+    const day = formatDate(new Date(airDate), getAppLanguage(), "numeric")
+    return t(`Aired on ${day}`, `Ausgestrahlt am ${day}`)
+}

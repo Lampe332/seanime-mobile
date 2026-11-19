@@ -118,9 +118,9 @@ export function DiscoverPhone() {
             : scheduleFactsLine(t, schedule)
 
     const tabs = [
-        { value: "anime", label: "Anime" },
+        { value: "anime", label: t("Anime", "Anime") },
         { value: "schedule", label: t("Schedule", "Sendeplan") },
-        ...(mangaEnabled ? [{ value: "manga", label: "Manga" }] : []),
+        ...(mangaEnabled ? [{ value: "manga", label: t("Manga", "Manga") }] : []),
     ]
 
     return (

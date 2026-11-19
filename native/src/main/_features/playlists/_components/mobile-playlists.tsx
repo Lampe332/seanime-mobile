@@ -42,7 +42,7 @@ type Step = "list" | "editor" | "anime" | "episodes" | "delete"
 type Draft = { dbId?: number, name: string, episodes: Anime_PlaylistEpisode[] }
 
 function episodeLabel(ep: Anime_PlaylistEpisode, t: Translate) {
-    return ep.episode?.baseAnime?.format === "MOVIE" ? t("Movie", "Film") : `${t("Episode", "Episode")} ${ep.episode?.episodeNumber ?? "?"}`
+    return ep.episode?.baseAnime?.format === "MOVIE" ? t("Movie", "Film") : t(`Episode ${ep.episode?.episodeNumber ?? "?"}`, `Episode ${ep.episode?.episodeNumber ?? "?"}`)
 }
 
 function Thumbnail({ src }: { src?: string }) {

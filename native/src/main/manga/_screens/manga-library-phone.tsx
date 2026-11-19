@@ -240,7 +240,7 @@ function ContinueCard({ item, blurAdult, only, t, onContinue }: {
     const { entry, progress, total, unread } = item
     const media = entry.media
     const title = media?.title?.userPreferred || ""
-    const chapters = progress > 0 ? `${t("Chapter", "Kapitel")} ${progress}${total ? ` / ${total}` : ""}` : t("Reading started", "Lesen begonnen")
+    const chapters = progress > 0 ? `${t(`Chapter ${progress}`, `Kapitel ${progress}`)}${total ? ` / ${total}` : ""}` : t("Reading started", "Lesen begonnen")
     const fresh = unread && unread > 0 ? plural(t, unread, ["1 new chapter", "{0} new chapters"], ["1 neues Kapitel", "{0} neue Kapitel"]) : ""
     const veiled = blurAdult && !!media?.isAdult
     const cardWidth = only ? Math.min(width - 32, 512) : Math.min(width * 0.86, 352)

@@ -299,7 +299,7 @@ function PlayingEpisode({ episode }: { episode: Anime_PlaylistEpisode }) {
             </View>
             <View className="min-w-0 flex-1 gap-0.5">
                 <Text numberOfLines={2} className="text-sm text-sm-text-muted">{episode.episode?.baseAnime?.title?.userPreferred}</Text>
-                <Text>{episode.episode?.baseAnime?.format !== "MOVIE" ? `${t("Episode", "Episode")} ${episode.episode?.episodeNumber}` : t("Movie", "Film")}</Text>
+                <Text>{episode.episode?.baseAnime?.format !== "MOVIE" ? t(`Episode ${episode.episode?.episodeNumber}`, `Episode ${episode.episode?.episodeNumber}`) : t("Movie", "Film")}</Text>
                 {!!source && <Text numberOfLines={1} className="text-xs text-sm-text-muted">{source}</Text>}
             </View>
         </View>
