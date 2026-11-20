@@ -59,7 +59,7 @@ describe("privateSafe", () => {
 describe("the diagnostic report", () => {
     it("holds the facts and the log, all filtered", () => {
         const report = diagnosticReport({
-            app: "Seanime Mobile 4.3.0 (40300)", variant: "release", android: "14 (API 34)", device: "Google Pixel 7", language: "app en, phone de-DE",
+            app: "Seanime Mobile 4.3.0 (40300)", variant: "release", android: "14 (API 34)", device: "Google Pixel 7", language: "app en, locale de-DE",
             problems: ["AniList sign-in expired", "made.up@example.org could not be reached"], logLines: LOG, made: Date.UTC(2026, 10, 20, 9, 30),
         }, ["MadeUpName"])
         expect(report).toContain("Made: 2026-11-20 09:30 UTC")

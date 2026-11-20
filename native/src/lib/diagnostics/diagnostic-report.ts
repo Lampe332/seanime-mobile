@@ -15,7 +15,7 @@ export type DiagnosticFacts = {
     android: string
     /** "Google Pixel 7" */
     device: string
-    /** "app en, phone de-DE" */
+    /** "app en, locale de-DE" */
     language: string
     /** What is not normal now: AniList, the network, recent errors */
     problems: string[]

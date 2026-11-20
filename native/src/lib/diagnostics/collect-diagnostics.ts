@@ -43,7 +43,11 @@ function androidFacts(): { android: string, device: string } {
     return { android: `${release || "?"} (API ${Platform.Version})`, device: device || Platform.OS }
 }
 
-function phoneLocale(): string {
+/**
+ * The locale the app's process runs in. On Android 13 and newer it follows the per-app language the app hands to
+ * Android (android-app-language.ts), so it is not necessarily the phone's own language.
+ */
+function processLocale(): string {
     try {
         return Intl.DateTimeFormat().resolvedOptions().locale
     }
@@ -73,7 +77,7 @@ export async function makeDiagnosticReport(privateWords: (string | null | undefi
         app: `${APP_VARIANT.name} ${version} (${build})`,
         variant: APP_VARIANT_NAME,
         ...androidFacts(),
-        language: `app ${getAppLanguage()}, phone ${phoneLocale()}`,
+        language: `app ${getAppLanguage()}, locale ${processLocale()}`,
         problems: await problemsNow(lines),
         logLines: lines.slice(-REPORT_LINES),
         made: Date.now(),
