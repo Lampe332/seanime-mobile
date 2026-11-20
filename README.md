@@ -60,9 +60,9 @@
 <table>
   <tr><td><b>Watch</b></td><td>Stream from the sources you install, online or by torrent, with Sub or Dub. The player is mpv, so AC3, DTS, ASS subtitles and every track of an MKV just play. Torrent results are cards with group, resolution, seeders and codec, and <i>Best match</i> marks the one auto select would pick.</td></tr>
   <tr><td><b>Download</b></td><td>Keep episodes and chapters on the device for when there's no connection. Torrents download too, with speed limits, a queue and a choice of single files from a batch.</td></tr>
-  <tr><td><b>Read</b></td><td>Manga, online or offline. The Manga tab picks up where you stopped.</td></tr>
-  <tr><td><b>Track</b></td><td>Your AniList lists and progress stay in sync. If AniList is down, your changes wait on the phone and go out later.</td></tr>
-  <tr><td><b>Sync</b></td><td>An optional Seanime account keeps settings, watch positions, history, playlists and extensions the same on all your devices. Your devices encrypt everything before it is uploaded. <a href="#account-and-sync">How it works</a>.</td></tr>
+  <tr><td><b>Read</b></td><td>Manga, online or offline, as a long strip, page by page, or two pages side by side. The Manga tab picks up where you stopped.</td></tr>
+  <tr><td><b>Track</b></td><td>Your AniList lists and progress stay in sync. If AniList is down, or stops accepting your sign-in, your changes wait on the phone and go out later.</td></tr>
+  <tr><td><b>Sync</b></td><td>An optional Seanime account keeps settings, watch positions, history, playlists and extensions the same on all your devices. Your devices encrypt everything before it is uploaded. If you want, you can also change your synced settings on the website. <a href="#account-and-sync">How it works</a>.</td></tr>
   <tr><td><b>Cast</b></td><td>Send an episode to your TV over DLNA, or play your PC's Seanime library through Nakama.</td></tr>
   <tr><td><b>Tablets</b></td><td>A navigation rail, settings in two panes, and anime pages where the cover stays put while the episodes scroll.</td></tr>
 </table>
@@ -86,6 +86,10 @@
 - *Settings → Torrents & debrid* has *Preload the next episode* (it never slows the running stream and never uses mobile data), download and upload speed limits, a download queue and *Stop sharing when finished*. Auto select can prefer the larger file.
 - In the torrent search, filters fold away so the results come first, and the sort *Largest* puts the biggest releases first. Copy a result's magnet link with the copy button or a long press.
 - The app reads group, resolution, season and similar details from the release name when the provider leaves them out.
+- After an episode played in an external player such as VLC, the app asks *Mark episode N as watched?* It only asks with *Update progress automatically* on and after at least 60 seconds in the other app.
+- *Settings → Cache → Diagnostic report* copies or shares a report for a bug report: app and Android version, device, language and recent log lines. Sign-ins, email addresses, links, file paths and your AniList name are left out.
+- On Android 13 and newer you can also pick the app's language in Android's settings (*Apps → Seanime Mobile → Language*). The app and Android stay in step.
+- Double-page mode in the manga reader pairs pages in the right order for both reading directions. Wide spreads stand alone, and *Page offset* moves the pairs. On a tablet, *Automatic* shows two pages in landscape and one in portrait.
 - The *Support on Ko-fi* link is in *Settings → About* and at the bottom of *More*.
 
 </details>
@@ -100,6 +104,10 @@
   <img src="docs/images/readme/phone-menu.png" alt="The menu of version 4.0, called More since 4.2.0, with Incognito mode, Updates, Schedule, History, Manga, Scan summaries, Extensions, Settings, Nakama and Refresh AniList" width="30%">
   <img src="docs/images/readme/phone-marketplace.png" alt="The Add marketplace sheet: one link field and a Paste link button" width="30%">
   <img src="docs/images/readme/phone-settings.png" alt="The Settings overview with its areas" width="30%">
+</p>
+<p align="center">
+  <img src="docs/images/readme/phone-edit-on-website.png" alt="Settings, Account in version 4.3.0: the switch Edit on the website turned on, with the note Edit on the website is on" width="30%">
+  <img src="docs/images/readme/phone-diagnostic-report.png" alt="Settings, Cache in version 4.3.0: Copy diagnostic report and Share diagnostic report above the cache buttons" width="30%">
 </p>
 </details>
 
@@ -128,7 +136,7 @@ From then on the app offers updates itself. It checks this repository for a new 
 
 ## First start
 
-1. Pick your language and tap *Get started*. The app speaks English, German, Spanish, Russian, Simplified Chinese, Brazilian Portuguese, French and Japanese. It follows the phone's language, and you can change it later under *Settings → App → Language*.
+1. Pick your language and tap *Get started*. The app speaks English, German, Spanish, Russian, Simplified Chinese, Brazilian Portuguese, French and Japanese. It follows the phone's language, and you can change it later under *Settings → App → Language*, or on Android 13 and newer in Android's own app language settings.
 2. Log in with AniList. Allow access there and copy the code it shows. Back in the app, it finds the code and offers *Connect*. No account? Make one for free at [anilist.co](https://anilist.co), or tap *Not now* and use the local account.
 3. Add sources. None are installed at first. A short tour shows the way: *More → Extensions → Marketplace*. The official Seanime marketplace by 5rahim is set by default, but right now it has no streaming or manga sources. For those, add a community marketplace: paste its link, check the preview, add it. The [setup guide on the website](https://seanimemobile.com/#start) has one ready to copy. Then install a streaming source and a manga source.
 
@@ -146,7 +154,7 @@ Not everything is tested on real hardware. Debrid isn't yet. Nakama was tested a
 <summary>What 4.0 no longer has</summary>
 <br>
 
-Some features needed the built-in server of the older versions and did not come back: plugins, Discord status, Nakama watch parties and cloud rooms, filler marking, custom source lists, debrid downloads into a folder, tracking in external players, searching other manga sources, local manga and the double-page reader view. *Export library data* is gone too; Backup replaces it.
+Some features needed the built-in server of the older versions and did not come back: plugins, Discord status, Nakama watch parties and cloud rooms, filler marking, custom source lists, debrid downloads into a folder, following the progress inside external players (since 4.3.0 the app asks afterwards instead), searching other manga sources and local manga. The double-page reader view is back since 4.3.0. *Export library data* is gone too; Backup replaces it.
 
 </details>
 
@@ -163,6 +171,10 @@ Create an account under *Settings → Account* or from the profile head at the t
 **Sign in with a code.** On the sign-in form, *Sign in with a code instead* mails you a 6-digit code that works once for 10 minutes. By default the code proves your mailbox, not your key. The device is signed in with its data locked, and it unlocks through an approval on another device, a recovery code or *Start fresh*, which deletes the synced data in the account. Right after a code sign-in you can set a new password without the old one, for 15 minutes.
 
 **Code-only sign-in is opt-in.** *Sign in with an email code only* in *Settings → Account* is off by default and asks for your password. When it is on, the server keeps a sealed copy of your data key so that a mailed code alone is enough to get everything on a new device. That means the server can read your synced data while it is on, and so can anyone who gets into your mailbox. Turning it off deletes the server's copy at once, and both changes are mailed to you.
+
+**Edit on the website is opt-in.** With *Settings → Account → Edit on the website* turned on (the app asks for your password), you can unlock your synced settings at [seanimemobile.com/account](https://seanimemobile.com/account/) with your password or recovery code, change them and save. Your devices pick the change up at their next sync. While unlocked, the browser holds your data key in memory only, and it locks itself after 5 minutes without input or 2 minutes in another tab. Every unlock is mailed to you. Extension files, history and playlists stay in the app, and stored secrets are never shown. Turning the switch off, in the app or on the website, locks every browser at once. The [step-by-step guide](https://seanimemobile.com/docs/account#web-edit) has screenshots.
+
+**The account page on the website.** [seanimemobile.com/account](https://seanimemobile.com/account/) lists your [sessions](https://seanimemobile.com/docs/account#sessions), app and website, so you can sign out one or all others, and the security events with a filter for sign-ins. It never stores IP addresses. Security events in the app and on the website name sign-ins, password resets, confirmed addresses, signed-out sessions and website unlocks in plain words.
 
 **Recovery code.** A recovery code is 26 characters you keep on paper or in a password manager. You only need it if all your devices are gone at once. Make one under *Settings → Account → Save a recovery code*. Removing a device makes it stop working, and the app asks for a new one. Forgot your password? *Forgot password* on the sign-in form opens the reset page of the website. Without a signed-in device and without a recovery code, synced data can't be opened by anyone, and you start fresh.
 
@@ -228,7 +240,7 @@ No, the account is optional and only adds sync between your devices. Its data is
 
 </details>
 
-Found a bug or have an idea? [Open an issue](https://github.com/Lampe332/seanime-mobile/issues) with your device model, Android version and app version (*Settings → About*). For questions, help with setup or just to chat, join the [Discord server](https://discord.gg/dxJdj5Dqt9).
+Found a bug or have an idea? [Open an issue](https://github.com/Lampe332/seanime-mobile/issues) and paste the diagnostic report from *Settings → Cache*. It already names your device model, Android version and app version. For questions, help with setup or just to chat, join the [Discord server](https://discord.gg/dxJdj5Dqt9).
 
 ## Support
 
