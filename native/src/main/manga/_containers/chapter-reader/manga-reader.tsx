@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button/button"
 import { useCloseOnBack } from "@/components/ui/core/back-handler"
 import { Slider } from "@/components/ui/slider/slider"
 import { Text } from "@/components/ui/text/text"
-import { toast } from "@/components/ui/toast/toast-store"
 import { useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
@@ -89,7 +88,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
     const [currentPageIndex, setCurrentPageIndex] = useAtom(__manga_currentPageIndexAtom)
     const setCurrentMapIndex = useSetAtom(__manga_currentPaginationMapIndexAtom)
     const [isLastPage, setIsLastPage] = useAtom(__manga_isLastPageAtom)
-    const [readingMode, setReadingMode] = useAtom(__manga_readingModeAtom)
+    const readingMode = useAtomValue(__manga_readingModeAtom)
     const effectiveMode = useEffectiveReadingMode()
     const readingDirection = useAtomValue(__manga_readingDirectionAtom)
     const paginationMap = useAtomValue(__manga_paginationMapAtom)
@@ -141,17 +140,10 @@ function Reader({ source }: { source: MangaReaderSource }) {
         mediaId: entry.media?.id ?? entry.mediaId,
         chapterId: currentChapter?.chapterId,
         provider: currentChapter?.provider,
-        doublePage: effectiveMode === MangaReadingMode.DOUBLE_PAGE,
+        // 4.3.0: the reader pairs the pages itself (chapter-reader.ts), so the same pages serve every mode and turning a
+        // tablet in "Automatic" does not load the chapter again
+        doublePage: false,
     })
-
-    // A source without page sizes cannot pair pages: back to single page
-    React.useEffect(() => {
-        if (readingMode === MangaReadingMode.DOUBLE_PAGE && !pageContainerLoading && !pageContainerError && pageContainer
-            && (!pageContainer.pageDimensions || Object.keys(pageContainer.pageDimensions).length === 0)) {
-            toast.error(t("Could not get page dimensions from this provider. Switching to single page.", "Seitengrößen von dieser Quelle nicht verfügbar. Wechsle zu Einzelseite."))
-            setReadingMode(MangaReadingMode.PAGED)
-        }
-    }, [pageContainer, pageContainerLoading, pageContainerError, readingMode, setReadingMode, t])
 
     const { previousChapter, nextChapter, goToChapter } = useHandleChapterPagination(entry.mediaId, chapterContainer)
 

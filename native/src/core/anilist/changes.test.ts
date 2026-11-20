@@ -19,7 +19,7 @@ import {
 } from "./changes"
 import recorded from "./changes.recorded.json"
 import { watchAnilistState } from "./cache-only"
-import { AnilistFailure, type HttpFetch, askAnilist, changeAnilist } from "./client"
+import { AnilistFailure, type HttpFetch, askAnilist, changeAnilist, rejectsSignIn } from "./client"
 import { VIEWER_ID, saveEntryMutation } from "./queries"
 import { keepAnswer } from "./store"
 
@@ -52,6 +52,8 @@ let viewer = TEST_ACCOUNT
 let asked: { operation: string, variables: Json, document: string }[] = []
 let onlyAccount: number | null = null
 let events: CoreEvent[] = []
+/** AniList turns the token away: "Invalid token" with 400, as it answers an expired or revoked one */
+let tokenRefused = false
 
 function todayOf(time: number): Day {
     const date = new Date(time)
@@ -83,6 +85,7 @@ const anilist: HttpFetch = async (_url, init) => {
     const answer = (status: number, body: unknown, headers: Record<string, string> = {}) => ({
         status, headers: { get: (name: string) => headers[name.toLowerCase()] ?? null }, text: async () => JSON.stringify(body),
     })
+    if (tokenRefused && init.headers?.Authorization) return answer(400, { errors: [{ message: "Invalid token", status: 400, locations: [{ line: 1, column: 1 }] }], data: null })
     if (typeof reach === "number") return answer(reach, { errors: [{ message: "AniList is having a bad day", status: reach }], data: null }, { "retry-after": "60" })
     const ok = (data: unknown) => answer(200, { data })
     if (query.trimStart().startsWith("mutation") && refuse) {
@@ -133,6 +136,9 @@ const anilist: HttpFetch = async (_url, init) => {
 const environment: CoreEnvironment = {
     fetch: anilist,
     secret: async name => (name === "seanime-core.account-token" ? token : null),
+    keepSecret: async (name, value) => {
+        if (name === "seanime-core.account-token") token = value
+    },
     database: () => database ??= openCoreDatabase(sqlDriverFor(openDatabaseSync("core.db") as never), () => clock),
     now: () => clock,
     pause: async () => undefined,
@@ -196,6 +202,7 @@ beforeEach(async () => {
     refuse = null
     viewer = TEST_ACCOUNT
     onlyAccount = null
+    tokenRefused = false
     await signIn("someone")
     asked = []
     await settled()
@@ -625,7 +632,7 @@ describe("the app without AniList", () => {
                 await Promise.all([sendWaitingChanges(environment), sendWaitingChanges(environment)])
                 expect(sent("SaveEntry").map(item => item.variables.mediaId), String(failure)).toEqual([ANIME, 1])
                 expect([entries.get(ANIME)!.progress, entries.get(1)!.progress]).toEqual([3, 6])
-                expect(await anilistSyncState(environment)).toEqual({ waiting: 0, reachable: true, localAccount: false })
+                expect(await anilistSyncState(environment)).toEqual({ waiting: 0, reachable: true, localAccount: false, signInExpired: false })
                 put(ANIME, { ...entries.get(ANIME)!, progress: 2 })
                 put(1, { ...entries.get(1)!, progress: 5 })
                 await lists()
@@ -713,5 +720,67 @@ describe("the app without AniList", () => {
         expect((await entryInLists(ANIME))?.entry).toMatchObject({ status: "COMPLETED", progress: 24 })
         // put aside once: a second upload has nothing left
         await expect(ask("POST", "/api/v1/local/sync-simulated-to-anilist")).rejects.toThrow("no local lists")
+    })
+})
+
+describe("an expired AniList sign-in", () => {
+    it("keeps the changes AniList turned away with its token, says so, and sends them after signing in again", async () => {
+        await signIn("tester")
+        put(ANIME, { progress: 2 })
+        await lists()
+        tokenRefused = true
+        expect(await watched(ANIME, 3)).toBe(true)
+        expect(await edit({ mediaId: ANIME, status: "CURRENT", score: 70, progress: 3, type: "anime" })).toBe(true)
+        await settled()
+        // nothing dropped, nothing told as "cannot be reached", AniList's entry untouched
+        expect(await waitingChanges(environment)).toBe(1)
+        expect(events.filter(event => event.type === "error-toast" || event.type === "info-toast")).toEqual([])
+        expect(entries.get(ANIME)?.progress).toBe(2)
+        expect((await entryInLists(ANIME))?.entry).toMatchObject({ progress: 3, score: 70 })
+        expect(await anilistSyncState(environment)).toMatchObject({ waiting: 1, signInExpired: true })
+        expect((await rows())[0].lastError).toBe("AniList did not accept the sign-in")
+
+        // the queue run after it keeps the change too, and the timer does not retry a token AniList refused
+        const outcomes = await sendWaitingChanges(environment)
+        expect([...outcomes.values()]).toEqual(["signin"])
+        expect(await waitingChanges(environment)).toBe(1)
+
+        // a new sign-in of the same account: the change goes out by itself
+        tokenRefused = false
+        const login = matchCoreRoute("POST", "/api/v1/auth/login")!
+        await login.route.answer({ path: login.path, query: null, body: { token: "new-token" } }, environment)
+        expect(token).toBe("new-token")
+        await sendWaitingChanges(environment)
+        expect(await waitingChanges(environment)).toBe(0)
+        expect(entries.get(ANIME)).toMatchObject({ progress: 3, score: 70 })
+        expect(await anilistSyncState(environment)).toMatchObject({ waiting: 0, signInExpired: false })
+    })
+
+    it("treats AniList's 401 and its \"Unauthorized.\" the same way, but still drops a change AniList refused for itself", async () => {
+        put(ANIME, { progress: 2 })
+        await lists()
+        reach = 401
+        expect(await watched(ANIME, 3)).toBe(true)
+        expect(await waitingChanges(environment)).toBe(1)
+        expect(await anilistSyncState(environment)).toMatchObject({ signInExpired: true })
+
+        reach = "up"
+        await sendWaitingChanges(environment)
+        expect(entries.get(ANIME)?.progress).toBe(3)
+        expect(await anilistSyncState(environment)).toMatchObject({ signInExpired: false })
+
+        // a refusal of the change itself (validation) is no sign-in trouble
+        refuse = ["The progress is not possible."]
+        await expect(watched(ANIME, 4)).rejects.toThrow("The progress is not possible.")
+        expect(await waitingChanges(environment)).toBe(0)
+        expect(await anilistSyncState(environment)).toMatchObject({ signInExpired: false })
+    })
+
+    it("tells a turned-away token apart from other refusals", () => {
+        expect(rejectsSignIn(400, "Invalid token")).toBe(true)
+        expect(rejectsSignIn(400, "Unauthorized.")).toBe(true)
+        expect(rejectsSignIn(401, "anything")).toBe(true)
+        expect(rejectsSignIn(400, "The score raw must be an integer.")).toBe(false)
+        expect(rejectsSignIn(404, "Not Found.")).toBe(false)
     })
 })

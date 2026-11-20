@@ -16,8 +16,8 @@ import { mappingOf, removeMapping, setMapping } from "./mappings"
  * Reading manga in the core (phase 4a-1, area `manga`). The work is the manga extension's, in its own sandbox (3a–3e):
  * search → choose the entry (the choice of the online streams, choose.ts, or the user's mapping) → findChapters →
  * findChapterPages. The manga page and its details come from AniList. Left with the server: its built-in source
- * `local-manga` (folders on the device), downloaded chapters, and pages for the double-page view (they need the size of
- * every picture). The pictures themselves are not loaded here: the screen loads them (§4n).
+ * `local-manga` (folders on the device) and downloaded chapters of the server. The double-page view pairs the pages in
+ * the reader (4.3.0). The pictures themselves are not loaded here: the screen loads them (§4n).
  */
 
 /** How long the provider's chapter list of a manga is kept: new chapters show up within this time */
@@ -103,7 +103,7 @@ async function providerOf(environment: MangaEnvironment, id: string): Promise<Pr
     }
 }
 
-/** The server's own source (local manga) and its double-page view: not there, the app runs without its server */
+/** The server's own source (local manga): not there, the app runs without its server */
 function fromServer(endpoint: string): never {
     throw new CoreError(`POST ${endpoint} needs the server, the app runs without it`, 503)
 }
@@ -320,15 +320,16 @@ export async function pageListOf(environment: MangaEnvironment, id: string, medi
 }
 
 /**
- * POST /api/v1/manga/pages. A downloaded chapter, the double-page view (it needs the size of every picture) and the
- * server's own source stay with the server: it answers those requests as before.
+ * POST /api/v1/manga/pages. The server's own source stays with the server. The double-page view (4.3.0) gets the same
+ * pages without their sizes (`pageDimensions` null): the reader pairs them itself and keeps a spread alone once its
+ * picture has loaded (chapter-reader.ts `buildPaginationMap`), so `doublePage` changes nothing here.
  */
 export async function mangaPages(environment: MangaEnvironment, body: unknown): Promise<unknown> {
     const request = bodyOf(body)
     const mediaId = mediaIdOf(request.mediaId)
     const id = textOf(request, "provider")
     const chapterId = textOf(request, "chapterId")
-    if (id === LOCAL_SOURCE || request.doublePage === true) return fromServer("/api/v1/manga/pages")
+    if (id === LOCAL_SOURCE) return fromServer("/api/v1/manga/pages")
     const pages = await pageListOf(environment, id, mediaId, chapterId)
     return { mediaId, provider: id, chapterId, pages, pageDimensions: null, isDownloaded: false }
 }

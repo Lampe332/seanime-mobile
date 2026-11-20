@@ -110,8 +110,12 @@ export function useEffectiveReadingMode() {
     return resolveReadingMode(readingMode, { width, height })
 }
 
-/** Which pages show together, and the step that holds the current page after a mode or chapter change. */
-export function useHydrateMangaPaginationMap(pageContainer?: Manga_PageContainer) {
+/**
+ * Which pages show together, and the step that holds the current page after a mode or chapter change. `measured`: the
+ * sizes of the pictures loaded so far; the map is set again only when they change the pairs (a spread has loaded), so a
+ * page that loads does not reset the zoom.
+ */
+export function useHydrateMangaPaginationMap(pageContainer?: Manga_PageContainer, measured?: Record<number, { width: number, height: number }>) {
     const selectedChapter = useAtomValue(__manga_selectedChapterAtom)
     const readingMode = useEffectiveReadingMode()
     const currentPageIndex = useAtomValue(__manga_currentPageIndexAtom)
@@ -124,12 +128,18 @@ export function useHydrateMangaPaginationMap(pageContainer?: Manga_PageContainer
         pageIndex.current = currentPageIndex
     }, [currentPageIndex])
 
+    const pages = pageContainer?.pages
+    const pageDimensions = pageContainer?.pageDimensions
+    // the map as text: a new picture size that keeps the pairs gives the same text, and nothing is set again
+    const mapText = React.useMemo(() => pages?.length ? JSON.stringify(buildPaginationMap(pages, pageDimensions, readingMode, doublePageOffset, measured)) : "",
+        [pages, pageDimensions, readingMode, doublePageOffset, measured])
+
     React.useEffect(() => {
-        if (!pageContainer?.pages?.length) return
-        const map = buildPaginationMap(pageContainer.pages, pageContainer.pageDimensions, readingMode, doublePageOffset)
+        if (!mapText) return
+        const map = JSON.parse(mapText) as Record<number, number[]>
         setPaginationMap(map)
         setCurrentMapIndex(mapIndexForPage(map, pageIndex.current))
-    }, [pageContainer?.pages, pageContainer?.pageDimensions, readingMode, selectedChapter, doublePageOffset, setPaginationMap, setCurrentMapIndex])
+    }, [mapText, selectedChapter, setPaginationMap, setCurrentMapIndex])
 }
 
 export function useMangaPageZoomControls() {

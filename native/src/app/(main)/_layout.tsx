@@ -10,6 +10,8 @@ import { LibraryExplorerPhone } from "@/main/_features/library-explorer/library-
 import { ContentGate } from "@/main/_features/content-gate/content-gate"
 import { MediaPreviewModal } from "@/main/_features/media/_containers/media-preview-phone"
 import { MobileAnilistLogin } from "@/main/_features/navigation/anilist-login-mobile"
+import { AnilistSignInAgain } from "@/main/_features/anilist-sync/anilist-sync"
+import { ExternalPlayerWatchedPrompt } from "@/main/_features/external-player/external-player-watched-prompt"
 import { MobileTutorialListener } from "@/main/_features/tour/mobile-tutorial"
 import { __plugin_sidebarItemsAtom, PluginManager } from "@/main/_features/plugin/plugin-manager"
 import { NativePlayer } from "@/main/_features/player/native-player"
@@ -165,6 +167,10 @@ function MainFrame() {
             <GlobalPlaylistManager />
             <MobilePlaylists />
             <MobileAnilistLogin open={!!(loginModal && user?.isSimulated)} onOpenChange={setLoginModal} />
+            {/* "Sign in again" after AniList turned the sign-in away (toast and sync hint) */}
+            <AnilistSignInAgain />
+            {/* "Mark episode N as watched?" after another player app */}
+            <ExternalPlayerWatchedPrompt />
             {/* the setup tour on the first start (2.16) */}
             <MobileTutorialListener />
             {/* plugins: screen events, tray, action lists, dialogs, the "fixed" windows, the extension prompt (2.17) */}

@@ -4,6 +4,7 @@ import { Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { useTr } from "@/lib/app-language"
 import { openInPlayerApp } from "@/lib/external-player-link/open-external-player"
+import { openWithWatchedAsk } from "@/lib/external-player-link/watched-after-player"
 import { colors } from "@/lib/theme/tokens"
 import { showsRail } from "@/lib/tablet-ui"
 import { BOX_BAR_FADE, bottomPad, boxControlSizes, controlSizes, fitBarButton, topPad } from "./control-sizes"
@@ -1285,7 +1286,10 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     if (!info?.streamUrl) return
                     mpv.current?.pause().catch(() => {})
                     setMenuOpen(false)
-                    void openInPlayerApp(info.streamUrl, packageName)
+                    // only main episodes move the progress; back in the app it asks "Mark episode N as watched?"
+                    const main = !info.episode?.type || info.episode.type === "main"
+                    void openWithWatchedAsk(mediaId && progressNumber && main ? { mediaId, episodeNumber: progressNumber } : null,
+                        () => openInPlayerApp(info.streamUrl, packageName))
                 }}
             />
         </View>

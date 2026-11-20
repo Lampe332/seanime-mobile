@@ -212,6 +212,8 @@ describe("manga answers against the recorded form", () => {
         expect(answer.pages.map(page => page.index)).toEqual([0, 1, 2])
         expect(answer.pages[0]).toEqual({ provider: "manga", url: "https://cdn.example/m-0/c0/0.jpg", index: 0, headers: { Referer: "https://manga.example/" } })
         expect(answer).toMatchObject({ mediaId: 30, provider: "manga", chapterId: "m-0/c0", pageDimensions: null, isDownloaded: false })
+        // 4.3.0: the double-page view gets the same pages, the reader pairs them (it was a 503 "needs the server")
+        expect(await ask("POST", "/api/v1/manga/pages", { ...body, doublePage: true })).toEqual(answer)
         // the server was asked which chapters it has downloaded, nothing else
         await expect(ask("POST", "/api/v1/manga/pages", { ...body, chapterId: "m-0/c4" })).rejects.toThrow("no pages found")
     })

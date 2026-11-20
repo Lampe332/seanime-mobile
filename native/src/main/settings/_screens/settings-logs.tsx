@@ -3,16 +3,61 @@ import type { RemoveFileCacheBucket_Variables } from "@/api/generated/endpoint.t
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate } from "@/lib/app-language"
+import { makeDiagnosticReport } from "@/lib/diagnostics/collect-diagnostics"
+import { useCurrentUser } from "@/main/_hooks/use-server-status"
 import { ConfirmSheet, LinkRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
+import * as Clipboard from "expo-clipboard"
+import Copy from "lucide-react-native/icons/copy"
+import Share2 from "lucide-react-native/icons/share-2"
 import React from "react"
+import { Share } from "react-native"
 
 /*
  * Logs & cache (settings-phone-logs.tsx): clearing what the core keeps of the sources (core/cache-bucket.ts).
  * Since stage 8 the app runs without its server: server logs, log files, the cache's size on disk and the server's
- * memory and profile tools had no one to answer them, so their rows are gone. The core logs to Logcat only.
+ * memory and profile tools had no one to answer them, so their rows are gone. The core logs to Logcat; its last lines
+ * stay in memory for the diagnostic report (lib/diagnostics), which the user copies or shares for a bug report.
  */
 export function SettingsLogsSection({ t }: { t: Translate }) {
-    return <CacheGroup t={t} />
+    return <>
+        <DiagnosticGroup t={t} />
+        <CacheGroup t={t} />
+    </>
+}
+
+/** "Copy diagnostic report" / "Share diagnostic report": app, phone, problems and recent log lines, private data filtered */
+function DiagnosticGroup({ t }: { t: Translate }) {
+    const user = useCurrentUser()
+    const [busy, setBusy] = React.useState(false)
+    const privateWords = [user?.viewer?.name]
+
+    const withReport = async (deliver: (report: string) => Promise<void>) => {
+        if (busy) return
+        setBusy(true)
+        try {
+            await deliver(await makeDiagnosticReport(privateWords))
+        }
+        catch {
+            toast.error(t("The diagnostic report could not be made.", "Der Fehlerbericht konnte nicht erstellt werden."))
+        }
+        finally {
+            setBusy(false)
+        }
+    }
+
+    return <SettingsGroup title={t("Diagnostic report", "Fehlerbericht")}
+        note={t("App and Android version, device, language and the app's recent log lines, for a bug report. Sign-ins, email addresses, links, file paths and your AniList name are left out.",
+            "App- und Android-Version, Gerät, Sprache und die letzten Log-Zeilen der App, für eine Fehlermeldung. Anmeldungen, E-Mail-Adressen, Links, Dateipfade und dein AniList-Name bleiben draußen.")}>
+        <LinkRow label={t("Copy diagnostic report", "Fehlerbericht kopieren")} icon={Copy} chevron={false} disabled={busy}
+            onPress={() => void withReport(async report => {
+                await Clipboard.setStringAsync(report)
+                toast.success(t("Diagnostic report copied", "Fehlerbericht kopiert"))
+            })} />
+        <LinkRow label={t("Share diagnostic report", "Fehlerbericht teilen")} icon={Share2} chevron={false} disabled={busy}
+            onPress={() => void withReport(async report => {
+                await Share.share({ message: report, title: "Seanime Mobile diagnostic report" })
+            })} />
+    </SettingsGroup>
 }
 
 function CacheGroup({ t }: { t: Translate }) {

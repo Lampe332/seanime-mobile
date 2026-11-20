@@ -92,8 +92,8 @@ export function coreCutFromAnilist(): boolean {
     return anilistCut
 }
 
-/** For the sync hint (anilist-sync.tsx): changes waiting for AniList, and whether AniList answers */
-export async function coreAnilistSyncState(): Promise<{ waiting: number, reachable: boolean, localAccount: boolean }> {
+/** For the sync hint (anilist-sync.tsx): changes waiting for AniList, whether AniList answers and takes the sign-in */
+export async function coreAnilistSyncState(): Promise<Awaited<ReturnType<typeof anilistSyncState>>> {
     return anilistSyncState(coreEnvironment())
 }
 

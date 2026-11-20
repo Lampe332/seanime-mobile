@@ -68,9 +68,24 @@ const device: TorrentDevice = {
 /** The device the core is handed */
 let current: TorrentDevice = device
 
+/** AniList and the metadata service for a test that needs them (their JSON answer); null: no network */
+let web: ((url: string) => unknown) | null = null
+/** Vinland Saga Season 2 in the fields the core reads from AniList and ani.zip (titles and numbering real, other values invented) */
+const VINLAND_2 = {
+    id: 136430, idMal: 49387, status: "FINISHED", format: "TV", episodes: 24, synonyms: [], isAdult: false,
+    title: { english: "Vinland Saga Season 2", native: "ヴィンランド・サガ SEASON 2", romaji: "Vinland Saga Season 2", userPreferred: "Vinland Saga Season 2" },
+    startDate: { year: 2023, month: 1, day: 10 },
+}
+const VINLAND_2_METADATA = {
+    titles: { "x-jat": "Vinland Saga Season 2" }, episodeCount: 24, specialCount: 0, mappings: { anidb_id: 17476, anilist_id: 136430 },
+    episodes: { 1: { episode: "1", episodeNumber: 1, seasonNumber: 2, absoluteEpisodeNumber: 25, anidbEid: 270001, title: { en: "Slave" } } },
+}
+
 const environment = {
     fetch: async (url: string) => {
-        throw new TypeError(`no network in tests: ${url}`)
+        const answer = web?.(url)
+        if (!answer) throw new TypeError(`no network in tests: ${url}`)
+        return { status: 200, headers: { get: () => null }, text: async () => JSON.stringify(answer) }
     },
     secret: async () => null,
     server: async () => {
@@ -101,6 +116,7 @@ beforeEach(() => {
     metadataAfter = 0
     listeners = []
     seen = {}
+    web = null
     current = device
     forgetTorrentStream()
     stopListening = onCoreEvent(event => void events.push(event))
@@ -178,6 +194,58 @@ describe("picking the file in a collection (phase 6e)", () => {
         // a collection that only misses its first episode is no absolute numbering
         const missing = Array.from({ length: 11 }, (_, at) => video(at, `[Grp] Show - ${String(at + 2).padStart(2, "0")} [1080p].mkv`))
         expect(chooseFile(missing, { episodeNumber: 1, episodeCount: 24 })).toBeNull()
+    })
+
+    it("finds a later season's episode in a collection that numbers on through two seasons (1-48, 4.3.0)", () => {
+        // Vinland Saga: season 1 = episodes 1-24, the entry "Season 2" has 24 episodes, its episode 1 is number 25
+        const flat = Array.from({ length: 48 }, (_, at) => video(at, `[Judas] Vinland Saga (Seasons 1-2) [BD 1080p][HEVC x265 10bit][Dual-Audio][Multi-Subs]/[Judas] Vinland Saga - ${String(at + 1).padStart(2, "0")}.mkv`))
+        const second = { episodeCount: 24, absoluteOffset: 24 }
+        expect(chooseFile(flat, { episodeNumber: 3, ...second })?.path).toMatch(/Vinland Saga - 27\.mkv$/)
+        expect(chooseFile(flat, { episodeNumber: 1, ...second })?.path).toMatch(/- 25\.mkv$/)
+        expect(chooseFile(flat, { episodeNumber: 24, ...second })?.path).toMatch(/- 48\.mkv$/)
+        // the first season's entry and an unknown offset stay as before
+        expect(chooseFile(flat, { episodeNumber: 3, episodeCount: 24, absoluteOffset: 0 })?.path).toMatch(/- 03\.mkv$/)
+        expect(chooseFile(flat, { episodeNumber: 3 })?.path).toMatch(/- 03\.mkv$/)
+
+        // the same in season folders, with extras and smaller copies beside
+        const folders = [
+            ...Array.from({ length: 24 }, (_, at) => video(at, `Vinland Saga/Season 1/Vinland Saga - ${String(at + 1).padStart(2, "0")} (BD 1080p).mkv`)),
+            ...Array.from({ length: 24 }, (_, at) => video(at + 24, `Vinland Saga/Season 2/Vinland Saga - ${at + 25} (BD 1080p).mkv`)),
+            video(48, "Vinland Saga/Season 2/Vinland Saga - 27 (BD 1080p).ia.mp4", 150_000_000),
+            video(49, "Vinland Saga/Season 2/Extras/Vinland Saga - NCOP1.mkv", 90_000_000),
+        ]
+        const three = chooseFile(folders, { episodeNumber: 3, season: 0, ...second })
+        expect(three?.path).toBe("Vinland Saga/Season 2/Vinland Saga - 27 (BD 1080p).mkv")
+        expect(chooseFile(folders, { episodeNumber: 3, season: 2, ...second })?.index).toBe(three?.index)
+
+        // a collection that counts each season anew keeps choosing by season and number
+        const anew = [
+            ...Array.from({ length: 24 }, (_, at) => video(at, `Show/Season 1/Show - S01E${String(at + 1).padStart(2, "0")}.mkv`)),
+            ...Array.from({ length: 24 }, (_, at) => video(at + 24, `Show/Season 2/Show - S02E${String(at + 1).padStart(2, "0")}.mkv`)),
+        ]
+        expect(chooseFile(anew, { episodeNumber: 3, season: 2, ...second })?.path).toBe("Show/Season 2/Show - S02E03.mkv")
+        // a later season alone, numbered on (25-48), as before
+        expect(chooseFile(flat.slice(24), { episodeNumber: 3, ...second })?.path).toMatch(/- 27\.mkv$/)
+        expect(chooseFile(flat.slice(24), { episodeNumber: 3, episodeCount: 24 })?.path).toMatch(/- 27\.mkv$/)
+        // a later season alone, numbered anew (01-24): the offset does not apply
+        const own = Array.from({ length: 24 }, (_, at) => video(at, `[SubsPlease] Vinland Saga S2 - ${String(at + 1).padStart(2, "0")} (1080p).mkv`))
+        expect(chooseFile(own, { episodeNumber: 3, ...second })?.path).toMatch(/S2 - 03 \(1080p\)\.mkv$/)
+    })
+
+    it("streams season 2's episode of a 1-48 collection with the entry's metadata and says how in the log", async () => {
+        const notes: string[] = []
+        current = { ...device, note: text => void notes.push(text) }
+        files = Array.from({ length: 48 }, (_, at) => video(at, `[Judas] Vinland Saga (Seasons 1-2)/[Judas] Vinland Saga - ${String(at + 1).padStart(2, "0")}.mkv`))
+        web = url => {
+            if (url.startsWith("https://graphql.anilist.co")) return { data: { Media: VINLAND_2 } }
+            if (url.startsWith("https://api.ani.zip/")) return VINLAND_2_METADATA
+            return null
+        }
+        await start({ mediaId: VINLAND_2.id, episodeNumber: 3, aniDBEpisode: "3", torrent: { name: "[Judas] Vinland Saga (Seasons 1-2) [BD 1080p][HEVC x265 10bit][Dual-Audio][Multi-Subs] (Batch)", infoHash: HASH } })
+        expect(calls.at(-1)).toBe("serve 26")
+        expect(notes).toEqual(["file 26 of 48 chosen for episode 3: 48 video files, 0 extras left out, numbered on from earlier seasons (episode 27 = 24 + 3), the largest (400.0 MB)"])
+        await settled()
+        expect(await ask("stop")).toBe(true)
     })
 
     it("streams the episode of a collection and says in the log how the file was chosen", async () => {

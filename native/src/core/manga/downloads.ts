@@ -485,7 +485,8 @@ export async function mangaPagesOrSaved(environment: MangaDownloadEnvironment, b
     const provider = text(request.provider)
     const chapterId = text(request.chapterId)
     const mediaId = Number(request.mediaId)
-    if (environment.device.mangaRoot && request.doublePage !== true) {
+    // also for the double-page view: the reader pairs the pages itself (chapter-reader.ts)
+    if (environment.device.mangaRoot) {
         const s = await serviceOf(environment)
         const row = [...s.rows.values()].find(item => item.status === "ready" && item.provider === provider && item.mediaId === mediaId && item.chapterId === chapterId)
         const folder = row ? folderOf(environment, row) : null

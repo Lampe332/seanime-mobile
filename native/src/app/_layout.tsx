@@ -10,6 +10,10 @@ import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { AppState, Dimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { startDiagnostics } from '@/lib/diagnostics/collect-diagnostics';
+
+// the last log lines and error toasts, in memory for the diagnostic report (settings → Logs & cache)
+startDiagnostics();
 
 /*
  * The old app hid the bars again on every resume, window focus and fullscreen change (MainActivity.hideSystemBars at

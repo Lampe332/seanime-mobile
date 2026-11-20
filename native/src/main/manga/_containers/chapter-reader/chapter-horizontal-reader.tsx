@@ -1,5 +1,5 @@
 import type { Manga_PageContainer } from "@/api/generated/types"
-import { DEFAULT_PAGE_RATIO, pagedPageSize, readerTapZone, stepPaginationMap } from "@/main/manga/_lib/chapter-reader"
+import { DEFAULT_PAGE_RATIO, pagedPageSize, pagesLeftToRight, readerTapZone, stepPaginationMap } from "@/main/manga/_lib/chapter-reader"
 import { useEffectiveReadingMode, useHandleChapterPageStatus, useHydrateMangaPaginationMap } from "@/main/manga/_lib/handle-chapter-reader"
 import {
     __manga_currentPageIndexAtom,
@@ -28,7 +28,8 @@ import { ChapterPage } from "./chapter-page"
 
 /*
  * Single and double page mode (chapter-horizontal-reader.tsx): the pages of the current step of the pagination map, a
- * pair side by side (right to left, as the web reader lays it out). Tap the outer 40 % to turn, the middle to show or hide
+ * pair side by side in the reading direction (right to left: the first page on the right). The sizes of the loaded
+ * pictures go into the map, so a spread shows alone once it has loaded (4.3.0: the core gives no sizes). Tap the outer 40 % to turn, the middle to show or hide
  * the controls; swipe to turn; pinch or double tap to zoom, a finger then moves the page (use-reader-gestures.ts). Fit
  * width, Overflow and Original scroll down a page taller than the screen, the Zoom setting scrolls both ways; while a
  * gesture zoom is on, the finger moves the page instead. The next pages are fetched ahead (the web kept every page
@@ -58,7 +59,7 @@ export function MangaHorizontalReader({ pageContainer, pageUrl, pageHeaders, wid
     const scroll = React.useRef<React.ComponentRef<typeof ScrollView>>(null)
     const box = React.useRef<React.ComponentRef<typeof View>>(null)
 
-    useHydrateMangaPaginationMap(pageContainer)
+    useHydrateMangaPaginationMap(pageContainer, sizes)
     const { handlePageLoad } = useHandleChapterPageStatus(pageContainer)
 
     const steps = Object.keys(paginationMap).length
@@ -106,7 +107,8 @@ export function MangaHorizontalReader({ pageContainer, pageUrl, pageHeaders, wid
         }
     }, [currentMapIndex, paginationMap, pageUrl, pageHeaders])
 
-    const currentPages = paginationMap[currentMapIndex] ?? []
+    // a pair as it stands on the screen: the first page on the left, right to left on the right
+    const currentPages = pagesLeftToRight(paginationMap[currentMapIndex] ?? [], readingDirection)
     const double = readingMode === MangaReadingMode.DOUBLE_PAGE && currentPages.length === 2
     const showShadows = double && pageGap && pageGapShadow && !(pageFit === MangaPageFit.COVER || pageFit === MangaPageFit.TRUE_SIZE)
     const scrolls = pageZoom !== 1 || pageFit === MangaPageFit.COVER || pageFit === MangaPageFit.TRUE_SIZE || pageFit === MangaPageFit.LARGER
@@ -127,13 +129,14 @@ export function MangaHorizontalReader({ pageContainer, pageUrl, pageHeaders, wid
     }, [])
 
     const pages = <Animated.View pointerEvents="box-none" style={[{ width: contentWidth, minHeight: contentHeight, transformOrigin: "top left" }, gestures.animatedStyle]}
-        className={double ? "flex-row-reverse items-center justify-center" : "items-center justify-center"}>
+        className={double ? "flex-row items-center justify-center" : "items-center justify-center"}>
         {currentPages.map((index, i) => <View key={`${index}-${pageContainer?.pages?.[index]?.url}`} style={double && pageGap ? { marginHorizontal: 4 } : undefined}>
             <ChapterPage url={pageUrl(index)} headers={pageHeaders?.(index)} index={index} width={pageSizes[i].width} height={pageSizes[i].height}
                 onSize={onSize} onLoaded={handlePageLoad} />
+            {/* the shadow on the inner edge of each page, where the two meet */}
             {showShadows && <View pointerEvents="none" className="absolute bottom-0 top-0 w-[3%]"
-                style={i === 0 ? { left: 0, backgroundImage: "linear-gradient(90deg, rgba(17,17,17,0.3) 0%, rgba(17,17,17,0) 100%)" }
-                    : { right: 0, backgroundImage: "linear-gradient(-90deg, rgba(17,17,17,0.3) 0%, rgba(17,17,17,0) 100%)" }} />}
+                style={i === 0 ? { right: 0, backgroundImage: "linear-gradient(-90deg, rgba(17,17,17,0.3) 0%, rgba(17,17,17,0) 100%)" }
+                    : { left: 0, backgroundImage: "linear-gradient(90deg, rgba(17,17,17,0.3) 0%, rgba(17,17,17,0) 100%)" }} />}
         </View>)}
     </Animated.View>
 

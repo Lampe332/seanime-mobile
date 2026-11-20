@@ -1,6 +1,5 @@
 import type { Anime_Entry, Anime_Episode } from "@/api/generated/types"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
-import { usePlaybackStartManualTracking } from "@/api/hooks/playback_manager.hooks"
 import { PhoneEmpty, PhoneSection } from "@/components/shared/phone-cards"
 import { LoadingRows, RowGroup } from "@/components/shared/phone-kit"
 import { PhoneScreen } from "@/components/shared/phone-screen"
@@ -11,14 +10,14 @@ import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate, useTr } from "@/lib/app-language"
 import { ExternalPlayerLink } from "@/lib/external-player-link/external-player-link"
 import { openExternalPlayer } from "@/lib/external-player-link/open-external-player"
+import { openWithWatchedAsk } from "@/lib/external-player-link/watched-after-player"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
 import { useExternalPlayerLink } from "@/main/_atoms/playback.atoms"
 import { __mpt_currentExternalPlayerLinkAtom } from "@/main/_features/progress-tracking/progress-tracking.atoms"
 import { useMediastreamCurrentFile } from "@/main/mediastream/_lib/mediastream.atoms"
-import { clientIdAtom } from "@/main/websocket-provider"
 import { Image } from "expo-image"
-import { useAtomValue, useSetAtom } from "jotai"
+import { useSetAtom } from "jotai"
 import Check from "lucide-react-native/icons/check"
 import ExternalLink from "lucide-react-native/icons/external-link"
 import Info from "lucide-react-native/icons/info"
@@ -29,7 +28,8 @@ import { downloadedEpisodeGroups, encodeFilePath, episodeFacts, isWatched } from
 /*
  * The external player's page (web medialinks/page.tsx + medialinks-phone.tsx/.css `.pml-*`): the anime's downloaded
  * episodes as rows; a tap opens one in the external player (VLC, mpv …, the saved player link, as an Android intent
- * through openExternalPlayer) with its subtitle files, and Seanime tracks it. The anime page sends the chosen file
+ * through openExternalPlayer) with its subtitle files; back in the app it asks "Mark episode N as watched?"
+ * (watched-after-player.ts, the server's tracking of the other player is not in the app). The anime page sends the chosen file
  * along (`useMediastreamCurrentFile`, handle-play-media.ts) and it starts once the entry has loaded.
  */
 
@@ -58,15 +58,13 @@ function EpisodeRow({ t, episode, watched, playing, onPlay }: { t: Translate, ep
     )
 }
 
-/** Opens a local file in the external player and starts the manual progress tracking (medialinks/page.tsx) */
+/** Opens a local file in the external player; back in the app, the watched question follows (medialinks/page.tsx) */
 function usePlayInExternalPlayer(entry: Anime_Entry | undefined) {
     const t = useTr()
-    const clientId = useAtomValue(clientIdAtom)
     const { externalPlayerLink, encodePath } = useExternalPlayerLink()
-    const { mutate: startManualTracking } = usePlaybackStartManualTracking()
     const setCurrentExternalPlayerLink = useSetAtom(__mpt_currentExternalPlayerLinkAtom)
 
-    // true once a player app took the episode; a missing player (toast) neither marks the row nor starts the tracking
+    // true once a player app took the episode; a missing player (toast) neither marks the row nor asks afterwards
     return async (filePath: string): Promise<boolean> => {
         const episode = entry?.episodes?.find(ep => ep.localFile?.path === filePath)
         if (!entry || !episode) {
@@ -81,12 +79,10 @@ function usePlayInExternalPlayer(entry: Anime_Entry | undefined) {
         link.setEpisodeNumber(episode.progressNumber)
         link.setMediaTitle(entry.media?.title?.userPreferred)
         link.to({ endpoint: "/api/v1/mediastream/file?path=" + encodeFilePath(filePath, encodePath) })
-        if (!(await openExternalPlayer(link.getFullUrl()))) return false
-        setCurrentExternalPlayerLink(link.getFullUrl())
         // Only main episodes move the progress
-        if (episode.progressNumber && episode.type === "main") {
-            startManualTracking({ mediaId: entry.mediaId, episodeNumber: episode.progressNumber, clientId: clientId || "" })
-        }
+        const ask = episode.progressNumber && episode.type === "main" ? { mediaId: entry.mediaId, episodeNumber: episode.progressNumber } : null
+        if (!(await openWithWatchedAsk(ask, () => openExternalPlayer(link.getFullUrl())))) return false
+        setCurrentExternalPlayerLink(link.getFullUrl())
         return true
     }
 }

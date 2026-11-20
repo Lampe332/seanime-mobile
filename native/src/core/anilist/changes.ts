@@ -9,7 +9,7 @@ import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import type { CoreEnvironment, CoreRequest } from "../registry"
 import { INCOGNITO_ERROR, incognitoOn } from "../settings/incognito"
 import { anilistStateChanged, sharedCacheOnly } from "./cache-only"
-import { AnilistFailure, askAnilist, changeAnilist, clientFor } from "./client"
+import { AnilistFailure, askAnilist, changeAnilist, clientFor, sharedSignIn, signInAccepted } from "./client"
 import { DELETE_ENTRY, ENTRY_MEDIA, VIEWER_ENTRY, VIEWER_ID, saveEntryMutation } from "./queries"
 import { type ListCollection, type ListKind, keepAnswer, keepCollection, putEntry, removeEntry, storedAnswer, storedCollection, storedEntry, withoutEmpty } from "./store"
 
@@ -33,8 +33,10 @@ import { type ListCollection, type ListKind, keepAnswer, keepCollection, putEntr
  *   further than the change and not where the change started from (watched on another device meanwhile), the progress
  *   is not sent, nor a status that only followed from it. A change sent at once is the user's wish as it is, as with
  *   the server (recorded: marking episode 2 of an entry at 7 sets 2).
- * - AniList refuses a change (a status of 400 to 499, but not 429): the change is dropped, the entry is read again from
- *   AniList and the user is told. AniList cannot be asked (network, 5xx, rate limit): the change stays and is tried again.
+ * - AniList refuses a change (a status of 400 to 499, but not 429 or 401): the change is dropped, the entry is read again
+ *   from AniList and the user is told. AniList cannot be asked (network, 5xx, rate limit): the change stays and is tried
+ *   again. AniList turns the sign-in away (401, an expired or revoked token, client.ts): the change stays, nothing is
+ *   retried by the timer, and the app offers to sign in again (anilist-sync.tsx); the new sign-in sends the queue.
  * - A change belongs to the account it was made with. Signed in as someone else, it is dropped, never sent.
  * - A change made while its row is being sent is not lost: the row is taken out only when it still holds what was sent,
  *   otherwise it stays and goes out in the next run.
@@ -61,8 +63,8 @@ type Change = {
 type Row = typeof anilistChanges.$inferSelect
 type Environment = Pick<CoreEnvironment, "fetch" | "secret" | "database" | "now" | "pause" | "onlyAccount" | "unasked">
 
-/** What became of a row in one run of the queue */
-export type Outcome = "sent" | "kept" | { refused: string }
+/** What became of a row in one run of the queue; "signin": kept until the user signs in to AniList again */
+export type Outcome = "sent" | "kept" | "signin" | { refused: string }
 
 /** Recorded: DELETE without `mediaId` or `type` */
 export const MISSING_PARAMETERS = "missing parameters"
@@ -250,9 +252,12 @@ export async function uploadLocalLists(_request: CoreRequest, environment: Envir
     return true
 }
 
-/** What the app's sync hint shows: changes waiting, and whether AniList answers (cache-only.ts) */
-export async function anilistSyncState(environment: Pick<CoreEnvironment, "database" | "secret">): Promise<{ waiting: number, reachable: boolean, localAccount: boolean }> {
-    return { waiting: await waitingChanges(environment), reachable: !sharedCacheOnly.failed, localAccount: await withoutAnilistAccount(environment) }
+export type AnilistSyncState = { waiting: number, reachable: boolean, localAccount: boolean, signInExpired: boolean }
+
+/** What the app's sync hint shows: changes waiting, whether AniList answers (cache-only.ts) and takes the sign-in (client.ts) */
+export async function anilistSyncState(environment: Pick<CoreEnvironment, "database" | "secret">): Promise<AnilistSyncState> {
+    const localAccount = await withoutAnilistAccount(environment)
+    return { waiting: await waitingChanges(environment), reachable: !sharedCacheOnly.failed, localAccount, signInExpired: !localAccount && sharedSignIn.rejected }
 }
 
 /**
@@ -410,6 +415,7 @@ export function forgetChanges() {
     noRetryNeeded()
     checked = null
     running = Promise.resolve()
+    sharedSignIn.rejected = false
 }
 
 async function sendAll(environment: Environment, direct: number | null): Promise<Map<number, Outcome>> {
@@ -447,6 +453,13 @@ async function sendAll(environment: Environment, direct: number | null): Promise
         }
         catch (error) {
             if (!(error instanceof AnilistFailure)) throw error
+            if (error.status === 401) {
+                // the sign-in is turned away (or no token is left): this row and all after it wait for the next sign-in
+                signInAccepted(false)
+                await inOrder(database, () => database.update(anilistChanges).set({ attempts: row.attempts + 1, lastError: error.message }).where(eq(anilistChanges.id, row.id)))
+                outcomes.set(row.id, "signin")
+                break
+            }
             if (error.status >= 400 && error.status < 500 && error.status !== 429) {
                 await dropIfUnchanged(database, row)
                 await entryFromAnilist(environment, database, kind, row.mediaId).catch(() => undefined)
@@ -466,7 +479,7 @@ async function sendAll(environment: Environment, direct: number | null): Promise
     const results = [...outcomes.values()]
     const sentCount = results.filter(outcome => outcome === "sent").length
     // counts only: which titles and what was changed is the user's
-    console.log(`[Core] info changes for AniList: ${sentCount} sent, ${results.filter(outcome => typeof outcome === "object").length} dropped, ${results.filter(outcome => outcome === "kept").length} waiting`)
+    console.log(`[Core] info changes for AniList: ${sentCount} sent, ${results.filter(outcome => typeof outcome === "object").length} dropped, ${results.filter(outcome => outcome === "kept" || outcome === "signin").length} waiting`)
     anilistStateChanged(sentCount)
     return outcomes
 }
@@ -559,7 +572,8 @@ async function change(environment: Environment, kind: ListKind, mediaId: number,
     const { id, alone } = await enqueue(environment, kind, mediaId, action, fields, statusByProgress)
     const outcome = (await sendWaitingChanges(environment, alone ? id : null)).get(id)
     if (typeof outcome === "object") throw new CoreError(outcome.refused, 500)
-    if (outcome === "kept") emitCoreEvent("info-toast", KEPT_FOR_LATER)
+    // waiting for a new sign-in: the app's sync service says so, with a way to sign in (anilist-sync.tsx)
+    if (outcome === "kept" && !sharedSignIn.rejected) emitCoreEvent("info-toast", KEPT_FOR_LATER)
     return true
 }
 

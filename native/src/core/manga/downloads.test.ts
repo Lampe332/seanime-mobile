@@ -193,6 +193,8 @@ describe("manga downloads in the core", () => {
             mediaId: 30, provider: "manga", chapterId: "c-0", pageDimensions: null, isDownloaded: true,
             pages: [0, 1, 2].map(index => ({ provider: "manga", url: `${ROOT}/manga/30/c-0/00${index}.${index === 2 ? "png" : "jpg"}`, index, headers: {} })),
         })
+        // the double-page view reads the saved files too (4.3.0)
+        expect(await call("POST", "/api/v1/manga/pages", { mediaId: 30, provider: "manga", chapterId: "c-0", doublePage: true })).toEqual(pages)
         const online = await call<Manga_PageContainer>("POST", "/api/v1/manga/pages", { mediaId: 30, provider: "manga", chapterId: "c-3/x y", doublePage: false })
         expect(online.isDownloaded).toBe(false)
         expect(online.pages?.[0].url).toMatch(/^https:/)

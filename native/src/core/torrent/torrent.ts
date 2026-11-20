@@ -325,13 +325,33 @@ export type FileWanted = {
     season?: number
     /** The anime's number of episodes (0 or missing: unknown); needed to read absolute numbering */
     episodeCount?: number
+    /** The episodes of the seasons before this entry (the metadata's absolute number of episode 1, less 1; 0: none) */
+    absoluteOffset?: number
+}
+
+/**
+ * Whether a collection numbers on through its seasons (1–48 over two): every number stands in one folder and season only.
+ * A collection that counts each season anew ("Season 1/01", "Season 2/01", S01E01 and S02E01) has a number twice.
+ */
+function numbersOn(episodes: { file: TorrentDeviceFile, episode: number, season: number }[]): boolean {
+    const places = new Map<number, string>()
+    for (const one of episodes) {
+        const place = `${one.file.path.slice(0, Math.max(0, one.file.path.length - nameOf(one.file.path).length))}|${one.season}`
+        if ((places.get(one.episode) ?? place) !== place) return false
+        places.set(one.episode, place)
+    }
+    return true
 }
 
 /**
  * The file of a torrent to stream, and in words how it was found: the one the user chose (`fileIndex`), the only video
- * file, or among the video files that are no extra: the ones of the wanted season (else of the lowest one, when the
- * names give several) whose number is the episode – the largest of them. None fits and the numbers go past the anime's
- * episode count: absolute numbering, the n-th episode is the lowest number + n − 1.
+ * file, or among the video files that are no extra:
+ * - a later season's entry (`absoluteOffset`) in a collection that numbers on through the seasons past the entry's
+ *   episode count (1–48, the entry 24 episodes): the number offset + n (4.3.0; before, episode n of the first season won);
+ * - else the ones of the wanted season (else of the lowest one, when the names give several) whose number is the episode;
+ * - none fits and the numbers go past the anime's episode count: absolute numbering, the n-th episode is the lowest
+ *   number + n − 1.
+ * Each time the largest of them.
  */
 export function fileChoiceOf(files: TorrentDeviceFile[], wanted: FileWanted): { file: TorrentDeviceFile, how: string } | null {
     if (typeof wanted.fileIndex === "number") {
@@ -341,17 +361,28 @@ export function fileChoiceOf(files: TorrentDeviceFile[], wanted: FileWanted): { 
     const videos = files.filter(isVideo)
     if (videos.length <= 1) return videos[0] ? { file: videos[0], how: "the only video file" } : null
     const read = videos.map(file => ({ file, ...episodeOfName(file.path) }))
-    let episodes = read.filter(one => !one.extra && one.episode > 0)
+    const all = read.filter(one => !one.extra && one.episode > 0)
+    const largest = (list: typeof all) => list.sort((a, b) => b.file.size - a.file.size)[0]
+    const count = wanted.episodeCount ?? 0
+    const offset = wanted.absoluteOffset ?? 0
+    // a later season in a collection that numbers on: before the seasons are told apart, a season folder of it holds
+    // only its own numbers (Season 2/25.mkv)
+    if (offset > 0 && count > 0 && wanted.episodeNumber <= count && all.length > 0 && Math.max(...all.map(one => one.episode)) > count && numbersOn(all)) {
+        const onward = all.filter(one => one.episode === offset + wanted.episodeNumber)
+        if (onward.length > 0) {
+            const file = largest(onward)!.file
+            return { file, how: `${videos.length} video files, ${read.filter(one => one.extra).length} extras left out, numbered on from earlier seasons (episode ${offset + wanted.episodeNumber} = ${offset} + ${wanted.episodeNumber}), the largest (${amount(file.size)})` }
+        }
+    }
+    let episodes = all
     const seasons = [...new Set(episodes.map(one => one.season).filter(Boolean))].sort((a, b) => a - b)
     const season = wanted.season && seasons.includes(wanted.season) ? wanted.season : seasons[0] ?? 0
     if (seasons.length > 0) episodes = episodes.filter(one => one.season === season || (seasons.length === 1 && one.season === 0))
-    const largest = (list: typeof episodes) => list.sort((a, b) => b.file.size - a.file.size)[0]
     const counts = `${videos.length} video files, ${read.filter(one => one.extra).length} extras left out${seasons.length > 1 ? `, season ${season} of ${seasons.join("/")}` : ""}`
     const wantedOnes = episodes.filter(one => one.episode === wanted.episodeNumber)
     if (wantedOnes.length > 0) {
         return { file: largest(wantedOnes)!.file, how: `${counts}, ${wantedOnes.length} ${wantedOnes.length === 1 ? "copy" : "copies"} of the episode, the largest (${amount(largest(wantedOnes)!.file.size)})` }
     }
-    const count = wanted.episodeCount ?? 0
     if (!count || wanted.episodeNumber > count || episodes.length === 0) return null
     const numbers = episodes.map(one => one.episode)
     const lowest = Math.min(...numbers)
@@ -591,9 +622,9 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
         const files = await filesOf(device, infoHash, environment)
         const seasons = (parse(typeof torrent.name === "string" ? torrent.name : "") as { season_number?: string[] }).season_number ?? []
         const wanted: FileWanted = { fileIndex: body.fileIndex, episodeNumber, season: seasons.length === 1 ? positive(seasons[0]) : 0 }
-        let choice = fileChoiceOf(files, wanted)
-        // the anime's episode count only when the names alone do not do (absolute numbering)
-        if (!choice && files.filter(isVideo).length > 1) choice = fileChoiceOf(files, { ...wanted, episodeCount: await episodeCountOf(environment, mediaId) })
+        // a collection the user chose no file of: the anime's episode count and earlier seasons (absolute numbering)
+        const collection = typeof body.fileIndex !== "number" && files.filter(isVideo).length > 1
+        const choice = fileChoiceOf(files, collection ? { ...wanted, ...await numberingOf(environment, mediaId) } : wanted)
         if (!choice) throw new CoreError(`no file of the torrent fits episode ${episodeNumber}`, 404)
         const chosen = choice.file
         size = chosen.size
@@ -662,10 +693,19 @@ export async function startTorrentStream(request: CoreRequest, environment: Core
 /** The type of a video file by its ending, for the player */
 export const mimeOf = (path: string) => MIME[extensionOf(path)] ?? "video/*"
 
-/** The anime's number of episodes as the core knows it (0: unknown) */
-async function episodeCountOf(environment: CoreEnvironment, mediaId: number): Promise<number> {
+type Numbering = Required<Pick<FileWanted, "episodeCount" | "absoluteOffset">>
+
+/**
+ * The anime's number of episodes as the core knows it (0: unknown) and the episodes of its earlier seasons (the
+ * metadata's absolute number of episode 1, less 1, as the entry's `absoluteOffset`, library.ts); both 0 when unknown
+ */
+async function numberingOf(environment: CoreEnvironment, mediaId: number): Promise<Numbering> {
     const built = await animeWithEpisodes(environment, mediaId).catch(() => null)
-    return positive(built?.media.episodes)
+    const first = isRecord(built?.metadata?.episodes) ? built.metadata.episodes["1"] : null
+    return {
+        episodeCount: positive(built?.media.episodes),
+        absoluteOffset: isRecord(first) ? Math.max(0, positive(first.absoluteEpisodeNumber) - 1) : 0,
+    }
 }
 
 /** Title and episode for the player's top line (a stream plays without them as well) */
@@ -725,7 +765,7 @@ export const PRELOAD_RETRY_MS = 30_000
 export const PRELOAD_PRIORITY = 1
 
 /** Where the next episode comes from: a file of the stream's torrent, another torrent the core picks, or nowhere */
-export type NextWay = { kind: "same", index: number } | { kind: "other", episodeCount: number } | { kind: "none" }
+export type NextWay = { kind: "same", index: number } | { kind: "other", numbering: Numbering } | { kind: "none" }
 
 /**
  * Whether the next episode may start loading. The stream's own torrent: once its file is loaded, or from 90 % watched
@@ -757,16 +797,15 @@ async function preloadRefusal(environment: CoreEnvironment): Promise<string> {
 async function nextWayOf(now: Running, environment: CoreEnvironment): Promise<NextWay> {
     const episode = now.episodeNumber + 1
     const wanted: FileWanted = { episodeNumber: episode, season: now.season }
-    let count: number | null = null
-    const countOf = async () => count ??= await episodeCountOf(environment, now.mediaId)
-    let choice = fileChoiceOf(now.files, wanted)
-    if (!choice && now.files.filter(isVideo).length > 1) choice = fileChoiceOf(now.files, { ...wanted, episodeCount: await countOf() })
+    let known: Numbering | null = null
+    const numbering = async () => known ??= await numberingOf(environment, now.mediaId)
+    const choice = fileChoiceOf(now.files, now.files.filter(isVideo).length > 1 ? { ...wanted, ...await numbering() } : wanted)
     if (choice && choice.file.index !== now.index) return { kind: "same", index: choice.file.index }
     if (!now.autoSelected || !now.finder) return { kind: "none" }
-    const episodeCount = await countOf()
+    const numbers = await numbering()
     // the last episode has no next one
-    if (episodeCount > 0 && episode > episodeCount) return { kind: "none" }
-    return { kind: "other", episodeCount }
+    if (numbers.episodeCount > 0 && episode > numbers.episodeCount) return { kind: "none" }
+    return { kind: "other", numbering: numbers }
 }
 
 /**
@@ -810,7 +849,7 @@ async function preloadHearsPlayer(message: { type: string, payload?: unknown }, 
     const work = async () => {
         try {
             if (way.kind === "same") await preloadSameTorrent(now, way.index, environment)
-            else if (way.kind === "other") await preloadOtherTorrent(now, way.episodeCount, environment)
+            else if (way.kind === "other") await preloadOtherTorrent(now, way.numbering, environment)
         }
         catch (error) {
             (await deviceOf(environment).catch(() => null))?.note?.(`next episode not preloaded (${error instanceof Error ? error.message : String(error)})`)
@@ -836,7 +875,7 @@ async function preloadSameTorrent(now: Running, index: number, environment: Core
  * the same way), added beside the stream into the streams' folder, with only the episode's file wanted at the lowest
  * priority. The stream's torrent stays as it is. A stream that ends meanwhile takes the preload with it.
  */
-async function preloadOtherTorrent(now: Running, episodeCount: number, environment: CoreEnvironment): Promise<void> {
+async function preloadOtherTorrent(now: Running, numbering: Numbering, environment: CoreEnvironment): Promise<void> {
     const episode = now.episodeNumber + 1
     const { torrent, magnet } = await torrentOf({ autoSelect: true, mediaId: now.mediaId, episodeNumber: episode }, environment, now.finder)
     if (running !== now) return
@@ -863,7 +902,7 @@ async function preloadOtherTorrent(now: Running, episodeCount: number, environme
         throw error
     }
     const seasons = (parse(typeof torrent.name === "string" ? torrent.name : "") as { season_number?: string[] }).season_number ?? []
-    const choice = fileChoiceOf(files, { episodeNumber: episode, season: seasons.length === 1 ? positive(seasons[0]) : 0, episodeCount })
+    const choice = fileChoiceOf(files, { episodeNumber: episode, season: seasons.length === 1 ? positive(seasons[0]) : 0, ...numbering })
     // a stream took the torrent over meanwhile (it sets the priorities itself), or the player closed
     if (preloaded !== infoHash) return
     if (!choice) {

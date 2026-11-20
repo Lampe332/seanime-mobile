@@ -1,11 +1,12 @@
 import type { Anime_Episode } from "@/api/generated/types"
 import { useDirectstreamPlayLocalFile } from "@/api/hooks/directstream.hooks"
 import { useNakamaPlayVideo } from "@/api/hooks/nakama.hooks"
-import { usePlaybackPlayVideo, usePlaybackStartManualTracking } from "@/api/hooks/playback_manager.hooks"
+import { usePlaybackPlayVideo } from "@/api/hooks/playback_manager.hooks"
 import { toast } from "@/components/ui/toast/toast-store"
 import { tr } from "@/lib/app-language"
 import { utf8ToBase64 } from "@/lib/helpers/base64"
 import { openExternalPlayer } from "@/lib/external-player-link/open-external-player"
+import { openWithWatchedAsk } from "@/lib/external-player-link/watched-after-player"
 import { logger } from "@/lib/helpers/debug"
 import { ExternalPlayerLink } from "@/lib/external-player-link/external-player-link"
 import { useRouter } from "@/lib/navigation"
@@ -33,7 +34,6 @@ export function useHandlePlayMedia() {
     const { activeOnDevice: mediastreamActiveOnDevice } = useMediastreamActiveOnDevice()
     const { setFilePath: setMediastreamFilePath } = useMediastreamCurrentFile()
 
-    const { mutate: startManualTracking } = usePlaybackStartManualTracking()
     const setCurrentExternalPlayerLink = useSetAtom(__mpt_currentExternalPlayerLinkAtom)
 
     const { downloadedMediaPlayback } = useCurrentDevicePlaybackSettings()
@@ -68,22 +68,11 @@ export function useHandlePlayMedia() {
                 link.setEpisodeNumber(episode.progressNumber)
                 link.setMediaTitle(episode.baseAnime?.title?.userPreferred)
                 link.to({ endpoint: "/api/v1/nakama/stream?type=file&path=" + utf8ToBase64(path) })
-                void openExternalPlayer(link.getFullUrl())
+                // the server's tracking of another player is not in the app (core/removed/removed.ts): back in the app,
+                // it asks "Mark episode N as watched?" instead; only main episodes move the progress
+                const ask = episode.progressNumber && episode.type === "main" ? { mediaId, episodeNumber: episode.progressNumber } : null
+                void openWithWatchedAsk(ask, () => openExternalPlayer(link.getFullUrl()))
                 setCurrentExternalPlayerLink(link.getFullUrl())
-
-                if (episode?.progressNumber && episode.type === "main") {
-                    logger("PLAY MEDIA").error("Starting manual tracking for nakama file")
-                    // Start manual tracking
-                    React.startTransition(() => {
-                        startManualTracking({
-                            mediaId: mediaId,
-                            episodeNumber: episode?.progressNumber,
-                            clientId: clientId || "",
-                        })
-                    })
-                } else {
-                    logger("PLAY MEDIA").warning("No manual tracking, progress number is not set for nakama file")
-                }
                 return
             }
             return playNakamaVideo({

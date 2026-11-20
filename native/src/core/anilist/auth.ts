@@ -7,7 +7,7 @@ import { CoreError } from "../errors"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import type { CoreEnvironment, CoreRequest } from "../registry"
 import { startStatus } from "../start/start"
-import { LOCAL_LISTS_QUESTION, keepLocalListsAside } from "./changes"
+import { LOCAL_LISTS_QUESTION, keepLocalListsAside, sendWaitingChanges } from "./changes"
 import { askAnilist, clientFor } from "./client"
 
 /*
@@ -60,6 +60,9 @@ export async function login(request: CoreRequest, environment: CoreEnvironment):
     await inOrder(database, () => database.insert(account).values({ id: 1, username: viewer.name as string, viewer: JSON.stringify(shown), createdAt: now, changedAt: now })
         .onConflictDoUpdate({ target: account.id, set: { username: viewer.name as string, viewer: JSON.stringify(shown), changedAt: now } }))
     await environment.keepSecret(ACCOUNT_TOKEN_SECRET, token)
+    // signed in again after AniList turned the old token away: the changes that waited for it go out now (changes.ts)
+    const send = () => sendWaitingChanges(environment).catch(() => undefined)
+    void (environment.unasked ? environment.unasked("sending the changes that waited", send) : send())
     return startStatus(environment)
 }
 

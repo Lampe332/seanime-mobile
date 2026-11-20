@@ -1,7 +1,7 @@
 // geschrieben nach: öffentliche AniList-Doku (docs.anilist.co: GraphQL über POST https://graphql.anilist.co, Rate-Limit 90/min, bei Störung 30/min, Kopfzeilen X-RateLimit-*, 429 mit Retry-After, Token als „Authorization: Bearer“, Fehler 400 mit „validation“ je Feld) und der Aufzeichnung api-anilist-schreibend vom 13.11.2026 (AniLists Prüf-Texte); kein Server-Quelltext
 
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
-import { type CacheOnlyState, afterAnilist, mayAskAnilist, sharedCacheOnly } from "./cache-only"
+import { type CacheOnlyState, afterAnilist, anilistStateChanged, mayAskAnilist, sharedCacheOnly } from "./cache-only"
 import type { CoreEnvironment } from "../registry"
 
 /*
@@ -31,6 +31,26 @@ export class AnilistFailure extends Error {
         this.name = "AnilistFailure"
         this.status = status
     }
+}
+
+/** AniList no longer takes the user's token (it expired or was revoked): the user has to sign in again */
+export const SIGN_IN_REJECTED = "AniList did not accept the sign-in"
+
+/** AniList turns a token away with 401, or with 400 and "Invalid token" (a mutation without a valid one: "Unauthorized.") */
+export function rejectsSignIn(status: number, message: string): boolean {
+    return status === 401 || /invalid token|unauthori[sz]ed/i.test(message)
+}
+
+/**
+ * Whether AniList turned the user's token away, until an answer to a token comes back again (a new sign-in, auth.ts).
+ * One for the app; the sync hint (anilist-sync.tsx) reads it through anilistSyncState and offers to sign in again.
+ */
+export const sharedSignIn = { rejected: false }
+
+export function signInAccepted(accepted: boolean): void {
+    if (sharedSignIn.rejected === !accepted) return
+    sharedSignIn.rejected = !accepted
+    anilistStateChanged(0)
 }
 
 const WINDOW_MS = 60_000
@@ -142,6 +162,12 @@ async function send(client: AnilistClient, document: string, variables: Record<s
     }
 }
 
+/** The token was turned away: always 401, whatever status AniList used, so that every caller can tell it apart */
+function tokenRejected(): AnilistFailure {
+    signInAccepted(false)
+    return new AnilistFailure(SIGN_IN_REJECTED, 401)
+}
+
 async function sendNow(client: AnilistClient, document: string, variables: Record<string, unknown>): Promise<Record<string, unknown>> {
     const rateLimit = client.rateLimit ?? shared
     const sleep = client.sleep ?? sleepFor
@@ -195,14 +221,19 @@ async function sendNow(client: AnilistClient, document: string, variables: Recor
             parsed = JSON.parse(text) as typeof parsed
         }
         catch {
+            if (token && status === 401) throw tokenRejected()
             throw new AnilistFailure("AniList's answer could not be read", status >= 400 ? status : 502)
         }
         if (parsed.errors?.length || !parsed.data || status >= 400) {
             const first = parsed.errors?.[0]
             // a refused change says why, field by field ("The score raw must be an integer."): the text worth showing
             const reasons = Object.values(first?.validation ?? {}).flat().filter((reason): reason is string => typeof reason === "string").join(" ")
-            throw new AnilistFailure(reasons || first?.message || `AniList answered ${status}`, first?.status ?? (status >= 400 ? status : 500))
+            const message = reasons || first?.message || `AniList answered ${status}`
+            const refused = first?.status ?? (status >= 400 ? status : 500)
+            if (token && !reasons && (status === 401 || rejectsSignIn(refused, message))) throw tokenRejected()
+            throw new AnilistFailure(message, refused)
         }
+        if (token) signInAccepted(true)
         return parsed.data
     }
 }

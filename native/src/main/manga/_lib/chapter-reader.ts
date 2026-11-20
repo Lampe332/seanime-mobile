@@ -79,27 +79,38 @@ function getRecurringNumber(values: number[]): number | undefined {
     return highest
 }
 
+type PageSize = { width: number, height: number }
+
 /**
- * Which pages show together (useHydrateMangaPaginationMap): one per step in single page and long strip mode or without
- * page sizes; in double page mode two of the usual width side by side, a wider page (a spread) alone, and the first
- * `offset` pages alone.
+ * Which pages show together (useHydrateMangaPaginationMap): one per step in single page and long strip mode; in double
+ * page mode two side by side, a spread alone, and the first `offset` pages alone (the cover). A spread: with the sizes of
+ * every page (`pageDimensions`, the server's way) a page wider than the usual width; else (4.3.0, the core gives no
+ * sizes) a page whose loaded picture (`measured`) is wider than tall. A page not loaded yet counts as a usual one, so the
+ * map changes only once a spread has loaded.
  */
 export function buildPaginationMap(
     pages: { index: number }[],
-    pageDimensions: Record<number, { width: number, height: number }> | null | undefined,
+    pageDimensions: Record<number, PageSize> | null | undefined,
     mode: string,
     doublePageOffset: number,
+    measured: Record<number, PageSize> = {},
 ): Record<number, number[]> {
     const map: Record<number, number[]> = {}
-    if (mode === MangaReadingMode.PAGED || mode === MangaReadingMode.LONG_STRIP || !pageDimensions || Object.keys(pageDimensions).length === 0) {
+    if (mode === MangaReadingMode.PAGED || mode === MangaReadingMode.LONG_STRIP) {
         pages.forEach((_, i) => { map[i] = [i] })
         return map
     }
+    const known = pageDimensions && Object.keys(pageDimensions).length > 0 ? pageDimensions : null
     let fullSpreadThreshold = 2000
-    const recurring = getRecurringNumber(Object.values(pageDimensions).map(n => n.width))
+    const recurring = known ? getRecurringNumber(Object.values(known).map(n => n.width)) : undefined
     // padding for small differences
     if (!!recurring && recurring > 0) fullSpreadThreshold = recurring + 50
-    const wide = (i: number) => (pageDimensions[i]?.width || 0) > fullSpreadThreshold
+    const wide = (i: number) => {
+        if (known) return (known[i]?.width || 0) > fullSpreadThreshold
+        // the picture's own shape: the screen may load it smaller, its width alone says nothing
+        const size = measured[i]
+        return !!size && size.height > 0 && size.width > size.height
+    }
     let i = 0
     let mapI = 0
     while (i < pages.length) {
@@ -119,6 +130,11 @@ export function buildPaginationMap(
         mapI++
     }
     return map
+}
+
+/** The pages of a step as they stand from left to right: right to left puts the first page on the right */
+export function pagesLeftToRight(pages: number[], direction: string): number[] {
+    return direction === MangaReadingDirection.RTL ? [...pages].reverse() : pages
 }
 
 /** The step of the map that holds the page (0 when none does). */

@@ -8,6 +8,7 @@ import {
     mapIndexForPage,
     pageAtLine,
     pagedPageSize,
+    pagesLeftToRight,
     readerTapZone,
     secondPageLabel,
     shouldUpdateMangaProgress,
@@ -67,7 +68,40 @@ describe("pagination map", () => {
     const pages = [0, 1, 2, 3, 4].map(index => ({ index }))
     it("shows one page per step in single page and long strip mode", () => {
         expect(buildPaginationMap(pages, { 0: { width: 800, height: 1200 } }, "paged", 0)).toEqual({ 0: [0], 1: [1], 2: [2], 3: [3], 4: [4] })
-        expect(buildPaginationMap(pages, undefined, "double-page", 0)).toEqual({ 0: [0], 1: [1], 2: [2], 3: [3], 4: [4] })
+        expect(buildPaginationMap(pages, undefined, "long-strip", 0, { 2: { width: 1600, height: 1200 } })).toEqual({ 0: [0], 1: [1], 2: [2], 3: [3], 4: [4] })
+    })
+    it("pairs pages without sizes from the core (4.3.0), the cover alone with an offset", () => {
+        expect(buildPaginationMap(pages, undefined, "double-page", 0)).toEqual({ 0: [0, 1], 1: [2, 3], 2: [4] })
+        expect(buildPaginationMap(pages, null, "double-page", 1)).toEqual({ 0: [0], 1: [1, 2], 2: [3, 4] })
+        expect(buildPaginationMap(pages, {}, "double-page", 2)).toEqual({ 0: [0], 1: [1], 2: [2, 3], 3: [4] })
+        // a negative offset (the stepper goes to -10) changes nothing
+        expect(buildPaginationMap(pages, undefined, "double-page", -3)).toEqual({ 0: [0, 1], 1: [2, 3], 2: [4] })
+        expect(buildPaginationMap([], undefined, "double-page", 0)).toEqual({})
+    })
+    it("keeps a loaded spread alone by its shape, a page not loaded yet counts as a usual one", () => {
+        // an 8-page chapter, pages 0-3 loaded, page 5 is a two-page spread not loaded yet
+        const chapter = Array.from({ length: 8 }, (_, index) => ({ index }))
+        const portrait = { width: 960, height: 1378 }
+        const loaded = { 0: portrait, 1: portrait, 2: portrait, 3: portrait }
+        expect(buildPaginationMap(chapter, null, "double-page", 0, loaded)).toEqual({ 0: [0, 1], 1: [2, 3], 2: [4, 5], 3: [6, 7] })
+        // once the spread has loaded it stands alone and the pairs after it move on by one
+        const spread = { ...loaded, 4: portrait, 5: { width: 1920, height: 1378 } }
+        expect(buildPaginationMap(chapter, null, "double-page", 0, spread)).toEqual({ 0: [0, 1], 1: [2, 3], 2: [4], 3: [5], 4: [6, 7] })
+        // the screen may load a page smaller: a narrower portrait page is no spread
+        expect(buildPaginationMap(chapter, null, "double-page", 0, { ...loaded, 2: { width: 480, height: 689 } })).toEqual({ 0: [0, 1], 1: [2, 3], 2: [4, 5], 3: [6, 7] })
+        // a landscape cover stands alone without an offset
+        expect(buildPaginationMap(chapter, null, "double-page", 0, { 0: { width: 1500, height: 1000 } })).toEqual({ 0: [0], 1: [1, 2], 2: [3, 4], 3: [5, 6], 4: [7] })
+        // the server's sizes of every page decide when there are any (Seanime's rule)
+        expect(buildPaginationMap(chapter, { 0: portrait, 1: portrait, 2: portrait }, "double-page", 0, { 1: { width: 1920, height: 1378 } }))
+            .toEqual({ 0: [0, 1], 1: [2, 3], 2: [4, 5], 3: [6, 7] })
+    })
+    it("lays a pair out in the reading direction", () => {
+        expect(pagesLeftToRight([4, 5], "ltr")).toEqual([4, 5])
+        expect(pagesLeftToRight([4, 5], "rtl")).toEqual([5, 4])
+        expect(pagesLeftToRight([4], "rtl")).toEqual([4])
+        const step = [2, 3]
+        pagesLeftToRight(step, "rtl")
+        expect(step).toEqual([2, 3])
     })
     it("pairs pages of the usual width and keeps a spread alone", () => {
         const dims = { 0: { width: 800, height: 1200 }, 1: { width: 800, height: 1200 }, 2: { width: 1600, height: 1200 }, 3: { width: 800, height: 1200 }, 4: { width: 800, height: 1200 } }
