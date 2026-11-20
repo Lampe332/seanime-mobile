@@ -23,7 +23,9 @@ import {
     deriveKeys, deviceMac, fromB64, openBoxedDek, toB64,
 } from "./crypto"
 import { type AccountDeps, answerRequest, approveRequest, checkApproval, checkedDevices, compareRequest, confirmApproval, denyRequest, openRequests, requestApproval, rotate } from "./devices"
-import { changeKey, createRecoveryCode, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signOut, signupEmail, startFresh, useRecoveryCode } from "./flows"
+import {
+    changeKey, createRecoveryCode, disableWebEdit, enableWebEdit, loginEmail, removeDevice, resetWithRecovery, resetWithoutRecovery, signOut, signupEmail, startFresh, useRecoveryCode,
+} from "./flows"
 import { AccountSession, type SignerStore, sodiumSignerStore } from "./session"
 import type { Sodium } from "./sodium"
 import { SyncEngine, coreLocalData } from "./sync"
@@ -332,6 +334,13 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         const witness = install()
         expect(await loginEmail(witness.deps, { email: EMAIL, password, deviceName: "Witness" })).toMatchObject({ status: "needs-key" })
         await (await lonely.db()).insert(playlists).values({ name: "Fresh start", episodes: [], createdAt: clock, updatedAt: clock })
+        // Server 4.2.x (814c5fbd): Start fresh waits 24 hours after a password reset, so whoever holds only the mailbox can't
+        // wipe the data at once. The app gets the error with retryAfter (account-view shows the hours) and nothing changes.
+        const wait = await startFresh(lonely.deps, { deviceName: "Lonely", password }).catch((error: unknown) => error)
+        expect(wait).toMatchObject({ status: 403, code: "start_fresh_wait", body: { retryAfter: expect.any(Number) } })
+        expect(await lonely.client.syncMeta()).toMatchObject({ dekId: expect.any(String) })
+        // a day later
+        await ((await mf.getD1Database("DB")) as unknown as D1Like).prepare("UPDATE users SET reset_at = reset_at - 24 * 3600 - 1 WHERE email = ?").bind(EMAIL).run()
         const started = await startFresh(lonely.deps, { deviceName: "Lonely", password })
         expect(await lonely.client.syncMeta()).toMatchObject({ version: 0, dekId: null, rotationRequired: false, rewrapNeeded: false })
         expect(await lonely.client.devices()).toEqual([expect.objectContaining({ id: started.deviceId, current: true })])
@@ -1062,9 +1071,28 @@ describe.skipIf(!available)("against the real account server (Miniflare)", () =>
         await createRecoveryCode(owner.deps)
         await changeKey(owner.deps, { deviceName: "Victim", password: PASSWORD, keep: [(await owner.session.load())!.deviceId!] })
         const kinds = (await owner.client.account()).events!.map(event => event.kind)
-        // newest first; the owner's re-sign-in for the key change takes its own row back and is no new device
-        expect(kinds).toEqual(["key_rotated", "device_removed", "recovery_changed", "new_device", "new_device"])
+        // newest first; the owner's re-sign-in for the key change takes its own row back and is no new device. Server 4.2.x
+        // (814c5fbd) lists every password sign-in as "signed_in" too: the tab's sign-in and the owner's re-sign-in.
+        expect(kinds).toEqual(["key_rotated", "device_removed", "signed_in", "recovery_changed", "new_device", "signed_in", "new_device"])
         expect(await subjects(email, 0)).toEqual(expect.arrayContaining(["New device signed in", "Your recovery code was changed", "A device was removed", "Your account key was changed"]))
+    })
+
+    it("A1: Edit on the website goes on with the password only, off at once; both mailed, listed and shown in GET account", async () => {
+        const email = "web-edit-a1@example.org"
+        const owner = await accountWithData(email)
+        expect((await owner.client.account()).webEdit).toBe(false)
+        await expect(enableWebEdit(owner.deps, { password: "not the password 1" })).rejects.toMatchObject({ status: 403, code: "wrong_password" })
+        expect((await owner.client.account()).webEdit).toBe(false)
+        const before = (await mails()).length
+        await enableWebEdit(owner.deps, { password: PASSWORD })
+        expect((await owner.client.account()).webEdit).toBe(true)
+        await disableWebEdit(owner.deps)
+        const info = await owner.client.account()
+        expect(info.webEdit).toBe(false)
+        expect(info.events!.map(event => event.kind).slice(0, 2)).toEqual(["web_edit_off", "web_edit_on"])
+        expect(await subjects(email, before)).toEqual(["Edit on the website was turned on", "Edit on the website was turned off"])
+        // a password account gives its password: nothing along is not enough
+        await expect(enableWebEdit(owner.deps, {})).rejects.toMatchObject({ status: 400 })
     })
 
     it("a connection that drops in the middle of a sign-in leaves no half session: signing in again simply works", async () => {

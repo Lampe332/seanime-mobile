@@ -7,8 +7,8 @@ import {
     requestApproval,
 } from "@/core/account/devices"
 import {
-    changeKey, changePassword, createRecoveryCode, deleteAccount, disableCodeOnly, enableCodeOnly, loginEmail, loginWithCode, requestSignInCode, setNewPasswordAfterCode, signOut,
-    signupEmail, startFresh, unlinkGoogle, useRecoveryCode as openWithRecoveryCode,
+    changeKey, changePassword, createRecoveryCode, deleteAccount, disableCodeOnly, disableWebEdit, enableCodeOnly, enableWebEdit, loginEmail, loginWithCode, requestSignInCode,
+    setNewPasswordAfterCode, signOut, signupEmail, startFresh, unlinkGoogle, useRecoveryCode as openWithRecoveryCode,
 } from "@/core/account/flows"
 import { AccountSession, type AccountKind } from "@/core/account/session"
 import { SyncEngine, type SyncResult, type SyncTrigger, coreLocalData } from "@/core/account/sync"
@@ -272,6 +272,18 @@ export async function turnOnCodeOnly(password: string): Promise<void> {
 /** "Code only" off: the server's copy of the key is deleted at once */
 export async function turnOffCodeOnly(): Promise<void> {
     await disableCodeOnly(deps)
+    await refreshInfo()
+}
+
+/** "Edit on the website" on: the password when the account has one, else a recent sign-in (Google) */
+export async function turnOnWebEdit(password: string | undefined): Promise<void> {
+    await enableWebEdit(deps, { password })
+    await refreshInfo()
+}
+
+/** "Edit on the website" off: every unlocked browser is locked again at once */
+export async function turnOffWebEdit(): Promise<void> {
+    await disableWebEdit(deps)
     await refreshInfo()
 }
 

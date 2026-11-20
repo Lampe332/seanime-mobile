@@ -333,4 +333,13 @@ describe("the six boxes of the sign-in code", () => {
         expect(accountErrorText(en, new AccountApiError(403, "wrong_password", "x"))).toBe("Wrong password.")
         expect(accountErrorText(en, new AccountApiError(403, "device_required", "x"))).toMatch(/isn't registered/)
     })
+
+    it("Edit on the website: a missing fresh sign-in says what to do, and its events read as text", () => {
+        expect(accountErrorText(en, new AccountApiError(403, "reauth_required", "Sign in again to continue."))).toMatch(/^For your safety this needs a fresh sign-in/)
+        const at = 1_700_000_000
+        expect(eventText(en, { kind: "web_edit_on", deviceName: null, at })).toBe("Edit on the website was turned on")
+        expect(eventText(en, { kind: "web_edit_off", deviceName: null, at })).toBe("Edit on the website was turned off")
+        expect(eventText(en, { kind: "web_unlocked", deviceName: null, at })).toBe("Your synced data was unlocked on the website")
+        expect(eventText(en, { kind: "web_settings_changed", deviceName: null, at })).toBe("Settings were changed on the website")
+    })
 })

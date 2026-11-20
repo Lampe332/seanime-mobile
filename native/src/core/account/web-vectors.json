@@ -1,0 +1,3920 @@
+{
+  "about": "Written by web-vectors.test.ts from the app's own functions. hex = lower case hex, b64 = Base64url without padding. See the comment at the top of that file for the layout.",
+  "input": {
+    "password": "correct horse battery staple",
+    "passwordUnnormalized": "Ｃorrect　horse ① staple",
+    "salt": "000102030405060708090a0b0c0d0e0f",
+    "kdf": {
+      "alg": "argon2id",
+      "m": 65536,
+      "t": 3,
+      "p": 1
+    },
+    "userId": "6f1c2c1e-0d7b-4c3a-9a51-2f0e7d4b8a10",
+    "dekId": "dek-web-vector-1",
+    "dek": "6465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f80818283",
+    "wrapNonce": "c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+    "recoveryBytes": "32333435363738393a3b3c3d3e3f4041",
+    "recoveryWrapNonce": "dcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3",
+    "devicePub": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "packageNonce": "0708090a0b0c0d0e0f101112131415161718191a1b1c1d1e",
+    "editedNonce": "4d4e4f505152535455565758595a5b5c5d5e5f6061626364",
+    "version": 7,
+    "times": {
+      "previous": 1794992400000,
+      "base": 1795113000000,
+      "web": 1795176000000
+    }
+  },
+  "keys": {
+    "authKeyHex": "143f76ed24e20feff9746262100a3ead58628794c3b4dc82089f367091078272",
+    "authKey": "FD927STiD-_5dGJiEAo-rVhih5TDtNyCCJ82cJEHgnI",
+    "encKeyHex": "157dd51a524dbc06aef35d32469aa4df896bb941f2f37657f99dd08f5ab1461e",
+    "wrappedDek": "yMnKy8zNzs_Q0dLT1NXW19jZ2tvc3d7fTGssyrq8isguPKvgAH1P4sK6_xCiXQoTxbrFSQjKphO6nDbqhK0eBSCNoQiQ3mH9",
+    "dekProof": "4_3HU_WTv9vc71Gc_h93pfn_DrY8ha9a0wPFfaP5crQ",
+    "deviceMac": "_vJWQUy9j6LaE4xQNv8VXMHmWWz16p4jjKQMaEaJAt4",
+    "recoveryCode": "GIZTINJWG44DSOR3HQ6T4P2AIE",
+    "recoveryCodeAlternateWriting": "gizti-njwg4-4dsor-3hq6t-4p2ai-e",
+    "recoveryKeyHex": "6fbb13452d50219b81800e21c9030f3ea15c7be96c2a0bdc54cba0b57fe40d7b",
+    "recoveryProof": "rn6x134yf9Dzrh7yFmcdlD0xeRZgvrKgIzx2g_iG-0s",
+    "recoveryWrappedDek": "3N3e3-Dh4uPk5ebn6Onq6-zt7u_w8fLzbW6Ds2fYU9N9GzoSkRayBBPPNTqbyYt5tk6A9lBpBvdX3lXPIK3MqfUFMKOVJ02O",
+    "passwordUnnormalizedAuthKey": "WpVsWqosDygwi3pWnbJ4J4cu-fTKOIjNca5xTWJm6ls",
+    "passwordUnnormalizedNfkc": "Correct horse 1 staple"
+  },
+  "package": {
+    "object": {
+      "format": "seanime-mobile-backup",
+      "formatVersion": 1,
+      "appVersion": "4.2.0",
+      "createdAt": "2026-11-19T18:30:00.000Z",
+      "tables": {
+        "settings": [
+          {
+            "section": "library",
+            "content": {
+              "libraryPath": "/storage/emulated/0/Anime",
+              "libraryPaths": [
+                "/storage/emulated/0/Anime",
+                "/storage/emulated/0/Movies"
+              ],
+              "autoUpdateProgress": true,
+              "autoScan": true,
+              "refreshLibraryOnStart": false,
+              "enableOnlinestream": true,
+              "torrentProvider": "animetosho",
+              "defaultPlaybackSource": "onlinestream",
+              "enableManga": true,
+              "disableUpdateCheck": false
+            },
+            "changedAt": 1795113000000
+          },
+          {
+            "section": "torrent",
+            "content": {
+              "defaultTorrentClient": "qbittorrent",
+              "qbittorrentPassword": "test-qbit-pass",
+              "seanimeDownloadLimit": 0,
+              "seanimeUploadLimit": 512,
+              "seanimeMaxActiveDownloads": 3
+            },
+            "changedAt": 1794992400000
+          },
+          {
+            "section": "anilist",
+            "content": {
+              "hideAudienceScore": false,
+              "enableAdultContent": false,
+              "blurAdultContent": true,
+              "disableCacheLayer": false
+            },
+            "changedAt": 1794992400000
+          },
+          {
+            "section": "manga",
+            "content": {
+              "defaultMangaProvider": "mangapill",
+              "mangaAutoUpdateProgress": true
+            },
+            "changedAt": 1794992400000
+          },
+          {
+            "section": "nakama",
+            "content": {
+              "enabled": false,
+              "username": "test-user",
+              "isHost": false,
+              "remoteServerURL": "",
+              "remoteServerPassword": "test-nakama-pass"
+            },
+            "changedAt": 1794992400000
+          }
+        ],
+        "appearance": [
+          {
+            "id": 1,
+            "content": {
+              "showAnimeUnwatchedCount": true,
+              "showMangaUnreadCount": false,
+              "hideAnimeSpoilers": false,
+              "continueWatchingDefaultSorting": "TITLE",
+              "libraryScreenCustomBannerPosition": "50% 50%",
+              "libraryScreenCustomBannerOpacity": 50
+            },
+            "createdAt": 1794992400000,
+            "changedAt": 1794992400000
+          }
+        ],
+        "homeItems": [
+          {
+            "position": 0,
+            "itemId": "continue-watching",
+            "kind": "builtin",
+            "schemaVersion": 1,
+            "options": null
+          },
+          {
+            "position": 1,
+            "itemId": "my-lists",
+            "kind": "builtin",
+            "schemaVersion": 1,
+            "options": null
+          }
+        ],
+        "watchPositions": [
+          {
+            "mediaId": 21,
+            "kind": "onlinestream",
+            "episodeNumber": 3,
+            "positionSeconds": 600,
+            "durationSeconds": 1400,
+            "filepath": "",
+            "addedAt": 1794992400000,
+            "changedAt": 1794992400000,
+            "expiresAt": null
+          }
+        ],
+        "extensionConfigs": [
+          {
+            "id": "ext-a",
+            "version": 1,
+            "values": {
+              "language": "de",
+              "apiKey": "test-ext-key"
+            },
+            "origin": "core",
+            "changedAt": 1794992400000
+          }
+        ],
+        "sandboxSettings": [],
+        "onlinestreamMappings": [],
+        "mangaMappings": [],
+        "mangaPreferences": [],
+        "offlineSettings": [
+          {
+            "id": 1,
+            "wifiOnly": true,
+            "changedAt": 1794992400000
+          }
+        ],
+        "silencedAnime": [
+          {
+            "anilistId": 5114,
+            "createdAt": 1794992400000,
+            "updatedAt": 1794992400000
+          }
+        ],
+        "metadataParents": [],
+        "playlists": [
+          {
+            "dbId": 1,
+            "name": "Evening",
+            "episodes": [],
+            "createdAt": 1794992400000,
+            "updatedAt": 1794992400000
+          },
+          {
+            "dbId": 2,
+            "name": "Evening",
+            "episodes": [
+              {
+                "ep": 1
+              }
+            ],
+            "createdAt": 1794992400000,
+            "updatedAt": 1794992400000
+          }
+        ],
+        "torrentKept": [
+          {
+            "key": "settings",
+            "content": {
+              "enabled": true,
+              "autoSelect": true,
+              "preferredResolution": "1080",
+              "preloadNextStream": false,
+              "includeInLibrary": false,
+              "stopSeedingWhenFinished": true
+            },
+            "changedAt": 1794992400000
+          },
+          {
+            "key": "debrid-settings",
+            "content": {
+              "enabled": false,
+              "provider": "torbox",
+              "streamAutoSelect": true,
+              "streamPreferredResolution": "1080",
+              "includeDebridStreamInLibrary": false
+            },
+            "changedAt": 1794992400000
+          }
+        ]
+      },
+      "extensions": {
+        "files": {
+          "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+        },
+        "disabled": []
+      },
+      "localLists": null,
+      "preferences": {
+        "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":true,\"skipOpening\":false}",
+        "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\"}",
+        "seanime-mobile-airing-notifications": "\"true\"",
+        "seanime-mobile-chapter-notifications": "\"true\"",
+        "sea-playback-downloaded-media": "\"system\"",
+        "sea-ui-settings-navigation-preload-mode": "\"adjacent\""
+      },
+      "secrets": {
+        "seanime-core.account-token": "test-anilist-token",
+        "seanime-core-debrid-api-key": "test-debrid-key",
+        "seanime-nakama-host-password": "test-nakama-host-pass"
+      },
+      "stamps": {
+        "changed": {
+          "t/settings/library": 1795113000000,
+          "f/t/settings/library\u001flibraryPath": 1794992400000,
+          "f/t/settings/library\u001flibraryPaths": 1794992400000,
+          "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+          "f/t/settings/library\u001fautoScan": 1795113000000,
+          "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+          "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+          "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+          "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+          "f/t/settings/library\u001fenableManga": 1794992400000,
+          "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+          "t/settings/torrent": 1794992400000,
+          "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+          "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+          "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+          "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+          "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+          "t/settings/anilist": 1794992400000,
+          "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+          "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+          "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+          "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+          "t/settings/manga": 1794992400000,
+          "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+          "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+          "t/settings/nakama": 1794992400000,
+          "f/t/settings/nakama\u001fenabled": 1794992400000,
+          "f/t/settings/nakama\u001fusername": 1794992400000,
+          "f/t/settings/nakama\u001fisHost": 1794992400000,
+          "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+          "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+          "t/appearance/1": 1794992400000,
+          "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+          "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+          "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+          "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+          "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+          "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+          "t/watchPositions/21": 1794992400000,
+          "t/extensionConfigs/ext-a": 1794992400000,
+          "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+          "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+          "t/offlineSettings/1": 1794992400000,
+          "t/silencedAnime/5114": 1794992400000,
+          "t/playlists/Evening": 1794992400000,
+          "t/playlists/Evening#2": 1794992400000,
+          "t/torrentKept/settings": 1794992400000,
+          "t/torrentKept/debrid-settings": 1794992400000,
+          "t/homeItems": 0,
+          "x/ext-a.json": 0,
+          "p/sea-media-core-preferences": 0,
+          "f/p/sea-media-core-preferences\u001fautoNext": 0,
+          "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000000,
+          "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+          "p/sea-video-core-settings": 0,
+          "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+          "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+          "p/seanime-mobile-airing-notifications": 0,
+          "p/seanime-mobile-chapter-notifications": 0,
+          "p/sea-playback-downloaded-media": 0,
+          "p/sea-ui-settings-navigation-preload-mode": 0,
+          "s/seanime-core.account-token": 0,
+          "s/seanime-core-debrid-api-key": 0,
+          "s/seanime-nakama-host-password": 0
+        },
+        "deleted": {
+          "t/playlists/Morning": 1795113000000,
+          "p/sea-search-recent": 1795113000000
+        }
+      }
+    },
+    "parts": [
+      "t/settings/library",
+      "f/t/settings/library\u001flibraryPath",
+      "f/t/settings/library\u001flibraryPaths",
+      "f/t/settings/library\u001fautoUpdateProgress",
+      "f/t/settings/library\u001fautoScan",
+      "f/t/settings/library\u001frefreshLibraryOnStart",
+      "f/t/settings/library\u001fenableOnlinestream",
+      "f/t/settings/library\u001ftorrentProvider",
+      "f/t/settings/library\u001fdefaultPlaybackSource",
+      "f/t/settings/library\u001fenableManga",
+      "f/t/settings/library\u001fdisableUpdateCheck",
+      "t/settings/torrent",
+      "f/t/settings/torrent\u001fdefaultTorrentClient",
+      "f/t/settings/torrent\u001fqbittorrentPassword",
+      "f/t/settings/torrent\u001fseanimeDownloadLimit",
+      "f/t/settings/torrent\u001fseanimeUploadLimit",
+      "f/t/settings/torrent\u001fseanimeMaxActiveDownloads",
+      "t/settings/anilist",
+      "f/t/settings/anilist\u001fhideAudienceScore",
+      "f/t/settings/anilist\u001fenableAdultContent",
+      "f/t/settings/anilist\u001fblurAdultContent",
+      "f/t/settings/anilist\u001fdisableCacheLayer",
+      "t/settings/manga",
+      "f/t/settings/manga\u001fdefaultMangaProvider",
+      "f/t/settings/manga\u001fmangaAutoUpdateProgress",
+      "t/settings/nakama",
+      "f/t/settings/nakama\u001fenabled",
+      "f/t/settings/nakama\u001fusername",
+      "f/t/settings/nakama\u001fisHost",
+      "f/t/settings/nakama\u001fremoteServerURL",
+      "f/t/settings/nakama\u001fremoteServerPassword",
+      "t/appearance/1",
+      "f/t/appearance/1\u001fshowAnimeUnwatchedCount",
+      "f/t/appearance/1\u001fshowMangaUnreadCount",
+      "f/t/appearance/1\u001fhideAnimeSpoilers",
+      "f/t/appearance/1\u001fcontinueWatchingDefaultSorting",
+      "f/t/appearance/1\u001flibraryScreenCustomBannerPosition",
+      "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity",
+      "t/watchPositions/21",
+      "t/extensionConfigs/ext-a",
+      "f/t/extensionConfigs/ext-a\u001flanguage",
+      "f/t/extensionConfigs/ext-a\u001fapiKey",
+      "t/offlineSettings/1",
+      "t/silencedAnime/5114",
+      "t/playlists/Evening",
+      "t/playlists/Evening#2",
+      "t/torrentKept/settings",
+      "t/torrentKept/debrid-settings",
+      "t/homeItems",
+      "x/ext-a.json",
+      "p/sea-media-core-preferences",
+      "f/p/sea-media-core-preferences\u001fautoNext",
+      "f/p/sea-media-core-preferences\u001fautoPlay",
+      "f/p/sea-media-core-preferences\u001fskipOpening",
+      "p/sea-video-core-settings",
+      "f/p/sea-video-core-settings\u001fshowChapterMarkers",
+      "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage",
+      "p/seanime-mobile-airing-notifications",
+      "p/seanime-mobile-chapter-notifications",
+      "p/sea-playback-downloaded-media",
+      "p/sea-ui-settings-navigation-preload-mode",
+      "s/seanime-core.account-token",
+      "s/seanime-core-debrid-api-key",
+      "s/seanime-nakama-host-password"
+    ],
+    "partValues": {
+      "t/settings/library": {
+        "section": "library",
+        "changedAt": 1795113000000
+      },
+      "f/t/settings/library\u001flibraryPath": "/storage/emulated/0/Anime",
+      "f/t/settings/library\u001flibraryPaths": [
+        "/storage/emulated/0/Anime",
+        "/storage/emulated/0/Movies"
+      ],
+      "f/t/settings/library\u001fautoUpdateProgress": true,
+      "f/t/settings/library\u001fautoScan": true,
+      "f/t/settings/library\u001frefreshLibraryOnStart": false,
+      "f/t/settings/library\u001fenableOnlinestream": true,
+      "f/t/settings/library\u001ftorrentProvider": "animetosho",
+      "f/t/settings/library\u001fdefaultPlaybackSource": "onlinestream",
+      "f/t/settings/library\u001fenableManga": true,
+      "f/t/settings/library\u001fdisableUpdateCheck": false,
+      "t/settings/torrent": {
+        "section": "torrent",
+        "changedAt": 1794992400000
+      },
+      "f/t/settings/torrent\u001fdefaultTorrentClient": "qbittorrent",
+      "f/t/settings/torrent\u001fqbittorrentPassword": "test-qbit-pass",
+      "f/t/settings/torrent\u001fseanimeDownloadLimit": 0,
+      "f/t/settings/torrent\u001fseanimeUploadLimit": 512,
+      "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 3,
+      "t/settings/anilist": {
+        "section": "anilist",
+        "changedAt": 1794992400000
+      },
+      "f/t/settings/anilist\u001fhideAudienceScore": false,
+      "f/t/settings/anilist\u001fenableAdultContent": false,
+      "f/t/settings/anilist\u001fblurAdultContent": true,
+      "f/t/settings/anilist\u001fdisableCacheLayer": false,
+      "t/settings/manga": {
+        "section": "manga",
+        "changedAt": 1794992400000
+      },
+      "f/t/settings/manga\u001fdefaultMangaProvider": "mangapill",
+      "f/t/settings/manga\u001fmangaAutoUpdateProgress": true,
+      "t/settings/nakama": {
+        "section": "nakama",
+        "changedAt": 1794992400000
+      },
+      "f/t/settings/nakama\u001fenabled": false,
+      "f/t/settings/nakama\u001fusername": "test-user",
+      "f/t/settings/nakama\u001fisHost": false,
+      "f/t/settings/nakama\u001fremoteServerURL": "",
+      "f/t/settings/nakama\u001fremoteServerPassword": "test-nakama-pass",
+      "t/appearance/1": {
+        "id": 1,
+        "createdAt": 1794992400000,
+        "changedAt": 1794992400000
+      },
+      "f/t/appearance/1\u001fshowAnimeUnwatchedCount": true,
+      "f/t/appearance/1\u001fshowMangaUnreadCount": false,
+      "f/t/appearance/1\u001fhideAnimeSpoilers": false,
+      "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": "TITLE",
+      "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": "50% 50%",
+      "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 50,
+      "t/watchPositions/21": {
+        "mediaId": 21,
+        "kind": "onlinestream",
+        "episodeNumber": 3,
+        "positionSeconds": 600,
+        "durationSeconds": 1400,
+        "filepath": "",
+        "addedAt": 1794992400000,
+        "changedAt": 1794992400000,
+        "expiresAt": null
+      },
+      "t/extensionConfigs/ext-a": {
+        "id": "ext-a",
+        "version": 1,
+        "origin": "core",
+        "changedAt": 1794992400000
+      },
+      "f/t/extensionConfigs/ext-a\u001flanguage": "de",
+      "f/t/extensionConfigs/ext-a\u001fapiKey": "test-ext-key",
+      "t/offlineSettings/1": {
+        "id": 1,
+        "wifiOnly": true,
+        "changedAt": 1794992400000
+      },
+      "t/silencedAnime/5114": {
+        "anilistId": 5114,
+        "createdAt": 1794992400000,
+        "updatedAt": 1794992400000
+      },
+      "t/playlists/Evening": {
+        "dbId": 1,
+        "name": "Evening",
+        "episodes": [],
+        "createdAt": 1794992400000,
+        "updatedAt": 1794992400000
+      },
+      "t/playlists/Evening#2": {
+        "dbId": 2,
+        "name": "Evening",
+        "episodes": [
+          {
+            "ep": 1
+          }
+        ],
+        "createdAt": 1794992400000,
+        "updatedAt": 1794992400000
+      },
+      "t/torrentKept/settings": {
+        "key": "settings",
+        "content": {
+          "enabled": true,
+          "autoSelect": true,
+          "preferredResolution": "1080",
+          "preloadNextStream": false,
+          "includeInLibrary": false,
+          "stopSeedingWhenFinished": true
+        },
+        "changedAt": 1794992400000
+      },
+      "t/torrentKept/debrid-settings": {
+        "key": "debrid-settings",
+        "content": {
+          "enabled": false,
+          "provider": "torbox",
+          "streamAutoSelect": true,
+          "streamPreferredResolution": "1080",
+          "includeDebridStreamInLibrary": false
+        },
+        "changedAt": 1794992400000
+      },
+      "t/homeItems": [
+        {
+          "position": 0,
+          "itemId": "continue-watching",
+          "kind": "builtin",
+          "schemaVersion": 1,
+          "options": null
+        },
+        {
+          "position": 1,
+          "itemId": "my-lists",
+          "kind": "builtin",
+          "schemaVersion": 1,
+          "options": null
+        }
+      ],
+      "x/ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}",
+      "p/sea-media-core-preferences": "{}",
+      "f/p/sea-media-core-preferences\u001fautoNext": true,
+      "f/p/sea-media-core-preferences\u001fautoPlay": true,
+      "f/p/sea-media-core-preferences\u001fskipOpening": false,
+      "p/sea-video-core-settings": "{}",
+      "f/p/sea-video-core-settings\u001fshowChapterMarkers": true,
+      "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": "eng",
+      "p/seanime-mobile-airing-notifications": "\"true\"",
+      "p/seanime-mobile-chapter-notifications": "\"true\"",
+      "p/sea-playback-downloaded-media": "\"system\"",
+      "p/sea-ui-settings-navigation-preload-mode": "\"adjacent\"",
+      "s/seanime-core.account-token": "test-anilist-token",
+      "s/seanime-core-debrid-api-key": "test-debrid-key",
+      "s/seanime-nakama-host-password": "test-nakama-host-pass"
+    },
+    "nonce": "0708090a0b0c0d0e0f101112131415161718191a1b1c1d1e",
+    "binding": {
+      "userId": "6f1c2c1e-0d7b-4c3a-9a51-2f0e7d4b8a10",
+      "version": 7,
+      "dekId": "dek-web-vector-1"
+    },
+    "gzipHex": "1f8b0800000000000003a5595b6fdb3614fe2b8587bd45f1a569d7e42d4b3b2c68d20475b202abf7404b74cc5a12398aca0541fefbbe435217dbb42277050a583cf73b0ff33c58489d31333819149ce522e35126e722e5d19cc5ab520d0e3cc25f5c1742e68393f1c18029557f0e8e0e278723a0c59a33c393536235194dde47e371343ebe197f38793b3a198d0e47a3d1df40336c9ef26270f20c79c688fc0ebfbfd3476c1cbf54cc35d34fc451e686e7e0f75c1d5e33b304cab03052b33b3ee4599992d0e168784aba83a885499c3b7143b04b792fa0df3fb0b234f2562538bfd6f24ef302fc8c2eb9834c63066dddb7e60b8097174ef4553e354c43ed054b0b40794e265fe5a9c87961e0a5aca283740d03c1fe5e245cc3321b01238ba5847a095fb03235d7297ba2604c65a9630e24d96655f1bf64f91dab1827a2a033a7fdd992c72bafcd0bbcba04a68bd3f8b7e377e3f15b4406ff5e0eda51f0aaad47c12b74e36067a9b0e7837fe7c234f8adaf6b56140f5227c40ffa46048a140e81e6b3eda37cc853c9920b9109f01ad5805bd53a7e379ed4804bf6780a2def6b5284e5ed965d47c7c793a3805d60918a62c3ae25bc7f5a263027e6d3586a38792d76a709ac3eabf03d689e967a1db0e6fb33162ff9057ba2b0865dbf4bc5cc4632e4781be356b6584c25d214d8f6f7e98e94ed2d3b672b966d08773e4010bde165c175ce50403eaaf40d0a51fc29e1d80a4bf34c1a3ee5fa9eebdbaf1740064efb7033399c68971e5dfa52652ac599668896ed1d023cd0955a2aa37e1e6c91dfe60fcc2010c9992c9b1011d8faf236470d5530afb84d06a29d2a893ea8e1420f2101222ff9376289cef5d145652a35f531d871737e73f1a9e94153b4449e9f95e832d9ef2ccf61b32c84f7f4bbd1af6ff0bf0bfb4ab1589827a43fa2d4eeaf6b0ee976d55266fcdcf0cc755955cb0799c0f139b9bfb22bb2be22530e062b9113685e8a1430aa57783163ed292015b102e3bc4c534aa3863ba035f7ec29a28aa39adf9b290cb03a557e7356643c118c784f40e0796ef644250a99f02f6536a74a797b502b37e530977ac67b725d526ab6763a86eb30f21078e5660d98b124d9cbef10ffa804aa8f20951dfc11c94966a25d2c849f7a94b90489a8e45013b51bee595aba29994246891905c4846616eafd33474eb8a221da153e911f528b3b3895c28906d69d1505cb93b97c9c361318876d175ea2c41a88ed2d81a36b0c3e8e461f93aa96c562413c5a7cebea7c100b811908cd5d0d76aa07f78369e2e63431f16d9b828e8975d4550da5ed7f61c698ad0c5076cd683c79a515e6abcb509294cc490814f62deed33dcf5d49f89cf2543fa1004ac471c730ebe28e96ab404b0aff9c997efc7ee60a50b0a30ca1fb9d8f4ab8bbb7ae363cc540a84e940db2e6c9575ec8b4f4ed6b3cfa40973e0069047f411e4efdd5c6374b91c76999f0f3dcdf8a6a00fa9b9a7294707ef76dc9f33f442e0a34e85e83ca1992f0b91649f48a3d5e9c6ac625dc82a4a7b66355a561b96eaa3b7759bdc3606fd647ab823379d3c4cee10560dd096c7d53abb13f6c1b38fc515869cf33d4cd6c703273c7b3c1c1cca68c3d3ab59fbe5dd893f121eed7f6d43c2987d4aee6a8728245a93a8a4523fc22d642190b532805c4d382e214a3f84d75dd78f3fc321bbc50a3f1171cb8f83b9993ca98a517ae7ea8d95519e3db02dd2e58645b76449d09bab4a06428a51c251084da30b813baf53627c54aa82b656b0587cecdee12199176d2b16e360ae24b53fe6cc994e1fa92e915dcd5f0ab937a5ace8d30296e6a2da77092e2f9b757222634d847b9346866b11d1c240b5e04d7198d8a0d02e401897f8522a20e4437fc28f1575a9e388f59d4e2a9c02cad914b51db893bd3bdb8b35cc9ad4409c9181344c6921f2c4651801051c2154f730a918d87d5915c76c8e2986e3f91912b6eeffd34557cb7f5878d55d6c9befa3087ece4f124fe944e1a7c7fa55be25e68ef7581eb5e0db34a1a9629aba32f20fa698695b9c36a355c5f5c30ae87db48b372341a631ab5f6c68d0eda8b8aae047dc9420be35ec46ea7ec6ddc8eb5b3b7c8d062da9b786b77ed4db963addd536dbfeff6971a588937885ba4d53adbc9df23ad59b5b11bf7260f6ecdbda9c3cbf4bee46b2bf7bec4a1b57cb77fab35bc538c477262023b7a6fdad016df9b787bcfef4d1a780ad8ed12b7f67732b7286be9b6f122d09378e75bc16eedfcc340a70487d376f92b39dc26685e15fa52540f0e7df1b75e247e867067719a61f32a311c0799b7117cedec7aa7e84dbdfd8cd18b34f0c8d18beeb527905e4c7a3c8ffc3f3ef5c3c9568cd65f138693ed4099e1e6a64e0758d0433a8551bd76f5e2be2761b5e16f29b6b15d07b20c09dc5e9d87b42b0790ea8d7758ed9f3d707e9904b05a9b665d3bafa06d6e6fdbd8ad372b7c3f3adff8cd08070a92766f14d6c15d28cd758b968ebd08e8ca12b89fbd4edc5a5f5a2604379716c700bc29fcf5cda61fddceada751eaf5752784b963cfa92ded58706a9c5e7b0dfd7da0161e5a60b610b6f695358cf08642cfad095e06f0bee23690a6182ea5ae0ba69d05ce06fcd7f132d29c16afcdbfafbcbcfc0766cfe90e6d1b0000",
+    "sealedHex": "534d53010708090a0b0c0d0e0f101112131415161718191a1b1c1d1e88d25c49d6dbebf07d5f5f5591f54873980fe27c46f254a27625a31dadb6104e2c0c3e0aa503863d5ff3995928a63700d61a57d190e9ac5d53aa34ffe5d139b649a4b96063f36e891e1772b3f42fe636c3aac9bd6abd282f3ab8cd2e8457d9d7a38eb0ec427eff9d7eb714ae07840c8a56419544c090db068ec87fe8112244cfe959f58964b89f27e47215445346a712cf812ac7568fac456979801dd7f77b52473e84e6786f125581314626b573f8e37cd7776bc0cfa7469e652b204a3d4779c6caa5b6f023e494601cead692eabdb9ac0b0fab40f6d1d521b879b0248a8902e666cb7c9ea9e9f99d9bb67be2f6822d8e3f109090a6ab4a3cad831af8ea78e6dc0c8f2f7d961dc8053932ad3a193a3aee06bde61950dba660cfc40a685dce28ebc44d3e7aeedf68e7421eb388dcc02b34fe8e53880da928549d4890bef2d5abc853292bdc68693cf52078418a629087999a62dcb515f0a20fefe3b2c02a19b000e0b12367095106d5983de8cb69ebe27ec192f19dfa97eb9c833d8ae6d04add72750476469c1ad0f3bfcfa3b44a68d912fb8ccbce38126d6e22bdf5691679f8fffacfcdc758eab67fa57619cca099ab6e8ddf73f640027b03c05e370164ba0d76036d0fbadc26257aa7972011c3538b705732320a10b298071325eb2225e76dd4d192131a8fa3cadb5677da6aacde7ff97978290d9e8aac0722d0dba3361c047d47afd519a4e08400e90e949a2e729b5dfad51baa3602ef7ffe27d12a68d59fcb58d48e08d28416b9d82422917fcbf28e12aaf523dd2f4a55b1ff7f9e4091b69611922a321cc1635ae57e38a3f1c15098c2f267d9fd62449debaae4bb958cead40e0de93cd1936c98fdbbb5400ca129f537cc37e445705fd35429d8503474a34d49edee03911e463bef8c830a5cb4a9419842596ccbfcac789d0163cf3a1a02ae72c80563c1d20eb988c014bde903eb7c7eb8cfb6621a985656b78cd11396d80823439e65401e33f23c1a553b2e150a956efcfb3970e2f40faf774f403a3e3daaec866b6a838ef1ea028c1e088d52a424c95a97be47fc5e28234f7538cc4a1982e79a8c9ce0090250fd667615ba384e929034178cb6911b04ea287d466cf89e265b1bd71ff54555912b75b833f8a9bb3f431b55bb8b03c17239c028ae0f5d864025de9afaf301df41543bdb07ed4f5f8acdaaa178d8fc597eaa7f81ce57fd203eb5c64b789724ebdd2818c165316e8747f0f09626297244a7cab20edcfa6458be8db3470ab5035e3d00616700dab3ab21ee2a9225060a0c8e1e7337493a23f8c783283a1dcda4437202db73bdb3553a98e61d17b6798c281f304017658a43fa4005e46d08a1357b26e81bfc0d5e23de988fd8e4e4fbe9b99e6acb7ac50cae47432bdf1f54ce883544f12ceefd49289eac58b9cb2dd4687405ada773667e11ea8d9bcd1f9b69922758b7cd037f2f7f3032346fa5aaeab25c8ee51eb7c747d3150f0a86c08012f5e3a8a882903e3c8d5a8810566676f3a65d07a89f526f34d87d397fb16209091c1287efaa230d9e2796702e52111446b5524a7127521d6d42a619ded5edafbd4eaf2b5c2f49c123a19400fc6b3bf7a24473d1a0e759db12b86c9294f08126673f10c975685b044a31dc601535de6794d40d64f7225f6d1cf79d895169b8b1d877954d138b205a1590312c3b06e779f955e42cc1f97396e65b3887e9fabdd432eb0b40f53c0399a0fa333c27859604e85555e04b18d35ae8c783d6fcfe8c86fae412e642d7454a101c5350f03d6f517e274fadaba44caf817502d21d994bce850e9243cb55b00ca0649a30cf8d8ffb79175b77b20cf887e08c49ab839bde7c90e10681454120b21b4f872e4451320156deec599af5c69001afa0b6fcc23876138c76aec021618c39d933ae5ee0fde225da183ee5134f44472a063a3c8922e770ed890417d2b1ecf48da9326dbbab1b1090e53bfec05836a6633a5cc495dee295a4d1f0ee5e37a3169f46c28a6e85d804eb9b3e3d08d191483512ead6525456af5a24a3285ae2106dc956e7196edc955dc81226f06473d764ec11af003571e210727cd199bed91f1de9819f811f5ff0c6938252468898b0a2c321d6e1e90cd676841a2b0aa573fe77769daa4004878f565560a697be409f030828a7888e4a5a7c2cb14d2ef2a9ff98fb768b0d4ea95973435a3842ca869e2776bfcb83216ddf787b3f5ca466882149749b87baadd4e8753a80c2d50a35ec68ab167460c99dbd50f7f649f9705534708c458a39bb374f05f54d90c93791d6296c04d241afe2d38704ac975783bf41af272c4a9de093c2c844399c73574b0ab4878c4945841ca38575e2c29c8337884d5413d5ae8f73c9b6e009676821d397448da9186ea0106902e81176ec55850d0892bcb501e0c4a88569e9ead926e6ed0f1ed85a7d77cf2be7bea8cea158f20eec240843b275fdda291c8ded5998e661a2bb8cbf78c6af05c5ba501d3f408acc0841f0b47f364fe69d7f3adccae33dff15f88a8f5eed336e2c00421915029d4aa5ac50369070a5221c392518f318c26f4d64fef9814a73e89d68e6453f1bd28c5a7f81dfdfedcf7fd455a787d5883b2d29502aa0a63b796f931625f4ad285e9d072cf2b8cd300c2416c97aed02c9f6767aab94423cafc89d3fdceb0b374ac59f9c"
+  },
+  "previous": {
+    "object": {
+      "format": "seanime-mobile-backup",
+      "formatVersion": 1,
+      "appVersion": "4.2.0",
+      "createdAt": "2026-11-18T09:00:00.000Z",
+      "tables": {
+        "settings": [
+          {
+            "section": "library",
+            "content": {
+              "libraryPath": "/storage/emulated/0/Anime",
+              "libraryPaths": [
+                "/storage/emulated/0/Anime",
+                "/storage/emulated/0/Movies"
+              ],
+              "autoUpdateProgress": true,
+              "autoScan": false,
+              "refreshLibraryOnStart": false,
+              "enableOnlinestream": true,
+              "torrentProvider": "animetosho",
+              "defaultPlaybackSource": "onlinestream",
+              "enableManga": true,
+              "disableUpdateCheck": false
+            },
+            "changedAt": 1794992400000
+          },
+          {
+            "section": "torrent",
+            "content": {
+              "defaultTorrentClient": "qbittorrent",
+              "qbittorrentPassword": "test-qbit-pass",
+              "seanimeDownloadLimit": 0,
+              "seanimeUploadLimit": 512,
+              "seanimeMaxActiveDownloads": 3
+            },
+            "changedAt": 1794992400000
+          },
+          {
+            "section": "anilist",
+            "content": {
+              "hideAudienceScore": false,
+              "enableAdultContent": false,
+              "blurAdultContent": true,
+              "disableCacheLayer": false
+            },
+            "changedAt": 1794992400000
+          },
+          {
+            "section": "manga",
+            "content": {
+              "defaultMangaProvider": "mangapill",
+              "mangaAutoUpdateProgress": true
+            },
+            "changedAt": 1794992400000
+          },
+          {
+            "section": "nakama",
+            "content": {
+              "enabled": false,
+              "username": "test-user",
+              "isHost": false,
+              "remoteServerURL": "",
+              "remoteServerPassword": "test-nakama-pass"
+            },
+            "changedAt": 1794992400000
+          }
+        ],
+        "appearance": [
+          {
+            "id": 1,
+            "content": {
+              "showAnimeUnwatchedCount": true,
+              "showMangaUnreadCount": false,
+              "hideAnimeSpoilers": false,
+              "continueWatchingDefaultSorting": "TITLE",
+              "libraryScreenCustomBannerPosition": "50% 50%",
+              "libraryScreenCustomBannerOpacity": 50
+            },
+            "createdAt": 1794992400000,
+            "changedAt": 1794992400000
+          }
+        ],
+        "homeItems": [
+          {
+            "position": 0,
+            "itemId": "continue-watching",
+            "kind": "builtin",
+            "schemaVersion": 1,
+            "options": null
+          },
+          {
+            "position": 1,
+            "itemId": "my-lists",
+            "kind": "builtin",
+            "schemaVersion": 1,
+            "options": null
+          }
+        ],
+        "watchPositions": [
+          {
+            "mediaId": 21,
+            "kind": "onlinestream",
+            "episodeNumber": 3,
+            "positionSeconds": 600,
+            "durationSeconds": 1400,
+            "filepath": "",
+            "addedAt": 1794992400000,
+            "changedAt": 1794992400000,
+            "expiresAt": null
+          }
+        ],
+        "extensionConfigs": [
+          {
+            "id": "ext-a",
+            "version": 1,
+            "values": {
+              "language": "de",
+              "apiKey": "test-ext-key"
+            },
+            "origin": "core",
+            "changedAt": 1794992400000
+          }
+        ],
+        "sandboxSettings": [],
+        "onlinestreamMappings": [],
+        "mangaMappings": [],
+        "mangaPreferences": [],
+        "offlineSettings": [
+          {
+            "id": 1,
+            "wifiOnly": true,
+            "changedAt": 1794992400000
+          }
+        ],
+        "silencedAnime": [
+          {
+            "anilistId": 5114,
+            "createdAt": 1794992400000,
+            "updatedAt": 1794992400000
+          }
+        ],
+        "metadataParents": [],
+        "playlists": [
+          {
+            "dbId": 1,
+            "name": "Evening",
+            "episodes": [],
+            "createdAt": 1794992400000,
+            "updatedAt": 1794992400000
+          },
+          {
+            "dbId": 2,
+            "name": "Evening",
+            "episodes": [
+              {
+                "ep": 1
+              }
+            ],
+            "createdAt": 1794992400000,
+            "updatedAt": 1794992400000
+          },
+          {
+            "dbId": 3,
+            "name": "Morning",
+            "episodes": [],
+            "createdAt": 1794992400000,
+            "updatedAt": 1794992400000
+          }
+        ],
+        "torrentKept": [
+          {
+            "key": "settings",
+            "content": {
+              "enabled": true,
+              "autoSelect": true,
+              "preferredResolution": "1080",
+              "preloadNextStream": false,
+              "includeInLibrary": false,
+              "stopSeedingWhenFinished": true
+            },
+            "changedAt": 1794992400000
+          },
+          {
+            "key": "debrid-settings",
+            "content": {
+              "enabled": false,
+              "provider": "torbox",
+              "streamAutoSelect": true,
+              "streamPreferredResolution": "1080",
+              "includeDebridStreamInLibrary": false
+            },
+            "changedAt": 1794992400000
+          }
+        ]
+      },
+      "extensions": {
+        "files": {
+          "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+        },
+        "disabled": []
+      },
+      "localLists": null,
+      "preferences": {
+        "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":false,\"skipOpening\":false}",
+        "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\"}",
+        "seanime-mobile-airing-notifications": "\"true\"",
+        "seanime-mobile-chapter-notifications": "\"true\"",
+        "sea-playback-downloaded-media": "\"system\"",
+        "sea-ui-settings-navigation-preload-mode": "\"adjacent\"",
+        "sea-search-recent": "[\"naruto\",\"bleach\"]"
+      },
+      "secrets": {
+        "seanime-core.account-token": "test-anilist-token",
+        "seanime-core-debrid-api-key": "test-debrid-key",
+        "seanime-nakama-host-password": "test-nakama-host-pass"
+      },
+      "stamps": {
+        "changed": {
+          "t/settings/library": 1794992400000,
+          "f/t/settings/library\u001flibraryPath": 1794992400000,
+          "f/t/settings/library\u001flibraryPaths": 1794992400000,
+          "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+          "f/t/settings/library\u001fautoScan": 1794992400000,
+          "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+          "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+          "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+          "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+          "f/t/settings/library\u001fenableManga": 1794992400000,
+          "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+          "t/settings/torrent": 1794992400000,
+          "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+          "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+          "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+          "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+          "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+          "t/settings/anilist": 1794992400000,
+          "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+          "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+          "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+          "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+          "t/settings/manga": 1794992400000,
+          "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+          "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+          "t/settings/nakama": 1794992400000,
+          "f/t/settings/nakama\u001fenabled": 1794992400000,
+          "f/t/settings/nakama\u001fusername": 1794992400000,
+          "f/t/settings/nakama\u001fisHost": 1794992400000,
+          "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+          "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+          "t/appearance/1": 1794992400000,
+          "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+          "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+          "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+          "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+          "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+          "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+          "t/watchPositions/21": 1794992400000,
+          "t/extensionConfigs/ext-a": 1794992400000,
+          "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+          "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+          "t/offlineSettings/1": 1794992400000,
+          "t/silencedAnime/5114": 1794992400000,
+          "t/playlists/Evening": 1794992400000,
+          "t/playlists/Evening#2": 1794992400000,
+          "t/playlists/Morning": 1794992400000,
+          "t/torrentKept/settings": 1794992400000,
+          "t/torrentKept/debrid-settings": 1794992400000,
+          "t/homeItems": 0,
+          "x/ext-a.json": 0,
+          "p/sea-media-core-preferences": 0,
+          "f/p/sea-media-core-preferences\u001fautoNext": 0,
+          "f/p/sea-media-core-preferences\u001fautoPlay": 0,
+          "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+          "p/sea-video-core-settings": 0,
+          "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+          "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+          "p/seanime-mobile-airing-notifications": 0,
+          "p/seanime-mobile-chapter-notifications": 0,
+          "p/sea-playback-downloaded-media": 0,
+          "p/sea-ui-settings-navigation-preload-mode": 0,
+          "p/sea-search-recent": 0,
+          "s/seanime-core.account-token": 0,
+          "s/seanime-core-debrid-api-key": 0,
+          "s/seanime-nakama-host-password": 0
+        },
+        "deleted": {}
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "switch-in-a-settings-row",
+      "note": "one bool field of a section: field stamp and row stamp (plan 2.3 rule 3)",
+      "now": 1795176000000,
+      "changes": [
+        {
+          "op": "set",
+          "key": "f/t/settings/library\u001fautoScan",
+          "value": false
+        }
+      ],
+      "expected": {
+        "package": {
+          "format": "seanime-mobile-backup",
+          "formatVersion": 1,
+          "appVersion": "4.2.0",
+          "createdAt": "2026-11-19T18:30:00.000Z",
+          "tables": {
+            "settings": [
+              {
+                "section": "library",
+                "content": {
+                  "libraryPath": "/storage/emulated/0/Anime",
+                  "libraryPaths": [
+                    "/storage/emulated/0/Anime",
+                    "/storage/emulated/0/Movies"
+                  ],
+                  "autoUpdateProgress": true,
+                  "autoScan": false,
+                  "refreshLibraryOnStart": false,
+                  "enableOnlinestream": true,
+                  "torrentProvider": "animetosho",
+                  "defaultPlaybackSource": "onlinestream",
+                  "enableManga": true,
+                  "disableUpdateCheck": false
+                },
+                "changedAt": 1795176000000
+              },
+              {
+                "section": "torrent",
+                "content": {
+                  "defaultTorrentClient": "qbittorrent",
+                  "qbittorrentPassword": "test-qbit-pass",
+                  "seanimeDownloadLimit": 0,
+                  "seanimeUploadLimit": 512,
+                  "seanimeMaxActiveDownloads": 3
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "anilist",
+                "content": {
+                  "hideAudienceScore": false,
+                  "enableAdultContent": false,
+                  "blurAdultContent": true,
+                  "disableCacheLayer": false
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "manga",
+                "content": {
+                  "defaultMangaProvider": "mangapill",
+                  "mangaAutoUpdateProgress": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "nakama",
+                "content": {
+                  "enabled": false,
+                  "username": "test-user",
+                  "isHost": false,
+                  "remoteServerURL": "",
+                  "remoteServerPassword": "test-nakama-pass"
+                },
+                "changedAt": 1794992400000
+              }
+            ],
+            "appearance": [
+              {
+                "id": 1,
+                "content": {
+                  "showAnimeUnwatchedCount": true,
+                  "showMangaUnreadCount": false,
+                  "hideAnimeSpoilers": false,
+                  "continueWatchingDefaultSorting": "TITLE",
+                  "libraryScreenCustomBannerPosition": "50% 50%",
+                  "libraryScreenCustomBannerOpacity": 50
+                },
+                "createdAt": 1794992400000,
+                "changedAt": 1794992400000
+              }
+            ],
+            "homeItems": [
+              {
+                "position": 0,
+                "itemId": "continue-watching",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              },
+              {
+                "position": 1,
+                "itemId": "my-lists",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              }
+            ],
+            "watchPositions": [
+              {
+                "mediaId": 21,
+                "kind": "onlinestream",
+                "episodeNumber": 3,
+                "positionSeconds": 600,
+                "durationSeconds": 1400,
+                "filepath": "",
+                "addedAt": 1794992400000,
+                "changedAt": 1794992400000,
+                "expiresAt": null
+              }
+            ],
+            "extensionConfigs": [
+              {
+                "id": "ext-a",
+                "version": 1,
+                "values": {
+                  "language": "de",
+                  "apiKey": "test-ext-key"
+                },
+                "origin": "core",
+                "changedAt": 1794992400000
+              }
+            ],
+            "sandboxSettings": [],
+            "onlinestreamMappings": [],
+            "mangaMappings": [],
+            "mangaPreferences": [],
+            "offlineSettings": [
+              {
+                "id": 1,
+                "wifiOnly": true,
+                "changedAt": 1794992400000
+              }
+            ],
+            "silencedAnime": [
+              {
+                "anilistId": 5114,
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "metadataParents": [],
+            "playlists": [
+              {
+                "dbId": 1,
+                "name": "Evening",
+                "episodes": [],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              },
+              {
+                "dbId": 2,
+                "name": "Evening",
+                "episodes": [
+                  {
+                    "ep": 1
+                  }
+                ],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "torrentKept": [
+              {
+                "key": "settings",
+                "content": {
+                  "enabled": true,
+                  "autoSelect": true,
+                  "preferredResolution": "1080",
+                  "preloadNextStream": false,
+                  "includeInLibrary": false,
+                  "stopSeedingWhenFinished": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "key": "debrid-settings",
+                "content": {
+                  "enabled": false,
+                  "provider": "torbox",
+                  "streamAutoSelect": true,
+                  "streamPreferredResolution": "1080",
+                  "includeDebridStreamInLibrary": false
+                },
+                "changedAt": 1794992400000
+              }
+            ]
+          },
+          "extensions": {
+            "files": {
+              "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+            },
+            "disabled": []
+          },
+          "localLists": null,
+          "preferences": {
+            "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":true,\"skipOpening\":false}",
+            "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\"}",
+            "seanime-mobile-airing-notifications": "\"true\"",
+            "seanime-mobile-chapter-notifications": "\"true\"",
+            "sea-playback-downloaded-media": "\"system\"",
+            "sea-ui-settings-navigation-preload-mode": "\"adjacent\""
+          },
+          "secrets": {
+            "seanime-core.account-token": "test-anilist-token",
+            "seanime-core-debrid-api-key": "test-debrid-key",
+            "seanime-nakama-host-password": "test-nakama-host-pass"
+          },
+          "stamps": {
+            "changed": {
+              "t/settings/library": 1795176000000,
+              "f/t/settings/library\u001flibraryPath": 1794992400000,
+              "f/t/settings/library\u001flibraryPaths": 1794992400000,
+              "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+              "f/t/settings/library\u001fautoScan": 1795176000000,
+              "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+              "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+              "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+              "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+              "f/t/settings/library\u001fenableManga": 1794992400000,
+              "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+              "t/settings/torrent": 1794992400000,
+              "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+              "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+              "t/settings/anilist": 1794992400000,
+              "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+              "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+              "t/settings/manga": 1794992400000,
+              "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+              "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+              "t/settings/nakama": 1794992400000,
+              "f/t/settings/nakama\u001fenabled": 1794992400000,
+              "f/t/settings/nakama\u001fusername": 1794992400000,
+              "f/t/settings/nakama\u001fisHost": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+              "t/appearance/1": 1794992400000,
+              "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+              "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+              "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+              "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+              "t/watchPositions/21": 1794992400000,
+              "t/extensionConfigs/ext-a": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+              "t/offlineSettings/1": 1794992400000,
+              "t/silencedAnime/5114": 1794992400000,
+              "t/playlists/Evening": 1794992400000,
+              "t/playlists/Evening#2": 1794992400000,
+              "t/torrentKept/settings": 1794992400000,
+              "t/torrentKept/debrid-settings": 1794992400000,
+              "t/homeItems": 0,
+              "x/ext-a.json": 0,
+              "p/sea-media-core-preferences": 0,
+              "f/p/sea-media-core-preferences\u001fautoNext": 0,
+              "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000000,
+              "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+              "p/sea-video-core-settings": 0,
+              "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+              "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+              "p/seanime-mobile-airing-notifications": 0,
+              "p/seanime-mobile-chapter-notifications": 0,
+              "p/sea-playback-downloaded-media": 0,
+              "p/sea-ui-settings-navigation-preload-mode": 0,
+              "s/seanime-core.account-token": 0,
+              "s/seanime-core-debrid-api-key": 0,
+              "s/seanime-nakama-host-password": 0
+            },
+            "deleted": {
+              "t/playlists/Morning": 1795113000000,
+              "p/sea-search-recent": 1795113000000
+            }
+          }
+        },
+        "changedStamps": {
+          "t/settings/library": 1795176000000,
+          "f/t/settings/library\u001fautoScan": 1795176000000
+        },
+        "deletedStamps": {},
+        "clearedTombstones": [],
+        "sealed": {
+          "nonce": "4d4e4f505152535455565758595a5b5c5d5e5f6061626364",
+          "binding": {
+            "userId": "6f1c2c1e-0d7b-4c3a-9a51-2f0e7d4b8a10",
+            "version": 8,
+            "dekId": "dek-web-vector-1"
+          },
+          "gzipHex": "1f8b0800000000000003a5595b6fdb3614fe2b8587bd45b1e5246b93b72cedb0a04913d4c90aacde032dd1316b49e4282a1704feeffb0e495d6ccb8adc150860f1dcef3ceceb602e75cacce06c907396899407a99c89840733162d0b3538f0087f719d0b990dcec2830153aafa1c1c1f8e0f47408b346786c7e7c46a3c1aff168461109ede851fce8e4667a3d1e16834fa1b6886cd129e0fce5e21cf18913de0f777fa888ce397889966fa8538caccf00cfc5ecbc35b66164019e6466af6c0873c2d12123a1c0dcf49771035308973276e1bec5a3e0ae8f70fac2c8cbc5731ce6fb57cd03c073fa30bee20938841db394b721c683e077c71e564df6413c334f4f6509e91cd375922329e1bb8292d1941bc8685e0ff2862ae619a0d8191f94242bf98cf599198db84bd503426b2d01107926cb22af95fb3ec81958c6391d39953ff62c1a3a5d76605b72e80e90215be3f3d09dfff86d0e0dfeaa01906afda7a18bc42770e7691087b3ef877264c8ddff8ba6579fe24754cfca06f40a040e110683edd3ecaa72c912cbe12a900af5105b8578de393705c01aed9f339b47cac481197a32dbb8e4f4fc7c72d76814522f20dbb16f0fe7911c39c884f22a9e1e4b5d89dc7b0faa2c4f7a05952e875c09aef2f58b4e057ec85c2daeefa5d2aa636926d8eb7316e648bc5542249806d7f9fefc8d9deb233b664e98670e70304d11b5ee45c670c15e4a34adfa010f99f128ead6b2295864fb87ee4fafeeb159081d33cdc4c0e27daa54797be549a4a71a619a2659b87000fb4a586caa89f275be5f7d9133308447c218b3a4404b6bebccf504325cc2b6e938168274aa2116ab8d0434880c80afe8d58a2757d745199484d8d0c76dc5dde5d7daa9bd0043d91671705da4cfa3bcb32d82c73e13d7d32faf51dfebab06f148b847941fa234acd06bbe6906e572d64ca2f0d4f5d9b55957c90091c5f92fb4bbb02eb2b32e560b014198166854800a37a851753d61c0352112b30ce8a24a134aab9035a714f5f02aa38aaf9bd99c200ab53e9376745ca63c188f718049ee7664f54229731ff52a433aa94a3834ab90987b9d433d0f650ac85666ba7215c879987c02b376cc08cc5f15e7e87f86725507d0429ede0cf484e3213ed622efcd8a3cc25484025879aa8dcf0c892c28dc904320a0c2920c634b450ef9f3972c2150dd12ef189fc905a3cc0a9144e34b0eeacc85916cfe4f3a41ec1386cbaf01a2556436c6f6939bac5e0e368f411a96a59cce7c4a3c1b7aace2731179881d0dcd560a77a703f98c66e501313dfb629e8276178dc550d85ed7fed8c315b19a0ec96d178f24a2bcc5797a124299e911028ec5bdca7479eb992f039e5a97e42019488e38e61d6c51d2d57819614fe3933fdf8fdcc15a060471942173c1f95f6eedeb8dbf00403a13c5136c89ac75f792e93c2b7af70f4816e7d00d208fe823c9cf8ab8d6f96228b9222e69799bf155500f43735e128e1ece1db82677f884ce468d0bd06953324e6332de2e00d7bbc38558f4bb805494f6dc7aa4ac372dd5477eeb27a87c1deac8f560567f2a6899dc30bc0aa13d8faa656637fd83670f823b7d25ea7a89be9e06cea8ea78383a94d197b746e3f7dbbb027e1212ed8f6d4bc2887d4ace6a0748245293b8a4523fc3cd242190b532805c4d382a204a3f85d79dd78f7ba9a0e56d468fc05072efe4ee6243262c995ab1f6a7665c6f8b640b70b16d8961d5067822e0d28194a29470904a1360cee846ebdf549be14ea46d95ac1a173b3bb4406a49d74aceb9582f8d294bf583065b8be667a0977d5fcaaa49e1433234c829b5ac3299ca478fecd9d88090df641260d9a59640707c98217c1754aa36283007940e2dfa008a803d10d3f88fd9596c7ce6316357fc9314b2be4425476e2cef4281e2c57722b514232c60491b1f8078b501420449470c5d39c4264e3617524971db228a2db4f60e492db7b3f4d15df6dfd616d9575b2af3ecc213b793c893fa5931adf5fe916b817da7b5dcb75af8259250d4b95d5d11710fd34c3d2dc61b91bae2f2e18d7c36da469311a8598468dc571a383f6a2a22b415fb2b68d712f62b754f6366ec7dad95b64db62da9b786b77ed4db963addd536dbfeff697dab2126f103748cb75b693bf475ab36a6337ee4ddeba35f7a66e5fa6f7255f5bb9f7256e5bcb77fbb75cc33bc5782427a66547ef4ddbb6c5f726dedef37b93b63c05ec76895bfb3b995b94b574db7811e849bcf3ad60b776fe61a05382c369bafc8d1c6e12d4af0a7d29ca0787bef85b2f123f43b8b338cdb07e951886adcc9b08be7676bd53f4a6de7ec6e845daf2c8d18beead27905e4c7a3c8ffc3f3ed5c3c9568cd65f1386e3ed4099e1e6a64e0758d0db746a47f5da558bfb9e84e586bfa5d8c676dd926548e0e6ea3ca45db905a9da7887e5fed903e797710b5663d3ac6ae70db4cded6d1bbbf16685ef67e71bbf19e14041d2ee8dc23ab80ba5be6ed1d2b117015d59fcfd2c3cb2eaf6246eac2f0d135a379706c716785df8eb9b4d3fba9d5b4fadd4dbeb4e1be68e3da7b2b463c1a9707aed35f4ff0395f0b605660b616b5f59c368df50e8b935c6cb00de57dc065217c3b5d455c134b3c0d9803f1d2d02cd69f1dac059ad56ff0193e972a46e1b0000",
+          "sealedHex": "534d53014d4e4f505152535455565758595a5b5c5d5e5f606162636446077c2eaa4042ea819baa949e0ee2614913f812742aecebdbfd9c48d336df0b6b71678499dd44990e481c3ad4745ad9e70b98eaab16aeb61f3ec827b234e73587c4fd07031b8e35ce62869cafb42c9bd2b525d971a50ed43b242026e801e5611962bcec44b5e40ddb54c335121bc70b6e2e48de6ef325403ffeab2003cf81de55dd27d1b4d6c03d8041fdd2c3836b2ca5eedba0c98083f613fb369a5b3a40596ae09f74ef3be309291b92fb6d84ce6d139071644ad42ec10a0e4930795585eed7f7841010821163e2c279fd94006cbd86a9e7abaf7b50fa7a5c8840d3f93a35055b4f27d9a6ed9bb4f96f1dd6bceba6d85f4f2b47ec2316f2b4afa1150b50b03f84be0044ba9c2dec7e387fcd9c8a838e4f407155e1b6f3bbc2faf656879a046945899f431295572bf1374d2bcbd1cd18d7c5672850c20d3a61bfd73a472de17cd910391885eb05fc77dccbb0a2d345e11d9f97abbd24fe3b67b162ab1e209f68fafbf1ed6b02bee3f2be913fac56e94a198cb3c89f2cb753359380c4037222f1f21cc8f794de32d4aff7a5cf80aaa840a292a6238e4f808544455f0ac150d9a9c35138914da5c787c0132459838feebc0500940b9bf695a4960deac8441d28da70a47be6a1e2ef8ba328dcfacf488e30c97d4c17a33af5b4c4ef8bfec583a8ccedbf01f1e62db6892c7fc3ac52d02f4b35340a744c9b41738d2d9692cc205a0a4d72c45b34bbf4ac3db7c3de603d5c6ee6d6122e14d258178ab56c3a5814934d54bc8060976c97f1fe14bbf8ab0dad04e76d07ce844e83e3839f2fff295881f3a9617e23521f7803a2c1a204b5b7ffc56db3347ec58e320cc740f3bbdbce8421cba91cf8a398002d9a714b535a6ea035c148e41b864df8e4c0a1a7e21c48a7a1fc6afd691df2fa427c634bcfd704ebb1b50851357a237ee1576068c029cedcd8c7fd3cf78a15ea056e4f15c9a5d5776a40762e553d887df323d16addc7a83920bcab9cdb53f8031c03b47d75e83431065f7123eac9197e44ce67ed018d540facf00019780b741126050db97706a300f59d0694539b5526f4426e466867031287d0527942cfcc6dba09388a0c2f5faca329bc9d40bf6bd2321f5b0ae7737ffe502e907bb150772415bd50dea7777ea38e3819067fca4df20e6608d1a7bfb00fae9dd54a372f0b0a147b55c8dce6a0e630ef1cf771733e948f0d1c476f533cc34d4f83b54e760ada8f2c08a629c8667bdbeaf8f55965cb7011cea05864c1099694c47edbafd7931d7d66222d4908e6929fbfdd87682964230e8c02b1c4e724596ccef5d99623e6ac47a4b51018c3b37a46967b92f93782354cd3a5bc717f44b135a35c93c8ea3791247f65cb15fa07454223fe01383211a38aa5cee5752d3ab412816603df293f4926c754df6a658d7f35d3309d3e416100c76345edfebfeb3e08be4cc5fd0dfadc3811edb736cf576540f30cc1a1980f9ab39108e764453afcd3d9f804d4cb78a6e6abd499ec91a875fa725eb2ccda01ce22c91a03c53f568bb5d50e75b4fb139536ceb3507448ef54f79056f8a9aa47fc49df9bcaee88c09d312d8c548abf73ce867b6312792f2c0e7fc3d2d2b64dd0434d5a933e03c2b359d08905201e747e944ec884c4117a064224a974cc1621f565bd4cf2f70b29535f588361ca023973fde7ed0004f40b1a182ade03ebe43dba95b616ace92e74be0ab2d4c507281e2b906fdeda729b5a489a79e6fcb5b77a7fac9ca0e4f99a67905aa8a6efd42745b5bdd5cef07e7ff1eb4361a07fb11f79790a95e709efdb101a57fe12f15c5e97da73f922b3c58c3420174166c8ac006a3e36ca4993e40e73f48f20a7a800fe68e3fc69aa4dd7aad7a2f7e9e65b0b09cbb8b7dc86963751ea063b7556c823fb9491201b9d7b2ec680a7fd2f8400e24269e02c10a2af488918466751dc5bdd6d7d9819536108827a6de8ab1b47e9dfc99cc58af999a34da0b3bc6e6369c0abb2b3898207cf542b7f03d7a49a7bcb49264e124e56f58fa03d2454b440b4e74e016764c4e30bf22878a4eabf917c4634a2f9018db804396e7e41adb5d19fb8a79d5aa0dae54d6ab5c6b81a782c17dd14e79a2b9547e74d3ad79298bcaa3e9ae2c832177963269e1db2b42bf0510edd21d3ce92ec0455364c842fa1d7abd757b0702cfd7699d5887b58c17f5cefd508dbdaa41248599b91c0679dca1a35a4c47aec63e3396de2ea2c98853fdacb0c6054ae72f5d68b508f55c41950213ed1a928457c9489b626a5c906a225b42a4f3cb6ab3f691796cf19dd60614ab0c4e2a52037fbb0e67d274f5e3b461ec04626be58889e665c0aa4de2343481a9808e676b6d62bc48bce12a2da6bda4269aa68398fbafdf43334a71c5ac5aee8a0302dc72df3aa2dceb9d365baf40069fa8fd04b84d634b09c0872d4f85064848c9015c48b94a337fbb474790d9b4d386abbd63e0847ca66498d6d0fd7b5c2b0543df18f77022c7cb541709ba943cebd649fdc9a466f4fe39e3b6f0cb34846de5528d03085f63000fa25fbd0f7026d5181c0608fcf3b641076a244458661a05db856d6c2f66e87eb35c280e2274b0c82179d2bfbea8f42385809da5cbd434438fd6fab75f9686c70ade4ef8c0e007dc77b97022eea8fe82cec5229f50f6cc43ce990b1f8538598a83049de216aeccc40d97192"
+        }
+      }
+    },
+    {
+      "name": "several-categories-one-save",
+      "note": "bool, number, text and list fields in four rows (three sections, one appearance row), one common time",
+      "now": 1795176000000,
+      "changes": [
+        {
+          "op": "set",
+          "key": "f/t/settings/anilist\u001fblurAdultContent",
+          "value": false
+        },
+        {
+          "op": "set",
+          "key": "f/t/settings/torrent\u001fseanimeUploadLimit",
+          "value": 256
+        },
+        {
+          "op": "set",
+          "key": "f/t/settings/library\u001ftorrentProvider",
+          "value": "nyaa"
+        },
+        {
+          "op": "set",
+          "key": "f/t/settings/library\u001flibraryPaths",
+          "value": [
+            "/storage/emulated/0/Anime"
+          ]
+        },
+        {
+          "op": "set",
+          "key": "f/t/appearance/1\u001fshowMangaUnreadCount",
+          "value": true
+        }
+      ],
+      "expected": {
+        "package": {
+          "format": "seanime-mobile-backup",
+          "formatVersion": 1,
+          "appVersion": "4.2.0",
+          "createdAt": "2026-11-19T18:30:00.000Z",
+          "tables": {
+            "settings": [
+              {
+                "section": "library",
+                "content": {
+                  "libraryPath": "/storage/emulated/0/Anime",
+                  "libraryPaths": [
+                    "/storage/emulated/0/Anime"
+                  ],
+                  "autoUpdateProgress": true,
+                  "autoScan": true,
+                  "refreshLibraryOnStart": false,
+                  "enableOnlinestream": true,
+                  "torrentProvider": "nyaa",
+                  "defaultPlaybackSource": "onlinestream",
+                  "enableManga": true,
+                  "disableUpdateCheck": false
+                },
+                "changedAt": 1795176000000
+              },
+              {
+                "section": "torrent",
+                "content": {
+                  "defaultTorrentClient": "qbittorrent",
+                  "qbittorrentPassword": "test-qbit-pass",
+                  "seanimeDownloadLimit": 0,
+                  "seanimeUploadLimit": 256,
+                  "seanimeMaxActiveDownloads": 3
+                },
+                "changedAt": 1795176000000
+              },
+              {
+                "section": "anilist",
+                "content": {
+                  "hideAudienceScore": false,
+                  "enableAdultContent": false,
+                  "blurAdultContent": false,
+                  "disableCacheLayer": false
+                },
+                "changedAt": 1795176000000
+              },
+              {
+                "section": "manga",
+                "content": {
+                  "defaultMangaProvider": "mangapill",
+                  "mangaAutoUpdateProgress": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "nakama",
+                "content": {
+                  "enabled": false,
+                  "username": "test-user",
+                  "isHost": false,
+                  "remoteServerURL": "",
+                  "remoteServerPassword": "test-nakama-pass"
+                },
+                "changedAt": 1794992400000
+              }
+            ],
+            "appearance": [
+              {
+                "id": 1,
+                "content": {
+                  "showAnimeUnwatchedCount": true,
+                  "showMangaUnreadCount": true,
+                  "hideAnimeSpoilers": false,
+                  "continueWatchingDefaultSorting": "TITLE",
+                  "libraryScreenCustomBannerPosition": "50% 50%",
+                  "libraryScreenCustomBannerOpacity": 50
+                },
+                "createdAt": 1794992400000,
+                "changedAt": 1795176000000
+              }
+            ],
+            "homeItems": [
+              {
+                "position": 0,
+                "itemId": "continue-watching",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              },
+              {
+                "position": 1,
+                "itemId": "my-lists",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              }
+            ],
+            "watchPositions": [
+              {
+                "mediaId": 21,
+                "kind": "onlinestream",
+                "episodeNumber": 3,
+                "positionSeconds": 600,
+                "durationSeconds": 1400,
+                "filepath": "",
+                "addedAt": 1794992400000,
+                "changedAt": 1794992400000,
+                "expiresAt": null
+              }
+            ],
+            "extensionConfigs": [
+              {
+                "id": "ext-a",
+                "version": 1,
+                "values": {
+                  "language": "de",
+                  "apiKey": "test-ext-key"
+                },
+                "origin": "core",
+                "changedAt": 1794992400000
+              }
+            ],
+            "sandboxSettings": [],
+            "onlinestreamMappings": [],
+            "mangaMappings": [],
+            "mangaPreferences": [],
+            "offlineSettings": [
+              {
+                "id": 1,
+                "wifiOnly": true,
+                "changedAt": 1794992400000
+              }
+            ],
+            "silencedAnime": [
+              {
+                "anilistId": 5114,
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "metadataParents": [],
+            "playlists": [
+              {
+                "dbId": 1,
+                "name": "Evening",
+                "episodes": [],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              },
+              {
+                "dbId": 2,
+                "name": "Evening",
+                "episodes": [
+                  {
+                    "ep": 1
+                  }
+                ],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "torrentKept": [
+              {
+                "key": "settings",
+                "content": {
+                  "enabled": true,
+                  "autoSelect": true,
+                  "preferredResolution": "1080",
+                  "preloadNextStream": false,
+                  "includeInLibrary": false,
+                  "stopSeedingWhenFinished": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "key": "debrid-settings",
+                "content": {
+                  "enabled": false,
+                  "provider": "torbox",
+                  "streamAutoSelect": true,
+                  "streamPreferredResolution": "1080",
+                  "includeDebridStreamInLibrary": false
+                },
+                "changedAt": 1794992400000
+              }
+            ]
+          },
+          "extensions": {
+            "files": {
+              "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+            },
+            "disabled": []
+          },
+          "localLists": null,
+          "preferences": {
+            "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":true,\"skipOpening\":false}",
+            "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\"}",
+            "seanime-mobile-airing-notifications": "\"true\"",
+            "seanime-mobile-chapter-notifications": "\"true\"",
+            "sea-playback-downloaded-media": "\"system\"",
+            "sea-ui-settings-navigation-preload-mode": "\"adjacent\""
+          },
+          "secrets": {
+            "seanime-core.account-token": "test-anilist-token",
+            "seanime-core-debrid-api-key": "test-debrid-key",
+            "seanime-nakama-host-password": "test-nakama-host-pass"
+          },
+          "stamps": {
+            "changed": {
+              "t/settings/library": 1795176000000,
+              "f/t/settings/library\u001flibraryPath": 1794992400000,
+              "f/t/settings/library\u001flibraryPaths": 1795176000000,
+              "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+              "f/t/settings/library\u001fautoScan": 1795113000000,
+              "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+              "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+              "f/t/settings/library\u001ftorrentProvider": 1795176000000,
+              "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+              "f/t/settings/library\u001fenableManga": 1794992400000,
+              "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+              "t/settings/torrent": 1795176000000,
+              "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+              "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeUploadLimit": 1795176000000,
+              "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+              "t/settings/anilist": 1795176000000,
+              "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+              "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fblurAdultContent": 1795176000000,
+              "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+              "t/settings/manga": 1794992400000,
+              "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+              "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+              "t/settings/nakama": 1794992400000,
+              "f/t/settings/nakama\u001fenabled": 1794992400000,
+              "f/t/settings/nakama\u001fusername": 1794992400000,
+              "f/t/settings/nakama\u001fisHost": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+              "t/appearance/1": 1795176000000,
+              "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+              "f/t/appearance/1\u001fshowMangaUnreadCount": 1795176000000,
+              "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+              "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+              "t/watchPositions/21": 1794992400000,
+              "t/extensionConfigs/ext-a": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+              "t/offlineSettings/1": 1794992400000,
+              "t/silencedAnime/5114": 1794992400000,
+              "t/playlists/Evening": 1794992400000,
+              "t/playlists/Evening#2": 1794992400000,
+              "t/torrentKept/settings": 1794992400000,
+              "t/torrentKept/debrid-settings": 1794992400000,
+              "t/homeItems": 0,
+              "x/ext-a.json": 0,
+              "p/sea-media-core-preferences": 0,
+              "f/p/sea-media-core-preferences\u001fautoNext": 0,
+              "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000000,
+              "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+              "p/sea-video-core-settings": 0,
+              "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+              "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+              "p/seanime-mobile-airing-notifications": 0,
+              "p/seanime-mobile-chapter-notifications": 0,
+              "p/sea-playback-downloaded-media": 0,
+              "p/sea-ui-settings-navigation-preload-mode": 0,
+              "s/seanime-core.account-token": 0,
+              "s/seanime-core-debrid-api-key": 0,
+              "s/seanime-nakama-host-password": 0
+            },
+            "deleted": {
+              "t/playlists/Morning": 1795113000000,
+              "p/sea-search-recent": 1795113000000
+            }
+          }
+        },
+        "changedStamps": {
+          "t/settings/library": 1795176000000,
+          "f/t/settings/library\u001flibraryPaths": 1795176000000,
+          "f/t/settings/library\u001ftorrentProvider": 1795176000000,
+          "t/settings/torrent": 1795176000000,
+          "f/t/settings/torrent\u001fseanimeUploadLimit": 1795176000000,
+          "t/settings/anilist": 1795176000000,
+          "f/t/settings/anilist\u001fblurAdultContent": 1795176000000,
+          "t/appearance/1": 1795176000000,
+          "f/t/appearance/1\u001fshowMangaUnreadCount": 1795176000000
+        },
+        "deletedStamps": {},
+        "clearedTombstones": []
+      }
+    },
+    {
+      "name": "shared-preference-field",
+      "note": "a field of a split preference (FIELD_PREFERENCES) changes, a new field appears; only the field parts are stamped",
+      "now": 1795176000000,
+      "changes": [
+        {
+          "op": "set",
+          "key": "f/p/sea-media-core-preferences\u001fautoNext",
+          "value": false
+        },
+        {
+          "op": "set",
+          "key": "f/p/sea-video-core-settings\u001fvolume",
+          "value": 80
+        }
+      ],
+      "expected": {
+        "package": {
+          "format": "seanime-mobile-backup",
+          "formatVersion": 1,
+          "appVersion": "4.2.0",
+          "createdAt": "2026-11-19T18:30:00.000Z",
+          "tables": {
+            "settings": [
+              {
+                "section": "library",
+                "content": {
+                  "libraryPath": "/storage/emulated/0/Anime",
+                  "libraryPaths": [
+                    "/storage/emulated/0/Anime",
+                    "/storage/emulated/0/Movies"
+                  ],
+                  "autoUpdateProgress": true,
+                  "autoScan": true,
+                  "refreshLibraryOnStart": false,
+                  "enableOnlinestream": true,
+                  "torrentProvider": "animetosho",
+                  "defaultPlaybackSource": "onlinestream",
+                  "enableManga": true,
+                  "disableUpdateCheck": false
+                },
+                "changedAt": 1795113000000
+              },
+              {
+                "section": "torrent",
+                "content": {
+                  "defaultTorrentClient": "qbittorrent",
+                  "qbittorrentPassword": "test-qbit-pass",
+                  "seanimeDownloadLimit": 0,
+                  "seanimeUploadLimit": 512,
+                  "seanimeMaxActiveDownloads": 3
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "anilist",
+                "content": {
+                  "hideAudienceScore": false,
+                  "enableAdultContent": false,
+                  "blurAdultContent": true,
+                  "disableCacheLayer": false
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "manga",
+                "content": {
+                  "defaultMangaProvider": "mangapill",
+                  "mangaAutoUpdateProgress": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "nakama",
+                "content": {
+                  "enabled": false,
+                  "username": "test-user",
+                  "isHost": false,
+                  "remoteServerURL": "",
+                  "remoteServerPassword": "test-nakama-pass"
+                },
+                "changedAt": 1794992400000
+              }
+            ],
+            "appearance": [
+              {
+                "id": 1,
+                "content": {
+                  "showAnimeUnwatchedCount": true,
+                  "showMangaUnreadCount": false,
+                  "hideAnimeSpoilers": false,
+                  "continueWatchingDefaultSorting": "TITLE",
+                  "libraryScreenCustomBannerPosition": "50% 50%",
+                  "libraryScreenCustomBannerOpacity": 50
+                },
+                "createdAt": 1794992400000,
+                "changedAt": 1794992400000
+              }
+            ],
+            "homeItems": [
+              {
+                "position": 0,
+                "itemId": "continue-watching",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              },
+              {
+                "position": 1,
+                "itemId": "my-lists",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              }
+            ],
+            "watchPositions": [
+              {
+                "mediaId": 21,
+                "kind": "onlinestream",
+                "episodeNumber": 3,
+                "positionSeconds": 600,
+                "durationSeconds": 1400,
+                "filepath": "",
+                "addedAt": 1794992400000,
+                "changedAt": 1794992400000,
+                "expiresAt": null
+              }
+            ],
+            "extensionConfigs": [
+              {
+                "id": "ext-a",
+                "version": 1,
+                "values": {
+                  "language": "de",
+                  "apiKey": "test-ext-key"
+                },
+                "origin": "core",
+                "changedAt": 1794992400000
+              }
+            ],
+            "sandboxSettings": [],
+            "onlinestreamMappings": [],
+            "mangaMappings": [],
+            "mangaPreferences": [],
+            "offlineSettings": [
+              {
+                "id": 1,
+                "wifiOnly": true,
+                "changedAt": 1794992400000
+              }
+            ],
+            "silencedAnime": [
+              {
+                "anilistId": 5114,
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "metadataParents": [],
+            "playlists": [
+              {
+                "dbId": 1,
+                "name": "Evening",
+                "episodes": [],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              },
+              {
+                "dbId": 2,
+                "name": "Evening",
+                "episodes": [
+                  {
+                    "ep": 1
+                  }
+                ],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "torrentKept": [
+              {
+                "key": "settings",
+                "content": {
+                  "enabled": true,
+                  "autoSelect": true,
+                  "preferredResolution": "1080",
+                  "preloadNextStream": false,
+                  "includeInLibrary": false,
+                  "stopSeedingWhenFinished": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "key": "debrid-settings",
+                "content": {
+                  "enabled": false,
+                  "provider": "torbox",
+                  "streamAutoSelect": true,
+                  "streamPreferredResolution": "1080",
+                  "includeDebridStreamInLibrary": false
+                },
+                "changedAt": 1794992400000
+              }
+            ]
+          },
+          "extensions": {
+            "files": {
+              "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+            },
+            "disabled": []
+          },
+          "localLists": null,
+          "preferences": {
+            "sea-media-core-preferences": "{\"autoNext\":false,\"autoPlay\":true,\"skipOpening\":false}",
+            "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\",\"volume\":80}",
+            "seanime-mobile-airing-notifications": "\"true\"",
+            "seanime-mobile-chapter-notifications": "\"true\"",
+            "sea-playback-downloaded-media": "\"system\"",
+            "sea-ui-settings-navigation-preload-mode": "\"adjacent\""
+          },
+          "secrets": {
+            "seanime-core.account-token": "test-anilist-token",
+            "seanime-core-debrid-api-key": "test-debrid-key",
+            "seanime-nakama-host-password": "test-nakama-host-pass"
+          },
+          "stamps": {
+            "changed": {
+              "t/settings/library": 1795113000000,
+              "f/t/settings/library\u001flibraryPath": 1794992400000,
+              "f/t/settings/library\u001flibraryPaths": 1794992400000,
+              "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+              "f/t/settings/library\u001fautoScan": 1795113000000,
+              "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+              "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+              "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+              "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+              "f/t/settings/library\u001fenableManga": 1794992400000,
+              "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+              "t/settings/torrent": 1794992400000,
+              "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+              "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+              "t/settings/anilist": 1794992400000,
+              "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+              "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+              "t/settings/manga": 1794992400000,
+              "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+              "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+              "t/settings/nakama": 1794992400000,
+              "f/t/settings/nakama\u001fenabled": 1794992400000,
+              "f/t/settings/nakama\u001fusername": 1794992400000,
+              "f/t/settings/nakama\u001fisHost": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+              "t/appearance/1": 1794992400000,
+              "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+              "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+              "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+              "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+              "t/watchPositions/21": 1794992400000,
+              "t/extensionConfigs/ext-a": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+              "t/offlineSettings/1": 1794992400000,
+              "t/silencedAnime/5114": 1794992400000,
+              "t/playlists/Evening": 1794992400000,
+              "t/playlists/Evening#2": 1794992400000,
+              "t/torrentKept/settings": 1794992400000,
+              "t/torrentKept/debrid-settings": 1794992400000,
+              "t/homeItems": 0,
+              "x/ext-a.json": 0,
+              "p/sea-media-core-preferences": 0,
+              "f/p/sea-media-core-preferences\u001fautoNext": 1795176000000,
+              "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000000,
+              "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+              "p/sea-video-core-settings": 0,
+              "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+              "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+              "f/p/sea-video-core-settings\u001fvolume": 1795176000000,
+              "p/seanime-mobile-airing-notifications": 0,
+              "p/seanime-mobile-chapter-notifications": 0,
+              "p/sea-playback-downloaded-media": 0,
+              "p/sea-ui-settings-navigation-preload-mode": 0,
+              "s/seanime-core.account-token": 0,
+              "s/seanime-core-debrid-api-key": 0,
+              "s/seanime-nakama-host-password": 0
+            },
+            "deleted": {
+              "t/playlists/Morning": 1795113000000,
+              "p/sea-search-recent": 1795113000000
+            }
+          }
+        },
+        "changedStamps": {
+          "f/p/sea-media-core-preferences\u001fautoNext": 1795176000000,
+          "f/p/sea-video-core-settings\u001fvolume": 1795176000000
+        },
+        "deletedStamps": {},
+        "clearedTombstones": []
+      }
+    },
+    {
+      "name": "plain-preference",
+      "note": "a preference that is no split one is replaced as a whole text",
+      "now": 1795176000000,
+      "changes": [
+        {
+          "op": "set",
+          "key": "p/seanime-mobile-airing-notifications",
+          "value": "\"false\""
+        }
+      ],
+      "expected": {
+        "package": {
+          "format": "seanime-mobile-backup",
+          "formatVersion": 1,
+          "appVersion": "4.2.0",
+          "createdAt": "2026-11-19T18:30:00.000Z",
+          "tables": {
+            "settings": [
+              {
+                "section": "library",
+                "content": {
+                  "libraryPath": "/storage/emulated/0/Anime",
+                  "libraryPaths": [
+                    "/storage/emulated/0/Anime",
+                    "/storage/emulated/0/Movies"
+                  ],
+                  "autoUpdateProgress": true,
+                  "autoScan": true,
+                  "refreshLibraryOnStart": false,
+                  "enableOnlinestream": true,
+                  "torrentProvider": "animetosho",
+                  "defaultPlaybackSource": "onlinestream",
+                  "enableManga": true,
+                  "disableUpdateCheck": false
+                },
+                "changedAt": 1795113000000
+              },
+              {
+                "section": "torrent",
+                "content": {
+                  "defaultTorrentClient": "qbittorrent",
+                  "qbittorrentPassword": "test-qbit-pass",
+                  "seanimeDownloadLimit": 0,
+                  "seanimeUploadLimit": 512,
+                  "seanimeMaxActiveDownloads": 3
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "anilist",
+                "content": {
+                  "hideAudienceScore": false,
+                  "enableAdultContent": false,
+                  "blurAdultContent": true,
+                  "disableCacheLayer": false
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "manga",
+                "content": {
+                  "defaultMangaProvider": "mangapill",
+                  "mangaAutoUpdateProgress": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "nakama",
+                "content": {
+                  "enabled": false,
+                  "username": "test-user",
+                  "isHost": false,
+                  "remoteServerURL": "",
+                  "remoteServerPassword": "test-nakama-pass"
+                },
+                "changedAt": 1794992400000
+              }
+            ],
+            "appearance": [
+              {
+                "id": 1,
+                "content": {
+                  "showAnimeUnwatchedCount": true,
+                  "showMangaUnreadCount": false,
+                  "hideAnimeSpoilers": false,
+                  "continueWatchingDefaultSorting": "TITLE",
+                  "libraryScreenCustomBannerPosition": "50% 50%",
+                  "libraryScreenCustomBannerOpacity": 50
+                },
+                "createdAt": 1794992400000,
+                "changedAt": 1794992400000
+              }
+            ],
+            "homeItems": [
+              {
+                "position": 0,
+                "itemId": "continue-watching",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              },
+              {
+                "position": 1,
+                "itemId": "my-lists",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              }
+            ],
+            "watchPositions": [
+              {
+                "mediaId": 21,
+                "kind": "onlinestream",
+                "episodeNumber": 3,
+                "positionSeconds": 600,
+                "durationSeconds": 1400,
+                "filepath": "",
+                "addedAt": 1794992400000,
+                "changedAt": 1794992400000,
+                "expiresAt": null
+              }
+            ],
+            "extensionConfigs": [
+              {
+                "id": "ext-a",
+                "version": 1,
+                "values": {
+                  "language": "de",
+                  "apiKey": "test-ext-key"
+                },
+                "origin": "core",
+                "changedAt": 1794992400000
+              }
+            ],
+            "sandboxSettings": [],
+            "onlinestreamMappings": [],
+            "mangaMappings": [],
+            "mangaPreferences": [],
+            "offlineSettings": [
+              {
+                "id": 1,
+                "wifiOnly": true,
+                "changedAt": 1794992400000
+              }
+            ],
+            "silencedAnime": [
+              {
+                "anilistId": 5114,
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "metadataParents": [],
+            "playlists": [
+              {
+                "dbId": 1,
+                "name": "Evening",
+                "episodes": [],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              },
+              {
+                "dbId": 2,
+                "name": "Evening",
+                "episodes": [
+                  {
+                    "ep": 1
+                  }
+                ],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "torrentKept": [
+              {
+                "key": "settings",
+                "content": {
+                  "enabled": true,
+                  "autoSelect": true,
+                  "preferredResolution": "1080",
+                  "preloadNextStream": false,
+                  "includeInLibrary": false,
+                  "stopSeedingWhenFinished": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "key": "debrid-settings",
+                "content": {
+                  "enabled": false,
+                  "provider": "torbox",
+                  "streamAutoSelect": true,
+                  "streamPreferredResolution": "1080",
+                  "includeDebridStreamInLibrary": false
+                },
+                "changedAt": 1794992400000
+              }
+            ]
+          },
+          "extensions": {
+            "files": {
+              "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+            },
+            "disabled": []
+          },
+          "localLists": null,
+          "preferences": {
+            "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":true,\"skipOpening\":false}",
+            "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\"}",
+            "seanime-mobile-airing-notifications": "\"false\"",
+            "seanime-mobile-chapter-notifications": "\"true\"",
+            "sea-playback-downloaded-media": "\"system\"",
+            "sea-ui-settings-navigation-preload-mode": "\"adjacent\""
+          },
+          "secrets": {
+            "seanime-core.account-token": "test-anilist-token",
+            "seanime-core-debrid-api-key": "test-debrid-key",
+            "seanime-nakama-host-password": "test-nakama-host-pass"
+          },
+          "stamps": {
+            "changed": {
+              "t/settings/library": 1795113000000,
+              "f/t/settings/library\u001flibraryPath": 1794992400000,
+              "f/t/settings/library\u001flibraryPaths": 1794992400000,
+              "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+              "f/t/settings/library\u001fautoScan": 1795113000000,
+              "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+              "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+              "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+              "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+              "f/t/settings/library\u001fenableManga": 1794992400000,
+              "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+              "t/settings/torrent": 1794992400000,
+              "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+              "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+              "t/settings/anilist": 1794992400000,
+              "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+              "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+              "t/settings/manga": 1794992400000,
+              "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+              "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+              "t/settings/nakama": 1794992400000,
+              "f/t/settings/nakama\u001fenabled": 1794992400000,
+              "f/t/settings/nakama\u001fusername": 1794992400000,
+              "f/t/settings/nakama\u001fisHost": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+              "t/appearance/1": 1794992400000,
+              "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+              "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+              "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+              "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+              "t/watchPositions/21": 1794992400000,
+              "t/extensionConfigs/ext-a": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+              "t/offlineSettings/1": 1794992400000,
+              "t/silencedAnime/5114": 1794992400000,
+              "t/playlists/Evening": 1794992400000,
+              "t/playlists/Evening#2": 1794992400000,
+              "t/torrentKept/settings": 1794992400000,
+              "t/torrentKept/debrid-settings": 1794992400000,
+              "t/homeItems": 0,
+              "x/ext-a.json": 0,
+              "p/sea-media-core-preferences": 0,
+              "f/p/sea-media-core-preferences\u001fautoNext": 0,
+              "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000000,
+              "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+              "p/sea-video-core-settings": 0,
+              "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+              "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+              "p/seanime-mobile-airing-notifications": 1795176000000,
+              "p/seanime-mobile-chapter-notifications": 0,
+              "p/sea-playback-downloaded-media": 0,
+              "p/sea-ui-settings-navigation-preload-mode": 0,
+              "s/seanime-core.account-token": 0,
+              "s/seanime-core-debrid-api-key": 0,
+              "s/seanime-nakama-host-password": 0
+            },
+            "deleted": {
+              "t/playlists/Morning": 1795113000000,
+              "p/sea-search-recent": 1795113000000
+            }
+          }
+        },
+        "changedStamps": {
+          "p/seanime-mobile-airing-notifications": 1795176000000
+        },
+        "deletedStamps": {},
+        "clearedTombstones": []
+      }
+    },
+    {
+      "name": "preference-and-field-removed",
+      "note": "a whole preference and a field of a split preference are removed: tombstones, no change stamp",
+      "now": 1795176000000,
+      "changes": [
+        {
+          "op": "delete",
+          "key": "p/seanime-mobile-chapter-notifications"
+        },
+        {
+          "op": "delete",
+          "key": "f/p/sea-video-core-settings\u001fshowChapterMarkers"
+        }
+      ],
+      "expected": {
+        "package": {
+          "format": "seanime-mobile-backup",
+          "formatVersion": 1,
+          "appVersion": "4.2.0",
+          "createdAt": "2026-11-19T18:30:00.000Z",
+          "tables": {
+            "settings": [
+              {
+                "section": "library",
+                "content": {
+                  "libraryPath": "/storage/emulated/0/Anime",
+                  "libraryPaths": [
+                    "/storage/emulated/0/Anime",
+                    "/storage/emulated/0/Movies"
+                  ],
+                  "autoUpdateProgress": true,
+                  "autoScan": true,
+                  "refreshLibraryOnStart": false,
+                  "enableOnlinestream": true,
+                  "torrentProvider": "animetosho",
+                  "defaultPlaybackSource": "onlinestream",
+                  "enableManga": true,
+                  "disableUpdateCheck": false
+                },
+                "changedAt": 1795113000000
+              },
+              {
+                "section": "torrent",
+                "content": {
+                  "defaultTorrentClient": "qbittorrent",
+                  "qbittorrentPassword": "test-qbit-pass",
+                  "seanimeDownloadLimit": 0,
+                  "seanimeUploadLimit": 512,
+                  "seanimeMaxActiveDownloads": 3
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "anilist",
+                "content": {
+                  "hideAudienceScore": false,
+                  "enableAdultContent": false,
+                  "blurAdultContent": true,
+                  "disableCacheLayer": false
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "manga",
+                "content": {
+                  "defaultMangaProvider": "mangapill",
+                  "mangaAutoUpdateProgress": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "nakama",
+                "content": {
+                  "enabled": false,
+                  "username": "test-user",
+                  "isHost": false,
+                  "remoteServerURL": "",
+                  "remoteServerPassword": "test-nakama-pass"
+                },
+                "changedAt": 1794992400000
+              }
+            ],
+            "appearance": [
+              {
+                "id": 1,
+                "content": {
+                  "showAnimeUnwatchedCount": true,
+                  "showMangaUnreadCount": false,
+                  "hideAnimeSpoilers": false,
+                  "continueWatchingDefaultSorting": "TITLE",
+                  "libraryScreenCustomBannerPosition": "50% 50%",
+                  "libraryScreenCustomBannerOpacity": 50
+                },
+                "createdAt": 1794992400000,
+                "changedAt": 1794992400000
+              }
+            ],
+            "homeItems": [
+              {
+                "position": 0,
+                "itemId": "continue-watching",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              },
+              {
+                "position": 1,
+                "itemId": "my-lists",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              }
+            ],
+            "watchPositions": [
+              {
+                "mediaId": 21,
+                "kind": "onlinestream",
+                "episodeNumber": 3,
+                "positionSeconds": 600,
+                "durationSeconds": 1400,
+                "filepath": "",
+                "addedAt": 1794992400000,
+                "changedAt": 1794992400000,
+                "expiresAt": null
+              }
+            ],
+            "extensionConfigs": [
+              {
+                "id": "ext-a",
+                "version": 1,
+                "values": {
+                  "language": "de",
+                  "apiKey": "test-ext-key"
+                },
+                "origin": "core",
+                "changedAt": 1794992400000
+              }
+            ],
+            "sandboxSettings": [],
+            "onlinestreamMappings": [],
+            "mangaMappings": [],
+            "mangaPreferences": [],
+            "offlineSettings": [
+              {
+                "id": 1,
+                "wifiOnly": true,
+                "changedAt": 1794992400000
+              }
+            ],
+            "silencedAnime": [
+              {
+                "anilistId": 5114,
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "metadataParents": [],
+            "playlists": [
+              {
+                "dbId": 1,
+                "name": "Evening",
+                "episodes": [],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              },
+              {
+                "dbId": 2,
+                "name": "Evening",
+                "episodes": [
+                  {
+                    "ep": 1
+                  }
+                ],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "torrentKept": [
+              {
+                "key": "settings",
+                "content": {
+                  "enabled": true,
+                  "autoSelect": true,
+                  "preferredResolution": "1080",
+                  "preloadNextStream": false,
+                  "includeInLibrary": false,
+                  "stopSeedingWhenFinished": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "key": "debrid-settings",
+                "content": {
+                  "enabled": false,
+                  "provider": "torbox",
+                  "streamAutoSelect": true,
+                  "streamPreferredResolution": "1080",
+                  "includeDebridStreamInLibrary": false
+                },
+                "changedAt": 1794992400000
+              }
+            ]
+          },
+          "extensions": {
+            "files": {
+              "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+            },
+            "disabled": []
+          },
+          "localLists": null,
+          "preferences": {
+            "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":true,\"skipOpening\":false}",
+            "sea-video-core-settings": "{\"preferredSubtitleLanguage\":\"eng\"}",
+            "seanime-mobile-airing-notifications": "\"true\"",
+            "sea-playback-downloaded-media": "\"system\"",
+            "sea-ui-settings-navigation-preload-mode": "\"adjacent\""
+          },
+          "secrets": {
+            "seanime-core.account-token": "test-anilist-token",
+            "seanime-core-debrid-api-key": "test-debrid-key",
+            "seanime-nakama-host-password": "test-nakama-host-pass"
+          },
+          "stamps": {
+            "changed": {
+              "t/settings/library": 1795113000000,
+              "f/t/settings/library\u001flibraryPath": 1794992400000,
+              "f/t/settings/library\u001flibraryPaths": 1794992400000,
+              "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+              "f/t/settings/library\u001fautoScan": 1795113000000,
+              "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+              "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+              "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+              "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+              "f/t/settings/library\u001fenableManga": 1794992400000,
+              "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+              "t/settings/torrent": 1794992400000,
+              "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+              "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+              "t/settings/anilist": 1794992400000,
+              "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+              "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+              "t/settings/manga": 1794992400000,
+              "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+              "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+              "t/settings/nakama": 1794992400000,
+              "f/t/settings/nakama\u001fenabled": 1794992400000,
+              "f/t/settings/nakama\u001fusername": 1794992400000,
+              "f/t/settings/nakama\u001fisHost": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+              "t/appearance/1": 1794992400000,
+              "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+              "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+              "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+              "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+              "t/watchPositions/21": 1794992400000,
+              "t/extensionConfigs/ext-a": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+              "t/offlineSettings/1": 1794992400000,
+              "t/silencedAnime/5114": 1794992400000,
+              "t/playlists/Evening": 1794992400000,
+              "t/playlists/Evening#2": 1794992400000,
+              "t/torrentKept/settings": 1794992400000,
+              "t/torrentKept/debrid-settings": 1794992400000,
+              "t/homeItems": 0,
+              "x/ext-a.json": 0,
+              "p/sea-media-core-preferences": 0,
+              "f/p/sea-media-core-preferences\u001fautoNext": 0,
+              "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000000,
+              "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+              "p/sea-video-core-settings": 0,
+              "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+              "p/seanime-mobile-airing-notifications": 0,
+              "p/sea-playback-downloaded-media": 0,
+              "p/sea-ui-settings-navigation-preload-mode": 0,
+              "s/seanime-core.account-token": 0,
+              "s/seanime-core-debrid-api-key": 0,
+              "s/seanime-nakama-host-password": 0
+            },
+            "deleted": {
+              "t/playlists/Morning": 1795113000000,
+              "p/sea-search-recent": 1795113000000,
+              "f/p/sea-video-core-settings\u001fshowChapterMarkers": 1795176000000,
+              "p/seanime-mobile-chapter-notifications": 1795176000000
+            }
+          }
+        },
+        "changedStamps": {},
+        "deletedStamps": {
+          "f/p/sea-video-core-settings\u001fshowChapterMarkers": 1795176000000,
+          "p/seanime-mobile-chapter-notifications": 1795176000000
+        },
+        "clearedTombstones": []
+      }
+    },
+    {
+      "name": "recreate-removed-preference",
+      "note": "a preference a device removed earlier (tombstone in stamps.deleted) is set again: the tombstone goes, the time is above it",
+      "now": 1795176000000,
+      "changes": [
+        {
+          "op": "set",
+          "key": "p/sea-search-recent",
+          "value": "[\"one piece\"]"
+        }
+      ],
+      "expected": {
+        "package": {
+          "format": "seanime-mobile-backup",
+          "formatVersion": 1,
+          "appVersion": "4.2.0",
+          "createdAt": "2026-11-19T18:30:00.000Z",
+          "tables": {
+            "settings": [
+              {
+                "section": "library",
+                "content": {
+                  "libraryPath": "/storage/emulated/0/Anime",
+                  "libraryPaths": [
+                    "/storage/emulated/0/Anime",
+                    "/storage/emulated/0/Movies"
+                  ],
+                  "autoUpdateProgress": true,
+                  "autoScan": true,
+                  "refreshLibraryOnStart": false,
+                  "enableOnlinestream": true,
+                  "torrentProvider": "animetosho",
+                  "defaultPlaybackSource": "onlinestream",
+                  "enableManga": true,
+                  "disableUpdateCheck": false
+                },
+                "changedAt": 1795113000000
+              },
+              {
+                "section": "torrent",
+                "content": {
+                  "defaultTorrentClient": "qbittorrent",
+                  "qbittorrentPassword": "test-qbit-pass",
+                  "seanimeDownloadLimit": 0,
+                  "seanimeUploadLimit": 512,
+                  "seanimeMaxActiveDownloads": 3
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "anilist",
+                "content": {
+                  "hideAudienceScore": false,
+                  "enableAdultContent": false,
+                  "blurAdultContent": true,
+                  "disableCacheLayer": false
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "manga",
+                "content": {
+                  "defaultMangaProvider": "mangapill",
+                  "mangaAutoUpdateProgress": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "nakama",
+                "content": {
+                  "enabled": false,
+                  "username": "test-user",
+                  "isHost": false,
+                  "remoteServerURL": "",
+                  "remoteServerPassword": "test-nakama-pass"
+                },
+                "changedAt": 1794992400000
+              }
+            ],
+            "appearance": [
+              {
+                "id": 1,
+                "content": {
+                  "showAnimeUnwatchedCount": true,
+                  "showMangaUnreadCount": false,
+                  "hideAnimeSpoilers": false,
+                  "continueWatchingDefaultSorting": "TITLE",
+                  "libraryScreenCustomBannerPosition": "50% 50%",
+                  "libraryScreenCustomBannerOpacity": 50
+                },
+                "createdAt": 1794992400000,
+                "changedAt": 1794992400000
+              }
+            ],
+            "homeItems": [
+              {
+                "position": 0,
+                "itemId": "continue-watching",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              },
+              {
+                "position": 1,
+                "itemId": "my-lists",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              }
+            ],
+            "watchPositions": [
+              {
+                "mediaId": 21,
+                "kind": "onlinestream",
+                "episodeNumber": 3,
+                "positionSeconds": 600,
+                "durationSeconds": 1400,
+                "filepath": "",
+                "addedAt": 1794992400000,
+                "changedAt": 1794992400000,
+                "expiresAt": null
+              }
+            ],
+            "extensionConfigs": [
+              {
+                "id": "ext-a",
+                "version": 1,
+                "values": {
+                  "language": "de",
+                  "apiKey": "test-ext-key"
+                },
+                "origin": "core",
+                "changedAt": 1794992400000
+              }
+            ],
+            "sandboxSettings": [],
+            "onlinestreamMappings": [],
+            "mangaMappings": [],
+            "mangaPreferences": [],
+            "offlineSettings": [
+              {
+                "id": 1,
+                "wifiOnly": true,
+                "changedAt": 1794992400000
+              }
+            ],
+            "silencedAnime": [
+              {
+                "anilistId": 5114,
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "metadataParents": [],
+            "playlists": [
+              {
+                "dbId": 1,
+                "name": "Evening",
+                "episodes": [],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              },
+              {
+                "dbId": 2,
+                "name": "Evening",
+                "episodes": [
+                  {
+                    "ep": 1
+                  }
+                ],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "torrentKept": [
+              {
+                "key": "settings",
+                "content": {
+                  "enabled": true,
+                  "autoSelect": true,
+                  "preferredResolution": "1080",
+                  "preloadNextStream": false,
+                  "includeInLibrary": false,
+                  "stopSeedingWhenFinished": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "key": "debrid-settings",
+                "content": {
+                  "enabled": false,
+                  "provider": "torbox",
+                  "streamAutoSelect": true,
+                  "streamPreferredResolution": "1080",
+                  "includeDebridStreamInLibrary": false
+                },
+                "changedAt": 1794992400000
+              }
+            ]
+          },
+          "extensions": {
+            "files": {
+              "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+            },
+            "disabled": []
+          },
+          "localLists": null,
+          "preferences": {
+            "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":true,\"skipOpening\":false}",
+            "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\"}",
+            "seanime-mobile-airing-notifications": "\"true\"",
+            "seanime-mobile-chapter-notifications": "\"true\"",
+            "sea-playback-downloaded-media": "\"system\"",
+            "sea-ui-settings-navigation-preload-mode": "\"adjacent\"",
+            "sea-search-recent": "[\"one piece\"]"
+          },
+          "secrets": {
+            "seanime-core.account-token": "test-anilist-token",
+            "seanime-core-debrid-api-key": "test-debrid-key",
+            "seanime-nakama-host-password": "test-nakama-host-pass"
+          },
+          "stamps": {
+            "changed": {
+              "t/settings/library": 1795113000000,
+              "f/t/settings/library\u001flibraryPath": 1794992400000,
+              "f/t/settings/library\u001flibraryPaths": 1794992400000,
+              "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+              "f/t/settings/library\u001fautoScan": 1795113000000,
+              "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+              "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+              "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+              "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+              "f/t/settings/library\u001fenableManga": 1794992400000,
+              "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+              "t/settings/torrent": 1794992400000,
+              "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+              "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+              "t/settings/anilist": 1794992400000,
+              "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+              "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+              "t/settings/manga": 1794992400000,
+              "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+              "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+              "t/settings/nakama": 1794992400000,
+              "f/t/settings/nakama\u001fenabled": 1794992400000,
+              "f/t/settings/nakama\u001fusername": 1794992400000,
+              "f/t/settings/nakama\u001fisHost": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+              "t/appearance/1": 1794992400000,
+              "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+              "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+              "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+              "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+              "t/watchPositions/21": 1794992400000,
+              "t/extensionConfigs/ext-a": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+              "t/offlineSettings/1": 1794992400000,
+              "t/silencedAnime/5114": 1794992400000,
+              "t/playlists/Evening": 1794992400000,
+              "t/playlists/Evening#2": 1794992400000,
+              "t/torrentKept/settings": 1794992400000,
+              "t/torrentKept/debrid-settings": 1794992400000,
+              "t/homeItems": 0,
+              "x/ext-a.json": 0,
+              "p/sea-media-core-preferences": 0,
+              "f/p/sea-media-core-preferences\u001fautoNext": 0,
+              "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000000,
+              "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+              "p/sea-video-core-settings": 0,
+              "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+              "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+              "p/seanime-mobile-airing-notifications": 0,
+              "p/seanime-mobile-chapter-notifications": 0,
+              "p/sea-playback-downloaded-media": 0,
+              "p/sea-ui-settings-navigation-preload-mode": 0,
+              "p/sea-search-recent": 1795176000000,
+              "s/seanime-core.account-token": 0,
+              "s/seanime-core-debrid-api-key": 0,
+              "s/seanime-nakama-host-password": 0
+            },
+            "deleted": {
+              "t/playlists/Morning": 1795113000000
+            }
+          }
+        },
+        "changedStamps": {
+          "p/sea-search-recent": 1795176000000
+        },
+        "deletedStamps": {},
+        "clearedTombstones": [
+          "p/sea-search-recent"
+        ]
+      }
+    },
+    {
+      "name": "replace-a-secret",
+      "note": "the debrid key is replaced (the website never shows a secret, it only replaces it)",
+      "now": 1795176000000,
+      "changes": [
+        {
+          "op": "set",
+          "key": "s/seanime-core-debrid-api-key",
+          "value": "test-new-debrid-key"
+        }
+      ],
+      "expected": {
+        "package": {
+          "format": "seanime-mobile-backup",
+          "formatVersion": 1,
+          "appVersion": "4.2.0",
+          "createdAt": "2026-11-19T18:30:00.000Z",
+          "tables": {
+            "settings": [
+              {
+                "section": "library",
+                "content": {
+                  "libraryPath": "/storage/emulated/0/Anime",
+                  "libraryPaths": [
+                    "/storage/emulated/0/Anime",
+                    "/storage/emulated/0/Movies"
+                  ],
+                  "autoUpdateProgress": true,
+                  "autoScan": true,
+                  "refreshLibraryOnStart": false,
+                  "enableOnlinestream": true,
+                  "torrentProvider": "animetosho",
+                  "defaultPlaybackSource": "onlinestream",
+                  "enableManga": true,
+                  "disableUpdateCheck": false
+                },
+                "changedAt": 1795113000000
+              },
+              {
+                "section": "torrent",
+                "content": {
+                  "defaultTorrentClient": "qbittorrent",
+                  "qbittorrentPassword": "test-qbit-pass",
+                  "seanimeDownloadLimit": 0,
+                  "seanimeUploadLimit": 512,
+                  "seanimeMaxActiveDownloads": 3
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "anilist",
+                "content": {
+                  "hideAudienceScore": false,
+                  "enableAdultContent": false,
+                  "blurAdultContent": true,
+                  "disableCacheLayer": false
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "manga",
+                "content": {
+                  "defaultMangaProvider": "mangapill",
+                  "mangaAutoUpdateProgress": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "nakama",
+                "content": {
+                  "enabled": false,
+                  "username": "test-user",
+                  "isHost": false,
+                  "remoteServerURL": "",
+                  "remoteServerPassword": "test-nakama-pass"
+                },
+                "changedAt": 1794992400000
+              }
+            ],
+            "appearance": [
+              {
+                "id": 1,
+                "content": {
+                  "showAnimeUnwatchedCount": true,
+                  "showMangaUnreadCount": false,
+                  "hideAnimeSpoilers": false,
+                  "continueWatchingDefaultSorting": "TITLE",
+                  "libraryScreenCustomBannerPosition": "50% 50%",
+                  "libraryScreenCustomBannerOpacity": 50
+                },
+                "createdAt": 1794992400000,
+                "changedAt": 1794992400000
+              }
+            ],
+            "homeItems": [
+              {
+                "position": 0,
+                "itemId": "continue-watching",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              },
+              {
+                "position": 1,
+                "itemId": "my-lists",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              }
+            ],
+            "watchPositions": [
+              {
+                "mediaId": 21,
+                "kind": "onlinestream",
+                "episodeNumber": 3,
+                "positionSeconds": 600,
+                "durationSeconds": 1400,
+                "filepath": "",
+                "addedAt": 1794992400000,
+                "changedAt": 1794992400000,
+                "expiresAt": null
+              }
+            ],
+            "extensionConfigs": [
+              {
+                "id": "ext-a",
+                "version": 1,
+                "values": {
+                  "language": "de",
+                  "apiKey": "test-ext-key"
+                },
+                "origin": "core",
+                "changedAt": 1794992400000
+              }
+            ],
+            "sandboxSettings": [],
+            "onlinestreamMappings": [],
+            "mangaMappings": [],
+            "mangaPreferences": [],
+            "offlineSettings": [
+              {
+                "id": 1,
+                "wifiOnly": true,
+                "changedAt": 1794992400000
+              }
+            ],
+            "silencedAnime": [
+              {
+                "anilistId": 5114,
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "metadataParents": [],
+            "playlists": [
+              {
+                "dbId": 1,
+                "name": "Evening",
+                "episodes": [],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              },
+              {
+                "dbId": 2,
+                "name": "Evening",
+                "episodes": [
+                  {
+                    "ep": 1
+                  }
+                ],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "torrentKept": [
+              {
+                "key": "settings",
+                "content": {
+                  "enabled": true,
+                  "autoSelect": true,
+                  "preferredResolution": "1080",
+                  "preloadNextStream": false,
+                  "includeInLibrary": false,
+                  "stopSeedingWhenFinished": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "key": "debrid-settings",
+                "content": {
+                  "enabled": false,
+                  "provider": "torbox",
+                  "streamAutoSelect": true,
+                  "streamPreferredResolution": "1080",
+                  "includeDebridStreamInLibrary": false
+                },
+                "changedAt": 1794992400000
+              }
+            ]
+          },
+          "extensions": {
+            "files": {
+              "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+            },
+            "disabled": []
+          },
+          "localLists": null,
+          "preferences": {
+            "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":true,\"skipOpening\":false}",
+            "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\"}",
+            "seanime-mobile-airing-notifications": "\"true\"",
+            "seanime-mobile-chapter-notifications": "\"true\"",
+            "sea-playback-downloaded-media": "\"system\"",
+            "sea-ui-settings-navigation-preload-mode": "\"adjacent\""
+          },
+          "secrets": {
+            "seanime-core.account-token": "test-anilist-token",
+            "seanime-core-debrid-api-key": "test-new-debrid-key",
+            "seanime-nakama-host-password": "test-nakama-host-pass"
+          },
+          "stamps": {
+            "changed": {
+              "t/settings/library": 1795113000000,
+              "f/t/settings/library\u001flibraryPath": 1794992400000,
+              "f/t/settings/library\u001flibraryPaths": 1794992400000,
+              "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+              "f/t/settings/library\u001fautoScan": 1795113000000,
+              "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+              "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+              "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+              "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+              "f/t/settings/library\u001fenableManga": 1794992400000,
+              "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+              "t/settings/torrent": 1794992400000,
+              "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+              "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+              "t/settings/anilist": 1794992400000,
+              "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+              "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+              "t/settings/manga": 1794992400000,
+              "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+              "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+              "t/settings/nakama": 1794992400000,
+              "f/t/settings/nakama\u001fenabled": 1794992400000,
+              "f/t/settings/nakama\u001fusername": 1794992400000,
+              "f/t/settings/nakama\u001fisHost": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+              "t/appearance/1": 1794992400000,
+              "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+              "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+              "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+              "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+              "t/watchPositions/21": 1794992400000,
+              "t/extensionConfigs/ext-a": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+              "t/offlineSettings/1": 1794992400000,
+              "t/silencedAnime/5114": 1794992400000,
+              "t/playlists/Evening": 1794992400000,
+              "t/playlists/Evening#2": 1794992400000,
+              "t/torrentKept/settings": 1794992400000,
+              "t/torrentKept/debrid-settings": 1794992400000,
+              "t/homeItems": 0,
+              "x/ext-a.json": 0,
+              "p/sea-media-core-preferences": 0,
+              "f/p/sea-media-core-preferences\u001fautoNext": 0,
+              "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000000,
+              "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+              "p/sea-video-core-settings": 0,
+              "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+              "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+              "p/seanime-mobile-airing-notifications": 0,
+              "p/seanime-mobile-chapter-notifications": 0,
+              "p/sea-playback-downloaded-media": 0,
+              "p/sea-ui-settings-navigation-preload-mode": 0,
+              "s/seanime-core.account-token": 0,
+              "s/seanime-core-debrid-api-key": 1795176000000,
+              "s/seanime-nakama-host-password": 0
+            },
+            "deleted": {
+              "t/playlists/Morning": 1795113000000,
+              "p/sea-search-recent": 1795113000000
+            }
+          }
+        },
+        "changedStamps": {
+          "s/seanime-core-debrid-api-key": 1795176000000
+        },
+        "deletedStamps": {},
+        "clearedTombstones": []
+      }
+    },
+    {
+      "name": "whole-row-torrent-kept",
+      "note": "a whole row (torrentKept): columns replaced, changedAt and stamp set to the new time",
+      "now": 1795176000000,
+      "changes": [
+        {
+          "op": "set",
+          "key": "t/torrentKept/settings",
+          "value": {
+            "content": {
+              "enabled": false,
+              "autoSelect": true,
+              "preferredResolution": "720",
+              "preloadNextStream": true,
+              "includeInLibrary": false,
+              "stopSeedingWhenFinished": true
+            }
+          }
+        }
+      ],
+      "expected": {
+        "package": {
+          "format": "seanime-mobile-backup",
+          "formatVersion": 1,
+          "appVersion": "4.2.0",
+          "createdAt": "2026-11-19T18:30:00.000Z",
+          "tables": {
+            "settings": [
+              {
+                "section": "library",
+                "content": {
+                  "libraryPath": "/storage/emulated/0/Anime",
+                  "libraryPaths": [
+                    "/storage/emulated/0/Anime",
+                    "/storage/emulated/0/Movies"
+                  ],
+                  "autoUpdateProgress": true,
+                  "autoScan": true,
+                  "refreshLibraryOnStart": false,
+                  "enableOnlinestream": true,
+                  "torrentProvider": "animetosho",
+                  "defaultPlaybackSource": "onlinestream",
+                  "enableManga": true,
+                  "disableUpdateCheck": false
+                },
+                "changedAt": 1795113000000
+              },
+              {
+                "section": "torrent",
+                "content": {
+                  "defaultTorrentClient": "qbittorrent",
+                  "qbittorrentPassword": "test-qbit-pass",
+                  "seanimeDownloadLimit": 0,
+                  "seanimeUploadLimit": 512,
+                  "seanimeMaxActiveDownloads": 3
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "anilist",
+                "content": {
+                  "hideAudienceScore": false,
+                  "enableAdultContent": false,
+                  "blurAdultContent": true,
+                  "disableCacheLayer": false
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "manga",
+                "content": {
+                  "defaultMangaProvider": "mangapill",
+                  "mangaAutoUpdateProgress": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "nakama",
+                "content": {
+                  "enabled": false,
+                  "username": "test-user",
+                  "isHost": false,
+                  "remoteServerURL": "",
+                  "remoteServerPassword": "test-nakama-pass"
+                },
+                "changedAt": 1794992400000
+              }
+            ],
+            "appearance": [
+              {
+                "id": 1,
+                "content": {
+                  "showAnimeUnwatchedCount": true,
+                  "showMangaUnreadCount": false,
+                  "hideAnimeSpoilers": false,
+                  "continueWatchingDefaultSorting": "TITLE",
+                  "libraryScreenCustomBannerPosition": "50% 50%",
+                  "libraryScreenCustomBannerOpacity": 50
+                },
+                "createdAt": 1794992400000,
+                "changedAt": 1794992400000
+              }
+            ],
+            "homeItems": [
+              {
+                "position": 0,
+                "itemId": "continue-watching",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              },
+              {
+                "position": 1,
+                "itemId": "my-lists",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              }
+            ],
+            "watchPositions": [
+              {
+                "mediaId": 21,
+                "kind": "onlinestream",
+                "episodeNumber": 3,
+                "positionSeconds": 600,
+                "durationSeconds": 1400,
+                "filepath": "",
+                "addedAt": 1794992400000,
+                "changedAt": 1794992400000,
+                "expiresAt": null
+              }
+            ],
+            "extensionConfigs": [
+              {
+                "id": "ext-a",
+                "version": 1,
+                "values": {
+                  "language": "de",
+                  "apiKey": "test-ext-key"
+                },
+                "origin": "core",
+                "changedAt": 1794992400000
+              }
+            ],
+            "sandboxSettings": [],
+            "onlinestreamMappings": [],
+            "mangaMappings": [],
+            "mangaPreferences": [],
+            "offlineSettings": [
+              {
+                "id": 1,
+                "wifiOnly": true,
+                "changedAt": 1794992400000
+              }
+            ],
+            "silencedAnime": [
+              {
+                "anilistId": 5114,
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "metadataParents": [],
+            "playlists": [
+              {
+                "dbId": 1,
+                "name": "Evening",
+                "episodes": [],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              },
+              {
+                "dbId": 2,
+                "name": "Evening",
+                "episodes": [
+                  {
+                    "ep": 1
+                  }
+                ],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "torrentKept": [
+              {
+                "key": "settings",
+                "content": {
+                  "enabled": false,
+                  "autoSelect": true,
+                  "preferredResolution": "720",
+                  "preloadNextStream": true,
+                  "includeInLibrary": false,
+                  "stopSeedingWhenFinished": true
+                },
+                "changedAt": 1795176000000
+              },
+              {
+                "key": "debrid-settings",
+                "content": {
+                  "enabled": false,
+                  "provider": "torbox",
+                  "streamAutoSelect": true,
+                  "streamPreferredResolution": "1080",
+                  "includeDebridStreamInLibrary": false
+                },
+                "changedAt": 1794992400000
+              }
+            ]
+          },
+          "extensions": {
+            "files": {
+              "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+            },
+            "disabled": []
+          },
+          "localLists": null,
+          "preferences": {
+            "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":true,\"skipOpening\":false}",
+            "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\"}",
+            "seanime-mobile-airing-notifications": "\"true\"",
+            "seanime-mobile-chapter-notifications": "\"true\"",
+            "sea-playback-downloaded-media": "\"system\"",
+            "sea-ui-settings-navigation-preload-mode": "\"adjacent\""
+          },
+          "secrets": {
+            "seanime-core.account-token": "test-anilist-token",
+            "seanime-core-debrid-api-key": "test-debrid-key",
+            "seanime-nakama-host-password": "test-nakama-host-pass"
+          },
+          "stamps": {
+            "changed": {
+              "t/settings/library": 1795113000000,
+              "f/t/settings/library\u001flibraryPath": 1794992400000,
+              "f/t/settings/library\u001flibraryPaths": 1794992400000,
+              "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+              "f/t/settings/library\u001fautoScan": 1795113000000,
+              "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+              "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+              "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+              "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+              "f/t/settings/library\u001fenableManga": 1794992400000,
+              "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+              "t/settings/torrent": 1794992400000,
+              "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+              "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+              "t/settings/anilist": 1794992400000,
+              "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+              "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+              "t/settings/manga": 1794992400000,
+              "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+              "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+              "t/settings/nakama": 1794992400000,
+              "f/t/settings/nakama\u001fenabled": 1794992400000,
+              "f/t/settings/nakama\u001fusername": 1794992400000,
+              "f/t/settings/nakama\u001fisHost": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+              "t/appearance/1": 1794992400000,
+              "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+              "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+              "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+              "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+              "t/watchPositions/21": 1794992400000,
+              "t/extensionConfigs/ext-a": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+              "t/offlineSettings/1": 1794992400000,
+              "t/silencedAnime/5114": 1794992400000,
+              "t/playlists/Evening": 1794992400000,
+              "t/playlists/Evening#2": 1794992400000,
+              "t/torrentKept/settings": 1795176000000,
+              "t/torrentKept/debrid-settings": 1794992400000,
+              "t/homeItems": 0,
+              "x/ext-a.json": 0,
+              "p/sea-media-core-preferences": 0,
+              "f/p/sea-media-core-preferences\u001fautoNext": 0,
+              "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000000,
+              "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+              "p/sea-video-core-settings": 0,
+              "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+              "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+              "p/seanime-mobile-airing-notifications": 0,
+              "p/seanime-mobile-chapter-notifications": 0,
+              "p/sea-playback-downloaded-media": 0,
+              "p/sea-ui-settings-navigation-preload-mode": 0,
+              "s/seanime-core.account-token": 0,
+              "s/seanime-core-debrid-api-key": 0,
+              "s/seanime-nakama-host-password": 0
+            },
+            "deleted": {
+              "t/playlists/Morning": 1795113000000,
+              "p/sea-search-recent": 1795113000000
+            }
+          }
+        },
+        "changedStamps": {
+          "t/torrentKept/settings": 1795176000000
+        },
+        "deletedStamps": {},
+        "clearedTombstones": []
+      }
+    },
+    {
+      "name": "whole-row-offline-settings",
+      "note": "download only on Wi-Fi: a one-column row",
+      "now": 1795176000000,
+      "changes": [
+        {
+          "op": "set",
+          "key": "t/offlineSettings/1",
+          "value": {
+            "wifiOnly": false
+          }
+        }
+      ],
+      "expected": {
+        "package": {
+          "format": "seanime-mobile-backup",
+          "formatVersion": 1,
+          "appVersion": "4.2.0",
+          "createdAt": "2026-11-19T18:30:00.000Z",
+          "tables": {
+            "settings": [
+              {
+                "section": "library",
+                "content": {
+                  "libraryPath": "/storage/emulated/0/Anime",
+                  "libraryPaths": [
+                    "/storage/emulated/0/Anime",
+                    "/storage/emulated/0/Movies"
+                  ],
+                  "autoUpdateProgress": true,
+                  "autoScan": true,
+                  "refreshLibraryOnStart": false,
+                  "enableOnlinestream": true,
+                  "torrentProvider": "animetosho",
+                  "defaultPlaybackSource": "onlinestream",
+                  "enableManga": true,
+                  "disableUpdateCheck": false
+                },
+                "changedAt": 1795113000000
+              },
+              {
+                "section": "torrent",
+                "content": {
+                  "defaultTorrentClient": "qbittorrent",
+                  "qbittorrentPassword": "test-qbit-pass",
+                  "seanimeDownloadLimit": 0,
+                  "seanimeUploadLimit": 512,
+                  "seanimeMaxActiveDownloads": 3
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "anilist",
+                "content": {
+                  "hideAudienceScore": false,
+                  "enableAdultContent": false,
+                  "blurAdultContent": true,
+                  "disableCacheLayer": false
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "manga",
+                "content": {
+                  "defaultMangaProvider": "mangapill",
+                  "mangaAutoUpdateProgress": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "nakama",
+                "content": {
+                  "enabled": false,
+                  "username": "test-user",
+                  "isHost": false,
+                  "remoteServerURL": "",
+                  "remoteServerPassword": "test-nakama-pass"
+                },
+                "changedAt": 1794992400000
+              }
+            ],
+            "appearance": [
+              {
+                "id": 1,
+                "content": {
+                  "showAnimeUnwatchedCount": true,
+                  "showMangaUnreadCount": false,
+                  "hideAnimeSpoilers": false,
+                  "continueWatchingDefaultSorting": "TITLE",
+                  "libraryScreenCustomBannerPosition": "50% 50%",
+                  "libraryScreenCustomBannerOpacity": 50
+                },
+                "createdAt": 1794992400000,
+                "changedAt": 1794992400000
+              }
+            ],
+            "homeItems": [
+              {
+                "position": 0,
+                "itemId": "continue-watching",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              },
+              {
+                "position": 1,
+                "itemId": "my-lists",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              }
+            ],
+            "watchPositions": [
+              {
+                "mediaId": 21,
+                "kind": "onlinestream",
+                "episodeNumber": 3,
+                "positionSeconds": 600,
+                "durationSeconds": 1400,
+                "filepath": "",
+                "addedAt": 1794992400000,
+                "changedAt": 1794992400000,
+                "expiresAt": null
+              }
+            ],
+            "extensionConfigs": [
+              {
+                "id": "ext-a",
+                "version": 1,
+                "values": {
+                  "language": "de",
+                  "apiKey": "test-ext-key"
+                },
+                "origin": "core",
+                "changedAt": 1794992400000
+              }
+            ],
+            "sandboxSettings": [],
+            "onlinestreamMappings": [],
+            "mangaMappings": [],
+            "mangaPreferences": [],
+            "offlineSettings": [
+              {
+                "id": 1,
+                "wifiOnly": false,
+                "changedAt": 1795176000000
+              }
+            ],
+            "silencedAnime": [
+              {
+                "anilistId": 5114,
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "metadataParents": [],
+            "playlists": [
+              {
+                "dbId": 1,
+                "name": "Evening",
+                "episodes": [],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              },
+              {
+                "dbId": 2,
+                "name": "Evening",
+                "episodes": [
+                  {
+                    "ep": 1
+                  }
+                ],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "torrentKept": [
+              {
+                "key": "settings",
+                "content": {
+                  "enabled": true,
+                  "autoSelect": true,
+                  "preferredResolution": "1080",
+                  "preloadNextStream": false,
+                  "includeInLibrary": false,
+                  "stopSeedingWhenFinished": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "key": "debrid-settings",
+                "content": {
+                  "enabled": false,
+                  "provider": "torbox",
+                  "streamAutoSelect": true,
+                  "streamPreferredResolution": "1080",
+                  "includeDebridStreamInLibrary": false
+                },
+                "changedAt": 1794992400000
+              }
+            ]
+          },
+          "extensions": {
+            "files": {
+              "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+            },
+            "disabled": []
+          },
+          "localLists": null,
+          "preferences": {
+            "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":true,\"skipOpening\":false}",
+            "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\"}",
+            "seanime-mobile-airing-notifications": "\"true\"",
+            "seanime-mobile-chapter-notifications": "\"true\"",
+            "sea-playback-downloaded-media": "\"system\"",
+            "sea-ui-settings-navigation-preload-mode": "\"adjacent\""
+          },
+          "secrets": {
+            "seanime-core.account-token": "test-anilist-token",
+            "seanime-core-debrid-api-key": "test-debrid-key",
+            "seanime-nakama-host-password": "test-nakama-host-pass"
+          },
+          "stamps": {
+            "changed": {
+              "t/settings/library": 1795113000000,
+              "f/t/settings/library\u001flibraryPath": 1794992400000,
+              "f/t/settings/library\u001flibraryPaths": 1794992400000,
+              "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+              "f/t/settings/library\u001fautoScan": 1795113000000,
+              "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+              "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+              "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+              "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+              "f/t/settings/library\u001fenableManga": 1794992400000,
+              "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+              "t/settings/torrent": 1794992400000,
+              "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+              "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+              "t/settings/anilist": 1794992400000,
+              "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+              "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+              "t/settings/manga": 1794992400000,
+              "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+              "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+              "t/settings/nakama": 1794992400000,
+              "f/t/settings/nakama\u001fenabled": 1794992400000,
+              "f/t/settings/nakama\u001fusername": 1794992400000,
+              "f/t/settings/nakama\u001fisHost": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+              "t/appearance/1": 1794992400000,
+              "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+              "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+              "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+              "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+              "t/watchPositions/21": 1794992400000,
+              "t/extensionConfigs/ext-a": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+              "t/offlineSettings/1": 1795176000000,
+              "t/silencedAnime/5114": 1794992400000,
+              "t/playlists/Evening": 1794992400000,
+              "t/playlists/Evening#2": 1794992400000,
+              "t/torrentKept/settings": 1794992400000,
+              "t/torrentKept/debrid-settings": 1794992400000,
+              "t/homeItems": 0,
+              "x/ext-a.json": 0,
+              "p/sea-media-core-preferences": 0,
+              "f/p/sea-media-core-preferences\u001fautoNext": 0,
+              "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000000,
+              "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+              "p/sea-video-core-settings": 0,
+              "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+              "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+              "p/seanime-mobile-airing-notifications": 0,
+              "p/seanime-mobile-chapter-notifications": 0,
+              "p/sea-playback-downloaded-media": 0,
+              "p/sea-ui-settings-navigation-preload-mode": 0,
+              "s/seanime-core.account-token": 0,
+              "s/seanime-core-debrid-api-key": 0,
+              "s/seanime-nakama-host-password": 0
+            },
+            "deleted": {
+              "t/playlists/Morning": 1795113000000,
+              "p/sea-search-recent": 1795113000000
+            }
+          }
+        },
+        "changedStamps": {
+          "t/offlineSettings/1": 1795176000000
+        },
+        "deletedStamps": {},
+        "clearedTombstones": []
+      }
+    },
+    {
+      "name": "clock-behind-the-stamps",
+      "note": "the browser clock is before the last stamp of the field (T1): the new time is stamp + 1 (plan 2.3 rule 2)",
+      "now": 1794992400000,
+      "changes": [
+        {
+          "op": "set",
+          "key": "f/p/sea-media-core-preferences\u001fautoPlay",
+          "value": false
+        }
+      ],
+      "expected": {
+        "package": {
+          "format": "seanime-mobile-backup",
+          "formatVersion": 1,
+          "appVersion": "4.2.0",
+          "createdAt": "2026-11-19T18:30:00.000Z",
+          "tables": {
+            "settings": [
+              {
+                "section": "library",
+                "content": {
+                  "libraryPath": "/storage/emulated/0/Anime",
+                  "libraryPaths": [
+                    "/storage/emulated/0/Anime",
+                    "/storage/emulated/0/Movies"
+                  ],
+                  "autoUpdateProgress": true,
+                  "autoScan": true,
+                  "refreshLibraryOnStart": false,
+                  "enableOnlinestream": true,
+                  "torrentProvider": "animetosho",
+                  "defaultPlaybackSource": "onlinestream",
+                  "enableManga": true,
+                  "disableUpdateCheck": false
+                },
+                "changedAt": 1795113000000
+              },
+              {
+                "section": "torrent",
+                "content": {
+                  "defaultTorrentClient": "qbittorrent",
+                  "qbittorrentPassword": "test-qbit-pass",
+                  "seanimeDownloadLimit": 0,
+                  "seanimeUploadLimit": 512,
+                  "seanimeMaxActiveDownloads": 3
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "anilist",
+                "content": {
+                  "hideAudienceScore": false,
+                  "enableAdultContent": false,
+                  "blurAdultContent": true,
+                  "disableCacheLayer": false
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "manga",
+                "content": {
+                  "defaultMangaProvider": "mangapill",
+                  "mangaAutoUpdateProgress": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "section": "nakama",
+                "content": {
+                  "enabled": false,
+                  "username": "test-user",
+                  "isHost": false,
+                  "remoteServerURL": "",
+                  "remoteServerPassword": "test-nakama-pass"
+                },
+                "changedAt": 1794992400000
+              }
+            ],
+            "appearance": [
+              {
+                "id": 1,
+                "content": {
+                  "showAnimeUnwatchedCount": true,
+                  "showMangaUnreadCount": false,
+                  "hideAnimeSpoilers": false,
+                  "continueWatchingDefaultSorting": "TITLE",
+                  "libraryScreenCustomBannerPosition": "50% 50%",
+                  "libraryScreenCustomBannerOpacity": 50
+                },
+                "createdAt": 1794992400000,
+                "changedAt": 1794992400000
+              }
+            ],
+            "homeItems": [
+              {
+                "position": 0,
+                "itemId": "continue-watching",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              },
+              {
+                "position": 1,
+                "itemId": "my-lists",
+                "kind": "builtin",
+                "schemaVersion": 1,
+                "options": null
+              }
+            ],
+            "watchPositions": [
+              {
+                "mediaId": 21,
+                "kind": "onlinestream",
+                "episodeNumber": 3,
+                "positionSeconds": 600,
+                "durationSeconds": 1400,
+                "filepath": "",
+                "addedAt": 1794992400000,
+                "changedAt": 1794992400000,
+                "expiresAt": null
+              }
+            ],
+            "extensionConfigs": [
+              {
+                "id": "ext-a",
+                "version": 1,
+                "values": {
+                  "language": "de",
+                  "apiKey": "test-ext-key"
+                },
+                "origin": "core",
+                "changedAt": 1794992400000
+              }
+            ],
+            "sandboxSettings": [],
+            "onlinestreamMappings": [],
+            "mangaMappings": [],
+            "mangaPreferences": [],
+            "offlineSettings": [
+              {
+                "id": 1,
+                "wifiOnly": true,
+                "changedAt": 1794992400000
+              }
+            ],
+            "silencedAnime": [
+              {
+                "anilistId": 5114,
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "metadataParents": [],
+            "playlists": [
+              {
+                "dbId": 1,
+                "name": "Evening",
+                "episodes": [],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              },
+              {
+                "dbId": 2,
+                "name": "Evening",
+                "episodes": [
+                  {
+                    "ep": 1
+                  }
+                ],
+                "createdAt": 1794992400000,
+                "updatedAt": 1794992400000
+              }
+            ],
+            "torrentKept": [
+              {
+                "key": "settings",
+                "content": {
+                  "enabled": true,
+                  "autoSelect": true,
+                  "preferredResolution": "1080",
+                  "preloadNextStream": false,
+                  "includeInLibrary": false,
+                  "stopSeedingWhenFinished": true
+                },
+                "changedAt": 1794992400000
+              },
+              {
+                "key": "debrid-settings",
+                "content": {
+                  "enabled": false,
+                  "provider": "torbox",
+                  "streamAutoSelect": true,
+                  "streamPreferredResolution": "1080",
+                  "includeDebridStreamInLibrary": false
+                },
+                "changedAt": 1794992400000
+              }
+            ]
+          },
+          "extensions": {
+            "files": {
+              "ext-a.json": "{\"id\":\"ext-a\",\"name\":\"A\",\"version\":\"1.0.0\",\"type\":\"onlinestream-provider\",\"language\":\"typescript\",\"payload\":\"class Provider {}\"}"
+            },
+            "disabled": []
+          },
+          "localLists": null,
+          "preferences": {
+            "sea-media-core-preferences": "{\"autoNext\":true,\"autoPlay\":false,\"skipOpening\":false}",
+            "sea-video-core-settings": "{\"showChapterMarkers\":true,\"preferredSubtitleLanguage\":\"eng\"}",
+            "seanime-mobile-airing-notifications": "\"true\"",
+            "seanime-mobile-chapter-notifications": "\"true\"",
+            "sea-playback-downloaded-media": "\"system\"",
+            "sea-ui-settings-navigation-preload-mode": "\"adjacent\""
+          },
+          "secrets": {
+            "seanime-core.account-token": "test-anilist-token",
+            "seanime-core-debrid-api-key": "test-debrid-key",
+            "seanime-nakama-host-password": "test-nakama-host-pass"
+          },
+          "stamps": {
+            "changed": {
+              "t/settings/library": 1795113000000,
+              "f/t/settings/library\u001flibraryPath": 1794992400000,
+              "f/t/settings/library\u001flibraryPaths": 1794992400000,
+              "f/t/settings/library\u001fautoUpdateProgress": 1794992400000,
+              "f/t/settings/library\u001fautoScan": 1795113000000,
+              "f/t/settings/library\u001frefreshLibraryOnStart": 1794992400000,
+              "f/t/settings/library\u001fenableOnlinestream": 1794992400000,
+              "f/t/settings/library\u001ftorrentProvider": 1794992400000,
+              "f/t/settings/library\u001fdefaultPlaybackSource": 1794992400000,
+              "f/t/settings/library\u001fenableManga": 1794992400000,
+              "f/t/settings/library\u001fdisableUpdateCheck": 1794992400000,
+              "t/settings/torrent": 1794992400000,
+              "f/t/settings/torrent\u001fdefaultTorrentClient": 1794992400000,
+              "f/t/settings/torrent\u001fqbittorrentPassword": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeDownloadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeUploadLimit": 1794992400000,
+              "f/t/settings/torrent\u001fseanimeMaxActiveDownloads": 1794992400000,
+              "t/settings/anilist": 1794992400000,
+              "f/t/settings/anilist\u001fhideAudienceScore": 1794992400000,
+              "f/t/settings/anilist\u001fenableAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fblurAdultContent": 1794992400000,
+              "f/t/settings/anilist\u001fdisableCacheLayer": 1794992400000,
+              "t/settings/manga": 1794992400000,
+              "f/t/settings/manga\u001fdefaultMangaProvider": 1794992400000,
+              "f/t/settings/manga\u001fmangaAutoUpdateProgress": 1794992400000,
+              "t/settings/nakama": 1794992400000,
+              "f/t/settings/nakama\u001fenabled": 1794992400000,
+              "f/t/settings/nakama\u001fusername": 1794992400000,
+              "f/t/settings/nakama\u001fisHost": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerURL": 1794992400000,
+              "f/t/settings/nakama\u001fremoteServerPassword": 1794992400000,
+              "t/appearance/1": 1794992400000,
+              "f/t/appearance/1\u001fshowAnimeUnwatchedCount": 1794992400000,
+              "f/t/appearance/1\u001fshowMangaUnreadCount": 1794992400000,
+              "f/t/appearance/1\u001fhideAnimeSpoilers": 1794992400000,
+              "f/t/appearance/1\u001fcontinueWatchingDefaultSorting": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerPosition": 1794992400000,
+              "f/t/appearance/1\u001flibraryScreenCustomBannerOpacity": 1794992400000,
+              "t/watchPositions/21": 1794992400000,
+              "t/extensionConfigs/ext-a": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001flanguage": 1794992400000,
+              "f/t/extensionConfigs/ext-a\u001fapiKey": 1794992400000,
+              "t/offlineSettings/1": 1794992400000,
+              "t/silencedAnime/5114": 1794992400000,
+              "t/playlists/Evening": 1794992400000,
+              "t/playlists/Evening#2": 1794992400000,
+              "t/torrentKept/settings": 1794992400000,
+              "t/torrentKept/debrid-settings": 1794992400000,
+              "t/homeItems": 0,
+              "x/ext-a.json": 0,
+              "p/sea-media-core-preferences": 0,
+              "f/p/sea-media-core-preferences\u001fautoNext": 0,
+              "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000001,
+              "f/p/sea-media-core-preferences\u001fskipOpening": 0,
+              "p/sea-video-core-settings": 0,
+              "f/p/sea-video-core-settings\u001fshowChapterMarkers": 0,
+              "f/p/sea-video-core-settings\u001fpreferredSubtitleLanguage": 0,
+              "p/seanime-mobile-airing-notifications": 0,
+              "p/seanime-mobile-chapter-notifications": 0,
+              "p/sea-playback-downloaded-media": 0,
+              "p/sea-ui-settings-navigation-preload-mode": 0,
+              "s/seanime-core.account-token": 0,
+              "s/seanime-core-debrid-api-key": 0,
+              "s/seanime-nakama-host-password": 0
+            },
+            "deleted": {
+              "t/playlists/Morning": 1795113000000,
+              "p/sea-search-recent": 1795113000000
+            }
+          }
+        },
+        "changedStamps": {
+          "f/p/sea-media-core-preferences\u001fautoPlay": 1795113000001
+        },
+        "deletedStamps": {},
+        "clearedTombstones": []
+      }
+    }
+  ]
+}

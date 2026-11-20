@@ -491,6 +491,33 @@ export function disableCodeOnly(deps: AccountDeps): Promise<void> {
     return deps.client.deleteEscrow()
 }
 
+/**
+ * "Edit on the website" on. `password`: the account has one; its authKey goes along, checked like the other password
+ * prompts (a Google session of such an account takes the address from the account). Without a password nothing goes
+ * along and the server wants a sign-in within the last 10 minutes. The key itself never leaves the device here.
+ */
+export async function enableWebEdit(deps: AccountDeps, input: { password?: string }): Promise<void> {
+    const { sodium } = deps
+    if (input.password === undefined) return deps.client.putWebAccess()
+    const state = await deps.session.load()
+    wipe(sodium, state?.dek)
+    const email = state?.email ?? (await deps.client.account()).email
+    const { salt, kdf } = await preloginChecked(deps, email)
+    const { authKey, encKey } = await deriveKeys(sodium, input.password, fromB64(sodium, salt, 16), kdf)
+    wipe(sodium, encKey)
+    try {
+        await deps.client.putWebAccess(toB64(sodium, authKey))
+    }
+    finally {
+        wipe(sodium, authKey)
+    }
+}
+
+/** "Edit on the website" off: the server locks every website session of the account at once */
+export function disableWebEdit(deps: AccountDeps): Promise<void> {
+    return deps.client.deleteWebAccess()
+}
+
 /* ---- Google ---- */
 
 /** Plan 6.3, step 1: the one-time nonce the Google ID token must carry, and the sign-in challenge issued with it */

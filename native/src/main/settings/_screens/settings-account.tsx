@@ -11,7 +11,7 @@ import {
     accountAtom, accountInfoAtom, answerNumber, approvalDone, changeEncryptionKey, denyApproval, disconnectGoogle, approvalProgress, askForApproval, changeAccountPassword, createAccount,
     deleteSyncedData, deleteWholeAccount, importDismissedAtom, keyNoticeAtom, lastSyncAtom, listDevices, newPasswordOfferAtom, newRecoveryCode, recoveryCodeUsable,
     resendConfirmation, sendSignInCode, setNewPassword, signIn, signInWithCode, signedInWithCode, signOutHere, skipNewPassword, startFreshHere, syncingAtom, syncNow, turnOffCodeOnly,
-    turnOnCodeOnly, unlockWithRecoveryCode,
+    turnOffWebEdit, turnOnCodeOnly, turnOnWebEdit, unlockWithRecoveryCode,
 } from "@/lib/account/account-app"
 import {
     CODE_LENGTH, type CodeEdit, MIN_PASSWORD_LENGTH, accountDate, accountErrorText, accountPhase, backspaceInCode, codeOf, eventText, formatRecoveryCode, formatSas,
@@ -488,10 +488,11 @@ function Overview({ t }: { t: Translate }) {
     const setImportDismissed = useSetAtom(importDismissedAtom)
     const queryClient = useQueryClient()
     const [now, setNow] = React.useState(Date.now)
-    const [sheet, setSheet] = React.useState<"recovery" | "password" | "signout" | "data" | "delete" | "google" | "code-only" | "new-password" | null>(null)
+    const [sheet, setSheet] = React.useState<"recovery" | "password" | "signout" | "data" | "delete" | "google" | "code-only" | "web-edit" | "new-password" | null>(null)
     const [code, setCode] = React.useState<string | null>(null)
     const passwordOffer = useAtomValue(newPasswordOfferAtom)
     const [codeOnlyBusy, setCodeOnlyBusy] = React.useState(false)
+    const [webEditBusy, setWebEditBusy] = React.useState(false)
     // S2: "Change encryption key" with the device list; `off`: a device the user tapped Remove on starts unticked
     const [keySheet, setKeySheet] = React.useState<{ off: string | null } | null>(null)
     const devices = useQuery({ queryKey: DEVICES_KEY, queryFn: listDevices })
@@ -534,6 +535,21 @@ function Overview({ t }: { t: Translate }) {
         }
         finally {
             setCodeOnlyBusy(false)
+        }
+    }
+
+    /** "Edit on the website" off at once: the server locks every unlocked browser */
+    async function webEditOff() {
+        setWebEditBusy(true)
+        try {
+            await turnOffWebEdit()
+            toast.success(t("Edit on the website is off. Any unlocked browser is locked again.", "Auf der Website bearbeiten ist aus. Jeder entsperrte Browser ist wieder gesperrt."))
+        }
+        catch (error) {
+            toast.error(accountErrorText(t, error))
+        }
+        finally {
+            setWebEditBusy(false)
         }
     }
 
@@ -610,6 +626,12 @@ function Overview({ t }: { t: Translate }) {
                 note={t("Seanime can then read your synced data. Off keeps it end-to-end encrypted.", "Seanime kann deine synchronisierten Daten dann lesen. Aus bleiben sie Ende-zu-Ende-verschlüsselt.")}
                 checked={info.codeOnly === true} disabled={codeOnlyBusy}
                 onCheckedChange={checked => checked ? setSheet("code-only") : void codeOnlyOff()} />}
+            {/* opt-in, off by default: turning it on asks for the password (or a recent Google sign-in), turning it off is immediate */}
+            {info && <LocalSwitch label={t("Edit on the website", "Auf der Website bearbeiten")}
+                note={t("Unlock and change your settings at seanimemobile.com. Off keeps the key on your devices only.",
+                    "Entsperre und ändere deine Einstellungen auf seanimemobile.com. Aus bleibt der Schlüssel nur auf deinen Geräten.")}
+                checked={info.webEdit === true} disabled={webEditBusy}
+                onCheckedChange={checked => checked ? setSheet("web-edit") : void webEditOff()} />}
             <LinkRow label={t("Sign out", "Abmelden")} note={t("The data on this device stays", "Die Daten auf diesem Gerät bleiben")} onPress={() => setSheet("signout")} />
             <LinkRow label={t("Delete synced data", "Synchronisierte Daten löschen")} tone="danger" onPress={() => setSheet("data")} />
             <LinkRow label={t("Delete account", "Konto löschen")} tone="danger" onPress={() => setSheet("delete")} />
@@ -655,6 +677,15 @@ function Overview({ t }: { t: Translate }) {
             onSubmit={async password => {
                 await turnOnCodeOnly(password)
                 toast.success(t("Code-only sign-in is on.", "Nur-Code-Anmeldung ist an."))
+            }} />
+        <InputSheet t={t} open={sheet === "web-edit"} onOpenChange={open => !open && setSheet(null)} title={t("Edit on the website?", "Auf der Website bearbeiten?")}
+            field={info?.hasPassword ? "password" : "none"}
+            text={t("Once you unlock your settings at seanimemobile.com, your browser holds the key to your synced data while you edit, in memory only. You get an email each time. Turn this off and every unlocked browser is locked again at once.",
+                "Sobald du deine Einstellungen auf seanimemobile.com entsperrst, hält dein Browser den Schlüssel zu deinen synchronisierten Daten, solange du bearbeitest, nur im Arbeitsspeicher. Du bekommst jedes Mal eine E-Mail. Schaltest du es aus, ist jeder entsperrte Browser sofort wieder gesperrt.")}
+            placeholder={t("Your password", "Dein Passwort")} action={t("Turn on", "Einschalten")}
+            onSubmit={async password => {
+                await turnOnWebEdit(info?.hasPassword ? password : undefined)
+                toast.success(t("Edit on the website is on.", "Auf der Website bearbeiten ist an."))
             }} />
         <NewPasswordSheet t={t} open={sheet === "new-password"} onOpenChange={open => !open && setSheet(null)} email={account.email ?? info?.email ?? ""} googleLinked={!!info?.googleLinked} />
     </View>

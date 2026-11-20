@@ -151,6 +151,8 @@ export type AccountInfo = {
     recoveryRenewalNeeded: boolean
     /** "Sign in with an email code only": the server holds the DEK (escrow) and can read the synced data */
     codeOnly?: boolean
+    /** "Edit on the website": the website may unlock the key in the browser and change the synced settings */
+    webEdit?: boolean
     /** I5: the newest security events, newest first */
     events?: AccountEvent[]
 }
@@ -367,6 +369,13 @@ export class AccountClient {
     putEscrow = (dek: string, dekProof: string, authKey: string) => this.call<void>("PUT", "account/escrow", { json: { dek, dekProof, authKey } })
     /** "Code only" off: the server deletes its package at once */
     deleteEscrow = () => this.call<void>("DELETE", "account/escrow")
+    /**
+     * "Edit on the website" on. Needs a session with a device row (403 device_required). An account with a password sends
+     * its authKey (403 wrong_password); one without sends nothing and needs a sign-in within 10 minutes (403 reauth_required)
+     */
+    putWebAccess = (authKey?: string) => this.call<void>("PUT", "account/web-access", { json: authKey === undefined ? {} : { authKey } })
+    /** "Edit on the website" off: every website session of the account is locked at once */
+    deleteWebAccess = () => this.call<void>("DELETE", "account/web-access")
     /** Only a session from auth/code/login, at most 15 minutes old, and only for the account's current dekId */
     setPasswordAfterCode = (body: PasswordAfterCodeBody) => this.call<void>("POST", "account/password/after-code", { json: body })
 
