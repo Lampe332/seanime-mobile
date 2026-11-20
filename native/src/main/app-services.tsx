@@ -2,6 +2,7 @@ import { useMobileOfflineLiveSnapshot, useReportNetworkToServer } from "@/api/ho
 import { useAccountService } from "@/main/_features/account/account-service"
 import { useAnilistSyncService } from "@/main/_features/anilist-sync/anilist-sync"
 import { useAiringScheduler } from "@/lib/airing/airing-hooks"
+import { useAndroidAppLanguage } from "@/lib/android-app-language-run"
 import { appLanguageAtom } from "@/lib/app-language"
 import { useAppLinkSources } from "@/lib/app-links-handler"
 import { reconcileAppUpdate } from "@/lib/app-updates/app-updater"
@@ -25,6 +26,8 @@ export function AppServices() {
     const userName = user && !user.isSimulated ? user.viewer?.name : undefined
 
     useAppLinkSources(language)
+    // the app language in step with Android's "App languages" setting (Android 13 and later)
+    useAndroidAppLanguage(language)
     useAiringScheduler()
     useCastEventsBridge()
     useMobileOfflineLiveSnapshot()

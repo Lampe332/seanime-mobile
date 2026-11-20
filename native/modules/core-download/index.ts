@@ -84,6 +84,10 @@ type DeviceFacts = {
     legacyPreferences(): LegacyPreferences
     /** Device facts for touch feedback (lib/feedback.ts): vibration motor, ringer on, other audio playing. */
     feedbackState(): FeedbackState
+    /** 4.3.0: the app's language in Android's settings as language tags ("" follows the phone); null below Android 13 */
+    appLocales(): string | null
+    /** Sets it ("" follows the phone again); false below Android 13 */
+    setAppLocales(tags: string): boolean
 }
 
 export default requireNativeModule<SeanimeCoreDownloadModule & DeviceFacts>("SeanimeCoreDownload")

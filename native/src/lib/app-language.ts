@@ -26,6 +26,8 @@ export const APP_LANGUAGES = [
 export type AppLanguage = typeof APP_LANGUAGES[number]["value"]
 
 const STORAGE_KEY = "seanime-mobile-language"
+/** The stored choice's key, for the sync with Android's "App languages" setting (android-app-language-run.ts) */
+export const APP_LANGUAGE_KEY = STORAGE_KEY
 
 const CATALOGS: Partial<Record<AppLanguage, CatalogJSON>> = { es, ru, "zh-Hans": zhHans, "pt-BR": ptBR, fr, ja }
 const compiled = new Map<AppLanguage, Catalog>()

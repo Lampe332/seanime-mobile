@@ -17,6 +17,7 @@ const DEVICE_KEYS = [
     /^RELEASES-/,
     /^seanime-mobile-legacy-preferences-copied$/,
     /^seanime-mobile-anilist-user$/,
+    /^seanime-mobile-language-android$/,
 ]
 
 export function isDeviceKey(key: string): boolean {

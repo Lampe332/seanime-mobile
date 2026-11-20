@@ -134,6 +134,28 @@ class CoreDownloadModule : Module() {
             }
         }
 
+        // 4.3.0: the app's own language in Android's settings ("App languages", Android 13 and later), kept in step with
+        // the language picked in the app (lib/android-app-language-run.ts); the list there is res/xml/locales_config.xml
+        // (plugins/with-app-languages.js). null below Android 13, "" while the app follows the phone.
+        Function("appLocales") {
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) null
+            else context.getSystemService(android.app.LocaleManager::class.java)?.applicationLocales?.toLanguageTags()
+        }
+
+        // "" lets the app follow the phone again; false below Android 13. With locale in the activity's configChanges
+        // (the same plugin) Android does not recreate the screen for it.
+        Function("setAppLocales") { tags: String ->
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) false
+            else {
+                val manager = context.getSystemService(android.app.LocaleManager::class.java)
+                if (manager == null) false
+                else {
+                    manager.applicationLocales = android.os.LocaleList.forLanguageTags(tags)
+                    true
+                }
+            }
+        }
+
         // Touch feedback (lib/feedback.ts) needs three device facts no Expo library reports: the Pixel Tablet has no
         // vibration motor (its Vibration switch is hidden), and the success sound plays only with the ringer on and while
         // nothing else is audible (Feedback.kt).

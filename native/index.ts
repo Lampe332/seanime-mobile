@@ -5,6 +5,8 @@
  */
 // first: copies the old app's settings into MMKV before any module creates an atom from it (E6)
 import "@/lib/legacy-preferences-run"
+// then: a language picked in Android's "App languages" setting becomes the app's before the first screen (4.3.0)
+import "@/lib/android-app-language-run"
 import { defineAiringTask } from "@/lib/airing/airing-notifier"
 import { widgetTaskHandler } from "@/lib/widget/widget-task"
 import { foregroundNoticeBehavior } from "@/main/android-downloads/_lib/notice-behavior"

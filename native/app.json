@@ -181,6 +181,12 @@
       ],
       "./plugins/with-notification-icon",
       "./plugins/with-single-react-root",
+      [
+        "./plugins/with-app-languages",
+        {
+          "languages": ["en", "de", "es", "ru", "zh-Hans", "pt-BR", "fr", "ja"]
+        }
+      ],
       "expo-notifications",
       "expo-mpv"
     ],
