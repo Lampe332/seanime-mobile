@@ -2,6 +2,13 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 4.3.0 (versionCode 40300)
+
+- 🎉 Account: New switch "Edit on the website" under Settings > Account. Turn it on and you can unlock and change your synced settings at seanimemobile.com. It's off by default, and every unlock sends you an email
+- ⚡️ Account: Security events name sign-ins, password resets, confirmed emails, signed-out sessions and website unlocks in plain words
+- ⚡️ Account: A clear message when Start fresh has to wait 24 hours after a code sign-in or a password reset
+- ⚡️ Account: A clear message when an action needs a fresh sign-in
+
 ## 4.2.0 (versionCode 40200)
 
 - 🎉 Account: Optional account with email and password. It keeps your settings, playback positions, history, playlists, extensions and their keys in sync across your devices
