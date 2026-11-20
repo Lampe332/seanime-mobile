@@ -213,6 +213,16 @@ export async function mailAllowed(env: Env, pot: MailPot, email: string, ip: str
   return (await count("day-all", 24 * 3600, email)) <= MAIL_LIMIT_DAY_ALL;
 }
 
+/**
+ * Edit on the website (4.2.x), per account and hour. Uploads from website sessions are counted on their own counter before
+ * the account's upload counter (index.ts), so the website never takes more than these 10 of the devices' 30. Reads of the
+ * snapshot by website sessions, and unlocking with the recovery proof (a password is counted like a sign-in, a code like a
+ * code sign-in).
+ */
+export const WEB_UPLOAD_LIMIT = 10;
+export const WEB_READ_LIMIT = 60;
+export const WEB_RECOVERY_LIMIT = 5;
+
 /** Hits of a fixedWindow key in its current window (0 when none or over) */
 export async function windowCount(env: Env, key: string): Promise<number> {
   const row = await env.DB.prepare("SELECT count FROM rate_limits WHERE key = ? AND expires_at > ?")

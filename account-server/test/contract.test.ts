@@ -208,8 +208,9 @@ describe("GET account", () => {
       rotationRequired: false,
       recoveryRenewalNeeded: false,
       codeOnly: false,
-      // only this session: when and how it signed in, and until when a recent sign-in counts
-      session: { authAt: expect.any(Number), method: "password", recentAuthUntil: expect.any(Number) },
+      webEdit: false,
+      // only this session: when and how it signed in, until when a recent sign-in counts, and its website key (none)
+      session: { authAt: expect.any(Number), method: "password", recentAuthUntil: expect.any(Number), keyUntil: null },
     });
     const own = JSON.parse(text).session as { authAt: number; recentAuthUntil: number };
     expect(own.recentAuthUntil - own.authAt).toBe(600);

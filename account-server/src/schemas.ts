@@ -222,6 +222,21 @@ export const CodeLoginBody = z.strictObject({
 /** "Code only" on: the raw DEK (32 bytes), its DEK proof (N3, must be the account's) and the password again */
 export const EscrowBody = z.strictObject({ dek: b64Exact(32), dekProof: DekProof, authKey: AuthKey });
 
+// ---------------------------------------------------------------- edit on the website (4.2.x)
+
+/** Turning it on in the app: the password again (accounts without a password send nothing, a recent Google sign-in counts) */
+export const WebAccessBody = z.strictObject({ authKey: AuthKey.optional() });
+
+/** web/unlock: exactly one way to show the owner (the password, the recovery proof, or a code while "code only" is on) */
+export const WebUnlockBody = z.union([
+  z.strictObject({ authKey: AuthKey }),
+  z.strictObject({ recoveryProof: DekProof }),
+  z.strictObject({ code: SignInCode }),
+]);
+
+/** web/key: the DEK proof of the account's current key, right after web/unlock */
+export const WebKeyBody = z.strictObject({ dekId: DekId, dekProof: DekProof });
+
 /** A new password after a code sign-in; the DEK proof is needed while the session has no device row (like account/password) */
 export const AfterCodeBody = z.strictObject({
   authKey: AuthKey,

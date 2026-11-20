@@ -13,7 +13,7 @@ import { eventStatement, notify, sendMail } from "./mail";
 import { burstLimit, fixedWindow, ipKey, ipRange, isKnownNetwork, mailAllowed, rateKey, rememberNetwork, reserveLoginIp } from "./ratelimit";
 import { authHash, CODE_WINDOW_SECONDS, type Ctx, HOUR, keyRequired, PEPPER_VERSION, proofMatches, withSession } from "./routes";
 import { AfterCodeBody, CodeLoginBody, CodeRequestBody, DEFAULT_KDF, EscrowBody } from "./schemas";
-import { newSession, now, requireDevice, requireSession } from "./session";
+import { appRequired, newSession, now, requireDevice, requireSession } from "./session";
 import { verifySignIn } from "./signature";
 
 export const CODE_TTL = 10 * 60;
@@ -78,7 +78,7 @@ export async function sealEscrow(env: Env, userId: string, dekId: string, dek: s
 }
 
 /** The raw DEK (base64url), or null when the box does not open for this account and key */
-async function openEscrow(env: Env, userId: string, dekId: string, box: string): Promise<string | null> {
+export async function openEscrow(env: Env, userId: string, dekId: string, box: string): Promise<string | null> {
   const raw = fromB64url(box);
   if (!raw || raw.byteLength <= 12) return null;
   const key = await escrowKey(env);
@@ -133,6 +133,49 @@ async function sendCode(env: Env, userId: string, email: string, ip: string): Pr
 }
 
 /**
+ * Counts a code try and checks the code of the account (`accountId` undefined: unknown email or no password, the same
+ * work). M1 (like NEU4-1): a network the account signed in from has its own cap; every other one counts per email across
+ * networks, per day and per week (N2), so strangers there are held up and the owner's network never is. The try is counted
+ * on the code in one statement before the check, so parallel tries never pass 5. Every failure is the same 401. Used by
+ * auth/code/login and web/unlock; the caller counts the login counter per IP before and uses the code up (useCode).
+ */
+export async function checkCode(
+  env: Env,
+  ip: string,
+  email: string,
+  accountId: string | undefined,
+  code: string,
+): Promise<{ user_id: string; code_hash: string }> {
+  if (await isKnownNetwork(env, accountId ?? "-", ip)) {
+    await fixedWindow(env, await rateKey(env, "code-try-net", `${email}|${ipRange(ip)}`), CODE_TRIES_NETWORK_DAY, DAY);
+  } else {
+    await fixedWindow(env, await rateKey(env, "code-try-all", email), CODE_TRIES_EMAIL_DAY, DAY);
+    await fixedWindow(env, await rateKey(env, "code-try-week", email), CODE_TRIES_EMAIL_WEEK, WEEK);
+  }
+  const row = await env.DB.prepare(
+    `UPDATE sign_in_codes SET attempts = attempts + 1
+     WHERE user_id = ? AND expires_at > ? AND attempts < ?
+     RETURNING user_id, code_hash`,
+  )
+    .bind(accountId ?? "", now(), CODE_MAX_ATTEMPTS)
+    .first<{ user_id: string; code_hash: string }>();
+  // the same work without a code: an HMAC and a compare against zeros
+  const presented = await codeHash(env, row?.user_id ?? "-", code);
+  const stored = row ? fromB64url(row.code_hash) : null;
+  const match = safeEqual(presented, stored ?? new Uint8Array(32));
+  if (!row || !stored || !match) throw invalidCode();
+  return row;
+}
+
+/** A right code works once: deleted before anything is handed out (a parallel use of the same code loses here) */
+export async function useCode(env: Env, row: { user_id: string; code_hash: string }): Promise<void> {
+  const used = await env.DB.prepare("DELETE FROM sign_in_codes WHERE user_id = ? AND code_hash = ? RETURNING user_id")
+    .bind(row.user_id, row.code_hash)
+    .first();
+  if (!used) throw invalidCode();
+}
+
+/**
  * Signed like auth/login. Every failure (wrong, expired, used up, unknown email, no code) is the same 401. The try is
  * counted on the code in one statement before the check, so parallel tries never pass 5; a right code is deleted before
  * the session is made, so it works once.
@@ -149,28 +192,7 @@ export async function codeLogin(ctx: Ctx): Promise<Response> {
   const account = await env.DB.prepare("SELECT id FROM users WHERE email = ? AND auth_hash IS NOT NULL")
     .bind(body.email)
     .first<{ id: string }>();
-  // M1 (like NEU4-1): a network the account signed in from has its own cap; every other one counts per email across
-  // networks, per day and per week (N2), so strangers there are held up and the owner's network never is. The same work
-  // for unknown emails, which always count across networks.
-  if (await isKnownNetwork(env, account?.id ?? "-", ip)) {
-    await fixedWindow(env, await rateKey(env, "code-try-net", `${body.email}|${ipRange(ip)}`), CODE_TRIES_NETWORK_DAY, DAY);
-  } else {
-    await fixedWindow(env, await rateKey(env, "code-try-all", body.email), CODE_TRIES_EMAIL_DAY, DAY);
-    await fixedWindow(env, await rateKey(env, "code-try-week", body.email), CODE_TRIES_EMAIL_WEEK, WEEK);
-  }
-
-  const row = await env.DB.prepare(
-    `UPDATE sign_in_codes SET attempts = attempts + 1
-     WHERE user_id = ? AND expires_at > ? AND attempts < ?
-     RETURNING user_id, code_hash`,
-  )
-    .bind(account?.id ?? "", now(), CODE_MAX_ATTEMPTS)
-    .first<{ user_id: string; code_hash: string }>();
-  // the same work without a code: an HMAC and a compare against zeros
-  const presented = await codeHash(env, row?.user_id ?? "-", body.code);
-  const stored = row ? fromB64url(row.code_hash) : null;
-  const match = safeEqual(presented, stored ?? new Uint8Array(32));
-  if (!row || !stored || !match) throw invalidCode();
+  const row = await checkCode(env, ip, body.email, account?.id, body.code);
 
   const user = await env.DB.prepare(
     "SELECT id, kdf_params, wrapped_dek, dek_id, rewrap_needed, escrow_dek, recovery_wrapped_dek FROM users WHERE id = ?",
@@ -189,10 +211,7 @@ export async function codeLogin(ctx: Ctx): Promise<Response> {
   // N4: opened before the code is used up, so a missing or broken ESCROW_KEY (500) leaves the code and no session.
   // Only when the owner turned on "code only"; otherwise the device unlocks like any new one.
   const escrowDek = user.escrow_dek && user.dek_id ? await openEscrow(env, user.id, user.dek_id, user.escrow_dek) : null;
-  const used = await env.DB.prepare("DELETE FROM sign_in_codes WHERE user_id = ? AND code_hash = ? RETURNING user_id")
-    .bind(row.user_id, row.code_hash)
-    .first();
-  if (!used) throw invalidCode();
+  await useCode(env, row);
   const session = await newSession(env, user.id, null, body.sigKey, false, true, ctx.isBrowser);
   const t = now();
   await env.DB.batch([
@@ -233,6 +252,8 @@ export async function putEscrow(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
   const session = await requireSession(ctx.request, env);
   requireDevice(session);
+  // Nick 20.11. (decision 5): the website only turns "code only" off, also a website session bound to a device row
+  if (session.web) throw appRequired();
   const body = await readJson(ctx.request, EscrowBody);
   const email = await requirePassword(env, ctx.request, session, body.authKey);
   const user = await env.DB.prepare("SELECT dek_id, dek_proof FROM users WHERE id = ?")

@@ -1,6 +1,16 @@
 import { fromB64url, hmacSha256, randomBytes, safeEqual, sha256, toB64url } from "./crypto";
 import { clientIp, HttpError, json, noContent, readJson, readLimited, requireMediaType } from "./http";
-import { burstLimit, fixedWindow, ipKey, mailAllowed, rateKey, rememberNetwork, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
+import {
+  burstLimit,
+  fixedWindow,
+  ipKey,
+  mailAllowed,
+  rateKey,
+  rememberNetwork,
+  reserveLoginEmail,
+  reserveLoginIp,
+  WEB_READ_LIMIT,
+} from "./ratelimit";
 import { AuthKeyBody, DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, StartFreshBody, Uuid } from "./schemas";
 import { eventStatement, notify, sendMail } from "./mail";
 import { issueToken, requirePassword, VERIFY_TTL } from "./identity";
@@ -14,11 +24,14 @@ import {
   RECENT_AUTH_SECONDS,
   SESSION_IDLE_SECONDS,
   requireDevice,
+  requireKeyHolder,
   requireRecentAuth,
   requireSession,
   sessionCookie,
   signInMethod,
   type Session,
+  webKeyUntil,
+  websiteOnly,
 } from "./session";
 
 export interface Ctx {
@@ -690,7 +703,7 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
   const user = await ctx.env.DB.prepare(
     `SELECT email, email_verified, google_sub, auth_hash, recovery_wrapped_dek, dek_id, created_at,
-       rewrap_needed, rotation_required, recovery_renewal_needed, escrow_dek IS NOT NULL AS code_only
+       rewrap_needed, rotation_required, recovery_renewal_needed, escrow_dek IS NOT NULL AS code_only, web_edit
      FROM users WHERE id = ?`,
   )
     .bind(session.userId)
@@ -706,6 +719,7 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
       rotation_required: number;
       recovery_renewal_needed: number;
       code_only: number;
+      web_edit: number;
     }>();
   if (!user) throw new HttpError(401, "unauthorized");
   // I5: the newest security events, the same ones that were mailed. NEU4-5: plus the newest of each kind, so a flood of one
@@ -724,7 +738,13 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
     userId: session.userId,
     events: events.map((e) => ({ kind: e.kind, deviceName: e.device_name, at: e.at, ...(e.method !== null ? { method: e.method } : {}) })),
     // This session only: when and how it signed in, and until when steps that need a recent sign-in work
-    session: { authAt: session.authAt, method: signInMethod(session), recentAuthUntil: session.authAt + RECENT_AUTH_SECONDS },
+    // keyUntil (4.2.x): until when this website session reads and writes the snapshot (web/key), else null
+    session: {
+      authAt: session.authAt,
+      method: signInMethod(session),
+      recentAuthUntil: session.authAt + RECENT_AUTH_SECONDS,
+      keyUntil: webKeyUntil(session, user),
+    },
     email: user.email,
     emailVerified: user.email_verified === 1,
     googleLinked: user.google_sub !== null,
@@ -737,6 +757,8 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
     recoveryRenewalNeeded: user.recovery_renewal_needed === 1,
     // "Sign in with an email code only" is on: the server keeps a copy of the key (never sent here)
     codeOnly: user.code_only === 1,
+    // "Edit on the website" is on: a website session may unlock the synced data (web/unlock, web/key)
+    webEdit: user.web_edit === 1,
   });
 }
 
@@ -911,10 +933,28 @@ export async function syncMeta(ctx: Ctx): Promise<Response> {
   });
 }
 
+function keyUser(env: Env, userId: string): Promise<{ dek_id: string | null; web_edit: number } | null> {
+  return env.DB.prepare("SELECT dek_id, web_edit FROM users WHERE id = ?").bind(userId).first<{ dek_id: string | null; web_edit: number }>();
+}
+
+/**
+ * Who reads and writes the snapshot (requireKeyHolder): a device of the account, or a website session that proved the key
+ * while Edit on the website is on, called from the website's Origin.
+ */
+async function snapshotAccess(ctx: Ctx, session: Session): Promise<{ via: "device" | "web"; dekId: string | null }> {
+  const user = await keyUser(ctx.env, session.userId);
+  if (!user) throw new HttpError(401, "unauthorized");
+  const via = requireKeyHolder(session, user);
+  if (via === "web" && !ctx.isBrowser) throw websiteOnly();
+  return { via, dekId: user.dek_id };
+}
+
 export async function getSnapshot(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, ctx.env);
-  // NEU-2: only a device of the account reads the encrypted data, so a removed one signing in again (Google) gets none
-  requireDevice(session);
+  // NEU-2: only a device of the account reads the encrypted data, so a removed one signing in again (Google) gets none.
+  // 4.2.x: or the website after it proved the key, with Edit on the website on (60 reads per hour per account).
+  const { via } = await snapshotAccess(ctx, session);
+  if (via === "web") await fixedWindow(ctx.env, await rateKey(ctx.env, "web-read", session.userId), WEB_READ_LIMIT, HOUR);
   const obj = await ctx.env.SNAPSHOTS.get(snapKey(session.userId));
   if (!obj) throw new HttpError(404, "not_found", "No snapshot stored.");
   return new Response(obj.body, {
@@ -930,8 +970,9 @@ export async function getSnapshot(ctx: Ctx): Promise<Response> {
 export async function putSnapshot(ctx: Ctx): Promise<Response> {
   const { env, request } = ctx;
   const session = await requireSession(request, env);
-  // M-5: only a device that holds the key writes the synced data (no website or keyless session).
-  requireDevice(session);
+  // M-5: only a device that holds the key writes the synced data (no keyless session). 4.2.x: or a website session that
+  // proved the key while Edit on the website is on (its uploads are counted on their own first, index.ts).
+  const { via, dekId: accountDek } = await snapshotAccess(ctx, session);
   requireMediaType(request, "application/octet-stream");
 
   const ifMatch = (request.headers.get("If-Match") ?? "").replace(/^"(.*)"$/, "$1");
@@ -944,16 +985,17 @@ export async function putSnapshot(ctx: Ctx): Promise<Response> {
   const blob = await readLimited(request, MAX_SNAPSHOT_BYTES);
   if (blob.byteLength === 0) throw new HttpError(400, "invalid_request", "Empty snapshot");
 
-  const user = await env.DB.prepare("SELECT dek_id FROM users WHERE id = ?")
-    .bind(session.userId)
-    .first<{ dek_id: string | null }>();
-  if (!user) throw new HttpError(401, "unauthorized");
-  if (user.dek_id !== dekId.data) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
+  if (accountDek !== dekId.data) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
 
   const previous = await snapshotRow(env, session.userId);
   const current = previous?.version ?? 0;
   if (!/^\d{1,15}$/.test(ifMatch) || Number(ifMatch) !== current) {
     throw new HttpError(409, "version_conflict", "The snapshot changed. Download, merge and retry.", {}, { version: current });
+  }
+  // The website only changes a package it opened: it never writes the first one, nor one after DELETE sync (size 0). A
+  // device that has its data uploads first (N-3).
+  if (via === "web" && (!previous || previous.size === 0)) {
+    throw new HttpError(409, "no_snapshot", "There is no synced data yet. Open the app and sync once.");
   }
   const next = current + 1;
   const t = now();
@@ -985,6 +1027,13 @@ export async function putSnapshot(ctx: Ctx): Promise<Response> {
       : env.DB.prepare("DELETE FROM snapshots WHERE user_id = ? AND version = ?").bind(session.userId, next)
     ).run();
     throw err;
+  }
+  if (via === "web") {
+    // The first save of a website key session is listed, without a mail (its unlock was mailed)
+    const first = await env.DB.prepare("UPDATE sessions SET key_saved_at = ? WHERE token_hash = ? AND key_saved_at IS NULL")
+      .bind(t, session.tokenHash)
+      .run();
+    if ((first.meta.changes ?? 0) > 0) await eventStatement(env, session.userId, { kind: "web_settings_changed" }).run();
   }
   return json({ version: next, size: blob.byteLength, updatedAt: t });
 }

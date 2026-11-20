@@ -7,8 +7,9 @@ import { rotate } from "./rotate";
 import { MAX_JSON_BYTES } from "./http";
 import { MAX_BODY_BYTES, withBodyDigest } from "./signature";
 import { precheckSession } from "./session";
-import { fixedWindow, rateKey } from "./ratelimit";
+import { fixedWindow, rateKey, WEB_UPLOAD_LIMIT } from "./ratelimit";
 import * as r from "./routes";
+import * as websync from "./websync";
 
 type Handler = (ctx: r.Ctx) => Promise<Response>;
 
@@ -52,6 +53,11 @@ const routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
   ["POST", /^\/v1\/account\/password\/after-code$/, code.passwordAfterCode],
   ["PUT", /^\/v1\/account\/escrow$/, code.putEscrow],
   ["DELETE", /^\/v1\/account\/escrow$/, code.deleteEscrow],
+  ["PUT", /^\/v1\/account\/web-access$/, websync.putWebAccess],
+  ["DELETE", /^\/v1\/account\/web-access$/, websync.deleteWebAccess],
+  ["POST", /^\/v1\/web\/unlock$/, websync.webUnlock],
+  ["POST", /^\/v1\/web\/key$/, websync.webKey],
+  ["POST", /^\/v1\/web\/lock$/, websync.webLock],
   ["POST", /^\/v1\/account\/rotate$/, rotate],
   ["POST", /^\/v1\/account\/link-google$/, id.linkGoogle],
   ["POST", /^\/v1\/account\/unlink-google$/, id.unlinkGoogle],
@@ -78,7 +84,12 @@ async function handle(request: Request, env: Env, isBrowser: boolean, exec: Exec
     if (upload !== undefined) {
       // NEU-11: the account's upload counter is counted before a byte of the body is read, so even a valid token of an
       // own free account reads at most UPLOAD_LIMIT large bodies per hour.
-      const { userId } = await precheckSession(request, env);
+      const { userId, web: fromWebsite } = await precheckSession(request, env);
+      // Edit on the website: its own counter first, so a website session never uses up more than WEB_UPLOAD_LIMIT of the
+      // account's counter, which the devices need for their sync.
+      if (fromWebsite && pathname === "/v1/sync/snapshot") {
+        await fixedWindow(env, await rateKey(env, "web-upload", userId), WEB_UPLOAD_LIMIT, r.HOUR);
+      }
       await fixedWindow(env, await rateKey(env, "upload", userId), r.UPLOAD_LIMIT, r.HOUR);
     }
     const req = await withBodyDigest(request, upload ?? MAX_JSON_BYTES);

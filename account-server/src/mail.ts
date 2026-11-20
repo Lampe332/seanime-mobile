@@ -38,7 +38,13 @@ export type Mail =
   | { kind: "sign_in_code"; code: string }
   | { kind: "code_only_on" }
   | { kind: "code_only_off" }
+  | { kind: "web_edit_on" }
+  | { kind: "web_edit_off" }
+  | { kind: "web_unlocked"; method: WebUnlockMethod }
   | { kind: "inactivity"; deleteAt: number };
+
+/** How the website showed the owner before it proved the key (web/unlock) */
+export type WebUnlockMethod = "password" | "recovery" | "code";
 
 /** Mails about a change to the account's security; each one is also kept as a visible event (I5) */
 export type SecurityMail = Extract<
@@ -56,7 +62,10 @@ export type SecurityMail = Extract<
       | "key_rotated"
       | "approvals_paused"
       | "code_only_on"
-      | "code_only_off";
+      | "code_only_off"
+      | "web_edit_on"
+      | "web_edit_off"
+      | "web_unlocked";
   }
 >;
 
@@ -303,6 +312,46 @@ function content(env: Env, mail: Mail, when: string): Content {
         notice: "If this was not you, check your devices and change your password.",
         reason: SECURITY_REASON,
       };
+    case "web_edit_on":
+      return {
+        subject: "Edit on the website was turned on",
+        tag: "Security",
+        lines: [
+          "You can now unlock your synced Seanime Mobile settings on the website and change them there.",
+          "While they are unlocked, your browser holds the key to your synced data. You get an email every time that happens.",
+        ],
+        facts: [at, { label: "Turn it off in", value: "Settings > Account" }],
+        notice: "If this was not you, turn it off in Settings > Account on one of your devices and change your password.",
+        reason: SECURITY_REASON,
+      };
+    case "web_edit_off":
+      return {
+        subject: "Edit on the website was turned off",
+        tag: "Security",
+        lines: [
+          "The website can no longer unlock your synced data. Only your devices hold the key now.",
+          "If your settings were unlocked on the website, they are locked now.",
+        ],
+        facts: [at, { label: "Edit on the website", value: "Off" }],
+        notice: "If this was not you, check your devices and change your password.",
+        reason: SECURITY_REASON,
+      };
+    case "web_unlocked":
+      return {
+        subject: "Your synced data was unlocked on the website",
+        tag: "Website",
+        lines: [
+          "Someone unlocked your synced Seanime Mobile data on the website to see and change your settings.",
+          "It locks again after 30 minutes at the latest.",
+        ],
+        facts: [
+          at,
+          { label: "Unlocked with", value: mail.method === "password" ? "Password" : mail.method === "recovery" ? "Recovery code" : "Email code" },
+          { label: "Locks after", value: "30 minutes at the latest" },
+        ],
+        notice: "If this was not you, turn off Edit on the website in Settings > Account and change your password.",
+        reason: SECURITY_REASON,
+      };
     case "inactivity": {
       const date = formatDate(mail.deleteAt);
       return {
@@ -539,20 +588,28 @@ export function renderMail(env: Env, mail: Mail, to?: string): { subject: string
  * the mail, so the event shows even when the mail fails.
  */
 export async function notify(env: Env, userId: string, to: string, mail: SecurityMail): Promise<void> {
-  await env.DB.prepare("INSERT INTO account_events (user_id, kind, device_name, at) VALUES (?, ?, ?, ?)")
-    .bind(userId, mail.kind, "deviceName" in mail ? mail.deviceName : null, Math.floor(Date.now() / 1000))
+  await env.DB.prepare("INSERT INTO account_events (user_id, kind, method, device_name, at) VALUES (?, ?, ?, ?, ?)")
+    .bind(
+      userId,
+      mail.kind,
+      "method" in mail ? mail.method : null,
+      "deviceName" in mail ? mail.deviceName : null,
+      Math.floor(Date.now() / 1000),
+    )
     .run();
   await sendMail(env, to, mail);
 }
 
 /**
  * Events the account lists without a mail: sign-ins, a password reset (its mail is "password_changed"), a confirmed email,
- * sessions ended from the session list. GET account keeps the security events ahead of the frequent "signed_in".
+ * sessions ended from the session list, the first save of settings on the website after an unlock (its mail was
+ * "web_unlocked"). GET account keeps the security events ahead of the frequent "signed_in".
  */
 export type ActivityEvent =
   | { kind: "signed_in"; method: "password" | "code" | "google"; sigKey: { alg: string; pub: string } }
   | { kind: "password_reset" }
-  | { kind: "sessions_signed_out"; deviceName: string | null };
+  | { kind: "sessions_signed_out"; deviceName: string | null }
+  | { kind: "web_settings_changed" };
 
 /**
  * The statement that keeps an activity event (for a batch). A sign-in names the device whose live row carries the signing

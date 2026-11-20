@@ -20,6 +20,9 @@ export interface Session {
   codeAuth: boolean;
   /** The website's session (cookie), not the app's (Bearer) */
   web: boolean;
+  /** web/key: when this website session proved the DEK, and for which dekId (null: never, or locked again) */
+  keyProofAt: number | null;
+  keyDekId: string | null;
 }
 
 export type SignInMethod = "password" | "code" | "google";
@@ -97,14 +100,14 @@ function tokenFromRequest(request: Request): { token: string; bearer: boolean } 
  * N-2: the cheap part of requireSession, before a large body is read: a token of a session that exists and signature
  * headers of the right form. The signature itself covers the body hash and is checked later by requireSession.
  */
-export async function precheckSession(request: Request, env: Env): Promise<{ userId: string }> {
+export async function precheckSession(request: Request, env: Env): Promise<{ userId: string; web: boolean }> {
   const presented = tokenFromRequest(request);
   if (presented === null || !hasSignatureHeaders(request)) throw new HttpError(401, "unauthorized");
   const row = await env.DB.prepare("SELECT user_id FROM sessions WHERE token_hash = ? AND last_used_at >= ?")
     .bind(await hashToken(presented.token), now() - SESSION_IDLE_SECONDS)
     .first<{ user_id: string }>();
   if (!row) throw new HttpError(401, "unauthorized");
-  return { userId: row.user_id };
+  return { userId: row.user_id, web: !presented.bearer };
 }
 
 /**
@@ -129,7 +132,8 @@ export async function requireSession(request: Request, env: Env): Promise<Sessio
   if (presented === null || fromB64url(presented.token)?.byteLength !== 32) throw new HttpError(401, "unauthorized");
   const tokenHash = await hashToken(presented.token);
   const row = await env.DB.prepare(
-    "SELECT user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub, password_auth, code_auth FROM sessions WHERE token_hash = ?",
+    `SELECT user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub, password_auth, code_auth, key_proof_at, key_dek_id
+     FROM sessions WHERE token_hash = ?`,
   )
     .bind(tokenHash)
     .first<{
@@ -142,6 +146,8 @@ export async function requireSession(request: Request, env: Env): Promise<Sessio
       sig_pub: string;
       password_auth: number;
       code_auth: number;
+      key_proof_at: number | null;
+      key_dek_id: string | null;
     }>();
   if (!row) throw await missingSession(env, tokenHash);
   const t = now();
@@ -174,6 +180,8 @@ export async function requireSession(request: Request, env: Env): Promise<Sessio
     passwordAuth: row.password_auth === 1,
     codeAuth: row.code_auth === 1,
     web: !presented.bearer,
+    keyProofAt: row.key_proof_at,
+    keyDekId: row.key_dek_id,
   };
 }
 
@@ -196,4 +204,39 @@ export function clearSessionCookie(): string {
 export function requireDevice(session: Session): string {
   if (session.deviceId === null) throw new HttpError(403, "device_required", "Only a signed-in device can do this.");
   return session.deviceId;
+}
+
+/** A website key session (web/key) reads and writes the snapshot for this long, then the website unlocks again */
+export const WEB_KEY_SECONDS = 30 * 60;
+
+export const webEditOff = () =>
+  new HttpError(403, "web_edit_off", "Turn on Edit on the website in the app first (Settings > Account).");
+/** The website's routes: a cookie session from the allowed Origin, never the app */
+export const websiteOnly = () => new HttpError(403, "website_only", "Only the website can do this.");
+/** Only the app turns these on (Edit on the website, "code only"), never a website session */
+export const appRequired = () => new HttpError(403, "app_required", "Turn this on in the app on one of your devices.");
+export const unlockRequired = () => new HttpError(403, "unlock_required", "Unlock your settings on this page again.");
+
+/** Until when this website session holds a valid key proof (null: none, expired, another key or Edit on the website off) */
+export function webKeyUntil(session: Session, user: { web_edit: number; dek_id: string | null }): number | null {
+  if (!session.web || user.web_edit !== 1 || session.keyProofAt === null) return null;
+  if (session.keyDekId === null || session.keyDekId !== user.dek_id) return null;
+  const until = session.keyProofAt + WEB_KEY_SECONDS;
+  return now() < until ? until : null;
+}
+
+/**
+ * Who may read and write the encrypted snapshot: an app session bound to a device row (it holds the DEK), or a website
+ * session that proved the DEK of the account's current key within the last 30 minutes, while the owner keeps "Edit on the
+ * website" on. A website session never counts as a device, also when it is bound to a device row: the website only gets
+ * the data through the opt-in. A key change (new dekId) ends the website's proof by itself.
+ */
+export function requireKeyHolder(session: Session, user: { web_edit: number; dek_id: string | null }): "device" | "web" {
+  if (!session.web) {
+    requireDevice(session);
+    return "device";
+  }
+  if (user.web_edit !== 1) throw webEditOff();
+  if (webKeyUntil(session, user) === null) throw unlockRequired();
+  return "web";
 }
