@@ -302,11 +302,32 @@ function CarouselHeading({ children }: { children: React.ReactNode }) {
     return <View className="mb-2 min-h-11 justify-center"><SectionTitle>{children}</SectionTitle></View>
 }
 
-/** Anime / manga carousel: a row chosen by the section's options; without a name it shows the top-rated list. */
+/** A carousel's name when the section has none: it says what the row's sorting shows. */
+function carouselDefaultName(t: ReturnType<typeof useTr>, type: "anime" | "manga", sorting: string | undefined) {
+    const anime = type === "anime"
+    switch (sorting) {
+        case "POPULARITY_DESC":
+            return anime ? t("Most popular anime", "Beliebteste Anime") : t("Most popular manga", "Beliebteste Manga")
+        case "TRENDING_DESC":
+            return anime ? t("Trending anime", "Angesagte Anime") : t("Trending manga", "Angesagte Manga")
+        case "TITLE_ROMAJI_ASC":
+        case "TITLE_ENGLISH_ASC":
+            return anime ? t("Anime from A to Z", "Anime von A bis Z") : t("Manga from A to Z", "Manga von A bis Z")
+        case "TITLE_ROMAJI_DESC":
+        case "TITLE_ENGLISH_DESC":
+            return anime ? t("Anime from Z to A", "Anime von Z bis A") : t("Manga from Z to A", "Manga von Z bis A")
+        case "SCORE":
+            return anime ? t("Lowest rated anime", "Am schlechtesten bewertete Anime") : t("Lowest rated manga", "Am schlechtesten bewertete Manga")
+        default:
+            return anime ? t("Top rated anime", "Top bewertete Anime") : t("Top rated manga", "Top bewertete Manga")
+    }
+}
+
+/** Anime / manga carousel: a row chosen by the section's options; without a name it is named after its sorting. */
 function MediaCarousel({ item, type }: { item: Models_HomeItem, type: "anime" | "manga" }) {
     const t = useTr()
     const options = item.options as Record<string, never> | undefined
-    const name = options?.name || (type === "anime" ? t("Top rated anime", "Top bewertete Anime") : t("Top rated manga", "Top bewertete Manga"))
+    const name = options?.name || carouselDefaultName(t, type, options?.sorting)
     const variables = {
         page: 1,
         perPage: 20,
@@ -443,12 +464,12 @@ function MyLists({ item }: { item: Models_HomeItem }) {
     const statuses: string[] | undefined = item.options?.statuses?.length ? item.options.statuses : undefined
     const customName = String(item.options?.customListName ?? "").trim()
     const byStatus: [string, string, AL_AnimeCollection_MediaListCollection_Lists | undefined][] = [
-        ["CURRENT", type === "manga" ? "Currently reading" : "Currently watching", lists.currentList],
-        ["REPEATING", "Repeating", lists.repeatingList],
-        ["PLANNING", "Planning", lists.planningList],
-        ["PAUSED", "Paused", lists.pausedList],
-        ["COMPLETED", "Completed", lists.completedList],
-        ["DROPPED", "Dropped", lists.droppedList],
+        ["CURRENT", type === "manga" ? t("Currently reading", "Lese ich gerade") : t("Currently watching", "Schaue ich gerade"), lists.currentList],
+        ["REPEATING", type === "manga" ? t("Rereading", "Lese erneut") : t("Rewatching", "Schaue erneut"), lists.repeatingList],
+        ["PLANNING", t("Planning", "Geplant"), lists.planningList],
+        ["PAUSED", t("Paused", "Pausiert"), lists.pausedList],
+        ["COMPLETED", t("Completed", "Fertig"), lists.completedList],
+        ["DROPPED", t("Dropped", "Abgebrochen"), lists.droppedList],
     ]
     const shown = customName
         ? (lists.customLists ?? []).filter(list => list.name === customName && !!list.entries?.length).map(list => ({ key: list.name!, title: list.name!, count: undefined, list }))
@@ -497,7 +518,7 @@ function MangaListRow({ list }: { list: Manga_CollectionList }) {
     return (
         <View>
             <View className="mb-3 mt-5 min-h-11 flex-row items-center justify-between gap-3">
-                <SectionTitle className="min-w-0 flex-1">{current ? "Continue reading" : getMangaCollectionTitle(list.type)}</SectionTitle>
+                <SectionTitle className="min-w-0 flex-1">{current ? t("Continue reading", "Weiterlesen") : getMangaCollectionTitle(list.type)}</SectionTitle>
                 {current && params.unreadOnly && (
                     <Pressable accessibilityRole="button" onPress={() => setParams(draft => { draft.unreadOnly = false })} className="min-h-11 justify-center px-2">
                         <Text className="text-sm font-medium">{t("Show all", "Alle zeigen")}</Text>
