@@ -200,17 +200,18 @@ export async function resetPassword(ctx: Ctx): Promise<Response> {
   const auth = toB64url(await authHash(env, body.authKey));
   const owner = "(SELECT user_id FROM tokens WHERE token_hash = ? AND purpose = 'reset' AND used_at = ?)";
   // H-2: a reset removes a linked Google sign-in; whoever linked one with a stolen password loses it here. `reset_at`:
-  // Start fresh waits 24 hours after it (routes.ts startFreshWait).
+  // Start fresh waits 24 hours after it (routes.ts startFreshWait). Edit on the website goes off (the mailbox alone must
+  // not keep it on); the website key sessions end with every session below.
   const update = body.keys
     ? env.DB.prepare(
         `UPDATE users SET kdf_salt = ?, kdf_params = ?, auth_hash = ?, pepper_version = ?, email_verified = 1, google_sub = NULL,
-           wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = 0, recovery_renewal_needed = 0, reset_at = ?
+           wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = 0, recovery_renewal_needed = 0, reset_at = ?, web_edit = 0
          WHERE id = ${owner} AND dek_id = ?`,
       ).bind(body.salt, JSON.stringify(body.kdf), auth, PEPPER_VERSION, body.keys.wrappedDek, body.keys.recoveryWrappedDek, t, hash, t, body.keys.dekId)
     : // Without recovery code no DEK is handed out: the password wrap is dropped (plan 6.8, 10.2).
       env.DB.prepare(
         `UPDATE users SET kdf_salt = ?, kdf_params = ?, auth_hash = ?, pepper_version = ?, email_verified = 1, google_sub = NULL,
-           wrapped_dek = NULL, reset_at = ?,
+           wrapped_dek = NULL, reset_at = ?, web_edit = 0,
            rewrap_needed = CASE WHEN dek_id IS NULL THEN 0 ELSE 1 END,
            rotation_required = CASE WHEN dek_id IS NULL THEN rotation_required ELSE 1 END
          WHERE id = ${owner}`,

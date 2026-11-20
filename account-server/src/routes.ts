@@ -861,15 +861,20 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
     env.DB.prepare("DELETE FROM snapshots WHERE user_id = ?").bind(userId),
     env.DB.prepare("DELETE FROM device_requests WHERE user_id = ?").bind(userId),
     env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND token_hash != ?").bind(userId, session.tokenHash),
-    // this session may belong to an old device row: detach it first, or the row's ON DELETE CASCADE ends it
-    env.DB.prepare("UPDATE sessions SET device_id = NULL WHERE token_hash = ?").bind(session.tokenHash),
+    // this session may belong to an old device row: detach it first, or the row's ON DELETE CASCADE ends it. Edit on the
+    // website goes off for the new key (users.web_edit below), so a website key session of this one ends as well.
+    env.DB.prepare(
+      `UPDATE sessions SET device_id = NULL, unlock_at = NULL, unlock_via = NULL, key_proof_at = NULL, key_dek_id = NULL,
+         key_saved_at = NULL
+       WHERE token_hash = ?`,
+    ).bind(session.tokenHash),
     env.DB.prepare("DELETE FROM devices WHERE user_id = ?").bind(userId),
     // A new key chain starts: no chain MAC, so the account's other devices refuse the new key and ask their user. The
     // old recovery code can't open the new key: its wrap and proof go, and so does the "code only" copy of the old key.
     env.DB.prepare(
       `UPDATE users SET dek_id = ?, dek_proof = ?, wrapped_dek = ?, recovery_wrapped_dek = NULL, recovery_proof = NULL,
          chain_from = NULL, chain_mac = NULL, chain_rotator = NULL, chain_removed = NULL, rewrap_needed = ?,
-         rotation_required = 0, recovery_renewal_needed = 0, escrow_dek = NULL
+         rotation_required = 0, recovery_renewal_needed = 0, escrow_dek = NULL, web_edit = 0
        WHERE id = ?`,
     ).bind(
       body.dekId,

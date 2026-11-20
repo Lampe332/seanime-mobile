@@ -165,19 +165,21 @@ describe("unlock and key proof", () => {
       method: "password",
       wrappedDek: u.keys.wrappedDek,
     });
-    // unlocking alone mails nothing
-    expect(await subjects(u.email)).toEqual([]);
+    // the unlock hands out the wrap, so it mails and lists at once
+    const mails = await sink.take(u.email);
+    expect(mails.map((m) => m.subject)).toEqual([UNLOCKED]);
+    expect(mails[0]!.text).toContain("Unlocked with: Password");
+    expect(mails[0]!.text).not.toMatch(/[–—]/);
+    expect((await events(u.token))[0]).toMatchObject({ kind: "web_unlocked", method: "password" });
     const t = Math.floor(Date.now() / 1000);
     const k = await key(site, u.keys.dekId, u.keys.dekProof);
     expect(k.status).toBe(200);
     const { keyUntil } = await json<{ keyUntil: number }>(k);
     expect(keyUntil).toBeGreaterThanOrEqual(t + 1800);
     expect(keyUntil).toBeLessThanOrEqual(t + 1802);
-    const mails = await sink.take(u.email);
-    expect(mails.map((m) => m.subject)).toEqual([UNLOCKED]);
-    expect(mails[0]!.text).toContain("Unlocked with: Password");
-    expect(mails[0]!.text).not.toMatch(/[–—]/);
-    expect((await events(u.token))[0]).toMatchObject({ kind: "web_unlocked", method: "password" });
+    // web/key mails nothing more
+    expect(await subjects(u.email)).toEqual([]);
+    expect((await events(u.token)).filter((e) => e.kind === "web_unlocked")).toHaveLength(1);
     expect(await json(await api("/v1/account", { headers: web(site) }))).toMatchObject({ webEdit: true, session: { keyUntil } });
     expect((await webGet(site)).status).toBe(200);
   });
@@ -193,7 +195,8 @@ describe("unlock and key proof", () => {
     expect((await unlock(site, { authKey: u.keys.authKey })).status).toBe(200);
     await expectError(await key(site, "dek-other", u.keys.dekProof), 409, "dek_mismatch");
     await expectError(await webGet(site), 403, "unlock_required");
-    expect((await events(u.token)).some((e) => e.kind === "web_unlocked")).toBe(false);
+    // each unlock was listed, though no key proof followed
+    expect((await events(u.token)).filter((e) => e.kind === "web_unlocked")).toHaveLength(2);
   });
 
   it("the unlock waits 5 minutes for the key proof", async () => {
@@ -271,9 +274,10 @@ describe("unlock with the recovery code or an email code", () => {
     const body = await json(res);
     expect(body).toMatchObject({ method: "recovery", recoveryWrappedDek, dekId: u.keys.dekId });
     expect(body).not.toHaveProperty("wrappedDek");
-    await sink.take(u.email);
+    // mailed by the unlock itself, not by web/key
+    expect((await sink.take(u.email)).find((m) => m.subject === UNLOCKED)!.text).toContain("Unlocked with: Recovery code");
     expect((await key(site, u.keys.dekId, u.keys.dekProof)).status).toBe(200);
-    expect((await sink.take(u.email))[0]!.text).toContain("Unlocked with: Recovery code");
+    expect(await sink.take(u.email)).toEqual([]);
     // 2 used of 5: three more, then 429 for the hour (also for the right proof)
     for (let i = 0; i < 3; i++) expect((await unlock(site, { recoveryProof })).status).toBe(200);
     await expectError(await unlock(site, { recoveryProof }), 429, "rate_limited");
@@ -298,9 +302,9 @@ describe("unlock with the recovery code or an email code", () => {
     expect(await json(res)).toMatchObject({ method: "code", escrowDek: dek, dekId: u.keys.dekId });
     // a code works once
     await expectError(await unlock(site, { code }), 401, "invalid_code");
-    await sink.take(u.email);
+    expect((await sink.take(u.email)).find((m) => m.subject === UNLOCKED)!.text).toContain("Unlocked with: Email code");
     expect((await key(site, u.keys.dekId, u.keys.dekProof)).status).toBe(200);
-    expect((await sink.take(u.email))[0]!.text).toContain("Unlocked with: Email code");
+    expect(await sink.take(u.email)).toEqual([]);
     // exactly one way at a time
     await expectError(await unlock(site, { code, authKey: u.keys.authKey }), 400, "invalid_request");
   });

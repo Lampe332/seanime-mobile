@@ -5,9 +5,9 @@
  * 1. `PUT account/web-access` (the app, a session bound to a device row, password again) turns it on. Any session turns
  *    it off (`DELETE`), which locks every website key session of the account at once.
  * 2. `POST web/unlock` shows the owner: the password, the recovery proof, or a code while "code only" is on. The answer is
- *    the matching wrap of the DEK; the browser unwraps it and checks it against a device MAC.
+ *    the matching wrap of the DEK; the browser unwraps it and checks it against a device MAC. Mail and event every time.
  * 3. `POST web/key` right after (5 minutes, once) shows the DEK proof. From then on the session reads and writes the
- *    snapshot for 30 minutes, while the account keeps that dekId (requireKeyHolder in session.ts). Mail every time.
+ *    snapshot for 30 minutes, while the account keeps that dekId (requireKeyHolder in session.ts).
  * 4. `POST web/lock` ends it early; so does signing out.
  *
  * The DEK proof alone never unlocks (I3): web/key only follows a web/unlock of the same session. A Google account without a
@@ -86,7 +86,8 @@ export async function deleteWebAccess(ctx: Ctx): Promise<Response> {
 }
 
 /**
- * Shows the owner and hands out the matching wrap of the DEK. Nothing is counted while Edit on the website is off.
+ * Shows the owner and hands out the matching wrap of the DEK, mailed and listed ("web_unlocked" with the method). Nothing
+ * is counted while Edit on the website is off.
  * - `{authKey}`: checked and counted like a sign-in (requirePassword). The session counts as a password sign-in from now
  *   on (`auth_at`, `password_auth`), so changing the password or the recovery code needs no second sign-in. Answer
  *   `wrappedDek` (null after a reset without recovery code: `409 rewrap_needed`).
@@ -166,6 +167,8 @@ export async function webUnlock(ctx: Ctx): Promise<Response> {
     ).bind(t, method, session.tokenHash),
     ...after,
   ]);
+  // the wrap leaves the server here, so the owner hears of it here (event and mail), whether or not web/key follows
+  await notify(env, session.userId, user.email, { kind: "web_unlocked", method });
   return json({
     userId: session.userId,
     dekId: user.dek_id,
@@ -177,7 +180,7 @@ export async function webUnlock(ctx: Ctx): Promise<Response> {
 
 /**
  * Right after web/unlock (5 minutes, once, also when it fails): the DEK proof of the account's current key. Then the session
- * reads and writes the snapshot for 30 minutes. Mail and event "web_unlocked" every time.
+ * reads and writes the snapshot for 30 minutes. No mail or event here: web/unlock sent "web_unlocked" already.
  */
 export async function webKey(ctx: Ctx): Promise<Response> {
   const { env } = ctx;
@@ -206,7 +209,7 @@ export async function webKey(ctx: Ctx): Promise<Response> {
     .bind(t, body.dekId, session.tokenHash, session.userId)
     .run();
   if ((set.meta.changes ?? 0) === 0) throw unlockRequired();
-  await notify(env, session.userId, user.email, { kind: "web_unlocked", method: unlocked.unlock_via });
+  // no second mail: web/unlock already mailed and listed this unlock
   return json({ dekId: body.dekId, keyUntil: t + WEB_KEY_SECONDS });
 }
 

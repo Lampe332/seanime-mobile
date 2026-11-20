@@ -85,9 +85,9 @@ async function handle(request: Request, env: Env, isBrowser: boolean, exec: Exec
       // NEU-11: the account's upload counter is counted before a byte of the body is read, so even a valid token of an
       // own free account reads at most UPLOAD_LIMIT large bodies per hour.
       const { userId, web: fromWebsite } = await precheckSession(request, env);
-      // Edit on the website: its own counter first, so a website session never uses up more than WEB_UPLOAD_LIMIT of the
-      // account's counter, which the devices need for their sync.
-      if (fromWebsite && pathname === "/v1/sync/snapshot") {
+      // Website sessions: their own counter first on every upload route (snapshot and rotate), so they never use up more
+      // than WEB_UPLOAD_LIMIT of the account's counter, which the devices need for their sync.
+      if (fromWebsite) {
         await fixedWindow(env, await rateKey(env, "web-upload", userId), WEB_UPLOAD_LIMIT, r.HOUR);
       }
       await fixedWindow(env, await rateKey(env, "upload", userId), r.UPLOAD_LIMIT, r.HOUR);
