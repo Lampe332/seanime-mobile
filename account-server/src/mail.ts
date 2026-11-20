@@ -546,6 +546,35 @@ export async function notify(env: Env, userId: string, to: string, mail: Securit
 }
 
 /**
+ * Events the account lists without a mail: sign-ins, a password reset (its mail is "password_changed"), a confirmed email,
+ * sessions ended from the session list. GET account keeps the security events ahead of the frequent "signed_in".
+ */
+export type ActivityEvent =
+  | { kind: "signed_in"; method: "password" | "code" | "google"; sigKey: { alg: string; pub: string } }
+  | { kind: "password_reset" }
+  | { kind: "sessions_signed_out"; deviceName: string | null };
+
+/**
+ * The statement that keeps an activity event (for a batch). A sign-in names the device whose live row carries the signing
+ * key (the app keeps its key across sign-ins); the website and a new device have none.
+ */
+export function eventStatement(env: Env, userId: string, event: ActivityEvent): D1PreparedStatement {
+  const t = Math.floor(Date.now() / 1000);
+  if (event.kind === "signed_in") {
+    return env.DB.prepare(
+      `INSERT INTO account_events (user_id, kind, method, device_name, at) VALUES (?1, 'signed_in', ?2,
+         (SELECT name FROM devices WHERE user_id = ?1 AND sig_alg = ?3 AND sig_pub = ?4 AND signed_out_at IS NULL LIMIT 1), ?5)`,
+    ).bind(userId, event.method, event.sigKey.alg, event.sigKey.pub, t);
+  }
+  return env.DB.prepare("INSERT INTO account_events (user_id, kind, device_name, at) VALUES (?, ?, ?, ?)").bind(
+    userId,
+    event.kind,
+    "deviceName" in event ? event.deviceName : null,
+    t,
+  );
+}
+
+/**
  * Sends one mail. Delivery problems never fail the request that triggered it:
  * the error code is logged (no address, no token) and the caller continues.
  */

@@ -121,7 +121,30 @@ export function eventText(t: Translate, event: AccountEvent): string {
         case "approvals_paused": return t("Approvals were paused after numbers didn't match", "Freigaben wurden pausiert, weil Zahlen nicht passten")
         case "code_only_on": return t("Code-only sign-in was turned on", "Nur-Code-Anmeldung wurde eingeschaltet")
         case "code_only_off": return t("Code-only sign-in was turned off", "Nur-Code-Anmeldung wurde ausgeschaltet")
+        case "password_reset": return t("The password was reset", "Das Passwort wurde zurückgesetzt")
+        case "email_verified": return t("The email address was confirmed", "Die E-Mail-Adresse wurde bestätigt")
+        case "sessions_signed_out": return event.deviceName !== null
+            ? t(`${event.deviceName} was signed out`, `${event.deviceName} wurde abgemeldet`)
+            : t("Other sessions were signed out", "Andere Sitzungen wurden abgemeldet")
+        case "signed_in": return signInText(t, event)
         default: return event.kind
+    }
+}
+
+/** A sign-in in the timeline: how, and which device when the app signed in with the key it already had */
+function signInText(t: Translate, event: AccountEvent): string {
+    const name = event.deviceName
+    switch (event.method) {
+        case "password": return name !== null
+            ? t(`${name} signed in with the password`, `${name} hat sich mit dem Passwort angemeldet`)
+            : t("Signed in with the password", "Mit dem Passwort angemeldet")
+        case "code": return name !== null
+            ? t(`${name} signed in with a code`, `${name} hat sich mit einem Code angemeldet`)
+            : t("Signed in with a code", "Mit einem Code angemeldet")
+        case "google": return name !== null
+            ? t(`${name} signed in with Google`, `${name} hat sich mit Google angemeldet`)
+            : t("Signed in with Google", "Mit Google angemeldet")
+        default: return name !== null ? t(`${name} signed in`, `${name} hat sich angemeldet`) : t("Signed in", "Angemeldet")
     }
 }
 
@@ -299,6 +322,19 @@ export function accountErrorText(t: Translate, error: unknown, where?: "sign-in"
             "Für diese E-Mail wurden zuletzt viele falsche Passwörter probiert. Wenn deins stimmt, liegt jetzt ein Anmelde-Link in deinem Postfach. Öffne ihn und tippe dann auf Weiter.")
         : t("Someone tried a lot of wrong passwords for this email lately. If yours was right, a sign-in link is in your inbox now. Open it, then try again.",
             "Für diese E-Mail wurden zuletzt viele falsche Passwörter probiert. Wenn deins stimmt, liegt jetzt ein Anmelde-Link in deinem Postfach. Öffne ihn und versuch es dann noch mal.")
+    if (code === "start_fresh_wait") {
+        const retryAfter = (error as { body?: { retryAfter?: unknown } } | null)?.body?.retryAfter
+        if (typeof retryAfter === "number" && retryAfter > 0) {
+            const hours = Math.ceil(retryAfter / 3600)
+            return plural(t, hours,
+                ["Start fresh waits 24 hours after a sign-in with a code or a password reset, to protect your data. Try again in 1 hour.",
+                    "Start fresh waits 24 hours after a sign-in with a code or a password reset, to protect your data. Try again in {0} hours."],
+                ["Neu anfangen geht zum Schutz deiner Daten erst 24 Stunden nach einer Anmeldung mit Code oder dem Zurücksetzen des Passworts. Versuch es in 1 Stunde noch mal.",
+                    "Neu anfangen geht zum Schutz deiner Daten erst 24 Stunden nach einer Anmeldung mit Code oder dem Zurücksetzen des Passworts. Versuch es in {0} Stunden noch mal."])
+        }
+        return t("Start fresh waits 24 hours after a sign-in with a code or a password reset, to protect your data. Try again later.",
+            "Neu anfangen geht zum Schutz deiner Daten erst 24 Stunden nach einer Anmeldung mit Code oder dem Zurücksetzen des Passworts. Versuch es später noch mal.")
+    }
     if (code === "owner_required") return t("Sign in with your password, use your recovery code or approve this device on another one.", "Melde dich mit deinem Passwort an, nutze deinen Wiederherstellungscode oder gib dieses Gerät auf einem anderen frei.")
     if (code === "approvals_paused") return t("The numbers didn't match three times, so approving devices is paused for an hour. Your password and recovery code still work.",
         "Die Zahlen passten dreimal nicht, deshalb sind Freigaben eine Stunde pausiert. Passwort und Wiederherstellungscode gehen weiter.")

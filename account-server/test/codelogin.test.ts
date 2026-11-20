@@ -280,7 +280,7 @@ describe("code only (escrow)", () => {
     expect((await sink.take(u.email)).map((m) => m.subject)).toEqual(["Sign-in with an email code only was turned on"]);
     expect(await json(await api("/v1/account", { token: u.token }))).toMatchObject({
       codeOnly: true,
-      events: [expect.objectContaining({ kind: "code_only_on" })],
+      events: [expect.objectContaining({ kind: "code_only_on" }), expect.objectContaining({ kind: "signed_in", method: "password" })],
     });
     // stored sealed, never the raw key, and never shown by GET account
     const stored = (await escrowRow(u.userId))!.escrow_dek!;
@@ -422,6 +422,8 @@ describe("new password after a code sign-in", () => {
   it("forgot the password: code, Start fresh without a password wrap, then a new password", async () => {
     const u = await signupUser();
     const s = await signInWithCode(u.email);
+    // the first code sign-in of the window was a day ago (Start fresh waits 24 hours after it)
+    await env.DB.prepare("UPDATE users SET code_since = code_since - 25 * 3600 WHERE id = ?").bind(u.userId).run();
     const k = clientKeys();
     const fresh = await api("/v1/account/start-fresh", {
       token: s.sessionToken,

@@ -2,7 +2,7 @@
 import { fromB64url, hmacSha256, randomBytes, safeEqual, sha256, toB64url } from "./crypto";
 import { verifyGoogleIdToken } from "./google";
 import { clientIp, HttpError, json, noContent, readJson } from "./http";
-import { notify, sendMail } from "./mail";
+import { eventStatement, notify, sendMail } from "./mail";
 import { burstLimit, fixedWindow, ipKey, isKnownNetwork, mailAllowed, rateKey, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
 import { authHash, type Ctx, isUniqueViolation, PEPPER_VERSION, withSession } from "./routes";
 import { GoogleLoginBody, LinkGoogleBody, ResetBody, ResetRequestBody, TokenBody, UnlinkGoogleBody } from "./schemas";
@@ -53,6 +53,10 @@ export async function verifyEmail(ctx: Ctx): Promise<Response> {
     ).bind(hash, t),
   ]);
   if (!used || used.meta.changes === 0) throw invalidToken();
+  // an event without a mail, only for the request that used the link
+  await env.DB.prepare("INSERT INTO account_events (user_id, kind, at) SELECT user_id, 'email_verified', ? FROM tokens WHERE token_hash = ?")
+    .bind(t, hash)
+    .run();
   return json({ emailVerified: true });
 }
 
@@ -195,21 +199,22 @@ export async function resetPassword(ctx: Ctx): Promise<Response> {
   const t = now();
   const auth = toB64url(await authHash(env, body.authKey));
   const owner = "(SELECT user_id FROM tokens WHERE token_hash = ? AND purpose = 'reset' AND used_at = ?)";
-  // H-2: a reset removes a linked Google sign-in; whoever linked one with a stolen password loses it here.
+  // H-2: a reset removes a linked Google sign-in; whoever linked one with a stolen password loses it here. `reset_at`:
+  // Start fresh waits 24 hours after it (routes.ts startFreshWait).
   const update = body.keys
     ? env.DB.prepare(
         `UPDATE users SET kdf_salt = ?, kdf_params = ?, auth_hash = ?, pepper_version = ?, email_verified = 1, google_sub = NULL,
-           wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = 0, recovery_renewal_needed = 0
+           wrapped_dek = ?, recovery_wrapped_dek = ?, rewrap_needed = 0, recovery_renewal_needed = 0, reset_at = ?
          WHERE id = ${owner} AND dek_id = ?`,
-      ).bind(body.salt, JSON.stringify(body.kdf), auth, PEPPER_VERSION, body.keys.wrappedDek, body.keys.recoveryWrappedDek, hash, t, body.keys.dekId)
+      ).bind(body.salt, JSON.stringify(body.kdf), auth, PEPPER_VERSION, body.keys.wrappedDek, body.keys.recoveryWrappedDek, t, hash, t, body.keys.dekId)
     : // Without recovery code no DEK is handed out: the password wrap is dropped (plan 6.8, 10.2).
       env.DB.prepare(
         `UPDATE users SET kdf_salt = ?, kdf_params = ?, auth_hash = ?, pepper_version = ?, email_verified = 1, google_sub = NULL,
-           wrapped_dek = NULL,
+           wrapped_dek = NULL, reset_at = ?,
            rewrap_needed = CASE WHEN dek_id IS NULL THEN 0 ELSE 1 END,
            rotation_required = CASE WHEN dek_id IS NULL THEN rotation_required ELSE 1 END
          WHERE id = ${owner}`,
-      ).bind(body.salt, JSON.stringify(body.kdf), auth, PEPPER_VERSION, hash, t);
+      ).bind(body.salt, JSON.stringify(body.kdf), auth, PEPPER_VERSION, t, hash, t);
 
   const [used, changed] = await env.DB.batch([
     env.DB.prepare(
@@ -221,7 +226,9 @@ export async function resetPassword(ctx: Ctx): Promise<Response> {
   ]);
   if (!used || used.meta.changes === 0) throw invalidToken();
   if (!changed || changed.meta.changes === 0) throw new HttpError(409, "dek_mismatch", "The account uses a different key.");
-  await notify(env, target.user_id, target.email, { kind: "password_changed" });
+  // listed as a reset (not as a change from a signed-in device); the mail stays "password changed"
+  await eventStatement(env, target.user_id, { kind: "password_reset" }).run();
+  await sendMail(env, target.email, { kind: "password_changed" });
   return json({ rewrapNeeded: !body.keys && target.dek_id !== null });
 }
 
@@ -306,10 +313,11 @@ export async function googleLogin(ctx: Ctx): Promise<Response> {
     created = true;
   }
 
-  const session = await newSession(env, user.id, null, body.sigKey);
+  const session = await newSession(env, user.id, null, body.sigKey, false, false, ctx.isBrowser);
   await env.DB.batch([
     session.statement,
     env.DB.prepare("UPDATE users SET last_active_at = ? WHERE id = ?").bind(t, user.id),
+    eventStatement(env, user.id, { kind: "signed_in", method: "google", sigKey: body.sigKey }),
   ]);
   // New account: this device creates the DEK. Existing account: approval (6.4) or recovery code.
   return withSession(ctx, session.token, {

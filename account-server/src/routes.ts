@@ -2,7 +2,7 @@ import { fromB64url, hmacSha256, randomBytes, safeEqual, sha256, toB64url } from
 import { clientIp, HttpError, json, noContent, readJson, readLimited, requireMediaType } from "./http";
 import { burstLimit, fixedWindow, ipKey, mailAllowed, rateKey, rememberNetwork, reserveLoginEmail, reserveLoginIp } from "./ratelimit";
 import { AuthKeyBody, DEFAULT_KDF, DekId, KeysBody, LoginBody, PasswordBody, PreloginBody, SignupBody, StartFreshBody, Uuid } from "./schemas";
-import { notify, sendMail } from "./mail";
+import { eventStatement, notify, sendMail } from "./mail";
 import { issueToken, requirePassword, VERIFY_TTL } from "./identity";
 import { issueChallenge, verifySignIn } from "./signature";
 import {
@@ -10,11 +10,14 @@ import {
   copyDeviceKey,
   newSession,
   now,
+  publicSessionId,
+  RECENT_AUTH_SECONDS,
   SESSION_IDLE_SECONDS,
   requireDevice,
   requireRecentAuth,
   requireSession,
   sessionCookie,
+  signInMethod,
   type Session,
 } from "./session";
 
@@ -148,7 +151,7 @@ export async function signup(ctx: Ctx): Promise<Response> {
       ).bind(deviceId, userId, d.name, d.devicePub, d.sealedDek, body.keys.dekId, d.mac, t, t),
     );
   }
-  const session = await newSession(env, userId, deviceId, body.sigKey, true);
+  const session = await newSession(env, userId, deviceId, body.sigKey, true, false, ctx.isBrowser);
   const verify = await issueToken(env, userId, "verify", VERIFY_TTL);
   statements.push(session.statement, copyDeviceKey(env, session.tokenHash), verify.statement, await rememberNetwork(env, userId, ip));
   try {
@@ -215,12 +218,13 @@ export async function login(ctx: Ctx): Promise<Response> {
   }
   if (!right || !user) throw new HttpError(401, "wrong_credentials", WRONG_LOGIN);
 
-  const session = await newSession(env, user.id, null, body.sigKey, true);
+  const session = await newSession(env, user.id, null, body.sigKey, true, false, ctx.isBrowser);
   await env.DB.batch([
     session.statement,
     ipBack,
     ...onSuccess,
     env.DB.prepare("UPDATE users SET last_active_at = ? WHERE id = ?").bind(now(), user.id),
+    eventStatement(env, user.id, { kind: "signed_in", method: "password", sigKey: body.sigKey }),
     // a confirmed link works once
     env.DB.prepare("DELETE FROM login_links WHERE user_id = ? AND sig_pub = ?").bind(user.id, body.sigKey.pub),
     await rememberNetwork(env, user.id, ip),
@@ -275,6 +279,97 @@ export async function logout(ctx: Ctx): Promise<Response> {
   ]);
   if (row) await notify(env, session.userId, row.email, { kind: "device_signed_out", deviceName: row.name });
   return noContent(cookie);
+}
+
+// ---------------------------------------------------------------- sessions
+
+interface SessionRow {
+  token_hash: string;
+  device_id: string | null;
+  device_name: string | null;
+  created_at: number;
+  last_used_at: number;
+  password_auth: number;
+  code_auth: number;
+  web: number;
+}
+
+function liveSessions(env: Env, userId: string): Promise<D1Result<SessionRow>> {
+  return env.DB.prepare(
+    `SELECT s.token_hash, s.device_id, d.name AS device_name, s.created_at, s.last_used_at, s.password_auth, s.code_auth, s.web
+     FROM sessions s LEFT JOIN devices d ON d.id = s.device_id AND d.user_id = s.user_id
+     WHERE s.user_id = ? AND s.last_used_at >= ? ORDER BY s.last_used_at DESC, s.created_at DESC LIMIT 200`,
+  )
+    .bind(userId, now() - SESSION_IDLE_SECONDS)
+    .all<SessionRow>();
+}
+
+/** The account's live sessions. Never a token hash or an address: a keyed short id, times, how and where they signed in. */
+export async function listSessions(ctx: Ctx): Promise<Response> {
+  const { env } = ctx;
+  const session = await requireSession(ctx.request, env);
+  const { results } = await liveSessions(env, session.userId);
+  const sessions = await Promise.all(
+    results.map(async (r) => {
+      const current = r.token_hash === session.tokenHash;
+      return {
+        id: await publicSessionId(env, r.token_hash),
+        createdAt: r.created_at,
+        lastUsedAt: r.last_used_at,
+        method: signInMethod({ passwordAuth: r.password_auth === 1, codeAuth: r.code_auth === 1 }),
+        kind: (current ? session.web : r.web === 1) ? "website" : "app",
+        deviceName: r.device_name,
+        current,
+      };
+    }),
+  );
+  return json({ sessions });
+}
+
+/**
+ * Ends other sessions of the account ("sign out everywhere else", or one from the list). A website session or an app
+ * session without the key ends at once; a session bound to a device row (an app that holds the key) only after a sign-in
+ * within the last 10 minutes, so a taken-over website session can't throw the owner's devices out. The device row stays
+ * (removing a device is DELETE devices/:id); the ended sessions answer 401 from the next request on. No mail, an event.
+ */
+async function endSessions(env: Env, session: Session, targets: SessionRow[], all: boolean): Promise<number> {
+  const recent = now() - session.authAt <= RECENT_AUTH_SECONDS;
+  if (!recent && targets.some((r) => r.device_id !== null)) requireRecentAuth(session);
+  const hashes = all ? null : JSON.stringify(targets.map((r) => r.token_hash));
+  if (hashes === "[]") return 0;
+  // without a recent sign-in device sessions stay, also one that started between the check and here
+  const keepDevices = recent ? "" : " AND device_id IS NULL";
+  const which = hashes === null ? "" : " AND token_hash IN (SELECT value FROM json_each(?))";
+  const del = env.DB.prepare(`DELETE FROM sessions WHERE user_id = ? AND token_hash != ?${which}${keepDevices}`);
+  const result = await (hashes === null ? del.bind(session.userId, session.tokenHash) : del.bind(session.userId, session.tokenHash, hashes)).run();
+  const ended = result.meta.changes ?? 0;
+  if (ended > 0) {
+    const deviceName = !all && targets.length === 1 ? targets[0]!.device_name : null;
+    await eventStatement(env, session.userId, { kind: "sessions_signed_out", deviceName }).run();
+  }
+  return ended;
+}
+
+export async function signOutOthers(ctx: Ctx): Promise<Response> {
+  const session = await requireSession(ctx.request, ctx.env);
+  const { results } = await liveSessions(ctx.env, session.userId);
+  const others = results.filter((r) => r.token_hash !== session.tokenHash);
+  return json({ signedOut: await endSessions(ctx.env, session, others, true) });
+}
+
+export async function deleteSession(ctx: Ctx): Promise<Response> {
+  const session = await requireSession(ctx.request, ctx.env);
+  const id = ctx.params.id ?? "";
+  if (!/^[A-Za-z0-9_-]{22}$/.test(id)) throw new HttpError(404, "not_found");
+  const { results } = await liveSessions(ctx.env, session.userId);
+  let target: SessionRow | undefined;
+  for (const r of results) if ((await publicSessionId(ctx.env, r.token_hash)) === id) target = r;
+  if (!target) throw new HttpError(404, "not_found");
+  if (target.token_hash === session.tokenHash) {
+    throw new HttpError(400, "invalid_request", "This is the current session; sign out with auth/logout.");
+  }
+  if ((await endSessions(ctx.env, session, [target], false)) === 0) throw new HttpError(404, "not_found");
+  return json({ signedOut: 1 });
 }
 
 // ---------------------------------------------------------------- devices
@@ -615,18 +710,21 @@ export async function getAccount(ctx: Ctx): Promise<Response> {
   if (!user) throw new HttpError(401, "unauthorized");
   // I5: the newest security events, the same ones that were mailed. NEU4-5: plus the newest of each kind, so a flood of one
   // kind never pushes another out of the list. NEU5-4: the newest 3 of each kind, so two devices signed out stay listed.
+  // Sign-ins are frequent and no security change: they never count toward the newest 20, and at most their newest 10 show.
   const { results: events } = await ctx.env.DB.prepare(
-    `SELECT kind, device_name, at FROM account_events WHERE user_id = ?1 AND (
-       id IN (SELECT id FROM account_events WHERE user_id = ?1 ORDER BY at DESC, id DESC LIMIT 20)
-       OR id IN (SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY kind ORDER BY at DESC, id DESC) AS n
-                 FROM account_events WHERE user_id = ?1) WHERE n <= 3))
+    `SELECT kind, method, device_name, at FROM account_events WHERE user_id = ?1 AND (
+       id IN (SELECT id FROM account_events WHERE user_id = ?1 AND kind != 'signed_in' ORDER BY at DESC, id DESC LIMIT 20)
+       OR id IN (SELECT id FROM (SELECT id, kind, ROW_NUMBER() OVER (PARTITION BY kind ORDER BY at DESC, id DESC) AS n
+                 FROM account_events WHERE user_id = ?1) WHERE n <= CASE kind WHEN 'signed_in' THEN 10 ELSE 3 END))
      ORDER BY at DESC, id DESC`,
   )
     .bind(session.userId)
-    .all<{ kind: string; device_name: string | null; at: number }>();
+    .all<{ kind: string; method: string | null; device_name: string | null; at: number }>();
   return json({
     userId: session.userId,
-    events: events.map((e) => ({ kind: e.kind, deviceName: e.device_name, at: e.at })),
+    events: events.map((e) => ({ kind: e.kind, deviceName: e.device_name, at: e.at, ...(e.method !== null ? { method: e.method } : {}) })),
+    // This session only: when and how it signed in, and until when steps that need a recent sign-in work
+    session: { authAt: session.authAt, method: signInMethod(session), recentAuthUntil: session.authAt + RECENT_AUTH_SECONDS },
     email: user.email,
     emailVerified: user.email_verified === 1,
     googleLinked: user.google_sub !== null,
@@ -677,6 +775,23 @@ export async function getDeviceKey(ctx: Ctx): Promise<Response> {
   });
 }
 
+export const START_FRESH_WAIT_SECONDS = 24 * 3600;
+/** A code sign-in starts the wait once per window: the next code after these 7 days waits again */
+export const CODE_WINDOW_SECONDS = 7 * 24 * 3600;
+
+/**
+ * Seconds Start fresh still waits (0: none). It wipes the encrypted data for good, so whoever holds only the mailbox can't
+ * do it at once and the owner has a day to notice (timeline, mails): 24 hours after a password reset (any
+ * session, also the password sign-in that follows it), and for a code session 24 hours after the first code sign-in of
+ * the account's current window (`code_since`, auth/code/login). A password sign-in without a recent reset and Google
+ * never wait.
+ */
+function startFreshWait(session: Session, user: { reset_at: number | null; code_since: number | null }, t: number): number {
+  let until = user.reset_at !== null ? user.reset_at + START_FRESH_WAIT_SECONDS : 0;
+  if (session.codeAuth) until = Math.max(until, (user.code_since ?? session.authAt) + START_FRESH_WAIT_SECONDS);
+  return Math.max(0, until - t);
+}
+
 /**
  * Start fresh (plan 2, 6.3, 6.8): the old DEK is lost (no device, no recovery code). In one transaction the synced
  * snapshot, every device and its key, open approval requests and all other sessions go; the account gets the new
@@ -687,9 +802,16 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, env);
   requireRecentAuth(session);
   const body = await readJson(ctx.request, StartFreshBody);
-  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, recovery_proof FROM users WHERE id = ?")
+  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, recovery_proof, reset_at, code_since FROM users WHERE id = ?")
     .bind(session.userId)
-    .first<{ email: string; dek_id: string | null; auth_hash: string | null; recovery_proof: string | null }>();
+    .first<{
+      email: string;
+      dek_id: string | null;
+      auth_hash: string | null;
+      recovery_proof: string | null;
+      reset_at: number | null;
+      code_since: number | null;
+    }>();
   if (!user) throw new HttpError(401, "unauthorized");
   // After a code sign-in the password may be forgotten: then the new key has no password wrap yet (rewrapNeeded), and
   // account/password/after-code sets a new password for it.
@@ -702,6 +824,10 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
   if (user.auth_hash !== null && !(await isOwner(session, user, undefined, true))) throw ownerRequired();
   // M2: a code never owns an account without a password
   if (user.auth_hash === null && session.codeAuth) throw ownerRequired();
+  const wait = startFreshWait(session, user, now());
+  if (wait > 0) {
+    throw new HttpError(403, "start_fresh_wait", "Start fresh waits 24 hours after a password reset or a sign-in with a code.", {}, { retryAfter: wait });
+  }
   if (user.dek_id === body.dekId) throw new HttpError(400, "invalid_request", "dekId must be new", {}, { fields: ["dekId"] });
   if (await wasRemoved(env, session.userId, body.device.devicePub)) throw removedError();
 

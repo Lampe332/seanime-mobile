@@ -9,9 +9,9 @@
 import { fromB64url, hmacSha256, randomBytes, safeEqual, toB64url } from "./crypto";
 import { clientIp, HttpError, json, noContent, readJson } from "./http";
 import { requirePassword } from "./identity";
-import { notify, sendMail } from "./mail";
+import { eventStatement, notify, sendMail } from "./mail";
 import { burstLimit, fixedWindow, ipKey, ipRange, isKnownNetwork, mailAllowed, rateKey, rememberNetwork, reserveLoginIp } from "./ratelimit";
-import { authHash, type Ctx, HOUR, keyRequired, PEPPER_VERSION, proofMatches, withSession } from "./routes";
+import { authHash, CODE_WINDOW_SECONDS, type Ctx, HOUR, keyRequired, PEPPER_VERSION, proofMatches, withSession } from "./routes";
 import { AfterCodeBody, CodeLoginBody, CodeRequestBody, DEFAULT_KDF, EscrowBody } from "./schemas";
 import { newSession, now, requireDevice, requireSession } from "./session";
 import { verifySignIn } from "./signature";
@@ -193,12 +193,19 @@ export async function codeLogin(ctx: Ctx): Promise<Response> {
     .bind(row.user_id, row.code_hash)
     .first();
   if (!used) throw invalidCode();
-  const session = await newSession(env, user.id, null, body.sigKey, false, true);
+  const session = await newSession(env, user.id, null, body.sigKey, false, true, ctx.isBrowser);
+  const t = now();
   await env.DB.batch([
     session.statement,
     ipBack,
-    // the code came to this address, so it is confirmed now (like a reset)
-    env.DB.prepare("UPDATE users SET last_active_at = ?, email_verified = 1 WHERE id = ?").bind(now(), user.id),
+    // the code came to this address, so it is confirmed now (like a reset). The first code of a window starts the wait
+    // before Start fresh (routes.ts startFreshWait); later codes in the same 7 days don't move it.
+    env.DB.prepare(
+      `UPDATE users SET last_active_at = ?1, email_verified = 1,
+         code_since = CASE WHEN code_since IS NULL OR code_since < ?2 THEN ?1 ELSE code_since END
+       WHERE id = ?3`,
+    ).bind(t, t - CODE_WINDOW_SECONDS, user.id),
+    eventStatement(env, user.id, { kind: "signed_in", method: "code", sigKey: body.sigKey }),
     // M1: this network is the owner's from now on (NEU4-1)
     await rememberNetwork(env, user.id, ip),
   ]);

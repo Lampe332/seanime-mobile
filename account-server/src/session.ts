@@ -1,4 +1,4 @@
-import { fromB64url, randomBytes, sha256, toB64url } from "./crypto";
+import { fromB64url, hmacSha256, randomBytes, sha256, toB64url } from "./crypto";
 import { HttpError } from "./http";
 import { hasSignatureHeaders, verifyRequest, type SigKey } from "./signature";
 
@@ -18,6 +18,23 @@ export interface Session {
   passwordAuth: boolean;
   /** The sign-in used a code from an email (auth/code/login) */
   codeAuth: boolean;
+  /** The website's session (cookie), not the app's (Bearer) */
+  web: boolean;
+}
+
+export type SignInMethod = "password" | "code" | "google";
+
+/** How the session signed in: the password (login, signup), a code from an email, or Google (neither). */
+export function signInMethod(s: { passwordAuth: boolean; codeAuth: boolean }): SignInMethod {
+  return s.passwordAuth ? "password" : s.codeAuth ? "code" : "google";
+}
+
+/**
+ * The id a session is listed and ended by (GET/DELETE sessions): a keyed hash of the token hash, cut to 16 bytes. The token
+ * hash itself is the app's signing session id and never leaves the server; this id can't be turned back into it.
+ */
+export async function publicSessionId(env: Env, tokenHash: string): Promise<string> {
+  return toB64url((await hmacSha256(env.ENUM_SECRET, `session-id:v1:${tokenHash}`)).slice(0, 16));
 }
 
 export const now = (): number => Math.floor(Date.now() / 1000);
@@ -34,14 +51,15 @@ export async function newSession(
   key: SigKey,
   passwordAuth = false,
   codeAuth = false,
+  web = false,
 ): Promise<{ token: string; tokenHash: string; statement: D1PreparedStatement }> {
   const token = toB64url(randomBytes(32));
   const t = now();
   // The session is bound to the signing key that signed the sign-in (plan 10.2b).
   const statement = env.DB.prepare(
-    `INSERT INTO sessions (token_hash, user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub, password_auth, code_auth)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(await hashToken(token), userId, deviceId, t, t, t, key.alg, key.pub, passwordAuth ? 1 : 0, codeAuth ? 1 : 0);
+    `INSERT INTO sessions (token_hash, user_id, device_id, created_at, auth_at, last_used_at, sig_alg, sig_pub, password_auth, code_auth, web)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(await hashToken(token), userId, deviceId, t, t, t, key.alg, key.pub, passwordAuth ? 1 : 0, codeAuth ? 1 : 0, web ? 1 : 0);
   return { token, tokenHash: await hashToken(token), statement };
 }
 
@@ -135,10 +153,16 @@ export async function requireSession(request: Request, env: Env): Promise<Sessio
   // The app knows its token and signs its hash; the website cannot read its HttpOnly cookie and signs "-".
   await verifyRequest(env, request, { alg: row.sig_alg, pub: row.sig_pub }, presented.bearer ? tokenHash : "-");
   if (row.last_used_at < t - TOUCH_AFTER_SECONDS) {
-    await env.DB.batch([
-      env.DB.prepare("UPDATE sessions SET last_used_at = ? WHERE token_hash = ?").bind(t, tokenHash),
+    // `web` follows how the token came (rows from before migration 0010 start as app); a device session also marks its
+    // device as seen, so GET devices shows its real last activity.
+    const touch = [
+      env.DB.prepare("UPDATE sessions SET last_used_at = ?, web = ? WHERE token_hash = ?").bind(t, presented.bearer ? 0 : 1, tokenHash),
       env.DB.prepare("UPDATE users SET last_active_at = ? WHERE id = ?").bind(t, row.user_id),
-    ]);
+    ];
+    if (row.device_id !== null) {
+      touch.push(env.DB.prepare("UPDATE devices SET last_seen_at = ? WHERE id = ? AND user_id = ?").bind(t, row.device_id, row.user_id));
+    }
+    await env.DB.batch(touch);
   }
   return {
     tokenHash,
@@ -149,6 +173,7 @@ export async function requireSession(request: Request, env: Env): Promise<Sessio
     sigPub: row.sig_pub,
     passwordAuth: row.password_auth === 1,
     codeAuth: row.code_auth === 1,
+    web: !presented.bearer,
   };
 }
 

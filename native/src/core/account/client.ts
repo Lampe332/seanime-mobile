@@ -124,8 +124,11 @@ export type DeviceInfo = {
     /** S4: when the device signed out (unix seconds); it gets no new key unless kept, and never comes back by itself */
     signedOutAt?: number | null
 }
-/** I5: a security event the server mailed (kind as in account-server/src/mail.ts SecurityMail) */
-export type AccountEvent = { kind: string, deviceName: string | null, at: number }
+/**
+ * I5: a security event the server mailed (kind as in account-server/src/mail.ts SecurityMail), or one it lists without a
+ * mail (ActivityEvent: signed_in with its `method`, password_reset, email_verified, sessions_signed_out)
+ */
+export type AccountEvent = { kind: string, deviceName: string | null, at: number, method?: string }
 /**
  * The DEK boxed to this session's device by the device that rotated it, and the old DEK's chain MAC (v2) over the new
  * DEK, the rotating device's key and the device keys it left out as removed

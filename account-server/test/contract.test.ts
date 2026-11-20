@@ -208,7 +208,11 @@ describe("GET account", () => {
       rotationRequired: false,
       recoveryRenewalNeeded: false,
       codeOnly: false,
+      // only this session: when and how it signed in, and until when a recent sign-in counts
+      session: { authAt: expect.any(Number), method: "password", recentAuthUntil: expect.any(Number) },
     });
+    const own = JSON.parse(text).session as { authAt: number; recentAuthUntil: number };
+    expect(own.recentAuthUntil - own.authAt).toBe(600);
     for (const secret of [a.keys.wrappedDek, a.keys.authKey, a.keys.salt, a.keys.sealedDek]) expect(text).not.toContain(secret);
     expect(await json(await api("/v1/account", { token: other.token }))).toMatchObject({ userId: other.userId, email: other.email });
     expect((await api("/v1/account")).status).toBe(401);

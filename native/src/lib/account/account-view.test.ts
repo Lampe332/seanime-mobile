@@ -8,7 +8,7 @@ import { AccountApiError, MailConfirmationError, RateLimitedError, UnauthorizedE
 import { UntrustedEscrowError } from "@/core/account/crypto"
 import type { ApprovalProgress } from "@/core/account/devices"
 import {
-    accountDate, accountErrorText, accountPhase, backspaceInCode, codeOf, formatRecoveryCode, formatSas, importFailureText, passwordStrength, repeatMismatch, resendWait,
+    accountDate, accountErrorText, accountPhase, backspaceInCode, codeOf, eventText, formatRecoveryCode, formatSas, importFailureText, passwordStrength, repeatMismatch, resendWait,
     startApprovalAttempt, syncedAgo, typeInCode, waitingRequests,
 } from "./account-view"
 
@@ -143,7 +143,33 @@ describe("repeated password", () => {
     })
 })
 
+describe("timeline", () => {
+    it("names sign-ins, a reset, a confirmed email and ended sessions instead of their raw kind", () => {
+        const at = 1_700_000_000
+        expect(eventText(en, { kind: "signed_in", method: "password", deviceName: null, at })).toBe("Signed in with the password")
+        expect(eventText(en, { kind: "signed_in", method: "code", deviceName: "Pixel 8", at })).toBe("Pixel 8 signed in with a code")
+        expect(eventText(en, { kind: "signed_in", method: "google", deviceName: null, at })).toBe("Signed in with Google")
+        expect(eventText(en, { kind: "signed_in", deviceName: null, at })).toBe("Signed in")
+        expect(eventText(en, { kind: "password_reset", deviceName: null, at })).toBe("The password was reset")
+        expect(eventText(en, { kind: "email_verified", deviceName: null, at })).toBe("The email address was confirmed")
+        expect(eventText(en, { kind: "sessions_signed_out", deviceName: null, at })).toBe("Other sessions were signed out")
+        expect(eventText(en, { kind: "sessions_signed_out", deviceName: "Pixel 8", at })).toBe("Pixel 8 was signed out")
+    })
+})
+
 describe("error texts", () => {
+    it("Start fresh after a code or a reset says how long it still waits", () => {
+        const wait = (retryAfter?: number) => new AccountApiError(403, "start_fresh_wait", "Start fresh waits 24 hours.", retryAfter === undefined ? {} : { retryAfter })
+        expect(accountErrorText(en, wait(23 * 3600 + 5))).toBe("Start fresh waits 24 hours after a sign-in with a code or a password reset, to protect your data. Try again in 24 hours.")
+        expect(accountErrorText(en, wait(1800))).toBe("Start fresh waits 24 hours after a sign-in with a code or a password reset, to protect your data. Try again in 1 hour.")
+        expect(accountErrorText(en, wait())).toBe("Start fresh waits 24 hours after a sign-in with a code or a password reset, to protect your data. Try again later.")
+        const de: Translate = (_english, german) => german
+        expect(accountErrorText(de, wait(5 * 3600))).toMatch(/in 5 Stunden noch mal\.$/)
+        const ru: Translate = (english, german) => translate("ru", english, german)
+        expect(accountErrorText(ru, wait(5 * 3600))).toMatch(/через 5 часов\.$/)
+        expect(accountErrorText(ru, wait(2 * 3600))).toMatch(/через 2 часа\.$/)
+        expect(accountErrorText(ru, wait(1800))).toMatch(/через 1 час\.$/)
+    })
     const wrongLogin = new UnauthorizedError("wrong_credentials", "Wrong email or password", {})
     const sessionGone = new UnauthorizedError("unauthorized", "", {})
     it("a 401 at sign-in is a wrong email or password", () => {
