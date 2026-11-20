@@ -3,7 +3,7 @@ import { useAnilistListAnime, useAnilistListMissedSequels, useAnilistListRecentA
 import { useGetLibraryCollection } from "@/api/hooks/anime_collection.hooks"
 import { useAnilistListManga, useGetMangaSourceRefresh } from "@/api/hooks/manga.hooks"
 import { MangaSourceRefreshSheet } from "@/main/manga/_components/manga-source-refresh-sheet"
-import { useGetHomeItems } from "@/api/hooks/status.hooks"
+import { useGetHomeItems, useUpdateHomeItems } from "@/api/hooks/status.hooks"
 import { useUpdateTheme } from "@/api/hooks/theme.hooks"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { usePageBottomPad } from "@/components/shared/phone-screen"
@@ -61,7 +61,7 @@ import { HomeMobileHeader, HomeHeaderAction, SearchHeadAction } from "./home-mob
 import { customizeInHomeHead } from "@/lib/nav/more-panel"
 import { AnilistSyncBar } from "@/main/_features/anilist-sync/anilist-sync"
 import { HomeScheduleCalendar } from "./home-schedule-calendar"
-import { HOME_ITEMS_PENDING, hasSectionGapBefore, resolveHomeItems, withCurrentSchema } from "./home-layout"
+import { carouselEmptyCause, HOME_ITEMS_PENDING, hasSectionGapBefore, resetCarouselOptions, resolveHomeItems, withCurrentSchema } from "./home-layout"
 import { __home_settingsModalOpen, HomeSettingsSheet } from "./home-settings-sheet"
 import { isAnimeLibraryItemsOnly } from "./home-items.utils"
 
@@ -299,10 +299,33 @@ function MediaCarousel({ item, type }: { item: Models_HomeItem, type: "anime" | 
                     <MediaCardRow data={media} keyOf={m => String(m.id)}
                         renderCard={(m, width) => <MediaEntryCard media={m} type={type} width={width} showLibraryBadge={type === "anime"} />} />
                 )}
-            {!isLoading && !!data?.Page && !media.length && (
-                <HomeState><Text className="text-sm-text-muted">{t("Nothing matches this section's options. Change them in Customize Home.", "Nichts passt zu den Optionen dieses Bereichs. Ändere sie unter „Home anpassen“.")}</Text></HomeState>
-            )}
+            {!isLoading && !!data?.Page && !media.length && <CarouselEmpty item={item} type={type} />}
         </View>
+    )
+}
+
+/** An empty carousel says which option empties it and can go back to its defaults. */
+function CarouselEmpty({ item, type }: { item: Models_HomeItem, type: "anime" | "manga" }) {
+    const t = useTr()
+    const { data: savedItems } = useGetHomeItems()
+    const { mutate: updateHomeItems, isPending } = useUpdateHomeItems()
+    const cause = carouselEmptyCause(item.options, type)
+    const note = "genres" in cause
+        ? t(`AniList only lists titles that have all ${cause.genres} picked genres, and none has them all. Pick one or two genres.`,
+            `AniList zeigt nur Titel, die alle ${cause.genres} gewählten Genres haben, und keiner hat alle. Wähle ein oder zwei Genres.`)
+        : cause.options.length
+            ? t(`Nothing matches this section's options (${cause.options.join(", ")}).`, `Nichts passt zu den Optionen dieses Bereichs (${cause.options.join(", ")}).`)
+            : t("Nothing matches this section's options.", "Nichts passt zu den Optionen dieses Bereichs.")
+    return (
+        <HomeState>
+            <Text className="text-sm-text-muted">{note}</Text>
+            {!!savedItems?.length && (
+                <Button intent="secondary" className="mt-3 self-start" loading={isPending}
+                    onPress={() => updateHomeItems({ items: resetCarouselOptions(savedItems, item.id) })}>
+                    {t("Reset options", "Optionen zurücksetzen")}
+                </Button>
+            )}
+        </HomeState>
     )
 }
 

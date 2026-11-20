@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
     addHomeItem,
     availableHomeItemTypes,
+    carouselEmptyCause,
     filterByGenres,
     genreCounts,
     hasSectionGapBefore,
@@ -10,6 +11,7 @@ import {
     homeBannerPosition,
     moveHomeItem,
     normalizeHomeItems,
+    resetCarouselOptions,
     resolveHomeItems,
     withCurrentSchema,
 } from "./home-layout"
@@ -43,6 +45,29 @@ describe("schema", () => {
     })
     it("normalizes to known sections with their current version", () => {
         expect(normalizeHomeItems([item("a", "gone"), item("b", "manga-library", { schemaVersion: 1 })])).toEqual([item("b", "manga-library")])
+    })
+})
+
+describe("empty carousel", () => {
+    // every genre ticked: AniList's genre_in wants all of them on one title and answers an empty page (checked 20.11.2026)
+    const allTicked = {
+        status: ["RELEASING", "FINISHED", "NOT_YET_RELEASED"],
+        genres: HOME_ITEMS["anime-carousel"].options!.find(option => option.name === "genres")!.options!.map(option => option.value),
+    }
+    it("blames two or more genres, which must all match", () => {
+        expect(carouselEmptyCause(allTicked, "anime")).toEqual({ genres: 18 })
+        expect(carouselEmptyCause({ genres: ["Sports", "Mecha"] }, "manga")).toEqual({ genres: 2 })
+    })
+    it("otherwise names the options that narrow the row", () => {
+        expect(carouselEmptyCause({ name: "Mine", sorting: "SCORE", format: "SPECIAL", genres: ["Music"], season: "FALL", year: 0, countryOfOrigin: "TW" }, "anime"))
+            .toEqual({ options: ["Format", "Genres", "Season", "Country of Origin"] })
+        expect(carouselEmptyCause({ season: "FALL", year: 2025, status: [] }, "manga")).toEqual({ options: ["Year"] })
+        expect(carouselEmptyCause(undefined, "anime")).toEqual({ options: [] })
+    })
+    it("resets one carousel to its defaults and keeps its name", () => {
+        const items = [item("a", "anime-carousel", { options: { name: "Mine", ...allTicked } }), item("b", "manga-carousel", { options: allTicked })]
+        expect(resetCarouselOptions(items, "a")).toEqual([item("a", "anime-carousel", { options: { name: "Mine" } }), items[1]])
+        expect(resetCarouselOptions(items, "b")).toEqual([items[0], item("b", "manga-carousel", { options: undefined })])
     })
 })
 

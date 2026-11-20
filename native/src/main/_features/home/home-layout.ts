@@ -30,6 +30,28 @@ export function normalizeHomeItems(items: Models_HomeItem[]): Models_HomeItem[] 
     return items.filter(item => !!HOME_ITEMS[item.type]).map(item => ({ ...item, schemaVersion: HOME_ITEMS[item.type].schemaVersion }))
 }
 
+/**
+ * Why an anime / manga carousel came back empty. AniList's genre_in wants every picked genre on one title, so two or
+ * more rarely-paired genres (or all of them) empty the row; otherwise it names the options that narrow the row.
+ */
+export function carouselEmptyCause(options: Nullish<Record<string, unknown>>, type: "anime" | "manga"):
+    { genres: number } | { options: string[] } {
+    const genres = Array.isArray(options?.genres) ? options.genres.length : 0
+    if (genres > 1) return { genres }
+    const names = ["status", "format", "genres", ...(type === "anime" ? ["season"] : []), "year", "countryOfOrigin"]
+    const schema = HOME_ITEMS[`${type}-carousel`]?.options ?? []
+    return {
+        options: names.filter(name => Array.isArray(options?.[name]) ? (options[name] as unknown[]).length > 0 : !!options?.[name])
+            .map(name => (schema.find(option => option.name === name)?.label ?? name).split(" (")[0]),
+    }
+}
+
+/** A carousel back to its defaults (top rated, released or releasing); only its name stays. */
+export function resetCarouselOptions(items: Models_HomeItem[], id: string): Models_HomeItem[] {
+    return normalizeHomeItems(items.map(item => item.id !== id ? item
+        : { ...item, options: item.options?.name ? { name: item.options.name } : undefined }))
+}
+
 /** Sections that can be added more than once stay offered; the others only while they are not on Home. */
 const REPEATABLE = new Set(["anime-carousel", "manga-carousel", "centered-title", "my-lists"])
 

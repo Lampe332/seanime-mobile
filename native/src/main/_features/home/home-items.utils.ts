@@ -136,7 +136,7 @@ const _carouselOptions = [
         ],
     },
     {
-        label: "Genres",
+        label: "Genres (a title needs all picked)",
         type: "multi-select",
         options: ADVANCED_SEARCH_MEDIA_GENRES.map(n => ({ value: n, label: n })),
         name: "genres",
