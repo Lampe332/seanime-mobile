@@ -422,8 +422,8 @@ describe("new password after a code sign-in", () => {
   it("forgot the password: code, Start fresh without a password wrap, then a new password", async () => {
     const u = await signupUser();
     const s = await signInWithCode(u.email);
-    // the first code sign-in of the window was a day ago (Start fresh waits 24 hours after it)
-    await env.DB.prepare("UPDATE users SET code_since = code_since - 25 * 3600 WHERE id = ?").bind(u.userId).run();
+    // the first code sign-in of the window with this key was a day ago (Start fresh waits 24 hours after it)
+    await env.DB.prepare("UPDATE code_anchors SET since = since - 25 * 3600 WHERE user_id = ?").bind(u.userId).run();
     const k = clientKeys();
     const fresh = await api("/v1/account/start-fresh", {
       token: s.sessionToken,

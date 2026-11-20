@@ -217,13 +217,14 @@ export async function codeLogin(ctx: Ctx): Promise<Response> {
   await env.DB.batch([
     session.statement,
     ipBack,
-    // the code came to this address, so it is confirmed now (like a reset). The first code of a window starts the wait
-    // before Start fresh (routes.ts startFreshWait); later codes in the same 7 days don't move it.
+    // the code came to this address, so it is confirmed now (like a reset)
+    env.DB.prepare("UPDATE users SET last_active_at = ?, email_verified = 1 WHERE id = ?").bind(t, user.id),
+    // The first code of a window with this signing key starts its wait before Start fresh (routes.ts startFreshWait);
+    // later codes with the same key in the same 7 days don't move it. Another key has its own anchor.
     env.DB.prepare(
-      `UPDATE users SET last_active_at = ?1, email_verified = 1,
-         code_since = CASE WHEN code_since IS NULL OR code_since < ?2 THEN ?1 ELSE code_since END
-       WHERE id = ?3`,
-    ).bind(t, t - CODE_WINDOW_SECONDS, user.id),
+      `INSERT INTO code_anchors (user_id, sig_pub, since) VALUES (?1, ?2, ?3)
+       ON CONFLICT (user_id, sig_pub) DO UPDATE SET since = CASE WHEN since < ?4 THEN ?3 ELSE since END`,
+    ).bind(user.id, body.sigKey.pub, t, t - CODE_WINDOW_SECONDS),
     eventStatement(env, user.id, { kind: "signed_in", method: "code", sigKey: body.sigKey }),
     // M1: this network is the owner's from now on (NEU4-1)
     await rememberNetwork(env, user.id, ip),

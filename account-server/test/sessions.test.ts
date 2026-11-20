@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import worker from "../src/index";
 import { cleanup } from "../src/cron";
 import { issueToken } from "../src/identity";
-import { api, clientKeys, DEFAULT_KDF, freshIp, keyOf, ORIGIN, sessionId, signupUser } from "./helpers";
+import { api, clientKeys, DEFAULT_KDF, freshIp, keyOf, newKey, ORIGIN, rand, sessionId, signupUser, upload, type TestKey } from "./helpers";
 
 interface SentMail {
   subject: string;
@@ -44,7 +44,8 @@ const web = (token: string) => ({ Origin: ORIGIN, Cookie: `__Host-sid=${token}` 
 const ageAuth = (token: string) => sessionId(token).then((hash) => env.DB.prepare("UPDATE sessions SET auth_at = auth_at - 3600 WHERE token_hash = ?").bind(hash).run());
 const ageWebAuth = async (userId: string) => env.DB.prepare("UPDATE sessions SET auth_at = auth_at - 3600 WHERE user_id = ? AND web = 1").bind(userId).run();
 
-async function codeSignIn(email: string): Promise<string> {
+/** `key`: sign in with this signing key (the same device or browser again) instead of a new one */
+async function codeSignIn(email: string, key?: TestKey): Promise<string> {
   const exec = createExecutionContext();
   const req = new Request("https://api.example.com/v1/auth/code/request", {
     method: "POST",
@@ -55,7 +56,7 @@ async function codeSignIn(email: string): Promise<string> {
   await waitOnExecutionContext(exec);
   const mail = (await sink.take(email)).findLast((m) => m.subject === "Your Seanime Mobile sign-in code");
   const code = /Sign-in code: (\d{6})/.exec(mail?.text ?? "")![1]!;
-  const res = await api("/v1/auth/code/login", { body: { email, code } });
+  const res = await api("/v1/auth/code/login", { body: { email, code }, ...(key ? { sign: key } : {}) });
   expect(res.status).toBe(200);
   return (await json<{ sessionToken: string }>(res)).sessionToken;
 }
@@ -304,36 +305,75 @@ describe("timeline: sign-ins, reset, confirmed email", () => {
   });
 });
 
-describe("Start fresh waits after a code sign-in", () => {
-  it("a code session waits 24 hours after the first code of the window, a password session doesn't", async () => {
-    const u = await signupUser();
-    const code = await codeSignIn(u.email);
-    const res = await api("/v1/account/start-fresh", { token: code, body: freshBody(clientKeys(), false) });
+describe("Start fresh waits after a code sign-in (per signing key)", () => {
+  /** Moves every code anchor of the account back by `seconds` */
+  const ageAnchors = (userId: string, seconds: number) =>
+    env.DB.prepare("UPDATE code_anchors SET since = since - ? WHERE user_id = ?").bind(seconds, userId).run();
+  const startFresh = (token: string) => api("/v1/account/start-fresh", { token, body: freshBody(clientKeys(), false) });
+  async function expectWait(res: Response, min: number) {
     expect(res.status).toBe(403);
     const body = await json<{ error: string; retryAfter: number }>(res);
-    expect(body).toMatchObject({ error: "start_fresh_wait" });
-    expect(body.retryAfter).toBeGreaterThan(23 * 3600);
+    expect(body.error).toBe("start_fresh_wait");
+    expect(body.retryAfter).toBeGreaterThan(min);
+    expect(body.retryAfter).toBeLessThanOrEqual(24 * 3600);
+  }
+
+  it("a code session waits 24 hours after the first code of the window with its key, a password session doesn't", async () => {
+    const u = await signupUser();
+    const key = await newKey();
+    await expectWait(await startFresh(await codeSignIn(u.email, key)), 23 * 3600);
     // nothing changed
     expect((await api("/v1/sync/meta", { token: u.token })).status).toBe(200);
 
-    // a later code within the window doesn't start the wait again
-    const since = (await env.DB.prepare("SELECT code_since FROM users WHERE id = ?").bind(u.userId).first<{ code_since: number }>())!.code_since;
-    await env.DB.prepare("UPDATE users SET code_since = ? WHERE id = ?").bind(since - 25 * 3600, u.userId).run();
-    const later = await codeSignIn(u.email);
-    expect((await api("/v1/account/start-fresh", { token: later, body: freshBody(clientKeys(), false) })).status).toBe(200);
+    // the same key a day later (a later code in the window doesn't start the wait again)
+    await ageAnchors(u.userId, 25 * 3600);
+    expect((await startFresh(await codeSignIn(u.email, key))).status).toBe(200);
 
     // with the password: at once
     const v = await signupUser();
     expect((await api("/v1/account/start-fresh", { token: v.token, body: freshBody() })).status).toBe(200);
   });
 
-  it("the next code after the 7-day window waits again", async () => {
+  it("S2-F2: the owner's code two days ago never lets a brand-new key of the mailbox holder start fresh", async () => {
     const u = await signupUser();
-    await codeSignIn(u.email);
-    await env.DB.prepare("UPDATE users SET code_since = code_since - 8 * 24 * 3600 WHERE id = ?").bind(u.userId).run();
-    const code = await codeSignIn(u.email);
-    const res = await api("/v1/account/start-fresh", { token: code, body: freshBody(clientKeys(), false) });
-    expect(res.status).toBe(403);
-    expect(await json(res)).toMatchObject({ error: "start_fresh_wait" });
+    expect((await upload(u.token, rand(64), 0, u.keys.dekId)).status).toBe(200);
+    await codeSignIn(u.email, await newKey()); // the owner, two days ago
+    await ageAnchors(u.userId, 48 * 3600);
+    await env.DB.prepare("UPDATE sessions SET auth_at = auth_at - 48 * 3600, created_at = created_at - 48 * 3600 WHERE user_id = ? AND code_auth = 1")
+      .bind(u.userId)
+      .run();
+    const attacker = await codeSignIn(u.email); // a new key, seconds old, mailbox only
+    // unknown key: the full 24 hours
+    await expectWait(await startFresh(attacker), 24 * 3600 - 60);
+    // the snapshot and the owner's session are still there
+    expect((await api("/v1/sync/meta", { token: u.token })).status).toBe(200);
+    expect(await json(await api("/v1/sync/meta", { token: attacker }))).toMatchObject({ size: 64 });
+  });
+
+  it("another key waits although the owner's key could start fresh", async () => {
+    const u = await signupUser();
+    const owner = await newKey();
+    await codeSignIn(u.email, owner);
+    await ageAnchors(u.userId, 25 * 3600);
+    await expectWait(await startFresh(await codeSignIn(u.email)), 24 * 3600 - 60);
+    expect((await startFresh(await codeSignIn(u.email, owner))).status).toBe(200);
+  });
+
+  it("after the 7-day window the same key waits again, and the cleanup removes the old anchor", async () => {
+    const u = await signupUser();
+    const key = await newKey();
+    await codeSignIn(u.email, key);
+    await ageAnchors(u.userId, 8 * 24 * 3600);
+    await cleanup(env);
+    const left = await env.DB.prepare("SELECT COUNT(*) AS n FROM code_anchors WHERE user_id = ?").bind(u.userId).first<{ n: number }>();
+    expect(left!.n).toBe(0);
+    await expectWait(await startFresh(await codeSignIn(u.email, key)), 23 * 3600);
+
+    // also without the cleanup: an anchor older than 7 days doesn't count, the next code starts a new one
+    const v = await signupUser();
+    const vKey = await newKey();
+    await codeSignIn(v.email, vKey);
+    await ageAnchors(v.userId, 8 * 24 * 3600);
+    await expectWait(await startFresh(await codeSignIn(v.email, vKey)), 23 * 3600);
   });
 });

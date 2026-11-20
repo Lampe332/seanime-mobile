@@ -667,7 +667,7 @@ export async function changePassword(ctx: Ctx): Promise<Response> {
 export async function deleteUserData(env: Env, userId: string, onlyIf = "1 = 1"): Promise<boolean> {
   const guard = `EXISTS (SELECT 1 FROM users WHERE id = ? AND ${onlyIf})`;
   const results = await env.DB.batch(
-    ["sessions", "devices", "tokens", "device_requests", "snapshots", "removed_devices", "removed_sessions", "login_links", "account_events", "sign_in_codes"]
+    ["sessions", "devices", "tokens", "device_requests", "snapshots", "removed_devices", "removed_sessions", "login_links", "account_events", "sign_in_codes", "code_anchors"]
       .map((table) => env.DB.prepare(`DELETE FROM ${table} WHERE user_id = ? AND ${guard}`).bind(userId, userId))
       .concat(env.DB.prepare(`DELETE FROM users WHERE id = ? AND ${onlyIf}`).bind(userId)),
   );
@@ -798,19 +798,25 @@ export async function getDeviceKey(ctx: Ctx): Promise<Response> {
 }
 
 export const START_FRESH_WAIT_SECONDS = 24 * 3600;
-/** A code sign-in starts the wait once per window: the next code after these 7 days waits again */
+/** A code sign-in starts the wait once per window and signing key: the next code after these 7 days waits again */
 export const CODE_WINDOW_SECONDS = 7 * 24 * 3600;
 
 /**
  * Seconds Start fresh still waits (0: none). It wipes the encrypted data for good, so whoever holds only the mailbox can't
- * do it at once and the owner has a day to notice (timeline, mails): 24 hours after a password reset (any
- * session, also the password sign-in that follows it), and for a code session 24 hours after the first code sign-in of
- * the account's current window (`code_since`, auth/code/login). A password sign-in without a recent reset and Google
- * never wait.
+ * do it at once and the owner has a day to notice (timeline, mails): 24 hours after a password reset (any session, also
+ * the password sign-in that follows it; one event of the account, so a later reset only moves it later), and for a code
+ * session 24 hours after the first code sign-in of the current 7-day window with this session's own signing key
+ * (`code_anchors`, auth/code/login). A code of the owner with another key never shortens it, so a brand-new key of whoever
+ * holds the mailbox always waits the full day. A password sign-in without a recent reset and Google never wait.
  */
-function startFreshWait(session: Session, user: { reset_at: number | null; code_since: number | null }, t: number): number {
-  let until = user.reset_at !== null ? user.reset_at + START_FRESH_WAIT_SECONDS : 0;
-  if (session.codeAuth) until = Math.max(until, (user.code_since ?? session.authAt) + START_FRESH_WAIT_SECONDS);
+async function startFreshWait(env: Env, session: Session, resetAt: number | null, t: number): Promise<number> {
+  let until = resetAt !== null ? resetAt + START_FRESH_WAIT_SECONDS : 0;
+  if (session.codeAuth) {
+    const anchor = await env.DB.prepare("SELECT since FROM code_anchors WHERE user_id = ? AND sig_pub = ? AND since >= ?")
+      .bind(session.userId, session.sigPub, t - CODE_WINDOW_SECONDS)
+      .first<{ since: number }>();
+    until = Math.max(until, (anchor?.since ?? t) + START_FRESH_WAIT_SECONDS);
+  }
   return Math.max(0, until - t);
 }
 
@@ -824,7 +830,7 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
   const session = await requireSession(ctx.request, env);
   requireRecentAuth(session);
   const body = await readJson(ctx.request, StartFreshBody);
-  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, recovery_proof, reset_at, code_since FROM users WHERE id = ?")
+  const user = await env.DB.prepare("SELECT email, dek_id, auth_hash, recovery_proof, reset_at FROM users WHERE id = ?")
     .bind(session.userId)
     .first<{
       email: string;
@@ -832,7 +838,6 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
       auth_hash: string | null;
       recovery_proof: string | null;
       reset_at: number | null;
-      code_since: number | null;
     }>();
   if (!user) throw new HttpError(401, "unauthorized");
   // After a code sign-in the password may be forgotten: then the new key has no password wrap yet (rewrapNeeded), and
@@ -846,7 +851,7 @@ export async function startFresh(ctx: Ctx): Promise<Response> {
   if (user.auth_hash !== null && !(await isOwner(session, user, undefined, true))) throw ownerRequired();
   // M2: a code never owns an account without a password
   if (user.auth_hash === null && session.codeAuth) throw ownerRequired();
-  const wait = startFreshWait(session, user, now());
+  const wait = await startFreshWait(env, session, user.reset_at, now());
   if (wait > 0) {
     throw new HttpError(403, "start_fresh_wait", "Start fresh waits 24 hours after a password reset or a sign-in with a code.", {}, { retryAfter: wait });
   }
