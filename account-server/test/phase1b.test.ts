@@ -2,7 +2,10 @@ import { createExecutionContext, createScheduledController, env, waitOnExecution
 import { exports } from "cloudflare:workers";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
-import { renderMail, type Mail } from "../src/mail";
+import { LOGO_CID, logoAttachment, renderMail, type Mail } from "../src/mail";
+
+/** The HTML without the one allowed image (the inline app icon), for the "nothing else" checks */
+const withoutLogo = (html: string) => html.replace(new RegExp(`<img src="cid:${LOGO_CID}"[^>]*>`, "g"), "");
 import { hmacSha256 } from "../src/crypto";
 import { issueChallenge } from "../src/signature";
 import { api, b64, clientKeys, DEFAULT_KDF, deviceKeys, freshEmail, freshIp, rand, signed, signupUser, upload } from "./helpers";
@@ -101,13 +104,22 @@ describe("mail", () => {
     }
   });
 
+  it("attaches the app icon inline as a real PNG under the Content-ID the HTML uses", () => {
+    const a = logoAttachment();
+    const bytes = new Uint8Array(a.content);
+    expect([...bytes.slice(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    expect(bytes.length).toBeLessThan(16 * 1024);
+    expect(a).toMatchObject({ type: "image/png", disposition: "inline", contentId: LOGO_CID });
+    expect(logoAttachment().content).not.toBe(a.content);
+  });
+
   it("escapes hostile device names and addresses in the HTML", () => {
     const evil = '<script>alert(1)</script>"><img src=x onerror=alert(1)>';
     const tags = (html: string) => html.match(/<[a-z!/]/gi)?.length;
     for (const kind of ["new_device", "device_removed", "device_signed_out"] as const) {
       const bad = renderMail(env, { kind, deviceName: evil }, `"><b>x@example.com`);
       const good = renderMail(env, { kind, deviceName: "Phone" }, "x@example.com");
-      expect(bad.html).not.toMatch(/<script|<img|<b>/i);
+      expect(withoutLogo(bad.html)).not.toMatch(/<script|<img|<b>/i);
       expect(tags(bad.html)).toBe(tags(good.html));
       expect(bad.html).toContain("&#60;script&#62;alert(1)&#60;/script&#62;&#34;&#62;&#60;img src=x");
       expect(bad.text).toContain(evil);
@@ -142,7 +154,10 @@ describe("mail", () => {
     const count = (html: string, s: string) => html.split(s).length - 1;
     for (const m of ALL_MAILS) {
       const { html } = renderMail(env, m, "owner@example.com");
-      expect(html).not.toMatch(/http:\/\/|<img|<script|<link|<iframe|<object|src=|url\(|@import|@font-face/i);
+      // the only image is the app icon, an inline attachment shown through cid: (exactly once)
+      expect(html.match(/<img\b/gi)?.length).toBe(1);
+      expect(html).toContain(`src="cid:${LOGO_CID}"`);
+      expect(withoutLogo(html)).not.toMatch(/http:\/\/|<img|<script|<link|<iframe|<object|src=|url\(|@import|@font-face/i);
       // every "//" belongs to a link on the website's own host, the Discord invite or the Ko-fi page
       expect(count(html, "//")).toBe(count(html, base) + outside.reduce((n, u) => n + count(html, u), 0));
       const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((h) => decode(h[1]!));

@@ -3,10 +3,22 @@
  * Mails never contain synced data or keys. Links carry tokens in the URL fragment,
  * so they do not reach server logs or Referer headers of the website.
  * Every mail goes out as HTML and as plain text with the same content. The HTML loads nothing from anywhere:
- * no images, fonts, scripts or tracking. Its links go to the website, the Discord server and Ko-fi.
+ * no remote images, fonts, scripts or tracking. The one image, the app icon, travels inside the mail as an
+ * inline attachment (cid:). Its links go to the website, the Discord server and Ko-fi.
  */
 
+import { LOGO_PNG_BASE64 } from "./logo";
+
 export const MAIL_FROM = { email: "no-reply@seanimemobile.com", name: "Seanime Mobile" };
+
+/** Content-ID of the inline app icon; the HTML shows it with src="cid:…" */
+export const LOGO_CID = "seanime-logo";
+
+/** The app icon as an inline attachment (decoded per send: a fresh buffer for every message) */
+export function logoAttachment() {
+  const bytes = Uint8Array.from(atob(LOGO_PNG_BASE64), (c) => c.charCodeAt(0));
+  return { filename: "seanime-mobile.png", content: bytes.buffer, type: "image/png", disposition: "inline" as const, contentId: LOGO_CID };
+}
 
 export type Mail =
   | { kind: "verify"; token: string }
@@ -259,7 +271,7 @@ function content(env: Env, mail: Mail, when: string): Content {
         subject: "Your Seanime Mobile sign-in code",
         tag: "Sign-in code",
         lines: [
-          "Someone asked to sign in to your Seanime Mobile account with a code. Type this code in the app.",
+          "Someone asked to sign in to your Seanime Mobile account with a code. Type it in the app or on the website, wherever you asked for it.",
           "The code works for 10 minutes and only once.",
         ],
         code: mail.code,
@@ -476,7 +488,7 @@ function layout(c: Content, base: string, to: string | undefined, check: string 
 <tr><td height="4" bgcolor="${C.violet}" style="height:4px;line-height:4px;font-size:0;background:${C.violet};background-image:${LOGO_GRADIENT_WIDE}">&nbsp;</td></tr>
 ${wide(
   `<tr><td class="sm-px" style="padding:0 20px"><table ${T}><tr>
-<td width="34" height="34" align="center" bgcolor="${C.violet}" style="width:34px;height:34px;border-radius:10px;background:${C.violet};background-image:${LOGO_GRADIENT};font-family:${DISPLAY};font-size:20px;line-height:34px;font-weight:900;color:${C.white};text-align:center">S</td>
+<td width="34" height="34" align="center" bgcolor="${C.violet}" style="width:34px;height:34px;border-radius:9px;background:${C.violet};background-image:${LOGO_GRADIENT}"><img src="cid:${LOGO_CID}" width="34" height="34" alt="" style="display:block;width:34px;height:34px;border:0;border-radius:9px"></td>
 <td style="padding-left:11px;font-family:${DISPLAY};font-size:18px;line-height:34px;font-weight:900;letter-spacing:-0.01em;color:${C.text}">${escapeHtml(SIGNOFF)}</td>
 </tr></table></td></tr>`,
   "20px 10px 0",
@@ -540,7 +552,7 @@ export async function notify(env: Env, userId: string, to: string, mail: Securit
 export async function sendMail(env: Env, to: string, mail: Mail): Promise<boolean> {
   const { subject, text, html } = renderMail(env, mail, to);
   try {
-    await env.EMAIL.send({ to, from: MAIL_FROM, subject, text, html });
+    await env.EMAIL.send({ to, from: MAIL_FROM, subject, text, html, attachments: [logoAttachment()] });
     return true;
   } catch (err) {
     const code = (err as { code?: string })?.code ?? (err as Error)?.name ?? "unknown";
