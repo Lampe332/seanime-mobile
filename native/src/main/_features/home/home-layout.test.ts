@@ -3,16 +3,21 @@ import { describe, expect, it } from "vitest"
 import {
     addHomeItem,
     availableHomeItemTypes,
+    canMoveHomeItem,
     carouselEmptyCause,
     filterByGenres,
     genreCounts,
     hasSectionGapBefore,
     homeBannerOpacity,
     homeBannerPosition,
+    isDefaultHome,
+    isTopBanner,
     moveHomeItem,
     normalizeHomeItems,
+    removeHomeItem,
     resetCarouselOptions,
     resolveHomeItems,
+    restoreHomeItem,
     withCurrentSchema,
 } from "./home-layout"
 import { DEFAULT_HOME_ITEMS, HOME_ITEMS } from "./home-items.utils"
@@ -132,7 +137,7 @@ describe("empty carousel", () => {
     })
     it("otherwise names the options that narrow the row", () => {
         expect(carouselEmptyCause({ name: "Mine", sorting: "SCORE", format: "SPECIAL", genres: ["Music"], season: "FALL", year: 0, countryOfOrigin: "TW" }, "anime"))
-            .toEqual({ options: ["Format", "Genres", "Season", "Country of Origin"] })
+            .toEqual({ options: ["Format", "Genres", "Season", "Country of origin"] })
         expect(carouselEmptyCause({ season: "FALL", year: 2025, status: [] }, "manga")).toEqual({ options: ["Year"] })
         expect(carouselEmptyCause(undefined, "anime")).toEqual({ options: [] })
     })
@@ -164,6 +169,51 @@ describe("customize", () => {
         expect(moveHomeItem(items, 1, 1).map(i => i.id)).toEqual(["a", "c", "b"])
         expect(moveHomeItem(items, 0, -1)).toBe(items)
         expect(moveHomeItem(items, 2, 1)).toBe(items)
+    })
+    it("keeps the top banner first: it has no moves and nothing moves above it", () => {
+        for (const banner of ["discover-header", "anime-continue-watching-header"]) {
+            const items = normalizeHomeItems([item("h", banner), item("a", "anime-library"), item("b", "missed-sequels")])
+            expect(isTopBanner(items, 0), banner).toBe(true)
+            expect(isTopBanner(items, 1), banner).toBe(false)
+            expect(canMoveHomeItem(items, 0, 1), banner).toBe(false)
+            expect(canMoveHomeItem(items, 1, -1), banner).toBe(false)
+            expect(canMoveHomeItem(items, 1, 1), banner).toBe(true)
+            expect(canMoveHomeItem(items, 2, -1), banner).toBe(true)
+            expect(canMoveHomeItem(items, 2, 1), banner).toBe(false)
+            expect(moveHomeItem(items, 1, -1)).toBe(items)
+            expect(moveHomeItem(items, 0, 1)).toBe(items)
+            expect(moveHomeItem(items, 2, -1).map(i => i.id)).toEqual(["h", "b", "a"])
+        }
+        // without a banner the first section moves like any other
+        const plain = [item("a", "anime-library"), item("b", "missed-sequels")]
+        expect(isTopBanner(plain, 0)).toBe(false)
+        expect(canMoveHomeItem(plain, 0, 1)).toBe(true)
+        expect(canMoveHomeItem(plain, 5, -1)).toBe(false)
+    })
+    it("removes a section and puts it back at its old place on Undo, keeping changes made since", () => {
+        const items = [item("a", "anime-library"), item("b", "missed-sequels"), item("c", "aired-recently")]
+        const removed = removeHomeItem(items, "b")
+        expect(removed.map(i => i.id)).toEqual(["a", "c"])
+        expect(restoreHomeItem(removed, items[1], 1).map(i => i.id)).toEqual(["a", "b", "c"])
+        // a section added after the removal stays
+        const later = addHomeItem(removed, "my-lists", "d")
+        expect(restoreHomeItem(later, items[1], 1).map(i => i.id)).toEqual(["a", "b", "c", "d"])
+        // an index past the end puts it last; a kind on Home again is not added twice
+        expect(restoreHomeItem([item("a", "anime-library")], items[2], 7).map(i => i.id)).toEqual(["a", "c"])
+        const again = addHomeItem(removed, "missed-sequels", "x")
+        expect(restoreHomeItem(again, items[1], 1)).toBe(again)
+        // a removed banner comes back on top
+        const withBanner = normalizeHomeItems([item("d", "discover-header"), ...items])
+        expect(restoreHomeItem(removeHomeItem(withBanner, "d"), withBanner[0], 0).map(i => i.id)).toEqual(["d", "a", "b", "c"])
+        // an emptied Home stays empty until something is put back
+        expect(removeHomeItem([item("a", "anime-library")], "a")).toEqual([])
+    })
+    it("knows when Home already is the default one", () => {
+        expect(isDefaultHome(DEFAULT_HOME_ITEMS)).toBe(true)
+        expect(isDefaultHome(DEFAULT_HOME_ITEMS.map(section => ({ ...section, id: `x-${section.id}` })))).toBe(true)
+        expect(isDefaultHome([])).toBe(false)
+        expect(isDefaultHome([...DEFAULT_HOME_ITEMS].reverse())).toBe(false)
+        expect(isDefaultHome(DEFAULT_HOME_ITEMS.map(section => section.type === "anime-library" ? { ...section, options: { statuses: ["CURRENT"] } } : section))).toBe(false)
     })
     it("puts a gap only before sections without their own heading space", () => {
         expect(hasSectionGapBefore("missed-sequels", 1)).toBe(true)

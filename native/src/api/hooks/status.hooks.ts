@@ -6,6 +6,7 @@ import { copyToClipboard } from "@/lib/helpers/browser"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
 import { tr } from "@/lib/app-language"
+import { homeItemsSaveOptions } from "./home-items-sync"
 
 export function useGetStatus() {
     return useServerQuery<Status>({
@@ -51,15 +52,16 @@ export function useGetHomeItems() {
     })
 }
 
+/**
+ * Saves Home's sections. The change shows at once and needs no toast (home-items-sync.ts); a failed save brings the
+ * previous list back with one error toast.
+ */
 export function useUpdateHomeItems() {
     const qc = useQueryClient()
     return useServerMutation<null, UpdateHomeItems_Variables>({
         endpoint: API_ENDPOINTS.STATUS.UpdateHomeItems.endpoint,
         method: API_ENDPOINTS.STATUS.UpdateHomeItems.methods[0],
-        mutationKey: [API_ENDPOINTS.STATUS.UpdateHomeItems.key],
-        onSuccess: async () => {
-            await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetHomeItems.key] })
-            toast.success(tr("Home screen updated", "Startseite aktualisiert"))
-        },
+        ...homeItemsSaveOptions(qc, () => toast.error(tr("Your change could not be saved. Home is back as it was.",
+            "Deine Änderung konnte nicht gespeichert werden. Die Startseite ist wieder wie vorher."), { id: "home-items-save" })),
     })
 }

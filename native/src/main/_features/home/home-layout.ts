@@ -71,10 +71,47 @@ export function carouselEmptyCause(options: Nullish<Record<string, unknown>>, ty
     return { options: set.map(name => (schema.find(option => option.name === name)?.label ?? name).split(" (")[0]) }
 }
 
+/** A section's options back to their defaults; only its name stays (a carousel's heading is the user's own text). */
+export function defaultHomeOptions(options: Nullish<Record<string, unknown>>): Record<string, unknown> | undefined {
+    return options?.name ? { name: options.name } : undefined
+}
+
 /** A carousel back to its defaults (top rated, released or releasing); only its name stays. */
 export function resetCarouselOptions(items: Models_HomeItem[], id: string): Models_HomeItem[] {
-    return normalizeHomeItems(items.map(item => item.id !== id ? item
-        : { ...item, options: item.options?.name ? { name: item.options.name } : undefined }))
+    return normalizeHomeItems(items.map(item => item.id !== id ? item : { ...item, options: defaultHomeOptions(item.options) }))
+}
+
+/** The banner on top of Home (arrangeHomeItems keeps it first): it cannot be moved, and nothing can go above it. */
+export function isTopBanner(items: Models_HomeItem[], index: number): boolean {
+    return index === 0 && (items[0]?.type === "discover-header" || items[0]?.type === "anime-continue-watching-header")
+}
+
+/** Whether a section can move one place up (-1) or down (+1): inside the list and never past the top banner. */
+export function canMoveHomeItem(items: Models_HomeItem[], index: number, direction: -1 | 1): boolean {
+    const to = index + direction
+    return index >= 0 && index < items.length && to >= 0 && to < items.length && !isTopBanner(items, index) && !isTopBanner(items, to)
+}
+
+/** Whether Home has the default sections with their default options ("Restore default Home" would change nothing). */
+export function isDefaultHome(items: Models_HomeItem[]): boolean {
+    const shape = (list: Models_HomeItem[]) => JSON.stringify(normalizeHomeItems(list).map(item => [item.type, item.options ?? null]))
+    return shape(items) === shape(DEFAULT_HOME_ITEMS)
+}
+
+/** Home without one section. */
+export function removeHomeItem(items: Models_HomeItem[], id: string): Models_HomeItem[] {
+    return normalizeHomeItems(items.filter(item => item.id !== id))
+}
+
+/**
+ * Undo of a removal: the section back at its old place in the current list (other changes since stay). A kind that is on
+ * Home again by now is not added twice.
+ */
+export function restoreHomeItem(current: Models_HomeItem[], removed: Models_HomeItem, index: number): Models_HomeItem[] {
+    if (current.some(item => item.id === removed.id) || !availableHomeItemTypes(current).includes(removed.type)) return current
+    const next = [...current]
+    next.splice(Math.max(0, Math.min(index, next.length)), 0, removed)
+    return normalizeHomeItems(next)
 }
 
 /**
@@ -93,10 +130,10 @@ export function addHomeItem(current: Models_HomeItem[], type: string, id: string
     return normalizeHomeItems([...current, { id, type, schemaVersion: HOME_ITEMS[type].schemaVersion }])
 }
 
-/** Move up (-1) or down (+1); out of range leaves the order as it is. */
+/** Move up (-1) or down (+1); out of range or past the top banner leaves the order as it is. */
 export function moveHomeItem(items: Models_HomeItem[], index: number, direction: -1 | 1): Models_HomeItem[] {
     const to = index + direction
-    if (index < 0 || index >= items.length || to < 0 || to >= items.length) return items
+    if (!canMoveHomeItem(items, index, direction)) return items
     const next = [...items]
     const [moved] = next.splice(index, 1)
     next.splice(to, 0, moved)

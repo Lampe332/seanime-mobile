@@ -45,17 +45,17 @@ type HomeItemSchema = {
 
 const _carouselOptions = [
     {
-        label: "Name",
+        label: "Section title",
         type: "text",
         name: "name",
     },
     {
-        label: "Sorting",
+        label: "Sort by",
         type: "select",
         name: "sorting",
         options: [
             {
-                label: "Popular",
+                label: "Most popular",
                 value: "POPULARITY_DESC",
             },
             {
@@ -63,27 +63,27 @@ const _carouselOptions = [
                 value: "TRENDING_DESC",
             },
             {
-                label: "Romaji Title (A-Z)",
+                label: "Romaji title, A to Z",
                 value: "TITLE_ROMAJI_ASC",
             },
             {
-                label: "Romaji Title (Z-A)",
+                label: "Romaji title, Z to A",
                 value: "TITLE_ROMAJI_DESC",
             },
             {
-                label: "English title (A-Z)",
+                label: "English title, A to Z",
                 value: "TITLE_ENGLISH_ASC",
             },
             {
-                label: "English title (Z-A)",
+                label: "English title, Z to A",
                 value: "TITLE_ENGLISH_DESC",
             },
             {
-                label: "Score (0-10)",
+                label: "Score, lowest first",
                 value: "SCORE",
             },
             {
-                label: "Score (10-0)",
+                label: "Score, highest first",
                 value: "SCORE_DESC",
             },
         ],
@@ -135,7 +135,7 @@ const _carouselOptions = [
         ],
     },
     {
-        label: "Genres (a title needs all picked)",
+        label: "Genres",
         type: "multi-select",
         options: ADVANCED_SEARCH_MEDIA_GENRES.map(n => ({ value: n, label: n })),
         name: "genres",
@@ -159,7 +159,7 @@ const _carouselOptions = [
         max: 2100,
     },
     {
-        label: "Country of Origin",
+        label: "Country of origin",
         type: "select",
         name: "countryOfOrigin",
         options: ADVANCED_SEARCH_COUNTRIES_MANGA,
@@ -173,7 +173,7 @@ export const HOME_ITEMS = {
         schemaVersion: 1,
         description: "Display a centered title text.",
         options: [{
-            label: "Text",
+            label: "Heading text",
             type: "text",
             name: "text",
         }],
@@ -203,7 +203,7 @@ export const HOME_ITEMS = {
                 options: [
                     {
                         value: "CURRENT",
-                        label: "Currently Watching",
+                        label: "Currently watching",
                     },
                     {
                         value: "PAUSED",
@@ -263,7 +263,7 @@ export const HOME_ITEMS = {
                 ],
             },
             {
-                label: "Type",
+                label: "Anime or manga",
                 name: "type",
                 type: "select",
                 options: [
@@ -278,7 +278,7 @@ export const HOME_ITEMS = {
                 ],
             },
             {
-                label: "Custom list name (Optional)",
+                label: "Custom list",
                 type: "text",
                 name: "customListName",
             },
@@ -315,16 +315,16 @@ export const HOME_ITEMS = {
         description: "Display a calendar of anime episodes based on their airing schedule.",
         options: [
             {
-                label: "Type",
+                label: "Shows",
                 name: "type",
                 type: "select",
                 options: [
                     {
-                        label: "My lists",
+                        label: "Anime on my lists",
                         value: "my-lists",
                     },
                     {
-                        label: "Global",
+                        label: "All airing anime",
                         value: "global",
                     },
                 ],
@@ -366,7 +366,7 @@ export const HOME_ITEMS = {
                             value: "MANGA",
                         },
                         {
-                            label: "One Shot",
+                            label: "One shot",
                             value: "ONE_SHOT",
                         },
                     ],
@@ -388,7 +388,7 @@ export const HOME_ITEMS = {
                 options: [
                     {
                         value: "CURRENT",
-                        label: "Currently Reading",
+                        label: "Currently reading",
                     },
                     {
                         value: "REPEATING",

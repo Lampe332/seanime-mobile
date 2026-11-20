@@ -62,6 +62,7 @@ import { customizeInHomeHead } from "@/lib/nav/more-panel"
 import { AnilistSyncBar } from "@/main/_features/anilist-sync/anilist-sync"
 import { HomeScheduleCalendar } from "./home-schedule-calendar"
 import { carouselEmptyCause, HOME_ITEMS_PENDING, hasSectionGapBefore, resetCarouselOptions, resolveHomeItems, withCurrentSchema } from "./home-layout"
+import { homeOptionLabel } from "./home-section-info"
 import { __home_settingsModalOpen, HomeSettingsSheet } from "./home-settings-sheet"
 import { isAnimeLibraryItemsOnly } from "./home-items.utils"
 
@@ -157,7 +158,7 @@ export function HomeScreen() {
                     <PluginWebviewSlot slot="home-screen-bottom" />
                 </View>
             </ScrollView>
-            <HomeSettingsSheet homeItems={savedItems} />
+            <HomeSettingsSheet />
             <UnmatchedPhoneSheet unmatchedGroups={library.unmatchedGroups} />
             <HiddenMediaPhoneSheet unknownGroups={library.unknownGroups} />
             <IgnoredFilesPhoneSheet files={library.ignoredLocalFiles} />
@@ -341,11 +342,12 @@ function CarouselEmpty({ item, type }: { item: Models_HomeItem, type: "anime" | 
     const { data: savedItems } = useGetHomeItems()
     const { mutate: updateHomeItems, isPending } = useUpdateHomeItems()
     const cause = carouselEmptyCause(item.options, type)
+    const named = "options" in cause ? cause.options.map(label => homeOptionLabel(t, label)).join(", ") : ""
     const note = "genres" in cause
         ? t(`AniList only lists titles that have all ${cause.genres} picked genres, and none has them all. Pick one or two genres.`,
             `AniList zeigt nur Titel, die alle ${cause.genres} gewählten Genres haben, und keiner hat alle. Wähle ein oder zwei Genres.`)
         : cause.options.length
-            ? t(`Nothing matches this section's options (${cause.options.join(", ")}).`, `Nichts passt zu den Optionen dieses Bereichs (${cause.options.join(", ")}).`)
+            ? t(`Nothing matches this section's options (${named}).`, `Nichts passt zu den Optionen dieses Bereichs (${named}).`)
             : t("Nothing matches this section's options.", "Nichts passt zu den Optionen dieses Bereichs.")
     return (
         <HomeState>
