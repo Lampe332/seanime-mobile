@@ -5,7 +5,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 ## 4.3.0 (versionCode 40300)
 
 - 🎉 Account: New switch "Edit on the website" under Settings > Account. Turn it on and you can unlock and change your synced settings at seanimemobile.com. It's off by default, and every unlock sends you an email
-- 🎉 Settings: Copy or share a diagnostic report under Settings > Logs. Sign-ins, email addresses, links, file paths and your AniList name are left out
+- 🎉 Settings: Copy or share a diagnostic report under Settings > Cache. Sign-ins, email addresses, links, file paths and your AniList name are left out
 - 🎉 Settings: On Android 13 and newer you can also pick the app's language in Android's settings, and the two stay in step
 - 🎉 Player: After an episode plays in another app, Seanime asks whether to mark it as watched
 - ⚡️ Account: Security events name sign-ins, password resets, confirmed emails, signed-out sessions and website unlocks in plain words
