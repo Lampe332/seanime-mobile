@@ -43,9 +43,13 @@ export function useCardListItems(media: AL_BaseAnime | AL_BaseManga, type: "anim
     const key = actions.map(action => action.id === "increment" ? `${action.id}:${action.progress}` : action.id).join(",")
 
     return React.useMemo(() => {
-        const refreshRaw = () => void queryClient.invalidateQueries({
-            queryKey: [type === "anime" ? API_ENDPOINTS.ANILIST.GetRawAnimeCollection.key : API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.key],
-        })
+        const refreshRaw = () => {
+            void queryClient.invalidateQueries({
+                queryKey: [type === "anime" ? API_ENDPOINTS.ANILIST.GetRawAnimeCollection.key : API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.key],
+            })
+            // a title put on a list is no missed sequel any more (Home and Discover share the key)
+            if (type === "anime") void queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.AnilistListMissedSequels.key] })
+        }
         const progressDone = () => {
             toast.success(t("Progress updated", "Fortschritt aktualisiert"))
             refreshRaw()

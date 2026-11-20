@@ -83,7 +83,7 @@ export function HomeDiscoverFeature() {
  */
 export function LibraryUpcomingEpisodes({ hasEntries }: { hasEntries: boolean }) {
     const t = useTr()
-    const { data } = useGetUpcomingEpisodes()
+    const { data, isError, refetch } = useGetUpcomingEpisodes()
     const { width } = useWindowDimensions()
     const { rail } = useTabletLayout()
     const ts = useThemeSettings()
@@ -97,7 +97,23 @@ export function LibraryUpcomingEpisodes({ hasEntries }: { hasEntries: boolean })
     const visible = listWidth > 0 ? Math.max(1, Math.floor((listWidth - 32 + 16) / step)) : 1
     const autoplay = useCarouselAutoplay(hasEntries && !ts.disableCarouselAutoScroll ? Math.max(0, episodes.length - visible + 1) : 0,
         place => list.current?.scrollToOffset({ offset: place * step, animated: true }))
-    if (!hasEntries || !episodes.length) return null
+    if (!hasEntries || !episodes.length) {
+        // still loading: nothing yet; loaded and empty: say why instead of leaving the section out without a word
+        if (hasEntries && !data && !isError) return null
+        return (
+            <View className="gap-3">
+                <SectionTitle>{t("Upcoming episodes", "Kommende Folgen")}</SectionTitle>
+                <View className="rounded-surface bg-sm-surface p-5">
+                    <Text accessibilityRole={isError ? "alert" : undefined} className="text-sm-text-muted">{isError
+                        ? t("Upcoming episodes could not load.", "Kommende Folgen konnten nicht geladen werden.")
+                        : t("No upcoming episodes. They show for anime in your library that are still airing.", "Keine kommenden Folgen. Sie erscheinen für Anime in deiner Bibliothek, die noch laufen.")}</Text>
+                    {isError && <Pressable accessibilityRole="button" onPress={() => void refetch()} className="mt-2 min-h-11 justify-center self-start">
+                        <Text className="text-sm font-semibold text-sm-accent">{t("Try again", "Erneut versuchen")}</Text>
+                    </Pressable>}
+                </View>
+            </View>
+        )
+    }
     return (
         <View className="gap-3">
             <View>

@@ -6,14 +6,34 @@ import { DEFAULT_HOME_ITEMS, HOME_ITEM_IDS, HOME_ITEMS } from "./home-items.util
  * can be tested without React Native).
  */
 
+/** Continue watching and its banner are one kind of section: Android draws the banner as the row (resolveHomeItems). */
+export function sectionKind(type: string): string {
+    return type === "anime-continue-watching-header" ? "anime-continue-watching" : type
+}
+
 /**
- * The sections Home shows: the saved list, or the default one when nothing is saved. Android Home has no header banner:
- * a leading "anime-continue-watching-header" shows as "anime-continue-watching" (and replaces another one of those).
+ * Home's rules for its sections, kept on every load and save (so they also put right lists saved before 4.3.1):
+ * - every kind of section once; of two, the upper one stays;
+ * - a banner (kind "header") only shows as the first section, so it is moved there. Only one can be first: the Discover
+ *   banner. With it on Home, the Continue watching banner becomes the Continue watching row where it stands.
+ */
+export function arrangeHomeItems(items: Models_HomeItem[]): Models_HomeItem[] {
+    const kinds = new Set<string>()
+    let arranged = items.filter(item => !kinds.has(sectionKind(item.type)) && !!kinds.add(sectionKind(item.type)))
+    const discover = arranged.find(item => item.type === "discover-header")
+    if (discover) arranged = arranged.map(item => item.type === "anime-continue-watching-header" ? { ...item, type: "anime-continue-watching" } : item)
+    const banner = discover ?? arranged.find(item => item.type === "anime-continue-watching-header")
+    if (banner && arranged[0] !== banner) arranged = [banner, ...arranged.filter(item => item !== banner)]
+    return arranged
+}
+
+/**
+ * The sections Home shows: the saved list (an emptied Home stays empty), or the default one while nothing was ever saved.
+ * Android Home has no header banner: the leading "anime-continue-watching-header" shows as "anime-continue-watching".
  */
 export function resolveHomeItems(saved: Nullish<Models_HomeItem[]>): Models_HomeItem[] {
-    let items = saved?.length ? saved : DEFAULT_HOME_ITEMS
+    const items = arrangeHomeItems(saved ?? DEFAULT_HOME_ITEMS)
     if (items[0]?.type !== "anime-continue-watching-header") return items
-    if (items.some(item => item.type === "anime-continue-watching")) items = items.filter(item => item.type !== "anime-continue-watching")
     return items.map(item => item.type === "anime-continue-watching-header" ? { ...item, type: "anime-continue-watching" } : item)
 }
 
@@ -25,25 +45,30 @@ export function withCurrentSchema(item: Models_HomeItem): Models_HomeItem | unde
     return item
 }
 
-/** What is saved: only known sections, each stamped with its current schema version. */
+/** What is saved: only known sections, arranged by Home's rules, each stamped with its current schema version. */
 export function normalizeHomeItems(items: Models_HomeItem[]): Models_HomeItem[] {
-    return items.filter(item => !!HOME_ITEMS[item.type]).map(item => ({ ...item, schemaVersion: HOME_ITEMS[item.type].schemaVersion }))
+    return arrangeHomeItems(items.filter(item => !!HOME_ITEMS[item.type])).map(item => ({ ...item, schemaVersion: HOME_ITEMS[item.type].schemaVersion }))
+}
+
+/** A carousel's status narrows it only when it leaves out what it shows without one (releasing and finished titles). */
+function statusNarrows(status: unknown): boolean {
+    return Array.isArray(status) && status.length > 0 && !(status.includes("RELEASING") && status.includes("FINISHED"))
 }
 
 /**
  * Why an anime / manga carousel came back empty. AniList's genre_in wants every picked genre on one title, so two or
- * more rarely-paired genres (or all of them) empty the row; otherwise it names the options that narrow the row.
+ * more rarely-paired genres (or all of them) empty the row: they are named when nothing else narrows it. Otherwise it
+ * names every option that narrows the row, without blaming one of them.
  */
 export function carouselEmptyCause(options: Nullish<Record<string, unknown>>, type: "anime" | "manga"):
     { genres: number } | { options: string[] } {
-    const genres = Array.isArray(options?.genres) ? options.genres.length : 0
-    if (genres > 1) return { genres }
     const names = ["status", "format", "genres", ...(type === "anime" ? ["season"] : []), "year", "countryOfOrigin"]
+    const set = names.filter(name => name === "status" ? statusNarrows(options?.status)
+        : Array.isArray(options?.[name]) ? (options[name] as unknown[]).length > 0 : !!options?.[name])
+    const genres = Array.isArray(options?.genres) ? options.genres.length : 0
+    if (genres > 1 && set.every(name => name === "genres")) return { genres }
     const schema = HOME_ITEMS[`${type}-carousel`]?.options ?? []
-    return {
-        options: names.filter(name => Array.isArray(options?.[name]) ? (options[name] as unknown[]).length > 0 : !!options?.[name])
-            .map(name => (schema.find(option => option.name === name)?.label ?? name).split(" (")[0]),
-    }
+    return { options: set.map(name => (schema.find(option => option.name === name)?.label ?? name).split(" (")[0]) }
 }
 
 /** A carousel back to its defaults (top rated, released or releasing); only its name stays. */
@@ -52,16 +77,20 @@ export function resetCarouselOptions(items: Models_HomeItem[], id: string): Mode
         : { ...item, options: item.options?.name ? { name: item.options.name } : undefined }))
 }
 
-/** Sections that can be added more than once stay offered; the others only while they are not on Home. */
-const REPEATABLE = new Set(["anime-carousel", "manga-carousel", "centered-title", "my-lists"])
-
+/**
+ * Every kind of section is on Home once, so only kinds not on it are offered. The Continue watching banner is not
+ * offered while the Discover banner is on Home (it would be the Continue watching row, arrangeHomeItems).
+ */
 export function availableHomeItemTypes(current: Models_HomeItem[]): string[] {
-    return HOME_ITEM_IDS.filter(type => REPEATABLE.has(type) || !current.some(item => item.type === type))
+    const kinds = new Set(current.map(item => sectionKind(item.type)))
+    const discover = current.some(item => item.type === "discover-header")
+    return HOME_ITEM_IDS.filter(type => !kinds.has(sectionKind(type)) && !(discover && type === "anime-continue-watching-header"))
 }
 
-/** A new section at the end of Home. */
+/** A new section at the end of Home (a banner at the top); a kind already on Home, or an unknown one, is not added. */
 export function addHomeItem(current: Models_HomeItem[], type: string, id: string): Models_HomeItem[] {
-    return normalizeHomeItems([...current, { id, type, schemaVersion: HOME_ITEMS[type]?.schemaVersion ?? 1 }])
+    if (!availableHomeItemTypes(current).includes(type)) return current
+    return normalizeHomeItems([...current, { id, type, schemaVersion: HOME_ITEMS[type].schemaVersion }])
 }
 
 /** Move up (-1) or down (+1); out of range leaves the order as it is. */

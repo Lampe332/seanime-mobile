@@ -338,6 +338,19 @@ describe("AniList's rate limit", () => {
         expect(sleeps).toEqual([10_000])
     })
 
+    it("queues requests that wait at the same time one behind the other (Home's sections all at once)", async () => {
+        const sleeps: number[] = []
+        const rateLimit = newRateLimit()
+        rateLimit.limit = 3
+        rateLimit.sent = [clock - 55_000, clock - 54_000, clock - 53_000]
+        answers.ListAnime = ok(recorded.listAnime)
+        // the clock stands still: the three wait together, each for its own place in the minute
+        const still = { fetch: anilist, token: async () => token, now: () => clock, sleep: async (ms: number) => { sleeps.push(ms) }, rateLimit }
+        await Promise.all([1, 2, 3].map(() => askAnilist(still, queries.LIST_ANIME, {})))
+        expect(sleeps).toEqual([5_000, 6_000, 7_000])
+        expect(rateLimit.sent.slice(-3)).toEqual([clock + 5_000, clock + 6_000, clock + 7_000])
+    })
+
     it("sends the token only as a header and asks publicly without one", async () => {
         answers.ListAnime = ok(recorded.listAnime)
         token = null

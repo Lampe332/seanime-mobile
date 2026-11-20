@@ -66,6 +66,9 @@ async function cacheLayerOff(environment: CoreEnvironment): Promise<boolean> {
     return typeof anilist === "object" && anilist !== null && (anilist as Json).disableCacheLayer === true
 }
 
+/** How often a read with nothing kept waits for AniList's rate limit before it fails */
+const RATE_LIMIT_WAITS = 3
+
 /**
  * Asks AniList and keeps the answer; when AniList fails, gives what was kept (not with the caching turned off). Failing to keep an answer does not cost
  * the user the answer.
@@ -84,14 +87,19 @@ export async function readThrough<T>(
         if (!(error instanceof AnilistFailure)) throw error
         const stored = (await cacheLayerOff(environment)) ? null : await kept()
         if (stored !== null) return stored
-        // nothing kept: AniList's rate limit is worth waiting for once (it failed at once, without asking)
-        if (error.status !== 429 || !(await waitForRateLimit(clientFor(environment)))) throw new CoreError(NOTHING_KEPT, 500)
-        try {
-            answer = await ask()
-        }
-        catch (again) {
-            if (again instanceof AnilistFailure) throw new CoreError(NOTHING_KEPT, 500)
-            throw again
+        // nothing kept: AniList's rate limit is worth waiting for (it failed at once, without asking); with Home's sections
+        // asking at the same time one wait may not be enough, so up to RATE_LIMIT_WAITS
+        let failure = error
+        for (let waits = 0; ; waits++) {
+            if (failure.status !== 429 || waits >= RATE_LIMIT_WAITS || !(await waitForRateLimit(clientFor(environment)))) throw new CoreError(NOTHING_KEPT, 500)
+            try {
+                answer = await ask()
+                break
+            }
+            catch (again) {
+                if (!(again instanceof AnilistFailure)) throw again
+                failure = again
+            }
         }
     }
     await keep(answer).catch(() => undefined)

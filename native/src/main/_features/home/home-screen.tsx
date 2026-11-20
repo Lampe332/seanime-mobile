@@ -1,7 +1,7 @@
 import type { AL_AnimeCollection_MediaListCollection_Lists, AL_BaseAnime, AL_BaseManga, Anime_LibraryCollectionList, Manga_CollectionList, Models_HomeItem } from "@/api/generated/types"
-import { useAnilistListAnime, useAnilistListMissedSequels, useAnilistListRecentAiringAnime } from "@/api/hooks/anilist.hooks"
+import { useAnilistListAnime, useAnilistListMissedSequels, useAnilistListRecentAiringAnime, useGetRawAnimeCollection } from "@/api/hooks/anilist.hooks"
 import { useGetLibraryCollection } from "@/api/hooks/anime_collection.hooks"
-import { useAnilistListManga, useGetMangaSourceRefresh } from "@/api/hooks/manga.hooks"
+import { useAnilistListManga, useGetMangaSourceRefresh, useGetRawAnilistMangaCollection } from "@/api/hooks/manga.hooks"
 import { MangaSourceRefreshSheet } from "@/main/manga/_components/manga-source-refresh-sheet"
 import { useGetHomeItems, useUpdateHomeItems } from "@/api/hooks/status.hooks"
 import { useUpdateTheme } from "@/api/hooks/theme.hooks"
@@ -118,6 +118,8 @@ export function HomeScreen() {
                 <View className="h-48 rounded-xl bg-sm-surface-raised" />
             </View>
         )
+    } else if (homeItems.length === 0) {
+        body = <NoSections />
     } else if (!library.hasEntries && isAnimeLibraryItemsOnly(homeItems)) {
         body = <EmptyHome />
     } else {
@@ -174,6 +176,19 @@ function CustomizeAction() {
     const t = useTr()
     const setOpen = useSetAtom(__home_settingsModalOpen)
     return <HomeHeaderAction icon={Settings2} label={t("Customize", "Anpassen")} onPress={() => setOpen(true)} />
+}
+
+/** Every section removed: Home stays empty (it does not bring the default sections back) and says where to add some. */
+function NoSections() {
+    const t = useTr()
+    const setCustomize = useSetAtom(__home_settingsModalOpen)
+    return (
+        <View className="items-center gap-4 py-10">
+            <SectionTitle className="text-center">{t("Home has no sections", "Die Startseite hat keine Bereiche")}</SectionTitle>
+            <Text className="text-center leading-[22px] text-sm-text-muted">{t("You removed all sections. Add the ones you want in Customize Home.", "Du hast alle Bereiche entfernt. Füge unter „Home anpassen“ die gewünschten hinzu.")}</Text>
+            <Button intent="secondary" leftIcon={<Settings2 size={18} color={colors.smText} />} onPress={() => setCustomize(true)}>{t("Customize Home", "Home anpassen")}</Button>
+        </View>
+    )
 }
 
 /** No library entries and only library sections: say why Home is empty, offer the one next step, show what is trending. */
@@ -265,6 +280,22 @@ function HomeState({ children }: { children: React.ReactNode }) {
     return <View className="rounded-surface bg-sm-surface p-5">{children}</View>
 }
 
+/** A section whose data could not load: says so and offers to try again (never an empty row or "no results"). */
+function SectionError({ onRetry }: { onRetry: () => void }) {
+    const t = useTr()
+    return (
+        <HomeState>
+            <Text accessibilityRole="alert" className="mb-4 text-sm-text-muted">{t("This section could not load. AniList may be busy or unreachable.", "Dieser Bereich konnte nicht geladen werden. AniList ist vielleicht ausgelastet oder nicht erreichbar.")}</Text>
+            <Button intent="secondary" wrapperClassName="self-start" onPress={onRetry}>{t("Try again", "Erneut versuchen")}</Button>
+        </HomeState>
+    )
+}
+
+/** A section with nothing to show: one muted sentence on the section's card. */
+function SectionNote({ children }: { children: string }) {
+    return <HomeState><Text className="text-sm-text-muted">{children}</Text></HomeState>
+}
+
 /** A carousel's heading on the shared gutter, cards right under it like the other rows */
 function CarouselHeading({ children }: { children: React.ReactNode }) {
     return <View className="mb-2 min-h-11 justify-center"><SectionTitle>{children}</SectionTitle></View>
@@ -287,19 +318,19 @@ function MediaCarousel({ item, type }: { item: Models_HomeItem, type: "anime" | 
     }
     const anime = useAnilistListAnime({ ...variables, season: options?.season || undefined, seasonYear: options?.year || undefined } as never, type === "anime")
     const manga = useAnilistListManga({ ...variables, year: options?.year || undefined } as never, type === "manga")
-    const { data, isLoading } = type === "anime" ? anime : manga
-    const media = ((data?.Page?.media ?? []) as (AL_BaseAnime | AL_BaseManga)[]).filter(Boolean).sort((a, b) => (b.meanScore ?? 0) - (a.meanScore ?? 0))
+    const { data, isLoading, isError, refetch } = type === "anime" ? anime : manga
+    // in AniList's order: it is the order the section's sorting asks for
+    const media = ((data?.Page?.media ?? []) as (AL_BaseAnime | AL_BaseManga)[]).filter(Boolean)
 
     return (
         <View>
             <CarouselHeading>{name}</CarouselHeading>
-            {!isLoading && !data
-                ? <HomeState><Text className="text-sm-text-muted">{t("This section needs its options. Set them in Customize Home.", "Dieser Bereich braucht seine Optionen. Lege sie unter „Home anpassen“ fest.")}</Text></HomeState>
-                : isLoading ? <MediaCardRowSkeleton /> : (
+            {isLoading ? <MediaCardRowSkeleton />
+                : !data ? (isError ? <SectionError onRetry={() => void refetch()} /> : <MediaCardRowSkeleton />)
+                : media.length ? (
                     <MediaCardRow data={media} keyOf={m => String(m.id)}
                         renderCard={(m, width) => <MediaEntryCard media={m} type={type} width={width} showLibraryBadge={type === "anime"} />} />
-                )}
-            {!isLoading && !!data?.Page && !media.length && <CarouselEmpty item={item} type={type} />}
+                ) : <CarouselEmpty item={item} type={type} />}
         </View>
     )
 }
@@ -329,22 +360,27 @@ function CarouselEmpty({ item, type }: { item: Models_HomeItem, type: "anime" | 
     )
 }
 
-/** Aired recently (global): episodes of the last 14 days, Japanese TV and films, no adult titles. */
+/** Aired recently (global): episodes of the last 14 days, the newest first, Japanese TV and films, no adult titles. */
 function AiredRecently() {
+    const t = useTr()
     const [now] = React.useState(() => new Date())
-    const { data, isLoading } = useAnilistListRecentAiringAnime({
+    const { data, isLoading, isError, refetch } = useAnilistListRecentAiringAnime({
         page: 1,
         perPage: 50,
         airingAt_lesser: Math.floor(now.getTime() / 1000),
         airingAt_greater: Math.floor(subDays(now, 14).getTime() / 1000),
+        // without a sort AniList starts with the oldest of the 14 days
+        sort: ["TIME_DESC"],
     })
     const aired = (data?.Page?.airingSchedules ?? []).filter(item => item?.media?.isAdult === false && item.media.type === "ANIME"
         && item.media.countryOfOrigin === "JP" && item.media.format !== "TV_SHORT")
-    if (!aired.length && !isLoading) return null
     return (
         <View className="pb-6">
-            <CarouselHeading>Aired Recently</CarouselHeading>
-            {isLoading ? <MediaCardRowSkeleton /> : (
+            <CarouselHeading>{t("Aired recently", "Kürzlich ausgestrahlt")}</CarouselHeading>
+            {isLoading ? <MediaCardRowSkeleton />
+                : !data && isError ? <SectionError onRetry={() => void refetch()} />
+                : !aired.length ? <SectionNote>{t("No Japanese TV episodes or films aired in the last 14 days.", "In den letzten 14 Tagen wurden keine japanischen TV-Folgen oder Filme ausgestrahlt.")}</SectionNote>
+                : (
                 <MediaCardRow data={aired} keyOf={item => String(item.id)}
                     renderCard={(item, width) => (
                         <MediaEntryCard media={item.media as AL_BaseAnime} type="anime" width={width} showLibraryBadge hideReleasingBadge
@@ -383,12 +419,9 @@ function MissedSequels() {
         <View className="gap-2">
             <SectionTitle>{t("Missed sequels", "Verpasste Fortsetzungen")}</SectionTitle>
             {isLoading ? <MediaCardRowSkeleton /> : !data?.length ? (
-                isError ? (
-                    <HomeState>
-                        <Text accessibilityRole="alert" className="mb-4 mt-2 text-sm-text-muted">{t("Missed sequels could not load.", "Verpasste Fortsetzungen konnten nicht geladen werden.")}</Text>
-                        <Button intent="secondary" wrapperClassName="self-start" onPress={() => void refetch()}>{t("Try again", "Erneut versuchen")}</Button>
-                    </HomeState>
-                ) : <HomeState><Text className="text-sm-text-muted">{t("No missed sequels right now.", "Gerade keine verpassten Fortsetzungen.")}</Text></HomeState>
+                isError ? <SectionError onRetry={() => void refetch()} />
+                    : <SectionNote>{t("No missed sequels. Only sequels of anime you completed count, and only while they are on none of your lists (Planning too).",
+                        "Keine verpassten Fortsetzungen. Es zählen nur Fortsetzungen von Anime, die du abgeschlossen hast, und nur solange sie auf keiner deiner Listen stehen (auch nicht „Geplant“).")}</SectionNote>
             ) : (
                 <MediaCardRow data={data.filter(Boolean)} keyOf={media => String(media.id)}
                     renderCard={(media, width) => <MediaEntryCard media={media} type="anime" width={width} showLibraryBadge />} />
@@ -399,8 +432,12 @@ function MissedSequels() {
 
 /** My lists: anime or manga of the picked statuses, or one custom list, each as a row under its name and count. */
 function MyLists({ item }: { item: Models_HomeItem }) {
+    const t = useTr()
     const type: "anime" | "manga" = item.options?.type === "manga" ? "manga" : "anime"
     const lists = useHandleUserAnilistLists("", type)
+    const { data: animeLists } = useGetRawAnimeCollection()
+    const { data: mangaLists } = useGetRawAnilistMangaCollection()
+    const loaded = !!(type === "anime" ? animeLists : mangaLists)
     const statuses: string[] | undefined = item.options?.statuses?.length ? item.options.statuses : undefined
     const customName = String(item.options?.customListName ?? "").trim()
     const byStatus: [string, string, AL_AnimeCollection_MediaListCollection_Lists | undefined][] = [
@@ -416,6 +453,14 @@ function MyLists({ item }: { item: Models_HomeItem }) {
         : byStatus.filter(([status, , list]) => !!list?.entries?.length && (!statuses || statuses.includes(status)))
             .map(([status, title, list]) => ({ key: status, title, count: list!.entries!.length, list: list! }))
 
+    if (loaded && customName && !shown.length) {
+        return <SectionNote>{type === "manga"
+            ? t(`You have no manga list named "${customName}" with entries on AniList. Check the name in Customize Home.`,
+                `Du hast auf AniList keine Manga-Liste „${customName}“ mit Einträgen. Prüfe den Namen unter „Home anpassen“.`)
+            : t(`You have no anime list named "${customName}" with entries on AniList. Check the name in Customize Home.`,
+                `Du hast auf AniList keine Anime-Liste „${customName}“ mit Einträgen. Prüfe den Namen unter „Home anpassen“.`)}</SectionNote>
+    }
+    if (loaded && !shown.length) return <SectionNote>{t("Your lists have no entries with the picked statuses.", "Deine Listen haben keine Einträge mit den gewählten Status.")}</SectionNote>
     return (
         <View className="gap-6">
             {shown.map(({ key, title, count, list }) => (
@@ -436,13 +481,11 @@ function MyLists({ item }: { item: Models_HomeItem }) {
 function MangaLibrary({ item }: { item: Models_HomeItem }) {
     const { mangaCollection, mangaCollectionLoading } = useHandleMangaCollection()
     const statuses: string[] | undefined = item.options?.statuses?.length ? item.options.statuses : undefined
+    const t = useTr()
     if (!mangaCollection || mangaCollectionLoading) return <View className="gap-3 pt-5"><View className="h-7 w-40 rounded-ui bg-sm-surface-raised" /><MediaCardRowSkeleton /></View>
-    return (
-        <View>
-            {mangaCollection.lists?.filter(list => !!list.entries?.length && (!statuses || (!!list.type && statuses.includes(list.type))))
-                .map(list => <MangaListRow key={list.type} list={list} />)}
-        </View>
-    )
+    const shown = mangaCollection.lists?.filter(list => !!list.entries?.length && (!statuses || (!!list.type && statuses.includes(list.type)))) ?? []
+    if (!shown.length) return <View className="pt-5"><SectionNote>{t("Your lists have no entries with the picked statuses.", "Deine Listen haben keine Einträge mit den gewählten Status.")}</SectionNote></View>
+    return <View>{shown.map(list => <MangaListRow key={list.type} list={list} />)}</View>
 }
 
 function MangaListRow({ list }: { list: Manga_CollectionList }) {

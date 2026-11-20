@@ -185,6 +185,7 @@ function useRefreshLists(t: Translate) {
                 API_ENDPOINTS.MANGA.GetMangaEntry.key,
                 API_ENDPOINTS.ANIME_COLLECTION.GetAnimeCollectionSchedule.key,
                 API_ENDPOINTS.ANILIST.GetAniListStats.key,
+                API_ENDPOINTS.ANILIST.AnilistListMissedSequels.key,
             ]) await queryClient.invalidateQueries({ queryKey: [key] })
         },
         // Replaces the shared English error toast; a failed sign-in already leads to the login (buildSeaQuery).

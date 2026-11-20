@@ -106,6 +106,30 @@ describe("an empty database", () => {
     })
 })
 
+describe("home items", () => {
+    it("an emptied Home stays empty instead of reading as never arranged", async () => {
+        await ask("POST", "/api/v1/status/home-items", { items: [{ id: "a", type: "missed-sequels", schemaVersion: 1 }] })
+        await ask("POST", "/api/v1/status/home-items", { items: [] })
+        expect(await ask("GET", "/api/v1/status/home-items")).toEqual([])
+        await ask("POST", "/api/v1/status/home-items", { items: [{ id: "b", type: "aired-recently", schemaVersion: 1 }] })
+        expect(await ask("GET", "/api/v1/status/home-items")).toEqual([{ id: "b", type: "aired-recently", schemaVersion: 1 }])
+    })
+
+    it("keeps every kind of section once, the first one (continue watching and its banner are one kind)", async () => {
+        await ask("POST", "/api/v1/status/home-items", { items: [
+            { id: "a", type: "anime-carousel", schemaVersion: 3, options: { name: "First" } },
+            { id: "b", type: "anime-continue-watching-header", schemaVersion: 1 },
+            { id: "c", type: "anime-carousel", schemaVersion: 3, options: { name: "Second" } },
+            { id: "d", type: "anime-continue-watching", schemaVersion: 1 },
+        ] })
+        expect(await ask("GET", "/api/v1/status/home-items")).toEqual([
+            { id: "a", type: "anime-carousel", schemaVersion: 3, options: { name: "First" } },
+            { id: "b", type: "anime-continue-watching-header", schemaVersion: 1 },
+        ])
+        await expect(ask("POST", "/api/v1/status/home-items", { items: [{ id: "x", type: "" }] })).rejects.toThrow("needs an id and a type")
+    })
+})
+
 
 describe("the recorded calls, in the recorded order", () => {
     it("has all five recordings as test data, every one answered with 200", () => {
@@ -247,7 +271,7 @@ describe("what no recording shows (the core's own decisions)", () => {
         expect(answer.homeItems).toBeNull()
     })
 
-    it("replaces the home items as a whole, keeps their order and options, and is empty again after an empty list", async () => {
+    it("replaces the home items as a whole, keeps their order and options, and is an emptied Home after an empty list", async () => {
         const items = [{ id: "b", type: "anime-library", options: { layout: "grid" } }, { id: "a", type: "anime-continue-watching", schemaVersion: 2 }]
         await ask("POST", "/api/v1/status/home-items", recorded.homeItems.body)
         await ask("POST", "/api/v1/status/home-items", { items })
@@ -257,8 +281,9 @@ describe("what no recording shows (the core's own decisions)", () => {
         ])
         // no look was saved yet: the home items do not create one
         expect((await status()).themeSettings.id).toBe(0)
+        // 4.3.1: an emptied Home is [] (no sections), not null (never arranged, the default sections)
         await ask("POST", "/api/v1/status/home-items", { items: [] })
-        expect(await ask("GET", "/api/v1/status/home-items")).toBeNull()
+        expect(await ask("GET", "/api/v1/status/home-items")).toEqual([])
     })
 
     it("keeps both changes when two arrive at the same time", async () => {

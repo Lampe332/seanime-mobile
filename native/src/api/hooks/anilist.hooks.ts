@@ -59,6 +59,8 @@ export function useRefreshAnimeCollection() {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetAnimeCollection.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetRawAnimeCollection.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetRawAnimeCollectionTags.key] })
+            // missed sequels are worked out from the lists (Home and Discover share the key)
+            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.AnilistListMissedSequels.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetMissingEpisodes.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.key] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetRawAnilistMangaCollectionTags.key] })
@@ -85,6 +87,7 @@ export function useEditAnilistListEntry(id: Nullish<string | number>, type: "ani
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetAnimeCollection.key] })
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetRawAnimeCollection.key] })
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetRawAnimeCollectionTags.key] })
+                await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.AnilistListMissedSequels.key] })
             } else if (type === "manga") {
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntry.key, String(id)] })
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.key] })
@@ -120,6 +123,7 @@ export function useDeleteAnilistListEntry(id: Nullish<string | number>, type: "a
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetAnimeCollection.key] })
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetRawAnimeCollection.key] })
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.GetRawAnimeCollectionTags.key] })
+                await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.AnilistListMissedSequels.key] })
             } else if (type === "manga") {
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntry.key, String(id)] })
                 await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.key] })

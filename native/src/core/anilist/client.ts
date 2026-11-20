@@ -94,6 +94,7 @@ const sleepFor = (milliseconds: number) => new Promise<void>(resolve => setTimeo
 
 /** How long to wait before the next request may go out; 0 when it may go now */
 export function waitBeforeNext(rateLimit: RateLimit, now: number): number {
+    // a time still to come is a place a waiting request took (sendNow)
     rateLimit.sent = rateLimit.sent.filter(time => now - time < WINDOW_MS)
     let wait = Math.max(0, rateLimit.blockedUntil - now)
     if (rateLimit.sent.length >= rateLimit.limit) wait = Math.max(wait, rateLimit.sent[rateLimit.sent.length - rateLimit.limit] + WINDOW_MS - now)
@@ -179,8 +180,15 @@ async function sendNow(client: AnilistClient, document: string, variables: Recor
     for (let attempt = 0; ; attempt++) {
         const wait = waitBeforeNext(rateLimit, client.now())
         if (wait > LONGEST_WAIT_MS) throw new AnilistFailure("AniList's rate limit is reached", 429)
+        // the request takes its place in the minute before it waits: requests that wait at the same time (Home's sections
+        // all at once) queue one behind the other instead of all going out together when the wait is over
+        rateLimit.sent.push(client.now() + wait)
+        rateLimit.sent.sort((a, b) => a - b)
         if (wait > 0) await sleep(wait)
-        rateLimit.sent.push(client.now())
+        // a 429 of another request while this one waited
+        const blocked = rateLimit.blockedUntil - client.now()
+        if (blocked > LONGEST_WAIT_MS) throw new AnilistFailure("AniList's rate limit is reached", 429)
+        if (blocked > 0) await sleep(blocked)
 
         const controller = new AbortController()
         const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)

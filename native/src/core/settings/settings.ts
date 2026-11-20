@@ -223,13 +223,22 @@ export async function updateAppearance(body: unknown, environment: Environment):
     })
 }
 
-/** GET /api/v1/status/home-items: the home items in their order, null while there are none. */
+/**
+ * The one row an emptied Home keeps (no section at all): without it an empty Home would read as "never arranged" and get
+ * the default sections back. It goes along with backups and the account like the other rows.
+ */
+const NO_SECTIONS = { position: 0, itemId: "", kind: "", schemaVersion: 0, options: null }
+
+/** Continue watching and its banner are one section: Home has one of them at most */
+const sectionKind = (kind: string) => kind === "anime-continue-watching-header" ? "anime-continue-watching" : kind
+
+/** GET /api/v1/status/home-items: the home items in their order, null while they were never saved, [] for an emptied Home. */
 export async function readHomeItems(environment: Environment): Promise<unknown> {
     const database = await environment.database()
     return inOrder(database, async () => {
         const rows = await database.select().from(homeItems).orderBy(asc(homeItems.position))
         if (rows.length === 0) return null
-        return rows.map(row => ({
+        return rows.filter(row => row.kind !== NO_SECTIONS.kind).map(row => ({
             id: row.itemId,
             type: row.kind,
             ...(row.options === null || row.options === undefined ? {} : { options: row.options }),
@@ -238,22 +247,28 @@ export async function readHomeItems(environment: Environment): Promise<unknown> 
     })
 }
 
-/** POST /api/v1/status/home-items: replaces the home items. The recorded answer is empty (no JSON at all). */
+/**
+ * POST /api/v1/status/home-items: replaces the home items. The recorded answer is empty (no JSON at all). Every kind of
+ * section is kept once (the first one); an empty list is kept as an emptied Home (NO_SECTIONS).
+ */
 export async function updateHomeItems(body: unknown, environment: Environment): Promise<undefined> {
     const items = requestBody(body).items ?? []
     if (!Array.isArray(items)) throw new CoreError("items must be a list")
-    const rows = items.map((item: unknown, position) => {
-        if (!isRecord(item) || typeof item.id !== "string" || typeof item.type !== "string") {
+    const checked = items.map((item: unknown, position) => {
+        if (!isRecord(item) || typeof item.id !== "string" || typeof item.type !== "string" || item.type === "") {
             throw new CoreError(`items[${position}] needs an id and a type`)
         }
         const schemaVersion = item.schemaVersion ?? 0
         if (typeof schemaVersion !== "number" || !Number.isInteger(schemaVersion)) throw new CoreError(`items[${position}].schemaVersion must be a number`)
-        return { position, itemId: item.id, kind: item.type, schemaVersion, options: item.options ?? null }
+        return { itemId: item.id, kind: item.type, schemaVersion, options: item.options ?? null }
     })
+    const kinds = new Set<string>()
+    const rows = checked.filter(row => !kinds.has(sectionKind(row.kind)) && !!kinds.add(sectionKind(row.kind)))
+        .map((row, position) => ({ position, ...row }))
     const database = await environment.database()
     await inOrder(database, () => database.transaction(async transaction => {
         await transaction.delete(homeItems)
-        if (rows.length > 0) await transaction.insert(homeItems).values(rows)
+        await transaction.insert(homeItems).values(rows.length > 0 ? rows : [NO_SECTIONS])
         // the home items belong to the look: a look that was saved before counts as changed now (DB copy b)
         await transaction.update(appearance).set({ changedAt: environment.now() })
     }))

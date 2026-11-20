@@ -10,10 +10,9 @@ export const DEFAULT_HOME_ITEMS: Models_HomeItem[] = [
     {
         id: "anime-library",
         type: "anime-library",
-        schemaVersion: 1,
+        schemaVersion: 2,
         options: {
             statuses: ["CURRENT", "PAUSED", "PLANNING", "COMPLETED", "DROPPED"],
-            layout: "grid",
         },
     },
 ]
@@ -224,21 +223,6 @@ export const HOME_ITEMS = {
                     },
                 ],
             },
-            {
-                label: "Layout",
-                name: "layout",
-                type: "select",
-                options: [
-                    {
-                        label: "Grid",
-                        value: "grid",
-                    },
-                    {
-                        label: "Carousel",
-                        value: "carousel",
-                    },
-                ],
-            },
         ],
     },
     "my-lists": {
@@ -279,21 +263,6 @@ export const HOME_ITEMS = {
                 ],
             },
             {
-                label: "Layout",
-                name: "layout",
-                type: "select",
-                options: [
-                    {
-                        label: "Grid",
-                        value: "grid",
-                    },
-                    {
-                        label: "Carousel",
-                        value: "carousel",
-                    },
-                ],
-            },
-            {
                 label: "Type",
                 name: "type",
                 type: "select",
@@ -319,24 +288,7 @@ export const HOME_ITEMS = {
         name: "Local Anime Library",
         kind: ["row"],
         schemaVersion: 2,
-        description: "Display a complete grid of anime you have in your local library.",
-        options: [
-            {
-                label: "Layout",
-                name: "layout",
-                type: "select",
-                options: [
-                    {
-                        label: "Grid",
-                        value: "grid",
-                    },
-                    {
-                        label: "Carousel",
-                        value: "carousel",
-                    },
-                ],
-            },
-        ],
+        description: "Display the anime you have in your local library, one row per list.",
     },
     "library-upcoming-episodes": {
         name: "Upcoming Library Episodes",
@@ -403,7 +355,8 @@ export const HOME_ITEMS = {
         kind: ["row"],
         schemaVersion: 1,
         description: "Display a carousel of manga based on the selected options.",
-        options: _carouselOptions.map(n => {
+        // AniList has no season for manga (LIST_MANGA has none): the option would do nothing
+        options: _carouselOptions.filter(n => n.name !== "season").map(n => {
             if (n.name === "format") {
                 return {
                     ...n,
@@ -438,23 +391,24 @@ export const HOME_ITEMS = {
                         label: "Currently Reading",
                     },
                     {
+                        value: "REPEATING",
+                        label: "Rereading",
+                    },
+                    {
+                        value: "PLANNING",
+                        label: "Planning",
+                    },
+                    {
                         value: "PAUSED",
                         label: "Paused",
                     },
-                ],
-            },
-            {
-                label: "Layout",
-                name: "layout",
-                type: "select",
-                options: [
                     {
-                        label: "Grid",
-                        value: "grid",
+                        value: "COMPLETED",
+                        label: "Completed",
                     },
                     {
-                        label: "Carousel",
-                        value: "carousel",
+                        value: "DROPPED",
+                        label: "Dropped",
                     },
                 ],
             },
