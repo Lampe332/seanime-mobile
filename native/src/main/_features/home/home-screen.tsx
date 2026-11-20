@@ -62,7 +62,7 @@ import { customizeInHomeHead } from "@/lib/nav/more-panel"
 import { AnilistSyncBar } from "@/main/_features/anilist-sync/anilist-sync"
 import { HomeScheduleCalendar } from "./home-schedule-calendar"
 import { carouselEmptyCause, HOME_ITEMS_PENDING, hasSectionGapBefore, resetCarouselOptions, resolveHomeItems, withCurrentSchema } from "./home-layout"
-import { homeOptionLabel } from "./home-section-info"
+import { carouselDefaultName, homeOptionLabel } from "./home-section-info"
 import { __home_settingsModalOpen, HomeSettingsSheet } from "./home-settings-sheet"
 import { isAnimeLibraryItemsOnly } from "./home-items.utils"
 
@@ -300,27 +300,6 @@ function SectionNote({ children }: { children: string }) {
 /** A carousel's heading on the shared gutter, cards right under it like the other rows */
 function CarouselHeading({ children }: { children: React.ReactNode }) {
     return <View className="mb-2 min-h-11 justify-center"><SectionTitle>{children}</SectionTitle></View>
-}
-
-/** A carousel's name when the section has none: it says what the row's sorting shows. */
-function carouselDefaultName(t: ReturnType<typeof useTr>, type: "anime" | "manga", sorting: string | undefined) {
-    const anime = type === "anime"
-    switch (sorting) {
-        case "POPULARITY_DESC":
-            return anime ? t("Most popular anime", "Beliebteste Anime") : t("Most popular manga", "Beliebteste Manga")
-        case "TRENDING_DESC":
-            return anime ? t("Trending anime", "Angesagte Anime") : t("Trending manga", "Angesagte Manga")
-        case "TITLE_ROMAJI_ASC":
-        case "TITLE_ENGLISH_ASC":
-            return anime ? t("Anime from A to Z", "Anime von A bis Z") : t("Manga from A to Z", "Manga von A bis Z")
-        case "TITLE_ROMAJI_DESC":
-        case "TITLE_ENGLISH_DESC":
-            return anime ? t("Anime from Z to A", "Anime von Z bis A") : t("Manga from Z to A", "Manga von Z bis A")
-        case "SCORE":
-            return anime ? t("Lowest rated anime", "Am schlechtesten bewertete Anime") : t("Lowest rated manga", "Am schlechtesten bewertete Manga")
-        default:
-            return anime ? t("Top rated anime", "Top bewertete Anime") : t("Top rated manga", "Top bewertete Manga")
-    }
 }
 
 /** Anime / manga carousel: a row chosen by the section's options; without a name it is named after its sorting. */

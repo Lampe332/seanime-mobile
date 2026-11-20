@@ -73,7 +73,7 @@ import {
     yearMax,
     yearText,
 } from "./home-options"
-import { HOME_SECTION_INFO, homeOptionLabel } from "./home-section-info"
+import { carouselDefaultName, HOME_SECTION_INFO, homeOptionLabel } from "./home-section-info"
 
 export const __home_settingsModalOpen = atom(false)
 
@@ -447,7 +447,7 @@ function HomeItemOptionsSheet({ item: openedWith, open, onClose, onSave }: {
                 }}>{t("Save", "Speichern")}</Button>
             </>}>
             {(schema.options as OptionSchema[]).map(option => (
-                <OptionField key={`${option.name}:${resets}`} sectionType={type} option={option} value={form[option.name]}
+                <OptionField key={`${option.name}:${resets}`} sectionType={type} option={option} value={form[option.name]} sorting={form.sorting}
                     onChange={value => setForm(prev => withOption(prev, option.name, value))} />
             ))}
             {warnings.map(warning => (
@@ -483,13 +483,13 @@ function optionHint(name: string, t: Translate): string {
     return ""
 }
 
-function optionPlaceholder(sectionType: string, name: string, t: Translate): string {
-    if (name === "name") return sectionType === "manga-carousel" ? t("Top rated manga", "Top bewertete Manga") : t("Top rated anime", "Top bewertete Anime")
+function optionPlaceholder(sectionType: string, name: string, sorting: unknown, t: Translate): string {
+    if (name === "name") return carouselDefaultName(t, sectionType === "manga-carousel" ? "manga" : "anime", typeof sorting === "string" ? sorting : undefined)
     if (name === "text") return t("Your heading", "Deine Überschrift")
     return t("Optional", "Optional")
 }
 
-function OptionField({ sectionType, option, value, onChange }: { sectionType: string, option: OptionSchema, value: unknown, onChange: (value: unknown) => void }) {
+function OptionField({ sectionType, option, value, sorting, onChange }: { sectionType: string, option: OptionSchema, value: unknown, sorting: unknown, onChange: (value: unknown) => void }) {
     const t = useTr()
     const label = homeOptionLabel(t, option.label)
     const hint = optionHint(option.name, t)
@@ -501,7 +501,7 @@ function OptionField({ sectionType, option, value, onChange }: { sectionType: st
                 <View className="gap-2">
                     {head}
                     <TextInput value={String(value ?? "")} onChangeText={onChange}
-                        placeholder={optionPlaceholder(sectionType, option.name, t)} placeholderTextColor={colors.smTextSubtle}
+                        placeholder={optionPlaceholder(sectionType, option.name, sorting, t)} placeholderTextColor={colors.smTextSubtle}
                         accessibilityLabel={label} accessibilityHint={hint || undefined}
                         className="min-h-12 rounded-surface-sm bg-sm-surface-raised px-4 font-sans text-base text-sm-text" />
                     {foot}
@@ -559,6 +559,12 @@ function YearField({ label, value, onChange }: { label: string, value: unknown, 
     return (
         <View className="gap-2">
             <Text className="text-[13px] font-semibold text-sm-text-muted">{label}</Text>
+            {/* above the field: under it the sheet's footer and the keyboard cover the message while typing */}
+            {!valid && (
+                <Text accessibilityRole="alert" className="text-xs leading-[17px] text-sm-danger">
+                    {t(`Enter a year from ${YEAR_MIN} to ${yearMax()}.`, `Gib ein Jahr von ${YEAR_MIN} bis ${yearMax()} ein.`)}
+                </Text>
+            )}
             <TextInput value={text} maxLength={4} keyboardType="number-pad"
                 onChangeText={input => {
                     const parsed = parseYearInput(input)
@@ -567,11 +573,6 @@ function YearField({ label, value, onChange }: { label: string, value: unknown, 
                 }}
                 placeholder={t("Any year", "Jedes Jahr")} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
                 className={cn("min-h-12 rounded-surface-sm bg-sm-surface-raised px-4 font-sans text-base text-sm-text", !valid && "border border-sm-danger")} />
-            {!valid && (
-                <Text accessibilityRole="alert" className="text-xs leading-[17px] text-sm-danger">
-                    {t(`Enter a year from ${YEAR_MIN} to ${yearMax()}.`, `Gib ein Jahr von ${YEAR_MIN} bis ${yearMax()} ein.`)}
-                </Text>
-            )}
         </View>
     )
 }

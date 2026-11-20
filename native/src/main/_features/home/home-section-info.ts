@@ -164,3 +164,24 @@ export function homeOptionLabel(t: Translate, label: string): string {
     const row = HOME_OPTION_LABELS[label]
     return row ? t(row[0], row[1]) : label
 }
+
+/** A carousel's name when the section has none: it says what the row's sorting shows (Home's heading and the name field's placeholder). */
+export function carouselDefaultName(t: Translate, type: "anime" | "manga", sorting: string | undefined): string {
+    const anime = type === "anime"
+    switch (sorting) {
+        case "POPULARITY_DESC":
+            return anime ? t("Most popular anime", "Beliebteste Anime") : t("Most popular manga", "Beliebteste Manga")
+        case "TRENDING_DESC":
+            return anime ? t("Trending anime", "Angesagte Anime") : t("Trending manga", "Angesagte Manga")
+        case "TITLE_ROMAJI_ASC":
+        case "TITLE_ENGLISH_ASC":
+            return anime ? t("Anime from A to Z", "Anime von A bis Z") : t("Manga from A to Z", "Manga von A bis Z")
+        case "TITLE_ROMAJI_DESC":
+        case "TITLE_ENGLISH_DESC":
+            return anime ? t("Anime from Z to A", "Anime von Z bis A") : t("Manga from Z to A", "Manga von Z bis A")
+        case "SCORE":
+            return anime ? t("Lowest rated anime", "Am schlechtesten bewertete Anime") : t("Lowest rated manga", "Am schlechtesten bewertete Manga")
+        default:
+            return anime ? t("Top rated anime", "Top bewertete Anime") : t("Top rated manga", "Top bewertete Manga")
+    }
+}
