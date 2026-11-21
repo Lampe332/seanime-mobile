@@ -30,6 +30,8 @@
   "Nakama is turned off": "Nakama est désactivé",
   "No Nakama host is set up": "Aucun hôte Nakama n'est configuré",
   "The Nakama passcode is missing": "Le code d'accès Nakama manque",
+  "1 file could not be deleted": "1 fichier n'a pas pu être supprimé",
+  "{0} files could not be deleted": "{0} fichiers n'ont pas pu être supprimés",
   "Download finished": "Téléchargement terminé",
   "Download failed": "Échec du téléchargement",
   "Episode downloads": "Téléchargements d'épisodes",
@@ -1294,6 +1296,7 @@
   "Stop seeding": "Arrêter le partage",
   "Done · Not seeding": "Terminé · Pas de partage",
   "Not seeding": "Pas de partage",
+  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "Téléchargé. Rien n'est envoyé à d'autres, car « Arrêter le partage une fois terminé » est activé dans les réglages. Les fichiers sont dans ta bibliothèque.",
   "Downloaded. Nothing is uploaded to others. The files are in your library.": "Téléchargé. Rien n'est envoyé à d'autres. Les fichiers sont dans ta bibliothèque.",
   "Start seeding": "Partager",
   "The download stopped because of an error. Try again, or delete it.": "Le téléchargement s'est arrêté à cause d'une erreur. Réessaie ou supprime-le.",
@@ -2774,6 +2777,9 @@
   "Allow notifications for Seanime Mobile first.": "Autorise d'abord les notifications pour Seanime Mobile.",
   "Test notification sent": "Notification de test envoyée",
   "Your launcher cannot add widgets from apps. Add it from the home screen instead.": "Ton lanceur ne peut pas ajouter de widgets depuis les apps. Ajoute-le plutôt depuis l'écran d'accueil.",
+  "Privacy": "Confidentialité",
+  "Send anonymous usage count": "Envoyer un comptage d’utilisation anonyme",
+  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "Une fois par jour, l’app envoie un identifiant aléatoire et sa version, pour que nous sachions combien de personnes l’utilisent. Aucun compte, aucun e-mail, aucune IP n’est enregistré.",
   "For the app's own screens: tabs, downloads, calendar, player menu.": "Pour les écrans propres à l'app : onglets, téléchargements, calendrier, menu du lecteur.",
   "Your local lists are on AniList now": "Tes listes locales sont maintenant sur AniList",
   "The lists could not be uploaded to AniList.": "Les listes n'ont pas pu être envoyées vers AniList.",
@@ -3049,9 +3055,5 @@
   "Updates could not be loaded.": "Impossible de charger les mises à jour.",
   "No internet connection, so updates could not be loaded.": "Pas de connexion internet, impossible de charger les mises à jour.",
   "No new episodes or chapters this week": "Aucun nouvel épisode ni chapitre cette semaine",
-  "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "Les nouveaux épisodes des animes que tu regardes ou prévois de regarder et les nouveaux chapitres des mangas que tu lis apparaissent ici.",
-  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "Téléchargé. Rien n'est envoyé à d'autres, car « Arrêter le partage une fois terminé » est activé dans les réglages. Les fichiers sont dans ta bibliothèque.",
-  "Privacy": "Confidentialité",
-  "Send anonymous usage count": "Envoyer un comptage d’utilisation anonyme",
-  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "Une fois par jour, l’app envoie un identifiant aléatoire et sa version, pour que nous sachions combien de personnes l’utilisent. Aucun compte, aucun e-mail, aucune IP n’est enregistré."
+  "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "Les nouveaux épisodes des animes que tu regardes ou prévois de regarder et les nouveaux chapitres des mangas que tu lis apparaissent ici."
 }

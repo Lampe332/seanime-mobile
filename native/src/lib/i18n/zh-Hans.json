@@ -30,6 +30,8 @@
   "Nakama is turned off": "Nakama 已关闭",
   "No Nakama host is set up": "尚未设置 Nakama 主机",
   "The Nakama passcode is missing": "缺少 Nakama 访问码",
+  "1 file could not be deleted": "有 1 个文件无法删除",
+  "{0} files could not be deleted": "有 {0} 个文件无法删除",
   "Download finished": "下载完成",
   "Download failed": "下载失败",
   "Episode downloads": "剧集下载",
@@ -1240,6 +1242,7 @@
   "Stop seeding": "停止做种",
   "Done · Not seeding": "完成 · 未做种",
   "Not seeding": "未做种",
+  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "已下载。由于设置中开启了“完成后停止分享”，不会上传给其他人。文件在你的媒体库中。",
   "Downloaded. Nothing is uploaded to others. The files are in your library.": "已下载。不会上传给其他人。文件在你的媒体库中。",
   "Start seeding": "开始做种",
   "The download stopped because of an error. Try again, or delete it.": "下载因错误而停止。请重试或删除。",
@@ -2579,6 +2582,9 @@
   "Allow notifications for Seanime Mobile first.": "请先允许 Seanime Mobile 发送通知。",
   "Test notification sent": "测试通知已发送",
   "Your launcher cannot add widgets from apps. Add it from the home screen instead.": "你的启动器不支持从应用添加小组件，请改从主屏幕添加。",
+  "Privacy": "隐私",
+  "Send anonymous usage count": "发送匿名使用统计",
+  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "应用每天发送一次随机 ID 和版本号，让我们知道有多少人在使用。不会保存账户、电子邮件或 IP。",
   "For the app's own screens: tabs, downloads, calendar, player menu.": "用于应用自身的界面：标签页、下载、日历、播放器菜单。",
   "Your local lists are on AniList now": "你的本地列表已同步到 AniList",
   "The lists could not be uploaded to AniList.": "无法把列表上传到 AniList。",
@@ -2854,9 +2860,5 @@
   "Updates could not be loaded.": "更新加载失败。",
   "No internet connection, so updates could not be loaded.": "没有网络连接，更新加载失败。",
   "No new episodes or chapters this week": "本周没有新剧集或新章节",
-  "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "你在看或计划看的动画的新剧集，以及你在读的漫画的新章节，会显示在这里。",
-  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "已下载。由于设置中开启了“完成后停止分享”，不会上传给其他人。文件在你的媒体库中。",
-  "Privacy": "隐私",
-  "Send anonymous usage count": "发送匿名使用统计",
-  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "应用每天发送一次随机 ID 和版本号，让我们知道有多少人在使用。不会保存账户、电子邮件或 IP。"
+  "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "你在看或计划看的动画的新剧集，以及你在读的漫画的新章节，会显示在这里。"
 }

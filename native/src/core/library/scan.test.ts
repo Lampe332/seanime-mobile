@@ -327,12 +327,17 @@ describe("changing the files", () => {
         await lists()
         await scanned()
         deletedFiles = []
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
         // not in the library, outside its folders, a way out of it, a folder: nothing is touched
         await expect(ask("DELETE", "/api/v1/library/local-files", { paths: ["/storage/emulated/0/DCIM/photo.mp4", `${ROOT}/../x.mp4`, `${ROOT}/Other`] }))
             .rejects.toThrow("3 files could not be deleted")
         expect(deletedFiles).toEqual([])
+        expect(warn).toHaveBeenCalledWith(`[Core] warn library: "photo.mp4" was not deleted: the library does not know the file (not scanned yet)`)
         stuck = `${ROOT}/Dr. STONE - 02.mp4`
         await expect(ask("DELETE", "/api/v1/library/local-files", { paths: [stuck, `${ROOT}/Dr. STONE - 01.mp4`] })).rejects.toThrow("1 file could not be deleted")
+        // the device's reason is in the log, not swallowed
+        expect(warn).toHaveBeenLastCalledWith(`[Core] warn library: "Dr. STONE - 02.mp4" was not deleted: not allowed`)
+        warn.mockRestore()
         stuck = ""
         expect(deletedFiles).toEqual([`${ROOT}/Dr. STONE - 01.mp4`])
         const files = await ask("POST", "/api/v1/library/local-files", { action: "unlock" }) as Json[]

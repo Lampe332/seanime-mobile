@@ -30,6 +30,8 @@
   "Nakama is turned off": "Nakama выключена",
   "No Nakama host is set up": "Хост Nakama не настроен",
   "The Nakama passcode is missing": "Не указан код доступа Nakama",
+  "1 file could not be deleted": "Не удалось удалить 1 файл",
+  "{0} files could not be deleted": "Не удалось удалить файлы: {0}",
   "Download finished": "Загрузка завершена",
   "Download failed": "Не удалось загрузить",
   "Episode downloads": "Загрузки серий",
@@ -1292,6 +1294,7 @@
   "Stop seeding": "Остановить раздачу",
   "Done · Not seeding": "Готово · Не раздаётся",
   "Not seeding": "Не раздаётся",
+  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "Скачано. Другим ничего не отдаётся, потому что в настройках включено «Прекращать раздачу после завершения». Файлы в вашей библиотеке.",
   "Downloaded. Nothing is uploaded to others. The files are in your library.": "Скачано. Другим ничего не отдаётся. Файлы в вашей библиотеке.",
   "Start seeding": "Начать раздачу",
   "The download stopped because of an error. Try again, or delete it.": "Загрузка остановилась из-за ошибки. Попробуйте снова или удалите её.",
@@ -2733,6 +2736,9 @@
   "Allow notifications for Seanime Mobile first.": "Сначала разреши уведомления для Seanime Mobile.",
   "Test notification sent": "Тестовое уведомление отправлено",
   "Your launcher cannot add widgets from apps. Add it from the home screen instead.": "Твой лаунчер не умеет добавлять виджеты из приложений. Добавь его с главного экрана.",
+  "Privacy": "Конфиденциальность",
+  "Send anonymous usage count": "Отправлять анонимный счётчик использования",
+  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "Раз в день приложение отправляет случайный ID и свою версию, чтобы мы знали, сколько людей им пользуются. Ни аккаунт, ни email, ни IP не сохраняются.",
   "For the app's own screens: tabs, downloads, calendar, player menu.": "Для экранов самого приложения: вкладки, загрузки, календарь, меню плеера.",
   "Your local lists are on AniList now": "Твои локальные списки теперь в AniList",
   "The lists could not be uploaded to AniList.": "Не удалось отправить списки в AniList.",
@@ -3008,9 +3014,5 @@
   "Updates could not be loaded.": "Не удалось загрузить обновления.",
   "No internet connection, so updates could not be loaded.": "Нет интернета, поэтому обновления не загрузились.",
   "No new episodes or chapters this week": "На этой неделе новых серий и глав нет",
-  "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "Здесь появляются новые серии аниме, которое ты смотришь или планируешь, и новые главы манги, которую читаешь.",
-  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "Скачано. Другим ничего не отдаётся, потому что в настройках включено «Прекращать раздачу после завершения». Файлы в вашей библиотеке.",
-  "Privacy": "Конфиденциальность",
-  "Send anonymous usage count": "Отправлять анонимный счётчик использования",
-  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "Раз в день приложение отправляет случайный ID и свою версию, чтобы мы знали, сколько людей им пользуются. Ни аккаунт, ни email, ни IP не сохраняются."
+  "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "Здесь появляются новые серии аниме, которое ты смотришь или планируешь, и новые главы манги, которую читаешь."
 }

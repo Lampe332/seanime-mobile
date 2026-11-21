@@ -304,15 +304,23 @@ export async function deleteLocalFiles(request: CoreRequest, environment: CoreEn
     const known = new Set((await inOrder(database, () => database.select({ path: localFiles.path }).from(localFiles).where(inArray(localFiles.path, paths)))).map(row => row.path))
     const gone: string[] = []
     let failed = 0
+    const refuse = (path: string, why: string) => {
+        failed++
+        console.warn(`[Core] warn library: "${path.slice(path.lastIndexOf("/") + 1)}" was not deleted: ${why}`)
+    }
     for (const path of paths) {
-        if (!known.has(path) || !insideLibrary(path, roots)) {
-            failed++
+        if (!known.has(path)) {
+            refuse(path, "the library does not know the file (not scanned yet)")
+            continue
+        }
+        if (!insideLibrary(path, roots)) {
+            refuse(path, "it is not inside a library folder")
             continue
         }
         await environment.pause("library file removal")
-        const removed = await device.removeFile(path).catch(() => false)
-        if (removed) gone.push(path)
-        else failed++
+        const removed = await device.removeFile(path).catch((error: unknown) => error instanceof Error ? error.message : String(error))
+        if (removed === true) gone.push(path)
+        else refuse(path, removed === false ? "the device did not remove it" : removed)
     }
     for (let at = 0; at < gone.length; at += 50) {
         if (at > 0) await environment.pause("library file removal")

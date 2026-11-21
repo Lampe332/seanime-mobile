@@ -38,6 +38,8 @@ const CORE_ERRORS_DE: Record<string, string> = {
     "Nakama is turned off": "Nakama ist ausgeschaltet",
     "No Nakama host is set up": "Kein Nakama-Host eingerichtet",
     "The Nakama passcode is missing": "Das Nakama-Passwort fehlt",
+    "1 file could not be deleted": "1 Datei konnte nicht gelöscht werden",
+    "{0} files could not be deleted": "{0} Dateien konnten nicht gelöscht werden",
 }
 
 const german = compileCatalog(CORE_ERRORS_DE, "de")

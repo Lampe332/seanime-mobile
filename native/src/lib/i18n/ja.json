@@ -30,6 +30,8 @@
   "Nakama is turned off": "Nakamaはオフです",
   "No Nakama host is set up": "Nakamaのホストが設定されていません",
   "The Nakama passcode is missing": "Nakamaのパスコードがありません",
+  "1 file could not be deleted": "1件のファイルを削除できませんでした",
+  "{0} files could not be deleted": "{0}件のファイルを削除できませんでした",
   "Download finished": "ダウンロード完了",
   "Download failed": "ダウンロードに失敗しました",
   "Episode downloads": "エピソードのダウンロード",
@@ -1240,6 +1242,7 @@
   "Stop seeding": "シードを停止",
   "Done · Not seeding": "完了 · シードなし",
   "Not seeding": "シードなし",
+  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "ダウンロード済みです。設定で「完了したら共有を停止」がオンのため、他の人には何もアップロードしません。ファイルはライブラリにあります。",
   "Downloaded. Nothing is uploaded to others. The files are in your library.": "ダウンロード済みです。他の人には何もアップロードしません。ファイルはライブラリにあります。",
   "Start seeding": "シードを開始",
   "The download stopped because of an error. Try again, or delete it.": "エラーでダウンロードが止まりました。再試行するか削除してください。",
@@ -2579,6 +2582,9 @@
   "Allow notifications for Seanime Mobile first.": "先にSeanime Mobileの通知を許可してください。",
   "Test notification sent": "テスト通知を送信しました",
   "Your launcher cannot add widgets from apps. Add it from the home screen instead.": "お使いのランチャーでは、アプリからウィジェットを追加できません。ホーム画面から追加してください。",
+  "Privacy": "プライバシー",
+  "Send anonymous usage count": "匿名の利用カウントを送信",
+  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "1日に1回、アプリはランダムなIDとバージョンを送信し、何人が使っているかを把握します。アカウント、メールアドレス、IPアドレスは保存されません。",
   "For the app's own screens: tabs, downloads, calendar, player menu.": "アプリ独自の画面用です。タブ、ダウンロード、カレンダー、プレーヤーメニューが対象です。",
   "Your local lists are on AniList now": "ローカルのリストをAniListに反映しました",
   "The lists could not be uploaded to AniList.": "リストをAniListにアップロードできませんでした。",
@@ -2854,9 +2860,5 @@
   "Updates could not be loaded.": "アップデートを読み込めませんでした。",
   "No internet connection, so updates could not be loaded.": "ネットに接続されていないため、アップデートを読み込めませんでした。",
   "No new episodes or chapters this week": "今週、新しいエピソードやチャプターはありません",
-  "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "視聴中や視聴予定のアニメの新エピソード、読んでいるマンガの新チャプターがここに表示されます。",
-  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "ダウンロード済みです。設定で「完了したら共有を停止」がオンのため、他の人には何もアップロードしません。ファイルはライブラリにあります。",
-  "Privacy": "プライバシー",
-  "Send anonymous usage count": "匿名の利用カウントを送信",
-  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "1日に1回、アプリはランダムなIDとバージョンを送信し、何人が使っているかを把握します。アカウント、メールアドレス、IPアドレスは保存されません。"
+  "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "視聴中や視聴予定のアニメの新エピソード、読んでいるマンガの新チャプターがここに表示されます。"
 }

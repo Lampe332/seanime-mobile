@@ -23,6 +23,16 @@ describe("coreErrorText", () => {
         expect(coreErrorText("manga provider not found: weebcentral")).toBe("未找到漫画提供方：weebcentral")
     })
 
+    it("words the failed file deletion in the app language, one file and several", () => {
+        state.language = "de"
+        expect(coreErrorText("1 file could not be deleted")).toBe("1 Datei konnte nicht gelöscht werden")
+        expect(coreErrorText("3 files could not be deleted")).toBe("3 Dateien konnten nicht gelöscht werden")
+        state.language = "ru"
+        expect(coreErrorText("5 files could not be deleted")).toBe("Не удалось удалить файлы: 5")
+        state.language = "en"
+        expect(coreErrorText("2 files could not be deleted")).toBe("2 files could not be deleted")
+    })
+
     it("keeps English and unknown errors as they are", () => {
         expect(coreErrorText("not logged in to AniList")).toBe("not logged in to AniList")
         state.language = "fr"
