@@ -187,6 +187,34 @@ describe("connection (recorded protocol)", () => {
         expect(sockets).toHaveLength(3)
     })
 
+    it("onerror followed by onclose of the same socket plans one try, not two with a doubled pause", async () => {
+        vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] })
+        await connected()
+        // React Native reports a failed socket as onerror and then onclose
+        const first = last()
+        first.onerror?.({})
+        first.onclose?.()
+        expect(first.closed).toBe(true)
+        vi.advanceTimersByTime(FIRST_PAUSE_MS)
+        expect(sockets).toHaveLength(2)
+        // no second try left over from the second call, and the next pause is the doubled one of a second failure
+        const second = last()
+        second.onerror?.({})
+        second.onclose?.()
+        vi.advanceTimersByTime(FIRST_PAUSE_MS * 2 - 1)
+        expect(sockets).toHaveLength(2)
+        vi.advanceTimersByTime(1)
+        expect(sockets).toHaveLength(3)
+        vi.advanceTimersByTime(60_000)
+        expect(sockets).toHaveLength(3)
+    })
+
+    it("reconnect without a passcode names the missing passcode", async () => {
+        await ask("POST", "/api/v1/start", { nakama: { enabled: true, username: "tablet", remoteServerURL: "127.0.0.1:43299/" } })
+        await expect(ask("POST", "/api/v1/nakama/reconnect", {})).rejects.toThrow("The Nakama passcode is missing")
+        expect(sockets).toHaveLength(0)
+    })
+
     it("a refused password: an error, the socket closed, no new try until asked", async () => {
         vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] })
         await setUp()
@@ -203,13 +231,16 @@ describe("connection (recorded protocol)", () => {
         expect(sockets).toHaveLength(2)
     })
 
-    it("Nakama off ends the connection; no host set: reconnect says so; at start it connects once", async () => {
+    it("Nakama off ends the connection; off or no host set: reconnect says which; at start it connects once", async () => {
         await connected()
         await ask("PATCH", "/api/v1/settings/path", { path: "nakama.enabled", value: false })
         await vi.waitFor(() => expect(last().closed).toBe(true))
         expect(nakamaStatus()).toEqual({ isHost: false, connectedPeers: [], isConnectedToHost: false, connectionMode: "direct" })
-        await expect(ask("POST", "/api/v1/nakama/reconnect", {})).rejects.toThrow("No Nakama host is set up")
+        await expect(ask("POST", "/api/v1/nakama/reconnect", {})).rejects.toThrow("Nakama is turned off")
+        await ask("PATCH", "/api/v1/settings/path", { path: "nakama.remoteServerURL", value: "" })
         await ask("PATCH", "/api/v1/settings/path", { path: "nakama.enabled", value: true })
+        await expect(ask("POST", "/api/v1/nakama/reconnect", {})).rejects.toThrow("No Nakama host is set up")
+        await ask("PATCH", "/api/v1/settings/path", { path: "nakama.remoteServerURL", value: "127.0.0.1:43299/" })
         await vi.waitFor(() => expect(sockets).toHaveLength(2))
         forgetNakamaGuest()
         nakamaAtStart(environment)

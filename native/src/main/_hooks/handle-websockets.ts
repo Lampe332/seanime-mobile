@@ -20,7 +20,7 @@ export function useWebsocketSender() {
     const MAX_PLUGIN_BATCH_SIZE = 20
     const PLUGIN_BATCH_FLUSH_INTERVAL = 10 // ms
 
-    const latestSocketRef = useRef<WebSocket | null>(null)
+    const latestSocketRef = useRef<WebSocket | null>(socket)
 
     useEffect(() => {
         latestSocketRef.current = socket
@@ -98,6 +98,10 @@ export function useWebsocketSender() {
 
     function sendMessage<TData>(data: SeaWebsocketEvent<TData>) {
         const currentSocket = latestSocketRef.current
+        // No socket at all: since stage 8a-2 there is none (websocket-provider.tsx), so nothing is queued, logged or
+        // retried. Before, every page change and turn of the device queued the plugins' events for good, a 1 s timer ran
+        // forever and "Queued message…" filled the diagnostic report's log. A socket that is still opening keeps the queue.
+        if (!currentSocket) return false
 
         if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
             try {
@@ -125,6 +129,7 @@ export function useWebsocketSender() {
     }
 
     function addPluginEventToBatch(type: string, payload: any, extensionId?: string) {
+        if (!latestSocketRef.current) return
         pluginEventBatchRef.current.push({
             type,
             payload,

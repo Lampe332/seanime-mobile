@@ -183,7 +183,9 @@ function lost(state: Guest, generation: number, environment: Environment): void 
     if (guest !== state || state.generation !== generation) return
     const wasConnected = state.authenticated
     stopTimers(state)
-    state.socket = null
+    // React Native's socket reports a failure as onerror and then onclose: the socket is retired here (a new generation),
+    // so the second call is ignored instead of planning a second try with a doubled pause
+    closeSocket(state)
     state.connected = false
     state.authenticated = false
     if (wasConnected) emitCoreEvent("nakama-host-disconnected", {})
@@ -282,16 +284,28 @@ function sameHost(a: GuestSettings, b: GuestSettings): boolean {
     return a.url === b.url && a.password === b.password && a.username === b.username
 }
 
-/** Connects as the settings say: a new host or password starts anew, Nakama off or no host ends the connection */
-async function follow(environment: Environment, again: boolean): Promise<boolean> {
+/** Why the guest cannot connect with these settings, or "" (the reconnect's error; core-error-text.ts translates it) */
+function missingSetting(settings: GuestSettings): string {
+    if (!settings.enabled) return "Nakama is turned off"
+    if (!settings.url) return "No Nakama host is set up"
+    if (!settings.password) return "The Nakama passcode is missing"
+    return ""
+}
+
+/**
+ * Connects as the settings say: a new host or password starts anew, Nakama off, no host or no passcode ends the
+ * connection. Answers what is missing, or "" when it connects.
+ */
+async function follow(environment: Environment, again: boolean): Promise<string> {
     const settings = await guestSettings(environment)
-    if (!settings.enabled || !settings.url || !settings.password) {
+    const missing = missingSetting(settings)
+    if (missing) {
         stopGuest()
-        return false
+        return missing
     }
     if (guest && sameHost(guest.settings, settings) && !again) {
         guest.settings = settings
-        return true
+        return ""
     }
     if (guest) {
         stopTimers(guest)
@@ -301,7 +315,7 @@ async function follow(environment: Environment, again: boolean): Promise<boolean
     guest = { settings, socket: null, connected: false, authenticated: false, hostName: "", failures: 0, refused: false, retry: null, pinger: null, generation: 0 }
     open(guest, environment)
     emitStatus()
-    return true
+    return ""
 }
 
 /** Once per run, with the first answer of the core: connects when Nakama is set up */
@@ -318,7 +332,8 @@ export async function nakamaSettingsChanged(environment: Environment): Promise<v
 
 /** POST /api/v1/nakama/reconnect */
 export async function reconnectToHost(_request: unknown, environment: Environment): Promise<Json> {
-    if (!(await follow(environment, true))) throw new CoreError("No Nakama host is set up", 400)
+    const missing = await follow(environment, true)
+    if (missing) throw new CoreError(missing, 400)
     return { success: true, message: "Reconnecting to host" }
 }
 

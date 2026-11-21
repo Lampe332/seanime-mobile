@@ -87,8 +87,11 @@ export function useInstallExternalExtension() {
     })
 }
 
+/** The core's answer also lists the extensions that could not be installed (core/extensions/manage/install.ts) */
+export type RepositoryInstallAnswer = ExtensionRepo_RepositoryInstallResponse & { failed?: { name: string, reason: string }[] }
+
 export function useInstallExternalExtensionRepository() {
-    return useServerMutation<ExtensionRepo_RepositoryInstallResponse, InstallExternalExtensionRepository_Variables>({
+    return useServerMutation<RepositoryInstallAnswer, InstallExternalExtensionRepository_Variables>({
         endpoint: API_ENDPOINTS.EXTENSIONS.InstallExternalExtensionRepository.endpoint,
         method: API_ENDPOINTS.EXTENSIONS.InstallExternalExtensionRepository.methods[0],
         mutationKey: [API_ENDPOINTS.EXTENSIONS.InstallExternalExtensionRepository.key],

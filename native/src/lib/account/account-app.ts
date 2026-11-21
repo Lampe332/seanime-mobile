@@ -134,13 +134,25 @@ export async function refreshAccount(): Promise<AccountSnapshot> {
     return next
 }
 
-async function refreshInfo() {
+/** Reads the account's info again; false when that failed (offline: the last known info stays) */
+async function refreshInfo(): Promise<boolean> {
     try {
         store.set(accountInfoAtom, await client.account())
+        return true
     }
     catch {
-        // offline: the last known info stays
+        return false
     }
+}
+
+/**
+ * After a switch the server accepted: the info shows the new value even when reading it again failed, so the switch
+ * does not stay off while the toast says it is on
+ */
+async function refreshInfoAfter(change: Pick<AccountInfo, "codeOnly" | "webEdit">): Promise<void> {
+    if (await refreshInfo()) return
+    const info = store.get(accountInfoAtom)
+    if (info) store.set(accountInfoAtom, { ...info, ...change })
 }
 
 /** One sync run; the answer goes to lastSyncAtom ("skipped" ticks change nothing) */
@@ -266,25 +278,25 @@ export function skipNewPassword(): void {
 /** "Sign in with an email code only" on: needs the password; the server can read the synced data from then on */
 export async function turnOnCodeOnly(password: string): Promise<void> {
     await enableCodeOnly(deps, { password })
-    await refreshInfo()
+    await refreshInfoAfter({ codeOnly: true })
 }
 
 /** "Code only" off: the server's copy of the key is deleted at once */
 export async function turnOffCodeOnly(): Promise<void> {
     await disableCodeOnly(deps)
-    await refreshInfo()
+    await refreshInfoAfter({ codeOnly: false })
 }
 
 /** "Edit on the website" on: the password when the account has one, else a recent sign-in (Google) */
 export async function turnOnWebEdit(password: string | undefined): Promise<void> {
     await enableWebEdit(deps, { password })
-    await refreshInfo()
+    await refreshInfoAfter({ webEdit: true })
 }
 
 /** "Edit on the website" off: every unlocked browser is locked again at once */
 export async function turnOffWebEdit(): Promise<void> {
     await disableWebEdit(deps)
-    await refreshInfo()
+    await refreshInfoAfter({ webEdit: false })
 }
 
 /** Import: the core makes a local backup first, then the account's data replaces this device's */

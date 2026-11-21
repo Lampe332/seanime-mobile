@@ -159,6 +159,7 @@ const PROMPT_ICONS = { auth: KeyRound, settings: Settings, extensions: Package, 
  * did on the web (which shook on a tap outside instead, docs §9).
  */
 function ExtensionPrompt() {
+    const t = useTr()
     const { sendMessage } = useWebsocketSender()
     const connected = useAtomValue(websocketConnectedAtom)
     const [queue, setQueue] = React.useState<ExtensionPromptRequest[]>([])
@@ -185,20 +186,24 @@ function ExtensionPrompt() {
         setQueue(prev => prev.slice(1))
     }
     const Icon = PROMPT_ICONS[prompt.kind] ?? ShieldCheck
-    const name = prompt.extension?.name || "An extension"
-    const title = prompt.message || `Allow the extension "${prompt.extension?.name || "Extension"}" to ${prompt.action}?`
+    const name = prompt.extension?.name || t("An extension", "Eine Erweiterung")
+    const extensionName = prompt.extension?.name || t("Extension", "Erweiterung")
+    // the plugin's own texts (message, action, labels) stay as the plugin wrote them
+    const title = prompt.message || t(`Allow the extension "${extensionName}" to ${prompt.action}?`, `Der Erweiterung „${extensionName}“ erlauben: ${prompt.action}?`)
     return (
         <Dialog open title={title} onOpenChange={open => !open && respond(false)}
             footer={<View className="flex-1 gap-3">
-                <Button intent="secondary" size="lg" onPress={() => respond(false)}>{prompt.denyLabel || "Don't Allow"}</Button>
-                <Button size="lg" onPress={() => respond(true)}>{prompt.allowLabel || "Allow"}</Button>
+                <Button intent="secondary" size="lg" onPress={() => respond(false)}>{prompt.denyLabel || t("Don't allow", "Nicht erlauben")}</Button>
+                <Button size="lg" onPress={() => respond(true)}>{prompt.allowLabel || t("Allow", "Erlauben")}</Button>
             </View>}>
             <View className="gap-3">
                 <View className="h-16 w-16 items-center justify-center rounded-xl bg-sm-surface-control">
                     <Icon size={32} color={colors.smText} />
                     {!!prompt.extension?.icon && <Image source={prompt.extension.icon} style={{ position: "absolute", right: -8, bottom: -8, width: 28, height: 28, borderRadius: 10 }} />}
                 </View>
-                <Muted>{name} would like to perform the following action{prompt.resource ? ` on "${prompt.resource}"` : ""}.</Muted>
+                <Muted>{prompt.resource
+                    ? t(`${name} would like to perform the following action on "${prompt.resource}".`, `${name} möchte folgende Aktion für „${prompt.resource}“ ausführen.`)
+                    : t(`${name} would like to perform the following action.`, `${name} möchte folgende Aktion ausführen.`)}</Muted>
                 {!!prompt.details?.length && <ScrollView style={{ maxHeight: 128 }} className="rounded-xl bg-sm-surface-raised p-3">
                     {prompt.details.map(detail => <Text selectable key={detail} className="text-sm">{detail}</Text>)}
                 </ScrollView>}

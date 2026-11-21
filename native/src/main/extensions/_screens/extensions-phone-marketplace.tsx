@@ -117,7 +117,7 @@ export function MarketplacePhone({ t, installedIds, tourOn }: { t: Translate, in
                                 : t("No streaming sources here", "Hier gibt es keine Streaming-Quellen")}</Text>
                         <Text className="text-sm leading-[21px] text-sm-text-muted">{t("Add a community marketplace with its link.", "Füge einen Community-Marktplatz über seinen Link hinzu.")}</Text>
                     </View>
-                    <View ref={addRef} collapsable={false} className="flex-row"><Button wrapperClassName="flex-1" leftIcon={<Plus size={18} color="#ffffff" />} onPress={() => {
+                    <View ref={addRef} collapsable={false} className="flex-row"><Button wrapperClassName="flex-1" leftIcon={<Plus size={18} color={colors.onBrand} />} onPress={() => {
                         pressTourTarget(TOUR_TARGETS.changeRepo)
                         openRepository()
                     }}>{t("Add marketplace", "Marktplatz hinzufügen")}</Button></View>
@@ -298,9 +298,9 @@ function AddMarketplaceSheet({ t, open, onOpenChange, current, recent, installed
     return (
         <Sheet open={open} onOpenChange={onOpenChange} title={t("Add marketplace", "Marktplatz hinzufügen")} tourTarget={TOUR_TARGETS.repoSheet}
             footer={draft.trim()
-                ? <Button size="lg" wrapperClassName="flex-1" disabled={!canAdd} loading={checking} leftIcon={<Plus size={18} color="#ffffff" />} onPress={add}>
+                ? <Button size="lg" wrapperClassName="flex-1" disabled={!canAdd} loading={checking} leftIcon={<Plus size={18} color={colors.onBrand} />} onPress={add}>
                     {t("Add", "Hinzufügen")}</Button>
-                : <Button size="lg" wrapperClassName="flex-1" leftIcon={<ClipboardPaste size={18} color="#ffffff" />} onPress={() => void paste()}>
+                : <Button size="lg" wrapperClassName="flex-1" leftIcon={<ClipboardPaste size={18} color={colors.onBrand} />} onPress={() => void paste()}>
                     {t("Paste link", "Link einfügen")}</Button>}>
             <View className="gap-2">
                 <UrlField t={t} label={t("Link", "Link")} value={draft} onChange={setDraft} placeholder="https://github.com/…" onSubmit={add} pasteInside={false}

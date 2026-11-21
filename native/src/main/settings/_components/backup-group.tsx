@@ -5,7 +5,8 @@ import { Sheet } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { type BackupFile, type BackupSummary, type RestoreMode, backupFileName } from "@/core"
-import { hasSafetyBackup, lastSafetyBackup, pickBackup, restoreBackupFile, saveBackupToDevice, shareBackup } from "@/lib/app-backup"
+import { coreErrorText } from "@/api/client/core-error-text"
+import { SafetyBackupError, hasSafetyBackup, lastSafetyBackup, pickBackup, restoreBackupFile, saveBackupToDevice, shareBackup } from "@/lib/app-backup"
 import { getAppLanguage, type Translate } from "@/lib/app-language"
 import { LinkRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { reloadAppAsync } from "expo"
@@ -78,8 +79,10 @@ export function BackupGroup({ t }: { t: Translate }) {
             if (found) setPicked({ ...found, undo })
         }
         catch (error) {
-            const reason = error instanceof Error ? error.message : ""
-            toast.error(t(`This file cannot be restored: ${reason}`, `Diese Datei kann nicht wiederhergestellt werden: ${reason}`))
+            // the core's reasons ("this file is not a backup of the app", …) in the app language
+            const reason = coreErrorText(error instanceof Error ? error.message : "")
+            toast.error(reason ? t(`This file cannot be restored: ${reason}`, `Diese Datei kann nicht wiederhergestellt werden: ${reason}`)
+                : t("This file cannot be restored.", "Diese Datei kann nicht wiederhergestellt werden."))
         }
     }
 
@@ -96,8 +99,11 @@ export function BackupGroup({ t }: { t: Translate }) {
                 void reloadAppAsync("backup restored")
             }, 800)
         }
-        catch {
+        catch (error) {
             setBusy(null)
+            // no safety file: nothing was changed, and no "Undo" is promised
+            if (error instanceof SafetyBackupError) return void toast.error(t("The current state could not be saved first, so nothing was restored. Free up some storage and try again.",
+                "Der aktuelle Stand konnte vorher nicht gesichert werden, deshalb wurde nichts wiederhergestellt. Mach etwas Speicher frei und versuch es noch mal."))
             setCanUndo(true)
             toast.error(t("The backup could not be restored. The state before is kept under Undo last restore.",
                 "Die Sicherung konnte nicht wiederhergestellt werden. Der vorige Stand liegt unter „Letzte Wiederherstellung rückgängig“."))
@@ -124,10 +130,13 @@ export function BackupGroup({ t }: { t: Translate }) {
 
         <Sheet title={picked?.undo ? t("Undo last restore?", "Letzte Wiederherstellung rückgängig machen?") : t("Restore backup?", "Sicherung wiederherstellen?")}
             open={picked !== null} onOpenChange={open => !open && setPicked(null)}
-            footer={<>
-                <Button intent="secondary" wrapperClassName="flex-1" onPress={() => void restore("merge")}>{t("Merge", "Zusammenführen")}</Button>
-                <Button intent="primary" wrapperClassName="flex-1" onPress={() => void restore("replace")}>{t("Replace", "Ersetzen")}</Button>
-            </>}>
+            // Undo puts the state from before back in place; merging it would add nothing (everything in it is still here)
+            footer={picked?.undo
+                ? <Button intent="primary" wrapperClassName="flex-1" onPress={() => void restore("replace")}>{t("Undo", "Rückgängig machen")}</Button>
+                : <>
+                    <Button intent="secondary" wrapperClassName="flex-1" onPress={() => void restore("merge")}>{t("Merge", "Zusammenführen")}</Button>
+                    <Button intent="primary" wrapperClassName="flex-1" onPress={() => void restore("replace")}>{t("Replace", "Ersetzen")}</Button>
+                </>}>
             <View className="gap-3">
                 <View className="gap-1">
                     <Text className="text-[15px] font-semibold">{t("Contains", "Enthält")}</Text>
@@ -137,8 +146,11 @@ export function BackupGroup({ t }: { t: Translate }) {
                 </View>
                 {picked && <Muted className="text-[13px] leading-[19px]">{madeOn(t, picked.summary)}</Muted>}
                 <Text className="text-[15px] leading-[23px] text-sm-text-muted">
-                    {t("Replace: the backup's data takes the place of the current data. Merge: everything here stays, only what is missing is added. Your sign-ins and passwords stay as they are. The app starts again afterwards.",
-                        "Ersetzen: die Daten der Sicherung treten an die Stelle der aktuellen. Zusammenführen: alles hier bleibt, nur Fehlendes kommt dazu. Anmeldungen und Passwörter bleiben, wie sie sind. Die App startet danach neu.")}
+                    {picked?.undo
+                        ? t("The state from before the last restore takes the place of the current data. Your sign-ins and passwords stay as they are. The app starts again afterwards.",
+                            "Der Stand von vor der letzten Wiederherstellung tritt an die Stelle der aktuellen Daten. Anmeldungen und Passwörter bleiben, wie sie sind. Die App startet danach neu.")
+                        : t("Replace: the backup's data takes the place of the current data. Merge: everything here stays, only what is missing is added. Your sign-ins and passwords stay as they are. The app starts again afterwards.",
+                            "Ersetzen: die Daten der Sicherung treten an die Stelle der aktuellen. Zusammenführen: alles hier bleibt, nur Fehlendes kommt dazu. Anmeldungen und Passwörter bleiben, wie sie sind. Die App startet danach neu.")}
                 </Text>
             </View>
         </Sheet>

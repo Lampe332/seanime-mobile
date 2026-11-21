@@ -52,15 +52,18 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
     const [page, setPage] = useAtom(__extensions_currentPageAtom)
     const setMarketType = useSetAtom(__extensions_marketTypeAtom)
 
-    // A link (Torrent sheet, Online tab: "Find more providers") chooses the tab and the marketplace's type
+    // A link (Torrent sheet, Online tab: "Find more providers") chooses the tab and the marketplace's type. The screen is a
+    // tab that stays mounted: the same link a second time changes no parameter, so the link is applied each time the
+    // screen comes into view (after the user switched to Installed in between)
     React.useEffect(() => {
+        if (!focused) return
         if (marketType) {
             setMarketType(marketType)
             setPage("marketplace")
         } else if (initialPage) {
             setPage(initialPage)
         }
-    }, [initialPage, marketType, setMarketType, setPage])
+    }, [focused, initialPage, marketType, setMarketType, setPage])
 
     const [withUpdates, setWithUpdates] = React.useState(false)
     const query = useGetAllExtensions(withUpdates)
@@ -206,7 +209,7 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
                                     {overview.updates > overview.safeUpdates.length && <Muted>{t("Plugins with unsafe flags are updated one by one from their sheet.",
                                         "Plugins mit unsicheren Flags aktualisierst du einzeln über ihr Blatt.")}</Muted>}
                                 </View>
-                                <Button loading={updatingAll} leftIcon={<Download size={18} color="#ffffff" />} onPress={() => void updateAll()}>{t("Update all", "Alle aktualisieren")}</Button>
+                                <Button loading={updatingAll} leftIcon={<Download size={18} color={colors.onBrand} />} onPress={() => void updateAll()}>{t("Update all", "Alle aktualisieren")}</Button>
                             </View>
                         )}
 

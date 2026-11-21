@@ -281,6 +281,20 @@ export function LinkRow({ label, value, note, onPress, disabled, tone, chevron =
     )
 }
 
+/** A row that only shows something (a security event, a loading line): no button, so TalkBack does not call it disabled */
+export function InfoRow({ label, value, note }: { label: string, value?: string, note?: string }) {
+    return (
+        <View accessible accessibilityLabel={[label, value, note].filter(Boolean).join(", ")}
+            className="min-h-[52px] w-full flex-row items-center gap-3 bg-sm-surface-raised px-4 py-2.5">
+            <View className="min-w-0 flex-1 gap-0.5">
+                <Text className="text-[15px]">{label}</Text>
+                {!!note && <Muted className="text-[13px] leading-[19px]">{note}</Muted>}
+            </View>
+            {!!value && <Text numberOfLines={1} style={{ flexShrink: 0, maxWidth: "55%" }} className="text-right text-sm text-sm-text-muted">{value}</Text>}
+        </View>
+    )
+}
+
 /** Radio rows (`.pst-choice`): one of a few */
 export function ChoiceRows({ label, children }: { label: string, children: React.ReactNode }) {
     return <View accessibilityRole="radiogroup" accessibilityLabel={label} className="gap-0.5">{children}</View>

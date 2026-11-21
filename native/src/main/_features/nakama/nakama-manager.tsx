@@ -231,7 +231,7 @@ function NakamaPhoneContent({ t, status, roomsAvailable, hostPassword, actions: 
 
     if (!status?.isHost && !status?.isConnectedToHost) return <>
         <PhoneEmpty title={t("Nakama is not active", "Nakama ist nicht aktiv")}
-            text={t("Set up Nakama in the settings to connect to a host or to start hosting.", "Richte Nakama in den Einstellungen ein, um dich mit einem Host zu verbinden oder selbst zu hosten.")} />
+            text={t("Set up Nakama in the settings to connect to a host on your PC or home server.", "Richte Nakama in den Einstellungen ein, um dich mit einem Host auf deinem PC oder Home-Server zu verbinden.")} />
         <RowGroup>{reconnect}</RowGroup>
         {settings}
     </>
@@ -296,14 +296,15 @@ function NakamaPhoneContent({ t, status, roomsAvailable, hostPassword, actions: 
                 : isHost
                     ? <PhoneEmpty title={t("No watch party running", "Keine Watch Party aktiv")}
                         text={t("Start one and everyone connected watches in sync with you.", "Starte eine, dann schauen alle Verbundenen synchron mit dir.")}>
-                        <Button loading={a.creatingParty} leftIcon={<Plus size={18} color="#ffffff" />} onPress={a.createParty}>{t("Create watch party", "Watch Party erstellen")}</Button>
+                        <Button loading={a.creatingParty} leftIcon={<Plus size={18} color={colors.onBrand} />} onPress={a.createParty}>{t("Create watch party", "Watch Party erstellen")}</Button>
                     </PhoneEmpty>
                     : session
                         ? <PhoneEmpty title={t("A watch party is running", "Eine Watch Party läuft")} text={t("Join to watch together in sync.", "Tritt bei, um gemeinsam synchron zu schauen.")}>
-                            <Button loading={a.joiningParty} leftIcon={<Play size={18} color="#ffffff" />} onPress={a.joinParty}>{t("Join watch party", "Watch Party beitreten")}</Button>
+                            <Button loading={a.joiningParty} leftIcon={<Play size={18} color={colors.onBrand} />} onPress={a.joinParty}>{t("Join watch party", "Watch Party beitreten")}</Button>
                         </PhoneEmpty>
-                        : <PhoneEmpty title={t("No watch party running", "Keine Watch Party aktiv")}
-                            text={t("When the host starts one, you can join it here.", "Sobald der Host eine startet, kannst du hier beitreten.")} />}
+                        // the app's core does not join watch parties yet (core/nakama/guest.ts): nothing to promise here
+                        : <PhoneEmpty title={t("Watch parties are not available yet", "Watch Partys gibt es noch nicht")}
+                            text={t("This app can play the host's library, but it cannot join a watch party yet.", "Diese App kann die Bibliothek des Hosts abspielen, aber noch keiner Watch Party beitreten.")} />}
         </SheetGroup>
 
         {settings}

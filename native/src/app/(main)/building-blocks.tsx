@@ -10,7 +10,7 @@ import { Switch, SwitchRow } from "@/components/ui/switch/switch"
 import { TabPanel, Tabs } from "@/components/ui/tabs/tabs"
 import { Muted, SectionTitle, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
-import { appLanguageAtom, useTr } from "@/lib/app-language"
+import { APP_LANGUAGES, appLanguageAtom, asAppLanguage, useTr } from "@/lib/app-language"
 import { MobileIcon } from "@/lib/mobile-icons"
 import { cssBezier, DRAWER_EASE, DURATION, MOTION_EASE_OUT, PHONE_EASE, POP_EASE, WAIT_MS } from "@/lib/motion"
 import { colors, colorSwatches, radii, spacingScale } from "@/lib/theme/tokens"
@@ -48,11 +48,9 @@ export default function BuildingBlocksScreen() {
     return (
         <PhoneScreen title={t("Building blocks", "Bausteine")} subtitle={t("Components, states and tokens of the app", "Bausteine, Zustände und Tokens der App")}>
             <Block title={t("Language", "Sprache")}>
-                <Tabs
-                    value={language}
-                    onValueChange={value => setLanguage(value === "de" ? "de" : "en")}
-                    items={[{ value: "en", label: "English" }, { value: "de", label: "Deutsch" }]}
-                />
+                {/* every app language, as in Settings › App (a two-way switch set e.g. Russian back to English) */}
+                <SelectField label={t("App language", "App-Sprache")} placeholder={t("App language", "App-Sprache")} value={language} options={[...APP_LANGUAGES]}
+                    onValueChange={value => setLanguage(asAppLanguage(value) ?? "en")} />
             </Block>
 
             <Block title={t("Buttons", "Knöpfe")}>

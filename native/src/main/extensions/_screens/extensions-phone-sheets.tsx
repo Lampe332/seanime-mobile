@@ -48,7 +48,7 @@ import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react
 import {
     extensionLanguageLabel, extensionMeta, extensionTypeLabel, invalidReasonLabel, isExtensionIconUrl, parsePermissionDescription, sortExtensions,
 } from "../_lib/extensions-phone"
-import { isInsecureAddress, lineDiff, normalizeDiffCode, userConfigValues } from "../_lib/extensions-screen"
+import { isInsecureAddress, lineDiff, normalizeDiffCode, repositoryInstallOutcome, userConfigValues } from "../_lib/extensions-screen"
 
 /*
  * The Extensions tab's sheets (web extensions-phone-sheets.tsx, extension-user-config.tsx, extension-code.tsx +
@@ -257,7 +257,7 @@ export function ExtensionSheet(props: ExtensionSheetProps) {
             {false && (
                 <Block tone="warning" title={t("Permissions required", "Erlaubnis nötig")} actions={<>
                     <Button intent="secondary" wrapperClassName="grow" onPress={() => onSubSheet({ kind: "code", readOnly: true })}>{t("View code", "Code ansehen")}</Button>
-                    <Button wrapperClassName="grow-[2]" loading={isGranting} leftIcon={<ShieldCheck size={18} color="#ffffff" />} onPress={grant}>{t("Grant permissions", "Erlauben")}</Button>
+                    <Button wrapperClassName="grow-[2]" loading={isGranting} leftIcon={<ShieldCheck size={18} color={colors.onBrand} />} onPress={grant}>{t("Grant permissions", "Erlauben")}</Button>
                 </>}>
                     <BlockText>{t(`${extension.name} asks for these permissions:`, `${extension.name} möchte diese Rechte:`)}</BlockText>
                     <View className="gap-2 rounded-surface-sm bg-sm-surface-sunken p-3">
@@ -286,7 +286,7 @@ export function ExtensionSheet(props: ExtensionSheetProps) {
             {!!newVersion && !builtin && (
                 <Block title={t(`Version ${newVersion} is available`, `Version ${newVersion} ist verfügbar`)} actions={<>
                     {!!diff && <Button intent="secondary" wrapperClassName="grow" onPress={() => onSubSheet({ kind: "code", readOnly: true, diff })}>{t("View changes", "Änderungen")}</Button>}
-                    <Button wrapperClassName="grow-[2]" loading={updating} leftIcon={<Download size={18} color="#ffffff" />} onPress={installUpdate}>{t("Update", "Aktualisieren")}</Button>
+                    <Button wrapperClassName="grow-[2]" loading={updating} leftIcon={<Download size={18} color={colors.onBrand} />} onPress={installUpdate}>{t("Update", "Aktualisieren")}</Button>
                 </>}>
                     {!!extension.version && <BlockText>{t(`Installed: ${extension.version}`, `Installiert: ${extension.version}`)}</BlockText>}
                     {unsafe && <Text className="text-[13px] leading-[19.5px] text-sm-warning">{t("Uses unsafe flags: check the changes before you update.", "Nutzt unsichere Flags: prüf die Änderungen vor dem Update.")}</Text>}
@@ -357,7 +357,7 @@ export function MarketplaceSheet({ t, open, onOpenChange, extension, installed }
         <Sheet open={open} onOpenChange={onOpenChange} title={extension.name || extension.id} titleIcon={<ExtensionIcon extension={extension} large />} description={sheetHeadLine(extension, t)} dense
             footer={installed
                 ? <View className="min-h-12 flex-1 flex-row items-center justify-center gap-2"><Check size={18} color={colors.smTextMuted} /><Text className="font-semibold text-sm-text-muted">{t("Installed", "Installiert")}</Text></View>
-                : <Button size="lg" wrapperClassName="flex-1" loading={installing} leftIcon={<Download size={18} color="#ffffff" />}
+                : <Button size="lg" wrapperClassName="flex-1" loading={installing} leftIcon={<Download size={18} color={colors.onBrand} />}
                     onPress={() => install({ manifestUri: extension.manifestURI }, { onSuccess: () => toast.success(t(`Installed ${extension.name || extension.id}`, `${extension.name || extension.id} installiert`)) })}>
                     {t("Install", "Installieren")}
                 </Button>}>
@@ -443,10 +443,12 @@ export function AddExtensionSheet({ t, open, onOpenChange, installedIds, onBrows
     const loadRepository = (installAll: boolean) => {
         if (!repositoryUrl.trim()) return void toast.warning(t("Paste a link first", "Füge zuerst einen Link ein"))
         fromRepository({ repositoryUri: repositoryUrl.trim(), install: installAll }, {
-            onSuccess: () => {
+            onSuccess: answer => {
                 if (!installAll) return
-                toast.success(t("Extensions installed", "Erweiterungen installiert"))
-                onOpenChange(false)
+                // the real count: the core lists the ones that failed (installRepository)
+                const outcome = repositoryInstallOutcome(t, answer)
+                toast[outcome.kind](outcome.text)
+                if (outcome.kind === "success") onOpenChange(false)
             },
         })
     }
@@ -479,7 +481,7 @@ export function AddExtensionSheet({ t, open, onOpenChange, installedIds, onBrows
                         {!installedIds.has(found.id) && !isInsecureAddress(manifestUrl) && isInsecureAddress(found.payloadURI) && <InsecureLinkHint t={t} />}
                         {installedIds.has(found.id)
                             ? <View className="min-h-12 flex-row items-center justify-center gap-2"><Check size={18} color={colors.smTextMuted} /><Text className="font-semibold text-sm-text-muted">{t("Already installed", "Schon installiert")}</Text></View>
-                            : <Button loading={installing} leftIcon={<Download size={18} color="#ffffff" />} onPress={() => install({ manifestUri: found.manifestURI }, {
+                            : <Button loading={installing} leftIcon={<Download size={18} color={colors.onBrand} />} onPress={() => install({ manifestUri: found.manifestURI }, {
                                 onSuccess: () => {
                                     toast.success(t(`Installed ${found.name || found.id}`, `${found.name || found.id} installiert`))
                                     onOpenChange(false)
@@ -512,7 +514,7 @@ export function AddExtensionSheet({ t, open, onOpenChange, installedIds, onBrows
                     </ScrollView>
                     {!isInsecureAddress(repositoryUrl) && listed.some(extension => isInsecureAddress(extension.manifestURI) || isInsecureAddress(extension.payloadURI))
                         && <InsecureLinkHint t={t} />}
-                    <Button loading={importing} leftIcon={<Download size={18} color="#ffffff" />} onPress={() => loadRepository(true)}>
+                    <Button loading={importing} leftIcon={<Download size={18} color={colors.onBrand} />} onPress={() => loadRepository(true)}>
                         {t(`Install all ${listed.length}`, `Alle ${listed.length} installieren`)}
                     </Button>
                 </> : <Muted>{repository.message || t("This repository has no extensions.", "Dieses Repository hat keine Erweiterungen.")}</Muted>)}
@@ -574,9 +576,10 @@ export function ExtensionPreferencesSheet({ t, open, onOpenChange, extension, us
                             if (field.type === "text") return (
                                 <View key={field.name} className="gap-1.5">
                                     <Text className="text-[13px] font-semibold text-sm-text-muted">{field.label}</Text>
-                                    <TextInput value={values[field.name] || field.default || ""} onChangeText={value => setValue(field.name, value)} accessibilityLabel={field.label}
+                                    <TextInput value={values[field.name] ?? field.default ?? ""} onChangeText={value => setValue(field.name, value)} accessibilityLabel={field.label}
                                         autoCapitalize="none" autoCorrect={false} placeholderTextColor={colors.smTextSubtle}
                                         className="min-h-12 rounded-surface bg-sm-surface-raised px-4 font-sans text-[15px] text-sm-text" />
+                                    {/* the field can be emptied while typing; saved empty, it takes the default (userConfigValues) */}
                                     {!!field.default && <Muted>{defaultNote(field.default)}</Muted>}
                                 </View>
                             )

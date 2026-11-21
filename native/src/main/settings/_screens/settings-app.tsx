@@ -34,7 +34,7 @@ import { requestPinWidget } from "react-native-android-widget"
 
 /*
  * App (settings-phone-app.tsx): episodes (with E4's new-episode notifications and Wi-Fi-only downloads), anime, language,
- * feedback, extensions, local account, metadata, navigation, account. The E4 rows are in settings-app-services.tsx.
+ * feedback, extensions, local account, metadata, navigation, AniList sign-out. The E4 rows are in settings-app-services.tsx.
  * "Show the setup tutorial" starts the tour (2.16).
  */
 export function SettingsAppSection({ t }: { t: Translate }) {
@@ -257,10 +257,12 @@ function NavigationGroup({ t }: { t: Translate }) {
 function AccountGroup({ t }: { t: Translate }) {
     const [confirm, setConfirm] = React.useState(false)
     const { mutate: logout, isPending } = useLogout()
-    return <SettingsGroup title={t("Account", "Konto")}>
-        <LinkRow label={t("Sign out", "Abmelden")} tone="danger" disabled={isPending} onPress={() => setConfirm(true)} />
-        <ConfirmSheet open={confirm} onOpenChange={setConfirm} title={t("Sign out?", "Abmelden?")}
-            text={t("Are you sure you want to sign out?", "Möchtest du dich wirklich abmelden?")}
-            action={t("Sign out", "Abmelden")} danger onConfirm={() => logout()} />
+    // AniList only: the sync account has its own page (Settings › Account) and stays signed in
+    return <SettingsGroup title="AniList">
+        <LinkRow label={t("Sign out of AniList", "Von AniList abmelden")} tone="danger" disabled={isPending} onPress={() => setConfirm(true)} />
+        <ConfirmSheet open={confirm} onOpenChange={setConfirm} title={t("Sign out of AniList?", "Von AniList abmelden?")}
+            text={t("The app stops using your AniList account and falls back to the local account. Your sync account stays signed in.",
+                "Die App nutzt dein AniList-Konto nicht mehr und wechselt zum lokalen Konto. Dein Sync-Konto bleibt angemeldet.")}
+            action={t("Sign out of AniList", "Von AniList abmelden")} danger onConfirm={() => logout()} />
     </SettingsGroup>
 }

@@ -23,7 +23,9 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
     const libraryPath = useSettingValue("library.libraryPath", "")
     const libraryPaths = useSettingValue<string[] | null>("library.libraryPaths", []) ?? []
     const { pick, picking, available } = usePickFolder(t)
-    const [removing, setRemoving] = React.useState<string | null>(null)
+    // the folder stays set while the sheet closes, so its text does not turn into "null" on the way out
+    const [removing, setRemoving] = React.useState("")
+    const [confirmRemove, setConfirmRemove] = React.useState(false)
 
     return <>
         <SettingsGroup title={t("Folders", "Ordner")}
@@ -32,7 +34,10 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
                 note={t("Pick it, or type the path as this device shows it.", "Wähle ihn aus oder tippe den Pfad, wie dieses Gerät ihn zeigt.")}
                 extra={setDraft => <PickFolderButton t={t} onPicked={setDraft} />}
                 onApply={value => void save("library.libraryPath", value.trim())} />
-            {libraryPaths.map(path => <LinkRow key={path} label={t("Additional folder", "Weiterer Ordner")} value={path} onPress={() => setRemoving(path)}
+            {libraryPaths.map(path => <LinkRow key={path} label={t("Additional folder", "Weiterer Ordner")} value={path} onPress={() => {
+                setRemoving(path)
+                setConfirmRemove(true)
+            }}
                 note={t("Tap to remove it from the library.", "Antippen, um ihn aus der Bibliothek zu entfernen.")} />)}
             {available && <LinkRow label={picking ? t("Choosing…", "Wird gewählt …") : t("Add another folder", "Weiteren Ordner hinzufügen")} disabled={picking}
                 onPress={async () => {
@@ -40,9 +45,7 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
                     if (path && path !== libraryPath && !libraryPaths.includes(path)) void save("library.libraryPaths", [...libraryPaths, path])
                 }} />}
         </SettingsGroup>
-        <ConfirmSheet open={removing !== null} onOpenChange={open => {
-            if (!open) setRemoving(null)
-        }} title={t("Remove folder?", "Ordner entfernen?")}
+        <ConfirmSheet open={confirmRemove} onOpenChange={setConfirmRemove} title={t("Remove folder?", "Ordner entfernen?")}
             text={t(`${removing} will no longer be part of your library. The files stay on this device.`,
                 `${removing} gehört dann nicht mehr zu deiner Bibliothek. Die Dateien bleiben auf dem Gerät.`)}
             action={t("Remove", "Entfernen")} danger onConfirm={() => void save("library.libraryPaths", libraryPaths.filter(path => path !== removing))} />

@@ -176,7 +176,7 @@ export function PluginTrayButton({ variant }: { variant: "home" | "bar" }) {
                 accessibilityLabel={t("Pinned plugins", "Angeheftete Plugins")}>
                 {pinned.map(icon => <Pressable key={icon.extensionId} accessibilityRole="button" accessibilityLabel={`${t("Open", "Öffnen:")} ${icon.extensionName}`}
                     onPress={() => openTray(icon)}
-                    className="h-11 w-11 items-center justify-center rounded-surface-sm border border-sm-line-strong bg-sm-surface-control active:border-sm-accent-line active:bg-sm-accent-soft">
+                    className="h-12 w-12 items-center justify-center rounded-surface-sm border border-sm-line-strong bg-sm-surface-control active:border-sm-accent-line active:bg-sm-accent-soft">
                     <PluginIcon icon={icon} size={28} />
                 </Pressable>)}
             </ScrollView>

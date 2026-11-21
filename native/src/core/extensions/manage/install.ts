@@ -88,17 +88,27 @@ async function repositoryUrls(environment: ManageEnvironment, repositoryUri: str
     return urls.filter((url): url is string => typeof url === "string" && url.length > 0)
 }
 
+/** An extension of a repository that could not be installed: its name (or its manifest link) and why */
+export type RepositoryInstallFailure = { name: string, reason: string }
+
+const reasonOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
+
 /**
  * `POST /api/v1/extensions/external/install-repository`: `install: false` fetches the manifests (the preview),
  * `install: true` installs them; both answer the manifests with their code, as recorded. A manifest that cannot be
- * fetched or loaded is left out; the others are still installed.
+ * fetched is left out of the preview. Installing, the others are still installed, and the answer also lists in
+ * `failed` each one that could not be fetched or loaded (the server left them out silently, so "Install all" always
+ * looked like a success).
  */
-export async function installRepository(environment: ManageEnvironment, body: unknown): Promise<{ extensions: ExtensionManifest[], message: string }> {
+export async function installRepository(environment: ManageEnvironment, body: unknown): Promise<{ extensions: ExtensionManifest[], message: string, failed?: RepositoryInstallFailure[] }> {
     const { repositoryUri, install } = (body ?? {}) as { repositoryUri?: unknown, install?: unknown }
     if (typeof repositoryUri !== "string" || !repositoryUri) throw new CoreError("the repository address is missing")
     const urls = await repositoryUrls(environment, repositoryUri)
-    const fetched = (await Promise.all(urls.map(url => fetchExtensionManifest(url, environment.fetch).catch(() => null))))
-        .filter((manifest): manifest is ExtensionManifest => manifest !== null)
+    const failed: RepositoryInstallFailure[] = []
+    const fetched = (await Promise.all(urls.map(url => fetchExtensionManifest(url, environment.fetch).catch(error => {
+        failed.push({ name: url, reason: reasonOf(error) })
+        return null
+    })))).filter((manifest): manifest is ExtensionManifest => manifest !== null)
     if (install !== true) return { extensions: fetched, message: `Successfully fetched ${fetched.length} extensions from the repository` }
     const installed: ExtensionManifest[] = []
     // one after the other: each writes the folder
@@ -107,11 +117,16 @@ export async function installRepository(environment: ManageEnvironment, body: un
             await installManifest(environment, manifest)
             installed.push(manifest)
         }
-        catch {
-            // left out of the answer, as one that could not be fetched
+        catch (error) {
+            failed.push({ name: manifest.name || manifest.id, reason: reasonOf(error) })
         }
     }
-    return { extensions: installed, message: `Successfully installed ${installed.length} extensions from the repository` }
+    const total = installed.length + failed.length
+    return {
+        extensions: installed,
+        message: failed.length ? `Installed ${installed.length} of ${total} extensions from the repository, ${failed.length} failed` : `Successfully installed ${installed.length} extensions from the repository`,
+        failed,
+    }
 }
 
 /** Fetches the extension's manifest again and writes it, when it is a different version */

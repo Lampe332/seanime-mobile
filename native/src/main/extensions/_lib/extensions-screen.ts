@@ -1,4 +1,5 @@
 import type { Extension_Extension, Extension_InvalidExtension, ExtensionRepo_AllExtensions } from "@/api/generated/types"
+import { plural, type Translate } from "@/lib/app-language"
 import { filterMarketplace, isMarketplaceExtension, MARKETPLACE_EXTENSION_TYPES, PHONE_EXTENSION_TYPES } from "./extensions-phone"
 
 /*
@@ -164,4 +165,21 @@ export function userConfigValues(fields: { name: string, default?: string }[] | 
     const values: Record<string, string> = {}
     for (const field of fields ?? []) values[field.name] = typed[field.name] || field.default || ""
     return values
+}
+
+/**
+ * "Install all" of a repository: what the toast says, from the core's answer (installed ones in `extensions`, the others
+ * in `failed`). `kind` "success" only when every extension went in; the sheet stays open otherwise.
+ */
+export function repositoryInstallOutcome(t: Translate, answer: { extensions?: unknown[], failed?: unknown[] } | undefined): { kind: "success" | "warning" | "error", text: string } {
+    const installed = answer?.extensions?.length ?? 0
+    const failed = answer?.failed?.length ?? 0
+    const total = installed + failed
+    if (failed === 0) return { kind: "success", text: plural(t, installed, ["1 extension installed", "{0} extensions installed"], ["1 Erweiterung installiert", "{0} Erweiterungen installiert"]) }
+    if (installed === 0) return {
+        kind: "error",
+        text: plural(t, total, ["The extension could not be installed", "None of the {0} extensions could be installed"],
+            ["Die Erweiterung konnte nicht installiert werden", "Keine der {0} Erweiterungen konnte installiert werden"]),
+    }
+    return { kind: "warning", text: t(`${installed} of ${total} installed, ${failed} failed`, `${installed} von ${total} installiert, ${failed} fehlgeschlagen`) }
 }

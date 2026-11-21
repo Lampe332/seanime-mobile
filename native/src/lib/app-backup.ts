@@ -74,9 +74,26 @@ export async function pickBackup(): Promise<{ file: BackupFile, summary: BackupS
     return { file, summary: backupSummary(file) }
 }
 
-/** Restores a backup: the current state goes to the safety file first, then the app starts anew */
+/** The current state could not be written to the safety file, so nothing was restored and there is nothing to undo */
+export class SafetyBackupError extends Error {
+    constructor(cause: unknown) {
+        super(cause instanceof Error ? cause.message : String(cause))
+        this.name = "SafetyBackupError"
+    }
+}
+
+/**
+ * Restores a backup: the current state goes to the safety file first, then the app starts anew. When the safety file
+ * cannot be written the restore does not start (SafetyBackupError). The restore itself is not one step: a failure
+ * after the safety file may leave a part restored, which "Undo last restore" takes back.
+ */
 export async function restoreBackupFile(file: BackupFile, mode: RestoreMode): Promise<void> {
-    await writeSafetyBackup()
+    try {
+        await writeSafetyBackup()
+    }
+    catch (error) {
+        throw new SafetyBackupError(error)
+    }
     const { preferences } = await coreRestoreBackup(file, mode, { preferences: appPreferences() })
     writeAppPreferences(preferences)
 }

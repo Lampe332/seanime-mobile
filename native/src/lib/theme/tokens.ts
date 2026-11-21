@@ -16,6 +16,8 @@ export const colors = {
     brand300: "rgb(199, 194, 255)",
     brand400: "rgb(159, 146, 255)",
     brand500: "rgb(97, 82, 223)",
+    /** Text and icons on the brand fill (primary buttons: `text-white` in button.tsx) */
+    onBrand: "#ffffff",
 
     smSurface: "#141416",
     smSurfaceRaised: "#1c1c1f",

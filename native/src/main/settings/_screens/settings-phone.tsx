@@ -65,7 +65,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, titleEn: string, titleDe: string, summaryEn: string, summaryDe: string }> = {
     account: { icon: CircleUserRound, titleEn: "Account", titleDe: "Konto", summaryEn: "Sync settings and watch history between devices", summaryDe: "Einstellungen und Verlauf zwischen Geräten synchronisieren" },
-    seanime: { icon: WandSparkles, titleEn: "App", titleDe: "App", summaryEn: "Episodes, language, extensions, navigation, account", summaryDe: "Folgen, Sprache, Erweiterungen, Navigation, Konto" },
+    seanime: { icon: WandSparkles, titleEn: "App", titleDe: "App", summaryEn: "Episodes, language, backup, navigation, AniList", summaryDe: "Folgen, Sprache, Sicherung, Navigation, AniList" },
     ui: { icon: Palette, titleEn: "Appearance", titleDe: "Darstellung", summaryEn: "Sorting, cards, loading pages", summaryDe: "Sortierung, Karten, Seiten laden" },
     playback: { icon: CirclePlay, titleEn: "Playback", titleDe: "Wiedergabe", summaryEn: "Player for your files, external player, next episode", summaryDe: "Player für deine Dateien, externer Player, nächste Folge" },
     library: { icon: Library, titleEn: "Local library", titleDe: "Lokale Bibliothek", summaryEn: "Folders, scanning, matching", summaryDe: "Ordner, Scannen, Zuordnung" },
@@ -73,7 +73,7 @@ const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, titleEn: string, t
     torrents: { icon: Magnet, titleEn: "Torrents & debrid", titleDe: "Torrents & Debrid", summaryEn: "Providers, torrent streaming, downloads, debrid", summaryDe: "Anbieter, Torrent-Streaming, Downloads, Debrid" },
     manga: { icon: BookOpen, titleEn: "Manga", titleDe: "Manga", summaryEn: "Reading progress, default source", summaryDe: "Lesefortschritt, Standardquelle" },
     nakama: { icon: Users, titleEn: "Nakama", titleDe: "Nakama", summaryEn: "Stream from your PC or home server", summaryDe: "Vom PC oder Home-Server streamen" },
-    logs: { icon: BookKey, titleEn: "Cache", titleDe: "Cache", summaryEn: "Manga and online streaming cache", summaryDe: "Manga- und Online-Streaming-Cache" },
+    logs: { icon: BookKey, titleEn: "Cache", titleDe: "Cache", summaryEn: "Diagnostic report, manga and streaming cache", summaryDe: "Fehlerbericht, Manga- und Streaming-Cache" },
     about: { icon: Info, titleEn: "About", titleDe: "Über", summaryEn: "Version, updates, Discord, legal", summaryDe: "Version, Updates, Discord, Rechtliches" },
 }
 

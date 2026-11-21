@@ -55,13 +55,19 @@ function DiagnosticGroup({ t }: { t: Translate }) {
             })} />
         <LinkRow label={t("Share diagnostic report", "Fehlerbericht teilen")} icon={Share2} chevron={false} disabled={busy}
             onPress={() => void withReport(async report => {
-                await Share.share({ message: report, title: "Seanime Mobile diagnostic report" })
+                await Share.share({ message: report, title: t("Seanime Mobile diagnostic report", "Seanime-Mobile-Fehlerbericht") })
             })} />
     </SettingsGroup>
 }
 
 function CacheGroup({ t }: { t: Translate }) {
-    const [clear, setClear] = React.useState<"manga" | "onlinestream" | null>(null)
+    // the bucket stays set while the sheet closes, so its title does not jump to the other one on the way out
+    const [clear, setClear] = React.useState<"manga" | "onlinestream">("manga")
+    const [confirm, setConfirm] = React.useState(false)
+    const ask = (bucket: "manga" | "onlinestream") => {
+        setClear(bucket)
+        setConfirm(true)
+    }
     const { mutate: clearBucket, isPending: clearing } = useServerMutation<boolean, RemoveFileCacheBucket_Variables>({
         endpoint: API_ENDPOINTS.FILECACHE.RemoveFileCacheBucket.endpoint,
         method: API_ENDPOINTS.FILECACHE.RemoveFileCacheBucket.methods[0],
@@ -75,16 +81,12 @@ function CacheGroup({ t }: { t: Translate }) {
     })
     return <SettingsGroup title={t("Cache", "Cache")}
         note={t("Saved source data. Cleared data loads again from the sources.", "Gespeicherte Daten der Quellen. Geleerte Daten lädt die App neu von den Quellen.")}>
-        <LinkRow label={t("Clear the manga cache", "Manga-Cache leeren")} disabled={clearing} onPress={() => setClear("manga")} />
-        <LinkRow label={t("Clear the online streaming cache", "Online-Streaming-Cache leeren")} disabled={clearing} onPress={() => setClear("onlinestream")} />
-        <ConfirmSheet open={clear !== null} onOpenChange={open => {
-            if (!open) setClear(null)
-        }}
+        <LinkRow label={t("Clear the manga cache", "Manga-Cache leeren")} disabled={clearing} onPress={() => ask("manga")} />
+        <LinkRow label={t("Clear the online streaming cache", "Online-Streaming-Cache leeren")} disabled={clearing} onPress={() => ask("onlinestream")} />
+        <ConfirmSheet open={confirm} onOpenChange={setConfirm}
             title={clear === "manga" ? t("Clear the manga cache?", "Manga-Cache leeren?") : t("Clear the online streaming cache?", "Online-Streaming-Cache leeren?")}
             text={clear === "manga" ? t("Chapter lists and pages load again from the sources.", "Kapitellisten und Seiten lädt die App neu von den Quellen.")
                 : t("Episode lists and stream links load again from the sources.", "Folgenlisten und Stream-Links lädt die App neu von den Quellen.")}
-            action={t("Clear", "Leeren")} danger onConfirm={() => {
-                if (clear) clearBucket({ bucket: clear })
-            }} />
+            action={t("Clear", "Leeren")} danger onConfirm={() => clearBucket({ bucket: clear })} />
     </SettingsGroup>
 }

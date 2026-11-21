@@ -2,7 +2,7 @@ import type { Extension_Extension, ExtensionRepo_AllExtensions } from "@/api/gen
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { findSelection, installedExtensionIds, isInsecureAddress, isWebUrl, lineDiff, marketplaceView, OVERVIEW_ROWS, userConfigValues } from "./extensions-screen"
+import { findSelection, installedExtensionIds, isInsecureAddress, isWebUrl, lineDiff, marketplaceView, OVERVIEW_ROWS, repositoryInstallOutcome, userConfigValues } from "./extensions-screen"
 
 const ext = (id: string, type: string, extra: Partial<Extension_Extension> = {}) => ({
     id, name: id.toUpperCase(), type, version: "1.0.0", manifestURI: `https://x/${id}.json`, language: "javascript", lang: "en",
@@ -158,5 +158,27 @@ describe("extension toasts", () => {
                 if (key.includes("{0}")) expect(catalog[key]).toContain("{0}")
             }
         }
+    })
+})
+
+describe("repositoryInstallOutcome (Install all)", () => {
+    const en = (english: string) => english
+    const de = (_english: string, german: string) => german
+    const done = (n: number) => Array.from({ length: n }, (_, index) => ({ id: `e${index}` }))
+    const failed = (n: number) => Array.from({ length: n }, (_, index) => ({ name: `f${index}`, reason: "failed to load extension code" }))
+
+    it("names the real count when some fail and keeps the sheet open", () => {
+        expect(repositoryInstallOutcome(en, { extensions: done(3), failed: failed(2) })).toEqual({ kind: "warning", text: "3 of 5 installed, 2 failed" })
+        expect(repositoryInstallOutcome(de, { extensions: done(3), failed: failed(2) })).toEqual({ kind: "warning", text: "3 von 5 installiert, 2 fehlgeschlagen" })
+    })
+
+    it("is a success only when every extension went in", () => {
+        expect(repositoryInstallOutcome(en, { extensions: done(4), failed: [] })).toEqual({ kind: "success", text: "4 extensions installed" })
+        expect(repositoryInstallOutcome(en, { extensions: done(1) })).toEqual({ kind: "success", text: "1 extension installed" })
+    })
+
+    it("is an error when none could be installed", () => {
+        expect(repositoryInstallOutcome(en, { extensions: [], failed: failed(2) })).toEqual({ kind: "error", text: "None of the 2 extensions could be installed" })
+        expect(repositoryInstallOutcome(de, { extensions: [], failed: failed(1) })).toEqual({ kind: "error", text: "Die Erweiterung konnte nicht installiert werden" })
     })
 })

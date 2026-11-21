@@ -28,8 +28,9 @@ import { formatNumber } from "@/lib/i18n/format"
 
 export const updateModalOpenAtom = atom(false)
 
-const ACCENT = colors.brand300
-const MUTED = "#b5b0c4"
+const ACCENT = colors.smAccent
+const MUTED = colors.smTextMuted
+const DANGER = colors.smDanger
 
 /** Everything panel and dialog read: the release, the download and the actions */
 function useUpdateState() {
@@ -86,24 +87,24 @@ function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) 
     const percent = downloadPercent(state)
     const hint = updateHint(state, t)
     const mb = (bytes: number) => formatNumber(bytes / (1024 * 1024), getAppLanguage(), 1) + " MB"
-    const tone = failed || check.error ? "#fda4af" : ACCENT
+    const tone = failed || check.error ? DANGER : ACCENT
     return (
         <View accessibilityLabel={t("App update", "App-Update")} className={cn(inDialog ? "py-1" : "p-4")}>
             <View className="flex-row items-center gap-3">
-                <View style={{ backgroundColor: "rgba(139,92,246,0.12)" }} className="h-10 w-10 items-center justify-center rounded-[14px]">
+                <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-sm-accent-soft">
                     <MobileIcon name={complete ? "check" : "update"} size={24} color={ACCENT} />
                 </View>
                 <View className="min-w-0 flex-1">
-                    <Text className={cn("font-semibold text-[#e9e7f0]", inDialog ? "text-lg" : "text-base")}>Seanime Mobile</Text>
+                    <Text className={cn("font-semibold text-sm-text", inDialog ? "text-lg" : "text-base")}>Seanime Mobile</Text>
                     <View className="mt-0.5 flex-row flex-wrap gap-x-3">
-                        {!!installed && <Text style={{ color: MUTED }} className="text-[13px]">{t("Installed", "Installiert")}: <Text className="text-[13px] font-medium text-[#d8d4e4]">{installed}</Text></Text>}
+                        {!!installed && <Text style={{ color: MUTED }} className="text-[13px]">{t("Installed", "Installiert")}: <Text className="text-[13px] font-medium text-sm-text">{installed}</Text></Text>}
                         {!!version && !complete && <Text style={{ color: ACCENT }} className="text-[13px]">{t("Available", "Verfügbar")}: <Text style={{ color: ACCENT }} className="text-[13px] font-medium">{version}</Text></Text>}
                     </View>
                 </View>
             </View>
             <View accessibilityRole="text" accessibilityLiveRegion="polite" className="mt-3.5 flex-row items-start gap-2">
                 {working ? <Spinner /> : <MobileIcon name={failed || check.error ? "close" : version && !complete ? "update" : "check"} size={16} color={tone} />}
-                <Text style={{ color: failed || check.error ? "#fda4af" : "#e9e7f0" }} className="min-w-0 flex-1 text-sm font-medium">{updateStatusText(state, check, t)}</Text>
+                <Text style={{ color: failed || check.error ? DANGER : colors.smText }} className="min-w-0 flex-1 text-sm font-medium">{updateStatusText(state, check, t)}</Text>
             </View>
             {state.status === "downloading" && (
                 <View className="mt-3">
@@ -119,8 +120,8 @@ function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) 
             {!!hint && <Text style={{ color: MUTED }} className="mt-2 text-[13px] leading-[20px]">{hint}</Text>}
             {!!state.message && busy && <Text style={{ color: MUTED }} className="mt-2 text-[13px] leading-[20px]">{state.message}</Text>}
             {failed && !!state.error && (
-                <View style={{ borderLeftWidth: 2, borderLeftColor: "rgba(251,113,133,0.5)" }} className="mt-2 pl-2.5">
-                    <Text selectable className="text-[13px] leading-[20px] text-[#fecdd3]">{state.error}</Text>
+                <View style={{ borderLeftWidth: 2, borderLeftColor: DANGER }} className="mt-2 pl-2.5">
+                    <Text selectable className="text-[13px] leading-[20px] text-sm-danger">{state.error}</Text>
                 </View>
             )}
             {(!!version || ready) && !complete && <Text style={{ color: MUTED }} className="mt-3 text-[13px] leading-[20px]">
@@ -128,12 +129,12 @@ function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) 
             </Text>}
             <View className="mt-2.5 flex-row flex-wrap gap-x-2 gap-y-1">
                 {!!version && !complete && !ready && (
-                    <Button wrapperClassName="w-full" className="rounded-xl" disabled={busy} onPress={s.start} leftIcon={<MobileIcon name="download" size={20} color="#ffffff" />}>
+                    <Button wrapperClassName="w-full" className="rounded-xl" disabled={busy} onPress={s.start} leftIcon={<MobileIcon name="download" size={20} color={colors.onBrand} />}>
                         {busy ? t("Update in progress…", "Update läuft…") : failed ? t("Retry download", "Download wiederholen") : t("Download and update", "Herunterladen und aktualisieren")}
                     </Button>
                 )}
                 {ready && (
-                    <Button wrapperClassName="w-full" className="rounded-xl" disabled={busy} onPress={s.install} leftIcon={<MobileIcon name="update" size={20} color="#ffffff" />}>
+                    <Button wrapperClassName="w-full" className="rounded-xl" disabled={busy} onPress={s.install} leftIcon={<MobileIcon name="update" size={20} color={colors.onBrand} />}>
                         {state.status === "confirmation" ? t("Confirm installation", "Installation bestätigen") : state.status === "permission" ? t("Allow installation", "Installation erlauben") : t("Install update", "Update installieren")}
                     </Button>
                 )}
@@ -154,16 +155,16 @@ export function MobileUpdatePanel() {
     const { t, state, version, check, busy } = s
     const quiet = !version && state.status !== "installed" && !installReady(state) && state.status !== "failed" && state.status !== "error" && !busy && !updateHint(state, t)
     return (
-        <View style={{ borderBottomWidth: 1, borderBottomColor: "rgba(199,194,255,0.12)" }} className="mb-1.5">
+        <View style={{ borderBottomWidth: 1, borderBottomColor: colors.smLine }} className="mb-1.5">
             {quiet ? (
                 <View accessibilityLabel={t("App update", "App-Update")} className="flex-row items-center gap-2.5 py-0.5 pl-4 pr-1">
-                    {check.fetching || check.loading ? <Spinner /> : <MobileIcon name={check.error ? "close" : "check"} size={16} color={check.error ? "#fda4af" : ACCENT} />}
+                    {check.fetching || check.loading ? <Spinner /> : <MobileIcon name={check.error ? "close" : "check"} size={16} color={check.error ? DANGER : ACCENT} />}
                     <Text accessibilityLiveRegion="polite" style={{ color: MUTED, fontVariant: ["tabular-nums"] }} className="min-w-0 flex-1 text-[13px]">
                         {[`App ${s.data?.current_version || currentVersion()}`, check.fetching || check.loading ? t("checking…", "wird geprüft…") : check.error ? t("check failed", "Prüfung fehlgeschlagen")
                             : check.hasData ? t("up to date", "aktuell") : t("check unavailable", "Prüfung nicht verfügbar")].join(" · ")}
                     </Text>
                     <Pressable accessibilityRole="button" accessibilityLabel={t("Check for updates", "Nach Updates suchen")} disabled={check.fetching} onPress={() => void s.checkAgain()}
-                        className="h-11 w-11 items-center justify-center rounded-xl active:bg-[rgba(139,92,246,0.12)]">
+                        className="h-12 w-12 items-center justify-center rounded-xl active:bg-sm-accent-soft">
                         <MobileIcon name="refresh" size={20} color={ACCENT} />
                     </Pressable>
                 </View>
@@ -175,13 +176,13 @@ export function MobileUpdatePanel() {
 function ReleaseNotes({ t, body }: { t: Translate, body: string | undefined }) {
     const lines = changelogLines(body)
     return (
-        <View style={{ borderTopWidth: 1, borderTopColor: "rgba(199,194,255,0.12)" }} className="gap-1 pt-4">
-            {isCriticalUpdate(lines) && <Text className="mb-1 font-semibold text-[#fca5a5]">{t("This update includes a critical patch", "Dieses Update enthält eine kritische Korrektur")}</Text>}
-            <Text className="mb-2.5 text-sm font-semibold text-[#e9e7f0]">{t("What’s new", "Was ist neu?")}</Text>
-            {!lines.length && <Text className="text-sm text-[#bfbaca]">{t("No release notes provided.", "Keine Releaseinformationen vorhanden.")}</Text>}
+        <View style={{ borderTopWidth: 1, borderTopColor: colors.smLine }} className="gap-1 pt-4">
+            {isCriticalUpdate(lines) && <Text className="mb-1 font-semibold text-sm-danger">{t("This update includes a critical patch", "Dieses Update enthält eine kritische Korrektur")}</Text>}
+            <Text className="mb-2.5 text-sm font-semibold text-sm-text">{t("What’s new", "Was ist neu?")}</Text>
+            {!lines.length && <Text className="text-sm text-sm-text-muted">{t("No release notes provided.", "Keine Releaseinformationen vorhanden.")}</Text>}
             {lines.map((line, index) => {
                 const sub = /^\s+-/.test(line)
-                return <Text key={index} className={cn("leading-[23px]", line.includes("🚑️") ? "font-semibold text-[#fca5a5]" : sub ? "pl-4 text-sm text-[#bfbaca] opacity-75" : "text-sm text-[#bfbaca]")}>{line.trim()}</Text>
+                return <Text key={index} className={cn("leading-[23px]", line.includes("🚑️") ? "font-semibold text-sm-danger" : sub ? "pl-4 text-sm text-sm-text-subtle" : "text-sm text-sm-text-muted")}>{line.trim()}</Text>
             })}
         </View>
     )
@@ -215,7 +216,7 @@ export function MobileUpdateModal() {
         setOpen(false)
     }
     return (
-        <Dialog open={open && !!version} onOpenChange={close} title={t("App update", "App-Update")} className="max-h-[92%] border-[rgba(199,194,255,0.16)] bg-[#12101c]">
+        <Dialog open={open && !!version} onOpenChange={close} title={t("App update", "App-Update")} className="max-h-[92%]">
             <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="gap-4 pb-1">
                 <UpdateSummary s={s} inDialog />
                 <ReleaseNotes t={t} body={s.data?.release?.body} />

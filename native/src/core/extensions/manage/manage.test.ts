@@ -611,10 +611,14 @@ describe("the changing interfaces, in the form of the recordings (phase 3e-2)", 
         expect(misfits(preview, shapes["InstallExternalExtensionRepository.preview"].data)).toEqual([])
         expect(preview.message).toBe("Successfully fetched 2 extensions from the repository")
         expect(files.has("repo-a.json")).toBe(false)
-        const installed = await ask("POST", "/api/v1/extensions/external/install-repository", { repositoryUri: "https://ext.example/repo.json", install: true }) as { extensions: unknown[], message: string }
-        expect(misfits(installed, shapes["InstallExternalExtensionRepository.install"].data)).toEqual([])
-        // the one whose code does not load is left out
-        expect([ids(installed.extensions), installed.message]).toEqual([["repo-a"], "Successfully installed 1 extensions from the repository"])
+        const installed = await ask("POST", "/api/v1/extensions/external/install-repository", { repositoryUri: "https://ext.example/repo.json", install: true }) as { extensions: unknown[], message: string, failed: { name: string, reason: string }[] }
+        // the recorded answer, plus `failed`: the core names what the server left out silently
+        const { failed, ...recorded } = installed
+        expect(misfits(recorded, shapes["InstallExternalExtensionRepository.install"].data)).toEqual([])
+        // the one whose code does not load and the one that cannot be fetched are not installed, and both are reported
+        expect([ids(installed.extensions), installed.message]).toEqual([["repo-a"], "Installed 1 of 3 extensions from the repository, 2 failed"])
+        expect(failed.map(entry => entry.name).sort()).toEqual(["Test repo-b", "https://ext.example/gone/manifest.json"].sort())
+        expect(failed.every(entry => entry.reason.length > 0)).toBe(true)
         expect(files.has("repo-a.json") && !files.has("repo-b.json")).toBe(true)
         await expect(ask("POST", "/api/v1/extensions/external/install-repository", { repositoryUri: "file:///repo.json", install: true })).rejects.toThrow("http")
     })

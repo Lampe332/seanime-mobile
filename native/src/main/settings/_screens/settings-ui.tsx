@@ -28,9 +28,9 @@ import { useAtom } from "jotai"
 /** German names of the sorting options (the shared lists only carry English ones). */
 const SORTING_DE: Record<string, string> = {
     "Aired recently": "Zuletzt ausgestrahlt",
-    "Aired oldest": "Am längsten ausgestrahlt",
+    "Aired oldest": "Am frühesten ausgestrahlt",
     "Aired recently and not up-to-date": "Zuletzt ausgestrahlt, nicht aktuell",
-    "Aired oldest and not up-to-date": "Am längsten ausgestrahlt, nicht aktuell",
+    "Aired oldest and not up-to-date": "Am frühesten ausgestrahlt, nicht aktuell",
     "Highest episode number": "Höchste Folgennummer",
     "Lowest episode number": "Niedrigste Folgennummer",
     "Most unwatched episodes": "Meiste ungesehene Folgen",
@@ -41,12 +41,12 @@ const SORTING_DE: Record<string, string> = {
     "Lowest score": "Niedrigste eigene Bewertung",
     "Highest audience score": "Höchste Publikumswertung",
     "Lowest audience score": "Niedrigste Publikumswertung",
-    "Highest progress": "Meister Fortschritt",
-    "Lowest progress": "Wenigster Fortschritt",
+    "Highest progress": "Höchster Fortschritt",
+    "Lowest progress": "Geringster Fortschritt",
     "Started recently": "Zuletzt begonnen",
-    "Oldest start date": "Am längsten begonnen",
+    "Oldest start date": "Am frühesten begonnen",
     "Released recently": "Zuletzt erschienen",
-    "Oldest release": "Am längsten erschienen",
+    "Oldest release": "Am frühesten erschienen",
     "Most recent watch": "Zuletzt geschaut",
     "Least recent watch": "Am längsten nicht geschaut",
     "Title": "Titel (A–Z)",
@@ -79,8 +79,7 @@ function BannerGroup({ t }: { t: Translate }) {
     // An opacity never set is stored as 0, which would draw the new image invisibly: it gets the default with the image
     const visible = opacity > 0 ? {} : { libraryScreenCustomBannerOpacity: THEME_DEFAULT_VALUES.libraryScreenCustomBannerOpacity }
     return <SettingsGroup title={t("Banner", "Banner")}
-        note={t("Images come from a link: the app cannot add files to the server's image folder.",
-            "Bilder kommen über einen Link: Die App kann keine Dateien in den Bilderordner des Servers legen.")}>
+        note={t("The banner comes from an image link (https://…).", "Das Banner kommt über einen Bildlink (https://…).")}>
         <TextSettingRow label={t("Banner image", "Bannerbild")} value={banner} empty={t("None", "Keins")} keyboardType="url" placeholder="https://…"
             note={t("Shown behind the title on Home. Leave empty for none.", "Erscheint hinter dem Titel auf der Startseite. Leer lassen für keins.")}
             validate={validateImageLink(t)} onApply={value => void save({ libraryScreenCustomBannerImage: value.trim(), ...visible })} />

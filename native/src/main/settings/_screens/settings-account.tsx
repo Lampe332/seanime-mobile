@@ -23,7 +23,7 @@ import { appLanguageAtom, plural, type Translate } from "@/lib/app-language"
 import { copySecretToClipboard, openTab } from "@/lib/helpers/browser"
 import { colors } from "@/lib/theme/tokens"
 import { NoScreenshots } from "@/main/_features/account/account-prompts"
-import { ConfirmSheet, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settings/_components/settings-kit"
+import { ConfirmSheet, InfoRow, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue, useSetAtom } from "jotai"
 import React from "react"
@@ -300,7 +300,7 @@ function CodeBoxes({ t, digits, boxes, disabled, invalid, onEdit }: {
 }
 
 function StrengthMeter({ t, score }: { t: Translate, score: 0 | 1 | 2 | 3 | 4 }) {
-    const tone = score <= 1 ? "bg-sm-danger" : score === 2 ? "bg-amber-400" : "bg-brand-500"
+    const tone = score <= 1 ? "bg-sm-danger" : score === 2 ? "bg-sm-warning" : "bg-brand-500"
     return <View className="gap-1.5 px-1" accessibilityLabel={strengthLabel(t, score)}>
         <View className="flex-row gap-1">
             {[1, 2, 3, 4].map(step => <View key={step} className={cn("h-1 flex-1 rounded-full", step <= score ? tone : "bg-sm-surface-control")} />)}
@@ -495,7 +495,8 @@ function Overview({ t }: { t: Translate }) {
     const [webEditBusy, setWebEditBusy] = React.useState(false)
     // S2: "Change encryption key" with the device list; `off`: a device the user tapped Remove on starts unticked
     const [keySheet, setKeySheet] = React.useState<{ off: string | null } | null>(null)
-    const devices = useQuery({ queryKey: DEVICES_KEY, queryFn: listDevices })
+    // asked only while this device holds a session: signed out, the page shows the sign-in instead and asks nothing
+    const devices = useQuery({ queryKey: DEVICES_KEY, queryFn: listDevices, enabled: account.signedIn })
     const language = useAtomValue(appLanguageAtom)
 
     React.useEffect(() => {
@@ -593,8 +594,10 @@ function Overview({ t }: { t: Translate }) {
                     : device.signedOut ? t(`Signed out on ${shortDate(device.signedOutAt!)}. It gets no new key.`, `Abgemeldet am ${shortDate(device.signedOutAt!)}. Es bekommt keinen neuen Schlüssel.`)
                         : device.current ? t("This device", "Dieses Gerät") : t(`Last seen ${shortDate(device.lastSeenAt)}`, `Zuletzt ${shortDate(device.lastSeenAt)}`)}
                 value={device.current ? undefined : t("Remove", "Entfernen")} chevron={!device.current} disabled={device.current} onPress={() => setKeySheet({ off: device.id })} />)}
-            {devices.isError && <LinkRow label={t("Couldn't load the devices", "Geräte konnten nicht geladen werden")} value={t("Retry", "Nochmal")} onPress={() => void devices.refetch()} />}
-            {devices.isPending && <LinkRow label={t("Loading…", "Wird geladen …")} chevron={false} disabled onPress={() => undefined} />}
+            {devices.isError && <LinkRow label={t("Couldn't load the devices", "Geräte konnten nicht geladen werden")} note={accountErrorText(t, devices.error)}
+                value={devices.isFetching ? t("Loading…", "Wird geladen …") : t("Try again", "Erneut versuchen")} chevron={false} disabled={devices.isFetching}
+                onPress={() => void devices.refetch()} />}
+            {devices.isPending && !devices.isError && <InfoRow label={t("Loading…", "Wird geladen …")} />}
             <LinkRow label={t("Change encryption key", "Schlüssel wechseln")} tone={keyChangePending ? "accent" : undefined}
                 note={keyChangePending
                     ? t("A device was removed or signed out. Until you change the key, it may still read what you sync.", "Ein Gerät wurde entfernt oder abgemeldet. Bis du den Schlüssel wechselst, kann es noch lesen, was du synchronisierst.")
@@ -606,7 +609,7 @@ function Overview({ t }: { t: Translate }) {
         {!!info?.events?.length && <SettingsGroup title={t("Security events", "Sicherheitsereignisse")}
             note={t("Each one was also sent to your email.", "Jedes ging auch an deine E-Mail.")}>
             {/* NEU4-5: all of them; the server sends the newest 20 and the newest of each kind, so none can be pushed out */}
-            {info.events.map((event, index) => <LinkRow key={`${event.at}-${index}`} label={eventText(t, event)} value={shortDate(event.at)} chevron={false} disabled onPress={() => undefined} />)}
+            {info.events.map((event, index) => <InfoRow key={`${event.at}-${index}`} label={eventText(t, event)} value={shortDate(event.at)} />)}
         </SettingsGroup>}
 
         <SettingsGroup title={t("Recovery code", "Wiederherstellungscode")}

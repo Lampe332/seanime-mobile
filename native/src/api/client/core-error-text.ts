@@ -30,6 +30,14 @@ const CORE_ERRORS_DE: Record<string, string> = {
     "manga provider not found: {0}": "Manga-Anbieter nicht gefunden: {0}",
     "the torrent stopped: {0}": "Der Torrent wurde gestoppt: {0}",
     "the backup was made by a newer app version ({0}); update the app first": "Die Sicherung stammt von einer neueren App-Version ({0}), aktualisiere zuerst die App",
+    "this file is not a backup of the app (not JSON)": "Diese Datei ist keine Sicherung der App (kein JSON)",
+    "this file is not a backup of the app": "Diese Datei ist keine Sicherung der App",
+    "the backup has no valid format version": "Die Sicherung hat keine gültige Formatversion",
+    "the backup's tables are broken": "Die Tabellen der Sicherung sind beschädigt",
+    "the backup's part \"{0}\" is broken": "Der Teil „{0}“ der Sicherung ist beschädigt",
+    "Nakama is turned off": "Nakama ist ausgeschaltet",
+    "No Nakama host is set up": "Kein Nakama-Host eingerichtet",
+    "The Nakama passcode is missing": "Das Nakama-Passwort fehlt",
 }
 
 const german = compileCatalog(CORE_ERRORS_DE, "de")
