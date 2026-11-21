@@ -3,7 +3,7 @@
 import { useClearWatchHistory, useHistoryMedia, useIncognito, useRemoveWatchHistoryItem } from "@/api/hooks/app-switches.hooks"
 import { useGetContinuityWatchHistory } from "@/api/hooks/continuity.hooks"
 import { PhoneEmpty } from "@/components/shared/phone-cards"
-import { LoadingRows, TextAction } from "@/components/shared/phone-kit"
+import { LoadingRows, Notice, TextAction } from "@/components/shared/phone-kit"
 import { PhoneScreen } from "@/components/shared/phone-screen"
 import { Text } from "@/components/ui/text/text"
 import { appLanguageAtom, useTr } from "@/lib/app-language"
@@ -33,7 +33,7 @@ export function HistoryPhone() {
     const router = useRouter()
     const { setPlayNext } = usePlayNext()
     const incognito = useIncognito()
-    const { data: watchHistory, isLoading, refetch: refetchHistory } = useGetContinuityWatchHistory()
+    const { data: watchHistory, isLoading, isError, refetch: refetchHistory } = useGetContinuityWatchHistory()
     const [locations, setLocations] = useAtom(__manga_resumeLocationsAtom)
     const entries = React.useMemo(() => historyEntries(animeHistory(watchHistory), mangaHistory(locations)), [watchHistory, locations])
     const ids = React.useMemo(() => [...new Set(entries.map(entry => entry.mediaId))].sort((a, b) => a - b), [entries])
@@ -69,8 +69,12 @@ export function HistoryPhone() {
                     <Text className="text-[13px] font-semibold text-sm-accent">{t("Incognito: nothing new is added", "Inkognito: nichts Neues wird gemerkt")}</Text>
                 </View>
             )}
+            {/* the watched episodes failed to load: said so, the chapters read on this device still show */}
+            {isError && !watchHistory && <Notice text={t("The watched episodes could not be loaded.", "Die geschauten Folgen konnten nicht geladen werden.")}>
+                <TextAction label={t("Try again", "Erneut versuchen")} onPress={() => void refetchHistory()} />
+            </Notice>}
             {isLoading ? <LoadingRows label={t("Loading history", "Verlauf wird geladen")} count={4} />
-                : !entries.length ? (
+                : !entries.length ? isError && !watchHistory ? null : (
                     <PhoneEmpty title={t("No history yet", "Noch kein Verlauf")}
                         text={t("Episodes you watch and chapters you read show up here.", "Folgen, die du schaust, und Kapitel, die du liest, erscheinen hier.")} />
                 ) : days.map(day => (

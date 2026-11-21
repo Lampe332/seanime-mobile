@@ -2,11 +2,14 @@ import type { AL_MediaListStatus, Anime_EntryListData, Anime_ScheduleItem } from
 import { weekdayNames } from "@/lib/i18n/format"
 import type { Day } from "date-fns"
 import { addDays } from "date-fns/addDays"
+import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays"
 import { endOfMonth } from "date-fns/endOfMonth"
 import { endOfWeek } from "date-fns/endOfWeek"
 import { format } from "date-fns/format"
 import { isSameMonth } from "date-fns/isSameMonth"
 import { isToday } from "date-fns/isToday"
+import { parseISO } from "date-fns/parseISO"
+import { startOfDay } from "date-fns/startOfDay"
 import { startOfMonth } from "date-fns/startOfMonth"
 import { startOfWeek } from "date-fns/startOfWeek"
 
@@ -80,6 +83,37 @@ export function calendarDays(month: Date, weekStartsOn: number, eventsOn: (day: 
         days.push({ date: format(day, "yyyy-MM-dd"), isCurrentMonth: isSameMonth(day, month), isToday: isToday(day), events: eventsOn(day) })
     }
     return days
+}
+
+/*
+ * Week and month share one chosen day ("yyyy-MM-dd"). The week view shows rolling 7 days from today (`offset` weeks
+ * away), the month view the month of `month`; these keep the day inside what is shown when either changes.
+ */
+
+/** The first day of the week view `offset` weeks away from today. */
+export function weekFirstDay(today: Date, offset: number): Date {
+    return addDays(startOfDay(today), offset * 7)
+}
+
+/** The week view's offset whose 7 days hold `date`. */
+export function weekOffsetOf(date: string, today: Date): number {
+    return Math.floor(differenceInCalendarDays(parseISO(date), today) / 7)
+}
+
+/**
+ * The week arrows: the chosen day keeps its place in the next or previous 7 days (the 3rd day stays the 3rd); a day
+ * outside the shown week becomes the new week's first day.
+ */
+export function stepWeek(selectedDate: string, today: Date, offset: number, by: number): { offset: number, selectedDate: string } {
+    const next = offset + by
+    const day = weekOffsetOf(selectedDate, today) === offset ? addDays(parseISO(selectedDate), by * 7) : weekFirstDay(today, next)
+    return { offset: next, selectedDate: format(day, "yyyy-MM-dd") }
+}
+
+/** The month that shows the chosen day: `month` itself when it already does, so nothing changes. */
+export function monthOf(selectedDate: string, month: Date): Date {
+    const day = parseISO(selectedDate)
+    return isSameMonth(day, month) ? month : day
 }
 
 /** Weekday heads in the grid's order. */

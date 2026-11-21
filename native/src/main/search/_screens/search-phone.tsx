@@ -232,10 +232,13 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     } else if (!shown || (stale && !items.length)) {
         body = contentWidth ? <GridBones label={t("Searching…", "Suche läuft …")} contentWidth={contentWidth} /> : null
     } else if (!items.length) {
+        // several genres narrow down (AND), which the chips alone do not tell
+        const allGenres = state.genres.length > 1 ? t("Titles must have every selected genre.", "Titel müssen alle gewählten Genres haben.") : ""
+        const text = chips.length && title ? t(`Nothing matches “${title}” with these filters.`, `Mit diesen Filtern passt nichts zu „${title}“.`)
+            : chips.length ? t("Try fewer filters.", "Versuch es mit weniger Filtern.")
+                : title ? t(`Nothing on AniList matches “${title}”.`, `Auf AniList passt nichts zu „${title}“.`) : undefined
         body = <PhoneEmpty title={searchAnnouncement(t, state.type, 0, false)}
-            text={chips.length && title ? t(`Nothing matches “${title}” with these filters.`, `Mit diesen Filtern passt nichts zu „${title}“.`)
-                : chips.length ? t("Try fewer filters.", "Versuch es mit weniger Filtern.")
-                    : title ? t(`Nothing on AniList matches “${title}”.`, `Auf AniList passt nichts zu „${title}“.`) : undefined}>
+            text={allGenres && text ? (title ? `${text} ${allGenres}` : `${allGenres} ${text}`) : text}>
             {chips.length > 0 && <Button intent="secondary" onPress={clearFilters}>{t("Clear filters", "Filter zurücksetzen")}</Button>}
             {!!title && <Button intent="secondary" onPress={() => inputRef.current?.focus()}>{t("Try other words", "Anderen Suchbegriff versuchen")}</Button>}
         </PhoneEmpty>
@@ -412,7 +415,7 @@ function RecentSearches({ t, terms, onSearch, onRemove, onClear }: {
                         <Text numberOfLines={1} className="shrink text-sm font-semibold leading-[18px]">{term}</Text>
                     </Pressable>
                     <Pressable accessibilityRole="button" accessibilityLabel={t(`Remove ${term} from recent searches`, `${term} aus den letzten Suchen entfernen`)}
-                        onPress={() => onRemove(term)} className="min-h-12 w-10 items-center justify-center active:bg-sm-surface-control">
+                        onPress={() => onRemove(term)} className="min-h-12 w-12 items-center justify-center active:bg-sm-surface-control">
                         <X size={16} color={colors.smTextMuted} />
                     </Pressable>
                 </View>

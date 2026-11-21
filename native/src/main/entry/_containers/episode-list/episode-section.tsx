@@ -192,16 +192,16 @@ export function EpisodeRow({ media, image, title, episodeTitle, isWatched, isInv
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: !playable }} disabled={!playable} onPress={onPress}
             accessibilityLabel={`${t("Play", "Abspielen")}: ${title}${episodeTitle ? ` · ${episodeTitle}` : ""}`}
             className="min-w-0 flex-1 flex-row items-center gap-3 active:opacity-80">
-            <View className={cn("h-14 w-24 overflow-hidden rounded-[8px] bg-sm-surface-control", isInvalid && "border-2 border-red-700", isFiller && "border-2 border-yellow-900")}>
+            <View className={cn("h-14 w-24 overflow-hidden rounded-[8px] bg-sm-surface-control", isInvalid && "border-2 border-sm-danger", isFiller && "border-2 border-sm-warning")}>
                 {/* memory-disk (r19): a row drawn again keeps its decoded thumbnail instead of reading the disk cache again */}
                 {!!shown && <Image source={getImageUrl(shown)} contentFit="cover" cachePolicy="memory-disk" blurRadius={spoiler.blurImage ? 24 : 0}
                     style={{ position: "absolute", inset: 0, opacity: isWatched ? 0.25 : 1 }} accessibilityIgnoresInvertColors />}
                 {serverStatus?.settings?.library?.enableWatchContinuity && !!percentageComplete && !isWatched &&
                     <View className="absolute bottom-0 left-0 h-1 w-full bg-white/10"><View style={{ width: `${Math.min(100, percentageComplete)}%` }} className="h-full bg-brand-500" /></View>}
-                {isFiller && <View className="absolute left-0 top-0 rounded-br-[6px] bg-orange-800 px-1"><Text className="text-[11px] font-semibold text-white">Filler</Text></View>}
+                {isFiller && <View className="absolute left-0 top-0 rounded-br-[6px] bg-sm-warning px-1"><Text className="text-[11px] font-semibold text-sm-surface">{t("Filler", "Filler")}</Text></View>}
             </View>
             <View className="min-w-0 flex-1">
-                {isInvalid && <Text className="text-[13px] text-red-300">Unidentified</Text>}
+                {isInvalid && <Text className="text-[13px] text-sm-danger">{t("Unidentified", "Nicht erkannt")}</Text>}
                 <Text numberOfLines={2} className={cn(episodeTitle ? "text-xs leading-[17px] text-sm-text-subtle" : "text-[15px] font-semibold")}>
                     {title.replaceAll("`", "'")}{!!episodeTitle && !!length && `   ${length}m`}
                 </Text>

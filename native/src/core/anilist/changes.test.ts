@@ -22,6 +22,7 @@ import { watchAnilistState } from "./cache-only"
 import { AnilistFailure, type HttpFetch, askAnilist, changeAnilist, rejectsSignIn } from "./client"
 import { VIEWER_ID, saveEntryMutation } from "./queries"
 import { keepAnswer } from "./store"
+import { listEntryPayload } from "@/main/_features/media/_lib/list-entry-form"
 
 /*
  * AniList is played by a small double that keeps list entries the way AniList does as far as the recording shows it:
@@ -629,6 +630,18 @@ describe("taking a start and end date away", () => {
         const entry = (await entryInLists(ANIME))?.entry as Record<string, unknown>
         expect([entry.startedAt, entry.completedAt].map(day => JSON.stringify(day))).not.toContain(JSON.stringify({ year: 2026, month: 11, day: 1 }))
         expect(JSON.stringify(entry.completedAt)).not.toContain("2026")
+    })
+
+    it("takes them away when the sheet sends its emptied date fields", async () => {
+        await lists()
+        const form = { status: "COMPLETED" as const, score: 8, progress: 3, startedAt: new Date(2026, 10, 1), completedAt: new Date(2026, 10, 3) }
+        // the request body as the app sends it (JSON, so an undefined key would not arrive at all)
+        const send = (body: unknown) => edit(JSON.parse(JSON.stringify(body)))
+        await send(listEntryPayload(form, ANIME, "anime"))
+        expect(sent("SaveEntry").at(-1)!.variables).toMatchObject({ startedAt: { year: 2026, month: 11, day: 1 }, completedAt: { year: 2026, month: 11, day: 3 } })
+        await send(listEntryPayload({ ...form, startedAt: null, completedAt: null }, ANIME, "anime"))
+        expect(sent("SaveEntry").at(-1)!.variables).toMatchObject({ startedAt: NO_DAY, completedAt: NO_DAY })
+        expect((await entryInLists(ANIME))?.entry).toMatchObject({ startedAt: {}, completedAt: {} })
     })
 })
 

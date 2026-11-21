@@ -21,9 +21,13 @@ import {
     type CalendarEvent,
     type CalendarParams,
     DEFAULT_CALENDAR_PARAMS,
+    monthOf,
     scheduleEvents,
     STATUS_FILTERS,
+    stepWeek,
     weekdayLabels,
+    weekFirstDay,
+    weekOffsetOf,
 } from "@/main/schedule/_lib/schedule-phone"
 import { useGlobalScheduleCounts, useGlobalScheduleDay } from "@/main/schedule/_lib/use-global-schedule"
 import { addDays } from "date-fns/addDays"
@@ -33,7 +37,6 @@ import { isSameMonth } from "date-fns/isSameMonth"
 import { isToday } from "date-fns/isToday"
 import { isTomorrow } from "date-fns/isTomorrow"
 import { parseISO } from "date-fns/parseISO"
-import { startOfDay } from "date-fns/startOfDay"
 import { startOfMonth } from "date-fns/startOfMonth"
 import { subMonths } from "date-fns/subMonths"
 import { type DateStyle, formatDate, weekdayNames } from "@/lib/i18n/format"
@@ -128,7 +131,7 @@ function PhoneSchedule(props: PhoneScheduleProps) {
     const [step, setStep] = React.useState(0)
     const entering = step ? stepIn(isTablet, step > 0) : undefined
 
-    const firstDay = addDays(startOfDay(new Date()), weekOffset * 7)
+    const firstDay = weekFirstDay(new Date(), weekOffset)
     const week = Array.from({ length: 7 }, (_, i) => addDays(firstDay, i))
     // All anime loads one day at a time; the grid and the strip get their per-day counts from one range query
     const countsRange = view === "month" ? [parseISO(days[0].date), addDays(parseISO(days[days.length - 1].date), 1)] : [firstDay, addDays(firstDay, 7)]
@@ -165,9 +168,17 @@ function PhoneSchedule(props: PhoneScheduleProps) {
             props.onMonth(selected)
         }
     }
+    // the week's chosen day takes the month along, so the month view opens on it (and All anime's day loads it)
+    const selectWeekDay = (date: string) => {
+        props.onSelectDate(date)
+        const month = monthOf(date, currentDate)
+        if (month !== currentDate) props.onMonth(month)
+    }
     const goWeek = (by: number) => {
+        const next = stepWeek(selectedDate, new Date(), weekOffset, by)
         setStep(by)
-        setWeekOffset(o => o + by)
+        setWeekOffset(next.offset)
+        selectWeekDay(next.selectedDate)
     }
     const goMonth = (by: number) => {
         const next = startOfMonth(by > 0 ? addMonths(currentDate, 1) : subMonths(currentDate, 1))
@@ -211,6 +222,9 @@ function PhoneSchedule(props: PhoneScheduleProps) {
             <View className={cn(isTablet && "w-full max-w-[416px]")}>
                 <Tabs variant="segment" value={view} onValueChange={value => {
                     setStep(0)
+                    // the other view opens on the chosen day: the week that holds it, the month that shows it
+                    if (value === "week") setWeekOffset(weekOffsetOf(selectedDate, new Date()))
+                    else selectWeekDay(selectedDate)
                     setView(value as "week" | "month")
                 }} items={[{ value: "week", label: t("Week", "Woche") }, { value: "month", label: t("Month", "Monat") }]} />
             </View>
@@ -222,7 +236,7 @@ function PhoneSchedule(props: PhoneScheduleProps) {
                         onPrevious={() => goWeek(-1)} onNext={() => goWeek(1)} onToday={weekOffset !== 0 ? toToday : undefined} />
                     <Animated.View key={`week-${weekOffset}`} entering={entering} className="gap-4">
                         {isAllAnime ? <>
-                            <DayStrip week={week} selectedDate={selectedDate} onSelect={props.onSelectDate} counts={allCounts} />
+                            <DayStrip week={week} selectedDate={selectedDate} onSelect={selectWeekDay} counts={allCounts} />
                             {status ?? <DayList key={selectedDate} title={dayTitle(parseISO(selectedDate))} events={eventsOn(parseISO(selectedDate))}
                                 indicateWatched={props.indicateWatched} episodes={episodes} />}
                         </> : status ?? (weekCount === 0

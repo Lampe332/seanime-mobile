@@ -46,6 +46,7 @@ import {
     searchPhoneLists,
     validSorting,
 } from "@/main/lists/_lib/lists-phone"
+import { genreLabel } from "@/main/discover/_lib/discover-phone"
 import { ListsFilterSheet } from "@/main/lists/_screens/lists-phone-filters"
 import { ListsAction, ListsHeader } from "@/main/lists/_screens/lists-phone-header"
 import { AnilistSyncBar } from "@/main/_features/anilist-sync/anilist-sync"
@@ -490,7 +491,7 @@ const EMPTY: ListEntry[] = []
 function activeFilterNames(t: Translate, type: ListType, filters: ListsFilters, showAdult: boolean) {
     const named = (labels: Record<string, [string, string]>, value: string) => t(...(labels[value] ?? [value, value]))
     return [
-        ...filters.genres,
+        ...filters.genres.map(genre => genreLabel(t, genre)),
         ...(type === "anime" && filters.format ? [named(FORMAT_LABELS, filters.format)] : []),
         ...(filters.status ? [named(RELEASE_LABELS, filters.status)] : []),
         ...(type === "anime" && filters.season ? [named(SEASON_LABELS, filters.season)] : []),

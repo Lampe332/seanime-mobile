@@ -88,8 +88,11 @@ describe("list entry editor", () => {
     it("builds the mutation body like the web form", () => {
         const form = { status: undefined, score: 7.5, progress: null, startedAt: new Date(2026, 9, 5), completedAt: null }
         expect(listEntryPayload(form, 30276, "anime")).toEqual({
-            mediaId: 30276, status: "PLANNING", score: 75, progress: 0, startedAt: { day: 5, month: 10, year: 2026 }, completedAt: undefined, type: "anime",
+            mediaId: 30276, status: "PLANNING", score: 75, progress: 0, startedAt: { day: 5, month: 10, year: 2026 }, completedAt: {}, type: "anime",
         })
+        // both dates emptied in the sheet: sent as empty dates, which the JSON body keeps (undefined would drop the key)
+        const cleared = listEntryPayload({ ...form, startedAt: null, completedAt: null }, 30276, "anime")
+        expect(JSON.parse(JSON.stringify(cleared))).toMatchObject({ startedAt: {}, completedAt: {} })
         expect(changedRepeat(1, 1)).toBeNull()
         expect(changedRepeat(null, 2)).toBe(0)
         expect(changedRepeat(2, undefined)).toBe(2)

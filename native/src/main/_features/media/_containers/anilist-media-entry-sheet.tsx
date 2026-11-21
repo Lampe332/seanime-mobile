@@ -31,6 +31,7 @@ import Minus from "lucide-react-native/icons/minus"
 import Plus from "lucide-react-native/icons/plus"
 import SquarePen from "lucide-react-native/icons/square-pen"
 import Trash2 from "lucide-react-native/icons/trash"
+import X from "lucide-react-native/icons/x"
 import React from "react"
 import { ActivityIndicator, Pressable, TextInput, View } from "react-native"
 
@@ -130,6 +131,8 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
         },
     })
 
+    const clearDate = (field: "startedAt" | "completedAt") => setForm(f => ({ ...f, [field]: null }))
+
     const body = <View className="gap-4">
         <View accessibilityRole="radiogroup" accessibilityLabel={t("Status", "Status")} className="flex-row flex-wrap gap-1.5">
             {listStatusOptions(t, type, released).map(option => {
@@ -150,8 +153,8 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
                 </Field>
             </View>
             <View className="flex-row flex-wrap gap-2">
-                <Field label={t("Start date", "Startdatum")}><DateField value={form.startedAt} label={t("Start date", "Startdatum")} onPress={() => pickDate("startedAt")} /></Field>
-                <Field label={t("Completion date", "Enddatum")}><DateField value={form.completedAt} label={t("Completion date", "Enddatum")} onPress={() => pickDate("completedAt")} /></Field>
+                <Field label={t("Start date", "Startdatum")}><DateField value={form.startedAt} label={t("Start date", "Startdatum")} onPress={() => pickDate("startedAt")} onClear={() => clearDate("startedAt")} /></Field>
+                <Field label={t("Completion date", "Enddatum")}><DateField value={form.completedAt} label={t("Completion date", "Enddatum")} onPress={() => pickDate("completedAt")} onClear={() => clearDate("completedAt")} /></Field>
             </View>
             <View className="flex-row flex-wrap items-center justify-between gap-3">
                 <Text className="text-[13px] font-medium text-sm-text-muted">{type === "anime" ? t("Total rewatches", "Wiederholungen") : t("Total rereads", "Erneut gelesen")}</Text>
@@ -167,10 +170,10 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     const footer = <View className="flex-1 flex-row flex-wrap items-center justify-between gap-3">
         <View className="flex-row items-center gap-2">
             <Pressable accessibilityRole="button" accessibilityLabel={t("Remove from list", "Aus Liste entfernen")} onPress={() => setConfirmDelete(v => !v)}
-                className="h-12 w-12 items-center justify-center rounded-full active:bg-[rgba(242,167,182,0.12)]">
+                className="h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control">
                 <Trash2 size={20} color={colors.smDanger} />
             </Pressable>
-            {confirmDelete && <Button intent="secondary" className="bg-[rgba(242,167,182,0.14)]" labelClassName="text-sm-danger" loading={isDeleting} onPress={() => deleteEntry({ mediaId: media?.id!, type })}>{t("Confirm", "Bestätigen")}</Button>}
+            {confirmDelete && <Button intent="danger" loading={isDeleting} onPress={() => deleteEntry({ mediaId: media?.id!, type })}>{t("Confirm", "Bestätigen")}</Button>}
         </View>
         <Button wrapperClassName="ml-auto min-w-[136px]" loading={isEditing} disabled={isDeleting} onPress={save}>{t("Save", "Speichern")}</Button>
     </View>
@@ -188,12 +191,20 @@ function Field({ label, children }: { label: string, children: React.ReactNode }
     </View>
 }
 
-function DateField({ value, label, onPress }: { value: Date | null, label: string, onPress: () => void }) {
-    return <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${formatFieldDate(value) || "–"}`} onPress={onPress}
-        className="min-h-12 flex-row items-center justify-between rounded-surface-sm bg-sm-surface-raised px-3 active:bg-sm-surface-control">
-        <Text className={cn("text-sm", !value && "text-sm-text-subtle")} style={{ fontVariant: ["tabular-nums"] }}>{formatFieldDate(value) || "–"}</Text>
-        <CalendarDays size={18} color={colors.smTextMuted} />
-    </Pressable>
+/** A tap picks the date; with one set, the ✕ beside it empties the field (saved as no date). */
+function DateField({ value, label, onPress, onClear }: { value: Date | null, label: string, onPress: () => void, onClear: () => void }) {
+    const t = useTr()
+    return <View className="min-h-12 flex-row items-center overflow-hidden rounded-surface-sm bg-sm-surface-raised">
+        <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${formatFieldDate(value) || "–"}`} onPress={onPress}
+            className="min-h-12 min-w-0 flex-1 flex-row items-center justify-between px-3 active:bg-sm-surface-control">
+            <Text className={cn("text-sm", !value && "text-sm-text-subtle")} style={{ fontVariant: ["tabular-nums"] }}>{formatFieldDate(value) || "–"}</Text>
+            {!value && <CalendarDays size={18} color={colors.smTextMuted} />}
+        </Pressable>
+        {!!value && <Pressable accessibilityRole="button" accessibilityLabel={`${t("Remove date", "Datum entfernen")}: ${label}`} onPress={onClear}
+            className="h-12 w-12 items-center justify-center active:bg-sm-surface-control">
+            <X size={18} color={colors.smTextMuted} />
+        </Pressable>}
+    </View>
 }
 
 function Stepper({ value, onValue, min = 0, max, decimals, suffix, label }: {

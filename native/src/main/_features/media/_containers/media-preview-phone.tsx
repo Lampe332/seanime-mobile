@@ -15,6 +15,7 @@ import { openInAppBrowser } from "@/lib/helpers/browser"
 import { Image } from "expo-image"
 import { atom, useAtom, useSetAtom } from "jotai"
 import { mediaEntryHref } from "@/main/_features/media/_lib/media-card"
+import { genreLabel } from "@/main/discover/_lib/discover-phone"
 import ArrowUpRight from "lucide-react-native/icons/arrow-up-right"
 import React from "react"
 import { View } from "react-native"
@@ -73,7 +74,7 @@ function Preview({ t, type, media, listData, loading, onOpenPage }: {
             <View className="min-w-[176px] flex-1 gap-1.5 pt-0.5">
                 <Text className="text-sm leading-[20px] text-sm-text-muted" style={{ fontVariant: ["tabular-nums"] }}>{facts}</Text>
                 {!!status && <Text className="text-[15px] font-semibold text-sm-accent">{t(...status)}{progress ? ` · ${progress}${total ? ` / ${total}` : ""}` : ""}</Text>}
-                {!!media.genres?.length && <Text className="text-[13px] leading-[19px] text-sm-text-subtle">{media.genres.slice(0, 4).join(" · ")}</Text>}
+                {!!media.genres?.length && <Text className="text-[13px] leading-[19px] text-sm-text-subtle">{media.genres.slice(0, 4).map(genre => genreLabel(t, genre)).join(" · ")}</Text>}
             </View>
         </View>
         {!!text && <View className="items-start gap-1">

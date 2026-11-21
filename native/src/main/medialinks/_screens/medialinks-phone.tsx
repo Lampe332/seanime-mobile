@@ -1,7 +1,7 @@
 import type { Anime_Entry, Anime_Episode } from "@/api/generated/types"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
-import { PhoneEmpty, PhoneSection } from "@/components/shared/phone-cards"
-import { LoadingRows, RowGroup } from "@/components/shared/phone-kit"
+import { PhoneEmpty, PhoneSection, useOfflineAware } from "@/components/shared/phone-cards"
+import { LoadingRows, Notice, RowGroup, TextAction } from "@/components/shared/phone-kit"
 import { PhoneScreen } from "@/components/shared/phone-screen"
 import { Button } from "@/components/ui/button/button"
 import { cn } from "@/components/ui/core/styling"
@@ -90,7 +90,8 @@ function usePlayInExternalPlayer(entry: Anime_Entry | undefined) {
 export function MedialinksPhone({ mediaId }: { mediaId: string | undefined }) {
     const t = useTr()
     const router = useRouter()
-    const { data: entry, isLoading } = useGetAnimeEntry(mediaId)
+    const offlineAware = useOfflineAware()
+    const { data: entry, isLoading, isError, refetch } = useGetAnimeEntry(mediaId)
     const { filePath, setFilePath } = useMediastreamCurrentFile()
     const play = usePlayInExternalPlayer(entry)
     // The episode last sent to the player, marked until another one is
@@ -112,7 +113,13 @@ export function MedialinksPhone({ mediaId }: { mediaId: string | undefined }) {
             actions={entry ? <Button intent="icon" accessibilityLabel={t("The anime's page", "Seite des Anime")} onPress={() => router.push(`/entry?id=${entry.mediaId}`)}>
                 <Info size={22} color={colors.smTextMuted} />
             </Button> : undefined}>
-            {isLoading ? <LoadingRows label={t("Loading episodes", "Folgen werden geladen")} count={4} />
+            {!mediaId ? <PhoneEmpty title={t("No anime chosen", "Kein Anime gewählt")}
+                    text={t("Open the external player from an anime's page.", "Öffne den externen Player über die Seite eines Anime.")} />
+                : isLoading ? <LoadingRows label={t("Loading episodes", "Folgen werden geladen")} count={4} />
+                : isError && !entry ? <Notice text={offlineAware(["The episodes could not be loaded.", "Die Folgen konnten nicht geladen werden."],
+                    ["No internet connection, so the episodes could not be loaded.", "Keine Internetverbindung, deshalb konnten die Folgen nicht geladen werden."])}>
+                    <TextAction label={t("Try again", "Erneut versuchen")} onPress={() => void refetch()} />
+                </Notice>
                 : !groups.length ? <PhoneEmpty title={t("No downloaded episodes", "Keine heruntergeladenen Folgen")}
                         text={t("Only episodes on this device can open in an external player.", "Nur Folgen auf diesem Gerät lassen sich im externen Player öffnen.")} />
                     : groups.map(group => (

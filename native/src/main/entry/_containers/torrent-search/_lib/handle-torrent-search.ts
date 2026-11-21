@@ -137,12 +137,6 @@ export function useHandleTorrentSearch(props: TorrentSearchHookProps) {
         }
     }, [warnings.extensionDoesNotSupportBatchSearch, selectedProviderExtensionId, smartSearchBatch])
 
-    React.useEffect(() => {
-        console.log("globalFilter", globalFilter)
-    }, [globalFilter])
-
-    console.log("smartSearchResolution", smartSearchResolution)
-
     /**
      * Fetch torrent search data
      */

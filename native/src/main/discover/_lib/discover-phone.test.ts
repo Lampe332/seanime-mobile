@@ -58,7 +58,7 @@ describe("phone discover links", () => {
         expect(seeAllLinks.trending("Slice of Life")).toBe("/search?sorting=TRENDING_DESC&genre=Slice+of+Life")
         expect(seeAllLinks.season({ season: "FALL", year: 2026 }, "Action")).toBe("/search?sorting=SCORE_DESC&season=FALL&year=2026&genre=Action")
         expect(seeAllLinks.upcoming()).toBe("/search?sorting=TRENDING_DESC&status=NOT_YET_RELEASED")
-        expect(seeAllLinks.movies()).toBe("/search?sorting=TRENDING_DESC&format=MOVIE")
+        expect(seeAllLinks.movies()).toBe("/search?sorting=TRENDING_DESC&format=MOVIE&status=FINISHED")
         expect(seeAllLinks.manga("KR", null)).toBe("/search?type=manga&sorting=TRENDING_DESC&country=KR")
     })
 })

@@ -68,8 +68,12 @@ export function parseStepInput(text: string, limits: { min?: number, max?: numbe
     return Number.isFinite(parsed) ? clampStep(parsed, limits) : undefined
 }
 
-function fuzzy(date: Date | null): AL_FuzzyDateInput | undefined {
-    return date ? { day: date.getDate(), month: date.getMonth() + 1, year: date.getFullYear() } : undefined
+/**
+ * An emptied date goes as {} (sent, unlike undefined): the core reads it as no date and asks AniList to take it away
+ * (FuzzyDateInput with year, month and day null, core/anilist/changes.ts sendRow).
+ */
+function fuzzy(date: Date | null): AL_FuzzyDateInput {
+    return date ? { day: date.getDate(), month: date.getMonth() + 1, year: date.getFullYear() } : {}
 }
 
 /** The edit mutation's body, as handleSubmit builds it */

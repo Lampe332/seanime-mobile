@@ -452,8 +452,10 @@ function LockFilesToggle({ mediaId, allFilesLocked }: { mediaId: number, allFile
     }
     return <Pressable accessibilityRole="button" accessibilityLabel={locked ? t("Unlock all files", "Alle Dateien entsperren") : t("Lock all files", "Alle Dateien sperren")}
         disabled={isPending} onPress={() => {
-            mutate({ mediaId, action: "toggle-lock" })
-            setLocked(v => !v)
+            // shown at once; a failed toggle puts the icon back (the error toast comes from the request)
+            const before = locked
+            setLocked(!before)
+            mutate({ mediaId, action: "toggle-lock" }, { onError: () => setLocked(before) })
         }}
         className="h-12 w-12 items-center justify-center rounded-full bg-sm-surface-raised active:bg-sm-surface-control">
         {isPending ? <ActivityIndicator size="small" color={colors.smTextMuted} /> : locked ? <BadgeCheck size={20} color={colors.smSuccess} /> : <LockOpen size={20} color={colors.smWarning} />}
@@ -466,7 +468,8 @@ function NextAiringEpisode({ entry }: { entry: Anime_Entry }) {
     const next = entry.media?.nextAiringEpisode
     if (!next) return null
     const locale = dateFnsLocale(getAppLanguage())
-    const at = addSeconds(new Date(), next.timeUntilAiring || 0)
+    // airingAt is the fixed moment; timeUntilAiring was only right when the entry was fetched
+    const at = next.airingAt ? new Date(next.airingAt * 1000) : addSeconds(new Date(), next.timeUntilAiring || 0)
     return <View className="flex-row flex-wrap items-center gap-2">
         <Text className="text-lg font-semibold">{t("Episode", "Folge")} {next.episode}</Text>
         <Text className="text-lg">{formatDistanceToNow(at, { addSuffix: true, ...locale })}</Text>

@@ -45,7 +45,8 @@ export const seeAllLinks = {
     trending: (genre?: string | null) => searchLink({ sorting: "TRENDING_DESC", genre }),
     season: ({ season, year }: SeasonYear, genre?: string | null) => searchLink({ sorting: "SCORE_DESC", season, year, genre }),
     upcoming: () => searchLink({ sorting: "TRENDING_DESC", status: "NOT_YET_RELEASED" }),
-    movies: () => searchLink({ sorting: "TRENDING_DESC", format: "MOVIE" }),
+    // the row leaves out unreleased films; Search takes one status, and a released film is finished
+    movies: () => searchLink({ sorting: "TRENDING_DESC", format: "MOVIE", status: "FINISHED" }),
     manga: (country: string, genre?: string | null) => searchLink({ type: "manga", sorting: "TRENDING_DESC", country, genre }),
 }
 
