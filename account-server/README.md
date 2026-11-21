@@ -57,6 +57,7 @@ Storage: D1 (`DB`) for accounts, sessions, devices and wrapped keys; R2 (`SNAPSH
 | GET | `sync/meta` | Also `rotationRequired`, `rewrapNeeded`, `recoveryRenewalNeeded` and `removedDevices` (device keys removed from the account; the devices remember them). |
 | GET/PUT | `sync/snapshot` | Only for a key holder: an app session bound to a device row (`403 device_required` otherwise), or a website session after `web/key` (Edit on the website on, else `403 web_edit_off`; proof within 30 min and for the account's current dekId, else `403 unlock_required`; from `ALLOWED_ORIGIN`, else `403 website_only`). A website session never counts as a device, also when bound to a device row. PUT needs `If-Match: <version>` (`409 version_conflict` with `{version}`), `X-Dek-Id` (`409 dek_mismatch`) and `Content-Length`, body `application/octet-stream`, 1 byte to 10 MB. The website never writes the first package nor one after `DELETE sync` (size 0): `409 no_snapshot`. The first save of a website key session adds the event `web_settings_changed` (no mail). |
 | DELETE | `sync` | Deletes the stored package. The version counts on and stays (`sync/meta` then says `size: 0`, `dekId: null`), so no device sees an older version; the next upload builds on it. |
+| POST | `ping` | No session. `{id, version}`: the app's random install ID (UUID) and its version, at most once per UTC day. Stores only (UTC day, SHA-256 of the ID, version) in `active_installs` with `INSERT OR IGNORE`; no IP, user agent or account. `204`; `400` for a bad ID or version. Burst limit `PING_LIMITER` (30 per minute per IP, in memory). The daily cleanup drops days older than 400. Turned off in the app under Settings, App, Privacy. |
 
 Sessions: 256-bit random token, only its SHA-256 is stored, 90 days idle timeout. A session in use writes its `last_used_at`, the account's `last_active_at` and, when it is bound to a device row, that device's `last_seen_at` (`GET devices`), at most every 5 minutes. The app sends `Authorization: Bearer <token>`. Requests from `https://seanimemobile.com` get the `__Host-sid` cookie instead. Every other `Origin` is rejected.
 
@@ -124,6 +125,7 @@ npm install
 npm run typecheck     # tsc --noEmit
 npm test              # vitest with local D1/R2 (Workers runtime)
 npm run types         # regenerate worker-configuration.d.ts after changing wrangler.jsonc
+npm run stats         # read-only: active installs today / 7 / 30 days, versions, accounts (live D1, needs wrangler login)
 cp .dev.vars.example .dev.vars && npm run migrate:local && npm run dev
 ```
 

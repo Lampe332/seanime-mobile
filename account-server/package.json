@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "types": "wrangler types",
-    "migrate:local": "wrangler d1 migrations apply seanime-account --local"
+    "migrate:local": "wrangler d1 migrations apply seanime-account --local",
+    "stats": "node scripts/stats.mjs"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.8.4",

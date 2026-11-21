@@ -246,3 +246,9 @@ export const AfterCodeBody = z.strictObject({
   dekId: DekId,
   dekProof: DekProof.optional(),
 });
+
+/** POST /v1/ping: the app's random install ID and its version ("4.3.2", "4.3.2-beta.1"). */
+export const PingBody = z.strictObject({
+  id: Uuid,
+  version: z.string().max(32).regex(/^\d{1,3}\.\d{1,3}\.\d{1,4}(?:[-+][0-9A-Za-z.-]{1,20})?$/),
+});

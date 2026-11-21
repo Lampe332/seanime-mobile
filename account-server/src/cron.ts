@@ -1,5 +1,6 @@
 import { CODE_MAX_ATTEMPTS } from "./codelogin";
 import { sendMail } from "./mail";
+import { ACTIVE_INSTALLS_KEEP_DAYS, utcDay } from "./ping";
 import { CODE_WINDOW_SECONDS, deleteUserData } from "./routes";
 import { now, SESSION_IDLE_SECONDS } from "./session";
 
@@ -39,6 +40,8 @@ export async function cleanup(env: Env): Promise<CleanupResult> {
     // I5: the account keeps its security events for 180 days
     env.DB.prepare("DELETE FROM account_events WHERE at < ?").bind(t - 180 * DAY),
     env.DB.prepare("DELETE FROM sessions WHERE last_used_at < ?").bind(t - SESSION_IDLE_SECONDS),
+    // the anonymous daily count (ping.ts) keeps 400 days
+    env.DB.prepare("DELETE FROM active_installs WHERE day < ?").bind(utcDay(new Date((t - ACTIVE_INSTALLS_KEEP_DAYS * DAY) * 1000))),
   ]);
 
   const result: CleanupResult = { deletedUnverified: 0, warnedInactive: 0, deletedInactive: 0 };

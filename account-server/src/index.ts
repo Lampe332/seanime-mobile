@@ -3,6 +3,7 @@ import { cleanup } from "./cron";
 import * as approval from "./approval";
 import * as code from "./codelogin";
 import * as id from "./identity";
+import { ping } from "./ping";
 import { rotate } from "./rotate";
 import { MAX_JSON_BYTES } from "./http";
 import { MAX_BODY_BYTES, withBodyDigest } from "./signature";
@@ -63,6 +64,7 @@ const routes: Array<[method: string, pattern: RegExp, handler: Handler]> = [
   ["POST", /^\/v1\/account\/unlink-google$/, id.unlinkGoogle],
   ["GET", /^\/v1\/account$/, r.getAccount],
   ["DELETE", /^\/v1\/account$/, r.deleteAccount],
+  ["POST", /^\/v1\/ping$/, ping],
   ["GET", /^\/v1\/sync\/meta$/, r.syncMeta],
   ["GET", /^\/v1\/sync\/snapshot$/, r.getSnapshot],
   ["PUT", /^\/v1\/sync\/snapshot$/, r.putSnapshot],

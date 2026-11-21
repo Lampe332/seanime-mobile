@@ -7,6 +7,7 @@ interface __BaseEnv_Env {
 	EMAIL: SendEmail;
 	LOGIN_LIMITER: RateLimit;
 	SIGNUP_LIMITER: RateLimit;
+	PING_LIMITER: RateLimit;
 	ALLOWED_ORIGIN: "https://seanimemobile.com";
 	WEB_BASE_URL: "https://seanimemobile.com";
 	GOOGLE_JWKS_URL: "https://www.googleapis.com/oauth2/v3/certs";
