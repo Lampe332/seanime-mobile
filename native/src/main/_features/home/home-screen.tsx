@@ -129,7 +129,7 @@ export function HomeScreen() {
             <View className="pb-10">
                 {/* The discover header shows only as the first section, above all others */}
                 {homeItems[0]?.type === "discover-header" && <HomeDiscoverFeature />}
-                <MyShowsRow />
+                <MyShowsRow className="pb-6 pt-3" />
                 {homeItems.filter(item => item.type !== "discover-header" && item.type !== "anime-continue-watching-header").map((item, index) => (
                     <React.Fragment key={item.id}>
                         {hasSectionGapBefore(item.type, index) && <View className="h-6" />}
