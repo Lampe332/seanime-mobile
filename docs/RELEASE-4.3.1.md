@@ -10,6 +10,7 @@
 - ⚡️ Search: An empty result explains that several genres must all match
 - ⚡️ Player: Menu pages open at the top with the title and Back pinned, the sleep timer marks the minutes you picked, and the brightness and volume overlay shows an icon
 - ⚡️ Player: The external player page and History show an error with "Try again" when loading fails
+- ⚡️ Downloads: The torrent screen says in plain words whether you are seeding, who you share with right now, and offers a clear "Stop seeding" button
 - ⚡️ Playlists: Back steps back inside the editor and asks before it throws away a changed draft
 - ⚡️ Account: A devices error explains the cause and offers "Try again", and security events read as plain rows
 - ⚡️ Nakama: Reconnect tells you which setting is missing: off, no host or no passcode
@@ -22,11 +23,13 @@
 - 🦺 Downloads: Chapters and episodes taken over from the old server are now deleted together with their files, and a deleted old episode no longer comes back without its video
 - 🦺 Downloads: A chapter you pause, delete or clear while its pages load is no longer started or saved anyway. Back on a manga's page returns to the manga overview
 - 🦺 Manga: A page without an address offers "Retry" instead of an endless spinner, and short long-strip chapters count as read at their end
+- 🦺 Manga: In long strip, Continue reading opens exactly the page you left instead of one or two pages earlier
 - 🦺 Calendar: The week arrows move your chosen day into the new week, a day picked in the week takes its month along, and switching between week and month opens the view that holds your day
 - 🦺 Entry: The lock-files switch goes back when saving fails
 - 🦺 Search: "See all" for Trending movies keeps the released-only filter
 - 🦺 Player: Back in fullscreen always reaches the player, a tap on the mini player returns you to where you were, and the skip and countdown buttons no longer crowd the size button
 - 🦺 Player: The 80 percent progress update counts as sent only after it worked and is retried if it fails. Remaining time follows your setting
+- 🦺 Player: Leaving fullscreen with the button no longer leaves the player sitting over the title, and the brightness and volume bars are fully visible and stay clear of Skip ending
 - 🦺 Online streaming: "Retry source" starts a new attempt even with the same address, and previous and next step over gaps in the numbering
 - 🦺 Settings: Backup Undo no longer offers a Merge that does nothing, and a failed safety backup restores nothing and promises no Undo
 - 🦺 Settings: The storage hint no longer promises an automatic restart, and the diagnostic report no longer fills with "Queued message" lines
@@ -37,5 +40,6 @@
 - 🦺 Home: Each section can be on Home only once, with duplicates removed and the top one kept. Banners always sit at the top
 - 🦺 Home: Carousel options take effect, including sorting and every manga status. An empty carousel says why and offers "Reset options", and empty or failed sections offer "Try again"
 - 🦺 Home: Loading every section at once no longer runs into AniList's rate limit. List titles are translated, and a carousel without a name is named after its sorting
+- 🦺 Home: Status titles such as Completed are translated on Home and in the library
 - 🦺 Translations: Many texts that were missing or half translated now show in your language, including genre names, Filler and Unidentified, player menus, online stream messages, sort names and restore errors. All six languages are complete
 - 🏗️ Home: Removed the "layout" option, since Android only shows rows, and the season option for manga carousels, which AniList doesn't support
