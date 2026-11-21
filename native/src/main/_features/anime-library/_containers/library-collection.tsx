@@ -63,7 +63,7 @@ const LibraryListItem = React.memo(function LibraryListItem({ list, streamingMed
     return (
         <View>
             <View className="mb-3 mt-5 flex-row items-center gap-2">
-                <SectionTitle className="min-w-0 flex-1">{current ? t("Currently watching", "Gerade dabei") : getLibraryCollectionTitle(list.type)}</SectionTitle>
+                <SectionTitle className="min-w-0 flex-1">{current ? t("Currently watching", "Gerade dabei") : getLibraryCollectionTitle(list.type, t)}</SectionTitle>
                 {current && <HomeCurrentFilter list={list} />}
             </View>
             {genreFiltered && !entries.length && (

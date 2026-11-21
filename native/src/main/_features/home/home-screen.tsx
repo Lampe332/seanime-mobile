@@ -497,7 +497,7 @@ function MangaListRow({ list }: { list: Manga_CollectionList }) {
     return (
         <View>
             <View className="mb-3 mt-5 min-h-11 flex-row items-center justify-between gap-3">
-                <SectionTitle className="min-w-0 flex-1">{current ? t("Continue reading", "Weiterlesen") : getMangaCollectionTitle(list.type)}</SectionTitle>
+                <SectionTitle className="min-w-0 flex-1">{current ? t("Continue reading", "Weiterlesen") : getMangaCollectionTitle(list.type, t)}</SectionTitle>
                 {current && params.unreadOnly && (
                     <Pressable accessibilityRole="button" onPress={() => setParams(draft => { draft.unreadOnly = false })} className="min-h-11 justify-center px-2">
                         <Text className="text-sm font-medium">{t("Show all", "Alle zeigen")}</Text>
@@ -580,7 +580,7 @@ function LocalAnimeLibrary({ library }: { library: HandleLibraryCollectionProps 
         <View className="gap-3">
             {filled.map((list, i) => (
                 <View key={list.type} className={cn("gap-3", i > 0 && "mt-2")}>
-                    <SectionTitle>{getLibraryCollectionTitle(list.type)}<Text className="text-sm font-medium text-sm-text-muted">{"  "}{t("on this device", "auf diesem Gerät")}</Text></SectionTitle>
+                    <SectionTitle>{getLibraryCollectionTitle(list.type, t)}<Text className="text-sm font-medium text-sm-text-muted">{"  "}{t("on this device", "auf diesem Gerät")}</Text></SectionTitle>
                     <MediaCardRow data={list.entries ?? []} keyOf={entry => String(entry.mediaId)}
                         renderCard={(entry, width) => (
                             <MediaEntryCard media={entry.media!} type="anime" width={width} listData={entry.listData} libraryData={entry.libraryData}
