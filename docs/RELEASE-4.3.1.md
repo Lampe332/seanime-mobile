@@ -1,6 +1,6 @@
 ## What's new?
 
-- 🎉 Privacy: Once a day the app sends an anonymous usage count: a random ID and the app version, so we know how many people use it. No account, email or IP is involved, and the server stores only the day, a SHA-256 hash of the ID and the version. It is on by default and you can turn it off under Settings, App, Privacy
+- 🎉 Privacy: Once a day the app sends an anonymous usage count: a random ID and the app version, so we know how many people use it. It is not linked to an account or email, the IP address is not stored, and the server keeps only the day, a SHA-256 hash of the ID and the version. It is on by default and you can turn it off under Settings, App, Privacy
 - 🎉 Entry: You can remove the start or completion date with the X beside it. AniList gets the cleared date too
 - 🎉 Downloads: You can remove waiting or failed manga chapters from the queue, and "Clear queue" asks first
 - ⚡️ Home: Customize Home tells you what each section shows and what it needs, such as a local library folder
