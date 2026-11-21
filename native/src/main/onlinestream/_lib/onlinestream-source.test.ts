@@ -9,6 +9,7 @@ import {
     playableVideoSources,
     preferredOnlineSubtitle,
     errorOfSource,
+    isNoEntryFound,
     onlineSourceFailure,
     onlineSourceKey,
 } from "./onlinestream-source"
@@ -131,5 +132,16 @@ describe("online stream sources", () => {
         // nothing saved or nothing matching: the player's usual choice runs
         expect(preferredOnlineSubtitle(tracks, undefined)).toBeNull()
         expect(preferredOnlineSubtitle(tracks, { language: "French" })).toBeNull()
+    })
+})
+
+describe("no entry at the provider", () => {
+    it("is the core's 404 'no matching entry found' only; other failures stay provider errors", () => {
+        const failed = (status: number, error: string) => ({ response: { status, data: { error } } })
+        expect(isNoEntryFound(failed(404, "kaa: no matching entry found, choose one by hand"))).toBe(true)
+        expect(isNoEntryFound(failed(404, "online stream provider not found: kaa"))).toBe(false)
+        expect(isNoEntryFound(failed(500, "kaa: findEpisodes failed: the site changed"))).toBe(false)
+        expect(isNoEntryFound(new Error("Network Error"))).toBe(false)
+        expect(isNoEntryFound(null)).toBe(false)
     })
 })

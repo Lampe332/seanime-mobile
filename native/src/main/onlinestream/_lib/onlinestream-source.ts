@@ -191,3 +191,9 @@ export function onlineSourceKey(s: { provider: string | null, server: string | u
 export function errorOfSource(state: { key: string, message: string } | null, key: string): string | null {
     return state?.key === key ? state.message : null
 }
+
+/** The provider's search found no entry for the anime (core streams/onlinestream.ts, 404): an empty list, not a failure */
+export function isNoEntryFound(error: unknown): boolean {
+    const response = (error as { response?: { status?: number, data?: { error?: unknown } } } | null)?.response
+    return response?.status === 404 && typeof response.data?.error === "string" && response.data.error.includes("no matching entry found")
+}

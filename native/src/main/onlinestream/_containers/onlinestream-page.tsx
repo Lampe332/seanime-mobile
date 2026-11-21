@@ -38,6 +38,7 @@ import {
     chooseVideoSource,
     episodeServers,
     errorOfSource,
+    isNoEntryFound,
     onlineDownloadRequest,
     onlineSourceFailure,
     onlineSourceKey,
@@ -171,9 +172,12 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         isFetching: fetchingEpisodeList,
         isLoading: loadingEpisodeList,
         isSuccess: episodeListFetched,
-        isError: episodeListError,
+        isError: episodeListFailed,
+        error: episodeListFailure,
         refetch: retryEpisodeList,
     } = useGetOnlineStreamEpisodeList(mediaId, provider, dubbed)
+    // no entry at this provider is an empty list, not a provider error
+    const episodeListError = episodeListFailed && !isNoEntryFound(episodeListFailure)
     const episodes = episodeListResponse?.episodes
     const sortedEpisodes = React.useMemo(() => [...(episodes ?? [])].filter(Boolean).sort((a, b) => a.number - b.number), [episodes])
     const currentEpisode = episodes?.find(e => e.number === currentEpisodeNumber)
@@ -281,7 +285,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         episodeListResponse,
         episodeListLoading,
         isEpisodeListFetched: episodeListFetched,
-        isEpisodeListError: episodeListError,
+        isEpisodeListError: episodeListFailed,
         episodeSource,
         episodeSourceLoading: episodeLoading,
         isEpisodeSourceError: episodeSourceError,

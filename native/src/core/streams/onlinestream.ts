@@ -6,6 +6,7 @@ import { type ManageEnvironment, loaderOf, onlinestreamProviders, preferencesOf,
 import { SandboxError } from "../extensions/sandbox/sandbox"
 import type { CoreEnvironment } from "../registry"
 import { animeWithEpisodes } from "../library/library"
+import { isTvmazeId } from "../tvmaze/tvmaze"
 import { type Found, type StreamMedia, chooseEntry } from "./choose"
 import { mappingOf, removeMapping, setMapping } from "./mappings"
 
@@ -59,9 +60,10 @@ function textOf(body: Json, name: string): string {
     return value
 }
 
+/** An AniList number (positive) or a title of TVmaze (negative, tvmaze/tvmaze.ts) */
 function mediaIdOf(body: Json): number {
     const value = body.mediaId
-    if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) throw new CoreError("mediaId is required", 400)
+    if (typeof value !== "number" || !Number.isInteger(value) || (value <= 0 && !isTvmazeId(value))) throw new CoreError("mediaId is required", 400)
     return value
 }
 

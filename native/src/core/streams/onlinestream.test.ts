@@ -219,6 +219,34 @@ describe("online stream answers against the recorded form", () => {
         await ask("POST", "/api/v1/onlinestream/manual-mapping", { provider: "stream", mediaId: 105333, animeId: "broken" })
         await expect(ask("POST", "/api/v1/onlinestream/episode-list", LIST)).rejects.toThrow("stream: findEpisodes failed: the site changed")
         await expect(ask("POST", "/api/v1/onlinestream/episode-list", { provider: "stream" })).rejects.toThrow("mediaId is required")
+        await expect(ask("POST", "/api/v1/onlinestream/episode-list", { ...LIST, mediaId: 0 })).rejects.toThrow("mediaId is required")
+    })
+
+    it("a title of TVmaze (negative number): the provider is searched by its name, a miss is a plain 404", async () => {
+        now = Date.parse("2026-11-21T00:00:00Z") // after the premiere: the episodes are out
+        const fetchAnilist = environment.fetch
+        environment.fetch = async (url, init) => {
+            const show = /^https:\/\/api\.tvmaze\.com\/shows\/(95063|95064)/.exec(url)?.[1]
+            if (show && url.includes("/images")) return { status: 200, headers: { get: () => null }, text: async () => "[]" }
+            if (show) return { status: 200, headers: { get: () => null }, text: async () => JSON.stringify({
+                id: Number(show), name: show === "95063" ? "Dr. Stone" : "nothing", premiered: "2019-07-05", status: "Ended", type: "Animation",
+                _embedded: { episodes: [1, 2, 3].map(number => ({ id: number, season: 1, number, name: `Part ${number}`, airstamp: "2019-07-05T00:00:00+00:00", type: "regular" })) },
+            }) }
+            return fetchAnilist(url, init)
+        }
+        const list = await ask("POST", "/api/v1/onlinestream/episode-list", { ...LIST, mediaId: -95063 }) as { episodes: { number: number, title: string }[], media: { id: number } }
+        expect(calls.filter(call => call.startsWith("search"))).toEqual(["search Dr. Stone false -95063 2019"])
+        expect(list.media.id).toBe(-95063)
+        expect(list.episodes).toHaveLength(24)
+        expect(list.episodes[0]).toMatchObject({ number: 1, title: "Part 1" })
+        const source = await ask("POST", "/api/v1/onlinestream/episode-source", { episodeNumber: 1, mediaId: -95063, provider: "stream", dubbed: false }) as { videoSources: unknown[] }
+        expect(source.videoSources.length).toBeGreaterThan(0)
+        await ask("POST", "/api/v1/onlinestream/manual-mapping", { provider: "stream", mediaId: -95063, animeId: "by-hand" })
+        expect(await ask("POST", "/api/v1/onlinestream/get-mapping", { provider: "stream", mediaId: -95063 })).toEqual({ animeId: "by-hand" })
+        // the provider does not have it: the 404 the page shows as "no episodes", not as a provider error
+        const miss = ask("POST", "/api/v1/onlinestream/episode-list", { ...LIST, mediaId: -95064 })
+        await expect(miss).rejects.toThrow("stream: no matching entry found, choose one by hand")
+        await expect(miss).rejects.toMatchObject({ status: 404 })
     })
 })
 
