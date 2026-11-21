@@ -68,6 +68,21 @@ export function playbackTimedOut({ startedAt, playbackTime, streamReady }: { sta
     return playbackTime <= startedAt && !streamReady
 }
 
+export type TrialServerStep = { kind: "exhausted" } | { kind: "keep" } | { kind: "select", server: string }
+
+/**
+ * "Try all providers": what the trial does once the candidate's source is in. Choosing another server clears the
+ * stream URL until the page has built the new one. The server already chosen keeps its stream: the page builds a URL only
+ * when the stream's key changes, and clearing it in the commit of the build left a working provider without a stream
+ * until the playback limit (both tries ended in "playback timeout", then "No working providers found").
+ */
+export function trialServerStep(servers: string[], serverIndex: number, currentServer: string | undefined): TrialServerStep {
+    const target = servers[serverIndex]
+    if (!target) return { kind: "exhausted" }
+    if (target === currentServer) return { kind: "keep" }
+    return { kind: "select", server: target }
+}
+
 /**
  * A provider request with the provider limit: a source refresh that never answers would otherwise hold the cycler in
  * "refreshing" for good (every timer waits for it), so "Try all providers" would hang on that provider.

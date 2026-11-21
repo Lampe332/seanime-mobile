@@ -14,6 +14,7 @@ import {
     playbackTimedOut,
     PROVIDER_TIMEOUT_MS,
     shouldRecoverStartup,
+    trialServerStep,
     withProviderTimeout,
 } from "./onlinestream-provider-trial"
 
@@ -201,6 +202,8 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
         setUrl(null)
         setPlaybackError(null)
         setProvider(providers[providerIndex])
+        // the stream key does not change when the trial starts on the candidate already chosen: build it again
+        if (providers[providerIndex] === provider && getServers(episodeSource)[serverIndex] === server) reloadStream()
     })
 
     const onPlaybackError = useLatestFunction((reason: string) => {
@@ -388,19 +391,23 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
             return
         }
 
-        const targetServer = servers[trial.serverIndex]
-        if (!targetServer) {
+        const step = trialServerStep(servers, trial.serverIndex, server)
+        if (step.kind === "exhausted") {
             goToNextProvider("servers exhausted")
             return
         }
+        // the server already chosen keeps its stream: the page builds a URL only when the stream's key changes, so
+        // clearing it here (this runs in the same commit as the build) left the trial without a stream until the limit
+        if (step.kind === "keep") return
 
         setUrl(null)
         setPlaybackError(null)
-        setServer(targetServer)
+        setServer(step.server)
     }, [
         trial,
         refreshing,
         provider,
+        server,
         episodeSource,
         episodeSourceLoading,
         isEpisodeSourceError,

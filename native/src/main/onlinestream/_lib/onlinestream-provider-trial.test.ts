@@ -11,7 +11,21 @@ import {
     cyclerFailureText,
     noProvidersText,
     noWorkingProviderText,
+    trialServerStep,
 } from "./onlinestream-provider-trial"
+
+describe("the trial's server step", () => {
+    it("keeps the stream of the server already chosen: the page builds a URL only when its key changes", () => {
+        // Dreamland 2026 / Anikoto (S22, 21.11.): the URL was built and cleared in the same commit, so both tries
+        // of a working provider ended in "playback timeout"
+        expect(trialServerStep(["Auto", "Backup"], 0, "Auto")).toEqual({ kind: "keep" })
+    })
+    it("selects another server and runs out after the last one", () => {
+        expect(trialServerStep(["Auto", "Backup"], 1, "Auto")).toEqual({ kind: "select", server: "Backup" })
+        expect(trialServerStep(["Auto"], 0, undefined)).toEqual({ kind: "select", server: "Auto" })
+        expect(trialServerStep(["Auto"], 1, "Auto")).toEqual({ kind: "exhausted" })
+    })
+})
 
 describe("the cycler's texts", () => {
     const de = (_en: string, german: string) => german
