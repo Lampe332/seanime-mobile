@@ -5,6 +5,7 @@ import { account } from "../database/schema"
 import { CoreError } from "../errors"
 import type { CoreEnvironment, CoreRequest } from "../registry"
 import { ownSettingsAndLook } from "../settings/settings"
+import { isTvmazeId, tvmazeMedia } from "../tvmaze/tvmaze"
 import { listsWithWaitingChanges, localCollection, sendWaitingChanges, withoutAnilistAccount } from "./changes"
 import { AnilistFailure, askAnilist, clientFor, waitForRateLimit } from "./client"
 import {
@@ -195,6 +196,8 @@ function wholeNumber(text: string | undefined): number {
 /** GET /api/v1/anilist/media-details/{id} */
 export async function animeDetails(request: CoreRequest, environment: CoreEnvironment): Promise<Json> {
     const id = wholeNumber(request.path.id)
+    // a negative number is a title of TVmaze (tvmaze/tvmaze.ts), not of AniList
+    if (isTvmazeId(id)) return tvmazeMedia(environment, id)
     return readThrough<Json>(
         environment,
         async () => {

@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { type CoreDatabase, inOrder } from "../database/database"
 import { episodeMetadata } from "../database/schema"
 import type { CoreEnvironment } from "../registry"
+import { isTvmazeId, tvmazeMetadata } from "../tvmaze/tvmaze"
 
 /*
  * The episode metadata of an anime: titles in several languages, a title, picture, air date and length for each episode,
@@ -108,6 +109,8 @@ async function ask(environment: Environment, anilistId: number): Promise<Json | 
 
 /** The anime's episode metadata: kept and fresh, else asked, else the last kept state; null when there is none */
 export async function animeMetadata(environment: Environment, anilistId: number): Promise<Json | null> {
+    // a negative number is a title of TVmaze: its episodes come from there, ani.zip knows only AniList's numbers
+    if (isTvmazeId(anilistId)) return tvmazeMetadata(environment, anilistId)
     const database = await environment.database()
     const last = await kept(database, anilistId)
     if (last && environment.now() - last.fetchedAt < METADATA_FRESH_MS) return last.content

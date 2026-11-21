@@ -10,6 +10,7 @@ import { type CoreDatabase, inOrder } from "../database/database"
 import { anilistMedia, offlineItems } from "../database/schema"
 import { CoreError } from "../errors"
 import type { CoreEnvironment, CoreRequest } from "../registry"
+import { isTvmazeId, tvmazeMedia } from "../tvmaze/tvmaze"
 import { animeMetadata } from "./metadata"
 import { asLocalFile, episodeOfFile, filesOf, libraryDataOf } from "./local-files"
 
@@ -43,7 +44,8 @@ const whole = (value: unknown) => (typeof value === "number" && Number.isInteger
 
 function mediaIdOf(request: CoreRequest): number {
     const id = Number(request.path.id)
-    if (!Number.isInteger(id) || id <= 0) throw new CoreError("invalid id", 400)
+    // negative: a title of TVmaze (tvmaze/tvmaze.ts)
+    if (!Number.isInteger(id) || id === 0) throw new CoreError("invalid id", 400)
     return id
 }
 
@@ -52,6 +54,7 @@ async function mediaOf(environment: Environment, database: CoreDatabase, id: num
     const rows = await inOrder(database, () => database.select({ content: anilistMedia.content }).from(anilistMedia)
         .where(and(eq(anilistMedia.anilistId, id), eq(anilistMedia.kind, "ANIME"))))
     if (isRecord(rows[0]?.content)) return rows[0].content
+    if (isTvmazeId(id)) return tvmazeMedia(environment as CoreEnvironment, id)
     const question = `library-media:${id}`
     return readThrough<Json>(
         environment as CoreEnvironment,

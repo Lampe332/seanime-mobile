@@ -3059,6 +3059,21 @@ Commit `45e6083d`. `player-cast.ts:31` `playerCastUrl()`: an den Fernseher gehen
 
 **Nachtrag 7c-2c (15.11.2026, Commit `42ae1c40`): Start-Position am LG gelöst.** `core/cast/upnp.ts:161` Konstante `DLNA_VIDEO_FEATURES` (gleicher String wie `dlnaHeadersOf` in `core-torrent/cpp/StreamServer.cpp`), `protocolInfoOf()` (`upnp.ts:164`) setzt sie bei `video/*` ins 4. Feld von `protocolInfo`, sonst `*`; Test in `upnp.test.ts` liest die C++-Datei und schlägt fehl, wenn die Strings auseinanderlaufen. Am LG (1 Versuch, TV-Screenshot vorher ohne Video): Handy pausiert 4:00 → TV TRANSITIONING, ab erstem PLAYING 3:59 → 4:01/4:04/4:06, Stop per SOAP nach 15 s → STOPPED, Mini-Player-× → Ausgangs-Port zu. Prüfzahlen: tsc 0; vitest 155 / 1473 grün; lint 0 Fehler. **Offen:** TV zeigt die Standard-Untertitelspur der Datei (hier Arabisch), nicht die am Handy gewählte; Cast-Panel im Querformat ohne „Stop casting“-Knopf und zeigt nach dem Schließen weiter „Playing on …“, obwohl der TV STOPPED ist (erst das × am Mini-Player beendet den Ausgang); Sprung-Fehler hat keinen eigenen Hinweistext (nur `control-failed` „The TV did not answer.“). Regelverstöße: Handy-Wiedergabe ~28 s statt ≤ 10 s; ein Befehl mit `wm size` vom Classifier gesperrt (lief nicht).
 
+## 4t. Zweite Quelle TVmaze (Phase B1, nur Kern)
+
+Titel, die AniList nicht hat (Beispiel „Dreamland“, französische Serie 2026, TVmaze 95063), kommen aus TVmaze (öffentlich, kein Schlüssel). Noch keine Oberfläche.
+
+- **Nummern:** ein TVmaze-Titel hat in der App die Nummer `-tvmazeId` (Dreamland = -95063); AniList-Nummern sind immer positiv. DB, Downloads, Torrent und Online-Stream nehmen sie ohne Umbau. `core/tvmaze/tvmaze.ts`: `isTvmazeId`, `toTvmazeId`, `fromTvmazeId`.
+- **Client** `core/tvmaze/client.ts`: GET `https://api.tvmaze.com…`, eigenes Fenster 20 Aufrufe / 10 s, 429 → Retry-After (sonst 10 s) abwarten, höchstens 2 Wiederholungen; Zeitlimit 10 s; Fehler als `TvmazeFailure(status)`.
+- **Abbildung:** `mediaOfShow` macht aus der Show ein AniList-förmiges Anime (title romaji/english/userPreferred = name, coverImage aus image, bannerImage aus `/shows/{id}/images` Hintergrund, description ohne HTML, format TV, status Running → RELEASING / Ended → FINISHED / vor Premiere oder „In Development“ → NOT_YET_RELEASED, startDate/endDate, season/seasonYear nach AniList-Regel, genres, duration, meanScore, episodes = reguläre Folgen, nextAiringEpisode = erste reguläre Folge mit airstamp in der Zukunft). `metadataOfShow` macht die Folgen zu `Metadata_AnimeMetadata`, durchnummeriert 1… über alle Staffeln, Specials nur gezählt.
+- **Weiterleitung:** `anilist/media-details/{id}` (`anilist.ts` `animeDetails`), Bibliotheks-Eintrag/Folgen-Sammlung (`library.ts` `mediaOf`, `mediaIdOf` nimmt jetzt negative Nummern) und Folgen-Metadaten (`metadata.ts` `animeMetadata`) gehen bei negativer Nummer an TVmaze; positive Nummern unverändert.
+- **Speicher:** jede Antwort unter ihrer Frage (`tvmaze/show/{id}`, `tvmaze/search/{q}`) im Antwort-Speicher; TVmaze scheitert → letzte Antwort; nichts gespeichert → 500 „no cached data available“, TVmaze kennt die Show nicht → 404. Der Schalter „AniList-Cache aus“ gilt hier nicht.
+- **Suche:** `searchOtherSources(environment, q)` → `{ Page: { pageInfo, media } }` wie list-anime (ohne Folgenzahl/nächste Folge). Kein Registry-Endpunkt: die Registry nimmt nur Adressen aus `src/api/generated/endpoints.ts` (Test in `core.test.ts`); der kommt mit der Oberfläche.
+
+**Belegt (21.11.2026):** echte Probe gegen TVmaze: Suche „Dreamland“ findet -95063 (2026); Details id -95063, Titel „Dreamland“, Cover `static.tvmaze.com/…/1616388.jpg`, 7 Folgen, RELEASING, nächste Folge 6. Tests `core/tvmaze/tvmaze.test.ts` (13).
+
+**Offen:** Oberfläche (Suche „weitere Quellen“, Karten/Eintrag mit negativer Nummer), Endpunkt in `endpoints.ts` + Registry, Listen-Eintrag für TVmaze-Titel (AniList-Liste kann sie nicht halten), Torrent-/Stream-Suche nach Namen statt AniList-Titeln prüfen.
+
 ## 5. Messwerte
 
 Gemessen wird nur an der Test-App `com.seanime.app.native`. Methode: `native/scripts/measure-android.sh` (kein Beenden, kein Löschen, keine Einstellung wird geändert). Diese Tabelle wird nach jeder Stufe neu gefüllt.
