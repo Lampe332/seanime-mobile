@@ -25,12 +25,16 @@ export type TorrentStateText = {
     note: string
     /** Short word for the list row */
     short: string
-    /** What the sheet's button does, and its label */
-    action: "pause" | "resume"
+    /** What the sheet's button does, and its label; null: no button */
+    action: "pause" | "resume" | null
     actionLabel: string
 }
 
-export function torrentStateText(state: TorrentState, t: Translate): TorrentStateText {
+/**
+ * `stopWhenFinished`: the setting "Stop sharing when finished" is on. The core (TorrentCore.cpp) then pauses every finished
+ * torrent at once, so "Start seeding" would do nothing: the sheet says why and offers no button.
+ */
+export function torrentStateText(state: TorrentState, t: Translate, stopWhenFinished = false): TorrentStateText {
     const pauseDownload = t("Pause download", "Download pausieren")
     switch (state) {
         case "downloading":
@@ -66,6 +70,12 @@ export function torrentStateText(state: TorrentState, t: Translate): TorrentStat
                 action: "pause", actionLabel: t("Stop seeding", "Seeding stoppen"),
             }
         case "done":
+            if (stopWhenFinished) return {
+                title: t("Done · Not seeding", "Fertig · Kein Seeding"), short: t("Not seeding", "Kein Seeding"),
+                note: t("Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.",
+                    "Geladen. Es wird nichts an andere hochgeladen, weil „Teilen beenden, wenn fertig“ in den Einstellungen an ist. Die Dateien sind in deiner Bibliothek."),
+                action: null, actionLabel: "",
+            }
             return {
                 title: t("Done · Not seeding", "Fertig · Kein Seeding"), short: t("Not seeding", "Kein Seeding"),
                 note: t("Downloaded. Nothing is uploaded to others. The files are in your library.",

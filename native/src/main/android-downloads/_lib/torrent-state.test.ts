@@ -28,6 +28,14 @@ describe("torrent state in plain words", () => {
         expect(torrentStateText("failed", en)).toMatchObject({ action: "resume", actionLabel: "Try again" })
     })
 
+    it("offers no start-seeding button while \"Stop sharing when finished\" is on (the core would pause it again)", () => {
+        expect(torrentStateText("done", en)).toMatchObject({ action: "resume", actionLabel: "Start seeding" })
+        const off = torrentStateText("done", en, true)
+        expect(off.action).toBeNull()
+        expect(off.note).toContain("Stop sharing when finished")
+        expect(torrentStateText("seeding", en, true)).toMatchObject({ action: "pause", actionLabel: "Stop seeding" })
+    })
+
     it("counts people and names what removing stops", () => {
         expect(peopleText(0, en)).toBe("0 people right now")
         expect(peopleText(1, en)).toBe("1 person right now")

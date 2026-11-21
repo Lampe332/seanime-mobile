@@ -9,6 +9,7 @@ import { type Translate, useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
 import { type TorrentGroupKey, torrentGroups } from "@/main/android-downloads/_lib/torrent-groups"
 import { peopleText, removeNote, torrentStateOf, torrentStateText } from "@/main/android-downloads/_lib/torrent-state"
+import { useServerStatus } from "@/main/_hooks/use-server-status"
 import Pause from "lucide-react-native/icons/pause"
 import Play from "lucide-react-native/icons/play"
 import React from "react"
@@ -73,6 +74,9 @@ export function TorrentDownloads({ active }: { active: boolean }) {
     const [confirmDelete, setConfirmDelete] = React.useState(false)
     const torrents = data ?? []
     const open = torrents.find(torrent => torrent.hash === openHash) ?? null
+    // the field is the app's own (core/torrent/torrent.ts), not in the generated settings type
+    const stopWhenFinished = (useServerStatus()?.torrentstreamSettings as { stopSeedingWhenFinished?: boolean } | undefined)?.stopSeedingWhenFinished === true
+    const sheetText = open ? torrentStateText(torrentStateOf(open), t, stopWhenFinished) : null
 
     const close = () => {
         setOpenHash(null)
@@ -125,13 +129,13 @@ export function TorrentDownloads({ active }: { active: boolean }) {
                     <Button intent="secondary" wrapperClassName="flex-1" onPress={() => setConfirmDelete(false)}>{t("Keep", "Behalten")}</Button>
                     <Button intent="danger" wrapperClassName="flex-1" disabled={isPending} onPress={() => run(open, "remove")}>{t("Delete files", "Dateien löschen")}</Button>
                 </>
-                : <Button intent="secondary" wrapperClassName="flex-1" disabled={isPending} onPress={() => run(open, stateText(open, t).action)}>
-                    {stateText(open, t).actionLabel}
+                : sheetText?.action && <Button intent="secondary" wrapperClassName="flex-1" disabled={isPending} onPress={() => run(open, sheetText.action!)}>
+                    {sheetText.actionLabel}
                 </Button>)}>
             {open && <View className="gap-4">
                 <View accessibilityRole="summary" className="gap-1 rounded-surface bg-sm-surface-raised px-4 py-3.5">
-                    <Text className="text-[17px] font-semibold leading-6">{stateText(open, t).title}</Text>
-                    <Text className="text-[15px] leading-[22px] text-sm-text-muted">{stateText(open, t).note}</Text>
+                    <Text className="text-[17px] font-semibold leading-6">{sheetText!.title}</Text>
+                    <Text className="text-[15px] leading-[22px] text-sm-text-muted">{sheetText!.note}</Text>
                 </View>
                 <Facts items={[
                     { label: t("Progress", "Fortschritt"), value: `${Math.round(open.progress * 100)} % · ${open.size}` },
