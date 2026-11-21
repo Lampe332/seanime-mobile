@@ -228,6 +228,33 @@ export function pageAtLine(heights: number[], gap: number, offset: number, line:
     return Math.max(0, heights.length - 1)
 }
 
+/**
+ * Long strip: where each page starts, in the list's own layout (`layoutTop`, the FlashList's guess for pages it has not
+ * drawn yet) so it fits the scroll offset; our page heights only fill in where the list has no layout.
+ */
+export function stripPageTops(heights: number[], gap: number, layoutTop: (index: number) => number | undefined) {
+    const tops: number[] = []
+    let next = 0
+    for (let i = 0; i < heights.length; i++) {
+        const top = layoutTop(i) ?? next
+        tops.push(top)
+        next = top + heights[i] + gap
+    }
+    return tops
+}
+
+/**
+ * Long strip: the page under the reading line, or null while the saved page is being restored (the jump lands on page
+ * heights still guessed, so the index is left alone and nothing wrong is saved until the reader scrolls himself).
+ */
+export function stripScrollPage({ restoring, tops, offset, line }: { restoring: boolean, tops: number[], offset: number, line: number }) {
+    if (restoring || !tops.length) return null
+    const y = offset + line
+    let page = 0
+    for (let i = 0; i < tops.length; i++) if (tops[i] <= y) page = i
+    return page
+}
+
 export function clampMangaPageZoom(value: number) {
     if (!Number.isFinite(value)) return MANGA_PAGE_ZOOM_DEFAULT
     return Math.min(MANGA_PAGE_ZOOM_MAX, Math.max(MANGA_PAGE_ZOOM_MIN, Number(value.toFixed(2))))

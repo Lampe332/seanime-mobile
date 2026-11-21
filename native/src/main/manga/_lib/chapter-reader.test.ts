@@ -14,6 +14,8 @@ import {
     readerTapZone,
     secondPageLabel,
     shouldAutoSaveProgress,
+    stripPageTops,
+    stripScrollPage,
     shouldUpdateMangaProgress,
     stepPaginationMap,
     stripPageSize,
@@ -192,6 +194,24 @@ describe("long strip", () => {
         expect(pageAtLine([1000, 1000, 1000], 16, 0, 120)).toBe(0)
         expect(pageAtLine([1000, 1000, 1000], 16, 950, 120)).toBe(1)
         expect(pageAtLine([1000, 1000, 1000], 16, 99999, 120)).toBe(2)
+    })
+    it("reopens on the saved page and does not save a guessed one (resume drift)", () => {
+        // saved page 9: the pages are guessed 1000dp tall, the list lays them out at their real 800dp
+        const guessed = Array.from({ length: 12 }, () => 1000)
+        const layoutTop = (index: number) => index * 816
+        const offset = layoutTop(9)
+        // the old way read the list's offset against the guessed heights: page 7, and that was saved again
+        expect(pageAtLine(guessed, 16, offset, 120)).toBe(7)
+        const tops = stripPageTops(guessed, 16, layoutTop)
+        // while the saved page is restored (no drag yet) the index is left alone
+        expect(stripScrollPage({ restoring: true, tops, offset, line: 120 })).toBeNull()
+        // from the reader's first drag on it follows the list's layout
+        expect(stripScrollPage({ restoring: false, tops, offset, line: 120 })).toBe(9)
+        expect(stripScrollPage({ restoring: false, tops, offset: layoutTop(11) - 121, line: 120 })).toBe(10)
+    })
+    it("fills in page tops the list has no layout for", () => {
+        expect(stripPageTops([100, 200, 300], 10, index => index === 1 ? 500 : undefined)).toEqual([0, 500, 710])
+        expect(stripScrollPage({ restoring: false, tops: [], offset: 0, line: 120 })).toBeNull()
     })
     it("sizes pages by fit", () => {
         const base = { stretch: "none", zoom: 1, overflowWidth: 50, width: 400, height: 800, ratio: 1.5, naturalWidth: 300 }

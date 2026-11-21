@@ -1,5 +1,5 @@
 import type { Manga_PageContainer } from "@/api/generated/types"
-import { DEFAULT_PAGE_RATIO, isNearStripEnd, pageAtLine, stripPageSize } from "@/main/manga/_lib/chapter-reader"
+import { DEFAULT_PAGE_RATIO, isNearStripEnd, stripPageSize, stripPageTops, stripScrollPage } from "@/main/manga/_lib/chapter-reader"
 import { useHandleChapterPageStatus, useHydrateMangaPaginationMap } from "@/main/manga/_lib/handle-chapter-reader"
 import {
     __manga_autoHideControlsAtom,
@@ -31,7 +31,9 @@ const GAP = 16
  * under the reading line (120dp, or a quarter of a short screen); the chapter counts as read past 1000dp and less than
  * 1500dp from the end (only then the progress may be saved). A tap shows or hides the controls; with "Hide controls while
  * scrolling down" they slide away reading down and come back scrolling up. Opening restores the saved page: the strip jumps
- * there again as the pages above it load, until the reader touches it.
+ * there again as the pages above it load, until the reader touches it; only then the page index follows the scroll (the
+ * jump lands on guessed page heights, and a wrong index would be saved). The page under the line comes from the list's
+ * own layout, the one the scroll offset belongs to.
  */
 export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initialPageIndex, width, height }: {
     pageContainer: Manga_PageContainer | undefined
@@ -55,7 +57,6 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
     const scrollSignal = useAtomValue(__manga_scrollSignalAtom)
     const [sizes, setSizes] = React.useState<Record<number, { width: number, height: number }>>({})
     const pending = React.useRef<number | null>(initialPageIndex)
-    const loaded = React.useRef(new Set<number>())
     const lastOffset = React.useRef(0)
     const contentHeight = React.useRef(0)
 
@@ -79,7 +80,6 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
     // a new chapter: not read yet, restore its page
     React.useEffect(() => {
         setIsLastPage(false)
-        loaded.current = new Set()
         pending.current = initialPageIndex
         if (initialPageIndex > 0) void list.current?.scrollToIndex({ index: initialPageIndex, animated: false })
     }, [pageContainer?.pages, initialPageIndex, setIsLastPage])
@@ -96,24 +96,17 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
         void list.current?.scrollToIndex({ index: pageIndex.current, animated: false })
     }, [scrollSignal])
 
-    const onLoaded = React.useCallback((index: number) => {
-        handlePageLoad(index)
-        loaded.current.add(index)
-        const target = pending.current
-        if (target === null || index > target) return
-        // the pages above the saved one changed height: jump to it again, until all of them are there
-        void list.current?.scrollToIndex({ index: target, animated: false })
-        if (Array.from({ length: target + 1 }, (_, i) => i).every(i => loaded.current.has(i))) {
-            pending.current = null
-            setCurrentPageIndex(target)
-        }
-    }, [handlePageLoad, setCurrentPageIndex])
+    const onLoaded = React.useCallback((index: number) => handlePageLoad(index), [handlePageLoad])
     const onSize = React.useCallback((index: number, size: { width: number, height: number }) => {
         setSizes(prev => prev[index]?.width === size.width && prev[index]?.height === size.height ? prev : { ...prev, [index]: size })
     }, [])
 
     const onScroll = (offset: number) => {
-        if (pending.current !== null) return
+        setIsLastPage(isNearStripEnd(offset, height, contentHeight.current, count > 0))
+        const tops = stripPageTops(heights, gap, index => list.current?.getLayout(index)?.y)
+        const page = stripScrollPage({ restoring: pending.current !== null, tops, offset, line: Math.min(120, height / 4) })
+        if (page === null) return
+        setCurrentPageIndex(page)
         // hide the controls while reading down, bring them back scrolling up
         const delta = offset - lastOffset.current
         if (autoHideControls && Math.abs(delta) > 24) {
@@ -122,8 +115,6 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
         } else if (!autoHideControls) {
             lastOffset.current = offset
         }
-        setIsLastPage(isNearStripEnd(offset, height, contentHeight.current, count > 0))
-        setCurrentPageIndex(pageAtLine(heights, gap, offset, Math.min(120, height / 4)))
     }
 
     const strip = <FlashList
@@ -144,7 +135,11 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
         drawDistance={height * 2}
         onScrollBeginDrag={() => { pending.current = null }}
         onScroll={event => onScroll(event.nativeEvent.contentOffset.y)}
-        onContentSizeChange={(_, h) => { contentHeight.current = h }}
+        onContentSizeChange={(_, h) => {
+            contentHeight.current = h
+            // pages above the saved one were drawn or measured: jump to it again
+            if (pending.current !== null) void list.current?.scrollToIndex({ index: pending.current, animated: false })
+        }}
         scrollEventThrottle={32}
         showsVerticalScrollIndicator={false}
         maintainVisibleContentPosition={{ disabled: true }}
