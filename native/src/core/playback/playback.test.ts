@@ -6,23 +6,27 @@ import { forgetDatabases, openDatabaseSync } from "../../../test/expo-sqlite"
 import { forgetChanges } from "../anilist/changes"
 import { LONGEST_PIECE_MS, createBlockingWatch } from "../blocking"
 import { type CoreDatabase, type LineWait, openCoreDatabase } from "../database/database"
-import { watchPositions } from "../database/schema"
+import { account, watchPositions } from "../database/schema"
 import { coreAnswerFor } from "../index"
 import type { CoreEnvironment } from "../registry"
-import { type PlayerMessage, SAVE_EVERY_MS, continuityHistory, forgetPlaying, hearPlayer } from "./playback"
+import { type PlayerMessage, SAVE_EVERY_MS, continuityHistory, forgetPlaying, hearPlayer, playingOf } from "./playback"
 import recorded from "./playback.recorded.json"
 
 let clock = 0
 let database: Promise<CoreDatabase> | null = null
 let library = { enableWatchContinuity: true, autoUpdateProgress: true }
 let anilistDown = false
+let keystoreDown = false
 
 const environment: CoreEnvironment = {
     fetch: async () => {
         if (anilistDown) throw new TypeError("Network request failed")
         throw new Error("no AniList in this test")
     },
-    secret: async () => "token",
+    secret: async () => {
+        if (keystoreDown) throw new Error("keystore locked")
+        return "token"
+    },
     database: () => database ??= openCoreDatabase(sqlDriverFor(openDatabaseSync("core.db") as never), () => clock),
     now: () => clock,
     pause: async () => undefined,
@@ -38,6 +42,8 @@ const loaded = (id: string, playbackType = "onlinestream"): PlayerMessage => ({
 })
 const at = (id: string, type: string, currentTime: number, duration = 1440): PlayerMessage => ({ clientId: "c", type, payload: { id, clientId: "c", currentTime, duration, paused: false } })
 const rows = async () => (await environment.database()).select().from(watchPositions)
+// an AniList account on this device: the progress goes into the changes' queue (AniList itself is down in these tests)
+const signIn = async () => (await environment.database()).insert(account).values({ id: 1, username: "someone", createdAt: clock, changedAt: clock })
 
 beforeEach(async () => {
     forgetDatabases()
@@ -48,6 +54,7 @@ beforeEach(async () => {
     library = { enableWatchContinuity: true, autoUpdateProgress: true }
     await ask("POST", "/api/v1/start", { library })
     anilistDown = false
+    keystoreDown = false
 })
 
 describe("watch history interfaces (recorded form)", () => {
@@ -110,6 +117,56 @@ describe("the player's videocore messages", () => {
         expect((await rows())[0].positionSeconds).toBe(1203)
         const item = await ask("GET", `/api/v1/continuity/item/${MEDIA}`) as { item: { currentTime: number, episodeNumber: number } }
         expect(item.item).toMatchObject({ currentTime: 1203, episodeNumber: 3 })
+    })
+
+    it("send the 80 % progress once it is taken; a failed one is tried again with a later message", async () => {
+        anilistDown = true
+        await signIn()
+        await hearPlayer(loaded("p"), environment)
+        // the first try fails (the account's key cannot be read): not counted as sent
+        keystoreDown = true
+        await expect(hearPlayer(at("p", "video-completed", 1160), environment)).rejects.toThrow("keystore locked")
+        keystoreDown = false
+        // a status right after waits for the save pace, then the progress goes out again and is taken
+        clock += 1
+        expect(await hearPlayer(at("p", "video-status", 1161), environment)).toBe("")
+        clock += SAVE_EVERY_MS
+        expect(await hearPlayer(at("p", "video-status", 1166), environment)).toContain("progress 3")
+        // taken: never a second time
+        clock += SAVE_EVERY_MS
+        expect(await hearPlayer(at("p", "video-paused", 1170), environment)).toBe("")
+    })
+
+    it("try a failed progress a last time when the player closes", async () => {
+        anilistDown = true
+        await signIn()
+        await hearPlayer(loaded("p"), environment)
+        keystoreDown = true
+        await expect(hearPlayer(at("p", "video-completed", 1160), environment)).rejects.toThrow("keystore locked")
+        keystoreDown = false
+        const closed = await hearPlayer({ clientId: "c", type: "video-terminated", payload: { id: "p" } }, environment)
+        expect(closed).toContain("closed")
+        expect(closed).toContain("progress 3")
+    })
+
+    it("send no progress before 80 %", async () => {
+        anilistDown = true
+        await hearPlayer(loaded("p"), environment)
+        clock += SAVE_EVERY_MS
+        expect(await hearPlayer(at("p", "video-paused", 600), environment)).toBe("")
+    })
+
+    it("forget the episode before when the same player loads the next one (no video-terminated in between)", async () => {
+        await hearPlayer(loaded("ep3"), environment)
+        expect(playingOf("ep3")).toBeDefined()
+        await hearPlayer(loaded("ep4"), environment)
+        expect(playingOf("ep3")).toBeUndefined()
+        expect(playingOf("ep4")).toBeDefined()
+        // another player's playback stays
+        await hearPlayer({ ...loaded("tv"), clientId: "other" }, environment)
+        await hearPlayer(loaded("ep5"), environment)
+        expect(playingOf("tv")).toBeDefined()
+        expect(playingOf("ep4")).toBeUndefined()
     })
 
     it("keep nothing with the watch history off", async () => {

@@ -1,3 +1,5 @@
+import type { Translate } from "@/lib/app-language"
+
 /*
  * Pure rules of the app's player (E3). No React, no native module: the player screen calls these, the tests in
  * player-logic.test.ts check them. Values come from the old player:
@@ -181,6 +183,13 @@ export function sleepTimerFrom(choice: number | "episode" | null, now: number): 
 
 export function sleepTimerRemainingMs(timer: SleepTimer, now: number) {
     return typeof timer === "number" ? Math.max(0, timer - now) : null
+}
+
+/** The minutes picked for the running timer (the sleep page marks that option); null once it ran out, was changed or is off. */
+export type SleepPick = { until: number, minutes: number }
+
+export function sleepTimerChoice(timer: SleepTimer, pick: SleepPick | null): number | null {
+    return pick && typeof timer === "number" && pick.until === timer ? pick.minutes : null
 }
 
 /* ── Skip segments (AniSkip or the file's chapters) ─────────────────────── */
@@ -401,4 +410,15 @@ export function formatTime(seconds: number) {
 /** mpv properties for the settings' picture fit: whole picture, zoomed to fill (crops the edges) or stretched */
 export function pictureFitProperties(fit: "contain" | "cover" | "fill"): [string, string][] {
     return [["keepaspect", fit === "fill" ? "no" : "yes"], ["panscan", fit === "cover" ? "1.0" : "0.0"]]
+}
+
+/**
+ * The player's title: the episode's own title, but the core's plain "Episode N" (library, torrent, debrid) in the app's
+ * language; without a title "Episode N" of the progress number.
+ */
+export function playerEpisodeTitle(displayTitle: string | undefined, progressNumber: number | undefined, t: Translate): string {
+    const plain = displayTitle?.match(/^Episode (\d+)$/)
+    const number = plain ? Number(plain[1]) : !displayTitle ? progressNumber : undefined
+    if (number) return t(`Episode ${number}`, `Folge ${number}`)
+    return displayTitle ?? ""
 }

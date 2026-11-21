@@ -98,3 +98,8 @@ export function fitBarButton(size: number, count: number, room: number) {
     if (count <= 0) return size
     return Math.min(size, Math.max(MIN_BAR_BUTTON, Math.floor(room / count)))
 }
+
+/** A bar button drawn under 48dp (44dp, or narrowed by fitBarButton) still takes 48dp of touch: its hit slop makes up the rest. */
+export function barButtonHitSlop(size: number) {
+    return Math.max(4, Math.ceil((48 - size) / 2))
+}

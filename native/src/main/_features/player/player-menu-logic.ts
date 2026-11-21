@@ -94,36 +94,43 @@ export function stepSpeed(rate: number, delta: number) {
 
 /* ── Subtitle and caption styles ───────────────────────────────────────── */
 
-export const SUBTITLE_FONT_SIZES = [
-    { label: "Small", value: 54 },
-    { label: "Medium", value: 62 },
-    { label: "Large", value: 72 },
-    { label: "Extra Large", value: 82 },
+/** A choice of a menu page: its name in the app's language (`en`/`de`, through t), or a `label` that needs none (100%). */
+export type MenuOption<T> = { value: T, label: string } | { value: T, en: string, de: string }
+
+export function optionText<T>(option: MenuOption<T>, t: Translate) {
+    return "label" in option ? option.label : t(option.en, option.de)
+}
+
+export const SUBTITLE_FONT_SIZES: MenuOption<number>[] = [
+    { en: "Small", de: "Klein", value: 54 },
+    { en: "Medium", de: "Mittel", value: 62 },
+    { en: "Large", de: "Groß", value: 72 },
+    { en: "Extra large", de: "Sehr groß", value: 82 },
 ]
-export const STYLE_COLORS = [
-    { label: "White", value: "#FFFFFF" },
-    { label: "Black", value: "#000000" },
-    { label: "Gray", value: "#808080" },
-    { label: "Yellow", value: "#FFD700" },
-    { label: "Cyan", value: "#00FFFF" },
-    { label: "Pink", value: "#FF69B4" },
-    { label: "Purple", value: "#9370DB" },
-    { label: "Lime", value: "#00FF00" },
+export const STYLE_COLORS: MenuOption<string>[] = [
+    { en: "White", de: "Weiß", value: "#FFFFFF" },
+    { en: "Black", de: "Schwarz", value: "#000000" },
+    { en: "Gray", de: "Grau", value: "#808080" },
+    { en: "Yellow", de: "Gelb", value: "#FFD700" },
+    { en: "Cyan", de: "Cyan", value: "#00FFFF" },
+    { en: "Pink", de: "Rosa", value: "#FF69B4" },
+    { en: "Purple", de: "Lila", value: "#9370DB" },
+    { en: "Lime", de: "Hellgrün", value: "#00FF00" },
 ]
-export const SUBTITLE_OUTLINES = [
-    { label: "None", value: 0 },
-    { label: "Small", value: 2 },
-    { label: "Medium", value: 3 },
-    { label: "Large", value: 4 },
+export const SUBTITLE_OUTLINES: MenuOption<number>[] = [
+    { en: "None", de: "Keine", value: 0 },
+    { en: "Small", de: "Klein", value: 2 },
+    { en: "Medium", de: "Mittel", value: 3 },
+    { en: "Large", de: "Groß", value: 4 },
 ]
-export const SUBTITLE_SHADOWS = [
-    { label: "None", value: 0 },
-    { label: "Small", value: 1 },
-    { label: "Medium", value: 2 },
-    { label: "Large", value: 3 },
+export const SUBTITLE_SHADOWS: MenuOption<number>[] = [
+    { en: "None", de: "Keine", value: 0 },
+    { en: "Small", de: "Klein", value: 1 },
+    { en: "Medium", de: "Mittel", value: 2 },
+    { en: "Large", de: "Groß", value: 3 },
 ]
 /** ASS alpha: 0 = opaque ("100%"), 255 = invisible */
-export const SUBTITLE_SHADOW_OPACITIES = [
+export const SUBTITLE_SHADOW_OPACITIES: MenuOption<number>[] = [
     { label: "100%", value: 0 },
     { label: "80%", value: 64 },
     { label: "70%", value: 77 },
@@ -131,19 +138,19 @@ export const SUBTITLE_SHADOW_OPACITIES = [
     { label: "25%", value: 200 },
     { label: "0%", value: 255 },
 ]
-export const CAPTION_FONT_SIZES = [
-    { label: "Small", value: 4 },
-    { label: "Medium", value: 5 },
-    { label: "Large", value: 5.7 },
-    { label: "Extra Large", value: 6.1 },
+export const CAPTION_FONT_SIZES: MenuOption<number>[] = [
+    { en: "Small", de: "Klein", value: 4 },
+    { en: "Medium", de: "Mittel", value: 5 },
+    { en: "Large", de: "Groß", value: 5.7 },
+    { en: "Extra large", de: "Sehr groß", value: 6.1 },
 ]
-export const CAPTION_SHADOWS = [
-    { label: "None", value: 0 },
-    { label: "Small", value: 2 },
-    { label: "Medium", value: 4 },
-    { label: "Large", value: 6 },
+export const CAPTION_SHADOWS: MenuOption<number>[] = [
+    { en: "None", de: "Keine", value: 0 },
+    { en: "Small", de: "Klein", value: 2 },
+    { en: "Medium", de: "Mittel", value: 4 },
+    { en: "Large", de: "Groß", value: 6 },
 ]
-export const CAPTION_BACKGROUND_OPACITIES = [
+export const CAPTION_BACKGROUND_OPACITIES: MenuOption<number>[] = [
     { label: "0%", value: 0 },
     { label: "25%", value: 0.25 },
     { label: "50%", value: 0.5 },
@@ -174,9 +181,10 @@ export function captionLook(settings: VideoCoreSettings): CaptionLook {
     return { ...CAPTION_LOOK_DEFAULTS, ...own }
 }
 
-/** The label of a value in one of the option lists, "" for a value the list does not have */
-export function optionLabel<T>(options: { label: string, value: T }[], value: T) {
-    return options.find(o => o.value === value)?.label ?? ""
+/** The name of a value in one of the option lists (in the app's language), "" for a value the list does not have */
+export function optionLabel<T>(options: MenuOption<T>[], value: T, t: Translate) {
+    const option = options.find(o => o.value === value)
+    return option ? optionText(option, t) : ""
 }
 
 /** "ass" for styled subtitles, "text" for plain ones (SRT, WebVTT, mov_text); null for picture subtitles (PGS, DVD) */

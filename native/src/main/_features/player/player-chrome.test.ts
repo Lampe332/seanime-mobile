@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
-    backStep, boxFrame, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, miniPlayCommand, miniPlayerShown, pageBottomPad, playlistButtonBottom,
-    orientationTarget, playerView, progressFraction, scrollTarget, viewTurn,
+    boxFrame, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, type MiniOrigin, miniOriginAfter, miniPlayCommand, miniPlayerShown,
+    pageBottomPad, placeStep, playlistButtonBottom, orientationTarget, type PlayerView, playerView, progressFraction, scrollTarget, viewTurn,
 } from "./player-chrome"
 import { BOX_COMPACT_HEIGHT, boxControlSizes, controlSizes } from "./control-sizes"
 
@@ -21,11 +21,67 @@ describe("player places (r22): full, box, mini", () => {
     })
 
     it("Back in fullscreen makes the player small, it never closes it; box and mini leave Back to the page", () => {
-        expect(backStep({ overlayOpen: false, view: "full" })).toBe("shrink")
-        expect(backStep({ overlayOpen: false, view: "box" })).toBe("pass")
-        expect(backStep({ overlayOpen: false, view: "mini" })).toBe("pass")
-        // an open menu or sheet answers Back first
-        expect(backStep({ overlayOpen: true, view: "full" })).toBe("pass")
+        const back = { kind: "back", overlayOpen: false } as const
+        expect(placeStep("full", "full", back)).toEqual({ handled: true, small: true, openBoxPage: false })
+        expect(placeStep("box", "full", back).handled).toBe(false)
+        expect(placeStep("mini", "box", back).handled).toBe(false)
+        // an open menu or sheet answers Back first: the player passes it on (it steps the menu up or closes it)
+        expect(placeStep("full", "full", { kind: "back", overlayOpen: true })).toEqual({ handled: false, small: false, openBoxPage: false })
+    })
+
+    it("the size button switches fullscreen and small both ways", () => {
+        expect(placeStep("full", "full", { kind: "size-button" })).toEqual({ handled: true, small: true, openBoxPage: false })
+        expect(placeStep("box", "full", { kind: "size-button" })).toEqual({ handled: true, small: false, openBoxPage: false })
+        expect(placeStep("mini", "box", { kind: "size-button" })).toEqual({ handled: true, small: false, openBoxPage: false })
+    })
+
+    it("a tap on the mini player goes back to where it was: the box on its anime page, else fullscreen", () => {
+        expect(placeStep("mini", "box", { kind: "mini-tap", hasBoxPage: true })).toEqual({ handled: true, small: true, openBoxPage: true })
+        // no anime page for the box (no AniList id): fullscreen
+        expect(placeStep("mini", "box", { kind: "mini-tap", hasBoxPage: false })).toEqual({ handled: true, small: false, openBoxPage: false })
+        expect(placeStep("mini", "full", { kind: "mini-tap", hasBoxPage: true })).toEqual({ handled: true, small: false, openBoxPage: false })
+        expect(placeStep("box", "box", { kind: "mini-tap", hasBoxPage: true }).handled).toBe(false)
+    })
+
+    it("the mini player remembers the place it came from", () => {
+        expect(miniOriginAfter("box", "mini", "full")).toBe("box")
+        expect(miniOriginAfter("full", "mini", "box")).toBe("full")
+        expect(miniOriginAfter("mini", "mini", "box")).toBe("box")
+        expect(miniOriginAfter("box", "full", "full")).toBe("full")
+    })
+
+    it("device path 4.3.1: menu, fullscreen, box, mini and back to the box without a Back that does nothing", () => {
+        let view: PlayerView = "full"
+        let origin: MiniOrigin = "full"
+        let small = false
+        const go = (next: PlayerView) => {
+            origin = miniOriginAfter(view, next, origin)
+            view = next
+        }
+        // 1. Back with the menu open: the player passes it to the menu, which closes
+        expect(placeStep(view, origin, { kind: "back", overlayOpen: true }).handled).toBe(false)
+        // 2. Back in fullscreen: small, on the anime page that is the box
+        const second = placeStep(view, origin, { kind: "back", overlayOpen: false })
+        expect(second.handled).toBe(true)
+        small = second.small
+        go(playerView(small, true))
+        expect(view).toBe("box")
+        // 3. Back in the box is the page's: it goes Home, where the box becomes the mini player
+        expect(placeStep(view, origin, { kind: "back", overlayOpen: false }).handled).toBe(false)
+        go(playerView(small, false))
+        expect(view).toBe("mini")
+        // a tap on the mini player opens the anime page again, the player stays small: the box
+        const tap = placeStep(view, origin, { kind: "mini-tap", hasBoxPage: true })
+        expect(tap).toEqual({ handled: true, small: true, openBoxPage: true })
+        go(playerView(tap.small, true))
+        expect(view).toBe("box")
+        // fullscreen from the box, then "Exit fullscreen": the box again
+        small = placeStep(view, origin, { kind: "size-button" }).small
+        go(playerView(small, true))
+        expect(view).toBe("full")
+        small = placeStep(view, origin, { kind: "size-button" }).small
+        go(playerView(small, true))
+        expect(view).toBe("box")
     })
 
     it("a phone turns landscape for fullscreen and upright for box/mini, a tablet is never turned", () => {

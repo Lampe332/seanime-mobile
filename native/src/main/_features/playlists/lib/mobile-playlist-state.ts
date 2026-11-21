@@ -42,6 +42,32 @@ export function playlistEpisodeKey(a: Anime_PlaylistEpisode) {
         a.episode?.localFile?.path)
 }
 
+/** The editor's draft: name and episodes in order, each with its source */
+export type PlaylistDraft = { name: string, episodes: Anime_PlaylistEpisode[] }
+
+/** Whether the draft differs from the playlist it was opened with (Back then asks before it drops the changes). */
+export function playlistDraftChanged(opened: PlaylistDraft, draft: PlaylistDraft) {
+    const episodes = (d: PlaylistDraft) => d.episodes.map(ep => `${playlistEpisodeKey(ep)}|${ep.watchType ?? ""}`).join("\n")
+    return opened.name !== draft.name || episodes(opened) !== episodes(draft)
+}
+
+/**
+ * Where hardware Back goes in the editor: one step up; from the editor to the list only without changes, else to the
+ * question whether to drop them ("discard"); from that question back to the editor.
+ */
+export type PlaylistStep = "list" | "editor" | "anime" | "episodes" | "delete" | "discard"
+
+export function playlistBackStep(step: PlaylistStep, changed: boolean): PlaylistStep | "close" {
+    switch (step) {
+        case "episodes": return "anime"
+        case "anime":
+        case "delete":
+        case "discard": return "editor"
+        case "editor": return changed ? "discard" : "list"
+        case "list": return "close"
+    }
+}
+
 export function togglePlaylistEpisode(current: Anime_PlaylistEpisode[], episode: Anime_PlaylistEpisode) {
     if (current.some(n => samePlaylistEpisode(n, episode))) return current.filter(n => !samePlaylistEpisode(n, episode))
     if (current.length >= MAX_PLAYLIST_EPISODES) return current

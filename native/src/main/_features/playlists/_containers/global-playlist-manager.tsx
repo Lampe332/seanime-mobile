@@ -277,9 +277,9 @@ function PlaylistButton({ open, onPress }: { open: boolean, onPress: () => void 
         ? miniFrame({ width: window.width, rail, navBar: barHeight, insets }) : null
     return (
         <Pressable accessibilityRole="button" accessibilityLabel={t("Open playing playlist", "Laufende Playlist öffnen")} onPress={onPress}
-            style={{ bottom: playlistButtonBottom({ rail, navBar: barHeight, insetBottom: insets.bottom, mini }), shadowColor: "#000", shadowOpacity: 0.45, shadowRadius: 14, elevation: 10 }}
-            className="absolute right-4 h-14 w-14 items-center justify-center rounded-full bg-white active:bg-[#e4e4e7]">
-            {open ? <X size={24} color="#111111" /> : <ListVideo size={24} color="#111111" />}
+            style={{ bottom: playlistButtonBottom({ rail, navBar: barHeight, insetBottom: insets.bottom, mini }), shadowColor: colors.background, shadowOpacity: 0.45, shadowRadius: 14, elevation: 10 }}
+            className="absolute right-4 h-14 w-14 items-center justify-center rounded-full bg-sm-text active:bg-sm-text-muted">
+            {open ? <X size={24} color={colors.background} /> : <ListVideo size={24} color={colors.background} />}
         </Pressable>
     )
 }

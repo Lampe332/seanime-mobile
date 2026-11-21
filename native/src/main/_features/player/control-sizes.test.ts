@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { bottomPad, controlSizes, fitBarButton, MIN_BAR_BUTTON, topPad } from "./control-sizes"
+import { barButtonHitSlop, bottomPad, controlSizes, fitBarButton, MIN_BAR_BUTTON, topPad } from "./control-sizes"
 
 describe("fitBarButton", () => {
     it("keeps 44dp while the row fits", () => {
@@ -60,5 +60,14 @@ describe("topPad", () => {
 
     it("stays under the system inset otherwise", () => {
         expect(topPad(384, false, 30)).toBe(34)
+    })
+})
+
+describe("barButtonHitSlop", () => {
+    it("makes every bar button a 48dp target, never less than the old 4dp slop", () => {
+        for (const size of [MIN_BAR_BUTTON, 40, 44, 48, 56]) expect(size + barButtonHitSlop(size) * 2).toBeGreaterThanOrEqual(48)
+        expect(barButtonHitSlop(44)).toBe(4)
+        expect(barButtonHitSlop(36)).toBe(6)
+        expect(barButtonHitSlop(56)).toBe(4)
     })
 })

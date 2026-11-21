@@ -1,5 +1,6 @@
 import type { MobileOfflineDownload_Variables } from "@/api/generated/endpoint.types"
 import type { AL_BaseAnime, Onlinestream_EpisodeSource, Onlinestream_Episode, Onlinestream_VideoSource } from "@/api/generated/types"
+import type { Translate } from "@/lib/app-language"
 import type { OnlinestreamSubtitlePreference } from "./onlinestream.atoms"
 import { findPreferredSubtitleTrack, isDefaultSubtitleTrack } from "./onlinestream-subtitle-preference"
 
@@ -156,4 +157,37 @@ export function preferredOnlineSubtitle(tracks: { id: number, type: string, lang
     if (preference.off) return -1
     const subs = tracks.filter(track => track.type === "sub").map(track => ({ number: track.id, language: track.lang, label: track.title }))
     return findPreferredSubtitleTrack(subs, preference)?.number ?? null
+}
+
+/**
+ * Why the chosen episode does not play, for the page and the player (null while nothing failed). A source request that
+ * failed without the server's own reason (network error, timeout) falls back to the cycler's error, then to a plain text:
+ * before, it stayed null and the player kept loading with no text under "Retry source".
+ */
+export function onlineSourceFailure(s: {
+    noPlayableSource: boolean
+    sourceError: boolean
+    /** the server's reason of a failed source request (its `error` field), if it sent one */
+    sourceErrorText: string | null | undefined
+    playbackError: string | null
+}, t: Translate): string | null {
+    if (s.noPlayableSource) return t("No playable source. Choose another server or provider.", "Keine abspielbare Quelle. Anderen Server oder Provider wählen.")
+    if (s.sourceError) {
+        return s.sourceErrorText || s.playbackError
+            || t("The provider could not load this episode. Try another server or provider.", "Der Provider konnte diese Folge nicht laden. Probiere einen anderen Server oder Provider.")
+    }
+    return s.playbackError
+}
+
+/**
+ * The key a playback error belongs to (web: reset with every new source). `attempt` counts "Retry source": the same
+ * source URL after a retry is a new key, so the old error goes and the stream is built and loaded again.
+ */
+export function onlineSourceKey(s: { provider: string | null, server: string | undefined, dubbed: boolean, episode: number | null, url: string | undefined, attempt: number }) {
+    return `${s.provider}|${s.server}|${s.dubbed}|${s.episode}|${s.url ?? ""}|${s.attempt}`
+}
+
+/** The error of this source, null when the error belongs to another one (an earlier source or attempt). */
+export function errorOfSource(state: { key: string, message: string } | null, key: string): string | null {
+    return state?.key === key ? state.message : null
 }

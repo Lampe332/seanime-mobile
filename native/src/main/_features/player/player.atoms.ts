@@ -1,7 +1,7 @@
 import type { MobileOffline_Item } from "@/api/generated/types"
 import { atomWithStorage } from "@/lib/storage"
 import { atom } from "jotai"
-import type { TrackMemory } from "./player-logic"
+import type { SleepPick, TrackMemory } from "./player-logic"
 import type { HeardStreamState } from "./torrent-stream-state"
 
 /**
@@ -9,6 +9,9 @@ import type { HeardStreamState } from "./torrent-stream-state"
  * (player-chrome playerView); false = fullscreen. Set by the bottom-right button and Back; a new stream decides it on start.
  */
 export const player_miniAtom = atom(false)
+
+/** The sleep timer's picked minutes with the end they set (player-logic sleepTimerChoice); the menu marks that option. */
+export const player_sleepPickAtom = atom<SleepPick | null>(null)
 
 /** Audio/subtitle language picked per anime (AniList id → language or "off"), kept across app starts. */
 export const player_trackMemoryAtom = atomWithStorage<TrackMemory>("sea-player-track-memory", {})

@@ -140,7 +140,7 @@ export function CastPill({ device, onPress }: { device: string, onPress: () => v
     const label = t(`Playing on ${device}`, `Läuft auf ${device}`)
     return (
         <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={6}
-            className="max-w-[86%] flex-row items-center gap-2 rounded-full border border-sm-line-strong bg-[rgba(20,20,22,0.88)] py-2.5 pl-3.5 pr-2.5 active:bg-sm-surface-control">
+            className="max-w-[86%] flex-row items-center gap-2 rounded-full border border-sm-line-strong bg-sm-surface py-2.5 pl-3.5 pr-2.5 active:bg-sm-surface-control">
             <Tv size={18} color={colors.smAccent} />
             <Text numberOfLines={1} className="min-w-0 shrink text-sm font-semibold">{label}</Text>
             <ChevronRight size={18} color={colors.smTextSubtle} />

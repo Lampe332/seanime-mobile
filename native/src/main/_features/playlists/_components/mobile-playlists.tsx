@@ -22,11 +22,11 @@ import Plus from "lucide-react-native/icons/plus"
 import Trash2 from "lucide-react-native/icons/trash"
 import { PlaySolidIcon } from "@/components/shared/legacy-icons"
 import React from "react"
-import { ActivityIndicator, Keyboard, Pressable, TextInput, View } from "react-native"
+import { ActivityIndicator, BackHandler, Keyboard, Pressable, TextInput, View } from "react-native"
 import { usePlaylistManager } from "../_containers/global-playlist-manager"
 import {
-    createPlaylistMutationGate, defaultPlaylistWatchType, MAX_PLAYLIST_EPISODES, movePlaylistEpisode, playlistAnimeChoices, playlistLibraryCollection, samePlaylistEpisode, selectPlaylistEpisodes,
-    togglePlaylistEpisode,
+    createPlaylistMutationGate, defaultPlaylistWatchType, MAX_PLAYLIST_EPISODES, movePlaylistEpisode, playlistAnimeChoices, playlistBackStep, type PlaylistDraft,
+    playlistDraftChanged, playlistLibraryCollection, type PlaylistStep, samePlaylistEpisode, selectPlaylistEpisodes, togglePlaylistEpisode,
 } from "../lib/mobile-playlist-state"
 import { usePlaylistEditorManager } from "../lib/playlist-editor-manager"
 
@@ -38,8 +38,8 @@ import { usePlaylistEditorManager } from "../lib/playlist-editor-manager"
  * card's long press ("Add to playlist": straight to that anime's episodes).
  */
 
-type Step = "list" | "editor" | "anime" | "episodes" | "delete"
-type Draft = { dbId?: number, name: string, episodes: Anime_PlaylistEpisode[] }
+type Step = PlaylistStep
+type Draft = PlaylistDraft & { dbId?: number }
 
 function episodeLabel(ep: Anime_PlaylistEpisode, t: Translate) {
     return ep.episode?.baseAnime?.format === "MOVIE" ? t("Movie", "Film") : t(`Episode ${ep.episode?.episodeNumber ?? "?"}`, `Episode ${ep.episode?.episodeNumber ?? "?"}`)
@@ -58,7 +58,7 @@ function Thumbnail({ src }: { src?: string }) {
 function RoundAction({ label, icon: Icon, disabled, onPress }: { label: string, icon: React.ComponentType<{ size?: number, color?: string }>, disabled?: boolean, onPress: () => void }) {
     return (
         <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
-            className={cn("h-11 w-11 items-center justify-center rounded-full bg-sm-surface-control active:bg-sm-accent-soft", disabled && "opacity-40")}>
+            className={cn("h-12 w-12 items-center justify-center rounded-full bg-sm-surface-control active:bg-sm-accent-soft", disabled && "opacity-40")}>
             <Icon size={20} color={colors.smText} />
         </Pressable>
     )
@@ -82,6 +82,8 @@ export function MobilePlaylists() {
         setStepState(next)
     }
     const [draft, setDraft] = React.useState<Draft>({ name: "", episodes: [] })
+    // the draft as the editor opened it: Back asks before it drops changes made since
+    const [opened, setOpened] = React.useState<PlaylistDraft>({ name: "", episodes: [] })
     const [category, setCategory] = React.useState("CURRENT")
     const [search, setSearch] = React.useState("")
     const [media, setMedia] = React.useState<Anime_LibraryCollectionEntry | null>(null)
@@ -126,20 +128,40 @@ export function MobilePlaylists() {
         }
     }
     function openEditor(playlist?: Anime_Playlist) {
-        setDraft({ dbId: playlist?.dbId, name: playlist?.name ?? "", episodes: (playlist?.episodes ?? []).map(n => ({ ...n, watchType: n.watchType || defaultWatchType })) })
+        const next = { dbId: playlist?.dbId, name: playlist?.name ?? "", episodes: (playlist?.episodes ?? []).map(n => ({ ...n, watchType: n.watchType || defaultWatchType })) }
+        setDraft(next)
+        setOpened(next)
         setError("")
         const entry = collection?.lists?.flatMap(n => n.entries ?? []).find(n => n?.mediaId === manager.selectedMedia)
         setMedia(entry ?? null)
         setStep(entry ? "episodes" : "editor")
     }
+    // one step up; leaving the editor with changes first asks (step "discard")
     function back() {
         if (busy) return
         setError("")
-        if (step === "episodes") setStep("anime")
-        else if (step === "anime" || step === "delete") setStep("editor")
-        else if (step === "editor") setStep("list")
-        else close(false)
+        const next = playlistBackStep(step, playlistDraftChanged(opened, draft))
+        if (next === "close") close(false)
+        else setStep(next)
     }
+    // Hardware Back goes the same steps (before, it closed the whole sheet and the draft was gone). Registered after the
+    // sheet's own listener (it answers first), and only off the list, where Back closes the sheet as before.
+    const onHardwareBack = React.useEffectEvent(() => back())
+    const stepping = manager.isModalOpen && known && step !== "list"
+    React.useEffect(() => {
+        if (!stepping) return
+        let sub: { remove: () => void } | null = null
+        const timer = setTimeout(() => {
+            sub = BackHandler.addEventListener("hardwareBackPress", () => {
+                onHardwareBack()
+                return true
+            })
+        }, 0)
+        return () => {
+            clearTimeout(timer)
+            sub?.remove()
+        }
+    }, [stepping])
     async function persist(deleting = false) {
         if (!deleting && (!draft.name.trim() || !draft.episodes.length)) {
             setError(t("Enter a name and select at least one episode.", "Name eingeben und mindestens eine Episode auswählen."))
@@ -170,6 +192,7 @@ export function MobilePlaylists() {
 
     const title = step === "list" ? t("Playlists", "Playlists") : step === "anime" ? t("Add episodes", "Episoden hinzufügen")
         : step === "episodes" ? t("Select episodes", "Episoden auswählen") : step === "delete" ? t("Delete playlist?", "Playlist löschen?")
+            : step === "discard" ? t("Discard changes?", "Änderungen verwerfen?")
             : draft.dbId !== undefined ? t("Edit playlist", "Playlist bearbeiten") : t("New playlist", "Neue Playlist")
     const subtitle = step === "episodes" ? (media?.media?.title?.userPreferred || media?.media?.title?.romaji)
         : step !== "list" ? `${draft.episodes.length} / ${plural(t, MAX_PLAYLIST_EPISODES, ["1 episode", "{0} episodes"], ["1 Episode", "{0} Episoden"])}` : undefined
@@ -182,7 +205,10 @@ export function MobilePlaylists() {
             ? <Button size="lg" wrapperClassName="flex-1" disabled={!draft.name.trim() || !draft.episodes.length} loading={busy} onPress={() => void persist()}>{t("Save playlist", "Playlist speichern")}</Button>
             : step === "episodes" || step === "anime"
                 ? <Button size="lg" wrapperClassName="flex-1" onPress={() => setStep("editor")}>{`${t("Review selection", "Auswahl übernehmen")} · ${draft.episodes.length}`}</Button>
-                : <>
+                : step === "discard" ? <>
+                    <Button intent="secondary" size="lg" wrapperClassName="flex-1" onPress={() => setStep("editor")}>{t("Keep editing", "Weiter bearbeiten")}</Button>
+                    <Button intent="danger" size="lg" wrapperClassName="flex-1" onPress={() => setStep("list")}>{t("Discard", "Verwerfen")}</Button>
+                </> : <>
                     <Button intent="secondary" size="lg" wrapperClassName="flex-1" disabled={busy} onPress={back}>{t("Cancel", "Abbrechen")}</Button>
                     <Button intent="danger" size="lg" wrapperClassName="flex-1" loading={busy} onPress={() => void persist(true)}>{t("Delete", "Löschen")}</Button>
                 </>
@@ -190,7 +216,7 @@ export function MobilePlaylists() {
     return (
         <Sheet open={manager.isModalOpen && known} onOpenChange={close} title={title} description={subtitle} footer={footer} workspace>
             {step !== "list" && <View className="-mt-2 items-start"><Button intent="text" className="-ml-2" leftIcon={<ChevronLeft size={18} color={colors.smAccent} />} onPress={back}>{t("Back", "Zurück")}</Button></View>}
-            {!!error && <View accessibilityRole="alert" className="rounded-surface-sm border border-[#a85a6c] bg-[#3a1d24] p-3"><Text className="text-[#ffe2e8]">{error}</Text></View>}
+            {!!error && <View accessibilityRole="alert" className="rounded-surface-sm border border-sm-danger bg-sm-surface-raised p-3"><Text className="text-sm-danger">{error}</Text></View>}
 
             {step === "list" && <View className="gap-3">
                 {isLoading && <ActivityIndicator color={colors.smAccent} />}
@@ -290,6 +316,13 @@ export function MobilePlaylists() {
             {step === "episodes" && !!media && <EpisodeSelection t={t} entry={media} episodes={draft.episodes} defaultWatchType={defaultWatchType}
                 onChange={episodes => setDraft(prev => ({ ...prev, episodes }))} />}
 
+            {step === "discard" && (
+                <View className="items-center gap-3 px-3 py-8">
+                    <Pencil size={44} color={colors.smAccent} />
+                    <Muted className="text-center">{t("Your changes to this playlist are not saved yet. Discard them?", "Deine Änderungen an dieser Playlist sind noch nicht gespeichert. Verwerfen?")}</Muted>
+                </View>
+            )}
+
             {step === "delete" && (
                 <View className="items-center gap-3 px-3 py-8">
                     <Trash2 size={44} color={colors.smAccent} />
@@ -346,7 +379,7 @@ function EpisodeSelection({ t, entry, episodes, onChange, defaultWatchType }: {
                         }}
                         className={cn("min-h-[68px] flex-row items-center gap-3 rounded-surface p-3", checked ? "border border-sm-accent-line bg-sm-accent-soft" : "bg-sm-surface-raised active:bg-sm-surface-control")}>
                         <View className={cn("h-[26px] w-[26px] items-center justify-center rounded-[7px] border", checked ? "border-sm-accent bg-sm-accent" : "border-sm-line-strong")}>
-                            {checked && <Check size={16} color="#111111" strokeWidth={3} />}
+                            {checked && <Check size={16} color={colors.background} strokeWidth={3} />}
                         </View>
                         <View className="min-w-0 flex-1 gap-1">
                             <Text className="font-semibold">{episodeLabel(ep, t)}</Text>

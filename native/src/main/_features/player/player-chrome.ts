@@ -42,17 +42,47 @@ export function viewTurn(view: PlayerView, isTablet: boolean): "landscape" | "up
     return view === "full" ? "landscape" : "upright"
 }
 
-/** What Android Back does in the player. */
-export type BackStep = "pass" | "shrink"
+/** Where the mini player was before it became the mini player: a tap on it goes back there. */
+export type MiniOrigin = "box" | "full"
+
+/** What moves the player between its places: Android Back, the bottom-right size button, a tap on the mini player. */
+export type PlaceEvent =
+    | { kind: "back", overlayOpen: boolean }
+    | { kind: "size-button" }
+    | { kind: "mini-tap", hasBoxPage: boolean }
 
 /**
- * r22: Back in the full player makes it small (box on its page, else mini) and it plays on, like the bottom-right button;
- * an open menu or sheet answers Back itself; in the box or the mini player Back belongs to the page (leaving the anime
- * page turns the box into the mini player). The player is closed only by the mini player's × (or its error's Close).
+ * `handled`: the player took the event (Back is not passed on); `small`: the new value of player_miniAtom;
+ * `openBoxPage`: the anime page with the player's box is opened (the box then holds the player).
  */
-export function backStep(s: { overlayOpen: boolean, view: PlayerView }): BackStep {
-    if (s.overlayOpen || s.view !== "full") return "pass"
-    return "shrink"
+export type PlaceStep = { handled: boolean, small: boolean, openBoxPage: boolean }
+
+/**
+ * r22 + 4.3.1 device test: Back in the full player makes it small (the box on its page, else the mini player) and it plays
+ * on, like the bottom-right button; an open menu or sheet answers Back itself (it is passed on); in the box or the mini
+ * player Back belongs to the page (leaving the anime page turns the box into the mini player). A tap on the mini player
+ * goes back to where it was before: the box on its anime page (the page is opened again) or fullscreen. The player is
+ * closed only by the mini player's × (or its error's Close).
+ */
+export function placeStep(view: PlayerView, origin: MiniOrigin, event: PlaceEvent): PlaceStep {
+    const pass: PlaceStep = { handled: false, small: view !== "full", openBoxPage: false }
+    switch (event.kind) {
+        case "back":
+            if (event.overlayOpen || view !== "full") return pass
+            return { handled: true, small: true, openBoxPage: false }
+        case "size-button":
+            return { handled: true, small: view === "full", openBoxPage: false }
+        case "mini-tap":
+            if (view !== "mini") return pass
+            if (origin === "box" && event.hasBoxPage) return { handled: true, small: true, openBoxPage: true }
+            return { handled: true, small: false, openBoxPage: false }
+    }
+}
+
+/** The mini player's origin after a change of place: the place it came from when it appears, else unchanged. */
+export function miniOriginAfter(previous: PlayerView, next: PlayerView, origin: MiniOrigin): MiniOrigin {
+    if (next === "mini" && previous !== "mini") return previous
+    return origin
 }
 
 /** The box's place: the page's scroll area in window coordinates, the box in the scroll content. */

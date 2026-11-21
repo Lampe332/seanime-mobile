@@ -4,7 +4,10 @@ import React from "react"
 import { toast } from "@/components/ui/toast/toast-store"
 import { tr } from "@/lib/app-language"
 import {
+    cyclerFailureText,
     getRefreshKey,
+    noProvidersText,
+    noWorkingProviderText,
     markSourceRefreshed,
     orderProviders,
     PLAYBACK_TIMEOUT_MS,
@@ -119,8 +122,8 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
         log.warning("No working provider found", reason)
         setTrialState(null)
         setUrl(null)
-        setPlaybackError("No working providers found")
-        toast.error(tr("No working providers found", "Kein funktionierender Anbieter gefunden"))
+        setPlaybackError(noWorkingProviderText(tr))
+        toast.error(noWorkingProviderText(tr))
     })
 
     const goToNextProvider = useLatestFunction((reason: string) => {
@@ -146,8 +149,9 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
     const goToNextCandidate = useLatestFunction((reason: string) => {
         const currentTrial = trialRef.current
         if (!currentTrial) {
+            // the reason stays internal (it decides the next try); the page and the player show it in plain words
             setDetectedFailure(reason)
-            setPlaybackError(reason)
+            setPlaybackError(cyclerFailureText(reason, tr))
             return
         }
 
@@ -167,7 +171,7 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
     const tryAllProviders = useLatestFunction(() => {
         if (!mediaId) return
         if (!availableProviders.length) {
-            toast.warning(dubbed ? "No dubbed providers available" : "No providers available")
+            toast.warning(noProvidersText(dubbed, tr))
             return
         }
 
@@ -269,6 +273,12 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
         log.success("Found working provider", { provider, server })
         setTrialState(null)
         setPlaybackError(null)
+    })
+
+    /** "Retry source": the failure seen is forgotten, so the retried stream gets the watchdog and the source checks again. */
+    const clearFailure = useLatestFunction(() => {
+        playbackTimeRef.current = 0
+        setDetectedFailure(null)
     })
 
     const cancel = useLatestFunction(() => {
@@ -514,6 +524,7 @@ export function useOnlinestreamAutoProviderCycler(props: UseOnlinestreamAutoProv
         showButton: canTry && (!!trial || (!refreshing && hasFailure)),
         tryAllProviders,
         cancel,
+        clearFailure,
         onPlaybackError,
         onPlaybackStalled,
         onLoadedMetadata,

@@ -47,7 +47,16 @@ type Playing = {
     savedAt: number
     keepHistory: boolean
     autoProgress: boolean
+    /** the player said 80 % (video-completed): the progress is due */
+    completed: boolean
+    /** the progress went out and was taken; until then a later message of this playback tries again */
     progressSent: boolean
+    /** a progress request is on its way (no second one meanwhile) */
+    progressSending: boolean
+    /** when the last progress request went out (a status retries at most every SAVE_EVERY_MS) */
+    progressTriedAt: number
+    /** the player that announced it (one playback per player: a new episode replaces the one before) */
+    clientId: string
 }
 
 /** The playbacks the player announced, by their id; gone when it closes. */
@@ -203,7 +212,7 @@ async function librarySettings(environment: Environment): Promise<Json> {
     return record(record(settings).library)
 }
 
-async function announced(environment: Environment, payload: Json): Promise<string> {
+async function announced(environment: Environment, payload: Json, clientId: string): Promise<string> {
     const info = record(record(payload.state).playbackInfo)
     const media = record(info.media)
     const episode = record(info.episode)
@@ -213,6 +222,11 @@ async function announced(environment: Environment, payload: Json): Promise<strin
     if (!id || !whole(mediaId) || !whole(episodeNumber)) return ""
     const library = await librarySettings(environment)
     const localFile = record(info.localFile)
+    // the player's next episode comes without "video-terminated" for the one before: that one is over, it is forgotten
+    // (before, every episode of a session stayed in memory)
+    for (const [other, was] of playing) {
+        if (other !== id && was.clientId === clientId) playing.delete(other)
+    }
     playing.set(id, {
         mediaId,
         episodeNumber,
@@ -224,7 +238,11 @@ async function announced(environment: Environment, payload: Json): Promise<strin
         savedAt: 0,
         keepHistory: library.enableWatchContinuity === true,
         autoProgress: library.autoUpdateProgress === true,
+        completed: false,
         progressSent: false,
+        progressSending: false,
+        progressTriedAt: 0,
+        clientId,
     })
     return `playing ${mediaId} episode ${episodeNumber}`
 }
@@ -241,9 +259,19 @@ async function save(environment: Environment, now: Playing): Promise<void> {
  * events, §4f), otherwise through the server's interface, as the app's "mark as watched" goes.
  */
 async function watched(environment: Environment, now: Playing): Promise<string> {
-    if (!now.autoProgress || now.progressSent) return ""
-    now.progressSent = true
-    return progressTo(environment, { mediaId: now.mediaId, episodeNumber: now.episodeNumber, totalEpisodes: now.totalEpisodes })
+    if (!now.autoProgress || !now.completed || now.progressSent || now.progressSending) return ""
+    // counted as sent only once it was taken: a failed request (thrown on, the caller logs it) is tried again with the
+    // playback's next message (status, pause, seek, close)
+    now.progressSending = true
+    now.progressTriedAt = environment.now()
+    try {
+        const done = await progressTo(environment, { mediaId: now.mediaId, episodeNumber: now.episodeNumber, totalEpisodes: now.totalEpisodes })
+        now.progressSent = true
+        return done
+    }
+    finally {
+        now.progressSending = false
+    }
 }
 
 /**
@@ -270,7 +298,7 @@ export function playingOf(id: string): { mediaId: number, episodeNumber: number 
  */
 export async function hearPlayer(message: PlayerMessage, environment: Environment): Promise<string> {
     const payload = record(message.payload)
-    if (message.type === "video-loaded") return announced(environment, payload)
+    if (message.type === "video-loaded") return announced(environment, payload, message.clientId ?? "")
     const id = typeof payload.id === "string" ? payload.id : ""
     const now = playing.get(id)
     if (!now) return ""
@@ -281,18 +309,25 @@ export async function hearPlayer(message: PlayerMessage, environment: Environmen
     switch (message.type) {
         case "video-status":
             if (environment.now() - now.savedAt >= SAVE_EVERY_MS) await save(environment, now)
+            // a progress that failed is tried again every SAVE_EVERY_MS, not with every status
+            if (environment.now() - now.progressTriedAt >= SAVE_EVERY_MS) return watched(environment, now)
             return ""
         case "video-paused":
         case "video-seeked":
             await save(environment, now)
-            return ""
+            return watched(environment, now)
         case "video-completed":
+            now.completed = true
             await save(environment, now)
             return watched(environment, now)
-        case "video-terminated":
+        case "video-terminated": {
             playing.delete(id)
             await save(environment, now)
-            return `closed ${now.mediaId} episode ${now.episodeNumber} at ${Math.round(now.currentTime)} s`
+            const closed = `closed ${now.mediaId} episode ${now.episodeNumber} at ${Math.round(now.currentTime)} s`
+            // the last chance of a progress that failed before
+            const progress = await watched(environment, now)
+            return progress ? `${closed}, ${progress}` : closed
+        }
         default:
             return ""
     }

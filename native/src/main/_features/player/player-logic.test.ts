@@ -33,9 +33,11 @@ import {
     shouldSendCompleted,
     TRACK_LIST_READS,
     stillEnded,
+    sleepTimerChoice,
     sleepTimerFrom,
     sleepTimerRemainingMs,
     swipeLevel,
+    playerEpisodeTitle,
 } from "./player-logic"
 
 describe("time bar", () => {
@@ -363,5 +365,34 @@ describe("stream headers for mpv", () => {
         expect(mpvHeaderOptions({})).toEqual([["http-header-fields", ""]])
         expect(mpvHeaderOptions({ " ": "x", Referer: "a\r\nX-Injected: 1", Origin: "https://ok.example" }))
             .toEqual([["http-header-fields", "Origin: https://ok.example"]])
+    })
+})
+
+describe("the player's episode title", () => {
+    const de = (_en: string, german: string) => german
+    const en = (english: string) => english
+    it("translates the core's plain \"Episode N\", keeps a real title", () => {
+        expect(playerEpisodeTitle("Episode 4", 4, de)).toBe("Folge 4")
+        expect(playerEpisodeTitle("Episode 4", 4, en)).toBe("Episode 4")
+        expect(playerEpisodeTitle("The Stone World", 1, de)).toBe("The Stone World")
+        expect(playerEpisodeTitle("Special 2", 2, de)).toBe("Special 2")
+    })
+    it("falls back to the progress number, else nothing", () => {
+        expect(playerEpisodeTitle("", 3, de)).toBe("Folge 3")
+        expect(playerEpisodeTitle(undefined, undefined, de)).toBe("")
+    })
+})
+
+describe("the sleep timer's marked option", () => {
+    it("is the minutes picked while their timer runs", () => {
+        const until = sleepTimerFrom(30, 1_000) as number
+        expect(sleepTimerChoice(until, { until, minutes: 30 })).toBe(30)
+    })
+    it("is none once the timer is off, at the end of the episode or set anew", () => {
+        const until = sleepTimerFrom(30, 1_000) as number
+        expect(sleepTimerChoice(null, { until, minutes: 30 })).toBeNull()
+        expect(sleepTimerChoice("episode", { until, minutes: 30 })).toBeNull()
+        expect(sleepTimerChoice(until + 1, { until, minutes: 30 })).toBeNull()
+        expect(sleepTimerChoice(until, null)).toBeNull()
     })
 })

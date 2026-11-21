@@ -8,7 +8,30 @@ import {
     PROVIDER_TIMEOUT_MS,
     shouldRecoverStartup,
     withProviderTimeout,
+    cyclerFailureText,
+    noProvidersText,
+    noWorkingProviderText,
 } from "./onlinestream-provider-trial"
+
+describe("the cycler's texts", () => {
+    const de = (_en: string, german: string) => german
+    const en = (english: string) => english
+    it("never shows an internal reason: each becomes plain words with what to do", () => {
+        for (const reason of ["playback timeout", "episode source timeout", "episode source error", "no video sources", "loading failed", "The stream stopped early."]) {
+            const shown = cyclerFailureText(reason, en)
+            expect(shown).not.toBe(reason)
+            expect(shown).toMatch(/Try another server or provider\.$/)
+        }
+        expect(cyclerFailureText("playback timeout", en)).toBe("The stream did not start in time. Try another server or provider.")
+        expect(cyclerFailureText("no video sources", en)).toBe("The provider has no video for this episode. Try another server or provider.")
+        expect(cyclerFailureText("episode source error", de)).toBe("Der Provider konnte diese Folge nicht laden. Probiere einen anderen Server oder Provider.")
+    })
+    it("translates the trial's end and the empty provider list", () => {
+        expect(noWorkingProviderText(de)).toBe("Kein funktionierender Anbieter gefunden")
+        expect(noProvidersText(true, en)).toBe("No dubbed providers available")
+        expect(noProvidersText(false, de)).toBe("Keine Provider verfügbar")
+    })
+})
 
 describe("online stream provider trial", () => {
     beforeEach(() => {

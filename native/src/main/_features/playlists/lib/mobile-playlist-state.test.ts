@@ -2,10 +2,31 @@ import type { Anime_LibraryCollection, Anime_PlaylistEpisode } from "@/api/gener
 import { describe, expect, it } from "vitest"
 import {
     createPlaylistMutationGate, defaultPlaylistWatchType, MAX_PLAYLIST_EPISODES, movePlaylistEpisode, playlistAnimeChoices, playlistLibraryCollection, playlistNavigation, samePlaylistEpisode,
-    selectPlaylistEpisodes, togglePlaylistEpisode,
+    selectPlaylistEpisodes, togglePlaylistEpisode, playlistBackStep, playlistDraftChanged,
 } from "./mobile-playlist-state"
 
 const ep = (media: number, n: number, anidb = String(n)) => ({ episode: { aniDBEpisode: anidb, episodeNumber: n, baseAnime: { id: media } } }) as unknown as Anime_PlaylistEpisode
+
+describe("hardware Back in the playlist editor", () => {
+    it("goes one step up and asks before the editor's changes are dropped", () => {
+        expect(playlistBackStep("episodes", true)).toBe("anime")
+        expect(playlistBackStep("anime", true)).toBe("editor")
+        expect(playlistBackStep("delete", false)).toBe("editor")
+        expect(playlistBackStep("editor", false)).toBe("list")
+        expect(playlistBackStep("editor", true)).toBe("discard")
+        // Back on the question keeps the draft
+        expect(playlistBackStep("discard", true)).toBe("editor")
+        expect(playlistBackStep("list", false)).toBe("close")
+    })
+    it("knows a changed draft: name, episodes, their order and source", () => {
+        const opened = { name: "Evening", episodes: [ep(1, 1), ep(1, 2)] }
+        expect(playlistDraftChanged(opened, { ...opened })).toBe(false)
+        expect(playlistDraftChanged(opened, { ...opened, name: "Night" })).toBe(true)
+        expect(playlistDraftChanged(opened, { ...opened, episodes: [ep(1, 2), ep(1, 1)] })).toBe(true)
+        expect(playlistDraftChanged(opened, { ...opened, episodes: [ep(1, 1)] })).toBe(true)
+        expect(playlistDraftChanged(opened, { ...opened, episodes: [{ ...ep(1, 1), watchType: "online" }, ep(1, 2)] })).toBe(true)
+    })
+})
 
 describe("default playlist source", () => {
     it("preselects online streaming when it is the only source", () => {

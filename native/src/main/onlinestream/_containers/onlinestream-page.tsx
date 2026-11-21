@@ -31,13 +31,16 @@ import { EpisodeDownloadButton } from "@/main/onlinestream/_containers/episode-d
 import { OnlinestreamManualMappingSheet } from "@/main/onlinestream/_containers/onlinestream-manual-matching"
 import { useHandleOnlinestreamProviderExtensions } from "@/main/onlinestream/_lib/handle-onlinestream-providers"
 import { providerForMedia, withMediaProvider } from "@/main/onlinestream/_lib/onlinestream-provider-choice"
-import { getMobileInitialEpisode, rememberMobileEpisode } from "@/main/onlinestream/_lib/mobile-episode-selection"
+import { getMobileInitialEpisode, neighbourEpisode, rememberMobileEpisode } from "@/main/onlinestream/_lib/mobile-episode-selection"
 import { type OnlinePlayerEvents, player_onlineAtom } from "@/main/onlinestream/_lib/onlinestream-player.atoms"
 import {
     buildOnlineStream,
     chooseVideoSource,
     episodeServers,
+    errorOfSource,
     onlineDownloadRequest,
+    onlineSourceFailure,
+    onlineSourceKey,
     type OnlineStream,
     playableVideoSources,
 } from "@/main/onlinestream/_lib/onlinestream-source"
@@ -174,6 +177,10 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     const episodes = episodeListResponse?.episodes
     const sortedEpisodes = React.useMemo(() => [...(episodes ?? [])].filter(Boolean).sort((a, b) => a.number - b.number), [episodes])
     const currentEpisode = episodes?.find(e => e.number === currentEpisodeNumber)
+    // the provider's neighbours of the episode: a gap in the numbering is stepped over (mobile-episode-selection)
+    const episodeNumbers = React.useMemo(() => sortedEpisodes.map(e => e.number), [sortedEpisodes])
+    const previousNumber = neighbourEpisode(episodeNumbers, currentEpisodeNumber, "previous")
+    const nextNumber = neighbourEpisode(episodeNumbers, currentEpisodeNumber, "next")
     // Opening the page (or a list without the chosen episode) picks the episode only: the one in the link, the one chosen
     // this session, the next to watch, the first (getMobileInitialEpisode)
     if (episodes?.length && (initializedMedia !== mediaId || !currentEpisode)) {
@@ -230,7 +237,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     }, [])
 
     // A playback error belongs to the source it happened with (web: reset with every new source)
-    const sourceKey = `${provider}|${server}|${dubbed}|${currentEpisodeNumber}|${videoSource?.url ?? ""}|${streamReload}`
+    const sourceKey = onlineSourceKey({ provider, server, dubbed, episode: currentEpisodeNumber, url: videoSource?.url, attempt: streamReload })
     const sourceKeyRef = React.useRef(sourceKey)
     React.useLayoutEffect(() => {
         sourceKeyRef.current = sourceKey
@@ -242,7 +249,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     const playbackError = unavailable
         ? selectedServerStatus?.error || t(`${selectedServerStatus?.server} is listed for this episode, but Seanime cannot play it directly.`,
             `${selectedServerStatus?.server} ist für diese Folge gelistet, Seanime kann den Server aber nicht direkt abspielen.`)
-        : errorState?.key === sourceKey ? errorState.message : null
+        : errorOfSource(errorState, sourceKey)
 
     // Through the server's proxy when the provider needs headers (the token goes into that URL only)
     const { getHMACTokenQueryParam } = useServerHMACAuth()
@@ -287,6 +294,15 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         setPlaybackError,
         refreshEpisodeSource,
     })
+
+    // "Retry source": the source is asked for again and its stream starts over, also when the source comes back with the
+    // same URL (a new attempt is a new source key: the old error goes, the stream is built and loaded again)
+    const retrySource = () => {
+        setErrorState(null)
+        cycler.clearFailure()
+        setStreamReload(n => n + 1)
+        void retryEpisodeSource()
+    }
 
     // ── Starting playback: one player over all pages, so a saved episode or a server stream makes way ──
     const setNativePlayerState = useSetAtom(nativePlayer_stateAtom)
@@ -335,8 +351,8 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
             return
         }
         if (episodeLoading || selectionLock.current !== null || currentEpisodeNumber === null) return
-        const target = currentEpisodeNumber + (which === "next" ? 1 : -1)
-        if (!episodes?.some(e => e.number === target)) return
+        const target = which === "next" ? nextNumber : previousNumber
+        if (target === null) return
         selectionLock.current = target
         rememberMobileEpisode(mediaId, target)
         setUrl(null)
@@ -430,11 +446,12 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         if (startWhenClosed && !onlineInPlayer) startAfterClose()
     }, [startWhenClosed, onlineInPlayer, startAfterClose])
     // ── The player's view of this stream ──
-    const sourceFailure = !episodeLoading && episodeSource && !videoSource
-        ? t("No playable source. Choose another server or provider.", "Keine abspielbare Quelle. Anderen Server oder Provider wählen.")
-        : episodeSourceError
-            ? (episodeSourceErrorValue as AxiosError<{ error: string }> | null)?.response?.data?.error ?? null
-            : playbackError
+    const sourceFailure = onlineSourceFailure({
+        noPlayableSource: !episodeLoading && !!episodeSource && !videoSource,
+        sourceError: episodeSourceError,
+        sourceErrorText: (episodeSourceErrorValue as AxiosError<{ error: string }> | null)?.response?.data?.error,
+        playbackError,
+    }, t)
     const shownError = cycler.isTrying ? null : sourceFailure
     const info = React.useMemo<NativePlayer_PlaybackInfo>(() => ({
         id: url ? `${url}#${streamReload}` : `online:${mediaId}:${currentEpisodeNumber ?? ""}`,
@@ -454,8 +471,8 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     // memoised: the player atom below is written whenever one of its values changes
     const download = React.useMemo(() => currentEpisode && videoSource ? onlineDownloadRequest({ media, episode: currentEpisode, source: videoSource, dubbed }) : null,
         [currentEpisode, videoSource, media, dubbed])
-    const hasPrevious = currentEpisodeNumber !== null && !!episodes?.some(e => e.number === currentEpisodeNumber - 1)
-    const hasNext = currentEpisodeNumber !== null && !!episodes?.some(e => e.number === currentEpisodeNumber + 1)
+    const hasPrevious = previousNumber !== null
+    const hasNext = nextNumber !== null
     const loadingState = url ? null : cycler.isTrying ? t("Trying providers …", "Provider werden probiert …") : t("Loading stream", "Stream wird geladen")
 
     const setOnline = useSetAtom(player_onlineAtom)
@@ -602,7 +619,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
             </PlayerBoxSlot>
             {!!sourceFailure && !cycler.isTrying && <Muted accessibilityLiveRegion="polite" className="mt-3 text-[13px]">{sourceFailure}</Muted>}
             {(episodeSourceError || !!playbackError || (!episodeLoading && !!episodeSource && !videoSource)) &&
-                <Button intent="secondary" wrapperClassName="mt-3 self-start" disabled={episodeLoading} onPress={() => retryEpisodeSource()}>{t("Retry source", "Quelle erneut laden")}</Button>}
+                <Button intent="secondary" wrapperClassName="mt-3 self-start" disabled={episodeLoading} onPress={retrySource}>{t("Retry source", "Quelle erneut laden")}</Button>}
 
             <View className="mt-4">
                 {viewMode === "list" ? <>
@@ -628,7 +645,8 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
                             accessibilityLabel={`${t(`Episode ${episode.number}`, `Folge ${episode.number}`)}${episode.title ? ` · ${episode.title}` : ""}`}
                             disabled={episodeLoading} onPress={() => selectEpisode(episode.number)}
                             className={cn("h-12 min-w-12 items-center justify-center rounded-surface-sm px-3",
-                                selected ? "bg-brand-500" : episode.isFiller ? "bg-orange-900/60" : "bg-sm-surface-raised active:bg-sm-surface-control",
+                                // a filler: the raised tile with the warning tone's edge
+                                selected ? "bg-brand-500" : episode.isFiller ? "border border-sm-warning bg-sm-surface-raised active:bg-sm-surface-control" : "bg-sm-surface-raised active:bg-sm-surface-control",
                                 watched && !selected && "opacity-50")}>
                             <Text className={cn("text-[15px] font-semibold", selected ? "text-white" : "text-sm-text")} style={{ fontVariant: ["tabular-nums"] }}>{episode.number}</Text>
                         </Pressable>
@@ -649,8 +667,7 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
                 <Pressable accessibilityRole="button" disabled={emptyingCache || !mediaId} onPress={() => {
                     emptyCache({ mediaId })
                     setCacheOpen(false)
-                }} className={cn("min-h-12 items-center justify-center rounded-surface-sm active:opacity-80", emptyingCache && "opacity-60")}
-                    style={{ backgroundColor: "rgba(242,167,182,0.14)" }}>
+                }} className={cn("min-h-12 items-center justify-center rounded-surface-sm border border-sm-danger bg-sm-surface-raised active:opacity-80", emptyingCache && "opacity-60")}>
                     <Text className="text-[15px] font-semibold text-sm-danger">{emptyingCache ? t("Clearing …", "Wird geleert …") : t("Clear stream cache", "Stream-Cache leeren")}</Text>
                 </Pressable>
                 <Pressable accessibilityRole="button" onPress={() => setCacheOpen(false)}

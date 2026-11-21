@@ -53,7 +53,8 @@ import Animated, { Easing, Keyframe, ReduceMotion, useAnimatedStyle, withTiming 
 import { useKeyboardHeight } from "@/components/ui/core/use-keyboard-height"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { type PlayerTrack, sleepTimerFrom, sleepTimerRemainingMs } from "./player-logic"
+import { type PlayerTrack, sleepTimerChoice, sleepTimerFrom, sleepTimerRemainingMs } from "./player-logic"
+import { player_sleepPickAtom } from "./player.atoms"
 import { type KeepState, keepRowOf } from "./keep-stream"
 import {
     CAPTION_BACKGROUND_OPACITIES,
@@ -64,8 +65,10 @@ import {
     languageSummary,
     listSummary,
     menuGroupLayout,
+    type MenuOption,
     narrowRows,
     optionLabel,
+    optionText,
     PHONE_LANGUAGES,
     ROW_LABEL_STYLE,
     rowValueMaxWidth,
@@ -235,17 +238,13 @@ export function PlayerMenu(props: {
                         { backgroundColor: colors.smSurface, padding: 8, paddingBottom: padBottom, elevation: 16 },
                     ]}
                 >
-                    <ScrollView
-                        style={{ maxHeight: room - 8 - padBottom }}
-                        className="grow-0"
-                        keyboardShouldPersistTaps="handled"
-                        showsVerticalScrollIndicator={false}
-                        overScrollMode="never"
-                    >
+                    {/* each page brings its own scroll area under its head (MenuScroll): a page opens at its top with its
+                        title and Back in view, never at the scroll position of the page before (S22 4.3.1 sleep timer) */}
+                    <MenuRoom value={room - 8 - padBottom}>
                         <Animated.View key={page} entering={page === "main" ? pageFromLeft : pageFromRight}>
                             <MenuPages {...props} back={back} close={close} landscape={landscape} width={width} />
                         </Animated.View>
-                    </ScrollView>
+                    </MenuRoom>
                 </Animated.View>
             )}
         </View>
@@ -264,6 +263,7 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
     const [autoPlay, setAutoPlay] = useAtom(vc_autoPlayVideoAtom)
     const [autoSkip, setAutoSkip] = useAtom(vc_autoSkipOPEDAtom)
     const [sleepTimer, setSleepTimer] = useAtom(vc_sleepTimerAtom)
+    const [sleepPick, setSleepPick] = useAtom(player_sleepPickAtom)
     const [boost, setBoost] = useAtom(vc_storedVolumeBoostAtom)
     const [fit, setFit] = useAtom(vc_videoFitAtom)
     const [highlight, setHighlight] = useAtom(vc_highlightOPEDChaptersAtom)
@@ -331,7 +331,7 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
                 <LinkRow icon={Captions} label={t("Languages", "Sprachen")} value={languageSummary(settings, t)} onPress={() => onPageChange("languages")} />
                 {hasSubs && <LinkRow icon={Clock} label={t("Delay", "Versatz")} value={`${delay.toFixed(1)} s`} onPress={() => onPageChange("delay")} />}
                 {subtitleKind === "ass" && <LinkRow icon={Captions} label={t("Style", "Stil")} value={sub.enabled ? t("On", "An") : t("Off", "Aus")} onPress={() => onPageChange("style")} />}
-                {subtitleKind === "text" && <LinkRow icon={Captions} label={t("Caption style", "Stil der Bildunterschriften")} onPress={() => onPageChange("caption")} />}
+                {subtitleKind === "text" && <LinkRow icon={Captions} label={t("Caption style", "Untertitel-Stil")} onPress={() => onPageChange("caption")} />}
             </MenuGroup>,
             <MenuGroup key="display" width={groupWidth} title={t("Display", "Darstellung")}>
                 <LinkRow icon={TvMinimalPlay} label={t("Player appearance", "Player-Darstellung")} onPress={() => onPageChange("appearance")} />
@@ -347,44 +347,40 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
             </MenuGroup>,
         ]
         return (
-            <View>
-                {!landscape && <Text className="mx-2 mb-3 mt-1.5 text-base font-semibold leading-[21px]">{t("Player settings", "Player-Einstellungen")}</Text>}
+            <MenuScroll head={!landscape && <Text className="mx-2 mb-3 mt-1.5 text-base font-semibold leading-[21px]">{t("Player settings", "Player-Einstellungen")}</Text>}>
                 <View className={landscape ? "flex-row flex-wrap items-start" : ""} style={{ rowGap: 14, columnGap: 8 }}>{groups}</View>
-            </View>
+            </MenuScroll>
         )
     }
 
     switch (page) {
         case "audio":
             return (
-                <View>
-                    <MenuTitle>{t("Audio", "Ton")}</MenuTitle>
+                <MenuScroll head={<MenuTitle>{t("Audio", "Ton")}</MenuTitle>}>
                     {audio.map(track => <OptionRow key={track.id} checked={track.id === audioId} label={trackName(track)} onPress={() => onAudio(track)} />)}
-                </View>
+                </MenuScroll>
             )
         case "subtitles":
             return (
-                <View>
-                    <MenuTitle action={subtitleKind ? (
-                        <Pressable accessibilityRole="button" accessibilityLabel={t("Subtitle style", "Untertitel-Stil")} hitSlop={4}
-                            onPress={() => onPageChange(subtitleKind === "ass" ? "style" : "caption")}
-                            className="h-10 w-10 items-center justify-center rounded-lg active:bg-white/10">
-                            <Paintbrush size={18} color={colors.smTextMuted} />
-                        </Pressable>
-                    ) : undefined}>{t("Subtitles", "Untertitel")}</MenuTitle>
-                    <OptionRow checked={subId <= 0} label="Off" onPress={() => onSubtitle(null)} />
+                <MenuScroll head={<MenuTitle action={subtitleKind ? (
+                    <Pressable accessibilityRole="button" accessibilityLabel={t("Subtitle style", "Untertitel-Stil")} hitSlop={4}
+                        onPress={() => onPageChange(subtitleKind === "ass" ? "style" : "caption")}
+                        className="h-10 w-10 items-center justify-center rounded-lg active:bg-white/10">
+                        <Paintbrush size={18} color={colors.smTextMuted} />
+                    </Pressable>
+                ) : undefined}>{t("Subtitles", "Untertitel")}</MenuTitle>}>
+                    <OptionRow checked={subId <= 0} label={t("Off", "Aus")} onPress={() => onSubtitle(null)} />
                     {subs.map(track => <OptionRow key={track.id} checked={track.id === subId} label={trackName(track)} onPress={() => onSubtitle(track)} />)}
-                </View>
+                </MenuScroll>
             )
         case "quality":
             return (
-                <View>
-                    <MenuTitle>Quality</MenuTitle>
+                <MenuScroll head={<MenuTitle>{t("Quality", "Qualität")}</MenuTitle>}>
                     {(qualities ?? []).map(q => <OptionRow key={q} checked={q === quality} label={q} onPress={() => {
                         onQuality?.(q)
                         close()
                     }} />)}
-                </View>
+                </MenuScroll>
             )
         case "speed":
             return (
@@ -414,7 +410,7 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
         case "boost":
             return (
                 <Page title={t("Volume boost", "Lautstärke-Boost")} onBack={back}>
-                    {VOLUME_BOOSTS.map(b => <OptionRow key={b} checked={b === boost} label={b <= 1 ? "Off" : `${Math.round(b * 100)}%`} onPress={() => setBoost(b)} />)}
+                    {VOLUME_BOOSTS.map(b => <OptionRow key={b} checked={b === boost} label={b <= 1 ? t("Off", "Aus") : `${Math.round(b * 100)}%`} onPress={() => setBoost(b)} />)}
                 </Page>
             )
         case "sleep":
@@ -422,7 +418,11 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
                 <Page title={t("Sleep timer", "Sleep-Timer")} onBack={back}>
                     <Para>{t("Pauses playback after the chosen time.", "Pausiert die Wiedergabe nach der gewählten Zeit.")}</Para>
                     <OptionRow checked={sleepTimer === null} label={t("Off", "Aus")} onPress={() => setSleepTimer(null)} />
-                    {SLEEP_MINUTES.map(m => <OptionRow key={m} checked={false} label={`${m} min`} onPress={() => setSleepTimer(sleepTimerFrom(m, Date.now()))} />)}
+                    {SLEEP_MINUTES.map(m => <OptionRow key={m} checked={sleepTimerChoice(sleepTimer, sleepPick) === m} label={`${m} min`} onPress={() => {
+                        const until = sleepTimerFrom(m, Date.now()) as number
+                        setSleepTimer(until)
+                        setSleepPick({ until, minutes: m })
+                    }} />)}
                     <OptionRow checked={sleepTimer === "episode"} label={t("End of episode", "Ende der Folge")} onPress={() => setSleepTimer("episode")} />
                 </Page>
             )
@@ -590,37 +590,37 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
             return (
                 <Page title={t("Subtitle styles", "Untertitel-Stil")} onBack={back}>
                     <Para>{t("ASS/SSA tracks with several styles keep their own look.", "ASS/SSA-Spuren mit mehreren Stilen behalten ihr eigenes Aussehen.")}</Para>
-                    <OptionRow checked={sub.enabled} label="On" onPress={() => setSub({ enabled: true })} />
-                    <OptionRow checked={!sub.enabled} label="Off" onPress={() => setSub({ enabled: false })} />
+                    <OptionRow checked={sub.enabled} label={t("On", "An")} onPress={() => setSub({ enabled: true })} />
+                    <OptionRow checked={!sub.enabled} label={t("Off", "Aus")} onPress={() => setSub({ enabled: false })} />
                     {sub.enabled && (
                         <>
                             <Para className="my-2">{t("Options", "Optionen")}</Para>
-                            <SubOptionRow icon={Type} label="Font Size" value={optionLabel(SUBTITLE_FONT_SIZES, sub.fontSize)} onPress={() => onPageChange("styleSize")} />
-                            <SubOptionRow icon={Palette} label="Text Color" value={optionLabel(STYLE_COLORS, sub.primaryColor)} onPress={() => onPageChange("styleColor")} />
-                            <SubOptionRow icon={FileText} label="Outline"
-                                value={`${optionLabel(SUBTITLE_OUTLINES, sub.outline)}, ${optionLabel(STYLE_COLORS, sub.outlineColor)}`} onPress={() => onPageChange("styleOutline")} />
-                            <SubOptionRow icon={Blend} label="Shadow"
-                                value={`${optionLabel(SUBTITLE_SHADOWS, sub.shadow)}, ${optionLabel(STYLE_COLORS, sub.backColor)}`} onPress={() => onPageChange("styleShadow")} />
+                            <SubOptionRow icon={Type} label={t("Font size", "Schriftgröße")} value={optionLabel(SUBTITLE_FONT_SIZES, sub.fontSize, t)} onPress={() => onPageChange("styleSize")} />
+                            <SubOptionRow icon={Palette} label={t("Text color", "Textfarbe")} value={optionLabel(STYLE_COLORS, sub.primaryColor, t)} onPress={() => onPageChange("styleColor")} />
+                            <SubOptionRow icon={FileText} label={t("Outline", "Kontur")}
+                                value={`${optionLabel(SUBTITLE_OUTLINES, sub.outline, t)}, ${optionLabel(STYLE_COLORS, sub.outlineColor, t)}`} onPress={() => onPageChange("styleOutline")} />
+                            <SubOptionRow icon={Blend} label={t("Shadow", "Schatten")}
+                                value={`${optionLabel(SUBTITLE_SHADOWS, sub.shadow, t)}, ${optionLabel(STYLE_COLORS, sub.backColor, t)}`} onPress={() => onPageChange("styleShadow")} />
                         </>
                     )}
                 </Page>
             )
         case "styleSize":
             return (
-                <Page title="Font Size" onBack={back}>
+                <Page title={t("Font size", "Schriftgröße")} onBack={back}>
                     <Para>{t("Font size", "Schriftgröße")}</Para>
                     <Select options={SUBTITLE_FONT_SIZES} value={sub.fontSize} onChange={fontSize => setSub({ fontSize })} />
                 </Page>
             )
         case "styleColor":
             return (
-                <Page title="Text Color" onBack={back}>
+                <Page title={t("Text color", "Textfarbe")} onBack={back}>
                     <Select options={STYLE_COLORS} value={sub.primaryColor} onChange={primaryColor => setSub({ primaryColor })} />
                 </Page>
             )
         case "styleOutline":
             return (
-                <Page title="Outline" onBack={back}>
+                <Page title={t("Outline", "Kontur")} onBack={back}>
                     <Para>{t("Outline width", "Konturbreite")}</Para>
                     <Select options={SUBTITLE_OUTLINES} value={sub.outline} onChange={outline => setSub({ outline })} />
                     <Para className="my-2">{t("Outline colour", "Konturfarbe")}</Para>
@@ -629,7 +629,7 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
             )
         case "styleShadow":
             return (
-                <Page title="Shadow" onBack={back}>
+                <Page title={t("Shadow", "Schatten")} onBack={back}>
                     <Para>{t("Shadow depth", "Schattentiefe")}</Para>
                     <Select options={SUBTITLE_SHADOWS} value={sub.shadow} onChange={shadow => setSub({ shadow })} />
                     <Para className="my-2">{t("Shadow opacity", "Schattendeckkraft")}</Para>
@@ -640,32 +640,32 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
             )
         case "caption":
             return (
-                <Page title={t("Caption styles", "Stil der Bildunterschriften")} onBack={back}>
+                <Page title={t("Caption styles", "Untertitel-Stil")} onBack={back}>
                     <Para>{t("Only for subtitles that are not ASS.", "Nur für Untertitel, die kein ASS sind.")}</Para>
                     <Para className="my-2">{t("Options", "Optionen")}</Para>
-                    <SubOptionRow icon={Type} label="Font Size" value={optionLabel(CAPTION_FONT_SIZES, cap.fontSize)} onPress={() => onPageChange("captionSize")} />
-                    <SubOptionRow icon={Palette} label="Text Color" value={optionLabel(STYLE_COLORS, cap.textColor)} onPress={() => onPageChange("captionColor")} />
-                    <SubOptionRow icon={Paintbrush} label="Background"
-                        value={`${Math.round(cap.backgroundOpacity * 100)}%, ${optionLabel(STYLE_COLORS, cap.backgroundColor)}`} onPress={() => onPageChange("captionBackground")} />
-                    <SubOptionRow icon={Blend} label="Shadow"
-                        value={`${optionLabel(CAPTION_SHADOWS, cap.textShadow)}, ${optionLabel(STYLE_COLORS, cap.textShadowColor)}`} onPress={() => onPageChange("captionShadow")} />
+                    <SubOptionRow icon={Type} label={t("Font size", "Schriftgröße")} value={optionLabel(CAPTION_FONT_SIZES, cap.fontSize, t)} onPress={() => onPageChange("captionSize")} />
+                    <SubOptionRow icon={Palette} label={t("Text color", "Textfarbe")} value={optionLabel(STYLE_COLORS, cap.textColor, t)} onPress={() => onPageChange("captionColor")} />
+                    <SubOptionRow icon={Paintbrush} label={t("Background", "Hintergrund")}
+                        value={`${Math.round(cap.backgroundOpacity * 100)}%, ${optionLabel(STYLE_COLORS, cap.backgroundColor, t)}`} onPress={() => onPageChange("captionBackground")} />
+                    <SubOptionRow icon={Blend} label={t("Shadow", "Schatten")}
+                        value={`${optionLabel(CAPTION_SHADOWS, cap.textShadow, t)}, ${optionLabel(STYLE_COLORS, cap.textShadowColor, t)}`} onPress={() => onPageChange("captionShadow")} />
                 </Page>
             )
         case "captionSize":
             return (
-                <Page title="Font Size" onBack={back}>
+                <Page title={t("Font size", "Schriftgröße")} onBack={back}>
                     <Select options={CAPTION_FONT_SIZES} value={cap.fontSize} onChange={fontSize => setCap({ fontSize })} />
                 </Page>
             )
         case "captionColor":
             return (
-                <Page title="Text Color" onBack={back}>
+                <Page title={t("Text color", "Textfarbe")} onBack={back}>
                     <Select options={STYLE_COLORS} value={cap.textColor} onChange={textColor => setCap({ textColor })} />
                 </Page>
             )
         case "captionBackground":
             return (
-                <Page title="Background" onBack={back}>
+                <Page title={t("Background", "Hintergrund")} onBack={back}>
                     <Para className="my-2">{t("Background opacity", "Hintergrunddeckkraft")}</Para>
                     <Select options={CAPTION_BACKGROUND_OPACITIES} value={cap.backgroundOpacity} onChange={backgroundOpacity => setCap({ backgroundOpacity })} />
                     <Para>{t("Background colour", "Hintergrundfarbe")}</Para>
@@ -674,7 +674,7 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
             )
         case "captionShadow":
             return (
-                <Page title="Shadow" onBack={back}>
+                <Page title={t("Shadow", "Schatten")} onBack={back}>
                     <Para>{t("Text shadow", "Textschatten")}</Para>
                     <Select options={CAPTION_SHADOWS} value={cap.textShadow} onChange={textShadow => setCap({ textShadow })} />
                     <Para className="my-2">{t("Shadow colour", "Schattenfarbe")}</Para>
@@ -787,18 +787,44 @@ function SwitchRow({ icon, label, checked, onChange }: { icon: Icon, label: stri
     )
 }
 
-/** `menu-section-close`: Back with the page's title */
+/** The height the open menu leaves a page (the surface's room inside its padding), set by PlayerMenu */
+const MenuRoom = React.createContext(0)
+
+/**
+ * A page: its head (title, Back) stays on top, the rest scrolls under it in the page's own scroll area, which starts at
+ * the top whenever the page opens (a new page is a new scroll area).
+ */
+function MenuScroll({ head, children }: { head?: React.ReactNode, children: React.ReactNode }) {
+    const room = React.use(MenuRoom)
+    return (
+        <View style={{ maxHeight: room }}>
+            {head}
+            <ScrollView
+                style={{ flexShrink: 1 }}
+                className="grow-0"
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                overScrollMode="never"
+            >
+                {children}
+            </ScrollView>
+        </View>
+    )
+}
+
+/** `menu-section-close`: Back with the page's title, always in view above the page's rows */
 function Page({ title, onBack, children }: { title: string, onBack: () => void, children: React.ReactNode }) {
     const t = useTr()
     return (
-        <View>
+        <MenuScroll head={
             <Pressable accessibilityRole="button" accessibilityLabel={t(`Back: ${title}`, `Zurück: ${title}`)} onPress={onBack}
                 className="mb-1 min-h-12 flex-row items-center rounded-lg px-1 active:bg-white/10">
                 <View className="w-8"><ChevronLeft size={18} color={colors.smText} /></View>
                 <Text className="flex-1 text-base font-semibold">{title}</Text>
             </Pressable>
+        }>
             {children}
-        </View>
+        </MenuScroll>
     )
 }
 
@@ -823,8 +849,9 @@ function OptionRow({ checked, label, onPress }: { checked: boolean, label: strin
     )
 }
 
-function Select<T>({ options, value, onChange }: { options: { label: string, value: T }[], value: T, onChange: (value: T) => void }) {
-    return <>{options.map(o => <OptionRow key={String(o.value)} checked={o.value === value} label={o.label} onPress={() => onChange(o.value)} />)}</>
+function Select<T>({ options, value, onChange }: { options: MenuOption<T>[], value: T, onChange: (value: T) => void }) {
+    const t = useTr()
+    return <>{options.map(o => <OptionRow key={String(o.value)} checked={o.value === value} label={optionText(o, t)} onPress={() => onChange(o.value)} />)}</>
 }
 
 /**

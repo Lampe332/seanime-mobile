@@ -7,7 +7,7 @@ import { openInPlayerApp } from "@/lib/external-player-link/open-external-player
 import { openWithWatchedAsk } from "@/lib/external-player-link/watched-after-player"
 import { colors } from "@/lib/theme/tokens"
 import { showsRail } from "@/lib/tablet-ui"
-import { BOX_BAR_FADE, bottomPad, boxControlSizes, controlSizes, fitBarButton, topPad } from "./control-sizes"
+import { barButtonHitSlop, BOX_BAR_FADE, bottomPad, boxControlSizes, controlSizes, fitBarButton, topPad } from "./control-sizes"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { getSkipChapters } from "@/main/_features/media-core/media-core-chapters"
 import { mediaCorePreferencesAtom } from "@/main/_features/media-core/media-core-preferences"
@@ -28,6 +28,7 @@ import {
 } from "@/main/_features/video-core/video-core.atoms"
 import { ExpoMpvView, type ExpoMpvViewRef } from "expo-mpv"
 import { useKeepAwake } from "expo-keep-awake"
+import { useGlobalSearchParams, usePathname, useRouter } from "expo-router"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import Captions from "lucide-react-native/icons/captions"
 import Cast from "lucide-react-native/icons/cast"
@@ -37,8 +38,10 @@ import Maximize from "lucide-react-native/icons/maximize"
 import Minimize from "lucide-react-native/icons/minimize"
 import PictureInPicture2 from "lucide-react-native/icons/picture-in-picture-2"
 import Settings from "lucide-react-native/icons/settings"
+import Sun from "lucide-react-native/icons/sun"
 import SkipBack from "lucide-react-native/icons/skip-back"
 import SkipForward from "lucide-react-native/icons/skip-forward"
+import Volume2 from "lucide-react-native/icons/volume-2"
 import X from "lucide-react-native/icons/x"
 import React from "react"
 import { ActivityIndicator, BackHandler, type GestureResponderEvent, Pressable, StyleSheet, useWindowDimensions, View } from "react-native"
@@ -95,6 +98,7 @@ import {
     type Side,
     type SkipSegment,
     pictureFitProperties,
+    playerEpisodeTitle,
     type SwipeKind,
     swipeLevel,
     type TapMemory,
@@ -106,7 +110,11 @@ import { boxScroll, player_boxSlotAtom, player_nowAtom } from "./player-box"
 import { castTitle, playerCastUrl } from "./player-cast"
 import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
 import { endPlayerOrientation, readBrightness, readVolume, restoreBrightness, setVideoFullscreenOrientation, turnedToLandscape, writeBrightness, writeVolume } from "./player-system"
-import { backStep, boxFrame, boxOwner, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, miniPlayCommand, playerView, progressFraction, viewTurn } from "./player-chrome"
+import {
+    boxFrame, boxOwner, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, type MiniOrigin, miniOriginAfter, miniPlayCommand, type PlaceEvent, placeStep,
+    playerView, progressFraction, viewTurn,
+} from "./player-chrome"
+import { streamStartError } from "@/main/_features/native-player/stream-start-error"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { usePlayerPlaylist } from "./use-player-playlist"
 import { type OfflinePlayback, offlinePositionToSave, offlineWatched } from "@/main/android-downloads/_lib/offline-playback"
@@ -141,6 +149,8 @@ const BAR_OUT_MS = 140
 const BAR_EASE = Easing.bezier(0.23, 1, 0.32, 1)
 const POP_IN = FadeIn.duration(150).easing(BAR_EASE)
 const POP_OUT = FadeOut.duration(120)
+// the time over the picture: a soft dark shadow under the white digits
+const TIME_SHADOW = { textShadowColor: colors.smScrim, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }
 
 type SurfaceGesture = {
     x: number, y: number, side: Side, kind: SwipeKind | "boost" | "scroll" | null, startLevel: number, kindY: number, moved: boolean,
@@ -257,6 +267,12 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const mini = layoutView === "mini"
     const box = layoutView === "box" ? boxSlot : null
     const fullscreen = view === "full"
+    // where the mini player came from: a tap on it goes back there (player-chrome placeStep)
+    const [place, setPlace] = React.useState<{ view: typeof view, origin: MiniOrigin }>({ view, origin: "full" })
+    if (place.view !== view) setPlace({ view, origin: miniOriginAfter(place.view, view, place.origin) })
+    const router = useRouter()
+    const pathname = usePathname()
+    const routeParams = useGlobalSearchParams<{ id?: string }>()
     const landscape = window.width > window.height
     const [menuOpen, setMenuOpen] = React.useState(false)
     const [menuPage, setMenuPage] = React.useState<PlayerMenuPage>("main")
@@ -288,7 +304,11 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const [hud, setHud] = React.useState<Hud | null>(null)
     const [ripple, setRipple] = React.useState<{ side: Side, text: string, key: number } | null>(null)
     const [message, setMessage] = React.useState<string | null>(null)
-    const [remainingMode, setRemainingMode] = React.useState(preferences.timestampMode === "remaining")
+    // the time's tap flips it; a change of the setting ("Timestamp") counts again
+    const remainingSetting = preferences.timestampMode === "remaining"
+    const [remainingFlip, setRemainingFlip] = React.useState<{ setting: boolean, remaining: boolean } | null>(null)
+    const remainingMode = remainingFlip && remainingFlip.setting === remainingSetting ? remainingFlip.remaining : remainingSetting
+    const flipRemaining = () => setRemainingFlip({ setting: remainingSetting, remaining: !remainingMode })
 
     const timeRef = React.useRef({ currentTime: 0, duration: 0, paused: true })
     // how far playback really got (player-logic playedPosition): a broken stream's jump to its end is not counted
@@ -301,6 +321,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const playOnLoad = React.useRef(false)
     const skippedRef = React.useRef<number | null>(null)
     const hideTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+    // the brightness/volume panel goes 600 ms after the swipe; a new swipe or closing the player stops that timer
+    const hudTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
     React.useEffect(() => {
         playedRef.current = { played: 0, previous: 0, seeking: false }
         completedRef.current = false
@@ -394,6 +416,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     }, [])
     React.useEffect(() => () => {
         if (hideTimer.current) clearTimeout(hideTimer.current)
+        if (hudTimer.current) clearTimeout(hudTimer.current)
     }, [])
 
     const seekTo = React.useCallback((time: number) => {
@@ -602,12 +625,18 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     }
 
     // ── Fullscreen ↔ small (box/mini), PiP, close ──
-    // the bottom-right button and Back: the frame moves, the stream plays on (no remount of the mpv view)
-    const toggleFullscreen = () => {
+    // the bottom-right button, Back and a tap on the mini player (player-chrome placeStep): the frame moves, the stream plays
+    // on (no remount of the mpv view); the box of a mini player that came from it is on its anime page, which opens again
+    const movePlace = (event: PlaceEvent) => {
+        const step = placeStep(view, place.origin, event)
+        if (!step.handled) return false
         setMenuOpen(false)
         setVolumeOpen(false)
-        setSmall(!small)
+        setSmall(step.small)
+        if (step.openBoxPage && mediaId) router.push(`/entry?id=${mediaId}`)
+        return true
     }
+    const toggleFullscreen = () => movePlace({ kind: "size-button" })
     // a phone turns to landscape for fullscreen and upright for the box/mini (only after the app turned it); a tablet
     // keeps its orientation (player-chrome viewTurn)
     React.useEffect(() => {
@@ -734,6 +763,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         const level = swipeLevel(g.startLevel, g.kindY - y, surface.current.height)
         if (g.kind === "brightness") writeBrightness(level)
         else writeVolume(level)
+        // a new swipe keeps the panel: the last one's timer must not take it away under the finger
+        if (hudTimer.current) clearTimeout(hudTimer.current)
         setHud({ side: g.side, text: `${Math.round(level * 100)} %`, kind: g.kind as SwipeKind, level })
     }
 
@@ -753,7 +784,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
             return
         }
         if (g.kind) {
-            setTimeout(() => setHud(null), 600)
+            if (hudTimer.current) clearTimeout(hudTimer.current)
+            hudTimer.current = setTimeout(() => setHud(null), 600)
             return
         }
         // a swipe or long press never toggles the controls; only a real tap does
@@ -818,7 +850,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const vc = box ? boxControlSizes(frameWidth, box.geometry.content.height) : controlSizes(window.width)
     const barIcon = vc.icon
     const hasVideo = !!source && loaded
-    const title = info?.episode?.displayTitle || (progressNumber ? t(`Episode ${progressNumber}`, `Folge ${progressNumber}`) : "")
+    const title = playerEpisodeTitle(info?.episode?.displayTitle, progressNumber, t)
     const animeTitle = info?.media?.title?.userPreferred ?? ""
 
     // ── Cast (phase 7c-2): a file of the device or the core's torrent stream goes to the TV through the core's outlet;
@@ -838,23 +870,29 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     })
     const castPill = !mini && playerCast.casting && !playerCast.open
 
-    // Back (r22, player-chrome backStep): open menus first; fullscreen becomes small (box or mini) and plays on; in the box
-    // or the mini player Back is the page's
-    const onBack = React.useEffectEvent(() => {
-        switch (backStep({ overlayOpen: menuOpen || playerCast.open, view })) {
-            case "pass":
-                return false
-            case "shrink":
-                toggleFullscreen()
-                return true
-        }
-    })
+    // Back (r22, player-chrome placeStep): open menus first; fullscreen becomes small (box or mini) and plays on; in the box
+    // or the mini player Back is the page's.
+    // React Native asks the listener registered last first. Fullscreen turns the phone, and a page listener that registers
+    // again on the new window size (the cover flight's, CoverFlightHost after this player in the layout) came before this
+    // one: Back went to the page behind the player (S22 4.3.1: "Back does nothing", the next one landed on Home). So this
+    // listener registers after everything of the commit that turned it (and again on each turn); menus and sheets opened
+    // later still answer first, and an open one is passed on here.
+    const onBack = React.useEffectEvent(() => movePlace({ kind: "back", overlayOpen: menuOpen || playerCast.open }))
     React.useEffect(() => {
         if (!fullscreen) return
-        const sub = BackHandler.addEventListener("hardwareBackPress", () => onBack())
-        return () => sub.remove()
-    }, [fullscreen])
+        let sub: { remove: () => void } | null = null
+        const timer = setTimeout(() => {
+            sub = BackHandler.addEventListener("hardwareBackPress", () => onBack())
+        }, 0)
+        return () => {
+            clearTimeout(timer)
+            sub?.remove()
+        }
+    }, [fullscreen, window.width, window.height])
     const errorText = playbackError ?? videoError
+    // the server's reason of a failed start ("abort-open", e.g. "timeout waiting for torrent info") in the user's words;
+    // errorText itself stays the reason (offersOtherTorrent reads it)
+    const errorShown = errorText ? streamStartError(errorText, t) : null
     // a server stream that is or may become a torrent stream (before "watch" the kind is not known): its state is shown
     const torrentStream = !offline && !online && (!info || info.streamType === "torrent")
     const pickAnotherTorrent = usePickAnotherTorrent()
@@ -1009,10 +1047,13 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     subtitle={animeTitle}
                     playing={playing}
                     loading={(buffering || !source) && !errorText}
-                    error={errorText}
+                    error={errorShown}
                     progress={progressFraction(position, duration)}
                     onExpand={() => {
-                        setSmall(false)
+                        // the box's anime page, unless it is the page on screen already (its box is not shown there, e.g.
+                        // another tab of it): then fullscreen, so the tap is never without effect
+                        const onItsPage = pathname === "/entry" && routeParams.id === String(mediaId)
+                        movePlace({ kind: "mini-tap", hasBoxPage: !!owner && !!mediaId && !onItsPage })
                         showBars()
                     }}
                     onPlay={() => {
@@ -1042,7 +1083,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
 
                     {!!errorText && (
                         <View className="absolute inset-0 items-center justify-center gap-4 bg-black/80 px-8">
-                            <Text className="text-center text-[15px] text-white">{errorText}</Text>
+                            <Text className="text-center text-[15px] text-white">{errorShown}</Text>
                             <View className="flex-row flex-wrap justify-center gap-2">
                                 {torrentStream && offersOtherTorrent(errorText) && pickAnotherTorrent && (
                                     <Pressable accessibilityRole="button" onPress={() => pickAnotherTorrent(() => void close())} className="rounded-full bg-white/15 px-5 py-2.5 active:bg-white/25">
@@ -1068,7 +1109,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                         <View pointerEvents="none" className="absolute"
                             style={hud.side === "center" ? { top: "12%", alignSelf: "center" } : hud.side === "left" ? { top: "45%", left: "8%" } : { top: "45%", right: "8%" }}>
                             {hud.level !== undefined && hud.side !== "center"
-                                ? <LevelPanel text={hud.text} level={hud.level} fromRight={hud.side === "right"} isTablet={isTablet} />
+                                ? <LevelPanel text={hud.text} level={hud.level} kind={hud.kind} fromRight={hud.side === "right"} isTablet={isTablet} />
                                 : <Animated.View entering={pop} exiting={unpop} className="rounded-full bg-black/65 px-4 py-2.5">
                                     <Text className="text-[15px] font-semibold text-white">{hud.text}</Text>
                                 </Animated.View>}
@@ -1175,21 +1216,24 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     )}
 
                     {/* Skip intro/outro and the auto next countdown sit above the bottom bar */}
+                    {/* in line with the bar's right edge (its padding and the screen's inset), 12dp above its row of buttons, so
+                        it never touches the size button (S22 4.3.1: "Skip Ending" sat right on top of "Exit fullscreen") */}
                     {countdown !== null ? (
-                        <Animated.View entering={pop} exiting={unpop} className="absolute right-3 flex-row items-center gap-2 rounded-full bg-black/70 py-1.5 pl-4 pr-1.5"
-                            style={{ bottom: box ? bottomBarHeight - barFadeBottom + 4 : (fillsScreen ? 8 : insets.bottom) + 96 }}>
+                        <Animated.View entering={pop} exiting={unpop} className="absolute flex-row items-center gap-2 rounded-full bg-black/70 py-1.5 pl-4 pr-1.5"
+                            style={{ right: edge.right + vc.padX, bottom: bottomBarHeight - barFadeBottom + (box ? 4 : 12) }}>
                             <Text className="text-sm font-semibold text-white">{t(`Next episode in ${countdown}`, `Nächste Folge in ${countdown}`)}</Text>
-                            <Pressable accessibilityRole="button" onPress={() => setCountdown(null)} className="rounded-full px-3 py-2 active:bg-white/15">
+                            {/* 36dp pills, 48dp to touch */}
+                            <Pressable accessibilityRole="button" onPress={() => setCountdown(null)} hitSlop={6} className="rounded-full px-3 py-2 active:bg-white/15">
                                 <Text className="text-sm text-white/80">{t("Cancel", "Abbrechen")}</Text>
                             </Pressable>
-                            <Pressable accessibilityRole="button" onPress={() => { setCountdown(null); playlist.playEpisode("next") }} className="rounded-full bg-white px-3 py-2 active:bg-white/80">
+                            <Pressable accessibilityRole="button" onPress={() => { setCountdown(null); playlist.playEpisode("next") }} hitSlop={6} className="rounded-full bg-white px-3 py-2 active:bg-white/80">
                                 <Text className="text-sm font-semibold text-black">{t("Play now", "Jetzt abspielen")}</Text>
                             </Pressable>
                         </Animated.View>
                     ) : (!!skipSegment && !autoSkip && barsShown && !box && (
                         <Pressable accessibilityRole="button" onPress={() => seekTo(skipSegment.end)}
-                            className="absolute right-3 rounded-full border border-white/25 bg-black/70 px-4 py-2.5 active:bg-black/85"
-                            style={{ bottom: box ? bottomBarHeight - barFadeBottom + 4 : (fillsScreen ? 8 : insets.bottom) + 96 }}>
+                            className="absolute min-h-12 justify-center rounded-full border border-white/25 bg-black/70 px-4 active:bg-black/85"
+                            style={{ right: edge.right + vc.padX, bottom: bottomBarHeight - barFadeBottom + 12 }}>
                             <Text className="text-sm font-semibold text-white">{t(`Skip ${skipSegment.label}`, `${skipSegment.label} überspringen`)}</Text>
                         </Pressable>
                     ))}
@@ -1203,16 +1247,17 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     }]}>
                         <BarSizeContext value={vc.button}>
                         <View className="flex-row items-center gap-0.5" style={{ minHeight: vc.button }}>
-                            <Pressable accessibilityRole="button" onPress={() => setRemainingMode(m => !m)} className="justify-center px-2" style={{ minHeight: vc.button }}>
-                                <Text className="font-semibold text-white" style={{ fontSize: vc.timeText, fontVariant: ["tabular-nums"] }}>
+                            <Pressable accessibilityRole="button" onPress={flipRemaining} className="justify-center px-2" style={{ minHeight: vc.button }}>
+                                {/* a shadow keeps the white time readable on a bright picture (the box's bar fade is short) */}
+                                <Text className="font-semibold text-white" style={{ fontSize: vc.timeText, fontVariant: ["tabular-nums"], ...TIME_SHADOW }}>
                                     {remainingMode ? `-${formatTime(duration - position)}` : formatTime(position)}
-                                    <Text className="font-medium text-white/65" style={{ fontSize: vc.timeText }}> / {formatTime(duration)}</Text>
+                                    <Text className="font-medium text-white/80" style={{ fontSize: vc.timeText, ...TIME_SHADOW }}> / {formatTime(duration)}</Text>
                                 </Text>
                             </Pressable>
                             <View className="flex-1" />
                             {/* the box (~214dp) has no room above its bar: "Skip" sits in the row, beside the size button */}
                             {!!box && !!skipSegment && !autoSkip && countdown === null && (
-                                <Pressable accessibilityRole="button" onPress={() => seekTo(skipSegment.end)} hitSlop={4}
+                                <Pressable accessibilityRole="button" onPress={() => seekTo(skipSegment.end)} hitSlop={6}
                                     className="mr-1 justify-center rounded-full border border-white/25 bg-black/60 px-3 active:bg-black/80" style={{ height: 36 }}>
                                     <Text numberOfLines={1} className="text-[13px] font-semibold text-white">{t(`Skip ${skipSegment.label}`, `${skipSegment.label} überspringen`)}</Text>
                                 </Pressable>
@@ -1297,13 +1342,20 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
 }
 
 /** The brightness / volume panel: it slides in from its side, its bar glides to each new level (UI thread) */
-function LevelPanel({ text, level, fromRight, isTablet }: { text: string, level: number, fromRight: boolean, isTablet: boolean }) {
+function LevelPanel({ text, level, kind, fromRight, isTablet }: { text: string, level: number, kind: SwipeKind | null, fromRight: boolean, isTablet: boolean }) {
+    const t = useTr()
     const fill = useAnimatedStyle(() => ({
         transform: [{ scaleX: withTiming(Math.max(0, Math.min(1, level)), { duration: LEVEL_PANEL.level, easing: Easing.out(Easing.quad), reduceMotion: ReduceMotion.System }) }],
     }), [level])
+    const LevelIcon = kind === "brightness" ? Sun : Volume2
     return (
-        <Animated.View entering={levelPanelIn(isTablet, fromRight)} exiting={levelPanelOut} className="w-28 gap-2 rounded-2xl bg-black/65 px-4 py-2.5">
-            <Text className="text-center text-[15px] font-semibold text-white" style={{ fontVariant: ["tabular-nums"] }}>{text}</Text>
+        <Animated.View entering={levelPanelIn(isTablet, fromRight)} exiting={levelPanelOut} className="w-28 gap-2 rounded-2xl bg-black/65 px-4 py-2.5"
+            accessibilityLabel={`${kind === "brightness" ? t("Brightness", "Helligkeit") : t("Volume", "Lautstärke")} ${text}`}>
+            {/* what the swipe changes (left: brightness, right: volume), then its level */}
+            <View className="flex-row items-center justify-center gap-1.5">
+                <LevelIcon size={16} color="#fff" />
+                <Text className="text-[15px] font-semibold text-white" style={{ fontVariant: ["tabular-nums"] }}>{text}</Text>
+            </View>
             <View className="h-1 overflow-hidden rounded-full bg-white/25">
                 <Animated.View style={[{ height: "100%", width: "100%", transformOrigin: "left" }, fill]} className="rounded-full bg-white" />
             </View>
@@ -1328,7 +1380,7 @@ function BarButton({ label, onPress, children }: { label: string, onPress: (butt
             accessibilityRole="button"
             accessibilityLabel={label}
             onPress={() => onPress(ref.current)}
-            hitSlop={4}
+            hitSlop={barButtonHitSlop(size)}
             className="items-center justify-center rounded-full active:bg-white/15"
             style={({ pressed }) => ({ width: size, height: size, transform: [{ scale: pressed ? 0.92 : 1 }] })}
         >

@@ -8,7 +8,42 @@ import {
     onlineDownloadRequest,
     playableVideoSources,
     preferredOnlineSubtitle,
+    errorOfSource,
+    onlineSourceFailure,
+    onlineSourceKey,
 } from "./onlinestream-source"
+
+describe("why the chosen episode does not play", () => {
+    const en = (english: string) => english
+    const none = { noPlayableSource: false, sourceError: false, sourceErrorText: undefined, playbackError: null }
+    it("a failed source request without the server's reason shows the cycler's error, else a plain text (never endless loading)", () => {
+        expect(onlineSourceFailure({ ...none, sourceError: true, playbackError: "The stream did not start in time. Try another server or provider." }, en))
+            .toBe("The stream did not start in time. Try another server or provider.")
+        expect(onlineSourceFailure({ ...none, sourceError: true }, en)).toBe("The provider could not load this episode. Try another server or provider.")
+        expect(onlineSourceFailure({ ...none, sourceError: true, sourceErrorText: "provider: 404" }, en)).toBe("provider: 404")
+    })
+    it("a source without a playable video, a playback error, or nothing", () => {
+        expect(onlineSourceFailure({ ...none, noPlayableSource: true, playbackError: "x" }, en)).toBe("No playable source. Choose another server or provider.")
+        expect(onlineSourceFailure({ ...none, playbackError: "broken" }, en)).toBe("broken")
+        expect(onlineSourceFailure(none, en)).toBeNull()
+    })
+})
+
+describe("Retry source", () => {
+    const source = { provider: "p", server: "hd-1", dubbed: false, episode: 3, url: "https://cdn.example/1080.m3u8", attempt: 0 }
+    it("is a new source key with the same URL, so the old error goes and the stream loads again", () => {
+        const before = onlineSourceKey(source)
+        const failed = { key: before, message: "The stream did not start in time." }
+        expect(errorOfSource(failed, before)).toBe("The stream did not start in time.")
+        const retried = onlineSourceKey({ ...source, attempt: 1 })
+        expect(retried).not.toBe(before)
+        expect(errorOfSource(failed, retried)).toBeNull()
+    })
+    it("keeps an error with its own source only", () => {
+        expect(errorOfSource(null, onlineSourceKey(source))).toBeNull()
+        expect(errorOfSource({ key: onlineSourceKey({ ...source, server: "hd-2" }), message: "x" }, onlineSourceKey(source))).toBeNull()
+    })
+})
 
 const src = (quality: string, extra: Partial<Onlinestream_VideoSource> = {}): Onlinestream_VideoSource =>
     ({ server: "hd-1", url: `https://cdn.example/${quality}.m3u8`, quality, type: "m3u8", ...extra })
