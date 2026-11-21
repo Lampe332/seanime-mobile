@@ -1,13 +1,15 @@
 // Anonymous usage count for the maintainer: reads the live D1 database (read-only SELECTs) through wrangler.
 // Run: npm run stats   (needs `wrangler login`; add --local to read the local dev database instead)
 import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
 
 const where = process.argv.includes("--local") ? "--local" : "--remote";
+// wrangler's own entry through node, no shell: on Windows `shell: true` cut the SQL at its first line break
+const wrangler = createRequire(import.meta.url).resolve("wrangler/package.json").replace(/package.json$/, "bin/wrangler.js");
 
 function query(sql) {
-  const out = execFileSync("npx", ["wrangler", "d1", "execute", "seanime-account", where, "--json", "--command", sql], {
+  const out = execFileSync(process.execPath, [wrangler, "d1", "execute", "seanime-account", where, "--json", "--command", sql.replace(/\s+/g, " ")], {
     encoding: "utf8",
-    shell: process.platform === "win32",
     stdio: ["ignore", "pipe", "inherit"],
   });
   const parsed = JSON.parse(out);
