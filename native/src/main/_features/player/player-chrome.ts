@@ -202,6 +202,16 @@ export function loadStart(autoPlay: boolean, playOnLoad: boolean): "pause" | "pl
     return playOnLoad ? "play" : "keep"
 }
 
+/**
+ * Where a swipe's level panel shows (4.3.1 device test): brightness/volume sat at 45% height, 8% from the edge, so over a
+ * 16:9 video in a wider window its dark panel lay on the black pillarbox (looked cut off) and the volume panel covered
+ * "Skip ending" at the bottom right. Now in the upper third and inside the picture; the seek text stays top centre.
+ */
+export function hudPlace(side: "left" | "right" | "center") {
+    if (side === "center") return { top: "12%", alignSelf: "center" } as const
+    return side === "left" ? { top: "20%", left: "18%" } as const : { top: "20%", right: "18%" } as const
+}
+
 /** 0…1 along the mini player's progress line. */
 export function progressFraction(position: number, duration: number) {
     if (!(duration > 0) || !Number.isFinite(position)) return 0

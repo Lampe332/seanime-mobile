@@ -112,7 +112,7 @@ import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
 import { endPlayerOrientation, readBrightness, readVolume, restoreBrightness, setVideoFullscreenOrientation, turnedToLandscape, writeBrightness, writeVolume } from "./player-system"
 import {
     boxFrame, boxOwner, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, type MiniOrigin, miniOriginAfter, miniPlayCommand, type PlaceEvent, placeStep,
-    playerView, progressFraction, viewTurn,
+    hudPlace, playerView, progressFraction, viewTurn,
 } from "./player-chrome"
 import { streamStartError } from "@/main/_features/native-player/stream-start-error"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
@@ -1107,7 +1107,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
 
                     {!!hud && (
                         <View pointerEvents="none" className="absolute"
-                            style={hud.side === "center" ? { top: "12%", alignSelf: "center" } : hud.side === "left" ? { top: "45%", left: "8%" } : { top: "45%", right: "8%" }}>
+                            style={hudPlace(hud.side)}>
                             {hud.level !== undefined && hud.side !== "center"
                                 ? <LevelPanel text={hud.text} level={hud.level} kind={hud.kind} fromRight={hud.side === "right"} isTablet={isTablet} />
                                 : <Animated.View entering={pop} exiting={unpop} className="rounded-full bg-black/65 px-4 py-2.5">
@@ -1349,7 +1349,7 @@ function LevelPanel({ text, level, kind, fromRight, isTablet }: { text: string, 
     }), [level])
     const LevelIcon = kind === "brightness" ? Sun : Volume2
     return (
-        <Animated.View entering={levelPanelIn(isTablet, fromRight)} exiting={levelPanelOut} className="w-28 gap-2 rounded-2xl bg-black/65 px-4 py-2.5"
+        <Animated.View entering={levelPanelIn(isTablet, fromRight)} exiting={levelPanelOut} className="w-28 gap-2 rounded-2xl border border-white/15 bg-black/75 px-4 py-2.5"
             accessibilityLabel={`${kind === "brightness" ? t("Brightness", "Helligkeit") : t("Volume", "Lautstärke")} ${text}`}>
             {/* what the swipe changes (left: brightness, right: volume), then its level */}
             <View className="flex-row items-center justify-center gap-1.5">
