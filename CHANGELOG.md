@@ -2,12 +2,9 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
-## 4.3.2 (unreleased)
-
-- 🎉 Privacy: The app sends an anonymous usage count once a day (a random ID and the app version, no account, email or IP), so we know how many people use it. You can turn it off under Settings, App, Privacy
-
 ## 4.3.1 (versionCode 40301)
 
+- 🎉 Privacy: The app sends an anonymous usage count once a day (a random ID and the app version, no account, email or IP), so we know how many people use it. You can turn it off under Settings, App, Privacy
 - 🎉 Entry: You can remove the start or completion date with the X beside it. AniList gets the cleared date too
 - 🎉 Downloads: You can remove waiting or failed manga chapters from the queue, and "Clear queue" asks first
 - ⚡️ Home: Customize Home tells you what each section shows and what it needs, such as a local library folder
