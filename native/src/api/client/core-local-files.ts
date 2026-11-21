@@ -1,5 +1,6 @@
 // geschrieben nach: docs/EIGENER-KERN.md §4p (Phase 5b-1/5b-2: Geräte-Seite der Bibliotheks-Ordner), Muster core-offline.ts/core-extensions.ts (Funktionen aus `expo-file-system/legacy`, Warten über die Wache), Doku von expo-file-system (readDirectoryAsync, getInfoAsync, deleteAsync); kein Server-Quelltext
 import type { BlockingWatch, LocalFolderEntry, LocalFolders } from "@/core"
+import { File } from "expo-file-system"
 import { deleteAsync, getInfoAsync, readDirectoryAsync } from "expo-file-system/legacy"
 
 /*
@@ -44,7 +45,10 @@ async function removeFile(path: string): Promise<boolean> {
     if (!file.exists) return true
     // a folder is never deleted here
     if (file.isDirectory) return false
-    await deleteAsync(address, { idempotent: true })
+    // Not the legacy deleteAsync: it checks write access on "<file>/..", which Android does not resolve for a file, so
+    // every library file outside the app's own storage was "isn't deletable" (4.3.1 device test). File#delete checks
+    // the file itself; one file, so being on the screens' thread for it is fine.
+    new File(address).delete()
     return !(await getInfoAsync(address)).exists
 }
 

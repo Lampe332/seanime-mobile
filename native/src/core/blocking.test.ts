@@ -210,9 +210,13 @@ describe("blocking watch", () => {
         // the library folders the same way: Directory.list() and File.size held the thread 9.5 ms in "library scan
         // folders" on the tablet (5b-1); every device call is a wait of the watch (5b-2)
         const folders = fs.readFileSync(path.join(__dirname, "../api/client/core-local-files.ts"), "utf8")
-        expect(folders).not.toContain("from \"expo-file-system\"")
+        // one exception (4.3.1): removeFile deletes with File#delete, since the legacy deleteAsync refuses every library
+        // file outside the app's storage ("<file>/.." check); one file, no listing or sizes
+        expect(folders).toContain("import { File } from \"expo-file-system\"")
         expect(folders).toContain("from \"expo-file-system/legacy\"")
-        expect(folders).not.toMatch(/Sync\(|new File\(|new Directory\(|\.list\(\)/)
+        expect(folders).not.toMatch(/Sync\(|new Directory\(|\.list\(\)/)
+        expect(folders.match(/new File\(/g)).toHaveLength(1)
+        expect(folders.split("async function removeFile")[1].split("export function")[0]).toContain("new File(address).delete()")
         expect(folders).toMatch(/return \{\s+list: watch\.waiting\(list, "folder list"\),\s+removeEmptyFolder: watch\.waiting\(removeEmptyFolder, "folder remove"\),\s+removeFile: watch\.waiting\(removeFile, "file remove"\),\s+\}/)
         expect(seam).toContain("localFolders: async () => (await import(\"@/api/client/core-local-files\")).localFoldersFor(watch),")
         // the core starts after the turn of the hook that asked (3g)
