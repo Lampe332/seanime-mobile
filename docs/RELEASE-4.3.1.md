@@ -1,18 +1,41 @@
 ## What's new?
 
+- 🎉 Entry: You can remove the start or completion date with the X beside it. AniList gets the cleared date too
+- 🎉 Downloads: You can remove waiting or failed manga chapters from the queue, and "Clear queue" asks first
 - ⚡️ Home: Customize Home tells you what each section shows and what it needs, such as a local library folder
-- ⚡️ Home: Remove a section with one tap. Undo puts it back where it was
-- ⚡️ Home: "Restore default Home" asks first, and you can undo it
+- ⚡️ Home: Remove a section with one tap and undo it. "Restore default Home" asks first, and you can undo that too
 - ⚡️ Home: Options can go back to Any, and the year field warns when a year is out of range
 - ⚡️ Home: Customize Home shows one message per change instead of two. If a save fails, your old Home comes back
-- 🦺 Home: Missing Sequels no longer stays empty after you sign in
-- 🦺 Home: Each section can be on Home only once. Duplicates are removed and the top one stays
-- 🦺 Home: Banners always sit at the top
-- 🦺 Home: Carousel options take effect, including sorting and every manga status
-- 🦺 Home: An empty carousel says why and offers "Reset options"
-- 🦺 Home: Empty and failed sections say so and offer "Try again"
-- 🦺 Home: Aired recently shows the newest episodes first
-- 🦺 Home: Loading every section at once no longer runs into AniList's rate limit
-- 🦺 Home: List titles are translated
-- 🦺 Home: A carousel without a name is named after its sorting, not always "Top rated anime"
+- ⚡️ Library: Load errors show up as errors, scan summaries can be closed during a search, and a hint appears when only the first 200 results are listed
+- ⚡️ Search: An empty result explains that several genres must all match
+- ⚡️ Player: Menu pages open at the top with the title and Back pinned, the sleep timer marks the minutes you picked, and the brightness and volume overlay shows an icon
+- ⚡️ Player: The external player page and History show an error with "Try again" when loading fails
+- ⚡️ Playlists: Back steps back inside the editor and asks before it throws away a changed draft
+- ⚡️ Account: A devices error explains the cause and offers "Try again", and security events read as plain rows
+- ⚡️ Nakama: Reconnect tells you which setting is missing: off, no host or no passcode
+- ⚡️ Touch targets and colors: Buttons in the reader, recent searches, settings and the player are easier to hit, and several fixed colors now follow your theme
+- 🦺 Manga: Reading a manga from Downloads could lower your AniList progress and put finished titles back on "Reading". That is fixed
+- 🦺 AniList: Automatic progress updates never lower your progress and never set a completed title back to current, for manga and anime alike. Marks you set yourself can still change it
+- 🦺 Manga: Continue reading opens the right page instead of page 1, and the next chapter is no longer marked as read right away
+- 🦺 Library: "Delete from this device" now really deletes the file from your device, as the dialog always said. Before, it only removed the list entry and the next scan brought the file back
+- 🦺 Library: Only files inside your library folders are deleted, never a whole folder. If a file can't be deleted, it stays in the list and you see an error
+- 🦺 Downloads: Chapters and episodes taken over from the old server are now deleted together with their files, and a deleted old episode no longer comes back without its video
+- 🦺 Downloads: A chapter you pause, delete or clear while its pages load is no longer started or saved anyway. Back on a manga's page returns to the manga overview
+- 🦺 Manga: A page without an address offers "Retry" instead of an endless spinner, and short long-strip chapters count as read at their end
+- 🦺 Calendar: The week arrows move your chosen day into the new week, a day picked in the week takes its month along, and switching between week and month opens the view that holds your day
+- 🦺 Entry: The lock-files switch goes back when saving fails
+- 🦺 Search: "See all" for Trending movies keeps the released-only filter
+- 🦺 Player: Back in fullscreen always reaches the player, a tap on the mini player returns you to where you were, and the skip and countdown buttons no longer crowd the size button
+- 🦺 Player: The 80 percent progress update counts as sent only after it worked and is retried if it fails. Remaining time follows your setting
+- 🦺 Online streaming: "Retry source" starts a new attempt even with the same address, and previous and next step over gaps in the numbering
+- 🦺 Settings: Backup Undo no longer offers a Merge that does nothing, and a failed safety backup restores nothing and promises no Undo
+- 🦺 Settings: The storage hint no longer promises an automatic restart, and the diagnostic report no longer fills with "Queued message" lines
+- 🦺 Account: The code-only and website switches follow a change you confirmed, even if refreshing the account info fails
+- 🦺 Extensions: "Install all" reports the real count, such as "3 of 5 installed, 2 failed", and failed loads are listed instead of dropped. A repeated marketplace link selects its tab again, and text preferences can be emptied
+- 🦺 Nakama: A dropped connection no longer plans two retries, and the sheet no longer promises watch parties or hosting
+- 🦺 Home: Missing Sequels no longer stays empty after you sign in, and Aired recently shows the newest episodes first
+- 🦺 Home: Each section can be on Home only once, with duplicates removed and the top one kept. Banners always sit at the top
+- 🦺 Home: Carousel options take effect, including sorting and every manga status. An empty carousel says why and offers "Reset options", and empty or failed sections offer "Try again"
+- 🦺 Home: Loading every section at once no longer runs into AniList's rate limit. List titles are translated, and a carousel without a name is named after its sorting
+- 🦺 Translations: Many texts that were missing or half translated now show in your language, including genre names, Filler and Unidentified, player menus, online stream messages, sort names and restore errors. All six languages are complete
 - 🏗️ Home: Removed the "layout" option, since Android only shows rows, and the season option for manga carousels, which AniList doesn't support
