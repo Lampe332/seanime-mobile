@@ -24,6 +24,11 @@ export function useAnimeCollectionListener() {
     })
 
     useWebsocketMessageListener({
+        type: WSEvents.REFRESHED_MISSED_SEQUELS,
+        onMessage: () => void qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.AnilistListMissedSequels.key] }),
+    })
+
+    useWebsocketMessageListener({
         type: WSEvents.REFRESHED_ANILIST_MANGA_COLLECTION,
         onMessage: () => {
             (async () => {

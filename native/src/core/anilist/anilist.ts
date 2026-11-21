@@ -60,7 +60,7 @@ function withoutNull(value: unknown): unknown {
  * "Turn off AniList caching" (settings anilist.disableCacheLayer): a read AniList fails is not answered from the store.
  * Answers are still kept: the store is also the core's own lists and the queue of changes works on them (changes.ts).
  */
-async function cacheLayerOff(environment: CoreEnvironment): Promise<boolean> {
+export async function cacheLayerOff(environment: CoreEnvironment): Promise<boolean> {
     const settings = (await ownSettingsAndLook(await environment.database())).settings
     const anilist = settings?.anilist
     return typeof anilist === "object" && anilist !== null && (anilist as Json).disableCacheLayer === true

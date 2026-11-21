@@ -7,6 +7,8 @@ export const enum WSEvents {
     SCAN_STATUS = "scan-status",
     REFRESHED_ANILIST_ANIME_COLLECTION = "refreshed-anilist-anime-collection",
     REFRESHED_ANILIST_MANGA_COLLECTION = "refreshed-anilist-manga-collection",
+    /** The core read the missed sequels again after answering with the kept ones (core/anilist/sequels.ts) */
+    REFRESHED_MISSED_SEQUELS = "refreshed-missed-sequels",
     LIBRARY_WATCHER_FILE_ADDED = "library-watcher-file-added",
     LIBRARY_WATCHER_FILE_REMOVED = "library-watcher-file-removed",
     AUTO_SCAN_STARTED = "auto-scan-started",
