@@ -1,6 +1,6 @@
 import { atom, useAtomValue, useSetAtom } from "jotai"
 import React from "react"
-import { View, type ViewStyle } from "react-native"
+import { Dimensions, View, type ViewStyle } from "react-native"
 import Animated, {
     cancelAnimation,
     makeMutable,
@@ -12,7 +12,7 @@ import Animated, {
     withDecay,
 } from "react-native-reanimated"
 import { scheduleOnRN } from "react-native-worklets"
-import { type BoxGeometry, scrollTarget } from "./player-chrome"
+import { type BoxGeometry, sameRect, scrollTarget, VIEWPORT_REMEASURE_MS } from "./player-chrome"
 
 /*
  * r22 (Nick 11.11.): the player's box on the anime page (2.0.x: the online stream page's inline VideoCore). There is still
@@ -140,11 +140,13 @@ export function useBoxHost({ focused, topInset, onScrollSignal, signalMs }: {
         if (viewport.current) maxScroll.set(Math.max(0, contentHeight.current - viewport.current.height))
     }, [maxScroll])
     const measureViewport = React.useCallback(() => {
-        const view = scrollRef.current as unknown as { measureInWindow?: (cb: (x: number, y: number, w: number, h: number) => void) => void } | null
-        view?.measureInWindow?.((x, y, width, height) => {
-            const old = viewport.current
-            if (old && old.x === x && old.y === y && old.width === width && old.height === height) return
-            viewport.current = { x, y, width, height }
+        // measure's page offset is relative to the root view; measureInWindow subtracts the status bar while it shows for a
+        // moment (a turn back from fullscreen), so the box sat a bar's height too high until the page laid out again (4.3.1)
+        const view = scrollRef.current as unknown as { measure?: (cb: (x: number, y: number, w: number, h: number, pageX: number, pageY: number) => void) => void } | null
+        view?.measure?.((_x, _y, width, height, pageX, pageY) => {
+            const next = { x: pageX, y: pageY, width, height }
+            if (sameRect(viewport.current, next)) return
+            viewport.current = next
             updateMax()
             notify()
         })
@@ -154,6 +156,16 @@ export function useBoxHost({ focused, topInset, onScrollSignal, signalMs }: {
         if (!focused) return
         const timers = [0, 450].map(ms => setTimeout(measureViewport, ms))
         return () => timers.forEach(clearTimeout)
+    }, [focused, measureViewport])
+    // a turn (fullscreen ⇄ upright) can leave the scroll area's own layout unchanged: measured again after the window changed
+    React.useEffect(() => {
+        if (!focused) return
+        let timers: ReturnType<typeof setTimeout>[] = []
+        const sub = Dimensions.addEventListener("change", () => {
+            timers.forEach(clearTimeout)
+            timers = VIEWPORT_REMEASURE_MS.map(ms => setTimeout(measureViewport, ms))
+        })
+        return () => { sub.remove(); timers.forEach(clearTimeout) }
     }, [focused, measureViewport])
 
     const host = React.useMemo<BoxHost>(() => ({

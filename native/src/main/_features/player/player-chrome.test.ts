@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+    sameRect, VIEWPORT_REMEASURE_MS,
     boxFrame, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, type MiniOrigin, miniOriginAfter, miniPlayCommand, miniPlayerShown,
     pageBottomPad, placeStep, playlistButtonBottom, orientationTarget, type PlayerView, playerView, progressFraction, scrollTarget, viewTurn,
 } from "./player-chrome"
@@ -222,5 +223,18 @@ describe("player frame (r21)", () => {
         expect(progressFraction(-1, 40)).toBe(0)
         expect(progressFraction(5, 0)).toBe(0)
         expect(progressFraction(Number.NaN, 40)).toBe(0)
+    })
+})
+
+describe("4.3.1 device test: box after fullscreen, level panel place", () => {
+    it("sameRect only skips an unchanged measurement", () => {
+        const r = { x: 0, y: 120, width: 400, height: 700 }
+        expect(sameRect(r, { ...r })).toBe(true)
+        expect(sameRect(r, { ...r, y: 20 })).toBe(false)
+        expect(sameRect(null, r)).toBe(false)
+    })
+    it("measures again after a turn until the bars settled", () => {
+        expect(VIEWPORT_REMEASURE_MS[0]).toBe(0)
+        expect(Math.max(...VIEWPORT_REMEASURE_MS)).toBeGreaterThanOrEqual(1000)
     })
 })

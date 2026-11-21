@@ -107,6 +107,16 @@ export function boxFrame(g: BoxGeometry, scrollY: number) {
     }
 }
 
+type Rect = { x: number, y: number, width: number, height: number }
+
+/** Whether a measured rect is the one already known (nothing to redraw). */
+export function sameRect(a: Rect | null | undefined, b: Rect) {
+    return !!a && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+}
+
+/** After the window changed (a turn), when the box's scroll area is measured again: the turn and the bars settle late. */
+export const VIEWPORT_REMEASURE_MS = [0, 450, 1000] as const
+
 /** Whether any of the box is visible at this scroll offset (fully scrolled away: the bars need not be drawn). */
 export function boxVisible(g: BoxGeometry, scrollY: number) {
     const { clip, box } = boxFrame(g, scrollY)
