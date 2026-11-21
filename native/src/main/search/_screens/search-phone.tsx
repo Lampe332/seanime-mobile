@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import type { AL_BaseAnime, AL_BaseManga, AL_ListAnime, AL_ListManga, Anime_EntryLibraryData, Anime_EntryListData, Manga_EntryListData } from "@/api/generated/types"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { Notice, SearchField, TextAction } from "@/components/shared/phone-kit"
+import { useSearchOtherSources } from "@/api/hooks/other_sources.hooks"
 import { ChipRow, GridBones, PhoneCoverCard, PhoneEmpty, PhoneSection, useGridColumns, useLastData, useOfflineAware } from "@/components/shared/phone-cards"
 import { Button } from "@/components/ui/button/button"
 import { swapIn } from "@/components/ui/core/animations"
@@ -217,6 +218,9 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     // The grid: columns from the content width (onLayout), the cards are the cells' width
     const [contentWidth, setContentWidth] = React.useState(0)
     const grid = useGridColumns(contentWidth)
+    // titles AniList does not have (TVmaze), under their own heading after the results; anime only
+    const others = useSearchOtherSources(title, state.type === "anime")
+    const otherItems = state.type === "anime" && title ? others.data?.Page?.media?.filter(Boolean) as Media[] | undefined : undefined
     const gutter = 16
     const beside = searchBesideTabs(rail, contentWidth)
 
@@ -307,6 +311,16 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
             ) : <Button intent="secondary" wrapperClassName="min-w-48" onPress={loadMore}>{failed ? t("Try again", "Erneut versuchen") : t("Load more", "Mehr laden")}</Button>}
         </View>
     ) : !stale ? <Text className="min-h-12 py-3 text-center text-sm text-sm-text-muted">{t("That's all", "Das war alles")}</Text> : null
+    const otherSources = otherItems?.length ? (
+        <PhoneSection title={t("More sources", "Weitere Quellen")} count={otherItems.length} className="pt-6"
+            note={t("Titles from TVmaze that AniList does not have", "Titel von TVmaze, die AniList nicht hat")}>
+            <View className="flex-row flex-wrap" style={{ marginHorizontal: -grid.gap / 2 }}>
+                {otherItems.map(media => <View key={media.id} style={{ paddingHorizontal: grid.gap / 2, paddingBottom: grid.rowGap }}>
+                    <OtherSourceCard media={media} width={grid.width} />
+                </View>)}
+            </View>
+        </PhoneSection>
+    ) : null
 
     return (
         <View className="flex-1">
@@ -327,7 +341,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                         </View>
                     )}
                     ListHeaderComponent={<View style={{ paddingHorizontal: grid.gap / 2 }}>{header}</View>}
-                    ListFooterComponent={<View style={{ paddingHorizontal: grid.gap / 2 }}>{footer}</View>}
+                    ListFooterComponent={<View style={{ paddingHorizontal: grid.gap / 2 }}>{footer}{otherSources}</View>}
                     // The next page loads before the end comes into view; "Load more" stays for screen readers.
                     onEndReached={() => {
                         if (canLoadMore && !loading) void results.fetchNextPage()
@@ -471,4 +485,10 @@ function ResultCard({ media, type, width, blurAdult, listData, local, sharedPath
     return <PhoneCoverCard media={media} type={type} width={width} blurAdult={blurAdult} progress={progress} badge={facts.badge} tag={facts.tag}
         meta={facts.meta} metaTone={facts.onList ? "accent" : undefined} label={facts.label} menuItems={menuItems}
         metaIcon={local ? <View className="mr-1"><Library size={12} color={facts.onList ? colors.smAccent : colors.smTextSubtle} /></View> : undefined} />
+}
+
+/** A title of TVmaze (negative id): its source and year under the title; no list or library marks, AniList has no entry */
+function OtherSourceCard({ media, width }: { media: Media, width: number }) {
+    const year = media.startDate?.year
+    return <PhoneCoverCard media={media} type="anime" width={width} blurAdult={false} meta={["TVmaze", year].filter(Boolean).join(" · ")} />
 }

@@ -28,6 +28,7 @@ import { useCoverFlightSource } from "@/components/shared/cover-flight"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { usePressScale } from "@/components/ui/core/press"
 import { SCALE } from "@/lib/motion"
+import { isTvmazeId } from "@/core/tvmaze/tvmaze"
 
 /*
  * The cover parts of the phone kit (phone-screen.css) that Discover and Search share:
@@ -142,23 +143,25 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, 
     const fade = useImageFade()
     // "Add to list" / "On your list", "+1", My lists' "Continue reading" (card-list-actions.ts)
     const listItems = useCardListItems(media, type, openEntry, listEntry)
+    // a title of TVmaze (negative id) has no AniList list, library or preview: a tap opens it, nothing more
+    const foreign = isTvmazeId(media.id)
 
     return (
         <Animated.View style={[{ width }, press.animatedStyle]}>
         <Pressable
             accessibilityRole="link"
             accessibilityLabel={label ?? [title, typeof meta === "string" ? meta : ""].filter(Boolean).join(", ")}
-            accessibilityHint={t("Long press for more", "Lange drücken für mehr")}
+            accessibilityHint={foreign ? undefined : t("Long press for more", "Lange drücken für mehr")}
             onPress={() => openEntry(mediaEntryHref(type, media.id))}
             onPressIn={press.pressIn}
             onPressOut={press.pressOut}
-            onLongPress={event => setMenuAt({ x: event.nativeEvent.pageX, y: event.nativeEvent.pageY })}
+            onLongPress={foreign ? undefined : event => setMenuAt({ x: event.nativeEvent.pageX, y: event.nativeEvent.pageY })}
             delayLongPress={500}
             className="gap-1"
         >
-            <CardMenu anchor={menuAt} title={title} onClose={closeMenu}
+            {!foreign && <CardMenu anchor={menuAt} title={title} onClose={closeMenu}
                 items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, type) },
-                    ...(menuItems ?? []), ...listItems, ...(playlistItem ? [playlistItem] : []), ...pluginItems]} />
+                    ...(menuItems ?? []), ...listItems, ...(playlistItem ? [playlistItem] : []), ...pluginItems]} />}
             <View ref={coverRef} collapsable={false} className="mb-1 aspect-[2/3] w-full overflow-hidden rounded-surface-sm bg-sm-surface-control">
                 <Image
                     source={coverUri}

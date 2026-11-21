@@ -2010,5 +2010,17 @@ export const API_ENDPOINTS = {
             endpoint: "/api/v1/app-switches",
         },
     },
+    OTHER_SOURCES: {
+        /**
+         *  @description
+         *  Route searches the other sources (TVmaze) for titles AniList does not have.
+         *  Answers in the form of "AnilistListAnime".
+         */
+        SearchOtherSources: {
+            key: "OTHER-SOURCES-search",
+            methods: ["POST"],
+            endpoint: "/api/v1/other-sources/search",
+        },
+    },
 } satisfies ApiEndpoints
 

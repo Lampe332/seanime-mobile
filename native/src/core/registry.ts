@@ -93,6 +93,7 @@ import { cancelDebridStream, debridFilePreviews, debridTorrents, saveDebridSetti
 import { REMOVED_ROUTES } from "./removed/removed"
 import { type NakamaSocketOpener, hostShares, keepNakamaPassword, nakamaSettingsChanged, playHostFile, reconnectToHost, removeStaleConnections, touchesNakama, withHostFiles, withHostLibrary, withNakamaPassword } from "./nakama/guest"
 import { searchTorrents } from "./torrent/search"
+import { searchOtherSources } from "./tvmaze/tvmaze"
 import { type CastOutlet, type CastSearcher, control as castControl, current as castCurrent, discover as castDiscover, forward as castForward, forwardClose as castForwardClose, load as castLoad, start as castStart, status as castStatus, stop as castStop, switchStream as castSwitchStream } from "./cast/cast"
 
 /*
@@ -379,6 +380,13 @@ export const CORE_ROUTES: CoreRoute[] = [
     { area: "anilist", method: "GET", endpoint: "/api/v1/anilist/media-details/{id}", answer: animeDetails },
     { area: "anilist", method: "GET", endpoint: "/api/v1/anilist/studio-details/{id}", answer: studioDetails },
     { area: "anilist", method: "POST", endpoint: "/api/v1/anilist/list-anime", answer: listAnime },
+    // the other sources (TVmaze, tvmaze/tvmaze.ts): titles AniList does not have, in the form of its search
+    {
+        area: "anilist",
+        method: "POST",
+        endpoint: "/api/v1/other-sources/search",
+        answer: (request, environment) => searchOtherSources(environment, typeof (request.body as { query?: unknown } | null | undefined)?.query === "string" ? (request.body as { query: string }).query : ""),
+    },
     { area: "anilist", method: "POST", endpoint: "/api/v1/manga/anilist/list", answer: listManga },
     { area: "anilist", method: "POST", endpoint: "/api/v1/anilist/list-recent-anime", answer: listRecentAiring },
     { area: "anilist", method: "GET", endpoint: "/api/v1/anilist/stats", answer: viewerStats },

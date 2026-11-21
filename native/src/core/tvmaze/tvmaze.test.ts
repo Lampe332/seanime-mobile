@@ -86,10 +86,10 @@ const IMAGES = [
     { id: 2, type: "background", main: true, resolutions: { original: { url: "https://static.tvmaze.com/bg.jpg" } } },
 ]
 
-function ask(method: string, endpoint: string): Promise<unknown> {
+function ask(method: string, endpoint: string, body?: unknown): Promise<unknown> {
     const match = matchCoreRoute(method, endpoint)
     expect(match, endpoint).toBeTruthy()
-    return match!.route.answer({ path: match!.path, query: null, body: undefined }, environment)
+    return match!.route.answer({ path: match!.path, query: null, body }, environment)
 }
 
 beforeEach(() => {
@@ -193,6 +193,14 @@ describe("details of a title", () => {
         expect((failure as CoreError).status).toBe(404)
     })
 
+    it("are an entry page with the episodes not in the library", async () => {
+        const entry = await ask("GET", "/api/v1/library/anime-entry/-95063") as { mediaId: number, media: Json, listData?: unknown, libraryData?: unknown, downloadInfo: { episodesToDownload: { episodeNumber: number }[] } }
+        expect(entry).toMatchObject({ mediaId: -95063, media: { id: -95063, title: { english: "Dreamland" } } })
+        expect(entry.listData).toBeUndefined()
+        expect(entry.libraryData).toBeUndefined()
+        expect(entry.downloadInfo.episodesToDownload.map(item => item.episodeNumber)).toEqual([1, 2])
+    })
+
     it("give the episodes of a TVmaze title to the episode collection", async () => {
         const collection = await ask("GET", "/api/v1/anime/episode-collection/-95063") as { hasMappingError: boolean, episodes: Json[], metadata: Json }
         expect(collection.hasMappingError).toBe(false)
@@ -234,5 +242,13 @@ describe("search of the other sources", () => {
         answers = {}
         expect(await searchOtherSources(environment, "dreamland ")).toEqual(found)
         expect(await searchOtherSources(environment, "  ")).toEqual({ Page: { pageInfo: { hasNextPage: false, total: 0 }, media: [] } })
+    })
+
+    it("is the core's POST /api/v1/other-sources/search", async () => {
+        answers["/search/shows?q=Dreamland"] = { body: [{ score: 0.9, show: SHOW }] }
+        const found = await ask("POST", "/api/v1/other-sources/search", { query: "Dreamland" }) as { Page: { media: Json[] } }
+        expect(found.Page.media).toMatchObject([{ id: -95063, title: { english: "Dreamland" }, coverImage: { large: expect.any(String) } }])
+        expect(await ask("POST", "/api/v1/other-sources/search", { query: 7 })).toEqual({ Page: { pageInfo: { hasNextPage: false, total: 0 }, media: [] } })
+        expect(await ask("POST", "/api/v1/other-sources/search")).toEqual({ Page: { pageInfo: { hasNextPage: false, total: 0 }, media: [] } })
     })
 })

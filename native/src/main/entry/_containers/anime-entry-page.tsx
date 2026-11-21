@@ -21,6 +21,7 @@ import { AnilistMediaEntryButton } from "@/main/_features/media/_containers/anil
 import { MEDIA_STATUS_LABELS, plainDescription } from "@/main/_features/media/_lib/media-labels"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { listStatusLabel } from "@/main/discover/_lib/discover-phone"
+import { isTvmazeId } from "@/core/tvmaze/tvmaze"
 import { AnimeEntryPhoneMenu } from "@/main/entry/_containers/entry-actions/anime-entry-phone-menu"
 import { PluginPageButtons } from "@/main/_features/plugin/plugin-actions"
 import { PluginTrayButton } from "@/main/_features/plugin/plugin-tray"
@@ -123,6 +124,8 @@ export function AnimeEntryPage() {
     const serverStatus = useServerStatus()
     const params = useLocalSearchParams<{ id?: string, tab?: string }>()
     const mediaId = params.id ? params.id : null
+    // a title of TVmaze (negative id): no AniList list, characters, relations or streaming sources yet, only its episodes
+    const foreign = !!mediaId && isTvmazeId(Number(mediaId))
     const { data: entry, isLoading, isError, refetch, isFetching } = useGetAnimeEntry(mediaId)
     const { data: details, isLoading: detailsLoading } = useGetAnilistAnimeDetails(mediaId)
     const [storedView, setView] = useAtom(__anime_entryPageViewAtom)
@@ -231,10 +234,11 @@ export function AnimeEntryPage() {
         <Button intent="secondary" loading={isFetching} onPress={() => refetch()}>{t("Try again", "Erneut versuchen")}</Button>
     </View>
     if (!entry?.media) return null
+    const pageView: AnimeEntryView = foreign ? "library" : view
 
-    const tabs = getAnimeEntryTabs(t, entry, serverStatus, hidden)
+    const tabs = foreign ? [] : getAnimeEntryTabs(t, entry, serverStatus, hidden)
     const tabsRow = tabs.length > 0 && <Tabs value={view} onValueChange={value => pickView(value as AnimeEntryView)} items={tabs} />
-    const moreSection = <>
+    const moreSection = foreign ? null : <>
         <MediaEntryCharactersSection details={details} loading={detailsLoading} />
         <RelationsRecommendationsSection entry={entry} details={details} loading={detailsLoading} />
     </>
@@ -244,23 +248,23 @@ export function AnimeEntryPage() {
         {/* r22: a library file, torrent, debrid or saved episode of this anime plays on in a box here when made small */}
         <PlayerMediaBox mediaId={entry.mediaId} />
         <PluginWebviewSlot slot="before-anime-entry-episode-list" />
-        {view === "library" && <EpisodeSection entry={entry} bottomSection={bottomSection} />}
-        {view === "torrentstream" && <TorrentStreamPage entry={entry} bottomSection={bottomSection} />}
-        {view === "debridstream" && <DebridStreamPage entry={entry} bottomSection={bottomSection} />}
-        {view === "onlinestream" && <OnlinestreamPage entry={entry} bottomSection={bottomSection} />}
+        {pageView === "library" && <EpisodeSection entry={entry} bottomSection={bottomSection} />}
+        {pageView === "torrentstream" && <TorrentStreamPage entry={entry} bottomSection={bottomSection} />}
+        {pageView === "debridstream" && <DebridStreamPage entry={entry} bottomSection={bottomSection} />}
+        {pageView === "onlinestream" && <OnlinestreamPage entry={entry} bottomSection={bottomSection} />}
         <PluginWebviewSlot slot="after-anime-entry-episode-list" />
     </View>
 
-    const header = <EntryHeader entry={entry} details={details} detailsLoading={detailsLoading} wide={wide} tablet={rail}
+    const header = <EntryHeader entry={entry} details={details} detailsLoading={detailsLoading} wide={wide} tablet={rail} foreign={foreign}
         onEpisodes={wide ? undefined : () => scrollRef.current?.scrollTo({ y: Math.max(0, boxHost.contentOffset().y + episodesY.current - 16), animated: !reduceMotion })}
         actions={<View className="flex-row flex-wrap items-center gap-2">
-            <MoreButton tablet={rail} onPress={() => setMoreOpen(true)} />
-            <PluginPageButtons kind="anime" media={entry.media} />
-            {view === "library" && !entry._isNakamaEntry && !!entry.libraryData && <>
+            {!foreign && <MoreButton tablet={rail} onPress={() => setMoreOpen(true)} />}
+            {!foreign && <PluginPageButtons kind="anime" media={entry.media} />}
+            {pageView === "library" && !entry._isNakamaEntry && !!entry.libraryData && <>
                 <SilenceToggle mediaId={entry.mediaId} />
                 <LockFilesToggle mediaId={entry.mediaId} allFilesLocked={entry.libraryData.allFilesLocked} />
             </>}
-            {view === "library" && entry._isNakamaEntry && <SharedByChip />}
+            {pageView === "library" && entry._isNakamaEntry && <SharedByChip />}
             {/* no top bar strip: the puzzle joins the actions */}
             <PluginTrayButton variant="bar" />
         </View>}
@@ -315,14 +319,16 @@ export function AnimeEntryPage() {
                 </View>
             </Animated.ScrollView>
         </View>
-        <AnimeEntryPhoneMenu entry={entry} details={details} open={moreOpen} onOpenChange={setMoreOpen} isLibraryView={view === "library"} />
-        <TorrentSearchPhone entry={entry} />
+        {!foreign && <AnimeEntryPhoneMenu entry={entry} details={details} open={moreOpen} onOpenChange={setMoreOpen} isLibraryView={view === "library"} />}
+        {!foreign && <TorrentSearchPhone entry={entry} />}
     </BoxHostProvider></EntryScrollProvider>
 }
 
 /** The header (mobile-anime-header.tsx): identity, progress with Edit, the jump to the episodes, About, the actions */
-function EntryHeader({ entry, details, detailsLoading, wide, tablet, onEpisodes, actions, after }: {
+function EntryHeader({ entry, details, detailsLoading, wide, tablet, foreign, onEpisodes, actions, after }: {
     entry: Anime_Entry
+    /** a title of TVmaze: its source instead of the AniList progress, About open */
+    foreign: boolean
     details?: AL_AnimeDetailsById_Media
     detailsLoading: boolean
     wide: boolean
@@ -340,7 +346,7 @@ function EntryHeader({ entry, details, detailsLoading, wide, tablet, onEpisodes,
     const coverWidth = wide ? (width >= 1400 ? 208 : 176) : tablet ? 136 : 88
     const progressTotal = media.episodes
     const status = media.status && MEDIA_STATUS_LABELS[media.status] ? t(...MEDIA_STATUS_LABELS[media.status]) : media.status
-    const [aboutOpen, setAboutOpen] = React.useState(false)
+    const [aboutOpen, setAboutOpen] = React.useState(foreign)
     // the tapped cover flies into this one (cover-flight.tsx); hidden until it lands
     const { coverRef, onLoad: onCoverLoad, hidden: coverHidden } = useCoverFlightTarget(media.id, cover ? getImageUrl(cover) : undefined)
     const fade = useImageFade()
@@ -358,11 +364,11 @@ function EntryHeader({ entry, details, detailsLoading, wide, tablet, onEpisodes,
             </View>
             <View className={cn("min-w-0", !wide && "min-w-[160px] flex-1")}>
                 <Text accessibilityRole="header" numberOfLines={4} className={cn("font-bold text-sm-text", tablet ? "text-[28px] leading-[35px] tracking-[-0.56px]" : "text-[22px] leading-[28px] tracking-[-0.44px]")}>{title}</Text>
-                <Muted className="mt-1.5 capitalize">{[media.startDate?.year, status].filter(Boolean).join(" · ")}</Muted>
+                <Muted className="mt-1.5 capitalize">{[media.startDate?.year, status, foreign && "TVmaze"].filter(Boolean).join(" · ")}</Muted>
             </View>
         </View>
 
-        <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 border-y border-sm-line py-3" style={gaps ? { marginTop: gaps.progress } : undefined}>
+        {!foreign && <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 border-y border-sm-line py-3" style={gaps ? { marginTop: gaps.progress } : undefined}>
             <View className="min-w-0 flex-1">
                 <Text className="text-[11px] leading-6 font-semibold uppercase tracking-[0.88px] text-sm-text-subtle">{t("Your progress", "Dein Fortschritt")}</Text>
                 <View className="h-8 flex-row items-center gap-2">
@@ -378,7 +384,7 @@ function EntryHeader({ entry, details, detailsLoading, wide, tablet, onEpisodes,
             </View>
             <AnilistMediaEntryButton media={media} listData={listData} type="anime" />
             {!!listData?.status && <Muted className="w-full capitalize">{listStatusLabel(t, "anime", listData.status)}{listData.repeat ? ` · ${plural(t, listData.repeat, ["1 rewatch", "{0} rewatches"], ["1 Wiederholung", "{0} Wiederholungen"])}` : ""}</Muted>}
-        </View>
+        </View>}
 
         {!!onEpisodes && <Pressable accessibilityRole="button" onPress={onEpisodes}
             className={cn("min-h-12 flex-row items-center justify-center gap-2 rounded-full bg-brand-500 px-5 py-3 active:bg-brand-600", tablet && "min-w-[288px] self-start")}>
