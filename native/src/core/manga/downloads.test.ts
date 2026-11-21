@@ -262,6 +262,63 @@ describe("manga downloads in the core", () => {
         expect((await queue()).map(item => item.status)).toEqual(["downloading"])
     })
 
+    it("lets go of a chapter paused, deleted or cleared while its pages are asked for (4.3.1)", async () => {
+        // the start waits right after the provider gave the pages, as a slow provider would
+        let open = () => undefined as void
+        const hold = () => new Promise<void>(resolve => { open = resolve })
+        let gate: Promise<void> | null = null
+        const slow = (base: CoreEnvironment): CoreEnvironment => ({ ...base, pause: async part => { if (part === "manga download: request" && gate) await gate } })
+        const plain = environment
+        environment = slow(plain)
+
+        // paused: nothing goes to the loader, the chapter waits again
+        gate = hold()
+        const paused = call("POST", "/api/v1/manga/download-chapters", { mediaId: 30, provider: "manga", chapterIds: ["c-0"], startNow: true })
+        await settle()
+        expect((await queue()).map(item => item.status)).toEqual(["downloading"])
+        await call("POST", "/api/v1/manga/download-queue/stop")
+        open()
+        await paused
+        expect(requests).toEqual([])
+        expect((await queue()).map(item => [item.chapterId, item.status])).toEqual([["c-0", "not_started"]])
+
+        // deleted: not handed to the loader, not written back, not marked as failed
+        gate = hold()
+        const started = call("POST", "/api/v1/manga/download-queue/start")
+        await settle()
+        await call("DELETE", "/api/v1/manga/download-chapter", { downloadIds: [{ provider: "manga", mediaId: 30, chapterId: "c-0", chapterNumber: "1" }] })
+        open()
+        await started
+        expect(requests).toEqual([])
+        expect(await queue()).toEqual([])
+
+        // the queue cleared: the same
+        gate = hold()
+        const cleared = call("POST", "/api/v1/manga/download-chapters", { mediaId: 30, provider: "manga", chapterIds: ["c-2"], startNow: true })
+        await settle()
+        await call("DELETE", "/api/v1/manga/download-queue")
+        open()
+        await cleared
+        expect(requests).toEqual([])
+        // nothing came back into the table either
+        gate = null
+        await forgetMangaDownloads()
+        expect(await queue()).toEqual([])
+        expect(await data()).toEqual({ downloaded: {}, queued: {} })
+    })
+
+    it("removes a waiting or failed chapter from the queue with what it had (4.3.1)", async () => {
+        await call("POST", "/api/v1/manga/download-chapters", { mediaId: 30, provider: "manga", chapterIds: ["c-1", "c-0"], startNow: true })
+        // c-1 failed at the provider, c-0 loads
+        expect((await queue()).map(item => [item.chapterId, item.status])).toEqual([["c-1", "errored"], ["c-0", "downloading"]])
+        await call("DELETE", "/api/v1/manga/download-chapter", { downloadIds: [{ provider: "manga", mediaId: 30, chapterId: "c-1", chapterNumber: "2" }] })
+        expect((await queue()).map(item => item.chapterId)).toEqual(["c-0"])
+        expect(removed).toEqual([`${ROOT}/manga/30/c-1`])
+        await call("DELETE", "/api/v1/manga/download-chapter", { downloadIds: [{ provider: "manga", mediaId: 30, chapterId: "c-0", chapterNumber: "1" }] })
+        expect(forgotten).toContain(requests[0].id)
+        expect(await queue()).toEqual([])
+    })
+
     it("refuses an unknown chapter and leaves the queue as it was", async () => {
         await expect(call("POST", "/api/v1/manga/download-chapters", { mediaId: 30, provider: "manga", chapterIds: ["nope"], startNow: true })).rejects.toThrow("chapter not found")
         expect(await queue()).toEqual([])
@@ -316,7 +373,7 @@ describe("the server's saved chapters (phase 4c-2)", () => {
         expect(lines).toEqual([])
     })
 
-    it("again adds only new chapters, and removing one leaves the server's files", async () => {
+    it("again adds only new chapters, and removing one removes its folder in the server's place too (4.3.1)", async () => {
         await data()
         oldFolders!.push(oldFolder("manga_30_c-5_6", 1))
         expect(await repeatOldChapters()).toEqual({ taken: 1, left: 5 })
@@ -325,7 +382,7 @@ describe("the server's saved chapters (phase 4c-2)", () => {
         await settle()
         expect(events).toContain("refreshed-manga-download-data")
         await call("DELETE", "/api/v1/manga/download-chapter", { downloadIds: [{ provider: "manga", mediaId: 30, chapterId: "c-0", chapterNumber: "1" }] })
-        expect(removed).toEqual([])
+        expect(removed).toEqual(["file:///data/files/manga/manga_30_c-0_1"])
         expect((await data()).downloaded.manga?.map(chapter => chapter.chapterId)).toEqual(["c_9", "c-5"])
         // it does not come back by itself
         await forgetMangaDownloads()

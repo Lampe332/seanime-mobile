@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import type { AL_BaseManga, Manga_ChapterContainer, Manga_DownloadListItem, Models_ChapterDownloadQueueItem } from "@/api/generated/types"
 import { useServerQuery } from "@/api/client/requests"
-import { useDeleteMangaDownloadedChapters, useResetErroredChapterDownloadQueue, useStartMangaDownloadQueue, useStopMangaDownloadQueue } from "@/api/hooks/manga_download.hooks"
+import { useClearAllChapterDownloadQueue, useDeleteMangaDownloadedChapters, useResetErroredChapterDownloadQueue, useStartMangaDownloadQueue, useStopMangaDownloadQueue } from "@/api/hooks/manga_download.hooks"
 import { useGetMangaEntry } from "@/api/hooks/manga.hooks"
 import { Notice, TextAction } from "@/components/shared/phone-kit"
 import { PhoneEmpty, PhoneSection, useGridColumns } from "@/components/shared/phone-cards"
@@ -30,6 +30,7 @@ import Pause from "lucide-react-native/icons/pause"
 import Play from "lucide-react-native/icons/play"
 import RefreshCw from "lucide-react-native/icons/refresh-cw"
 import Trash2 from "lucide-react-native/icons/trash"
+import X from "lucide-react-native/icons/x"
 import React from "react"
 import { ActivityIndicator, Pressable, View } from "react-native"
 
@@ -106,17 +107,31 @@ function QueueBlock({ queue, t }: { queue: Models_ChapterDownloadQueueItem[], t:
     const { mutate: start, isPending: starting } = useStartMangaDownloadQueue()
     const { mutate: stop, isPending: stopping } = useStopMangaDownloadQueue()
     const { mutate: resetErrored, isPending: resetting } = useResetErroredChapterDownloadQueue()
-    const busy = starting || stopping || resetting
+    const { mutate: clearQueue, isPending: clearing } = useClearAllChapterDownloadQueue()
+    const [confirmClear, setConfirmClear] = React.useState(false)
+    const busy = starting || stopping || resetting || clearing
     const loading = queue.filter(q => q.status === "downloading").length
-    const fail = () => toast.error(t("Queue could not be changed", "Warteschlange konnte nicht geändert werden"))
+    // a failure is told once, by the mutation itself (useServerMutation, requests.ts)
     return <PhoneSection title={t("Queue", "Warteschlange")}
         count={queue.length === 1 ? t(`1 chapter · ${loading} loading`, `1 Kapitel · ${loading} werden geladen`) : t(`${queue.length} chapters · ${loading} loading`, `${queue.length} Kapitel · ${loading} werden geladen`)}>
         <View className="flex-row flex-wrap gap-2">
-            <Button intent="secondary" disabled={busy} leftIcon={<Play size={18} color={colors.smText} />} onPress={() => start(undefined, { onError: fail })}>{t("Start / resume", "Starten / Fortsetzen")}</Button>
-            <Button intent="secondary" disabled={busy} leftIcon={<Pause size={18} color={colors.smText} />} onPress={() => stop(undefined, { onError: fail })}>{t("Pause", "Pausieren")}</Button>
+            <Button intent="secondary" disabled={busy} leftIcon={<Play size={18} color={colors.smText} />} onPress={() => start()}>{t("Start / resume", "Starten / Fortsetzen")}</Button>
+            <Button intent="secondary" disabled={busy} leftIcon={<Pause size={18} color={colors.smText} />} onPress={() => stop()}>{t("Pause", "Pausieren")}</Button>
             {queue.some(q => q.status === "errored") && <Button intent="secondary" disabled={busy} leftIcon={<RefreshCw size={18} color={colors.smText} />}
-                onPress={() => resetErrored(undefined, { onSuccess: () => start(undefined, { onError: fail }), onError: fail })}>{t("Try again", "Erneut versuchen")}</Button>}
+                onPress={() => resetErrored(undefined, { onSuccess: () => start() })}>{t("Try again", "Erneut versuchen")}</Button>}
+            <Button intent="secondary" disabled={busy} labelClassName="text-sm-danger" leftIcon={<X size={18} color={colors.smDanger} />}
+                onPress={() => setConfirmClear(true)}>{t("Clear queue", "Warteschlange leeren")}</Button>
         </View>
+        <Dialog title={t("Clear the download queue?", "Download-Warteschlange leeren?")} open={confirmClear} onOpenChange={value => { if (!value) setConfirmClear(false) }}
+            description={t("Every chapter that is not saved yet leaves the queue, with what it had loaded. Saved chapters stay.",
+                "Alle noch nicht gespeicherten Kapitel verlassen die Warteschlange, mit dem bisher Geladenen. Gespeicherte Kapitel bleiben.")}
+            footer={<>
+                <Button intent="secondary" wrapperClassName="flex-1" onPress={() => setConfirmClear(false)}>{t("Cancel", "Abbrechen")}</Button>
+                <Button intent="danger" wrapperClassName="flex-1" onPress={() => {
+                    clearQueue()
+                    setConfirmClear(false)
+                }}>{t("Clear queue", "Warteschlange leeren")}</Button>
+            </>} />
     </PhoneSection>
 }
 
@@ -161,11 +176,14 @@ function MangaCard({ group, width, t, onOpen }: { group: MangaDownloadGroup, wid
 }
 
 function MangaDetail({ group, queue, t, onChanged }: { group: MangaDownloadGroup, queue: Models_ChapterDownloadQueueItem[], t: Translate, onChanged: () => void }) {
-    const media = useGroupMedia(group)
+    // the entry with the list's data: the reader holds the chapter against the saved progress, as from the manga's page (4.3.1)
+    const { data: mangaEntry } = useGetMangaEntry(group.mediaId)
+    const media = group.media ?? mangaEntry?.media
+    const listData = mangaEntry?.listData
     const title = mangaTitle(media) || `Manga ${group.mediaId}`
     const setChapter = useSetAtom(__manga_selectedChapterAtom)
     const [aboutOpen, setAboutOpen] = React.useState(false)
-    const [deleting, setDeleting] = React.useState<{ provider: string, chapterId: string, chapterNumber: string } | null>(null)
+    const [deleting, setDeleting] = React.useState<{ provider: string, chapterId: string, chapterNumber: string, status: string } | null>(null)
     const { mutate: deleteChapters } = useDeleteMangaDownloadedChapters(group.mediaId, null)
     // the reader steps through this manga's downloaded chapters
     useHandleMangaDownloadData(group.mediaId)
@@ -180,8 +198,8 @@ function MangaDetail({ group, queue, t, onChanged }: { group: MangaDownloadGroup
     const pending = React.useMemo(() => new Set(queue.filter(q => q.mediaId === group.mediaId).map(q => `${q.provider}:${q.chapterId}`)), [queue, group.mediaId])
     const readable = React.useMemo(() => (containers ?? []).map(c => ({ ...c, chapters: c.chapters?.filter(ch => !pending.has(`${c.provider}:${ch.id}`)) })), [containers, pending])
     const [readerContainer, setReaderContainer] = React.useState<Manga_ChapterContainer | null>(null)
-    const readerSource = React.useMemo(() => readerContainer ? { entry: { mediaId: group.mediaId, media }, chapterContainer: readerContainer } : null,
-        [readerContainer, group.mediaId, media])
+    const readerSource = React.useMemo(() => readerContainer ? { entry: { mediaId: group.mediaId, media, listData }, chapterContainer: readerContainer } : null,
+        [readerContainer, group.mediaId, media, listData])
     useMangaReaderSource(readerSource)
 
     const open = (provider: string, chapterId: string) => {
@@ -195,6 +213,7 @@ function MangaDetail({ group, queue, t, onChanged }: { group: MangaDownloadGroup
         : status === "errored" ? t("Failed · try again", "Fehlgeschlagen · erneut versuchen") : t("Waiting to download", "Wartet auf Download")
     const ready = readyChapters(group).length
     const description = plainDescription(media?.description)
+    const queued = !!deleting && deleting.status !== "ready"
 
     return <View className="gap-6">
         <View className="gap-4">
@@ -236,26 +255,28 @@ function MangaDetail({ group, queue, t, onChanged }: { group: MangaDownloadGroup
                                 <Text className="text-sm font-semibold text-sm-accent">{t("Read", "Lesen")}</Text>
                             </View>}
                         </Pressable>
-                        {isReady && <Pressable accessibilityRole="button" accessibilityLabel={t(`Delete chapter ${ch.chapterNumber}`, `Kapitel ${ch.chapterNumber} löschen`)}
-                            onPress={() => setDeleting(ch)} className="h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control">
-                            <Trash2 size={20} color={colors.smDanger} />
-                        </Pressable>}
+                        {/* a waiting or failed chapter leaves the queue the same way (4.3.1) */}
+                        <Pressable accessibilityRole="button" onPress={() => setDeleting(ch)} className="h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control"
+                            accessibilityLabel={isReady ? t(`Delete chapter ${ch.chapterNumber}`, `Kapitel ${ch.chapterNumber} löschen`)
+                                : t(`Remove chapter ${ch.chapterNumber} from the queue`, `Kapitel ${ch.chapterNumber} aus der Warteschlange entfernen`)}>
+                            {isReady ? <Trash2 size={20} color={colors.smDanger} /> : <X size={20} color={colors.smDanger} />}
+                        </Pressable>
                     </View>
                 })}
             </View>
         </PhoneSection>
-        <Dialog title={t("Delete chapter from device?", "Kapitel vom Gerät löschen?")} open={!!deleting} onOpenChange={value => { if (!value) setDeleting(null) }}
+        <Dialog title={queued ? t("Remove chapter from the queue?", "Kapitel aus der Warteschlange entfernen?") : t("Delete chapter from device?", "Kapitel vom Gerät löschen?")}
+            open={!!deleting} onOpenChange={value => { if (!value) setDeleting(null) }}
             description={`${title} · ${t(`Chapter ${deleting?.chapterNumber ?? ""}`, `Kapitel ${deleting?.chapterNumber ?? ""}`)}`}
             footer={<>
                 <Button intent="secondary" wrapperClassName="flex-1" onPress={() => setDeleting(null)}>{t("Cancel", "Abbrechen")}</Button>
                 <Button intent="danger" wrapperClassName="flex-1" onPress={() => {
                     if (!deleting) return
-                    deleteChapters({ downloadIds: [{ ...deleting, mediaId: group.mediaId }] }, {
-                        onSuccess: onChanged,
-                        onError: () => toast.error(t("Chapter could not be deleted", "Kapitel konnte nicht gelöscht werden")),
-                    })
+                    const { provider, chapterId, chapterNumber } = deleting
+                    // a failure is told once, by the mutation itself
+                    deleteChapters({ downloadIds: [{ provider, chapterId, chapterNumber, mediaId: group.mediaId }] }, { onSuccess: onChanged })
                     setDeleting(null)
-                }}>{t("Delete", "Löschen")}</Button>
+                }}>{queued ? t("Remove", "Entfernen") : t("Delete", "Löschen")}</Button>
             </>} />
     </View>
 }

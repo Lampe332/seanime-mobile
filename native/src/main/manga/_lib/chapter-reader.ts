@@ -155,6 +155,33 @@ export function secondPageLabel(map: Record<number, number[]>, currentPageIndex:
     return `-${second + 1}`
 }
 
+/** The first page of a step; undefined while the map has no such step (a chapter whose map is not built yet). */
+export function pageOfStep(map: Record<number, number[]>, step: number): number | undefined {
+    return map[step]?.[0]
+}
+
+/**
+ * The reader's state when a chapter opens (4.3.1): at its start page (the saved one or the first), not read, and no
+ * pagination map yet. The reader sets it before it lays out the chapter's pages, so neither the step 0 nor the "last
+ * page" of the chapter before can reach the new one: the paged reader then finds the step of the start page itself.
+ */
+export function chapterStartState(startPage: number) {
+    return { isLastPage: false, currentPageIndex: startPage, currentMapIndex: 0, paginationMap: {} as Record<number, number[]> }
+}
+
+/**
+ * Whether "Auto update progress" saves the open chapter now: switched on, not incognito, the chapter after the saved
+ * progress, its pages there, on its last page, once per chapter, and only after the chapter's own start state was set
+ * (`startedFor`): until then "last page" may still be the previous chapter's.
+ */
+export function shouldAutoSaveProgress(state: {
+    enabled: boolean, incognito: boolean, chapterId: string | undefined, chapterKey: string, startedFor: string,
+    shouldUpdate: boolean, pagesReady: boolean, isLastPage: boolean, lastSavedChapterId: string | null,
+}) {
+    return state.enabled && !state.incognito && !!state.chapterId && state.chapterKey !== "" && state.startedFor === state.chapterKey
+        && state.shouldUpdate && state.pagesReady && state.isLastPage && state.lastSavedChapterId !== state.chapterId
+}
+
 /** The next step of the map for a tap or swipe on one side; the same step at either end. */
 export function stepPaginationMap(map: Record<number, number[]>, current: number, side: "left" | "right", direction: string) {
     const back = side === "left" && direction === MangaReadingDirection.LTR || side === "right" && direction === MangaReadingDirection.RTL
@@ -180,10 +207,13 @@ export function shouldUpdateMangaProgress(chapterNumber: number | null | undefin
 
 /**
  * Long strip: the chapter counts as read once the strip is scrolled past 1000dp and its end is less than 1500dp below the
- * screen (chapter-vertical-reader.tsx); only then the progress may be saved.
+ * screen (chapter-vertical-reader.tsx); only then the progress may be saved. A strip too short to scroll 1000dp (three
+ * pages or fewer on a phone) counts once it is scrolled to its end (4.3.1).
  */
 export function isNearStripEnd(offset: number, viewport: number, content: number, hasPages: boolean) {
-    return offset > 1000 && hasPages && offset + viewport >= content - 1500
+    const scrollable = content - viewport
+    const scrolled = offset > 1000 || (scrollable > 0 && offset >= scrollable - 50)
+    return scrolled && hasPages && offset + viewport >= content - 1500
 }
 
 /** The page under the reading line (`line` dp below the top of the screen) in a strip of pages with `gap` between them. */

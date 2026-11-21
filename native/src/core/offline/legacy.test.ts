@@ -142,15 +142,31 @@ describe("taking the server's episodes over", () => {
         expect(await rowsOf()).toEqual(["7-1-sub", "ghi789"])
     })
 
-    it("removing one takes only the core's entry: the server's files stay, and it does not come back by itself", async () => {
-        queue = queueOf(serverEntry("abc123"))
+    it("removing one takes its files in the server's folder too, keeps a picture another one shows, and it does not come back (4.3.1)", async () => {
+        queue = queueOf(serverEntry("abc123"), serverEntry("ghi789", { episode: "2", episodeImageAsset: "dd44.jpg" }))
         await offlineSnapshot(environment())
         await offlineAction(environment(), { id: "abc123", action: "remove" })
-        expect(removed).toEqual([])
+        // cover and banner are the other episode's too
+        expect(removed).toEqual([`${OLD_ROOT}/episodes/abc123`, `${OLD_ROOT}/artwork/cc33.jpg`])
+        expect(offlineArtworkAddress("aa11.jpg")).toBe(`${OLD_ROOT}/artwork/aa11.jpg`)
+        await offlineAction(environment(), { id: "ghi789", action: "remove" })
+        expect(removed.slice(2)).toEqual([`${OLD_ROOT}/episodes/ghi789`, `${OLD_ROOT}/artwork/aa11.jpg`, `${OLD_ROOT}/artwork/bb22.jpg`, `${OLD_ROOT}/artwork/dd44.jpg`])
         expect(await rowsOf()).toEqual([])
         expect(offlineFileAddress("abc123", "video.ts")).toBe(`${ROOT}/episodes/abc123/video.ts`)
         await forgetOfflineService()
         expect((await offlineSnapshot(environment())).items).toEqual([])
+    })
+
+    it("a repeat does not take again an episode whose video is gone (4.3.1)", async () => {
+        queue = queueOf(serverEntry("abc123"))
+        const there = new Set<string>()
+        const checking = (): OfflineEnvironment => ({ ...environment(), device: { ...device(), has: async address => there.has(address) } })
+        await offlineSnapshot(checking())
+        expect(await rowsOf()).toEqual([])
+        there.add(`${OLD_ROOT}/episodes/abc123/video.ts`)
+        await forgetOfflineService()
+        expect(await repeatOldEpisodes()).toBeNull()
+        expect((await offlineSnapshot(checking())).items.map(item => item.id)).toEqual(["abc123"])
     })
 
     it("leaves no note when the list cannot be read, so the next start tries again", async () => {

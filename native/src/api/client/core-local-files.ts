@@ -4,9 +4,10 @@ import { deleteAsync, getInfoAsync, readDirectoryAsync } from "expo-file-system/
 
 /*
  * The device's side of the core's library folders (library/scan.ts, library/folders.ts): one folder of the user's
- * library listed by its path (e.g. /storage/emulated/0/Movies), names and sizes only, and an empty folder removed.
- * Nothing here writes, moves or removes a file. Reading another app's folders needs the "all files" access the app
- * already asks for (AndroidManifest MANAGE_EXTERNAL_STORAGE).
+ * library listed by its path (e.g. /storage/emulated/0/Movies), names and sizes only, an empty folder removed, and one
+ * file deleted when the user deletes it (4.3.1; the core checks it is a library file first). Nothing here writes or
+ * moves a file. Reading and deleting in another app's folders needs the "all files" access the app already asks for
+ * (AndroidManifest MANAGE_EXTERNAL_STORAGE).
  *
  * Only the module's async functions: they run on the module's thread and are waits of the watch. The newer
  * Directory/File (`list()`, `size`) ran on the screens' thread: 9.5 ms "library scan folders" on the tablet (5b-1).
@@ -37,6 +38,20 @@ async function removeEmptyFolder(path: string): Promise<boolean> {
     return true
 }
 
+async function removeFile(path: string): Promise<boolean> {
+    const address = addressOf(path)
+    const file = await getInfoAsync(address)
+    if (!file.exists) return true
+    // a folder is never deleted here
+    if (file.isDirectory) return false
+    await deleteAsync(address, { idempotent: true })
+    return !(await getInfoAsync(address)).exists
+}
+
 export function localFoldersFor(watch: BlockingWatch): LocalFolders {
-    return { list: watch.waiting(list, "folder list"), removeEmptyFolder: watch.waiting(removeEmptyFolder, "folder remove") }
+    return {
+        list: watch.waiting(list, "folder list"),
+        removeEmptyFolder: watch.waiting(removeEmptyFolder, "folder remove"),
+        removeFile: watch.waiting(removeFile, "file remove"),
+    }
 }

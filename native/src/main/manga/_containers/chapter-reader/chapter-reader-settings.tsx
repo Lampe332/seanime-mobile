@@ -138,8 +138,9 @@ export function ChapterReaderSettings() {
             <ReaderSwitch label={t("Tap the middle to show or hide controls", "Mitte antippen blendet Steuerung ein/aus")} checked={tapToggleControls} onChange={setTapToggleControls} />
             {effectiveMode === MangaReadingMode.LONG_STRIP && <ReaderSwitch label={t("Hide controls while scrolling down", "Steuerung beim Runterscrollen ausblenden")}
                 checked={autoHideControls} onChange={setAutoHideControls} />}
-            {effectiveMode === MangaReadingMode.DOUBLE_PAGE && <ReaderStepper t={t} label={t("Page offset", "Seitenversatz")} value={doublePageOffset}
-                display={String(doublePageOffset)} onChange={setDoublePageOffset} min={-10} max={10} step={1} />}
+            {/* the offset counts the pages shown alone at the start (the cover): below 0 it had no effect (4.3.1) */}
+            {effectiveMode === MangaReadingMode.DOUBLE_PAGE && <ReaderStepper t={t} label={t("Page offset", "Seitenversatz")} value={Math.max(0, doublePageOffset)}
+                display={String(Math.max(0, doublePageOffset))} onChange={setDoublePageOffset} min={0} max={10} step={1} />}
         </ReaderGroup>
 
         <ReaderGroup title={t("Page", "Seite")}>
@@ -205,7 +206,7 @@ function ReaderSegment({ label, value, onChange, options, note }: { label: strin
                 const pressed = value === option.value
                 return <Pressable key={option.value} accessibilityRole="button" accessibilityState={{ selected: pressed }} onPress={() => onChange(option.value)}
                     style={{ width: `${100 / columns - 2}%`, flexGrow: 1 }}
-                    className={cn("min-h-11 items-center justify-center rounded-[8px] px-2 py-1", pressed && "bg-sm-surface-control")}>
+                    className={cn("min-h-12 items-center justify-center rounded-[8px] px-2 py-1", pressed && "bg-sm-surface-control")}>
                     <Text numberOfLines={2} className={cn("text-center text-sm leading-[17px]", pressed ? "font-semibold text-sm-text" : "font-medium text-sm-text-muted")}>{option.label}</Text>
                 </Pressable>
             })}
@@ -220,15 +221,15 @@ function ReaderStepper({ t, label, value, display, onChange, min, max, step, onR
     const set = (next: number) => onChange(Math.min(max, Math.max(min, Math.round(next * 100) / 100)))
     return <View className="min-h-12 flex-row items-center gap-3 bg-sm-surface-raised px-3 py-1.5">
         <Text className="min-w-0 flex-1 text-[15px]">{label}</Text>
-        {!!onReset && <Pressable accessibilityRole="button" onPress={onReset} className="min-h-11 justify-center px-2"><Text className="text-[13px] text-sm-accent">{t("Reset", "Zurücksetzen")}</Text></Pressable>}
+        {!!onReset && <Pressable accessibilityRole="button" onPress={onReset} className="min-h-12 justify-center px-2"><Text className="text-[13px] text-sm-accent">{t("Reset", "Zurücksetzen")}</Text></Pressable>}
         <View accessibilityLabel={label} className="flex-row items-center gap-1">
             <Pressable accessibilityRole="button" accessibilityLabel={t(`Decrease ${label}`, `${label} verringern`)} disabled={value <= min} onPress={() => set(value - step)}
-                className={cn("h-11 w-11 items-center justify-center rounded-full bg-sm-surface-control", value <= min && "opacity-35")}>
+                className={cn("h-12 w-12 items-center justify-center rounded-full bg-sm-surface-control", value <= min && "opacity-35")}>
                 <Minus size={18} color={colors.smText} />
             </Pressable>
             <Text accessibilityLiveRegion="polite" className="min-w-[68px] text-center" style={{ fontVariant: ["tabular-nums"] }}>{display}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel={t(`Increase ${label}`, `${label} erhöhen`)} disabled={value >= max} onPress={() => set(value + step)}
-                className={cn("h-11 w-11 items-center justify-center rounded-full bg-sm-surface-control", value >= max && "opacity-35")}>
+                className={cn("h-12 w-12 items-center justify-center rounded-full bg-sm-surface-control", value >= max && "opacity-35")}>
                 <Plus size={18} color={colors.smText} />
             </Pressable>
         </View>

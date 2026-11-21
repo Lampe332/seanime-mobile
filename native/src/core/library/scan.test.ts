@@ -38,6 +38,8 @@ let searchAnswer: Json[] = []
 let documents: string[] = []
 let autoScan = false
 let removed: string[] = []
+let deletedFiles: string[] = []
+let stuck = ""
 let pauses = 0
 let events: CoreEvent[] = []
 
@@ -75,6 +77,16 @@ const environment = {
             const parent = path.slice(0, path.lastIndexOf("/"))
             tree[parent] = tree[parent].filter(entry => `${parent}/${entry.name}` !== path)
             removed.push(path)
+            return true
+        },
+        // like the device: a file goes, a folder never; `stuck` cannot be deleted
+        removeFile: async (path: string) => {
+            if (path === stuck) throw new Error("not allowed")
+            const parent = path.slice(0, path.lastIndexOf("/"))
+            const entry = tree[parent]?.find(item => `${parent}/${item.name}` === path)
+            if (entry?.folder) return false
+            if (entry) tree[parent] = tree[parent].filter(item => item !== entry)
+            deletedFiles.push(path)
             return true
         },
     }),
@@ -300,12 +312,31 @@ describe("changing the files", () => {
         expect(files.find(item => item.path === path)).toMatchObject({ mediaId: WARS, locked: true, metadata: { episode: 3, type: "main" } })
     })
 
-    it("removing entries never touches the device's files", async () => {
+    it("deleting files deletes them from the device, so the next scan does not bring them back (4.3.1)", async () => {
         await lists()
         await scanned()
+        deletedFiles = []
         const left = await ask("DELETE", "/api/v1/library/local-files", { paths: [`${ROOT}/Dr. STONE - 01.mp4`] }) as Json[]
         expect(left.map(item => item.name).sort()).toEqual(["Dr. STONE - 02.mp4", "Urlaub am See 2025 - 03.mp4"])
-        expect(tree[ROOT].map(entry => entry.name)).toContain("Dr. STONE - 01.mp4")
+        expect(deletedFiles).toEqual([`${ROOT}/Dr. STONE - 01.mp4`])
+        expect(tree[ROOT].map(entry => entry.name)).not.toContain("Dr. STONE - 01.mp4")
+        expect((await scanned()).map(item => item.name).sort()).toEqual(["Dr. STONE - 02.mp4", "Urlaub am See 2025 - 03.mp4"])
+    })
+
+    it("deletes only files the library knows inside its folders, and keeps the entry of a file that cannot go", async () => {
+        await lists()
+        await scanned()
+        deletedFiles = []
+        // not in the library, outside its folders, a way out of it, a folder: nothing is touched
+        await expect(ask("DELETE", "/api/v1/library/local-files", { paths: ["/storage/emulated/0/DCIM/photo.mp4", `${ROOT}/../x.mp4`, `${ROOT}/Other`] }))
+            .rejects.toThrow("3 files could not be deleted")
+        expect(deletedFiles).toEqual([])
+        stuck = `${ROOT}/Dr. STONE - 02.mp4`
+        await expect(ask("DELETE", "/api/v1/library/local-files", { paths: [stuck, `${ROOT}/Dr. STONE - 01.mp4`] })).rejects.toThrow("1 file could not be deleted")
+        stuck = ""
+        expect(deletedFiles).toEqual([`${ROOT}/Dr. STONE - 01.mp4`])
+        const files = await ask("POST", "/api/v1/library/local-files", { action: "unlock" }) as Json[]
+        expect(files.map(item => item.name).sort()).toEqual(["Dr. STONE - 02.mp4", "Urlaub am See 2025 - 03.mp4"])
     })
 })
 

@@ -278,6 +278,47 @@ describe("changing a list entry, held against the recording", () => {
         expect((await entryInLists(MANGA, "MANGA"))?.list.status).toBe("CURRENT")
     })
 
+    it("never lowers the progress nor reopens a completed entry by itself (auto), while a mark of the user still may (4.3.1)", async () => {
+        const progress = (kind: "anime" | "manga", mediaId: number, number: number, total: number, auto: boolean) => kind === "anime"
+            ? ask("POST", "/api/v1/library/anime-entry/update-progress", { mediaId, episodeNumber: number, totalEpisodes: total, ...(auto ? { auto } : {}) })
+            : ask("POST", "/api/v1/manga/update-progress", { mediaId, chapterNumber: number, totalChapters: total, ...(auto ? { auto } : {}) })
+        // the manga reader opened from Downloads without the list's data: chapter 3 of a manga read to 120 and completed
+        put(MANGA, { status: "COMPLETED", progress: 120, completedAt: { year: 2026, month: 1, day: 2 } })
+        put(ANIME, { status: "CURRENT", progress: 7 })
+        put(1, { status: "COMPLETED", progress: 5, completedAt: { year: 2026, month: 1, day: 2 } })
+        await lists("MANGA")
+        await lists()
+        asked = []
+        expect(await progress("manga", MANGA, 3, 0, true)).toBe(true)
+        expect(await progress("manga", MANGA, 120, 0, true)).toBe(true)
+        expect(await progress("anime", ANIME, 2, 24, true)).toBe(true)
+        expect(sent("SaveEntry")).toEqual([])
+        expect(entries.get(MANGA)).toMatchObject({ status: "COMPLETED", progress: 120 })
+        expect(entries.get(ANIME)).toMatchObject({ status: "CURRENT", progress: 7 })
+        // further than the entry: the progress goes up, a completed entry stays completed (the player's 80 %, a bonus chapter)
+        expect(await progress("anime", 1, 6, 0, true)).toBe(true)
+        expect(await progress("manga", MANGA, 121, 0, true)).toBe(true)
+        expect(sent("SaveEntry").map(item => item.variables)).toEqual([{ mediaId: 1, status: "COMPLETED", progress: 6 }, { mediaId: MANGA, status: "COMPLETED", progress: 121 }])
+        expect(entries.get(1)).toMatchObject({ status: "COMPLETED", progress: 6, completedAt: { year: 2026, month: 1, day: 2 } })
+        // the user's own mark goes through as before: down, and "current"
+        asked = []
+        expect(await progress("manga", MANGA, 3, 0, false)).toBe(true)
+        expect(sent("SaveEntry").map(item => item.variables)).toEqual([{ mediaId: MANGA, status: "CURRENT", progress: 3 }])
+    })
+
+    it("holds the same line for a change that waits for AniList (the core's lists show it at once)", async () => {
+        put(MANGA, { status: "CURRENT", progress: 10 })
+        await lists("MANGA")
+        reach = "down"
+        await ask("POST", "/api/v1/manga/update-progress", { mediaId: MANGA, chapterNumber: 11, totalChapters: 0, auto: true })
+        expect((await entryInLists(MANGA, "MANGA"))?.entry).toMatchObject({ progress: 11 })
+        await ask("POST", "/api/v1/manga/update-progress", { mediaId: MANGA, chapterNumber: 4, totalChapters: 0, auto: true })
+        expect((await entryInLists(MANGA, "MANGA"))?.entry).toMatchObject({ progress: 11 })
+        reach = "up"
+        await sendWaitingChanges(environment)
+        expect(entries.get(MANGA)).toMatchObject({ progress: 11 })
+    })
+
     it("tells the app what the server told it, and has the server read its lists again", async () => {
         put(ANIME, { status: "PLANNING" })
         await lists()

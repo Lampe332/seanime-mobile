@@ -35,6 +35,8 @@ export type LocalFolders = {
     list: (path: string) => Promise<LocalFolderEntry[]>
     /** Removes the folder only when it holds nothing at all (read again right before) → whether it was removed */
     removeEmptyFolder: (path: string) => Promise<boolean>
+    /** Deletes one file (never a folder) → whether it is gone now (also when it was not there); throws when it cannot be deleted */
+    removeFile: (path: string) => Promise<boolean>
 }
 
 const MAX_FILES = 20000

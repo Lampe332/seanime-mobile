@@ -6,12 +6,14 @@ import { anilistMedia, localFiles } from "../database/schema"
 import { CoreError } from "../errors"
 import { parse } from "../extensions/helpers/prelude/habari"
 import type { CoreEnvironment, CoreRequest } from "../registry"
+// used inside deleteLocalFiles only (scan.ts imports this file too)
+import { libraryFolders } from "./scan"
 
 /*
  * The user's own video files (area `library`, phase 5b-1, docs/EIGENER-KERN.md §4p): one row per file in `local_files`,
  * filled by the scan (scan.ts). Here: what a file's name says, which anime it belongs to (own rule below), the forms
  * the screens read (`Anime_LocalFile`, `libraryData`, the episodes of an anime's page) and the changes the screens make
- * (lock, ignore, unmatch, set the episode, match by hand). Removing entries never touches the files themselves.
+ * (lock, ignore, unmatch, set the episode, match by hand). Deleting files removes them from the device (4.3.1).
  *
  * Matching rule (own): a title is made plain (accents off, lower case, "&" → "and", everything but letters and digits
  * a space) and a season sign is taken out of it ("season 2", "2nd season", "s2", a last single digit 2–9). The file's
@@ -280,14 +282,43 @@ export async function updateLocalFileData(request: CoreRequest, environment: Env
     return (await allFiles(await environment.database())).map(asLocalFile)
 }
 
-/** DELETE /api/v1/library/local-files: the entries go, the files on the device stay (§4p 5b-1) → the files left */
-export async function deleteLocalFiles(request: CoreRequest, environment: Environment): Promise<Json[]> {
+/** A file of the library: inside one of its folders, not the folder itself, no step up (`..`) in its path */
+export function insideLibrary(path: string, roots: string[]): boolean {
+    if (path.split("/").some(part => part === ".." || part === ".")) return false
+    return roots.some(root => root !== "" && path.startsWith(`${root}/`) && path.length > root.length + 1)
+}
+
+/**
+ * DELETE /api/v1/library/local-files: the files are deleted from the device, then their entries go (4.3.1; before, only
+ * the entries went and the next scan brought the files back, while the screens said "deleted from this device"). Only a
+ * file the library knows (a row of `local_files`) inside the library's folders is touched, never a folder. A file that
+ * cannot be deleted keeps its entry, and the answer is an error naming how many → the files left.
+ */
+export async function deleteLocalFiles(request: CoreRequest, environment: CoreEnvironment): Promise<Json[]> {
     const paths = pathsOf(request.body)
     const database = await environment.database()
-    for (let at = 0; at < paths.length; at += 50) {
-        if (at > 0) await environment.pause("library file removal")
-        await inOrder(database, () => database.delete(localFiles).where(inArray(localFiles.path, paths.slice(at, at + 50))))
+    if (paths.length === 0) return (await allFiles(database)).map(asLocalFile)
+    if (!environment.localFolders) throw new CoreError("the device's folders are not available here", 500)
+    const device = await environment.localFolders()
+    const roots = await libraryFolders(environment)
+    const known = new Set((await inOrder(database, () => database.select({ path: localFiles.path }).from(localFiles).where(inArray(localFiles.path, paths)))).map(row => row.path))
+    const gone: string[] = []
+    let failed = 0
+    for (const path of paths) {
+        if (!known.has(path) || !insideLibrary(path, roots)) {
+            failed++
+            continue
+        }
+        await environment.pause("library file removal")
+        const removed = await device.removeFile(path).catch(() => false)
+        if (removed) gone.push(path)
+        else failed++
     }
+    for (let at = 0; at < gone.length; at += 50) {
+        if (at > 0) await environment.pause("library file removal")
+        await inOrder(database, () => database.delete(localFiles).where(inArray(localFiles.path, gone.slice(at, at + 50))))
+    }
+    if (failed > 0) throw new CoreError(failed === 1 ? "1 file could not be deleted" : `${failed} files could not be deleted`, 500)
     return (await allFiles(database)).map(asLocalFile)
 }
 

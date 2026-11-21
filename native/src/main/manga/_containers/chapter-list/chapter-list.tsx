@@ -235,10 +235,10 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
                 </View>}
             </View>}
             {/* rarely needed: reloading the source and matching the title by hand wait behind one quiet button */}
-            {/* `[data-manga-source-more]`: a 44dp pill at the start of the line (`.mobile-source-more`) */}
+            {/* `[data-manga-source-more]`: a pill at the start of the line (`.mobile-source-more`), 48dp to touch (4.3.1, was 44dp) */}
             <View className="flex-row">
                 <Pressable accessibilityRole="button" accessibilityLabel={t("More source options", "Weitere Quellen-Optionen")} onPress={() => setSourceSheet("menu")}
-                    className="min-h-11 flex-row items-center gap-2 rounded-full bg-sm-surface-control pl-3.5 pr-[18px] active:bg-sm-accent-soft">
+                    className="min-h-12 flex-row items-center gap-2 rounded-full bg-sm-surface-control pl-3.5 pr-[18px] active:bg-sm-accent-soft">
                     <EllipsisVertical size={16} color={colors.smText} />
                     <Text className="text-sm font-semibold">{sourceRefreshRunning ? t("Refreshing …", "Wird aktualisiert …") : t("More", "Mehr")}</Text>
                 </Pressable>

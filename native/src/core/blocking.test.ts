@@ -213,7 +213,7 @@ describe("blocking watch", () => {
         expect(folders).not.toContain("from \"expo-file-system\"")
         expect(folders).toContain("from \"expo-file-system/legacy\"")
         expect(folders).not.toMatch(/Sync\(|new File\(|new Directory\(|\.list\(\)/)
-        expect(folders).toContain("return { list: watch.waiting(list, \"folder list\"), removeEmptyFolder: watch.waiting(removeEmptyFolder, \"folder remove\") }")
+        expect(folders).toMatch(/return \{\s+list: watch\.waiting\(list, "folder list"\),\s+removeEmptyFolder: watch\.waiting\(removeEmptyFolder, "folder remove"\),\s+removeFile: watch\.waiting\(removeFile, "file remove"\),\s+\}/)
         expect(seam).toContain("localFolders: async () => (await import(\"@/api/client/core-local-files\")).localFoldersFor(watch),")
         // the core starts after the turn of the hook that asked (3g)
         expect(seam).toMatch(/await watch\.afterCallersTurn\(\)\s+watch\.enter\(what\)\s+const environment = coreEnvironment\(\)\s+watch\.mark\("core"\)\s+const result = await answer\(/)

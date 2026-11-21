@@ -54,7 +54,7 @@ import { TorrentDownloads } from "./torrent-downloads"
  */
 
 const PATH = "/android-downloads"
-// below this the Go server starts no download (manager.go minFree)
+// below this the storage line warns (the Go server's minFree, manager.go); a download that fills the storage fails and waits for "Retry"
 const MIN_FREE = 256 * 1024 ** 2
 
 export function DownloadsPhone({ kind, animeKey: selectedKey, mangaId = 0 }: {
@@ -99,6 +99,8 @@ export function DownloadsPhone({ kind, animeKey: selectedKey, mangaId = 0 }: {
     // Android back: the dialogs close themselves; then the selection ends, then the anime goes back to the overview
     useCloseOnBack(focused && selecting, endSelection)
     useCloseOnBack(focused && !selecting && !!selectedKey, () => router.replace(PATH))
+    // a manga (?kind=manga&manga=ID) goes back to the Manga tab's overview, not to the tab visited before (4.3.1)
+    useCloseOnBack(focused && kind === "manga" && mangaId > 0, () => router.replace(`${PATH}?kind=manga`))
 
     const { mutate: runAction } = useMobileOfflineAction()
     const act = (item: OfflineItem, action: "pause" | "resume" | "retry" | "remove") => runAction({ id: item.id, action })
@@ -409,7 +411,8 @@ function DownloadSettings({ wifiOnly, episodeBytes, size }: { wifiOnly: boolean,
                     {[t(`${size(usedBytes)} used by downloads`, `${size(usedBytes)} durch Downloads belegt`), free !== null ? t(`${size(free)} free`, `${size(free)} frei`) : null].filter(Boolean).join(" · ")}
                 </Muted>
                 {free !== null && free < MIN_FREE && <Text className="text-[13px] text-sm-danger">
-                    {t("Less than 256 MB free. Downloads start again once you free up storage.", "Weniger als 256 MB frei. Downloads starten erst wieder, wenn du Speicher freigibst.")}
+                    {/* 4.3.1: nothing restarts by itself after a full storage (core/download/loader.ts worthAnotherTry) */}
+                    {t("Less than 256 MB free. Free up storage, then retry the failed downloads.", "Weniger als 256 MB frei. Gib Speicher frei und versuche die fehlgeschlagenen Downloads dann erneut.")}
                 </Text>}
             </View>
         </RowGroup>

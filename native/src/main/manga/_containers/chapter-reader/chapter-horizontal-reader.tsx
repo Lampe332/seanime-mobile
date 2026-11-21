@@ -1,5 +1,5 @@
 import type { Manga_PageContainer } from "@/api/generated/types"
-import { DEFAULT_PAGE_RATIO, pagedPageSize, pagesLeftToRight, readerTapZone, stepPaginationMap } from "@/main/manga/_lib/chapter-reader"
+import { DEFAULT_PAGE_RATIO, pageOfStep, pagedPageSize, pagesLeftToRight, readerTapZone, stepPaginationMap } from "@/main/manga/_lib/chapter-reader"
 import { useEffectiveReadingMode, useHandleChapterPageStatus, useHydrateMangaPaginationMap } from "@/main/manga/_lib/handle-chapter-reader"
 import {
     __manga_currentPageIndexAtom,
@@ -90,8 +90,9 @@ export function MangaHorizontalReader({ pageContainer, pageUrl, pageHeaders, wid
         reset()
         scroll.current?.scrollTo({ x: 0, y: 0, animated: false })
         updateFrame({ scrollX: 0, scrollY: 0 })
-        const pages = paginationMap[currentMapIndex]
-        if (pages && pageContainer?.pages?.length) setCurrentPageIndex(pages[0])
+        // no step yet (the map of a chapter just opened): the start page stays (4.3.1)
+        const first = pageOfStep(paginationMap, currentMapIndex)
+        if (first !== undefined && pageContainer?.pages?.length) setCurrentPageIndex(first)
     }, [currentMapIndex, pageContainer?.pages, paginationMap, reset, updateFrame, setCurrentPageIndex])
 
     // fetch the next pages ahead, so turning shows them at once

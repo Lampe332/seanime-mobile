@@ -48,6 +48,9 @@ import { ActivityIndicator, Pressable, View } from "react-native"
  */
 
 
+/** A filtered list shows at most this many files (a long list in one sheet stays light) */
+const MAX_ROWS = 200
+
 /** Mounted in the main layout; the file tree loads on the first opening, not with every app start. */
 export function LibraryExplorerPhone() {
     const open = useAtomValue(libraryExplorer_drawerOpenAtom)
@@ -60,7 +63,7 @@ function ExplorerSheet() {
     const t = useTr()
     const [open, setOpen] = useAtom(libraryExplorer_drawerOpenAtom)
     const [openDirectory, setOpenDirectory] = useAtom(libraryExplorer_openDirectoryAtom)
-    const { data: tree, isLoading } = useGetLibraryExplorerFileTree()
+    const { data: tree, isLoading, isError, refetch } = useGetLibraryExplorerFileTree()
     const { mutate: refresh, isPending: refreshing } = useRefreshLibraryExplorerFileTree()
     const { data: collection } = useGetLibraryCollection()
     const { mutate: updateFiles, isPending: updating } = useUpdateLocalFiles()
@@ -212,11 +215,18 @@ function ExplorerSheet() {
                 chips={[{ value: "unmatched", label: t("No anime", "Ohne Anime"), count: counts.unmatched }, { value: "ignored", label: t("Ignored", "Ignoriert"), count: counts.ignored },
                     { value: "unlocked", label: t("Not locked", "Nicht gesperrt"), count: counts.unlocked }]} />
             {isLoading ? <LoadingRows label={t("Loading files", "Dateien werden geladen")} />
+                // a failed read is not "no folder" (4.3.1)
+                : !root && isError ? <PhoneEmpty title={t("Files could not be read", "Dateien konnten nicht gelesen werden")}
+                    text={t("The library folder may be missing or not readable right now.", "Der Bibliotheksordner fehlt vielleicht oder ist gerade nicht lesbar.")}>
+                    <Button intent="secondary" onPress={() => void refetch()}>{t("Try again", "Erneut versuchen")}</Button>
+                </PhoneEmpty>
                 : !root ? <PhoneEmpty title={t("No library folder", "Kein Bibliotheksordner")} text={t("Choose one in Settings, then scan it.", "Wähle einen in den Einstellungen und scanne ihn dann.")} />
                     : flat ? (
                         <SheetGroup title={filter ? t("Files", "Dateien") : t("Results", "Treffer")} intro={plural(t, flat.length, ["1 file", "{0} files"], ["1 Datei", "{0} Dateien"])}>
-                            {flat.length ? <RowGroup>{flat.slice(0, 200).map(fileRow)}</RowGroup>
+                            {flat.length ? <RowGroup>{flat.slice(0, MAX_ROWS).map(fileRow)}</RowGroup>
                                 : <PhoneEmpty title={t("No file here", "Keine Datei")} text={q ? t("Try another part of the name.", "Versuch einen anderen Teil des Namens.") : undefined} />}
+                            {flat.length > MAX_ROWS && <Muted>{t(`Showing the first ${MAX_ROWS}. Search for part of the name to find the others.`,
+                                `Die ersten ${MAX_ROWS} werden gezeigt. Such nach einem Teil des Namens, um die anderen zu finden.`)}</Muted>}
                         </SheetGroup>
                     ) : <>
                         <View className="min-h-14 flex-row items-center gap-1 rounded-surface bg-sm-surface-raised py-1 pr-1"

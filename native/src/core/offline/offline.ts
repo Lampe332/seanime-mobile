@@ -668,13 +668,16 @@ async function start(environment: OfflineEnvironment): Promise<Service> {
 
 const sameEpisode = (a: OfflineItem, b: OfflineItem) => a.mediaId === b.mediaId && a.episode === b.episode && a.dubbed === b.dubbed
 
+/** The saved pictures an episode names (coverAsset, bannerAsset, episodeImageAsset) */
+const assetsOf = (item: OfflineItem): string[] => [item.coverAsset, item.bannerAsset, item.episodeImageAsset].filter((asset): asset is string => !!asset)
+
 function rememberOld(s: Service): void {
     oldIds.clear()
     oldAssets.clear()
     for (const row of s.rows.values()) {
         if (!row.source.old) continue
         oldIds.add(row.item.id)
-        for (const asset of [row.item.coverAsset, row.item.bannerAsset, row.item.episodeImageAsset]) if (asset) oldAssets.add(asset)
+        for (const asset of assetsOf(row.item)) oldAssets.add(asset)
     }
 }
 
@@ -689,7 +692,14 @@ async function takeOldEpisodes(s: Service, again: boolean): Promise<{ taken: num
     if (!again && (await inOrder(database, () => database.select().from(offlineMoves))).length > 0) return null
     const text = await s.environment.device.oldQueue?.() ?? null
     const found = text === null ? { items: [], left: 0 } : oldEpisodes(text)
-    const fresh = found.items.filter(item => !s.rows.has(item.id) && ![...s.rows.values()].some(row => sameEpisode(row.item, item)))
+    const known = found.items.filter(item => !s.rows.has(item.id) && ![...s.rows.values()].some(row => sameEpisode(row.item, item)))
+    // the server's list still names an episode deleted in the core since (4.3.1): without its video it is not taken again
+    const { has, oldRoot: serverRoot } = s.environment.device
+    const fresh: OfflineItem[] = []
+    for (const item of known) {
+        if (has && serverRoot && !(await has(`${serverRoot}/episodes/${item.id}/${item.files.video}`).catch(() => true))) continue
+        fresh.push(item)
+    }
     let order = [...s.rows.values()].reduce((highest, row) => Math.max(highest, row.item.order), 0)
     for (const item of fresh) {
         const row: Row = { item: { ...item, order: ++order }, source: { old: true }, tries: 0, retryAt: 0 }
@@ -919,16 +929,21 @@ export async function offlineAction(environment: OfflineEnvironment, body: unkno
     return true
 }
 
-/** Removes an episode: its entry, and its files unless they are the server's */
+/** Removes an episode: its entry and its files, also those of an episode the server saved (4.3.1) */
 async function removeRow(s: Service, row: Row): Promise<void> {
-    const { loader, root, removeFolder } = s.environment.device
+    const { loader, root, removeFolder, oldRoot: serverRoot } = s.environment.device
     const id = row.item.id
     s.rows.delete(id)
     s.active.delete(id)
     const database = await s.environment.core.database()
     if (row.source.old) {
-        // taken over from the server: only the core's entry goes, the files stay the server's (§4o, phase 4c)
-        oldIds.delete(id)
+        // taken over from the server (§4o, phase 4c): the server is gone (stage 8a-2), so its files go with the entry; a
+        // picture another of its episodes still shows stays
+        rememberOld(s)
+        if (serverRoot) {
+            await removeFolder(`${serverRoot}/episodes/${id}`)
+            for (const asset of assetsOf(row.item)) if (!oldAssets.has(asset)) await removeFolder(`${serverRoot}/artwork/${asset}`).catch(() => undefined)
+        }
         await inOrder(database, () => database.delete(offlineItems).where(eq(offlineItems.id, id)))
         tell(s)
         return

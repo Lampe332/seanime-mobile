@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest"
 import {
     buildPaginationMap,
+    chapterStartState,
     defaultPageLayout,
     getAdjacentChapter,
     isDefaultPageLayout,
     isNearStripEnd,
     mapIndexForPage,
     pageAtLine,
+    pageOfStep,
     pagedPageSize,
     pagesLeftToRight,
     readerTapZone,
     secondPageLabel,
+    shouldAutoSaveProgress,
     shouldUpdateMangaProgress,
     stepPaginationMap,
     stripPageSize,
@@ -146,6 +149,41 @@ describe("progress to AniList only when read", () => {
         expect(isNearStripEnd(4000, 900, 6000, true)).toBe(true)
         expect(isNearStripEnd(2000, 900, 6000, true)).toBe(false)
         expect(isNearStripEnd(4000, 900, 6000, false)).toBe(false)
+    })
+    it("counts a short strip (three phone pages) once it is scrolled to its end, never at the top (4.3.1)", () => {
+        // 3 pages of 554dp: 1662dp of strip, 750dp of screen, 912dp to scroll
+        expect(isNearStripEnd(0, 750, 1662, true)).toBe(false)
+        expect(isNearStripEnd(500, 750, 1662, true)).toBe(false)
+        expect(isNearStripEnd(912, 750, 1662, true)).toBe(true)
+        // a strip that fits the screen cannot be scrolled, so it is not counted by scrolling
+        expect(isNearStripEnd(0, 900, 600, true)).toBe(false)
+    })
+    it("lets auto update save only the chapter whose own start was set, once (4.3.1)", () => {
+        const read = { enabled: true, incognito: false, chapterId: "c6", chapterKey: "7:src:c6", startedFor: "7:src:c6", shouldUpdate: true, pagesReady: true, isLastPage: true, lastSavedChapterId: "c5" }
+        expect(shouldAutoSaveProgress(read)).toBe(true)
+        // the next chapter came from the cache while "last page" still is chapter 5's: not before its start state is set
+        expect(shouldAutoSaveProgress({ ...read, startedFor: "7:src:c5" })).toBe(false)
+        expect(shouldAutoSaveProgress({ ...read, lastSavedChapterId: "c6" })).toBe(false)
+        expect(shouldAutoSaveProgress({ ...read, incognito: true })).toBe(false)
+        expect(shouldAutoSaveProgress({ ...read, isLastPage: false })).toBe(false)
+        expect(shouldAutoSaveProgress({ ...read, enabled: false })).toBe(false)
+    })
+})
+
+describe("opening a chapter (4.3.1)", () => {
+    it("starts at the saved page, not read, without the map of the chapter before", () => {
+        expect(chapterStartState(9)).toEqual({ isLastPage: false, currentPageIndex: 9, currentMapIndex: 0, paginationMap: {} })
+        // the reset map has no step 0, so the paged reader cannot move the page to 0 before its own map is built
+        expect(pageOfStep(chapterStartState(9).paginationMap, 0)).toBeUndefined()
+    })
+    it("then finds the step that holds the saved page in single and double page mode", () => {
+        const pages = Array.from({ length: 20 }, (_, index) => ({ index }))
+        const single = buildPaginationMap(pages, null, "paged", 0)
+        expect(pageOfStep(single, mapIndexForPage(single, 9))).toBe(9)
+        const double = buildPaginationMap(pages, null, "double-page", 1)
+        const step = mapIndexForPage(double, 9)
+        expect(double[step]).toContain(9)
+        expect(step).toBeGreaterThan(0)
     })
 })
 

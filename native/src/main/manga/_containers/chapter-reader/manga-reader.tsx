@@ -10,7 +10,7 @@ import { colors } from "@/lib/theme/tokens"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { releaseOrientation } from "@/main/_features/player/player-system"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
-import { mapIndexForPage, secondPageLabel, shouldUpdateMangaProgress } from "@/main/manga/_lib/chapter-reader"
+import { chapterStartState, mapIndexForPage, secondPageLabel, shouldAutoSaveProgress, shouldUpdateMangaProgress } from "@/main/manga/_lib/chapter-reader"
 import {
     __manga_readerSourceAtom,
     __manga_selectedChapterAtom,
@@ -39,7 +39,7 @@ import { shouldForceLandscape } from "@/main/manga/_lib/reader-mode"
 import { useMangaChapterTotal } from "@/main/manga/_lib/use-manga-chapter-total"
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake"
 import * as ScreenOrientation from "expo-screen-orientation"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai"
 import ChevronLeft from "lucide-react-native/icons/chevron-left"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
 import PanelBottomOpen from "lucide-react-native/icons/panel-bottom-open"
@@ -65,7 +65,10 @@ import { __manga_scrollSignalAtom, MangaVerticalReader } from "./chapter-vertica
  * Back closes the settings first, then the reader. Not here: Discord presence (desktop) and the keyboard shortcuts.
  */
 
-const READER_BACKGROUNDS: Record<string, string> = { black: "#000", gray: "#1c1c1f", white: "#f4f4f5" }
+// the paper behind the pages, as the user picks it: black and white are the page colours themselves, gray the raised surface
+const READER_BACKGROUNDS: Record<string, string> = { black: "#000", gray: colors.smSurfaceRaised, white: "#f4f4f5" }
+/** The chapter (its key) whose start state the reader set; kept with the other reader atoms, so the reset is one step */
+const startedForAtom = atom("")
 const BAR_HEIGHT = 56
 const BAR_EASE = { duration: 240 }
 
@@ -91,7 +94,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
     const readingMode = useAtomValue(__manga_readingModeAtom)
     const effectiveMode = useEffectiveReadingMode()
     const readingDirection = useAtomValue(__manga_readingDirectionAtom)
-    const paginationMap = useAtomValue(__manga_paginationMapAtom)
+    const [paginationMap, setPaginationMap] = useAtom(__manga_paginationMapAtom)
     const [hiddenBar, setHideBar] = useAtom(__manga_hiddenBarAtom)
     const setSettingsOpen = useSetAtom(__manga_readerSettingsOpenAtom)
     const keepScreenOn = useAtomValue(__manga_keepScreenOnAtom)
@@ -166,18 +169,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
         }, { onSuccess: () => { if (goToNext) goToChapter("next") } })
     }
 
-    // Auto update: once per chapter, only when it is read (last page / end of the strip)
-    const lastUpdatedChapter = React.useRef<string | null>(null)
     const pagesReady = !pageContainerLoading && !pageContainerError
-    React.useEffect(() => {
-        // incognito mode: no progress to AniList (the core refuses it too, core/settings/incognito.ts)
-        if (!incognito && serverStatus?.settings?.manga?.mangaAutoUpdateProgress && currentChapter?.chapterId && shouldUpdateProgress && pagesReady && isLastPage
-            && lastUpdatedChapter.current !== currentChapter.chapterId) {
-            lastUpdatedChapter.current = currentChapter.chapterId
-            updateProgress({ chapterNumber, mediaId: entry.mediaId, malId: entry.media?.idMal || undefined, totalChapters: entry.media?.chapters || 0, auto: true })
-        }
-    }, [incognito, serverStatus?.settings?.manga?.mangaAutoUpdateProgress, currentChapter?.chapterId, shouldUpdateProgress, pagesReady, isLastPage,
-        chapterNumber, entry.mediaId, entry.media?.idMal, entry.media?.chapters, updateProgress])
 
     // Resume: open at the saved page of this chapter, then save the place while reading
     const mediaKey = String(entry.mediaId)
@@ -193,11 +185,33 @@ function Reader({ source }: { source: MangaReaderSource }) {
         setStartPage(restoresSaved && saved ? saved.pageIndex : 0)
         setRestoredFor("")
     }
+    // 4.3.1: the start state is set before the pages are laid out (`started`). Pages from the cache used to mount the
+    // reader in the same commit, its effects ran first, and this reset then put the step back to 0 and saved page 1 as the
+    // place; the "last page" of the chapter before reached the next one and "Auto update" marked it read at once.
+    const [startedFor, setStartedFor] = useAtom(startedForAtom)
+    const started = !!chapterKey && startedFor === chapterKey
     React.useEffect(() => {
-        setIsLastPage(false)
-        setCurrentPageIndex(startPage)
-        setCurrentMapIndex(0)
-    }, [chapterKey, startPage, setIsLastPage, setCurrentPageIndex, setCurrentMapIndex])
+        const start = chapterStartState(startPage)
+        setIsLastPage(start.isLastPage)
+        setCurrentPageIndex(start.currentPageIndex)
+        setCurrentMapIndex(start.currentMapIndex)
+        setPaginationMap(start.paginationMap)
+        setStartedFor(chapterKey)
+    }, [chapterKey, startPage, setIsLastPage, setCurrentPageIndex, setCurrentMapIndex, setPaginationMap, setStartedFor])
+    // closed, the reader forgets it: the same chapter opened again starts over
+    React.useEffect(() => () => setStartedFor(""), [setStartedFor])
+
+    // Auto update: once per chapter, only when it is read (last page / end of the strip)
+    const lastUpdatedChapter = React.useRef<string | null>(null)
+    const autoUpdate = !!serverStatus?.settings?.manga?.mangaAutoUpdateProgress
+    React.useEffect(() => {
+        // incognito mode: no progress to AniList (the core refuses it too, core/settings/incognito.ts)
+        if (!currentChapter || !shouldAutoSaveProgress({ enabled: autoUpdate, incognito, chapterId: currentChapter.chapterId, chapterKey, startedFor,
+            shouldUpdate: shouldUpdateProgress, pagesReady, isLastPage, lastSavedChapterId: lastUpdatedChapter.current })) return
+        lastUpdatedChapter.current = currentChapter.chapterId
+        updateProgress({ chapterNumber, mediaId: entry.mediaId, malId: entry.media?.idMal || undefined, totalChapters: entry.media?.chapters || 0, auto: true })
+    }, [incognito, autoUpdate, currentChapter, chapterKey, startedFor, shouldUpdateProgress, pagesReady, isLastPage,
+        chapterNumber, entry.mediaId, entry.media?.idMal, entry.media?.chapters, updateProgress])
     // providers can return a different page count between sessions: clamp once the pages are there; saving starts then
     // (the paged reader finds the step of the page itself when it builds its map)
     const pageCount = pageContainer?.pages?.length ?? 0
@@ -208,7 +222,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
     }, [restoredFor, chapterKey, firstPage, startPage, setCurrentPageIndex])
     React.useEffect(() => {
         // incognito mode: the page is not kept (no History, no resume)
-        if (incognito || !currentChapter || restoredFor !== chapterKey || !pageCount || currentPageIndex < 0 || currentPageIndex > pageCount - 1) return
+        if (incognito || !currentChapter || !started || restoredFor !== chapterKey || !pageCount || currentPageIndex < 0 || currentPageIndex > pageCount - 1) return
         setResumeLocations(prev => {
             const location = prev[mediaKey]
             if (location?.chapterId === currentChapter.chapterId && location?.provider === currentChapter.provider && location?.pageIndex === currentPageIndex) return prev
@@ -218,7 +232,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
                     ...(Number.isFinite(chapterNumber) && chapterNumber > 0 ? { chapterNumber: String(chapterNumber) } : {}) },
             })
         })
-    }, [incognito, chapterNumber, currentChapter, chapterKey, restoredFor, pageCount, currentPageIndex, mediaKey, setResumeLocations])
+    }, [incognito, chapterNumber, currentChapter, chapterKey, started, restoredFor, pageCount, currentPageIndex, mediaKey, setResumeLocations])
 
     const pageUrl = React.useCallback((index: number) => {
         const page = pageContainer?.pages?.[index]
@@ -241,7 +255,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
     const reversed = readingDirection === MangaReadingDirection.RTL && effectiveMode !== MangaReadingMode.LONG_STRIP
     // 2.0.32 draws the page from the top edge, over the camera cutout (the WebView filled the screen); only the bar is kept free
     const readerHeight = window.height - (hiddenBar ? 0 : BAR_HEIGHT + insets.bottom)
-    const showSave = shouldUpdateProgress && isLastPage && pagesReady
+    const showSave = started && shouldUpdateProgress && isLastPage && pagesReady
 
     const changePage = (index: number) => {
         setCurrentPageIndex(index)
@@ -267,7 +281,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
                         <Button intent="secondary" onPress={close}>{t("Close chapter", "Kapitel schließen")}</Button>
                     </PhoneEmpty>
                 </View>
-            </View> : pageContainerLoading || !pageContainer ? <View className="flex-1 items-center justify-center"><ActivityIndicator color={colors.smTextMuted} size="large" /></View>
+            </View> : pageContainerLoading || !pageContainer || !started ? <View className="flex-1 items-center justify-center"><ActivityIndicator color={colors.smTextMuted} size="large" /></View>
                 : effectiveMode === MangaReadingMode.LONG_STRIP
                     ? <MangaVerticalReader key={chapterKey} pageContainer={pageContainer} pageUrl={pageUrl} pageHeaders={pageHeaders} initialPageIndex={firstPage} width={window.width} height={readerHeight} />
                     : <MangaHorizontalReader key={chapterKey} pageContainer={pageContainer} pageUrl={pageUrl} pageHeaders={pageHeaders} width={window.width} height={readerHeight} />}
@@ -277,7 +291,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
 
         {/* "Update progress" at the top once the chapter is read */}
         {showSave && <View pointerEvents="box-none" style={{ position: "absolute", top: insets.top, left: 0, right: 0 }} className="items-center">
-            <Button size="lg" className="rounded-t-none bg-[#16a34a] active:bg-[#15803d]" loading={isUpdatingProgress} onPress={() => handleUpdateProgress(true)}>
+            <Button size="lg" className="rounded-t-none" loading={isUpdatingProgress} onPress={() => handleUpdateProgress(true)}>
                 {t("Update progress", "Fortschritt speichern")} ({chapterNumber} / {total || "-"})
             </Button>
         </View>}
@@ -285,7 +299,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
         {/* the controls hidden: a quiet button brings them back */}
         {hiddenBar && <View style={{ position: "absolute", right: 16, bottom: 16 + insets.bottom }}>
             <Pressable accessibilityRole="button" accessibilityLabel={t("Show reading controls", "Lese-Steuerung einblenden")} onPress={() => setHideBar(false)}
-                className="h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-black/40 active:bg-black/60">
+                className="h-12 w-12 items-center justify-center rounded-full border border-white/70 bg-black/40 active:bg-black/60">
                 <PanelBottomOpen size={20} color="#fff" />
             </Pressable>
         </View>}
@@ -319,7 +333,8 @@ function Reader({ source }: { source: MangaReaderSource }) {
 }
 
 function BarButton({ label, disabled, onPress, children }: { label: string, disabled?: boolean, onPress: () => void, children: React.ReactNode }) {
-    return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
+    // 44dp to see, 48dp to touch (hitSlop): the bar keeps its width on a 360dp phone
+    return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} hitSlop={2}
         className={`h-11 w-11 items-center justify-center rounded-full bg-sm-surface-raised active:bg-sm-surface-control ${disabled ? "opacity-45" : ""}`}>
         {children}
     </Pressable>

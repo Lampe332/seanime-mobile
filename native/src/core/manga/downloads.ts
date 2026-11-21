@@ -49,7 +49,7 @@ type Row = {
     error: string
     createdAt: number
     updatedAt: number
-    /** Saved by the server (phase 4c-2): `folder` lies under the server's manga folder, and its files stay the server's */
+    /** Saved by the server (phase 4c-2): `folder` lies under the server's manga folder; deleting the chapter removes it (4.3.1) */
     old: boolean
 }
 
@@ -181,24 +181,36 @@ export function requestOf(root: string, row: Row, pages: { url: string, index: n
     return { request: { id: loaderId(row), url: parts[0].url, headers: common, path: parts[0].path!, title, parts }, saved }
 }
 
+/**
+ * A chapter takes its turn: its pages from the provider, then one request of the loader. Paused, removed or the queue
+ * cleared on the way (4.3.1), it lets go: nothing is handed to the loader, nothing written back, no error kept.
+ */
 async function start(s: Service, row: Row): Promise<void> {
     const { environment } = s
     let current = change(s, row, { status: "downloading", error: "" })
+    // still the row this start set: stop, delete and clearing the queue all replace or drop it
+    const mine = () => s.rows.get(row.id) === current
     await keep(s, current)
     tellQueue()
     try {
         const pages = await pageListOf(environment.manga, row.provider, row.mediaId, row.chapterId)
+        if (!mine()) return
         await environment.manga.core.pause("manga download: request")
+        if (!mine()) return
         environment.manga.core.mark?.("manga download: request")
         const { request, saved } = requestOf(rootOf(environment), current, pages)
         current = change(s, current, { pages: saved })
         await environment.manga.core.pause("manga download: keep")
+        if (!mine()) return
         environment.manga.core.mark?.("manga download: keep")
         await keep(s, current)
+        if (!mine()) return
         await environment.device.loader.enqueue(request)
+        if (!mine()) await environment.device.loader.forget(request.id).catch(() => undefined)
     }
     catch (error) {
-        await fail(s, s.rows.get(row.id) ?? current, error instanceof Error ? error.message : String(error))
+        if (!mine()) return
+        await fail(s, current, error instanceof Error ? error.message : String(error))
     }
 }
 
@@ -274,12 +286,13 @@ function serviceOf(environment: MangaDownloadEnvironment): Promise<Service> {
 }
 
 async function remove(s: Service, rows: Row[]): Promise<void> {
-    const root = rootOf(s.environment)
+    rootOf(s.environment)
     for (const row of rows) {
         s.rows.delete(row.id)
         if (row.status === "downloading") await s.environment.device.loader.forget(loaderId(row)).catch(() => undefined)
-        // the server's chapter: only the core's entry goes, folder and files stay the server's (switched off, it shows them)
-        if (!row.old) await s.environment.device.removeFolder(`${root}/${row.folder}`)
+        // the server's chapter goes with its folder too (4.3.1): the server is gone (stage 8a-2), nobody else shows or frees them
+        const folder = folderOf(s.environment, row)
+        if (folder) await s.environment.device.removeFolder(folder)
     }
     await drop(s, rows.map(row => row.id))
 }

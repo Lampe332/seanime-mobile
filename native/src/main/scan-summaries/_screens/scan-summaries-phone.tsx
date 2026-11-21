@@ -37,12 +37,26 @@ function Chevron({ open }: { open: boolean }) {
     return <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}><ChevronDown size={18} color={colors.smTextSubtle} /></View>
 }
 
-function FileRow({ t, file, forced }: { t: Translate, file: Summary_ScanSummaryFile, forced?: boolean }) {
-    const [open, setOpen] = React.useState(false)
+/**
+ * Open or closed; a new search opens every block that matches (4.3.1: it used to force them open, and the buttons did
+ * nothing while a search was active), and the user can still close one.
+ */
+function useOpenForSearch(query: string) {
+    const [open, setOpen] = React.useState(!!query)
+    const [openedFor, setOpenedFor] = React.useState(query)
+    if (openedFor !== query) {
+        setOpenedFor(query)
+        setOpen(!!query)
+    }
+    return [open, setOpen] as const
+}
+
+function FileRow({ t, file, query }: { t: Translate, file: Summary_ScanSummaryFile, query: string }) {
+    const [open, setOpen] = useOpenForSearch(query)
     const lf = file.localFile
     if (!lf) return null
     const level = levelOf(file)
-    const shown = open || !!forced
+    const shown = open
     const tone = level === "error" ? colors.smDanger : level === "warning" ? colors.smAccent : colors.smTextMuted
     const Icon = level === "error" ? CircleAlert : level === "warning" ? TriangleAlert : FileVideo
     return (
@@ -86,11 +100,11 @@ function FileRow({ t, file, forced }: { t: Translate, file: Summary_ScanSummaryF
 
 function GroupBlock({ t, group, query }: { t: Translate, group: Summary_ScanSummaryGroup, query: string }) {
     const router = useRouter()
-    const [open, setOpen] = React.useState(false)
+    const [open, setOpen] = useOpenForSearch(query)
     const files = group.files?.filter(file => matchesQuery(file, query)) ?? []
     const errors = files.filter(file => levelOf(file) === "error").length
     const warnings = files.filter(file => levelOf(file) === "warning").length
-    const shown = open || !!query
+    const shown = open
     return (
         <View className="gap-0.5">
             <Pressable accessibilityRole="button" accessibilityState={{ expanded: shown }} onPress={() => setOpen(v => !v)}
@@ -113,7 +127,7 @@ function GroupBlock({ t, group, query }: { t: Translate, group: Summary_ScanSumm
             </Pressable>
             {shown && (
                 <View className="gap-0.5 bg-sm-surface pl-3">
-                    {files.map(file => <FileRow key={file.id} t={t} file={file} forced={!!query} />)}
+                    {files.map(file => <FileRow key={file.id} t={t} file={file} query={query} />)}
                     <View className="items-start pl-1"><TextAction label={t("Open anime", "Anime öffnen")} onPress={() => router.push(`/entry?id=${group.mediaId}`)} /></View>
                 </View>
             )}
@@ -125,7 +139,7 @@ export function ScanSummariesPhone() {
     const t = useTr()
     const serverStatus = useServerStatus()
     const openScanner = useSetAtom(__scanner_modalIsOpen)
-    const { data, isLoading } = useGetScanSummaries()
+    const { data, isLoading, isError, refetch } = useGetScanSummaries()
     const scans = React.useMemo(() => newestScans(data), [data])
     const [chosen, setChosen] = React.useState<string | null>(null)
     const [search, setSearch] = React.useState("")
@@ -142,7 +156,12 @@ export function ScanSummariesPhone() {
     return (
         <PhoneScreen title={t("Scan summaries", "Scan-Berichte")} subtitle={facts}>
             {isLoading ? <LoadingRows label={t("Loading scan summaries", "Scan-Berichte werden geladen")} count={4} />
-                : !summary ? (
+                // a failed read is not "no scans yet" (4.3.1)
+                : !summary && isError ? (
+                    <PhoneEmpty title={t("Scan summaries could not be loaded", "Scan-Berichte konnten nicht geladen werden")}>
+                        <Button intent="secondary" onPress={() => void refetch()}>{t("Try again", "Erneut versuchen")}</Button>
+                    </PhoneEmpty>
+                ) : !summary ? (
                     <PhoneEmpty title={t("No scans yet", "Noch keine Scans")}
                         text={t("After a scan you see here which anime each file was matched to and which files were left over.",
                             "Nach einem Scan siehst du hier, welchem Anime jede Datei zugeordnet wurde und welche übrig geblieben sind.")}>
@@ -159,7 +178,7 @@ export function ScanSummariesPhone() {
                     {unmatched.length > 0 && (
                         <PhoneSection title={t("Not matched", "Ohne Anime")} count={unmatched.length}
                             note={t("The scanner found no anime for these files.", "Für diese Dateien hat der Scanner keinen Anime gefunden.")}>
-                            <View className="gap-0.5 overflow-hidden rounded-surface">{unmatched.map(file => <FileRow key={file.id} t={t} file={file} forced={!!query} />)}</View>
+                            <View className="gap-0.5 overflow-hidden rounded-surface">{unmatched.map(file => <FileRow key={file.id} t={t} file={file} query={query} />)}</View>
                         </PhoneSection>
                     )}
                     {groups.length > 0 && (

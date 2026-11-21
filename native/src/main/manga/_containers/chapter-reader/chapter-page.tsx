@@ -11,6 +11,9 @@ import { ActivityIndicator, Pressable, View } from "react-native"
  * lays it out at its real shape. The reader sizes the page for every fit (Original too), so the picture always fills it:
  * expo-image's "none" draws in raw pixels and left Original a small picture in the middle of a dp-sized page.
  */
+/** A page without an address waits this long before it offers to load again */
+const MISSING_AFTER_MS = 5000
+
 export const ChapterPage = React.memo(function ChapterPage({ url, headers, index, width, height, onSize, onLoaded, recycle }: {
     url: string | undefined
     /** Headers the picture needs, given straight to it (area manga on, §4n) */
@@ -35,6 +38,16 @@ export const ChapterPage = React.memo(function ChapterPage({ url, headers, index
         setFailed(false)
         setLoaded(false)
     }
+    // no address for the page (4.3.1): after a while it shows the retry button instead of an endless spinner
+    const [missing, setMissing] = React.useState(false)
+    React.useEffect(() => {
+        if (url) {
+            setMissing(false)
+            return
+        }
+        const timer = setTimeout(() => setMissing(true), MISSING_AFTER_MS)
+        return () => clearTimeout(timer)
+    }, [url, attempt])
     React.useEffect(() => {
         if (!failed || attempt >= 3) return
         const timer = setTimeout(() => {
@@ -44,6 +57,7 @@ export const ChapterPage = React.memo(function ChapterPage({ url, headers, index
         return () => clearTimeout(timer)
     }, [failed, attempt])
 
+    const givenUp = (failed && attempt >= 3) || (!url && missing)
     return <View style={{ width, height }} className="items-center justify-center">
         {!!url && <Image
             key={attempt}
@@ -61,15 +75,16 @@ export const ChapterPage = React.memo(function ChapterPage({ url, headers, index
             }}
             onError={() => setFailed(true)}
         />}
-        {(!url || (!loaded && !(failed && attempt >= 3))) && <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
+        {!givenUp && (!url || !loaded) && <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
             <ActivityIndicator color={colors.smTextMuted} />
         </View>}
-        {failed && attempt >= 3 && <View className="absolute inset-0 items-center justify-center">
+        {givenUp && <View className="absolute inset-0 items-center justify-center">
             <Pressable accessibilityRole="button" accessibilityLabel={t("Load the page again", "Seite erneut laden")} onPress={() => {
                 setFailed(false)
+                setMissing(false)
                 setAttempt(a => a + 1)
-            }} className="h-12 w-12 items-center justify-center rounded-full bg-white active:opacity-80">
-                <RotateCw size={20} color="#111" />
+            }} className="h-12 w-12 items-center justify-center rounded-full border border-sm-line-strong bg-sm-surface-control active:bg-sm-surface-raised">
+                <RotateCw size={20} color={colors.smText} />
             </Pressable>
         </View>}
     </View>

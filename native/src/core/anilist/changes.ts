@@ -612,6 +612,8 @@ export async function deleteListEntry(request: CoreRequest, environment: Environ
  * POST /api/v1/library/anime-entry/update-progress and /api/v1/manga/update-progress: an episode or chapter was marked.
  * The progress is set to it, up or down. The status follows (recorded): the last one completes the entry, a rewatch
  * stays a rewatch, everything else becomes "current"; a title not in the lists gets an entry.
+ * What the app writes by itself (`auto: true`: the player's 80 %, a playlist, the manga reader's auto progress) never
+ * lowers the progress and never takes a completed entry back to "current" (4.3.1); only a mark the user sets may.
  */
 export function updateProgressOf(kind: ListKind) {
     return async (request: CoreRequest, environment: Environment): Promise<boolean> => {
@@ -623,7 +625,11 @@ export function updateProgressOf(kind: ListKind) {
         // reader's auto progress); a mark the user sets ("mark as watched", "+1", the list editor) goes through (settings/incognito.ts)
         if (body.auto === true && await incognitoOn(environment)) throw new CoreError(INCOGNITO_ERROR, 409)
         const current = await storedEntry(await environment.database(), kind, body.mediaId)
-        const status = wholeNumber(total) && total > 0 && progress >= total ? "COMPLETED" : current?.status === "REPEATING" ? "REPEATING" : "CURRENT"
+        const auto = body.auto === true
+        // the app's own update: nothing to do when the entry is there or further (a reader opened without the list's data)
+        if (auto && current && progress <= (Number(current.progress) || 0)) return true
+        const status = wholeNumber(total) && total > 0 && progress >= total ? "COMPLETED"
+            : current?.status === "REPEATING" ? "REPEATING" : auto && current?.status === "COMPLETED" ? "COMPLETED" : "CURRENT"
         return change(environment, kind, body.mediaId, "save", { status, progress }, true)
     }
 }
