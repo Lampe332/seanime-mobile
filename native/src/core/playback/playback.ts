@@ -12,6 +12,7 @@ import { CoreError } from "../errors"
 import type { CoreEnvironment, CoreRequest } from "../registry"
 import { incognitoOn } from "../settings/incognito"
 import { ownSettingsAndLook } from "../settings/settings"
+import { isTvmazeId, tvmazeMedia } from "../tvmaze/tvmaze"
 
 /*
  * Watch history and progress without the server (phase 5a-2, area `playback`, docs/EIGENER-KERN.md §4p).
@@ -19,7 +20,7 @@ import { ownSettingsAndLook } from "../settings/settings"
  * The player tells over the `videocore` channel what it plays: video-loaded (what), video-status every second and on
  * pause/seek (where), video-completed once at 80 % played (player-logic.ts), video-terminated (closed). With the area
  * on, the core hears these instead of the server (tellPlayer): it keeps where each anime was left in `watch_positions`
- * (the table the move filled from the server's watch history, §4c), and once an episode counts as watched it sets the
+ * (the table the move filled from the server's watch history, §4c; a title of TVmaze under its negative id, §4t), and once an episode counts as watched it sets the
  * AniList progress the way the app's own "mark as watched" does. Offline episodes tell nothing (use-player-server.ts
  * `enabled`), their position stays the offline area's (`mobile-offline/position`).
  */
@@ -119,7 +120,7 @@ export async function continuityHistory(_request: CoreRequest, environment: Envi
 /** GET /api/v1/continuity/item/{id}: one anime's; not there: `{ item: null, found: false }` (recorded) */
 export async function continuityItem(request: CoreRequest, environment: Environment): Promise<unknown> {
     const mediaId = Number(request.path.id)
-    if (!whole(mediaId) || mediaId <= 0) throw new CoreError("invalid id", 400)
+    if (!whole(mediaId) || mediaId === 0) throw new CoreError("invalid id", 400)
     const database = await environment.database()
     const [row] = await inOrder(database, () => database.select().from(watchPositions).where(eq(watchPositions.mediaId, mediaId)))
     return row && live(row, environment.now()) ? { item: itemOf(row), found: true } : { item: null, found: false }
@@ -129,7 +130,7 @@ export async function continuityItem(request: CoreRequest, environment: Environm
 export async function updateContinuityItem(request: CoreRequest, environment: Environment): Promise<boolean> {
     const options = record(record(request.body).options)
     const { mediaId, episodeNumber, currentTime, duration, kind } = options
-    if (!whole(mediaId) || mediaId <= 0 || !whole(episodeNumber) || !finite(currentTime) || !finite(duration)) throw new CoreError("invalid options", 400)
+    if (!whole(mediaId) || mediaId === 0 || !whole(episodeNumber) || !finite(currentTime) || !finite(duration)) throw new CoreError("invalid options", 400)
     if (!(CONTINUITY_KINDS as readonly unknown[]).includes(kind)) throw new CoreError("invalid kind", 400)
     await keep(environment, { mediaId, episodeNumber, kind: kind as Kind, filepath: typeof options.filepath === "string" ? options.filepath : "", currentTime, duration })
     return true
@@ -138,7 +139,7 @@ export async function updateContinuityItem(request: CoreRequest, environment: En
 /** DELETE /api/v1/continuity/item `{ mediaId }`: the History screen takes one anime out of the history (never AniList) */
 export async function removeContinuityItem(request: CoreRequest, environment: Environment): Promise<boolean> {
     const mediaId = record(request.body).mediaId
-    if (!whole(mediaId) || mediaId <= 0) throw new CoreError("invalid id", 400)
+    if (!whole(mediaId) || mediaId === 0) throw new CoreError("invalid id", 400)
     const database = await environment.database()
     await inOrder(database, () => database.delete(watchPositions).where(eq(watchPositions.mediaId, mediaId)))
     return true
@@ -158,7 +159,7 @@ export async function clearContinuityHistory(_request: CoreRequest, environment:
  */
 export async function historyMedia(request: CoreRequest, environment: Environment): Promise<Record<string, unknown>> {
     const ids = record(request.body).ids
-    if (!Array.isArray(ids) || ids.some(id => !whole(id) || id <= 0)) throw new CoreError("invalid ids", 400)
+    if (!Array.isArray(ids) || ids.some(id => !whole(id) || id === 0)) throw new CoreError("invalid ids", 400)
     if (ids.length === 0) return {}
     const database = await environment.database()
     const rows = await inOrder(database, () => database.select().from(anilistMedia).where(inArray(anilistMedia.anilistId, ids as number[])))
@@ -169,7 +170,12 @@ export async function historyMedia(request: CoreRequest, environment: Environmen
     }))
     // a title the user never opened nor has in a list (watched from search, the server's moved history, a manga only
     // read): its title and cover as kept for the History screen, else read from AniList once and kept (offline: left out)
-    const missing = (ids as number[]).filter(id => !(String(id) in found))
+    // a title of TVmaze (negative id): from TVmaze, never asked of AniList
+    for (const id of (ids as number[]).filter(id => isTvmazeId(id) && !(String(id) in found))) {
+        const media = await tvmazeMedia(environment, id).catch(() => null)
+        if (media) found[String(id)] = media
+    }
+    const missing = (ids as number[]).filter(id => !isTvmazeId(id) && !(String(id) in found))
     if (missing.length === 0) return found
     const questions = missing.map(historyQuestion)
     const kept = await inOrder(database, () => database.select().from(anilistAnswers).where(inArray(anilistAnswers.question, questions)))

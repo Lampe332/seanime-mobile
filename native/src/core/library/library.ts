@@ -13,6 +13,7 @@ import type { CoreEnvironment, CoreRequest } from "../registry"
 import { isTvmazeId, tvmazeMedia } from "../tvmaze/tvmaze"
 import { animeMetadata } from "./metadata"
 import { asLocalFile, episodeOfFile, filesOf, libraryDataOf } from "./local-files"
+import { ownShowOf } from "../tvmaze/own-shows"
 
 /*
  * The library of the core (area `library`, docs/EIGENER-KERN.md §4p): an anime's page (`Anime_Entry`) and its list of
@@ -141,7 +142,11 @@ export async function libraryEntry(request: CoreRequest, environment: Environmen
     const id = mediaIdOf(request)
     const { media, metadata, episodes, out } = await animeWithEpisodes(environment, id)
     const entry = await storedEntry(await environment.database(), "ANIME", id)
-    const listData = entry ? listDataOf(entry) : undefined
+    // a title of TVmaze: its progress as the device keeps it (tvmaze/own-shows.ts), never an AniList entry
+    const own = !entry && isTvmazeId(id) ? await ownShowOf(environment, id) : null
+    const total = whole(media.episodes) || out
+    const listData = entry ? listDataOf(entry)
+        : own && own.progress > 0 ? { progress: own.progress, status: total > 0 && own.progress >= total ? "COMPLETED" : "CURRENT", score: 0 } : undefined
     const progress = whole(listData?.progress)
     const rewatch = listData?.status === "COMPLETED" || listData?.status === "REPEATING"
     const files = await filesOf(await environment.database(), id)

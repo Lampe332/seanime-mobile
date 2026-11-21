@@ -1,4 +1,3 @@
-import { isTvmazeId } from "@/core/tvmaze/tvmaze"
 import type { AL_BaseAnime, Anime_Entry, Anime_EntryDownloadInfo, Anime_Episode, Anime_LocalFileType } from "@/api/generated/types"
 import { withoutServerError } from "@/lib/server/without-server"
 import { useUpdateAnimeEntryProgress } from "@/api/hooks/anime_entries.hooks"
@@ -392,7 +391,7 @@ function UndownloadedEpisodeList({ downloadInfo, media, watchedProgress, underHe
                     title={episode.displayTitle} episodeTitle={episode.episodeTitle} episodeNumber={episode.episodeNumber} watchedProgress={watchedProgress}
                     action={<>
                         {/* The torrent sheet, searching this episode to download */}
-                        {hasTorrentProvider && !isTvmazeId(media.id) && <IconAction icon={Download} label={t("Download", "Herunterladen")} color="#fed7aa" onPress={() => {
+                        {hasTorrentProvider && <IconAction icon={Download} label={t("Download", "Herunterladen")} color="#fed7aa" onPress={() => {
                             setTorrentSearchEpisode(episode.episodeNumber)
                             React.startTransition(() => openTorrentSearch("download"))
                         }} />}

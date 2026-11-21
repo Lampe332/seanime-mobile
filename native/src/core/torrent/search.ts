@@ -147,7 +147,8 @@ export async function searchTorrents(environment: StreamEnvironment, body: unkno
     const query = text(request.query).trim()
     const smart = request.type === "smart"
     if (smart && !media) throw new CoreError("media is required for a smart search", 400)
-    const metadata = mediaId > 0 ? await animeMetadata(environment.core, mediaId).catch(() => null) : null
+    // a title of TVmaze (negative id) has its episodes from TVmaze (library/metadata.ts)
+    const metadata = mediaId !== 0 ? await animeMetadata(environment.core, mediaId).catch(() => null) : null
     const episodeNumber = Math.max(0, Math.trunc(number(request.episodeNumber, 0)))
 
     const searchOne = async (id: string): Promise<FoundTorrent[]> => {

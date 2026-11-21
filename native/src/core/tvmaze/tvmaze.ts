@@ -228,7 +228,7 @@ export async function tvmazeMetadata(environment: Environment, id: number): Prom
 
 /**
  * Search of the other sources (TVmaze) in the form of AniList's search (list-anime: { Page: { pageInfo, media } }).
- * Search results have no episodes, so no episode count and no next airing.
+ * Search results have no episodes, so no episode count and no next airing. Only shows of TVmaze's type "Animation".
  */
 export async function searchOtherSources(environment: Environment, query: string): Promise<Json> {
     const asked = query.trim()
@@ -239,7 +239,8 @@ export async function searchOtherSources(environment: Environment, query: string
     })
     const media = (found.results as unknown[])
         .map(result => (isRecord(result) && isRecord(result.show) ? result.show : null))
-        .filter((show): show is Json => show !== null && typeof show.id === "number")
+        // only animated shows: the app is for anime and cartoons, live-action series of the same name stay out
+        .filter((show): show is Json => show !== null && typeof show.id === "number" && show.type === "Animation")
         .map(show => mediaOfShow(show, [], environment.now()))
     return { Page: { pageInfo: { hasNextPage: false, total: media.length }, media } }
 }

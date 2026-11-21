@@ -2013,6 +2013,25 @@ export const API_ENDPOINTS = {
     OTHER_SOURCES: {
         /**
          *  @description
+         *  Route lists the titles of the other sources in "My shows" (kept on the device only).
+         *  Returns `AL_BaseAnime[]`.
+         */
+        GetMyShows: {
+            key: "OTHER-SOURCES-my-shows",
+            methods: ["GET"],
+            endpoint: "/api/v1/other-sources/my-shows",
+        },
+        /**
+         *  @description
+         *  Route adds a title of the other sources to "My shows" or removes it.
+         */
+        UpdateMyShows: {
+            key: "OTHER-SOURCES-update-my-shows",
+            methods: ["POST"],
+            endpoint: "/api/v1/other-sources/my-shows",
+        },
+        /**
+         *  @description
          *  Route searches the other sources (TVmaze) for titles AniList does not have.
          *  Answers in the form of "AnilistListAnime".
          */

@@ -12,6 +12,8 @@ import { anilistStateChanged, sharedCacheOnly } from "./cache-only"
 import { AnilistFailure, askAnilist, changeAnilist, clientFor, sharedSignIn, signInAccepted } from "./client"
 import { DELETE_ENTRY, ENTRY_MEDIA, VIEWER_ENTRY, VIEWER_ID, saveEntryMutation } from "./queries"
 import { type ListCollection, type ListKind, keepAnswer, keepCollection, putEntry, removeEntry, storedAnswer, storedCollection, storedEntry, withoutEmpty } from "./store"
+import { setOwnProgress } from "../tvmaze/own-shows"
+import { isTvmazeId } from "../tvmaze/tvmaze"
 
 /*
  * Changing the user's AniList lists from the core (docs/EIGENER-KERN.md §4f): an entry's status, score, progress, dates
@@ -620,6 +622,12 @@ export function updateProgressOf(kind: ListKind) {
         const body = record(request.body)
         const progress = kind === "ANIME" ? body.episodeNumber : body.chapterNumber
         const total = kind === "ANIME" ? body.totalEpisodes : body.totalChapters
+        // a title of TVmaze (negative id): its progress stays on the device, AniList is never asked (tvmaze/own-shows.ts)
+        if (kind === "ANIME" && typeof body.mediaId === "number" && isTvmazeId(body.mediaId)) {
+            if (!wholeNumber(progress) || progress < 0) throw new CoreError(MISSING_PARAMETERS, 500)
+            if (body.auto === true && await incognitoOn(environment)) throw new CoreError(INCOGNITO_ERROR, 409)
+            return setOwnProgress(environment, body.mediaId, progress, body.auto === true)
+        }
         if (!wholeNumber(body.mediaId) || body.mediaId <= 0 || !wholeNumber(progress) || progress < 0) throw new CoreError(MISSING_PARAMETERS, 500)
         // incognito mode: only what the app writes by itself stops (`auto: true`: the player's 80 %, a playlist, the manga
         // reader's auto progress); a mark the user sets ("mark as watched", "+1", the list editor) goes through (settings/incognito.ts)

@@ -173,6 +173,9 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, 
                     style={{ position: "absolute", inset: 0, opacity: coverHidden ? 0 : veiled ? 0.8 : 1 }}
                     accessibilityIgnoresInvertColors
                 />
+                {!(media.coverImage?.large || media.coverImage?.extraLarge) && <View className="absolute inset-0 items-center justify-center">
+                    <Text accessibilityLabel={t("No cover", "Kein Cover")} className="text-sm-text-subtle">◇</Text>
+                </View>}
                 {veiled && <View pointerEvents="none" className="absolute inset-0 bg-black/30" />}
                 {shownProgress && (
                     <View className="absolute left-0 right-0 top-0 h-[3px] bg-black/55">

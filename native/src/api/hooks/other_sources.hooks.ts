@@ -1,5 +1,6 @@
-import { useServerQuery } from "@/api/client/requests"
-import type { AL_ListAnime } from "@/api/generated/types"
+import { useServerMutation, useServerQuery } from "@/api/client/requests"
+import type { AL_BaseAnime, AL_ListAnime } from "@/api/generated/types"
+import { useQueryClient } from "@tanstack/react-query"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 
 // geschrieben nach: anilist.hooks.ts (useAnilistListAnime) und core/tvmaze/tvmaze.ts (searchOtherSources)
@@ -25,4 +26,26 @@ export function otherSourcesSearchRequest(query: string, enabled: boolean = true
 /** Titles of the other sources (TVmaze) for a search, in the form of AniList's search (negative ids). */
 export function useSearchOtherSources(query: string, enabled: boolean = true) {
     return useServerQuery<AL_ListAnime, SearchOtherSources_Variables>(otherSourcesSearchRequest(query, enabled))
+}
+
+export type UpdateMyShows_Variables = { mediaId: number, listed: boolean }
+
+/** "My shows": the titles of the other sources kept on the device (negative ids). */
+export function useGetMyShows() {
+    const route = API_ENDPOINTS.OTHER_SOURCES.GetMyShows
+    return useServerQuery<AL_BaseAnime[]>({ endpoint: route.endpoint, method: route.methods[0], queryKey: [route.key], muteError: true })
+}
+
+/** Adds a title of the other sources to "My shows" or takes it out. */
+export function useUpdateMyShows() {
+    const queryClient = useQueryClient()
+    const route = API_ENDPOINTS.OTHER_SOURCES.UpdateMyShows
+    return useServerMutation<boolean, UpdateMyShows_Variables>({
+        endpoint: route.endpoint,
+        method: route.methods[0],
+        mutationKey: [route.key],
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.OTHER_SOURCES.GetMyShows.key] })
+        },
+    })
 }

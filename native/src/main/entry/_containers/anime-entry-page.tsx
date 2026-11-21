@@ -75,6 +75,7 @@ import { ActivityIndicator, Pressable, ScrollView, useWindowDimensions, View } f
 import Animated, { useReducedMotion } from "react-native-reanimated"
 import { BoxHostProvider, PlayerMediaBox, useBoxHost } from "@/main/_features/player/player-box"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { useGetMyShows, useUpdateMyShows } from "@/api/hooks/other_sources.hooks"
 
 /*
  * The anime page (anime-entry-page.tsx, meta-section.tsx, mobile-anime-header.tsx, mobile-anime.css + tablet.css):
@@ -234,9 +235,9 @@ export function AnimeEntryPage() {
         <Button intent="secondary" loading={isFetching} onPress={() => refetch()}>{t("Try again", "Erneut versuchen")}</Button>
     </View>
     if (!entry?.media) return null
-    const pageView: AnimeEntryView = foreign ? "library" : view
+    const pageView: AnimeEntryView = view
 
-    const tabs = foreign ? [] : getAnimeEntryTabs(t, entry, serverStatus, hidden)
+    const tabs = getAnimeEntryTabs(t, entry, serverStatus, hidden)
     const tabsRow = tabs.length > 0 && <Tabs value={view} onValueChange={value => pickView(value as AnimeEntryView)} items={tabs} />
     const moreSection = foreign ? null : <>
         <MediaEntryCharactersSection details={details} loading={detailsLoading} />
@@ -320,7 +321,7 @@ export function AnimeEntryPage() {
             </Animated.ScrollView>
         </View>
         {!foreign && <AnimeEntryPhoneMenu entry={entry} details={details} open={moreOpen} onOpenChange={setMoreOpen} isLibraryView={view === "library"} />}
-        {!foreign && <TorrentSearchPhone entry={entry} />}
+        <TorrentSearchPhone entry={entry} />
     </BoxHostProvider></EntryScrollProvider>
 }
 
@@ -385,6 +386,7 @@ function EntryHeader({ entry, details, detailsLoading, wide, tablet, foreign, on
             <AnilistMediaEntryButton media={media} listData={listData} type="anime" />
             {!!listData?.status && <Muted className="w-full capitalize">{listStatusLabel(t, "anime", listData.status)}{listData.repeat ? ` · ${plural(t, listData.repeat, ["1 rewatch", "{0} rewatches"], ["1 Wiederholung", "{0} Wiederholungen"])}` : ""}</Muted>}
         </View>}
+        {foreign && <OwnShowBar mediaId={media.id} progress={listData?.progress ?? 0} total={progressTotal ?? undefined} marginTop={gaps?.progress} />}
 
         {!!onEpisodes && <Pressable accessibilityRole="button" onPress={onEpisodes}
             className={cn("min-h-12 flex-row items-center justify-center gap-2 rounded-full bg-brand-500 px-5 py-3 active:bg-brand-600", tablet && "min-w-[288px] self-start")}>
@@ -420,7 +422,7 @@ function AboutAnime({ entry, title }: { entry: Anime_Entry, title: string }) {
         <Text className={p}>{plainDescription(media.description) || t("No description available.", "Keine Beschreibung verfügbar.")}</Text>
         {/* 2.0.32 shows no score, studio, genre or ranking badges on media pages (globals.css: display none) */}
         <EntryAboutLinks onOpen={openInAppBrowser}
-            anilistUrl={isCustomSource(entry.mediaId) ? undefined : `https://anilist.co/anime/${entry.mediaId}`}
+            anilistUrl={isCustomSource(entry.mediaId) || isTvmazeId(entry.mediaId) ? undefined : `https://anilist.co/anime/${entry.mediaId}`}
             trailerUrl={media.trailer?.id && media.trailer.site === "youtube" ? `https://www.youtube.com/watch?v=${media.trailer.id}` : undefined} />
     </View>
 }
@@ -497,4 +499,26 @@ function EntryNotes({ entry }: { entry: Anime_Entry }) {
                 <Text className="text-sm text-[#e5e7eb]">{t("Episode metadata retrieval not available for this entry.", "Für diesen Eintrag gibt es keine Episoden-Metadaten.")}</Text>
             </View>}
     </>
+}
+
+/** A title of TVmaze (negative id): its progress kept on the device and the button of "My shows" (core/tvmaze/own-shows.ts) */
+function OwnShowBar({ mediaId, progress, total, marginTop }: { mediaId: number, progress: number, total?: number, marginTop?: number }) {
+    const t = useTr()
+    const { data: shows } = useGetMyShows()
+    const { mutate, isPending } = useUpdateMyShows()
+    const listed = !!shows?.some(show => show.id === mediaId)
+    const next = progress + 1
+    return <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 border-y border-sm-line py-3" style={marginTop !== undefined ? { marginTop } : undefined}>
+        <View className="min-w-0 flex-1">
+            <Text className="text-[11px] leading-6 font-semibold uppercase tracking-[0.88px] text-sm-text-subtle">{t("Your progress", "Dein Fortschritt")}</Text>
+            <Text className="text-xl font-bold text-white">
+                {progress}
+                <Text className={cn("text-xl font-bold text-white", progress !== total && "text-white/60")}>/{total || "-"}</Text>
+            </Text>
+            {progress > 0 && (!total || next <= total) && <Muted>{t(`Continue with episode ${next}`, `Weiter mit Folge ${next}`)}</Muted>}
+        </View>
+        <Button intent={listed ? "secondary" : "primary"} loading={isPending} onPress={() => mutate({ mediaId, listed: !listed })}>
+            {listed ? t("Remove from My shows", "Aus Meine Serien entfernen") : t("Add to My shows", "Zu Meine Serien")}
+        </Button>
+    </View>
 }

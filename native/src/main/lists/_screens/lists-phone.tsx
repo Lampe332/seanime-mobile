@@ -68,6 +68,7 @@ import Animated from "react-native-reanimated"
 import { useSwapStyle } from "@/components/ui/core/swap"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { formatNumber } from "@/lib/i18n/format"
+import { MyShowsRow } from "@/main/_features/home/my-shows-row"
 
 /*
  * Android phone "My lists" (lists-phone.tsx + lists-phone.css): the anime and manga list by status as cover grids
@@ -406,6 +407,7 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
                 {statsButton}
             </ListsHeader>
             <AnilistSyncBar className="-mt-3" />
+            <MyShowsRow />
             {(!!typeSwitch || (ready && tabs.length > 0)) && (
                 <View className="gap-3" onLayout={event => { controlsY.current = event.nativeEvent.layout.y }}>
                     {/* r16 (Nick 10.11., not in 2.0.33): on a wide tablet the field stands beside Anime | Manga (searchBesideTabs);

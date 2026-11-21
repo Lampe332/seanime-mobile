@@ -95,6 +95,7 @@ import { type NakamaSocketOpener, hostShares, keepNakamaPassword, nakamaSettings
 import { searchTorrents } from "./torrent/search"
 import { searchOtherSources } from "./tvmaze/tvmaze"
 import { type CastOutlet, type CastSearcher, control as castControl, current as castCurrent, discover as castDiscover, forward as castForward, forwardClose as castForwardClose, load as castLoad, start as castStart, status as castStatus, stop as castStop, switchStream as castSwitchStream } from "./cast/cast"
+import { changeMyShows, myShows } from "./tvmaze/own-shows"
 
 /*
  * Which interfaces the core answers itself. An interface is written here once its code in the core is complete; the
@@ -387,6 +388,9 @@ export const CORE_ROUTES: CoreRoute[] = [
         endpoint: "/api/v1/other-sources/search",
         answer: (request, environment) => searchOtherSources(environment, typeof (request.body as { query?: unknown } | null | undefined)?.query === "string" ? (request.body as { query: string }).query : ""),
     },
+    // "My shows": TVmaze titles kept on the device (tvmaze/own-shows.ts)
+    { area: "anilist", method: "GET", endpoint: "/api/v1/other-sources/my-shows", answer: myShows },
+    { area: "anilist", method: "POST", endpoint: "/api/v1/other-sources/my-shows", answer: changeMyShows },
     { area: "anilist", method: "POST", endpoint: "/api/v1/manga/anilist/list", answer: listManga },
     { area: "anilist", method: "POST", endpoint: "/api/v1/anilist/list-recent-anime", answer: listRecentAiring },
     { area: "anilist", method: "GET", endpoint: "/api/v1/anilist/stats", answer: viewerStats },

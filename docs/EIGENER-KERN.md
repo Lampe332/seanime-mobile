@@ -3074,6 +3074,17 @@ Titel, die AniList nicht hat (Beispiel „Dreamland“, französische Serie 2026
 
 **Offen:** Oberfläche (Suche „weitere Quellen“, Karten/Eintrag mit negativer Nummer), Endpunkt in `endpoints.ts` + Registry, Listen-Eintrag für TVmaze-Titel (AniList-Liste kann sie nicht halten), Torrent-/Stream-Suche nach Namen statt AniList-Titeln prüfen.
 
+**B3 (Folgen, Fortschritt, Meine Serien).** Die Suche der anderen Quellen nimmt nur Serien mit TVmaze-Typ
+„Animation“; Realserien gleichen Namens bleiben draußen. Torrent-Suche und Online-Streams gelten auch für negative
+IDs. Entscheidung zur Zählung: gesucht wird mit dem Titel und der durchgehenden Folgennummer 1 … N über alle
+Staffeln (so vergibt sie `metadataOfShow`, `absoluteEpisodeNumber`), weil Anime-Anbieter so zählen; Staffel und
+Folge der Staffel bleiben in den Metadaten. Positive IDs bleiben unverändert. Der Fortschritt einer negativen ID
+bleibt auf dem Gerät (Tabelle `own_shows`, Schritt 20, `tvmaze/own-shows.ts`): `update-progress` schreibt dorthin,
+ohne AniList zu fragen oder zu ändern; der automatische Fortschritt des Players senkt nie. Die Eintragsseite zeigt
+ihn als `listData` mit „Weiter mit Folge X“, Wiedergabepositionen und Verlauf nehmen negative IDs an. „Meine
+Serien“: `GET`/`POST /api/v1/other-sources/my-shows` (Spalte `listed`), eine Reihe auf Home (nur wenn nicht leer)
+und in Meine Listen. Offen: Abgleich von „Meine Serien“ und dem lokalen Fortschritt mit dem Seanime-Konto.
+
 ## 5. Messwerte
 
 Gemessen wird nur an der Test-App `com.seanime.app.native`. Methode: `native/scripts/measure-android.sh` (kein Beenden, kein Löschen, keine Einstellung wird geändert). Diese Tabelle wird nach jeder Stufe neu gefüllt.

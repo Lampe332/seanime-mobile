@@ -57,7 +57,7 @@ const SHOW: Json = {
     id: 95063,
     url: "https://www.tvmaze.com/shows/95063/dreamland",
     name: "Dreamland",
-    type: "Scripted",
+    type: "Animation",
     language: "French",
     genres: ["Drama", "Fantasy"],
     status: "Running",
@@ -236,8 +236,9 @@ describe("TVmaze's rate limit", () => {
 
 describe("search of the other sources", () => {
     it("answers in the form of AniList's search, kept for when TVmaze fails", async () => {
-        answers["/search/shows?q=Dreamland"] = { body: [{ score: 0.9, show: SHOW }, { score: 0.1, show: { id: 7, name: "Other" } }] }
+        answers["/search/shows?q=Dreamland"] = { body: [{ score: 0.9, show: SHOW }, { score: 0.5, show: { id: 8, name: "Dreamland", type: "Scripted" } }, { score: 0.1, show: { id: 7, name: "Other", type: "Animation" } }] }
         const found = await searchOtherSources(environment, "Dreamland") as { Page: { media: Json[] } }
+        // the live-action series of the same name stays out
         expect(found.Page.media.map(media => [media.id, (media.title as Json).english])).toEqual([[-95063, "Dreamland"], [-7, "Other"]])
         answers = {}
         expect(await searchOtherSources(environment, "dreamland ")).toEqual(found)
@@ -250,5 +251,27 @@ describe("search of the other sources", () => {
         expect(found.Page.media).toMatchObject([{ id: -95063, title: { english: "Dreamland" }, coverImage: { large: expect.any(String) } }])
         expect(await ask("POST", "/api/v1/other-sources/search", { query: 7 })).toEqual({ Page: { pageInfo: { hasNextPage: false, total: 0 }, media: [] } })
         expect(await ask("POST", "/api/v1/other-sources/search")).toEqual({ Page: { pageInfo: { hasNextPage: false, total: 0 }, media: [] } })
+    })
+})
+
+describe("own shows of the other sources (B3)", () => {
+    it("keeps the progress of a TVmaze title on the device and never asks or changes AniList", async () => {
+        expect(await ask("POST", "/api/v1/library/anime-entry/update-progress", { mediaId: -95063, episodeNumber: 2, totalEpisodes: 8 })).toBe(true)
+        // the player's own progress never lowers it
+        expect(await ask("POST", "/api/v1/library/anime-entry/update-progress", { mediaId: -95063, episodeNumber: 1, totalEpisodes: 8, auto: true })).toBe(true)
+        const entry = await ask("GET", "/api/v1/library/anime-entry/-95063") as { listData?: { progress: number } }
+        expect(entry.listData?.progress).toBe(2)
+        expect(asked.filter(key => key.startsWith("anilist:"))).toEqual([])
+    })
+
+    it("lists the titles in My shows and takes only TVmaze ids", async () => {
+        expect(await ask("GET", "/api/v1/other-sources/my-shows")).toEqual([])
+        expect(await ask("POST", "/api/v1/other-sources/my-shows", { mediaId: -95063, listed: true })).toBe(true)
+        expect((await ask("GET", "/api/v1/other-sources/my-shows") as Json[]).map(show => show.id)).toEqual([-95063])
+        await ask("POST", "/api/v1/other-sources/my-shows", { mediaId: -95063, listed: false })
+        expect(await ask("GET", "/api/v1/other-sources/my-shows")).toEqual([])
+        const failure = await ask("POST", "/api/v1/other-sources/my-shows", { mediaId: 21, listed: true }).catch(error => error as CoreError)
+        expect(failure).toBeInstanceOf(CoreError)
+        expect(asked.filter(key => key.startsWith("anilist:"))).toEqual([])
     })
 })

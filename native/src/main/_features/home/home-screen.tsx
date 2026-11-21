@@ -65,6 +65,7 @@ import { carouselEmptyCause, HOME_ITEMS_PENDING, hasSectionGapBefore, resetCarou
 import { carouselDefaultName, homeOptionLabel } from "./home-section-info"
 import { __home_settingsModalOpen, HomeSettingsSheet } from "./home-settings-sheet"
 import { isAnimeLibraryItemsOnly } from "./home-items.utils"
+import { MyShowsRow } from "./my-shows-row"
 
 /*
  * Android Home (home-screen.tsx + home-mobile.css): the head with its actions, then the saved sections in their order.
@@ -128,6 +129,7 @@ export function HomeScreen() {
             <View className="pb-10">
                 {/* The discover header shows only as the first section, above all others */}
                 {homeItems[0]?.type === "discover-header" && <HomeDiscoverFeature />}
+                <MyShowsRow />
                 {homeItems.filter(item => item.type !== "discover-header" && item.type !== "anime-continue-watching-header").map((item, index) => (
                     <React.Fragment key={item.id}>
                         {hasSectionGapBefore(item.type, index) && <View className="h-6" />}

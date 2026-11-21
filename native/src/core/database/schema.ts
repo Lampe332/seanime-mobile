@@ -380,3 +380,11 @@ export const torrentKept = sqliteTable("torrent_kept", {
     content: text("content", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
     changedAt: integer("changed_at").notNull(),
 })
+
+/** A title of another source (TVmaze, negative id), kept on the device only: its progress and whether it is in "My shows" */
+export const ownShows = sqliteTable("own_shows", {
+    mediaId: integer("media_id").primaryKey(),
+    progress: integer("progress").notNull(),
+    listed: integer("listed").notNull(),
+    changedAt: integer("changed_at").notNull(),
+})

@@ -376,6 +376,18 @@ export const SCHEMA_STEPS: SchemaStep[] = [
             )`,
         ],
     },
+    {
+        step: 20,
+        name: "other sources: progress and My shows of TVmaze titles, on the device only",
+        statements: [
+            `CREATE TABLE own_shows (
+                media_id INTEGER PRIMARY KEY NOT NULL,
+                progress INTEGER NOT NULL,
+                listed INTEGER NOT NULL,
+                changed_at INTEGER NOT NULL
+            )`,
+        ],
+    },
 ]
 
 /** Takes every step the database has not taken yet. Returns the numbers of the steps taken now. */
