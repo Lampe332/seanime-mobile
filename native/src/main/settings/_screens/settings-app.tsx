@@ -6,6 +6,7 @@ import { useListAnimeEntryEpisodeTabExtensions } from "@/api/hooks/extensions.ho
 import { useGetMobileOfflineSnapshot, useMobileOfflineSettings } from "@/api/hooks/mobile_offline.hooks"
 import { toast } from "@/components/ui/toast/toast-store"
 import { useAiringNotificationsSetting, useChapterNotificationsSetting, useTestAiringNotification } from "@/lib/airing/airing-hooks"
+import { usageCountEnabledAtom } from "@/lib/account/usage-ping-app"
 import { APP_LANGUAGES, appLanguageAtom, asAppLanguage, type Translate } from "@/lib/app-language"
 import { hapticsEnabledAtom, hasVibrator, playSound, soundsEnabledAtom } from "@/lib/feedback"
 import { resetNavigation } from "@/lib/nav/nav-store"
@@ -79,6 +80,7 @@ export function SettingsAppSection({ t }: { t: Translate }) {
 
         <LanguageGroup t={t} />
         <AppFeedbackGroup t={t} />
+        <PrivacyGroup t={t} />
         {Platform.OS === "android" && <WidgetsGroup t={t} onAdd={widget => void addWidget(t, widget)} />}
 
         <SettingsGroup title={t("Extensions", "Erweiterungen")}>
@@ -158,6 +160,17 @@ async function addWidget(t: Translate, widgetName: string) {
     const asked = await requestPinWidget({ widgetName }).catch(() => false)
     if (!asked) toast.error(t("Your launcher cannot add widgets from apps. Add it from the home screen instead.",
         "Dein Startbildschirm kann keine Widgets aus Apps hinzufügen. Füge es dort über die Widget-Auswahl hinzu."))
+}
+
+function PrivacyGroup({ t }: { t: Translate }) {
+    const [usageCount, setUsageCount] = useAtom(usageCountEnabledAtom)
+    return <SettingsGroup title={t("Privacy", "Datenschutz")}>
+        <LocalSwitch label={t("Send anonymous usage count", "Anonyme Nutzungszählung senden")} checked={usageCount} onCheckedChange={setUsageCount}
+            note={t(
+                "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.",
+                "Einmal am Tag sendet die App eine zufällige ID und ihre Version, damit wir wissen, wie viele sie nutzen. Kein Konto, keine E-Mail, keine IP wird gespeichert.",
+            )} />
+    </SettingsGroup>
 }
 
 function AppFeedbackGroup({ t }: { t: Translate }) {

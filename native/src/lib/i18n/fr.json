@@ -3050,5 +3050,8 @@
   "No internet connection, so updates could not be loaded.": "Pas de connexion internet, impossible de charger les mises à jour.",
   "No new episodes or chapters this week": "Aucun nouvel épisode ni chapitre cette semaine",
   "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "Les nouveaux épisodes des animes que tu regardes ou prévois de regarder et les nouveaux chapitres des mangas que tu lis apparaissent ici.",
-  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "Téléchargé. Rien n'est envoyé à d'autres, car « Arrêter le partage une fois terminé » est activé dans les réglages. Les fichiers sont dans ta bibliothèque."
+  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "Téléchargé. Rien n'est envoyé à d'autres, car « Arrêter le partage une fois terminé » est activé dans les réglages. Les fichiers sont dans ta bibliothèque.",
+  "Privacy": "Confidentialité",
+  "Send anonymous usage count": "Envoyer un comptage d’utilisation anonyme",
+  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "Une fois par jour, l’app envoie un identifiant aléatoire et sa version, pour que nous sachions combien de personnes l’utilisent. Aucun compte, aucun e-mail, aucune IP n’est enregistré."
 }

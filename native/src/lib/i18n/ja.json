@@ -2855,5 +2855,8 @@
   "No internet connection, so updates could not be loaded.": "ネットに接続されていないため、アップデートを読み込めませんでした。",
   "No new episodes or chapters this week": "今週、新しいエピソードやチャプターはありません",
   "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "視聴中や視聴予定のアニメの新エピソード、読んでいるマンガの新チャプターがここに表示されます。",
-  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "ダウンロード済みです。設定で「完了したら共有を停止」がオンのため、他の人には何もアップロードしません。ファイルはライブラリにあります。"
+  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "ダウンロード済みです。設定で「完了したら共有を停止」がオンのため、他の人には何もアップロードしません。ファイルはライブラリにあります。",
+  "Privacy": "プライバシー",
+  "Send anonymous usage count": "匿名の利用カウントを送信",
+  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "1日に1回、アプリはランダムなIDとバージョンを送信し、何人が使っているかを把握します。アカウント、メールアドレス、IPアドレスは保存されません。"
 }

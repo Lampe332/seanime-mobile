@@ -236,7 +236,7 @@ No, the account is optional and only adds sync between your devices. Its data is
 <summary>Where do I find more help, and what does the app send where?</summary>
 <br>
 
-[seanimemobile.com/help](https://seanimemobile.com/help) covers installing, checking the file, updates and common problems. The [privacy page](https://seanimemobile.com/privacy) explains what the app sends where and which permissions it uses for what.
+[seanimemobile.com/help](https://seanimemobile.com/help) covers installing, checking the file, updates and common problems. The [privacy page](https://seanimemobile.com/privacy) explains what the app sends where and which permissions it uses for what. Once a day the app also sends a random install ID and its version to `api.seanimemobile.com/v1/ping`, so we can count how many people use it. The server keeps only a hash of that ID with the day and the version for 400 days, never your IP address, email or account. You can turn it off under Settings, App, Privacy, "Send anonymous usage count".
 
 </details>
 

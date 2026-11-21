@@ -2855,5 +2855,8 @@
   "No internet connection, so updates could not be loaded.": "没有网络连接，更新加载失败。",
   "No new episodes or chapters this week": "本周没有新剧集或新章节",
   "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "你在看或计划看的动画的新剧集，以及你在读的漫画的新章节，会显示在这里。",
-  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "已下载。由于设置中开启了“完成后停止分享”，不会上传给其他人。文件在你的媒体库中。"
+  "Downloaded. Nothing is uploaded to others, because \"Stop sharing when finished\" is on in Settings. The files are in your library.": "已下载。由于设置中开启了“完成后停止分享”，不会上传给其他人。文件在你的媒体库中。",
+  "Privacy": "隐私",
+  "Send anonymous usage count": "发送匿名使用统计",
+  "Once a day the app sends a random ID and its version, so we know how many people use it. No account, no email, no IP is stored.": "应用每天发送一次随机 ID 和版本号，让我们知道有多少人在使用。不会保存账户、电子邮件或 IP。"
 }

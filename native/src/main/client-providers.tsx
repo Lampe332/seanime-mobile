@@ -8,6 +8,7 @@ import { useSetServerStatus } from "@/main/_hooks/use-server-status"
 import { TourOverlay } from "@/main/_features/tour/tour-overlay"
 import { WebsocketProvider } from "@/main/websocket-provider"
 import { initEntryPreloader } from "@/lib/entry-preloader"
+import { pingUsageIfDue } from "@/lib/account/usage-ping-app"
 import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
 import { PortalHost } from "@rn-primitives/portal"
@@ -44,6 +45,8 @@ initEntryPreloader(
 connectAppBuild(`${Application.nativeApplicationVersion ?? ""}+${Application.nativeBuildVersion ?? ""}`)
 // the core's long work does not wait for a timer while the app is not in front: its timers stand still there (4b-C1K)
 connectAppFront(() => AppState.currentState === "active")
+
+const USAGE_PING_DELAY_MS = 15_000
 
 /** Loads /api/v1/status (the core's own status) into serverStatusAtom and keeps it fresh (server-data-wrapper.tsx) */
 function ServerStatusLoader() {
@@ -82,8 +85,16 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     // app was in the background (the server's foreground service keeps the process alive), and the update check's
     // refetchOnWindowFocus never ran. The app state is that signal.
     React.useEffect(() => {
-        const sub = AppState.addEventListener("change", state => focusManager.setFocused(state === "active"))
-        return () => sub.remove()
+        const sub = AppState.addEventListener("change", state => {
+            focusManager.setFocused(state === "active")
+            if (state === "active") void pingUsageIfDue()
+        })
+        // the anonymous daily count waits until the start is done (usage-ping.ts)
+        const firstPing = setTimeout(() => void pingUsageIfDue(), USAGE_PING_DELAY_MS)
+        return () => {
+            sub.remove()
+            clearTimeout(firstPing)
+        }
     }, [])
     return (
         <QueryClientProvider client={queryClient}>

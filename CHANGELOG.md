@@ -2,6 +2,10 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
+## 4.3.2 (unreleased)
+
+- 🎉 Privacy: The app sends an anonymous usage count once a day (a random ID and the app version, no account, email or IP), so we know how many people use it. You can turn it off under Settings, App, Privacy
+
 ## 4.3.1 (versionCode 40301)
 
 - 🎉 Entry: You can remove the start or completion date with the X beside it. AniList gets the cleared date too
