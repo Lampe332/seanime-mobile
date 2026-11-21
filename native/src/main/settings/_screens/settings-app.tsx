@@ -263,6 +263,6 @@ function AccountGroup({ t }: { t: Translate }) {
         <ConfirmSheet open={confirm} onOpenChange={setConfirm} title={t("Sign out of AniList?", "Von AniList abmelden?")}
             text={t("The app stops using your AniList account and falls back to the local account. Your sync account stays signed in.",
                 "Die App nutzt dein AniList-Konto nicht mehr und wechselt zum lokalen Konto. Dein Sync-Konto bleibt angemeldet.")}
-            action={t("Sign out of AniList", "Von AniList abmelden")} danger onConfirm={() => logout()} />
+            action={t("Sign out", "Abmelden")} danger onConfirm={() => logout()} />
     </SettingsGroup>
 }
