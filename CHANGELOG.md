@@ -4,7 +4,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 
 ## 4.3.1 (versionCode 40301)
 
-- 🎉 Privacy: The app sends an anonymous usage count once a day (a random ID and the app version, no account, email or IP), so we know how many people use it. You can turn it off under Settings, App, Privacy
+- 🎉 Privacy: Once a day the app sends an anonymous usage count: a random ID and the app version, so we know how many people use it. No account, email or IP is involved, and the server stores only the day, a SHA-256 hash of the ID and the version. It is on by default and you can turn it off under Settings, App, Privacy
 - 🎉 Entry: You can remove the start or completion date with the X beside it. AniList gets the cleared date too
 - 🎉 Downloads: You can remove waiting or failed manga chapters from the queue, and "Clear queue" asks first
 - ⚡️ Home: Customize Home tells you what each section shows and what it needs, such as a local library folder
@@ -15,12 +15,12 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - ⚡️ Search: An empty result explains that several genres must all match
 - ⚡️ Player: Menu pages open at the top with the title and Back pinned, the sleep timer marks the minutes you picked, and the brightness and volume overlay shows an icon
 - ⚡️ Player: The external player page and History show an error with "Try again" when loading fails
-- ⚡️ Downloads: The torrent screen says in plain words whether you are seeding, who you share with right now, and offers a clear "Stop seeding" button
+- ⚡️ Downloads: The torrent screen says whether you are seeding and who you share with right now, and has a clear "Stop seeding" button
 - ⚡️ Playlists: Back steps back inside the editor and asks before it throws away a changed draft
 - ⚡️ Account: A devices error explains the cause and offers "Try again", and security events read as plain rows
 - ⚡️ Nakama: Reconnect tells you which setting is missing: off, no host or no passcode
 - ⚡️ Touch targets and colors: Buttons in the reader, recent searches, settings and the player are easier to hit, and several fixed colors now follow your theme
-- 🦺 Manga: Reading a manga from Downloads could lower your AniList progress and put finished titles back on "Reading". That is fixed
+- 🦺 Manga: Reading a manga from Downloads could lower your AniList progress and put finished titles back on "Reading". That no longer happens
 - 🦺 AniList: Automatic progress updates never lower your progress and never set a completed title back to current, for manga and anime alike. Marks you set yourself can still change it
 - 🦺 Manga: Continue reading opens the right page instead of page 1, and the next chapter is no longer marked as read right away
 - 🦺 Library: "Delete from this device" now really deletes the file from your device, as the dialog always said. Before, it only removed the list entry and the next scan brought the file back
@@ -30,7 +30,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 🦺 Manga: A page without an address offers "Retry" instead of an endless spinner, and short long-strip chapters count as read at their end
 - 🦺 Manga: In long strip, Continue reading opens exactly the page you left instead of one or two pages earlier
 - 🦺 Calendar: The week arrows move your chosen day into the new week, a day picked in the week takes its month along, and switching between week and month opens the view that holds your day
-- 🦺 Entry: The lock-files switch goes back when saving fails
+- 🦺 Entry: The lock-files switch flips back when saving fails
 - 🦺 Search: "See all" for Trending movies keeps the released-only filter
 - 🦺 Player: Back in fullscreen always reaches the player, a tap on the mini player returns you to where you were, and the skip and countdown buttons no longer crowd the size button
 - 🦺 Player: The 80 percent progress update counts as sent only after it worked and is retried if it fails. Remaining time follows your setting
