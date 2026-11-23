@@ -11,10 +11,12 @@
 </p>
 
 <p align="center">
-  <a href="https://seanimemobile.com"><img src="docs/images/readme/download.svg" alt="Download the APK on seanimemobile.com" height="52"></a>
+  <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><img src="docs/images/readme/download.svg" alt="Download the APK on GitHub Releases" height="52"></a>
+  &nbsp;
+  <a href="https://seanimemobile.com/#download"><img src="docs/images/readme/website.svg" alt="Download on seanimemobile.com" height="52"></a>
 </p>
 
-<p align="center"><sub>The website walks you through the install and has an Obtainium button. The APK is also on <a href="https://github.com/Lampe332/seanime-mobile/releases/latest">GitHub Releases</a>.</sub></p>
+<p align="center"><sub>The website walks you through the install step by step and has an Obtainium button.</sub></p>
 
 <p align="center">
   <a href="https://github.com/Lampe332/seanime-mobile/releases/latest"><img src="https://img.shields.io/github/v/release/Lampe332/seanime-mobile?style=flat-square&label=version&color=6152df&labelColor=1b1a2b" alt="Latest version"></a>
