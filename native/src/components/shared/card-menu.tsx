@@ -1,6 +1,5 @@
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { actionSheetIn, actionSheetInTablet, popoverOut } from "@/components/ui/core/animations"
-import { EnterLayerView } from "@/components/ui/core/page-transition"
 import { Text } from "@/components/ui/text/text"
 import { colors, sizes } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
@@ -8,6 +7,7 @@ import { cardMenuFrame } from "./card-menu-layout"
 import { Portal } from "@rn-primitives/portal"
 import React from "react"
 import { BackHandler, Pressable, StyleSheet, useWindowDimensions } from "react-native"
+import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 /*
@@ -49,14 +49,15 @@ export function CardMenu({ anchor, title, items, onClose }: { anchor: CardMenuAn
     return (
         <Portal name="card-menu">
             <Pressable accessibilityLabel={title} onPress={onClose} style={StyleSheet.absoluteFill}>
-                <EnterLayerView layerMs={220} entering={rail ? actionSheetInTablet : actionSheetIn} exiting={popoverOut}
+                {/* no GPU layer while it rises (EnterLayerView): for these few rows its texture costs more than the fade (S22: more janky frames) */}
+                <Animated.View entering={rail ? actionSheetInTablet : actionSheetIn} exiting={popoverOut}
                     style={{ position: "absolute", ...frame, maxHeight: height - 160,
                         elevation: 16, shadowColor: "#000", shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 12 } }}
                     className="overflow-hidden rounded-surface bg-sm-surface-raised p-1.5">
                     {/* `.UI-ContextMenu__label` (semibold) with the card menu's `my-2` around the phone padding */}
                     <Text numberOfLines={2} className="my-2 px-3 pb-1.5 pt-2.5 text-[13px] font-semibold leading-[18.2px] text-sm-text-muted">{title}</Text>
                     {rows}
-                </EnterLayerView>
+                </Animated.View>
             </Pressable>
         </Portal>
     )

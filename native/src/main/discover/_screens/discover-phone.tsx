@@ -179,9 +179,17 @@ function DiscoverTabPane({ active, isTablet, children }: { active: boolean, isTa
 
     const style = useAnimatedStyle(() => ({ opacity: opacity.get(), transform: [{ translateY: shift.get() }] }))
     return <Animated.View renderToHardwareTextureAndroid={layered} style={[{ display: active ? "flex" : "none" }, style]} className="gap-6">
-        {children}
+        <PaneContent active={active}>{children}</PaneContent>
     </Animated.View>
 }
+
+/**
+ * A hidden tab keeps what it last showed: a render of Discover (the subtitle, the schedule's pages, a tab switch) does not
+ * rebuild the tabs behind the current one; picking a tab again renders it with what is current then.
+ */
+const PaneContent = React.memo(function PaneContent({ children }: { active: boolean, children: React.ReactNode }) {
+    return children
+}, (_prev, next) => !next.active)
 
 /** "Fall 2026 season", "Top of Fall 2026", "Best of Summer 2026" as whole texts, so each language words season and year itself. */
 function seasonTitle(t: Translate, kind: "season" | "top" | "best", { season, year }: SeasonYear) {
@@ -213,7 +221,8 @@ function seasonTitle(t: Translate, kind: "season" | "top" | "best", { season, ye
  * The anime rows. The genre-aware ones come first, right under the chips (spotlight, trending, both season rows); the
  * rest (aired, missed, coming soon, movies) shows every genre.
  */
-function AnimeTab() {
+// memo: no props, so a render of Discover (the tab bar, the subtitle) does not rebuild every row of the tab
+const AnimeTab = React.memo(function AnimeTab() {
     const t = useTr()
     const [genre, setGenre] = useAtom(animeGenreAtom)
     const seasons = React.useMemo(() => discoverSeasons(new Date()), [])
@@ -253,7 +262,7 @@ function AnimeTab() {
         <AnimeBlock title={t("Trending movies", "Angesagte Filme")} seeAll={seeAllLinks.movies()} variables={MOVIES}
             empty={t("No movies are trending right now.", "Gerade sind keine Filme angesagt.")} />
     </>
-}
+})
 
 const UPCOMING: AnilistListAnime_Variables = { page: 1, perPage: 20, sort: ["TRENDING_DESC"], status: ["NOT_YET_RELEASED"] }
 const MOVIES: AnilistListAnime_Variables = { page: 1, perPage: 20, format: "MOVIE", sort: ["TRENDING_DESC"], status: ["RELEASING", "FINISHED"] }
@@ -313,7 +322,7 @@ function MissedBlock() {
         renderCard={(media, width) => <DiscoverCover media={media} type="anime" width={width} />} />
 }
 
-function MangaTab() {
+const MangaTab = React.memo(function MangaTab() {
     const [genre, setGenre] = useAtom(mangaGenreAtom)
     const blurAdult = !!useServerStatus()?.settings?.anilist?.blurAdultContent
     const jp = useMangaRow("JP", genre)
@@ -327,7 +336,7 @@ function MangaTab() {
         <CountryRow country="KR" genre={genre} onClearGenre={clearGenre} />
         <CountryRow country="CN" genre={genre} onClearGenre={clearGenre} />
     </>
-}
+})
 
 function useMangaRow(country: string, genre: string | null) {
     return useRowItems(usePhoneListManga({ page: 1, perPage: 20, sort: ["TRENDING_DESC"], countryOfOrigin: country, genres: genre ? [genre] : undefined }, true), mediaOf)
