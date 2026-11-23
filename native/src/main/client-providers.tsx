@@ -1,4 +1,5 @@
 import { connectAppBuild, connectAppFront } from "@/api/client/core-switch"
+import { QUERY_RETRY_DELAY_MS, shouldRetryQuery } from "@/api/client/query-retry"
 import { useGetStatus } from "@/api/hooks/status.hooks"
 import * as Application from "expo-application"
 import { Toaster } from "@/components/ui/toast/toaster"
@@ -28,6 +29,11 @@ export const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             refetchOnWindowFocus: false,
+            // reads once more after a short pause (api/client/query-retry.ts); mutations stay at 0
+            retry: shouldRetryQuery,
+            retryDelay: QUERY_RETRY_DELAY_MS,
+        },
+        mutations: {
             retry: 0,
         },
     },
