@@ -124,5 +124,12 @@
       "react": "$react"
     }
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": ["expo-image"]
+      }
+    }
+  }
 }

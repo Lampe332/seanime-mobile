@@ -1,0 +1,24 @@
+diff --git a/node_modules/expo-image/android/src/main/java/expo/modules/image/ExpoImageViewWrapper.kt b/node_modules/expo-image/android/src/main/java/expo/modules/image/ExpoImageViewWrapper.kt
+index e0689c9..419380c 100644
+--- a/node_modules/expo-image/android/src/main/java/expo/modules/image/ExpoImageViewWrapper.kt
++++ b/node_modules/expo-image/android/src/main/java/expo/modules/image/ExpoImageViewWrapper.kt
+@@ -19,6 +19,7 @@ import com.bumptech.glide.Glide
+ import com.bumptech.glide.RequestManager
+ import com.bumptech.glide.load.engine.DiskCacheStrategy
+ import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
++import com.bumptech.glide.load.resource.bitmap.Downsampler
+ import com.bumptech.glide.request.RequestOptions
+ import com.github.penfeizhou.animation.gif.GifDrawable
+ import expo.modules.image.enums.ContentFit
+@@ -485,6 +486,11 @@ class ExpoImageViewWrapper(context: Context, appContext: AppContext) : ExpoView(
+       .customize(blurRadius) {
+         transform(SoftwareBlurTransformation(min(it, 25), 4))
+       }
++      .customize(`when` = blurRadius == null) {
++        // Without a transformation Glide can decode straight into hardware bitmaps,
++        // which skips the slow texture upload when a cover is drawn for the first time.
++        dontTransform().set(Downsampler.ALLOW_HARDWARE_CONFIG, true)
++      }
+   }
+ 
+   fun onViewDestroys() {
