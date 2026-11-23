@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { sqlDriverFor } from "@/api/client/core-database"
 import { forgetDatabases, openDatabaseSync } from "../../../test/expo-sqlite"
 import { CoreError } from "../errors"
+import { onCoreEvent } from "../events"
 import { type CoreDatabase, openCoreDatabase } from "../database/database"
 import { type CoreEnvironment, type CoreMethod, matchCoreRoute } from "../registry"
 import { ANILIST_URL, type HttpFetch } from "./client"
@@ -25,6 +26,10 @@ let relations: Record<number, Json[]> = {}
 let anilistLists: Json[] | null = null
 /** Answers of RelatedAnime in order; the rest is answered normally */
 let relatedStatuses: { status: number, retryAfter?: string }[] = []
+/** AniList does not answer RelatedAnime before this is over (a long list at the app's start); null: at once */
+let relatedHeld: Promise<void> | null = null
+/** The work the core started that no request waits for */
+let unasked: Promise<unknown> = Promise.resolve()
 
 const reply = (status: number, data: unknown, headers: Record<string, string> = {}) => ({
     status, headers: { get: (name: string) => headers[name] ?? null }, text: async () => JSON.stringify(data),
@@ -41,6 +46,7 @@ const anilist: HttpFetch = async (url, init) => {
         return reply(200, { data: { MediaListCollection: { lists: anilistLists } } })
     }
     if (operation === "RelatedAnime") {
+        await relatedHeld
         const next = relatedStatuses.shift()
         if (next && next.status !== 200) return reply(next.status, { errors: [{ message: "Too Many Requests.", status: next.status }] }, next.retryAfter ? { "Retry-After": next.retryAfter } : {})
         const ids = (variables.ids ?? []) as number[]
@@ -56,6 +62,7 @@ const environment = {
     database: async () => database ??= await openCoreDatabase(sqlDriverFor(openDatabaseSync("core.db") as never), () => clock),
     now: () => clock,
     pause: async () => undefined,
+    unasked: (_what: string, work: () => Promise<unknown>) => unasked = work(),
     sleep: async (milliseconds: number) => {
         slept.push(milliseconds)
         clock += milliseconds
@@ -90,6 +97,8 @@ beforeEach(() => {
     relations = {}
     anilistLists = null
     relatedStatuses = []
+    relatedHeld = null
+    unasked = Promise.resolve()
 })
 
 describe("missed sequels", () => {
@@ -141,5 +150,66 @@ describe("missed sequels", () => {
         expect(error).toBeInstanceOf(CoreError)
         clock += 180_000
         expect((await call("GET", "/api/v1/anilist/list-missed-sequels") as Json[]).map(item => item.id)).toEqual([100])
+    })
+
+    /** The app starts again: the answer of the last run is kept, AniList is slow with the relations */
+    async function keptThenStartedAgain(): Promise<() => void> {
+        await keepCollection(await environment.database(), "ANIME", { MediaListCollection: { lists: listsOf([entry(1, "COMPLETED")]) as never } }, clock)
+        relations = { 1: [sequel(100)] }
+        expect((await call("GET", "/api/v1/anilist/list-missed-sequels") as Json[]).map(item => item.id)).toEqual([100])
+        clock += 3_600_000
+        asked = []
+        let release = () => undefined as void
+        relatedHeld = new Promise<void>(resolve => release = resolve)
+        return release
+    }
+    const soon = () => new Promise<string>(resolve => setTimeout(() => resolve("still waiting for AniList"), 50))
+
+    it("answers with the kept sequels at once at the app's start, reads AniList after it and tells the app what changed", async () => {
+        const release = await keptThenStartedAgain()
+        relations = { 1: [sequel(100), sequel(101)] }
+        const first = await Promise.race([call("GET", "/api/v1/anilist/list-missed-sequels"), soon()])
+        expect(first).not.toBe("still waiting for AniList")
+        expect((first as Json[]).map(item => item.id)).toEqual([100])
+        // asked again meanwhile (Discover, an invalidation): the same answer, AniList is not asked twice
+        expect((await call("GET", "/api/v1/anilist/list-missed-sequels") as Json[]).map(item => item.id)).toEqual([100])
+        const events: string[] = []
+        const end = onCoreEvent(event => events.push(event.type))
+        release()
+        await unasked
+        await new Promise(resolve => setTimeout(resolve, 10))
+        end()
+        expect(events).toEqual(["refreshed-missed-sequels"])
+        expect(related()).toHaveLength(1)
+        // what the app then asks for is the new answer, and AniList is not read again for it
+        expect((await call("GET", "/api/v1/anilist/list-missed-sequels") as Json[]).map(item => item.id)).toEqual([101, 100])
+        expect(related()).toHaveLength(1)
+    })
+
+    it("leaves a kept sequel out at once when it is in a list by now, and tells the app nothing when AniList agrees", async () => {
+        const release = await keptThenStartedAgain()
+        await keepCollection(await environment.database(), "ANIME", { MediaListCollection: { lists: listsOf([entry(1, "COMPLETED"), entry(100, "PLANNING")]) as never } }, clock)
+        const events: string[] = []
+        const end = onCoreEvent(event => events.push(event.type))
+        expect(await Promise.race([call("GET", "/api/v1/anilist/list-missed-sequels"), soon()])).toEqual([])
+        release()
+        await unasked
+        await new Promise(resolve => setTimeout(resolve, 10))
+        end()
+        expect(events).toEqual([])
+    })
+
+    it("keeps answering with the kept sequels when AniList fails after the answer", async () => {
+        const release = await keptThenStartedAgain()
+        relatedStatuses = [{ status: 500 }]
+        release()
+        expect((await call("GET", "/api/v1/anilist/list-missed-sequels") as Json[]).map(item => item.id)).toEqual([100])
+        await unasked.catch(() => undefined)
+        // not read: the next request reads again
+        relatedStatuses = []
+        relations = { 1: [sequel(101)] }
+        expect((await call("GET", "/api/v1/anilist/list-missed-sequels") as Json[]).map(item => item.id)).toEqual([100])
+        await unasked
+        expect((await call("GET", "/api/v1/anilist/list-missed-sequels") as Json[]).map(item => item.id)).toEqual([101])
     })
 })

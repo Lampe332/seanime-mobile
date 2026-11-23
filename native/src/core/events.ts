@@ -16,6 +16,7 @@ export const CORE_EVENT_TYPES = [
     "scan-status",
     "refreshed-anilist-anime-collection",
     "refreshed-anilist-manga-collection",
+    "refreshed-missed-sequels",
     "library-watcher-file-added",
     "library-watcher-file-removed",
     "auto-scan-started",
