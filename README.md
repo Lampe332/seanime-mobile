@@ -35,10 +35,10 @@
 <p align="center"><sub>Unofficial · built on <a href="https://github.com/5rahim/seanime">Seanime</a> by 5rahim. Not the official Seanime app.</sub></p>
 
 <p align="center">
-  <a href="https://seanimemobile.com"><img src="docs/images/readme/intro.gif" alt="Opening of the Seanime Mobile video: the logo, then phones showing anime and manga in one app, then Discover with this season's anime" width="100%"></a>
+  <a href="https://youtu.be/JqeoSkabkFE"><img src="docs/images/readme/intro.gif" alt="Opening of the Seanime Mobile video: the logo, then phones showing anime and manga in one app, then Discover with this season's anime" width="100%"></a>
 </p>
 
-<p align="center"><sub>From the showcase video, recorded with version 4.3.1. Tap it to open the website.</sub></p>
+<p align="center"><sub>From the showcase video, recorded with version 4.3.1. Tap it to watch the full video on YouTube.</sub></p>
 
 ## Why use it
 
