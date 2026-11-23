@@ -9,6 +9,8 @@ export type AppLinkTarget =
     | { kind: "page", path: string }
     /** A MyAnimeList anime; the app works with AniList ids, so it is looked up first. */
     | { kind: "mal", malId: number }
+    /** A MyAnimeList manga; looked up on AniList first like an anime. */
+    | { kind: "mal-manga", malId: number }
     /** Test and scratch app only: run the move of the server's data into the core again (docs/EIGENER-KERN.md §4c). */
     | { kind: "core-move" }
     /** Test and scratch app only: the one AniList account the core may change, null for none (docs/EIGENER-KERN.md §4f). */
@@ -61,6 +63,7 @@ export type AppLinkTarget =
 
 export const page = (path: string): AppLinkTarget => ({ kind: "page", path })
 export const malAnime = (malId: number): AppLinkTarget => ({ kind: "mal", malId })
+export const malManga = (malId: number): AppLinkTarget => ({ kind: "mal-manga", malId })
 
 const SHORTCUT_PAGES = new Set(["/", "/search", "/android-downloads", "/schedule"])
 
@@ -271,11 +274,12 @@ export function appLinkTarget(link: string | null | undefined, variant: string =
         return null
     }
     if (uri.scheme !== "http" && uri.scheme !== "https") return null
-    if (segments[0] !== "anime") return null
+    const manga = segments[0] === "manga"
+    if (segments[0] !== "anime" && !manga) return null
     const id = positiveId(segments[1])
     if (!id) return null
-    if (host === "anilist.co") return page(`/entry?id=${id}`)
-    if (host === "myanimelist.net") return malAnime(id)
+    if (host === "anilist.co") return page(manga ? `/manga/entry?id=${id}` : `/entry?id=${id}`)
+    if (host === "myanimelist.net") return manga ? malManga(id) : malAnime(id)
     return null
 }
 

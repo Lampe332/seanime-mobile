@@ -41,6 +41,16 @@
               "scheme": "https",
               "host": "myanimelist.net",
               "pathPrefix": "/anime/"
+            },
+            {
+              "scheme": "https",
+              "host": "anilist.co",
+              "pathPrefix": "/manga/"
+            },
+            {
+              "scheme": "https",
+              "host": "myanimelist.net",
+              "pathPrefix": "/manga/"
             }
           ]
         }

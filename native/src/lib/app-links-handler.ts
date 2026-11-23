@@ -165,6 +165,14 @@ export async function resolveTarget(target: AppLinkTarget): Promise<string | nul
         void runCoreStreamsCheck(target.mediaIds, target.query, target.searchOnly)
         return null
     }
+    if (target.kind === "mal-manga") {
+        const mangaId = await anilistIdFromMal(target.malId, "MANGA")
+        if (mangaId === null) {
+            toast.error(tr("This manga is not on AniList", "Dieser Manga ist nicht auf AniList"))
+            return null
+        }
+        return `/manga/entry?id=${mangaId}`
+    }
     const id = await anilistIdFromMal(target.malId)
     if (id === null) {
         toast.error(tr("This anime is not on AniList", "Dieser Anime ist nicht auf AniList"))

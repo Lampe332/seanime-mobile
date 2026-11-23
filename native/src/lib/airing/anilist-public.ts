@@ -80,10 +80,10 @@ export async function userId(name: string): Promise<number> {
     return data.User.id
 }
 
-/** AniList id of a MyAnimeList anime (null when AniList does not know it). */
-export async function anilistIdFromMal(malId: number): Promise<number | null> {
+/** AniList id of a MyAnimeList anime or manga (null when AniList does not know it). */
+export async function anilistIdFromMal(malId: number, type: "ANIME" | "MANGA" = "ANIME"): Promise<number | null> {
     try {
-        const data = await anilist<{ Media: { id: number } | null }>("query ($id: Int) { Media(idMal: $id, type: ANIME) { id } }", { id: malId })
+        const data = await anilist<{ Media: { id: number } | null }>("query ($id: Int, $type: MediaType) { Media(idMal: $id, type: $type) { id } }", { id: malId, type })
         return data.Media?.id ?? null
     }
     catch {
