@@ -1,0 +1,31 @@
+diff --git a/node_modules/react-native-svg/android/src/main/java/com/horcrux/svg/SvgView.java b/node_modules/react-native-svg/android/src/main/java/com/horcrux/svg/SvgView.java
+index f04da14f..9dff375c 100644
+--- a/node_modules/react-native-svg/android/src/main/java/com/horcrux/svg/SvgView.java
++++ b/node_modules/react-native-svg/android/src/main/java/com/horcrux/svg/SvgView.java
+@@ -131,6 +131,26 @@ public class SvgView extends ReactViewGroup implements ReactCompoundView, ReactC
+       return;
+     }
+     super.onDraw(canvas);
++    // A hardware canvas records the drawing into the view's display list. The software bitmap below would have to be
++    // uploaded as a texture each time the icon is drawn after being attached or changed.
++    if (canvas.isHardwareAccelerated() && toDataUrlTask == null) {
++      if (mBitmap != null) {
++        mBitmap.recycle();
++        mBitmap = null;
++      }
++      float width = getWidth();
++      float height = getHeight();
++      if (width < 1 || height < 1) {
++        return;
++      }
++      int count = canvas.save();
++      canvas.clipRect(0, 0, width, height);
++      drawChildren(canvas);
++      canvas.restoreToCount(count);
++      // the recording canvas is only valid while drawing
++      mCanvas = new Canvas();
++      return;
++    }
+     if (mBitmap == null) {
+       mBitmap = drawOutput();
+     }
