@@ -76,7 +76,7 @@ export function HomeDiscoverFeature() {
             className="my-3 w-full justify-end rounded-surface bg-sm-surface-control active:opacity-90"
         >
             {/* no clipping frame: the picture and the scrim round themselves (rounded-surface, 16dp) */}
-            {!!image && <Image source={getImageUrl(image)} recyclingKey={String(media.id)} cachePolicy="memory-disk" contentFit="cover"
+            {!!image && <Image allowDownscaling={false} source={getImageUrl(image)} recyclingKey={String(media.id)} cachePolicy="memory-disk" contentFit="cover"
                 transition={{ duration: 320, effect: "cross-dissolve" }}
                 style={{ position: "absolute", inset: 0, borderRadius: 16 }} accessibilityIgnoresInvertColors />}
             <View className="items-start gap-1 rounded-b-[16px] px-4 pb-4 pt-12"
@@ -212,7 +212,7 @@ const UpcomingCard = React.memo(function UpcomingCard({ item, width, spoilerActi
         <Pressable accessibilityRole="link" accessibilityLabel={`${title}, ${t(`Episode ${item.episodeNumber}`, `Folge ${item.episodeNumber}`)}, ${when}`}
             onPress={() => open(`/entry?id=${item.mediaId}`)} style={{ width }} className="gap-2 active:opacity-85">
             <View ref={coverRef} collapsable={false} className="aspect-[2/1] w-full rounded-xl bg-sm-surface">
-                {!!shownUri && <Image source={shownUri} contentFit="cover" blurRadius={veiled ? 24 : 0} recyclingKey={String(item.mediaId)}
+                {!!shownUri && <Image allowDownscaling={false} source={shownUri} contentFit="cover" blurRadius={veiled ? 24 : 0} recyclingKey={String(item.mediaId)}
                     cachePolicy="memory-disk" transition={fade} onLoad={onLoad}
                     style={{ position: "absolute", inset: 0, borderRadius: 12, opacity: hidden ? 0 : UPCOMING_LOOK.opacity }} accessibilityIgnoresInvertColors />}
             </View>

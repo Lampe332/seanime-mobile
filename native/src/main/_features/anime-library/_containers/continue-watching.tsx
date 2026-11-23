@@ -114,7 +114,7 @@ const ResumeTile = React.memo(function ResumeTile({ episode, width, spoilerActiv
             className={`justify-end rounded-surface border border-white/5 bg-sm-surface-control${progressShown ? " overflow-hidden" : ""}`}
         >
             {!!shown && (
-                <Image
+                <Image allowDownscaling={false}
                     source={shown}
                     recyclingKey={`${anime?.id}-${episode.episodeNumber}`}
                     cachePolicy="memory-disk"

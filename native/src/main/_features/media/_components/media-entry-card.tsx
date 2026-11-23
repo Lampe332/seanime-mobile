@@ -101,7 +101,7 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
                         onPress: () => openDirInLibraryExplorer(libraryData.sharedPath) }] : []),
                     ...(playlistItem ? [playlistItem] : []), ...pluginItems]} />
             <View ref={coverRef} collapsable={false} className="aspect-[3/4] w-full overflow-hidden rounded-surface-sm bg-sm-surface-raised">
-                <Image cachePolicy="memory-disk"
+                <Image allowDownscaling={false} cachePolicy="memory-disk"
                     source={coverUri}
                     recyclingKey={String(media.id)}
                     contentFit="cover"
