@@ -106,7 +106,7 @@ import {
     toPlayerTrack,
 } from "./player-logic"
 import { useSubtitleTranslation } from "./use-subtitle-translation"
-import { player_castingAtom, player_miniAtom, player_seekBackAtom, player_seekForwardAtom, player_trackMemoryAtom } from "./player.atoms"
+import { player_castingAtom, player_fullscreenAtom, player_miniAtom, player_seekBackAtom, player_seekForwardAtom, player_trackMemoryAtom } from "./player.atoms"
 import { boxScroll, player_boxSlotAtom, player_nowAtom } from "./player-box"
 import { castTitle, playerCastUrl } from "./player-cast"
 import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
@@ -193,6 +193,11 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const mpv = React.useRef<ExpoMpvViewRef>(null)
 
     const [small, setSmall] = useAtom(player_miniAtom)
+    const setFullscreen = useSetAtom(player_fullscreenAtom)
+    React.useEffect(() => {
+        setFullscreen(!small)
+        return () => setFullscreen(false)
+    }, [small, setFullscreen])
     const casting = useAtomValue(player_castingAtom)
     const [trackMemory, setTrackMemory] = useAtom(player_trackMemoryAtom)
     const seekBack = useAtomValue(player_seekBackAtom)

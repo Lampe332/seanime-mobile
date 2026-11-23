@@ -5,6 +5,7 @@ import { THEME_DEFAULT_VALUES } from "@/lib/theme/theme-hooks"
 import { useIsSimulatedUser } from "@/main/_hooks/use-server-status"
 import {
     SelectRow,
+    LocalSwitch,
     SettingsGroup,
     TextSettingRow,
     ThemeSwitch,
@@ -14,6 +15,7 @@ import {
     validateImageLink,
 } from "@/main/settings/_components/settings-kit"
 import { opacityOptions } from "@/main/settings/_lib/settings-phone"
+import { showStatusBarAtom } from "@/lib/status-bar-setting"
 import { useAtom } from "jotai"
 
 /*
@@ -64,6 +66,7 @@ export function SettingsUISection({ t, tablet }: { t: Translate, tablet: boolean
             <ThemeSwitch field="showMangaUnreadCount" label={t("Unread chapters on manga cards", "Ungelesene Kapitel auf Manga-Karten")} />
         </SettingsGroup>
         <PreloadGroup t={t} />
+        <ScreenGroup t={t} />
     </>
 }
 
@@ -129,5 +132,14 @@ function PreloadGroup({ t }: { t: Translate }) {
                 { value: "viewport", label: t("When on screen", "Sobald sichtbar") },
             ]}
             onChange={value => setMode(value as NavigationPreloadMode)} />
+    </SettingsGroup>
+}
+
+function ScreenGroup({ t }: { t: Translate }) {
+    const [show, setShow] = useAtom(showStatusBarAtom)
+    return <SettingsGroup title={t("Screen", "Bildschirm")}>
+        <LocalSwitch label={t("Show status bar", "Statusleiste anzeigen")} checked={show} onCheckedChange={setShow}
+            note={t("Clock and battery at the top. Always hidden in the player. Only on this device.",
+                "Uhr und Akku oben. Im Player immer ausgeblendet. Nur auf diesem Gerät.")} />
     </SettingsGroup>
 }

@@ -3018,5 +3018,8 @@
   "This manga is not on AniList": "Этой манги нет на AniList",
   "Seeking": "Перемотка",
   "For the buttons next to Play and for double taps in the player. Only on this device.": "Для кнопок рядом с «Воспроизвести» и для двойных касаний в плеере. Только на этом устройстве.",
-  "Forward": "Вперёд"
+  "Forward": "Вперёд",
+  "Screen": "Экран",
+  "Show status bar": "Показывать строку состояния",
+  "Clock and battery at the top. Always hidden in the player. Only on this device.": "Часы и заряд батареи сверху. В плеере всегда скрыта. Только на этом устройстве."
 }

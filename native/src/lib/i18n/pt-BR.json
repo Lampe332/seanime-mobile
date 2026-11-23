@@ -3037,5 +3037,8 @@
   "This manga is not on AniList": "Este mangá não está no AniList",
   "Seeking": "Avançar e voltar",
   "For the buttons next to Play and for double taps in the player. Only on this device.": "Para os botões ao lado de Reproduzir e para os toques duplos no player. Só neste dispositivo.",
-  "Forward": "Avançar"
+  "Forward": "Avançar",
+  "Screen": "Tela",
+  "Show status bar": "Mostrar barra de status",
+  "Clock and battery at the top. Always hidden in the player. Only on this device.": "Relógio e bateria no topo. Sempre oculta no player. Só neste dispositivo."
 }

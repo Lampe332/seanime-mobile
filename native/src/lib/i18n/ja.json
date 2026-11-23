@@ -2864,5 +2864,8 @@
   "This manga is not on AniList": "このマンガはAniListにありません",
   "Seeking": "スキップ",
   "For the buttons next to Play and for double taps in the player. Only on this device.": "再生ボタンの横のボタンとプレーヤーでのダブルタップに使います。この端末のみ。",
-  "Forward": "進む"
+  "Forward": "進む",
+  "Screen": "画面",
+  "Show status bar": "ステータスバーを表示",
+  "Clock and battery at the top. Always hidden in the player. Only on this device.": "上部に時計とバッテリーを表示します。プレーヤーでは常に非表示。この端末のみ。"
 }

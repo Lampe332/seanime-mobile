@@ -2864,5 +2864,8 @@
   "This manga is not on AniList": "此漫画不在 AniList 上",
   "Seeking": "快进与快退",
   "For the buttons next to Play and for double taps in the player. Only on this device.": "用于播放按钮旁的按钮和播放器中的双击。仅限此设备。",
-  "Forward": "前进"
+  "Forward": "前进",
+  "Screen": "屏幕",
+  "Show status bar": "显示状态栏",
+  "Clock and battery at the top. Always hidden in the player. Only on this device.": "在顶部显示时钟和电量。在播放器中始终隐藏。仅限此设备。"
 }
