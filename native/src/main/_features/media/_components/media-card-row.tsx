@@ -22,12 +22,13 @@ export function MediaCardRow<T>({ data, keyOf, renderCard, inset = 16 }: {
     inset?: number
 }) {
     const width = useCardWidth()
+    const renderItem = React.useCallback(({ item }: { item: T }) => renderCard(item, width), [renderCard, width])
     return (
         <FlashList
             horizontal
             data={data}
             keyExtractor={keyOf}
-            renderItem={({ item }) => renderCard(item, width)}
+            renderItem={renderItem}
             ItemSeparatorComponent={Gap}
             showsHorizontalScrollIndicator={false}
             snapToInterval={width + CARD_GAP}

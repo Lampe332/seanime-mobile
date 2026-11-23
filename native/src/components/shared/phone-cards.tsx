@@ -125,13 +125,8 @@ export type CoverCardProps = {
  */
 export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, width, blurAdult, progress, badge, tag, meta, metaTone, label, metaIcon, inLibrary, menuItems, onList, listEntry }: CoverCardProps) {
     const t = useTr()
-    const { setPreviewModalMediaId } = useMediaPreviewModal()
     const [menuAt, setMenuAt] = React.useState<CardMenuAnchor | null>(null)
     const closeMenu = React.useCallback(() => setMenuAt(null), [])
-    // "Add to playlist" on the library's terms (search-phone.tsx): the anime's library entry decides
-    const libraryEntry = useAtomValue(getAnimeLibraryEntryAtom(media.id))
-    const playlistItem = usePlaylistMenuItem(media.id, type, { local: !!libraryEntry?.libraryData || !!libraryEntry?.nakamaLibraryData, onList: onList ?? !!libraryEntry?.listData })
-    const pluginItems = usePluginCardMenuItems(type, media)
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
     const veiled = blurAdult && !!media.isAdult
     const shownProgress = !!progress && progress.total > 0 && progress.value > 0
@@ -141,8 +136,6 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, 
     const { coverRef, onLoad: onCoverLoad, hidden: coverHidden, open: openEntry } = useCoverFlightSource(media.id, veiled ? "" : coverUri, getImageUrl(media.coverImage?.extraLarge || media.coverImage?.large || ""))
     const press = usePressScale(SCALE.pressCard)
     const fade = useImageFade()
-    // "Add to list" / "On your list", "+1", My lists' "Continue reading" (card-list-actions.ts)
-    const listItems = useCardListItems(media, type, openEntry, listEntry)
     // a title of TVmaze (negative id) has no AniList list, library or preview: a tap opens it, nothing more
     const foreign = isTvmazeId(media.id)
 
@@ -159,24 +152,25 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, 
             delayLongPress={500}
             className="gap-1"
         >
-            {!foreign && <CardMenu anchor={menuAt} title={title} onClose={closeMenu}
-                items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, type) },
-                    ...(menuItems ?? []), ...listItems, ...(playlistItem ? [playlistItem] : []), ...pluginItems]} />}
-            <View ref={coverRef} collapsable={false} className="mb-1 aspect-[2/3] w-full overflow-hidden rounded-surface-sm bg-sm-surface-control">
+            {!foreign && !!menuAt && <CoverCardMenu anchor={menuAt} title={title} onClose={closeMenu} media={media} type={type}
+                menuItems={menuItems} onList={onList} listEntry={listEntry} openEntry={openEntry} />}
+            {/* only the progress line needs the clip; the picture and the veil carry the radius themselves */}
+            <View ref={coverRef} collapsable={false} className={cn("mb-1 aspect-[2/3] w-full rounded-surface-sm bg-sm-surface-control", shownProgress && "overflow-hidden")}>
                 <Image
                     source={coverUri}
                     recyclingKey={String(media.id)}
+                    cachePolicy="memory-disk"
                     contentFit="cover"
                     transition={fade}
                     onLoad={onCoverLoad}
                     blurRadius={veiled ? 24 : 0}
-                    style={{ position: "absolute", inset: 0, opacity: coverHidden ? 0 : veiled ? 0.8 : 1 }}
+                    style={{ position: "absolute", inset: 0, borderRadius: COVER_RADIUS, opacity: coverHidden ? 0 : veiled ? 0.8 : 1 }}
                     accessibilityIgnoresInvertColors
                 />
                 {!(media.coverImage?.large || media.coverImage?.extraLarge) && <View className="absolute inset-0 items-center justify-center">
                     <Text accessibilityLabel={t("No cover", "Kein Cover")} className="text-sm-text-subtle">◇</Text>
                 </View>}
-                {veiled && <View pointerEvents="none" className="absolute inset-0 bg-black/30" />}
+                {veiled && <View pointerEvents="none" className="absolute inset-0 rounded-surface-sm bg-black/30" />}
                 {shownProgress && (
                     <View className="absolute left-0 right-0 top-0 h-[3px] bg-black/55">
                         <View style={{ width: `${Math.min(100, (100 * progress!.value) / progress!.total)}%` }} className="h-full bg-sm-accent-strong" />
@@ -202,6 +196,37 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, 
         </Animated.View>
     )
 })
+
+/** `rounded-surface-sm` (0.75rem) in dp, for the cover picture that rounds itself instead of a clipping frame */
+const COVER_RADIUS = 12
+
+/**
+ * The long-press menu of a cover card, mounted only while it is open: its list, playlist and plugin items (and their
+ * subscriptions) cost nothing for the many closed cards of a scrolling grid.
+ */
+function CoverCardMenu({ anchor, title, onClose, media, type, menuItems, onList, listEntry, openEntry }: {
+    anchor: CardMenuAnchor
+    title: string
+    onClose: () => void
+    media: Media
+    type: "anime" | "manga"
+    menuItems?: CardMenuItem[]
+    onList?: boolean
+    listEntry?: CardListState
+    openEntry: (href: string) => void
+}) {
+    const t = useTr()
+    const { setPreviewModalMediaId } = useMediaPreviewModal()
+    // "Add to playlist" on the library's terms (search-phone.tsx): the anime's library entry decides
+    const libraryEntry = useAtomValue(getAnimeLibraryEntryAtom(media.id))
+    const playlistItem = usePlaylistMenuItem(media.id, type, { local: !!libraryEntry?.libraryData || !!libraryEntry?.nakamaLibraryData, onList: onList ?? !!libraryEntry?.listData })
+    const pluginItems = usePluginCardMenuItems(type, media)
+    // "Add to list" / "On your list", "+1", My lists' "Continue reading" (card-list-actions.ts)
+    const listItems = useCardListItems(media, type, openEntry, listEntry)
+    return <CardMenu anchor={anchor} title={title} onClose={onClose}
+        items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, type) },
+            ...(menuItems ?? []), ...listItems, ...(playlistItem ? [playlistItem] : []), ...pluginItems]} />
+}
 
 /** `.ps-badge` / `.ps-tag`: a dark pill on the cover, so it reads on any picture. */
 function CardMark({ text, className, textClassName }: { text: string, className: string, textClassName: string }) {

@@ -56,7 +56,7 @@ import { Pressable, ScrollView, useWindowDimensions, View } from "react-native"
 import { usePluginActions, useRunPluginAction } from "@/main/_features/plugin/plugin-actions"
 import { PluginTrayButton } from "@/main/_features/plugin/plugin-tray"
 import { PluginWebviewSlot } from "@/main/_features/plugin/plugin-webview"
-import { HomeDiscoverFeature, LibraryUpcomingEpisodes } from "./home-discover-sections"
+import { HomeDiscoverFeature, homeScrollHandlers, LibraryUpcomingEpisodes } from "./home-discover-sections"
 import { HomeMobileHeader, HomeHeaderAction, SearchHeadAction } from "./home-mobile-header"
 import { customizeInHomeHead } from "@/lib/nav/more-panel"
 import { AnilistSyncBar } from "@/main/_features/anilist-sync/anilist-sync"
@@ -148,6 +148,7 @@ export function HomeScreen() {
     return (
         <>
             <ScrollView
+                {...homeScrollHandlers}
                 className="flex-1"
                 contentContainerStyle={{ minHeight: window.height, paddingBottom: pageBottom, ...(!rail ? { backgroundImage: tint } : null) }}
             >

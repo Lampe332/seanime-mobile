@@ -377,6 +377,7 @@ function DiscoverRow<T>({ title, qualifier, note, seeAll, row, empty, genre, onC
     }, [qualifier])
     // the last genre's covers dim while the next ones load, then the new ones rise in (usePhoneSwap)
     const swapStyle = useSwapStyle(qualifier ?? "", { dimmed: row.stale })
+    const renderItem = React.useCallback(({ item }: { item: T }) => renderCard(item, width), [renderCard, width])
     return (
         <PhoneSection title={title} count={qualifier} note={note}
             action={!!seeAll && <TextAction label={t("See all", "Alle anzeigen")} onPress={() => openSeeAll(seeAll)} />}>
@@ -397,7 +398,7 @@ function DiscoverRow<T>({ title, qualifier, note, seeAll, row, empty, genre, onC
                         ref={list}
                         horizontal
                         data={row.items}
-                        renderItem={({ item }) => renderCard(item, width)}
+                        renderItem={renderItem}
                         ItemSeparatorComponent={RowGap}
                         showsHorizontalScrollIndicator={false}
                         snapToInterval={width + 12}
@@ -472,6 +473,8 @@ function Spotlight({ items, type, loading, stale }: { items: Media[], type: Medi
  * not plain manga); long press opens the card menu like a cover's.
  */
 const FEATURE_COVER_LOOK = { position: { top: "20%" } } as const
+/** `rounded-surface` (1rem) in dp */
+const FEATURE_RADIUS = 16
 
 const FeatureCard = React.memo(function FeatureCard({ media, type, width }: { media: Media, type: MediaType, width: number }) {
     const t = useTr()
@@ -500,24 +503,26 @@ const FeatureCard = React.memo(function FeatureCard({ media, type, width }: { me
             onPress={() => open(mediaEntryHref(type, media.id))}
             onLongPress={event => setMenuAt({ x: event.nativeEvent.pageX, y: event.nativeEvent.pageY })}
             delayLongPress={500}
-            className="min-h-[216px] justify-end gap-1.5 overflow-hidden rounded-surface bg-sm-surface-control p-4 active:opacity-90"
+            className="min-h-[216px] justify-end gap-1.5 rounded-surface bg-sm-surface-control p-4 active:opacity-90"
         >
             <CardMenu anchor={menuAt} title={title} onClose={closeMenu}
                 items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, type) }, ...listItems]} />
             <Image
                 source={pictureUri}
                 recyclingKey={String(media.id)}
+                cachePolicy="memory-disk"
                 contentFit="cover"
                 // A cover in place of a banner shows its upper part (faces, logo) rather than the middle band.
                 contentPosition={coverFallback ? FEATURE_COVER_LOOK.position : "center"}
                 transition={fade}
                 onLoad={onLoad}
-                style={{ position: "absolute", inset: 0, opacity: hidden ? 0 : 1 }}
+                // the card has no clipping frame (a clip per card costs every frame of a scroll): the picture and the scrim round themselves
+                style={{ position: "absolute", inset: 0, borderRadius: FEATURE_RADIUS, opacity: hidden ? 0 : 1 }}
                 accessibilityIgnoresInvertColors
             />
             {/* the neutral scrim under the text (.ps-feature::before: black 0 → .78 from 25 %); r16 (Nick 10.11., on purpose unlike
                 2.0.32/2.0.33): dark sooner, in the resume tile's near-black, so the title also reads on bright, busy pictures */}
-            <View pointerEvents="none" className="absolute inset-0"
+            <View pointerEvents="none" className="absolute inset-0 rounded-surface"
                 style={{ backgroundImage: "linear-gradient(180deg, rgba(12,12,14,0) 20%, rgba(12,12,14,0.65) 55%, rgba(12,12,14,0.9) 100%)" }} />
             <Text numberOfLines={4} className="text-[17px] font-bold leading-[22px] text-white">{title}</Text>
             {!!meta && <Text className="text-[13px] text-white/80" style={{ fontVariant: ["tabular-nums"] }}>{meta}</Text>}

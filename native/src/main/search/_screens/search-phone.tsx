@@ -19,8 +19,8 @@ import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { searchBesideTabs, TABLET_SEARCH_MAX_WIDTH, TABLET_SEGMENT_WIDTH } from "@/lib/tablet-ui"
 import { __anilist_userAnimeListDataAtom } from "@/main/_atoms/anilist.atoms"
-import { animeLibraryCollectionAtom } from "@/main/_atoms/anime-library-collection.atoms"
-import { mangaCollectionAtom } from "@/main/_atoms/manga-collection.atoms"
+import { getAnimeLibraryEntryAtom } from "@/main/_atoms/anime-library-collection.atoms"
+import { getMangaCollectionEntryAtom } from "@/main/_atoms/manga-collection.atoms"
 import { serverAuthTokenAtom } from "@/main/_atoms/server-status.atoms"
 import { HomeHeaderAction } from "@/main/_features/home/home-mobile-header"
 import { useLibraryExplorer } from "@/main/_features/library-explorer/library-explorer.atoms"
@@ -67,7 +67,7 @@ import Star from "lucide-react-native/icons/star"
 import X from "lucide-react-native/icons/x"
 import { useFocusEffect } from "expo-router"
 import React from "react"
-import { AccessibilityInfo, ActivityIndicator, Pressable, ScrollView, type TextInputInstance, useWindowDimensions, View } from "react-native"
+import { AccessibilityInfo, ActivityIndicator, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, type TextInputInstance, useWindowDimensions, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -226,6 +226,20 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
 
     const list = React.useRef<FlashListRef<Media>>(null)
     const [farDown, setFarDown] = React.useState(false)
+    // the scroll reports every 100 ms; the screen re-renders only when "far down" flips
+    const farDownRef = React.useRef(false)
+    const onScroll = React.useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const next = event.nativeEvent.contentOffset.y > height * 2
+        if (next === farDownRef.current) return
+        farDownRef.current = next
+        setFarDown(next)
+    }, [height])
+    const cellType = shown?.type ?? state.type
+    const renderItem = React.useCallback(({ item }: { item: Media }) => (
+        <View style={{ paddingHorizontal: grid.gap / 2, paddingBottom: grid.rowGap, opacity: stale ? 0.45 : 1 }}>
+            <ResultCell media={item} type={cellType} width={grid.width} />
+        </View>
+    ), [grid.gap, grid.rowGap, grid.width, stale, cellType])
 
     let body: React.ReactNode = null
     if (!shown && results.isError) {
@@ -335,11 +349,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                     keyExtractor={media => String(media.id)}
                     numColumns={grid.columns}
                     extraData={stale}
-                    renderItem={({ item }) => (
-                        <View style={{ paddingHorizontal: grid.gap / 2, paddingBottom: grid.rowGap, opacity: stale ? 0.45 : 1 }}>
-                            <ResultCell media={item} type={shown?.type ?? state.type} width={grid.width} />
-                        </View>
-                    )}
+                    renderItem={renderItem}
                     ListHeaderComponent={<View style={{ paddingHorizontal: grid.gap / 2 }}>{header}</View>}
                     ListFooterComponent={<View style={{ paddingHorizontal: grid.gap / 2 }}>{footer}{otherSources}</View>}
                     // The next page loads before the end comes into view; "Load more" stays for screen readers.
@@ -347,7 +357,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                         if (canLoadMore && !loading) void results.fetchNextPage()
                     }}
                     onEndReachedThreshold={1}
-                    onScroll={event => setFarDown(event.nativeEvent.contentOffset.y > height * 2)}
+                    onScroll={onScroll}
                     scrollEventThrottle={100}
                     // New results start where the page is; FlashList's default would scroll to keep an old cover in place
                     maintainVisibleContentPosition={{ disabled: true }}
@@ -446,12 +456,11 @@ const ResultCell = React.memo(function ResultCell({ media, type, width }: { medi
     const chapters = useAtomValue(__mangaLibrary_latestChapterNumbersAtom)
     // List data as MediaEntryCard finds it: the AniList collection first, then the local library; manga from the manga collection.
     const animeListData = useAtomValue(__anilist_userAnimeListDataAtom)
-    const library = useAtomValue(animeLibraryCollectionAtom)
-    const mangaCollection = useAtomValue(mangaCollectionAtom)
-    const libraryEntry = React.useMemo(() => type === "anime" ? library?.lists?.flatMap(list => list.entries ?? []).find(entry => entry.mediaId === media.id) : undefined,
-        [library, media.id, type])
-    const mangaEntry = React.useMemo(() => type === "manga" ? mangaCollection?.lists?.flatMap(list => list.entries ?? []).find(entry => entry.mediaId === media.id) : undefined,
-        [mangaCollection, media.id, type])
+    // the collections' id indexes (one lookup, not a walk through every list per cell)
+    const animeEntry = useAtomValue(getAnimeLibraryEntryAtom(media.id))
+    const mangaCollectionEntry = useAtomValue(getMangaCollectionEntryAtom(media.id))
+    const libraryEntry = type === "anime" ? animeEntry : undefined
+    const mangaEntry = type === "manga" ? mangaCollectionEntry : undefined
     const libraryData: Anime_EntryLibraryData | undefined = libraryEntry?.libraryData
     const listData: Anime_EntryListData | Manga_EntryListData | undefined = type === "anime" ? animeListData[String(media.id)] ?? libraryEntry?.listData : mangaEntry?.listData
     const unseen = unseenCount(type, media, listData, { anime: showAnimeUnwatchedCount, manga: showMangaUnreadCount, library: libraryData, chapters })

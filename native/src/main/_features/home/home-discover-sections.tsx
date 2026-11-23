@@ -27,6 +27,18 @@ const FEATURE_ROTATE_MS = 12_000
 const FEATURE_COUNT = 12
 
 /**
+ * Home's vertical scroll is moving (home-screen.tsx spreads these on its ScrollView): the header's next title and the
+ * carousel's next card wait for the next tick, so no new picture is decoded and uploaded in the middle of a swipe.
+ */
+const homeScroll = { moving: false }
+export const homeScrollHandlers = {
+    onScrollBeginDrag: () => { homeScroll.moving = true },
+    onScrollEndDrag: () => { homeScroll.moving = false },
+    onMomentumScrollBegin: () => { homeScroll.moving = true },
+    onMomentumScrollEnd: () => { homeScroll.moving = false },
+}
+
+/**
  * Home's "Discover header" when it is the first section (discover-page-header.tsx + home-mobile.css `.home-discover-card`):
  * a trending title's own picture as the card, 16:9 up to 16rem (tablet 21:9 up to 22rem), its name on a neutral scrim and
  * one "Preview" action; a tap opens its preview.
@@ -42,7 +54,9 @@ export function HomeDiscoverFeature() {
     const focused = useIsFocused()
     React.useEffect(() => {
         if (!focused || released.length < 2) return
-        const timer = setInterval(() => setIndex(i => (i + 1) % released.length), FEATURE_ROTATE_MS)
+        const timer = setInterval(() => {
+            if (!homeScroll.moving) setIndex(i => (i + 1) % released.length)
+        }, FEATURE_ROTATE_MS)
         return () => clearInterval(timer)
     }, [focused, released.length])
     const media = released[index % Math.max(1, released.length)]
@@ -59,11 +73,13 @@ export function HomeDiscoverFeature() {
             onPress={() => setPreviewModalMediaId(media.id, "anime")}
             onLayout={event => setWidth(event.nativeEvent.layout.width)}
             style={{ height: height || undefined, minHeight: 192 }}
-            className="my-3 w-full justify-end overflow-hidden rounded-surface bg-sm-surface-control active:opacity-90"
+            className="my-3 w-full justify-end rounded-surface bg-sm-surface-control active:opacity-90"
         >
-            {!!image && <Image source={getImageUrl(image)} contentFit="cover" transition={{ duration: 320, effect: "cross-dissolve" }}
-                style={{ position: "absolute", inset: 0 }} accessibilityIgnoresInvertColors />}
-            <View className="items-start gap-1 px-4 pb-4 pt-12"
+            {/* no clipping frame: the picture and the scrim round themselves (rounded-surface, 16dp) */}
+            {!!image && <Image source={getImageUrl(image)} recyclingKey={String(media.id)} cachePolicy="memory-disk" contentFit="cover"
+                transition={{ duration: 320, effect: "cross-dissolve" }}
+                style={{ position: "absolute", inset: 0, borderRadius: 16 }} accessibilityIgnoresInvertColors />}
+            <View className="items-start gap-1 rounded-b-[16px] px-4 pb-4 pt-12"
                 style={{ backgroundImage: "linear-gradient(180deg, rgba(12,12,14,0), rgba(12,12,14,0.82) 45%, rgba(12,12,14,0.94))" }}>
                 <Text className="text-[13px] text-sm-text-muted">{t("Trending now", "Gerade im Trend")}</Text>
                 <Text numberOfLines={2} className="text-lg font-bold leading-[23px]">{media.title?.userPreferred}</Text>
@@ -156,6 +172,7 @@ function useCarouselAutoplay(places: number, scrollTo: (place: number) => void) 
     const place = React.useRef(0)
     const [restart, setRestart] = React.useState(0)
     const go = React.useEffectEvent(() => {
+        if (homeScroll.moving) return
         place.current = nextCarouselPlace(place.current, places)
         scrollTo(place.current)
     })
@@ -194,10 +211,10 @@ const UpcomingCard = React.memo(function UpcomingCard({ item, width, spoilerActi
     return (
         <Pressable accessibilityRole="link" accessibilityLabel={`${title}, ${t(`Episode ${item.episodeNumber}`, `Folge ${item.episodeNumber}`)}, ${when}`}
             onPress={() => open(`/entry?id=${item.mediaId}`)} style={{ width }} className="gap-2 active:opacity-85">
-            <View ref={coverRef} collapsable={false} className="aspect-[2/1] w-full overflow-hidden rounded-xl bg-sm-surface">
+            <View ref={coverRef} collapsable={false} className="aspect-[2/1] w-full rounded-xl bg-sm-surface">
                 {!!shownUri && <Image source={shownUri} contentFit="cover" blurRadius={veiled ? 24 : 0} recyclingKey={String(item.mediaId)}
-                    transition={fade} onLoad={onLoad}
-                    style={{ position: "absolute", inset: 0, opacity: hidden ? 0 : UPCOMING_LOOK.opacity }} accessibilityIgnoresInvertColors />}
+                    cachePolicy="memory-disk" transition={fade} onLoad={onLoad}
+                    style={{ position: "absolute", inset: 0, borderRadius: 12, opacity: hidden ? 0 : UPCOMING_LOOK.opacity }} accessibilityIgnoresInvertColors />}
             </View>
             <View>
                 <Text numberOfLines={1} className="w-[80%] text-base font-semibold">{title}</Text>
