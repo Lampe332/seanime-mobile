@@ -133,9 +133,17 @@ export const TOAST_STACK_MOVE = TOAST_MOVE
 /** Content replaced in place (a new sort order) rises in 6dp instead of jumping in one frame (usePhoneSwap) */
 export function swapIn(isTablet: boolean) {
     return new Keyframe({
-        0: { opacity: 0, transform: [{ translateY: 6 }] },
+        0: { opacity: 0, transform: [{ translateY: SWAP_RISE }] },
         100: { opacity: 1, transform: [{ translateY: 0 }], easing: isTablet ? outEase : phoneEase },
     }).duration(isTablet ? DURATION.swapTablet : DURATION.swapPhone).reduceMotion(ReduceMotion.System)
+}
+
+/** How far swapIn rises */
+export const SWAP_RISE = 6
+
+/** swapIn's timing for a shared value (0 → 1), when the content stays mounted and only fades in again */
+export function swapInTiming(isTablet: boolean) {
+    return { duration: isTablet ? DURATION.swapTablet : DURATION.swapPhone, easing: isTablet ? outEase : phoneEase, reduceMotion: ReduceMotion.System }
 }
 
 /** A statistics bar grows from its start (m-grow), the first five 30 ms apart; give the bar `transformOrigin: "left"` */

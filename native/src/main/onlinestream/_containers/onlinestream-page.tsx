@@ -514,8 +514,18 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
         setOnline(current => current?.events === eventsRef ? { ...current, hasNext: false, hasPrevious: false } : current)
     }, [setOnline])
 
+    // Rows draw again only when what they show changes, not with every fetch state of the page (provider switch + scrolling)
+    const selectEpisodeStable = useLatestFunction(selectEpisode)
+    const openEpisodeMenu = React.useCallback((anchor: CardMenuAnchor, episode: Onlinestream_Episode, title: string) =>
+        setPluginMenu({ anchor, episode, title }), [])
+    const hasEpisodeMenu = pluginItems.length > 0
+    const renderEpisodeRow = React.useCallback((episode: Onlinestream_Episode) => <OnlineEpisodeRow episode={episode} media={media}
+        selected={episode.number === currentEpisodeNumber} progress={progress} disabled={episodeLoading && episode.number !== currentEpisodeNumber}
+        hasMenu={hasEpisodeMenu} onSelect={selectEpisodeStable} onMenu={openEpisodeMenu} />,
+    [media, currentEpisodeNumber, progress, episodeLoading, hasEpisodeMenu, selectEpisodeStable, openEpisodeMenu])
+
     // ── Page ──
-    const playing = useAtomValue(player_onlineAtom)?.events === eventsRef && active
+    const playing =useAtomValue(player_onlineAtom)?.events === eventsRef && active
 
     const sourceOptions = <View accessibilityLabel={t("Sources & playback options", "Quellen & Wiedergabeoptionen")} className="gap-2 pb-3 pt-4">
             <View accessibilityLabel={t("Source", "Quelle")} className="flex-row flex-wrap overflow-hidden rounded-surface-sm" style={{ gap: 2 }}>
@@ -628,33 +638,12 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
             <View className="mt-4">
                 {viewMode === "list" ? <>
                     {/* r18: only the rows near the screen are drawn (Black Clover 170, long series 1000+) */}
-                    <WindowedRows items={sortedEpisodes} keyOf={onlineEpisodeKey} estimate={ONLINE_ROW_ESTIMATE} renderItem={episode => {
-                        const title = media.format === "MOVIE" ? t("Complete movie", "Ganzer Film") : t(`Episode ${episode.number}`, `Folge ${episode.number}`)
-                        const selected = episode.number === currentEpisodeNumber
-                        return <View className={cn(selected && "rounded-[10px] bg-sm-accent-soft")}>
-                            <EpisodeRow mobileEntry media={media} image={episode.image} title={title} episodeTitle={episode.title}
-                                isWatched={progress ? episode.number <= progress : undefined} isFiller={episode.isFiller}
-                                episodeNumber={episode.number} watchedProgress={progress}
-                                onPress={episodeLoading && !selected ? undefined : () => selectEpisode(episode.number)}
-                                action={pluginItems.length > 0 ? <IconAction icon={Ellipsis} label={t("Episode options", "Optionen der Folge")}
-                                    onPress={anchor => setPluginMenu({ anchor, episode, title })} /> : undefined} />
-                        </View>
-                    }} />
+                    <WindowedRows items={sortedEpisodes} keyOf={onlineEpisodeKey} estimate={ONLINE_ROW_ESTIMATE} renderItem={renderEpisodeRow} />
                     {!!episodes?.length && <Muted className="py-2 text-center">{t("End", "Ende")}</Muted>}
                 </> : <View className="flex-row flex-wrap gap-2">
-                    {sortedEpisodes.map(episode => {
-                        const selected = episode.number === currentEpisodeNumber
-                        const watched = !!progress && episode.number <= progress
-                        return <Pressable key={episode.number} accessibilityRole="button" accessibilityState={{ selected, disabled: episodeLoading }}
-                            accessibilityLabel={`${t(`Episode ${episode.number}`, `Folge ${episode.number}`)}${episode.title ? ` · ${episode.title}` : ""}`}
-                            disabled={episodeLoading} onPress={() => selectEpisode(episode.number)}
-                            className={cn("h-12 min-w-12 items-center justify-center rounded-surface-sm px-3",
-                                // a filler: the raised tile with the warning tone's edge
-                                selected ? "bg-brand-500" : episode.isFiller ? "border border-sm-warning bg-sm-surface-raised active:bg-sm-surface-control" : "bg-sm-surface-raised active:bg-sm-surface-control",
-                                watched && !selected && "opacity-50")}>
-                            <Text className={cn("text-[15px] font-semibold", selected ? "text-white" : "text-sm-text")} style={{ fontVariant: ["tabular-nums"] }}>{episode.number}</Text>
-                        </Pressable>
-                    })}
+                    {sortedEpisodes.map(episode => <OnlineEpisodeTile key={episode.number} episode={episode}
+                        selected={episode.number === currentEpisodeNumber} watched={!!progress && episode.number <= progress}
+                        disabled={episodeLoading} onSelect={selectEpisodeStable} />)}
                 </View>}
             </View>
         </>}
@@ -685,6 +674,47 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
                 onPress: () => runPlugin(item, { episode: pluginMenu.episode, type: "onlinestream" }) })) : []} />
     </View>
 }
+
+type OnlineEpisodeRowProps = {
+    episode: Onlinestream_Episode
+    media: NonNullable<Anime_Entry["media"]>
+    selected: boolean
+    progress: number
+    disabled: boolean
+    hasMenu: boolean
+    onSelect: (number: number) => void
+    onMenu: (anchor: CardMenuAnchor, episode: Onlinestream_Episode, title: string) => void
+}
+
+/** One list row; memo: a fetch state of the page leaves rows with the same props alone */
+const OnlineEpisodeRow = React.memo(function OnlineEpisodeRow({ episode, media, selected, progress, disabled, hasMenu, onSelect, onMenu }: OnlineEpisodeRowProps) {
+    const t = useTr()
+    const title = media.format === "MOVIE" ? t("Complete movie", "Ganzer Film") : t(`Episode ${episode.number}`, `Folge ${episode.number}`)
+    return <View className={cn(selected && "rounded-[10px] bg-sm-accent-soft")}>
+        <EpisodeRow mobileEntry media={media} image={episode.image} title={title} episodeTitle={episode.title}
+            isWatched={progress ? episode.number <= progress : undefined} isFiller={episode.isFiller}
+            episodeNumber={episode.number} watchedProgress={progress}
+            onPress={disabled ? undefined : () => onSelect(episode.number)}
+            action={hasMenu ? <IconAction icon={Ellipsis} label={t("Episode options", "Optionen der Folge")}
+                onPress={anchor => onMenu(anchor, episode, title)} /> : undefined} />
+    </View>
+})
+
+/** One grid tile; memo like the row */
+const OnlineEpisodeTile = React.memo(function OnlineEpisodeTile({ episode, selected, watched, disabled, onSelect }: {
+    episode: Onlinestream_Episode, selected: boolean, watched: boolean, disabled: boolean, onSelect: (number: number) => void
+}) {
+    const t = useTr()
+    return <Pressable accessibilityRole="button" accessibilityState={{ selected, disabled }}
+        accessibilityLabel={`${t(`Episode ${episode.number}`, `Folge ${episode.number}`)}${episode.title ? ` · ${episode.title}` : ""}`}
+        disabled={disabled} onPress={() => onSelect(episode.number)}
+        className={cn("h-12 min-w-12 items-center justify-center rounded-surface-sm px-3",
+            // a filler: the raised tile with the warning tone's edge
+            selected ? "bg-brand-500" : episode.isFiller ? "border border-sm-warning bg-sm-surface-raised active:bg-sm-surface-control" : "bg-sm-surface-raised active:bg-sm-surface-control",
+            watched && !selected && "opacity-50")}>
+        <Text className={cn("text-[15px] font-semibold", selected ? "text-white" : "text-sm-text")} style={{ fontVariant: ["tabular-nums"] }}>{episode.number}</Text>
+    </Pressable>
+})
 
 /** `.mobile-source-more` buttons: quiet text with an icon, 48dp tall */
 function QuietAction({ icon: Icon, label, tone, disabled, onPress }: {

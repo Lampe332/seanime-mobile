@@ -44,6 +44,7 @@ import SkipForward from "lucide-react-native/icons/skip-forward"
 import Volume2 from "lucide-react-native/icons/volume-2"
 import X from "lucide-react-native/icons/x"
 import React from "react"
+import { createPlayerTimeStore, type PlayerTimeStore, usePlayerTime } from "./player-time"
 import { ActivityIndicator, BackHandler, type GestureResponderEvent, Pressable, StyleSheet, useWindowDimensions, View } from "react-native"
 import Animated, { Easing, FadeIn, FadeOut, ReduceMotion, useAnimatedStyle, useReducedMotion, withTiming } from "react-native-reanimated"
 import { levelPanelIn, levelPanelOut } from "@/components/ui/core/animations"
@@ -231,9 +232,10 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const [loaded, setLoaded] = React.useState(false)
     const [playing, setPlaying] = React.useState(false)
     const [buffering, setBuffering] = React.useState(true)
-    const [position, setPosition] = React.useState(0)
+    // position and buffer live outside React state: the 500 ms ticks redraw the time, the bar and the mini bar only
+    const [timeStore] = React.useState(createPlayerTimeStore)
+    const setPosition = React.useCallback((value: number) => timeStore.set({ position: value }), [timeStore])
     const [duration, setDuration] = React.useState(0)
-    const [buffered, setBuffered] = React.useState(0)
     const [tracks, setTracks] = React.useState<PlayerTrack[]>([])
     const [audioId, setAudioId] = React.useState(0)
     const [subId, setSubId] = React.useState(0)
@@ -246,9 +248,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         setLoaded(false)
         setPlaying(false)
         setBuffering(true)
-        setPosition(0)
+        timeStore.set({ position: 0, buffered: 0 }, true)
         setDuration(0)
-        setBuffered(0)
         setTracks([])
         setAudioId(0)
         setSubId(0)
@@ -432,7 +433,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         playedRef.current = { played: target, previous: target, seeking: false }
         setPosition(target)
         mpv.current?.seekTo(target).catch(() => {})
-    }, [])
+    }, [setPosition])
     const seekBy = React.useCallback((seconds: number) => seekTo(timeRef.current.currentTime + seconds), [seekTo])
     const togglePlay = React.useCallback(() => {
         mpv.current?.togglePlay().catch(() => {})
@@ -571,7 +572,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const highlightSkips = useAtomValue(vc_highlightOPEDChaptersAtom)
     const barPieces = React.useMemo(() => timeBarPieces(duration, (info?.mkvMetadata?.chapters ?? []).map(c => c.start), segments),
         [duration, info?.mkvMetadata?.chapters, segments])
-    const skipSegment = activeSkipSegment(segments, position)
+    const skipSegment = usePlayerTime(timeStore, time => activeSkipSegment(segments, time.position))
+    // the silent reset of a new episode reaches the time's readers after the commit
+    React.useLayoutEffect(() => timeStore.notify(), [playbackId, timeStore])
 
     React.useEffect(() => {
         if (!skipSegment || !autoSkip || skippedRef.current === skipSegment.start) return
@@ -1017,9 +1020,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     timeRef.current = { ...timeRef.current, currentTime: p, duration: d }
                     // picture in picture shows only the picture: no re-render of hidden bars per tick (r22 PiP)
                     if (!pipRef.current) {
-                        setPosition(p)
+                        timeStore.set({ position: p, buffered: bufferedPosition })
                         if (d > 0 && d !== duration) setDuration(d)
-                        setBuffered(bufferedPosition)
                     }
                     onlineEvents?.current?.time(p)
                     if (offline && Math.abs(p - savedAtRef.current) >= OFFLINE_SAVE_EVERY_S) saveOffline(p, false)
@@ -1049,14 +1051,15 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
             />
 
             {mini ? (
-                <MiniPlayer
+                <LiveMiniPlayer
+                    timeStore={timeStore}
+                    duration={duration}
                     frame={miniBox}
                     title={title || loadingState || ""}
                     subtitle={animeTitle}
                     playing={playing}
                     loading={(buffering || !source) && !errorText}
                     error={errorShown}
-                    progress={progressFraction(position, duration)}
                     onExpand={() => {
                         // the box's anime page, unless it is the page on screen already (its box is not shown there, e.g.
                         // another tab of it): then fullscreen, so the tap is never without effect
@@ -1258,7 +1261,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                             <Pressable accessibilityRole="button" onPress={flipRemaining} className="justify-center px-2" style={{ minHeight: vc.button }}>
                                 {/* a shadow keeps the white time readable on a bright picture (the box's bar fade is short) */}
                                 <Text className="font-semibold text-white" style={{ fontSize: vc.timeText, fontVariant: ["tabular-nums"], ...TIME_SHADOW }}>
-                                    {remainingMode ? `-${formatTime(duration - position)}` : formatTime(position)}
+                                    <LiveTimeText timeStore={timeStore} duration={duration} remainingMode={remainingMode} />
                                     <Text className="font-medium text-white/80" style={{ fontSize: vc.timeText, ...TIME_SHADOW }}> / {formatTime(duration)}</Text>
                                 </Text>
                             </Pressable>
@@ -1276,10 +1279,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                             </BarButton>
                         </View>
                         </BarSizeContext>
-                        <TimeBar
-                            position={position}
+                        <LiveTimeBar
+                            timeStore={timeStore}
                             duration={duration}
-                            buffered={buffered}
                             pieces={barPieces}
                             highlight={highlightSkips}
                             track={vc.track}
@@ -1435,6 +1437,22 @@ function PlayPauseIcon({ playing, size }: { playing: boolean, size: number }) {
  * `.vc-time-range`: 44dp to touch, `--vc-track` high, the thumb `--vc-thumb` (1.35× while scrubbing), half a thumb + 4dp
  * in from the bar's sides.
  */
+/** The time beside the bar, drawn again only when its text changes */
+function LiveTimeText({ timeStore, duration, remainingMode }: { timeStore: PlayerTimeStore, duration: number, remainingMode: boolean }) {
+    return usePlayerTime(timeStore, time => remainingMode ? `-${formatTime(duration - time.position)}` : formatTime(time.position))
+}
+
+function LiveTimeBar({ timeStore, ...props }: Omit<React.ComponentProps<typeof TimeBar>, "position" | "buffered"> & { timeStore: PlayerTimeStore }) {
+    const position = usePlayerTime(timeStore, time => time.position)
+    const buffered = usePlayerTime(timeStore, time => time.buffered)
+    return <TimeBar position={position} buffered={buffered} {...props} />
+}
+
+function LiveMiniPlayer({ timeStore, duration, ...props }: Omit<React.ComponentProps<typeof MiniPlayer>, "progress"> & { timeStore: PlayerTimeStore, duration: number }) {
+    const progress = usePlayerTime(timeStore, time => progressFraction(time.position, duration))
+    return <MiniPlayer progress={progress} {...props} />
+}
+
 function TimeBar({ position, duration, buffered, pieces, highlight, track, thumbSize, onScrubStart, onScrubEnd }: {
     position: number
     duration: number

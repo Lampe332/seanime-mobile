@@ -158,14 +158,17 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         if (focusStamp) inputRef.current?.focus()
     }, [focusStamp])
 
-    const variables = React.useMemo(() => searchVariables(state, adultAllowed), [state, adultAllowed])
-    const searchKey = JSON.stringify([state.type, variables])
-    const results = useSearchResults(state.type, variables)
-    const current = React.useMemo(() => results.data ? { type: state.type, key: searchKey, pages: results.data.pages } : undefined,
-        [results.data, searchKey, state.type])
+    // The query follows the state one render later: a sort or filter tap first draws its chip, then (interruptible) the
+    // new results, instead of both in one long frame
+    const queryState = React.useDeferredValue(state)
+    const variables = React.useMemo(() => searchVariables(queryState, adultAllowed), [queryState, adultAllowed])
+    const searchKey = JSON.stringify([queryState.type, variables])
+    const results = useSearchResults(queryState.type, variables)
+    const current = React.useMemo(() => results.data ? { type: queryState.type, key: searchKey, pages: results.data.pages } : undefined,
+        [results.data, searchKey, queryState.type])
     const last = useLastData(current)
     // While a new search of the same type loads, the previous results stay (dimmed) instead of bones.
-    const shown = current ?? (last?.type === state.type && !results.isError ? last : undefined)
+    const shown = current ?? (last?.type === queryState.type && !results.isError ? last : undefined)
     const stale = !current && !!shown
     const items = React.useMemo(() => uniqueMedia<Media>(shown?.pages as never), [shown?.pages])
     const canLoadMore = !stale && !!results.hasNextPage && !results.isFetchNextPageError

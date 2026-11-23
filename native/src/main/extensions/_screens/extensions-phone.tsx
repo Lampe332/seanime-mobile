@@ -35,6 +35,7 @@ import {
 
 /** Search appears once the list is long enough to need it. */
 const SEARCH_FROM = 8
+const HIDDEN = { display: "none" } as const
 
 /*
  * The Extensions tab (web extensions-phone.tsx + extensions-phone.css): a quiet title with the update check and "Add" as
@@ -124,10 +125,10 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
         if (done) toast.success(done === 1 ? t("1 extension updated", "1 Erweiterung aktualisiert") : t(`${done} extensions updated`, `${done} Erweiterungen aktualisiert`))
     }
 
-    const openExtension = (id: string) => {
+    const openExtension = React.useCallback((id: string) => {
         setSelectedId(id)
         setSheetOpen(true)
-    }
+    }, [])
     const openSubSheet = (sheet: ExtensionSubSheet) => {
         setSheetOpen(false)
         setSubSheet(sheet)
@@ -153,6 +154,9 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
     const installed = page !== "marketplace"
     const [marketMounted, setMarketMounted] = React.useState(!installed)
     if (!installed && !marketMounted) setMarketMounted(true)
+    // the same for Installed: switching back shows the drawn list instead of mounting it again
+    const [installedMounted, setInstalledMounted] = React.useState(installed)
+    if (installed && !installedMounted) setInstalledMounted(true)
     const nothingFound = !!search.trim() && !overview.permissions.length && !overview.broken.length && !overview.groups.length
     const attention = [...overview.permissions, ...overview.broken]
     // Tablet: two columns once there are two type lists (tablet.css .mex-panel:has(> .mex-section + .mex-section))
@@ -197,8 +201,8 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
 
             {/* once opened the marketplace stays mounted (hidden on Installed): switching tabs does not build it again */}
             {marketMounted && <MarketplacePhone t={t} installedIds={installedIds} tourOn={focused && !installed} active={!installed} />}
-            {!installed ? null
-                : failed ? (
+            {installedMounted && <View className="gap-6" style={installed ? undefined : HIDDEN}>
+            {failed ? (
                     <Notice text={t("Your extensions could not be loaded.", "Deine Erweiterungen konnten nicht geladen werden.")}>
                         <TextAction label={t("Try again", "Erneut versuchen")} onPress={() => void query.refetch()} />
                     </Notice>
@@ -271,6 +275,7 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
                             </PhoneEmpty>
                         )}
                     </>}
+            </View>}
 
             {!!selection && <SelectionSheets t={t} selection={selection} open={sheetOpen} onOpenChange={setSheetOpen} subSheet={subSheet}
                 onSubSheet={openSubSheet} onSubSheetChange={closeSubSheet} />}
@@ -303,7 +308,8 @@ function SelectionSheets({ t, selection, open, onOpenChange, subSheet, onSubShee
     </>
 }
 
-function InstalledRow({ t, id, extension, flag, tone, dim, onOpen }: {
+/** memo: switching tabs leaves the rows alone */
+const InstalledRow = React.memo(function InstalledRow({ t, id, extension, flag, tone, dim, onOpen }: {
     t: Translate
     id: string
     extension: Extension_Extension | undefined
@@ -327,4 +333,4 @@ function InstalledRow({ t, id, extension, flag, tone, dim, onOpen }: {
             <ChevronRight size={18} color={colors.smTextSubtle} />
         </Pressable>
     )
-}
+})

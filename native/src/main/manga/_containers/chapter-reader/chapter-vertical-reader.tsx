@@ -27,6 +27,9 @@ const GAP = 16
 
 type PageSize = { width: number, height: number }
 
+/** Screens drawn ahead while opening: one more step each time the app is idle, so the pages ahead do not all mount in one frame */
+const DRAW_STEPS = [0, 0.5, 1, 2]
+
 /** One page of the strip; memoized, so a page that loads elsewhere does not draw the visible ones again. */
 const StripCell = React.memo(function StripCell({ index, url, headers, width, height, gapAfter, onPress, onSize, onLoaded }: {
     index: number
@@ -99,12 +102,13 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
     const heights = React.useMemo(() => pageSizes.map(size => size.height), [pageSizes])
     const widest = React.useMemo(() => pageSizes.reduce((max, size) => Math.max(max, size.width), 0), [pageSizes])
     const gap = pageGap ? GAP : 0
-    // opening: only the pages on the screen at first, the ones ahead once the app is idle (after the opening animation)
-    const [settled, setSettled] = React.useState(false)
+    // opening: only the pages on the screen at first, the ones ahead step by step once the app is idle (after the opening animation)
+    const [drawStep, setDrawStep] = React.useState(0)
     React.useEffect(() => {
-        const task = requestIdleCallback(() => setSettled(true), { timeout: 600 })
+        if (drawStep >= DRAW_STEPS.length - 1) return
+        const task = requestIdleCallback(() => setDrawStep(step => step + 1), { timeout: 600 })
         return () => cancelIdleCallback(task)
-    }, [])
+    }, [drawStep])
 
     // a new chapter: not read yet, restore its page
     React.useEffect(() => {
@@ -126,8 +130,31 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
     }, [scrollSignal])
 
     const onLoaded = React.useCallback((index: number) => handlePageLoad(index), [handlePageLoad])
-    const onSize = React.useCallback((index: number, size: { width: number, height: number }) => {
-        setSizes(prev => prev[index]?.width === size.width && prev[index]?.height === size.height ? prev : { ...prev, [index]: size })
+    // pages loading together report their sizes in one update per frame, not one strip render each
+    const sizeQueue = React.useRef<Record<number, PageSize> | null>(null)
+    const sizeFrame = React.useRef<number | null>(null)
+    const onSize = React.useCallback((index: number, size: PageSize) => {
+        sizeQueue.current = { ...sizeQueue.current, [index]: size }
+        if (sizeFrame.current !== null) return
+        sizeFrame.current = requestAnimationFrame(() => {
+            sizeFrame.current = null
+            const queued = sizeQueue.current
+            sizeQueue.current = null
+            if (!queued) return
+            setSizes(prev => {
+                let next = prev
+                for (const [key, value] of Object.entries(queued)) {
+                    const at = Number(key)
+                    if (next[at]?.width === value.width && next[at]?.height === value.height) continue
+                    if (next === prev) next = { ...prev }
+                    next[at] = value
+                }
+                return next
+            })
+        })
+    }, [])
+    React.useEffect(() => () => {
+        if (sizeFrame.current !== null) cancelAnimationFrame(sizeFrame.current)
     }, [])
 
     // a page's headers stay the same object, so its cell is not drawn again
@@ -162,8 +189,8 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
         initialScrollIndex={initialPageIndex > 0 && initialPageIndex < count ? initialPageIndex : undefined}
         renderItem={({ item: index }) => <StripCell index={index} url={pageUrl(index)} headers={pageHeadersList[index]}
             width={(pageSizes[index] ?? sizeOf(index)).width} height={(pageSizes[index] ?? sizeOf(index)).height} gapAfter={index < count - 1 ? gap : 0} onPress={onPress} onSize={onSize} onLoaded={onLoaded} />}
-        // a long chapter loads the next pages before they reach the screen (after the opening, see `settled`)
-        drawDistance={settled ? height * 2 : 0}
+        // a long chapter loads the next pages before they reach the screen (after the opening, see `drawStep`)
+        drawDistance={height * DRAW_STEPS[drawStep]}
         onScrollBeginDrag={() => { pending.current = null }}
         onScroll={event => onScroll(event.nativeEvent.contentOffset.y)}
         onContentSizeChange={(_, h) => {

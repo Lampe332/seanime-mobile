@@ -6,7 +6,7 @@ import { ChipRow } from "@/components/shared/phone-cards"
 import { Choices, LoadingRows, Notice, PickRow, RowGroup, SearchField, TextAction } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { EmptyState } from "@/components/ui/card/card"
-import { swapIn } from "@/components/ui/core/animations"
+import { SWAP_RISE, swapIn, swapInTiming } from "@/components/ui/core/animations"
 import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Tabs } from "@/components/ui/tabs/tabs"
 import { Text } from "@/components/ui/text/text"
@@ -70,7 +70,7 @@ import { Paths } from "expo-file-system"
 import { useAtom } from "jotai"
 import React from "react"
 import { TextInput, View } from "react-native"
-import Animated from "react-native-reanimated"
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated"
 
 /*
  * The torrent sheet (torrent-search-phone.tsx + .css): one sheet to stream a torrent, stream it through debrid, or
@@ -354,6 +354,17 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
     }
     const language = getAppLanguage()
 
+    // A new sort order fades the kept rows in again (swapIn) instead of mounting every card anew
+    const sortSwap = useSharedValue(1)
+    const shownSort = React.useRef(sort)
+    React.useLayoutEffect(() => {
+        if (shownSort.current === sort) return
+        shownSort.current = sort
+        sortSwap.value = 0
+        sortSwap.value = withTiming(1, swapInTiming(isTablet))
+    }, [sort, isTablet, sortSwap])
+    const sortSwapStyle = useAnimatedStyle(() => ({ opacity: sortSwap.value, transform: [{ translateY: (1 - sortSwap.value) * SWAP_RISE }] }))
+
     const resultsTitle = isFetching && !isLoading ? t("Results · updating", "Ergebnisse · wird aktualisiert")
         : torrents.length < found.length ? t(`Results · ${torrents.length} of ${found.length}`, `Ergebnisse · ${torrents.length} von ${found.length}`)
             : found.length ? t(`Results · ${found.length}`, `Ergebnisse · ${found.length}`) : t("Results", "Ergebnisse")
@@ -465,13 +476,13 @@ function TorrentSearchBody({ entry, type, kind, t, onDone, picked, setPicked }: 
                                     {smart && <Button intent="secondary" onPress={() => setSearchType(Torrent_SearchType.SIMPLE)}>{t("Search by title", "Nach Titel suchen")}</Button>}
                                 </EmptyState>
                                 // A new sort order rises in instead of the rows jumping to their new places in one frame
-                                : <Animated.View key={sort} entering={swapIn(isTablet)} className="gap-0.5 overflow-hidden rounded-surface">
+                                : <Animated.View entering={swapIn(isTablet)}><Animated.View style={sortSwapStyle} className="gap-0.5 overflow-hidden rounded-surface">
                                     {torrents.map(torrent => <TorrentCard key={torrentKey(torrent)} torrent={torrent} parsed={readOf(torrent)} t={t} language={language}
                                         mode={kind === "download" ? "pick" : "stream"} provider={providerName(torrent.provider)} best={best === torrentKey(torrent)}
                                         otherShow={reading.otherShow.has(torrentKey(torrent))}
                                         cached={!!torrent.infoHash && !!cached[torrent.infoHash]} checked={kind === "download" && picked.some(item => item.infoHash === torrent.infoHash)}
                                         disabled={kind !== "download" && !canStream} onChoose={onChoose} />)}
-                                </Animated.View>}
+                                </Animated.View></Animated.View>}
             </SheetGroup>
         </>}
         {metered.dialog}
