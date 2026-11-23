@@ -123,7 +123,7 @@ const ScheduleRow = React.memo(function ScheduleRow({ item, language }: { item: 
             <CardMenu anchor={menuAt} title={title} onClose={closeMenu}
                 items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, "anime") }, ...listItems]} />
             <View ref={coverRef} collapsable={false} className="aspect-[2/3] w-11 overflow-hidden rounded-[8px] bg-sm-surface-control">
-                <Image allowDownscaling={false} cachePolicy="memory-disk" source={coverUri} recyclingKey={String(media.id)} contentFit="cover"
+                <Image cachePolicy="memory-disk" source={coverUri} recyclingKey={String(media.id)} contentFit="cover"
                     blurRadius={veiled ? 24 : 0} transition={fade} onLoad={onLoad}
                     style={{ position: "absolute", inset: 0, opacity: hidden ? 0 : 1 }} accessibilityIgnoresInvertColors />
                 {veiled && <View pointerEvents="none" className="absolute inset-0 bg-black/30" />}

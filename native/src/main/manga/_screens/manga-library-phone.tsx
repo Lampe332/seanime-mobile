@@ -252,7 +252,7 @@ function ContinueCard({ item, blurAdult, only, t, onContinue }: {
         accessibilityLabel={`${t("Continue reading", "Weiterlesen")}: ${title}, ${chapters}${fresh ? `, ${fresh}` : ""}`}
         style={{ width: cardWidth }} className="flex-row gap-3.5 rounded-surface bg-sm-surface-raised p-3 active:bg-sm-surface-control">
         <View ref={coverRef} collapsable={false} className="aspect-[2/3] w-[88px] overflow-hidden rounded-surface-sm bg-sm-surface-control">
-            <Image allowDownscaling={false} cachePolicy="memory-disk" source={coverUri} recyclingKey={String(entry.mediaId)} contentFit="cover" onLoad={onLoad}
+            <Image cachePolicy="memory-disk" source={coverUri} recyclingKey={String(entry.mediaId)} contentFit="cover" onLoad={onLoad}
                 blurRadius={veiled ? 24 : 0} style={{ position: "absolute", inset: 0, opacity: hidden ? 0 : 1 }} accessibilityIgnoresInvertColors />
             {veiled && <View pointerEvents="none" className="absolute inset-0 bg-black/30" />}
         </View>

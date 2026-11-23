@@ -558,7 +558,7 @@ const FeatureCard = React.memo(function FeatureCard({ media, type, width }: { me
         >
             <CardMenu anchor={menuAt} title={title} onClose={closeMenu}
                 items={[{ id: "preview", label: t("Preview", "Vorschau"), icon: Eye, onPress: () => setPreviewModalMediaId(media.id, type) }, ...listItems]} />
-            <Image allowDownscaling={false}
+            <Image
                 source={pictureUri}
                 recyclingKey={String(media.id)}
                 cachePolicy="memory-disk"

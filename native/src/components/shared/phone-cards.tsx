@@ -156,7 +156,7 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, 
                 menuItems={menuItems} onList={onList} listEntry={listEntry} openEntry={openEntry} />}
             {/* only the progress line needs the clip; the picture and the veil carry the radius themselves */}
             <View ref={coverRef} collapsable={false} className={cn("mb-1 aspect-[2/3] w-full rounded-surface-sm bg-sm-surface-control", shownProgress && "overflow-hidden")}>
-                <Image allowDownscaling={false}
+                <Image
                     source={coverUri}
                     recyclingKey={String(media.id)}
                     cachePolicy="memory-disk"
