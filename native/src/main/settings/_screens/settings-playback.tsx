@@ -2,8 +2,10 @@ import { PickRow, Choices, Notice } from "@/components/shared/phone-kit"
 import { type Translate } from "@/lib/app-language"
 import { ANDROID_PLAYER_PRESETS, androidPlayerPresetOf, toggledPlayerLink } from "@/lib/external-player-link/android-player-presets"
 import { PlaybackDownloadedMedia, useCurrentDevicePlaybackSettings, useExternalPlayerLink } from "@/main/_atoms/playback.atoms"
+import { SEEK_STEP_OPTIONS, seekStep, SEEK_BACK_SECONDS, SEEK_FORWARD_SECONDS } from "@/main/_features/player/player-logic"
+import { player_seekBackAtom, player_seekForwardAtom } from "@/main/_features/player/player.atoms"
 import { vc_autoNextAtom } from "@/main/_features/video-core/video-core.atoms"
-import { ChoiceRows, LocalSwitch, SettingsGroup, TextSettingRow } from "@/main/settings/_components/settings-kit"
+import { ChoiceRows, LocalSwitch, SelectRow, SettingsGroup, TextSettingRow } from "@/main/settings/_components/settings-kit"
 import { useAtom } from "jotai"
 import { View } from "react-native"
 
@@ -36,6 +38,8 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
                     "Startet 5 Sekunden nach dem Ende einer Folge. Derselbe Schalter wie „Nächste Folge automatisch“ im Player-Menü.")} />
         </SettingsGroup>
 
+        <SeekGroup t={t} />
+
         <SettingsGroup title={t("External player", "Externer Player")}
             note={t("Used for files when chosen above, and in the episode menu. Only on this device.", "Für Dateien, wenn oben gewählt, und im Folgenmenü. Nur auf diesem Gerät.")}>
             {external && !externalPlayerLink && <Notice text={t("Choose a player app first.", "Wähle zuerst eine Player-App.")} />}
@@ -53,4 +57,17 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
                 note={t("Library files only. Helps with special characters in file names.", "Nur Bibliotheksdateien. Hilft bei Sonderzeichen in Dateinamen.")} />
         </SettingsGroup>
     </>
+}
+
+/** The seek steps of the app's player: centre buttons and double taps (player-logic SEEK_STEP_OPTIONS), only on this device. */
+function SeekGroup({ t }: { t: Translate }) {
+    const [back, setBack] = useAtom(player_seekBackAtom)
+    const [forward, setForward] = useAtom(player_seekForwardAtom)
+    const options = SEEK_STEP_OPTIONS.map(seconds => ({ value: String(seconds), label: `${seconds} s` }))
+    return <SettingsGroup title={t("Seeking", "Spulen")}
+        note={t("For the buttons next to Play and for double taps in the player. Only on this device.",
+            "Für die Tasten neben Abspielen und für Doppeltipps im Player. Nur auf diesem Gerät.")}>
+        <SelectRow label={t("Back", "Zurück")} value={String(seekStep(back, SEEK_BACK_SECONDS))} options={options} onChange={value => setBack(Number(value))} />
+        <SelectRow label={t("Forward", "Vor")} value={String(seekStep(forward, SEEK_FORWARD_SECONDS))} options={options} onChange={value => setForward(Number(value))} />
+    </SettingsGroup>
 }

@@ -3,7 +3,8 @@ import type { Translate } from "@/lib/app-language"
 /*
  * Pure rules of the app's player (E3). No React, no native module: the player screen calls these, the tests in
  * player-logic.test.ts check them. Values come from the old player:
- * - centre buttons −5/+10 s (video-core-control-bar.tsx), double tap the same (E3 brief: −5/+10)
+ * - centre buttons −5/+10 s (video-core-control-bar.tsx), double tap the same (E3 brief: −5/+10); both steps can be
+ *   changed in the settings (Playback → Player), to one of SEEK_STEP_OPTIONS
  * - DOUBLE_TAP_MS 280, LONG_PRESS_MS 450, HIDE_DELAY_MS 5000, long press = 2x (VideoControlInjector.kt)
  * - the time bar only scrubs after 10 px sideways; a vertical swipe or a cancelled touch never moves the video
  *   (video-core-time-range.tsx TOUCH_SLOP_PX)
@@ -16,6 +17,7 @@ import type { Translate } from "@/lib/app-language"
 
 export const SEEK_BACK_SECONDS = 5
 export const SEEK_FORWARD_SECONDS = 10
+export const SEEK_STEP_OPTIONS = [5, 10, 15, 30] as const
 export const DOUBLE_TAP_MS = 280
 export const LONG_PRESS_MS = 450
 export const HIDE_DELAY_MS = 5000
@@ -47,8 +49,13 @@ export function classifyTap(previous: TapMemory, now: number, side: Side): { dou
     return { double, memory: double ? null : { time: now, side } }
 }
 
-export function doubleTapSeekSeconds(side: Side) {
-    return side === "left" ? -SEEK_BACK_SECONDS : SEEK_FORWARD_SECONDS
+/** A stored seek step, or the fallback when it is not one of SEEK_STEP_OPTIONS (old or broken value). */
+export function seekStep(value: unknown, fallback: number): number {
+    return SEEK_STEP_OPTIONS.includes(value as typeof SEEK_STEP_OPTIONS[number]) ? value as number : fallback
+}
+
+export function doubleTapSeekSeconds(side: Side, back: number = SEEK_BACK_SECONDS, forward: number = SEEK_FORWARD_SECONDS) {
+    return side === "left" ? -seekStep(back, SEEK_BACK_SECONDS) : seekStep(forward, SEEK_FORWARD_SECONDS)
 }
 
 /* ── Swipe gestures ─────────────────────────────────────────────────────── */

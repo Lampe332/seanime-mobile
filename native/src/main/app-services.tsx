@@ -8,6 +8,7 @@ import { useAppLinkSources } from "@/lib/app-links-handler"
 import { reconcileAppUpdate } from "@/lib/app-updates/app-updater"
 import { useCastEventsBridge } from "@/lib/cast/use-cast"
 import { refreshUpcomingWidget } from "@/lib/widget/widget-task"
+import { logger } from "@/lib/helpers/debug"
 import { useCurrentUser, useServerStatus } from "@/main/_hooks/use-server-status"
 import { useDownloadNotifications } from "@/main/android-downloads/_lib/download-notifications"
 import { useAtomValue } from "jotai"
@@ -43,7 +44,7 @@ export function AppServices() {
     // the widget learns the user and the language from the app; it fetches only when its list is outdated
     React.useEffect(() => {
         if (Platform.OS !== "android") return
-        void refreshUpcomingWidget().catch(() => undefined)
+        void refreshUpcomingWidget().catch(error => logger("AppServices").warning("Widget refresh failed", error))
     }, [userName, language])
 
     // the server must be up to take the report; a server restart starts with an unknown network again
@@ -56,7 +57,7 @@ function NetworkReporter() {
     useDownloadNotifications()
     // "Download next episodes automatically" looks once after the start, when the network report is in and the first screen is up
     React.useEffect(() => {
-        const timer = setTimeout(() => void import("@/api/client/core-prefetch").then(module => module.requestPrefetch()).catch(() => undefined), START_PREFETCH_MS)
+        const timer = setTimeout(() => void import("@/api/client/core-prefetch").then(module => module.requestPrefetch()).catch(error => logger("AppServices").warning("Start prefetch failed", error)), START_PREFETCH_MS)
         return () => clearTimeout(timer)
     }, [])
     return null

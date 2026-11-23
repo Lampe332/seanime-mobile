@@ -2860,5 +2860,12 @@
   "Updates could not be loaded.": "アップデートを読み込めませんでした。",
   "No internet connection, so updates could not be loaded.": "ネットに接続されていないため、アップデートを読み込めませんでした。",
   "No new episodes or chapters this week": "今週、新しいエピソードやチャプターはありません",
-  "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "視聴中や視聴予定のアニメの新エピソード、読んでいるマンガの新チャプターがここに表示されます。"
+  "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "視聴中や視聴予定のアニメの新エピソード、読んでいるマンガの新チャプターがここに表示されます。",
+  "This manga is not on AniList": "このマンガはAniListにありません",
+  "Seeking": "スキップ",
+  "For the buttons next to Play and for double taps in the player. Only on this device.": "再生ボタンの横のボタンとプレーヤーでのダブルタップに使います。この端末のみ。",
+  "Forward": "進む",
+  "Screen": "画面",
+  "Show status bar": "ステータスバーを表示",
+  "Clock and battery at the top. Always hidden in the player. Only on this device.": "上部に時計とバッテリーを表示します。プレーヤーでは常に非表示。この端末のみ。"
 }

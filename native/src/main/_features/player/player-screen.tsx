@@ -67,6 +67,7 @@ import {
     countdownTick,
     DOUBLE_TAP_MS,
     doubleTapSeekSeconds,
+    seekStep,
     endAction,
     endedEarly,
     playedPosition,
@@ -105,7 +106,7 @@ import {
     toPlayerTrack,
 } from "./player-logic"
 import { useSubtitleTranslation } from "./use-subtitle-translation"
-import { player_castingAtom, player_miniAtom, player_trackMemoryAtom } from "./player.atoms"
+import { player_castingAtom, player_fullscreenAtom, player_miniAtom, player_seekBackAtom, player_seekForwardAtom, player_trackMemoryAtom } from "./player.atoms"
 import { boxScroll, player_boxSlotAtom, player_nowAtom } from "./player-box"
 import { castTitle, playerCastUrl } from "./player-cast"
 import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
@@ -192,8 +193,15 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const mpv = React.useRef<ExpoMpvViewRef>(null)
 
     const [small, setSmall] = useAtom(player_miniAtom)
+    const setFullscreen = useSetAtom(player_fullscreenAtom)
+    React.useEffect(() => {
+        setFullscreen(!small)
+        return () => setFullscreen(false)
+    }, [small, setFullscreen])
     const casting = useAtomValue(player_castingAtom)
     const [trackMemory, setTrackMemory] = useAtom(player_trackMemoryAtom)
+    const seekBack = useAtomValue(player_seekBackAtom)
+    const seekForward = useAtomValue(player_seekForwardAtom)
     const settings = useAtomValue(vc_settings)
     const preferences = useAtomValue(mediaCorePreferencesAtom)
     const autoNext = useAtomValue(vc_autoNextAtom)
@@ -795,7 +803,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         tapMemory.current = memory
         if (singleTap.current) clearTimeout(singleTap.current)
         if (double) {
-            const seconds = doubleTapSeekSeconds(side)
+            const seconds = doubleTapSeekSeconds(side, seekBack, seekForward)
             seekBy(seconds)
             setRipple({ side, text: seconds > 0 ? `+${seconds}` : `${seconds}`, key: Date.now() })
             showBars()
@@ -1200,7 +1208,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                             alignItems: "center", justifyContent: "center",
                         }]}>
                             <View className="flex-row items-center" style={{ gap: vc.centerGap }} pointerEvents="box-none">
-                                <CenterSeek seconds={-SEEK_BACK_SECONDS} size={vc.seek} onSeek={s => { seekBy(s); showBars() }} />
+                                <CenterSeek seconds={-seekStep(seekBack, SEEK_BACK_SECONDS)} size={vc.seek} onSeek={s => { seekBy(s); showBars() }} />
                                 <Pressable
                                     accessibilityRole="button"
                                     accessibilityLabel={playing ? t("Pause", "Pause") : t("Play", "Abspielen")}
@@ -1210,7 +1218,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                                 >
                                     <PlayPauseIcon playing={playing} size={vc.playIcon} />
                                 </Pressable>
-                                <CenterSeek seconds={SEEK_FORWARD_SECONDS} size={vc.seek} onSeek={s => { seekBy(s); showBars() }} />
+                                <CenterSeek seconds={seekStep(seekForward, SEEK_FORWARD_SECONDS)} size={vc.seek} onSeek={s => { seekBy(s); showBars() }} />
                             </View>
                         </Animated.View>
                     )}

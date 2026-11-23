@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { APP_SCHEME, appLinkTarget, entryLink, LAUNCHER_SHORTCUTS, malAnime, page, sharedTextTarget, shortcutLink } from "./app-links"
+import { APP_SCHEME, appLinkTarget, entryLink, LAUNCHER_SHORTCUTS, malAnime, malManga, page, sharedTextTarget, shortcutLink } from "./app-links"
 
 // AppLinksTest.kt, 1:1
 describe("AppLinks", () => {
@@ -17,8 +17,15 @@ describe("AppLinks", () => {
         expect(appLinkTarget("https://anilist.co/anime/21087/One-Punch-Man/")).toEqual(page("/entry?id=21087"))
         expect(appLinkTarget("https://www.anilist.co/anime/21087")).toEqual(page("/entry?id=21087"))
         expect(appLinkTarget("https://myanimelist.net/anime/30276/One_Punch_Man")).toEqual(malAnime(30276))
-        expect(appLinkTarget("https://anilist.co/manga/30013")).toBeNull()
+        expect(appLinkTarget("https://anilist.co/character/30013")).toBeNull()
         expect(appLinkTarget("https://example.com/anime/21087")).toBeNull()
+    })
+
+    it("manga pages of AniList and MyAnimeList", () => {
+        expect(appLinkTarget("https://anilist.co/manga/30013/One-Piece/")).toEqual(page("/manga/entry?id=30013"))
+        expect(appLinkTarget("https://myanimelist.net/manga/13/One_Piece")).toEqual(malManga(13))
+        expect(appLinkTarget("https://anilist.co/manga/abc")).toBeNull()
+        expect(sharedTextTarget("Read this https://anilist.co/manga/30013")).toEqual(page("/manga/entry?id=30013"))
     })
 
     it("shared text", () => {

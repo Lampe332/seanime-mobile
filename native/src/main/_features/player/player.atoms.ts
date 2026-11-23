@@ -1,7 +1,7 @@
 import type { MobileOffline_Item } from "@/api/generated/types"
 import { atomWithStorage } from "@/lib/storage"
 import { atom } from "jotai"
-import type { SleepPick, TrackMemory } from "./player-logic"
+import { SEEK_BACK_SECONDS, SEEK_FORWARD_SECONDS, type SleepPick, type TrackMemory } from "./player-logic"
 import type { HeardStreamState } from "./torrent-stream-state"
 
 /**
@@ -14,6 +14,13 @@ export const player_miniAtom = atom(false)
 export const player_sleepPickAtom = atom<SleepPick | null>(null)
 
 /** Audio/subtitle language picked per anime (AniList id → language or "off"), kept across app starts. */
+/** The player fills the screen (not box or mini): the root layout hides the status bar then, whatever the setting says. */
+export const player_fullscreenAtom = atom(false)
+
+/** Seconds of the back / forward buttons and double taps (settings → Playback), only on this device. */
+export const player_seekBackAtom = atomWithStorage<number>("sea-player-seek-back-seconds", SEEK_BACK_SECONDS)
+export const player_seekForwardAtom = atomWithStorage<number>("sea-player-seek-forward-seconds", SEEK_FORWARD_SECONDS)
+
 export const player_trackMemoryAtom = atomWithStorage<TrackMemory>("sea-player-track-memory", {})
 
 /**
