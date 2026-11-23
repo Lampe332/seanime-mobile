@@ -9,6 +9,7 @@ import {
     classifyTap,
     countdownTick,
     doubleTapSeekSeconds,
+    seekStep,
     endAction,
     endedEarly,
     formatTime,
@@ -86,6 +87,15 @@ describe("double tap", () => {
         expect(second.memory).toBeNull()
         expect(doubleTapSeekSeconds("left")).toBe(-5)
         expect(doubleTapSeekSeconds("right")).toBe(10)
+    })
+
+    it("double taps and centre buttons use the chosen seek steps, unknown values fall back to −5 / +10", () => {
+        expect(doubleTapSeekSeconds("left", 15, 30)).toBe(-15)
+        expect(doubleTapSeekSeconds("right", 15, 30)).toBe(30)
+        expect(doubleTapSeekSeconds("left", 7, 0)).toBe(-5)
+        expect(doubleTapSeekSeconds("right", 7, 0)).toBe(10)
+        expect(seekStep(30, 10)).toBe(30)
+        expect(seekStep("15", 10)).toBe(10)
     })
 
     it("too slow or the other side is not a double tap", () => {

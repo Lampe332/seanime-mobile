@@ -3015,5 +3015,8 @@
   "No internet connection, so updates could not be loaded.": "Нет интернета, поэтому обновления не загрузились.",
   "No new episodes or chapters this week": "На этой неделе новых серий и глав нет",
   "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "Здесь появляются новые серии аниме, которое ты смотришь или планируешь, и новые главы манги, которую читаешь.",
-  "This manga is not on AniList": "Этой манги нет на AniList"
+  "This manga is not on AniList": "Этой манги нет на AniList",
+  "Seeking": "Перемотка",
+  "For the buttons next to Play and for double taps in the player. Only on this device.": "Для кнопок рядом с «Воспроизвести» и для двойных касаний в плеере. Только на этом устройстве.",
+  "Forward": "Вперёд"
 }

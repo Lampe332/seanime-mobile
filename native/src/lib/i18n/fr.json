@@ -3056,5 +3056,8 @@
   "No internet connection, so updates could not be loaded.": "Pas de connexion internet, impossible de charger les mises à jour.",
   "No new episodes or chapters this week": "Aucun nouvel épisode ni chapitre cette semaine",
   "New episodes of anime you watch or plan to watch and new chapters of manga you read show up here.": "Les nouveaux épisodes des animes que tu regardes ou prévois de regarder et les nouveaux chapitres des mangas que tu lis apparaissent ici.",
-  "This manga is not on AniList": "Ce manga n'est pas sur AniList"
+  "This manga is not on AniList": "Ce manga n'est pas sur AniList",
+  "Seeking": "Avance et retour",
+  "For the buttons next to Play and for double taps in the player. Only on this device.": "Pour les boutons à côté de Lecture et pour les doubles appuis dans le lecteur. Uniquement sur cet appareil.",
+  "Forward": "Avance"
 }
