@@ -32,7 +32,7 @@ import { useHandleMangaDownloadData } from "@/main/manga/_lib/handle-manga-downl
 import { useMangaChapterTotal } from "@/main/manga/_lib/use-manga-chapter-total"
 import { useFocusEffect, useLocalSearchParams } from "expo-router"
 import { Image } from "expo-image"
-import { useCoverFlightTarget } from "@/components/shared/cover-flight"
+import { useAfterPageEnter, useCoverFlightTarget } from "@/components/shared/cover-flight"
 import { usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -104,6 +104,9 @@ export function MangaEntryPage() {
         scrollRef.current?.scrollTo({ y: Math.max(0, chaptersY.current + y - 160), animated: !reduceMotion })
     }, [reduceMotion])
 
+    // characters and recommendations (below the screen) come once the page has come in
+    const moreReady = useAfterPageEnter()
+
     if (isLoading) return <View className="flex-1 items-center justify-center"><ActivityIndicator color={colors.smAccent} size="large" /></View>
     if (!entry && isError) return <View className="flex-1 items-center justify-center gap-4 px-6">
         <Text className="text-center text-lg font-semibold">{t("This manga could not be loaded.", "Dieser Manga konnte nicht geladen werden.")}</Text>
@@ -116,7 +119,7 @@ export function MangaEntryPage() {
         <ChapterList key={mediaId} mediaId={mediaId} entry={entry} downloadData={downloadData} downloadDataLoading={downloadDataLoading} onJumpTo={jumpTo} />
         <PluginWebviewSlot slot="after-manga-entry-chapter-list" />
     </View>
-    const more = <View className={cn("gap-6", rail ? "pt-6" : "px-4")}>
+    const more = moreReady && <View className={cn("gap-6", rail ? "pt-6" : "px-4")}>
         <MediaEntryCharactersSection details={details} loading={detailsLoading} />
         <MangaRecommendations entry={entry} details={details} loading={detailsLoading} />
     </View>
@@ -185,7 +188,7 @@ function MangaHeader({ entry, details, detailsLoading, wide, tablet, onMore }: {
         <View className={cn(wide ? "items-start gap-4" : "flex-row flex-wrap items-end gap-4")}>
             <View ref={coverRef} collapsable={false} style={{ width: coverWidth, aspectRatio: tablet ? 23 / 33 : 88 / 124, elevation: 10, shadowColor: "#000", shadowOpacity: 0.8, shadowRadius: 14, shadowOffset: { width: 0, height: 12 } }}
                 className="items-center justify-center overflow-hidden rounded-surface-sm border border-white/5 bg-sm-surface-control">
-                {cover ? <Image source={getImageUrl(cover)} priority="high" contentFit={tablet ? "cover" : "contain"} style={{ position: "absolute", inset: 0, opacity: coverHidden ? 0 : 1 }}
+                {cover ? <Image source={getImageUrl(cover)} cachePolicy="memory-disk" recyclingKey={getImageUrl(cover)} priority="high" contentFit={tablet ? "cover" : "contain"} style={{ position: "absolute", inset: 0, opacity: coverHidden ? 0 : 1 }}
                     onLoad={onCoverLoad} transition={coverHidden ? null : fade} accessibilityLabel={t("Manga cover", "Manga-Cover")} accessibilityIgnoresInvertColors />
                     : <Text accessibilityLabel={t("No cover", "Kein Cover")} className="text-sm-text-subtle">◇</Text>}
             </View>

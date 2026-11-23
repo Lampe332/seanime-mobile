@@ -6,7 +6,7 @@ import { PhoneEmpty } from "@/components/shared/phone-cards"
 import { LoadingRows, Notice, TextAction } from "@/components/shared/phone-kit"
 import { PhoneScreen } from "@/components/shared/phone-screen"
 import { Text } from "@/components/ui/text/text"
-import { appLanguageAtom, useTr } from "@/lib/app-language"
+import { appLanguageAtom, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
 import { usePlayNext } from "@/main/_atoms/playback.atoms"
@@ -52,10 +52,15 @@ export function HistoryPhone() {
         if (entry.kind === "anime") removeAnime({ mediaId: entry.mediaId })
         else setLocations(prev => withoutManga(prev, entry.mediaId))
     }
-    const open = (entry: HistoryEntry) => {
+    // setPlayNext is new on every render: read from a ref, so the rows keep one `open`
+    const playNext = React.useRef(setPlayNext)
+    React.useEffect(() => {
+        playNext.current = setPlayNext
+    })
+    const open = React.useCallback((entry: HistoryEntry) => {
         if (entry.kind === "manga") router.push(`/manga/entry?id=${entry.mediaId}`)
-        else setPlayNext(entry.mediaId, () => router.push(`/entry?id=${entry.mediaId}`))
-    }
+        else playNext.current(entry.mediaId, () => router.push(`/entry?id=${entry.mediaId}`))
+    }, [router])
     const titleOf = (entry: HistoryEntry) => (media?.[String(entry.mediaId)] as Media | undefined)?.title?.userPreferred
         || (entry.kind === "anime" ? t("Anime", "Anime") : t("Manga", "Manga"))
 
@@ -85,30 +90,8 @@ export function HistoryPhone() {
                                 const cover = (media?.[String(entry.mediaId)] as Media | undefined)?.coverImage
                                 const title = titleOf(entry)
                                 const line = entryLine(entry, language)
-                                return (
-                                    <Pressable key={`${entry.kind}-${entry.mediaId}`} accessibilityRole="button"
-                                        accessibilityLabel={`${title}, ${line}, ${timeOfDay(entry.at, language)}`}
-                                        accessibilityHint={entry.kind === "anime" ? t("Continues watching", "Weiterschauen") : t("Opens the manga", "Öffnet den Manga")}
-                                        accessibilityActions={[{ name: "remove", label: t("Remove from history", "Aus dem Verlauf entfernen") }]}
-                                        onAccessibilityAction={() => setRemoving(entry)}
-                                        onPress={() => open(entry)} onLongPress={() => setRemoving(entry)} delayLongPress={350}
-                                        className="min-h-[76px] flex-row items-center gap-3.5 bg-sm-surface-raised py-2.5 pl-2.5 pr-1 active:bg-sm-surface-control">
-                                        <View className="h-[60px] w-11 overflow-hidden rounded-[6px] bg-sm-surface-control">
-                                            {!!(cover?.large || cover?.medium) && <Image source={{ uri: cover.large || cover.medium || "" }} style={{ width: 44, height: 60 }} contentFit="cover" />}
-                                        </View>
-                                        <View className="min-w-0 flex-1 gap-0.5">
-                                            <Text numberOfLines={2} className="font-semibold">{title}</Text>
-                                            <Text numberOfLines={1} className="text-[13px] text-sm-text-muted">
-                                                {`${entry.kind === "anime" ? t("Anime", "Anime") : t("Manga", "Manga")} · ${line}`}
-                                            </Text>
-                                            <Text className="text-[13px] text-sm-text-subtle" style={{ fontVariant: ["tabular-nums"] }}>{timeOfDay(entry.at, language)}</Text>
-                                        </View>
-                                        <Pressable accessibilityRole="button" accessibilityLabel={t("Remove from history", "Aus dem Verlauf entfernen")} hitSlop={6}
-                                            onPress={() => setRemoving(entry)} className="h-11 w-11 items-center justify-center rounded-full active:bg-sm-surface-control">
-                                            <X size={18} color={colors.smTextSubtle} />
-                                        </Pressable>
-                                    </Pressable>
-                                )
+                                return <HistoryRow key={`${entry.kind}-${entry.mediaId}`} t={t} entry={entry} title={title} line={line}
+                                    time={timeOfDay(entry.at, language)} cover={cover?.large || cover?.medium || ""} onOpen={open} onRemove={setRemoving} />
                             })}
                         </View>
                     </View>
@@ -129,3 +112,43 @@ export function HistoryPhone() {
         </PhoneScreen>
     )
 }
+
+/** One entry; memoized, so a removed entry or newly loaded titles do not draw every row again. */
+const HistoryRow = React.memo(function HistoryRow({ t, entry, title, line, time, cover, onOpen, onRemove }: {
+    t: Translate
+    entry: HistoryEntry
+    title: string
+    line: string
+    time: string
+    cover: string
+    onOpen: (entry: HistoryEntry) => void
+    onRemove: (entry: HistoryEntry) => void
+}) {
+    return (
+        <Pressable accessibilityRole="button"
+            accessibilityLabel={`${title}, ${line}, ${time}`}
+            accessibilityHint={entry.kind === "anime" ? t("Continues watching", "Weiterschauen") : t("Opens the manga", "Öffnet den Manga")}
+            accessibilityActions={[{ name: "remove", label: t("Remove from history", "Aus dem Verlauf entfernen") }]}
+            onAccessibilityAction={() => onRemove(entry)}
+            onPress={() => onOpen(entry)} onLongPress={() => onRemove(entry)} delayLongPress={350}
+            className="min-h-[76px] flex-row items-center gap-3.5 bg-sm-surface-raised py-2.5 pl-2.5 pr-1 active:bg-sm-surface-control">
+            <View className="h-[60px] w-11 overflow-hidden rounded-[6px] bg-sm-surface-control">
+                {!!cover && <Image source={{ uri: cover }} style={COVER_STYLE} contentFit="cover" cachePolicy="memory-disk" recyclingKey={cover} />}
+            </View>
+            <View className="min-w-0 flex-1 gap-0.5">
+                <Text numberOfLines={2} className="font-semibold">{title}</Text>
+                <Text numberOfLines={1} className="text-[13px] text-sm-text-muted">
+                    {`${entry.kind === "anime" ? t("Anime", "Anime") : t("Manga", "Manga")} · ${line}`}
+                </Text>
+                <Text className="text-[13px] text-sm-text-subtle" style={TABULAR}>{time}</Text>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel={t("Remove from history", "Aus dem Verlauf entfernen")} hitSlop={6}
+                onPress={() => onRemove(entry)} className="h-11 w-11 items-center justify-center rounded-full active:bg-sm-surface-control">
+                <X size={18} color={colors.smTextSubtle} />
+            </Pressable>
+        </Pressable>
+    )
+})
+
+const COVER_STYLE = { width: 44, height: 60 }
+const TABULAR = { fontVariant: ["tabular-nums" as const] }

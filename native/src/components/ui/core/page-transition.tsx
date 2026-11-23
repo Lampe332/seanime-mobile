@@ -6,6 +6,7 @@ import { type TabSlotProps } from "expo-router/ui"
 import React from "react"
 import { StyleSheet, View } from "react-native"
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming } from "react-native-reanimated"
+import { scheduleOnRN } from "react-native-worklets"
 
 /*
  * A page coming in (page-wrapper.tsx + page-transition.ts): it rises 6dp and fades in, 260 ms on the phone curve, 220 ms on the
@@ -21,6 +22,16 @@ function PageEnter({ focused, children }: { focused: boolean, children: React.Re
     const reduceMotion = useReducedMotion()
     const opacity = useSharedValue(reduceMotion ? 1 : 0)
     const shift = useSharedValue(reduceMotion ? 0 : DISTANCE.swap)
+    // The fade draws the whole page as one GPU layer, only while it runs: without it Android draws the page into a fresh
+    // offscreen buffer every frame of the fade; a layer kept afterwards would be re-rendered on every content change.
+    // (set when the page comes in, during render: the layer is there in the fade's first frame)
+    const [fading, setFading] = React.useState(() => focused && !reduceMotion)
+    const [wasFocused, setWasFocused] = React.useState(focused)
+    if (focused !== wasFocused) {
+        setWasFocused(focused)
+        setFading(focused)
+    }
+    const layered = fading && focused && !reduceMotion
 
     React.useEffect(() => {
         if (reduceMotion) {
@@ -37,11 +48,13 @@ function PageEnter({ focused, children }: { focused: boolean, children: React.Re
         const timing = { duration, easing: Easing.bezier(...ease) }
         const from = pageRiseFrom(true, coverFlightRunning())
         shift.set(from ? withSequence(withTiming(from, { duration: 0 }), withTiming(0, timing)) : 0)
-        opacity.set(withTiming(1, timing))
+        opacity.set(withTiming(1, timing, finished => {
+            if (finished) scheduleOnRN(setFading, false)
+        }))
     }, [focused, isTablet, reduceMotion, opacity, shift])
 
     const style = useAnimatedStyle(() => ({ opacity: opacity.get(), transform: [{ translateY: shift.get() }] }))
-    return <Animated.View style={[{ flex: 1 }, style]}>{children}</Animated.View>
+    return <Animated.View renderToHardwareTextureAndroid={layered} style={[{ flex: 1 }, style]}>{children}</Animated.View>
 }
 
 /**
@@ -72,4 +85,18 @@ export const renderPage: NonNullable<TabSlotProps["renderFn"]> = (descriptor, { 
             </PageFocusContext.Provider>
         </View>
     )
+}
+
+/**
+ * An Animated.View that comes in with an `entering` animation (a sheet, a menu, a popover) and is drawn as one GPU layer
+ * for those `layerMs` only: without it Android draws all its rows into a fresh offscreen buffer every frame of the fade;
+ * kept afterwards the layer would be redrawn on every change inside (scrolling, typing).
+ */
+export function EnterLayerView({ layerMs, ...props }: React.ComponentProps<typeof Animated.View> & { layerMs: number }) {
+    const [layered, setLayered] = React.useState(true)
+    React.useEffect(() => {
+        const timer = setTimeout(() => setLayered(false), layerMs + 32)
+        return () => clearTimeout(timer)
+    }, [layerMs])
+    return <Animated.View {...props} renderToHardwareTextureAndroid={layered} />
 }

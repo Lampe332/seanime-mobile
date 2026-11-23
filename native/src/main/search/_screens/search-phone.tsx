@@ -235,11 +235,12 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         setFarDown(next)
     }, [height])
     const cellType = shown?.type ?? state.type
+    // the dimming of stale results comes from a context: a new sort or filter redraws only the cells' wrappers, not the cards
     const renderItem = React.useCallback(({ item }: { item: Media }) => (
-        <View style={{ paddingHorizontal: grid.gap / 2, paddingBottom: grid.rowGap, opacity: stale ? 0.45 : 1 }}>
+        <StaleDim paddingHorizontal={grid.gap / 2} paddingBottom={grid.rowGap}>
             <ResultCell media={item} type={cellType} width={grid.width} />
-        </View>
-    ), [grid.gap, grid.rowGap, grid.width, stale, cellType])
+        </StaleDim>
+    ), [grid.gap, grid.rowGap, grid.width, cellType])
 
     let body: React.ReactNode = null
     if (!shown && results.isError) {
@@ -343,12 +344,12 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                 style={{ backgroundImage: PHONE_PAGE_TINT }} />}
             <View className={cn("w-full flex-1", !rail && "max-w-[1152px] self-center")} style={{ paddingHorizontal: gutter }}
                 onLayout={event => setContentWidth(event.nativeEvent.layout.width - gutter * 2)}>
+                <StaleContext value={stale}>
                 <FlashList
                     ref={list}
                     data={gridItems}
                     keyExtractor={media => String(media.id)}
                     numColumns={grid.columns}
-                    extraData={stale}
                     renderItem={renderItem}
                     ListHeaderComponent={<View style={{ paddingHorizontal: grid.gap / 2 }}>{header}</View>}
                     ListFooterComponent={<View style={{ paddingHorizontal: grid.gap / 2 }}>{footer}{otherSources}</View>}
@@ -367,6 +368,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                     style={{ marginHorizontal: -grid.gap / 2 }}
                     contentContainerStyle={{ paddingTop: top, paddingBottom: pageBottom }}
                 />
+                </StaleContext>
             </View>
             {/* After two screens of results, a button above the bottom bar goes back to the field, sort and filters */}
             {farDown && (
@@ -450,6 +452,14 @@ function RecentSearches({ t, terms, onSearch, onRemove, onClear }: {
 }
 
 /** What the collections know about a result (list status, progress, score, local files), read per cell from the atoms. */
+/** Whether the shown results belong to the search before (a new one loads): their cells are dimmed. */
+const StaleContext = React.createContext(false)
+
+function StaleDim({ paddingHorizontal, paddingBottom, children }: { paddingHorizontal: number, paddingBottom: number, children: React.ReactNode }) {
+    const stale = React.use(StaleContext)
+    return <View style={{ paddingHorizontal, paddingBottom, opacity: stale ? 0.45 : 1 }}>{children}</View>
+}
+
 const ResultCell = React.memo(function ResultCell({ media, type, width }: { media: Media, type: SearchType, width: number }) {
     const serverStatus = useServerStatus()
     const { showAnimeUnwatchedCount, showMangaUnreadCount } = useThemeSettings()

@@ -399,7 +399,7 @@ function EventRow({ event, indicateWatched }: { event: CalendarEvent, indicateWa
             onPress={() => open(`/entry?id=${event.mediaId}`)}
             className="min-h-20 flex-row items-center gap-3.5 bg-sm-surface-raised py-2.5 pl-2.5 pr-3.5 active:bg-sm-surface-control">
             <View ref={coverRef} collapsable={false} style={{ opacity: watched ? WATCHED_LOOK.opacity : 1 }} className="h-[62px] w-11 overflow-hidden rounded-[6px] bg-sm-surface-control">
-                {!!coverUri && <Image source={coverUri} recyclingKey={event.id} contentFit="cover" onLoad={onLoad}
+                {!!coverUri && <Image cachePolicy="memory-disk" source={coverUri} recyclingKey={event.id} contentFit="cover" onLoad={onLoad}
                     transition={fade} style={{ position: "absolute", inset: 0, opacity: hidden ? 0 : 1 }} accessibilityIgnoresInvertColors />}
             </View>
             <View className="min-w-0 flex-1 gap-[3px]">

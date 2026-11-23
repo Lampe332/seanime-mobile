@@ -153,7 +153,7 @@ export function UpNextRow({ episodes, entry, watchHistory, onPlay }: {
             return <Pressable accessibilityRole="button" accessibilityState={{ disabled: !onPlay }} disabled={!onPlay} onPress={() => onPlay?.(episode)}
                 accessibilityLabel={`${t("Play", "Abspielen")}: ${episode.displayTitle}${episode.episodeTitle ? ` · ${episode.episodeTitle}` : ""}`}
                 style={{ width: cardWidth }} className="aspect-video justify-end overflow-hidden rounded-surface bg-sm-surface-control">
-                {!!image && <Image source={getImageUrl(image)} contentFit="cover" style={{ position: "absolute", inset: 0 }} accessibilityIgnoresInvertColors />}
+                {!!image && <Image cachePolicy="memory-disk" source={getImageUrl(image)} contentFit="cover" style={{ position: "absolute", inset: 0 }} accessibilityIgnoresInvertColors />}
                 <View className="px-3 pb-3 pt-8" style={{ backgroundImage: "linear-gradient(180deg, rgba(12,12,14,0) 0%, rgba(12,12,14,0.85) 60%)" }}>
                     {!!episode.episodeTitle && <Text numberOfLines={1} className="text-[13px] text-sm-text-muted">{episode.episodeTitle}</Text>}
                     <Text className="text-[15px] font-semibold">{episode.displayTitle}{minutes ? `  ·  ${t(`${minutes} min left`, `${minutes} Min. übrig`)}` : ""}</Text>

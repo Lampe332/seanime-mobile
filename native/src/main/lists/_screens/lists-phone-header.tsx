@@ -4,6 +4,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted, Text } from "@/components/ui/text/text"
 import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
+import { useIsFocused } from "expo-router"
 import React from "react"
 import { Pressable, View } from "react-native"
 import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated"
@@ -23,9 +24,11 @@ export function ListsHeader({ title, facts, children }: { title: string, facts: 
     )
 }
 
-/** The refresh icon turns while AniList refreshes (`.ps-spin`); reduced motion keeps it still. */
-function Spinning({ active, children }: { active: boolean, children: React.ReactNode }) {
+/** The refresh icon turns while AniList refreshes (`.ps-spin`); reduced motion keeps it still, and so does a page in the background. */
+function Spinning({ active: refreshing, children }: { active: boolean, children: React.ReactNode }) {
     const turn = useSharedValue(0)
+    const focused = useIsFocused()
+    const active = refreshing && focused
     React.useEffect(() => {
         if (!active) {
             turn.set(0)

@@ -33,7 +33,7 @@ export function MediaEntryCharactersSection({ details, loading }: {
                 const node = edge.node
                 return <View key={node?.id} className="min-w-0 flex-row gap-2.5 p-1" style={{ width: "48.5%" }}>
                     <View className="h-12 w-12 overflow-hidden rounded-full bg-sm-surface-raised">
-                        {!!node?.image?.large && <Image source={getImageUrl(node.image.large)} contentFit="cover" style={{ position: "absolute", inset: 0 }}
+                        {!!node?.image?.large && <Image cachePolicy="memory-disk" source={getImageUrl(node.image.large)} contentFit="cover" style={{ position: "absolute", inset: 0 }}
                             accessibilityLabel={node?.name?.full || t("Character", "Figur")} />}
                     </View>
                     <View className="min-w-0 flex-1">

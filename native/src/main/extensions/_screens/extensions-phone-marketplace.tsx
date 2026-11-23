@@ -40,7 +40,9 @@ export const __extensions_marketTypeAtom = atom("all")
  * `tourOn` (the tab is on screen): the setup tour points at the add/change button, the type chips, the first install
  * buttons and the add sheet with its Add.
  */
-export function MarketplacePhone({ t, installedIds, tourOn }: { t: Translate, installedIds: Set<string>, tourOn: boolean }) {
+const HIDDEN = { display: "none" } as const
+
+export function MarketplacePhone({ t, installedIds, tourOn, active = true }: { t: Translate, installedIds: Set<string>, tourOn: boolean, active?: boolean }) {
     const [url, setUrl] = useAtom(marketplaceUrlAtom)
     const appLanguage = useAtomValue(appLanguageAtom)
     const { data, isPending, isError, isFetching, refetch } = useGetMarketplaceExtensions(url)
@@ -54,6 +56,17 @@ export function MarketplacePhone({ t, installedIds, tourOn }: { t: Translate, in
     const [selected, setSelected] = React.useState<Extension_Extension | null>(null)
     const [sheetOpen, setSheetOpen] = React.useState(false)
     const [offline, setOffline] = React.useState(false)
+    // hidden behind Installed it starts over as a newly opened marketplace did: no search, all languages, no sheet
+    const [shownActive, setShownActive] = React.useState(active)
+    if (shownActive !== active) {
+        setShownActive(active)
+        if (!active) {
+            setSearch("")
+            setLanguage("all")
+            setSheetOpen(false)
+            setRepoOpen(false)
+        }
+    }
     const isDefault = url === DEFAULT_MARKETPLACE_URL
 
     const view = React.useMemo(() => marketplaceView(data, { type, language, search }, appLanguage, isDefault), [data, type, language, search, appLanguage, isDefault])
@@ -90,7 +103,7 @@ export function MarketplacePhone({ t, installedIds, tourOn }: { t: Translate, in
     }
 
     return (
-        <View className="gap-5">
+        <View className="gap-5" style={active ? undefined : HIDDEN}>
             <View accessibilityLabel={t("Marketplace", "Marktplatz")} className="min-h-[68px] flex-row items-center gap-1 rounded-surface bg-sm-surface-raised py-2 pl-4 pr-2">
                 <View className="min-w-0 flex-1 gap-px">
                     <Text numberOfLines={1} className="font-semibold">{isDefault ? t("Official marketplace", "Offizieller Marktplatz") : shortRepositoryUrl(url)}</Text>

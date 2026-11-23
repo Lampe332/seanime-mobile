@@ -3,7 +3,7 @@ import {
     registerPageCover, startFlightIn, startFlightOut, useCoverFlight,
 } from "@/components/shared/cover-flight-store"
 import {
-    type Box, boxTransform, COVER_FLIGHT, coverGroundWaits, coverLayerOpacity, coverLayerScale, coverOnScreen, coverShapesDiffer, coverWaitOver, MAX_WAIT_MS, mixBox,
+    type Box, boxTransform, COVER_FLIGHT, coverGroundWaits, coverLayerOpacity, coverLayerScale, coverOnScreen, coverShapesDiffer, coverWaitOver, LOAD_MAX_WAIT_MS, MAX_WAIT_MS, mixBox, WAIT_MS,
 } from "@/lib/motion"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
@@ -48,6 +48,13 @@ export function useCoverFlightPageBackSteps(active: boolean) {
 }
 
 type ViewRef = React.ComponentRef<typeof View>
+
+/** ms until coverWaitOver turns true: the earliest of its thresholds (each one past, so the strict compares hold) */
+function coverWaitDelay(now: number, tappedAt: number, builtAt: number | null, isTablet: boolean) {
+    const marks = [tappedAt + LOAD_MAX_WAIT_MS, tappedAt + MAX_WAIT_MS, ...(builtAt === null ? [] : [builtAt + WAIT_MS])]
+    const due = marks.map(t => t + 1).filter(t => t > now && coverWaitOver(t, tappedAt, builtAt, isTablet))
+    return due.length ? Math.min(...due) - now : 16
+}
 
 function measureBox(view: ViewRef | null): Promise<Box | null> {
     return new Promise(resolve => {
@@ -121,14 +128,20 @@ export function CoverFlightHost() {
         }
     }, [flight, window])
 
-    // In: the wait for the header's picture
+    // In: the wait for the header's picture, one timer to the moment it is over (no 16 ms poll on the JS thread while the
+    // page mounts); the flight changes when the page is built (builtAt), which sets a new timer
     React.useEffect(() => {
         if (flight?.direction !== "in" || flight.to || flight.missed) return
-        const timer = setInterval(() => {
+        let timer: ReturnType<typeof setTimeout>
+        const check = () => {
             const current = coverFlightState().flight
-            if (current && !current.to && coverWaitOver(Date.now(), current.startedAt, current.builtAt, isTablet)) missFlight()
-        }, 16)
-        return () => clearInterval(timer)
+            if (!current || current.to || current.missed) return
+            const now = Date.now()
+            if (coverWaitOver(now, current.startedAt, current.builtAt, isTablet)) return missFlight()
+            timer = setTimeout(check, coverWaitDelay(now, current.startedAt, current.builtAt, isTablet))
+        }
+        check()
+        return () => clearTimeout(timer)
     }, [flight, isTablet])
 
     // The move itself, on the UI thread
@@ -191,13 +204,13 @@ export function CoverFlightHost() {
                 <Animated.View style={[{ position: "absolute", left: from.x, top: from.y, width: from.width, height: from.height, borderRadius: 12, overflow: "hidden", backgroundColor: groundWaits ? "transparent" : fromGround }, style]}>
                     {toGround !== fromGround && <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: toGround }, groundStyle]} />}
                     <Animated.View style={[StyleSheet.absoluteFill, baseStyle]}>
-                        <Image source={flight.uri} contentFit="cover" contentPosition={flight.fromLook.position} style={StyleSheet.absoluteFill} accessible={false}
+                        <Image source={flight.uri} cachePolicy="memory-disk" recyclingKey={flight.uri} contentFit="cover" contentPosition={flight.fromLook.position} style={StyleSheet.absoluteFill} accessible={false}
                             onDisplay={() => setShownFlight(flight.startedAt)} />
                     </Animated.View>
                     {crossfade && !!to && (
                         // laid out at the landing place's size, centred, so it lands as that picture exactly
                         <Animated.View style={[{ position: "absolute", left: (from.width - to.width) / 2, top: (from.height - to.height) / 2, width: to.width, height: to.height }, topStyle]}>
-                            <Image source={flight.toUri} contentFit="cover" contentPosition={flight.toLook.position} style={StyleSheet.absoluteFill} accessible={false} />
+                            <Image source={flight.toUri} cachePolicy="memory-disk" recyclingKey={flight.toUri} contentFit="cover" contentPosition={flight.toLook.position} style={StyleSheet.absoluteFill} accessible={false} />
                         </Animated.View>
                     )}
                 </Animated.View>
@@ -292,4 +305,22 @@ export function useCoverFlightTarget(id: number | null, uri: string | undefined)
     }, [uri, land])
 
     return { coverRef: ref, onLoad, hidden }
+}
+
+/**
+ * Parts of an anime or manga page below the screen (characters, relations) are built only once the page has come in: after
+ * the cover's flight into it ends, or after the page's fade (300 ms) when nothing flies. They no longer add to the frame of
+ * the tap, where the header and the episode rows are built (S22: janky frames on every card → page).
+ */
+export function useAfterPageEnter() {
+    const flying = useCoverFlight(s => s.flight?.direction === "in")
+    const [ready, setReady] = React.useState(false)
+    const flew = React.useRef(flying)
+    React.useEffect(() => {
+        if (flying) flew.current = true
+        if (ready || flying) return
+        const timer = setTimeout(() => setReady(true), flew.current ? 0 : 300)
+        return () => clearTimeout(timer)
+    }, [ready, flying])
+    return ready
 }

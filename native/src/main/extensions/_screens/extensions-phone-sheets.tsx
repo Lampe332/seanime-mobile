@@ -96,7 +96,7 @@ export function ExtensionIcon({ extension, large }: { extension: Extension_Exten
     return (
         <View style={{ width: size, height: size }} className="items-center justify-center overflow-hidden rounded-surface-sm bg-sm-surface-control">
             {isExtensionIconUrl(icon) && !failed
-                ? <Image source={{ uri: icon }} style={{ width: size, height: size }} contentFit="cover" onError={() => setFailedIcon(icon)} accessibilityIgnoresInvertColors />
+                ? <Image source={{ uri: icon }} style={{ width: size, height: size }} contentFit="cover" cachePolicy="memory-disk" recyclingKey={icon} onError={() => setFailedIcon(icon)} accessibilityIgnoresInvertColors />
                 : <Text className="text-lg font-bold text-sm-text-muted">{(extension?.name?.trim()[0] ?? "?").toUpperCase()}</Text>}
         </View>
     )

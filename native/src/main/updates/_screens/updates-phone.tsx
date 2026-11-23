@@ -29,7 +29,7 @@ function UpdateRow({ t, item, fresh, onPress }: { t: Translate, item: UpdateItem
         <Pressable accessibilityRole="button" accessibilityLabel={[item.title, what, fresh ? t("new", "neu") : ""].filter(Boolean).join(", ")} onPress={onPress}
             className="min-h-[76px] flex-row items-center gap-3.5 bg-sm-surface-raised py-2.5 pl-2.5 pr-4 active:bg-sm-surface-control">
             <View className="h-[60px] w-11 overflow-hidden rounded-[6px] bg-sm-surface-control">
-                {!!item.image && <Image source={{ uri: item.image }} style={{ width: 44, height: 60 }} contentFit="cover" />}
+                {!!item.image && <Image cachePolicy="memory-disk" source={{ uri: item.image }} style={{ width: 44, height: 60 }} contentFit="cover" />}
             </View>
             <View className="min-w-0 flex-1 gap-0.5">
                 <Text numberOfLines={2} className="font-semibold">{item.title}</Text>

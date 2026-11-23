@@ -6,7 +6,8 @@ import { ButtonSizeContext } from "@/components/ui/button/button"
 import { cn } from "@/components/ui/core/styling"
 import { Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
-import { scrimAtOnce } from "@/lib/motion"
+import { DURATION, scrimAtOnce } from "@/lib/motion"
+import { EnterLayerView } from "@/components/ui/core/page-transition"
 import { WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useTourTarget } from "@/main/_features/tour/tour-targets"
@@ -172,7 +173,8 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
                         className={side ? "items-end" : "items-center justify-end"}
                     >
                         <DialogPrimitive.Content asChild>
-                            <Animated.View
+                            <EnterLayerView
+                                layerMs={side ? 260 : DURATION.sheetPhone}
                                 entering={side ? sheetInSide : sheetInPhone}
                                 exiting={side ? sheetOutSide : sheetOutPhone}
                                 style={side
@@ -213,7 +215,7 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
                                     {/* `.ps-sheet-actions > *` / `.mex-sheet-actions` buttons are 52dp; compact and workspace ones 48dp */}
                                     <ButtonSizeContext.Provider value={compact || workspace ? "md" : "lg"}>{footer}</ButtonSizeContext.Provider>
                                 </View>}
-                            </Animated.View>
+                            </EnterLayerView>
                         </DialogPrimitive.Content>
                     </View>
                 </Backdrop>

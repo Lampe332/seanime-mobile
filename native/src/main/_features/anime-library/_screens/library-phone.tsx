@@ -76,7 +76,7 @@ function parentInLibrary(dir: string, folders: string[]) {
 function Cover({ src }: { src?: string }) {
     return (
         <View className="aspect-[2/3] w-11 overflow-hidden rounded-[8px] bg-sm-surface-control">
-            {!!src && <Image source={src} contentFit="cover" style={{ width: "100%", height: "100%" }} accessibilityIgnoresInvertColors />}
+            {!!src && <Image cachePolicy="memory-disk" source={src} contentFit="cover" style={{ width: "100%", height: "100%" }} accessibilityIgnoresInvertColors />}
         </View>
     )
 }

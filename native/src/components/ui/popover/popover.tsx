@@ -1,10 +1,11 @@
 import { popoverIn, popoverOut } from "@/components/ui/core/animations"
+import { EnterLayerView } from "@/components/ui/core/page-transition"
 import { cn } from "@/components/ui/core/styling"
+import { DURATION } from "@/lib/motion"
 import { usePortalKey } from "@/components/ui/core/portal-key"
 import * as PopoverPrimitive from "@rn-primitives/popover"
 import React from "react"
 import { StyleSheet } from "react-native"
-import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 /*
@@ -34,7 +35,8 @@ export function PopoverContent({ children, className, align = "center", side = "
                     sideOffset={sideOffset}
                     insets={{ top: insets.top + 8, bottom: insets.bottom + 8, left: 12, right: 12 }}
                 >
-                    <Animated.View
+                    <EnterLayerView
+                        layerMs={DURATION.popoverIn}
                         entering={popoverIn}
                         exiting={popoverOut}
                         // it grows out of its trigger: the edge facing it, at the side it is aligned to
@@ -42,7 +44,7 @@ export function PopoverContent({ children, className, align = "center", side = "
                         className={cn("min-w-48 max-w-[352px] rounded-surface-sm bg-sm-surface-raised p-1.5 shadow-menu", className)}
                     >
                         {children}
-                    </Animated.View>
+                    </EnterLayerView>
                 </PopoverPrimitive.Content>
             </PopoverPrimitive.Overlay>
         </PopoverPrimitive.Portal>

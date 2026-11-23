@@ -20,7 +20,6 @@ import {
 } from "@/components/shared/phone-cards"
 import { PhoneScreen } from "@/components/shared/phone-screen"
 import { Button } from "@/components/ui/button/button"
-import { swapIn } from "@/components/ui/core/animations"
 import { useSwapStyle } from "@/components/ui/core/swap"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { cn } from "@/components/ui/core/styling"
@@ -28,6 +27,7 @@ import { Tabs } from "@/components/ui/tabs/tabs"
 import { Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
 import { anilist_getCurrentEpisodes } from "@/lib/helpers/media"
+import { DISTANCE, swapTiming } from "@/lib/motion"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
@@ -72,7 +72,8 @@ import { atom, useAtom } from "jotai"
 import Eye from "lucide-react-native/icons/eye"
 import React from "react"
 import { Pressable, ScrollView, useWindowDimensions, View } from "react-native"
-import Animated from "react-native-reanimated"
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated"
+import { scheduleOnRN } from "react-native-worklets"
 
 type Media = AL_BaseAnime | AL_BaseManga
 type MediaType = "anime" | "manga"
@@ -112,6 +113,10 @@ export function DiscoverPhone() {
         setLinkTab(undefined)
         setPageType(value as DiscoverTab)
     }
+    // the tabs seen so far stay mounted: coming back to one shows it at once instead of building it anew (S22: 23–25 % janky
+    // frames on every switch); one left behind is hidden (display none: no layout, no drawing)
+    const [visited, setVisited] = React.useState<ReadonlySet<DiscoverTab>>(() => new Set([tab]))
+    if (!visited.has(tab)) setVisited(new Set([...visited, tab]))
     const schedule = useDiscoverSchedule(tab === "schedule")
     const { current } = React.useMemo(() => discoverSeasons(new Date()), [])
     const facts = tab === "anime" ? seasonTitle(t, "season", current)
@@ -133,12 +138,49 @@ export function DiscoverPhone() {
                 <Tabs variant="segment" value={tab} onValueChange={selectTab} items={tabs} />
             </View>
             <PluginWebviewSlot slot="after-discover-screen-header" />
-            {/* A new tab rises in instead of swapping in one frame (useSwap) */}
-            <Animated.View key={tab} entering={swapIn(isTablet)} className="gap-6">
-                {tab === "anime" ? <AnimeTab /> : tab === "schedule" ? <DiscoverPhoneSchedule schedule={schedule} /> : <MangaTab />}
-            </Animated.View>
+            {/* A new tab rises in instead of swapping in one frame (useSwap); a visited tab stays built, only hidden */}
+            {visited.has("anime") && <DiscoverTabPane active={tab === "anime"} isTablet={isTablet}><AnimeTab /></DiscoverTabPane>}
+            {visited.has("schedule") && <DiscoverTabPane active={tab === "schedule"} isTablet={isTablet}><DiscoverPhoneSchedule schedule={schedule} /></DiscoverTabPane>}
+            {visited.has("manga") && <DiscoverTabPane active={tab === "manga"} isTablet={isTablet}><MangaTab /></DiscoverTabPane>}
         </PhoneScreen>
     )
+}
+
+/**
+ * A Discover tab: it rises 6dp and fades in each time it is picked (swapIn's move, the phone curve or the tablet's ease-out),
+ * drawn as one GPU layer only while it moves; hidden while another tab shows. Reduced motion: it is simply there.
+ */
+function DiscoverTabPane({ active, isTablet, children }: { active: boolean, isTablet: boolean, children: React.ReactNode }) {
+    const reduceMotion = useReducedMotion()
+    const opacity = useSharedValue(reduceMotion ? 1 : 0)
+    const shift = useSharedValue(reduceMotion ? 0 : DISTANCE.swap)
+    // set when the tab is picked, during render: the layer is there in the fade's first frame
+    const [fading, setFading] = React.useState(() => active && !reduceMotion)
+    const [wasActive, setWasActive] = React.useState(active)
+    if (active !== wasActive) {
+        setWasActive(active)
+        setFading(active)
+    }
+    const layered = fading && active && !reduceMotion
+
+    React.useEffect(() => {
+        if (!active || reduceMotion) {
+            opacity.set(reduceMotion ? 1 : 0)
+            shift.set(reduceMotion ? 0 : DISTANCE.swap)
+            return
+        }
+        const { duration, ease } = swapTiming(isTablet)
+        const timing = { duration, easing: Easing.bezier(...ease) }
+        shift.set(withTiming(0, timing))
+        opacity.set(withTiming(1, timing, finished => {
+            if (finished) scheduleOnRN(setFading, false)
+        }))
+    }, [active, isTablet, reduceMotion, opacity, shift])
+
+    const style = useAnimatedStyle(() => ({ opacity: opacity.get(), transform: [{ translateY: shift.get() }] }))
+    return <Animated.View renderToHardwareTextureAndroid={layered} style={[{ display: active ? "flex" : "none" }, style]} className="gap-6">
+        {children}
+    </Animated.View>
 }
 
 /** "Fall 2026 season", "Top of Fall 2026", "Best of Summer 2026" as whole texts, so each language words season and year itself. */

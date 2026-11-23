@@ -55,7 +55,7 @@ import { useCloseOnBack } from "@/components/ui/core/back-handler"
 import { useFocusEffect, useIsFocused, useLocalSearchParams } from "expo-router"
 import { useSetRouteParams } from "@/lib/route-params"
 import { Image } from "expo-image"
-import { useCoverFlightPageBackSteps, useCoverFlightTarget } from "@/components/shared/cover-flight"
+import { useAfterPageEnter, useCoverFlightPageBackSteps, useCoverFlightTarget } from "@/components/shared/cover-flight"
 import { usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { useAtom, useAtomValue } from "jotai"
@@ -229,6 +229,9 @@ export function AnimeEntryPage() {
         if (!mediaId || (!isLoading && !entry && !isError)) router.push("/")
     }, [entry, isLoading, isError, mediaId, router])
 
+    // characters and relations (below the screen) come once the page has come in
+    const moreReady = useAfterPageEnter()
+
     if (isLoading) return <View className="flex-1 items-center justify-center"><ActivityIndicator color={colors.smAccent} size="large" /></View>
     if (!entry && isError) return <View className="flex-1 items-center justify-center gap-4 px-6">
         <Text className="text-center text-lg font-semibold">{t("This anime could not be loaded.", "Dieser Anime konnte nicht geladen werden.")}</Text>
@@ -239,7 +242,7 @@ export function AnimeEntryPage() {
 
     const tabs = getAnimeEntryTabs(t, entry, serverStatus, hidden)
     const tabsRow = tabs.length > 0 && <Tabs value={view} onValueChange={value => pickView(value as AnimeEntryView)} items={tabs} />
-    const moreSection = foreign ? null : <>
+    const moreSection = foreign || !moreReady ? null : <>
         <MediaEntryCharactersSection details={details} loading={detailsLoading} />
         <RelationsRecommendationsSection entry={entry} details={details} loading={detailsLoading} />
     </>
@@ -359,7 +362,7 @@ function EntryHeader({ entry, details, detailsLoading, wide, tablet, foreign, on
             {/* The cover loads at once and first, not lazily (entry-cover-transition.ts: the flight waited for a lazy one) */}
             <View ref={coverRef} collapsable={false} style={{ width: coverWidth, aspectRatio: tablet ? 23 / 33 : 88 / 124, elevation: 10, shadowColor: "#000", shadowOpacity: 0.8, shadowRadius: 14, shadowOffset: { width: 0, height: 12 } }}
                 className="items-center justify-center overflow-hidden rounded-surface-sm border border-white/5 bg-sm-surface-control">
-                {cover ? <Image source={getImageUrl(cover)} priority="high" contentFit={tablet ? "cover" : "contain"} style={{ position: "absolute", inset: 0, opacity: coverHidden ? 0 : 1 }}
+                {cover ? <Image source={getImageUrl(cover)} cachePolicy="memory-disk" recyclingKey={getImageUrl(cover)} priority="high" contentFit={tablet ? "cover" : "contain"} style={{ position: "absolute", inset: 0, opacity: coverHidden ? 0 : 1 }}
                     onLoad={onCoverLoad} transition={coverHidden ? null : fade} accessibilityLabel={title} accessibilityIgnoresInvertColors />
                     : <Text accessibilityLabel={t("No cover", "Kein Cover")} className="text-sm-text-subtle">◇</Text>}
             </View>

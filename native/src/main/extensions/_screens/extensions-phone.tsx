@@ -151,6 +151,8 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
             ].filter(Boolean).join(" · ")
 
     const installed = page !== "marketplace"
+    const [marketMounted, setMarketMounted] = React.useState(!installed)
+    if (!installed && !marketMounted) setMarketMounted(true)
     const nothingFound = !!search.trim() && !overview.permissions.length && !overview.broken.length && !overview.groups.length
     const attention = [...overview.permissions, ...overview.broken]
     // Tablet: two columns once there are two type lists (tablet.css .mex-panel:has(> .mex-section + .mex-section))
@@ -193,7 +195,9 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
                     { value: "marketplace", label: t("Marketplace", "Marktplatz"), tourTarget: focused ? TOUR_TARGETS.marketplaceTab : undefined },
                 ]} />
 
-            {!installed ? <MarketplacePhone t={t} installedIds={installedIds} tourOn={focused} />
+            {/* once opened the marketplace stays mounted (hidden on Installed): switching tabs does not build it again */}
+            {marketMounted && <MarketplacePhone t={t} installedIds={installedIds} tourOn={focused && !installed} active={!installed} />}
+            {!installed ? null
                 : failed ? (
                     <Notice text={t("Your extensions could not be loaded.", "Deine Erweiterungen konnten nicht geladen werden.")}>
                         <TextAction label={t("Try again", "Erneut versuchen")} onPress={() => void query.refetch()} />

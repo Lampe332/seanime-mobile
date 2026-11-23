@@ -1,5 +1,7 @@
 import { popoverIn, popoverOut } from "@/components/ui/core/animations"
+import { EnterLayerView } from "@/components/ui/core/page-transition"
 import { cn } from "@/components/ui/core/styling"
+import { DURATION } from "@/lib/motion"
 import { usePortalKey } from "@/components/ui/core/portal-key"
 import { Text } from "@/components/ui/text/text"
 import { MobileIcon } from "@/lib/mobile-icons"
@@ -7,7 +9,6 @@ import { colors } from "@/lib/theme/tokens"
 import * as SelectPrimitive from "@rn-primitives/select"
 import React from "react"
 import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native"
-import Animated from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
 
@@ -73,7 +74,8 @@ export function Select({ value, onValueChange, options, placeholder, disabled, c
                         sideOffset={6}
                         insets={{ top: insets.top + 8, bottom: insets.bottom + 8, left: 12, right: 12 }}
                     >
-                        <Animated.View
+                        <EnterLayerView
+                            layerMs={DURATION.popoverIn}
                             entering={popoverIn}
                             exiting={popoverOut}
                             style={{ width: triggerWidth || undefined, maxHeight: Math.min(400, height * 0.5) }}
@@ -96,7 +98,7 @@ export function Select({ value, onValueChange, options, placeholder, disabled, c
                                     </SelectPrimitive.Item>
                                 ))}
                             </ScrollView>
-                        </Animated.View>
+                        </EnterLayerView>
                     </SelectPrimitive.Content>
                 </SelectPrimitive.Overlay>
             </SelectPrimitive.Portal>

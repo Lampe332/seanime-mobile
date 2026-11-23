@@ -25,6 +25,27 @@ export const __manga_scrollSignalAtom = atom(0)
 
 const GAP = 16
 
+type PageSize = { width: number, height: number }
+
+/** One page of the strip; memoized, so a page that loads elsewhere does not draw the visible ones again. */
+const StripCell = React.memo(function StripCell({ index, url, headers, width, height, gapAfter, onPress, onSize, onLoaded }: {
+    index: number
+    url: string | undefined
+    headers: Record<string, string> | undefined
+    width: number
+    height: number
+    gapAfter: number
+    onPress: () => void
+    onSize: (index: number, size: PageSize) => void
+    onLoaded: (index: number) => void
+}) {
+    return <Pressable accessible={false} onPress={onPress}
+        style={{ height: height + gapAfter, alignItems: "center", paddingHorizontal: 16 }}>
+        <ChapterPage url={url} headers={headers} index={index} width={width} height={height} recycle
+            onSize={onSize} onLoaded={onLoaded} />
+    </Pressable>
+})
+
 /*
  * Long strip (chapter-vertical-reader.tsx) as a FlashList: only the pages near the screen are drawn, each at its real shape
  * once its picture has loaded (a usual page shape until then, or the server's page sizes). The current page is the one
@@ -73,9 +94,17 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
         const ratio = natural?.width ? natural.height / natural.width : DEFAULT_PAGE_RATIO
         return stripPageSize({ fit: pageFit, stretch: pageStretch, zoom: pageZoom, overflowWidth, width: inner, height, ratio, naturalWidth: natural?.width ?? 0, tabletColumn })
     }, [sizes, pageContainer?.pageDimensions, pageFit, pageStretch, pageZoom, overflowWidth, inner, height, tabletColumn])
-    const heights = React.useMemo(() => indexes.map(i => sizeOf(i).height), [indexes, sizeOf])
-    const widest = React.useMemo(() => indexes.reduce((max, i) => Math.max(max, sizeOf(i).width), 0), [indexes, sizeOf])
+    // every page's size once per change; the cells and the scroll handler only look them up
+    const pageSizes = React.useMemo(() => indexes.map(sizeOf), [indexes, sizeOf])
+    const heights = React.useMemo(() => pageSizes.map(size => size.height), [pageSizes])
+    const widest = React.useMemo(() => pageSizes.reduce((max, size) => Math.max(max, size.width), 0), [pageSizes])
     const gap = pageGap ? GAP : 0
+    // opening: only the pages on the screen at first, the ones ahead once the app is idle (after the opening animation)
+    const [settled, setSettled] = React.useState(false)
+    React.useEffect(() => {
+        const task = requestIdleCallback(() => setSettled(true), { timeout: 600 })
+        return () => cancelIdleCallback(task)
+    }, [])
 
     // a new chapter: not read yet, restore its page
     React.useEffect(() => {
@@ -101,10 +130,18 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
         setSizes(prev => prev[index]?.width === size.width && prev[index]?.height === size.height ? prev : { ...prev, [index]: size })
     }, [])
 
+    // a page's headers stay the same object, so its cell is not drawn again
+    const pageHeadersList = React.useMemo(() => indexes.map(index => pageHeaders?.(index)), [indexes, pageHeaders])
+    const onPress = React.useCallback(() => {
+        if (tapToggleControls) setHideBar(prev => !prev)
+    }, [tapToggleControls, setHideBar])
+
+    // jotai skips setting an unchanged value; while the saved page is restored nothing but "last page" is worked out
     const onScroll = (offset: number) => {
         setIsLastPage(isNearStripEnd(offset, height, contentHeight.current, count > 0))
+        if (pending.current !== null) return
         const tops = stripPageTops(heights, gap, index => list.current?.getLayout(index)?.y)
-        const page = stripScrollPage({ restoring: pending.current !== null, tops, offset, line: Math.min(120, height / 4) })
+        const page = stripScrollPage({ restoring: false, tops, offset, line: Math.min(120, height / 4) })
         if (page === null) return
         setCurrentPageIndex(page)
         // hide the controls while reading down, bring them back scrolling up
@@ -121,18 +158,12 @@ export function MangaVerticalReader({ pageContainer, pageUrl, pageHeaders, initi
         ref={list}
         data={indexes}
         keyExtractor={index => `${index}-${pageContainer?.pages?.[index]?.url}`}
-        extraData={sizeOf}
+        extraData={pageSizes}
         initialScrollIndex={initialPageIndex > 0 && initialPageIndex < count ? initialPageIndex : undefined}
-        renderItem={({ item: index }) => {
-            const size = sizeOf(index)
-            return <Pressable accessible={false} onPress={() => { if (tapToggleControls) setHideBar(prev => !prev) }}
-                style={{ height: size.height + (index < count - 1 ? gap : 0), alignItems: "center", paddingHorizontal: 16 }}>
-                <ChapterPage url={pageUrl(index)} headers={pageHeaders?.(index)} index={index} width={size.width} height={size.height} recycle
-                    onSize={onSize} onLoaded={onLoaded} />
-            </Pressable>
-        }}
-        // a long chapter loads the next pages before they reach the screen
-        drawDistance={height * 2}
+        renderItem={({ item: index }) => <StripCell index={index} url={pageUrl(index)} headers={pageHeadersList[index]}
+            width={(pageSizes[index] ?? sizeOf(index)).width} height={(pageSizes[index] ?? sizeOf(index)).height} gapAfter={index < count - 1 ? gap : 0} onPress={onPress} onSize={onSize} onLoaded={onLoaded} />}
+        // a long chapter loads the next pages before they reach the screen (after the opening, see `settled`)
+        drawDistance={settled ? height * 2 : 0}
         onScrollBeginDrag={() => { pending.current = null }}
         onScroll={event => onScroll(event.nativeEvent.contentOffset.y)}
         onContentSizeChange={(_, h) => {
