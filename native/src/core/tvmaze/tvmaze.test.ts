@@ -7,7 +7,7 @@ import { CoreError } from "../errors"
 import { type CoreEnvironment, matchCoreRoute } from "../registry"
 import { TvmazeFailure, askTvmaze, newTvmazeRateLimit } from "./client"
 import { ownShowOf } from "./own-shows"
-import { fromTvmazeId, isTvmazeId, mediaOfShow, metadataOfShow, plainText, searchOtherSources, SHOW_FRESH_MS, toTvmazeId } from "./tvmaze"
+import { fromTvmazeId, isTvmazeId, mediaOfShow, metadataOfShow, plainText, searchOtherSources, SHOW_FRESH_MS, titleMatchesSearch, toTvmazeId } from "./tvmaze"
 
 /*
  * TVmaze and AniList are played by a test double: TVmaze by its address, AniList (POST graphql.anilist.co) by the
@@ -252,11 +252,22 @@ describe("TVmaze's rate limit", () => {
 })
 
 describe("search of the other sources", () => {
+    it("keeps only titles whose words start with every word of the search", () => {
+        expect(titleMatchesSearch("Les Frères Apocalypse", "frieren")).toBe(false)
+        expect(titleMatchesSearch("Subete ga F ni Naru: The Perfect Insider", "naruto")).toBe(false)
+        expect(titleMatchesSearch("Frieren: Beyond Journey's End", "frieren")).toBe(true)
+        expect(titleMatchesSearch("Les Frères Apocalypse", "freres apo")).toBe(true)
+        expect(titleMatchesSearch("Pokémon Horizons", "POKEMON")).toBe(true)
+        expect(titleMatchesSearch("Spider-Man", "spiderman")).toBe(true)
+        expect(titleMatchesSearch("Dreamland", "land")).toBe(false)
+        expect(titleMatchesSearch("Dreamland", " - ")).toBe(false)
+    })
+
     it("answers in the form of AniList's search, kept for when TVmaze fails", async () => {
         answers["/search/shows?q=Dreamland"] = { body: [{ score: 0.9, show: SHOW }, { score: 0.5, show: { id: 8, name: "Dreamland", type: "Scripted" } }, { score: 0.1, show: { id: 7, name: "Other", type: "Animation" } }] }
         const found = await searchOtherSources(environment, "Dreamland") as { Page: { media: Json[] } }
-        // the live-action series of the same name stays out
-        expect(found.Page.media.map(media => [media.id, (media.title as Json).english])).toEqual([[-95063, "Dreamland"], [-7, "Other"]])
+        // the live-action series of the same name stays out, and so does TVmaze's loose match of another name
+        expect(found.Page.media.map(media => [media.id, (media.title as Json).english])).toEqual([[-95063, "Dreamland"]])
         answers = {}
         expect(await searchOtherSources(environment, "dreamland ")).toEqual(found)
         expect(await searchOtherSources(environment, "  ")).toEqual({ Page: { pageInfo: { hasNextPage: false, total: 0 }, media: [] } })

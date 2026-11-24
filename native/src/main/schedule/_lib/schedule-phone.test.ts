@@ -16,11 +16,13 @@ const listData = { 1: { status: "CURRENT", progress: 5 }, 2: { status: "PLANNING
 describe("phone calendar", () => {
     it("keeps the day's episodes of the chosen list statuses, by time then episode, with watched and finale marks", () => {
         const day = new Date(2026, 10, 5)
-        const events = scheduleEvents(schedule, day, listData, ["CURRENT", "PLANNING"])
+        const events = scheduleEvents(schedule, day, listData, ["CURRENT", "PLANNING"], "de")
         expect(events.map(e => [e.mediaId, e.time, e.isWatched, e.isSeasonFinale])).toEqual([[2, "09:00", false, true], [1, "18:00", true, false]])
-        expect(scheduleEvents(schedule, day, listData, ["PLANNING"]).map(e => e.mediaId)).toEqual([2])
+        expect(scheduleEvents(schedule, day, listData, ["PLANNING"], "de").map(e => e.mediaId)).toEqual([2])
+        // the same clock as Discover's schedule tab: the app language decides 12 or 24 hours
+        expect(scheduleEvents(schedule, day, listData, ["CURRENT", "PLANNING"], "en").map(e => e.time)).toEqual(["9:00 AM", "6:00 PM"])
         // All anime / Home's items: no status filter; the same time orders by episode; a movie's finale mark stays off
-        const all = scheduleEvents(schedule, day, listData, null)
+        const all = scheduleEvents(schedule, day, listData, null, "de")
         expect(all.map(e => e.mediaId)).toEqual([3, 2, 1])
         expect(all[0]).toMatchObject({ isMovie: true, isSeasonFinale: false })
     })

@@ -1,5 +1,5 @@
 import type { AL_MediaListStatus, Anime_EntryListData, Anime_ScheduleItem } from "@/api/generated/types"
-import { weekdayNames } from "@/lib/i18n/format"
+import { formatTime, weekdayNames } from "@/lib/i18n/format"
 import type { Day } from "date-fns"
 import { addDays } from "date-fns/addDays"
 import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays"
@@ -47,10 +47,10 @@ const sameLocalDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() &
 /**
  * The episodes airing on a local day. The user's schedule keeps only titles whose list status is chosen (`statuses`;
  * null = every title, as for All anime and Home's items); an episode counts as watched once the list progress reached it.
- * Ordered by time, then episode.
+ * Ordered by time, then episode. The time in the app language's clock, as everywhere in the app ("6:30 PM" / "18:30").
  */
 export function scheduleEvents(schedule: Anime_ScheduleItem[] | null | undefined, day: Date, listData: Record<string, Anime_EntryListData>,
-    statuses: AL_MediaListStatus[] | null): CalendarEvent[] {
+    statuses: AL_MediaListStatus[] | null, language: string): CalendarEvent[] {
     const events: CalendarEvent[] = []
     for (const item of schedule ?? []) {
         if (!item.dateTime) continue
@@ -62,7 +62,7 @@ export function scheduleEvents(schedule: Anime_ScheduleItem[] | null | undefined
             id: `${item.mediaId}-${item.episodeNumber}-${item.dateTime}`,
             mediaId: item.mediaId,
             name: item.title,
-            time: format(at, "HH:mm"),
+            time: formatTime(at, language),
             datetime: item.dateTime,
             image: item.image,
             episode: item.episodeNumber || 1,

@@ -8,7 +8,7 @@ import { appLanguageAtom, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { checkNewChapters, PAGE_MAX, PAGE_MIN_AGE_MS } from "@/lib/updates/chapter-check"
 import { updatesLastVisitAtom, useUpdateItems } from "@/lib/updates/use-updates"
-import { dayLabel, groupByDay, newCount, sinceOf, type UpdateItem, updatesView } from "@/lib/updates/updates-policy"
+import { dayLabel, groupByDay, newCount, sinceOf, type UpdateItem, updatesSubtitle, updatesView } from "@/lib/updates/updates-policy"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { Image } from "expo-image"
 import { useAtom, useAtomValue } from "jotai"
@@ -86,9 +86,8 @@ export function UpdatesPhone() {
         setLastVisit(at)
     }
     const subtitle = checking && mangaEnabled ? t("Looking for new chapters…", "Suche nach neuen Kapiteln…")
-        : fresh > 0 ? t(`${fresh} new since your last visit`, `${fresh} neu seit deinem letzten Besuch`)
-            : view.body === "failed" ? undefined
-                : t("Nothing new since your last visit", "Nichts Neues seit deinem letzten Besuch")
+        : view.body === "failed" && fresh === 0 ? undefined
+            : updatesSubtitle(t, items.length, fresh)
     const open = (item: UpdateItem) => router.push(item.kind === "episode" ? `/entry?id=${item.mediaId}` : `/manga/entry?id=${item.mediaId}`)
     const tryAgain = <TextAction label={t("Try again", "Erneut versuchen")} onPress={retry} />
 

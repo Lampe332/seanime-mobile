@@ -17,6 +17,7 @@ import {
     newCount,
     sinceOf,
     UPDATES_WINDOW_MS,
+    updatesSubtitle,
     updatesView,
 } from "./updates-policy"
 
@@ -181,5 +182,17 @@ describe("page state", () => {
         expect(updatesView({ count: 3, loading: false, failed: false })).toEqual({ body: "list", notice: false })
         expect(updatesView({ count: 3, loading: false, failed: true })).toEqual({ body: "list", notice: true })
         expect(updatesView({ count: 3, loading: true, failed: true })).toEqual({ body: "list", notice: false })
+    })
+})
+
+describe("updatesSubtitle", () => {
+    const en = (english: string, german: string) => translate("en", english, german)
+    const de = (english: string, german: string) => translate("de", english, german)
+    it("matches the list: new ones counted, older ones not called nothing", () => {
+        expect(updatesSubtitle(en, 5, 2)).toBe("2 new since your last visit")
+        expect(updatesSubtitle(en, 5, 0)).toBe("5 updates · none new since your last visit")
+        expect(updatesSubtitle(en, 1, 0)).toBe("1 update · none new since your last visit")
+        expect(updatesSubtitle(de, 3, 0)).toBe("3 Updates · nichts Neues seit deinem letzten Besuch")
+        expect(updatesSubtitle(en, 0, 0)).toBe("Nothing new since your last visit")
     })
 })

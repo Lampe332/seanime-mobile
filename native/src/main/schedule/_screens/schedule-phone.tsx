@@ -40,6 +40,7 @@ import { parseISO } from "date-fns/parseISO"
 import { startOfMonth } from "date-fns/startOfMonth"
 import { subMonths } from "date-fns/subMonths"
 import { type DateStyle, formatDate, weekdayNames } from "@/lib/i18n/format"
+import { type EpisodeRun, episodeRunLabel, groupEpisodeRuns } from "@/main/schedule/_lib/episode-runs"
 import { Image } from "expo-image"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { useAtom, useAtomValue } from "jotai"
@@ -76,8 +77,9 @@ export function ScheduleCalendar() {
     const [params, setParams] = useAtom(calendarParamsAtom)
     const [weekStartsOn, setWeekStartsOn] = useAtom(weekStartsOnAtom)
 
-    const eventsOn = React.useCallback((day: Date) => scheduleEvents(query.data, day, anilistListData, isAllAnime ? null : params.listStatuses),
-        [query.data, anilistListData, isAllAnime, params.listStatuses])
+    const language = useAtomValue(appLanguageAtom)
+    const eventsOn = React.useCallback((day: Date) => scheduleEvents(query.data, day, anilistListData, isAllAnime ? null : params.listStatuses, language),
+        [query.data, anilistListData, isAllAnime, params.listStatuses, language])
     const days = React.useMemo(() => calendarDays(currentDate, weekStartsOn, eventsOn), [currentDate, weekStartsOn, eventsOn])
 
     return <PhoneSchedule
@@ -377,7 +379,8 @@ export function DayList({ title, today, events, indicateWatched, episodes, showE
                 <Text className="text-[13px] text-sm-text-muted" style={{ fontVariant: ["tabular-nums"] }}>{episodes(events.length)}</Text>
             </View>
             {events.length > 0
-                ? <RowGroup>{events.map(event => <EventRow key={event.id} event={event} indicateWatched={indicateWatched} />)}</RowGroup>
+                ? <RowGroup>{groupEpisodeRuns(events, event => ({ show: event.mediaId, at: event.datetime, episode: event.episode }))
+                    .map(run => <EventRow key={run.key} run={run} indicateWatched={indicateWatched} />)}</RowGroup>
                 : <Note>{t("Nothing airs from your selection on this day.", "An diesem Tag läuft nichts aus deiner Auswahl.")}</Note>}
         </View>
     )
@@ -385,11 +388,14 @@ export function DayList({ title, today, events, indicateWatched, episodes, showE
 
 const WATCHED_LOOK = { opacity: 0.55 }
 
-function EventRow({ event, indicateWatched }: { event: CalendarEvent, indicateWatched: boolean }) {
+/** An episode, or a batch released together ("Episodes 4–11"): watched once the last one is, a finale when the last one is. */
+function EventRow({ run, indicateWatched }: { run: EpisodeRun<CalendarEvent>, indicateWatched: boolean }) {
     const t = useTr()
     const fade = useImageFade()
+    const last = run.items[run.items.length - 1]!
+    const event = { ...run.items[0]!, isWatched: last.isWatched, isSeasonFinale: last.isSeasonFinale }
     const watched = event.isWatched && indicateWatched
-    const what = event.isMovie ? t("Movie", "Film") : t(`Episode ${event.episode}`, `Folge ${event.episode}`)
+    const what = event.isMovie ? t("Movie", "Film") : episodeRunLabel(t, run)
     // the row's cover flies into the page it opens (cover-flight.tsx), dimmed like the row shows it when watched
     const coverUri = event.image ? getImageUrl(event.image) : ""
     const { coverRef, onLoad, hidden, open } = useCoverFlightSource(event.mediaId, coverUri, undefined, watched ? WATCHED_LOOK : undefined)
@@ -461,7 +467,8 @@ export function ScheduleMonthCalendar({ items, loading, error, onRetry }: { item
     const [currentDate, setCurrentDate] = React.useState(() => new Date())
     const [selectedDate, setSelectedDate] = React.useState(() => format(new Date(), "yyyy-MM-dd"))
     const [step, setStep] = React.useState(0)
-    const eventsOn = React.useCallback((day: Date) => scheduleEvents(items, day, anilistListData, null), [items, anilistListData])
+    const language = useAtomValue(appLanguageAtom)
+    const eventsOn = React.useCallback((day: Date) => scheduleEvents(items, day, anilistListData, null, language), [items, anilistListData, language])
     const days = React.useMemo(() => calendarDays(currentDate, weekStartsOn, eventsOn), [currentDate, weekStartsOn, eventsOn])
     const selected = days.find(d => d.date === selectedDate) ?? days.find(d => d.isCurrentMonth)!
     const episodes = (n: number) => plural(t, n, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])

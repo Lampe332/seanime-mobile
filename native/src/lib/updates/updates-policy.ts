@@ -161,6 +161,19 @@ export function newCount(items: readonly UpdateItem[], since: number): number {
 }
 
 /**
+ * The page's facts line, matching the list below it: "2 new since your last visit"; a list of only older updates says how
+ * many it holds and that none is new ("5 updates · none new since your last visit"); only an empty list says "Nothing new".
+ */
+export function updatesSubtitle(t: Translate, count: number, fresh: number): string {
+    if (fresh > 0) return t(`${fresh} new since your last visit`, `${fresh} neu seit deinem letzten Besuch`)
+    if (count > 0) {
+        const total = count === 1 ? t("1 update", "1 Update") : t(`${count} updates`, `${count} Updates`)
+        return `${total} · ${t("none new since your last visit", "nichts Neues seit deinem letzten Besuch")}`
+    }
+    return t("Nothing new since your last visit", "Nichts Neues seit deinem letzten Besuch")
+}
+
+/**
  * What the Updates page shows: bones while nothing is there yet (a retry too), a failure with "Try again" instead of the
  * empty week (a failed load is not "nothing new"), else the empty week or the list. `notice`: a list with a failed part.
  */

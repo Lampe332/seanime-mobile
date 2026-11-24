@@ -420,7 +420,8 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
                 {statsButton}
             </ListsHeader>
             <AnilistSyncBar className="-mt-3" />
-            <MyShowsRow />
+            {/* own TVmaze titles are anime: the row belongs to the Anime tab only */}
+            {type === "anime" && <MyShowsRow />}
             {(!!typeSwitch || (ready && tabs.length > 0)) && (
                 <View className="gap-3" onLayout={event => { controlsY.current = event.nativeEvent.layout.y }}>
                     {/* r16 (Nick 10.11., not in 2.0.33): on a wide tablet the field stands beside Anime | Manga (searchBesideTabs);

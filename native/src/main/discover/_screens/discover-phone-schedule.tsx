@@ -14,6 +14,7 @@ import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-p
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { type Airing, airingTimeLabel, listStatusLabel, scheduleDayTitle, scheduleFacts } from "@/main/discover/_lib/discover-phone"
 import { type DiscoverSchedule, useDiscoverEntry } from "@/main/discover/_lib/discover-phone-hooks"
+import { type EpisodeRun, episodeRunLabel, groupEpisodeRuns } from "@/main/schedule/_lib/episode-runs"
 import { isToday } from "date-fns/isToday"
 import { Image } from "expo-image"
 import { useImageFade } from "@/components/ui/core/image-fade"
@@ -26,7 +27,8 @@ export function scheduleFactsLine(t: Translate, schedule: DiscoverSchedule) {
     if (schedule.error || schedule.offline || ((schedule.moreError || schedule.moreOffline) && !schedule.days?.length)) {
         return t("Schedule not loaded", "Sendeplan nicht geladen")
     }
-    if (!schedule.days || schedule.loadingMore) return t("Loading the schedule…", "Sendeplan wird geladen …")
+    // later days still loading under a shown list: the facts of what is shown, the bones below say the rest is coming
+    if (!schedule.days || (schedule.loadingMore && !schedule.days.length)) return t("Loading the schedule…", "Sendeplan wird geladen …")
     if (!schedule.count && schedule.reach >= 14) return undefined
     return scheduleFacts(t, schedule.count, schedule.reach)
 }
@@ -66,7 +68,8 @@ export function DiscoverPhoneSchedule({ schedule }: { schedule: DiscoverSchedule
                 <PhoneSection key={day.key} title={scheduleDayTitle(t, day.date, now, language)} count={day.items.length}
                     titleClassName={isToday(day.date) ? "text-sm-accent" : undefined}>
                     <View className="gap-0.5 overflow-hidden rounded-surface">
-                        {day.items.map(item => <ScheduleRow key={item.id} item={item} language={language} />)}
+                        {groupEpisodeRuns(day.items, item => ({ show: item.media!.id, at: item.airingAt, episode: item.episode }))
+                            .map(run => <ScheduleRow key={run.key} run={run} language={language} />)}
                     </View>
                 </PhoneSection>
             ))}
@@ -92,8 +95,9 @@ function ScheduleBones({ label, short }: { label: string, short?: boolean }) {
     )
 }
 
-/** An episode: cover, title, "Episode 5" (with the list status when on a list), time; long press for Preview. */
-const ScheduleRow = React.memo(function ScheduleRow({ item, language }: { item: Airing, language: string }) {
+/** An episode or a batch of them: cover, title, "Episode 5" / "Episodes 4–11" (with the list status when on a list), time; long press for Preview. */
+const ScheduleRow = React.memo(function ScheduleRow({ run, language }: { run: EpisodeRun<Airing>, language: string }) {
+    const item = run.items[0]
     const t = useTr()
     const fade = useImageFade()
     const media = item.media!
@@ -105,7 +109,7 @@ const ScheduleRow = React.memo(function ScheduleRow({ item, language }: { item: 
     const title = media.title?.userPreferred || media.title?.romaji || media.title?.english || ""
     const veiled = !!serverStatus?.settings?.anilist?.blurAdultContent && !!media.isAdult
     const time = airingTimeLabel(item.airingAt, language)
-    const episode = t(`Episode ${item.episode}`, `Folge ${item.episode}`)
+    const episode = episodeRunLabel(t, run)
     // the row's cover flies into the page it opens (cover-flight.tsx); a blurred one does not fly
     const coverUri = getImageUrl(media.coverImage?.large || media.coverImage?.medium || "")
     const { coverRef, onLoad, hidden, open } = useCoverFlightSource(media.id, veiled ? "" : coverUri, getImageUrl(media.coverImage?.extraLarge || ""))

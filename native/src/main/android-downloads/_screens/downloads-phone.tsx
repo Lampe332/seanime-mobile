@@ -37,7 +37,7 @@ import {
 } from "../_lib/offline-library"
 import { usePlayOffline } from "../_lib/use-offline"
 import { Artwork, PlayMark, ProgressLine } from "./downloads-parts"
-import { MangaDownloads } from "./manga-downloads"
+import { MangaDownloads, useNoMangaDownloads } from "./manga-downloads"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { readingColumn } from "@/lib/tablet-ui"
 import { TorrentDownloads } from "./torrent-downloads"
@@ -117,8 +117,10 @@ export function DownloadsPhone({ kind, animeKey: selectedKey, mangaId = 0 }: {
     const size = (bytes: number) => formatSize(bytes, language)
 
     const overview = kind === "manga" ? !mangaId : !selectedKey
-    // nothing saved yet: one plain line instead of "0 Anime · 0 episodes · 0 MB" (S22 15.11.)
-    const facts = kind === "anime" && snapshot
+    const noManga = useNoMangaDownloads(kind === "manga")
+    // nothing saved yet: one plain line instead of "0 Anime · 0 episodes · 0 MB" (S22 15.11.); the Manga tab the same
+    const facts = kind === "manga" && noManga ? t("Nothing downloaded yet", "Noch nichts heruntergeladen")
+        : kind === "anime" && snapshot
         ? items.length === 0 ? t("Nothing downloaded yet", "Noch nichts heruntergeladen")
             : `${t(`${groups.length} anime`, `${groups.length} Anime`)} · ${plural(t, items.length, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])} · ${size(totalBytes(items))}`
         : kind === "torrents" ? t("Saved to your library folder", "In deinem Bibliotheksordner gespeichert") : t("Saved on this device", "Auf diesem Gerät gespeichert")
@@ -203,7 +205,7 @@ function ToggleButton({ item, onAction }: { item: OfflineItem, onAction: (item: 
 }
 
 function pendingMeta(item: OfflineItem, t: Translate) {
-    return `${stateLabel(item, t)}${showsProgress(item) ? ` · ${Math.round(item.progress)} %` : ""}`
+    return `${stateLabel(item, t)}${showsProgress(item) ? ` · ${t(`${Math.round(item.progress)}%`, `${Math.round(item.progress)} %`)}` : ""}`
 }
 
 function Overview({ items, groups, waiting, wifiOnly, size, selecting, picked, setPicked, onSelect, onDeletePicked, onOpen, onAction, onPlay, onRemove, onSearch }: {
@@ -388,7 +390,7 @@ function DownloadSettings({ wifiOnly, episodeBytes, size }: { wifiOnly: boolean,
                 description={t("On mobile data, episode downloads wait until you are on Wi-Fi.", "Mit mobilen Daten warten die Folgen-Downloads, bis du im WLAN bist.")}
                 checked={wifiOnly} disabled={isPending} onCheckedChange={checked => saveSettings({ wifiOnly: checked })} />
             <SelectRow label={t("Delete watched episodes", "Gesehene Folgen löschen")} value={deleteWatched} disabled={switching}
-                note={t("Only episodes saved here, once watched to 80 %. Never in incognito mode.", "Nur hier gespeicherte Folgen, sobald zu 80 % gesehen. Nie im Inkognito-Modus.")}
+                note={t("Only episodes saved here, once watched to 80%. Never in incognito mode.", "Nur hier gespeicherte Folgen, sobald zu 80 % gesehen. Nie im Inkognito-Modus.")}
                 options={[
                     { value: "", label: t("Off", "Aus") },
                     { value: "watched", label: t("After watching", "Nach dem Ansehen") },

@@ -47,6 +47,17 @@ import { ActivityIndicator, Pressable, View } from "react-native"
 const QUEUE_KEY = API_ENDPOINTS.MANGA_DOWNLOAD.GetMangaDownloadQueue.key
 const LIST_KEY = API_ENDPOINTS.MANGA_DOWNLOAD.GetMangaDownloadsList.key
 
+/** For the Downloads header: true once the download list is in and holds no manga (same query as below). */
+export function useNoMangaDownloads(enabled: boolean) {
+    const listQuery = useServerQuery<Manga_DownloadListItem[]>({
+        endpoint: API_ENDPOINTS.MANGA_DOWNLOAD.GetMangaDownloadsList.endpoint,
+        method: "GET",
+        queryKey: [LIST_KEY],
+        enabled,
+    })
+    return enabled && !!listQuery.data && groupMangaDownloads(listQuery.data, undefined).length === 0
+}
+
 export function MangaDownloads({ selectedId }: { selectedId: number }) {
     const t = useTr()
     const router = useRouter()
@@ -89,7 +100,7 @@ export function MangaDownloads({ selectedId }: { selectedId: number }) {
         {!loaded && !failed && <View className="items-center py-10"><ActivityIndicator color={colors.smTextMuted} accessibilityLabel={t("Loading your manga …", "Deine Manga werden geladen …")} /></View>}
         {loaded && !selected && queue.length > 0 && <QueueBlock queue={queue} t={t} />}
         {loaded && !selectedId && <PhoneSection title={t("Your manga", "Deine Manga")}
-            count={`${groups.length} Manga · ${plural(t, totalReady, ["1 chapter offline", "{0} chapters offline"], ["1 Kapitel offline", "{0} Kapitel offline"])}`}>
+            count={groups.length ? `${t(`${groups.length} manga`, `${groups.length} Manga`)} · ${plural(t, totalReady, ["1 chapter offline", "{0} chapters offline"], ["1 Kapitel offline", "{0} Kapitel offline"])}` : undefined}>
             {groups.length > 0 ? <MangaGrid groups={groups} t={t} onOpen={id => router.push(`/android-downloads?kind=manga&manga=${id}`)} />
                 : <PhoneEmpty title={t("Your manga to go", "Deine Manga für unterwegs")}
                     text={t("Download chapters on a manga page. They show up here with cover and offline reader.", "Lade Kapitel auf einer Manga-Seite herunter. Sie erscheinen hier mit Cover und Offline-Reader.")}>

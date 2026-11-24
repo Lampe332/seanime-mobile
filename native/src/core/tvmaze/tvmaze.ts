@@ -236,9 +236,28 @@ export async function tvmazeMetadata(environment: Environment, id: number): Prom
     }
 }
 
+/** Words of a title or a search: lower case, accents and punctuation gone ("Les Frères: Apocalypse" → les freres apocalypse). */
+function searchWords(text: string): string[] {
+    return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+}
+
+/**
+ * TVmaze searches fuzzily ("frieren" finds "Les Frères Apocalypse", "naruto" finds "Subete ga F ni Naru"). A title is
+ * kept only when every word of the search starts a word of the title, or the search without spaces starts the title
+ * without spaces ("spiderman" → "Spider-Man").
+ */
+export function titleMatchesSearch(title: string, query: string): boolean {
+    const asked = searchWords(query)
+    if (!asked.length) return false
+    const words = searchWords(title)
+    if (asked.every(part => words.some(word => word.startsWith(part)))) return true
+    return words.join("").startsWith(asked.join(""))
+}
+
 /**
  * Search of the other sources (TVmaze) in the form of AniList's search (list-anime: { Page: { pageInfo, media } }).
- * Search results have no episodes, so no episode count and no next airing. Only shows of TVmaze's type "Animation".
+ * Search results have no episodes, so no episode count and no next airing. Only shows of TVmaze's type "Animation"
+ * whose name matches the search (titleMatchesSearch).
  */
 export async function searchOtherSources(environment: Environment, query: string): Promise<Json> {
     const asked = query.trim()
@@ -251,6 +270,7 @@ export async function searchOtherSources(environment: Environment, query: string
         .map(result => (isRecord(result) && isRecord(result.show) ? result.show : null))
         // only animated shows: the app is for anime and cartoons, live-action series of the same name stay out
         .filter((show): show is Json => show !== null && typeof show.id === "number" && show.type === "Animation")
+        .filter(show => typeof show.name === "string" && titleMatchesSearch(show.name, asked))
         .map(show => mediaOfShow(show, [], environment.now()))
     return { Page: { pageInfo: { hasNextPage: false, total: media.length }, media } }
 }
