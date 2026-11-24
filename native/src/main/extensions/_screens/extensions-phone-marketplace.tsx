@@ -40,7 +40,20 @@ export const __extensions_marketTypeAtom = atom("all")
  * `tourOn` (the tab is on screen): the setup tour points at the add/change button, the type chips, the first install
  * buttons and the add sheet with its Add.
  */
-const HIDDEN = { display: "none" } as const
+/**
+ * A tab pane that stays mounted while the other tab shows. display "none" would take its native views down and build them
+ * again on the next switch (10-20 ms on the UI thread per tap); out of the flow, see-through, untouchable and hidden from
+ * screen readers it costs nothing. Both panes belong in one wrapper without padding: the hidden pane's left/right 0 count
+ * from the padding edge, and a different width would measure all of its text again on every switch.
+ */
+export function tabPaneProps(shown: boolean) {
+    return shown ? SHOWN_PANE : HIDDEN_PANE
+}
+const SHOWN_PANE = { importantForAccessibility: "auto", accessibilityElementsHidden: false } as const
+const HIDDEN_PANE = {
+    style: { position: "absolute", top: 0, left: 0, right: 0, opacity: 0, pointerEvents: "none" },
+    importantForAccessibility: "no-hide-descendants", accessibilityElementsHidden: true,
+} as const
 
 export function MarketplacePhone({ t, installedIds, tourOn, active = true }: { t: Translate, installedIds: Set<string>, tourOn: boolean, active?: boolean }) {
     const [url, setUrl] = useAtom(marketplaceUrlAtom)
@@ -97,13 +110,13 @@ export function MarketplacePhone({ t, installedIds, tourOn, active = true }: { t
         setLanguage("all")
         setSearch("")
     }
-    const openSheet = (extension: Extension_Extension) => {
+    const openSheet = React.useCallback((extension: Extension_Extension) => {
         setSelected(extension)
         setSheetOpen(true)
-    }
+    }, [])
 
     return (
-        <View className="gap-5" style={active ? undefined : HIDDEN}>
+        <View className="gap-5" {...tabPaneProps(active)}>
             <View accessibilityLabel={t("Marketplace", "Marktplatz")} className="min-h-[68px] flex-row items-center gap-1 rounded-surface bg-sm-surface-raised py-2 pl-4 pr-2">
                 <View className="min-w-0 flex-1 gap-px">
                     <Text numberOfLines={1} className="font-semibold">{isDefault ? t("Official marketplace", "Offizieller Marktplatz") : shortRepositoryUrl(url)}</Text>
@@ -224,7 +237,7 @@ function TypeChip({ t, chip, chosen, tourOn, onPress }: {
     )
 }
 
-function MarketRow({ t, extension, installed, onOpen, tourOn }: { t: Translate, extension: Extension_Extension, installed: boolean, onOpen: (extension: Extension_Extension) => void, tourOn: boolean }) {
+const MarketRow = React.memo(function MarketRow({ t, extension, installed, onOpen, tourOn }: { t: Translate, extension: Extension_Extension, installed: boolean, onOpen: (extension: Extension_Extension) => void, tourOn: boolean }) {
     const { mutate: install, isPending } = useInstallExternalExtension()
     // The list only learns about the install from the server's reload event; until then the row keeps the result.
     const [justInstalled, setJustInstalled] = React.useState(false)
@@ -264,7 +277,7 @@ function MarketRow({ t, extension, installed, onOpen, tourOn }: { t: Translate, 
             )}
         </View>
     )
-}
+})
 
 /**
  * Add a marketplace: one main button that pastes the copied link, then adds it once its preview loaded (what it offers,

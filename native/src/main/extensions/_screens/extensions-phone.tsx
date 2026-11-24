@@ -28,14 +28,13 @@ import { extensionMeta, getInstalledOverview, invalidReasonLabel } from "../_lib
 import { type ExtensionSelection, findSelection, installedExtensionIds } from "../_lib/extensions-screen"
 import { __extensions_currentPageAtom } from "../_lib/marketplace.atoms"
 import { useRefreshExtensionUpdateCount } from "../_lib/use-extension-updates"
-import { __extensions_marketTypeAtom, MarketplacePhone } from "./extensions-phone-marketplace"
+import { __extensions_marketTypeAtom, MarketplacePhone, tabPaneProps } from "./extensions-phone-marketplace"
 import {
     AddExtensionSheet, ExtensionCodeSheet, ExtensionIcon, ExtensionPreferencesSheet, ExtensionSheet, type ExtensionSubSheet,
 } from "./extensions-phone-sheets"
 
 /** Search appears once the list is long enough to need it. */
 const SEARCH_FROM = 8
-const HIDDEN = { display: "none" } as const
 
 /*
  * The Extensions tab (web extensions-phone.tsx + extensions-phone.css): a quiet title with the update check and "Add" as
@@ -199,83 +198,86 @@ export function ExtensionsPhone({ page: initialPage, marketType }: { page?: "ins
                     { value: "marketplace", label: t("Marketplace", "Marktplatz"), tourTarget: focused ? TOUR_TARGETS.marketplaceTab : undefined },
                 ]} />
 
-            {/* once opened the marketplace stays mounted (hidden on Installed): switching tabs does not build it again */}
-            {marketMounted && <MarketplacePhone t={t} installedIds={installedIds} tourOn={focused && !installed} active={!installed} />}
-            {installedMounted && <View className="gap-6" style={installed ? undefined : HIDDEN}>
-            {failed ? (
-                    <Notice text={t("Your extensions could not be loaded.", "Deine Erweiterungen konnten nicht geladen werden.")}>
-                        <TextAction label={t("Try again", "Erneut versuchen")} onPress={() => void query.refetch()} />
-                    </Notice>
-                ) : loading ? <LoadingRows label={t("Loading extensions", "Erweiterungen werden geladen")} count={5} />
-                    : <>
-                        {overview.safeUpdates.length > 0 && (
-                            <View className="gap-3.5 rounded-surface bg-sm-surface-raised p-4">
-                                <View className="gap-1">
-                                    <Text className="text-base font-bold">{overview.safeUpdates.length === 1 ? t("1 update available", "1 Update verfügbar")
-                                        : t(`${overview.safeUpdates.length} updates available`, `${overview.safeUpdates.length} Updates verfügbar`)}</Text>
-                                    <Muted>{overview.safeUpdates.map(update => findSelection(all, update.extensionID)?.extension.name || update.extensionID).join(", ")}</Muted>
-                                    {overview.updates > overview.safeUpdates.length && <Muted>{t("Plugins with unsafe flags are updated one by one from their sheet.",
-                                        "Plugins mit unsicheren Flags aktualisierst du einzeln über ihr Blatt.")}</Muted>}
+            {/* once opened each tab stays mounted, the other one hidden (tabPaneProps): switching does not build it again. The
+                wrapper has no padding, so the hidden tab keeps the width of the shown one and none of its text is measured again */}
+            <View>
+                {marketMounted && <MarketplacePhone t={t} installedIds={installedIds} tourOn={focused && !installed} active={!installed} />}
+                {installedMounted && <View className="gap-6" {...tabPaneProps(installed)}>
+                {failed ? (
+                        <Notice text={t("Your extensions could not be loaded.", "Deine Erweiterungen konnten nicht geladen werden.")}>
+                            <TextAction label={t("Try again", "Erneut versuchen")} onPress={() => void query.refetch()} />
+                        </Notice>
+                    ) : loading ? <LoadingRows label={t("Loading extensions", "Erweiterungen werden geladen")} count={5} />
+                        : <>
+                            {overview.safeUpdates.length > 0 && (
+                                <View className="gap-3.5 rounded-surface bg-sm-surface-raised p-4">
+                                    <View className="gap-1">
+                                        <Text className="text-base font-bold">{overview.safeUpdates.length === 1 ? t("1 update available", "1 Update verfügbar")
+                                            : t(`${overview.safeUpdates.length} updates available`, `${overview.safeUpdates.length} Updates verfügbar`)}</Text>
+                                        <Muted>{overview.safeUpdates.map(update => findSelection(all, update.extensionID)?.extension.name || update.extensionID).join(", ")}</Muted>
+                                        {overview.updates > overview.safeUpdates.length && <Muted>{t("Plugins with unsafe flags are updated one by one from their sheet.",
+                                            "Plugins mit unsicheren Flags aktualisierst du einzeln über ihr Blatt.")}</Muted>}
+                                    </View>
+                                    <Button loading={updatingAll} leftIcon={<Download size={18} color={colors.onBrand} />} onPress={() => void updateAll()}>{t("Update all", "Alle aktualisieren")}</Button>
                                 </View>
-                                <Button loading={updatingAll} leftIcon={<Download size={18} color={colors.onBrand} />} onPress={() => void updateAll()}>{t("Update all", "Alle aktualisieren")}</Button>
-                            </View>
-                        )}
-
-                        {overview.total >= SEARCH_FROM && <SearchField value={search} onChangeText={setSearch} placeholder={t("Search installed extensions", "Installierte Erweiterungen durchsuchen")} />}
-
-                        <View className={cn("gap-5", twoColumns && "flex-row flex-wrap justify-between")}>
-                            {attention.length > 0 && (
-                                <PhoneSection className={columnClass} title={t("Needs attention", "Braucht Aufmerksamkeit")} count={attention.length}>
-                                    <RowGroup>
-                                        {attention.map(item => {
-                                            const permission = item.code === "plugin_permissions_not_granted"
-                                            return <InstalledRow key={item.id} t={t} id={item.id} extension={item.extension} onOpen={openExtension}
-                                                flag={permission ? t("Needs your permission", "Braucht deine Erlaubnis") : invalidReasonLabel(item.code, t)}
-                                                tone={permission ? "warning" : "danger"} />
-                                        })}
-                                    </RowGroup>
-                                </PhoneSection>
                             )}
 
-                            {overview.groups.map(group => (
-                                <PhoneSection key={group.key} className={columnClass} title={t(group.en, group.de)} count={group.items.length}
-                                    action={group.key === "custom-source"
-                                        // custom sources list their media through the server: left out without it (phase 7f)
-                                        ? undefined
-                                        : group.key !== "disabled" ? <TextAction label={`+ ${t("Add", "Hinzufügen")}`} onPress={() => openMarketplace(group.key)}
-                                            accessibilityLabel={t(`Add ${group.en.toLowerCase()}`, `${group.de} hinzufügen`)} /> : undefined}>
-                                    {group.items.length === 0 && (
-                                        <View className="items-start gap-3 rounded-surface bg-sm-surface-raised p-4">
-                                            <Text className="text-sm leading-[21px] text-sm-text-muted">{group.key === "onlinestream-provider"
-                                                ? t("No streaming source yet. Episodes can only be streamed with one.", "Noch keine Streaming-Quelle. Ohne sie lassen sich keine Folgen streamen.")
-                                                : t("No manga source yet. Chapters can only be read and downloaded with one.", "Noch keine Manga-Quelle. Ohne sie lassen sich keine Kapitel lesen oder laden.")}</Text>
-                                            <Button onPress={() => openMarketplace(group.key)}>
-                                                {group.key === "onlinestream-provider" ? t("Find a streaming source", "Streaming-Quelle finden") : t("Find a manga source", "Manga-Quelle finden")}
-                                            </Button>
-                                        </View>
-                                    )}
-                                    {group.items.length > 0 && (
+                            {overview.total >= SEARCH_FROM && <SearchField value={search} onChangeText={setSearch} placeholder={t("Search installed extensions", "Installierte Erweiterungen durchsuchen")} />}
+
+                            <View className={cn("gap-5", twoColumns && "flex-row flex-wrap justify-between")}>
+                                {attention.length > 0 && (
+                                    <PhoneSection className={columnClass} title={t("Needs attention", "Braucht Aufmerksamkeit")} count={attention.length}>
                                         <RowGroup>
-                                            {group.items.map(extension => {
-                                                const update = all?.hasUpdate?.find(item => item.extensionID === extension.id)
-                                                const setup = all?.invalidUserConfigExtensions?.some(item => item.id === extension.id)
-                                                return <InstalledRow key={extension.id} t={t} id={extension.id} extension={extension} onOpen={openExtension} dim={group.key === "disabled"}
-                                                    flag={setup ? t("Needs setup", "Muss eingerichtet werden") : update ? t(`Update to ${update.version}`, `Update auf ${update.version}`) : undefined}
-                                                    tone={setup ? "warning" : update ? "accent" : undefined} />
+                                            {attention.map(item => {
+                                                const permission = item.code === "plugin_permissions_not_granted"
+                                                return <InstalledRow key={item.id} t={t} id={item.id} extension={item.extension} onOpen={openExtension}
+                                                    flag={permission ? t("Needs your permission", "Braucht deine Erlaubnis") : invalidReasonLabel(item.code, t)}
+                                                    tone={permission ? "warning" : "danger"} />
                                             })}
                                         </RowGroup>
-                                    )}
-                                </PhoneSection>
-                            ))}
-                        </View>
+                                    </PhoneSection>
+                                )}
 
-                        {nothingFound && (
-                            <PhoneEmpty title={t("No extension matches", "Keine Erweiterung passt")} text={t("The search looks at names, descriptions and IDs.", "Die Suche prüft Namen, Beschreibungen und IDs.")}>
-                                <Button intent="secondary" onPress={() => setSearch("")}>{t("Clear search", "Suche leeren")}</Button>
-                            </PhoneEmpty>
-                        )}
-                    </>}
-            </View>}
+                                {overview.groups.map(group => (
+                                    <PhoneSection key={group.key} className={columnClass} title={t(group.en, group.de)} count={group.items.length}
+                                        action={group.key === "custom-source"
+                                            // custom sources list their media through the server: left out without it (phase 7f)
+                                            ? undefined
+                                            : group.key !== "disabled" ? <TextAction label={`+ ${t("Add", "Hinzufügen")}`} onPress={() => openMarketplace(group.key)}
+                                                accessibilityLabel={t(`Add ${group.en.toLowerCase()}`, `${group.de} hinzufügen`)} /> : undefined}>
+                                        {group.items.length === 0 && (
+                                            <View className="items-start gap-3 rounded-surface bg-sm-surface-raised p-4">
+                                                <Text className="text-sm leading-[21px] text-sm-text-muted">{group.key === "onlinestream-provider"
+                                                    ? t("No streaming source yet. Episodes can only be streamed with one.", "Noch keine Streaming-Quelle. Ohne sie lassen sich keine Folgen streamen.")
+                                                    : t("No manga source yet. Chapters can only be read and downloaded with one.", "Noch keine Manga-Quelle. Ohne sie lassen sich keine Kapitel lesen oder laden.")}</Text>
+                                                <Button onPress={() => openMarketplace(group.key)}>
+                                                    {group.key === "onlinestream-provider" ? t("Find a streaming source", "Streaming-Quelle finden") : t("Find a manga source", "Manga-Quelle finden")}
+                                                </Button>
+                                            </View>
+                                        )}
+                                        {group.items.length > 0 && (
+                                            <RowGroup>
+                                                {group.items.map(extension => {
+                                                    const update = all?.hasUpdate?.find(item => item.extensionID === extension.id)
+                                                    const setup = all?.invalidUserConfigExtensions?.some(item => item.id === extension.id)
+                                                    return <InstalledRow key={extension.id} t={t} id={extension.id} extension={extension} onOpen={openExtension} dim={group.key === "disabled"}
+                                                        flag={setup ? t("Needs setup", "Muss eingerichtet werden") : update ? t(`Update to ${update.version}`, `Update auf ${update.version}`) : undefined}
+                                                        tone={setup ? "warning" : update ? "accent" : undefined} />
+                                                })}
+                                            </RowGroup>
+                                        )}
+                                    </PhoneSection>
+                                ))}
+                            </View>
+
+                            {nothingFound && (
+                                <PhoneEmpty title={t("No extension matches", "Keine Erweiterung passt")} text={t("The search looks at names, descriptions and IDs.", "Die Suche prüft Namen, Beschreibungen und IDs.")}>
+                                    <Button intent="secondary" onPress={() => setSearch("")}>{t("Clear search", "Suche leeren")}</Button>
+                                </PhoneEmpty>
+                            )}
+                        </>}
+                </View>}
+            </View>
 
             {!!selection && <SelectionSheets t={t} selection={selection} open={sheetOpen} onOpenChange={setSheetOpen} subSheet={subSheet}
                 onSubSheet={openSubSheet} onSubSheetChange={closeSubSheet} />}
