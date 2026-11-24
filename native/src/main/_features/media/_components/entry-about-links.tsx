@@ -14,13 +14,17 @@ const LINK_GRAY = "#cacaca"
  * small `gray-link` buttons – the AniList logo as an `IconButton size="sm"` (32dp, `text-lg` glyph) and "Trailer" as a
  * `Button size="sm"` (`text-xs`). They sit as inline links, so the line box leaves ~6dp above and below (measured).
  */
-export function EntryAboutLinks({ anilistUrl, trailerUrl, onOpen, children }: { anilistUrl?: string, trailerUrl?: string, onOpen: (url: string) => void, children?: React.ReactNode }) {
+/** `labeled`: the logo carries its name (the tablet's manga page, where no trailer stands beside it) */
+export function EntryAboutLinks({ anilistUrl, trailerUrl, onOpen, labeled, children }: {
+    anilistUrl?: string, trailerUrl?: string, onOpen: (url: string) => void, labeled?: boolean, children?: React.ReactNode,
+}) {
     const t = useTr()
     if (!anilistUrl && !trailerUrl && !children) return null
     return <View className="flex-row flex-wrap items-center justify-center gap-3 py-1.5">
         {!!anilistUrl && <Pressable accessibilityRole="link" accessibilityLabel="AniList" onPress={() => onOpen(anilistUrl)}
-            className="h-8 w-8 items-center justify-center rounded-full active:opacity-70">
+            className={labeled ? "h-8 flex-row items-center gap-1.5 rounded-full px-1 active:opacity-70" : "h-8 w-8 items-center justify-center rounded-full active:opacity-70"}>
             <Svg width={18} height={18} viewBox="0 0 24 24"><Path fill={LINK_GRAY} d={ANILIST_PATH} /></Svg>
+            {labeled && <Text className="text-xs font-semibold" style={{ color: LINK_GRAY }}>AniList</Text>}
         </Pressable>}
         {!!trailerUrl && <Pressable accessibilityRole="link" accessibilityLabel={t("Trailer", "Trailer")} onPress={() => onOpen(trailerUrl)}
             className="h-8 justify-center active:opacity-70">

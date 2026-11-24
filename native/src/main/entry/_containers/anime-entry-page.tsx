@@ -14,7 +14,7 @@ import { useNakamaStatus } from "@/main/_features/nakama/nakama-manager"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { isCustomSource } from "@/lib/server/utils"
-import { entryColumnGaps, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
+import { entryColumnGaps, entryColumnWidth, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { AnilistMediaEntryButton } from "@/main/_features/media/_containers/anilist-media-entry-sheet"
@@ -306,7 +306,7 @@ export function AnimeEntryPage() {
         <View className={wide ? "flex-1 flex-row px-6" : "flex-1"} style={wide ? { columnGap: window.width >= 1400 ? 48 : 40 } : undefined}>
             {/* r16 (Nick 10.11., not in 2.0.33): wide, the left column stays while only the right one scrolls; a column taller
                 than the screen scrolls on its own. Characters and relations follow the episodes in the right column. */}
-            {wide ? <ScrollView ref={columnRef} style={{ width: window.width >= 1400 ? 352 : 320, flexGrow: 0 }} contentContainerStyle={scrollPadding}
+            {wide ? <ScrollView ref={columnRef} style={{ width: entryColumnWidth(window.width), flexGrow: 0 }} contentContainerStyle={scrollPadding}
                 showsVerticalScrollIndicator={false}>
                 {header}
             </ScrollView> : null}
@@ -410,8 +410,9 @@ function EntryHeader({ entry, details, detailsLoading, wide, tablet, foreign, on
         </View>}
         {foreign && <OwnShowBar mediaId={media.id} progress={listData?.progress ?? 0} total={progressTotal ?? undefined} marginTop={gaps?.progress} />}
 
+        {/* the upright tablet too: as wide as the progress, About and the actions around it (was tablet.css's 18rem pill) */}
         {!!onEpisodes && <Pressable accessibilityRole="button" onPress={onEpisodes}
-            className={cn("min-h-12 flex-row items-center justify-center gap-2 rounded-full bg-brand-500 px-5 py-3 active:bg-brand-600", tablet && "min-w-[288px] self-start")}>
+            className={cn("min-h-12 flex-row items-center justify-center gap-2 rounded-full bg-brand-500 px-5 py-3 active:bg-brand-600")}>
             <Text className="text-[15px] font-semibold text-white">{t("Episodes & playback", "Folgen & Wiedergabe")}</Text>
             <Text className="text-[15px] font-semibold text-white">↓</Text>
         </Pressable>}

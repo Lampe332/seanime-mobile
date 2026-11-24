@@ -7,6 +7,7 @@ import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { Notice, SearchField, TextAction } from "@/components/shared/phone-kit"
 import { useSearchOtherSources } from "@/api/hooks/other_sources.hooks"
 import { ChipRow, GridBones, PhoneCoverCard, PhoneEmpty, PhoneSection, useGridColumns, useLastData, useOfflineAware } from "@/components/shared/phone-cards"
+import { gridRowWidth } from "@/components/shared/cover-layout"
 import { Button } from "@/components/ui/button/button"
 import { swapIn } from "@/components/ui/core/animations"
 import { cn } from "@/components/ui/core/styling"
@@ -333,7 +334,9 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
                 </View>
             ) : <Button intent="secondary" wrapperClassName="min-w-48" onPress={loadMore}>{failed ? t("Try again", "Erneut versuchen") : t("Load more", "Mehr laden")}</Button>}
         </View>
-    ) : !stale ? <Text className="min-h-12 py-3 text-center text-sm text-sm-text-muted">{t("That's all", "Das war alles")}</Text> : null
+    ) : !stale ? <Text className="min-h-12 py-3 text-center text-sm text-sm-text-muted"
+        // next to the rail a short last row stays at the start of a wide grid: the note centres under its cards
+        style={rail ? { width: gridRowWidth(gridItems.length, grid, contentWidth) } : undefined}>{t("That's all", "Das war alles")}</Text> : null
     const otherSources = otherItems?.length ? (
         <PhoneSection title={t("More sources", "Weitere Quellen")} count={otherItems.length} className="pt-6"
             note={t("Titles from TVmaze that AniList does not have", "Titel von TVmaze, die AniList nicht hat")}>

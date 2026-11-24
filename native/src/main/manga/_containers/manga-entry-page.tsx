@@ -15,7 +15,7 @@ import { copyToClipboard, openInAppBrowser } from "@/lib/helpers/browser"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { getCustomSourceMediaSiteUrl, isCustomSource } from "@/lib/server/utils"
-import { entryColumnGaps, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
+import { entryColumnGaps, entryColumnWidth, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { MediaEntryCharactersSection } from "@/main/_features/media/_components/media-entry-characters-section"
@@ -139,7 +139,7 @@ export function MangaEntryPage() {
             // tablet.css kept the header in view while the chapters scroll (`position: sticky`); r16 (Nick 10.11.): only the right
             // column scrolls, a header taller than the screen scrolls on its own; characters and recommendations follow the chapters
             ? <View className="flex-1 flex-row px-6" style={{ columnGap: window.width >= 1400 ? 48 : 40 }}>
-                <ScrollView ref={columnRef} style={{ width: window.width >= 1400 ? 352 : 320, flexGrow: 0 }} contentContainerStyle={scrollPadding}
+                <ScrollView ref={columnRef} style={{ width: entryColumnWidth(window.width), flexGrow: 0 }} contentContainerStyle={scrollPadding}
                     showsVerticalScrollIndicator={false}>
                     {header}
                 </ScrollView>
@@ -237,7 +237,7 @@ function MangaHeader({ entry, details, detailsLoading, wide, tablet, onMore }: {
                 {aboutOpen ? <ChevronDown size={16} color={colors.smTextSubtle} /> : <ChevronRight size={16} color={colors.smTextSubtle} />}
                 <Text className="text-[15px] font-semibold">{t("About this manga", "Über diesen Manga")}</Text>
             </Pressable>
-            {aboutOpen && <AboutManga entry={entry} title={title} details={details} />}
+            {aboutOpen && <AboutManga entry={entry} title={title} details={details} tablet={tablet} />}
         </View>
 
         <View className="flex-row flex-wrap items-center gap-2" style={gaps ? { marginTop: gaps.actions } : undefined}>
@@ -259,7 +259,7 @@ function MangaHeader({ entry, details, detailsLoading, wide, tablet, onMore }: {
     </View>
 }
 
-function AboutManga({ entry, title, details }: { entry: Manga_Entry, title: string, details?: AL_MangaDetailsById_Media }) {
+function AboutManga({ entry, title, details, tablet }: { entry: Manga_Entry, title: string, details?: AL_MangaDetailsById_Media, tablet: boolean }) {
     const t = useTr()
     const media = entry.media!
     const english = media.title?.english
@@ -276,7 +276,7 @@ function AboutManga({ entry, title, details }: { entry: Manga_Entry, title: stri
         {/* genres and ranking badges sit under the title (EntryFacts) */}
         {!custom && <EntryCredits kind="manga" staff={(details as (typeof details & { staff?: { edges?: StaffEdgeInput[] | null } | null }))?.staff?.edges}
             tags={(details as (typeof details & { tags?: TagInput[] | null }))?.tags} />}
-        <EntryAboutLinks onOpen={openInAppBrowser} anilistUrl={custom ? undefined : `https://anilist.co/manga/${entry.mediaId}`}>
+        <EntryAboutLinks onOpen={openInAppBrowser} labeled={tablet} anilistUrl={custom ? undefined : `https://anilist.co/manga/${entry.mediaId}`}>
             {!!siteUrl && <Button intent="text" onPress={() => openInAppBrowser(siteUrl)}>{t("Open in website", "Auf der Website öffnen")}</Button>}
         </EntryAboutLinks>
     </View>

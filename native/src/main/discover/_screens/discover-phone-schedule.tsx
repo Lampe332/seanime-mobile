@@ -12,6 +12,8 @@ import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-preview-phone"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
+import { LIST_COLUMN_GAP, listColumns } from "@/components/shared/cover-layout"
+import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { type Airing, airingTimeLabel, listStatusLabel, scheduleDayTitle, scheduleFacts } from "@/main/discover/_lib/discover-phone"
 import { type DiscoverSchedule, useDiscoverEntry } from "@/main/discover/_lib/discover-phone-hooks"
 import { type EpisodeRun, episodeRunLabel, groupEpisodeRuns } from "@/main/schedule/_lib/episode-runs"
@@ -39,6 +41,11 @@ export function scheduleFactsLine(t: Translate, schedule: DiscoverSchedule) {
  */
 export function DiscoverPhoneSchedule({ schedule }: { schedule: DiscoverSchedule }) {
     const t = useTr()
+    // next to the rail a wide window puts the rows in two columns, so a title does not sit ~700dp from its time
+    const { rail } = useTabletLayout()
+    const [width, setWidth] = React.useState(0)
+    const columns = listColumns(width, rail)
+    const rowWidth = columns > 1 ? (width - LIST_COLUMN_GAP * (columns - 1)) / columns : undefined
     const router = useRouter()
     const offlineAware = useOfflineAware()
     const language = getAppLanguage()
@@ -62,14 +69,17 @@ export function DiscoverPhoneSchedule({ schedule }: { schedule: DiscoverSchedule
     </PhoneEmpty>
 
     return (
-        <View className="gap-6">
+        <View className="gap-6" onLayout={event => setWidth(event.nativeEvent.layout.width)}>
             {schedule.days.map(day => (
                 // Today in the accent, as in the calendar
                 <PhoneSection key={day.key} title={scheduleDayTitle(t, day.date, now, language)} count={day.items.length}
                     titleClassName={isToday(day.date) ? "text-sm-accent" : undefined}>
-                    <View className="gap-0.5 overflow-hidden rounded-surface">
+                    <View className={rowWidth ? "flex-row flex-wrap overflow-hidden rounded-surface" : "gap-0.5 overflow-hidden rounded-surface"}
+                        style={rowWidth ? { columnGap: LIST_COLUMN_GAP, rowGap: 2 } : undefined}>
                         {groupEpisodeRuns(day.items, item => ({ show: item.media!.id, at: item.airingAt, episode: item.episode }))
-                            .map(run => <ScheduleRow key={run.key} run={run} language={language} />)}
+                            .map(run => rowWidth
+                                ? <View key={run.key} style={{ width: rowWidth }}><ScheduleRow run={run} language={language} /></View>
+                                : <ScheduleRow key={run.key} run={run} language={language} />)}
                     </View>
                 </PhoneSection>
             ))}

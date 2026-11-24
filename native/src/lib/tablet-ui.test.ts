@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { entryColumnGaps, hasTwoPanes, isShortRail, isTabletScreen, layoutWidth, readingColumn, searchBesideTabs, showsRail, TABLET_READING_WIDTH } from "./tablet-ui"
+import { entryColumnGaps, entryColumnWidth, hasTwoPanes, isShortRail, isTabletScreen, layoutWidth, readingColumn, searchBesideTabs, showsRail, TABLET_READING_WIDTH } from "./tablet-ui"
 
 // Carried over from seanime-web lib/tablet-ui.test.ts. The web version stubbed window.screen and checked the page reload on a
 // class change; the native app re-renders on dimension changes instead (use-tablet-ui.ts), so the rules are checked directly.
@@ -55,6 +55,15 @@ describe("wide entry page column (tablet.css from 1000px)", () => {
     it("manga: identity margin plus the header's 1rem gap, then 1rem between the parts", () => {
         // 2.0.33 tablet, Overgeared: year → progress line 17dp lower than the native 16dp gap
         expect(entryColumnGaps("manga")).toEqual({ progress: 32, link: 16, about: 16, actions: 16 })
+    })
+})
+
+describe("wide entry page left column width", () => {
+    it("grows with the window between 320dp and 400dp", () => {
+        expect(entryColumnWidth(1000)).toBe(320)
+        expect(entryColumnWidth(1280)).toBe(384)
+        expect(entryColumnWidth(1400)).toBe(400)
+        expect(entryColumnWidth(2560)).toBe(400)
     })
 })
 

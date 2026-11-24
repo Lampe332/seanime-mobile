@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { gridLayout, rowCoverWidth } from "./cover-layout"
+import { gridLayout, gridRowWidth, listColumns, rowCoverWidth } from "./cover-layout"
 
 describe("cover layout", () => {
     it("fits three result columns on a phone and more 8.75rem columns on a tablet", () => {
@@ -21,5 +21,26 @@ describe("cover layout", () => {
         expect(rowCoverWidth(360, false, 2)).toBe(224)
         expect(rowCoverWidth(300, false, 3)).toBe(220)
         expect(rowCoverWidth(1280, true, 1)).toBe(152)
+    })
+})
+
+describe("tablet grid and list widths", () => {
+    it("centres the end note under a row the results do not fill", () => {
+        // 1153dp next to the rail: 7 columns of ~151dp; 6 results take 6 cards and 5 gaps
+        const grid = gridLayout(1153, true, 1)
+        expect(grid.columns).toBe(7)
+        expect(gridRowWidth(6, grid, 1153)).toBeCloseTo(6 * grid.width + 5 * 16)
+        expect(gridRowWidth(7, grid, 1153)).toBe(1153)
+        expect(gridRowWidth(30, grid, 1153)).toBe(1153)
+        expect(gridRowWidth(0, grid, 1153)).toBe(1153)
+    })
+
+    it("puts list rows in two columns only next to the rail and when both fit", () => {
+        expect(listColumns(1150, false)).toBe(1)
+        expect(listColumns(1150, true)).toBe(2)
+        expect(listColumns(892, true)).toBe(2)
+        expect(listColumns(891, true)).toBe(1)
+        expect(listColumns(700, true)).toBe(1)
+        expect(listColumns(4000, true)).toBe(2)
     })
 })

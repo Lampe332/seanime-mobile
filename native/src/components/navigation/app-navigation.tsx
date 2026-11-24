@@ -1,5 +1,5 @@
 import { useIncognito, useSetAppSwitches } from "@/api/hooks/app-switches.hooks"
-import { menuIn, menuOut } from "@/components/ui/core/animations"
+import { menuIn, menuOut, scrimIn, scrimOut } from "@/components/ui/core/animations"
 import { useCloseOnBack } from "@/components/ui/core/back-handler"
 import { GlidePill, GlideStandIn, useGlide } from "@/components/ui/core/glide"
 import { cn } from "@/components/ui/core/styling"
@@ -351,7 +351,12 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
 
     return (
         <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-            <Pressable accessibilityLabel={navLabel("More", language)} onPress={onClose} style={StyleSheet.absoluteFill} />
+            {/* next to the rail the panel floats over the page: the page dims as under the sheets (sheet.tsx bg-black/80, the
+                rail stays lit); the phone's panel keeps its undimmed page */}
+            <Pressable accessibilityLabel={navLabel("More", language)} onPress={onClose} style={StyleSheet.absoluteFill}>
+                {rail && <Animated.View pointerEvents="none" entering={scrimIn} exiting={scrimOut}
+                    style={[StyleSheet.absoluteFill, { left: sizes.tabletRail }]} className="bg-black/80" />}
+            </Pressable>
             <Animated.View
                 entering={menuIn(rail)}
                 exiting={menuOut}

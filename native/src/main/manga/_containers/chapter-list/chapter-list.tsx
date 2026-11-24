@@ -55,7 +55,7 @@ import { ActivityIndicator, Pressable, TextInput, type TextInputInstance, View }
 /*
  * The manga page's chapters (chapter-list.tsx + downloaded-chapter-list.tsx, mobile-anime.css `.mobile-chapter*`):
  * Online reading | Downloaded as tabs. Online: the source with its caption, language and translator when the source has
- * several, "More" (reload the source, manual match); then the chapters: Unread | All with counts, one button that flips
+ * several, "Source options" (reload the source, manual match); then the chapters: Unread | All with counts, one button that flips
  * the order (each view keeps its own: Unread oldest first, All newest first, CHAPTER_ORDER_STORAGE), "Go to chapter",
  * 30 rows at a time with "Show more", a download button per chapter and "Download unread". Downloaded: the chapters on
  * this device, read with a tap, delete with the trash button.
@@ -240,7 +240,7 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
                 <Pressable accessibilityRole="button" accessibilityLabel={t("More source options", "Weitere Quellen-Optionen")} onPress={() => setSourceSheet("menu")}
                     className="min-h-12 flex-row items-center gap-2 rounded-full bg-sm-surface-control pl-3.5 pr-[18px] active:bg-sm-accent-soft">
                     <EllipsisVertical size={16} color={colors.smText} />
-                    <Text className="text-sm font-semibold">{sourceRefreshRunning ? t("Refreshing …", "Wird aktualisiert …") : t("More", "Mehr")}</Text>
+                    <Text className="text-sm font-semibold">{sourceRefreshRunning ? t("Refreshing …", "Wird aktualisiert …") : t("Source options", "Quellen-Optionen")}</Text>
                 </Pressable>
             </View>
         </View>}

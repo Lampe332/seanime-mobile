@@ -1,4 +1,5 @@
 import { Text } from "@/components/ui/text/text"
+import { cn } from "@/components/ui/core/styling"
 import { useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
@@ -47,9 +48,10 @@ export const EntryFacts = React.memo(function EntryFacts({ kind, studios, rankin
                         <Text numberOfLines={1} className="shrink text-[13px] font-semibold text-sm-text">{s.name}</Text>
                         <ChevronRight size={15} color={colors.smTextMuted} />
                     </Pressable>)}
-                    {badges.map(b => <View key={b.type} className="min-h-8 flex-row items-center gap-1.5 rounded-full border border-sm-line px-3">
+                    {/* wide: a little tighter, so two badges share a row of the left column */}
+                    {badges.map(b => <View key={b.type} className={cn("min-h-8 flex-row items-center gap-1.5 rounded-full border border-sm-line", wide ? "px-2.5" : "px-3")}>
                         {b.type === "POPULAR" ? <Heart size={13} color={colors.smAccent} fill={colors.smAccent} /> : <Star size={13} color={colors.smWarning} fill={colors.smWarning} />}
-                        <Text className="text-[13px] font-semibold text-sm-text-muted">{rankingLabel(t, b)}</Text>
+                        <Text className={cn("font-semibold text-sm-text-muted", wide ? "text-[12px]" : "text-[13px]")}>{rankingLabel(t, b)}</Text>
                     </View>)}
                 </>}
         </View>}

@@ -56,6 +56,14 @@ export function entryColumnGaps(kind: "anime" | "manga") {
 }
 
 /**
+ * Width of a wide entry page's left column (cover, title, facts, progress, actions): 30% of the window between 320dp and
+ * 400dp. A fixed 320dp left the AniList ranking badges a row each on a 1280dp tablet (two take ~350dp side by side).
+ */
+export function entryColumnWidth(windowWidth: number) {
+    return Math.min(400, Math.max(320, Math.round(windowWidth * 0.3)))
+}
+
+/**
  * Widest a column of rows (text on the left, a switch or value on the right) gets on a tablet: the settings pane's cap
  * (52rem, settings-phone.tsx). Wider, a switch ends up ~700dp from its label (Downloads, r16).
  */
