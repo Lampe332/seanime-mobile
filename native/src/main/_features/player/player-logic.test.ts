@@ -20,6 +20,7 @@ import {
     mkvNumberToMpvId,
     mpvHeaderOptions,
     mpvIdToMkvNumber,
+    mpvTrackValue,
     pickTrack,
     pipAspectRatio,
     playedPosition,
@@ -41,6 +42,8 @@ import {
     sleepTimerRemainingMs,
     playerEpisodeTitle,
 } from "./player-logic"
+import { colourProperties, subtitleLookProperties } from "./player-menu-logic"
+import { vc_initialSettings } from "@/main/_features/video-core/video-core.atoms"
 
 describe("time bar", () => {
     it("does not scrub before 10 px sideways", () => {
@@ -266,6 +269,24 @@ describe("track memory per anime", () => {
         memory = rememberTrack(memory, 21, "audio", tracks[1])
         memory = rememberTrack(memory, 99, "audio", tracks[0])
         expect(memory).toEqual({ "21": { sub: "off", audio: "eng" }, "99": { audio: "jpn" } })
+    })
+
+    it("turns subtitles off with sid=no, never mpv's -1 (= auto, which shows the default subtitle again)", () => {
+        expect(mpvTrackValue(-1)).toBe("no")
+        expect(mpvTrackValue(0)).toBe("no")
+        expect(mpvTrackValue(3)).toBe("3")
+        // a remembered "off" on the next load sends the same "no"
+        const off = rememberTrack({}, 21, "sub", null)["21"].sub
+        expect(mpvTrackValue(pickTrack(tracks, "sub", off, ["eng"]) ?? 0)).toBe("no")
+    })
+
+    it("the look applied on load and on every track change never selects or hides a track", () => {
+        const sent = [
+            ...(["ass", "text", null] as const).flatMap(kind => subtitleLookProperties(vc_initialSettings, kind, 1)),
+            ...(["contain", "cover", "fill"] as const).flatMap(pictureFitProperties),
+            ...colourProperties(true, vc_initialSettings.videoEnhancement),
+        ].map(([name]) => name)
+        expect(sent.filter(name => ["sid", "sub", "secondary-sid", "sub-visibility", "sub-auto"].includes(name))).toEqual([])
     })
 })
 

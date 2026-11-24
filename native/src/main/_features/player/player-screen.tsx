@@ -79,6 +79,7 @@ import {
     mkvNumberToMpvId,
     MPV_OPEN_OPTIONS,
     mpvHeaderOptions, streamHeadersOf,
+    mpvTrackValue,
     mpvIdToMkvNumber,
     pickTrack,
     type PlayerTrack,
@@ -457,7 +458,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
 
     const selectSubtitle = React.useCallback((track: PlayerTrack | null, remember = true) => {
         setSubId(track?.id ?? 0)
-        mpv.current?.setSubtitleTrack(track?.id ?? -1).catch(() => {})
+        // "no", not setSubtitleTrack(-1): -1 is mpv's "auto" and shows the default subtitle again (player-logic mpvTrackValue)
+        mpv.current?.setPropertyString("sid", mpvTrackValue(track?.id ?? 0)).catch(() => {})
         if (remember && mediaId) setTrackMemory(memory => rememberTrack(memory, mediaId, "sub", track))
     }, [mediaId, setTrackMemory])
 
@@ -495,7 +497,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         } else setAudioId(current?.aid ?? 0)
         if (sub !== null) {
             setSubId(Math.max(0, sub))
-            if (sub !== current?.sid) await view.setSubtitleTrack(sub).catch(() => {})
+            if (sub !== current?.sid) await view.setPropertyString("sid", mpvTrackValue(sub)).catch(() => {})
         } else setSubId(current?.sid ?? 0)
         setTracksReady(true)
     }, [offlineFiles, info?.subtitleTracks, mediaId, trackMemory, settings.preferredAudioLanguage, settings.preferredSubtitleLanguage,

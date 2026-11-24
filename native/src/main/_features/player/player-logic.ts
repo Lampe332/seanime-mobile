@@ -310,6 +310,15 @@ export function mpvIdToMkvNumber(tracksOfType: { number: number }[] | null | und
     return sorted[id - 1] ?? -1
 }
 
+/**
+ * The value to set mpv's "sid"/"aid" to: the track id, or "no" for no track. Never the number -1: mpv's track options
+ * map -1 to "auto" (OPT_TRACKCHOICE: no = -2, auto = -1), which selects the default subtitle again (S22 "Off" kept the
+ * English subtitles of an online stream).
+ */
+export function mpvTrackValue(id: number) {
+    return id > 0 ? String(id) : "no"
+}
+
 export type TrackMemory = Record<string, { audio?: string, sub?: string }>
 
 /** Remembers the language of a picked track for this anime ("off" for no subtitles). */

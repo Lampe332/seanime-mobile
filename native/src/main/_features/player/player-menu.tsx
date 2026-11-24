@@ -358,7 +358,10 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
         case "audio":
             return (
                 <MenuScroll head={<MenuTitle>{t("Audio", "Ton")}</MenuTitle>}>
-                    {audio.map(track => <OptionRow key={track.id} checked={track.id === audioId} label={trackName(track)} onPress={() => onAudio(track)} />)}
+                    {audio.map(track => <OptionRow key={track.id} checked={track.id === audioId} label={trackName(track)} onPress={() => {
+                        onAudio(track)
+                        close()
+                    }} />)}
                 </MenuScroll>
             )
         case "subtitles":
@@ -370,8 +373,15 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
                         <Paintbrush size={18} color={colors.smTextMuted} />
                     </Pressable>
                 ) : undefined}>{t("Subtitles", "Untertitel")}</MenuTitle>}>
-                    <OptionRow checked={subId <= 0} label={t("Off", "Aus")} onPress={() => onSubtitle(null)} />
-                    {subs.map(track => <OptionRow key={track.id} checked={track.id === subId} label={trackName(track)} onPress={() => onSubtitle(track)} />)}
+                    {/* a picked track closes the menu (like most players); the style pages stay open */}
+                    <OptionRow checked={subId <= 0} label={t("Off", "Aus")} onPress={() => {
+                        onSubtitle(null)
+                        close()
+                    }} />
+                    {subs.map(track => <OptionRow key={track.id} checked={track.id === subId} label={trackName(track)} onPress={() => {
+                        onSubtitle(track)
+                        close()
+                    }} />)}
                 </MenuScroll>
             )
         case "quality":
