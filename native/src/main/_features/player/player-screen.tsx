@@ -63,12 +63,14 @@ import {
     countdownTick,
     DOUBLE_TAP_MS,
     doubleTapSeekSeconds,
+    seekBase,
     seekStep,
     endAction,
     endedEarly,
     playedPosition,
     readTrackList,
     stillEnded,
+    type PendingSeek,
     formatTime,
     HIDE_DELAY_MS,
     isPlayingState,
@@ -272,8 +274,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const [place, setPlace] = React.useState<{ view: typeof view, origin: MiniOrigin }>({ view, origin: "full" })
     if (place.view !== view) setPlace({ view, origin: miniOriginAfter(place.view, view, place.origin) })
     const router = useRouter()
-    const pathname = usePathname()
-    const routeParams = useGlobalSearchParams<{ id?: string }>()
+    // the page on screen, read only by the mini player's tap: kept in a ref by RouteProbe, so a navigation does not
+    // re-render the whole player
+    const routeRef = React.useRef<RouteSnapshot>({ pathname: "", id: undefined })
     const landscape = window.width > window.height
     const [menuOpen, setMenuOpen] = React.useState(false)
     const [menuPage, setMenuPage] = React.useState<PlayerMenuPage>("main")
@@ -290,6 +293,9 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const openMenu = (page: PlayerMenuPage, button: ViewRef | null) => {
         setVolumeOpen(false)
         setMenuPage(page)
+        // mpv had no track list within loadTracks' reads (readTrackList gives up): read it again, so the menu offers the
+        // tracks and a chosen subtitle can still be selected
+        if (tracksReady && tracks.length === 0) void refreshTracks()
         const root = rootRef.current
         if (!button || !root) {
             setMenuAnchor(null)
@@ -417,13 +423,19 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         if (hideTimer.current) clearTimeout(hideTimer.current)
     }, [])
 
+    // a seek's target until mpv reports it: a 2nd double tap right after the 1st starts there, not at the old time
+    const pendingSeek = React.useRef<PendingSeek>(null)
     const seekTo = React.useCallback((time: number) => {
         const target = clampTime(time, timeRef.current.duration)
         playedRef.current = { played: target, previous: target, seeking: false }
+        timeRef.current = { ...timeRef.current, currentTime: target }
+        pendingSeek.current = { time: target, at: Date.now() }
         setPosition(target)
         mpv.current?.seekTo(target).catch(() => {})
     }, [setPosition])
-    const seekBy = React.useCallback((seconds: number) => seekTo(timeRef.current.currentTime + seconds), [seekTo])
+    const seekBy = React.useCallback((seconds: number) => {
+        seekTo(seekBase(timeRef.current.currentTime, pendingSeek.current, Date.now()) + seconds)
+    }, [seekTo])
     const togglePlay = React.useCallback(() => {
         mpv.current?.togglePlay().catch(() => {})
     }, [])
@@ -654,15 +666,22 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         reportFullscreen(fullscreen)
     }, [fullscreen])
 
+    // closing: the player goes black and the screen turns back at once; mpv lets go of its surface meanwhile
+    const [closing, setClosing] = React.useState(false)
     const close = React.useCallback(async () => {
         setCountdown(null)
+        setClosing(true)
+        setMenuOpen(false)
+        hideBars()
+        endPlayerOrientation()
         // watched (80 %) when closed: "Delete watched episodes" may take the episode (core/offline/auto-delete.ts)
         if (!endedRef.current) saveOffline(timeRef.current.currentTime, false, offlineWatched(timeRef.current.currentTime, timeRef.current.duration, false))
-        await mpv.current?.prepareForExit().catch(() => {})
-        endPlayerOrientation()
+        // the view may only go once mpv has dropped the surface (else Android's surface teardown waits on the renderer);
+        // a mpv thread that hangs must not keep the player on screen
+        await Promise.race([mpv.current?.prepareForExit().catch(() => {}), wait(EXIT_WAIT_MS)])
         events.terminated()
         onClose()
-    }, [events, onClose, saveOffline])
+    }, [events, onClose, saveOffline, hideBars])
     // The player can also go without close(): another stream takes its place (server stream over an online or saved
     // episode) or the server aborts the start. A fullscreen lock must not outlive it.
     React.useEffect(() => () => {
@@ -769,7 +788,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         // a swipe or long press never toggles the controls; only a real tap does
         if (cancelled || g.moved) return
         const side = sideOf(e.nativeEvent.locationX, surface.current.width)
-        const { double, memory } = classifyTap(tapMemory.current, Date.now(), side)
+        // the touch's own time (ms, same clock for every touch): a busy JS thread does not split a double tap
+        const { double, memory } = classifyTap(tapMemory.current, e.nativeEvent.timestamp, side)
         tapMemory.current = memory
         if (singleTap.current) clearTimeout(singleTap.current)
         if (double) {
@@ -985,6 +1005,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                 onProgress={({ nativeEvent }) => {
                     const { position: p, duration: d, bufferedPosition } = nativeEvent
                     timeRef.current = { ...timeRef.current, currentTime: p, duration: d }
+                    // the seek landed: from here mpv's own time counts again
+                    if (pendingSeek.current && Math.abs(p - pendingSeek.current.time) < 1) pendingSeek.current = null
                     // picture in picture shows only the picture: no re-render of hidden bars per tick (r22 PiP)
                     if (!pipRef.current) {
                         timeStore.set({ position: p, buffered: bufferedPosition })
@@ -1017,6 +1039,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                 }}
             />
 
+            {mini && <RouteProbe intoRef={routeRef} />}
             {mini ? (
                 <LiveMiniPlayer
                     timeStore={timeStore}
@@ -1030,7 +1053,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     onExpand={() => {
                         // the box's anime page, unless it is the page on screen already (its box is not shown there, e.g.
                         // another tab of it): then fullscreen, so the tap is never without effect
-                        const onItsPage = pathname === "/entry" && routeParams.id === String(mediaId)
+                        const onItsPage = routeRef.current.pathname === "/entry" && routeRef.current.id === String(mediaId)
                         movePlace({ kind: "mini-tap", hasBoxPage: !!owner && !!mediaId && !onItsPage })
                         showBars()
                     }}
@@ -1263,6 +1286,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                     </Animated.View>
                 </>
             )}
+            {closing && <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "#000" }]} />}
         </Animated.View>
         </View>
 
@@ -1523,4 +1547,23 @@ function MiniPlayer({ frame, title, subtitle, playing, loading, error, progress,
             </View>
         </>
     )
+}
+
+/** How long close() waits for mpv to drop its surface before the player unmounts anyway. */
+const EXIT_WAIT_MS = 1000
+
+function wait(ms: number) {
+    return new Promise<void>(resolve => setTimeout(resolve, ms))
+}
+
+type RouteSnapshot = { pathname: string, id: string | undefined }
+
+/** Follows the route for the player without re-rendering it: only this empty component renders on a navigation. */
+function RouteProbe({ intoRef }: { intoRef: React.RefObject<RouteSnapshot> }) {
+    const pathname = usePathname()
+    const { id } = useGlobalSearchParams<{ id?: string }>()
+    React.useEffect(() => {
+        intoRef.current = { pathname, id }
+    }, [intoRef, pathname, id])
+    return null
 }

@@ -22,6 +22,8 @@ let appLock: "landscape" | "portrait" | null = null
 let holdRun = 0
 let holding = 0
 let uprightWatch: { remove: () => void } | null = null
+/** The hold listens this long at most (5 reads a second, endless on a phone lying flat), then the screen turns freely. */
+export const UPRIGHT_HOLD_MAX_MS = 10_000
 
 function stopHoldingUpright() {
     holding = 0
@@ -47,7 +49,12 @@ async function holdUprightAfterFullscreen() {
         stopHoldingUpright()
         ScreenOrientation.unlockAsync().catch(() => {})
     })
-    uprightWatch = { remove: () => subscription.remove() }
+    const limit = setTimeout(() => {
+        if (holding !== run) return
+        stopHoldingUpright()
+        ScreenOrientation.unlockAsync().catch(() => {})
+    }, UPRIGHT_HOLD_MAX_MS)
+    uprightWatch = { remove: () => { subscription.remove(); clearTimeout(limit) } }
 }
 
 export function setVideoFullscreenOrientation(fullscreen: boolean, isTablet: boolean) {

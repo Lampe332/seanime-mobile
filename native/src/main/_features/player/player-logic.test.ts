@@ -8,6 +8,9 @@ import {
     classifyTap,
     countdownTick,
     doubleTapSeekSeconds,
+    seekBase,
+    SEEK_SETTLE_MS,
+    SEEK_STREAK_MS,
     seekStep,
     endAction,
     endedEarly,
@@ -82,7 +85,7 @@ describe("double tap", () => {
         expect(first.double).toBe(false)
         const second = classifyTap(first.memory, 1200, "left")
         expect(second.double).toBe(true)
-        expect(second.memory).toBeNull()
+        expect(second.memory).toEqual({ time: 1200, side: "left", streak: true })
         expect(doubleTapSeekSeconds("left")).toBe(-5)
         expect(doubleTapSeekSeconds("right")).toBe(10)
     })
@@ -100,6 +103,40 @@ describe("double tap", () => {
         const first = classifyTap(null, 0, "right")
         expect(classifyTap(first.memory, 280, "right").double).toBe(false)
         expect(classifyTap(first.memory, 100, "left").double).toBe(false)
+    })
+
+    it("fast further taps on the same side keep seeking, a pause or the other side ends the streak", () => {
+        let tap = classifyTap(null, 0, "right")
+        tap = classifyTap(tap.memory, 200, "right")
+        expect(tap.double).toBe(true)
+        // 3rd and 4th tap: each seeks again, measured from the tap before
+        tap = classifyTap(tap.memory, 600, "right")
+        expect(tap.double).toBe(true)
+        tap = classifyTap(tap.memory, 1050, "right")
+        expect(tap.double).toBe(true)
+        // the other side starts fresh: a single tap there
+        const other = classifyTap(tap.memory, 1200, "left")
+        expect(other.double).toBe(false)
+        expect(other.memory?.streak).toBe(false)
+        // a pause of SEEK_STREAK_MS ends the streak: the next tap is a single tap again
+        const late = classifyTap(tap.memory, 1050 + SEEK_STREAK_MS, "right")
+        expect(late.double).toBe(false)
+        expect(late.memory?.streak).toBe(false)
+    })
+
+    it("counts the gap between the touches themselves, not when JS handled them", () => {
+        // touch timestamps 150 ms apart are a double tap, even when JS saw both at the same moment after a stall
+        const first = classifyTap(null, 50_000, "left")
+        expect(classifyTap(first.memory, 50_150, "left").double).toBe(true)
+        // a clock going back (other time base) is never a double tap
+        expect(classifyTap(first.memory, 49_900, "left").double).toBe(false)
+    })
+
+    it("a second relative seek starts at the first one's target until mpv reports the new position", () => {
+        expect(seekBase(100, null, 5000)).toBe(100)
+        expect(seekBase(100, { time: 110, at: 5000 }, 5200)).toBe(110)
+        expect(seekBase(100, { time: 110, at: 5000 }, 5000 + SEEK_SETTLE_MS)).toBe(100)
+        expect(seekBase(100, { time: 110, at: 5000 }, 4000)).toBe(100)
     })
 })
 
@@ -330,9 +367,16 @@ describe("playback state", () => {
 
 describe("pictureFitProperties", () => {
     it("keeps, crops or stretches the picture like the settings' Picture page", () => {
-        expect(pictureFitProperties("contain")).toEqual([["keepaspect", "yes"], ["panscan", "0.0"]])
-        expect(pictureFitProperties("cover")).toEqual([["keepaspect", "yes"], ["panscan", "1.0"]])
-        expect(pictureFitProperties("fill")).toEqual([["keepaspect", "no"], ["panscan", "0.0"]])
+        expect(pictureFitProperties("contain")).toEqual([["keepaspect", "yes"], ["panscan", "0.0"], ["sub-ass-force-margins", "no"]])
+        expect(pictureFitProperties("cover")).toEqual([["keepaspect", "yes"], ["panscan", "1.0"], ["sub-use-margins", "yes"], ["sub-ass-force-margins", "yes"]])
+        expect(pictureFitProperties("fill")).toEqual([["keepaspect", "no"], ["panscan", "0.0"], ["sub-ass-force-margins", "no"]])
+    })
+
+    it("zoomed to fill, subtitles are placed on the screen, not on the cropped video's off-screen bottom", () => {
+        const look = new Map<string, string>([["sub-use-margins", "no"], ...pictureFitProperties("cover")])
+        expect(look.get("sub-use-margins")).toBe("yes")
+        const contain = new Map<string, string>([["sub-use-margins", "no"], ...pictureFitProperties("contain")])
+        expect(contain.get("sub-use-margins")).toBe("no")
     })
 })
 

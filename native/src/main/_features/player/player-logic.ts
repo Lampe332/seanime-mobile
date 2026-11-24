@@ -39,12 +39,30 @@ export function sideOf(x: number, width: number): Side {
 
 /* ── Double tap ─────────────────────────────────────────────────────────── */
 
-export type TapMemory = { time: number, side: Side } | null
+/** After a double tap, each further tap on the same side within this time seeks again (like YouTube / MX Player). */
+export const SEEK_STREAK_MS = 500
+/** A seek's target counts as the position until mpv reports the new one, at most this long. */
+export const SEEK_SETTLE_MS = 1500
 
-/** A second tap on the same side within DOUBLE_TAP_MS is a double tap; the memory resets after it. */
+/** time: the touch's own timestamp (nativeEvent.timestamp, ms), not when JS handled it. streak: a double tap ran. */
+export type TapMemory = { time: number, side: Side, streak: boolean } | null
+
+/**
+ * A second tap on the same side within DOUBLE_TAP_MS is a double tap. While a streak runs, every further tap on the
+ * same side within SEEK_STREAK_MS of the last one seeks again. Another side, a pause or a clock going back ends it.
+ */
 export function classifyTap(previous: TapMemory, now: number, side: Side): { double: boolean, memory: TapMemory } {
-    const double = !!previous && previous.side === side && now - previous.time < DOUBLE_TAP_MS
-    return { double, memory: double ? null : { time: now, side } }
+    const gap = previous ? now - previous.time : -1
+    const window = previous?.streak ? SEEK_STREAK_MS : DOUBLE_TAP_MS
+    const double = !!previous && previous.side === side && gap >= 0 && gap < window
+    return { double, memory: { time: now, side, streak: double } }
+}
+
+export type PendingSeek = { time: number, at: number } | null
+
+/** Where a relative seek starts: a seek still settling (mpv reports the old time until it lands), else the position. */
+export function seekBase(currentTime: number, pending: PendingSeek, now: number): number {
+    return pending && now - pending.at >= 0 && now - pending.at < SEEK_SETTLE_MS ? pending.time : currentTime
 }
 
 /** A stored seek step, or the fallback when it is not one of SEEK_STEP_OPTIONS (old or broken value). */
@@ -393,9 +411,14 @@ export function formatTime(seconds: number) {
     return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`
 }
 
-/** mpv properties for the settings' picture fit: whole picture, zoomed to fill (crops the edges) or stretched */
+/**
+ * mpv properties for the settings' picture fit: whole picture, zoomed to fill (crops the edges) or stretched.
+ * Applied after the subtitle look (which keeps subtitles on the video, sub-use-margins no): zoomed, the video's bottom
+ * lies below the screen, so its subtitles would be cut off; there are no black bars then, so the screen places them.
+ */
 export function pictureFitProperties(fit: "contain" | "cover" | "fill"): [string, string][] {
-    return [["keepaspect", fit === "fill" ? "no" : "yes"], ["panscan", fit === "cover" ? "1.0" : "0.0"]]
+    const base: [string, string][] = [["keepaspect", fit === "fill" ? "no" : "yes"], ["panscan", fit === "cover" ? "1.0" : "0.0"]]
+    return fit === "cover" ? [...base, ["sub-use-margins", "yes"], ["sub-ass-force-margins", "yes"]] : [...base, ["sub-ass-force-margins", "no"]]
 }
 
 /**

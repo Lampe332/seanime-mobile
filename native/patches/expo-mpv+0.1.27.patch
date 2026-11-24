@@ -228,7 +228,7 @@ index c69d5fc..e832da3 100644
          updatePictureInPicture()
      }
 diff --git a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt
-index fdc5613..780e25c 100644
+index fdc5613..97bb4d0 100644
 --- a/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt
 +++ b/node_modules/expo-mpv/android/src/main/java/expo/modules/mpv/MpvPlayer.kt
 @@ -22,8 +22,12 @@ internal class MpvPlayer(
@@ -244,7 +244,19 @@ index fdc5613..780e25c 100644
      private val mainHandler = Handler(Looper.getMainLooper())
      private val playerThread = HandlerThread("ExpoMpvPlayer").apply { start() }
      private val playerHandler = Handler(playerThread.looper)
-@@ -730,6 +734,7 @@ internal class MpvPlayer(
+@@ -518,8 +522,9 @@ internal class MpvPlayer(
+         Log.d("ExpoMpv", "[$prefix] [$level] $text")
+         if (text.contains("OSD bitmaps do not fit")) {
+             runOnPlayerThread {
+-                val codec = getPropertyStringLocked("current-tracks/sub/codec")?.lowercase()
+-                if (codec == "ass" || codec == "ssa") {
++                // libass draws every subtitle, also SRT/WebVTT: any track whose bitmaps overflow falls back to RGBA,
++                // else that text never shows. Set once per track (the sid change resets it to "no").
++                if (getPropertyStringLocked("force-rgba-osd-rendering") != "yes") {
+                     setPropertyStringLocked("force-rgba-osd-rendering", "yes")
+                 }
+             }
+@@ -730,6 +735,7 @@ internal class MpvPlayer(
          lastProgressEmitPosition = Double.NaN
          lastProgressEmitDuration = Double.NaN
          lastProgressEmitBufferedDuration = Double.NaN
@@ -252,7 +264,7 @@ index fdc5613..780e25c 100644
      }
  
      private fun emitProgressEvent(force: Boolean = false) {
-@@ -755,10 +760,25 @@ internal class MpvPlayer(
+@@ -755,10 +761,25 @@ internal class MpvPlayer(
          lastProgressEmitDuration = duration
          lastProgressEmitBufferedDuration = bufferedDuration
  
