@@ -78,7 +78,7 @@ export function DiscoverPhoneSchedule({ schedule }: { schedule: DiscoverSchedule
                         style={rowWidth ? { columnGap: LIST_COLUMN_GAP, rowGap: 2 } : undefined}>
                         {groupEpisodeRuns(day.items, item => ({ show: item.media!.id, at: item.airingAt, episode: item.episode }))
                             .map(run => rowWidth
-                                ? <View key={run.key} style={{ width: rowWidth }}><ScheduleRow run={run} language={language} /></View>
+                                ? <View key={run.key} style={{ width: rowWidth }}><ScheduleRow run={run} language={language} fill /></View>
                                 : <ScheduleRow key={run.key} run={run} language={language} />)}
                     </View>
                 </PhoneSection>
@@ -106,7 +106,8 @@ function ScheduleBones({ label, short }: { label: string, short?: boolean }) {
 }
 
 /** An episode or a batch of them: cover, title, "Episode 5" / "Episodes 4–11" (with the list status when on a list), time; long press for Preview. */
-const ScheduleRow = React.memo(function ScheduleRow({ run, language }: { run: EpisodeRun<Airing>, language: string }) {
+/** `fill`: in the two-column layout the row grows to the height of its neighbour (a long title takes three lines) */
+const ScheduleRow = React.memo(function ScheduleRow({ run, language, fill }: { run: EpisodeRun<Airing>, language: string, fill?: boolean }) {
     const item = run.items[0]
     const t = useTr()
     const fade = useImageFade()
@@ -132,6 +133,7 @@ const ScheduleRow = React.memo(function ScheduleRow({ run, language }: { run: Ep
             onPress={() => open(`/entry?id=${media.id}`)}
             onLongPress={event => setMenuAt({ x: event.nativeEvent.pageX, y: event.nativeEvent.pageY })}
             delayLongPress={500}
+            style={fill ? { flexGrow: 1 } : undefined}
             className="min-h-[76px] w-full flex-row flex-wrap items-center gap-3.5 bg-sm-surface-raised py-2.5 pl-2.5 pr-4 active:bg-sm-surface-control"
         >
             <CardMenu anchor={menuAt} title={title} onClose={closeMenu}
