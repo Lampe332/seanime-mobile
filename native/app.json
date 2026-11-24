@@ -1,7 +1,7 @@
 {
   "expo": {
     "slug": "seanime-native",
-    "version": "4.3.2",
+    "version": "4.3.3",
     "orientation": "default",
     "userInterfaceStyle": "dark",
     "android": {
