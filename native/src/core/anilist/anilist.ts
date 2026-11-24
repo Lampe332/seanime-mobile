@@ -226,46 +226,39 @@ function keptUnder(environment: CoreEnvironment, question: string, ask: () => Pr
 }
 
 /**
- * All pages of a list in one answer: AniList gives 50 a page and a studio like J.C.STAFF has hundreds, so the pages are
- * read one after another, at most DETAIL_PAGES. The head is the first page's answer; `list` is where its items sit.
+ * One page of a studio's or person's titles: AniList gives at most 25 a page (and stops after 10 pages of a connection
+ * read in one go), so the app asks page by page ("?page=2") and joins them (api/hooks/detail-pages.ts). The answer keeps
+ * AniList's pageInfo, so the app knows whether another page follows.
  */
-async function everyPage(environment: CoreEnvironment, query: string, field: string, connection: string, list: string, id: number) {
-    const client = clientFor(environment)
-    let head: Json | undefined
-    const items: unknown[] = []
-    for (let page = 1; page <= DETAIL_PAGES; page++) {
-        let answer: Json | undefined
-        try {
-            answer = (await askAnilist(client, query, { id, page }))[field] as Json | undefined
-        } catch (error) {
-            // a later page failing (e.g. 429) keeps what the earlier pages brought; the first page still fails
-            if (page === 1) throw error
-            break
-        }
-        if (!answer) break
-        const part = answer[connection] as ({ pageInfo?: { hasNextPage?: boolean } } & Record<string, unknown>) | undefined
-        head ??= answer
-        items.push(...((part?.[list] as unknown[] | undefined) ?? []))
-        if (!part?.pageInfo?.hasNextPage) break
-    }
-    if (!head) throw new AnilistFailure("Not Found.", 404)
-    return withoutEmpty({ [field]: { ...head, [connection]: { [list]: items } } }) as Json
+async function detailPage(environment: CoreEnvironment, query: string, field: string, id: number, page: number): Promise<Json> {
+    const answer = (await askAnilist(clientFor(environment), query, { id, page }))[field] as Json | undefined
+    if (!answer) throw new AnilistFailure("Not Found.", 404)
+    return withoutEmpty({ [field]: answer }) as Json
 }
 
-/** GET /api/v1/anilist/studio-details/{id} */
+/** The page the app asked for ("?page=2"); 1 when none or not a whole number above 0 */
+function pageAsked(request: CoreRequest): number {
+    const given = typeof request.query === "object" && request.query !== null ? (request.query as Json).page : undefined
+    const page = Number.parseInt(String(given ?? "1"), 10)
+    return Number.isFinite(page) && page >= 1 ? page : 1
+}
+
+/** The first page is kept under the old question, so a studio read before stays readable offline */
+const pageQuestion = (base: string, page: number) => (page === 1 ? base : `${base}/${page}`)
+
+/** GET /api/v1/anilist/studio-details/{id}?page=n */
 export async function studioDetails(request: CoreRequest, environment: CoreEnvironment): Promise<Json> {
     const id = wholeNumber(request.path.id)
-    return keptUnder(environment, `studio/${id}`, () => everyPage(environment, STUDIO_DETAILS, "Studio", "media", "nodes", id))
+    const page = pageAsked(request)
+    return keptUnder(environment, pageQuestion(`studio/${id}`, page), () => detailPage(environment, STUDIO_DETAILS, "Studio", id, page))
 }
 
-/** GET /api/v1/anilist/staff-details/{id}: a person (director, author, …) and every title they worked on, with the role */
+/** GET /api/v1/anilist/staff-details/{id}?page=n: a person (director, author, …) and the titles they worked on, with the role */
 export async function staffDetails(request: CoreRequest, environment: CoreEnvironment): Promise<Json> {
     const id = wholeNumber(request.path.id)
-    return keptUnder(environment, `staff/${id}`, () => everyPage(environment, STAFF_DETAILS, "Staff", "staffMedia", "edges", id))
+    const page = pageAsked(request)
+    return keptUnder(environment, pageQuestion(`staff/${id}`, page), () => detailPage(environment, STAFF_DETAILS, "Staff", id, page))
 }
-
-/** At most 500 titles of one studio or person (10 pages of 50) */
-const DETAIL_PAGES = 10
 
 /** The variables a page query declares, in its order, so that the same request is the same question */
 function pick(body: unknown, names: string[]): Json {

@@ -62,14 +62,14 @@ export const ANIME_DETAILS = `query AnimeDetails($id: Int) {
 }`
 
 export const STUDIO_DETAILS = `query StudioDetails($id: Int, $page: Int) {
-    Studio(id: $id) { id isAnimationStudio name media(sort: [START_DATE_DESC], isMain: true, page: $page, perPage: 50) {
+    Studio(id: $id) { id isAnimationStudio name media(sort: [START_DATE_DESC], isMain: true, page: $page, perPage: 25) {
         pageInfo { hasNextPage } nodes { ${animeFields} ${nextEpisode} } } }
 }`
 
-/** A person and the titles they worked on, 50 a page (anime and manga together, each with its role) */
+/** A person and the titles they worked on, 25 a page (AniList's most for a connection) (anime and manga together, each with its role) */
 export const STAFF_DETAILS = `query StaffDetails($id: Int, $page: Int) {
     Staff(id: $id) { id name { full native } image { large } primaryOccupations siteUrl
-        staffMedia(sort: [POPULARITY_DESC], page: $page, perPage: 50) {
+        staffMedia(sort: [POPULARITY_DESC], page: $page, perPage: 25) {
             pageInfo { hasNextPage } edges { staffRole node { id idMal siteUrl status(version: 2) type format season seasonYear
                 bannerImage episodes chapters isAdult countryOfOrigin meanScore genres ${title} ${cover} startDate ${date} ${nextEpisode} } } } }
 }`

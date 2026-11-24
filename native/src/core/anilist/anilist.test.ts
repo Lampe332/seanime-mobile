@@ -56,7 +56,9 @@ const environment: CoreEnvironment = {
 function ask(method: string, endpoint: string, body?: unknown): Promise<unknown> {
     const match = matchCoreRoute(method, endpoint)
     expect(match?.route.area, `${method} ${endpoint}`).toBe("anilist")
-    return match!.route.answer({ path: match!.path, query: null, body }, environment)
+    // the query in the address ("…?page=2") as coreAnswerFor (core/index.ts) passes it
+    const search = endpoint.split("?")[1]
+    return match!.route.answer({ path: match!.path, query: search ? Object.fromEntries(new URLSearchParams(search)) : null, body }, environment)
 }
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
@@ -219,35 +221,36 @@ describe("answers in the recorded form", () => {
         answers.StudioDetails = ok(recorded.studio)
         expect(await ask("GET", "/api/v1/anilist/studio-details/73")).toEqual(recorded.studio)
 
-        // more titles than one page: the pages are read one after another and joined
+        // more titles than one page: the app asks page by page, each answer with AniList's pageInfo
         const studio = recorded.studio as unknown as { Studio: Json & { media: { nodes: Json[] } } }
         const [first, ...rest] = studio.Studio.media.nodes
         expect(rest.length).toBeGreaterThan(0)
-        answers.StudioDetails = [
-            ok({ Studio: { ...studio.Studio, media: { pageInfo: { hasNextPage: true }, nodes: [first] } } }),
-            ok({ Studio: { ...studio.Studio, media: { pageInfo: { hasNextPage: false }, nodes: rest } } }),
-        ]
-        expect(await ask("GET", "/api/v1/anilist/studio-details/74")).toEqual(recorded.studio)
-        expect(asked.slice(-2).map(question => question.variables)).toEqual([{ id: 74, page: 1 }, { id: 74, page: 2 }])
+        const firstPage = { Studio: { ...studio.Studio, media: { pageInfo: { hasNextPage: true }, nodes: [first] } } }
+        const lastPage = { Studio: { ...studio.Studio, media: { pageInfo: { hasNextPage: false }, nodes: rest } } }
+        answers.StudioDetails = ok(firstPage)
+        expect(await ask("GET", "/api/v1/anilist/studio-details/74")).toEqual(firstPage)
+        expect(asked.at(-1)?.variables).toEqual({ id: 74, page: 1 })
+        answers.StudioDetails = ok(lastPage)
+        expect(await ask("GET", "/api/v1/anilist/studio-details/74?page=2")).toEqual(lastPage)
+        expect(asked.at(-1)?.variables).toEqual({ id: 74, page: 2 })
+        // a page that is not a whole number above 0 is the first page
+        answers.StudioDetails = ok(firstPage)
+        await ask("GET", "/api/v1/anilist/studio-details/74?page=0")
+        expect(asked.at(-1)?.variables).toEqual({ id: 74, page: 1 })
 
-        // a person: their titles over several pages joined, one edge per role
+        // a person: one page with its edges (one per role), the next page on its own
         const [firstWork, ...restWorks] = staffAnswer.Staff.staffMedia.edges
-        answers.StaffDetails = [
-            ok({ Staff: { ...staffAnswer.Staff, staffMedia: { pageInfo: { hasNextPage: true }, edges: [firstWork] } } }),
-            ok({ Staff: { ...staffAnswer.Staff, staffMedia: { pageInfo: { hasNextPage: false }, edges: restWorks } } }),
-        ]
-        expect(await ask("GET", "/api/v1/anilist/staff-details/95061")).toEqual(staffAnswer)
-        expect(asked.slice(-2).map(question => question.variables)).toEqual([{ id: 95061, page: 1 }, { id: 95061, page: 2 }])
-        // AniList down afterwards: the kept answer
+        const staffFirst = { Staff: { ...staffAnswer.Staff, staffMedia: { pageInfo: { hasNextPage: true }, edges: [firstWork] } } }
+        answers.StaffDetails = ok(staffFirst)
+        expect(await ask("GET", "/api/v1/anilist/staff-details/95061")).toEqual(staffFirst)
+        expect(asked.at(-1)?.variables).toEqual({ id: 95061, page: 1 })
+        answers.StaffDetails = ok({ Staff: { ...staffAnswer.Staff, staffMedia: { pageInfo: { hasNextPage: false }, edges: restWorks } } })
+        expect(await ask("GET", "/api/v1/anilist/staff-details/95061?page=2")).toEqual({ Staff: { ...staffAnswer.Staff, staffMedia: { pageInfo: { hasNextPage: false }, edges: restWorks } } })
+        // AniList down afterwards: each page kept on its own; a page never read fails, the pages before it stay
         answers.StaffDetails = down
-        expect(await ask("GET", "/api/v1/anilist/staff-details/95061")).toEqual(staffAnswer)
-
-        // a later page failing keeps the titles of the pages before it; the first page failing is still a failure
-        answers.StudioDetails = [
-            ok({ Studio: { ...studio.Studio, media: { pageInfo: { hasNextPage: true }, nodes: [first] } } }),
-            down,
-        ]
-        expect(await ask("GET", "/api/v1/anilist/studio-details/75")).toEqual({ Studio: { ...studio.Studio, media: { nodes: [first] } } })
+        expect(await ask("GET", "/api/v1/anilist/staff-details/95061")).toEqual(staffFirst)
+        await expect(ask("GET", "/api/v1/anilist/staff-details/95061?page=3")).rejects.toThrow()
+        // the first page of a studio never read, AniList down: a failure
         answers.StudioDetails = down
         await expect(ask("GET", "/api/v1/anilist/studio-details/76")).rejects.toThrow()
 

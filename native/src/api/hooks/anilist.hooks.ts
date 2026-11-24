@@ -1,4 +1,4 @@
-import { useServerMutation, useServerQuery } from "@/api/client/requests"
+import { buildSeaQuery, type SeaError, useServerMutation, useServerQuery } from "@/api/client/requests"
 import {
     AnilistListAnime_Variables,
     AnilistListRecentAiringAnime_Variables,
@@ -16,8 +16,12 @@ import {
     AL_StudioDetails,
     Nullish,
 } from "@/api/generated/types"
+import { joinDetailPages, nextDetailPage } from "@/api/hooks/detail-pages"
 import { getEntryPreloadStaleTime } from "@/lib/entry-preloader"
-import { useQueryClient } from "@tanstack/react-query"
+import { serverAuthTokenAtom } from "@/main/_atoms/server-status.atoms"
+import { type InfiniteData, useInfiniteQuery, useQueryClient } from "@tanstack/react-query"
+import { useAtomValue } from "jotai"
+import * as React from "react"
 import { toast } from "@/components/ui/toast/toast-store"
 import { tr } from "@/lib/app-language"
 
@@ -165,16 +169,38 @@ export function useAnilistListRecentAiringAnime(variables: AnilistListRecentAiri
     })
 }
 
-export function useGetAnilistStudioDetails(id: number) {
-    return useServerQuery<AL_StudioDetails>({
-        endpoint: API_ENDPOINTS.ANILIST.GetAnilistStudioDetails.endpoint.replace("{id}", String(id)),
-        method: API_ENDPOINTS.ANILIST.GetAnilistStudioDetails.methods[0],
-        queryKey: [API_ENDPOINTS.ANILIST.GetAnilistStudioDetails.key, String(id)],
+/**
+ * A studio's or person's titles page by page (core/anilist/anilist.ts, "?page=n", 25 a page): the first page shows at
+ * once, `loadMore` reads the next one (the screen calls it when the list nears its end). `data` is all pages read so far
+ * joined into one answer (api/hooks/detail-pages.ts); `loadingMore` while a next page is on its way.
+ */
+function useDetailPages<T>(entry: { key: string, endpoint: string }, id: number, field: string, connection: string, list: string) {
+    const password = useAtomValue(serverAuthTokenAtom)
+    const query = useInfiniteQuery<T | undefined, SeaError, InfiniteData<T | undefined, number>, string[], number>({
+        queryKey: [entry.key, String(id), "pages"],
+        queryFn: ({ pageParam }) => buildSeaQuery<T>({
+            endpoint: `${entry.endpoint.replace("{id}", String(id))}?page=${pageParam}`,
+            method: "GET",
+            password,
+        }),
+        initialPageParam: 1,
+        getNextPageParam: (lastPage, _pages, pageParam) => nextDetailPage(lastPage, field, connection, list, pageParam),
         enabled: Number.isFinite(id) && id > 0,
     })
+    const { data: pages, hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = query
+    const data = React.useMemo(() => joinDetailPages(pages?.pages, field, connection, list), [pages, field, connection, list])
+    const loadMore = React.useCallback(() => {
+        if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage()
+    }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage])
+    const retryMore = React.useCallback(() => void fetchNextPage(), [fetchNextPage])
+    return { ...query, data, loadMore, retryMore, loadingMore: isFetchingNextPage }
 }
 
-/** GET /api/v1/anilist/staff-details/{id} (core/anilist/anilist.ts staffDetails; not in the generated types) */
+export function useGetAnilistStudioDetails(id: number) {
+    return useDetailPages<AL_StudioDetails>(API_ENDPOINTS.ANILIST.GetAnilistStudioDetails, id, "Studio", "media", "nodes")
+}
+
+/** GET /api/v1/anilist/staff-details/{id}?page=n (core/anilist/anilist.ts staffDetails; not in the generated types) */
 export type AL_StaffDetails = {
     Staff?: {
         id: number
@@ -182,17 +208,15 @@ export type AL_StaffDetails = {
         image?: { large?: string }
         primaryOccupations?: string[]
         siteUrl?: string
-        staffMedia?: { edges?: ({ staffRole?: string, node?: AL_BaseAnime & { chapters?: number } } | null)[] }
+        staffMedia?: {
+            pageInfo?: { hasNextPage?: boolean }
+            edges?: ({ staffRole?: string, node?: AL_BaseAnime & { chapters?: number } } | null)[]
+        }
     }
 }
 
 export function useGetAnilistStaffDetails(id: number) {
-    return useServerQuery<AL_StaffDetails>({
-        endpoint: API_ENDPOINTS.ANILIST.GetAnilistStaffDetails.endpoint.replace("{id}", String(id)),
-        method: API_ENDPOINTS.ANILIST.GetAnilistStaffDetails.methods[0],
-        queryKey: [API_ENDPOINTS.ANILIST.GetAnilistStaffDetails.key, String(id)],
-        enabled: Number.isFinite(id) && id > 0,
-    })
+    return useDetailPages<AL_StaffDetails>(API_ENDPOINTS.ANILIST.GetAnilistStaffDetails, id, "Staff", "staffMedia", "edges")
 }
 
 export function useGetAniListStats(enabled: boolean = true) {

@@ -12,12 +12,13 @@ import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { ResultCell } from "@/main/search/_screens/search-phone"
+import { MorePagesFooter } from "@/main/studio/_screens/studio-phone"
 import { type StaffWork, staffWorks } from "@/main/staff/_lib/staff-works"
 import { FlashList, type FlashListRef } from "@shopify/flash-list"
 import { Image } from "expo-image"
 import UserRound from "lucide-react-native/icons/user-round"
 import * as React from "react"
-import { Pressable, View } from "react-native"
+import { Pressable, useWindowDimensions, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 type Kind = "anime" | "manga"
@@ -34,7 +35,11 @@ export function StaffPhone({ id, name, kind }: { id: number, name?: string, kind
     const { rail } = useTabletLayout()
     const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const valid = Number.isFinite(id) && id > 0
-    const { data, isLoading, isError, refetch, isRefetching } = useGetAnilistStaffDetails(id)
+    const { data, isPending, isError, refetch, isRefetching, hasNextPage, loadMore, retryMore, loadingMore, isFetchNextPageError } = useGetAnilistStaffDetails(id)
+    const windowWidth = useWindowDimensions().width
+    // the titles are split into anime and manga, so every page is read (one after another) for the counts to be whole;
+    // a title's roles on two pages are joined by staffWorks over all pages read so far
+    React.useEffect(() => loadMore(), [loadMore])
     const adultAllowed = !!useServerStatus()?.settings?.anilist?.enableAdultContent
 
     const gutter = 16
@@ -67,10 +72,12 @@ export function StaffPhone({ id, name, kind }: { id: number, name?: string, kind
         </View>
     ), [grid.gap, grid.rowGap, grid.width, shown])
 
-    const loading = valid && isLoading && !data
+    const loading = valid && isPending && !data
     const failed = !valid || (isError && !data)
+    // while more pages follow the counts are a floor ("25+")
+    const more = hasNextPage ? "+" : ""
     const subtitle = items.length
-        ? shown === "anime" ? t(`${items.length} anime · most popular first`, `${items.length} Anime · beliebteste zuerst`) : t(`${items.length} manga · most popular first`, `${items.length} Manga · beliebteste zuerst`)
+        ? shown === "anime" ? t(`${items.length}${more} anime · most popular first`, `${items.length}${more} Anime · beliebteste zuerst`) : t(`${items.length}${more} manga · most popular first`, `${items.length}${more} Manga · beliebteste zuerst`)
         : undefined
     const header = <View className="gap-4 pb-4" style={{ paddingHorizontal: grid.gap / 2 }}>
         <View className="flex-row items-start gap-3 pt-1">
@@ -98,7 +105,7 @@ export function StaffPhone({ id, name, kind }: { id: number, name?: string, kind
             </Pressable>)}
         </View>}
         {!!subtitle && <Muted>{subtitle}</Muted>}
-        {loading && <GridBones label={t("Loading this person's works", "Werke dieser Person laden")} contentWidth={contentWidth} />}
+        {loading && <GridBones label={t("Loading this person's works", "Werke dieser Person laden")} contentWidth={contentWidth || windowWidth - gutter * 2} />}
         {failed && <Notice text={valid ? t("This person's works could not be loaded.", "Die Werke dieser Person konnten nicht geladen werden.") : t("This person link is not valid.", "Dieser Personen-Link ist ungültig.")}>
             {valid && <TextAction label={isRefetching ? t("Trying again…", "Erneuter Versuch…") : t("Try again", "Erneut versuchen")} onPress={() => void refetch()} />}
         </Notice>}
@@ -118,6 +125,7 @@ export function StaffPhone({ id, name, kind }: { id: number, name?: string, kind
                     numColumns={Math.max(1, grid.columns)}
                     renderItem={renderItem}
                     ListHeaderComponent={header}
+                    ListFooterComponent={loading || failed ? null : <MorePagesFooter loading={loadingMore} failed={isFetchNextPageError} onRetry={retryMore} inset={grid.gap / 2} />}
                     showsVerticalScrollIndicator={false}
                     style={{ marginHorizontal: -grid.gap / 2 }}
                     contentContainerStyle={{ paddingTop: top, paddingBottom: pageBottom }}

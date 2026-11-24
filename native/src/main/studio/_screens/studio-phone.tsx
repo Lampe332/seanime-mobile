@@ -8,16 +8,18 @@ import { PHONE_PAGE_TINT, PhoneHeadTray, usePageBottomPad, usePageTop } from "@/
 import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
+import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { ResultCell } from "@/main/search/_screens/search-phone"
 import { FlashList, type FlashListRef } from "@shopify/flash-list"
 import * as React from "react"
-import { View } from "react-native"
+import { ActivityIndicator, useWindowDimensions, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 /**
  * A studio's anime ("/studio?id=…&name=…", from the studio on an anime page): AniList's main productions,
- * newest first, in the search's grid and cards. The name from the link shows before the data comes.
+ * newest first, in the search's grid and cards. The name from the link shows before the data comes, with placeholder
+ * cards while the first page (25 titles) loads; the next pages load as the list nears its end.
  */
 export function StudioPhone({ id, name }: { id: number, name?: string }) {
     const t = useTr()
@@ -27,7 +29,8 @@ export function StudioPhone({ id, name }: { id: number, name?: string }) {
     const { rail } = useTabletLayout()
     const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const valid = Number.isFinite(id) && id > 0
-    const { data, isLoading, isError, refetch, isRefetching } = useGetAnilistStudioDetails(id)
+    const { data, isPending, isError, refetch, isRefetching, hasNextPage, loadMore, retryMore, loadingMore, isFetchNextPageError } = useGetAnilistStudioDetails(id)
+    const windowWidth = useWindowDimensions().width
 
     const gutter = 16
     const [contentWidth, setContentWidth] = React.useState(0)
@@ -47,16 +50,18 @@ export function StudioPhone({ id, name }: { id: number, name?: string }) {
         </View>
     ), [grid.gap, grid.rowGap, grid.width])
 
-    const loading = valid && isLoading && !data
+    const loading = valid && isPending && !data
     const failed = !valid || (isError && !data)
-    const subtitle = items.length ? t(`${items.length} anime · newest first`, `${items.length} Anime · neueste zuerst`) : undefined
+    // while more pages follow the count is a floor ("25+")
+    const count = hasNextPage ? `${items.length}+` : String(items.length)
+    const subtitle = items.length ? t(`${count} anime · newest first`, `${count} Anime · neueste zuerst`) : undefined
     const header = <View className="gap-4 pb-4" style={{ paddingHorizontal: grid.gap / 2 }}>
         <View className="flex-row flex-wrap items-center justify-between gap-x-2 pt-1">
             <Heading className="min-w-0 flex-1" accessibilityRole="header">{title}</Heading>
             <View style={HEAD_ACTIONS_STYLE}><PhoneHeadTray /></View>
             {!!subtitle && <Muted className="mt-[3px] w-full">{subtitle}</Muted>}
         </View>
-        {loading && <GridBones label={t("Loading the studio's anime", "Anime des Studios laden")} contentWidth={contentWidth} />}
+        {loading && <GridBones label={t("Loading the studio's anime", "Anime des Studios laden")} contentWidth={contentWidth || windowWidth - gutter * 2} />}
         {failed && <Notice text={valid ? t("The studio's anime could not be loaded.", "Die Anime des Studios konnten nicht geladen werden.") : t("This studio link is not valid.", "Dieser Studio-Link ist ungültig.")}>
             {valid && <TextAction label={isRefetching ? t("Trying again…", "Erneuter Versuch…") : t("Try again", "Erneut versuchen")} onPress={() => void refetch()} />}
         </Notice>}
@@ -76,6 +81,9 @@ export function StudioPhone({ id, name }: { id: number, name?: string }) {
                     numColumns={Math.max(1, grid.columns)}
                     renderItem={renderItem}
                     ListHeaderComponent={header}
+                    ListFooterComponent={loading || failed ? null : <MorePagesFooter loading={loadingMore} failed={isFetchNextPageError} onRetry={retryMore} inset={grid.gap / 2} />}
+                    onEndReached={loading || failed ? undefined : loadMore}
+                    onEndReachedThreshold={1.5}
                     showsVerticalScrollIndicator={false}
                     style={{ marginHorizontal: -grid.gap / 2 }}
                     contentContainerStyle={{ paddingTop: top, paddingBottom: pageBottom }}
@@ -83,4 +91,20 @@ export function StudioPhone({ id, name }: { id: number, name?: string }) {
             </View>
         </View>
     )
+}
+
+/** Below a paged list (studio, person): a spinner while the next page loads, a retry when it failed */
+export function MorePagesFooter({ loading, failed, onRetry, inset }: { loading: boolean, failed: boolean, onRetry: () => void, inset: number }) {
+    const t = useTr()
+    if (loading) {
+        return <View className="items-center py-6">
+            <ActivityIndicator color={colors.smTextMuted} accessibilityLabel={t("Loading more titles", "Weitere Titel laden")} />
+        </View>
+    }
+    if (!failed) return null
+    return <View className="pb-4" style={{ paddingHorizontal: inset }}>
+        <Notice text={t("More titles could not be loaded.", "Weitere Titel konnten nicht geladen werden.")}>
+            <TextAction label={t("Try again", "Erneut versuchen")} onPress={onRetry} />
+        </Notice>
+    </View>
 }
