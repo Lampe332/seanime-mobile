@@ -16,8 +16,10 @@ describe("player screen", () => {
         expect(onLoad).toContain("applySubtitleStyle()")
     })
 
-    it("hands back brightness and orientation when it goes without close()", () => {
-        expect(source).toMatch(/React\.useEffect\(\(\) => \(\) => \{\s*restoreBrightness\(\)\s*endPlayerOrientation\(\)\s*\}, \[\]\)/)
+    it("hands back the orientation when it goes without close()", () => {
+        expect(source).toMatch(/React\.useEffect\(\(\) => \(\) => \{\s*endPlayerOrientation\(\)\s*\}, \[\]\)/)
+        // swipes change neither the window brightness nor the media volume (Nick 24.11.)
+        expect(source).not.toMatch(/writeBrightness|writeVolume|classifySwipe/)
         // close() and unmount end a fullscreen like leaving it (upright hold), never a bare unlock
         expect(source).not.toContain("releaseOrientation")
     })

@@ -1,4 +1,4 @@
-import { BAR_GROW, barGrowDelay, DISTANCE, DRAWER_EASE, DURATION, LEVEL_PANEL, MOTION_EASE_OUT, PHONE_EASE, SCALE } from "@/lib/motion"
+import { BAR_GROW, barGrowDelay, DISTANCE, DRAWER_EASE, DURATION, MOTION_EASE_OUT, PHONE_EASE, SCALE } from "@/lib/motion"
 import {
     Easing,
     type EntryAnimationsValues,
@@ -154,16 +154,6 @@ export function barGrow(isTablet: boolean, index: number) {
         100: { transform: [{ scaleX: 1 }], easing: Easing.bezier(...ease) },
     }).duration(duration).delay(barGrowDelay(index)).reduceMotion(ReduceMotion.System)
 }
-
-/** The player's brightness / volume panel slides in 16dp from its side of the screen and fades out */
-export function levelPanelIn(isTablet: boolean, fromRight: boolean) {
-    return new Keyframe({
-        0: { opacity: 0, transform: [{ translateX: fromRight ? LEVEL_PANEL.shift : -LEVEL_PANEL.shift }] },
-        100: { opacity: 1, transform: [{ translateX: 0 }], easing: isTablet ? outEase : phoneEase },
-    }).duration(LEVEL_PANEL.in).reduceMotion(ReduceMotion.System)
-}
-
-export const levelPanelOut = FadeOut.duration(LEVEL_PANEL.out).reduceMotion(ReduceMotion.System)
 
 /** The next or previous week / month slides in 24dp from its side (usePhoneStep, the calendar); the pager row stays. */
 export function stepIn(isTablet: boolean, forward: boolean) {

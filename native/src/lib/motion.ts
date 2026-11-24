@@ -285,9 +285,6 @@ export function barGrowDelay(index: number) {
     return Math.min(Math.max(0, index), BAR_GROW.staggered - 1) * BAR_GROW.step
 }
 
-/** The player's brightness / volume panel slides in from its side; its level glides to each new value */
-export const LEVEL_PANEL = { in: 200, out: 140, shift: DISTANCE.sideEnter, level: 120 } as const
-
 /**
  * Home's "Upcoming episodes" carousel moves on by itself (upcoming-episodes.tsx `autoScroll`: embla autoplay, delay 5000):
  * every 5 s one card further, from the last place back to the first; a touch restarts the wait. The theme setting

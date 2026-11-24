@@ -8,8 +8,7 @@ import type { Translate } from "@/lib/app-language"
  * - DOUBLE_TAP_MS 280, LONG_PRESS_MS 450, HIDE_DELAY_MS 5000, long press = 2x (VideoControlInjector.kt)
  * - the time bar only scrubs after 10 px sideways; a vertical swipe or a cancelled touch never moves the video
  *   (video-core-time-range.tsx TOUCH_SLOP_PX)
- * - brightness/volume only for vertical swipes (≥ 24 px and 1.5× more vertical than sideways), full range over 3/4 of the
- *   player height. Sideways swipes never seek (Nick's wish, no swipe-to-seek)
+ * - swipes change nothing: no swipe-to-seek (Nick's wish) and no brightness/volume swipes (Nick 24.11.)
  * - "video-completed" (the server's AniList update) once at 80 % (video-core.tsx handleTimeUpdate)
  * - auto next counts down 5 s (AUTO_NEXT_SECONDS)
  * - picture in picture never during cast and with the ratio clamped to 2.39:1 (PiPManager.kt)
@@ -23,7 +22,6 @@ export const LONG_PRESS_MS = 450
 export const HIDE_DELAY_MS = 5000
 export const BOOST_RATE = 2
 export const SEEKBAR_SLOP_PX = 10
-export const GESTURE_START_PX = 24
 export const AUTO_NEXT_SECONDS = 5
 export const COMPLETION_RATIO = 0.8
 export const PIP_MAX_RATIO = 2.39
@@ -56,25 +54,6 @@ export function seekStep(value: unknown, fallback: number): number {
 
 export function doubleTapSeekSeconds(side: Side, back: number = SEEK_BACK_SECONDS, forward: number = SEEK_FORWARD_SECONDS) {
     return side === "left" ? -seekStep(back, SEEK_BACK_SECONDS) : seekStep(forward, SEEK_FORWARD_SECONDS)
-}
-
-/* ── Swipe gestures ─────────────────────────────────────────────────────── */
-
-export type SwipeKind = "brightness" | "volume"
-
-/**
- * What a moving finger on the video does. Only a clearly vertical swipe changes brightness (left half) or volume (right
- * half); everything else, sideways swipes included, does nothing (no swipe-to-seek).
- */
-export function classifySwipe(dx: number, dy: number, side: Side): SwipeKind | null {
-    if (Math.abs(dy) < GESTURE_START_PX || Math.abs(dy) < Math.abs(dx) * 1.5) return null
-    return side === "left" ? "brightness" : "volume"
-}
-
-/** dyUp: how far the finger moved up since the gesture started (px). */
-export function swipeLevel(startLevel: number, dyUp: number, playerHeight: number) {
-    if (playerHeight <= 0) return startLevel
-    return Math.max(0, Math.min(1, startLevel + dyUp / (playerHeight * 0.75)))
 }
 
 /* ── Time bar ───────────────────────────────────────────────────────────── */

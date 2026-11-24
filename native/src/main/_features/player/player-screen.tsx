@@ -38,17 +38,13 @@ import Maximize from "lucide-react-native/icons/maximize"
 import Minimize from "lucide-react-native/icons/minimize"
 import PictureInPicture2 from "lucide-react-native/icons/picture-in-picture-2"
 import Settings from "lucide-react-native/icons/settings"
-import Sun from "lucide-react-native/icons/sun"
 import SkipBack from "lucide-react-native/icons/skip-back"
 import SkipForward from "lucide-react-native/icons/skip-forward"
-import Volume2 from "lucide-react-native/icons/volume-2"
 import X from "lucide-react-native/icons/x"
 import React from "react"
 import { createPlayerTimeStore, type PlayerTimeStore, usePlayerTime } from "./player-time"
 import { ActivityIndicator, BackHandler, type GestureResponderEvent, Pressable, StyleSheet, useWindowDimensions, View } from "react-native"
-import Animated, { Easing, FadeIn, FadeOut, ReduceMotion, useAnimatedStyle, useReducedMotion, withTiming } from "react-native-reanimated"
-import { levelPanelIn, levelPanelOut } from "@/components/ui/core/animations"
-import { LEVEL_PANEL } from "@/lib/motion"
+import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, useReducedMotion, withTiming } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Path, Text as SvgText } from "react-native-svg"
 import { type MenuAnchor, PlayerMenu, type PlayerMenuPage } from "./player-menu"
@@ -62,7 +58,6 @@ import {
     AUTO_NEXT_SECONDS,
     BOOST_RATE,
     canEnterPip,
-    classifySwipe,
     classifyTap,
     clampTime,
     countdownTick,
@@ -101,8 +96,6 @@ import {
     type SkipSegment,
     pictureFitProperties,
     playerEpisodeTitle,
-    type SwipeKind,
-    swipeLevel,
     type TapMemory,
     toPlayerTrack,
 } from "./player-logic"
@@ -111,10 +104,10 @@ import { player_castingAtom, player_fullscreenAtom, player_miniAtom, player_seek
 import { boxScroll, player_boxSlotAtom, player_nowAtom } from "./player-box"
 import { castTitle, playerCastUrl } from "./player-cast"
 import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
-import { endPlayerOrientation, readBrightness, readVolume, restoreBrightness, setVideoFullscreenOrientation, turnedToLandscape, writeBrightness, writeVolume } from "./player-system"
+import { endPlayerOrientation, setVideoFullscreenOrientation, turnedToLandscape } from "./player-system"
 import {
     boxFrame, boxOwner, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, type MiniFrame, miniFrame, type MiniOrigin, miniOriginAfter, miniPlayCommand, type PlaceEvent, placeStep,
-    hudPlace, playerView, progressFraction, viewTurn,
+    HUD_PLACE, playerView, progressFraction, viewTurn,
 } from "./player-chrome"
 import { streamStartError } from "@/main/_features/native-player/stream-start-error"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
@@ -135,8 +128,8 @@ import { playlistNavigation } from "@/main/_features/playlists/lib/mobile-playli
 /*
  * The app's player (E3): mpv (expo-mpv) with the old app's controls rebuilt (media-core-control-bar, VideoControlInjector.kt):
  * centre buttons −5 / play / +10, bars that hide after 5 s while playing, a time bar that scrubs only after 10 px
- * sideways, double tap −5/+10 on either half, brightness (left) and volume (right) by vertical swipes, long press = 2x.
- * Sideways swipes do nothing (no swipe-to-seek), and a swipe or long press never toggles the controls.
+ * sideways, double tap −5/+10 on either half, long press = 2x. Swipes do nothing: no swipe-to-seek, and no brightness or
+ * volume swipes either (Nick 24.11.); a swipe or long press never toggles the controls.
  * r22 (Nick 11.11.): one player, three places (player-chrome playerView): fullscreen over everything, the box on its anime
  * page (2.0.x inline player), the mini player anywhere else. The bottom-right button switches fullscreen ↔ small (box or
  * mini), during loading too; Back in fullscreen makes it small; it always plays on (the mpv view is never remounted,
@@ -155,14 +148,13 @@ const POP_OUT = FadeOut.duration(120)
 const TIME_SHADOW = { textShadowColor: colors.smScrim, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }
 
 type SurfaceGesture = {
-    x: number, y: number, side: Side, kind: SwipeKind | "boost" | "scroll" | null, startLevel: number, kindY: number, moved: boolean,
-    levels: { brightness: number, volume: number }
+    x: number, y: number, side: Side, kind: "boost" | "scroll" | null, moved: boolean,
     /** window position at the start and the last two moves (the box scrolls the page by them, r22) */
     pageX: number, pageY: number, last: { y: number, t: number }, previous: { y: number, t: number }
 }
 
-/** `level` (0…1): the brightness / volume panel's bar */
-type Hud = { side: Side | "center", text: string, kind: SwipeKind | null, level?: number }
+/** the 2x text while a long press speeds the video up */
+type Hud = { text: string }
 
 /** An episode of the offline library (android-downloads/_lib/offline-playback.ts): own position, no server channel. */
 export type PlayerOffline = {
@@ -330,8 +322,6 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const playOnLoad = React.useRef(false)
     const skippedRef = React.useRef<number | null>(null)
     const hideTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-    // the brightness/volume panel goes 600 ms after the swipe; a new swipe or closing the player stops that timer
-    const hudTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
     React.useEffect(() => {
         playedRef.current = { played: 0, previous: 0, seeking: false }
         completedRef.current = false
@@ -425,7 +415,6 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     }, [])
     React.useEffect(() => () => {
         if (hideTimer.current) clearTimeout(hideTimer.current)
-        if (hudTimer.current) clearTimeout(hudTimer.current)
     }, [])
 
     const seekTo = React.useCallback((time: number) => {
@@ -670,15 +659,13 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         // watched (80 %) when closed: "Delete watched episodes" may take the episode (core/offline/auto-delete.ts)
         if (!endedRef.current) saveOffline(timeRef.current.currentTime, false, offlineWatched(timeRef.current.currentTime, timeRef.current.duration, false))
         await mpv.current?.prepareForExit().catch(() => {})
-        restoreBrightness()
         endPlayerOrientation()
         events.terminated()
         onClose()
     }, [events, onClose, saveOffline])
     // The player can also go without close(): another stream takes its place (server stream over an online or saved
-    // episode) or the server aborts the start. The window brightness and a fullscreen lock must not outlive it.
+    // episode) or the server aborts the start. A fullscreen lock must not outlive it.
     React.useEffect(() => () => {
-        restoreBrightness()
         endPlayerOrientation()
     }, [])
 
@@ -720,19 +707,16 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
 
     const onGrant = (e: GestureResponderEvent) => {
         const { locationX: x, locationY: y, pageX, pageY, timestamp } = e.nativeEvent
-        const g: SurfaceGesture = { x, y, side: sideOf(x, surface.current.width), kind: null, startLevel: 0, kindY: y, moved: false, levels: { brightness: 0.5, volume: 0.5 },
+        const g: SurfaceGesture = { x, y, side: sideOf(x, surface.current.width), kind: null, moved: false,
             pageX, pageY, last: { y: pageY, t: timestamp }, previous: { y: pageY, t: timestamp } }
         gesture.current = g
-        // the levels are read now so they are there once the finger has moved far enough to count as a swipe
-        readBrightness().then(v => (g.levels.brightness = v))
-        readVolume().then(v => (g.levels.volume = v))
         if (longPress.current) clearTimeout(longPress.current)
         longPress.current = setTimeout(() => {
             if (gesture.current !== g || g.kind || !timeRef.current || timeRef.current.paused) return
             g.kind = "boost"
             speedBeforeBoost.current = speed
             setBoosting(true)
-            setHud({ side: "center", text: `${BOOST_RATE}x`, kind: null })
+            setHud({ text: `${BOOST_RATE}x` })
         }, LONG_PRESS_MS)
     }
 
@@ -760,23 +744,11 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         }
         const dx = x - g.x
         const dyUp = g.y - y
+        // a moved finger is no tap and no long press; it changes nothing else
         if (Math.abs(dx) > 10 || Math.abs(dyUp) > 10) {
             g.moved = true
             if (longPress.current) clearTimeout(longPress.current)
         }
-        if (!g.kind) {
-            const kind = classifySwipe(dx, dyUp, g.side)
-            if (!kind) return
-            g.kind = kind
-            g.startLevel = g.levels[kind]
-            g.kindY = y
-        }
-        const level = swipeLevel(g.startLevel, g.kindY - y, surface.current.height)
-        if (g.kind === "brightness") writeBrightness(level)
-        else writeVolume(level)
-        // a new swipe keeps the panel: the last one's timer must not take it away under the finger
-        if (hudTimer.current) clearTimeout(hudTimer.current)
-        setHud({ side: g.side, text: `${Math.round(level * 100)} %`, kind: g.kind as SwipeKind, level })
     }
 
     const onEnd = (e: GestureResponderEvent, cancelled: boolean) => {
@@ -792,11 +764,6 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
         if (g.kind === "scroll") {
             const ms = g.last.t - g.previous.t
             box?.scroller.end(!cancelled && ms > 0 ? (g.last.y - g.previous.y) / ms * 1000 : 0)
-            return
-        }
-        if (g.kind) {
-            if (hudTimer.current) clearTimeout(hudTimer.current)
-            hudTimer.current = setTimeout(() => setHud(null), 600)
             return
         }
         // a swipe or long press never toggles the controls; only a real tap does
@@ -1118,12 +1085,10 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
 
                     {!!hud && (
                         <View pointerEvents="none" className="absolute"
-                            style={hudPlace(hud.side)}>
-                            {hud.level !== undefined && hud.side !== "center"
-                                ? <LevelPanel text={hud.text} level={hud.level} kind={hud.kind} fromRight={hud.side === "right"} isTablet={isTablet} />
-                                : <Animated.View entering={pop} exiting={unpop} className="rounded-full bg-black/65 px-4 py-2.5">
-                                    <Text className="text-[15px] font-semibold text-white">{hud.text}</Text>
-                                </Animated.View>}
+                            style={HUD_PLACE}>
+                            <Animated.View entering={pop} exiting={unpop} className="rounded-full bg-black/65 px-4 py-2.5">
+                                <Text className="text-[15px] font-semibold text-white">{hud.text}</Text>
+                            </Animated.View>
                         </View>
                     )}
 
@@ -1349,28 +1314,6 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
             />
         </View>
     </>)
-}
-
-/** The brightness / volume panel: it slides in from its side, its bar glides to each new level (UI thread) */
-function LevelPanel({ text, level, kind, fromRight, isTablet }: { text: string, level: number, kind: SwipeKind | null, fromRight: boolean, isTablet: boolean }) {
-    const t = useTr()
-    const fill = useAnimatedStyle(() => ({
-        transform: [{ scaleX: withTiming(Math.max(0, Math.min(1, level)), { duration: LEVEL_PANEL.level, easing: Easing.out(Easing.quad), reduceMotion: ReduceMotion.System }) }],
-    }), [level])
-    const LevelIcon = kind === "brightness" ? Sun : Volume2
-    return (
-        <Animated.View entering={levelPanelIn(isTablet, fromRight)} exiting={levelPanelOut} className="w-28 gap-2 rounded-2xl border border-white/15 bg-black/75 px-4 py-2.5"
-            accessibilityLabel={`${kind === "brightness" ? t("Brightness", "Helligkeit") : t("Volume", "Lautstärke")} ${text}`}>
-            {/* what the swipe changes (left: brightness, right: volume), then its level */}
-            <View className="flex-row items-center justify-center gap-1.5">
-                <LevelIcon size={16} color="#fff" />
-                <Text className="text-[15px] font-semibold text-white" style={{ fontVariant: ["tabular-nums"] }}>{text}</Text>
-            </View>
-            <View className="h-1 overflow-hidden rounded-full bg-white/25">
-                <Animated.View style={[{ height: "100%", width: "100%", transformOrigin: "left" }, fill]} className="rounded-full bg-white" />
-            </View>
-        </Animated.View>
-    )
 }
 
 function KeepScreenOn() {

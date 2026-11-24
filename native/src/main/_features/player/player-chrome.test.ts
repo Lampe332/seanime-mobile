@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
-    hudPlace, sameRect, VIEWPORT_REMEASURE_MS,
+    HUD_PLACE, sameRect, VIEWPORT_REMEASURE_MS,
     boxFrame, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, type MiniOrigin, miniOriginAfter, miniPlayCommand, miniPlayerShown,
     pageBottomPad, placeStep, playlistButtonBottom, orientationTarget, type PlayerView, playerView, progressFraction, scrollTarget, viewTurn,
 } from "./player-chrome"
@@ -237,9 +237,7 @@ describe("4.3.1 device test: box after fullscreen, level panel place", () => {
         expect(VIEWPORT_REMEASURE_MS[0]).toBe(0)
         expect(Math.max(...VIEWPORT_REMEASURE_MS)).toBeGreaterThanOrEqual(1000)
     })
-    it("puts the level panels in the upper third inside the picture, the seek text top centre", () => {
-        expect(hudPlace("left")).toEqual({ top: "20%", left: "18%" })
-        expect(hudPlace("right")).toEqual({ top: "20%", right: "18%" })
-        expect(hudPlace("center")).toEqual({ top: "12%", alignSelf: "center" })
+    it("puts the 2x text top centre", () => {
+        expect(HUD_PLACE).toEqual({ top: "12%", alignSelf: "center" })
     })
 })

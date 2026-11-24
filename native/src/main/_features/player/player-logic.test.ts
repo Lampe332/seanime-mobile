@@ -5,7 +5,6 @@ import {
     aniSkipSegments,
     AUTO_NEXT_SECONDS,
     canEnterPip,
-    classifySwipe,
     classifyTap,
     countdownTick,
     doubleTapSeekSeconds,
@@ -37,7 +36,6 @@ import {
     sleepTimerChoice,
     sleepTimerFrom,
     sleepTimerRemainingMs,
-    swipeLevel,
     playerEpisodeTitle,
 } from "./player-logic"
 
@@ -105,25 +103,6 @@ describe("double tap", () => {
     })
 })
 
-describe("swipe gestures", () => {
-    it("sideways swipes never seek or change anything (no swipe-to-seek)", () => {
-        expect(classifySwipe(200, 0, "left")).toBeNull()
-        expect(classifySwipe(-300, 20, "right")).toBeNull()
-        expect(classifySwipe(100, 120, "right")).toBeNull()
-    })
-
-    it("vertical swipes: brightness left, volume right", () => {
-        expect(classifySwipe(5, 30, "left")).toBe("brightness")
-        expect(classifySwipe(-5, -30, "right")).toBe("volume")
-        expect(classifySwipe(0, 20, "left")).toBeNull()
-    })
-
-    it("full range over three quarters of the height, clamped", () => {
-        expect(swipeLevel(0.5, 150, 400)).toBeCloseTo(1)
-        expect(swipeLevel(0.5, -600, 400)).toBe(0)
-        expect(swipeLevel(0.2, 30, 400)).toBeCloseTo(0.3)
-    })
-})
 
 describe("AniList progress only at the end", () => {
     it("sends video-completed once at 80 %, never below", () => {

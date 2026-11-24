@@ -1,49 +1,13 @@
-import * as Brightness from "expo-brightness"
 import * as ScreenOrientation from "expo-screen-orientation"
 import { Accelerometer } from "expo-sensors"
 import { Dimensions } from "react-native"
 import { heldUpright, orientationDegrees } from "./upright"
 import { orientationTarget } from "./player-chrome"
-import { getVolume, setVolume } from "react-native-volume-manager"
 
 /*
  * The Android bits the old player reached through Kotlin bridges, now through libraries (docs/NATIVE-UMBAU.md §5):
- * SeanimeGestures (brightness/volume) → expo-brightness + react-native-volume-manager,
  * OrientationBridge.setVideoFullscreen → expo-screen-orientation.
  */
-
-/** Brightness of this window (0–1); the system value until a swipe changed it. */
-export async function readBrightness() {
-    try {
-        return await Brightness.getBrightnessAsync()
-    }
-    catch {
-        return 0.5
-    }
-}
-
-export function writeBrightness(value: number) {
-    Brightness.setBrightnessAsync(value).catch(() => {})
-}
-
-/** Back to the system brightness when the player closes (SeanimeGestures.resetBrightness). */
-export function restoreBrightness() {
-    Brightness.restoreSystemBrightnessAsync().catch(() => {})
-}
-
-/** Media volume (0–1), the same stream the hardware keys change. */
-export async function readVolume() {
-    try {
-        return (await getVolume()).volume
-    }
-    catch {
-        return 0.5
-    }
-}
-
-export function writeVolume(value: number) {
-    setVolume(value, { type: "music", showUI: false, playSound: false }).catch(() => {})
-}
 
 /*
  * Fullscreen turns the screen sideways (MainActivity.setVideoFullscreenOrientation: SENSOR_LANDSCAPE, phones and tablets).

@@ -11,7 +11,7 @@ import Animated, { Easing, FadeOut, Keyframe } from "react-native-reanimated"
 /*
  * The player's own volume and mute (web media-core-control-bar `MediaCoreVolumeButton` + vc_storedVolume/Muted): the
  * speaker in the top bar opens a pill under it with a mute button and a slider. It is mpv's volume, not the phone's
- * media volume (the right-side swipe stays on that one, as in 2.0.32). Kept with the player preferences
+ * media volume (the hardware keys change that one). Kept with the player preferences
  * (vc_storedVolumeAtom / vc_storedMutedAtom), the volume boost multiplies it.
  */
 
