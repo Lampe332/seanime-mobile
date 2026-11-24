@@ -106,6 +106,9 @@ export const SUBTITLE_FONT_SIZES: MenuOption<number>[] = [
     { en: "Medium", de: "Mittel", value: 62 },
     { en: "Large", de: "Groß", value: 72 },
     { en: "Extra large", de: "Sehr groß", value: 82 },
+    // the steps grow by ~15 %; Maximum still fits about 30 characters per line in landscape
+    { en: "Huge", de: "Riesig", value: 96 },
+    { en: "Maximum", de: "Maximum", value: 112 },
 ]
 export const STYLE_COLORS: MenuOption<string>[] = [
     { en: "White", de: "Weiß", value: "#FFFFFF" },
@@ -143,6 +146,9 @@ export const CAPTION_FONT_SIZES: MenuOption<number>[] = [
     { en: "Medium", de: "Mittel", value: 5 },
     { en: "Large", de: "Groß", value: 5.7 },
     { en: "Extra large", de: "Sehr groß", value: 6.1 },
+    // % of the video height: 7.5 ≈ 54 px and 9 ≈ 65 px at mpv's 720p, for viewing from a distance
+    { en: "Huge", de: "Riesig", value: 7.5 },
+    { en: "Maximum", de: "Maximum", value: 9 },
 ]
 export const CAPTION_SHADOWS: MenuOption<number>[] = [
     { en: "None", de: "Keine", value: 0 },
@@ -164,11 +170,11 @@ type CaptionLook = Required<VideoCoreSettings["captionCustomization"]>
 
 /** vc_subtitleStylesDefaults */
 export const SUBTITLE_LOOK_DEFAULTS: SubtitleLook = {
-    enabled: false, fontSize: 62, primaryColor: "#FFFFFF", outlineColor: "#000000", backColor: "#000000", backColorOpacity: 0, outline: 3, shadow: 0,
+    enabled: false, fontSize: 62, primaryColor: "#FFFFFF", outlineColor: "#000000", backColor: "#000000", backColorOpacity: 0, outline: 3, shadow: 0, bold: false,
 }
 /** vc_captionsStylesDefaults */
 export const CAPTION_LOOK_DEFAULTS: CaptionLook = {
-    fontSize: 5, textColor: "#FFFFFF", backgroundColor: "#000000", textShadow: 4, textShadowColor: "#000000", backgroundOpacity: 0.7,
+    fontSize: 5, textColor: "#FFFFFF", backgroundColor: "#000000", textShadow: 4, textShadowColor: "#000000", backgroundOpacity: 0.7, bold: false,
 }
 
 export function subtitleLook(settings: VideoCoreSettings): SubtitleLook {
@@ -230,10 +236,13 @@ export function subtitleLookProperties(settings: VideoCoreSettings, kind: Subtit
             ["sub-ass-override", "scale"],
             ["sub-font-size", String(round1(c.fontSize * 7.2))],
             ["sub-color", mpvColor(c.textColor)],
+            ["sub-bold", c.bold ? "yes" : "no"],
             ["sub-border-style", box ? "background-box" : "outline-and-shadow"],
             ["sub-back-color", mpvColor(c.backgroundColor, c.backgroundOpacity)],
-            // in the box the size is its padding; without a box the text has no outline in the web either
-            ["sub-border-size", box ? "3" : "0"],
+            // in the box the size is its padding; without a box a thin outline in the shadow colour keeps the text
+            // readable on bright scenes
+            ["sub-border-size", box ? "3" : "2.5"],
+            ["sub-border-color", mpvColor(c.textShadowColor)],
             ["sub-shadow-offset", String(c.textShadow / 4)],
             ["sub-shadow-color", mpvColor(c.textShadowColor, 0.8)],
         ]
@@ -245,6 +254,7 @@ export function subtitleLookProperties(settings: VideoCoreSettings, kind: Subtit
             ["sub-ass-override", "force"],
             ["sub-font-size", String(round1(s.fontSize * 0.75))],
             ["sub-color", mpvColor(s.primaryColor)],
+            ["sub-bold", s.bold ? "yes" : "no"],
             ["sub-border-style", "outline-and-shadow"],
             ["sub-border-color", mpvColor(s.outlineColor)],
             ["sub-border-size", String(s.outline)],

@@ -39,6 +39,7 @@ export type VideoCoreSettings = {
         backColorOpacity?: number
         outline?: number
         shadow?: number
+        bold?: boolean
     }
     // Caption customization settings (non-ASS)
     captionCustomization: {
@@ -48,6 +49,7 @@ export type VideoCoreSettings = {
         backgroundOpacity?: number
         textShadow?: number
         textShadowColor?: string
+        bold?: boolean
     }
 }
 

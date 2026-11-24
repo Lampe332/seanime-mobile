@@ -21,6 +21,7 @@ import {
 } from "@/main/_features/video-core/video-core.atoms"
 import { useAtom } from "jotai"
 import Blend from "lucide-react-native/icons/blend"
+import Bold from "lucide-react-native/icons/baseline"
 import Captions from "lucide-react-native/icons/captions"
 import Check from "lucide-react-native/icons/check"
 import ChevronLeft from "lucide-react-native/icons/chevron-left"
@@ -601,6 +602,7 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
                                 value={`${optionLabel(SUBTITLE_OUTLINES, sub.outline, t)}, ${optionLabel(STYLE_COLORS, sub.outlineColor, t)}`} onPress={() => onPageChange("styleOutline")} />
                             <SubOptionRow icon={Blend} label={t("Shadow", "Schatten")}
                                 value={`${optionLabel(SUBTITLE_SHADOWS, sub.shadow, t)}, ${optionLabel(STYLE_COLORS, sub.backColor, t)}`} onPress={() => onPageChange("styleShadow")} />
+                            <SwitchRow icon={Bold} label={t("Bold", "Fett")} checked={sub.bold} onChange={bold => setSub({ bold })} />
                         </>
                     )}
                 </Page>
@@ -649,6 +651,7 @@ function MenuPages({ page, onPageChange, tracks, audioId, subId, subtitleKind, o
                         value={`${Math.round(cap.backgroundOpacity * 100)}%, ${optionLabel(STYLE_COLORS, cap.backgroundColor, t)}`} onPress={() => onPageChange("captionBackground")} />
                     <SubOptionRow icon={Blend} label={t("Shadow", "Schatten")}
                         value={`${optionLabel(CAPTION_SHADOWS, cap.textShadow, t)}, ${optionLabel(STYLE_COLORS, cap.textShadowColor, t)}`} onPress={() => onPageChange("captionShadow")} />
+                    <SwitchRow icon={Bold} label={t("Bold", "Fett")} checked={cap.bold} onChange={bold => setCap({ bold })} />
                 </Page>
             )
         case "captionSize":

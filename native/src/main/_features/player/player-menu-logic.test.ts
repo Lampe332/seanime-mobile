@@ -2,6 +2,7 @@ import { vc_initialSettings, type VideoCoreSettings } from "@/main/_features/vid
 import { describe, expect, it } from "vitest"
 import {
     assStyleCount,
+    CAPTION_FONT_SIZES,
     colourProperties,
     landscapeMenuPlacement,
     languageSummary,
@@ -12,6 +13,7 @@ import {
     rowValueMaxWidth,
     shortValue,
     stepSpeed,
+    SUBTITLE_FONT_SIZES,
     subtitleKind,
     subtitleLookProperties,
     timeBarPieces,
@@ -93,9 +95,34 @@ describe("subtitle look", () => {
         expect(props(subtitleLookProperties(noBox, "text", 0))).toMatchObject({
             "sub-font-size": "43.9",
             "sub-border-style": "outline-and-shadow",
-            "sub-border-size": "0",
+            "sub-border-size": "2.5",
+            "sub-border-color": "#FF000000",
             "sub-shadow-offset": "0",
         })
+    })
+
+    it("outlines plain subtitles without a box in the shadow colour, keeps the box padding with one", () => {
+        const noBox = settings({ captionCustomization: { backgroundOpacity: 0, textShadowColor: "#808080" } })
+        expect(props(subtitleLookProperties(noBox, "text", 0))).toMatchObject({ "sub-border-size": "2.5", "sub-border-color": "#FF808080" })
+        expect(props(subtitleLookProperties(settings(), "text", 0))).toMatchObject({ "sub-border-style": "background-box", "sub-border-size": "3" })
+    })
+
+    it("offers Huge and Maximum after the old sizes, which keep their values", () => {
+        expect(SUBTITLE_FONT_SIZES.map(o => o.value)).toEqual([54, 62, 72, 82, 96, 112])
+        expect(CAPTION_FONT_SIZES.map(o => o.value)).toEqual([4, 5, 5.7, 6.1, 7.5, 9])
+        expect(props(subtitleLookProperties(settings({ captionCustomization: { fontSize: 9 } }), "text", 0))["sub-font-size"]).toBe("64.8")
+        const max = settings({ subtitleCustomization: { enabled: true, fontSize: 112 } })
+        expect(props(subtitleLookProperties(max, "ass", 1))["sub-font-size"]).toBe("84")
+    })
+
+    it("sets bold for plain subtitles and overridden ASS, off for saved settings without the field", () => {
+        expect(props(subtitleLookProperties(settings(), "text", 0))["sub-bold"]).toBe("no")
+        expect(props(subtitleLookProperties(settings({ captionCustomization: { bold: true } }), "text", 0))["sub-bold"]).toBe("yes")
+        const oldAss = settings({ subtitleCustomization: { enabled: true, fontSize: 62 } })
+        expect(props(subtitleLookProperties(oldAss, "ass", 1))["sub-bold"]).toBe("no")
+        const boldAss = settings({ subtitleCustomization: { enabled: true, bold: true } })
+        expect(props(subtitleLookProperties(boldAss, "ass", 1))["sub-bold"]).toBe("yes")
+        expect(props(subtitleLookProperties(boldAss, "ass", 2))["sub-bold"]).toBeUndefined()
     })
 
     it("keeps every kind on the video", () => {
