@@ -178,6 +178,7 @@ export const MANGA_WITH_ENTRY = `query MangaWithEntry($id: Int) { Media(id: $id,
 export const MANGA_DETAILS = `query MangaDetails($id: Int) {
     Media(id: $id, type: MANGA) {
         siteUrl id genres
+        rankings { context type rank year format allTime season }
         characters(sort: [ROLE]) {
             edges { id role node { id isFavourite gender dateOfBirth ${date} name { full native } image { large } siteUrl } }
         }

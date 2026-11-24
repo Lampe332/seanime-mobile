@@ -48,6 +48,7 @@ import {
 } from "@/main/lists/_lib/lists-phone"
 import { genreLabel } from "@/main/discover/_lib/discover-phone"
 import { ListsFilterSheet } from "@/main/lists/_screens/lists-phone-filters"
+import { pickRandom } from "@/main/lists/_lib/random-pick"
 import { ListsAction, ListsHeader } from "@/main/lists/_screens/lists-phone-header"
 import { AnilistSyncBar } from "@/main/_features/anilist-sync/anilist-sync"
 import { ListsStats } from "@/main/lists/_screens/lists-phone-stats"
@@ -61,6 +62,7 @@ import ArrowUp from "lucide-react-native/icons/arrow-up"
 import ChartColumn from "lucide-react-native/icons/chart-column"
 import Play from "lucide-react-native/icons/play"
 import RefreshCcw from "lucide-react-native/icons/refresh-ccw"
+import Shuffle from "lucide-react-native/icons/shuffle"
 import SlidersHorizontal from "lucide-react-native/icons/sliders-horizontal"
 import React from "react"
 import { BackHandler, View } from "react-native"
@@ -283,6 +285,15 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
     }
 
     const entries = React.useMemo(() => shown.find(list => list.key === status)?.entries ?? [], [shown, status])
+    // "Random": a title of the shown list (after filter and search), never the same one twice in a row
+    const pickable = React.useMemo(() => entries.flatMap(entry => entry?.media?.id ? [entry.media.id] : []), [entries])
+    const lastPick = React.useRef<number | null>(null)
+    const openRandom = () => {
+        const id = pickRandom(pickable, Math.random, lastPick.current)
+        if (id == null) return
+        lastPick.current = id
+        router.push(type === "anime" ? `/entry?id=${id}` : `/manga/entry?id=${id}`)
+    }
     const facts = React.useMemo(() => getListFacts(type, lists, now, unreadOf), [type, lists, now, unreadOf])
     const activeFilters = countActiveFilters(type, filters, showAdult)
     const selectedTab = tabs.find(tab => tab.value === status)
@@ -402,6 +413,8 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
         <View className="gap-6 pb-6">
             <ListsHeader title={t("My lists", "Meine Listen")} facts={factsText}>
                 {refreshButton}
+                {!body && pickable.length >= 2 && <ListsAction icon={Shuffle} label={t("Random", "Zufällig")} onPress={openRandom}
+                    accessibilityLabel={t("Open a random title from this list", "Zufälligen Titel aus dieser Liste öffnen")} />}
                 <ListsAction icon={SlidersHorizontal} label={t("Filter", "Filter")} accessibilityLabel={filterLabel} dot={activeFilters > 0}
                     disabled={!ready || facts.total === 0} onPress={() => setSheetOpen(true)} />
                 {statsButton}

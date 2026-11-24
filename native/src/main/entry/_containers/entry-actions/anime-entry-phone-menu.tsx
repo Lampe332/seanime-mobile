@@ -16,6 +16,7 @@ import { isCustomSource } from "@/lib/server/utils"
 import { colors } from "@/lib/theme/tokens"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { __anime_hiddenEntryViewsAtom, getEntryTabSettings } from "@/main/entry/_lib/anime-entry-view"
+import { shareEntry } from "@/main/entry/_lib/share-entry"
 import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
 import { __torrentSearch_selectionAtom } from "@/main/entry/_containers/torrent-search/torrent-search.atoms"
 import { useAtom, useSetAtom } from "jotai"
@@ -27,6 +28,7 @@ import Globe from "lucide-react-native/icons/globe"
 import ListChecks from "lucide-react-native/icons/list-checks"
 import Magnet from "lucide-react-native/icons/magnet"
 import Puzzle from "lucide-react-native/icons/puzzle"
+import Share2 from "lucide-react-native/icons/share-2"
 import Trash2 from "lucide-react-native/icons/trash"
 import React from "react"
 import { TextInput, View } from "react-native"
@@ -44,6 +46,15 @@ type MenuView = "menu" | "metadata" | "unmatch" | "delete" | null
 
 export function ExternalRow({ href, label, note }: { href: string, label: string, note: string }) {
     return <ActionRow icon={Globe} label={label} note={note} onPress={() => openInAppBrowser(href)} trailing={<ArrowUpRight size={18} color={colors.smTextSubtle} />} />
+}
+
+/** "Share": closes the sheet, then the system's share sheet sends the title with its link (share-entry.ts) */
+export function ShareRow({ title, link, note, onClose }: { title: string, link: string, note: string, onClose: () => void }) {
+    const t = useTr()
+    return <ActionRow icon={Share2} label={t("Share", "Teilen")} note={note} onPress={() => {
+        onClose()
+        shareEntry(title, link).catch(() => toast.error(t("Could not open sharing", "Teilen ließ sich nicht öffnen")))
+    }} />
 }
 
 export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibraryView }: {
@@ -85,6 +96,8 @@ export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibr
         <Sheet title={t("More", "Mehr")} open={shown === "menu"} onOpenChange={close}>
             <SheetGroup title={t("Elsewhere", "Anderswo")}>
                 <RowGroup>
+                    {!isCustomSource(entry.mediaId) && <ShareRow title={entry.media?.title?.userPreferred || entry.media?.title?.romaji || entry.media?.title?.english || "Anime"}
+                        link={`https://anilist.co/anime/${entry.mediaId}`} note={t("Title and AniList link", "Titel und AniList-Link")} onClose={() => close(false)} />}
                     {!isCustomSource(entry.mediaId) && <ExternalRow href={`https://anilist.co/anime/${entry.mediaId}`} label="AniList" note={t("Lists, reviews, staff", "Listen, Rezensionen, Mitwirkende")} />}
                     {!!entry.anidbId && <ExternalRow href={`https://anidb.net/anime/${entry.anidbId}`} label="AniDB" note={t("Episodes and files", "Folgen und Dateien")} />}
                     {!!entry.media?.idMal && <ExternalRow href={`https://myanimelist.net/anime/${entry.media.idMal}`} label="MyAnimeList" note={t("Scores and forums", "Wertungen und Foren")} />}

@@ -26,9 +26,11 @@ import { userScoreColor } from "@/main/_features/media/_lib/media-card"
 import { MEDIA_STATUS_LABELS, plainDescription } from "@/main/_features/media/_lib/media-labels"
 import { listStatusLabel } from "@/main/discover/_lib/discover-phone"
 import { Heading, RelatedCard, type RelatedCardData, relationLabel } from "@/main/entry/_components/relations-recommendations-section"
-import { ExternalRow } from "@/main/entry/_containers/entry-actions/anime-entry-phone-menu"
+import { EntryFacts } from "@/main/entry/_components/entry-facts"
+import { ExternalRow, ShareRow } from "@/main/entry/_containers/entry-actions/anime-entry-phone-menu"
 import { ChapterList, mangaReadActionAtom } from "@/main/manga/_containers/chapter-list/chapter-list"
 import { useHandleMangaDownloadData } from "@/main/manga/_lib/handle-manga-downloads"
+import { mangaRelations, publishingPeriod } from "@/main/manga/_lib/manga-meta"
 import { useMangaChapterTotal } from "@/main/manga/_lib/use-manga-chapter-total"
 import { useFocusEffect, useLocalSearchParams } from "expo-router"
 import { Image } from "expo-image"
@@ -194,9 +196,11 @@ function MangaHeader({ entry, details, detailsLoading, wide, tablet, onMore }: {
             </View>
             <View className={cn("min-w-0", !wide && "min-w-[160px] flex-1")}>
                 <Text accessibilityRole="header" numberOfLines={4} className={cn("font-bold text-sm-text", tablet ? "text-[28px] leading-[35px] tracking-[-0.56px]" : "text-[22px] leading-[28px] tracking-[-0.44px]")}>{title}</Text>
-                <Muted className="mt-1.5 capitalize">{[media.startDate?.year, status].filter(Boolean).join(" · ")}</Muted>
+                <Muted className="mt-1.5 capitalize">{[publishingPeriod(t, media), status].filter(Boolean).join(" · ")}</Muted>
             </View>
         </View>
+        <EntryFacts kind="manga" rankings={details?.rankings} genres={(media.genres?.length ? media.genres : details?.genres) ?? []}
+            loading={detailsLoading && !details} wide={wide} />
 
         <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 border-y border-sm-line py-3" style={gaps ? { marginTop: gaps.progress } : undefined}>
             <View className="min-w-0 flex-1">
@@ -267,7 +271,7 @@ function AboutManga({ entry, title }: { entry: Manga_Entry, title: string }) {
         {!!english && english !== title && <Text className={p}>{english}</Text>}
         {!!romaji && romaji !== title && romaji !== english && <Text className={p}>{romaji}</Text>}
         <Text className={p}>{plainDescription(media.description) || t("No description available.", "Keine Beschreibung verfügbar.")}</Text>
-        {/* 2.0.32 shows no score, studio, genre or ranking badges on media pages (globals.css: display none) */}
+        {/* genres and ranking badges sit under the title (EntryFacts) */}
         <EntryAboutLinks onOpen={openInAppBrowser} anilistUrl={custom ? undefined : `https://anilist.co/manga/${entry.mediaId}`}>
             {!!siteUrl && <Button intent="text" onPress={() => openInAppBrowser(siteUrl)}>{t("Open in website", "Auf der Website öffnen")}</Button>}
         </EntryAboutLinks>
@@ -285,6 +289,10 @@ function MangaEntryPhoneMenu({ entry, open, onOpenChange }: { entry: Manga_Entry
     return <Sheet title={t("More", "Mehr")} open={open} onOpenChange={onOpenChange}>
         <SheetGroup title={t("Elsewhere", "Anderswo")}>
             <RowGroup>
+                {(!custom || !!siteUrl) && <ShareRow title={media?.title?.userPreferred || media?.title?.romaji || media?.title?.english || "Manga"}
+                    link={custom ? siteUrl! : `https://anilist.co/manga/${entry.mediaId}`}
+                    note={custom ? t("Title and the source's link", "Titel und Link der Quelle") : t("Title and AniList link", "Titel und AniList-Link")}
+                    onClose={() => onOpenChange(false)} />}
                 {!custom && <ExternalRow href={`https://anilist.co/manga/${entry.mediaId}`} label="AniList" note={t("Lists, reviews, staff", "Listen, Rezensionen, Mitwirkende")} />}
                 {!!media?.idMal && <ExternalRow href={`https://myanimelist.net/manga/${media.idMal}`} label="MyAnimeList" note={t("Scores and forums", "Wertungen und Foren")} />}
                 {!!siteUrl && <ExternalRow href={siteUrl} label={t("Website", "Website")} note={t("The source's own page", "Die Seite der Quelle")} />}
@@ -313,7 +321,7 @@ function CopyIdRow({ mediaId }: { mediaId: number }) {
     </Pressable>
 }
 
-/** manga-recommendations.tsx: up to three anime adaptations (TV first) with their relation, then up to six recommendations */
+/** manga-recommendations.tsx: the related manga (manga-meta.ts), up to three anime adaptations (TV first) with their relation, then up to six recommendations */
 function MangaRecommendations({ entry, details, loading }: { entry: Manga_Entry, details?: AL_MangaDetailsById_Media, loading: boolean }) {
     const t = useTr()
     const anime = React.useMemo(() => (details?.relations?.edges ?? []).filter(Boolean)
@@ -327,14 +335,24 @@ function MangaRecommendations({ entry, details, loading }: { entry: Manga_Entry,
             type: "anime",
             label: `${relationLabel(t, edge.relationType)}${edge.node?.format === "MOVIE" ? t(" (Movie)", " (Film)") : ""}`,
         }) as RelatedCardData), [details?.relations?.edges, t])
+    const related = React.useMemo(() => mangaRelations(details?.relations?.edges).map(edge => ({
+        key: `manga-${edge.node.id}`,
+        media: edge.node,
+        type: "manga",
+        label: `${relationLabel(t, edge.relationType)}${edge.node.format === "NOVEL" ? t(" (Novel)", " (Roman)") : edge.node.format === "ONE_SHOT" ? t(" (One-shot)", " (One-Shot)") : ""}`,
+    }) as RelatedCardData), [details?.relations?.edges, t])
     const recommendations = React.useMemo(() => (details?.recommendations?.edges?.map(edge => edge?.node?.mediaRecommendation)?.filter(Boolean) ?? [])
         .slice(0, 6).map(media => ({ key: `rec-${media!.id}`, media: media!, type: "manga" }) as RelatedCardData), [details?.recommendations?.edges])
 
     if (loading && !details) return <View className="mt-5 gap-4"><View className="h-8 w-40 rounded-full bg-sm-surface-raised" /><MediaCardRowSkeleton /></View>
     if (!details) return null
     return <View className="gap-4">
+        {related.length > 0 && <>
+            <Heading>{t("Related manga", "Verwandte Manga")}</Heading>
+            <MediaCardRow data={related} keyOf={card => card.key} renderCard={(card, width) => <RelatedCard card={card} width={width} />} />
+        </>}
         {anime.length > 0 && <>
-            <Heading>{t("Relations", "Als Anime")}</Heading>
+            <Heading>{t("Anime adaptations", "Als Anime")}</Heading>
             <MediaCardRow data={anime} keyOf={card => card.key} renderCard={(card, width) => <RelatedCard card={card} width={width} />} />
         </>}
         {recommendations.length > 0 && <>
