@@ -53,6 +53,16 @@ describe("season line and score colour", () => {
         expect(cardSeasonLine(de, anime({ season: "FALL", seasonYear: 2023 }))).toBe("Herbst 2023")
         expect(cardSeasonLine(en, manga({ startDate: { year: 2020 } } as never))).toBe("2020")
     })
+    it("puts a related title's format before its year, but not TV or manga", () => {
+        const en = (en: string) => en
+        const de = (_: string, de: string) => de
+        expect(cardSeasonLine(en, anime({ format: "MOVIE", season: "FALL", seasonYear: 2021 }), true)).toBe("Movie · Fall 2021")
+        expect(cardSeasonLine(de, manga({ format: "NOVEL", startDate: { year: 2005 } } as never), true)).toBe("Roman · 2005")
+        expect(cardSeasonLine(en, anime({ format: "MUSIC", seasonYear: 2019 }), true)).toBe("Music · 2019")
+        expect(cardSeasonLine(en, anime({ format: "TV", season: "FALL", seasonYear: 2021 }), true)).toBe("Fall 2021")
+        expect(cardSeasonLine(en, manga({ format: "MANGA", startDate: { year: 2020 } } as never), true)).toBe("2020")
+        expect(cardSeasonLine(en, anime({ format: "MOVIE", season: "FALL", seasonYear: 2021 }))).toBe("Fall 2021")
+    })
     it("steps through the user score colours", () => {
         expect(userScoreColor(30)).toContain("220, 38, 38")
         expect(userScoreColor(90)).toContain("79, 70, 229")

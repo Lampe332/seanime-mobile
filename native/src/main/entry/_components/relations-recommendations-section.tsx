@@ -63,7 +63,7 @@ export function RelationsRecommendationsSection({ entry, details, loading }: {
                 key: `anime-${edge.node!.id}`,
                 media: edge.node as AL_BaseAnime,
                 type: "anime",
-                label: edge.node?.format === "MOVIE" ? `${relationLabel(t, edge.relationType)} (${t("Movie", "Film")})` : relationLabel(t, edge.relationType),
+                label: relationLabel(t, edge.relationType),
             } satisfies Card)),
         ]
     }, [edges, serverStatus?.settings?.library?.enableManga, t])
@@ -100,7 +100,7 @@ export function RelatedCard({ card, width }: { card: RelatedCardData, width: num
     const { listData, libraryData } = useDiscoverEntry(card.type, card.media.id)
     return <MediaEntryCard media={card.media} type={card.type} width={width} listData={listData} libraryData={libraryData} showLibraryBadge={card.type === "anime"}
         // the relation label takes the corner of the airing mark (2.0.33 shows only the label there)
-        hideReleasingBadge={!!card.label} seasonTop={5}
+        hideReleasingBadge={!!card.label} seasonTop={5} withFormat={!!card.label}
         overlay={card.label ? <View className="absolute right-1.5 top-1.5 max-w-[85%] rounded-full bg-[rgba(12,12,14,0.82)] px-2.5 py-1">
             <Text numberOfLines={1} className="text-[13px] font-semibold text-white">{card.label}</Text>
         </View> : undefined} />

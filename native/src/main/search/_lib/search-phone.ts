@@ -13,7 +13,7 @@ import type { MangaEntryFilters } from "@/main/manga/_lib/manga-preferences"
 import { getMangaEntryUnreadState } from "@/main/manga/_lib/manga-unread"
 import { ADVANCED_SEARCH_MEDIA_TAGS } from "@/main/search/_lib/advanced-search-constants"
 import type { Translate } from "@/lib/app-language"
-import { seasonWithYear } from "@/main/_features/media/_lib/media-labels"
+import { formatLabel, seasonWithYear } from "@/main/_features/media/_lib/media-labels"
 import { anilist_getCurrentEpisodes } from "@/lib/helpers/media"
 
 /**
@@ -492,7 +492,7 @@ export function resultCardFacts(t: Translate, type: SearchType, media: AL_BaseAn
     const year = (type === "anime" ? anime.seasonYear : undefined) || media.startDate?.year || undefined
     const season = type === "anime" ? find(SEARCH_SEASONS, anime.season) : undefined
     const seasonYear = season && year ? seasonWithYear(t, season.value, year) : [season && t(season.en, season.de), year].filter(Boolean).join(" ")
-    const format = media.format ? label(t, [...SEARCH_ANIME_FORMATS, ...SEARCH_MANGA_FORMATS], media.format) : ""
+    const format = formatLabel(t, media.format)
     const series = !media.format || media.format === (type === "anime" ? "TV" : "MANGA")
     const when = series ? seasonYear : [format, year].filter(Boolean).join(" · ")
 

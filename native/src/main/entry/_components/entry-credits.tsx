@@ -4,6 +4,7 @@ import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
 import { type CreditRole, type CreditRow, creditRoleAbove, type EntryTag, pickCredits, pickTags, type StaffEdgeInput, type TagInput } from "@/main/entry/_lib/entry-credits"
 import Eye from "lucide-react-native/icons/eye"
+import EyeOff from "lucide-react-native/icons/eye-off"
 import TriangleAlert from "lucide-react-native/icons/triangle-exclamation-point"
 import React from "react"
 import { Pressable, useWindowDimensions, View } from "react-native"
@@ -33,7 +34,7 @@ function rowLabel(row: CreditRow, t: Tr): string {
 }
 
 /**
- * In "About this anime/manga": the few staff a reader looks for (names open the person's page) and, for anime, the
+ * In "About this anime/manga": the few staff a reader looks for (names open the person's page) and the
  * best-ranked tags (open a search for one) with spoiler tags behind a tap. Nothing at all without data (TVmaze, custom
  * sources).
  */
@@ -68,12 +69,17 @@ export function EntryCredits({ kind, staff, tags }: { kind: "anime" | "manga", s
         {(picked.tags.length > 0 || picked.spoilers.length > 0) && <View className="flex-row flex-wrap gap-2">
             {picked.tags.map(tag => <TagChip key={tag.name} tag={tag} onPress={openTag} t={t} />)}
             {spoilersShown && picked.spoilers.map(tag => <TagChip key={tag.name} tag={tag} onPress={openTag} t={t} spoiler />)}
-            {picked.spoilers.length > 0 && !spoilersShown && <Pressable hitSlop={4} accessibilityRole="button"
-                accessibilityLabel={t(`Show ${picked.spoilers.length} spoiler tags`, `${picked.spoilers.length} Spoiler-Tags zeigen`)}
-                onPress={() => setSpoilersShown(true)}
+            {picked.spoilers.length > 0 && <Pressable hitSlop={4} accessibilityRole="button"
+                accessibilityState={{ expanded: spoilersShown }}
+                accessibilityLabel={spoilersShown
+                    ? t(`Hide ${picked.spoilers.length} spoiler tags`, `${picked.spoilers.length} Spoiler-Tags ausblenden`)
+                    : t(`Show ${picked.spoilers.length} spoiler tags`, `${picked.spoilers.length} Spoiler-Tags zeigen`)}
+                onPress={() => setSpoilersShown(shown => !shown)}
                 className="min-h-9 flex-row items-center gap-1.5 rounded-full border border-sm-line px-3.5 active:opacity-70">
-                <Eye size={14} color={colors.smTextSubtle} />
-                <Text className="text-[13px] font-semibold text-sm-text-subtle">{t(`Show spoilers (${picked.spoilers.length})`, `Spoiler zeigen (${picked.spoilers.length})`)}</Text>
+                {spoilersShown ? <EyeOff size={14} color={colors.smTextSubtle} /> : <Eye size={14} color={colors.smTextSubtle} />}
+                <Text className="text-[13px] font-semibold text-sm-text-subtle">{spoilersShown
+                    ? t("Hide spoilers", "Spoiler ausblenden")
+                    : t(`Show spoilers (${picked.spoilers.length})`, `Spoiler zeigen (${picked.spoilers.length})`)}</Text>
             </Pressable>}
         </View>}
     </View>

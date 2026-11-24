@@ -16,6 +16,13 @@ describe("seasonOfMonth", () => {
 })
 
 describe("airingPeriod", () => {
+    it("a title not out yet: its season or year when AniList knows one, else that the date is open", () => {
+        expect(airingPeriod(en, { status: "NOT_YET_RELEASED", season: "SPRING", seasonYear: 2027, startDate: {} })).toBe("Spring 2027")
+        expect(airingPeriod(en, { status: "NOT_YET_RELEASED", seasonYear: 2027, startDate: { year: null } })).toBe("2027")
+        expect(airingPeriod(en, { status: "NOT_YET_RELEASED", startDate: {} })).toBe("Release date TBA")
+        expect(airingPeriod(de, { status: "NOT_YET_RELEASED" })).toBe("Termin noch offen")
+        expect(airingPeriod(en, { status: "FINISHED" })).toBe("")
+    })
     it("one season", () => {
         const media = { status: "FINISHED", startDate: { year: 2024, month: 1 }, endDate: { year: 2024, month: 3 } }
         expect(airingPeriod(en, media)).toBe("Winter 2024")
@@ -56,7 +63,7 @@ describe("airingPeriod", () => {
     })
     it("nothing known", () => {
         expect(airingPeriod(en, { status: "FINISHED" })).toBe("")
-        expect(airingPeriod(en, { status: "NOT_YET_RELEASED", startDate: {} })).toBe("")
+        expect(airingPeriod(en, { status: "CANCELLED", startDate: {} })).toBe("")
     })
 })
 

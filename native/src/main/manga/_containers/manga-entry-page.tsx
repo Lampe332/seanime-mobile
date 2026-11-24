@@ -28,7 +28,7 @@ import { listStatusLabel } from "@/main/discover/_lib/discover-phone"
 import { Heading, RelatedCard, type RelatedCardData, relationLabel } from "@/main/entry/_components/relations-recommendations-section"
 import { EntryFacts } from "@/main/entry/_components/entry-facts"
 import { EntryCredits } from "@/main/entry/_components/entry-credits"
-import type { StaffEdgeInput } from "@/main/entry/_lib/entry-credits"
+import type { StaffEdgeInput, TagInput } from "@/main/entry/_lib/entry-credits"
 import { ExternalRow, ShareRow } from "@/main/entry/_containers/entry-actions/anime-entry-phone-menu"
 import { ChapterList, mangaReadActionAtom } from "@/main/manga/_containers/chapter-list/chapter-list"
 import { useHandleMangaDownloadData } from "@/main/manga/_lib/handle-manga-downloads"
@@ -274,7 +274,8 @@ function AboutManga({ entry, title, details }: { entry: Manga_Entry, title: stri
         {!!romaji && romaji !== title && romaji !== english && <Text className={p}>{romaji}</Text>}
         <Text className={p}>{plainDescription(media.description) || t("No description available.", "Keine Beschreibung verfügbar.")}</Text>
         {/* genres and ranking badges sit under the title (EntryFacts) */}
-        {!custom && <EntryCredits kind="manga" staff={(details as (typeof details & { staff?: { edges?: StaffEdgeInput[] | null } | null }))?.staff?.edges} />}
+        {!custom && <EntryCredits kind="manga" staff={(details as (typeof details & { staff?: { edges?: StaffEdgeInput[] | null } | null }))?.staff?.edges}
+            tags={(details as (typeof details & { tags?: TagInput[] | null }))?.tags} />}
         <EntryAboutLinks onOpen={openInAppBrowser} anilistUrl={custom ? undefined : `https://anilist.co/manga/${entry.mediaId}`}>
             {!!siteUrl && <Button intent="text" onPress={() => openInAppBrowser(siteUrl)}>{t("Open in website", "Auf der Website öffnen")}</Button>}
         </EntryAboutLinks>
@@ -336,13 +337,13 @@ function MangaRecommendations({ entry, details, loading }: { entry: Manga_Entry,
             key: `anime-${edge.node!.id}`,
             media: edge.node!,
             type: "anime",
-            label: `${relationLabel(t, edge.relationType)}${edge.node?.format === "MOVIE" ? t(" (Movie)", " (Film)") : ""}`,
+            label: relationLabel(t, edge.relationType),
         }) as RelatedCardData), [details?.relations?.edges, t])
     const related = React.useMemo(() => mangaRelations(details?.relations?.edges).map(edge => ({
         key: `manga-${edge.node.id}`,
         media: edge.node,
         type: "manga",
-        label: `${relationLabel(t, edge.relationType)}${edge.node.format === "NOVEL" ? t(" (Novel)", " (Roman)") : edge.node.format === "ONE_SHOT" ? t(" (One-shot)", " (One-Shot)") : ""}`,
+        label: relationLabel(t, edge.relationType),
     }) as RelatedCardData), [details?.relations?.edges, t])
     const recommendations = React.useMemo(() => (details?.recommendations?.edges?.map(edge => edge?.node?.mediaRecommendation)?.filter(Boolean) ?? [])
         .slice(0, 6).map(media => ({ key: `rec-${media!.id}`, media: media!, type: "manga" }) as RelatedCardData), [details?.recommendations?.edges])

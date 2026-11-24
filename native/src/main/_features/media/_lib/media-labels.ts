@@ -7,6 +7,21 @@ export const MEDIA_STATUS_LABELS: Record<string, [string, string]> = {
     HIATUS: ["Hiatus", "Pausiert"], CANCELLED: ["Cancelled", "Abgebrochen"],
 }
 
+/** Every AniList format in the app language */
+export const FORMAT_LABELS: Record<string, [string, string]> = {
+    TV: ["TV", "TV"], TV_SHORT: ["TV short", "TV-Kurzserie"], MOVIE: ["Movie", "Film"], SPECIAL: ["Special", "Special"], OVA: ["OVA", "OVA"],
+    ONA: ["ONA", "ONA"], MUSIC: ["Music", "Musik"], MANGA: ["Manga", "Manga"], NOVEL: ["Novel", "Roman"], ONE_SHOT: ["One shot", "One-Shot"],
+}
+
+/** "Music" for MUSIC; a format AniList adds later reads "Some format" instead of "SOME_FORMAT" */
+export function formatLabel(t: Translate, format?: string | null) {
+    if (!format) return ""
+    const known = FORMAT_LABELS[format]
+    if (known) return t(...known)
+    const words = format.replace(/_/g, " ").toLowerCase()
+    return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 export const SEASON_LABELS: Record<string, [string, string]> = {
     WINTER: ["Winter", "Winter"], SPRING: ["Spring", "Frühling"], SUMMER: ["Summer", "Sommer"], FALL: ["Fall", "Herbst"],
 }
@@ -31,11 +46,18 @@ export function seasonWithYear(t: Translate, season: string, year: number | stri
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: "\"", "#39": "'", apos: "'", nbsp: " ", mdash: "—", ndash: "–", hellip: "…" }
 
-/** AniList's synopsis is HTML; its text with the line breaks kept (the web used DOMParser) */
+/**
+ * AniList's synopsis is HTML; its text with the paragraphs kept (the web used DOMParser). A <br> and the newline AniList
+ * writes after it are one line break, a list item starts its own line ("- …"), and more than one empty line is one.
+ */
 export function synopsisText(html?: string | null) {
     if (!html) return ""
     return html
-        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/\r\n?/g, "\n")
+        .replace(/<br\s*\/?>[ \t]*\n?/gi, "\n")
+        .replace(/<\/p>\s*/gi, "\n\n")
+        .replace(/<li[^>]*>\s*/gi, "\n- ")
+        .replace(/<\/(ul|ol)>/gi, "\n")
         .replace(/<[^>]+>/g, "")
         .replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (match, code: string) => {
             if (code[0] === "#") {
@@ -44,15 +66,12 @@ export function synopsisText(html?: string | null) {
             }
             return ENTITIES[code.toLowerCase()] ?? match
         })
+        .split("\n").map(line => line.replace(/[ \t ]+/g, " ").trim()).join("\n")
         .replace(/\n{3,}/g, "\n\n")
         .trim()
 }
 
-/**
- * The anime page's About: the description without tags in one paragraph (mobile-anime-header.tsx). The web's <p> folds
- * every run of white space (AniList's "\n" after a <br>, a trailing newline) into one space; a native Text would keep
- * them as empty lines (S22: 22dp more under the description).
- */
+/** The description on the anime and manga pages: like the preview, with its line breaks and paragraphs (synopsisText) */
 export function plainDescription(html?: string | null) {
-    return html?.replace(/(<([^>]+)>)/ig, "").replace(/\s+/g, " ").trim() || ""
+    return synopsisText(html)
 }

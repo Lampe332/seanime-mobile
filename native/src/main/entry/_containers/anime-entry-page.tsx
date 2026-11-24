@@ -246,10 +246,11 @@ export function AnimeEntryPage() {
 
     const tabs = getAnimeEntryTabs(t, entry, serverStatus, hidden)
     const tabsRow = tabs.length > 0 && <Tabs value={view} onValueChange={value => pickView(value as AnimeEntryView)} items={tabs} />
-    const moreSection = foreign || !moreReady ? null : <>
+    // gap-6 as on the manga page, so "Relations" does not sit right under the last character
+    const moreSection = foreign || !moreReady ? null : <View className="gap-6">
         <MediaEntryCharactersSection details={details} loading={detailsLoading} />
         <RelationsRecommendationsSection entry={entry} details={details} loading={detailsLoading} />
-    </>
+    </View>
     // The tablet edition shows characters and relations across the whole page, under the anime and its episodes
     const bottomSection = rail ? undefined : moreSection
     const episodes = <View className="min-w-0">

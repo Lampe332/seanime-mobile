@@ -32,7 +32,9 @@ function startPoint(media: PeriodMedia): Point | null {
     if (year && season) return { year, season }
     // without a month AniList's own season (with its year) stands in
     if (isSeason(media.season) && (media.seasonYear || year)) return { year: (media.seasonYear || year)!, season: media.season }
-    return year ? { year, season: null } : null
+    // a title not yet started often has only AniList's year
+    const known = year || media.seasonYear
+    return known ? { year: known, season: null } : null
 }
 
 function endPoint(media: PeriodMedia): Point | null {
@@ -49,11 +51,12 @@ const seasonName = (t: Translate, season: Season) => t(...SEASON_LABELS[season])
 /**
  * When the anime aired, in seasons: "Winter 2024" within one season, "Spring – Fall 2024" within one year,
  * "Fall 2017 – Spring 2020" over years, "Since Fall 2025" while it runs, the start alone before it starts.
- * Only years where AniList knows no months ("2017–2020"); empty when it knows nothing.
+ * Only years where AniList knows no months ("2017–2020"); "Release date TBA" for a title not out yet without any date,
+ * else empty when it knows nothing.
  */
 export function airingPeriod(t: Translate, media: PeriodMedia): string {
     const start = startPoint(media)
-    if (!start) return ""
+    if (!start) return media.status === "NOT_YET_RELEASED" ? t("Release date TBA", "Termin noch offen") : ""
     const end = media.status === "NOT_YET_RELEASED" ? null : endPoint(media)
     if (!end) {
         const running = media.status === "RELEASING" || media.status === "HIATUS"

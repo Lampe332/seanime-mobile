@@ -297,7 +297,7 @@ const TAP_HINT_TOAST = "version-taps"
 /** Legal (_lib/legal.ts): who runs the app, then contact, website, privacy policy and imprint, each opened outside the app */
 function LegalGroup({ t }: { t: Translate }) {
     return <SettingsGroup title={t("Legal", "Rechtliches")}
-        note={t("Unofficial app, built on Seanime by 5rahim. No telemetry, no analytics.", "Inoffizielle App, gebaut auf Seanime von 5rahim. Keine Telemetrie, keine Analyse.")}>
+        note={t("Unofficial app, built on Seanime by 5rahim. No analytics or tracking. Only an anonymous daily usage count, which you can turn off under App > Privacy.", "Inoffizielle App, gebaut auf Seanime von 5rahim. Keine Analyse, kein Tracking. Nur eine anonyme tägliche Nutzungszählung, die du unter App > Datenschutz abschalten kannst.")}>
         <View accessible accessibilityLabel={`${t("Imprint", "Impressum")}: ${LEGAL.name}, ${LEGAL.region}`} className="gap-0.5 bg-sm-surface-raised px-4 py-3">
             <Text className="text-[15px]">{LEGAL.name}</Text>
             <Muted className="text-[13px] leading-[19px]">{LEGAL.region}</Muted>

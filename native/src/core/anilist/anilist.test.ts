@@ -160,6 +160,7 @@ describe("the questions asked of AniList", () => {
             ["staff", queries.STAFF_DETAILS, staffAnswer],
             ["anime details: staff and tags", queries.ANIME_DETAILS, { Media: { tags: [{ name: "Time Skip", rank: 80, isMediaSpoiler: true, isGeneralSpoiler: false }] } }],
             ["manga details: staff", queries.MANGA_DETAILS, { Media: { staff: { edges: [{ role: "Story & Art", node: { name: { full: "Some Person" }, id: 1 } }] } } }],
+            ["manga details: tags", queries.MANGA_DETAILS, { Media: { tags: [{ name: "Revenge", rank: 90, isMediaSpoiler: false, isGeneralSpoiler: false }] } }],
             ["anime search", queries.LIST_ANIME, recorded.listAnime],
             ["manga search", queries.LIST_MANGA, recorded.listManga],
             ["recent airing", queries.LIST_RECENT_AIRING, recorded.recent],

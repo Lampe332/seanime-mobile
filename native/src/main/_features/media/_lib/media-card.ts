@@ -1,7 +1,7 @@
 import type { AL_BaseAnime, AL_BaseManga, Anime_EntryLibraryData, Anime_NakamaEntryLibraryData, Nullish } from "@/api/generated/types"
 import type { Translate } from "@/lib/app-language"
 import { anilist_getCurrentEpisodes } from "@/lib/helpers/media"
-import { seasonYearLabel } from "./media-labels"
+import { formatLabel, seasonYearLabel } from "./media-labels"
 
 /*
  * What a media card shows, from media-entry-card.tsx / -components.tsx / anime-entry-card-unwatched-badge.tsx of the web
@@ -51,9 +51,15 @@ export function cardUnwatchedCount(media: Nullish<AL_BaseAnime>, progress: Nulli
     return count > 0 ? count : 0
 }
 
-/** "Fall 2023" in the app language: the season and the year (seasonYear for anime, else the start year). */
-export function cardSeasonLine(t: Translate, media: Nullish<AL_BaseAnime | AL_BaseManga>) {
-    return media ? seasonYearLabel(t, media as AL_BaseAnime) : ""
+/**
+ * "Fall 2023" in the app language: the season and the year (seasonYear for anime, else the start year). With `withFormat`
+ * (related titles) a format other than TV or manga leads: "Movie · 2021", "Novel · 2005".
+ */
+export function cardSeasonLine(t: Translate, media: Nullish<AL_BaseAnime | AL_BaseManga>, withFormat = false) {
+    if (!media) return ""
+    const season = seasonYearLabel(t, media as AL_BaseAnime)
+    const format = withFormat && media.format && media.format !== "TV" && media.format !== "MANGA" ? formatLabel(t, media.format) : ""
+    return [format, season].filter(Boolean).join(" · ")
 }
 
 /** The user's score badge colour (getScoreColor "user", as plain colours; Tailwind 4 has no bg-opacity). */

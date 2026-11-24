@@ -40,7 +40,7 @@ import { cardProgressBar, cardProgressLabel, cardProgressTotal, cardSeasonLine, 
  * for a title with local files "Open in library explorer" and "Add to playlist" (CardMenu, 2.14). Not yet here: the
  * plugins' badges (Dub, 2.17).
  */
-export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, width, listData, libraryData, nakamaLibraryData, showLibraryBadge, hideReleasingBadge, withScore = true, overlay, seasonTop }: {
+export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, width, listData, libraryData, nakamaLibraryData, showLibraryBadge, hideReleasingBadge, withScore = true, overlay, seasonTop, withFormat }: {
     media: AL_BaseAnime | AL_BaseManga
     type: "anime" | "manga"
     width: number
@@ -57,6 +57,8 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
      * the div's 24px line box (S22: 5dp lower than a plain 16dp line).
      */
     seasonTop?: number
+    /** The format before the year ("Movie · 2021"), for related titles whose badge names only the relation */
+    withFormat?: boolean
 }) {
     const serverStatus = useServerStatus()
     const ts = useThemeSettings()
@@ -69,7 +71,7 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
     const veiled = !!serverStatus?.settings?.anilist?.blurAdultContent && !!media.isAdult
     const title = media.title?.userPreferred || ""
     const t = useTr()
-    const season = cardSeasonLine(t, media)
+    const season = cardSeasonLine(t, media, withFormat)
     const releasing = (media.status === "RELEASING" || media.status === "NOT_YET_RELEASED") && !hideReleasingBadge
     const score = withScore ? listData?.score : undefined
     const { setPreviewModalMediaId } = useMediaPreviewModal()

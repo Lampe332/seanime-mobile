@@ -22,11 +22,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
  *   FloatStatus `.ps-float`: one status above the bottom bar (a scan), with its progress line
  */
 
-/** AniList formats in the app language (phone-screen.tsx FORMAT_LABELS) */
-export const FORMAT_LABELS: Record<string, [string, string]> = {
-    TV: ["TV", "TV"], TV_SHORT: ["TV short", "TV-Kurzserie"], MOVIE: ["Movie", "Film"], SPECIAL: ["Special", "Special"], OVA: ["OVA", "OVA"],
-    ONA: ["ONA", "ONA"], MUSIC: ["Music", "Musik"], MANGA: ["Manga", "Manga"], NOVEL: ["Novel", "Roman"], ONE_SHOT: ["One shot", "One-Shot"],
-}
+/** AniList formats in the app language (media-labels.ts) */
+export { FORMAT_LABELS } from "@/main/_features/media/_lib/media-labels"
 
 export function RowGroup({ children, className }: { children: React.ReactNode, className?: string }) {
     return <View className={cn("gap-0.5 overflow-hidden rounded-surface", className)}>{children}</View>
