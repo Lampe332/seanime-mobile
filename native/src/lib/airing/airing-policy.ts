@@ -26,6 +26,14 @@ export function nextCheck(upcoming: AiringNext[], now: number, delaySeconds: num
 export const ANNOUNCE_DELAY_SECONDS = 300
 
 /**
+ * Whether Android already showed the planned announcement of an aired episode. A check inside the delay (the forced one at
+ * app start) cancels every planned announcement, so one whose time has not come yet must be posted by that check instead.
+ */
+export function shownByAndroid(item: AiringNext, scheduled: Announced, now: number, delaySeconds: number = ANNOUNCE_DELAY_SECONDS): boolean {
+    return scheduled[item.mediaId] === item.episode && now >= item.airingAt + delaySeconds
+}
+
+/**
  * The announcements to plan: upcoming episodes (not aired + delay yet) that were not announced. AniList can still list a
  * just-aired episode as the next one; that one is either still ahead (planned once, under the same id) or past, then the
  * previous check had planned it and it counts as announced.

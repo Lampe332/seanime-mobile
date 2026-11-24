@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { aired, AiringNext, nextCheck, toSchedule } from "./airing-policy"
+import { aired, AiringNext, nextCheck, shownByAndroid, toSchedule } from "./airing-policy"
 
 const now = 1_800_000_000
 const next = (id: number, episode: number, inSeconds: number): AiringNext => ({ mediaId: id, title: `Anime ${id}`, episode, airingAt: now + inSeconds })
@@ -43,5 +43,20 @@ describe("planned announcements", () => {
     })
     it("still plans an episode that aired a moment ago until its announcement time", () => {
         expect(toSchedule([next(1, 5, -60)], {}, now)).toHaveLength(1)
+    })
+})
+
+describe("shownByAndroid", () => {
+    it("counts a planned announcement as shown only once its time has come", () => {
+        const item = next(1, 5, -100)
+        // aired 100 s ago, planned for 300 s after airing: not shown yet, so the check that cancels it must post it
+        expect(shownByAndroid(item, { 1: 5 }, now)).toBe(false)
+        expect(shownByAndroid(item, { 1: 5 }, now + 200)).toBe(true)
+    })
+
+    it("does not count an announcement that was never planned or planned for another episode", () => {
+        const item = next(1, 5, -600)
+        expect(shownByAndroid(item, {}, now)).toBe(false)
+        expect(shownByAndroid(item, { 1: 4 }, now)).toBe(false)
     })
 })

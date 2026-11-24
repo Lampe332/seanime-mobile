@@ -13,7 +13,7 @@ import type { MangaReaderResumeLocation } from "@/main/manga/_lib/manga-chapter-
 export type HistoryEntry = {
     kind: "anime" | "manga"
     mediaId: number
-    /** episode or chapter as shown; "" when the reader did not note the chapter's number */
+    /** episode or chapter as shown; "" when the player or the reader did not note its number */
     number: string
     /** when, in ms */
     at: number
@@ -28,7 +28,7 @@ export function animeHistory(history: Continuity_WatchHistory | null | undefined
     return Object.values(history ?? {}).flatMap(item => {
         const at = Date.parse(item?.timeUpdated ?? "")
         if (!item?.mediaId || !Number.isFinite(at)) return []
-        return [{ kind: "anime" as const, mediaId: item.mediaId, number: String(item.episodeNumber), at, currentTime: item.currentTime, duration: item.duration }]
+        return [{ kind: "anime" as const, mediaId: item.mediaId, number: typeof item.episodeNumber === "number" ? String(item.episodeNumber) : "", at, currentTime: item.currentTime, duration: item.duration }]
     })
 }
 
@@ -84,12 +84,12 @@ export function timeOfDay(at: number, language: string): string {
 export function entryLine(entry: HistoryEntry, language: string): string {
     const de = language === "de"
     if (entry.kind === "anime") {
-        const parts = [`${de ? "Folge" : "Episode"} ${entry.number}`]
+        const parts = entry.number ? [`${de ? "Folge" : "Episode"} ${entry.number}`] : []
         if (entry.currentTime && entry.duration && entry.currentTime / entry.duration < 0.9) {
             const left = Math.max(1, Math.round((entry.duration - entry.currentTime) / 60))
             parts.push(de ? `noch ${left} Min.` : `${left} min left`)
         }
-        return parts.join(" · ")
+        return parts.join(" · ") || (de ? "Geschaut" : "Watched")
     }
     const parts = entry.number ? [`${de ? "Kapitel" : "Chapter"} ${entry.number}`] : []
     if (entry.pageIndex !== undefined) parts.push(`${de ? "Seite" : "page"} ${entry.pageIndex + 1}`)

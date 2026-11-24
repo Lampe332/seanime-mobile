@@ -35,6 +35,13 @@ describe("history", () => {
         expect(entryLine(manga[1], "de")).toBe("Seite 1")
     })
 
+    it("leaves out an episode number the player did not note instead of saying undefined", () => {
+        const [entry] = animeHistory({ 7: { mediaId: 7, timeUpdated: "2026-11-24T10:00:00Z" } } as never)
+        expect(entry.number).toBe("")
+        expect(entryLine(entry, "de")).toBe("Geschaut")
+        expect(entryLine({ ...entry, currentTime: 60, duration: 1440 }, "en")).toBe("23 min left")
+    })
+
     it("removes one manga's page only", () => {
         expect(Object.keys(withoutManga(locations, 10))).toEqual(["11"])
     })

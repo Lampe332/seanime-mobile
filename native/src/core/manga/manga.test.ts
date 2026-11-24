@@ -216,6 +216,9 @@ describe("manga answers against the recorded form", () => {
         expect(await ask("POST", "/api/v1/manga/pages", { ...body, doublePage: true })).toEqual(answer)
         // the server was asked which chapters it has downloaded, nothing else
         await expect(ask("POST", "/api/v1/manga/pages", { ...body, chapterId: "m-0/c4" })).rejects.toThrow("no pages found")
+        // an empty answer is not kept: trying again asks the provider again instead of failing from the cache for 10 minutes
+        await expect(ask("POST", "/api/v1/manga/pages", { ...body, chapterId: "m-0/c4" })).rejects.toThrow("no pages found")
+        expect(calls.filter(call => call === "findChapterPages m-0/c4")).toHaveLength(2)
     })
 
     it("mapping: null without one, in the recorded form; the server's mappings are taken over once, invalid rows left out", async () => {

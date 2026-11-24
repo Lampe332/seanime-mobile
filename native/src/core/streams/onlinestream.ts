@@ -91,9 +91,13 @@ function keptFor<T>(environment: StreamEnvironment, key: string, mediaId: number
     if (known && known.until > now) return (join ? join(known.value) : known.value) as Promise<T>
     const value = work()
     kept.set(key, { value, until: now + lifetime, mediaId })
-    value.catch(() => {
+    // a failure and an empty list are not kept: a provider that answered nothing once is asked again next time
+    const forget = () => {
         if (kept.get(key)?.value === value) kept.delete(key)
-    })
+    }
+    value.then(result => {
+        if (Array.isArray(result) && result.length === 0) forget()
+    }, forget)
     return value
 }
 

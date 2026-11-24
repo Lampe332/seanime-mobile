@@ -6,7 +6,7 @@ import * as Notifications from "expo-notifications"
 import { AndroidImportance } from "expo-notifications"
 import * as TaskManager from "expo-task-manager"
 import { Platform } from "react-native"
-import { aired, AiringNext, Announced, ANNOUNCE_DELAY_SECONDS, nextCheck, toSchedule } from "./airing-policy"
+import { aired, AiringNext, Announced, ANNOUNCE_DELAY_SECONDS, nextCheck, shownByAndroid, toSchedule } from "./airing-policy"
 import { AIRING_QUERY, AiringFetch, anilist, listMedia, resolveUser, userId } from "./anilist-public"
 import { checkChaptersInBackground, isChapterNotifyEnabled } from "@/lib/updates/chapter-check"
 
@@ -119,8 +119,9 @@ async function runCheck(force: boolean, attempts: number) {
     const announced = readJSON<Announced>(ANNOUNCED_KEY, {})
     const scheduled = readJSON<Announced>(SCHEDULED_KEY, {})
     for (const item of aired(readJSON<AiringNext[]>(NEXT_KEY, []), announced, now)) {
-        // a planned announcement was delivered by Android at its time; one that was never planned is posted now
-        if (scheduled[item.mediaId] !== item.episode && allowed) await postNow(item, false)
+        // a planned announcement Android showed at its time is done; one never planned, or planned but not due yet (it is
+        // cancelled below), is posted now
+        if (!shownByAndroid(item, scheduled, now) && allowed) await postNow(item, false)
         announced[item.mediaId] = item.episode
     }
 
