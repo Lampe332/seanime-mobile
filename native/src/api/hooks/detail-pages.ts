@@ -11,17 +11,39 @@ export const DETAIL_PAGE_LIMIT = 200
 
 const asJson = (value: unknown): Json | undefined => (typeof value === "object" && value !== null ? value as Json : undefined)
 
+/**
+ * The same title twice (AniList re-sorted between two pages, or a later page came from the kept answers): a node by its
+ * id, an edge by its title and role. The lists are keyed by id, so a repeat would break them.
+ */
+function itemKey(item: unknown): string | undefined {
+    const json = asJson(item)
+    if (typeof json?.id === "number") return `id:${json.id}`
+    const node = asJson(json?.node)
+    if (typeof node?.id === "number") return `edge:${node.id}:${String(json?.staffRole ?? "")}`
+    return undefined
+}
+
 /** `field`: "Studio" or "Staff"; `connection`: "media" or "staffMedia"; `list`: "nodes" or "edges" */
 export function joinDetailPages<T>(pages: readonly (T | undefined)[] | undefined, field: string, connection: string, list: string): T | undefined {
     const first = asJson(pages?.[0])
     const head = asJson(first?.[field])
     if (!pages || !first || !head) return pages?.[0]
     const items: unknown[] = []
+    const seen = new Set<string>()
     let pageInfo: unknown
     for (const page of pages) {
         const part = asJson(asJson(asJson(page)?.[field])?.[connection])
         const found = part?.[list]
-        if (Array.isArray(found)) items.push(...found)
+        if (Array.isArray(found)) {
+            for (const item of found) {
+                const key = itemKey(item)
+                if (key !== undefined) {
+                    if (seen.has(key)) continue
+                    seen.add(key)
+                }
+                items.push(item)
+            }
+        }
         pageInfo = part?.pageInfo
     }
     const joined: Json = { ...asJson(head[connection]), [list]: items }
