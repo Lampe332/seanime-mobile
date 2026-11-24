@@ -75,3 +75,11 @@ export function pickTags(tags: readonly TagInput[] | null | undefined, max = 8):
     const plain = (spoiler: boolean, count: number) => ranked.filter(tag => tag.spoiler === spoiler).slice(0, count).map(({ name, rank }) => ({ name, rank }))
     return { tags: plain(false, max), spoilers: plain(true, 4) }
 }
+
+/**
+ * Whether the role goes on its own line above the names: the side column (112 px) holds "Serienkomposition" or
+ * "Charakterdesign" in one piece only at the normal text size on a phone of usual width.
+ */
+export function creditRoleAbove(fontScale: number, width: number): boolean {
+    return fontScale >= 1.2 || width < 360
+}

@@ -6,7 +6,8 @@ import { type CoreDatabase, openCoreDatabase } from "../database/database"
 import { CoreError } from "../errors"
 import { type CoreEnvironment, matchCoreRoute } from "../registry"
 import { TvmazeFailure, askTvmaze, newTvmazeRateLimit } from "./client"
-import { fromTvmazeId, isTvmazeId, mediaOfShow, metadataOfShow, plainText, searchOtherSources, toTvmazeId } from "./tvmaze"
+import { ownShowOf } from "./own-shows"
+import { fromTvmazeId, isTvmazeId, mediaOfShow, metadataOfShow, plainText, searchOtherSources, SHOW_FRESH_MS, toTvmazeId } from "./tvmaze"
 
 /*
  * TVmaze and AniList are played by a test double: TVmaze by its address, AniList (POST graphql.anilist.co) by the
@@ -181,7 +182,23 @@ describe("details of a title", () => {
         // the same show; only the time until the next episode went on
         expect({ ...again, nextAiringEpisode: null }).toEqual({ ...first, nextAiringEpisode: null })
         expect((again.nextAiringEpisode as Json).timeUntilAiring).toBe((first.nextAiringEpisode as Json).timeUntilAiring as number - 60)
+        // kept within SHOW_FRESH_MS: answered from the store without asking TVmaze
+        expect(asked).toEqual([SHOW_PATH, IMAGES_PATH])
+        // after that TVmaze is asked again, and when it fails the kept show is still the answer
+        clock += SHOW_FRESH_MS
+        const later = await ask("GET", "/api/v1/anilist/media-details/-95063") as Json
+        expect(later).toMatchObject({ id: -95063, title: { english: "Dreamland" } })
         expect(asked).toEqual([SHOW_PATH, IMAGES_PATH, SHOW_PATH])
+    })
+
+    it("are asked of TVmaze again once kept longer than SHOW_FRESH_MS", async () => {
+        await ask("GET", "/api/v1/anilist/media-details/-95063")
+        clock += SHOW_FRESH_MS - 1
+        await ask("GET", "/api/v1/anilist/media-details/-95063")
+        expect(asked).toEqual([SHOW_PATH, IMAGES_PATH])
+        clock += 1
+        await ask("GET", "/api/v1/anilist/media-details/-95063")
+        expect(asked).toEqual([SHOW_PATH, IMAGES_PATH, SHOW_PATH, IMAGES_PATH])
     })
 
     it("fail with 500 when nothing is kept, with 404 when TVmaze has no such show", async () => {
@@ -273,5 +290,28 @@ describe("own shows of the other sources (B3)", () => {
         const failure = await ask("POST", "/api/v1/other-sources/my-shows", { mediaId: 21, listed: true }).catch(error => error as CoreError)
         expect(failure).toBeInstanceOf(CoreError)
         expect(asked.filter(key => key.startsWith("anilist:"))).toEqual([])
+    })
+
+    it("progress and the My shows switch at the same time keep both", async () => {
+        await Promise.all([
+            ask("POST", "/api/v1/library/anime-entry/update-progress", { mediaId: -95063, episodeNumber: 3, totalEpisodes: 8, auto: true }),
+            ask("POST", "/api/v1/other-sources/my-shows", { mediaId: -95063, listed: true }),
+        ])
+        expect(await ownShowOf(environment, -95063)).toEqual({ progress: 3, listed: true })
+        await Promise.all([
+            ask("POST", "/api/v1/other-sources/my-shows", { mediaId: -95063, listed: false }),
+            ask("POST", "/api/v1/library/anime-entry/update-progress", { mediaId: -95063, episodeNumber: 2, totalEpisodes: 8, auto: true }),
+        ])
+        expect(await ownShowOf(environment, -95063)).toEqual({ progress: 3, listed: false })
+        await ask("POST", "/api/v1/library/anime-entry/update-progress", { mediaId: -95063, episodeNumber: 1, totalEpisodes: 8 })
+        expect(await ownShowOf(environment, -95063)).toEqual({ progress: 1, listed: false })
+    })
+
+    it("My shows asks TVmaze once per show and then answers from the store", async () => {
+        await ask("POST", "/api/v1/other-sources/my-shows", { mediaId: -95063, listed: true })
+        await ask("GET", "/api/v1/other-sources/my-shows")
+        answers = {}
+        expect((await ask("GET", "/api/v1/other-sources/my-shows") as Json[]).map(show => show.id)).toEqual([-95063])
+        expect(asked).toEqual([SHOW_PATH, IMAGES_PATH])
     })
 })

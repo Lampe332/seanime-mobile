@@ -171,10 +171,12 @@ export async function historyMedia(request: CoreRequest, environment: Environmen
     // a title the user never opened nor has in a list (watched from search, the server's moved history, a manga only
     // read): its title and cover as kept for the History screen, else read from AniList once and kept (offline: left out)
     // a title of TVmaze (negative id): from TVmaze, never asked of AniList
-    for (const id of (ids as number[]).filter(id => isTvmazeId(id) && !(String(id) in found))) {
-        const media = await tvmazeMedia(environment, id).catch(() => null)
-        if (media) found[String(id)] = media
-    }
+    // all at once; a show kept within its time comes from the store (tvmaze.ts SHOW_FRESH_MS)
+    const shows = (ids as number[]).filter(id => isTvmazeId(id) && !(String(id) in found))
+    const shown = await Promise.all(shows.map(id => tvmazeMedia(environment, id).catch(() => null)))
+    shows.forEach((id, index) => {
+        if (shown[index]) found[String(id)] = shown[index]
+    })
     const missing = (ids as number[]).filter(id => !isTvmazeId(id) && !(String(id) in found))
     if (missing.length === 0) return found
     const questions = missing.map(historyQuestion)

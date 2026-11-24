@@ -1,6 +1,6 @@
 // geschrieben nach: öffentliche TVmaze-Doku (www.tvmaze.com/api: Felder von show, episode, image, search), den App-Typen AL_BaseAnime und Metadata_AnimeMetadata (src/api/generated/types.ts) und docs/EIGENER-KERN.md §4t; kein Server-Quelltext
 
-import { keepAnswer, storedAnswer } from "../anilist/store"
+import { keepAnswer, storedAnswer, storedAnswerWithTime } from "../anilist/store"
 import { CoreError } from "../errors"
 import type { CoreEnvironment } from "../registry"
 import { TvmazeFailure, askTvmaze, tvmazeClientFor } from "./client"
@@ -166,9 +166,19 @@ export function metadataOfShow(show: Json, episodes: unknown): Json | null {
     }
 }
 
-/** Asks TVmaze and keeps the answer; when TVmaze fails, the kept answer; nothing kept: 404 when TVmaze has none, else 500 */
-async function readKept(environment: Environment, question: string, ask: () => Promise<Json>): Promise<Json> {
+/** How long a kept show is answered without asking TVmaze ("My shows" and the history ask for many at once; 20 a 10 s) */
+export const SHOW_FRESH_MS = 12 * 60 * 60 * 1000
+
+/**
+ * Asks TVmaze and keeps the answer; when TVmaze fails, the kept answer; nothing kept: 404 when TVmaze has none, else 500.
+ * With `freshFor`, a kept answer younger than that is the answer without asking.
+ */
+async function readKept(environment: Environment, question: string, ask: () => Promise<Json>, freshFor = 0): Promise<Json> {
     const database = await environment.database()
+    if (freshFor > 0) {
+        const kept = await storedAnswerWithTime(database, question)
+        if (kept && isRecord(kept.answer) && environment.now() - kept.changedAt < freshFor) return kept.answer
+    }
     let answer: Json
     try {
         answer = await ask()
@@ -206,7 +216,7 @@ async function showOf(environment: Environment, id: number): Promise<Json> {
         if (!isRecord(show)) throw new TvmazeFailure("Not Found.", 404)
         const embedded = isRecord(show._embedded) ? show._embedded : {}
         return { show, episodes: Array.isArray(embedded.episodes) ? embedded.episodes : [], banner: await bannerOf(environment, tvmazeId) }
-    })
+    }, SHOW_FRESH_MS)
 }
 
 /** The details of a title of TVmaze (the app's number, negative) in the form of AniList's */

@@ -1,6 +1,6 @@
 // geschrieben nach: docs/EIGENER-KERN.md §4t (B3) und dem Stil von playback/playback.ts (watch_positions); kein Server-Quelltext
 
-import { desc, eq } from "drizzle-orm"
+import { type SQL, desc, eq, sql } from "drizzle-orm"
 import { inOrder } from "../database/database"
 import { ownShows } from "../database/schema"
 import { CoreError } from "../errors"
@@ -22,17 +22,22 @@ export async function ownShowOf(environment: Pick<CoreEnvironment, "database">, 
     return rows[0] ? { progress: rows[0].progress, listed: rows[0].listed === 1 } : null
 }
 
-async function keep(environment: Environment, id: number, change: (current: OwnShow) => OwnShow): Promise<void> {
-    const next = change((await ownShowOf(environment, id)) ?? { progress: 0, listed: false })
+/**
+ * One statement that writes only the column that changes, so the player's progress and a "My shows" switch at the same
+ * time cannot write over each other (a read first and a write after could).
+ */
+async function keep(environment: Environment, id: number, column: { progress: number | SQL } | { listed: number }, first: OwnShow): Promise<void> {
     const database = await environment.database()
-    const set = { progress: next.progress, listed: next.listed ? 1 : 0, changedAt: environment.now() }
-    await inOrder(database, () => database.insert(ownShows).values({ mediaId: id, ...set })
-        .onConflictDoUpdate({ target: ownShows.mediaId, set }))
+    const changedAt = environment.now()
+    await inOrder(database, () => database.insert(ownShows)
+        .values({ mediaId: id, progress: first.progress, listed: first.listed ? 1 : 0, changedAt })
+        .onConflictDoUpdate({ target: ownShows.mediaId, set: { ...column, changedAt } }))
 }
 
 /** The progress of a TVmaze title (anilist/changes.ts, update-progress) */
 export async function setOwnProgress(environment: Environment, id: number, progress: number, auto: boolean): Promise<boolean> {
-    await keep(environment, id, current => ({ ...current, progress: auto ? Math.max(current.progress, progress) : progress }))
+    const value = auto ? sql`max(${ownShows.progress}, ${progress})` : progress
+    await keep(environment, id, { progress: value }, { progress, listed: false })
     return true
 }
 
@@ -51,6 +56,6 @@ export async function changeMyShows(request: CoreRequest, environment: CoreEnvir
     const id = body.mediaId
     if (typeof id !== "number" || !isTvmazeId(id) || typeof body.listed !== "boolean") throw new CoreError("invalid id", 400)
     const listed = body.listed
-    await keep(environment, id, current => ({ ...current, listed }))
+    await keep(environment, id, { listed: listed ? 1 : 0 }, { progress: 0, listed })
     return true
 }

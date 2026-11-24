@@ -47,6 +47,9 @@ export function useCardListItems(media: AL_BaseAnime | AL_BaseManga, type: "anim
             void queryClient.invalidateQueries({
                 queryKey: [type === "anime" ? API_ENDPOINTS.ANILIST.GetRawAnimeCollection.key : API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.key],
             })
+            void queryClient.invalidateQueries({
+                queryKey: [type === "anime" ? API_ENDPOINTS.ANILIST.GetRawAnimeCollectionTags.key : API_ENDPOINTS.MANGA.GetRawAnilistMangaCollectionTags.key],
+            })
             // a title put on a list is no missed sequel any more (Home and Discover share the key)
             if (type === "anime") void queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANILIST.AnilistListMissedSequels.key] })
         }

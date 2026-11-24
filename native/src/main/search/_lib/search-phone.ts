@@ -567,3 +567,37 @@ export function searchTagChoices({ query, adult, selected, all }: { query: strin
     const rest = matches.map(tag => tag.name).filter(name => !selected.includes(name))
     return { tags: [...selected, ...(all ? rest : rest.slice(0, SEARCH_TAGS_SHOWN))], total: matches.length, more: !all && rest.length > SEARCH_TAGS_SHOWN }
 }
+
+type TitledMedia = {
+    title?: { romaji?: string | null, english?: string | null, native?: string | null, userPreferred?: string | null } | null
+    synonyms?: (string | null)[] | null
+    startDate?: { year?: number | null } | null
+    seasonYear?: number | null
+}
+
+/** A title for comparing: lower case, accents and everything but letters and digits left out ("Naruto: Shippūden" → "narutoshippuden") */
+export function comparableTitle(title: string): string {
+    return title.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "")
+}
+
+function titlesOf(media: TitledMedia): Set<string> {
+    const names = [media.title?.romaji, media.title?.english, media.title?.native, media.title?.userPreferred, ...(media.synonyms ?? [])]
+    return new Set(names.filter((name): name is string => !!name).map(comparableTitle).filter(Boolean))
+}
+
+const startYear = (media: TitledMedia) => media.startDate?.year ?? media.seasonYear ?? null
+
+/**
+ * The titles of the other sources (TVmaze) that AniList's results of the same search do not already have: one with a
+ * title of an AniList result (romaji, English, native or a synonym) and the same start year, or one off, is left out.
+ * Without a year on either side the title alone decides.
+ */
+export function withoutAnilistMatches<T extends TitledMedia>(others: T[], anilist: TitledMedia[]): T[] {
+    const known = anilist.map(media => ({ titles: titlesOf(media), year: startYear(media) }))
+    return others.filter(other => {
+        const titles = titlesOf(other)
+        const year = startYear(other)
+        return !known.some(media => (year === null || media.year === null || Math.abs(year - media.year) <= 1)
+            && [...titles].some(title => media.titles.has(title)))
+    })
+}

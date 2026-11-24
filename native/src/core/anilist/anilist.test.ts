@@ -241,6 +241,15 @@ describe("answers in the recorded form", () => {
         answers.StaffDetails = down
         expect(await ask("GET", "/api/v1/anilist/staff-details/95061")).toEqual(staffAnswer)
 
+        // a later page failing keeps the titles of the pages before it; the first page failing is still a failure
+        answers.StudioDetails = [
+            ok({ Studio: { ...studio.Studio, media: { pageInfo: { hasNextPage: true }, nodes: [first] } } }),
+            down,
+        ]
+        expect(await ask("GET", "/api/v1/anilist/studio-details/75")).toEqual({ Studio: { ...studio.Studio, media: { nodes: [first] } } })
+        answers.StudioDetails = down
+        await expect(ask("GET", "/api/v1/anilist/studio-details/76")).rejects.toThrow()
+
         answers.ListAnime = ok(recorded.listAnime)
         expect(await ask("POST", "/api/v1/anilist/list-anime", recorded.listAnimeRequest)).toEqual(recorded.listAnime)
         expect(asked.at(-1)?.variables).toEqual(recorded.listAnimeRequest)

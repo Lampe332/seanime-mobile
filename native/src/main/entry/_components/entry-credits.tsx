@@ -2,11 +2,11 @@ import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
-import { type CreditRole, type CreditRow, type EntryTag, pickCredits, pickTags, type StaffEdgeInput, type TagInput } from "@/main/entry/_lib/entry-credits"
+import { type CreditRole, type CreditRow, creditRoleAbove, type EntryTag, pickCredits, pickTags, type StaffEdgeInput, type TagInput } from "@/main/entry/_lib/entry-credits"
 import Eye from "lucide-react-native/icons/eye"
 import TriangleAlert from "lucide-react-native/icons/triangle-exclamation-point"
 import React from "react"
-import { Pressable, View } from "react-native"
+import { Pressable, useWindowDimensions, View } from "react-native"
 
 type Tr = ReturnType<typeof useTr>
 
@@ -43,15 +43,18 @@ export function EntryCredits({ kind, staff, tags }: { kind: "anime" | "manga", s
     const rows = React.useMemo(() => pickCredits(staff, kind), [staff, kind])
     const picked = React.useMemo(() => pickTags(tags), [tags])
     const [spoilersShown, setSpoilersShown] = React.useState(false)
+    const { fontScale, width } = useWindowDimensions()
+    const above = creditRoleAbove(fontScale, width)
     if (!rows.length && !picked.tags.length && !picked.spoilers.length) return null
 
     const openTag = (tag: EntryTag) => router.push(`/search?${kind === "manga" ? "type=manga&" : ""}tags=${encodeURIComponent(tag.name)}&at=${Date.now()}`)
 
     return <View className="mb-[14.4px] gap-4">
         {rows.length > 0 && <View className="gap-2">
-            {rows.map(row => <View key={row.roles.join("-")} className="flex-row items-start gap-3">
-                <Text className="w-[112px] pt-[1px] text-[13px] leading-5 text-sm-text-subtle">{rowLabel(row, t)}</Text>
-                <View className="flex-1 flex-row flex-wrap gap-x-1">
+            {rows.map(row => <View key={row.roles.join("-")} className={above ? "gap-0.5" : "flex-row items-start gap-3"}>
+                <Text className={above ? "text-[13px] leading-5 text-sm-text-subtle" : "w-[112px] pt-[1px] text-[13px] leading-5 text-sm-text-subtle"}
+                    textBreakStrategy="simple" android_hyphenationFrequency="none">{rowLabel(row, t)}</Text>
+                <View className={above ? "flex-row flex-wrap gap-x-1" : "flex-1 flex-row flex-wrap gap-x-1"}>
                     {row.people.map((person, i) => <Pressable key={person.id} hitSlop={6} accessibilityRole="link"
                         accessibilityLabel={t(`${person.name}, show their works`, `${person.name}, Werke anzeigen`)}
                         onPress={() => router.push(`/staff?id=${person.id}&name=${encodeURIComponent(person.name)}&kind=${kind}`)}

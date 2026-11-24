@@ -10,6 +10,8 @@ import {
     searchSortChips,
     selectSearchSort,
     withSearchTitle,
+    withoutAnilistMatches,
+    comparableTitle,
     listStatusLabel,
     nextSearchPage,
     removeSearchFilter,
@@ -295,5 +297,30 @@ describe("phone search: tag chips", () => {
         expect(query.tags[0]).toBe("Isekai")
         expect(query.more).toBe(false)
         expect(searchTagChoices({ query: "zzz", adult: false, selected: [], all: false })).toEqual({ tags: [], total: 0, more: false })
+    })
+})
+
+describe("withoutAnilistMatches", () => {
+    const tvmaze = (name: string, year?: number) => ({ id: -1, title: { romaji: name, english: name, userPreferred: name }, synonyms: [], ...(year ? { startDate: { year } } : {}) })
+
+    it("compares titles without case, accents and punctuation", () => {
+        expect(comparableTitle("Naruto: Shippūden")).toBe("narutoshippuden")
+    })
+
+    it("leaves out a TVmaze title AniList's results already have (English, romaji or a synonym, year the same or one off)", () => {
+        const anilist = [
+            { title: { romaji: "Shingeki no Kyojin", english: "Attack on Titan" }, synonyms: ["AoT"], startDate: { year: 2013 } },
+            { title: { romaji: "NARUTO", english: "Naruto" }, synonyms: [], seasonYear: 2002 },
+        ]
+        const others = [tvmaze("Attack on Titan", 2013), tvmaze("Naruto", 2003), tvmaze("AoT", 2012), tvmaze("Dreamland", 2026)]
+        expect(withoutAnilistMatches(others, anilist).map(media => media.title.english)).toEqual(["Dreamland"])
+    })
+
+    it("keeps a title of the same name from another time and every one when AniList found nothing", () => {
+        const anilist = [{ title: { romaji: "Naruto", english: "Naruto" }, startDate: { year: 2002 } }]
+        expect(withoutAnilistMatches([tvmaze("Naruto", 2023)], anilist)).toHaveLength(1)
+        expect(withoutAnilistMatches([tvmaze("Naruto", 2002)], [])).toHaveLength(1)
+        // no year on one side: the title alone decides
+        expect(withoutAnilistMatches([tvmaze("Naruto")], anilist)).toHaveLength(0)
     })
 })

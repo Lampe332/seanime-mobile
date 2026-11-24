@@ -51,6 +51,7 @@ import {
     unseenCount,
     withSearchFilters,
     withSearchTitle,
+    withoutAnilistMatches,
 } from "@/main/search/_lib/search-phone"
 import { withoutRecentSearch, withRecentSearch } from "@/main/search/_lib/recent-searches"
 import { SearchPhoneFilters } from "@/main/search/_screens/search-phone-filters"
@@ -223,7 +224,11 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     const grid = useGridColumns(contentWidth)
     // titles AniList does not have (TVmaze), under their own heading after the results; anime only
     const others = useSearchOtherSources(title, state.type === "anime")
-    const otherItems = state.type === "anime" && title ? others.data?.Page?.media?.filter(Boolean) as Media[] | undefined : undefined
+    const otherMedia = others.data?.Page?.media
+    // a title AniList's results already have stays out: the AniList one keeps the list and tracking
+    const otherItems = React.useMemo(() => (state.type === "anime" && title && otherMedia
+        ? withoutAnilistMatches(otherMedia.filter(Boolean) as Media[], items)
+        : undefined), [state.type, title, otherMedia, items])
     const gutter = 16
     const beside = searchBesideTabs(rail, contentWidth)
 

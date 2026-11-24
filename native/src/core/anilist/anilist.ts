@@ -234,7 +234,14 @@ async function everyPage(environment: CoreEnvironment, query: string, field: str
     let head: Json | undefined
     const items: unknown[] = []
     for (let page = 1; page <= DETAIL_PAGES; page++) {
-        const answer = (await askAnilist(client, query, { id, page }))[field] as Json | undefined
+        let answer: Json | undefined
+        try {
+            answer = (await askAnilist(client, query, { id, page }))[field] as Json | undefined
+        } catch (error) {
+            // a later page failing (e.g. 429) keeps what the earlier pages brought; the first page still fails
+            if (page === 1) throw error
+            break
+        }
         if (!answer) break
         const part = answer[connection] as ({ pageInfo?: { hasNextPage?: boolean } } & Record<string, unknown>) | undefined
         head ??= answer

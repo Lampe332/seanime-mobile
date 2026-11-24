@@ -47,6 +47,13 @@ export async function storedAnswer(database: CoreDatabase, question: string): Pr
     return rows.length > 0 ? rows[0].answer : null
 }
 
+/** The answer kept for a question with the time it was kept, or null when there is none */
+export async function storedAnswerWithTime(database: CoreDatabase, question: string): Promise<{ answer: unknown, changedAt: number } | null> {
+    const rows = await inOrder(database, () => database.select({ answer: anilistAnswers.answer, changedAt: anilistAnswers.changedAt })
+        .from(anilistAnswers).where(eq(anilistAnswers.question, question)))
+    return rows.length > 0 ? { answer: rows[0].answer, changedAt: Number(rows[0].changedAt) } : null
+}
+
 /** Keeps a complete list collection of one kind: its titles, its entries and the heads of its lists. */
 export async function keepCollection(database: CoreDatabase, kind: ListKind, collection: ListCollection, now: number): Promise<void> {
     const lists = collection.MediaListCollection.lists

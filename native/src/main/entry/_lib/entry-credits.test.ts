@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { creditRole, pickCredits, pickTags, type StaffEdgeInput } from "./entry-credits"
+import { creditRole, creditRoleAbove, pickCredits, pickTags, type StaffEdgeInput } from "./entry-credits"
 
 const edge = (role: string, id: number, name = `Person ${id}`): StaffEdgeInput => ({ role, node: { id, name: { full: name } } })
 
@@ -59,5 +59,18 @@ describe("pickTags", () => {
     it("is empty without tags", () => {
         expect(pickTags(null)).toEqual({ tags: [], spoilers: [] })
         expect(pickTags([null, { name: "" }])).toEqual({ tags: [], spoilers: [] })
+    })
+})
+
+describe("creditRoleAbove", () => {
+    it("keeps the side column at the normal text size on a usual phone", () => {
+        expect(creditRoleAbove(1, 411)).toBe(false)
+        expect(creditRoleAbove(1.1, 393)).toBe(false)
+    })
+
+    it("puts the role above the names with large system text or a narrow screen", () => {
+        expect(creditRoleAbove(1.3, 411)).toBe(true)
+        expect(creditRoleAbove(2, 600)).toBe(true)
+        expect(creditRoleAbove(1, 320)).toBe(true)
     })
 })
