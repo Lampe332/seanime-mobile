@@ -463,7 +463,7 @@ function StaleDim({ paddingHorizontal, paddingBottom, children }: { paddingHoriz
     return <View style={{ paddingHorizontal, paddingBottom, opacity: stale ? 0.45 : 1 }}>{children}</View>
 }
 
-const ResultCell = React.memo(function ResultCell({ media, type, width }: { media: Media, type: SearchType, width: number }) {
+export const ResultCell = React.memo(function ResultCell({ media, type, width }: { media: Media, type: SearchType, width: number }) {
     const serverStatus = useServerStatus()
     const { showAnimeUnwatchedCount, showMangaUnreadCount } = useThemeSettings()
     const chapters = useAtomValue(__mangaLibrary_latestChapterNumbersAtom)

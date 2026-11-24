@@ -160,7 +160,7 @@ export function useGetAnilistStudioDetails(id: number) {
         endpoint: API_ENDPOINTS.ANILIST.GetAnilistStudioDetails.endpoint.replace("{id}", String(id)),
         method: API_ENDPOINTS.ANILIST.GetAnilistStudioDetails.methods[0],
         queryKey: [API_ENDPOINTS.ANILIST.GetAnilistStudioDetails.key, String(id)],
-        enabled: true,
+        enabled: Number.isFinite(id) && id > 0,
     })
 }
 

@@ -228,11 +228,25 @@ function keptUnder(environment: CoreEnvironment, question: string, ask: () => Pr
 export async function studioDetails(request: CoreRequest, environment: CoreEnvironment): Promise<Json> {
     const id = wholeNumber(request.path.id)
     return keptUnder(environment, `studio/${id}`, async () => {
-        const studio = (await askAnilist(clientFor(environment), STUDIO_DETAILS, { id })).Studio
+        // AniList gives 50 titles a page and a studio like J.C.STAFF has hundreds: the pages are read one after another
+        const client = clientFor(environment)
+        let studio: Json | undefined
+        const nodes: unknown[] = []
+        for (let page = 1; page <= STUDIO_PAGES; page++) {
+            const answer = (await askAnilist(client, STUDIO_DETAILS, { id, page })).Studio as Json | undefined
+            if (!answer) break
+            const media = answer.media as { pageInfo?: { hasNextPage?: boolean }, nodes?: unknown[] } | undefined
+            studio ??= answer
+            nodes.push(...(media?.nodes ?? []))
+            if (!media?.pageInfo?.hasNextPage) break
+        }
         if (!studio) throw new AnilistFailure("Not Found.", 404)
-        return withoutEmpty({ Studio: studio }) as Json
+        return withoutEmpty({ Studio: { ...studio, media: { nodes } } }) as Json
     })
 }
+
+/** At most 500 titles of one studio (10 pages of 50) */
+const STUDIO_PAGES = 10
 
 /** The variables a page query declares, in its order, so that the same request is the same question */
 function pick(body: unknown, names: string[]): Json {

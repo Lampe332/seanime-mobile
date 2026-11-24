@@ -198,6 +198,17 @@ describe("answers in the recorded form", () => {
         answers.StudioDetails = ok(recorded.studio)
         expect(await ask("GET", "/api/v1/anilist/studio-details/73")).toEqual(recorded.studio)
 
+        // more titles than one page: the pages are read one after another and joined
+        const studio = recorded.studio as unknown as { Studio: Json & { media: { nodes: Json[] } } }
+        const [first, ...rest] = studio.Studio.media.nodes
+        expect(rest.length).toBeGreaterThan(0)
+        answers.StudioDetails = [
+            ok({ Studio: { ...studio.Studio, media: { pageInfo: { hasNextPage: true }, nodes: [first] } } }),
+            ok({ Studio: { ...studio.Studio, media: { pageInfo: { hasNextPage: false }, nodes: rest } } }),
+        ]
+        expect(await ask("GET", "/api/v1/anilist/studio-details/74")).toEqual(recorded.studio)
+        expect(asked.slice(-2).map(question => question.variables)).toEqual([{ id: 74, page: 1 }, { id: 74, page: 2 }])
+
         answers.ListAnime = ok(recorded.listAnime)
         expect(await ask("POST", "/api/v1/anilist/list-anime", recorded.listAnimeRequest)).toEqual(recorded.listAnime)
         expect(asked.at(-1)?.variables).toEqual(recorded.listAnimeRequest)

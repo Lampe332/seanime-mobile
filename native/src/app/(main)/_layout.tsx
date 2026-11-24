@@ -192,6 +192,7 @@ function MainFrame() {
                 <TabTrigger name="extensions" href="/extensions" />
                 <TabTrigger name="scan-summaries" href="/scan-summaries" />
                 <TabTrigger name="custom-sources" href="/custom-sources" />
+                <TabTrigger name="studio" href="/studio" />
                 <TabTrigger name="medialinks" href="/medialinks" />
                 <TabTrigger name="webview" href="/webview" />
             </TabList>

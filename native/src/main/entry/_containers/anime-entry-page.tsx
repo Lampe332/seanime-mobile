@@ -20,7 +20,8 @@ import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { AnilistMediaEntryButton } from "@/main/_features/media/_containers/anilist-media-entry-sheet"
 import { MEDIA_STATUS_LABELS, plainDescription } from "@/main/_features/media/_lib/media-labels"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
-import { listStatusLabel } from "@/main/discover/_lib/discover-phone"
+import { genreLabel, listStatusLabel } from "@/main/discover/_lib/discover-phone"
+import { airingPeriod, rankingBadges, rankingLabel } from "@/main/entry/_lib/anime-meta"
 import { isTvmazeId } from "@/core/tvmaze/tvmaze"
 import { AnimeEntryPhoneMenu } from "@/main/entry/_containers/entry-actions/anime-entry-phone-menu"
 import { PluginPageButtons } from "@/main/_features/plugin/plugin-actions"
@@ -64,6 +65,8 @@ import Bell from "lucide-react-native/icons/bell"
 import BellOff from "lucide-react-native/icons/bell-off"
 import CalendarDays from "lucide-react-native/icons/calendar-days"
 import ChevronDown from "lucide-react-native/icons/chevron-down"
+import Clapperboard from "lucide-react-native/icons/clapperboard"
+import Heart from "lucide-react-native/icons/heart"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
 import EllipsisVertical from "lucide-react-native/icons/ellipsis-vertical"
 import Info from "lucide-react-native/icons/info"
@@ -328,6 +331,55 @@ export function AnimeEntryPage() {
     </BoxHostProvider></EntryScrollProvider>
 }
 
+/**
+ * Under the title: the studio (opens its page), AniList ranking badges, the genres (open a search for one).
+ * Studio and badges come with the details; until then a placeholder keeps the row's height.
+ */
+const EntryFacts = React.memo(function EntryFacts({ media, details, detailsLoading, wide }: {
+    media: NonNullable<Anime_Entry["media"]>
+    details?: AL_AnimeDetailsById_Media
+    detailsLoading: boolean
+    wide: boolean
+}) {
+    const t = useTr()
+    const router = useRouter()
+    const studios = React.useMemo(() => details?.studios?.nodes?.flatMap(s => s?.id && s.name ? [{ id: s.id, name: s.name }] : []) ?? [], [details?.studios])
+    const badges = React.useMemo(() => rankingBadges(details?.rankings), [details?.rankings])
+    const genres = (media.genres?.length ? media.genres : details?.genres) ?? []
+    const loading = detailsLoading && !details
+    const top = loading || studios.length > 0 || badges.length > 0
+    if (!top && !genres.length) return null
+    // wide: the header has no gap (tablet.css page grid), so the block keeps its own 1rem
+    return <View className="gap-2.5" style={wide ? { marginTop: 16 } : undefined}>
+        {top && <View className="min-h-10 flex-row flex-wrap items-center gap-2">
+            {loading ? <View className="h-10 w-36 rounded-full bg-sm-surface-raised" accessibilityLabel={t("Loading studio", "Studio lädt")} />
+                : <>
+                    {studios.map(s => <Pressable key={s.id} hitSlop={4} accessibilityRole="button" accessibilityLabel={t(`Studio ${s.name}, show its anime`, `Studio ${s.name}, Anime anzeigen`)}
+                        onPress={() => router.push(`/studio?id=${s.id}&name=${encodeURIComponent(s.name)}`)}
+                        className="min-h-10 max-w-full flex-row items-center gap-1.5 rounded-full bg-sm-accent-softer pl-3 pr-2 active:opacity-70">
+                        <Clapperboard size={15} color={colors.smAccent} />
+                        <Text numberOfLines={1} className="shrink text-[13px] font-semibold text-sm-text">{s.name}</Text>
+                        <ChevronRight size={15} color={colors.smTextMuted} />
+                    </Pressable>)}
+                    {badges.map(b => <View key={b.type} className="min-h-8 flex-row items-center gap-1.5 rounded-full border border-sm-line px-3">
+                        {b.type === "POPULAR" ? <Heart size={13} color={colors.smAccent} fill={colors.smAccent} /> : <Star size={13} color={colors.smWarning} fill={colors.smWarning} />}
+                        <Text className="text-[13px] font-semibold text-sm-text-muted">{rankingLabel(t, b)}</Text>
+                    </View>)}
+                </>}
+        </View>}
+        {genres.length > 0 && <View className="flex-row flex-wrap gap-2">
+            {genres.map(g => {
+                const label = genreLabel(t, g)
+                return <Pressable key={g} hitSlop={4} accessibilityRole="button" accessibilityLabel={t(`Search genre ${label}`, `Genre ${label} suchen`)}
+                    onPress={() => router.push(`/search?genre=${encodeURIComponent(g)}&at=${Date.now()}`)}
+                    className="min-h-9 justify-center rounded-full bg-sm-surface-raised px-3.5 active:bg-sm-surface-control">
+                    <Text className="text-[13px] font-semibold text-sm-text-muted">{label}</Text>
+                </Pressable>
+            })}
+        </View>}
+    </View>
+})
+
 /** The header (mobile-anime-header.tsx): identity, progress with Edit, the jump to the episodes, About, the actions */
 function EntryHeader({ entry, details, detailsLoading, wide, tablet, foreign, onEpisodes, actions, after }: {
     entry: Anime_Entry
@@ -368,9 +420,11 @@ function EntryHeader({ entry, details, detailsLoading, wide, tablet, foreign, on
             </View>
             <View className={cn("min-w-0", !wide && "min-w-[160px] flex-1")}>
                 <Text accessibilityRole="header" numberOfLines={4} className={cn("font-bold text-sm-text", tablet ? "text-[28px] leading-[35px] tracking-[-0.56px]" : "text-[22px] leading-[28px] tracking-[-0.44px]")}>{title}</Text>
-                <Muted className="mt-1.5 capitalize">{[media.startDate?.year, status, foreign && "TVmaze"].filter(Boolean).join(" · ")}</Muted>
+                <Muted className="mt-1.5">{[airingPeriod(t, media), status, foreign && "TVmaze"].filter(Boolean).join(" · ")}</Muted>
             </View>
         </View>
+
+        {!foreign && <EntryFacts media={media} details={details} detailsLoading={detailsLoading} wide={wide} />}
 
         {!foreign && <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 border-y border-sm-line py-3" style={gaps ? { marginTop: gaps.progress } : undefined}>
             <View className="min-w-0 flex-1">
@@ -423,7 +477,7 @@ function AboutAnime({ entry, title }: { entry: Anime_Entry, title: string }) {
         {!!english && english !== title && <Text className={p}>{english}</Text>}
         {!!romaji && romaji !== title && romaji !== english && <Text className={p}>{romaji}</Text>}
         <Text className={p}>{plainDescription(media.description) || t("No description available.", "Keine Beschreibung verfügbar.")}</Text>
-        {/* 2.0.32 shows no score, studio, genre or ranking badges on media pages (globals.css: display none) */}
+        {/* no score here (2.0.32); studio, genres and ranking badges sit under the title (EntryFacts) */}
         <EntryAboutLinks onOpen={openInAppBrowser}
             anilistUrl={isCustomSource(entry.mediaId) || isTvmazeId(entry.mediaId) ? undefined : `https://anilist.co/anime/${entry.mediaId}`}
             trailerUrl={media.trailer?.id && media.trailer.site === "youtube" ? `https://www.youtube.com/watch?v=${media.trailer.id}` : undefined} />

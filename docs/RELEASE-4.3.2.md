@@ -6,6 +6,8 @@
 - 🎉 Player: Choose how far the buttons next to Play and double taps seek, under Settings, Playback, Seeking
 - 🎉 Settings: Show the status bar (clock and battery) outside the player, under Settings, Appearance, Screen. The player always hides it
 - 🎉 Links: AniList and MyAnimeList manga links open the manga page in the app
+- 🎉 Anime page: The studio, the airing period with its seasons, AniList popularity and rating ranks and the genres show under the title
+  - Tap the studio to see all of its anime, or tap a genre to search for it
 - ⚡️ Performance: Home, Discover and Search scroll smoother
 - ⚡️ Performance: The manga reader opens with far less stutter
 - ⚡️ Performance: Covers, pictures and icons no longer stutter the first time they appear

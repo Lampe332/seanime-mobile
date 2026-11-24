@@ -60,8 +60,9 @@ export const ANIME_DETAILS = `query AnimeDetails($id: Int) {
     }
 }`
 
-export const STUDIO_DETAILS = `query StudioDetails($id: Int) {
-    Studio(id: $id) { id isAnimationStudio name media(sort: [START_DATE_DESC], isMain: true) { nodes { ${animeFields} ${nextEpisode} } } }
+export const STUDIO_DETAILS = `query StudioDetails($id: Int, $page: Int) {
+    Studio(id: $id) { id isAnimationStudio name media(sort: [START_DATE_DESC], isMain: true, page: $page, perPage: 50) {
+        pageInfo { hasNextPage } nodes { ${animeFields} ${nextEpisode} } } }
 }`
 
 export const LIST_ANIME = `query ListAnime($page: Int, $search: String, $perPage: Int, $sort: [MediaSort], $status: [MediaStatus],
