@@ -42,6 +42,7 @@
 - 🦺 Subtitles: "Off" turns subtitles off instead of picking the default track again
 - 🦺 Subtitles: Plain SRT and WebVTT subtitles that stayed invisible on some videos now show
 - 🦺 Player: Subtitles stay on screen with the "Cover" picture fit
+- 🦺 Player: After leaving fullscreen, the small player stays in its place on the anime page instead of covering the top of the page
 - 🦺 Schedule: Times use your app language's format, like Discover
 - 🦺 Descriptions: Line breaks, paragraphs and lists are kept
 - 🦺 Formats: Every AniList format has a readable name, like "Music" instead of "MUSIC"
