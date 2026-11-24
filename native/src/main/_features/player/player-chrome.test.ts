@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
     HUD_PLACE, sameRect, VIEWPORT_REMEASURE_MS,
-    boxFrame, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, type MiniOrigin, miniOriginAfter, miniPlayCommand, miniPlayerShown,
+    boxFrame, measuredScroll, scrollIsStale, type BoxGeometry, boxOwner, boxVisible, isScrollDrag, loadStart, MINI_BAR, MINI_CARD, miniFrame, type MiniOrigin, miniOriginAfter, miniPlayCommand, miniPlayerShown,
     pageBottomPad, placeStep, playlistButtonBottom, orientationTarget, type PlayerView, playerView, progressFraction, scrollTarget, viewTurn,
 } from "./player-chrome"
 import { BOX_COMPACT_HEIGHT, boxControlSizes, controlSizes } from "./control-sizes"
@@ -239,5 +239,26 @@ describe("4.3.1 device test: box after fullscreen, level panel place", () => {
     })
     it("puts the 2x text top centre", () => {
         expect(HUD_PLACE).toEqual({ top: "12%", alignSelf: "center" })
+    })
+})
+
+describe("4.3.2 device test: the box after the page's ScrollView was mounted again", () => {
+    it("reads the real offset from the scroll area and the content wrapper in the window", () => {
+        // scroll area at 0, wrapper 24dp into the content: at the top the wrapper is at 24, scrolled 900 at -876
+        expect(measuredScroll(0, 24, 24)).toBe(0)
+        expect(measuredScroll(0, 24, -876)).toBe(900)
+        // the page still rises in (both moved by the same 40dp): the same offset
+        expect(measuredScroll(40, 24, -836)).toBe(900)
+        expect(measuredScroll(0, 24, 30)).toBe(0)
+        expect(measuredScroll(0, 24, Number.NaN)).toBeNull()
+    })
+    it("the offset kept from the old ScrollView is stale, a rounding is not", () => {
+        expect(scrollIsStale(900, 0)).toBe(true)
+        expect(scrollIsStale(900.4, 900)).toBe(false)
+        expect(scrollIsStale(900, null)).toBe(false)
+        // with the stale offset the box lay 900dp too high, over the page's head
+        const g: BoxGeometry = { viewport: { x: 0, y: 0, width: 360, height: 700 }, content: { x: 16, y: 1100, width: 328, height: 184.5 }, topInset: 30 }
+        expect(boxFrame(g, 900).box.top).toBe(170)
+        expect(boxFrame(g, measuredScroll(0, 24, 24) ?? 900).box.top).toBe(1070)
     })
 })

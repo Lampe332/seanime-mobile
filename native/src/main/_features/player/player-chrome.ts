@@ -114,6 +114,21 @@ export function sameRect(a: Rect | null | undefined, b: Rect) {
     return !!a && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
 }
 
+/**
+ * The page's real scroll offset from where its scroll area and its content wrapper are in the window (measured in one go).
+ * The offset from the scroll events alone goes stale when the page's ScrollView is mounted again at the top (the page's
+ * loading state) or moved without an event: the box then lay over the page's head (4.3.2). Null when not measurable.
+ */
+export function measuredScroll(viewportPageY: number, contentY: number, contentPageY: number) {
+    const y = viewportPageY + contentY - contentPageY
+    return Number.isFinite(y) ? Math.max(0, y) : null
+}
+
+/** Whether the offset known from the scroll events is off the measured one (more than a rounding). */
+export function scrollIsStale(known: number, measured: number | null) {
+    return measured !== null && Math.abs(known - measured) > 1
+}
+
 /** After the window changed (a turn), when the box's scroll area is measured again: the turn and the bars settle late. */
 export const VIEWPORT_REMEASURE_MS = [0, 450, 1000] as const
 

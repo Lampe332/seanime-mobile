@@ -12,7 +12,7 @@ import Animated, {
     withDecay,
 } from "react-native-reanimated"
 import { scheduleOnRN } from "react-native-worklets"
-import { type BoxGeometry, sameRect, scrollTarget, VIEWPORT_REMEASURE_MS } from "./player-chrome"
+import { type BoxGeometry, measuredScroll, sameRect, scrollIsStale, scrollTarget, VIEWPORT_REMEASURE_MS } from "./player-chrome"
 
 /*
  * r22 (Nick 11.11.): the player's box on the anime page (2.0.x: the online stream page's inline VideoCore). There is still
@@ -52,6 +52,8 @@ type BoxHost = {
     viewport: () => Rect | null
     subscribe: (listener: () => void) => () => void
     scroller: BoxScroller
+    /** measures the scroll area and the real scroll offset again */
+    sync: () => void
 }
 
 const BoxHostContext = React.createContext<BoxHost | null>(null)
@@ -144,6 +146,12 @@ export function useBoxHost({ focused, topInset, onScrollSignal, signalMs }: {
         // moment (a turn back from fullscreen), so the box sat a bar's height too high until the page laid out again (4.3.1)
         const view = scrollRef.current as unknown as { measure?: (cb: (x: number, y: number, w: number, h: number, pageX: number, pageY: number) => void) => void } | null
         view?.measure?.((_x, _y, width, height, pageX, pageY) => {
+            // the real scroll offset: a ScrollView mounted again (the page's loading state) starts at the top without a
+            // scroll event, boxScroll kept the old offset and the box lay over the page's head (4.3.2)
+            contentRef.current?.measure((_cx, _cy, _cw, _ch, _cpx, contentPageY) => {
+                const real = measuredScroll(pageY, contentOffset.current.y, contentPageY)
+                if (real !== null && scrollIsStale(boxScroll.get(), real)) boxScroll.set(real)
+            })
             const next = { x: pageX, y: pageY, width, height }
             if (sameRect(viewport.current, next)) return
             viewport.current = next
@@ -176,7 +184,8 @@ export function useBoxHost({ focused, topInset, onScrollSignal, signalMs }: {
         viewport: () => viewport.current,
         subscribe,
         scroller,
-    }), [focused, topInset, subscribe, scroller])
+        sync: measureViewport,
+    }), [focused, topInset, subscribe, scroller, measureViewport])
 
     const setContent = React.useCallback((node: ViewRef | null) => {
         contentRef.current = node
@@ -190,7 +199,8 @@ export function useBoxHost({ focused, topInset, onScrollSignal, signalMs }: {
         if (contentOffset.current.x === x && contentOffset.current.y === y) return
         contentOffset.current = { x, y }
         notify()
-    }, [notify])
+        measureViewport()
+    }, [notify, measureViewport])
 
     return { scrollRef, host, onScroll, onScrollViewLayout: measureViewport, onContentSizeChange, setContent, onContentLayout }
 }
@@ -226,6 +236,8 @@ export function PlayerBoxSlot({ owner, active, style, className, children }: {
 
     React.useEffect(() => {
         if (!live || !host) return
+        // the player comes to the box (Back from fullscreen): the offset it follows is checked against the page
+        host.sync()
         measure()
         // things above the box change size (the header, the source options): measured again with the page
         const off = host.subscribe(measure)
