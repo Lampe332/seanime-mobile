@@ -102,6 +102,9 @@ The [website](https://seanimemobile.com) lists all 45 features and has a tap-thr
 - *Settings → Cache → Diagnostic report* copies or shares a report for a bug report: app and Android version, device, language and recent log lines. Sign-ins, email addresses, links, file paths and your AniList name are left out.
 - On Android 13 and newer you can also pick the app's language in Android's settings (*Apps → Seanime Mobile → Language*). The app and Android stay in step.
 - Double-page mode in the manga reader pairs pages in the right order for both reading directions. Wide spreads stand alone, and *Page offset* moves the pairs. On a tablet, *Automatic* shows two pages in landscape and one in portrait.
+- Anime that AniList doesn't have show up in the search under *More sources*, found on TVmaze. You can stream them and keep them in *My shows*. Their progress stays on the phone.
+- Tap the studio on an anime page, or a staff member or author under *About*, to see everything they worked on.
+- Subtitles come in two larger sizes and with a *Bold* switch. Plain subtitles without a background box get an outline.
 - The *Support on Ko-fi* link is in *Settings → About* and at the bottom of *More*.
 
 </details>
