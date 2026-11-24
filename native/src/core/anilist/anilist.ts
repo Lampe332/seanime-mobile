@@ -16,6 +16,7 @@ import {
     LIST_MANGA_VARIABLES,
     LIST_RECENT_AIRING,
     LIST_RECENT_AIRING_VARIABLES,
+    STAFF_DETAILS,
     STUDIO_DETAILS,
     VIEWER_NAME,
     VIEWER_STATS,
@@ -224,29 +225,40 @@ function keptUnder(environment: CoreEnvironment, question: string, ask: () => Pr
     )
 }
 
+/**
+ * All pages of a list in one answer: AniList gives 50 a page and a studio like J.C.STAFF has hundreds, so the pages are
+ * read one after another, at most DETAIL_PAGES. The head is the first page's answer; `list` is where its items sit.
+ */
+async function everyPage(environment: CoreEnvironment, query: string, field: string, connection: string, list: string, id: number) {
+    const client = clientFor(environment)
+    let head: Json | undefined
+    const items: unknown[] = []
+    for (let page = 1; page <= DETAIL_PAGES; page++) {
+        const answer = (await askAnilist(client, query, { id, page }))[field] as Json | undefined
+        if (!answer) break
+        const part = answer[connection] as ({ pageInfo?: { hasNextPage?: boolean } } & Record<string, unknown>) | undefined
+        head ??= answer
+        items.push(...((part?.[list] as unknown[] | undefined) ?? []))
+        if (!part?.pageInfo?.hasNextPage) break
+    }
+    if (!head) throw new AnilistFailure("Not Found.", 404)
+    return withoutEmpty({ [field]: { ...head, [connection]: { [list]: items } } }) as Json
+}
+
 /** GET /api/v1/anilist/studio-details/{id} */
 export async function studioDetails(request: CoreRequest, environment: CoreEnvironment): Promise<Json> {
     const id = wholeNumber(request.path.id)
-    return keptUnder(environment, `studio/${id}`, async () => {
-        // AniList gives 50 titles a page and a studio like J.C.STAFF has hundreds: the pages are read one after another
-        const client = clientFor(environment)
-        let studio: Json | undefined
-        const nodes: unknown[] = []
-        for (let page = 1; page <= STUDIO_PAGES; page++) {
-            const answer = (await askAnilist(client, STUDIO_DETAILS, { id, page })).Studio as Json | undefined
-            if (!answer) break
-            const media = answer.media as { pageInfo?: { hasNextPage?: boolean }, nodes?: unknown[] } | undefined
-            studio ??= answer
-            nodes.push(...(media?.nodes ?? []))
-            if (!media?.pageInfo?.hasNextPage) break
-        }
-        if (!studio) throw new AnilistFailure("Not Found.", 404)
-        return withoutEmpty({ Studio: { ...studio, media: { nodes } } }) as Json
-    })
+    return keptUnder(environment, `studio/${id}`, () => everyPage(environment, STUDIO_DETAILS, "Studio", "media", "nodes", id))
 }
 
-/** At most 500 titles of one studio (10 pages of 50) */
-const STUDIO_PAGES = 10
+/** GET /api/v1/anilist/staff-details/{id}: a person (director, author, …) and every title they worked on, with the role */
+export async function staffDetails(request: CoreRequest, environment: CoreEnvironment): Promise<Json> {
+    const id = wholeNumber(request.path.id)
+    return keptUnder(environment, `staff/${id}`, () => everyPage(environment, STAFF_DETAILS, "Staff", "staffMedia", "edges", id))
+}
+
+/** At most 500 titles of one studio or person (10 pages of 50) */
+const DETAIL_PAGES = 10
 
 /** The variables a page query declares, in its order, so that the same request is the same question */
 function pick(body: unknown, names: string[]): Json {

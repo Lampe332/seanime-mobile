@@ -22,6 +22,8 @@ import { MEDIA_STATUS_LABELS, plainDescription } from "@/main/_features/media/_l
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { listStatusLabel } from "@/main/discover/_lib/discover-phone"
 import { EntryFacts } from "@/main/entry/_components/entry-facts"
+import { EntryCredits } from "@/main/entry/_components/entry-credits"
+import type { TagInput } from "@/main/entry/_lib/entry-credits"
 import { airingPeriod } from "@/main/entry/_lib/anime-meta"
 import { isTvmazeId } from "@/core/tvmaze/tvmaze"
 import { AnimeEntryPhoneMenu } from "@/main/entry/_containers/entry-actions/anime-entry-phone-menu"
@@ -419,7 +421,7 @@ function EntryHeader({ entry, details, detailsLoading, wide, tablet, foreign, on
                 {aboutOpen ? <ChevronDown size={16} color={colors.smTextSubtle} /> : <ChevronRight size={16} color={colors.smTextSubtle} />}
                 <Text className="text-[15px] font-semibold">{t("About this anime", "Über diesen Anime")}</Text>
             </Pressable>
-            {aboutOpen && <AboutAnime entry={entry} title={title} />}
+            {aboutOpen && <AboutAnime entry={entry} title={title} details={foreign ? undefined : details} />}
         </View>
 
         {gaps ? <View style={{ marginTop: gaps.actions }}>{actions}</View> : actions}
@@ -427,7 +429,7 @@ function EntryHeader({ entry, details, detailsLoading, wide, tablet, foreign, on
     </View>
 }
 
-function AboutAnime({ entry, title }: { entry: Anime_Entry, title: string }) {
+function AboutAnime({ entry, title, details }: { entry: Anime_Entry, title: string, details?: AL_AnimeDetailsById_Media }) {
     const t = useTr()
     const media = entry.media!
     const english = media.title?.english
@@ -440,6 +442,7 @@ function AboutAnime({ entry, title }: { entry: Anime_Entry, title: string }) {
         {!!romaji && romaji !== title && romaji !== english && <Text className={p}>{romaji}</Text>}
         <Text className={p}>{plainDescription(media.description) || t("No description available.", "Keine Beschreibung verfügbar.")}</Text>
         {/* no score here (2.0.32); studio, genres and ranking badges sit under the title (EntryFacts) */}
+        <EntryCredits kind="anime" staff={details?.staff?.edges} tags={(details as (typeof details & { tags?: TagInput[] | null }))?.tags} />
         <EntryAboutLinks onOpen={openInAppBrowser}
             anilistUrl={isCustomSource(entry.mediaId) || isTvmazeId(entry.mediaId) ? undefined : `https://anilist.co/anime/${entry.mediaId}`}
             trailerUrl={media.trailer?.id && media.trailer.site === "youtube" ? `https://www.youtube.com/watch?v=${media.trailer.id}` : undefined} />

@@ -51,6 +51,7 @@ export const ANIME_DETAILS = `query AnimeDetails($id: Int) {
             edges { id role node { id isFavourite gender age dateOfBirth ${date} name { full native alternative } image { large } description siteUrl } }
         }
         staff(sort: [RELEVANCE]) { edges { role node { name { full } id } } }
+        tags { name rank isMediaSpoiler isGeneralSpoiler }
         rankings { context type rank year format allTime season }
         recommendations(page: 1, perPage: 8, sort: [RATING_DESC]) {
             edges { node { mediaRecommendation { id idMal siteUrl status(version: 2) isAdult season type format meanScore description
@@ -63,6 +64,14 @@ export const ANIME_DETAILS = `query AnimeDetails($id: Int) {
 export const STUDIO_DETAILS = `query StudioDetails($id: Int, $page: Int) {
     Studio(id: $id) { id isAnimationStudio name media(sort: [START_DATE_DESC], isMain: true, page: $page, perPage: 50) {
         pageInfo { hasNextPage } nodes { ${animeFields} ${nextEpisode} } } }
+}`
+
+/** A person and the titles they worked on, 50 a page (anime and manga together, each with its role) */
+export const STAFF_DETAILS = `query StaffDetails($id: Int, $page: Int) {
+    Staff(id: $id) { id name { full native } image { large } primaryOccupations siteUrl
+        staffMedia(sort: [POPULARITY_DESC], page: $page, perPage: 50) {
+            pageInfo { hasNextPage } edges { staffRole node { id idMal siteUrl status(version: 2) type format season seasonYear
+                bannerImage episodes chapters isAdult countryOfOrigin meanScore genres ${title} ${cover} startDate ${date} ${nextEpisode} } } } }
 }`
 
 export const LIST_ANIME = `query ListAnime($page: Int, $search: String, $perPage: Int, $sort: [MediaSort], $status: [MediaStatus],
@@ -178,6 +187,7 @@ export const MANGA_WITH_ENTRY = `query MangaWithEntry($id: Int) { Media(id: $id,
 export const MANGA_DETAILS = `query MangaDetails($id: Int) {
     Media(id: $id, type: MANGA) {
         siteUrl id genres
+        staff(sort: [RELEVANCE], perPage: 12) { edges { role node { name { full } id } } }
         rankings { context type rank year format allTime season }
         characters(sort: [ROLE]) {
             edges { id role node { id isFavourite gender dateOfBirth ${date} name { full native } image { large } siteUrl } }

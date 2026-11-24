@@ -27,6 +27,8 @@ import { MEDIA_STATUS_LABELS, plainDescription } from "@/main/_features/media/_l
 import { listStatusLabel } from "@/main/discover/_lib/discover-phone"
 import { Heading, RelatedCard, type RelatedCardData, relationLabel } from "@/main/entry/_components/relations-recommendations-section"
 import { EntryFacts } from "@/main/entry/_components/entry-facts"
+import { EntryCredits } from "@/main/entry/_components/entry-credits"
+import type { StaffEdgeInput } from "@/main/entry/_lib/entry-credits"
 import { ExternalRow, ShareRow } from "@/main/entry/_containers/entry-actions/anime-entry-phone-menu"
 import { ChapterList, mangaReadActionAtom } from "@/main/manga/_containers/chapter-list/chapter-list"
 import { useHandleMangaDownloadData } from "@/main/manga/_lib/handle-manga-downloads"
@@ -235,7 +237,7 @@ function MangaHeader({ entry, details, detailsLoading, wide, tablet, onMore }: {
                 {aboutOpen ? <ChevronDown size={16} color={colors.smTextSubtle} /> : <ChevronRight size={16} color={colors.smTextSubtle} />}
                 <Text className="text-[15px] font-semibold">{t("About this manga", "Über diesen Manga")}</Text>
             </Pressable>
-            {aboutOpen && <AboutManga entry={entry} title={title} />}
+            {aboutOpen && <AboutManga entry={entry} title={title} details={details} />}
         </View>
 
         <View className="flex-row flex-wrap items-center gap-2" style={gaps ? { marginTop: gaps.actions } : undefined}>
@@ -257,7 +259,7 @@ function MangaHeader({ entry, details, detailsLoading, wide, tablet, onMore }: {
     </View>
 }
 
-function AboutManga({ entry, title }: { entry: Manga_Entry, title: string }) {
+function AboutManga({ entry, title, details }: { entry: Manga_Entry, title: string, details?: AL_MangaDetailsById_Media }) {
     const t = useTr()
     const media = entry.media!
     const english = media.title?.english
@@ -272,6 +274,7 @@ function AboutManga({ entry, title }: { entry: Manga_Entry, title: string }) {
         {!!romaji && romaji !== title && romaji !== english && <Text className={p}>{romaji}</Text>}
         <Text className={p}>{plainDescription(media.description) || t("No description available.", "Keine Beschreibung verfügbar.")}</Text>
         {/* genres and ranking badges sit under the title (EntryFacts) */}
+        {!custom && <EntryCredits kind="manga" staff={(details as (typeof details & { staff?: { edges?: StaffEdgeInput[] | null } | null }))?.staff?.edges} />}
         <EntryAboutLinks onOpen={openInAppBrowser} anilistUrl={custom ? undefined : `https://anilist.co/manga/${entry.mediaId}`}>
             {!!siteUrl && <Button intent="text" onPress={() => openInAppBrowser(siteUrl)}>{t("Open in website", "Auf der Website öffnen")}</Button>}
         </EntryAboutLinks>

@@ -79,6 +79,23 @@ function asAnilistSendsIt(collection: Json): Json {
 }
 
 const ok = (data: unknown): Answer => ({ body: { data } })
+
+/** A person as AniList's Staff answer has it (no recording yet: the fields the app reads), two anime roles and a manga */
+const work = (id: number, type: "ANIME" | "MANGA") => ({
+    id, idMal: id + 1, siteUrl: `https://anilist.co/${type.toLowerCase()}/${id}`, status: "FINISHED", type, format: type === "ANIME" ? "TV" : "MANGA",
+    season: type === "ANIME" ? "SPRING" : undefined, seasonYear: type === "ANIME" ? 2019 : undefined, bannerImage: "https://img/banner.jpg",
+    episodes: type === "ANIME" ? 12 : undefined, chapters: type === "MANGA" ? 40 : undefined, isAdult: false, countryOfOrigin: "JP", meanScore: 80,
+    genres: ["Drama"], title: { userPreferred: `Work ${id}`, romaji: `Work ${id}`, english: `Work ${id}`, native: "作品" },
+    coverImage: { extraLarge: "https://img/xl.jpg", large: "https://img/l.jpg", medium: "https://img/m.jpg", color: "#e4a15d" },
+    startDate: { year: 2019, month: 4, day: 1 }, nextAiringEpisode: type === "ANIME" ? { airingAt: 1, timeUntilAiring: 2, episode: 3 } : undefined,
+})
+const staffAnswer = {
+    Staff: {
+        id: 95061, name: { full: "Some Person", native: "某" }, image: { large: "https://img/person.jpg" }, primaryOccupations: ["Director"],
+        siteUrl: "https://anilist.co/staff/95061",
+        staffMedia: { edges: [{ staffRole: "Director", node: work(1, "ANIME") }, { staffRole: "Storyboard (ep 1)", node: work(1, "ANIME") }, { staffRole: "Story & Art", node: work(2, "MANGA") }] },
+    },
+}
 const down: Answer = { fails: true }
 
 beforeEach(() => {
@@ -140,6 +157,9 @@ describe("the questions asked of AniList", () => {
             ["manga lists", queries.collectionQuery("MANGA"), recorded.mangaCollection],
             ["anime details", queries.ANIME_DETAILS, { Media: recorded.details }],
             ["studio", queries.STUDIO_DETAILS, recorded.studio],
+            ["staff", queries.STAFF_DETAILS, staffAnswer],
+            ["anime details: staff and tags", queries.ANIME_DETAILS, { Media: { tags: [{ name: "Time Skip", rank: 80, isMediaSpoiler: true, isGeneralSpoiler: false }] } }],
+            ["manga details: staff", queries.MANGA_DETAILS, { Media: { staff: { edges: [{ role: "Story & Art", node: { name: { full: "Some Person" }, id: 1 } }] } } }],
             ["anime search", queries.LIST_ANIME, recorded.listAnime],
             ["manga search", queries.LIST_MANGA, recorded.listManga],
             ["recent airing", queries.LIST_RECENT_AIRING, recorded.recent],
@@ -208,6 +228,18 @@ describe("answers in the recorded form", () => {
         ]
         expect(await ask("GET", "/api/v1/anilist/studio-details/74")).toEqual(recorded.studio)
         expect(asked.slice(-2).map(question => question.variables)).toEqual([{ id: 74, page: 1 }, { id: 74, page: 2 }])
+
+        // a person: their titles over several pages joined, one edge per role
+        const [firstWork, ...restWorks] = staffAnswer.Staff.staffMedia.edges
+        answers.StaffDetails = [
+            ok({ Staff: { ...staffAnswer.Staff, staffMedia: { pageInfo: { hasNextPage: true }, edges: [firstWork] } } }),
+            ok({ Staff: { ...staffAnswer.Staff, staffMedia: { pageInfo: { hasNextPage: false }, edges: restWorks } } }),
+        ]
+        expect(await ask("GET", "/api/v1/anilist/staff-details/95061")).toEqual(staffAnswer)
+        expect(asked.slice(-2).map(question => question.variables)).toEqual([{ id: 95061, page: 1 }, { id: 95061, page: 2 }])
+        // AniList down afterwards: the kept answer
+        answers.StaffDetails = down
+        expect(await ask("GET", "/api/v1/anilist/staff-details/95061")).toEqual(staffAnswer)
 
         answers.ListAnime = ok(recorded.listAnime)
         expect(await ask("POST", "/api/v1/anilist/list-anime", recorded.listAnimeRequest)).toEqual(recorded.listAnime)

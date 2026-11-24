@@ -174,6 +174,27 @@ export function useGetAnilistStudioDetails(id: number) {
     })
 }
 
+/** GET /api/v1/anilist/staff-details/{id} (core/anilist/anilist.ts staffDetails; not in the generated types) */
+export type AL_StaffDetails = {
+    Staff?: {
+        id: number
+        name?: { full?: string, native?: string }
+        image?: { large?: string }
+        primaryOccupations?: string[]
+        siteUrl?: string
+        staffMedia?: { edges?: ({ staffRole?: string, node?: AL_BaseAnime & { chapters?: number } } | null)[] }
+    }
+}
+
+export function useGetAnilistStaffDetails(id: number) {
+    return useServerQuery<AL_StaffDetails>({
+        endpoint: API_ENDPOINTS.ANILIST.GetAnilistStaffDetails.endpoint.replace("{id}", String(id)),
+        method: API_ENDPOINTS.ANILIST.GetAnilistStaffDetails.methods[0],
+        queryKey: [API_ENDPOINTS.ANILIST.GetAnilistStaffDetails.key, String(id)],
+        enabled: Number.isFinite(id) && id > 0,
+    })
+}
+
 export function useGetAniListStats(enabled: boolean = true) {
     return useServerQuery<AL_Stats>({
         endpoint: API_ENDPOINTS.ANILIST.GetAniListStats.endpoint,

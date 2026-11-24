@@ -8,6 +8,7 @@ import {
     listManga,
     listRecentAiring,
     rawCollectionOf,
+    staffDetails,
     studioDetails,
     viewerStats,
 } from "./anilist/anilist"
@@ -380,6 +381,7 @@ export const CORE_ROUTES: CoreRoute[] = [
     { area: "anilist", method: "GET", endpoint: "/api/v1/manga/anilist/collection/raw/tags", answer: collectionTagsOf("MANGA") },
     { area: "anilist", method: "GET", endpoint: "/api/v1/anilist/media-details/{id}", answer: animeDetails },
     { area: "anilist", method: "GET", endpoint: "/api/v1/anilist/studio-details/{id}", answer: studioDetails },
+    { area: "anilist", method: "GET", endpoint: "/api/v1/anilist/staff-details/{id}", answer: staffDetails },
     { area: "anilist", method: "POST", endpoint: "/api/v1/anilist/list-anime", answer: listAnime },
     // the other sources (TVmaze, tvmaze/tvmaze.ts): titles AniList does not have, in the form of its search
     {

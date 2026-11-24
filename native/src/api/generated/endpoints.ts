@@ -74,6 +74,16 @@ export const API_ENDPOINTS = {
         },
         /**
          *  @description
+         *  Route returns a person (staff) of AniList and the anime and manga they worked on, each with the role.
+         *  Answered by the app's own core (core/anilist/anilist.ts staffDetails).
+         */
+        GetAnilistStaffDetails: {
+            key: "ANILIST-get-anilist-staff-details",
+            methods: ["GET"],
+            endpoint: "/api/v1/anilist/staff-details/{id}",
+        },
+        /**
+         *  @description
          *  Route deletes an entry from the user's AniList list.
          *  This is used to delete an entry on AniList.
          *  The "type" field is used to determine if the entry is an anime or manga and refreshes the collection accordingly.
