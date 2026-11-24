@@ -2,23 +2,6 @@
 
 Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lampe332/seanime-mobile/releases).
 
-## 4.3.3 (versionCode 40303)
-
-- 🎉 Anime page: "About this anime" lists the main staff (original creator, director, series composition, character design, music) and up to 8 tags. Spoiler tags stay hidden until you tap "Show spoilers"
-  - Tap a tag to search for it
-- 🎉 People: Tap a staff member or a manga author to see their anime and manga with their role in each
-- 🎉 Manga page: The publishing period, AniList popularity and rating ranks, genres and authors show on the page
-- 🎉 Manga page: "Related manga" lists prequels, sequels, side stories and more next to "Anime adaptations"
-- 🎉 Share: Share a title with its AniList link from the "More" menu on the anime and manga page
-- 🎉 My lists: "Random" opens a random title from the list you are looking at
-- ⚡️ Performance: Switching between the Anime, Schedule and Manga tabs in Discover stutters far less
-- ⚡️ Performance: Your AniList lists are no longer downloaded again every time another screen opens them
-- ⚡️ Performance: The app loads only your language at start, and card titles lay out faster
-- 🦺 Notifications: Opening the app in the minutes before an episode notification was due no longer drops that notification
-- 🦺 Online streaming and manga: An empty answer from a provider is not remembered anymore, so trying again asks the provider again
-- 🦺 History: An entry without an episode number no longer says "Episode undefined"
-- 🏗️ Removed the brightness and volume libraries the player no longer uses
-
 ## 4.3.2 (versionCode 40302)
 
 - 🎉 Search: Titles AniList doesn't have show up under "More sources" with a TVmaze label. Each one opens its own page, and you can watch it with online streams or torrents
@@ -29,15 +12,27 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 🎉 Links: AniList and MyAnimeList manga links open the manga page in the app
 - 🎉 Anime page: The studio, the airing period with its seasons, AniList popularity and rating ranks and the genres show under the title
   - Tap the studio to see all of its anime, or tap a genre to search for it
+- 🎉 Anime page: "About this anime" lists the main staff (original creator, director, series composition, character design, music) and up to 8 tags. Spoiler tags stay hidden until you tap "Show spoilers"
+  - Tap a tag to search for it
+- 🎉 People: Tap a staff member or a manga author to see their anime and manga with their role in each
+- 🎉 Manga page: The publishing period, AniList popularity and rating ranks, genres and authors show on the page
+- 🎉 Manga page: "Related manga" lists prequels, sequels, side stories and more next to "Anime adaptations"
+- 🎉 Share: Share a title with its AniList link from the "More" menu on the anime and manga page
+- 🎉 My lists: "Random" opens a random title from the list you are looking at
 - ⚡️ Performance: Home, Discover and Search scroll smoother
 - ⚡️ Performance: The manga reader opens with far less stutter
 - ⚡️ Performance: Covers, pictures and icons no longer stutter the first time they appear
 - ⚡️ Performance: Less stutter in page and tab transitions, entry pages, the card menu, the Discover and Extensions tabs and search sorting
 - ⚡️ Performance: During playback only the time and the progress bar redraw, and episode lists stay smooth while a source loads
+- ⚡️ Performance: Your AniList lists are no longer downloaded again every time another screen opens them
+- ⚡️ Performance: The app loads only your language at start, and card titles lay out faster
 - ⚡️ Home: Missing Sequels shows its last result right away at app start instead of placeholders
 - ⚡️ Connection: A failed request is retried once before you see an error
 - 🦺 Online streaming: "Try all providers" no longer gives up on a provider that works
 - 🦺 Online streaming: A provider that doesn't have the show says there are no episodes instead of showing a provider error
+- 🦺 Notifications: Opening the app in the minutes before an episode notification was due no longer drops that notification
+- 🦺 Online streaming and manga: An empty answer from a provider is not remembered anymore, so trying again asks the provider again
+- 🦺 History: An entry without an episode number no longer says "Episode undefined"
 - 🏗️ Player: The brightness and volume swipes are gone. Swiping on the video does nothing, and the volume button at the top still sets the player volume
 
 ## 4.3.1 (versionCode 40301)
