@@ -8,6 +8,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
   - Progress for these titles stays on your phone and is never sent to AniList
   - Add them to My shows, a row on Home and in My Lists
 - 🎉 Player: Choose how far the buttons next to Play and double taps seek, under Settings, Playback, Seeking
+- 🎉 Subtitles: Two larger sizes and a Bold option for styled and plain subtitles
 - 🎉 Settings: Show the status bar (clock and battery) outside the player, under Settings, Appearance, Screen. The player always hides it
 - 🎉 Links: AniList and MyAnimeList manga links open the manga page in the app
 - 🎉 Anime page: The studio, the airing period with its seasons, AniList popularity and rating ranks and the genres show under the title
@@ -15,7 +16,7 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - 🎉 Anime page: "About this anime" lists the main staff (original creator, director, series composition, character design, music) and up to 8 tags. Spoiler tags stay hidden until you tap "Show spoilers"
   - Tap a tag to search for it
 - 🎉 People: Tap a staff member or a manga author to see their anime and manga with their role in each
-- 🎉 Manga page: The publishing period, AniList popularity and rating ranks, genres and authors show on the page
+- 🎉 Manga page: The publishing period, AniList popularity and rating ranks, genres, tags and authors show on the page
 - 🎉 Manga page: "Related manga" lists prequels, sequels, side stories and more next to "Anime adaptations"
 - 🎉 Share: Share a title with its AniList link from the "More" menu on the anime and manga page
 - 🎉 My lists: "Random" opens a random title from the list you are looking at
@@ -28,11 +29,26 @@ Alle Versionen von Seanime Mobile. Downloads: [Releases](https://github.com/Lamp
 - ⚡️ Performance: The app loads only your language at start, and card titles lay out faster
 - ⚡️ Home: Missing Sequels shows its last result right away at app start instead of placeholders
 - ⚡️ Connection: A failed request is retried once before you see an error
+- ⚡️ Subtitles: Plain subtitles without a background box get an outline, so they stay readable on bright scenes
+- ⚡️ Player: Quick double taps keep seeking, and more taps on the same side keep jumping
+- ⚡️ Player: Closing the player is instant and the phone turns back right away
+- ⚡️ Player: The track menu closes after you pick an audio or subtitle track
+- ⚡️ Schedule: Several episodes of one show airing at the same time share one row
+- ⚡️ Tablets: Entry pages get a wider left column, the schedule uses two columns in landscape, and the More menu dims the page behind it
+- ⚡️ Relations: Badges show only the relation, and the format moves to the line under the title
+- ⚡️ Upcoming titles: Titles without a start date say "Release date TBA" instead of only "Upcoming"
+- ⚡️ About: Legal explains what the app sends: no analytics or tracking, only the anonymous daily usage count you can turn off
 - 🦺 Online streaming: "Try all providers" no longer gives up on a provider that works
 - 🦺 Online streaming: A provider that doesn't have the show says there are no episodes instead of showing a provider error
 - 🦺 Notifications: Opening the app in the minutes before an episode notification was due no longer drops that notification
 - 🦺 Online streaming and manga: An empty answer from a provider is not remembered anymore, so trying again asks the provider again
 - 🦺 History: An entry without an episode number no longer says "Episode undefined"
+- 🦺 Subtitles: "Off" turns subtitles off instead of picking the default track again
+- 🦺 Subtitles: Plain SRT and WebVTT subtitles that stayed invisible on some videos now show
+- 🦺 Player: Subtitles stay on screen with the "Cover" picture fit
+- 🦺 Schedule: Times use your app language's format, like Discover
+- 🦺 Descriptions: Line breaks, paragraphs and lists are kept
+- 🦺 Formats: Every AniList format has a readable name, like "Music" instead of "MUSIC"
 - 🏗️ Player: The brightness and volume swipes are gone. Swiping on the video does nothing, and the volume button at the top still sets the player volume
 
 ## 4.3.1 (versionCode 40301)
