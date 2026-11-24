@@ -7,12 +7,16 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
 import { tr } from "@/lib/app-language"
 
+/** Like the anime collection (anilist.hooks.ts): read by several screens at once, every change invalidates it */
+const COLLECTION_STALE_TIME = 2 * 60_000
+
 export function useGetRawAnilistMangaCollection() {
     return useServerQuery<AL_MangaCollection>({
         endpoint: API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.endpoint,
         method: API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.methods[0],
         queryKey: [API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.key],
         enabled: true,
+        staleTime: COLLECTION_STALE_TIME,
     })
 }
 
@@ -22,6 +26,7 @@ export function useGetRawAnilistMangaCollectionTags() {
         method: API_ENDPOINTS.MANGA.GetRawAnilistMangaCollectionTags.methods[0],
         queryKey: [API_ENDPOINTS.MANGA.GetRawAnilistMangaCollectionTags.key],
         enabled: true,
+        staleTime: COLLECTION_STALE_TIME,
     })
 }
 
@@ -31,6 +36,7 @@ export function useGetMangaCollection() {
         method: API_ENDPOINTS.MANGA.GetMangaCollection.methods[0],
         queryKey: [API_ENDPOINTS.MANGA.GetMangaCollection.key],
         enabled: true,
+        staleTime: COLLECTION_STALE_TIME,
     })
 }
 
@@ -148,6 +154,7 @@ export function useUpdateMangaProgress(id: Nullish<string | number>) {
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaEntry.key, String(id)] })
             await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaCollection.key] })
+            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetRawAnilistMangaCollection.key] })
         },
     })
 }

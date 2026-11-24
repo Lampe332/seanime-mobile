@@ -64,6 +64,7 @@ import {
 } from "@/main/discover/_lib/discover-phone-hooks"
 import { __discord_pageTypeAtom } from "@/main/discover/_lib/discover.atoms"
 import { DiscoverPhoneSchedule, scheduleFactsLine } from "@/main/discover/_screens/discover-phone-schedule"
+import { tabPaneProps } from "@/main/extensions/_screens/extensions-phone-marketplace"
 import { ADVANCED_SEARCH_MEDIA_GENRES } from "@/main/search/_lib/advanced-search-constants"
 import { FlashList, type FlashListRef } from "@shopify/flash-list"
 import { Image } from "expo-image"
@@ -114,7 +115,8 @@ export function DiscoverPhone() {
         setPageType(value as DiscoverTab)
     }
     // the tabs seen so far stay mounted: coming back to one shows it at once instead of building it anew (S22: 23–25 % janky
-    // frames on every switch); one left behind is hidden (display none: no layout, no drawing)
+    // frames on every switch); one left behind is hidden but keeps its native views (tabPaneProps: out of the flow,
+    // see-through, untouchable, hidden from screen readers), so the scroll height is the shown tab's
     const [visited, setVisited] = React.useState<ReadonlySet<DiscoverTab>>(() => new Set([tab]))
     if (!visited.has(tab)) setVisited(new Set([...visited, tab]))
     const schedule = useDiscoverSchedule(tab === "schedule")
@@ -138,17 +140,21 @@ export function DiscoverPhone() {
                 <Tabs variant="segment" value={tab} onValueChange={selectTab} items={tabs} />
             </View>
             <PluginWebviewSlot slot="after-discover-screen-header" />
-            {/* A new tab rises in instead of swapping in one frame (useSwap); a visited tab stays built, only hidden */}
-            {visited.has("anime") && <DiscoverTabPane active={tab === "anime"} isTablet={isTablet}><AnimeTab /></DiscoverTabPane>}
-            {visited.has("schedule") && <DiscoverTabPane active={tab === "schedule"} isTablet={isTablet}><DiscoverPhoneSchedule schedule={schedule} /></DiscoverTabPane>}
-            {visited.has("manga") && <DiscoverTabPane active={tab === "manga"} isTablet={isTablet}><MangaTab /></DiscoverTabPane>}
+            {/* A new tab rises in instead of swapping in one frame (useSwap); a visited tab stays built, only hidden. One
+                wrapper without padding: the hidden panes (absolute, left/right 0) get the visible one's width */}
+            <View>
+                {visited.has("anime") && <DiscoverTabPane active={tab === "anime"} isTablet={isTablet}><AnimeTab /></DiscoverTabPane>}
+                {visited.has("schedule") && <DiscoverTabPane active={tab === "schedule"} isTablet={isTablet}><DiscoverPhoneSchedule schedule={schedule} /></DiscoverTabPane>}
+                {visited.has("manga") && <DiscoverTabPane active={tab === "manga"} isTablet={isTablet}><MangaTab /></DiscoverTabPane>}
+            </View>
         </PhoneScreen>
     )
 }
 
 /**
  * A Discover tab: it rises 6dp and fades in each time it is picked (swapIn's move, the phone curve or the tablet's ease-out),
- * drawn as one GPU layer only while it moves; hidden while another tab shows. Reduced motion: it is simply there.
+ * drawn as one GPU layer only while it moves (the hidden panes never get one); hidden while another tab shows, its native
+ * views kept (display none would take them down and build them again on the next switch). Reduced motion: it is simply there.
  */
 function DiscoverTabPane({ active, isTablet, children }: { active: boolean, isTablet: boolean, children: React.ReactNode }) {
     const reduceMotion = useReducedMotion()
@@ -177,8 +183,12 @@ function DiscoverTabPane({ active, isTablet, children }: { active: boolean, isTa
         }))
     }, [active, isTablet, reduceMotion, opacity, shift])
 
-    const style = useAnimatedStyle(() => ({ opacity: opacity.get(), transform: [{ translateY: shift.get() }] }))
-    return <Animated.View renderToHardwareTextureAndroid={layered} style={[{ display: active ? "flex" : "none" }, style]} className="gap-6">
+    // the animated opacity would win over the hidden pane's static 0 (reduced motion keeps it at 1): hidden is 0 here too
+    const style = useAnimatedStyle(() => active
+        ? { opacity: opacity.get(), transform: [{ translateY: shift.get() }] }
+        : { opacity: 0, transform: [{ translateY: 0 }] })
+    const { style: paneStyle, ...paneProps } = { style: undefined, ...tabPaneProps(active) }
+    return <Animated.View renderToHardwareTextureAndroid={layered} {...paneProps} style={[paneStyle, style]} className="gap-6">
         <PaneContent active={active}>{children}</PaneContent>
     </Animated.View>
 }

@@ -21,12 +21,20 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/components/ui/toast/toast-store"
 import { tr } from "@/lib/app-language"
 
+/**
+ * The AniList collection is read by many screens at once (Home, Discover, Search, My lists): a new one does not fetch it
+ * again within 2 minutes. Every change invalidates it anyway (edit, delete, progress, refresh, the core's
+ * "refreshed-anilist-anime-collection" event, an account change).
+ */
+const COLLECTION_STALE_TIME = 2 * 60_000
+
 export function useGetAnimeCollection() {
     return useServerQuery<AL_AnimeCollection>({
         endpoint: API_ENDPOINTS.ANILIST.GetAnimeCollection.endpoint,
         method: API_ENDPOINTS.ANILIST.GetAnimeCollection.methods[0],
         queryKey: [API_ENDPOINTS.ANILIST.GetAnimeCollection.key],
         enabled: true,
+        staleTime: COLLECTION_STALE_TIME,
     })
 }
 export function useGetRawAnimeCollection() {
@@ -35,6 +43,7 @@ export function useGetRawAnimeCollection() {
         method: API_ENDPOINTS.ANILIST.GetRawAnimeCollection.methods[0],
         queryKey: [API_ENDPOINTS.ANILIST.GetRawAnimeCollection.key],
         enabled: true,
+        staleTime: COLLECTION_STALE_TIME,
     })
 }
 export function useGetRawAnimeCollectionTags() {
@@ -43,6 +52,7 @@ export function useGetRawAnimeCollectionTags() {
         method: API_ENDPOINTS.ANILIST.GetRawAnimeCollectionTags.methods[0],
         queryKey: [API_ENDPOINTS.ANILIST.GetRawAnimeCollectionTags.key],
         enabled: true,
+        staleTime: COLLECTION_STALE_TIME,
     })
 }
 

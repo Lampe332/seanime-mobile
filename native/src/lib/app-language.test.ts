@@ -1,6 +1,6 @@
 import { createStore } from "jotai"
 import { afterEach, describe, expect, it } from "vitest"
-import { APP_LANGUAGES, type AppLanguage, appLanguageAtom, asAppLanguage, getAppLanguage, languageForLocale, plural, tr, translate } from "./app-language"
+import { APP_LANGUAGES, type AppLanguage, appLanguageAtom, asAppLanguage, CATALOG_LOADERS, getAppLanguage, languageForLocale, plural, tr, translate } from "./app-language"
 import es from "./i18n/es.json"
 import { storage } from "./storage"
 
@@ -47,6 +47,15 @@ describe("translate", () => {
         expect(translate("es", "A text no catalog has yet", "Ein Text, den noch kein Katalog hat")).toBe("A text no catalog has yet")
     })
 
+    it("has a loader for every catalog language that reads its own catalog", () => {
+        const catalogLanguages = APP_LANGUAGES.map(language => language.value).filter(language => language !== "en" && language !== "de")
+        expect(Object.keys(CATALOG_LOADERS).sort()).toEqual([...catalogLanguages].sort())
+        expect(CATALOG_LOADERS.es?.()).toEqual(es)
+        for (const language of catalogLanguages) {
+            expect(Object.keys(CATALOG_LOADERS[language]?.() ?? {}).length, language).toBeGreaterThan(100)
+        }
+    })
+
     it("keeps a genre apart from the same word as a button action, and never shows the context", () => {
         expect(translate("zh-Hans", "[genre] Action", "Action")).toBe("动作")
         expect(translate("zh-Hans", "Action", "Aktion")).toBe("操作")
@@ -73,6 +82,14 @@ describe("stored language", () => {
         store.set(appLanguageAtom, "de")
         expect(getAppLanguage()).toBe("de")
         expect(tr("Cancel", "Abbrechen")).toBe("Abbrechen")
+    })
+
+    it("loads the catalog of a language picked while the app runs", () => {
+        const store = createStore()
+        store.set(appLanguageAtom, "es")
+        expect(tr("Cancel", "Abbrechen")).toBe("Cancelar")
+        store.set(appLanguageAtom, "fr")
+        expect(tr("Cancel", "Abbrechen")).toBe("Annuler")
     })
 
     it("ignores a stored value that is no app language", () => {

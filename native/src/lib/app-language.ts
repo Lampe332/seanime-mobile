@@ -1,10 +1,4 @@
 import { compileCatalog, type Catalog, type CatalogJSON, translateText } from "@/lib/i18n/catalog"
-import es from "@/lib/i18n/es.json"
-import fr from "@/lib/i18n/fr.json"
-import ja from "@/lib/i18n/ja.json"
-import ptBR from "@/lib/i18n/pt-BR.json"
-import ru from "@/lib/i18n/ru.json"
-import zhHans from "@/lib/i18n/zh-Hans.json"
 import { atomWithStorage, readStoredJSON } from "@/lib/storage"
 import { useAtomValue } from "jotai"
 
@@ -29,7 +23,19 @@ const STORAGE_KEY = "seanime-mobile-language"
 /** The stored choice's key, for the sync with Android's "App languages" setting (android-app-language-run.ts) */
 export const APP_LANGUAGE_KEY = STORAGE_KEY
 
-const CATALOGS: Partial<Record<AppLanguage, CatalogJSON>> = { es, ru, "zh-Hans": zhHans, "pt-BR": ptBR, fr, ja }
+/**
+ * The catalogs (together ~1.3 MB), each read the first time its language shows a text: Metro bundles all of them, but a
+ * `require` inside a function runs its module only when called, so only the chosen one is built in memory. A language
+ * picked later loads its catalog then.
+ */
+export const CATALOG_LOADERS: Partial<Record<AppLanguage, () => CatalogJSON>> = {
+    es: () => require("./i18n/es.json"),
+    ru: () => require("./i18n/ru.json"),
+    "zh-Hans": () => require("./i18n/zh-Hans.json"),
+    "pt-BR": () => require("./i18n/pt-BR.json"),
+    fr: () => require("./i18n/fr.json"),
+    ja: () => require("./i18n/ja.json"),
+}
 const compiled = new Map<AppLanguage, Catalog>()
 
 export function asAppLanguage(value: unknown): AppLanguage | undefined {
@@ -91,9 +97,9 @@ export function translate(language: AppLanguage, en: string, de: string): string
     if (language === "en") return withoutContext(en)
     let catalog = compiled.get(language)
     if (!catalog) {
-        const json = CATALOGS[language]
-        if (!json) return withoutContext(en)
-        catalog = compileCatalog(json, language)
+        const load = CATALOG_LOADERS[language]
+        if (!load) return withoutContext(en)
+        catalog = compileCatalog(load(), language)
         compiled.set(language, catalog)
     }
     return withoutContext(translateText(catalog, en))

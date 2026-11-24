@@ -184,11 +184,11 @@ export const PhoneCoverCard = React.memo(function PhoneCoverCard({ media, type, 
                     </View>
                 )}
             </View>
-            <Text numberOfLines={2} className="text-[13px] font-medium leading-[18px]">{title}</Text>
+            <Text numberOfLines={2} textBreakStrategy="simple" className="text-[13px] font-medium leading-[18px]">{title}</Text>
             {hasMeta && (
                 <View className="flex-row items-center">
                     {metaIcon}
-                    <Text numberOfLines={1} className={cn("shrink text-xs", metaTone === "accent" ? "font-semibold text-sm-accent" : "text-sm-text-subtle")}
+                    <Text numberOfLines={1} textBreakStrategy="simple" className={cn("shrink text-xs", metaTone === "accent" ? "font-semibold text-sm-accent" : "text-sm-text-subtle")}
                         style={{ fontVariant: ["tabular-nums"] }}>{meta}</Text>
                 </View>
             )}
@@ -232,7 +232,7 @@ function CoverCardMenu({ anchor, title, onClose, media, type, menuItems, onList,
 function CardMark({ text, className, textClassName }: { text: string, className: string, textClassName: string }) {
     return (
         <View style={{ maxWidth: "88%" }} className={cn("absolute rounded-full bg-[rgba(12,12,14,0.82)] px-[7px] py-[3px]", className)}>
-            <Text numberOfLines={1} className={cn("text-[11px] font-semibold leading-[14px]", textClassName)} style={{ fontVariant: ["tabular-nums"] }}>{text}</Text>
+            <Text numberOfLines={1} textBreakStrategy="simple" className={cn("text-[11px] font-semibold leading-[14px]", textClassName)} style={{ fontVariant: ["tabular-nums"] }}>{text}</Text>
         </View>
     )
 }
