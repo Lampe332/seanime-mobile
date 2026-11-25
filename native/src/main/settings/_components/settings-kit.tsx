@@ -449,9 +449,12 @@ export function ImageChoiceRow({ label, note, value, options, onChange, scope }:
                             onChange(option.value)
                         }}
                         className="overflow-hidden rounded-xl border-2 bg-sm-surface-control active:opacity-80"
-                        style={{ width: "48.5%", aspectRatio: 2.4, borderColor: selected ? colors.smText : "transparent" }}>
+                        style={{ width: "48.5%", borderColor: selected ? colors.smText : "transparent" }}>
+                        {/* the tile's height comes from this inner box: aspectRatio on the Pressable itself was lost (tiles 15 px high) */}
+                        <View style={{ width: "100%", aspectRatio: 2.4 }}>
                         {option.source !== undefined
-                            ? <Image source={option.source} contentFit="cover" transition={{ duration: 160, effect: "cross-dissolve" }} style={{ position: "absolute", inset: 0 }} />
+                            ? <Image source={option.source} contentFit="cover" transition={{ duration: 160, effect: "cross-dissolve" }}
+                                style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} />
                             : <View className="flex-1 items-center justify-center gap-1 px-2">
                                 {!!Icon && <Icon size={20} color={colors.smTextMuted} />}
                                 {!!option.caption && <Text numberOfLines={2} className="text-center text-[13px] leading-[17px] text-sm-text-muted">{option.caption}</Text>}
@@ -464,6 +467,7 @@ export function ImageChoiceRow({ label, note, value, options, onChange, scope }:
                         {selected && <View className="absolute right-1.5 top-1.5 size-6 items-center justify-center rounded-full" style={{ backgroundColor: colors.smText }}>
                             <Check size={14} strokeWidth={3} color={colors.paper} />
                         </View>}
+                        </View>
                     </Pressable>
                 })}
             </View>
