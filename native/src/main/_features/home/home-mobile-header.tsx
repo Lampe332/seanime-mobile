@@ -1,11 +1,12 @@
 import { cn } from "@/components/ui/core/styling"
 import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
-import { getAssetUrl } from "@/lib/server/assets"
 import { colors } from "@/lib/theme/tokens"
 import { usePalette } from "@/lib/theme/appearance"
 import { glowGroundFade } from "@/lib/theme/palette"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
+import { useHomeBanner } from "@/lib/theme/banner-presets"
+import type { BannerSource } from "@/lib/theme/home-banner"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useRouter } from "@/lib/navigation"
 import { searchHeadLink } from "@/main/search/_lib/search-phone"
@@ -26,7 +27,8 @@ export function HomeMobileHeader({ actions }: { actions?: React.ReactNode }) {
     const top = usePageTop()
     const { rail } = useTabletLayout()
     const ts = useThemeSettings()
-    const image = rail ? "" : ts.libraryScreenCustomBannerImage?.trim()
+    const banner = useHomeBanner()
+    const image = rail ? undefined : banner
 
     return (
         // the same top as every page (page-top.ts); a banner still reaches up to the edge behind it
@@ -46,15 +48,16 @@ export function HomeMobileHeader({ actions }: { actions?: React.ReactNode }) {
 
 /**
  * The banner behind the head: one still picture cropped by the stored position, at the stored opacity, darkened under the
- * text and faded out at the bottom. It fades in once loaded (opacity only, 320 ms).
+ * text and faded out at the bottom. It fades in once loaded (opacity only, 320 ms). A bundled picture, the own photo on
+ * this device or an old image link (home-banner.ts).
  */
-function HomeBanner({ image, opacity, position }: { image: string, opacity: number, position?: string }) {
+function HomeBanner({ image, opacity, position }: { image: BannerSource, opacity: number, position?: string }) {
     usePalette()
     return (
         <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="absolute inset-0 overflow-hidden">
             <Image
-                key={image}
-                source={getAssetUrl(image)}
+                key={image.kind === "preset" ? image.id : image.uri}
+                source={image.kind === "preset" ? image.asset : image.uri}
                 contentFit="cover"
                 contentPosition={homeBannerPosition(position)}
                 transition={{ duration: 320, effect: "cross-dissolve" }}

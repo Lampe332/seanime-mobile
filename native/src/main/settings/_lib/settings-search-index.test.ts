@@ -17,7 +17,7 @@ import { describe, expect, it } from "vitest"
 const SETTINGS_DIR = join(process.cwd(), "src", "main", "settings")
 const INDEX_FILE = join(SETTINGS_DIR, "_lib", "settings-search-index.ts")
 /** The kit's rows; the kit and the page frame themselves are not walked into */
-const ROWS = new Set(["SettingSwitch", "LocalSwitch", "ThemeSwitch", "SelectRow", "LinkRow", "InfoRow", "TextSettingRow"])
+const ROWS = new Set(["SettingSwitch", "LocalSwitch", "ThemeSwitch", "SelectRow", "LinkRow", "InfoRow", "TextSettingRow", "ImageChoiceRow"])
 const KIT_FILES = new Set(["settings-kit.tsx", "settings-page.tsx", "settings-search.tsx"])
 /** Rows inside these only show once something is opened */
 const HIDDEN = new Set(["Sheet", "ConfirmSheet", "TextSheet", "Modal"])

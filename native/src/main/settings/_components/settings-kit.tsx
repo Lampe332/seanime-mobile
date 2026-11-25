@@ -19,6 +19,7 @@ import { type RowReveal, useJumpTarget, useRowFocus } from "@/main/settings/_com
 import { pickerListMaxHeight } from "@/main/settings/_lib/settings-page-layout"
 import { withStoredOption, type Option } from "@/main/settings/_lib/settings-phone"
 import { useQueryClient } from "@tanstack/react-query"
+import { Image } from "expo-image"
 import { atom, useAtomValue, useSetAtom, useStore } from "jotai"
 import get from "lodash/get"
 import type { LucideIcon } from "lucide-react-native"
@@ -412,6 +413,64 @@ export function SwatchRow({ label, note, value, options, onChange, scope, defaul
     )
 }
 
+/**
+ * A picture to choose: its name for the screen reader, the picture (a bundled asset or a uri) or an icon with a caption.
+ * `again` lets a chosen tile be tapped once more (the photo tile opens the picker every time).
+ */
+export type ImageChoice = { value: string, label: string, source?: number | string, icon?: LucideIcon, caption?: string, again?: boolean }
+
+/**
+ * A grid of wide picture tiles, two per line (the banner's own shape, so each previews what it gives): name and note above.
+ * The current one is ringed with a check; icon tiles carry their caption inside, a picture with a caption gets it on a
+ * dark strip at its foot.
+ */
+export function ImageChoiceRow({ label, note, value, options, onChange, scope }: {
+    label: string
+    note?: string
+    value: string
+    options: ImageChoice[]
+    onChange: (value: string) => void
+    scope?: SettingScope
+}) {
+    useThemeColors()
+    return (
+        <View accessibilityRole="radiogroup" accessibilityLabel={label} className={cn(ROW, "flex-col items-stretch gap-3 active:bg-sm-surface-raised")}>
+            <RowHighlight label={label} />
+            <RowText label={label} note={note} scope={scope} className="min-w-0" />
+            <View className="flex-row flex-wrap justify-between gap-y-2">
+                {options.map(option => {
+                    const selected = option.value === value
+                    const Icon = option.icon
+                    return <Pressable key={option.value} accessibilityRole="radio" accessibilityLabel={spoken(option.label, option.caption !== option.label ? option.caption : undefined)}
+                        accessibilityState={{ checked: selected }}
+                        onPress={() => {
+                            if (selected && !option.again) return
+                            haptic("tick")
+                            onChange(option.value)
+                        }}
+                        className="overflow-hidden rounded-xl border-2 bg-sm-surface-control active:opacity-80"
+                        style={{ width: "48.5%", aspectRatio: 2.4, borderColor: selected ? colors.smText : "transparent" }}>
+                        {option.source !== undefined
+                            ? <Image source={option.source} contentFit="cover" transition={{ duration: 160, effect: "cross-dissolve" }} style={{ position: "absolute", inset: 0 }} />
+                            : <View className="flex-1 items-center justify-center gap-1 px-2">
+                                {!!Icon && <Icon size={20} color={colors.smTextMuted} />}
+                                {!!option.caption && <Text numberOfLines={2} className="text-center text-[13px] leading-[17px] text-sm-text-muted">{option.caption}</Text>}
+                            </View>}
+                        {option.source !== undefined && !!option.caption &&
+                            <View className="absolute inset-x-0 bottom-0 flex-row items-center gap-1.5 px-2 py-1" style={{ backgroundColor: "rgba(12,12,14,0.66)" }}>
+                                {!!Icon && <Icon size={13} color="#fff" />}
+                                <Text numberOfLines={1} className="shrink text-xs text-white">{option.caption}</Text>
+                            </View>}
+                        {selected && <View className="absolute right-1.5 top-1.5 size-6 items-center justify-center rounded-full" style={{ backgroundColor: colors.smText }}>
+                            <Check size={14} strokeWidth={3} color={colors.paper} />
+                        </View>}
+                    </Pressable>
+                })}
+            </View>
+        </View>
+    )
+}
+
 /** An option may say in one sentence what it does (shown in the sheet of all options) */
 export type SelectOption = Option & { note?: string }
 
@@ -665,10 +724,4 @@ export function TextSettingRow({ label, value, empty, note, sheetTitle, placehol
         <TextSheet key={opened} open={open} onOpenChange={setOpen} title={sheetTitle ?? label} label={label} note={note} value={value} placeholder={placeholder}
             secure={secure} multiline={multiline} keyboardType={keyboardType} validate={validate} onApply={onApply} extra={extra} />
     </>
-}
-
-/** "" or an http(s) link. */
-export function validateImageLink(t: Translate) {
-    return (value: string) => !value.trim() || /^https?:\/\/\S+$/i.test(value.trim()) ? null
-        : t("Enter a link that starts with https://", "Gib einen Link ein, der mit https:// beginnt")
 }

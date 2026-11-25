@@ -13,8 +13,15 @@ import {
     useSaveTheme,
     useSettingValue,
     useThemeValue,
-    validateImageLink,
+    ImageChoiceRow,
+    type ImageChoice,
 } from "@/main/settings/_components/settings-kit"
+import { toast } from "@/components/ui/toast/toast-store"
+import { BANNER_PRESET_ASSETS, BANNER_PRESETS } from "@/lib/theme/banner-presets"
+import { BANNER_PRESET_PREFIX, resolveBanner } from "@/lib/theme/home-banner"
+import { pickBannerPhoto, removeBannerPhotos } from "@/lib/theme/home-banner-photo"
+import Ban from "lucide-react-native/icons/ban"
+import ImagePlus from "lucide-react-native/icons/image-plus"
 import { opacityOptions } from "@/main/settings/_lib/settings-phone"
 import { showStatusBarAtom } from "@/lib/status-bar-setting"
 import { cardSizeAtom } from "@/lib/card-size-setting"
@@ -22,6 +29,9 @@ import type { CardSize } from "@/components/shared/cover-layout"
 import { useAtom } from "jotai"
 import { accentColorAtom, amoledAtom } from "@/lib/theme/appearance"
 import { ACCENT_IDS, buildPalette, DEFAULT_ACCENT, isAccentId } from "@/lib/theme/palette"
+
+/** The banner tile that opens the photo picker (never stored: the pick is stored as "file:<name>") */
+const PHOTO = "photo"
 
 /*
  * Appearance (settings-phone-ui.tsx). Only what the native screens read is here (as the settings audit asked: no switch
@@ -91,14 +101,40 @@ function BannerGroup({ t }: { t: Translate }) {
     const banner = useThemeValue("libraryScreenCustomBannerImage")
     const position = useThemeValue("libraryScreenCustomBannerPosition")
     const opacity = useThemeValue("libraryScreenCustomBannerOpacity")
+    // A photo of another device (synced value, no file here) counts as none, as Home shows it
+    const shown = resolveBanner(banner, BANNER_PRESET_ASSETS)
+    const own = shown && shown.kind !== "preset" ? shown.uri : undefined
+    const current = shown?.kind === "preset" ? BANNER_PRESET_PREFIX + shown.id : own ? PHOTO : ""
     // An opacity never set is stored as 0, which would draw the new image invisibly: it gets the default with the image
     const visible = opacity > 0 ? {} : { libraryScreenCustomBannerOpacity: THEME_DEFAULT_VALUES.libraryScreenCustomBannerOpacity }
-    return <SettingsGroup title={t("Banner", "Banner")}
-        note={t("The banner comes from an image link (https://…).", "Das Banner kommt über einen Bildlink (https://…).")}>
-        <TextSettingRow label={t("Banner image", "Bannerbild")} value={banner} empty={t("None", "Keins")} keyboardType="url" placeholder="https://…"
-            note={t("Shown behind the title on Home. Leave empty for none.", "Erscheint hinter dem Titel auf der Startseite. Leer lassen für keins.")}
-            validate={validateImageLink(t)} onApply={value => void save({ libraryScreenCustomBannerImage: value.trim(), ...visible })} />
-        {!!banner && <>
+
+    const choose = async (value: string) => {
+        if (value !== PHOTO) {
+            // the own photo goes once something else is stored (kept while saving fails)
+            if (await save({ libraryScreenCustomBannerImage: value, ...(value ? visible : {}) })) removeBannerPhotos()
+            return
+        }
+        try {
+            const photo = await pickBannerPhoto()
+            if (photo) await save({ libraryScreenCustomBannerImage: photo, ...visible })
+        } catch {
+            toast.error(t("This photo could not be used. Try another one.", "Dieses Foto ließ sich nicht verwenden. Versuch ein anderes."))
+        }
+    }
+
+    const options: ImageChoice[] = [
+        ...BANNER_PRESETS.map(preset => ({ value: BANNER_PRESET_PREFIX + preset.id, label: t(preset.en, preset.de), source: preset.asset })),
+        own
+            ? { value: PHOTO, label: t("Your photo", "Dein Foto"), caption: t("Choose another", "Anderes wählen"), icon: ImagePlus, source: own, again: true }
+            : { value: PHOTO, label: t("Choose from photos", "Aus Fotos wählen"), caption: t("Choose from photos", "Aus Fotos wählen"), icon: ImagePlus, again: true },
+        { value: "", label: t("None", "Keins"), caption: t("None", "Keins"), icon: Ban },
+    ]
+
+    return <SettingsGroup title={t("Banner", "Banner")}>
+        <ImageChoiceRow label={t("Banner image", "Bannerbild")} value={current} options={options} onChange={value => void choose(value)}
+            note={t("Shown behind the title on Home. The pictures look the same on all your devices; your own photo stays on this one.",
+                "Erscheint hinter dem Titel auf der Startseite. Die Vorlagen sind auf all deinen Geräten gleich, dein eigenes Foto bleibt auf diesem.")} />
+        {!!shown && <>
             <TextSettingRow label={t("Banner position", "Bannerausschnitt")} value={position} empty="50% 50%" placeholder="50% 50%"
                 note={t("Which part of the image shows, as \"horizontal vertical\", e.g. 50% 20%.", "Welcher Teil des Bilds zu sehen ist, als „waagrecht senkrecht“, z. B. 50% 20%.")}
                 onApply={value => void save({ libraryScreenCustomBannerPosition: value.trim() })} />
