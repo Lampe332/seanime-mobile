@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
+import { MEDIASERVER_ENDPOINTS } from "@/api/hooks/mediaserver.hooks"
 import { CORE_ROUTES, type CoreEnvironment, type CoreRoute, coreAnswerFor } from "./index"
 import { matchCoreRoute } from "./registry"
 
@@ -31,7 +32,8 @@ describe("core routes", () => {
     })
 
     it("are interfaces the app really has, with the method its hook uses", () => {
-        const known = Object.values(API_ENDPOINTS).flatMap(group => Object.values(group))
+        // the media server's routes have their own list next to the generated one (api/hooks/mediaserver.hooks.ts)
+        const known = [...Object.values(API_ENDPOINTS).flatMap(group => Object.values(group)), ...Object.values(MEDIASERVER_ENDPOINTS)]
         for (const route of CORE_ROUTES) {
             // one address can be two interfaces (reading and writing the home items)
             const methods = known.filter(candidate => candidate.endpoint === route.endpoint).flatMap(candidate => candidate.methods as readonly string[])

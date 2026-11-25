@@ -10,7 +10,7 @@ import { animeWithEpisodes, episodesOut } from "../library/library"
 import { type LocalFileRow, episodeOfFile, libraryDataOf } from "../library/local-files"
 import { animeMetadata } from "../library/metadata"
 import type { CoreEnvironment } from "../registry"
-import { type JellyfinSeries, type JellyfinSession, listEpisodes, listSeasons, listSeries, providerId } from "./client"
+import { JellyfinFailure, type JellyfinSeries, type JellyfinSession, listEpisodes, listSeasons, listSeries, providerId } from "./client"
 import { type AnilistTitle, type EpisodeMatch, type MatchRule, type ServerShow, matchLibrary, matchS1 } from "./match"
 
 /*
@@ -46,11 +46,12 @@ const ID_KEYS = ["AniDB", "Tvdb", "Tmdb"] as const
 const PAGE = 200
 const FILE_SCHEME = "mediaserver://"
 
-const TEXT_FIELDS = ["serverId", "url", "userId", "username", "device", "deviceId", "version"] as const
+const TEXT_FIELDS = ["serverId", "serverName", "url", "userId", "username", "device", "deviceId", "version"] as const
 
 /** The media server's settings without its token */
 export interface ServerSettings {
     serverId: string
+    serverName: string
     url: string
     userId: string
     username: string
@@ -93,7 +94,7 @@ export async function serverSettingsOf(environment: Pick<Environment, "database"
     const [row] = await inOrder(database, () => database.select().from(settingsSections).where(eq(settingsSections.section, MEDIASERVER_SECTION)))
     const content: Json = row?.content ?? {}
     return {
-        serverId: text(content.serverId), url: text(content.url), userId: text(content.userId), username: text(content.username),
+        serverId: text(content.serverId), serverName: text(content.serverName), url: text(content.url), userId: text(content.userId), username: text(content.username),
         device: text(content.device), deviceId: text(content.deviceId), version: text(content.version),
         sendProgress: content.sendProgress === true,
     }
@@ -253,7 +254,12 @@ export async function refreshServerShows(environment: Environment, session: Jell
 }
 
 let reading: Promise<ServerShow[]> | null = null
-let lastTry: { serverId: string, at: number, failed: boolean } | null = null
+/** `problem`: why the last reading failed, as a word without any text of the server ("unreachable", "rejected", "failed") */
+let lastTry: { serverId: string, at: number, failed: boolean, problem?: string } | null = null
+
+const problemOf = (error: unknown) => (error instanceof JellyfinFailure
+    ? error.status === 0 ? "unreachable" : error.status === 401 || error.status === 403 ? "rejected" : "failed"
+    : "failed")
 
 /** One reading of the server at a time; `asked`: the user wants it (not through `unasked`) */
 function readServer(environment: Environment, session: JellyfinSession, asked: boolean): Promise<ServerShow[]> {
@@ -267,7 +273,7 @@ function readServer(environment: Environment, session: JellyfinSession, asked: b
         }
         catch (error) {
             // the kept series stay as they were
-            lastTry = { serverId: session.serverId, at: environment.now(), failed: true }
+            lastTry = { serverId: session.serverId, at: environment.now(), failed: true, problem: problemOf(error) }
             throw error
         }
         finally {
@@ -553,4 +559,55 @@ export async function removeServerMapping(itemId: string, environment: Environme
     const database = await environment.database()
     await inOrder(database, () => database.delete(mediaserverMappings).where(and(eq(mediaserverMappings.serverId, serverId), eq(mediaserverMappings.itemId, itemId))))
     forgetServerSource()
+}
+
+/* ── Settings page ────────────────────────────────────────────────────── */
+
+export interface ServerOverview {
+    signedIn: boolean
+    serverName: string
+    username: string
+    url: string
+    sendProgress: boolean
+    /** A reading of the server runs right now */
+    reading: boolean
+    series: number
+    /** Series of the server with a certain match */
+    matched: number
+    /** Series without a certain match, with the uncertain suggestion if there is one */
+    unmatched: { seriesId: string, name: string, year: number, suggestion: { anilistId: number, title: string } | null }[]
+    /** When the kept series were read last, null when none are kept */
+    lastReadAt: number | null
+    /** Why the last reading failed ("unreachable", "rejected", "failed"), empty when it did not */
+    problem: string
+}
+
+/** What the settings page shows of the media server; carries neither token nor password */
+export async function serverOverview(environment: Environment): Promise<ServerOverview> {
+    const settings = await serverSettingsOf(environment)
+    const session = await serverSession(environment)
+    const shown = { signedIn: session !== null, serverName: settings.serverName, username: settings.username, url: settings.url, sendProgress: settings.sendProgress }
+    if (!session) return { ...shown, reading: false, series: 0, matched: 0, unmatched: [], lastReadAt: null, problem: "" }
+    const state = await libraryState(environment, session)
+    const unassigned = await unassignedServerShows(environment)
+    const database = await environment.database()
+    const rows = await inOrder(database, () => database.select({ fetchedAt: mediaserverSeries.fetchedAt }).from(mediaserverSeries).where(eq(mediaserverSeries.serverId, session.serverId)))
+    const titleOfId = (id: number) => {
+        const media = state.listed.get(id)?.media
+        const title = media && isRecord(media.title) ? media.title : {}
+        return text(title.userPreferred) || text(title.english) || text(title.romaji) || `AniList ${id}`
+    }
+    const tried = lastTry?.serverId === session.serverId ? lastTry : null
+    return {
+        ...shown,
+        reading: reading !== null,
+        series: state.shows.length,
+        matched: new Set(state.matches.filter(match => match.certain).map(match => match.seriesId)).size,
+        unmatched: unassigned.map(show => ({
+            seriesId: show.seriesId, name: show.name, year: show.year,
+            suggestion: show.suggestion ? { anilistId: show.suggestion.anilistId, title: titleOfId(show.suggestion.anilistId) } : null,
+        })),
+        lastReadAt: rows.length ? Math.max(...rows.map(row => row.fetchedAt)) : null,
+        problem: tried?.failed ? tried.problem ?? "failed" : "",
+    }
 }

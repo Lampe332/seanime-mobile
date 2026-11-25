@@ -28,6 +28,7 @@ import { SettingsAccountSection } from "@/main/settings/_screens/settings-accoun
 import { SettingsAppSection } from "@/main/settings/_screens/settings-app"
 import { SettingsLibrarySection } from "@/main/settings/_screens/settings-library"
 import { SettingsLogsSection } from "@/main/settings/_screens/settings-logs"
+import { SettingsMediaServerSection } from "@/main/settings/_screens/settings-mediaserver"
 import { SettingsMangaSection, SettingsNakamaSection, SettingsOnlinestreamSection } from "@/main/settings/_screens/settings-more"
 import { SettingsPlaybackSection } from "@/main/settings/_screens/settings-playback"
 import { SettingsTorrentsSection } from "@/main/settings/_screens/settings-torrents"
@@ -49,6 +50,7 @@ import Info from "lucide-react-native/icons/info"
 import Library from "lucide-react-native/icons/library"
 import Magnet from "lucide-react-native/icons/magnet"
 import Palette from "lucide-react-native/icons/palette"
+import Server from "lucide-react-native/icons/server"
 import Users from "lucide-react-native/icons/users"
 import WandSparkles from "lucide-react-native/icons/wand-sparkles"
 import React from "react"
@@ -70,6 +72,7 @@ const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, titleEn: string, t
     ui: { icon: Palette, titleEn: "Appearance", titleDe: "Darstellung", summaryEn: "Sorting, cards, loading pages", summaryDe: "Sortierung, Karten, Seiten laden" },
     playback: { icon: CirclePlay, titleEn: "Playback", titleDe: "Wiedergabe", summaryEn: "Player for your files, external player, next episode", summaryDe: "Player für deine Dateien, externer Player, nächste Folge" },
     library: { icon: Library, titleEn: "Local library", titleDe: "Lokale Bibliothek", summaryEn: "Folders, scanning, matching", summaryDe: "Ordner, Scannen, Zuordnung" },
+    mediaserver: { icon: Server, titleEn: "Media server", titleDe: "Medienserver", summaryEn: "Jellyfin sign-in, series, matching", summaryDe: "Jellyfin-Anmeldung, Serien, Zuordnung" },
     onlinestream: { icon: Globe, titleEn: "Online streaming", titleDe: "Online-Streaming", summaryEn: "Streaming and your anime lists", summaryDe: "Streaming und deine Anime-Listen" },
     torrents: { icon: Magnet, titleEn: "Torrents & debrid", titleDe: "Torrents & Debrid", summaryEn: "Providers, torrent streaming, downloads, debrid", summaryDe: "Anbieter, Torrent-Streaming, Downloads, Debrid" },
     manga: { icon: BookOpen, titleEn: "Manga", titleDe: "Manga", summaryEn: "Reading progress, default source", summaryDe: "Lesefortschritt, Standardquelle" },
@@ -262,6 +265,8 @@ function SectionContent({ id, t, onOpen, tablet }: { id: SettingsSectionId, t: T
             return <SettingsPlaybackSection t={t} />
         case "library":
             return <SettingsLibrarySection t={t} />
+        case "mediaserver":
+            return <SettingsMediaServerSection t={t} />
         case "onlinestream":
             return <SettingsOnlinestreamSection t={t} />
         case "torrents":

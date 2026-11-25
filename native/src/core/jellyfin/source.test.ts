@@ -218,7 +218,7 @@ describe("the media server's token", () => {
         const rest = await keepServerToken({ library: { autoScan: true }, mediaserver: { token: "second-token", password: "made-up-pass", sendProgress: true } }, environment)
         expect(rest).toEqual({ library: { autoScan: true } })
         expect(secrets.get(MEDIASERVER_TOKEN_SECRET)).toBe("second-token")
-        expect(await serverSettingsOf(environment)).toEqual({ serverId: "srv-1", url: BASE, userId: "u1", username: "made", device: "Pixel", deviceId: "dev-1", version: "4.2.0", sendProgress: true })
+        expect(await serverSettingsOf(environment)).toEqual({ serverId: "srv-1", serverName: "", url: BASE, userId: "u1", username: "made", device: "Pixel", deviceId: "dev-1", version: "4.2.0", sendProgress: true })
         const kept = JSON.stringify(await (await environment.database()).select().from(settingsSections))
         for (const secret of [TOKEN, "second-token", "made-up-pass"]) expect(kept).not.toContain(secret)
         await readServer()

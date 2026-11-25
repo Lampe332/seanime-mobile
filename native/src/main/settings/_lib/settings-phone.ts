@@ -3,10 +3,10 @@
  * the update notice may open by itself, and the value lists of the selects.
  */
 
-export type SettingsSectionId = "account" | "seanime" | "ui" | "playback" | "library" | "onlinestream" | "torrents" | "manga" | "nakama" | "logs" | "about"
+export type SettingsSectionId = "account" | "seanime" | "ui" | "playback" | "library" | "mediaserver" | "onlinestream" | "torrents" | "manga" | "nakama" | "logs" | "about"
 
 /** The areas in the order of the list */
-export const SETTINGS_SECTIONS: SettingsSectionId[] = ["account", "seanime", "ui", "playback", "library", "onlinestream", "torrents", "manga", "nakama", "logs", "about"]
+export const SETTINGS_SECTIONS: SettingsSectionId[] = ["account", "seanime", "ui", "playback", "library", "mediaserver", "onlinestream", "torrents", "manga", "nakama", "logs", "about"]
 
 /**
  * `?tab=` of the desktop page (links, tours, the anime page's "turned off in the settings") to the area that holds it;
@@ -14,7 +14,7 @@ export const SETTINGS_SECTIONS: SettingsSectionId[] = ["account", "seanime", "ui
  */
 const TAB_SECTIONS: Record<string, SettingsSectionId> = {
     account: "account", seanime: "seanime", local: "seanime", ui: "ui", playback: "playback", "external-player-link": "playback", "media-player": "playback",
-    mediastream: "playback", library: "library", onlinestream: "onlinestream", torrent: "torrents", "torrent-client": "torrents",
+    mediastream: "playback", library: "library", mediaserver: "mediaserver", onlinestream: "onlinestream", torrent: "torrents", "torrent-client": "torrents",
     torrentstream: "torrents", debrid: "torrents", manga: "manga", nakama: "nakama", logs: "logs", about: "about",
 }
 

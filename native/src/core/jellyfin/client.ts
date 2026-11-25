@@ -217,6 +217,13 @@ export async function authenticateByName(
     return { serverId, url: url.replace(/\/+$/, ""), userId: text(user.Id), token, identity }
 }
 
+/** The server's public info before signing in (GET /System/Info/Public): its id and name; fails when no Jellyfin answers */
+export async function publicServerInfo(fetch: HttpFetch, url: string, identity: JellyfinIdentity): Promise<{ serverId: string, name: string }> {
+    const raw = await ask(fetch, jellyfinUrl(url, "/System/Info/Public"), authorizationHeader(identity))
+    if (!isRecord(raw) || !text(raw.Id)) throw new JellyfinFailure("no Jellyfin server answered at this address", 200)
+    return { serverId: text(raw.Id), name: text(raw.ServerName) }
+}
+
 /** One page of the user's series and movies (GET /Items) */
 export async function listSeries(
     fetch: HttpFetch, session: JellyfinSession, startIndex = 0, limit = 200,
