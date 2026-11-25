@@ -100,6 +100,19 @@ export function snappedOffset(offset: number, oldStep: number, newStep: number) 
 }
 
 /**
+ * Room after the last card (dp, less than one step), so the end of the row is a snap position too. Without it the row
+ * stops flush right and a strip of the card before shows on the left. 0 for a row that does not scroll.
+ */
+export function rowEndPad(count: number, step: number, viewport: number, density: number, inset = ROW_GUTTER, gap = ROW_GAP) {
+    if (count <= 0 || !(step > 0) || !(viewport > 0) || !(density > 0)) return 0
+    // the content: gutter, the cards a gap apart, gutter
+    const overflow = Math.round((2 * inset + count * step - gap - viewport) * density)
+    if (overflow <= 0) return 0
+    const px = Math.max(1, Math.round(step * density))
+    return (Math.ceil(overflow / px) * px - overflow) / density
+}
+
+/**
  * Width the grid's cards take when they do not fill one row (fewer results than columns): the end-of-list note centres
  * under them instead of under the empty cells. A full row (or none) takes the content width.
  */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { CARD_SIZE_FACTORS, cardSizeFactor, coverColumns, fitRowWidth, gridLayout, gridRowWidth, listColumns, ROW_GAP, ROW_GUTTER, ROW_PEEK_MAX, ROW_PEEK_MIN, rowCardWidth, rowCoverWidth, scaleRowWidth, snappedOffset, snapRow } from "./cover-layout"
+import { CARD_SIZE_FACTORS, cardSizeFactor, coverColumns, fitRowWidth, gridLayout, gridRowWidth, listColumns, ROW_GAP, ROW_GUTTER, ROW_PEEK_MAX, ROW_PEEK_MIN, rowCardWidth, rowEndPad, rowCoverWidth, scaleRowWidth, snappedOffset, snapRow } from "./cover-layout"
 
 const CARD_GAP = 12
 
@@ -197,5 +197,27 @@ describe("snapping rows on device pixels", () => {
         expect(snappedOffset(177 * 3 + 60, 177, 120)).toBe(360)
         expect(snappedOffset(177 * 3 + 100, 177, 120)).toBe(480)
         expect(snappedOffset(500, 0, 120)).toBe(0)
+    })
+
+    it("ends a row on a card: the last scroll position is a whole number of steps", () => {
+        for (const density of [2, 2.625, 3, 3.5]) {
+            // a real viewport is a whole number of device pixels
+            for (const viewport of [720, 1080, 1440, 2560].map(px => px / density)) {
+                for (const desired of [112, 160, 269]) {
+                    const { step } = snapRow(fitRowWidth(desired, viewport), density)
+                    for (const count of [1, 2, 5, 13, 40]) {
+                        const pad = rowEndPad(count, step, viewport, density)
+                        const end = Math.round((2 * ROW_GUTTER + count * step - ROW_GAP + pad - viewport) * density)
+                        expect(pad).toBeGreaterThanOrEqual(0)
+                        expect(pad).toBeLessThan(step)
+                        // a row that fits does not scroll and gets no room; any other ends on a step
+                        if (end <= 0) expect(pad).toBe(0)
+                        else expect(end % Math.round(step * density)).toBe(0)
+                    }
+                }
+            }
+        }
+        expect(rowEndPad(0, 176, 411, 3)).toBe(0)
+        expect(rowEndPad(5, 176, 0, 3)).toBe(0)
     })
 })

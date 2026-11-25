@@ -1,4 +1,4 @@
-import { fitRowWidth, ROW_GAP, ROW_GUTTER, rowCardWidth, snappedOffset, snapRow } from "@/components/shared/cover-layout"
+import { fitRowWidth, ROW_GAP, ROW_GUTTER, rowCardWidth, rowEndPad, snappedOffset, snapRow } from "@/components/shared/cover-layout"
 import { useCardSizeFactor } from "@/lib/card-size-setting"
 import { FlashList, type FlashListRef } from "@shopify/flash-list"
 import React from "react"
@@ -9,7 +9,8 @@ import { type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEve
  * Home into a wall of covers"): cards about min(39vw, 10rem) wide (times the card size), a gutter apart, snapping to their
  * start; the full grids live in My lists, Manga and the library. FlashList recycles the cards, so a long list stays cheap.
  * The width is fitted to the row (fitRowWidth): whole cards and a clear peek of the next, never a sliver on the left.
- * The step card to card is on whole device pixels (snapRow), so a row snaps on the gutter after any number of swipes.
+ * The step card to card is on whole device pixels (snapRow), so a row snaps on the gutter after any number of swipes,
+ * and the room after the last card (rowEndPad) puts the end of the row on a card as well.
  */
 export const CARD_GAP = ROW_GAP
 
@@ -26,7 +27,7 @@ export function useRowFit(desired: number, inset = ROW_GUTTER) {
     const { width: screen } = useWindowDimensions()
     const [viewport, setViewport] = React.useState(0)
     const onLayout = React.useCallback((e: LayoutChangeEvent) => setViewport(Math.round(e.nativeEvent.layout.width)), [])
-    return { ...snapRow(fitRowWidth(desired, viewport || screen, inset), PixelRatio.get()), onLayout }
+    return { ...snapRow(fitRowWidth(desired, viewport || screen, inset), PixelRatio.get()), viewport: viewport || screen, onLayout }
 }
 
 export function MediaCardRow<T>({ data, keyOf, renderCard, inset = ROW_GUTTER, desired, restartKey, bottom = 12 }: {
@@ -43,7 +44,8 @@ export function MediaCardRow<T>({ data, keyOf, renderCard, inset = ROW_GUTTER, d
 }) {
     const { width: screen } = useWindowDimensions()
     const home = rowCardWidth(screen, useCardSizeFactor())
-    const { width, step, snapInterval, onLayout } = useRowFit(desired ?? home, inset)
+    const { width, step, snapInterval, viewport, onLayout } = useRowFit(desired ?? home, inset)
+    const endPad = rowEndPad(data.length, step, viewport, PixelRatio.get(), inset)
     const list = React.useRef<FlashListRef<T>>(null)
     // where the row settled, to put it back on a card when the card size (the step) changes
     const offset = React.useRef(0)
@@ -78,7 +80,7 @@ export function MediaCardRow<T>({ data, keyOf, renderCard, inset = ROW_GUTTER, d
                 onScrollEndDrag={onSettled}
                 // the row keeps its own place (snapped, see above), not an anchored card's old pixel offset
                 maintainVisibleContentPosition={{ disabled: true }}
-                contentContainerStyle={{ paddingHorizontal: inset, paddingBottom: bottom }}
+                contentContainerStyle={{ paddingLeft: inset, paddingRight: inset + endPad, paddingBottom: bottom }}
             />
         </View>
     )
