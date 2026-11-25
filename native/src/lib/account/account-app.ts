@@ -23,7 +23,6 @@ import { APP_VARIANT, APP_VARIANT_NAME } from "@/lib/app-variant"
 import { storage } from "@/lib/storage"
 import * as Application from "expo-application"
 import { fetch as expoFetch } from "expo/fetch"
-import * as LocalAuthentication from "expo-local-authentication"
 import * as SecureStore from "expo-secure-store"
 import { gunzipSync, gzipSync } from "fflate"
 import { atom, getDefaultStore } from "jotai"
@@ -412,12 +411,4 @@ export async function approveApproval(turn: ApproverTurn): Promise<void> {
 export async function denyApproval(requestId: string): Promise<void> {
     await denyRequest(deps, requestId)
     store.set(approvalRequestsAtom, store.get(approvalRequestsAtom).filter(request => request.id !== requestId))
-}
-
-/** Screen lock or fingerprint before approving, when the device has one set up; true without one */
-export async function confirmWithDeviceLock(prompt: string): Promise<boolean> {
-    const level = await LocalAuthentication.getEnrolledLevelAsync()
-    if (level === LocalAuthentication.SecurityLevel.NONE) return true
-    const result = await LocalAuthentication.authenticateAsync({ promptMessage: prompt })
-    return result.success
 }

@@ -8,6 +8,8 @@ import { serverAuthTokenAtom, serverStatusAtom } from "@/main/_atoms/server-stat
 import { useWebsocketMessageListener } from "@/main/_hooks/handle-websockets"
 import { useSetServerStatus } from "@/main/_hooks/use-server-status"
 import { TourOverlay } from "@/main/_features/tour/tour-overlay"
+import { AppLockScreen } from "@/main/_features/app-lock/app-lock-screen"
+import { useAppLocked } from "@/lib/app-lock/app-lock"
 import { WebsocketProvider } from "@/main/websocket-provider"
 import { initEntryPreloader } from "@/lib/entry-preloader"
 import { pingUsageIfDue } from "@/lib/account/usage-ping-app"
@@ -17,7 +19,7 @@ import { PortalHost } from "@rn-primitives/portal"
 import { focusManager, QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { getDefaultStore } from "jotai"
 import React from "react"
-import { AppState } from "react-native"
+import { AppState, View } from "react-native"
 
 /*
  * Port of seanime-web app/client-providers.tsx and the data part of app/(main)/server-data-wrapper.tsx: the query
@@ -110,17 +112,23 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             clearTimeout(firstPing)
         }
     }, [])
+    const locked = useAppLocked()
     return (
         <QueryClientProvider client={queryClient}>
             <WebsocketProvider>
                 <ServerStatusLoader />
-                {children}
-                <PortalHost />
-                {/* toasts above sheets and dialogs (sonner's z-index): a tablet side sheet covered the top-right toasts,
-                    e.g. "Allow all files access" after "Choose folder" */}
-                <Toaster />
-                {/* the setup tour's layer lies over everything, sheets included */}
-                <TourOverlay />
+                {/* behind the app lock's cover the screen reader finds nothing either */}
+                <View style={{ flex: 1 }} importantForAccessibility={locked ? "no-hide-descendants" : "auto"}>
+                    {children}
+                    <PortalHost />
+                    {/* toasts above sheets and dialogs (sonner's z-index): a tablet side sheet covered the top-right toasts,
+                        e.g. "Allow all files access" after "Choose folder" */}
+                    <Toaster />
+                    {/* the setup tour's layer lies over everything, sheets included */}
+                    <TourOverlay />
+                </View>
+                {/* the app lock (settings → App) covers all of it, the player and the tour included */}
+                <AppLockScreen />
             </WebsocketProvider>
         </QueryClientProvider>
     )

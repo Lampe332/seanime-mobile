@@ -7,9 +7,10 @@ import { toast } from "@/components/ui/toast/toast-store"
 import type { ApprovalRequest } from "@/core/account/client"
 import type { ApproverTurn } from "@/core/account/devices"
 import {
-    accountAtom, answerApproval, approvalRequestsAtom, approveApproval, compareApproval, confirmWithDeviceLock, denyApproval, importDismissedAtom,
+    accountAtom, answerApproval, approvalRequestsAtom, approveApproval, compareApproval, denyApproval, importDismissedAtom,
     importFromAccount, lastSyncAtom,
 } from "@/lib/account/account-app"
+import { confirmWithDeviceLock } from "@/lib/device-lock"
 import { accountErrorText, accountPhase, formatSas, importFailureText } from "@/lib/account/account-view"
 import { useTr } from "@/lib/app-language"
 import { fillParts } from "@/lib/i18n/format"

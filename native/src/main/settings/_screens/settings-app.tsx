@@ -7,6 +7,8 @@ import { useGetMobileOfflineSnapshot, useMobileOfflineSettings } from "@/api/hoo
 import { toast } from "@/components/ui/toast/toast-store"
 import { useAiringNotificationsSetting, useChapterNotificationsSetting, useTestAiringNotification } from "@/lib/airing/airing-hooks"
 import { usageCountEnabledAtom } from "@/lib/account/usage-ping-app"
+import { appLockEnabledAtom, setAppLockEnabled } from "@/lib/app-lock/app-lock"
+import { confirmWithDeviceLock, useHasDeviceLock } from "@/lib/device-lock"
 import { APP_LANGUAGES, appLanguageAtom, asAppLanguage, type Translate } from "@/lib/app-language"
 import { hapticsEnabledAtom, hasVibrator, playSound, soundsEnabledAtom } from "@/lib/feedback"
 import { resetNavigation } from "@/lib/nav/nav-store"
@@ -32,6 +34,30 @@ import { useAtom } from "jotai"
 import React from "react"
 import { Platform } from "react-native"
 import { requestPinWidget } from "react-native-android-widget"
+
+/**
+ * App lock (lib/app-lock): turning it on and off both ask the device's own lock. Without one it cannot be turned on;
+ * a switch left on after the device lock was removed can still be turned off (confirmWithDeviceLock answers true).
+ */
+function AppLockGroup({ t }: { t: Translate }) {
+    const [enabled] = useAtom(appLockEnabledAtom)
+    const hasLock = useHasDeviceLock()
+    const unavailable = hasLock === false && !enabled
+    const toggle = async (next: boolean) => {
+        const prompt = next ? t("Turn on the app lock", "App-Sperre einschalten") : t("Turn off the app lock", "App-Sperre ausschalten")
+        if (await confirmWithDeviceLock(prompt)) setAppLockEnabled(next)
+    }
+    return (
+        <SettingsGroup title={t("Privacy", "Privatsphäre")}>
+            <LocalSwitch label={t("App lock", "App-Sperre")} checked={enabled} onCheckedChange={next => void toggle(next)}
+                defaultChecked={false} scope="device" disabled={hasLock === undefined || unavailable}
+                note={unavailable
+                    ? t("Set up a screen lock or fingerprint on this device first.", "Richte zuerst eine Displaysperre oder einen Fingerabdruck auf diesem Gerät ein.")
+                    : t("Asks for your fingerprint, face or screen lock when the app starts and after a minute away.",
+                        "Fragt nach Fingerabdruck, Gesicht oder Displaysperre, wenn die App startet und nach einer Minute im Hintergrund.")} />
+        </SettingsGroup>
+    )
+}
 
 /*
  * App (settings-phone-app.tsx): episodes (with E4's new-episode notifications and Wi-Fi-only downloads), anime, language,
@@ -61,6 +87,8 @@ export function SettingsAppSection({ t }: { t: Translate }) {
                 note={t("While on, nothing you watch or read is added to History or Continue watching, and no progress goes to AniList. Also in the Menu.",
                     "Solange an, landet nichts, was du schaust oder liest, im Verlauf oder bei „Weiterschauen“, und kein Fortschritt geht an AniList. Auch im Menü.")} />
         </SettingsGroup>
+
+        <AppLockGroup t={t} />
 
         <SettingsGroup title={t("Episodes", "Folgen")}>
             <DefaultSourceSelect t={t} />

@@ -20,6 +20,8 @@ const DEVICE_KEYS = [
     /^seanime-mobile-language-android$/,
     // the own profile picture: a file in this device's documents folder (lib/account/profile-picture.ts)
     /^seanime-mobile-profile-picture$/,
+    // the app lock asks this device's own lock (lib/app-lock): a restore or a sync must not turn it on elsewhere
+    /^seanime-mobile-app-lock$/,
 ]
 
 export function isDeviceKey(key: string): boolean {

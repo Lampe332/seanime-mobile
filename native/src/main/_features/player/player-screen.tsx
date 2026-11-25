@@ -3,6 +3,7 @@ import { streamFileAddress } from "@/lib/server/without-server"
 import { Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { useTr } from "@/lib/app-language"
+import { setAppLockPictureInPicture } from "@/lib/app-lock/app-lock"
 import { openInPlayerApp } from "@/lib/external-player-link/open-external-player"
 import { openWithWatchedAsk } from "@/lib/external-player-link/watched-after-player"
 import { colors } from "@/lib/theme/tokens"
@@ -258,6 +259,8 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const [visible, setVisible] = React.useState(true)
     const [pip, setPip] = React.useState(false)
     const pipRef = React.useRef(false)
+    // the app lock does not count picture in picture as away; a player that goes while in it leaves no picture behind
+    React.useEffect(() => () => setAppLockPictureInPicture(false), [])
     // ── Where the player is (r22): full, the box on its anime page, or the mini player ──
     const owner = boxOwner(!!online, mediaId)
     const setNow = useSetAtom(player_nowAtom)
@@ -981,6 +984,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
                 onPictureInPictureChange={({ nativeEvent }) => {
                     pipRef.current = nativeEvent.isActive
                     setPip(nativeEvent.isActive)
+                    setAppLockPictureInPicture(nativeEvent.isActive)
                     // back from picture in picture: the bars show where it stands now
                     if (!nativeEvent.isActive) setPosition(timeRef.current.currentTime)
                     events.pip(nativeEvent.isActive)
