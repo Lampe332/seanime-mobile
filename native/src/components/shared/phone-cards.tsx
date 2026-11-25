@@ -18,6 +18,7 @@ import type { CardListState } from "@/main/_features/media/_lib/card-list-action
 import { useAtomValue } from "jotai"
 import { cardSizeFactor, gridLayout, rowCoverWidth } from "@/components/shared/cover-layout"
 import { cardSizeAtom } from "@/lib/card-size-setting"
+import { useRowFit } from "@/main/_features/media/_components/media-card-row"
 import { useNetInfo } from "@react-native-community/netinfo"
 import { Image } from "expo-image"
 import Check from "lucide-react-native/icons/check"
@@ -280,7 +281,7 @@ export function ChipRow({ label, chips, selected, onSelect, multiple }: {
     /** several chosen (toggles with a check mark) instead of one (a radio group) */
     multiple?: boolean
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const scroll = React.useRef<ScrollViewInstance>(null)
     const places = React.useRef(new Map<string, { x: number, width: number }>())
     const [rowWidth, setRowWidth] = React.useState(0)
@@ -349,9 +350,9 @@ export function FeatureBones({ label }: { label: string }) {
 
 /** A row of cover bones (`.ps-loading .ps-row`). */
 export function CoverRowBones({ label }: { label: string }) {
-    const width = useRowCoverWidth()
+    const { width, onLayout } = useRowFit(useRowCoverWidth())
     return (
-        <View accessibilityRole="progressbar" accessibilityLabel={label} className="-mx-4 flex-row gap-3 overflow-hidden px-4">
+        <View onLayout={onLayout} accessibilityRole="progressbar" accessibilityLabel={label} className="-mx-4 flex-row gap-4 overflow-hidden px-4">
             {Array.from({ length: 4 }, (_, i) => <View key={i} style={{ width, aspectRatio: 2 / 3 }} className="rounded-surface-sm bg-sm-surface-raised" />)}
         </View>
     )

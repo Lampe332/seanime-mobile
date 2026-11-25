@@ -57,7 +57,7 @@ const HIDDEN_PANE = {
 } as const
 
 export function MarketplacePhone({ t, installedIds, tourOn, active = true }: { t: Translate, installedIds: Set<string>, tourOn: boolean, active?: boolean }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const [url, setUrl] = useAtom(marketplaceUrlAtom)
     const appLanguage = useAtomValue(appLanguageAtom)
     const { data, isPending, isError, isFetching, refetch } = useGetMarketplaceExtensions(url)
@@ -240,7 +240,7 @@ function TypeChip({ t, chip, chosen, tourOn, onPress }: {
 }
 
 const MarketRow = React.memo(function MarketRow({ t, extension, installed, onOpen, tourOn }: { t: Translate, extension: Extension_Extension, installed: boolean, onOpen: (extension: Extension_Extension) => void, tourOn: boolean }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const { mutate: install, isPending } = useInstallExternalExtension()
     // The list only learns about the install from the server's reload event; until then the row keeps the result.
     const [justInstalled, setJustInstalled] = React.useState(false)

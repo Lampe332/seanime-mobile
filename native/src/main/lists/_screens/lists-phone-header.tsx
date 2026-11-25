@@ -2,7 +2,6 @@ import { PhoneHeadTray } from "@/components/shared/phone-screen"
 import { HEAD_ACTIONS_STYLE } from "@/components/shared/page-head"
 import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted, Text } from "@/components/ui/text/text"
-import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useIsFocused } from "expo-router"
@@ -57,7 +56,7 @@ export function ListsAction({ icon: IconComponent, label, accessibilityLabel, on
     spinning?: boolean
     square?: boolean
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const { rail } = useTabletLayout()
     // the tablet shows the word in the tile beside Anime | Manga too (2.0.33: "Stats" there), the tile then grows to fit
     const withLabel = rail

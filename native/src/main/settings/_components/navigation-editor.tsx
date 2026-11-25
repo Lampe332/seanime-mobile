@@ -21,7 +21,7 @@ import { Pressable, View } from "react-native"
  * entries move with ↑/↓ (Karte §9). Every change is stored at once under the old keys, so the bar follows behind the sheet.
  */
 export function NavigationEditor({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const language = useAtomValue(appLanguageAtom)
     const items = useAllNavItems()

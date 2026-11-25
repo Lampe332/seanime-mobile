@@ -19,7 +19,7 @@ import { updateDotOn } from "@/main/extensions/_lib/extension-updates"
 import { useExtensionUpdateCount } from "@/main/extensions/_lib/use-extension-updates"
 import { useUpdatesCount } from "@/lib/updates/use-updates"
 import { pressTourTarget, TOUR_TARGETS, useTourTarget } from "@/main/_features/tour/tour-targets"
-import { colors, sizes } from "@/lib/theme/tokens"
+import { sizes } from "@/lib/theme/tokens"
 import { usePalette, useThemeColors } from "@/lib/theme/appearance"
 import { accentShiftHex, menuPanelBackground, menuRowHighlight } from "@/lib/theme/palette"
 import { Image } from "expo-image"
@@ -64,7 +64,7 @@ function NavEntry({ item, active, dense, rail, railHeight, onPress, onLayout, st
     /** the pill on this entry until the gliding one has its place (GlideStandIn) */
     standIn: React.ReactNode
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const language = useAtomValue(appLanguageAtom)
     const label = navItemTabLabel(item, language)
     // the setup tour points at the Menu button
@@ -377,11 +377,15 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
                     // nearly opaque so the page under it does not show through (at .97/.98 its text still read through)
                     backgroundImage: panelBackground,
                     // A native elevation shadow instead of two blurred box shadows (drawn again on every frame of the
-                    // scale/fade in; a box shadow would also be cut off by the layer below)
-                    elevation: 18,
+                    // scale/fade in; a box shadow would also be cut off by the layer below); lifted a step higher so the
+                    // panel separates from the page by its shadow, the outline only a hairline that traces the corners
+                    elevation: 24,
                     shadowColor: "#000",
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderCurve: "continuous",
                 }]}
-                className="rounded-menu border border-menu-border p-2"
+                // the clip keeps rows and the scroll edge inside the rounded corners
+                className="overflow-hidden rounded-menu border-menu-border p-2"
             >
                 <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
                     {/* who is signed in (AniList, the Seanime account); opens Settings › Account, without AniList its sign-in */}

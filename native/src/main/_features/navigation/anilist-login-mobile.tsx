@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { anilistLoginStep, extractAnilistToken, manualAnilistToken } from "@/main/_features/navigation/anilist-login-steps"
 import { ANILIST_PIN_URL } from "@/lib/server/config"
-import { colors, accentInput } from "@/lib/theme/tokens"
+import { accentInput } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import * as Clipboard from "expo-clipboard"
 import * as WebBrowser from "expo-web-browser"
@@ -24,7 +24,7 @@ const ANILIST_LOGO = "M6.361 2.943 0 21.056h4.942l1.077-3.133H11.4l1.052 3.133H2
  * `preview` (test and scratch only, intro-preview.ts): Connect closes the sheet without logging in.
  */
 export function MobileAnilistLogin({ open, onOpenChange, preview }: { open: boolean, onOpenChange: (open: boolean) => void, preview?: boolean }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const [opened, setOpened] = React.useState(false)
     const [found, setFound] = React.useState<string | null>(null)
@@ -216,7 +216,7 @@ function SmallLink({ label, onPress }: { label: string, onPress: () => void }) {
 
 /** The callback page's "Authenticating..." overlay while the server checks the token */
 function AuthenticatingOverlay() {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     return (
         <View className="absolute inset-0 z-50 items-center justify-center gap-3 bg-background/95">

@@ -1,6 +1,7 @@
 import { cn } from "@/components/ui/core/styling"
 import { Text } from "@/components/ui/text/text"
 import { accountAtom, lastSyncAtom } from "@/lib/account/account-app"
+import { useProfileAvatar } from "@/lib/account/profile-picture"
 import { useTr } from "@/lib/app-language"
 import { moreProfile, profileHeadOpens } from "@/lib/nav/more-panel"
 import { accountLoadFailedAtom } from "@/main/_features/account/account-service"
@@ -40,6 +41,8 @@ export function MoreProfileHead({ onPress, onSignIn }: {
         lastResult,
         now,
     })
+    // the own picture (Settings › Account) in place of AniList's, also without AniList or an account
+    const avatar = useProfileAvatar(profile.avatar)
     return (
         <View>
             <Pressable
@@ -49,8 +52,8 @@ export function MoreProfileHead({ onPress, onSignIn }: {
                 onPress={signIn ? onSignIn : onPress}
                 className="min-h-16 flex-row items-center gap-3 rounded-[16px] py-2 pl-2 pr-2.5 active:bg-white/8"
             >
-                {profile.avatar
-                    ? <Image source={profile.avatar} accessibilityIgnoresInvertColors style={{ width: 44, height: 44, borderRadius: 22 }} contentFit="cover" />
+                {avatar
+                    ? <Image source={avatar}accessibilityIgnoresInvertColors style={{ width: 44, height: 44, borderRadius: 22 }} contentFit="cover" />
                     : (
                         <View className="h-11 w-11 items-center justify-center rounded-full border border-white/7 bg-white/6">
                             <UserRound size={22} color="rgba(255,255,255,0.78)" />

@@ -5,7 +5,6 @@ import { cva, type VariantProps } from "class-variance-authority"
 import React from "react"
 import { ActivityIndicator, Pressable, type PressableProps, View } from "react-native"
 import Animated from "react-native-reanimated"
-import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 
 /*
@@ -46,7 +45,7 @@ const ButtonAnatomy = {
     }),
 }
 
-const SPINNER_COLOR = { primary: "#ffffff", secondary: "#ededf0", danger: "#1a1a1d", get text() { return colors.smAccent }, icon: "#b6b6bc" } as const
+const SPINNER_COLOR = { primary: "#ffffff", secondary: "#ededf0", danger: "#1a1a1d", icon: "#b6b6bc" } as const
 
 export type ButtonProps = Omit<PressableProps, "children"> & VariantProps<typeof ButtonAnatomy.root> & {
     className?: string
@@ -63,7 +62,7 @@ export type ButtonProps = Omit<PressableProps, "children"> & VariantProps<typeof
 export const ButtonSizeContext = React.createContext<"md" | "lg">("md")
 
 export function Button(props: ButtonProps) {
-    useThemeColors()
+    const colors = useThemeColors()
     const contextSize = React.useContext(ButtonSizeContext)
     const { intent = "primary", size = contextSize, className, wrapperClassName, labelClassName, children, leftIcon, rightIcon, loading, disabled, onPressIn, onPressOut, ...rest } = props
     const isDisabled = !!disabled || !!loading
@@ -86,7 +85,7 @@ export function Button(props: ButtonProps) {
                 className={cn(ButtonAnatomy.root({ intent, size, disabled: isDisabled }), className)}
                 {...rest}
             >
-                {loading ? <ActivityIndicator size="small" color={SPINNER_COLOR[resolvedIntent]} /> : leftIcon}
+                {loading ? <ActivityIndicator size="small" color={resolvedIntent === "text" ? colors.smAccent : SPINNER_COLOR[resolvedIntent]} /> : leftIcon}
                 {typeof children === "string"
                     ? <Text numberOfLines={1} className={cn(ButtonAnatomy.label({ intent }), labelClassName)}>{children}</Text>
                     : children ? <View>{children}</View> : null}

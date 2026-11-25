@@ -53,7 +53,7 @@ function useOpenForSearch(query: string) {
 }
 
 function FileRow({ t, file, query }: { t: Translate, file: Summary_ScanSummaryFile, query: string }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const [open, setOpen] = useOpenForSearch(query)
     const lf = file.localFile
     if (!lf) return null

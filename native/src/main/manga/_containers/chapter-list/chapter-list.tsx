@@ -80,7 +80,7 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
     /** scrolls the page so the given y (within this list) is in sight */
     onJumpTo: (y: number) => void
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const router = useRouter()
     const {

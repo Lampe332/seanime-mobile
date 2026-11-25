@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { accentGlow, accentRgba, accentShift, accentShiftHex, accentShiftRgba, accentTextHex, ACCENT_IDS, ACCENT_PRESETS, buildPalette, contrastRatio, glowGroundFade, menuPanelBackground, menuRowHighlight, type RGB } from "./palette"
+import { accentGlow, accentRgba, accentShift, accentShiftHex, accentShiftRgba, accentTextHex, ACCENT_IDS, ACCENT_PRESETS, buildPalette, contrastRatio, customAccent, customColor, isAccentId, luminance, parseHexColor, glowGroundFade, menuPanelBackground, menuRowHighlight, type RGB } from "./palette"
 
 const WHITE: RGB = [255, 255, 255]
 const blend = (top: RGB, alpha: number, under: RGB): RGB => top.map((v, i) => Math.round(v * alpha + under[i] * (1 - alpha))) as unknown as RGB
@@ -147,6 +147,66 @@ describe("colours drawn for violet follow the accent", () => {
     it("keeps the menu panel neutral with AMOLED black", () => {
         for (const id of ACCENT_IDS) {
             expect(menuPanelBackground(buildPalette(id, true))).toBe("linear-gradient(180deg, rgba(17,17,19,0.99), rgba(0,0,0,0.99))")
+        }
+    })
+})
+
+describe("an own accent colour", () => {
+    const OWN = ["#ffff00", "#000080", "#00ff00", "#ff0000", "#00ffff", "#ffffff", "#000000", "#808080", "#3a2f1e"]
+    const STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const
+    const own = (hex: string) => customAccent(parseHexColor(hex)!)
+
+    it("is stored as custom:#rrggbb in the accent key", () => {
+        expect(own("#FFAA00")).toBe("custom:#ffaa00")
+        expect(own("fa0")).toBe("custom:#ffaa00")
+        expect(customColor("custom:#ffaa00")).toEqual([255, 170, 0])
+        expect(customColor("violet")).toBeNull()
+        expect(isAccentId("custom:#12AB34")).toBe(true)
+        for (const id of ACCENT_IDS) expect(isAccentId(id)).toBe(true)
+        for (const bad of ["custom:red", "custom:#12345", "custom:#1234567", "#123456", "toString", "", 7, null]) expect(isAccentId(bad)).toBe(false)
+        for (const bad of ["", "#12", "#12345", "#gggggg", "rgb(1,2,3)"]) expect(parseHexColor(bad)).toBeNull()
+    })
+
+    it.each(OWN)("%s: a whole ramp and every variable and script colour of a preset", hex => {
+        const violet = buildPalette("violet", false)
+        for (const amoled of [false, true]) {
+            const palette = buildPalette(own(hex), amoled)
+            expect(Object.keys(palette.css).sort()).toEqual(Object.keys(violet.css).sort())
+            expect(Object.keys(palette.js).sort()).toEqual(Object.keys(violet.js).sort())
+            for (const value of [...Object.values(palette.css), ...Object.values(palette.js)]) expect(value).not.toMatch(/NaN|undefined/)
+            for (const step of STEPS) {
+                expect(palette.ramp[step]).toHaveLength(3)
+                for (const v of palette.ramp[step]) expect(Number.isInteger(v) && v >= 0 && v <= 255).toBe(true)
+            }
+            // lighter towards 50, darker towards 950
+            for (let i = 1; i < STEPS.length; i++) expect(luminance(palette.ramp[STEPS[i]])).toBeLessThanOrEqual(luminance(palette.ramp[STEPS[i - 1]]) + 0.002)
+        }
+    })
+
+    it.each(OWN)("%s: text meets WCAG AA (4.5:1) on and beside the accent", hex => {
+        for (const amoled of [false, true]) {
+            const { ramp, nav, surfaces: s } = buildPalette(own(hex), amoled)
+            expect(contrastRatio(WHITE, ramp[500])).toBeGreaterThanOrEqual(4.5)
+            expect(contrastRatio(WHITE, ramp[600])).toBeGreaterThanOrEqual(4.5)
+            for (const ground of [s.background, s.smSurface, s.smSurfaceRaised, s.smSurfaceControl]) {
+                expect(contrastRatio(ramp[300], ground)).toBeGreaterThanOrEqual(4.5)
+                expect(contrastRatio(ramp[400], ground)).toBeGreaterThanOrEqual(4.5)
+                expect(contrastRatio(ramp[300], blend(ramp[400], 0.18, ground))).toBeGreaterThanOrEqual(4.5)
+            }
+            expect(contrastRatio(nav.active, blend(nav.tint, 0.18, s.navBar))).toBeGreaterThanOrEqual(4.5)
+            expect(contrastRatio(nav.label, blend(nav.tint, 0.18, s.navBar))).toBeGreaterThanOrEqual(4.5)
+            // the white knob of a switch still shows on the strong accent
+            expect(contrastRatio(WHITE, ramp[400])).toBeGreaterThan(1.3)
+        }
+    })
+
+    it("keeps the hue of the colour, and a grey stays grey", () => {
+        const [r, g, b] = buildPalette(own("#ff0000"), false).ramp[500]
+        expect(r).toBeGreaterThan(g)
+        expect(g).toBe(b)
+        for (const step of STEPS) {
+            const [x, y, z] = buildPalette(own("#808080"), false).ramp[step]
+            expect([y, z]).toEqual([x, x])
         }
     })
 })

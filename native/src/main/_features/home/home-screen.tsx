@@ -63,7 +63,7 @@ import { HomeMobileHeader, HomeHeaderAction, SearchHeadAction } from "./home-mob
 import { customizeInHomeHead } from "@/lib/nav/more-panel"
 import { AnilistSyncBar } from "@/main/_features/anilist-sync/anilist-sync"
 import { HomeScheduleCalendar } from "./home-schedule-calendar"
-import { carouselEmptyCause, HOME_ITEMS_PENDING, hasSectionGapBefore, resetCarouselOptions, resolveHomeItems, withCurrentSchema } from "./home-layout"
+import { carouselEmptyCause, HOME_ITEMS_PENDING, hasSectionGapBefore, myShowsPlace, resetCarouselOptions, resolveHomeItems, withCurrentSchema } from "./home-layout"
 import { carouselDefaultName, homeOptionLabel } from "./home-section-info"
 import { __home_settingsModalOpen, HomeSettingsSheet } from "./home-settings-sheet"
 import { isAnimeLibraryItemsOnly } from "./home-items.utils"
@@ -78,7 +78,7 @@ import { MyShowsRow } from "./my-shows-row"
  * `home-screen-bottom` (after the sections) show plugin pages (2.17).
  */
 export function HomeScreen() {
-    usePalette()
+    const palette = usePalette()
     const t = useTr()
     const serverStatus = useServerStatus()
     const window = useWindowDimensions()
@@ -93,6 +93,8 @@ export function HomeScreen() {
     // Keeps the manga collection (and its chapter-number atoms) loaded while Home is open
     useHandleMangaCollection()
     const homeItems = React.useMemo(() => resolveHomeItems(savedItems), [savedItems])
+    // "My shows" follows Continue watching and Currently watching instead of standing above every section
+    const myShows = React.useMemo(() => myShowsPlace(homeItems), [homeItems])
     const hasLibraryPath = !!serverStatus?.settings?.library?.libraryPath
 
     // Search floats out of the default bar (4.2.0): its magnifier leads the head. A phone too narrow for all five icons
@@ -132,11 +134,13 @@ export function HomeScreen() {
             <View className="pb-10">
                 {/* The discover header shows only as the first section, above all others */}
                 {homeItems[0]?.type === "discover-header" && <HomeDiscoverFeature />}
-                <MyShowsRow className="pb-6 pt-3" />
+                {!myShows && <MyShowsRow className="pb-6 pt-3" />}
                 {homeItems.filter(item => item.type !== "discover-header" && item.type !== "anime-continue-watching-header").map((item, index) => (
                     <React.Fragment key={item.id}>
                         {hasSectionGapBefore(item.type, index) && <View className="h-6" />}
-                        <HomeScreenItem item={item} index={homeItems.findIndex(i => i.id === item.id)} library={library} />
+                        <HomeScreenItem item={item} index={homeItems.findIndex(i => i.id === item.id)} library={library}
+                            myShows={myShows?.after === item.id && myShows.inLibrary ? <MyShowsRow className="pt-5" /> : undefined} />
+                        {myShows?.after === item.id && !myShows.inLibrary && <MyShowsRow className="pt-6" />}
                     </React.Fragment>
                 ))}
                 <View className="h-6" />
@@ -146,7 +150,7 @@ export function HomeScreen() {
 
     // Header .16 → .11 and Home .11 → transparent over 40rem, as one gradient from the top of the screen
     const head = 110
-    const tint = accentGlow([[0.16, 0], [0.11, head], [0.085, head + 115], [0.055, head + 256], [0.028, head + 397], [0.01, head + 525]], head + 640)
+    const tint = accentGlow([[0.16, 0], [0.11, head], [0.085, head + 115], [0.055, head + 256], [0.028, head + 397], [0.01, head + 525]], head + 640, palette)
 
     return (
         <>
@@ -200,7 +204,7 @@ function NoSections() {
 
 /** No library entries and only library sections: say why Home is empty, offer the one next step, show what is trending. */
 function EmptyHome() {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const serverStatus = useServerStatus()
     const allUserMedia = useAtomValue(__anilist_userAnimeMediaAtom)
@@ -246,7 +250,7 @@ function EmptyHome() {
     )
 }
 
-function HomeScreenItem({ item: saved, index, library }: { item: Models_HomeItem, index: number, library: HandleLibraryCollectionProps }) {
+function HomeScreenItem({ item: saved, index, library, myShows }: { item: Models_HomeItem, index: number, library: HandleLibraryCollectionProps, myShows?: React.ReactNode }) {
     const item = React.useMemo(() => withCurrentSchema(saved), [saved])
     if (!item) return null
     if (HOME_ITEMS_PENDING[item.type]) return null
@@ -258,7 +262,7 @@ function HomeScreenItem({ item: saved, index, library }: { item: Models_HomeItem
             return <ContinueWatching episodes={library.continueWatchingList} />
         case "anime-library":
             return <LibraryView collectionList={library.libraryCollectionList} filteredCollectionList={library.filteredLibraryCollectionList}
-                isLoading={library.isLoading} streamingMediaIds={library.streamingMediaIds} showStatuses={item.options?.statuses} />
+                isLoading={library.isLoading} streamingMediaIds={library.streamingMediaIds} showStatuses={item.options?.statuses} afterCurrent={myShows} />
         case "my-lists":
             return <MyLists item={item} />
         case "anime-carousel":

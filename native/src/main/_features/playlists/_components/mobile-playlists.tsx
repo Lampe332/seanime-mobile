@@ -66,7 +66,7 @@ function RoundAction({ label, icon: Icon, disabled, onPress }: { label: string, 
 }
 
 export function MobilePlaylists() {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const manager = usePlaylistEditorManager()
     const { data: library, isLoading: libraryLoading } = useGetLibraryCollection()
@@ -343,7 +343,7 @@ function EpisodeSelection({ t, entry, episodes, onChange, defaultWatchType }: {
     onChange: (episodes: Anime_PlaylistEpisode[]) => void
     defaultWatchType: Anime_WatchType
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const { data, isLoading, isError, refetch } = useGetPlaylistEpisodes(entry.mediaId)
     const { episodeToAdd, selectedMedia, setEpisodeToAdd } = usePlaylistEditorManager()
     const available = React.useMemo(() => (data ?? []).filter(n => !!n.episode).slice()

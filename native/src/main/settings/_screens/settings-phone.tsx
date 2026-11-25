@@ -12,7 +12,6 @@ import { haptic } from "@/lib/feedback"
 import { openTab } from "@/lib/helpers/browser"
 import { MENU_ENTRIES } from "@/lib/nav/nav-items"
 import { useRouter } from "@/lib/navigation"
-import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -183,7 +182,7 @@ function SectionList({ t, onOpen, current, compact, notes = true }: {
     compact?: boolean
     notes?: boolean
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     return <View accessibilityLabel={t("Settings areas", "Einstellungsbereiche")} className="gap-0.5 overflow-hidden rounded-surface">
         {SETTINGS_SECTIONS.map(id => {
             const item = SECTIONS[id]

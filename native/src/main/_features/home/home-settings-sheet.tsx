@@ -370,7 +370,7 @@ function HomeSectionRow({ item, index, items, needs, onMove, onOptions, onRemove
 
 /** A section that is not on Home: one tap on it adds it; "?" explains it first. */
 function AddSectionRow({ type, needs, onAdd }: { type: string, needs: string, onAdd: () => void }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const name = homeSectionName(type, t)
     const summary = homeSectionSummary(type, t)
@@ -423,7 +423,7 @@ function HomeItemOptionsSheet({ item: openedWith, open, onClose, onSave }: {
     onClose: () => void
     onSave: (options: HomeOptions) => void
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     // The section as it was when its options opened: the sheet keeps it while it slides out, also after a removal
     const [item] = React.useState(openedWith)

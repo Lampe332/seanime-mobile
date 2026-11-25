@@ -97,7 +97,7 @@ export function useEntryReaderSettings(mediaId: number) {
 }
 
 export function ChapterReaderSettings() {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const isTablet = useIsTabletScreen()
     const [open, setOpen] = useAtom(__manga_readerSettingsOpenAtom)

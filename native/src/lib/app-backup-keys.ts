@@ -18,6 +18,8 @@ const DEVICE_KEYS = [
     /^seanime-mobile-legacy-preferences-copied$/,
     /^seanime-mobile-anilist-user$/,
     /^seanime-mobile-language-android$/,
+    // the own profile picture: a file in this device's documents folder (lib/account/profile-picture.ts)
+    /^seanime-mobile-profile-picture$/,
 ]
 
 export function isDeviceKey(key: string): boolean {

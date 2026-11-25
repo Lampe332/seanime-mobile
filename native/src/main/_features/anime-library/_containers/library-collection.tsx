@@ -6,7 +6,6 @@ import { SwitchRow } from "@/components/ui/switch/switch"
 import { SectionTitle, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { getLibraryCollectionTitle } from "@/lib/server/utils"
-import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { __mainLibrary_paramsAtom } from "@/main/_features/anime-library/_lib/handle-library-collection"
 import { homeCurrentGenresAtom } from "@/main/_features/anime-library/library-phone.atoms"
@@ -24,32 +23,38 @@ import { Pressable, View } from "react-native"
  * status, "Currently watching" with its filter sheet (home-current-filter.css). Grid and carousel look the same on
  * phones: every list is one swipeable row.
  */
-export function LibraryView({ collectionList, filteredCollectionList, isLoading, streamingMediaIds, showStatuses }: {
+export function LibraryView({ collectionList, filteredCollectionList, isLoading, streamingMediaIds, showStatuses, afterCurrent }: {
     collectionList: Anime_LibraryCollectionList[]
     filteredCollectionList: Anime_LibraryCollectionList[]
     isLoading: boolean
     streamingMediaIds: number[]
     showStatuses?: AL_MediaListStatus[]
+    /** shown right after "Currently watching" (Home's "My shows"), or first when that list is empty */
+    afterCurrent?: React.ReactNode
 }) {
     const [params] = useAtom(__mainLibrary_paramsAtom)
 
-    if (isLoading) return <View className="gap-4 pt-5"><View className="h-7 w-40 rounded-ui bg-sm-surface-raised" /><MediaCardRowSkeleton /></View>
+    if (isLoading) return <View className="gap-4 pt-5"><View className="h-7 w-40 rounded-ui bg-sm-surface-raised" /><MediaCardRowSkeleton />{afterCurrent}</View>
 
     // A genre picked elsewhere (the library's genre row) shows the matching series as one row
     if (params.genre?.length) {
         const entries = filteredCollectionList
             .filter(list => !showStatuses || (!!list.type && showStatuses.includes(list.type)))
             .flatMap(list => list.entries ?? [])
-        return <View className="pt-5"><EntryRow entries={entries} streamingMediaIds={streamingMediaIds} /></View>
+        return <View className="pt-5"><EntryRow entries={entries} streamingMediaIds={streamingMediaIds} />{afterCurrent}</View>
     }
 
+    const shown = collectionList.filter(list => !!list.entries?.length && !(showStatuses && list.type && !showStatuses.includes(list.type)))
+    const hasCurrent = shown.some(list => list.type === "CURRENT")
     return (
         <View>
-            {collectionList.map(list => {
-                if (!list.entries?.length) return null
-                if (showStatuses && list.type && !showStatuses.includes(list.type)) return null
-                return <LibraryListItem key={list.type} list={list} streamingMediaIds={streamingMediaIds} />
-            })}
+            {!hasCurrent && afterCurrent}
+            {shown.map(list => (
+                <React.Fragment key={list.type}>
+                    <LibraryListItem list={list} streamingMediaIds={streamingMediaIds} />
+                    {list.type === "CURRENT" && afterCurrent}
+                </React.Fragment>
+            ))}
         </View>
     )
 }
@@ -102,7 +107,7 @@ function EntryRow({ entries, streamingMediaIds }: { entries: Anime_LibraryCollec
 
 /** Android home: filter sheet for "Currently watching" with the unwatched toggle and the genres of the listed series. */
 function HomeCurrentFilter({ list }: { list: Anime_LibraryCollectionList }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const [open, setOpen] = React.useState(false)
     const [params, setParams] = useAtom(__mainLibrary_paramsAtom)

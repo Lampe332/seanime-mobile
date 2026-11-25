@@ -29,7 +29,7 @@ type Media = { title?: { userPreferred?: string | null } | null, coverImage?: { 
  * Only the app's own history changes, never AniList.
  */
 export function HistoryPhone() {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const language = useAtomValue(appLanguageAtom)
     const router = useRouter()

@@ -2,7 +2,6 @@ import { Text } from "@/components/ui/text/text"
 import { cn } from "@/components/ui/core/styling"
 import { useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
-import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { genreLabel } from "@/main/discover/_lib/discover-phone"
 import { type Ranking, rankingBadges, rankingLabel } from "@/main/entry/_lib/anime-meta"
@@ -29,7 +28,7 @@ export const EntryFacts = React.memo(function EntryFacts({ kind, studios, rankin
     loading: boolean
     wide: boolean
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const router = useRouter()
     const badges = React.useMemo(() => rankingBadges(rankings), [rankings])

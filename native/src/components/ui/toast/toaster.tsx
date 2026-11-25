@@ -18,12 +18,11 @@ import Svg, { Path } from "react-native-svg"
  * description 14/19.6 in the muted colour. A success's check pops in once (360 ms, 80 ms late). Newer toasts stack
  * over older ones (stackedToast). A tap closes one; each leaves after its duration.
  */
-const ICON_COLOR: Record<ToastType, string> = {
+const ICON_COLOR: Record<Exclude<ToastType, "info">, string> = {
     default: colors.smTextMuted,
     success: colors.smSuccess,
     error: colors.smDanger,
     warning: colors.smWarning,
-    get info() { return colors.smAccent },
 }
 
 /** sonner's icons (SuccessIcon, ErrorIcon, WarningIcon, InfoIcon): 20dp, filled, the mark cut out */
@@ -46,12 +45,12 @@ const checkPop = new Keyframe({
 }).duration(DURATION.toastCheck).delay(DURATION.toastCheckDelay).reduceMotion(ReduceMotion.System)
 
 function ToastIcon({ type }: { type: ToastType }) {
-    useThemeColors()
+    const colors = useThemeColors()
     if (type === "default") return null
     const { viewBox, d } = ICON[type]
     const icon = (
         <Svg width={20} height={20} viewBox={viewBox} style={{ marginLeft: -1 }}>
-            <Path fill={ICON_COLOR[type]} fillRule="evenodd" clipRule="evenodd" d={d} />
+            <Path fill={type === "info" ? colors.smAccent : ICON_COLOR[type]} fillRule="evenodd" clipRule="evenodd" d={d} />
         </Svg>
     )
     return (

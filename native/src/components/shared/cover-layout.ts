@@ -51,6 +51,35 @@ export function rowCoverWidth(windowWidth: number, rail: boolean, zoom: number, 
     return scaleRowWidth(normal, windowWidth, factor)
 }
 
+/** A row starts on the page gutter and keeps its cards a gutter apart: snapped, nothing of the card before shows. */
+export const ROW_GUTTER = 16
+export const ROW_GAP = 16
+/** How much of the next card a row shows, as a share of a card: always a clear hint, never a half-cut card. */
+export const ROW_PEEK_MIN = 0.25
+export const ROW_PEEK_MAX = 0.5
+
+/**
+ * A row card's width in a row `viewport` wide (gutter left, cards to the right edge): whole cards plus a peek of the next
+ * one between ROW_PEEK_MIN and ROW_PEEK_MAX of a card. Of every count of whole cards, the one whose width comes closest
+ * to `desired` (the card size's width) wins; an unmeasured row keeps `desired`.
+ */
+export function fitRowWidth(desired: number, viewport: number, gutter = ROW_GUTTER, gap = ROW_GAP) {
+    const room = viewport - gutter
+    if (desired <= 0 || room <= gap) return Math.max(0, Math.round(desired))
+    const want = Math.round(desired)
+    let best = want, miss = Infinity
+    for (let whole = 1; whole <= 12; whole++) {
+        const cards = room - whole * gap
+        // whole dp only: the widest that still peeks ROW_PEEK_MIN, the narrowest that peeks at most ROW_PEEK_MAX
+        const lo = Math.ceil(cards / (whole + ROW_PEEK_MAX)), hi = Math.floor(cards / (whole + ROW_PEEK_MIN))
+        if (hi <= 0) break
+        if (lo > hi) continue
+        const width = Math.min(Math.max(want, lo), hi)
+        if (Math.abs(width - want) < miss) [best, miss] = [width, Math.abs(width - want)]
+    }
+    return best
+}
+
 /**
  * Width the grid's cards take when they do not fill one row (fewer results than columns): the end-of-list note centres
  * under them instead of under the empty cells. A full row (or none) takes the content width.

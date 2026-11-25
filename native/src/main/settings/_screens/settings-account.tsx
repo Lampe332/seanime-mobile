@@ -26,7 +26,13 @@ import { colors, accentInput } from "@/lib/theme/tokens"
 import { NoScreenshots } from "@/main/_features/account/account-prompts"
 import { ConfirmSheet, InfoRow, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { profilePictureAtom, useHasProfilePicture, useProfileAvatar } from "@/lib/account/profile-picture"
+import { pickProfilePicture, removeProfilePictures } from "@/lib/account/profile-picture-photo"
+import { useCurrentUser } from "@/main/_hooks/use-server-status"
+import { Image } from "expo-image"
 import { useAtomValue, useSetAtom } from "jotai"
+import { RESET } from "jotai/utils"
+import UserRound from "lucide-react-native/icons/user-round"
 import React from "react"
 import Eye from "lucide-react-native/icons/eye"
 import EyeOff from "lucide-react-native/icons/eye-off"
@@ -48,11 +54,70 @@ export function SettingsAccountSection({ t }: { t: Translate }) {
     const lastSync = useAtomValue(lastSyncAtom)
     const loadFailed = useAtomValue(accountLoadFailedAtom)
     const phase = accountPhase({ loaded: account.loaded, signedIn: account.signedIn, hasKey: account.hasKey, lastResult: lastSync })
-    if (phase === "loading" && loadFailed) return <LoadFailed t={t} />
-    if (phase === "loading") return <Muted className="px-1 text-[15px]">{t("Loading…", "Wird geladen …")}</Muted>
-    if (phase === "signed-out") return <SignedOut t={t} />
-    if (phase === "needs-key") return <ApproveOnPhone t={t} />
-    return <Overview t={t} />
+    // the own picture needs no account: it stays on this device (profile-picture.ts)
+    return <View className="gap-6">
+        <ProfilePicture t={t} />
+        {phase === "loading" && loadFailed ? <LoadFailed t={t} />
+            : phase === "loading" ? <Muted className="px-1 text-[15px]">{t("Loading…", "Wird geladen …")}</Muted>
+                : phase === "signed-out" ? <SignedOut t={t} />
+                    : phase === "needs-key" ? <ApproveOnPhone t={t} />
+                        : <Overview t={t} />}
+    </View>
+}
+
+/** The own profile picture: shown in the More panel's head instead of AniList's; nothing is sent to AniList */
+function ProfilePicture({ t }: { t: Translate }) {
+    const user = useCurrentUser()
+    const viewer = user && !user.isSimulated ? user.viewer : undefined
+    const avatar = useProfileAvatar(viewer?.avatar?.large || viewer?.avatar?.medium || null)
+    const own = useHasProfilePicture()
+    const setPicture = useSetAtom(profilePictureAtom)
+    const [busy, setBusy] = React.useState(false)
+
+    async function change() {
+        setBusy(true)
+        try {
+            const name = await pickProfilePicture()
+            if (!name) return
+            setPicture(name)
+            removeProfilePictures(name)
+        }
+        catch {
+            toast.error(t("Couldn't use this photo. Try another one.", "Dieses Foto ließ sich nicht verwenden. Versuch ein anderes."))
+        }
+        finally {
+            setBusy(false)
+        }
+    }
+
+    function remove() {
+        setPicture(RESET)
+        removeProfilePictures()
+    }
+
+    return <View className="flex-row items-center gap-4 px-1">
+        {/* the same action as "Change picture" below, so screen readers skip it */}
+        <Pressable onPress={() => void change()} disabled={busy} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden
+            className="rounded-full active:opacity-80">
+            {avatar
+                ? <Image source={avatar} accessibilityIgnoresInvertColors style={{ width: 80, height: 80, borderRadius: 40 }} contentFit="cover" />
+                : (
+                    <View className="h-20 w-20 items-center justify-center rounded-full bg-sm-surface-raised">
+                        <UserRound size={36} color={colors.smTextSubtle} />
+                    </View>
+                )}
+        </Pressable>
+        <View className="min-w-0 flex-1 gap-1">
+            <Text className="text-[17px] font-semibold text-sm-text">{t("Profile picture", "Profilbild")}</Text>
+            <Muted className="text-[13px] leading-[18px]">
+                {t("Shown in the menu on this device. Your AniList picture stays as it is.", "Erscheint im Menü auf diesem Gerät. Dein AniList-Bild bleibt, wie es ist.")}
+            </Muted>
+            <View className="-ml-2 flex-row flex-wrap">
+                <TextAction label={t("Change picture", "Bild ändern")} disabled={busy} onPress={() => void change()} />
+                {own && <TextAction label={t("Remove picture", "Bild entfernen")} disabled={busy} onPress={remove} />}
+            </View>
+        </View>
+    </View>
 }
 
 /** The secured storage could not be read at start; without this the screen said "Loading…" for good */

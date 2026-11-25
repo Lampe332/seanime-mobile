@@ -12,7 +12,7 @@ describe("top of the entry pages (Nick 10.11.: no empty bar or dark strip, on pu
     it("start at the shared page top, the tablet with `[data-mobile-anime]`'s 1rem", () => {
         for (const source of [anime, manga]) {
             expect(source).toContain("paddingTop: top + (rail ? 16 : 0)")
-            expect(source).toContain("backgroundImage: pageTint(0)")
+            expect(source).toContain("backgroundImage: pageTint(0, palette)")
             expect(source).not.toMatch(/TOP_BAR_HEIGHT|STRIP_TOP|TOP_BAR_COLOR/)
         }
     })

@@ -67,6 +67,8 @@ import { DiscoverPhoneSchedule, scheduleFactsLine } from "@/main/discover/_scree
 import { tabPaneProps } from "@/main/extensions/_screens/extensions-phone-marketplace"
 import { ADVANCED_SEARCH_MEDIA_GENRES } from "@/main/search/_lib/advanced-search-constants"
 import { FlashList, type FlashListRef } from "@shopify/flash-list"
+import { ROW_GAP, ROW_GUTTER } from "@/components/shared/cover-layout"
+import { useRowFit } from "@/main/_features/media/_components/media-card-row"
 import { Image } from "expo-image"
 import { useLocalSearchParams } from "expo-router"
 import { atom, useAtom } from "jotai"
@@ -430,7 +432,7 @@ function DiscoverRow<T>({ title, qualifier, note, seeAll, row, empty, genre, onC
     const t = useTr()
     const offlineAware = useOfflineAware()
     const openSeeAll = useSeeAll()
-    const width = useRowCoverWidth()
+    const { width, onLayout } = useRowFit(useRowCoverWidth())
     const list = React.useRef<FlashListRef<T>>(null)
     // A new genre starts the row at its first cover again; the covers stay mounted (no new mount of every card per tap).
     React.useEffect(() => {
@@ -455,6 +457,7 @@ function DiscoverRow<T>({ title, qualifier, note, seeAll, row, empty, genre, onC
                 genre && onClearGenre ? <GenreEmpty onClear={onClearGenre} /> : <Text className="text-sm leading-[21px] text-sm-text-muted">{empty}</Text>
             ) : (
                 <Animated.View accessibilityState={{ busy: row.stale }} style={swapStyle}>
+                    <View onLayout={onLayout} style={{ marginHorizontal: -ROW_GUTTER }}>
                     <FlashList
                         ref={list}
                         horizontal
@@ -462,14 +465,14 @@ function DiscoverRow<T>({ title, qualifier, note, seeAll, row, empty, genre, onC
                         renderItem={renderItem}
                         ItemSeparatorComponent={RowGap}
                         showsHorizontalScrollIndicator={false}
-                        snapToInterval={width + 12}
+                        snapToInterval={width + ROW_GAP}
                         snapToAlignment="start"
                         decelerationRate="fast"
                         // a new genre's covers start at the first one (see above), not where an old cover was
                         maintainVisibleContentPosition={{ disabled: true }}
-                        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
-                        style={{ marginHorizontal: -16 }}
+                        contentContainerStyle={{ paddingHorizontal: ROW_GUTTER, paddingBottom: 4 }}
                     />
+                    </View>
                 </Animated.View>
             )}
         </PhoneSection>
@@ -477,7 +480,7 @@ function DiscoverRow<T>({ title, qualifier, note, seeAll, row, empty, genre, onC
 }
 
 function RowGap() {
-    return <View style={{ width: 12 }} />
+    return <View style={{ width: ROW_GAP }} />
 }
 
 /** A genre hides every title of a row: say so and offer all genres again, right where the user looks. */

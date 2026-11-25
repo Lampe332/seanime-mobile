@@ -3,6 +3,7 @@ import type { PatchSetting_Variables, UpdateTheme_Variables } from "@/api/genera
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import type { Models_Theme, Status } from "@/api/generated/types"
 import { Button } from "@/components/ui/button/button"
+import { HueRing } from "@/components/ui/color-wheel/color-wheel"
 import { cn } from "@/components/ui/core/styling"
 import { Sheet } from "@/components/ui/sheet/sheet"
 import { Switch } from "@/components/ui/switch/switch"
@@ -184,7 +185,7 @@ function RowHighlight({ label }: { label: string }) {
 }
 
 function RowGlow({ reveal }: { reveal: RowReveal }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const ref = React.useRef<React.ComponentRef<typeof View>>(null)
     const [opacity] = React.useState(() => new Animated.Value(0))
     const reducedMotion = useReducedMotion()
@@ -271,7 +272,7 @@ function RowText({ label, note, scope, changed, tone, className }: {
     tone?: "danger" | "accent"
     className?: string
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const ScopeIcon = scope === "device" ? Smartphone : RefreshCw
     return (
@@ -375,9 +376,10 @@ export type SwatchOption = { value: string, color: string, label: string }
 
 /**
  * A row of colour circles: name and note above, the circles below (48dp to tap, the colour 36dp inside). The current one
- * is ringed and checked; with `defaultValue` a dot marks a changed value.
+ * is ringed and checked; with `defaultValue` a dot marks a changed value. `custom` adds a last circle with a rainbow ring
+ * that opens a picker; it shows the own colour once one is in use.
  */
-export function SwatchRow({ label, note, value, options, onChange, scope, defaultValue }: {
+export function SwatchRow({ label, note, value, options, onChange, scope, defaultValue, custom }: {
     label: string
     note?: string
     value: string
@@ -385,8 +387,9 @@ export function SwatchRow({ label, note, value, options, onChange, scope, defaul
     onChange: (value: string) => void
     scope?: SettingScope
     defaultValue?: string
+    custom?: { label: string, selected: boolean, color?: string, onPress: () => void }
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     return (
         <View accessibilityRole="radiogroup" accessibilityLabel={label} className={cn(ROW, "flex-col items-stretch gap-3")}>
             <RowHighlight label={label} />
@@ -408,6 +411,18 @@ export function SwatchRow({ label, note, value, options, onChange, scope, defaul
                         </View>
                     </Pressable>
                 })}
+                {custom && <Pressable accessibilityRole="radio" accessibilityLabel={custom.label} accessibilityState={{ checked: custom.selected }}
+                    onPress={() => {
+                        haptic("tick")
+                        custom.onPress()
+                    }}
+                    className="size-12 items-center justify-center rounded-full border-2"
+                    style={{ borderColor: custom.selected ? colors.smText : "transparent" }}>
+                    <HueRing size={36} inner={custom.color ?? colors.smSurfaceRaised} />
+                    {custom.selected && <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
+                        <Check size={18} strokeWidth={3} color={colors.paper} />
+                    </View>}
+                </Pressable>}
             </View>
         </View>
     )
@@ -432,7 +447,7 @@ export function ImageChoiceRow({ label, note, value, options, onChange, scope }:
     onChange: (value: string) => void
     scope?: SettingScope
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     return (
         <View accessibilityRole="radiogroup" accessibilityLabel={label} className={cn(ROW, "flex-col items-stretch gap-3 active:bg-sm-surface-raised")}>
             <RowHighlight label={label} />
@@ -501,7 +516,7 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
     scope?: SettingScope
     defaultValue?: string
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const { height: windowHeight } = useWindowDimensions()
     const [open, setOpen] = React.useState(false)

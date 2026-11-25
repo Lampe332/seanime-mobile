@@ -3,7 +3,7 @@ import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
 import { usePalette } from "@/lib/theme/appearance"
-import { glowGroundFade } from "@/lib/theme/palette"
+import { glowGround } from "@/lib/theme/palette"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useHomeBanner } from "@/lib/theme/banner-presets"
 import type { BannerSource } from "@/lib/theme/home-banner"
@@ -33,7 +33,7 @@ export function HomeMobileHeader({ actions }: { actions?: React.ReactNode }) {
     return (
         // the same top as every page (page-top.ts); a banner still reaches up to the edge behind it
         <View style={{ paddingTop: top }} className="px-4">
-            {!!image && <HomeBanner image={image} opacity={homeBannerOpacity(ts.libraryScreenCustomBannerOpacity)} position={ts.libraryScreenCustomBannerPosition} />}
+            {!!image && <HomeBanner image={image} top={top} opacity={homeBannerOpacity(ts.libraryScreenCustomBannerOpacity)} position={ts.libraryScreenCustomBannerPosition} />}
             {/* With a banner the head gets the height of a picture strip; title and actions sit at its foot. */}
             <View className={cn("flex-row flex-wrap justify-between gap-x-3 gap-y-1 pt-2 pb-1", image ? "min-h-36 items-end pb-3" : "items-center")}>
                 <View className="min-w-0 shrink">
@@ -46,15 +46,26 @@ export function HomeMobileHeader({ actions }: { actions?: React.ReactNode }) {
     )
 }
 
+/** How far the banner reaches below the head: its fade ends under the first row, so no edge shows where the head ends. */
+const BANNER_BLEED = 40
+/** The home tint (home-screen.tsx accentGlow) where the banner's fade ends, so the fade lands on the page's own ground */
+const BANNER_FOOT_GLOW = 0.085
+/** An eased fade (clear, then slow, fast, slow): a straight two-stop fade shows a band where it starts and ends */
+const BANNER_FADE: readonly (readonly [number, number])[] = [[0, 44], [0.1, 56], [0.26, 66], [0.48, 76], [0.72, 86], [0.9, 94], [1, 100]]
+
 /**
  * The banner behind the head: one still picture cropped by the stored position, at the stored opacity, darkened under the
- * text and faded out at the bottom. It fades in once loaded (opacity only, 320 ms). A bundled picture, the own photo on
+ * text and faded into the page at the bottom (AMOLED black, otherwise the tinted ground). It reaches up under the status
+ * bar and a little below the head. It fades in once loaded (opacity only, 320 ms). A bundled picture, the own photo on
  * this device or an old image link (home-banner.ts).
  */
-function HomeBanner({ image, opacity, position }: { image: BannerSource, opacity: number, position?: string }) {
-    usePalette()
+function HomeBanner({ image, top, opacity, position }: { image: BannerSource, top: number, opacity: number, position?: string }) {
+    const palette = usePalette()
+    const ground = glowGround(BANNER_FOOT_GLOW, palette).join(",")
+    const fade = `linear-gradient(180deg, ${BANNER_FADE.map(([a, at]) => `rgba(${ground},${a}) ${at}%`).join(", ")})`
     return (
-        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="absolute inset-0 overflow-hidden">
+        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+            style={{ bottom: -BANNER_BLEED }} className="absolute inset-x-0 top-0 overflow-hidden">
             <Image
                 key={image.kind === "preset" ? image.id : image.uri}
                 source={image.kind === "preset" ? image.asset : image.uri}
@@ -65,8 +76,10 @@ function HomeBanner({ image, opacity, position }: { image: BannerSource, opacity
             />
             {/* the scrim under the title (::after) */}
             <View className="absolute inset-0" style={{ backgroundImage: "linear-gradient(90deg, rgba(12,12,14,0.62), rgba(12,12,14,0.28) 70%, rgba(12,12,14,0.4))" }} />
-            {/* React Native has no mask-image: the lower 45% fades into the head's tint instead of to transparent */}
-            <View className="absolute inset-0" style={{ backgroundImage: glowGroundFade(0.11) }} />
+            {/* the status bar's icons stay legible over a bright picture */}
+            <View className="absolute inset-x-0 top-0" style={{ height: top + 24, backgroundImage: "linear-gradient(180deg, rgba(12,12,14,0.45), rgba(12,12,14,0))" }} />
+            {/* React Native has no mask-image: the lower half fades into the page's ground instead of to transparent */}
+            <View className="absolute inset-0" style={{ backgroundImage: fade }} />
         </View>
     )
 }

@@ -267,7 +267,7 @@ export function GlobalPlaylistManager() {
 
 /** The round button over the bottom bar (global-playlist-popup.tsx, `bottom-24 right-4`); tablet: at the foot beside the rail */
 function PlaylistButton({ open, onPress }: { open: boolean, onPress: () => void }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const insets = useSafeAreaInsets()
     const barHeight = useNavBarHeight()

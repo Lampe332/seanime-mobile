@@ -73,9 +73,6 @@ export function ContinueWatching({ episodes }: { episodes: Anime_Episode[] }) {
     )
 }
 
-/** `rounded-surface` (16dp) less the 1dp border: the radius of the tile's inside */
-const TILE_INNER_RADIUS = 15
-
 const ResumeTile = React.memo(function ResumeTile({ episode, width, spoilerActive, watchHistory }: {
     episode: Anime_Episode
     width: number
@@ -111,8 +108,8 @@ const ResumeTile = React.memo(function ResumeTile({ episode, width, spoilerActiv
             accessibilityLabel={t(`Continue: ${title}, episode ${episode.episodeNumber}`, `Fortsetzen: ${title}, Folge ${episode.episodeNumber}`)}
             // .home-resume-tile: 0 12px 28px -12px black/.7 (an Android elevation shadow drew a light rim the old tile does not have)
             style={{ width, minHeight: 216, boxShadow: "0 12px 28px -12px rgba(0,0,0,0.7)" }}
-            // the clip only for the progress line; the picture and the scrim round themselves (inside the 1dp border)
-            className={`justify-end rounded-surface border border-white/5 bg-sm-surface-control${progressShown ? " overflow-hidden" : ""}`}
+            // one clip for picture, scrim and progress line: the dark covers the picture to every edge, no rim or seam
+            className={`justify-end overflow-hidden rounded-surface${shown ? "" : " bg-sm-surface-control"}`}
         >
             {!!shown && (
                 <Image
@@ -122,14 +119,17 @@ const ResumeTile = React.memo(function ResumeTile({ episode, width, spoilerActiv
                     contentFit="cover"
                     blurRadius={veiled ? 24 : 0}
                     transition={fade}
-                    style={{ position: "absolute", inset: 0, borderRadius: TILE_INNER_RADIUS }}
+                    style={{ position: "absolute", inset: 0 }}
                     accessibilityIgnoresInvertColors
                 />
             )}
+            {/* the scrim over the whole tile, eased so the picture fades into the text without a band */}
             <View
-                className="rounded-b-[15px] px-4 pb-4 pt-14"
-                style={{ backgroundImage: "linear-gradient(180deg, rgba(12,12,14,0) 0%, rgba(12,12,14,0.8) 40%, rgba(12,12,14,0.96) 100%)" }}
-            >
+                pointerEvents="none"
+                className="absolute inset-0"
+                style={{ backgroundImage: "linear-gradient(180deg, rgba(12,12,14,0) 0%, rgba(12,12,14,0.14) 28%, rgba(12,12,14,0.55) 52%, rgba(12,12,14,0.84) 72%, rgba(12,12,14,0.95) 88%, rgba(12,12,14,0.97) 100%)" }}
+            />
+            <View className="px-4 pb-4 pt-14">
                 <Text numberOfLines={2} className="text-[15px] font-semibold leading-[21px]">{title}</Text>
                 <View className="mt-[3px] flex-row flex-wrap gap-x-2.5 gap-y-1">
                     <Text className="text-[13px] text-sm-text-muted">{t("Episode", "Folge")} {episode.episodeNumber}{showTotal ? ` / ${total! - offset}` : ""}</Text>

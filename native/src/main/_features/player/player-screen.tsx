@@ -182,7 +182,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     /** an online stream (onlinestream page): its episode list, quality, subtitle preference and "Save this episode" */
     online?: OnlinePlayback
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const insets = useSafeAreaInsets()
     const window = useWindowDimensions()
@@ -1435,7 +1435,7 @@ function TimeBar({ position, duration, buffered, pieces, highlight, track, thumb
     onScrubStart: () => void
     onScrubEnd: (target: number | null) => void
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const [scrub, setScrubState] = React.useState<ScrubState>(SCRUB_IDLE)
     // Touch moves arrive faster than React re-renders: the handlers read the latest state from the ref (with only the
     // state, the first moves saw "idle" and a drag never scrubbed – S22)
@@ -1511,7 +1511,7 @@ function MiniPlayer({ frame, title, subtitle, playing, loading, error, progress,
     frame: MiniFrame, title: string, subtitle: string, playing: boolean, loading: boolean, error: string | null, progress: number,
     onExpand: () => void, onPlay: () => void, onClose: () => void
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const bar = frame.kind === "bar"
     const pad = bar ? MINI_BAR.pad : MINI_CARD.pad

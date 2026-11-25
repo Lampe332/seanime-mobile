@@ -27,8 +27,10 @@ import { showStatusBarAtom } from "@/lib/status-bar-setting"
 import { cardSizeAtom } from "@/lib/card-size-setting"
 import type { CardSize } from "@/components/shared/cover-layout"
 import { useAtom } from "jotai"
+import React from "react"
 import { accentColorAtom, amoledAtom } from "@/lib/theme/appearance"
-import { ACCENT_IDS, buildPalette, DEFAULT_ACCENT, isAccentId } from "@/lib/theme/palette"
+import { ACCENT_IDS, buildPalette, customColor, DEFAULT_ACCENT, isAccentId } from "@/lib/theme/palette"
+import { CustomAccentSheet } from "@/main/settings/_components/custom-accent-sheet"
 
 /** The banner tile that opens the photo picker (never stored: the pick is stored as "file:<name>") */
 const PHOTO = "photo"
@@ -241,14 +243,26 @@ function ColorsGroup({ t }: { t: Translate }) {
         pink: t("Pink", "Rosa"), orange: t("Orange", "Orange"), red: t("Red", "Rot"),
     }
     const options = ACCENT_IDS.map(id => ({ value: id, color: buildPalette(id, false).swatch, label: names[id] }))
-    return <SettingsGroup title={t("Colors", "Farben")}>
+    // an own colour ("custom:#rrggbb" in the same stored key): the sheet is mounted anew for each opening
+    const [picker, setPicker] = React.useState({ open: false, opened: 0 })
+    const own = customColor(accent)
+    const shown = buildPalette(accent, false)
+    return <>
+        <SettingsGroup title={t("Colors", "Farben")}>
         <SwatchRow label={t("Accent color", "Akzentfarbe")} value={accent} options={options} defaultValue={DEFAULT_ACCENT}
             onChange={value => isAccentId(value) && setAccent(value)} scope="synced"
+            custom={{
+                label: t("Custom color", "Eigene Farbe"), selected: !!own, color: own ? shown.swatch : undefined,
+                onPress: () => setPicker(now => ({ open: true, opened: now.opened + 1 })),
+            }}
             note={t("Buttons, switches and highlights across the app.", "Knöpfe, Schalter und Hervorhebungen in der ganzen App.")} />
         <LocalSwitch label={t("AMOLED black", "AMOLED-Schwarz")} checked={amoled} onCheckedChange={setAmoled} defaultChecked={false}
             note={t("True black background that saves power on OLED screens. Only on this device.",
                 "Echt schwarzer Hintergrund, spart Strom auf OLED-Bildschirmen. Nur auf diesem Gerät.")} />
-    </SettingsGroup>
+        </SettingsGroup>
+        <CustomAccentSheet key={picker.opened} t={t} open={picker.open} onOpenChange={open => setPicker(now => ({ ...now, open }))}
+            initial={own ?? shown.ramp[500]} amoled={amoled} onApply={setAccent} />
+    </>
 }
 
 function ScreenGroup({ t }: { t: Translate }) {

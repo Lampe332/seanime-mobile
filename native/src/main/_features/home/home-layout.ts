@@ -31,6 +31,19 @@ export function arrangeHomeItems(items: Models_HomeItem[]): Models_HomeItem[] {
  * The sections Home shows: the saved list (an emptied Home stays empty), or the default one while nothing was ever saved.
  * Android Home has no header banner: the leading "anime-continue-watching-header" shows as "anime-continue-watching".
  */
+/**
+ * Where "My shows" sits on Home: right after "Currently watching" (inside the first library section that shows it), else
+ * after Continue watching, else on top (null). The user's own order of the sections stays as it is; on the default Home
+ * this reads Continue watching, Currently watching, My shows, then the other lists.
+ */
+export function myShowsPlace(items: readonly Models_HomeItem[]): { after: string, inLibrary: boolean } | null {
+    const library = items.find(item => item.type === "anime-library"
+        && (!Array.isArray(item.options?.statuses) || (item.options.statuses as unknown[]).includes("CURRENT")))
+    if (library) return { after: library.id, inLibrary: true }
+    const resume = items.find(item => item.type === "anime-continue-watching")
+    return resume ? { after: resume.id, inLibrary: false } : null
+}
+
 export function resolveHomeItems(saved: Nullish<Models_HomeItem[]>): Models_HomeItem[] {
     const items = arrangeHomeItems(saved ?? DEFAULT_HOME_ITEMS)
     if (items[0]?.type !== "anime-continue-watching-header") return items

@@ -2,7 +2,6 @@ import { SectionTitle, Text } from "@/components/ui/text/text"
 import { cn } from "@/components/ui/core/styling"
 import { useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
-import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { showsProgress, stateLabel } from "@/main/android-downloads/_lib/offline-library"
 import { useOfflineEpisodes, usePlayOffline } from "@/main/android-downloads/_lib/use-offline"
@@ -18,7 +17,7 @@ import { Pressable, View } from "react-native"
  * "Manage" opens the anime in Downloads. Hidden while nothing is saved or queued.
  */
 export function PhoneDownloadedEpisodes({ mediaId }: { mediaId: number }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const router = useRouter()
     const episodes = useOfflineEpisodes(mediaId)

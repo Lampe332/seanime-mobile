@@ -189,7 +189,7 @@ function MangaCard({ group, width, t, onOpen }: { group: MangaDownloadGroup, wid
 
 function MangaDetail({ group, queue, t, onChanged }: { group: MangaDownloadGroup, queue: Models_ChapterDownloadQueueItem[], t: Translate, onChanged: () => void }) {
     // the entry with the list's data: the reader holds the chapter against the saved progress, as from the manga's page (4.3.1)
-    useThemeColors()
+    const colors = useThemeColors()
     const { data: mangaEntry } = useGetMangaEntry(group.mediaId)
     const media = group.media ?? mangaEntry?.media
     const listData = mangaEntry?.listData

@@ -17,8 +17,8 @@ import { getImageUrl } from "@/lib/server/assets"
 import { getCustomSourceMediaSiteUrl, isCustomSource } from "@/lib/server/utils"
 import { entryColumnGaps, entryColumnWidth, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { colors } from "@/lib/theme/tokens"
-import { useThemeColors } from "@/lib/theme/appearance"
-import { accentGlow, type GlowStop } from "@/lib/theme/palette"
+import { usePalette, useThemeColors } from "@/lib/theme/appearance"
+import { accentGlow, type GlowStop, type Palette } from "@/lib/theme/palette"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { MediaEntryCharactersSection } from "@/main/_features/media/_components/media-entry-characters-section"
 import { EntryAboutLinks } from "@/main/_features/media/_components/entry-about-links"
@@ -68,13 +68,14 @@ import { __manga_selectedChapterAtom } from "@/main/manga/_lib/handle-chapter-re
  * page (page-top.ts) and "Manga downloads" (chapter-downloads-button.tsx, `.mobile-topbar-downloads`) joins More.
  */
 
-function pageTint(top: number) {
+function pageTint(top: number, palette: Palette) {
     const stops: GlowStop[] = [[0.16, 0], [0.11, 56], [0.085, 172], [0.055, 312], [0.028, 453], [0.01, 581]]
-    return accentGlow(stops.map(([alpha, at]) => [alpha, at + top] as const), 696 + top)
+    return accentGlow(stops.map(([alpha, at]) => [alpha, at + top] as const), 696 + top, palette)
 }
 
 export function MangaEntryPage() {
-    useThemeColors()
+    const colors = useThemeColors()
+    const palette = usePalette()
     const t = useTr()
     const router = useRouter()
     const params = useLocalSearchParams<{ id?: string }>()
@@ -153,7 +154,7 @@ export function MangaEntryPage() {
                 </ScrollView>
             </View>
             : <ScrollView ref={scrollRef} className="flex-1"
-                contentContainerStyle={{ ...scrollPadding, ...(!rail ? { backgroundImage: pageTint(0) } : null) }}
+                contentContainerStyle={{ ...scrollPadding, ...(!rail ? { backgroundImage: pageTint(0, palette) } : null) }}
                 contentContainerClassName={cn("w-full self-center", rail ? "px-6" : "")}>
                 <View className={rail ? "pb-2" : "px-4 pb-2 pt-4"}>{header}</View>
                 {chapters}

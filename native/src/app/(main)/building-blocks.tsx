@@ -13,10 +13,11 @@ import { toast } from "@/components/ui/toast/toast-store"
 import { APP_LANGUAGES, appLanguageAtom, asAppLanguage, useTr } from "@/lib/app-language"
 import { MobileIcon } from "@/lib/mobile-icons"
 import { cssBezier, DRAWER_EASE, DURATION, MOTION_EASE_OUT, PHONE_EASE, POP_EASE, WAIT_MS } from "@/lib/motion"
-import { colors, colorSwatches, radii, spacingScale } from "@/lib/theme/tokens"
+import { colorSwatches, radii, spacingScale } from "@/lib/theme/tokens"
 import { useAtom } from "jotai"
 import React from "react"
 import { View } from "react-native"
+import { useThemeColors } from "@/lib/theme/appearance"
 
 /*
  * Building blocks: every UI building block of the native app in its states, and the design tokens (colours, radii,
@@ -33,6 +34,7 @@ function Block({ title, children }: { title: string, children: React.ReactNode }
 }
 
 export default function BuildingBlocksScreen() {
+    const colors = useThemeColors()
     const t = useTr()
     const [language, setLanguage] = useAtom(appLanguageAtom)
     const [segment, setSegment] = React.useState("anime")
@@ -190,7 +192,7 @@ export default function BuildingBlocksScreen() {
                 <View className="flex-row flex-wrap gap-3">
                     {colorSwatches.map(swatch => (
                         <View key={swatch.name} className="w-[30%] gap-1">
-                            <View className="h-12 rounded-surface-sm border border-sm-line" style={{ backgroundColor: swatch.value }} />
+                            <View className="h-12 rounded-surface-sm border border-sm-line" style={{ backgroundColor: colors[swatch.key] }} />
                             <Text numberOfLines={1} className="text-xs text-sm-text-muted">{swatch.name}</Text>
                         </View>
                     ))}

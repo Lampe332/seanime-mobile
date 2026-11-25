@@ -434,7 +434,7 @@ function AnimeDetail({ group, size, onBack, onAction, onPlay, onDelete, onDelete
     onDelete: (item: OfflineItem) => void
     onDeleteAll: () => void
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const [width, setWidth] = React.useState(0)
     const [about, setAbout] = React.useState(false)

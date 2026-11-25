@@ -61,7 +61,7 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
     /** The format before the year ("Movie · 2021"), for related titles whose badge names only the relation */
     withFormat?: boolean
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const serverStatus = useServerStatus()
     const ts = useThemeSettings()
     const total = cardProgressTotal(type, media)
@@ -154,7 +154,7 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
     )
 })
 
-/** The dark pill bottom left: the unwatched / unread count over the progress, as in MediaEntryProgressBadge. */
+/** The dark pill bottom left: the unwatched / unread count, then the progress, on one line (never broken into "1" over "3"). */
 function CardPill({ type, mediaId, label, unwatched, progress }: { type: "anime" | "manga", mediaId: number, label: string | null, unwatched: number, progress?: number }) {
     const ts = useThemeSettings()
     const mangaData = useAtomValue(__mangaLibrary_latestChapterNumbersAtom)
@@ -162,14 +162,15 @@ function CardPill({ type, mediaId, label, unwatched, progress }: { type: "anime"
         ? getMangaEntryUnreadState(mediaId, progress || 0, mangaData.latestChapterNumbers, mangaData.storedProviders, mangaData.storedFilters)
         : null
     const top = unwatched > 0
-        ? <View className="flex-row items-center gap-1"><CirclePlay size={14} color={colors.smText} /><Text className="text-[11px] font-normal">{unwatched}</Text></View>
+        ? <View className="flex-row items-center gap-1"><CirclePlay size={14} color={colors.smText} /><Text numberOfLines={1} className="text-[11px] font-normal leading-[14px]" style={{ fontVariant: ["tabular-nums"] }}>{unwatched}</Text></View>
         : unread?.known && unread.unread > 0
-            ? <View className="flex-row items-center gap-1"><BookOpen size={12} color={colors.smText} /><Text className="text-[11px] font-normal">{unread.unread}</Text></View>
+            ? <View className="flex-row items-center gap-1"><BookOpen size={12} color={colors.smText} /><Text numberOfLines={1} className="text-[11px] font-normal leading-[14px]" style={{ fontVariant: ["tabular-nums"] }}>{unread.unread}</Text></View>
             : null
     if (!top && !label) return null
     return (
-        <View className="absolute bottom-1.5 left-1.5 items-start rounded-full bg-[rgba(12,12,14,0.82)] px-[7px] py-[3px]">
+        <View className="absolute bottom-1.5 left-1.5 flex-row items-center gap-1.5 rounded-full bg-[rgba(12,12,14,0.82)] px-[7px] py-[3px]">
             {top}
+            {!!top && !!label && <View className="h-2.5 w-px bg-sm-text-muted opacity-60" />}
             {!!label && <PillLabel label={label} />}
         </View>
     )
@@ -178,7 +179,7 @@ function CardPill({ type, mediaId, label, unwatched, progress }: { type: "anime"
 function PillLabel({ label }: { label: string }) {
     const [done, rest] = label.split("/")
     return (
-        <Text className="text-[11px] font-semibold leading-[14px]" style={{ fontVariant: ["tabular-nums"] }}>
+        <Text numberOfLines={1} className="text-[11px] font-semibold leading-[14px]" style={{ fontVariant: ["tabular-nums"] }}>
             {done}{rest !== undefined && <Text className="text-[11px] font-semibold leading-[14px] text-sm-text-muted">/{rest}</Text>}
         </Text>
     )

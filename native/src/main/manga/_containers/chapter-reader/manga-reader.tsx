@@ -6,7 +6,6 @@ import { useCloseOnBack } from "@/components/ui/core/back-handler"
 import { Slider } from "@/components/ui/slider/slider"
 import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
-import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { releaseOrientation } from "@/main/_features/player/player-system"
@@ -67,7 +66,7 @@ import { __manga_scrollSignalAtom, MangaVerticalReader } from "./chapter-vertica
  */
 
 // the paper behind the pages, as the user picks it: black and white are the page colours themselves, gray the raised surface
-const READER_BACKGROUNDS: Record<string, string> = { black: "#000", get gray() { return colors.smSurfaceRaised }, white: "#f4f4f5" }
+const READER_BACKGROUNDS: Record<string, string> = { black: "#000", white: "#f4f4f5" }
 /** The chapter (its key) whose start state the reader set; kept with the other reader atoms, so the reset is one step */
 const startedForAtom = atom("")
 const BAR_HEIGHT = 56
@@ -81,7 +80,7 @@ export function MangaReader() {
 }
 
 function Reader({ source }: { source: MangaReaderSource }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const { entry, chapterContainer } = source
     const t = useTr()
     const serverStatus = useServerStatus()
@@ -272,7 +271,7 @@ function Reader({ source }: { source: MangaReaderSource }) {
         {reversed ? <ChevronLeft size={20} color={colors.smText} /> : <ChevronRight size={20} color={colors.smText} />}
     </BarButton>
 
-    return <View style={{ position: "absolute", inset: 0, zIndex: 50, backgroundColor: READER_BACKGROUNDS[readerBackground] ?? "#000" }}
+    return <View style={{ position: "absolute", inset: 0, zIndex: 50, backgroundColor: readerBackground === "gray" ? colors.smSurfaceRaised : READER_BACKGROUNDS[readerBackground] ?? "#000" }}
         accessibilityViewIsModal>
         <View style={{ height: readerHeight }} className="overflow-hidden">
             {pageContainerError ? <View className="flex-1 items-center justify-center p-4">

@@ -35,7 +35,7 @@ import { downloadedEpisodeGroups, encodeFilePath, episodeFacts, isWatched } from
  */
 
 function EpisodeRow({ t, episode, watched, playing, onPlay }: { t: Translate, episode: Anime_Episode, watched: boolean, playing: boolean, onPlay: () => void }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const image = episode.episodeMetadata?.image || episode.baseAnime?.coverImage?.large
     return (
         <Pressable accessibilityRole="button" accessibilityState={{ selected: playing }} onPress={onPlay}

@@ -42,7 +42,7 @@ export function ActionRow({ icon: Icon, label, note, value, chevron, trailing, t
     disabled?: boolean
     onPress?: () => void
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const iconColor = tone === "attention" ? colors.smAccent : tone === "danger" ? colors.smDanger : colors.smTextMuted
     return (
         <Pressable
@@ -180,7 +180,7 @@ export function Choices({ label, chips, selected, onToggle, showCheck, quiet, on
     /** chips inside a raised block (the settings' `.pst-chips`): unchosen ones on the control surface */
     onRaised?: boolean
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     return (
         <View accessibilityRole="none" accessibilityLabel={label} className="flex-row flex-wrap gap-2">
             {chips.map(chip => {

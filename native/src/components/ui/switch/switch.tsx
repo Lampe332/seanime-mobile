@@ -2,17 +2,17 @@ import { cn } from "@/components/ui/core/styling"
 import { Muted, Text } from "@/components/ui/text/text"
 import { haptic } from "@/lib/feedback"
 import { DURATION, MOTION_EASE_OUT } from "@/lib/motion"
-import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import * as SwitchPrimitive from "@rn-primitives/switch"
 import React from "react"
 import { Pressable, View } from "react-native"
-import Animated, { Easing, interpolateColor, ReduceMotion, useAnimatedStyle, useDerivedValue, withTiming } from "react-native-reanimated"
+import Animated, { Easing, ReduceMotion, useAnimatedStyle, useDerivedValue, withTiming } from "react-native-reanimated"
 
 /*
  * `.ps-toggle` (phone-screen.css): a 48×28 track with a 20dp knob. Off: control surface with a hairline ring and a muted
  * knob; on: the accent track and a white knob 20dp to the right. The knob slides on the strong ease-out in 180 ms
- * (transform); the colours follow in the same time.
+ * (transform); the colours follow in the same time. Reanimated moves only position and opacity: the colours are plain styles
+ * of two layers that cross-fade, so a new palette shows at once.
  */
 const KNOB_TRAVEL = 20
 const TOGGLE_EASING = Easing.bezier(...MOTION_EASE_OUT)
@@ -26,20 +26,14 @@ export type SwitchProps = {
 }
 
 export function Switch({ checked, onCheckedChange, disabled, accessibilityLabel, className }: SwitchProps) {
-    const { smSurfaceControl, smAccentStrong, smAccentClear } = useThemeColors()
+    const colors = useThemeColors()
     const progress = useDerivedValue(() => withTiming(checked ? 1 : 0, {
         duration: DURATION.toggle,
         easing: TOGGLE_EASING,
         reduceMotion: ReduceMotion.System,
     }), [checked])
-    const trackStyle = useAnimatedStyle(() => ({
-        backgroundColor: interpolateColor(progress.get(), [0, 1], [smSurfaceControl, smAccentStrong]),
-        borderColor: interpolateColor(progress.get(), [0, 1], [colors.smLineStrong, smAccentClear]),
-    }))
-    const knobStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: progress.get() * KNOB_TRAVEL }],
-        backgroundColor: interpolateColor(progress.get(), [0, 1], [colors.smTextMuted, "#ffffff"]),
-    }))
+    const onStyle = useAnimatedStyle(() => ({ opacity: progress.get() }))
+    const knobStyle = useAnimatedStyle(() => ({ transform: [{ translateX: progress.get() * KNOB_TRAVEL }] }))
     return (
         <SwitchPrimitive.Root
             checked={checked}
@@ -52,11 +46,14 @@ export function Switch({ checked, onCheckedChange, disabled, accessibilityLabel,
             accessibilityLabel={accessibilityLabel}
             className={cn("h-7 w-12", disabled && "opacity-60", className)}
         >
-            <Animated.View style={trackStyle} className="h-7 w-12 rounded-full border">
-                <SwitchPrimitive.Thumb asChild>
-                    <Animated.View style={knobStyle} className="absolute left-[3px] top-[3px] h-5 w-5 rounded-full" />
-                </SwitchPrimitive.Thumb>
-            </Animated.View>
+            <View className="h-7 w-12 rounded-full border" style={{ backgroundColor: colors.smSurfaceControl, borderColor: colors.smLineStrong }} />
+            <Animated.View className="absolute inset-0 rounded-full border" style={[{ backgroundColor: colors.smAccentStrong, borderColor: colors.smAccentClear }, onStyle]} />
+            <SwitchPrimitive.Thumb asChild>
+                <Animated.View style={knobStyle} className="absolute left-1 top-1 h-5 w-5 rounded-full">
+                    <View className="absolute inset-0 rounded-full" style={{ backgroundColor: colors.smTextMuted }} />
+                    <Animated.View className="absolute inset-0 rounded-full bg-white" style={onStyle} />
+                </Animated.View>
+            </SwitchPrimitive.Thumb>
         </SwitchPrimitive.Root>
     )
 }

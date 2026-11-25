@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { CARD_SIZE_FACTORS, cardSizeFactor, coverColumns, gridLayout, gridRowWidth, listColumns, rowCardWidth, rowCoverWidth, scaleRowWidth } from "./cover-layout"
+import { CARD_SIZE_FACTORS, cardSizeFactor, coverColumns, fitRowWidth, gridLayout, gridRowWidth, listColumns, ROW_GAP, ROW_GUTTER, ROW_PEEK_MAX, ROW_PEEK_MIN, rowCardWidth, rowCoverWidth, scaleRowWidth } from "./cover-layout"
 
 const CARD_GAP = 12
 
@@ -103,6 +103,48 @@ describe("card size", () => {
             expect(scaleRowWidth(width, width, 1.3)).toBe(width)
             expect(scaleRowWidth(100, width, 9)).toBeLessThanOrEqual(Math.max(100, Math.round(width * 0.7)))
         }
+    })
+
+    describe("fitRowWidth (rows snap to whole cards plus a clear peek)", () => {
+        /** whole cards and the share of the next one a row `viewport` wide shows at `width` */
+        const view = (width: number, viewport: number) => {
+            const room = viewport - ROW_GUTTER
+            const whole = Math.floor(room / (width + ROW_GAP))
+            return { whole, peek: (room - whole * (width + ROW_GAP)) / width }
+        }
+        const sizes = [CARD_SIZE_FACTORS.small, CARD_SIZE_FACTORS.normal, CARD_SIZE_FACTORS.large]
+
+        it("shows at least one whole card and a peek between a quarter and a half at every size and screen", () => {
+            for (const viewport of [280, 320, 360, 393, 411, 480, 600, 800, 1024, 1280]) {
+                for (const factor of sizes) {
+                    for (const desired of [rowCardWidth(viewport, factor), rowCoverWidth(viewport, false, 1, factor), rowCoverWidth(viewport, false, 2, factor)]) {
+                        const { whole, peek } = view(fitRowWidth(desired, viewport), viewport)
+                        expect(whole).toBeGreaterThanOrEqual(1)
+                        expect(peek).toBeGreaterThanOrEqual(ROW_PEEK_MIN - 0.02)
+                        expect(peek).toBeLessThanOrEqual(ROW_PEEK_MAX + 0.02)
+                    }
+                }
+            }
+        })
+
+        it("keeps the normal size close to its old width and orders small < normal < large", () => {
+            // 411dp phone: normal 160 stays 160 (two cards and a quarter); large 1½ cards, small 3¼
+            expect(fitRowWidth(rowCardWidth(411), 411)).toBe(160)
+            expect(view(fitRowWidth(rowCardWidth(411, 1.3), 411), 411).whole).toBe(1)
+            expect(view(fitRowWidth(rowCardWidth(411, 0.7), 411), 411).whole).toBe(3)
+            for (const viewport of [320, 360, 393, 411]) {
+                const normal = rowCardWidth(viewport)
+                expect(Math.abs(fitRowWidth(normal, viewport) - normal)).toBeLessThanOrEqual(normal * 0.1)
+                const [small, mid, large] = sizes.map(factor => fitRowWidth(rowCardWidth(viewport, factor), viewport))
+                expect(small).toBeLessThan(mid)
+                expect(large).toBeGreaterThan(mid)
+            }
+        })
+
+        it("leaves an unmeasured row at the wanted width", () => {
+            expect(fitRowWidth(160, 0)).toBe(160)
+            expect(fitRowWidth(0, 411)).toBe(0)
+        })
     })
 
     it("reads an unknown stored size as normal", () => {

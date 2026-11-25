@@ -16,8 +16,8 @@ import { getImageUrl } from "@/lib/server/assets"
 import { isCustomSource } from "@/lib/server/utils"
 import { entryColumnGaps, entryColumnWidth, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { colors } from "@/lib/theme/tokens"
-import { useThemeColors } from "@/lib/theme/appearance"
-import { accentGlow, type GlowStop } from "@/lib/theme/palette"
+import { usePalette, useThemeColors } from "@/lib/theme/appearance"
+import { accentGlow, type GlowStop, type Palette } from "@/lib/theme/palette"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { AnilistMediaEntryButton } from "@/main/_features/media/_containers/anilist-media-entry-sheet"
 import { MEDIA_STATUS_LABELS, plainDescription } from "@/main/_features/media/_lib/media-labels"
@@ -103,7 +103,7 @@ import { useGetMyShows, useUpdateMyShows } from "@/api/hooks/other_sources.hooks
 
 /** `.mobile-shared-chip`: the anime comes from the Nakama host's library */
 function SharedByChip() {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const host = useNakamaStatus()?.hostConnectionStatus?.username
     return (
@@ -117,16 +117,17 @@ function SharedByChip() {
 
 
 /** The page tint (mobile-anime.css) from `top` dp down */
-function pageTint(top: number) {
+function pageTint(top: number, palette: Palette) {
     const stops: GlowStop[] = [[0.16, 0], [0.11, 56], [0.085, 172], [0.055, 312], [0.028, 453], [0.01, 581]]
-    return accentGlow(stops.map(([alpha, at]) => [alpha, at + top] as const), 696 + top)
+    return accentGlow(stops.map(([alpha, at]) => [alpha, at + top] as const), 696 + top, palette)
 }
 
 /** How often the scrolling page tells the long online list where it is (windowed-rows.tsx) */
 const SCROLL_SIGNAL_MS = 50
 
 export function AnimeEntryPage() {
-    useThemeColors()
+    const colors = useThemeColors()
+    const palette = usePalette()
     const t = useTr()
     const router = useRouter()
     const setRouteParams = useSetRouteParams()
@@ -317,7 +318,7 @@ export function AnimeEntryPage() {
             <Animated.ScrollView {...scrollProps} style={wide ? { minWidth: 0, flex: 1 } : { flex: 1 }}
                 // style objects, not classes: uniwind's className reaches react-native's own components only
                 contentContainerStyle={wide ? scrollPadding
-                    : { ...scrollPadding, width: "100%", alignSelf: "center", paddingHorizontal: rail ? 24 : 0, ...(!rail ? { backgroundImage: pageTint(0) } : null) }}>
+                    : { ...scrollPadding, width: "100%", alignSelf: "center", paddingHorizontal: rail ? 24 : 0, ...(!rail ? { backgroundImage: pageTint(0, palette) } : null) }}>
                 <View ref={setContent} collapsable={false} onLayout={e => onContentLayout(e.nativeEvent.layout.x, e.nativeEvent.layout.y)}>
                     {!wide && <View className={rail ? "pb-2" : "px-4 pb-2 pt-4"}>{header}</View>}
                     {/* "Episodes & playback" glides to it (its place in the wrapper + the wrapper's in the scroll content) */}

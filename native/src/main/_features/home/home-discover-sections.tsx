@@ -7,7 +7,6 @@ import { useTr } from "@/lib/app-language"
 import { getImageUrl } from "@/lib/server/assets"
 import { getSpoilerFreeAnimeImage, useEpisodeSpoilerState, useMissingEpisodeSpoilers } from "@/lib/theme/anime-spoilers"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
-import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-preview-phone"
@@ -194,10 +193,11 @@ function useCarouselAutoplay(places: number, scrollTo: (place: number) => void) 
 }
 
 /** The card shows its still dimmed over sm-surface */
-const UPCOMING_LOOK = { opacity: 0.5, get ground() { return colors.smSurface } }
+const UPCOMING_OPACITY = 0.5
 
 const UpcomingCard = React.memo(function UpcomingCard({ item, width, spoilerActive }: { item: Anime_UpcomingEpisode, width: number, spoilerActive: boolean }) {
-    useThemeColors()
+    const colors = useThemeColors()
+    const look = React.useMemo(() => ({ opacity: UPCOMING_OPACITY, ground: colors.smSurface }), [colors])
     const t = useTr()
     const fade = useImageFade()
     const ts = useThemeSettings()
@@ -212,14 +212,14 @@ const UpcomingCard = React.memo(function UpcomingCard({ item, width, spoilerActi
     // the still narrows into the page's cover and cross-fades into it (cover-flight.tsx); a blurred one does not fly
     const shownUri = shown ? getImageUrl(shown) : ""
     const { coverRef, onLoad, hidden, open } = useCoverFlightSource(item.mediaId, veiled ? "" : shownUri,
-        getImageUrl(anime?.coverImage?.extraLarge || anime?.coverImage?.large || ""), UPCOMING_LOOK)
+        getImageUrl(anime?.coverImage?.extraLarge || anime?.coverImage?.large || ""), look)
     return (
         <Pressable accessibilityRole="link" accessibilityLabel={`${title}, ${t(`Episode ${item.episodeNumber}`, `Folge ${item.episodeNumber}`)}, ${when}`}
             onPress={() => open(`/entry?id=${item.mediaId}`)} style={{ width }} className="gap-2 active:opacity-85">
             <View ref={coverRef} collapsable={false} className="aspect-[2/1] w-full rounded-xl bg-sm-surface">
                 {!!shownUri && <Image source={shownUri} contentFit="cover" blurRadius={veiled ? 24 : 0} recyclingKey={String(item.mediaId)}
                     cachePolicy="memory-disk" transition={fade} onLoad={onLoad}
-                    style={{ position: "absolute", inset: 0, borderRadius: 12, opacity: hidden ? 0 : UPCOMING_LOOK.opacity }} accessibilityIgnoresInvertColors />}
+                    style={{ position: "absolute", inset: 0, borderRadius: 12, opacity: hidden ? 0 : look.opacity }} accessibilityIgnoresInvertColors />}
             </View>
             <View>
                 <Text numberOfLines={1} className="w-[80%] text-base font-semibold">{title}</Text>

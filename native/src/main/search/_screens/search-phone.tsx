@@ -423,7 +423,7 @@ function useSearchResults(type: SearchType, variables: ReturnType<typeof searchV
  * them all at its end. Unlike the chosen sort they sit on the raised surface with the accent only on their ✕.
  */
 function ActiveFilters({ t, chips, onRemove, onClear }: { t: Translate, chips: SearchFilterChip[], onRemove: (id: string) => void, onClear: () => void }) {
-    useThemeColors()
+    const colors = useThemeColors()
     return (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={t("Active filters", "Aktive Filter")}
             className="-mx-4 grow-0" contentContainerClassName="items-center gap-2 px-4">
@@ -507,7 +507,7 @@ function ResultCard({ media, type, width, blurAdult, listData, local, sharedPath
     sharedPath?: string
     unseen: number
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const facts = resultCardFacts(t, type, media, listData, { unseen, local })
     const total = type === "anime" ? (media as AL_BaseAnime).episodes : (media as AL_BaseManga).chapters

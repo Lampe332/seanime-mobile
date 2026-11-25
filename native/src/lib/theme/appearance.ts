@@ -12,6 +12,7 @@ import {
     setCurrentPalette,
     subscribePalette,
 } from "./palette"
+import { themeColorsOf } from "./tokens"
 
 /**
  * Accent colour (settings → Appearance), a matter of taste: carried by the account's sync. AMOLED black depends on the
@@ -54,11 +55,12 @@ export function useAppearanceSync() {
 }
 
 /**
- * For components that pass a themed colour of `colors` (tokens.ts) as a prop or style: renders them again when the
- * palette changes. Returns the current script colours.
+ * Every script colour, for props and styles that take a colour instead of a class: `const colors = useThemeColors()`.
+ * The component renders again when the palette changes and gets a new object, so nothing that depends on a colour can
+ * be kept from an earlier render (theme-subscription.test.ts holds every file to it).
  */
 export function useThemeColors() {
-    return usePalette().js
+    return themeColorsOf(usePalette())
 }
 
 /** The whole current palette (for accentGlow, navHighlight … of palette.ts), rendering again when it changes */

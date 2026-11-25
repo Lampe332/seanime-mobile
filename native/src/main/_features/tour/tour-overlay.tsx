@@ -2,7 +2,6 @@ import { cn } from "@/components/ui/core/styling"
 import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { PHONE_EASE, POP_EASE, TOUR_FINALE, TOUR_MOTION, type TourMotion, tourRingDelayMs, tourSparks, tourTravelMs } from "@/lib/motion"
-import { colors } from "@/lib/theme/tokens"
 import { usePalette, useThemeColors } from "@/lib/theme/appearance"
 import { accentShiftRgba, type Palette } from "@/lib/theme/palette"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
@@ -48,7 +47,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path)
 const AnimatedRect = Animated.createAnimatedComponent(SvgRect)
 
 export function TourOverlay() {
-    useThemeColors()
+    const colors = useThemeColors()
     const state = useTourState()
     const { active, steps, currentIndex, status, asModal } = state
     const step = active ? steps[currentIndex] : undefined
@@ -463,6 +462,7 @@ const SPARK = 6
  * badge, the drawn check and no sparks are simply there.
  */
 function TourHero({ kind, animate, isTablet, delay }: { kind: NonNullable<TourStep["hero"]>, animate: boolean, isTablet: boolean, delay: number }) {
+    const colors = useThemeColors()
     const f = isTablet ? TOUR_FINALE.tablet : TOUR_FINALE.phone
     const celebrate = kind === "celebrate"
     const drawn = useSharedValue(animate && celebrate ? CHECK_LENGTH : 0)

@@ -51,12 +51,115 @@ export const ACCENT_PRESETS = {
     },
 } satisfies Record<string, AccentPreset>
 
-export type AccentId = keyof typeof ACCENT_PRESETS
-export const ACCENT_IDS = Object.keys(ACCENT_PRESETS) as AccentId[]
+export type PresetId = keyof typeof ACCENT_PRESETS
+/** A preset, or the user's own colour as "custom:#rrggbb" (the same stored key, so it syncs like a preset) */
+export type AccentId = PresetId | `custom:#${string}`
+export const ACCENT_IDS = Object.keys(ACCENT_PRESETS) as PresetId[]
 export const DEFAULT_ACCENT: AccentId = "violet"
 
+const CUSTOM = /^custom:(#[0-9a-f]{6})$/i
+
+export function isPresetId(value: unknown): value is PresetId {
+    return typeof value === "string" && Object.hasOwn(ACCENT_PRESETS, value)
+}
+
 export function isAccentId(value: unknown): value is AccentId {
-    return typeof value === "string" && value in ACCENT_PRESETS
+    return isPresetId(value) || (typeof value === "string" && CUSTOM.test(value))
+}
+
+/** "#rrggbb" (also "rrggbb" and the short "#rgb") as a colour, or null when it is not one */
+export function parseHexColor(text: string): RGB | null {
+    const m = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec(text.trim())
+    if (!m) return null
+    const h = m[1].length === 3 ? m[1].replace(/./g, "$&$&") : m[1]
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
+}
+
+export const toHex = (c: RGB) => "#" + c.map(v => v.toString(16).padStart(2, "0")).join("")
+
+/** The accent id of an own colour */
+export function customAccent(color: RGB): AccentId {
+    return `custom:${toHex(color)}` as AccentId
+}
+
+/** The own colour of an accent id, or null for a preset */
+export function customColor(accent: unknown): RGB | null {
+    const m = typeof accent === "string" ? CUSTOM.exec(accent) : null
+    return m ? parseHexColor(m[1]) : null
+}
+
+/** Hue in degrees, saturation and value 0–1 */
+export function rgbToHsv([r, g, b]: RGB): [number, number, number] {
+    const max = Math.max(r, g, b), min = Math.min(r, g, b)
+    return [max === min ? 0 : toHsl([r, g, b])[0], max === 0 ? 0 : (max - min) / max, max / 255]
+}
+
+export function hsvToRgb(h: number, s: number, v: number): RGB {
+    const f = (n: number) => {
+        const k = (n + h / 60) % 6
+        return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1))))
+    }
+    return [f(5), f(3), f(1)]
+}
+
+/** WCAG 2 relative luminance */
+export function luminance(c: RGB): number {
+    const [R, G, B] = c.map(v => {
+        const x = v / 255
+        return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4
+    })
+    return 0.2126 * R + 0.7152 * G + 0.0722 * B
+}
+
+/** A hue at a lightness (0 black, 1 white), as vivid as `chroma` says (0 grey, 1 the full colour) */
+function tone(hue: number, chroma: number, lightness: number): RGB {
+    const grey = lightness * 255
+    const vivid = fromHsl(hue, 1, lightness)
+    return [0, 1, 2].map(i => Math.round(grey + (vivid[i] - grey) * chroma)) as [number, number, number]
+}
+
+/** The tone of a hue that has the luminance `target` */
+function toneAt(hue: number, chroma: number, target: number): RGB {
+    let lo = 0, hi = 1
+    for (let i = 0; i < 24; i++) {
+        const mid = (lo + hi) / 2
+        if (luminance(tone(hue, chroma, mid)) < target) lo = mid
+        else hi = mid
+    }
+    return tone(hue, chroma, (lo + hi) / 2)
+}
+
+const DARK_STEPS = [500, 600, 700, 800, 900, 950] as const
+
+/**
+ * A whole accent from any colour. Its hue and saturation are kept; the brightness of each step is set by what the step
+ * has to carry, so every own colour reads like a preset: the fills under white text (500 and darker) get exactly the
+ * luminance of violet's, the light steps (accent text and icons on the dark surfaces) violet's lightness and never less
+ * than its luminance, and the strong accent stays below the brightest preset so the white switch knob still shows.
+ */
+function customPreset(color: RGB): AccentPreset & { chroma: number } {
+    const [hue, chroma] = rgbToHsv(color)
+    const violet = ACCENT_PRESETS.violet
+    const light = (reference: RGB, cap?: number) => {
+        const natural = tone(hue, chroma, toHsl(reference)[2])
+        const y = luminance(natural)
+        if (y < luminance(reference)) return toneAt(hue, chroma, luminance(reference))
+        return cap !== undefined && y > cap ? toneAt(hue, chroma, cap) : natural
+    }
+    const steps = {} as Record<Step, RGB>
+    for (const step of [50, 100, 200, 300] as const) steps[step] = light(violet.ramp[step])
+    steps[400] = light(violet.ramp[400], luminance(ACCENT_PRESETS.green.ramp[400]))
+    for (const step of DARK_STEPS) steps[step] = toneAt(hue, chroma, luminance(violet.ramp[step]))
+    return {
+        ramp: steps,
+        nav: { active: light(violet.nav.active), label: light(violet.nav.label), tint: tone(hue, chroma, 0.6) },
+        chroma,
+    }
+}
+
+function resolveAccent(accent: AccentId): AccentPreset & { chroma: number } {
+    if (isPresetId(accent)) return { ...ACCENT_PRESETS[accent], chroma: 1 }
+    return customPreset(customColor(accent) ?? ACCENT_PRESETS.violet.ramp[400])
 }
 
 /** Page and surfaces: the app's greys, or true black for OLED screens with each surface a step darker but still apart */
@@ -71,14 +174,14 @@ const SURFACES = {
     },
 } satisfies Record<string, Record<string, RGB>>
 
-const hex = (c: RGB) => "#" + c.map(v => v.toString(16).padStart(2, "0")).join("")
+const hex = toHex
 const rgb = (c: RGB) => `rgb(${c.join(", ")})`
 const rgba = (c: RGB, a: number) => `rgba(${c.join(", ")}, ${a})`
 /** For uniwind: culori reads #rrggbbaa (createVarGetter turns every colour into hex anyway) */
 const hexA = (c: RGB, a: number) => hex(c) + Math.round(a * 255).toString(16).padStart(2, "0")
 
 export function buildPalette(accent: AccentId, amoled: boolean) {
-    const { ramp: r, nav } = ACCENT_PRESETS[accent]
+    const { ramp: r, nav, chroma } = resolveAccent(accent)
     const s = amoled ? SURFACES.amoled : SURFACES.standard
     const css: Record<string, string> = {
         "--color-brand": hex(r[500]),
@@ -126,7 +229,7 @@ export function buildPalette(accent: AccentId, amoled: boolean) {
         navActiveBg: rgba(nav.tint, 0.18),
         menuBorder: rgba(nav.tint, 0.22),
     }
-    return { css, js, swatch: hex(r[400]), surfaces: s, ramp: r, nav, amoled }
+    return { css, js, swatch: hex(r[400]), surfaces: s, ramp: r, nav, amoled, chroma }
 }
 
 export type Palette = ReturnType<typeof buildPalette>
@@ -134,14 +237,7 @@ export type PaletteColors = Palette["js"]
 
 /** WCAG 2 contrast ratio of two opaque colours */
 export function contrastRatio(a: RGB, b: RGB): number {
-    const lum = (c: RGB) => {
-        const [R, G, B] = c.map(v => {
-            const x = v / 255
-            return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4
-        })
-        return 0.2126 * R + 0.7152 * G + 0.0722 * B
-    }
-    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x)
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
     return (hi + 0.05) / (lo + 0.05)
 }
 
@@ -173,7 +269,7 @@ export function paletteVersion() {
 const tight = (c: RGB, a: number | string) => `rgba(${c.join(",")},${a})`
 
 /** The accent fill (500) at an alpha */
-export function accentRgba(alpha: number, palette: Palette = current) {
+export function accentRgba(alpha: number, palette: Palette) {
     return tight(palette.ramp[500], alpha)
 }
 
@@ -184,7 +280,7 @@ export type GlowStop = readonly [alpha: number, at: number]
  * The accent glow down from the top of a page; `clearAt` closes it with a clear stop. AMOLED black keeps the page true
  * black: no glow (undefined, so the style property drops out).
  */
-export function accentGlow(stops: readonly GlowStop[], clearAt?: number, palette: Palette = current): string | undefined {
+export function accentGlow(stops: readonly GlowStop[], clearAt: number | undefined, palette: Palette): string | undefined {
     if (palette.amoled) return undefined
     const parts = stops.map(([alpha, at]) => `${accentRgba(alpha, palette)} ${at}px`)
     if (clearAt !== undefined) parts.push(`rgba(0,0,0,0) ${clearAt}px`)
@@ -192,7 +288,7 @@ export function accentGlow(stops: readonly GlowStop[], clearAt?: number, palette
 }
 
 /** The page ground where the glow has `alpha`: background and accent mixed (just the background with AMOLED black) */
-export function glowGround(alpha: number, palette: Palette = current): RGB {
+export function glowGround(alpha: number, palette: Palette): RGB {
     const bg = palette.surfaces.background
     if (palette.amoled) return bg
     const a = palette.ramp[500]
@@ -200,7 +296,7 @@ export function glowGround(alpha: number, palette: Palette = current): RGB {
 }
 
 /** A fade from clear to the ground under the glow at `alpha` (a banner that ends in the page) */
-export function glowGroundFade(alpha: number, palette: Palette = current) {
+export function glowGroundFade(alpha: number, palette: Palette) {
     const g = glowGround(alpha, palette)
     return `linear-gradient(180deg, ${tight(g, 0)} 55%, rgb(${g.join(",")}) 100%)`
 }
@@ -229,28 +325,28 @@ function fromHsl(h: number, s: number, l: number): RGB {
 const VIOLET_HUE = toHsl(ACCENT_PRESETS.violet.ramp[500])[0]
 
 /**
- * A colour drawn for the violet accent, turned to the current accent's hue (its saturation and lightness kept). Violet
- * returns it unchanged.
+ * A colour drawn for the violet accent, turned to the current accent's hue (its lightness kept, its saturation scaled by
+ * how vivid the accent is: an own grey accent gives grey). Violet returns it unchanged.
  */
-export function accentShift(c: RGB, palette: Palette = current): RGB {
+export function accentShift(c: RGB, palette: Palette): RGB {
     const delta = toHsl(palette.ramp[500])[0] - VIOLET_HUE
-    if (Math.abs(delta) < 1e-9) return c
+    if (Math.abs(delta) < 1e-9 && palette.chroma === 1) return c
     const [h, s, l] = toHsl(c)
-    return fromHsl((h + delta + 360) % 360, s, l)
+    return fromHsl((h + delta + 360) % 360, s * palette.chroma, l)
 }
 
 /** `accentShift` as #rrggbb (text colours) */
-export function accentShiftHex(c: RGB, palette: Palette = current) {
+export function accentShiftHex(c: RGB, palette: Palette) {
     return hex(accentShift(c, palette))
 }
 
 /** `accentShift` as a compact rgba() (borders, rings) */
-export function accentShiftRgba(c: RGB, alpha: number, palette: Palette = current) {
+export function accentShiftRgba(c: RGB, alpha: number, palette: Palette) {
     return tight(accentShift(c, palette), alpha)
 }
 
 /** The accent text of the ramp (300) as #rrggbb, for surfaces that take no rgb() (the home screen widget) */
-export function accentTextHex(palette: Palette = current) {
+export function accentTextHex(palette: Palette) {
     return hex(palette.ramp[300])
 }
 
@@ -258,7 +354,7 @@ export function accentTextHex(palette: Palette = current) {
  * The "More" menu panel: a dark accent tint at the top that runs into near-black. AMOLED black keeps it neutral (raised
  * surface into black).
  */
-export function menuPanelBackground(palette: Palette = current) {
+export function menuPanelBackground(palette: Palette) {
     if (palette.amoled) {
         const s = palette.surfaces
         return `linear-gradient(180deg, ${tight(s.smSurface, 0.99)}, ${tight(s.background, 0.99)})`
@@ -267,7 +363,7 @@ export function menuPanelBackground(palette: Palette = current) {
 }
 
 /** The menu's current row: the accent wash of the row, the gradient and glow of its icon tile, the tile's border */
-export function menuRowHighlight(palette: Palette = current) {
+export function menuRowHighlight(palette: Palette) {
     const { ramp: r, nav } = palette
     return {
         row: `linear-gradient(90deg, ${tight(r[500], "0.30")}, ${tight(nav.tint, "0.06")})`,

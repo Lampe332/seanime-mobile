@@ -73,13 +73,13 @@ function useUpdateState() {
 type UpdateState = ReturnType<typeof useUpdateState>
 
 function Spinner() {
-    useThemeColors()
+    const colors = useThemeColors()
     return <ActivityIndicator size="small" color={colors.smAccent} />
 }
 
 /** `.mobile-update`: the full panel (in the Menu while something is to do, and at the top of the dialog) */
 function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const { t, state, version, check, busy } = s
     const complete = state.status === "installed"
     const failed = state.status === "failed" || state.status === "error"
@@ -153,7 +153,7 @@ function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) 
 
 /** The Menu's top: one quiet line while nothing is to do, else the full panel (`#__seanime_update_menu_host`) */
 export function MobileUpdatePanel() {
-    useThemeColors()
+    const colors = useThemeColors()
     const s = useUpdateState()
     const { t, state, version, check, busy } = s
     const quiet = !version && state.status !== "installed" && !installReady(state) && state.status !== "failed" && state.status !== "error" && !busy && !updateHint(state, t)

@@ -99,7 +99,7 @@ const onlineEpisodeKey = (episode: Onlinestream_Episode) => `${episode.number}-$
 const ONLINE_ROW_ESTIMATE = 80
 
 export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry, bottomSection?: React.ReactNode }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const t = useTr()
     const router = useRouter()
     const media = entry.media!

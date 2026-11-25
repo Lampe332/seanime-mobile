@@ -532,7 +532,7 @@ export function ExtensionPreferencesSheet({ t, open, onOpenChange, extension, us
     extension: Extension_Extension
     userConfigError?: Extension_InvalidExtension
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const { data, isLoading, isError } = useGetExtensionUserConfig(extension.id)
     const { mutate: save, isPending } = useSaveExtensionUserConfig()
     // Per extension: the form starts from what this extension saved, never from another one's typed values
@@ -607,7 +607,7 @@ export function ExtensionCodeSheet({ t, open, onOpenChange, extension, readOnly,
     readOnly: boolean
     diff?: string
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const { data: payload, isLoading } = useGetExtensionPayload(extension.id)
     const { mutate: updateCode, isPending } = useUpdateExtensionCode()
     const [code, setCode] = React.useState(extension.payload ?? "")

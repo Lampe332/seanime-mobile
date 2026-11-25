@@ -8,6 +8,7 @@ import {
     filterByGenres,
     genreCounts,
     hasSectionGapBefore,
+    myShowsPlace,
     homeBannerOpacity,
     homeBannerPosition,
     isDefaultHome,
@@ -252,5 +253,24 @@ describe("Currently watching genre filter", () => {
         expect(filterByGenres(entries, ["Action", "Comedy"]).length).toBe(1)
         expect(filterByGenres(entries, [])).toBe(entries)
         expect(filterByGenres(undefined, ["Action"])).toEqual([])
+    })
+})
+
+describe("My shows on Home", () => {
+    const item = (id: string, type: string, options?: Record<string, unknown>) => ({ id, type, schemaVersion: 1, options }) as Models_HomeItem
+
+    it("sits after Currently watching on the default Home, below Continue watching", () => {
+        const items = [...DEFAULT_HOME_ITEMS]
+        const place = myShowsPlace(items)
+        expect(place).toEqual({ after: items.find(i => i.type === "anime-library")!.id, inLibrary: true })
+        expect(items.findIndex(i => i.type === "anime-continue-watching")).toBeLessThan(items.findIndex(i => i.id === place!.after))
+    })
+
+    it("keeps a custom order and only picks the library section that shows Currently watching", () => {
+        const items = [item("a", "anime-continue-watching"), item("b", "anime-library", { statuses: ["PLANNING"] }), item("c", "anime-library", { statuses: ["CURRENT"] })]
+        expect(myShowsPlace(items)).toEqual({ after: "c", inLibrary: true })
+        expect(myShowsPlace([item("x", "anime-library")])).toEqual({ after: "x", inLibrary: true })
+        expect(myShowsPlace(items.slice(0, 2))).toEqual({ after: "a", inLibrary: false })
+        expect(myShowsPlace([item("d", "discover-header")])).toBeNull()
     })
 })

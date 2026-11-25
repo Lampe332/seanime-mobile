@@ -41,7 +41,7 @@ export function Select({ value, onValueChange, options, placeholder, disabled, c
     valueClassName?: string
     accessibilityLabel?: string
 }) {
-    useThemeColors()
+    const colors = useThemeColors()
     const insets = useSafeAreaInsets()
     const { height } = useWindowDimensions()
     const [triggerWidth, setTriggerWidth] = React.useState(0)
