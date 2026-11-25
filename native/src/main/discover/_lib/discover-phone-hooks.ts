@@ -1,8 +1,21 @@
 import { buildSeaQuery, useServerQuery } from "@/api/client/requests"
 import { AnilistListAnime_Variables, AnilistListManga_Variables, AnilistListRecentAiringAnime_Variables } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
-import { AL_BaseAnime, AL_ListAnime, AL_ListManga, AL_ListRecentAnime, Anime_EntryLibraryData, Anime_EntryListData, Manga_EntryListData } from "@/api/generated/types"
+import {
+    AL_AnimeDetailsById_Media,
+    AL_BaseAnime,
+    AL_ListAnime,
+    AL_ListManga,
+    AL_ListRecentAnime,
+    Anime_EntryLibraryData,
+    Anime_EntryListData,
+    Manga_EntryListData,
+} from "@/api/generated/types"
+import { useGetRawAnimeCollection } from "@/api/hooks/anilist.hooks"
+import { getEntryPreloadStaleTime } from "@/lib/entry-preloader"
 import { getAnimeLibraryEntryAtom } from "@/main/_atoms/anime-library-collection.atoms"
+import { useServerStatus } from "@/main/_hooks/use-server-status"
+import { becauseRows, type BecauseRow, type BecauseSource, listedIds, pickSources } from "@/main/discover/_lib/because-you-watched"
 import { getMangaCollectionEntryAtom } from "@/main/_atoms/manga-collection.atoms"
 import { serverAuthTokenAtom } from "@/main/_atoms/server-status.atoms"
 import { useAnilistUserAnimeListData } from "@/main/_hooks/anilist-collection-loader"
@@ -71,6 +84,51 @@ export function usePhoneMissedSequels(enabled: boolean) {
         muteError: true,
         staleTime: ROW_STALE_TIME,
     })
+}
+
+/**
+ * An anime's details as the entry page asks for them (same endpoint and key, so both share the cache and the core keeps
+ * them for offline), without the error toast: a "Because you watched" row that fails just stays away.
+ */
+function useSourceDetails(id: number | undefined) {
+    return useServerQuery<AL_AnimeDetailsById_Media>({
+        endpoint: API_ENDPOINTS.ANILIST.GetAnilistAnimeDetails.endpoint.replace("{id}", String(id)),
+        method: API_ENDPOINTS.ANILIST.GetAnilistAnimeDetails.methods[0],
+        queryKey: [API_ENDPOINTS.ANILIST.GetAnilistAnimeDetails.key, String(id)],
+        enabled: !!id,
+        muteError: true,
+        staleTime: getEntryPreloadStaleTime("anime", id),
+    })
+}
+
+type DetailsQuery = { data: AL_AnimeDetailsById_Media | null | undefined, isError: boolean, isFetching: boolean, isPaused: boolean }
+
+/** AniList's recommendations of one source: undefined while they load, null when the request failed or waits offline */
+function useRecommendations(query: DetailsQuery): BecauseSource["recommendations"] {
+    const { data } = query
+    const gone = data === undefined && ((query.isError && !query.isFetching) || query.isPaused)
+    return React.useMemo(() => {
+        if (data === undefined) return gone ? null : undefined
+        return (data?.recommendations?.edges ?? []).map(edge => edge?.node?.mediaRecommendation as AL_BaseAnime | undefined)
+    }, [data, gone])
+}
+
+/**
+ * The "Because you watched" rows (because-you-watched.ts): up to two anime the user finished lately, from the lists
+ * Discover reads anyway, and the recommendations of each, one details request a source.
+ */
+export function useBecauseYouWatched(): BecauseRow[] {
+    const lists = useGetRawAnimeCollection().data?.MediaListCollection?.lists
+    const allowAdult = !!useServerStatus()?.settings?.anilist?.enableAdultContent
+    const sources = React.useMemo(() => pickSources(lists, allowAdult), [lists, allowAdult])
+    const listed = React.useMemo(() => listedIds(lists), [lists])
+    const firstRecommendations = useRecommendations(useSourceDetails(sources[0]?.id))
+    const secondRecommendations = useRecommendations(useSourceDetails(sources[1]?.id))
+    return React.useMemo(() => becauseRows(
+        sources.map((source, index) => ({ source, recommendations: index === 0 ? firstRecommendations : secondRecommendations })),
+        listed,
+        allowAdult,
+    ), [sources, listed, allowAdult, firstRecommendations, secondRecommendations])
 }
 
 export type DiscoverListData = Anime_EntryListData | Manga_EntryListData

@@ -24,7 +24,7 @@ import { useSwapStyle } from "@/components/ui/core/swap"
 import { useImageFade } from "@/components/ui/core/image-fade"
 import { cn } from "@/components/ui/core/styling"
 import { Tabs } from "@/components/ui/tabs/tabs"
-import { Text } from "@/components/ui/text/text"
+import { SectionTitle, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
 import { anilist_getCurrentEpisodes } from "@/lib/helpers/media"
 import { DISTANCE, swapTiming } from "@/lib/motion"
@@ -54,7 +54,9 @@ import {
     seeAllLinks,
     withoutFeatured,
 } from "@/main/discover/_lib/discover-phone"
+import { type BecauseRow, sourceTitle } from "@/main/discover/_lib/because-you-watched"
 import {
+    useBecauseYouWatched,
     useDiscoverEntry,
     useDiscoverSchedule,
     usePhoneListAnime,
@@ -262,6 +264,7 @@ const AnimeTab = React.memo(function AnimeTab() {
         <DiscoverRow title={t("Trending now", "Gerade angesagt")} qualifier={qualifier} seeAll={seeAllLinks.trending(genre)} row={{ ...trending, items: rest }}
             genre={genre} onClearGenre={clearGenre} empty={t("Nothing is trending right now.", "Gerade ist nichts angesagt.")}
             renderCard={(media, width) => <DiscoverCover media={media} type="anime" width={width} />} />
+        <BecauseYouWatchedBlocks />
         <SeasonBlock season={seasons.current} genre={genre} onClearGenre={clearGenre}
             title={seasonTitle(t, "top", seasons.current)} />
         <SeasonBlock season={seasons.previous} genre={genre} onClearGenre={clearGenre}
@@ -331,6 +334,36 @@ function MissedBlock() {
     return <DiscoverRow title={t("You might have missed", "Vielleicht verpasst")} row={row} empty=""
         note={t("Sequels to anime on your list that you have not added yet.", "Fortsetzungen von Anime auf deiner Liste, die dort noch fehlen.")}
         renderCard={(media, width) => <DiscoverCover media={media} type="anime" width={width} />} />
+}
+
+/**
+ * "Because you watched {title}": AniList's recommendations to up to two anime the user finished lately, without titles on
+ * their lists (because-you-watched.ts). Bones only once a source is known; a row that fails or ends up with too few
+ * titles stays away without a notice.
+ */
+function BecauseYouWatchedBlocks() {
+    const rows = useBecauseYouWatched()
+    return <>{rows.map(row => <BecauseYouWatchedRow key={row.source.id} row={row} />)}</>
+}
+
+function BecauseYouWatchedRow({ row }: { row: BecauseRow }) {
+    const t = useTr()
+    const coverWidth = useRowCoverWidth()
+    const title = t("Because you watched {0}", "Weil du {0} geschaut hast").replace("{0}", () => sourceTitle(row.source))
+    // PhoneSection's head, with the title kept to one line: some anime titles are a sentence long
+    return (
+        <View className="gap-3">
+            <View className="min-h-9 flex-row items-center">
+                <SectionTitle className="min-w-0 shrink" numberOfLines={1} ellipsizeMode="tail">{title}</SectionTitle>
+            </View>
+            {!row.items ? (
+                <CoverRowBones label={`${title}: ${t("loading", "wird geladen")}`} />
+            ) : (
+                <MediaCardRow data={row.items} keyOf={media => String(media.id)} renderCard={(media, width) => <DiscoverCover media={media} type="anime" width={width} />}
+                    desired={coverWidth} bottom={4} />
+            )}
+        </View>
+    )
 }
 
 const MangaTab = React.memo(function MangaTab() {

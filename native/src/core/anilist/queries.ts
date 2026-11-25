@@ -56,7 +56,7 @@ export const ANIME_DETAILS = `query AnimeDetails($id: Int) {
         staff(sort: [RELEVANCE]) { edges { role node { name { full } id } } }
         tags { name rank isMediaSpoiler isGeneralSpoiler }
         rankings { context type rank year format allTime season }
-        recommendations(page: 1, perPage: 8, sort: [RATING_DESC]) {
+        recommendations(page: 1, perPage: 20, sort: [RATING_DESC]) {
             edges { node { mediaRecommendation { id idMal siteUrl status(version: 2) isAdult season type format meanScore description
                 episodes ${trailer} startDate ${date} ${cover} bannerImage ${title} } } }
         }
