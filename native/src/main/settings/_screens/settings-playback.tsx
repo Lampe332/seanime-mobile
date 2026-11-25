@@ -22,7 +22,7 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
 
     return <>
         <SettingsGroup title={t("Files on this device", "Dateien auf diesem Gerät")}
-            note={t("How episodes from your local library play.", "Wie Folgen aus deiner lokalen Bibliothek abspielen.")}>
+            note={t("How episodes from your local library play. Only on this device.", "Wie Folgen aus deiner lokalen Bibliothek abspielen. Nur auf diesem Gerät.")}>
             <SelectRow label={t("Player for files", "Player für Dateien")}
                 value={external ? PlaybackDownloadedMedia.ExternalPlayerLink : PlaybackDownloadedMedia.Default}
                 defaultValue={PlaybackDownloadedMedia.Default}
@@ -86,8 +86,8 @@ function SeekGroup({ t }: { t: Translate }) {
     const [forward, setForward] = useAtom(player_seekForwardAtom)
     const options = SEEK_STEP_OPTIONS.map(seconds => ({ value: String(seconds), label: `${seconds} s` }))
     return <SettingsGroup title={t("Seeking", "Spulen")}
-        note={t("For the buttons next to Play and for double taps in the player. Only on this device.",
-            "Für die Tasten neben Abspielen und für Doppeltipps im Player. Nur auf diesem Gerät.")}>
+        note={t("For the buttons next to Play and for double taps in the player.",
+            "Für die Tasten neben Abspielen und für Doppeltipps im Player.")}>
         <SelectRow label={t("Back", "Zurück")} value={String(seekStep(back, SEEK_BACK_SECONDS))} options={options}
             note={t("How far one tap jumps back.", "Wie weit ein Tipp zurückspringt.")}
             defaultValue={String(SEEK_BACK_SECONDS)} onChange={value => setBack(Number(value))} />
