@@ -5,10 +5,10 @@ import React from "react"
 
 /*
  * The user's own profile picture (Settings › Account): shown instead of the AniList avatar in the More panel's head and on
- * the account page. It only changes what the app shows; nothing goes to AniList. The photo is a copy in this device's
- * documents folder, the store keeps its name. It stays on this device (a device key in app-backup-keys.ts): the picker
- * cannot shrink the photo, so it would be far too large for every sync package, and a name of a file another device does
- * not have would only hide that device's own picture.
+ * the account page. It only changes what the app shows; nothing goes to AniList. The photo is a shrunk copy in this
+ * device's documents folder, the store keeps its name. The name stays on this device (a device key in
+ * app-backup-keys.ts): a name of a file another device does not have would only hide that device's own picture. The
+ * picture itself reaches the account's other devices as an entry of its own (profile-picture-sync.ts).
  */
 
 export const PROFILE_PICTURE_KEY = "seanime-mobile-profile-picture"

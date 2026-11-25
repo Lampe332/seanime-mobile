@@ -18,8 +18,9 @@ const DEVICE_KEYS = [
     /^seanime-mobile-legacy-preferences-copied$/,
     /^seanime-mobile-anilist-user$/,
     /^seanime-mobile-language-android$/,
-    // the own profile picture: a file in this device's documents folder (lib/account/profile-picture.ts)
-    /^seanime-mobile-profile-picture$/,
+    // the own profile picture: a file in this device's documents folder and when it was chosen (lib/account/profile-picture.ts).
+    // Its synced entry ("…-synced", profile-picture-sync.ts) is not named here: it goes into sync packages and backups.
+    /^seanime-mobile-profile-picture(-at)?$/,
     // the app lock asks this device's own lock (lib/app-lock): a restore or a sync must not turn it on elsewhere
     /^seanime-mobile-app-lock$/,
 ]

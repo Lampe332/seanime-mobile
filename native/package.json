@@ -35,6 +35,7 @@
     "expo-font": "~58.0.11",
     "expo-haptics": "~58.0.7",
     "expo-image": "~58.0.18",
+    "expo-image-manipulator": "~58.0.16",
     "expo-image-picker": "~58.0.10",
     "expo-intent-launcher": "~58.0.3",
     "expo-keep-awake": "~58.0.3",
@@ -126,7 +127,9 @@
   "expo": {
     "autolinking": {
       "android": {
-        "buildFromSource": ["expo-image"]
+        "buildFromSource": [
+          "expo-image"
+        ]
       }
     }
   }

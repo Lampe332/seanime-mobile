@@ -16,6 +16,7 @@ import { accountSodium } from "@/lib/account-sodium"
 import { accountApiBase, checkAccountUrl } from "@/lib/account/account-config"
 import { waitingRequests } from "@/lib/account/account-view"
 import { keystoreSignerStore } from "@/lib/account/keystore-signer"
+import { takeSyncedProfilePicture } from "@/lib/account/profile-picture-photo"
 import { type AppStateName, type SyncClock, createSyncClock } from "@/lib/account/sync-clock"
 import { isSyncDeviceKey } from "@/lib/app-backup-keys"
 import { appPreferences, writeAppPreferences, writeSafetyBackup } from "@/lib/app-backup"
@@ -177,6 +178,8 @@ export async function runSync(trigger: SyncTrigger): Promise<SyncResult | null> 
             await session.dropSession()
         }
         if (result.state === "updated" || result.state === "merged") afterDataChange()
+        // a newer profile picture of another device (profile-picture-sync.ts)
+        await takeSyncedProfilePicture()
         await refreshAccount()
         if (result.state !== "signed-out" && result.state !== "removed") await refreshInfo()
         return result
@@ -198,6 +201,8 @@ let clock: SyncClock | null = null
 /** The clock of AppServices; started once */
 export function startAccountClock(state: AppStateName, every: (ms: number, run: () => void) => () => void): SyncClock {
     clock?.stop()
+    // the app starts anew after a restore: a backup's profile picture is shown from here, with or without an account
+    void takeSyncedProfilePicture()
     clock = createSyncClock({ sync: runSync, checkRequests: checkApprovalRequests, now: Date.now, every })
     clock.start(state)
     return clock
@@ -303,6 +308,7 @@ export async function importFromAccount(): Promise<SyncResult> {
     const result = await engine.importFromAccount()
     // "skipped": the import was given up because the user signed out meanwhile
     if (result.state !== "skipped") store.set(lastSyncAtom, result)
+    await takeSyncedProfilePicture()
     await refreshAccount()
     return result
 }

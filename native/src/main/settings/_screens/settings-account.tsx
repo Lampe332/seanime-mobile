@@ -26,12 +26,11 @@ import { colors, accentInput } from "@/lib/theme/tokens"
 import { NoScreenshots } from "@/main/_features/account/account-prompts"
 import { ConfirmSheet, InfoRow, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { profilePictureAtom, useHasProfilePicture, useProfileAvatar } from "@/lib/account/profile-picture"
-import { pickProfilePicture, removeProfilePictures } from "@/lib/account/profile-picture-photo"
+import { useHasProfilePicture, useProfileAvatar } from "@/lib/account/profile-picture"
+import { pickProfilePicture, removeProfilePicture } from "@/lib/account/profile-picture-photo"
 import { useCurrentUser } from "@/main/_hooks/use-server-status"
 import { Image } from "expo-image"
 import { useAtomValue, useSetAtom } from "jotai"
-import { RESET } from "jotai/utils"
 import UserRound from "lucide-react-native/icons/user-round"
 import React from "react"
 import Eye from "lucide-react-native/icons/eye"
@@ -54,7 +53,7 @@ export function SettingsAccountSection({ t }: { t: Translate }) {
     const lastSync = useAtomValue(lastSyncAtom)
     const loadFailed = useAtomValue(accountLoadFailedAtom)
     const phase = accountPhase({ loaded: account.loaded, signedIn: account.signedIn, hasKey: account.hasKey, lastResult: lastSync })
-    // the own picture needs no account: it stays on this device (profile-picture.ts)
+    // the own picture needs no account: without one it stays on this device (profile-picture.ts)
     return <View className="gap-6">
         <ProfilePicture t={t} />
         {phase === "loading" && loadFailed ? <LoadFailed t={t} />
@@ -71,16 +70,15 @@ function ProfilePicture({ t }: { t: Translate }) {
     const viewer = user && !user.isSimulated ? user.viewer : undefined
     const avatar = useProfileAvatar(viewer?.avatar?.large || viewer?.avatar?.medium || null)
     const own = useHasProfilePicture()
-    const setPicture = useSetAtom(profilePictureAtom)
+    // signed in, the choice also goes to the account's other devices (profile-picture-sync.ts)
+    const signedIn = useAtomValue(accountAtom).signedIn
     const [busy, setBusy] = React.useState(false)
 
-    async function change() {
+    async function choose(step: () => Promise<boolean>) {
         setBusy(true)
         try {
-            const name = await pickProfilePicture()
-            if (!name) return
-            setPicture(name)
-            removeProfilePictures(name)
+            // the other devices get it with the sync that follows; a failed sync is shown by the account page itself
+            if (await step() && signedIn) void syncNow().catch(() => undefined)
         }
         catch {
             toast.error(t("Couldn't use this photo. Try another one.", "Dieses Foto ließ sich nicht verwenden. Versuch ein anderes."))
@@ -90,10 +88,11 @@ function ProfilePicture({ t }: { t: Translate }) {
         }
     }
 
-    function remove() {
-        setPicture(RESET)
-        removeProfilePictures()
-    }
+    const change = () => choose(() => pickProfilePicture(signedIn))
+    const remove = () => choose(async () => {
+        await removeProfilePicture(signedIn)
+        return true
+    })
 
     return <View className="flex-row items-center gap-4 px-1">
         {/* the same action as "Change picture" below, so screen readers skip it */}
@@ -110,11 +109,13 @@ function ProfilePicture({ t }: { t: Translate }) {
         <View className="min-w-0 flex-1 gap-1">
             <Text className="text-[17px] font-semibold text-sm-text">{t("Profile picture", "Profilbild")}</Text>
             <Muted className="text-[13px] leading-[18px]">
-                {t("Shown in the menu on this device. Your AniList picture stays as it is.", "Erscheint im Menü auf diesem Gerät. Dein AniList-Bild bleibt, wie es ist.")}
+                {signedIn
+                    ? t("Shown in the menu on all your devices. Your AniList picture stays as it is.", "Erscheint im Menü auf allen deinen Geräten. Dein AniList-Bild bleibt, wie es ist.")
+                    : t("Shown in the menu on this device. Your AniList picture stays as it is.", "Erscheint im Menü auf diesem Gerät. Dein AniList-Bild bleibt, wie es ist.")}
             </Muted>
             <View className="-ml-2 flex-row flex-wrap">
                 <TextAction label={t("Change picture", "Bild ändern")} disabled={busy} onPress={() => void change()} />
-                {own && <TextAction label={t("Remove picture", "Bild entfernen")} disabled={busy} onPress={remove} />}
+                {own && <TextAction label={t("Remove picture", "Bild entfernen")} disabled={busy} onPress={() => void remove()} />}
             </View>
         </View>
     </View>
