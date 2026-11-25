@@ -55,7 +55,8 @@ export function buildShareCard(view: WrappedView, t: Translate, f: ShareFormats)
         year: view.year,
         heading: t(`My ${view.year} in anime`, `Mein Anime-Jahr ${view.year}`),
         stats,
-        topRated: view.topRated.slice(0, 3).map((item, index) => ({
+        // private entries and adult titles are never named in an image that leaves the app
+        topRated: view.shareable.slice(0, 3).map((item, index) => ({
             rank: index + 1,
             title: clip(item.title, SHARE_LIMITS.title),
             score: f.score(item.score),

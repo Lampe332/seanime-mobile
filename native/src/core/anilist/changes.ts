@@ -554,14 +554,31 @@ export function listDataOf(entry: Json): Json {
 
 /* ---- The interfaces ---- */
 
+/**
+ * The dates AniList fills in on a status change, for the local account (nobody else does it there): a change to
+ * COMPLETED without a completion date completes it today, a change to CURRENT without a start date starts it today.
+ * A date the entry has or the change brings is never replaced.
+ */
+export function localEntryDates(current: Json | null, fields: Fields, now: number): Fields {
+    const before = current?.status
+    const status = fields.status ?? before
+    if (status === before) return fields
+    const hasDate = (field: "startedAt" | "completedAt") => !!dateOf(fields[field]) || !!dateOf(current?.[field])
+    if (status === "COMPLETED" && !hasDate("completedAt")) return { ...fields, completedAt: today(now) }
+    if (status === "CURRENT" && !hasDate("startedAt")) return { ...fields, startedAt: today(now) }
+    return fields
+}
+
 /** The local account's change: into the core's lists only, nothing to send */
 async function changeLocally(environment: Environment, kind: ListKind, mediaId: number, action: "save" | "delete", fields: Fields, statusByProgress: boolean): Promise<boolean> {
     const database = await environment.database()
-    await localCollection(database, kind, environment.now())
+    const now = environment.now()
+    await localCollection(database, kind, now)
     if (action === "delete") await removeEntry(database, kind, mediaId)
     else {
         const current = await storedEntry(database, kind, mediaId)
-        const shown = await showEntry(environment, database, kind, mediaId, entryAfter(current, mediaId, { fields, statusByProgress }, environment.now()), current !== null, true)
+        const dated = localEntryDates(current, fields, now)
+        const shown = await showEntry(environment, database, kind, mediaId, entryAfter(current, mediaId, { fields: dated, statusByProgress }, now), current !== null, true)
         if (!shown) throw new CoreError("this title is not known on this device yet; open it once with a network", 500)
     }
     await tellEveryone(environment, new Set([kind]))

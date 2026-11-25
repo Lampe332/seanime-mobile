@@ -28,12 +28,15 @@ export function listEntryDefaults(listData: ListData | undefined): ListEntryForm
     }
 }
 
-/** Highest progress: the last aired episode of a running anime, else its episode count; a manga's chapters */
-export function progressMaxFor(media: AL_BaseAnime | AL_BaseManga | undefined, type: "anime" | "manga") {
-    if (type === "manga") return (media as AL_BaseManga | undefined)?.chapters ?? undefined
+/** Highest progress without a known total: no anime runs past 9999 episodes, no manga past 99999 chapters */
+export const PROGRESS_CEILING = { anime: 9999, manga: 99999 } as const
+
+/** Highest progress: the last aired episode of a running anime, else its episode count; a manga's chapters; else the ceiling */
+export function progressMaxFor(media: AL_BaseAnime | AL_BaseManga | undefined, type: "anime" | "manga"): number {
+    if (type === "manga") return (media as AL_BaseManga | undefined)?.chapters || PROGRESS_CEILING.manga
     const anime = media as AL_BaseAnime | undefined
     if (anime?.nextAiringEpisode?.episode) return anime.nextAiringEpisode.episode - 1
-    return anime?.episodes ? anime.episodes : undefined
+    return anime?.episodes || PROGRESS_CEILING.anime
 }
 
 export function listStatusOptions(t: Translate, type: "anime" | "manga", released: boolean) {
@@ -48,11 +51,22 @@ export function listStatusOptions(t: Translate, type: "anime" | "manga", release
     return options.filter(option => released || option.value === "PLANNING")
 }
 
-/** Choosing a status; completing an anime fills its progress (the desktop status select does the same) */
-export function chooseListStatus(form: ListEntryForm, status: AL_MediaListStatus, media: AL_BaseAnime | AL_BaseManga | undefined, type: "anime" | "manga"): ListEntryForm {
+/**
+ * Choosing a status; completing an anime fills its progress (the desktop status select does the same). With `today`
+ * the dates follow as on AniList's own editor: completing fills an empty completion date, starting to watch an empty
+ * start date. The sheet sends both dates as they stand, so an empty one would leave the entry without a date (and the
+ * title out of "Your year"). A date that is set is never replaced, and the user can still clear it.
+ */
+export function chooseListStatus(form: ListEntryForm, status: AL_MediaListStatus, media: AL_BaseAnime | AL_BaseManga | undefined, type: "anime" | "manga", today?: Date): ListEntryForm {
     const episodes = (media as AL_BaseAnime | undefined)?.episodes
-    if (type === "anime" && status === "COMPLETED" && episodes) return { ...form, status, progress: episodes }
-    return { ...form, status }
+    const next: ListEntryForm = { ...form, status }
+    if (type === "anime" && status === "COMPLETED" && episodes) next.progress = episodes
+    if (today && status !== form.status) {
+        const day = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+        if (status === "COMPLETED" && !form.completedAt) next.completedAt = day
+        if (status === "CURRENT" && !form.startedAt) next.startedAt = day
+    }
+    return next
 }
 
 /** A stepper's value kept inside its limits; scores keep one decimal */
@@ -116,17 +130,21 @@ export function changedRepeat(repeat: number | null, stored: number | undefined)
 }
 
 /**
- * Save in the edit sheet: a changed rewatch count goes along, then the entry. The sheet closes only once the entry is
- * saved; on an error it stays open with the changes, and the error shows.
+ * Save in the edit sheet: a changed rewatch count goes along, then the entry. The sheet closes only once every part is
+ * saved; when one fails it stays open with the changes, and the error shows.
  */
 export function submitListEntry(form: ListEntryForm, repeat: number | null, storedRepeat: number | undefined, mediaId: number, type: "anime" | "manga", actions: {
     saveEntry: (body: ReturnType<typeof listEntryPayload>, options: { onSuccess: () => void }) => void
-    saveRepeat: (body: { mediaId: number, repeat: number }) => void
+    saveRepeat: (body: { mediaId: number, repeat: number }, options: { onSuccess: () => void }) => void
     close: () => void
 }) {
     const nextRepeat = changedRepeat(repeat, storedRepeat)
-    if (nextRepeat !== null) actions.saveRepeat({ mediaId, repeat: nextRepeat })
-    actions.saveEntry(listEntryPayload(form, mediaId, type), { onSuccess: actions.close })
+    let waiting = nextRepeat !== null ? 2 : 1
+    const saved = () => {
+        if (--waiting === 0) actions.close()
+    }
+    if (nextRepeat !== null) actions.saveRepeat({ mediaId, repeat: nextRepeat }, { onSuccess: saved })
+    actions.saveEntry(listEntryPayload(form, mediaId, type), { onSuccess: saved })
 }
 
 /** "2026-10-05" in the date fields */

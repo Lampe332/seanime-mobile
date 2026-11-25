@@ -3104,6 +3104,10 @@
   "Your lists could not be loaded.": "リストを読み込めませんでした。",
   "No internet connection, so your lists could not be loaded.": "インターネットに接続されていないため、リストを読み込めませんでした。",
   "Loading your year": "1年を読み込み中",
+  "No completion dates yet": "完了日がまだありません",
+  "Your year counts a title once its completion date is set in the list entry.": "リストの項目に完了日が入ると、その作品が今年の振り返りに数えられます。",
   "Nothing finished yet": "まだ完了した作品がありません",
-  "Your year appears once an anime on your list is marked as completed.": "リストのアニメを完了にすると、あなたの1年が表示されます。"
+  "Your year appears once an anime on your list is marked as completed.": "リストのアニメを完了にすると、あなたの1年が表示されます。",
+  "1 finished title has no completion date and is not counted.": "完了済みの1作品は完了日がないため、数えられていません。",
+  "{0} finished titles have no completion date and are not counted.": "完了済みの{0}作品は完了日がないため、数えられていません。"
 }

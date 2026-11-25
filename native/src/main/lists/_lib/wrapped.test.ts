@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { getWrappedView, WrappedAnime, WrappedAnimeList, WrappedMangaList, wrappedYears } from "./wrapped"
+import { getWrappedView, WrappedAnime, WrappedAnimeList, WrappedMangaList, wrappedUndated, wrappedYears } from "./wrapped"
 
 type Entry = NonNullable<WrappedAnimeList["entries"]>[number]
 type Date3 = { year?: number, month?: number, day?: number }
@@ -24,7 +24,7 @@ const a1 = anime(1, { episodes: 12, duration: 24, genres: ["Action", "Drama"], f
     { progress: 12, score: 90, completedAt: { year: 2024, month: 3, day: 10 } })
 /** old saved format: no studios field, no duration */
 const a2 = anime(2, { episodes: 25, genres: ["Action"], format: "TV" }, { score: 90, completedAt: { year: 2024, month: 3, day: 20 } })
-/** no completion date: the year of updatedAt counts */
+/** no completion date: counted in no year, only as undated (updatedAt is no stand-in) */
 const a3 = anime(3, { episodes: 1, duration: 100, genres: ["Comedy"], format: "MOVIE", studios: { nodes: [{ id: 1, name: "Bones" }, { id: 2, name: "MAPPA" }] } },
     { progress: 1, updatedAt: IN_2024 })
 const a4 = anime(4, { episodes: 12, duration: 24, genres: ["Drama"], format: "TV", studios: { nodes: [null, { id: 2, name: "MAPPA" }] } },
@@ -64,35 +64,65 @@ describe("wrappedYears", () => {
 describe("getWrappedView", () => {
     const view = getWrappedView(animeLists, mangaLists, 2024, hideAdult)
 
-    it("counts each finished title of the year once, falling back to updatedAt without a completion date", () => {
-        expect(view.titles).toBe(4)
+    it("counts each finished title of the year once, only by its completion date", () => {
+        expect(view.titles).toBe(3)
         expect(view.empty).toBe(false)
         expect(view.years).toEqual([2024, 2023])
-        expect(view.formats.find(f => f.name === "MOVIE")?.count).toBe(1)
+        expect(view.formats.find(f => f.name === "MOVIE")).toBeUndefined()
         const lateUpdate = [{ entries: [anime(30, {}, { updatedAt: IN_2023 }), anime(31, {}, { completedAt: { year: 2024 }, updatedAt: IN_2023 })] }] as WrappedAnimeList[]
         expect(getWrappedView(lateUpdate, null, 2024, hideAdult).titles).toBe(1)
-        expect(wrappedYears(lateUpdate, null)).toEqual([2024, 2023])
+        expect(getWrappedView(lateUpdate, null, 2023, hideAdult).empty).toBe(true)
+        expect(wrappedYears(lateUpdate, null)).toEqual([2024])
+    })
+
+    it("counts the finished titles without a completion date, each once, in any year", () => {
+        expect(view.undated).toBe(1)
+        expect(getWrappedView(animeLists, mangaLists, 2020, hideAdult).undated).toBe(1)
+        const imported = [
+            { entries: [anime(32, {}, { updatedAt: IN_2024 }), anime(33, { isAdult: true }, {}), anime(34, {}, { status: "REPEATING" })] },
+            { isCustomList: true, entries: [anime(32, {}, { updatedAt: IN_2024 })] },
+        ] as WrappedAnimeList[]
+        expect(wrappedYears(imported, null)).toEqual([])
+        expect(wrappedUndated(imported)).toBe(1)
+        expect(wrappedUndated(imported, { showAdult: true })).toBe(2)
+        expect(wrappedUndated(undefined)).toBe(0)
     })
 
     it("shows adult titles only when asked", () => {
         const adult = getWrappedView(animeLists, null, 2024, { showAdult: true })
-        expect(adult.titles).toBe(5)
-        expect(adult.topRated[0].id).toBe(6)
+        expect(adult.titles).toBe(4)
+        expect(adult.topRated[0]).toMatchObject({ id: 6, adult: true })
         expect(view.topRated.some(t => t.id === 6)).toBe(false)
+        // the page shows it, the shared image never names it
+        expect(adult.shareable.map(t => t.id)).toEqual([2, 1, 4])
+    })
+
+    it("leaves private entries in the counts and the page but out of the shared image's names", () => {
+        const lists = [{ entries: [
+            anime(90, { episodes: 12 }, { private: true, progress: 12, score: 100, completedAt: { year: 2024, month: 1, day: 1 } }),
+            ...[91, 92, 93, 94].map(n => anime(n, { episodes: 1 }, { progress: 1, score: n - 10, completedAt: { year: 2024, month: 2, day: 1 } })),
+        ] }] as WrappedAnimeList[]
+        const year = getWrappedView(lists, null, 2024, hideAdult)
+        expect(year.titles).toBe(5)
+        expect(year.episodes).toBe(16)
+        expect(year.topRated[0]).toMatchObject({ id: 90, private: true })
+        expect(year.shareable.map(t => t.id)).toEqual([94, 93, 92])
     })
 
     it("adds the episodes and minutes of finished titles and of titles started in the year", () => {
-        // 12 + 25 (no progress: all episodes) + 1 + 3, plus 5 of the running title started in 2024
-        expect(view.episodes).toBe(46)
-        // 12*24 + 25*24 (no duration) + 1*100 + 3*24 + 5*20
-        expect(view.minutes).toBe(1160)
+        // 12 + 25 (no progress: all episodes) + 12 (a rewatch: the whole title, not its 3 so far), plus 5 of the running title started in 2024
+        expect(view.episodes).toBe(54)
+        // 12*24 + 25*24 (no duration) + 12*24 + 5*20
+        expect(view.minutes).toBe(1276)
         expect(view.meanScore).toBe(83)
+        const rewatch = [{ entries: [anime(95, {}, { status: "REPEATING", progress: 2, completedAt: { year: 2024 } })] }] as WrappedAnimeList[]
+        expect(getWrappedView(rewatch, null, 2024, hideAdult).episodes).toBe(2)
     })
 
     it("counts genres, studios and formats, most first, ties by name", () => {
-        expect(view.genres).toEqual([{ name: "Action", count: 2, share: 0.5 }, { name: "Drama", count: 2, share: 0.5 }, { name: "Comedy", count: 1, share: 0.25 }])
-        expect(view.studios).toEqual([{ name: "Bones", count: 2, share: 0.5 }, { name: "MAPPA", count: 2, share: 0.5 }])
-        expect(view.formats).toEqual([{ name: "TV", count: 3, share: 0.75 }, { name: "MOVIE", count: 1, share: 0.25 }])
+        expect(view.genres).toEqual([{ name: "Action", count: 2, share: 2 / 3 }, { name: "Drama", count: 2, share: 2 / 3 }])
+        expect(view.studios).toEqual([{ name: "Bones", count: 1, share: 1 / 3 }, { name: "MAPPA", count: 1, share: 1 / 3 }])
+        expect(view.formats).toEqual([{ name: "TV", count: 3, share: 1 }])
         const many = [{ entries: [anime(40, { genres: ["F", "E", "D", "C", "B", "A", "A"] }, { completedAt: { year: 2024 } })] }] as WrappedAnimeList[]
         expect(getWrappedView(many, null, 2024, hideAdult).genres.map(g => g.name)).toEqual(["A", "B", "C", "D", "E"])
     })
@@ -133,7 +163,7 @@ describe("getWrappedView", () => {
 
     it("gives an empty year", () => {
         const empty = getWrappedView(animeLists, mangaLists, 2020, hideAdult)
-        expect(empty).toMatchObject({ empty: true, titles: 0, episodes: 0, minutes: 0, meanScore: null, busiestMonth: null, genres: [], studios: [], formats: [], topRated: [], manga: null })
+        expect(empty).toMatchObject({ empty: true, titles: 0, episodes: 0, minutes: 0, meanScore: null, busiestMonth: null, genres: [], studios: [], formats: [], topRated: [], shareable: [], manga: null })
         expect(empty.months).toEqual(Array(12).fill(0))
         expect(empty.first).toBeUndefined()
         expect(empty.years).toEqual([2024, 2023])

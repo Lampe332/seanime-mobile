@@ -3280,6 +3280,10 @@
   "Your lists could not be loaded.": "Não foi possível carregar suas listas.",
   "No internet connection, so your lists could not be loaded.": "Sem conexão com a internet, por isso não foi possível carregar suas listas.",
   "Loading your year": "Carregando seu ano",
+  "No completion dates yet": "Ainda sem datas de conclusão",
+  "Your year counts a title once its completion date is set in the list entry.": "Seu ano conta um título quando a data de conclusão está preenchida na entrada da lista.",
   "Nothing finished yet": "Nada concluído ainda",
-  "Your year appears once an anime on your list is marked as completed.": "Seu ano aparece quando um anime da sua lista é marcado como concluído."
+  "Your year appears once an anime on your list is marked as completed.": "Seu ano aparece quando um anime da sua lista é marcado como concluído.",
+  "1 finished title has no completion date and is not counted.": "1 título concluído não tem data de conclusão e não é contado.",
+  "{0} finished titles have no completion date and are not counted.": "{0} títulos concluídos não têm data de conclusão e não são contados."
 }

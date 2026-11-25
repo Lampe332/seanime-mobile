@@ -6,12 +6,12 @@ import { PhoneScreen } from "@/components/shared/phone-screen"
 import { Button } from "@/components/ui/button/button"
 import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted } from "@/components/ui/text/text"
-import { type Translate, useTr } from "@/lib/app-language"
+import { plural, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
-import { getWrappedView, type WrappedView, wrappedYears } from "@/main/lists/_lib/wrapped"
+import { getWrappedView, type WrappedView, wrappedUndated, wrappedYears } from "@/main/lists/_lib/wrapped"
 import {
     formatLabel,
     WrappedBars,
@@ -51,6 +51,7 @@ export function WrappedPhone() {
     const year = pickYear(years, chosen)
     const view = React.useMemo(() => year === null ? null : getWrappedView(animeLists, mangaLists, year, { showAdult }),
         [animeLists, mangaLists, year, showAdult])
+    const undated = React.useMemo(() => wrappedUndated(animeLists, { showAdult }), [animeLists, showAdult])
 
     // back to where the page was opened from (the lists or their stats); opened from outside, to the lists
     const goBack = React.useCallback(() => {
@@ -87,6 +88,9 @@ export function WrappedPhone() {
                     </Notice>
                     : loading ? <View className="gap-6"><LoadingRows label={t("Loading your year", "Dein Jahr wird geladen")} count={3} />
                             <View className="h-[216px] rounded-surface bg-sm-surface-raised" /></View>
+                        : (!view || view.empty) && undated > 0 ? <PhoneEmpty title={t("No completion dates yet", "Noch keine Abschluss-Daten")}
+                                text={`${undatedText(t, undated)} ${t("Your year counts a title once its completion date is set in the list entry.",
+                                    "Dein Jahr zählt einen Titel, sobald im Listeneintrag sein Abschluss-Datum steht.")}`} />
                         : !view || view.empty ? <PhoneEmpty title={t("Nothing finished yet", "Noch nichts abgeschlossen")}
                                 text={t("Your year appears once an anime on your list is marked as completed.",
                                     "Dein Jahr erscheint, sobald ein Anime auf deiner Liste als abgeschlossen markiert ist.")} />
@@ -98,6 +102,13 @@ export function WrappedPhone() {
                             </>}
         </PhoneScreen>
     )
+}
+
+/** Finished titles without a completion date belong to no year; the page says how many it leaves out */
+function undatedText(t: Translate, count: number) {
+    return plural(t, count,
+        ["1 finished title has no completion date and is not counted.", "{0} finished titles have no completion date and are not counted."],
+        ["1 abgeschlossener Titel hat kein Abschluss-Datum und wird nicht gezählt.", "{0} abgeschlossene Titel haben kein Abschluss-Datum und werden nicht gezählt."])
 }
 
 function BackRow({ label, onPress }: { label: string, onPress: () => void }) {
@@ -125,7 +136,10 @@ function WrappedContent({ t, view }: { t: Translate, view: WrappedView }) {
 
     return (
         <View className={cn("w-full gap-6 self-center", columns > 1 ? "max-w-[1040px]" : isTablet && "max-w-[640px]")}>
-            <WrappedOverview t={t} view={view} />
+            <View className="gap-2">
+                <WrappedOverview t={t} view={view} />
+                {view.undated > 0 && <Muted>{undatedText(t, view.undated)}</Muted>}
+            </View>
             {columns > 1
                 ? <View className="flex-row items-start gap-6">
                     {intoColumns(cards, columns).map((column, index) => <View key={index} className="min-w-0 flex-1 gap-6">{column}</View>)}

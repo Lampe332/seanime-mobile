@@ -69,6 +69,7 @@ export function RelationsRecommendationsSection({ entry, details, loading }: {
     }, [edges, serverStatus?.settings?.library?.enableManga, t])
 
     const recommendations = React.useMemo(() => (details?.recommendations?.edges?.map(edge => edge?.node?.mediaRecommendation)?.filter(Boolean) || [])
+        .slice(0, 8)
         .map(media => ({ key: `rec-${media.id}`, media: media as AL_BaseAnime, type: "anime" } satisfies Card)), [details?.recommendations?.edges])
 
     if (loading && !details) return <View className="gap-4"><View className="h-8 w-40 rounded-full bg-sm-surface-raised" /><MediaCardRowSkeleton /></View>

@@ -3104,6 +3104,10 @@
   "Your lists could not be loaded.": "无法加载你的列表。",
   "No internet connection, so your lists could not be loaded.": "没有网络连接，所以无法加载你的列表。",
   "Loading your year": "正在加载你的这一年",
+  "No completion dates yet": "还没有完成日期",
+  "Your year counts a title once its completion date is set in the list entry.": "在列表条目中填写完成日期后，该作品才会计入你的年度回顾。",
   "Nothing finished yet": "还没有看完的作品",
-  "Your year appears once an anime on your list is marked as completed.": "把列表中的动画标记为已看完后，就会显示你的这一年。"
+  "Your year appears once an anime on your list is marked as completed.": "把列表中的动画标记为已看完后，就会显示你的这一年。",
+  "1 finished title has no completion date and is not counted.": "有 1 部已看完的作品没有完成日期，未计入。",
+  "{0} finished titles have no completion date and are not counted.": "有 {0} 部已看完的作品没有完成日期，未计入。"
 }

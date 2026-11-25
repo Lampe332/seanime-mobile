@@ -112,7 +112,7 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     const [confirmDelete, setConfirmDelete] = React.useState(false)
     const isGuest = useIsSimulatedUser()
     const { mutate, isPending: isEditing, isError: saveFailed } = useEditAnilistListEntry(media?.id, type)
-    const { mutate: mutateRepeat } = useUpdateAnimeEntryRepeat(media?.id)
+    const { mutate: mutateRepeat, isPending: isRepeating, isError: repeatFailed } = useUpdateAnimeEntryRepeat(media?.id)
     const { mutate: deleteEntry, isPending: isDeleting } = useDeleteAnilistListEntry(media?.id, type, () => onOpenChange(false))
     const released = media?.status !== "NOT_YET_RELEASED"
     const max = progressMaxFor(media, type)
@@ -120,7 +120,7 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
 
     const save = () => submitListEntry(form, repeat, listData.repeat, media?.id || 0, type, {
         saveEntry: (body, options) => mutate(body, options),
-        saveRepeat: mutateRepeat,
+        saveRepeat: (body, options) => mutateRepeat(body, options),
         close: () => onOpenChange(false),
     })
 
@@ -138,7 +138,7 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
         <View accessibilityRole="radiogroup" accessibilityLabel={t("Status", "Status")} className="flex-row flex-wrap gap-1.5">
             {listStatusOptions(t, type, released).map(option => {
                 const checked = form.status === option.value
-                return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ checked }} onPress={() => setForm(f => chooseListStatus(f, option.value, media, type))}
+                return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ checked }} onPress={() => setForm(f => chooseListStatus(f, option.value, media, type, new Date()))}
                     className={cn("min-h-12 grow basis-[100px] items-center justify-center rounded-full px-2 py-1", checked ? "bg-sm-accent-soft" : "bg-sm-surface-raised active:bg-sm-surface-control")}>
                     <Text className={cn("text-[13px]", checked ? "font-semibold text-sm-accent" : "font-medium text-sm-text-muted")}>{option.label}</Text>
                 </Pressable>
@@ -169,7 +169,7 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     </View>
 
     const footer = <View className="flex-1 flex-row flex-wrap items-center justify-between gap-3">
-        {saveFailed && !isEditing && <Text accessibilityLiveRegion="polite" className="w-full text-[13px] text-sm-danger">
+        {(saveFailed || repeatFailed) && !isEditing && !isRepeating && <Text accessibilityLiveRegion="polite" className="w-full text-[13px] text-sm-danger">
             {t("Not saved. Your changes are still here.", "Nicht gespeichert. Deine Änderungen sind noch da.")}
         </Text>}
         <View className="flex-row items-center gap-2">
@@ -179,7 +179,7 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
             </Pressable>
             {confirmDelete && <Button intent="danger" loading={isDeleting} onPress={() => deleteEntry({ mediaId: media?.id!, type })}>{t("Confirm", "Bestätigen")}</Button>}
         </View>
-        <Button wrapperClassName="ml-auto min-w-[136px]" loading={isEditing} disabled={isDeleting} onPress={save}>{t("Save", "Speichern")}</Button>
+        <Button wrapperClassName="ml-auto min-w-[136px]" loading={isEditing || isRepeating} disabled={isDeleting} onPress={save}>{t("Save", "Speichern")}</Button>
     </View>
 
     const title = media?.title?.userPreferred || ""

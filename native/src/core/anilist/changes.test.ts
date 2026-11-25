@@ -14,6 +14,7 @@ import {
     KEPT_FOR_LATER,
     entryWithWaitingChange,
     forgetChanges,
+    localEntryDates,
     sendWaitingChanges,
     waitingChanges,
 } from "./changes"
@@ -753,6 +754,28 @@ describe("the app without AniList", () => {
         expect(await rows()).toHaveLength(0)
         expect(asked).toEqual([])
         expect(await anilistSyncState(environment)).toMatchObject({ waiting: 0, localAccount: true })
+    })
+
+    it("fills today's date like AniList when the local account completes or starts a title, never over a date of the user", async () => {
+        token = null
+        await (await environment.database()).delete(account)
+        await keepAnswer(await environment.database(), `library-media:${ANIME}`, titleOf(ANIME), clock)
+        const date = new Date(clock)
+        const today = { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() }
+        const user = { year: 2020, month: 5, day: 6 }
+        // the sheet sends its empty date fields as {}
+        await edit({ mediaId: ANIME, status: "COMPLETED", score: 0, progress: 24, type: "anime", startedAt: {}, completedAt: {} })
+        expect((await entryInLists(ANIME))?.entry).toMatchObject({ completedAt: today })
+        await edit({ mediaId: ANIME, status: "CURRENT", score: 0, progress: 1, type: "anime", startedAt: {}, completedAt: {} })
+        expect((await entryInLists(ANIME))?.entry).toMatchObject({ startedAt: today })
+        await edit({ mediaId: ANIME, status: "COMPLETED", score: 0, progress: 24, type: "anime", startedAt: user, completedAt: user })
+        expect((await entryInLists(ANIME))?.entry).toMatchObject({ startedAt: user, completedAt: user })
+        // a status that stays: an emptied date stays empty
+        await edit({ mediaId: ANIME, status: "COMPLETED", score: 0, progress: 24, type: "anime", startedAt: user, completedAt: {} })
+        expect(((await entryInLists(ANIME))?.entry as { completedAt?: { year?: number } }).completedAt?.year ?? null).toBeNull()
+        expect(localEntryDates({ status: "PLANNING" }, { status: "COMPLETED", completedAt: null }, Date.UTC(2026, 10, 25, 12)).completedAt).toEqual({ year: 2026, month: 11, day: 25 })
+        expect(localEntryDates({ status: "PLANNING", completedAt: user }, { status: "COMPLETED", completedAt: null }, clock).completedAt).toBeNull()
+        expect(asked).toEqual([])
     })
 
     it("uploads the local account's lists to the AniList account signed in afterwards (Upload local lists)", async () => {

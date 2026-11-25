@@ -10,6 +10,9 @@ function title(id: number, name: string, score: number): WrappedTitle {
     return { id, title: name, score, episodes: 12 }
 }
 
+const RATED = [title(1, "Frieren", 100), title(2, "A very long title that is surely too long for one line", 95),
+    title(3, "Mob Psycho 100", 90), title(4, "Fourth", 85)]
+
 function view(over: Partial<WrappedView> = {}): WrappedView {
     return {
         year: 2026, years: [2026], empty: false,
@@ -18,8 +21,7 @@ function view(over: Partial<WrappedView> = {}): WrappedView {
             { name: "Romance", count: 8, share: 0.2 }, { name: "Comedy", count: 4, share: 0.1 }],
         studios: [{ name: "Kyoto Animation", count: 3, share: 0.1 }],
         formats: [],
-        topRated: [title(1, "Frieren", 100), title(2, "A very long title that is surely too long for one line", 95),
-            title(3, "Mob Psycho 100", 90), title(4, "Fourth", 85)],
+        topRated: RATED, shareable: RATED.slice(0, 3), undated: 0,
         months: Array(12).fill(0) as number[], busiestMonth: null, manga: null,
         ...over,
     }
@@ -57,13 +59,18 @@ describe("buildShareCard", () => {
         expect(card.studio).toBe("Kyoto Animation")
         expect(card.footer).toContain("estimated")
     })
+    it("names only the shareable titles, never a private entry or an adult title", () => {
+        const hidden = [{ ...title(8, "Private one", 100), private: true }, { ...title(9, "Adult one", 99), adult: true }]
+        const card = buildShareCard(view({ topRated: [...hidden, ...RATED], shareable: RATED.slice(0, 3) }), en, f)
+        expect(card.topRated.map(item => item.title)).toEqual(["Frieren", RATED[1].title.slice(0, 29) + "…", "Mob Psycho 100"])
+    })
     it("speaks German", () => {
         const card = buildShareCard(view({ titles: 1, episodes: 1, minutes: 60 }), de, f)
         expect(card.heading).toBe("Mein Anime-Jahr 2026")
         expect(card.stats.map(stat => stat.label)).toEqual(["Anime abgeschlossen", "Folge", "Stunde"])
     })
     it("drops the parts without data", () => {
-        const card = buildShareCard(view({ titles: 1, episodes: 0, minutes: 0, genres: [], studios: [], topRated: [] }), en, f)
+        const card = buildShareCard(view({ titles: 1, episodes: 0, minutes: 0, genres: [], studios: [], topRated: [], shareable: [] }), en, f)
         expect(card.stats.map(stat => stat.key)).toEqual(["titles"])
         expect(card.topRated).toEqual([])
         expect(card.genres).toEqual([])
@@ -81,7 +88,7 @@ describe("shareLayout", () => {
         expect((layout.lists ?? 0) + SHARE_SIZES.listHead + 3 * SHARE_SIZES.listRow).toBeLessThanOrEqual(SHARE_SIZES.bottom)
     })
     it("centres a lone part and leaves the missing ones out", () => {
-        const layout = shareLayout(buildShareCard(view({ episodes: 0, minutes: 0, genres: [], studios: [], topRated: [] }), en, f))
+        const layout = shareLayout(buildShareCard(view({ episodes: 0, minutes: 0, genres: [], studios: [], topRated: [], shareable: [] }), en, f))
         expect(layout.rated).toBeNull()
         expect(layout.lists).toBeNull()
         const middle = (SHARE_SIZES.top + SHARE_SIZES.bottom) / 2

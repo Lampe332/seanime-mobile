@@ -3258,6 +3258,14 @@
   "Your lists could not be loaded.": "Не удалось загрузить твои списки.",
   "No internet connection, so your lists could not be loaded.": "Нет подключения к интернету, поэтому твои списки не загрузились.",
   "Loading your year": "Загружаем твой год",
+  "No completion dates yet": "Пока нет дат завершения",
+  "Your year counts a title once its completion date is set in the list entry.": "Тайтл попадает в твой год, когда в записи списка указана дата завершения.",
   "Nothing finished yet": "Пока ничего не завершено",
-  "Your year appears once an anime on your list is marked as completed.": "Твой год появится, когда аниме в твоём списке будет отмечено как просмотренное."
+  "Your year appears once an anime on your list is marked as completed.": "Твой год появится, когда аниме в твоём списке будет отмечено как просмотренное.",
+  "1 finished title has no completion date and is not counted.": "У 1 завершённого тайтла нет даты завершения, он не учитывается.",
+  "{0} finished titles have no completion date and are not counted.": {
+    "one": "У {0} завершённого тайтла нет даты завершения, он не учитывается.",
+    "few": "У {0} завершённых тайтлов нет даты завершения, они не учитываются.",
+    "many": "У {0} завершённых тайтлов нет даты завершения, они не учитываются."
+  }
 }

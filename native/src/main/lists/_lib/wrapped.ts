@@ -14,8 +14,11 @@ export type WrappedAnimeList = AL_AnimeCollection_MediaListCollection_Lists
 export type WrappedMangaList = AL_MangaCollection_MediaListCollection_Lists
 export type WrappedOptions = { showAdult: boolean, titleOf?: (media: WrappedAnime) => string }
 
-/** score 0..100, 0 = not rated; completed = ISO date YYYY-MM-DD */
-export type WrappedTitle = { id: number, title: string, cover?: string, color?: string, score: number, episodes: number, completed?: string, format?: string }
+/** score 0..100, 0 = not rated; completed = ISO date YYYY-MM-DD; private = a private list entry, adult = an adult title (both never named in the shared image) */
+export type WrappedTitle = {
+    id: number, title: string, cover?: string, color?: string, score: number, episodes: number, completed?: string, format?: string,
+    private?: boolean, adult?: boolean,
+}
 /** share = part of the year's titles, 0..1 */
 export type WrappedCount = { name: string, count: number, share: number }
 export type WrappedView = {
@@ -23,13 +26,17 @@ export type WrappedView = {
     titles: number, episodes: number, minutes: number, meanScore: number | null,
     genres: WrappedCount[], studios: WrappedCount[], formats: WrappedCount[],
     topRated: WrappedTitle[], first?: WrappedTitle, last?: WrappedTitle, longest?: WrappedTitle,
+    /** The best rated that may be named in the shared image: up to 3, neither private nor adult */
+    shareable: WrappedTitle[],
+    /** Finished anime without a completion date (any year): not counted in any year */
+    undated: number,
     months: number[], busiestMonth: number | null,
     manga: { titles: number, chapters: number } | null,
 }
 
 type DateParts = Nullish<{ year?: Nullish<number>, month?: Nullish<number>, day?: Nullish<number> }>
 type AnyEntry = {
-    status?: Nullish<string>, progress?: Nullish<number>, score?: Nullish<number>,
+    status?: Nullish<string>, progress?: Nullish<number>, score?: Nullish<number>, private?: Nullish<boolean>,
     startedAt?: DateParts, completedAt?: DateParts, updatedAt?: Nullish<number>,
     media?: Nullish<AL_BaseAnime | AL_BaseManga>,
 }
@@ -38,17 +45,13 @@ type AnyList = Nullish<{ entries?: Nullish<Nullish<AnyEntry>[]> }>
 const DEFAULT_DURATION = 24
 const ONGOING = new Set(["CURRENT", "PAUSED", "DROPPED"])
 
-/** The year a finished entry counts for, or null when it is not finished */
+/**
+ * The year a finished entry counts for: the year of its completion date. Null when it is not finished or has no such
+ * date (the last edit is no stand-in: any later change, or an imported list, would move it into that year).
+ */
 function finishedYear(entry: AnyEntry): number | null {
-    const year = entry.completedAt?.year || null
-    if (entry.status === "COMPLETED") {
-        if (year) return year
-        const seconds = entry.updatedAt
-        if (!seconds || !Number.isFinite(seconds)) return null
-        return new Date(seconds * 1000).getUTCFullYear()
-    }
-    if (entry.status === "REPEATING") return year
-    return null
+    if (entry.status !== "COMPLETED" && entry.status !== "REPEATING") return null
+    return entry.completedAt?.year || null
 }
 
 function shown(entry: Nullish<AnyEntry>, showAdult: boolean): entry is AnyEntry & { media: AL_BaseAnime | AL_BaseManga } {
@@ -99,6 +102,11 @@ export function wrappedYears(animeLists: Nullish<Nullish<WrappedAnimeList>[]>, m
     return [...years].sort((a, b) => b - a)
 }
 
+/** Finished anime without a completion date, each title once: they count in no year */
+export function wrappedUndated(animeLists: Nullish<Nullish<WrappedAnimeList>[]>, options: { showAdult: boolean } = { showAdult: false }): number {
+    return uniqueEntries<WrappedAnime>(animeLists, options.showAdult, e => e.status === "COMPLETED" && !e.completedAt?.year).length
+}
+
 /** The review of one year: what was finished in it (and the episodes of titles started in it) */
 export function getWrappedView(
     animeLists: Nullish<Nullish<WrappedAnimeList>[]>,
@@ -124,7 +132,8 @@ export function getWrappedView(
 
     for (const entry of finished) {
         const media = entry.media
-        const count = entry.progress || media.episodes || 0
+        // a rewatch's progress is only the running round; the title was finished as a whole
+        const count = entry.status === "REPEATING" ? media.episodes || entry.progress || 0 : entry.progress || media.episodes || 0
         const score = entry.score && entry.score > 0 ? entry.score : 0
         episodes += count
         minutes += minutesOf(media, count)
@@ -144,6 +153,8 @@ export function getWrappedView(
             episodes: count,
             completed: entry.completedAt?.year === year ? isoDate(entry.completedAt) : undefined,
             format: media.format || undefined,
+            ...(entry.private ? { private: true } : {}),
+            ...(media.isAdult ? { adult: true } : {}),
         })
     }
     for (const entry of started) {
@@ -153,7 +164,9 @@ export function getWrappedView(
     }
 
     const byDateDesc = (a: WrappedTitle, b: WrappedTitle) => (b.completed ?? "").localeCompare(a.completed ?? "")
-    const topRated = items.filter(item => item.score > 0).sort((a, b) => b.score - a.score || byDateDesc(a, b)).slice(0, 5)
+    const rated = items.filter(item => item.score > 0).sort((a, b) => b.score - a.score || byDateDesc(a, b))
+    const topRated = rated.slice(0, 5)
+    const shareable = rated.filter(item => !item.private && !item.adult).slice(0, 3)
     const dated = items.filter(item => item.completed)
     const first = dated.reduce<WrappedTitle | undefined>((best, item) => (!best || item.completed! < best.completed! ? item : best), undefined)
     const last = dated.reduce<WrappedTitle | undefined>((best, item) => (!best || item.completed! > best.completed! ? item : best), undefined)
@@ -178,6 +191,8 @@ export function getWrappedView(
         studios: counted(studios, items.length, 5),
         formats: counted(formats, items.length),
         topRated,
+        shareable,
+        undated: wrappedUndated(animeLists, { showAdult }),
         first,
         last,
         longest,

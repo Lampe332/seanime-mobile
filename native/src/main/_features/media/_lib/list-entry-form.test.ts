@@ -67,7 +67,8 @@ describe("list entry editor", () => {
     it("limits progress to the aired episodes of a running anime", () => {
         expect(progressMaxFor({ episodes: 12, nextAiringEpisode: { episode: 8 } } as never, "anime")).toBe(7)
         expect(progressMaxFor({ episodes: 12 } as never, "anime")).toBe(12)
-        expect(progressMaxFor({ episodes: 0 } as never, "anime")).toBeUndefined()
+        expect(progressMaxFor({ episodes: 0 } as never, "anime")).toBe(9999)
+        expect(progressMaxFor(undefined, "manga")).toBe(99999)
         expect(progressMaxFor({ chapters: 140 } as never, "manga")).toBe(140)
     })
 
@@ -77,6 +78,15 @@ describe("list entry editor", () => {
         const form = listEntryDefaults({ status: "CURRENT", progress: 3 })
         expect(chooseListStatus(form, "COMPLETED", { episodes: 12 } as never, "anime").progress).toBe(12)
         expect(chooseListStatus(form, "COMPLETED", { chapters: 12 } as never, "manga").progress).toBe(3)
+        // with today's date the dates follow like on AniList's editor, a set date stays, the same status changes nothing
+        const today = new Date(2026, 10, 25, 14, 30)
+        const day = new Date(2026, 10, 25)
+        expect(chooseListStatus({ ...form, status: "CURRENT", completedAt: null }, "COMPLETED", undefined, "anime", today).completedAt).toEqual(day)
+        expect(chooseListStatus({ ...form, status: "PLANNING", startedAt: null }, "CURRENT", undefined, "anime", today).startedAt).toEqual(day)
+        const set = new Date(2025, 11, 15)
+        expect(chooseListStatus({ ...form, status: "CURRENT", completedAt: set }, "COMPLETED", undefined, "anime", today).completedAt).toBe(set)
+        expect(chooseListStatus({ ...form, status: "COMPLETED", completedAt: null }, "COMPLETED", undefined, "anime", today).completedAt).toBeNull()
+        expect(chooseListStatus({ ...form, status: "CURRENT", completedAt: null }, "COMPLETED", undefined, "anime").completedAt).toBeNull()
     })
 
     it("keeps stepper values in their limits", () => {
@@ -117,6 +127,11 @@ describe("edit sheet: typed numbers and save", () => {
         expect(stepInputText("13", "1", progress)).toEqual({ text: "12", value: 12 })
         // no known episode count: no upper limit
         expect(stepInputText("250", "25", {})).toEqual({ text: "250", value: 250 })
+        // the progress field without a known total still stops at the ceiling ("99999999999999999999" was 1e20)
+        const open = { max: progressMaxFor({ episodes: null } as never, "anime") }
+        expect(stepInputText("99999999999999999999", "9999999999999999999", open)).toEqual({ text: "9999", value: 9999 })
+        expect(stepInputText("250", "25", open)).toEqual({ text: "250", value: 250 })
+        expect(stepInputText("123456", "12345", { max: progressMaxFor({ chapters: null } as never, "manga") })).toEqual({ text: "99999", value: 99999 })
     })
 
     it("takes only digits, one separator and one decimal for scores", () => {
@@ -144,14 +159,17 @@ describe("edit sheet: typed numbers and save", () => {
 
     it("closes the sheet only once the entry is saved", () => {
         const form = { status: "CURRENT" as const, score: 8, progress: 3, startedAt: null, completedAt: null }
-        const run = (outcome: "saved" | "failed", repeat: number | null) => {
+        const run = (outcome: "saved" | "failed", repeat: number | null, repeatOutcome: "saved" | "failed" = "saved") => {
             const calls: string[] = []
             submitListEntry(form, repeat, 1, 5114, "anime", {
                 saveEntry: (body, options) => {
                     calls.push(`entry ${body.score} ${body.progress}`)
                     if (outcome === "saved") options.onSuccess()
                 },
-                saveRepeat: body => calls.push(`repeat ${body.repeat}`),
+                saveRepeat: (body, options) => {
+                    calls.push(`repeat ${body.repeat}`)
+                    if (repeatOutcome === "saved") options.onSuccess()
+                },
                 close: () => calls.push("close"),
             })
             return calls
@@ -159,5 +177,8 @@ describe("edit sheet: typed numbers and save", () => {
         expect(run("saved", 1)).toEqual(["entry 80 3", "close"])
         expect(run("failed", 1)).toEqual(["entry 80 3"])
         expect(run("saved", 2)).toEqual(["repeat 2", "entry 80 3", "close"])
+        // only the rewatch count failed: the sheet stays open
+        expect(run("saved", 2, "failed")).toEqual(["repeat 2", "entry 80 3"])
+        expect(run("failed", 2)).toEqual(["repeat 2", "entry 80 3"])
     })
 })
