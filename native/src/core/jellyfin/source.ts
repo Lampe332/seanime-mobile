@@ -11,7 +11,7 @@ import { animeWithEpisodes, episodesOut } from "../library/library"
 import { type LocalFileRow, episodeOfFile, libraryDataOf } from "../library/local-files"
 import { animeMetadata } from "../library/metadata"
 import type { CoreEnvironment, CoreRequest } from "../registry"
-import { JellyfinFailure, type JellyfinSeries, type JellyfinSession, authorizationHeader, jellyfinUrl, listEpisodes, listSeasons, listSeries, providerId } from "./client"
+import { JellyfinFailure, type JellyfinMediaSource, type JellyfinSeries, type JellyfinSession, authorizationHeader, jellyfinUrl, listEpisodes, listSeasons, listSeries, providerId } from "./client"
 import { type AnilistTitle, type EpisodeMatch, type MatchRule, type ServerShow, matchLibrary, matchS1 } from "./match"
 
 /*
@@ -564,6 +564,34 @@ export function serverStreamAddress(session: JellyfinSession, episodeId: string,
     return jellyfinUrl(session.url, `/Videos/${encodeURIComponent(episodeId)}/stream`, { static: true, mediaSourceId, deviceId: session.identity.deviceId, playSessionId })
 }
 
+/** The file endings the server's subtitle address takes, by the track's codec; any other text subtitle is asked as srt */
+const SUBTITLE_FORMATS: Record<string, string> = { subrip: "srt", srt: "srt", ass: "ass", ssa: "ass", webvtt: "vtt", vtt: "vtt" }
+
+/** A subtitle file of the server in the player's form (`subtitleTracks` of the played file) */
+export interface ServerSubtitleTrack {
+    index: number
+    src: string
+    label: string
+    language: string
+    type: string
+    default: boolean
+}
+
+/**
+ * The subtitle files that lie next to a server episode's video (`IsExternal`, text only), each with the address
+ * GET /Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/Stream.{format}. The address carries no token: the server
+ * hands subtitles out without one (recorded: 200 without the Authorization line), and the player sends the line anyway.
+ * The index is the server's and may be 0: an external track stands before the video's own.
+ */
+export function serverSubtitleTracks(session: JellyfinSession, episodeId: string, source: JellyfinMediaSource | undefined): ServerSubtitleTrack[] {
+    if (!source) return []
+    return source.streams.filter(stream => stream.type === "Subtitle" && stream.isExternal && stream.isText).map(stream => {
+        const format = SUBTITLE_FORMATS[stream.codec.toLowerCase()] ?? "srt"
+        const path = `/Videos/${encodeURIComponent(episodeId)}/${encodeURIComponent(source.id || episodeId)}/Subtitles/${stream.index}/Stream.${format}`
+        return { index: stream.index, src: jellyfinUrl(session.url, path), label: stream.title || stream.language || "External", language: stream.language, type: format, default: stream.isDefault }
+    })
+}
+
 /**
  * POST /api/v1/mediaserver/play {path, mediaId}: the player opens the server's file straight from the server, with
  * the Authorization line as a header (`requestHeaders`, mpv `http-header-fields`); the progress goes as for any
@@ -600,6 +628,8 @@ export async function playServerFile(request: CoreRequest, environment: Environm
             streamUrl: serverStreamAddress(session, episode.id, mediaSourceId, playSessionId),
             requestHeaders: { Authorization: authorizationHeader(session.identity, session.token) },
             contentLength: 0,
+            // subtitle files next to the video: the player adds them like those of a torrent or an online stream
+            subtitleTracks: serverSubtitleTracks(session, episode.id, source),
             ...(entry ? { entryListData: listDataOf(entry) } : {}),
             episode: {
                 ...episodeOfFile(row, media, episodes),

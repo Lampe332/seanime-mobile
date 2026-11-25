@@ -1,205 +1,2023 @@
 {
-    "_": "von Hand gebaut, wird in Stück 6 durch echte Aufzeichnung ersetzt. Form nach Jellyfin AuthenticationResult.cs [J3], BaseItemDto.cs [J8], MediaStream.cs [J13] und QueryResult (Items, TotalRecordCount, StartIndex); ani.zip-Form nach core/library/metadata.ts. Namen, Nummern und Kennungen erfunden, kein Token einer echten Anmeldung",
-    "auth": {
-        "User": { "Name": "nutzer", "ServerId": "srv-1", "Id": "u1", "HasPassword": true },
-        "SessionInfo": { "Id": "sess-1", "UserId": "u1", "Client": "Seanime Mobile", "DeviceId": "dev-1", "DeviceName": "Pixel 8", "ApplicationVersion": "1.2.3" },
-        "AccessToken": "tok-recorded",
-        "ServerId": "srv-1"
+  "_": "echte Aufzeichnung vom Testserver, geschrieben von scripts/record-jellyfin.mjs am 2026-11-25, Jellyfin 12.4.0. Aufrufe wie core/jellyfin/client.ts (Anmeldung, /System/Info/Public, /Items, /Shows/{id}/Seasons, /Shows/{id}/Episodes), dazu PlaybackInfo und der externe Untertitel einer Folge; ani.zip auf die Felder des Abgleichs gekürzt. Ersetzt: Token, Kennungen von Nutzer, Sitzung, Gerät und Server, Nutzername, Gegenstelle, absolute Pfade des PCs. Nicht von Hand ändern, neu aufzeichnen.",
+  "serverVersion": "12.4.0",
+  "info": {
+    "LocalAddress": "http://recorded-server:8096",
+    "ServerName": "recorded-server-name",
+    "Version": "12.4.0",
+    "ProductName": "Jellyfin Server",
+    "OperatingSystem": "",
+    "Id": "recorded-server",
+    "StartupWizardCompleted": true
+  },
+  "auth": {
+    "User": {
+      "Name": "tester",
+      "ServerId": "recorded-server",
+      "Id": "recorded-user",
+      "HasPassword": true,
+      "HasConfiguredPassword": true,
+      "HasConfiguredEasyPassword": false,
+      "EnableAutoLogin": false,
+      "LastLoginDate": "2026-11-25T23:20:22.081951Z",
+      "LastActivityDate": "2026-11-25T23:20:22.081951Z",
+      "Configuration": {
+        "PlayDefaultAudioTrack": true,
+        "SubtitleLanguagePreference": "",
+        "DisplayMissingEpisodes": false,
+        "GroupedFolders": [],
+        "SubtitleMode": "Default",
+        "DisplayCollectionsView": false,
+        "EnableLocalPassword": false,
+        "OrderedViews": [],
+        "LatestItemsExcludes": [],
+        "MyMediaExcludes": [],
+        "HidePlayedInLatest": true,
+        "RememberAudioSelections": true,
+        "RememberSubtitleSelections": true,
+        "EnableNextEpisodeAutoPlay": true,
+        "CastReceiverId": "F007D354"
+      },
+      "Policy": {
+        "IsAdministrator": true,
+        "IsHidden": true,
+        "EnableCollectionManagement": false,
+        "EnableSubtitleManagement": false,
+        "EnableLyricManagement": false,
+        "IsDisabled": false,
+        "BlockedTags": [],
+        "AllowedTags": [],
+        "EnableUserPreferenceAccess": true,
+        "AccessSchedules": [],
+        "BlockUnratedItems": [],
+        "EnableRemoteControlOfOtherUsers": true,
+        "EnableSharedDeviceControl": true,
+        "EnableRemoteAccess": true,
+        "EnableLiveTvManagement": false,
+        "EnableLiveTvAccess": true,
+        "EnableMediaPlayback": true,
+        "EnableAudioPlaybackTranscoding": true,
+        "EnableVideoPlaybackTranscoding": true,
+        "EnablePlaybackRemuxing": true,
+        "ForceRemoteSourceTranscoding": false,
+        "EnableContentDeletion": true,
+        "EnableContentDeletionFromFolders": [],
+        "EnableContentDownloading": true,
+        "EnableSyncTranscoding": true,
+        "EnableMediaConversion": true,
+        "EnabledDevices": [],
+        "EnableAllDevices": true,
+        "EnabledChannels": [],
+        "EnableAllChannels": true,
+        "EnabledFolders": [],
+        "EnableAllFolders": true,
+        "InvalidLoginAttemptCount": 0,
+        "LoginAttemptsBeforeLockout": -1,
+        "MaxActiveSessions": 0,
+        "EnablePublicSharing": true,
+        "BlockedMediaFolders": [],
+        "BlockedChannels": [],
+        "RemoteClientBitrateLimit": 0,
+        "AuthenticationProviderId": "Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider",
+        "PasswordResetProviderId": "Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider",
+        "SyncPlayAccess": "CreateAndJoinGroups"
+      }
     },
-    "items": {
-        "Items": [
-            { "Name": "Hoshi no Tabi", "Id": "a1", "Type": "Series", "ProductionYear": 2023, "Path": "/media/anime/Hoshi no Tabi (2023)", "ProviderIds": { "AniList": "101", "Tvdb": "900101" } },
-            { "Name": "Kyojin Saga", "Id": "b1", "Type": "Series", "ProductionYear": 2013, "Path": "/media/anime/Kyojin Saga (2013)", "ProviderIds": { "Tvdb": "900201", "Tmdb": "800201" } },
-            { "Name": "Juuni Cours", "Id": "c1", "Type": "Series", "ProductionYear": 2020, "Path": "/media/anime/Juuni Cours (2020)", "ProviderIds": { "Tvdb": "900301" } },
-            { "Name": "Mori no Uta", "Id": "d1", "Type": "Series", "ProductionYear": 2010, "Path": "/media/anime/Mori no Uta (2010)", "ProviderIds": {} },
-            { "Name": "Hoshi no Tabi Movie", "Id": "e1", "Type": "Movie", "ProductionYear": 2024, "Path": "/media/anime-movies/Hoshi no Tabi Movie (2024).mkv", "ProviderIds": { "Tmdb": "800501" } }
+    "SessionInfo": {
+      "PlayState": {
+        "CanSeek": false,
+        "IsPaused": false,
+        "IsMuted": false,
+        "RepeatMode": "RepeatNone",
+        "PlaybackOrder": "Default"
+      },
+      "AdditionalUsers": [],
+      "Capabilities": {
+        "PlayableMediaTypes": [],
+        "SupportedCommands": [],
+        "SupportsMediaControl": false,
+        "SupportsPersistentIdentifier": true
+      },
+      "RemoteEndPoint": "recorded-remote",
+      "PlayableMediaTypes": [],
+      "Id": "recorded-session",
+      "UserId": "recorded-user",
+      "UserName": "tester",
+      "Client": "Seanime Mobile",
+      "LastActivityDate": "2026-11-25T23:20:22.0841645Z",
+      "LastPlaybackCheckIn": "0001-01-01T00:00:00.0000000Z",
+      "DeviceName": "recorder",
+      "DeviceId": "record-device",
+      "ApplicationVersion": "0.0.0",
+      "IsActive": true,
+      "SupportsMediaControl": false,
+      "SupportsRemoteControl": false,
+      "NowPlayingQueue": [],
+      "HasCustomDeviceName": false,
+      "ServerId": "recorded-server",
+      "SupportedCommands": []
+    },
+    "AccessToken": "REDACTED",
+    "ServerId": "recorded-server"
+  },
+  "items": {
+    "Items": [
+      {
+        "Name": "Cowboy Bebop",
+        "ServerId": "recorded-server",
+        "Id": "dc8b33ed28b586a37929fc76731869b8",
+        "PremiereDate": "1998-04-02T22:00:00.0000000Z",
+        "Path": "/media/Shows/Cowboy Bebop (1998)",
+        "OfficialRating": "FSK-16",
+        "ChannelId": null,
+        "CommunityRating": 8.485,
+        "RunTimeTicks": 15000000000,
+        "ProductionYear": 1998,
+        "ProviderIds": {
+          "Imdb": "tt0213338",
+          "Tmdb": "30991",
+          "Tvdb": "76885"
+        },
+        "IsFolder": true,
+        "Type": "Series",
+        "UserData": {
+          "PlayedPercentage": 0,
+          "UnplayedItemCount": 2,
+          "PlaybackPositionTicks": 0,
+          "PlayCount": 0,
+          "IsFavorite": false,
+          "Played": false,
+          "Key": "76885",
+          "ItemId": "dc8b33ed28b586a37929fc76731869b8"
+        },
+        "Status": "Ended",
+        "AirDays": [],
+        "ImageTags": {
+          "Primary": "bd17f564faf6938710343124e637c7e2",
+          "Logo": "12f8d96fa68c7333f3f280afc5f11a75",
+          "Thumb": "c22724be73b0ac4449ed11863a77eec1"
+        },
+        "BackdropImageTags": [
+          "f727d59264410747662edab1e24b7623"
         ],
-        "TotalRecordCount": 5,
+        "ImageBlurHashes": {
+          "Backdrop": {
+            "f727d59264410747662edab1e24b7623": "WWJRmtIqEl?a%gx^?bIUNIxufko#IVjFRPkDRkRP?wslIokDoMoz"
+          },
+          "Primary": {
+            "bd17f564faf6938710343124e637c7e2": "dGFYMbCmE.}s0}_I=_Vy5ND$DjNFtd9HIWJAE-~B%2X8"
+          },
+          "Logo": {
+            "12f8d96fa68c7333f3f280afc5f11a75": "HQN17TofRjt7D%xuWBxuD%~qRjofWBofRjfQWBof"
+          },
+          "Thumb": {
+            "c22724be73b0ac4449ed11863a77eec1": "WMBpRft0OrOu02reXlI.k8$*s9xG0LtSr?Z~-:NYrq-pWFE2NeNa"
+          }
+        },
+        "LocationType": "FileSystem",
+        "MediaType": "Unknown",
+        "EndDate": "1999-04-23T22:00:00.0000000Z",
+        "OriginalLanguage": "ja"
+      },
+      {
+        "Name": "Mob Psycho 100",
+        "ServerId": "recorded-server",
+        "Id": "7a6a3619526e396ee2ba610227c18bdb",
+        "PremiereDate": "2016-07-11T22:00:00.0000000Z",
+        "Path": "/media/Shows/Mob Psycho 100 (2016)",
+        "OfficialRating": "FSK-12",
+        "ChannelId": null,
+        "CommunityRating": 8.479,
+        "RunTimeTicks": 14400000000,
+        "ProductionYear": 2016,
+        "ProviderIds": {
+          "Imdb": "tt5897304",
+          "Tmdb": "67075",
+          "Tvdb": "307375"
+        },
+        "IsFolder": true,
+        "Type": "Series",
+        "UserData": {
+          "PlayedPercentage": 0,
+          "UnplayedItemCount": 4,
+          "PlaybackPositionTicks": 0,
+          "PlayCount": 0,
+          "IsFavorite": false,
+          "Played": false,
+          "Key": "307375",
+          "ItemId": "7a6a3619526e396ee2ba610227c18bdb"
+        },
+        "Status": "Ended",
+        "AirDays": [],
+        "ImageTags": {
+          "Thumb": "cc6e201ab9d1a88f50b1244f9766831a",
+          "Primary": "95361584793b36e9b2b06cef4e2e6c91",
+          "Logo": "38eeb1823557801cee769fa78fe74989"
+        },
+        "BackdropImageTags": [
+          "3083a9e5ec41a7102e7bfca7f529c409"
+        ],
+        "ImageBlurHashes": {
+          "Backdrop": {
+            "3083a9e5ec41a7102e7bfca7f529c409": "WND0inv$JMD%9Gkq~Ex[InM}NbMwt8%3Rhx[a3NtV{xuavt6o5RQ"
+          },
+          "Thumb": {
+            "cc6e201ab9d1a88f50b1244f9766831a": "WZOp.7jro{_4?b?u~qtRoKe.RjjZtQogV[nhV@WV_3ofWCf*WUoM"
+          },
+          "Primary": {
+            "95361584793b36e9b2b06cef4e2e6c91": "dNJ@Xr?]yq}[_JbvNLnh-6RjE%ko=KNbOBt7cUWFsrb^"
+          },
+          "Logo": {
+            "38eeb1823557801cee769fa78fe74989": "OTGp#bo21?o2jtWosW=3o2,ufQJia{JisWjuSKo2SKjuWo"
+          }
+        },
+        "LocationType": "FileSystem",
+        "MediaType": "Unknown",
+        "EndDate": "2022-12-21T23:00:00.0000000Z",
+        "OriginalLanguage": "ja"
+      }
+    ],
+    "TotalRecordCount": 2,
+    "StartIndex": 0
+  },
+  "shows": {
+    "dc8b33ed28b586a37929fc76731869b8": {
+      "seasons": {
+        "Items": [
+          {
+            "Name": "Season 1",
+            "ServerId": "recorded-server",
+            "Id": "2a7e096873b4d64d948de691c44fe3d6",
+            "PremiereDate": "1998-04-02T22:00:00.0000000Z",
+            "ChannelId": null,
+            "ProductionYear": 1998,
+            "IndexNumber": 1,
+            "ProviderIds": {
+              "Tmdb": "42587",
+              "Tvdb": "11636"
+            },
+            "IsFolder": true,
+            "Type": "Season",
+            "ParentLogoItemId": "dc8b33ed28b586a37929fc76731869b8",
+            "ParentBackdropItemId": "dc8b33ed28b586a37929fc76731869b8",
+            "ParentBackdropImageTags": [
+              "f727d59264410747662edab1e24b7623"
+            ],
+            "UserData": {
+              "PlayedPercentage": 0,
+              "UnplayedItemCount": 2,
+              "PlaybackPositionTicks": 0,
+              "PlayCount": 0,
+              "IsFavorite": false,
+              "Played": false,
+              "Key": "76885001",
+              "ItemId": "2a7e096873b4d64d948de691c44fe3d6"
+            },
+            "SeriesName": "Cowboy Bebop",
+            "SeriesId": "dc8b33ed28b586a37929fc76731869b8",
+            "SeriesPrimaryImageTag": "bd17f564faf6938710343124e637c7e2",
+            "ImageTags": {
+              "Primary": "91db03a025518714ca5d52d1860c1d3d"
+            },
+            "BackdropImageTags": [],
+            "ParentLogoImageTag": "12f8d96fa68c7333f3f280afc5f11a75",
+            "ImageBlurHashes": {
+              "Primary": {
+                "91db03a025518714ca5d52d1860c1d3d": "dQDI{|UHEn=GPN%r${RpF,RfRPSJ5lIrV|J7EKR~s.ak",
+                "bd17f564faf6938710343124e637c7e2": "dGFYMbCmE.}s0}_I=_Vy5ND$DjNFtd9HIWJAE-~B%2X8"
+              },
+              "Logo": {
+                "12f8d96fa68c7333f3f280afc5f11a75": "HQN17TofRjt7D%xuWBxuD%~qRjofWBofRjfQWBof"
+              },
+              "Thumb": {
+                "c22724be73b0ac4449ed11863a77eec1": "WMBpRft0OrOu02reXlI.k8$*s9xG0LtSr?Z~-:NYrq-pWFE2NeNa"
+              },
+              "Backdrop": {
+                "f727d59264410747662edab1e24b7623": "WWJRmtIqEl?a%gx^?bIUNIxufko#IVjFRPkDRkRP?wslIokDoMoz"
+              }
+            },
+            "ParentThumbItemId": "dc8b33ed28b586a37929fc76731869b8",
+            "ParentThumbImageTag": "c22724be73b0ac4449ed11863a77eec1",
+            "LocationType": "FileSystem",
+            "MediaType": "Unknown"
+          }
+        ],
+        "TotalRecordCount": 1,
         "StartIndex": 0
+      },
+      "episodes": {
+        "Items": [
+          {
+            "Name": "Ein tierisches Geschäft",
+            "ServerId": "recorded-server",
+            "Id": "0d8519aea321347648d3416e666fb983",
+            "HasSubtitles": true,
+            "Container": "mkv",
+            "PremiereDate": "1998-04-02T22:00:00.0000000Z",
+            "MediaSources": [
+              {
+                "Protocol": "File",
+                "Id": "0d8519aea321347648d3416e666fb983",
+                "Path": "/media/Shows/Cowboy Bebop (1998)/Season 01/Cowboy Bebop (1998) - S01E01.mkv",
+                "Type": "Default",
+                "Container": "mkv",
+                "Size": 20042811,
+                "Name": "Cowboy Bebop (1998) - S01E01",
+                "IsRemote": false,
+                "ETag": "10efc65342c8153431a30c9ba922987b",
+                "RunTimeTicks": 600230000,
+                "ReadAtNativeFramerate": false,
+                "IgnoreDts": false,
+                "IgnoreIndex": false,
+                "GenPtsInput": false,
+                "SupportsTranscoding": true,
+                "SupportsDirectStream": true,
+                "SupportsDirectPlay": true,
+                "IsInfiniteStream": false,
+                "UseMostCompatibleTranscodingProfile": false,
+                "RequiresOpening": false,
+                "RequiresClosing": false,
+                "RequiresLooping": false,
+                "SupportsProbing": true,
+                "VideoType": "VideoFile",
+                "MediaStreams": [
+                  {
+                    "Codec": "subrip",
+                    "Language": "eng",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "Unknown",
+                    "VideoRangeType": "Unknown",
+                    "AudioSpatialFormat": "None",
+                    "LocalizedUndefined": "Undefined",
+                    "LocalizedDefault": "Default",
+                    "LocalizedForced": "Forced",
+                    "LocalizedExternal": "External",
+                    "LocalizedHearingImpaired": "Hearing Impaired",
+                    "LocalizedLanguage": "English",
+                    "DisplayTitle": "English - SUBRIP - External",
+                    "IsInterlaced": false,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Type": "Subtitle",
+                    "Index": 0,
+                    "Score": 111222,
+                    "IsExternal": true,
+                    "IsTextSubtitleStream": true,
+                    "SupportsExternalStream": true,
+                    "Path": "/media/Shows/Cowboy Bebop (1998)/Season 01/Cowboy Bebop (1998) - S01E01.en.srt"
+                  },
+                  {
+                    "Codec": "h264",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "SDR",
+                    "VideoRangeType": "SDR",
+                    "AudioSpatialFormat": "None",
+                    "DisplayTitle": "720p H264 SDR",
+                    "NalLengthSize": "4",
+                    "IsInterlaced": false,
+                    "IsAVC": true,
+                    "BitRate": 2479350,
+                    "BitDepth": 8,
+                    "RefFrames": 1,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Height": 720,
+                    "Width": 1280,
+                    "AverageFrameRate": 24,
+                    "RealFrameRate": 24,
+                    "ReferenceFrameRate": 24,
+                    "Profile": "High",
+                    "Type": "Video",
+                    "AspectRatio": "16:9",
+                    "Index": 1,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false,
+                    "PixelFormat": "yuv420p",
+                    "Level": 31,
+                    "IsAnamorphic": false
+                  },
+                  {
+                    "Codec": "aac",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "Unknown",
+                    "VideoRangeType": "Unknown",
+                    "AudioSpatialFormat": "None",
+                    "LocalizedDefault": "Default",
+                    "LocalizedExternal": "External",
+                    "LocalizedOriginal": "Original",
+                    "DisplayTitle": "AAC - Mono",
+                    "IsInterlaced": false,
+                    "ChannelLayout": "mono",
+                    "BitRate": 192000,
+                    "Channels": 1,
+                    "SampleRate": 44100,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Profile": "LC",
+                    "Type": "Audio",
+                    "Index": 2,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false
+                  }
+                ],
+                "MediaAttachments": [],
+                "Formats": [],
+                "Bitrate": 2671350,
+                "RequiredHttpHeaders": {},
+                "TranscodingSubProtocol": "http",
+                "DefaultAudioStreamIndex": 2,
+                "DefaultSubtitleStreamIndex": 0,
+                "HasSegments": false
+              }
+            ],
+            "ChannelId": null,
+            "CommunityRating": 7.375,
+            "RunTimeTicks": 600230000,
+            "ProductionYear": 1998,
+            "IndexNumber": 1,
+            "ParentIndexNumber": 1,
+            "ProviderIds": {
+              "Imdb": "tt0618978",
+              "Tmdb": "750947",
+              "Tvdb": "219121"
+            },
+            "IsFolder": false,
+            "Type": "Episode",
+            "ParentLogoItemId": "dc8b33ed28b586a37929fc76731869b8",
+            "ParentBackdropItemId": "dc8b33ed28b586a37929fc76731869b8",
+            "ParentBackdropImageTags": [
+              "f727d59264410747662edab1e24b7623"
+            ],
+            "UserData": {
+              "PlaybackPositionTicks": 0,
+              "PlayCount": 0,
+              "IsFavorite": false,
+              "Played": false,
+              "Key": "0d8519ae-a321-3476-48d3-416e666fb983",
+              "ItemId": "0d8519aea321347648d3416e666fb983"
+            },
+            "SeriesName": "Cowboy Bebop",
+            "SeriesId": "dc8b33ed28b586a37929fc76731869b8",
+            "SeasonId": "2a7e096873b4d64d948de691c44fe3d6",
+            "SeriesPrimaryImageTag": "bd17f564faf6938710343124e637c7e2",
+            "SeasonName": "Season 1",
+            "VideoType": "VideoFile",
+            "ImageTags": {
+              "Primary": "e5e6f8cf5acbff29627cab3d9aa2ad89"
+            },
+            "BackdropImageTags": [],
+            "ParentLogoImageTag": "12f8d96fa68c7333f3f280afc5f11a75",
+            "ImageBlurHashes": {
+              "Primary": {
+                "e5e6f8cf5acbff29627cab3d9aa2ad89": "V9Ci,L_14.0M02pI-nEMRjkXD$RPaOt7x[-pxsbvMxM}",
+                "bd17f564faf6938710343124e637c7e2": "dGFYMbCmE.}s0}_I=_Vy5ND$DjNFtd9HIWJAE-~B%2X8",
+                "91db03a025518714ca5d52d1860c1d3d": "dQDI{|UHEn=GPN%r${RpF,RfRPSJ5lIrV|J7EKR~s.ak"
+              },
+              "Logo": {
+                "12f8d96fa68c7333f3f280afc5f11a75": "HQN17TofRjt7D%xuWBxuD%~qRjofWBofRjfQWBof"
+              },
+              "Thumb": {
+                "c22724be73b0ac4449ed11863a77eec1": "WMBpRft0OrOu02reXlI.k8$*s9xG0LtSr?Z~-:NYrq-pWFE2NeNa"
+              },
+              "Backdrop": {
+                "f727d59264410747662edab1e24b7623": "WWJRmtIqEl?a%gx^?bIUNIxufko#IVjFRPkDRkRP?wslIokDoMoz"
+              }
+            },
+            "ParentThumbItemId": "dc8b33ed28b586a37929fc76731869b8",
+            "ParentThumbImageTag": "c22724be73b0ac4449ed11863a77eec1",
+            "ParentPrimaryImageItemId": "2a7e096873b4d64d948de691c44fe3d6",
+            "ParentPrimaryImageTag": "91db03a025518714ca5d52d1860c1d3d",
+            "LocationType": "FileSystem",
+            "MediaType": "Video",
+            "OriginalLanguage": "ja"
+          },
+          {
+            "Name": "Zickenalarm",
+            "ServerId": "recorded-server",
+            "Id": "efb6ff604375bacebe4a65d8e7fc7619",
+            "Container": "mkv",
+            "PremiereDate": "1998-04-09T22:00:00.0000000Z",
+            "MediaSources": [
+              {
+                "Protocol": "File",
+                "Id": "efb6ff604375bacebe4a65d8e7fc7619",
+                "Path": "/media/Shows/Cowboy Bebop (1998)/Season 01/Cowboy Bebop (1998) - S01E02.mkv",
+                "Type": "Default",
+                "Container": "mkv",
+                "Size": 20050615,
+                "Name": "Cowboy Bebop (1998) - S01E02",
+                "IsRemote": false,
+                "ETag": "b3528fbaba82b259e816adc5f498c60b",
+                "RunTimeTicks": 600230000,
+                "ReadAtNativeFramerate": false,
+                "IgnoreDts": false,
+                "IgnoreIndex": false,
+                "GenPtsInput": false,
+                "SupportsTranscoding": true,
+                "SupportsDirectStream": true,
+                "SupportsDirectPlay": true,
+                "IsInfiniteStream": false,
+                "UseMostCompatibleTranscodingProfile": false,
+                "RequiresOpening": false,
+                "RequiresClosing": false,
+                "RequiresLooping": false,
+                "SupportsProbing": true,
+                "VideoType": "VideoFile",
+                "MediaStreams": [
+                  {
+                    "Codec": "h264",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "SDR",
+                    "VideoRangeType": "SDR",
+                    "AudioSpatialFormat": "None",
+                    "DisplayTitle": "720p H264 SDR",
+                    "NalLengthSize": "4",
+                    "IsInterlaced": false,
+                    "IsAVC": true,
+                    "BitRate": 2480390,
+                    "BitDepth": 8,
+                    "RefFrames": 1,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Height": 720,
+                    "Width": 1280,
+                    "AverageFrameRate": 24,
+                    "RealFrameRate": 24,
+                    "ReferenceFrameRate": 24,
+                    "Profile": "High",
+                    "Type": "Video",
+                    "AspectRatio": "16:9",
+                    "Index": 0,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false,
+                    "PixelFormat": "yuv420p",
+                    "Level": 31,
+                    "IsAnamorphic": false
+                  },
+                  {
+                    "Codec": "aac",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "Unknown",
+                    "VideoRangeType": "Unknown",
+                    "AudioSpatialFormat": "None",
+                    "LocalizedDefault": "Default",
+                    "LocalizedExternal": "External",
+                    "LocalizedOriginal": "Original",
+                    "DisplayTitle": "AAC - Mono",
+                    "IsInterlaced": false,
+                    "ChannelLayout": "mono",
+                    "BitRate": 192000,
+                    "Channels": 1,
+                    "SampleRate": 44100,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Profile": "LC",
+                    "Type": "Audio",
+                    "Index": 1,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false
+                  }
+                ],
+                "MediaAttachments": [],
+                "Formats": [],
+                "Bitrate": 2672390,
+                "RequiredHttpHeaders": {},
+                "TranscodingSubProtocol": "http",
+                "DefaultAudioStreamIndex": 1,
+                "HasSegments": false
+              }
+            ],
+            "ChannelId": null,
+            "CommunityRating": 7.491,
+            "RunTimeTicks": 600230000,
+            "ProductionYear": 1998,
+            "IndexNumber": 2,
+            "ParentIndexNumber": 1,
+            "ProviderIds": {
+              "Imdb": "tt0618971",
+              "Tmdb": "750951",
+              "Tvdb": "219122"
+            },
+            "IsFolder": false,
+            "Type": "Episode",
+            "ParentLogoItemId": "dc8b33ed28b586a37929fc76731869b8",
+            "ParentBackdropItemId": "dc8b33ed28b586a37929fc76731869b8",
+            "ParentBackdropImageTags": [
+              "f727d59264410747662edab1e24b7623"
+            ],
+            "UserData": {
+              "PlaybackPositionTicks": 0,
+              "PlayCount": 0,
+              "IsFavorite": false,
+              "Played": false,
+              "Key": "efb6ff60-4375-bace-be4a-65d8e7fc7619",
+              "ItemId": "efb6ff604375bacebe4a65d8e7fc7619"
+            },
+            "SeriesName": "Cowboy Bebop",
+            "SeriesId": "dc8b33ed28b586a37929fc76731869b8",
+            "SeasonId": "2a7e096873b4d64d948de691c44fe3d6",
+            "SeriesPrimaryImageTag": "bd17f564faf6938710343124e637c7e2",
+            "SeasonName": "Season 1",
+            "VideoType": "VideoFile",
+            "ImageTags": {
+              "Primary": "ecbebe9df5f7dbce5a8d7f0c0c433584"
+            },
+            "BackdropImageTags": [],
+            "ParentLogoImageTag": "12f8d96fa68c7333f3f280afc5f11a75",
+            "ImageBlurHashes": {
+              "Primary": {
+                "ecbebe9df5f7dbce5a8d7f0c0c433584": "VWF}K5xa4URP^knQj@xGWEslIUWBtRs:n}s8jZs;o2eo",
+                "bd17f564faf6938710343124e637c7e2": "dGFYMbCmE.}s0}_I=_Vy5ND$DjNFtd9HIWJAE-~B%2X8",
+                "91db03a025518714ca5d52d1860c1d3d": "dQDI{|UHEn=GPN%r${RpF,RfRPSJ5lIrV|J7EKR~s.ak"
+              },
+              "Logo": {
+                "12f8d96fa68c7333f3f280afc5f11a75": "HQN17TofRjt7D%xuWBxuD%~qRjofWBofRjfQWBof"
+              },
+              "Thumb": {
+                "c22724be73b0ac4449ed11863a77eec1": "WMBpRft0OrOu02reXlI.k8$*s9xG0LtSr?Z~-:NYrq-pWFE2NeNa"
+              },
+              "Backdrop": {
+                "f727d59264410747662edab1e24b7623": "WWJRmtIqEl?a%gx^?bIUNIxufko#IVjFRPkDRkRP?wslIokDoMoz"
+              }
+            },
+            "ParentThumbItemId": "dc8b33ed28b586a37929fc76731869b8",
+            "ParentThumbImageTag": "c22724be73b0ac4449ed11863a77eec1",
+            "ParentPrimaryImageItemId": "2a7e096873b4d64d948de691c44fe3d6",
+            "ParentPrimaryImageTag": "91db03a025518714ca5d52d1860c1d3d",
+            "LocationType": "FileSystem",
+            "MediaType": "Video",
+            "OriginalLanguage": "ja"
+          }
+        ],
+        "TotalRecordCount": 2,
+        "StartIndex": 0
+      }
     },
-    "shows": {
-        "a1": {
-            "seasons": {
-                "Items": [
-                    { "Name": "Specials", "Id": "a1s0", "Type": "Season", "IndexNumber": 0, "SeriesId": "a1", "ProviderIds": {} },
-                    { "Name": "Season 1", "Id": "a1s1", "Type": "Season", "IndexNumber": 1, "SeriesId": "a1", "ProductionYear": 2023, "ProviderIds": {} }
+    "7a6a3619526e396ee2ba610227c18bdb": {
+      "seasons": {
+        "Items": [
+          {
+            "Name": "Season 1",
+            "ServerId": "recorded-server",
+            "Id": "7189079d8a29d819d81a8371ad2a03ca",
+            "PremiereDate": "2016-07-11T22:00:00.0000000Z",
+            "ChannelId": null,
+            "ProductionYear": 2016,
+            "IndexNumber": 1,
+            "ProviderIds": {
+              "Tmdb": "78421",
+              "Tvdb": "667642"
+            },
+            "IsFolder": true,
+            "Type": "Season",
+            "ParentLogoItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropImageTags": [
+              "3083a9e5ec41a7102e7bfca7f529c409"
+            ],
+            "UserData": {
+              "PlayedPercentage": 0,
+              "UnplayedItemCount": 2,
+              "PlaybackPositionTicks": 0,
+              "PlayCount": 0,
+              "IsFavorite": false,
+              "Played": false,
+              "Key": "307375001",
+              "ItemId": "7189079d8a29d819d81a8371ad2a03ca"
+            },
+            "SeriesName": "Mob Psycho 100",
+            "SeriesId": "7a6a3619526e396ee2ba610227c18bdb",
+            "SeriesPrimaryImageTag": "95361584793b36e9b2b06cef4e2e6c91",
+            "ImageTags": {
+              "Primary": "13858e09bba90a399aca7ce563908ea7"
+            },
+            "BackdropImageTags": [],
+            "ParentLogoImageTag": "38eeb1823557801cee769fa78fe74989",
+            "ImageBlurHashes": {
+              "Primary": {
+                "13858e09bba90a399aca7ce563908ea7": "dUD]f8tM4mNKs[W+tLWZV|R$k8t8%4WAM{t84nRi%Ma{",
+                "95361584793b36e9b2b06cef4e2e6c91": "dNJ@Xr?]yq}[_JbvNLnh-6RjE%ko=KNbOBt7cUWFsrb^"
+              },
+              "Logo": {
+                "38eeb1823557801cee769fa78fe74989": "OTGp#bo21?o2jtWosW=3o2,ufQJia{JisWjuSKo2SKjuWo"
+              },
+              "Thumb": {
+                "cc6e201ab9d1a88f50b1244f9766831a": "WZOp.7jro{_4?b?u~qtRoKe.RjjZtQogV[nhV@WV_3ofWCf*WUoM"
+              },
+              "Backdrop": {
+                "3083a9e5ec41a7102e7bfca7f529c409": "WND0inv$JMD%9Gkq~Ex[InM}NbMwt8%3Rhx[a3NtV{xuavt6o5RQ"
+              }
+            },
+            "ParentThumbItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentThumbImageTag": "cc6e201ab9d1a88f50b1244f9766831a",
+            "LocationType": "FileSystem",
+            "MediaType": "Unknown"
+          },
+          {
+            "Name": "Season 2",
+            "ServerId": "recorded-server",
+            "Id": "86104f00133c5a6bbcad03de95e3db4c",
+            "PremiereDate": "2019-01-06T23:00:00.0000000Z",
+            "ChannelId": null,
+            "ProductionYear": 2019,
+            "IndexNumber": 2,
+            "ProviderIds": {
+              "Tmdb": "110805",
+              "Tvdb": "771985"
+            },
+            "IsFolder": true,
+            "Type": "Season",
+            "ParentLogoItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropImageTags": [
+              "3083a9e5ec41a7102e7bfca7f529c409"
+            ],
+            "UserData": {
+              "PlayedPercentage": 0,
+              "UnplayedItemCount": 2,
+              "PlaybackPositionTicks": 0,
+              "PlayCount": 0,
+              "IsFavorite": false,
+              "Played": false,
+              "Key": "307375002",
+              "ItemId": "86104f00133c5a6bbcad03de95e3db4c"
+            },
+            "SeriesName": "Mob Psycho 100",
+            "SeriesId": "7a6a3619526e396ee2ba610227c18bdb",
+            "SeriesPrimaryImageTag": "95361584793b36e9b2b06cef4e2e6c91",
+            "ImageTags": {
+              "Primary": "99f35c5ca74e92f6734ddbfe34eaf3b4"
+            },
+            "BackdropImageTags": [],
+            "ParentLogoImageTag": "38eeb1823557801cee769fa78fe74989",
+            "ImageBlurHashes": {
+              "Primary": {
+                "99f35c5ca74e92f6734ddbfe34eaf3b4": "dmD22jkXENo~TwW-x]ozPVozozWXp{o#NbW=F{WYxuf+",
+                "95361584793b36e9b2b06cef4e2e6c91": "dNJ@Xr?]yq}[_JbvNLnh-6RjE%ko=KNbOBt7cUWFsrb^"
+              },
+              "Logo": {
+                "38eeb1823557801cee769fa78fe74989": "OTGp#bo21?o2jtWosW=3o2,ufQJia{JisWjuSKo2SKjuWo"
+              },
+              "Thumb": {
+                "cc6e201ab9d1a88f50b1244f9766831a": "WZOp.7jro{_4?b?u~qtRoKe.RjjZtQogV[nhV@WV_3ofWCf*WUoM"
+              },
+              "Backdrop": {
+                "3083a9e5ec41a7102e7bfca7f529c409": "WND0inv$JMD%9Gkq~Ex[InM}NbMwt8%3Rhx[a3NtV{xuavt6o5RQ"
+              }
+            },
+            "ParentThumbItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentThumbImageTag": "cc6e201ab9d1a88f50b1244f9766831a",
+            "LocationType": "FileSystem",
+            "MediaType": "Unknown"
+          }
+        ],
+        "TotalRecordCount": 2,
+        "StartIndex": 0
+      },
+      "episodes": {
+        "Items": [
+          {
+            "Name": "~ Der Schüler und sein Meister ~",
+            "ServerId": "recorded-server",
+            "Id": "3930b754c96db8dc2cfe56d3caeccdd3",
+            "Container": "mkv",
+            "PremiereDate": "2016-07-11T22:00:00.0000000Z",
+            "MediaSources": [
+              {
+                "Protocol": "File",
+                "Id": "3930b754c96db8dc2cfe56d3caeccdd3",
+                "Path": "/media/Shows/Mob Psycho 100 (2016)/Season 01/Mob Psycho 100 (2016) - S01E01.mkv",
+                "Type": "Default",
+                "Container": "mkv",
+                "Size": 127202,
+                "Name": "Mob Psycho 100 (2016) - S01E01",
+                "IsRemote": false,
+                "ETag": "e15b4163f6841584c83bd4323952c94a",
+                "RunTimeTicks": 100230000,
+                "ReadAtNativeFramerate": false,
+                "IgnoreDts": false,
+                "IgnoreIndex": false,
+                "GenPtsInput": false,
+                "SupportsTranscoding": true,
+                "SupportsDirectStream": true,
+                "SupportsDirectPlay": true,
+                "IsInfiniteStream": false,
+                "UseMostCompatibleTranscodingProfile": false,
+                "RequiresOpening": false,
+                "RequiresClosing": false,
+                "RequiresLooping": false,
+                "SupportsProbing": true,
+                "VideoType": "VideoFile",
+                "MediaStreams": [
+                  {
+                    "Codec": "h264",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "SDR",
+                    "VideoRangeType": "SDR",
+                    "AudioSpatialFormat": "None",
+                    "DisplayTitle": "240p H264 SDR",
+                    "NalLengthSize": "4",
+                    "IsInterlaced": false,
+                    "IsAVC": true,
+                    "BitDepth": 8,
+                    "RefFrames": 1,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Height": 180,
+                    "Width": 320,
+                    "AverageFrameRate": 24,
+                    "RealFrameRate": 24,
+                    "ReferenceFrameRate": 24,
+                    "Profile": "High",
+                    "Type": "Video",
+                    "AspectRatio": "16:9",
+                    "Index": 0,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false,
+                    "PixelFormat": "yuv420p",
+                    "Level": 12,
+                    "IsAnamorphic": false
+                  },
+                  {
+                    "Codec": "aac",
+                    "Language": "jpn",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "Unknown",
+                    "VideoRangeType": "Unknown",
+                    "AudioSpatialFormat": "None",
+                    "LocalizedDefault": "Default",
+                    "LocalizedExternal": "External",
+                    "LocalizedLanguage": "Japanese",
+                    "LocalizedOriginal": "Original",
+                    "DisplayTitle": "Japanese - AAC - Mono",
+                    "IsInterlaced": false,
+                    "ChannelLayout": "mono",
+                    "BitRate": 192000,
+                    "Channels": 1,
+                    "SampleRate": 44100,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Profile": "LC",
+                    "Type": "Audio",
+                    "Index": 1,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false
+                  }
                 ],
-                "TotalRecordCount": 2,
-                "StartIndex": 0
+                "MediaAttachments": [],
+                "Formats": [],
+                "Bitrate": 101528,
+                "RequiredHttpHeaders": {},
+                "TranscodingSubProtocol": "http",
+                "DefaultAudioStreamIndex": 1,
+                "HasSegments": false
+              }
+            ],
+            "ChannelId": null,
+            "CommunityRating": 7.818,
+            "RunTimeTicks": 100230000,
+            "ProductionYear": 2016,
+            "IndexNumber": 1,
+            "ParentIndexNumber": 1,
+            "ProviderIds": {
+              "Imdb": "tt6014452",
+              "Tmdb": "1205175",
+              "Tvdb": "5620152"
             },
-            "episodes": {
-                "Items": [
-                    { "Name": "Special 1", "Id": "a1s0e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 0, "SeasonId": "a1s0", "SeriesId": "a1", "SeriesName": "Hoshi no Tabi", "ProviderIds": {} },
-                    {
-                        "Name": "Episode 1", "Id": "a1s1e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 1, "SeasonId": "a1s1", "SeriesId": "a1", "SeriesName": "Hoshi no Tabi", "ProviderIds": { "Tvdb": "910001" },
-                        "MediaSources": [
-                            {
-                                "Id": "ms-a1s1e1", "Container": "mkv", "Path": "/media/anime/Hoshi no Tabi (2023)/Season 01/Hoshi no Tabi S01E01.mkv", "Protocol": "File", "Type": "Default",
-                                "MediaStreams": [
-                                    { "Index": 0, "Type": "Video", "Codec": "hevc", "IsExternal": false },
-                                    { "Index": 1, "Type": "Audio", "Codec": "aac", "Language": "jpn", "IsExternal": false },
-                                    { "Index": 2, "Type": "Subtitle", "Codec": "ass", "Language": "eng", "IsExternal": false },
-                                    { "Index": 3, "Type": "Subtitle", "Codec": "srt", "Language": "ger", "IsExternal": true }
-                                ]
-                            }
-                        ]
-                    },
-                    { "Name": "Episode 2", "Id": "a1s1e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 1, "SeasonId": "a1s1", "SeriesId": "a1", "SeriesName": "Hoshi no Tabi", "ProviderIds": {} },
-                    { "Name": "Episode 3", "Id": "a1s1e3", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 1, "SeasonId": "a1s1", "SeriesId": "a1", "SeriesName": "Hoshi no Tabi", "ProviderIds": {} },
-                    { "Name": "Episode 4", "Id": "a1s1e4", "Type": "Episode", "IndexNumber": 4, "ParentIndexNumber": 1, "SeasonId": "a1s1", "SeriesId": "a1", "SeriesName": "Hoshi no Tabi", "ProviderIds": {} }
+            "IsFolder": false,
+            "Type": "Episode",
+            "ParentLogoItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropImageTags": [
+              "3083a9e5ec41a7102e7bfca7f529c409"
+            ],
+            "UserData": {
+              "PlaybackPositionTicks": 0,
+              "PlayCount": 0,
+              "IsFavorite": false,
+              "Played": false,
+              "Key": "307375001001",
+              "ItemId": "3930b754c96db8dc2cfe56d3caeccdd3"
+            },
+            "SeriesName": "Mob Psycho 100",
+            "SeriesId": "7a6a3619526e396ee2ba610227c18bdb",
+            "SeasonId": "7189079d8a29d819d81a8371ad2a03ca",
+            "SeriesPrimaryImageTag": "95361584793b36e9b2b06cef4e2e6c91",
+            "SeasonName": "Season 1",
+            "VideoType": "VideoFile",
+            "ImageTags": {
+              "Primary": "d63af15e20ca483de91f5e87d68f3e84"
+            },
+            "BackdropImageTags": [],
+            "ParentLogoImageTag": "38eeb1823557801cee769fa78fe74989",
+            "ImageBlurHashes": {
+              "Primary": {
+                "d63af15e20ca483de91f5e87d68f3e84": "WOI53p%hF3niRk%f~TIWn%$|bbx[EORnxGs:ayWC%MWWIoR*i{s:",
+                "95361584793b36e9b2b06cef4e2e6c91": "dNJ@Xr?]yq}[_JbvNLnh-6RjE%ko=KNbOBt7cUWFsrb^",
+                "13858e09bba90a399aca7ce563908ea7": "dUD]f8tM4mNKs[W+tLWZV|R$k8t8%4WAM{t84nRi%Ma{"
+              },
+              "Logo": {
+                "38eeb1823557801cee769fa78fe74989": "OTGp#bo21?o2jtWosW=3o2,ufQJia{JisWjuSKo2SKjuWo"
+              },
+              "Thumb": {
+                "cc6e201ab9d1a88f50b1244f9766831a": "WZOp.7jro{_4?b?u~qtRoKe.RjjZtQogV[nhV@WV_3ofWCf*WUoM"
+              },
+              "Backdrop": {
+                "3083a9e5ec41a7102e7bfca7f529c409": "WND0inv$JMD%9Gkq~Ex[InM}NbMwt8%3Rhx[a3NtV{xuavt6o5RQ"
+              }
+            },
+            "ParentThumbItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentThumbImageTag": "cc6e201ab9d1a88f50b1244f9766831a",
+            "ParentPrimaryImageItemId": "7189079d8a29d819d81a8371ad2a03ca",
+            "ParentPrimaryImageTag": "13858e09bba90a399aca7ce563908ea7",
+            "LocationType": "FileSystem",
+            "MediaType": "Video",
+            "OriginalLanguage": "ja"
+          },
+          {
+            "Name": "Die Tugend der Jugend ~ Telebattieren geht über Studieren ~",
+            "ServerId": "recorded-server",
+            "Id": "cfb6e41e3864faaf43eba21c6b029d8c",
+            "Container": "mkv",
+            "PremiereDate": "2016-07-18T22:00:00.0000000Z",
+            "MediaSources": [
+              {
+                "Protocol": "File",
+                "Id": "cfb6e41e3864faaf43eba21c6b029d8c",
+                "Path": "/media/Shows/Mob Psycho 100 (2016)/Season 01/Mob Psycho 100 (2016) - S01E02.mkv",
+                "Type": "Default",
+                "Container": "mkv",
+                "Size": 127202,
+                "Name": "Mob Psycho 100 (2016) - S01E02",
+                "IsRemote": false,
+                "ETag": "6189f1101f9575faf3d55fb1c8d1a971",
+                "RunTimeTicks": 100230000,
+                "ReadAtNativeFramerate": false,
+                "IgnoreDts": false,
+                "IgnoreIndex": false,
+                "GenPtsInput": false,
+                "SupportsTranscoding": true,
+                "SupportsDirectStream": true,
+                "SupportsDirectPlay": true,
+                "IsInfiniteStream": false,
+                "UseMostCompatibleTranscodingProfile": false,
+                "RequiresOpening": false,
+                "RequiresClosing": false,
+                "RequiresLooping": false,
+                "SupportsProbing": true,
+                "VideoType": "VideoFile",
+                "MediaStreams": [
+                  {
+                    "Codec": "h264",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "SDR",
+                    "VideoRangeType": "SDR",
+                    "AudioSpatialFormat": "None",
+                    "DisplayTitle": "240p H264 SDR",
+                    "NalLengthSize": "4",
+                    "IsInterlaced": false,
+                    "IsAVC": true,
+                    "BitDepth": 8,
+                    "RefFrames": 1,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Height": 180,
+                    "Width": 320,
+                    "AverageFrameRate": 24,
+                    "RealFrameRate": 24,
+                    "ReferenceFrameRate": 24,
+                    "Profile": "High",
+                    "Type": "Video",
+                    "AspectRatio": "16:9",
+                    "Index": 0,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false,
+                    "PixelFormat": "yuv420p",
+                    "Level": 12,
+                    "IsAnamorphic": false
+                  },
+                  {
+                    "Codec": "aac",
+                    "Language": "jpn",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "Unknown",
+                    "VideoRangeType": "Unknown",
+                    "AudioSpatialFormat": "None",
+                    "LocalizedDefault": "Default",
+                    "LocalizedExternal": "External",
+                    "LocalizedLanguage": "Japanese",
+                    "LocalizedOriginal": "Original",
+                    "DisplayTitle": "Japanese - AAC - Mono",
+                    "IsInterlaced": false,
+                    "ChannelLayout": "mono",
+                    "BitRate": 192000,
+                    "Channels": 1,
+                    "SampleRate": 44100,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Profile": "LC",
+                    "Type": "Audio",
+                    "Index": 1,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false
+                  }
                 ],
-                "TotalRecordCount": 5,
-                "StartIndex": 0
-            }
-        },
-        "b1": {
-            "seasons": {
-                "Items": [
-                    { "Name": "Specials", "Id": "b1s0", "Type": "Season", "IndexNumber": 0, "SeriesId": "b1", "ProviderIds": {} },
-                    { "Name": "Season 1", "Id": "b1s1", "Type": "Season", "IndexNumber": 1, "SeriesId": "b1", "ProductionYear": 2013, "ProviderIds": {} },
-                    { "Name": "Season 2", "Id": "b1s2", "Type": "Season", "IndexNumber": 2, "SeriesId": "b1", "ProductionYear": 2017, "ProviderIds": {} },
-                    { "Name": "Season 3", "Id": "b1s3", "Type": "Season", "IndexNumber": 3, "SeriesId": "b1", "ProductionYear": 2018, "ProviderIds": {} }
+                "MediaAttachments": [],
+                "Formats": [],
+                "Bitrate": 101528,
+                "RequiredHttpHeaders": {},
+                "TranscodingSubProtocol": "http",
+                "DefaultAudioStreamIndex": 1,
+                "HasSegments": false
+              }
+            ],
+            "ChannelId": null,
+            "CommunityRating": 7.033,
+            "RunTimeTicks": 100230000,
+            "ProductionYear": 2016,
+            "IndexNumber": 2,
+            "ParentIndexNumber": 1,
+            "ProviderIds": {
+              "Imdb": "tt6015858",
+              "Tmdb": "1205308",
+              "Tvdb": "5667235"
+            },
+            "IsFolder": false,
+            "Type": "Episode",
+            "ParentLogoItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropImageTags": [
+              "3083a9e5ec41a7102e7bfca7f529c409"
+            ],
+            "UserData": {
+              "PlaybackPositionTicks": 0,
+              "PlayCount": 0,
+              "IsFavorite": false,
+              "Played": false,
+              "Key": "307375001002",
+              "ItemId": "cfb6e41e3864faaf43eba21c6b029d8c"
+            },
+            "SeriesName": "Mob Psycho 100",
+            "SeriesId": "7a6a3619526e396ee2ba610227c18bdb",
+            "SeasonId": "7189079d8a29d819d81a8371ad2a03ca",
+            "SeriesPrimaryImageTag": "95361584793b36e9b2b06cef4e2e6c91",
+            "SeasonName": "Season 1",
+            "VideoType": "VideoFile",
+            "ImageTags": {
+              "Primary": "aaa6ec6a83c39a9fc60722a5081e3cb4"
+            },
+            "BackdropImageTags": [],
+            "ParentLogoImageTag": "38eeb1823557801cee769fa78fe74989",
+            "ImageBlurHashes": {
+              "Primary": {
+                "aaa6ec6a83c39a9fc60722a5081e3cb4": "WQGleUE0_3XS%NWY~pxt%NkCX8X9XNtRt8ayRjbc-;WXxZxuV[sm",
+                "95361584793b36e9b2b06cef4e2e6c91": "dNJ@Xr?]yq}[_JbvNLnh-6RjE%ko=KNbOBt7cUWFsrb^",
+                "13858e09bba90a399aca7ce563908ea7": "dUD]f8tM4mNKs[W+tLWZV|R$k8t8%4WAM{t84nRi%Ma{"
+              },
+              "Logo": {
+                "38eeb1823557801cee769fa78fe74989": "OTGp#bo21?o2jtWosW=3o2,ufQJia{JisWjuSKo2SKjuWo"
+              },
+              "Thumb": {
+                "cc6e201ab9d1a88f50b1244f9766831a": "WZOp.7jro{_4?b?u~qtRoKe.RjjZtQogV[nhV@WV_3ofWCf*WUoM"
+              },
+              "Backdrop": {
+                "3083a9e5ec41a7102e7bfca7f529c409": "WND0inv$JMD%9Gkq~Ex[InM}NbMwt8%3Rhx[a3NtV{xuavt6o5RQ"
+              }
+            },
+            "ParentThumbItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentThumbImageTag": "cc6e201ab9d1a88f50b1244f9766831a",
+            "ParentPrimaryImageItemId": "7189079d8a29d819d81a8371ad2a03ca",
+            "ParentPrimaryImageTag": "13858e09bba90a399aca7ce563908ea7",
+            "LocationType": "FileSystem",
+            "MediaType": "Video",
+            "OriginalLanguage": "ja"
+          },
+          {
+            "Name": "Auf den Keim gegangen",
+            "ServerId": "recorded-server",
+            "Id": "f42ba4f705e9e73b2a3f50784ce2c35a",
+            "Container": "mkv",
+            "PremiereDate": "2019-01-06T23:00:00.0000000Z",
+            "MediaSources": [
+              {
+                "Protocol": "File",
+                "Id": "f42ba4f705e9e73b2a3f50784ce2c35a",
+                "Path": "/media/Shows/Mob Psycho 100 (2016)/Season 02/Mob Psycho 100 (2016) - S02E01.mkv",
+                "Type": "Default",
+                "Container": "mkv",
+                "Size": 127202,
+                "Name": "Mob Psycho 100 (2016) - S02E01",
+                "IsRemote": false,
+                "ETag": "51569986cded736b6b63252bd85bca19",
+                "RunTimeTicks": 100230000,
+                "ReadAtNativeFramerate": false,
+                "IgnoreDts": false,
+                "IgnoreIndex": false,
+                "GenPtsInput": false,
+                "SupportsTranscoding": true,
+                "SupportsDirectStream": true,
+                "SupportsDirectPlay": true,
+                "IsInfiniteStream": false,
+                "UseMostCompatibleTranscodingProfile": false,
+                "RequiresOpening": false,
+                "RequiresClosing": false,
+                "RequiresLooping": false,
+                "SupportsProbing": true,
+                "VideoType": "VideoFile",
+                "MediaStreams": [
+                  {
+                    "Codec": "h264",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "SDR",
+                    "VideoRangeType": "SDR",
+                    "AudioSpatialFormat": "None",
+                    "DisplayTitle": "240p H264 SDR",
+                    "NalLengthSize": "4",
+                    "IsInterlaced": false,
+                    "IsAVC": true,
+                    "BitDepth": 8,
+                    "RefFrames": 1,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Height": 180,
+                    "Width": 320,
+                    "AverageFrameRate": 24,
+                    "RealFrameRate": 24,
+                    "ReferenceFrameRate": 24,
+                    "Profile": "High",
+                    "Type": "Video",
+                    "AspectRatio": "16:9",
+                    "Index": 0,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false,
+                    "PixelFormat": "yuv420p",
+                    "Level": 12,
+                    "IsAnamorphic": false
+                  },
+                  {
+                    "Codec": "aac",
+                    "Language": "jpn",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "Unknown",
+                    "VideoRangeType": "Unknown",
+                    "AudioSpatialFormat": "None",
+                    "LocalizedDefault": "Default",
+                    "LocalizedExternal": "External",
+                    "LocalizedLanguage": "Japanese",
+                    "LocalizedOriginal": "Original",
+                    "DisplayTitle": "Japanese - AAC - Mono",
+                    "IsInterlaced": false,
+                    "ChannelLayout": "mono",
+                    "BitRate": 192000,
+                    "Channels": 1,
+                    "SampleRate": 44100,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Profile": "LC",
+                    "Type": "Audio",
+                    "Index": 1,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false
+                  }
                 ],
-                "TotalRecordCount": 4,
-                "StartIndex": 0
+                "MediaAttachments": [],
+                "Formats": [],
+                "Bitrate": 101528,
+                "RequiredHttpHeaders": {},
+                "TranscodingSubProtocol": "http",
+                "DefaultAudioStreamIndex": 1,
+                "HasSegments": false
+              }
+            ],
+            "ChannelId": null,
+            "CommunityRating": 8.654,
+            "RunTimeTicks": 100230000,
+            "ProductionYear": 2019,
+            "IndexNumber": 1,
+            "ParentIndexNumber": 2,
+            "ProviderIds": {
+              "Imdb": "tt9300038",
+              "Tmdb": "1614144",
+              "Tvdb": "6763652"
             },
-            "episodes": {
-                "Items": [
-                    { "Name": "OVA", "Id": "b1s0e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 0, "SeasonId": "b1s0", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
-                    { "Name": "Episode 1", "Id": "b1s1e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 1, "SeasonId": "b1s1", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
-                    { "Name": "Episode 2", "Id": "b1s1e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 1, "SeasonId": "b1s1", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
-                    { "Name": "Episode 3", "Id": "b1s1e3", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 1, "SeasonId": "b1s1", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
-                    { "Name": "Episode 1", "Id": "b1s2e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 2, "SeasonId": "b1s2", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
-                    { "Name": "Episode 2", "Id": "b1s2e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 2, "SeasonId": "b1s2", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
-                    { "Name": "Episode 3", "Id": "b1s2e3", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 2, "SeasonId": "b1s2", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
-                    { "Name": "Episode 1", "Id": "b1s3e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 3, "SeasonId": "b1s3", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
-                    { "Name": "Episode 2", "Id": "b1s3e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 3, "SeasonId": "b1s3", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
-                    { "Name": "Episode 3", "Id": "b1s3e3", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 3, "SeasonId": "b1s3", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} }
+            "IsFolder": false,
+            "Type": "Episode",
+            "ParentLogoItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropImageTags": [
+              "3083a9e5ec41a7102e7bfca7f529c409"
+            ],
+            "UserData": {
+              "PlaybackPositionTicks": 0,
+              "PlayCount": 0,
+              "IsFavorite": false,
+              "Played": false,
+              "Key": "307375002001",
+              "ItemId": "f42ba4f705e9e73b2a3f50784ce2c35a"
+            },
+            "SeriesName": "Mob Psycho 100",
+            "SeriesId": "7a6a3619526e396ee2ba610227c18bdb",
+            "SeasonId": "86104f00133c5a6bbcad03de95e3db4c",
+            "SeriesPrimaryImageTag": "95361584793b36e9b2b06cef4e2e6c91",
+            "SeasonName": "Season 2",
+            "VideoType": "VideoFile",
+            "ImageTags": {
+              "Primary": "fbc44729551557ecb570c54d072a65dc"
+            },
+            "BackdropImageTags": [],
+            "ParentLogoImageTag": "38eeb1823557801cee769fa78fe74989",
+            "ImageBlurHashes": {
+              "Primary": {
+                "fbc44729551557ecb570c54d072a65dc": "WXG*.}%M4mD%9aocMgxuo|WANFRki]V[ozj;WYW?-otRRjM_M{oL",
+                "95361584793b36e9b2b06cef4e2e6c91": "dNJ@Xr?]yq}[_JbvNLnh-6RjE%ko=KNbOBt7cUWFsrb^",
+                "99f35c5ca74e92f6734ddbfe34eaf3b4": "dmD22jkXENo~TwW-x]ozPVozozWXp{o#NbW=F{WYxuf+"
+              },
+              "Logo": {
+                "38eeb1823557801cee769fa78fe74989": "OTGp#bo21?o2jtWosW=3o2,ufQJia{JisWjuSKo2SKjuWo"
+              },
+              "Thumb": {
+                "cc6e201ab9d1a88f50b1244f9766831a": "WZOp.7jro{_4?b?u~qtRoKe.RjjZtQogV[nhV@WV_3ofWCf*WUoM"
+              },
+              "Backdrop": {
+                "3083a9e5ec41a7102e7bfca7f529c409": "WND0inv$JMD%9Gkq~Ex[InM}NbMwt8%3Rhx[a3NtV{xuavt6o5RQ"
+              }
+            },
+            "ParentThumbItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentThumbImageTag": "cc6e201ab9d1a88f50b1244f9766831a",
+            "ParentPrimaryImageItemId": "86104f00133c5a6bbcad03de95e3db4c",
+            "ParentPrimaryImageTag": "99f35c5ca74e92f6734ddbfe34eaf3b4",
+            "LocationType": "FileSystem",
+            "MediaType": "Video",
+            "OriginalLanguage": "ja"
+          },
+          {
+            "Name": "Düstere Stadtlegenden",
+            "ServerId": "recorded-server",
+            "Id": "d1d7156ba19be3614bfa1a140822bc45",
+            "Container": "mkv",
+            "PremiereDate": "2019-01-13T23:00:00.0000000Z",
+            "MediaSources": [
+              {
+                "Protocol": "File",
+                "Id": "d1d7156ba19be3614bfa1a140822bc45",
+                "Path": "/media/Shows/Mob Psycho 100 (2016)/Season 02/Mob Psycho 100 (2016) - S02E02.mkv",
+                "Type": "Default",
+                "Container": "mkv",
+                "Size": 127202,
+                "Name": "Mob Psycho 100 (2016) - S02E02",
+                "IsRemote": false,
+                "ETag": "5a669ee0669b560ca0934e254d2376c3",
+                "RunTimeTicks": 100230000,
+                "ReadAtNativeFramerate": false,
+                "IgnoreDts": false,
+                "IgnoreIndex": false,
+                "GenPtsInput": false,
+                "SupportsTranscoding": true,
+                "SupportsDirectStream": true,
+                "SupportsDirectPlay": true,
+                "IsInfiniteStream": false,
+                "UseMostCompatibleTranscodingProfile": false,
+                "RequiresOpening": false,
+                "RequiresClosing": false,
+                "RequiresLooping": false,
+                "SupportsProbing": true,
+                "VideoType": "VideoFile",
+                "MediaStreams": [
+                  {
+                    "Codec": "h264",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "SDR",
+                    "VideoRangeType": "SDR",
+                    "AudioSpatialFormat": "None",
+                    "DisplayTitle": "240p H264 SDR",
+                    "NalLengthSize": "4",
+                    "IsInterlaced": false,
+                    "IsAVC": true,
+                    "BitDepth": 8,
+                    "RefFrames": 1,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Height": 180,
+                    "Width": 320,
+                    "AverageFrameRate": 24,
+                    "RealFrameRate": 24,
+                    "ReferenceFrameRate": 24,
+                    "Profile": "High",
+                    "Type": "Video",
+                    "AspectRatio": "16:9",
+                    "Index": 0,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false,
+                    "PixelFormat": "yuv420p",
+                    "Level": 12,
+                    "IsAnamorphic": false
+                  },
+                  {
+                    "Codec": "aac",
+                    "Language": "jpn",
+                    "TimeBase": "1/1000",
+                    "VideoRange": "Unknown",
+                    "VideoRangeType": "Unknown",
+                    "AudioSpatialFormat": "None",
+                    "LocalizedDefault": "Default",
+                    "LocalizedExternal": "External",
+                    "LocalizedLanguage": "Japanese",
+                    "LocalizedOriginal": "Original",
+                    "DisplayTitle": "Japanese - AAC - Mono",
+                    "IsInterlaced": false,
+                    "ChannelLayout": "mono",
+                    "BitRate": 192000,
+                    "Channels": 1,
+                    "SampleRate": 44100,
+                    "IsDefault": false,
+                    "IsForced": false,
+                    "IsHearingImpaired": false,
+                    "IsOriginal": false,
+                    "Profile": "LC",
+                    "Type": "Audio",
+                    "Index": 1,
+                    "IsExternal": false,
+                    "IsTextSubtitleStream": false,
+                    "SupportsExternalStream": false
+                  }
                 ],
-                "TotalRecordCount": 10,
-                "StartIndex": 0
-            }
-        },
-        "c1": {
-            "seasons": {
-                "Items": [
-                    { "Name": "Specials", "Id": "c1s0", "Type": "Season", "IndexNumber": 0, "SeriesId": "c1", "ProviderIds": {} },
-                    { "Name": "Season 1", "Id": "c1s1", "Type": "Season", "IndexNumber": 1, "SeriesId": "c1", "ProductionYear": 2020, "ProviderIds": {} }
-                ],
-                "TotalRecordCount": 2,
-                "StartIndex": 0
+                "MediaAttachments": [],
+                "Formats": [],
+                "Bitrate": 101528,
+                "RequiredHttpHeaders": {},
+                "TranscodingSubProtocol": "http",
+                "DefaultAudioStreamIndex": 1,
+                "HasSegments": false
+              }
+            ],
+            "ChannelId": null,
+            "CommunityRating": 7.565,
+            "RunTimeTicks": 100230000,
+            "ProductionYear": 2019,
+            "IndexNumber": 2,
+            "ParentIndexNumber": 2,
+            "ProviderIds": {
+              "Imdb": "tt9599670",
+              "Tmdb": "1659377",
+              "Tvdb": "6944296"
             },
-            "episodes": {
-                "Items": [
-                    { "Name": "Special 4", "Id": "c1s0e4", "Type": "Episode", "IndexNumber": 4, "ParentIndexNumber": 0, "SeasonId": "c1s0", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
-                    { "Name": "Episode 1", "Id": "c1s1e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
-                    { "Name": "Episode 2", "Id": "c1s1e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
-                    { "Name": "Episode 3", "Id": "c1s1e3", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
-                    { "Name": "Episode 4", "Id": "c1s1e4", "Type": "Episode", "IndexNumber": 4, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
-                    { "Name": "Episode 5", "Id": "c1s1e5", "Type": "Episode", "IndexNumber": 5, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
-                    { "Name": "Episode 6", "Id": "c1s1e6", "Type": "Episode", "IndexNumber": 6, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} }
-                ],
-                "TotalRecordCount": 7,
-                "StartIndex": 0
-            }
-        },
-        "d1": {
-            "seasons": {
-                "Items": [
-                    { "Name": "Season 1", "Id": "d1s1", "Type": "Season", "IndexNumber": 1, "SeriesId": "d1", "ProductionYear": 2010, "ProviderIds": {} },
-                    { "Name": "Season 2", "Id": "d1s2", "Type": "Season", "IndexNumber": 2, "SeriesId": "d1", "ProductionYear": 2011, "ProviderIds": {} }
-                ],
-                "TotalRecordCount": 2,
-                "StartIndex": 0
+            "IsFolder": false,
+            "Type": "Episode",
+            "ParentLogoItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentBackdropImageTags": [
+              "3083a9e5ec41a7102e7bfca7f529c409"
+            ],
+            "UserData": {
+              "PlaybackPositionTicks": 0,
+              "PlayCount": 0,
+              "IsFavorite": false,
+              "Played": false,
+              "Key": "307375002002",
+              "ItemId": "d1d7156ba19be3614bfa1a140822bc45"
             },
-            "episodes": {
-                "Items": [
-                    { "Name": "Episode 1", "Id": "d1s1e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 1, "SeasonId": "d1s1", "SeriesId": "d1", "SeriesName": "Mori no Uta", "ProviderIds": {} },
-                    { "Name": "Episode 2", "Id": "d1s1e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 1, "SeasonId": "d1s1", "SeriesId": "d1", "SeriesName": "Mori no Uta", "ProviderIds": {} },
-                    { "Name": "Episode 1", "Id": "d1s2e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 2, "SeasonId": "d1s2", "SeriesId": "d1", "SeriesName": "Mori no Uta", "ProviderIds": {} },
-                    { "Name": "Episode 2", "Id": "d1s2e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 2, "SeasonId": "d1s2", "SeriesId": "d1", "SeriesName": "Mori no Uta", "ProviderIds": {} }
-                ],
-                "TotalRecordCount": 4,
-                "StartIndex": 0
-            }
-        }
-    },
-    "anizip": {
-        "101": {
-            "titles": { "x-jat": "Hoshi no Tabi", "en": "Journey of Stars" },
-            "episodes": {
-                "1": { "episodeNumber": 1, "seasonNumber": 1, "absoluteEpisodeNumber": 1 },
-                "2": { "episodeNumber": 2, "seasonNumber": 1, "absoluteEpisodeNumber": 2 },
-                "3": { "episodeNumber": 3, "seasonNumber": 1, "absoluteEpisodeNumber": 3 },
-                "4": { "episodeNumber": 4, "seasonNumber": 1, "absoluteEpisodeNumber": 4 }
+            "SeriesName": "Mob Psycho 100",
+            "SeriesId": "7a6a3619526e396ee2ba610227c18bdb",
+            "SeasonId": "86104f00133c5a6bbcad03de95e3db4c",
+            "SeriesPrimaryImageTag": "95361584793b36e9b2b06cef4e2e6c91",
+            "SeasonName": "Season 2",
+            "VideoType": "VideoFile",
+            "ImageTags": {
+              "Primary": "421c513af8d7d3868577d2e428e43b03"
             },
-            "episodeCount": 4,
-            "specialCount": 1,
-            "mappings": { "anilist_id": 101, "thetvdb_id": 900101 }
-        },
-        "201": {
-            "titles": { "x-jat": "Kyojin Saga" },
-            "episodes": {
-                "1": { "episodeNumber": 1, "seasonNumber": 1, "absoluteEpisodeNumber": 1 },
-                "2": { "episodeNumber": 2, "seasonNumber": 1, "absoluteEpisodeNumber": 2 },
-                "3": { "episodeNumber": 3, "seasonNumber": 1, "absoluteEpisodeNumber": 3 }
+            "BackdropImageTags": [],
+            "ParentLogoImageTag": "38eeb1823557801cee769fa78fe74989",
+            "ImageBlurHashes": {
+              "Primary": {
+                "421c513af8d7d3868577d2e428e43b03": "WRKT_8~p9t.8N_NGIS?E?GIqNHt701$x-oIVxuo}^%X9WFSjo#xt",
+                "95361584793b36e9b2b06cef4e2e6c91": "dNJ@Xr?]yq}[_JbvNLnh-6RjE%ko=KNbOBt7cUWFsrb^",
+                "99f35c5ca74e92f6734ddbfe34eaf3b4": "dmD22jkXENo~TwW-x]ozPVozozWXp{o#NbW=F{WYxuf+"
+              },
+              "Logo": {
+                "38eeb1823557801cee769fa78fe74989": "OTGp#bo21?o2jtWosW=3o2,ufQJia{JisWjuSKo2SKjuWo"
+              },
+              "Thumb": {
+                "cc6e201ab9d1a88f50b1244f9766831a": "WZOp.7jro{_4?b?u~qtRoKe.RjjZtQogV[nhV@WV_3ofWCf*WUoM"
+              },
+              "Backdrop": {
+                "3083a9e5ec41a7102e7bfca7f529c409": "WND0inv$JMD%9Gkq~Ex[InM}NbMwt8%3Rhx[a3NtV{xuavt6o5RQ"
+              }
             },
-            "episodeCount": 3,
-            "specialCount": 0,
-            "mappings": { "anilist_id": 201, "thetvdb_id": 900201, "themoviedb_id": 800201 }
-        },
-        "202": {
-            "titles": { "x-jat": "Kyojin Saga Season 2" },
-            "episodes": {
-                "1": { "episodeNumber": 1, "seasonNumber": 2, "absoluteEpisodeNumber": 4 },
-                "2": { "episodeNumber": 2, "seasonNumber": 2, "absoluteEpisodeNumber": 5 },
-                "3": { "episodeNumber": 3, "seasonNumber": 2, "absoluteEpisodeNumber": 6 }
-            },
-            "episodeCount": 3,
-            "specialCount": 0,
-            "mappings": { "anilist_id": 202, "thetvdb_id": 900201 }
-        },
-        "203": {
-            "titles": { "x-jat": "Kyojin Saga Season 3" },
-            "episodes": {
-                "1": { "episodeNumber": 1, "seasonNumber": 3, "absoluteEpisodeNumber": 7 },
-                "2": { "episodeNumber": 2, "seasonNumber": 3, "absoluteEpisodeNumber": 8 },
-                "3": { "episodeNumber": 3, "seasonNumber": 3, "absoluteEpisodeNumber": 9 }
-            },
-            "episodeCount": 3,
-            "specialCount": 0,
-            "mappings": { "anilist_id": 203, "thetvdb_id": 900201 }
-        },
-        "204": {
-            "titles": { "x-jat": "Kyojin Saga OVA" },
-            "episodes": {
-                "1": { "episodeNumber": 1, "seasonNumber": 0, "absoluteEpisodeNumber": 0 }
-            },
-            "episodeCount": 1,
-            "specialCount": 0,
-            "mappings": { "anilist_id": 204, "thetvdb_id": 900201 }
-        },
-        "301": {
-            "titles": { "x-jat": "Juuni Cours" },
-            "episodes": {
-                "1": { "episodeNumber": 1, "seasonNumber": 1, "absoluteEpisodeNumber": 1 },
-                "2": { "episodeNumber": 2, "seasonNumber": 1, "absoluteEpisodeNumber": 2 },
-                "3": { "episodeNumber": 3, "seasonNumber": 1, "absoluteEpisodeNumber": 3 }
-            },
-            "episodeCount": 3,
-            "specialCount": 0,
-            "mappings": { "anilist_id": 301, "thetvdb_id": 900301 }
-        },
-        "302": {
-            "titles": { "x-jat": "Juuni Cours Part 2" },
-            "episodes": {
-                "1": { "episodeNumber": 1, "seasonNumber": 2, "absoluteEpisodeNumber": 4 },
-                "2": { "episodeNumber": 2, "seasonNumber": 2, "absoluteEpisodeNumber": 5 },
-                "3": { "episodeNumber": 3, "seasonNumber": 2, "absoluteEpisodeNumber": 6 }
-            },
-            "episodeCount": 3,
-            "specialCount": 0,
-            "mappings": { "anilist_id": 302, "thetvdb_id": 900301 }
-        }
+            "ParentThumbItemId": "7a6a3619526e396ee2ba610227c18bdb",
+            "ParentThumbImageTag": "cc6e201ab9d1a88f50b1244f9766831a",
+            "ParentPrimaryImageItemId": "86104f00133c5a6bbcad03de95e3db4c",
+            "ParentPrimaryImageTag": "99f35c5ca74e92f6734ddbfe34eaf3b4",
+            "LocationType": "FileSystem",
+            "MediaType": "Video",
+            "OriginalLanguage": "ja"
+          }
+        ],
+        "TotalRecordCount": 4,
+        "StartIndex": 0
+      }
     }
+  },
+  "playbackInfo": {
+    "episodeId": "0d8519aea321347648d3416e666fb983",
+    "answer": {
+      "MediaSources": [
+        {
+          "Protocol": "File",
+          "Id": "0d8519aea321347648d3416e666fb983",
+          "Path": "/media/Shows/Cowboy Bebop (1998)/Season 01/Cowboy Bebop (1998) - S01E01.mkv",
+          "Type": "Default",
+          "Container": "mkv",
+          "Size": 20042811,
+          "Name": "Cowboy Bebop (1998) - S01E01",
+          "IsRemote": false,
+          "ETag": "10efc65342c8153431a30c9ba922987b",
+          "RunTimeTicks": 600230000,
+          "ReadAtNativeFramerate": false,
+          "IgnoreDts": false,
+          "IgnoreIndex": false,
+          "GenPtsInput": false,
+          "SupportsTranscoding": true,
+          "SupportsDirectStream": true,
+          "SupportsDirectPlay": true,
+          "IsInfiniteStream": false,
+          "UseMostCompatibleTranscodingProfile": false,
+          "RequiresOpening": false,
+          "RequiresClosing": false,
+          "RequiresLooping": false,
+          "SupportsProbing": true,
+          "VideoType": "VideoFile",
+          "MediaStreams": [
+            {
+              "Codec": "subrip",
+              "Language": "eng",
+              "TimeBase": "1/1000",
+              "VideoRange": "Unknown",
+              "VideoRangeType": "Unknown",
+              "AudioSpatialFormat": "None",
+              "LocalizedUndefined": "Undefined",
+              "LocalizedDefault": "Default",
+              "LocalizedForced": "Forced",
+              "LocalizedExternal": "External",
+              "LocalizedHearingImpaired": "Hearing Impaired",
+              "LocalizedLanguage": "English",
+              "DisplayTitle": "English - SUBRIP - External",
+              "IsInterlaced": false,
+              "IsDefault": false,
+              "IsForced": false,
+              "IsHearingImpaired": false,
+              "IsOriginal": false,
+              "Type": "Subtitle",
+              "Index": 0,
+              "Score": 111222,
+              "IsExternal": true,
+              "IsTextSubtitleStream": true,
+              "SupportsExternalStream": true,
+              "Path": "/media/Shows/Cowboy Bebop (1998)/Season 01/Cowboy Bebop (1998) - S01E01.en.srt"
+            },
+            {
+              "Codec": "h264",
+              "TimeBase": "1/1000",
+              "VideoRange": "SDR",
+              "VideoRangeType": "SDR",
+              "AudioSpatialFormat": "None",
+              "DisplayTitle": "720p H264 SDR",
+              "NalLengthSize": "4",
+              "IsInterlaced": false,
+              "IsAVC": true,
+              "BitRate": 2479350,
+              "BitDepth": 8,
+              "RefFrames": 1,
+              "IsDefault": false,
+              "IsForced": false,
+              "IsHearingImpaired": false,
+              "IsOriginal": false,
+              "Height": 720,
+              "Width": 1280,
+              "AverageFrameRate": 24,
+              "RealFrameRate": 24,
+              "ReferenceFrameRate": 24,
+              "Profile": "High",
+              "Type": "Video",
+              "AspectRatio": "16:9",
+              "Index": 1,
+              "IsExternal": false,
+              "IsTextSubtitleStream": false,
+              "SupportsExternalStream": false,
+              "PixelFormat": "yuv420p",
+              "Level": 31,
+              "IsAnamorphic": false
+            },
+            {
+              "Codec": "aac",
+              "TimeBase": "1/1000",
+              "VideoRange": "Unknown",
+              "VideoRangeType": "Unknown",
+              "AudioSpatialFormat": "None",
+              "LocalizedDefault": "Default",
+              "LocalizedExternal": "External",
+              "LocalizedOriginal": "Original",
+              "DisplayTitle": "AAC - Mono",
+              "IsInterlaced": false,
+              "ChannelLayout": "mono",
+              "BitRate": 192000,
+              "Channels": 1,
+              "SampleRate": 44100,
+              "IsDefault": false,
+              "IsForced": false,
+              "IsHearingImpaired": false,
+              "IsOriginal": false,
+              "Profile": "LC",
+              "Type": "Audio",
+              "Index": 2,
+              "IsExternal": false,
+              "IsTextSubtitleStream": false,
+              "SupportsExternalStream": false
+            }
+          ],
+          "MediaAttachments": [],
+          "Formats": [],
+          "Bitrate": 2671350,
+          "RequiredHttpHeaders": {},
+          "TranscodingSubProtocol": "http",
+          "DefaultAudioStreamIndex": 2,
+          "DefaultSubtitleStreamIndex": 0,
+          "HasSegments": false
+        }
+      ],
+      "PlaySessionId": "5fa49a69cf9a443796965d5568be0bd9"
+    }
+  },
+  "subtitle": {
+    "episodeId": "0d8519aea321347648d3416e666fb983",
+    "mediaSourceId": "0d8519aea321347648d3416e666fb983",
+    "index": 0,
+    "path": "/Videos/0d8519aea321347648d3416e666fb983/0d8519aea321347648d3416e666fb983/Subtitles/0/Stream.srt",
+    "withAuthorization": {
+      "status": 200,
+      "contentType": "application/x-subrip",
+      "text": "1\n00:00:01,000 --> 00:00:03,000\nSeanime test subtitle one\n\n2\n00:00:04,000 --> 00:00:06,000\nSeanime test subtitle two\n\n3\n00:00:07,000 --> 00:00:09,000\nSeanime test subtitle three\n"
+    },
+    "withoutAuthorization": {
+      "status": 200,
+      "contentType": "application/x-subrip"
+    }
+  },
+  "anizip": {
+    "1": {
+      "titles": {
+        "x-jat": "CowBe",
+        "ru": "Ковбой Бибоп ТВ",
+        "ar": "صائدو جوائز بيبوب",
+        "nl": "Cowboy Bebop",
+        "lt": "Kaubojus Bebopas",
+        "tr": "Kovboy Bebop",
+        "uk": "Ковбой Бібоп ТБ",
+        "fa": "کابوی بیباپ",
+        "ja": "カウボーイビバップ",
+        "zh": "星际牛仔",
+        "en": "Cowboy Bebop",
+        "de": "Cowboy Bebop",
+        "fr": "Cowboy Bebop",
+        "it": "Cowboy Bebop",
+        "es": "Cowboy Bebop",
+        "ko": "카우보이 비밥",
+        "pl": "Cowboy Bebop",
+        "pt": "Cowboy Bebop",
+        "pt-BR": "Cowboy Bebop",
+        "es-CA": "Cowboy Bebop",
+        "cs": "Kovboj Bebop",
+        "fi": "Cowboy Bebop",
+        "el": "Καουμπόηδες του Διαστήματος",
+        "he": "קאובוי ביבופ",
+        "hu": "Csillagközi fejvadászok",
+        "ro": "Cowboy Bebop",
+        "bg": "Марсиански каубой",
+        "hr": "Kauboj Bebop",
+        "zh-Hant": "星際牛仔",
+        "zh-Hans": "星际牛仔",
+        "es-419": "Cowboy Bebop"
+      },
+      "episodes": {
+        "1": {
+          "episodeNumber": 1,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 2
+        },
+        "2": {
+          "episodeNumber": 13,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 1
+        },
+        "3": {
+          "episodeNumber": 2,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 3
+        },
+        "4": {
+          "episodeNumber": 14,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 4
+        },
+        "5": {
+          "episodeNumber": 15,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 5
+        },
+        "6": {
+          "episodeNumber": 16,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 6
+        },
+        "7": {
+          "episodeNumber": 3,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 7
+        },
+        "8": {
+          "episodeNumber": 4,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 8
+        },
+        "9": {
+          "episodeNumber": 5,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 9
+        },
+        "10": {
+          "episodeNumber": 6,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 10
+        },
+        "11": {
+          "episodeNumber": 7,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 11
+        },
+        "12": {
+          "episodeNumber": 8,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 12
+        },
+        "13": {
+          "episodeNumber": 9,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 13
+        },
+        "14": {
+          "episodeNumber": 10,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 14
+        },
+        "15": {
+          "episodeNumber": 11,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 15
+        },
+        "16": {
+          "episodeNumber": 17,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 16
+        },
+        "17": {
+          "episodeNumber": 18,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 17
+        },
+        "18": {
+          "episodeNumber": 12,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 18
+        },
+        "19": {
+          "episodeNumber": 19,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 19
+        },
+        "20": {
+          "episodeNumber": 20,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 20
+        },
+        "21": {
+          "episodeNumber": 21,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 21
+        },
+        "22": {
+          "episodeNumber": 22,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 22
+        },
+        "23": {
+          "episodeNumber": 23,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 23
+        },
+        "24": {
+          "episodeNumber": 24,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 24
+        },
+        "25": {
+          "episodeNumber": 25,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 25
+        },
+        "26": {
+          "episodeNumber": 26,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 26
+        },
+        "S1": {
+          "episodeNumber": 1,
+          "seasonNumber": 0
+        },
+        "S4": {},
+        "S2": {
+          "episodeNumber": 2,
+          "seasonNumber": 0
+        },
+        "S3": {
+          "episodeNumber": 4,
+          "seasonNumber": 0
+        },
+        "S6": {},
+        "S5": {},
+        "S7": {},
+        "S14": {},
+        "S13": {},
+        "S12": {},
+        "S11": {},
+        "S10": {},
+        "S9": {},
+        "S8": {}
+      },
+      "episodeCount": 26,
+      "specialCount": 14,
+      "mappings": {
+        "animeplanet_id": "cowboy-bebop",
+        "kitsu_id": 1,
+        "mal_id": 1,
+        "type": "TV",
+        "anilist_id": 1,
+        "anisearch_id": 1572,
+        "anidb_id": 23,
+        "notifymoe_id": null,
+        "livechart_id": 3418,
+        "thetvdb_id": 76885,
+        "imdb_id": "tt0213338",
+        "themoviedb_id": "30991"
+      }
+    },
+    "21507": {
+      "titles": {
+        "x-jat": "Mob Psycho 100",
+        "ar": "النفسي موب 100",
+        "he": "מוב פסיכו 100",
+        "bg": "Моб Психо 100",
+        "en": "Mob Psycho 100",
+        "ja": "モブサイコ100",
+        "ru": "Моб Психо 100",
+        "ko": "모브 사이코 100",
+        "pl": "Mob Psycho 100",
+        "zh-Hans": "灵能百分百",
+        "es-419": "Mob Psycho 100"
+      },
+      "episodes": {
+        "1": {
+          "episodeNumber": 1,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 1
+        },
+        "2": {
+          "episodeNumber": 2,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 2
+        },
+        "3": {
+          "episodeNumber": 3,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 3
+        },
+        "4": {
+          "episodeNumber": 4,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 4
+        },
+        "5": {
+          "episodeNumber": 5,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 5
+        },
+        "6": {
+          "episodeNumber": 6,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 6
+        },
+        "7": {
+          "episodeNumber": 7,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 7
+        },
+        "8": {
+          "episodeNumber": 8,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 8
+        },
+        "9": {
+          "episodeNumber": 9,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 9
+        },
+        "10": {
+          "episodeNumber": 10,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 10
+        },
+        "11": {
+          "episodeNumber": 11,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 11
+        },
+        "12": {
+          "episodeNumber": 12,
+          "seasonNumber": 1,
+          "absoluteEpisodeNumber": 12
+        },
+        "S6": {
+          "episodeNumber": 6,
+          "seasonNumber": 0
+        },
+        "S5": {
+          "episodeNumber": 5,
+          "seasonNumber": 0
+        },
+        "S4": {
+          "episodeNumber": 4,
+          "seasonNumber": 0
+        },
+        "S3": {
+          "episodeNumber": 3,
+          "seasonNumber": 0
+        },
+        "S2": {
+          "episodeNumber": 2,
+          "seasonNumber": 0
+        },
+        "S1": {
+          "episodeNumber": 1,
+          "seasonNumber": 0
+        },
+        "S7": {}
+      },
+      "episodeCount": 12,
+      "specialCount": 7,
+      "mappings": {
+        "animeplanet_id": "mob-psycho-100",
+        "kitsu_id": 11578,
+        "mal_id": 32182,
+        "type": "TV",
+        "anilist_id": 21507,
+        "anisearch_id": 11092,
+        "anidb_id": 11803,
+        "notifymoe_id": null,
+        "livechart_id": 1936,
+        "thetvdb_id": 307375,
+        "imdb_id": "tt5897304",
+        "themoviedb_id": "67075"
+      }
+    },
+    "101338": {
+      "titles": {
+        "x-jat": "mp1002",
+        "en": "Mob Psycho 100 II",
+        "ar": "موب سايكو 100 2",
+        "he": "II מוב פסיכו 100",
+        "ja": "モブサイコ100 II",
+        "ru": "Моб Психо 100 II",
+        "ko": "모브 사이코 100 II",
+        "pl": "Mob Psycho 100 (2019)",
+        "zh-Hant": "路人超能100 II",
+        "zh-Hans": "灵能百分百 第二季"
+      },
+      "episodes": {
+        "1": {
+          "episodeNumber": 1,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 13
+        },
+        "2": {
+          "episodeNumber": 2,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 14
+        },
+        "3": {
+          "episodeNumber": 3,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 15
+        },
+        "4": {
+          "episodeNumber": 4,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 16
+        },
+        "5": {
+          "episodeNumber": 5,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 17
+        },
+        "6": {
+          "episodeNumber": 6,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 18
+        },
+        "7": {
+          "episodeNumber": 7,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 19
+        },
+        "8": {
+          "episodeNumber": 8,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 20
+        },
+        "9": {
+          "episodeNumber": 9,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 21
+        },
+        "10": {
+          "episodeNumber": 10,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 22
+        },
+        "11": {
+          "episodeNumber": 11,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 23
+        },
+        "12": {
+          "episodeNumber": 12,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 24
+        },
+        "13": {
+          "episodeNumber": 13,
+          "seasonNumber": 2,
+          "absoluteEpisodeNumber": 25
+        }
+      },
+      "episodeCount": 13,
+      "specialCount": 0,
+      "mappings": {
+        "animeplanet_id": "mob-psycho-100-ii",
+        "kitsu_id": 41071,
+        "mal_id": 37510,
+        "type": "TV",
+        "anilist_id": 101338,
+        "anisearch_id": 13484,
+        "anidb_id": 13939,
+        "notifymoe_id": null,
+        "livechart_id": 3163,
+        "thetvdb_id": 307375,
+        "imdb_id": "tt5897304",
+        "themoviedb_id": "67075"
+      }
+    }
+  }
 }

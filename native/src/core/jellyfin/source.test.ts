@@ -47,6 +47,8 @@ let database: CoreDatabase | null = null
 let silent = false
 let status = 200
 let calls: { url: string, headers: Record<string, string> }[] = []
+// the stream of a subtitle file next to the video, field for field as in jellyfin.recorded.json
+const EXTERNAL_SUBTITLE = { Index: 0, Type: "Subtitle", Codec: "subrip", Language: "eng", DisplayTitle: "English - SUBRIP - External", IsExternal: true, IsTextSubtitleStream: true, IsDefault: false }
 const secrets = new Map<string, string>()
 /** Set: the server never answers until the test lets go (the fetch ignores the signal, as a stuck one would) */
 let stuck: (() => void)[] | null = null
@@ -76,7 +78,7 @@ const httpFetch = (async (url: string, init: { headers?: Record<string, string>,
         if (kind === "Episodes") {
             return answer(200, { Items: serverEpisodeNumbers.map(number => ({
                 Id: `${id}-e${number}`, SeriesId: id, SeasonId: `${id}-s1`, ParentIndexNumber: 1, IndexNumber: number, Name: `Made ${number}`, ProviderIds: {},
-                MediaSources: [{ Id: `${id}-m${number}`, Container: "mkv", MediaStreams: [] }],
+                MediaSources: [{ Id: `${id}-m${number}`, Container: "mkv", MediaStreams: number === 1 ? [EXTERNAL_SUBTITLE] : [] }],
             })) })
         }
         return answer(404, {})
@@ -425,6 +427,14 @@ describe("playing a server episode", () => {
         expect(header.startsWith("MediaBrowser ")).toBe(true)
         for (const field of ["Client=", "Device=\"Pixel\"", "DeviceId=\"dev-1\"", "Version=\"4.2.0\"", `Token="${TOKEN}"`]) expect(header).toContain(field)
         expect(JSON.stringify({ ...watch, requestHeaders: null })).not.toContain(TOKEN)
+    })
+
+    it("hands the subtitle file next to the video to the player, its address without the token", async () => {
+        await readServer()
+        const watch = await watched({ path: PATH, mediaId: SERVER_ONLY })
+        expect(watch.subtitleTracks).toEqual([{
+            index: 0, src: `${BASE}/Videos/sA-e1/sA-m1/Subtitles/0/Stream.srt`, label: "English - SUBRIP - External", language: "eng", type: "srt", default: false,
+        }])
     })
 
     it("builds the address from the session alone", () => {

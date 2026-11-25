@@ -1,4 +1,4 @@
-// geschrieben nach: Seanime_Jellyfin_Plan.md §4 (Pfade, Abfrage-Felder, Kopfzeile) und den Feldern aus Jellyfin BaseItemDto.cs [J8], MediaStream.cs [J13], AuthenticationResult.cs [J3]; kein Server gefragt
+// geschrieben nach: Seanime_Jellyfin_Plan.md §4 (Pfade, Abfrage-Felder, Kopfzeile) und den Feldern aus Jellyfin BaseItemDto.cs [J8], MediaStream.cs [J13], AuthenticationResult.cs [J3]; gegen die echte Aufzeichnung jellyfin.recorded.json (Jellyfin 12.4.0) geprüft
 
 import type { HttpFetch } from "../anilist/client"
 
@@ -59,8 +59,15 @@ export interface JellyfinSeason {
 export interface JellyfinStream {
     index: number
     type: string
+    /** `Codec` ("subrip", "ass", "h264", …), empty when the server names none */
+    codec: string
     language: string
+    /** `DisplayTitle`, the server's name for the track */
+    title: string
     isExternal: boolean
+    /** `IsTextSubtitleStream`: a subtitle the server can hand out as text */
+    isText: boolean
+    isDefault: boolean
 }
 
 export interface JellyfinMediaSource {
@@ -195,8 +202,12 @@ function mediaSourceOf(raw: Json): JellyfinMediaSource {
         streams: streams.map(stream => ({
             index: count(stream.Index) ?? 0,
             type: text(stream.Type),
+            codec: text(stream.Codec),
             language: text(stream.Language),
+            title: text(stream.DisplayTitle),
             isExternal: stream.IsExternal === true,
+            isText: stream.IsTextSubtitleStream === true,
+            isDefault: stream.IsDefault === true,
         })),
     }
 }

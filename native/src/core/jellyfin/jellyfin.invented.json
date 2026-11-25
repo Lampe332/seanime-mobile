@@ -1,0 +1,205 @@
+{
+    "_": "von Hand gebaut, bewusst erfundene Lagen für den Abgleich (drei Staffeln über Tvdb, Staffel 0, durchgezählt, nur Titel, Konflikt). Keine Aufzeichnung: die echten Antworten des Servers stehen in jellyfin.recorded.json. Form nach Jellyfin AuthenticationResult.cs [J3], BaseItemDto.cs [J8], MediaStream.cs [J13] und QueryResult (Items, TotalRecordCount, StartIndex); ani.zip-Form nach core/library/metadata.ts. Namen, Nummern und Kennungen erfunden, kein Token einer echten Anmeldung",
+    "auth": {
+        "User": { "Name": "nutzer", "ServerId": "srv-1", "Id": "u1", "HasPassword": true },
+        "SessionInfo": { "Id": "sess-1", "UserId": "u1", "Client": "Seanime Mobile", "DeviceId": "dev-1", "DeviceName": "Pixel 8", "ApplicationVersion": "1.2.3" },
+        "AccessToken": "tok-recorded",
+        "ServerId": "srv-1"
+    },
+    "items": {
+        "Items": [
+            { "Name": "Hoshi no Tabi", "Id": "a1", "Type": "Series", "ProductionYear": 2023, "Path": "/media/anime/Hoshi no Tabi (2023)", "ProviderIds": { "AniList": "101", "Tvdb": "900101" } },
+            { "Name": "Kyojin Saga", "Id": "b1", "Type": "Series", "ProductionYear": 2013, "Path": "/media/anime/Kyojin Saga (2013)", "ProviderIds": { "Tvdb": "900201", "Tmdb": "800201" } },
+            { "Name": "Juuni Cours", "Id": "c1", "Type": "Series", "ProductionYear": 2020, "Path": "/media/anime/Juuni Cours (2020)", "ProviderIds": { "Tvdb": "900301" } },
+            { "Name": "Mori no Uta", "Id": "d1", "Type": "Series", "ProductionYear": 2010, "Path": "/media/anime/Mori no Uta (2010)", "ProviderIds": {} },
+            { "Name": "Hoshi no Tabi Movie", "Id": "e1", "Type": "Movie", "ProductionYear": 2024, "Path": "/media/anime-movies/Hoshi no Tabi Movie (2024).mkv", "ProviderIds": { "Tmdb": "800501" } }
+        ],
+        "TotalRecordCount": 5,
+        "StartIndex": 0
+    },
+    "shows": {
+        "a1": {
+            "seasons": {
+                "Items": [
+                    { "Name": "Specials", "Id": "a1s0", "Type": "Season", "IndexNumber": 0, "SeriesId": "a1", "ProviderIds": {} },
+                    { "Name": "Season 1", "Id": "a1s1", "Type": "Season", "IndexNumber": 1, "SeriesId": "a1", "ProductionYear": 2023, "ProviderIds": {} }
+                ],
+                "TotalRecordCount": 2,
+                "StartIndex": 0
+            },
+            "episodes": {
+                "Items": [
+                    { "Name": "Special 1", "Id": "a1s0e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 0, "SeasonId": "a1s0", "SeriesId": "a1", "SeriesName": "Hoshi no Tabi", "ProviderIds": {} },
+                    {
+                        "Name": "Episode 1", "Id": "a1s1e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 1, "SeasonId": "a1s1", "SeriesId": "a1", "SeriesName": "Hoshi no Tabi", "ProviderIds": { "Tvdb": "910001" },
+                        "MediaSources": [
+                            {
+                                "Id": "ms-a1s1e1", "Container": "mkv", "Path": "/media/anime/Hoshi no Tabi (2023)/Season 01/Hoshi no Tabi S01E01.mkv", "Protocol": "File", "Type": "Default",
+                                "MediaStreams": [
+                                    { "Index": 0, "Type": "Video", "Codec": "hevc", "IsExternal": false },
+                                    { "Index": 1, "Type": "Audio", "Codec": "aac", "Language": "jpn", "IsExternal": false },
+                                    { "Index": 2, "Type": "Subtitle", "Codec": "ass", "Language": "eng", "IsExternal": false },
+                                    { "Index": 3, "Type": "Subtitle", "Codec": "srt", "Language": "ger", "IsExternal": true }
+                                ]
+                            }
+                        ]
+                    },
+                    { "Name": "Episode 2", "Id": "a1s1e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 1, "SeasonId": "a1s1", "SeriesId": "a1", "SeriesName": "Hoshi no Tabi", "ProviderIds": {} },
+                    { "Name": "Episode 3", "Id": "a1s1e3", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 1, "SeasonId": "a1s1", "SeriesId": "a1", "SeriesName": "Hoshi no Tabi", "ProviderIds": {} },
+                    { "Name": "Episode 4", "Id": "a1s1e4", "Type": "Episode", "IndexNumber": 4, "ParentIndexNumber": 1, "SeasonId": "a1s1", "SeriesId": "a1", "SeriesName": "Hoshi no Tabi", "ProviderIds": {} }
+                ],
+                "TotalRecordCount": 5,
+                "StartIndex": 0
+            }
+        },
+        "b1": {
+            "seasons": {
+                "Items": [
+                    { "Name": "Specials", "Id": "b1s0", "Type": "Season", "IndexNumber": 0, "SeriesId": "b1", "ProviderIds": {} },
+                    { "Name": "Season 1", "Id": "b1s1", "Type": "Season", "IndexNumber": 1, "SeriesId": "b1", "ProductionYear": 2013, "ProviderIds": {} },
+                    { "Name": "Season 2", "Id": "b1s2", "Type": "Season", "IndexNumber": 2, "SeriesId": "b1", "ProductionYear": 2017, "ProviderIds": {} },
+                    { "Name": "Season 3", "Id": "b1s3", "Type": "Season", "IndexNumber": 3, "SeriesId": "b1", "ProductionYear": 2018, "ProviderIds": {} }
+                ],
+                "TotalRecordCount": 4,
+                "StartIndex": 0
+            },
+            "episodes": {
+                "Items": [
+                    { "Name": "OVA", "Id": "b1s0e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 0, "SeasonId": "b1s0", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
+                    { "Name": "Episode 1", "Id": "b1s1e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 1, "SeasonId": "b1s1", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
+                    { "Name": "Episode 2", "Id": "b1s1e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 1, "SeasonId": "b1s1", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
+                    { "Name": "Episode 3", "Id": "b1s1e3", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 1, "SeasonId": "b1s1", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
+                    { "Name": "Episode 1", "Id": "b1s2e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 2, "SeasonId": "b1s2", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
+                    { "Name": "Episode 2", "Id": "b1s2e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 2, "SeasonId": "b1s2", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
+                    { "Name": "Episode 3", "Id": "b1s2e3", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 2, "SeasonId": "b1s2", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
+                    { "Name": "Episode 1", "Id": "b1s3e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 3, "SeasonId": "b1s3", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
+                    { "Name": "Episode 2", "Id": "b1s3e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 3, "SeasonId": "b1s3", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} },
+                    { "Name": "Episode 3", "Id": "b1s3e3", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 3, "SeasonId": "b1s3", "SeriesId": "b1", "SeriesName": "Kyojin Saga", "ProviderIds": {} }
+                ],
+                "TotalRecordCount": 10,
+                "StartIndex": 0
+            }
+        },
+        "c1": {
+            "seasons": {
+                "Items": [
+                    { "Name": "Specials", "Id": "c1s0", "Type": "Season", "IndexNumber": 0, "SeriesId": "c1", "ProviderIds": {} },
+                    { "Name": "Season 1", "Id": "c1s1", "Type": "Season", "IndexNumber": 1, "SeriesId": "c1", "ProductionYear": 2020, "ProviderIds": {} }
+                ],
+                "TotalRecordCount": 2,
+                "StartIndex": 0
+            },
+            "episodes": {
+                "Items": [
+                    { "Name": "Special 4", "Id": "c1s0e4", "Type": "Episode", "IndexNumber": 4, "ParentIndexNumber": 0, "SeasonId": "c1s0", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
+                    { "Name": "Episode 1", "Id": "c1s1e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
+                    { "Name": "Episode 2", "Id": "c1s1e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
+                    { "Name": "Episode 3", "Id": "c1s1e3", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
+                    { "Name": "Episode 4", "Id": "c1s1e4", "Type": "Episode", "IndexNumber": 4, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
+                    { "Name": "Episode 5", "Id": "c1s1e5", "Type": "Episode", "IndexNumber": 5, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} },
+                    { "Name": "Episode 6", "Id": "c1s1e6", "Type": "Episode", "IndexNumber": 6, "ParentIndexNumber": 1, "SeasonId": "c1s1", "SeriesId": "c1", "SeriesName": "Juuni Cours", "ProviderIds": {} }
+                ],
+                "TotalRecordCount": 7,
+                "StartIndex": 0
+            }
+        },
+        "d1": {
+            "seasons": {
+                "Items": [
+                    { "Name": "Season 1", "Id": "d1s1", "Type": "Season", "IndexNumber": 1, "SeriesId": "d1", "ProductionYear": 2010, "ProviderIds": {} },
+                    { "Name": "Season 2", "Id": "d1s2", "Type": "Season", "IndexNumber": 2, "SeriesId": "d1", "ProductionYear": 2011, "ProviderIds": {} }
+                ],
+                "TotalRecordCount": 2,
+                "StartIndex": 0
+            },
+            "episodes": {
+                "Items": [
+                    { "Name": "Episode 1", "Id": "d1s1e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 1, "SeasonId": "d1s1", "SeriesId": "d1", "SeriesName": "Mori no Uta", "ProviderIds": {} },
+                    { "Name": "Episode 2", "Id": "d1s1e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 1, "SeasonId": "d1s1", "SeriesId": "d1", "SeriesName": "Mori no Uta", "ProviderIds": {} },
+                    { "Name": "Episode 1", "Id": "d1s2e1", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 2, "SeasonId": "d1s2", "SeriesId": "d1", "SeriesName": "Mori no Uta", "ProviderIds": {} },
+                    { "Name": "Episode 2", "Id": "d1s2e2", "Type": "Episode", "IndexNumber": 2, "ParentIndexNumber": 2, "SeasonId": "d1s2", "SeriesId": "d1", "SeriesName": "Mori no Uta", "ProviderIds": {} }
+                ],
+                "TotalRecordCount": 4,
+                "StartIndex": 0
+            }
+        }
+    },
+    "anizip": {
+        "101": {
+            "titles": { "x-jat": "Hoshi no Tabi", "en": "Journey of Stars" },
+            "episodes": {
+                "1": { "episodeNumber": 1, "seasonNumber": 1, "absoluteEpisodeNumber": 1 },
+                "2": { "episodeNumber": 2, "seasonNumber": 1, "absoluteEpisodeNumber": 2 },
+                "3": { "episodeNumber": 3, "seasonNumber": 1, "absoluteEpisodeNumber": 3 },
+                "4": { "episodeNumber": 4, "seasonNumber": 1, "absoluteEpisodeNumber": 4 }
+            },
+            "episodeCount": 4,
+            "specialCount": 1,
+            "mappings": { "anilist_id": 101, "thetvdb_id": 900101 }
+        },
+        "201": {
+            "titles": { "x-jat": "Kyojin Saga" },
+            "episodes": {
+                "1": { "episodeNumber": 1, "seasonNumber": 1, "absoluteEpisodeNumber": 1 },
+                "2": { "episodeNumber": 2, "seasonNumber": 1, "absoluteEpisodeNumber": 2 },
+                "3": { "episodeNumber": 3, "seasonNumber": 1, "absoluteEpisodeNumber": 3 }
+            },
+            "episodeCount": 3,
+            "specialCount": 0,
+            "mappings": { "anilist_id": 201, "thetvdb_id": 900201, "themoviedb_id": 800201 }
+        },
+        "202": {
+            "titles": { "x-jat": "Kyojin Saga Season 2" },
+            "episodes": {
+                "1": { "episodeNumber": 1, "seasonNumber": 2, "absoluteEpisodeNumber": 4 },
+                "2": { "episodeNumber": 2, "seasonNumber": 2, "absoluteEpisodeNumber": 5 },
+                "3": { "episodeNumber": 3, "seasonNumber": 2, "absoluteEpisodeNumber": 6 }
+            },
+            "episodeCount": 3,
+            "specialCount": 0,
+            "mappings": { "anilist_id": 202, "thetvdb_id": 900201 }
+        },
+        "203": {
+            "titles": { "x-jat": "Kyojin Saga Season 3" },
+            "episodes": {
+                "1": { "episodeNumber": 1, "seasonNumber": 3, "absoluteEpisodeNumber": 7 },
+                "2": { "episodeNumber": 2, "seasonNumber": 3, "absoluteEpisodeNumber": 8 },
+                "3": { "episodeNumber": 3, "seasonNumber": 3, "absoluteEpisodeNumber": 9 }
+            },
+            "episodeCount": 3,
+            "specialCount": 0,
+            "mappings": { "anilist_id": 203, "thetvdb_id": 900201 }
+        },
+        "204": {
+            "titles": { "x-jat": "Kyojin Saga OVA" },
+            "episodes": {
+                "1": { "episodeNumber": 1, "seasonNumber": 0, "absoluteEpisodeNumber": 0 }
+            },
+            "episodeCount": 1,
+            "specialCount": 0,
+            "mappings": { "anilist_id": 204, "thetvdb_id": 900201 }
+        },
+        "301": {
+            "titles": { "x-jat": "Juuni Cours" },
+            "episodes": {
+                "1": { "episodeNumber": 1, "seasonNumber": 1, "absoluteEpisodeNumber": 1 },
+                "2": { "episodeNumber": 2, "seasonNumber": 1, "absoluteEpisodeNumber": 2 },
+                "3": { "episodeNumber": 3, "seasonNumber": 1, "absoluteEpisodeNumber": 3 }
+            },
+            "episodeCount": 3,
+            "specialCount": 0,
+            "mappings": { "anilist_id": 301, "thetvdb_id": 900301 }
+        },
+        "302": {
+            "titles": { "x-jat": "Juuni Cours Part 2" },
+            "episodes": {
+                "1": { "episodeNumber": 1, "seasonNumber": 2, "absoluteEpisodeNumber": 4 },
+                "2": { "episodeNumber": 2, "seasonNumber": 2, "absoluteEpisodeNumber": 5 },
+                "3": { "episodeNumber": 3, "seasonNumber": 2, "absoluteEpisodeNumber": 6 }
+            },
+            "episodeCount": 3,
+            "specialCount": 0,
+            "mappings": { "anilist_id": 302, "thetvdb_id": 900301 }
+        }
+    }
+}
