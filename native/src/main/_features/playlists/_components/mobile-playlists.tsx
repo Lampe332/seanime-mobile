@@ -9,7 +9,7 @@ import { Sheet } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate, plural, useTr } from "@/lib/app-language"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useHasDebridService, useHasOnlineStreaming, useHasTorrentStreaming } from "@/main/_hooks/use-server-status"
 import { Image } from "expo-image"
@@ -253,7 +253,7 @@ export function MobilePlaylists() {
             {step === "editor" && <View className="gap-3">
                 <View className="gap-2">
                     <Text className="text-sm text-sm-text-muted">{t("Name", "Name")}</Text>
-                    <TextInput value={draft.name} onChangeText={name => setDraft(prev => ({ ...prev, name }))} accessibilityLabel={t("Name", "Name")} autoComplete="off"
+                    <TextInput {...accentInput} value={draft.name} onChangeText={name => setDraft(prev => ({ ...prev, name }))} accessibilityLabel={t("Name", "Name")} autoComplete="off"
                         className="min-h-12 rounded-surface-sm border border-sm-line-strong bg-sm-surface-sunken px-3.5 font-sans text-base text-sm-text" />
                 </View>
                 <Button intent="secondary" leftIcon={<Plus size={18} color={colors.smText} />} disabled={draft.episodes.length >= MAX_PLAYLIST_EPISODES} onPress={() => setStep("anime")}>

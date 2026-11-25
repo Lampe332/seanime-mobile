@@ -109,3 +109,14 @@ export const sizes = {
 } as const
 
 export const spacingScale = [0, 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48] as const
+
+/**
+ * Cursor, selection handles and selection highlight of a text field in the accent (spread on every TextInput). uniwind
+ * resolves them from the CSS variables, so they follow the accent without a re-render; Android's default was its theme
+ * colour.
+ */
+export const accentInput = {
+    cursorColorClassName: "accent-sm-accent",
+    selectionHandleColorClassName: "accent-sm-accent",
+    selectionColorClassName: "accent-sm-accent-line",
+} as const

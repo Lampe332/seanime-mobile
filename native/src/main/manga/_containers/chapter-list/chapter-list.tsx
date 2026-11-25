@@ -15,7 +15,7 @@ import { useTr } from "@/lib/app-language"
 import { MENU_ENTRIES } from "@/lib/nav/nav-items"
 import { useRouter } from "@/lib/navigation"
 import { atomWithStorage } from "@/lib/storage"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { MangaManualMappingSheet } from "@/main/manga/_containers/chapter-list/manga-manual-mapping-sheet"
 import {
@@ -295,7 +295,7 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
                             </Pressable>
                             <View accessibilityRole="search" className="min-h-12 w-full flex-row items-center rounded-full bg-sm-surface-raised pl-4">
                                 <Hash size={17} color={colors.smTextSubtle} />
-                                <TextInput ref={jumpField} value={jumpText} onChangeText={setJumpText} placeholder={t("Go to chapter", "Zu Kapitel springen")} placeholderTextColor={colors.smTextSubtle}
+                                <TextInput {...accentInput} ref={jumpField} value={jumpText} onChangeText={setJumpText} placeholder={t("Go to chapter", "Zu Kapitel springen")} placeholderTextColor={colors.smTextSubtle}
                                     accessibilityLabel={t("Chapter number", "Kapitelnummer")} keyboardType="decimal-pad" returnKeyType="go" onSubmitEditing={jumpToChapter}
                                     className="min-h-12 min-w-0 flex-1 pl-2.5 pr-1 font-sans text-base text-sm-text" />
                                 <Pressable accessibilityRole="button" accessibilityLabel={t("Go", "Los")} disabled={!jumpText.trim()} onPress={jumpToChapter}

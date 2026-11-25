@@ -10,7 +10,7 @@ import { cn } from "@/components/ui/core/styling"
 import { toast } from "@/components/ui/toast/toast-store"
 import { Muted, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { AutoSelectGroup } from "@/main/settings/_screens/settings-auto-select"
@@ -349,7 +349,7 @@ function ApiKeyField({ t, providerName, hasKey, check, onSave }: {
     return (
         <View className="gap-2 bg-sm-surface-raised py-3 pl-8 pr-4">
             <Text className="text-base">{t("API key", "API-Schlüssel")}</Text>
-            <TextInput ref={field} value={draft} onChangeText={setDraft} secureTextEntry autoComplete="off" autoCapitalize="none" autoCorrect={false}
+            <TextInput {...accentInput} ref={field} value={draft} onChangeText={setDraft} secureTextEntry autoComplete="off" autoCapitalize="none" autoCorrect={false}
                 accessibilityLabel={t("API key", "API-Schlüssel")} returnKeyType="done" onSubmitEditing={() => void submit()}
                 placeholder={hasKey ? t("Saved key", "Gespeicherter Schlüssel") : t("Paste your API key", "API-Schlüssel einfügen")}
                 placeholderTextColor={colors.smTextSubtle}

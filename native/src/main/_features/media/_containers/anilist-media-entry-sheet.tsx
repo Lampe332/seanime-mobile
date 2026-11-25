@@ -6,7 +6,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Dialog, Sheet } from "@/components/ui/sheet/sheet"
 import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { PluginWebviewSlot } from "@/main/_features/plugin/plugin-webview"
 import { useCurrentUser } from "@/main/_hooks/use-server-status"
@@ -222,7 +222,7 @@ function Stepper({ value, onValue, min = 0, max, decimals, suffix, label }: {
             <Minus size={18} color={colors.smText} />
         </Pressable>
         <View className="min-w-0 flex-1 flex-row items-baseline justify-center gap-1">
-            <TextInput value={shown} placeholder="–" placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
+            <TextInput {...accentInput} value={shown} placeholder="–" placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
                 keyboardType={decimals ? "decimal-pad" : "number-pad"}
                 onChangeText={text => {
                     setDraft(text)

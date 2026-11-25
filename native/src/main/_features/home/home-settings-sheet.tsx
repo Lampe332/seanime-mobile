@@ -14,7 +14,7 @@ import { toast } from "@/components/ui/toast/toast-store"
 import { Muted, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
 import { MOTION_EASE_OUT, PHONE_EASE } from "@/lib/motion"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { genreLabel } from "@/main/discover/_lib/discover-phone"
@@ -503,7 +503,7 @@ function OptionField({ sectionType, option, value, sorting, onChange }: { sectio
             return (
                 <View className="gap-2">
                     {head}
-                    <TextInput value={String(value ?? "")} onChangeText={onChange}
+                    <TextInput {...accentInput} value={String(value ?? "")} onChangeText={onChange}
                         placeholder={optionPlaceholder(sectionType, option.name, sorting, t)} placeholderTextColor={colors.smTextSubtle}
                         accessibilityLabel={label} accessibilityHint={hint || undefined}
                         className="min-h-12 rounded-surface-sm bg-sm-surface-raised px-4 font-sans text-base text-sm-text" />
@@ -568,7 +568,7 @@ function YearField({ label, value, onChange }: { label: string, value: unknown, 
                     {t(`Enter a year from ${YEAR_MIN} to ${yearMax()}.`, `Gib ein Jahr von ${YEAR_MIN} bis ${yearMax()} ein.`)}
                 </Text>
             )}
-            <TextInput value={text} maxLength={4} keyboardType="number-pad"
+            <TextInput {...accentInput} value={text} maxLength={4} keyboardType="number-pad"
                 onChangeText={input => {
                     const parsed = parseYearInput(input)
                     setText(parsed.text)

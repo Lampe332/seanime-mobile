@@ -3,7 +3,8 @@ import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { PHONE_EASE, POP_EASE, TOUR_FINALE, TOUR_MOTION, type TourMotion, tourRingDelayMs, tourSparks, tourTravelMs } from "@/lib/motion"
 import { colors } from "@/lib/theme/tokens"
-import { useThemeColors } from "@/lib/theme/appearance"
+import { usePalette, useThemeColors } from "@/lib/theme/appearance"
+import { accentShiftRgba, type Palette } from "@/lib/theme/palette"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import Sparkles from "lucide-react-native/icons/sparkles"
 import React from "react"
@@ -41,7 +42,8 @@ import { findTourTarget, hasTourTarget, subscribeTourPresses, subscribeTourTarge
  * draws itself and 16 sparks fly off the badge. Reduced motion: everything is simply there (the cutout jumps).
  */
 const DIM = "rgba(0, 0, 0, 0.7)"
-const RING = "rgba(166, 135, 244, 0.55)"
+/** The spotlight ring: the accent (violet: rgba(166, 135, 244, 0.55)) */
+const tourRing = (palette: Palette) => accentShiftRgba([166, 135, 244], 0.55, palette)
 const AnimatedPath = Animated.createAnimatedComponent(Path)
 const AnimatedRect = Animated.createAnimatedComponent(SvgRect)
 
@@ -281,6 +283,7 @@ function useSpotlight(hole: Rect | null, m: TourMotion, reduceMotion: boolean) {
 
 function Spotlight({ viewport, travel }: { viewport: { width: number, height: number }, travel: ReturnType<typeof useSpotlight> }) {
     const { travel: way, progress } = travel
+    const ring = tourRing(usePalette())
     const pathProps = useAnimatedProps(() => {
         const w = way.get()
         return { d: spotlightPath(viewport, w ? mixRect(w.from, w.to, progress.get()) : null) }
@@ -296,13 +299,14 @@ function Spotlight({ viewport, travel }: { viewport: { width: number, height: nu
     return (
         <Svg width={viewport.width} height={viewport.height}>
             <AnimatedPath animatedProps={pathProps} fillRule="evenodd" fill={DIM} />
-            <AnimatedRect animatedProps={ringProps} fill="none" stroke={RING} strokeWidth={2} />
+            <AnimatedRect animatedProps={ringProps} fill="none" stroke={ring} strokeWidth={2} />
         </Svg>
     )
 }
 
 /** The ring round a target that waits for its tap: it grows ~9dp out while it fades, rests, again (TOUR_MOTION.pulse) */
 function TapRing({ hole, m }: { hole: Rect, m: TourMotion }) {
+    const ring = tourRing(usePalette())
     const beat = useSharedValue(0)
     // hidden until the cutout is there (else a still ring stands round the target while the cutout opens)
     const shown = useSharedValue(0)
@@ -330,7 +334,7 @@ function TapRing({ hole, m }: { hole: Rect, m: TourMotion }) {
     })
     return (
         <Animated.View pointerEvents="none" style={[{ position: "absolute", top: hole.top, left: hole.left, width: hole.width, height: hole.height,
-            borderRadius: Math.min(8, hole.width / 2, hole.height / 2), borderWidth: 2, borderColor: RING }, style]} />
+            borderRadius: Math.min(8, hole.width / 2, hole.height / 2), borderWidth: 2, borderColor: ring }, style]} />
     )
 }
 

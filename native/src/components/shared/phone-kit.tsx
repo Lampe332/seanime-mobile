@@ -3,7 +3,7 @@ import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
 import { cn } from "@/components/ui/core/styling"
 import { Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import Check from "lucide-react-native/icons/check"
@@ -120,7 +120,7 @@ export function SearchField({ value, onChangeText, placeholder, inputRef, onSubm
     return (
         <View className="min-h-12 flex-row items-center rounded-full bg-sm-surface-raised">
             <View className="pl-4 pr-2.5"><Search size={18} color={colors.smTextSubtle} /></View>
-            <TextInput
+            <TextInput {...accentInput}
                 ref={own}
                 value={value}
                 onChangeText={onChangeText}

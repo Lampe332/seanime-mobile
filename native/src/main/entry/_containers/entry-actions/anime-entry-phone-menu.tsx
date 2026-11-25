@@ -13,7 +13,7 @@ import { upath } from "@/lib/helpers/upath"
 import { MENU_ENTRIES } from "@/lib/nav/nav-items"
 import { useRouter } from "@/lib/navigation"
 import { isCustomSource } from "@/lib/server/utils"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { __anime_hiddenEntryViewsAtom, getEntryTabSettings } from "@/main/entry/_lib/anime-entry-view"
 import { shareEntry } from "@/main/entry/_lib/share-entry"
@@ -161,7 +161,7 @@ type SheetProps = { t: Translate, entry: Anime_Entry, open: boolean, onOpenChang
 function NumberField({ label, value, onChange, placeholder, note }: { label: string, value: string, onChange: (v: string) => void, placeholder: string, note?: string }) {
     return <View className="gap-1.5">
         <Text className="text-[13px] font-medium text-sm-text-muted">{label}</Text>
-        <TextInput value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ""))} placeholder={placeholder} keyboardType="number-pad"
+        <TextInput {...accentInput} value={value} onChangeText={v => onChange(v.replace(/[^0-9]/g, ""))} placeholder={placeholder} keyboardType="number-pad"
             placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
             className="min-h-12 rounded-surface-sm bg-sm-surface-raised px-4 font-sans text-base text-sm-text" />
         {!!note && <Muted>{note}</Muted>}

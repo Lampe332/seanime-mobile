@@ -205,6 +205,67 @@ export function glowGroundFade(alpha: number, palette: Palette = current) {
     return `linear-gradient(180deg, ${tight(g, 0)} 55%, rgb(${g.join(",")}) 100%)`
 }
 
+function toHsl([r, g, b]: RGB): [number, number, number] {
+    const [R, G, B] = [r / 255, g / 255, b / 255]
+    const max = Math.max(R, G, B), min = Math.min(R, G, B), l = (max + min) / 2
+    if (max === min) return [0, 0, l]
+    const d = max - min
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    const h = max === R ? (G - B) / d + (G < B ? 6 : 0) : max === G ? (B - R) / d + 2 : (R - G) / d + 4
+    return [h * 60, s, l]
+}
+
+function fromHsl(h: number, s: number, l: number): RGB {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+    const p = 2 * l - q
+    const channel = (t: number) => {
+        const x = (t % 1 + 1) % 1
+        const v = x < 1 / 6 ? p + (q - p) * 6 * x : x < 1 / 2 ? q : x < 2 / 3 ? p + (q - p) * (2 / 3 - x) * 6 : p
+        return Math.round(v * 255)
+    }
+    return [channel(h / 360 + 1 / 3), channel(h / 360), channel(h / 360 - 1 / 3)]
+}
+
+const VIOLET_HUE = toHsl(ACCENT_PRESETS.violet.ramp[500])[0]
+
+/**
+ * A colour drawn for the violet accent, turned to the current accent's hue (its saturation and lightness kept). Violet
+ * returns it unchanged.
+ */
+export function accentShift(c: RGB, palette: Palette = current): RGB {
+    const delta = toHsl(palette.ramp[500])[0] - VIOLET_HUE
+    if (Math.abs(delta) < 1e-9) return c
+    const [h, s, l] = toHsl(c)
+    return fromHsl((h + delta + 360) % 360, s, l)
+}
+
+/** `accentShift` as #rrggbb (text colours) */
+export function accentShiftHex(c: RGB, palette: Palette = current) {
+    return hex(accentShift(c, palette))
+}
+
+/** `accentShift` as a compact rgba() (borders, rings) */
+export function accentShiftRgba(c: RGB, alpha: number, palette: Palette = current) {
+    return tight(accentShift(c, palette), alpha)
+}
+
+/** The accent text of the ramp (300) as #rrggbb, for surfaces that take no rgb() (the home screen widget) */
+export function accentTextHex(palette: Palette = current) {
+    return hex(palette.ramp[300])
+}
+
+/**
+ * The "More" menu panel: a dark accent tint at the top that runs into near-black. AMOLED black keeps it neutral (raised
+ * surface into black).
+ */
+export function menuPanelBackground(palette: Palette = current) {
+    if (palette.amoled) {
+        const s = palette.surfaces
+        return `linear-gradient(180deg, ${tight(s.smSurface, 0.99)}, ${tight(s.background, 0.99)})`
+    }
+    return `linear-gradient(180deg, ${accentShiftRgba([22, 20, 38], 0.99, palette)}, ${accentShiftRgba([9, 9, 14], 0.99, palette)})`
+}
+
 /** The menu's current row: the accent wash of the row, the gradient and glow of its icon tile, the tile's border */
 export function menuRowHighlight(palette: Palette = current) {
     const { ramp: r, nav } = palette

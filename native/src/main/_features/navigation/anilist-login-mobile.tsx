@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { anilistLoginStep, extractAnilistToken, manualAnilistToken } from "@/main/_features/navigation/anilist-login-steps"
 import { ANILIST_PIN_URL } from "@/lib/server/config"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import * as Clipboard from "expo-clipboard"
 import * as WebBrowser from "expo-web-browser"
@@ -171,7 +171,7 @@ export function MobileAnilistLogin({ open, onOpenChange, preview }: { open: bool
 
                 {step === "manual" && (
                     <View className="gap-2">
-                        <TextInput
+                        <TextInput {...accentInput}
                             accessibilityLabel={t("AniList code", "AniList-Code")}
                             value={typed}
                             onChangeText={value => {

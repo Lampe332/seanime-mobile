@@ -3,7 +3,7 @@
  * the lengths (`--ps-text-zoom`): covers grow with it, so large text gets fewer, wider cards instead of squeezed titles.
  */
 
-/** "Card size" (settings → Appearance, per device): a factor on the grid's least card width. Normal is the kit's size. */
+/** "Card size" (settings → Appearance, per device): a factor on every cover poster (grids, rows, cover cards). Normal is the kit's size. */
 export type CardSize = "small" | "normal" | "large"
 export const CARD_SIZE_FACTORS: Record<CardSize, number> = { small: 0.7, normal: 1, large: 1.3 }
 export const cardSizeFactor = (size: CardSize | undefined) => CARD_SIZE_FACTORS[size ?? "normal"] ?? 1
@@ -29,12 +29,26 @@ export function gridLayout(contentWidth: number, rail: boolean, zoom: number, fa
 }
 
 /**
- * `.ps-row > *` on Discover: min(36vw, 8.75rem × zoom), at least 7rem × zoom, at most the screen less its gutters and
- * 3rem (the next cover peeks in); tablet 9.5rem.
+ * A row's card (`normal`) at the card size: small and large scale it by `factor`, normal stays as is. A larger card is
+ * never wider than 70 % of the screen nor the screen less 5rem (the next card peeks in), but never below normal.
  */
-export function rowCoverWidth(windowWidth: number, rail: boolean, zoom: number) {
-    if (rail) return 152
-    return Math.round(Math.min(windowWidth - 32 - 48, Math.max(Math.min(windowWidth * 0.36, 140 * zoom), 112 * zoom)))
+export function scaleRowWidth(normal: number, windowWidth: number, factor = 1) {
+    const cap = Math.max(normal, Math.min(windowWidth * 0.7, windowWidth - 80))
+    return Math.round(Math.min(normal * factor, cap))
+}
+
+/** Home and library rows (media-card-row.tsx): min(39vw, 10rem), scaled by the card size. */
+export function rowCardWidth(windowWidth: number, factor = 1) {
+    return scaleRowWidth(Math.min(windowWidth * 0.39, 160), windowWidth, factor)
+}
+
+/**
+ * `.ps-row > *` on Discover: min(36vw, 8.75rem × zoom), at least 7rem × zoom, at most the screen less its gutters and
+ * 3rem (the next cover peeks in); tablet 9.5rem. `factor` is the card size.
+ */
+export function rowCoverWidth(windowWidth: number, rail: boolean, zoom: number, factor = 1) {
+    const normal = rail ? 152 : Math.min(windowWidth - 32 - 48, Math.max(Math.min(windowWidth * 0.36, 140 * zoom), 112 * zoom))
+    return scaleRowWidth(normal, windowWidth, factor)
 }
 
 /**

@@ -22,7 +22,7 @@ import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { accountLoadFailedAtom, retryAccountLoad } from "@/main/_features/account/account-service"
 import { appLanguageAtom, plural, type Translate } from "@/lib/app-language"
 import { copySecretToClipboard, openTab } from "@/lib/helpers/browser"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { NoScreenshots } from "@/main/_features/account/account-prompts"
 import { ConfirmSheet, InfoRow, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -133,7 +133,7 @@ function CredentialsForm({ t, mode, onBack, onCode }: { t: Translate, mode: "cre
                     "Dieses Passwort brauchst du auf jedem neuen Gerät. Sind Passwort und alle Geräte weg, sind die synchronisierten Daten weg. Ein Wiederherstellungscode hilft, du kannst gleich danach einen speichern.")
                 : undefined}>
             <View className="gap-2 bg-sm-surface px-0 py-1">
-                <TextInput ref={emailRef} value={email} onChangeText={setEmail} placeholder={t("Email", "E-Mail")} placeholderTextColor={colors.smTextSubtle}
+                <TextInput {...accentInput} ref={emailRef} value={email} onChangeText={setEmail} placeholder={t("Email", "E-Mail")} placeholderTextColor={colors.smTextSubtle}
                     accessibilityLabel={t("Email", "E-Mail")} autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress"
                     keyboardType="email-address" returnKeyType="next" className={FIELD} />
                 <PasswordField t={t} value={password} onChangeText={setPassword} label={t("Password", "Passwort")} newPassword={create}
@@ -236,7 +236,7 @@ function CodeSignIn({ t, initialEmail, onBack }: { t: Translate, initialEmail: s
         <SettingsGroup title={t("Sign in with a code", "Mit Code anmelden")}
             note={t("We email you a 6-digit code. You don't need your password for it.", "Wir schicken dir einen 6-stelligen Code per E-Mail. Dein Passwort brauchst du dafür nicht.")}>
             <View className="gap-2 bg-sm-surface px-0 py-1">
-                <TextInput ref={emailRef} value={email} onChangeText={setEmail} placeholder={t("Email", "E-Mail")} placeholderTextColor={colors.smTextSubtle}
+                <TextInput {...accentInput} ref={emailRef} value={email} onChangeText={setEmail} placeholder={t("Email", "E-Mail")} placeholderTextColor={colors.smTextSubtle}
                     accessibilityLabel={t("Email", "E-Mail")} autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress"
                     keyboardType="email-address" returnKeyType="send" onSubmitEditing={() => void send()} className={FIELD} />
                 {failure !== null && <Text accessibilityRole="alert" className="px-1 text-[13px] leading-[19.5px] text-sm-danger">{accountErrorText(t, failure, "code")}</Text>}
@@ -291,7 +291,7 @@ function CodeBoxes({ t, digits, boxes, disabled, invalid, onEdit }: {
     const allBoxes = React.useRef({ blur: () => boxes.current.forEach(box => box?.blur()) })
     useReleaseFocusOnLeave(allBoxes)
     return <View accessibilityLabel={t("Sign-in code", "Anmeldecode")} className="w-full flex-row gap-2" style={{ maxWidth: isTablet ? 440 : 380 }}>
-        {digits.map((digit, index) => <TextInput key={index} ref={box => {
+        {digits.map((digit, index) => <TextInput {...accentInput} key={index} ref={box => {
             boxes.current[index] = box
         }} value={digit} editable={!disabled} onChangeText={text => onEdit(typeInCode(digits, index, text))}
             onKeyPress={event => {
@@ -330,7 +330,7 @@ function PasswordField({ t, value, onChangeText, label, newPassword, returnKeyTy
     const ref = React.useRef<TextInputInstance>(null)
     useReleaseFocusOnLeave(ref)
     return <View className="justify-center">
-        <TextInput ref={ref} value={value} onChangeText={onChangeText} placeholder={label} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
+        <TextInput {...accentInput} ref={ref} value={value} onChangeText={onChangeText} placeholder={label} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
             autoCapitalize="none" autoCorrect={false} secureTextEntry={!shown} autoComplete={newPassword ? "new-password" : "current-password"}
             textContentType={newPassword ? "newPassword" : "password"} returnKeyType={returnKeyType} onSubmitEditing={onSubmitEditing}
             className={cn(FIELD, "pr-14", invalid && "border-2 border-sm-danger")} />
@@ -820,7 +820,7 @@ function ChangeKeySheet({ t, devices, off, password, onClose, onSubmit }: {
                         return next
                     })} />)}
             </View>
-            {password && <TextInput value={value} onChangeText={setValue} placeholder={t("Your password", "Dein Passwort")} placeholderTextColor={colors.smTextSubtle}
+            {password && <TextInput {...accentInput} value={value} onChangeText={setValue} placeholder={t("Your password", "Dein Passwort")} placeholderTextColor={colors.smTextSubtle}
                 accessibilityLabel={t("Your password", "Dein Passwort")} autoCapitalize="none" autoCorrect={false} secureTextEntry autoComplete="current-password"
                 returnKeyType="done" onSubmitEditing={() => void submit()} className={cn(FIELD, !!error && "border-2 border-sm-danger")} />}
             {!!error && <Text accessibilityRole="alert" className="text-[13px] leading-[19.5px] text-sm-danger">{error}</Text>}
@@ -888,7 +888,7 @@ function InputSheet({ t, open, onOpenChange, title, text, placeholder, action, d
         </>}>
         <View className="gap-3">
             <Text className="text-[15px] leading-[23px] text-sm-text-muted">{text}</Text>
-            {hasField && <TextInput value={value} onChangeText={setValue} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={placeholder}
+            {hasField && <TextInput {...accentInput} value={value} onChangeText={setValue} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={placeholder}
                 autoCapitalize={secure ? "none" : "characters"} autoCorrect={false} secureTextEntry={secure} autoComplete={secure ? "current-password" : "off"}
                 returnKeyType="done" onSubmitEditing={() => void submit()} className={cn(FIELD, !!error && "border-2 border-sm-danger")} />}
             {!!error && <Text accessibilityRole="alert" className="text-[13px] leading-[19.5px] text-sm-danger">{error}</Text>}

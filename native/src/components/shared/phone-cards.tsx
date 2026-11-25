@@ -55,7 +55,8 @@ export function useTextZoom() {
 export function useRowCoverWidth() {
     const { width } = useWindowDimensions()
     const { rail } = useTabletLayout()
-    return rowCoverWidth(width, rail, useTextZoom())
+    const factor = cardSizeFactor(useAtomValue(cardSizeAtom))
+    return rowCoverWidth(width, rail, useTextZoom(), factor)
 }
 
 /**

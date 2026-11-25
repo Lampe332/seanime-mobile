@@ -40,6 +40,12 @@ export function applyStoredAppearance() {
     applyAppearance(readStoredJSON<unknown>(ACCENT_KEY, DEFAULT_ACCENT), readStoredJSON<unknown>(AMOLED_KEY, false))
 }
 
+/** The stored choice as a palette, for renders outside the app (the home screen widget runs without the root layout) */
+export function storedPalette() {
+    const accent = readStoredJSON<unknown>(ACCENT_KEY, DEFAULT_ACCENT)
+    return buildPalette(isAccentId(accent) ? accent : DEFAULT_ACCENT, readStoredJSON<unknown>(AMOLED_KEY, false) === true)
+}
+
 /** In the root layout: applies a change from the settings or from a sync before the next frame */
 export function useAppearanceSync() {
     const accent = useAtomValue(accentColorAtom)

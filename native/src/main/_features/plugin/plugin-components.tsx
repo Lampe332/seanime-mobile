@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch/switch"
 import { Muted, Text } from "@/components/ui/text/text"
 import { useDebounce } from "@/hooks/use-debounce"
 import { openInAppBrowser } from "@/lib/helpers/browser"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker"
 import { Image } from "expo-image"
@@ -188,7 +188,7 @@ function PluginInput(props: Record<string, unknown>) {
     const label = str(props.label)
     return <View className="min-w-0 max-w-full gap-1.5">
         <FieldLabel label={label} />
-        <TextInput value={value ?? ""} onChangeText={setValue} placeholder={str(props.placeholder)} placeholderTextColor={colors.smTextSubtle}
+        <TextInput {...accentInput} value={value ?? ""} onChangeText={setValue} placeholder={str(props.placeholder)} placeholderTextColor={colors.smTextSubtle}
             accessibilityLabel={label || str(props.placeholder)} editable={!props.disabled} multiline={!!props.textarea}
             onSelectionChange={typeof props.onSelect === "string" ? event => {
                 const { start, end } = event.nativeEvent.selection
@@ -267,7 +267,7 @@ function PluginForm(props: Record<string, unknown>) {
                 case "number":
                     return <View key={field.id} className="gap-1.5">
                         <FieldLabel label={field.label} />
-                        <TextInput value={value === undefined || value === null ? "" : String(value)} placeholder={field.placeholder} placeholderTextColor={colors.smTextSubtle}
+                        <TextInput {...accentInput} value={value === undefined || value === null ? "" : String(value)} placeholder={field.placeholder} placeholderTextColor={colors.smTextSubtle}
                             keyboardType={field.type === "number" ? "numeric" : "default"} accessibilityLabel={field.label}
                             onChangeText={text => set(field.name, field.type === "number" && text.trim() !== "" && Number.isFinite(Number(text)) ? Number(text) : text)}
                             className="min-h-12 rounded-surface bg-sm-surface-raised px-4 font-sans text-base text-sm-text" />

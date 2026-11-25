@@ -21,7 +21,7 @@ import { useUpdatesCount } from "@/lib/updates/use-updates"
 import { pressTourTarget, TOUR_TARGETS, useTourTarget } from "@/main/_features/tour/tour-targets"
 import { colors, sizes } from "@/lib/theme/tokens"
 import { usePalette, useThemeColors } from "@/lib/theme/appearance"
-import { menuRowHighlight } from "@/lib/theme/palette"
+import { accentShiftHex, menuPanelBackground, menuRowHighlight } from "@/lib/theme/palette"
 import { Image } from "expo-image"
 import { useAtomValue } from "jotai"
 import React from "react"
@@ -237,7 +237,8 @@ function MenuRow({ label, icon, current, first, tourTarget, onPress, count, coun
 }) {
     const { animatedStyle, pressIn, pressOut } = usePressScale(0.975)
     const tourRef = useTourTarget(tourTarget ?? null)
-    const highlight = menuRowHighlight(usePalette())
+    const palette = usePalette()
+    const highlight = menuRowHighlight(palette)
     return (
         <Animated.View style={animatedStyle}>
             {!first && !current && <View pointerEvents="none" className="absolute left-16 right-3 top-0 h-px bg-white/5" />}
@@ -268,7 +269,8 @@ function MenuRow({ label, icon, current, first, tourTarget, onPress, count, coun
                 </View>
                 <Text
                     numberOfLines={2}
-                    className={cn("flex-1 text-[15.2px] tracking-[0.15px]", current ? "font-semibold text-[#ede9fe]" : "font-medium text-white/92")}
+                    className={cn("flex-1 text-[15.2px] tracking-[0.15px]", current ? "font-semibold" : "font-medium text-white/92")}
+                    style={current ? { color: accentShiftHex([237, 233, 254], palette) } : undefined}
                 >
                     {label}
                 </Text>
@@ -343,6 +345,7 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
     const incognito = useIncognito()
     const { mutate: setSwitches } = useSetAppSwitches()
     useCloseOnBack(open, onClose)
+    const panelBackground = menuPanelBackground(usePalette())
     if (!open) return null
 
     // Bar entries given back to the Menu (Customize navigation) and the ready screens that are not in the bar
@@ -372,7 +375,7 @@ export function NavMenu({ open, onClose, pathname, onOpen, onSignIn, rail, barIt
                     position: "absolute",
                     // The old panel was a blurred glass (backdrop-filter); without a blur the same colours are made
                     // nearly opaque so the page under it does not show through (at .97/.98 its text still read through)
-                    backgroundImage: "linear-gradient(180deg, rgba(22,20,38,0.99), rgba(9,9,14,0.99))",
+                    backgroundImage: panelBackground,
                     // A native elevation shadow instead of two blurred box shadows (drawn again on every frame of the
                     // scale/fade in; a box shadow would also be cut off by the layer below)
                     elevation: 18,

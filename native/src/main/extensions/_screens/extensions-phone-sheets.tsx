@@ -23,7 +23,7 @@ import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate, tr } from "@/lib/app-language"
 import { openInAppBrowser } from "@/lib/helpers/browser"
 import { useRouter } from "@/lib/navigation"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { useWebsocketMessageListener } from "@/main/_hooks/handle-websockets"
 import * as Clipboard from "expo-clipboard"
@@ -398,7 +398,7 @@ export function UrlField({ t, label, value, onChange, placeholder, onSubmit, err
         <View className="gap-1.5">
             <Text className="text-[13px] font-semibold text-sm-text-muted">{label}</Text>
             <View className="justify-center">
-                <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
+                <TextInput {...accentInput} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
                     keyboardType="url" autoCapitalize="none" autoCorrect={false} autoComplete="off" returnKeyType="go" onSubmitEditing={onSubmit}
                     style={error ? { borderWidth: 1.5, borderColor: colors.smDanger } : undefined}
                     className={cn("min-h-[52px] rounded-surface bg-sm-surface-raised pl-4 font-sans text-[15px] text-sm-text", pasteInside ? "pr-14" : "pr-4")} />
@@ -578,7 +578,7 @@ export function ExtensionPreferencesSheet({ t, open, onOpenChange, extension, us
                             if (field.type === "text") return (
                                 <View key={field.name} className="gap-1.5">
                                     <Text className="text-[13px] font-semibold text-sm-text-muted">{field.label}</Text>
-                                    <TextInput value={values[field.name] ?? field.default ?? ""} onChangeText={value => setValue(field.name, value)} accessibilityLabel={field.label}
+                                    <TextInput {...accentInput} value={values[field.name] ?? field.default ?? ""} onChangeText={value => setValue(field.name, value)} accessibilityLabel={field.label}
                                         autoCapitalize="none" autoCorrect={false} placeholderTextColor={colors.smTextSubtle}
                                         className="min-h-12 rounded-surface bg-sm-surface-raised px-4 font-sans text-[15px] text-sm-text" />
                                     {/* the field can be emptied while typing; saved empty, it takes the default (userConfigValues) */}
@@ -637,7 +637,7 @@ export function ExtensionCodeSheet({ t, open, onOpenChange, extension, readOnly,
                 : undefined}>
             {isLoading ? <ActivityIndicator color={colors.smAccent} />
                 : !readOnly && !diff
-                    ? <TextInput multiline value={code} onChangeText={setCode} accessibilityLabel={t("Code", "Code")} autoCapitalize="none" autoCorrect={false}
+                    ? <TextInput {...accentInput} multiline value={code} onChangeText={setCode} accessibilityLabel={t("Code", "Code")} autoCapitalize="none" autoCorrect={false}
                         spellCheck={false} textAlignVertical="top" scrollEnabled={false}
                         style={MONO} className="min-h-60 rounded-surface-sm bg-sm-surface-sunken p-3 text-xs leading-[18px] text-sm-text" />
                     : <View className="overflow-hidden rounded-surface-sm bg-sm-surface-sunken py-2">

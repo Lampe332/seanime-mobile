@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { accentGlow, accentRgba, ACCENT_IDS, ACCENT_PRESETS, buildPalette, contrastRatio, glowGroundFade, menuRowHighlight, type RGB } from "./palette"
+import { accentGlow, accentRgba, accentShift, accentShiftHex, accentShiftRgba, accentTextHex, ACCENT_IDS, ACCENT_PRESETS, buildPalette, contrastRatio, glowGroundFade, menuPanelBackground, menuRowHighlight, type RGB } from "./palette"
 
 const WHITE: RGB = [255, 255, 255]
 const blend = (top: RGB, alpha: number, under: RGB): RGB => top.map((v, i) => Math.round(v * alpha + under[i] * (1 - alpha))) as unknown as RGB
@@ -111,6 +111,42 @@ describe("accent tints drawn in script", () => {
             expect(accentGlow(tablet, undefined, amoled)).toBeUndefined()
             expect(glowGroundFade(0.11, amoled)).toBe("linear-gradient(180deg, rgba(0,0,0,0) 55%, rgb(0,0,0) 100%)")
             expect(menuRowHighlight(amoled)).toEqual(menuRowHighlight(buildPalette(id, false)))
+        }
+    })
+})
+
+describe("colours drawn for violet follow the accent", () => {
+    const violet = buildPalette("violet", false)
+
+    it("keeps every violet value exactly as before", () => {
+        expect(menuPanelBackground(violet)).toBe("linear-gradient(180deg, rgba(22,20,38,0.99), rgba(9,9,14,0.99))")
+        expect(accentShiftHex([237, 233, 254], violet)).toBe("#ede9fe")
+        expect(accentShiftRgba([166, 135, 244], 0.55, violet)).toBe("rgba(166,135,244,0.55)")
+        expect(accentTextHex(violet)).toBe("#c7c2ff")
+        expect(accentShift([1, 2, 3], violet)).toEqual([1, 2, 3])
+    })
+
+    it("turns them to the hue of every other accent, keeping their lightness", () => {
+        const hueOf = ([r, g, b]: RGB) => {
+            const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
+            const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+            return h * 60
+        }
+        for (const id of ACCENT_IDS.filter(id => id !== "violet")) {
+            const palette = buildPalette(id, false)
+            const ring = accentShift([166, 135, 244], palette)
+            const turn = hueOf(ACCENT_PRESETS[id].ramp[500]) - hueOf(ACCENT_PRESETS.violet.ramp[500])
+            const diff = Math.abs(((hueOf(ring) - hueOf([166, 135, 244]) - turn + 720) % 360 + 180) % 360 - 180)
+            expect(diff).toBeLessThan(4)
+            expect(Math.max(...ring) + Math.min(...ring)).toBeCloseTo(244 + 135, -1)
+            expect(menuPanelBackground(palette)).not.toContain("22,20,38")
+            expect(accentTextHex(palette)).not.toBe("#c7c2ff")
+        }
+    })
+
+    it("keeps the menu panel neutral with AMOLED black", () => {
+        for (const id of ACCENT_IDS) {
+            expect(menuPanelBackground(buildPalette(id, true))).toBe("linear-gradient(180deg, rgba(17,17,19,0.99), rgba(0,0,0,0.99))")
         }
     })
 })

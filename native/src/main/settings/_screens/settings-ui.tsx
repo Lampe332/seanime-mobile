@@ -143,7 +143,8 @@ function SortingGroup({ t }: { t: Translate }) {
 function CardSizeRow({ t }: { t: Translate }) {
     const [size, setSize] = useAtom(cardSizeAtom)
     return <SelectRow label={t("Card size", "Kartengröße")} value={size} defaultValue="normal"
-        note={t("Covers in your lists, search and downloads. Only on this device.", "Cover in deinen Listen, der Suche und den Downloads. Nur auf diesem Gerät.")}
+        note={t("Size of all covers: grids, rows and previews. Episode cards have their own setting. Only on this device.",
+            "Größe aller Cover: Raster, Reihen und Vorschau. Folgenkarten haben eine eigene Einstellung. Nur auf diesem Gerät.")}
         options={[
             { value: "small", label: t("Small", "Klein"), note: t("More covers in each row.", "Mehr Cover in jeder Reihe.") },
             { value: "normal", label: t("Normal", "Normal") },

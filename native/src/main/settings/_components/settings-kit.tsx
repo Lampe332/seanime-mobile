@@ -10,7 +10,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate, useTr } from "@/lib/app-language"
 import { haptic } from "@/lib/feedback"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { THEME_DEFAULT_VALUES } from "@/lib/theme/theme-hooks"
 import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
@@ -623,7 +623,7 @@ function TextSheet({ open, onOpenChange, title, label, note, value, placeholder,
         <View className="gap-2">
             {/* The sheet's title already names the field when they are the same */}
             {label !== title && <Text className="text-[15px] font-semibold">{label}</Text>}
-            <TextInput value={draft} onChangeText={setDraft} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle}
+            <TextInput {...accentInput} value={draft} onChangeText={setDraft} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle}
                 accessibilityLabel={label} autoCapitalize="none" autoCorrect={false} autoComplete="off" secureTextEntry={secure}
                 keyboardType={keyboardType === "url" ? "url" : "default"} multiline={multiline} returnKeyType={multiline ? "default" : "done"}
                 onSubmitEditing={multiline ? undefined : apply} textAlignVertical={multiline ? "top" : "center"}

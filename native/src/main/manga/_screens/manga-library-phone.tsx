@@ -13,6 +13,7 @@ import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { SwitchRow } from "@/components/ui/switch/switch"
 import { SectionTitle, Text } from "@/components/ui/text/text"
 import { plural, type Translate, useTr } from "@/lib/app-language"
+import { useCardSizeFactor } from "@/lib/card-size-setting"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { atomWithStorage } from "@/lib/storage"
@@ -246,13 +247,14 @@ function ContinueCard({ item, blurAdult, only, t, onContinue }: {
     const fresh = unread && unread > 0 ? plural(t, unread, ["1 new chapter", "{0} new chapters"], ["1 neues Kapitel", "{0} neue Kapitel"]) : ""
     const veiled = blurAdult && !!media?.isAdult
     const cardWidth = only ? Math.min(width - 32, 512) : Math.min(width * 0.86, 352)
+    const coverWidth = Math.round(88 * useCardSizeFactor())
     // the cover flies into the page (cover-flight.tsx); a blurred one does not fly
     const coverUri = getImageUrl(media?.coverImage?.large || media?.coverImage?.extraLarge || "")
     const { coverRef, onLoad, hidden, open } = useCoverFlightSource(entry.mediaId, veiled ? "" : coverUri, getImageUrl(media?.coverImage?.extraLarge || ""))
     return <Pressable accessibilityRole="button" onPress={() => onContinue(entry.mediaId, open)}
         accessibilityLabel={`${t("Continue reading", "Weiterlesen")}: ${title}, ${chapters}${fresh ? `, ${fresh}` : ""}`}
         style={{ width: cardWidth }} className="flex-row gap-3.5 rounded-surface bg-sm-surface-raised p-3 active:bg-sm-surface-control">
-        <View ref={coverRef} collapsable={false} className="aspect-[2/3] w-[88px] overflow-hidden rounded-surface-sm bg-sm-surface-control">
+        <View ref={coverRef} collapsable={false} style={{ width: coverWidth }} className="aspect-[2/3] overflow-hidden rounded-surface-sm bg-sm-surface-control">
             <Image cachePolicy="memory-disk" source={coverUri} recyclingKey={String(entry.mediaId)} contentFit="cover" onLoad={onLoad}
                 blurRadius={veiled ? 24 : 0} style={{ position: "absolute", inset: 0, opacity: hidden ? 0 : 1 }} accessibilityIgnoresInvertColors />
             {veiled && <View pointerEvents="none" className="absolute inset-0 bg-black/30" />}

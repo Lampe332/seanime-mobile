@@ -9,7 +9,7 @@ import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate } from "@/lib/app-language"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { ConfirmSheet, LinkRow, LocalSwitch, type SelectOption, SelectRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import {
     addToken,
@@ -277,7 +277,7 @@ function TokenList({ t, label, placeholder, items, onChange, note }: {
         <View className="min-w-0 gap-2">
             <Text className="text-sm font-semibold">{label}</Text>
             <View className="flex-row gap-2">
-                <TextInput ref={field} value={text} onChangeText={setText} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
+                <TextInput {...accentInput} ref={field} value={text} onChangeText={setText} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
                     autoCapitalize="none" autoCorrect={false} returnKeyType="done" onSubmitEditing={() => text.trim() && add()} className={cn(INPUT, "min-w-0 flex-1")} />
                 <Button intent="secondary" size="lg" disabled={!text.trim()} onPress={add} leftIcon={<Plus size={18} color={colors.smText} />}>
                     {t("Add", "Hinzufügen")}
@@ -310,7 +310,7 @@ function Field({ label, value, placeholder, onChange, note, error, numeric }: {
     return (
         <View className="gap-2">
             <Text className="text-sm font-semibold">{label}</Text>
-            <TextInput ref={field} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
+            <TextInput {...accentInput} ref={field} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
                 autoCapitalize="none" autoCorrect={false} keyboardType={numeric ? "number-pad" : "default"} returnKeyType="done"
                 className={cn(INPUT, !!error && "border-2 border-sm-danger")} />
             {(!!error || !!note) && <Text accessibilityRole={error ? "alert" : undefined}

@@ -71,6 +71,7 @@ import { useAtom } from "jotai"
 import React from "react"
 import { TextInput, View } from "react-native"
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated"
+import { accentInput } from "@/lib/theme/tokens"
 
 /*
  * The torrent sheet (torrent-search-phone.tsx + .css): one sheet to stream a torrent, stream it through debrid, or
@@ -523,7 +524,7 @@ function readFreeSpace(): number | null {
 function EpisodeField({ label, value, onChange }: { label: string, value: string, onChange: (value: string) => void }) {
     return <View className="gap-1.5">
         <Text className="text-sm font-semibold">{label}</Text>
-        <TextInput value={value} onChangeText={v => onChange(v.replace(/\D/g, ""))} keyboardType="number-pad" accessibilityLabel={label}
+        <TextInput {...accentInput} value={value} onChangeText={v => onChange(v.replace(/\D/g, ""))} keyboardType="number-pad" accessibilityLabel={label}
             className="min-h-[52px] rounded-surface bg-sm-surface-raised px-4 font-sans text-base text-sm-text" style={{ fontVariant: ["tabular-nums"] }} />
     </View>
 }

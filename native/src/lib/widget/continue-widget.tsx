@@ -4,6 +4,8 @@
 import React from "react"
 import { FlexWidget, ImageWidget, TextWidget } from "react-native-android-widget"
 import { entryLink } from "@/lib/app-links"
+import { storedPalette } from "@/lib/theme/appearance"
+import { accentTextHex } from "@/lib/theme/palette"
 import { ContinueEntry, continueLayout, ROW } from "./continue-widget-data"
 
 /*
@@ -24,6 +26,8 @@ export type ContinueWidgetProps = {
 export function ContinueWidget({ entries, heightDp, title, empty, episodeText }: ContinueWidgetProps) {
     const layout = continueLayout(heightDp)
     const shown = entries.slice(0, layout.rows)
+    /** "Episode N" in the accent the app was set to (read here: the widget renders without the app running) */
+    const accent = accentTextHex(storedPalette()) as `#${string}`
     return (
         <FlexWidget style={{ height: "match_parent", width: "match_parent", backgroundColor: "#141416", borderRadius: 20, padding: 12, flexDirection: "column" }}>
             {layout.header && (
@@ -53,7 +57,7 @@ export function ContinueWidget({ entries, heightDp, title, empty, episodeText }:
                     </FlexWidget>
                     <FlexWidget style={{ flex: 1, flexDirection: "column", marginLeft: 12 }}>
                         <TextWidget text={entry.title} style={{ width: "match_parent", color: "#EDEDF0", fontSize: 14, fontWeight: "bold" }} maxLines={1} truncate="END" />
-                        <TextWidget text={episodeText(entry.episode)} style={{ color: "#C7C2FF", fontSize: 12, marginTop: 2 }} maxLines={1} />
+                        <TextWidget text={episodeText(entry.episode)} style={{ color: accent, fontSize: 12, marginTop: 2 }} maxLines={1} />
                     </FlexWidget>
                 </FlexWidget>
             ))}

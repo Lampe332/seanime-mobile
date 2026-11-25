@@ -14,7 +14,7 @@ import { getAppLanguage, type Translate, useTr } from "@/lib/app-language"
 import { openInAppBrowser } from "@/lib/helpers/browser"
 import { getImageUrl } from "@/lib/server/assets"
 import { useEpisodeSpoilerState } from "@/lib/theme/anime-spoilers"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { IN_APP_PLAYER_READY } from "@/main/_features/player/player-availability"
 import { useHasTorrentProvider, useServerStatus } from "@/main/_hooks/use-server-status"
@@ -348,10 +348,10 @@ function MetadataSheet({ episode, onClose }: { episode: Anime_Episode, onClose: 
     return <Sheet title={episode.displayTitle} description={episode.localFile?.name} open onOpenChange={open => !open && onClose()}
         footer={<Button wrapperClassName="flex-1" loading={isPending} disabled={!valid} onPress={save}>{t("Save", "Speichern")}</Button>}>
         <SheetGroup title={t("Episode number", "Episodennummer")} note={t("Relative episode number. If movie, episode number = 1", "Relative Episodennummer. Bei einem Film ist sie 1.")}>
-            <TextInput value={number} onChangeText={v => setNumber(v.replace(/[^0-9]/g, ""))} keyboardType="number-pad" accessibilityLabel={t("Episode number", "Episodennummer")} className={field} />
+            <TextInput {...accentInput} value={number} onChangeText={v => setNumber(v.replace(/[^0-9]/g, ""))} keyboardType="number-pad" accessibilityLabel={t("Episode number", "Episodennummer")} className={field} />
         </SheetGroup>
         <SheetGroup title={t("AniDB episode", "AniDB-Episode")} note={t("Specials typically contain the letter S", "Specials enthalten meist den Buchstaben S")}>
-            <TextInput value={anidb} onChangeText={setAnidb} autoCapitalize="characters" accessibilityLabel={t("AniDB episode", "AniDB-Episode")} className={field} />
+            <TextInput {...accentInput} value={anidb} onChangeText={setAnidb} autoCapitalize="characters" accessibilityLabel={t("AniDB episode", "AniDB-Episode")} className={field} />
         </SheetGroup>
         <SheetGroup title={t("Type", "Typ")}>
             <RowGroup>

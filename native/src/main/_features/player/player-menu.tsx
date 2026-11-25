@@ -3,7 +3,7 @@ import { Text } from "@/components/ui/text/text"
 import { Slider } from "@/components/ui/slider/slider"
 import { type Translate, useTr } from "@/lib/app-language"
 import { ANDROID_PLAYER_PRESETS } from "@/lib/external-player-link/android-player-presets"
-import { colors } from "@/lib/theme/tokens"
+import { colors, accentInput } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { getSkipPatternError } from "@/main/_features/media-core/media-core-chapters"
 import { mediaCorePreferencesAtom } from "@/main/_features/media-core/media-core-preferences"
@@ -937,7 +937,7 @@ function TextEditor({ label, help, placeholder, value, validate, onApply, onCanc
     return (
         <View>
             <Para>{help}</Para>
-            <TextInput
+            <TextInput {...accentInput}
                 value={draft}
                 onChangeText={setDraft}
                 placeholder={placeholder}

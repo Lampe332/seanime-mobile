@@ -1,17 +1,19 @@
+import { rowCardWidth } from "@/components/shared/cover-layout"
+import { useCardSizeFactor } from "@/lib/card-size-setting"
 import { FlashList } from "@shopify/flash-list"
 import React from "react"
 import { useWindowDimensions, View } from "react-native"
 
 /*
  * One swipeable row of cards, as every list on Android Home (home-mobile.css: "a list of 25 or 169 titles no longer turns
- * Home into a wall of covers"): cards min(39vw, 10rem) wide, 12dp apart, snapping to their start; the full grids live in
- * My lists, Manga and the library. FlashList recycles the cards, so a long list stays cheap.
+ * Home into a wall of covers"): cards min(39vw, 10rem) wide (times the card size), 12dp apart, snapping to their start;
+ * the full grids live in My lists, Manga and the library. FlashList recycles the cards, so a long list stays cheap.
  */
 export const CARD_GAP = 12
 
 export function useCardWidth() {
     const { width } = useWindowDimensions()
-    return Math.round(Math.min(width * 0.39, 160))
+    return rowCardWidth(width, useCardSizeFactor())
 }
 
 export function MediaCardRow<T>({ data, keyOf, renderCard, inset = 16 }: {

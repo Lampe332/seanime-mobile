@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button/button"
 import { Sheet } from "@/components/ui/sheet/sheet"
 import { Muted, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
+import { useCardSizeFactor } from "@/lib/card-size-setting"
 import { usePathname, useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { colors } from "@/lib/theme/tokens"
@@ -51,6 +52,7 @@ function Preview({ t, type, media, listData, loading, onOpenPage }: {
     onOpenPage?: () => void
 }) {
     const [more, setMore] = React.useState(false)
+    const coverWidth = Math.round(104 * useCardSizeFactor())
     if (loading && !media) return <Muted accessibilityRole="progressbar">{t("Loading…", "Wird geladen…")}</Muted>
     if (!media) return <Muted>{t("This title could not be loaded.", "Dieser Titel konnte nicht geladen werden.")}</Muted>
     const anime = type === "anime" ? media as AL_BaseAnime : undefined
@@ -68,7 +70,7 @@ function Preview({ t, type, media, listData, loading, onOpenPage }: {
     const trailer = anime?.trailer?.site === "youtube" && anime.trailer.id ? `https://www.youtube.com/watch?v=${anime.trailer.id}` : null
     return <>
         <View className="flex-row flex-wrap items-start gap-4">
-            <View className="aspect-[2/3] w-[104px] overflow-hidden rounded-surface-sm bg-sm-surface-control">
+            <View style={{ width: coverWidth }} className="aspect-[2/3] overflow-hidden rounded-surface-sm bg-sm-surface-control">
                 {!!media.coverImage?.large && <Image source={getImageUrl(media.coverImage.large)} contentFit="cover" style={{ position: "absolute", inset: 0 }} accessibilityIgnoresInvertColors />}
             </View>
             <View className="min-w-[176px] flex-1 gap-1.5 pt-0.5">
