@@ -15,6 +15,7 @@ import { THEME_DEFAULT_VALUES } from "@/lib/theme/theme-hooks"
 import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { useJumpTarget } from "@/main/settings/_components/settings-page"
+import { pickerListMaxHeight } from "@/main/settings/_lib/settings-page-layout"
 import { withStoredOption, type Option } from "@/main/settings/_lib/settings-phone"
 import { useQueryClient } from "@tanstack/react-query"
 import { atom, useAtomValue, useSetAtom, useStore } from "jotai"
@@ -25,7 +26,7 @@ import ChevronRight from "lucide-react-native/icons/chevron-right"
 import RefreshCw from "lucide-react-native/icons/refresh-cw"
 import Smartphone from "lucide-react-native/icons/smartphone"
 import React from "react"
-import { Pressable, TextInput, View } from "react-native"
+import { Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native"
 
 /*
  * Rows and saving of the settings (settings-phone-kit.tsx): every change is stored at once, without a Save button. Server
@@ -218,7 +219,11 @@ function spoken(...parts: (string | undefined)[]) {
     return parts.filter(Boolean).join(", ")
 }
 
-/** The text side of a row: name (with a dot when the value is not the default), note, where the setting lives */
+/**
+ * The text side of a row: name, note, where the setting lives. A value that is not the default puts an accent dot right
+ * after the name, on its last line and never alone on a new one (as a box beside a wrapped name it stood out between
+ * the text and the switch, S22/Pixel Tablet).
+ */
 function RowText({ label, note, scope, changed, tone, className }: {
     label: string
     note?: string
@@ -231,10 +236,11 @@ function RowText({ label, note, scope, changed, tone, className }: {
     const ScopeIcon = scope === "device" ? Smartphone : RefreshCw
     return (
         <View className={cn("min-w-0 gap-0.5", className ?? "flex-1")}>
-            <View className="flex-row items-center gap-2">
-                <Text className={cn("min-w-0 shrink text-base", tone === "danger" && "text-sm-danger", tone === "accent" && "text-sm-accent")}>{label}</Text>
-                {changed && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.smAccent }} />}
-            </View>
+            <Text accessibilityLabel={spoken(label, changedText(t, changed))}
+                className={cn("text-base", tone === "danger" && "text-sm-danger", tone === "accent" && "text-sm-accent")}>
+                {label}
+                {changed && <Text className="font-bold" style={{ color: colors.smAccent }}>{" •"}</Text>}
+            </Text>
             {!!note && <Muted className="text-[13px] leading-[19px]">{note}</Muted>}
             {!!scope && <View className="mt-0.5 flex-row items-center gap-1.5">
                 <ScopeIcon size={12} color={colors.smTextSubtle} />
@@ -273,7 +279,7 @@ function SwitchSettingRow({ label, note, checked, onCheckedChange, disabled, sub
 }
 
 /** A switch row for a server setting. */
-export function SettingSwitch({ path, label, note, disabled, invert, sub, scope }: {
+export function SettingSwitch({ path, label, note, disabled, invert, sub, scope, defaultChecked }: {
     path: string
     label: string
     note?: string
@@ -282,11 +288,15 @@ export function SettingSwitch({ path, label, note, disabled, invert, sub, scope 
     invert?: boolean
     sub?: boolean
     scope?: SettingScope
+    /** The switch as the app starts (as shown, after `invert`): a dot marks the row once it differs */
+    defaultChecked?: boolean
 }) {
     const save = useSaveSetting()
     const stored = useSettingValue<boolean>(path, false)
-    return <SwitchSettingRow label={label} note={note} disabled={disabled} checked={invert ? !stored : !!stored} sub={sub} scope={scope}
-        onCheckedChange={checked => void save(path, invert ? !checked : checked)} />
+    const checked = invert ? !stored : !!stored
+    return <SwitchSettingRow label={label} note={note} disabled={disabled} checked={checked} sub={sub} scope={scope}
+        changed={defaultChecked !== undefined && checked !== defaultChecked}
+        onCheckedChange={next => void save(path, invert ? !next : next)} />
 }
 
 /** A switch row for a theme field; a dot marks a value that is not the app's default. */
@@ -346,6 +356,7 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
     defaultValue?: string
 }) {
     const t = useTr()
+    const { height: windowHeight } = useWindowDimensions()
     const [open, setOpen] = React.useState(false)
     const changed = defaultValue !== undefined && value !== defaultValue
 
@@ -353,7 +364,7 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
         return (
             <View className={cn("gap-2.5 bg-sm-surface-raised px-4 py-3", disabled && "opacity-60", sub && SUB)}>
                 <RowText label={label} note={note} scope={scope} changed={changed} className="" />
-                <View accessibilityRole="radiogroup" accessibilityLabel={spoken(label, note)} className="flex-row gap-0.5 rounded-[10px] p-0.5"
+                <View accessibilityRole="radiogroup" accessibilityLabel={spoken(label, note, changedText(t, changed))} className="flex-row gap-0.5 rounded-[10px] p-0.5"
                     style={{ backgroundColor: colors.smSurfaceSunken }}>
                     {options.map(option => {
                         const selected = option.value === value
@@ -389,6 +400,9 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
                 setOpen(false)
                 onChange(defaultValue)
             }}>{t("Reset to default", "Auf Standard zurücksetzen")}</Button> : undefined}>
+            {/* As tall as the options, at most ~85 % of the screen with the sheet's head and foot; past it they scroll here */}
+            <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}
+                style={{ flexGrow: 0, maxHeight: pickerListMaxHeight({ windowHeight, hasNote: !!note, hasFooter: changed }) }}>
             <View accessibilityRole="radiogroup" accessibilityLabel={label} className="gap-0.5 overflow-hidden rounded-surface">
                 {all.map(option => {
                     const selected = option.value === value
@@ -409,6 +423,7 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
                     </Pressable>
                 })}
             </View>
+            </ScrollView>
         </Sheet>
     </>
 }

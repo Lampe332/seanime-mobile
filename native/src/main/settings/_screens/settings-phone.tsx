@@ -84,9 +84,6 @@ function versionLine() {
     return app ? `Seanime Mobile ${app}` : ""
 }
 
-/** Areas long enough for jump chips to their groups (the others follow with the rollout) */
-const JUMP_SECTIONS: SettingsSectionId[] = ["ui"]
-
 export function SettingsPhone() {
     const t = useTr()
     const status = useServerStatus()
@@ -125,9 +122,9 @@ export function SettingsPhone() {
 
     if (shown) {
         const current = SECTIONS[shown]
-        // Keyed by area: a new area starts at its top
+        // Keyed by area: a new area starts at its top. Every area with three titled groups or more gets jump chips (settings-page.tsx)
         return <SettingsPage key={shown} icon={current.icon} title={t(current.titleEn, current.titleDe)} summary={t(current.summaryEn, current.summaryDe)}
-            onBack={close} jump={JUMP_SECTIONS.includes(shown)}>
+            onBack={close}>
             <SectionContent id={shown} t={t} onOpen={setSection} tablet={false} />
         </SettingsPage>
     }
@@ -190,9 +187,9 @@ function TwoPanes({ t, shown, onOpen }: { t: Translate, shown: SettingsSectionId
             <ScrollView style={{ width: listWidth, flexGrow: 0 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
                 <SectionList t={t} onOpen={open} current={shown} notes={wide} compact={wide && window.height <= 900} />
             </ScrollView>
-            {/* Keyed by area: a new area starts at its top */}
+            {/* Keyed by area: a new area starts at its top (the page also resets the reused native scroll view) */}
             <SettingsPage key={shown} pane icon={current.icon} title={t(current.titleEn, current.titleDe)} summary={t(current.summaryEn, current.summaryDe)}
-                jump={JUMP_SECTIONS.includes(shown)} bottomPad={paneBottom}>
+                bottomPad={paneBottom}>
                 <SectionContent id={shown} t={t} onOpen={open} tablet />
             </SettingsPage>
         </View>
