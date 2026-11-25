@@ -64,6 +64,7 @@ import {
     updateHomeItems,
 } from "./settings/settings"
 import { startStatus, statusAfterSave } from "./start/start"
+import { keepServerToken, withServerFiles, withServerLibrary } from "./jellyfin/source"
 import { animeWithEpisodes, episodeCollection, libraryEntry } from "./library/library"
 import { bulkLocalFiles, deleteLocalFiles, entryBulkAction, manualMatch, updateLocalFileData, updateLocalFiles } from "./library/local-files"
 import { fileTree, folderSuggestions, refreshFileTree, removeEmptyDirectories, scanAtStart, scanWhenBack } from "./library/folders"
@@ -352,7 +353,7 @@ export const CORE_ROUTES: CoreRoute[] = [
     { area: "debrid", method: "POST", endpoint: "/api/v1/debrid/stream/cancel", answer: request => cancelDebridStream(request) },
     { area: "settings", method: "POST", endpoint: "/api/v1/start", answer: (request, environment) => firstStart(request.body, environment) },
     { area: "settings", method: "PATCH", endpoint: "/api/v1/settings", answer: async (request, environment) => {
-        await saveSettings(await keepNakamaPassword(request.body, environment), environment)
+        await saveSettings(await keepNakamaPassword(await keepServerToken(request.body, environment), environment), environment)
         if (touchesNakama(request.body)) void nakamaSettingsChanged(environment).catch(() => {})
         return statusAnswer(environment, true)
     } },
@@ -415,8 +416,8 @@ export const CORE_ROUTES: CoreRoute[] = [
     { area: "anilist", method: "POST", endpoint: "/api/v1/manga/update-progress", answer: updateProgressOf("MANGA") },
     // start (stage 2c): the server's own answers, shown as it last gave them until it is ready (start/start.ts)
     // the home collection is asked at every start: with `library` on and "refresh when the app starts" set, the scan at start begins after it (5b-2)
-    { area: "anilist", method: "GET", endpoint: "/api/v1/library/collection", answer: async (_request, environment) => (scanAtStart(environment), withHostLibrary(await ownLibraryCollection(environment), environment)) },
-    { area: "anilist", method: "GET", endpoint: "/api/v1/library/anime-entry/{id}", answer: async (request, environment) => withHostFiles(await libraryEntry(request, environment), environment) },
+    { area: "anilist", method: "GET", endpoint: "/api/v1/library/collection", answer: async (_request, environment) => (scanAtStart(environment), withServerLibrary(await withHostLibrary(await ownLibraryCollection(environment), environment), environment)) },
+    { area: "anilist", method: "GET", endpoint: "/api/v1/library/anime-entry/{id}", answer: async (request, environment) => withServerFiles(await withHostFiles(await libraryEntry(request, environment), environment), environment) },
     // Nakama as a guest (phase 7e): the connection to a host on a PC, its library and its files played from it
     { area: "settings", method: "POST", endpoint: "/api/v1/nakama/reconnect", answer: reconnectToHost },
     { area: "settings", method: "POST", endpoint: "/api/v1/nakama/cleanup", answer: () => removeStaleConnections() },

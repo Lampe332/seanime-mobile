@@ -388,6 +388,28 @@ export const SCHEMA_STEPS: SchemaStep[] = [
             )`,
         ],
     },
+    {
+        step: 21,
+        name: "media server: its series as last read, and the titles given to them by hand",
+        statements: [
+            `CREATE TABLE mediaserver_series (
+                server_id TEXT NOT NULL,
+                series_id TEXT NOT NULL,
+                content TEXT NOT NULL,
+                fetched_at INTEGER NOT NULL
+            )`,
+            "CREATE UNIQUE INDEX mediaserver_series_item ON mediaserver_series (server_id, series_id)",
+            `CREATE TABLE mediaserver_mappings (
+                server_id TEXT NOT NULL,
+                item_id TEXT NOT NULL,
+                media_id INTEGER NOT NULL,
+                episode_offset INTEGER NOT NULL,
+                origin TEXT NOT NULL,
+                changed_at INTEGER NOT NULL
+            )`,
+            "CREATE UNIQUE INDEX mediaserver_mappings_item ON mediaserver_mappings (server_id, item_id)",
+        ],
+    },
 ]
 
 /** Takes every step the database has not taken yet. Returns the numbers of the steps taken now. */

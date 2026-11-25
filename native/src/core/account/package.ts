@@ -186,6 +186,7 @@ const ROW_KEYS = {
     extensionConfigs: ["id"],
     sandboxSettings: ["id"],
     onlinestreamMappings: ["provider", "mediaId"],
+    mediaserverMappings: ["serverId", "itemId"],
     mangaMappings: ["provider", "mediaId"],
     mangaPreferences: ["mediaId"],
     offlineSettings: ["id"],

@@ -1,6 +1,7 @@
 // geschrieben nach: Plan „Eigener Kern" Stufe 1b (eigene Datenbank, eigenes Schema) und der Drizzle-Doku (sqlite-core); kein Server-Quelltext
 
 import { integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core"
+import type { ServerShow } from "../jellyfin/match"
 
 /*
  * The core's own tables, as the queries see them. Only what a stage of the core needs is here; the tables are made by
@@ -388,3 +389,27 @@ export const ownShows = sqliteTable("own_shows", {
     listed: integer("listed").notNull(),
     changedAt: integer("changed_at").notNull(),
 })
+
+/**
+ * The series of the media server as last read from it (core/jellyfin/source.ts): a series with its seasons and the
+ * episodes that have a file. It is read again from the server, so it stays on the device and is in no backup.
+ */
+export const mediaserverSeries = sqliteTable("mediaserver_series", {
+    serverId: text("server_id").notNull(),
+    seriesId: text("series_id").notNull(),
+    content: text("content", { mode: "json" }).$type<ServerShow>().notNull(),
+    fetchedAt: integer("fetched_at").notNull(),
+}, table => [uniqueIndex("mediaserver_series_item").on(table.serverId, table.seriesId)])
+
+/**
+ * A series or a season of the media server (`itemId`) given to an AniList title by hand; `mediaId` 0 gives it to no
+ * title. `episodeOffset` is taken off the server's episode number. `origin` says who made the row ("manual").
+ */
+export const mediaserverMappings = sqliteTable("mediaserver_mappings", {
+    serverId: text("server_id").notNull(),
+    itemId: text("item_id").notNull(),
+    mediaId: integer("media_id").notNull(),
+    episodeOffset: integer("episode_offset").notNull(),
+    origin: text("origin").notNull(),
+    changedAt: integer("changed_at").notNull(),
+}, table => [uniqueIndex("mediaserver_mappings_item").on(table.serverId, table.itemId)])

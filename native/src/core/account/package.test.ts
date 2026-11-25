@@ -8,7 +8,8 @@ import { isDeviceKey } from "@/lib/app-backup-keys"
 import { openDatabaseSync } from "../../../test/expo-sqlite"
 import { beforeAll, describe, expect, it } from "vitest"
 import { makeBackup } from "../backup/backup"
-import { appearance, extensionUserConfigs, settingsSections, watchPositions } from "../database/schema"
+import { appearance, extensionUserConfigs, settingsSections, watchPositions, mediaserverMappings, mediaserverSeries } from "../database/schema"
+import { MEDIASERVER_TOKEN_SECRET } from "../jellyfin/source"
 import { DEBRID_KEY_SECRET } from "../debrid/debrid"
 import { ACCOUNT_TOKEN_SECRET } from "../move/move"
 import { NAKAMA_PASSWORD_SECRET } from "../nakama/guest"
@@ -75,6 +76,21 @@ describe("the sync package", () => {
         const file = JSON.stringify(await makeBackup(one.environment, { appVersion: "4.2.0", preferences: PREFERENCES }))
         for (const secret of SECRETS) expect(file).not.toContain(secret)
         expect(file).not.toContain("\"secrets\"")
+    })
+
+    it("carries the media server's rows made by hand, never its token or the series read from it", async () => {
+        const one = await filled()
+        const db = await one.db()
+        one.secrets.set(MEDIASERVER_TOKEN_SECRET, "jellyfin-token-q")
+        await db.insert(mediaserverMappings).values({ serverId: "srv-1", itemId: "series-9", mediaId: 21, episodeOffset: 12, origin: "manual", changedAt: 1000 })
+        await db.insert(mediaserverSeries).values({ serverId: "srv-1", seriesId: "series-9", fetchedAt: 1000,
+            content: { series: { serverId: "srv-1", id: "series-9", type: "Series", name: "Only-On-The-Server", year: 2020, providerIds: {}, path: "" }, seasons: [], episodes: [] } })
+        const pkg = await makePackage(one.environment, app(PREFERENCES))
+        const text = JSON.stringify(pkg)
+        expect(pkg.tables.mediaserverMappings).toEqual([{ serverId: "srv-1", itemId: "series-9", mediaId: 21, episodeOffset: 12, origin: "manual", changedAt: 1000 }])
+        expect(Object.keys(pkg.secrets)).not.toContain(MEDIASERVER_TOKEN_SECRET)
+        expect(text).not.toContain("jellyfin-token-q")
+        expect(text).not.toContain("Only-On-The-Server")
     })
 
     it("goes through gzip and encryption and back, and its hash ignores only the time it was made", async () => {
