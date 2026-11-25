@@ -59,7 +59,7 @@ export interface ServerSettings {
     device: string
     deviceId: string
     version: string
-    /** Whether the progress also goes to the server (the reports themselves are not built yet) */
+    /** Whether the progress also goes to the server (playback.ts) */
     sendProgress: boolean
 }
 
@@ -577,6 +577,7 @@ export async function playServerFile(request: CoreRequest, environment: Environm
     const source = episode.mediaSources[0]
     const mediaSourceId = source?.id || episode.id
     const container = (source?.container ?? "").split(",")[0].toLowerCase()
+    const playSessionId = newPlaySessionId(environment.now())
     const entry = await storedEntry(await environment.database(), "ANIME", mediaId)
     emitCoreEvent("native-player", {
         type: "watch",
@@ -586,14 +587,15 @@ export async function playServerFile(request: CoreRequest, environment: Environm
             streamType: "localfile",
             streamPath: row.path,
             mimeType: MIME[container] ?? "video/*",
-            streamUrl: serverStreamAddress(session, episode.id, mediaSourceId, newPlaySessionId(environment.now())),
+            streamUrl: serverStreamAddress(session, episode.id, mediaSourceId, playSessionId),
             requestHeaders: { Authorization: authorizationHeader(session.identity, session.token) },
             contentLength: 0,
             ...(entry ? { entryListData: listDataOf(entry) } : {}),
             episode: {
                 ...episodeOfFile(row, media, episodes),
                 _isMediaServerEpisode: true,
-                mediaServerEpisode: { serverId: found.match.serverId, seriesId: found.match.seriesId, episodeId: episode.id },
+                // source and play session: what the player's reports to the server name (playback.ts)
+                mediaServerEpisode: { serverId: found.match.serverId, seriesId: found.match.seriesId, episodeId: episode.id, mediaSourceId, playSessionId },
             },
             media,
             isNakamaWatchParty: false,

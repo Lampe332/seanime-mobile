@@ -2871,6 +2871,8 @@
   "The server's series leave your library. Your matches stay.": "服务器的剧集将离开你的媒体库。你的匹配会保留。",
   "Sign out of the media server?": "退出媒体服务器？",
   "The server's series leave your library until you sign in again.": "在你重新登录之前，服务器的剧集将离开你的媒体库。",
+  "Report progress to the server": "向服务器报告进度",
+  "Episodes you play from the server tell it where you are, so it can show them under Continue Watching and mark them as played. AniList is updated as before.": "从服务器播放的剧集会告诉服务器你看到哪里，这样它就能在“继续观看”中显示并标记为已看。AniList 照常更新。",
   "Sources come from streaming extensions, which you install under Extensions.": "来源来自串流扩展，可在“扩展”中安装。",
   "Watch episodes from online sources (streaming extensions).": "从在线来源（在线播放扩展）观看剧集。",
   "Streaming titles in your anime lists": "在动画列表中显示在线播放的作品",

@@ -3025,6 +3025,8 @@
   "The server's series leave your library. Your matches stay.": "Сериалы сервера уйдут из вашей библиотеки. Ваши сопоставления останутся.",
   "Sign out of the media server?": "Выйти из медиасервера?",
   "The server's series leave your library until you sign in again.": "Сериалы сервера уйдут из вашей библиотеки, пока вы снова не войдёте.",
+  "Report progress to the server": "Сообщать прогресс серверу",
+  "Episodes you play from the server tell it where you are, so it can show them under Continue Watching and mark them as played. AniList is updated as before.": "Серии, которые вы смотрите с сервера, сообщают ему, где вы остановились, чтобы он показывал их в разделе «Продолжить просмотр» и отмечал как просмотренные. AniList обновляется как раньше.",
   "Sources come from streaming extensions, which you install under Extensions.": "Источники берутся из расширений стриминга, которые ты устанавливаешь в разделе «Расширения».",
   "Watch episodes from online sources (streaming extensions).": "Смотри серии из онлайн-источников (расширения стриминга).",
   "Streaming titles in your anime lists": "Стриминговые тайтлы в списках аниме",

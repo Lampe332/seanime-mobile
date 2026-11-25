@@ -3044,6 +3044,8 @@
   "The server's series leave your library. Your matches stay.": "As séries do servidor saem da sua biblioteca. Suas associações continuam.",
   "Sign out of the media server?": "Sair do servidor de mídia?",
   "The server's series leave your library until you sign in again.": "As séries do servidor saem da sua biblioteca até você entrar novamente.",
+  "Report progress to the server": "Informar o progresso ao servidor",
+  "Episodes you play from the server tell it where you are, so it can show them under Continue Watching and mark them as played. AniList is updated as before.": "Os episódios que você reproduz do servidor informam a ele onde você está, para que ele possa mostrá-los em Continuar assistindo e marcá-los como assistidos. O AniList é atualizado como antes.",
   "Sources come from streaming extensions, which you install under Extensions.": "As fontes vêm das extensões de streaming, que você instala em Extensões.",
   "Watch episodes from online sources (streaming extensions).": "Assista a episódios de fontes online (extensões de streaming).",
   "Streaming titles in your anime lists": "Títulos de streaming nas suas listas de animes",

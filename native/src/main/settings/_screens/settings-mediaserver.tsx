@@ -1,7 +1,7 @@
 // geschrieben nach: settings-account.tsx (Anmeldeformular, PasswordField) und settings-more.tsx (Nakama, Host-Warnung)
 
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
-import { type MediaServerStatus, readingFinished, useMediaServerLogin, useMediaServerLogout, useMediaServerRefresh, useMediaServerStatus } from "@/api/hooks/mediaserver.hooks"
+import { type MediaServerStatus, readingFinished, useMediaServerLogin, useMediaServerLogout, useMediaServerRefresh, useMediaServerStatus, useSaveMediaServerSettings } from "@/api/hooks/mediaserver.hooks"
 import { Notice } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
@@ -10,7 +10,7 @@ import { Text } from "@/components/ui/text/text"
 import { plural, type Translate } from "@/lib/app-language"
 import { useThemeColors } from "@/lib/theme/appearance"
 import { accentInput } from "@/lib/theme/tokens"
-import { ConfirmSheet, InfoRow, LinkRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
+import { ConfirmSheet, InfoRow, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { checkServerAddress } from "@/main/settings/_lib/mediaserver-host"
 import { useQueryClient } from "@tanstack/react-query"
 import Eye from "lucide-react-native/icons/eye"
@@ -227,6 +227,8 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
                 note={show.suggestion ? t(`Suggestion: ${show.suggestion.title}`, `Vorschlag: ${show.suggestion.title}`) : t("No suggestion", "Kein Vorschlag")} />)}
         </SettingsGroup>}
 
+        <ProgressSwitch status={status} t={t} />
+
         <SettingsGroup>
             <LinkRow label={logout.isPending ? t("Signing out…", "Melde ab …") : t("Sign out", "Abmelden")} tone="danger" chevron={false}
                 disabled={logout.isPending || refresh.isPending}
@@ -238,4 +240,15 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
             text={t("The server's series leave your library until you sign in again.", "Die Serien des Servers verschwinden aus deiner Bibliothek, bis du dich wieder anmeldest.")}
             action={t("Sign out", "Abmelden")} onConfirm={signOut} />
     </>
+}
+
+/** Whether a playing server episode tells its server start, position and end (core/jellyfin/playback.ts asks it every time) */
+function ProgressSwitch({ status, t }: { status: MediaServerStatus, t: Translate }) {
+    const save = useSaveMediaServerSettings()
+    return <SettingsGroup title={t("Progress", "Fortschritt")}>
+        <LocalSwitch label={t("Report progress to the server", "Fortschritt an den Server melden")}
+            note={t("Episodes you play from the server tell it where you are, so it can show them under Continue Watching and mark them as played. AniList is updated as before.",
+                "Folgen, die du vom Server abspielst, melden ihm deinen Stand. So zeigt er sie unter „Weiterschauen“ und markiert sie als gesehen. AniList wird wie bisher aktualisiert.")}
+            checked={status.sendProgress} disabled={save.isPending} onCheckedChange={value => save.mutate({ sendProgress: value })} />
+    </SettingsGroup>
 }

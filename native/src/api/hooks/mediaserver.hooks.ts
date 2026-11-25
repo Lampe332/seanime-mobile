@@ -15,6 +15,18 @@ export const MEDIASERVER_ENDPOINTS = {
     MediaServerRefresh: { key: "MEDIASERVER-refresh", methods: ["POST"] as const, endpoint: "/api/v1/mediaserver/refresh" },
     SaveMediaServerSettings: { key: "MEDIASERVER-save-settings", methods: ["PATCH"] as const, endpoint: "/api/v1/mediaserver/settings" },
     MediaServerPlay: { key: "MEDIASERVER-play", methods: ["POST"] as const, endpoint: "/api/v1/mediaserver/play" },
+    MediaServerPlayback: { key: "MEDIASERVER-playback", methods: ["POST"] as const, endpoint: "/api/v1/mediaserver/playback" },
+}
+
+/** One report of a playing server episode to its server (core/jellyfin/playback.ts `PlaybackReport`) */
+export type MediaServerPlayback_Variables = {
+    kind: "start" | "progress" | "stop" | "watched"
+    episodeId: string
+    mediaSourceId: string
+    playSessionId: string
+    positionSeconds: number
+    paused: boolean
+    watched: boolean
 }
 
 /** A server episode by its file path (`mediaserver://<server>/<episode>`) */
@@ -113,6 +125,19 @@ export function useSaveMediaServerSettings() {
         method: E.SaveMediaServerSettings.methods[0],
         mutationKey: [E.SaveMediaServerSettings.key],
         onSuccess: async data => keep(data),
+    })
+}
+
+/**
+ * Tells the server how a server episode plays. The player never waits for it and never hears of a failure: no toast,
+ * no retry (the next report carries the newer position).
+ */
+export function useMediaServerPlayback() {
+    return useServerMutation<boolean, MediaServerPlayback_Variables>({
+        endpoint: E.MediaServerPlayback.endpoint,
+        method: E.MediaServerPlayback.methods[0],
+        mutationKey: [E.MediaServerPlayback.key],
+        onError: async () => undefined,
     })
 }
 

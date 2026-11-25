@@ -1,5 +1,7 @@
 import { coreHearPlayer } from "@/api/client/core-switch"
 import type { NativePlayer_PlaybackInfo } from "@/api/generated/types"
+import { useMediaServerPlayback } from "@/api/hooks/mediaserver.hooks"
+import { REPORT_IDLE, reportStep, serverPlaybackOf } from "@/main/_features/player/server-report"
 import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
 import { useWebsocketMessageListener } from "@/main/_hooks/handle-websockets"
@@ -68,11 +70,31 @@ export function usePlayerServer(info: NativePlayer_PlaybackInfo | null, commands
         originRef.current = origin
     }, [info, enabled, origin])
 
+    const { mutate: tellMediaServer } = useMediaServerPlayback()
+    const reportRef = React.useRef(REPORT_IDLE)
+    /** A server episode also tells its media server (server-report.ts); never awaited, a failure stays silent */
+    const report = React.useCallback((type: string, payload?: unknown) => {
+        const heard = (payload ?? {}) as { currentTime?: unknown, paused?: unknown }
+        const step = reportStep(reportRef.current, {
+            type,
+            playback: serverPlaybackOf(infoRef.current),
+            currentTime: typeof heard.currentTime === "number" ? heard.currentTime : undefined,
+            paused: typeof heard.paused === "boolean" ? heard.paused : undefined,
+            now: Date.now(),
+        })
+        reportRef.current = step.state
+        for (const one of step.reports) tellMediaServer(one)
+    }, [tellMediaServer])
+
     const send = React.useCallback((type: string, payload?: unknown) => {
         if (!enabledRef.current) return
         // the core keeps history and progress (core/playback/playback.ts)
         coreHearPlayer({ clientId, type, payload })
-    }, [clientId])
+        report(type, payload)
+    }, [clientId, report])
+
+    // the player went away without closing (close() says "video-terminated" itself): the server still hears the end
+    React.useEffect(() => () => report("video-terminated"), [report])
 
     const timePayload = React.useCallback(() => {
         const t = commands.current?.getTime() ?? { currentTime: 0, duration: 0, paused: true }

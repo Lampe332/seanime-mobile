@@ -118,7 +118,15 @@ export function jellyfinUrl(base: string, path: string, query: Record<string, st
     return base.replace(/\/+$/, "") + path + (pairs.length ? `?${pairs.join("&")}` : "")
 }
 
-async function ask(fetch: HttpFetch, url: string, authorization: string, method = "GET", body?: Json): Promise<unknown> {
+/**
+ * Tells the server something it answers without content (a playback report: 204). The token goes in the Authorization
+ * line only; a failure names the status or the time limit, never the address.
+ */
+export async function tellServer(fetch: HttpFetch, session: JellyfinSession, path: string, body?: Json, query: Record<string, string> = {}): Promise<void> {
+    await ask(fetch, jellyfinUrl(session.url, path, query), authorizationHeader(session.identity, session.token), "POST", body, true)
+}
+
+async function ask(fetch: HttpFetch, url: string, authorization: string, method = "GET", body?: Json, noContent = false): Promise<unknown> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), JELLYFIN_TIMEOUT_MS)
     // the time limit holds even for a fetch that does not listen to the signal
@@ -127,7 +135,8 @@ async function ask(fetch: HttpFetch, url: string, authorization: string, method 
         const headers: Record<string, string> = { Accept: "application/json", Authorization: authorization }
         if (body) headers["Content-Type"] = "application/json"
         const response = await Promise.race([fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, signal: controller.signal }), late])
-        if (response.status !== 200) throw new JellyfinFailure(`Jellyfin answered ${response.status}`, response.status)
+        if (noContent ? response.status < 200 || response.status > 299 : response.status !== 200) throw new JellyfinFailure(`Jellyfin answered ${response.status}`, response.status)
+        if (noContent) return null
         return JSON.parse(await Promise.race([response.text(), late]))
     }
     catch (error) {
