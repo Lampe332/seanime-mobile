@@ -45,11 +45,29 @@ export function useJumpTarget(label: string | undefined) {
     return ref
 }
 
+/**
+ * What a search hit opens the page on: the group by its title and the row by its names, all as the page shows them. A
+ * new `nonce` runs the jump again (the same hit tapped twice on a tablet).
+ */
+export type SettingsPageFocus = { group?: string, labels?: readonly string[], nonce: number }
+/** The matching row hands the page its view; the page scrolls it into sight */
+export type RowReveal = (row: React.RefObject<ViewRef | null>) => void
+
+const SettingsFocusContext = React.createContext<{ focus: SettingsPageFocus, reveal: RowReveal } | null>(null)
+
+/** For a row of the kit: set when this row is the one the page was opened on */
+export function useRowFocus(label: string, group: string | undefined) {
+    const context = React.useContext(SettingsFocusContext)
+    if (!context?.focus.labels?.includes(label)) return null
+    if (context.focus.group !== undefined && group !== undefined && context.focus.group !== group) return null
+    return { nonce: context.focus.nonce, reveal: context.reveal }
+}
+
 /** Under this many titled groups a page is short enough to see at once */
 const JUMP_MIN_TARGETS = 3
 const AT_START = { x: 0, y: 0 }
 
-export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, pane, bottomPad, children }: {
+export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, pane, bottomPad, focus, children }: {
     icon: LucideIcon
     title: string
     summary: string
@@ -60,6 +78,8 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
     /** the right pane of the tablet's two panes: the screen's head and sides belong to the panes around it */
     pane?: boolean
     bottomPad?: number
+    /** the group and row a search hit points at: the page scrolls there and the row lights up for a moment */
+    focus?: SettingsPageFocus | null
     children: React.ReactNode
 }) {
     const t = useTr()
@@ -157,17 +177,68 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
         return () => cancelAnimationFrame(frame)
     }, [targets, measure])
 
-    const jumpTo = (target: JumpTarget) => {
+    /** Scrolls the rows so that the view stands `lead(its height)` under their top edge */
+    const scrollToNode = React.useCallback((node: ViewRef, lead: (height: number) => number) => {
         const frame = frameRef.current
+        if (!frame) return
+        frame.measureInWindow((_frameX, frameY) => node.measureInWindow((_x, y, _width, nodeHeight) => {
+            scrollRef.current?.scrollTo({ y: Math.max(0, offset.current + y - frameY - lead(nodeHeight)), animated: !reducedMotion })
+        }))
+    }, [reducedMotion])
+
+    const jumpTo = (target: JumpTarget) => {
         const node = target.ref.current
-        if (!frame || !node) return
+        if (!frameRef.current || !node) return
         haptic("tick")
         pinned.current = true
         setActiveId(target.id)
-        frame.measureInWindow((_frameX, frameY) => node.measureInWindow((_x, y) => {
-            scrollRef.current?.scrollTo({ y: Math.max(0, offset.current + y - frameY - 4), animated: !reducedMotion })
-        }))
+        scrollToNode(node, () => 4)
     }
+
+    /*
+     * A search hit: its row reports itself once it has mounted and is brought a third down the visible rows, so its group
+     * title and neighbours show around it. A row that is not on the page right now (it depends on a state) or a hit that is
+     * a group leaves the jump to the group's title.
+     */
+    const revealed = React.useRef(false)
+    const focusTimer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+    const whenLaidOut = React.useCallback((run: () => void) => {
+        let tries = 0
+        // the first content size puts a new page at its top (below); the jump must come after it
+        const attempt = () => {
+            if (started.current || tries >= 20) run()
+            else {
+                tries += 1
+                focusTimer.current = setTimeout(attempt, 50)
+            }
+        }
+        clearTimeout(focusTimer.current)
+        focusTimer.current = setTimeout(attempt, 50)
+    }, [])
+    const reveal = React.useCallback<RowReveal>(row => {
+        revealed.current = true
+        whenLaidOut(() => {
+            pinned.current = false
+            if (row.current) scrollToNode(row.current, rowHeight => Math.max(24, (viewport.current - rowHeight) / 3))
+        })
+    }, [scrollToNode, whenLaidOut])
+    const focusContext = React.useMemo(() => focus ? { focus, reveal } : null, [focus, reveal])
+    React.useEffect(() => {
+        const group = focus?.group
+        if (!group) return undefined
+        const timer = setTimeout(() => {
+            if (revealed.current) return
+            whenLaidOut(() => {
+                const node = chipsRef.current.find(target => target.id === group)?.ref.current
+                if (node) scrollToNode(node, () => 4)
+            })
+        }, focus.labels ? 300 : 0)
+        return () => {
+            clearTimeout(timer)
+            revealed.current = false
+        }
+    }, [focus, scrollToNode, whenLaidOut])
+    React.useEffect(() => () => clearTimeout(focusTimer.current), [])
 
     // The chip row follows the lit chip so it stays in view
     const chipLayouts = React.useRef<Record<string, { x: number, width: number }>>({})
@@ -264,7 +335,9 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
     return (
         <TourScrollContext value={tourScroll}>
             <SettingsJumpContext.Provider value={jump ? registry : null}>
-                {pane ? <View className="flex-1 items-center">{page}</View> : page}
+                <SettingsFocusContext.Provider value={focusContext}>
+                    {pane ? <View className="flex-1 items-center">{page}</View> : page}
+                </SettingsFocusContext.Provider>
             </SettingsJumpContext.Provider>
         </TourScrollContext>
     )

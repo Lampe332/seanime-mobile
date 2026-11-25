@@ -14,7 +14,7 @@ import { colors } from "@/lib/theme/tokens"
 import { THEME_DEFAULT_VALUES } from "@/lib/theme/theme-hooks"
 import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
-import { useJumpTarget } from "@/main/settings/_components/settings-page"
+import { type RowReveal, useJumpTarget, useRowFocus } from "@/main/settings/_components/settings-page"
 import { pickerListMaxHeight } from "@/main/settings/_lib/settings-page-layout"
 import { withStoredOption, type Option } from "@/main/settings/_lib/settings-phone"
 import { useQueryClient } from "@tanstack/react-query"
@@ -26,7 +26,8 @@ import ChevronRight from "lucide-react-native/icons/chevron-right"
 import RefreshCw from "lucide-react-native/icons/refresh-cw"
 import Smartphone from "lucide-react-native/icons/smartphone"
 import React from "react"
-import { Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native"
+import { Animated, Easing, Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native"
+import { useReducedMotion } from "react-native-reanimated"
 
 /*
  * Rows and saving of the settings (settings-phone-kit.tsx): every change is stored at once, without a Save button. Server
@@ -168,6 +169,39 @@ export function useThemeValue<K extends Exclude<keyof Models_Theme, "id">>(field
     return stored
 }
 
+/** The title of the group a row stands in: two groups of one page may hold a row of the same name */
+const GroupTitleContext = React.createContext<string | undefined>(undefined)
+
+/**
+ * The row a search hit opened (settings-page.tsx `focus`): the page scrolls to it and an accent tint fades in and out
+ * over it, about 1.5 s in all. It lies under the row's text and takes no touches; every other row renders nothing here.
+ */
+function RowHighlight({ label }: { label: string }) {
+    const target = useRowFocus(label, React.useContext(GroupTitleContext))
+    return target ? <RowGlow key={target.nonce} reveal={target.reveal} /> : null
+}
+
+function RowGlow({ reveal }: { reveal: RowReveal }) {
+    const ref = React.useRef<React.ComponentRef<typeof View>>(null)
+    const [opacity] = React.useState(() => new Animated.Value(0))
+    const reducedMotion = useReducedMotion()
+    React.useEffect(() => {
+        reveal(ref)
+        const fade = (toValue: number, duration: number) => Animated.timing(opacity, {
+            toValue, duration: reducedMotion ? 0 : duration, easing: Easing.out(Easing.cubic), useNativeDriver: true,
+        })
+        // waits for the page's scroll to the row, then 200 ms in, 900 ms lit, 450 ms out
+        const glow = Animated.sequence([Animated.delay(280), fade(1, 200), Animated.delay(900), fade(0, 450)])
+        glow.start()
+        return () => glow.stop()
+    }, [opacity, reducedMotion, reveal])
+    return (
+        <View ref={ref} collapsable={false} pointerEvents="none" className="absolute inset-0">
+            <Animated.View style={{ flex: 1, backgroundColor: colors.smAccentSoft, opacity }} />
+        </View>
+    )
+}
+
 /** A small heading over a card of rows (as the list of areas: round corners, fine lines), an optional note under the heading */
 export function SettingsGroup({ title, note, notice, children }: {
     title?: string
@@ -182,15 +216,17 @@ export function SettingsGroup({ title, note, notice, children }: {
     // On a page with jump chips the title is one of them (settings-page.tsx)
     const ref = useJumpTarget(title)
     return (
-        <View className="min-w-0 gap-2">
-            {/* Marks the top of the group for the jump (out of the flow: no gap of its own) */}
-            <View ref={ref} collapsable={false} pointerEvents="none" className="absolute left-0 top-0 h-px w-px" />
-            {/* 2.0.32 measured at the S22 (App area): ~6dp more above the heading and ~8dp more under it than the bare gap */}
-            {!!title && <Text accessibilityRole="header" className="mb-2 mt-1.5 px-1 text-[13px] font-semibold tracking-[0.26px] text-sm-text-muted">{title}</Text>}
-            {!!note && <Text className="-mt-1 px-1 text-[13px] leading-[19.5px] text-sm-text-subtle">{note}</Text>}
-            {notice}
-            <View className="gap-0.5 overflow-hidden rounded-surface">{children}</View>
-        </View>
+        <GroupTitleContext.Provider value={title}>
+            <View className="min-w-0 gap-2">
+                {/* Marks the top of the group for the jump (out of the flow: no gap of its own) */}
+                <View ref={ref} collapsable={false} pointerEvents="none" className="absolute left-0 top-0 h-px w-px" />
+                {/* 2.0.32 measured at the S22 (App area): ~6dp more above the heading and ~8dp more under it than the bare gap */}
+                {!!title && <Text accessibilityRole="header" className="mb-2 mt-1.5 px-1 text-[13px] font-semibold tracking-[0.26px] text-sm-text-muted">{title}</Text>}
+                {!!note && <Text className="-mt-1 px-1 text-[13px] leading-[19.5px] text-sm-text-subtle">{note}</Text>}
+                {notice}
+                <View className="gap-0.5 overflow-hidden rounded-surface">{children}</View>
+            </View>
+        </GroupTitleContext.Provider>
     )
 }
 
@@ -270,6 +306,7 @@ function SwitchSettingRow({ label, note, checked, onCheckedChange, disabled, sub
                 onCheckedChange(!checked)
             }}
             className={cn(ROW, rowHeight(note || scope), disabled && "opacity-60", sub && SUB)}>
+            <RowHighlight label={label} />
             <RowText label={label} note={note} scope={scope} changed={changed} />
             <View pointerEvents="none">
                 <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
@@ -363,6 +400,7 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
     if (fitsSegments(options, value)) {
         return (
             <View className={cn("gap-2.5 bg-sm-surface-raised px-4 py-3", disabled && "opacity-60", sub && SUB)}>
+                <RowHighlight label={label} />
                 <RowText label={label} note={note} scope={scope} changed={changed} className="" />
                 <View accessibilityRole="radiogroup" accessibilityLabel={spoken(label, note, changedText(t, changed))} className="flex-row gap-0.5 rounded-[10px] p-0.5"
                     style={{ backgroundColor: colors.smSurfaceSunken }}>
@@ -391,6 +429,7 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={() => setOpen(true)}
             accessibilityLabel={spoken(label, current?.label, note, scopeText(t, scope), changedText(t, changed))}
             className={cn(ROW, rowHeight(note || scope), disabled && "opacity-60", sub && SUB)}>
+            <RowHighlight label={label} />
             <RowText label={label} note={note} scope={scope} changed={changed} />
             <Text numberOfLines={1} style={VALUE_STYLE} className={VALUE}>{current?.label ?? value}</Text>
             <ChevronRight size={18} color={colors.smTextSubtle} />
@@ -451,6 +490,7 @@ export function LinkRow({ label, value, note, onPress, disabled, tone, chevron =
         <Pressable accessibilityRole="button" accessibilityLabel={spoken(label, value, note, scopeText(t, scope))} accessibilityState={{ disabled: !!disabled }}
             disabled={disabled} onPress={onPress}
             className={cn(ROW, rowHeight(note || scope), disabled && "opacity-60", sub && SUB)}>
+            <RowHighlight label={label} />
             {!!Icon && <Icon size={20} color={colors.smTextMuted} />}
             <RowText label={label} note={note} scope={scope} tone={tone} />
             {!!value && <Text numberOfLines={1} style={VALUE_STYLE} className={VALUE}>{value}</Text>}
@@ -464,6 +504,7 @@ export function InfoRow({ label, value, note }: { label: string, value?: string,
     return (
         <View accessible accessibilityLabel={spoken(label, value, note)}
             className={cn("w-full flex-row items-center gap-3 bg-sm-surface-raised px-4 py-3", rowHeight(note))}>
+            <RowHighlight label={label} />
             <RowText label={label} note={note} />
             {!!value && <Text numberOfLines={1} style={VALUE_STYLE} className={VALUE}>{value}</Text>}
         </View>

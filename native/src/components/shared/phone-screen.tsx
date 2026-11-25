@@ -107,6 +107,8 @@ export function PhoneScreen({ title, subtitle, actions, children, className, onR
                 className="flex-1"
                 onScroll={event => { offset.current = event.nativeEvent.contentOffset.y }}
                 scrollEventThrottle={64}
+                // a tap on a button or a result (the settings search) works while the keyboard is open; a tap on the page closes it
+                keyboardShouldPersistTaps="handled"
                 refreshControl={refreshControl}
                 contentContainerStyle={{
                     // at least a screen tall, so the tint (in dp from the top) never ends at the content edge

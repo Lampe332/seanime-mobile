@@ -18,9 +18,11 @@ import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { SakuraBurst } from "@/main/settings/_components/sakura-burst"
 import { UpdateCheckRow } from "@/main/settings/_components/settings-app-services"
 import { InfoRow, LinkRow, SettingsGroup, SettingSwitch } from "@/main/settings/_components/settings-kit"
-import { SettingsPage } from "@/main/settings/_components/settings-page"
+import { SettingsPage, type SettingsPageFocus } from "@/main/settings/_components/settings-page"
+import { SettingsSearch } from "@/main/settings/_components/settings-search"
 import { contactHref, DISCORD_INVITE, KOFI_URL, LEGAL, shortLink } from "@/main/settings/_lib/legal"
 import { sectionFromTab, SETTINGS_SECTIONS, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
+import type { SettingsSearchDoc } from "@/main/settings/_lib/settings-search"
 import { NO_TAPS, secretMessage, TAP_RESET_MS, tapHint, versionTap } from "@/main/settings/_lib/version-taps"
 import { SettingsAccountSection } from "@/main/settings/_screens/settings-account"
 import { SettingsAppSection } from "@/main/settings/_screens/settings-app"
@@ -50,7 +52,7 @@ import Palette from "lucide-react-native/icons/palette"
 import Users from "lucide-react-native/icons/users"
 import WandSparkles from "lucide-react-native/icons/wand-sparkles"
 import React from "react"
-import { Pressable, ScrollView, View } from "react-native"
+import { Keyboard, Pressable, ScrollView, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 /*
@@ -76,6 +78,14 @@ const SECTIONS: Record<SettingsSectionId, { icon: LucideIcon, titleEn: string, t
     about: { icon: Info, titleEn: "About", titleDe: "Über", summaryEn: "Version, updates, Discord, legal", summaryDe: "Version, Updates, Discord, Rechtliches" },
 }
 
+/** The areas as the search names them and shows them in a hit */
+const SEARCH_SECTIONS = SETTINGS_SECTIONS.map(id => ({
+    id, icon: SECTIONS[id].icon, title: [SECTIONS[id].titleEn, SECTIONS[id].titleDe] as const, summary: [SECTIONS[id].summaryEn, SECTIONS[id].summaryDe] as const,
+}))
+
+/** The area a search hit opened and where in it (settings-page.tsx `focus`) */
+type SectionFocus = SettingsPageFocus & { section: SettingsSectionId }
+
 const appVersion = () => Constants.expoConfig?.version ?? ""
 
 /** The head line under "Settings": only the app's own version, never the Seanime desktop version */
@@ -91,13 +101,29 @@ export function SettingsPhone() {
     const setRouteParams = useSetRouteParams()
     const { twoPanes } = useTabletLayout()
     const [section, setSection] = React.useState<SettingsSectionId | null>(() => sectionFromTab(tab))
+    // The search word stays while an area is open, so Back from a hit returns to the hits
+    const [query, setQuery] = React.useState("")
+    const [focus, setFocus] = React.useState<SectionFocus | null>(null)
+    const open = React.useCallback((id: SettingsSectionId) => {
+        setFocus(null)
+        setSection(id)
+    }, [])
+    const openHit = React.useCallback((hit: SettingsSearchDoc) => {
+        Keyboard.dismiss()
+        setFocus(previous => ({ section: hit.section, group: hit.group, labels: hit.labels, nonce: (previous?.nonce ?? 0) + 1 }))
+        setSection(hit.section)
+    }, [])
+    const clearQuery = React.useCallback(() => setQuery(""), [])
 
     // A link (`/settings?tab=…`) opens its area once, also when the screen is already open (it stays mounted as a tab)
     const [handledTab, setHandledTab] = React.useState(tab)
     if (tab !== handledTab) {
         setHandledTab(tab)
         const target = sectionFromTab(tab)
-        if (target) setSection(target)
+        if (target) {
+            setFocus(null)
+            setSection(target)
+        }
     }
     // …and the address goes back to /settings, as on the desktop page, so the same link works again
     React.useEffect(() => {
@@ -109,6 +135,8 @@ export function SettingsPhone() {
     // stays mounted as a tab, and Back on another page must not close an area here
     const focused = useIsFocused()
     useCloseOnBack(focused && !twoPanes && section !== null, close)
+    // Back on the hits empties the search first
+    useCloseOnBack(focused && (twoPanes || section === null) && query !== "", clearQuery)
 
     const shown = section ?? (twoPanes ? SETTINGS_SECTIONS[0] : null)
 
@@ -118,19 +146,23 @@ export function SettingsPhone() {
         </PhoneScreen>
     }
 
-    if (twoPanes && shown) return <TwoPanes t={t} shown={shown} onOpen={setSection} />
+    const shownFocus = focus && focus.section === shown ? focus : null
+
+    if (twoPanes && shown) return <TwoPanes t={t} shown={shown} onOpen={open} query={query} onQuery={setQuery} onHit={openHit} focus={shownFocus} />
 
     if (shown) {
         const current = SECTIONS[shown]
         // Keyed by area: a new area starts at its top. Every area with three titled groups or more gets jump chips (settings-page.tsx)
         return <SettingsPage key={shown} icon={current.icon} title={t(current.titleEn, current.titleDe)} summary={t(current.summaryEn, current.summaryDe)}
-            onBack={close}>
-            <SectionContent id={shown} t={t} onOpen={setSection} tablet={false} />
+            onBack={close} focus={shownFocus}>
+            <SectionContent id={shown} t={t} onOpen={open} tablet={false} />
         </SettingsPage>
     }
 
     return <PhoneScreen key="list" title={t("Settings", "Einstellungen")} subtitle={versionLine()}>
-        <SectionList t={t} onOpen={setSection} />
+        <SettingsSearch t={t} sections={SEARCH_SECTIONS} query={query} onQuery={setQuery} onOpen={openHit}>
+            <SectionList t={t} onOpen={open} />
+        </SettingsSearch>
     </PhoneScreen>
 }
 
@@ -168,7 +200,15 @@ function SectionList({ t, onOpen, current, compact, notes = true }: {
  * Two panes (tablet.css `.pst-panes`): 14rem list from 720dp, 19rem with the notes from 1024dp, 21rem from 1400dp; the
  * open area beside it with its title. The head stays above both.
  */
-function TwoPanes({ t, shown, onOpen }: { t: Translate, shown: SettingsSectionId, onOpen: (id: SettingsSectionId) => void }) {
+function TwoPanes({ t, shown, onOpen, query, onQuery, onHit, focus }: {
+    t: Translate
+    shown: SettingsSectionId
+    onOpen: (id: SettingsSectionId) => void
+    query: string
+    onQuery: (query: string) => void
+    onHit: (hit: SettingsSearchDoc) => void
+    focus: SettingsPageFocus | null
+}) {
     const insets = useSafeAreaInsets()
     const paneBottom = usePageBottomPad(insets.bottom + 112)
     const top = usePageTop()
@@ -184,12 +224,16 @@ function TwoPanes({ t, shown, onOpen }: { t: Translate, shown: SettingsSectionId
             <Muted>{versionLine()}</Muted>
         </View>
         <View className="w-full flex-1 flex-row px-4" style={{ gap }}>
-            <ScrollView style={{ width: listWidth, flexGrow: 0 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
-                <SectionList t={t} onOpen={open} current={shown} notes={wide} compact={wide && window.height <= 900} />
+            {/* A tap on a hit counts while the keyboard is still up */}
+            <ScrollView style={{ width: listWidth, flexGrow: 0 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
+                <SettingsSearch t={t} sections={SEARCH_SECTIONS} query={query} onQuery={onQuery} onOpen={onHit} compact={!wide}>
+                    <SectionList t={t} onOpen={open} current={shown} notes={wide} compact={wide && window.height <= 900} />
+                </SettingsSearch>
             </ScrollView>
             {/* Keyed by area: a new area starts at its top (the page also resets the reused native scroll view) */}
             <SettingsPage key={shown} pane icon={current.icon} title={t(current.titleEn, current.titleDe)} summary={t(current.summaryEn, current.summaryDe)}
-                bottomPad={paneBottom}>
+                bottomPad={paneBottom} focus={focus}>
                 <SectionContent id={shown} t={t} onOpen={open} tablet />
             </SettingsPage>
         </View>
