@@ -9,18 +9,18 @@ import { useTr } from "@/lib/app-language"
 import { colors, accentInput } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { PluginWebviewSlot } from "@/main/_features/plugin/plugin-webview"
-import { useCurrentUser } from "@/main/_hooks/use-server-status"
+import { useCurrentUser, useIsSimulatedUser } from "@/main/_hooks/use-server-status"
 import {
-    changedRepeat,
     chooseListStatus,
     clampStep,
     formatFieldDate,
     listEntryDefaults,
-    listEntryPayload,
     type ListEntryForm,
     listStatusOptions,
-    parseStepInput,
     progressMaxFor,
+    stepInputText,
+    stepShownText,
+    submitListEntry,
     entryButton,
     addingDone,
 } from "@/main/_features/media/_lib/list-entry-form"
@@ -110,18 +110,19 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     const [form, setForm] = React.useState<ListEntryForm>(() => listEntryDefaults(listData))
     const [repeat, setRepeat] = React.useState<number | null>(listData.repeat || 0)
     const [confirmDelete, setConfirmDelete] = React.useState(false)
-    const { mutate, isPending: isEditing } = useEditAnilistListEntry(media?.id, type)
+    const isGuest = useIsSimulatedUser()
+    const { mutate, isPending: isEditing, isError: saveFailed } = useEditAnilistListEntry(media?.id, type)
     const { mutate: mutateRepeat } = useUpdateAnimeEntryRepeat(media?.id)
     const { mutate: deleteEntry, isPending: isDeleting } = useDeleteAnilistListEntry(media?.id, type, () => onOpenChange(false))
     const released = media?.status !== "NOT_YET_RELEASED"
     const max = progressMaxFor(media, type)
     const total = type === "anime" ? (media as AL_BaseAnime | undefined)?.episodes : (media as AL_BaseManga | undefined)?.chapters
 
-    const save = () => {
-        const nextRepeat = changedRepeat(repeat, listData.repeat)
-        if (nextRepeat !== null) mutateRepeat({ mediaId: media?.id || 0, repeat: nextRepeat })
-        mutate(listEntryPayload(form, media?.id || 0, type))
-    }
+    const save = () => submitListEntry(form, repeat, listData.repeat, media?.id || 0, type, {
+        saveEntry: (body, options) => mutate(body, options),
+        saveRepeat: mutateRepeat,
+        close: () => onOpenChange(false),
+    })
 
     const pickDate = (field: "startedAt" | "completedAt") => DateTimePickerAndroid.open({
         value: form[field] ?? new Date(),
@@ -168,6 +169,9 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     </View>
 
     const footer = <View className="flex-1 flex-row flex-wrap items-center justify-between gap-3">
+        {saveFailed && !isEditing && <Text accessibilityLiveRegion="polite" className="w-full text-[13px] text-sm-danger">
+            {t("Not saved. Your changes are still here.", "Nicht gespeichert. Deine Änderungen sind noch da.")}
+        </Text>}
         <View className="flex-row items-center gap-2">
             <Pressable accessibilityRole="button" accessibilityLabel={t("Remove from list", "Aus Liste entfernen")} onPress={() => setConfirmDelete(v => !v)}
                 className="h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control">
@@ -179,9 +183,11 @@ function AnilistMediaEntrySheet({ media, listData, type, open, onOpenChange }: {
     </View>
 
     const title = media?.title?.userPreferred || ""
+    // where the entry lives: the guest's lists are kept on the phone only
+    const where = isGuest ? t("On this device", "Auf diesem Gerät") : "AniList"
     return isTablet
-        ? <Dialog title={title} description="AniList" open={open} onOpenChange={onOpenChange} footer={footer}>{body}</Dialog>
-        : <Sheet title={title} description="AniList" open={open} onOpenChange={onOpenChange} footer={footer}>{body}</Sheet>
+        ? <Dialog title={title} description={where} open={open} onOpenChange={onOpenChange} footer={footer}>{body}</Dialog>
+        : <Sheet title={title} description={where} open={open} onOpenChange={onOpenChange} footer={footer}>{body}</Sheet>
 }
 
 function Field({ label, children }: { label: string, children: React.ReactNode }) {
@@ -214,7 +220,7 @@ function Stepper({ value, onValue, min = 0, max, decimals, suffix, label }: {
     const limits = { min, max, decimals }
     const [draft, setDraft] = React.useState<string | null>(null)
     const current = value ?? min
-    const shown = draft ?? (value === null ? "" : String(value))
+    const shown = stepShownText(draft, value, limits)
     return <View className="min-h-12 flex-row items-center rounded-surface-sm bg-sm-surface-raised">
         <Pressable accessibilityRole="button" accessibilityLabel={`${t("Decrease", "Verringern")}: ${label}`} disabled={value === null || current <= min}
             onPress={() => onValue(clampStep(Math.ceil(current) - 1, limits))}
@@ -225,9 +231,9 @@ function Stepper({ value, onValue, min = 0, max, decimals, suffix, label }: {
             <TextInput {...accentInput} value={shown} placeholder="–" placeholderTextColor={colors.smTextSubtle} accessibilityLabel={label}
                 keyboardType={decimals ? "decimal-pad" : "number-pad"}
                 onChangeText={text => {
-                    setDraft(text)
-                    const parsed = parseStepInput(text, limits)
-                    if (parsed !== undefined) onValue(parsed)
+                    const next = stepInputText(text, shown, limits)
+                    setDraft(next.text)
+                    if (next.value !== undefined) onValue(next.value)
                 }}
                 onBlur={() => setDraft(null)}
                 className="min-w-[30px] p-0 text-right font-sans text-base font-semibold text-sm-text" style={{ fontVariant: ["tabular-nums"] }} />

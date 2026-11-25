@@ -69,6 +69,26 @@ export function parseStepInput(text: string, limits: { min?: number, max?: numbe
 }
 
 /**
+ * Typing in a stepper: the field never shows a number that would not be saved. Only digits are taken (a score also one
+ * "," or "." with one decimal, after a digit); anything else keeps the text as it was. Above the highest, the text
+ * becomes the highest. `value` undefined = the typed text was not taken.
+ */
+export function stepInputText(text: string, previous: string, limits: { min?: number, max?: number, decimals?: boolean }): { text: string, value: number | null | undefined } {
+    const allowed = limits.decimals ? /^(\d+([.,]\d?)?)?$/ : /^\d*$/
+    if (!allowed.test(text)) return { text: previous, value: undefined }
+    const trimmed = text.replace(/^0+(?=\d)/, "")
+    const value = parseStepInput(trimmed, limits)
+    if (value === null || value === undefined) return { text: trimmed, value }
+    return { text: value === Number(trimmed.replace(",", ".")) ? trimmed : String(value), value }
+}
+
+/** What a stepper shows: the typed text while it stands for the value, else the value itself */
+export function stepShownText(draft: string | null, value: number | null, limits: { min?: number, max?: number, decimals?: boolean }) {
+    if (draft !== null && parseStepInput(draft, limits) === value) return draft
+    return value === null ? "" : String(value)
+}
+
+/**
  * An emptied date goes as {} (sent, unlike undefined): the core reads it as no date and asks AniList to take it away
  * (FuzzyDateInput with year, month and day null, core/anilist/changes.ts sendRow).
  */
@@ -81,7 +101,7 @@ export function listEntryPayload(form: ListEntryForm, mediaId: number, type: "an
     return {
         mediaId,
         status: form.status || "PLANNING",
-        score: form.score ? form.score * 10 : 0, // should be 0-100
+        score: form.score ? Math.round(form.score * 10) : 0, // should be 0-100 and whole (0.7 * 10 is 7.000000000000001)
         progress: form.progress || 0,
         startedAt: fuzzy(form.startedAt),
         completedAt: fuzzy(form.completedAt),
@@ -93,6 +113,20 @@ export function listEntryPayload(form: ListEntryForm, mediaId: number, type: "an
 export function changedRepeat(repeat: number | null, stored: number | undefined) {
     const normalized = repeat ?? 0
     return normalized !== (stored ?? 0) ? normalized : null
+}
+
+/**
+ * Save in the edit sheet: a changed rewatch count goes along, then the entry. The sheet closes only once the entry is
+ * saved; on an error it stays open with the changes, and the error shows.
+ */
+export function submitListEntry(form: ListEntryForm, repeat: number | null, storedRepeat: number | undefined, mediaId: number, type: "anime" | "manga", actions: {
+    saveEntry: (body: ReturnType<typeof listEntryPayload>, options: { onSuccess: () => void }) => void
+    saveRepeat: (body: { mediaId: number, repeat: number }) => void
+    close: () => void
+}) {
+    const nextRepeat = changedRepeat(repeat, storedRepeat)
+    if (nextRepeat !== null) actions.saveRepeat({ mediaId, repeat: nextRepeat })
+    actions.saveEntry(listEntryPayload(form, mediaId, type), { onSuccess: actions.close })
 }
 
 /** "2026-10-05" in the date fields */

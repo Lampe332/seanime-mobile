@@ -12,6 +12,9 @@ import {
     progressMaxFor,
     entryButton,
     addingDone,
+    stepInputText,
+    stepShownText,
+    submitListEntry,
 } from "./list-entry-form"
 
 /*
@@ -100,5 +103,61 @@ describe("list entry editor", () => {
 
     it("encodes file paths like Buffer did", () => {
         expect(utf8ToBase64("D:/Anime/Folge 1 – ü.mkv")).toBe("RDovQW5pbWUvRm9sZ2UgMSDigJMgw7wubWt2")
+    })
+})
+
+/* Device test 25.11.2026 (guest): "150" stood in the score field and 10 was saved; Save left the sheet open. */
+describe("edit sheet: typed numbers and save", () => {
+    const score = { max: 10, decimals: true }
+    const progress = { max: 12 }
+
+    it("never shows a typed number above the highest", () => {
+        expect(stepInputText("150", "15", score)).toEqual({ text: "10", value: 10 })
+        expect(stepInputText("10,5", "10,", score)).toEqual({ text: "10", value: 10 })
+        expect(stepInputText("13", "1", progress)).toEqual({ text: "12", value: 12 })
+        // no known episode count: no upper limit
+        expect(stepInputText("250", "25", {})).toEqual({ text: "250", value: 250 })
+    })
+
+    it("takes only digits, one separator and one decimal for scores", () => {
+        expect(stepInputText("7,5", "7,", score)).toEqual({ text: "7,5", value: 7.5 })
+        expect(stepInputText("7.", "7", score)).toEqual({ text: "7.", value: 7 })
+        expect(stepInputText("7,55", "7,5", score)).toEqual({ text: "7,5", value: undefined })
+        expect(stepInputText("7a", "7", score)).toEqual({ text: "7", value: undefined })
+        expect(stepInputText(",", "", score)).toEqual({ text: "", value: undefined })
+        expect(stepInputText("-1", "", progress)).toEqual({ text: "", value: undefined })
+        expect(stepInputText("3.5", "3", progress)).toEqual({ text: "3", value: undefined })
+        expect(stepInputText("05", "0", progress)).toEqual({ text: "5", value: 5 })
+        expect(stepInputText("", "4", progress)).toEqual({ text: "", value: null })
+    })
+
+    it("shows the value when the typed text no longer stands for it", () => {
+        expect(stepShownText("7,", 7, score)).toBe("7,")
+        expect(stepShownText("5", 12, progress)).toBe("12") // "Completed" filled the progress meanwhile
+        expect(stepShownText(null, null, progress)).toBe("")
+    })
+
+    it("sends whole scores", () => {
+        const form = { status: "CURRENT" as const, score: 0.7, progress: 3, startedAt: null, completedAt: null }
+        expect(listEntryPayload(form, 1, "anime").score).toBe(7)
+    })
+
+    it("closes the sheet only once the entry is saved", () => {
+        const form = { status: "CURRENT" as const, score: 8, progress: 3, startedAt: null, completedAt: null }
+        const run = (outcome: "saved" | "failed", repeat: number | null) => {
+            const calls: string[] = []
+            submitListEntry(form, repeat, 1, 5114, "anime", {
+                saveEntry: (body, options) => {
+                    calls.push(`entry ${body.score} ${body.progress}`)
+                    if (outcome === "saved") options.onSuccess()
+                },
+                saveRepeat: body => calls.push(`repeat ${body.repeat}`),
+                close: () => calls.push("close"),
+            })
+            return calls
+        }
+        expect(run("saved", 1)).toEqual(["entry 80 3", "close"])
+        expect(run("failed", 1)).toEqual(["entry 80 3"])
+        expect(run("saved", 2)).toEqual(["repeat 2", "entry 80 3", "close"])
     })
 })
