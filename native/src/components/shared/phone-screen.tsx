@@ -77,8 +77,10 @@ export function usePullRefresh(onRefresh: (() => Promise<unknown>) | undefined, 
  * The head is `.ps-header`: the title (28dp bold) with its facts line under it and the actions on the right.
  * The setup tour can scroll a target of this screen into the middle (the web's `scrollIntoView({ block: "center" })`).
  * With `onRefresh` the page reloads on a pull from the top; the spinner stays until its promise settles.
+ * `initialOffset` opens the page at that scroll position (from its first layout, so it never flashes the top); `onOffset`
+ * hears every scroll position, so a page that is rebuilt (the settings list after an area) can come back where it was.
  */
-export function PhoneScreen({ title, subtitle, actions, children, className, onRefresh }: {
+export function PhoneScreen({ title, subtitle, actions, children, className, onRefresh, initialOffset, onOffset }: {
     /** without a title (and actions) the screen has no head, e.g. the content gate */
     title?: string
     subtitle?: string
@@ -86,6 +88,8 @@ export function PhoneScreen({ title, subtitle, actions, children, className, onR
     children?: React.ReactNode
     className?: string
     onRefresh?: () => Promise<unknown>
+    initialOffset?: number
+    onOffset?: (y: number) => void
 }) {
     const insets = useSafeAreaInsets()
     const top = usePageTop()
@@ -96,7 +100,8 @@ export function PhoneScreen({ title, subtitle, actions, children, className, onR
     const bottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const refreshControl = usePullRefresh(onRefresh, top)
     const scrollRef = React.useRef<React.ComponentRef<typeof ScrollView>>(null)
-    const offset = React.useRef(0)
+    const offset = React.useRef(initialOffset ?? 0)
+    const [startOffset] = React.useState(() => (initialOffset ? { x: 0, y: initialOffset } : undefined))
     const tourScroll = React.useMemo<TourScrollHost>(() => ({
         centre: rect => scrollRef.current?.scrollTo({ y: Math.max(0, offset.current + rect.top + rect.height / 2 - height / 2), animated: false }),
     }), [height])
@@ -105,7 +110,11 @@ export function PhoneScreen({ title, subtitle, actions, children, className, onR
             <ScrollView
                 ref={scrollRef}
                 className="flex-1"
-                onScroll={event => { offset.current = event.nativeEvent.contentOffset.y }}
+                contentOffset={startOffset}
+                onScroll={event => {
+                    offset.current = event.nativeEvent.contentOffset.y
+                    onOffset?.(offset.current)
+                }}
                 scrollEventThrottle={64}
                 // a tap on a button or a result (the settings search) works while the keyboard is open; a tap on the page closes it
                 keyboardShouldPersistTaps="handled"

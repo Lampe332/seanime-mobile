@@ -104,16 +104,22 @@ export function SettingsPhone() {
     // The search word stays while an area is open, so Back from a hit returns to the hits
     const [query, setQuery] = React.useState("")
     const [focus, setFocus] = React.useState<SectionFocus | null>(null)
+    // The list's scroll position, kept when an area opens, so Back returns to the same place in the list
+    const listOffset = React.useRef(0)
+    const [listTop, setListTop] = React.useState(0)
     const open = React.useCallback((id: SettingsSectionId) => {
+        setListTop(listOffset.current)
         setFocus(null)
         setSection(id)
     }, [])
     const openHit = React.useCallback((hit: SettingsSearchDoc) => {
         Keyboard.dismiss()
+        setListTop(listOffset.current)
         setFocus(previous => ({ section: hit.section, group: hit.group, labels: hit.labels, nonce: (previous?.nonce ?? 0) + 1 }))
         setSection(hit.section)
     }, [])
     const clearQuery = React.useCallback(() => setQuery(""), [])
+    const setListOffset = React.useCallback((y: number) => { listOffset.current = y }, [])
 
     // A link (`/settings?tab=…`) opens its area once, also when the screen is already open (it stays mounted as a tab)
     const [handledTab, setHandledTab] = React.useState(tab)
@@ -159,7 +165,8 @@ export function SettingsPhone() {
         </SettingsPage>
     }
 
-    return <PhoneScreen key="list" title={t("Settings", "Einstellungen")} subtitle={versionLine()}>
+    return <PhoneScreen key="list" title={t("Settings", "Einstellungen")} subtitle={versionLine()}
+        initialOffset={listTop} onOffset={setListOffset}>
         <SettingsSearch t={t} sections={SEARCH_SECTIONS} query={query} onQuery={setQuery} onOpen={openHit}>
             <SectionList t={t} onOpen={open} />
         </SettingsSearch>
