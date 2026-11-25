@@ -4,22 +4,26 @@ import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import type { Models_Theme, Status } from "@/api/generated/types"
 import { Button } from "@/components/ui/button/button"
 import { cn } from "@/components/ui/core/styling"
-import { Select } from "@/components/ui/select/select"
 import { Sheet } from "@/components/ui/sheet/sheet"
-import { SwitchRow } from "@/components/ui/switch/switch"
+import { Switch } from "@/components/ui/switch/switch"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate, useTr } from "@/lib/app-language"
+import { haptic } from "@/lib/feedback"
 import { colors } from "@/lib/theme/tokens"
 import { THEME_DEFAULT_VALUES } from "@/lib/theme/theme-hooks"
 import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
+import { useJumpTarget } from "@/main/settings/_components/settings-page"
 import { withStoredOption, type Option } from "@/main/settings/_lib/settings-phone"
 import { useQueryClient } from "@tanstack/react-query"
 import { atom, useAtomValue, useSetAtom, useStore } from "jotai"
 import get from "lodash/get"
 import type { LucideIcon } from "lucide-react-native"
+import Check from "lucide-react-native/icons/check"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
+import RefreshCw from "lucide-react-native/icons/refresh-cw"
+import Smartphone from "lucide-react-native/icons/smartphone"
 import React from "react"
 import { Pressable, TextInput, View } from "react-native"
 
@@ -163,7 +167,7 @@ export function useThemeValue<K extends Exclude<keyof Models_Theme, "id">>(field
     return stored
 }
 
-/** `.pst-group`: a small heading over raised rows, an optional note under the heading */
+/** A small heading over a card of rows (as the list of areas: round corners, fine lines), an optional note under the heading */
 export function SettingsGroup({ title, note, notice, children }: {
     title?: string
     note?: string
@@ -174,8 +178,12 @@ export function SettingsGroup({ title, note, notice, children }: {
     notice?: React.ReactNode
     children: React.ReactNode
 }) {
+    // On a page with jump chips the title is one of them (settings-page.tsx)
+    const ref = useJumpTarget(title)
     return (
         <View className="min-w-0 gap-2">
+            {/* Marks the top of the group for the jump (out of the flow: no gap of its own) */}
+            <View ref={ref} collapsable={false} pointerEvents="none" className="absolute left-0 top-0 h-px w-px" />
             {/* 2.0.32 measured at the S22 (App area): ~6dp more above the heading and ~8dp more under it than the bare gap */}
             {!!title && <Text accessibilityRole="header" className="mb-2 mt-1.5 px-1 text-[13px] font-semibold tracking-[0.26px] text-sm-text-muted">{title}</Text>}
             {!!note && <Text className="-mt-1 px-1 text-[13px] leading-[19.5px] text-sm-text-subtle">{note}</Text>}
@@ -188,8 +196,84 @@ export function SettingsGroup({ title, note, notice, children }: {
 /** Sub-settings of the switch above them (spoiler parts, blur of adult covers) sit 2rem in */
 const SUB = "pl-8"
 
+/** One row shape for every setting: the name, one sentence under it, the value or the switch on the right */
+const ROW = "w-full flex-row items-center gap-3 bg-sm-surface-raised px-4 py-3 active:bg-sm-surface-control"
+const rowHeight = (note: unknown) => note ? "min-h-[60px]" : "min-h-14"
+const VALUE = "text-right text-sm text-sm-text-muted"
+const VALUE_STYLE = { flexShrink: 0, maxWidth: "55%" } as const
+
+/** Where a setting lives: only on this device, or carried to the user's other devices by the account's sync */
+export type SettingScope = "device" | "synced"
+
+function scopeText(t: Translate, scope: SettingScope | undefined) {
+    if (!scope) return undefined
+    return scope === "device" ? t("This device only", "Nur dieses Gerät") : t("Synced", "Wird synchronisiert")
+}
+
+function changedText(t: Translate, changed: boolean | undefined) {
+    return changed ? t("Changed from default", "Vom Standard geändert") : undefined
+}
+
+function spoken(...parts: (string | undefined)[]) {
+    return parts.filter(Boolean).join(", ")
+}
+
+/** The text side of a row: name (with a dot when the value is not the default), note, where the setting lives */
+function RowText({ label, note, scope, changed, tone, className }: {
+    label: string
+    note?: string
+    scope?: SettingScope
+    changed?: boolean
+    tone?: "danger" | "accent"
+    className?: string
+}) {
+    const t = useTr()
+    const ScopeIcon = scope === "device" ? Smartphone : RefreshCw
+    return (
+        <View className={cn("min-w-0 gap-0.5", className ?? "flex-1")}>
+            <View className="flex-row items-center gap-2">
+                <Text className={cn("min-w-0 shrink text-base", tone === "danger" && "text-sm-danger", tone === "accent" && "text-sm-accent")}>{label}</Text>
+                {changed && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.smAccent }} />}
+            </View>
+            {!!note && <Muted className="text-[13px] leading-[19px]">{note}</Muted>}
+            {!!scope && <View className="mt-0.5 flex-row items-center gap-1.5">
+                <ScopeIcon size={12} color={colors.smTextSubtle} />
+                <Text className="text-xs text-sm-text-subtle">{scopeText(t, scope)}</Text>
+            </View>}
+        </View>
+    )
+}
+
+/** The switch row all three kinds share */
+function SwitchSettingRow({ label, note, checked, onCheckedChange, disabled, sub, scope, changed }: {
+    label: string
+    note?: string
+    checked: boolean
+    onCheckedChange: (checked: boolean) => void
+    disabled?: boolean
+    sub?: boolean
+    scope?: SettingScope
+    changed?: boolean
+}) {
+    const t = useTr()
+    return (
+        <Pressable accessibilityRole="switch" accessibilityState={{ checked, disabled: !!disabled }}
+            accessibilityLabel={spoken(label, note, scopeText(t, scope), changedText(t, changed))} disabled={disabled}
+            onPress={() => {
+                haptic("tick")
+                onCheckedChange(!checked)
+            }}
+            className={cn(ROW, rowHeight(note || scope), disabled && "opacity-60", sub && SUB)}>
+            <RowText label={label} note={note} scope={scope} changed={changed} />
+            <View pointerEvents="none">
+                <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+            </View>
+        </Pressable>
+    )
+}
+
 /** A switch row for a server setting. */
-export function SettingSwitch({ path, label, note, disabled, invert, sub }: {
+export function SettingSwitch({ path, label, note, disabled, invert, sub, scope }: {
     path: string
     label: string
     note?: string
@@ -197,64 +281,144 @@ export function SettingSwitch({ path, label, note, disabled, invert, sub }: {
     /** Shows the opposite of the stored flag ("Look for new versions" for disableUpdateCheck) */
     invert?: boolean
     sub?: boolean
+    scope?: SettingScope
 }) {
     const save = useSaveSetting()
     const stored = useSettingValue<boolean>(path, false)
-    return <SwitchRow label={label} description={note} disabled={disabled} checked={invert ? !stored : !!stored} className={sub ? SUB : undefined}
+    return <SwitchSettingRow label={label} note={note} disabled={disabled} checked={invert ? !stored : !!stored} sub={sub} scope={scope}
         onCheckedChange={checked => void save(path, invert ? !checked : checked)} />
 }
 
-/** A switch row for a theme field. */
-export function ThemeSwitch({ field, label, note, sub }: {
+/** A switch row for a theme field; a dot marks a value that is not the app's default. */
+export function ThemeSwitch({ field, label, note, sub, scope }: {
     field: Exclude<keyof Models_Theme, "id">
     label: string
     note?: string
     sub?: boolean
+    scope?: SettingScope
 }) {
     const save = useSaveTheme()
     const value = useThemeValue(field)
-    return <SwitchRow label={label} description={note} checked={!!value} className={sub ? SUB : undefined}
+    return <SwitchSettingRow label={label} note={note} checked={!!value} sub={sub} scope={scope} changed={!!value !== !!THEME_DEFAULT_VALUES[field]}
         onCheckedChange={checked => void save({ [field]: checked })} />
 }
 
 /** A switch row for a value of this device */
-export function LocalSwitch({ label, note, checked, onCheckedChange, sub, disabled }: {
+export function LocalSwitch({ label, note, checked, onCheckedChange, sub, disabled, scope, defaultChecked }: {
     label: string
     note?: string
     checked: boolean
     onCheckedChange: (checked: boolean) => void
     sub?: boolean
     disabled?: boolean
+    scope?: SettingScope
+    /** The value the app starts with: a dot marks the row once it differs */
+    defaultChecked?: boolean
 }) {
-    return <SwitchRow label={label} description={note} checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} className={sub ? SUB : undefined} />
+    return <SwitchSettingRow label={label} note={note} checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} sub={sub} scope={scope}
+        changed={defaultChecked !== undefined && checked !== defaultChecked} />
 }
 
-/** `.pst-select`: a label (and note) over a select on the control surface, a block among the rows */
-export function SelectRow({ label, note, value, options, onChange, disabled, sub }: {
-    label: string
-    note?: string
-    value: string
-    options: Option[]
-    onChange: (value: string) => void
-    disabled?: boolean
-    sub?: boolean
-}) {
-    return (
-        <View className={cn("gap-1.5 bg-sm-surface-raised px-4 py-3", sub && SUB)}>
-            <Text className="text-[15px]">{label}</Text>
-            {!!note && <Muted className="-mt-1 text-[13px] leading-[19px]">{note}</Muted>}
-            <Select value={value} options={withStoredOption(options, value)} onValueChange={onChange} disabled={disabled} placeholder={label}
-                accessibilityLabel={label} triggerClassName="bg-sm-surface-control" />
-        </View>
-    )
+/** An option may say in one sentence what it does (shown in the sheet of all options) */
+export type SelectOption = Option & { note?: string }
+
+/** Two or three short options fit side by side in the row; anything else opens the sheet */
+function fitsSegments(options: Option[], value: string) {
+    if (options.length < 2 || options.length > 3 || !options.some(option => option.value === value)) return false
+    const longest = options.length === 2 ? 16 : 10
+    return options.every(option => option.label.length <= longest)
 }
 
 /**
- * `.pst-row`: a row that opens or does something; the value and a chevron on the right. A short value ("None", "Default")
+ * One of several values. Two or three short options are a segmented control in the row; more are a row that shows the
+ * current value and opens a sheet with all of them, the current one checked. With `defaultValue` a dot marks a changed
+ * value and the sheet offers the way back.
+ */
+export function SelectRow({ label, note, value, options, onChange, disabled, sub, scope, defaultValue }: {
+    label: string
+    note?: string
+    value: string
+    options: SelectOption[]
+    onChange: (value: string) => void
+    disabled?: boolean
+    sub?: boolean
+    scope?: SettingScope
+    defaultValue?: string
+}) {
+    const t = useTr()
+    const [open, setOpen] = React.useState(false)
+    const changed = defaultValue !== undefined && value !== defaultValue
+
+    if (fitsSegments(options, value)) {
+        return (
+            <View className={cn("gap-2.5 bg-sm-surface-raised px-4 py-3", disabled && "opacity-60", sub && SUB)}>
+                <RowText label={label} note={note} scope={scope} changed={changed} className="" />
+                <View accessibilityRole="radiogroup" accessibilityLabel={spoken(label, note)} className="flex-row gap-0.5 rounded-[10px] p-0.5"
+                    style={{ backgroundColor: colors.smSurfaceSunken }}>
+                    {options.map(option => {
+                        const selected = option.value === value
+                        return <Pressable key={option.value} accessibilityRole="radio" accessibilityLabel={option.label}
+                            accessibilityState={{ checked: selected, disabled: !!disabled }} disabled={disabled}
+                            onPress={() => {
+                                if (selected) return
+                                haptic("tick")
+                                onChange(option.value)
+                            }}
+                            className={cn("min-h-11 flex-1 items-center justify-center rounded-lg px-2", selected && "bg-sm-surface-control")}>
+                            <Text numberOfLines={1} className={cn("text-sm", selected ? "font-semibold" : "text-sm-text-muted")}>{option.label}</Text>
+                        </Pressable>
+                    })}
+                </View>
+            </View>
+        )
+    }
+
+    // A stored value the options no longer list stays visible
+    const all: SelectOption[] = withStoredOption(options, value)
+    const current = all.find(option => option.value === value)
+    return <>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={() => setOpen(true)}
+            accessibilityLabel={spoken(label, current?.label, note, scopeText(t, scope), changedText(t, changed))}
+            className={cn(ROW, rowHeight(note || scope), disabled && "opacity-60", sub && SUB)}>
+            <RowText label={label} note={note} scope={scope} changed={changed} />
+            <Text numberOfLines={1} style={VALUE_STYLE} className={VALUE}>{current?.label ?? value}</Text>
+            <ChevronRight size={18} color={colors.smTextSubtle} />
+        </Pressable>
+        <Sheet title={label} description={note} open={open} onOpenChange={setOpen}
+            footer={changed ? <Button intent="secondary" wrapperClassName="flex-1" onPress={() => {
+                setOpen(false)
+                onChange(defaultValue)
+            }}>{t("Reset to default", "Auf Standard zurücksetzen")}</Button> : undefined}>
+            <View accessibilityRole="radiogroup" accessibilityLabel={label} className="gap-0.5 overflow-hidden rounded-surface">
+                {all.map(option => {
+                    const selected = option.value === value
+                    return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ checked: selected }}
+                        accessibilityLabel={spoken(option.label, option.note)}
+                        onPress={() => {
+                            setOpen(false)
+                            if (selected) return
+                            haptic("tick")
+                            onChange(option.value)
+                        }}
+                        className="min-h-[52px] w-full flex-row items-center gap-3 bg-sm-surface-raised px-4 py-2.5 active:bg-sm-surface-control">
+                        <View className="min-w-0 flex-1 gap-0.5">
+                            <Text className={cn("text-[15px]", selected && "font-semibold")}>{option.label}</Text>
+                            {!!option.note && <Muted className="text-[13px] leading-[19px]">{option.note}</Muted>}
+                        </View>
+                        {selected && <Check size={20} color={colors.smAccent} />}
+                    </Pressable>
+                })}
+            </View>
+        </Sheet>
+    </>
+}
+
+/**
+ * A row that opens or does something; the value and a chevron on the right. A short value ("None", "Default")
  * keeps its full width and the label wraps instead; a long one (a path) stops at 55 % with an ellipsis (settings audit
  * 98fa4e2: values were cut to "No…" and "De…").
  */
-export function LinkRow({ label, value, note, onPress, disabled, tone, chevron = true, sub, icon: Icon }: {
+export function LinkRow({ label, value, note, onPress, disabled, tone, chevron = true, sub, icon: Icon, scope }: {
     label: string
     value?: string
     note?: string
@@ -265,17 +429,16 @@ export function LinkRow({ label, value, note, onPress, disabled, tone, chevron =
     sub?: boolean
     /** a small muted icon in front of the label (About › Support) */
     icon?: LucideIcon
+    scope?: SettingScope
 }) {
+    const t = useTr()
     return (
-        <Pressable accessibilityRole="button" accessibilityLabel={[label, value, note].filter(Boolean).join(", ")} accessibilityState={{ disabled: !!disabled }}
+        <Pressable accessibilityRole="button" accessibilityLabel={spoken(label, value, note, scopeText(t, scope))} accessibilityState={{ disabled: !!disabled }}
             disabled={disabled} onPress={onPress}
-            className={cn("min-h-[52px] w-full flex-row items-center gap-3 bg-sm-surface-raised px-4 py-2.5 active:bg-sm-surface-control", disabled && "opacity-60", sub && SUB)}>
+            className={cn(ROW, rowHeight(note || scope), disabled && "opacity-60", sub && SUB)}>
             {!!Icon && <Icon size={20} color={colors.smTextMuted} />}
-            <View className="min-w-0 flex-1 gap-0.5">
-                <Text className={cn("text-[15px]", tone === "danger" && "text-sm-danger", tone === "accent" && "text-sm-accent")}>{label}</Text>
-                {!!note && <Muted className="text-[13px] leading-[19px]">{note}</Muted>}
-            </View>
-            {!!value && <Text numberOfLines={1} style={{ flexShrink: 0, maxWidth: "55%" }} className="text-right text-sm text-sm-text-muted">{value}</Text>}
+            <RowText label={label} note={note} scope={scope} tone={tone} />
+            {!!value && <Text numberOfLines={1} style={VALUE_STYLE} className={VALUE}>{value}</Text>}
             {chevron && <ChevronRight size={18} color={colors.smTextSubtle} />}
         </Pressable>
     )
@@ -284,13 +447,10 @@ export function LinkRow({ label, value, note, onPress, disabled, tone, chevron =
 /** A row that only shows something (a security event, a loading line): no button, so TalkBack does not call it disabled */
 export function InfoRow({ label, value, note }: { label: string, value?: string, note?: string }) {
     return (
-        <View accessible accessibilityLabel={[label, value, note].filter(Boolean).join(", ")}
-            className="min-h-[52px] w-full flex-row items-center gap-3 bg-sm-surface-raised px-4 py-2.5">
-            <View className="min-w-0 flex-1 gap-0.5">
-                <Text className="text-[15px]">{label}</Text>
-                {!!note && <Muted className="text-[13px] leading-[19px]">{note}</Muted>}
-            </View>
-            {!!value && <Text numberOfLines={1} style={{ flexShrink: 0, maxWidth: "55%" }} className="text-right text-sm text-sm-text-muted">{value}</Text>}
+        <View accessible accessibilityLabel={spoken(label, value, note)}
+            className={cn("w-full flex-row items-center gap-3 bg-sm-surface-raised px-4 py-3", rowHeight(note))}>
+            <RowText label={label} note={note} />
+            {!!value && <Text numberOfLines={1} style={VALUE_STYLE} className={VALUE}>{value}</Text>}
         </View>
     )
 }

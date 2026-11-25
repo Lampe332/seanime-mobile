@@ -14,11 +14,11 @@ import { MENU_ENTRIES } from "@/lib/nav/nav-items"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
-import { TABLET_READING_WIDTH } from "@/lib/tablet-ui"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { SakuraBurst } from "@/main/settings/_components/sakura-burst"
 import { UpdateCheckRow } from "@/main/settings/_components/settings-app-services"
 import { LinkRow, SettingsGroup, SettingSwitch } from "@/main/settings/_components/settings-kit"
+import { SettingsPage } from "@/main/settings/_components/settings-page"
 import { contactHref, DISCORD_INVITE, KOFI_URL, LEGAL, shortLink } from "@/main/settings/_lib/legal"
 import { sectionFromTab, SETTINGS_SECTIONS, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 import { NO_TAPS, secretMessage, TAP_RESET_MS, tapHint, versionTap } from "@/main/settings/_lib/version-taps"
@@ -36,7 +36,6 @@ import { useSetAtom } from "jotai"
 import { useIsFocused, useLocalSearchParams } from "expo-router"
 import { useSetRouteParams } from "@/lib/route-params"
 import type { LucideIcon } from "lucide-react-native"
-import ArrowLeft from "lucide-react-native/icons/arrow-left"
 import BookKey from "lucide-react-native/icons/book-key"
 import BookOpen from "lucide-react-native/icons/book-open"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
@@ -51,7 +50,7 @@ import Palette from "lucide-react-native/icons/palette"
 import Users from "lucide-react-native/icons/users"
 import WandSparkles from "lucide-react-native/icons/wand-sparkles"
 import React from "react"
-import { Pressable, ScrollView, type ScrollViewInstance, View } from "react-native"
+import { Pressable, ScrollView, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 /*
@@ -84,6 +83,9 @@ function versionLine() {
     const app = appVersion()
     return app ? `Seanime Mobile ${app}` : ""
 }
+
+/** Areas long enough for jump chips to their groups (the others follow with the rollout) */
+const JUMP_SECTIONS: SettingsSectionId[] = ["ui"]
 
 export function SettingsPhone() {
     const t = useTr()
@@ -124,17 +126,10 @@ export function SettingsPhone() {
     if (shown) {
         const current = SECTIONS[shown]
         // Keyed by area: a new area starts at its top
-        return <PhoneScreen key={shown}>
-            <View className="-ml-3 flex-row items-center gap-1 pt-1">
-                <Pressable accessibilityRole="button" accessibilityLabel={t("Back to settings", "Zurück zu den Einstellungen")} onPress={close}
-                    className="h-12 w-12 items-center justify-center rounded-full active:bg-sm-surface-control">
-                    <ArrowLeft size={24} color={colors.smText} />
-                </Pressable>
-                {/* r16: the title size of every page (28/32), not 26 */}
-                <Heading accessibilityRole="header" className="min-w-0 flex-1">{t(current.titleEn, current.titleDe)}</Heading>
-            </View>
+        return <SettingsPage key={shown} icon={current.icon} title={t(current.titleEn, current.titleDe)} summary={t(current.summaryEn, current.summaryDe)}
+            onBack={close} jump={JUMP_SECTIONS.includes(shown)}>
             <SectionContent id={shown} t={t} onOpen={setSection} tablet={false} />
-        </PhoneScreen>
+        </SettingsPage>
     }
 
     return <PhoneScreen key="list" title={t("Settings", "Einstellungen")} subtitle={versionLine()}>
@@ -184,11 +179,8 @@ function TwoPanes({ t, shown, onOpen }: { t: Translate, shown: SettingsSectionId
     const wide = window.width >= 1024
     const listWidth = window.width >= 1400 ? 336 : wide ? 304 : 224
     const gap = wide ? 32 : 20
-    const paneRef = React.useRef<ScrollViewInstance>(null)
-    const open = (id: SettingsSectionId) => {
-        onOpen(id)
-        paneRef.current?.scrollTo({ y: 0, animated: false })
-    }
+    const open = onOpen
+    const current = SECTIONS[shown]
     return <View className="flex-1" style={{ paddingTop: top }}>
         <View className="w-full gap-1 px-4 pb-4 pt-1">
             <Heading>{t("Settings", "Einstellungen")}</Heading>
@@ -198,11 +190,11 @@ function TwoPanes({ t, shown, onOpen }: { t: Translate, shown: SettingsSectionId
             <ScrollView style={{ width: listWidth, flexGrow: 0 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
                 <SectionList t={t} onOpen={open} current={shown} notes={wide} compact={wide && window.height <= 900} />
             </ScrollView>
-            <ScrollView ref={paneRef} className="flex-1" style={{ maxWidth: window.width >= 1400 ? TABLET_READING_WIDTH : undefined }}
-                contentContainerClassName="gap-6" contentContainerStyle={{ paddingBottom: paneBottom }}>
-                <Text accessibilityRole="header" className="text-[22px] font-bold leading-[27.5px] tracking-[-0.44px]">{t(SECTIONS[shown].titleEn, SECTIONS[shown].titleDe)}</Text>
+            {/* Keyed by area: a new area starts at its top */}
+            <SettingsPage key={shown} pane icon={current.icon} title={t(current.titleEn, current.titleDe)} summary={t(current.summaryEn, current.summaryDe)}
+                jump={JUMP_SECTIONS.includes(shown)} bottomPad={paneBottom}>
                 <SectionContent id={shown} t={t} onOpen={open} tablet />
-            </ScrollView>
+            </SettingsPage>
         </View>
     </View>
 }

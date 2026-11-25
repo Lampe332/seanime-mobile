@@ -62,8 +62,12 @@ export function SettingsUISection({ t, tablet }: { t: Translate, tablet: boolean
         {!tablet && <BannerGroup t={t} />}
         <SortingGroup t={t} />
         <SettingsGroup title={t("Cards and episodes", "Karten und Folgen")}>
-            <ThemeSwitch field="showAnimeUnwatchedCount" label={t("Unwatched episodes on anime cards", "Ungesehene Folgen auf Anime-Karten")} />
-            <ThemeSwitch field="showMangaUnreadCount" label={t("Unread chapters on manga cards", "Ungelesene Kapitel auf Manga-Karten")} />
+            <ThemeSwitch field="showAnimeUnwatchedCount" label={t("Unwatched episodes on anime cards", "Ungesehene Folgen auf Anime-Karten")}
+                note={t("A small number on the cover shows how many aired episodes you have not watched yet.",
+                    "Eine kleine Zahl auf dem Cover zeigt, wie viele ausgestrahlte Folgen du noch nicht gesehen hast.")} />
+            <ThemeSwitch field="showMangaUnreadCount" label={t("Unread chapters on manga cards", "Ungelesene Kapitel auf Manga-Karten")}
+                note={t("A small number on the cover shows how many chapters you have not read yet.",
+                    "Eine kleine Zahl auf dem Cover zeigt, wie viele Kapitel du noch nicht gelesen hast.")} />
         </SettingsGroup>
         <PreloadGroup t={t} />
         <ScreenGroup t={t} />
@@ -91,6 +95,9 @@ function BannerGroup({ t }: { t: Translate }) {
                 note={t("Which part of the image shows, as \"horizontal vertical\", e.g. 50% 20%.", "Welcher Teil des Bilds zu sehen ist, als „waagrecht senkrecht“, z. B. 50% 20%.")}
                 onApply={value => void save({ libraryScreenCustomBannerPosition: value.trim() })} />
             <SelectRow label={t("Banner opacity", "Deckkraft des Banners")} value={String(opacity)} options={opacityOptions(opacity)}
+                note={t("How strongly the image shows behind the title. Lower keeps the title easier to read.",
+                    "Wie stark das Bild hinter dem Titel zu sehen ist. Weniger macht den Titel besser lesbar.")}
+                defaultValue={String(THEME_DEFAULT_VALUES.libraryScreenCustomBannerOpacity)}
                 onChange={value => void save({ libraryScreenCustomBannerOpacity: Number(value) })} />
         </>}
     </SettingsGroup>
@@ -107,12 +114,18 @@ function SortingGroup({ t }: { t: Translate }) {
     return <SettingsGroup title={t("Sorting", "Sortierung")}
         note={needsHistory ? t("\"Most recent watch\" needs the watch history (App).", "„Zuletzt geschaut“ braucht den Wiedergabeverlauf (App).") : undefined}>
         <SelectRow label={t("Continue watching", "Weiterschauen")} value={continueWatching}
+            note={t("The order of the row with your next episodes on Home.", "Die Reihenfolge der Reihe mit deinen nächsten Folgen auf der Startseite.")}
+            defaultValue={THEME_DEFAULT_VALUES.continueWatchingDefaultSorting}
             options={CONTINUE_WATCHING_SORTING_OPTIONS.map(option => ({ value: option.value, label: label(option) }))}
             onChange={value => void save({ continueWatchingDefaultSorting: value })} />
         <SelectRow label={t("Anime library", "Anime-Bibliothek")} value={animeLibrary}
+            note={t("The order of the anime in each list of your library.", "Die Reihenfolge der Anime in jeder Liste deiner Bibliothek.")}
+            defaultValue={THEME_DEFAULT_VALUES.animeLibraryCollectionDefaultSorting}
             options={ANIME_COLLECTION_SORTING_OPTIONS.filter(option => !option.value.includes("END")).map(option => ({ value: option.value, label: label(option) }))}
             onChange={value => void save({ animeLibraryCollectionDefaultSorting: value })} />
         <SelectRow label={t("Manga library", "Manga-Bibliothek")} value={mangaLibrary}
+            note={t("The order of the manga in each list of your library.", "Die Reihenfolge der Manga in jeder Liste deiner Bibliothek.")}
+            defaultValue={THEME_DEFAULT_VALUES.mangaLibraryCollectionDefaultSorting}
             options={MANGA_COLLECTION_SORTING_OPTIONS.filter(option => !option.value.includes("END")).map(option => ({ value: option.value, label: label(option) }))}
             onChange={value => void save({ mangaLibraryCollectionDefaultSorting: value })} />
     </SettingsGroup>
@@ -125,11 +138,24 @@ function PreloadGroup({ t }: { t: Translate }) {
         <SelectRow label={t("Load anime pages ahead", "Anime-Seiten vorab laden")} disabled={simulated} value={simulated ? "disable" : mode}
             note={simulated ? t("Off without an AniList account, because of AniList's request limits.", "Ohne AniList-Konto aus, wegen der Anfragegrenzen von AniList.")
                 : t("Only on this device. Loading ahead reaches AniList's request limit sooner.", "Nur auf diesem Gerät. Vorab laden erreicht die Anfragegrenze von AniList schneller.")}
+            defaultValue={simulated ? undefined : "default"}
             options={[
-                { value: "disable", label: t("Off", "Aus") },
-                { value: "default", label: t("When touched", "Bei Berührung") },
-                { value: "faster", label: t("When touched, sooner", "Bei Berührung, früher") },
-                { value: "viewport", label: t("When on screen", "Sobald sichtbar") },
+                {
+                    value: "disable", label: t("Off", "Aus"),
+                    note: t("A page loads only after you open it. Uses the fewest requests.", "Eine Seite lädt erst, wenn du sie öffnest. Braucht die wenigsten Anfragen."),
+                },
+                {
+                    value: "default", label: t("When touched", "Bei Berührung"),
+                    note: t("Starts loading when you rest a finger on a card for a moment.", "Lädt, sobald dein Finger kurz auf einer Karte liegt."),
+                },
+                {
+                    value: "faster", label: t("When touched, sooner", "Bei Berührung, früher"),
+                    note: t("Starts loading right when you touch a card. Pages open faster.", "Lädt sofort, wenn du eine Karte berührst. Seiten öffnen schneller."),
+                },
+                {
+                    value: "viewport", label: t("When on screen", "Sobald sichtbar"),
+                    note: t("Loads every card you can see. Fastest, and uses the most requests.", "Lädt jede Karte, die du siehst. Am schnellsten, braucht die meisten Anfragen."),
+                },
             ]}
             onChange={value => setMode(value as NavigationPreloadMode)} />
     </SettingsGroup>
@@ -138,7 +164,7 @@ function PreloadGroup({ t }: { t: Translate }) {
 function ScreenGroup({ t }: { t: Translate }) {
     const [show, setShow] = useAtom(showStatusBarAtom)
     return <SettingsGroup title={t("Screen", "Bildschirm")}>
-        <LocalSwitch label={t("Show status bar", "Statusleiste anzeigen")} checked={show} onCheckedChange={setShow}
+        <LocalSwitch label={t("Show status bar", "Statusleiste anzeigen")} checked={show} onCheckedChange={setShow} defaultChecked={false}
             note={t("Clock and battery at the top. Always hidden in the player. Only on this device.",
                 "Uhr und Akku oben. Im Player immer ausgeblendet. Nur auf diesem Gerät.")} />
     </SettingsGroup>
