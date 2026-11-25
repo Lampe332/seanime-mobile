@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { gridLayout, gridRowWidth, listColumns, rowCoverWidth } from "./cover-layout"
+import { CARD_SIZE_FACTORS, cardSizeFactor, coverColumns, gridLayout, gridRowWidth, listColumns, rowCoverWidth } from "./cover-layout"
 
 describe("cover layout", () => {
     it("fits three result columns on a phone and more 8.75rem columns on a tablet", () => {
@@ -42,5 +42,33 @@ describe("tablet grid and list widths", () => {
         expect(listColumns(891, true)).toBe(1)
         expect(listColumns(700, true)).toBe(1)
         expect(listColumns(4000, true)).toBe(2)
+    })
+})
+
+describe("card size", () => {
+    it("gives small cards more columns and large ones fewer, normal unchanged", () => {
+        // S22 (379dp) and a 360dp phone (328dp): small 4, normal 3, large 2
+        for (const width of [379, 328]) {
+            expect(gridLayout(width, false, 1, CARD_SIZE_FACTORS.small).columns).toBe(4)
+            expect(gridLayout(width, false, 1, CARD_SIZE_FACTORS.normal)).toEqual(gridLayout(width, false, 1))
+            expect(gridLayout(width, false, 1).columns).toBe(3)
+            expect(gridLayout(width, false, 1, CARD_SIZE_FACTORS.large).columns).toBe(2)
+        }
+        // tablet beside the rail: 7 normally, 10 small, 5 large
+        expect(gridLayout(1144, true, 1, CARD_SIZE_FACTORS.small).columns).toBe(10)
+        expect(gridLayout(1144, true, 1, CARD_SIZE_FACTORS.large).columns).toBe(5)
+    })
+
+    it("keeps two columns on a phone with large cards and large text, never more than normal allows", () => {
+        // 200 % text: 156dp → 203dp cells would fit one; the floor keeps two
+        expect(gridLayout(379, false, 2, CARD_SIZE_FACTORS.large).columns).toBe(2)
+        // a width that fits one normal card stays at one, and an unmeasured grid at one
+        expect(coverColumns(150, 100, 12, 1.3)).toBe(1)
+        expect(gridLayout(0, false, 1, CARD_SIZE_FACTORS.small)).toMatchObject({ columns: 1, width: 0 })
+    })
+
+    it("reads an unknown stored size as normal", () => {
+        expect(cardSizeFactor(undefined)).toBe(1)
+        expect(cardSizeFactor("huge" as never)).toBe(1)
     })
 })

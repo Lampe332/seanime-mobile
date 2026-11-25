@@ -4,6 +4,8 @@ import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.ho
 import { useGetMobileOfflineSnapshot, useMobileOfflineAction, useMobileOfflineSettings } from "@/api/hooks/mobile_offline.hooks"
 import { offlineFailureText, offlineWaitingText } from "@/api/hooks/mobile_offline.helpers"
 import { PhoneEmpty, PhoneSection, useTextZoom } from "@/components/shared/phone-cards"
+import { cardSizeFactor, coverColumns } from "@/components/shared/cover-layout"
+import { cardSizeAtom } from "@/lib/card-size-setting"
 import { Notice, RowGroup } from "@/components/shared/phone-kit"
 import { PhoneScreen } from "@/components/shared/phone-screen"
 import { Button } from "@/components/ui/button/button"
@@ -227,6 +229,7 @@ function Overview({ items, groups, waiting, wifiOnly, size, selecting, picked, s
 }) {
     const t = useTr()
     const zoom = useTextZoom()
+    const cardSize = cardSizeFactor(useAtomValue(cardSizeAtom))
     const [width, setWidth] = React.useState(0)
     const [filter, setFilter] = React.useState<DownloadFilter>("all")
     const active = items.filter(isActive)
@@ -238,9 +241,9 @@ function Overview({ items, groups, waiting, wifiOnly, size, selecting, picked, s
     const chosen = [...picked].filter(key => groups.some(group => group.key === key))
     const counts = { all: groups.length, ready: filterGroups(groups, "ready").length, active: filterGroups(groups, "active").length }
     const waitingText = offlineWaitingText(waiting, t)
-    // `.mdl-grid`: covers of at least 84dp × text zoom, 12dp apart (3 columns normally, 2 at 200 %)
+    // `.mdl-grid`: covers of at least 84dp × text zoom × card size (settings → Appearance), 12dp apart (3 columns normally, 2 at 200 %)
     const gap = 12
-    const columns = Math.max(1, Math.floor((width + gap) / (84 * zoom + gap)))
+    const columns = coverColumns(width, 84 * zoom, gap, cardSize)
     const cardWidth = width ? (width - gap * (columns - 1)) / columns : 0
     const toggle = (key: string) => setPicked(previous => {
         const next = new Set(previous)

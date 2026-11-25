@@ -52,13 +52,15 @@ export function HomeDiscoverFeature() {
     const [index, setIndex] = React.useState(0)
     // only while Home is in front: a visited tab stays mounted, and turning a card nobody sees re-renders and redraws it
     const focused = useIsFocused()
+    // "Scroll carousels automatically" off (settings → Appearance) keeps the first title
+    const autoScroll = !useThemeSettings().disableCarouselAutoScroll
     React.useEffect(() => {
-        if (!focused || released.length < 2) return
+        if (!focused || !autoScroll || released.length < 2) return
         const timer = setInterval(() => {
             if (!homeScroll.moving) setIndex(i => (i + 1) % released.length)
         }, FEATURE_ROTATE_MS)
         return () => clearInterval(timer)
-    }, [focused, released.length])
+    }, [focused, autoScroll, released.length])
     const media = released[index % Math.max(1, released.length)]
     // CSS keeps the full width and caps the height (aspect-ratio + max-height); RN's aspectRatio would narrow the card instead
     const [width, setWidth] = React.useState(0)
@@ -95,7 +97,7 @@ export function HomeDiscoverFeature() {
  * Upcoming episodes of the user's anime list (upcoming-episodes.tsx), only while the library has entries: one wide card per
  * show (tablet 22rem), its picture dimmed, the anime, the episode and when it airs; a tap opens the anime page. Like the
  * web carousel's autoplay it moves one card on every 5 s while Home is shown, back to the first after the last; a swipe
- * restarts the wait. Off with the theme's "disable carousel auto scroll" and with reduced motion.
+ * restarts the wait. Off with "Scroll carousels automatically" off and with reduced motion; "Smaller episode cards" narrows them.
  */
 export function LibraryUpcomingEpisodes({ hasEntries }: { hasEntries: boolean }) {
     const t = useTr()
@@ -105,7 +107,8 @@ export function LibraryUpcomingEpisodes({ hasEntries }: { hasEntries: boolean })
     const ts = useThemeSettings()
     const spoilerActive = useMissingEpisodeSpoilers(ts)
     const episodes = data?.episodes ?? []
-    const cardWidth = rail ? 352 : width - 32
+    // "Smaller episode cards" (settings → Appearance): about three quarters wide, so the next card shows beside it
+    const cardWidth = ts.smallerEpisodeCarouselSize ? (rail ? 264 : Math.round((width - 32) * 0.72)) : (rail ? 352 : width - 32)
     const list = React.useRef<FlashListRef<Anime_UpcomingEpisode>>(null)
     const [listWidth, setListWidth] = React.useState(0)
     const step = cardWidth + 16
@@ -147,7 +150,7 @@ export function LibraryUpcomingEpisodes({ hasEntries }: { hasEntries: boolean })
                 onLayout={event => setListWidth(event.nativeEvent.layout.width)}
                 onScrollBeginDrag={autoplay.onTouch}
                 onMomentumScrollEnd={event => autoplay.onSettled(Math.round(event.nativeEvent.contentOffset.x / step))}
-                snapToInterval={cardWidth + 16}
+                snapToInterval={step}
                 snapToAlignment="start"
                 decelerationRate="fast"
                 style={{ marginHorizontal: -16 }}

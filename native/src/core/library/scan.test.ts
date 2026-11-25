@@ -9,7 +9,7 @@ import { type CoreEvent, onCoreEvent } from "../events"
 import { type CoreEnvironment, type CoreMethod, matchCoreRoute } from "../registry"
 import { METADATA_URL } from "./metadata"
 import { bestMatch, fileMetadataOf, readName, titleScore } from "./local-files"
-import { forgetScanAtStart, refreshAfterDownload } from "./folders"
+import { AUTO_SCAN_EVERY_MS, forgetLookAtFolders, forgetScanAtStart, refreshAfterDownload } from "./folders"
 import type { LocalFolderEntry } from "./scan"
 import homeRecorded from "./home.recorded.json"
 import recorded from "./library.recorded.json"
@@ -150,6 +150,7 @@ beforeEach(async () => {
     autoScan = false
     removed = []
     forgetScanAtStart()
+    forgetLookAtFolders()
     pauses = 0
     events = []
     stopListening()
@@ -461,6 +462,37 @@ describe("the folders beyond the scan (5b-2)", () => {
         await flush()
         expect(events.map(event => event.type).filter(type => type.startsWith("auto-scan"))).toEqual(["auto-scan-started", "auto-scan-completed"])
         expect(((await ask("GET", "/api/v1/library/scan-summaries")) as Json[])).toHaveLength(1)
+    })
+
+    it("automatic scan when the app is back: not with the switch off, not within 10 minutes, not for unchanged folders; a new file scans", async () => {
+        await lists()
+        const back = () => ask("POST", "/api/v1/library/auto-scan")
+        const autoScans = () => events.map(event => event.type).filter(type => type.startsWith("auto-scan"))
+        expect(await back()).toEqual({ scanned: false })
+        await ask("PATCH", "/api/v1/settings", { library: { libraryPath: ROOT + "/", libraryPaths: [], autoScan: true } })
+        await scanned()
+        // the folders as the library has them: nothing to do
+        expect(await back()).toEqual({ scanned: false })
+        tree[ROOT].push(file("Dr. STONE - 03.mp4", 3500))
+        now += AUTO_SCAN_EVERY_MS - 1
+        expect(await back()).toEqual({ scanned: false })
+        expect(autoScans()).toEqual([])
+        now += 1
+        expect(await back()).toEqual({ scanned: true })
+        await vi.waitFor(() => expect(autoScans()).toEqual(["auto-scan-started", "auto-scan-completed"]))
+        expect(((await ask("GET", "/api/v1/library/scan-summaries")) as Json[])).toHaveLength(2)
+        // a changed size is a change too; the same files after the scan are not
+        now += AUTO_SCAN_EVERY_MS
+        expect(await back()).toEqual({ scanned: false })
+        tree[ROOT][0] = file("Dr. STONE - 01.mp4", 1600)
+        now += AUTO_SCAN_EVERY_MS
+        expect(await back()).toEqual({ scanned: true })
+        events = []
+        await ask("PATCH", "/api/v1/settings", { library: { libraryPath: ROOT + "/", libraryPaths: [], autoScan: false } })
+        tree[ROOT].push(file("Dr. STONE - 04.mp4"))
+        now += AUTO_SCAN_EVERY_MS
+        expect(await back()).toEqual({ scanned: false })
+        expect(autoScans()).toEqual([])
     })
 })
 

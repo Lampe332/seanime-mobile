@@ -15,7 +15,8 @@ import { usePluginCardMenuItems } from "@/main/_features/plugin/plugin-actions"
 import { useCardListItems } from "@/main/_features/media/_containers/use-card-list-items"
 import type { CardListState } from "@/main/_features/media/_lib/card-list-actions"
 import { useAtomValue } from "jotai"
-import { gridLayout, rowCoverWidth } from "@/components/shared/cover-layout"
+import { cardSizeFactor, gridLayout, rowCoverWidth } from "@/components/shared/cover-layout"
+import { cardSizeAtom } from "@/lib/card-size-setting"
 import { useNetInfo } from "@react-native-community/netinfo"
 import { Image } from "expo-image"
 import Check from "lucide-react-native/icons/check"
@@ -56,10 +57,14 @@ export function useRowCoverWidth() {
     return rowCoverWidth(width, rail, useTextZoom())
 }
 
-/** The grid of covers (`.ps-grid`): columns of at least 100dp (78dp × zoom) with 12dp between; tablet 8.75rem and 16dp. */
+/**
+ * The grid of covers (`.ps-grid`): columns of at least 100dp (78dp × zoom) with 12dp between; tablet 8.75rem and 16dp.
+ * "Card size" (settings → Appearance, per device) scales that least width.
+ */
 export function useGridColumns(contentWidth: number) {
     const { rail } = useTabletLayout()
-    return gridLayout(contentWidth, rail, useTextZoom())
+    const factor = cardSizeFactor(useAtomValue(cardSizeAtom))
+    return gridLayout(contentWidth, rail, useTextZoom(), factor)
 }
 
 export const SEASON_LABELS: Record<string, [string, string]> = {

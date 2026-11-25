@@ -53,7 +53,8 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
 
         <SettingsGroup title={t("Scanning", "Scannen")}>
             <SettingSwitch path="library.autoScan" label={t("Refresh the library automatically", "Bibliothek automatisch aktualisieren")} defaultChecked={false}
-                note={t("Scans when files change. Large batches may not all be picked up.", "Scannt, wenn sich Dateien ändern. Große Mengen werden evtl. nicht alle erkannt.")} />
+                note={t("Checks your folders when you come back to the app, at most every 10 minutes, and scans only when files changed.",
+                    "Prüft deine Ordner, wenn du zur App zurückkehrst, höchstens alle 10 Minuten, und scannt nur, wenn sich Dateien geändert haben.")} />
             <SettingSwitch path="library.refreshLibraryOnStart" label={t("Refresh the library when the app starts", "Bibliothek beim App-Start aktualisieren")}
                 defaultChecked={false} note={t("Scans your folders each time the app opens.", "Scannt deine Ordner bei jedem App-Start.")} />
         </SettingsGroup>

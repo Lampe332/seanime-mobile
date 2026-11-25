@@ -66,7 +66,7 @@ import {
 import { startStatus, statusAfterSave } from "./start/start"
 import { animeWithEpisodes, episodeCollection, libraryEntry } from "./library/library"
 import { bulkLocalFiles, deleteLocalFiles, entryBulkAction, manualMatch, updateLocalFileData, updateLocalFiles } from "./library/local-files"
-import { fileTree, folderSuggestions, refreshFileTree, removeEmptyDirectories, scanAtStart } from "./library/folders"
+import { fileTree, folderSuggestions, refreshFileTree, removeEmptyDirectories, scanAtStart, scanWhenBack } from "./library/folders"
 import { type LocalFolders, addUnknownMedia, playLocalFile, scanLocalFiles, scanSummaryList } from "./library/scan"
 import { animeSchedule, ownLibraryCollection, refreshAnimeCollection, upcomingEpisodes } from "./library/home"
 import { deleteMetadataParent, metadataParent, saveMetadataParent, silenceStatus, toggleSilence } from "./library/marks"
@@ -434,6 +434,8 @@ export const CORE_ROUTES: CoreRoute[] = [
     { area: "library", method: "DELETE", endpoint: "/api/v1/metadata/parent", answer: deleteMetadataParent },
     // library (phase 5b-1): the user's own video files, scanned and kept by the core, played by the app's player itself (library/scan.ts, local-files.ts)
     { area: "library", method: "POST", endpoint: "/api/v1/library/scan", answer: scanLocalFiles },
+    // the app's own: the app came back to the front ("Refresh the library automatically", library/folders.ts)
+    { area: "library", method: "POST", endpoint: "/api/v1/library/auto-scan", answer: (_request, environment) => scanWhenBack(environment) },
     { area: "library", method: "GET", endpoint: "/api/v1/library/scan-summaries", answer: scanSummaryList },
     // library (phase 5b-2): the explorer's file tree, empty folders, suggestions for a folder (library/folders.ts)
     { area: "library", method: "GET", endpoint: "/api/v1/library/explorer/file-tree", answer: fileTree },

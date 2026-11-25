@@ -54,7 +54,7 @@ function LibraryWatcher() {
     const setScannerOpen = useSetAtom(__scanner_modalIsOpen)
     const autoScan = !!serverStatus?.settings?.library?.autoScan
 
-    // Only show the notice when auto scan is off (with it on the server rescans by itself)
+    // Only show the notice when auto scan is off (with it on the core looks at the folders when the app is back, core/library/folders.ts)
     useWebsocketMessageListener<string>({ type: WSEvents.LIBRARY_WATCHER_FILE_ADDED, onMessage: data => { if (!autoScan) setFileEvent(data) } })
     useWebsocketMessageListener<string>({ type: WSEvents.LIBRARY_WATCHER_FILE_REMOVED, onMessage: data => { if (!autoScan) setFileEvent(data) } })
     useWebsocketMessageListener<number>({
@@ -71,7 +71,7 @@ function LibraryWatcher() {
         type: WSEvents.AUTO_SCAN_COMPLETED,
         onMessage: () => {
             setAutoScanning(false)
-            toast.success(t("Library scanned", "Bibliothek gescannt"))
+            toast.success(t("Library updated", "Bibliothek aktualisiert"))
             void qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
             void qc.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_ENTRIES.GetMissingEpisodes.key] })
         },

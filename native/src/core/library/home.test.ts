@@ -1,5 +1,6 @@
 // geschrieben nach: Form der Aufzeichnung api vom 13.11.2026 (home.recorded.json: nur Arten, keine Werte), öffentliche AniList-Doku (Media.relations, Media.airingSchedule, MediaSeason) und docs/EIGENER-KERN.md §4p; kein Server-Quelltext
 import { beforeEach, describe, expect, it } from "vitest"
+import { saveTorrentSettings } from "../torrent/torrent"
 import { sqlDriverFor } from "@/api/client/core-database"
 import { forgetDatabases, openDatabaseSync } from "../../../test/expo-sqlite"
 import { ANILIST_URL, type HttpFetch } from "../anilist/client"
@@ -141,7 +142,31 @@ beforeEach(() => {
     now = Date.UTC(2026, 10, 14, 12)
 })
 
+/** The "streaming titles in your anime lists" switch of online streaming (the library's settings) */
+const onlineInLists = (on: boolean) => call("PATCH", "/api/v1/settings", { library: { includeOnlineStreamingInLibrary: on } })
+
 describe("library collection (home)", () => {
+    beforeEach(() => call("POST", "/api/v1/start", { library: { includeOnlineStreamingInLibrary: true } }))
+
+    it("gives the streamed anime only while a streaming-in-lists switch is on", async () => {
+        await lists([entry(1, "CURRENT"), entry(2, "CURRENT", { progress: 1 })])
+        const opened = await environment.database()
+        for (const id of [7]) await opened.insert(anilistMedia).values({ anilistId: id, kind: "ANIME", content: media(id), changedAt: now })
+        await opened.insert(watchPositions).values({ mediaId: 7, kind: "onlinestream", episodeNumber: 2, positionSeconds: 10, durationSeconds: 1400, filepath: "", addedAt: now, changedAt: now, expiresAt: null })
+        const withStream = await call("GET", "/api/v1/library/collection") as Json
+        expect(((withStream.stream as Json).anime as Json[]).map(item => item.id).sort()).toEqual([1, 2])
+        await onlineInLists(false)
+        const allOff = await call("GET", "/api/v1/library/collection") as Json
+        expect(allOff.stream).toBeUndefined()
+        expect(allOff.continueWatchingList).toEqual([])
+        // torrent streaming on with its switch: as before
+        await saveTorrentSettings({ path: {}, query: null, body: { settings: { enabled: true, includeInLibrary: true } } }, environment)
+        expect(await call("GET", "/api/v1/library/collection")).toEqual(withStream)
+        // its switch alone, the area off: nothing streamed
+        await saveTorrentSettings({ path: {}, query: null, body: { settings: { enabled: false, includeInLibrary: true } } }, environment)
+        expect((await call("GET", "/api/v1/library/collection") as Json).stream).toBeUndefined()
+    })
+
     it("has the recorded form, the watched anime and their next episodes", async () => {
         await lists([entry(1, "CURRENT"), entry(2, "CURRENT", { progress: 5 }), entry(3, "COMPLETED"), entry(4, "REPEATING", { progress: 0, updatedAt: 200 })])
         const collection = await call("GET", "/api/v1/library/collection") as Json

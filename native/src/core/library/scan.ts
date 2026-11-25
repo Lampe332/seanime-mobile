@@ -61,8 +61,8 @@ export async function libraryFolders(environment: CoreEnvironment): Promise<stri
     return [...new Set(paths.filter((path): path is string => typeof path === "string" && path.trim() !== "").map(path => path.trim().replace(/\/+$/, "")))]
 }
 
-/** Every video file below the folders, one folder per piece of work */
-async function walk(device: LocalFolders, roots: string[], environment: CoreEnvironment): Promise<Found[]> {
+/** Every video file below the folders, one folder per piece of work (also the cheap look of the automatic scan, folders.ts) */
+export async function walk(device: LocalFolders, roots: string[], environment: CoreEnvironment): Promise<Found[]> {
     const files: Found[] = []
     const queue = roots.map(path => ({ path, folders: [] as string[], root: true }))
     while (queue.length > 0 && files.length < MAX_FILES) {
@@ -108,6 +108,9 @@ function tell(progress: number, status: string) {
 }
 
 let scanning = false
+
+/** Whether a scan runs now (the automatic scan does not start one beside it, folders.ts) */
+export const scanRunning = () => scanning
 
 /** POST /api/v1/library/scan → every file the library has now (`Anime_LocalFile[]`) */
 export async function scanLocalFiles(request: CoreRequest, environment: CoreEnvironment): Promise<Json[]> {

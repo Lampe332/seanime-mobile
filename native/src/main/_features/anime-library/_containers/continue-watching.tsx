@@ -33,7 +33,8 @@ export function ContinueWatching({ episodes }: { episodes: Anime_Episode[] }) {
     const spoilerActive = useContinueWatchingSpoilers(ts)
     const { data: watchHistory } = useGetContinuityWatchHistory()
     const { width } = useWindowDimensions()
-    const tileWidth = Math.round(Math.min(width * 0.86, 352))
+    // "Smaller episode cards" (settings → Appearance): 72 % of the usual width, so more tiles show at once
+    const tileWidth = Math.round(Math.min(width * 0.86, 352) * (ts.smallerEpisodeCarouselSize ? 0.72 : 1))
     const router = useRouter()
 
     return (

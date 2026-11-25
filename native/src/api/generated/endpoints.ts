@@ -1653,6 +1653,17 @@ export const API_ENDPOINTS = {
             methods: ["POST"],
             endpoint: "/api/v1/library/scan",
         },
+        /**
+         *  @description
+         *  The app's own: "Refresh the library automatically" when the app comes back to the front.
+         *  The core looks at the folders at most every 10 minutes and scans only when their files changed
+         *  (core/library/folders.ts scanWhenBack).
+         */
+        AutoScanLocalFiles: {
+            key: "SCAN-auto-scan-local-files",
+            methods: ["POST"],
+            endpoint: "/api/v1/library/auto-scan",
+        },
     },
     SCAN_SUMMARY: {
         GetScanSummaries: {

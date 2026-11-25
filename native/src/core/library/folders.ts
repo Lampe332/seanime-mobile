@@ -4,12 +4,14 @@ import { CoreError } from "../errors"
 import { emitCoreEvent } from "../events"
 import type { CoreEnvironment, CoreRequest } from "../registry"
 import { type LocalFileRow, VIDEO_EXTENSIONS, allFiles, asLocalFile, readName } from "./local-files"
-import { type LocalFolders, libraryFolders, librarySettings, scanLocalFiles, searchAnilist } from "./scan"
+import { type LocalFolders, libraryFolders, librarySettings, scanLocalFiles, scanRunning, searchAnilist, walk } from "./scan"
 
 /*
  * The library folders beyond the scan (area `library`, phase 5b-2, docs/EIGENER-KERN.md §4p): the file tree of the
- * explorer, removing empty folders, suggestions for a folder without an anime and the scan at the app's start when the
- * user turned "refresh the library when the app starts" on. No watcher that keeps running (`library.autoScan`, "Refresh the library automatically", stays without effect): the device is not watched between starts.
+ * explorer, removing empty folders, suggestions for a folder without an anime, the scan at the app's start when the
+ * user turned "refresh the library when the app starts" on and the automatic scan (`library.autoScan`, "Refresh the
+ * library automatically"): when the app comes back to the front, at most every 10 minutes, a cheap look at the folders
+ * and a scan only when their files changed. No watcher that keeps running, no work in the background.
  */
 
 type Json = Record<string, unknown>
@@ -175,6 +177,23 @@ export function forgetScanAtStart(): void {
 let refreshing: Promise<void> | null = null
 let refreshAgain = false
 
+/** Scans, told like the scan at the start, once more while a download finished during it */
+async function scanWhileAsked(environment: CoreEnvironment): Promise<void> {
+    do {
+        refreshAgain = false
+        emitCoreEvent("auto-scan-started", "")
+        try {
+            await scanLocalFiles({ path: {}, query: null, body: { enhanced: false, skipLockedFiles: true, skipIgnoredFiles: true } }, environment)
+        }
+        catch {
+            // a scan the user started runs already (409) or the folders cannot be read: the next scan finds the files
+        }
+        finally {
+            emitCoreEvent("auto-scan-completed", "")
+        }
+    } while (refreshAgain)
+}
+
 const plainFolder = (path: string) => (path.startsWith("file://") ? decodeURIComponent(path.slice("file://".length)) : path).replace(/\/+$/, "")
 
 /**
@@ -192,23 +211,67 @@ export function refreshAfterDownload(environment: CoreEnvironment, folder: strin
         const inside = plainFolder(folder)
         const roots = (await libraryFolders(environment)).map(plainFolder)
         if (!roots.some(root => inside === root || inside.startsWith(`${root}/`))) return
-        do {
-            refreshAgain = false
-            emitCoreEvent("auto-scan-started", "")
-            try {
-                await scanLocalFiles({ path: {}, query: null, body: { enhanced: false, skipLockedFiles: true, skipIgnoredFiles: true } }, environment)
-            }
-            catch {
-                // a scan the user started runs already (409) or the folders cannot be read: the next scan finds the files
-            }
-            finally {
-                emitCoreEvent("auto-scan-completed", "")
-            }
-        } while (refreshAgain)
+        await scanWhileAsked(environment)
     }
     const run = environment.unasked ? environment.unasked("library scan after a torrent download", work) : work()
     refreshing = run.then(() => undefined, () => undefined).finally(() => {
         refreshing = null
     })
     return refreshing
+}
+
+/** "Refresh the library automatically": the folders are looked at no more often than this */
+export const AUTO_SCAN_EVERY_MS = 10 * 60_000
+let lookedAt: number | null = null
+
+/**
+ * POST /api/v1/library/auto-scan (the app's own, client-providers.tsx: the app came back to the front). With
+ * `library.autoScan` on and a folder set, at most every 10 minutes: the folders' video files (path and size) are compared
+ * with the library's files; only a difference brings a scan, told like the scan at the start (so the screens say so only
+ * then). Shares `refreshing` with the scan after a download and never starts beside a running scan (no 409 for the user's
+ * scan). → whether it scanned
+ */
+export function scanWhenBack(environment: CoreEnvironment): Promise<{ scanned: boolean }> {
+    if (!environment.localFolders || refreshing || scanRunning()) return Promise.resolve({ scanned: false })
+    let scanned = false
+    const look = async () => {
+        if ((await librarySettings(environment)).autoScan !== true) return
+        const now = environment.now()
+        if (lookedAt !== null && now - lookedAt < AUTO_SCAN_EVERY_MS) return
+        const roots = await libraryFolders(environment)
+        if (roots.length === 0) return
+        lookedAt = now
+        let found: Awaited<ReturnType<typeof walk>>
+        try {
+            found = await walk(await environment.localFolders!(), roots, environment)
+        }
+        catch {
+            return // a folder cannot be read now: the next look tries again
+        }
+        const database = await environment.database()
+        const kept = new Set((await allFiles(database)).map(row => `${row.size} ${row.path}`))
+        const same = found.length === kept.size && found.every(file => kept.has(`${file.size} ${file.path}`))
+        if ((same && !refreshAgain) || scanRunning()) return
+        scanned = true
+        await scanWhileAsked(environment)
+    }
+    const work = async () => {
+        await look()
+        // a download that finished meanwhile waited for this look (refreshAfterDownload): its scan comes now
+        if (refreshAgain && (await libraryFolders(environment)).length > 0) {
+            scanned = true
+            await scanWhileAsked(environment)
+        }
+    }
+    const run = environment.unasked ? environment.unasked("library scan when the app is back", work) : work()
+    const done = run.then(() => undefined, () => undefined).finally(() => {
+        refreshing = null
+    })
+    refreshing = done
+    return done.then(() => ({ scanned }))
+}
+
+/** Tests: the next return to the front looks at the folders again */
+export function forgetLookAtFolders(): void {
+    lookedAt = null
 }

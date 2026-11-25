@@ -36,6 +36,7 @@ type Row<K extends Kind> = K extends "torrentstream" ? TorrentstreamRow : Models
 
 const STATUS_FIELD = { torrentstream: "torrentstreamSettings", debrid: "debridSettings" } as const
 const SAVE = { torrentstream: API_ENDPOINTS.TORRENTSTREAM.SaveTorrentstreamSettings, debrid: API_ENDPOINTS.DEBRID.SaveDebridSettings }
+const LIST_FIELDS = new Set(["enabled", "provider", "includeInLibrary", "includeDebridStreamInLibrary"])
 
 /** Saves fields of the torrent streaming or debrid row on top of the stored row; resolves to the stored row, or null. */
 function useSaveRow<K extends Kind>(kind: K) {
@@ -67,6 +68,12 @@ function useSaveRow<K extends Kind>(kind: K) {
                 const next = { ...status, [STATUS_FIELD[kind]]: saved }
                 store.set(serverStatusAtom, next)
                 qc.setQueryData([API_ENDPOINTS.STATUS.GetStatus.key], next)
+            }
+            // these fields decide whether streamed titles are in the anime lists (core/library/home.ts streamingInLists)
+            if (saved && Object.keys(patch).some(field => LIST_FIELDS.has(field))) {
+                for (const key of [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key, API_ENDPOINTS.ANIME_ENTRIES.GetMissingEpisodes.key]) {
+                    void qc.invalidateQueries({ queryKey: [key] })
+                }
             }
             return (saved ?? null) as Row<K> | null
         }

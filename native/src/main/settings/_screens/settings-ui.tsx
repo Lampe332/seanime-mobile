@@ -16,13 +16,15 @@ import {
 } from "@/main/settings/_components/settings-kit"
 import { opacityOptions } from "@/main/settings/_lib/settings-phone"
 import { showStatusBarAtom } from "@/lib/status-bar-setting"
+import { cardSizeAtom } from "@/lib/card-size-setting"
+import type { CardSize } from "@/components/shared/cover-layout"
 import { useAtom } from "jotai"
 
 /*
  * Appearance (settings-phone-ui.tsx). Only what the native screens read is here (as the settings audit asked: no switch
  * without effect). Waiting for their reader (Karte §9, E2 2.12): custom colours + presets (the tokens are fixed so far),
- * background image (no native CustomBackgroundImage yet), classic episode cards, carousel auto-scroll, smaller episode
- * cards in carousels, blur effects, and on tablets episode summaries / file names. Custom CSS has no meaning without a
+ * background image (no native CustomBackgroundImage yet), classic episode cards, blur effects, and on tablets episode
+ * summaries / file names. Custom CSS has no meaning without a
  * WebView (🗑️). Removed in the audit and not coming back: blurred background on anime pages, the banner on tablets, episode
  * summaries / file names on phones.
  */
@@ -62,6 +64,7 @@ export function SettingsUISection({ t, tablet }: { t: Translate, tablet: boolean
         {!tablet && <BannerGroup t={t} />}
         <SortingGroup t={t} />
         <SettingsGroup title={t("Cards and episodes", "Karten und Folgen")}>
+            <CardSizeRow t={t} />
             <ThemeSwitch field="showAnimeUnwatchedCount" label={t("Unwatched episodes on anime cards", "Ungesehene Folgen auf Anime-Karten")}
                 note={t("A small number on the cover shows how many aired episodes you have not watched yet.",
                     "Eine kleine Zahl auf dem Cover zeigt, wie viele ausgestrahlte Folgen du noch nicht gesehen hast.")} />
@@ -69,6 +72,7 @@ export function SettingsUISection({ t, tablet }: { t: Translate, tablet: boolean
                 note={t("A small number on the cover shows how many chapters you have not read yet.",
                     "Eine kleine Zahl auf dem Cover zeigt, wie viele Kapitel du noch nicht gelesen hast.")} />
         </SettingsGroup>
+        <CarouselGroup t={t} />
         <PreloadGroup t={t} />
         <ScreenGroup t={t} />
     </>
@@ -128,6 +132,32 @@ function SortingGroup({ t }: { t: Translate }) {
             defaultValue={THEME_DEFAULT_VALUES.mangaLibraryCollectionDefaultSorting}
             options={MANGA_COLLECTION_SORTING_OPTIONS.filter(option => !option.value.includes("END")).map(option => ({ value: option.value, label: label(option) }))}
             onChange={value => void save({ mangaLibraryCollectionDefaultSorting: value })} />
+    </SettingsGroup>
+}
+
+/** The grids' covers (cover-layout.ts CARD_SIZE_FACTORS), per device: a phone and a tablet want different sizes. */
+function CardSizeRow({ t }: { t: Translate }) {
+    const [size, setSize] = useAtom(cardSizeAtom)
+    return <SelectRow label={t("Card size", "Kartengröße")} value={size} defaultValue="normal"
+        note={t("Covers in your lists, search and downloads. Only on this device.", "Cover in deinen Listen, der Suche und den Downloads. Nur auf diesem Gerät.")}
+        options={[
+            { value: "small", label: t("Small", "Klein"), note: t("More covers in each row.", "Mehr Cover in jeder Reihe.") },
+            { value: "normal", label: t("Normal", "Normal") },
+            { value: "large", label: t("Large", "Groß"), note: t("Fewer, bigger covers.", "Weniger, größere Cover.") },
+        ]}
+        onChange={value => setSize(value as CardSize)} />
+}
+
+/** Home's rows that move (home-discover-sections.tsx, continue-watching.tsx). */
+function CarouselGroup({ t }: { t: Translate }) {
+    const save = useSaveTheme()
+    const disabled = useThemeValue("disableCarouselAutoScroll")
+    return <SettingsGroup title={t("Home", "Startseite")}>
+        <LocalSwitch label={t("Scroll carousels automatically", "Karussells automatisch weiterblättern")} checked={!disabled} defaultChecked
+            onCheckedChange={checked => void save({ disableCarouselAutoScroll: !checked })}
+            note={t("The trending title and upcoming episodes move on by themselves.", "Der Trend-Titel und die kommenden Folgen wechseln von selbst.")} />
+        <ThemeSwitch field="smallerEpisodeCarouselSize" label={t("Smaller episode cards", "Kleinere Folgenkarten")}
+            note={t("Continue watching and upcoming episodes show more cards at once.", "Weiterschauen und kommende Folgen zeigen mehr Karten auf einmal.")} />
     </SettingsGroup>
 }
 

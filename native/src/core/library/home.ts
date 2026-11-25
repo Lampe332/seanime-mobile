@@ -11,6 +11,9 @@ import { animeWithEpisodes } from "./library"
 import { animeMetadata } from "./metadata"
 import { type LocalFileRow, allFiles, asLocalFile, episodeOfFile, libraryDataOf } from "./local-files"
 import { listDataOf } from "../anilist/changes"
+import { ownSettingsAndLook } from "../settings/settings"
+import { withTorrentSettings } from "../torrent/torrent"
+import { withDebridSettings } from "../debrid/debrid"
 
 /*
  * The home screen's data from the core's own store (area `library`, phase 5a-3, docs/EIGENER-KERN.md §4p): the user's
@@ -23,6 +26,9 @@ import { listDataOf } from "../anilist/changes"
  *   next episode after the progress, when it is out (library.ts `episodesOut`). After them the anime with a watch
  *   position that are on none of the lists (played online), the last watched first: the episode left unfinished, else
  *   the next one that is out (`resumeEpisodeNumber`); they stay out of `stream.anime`, which are the lists' anime.
+ *   `stream` comes only while one of the three "streaming titles in your anime lists" switches is on (online streaming,
+ *   torrent streaming on with its switch, debrid on with a service and its switch; the app's use-server-status.ts reads
+ *   them the same way); all off: the home screen holds the anime with files on the device only.
  * - Upcoming episodes: every anime of the lists but the dropped ones with a next episode to air that has not aired yet,
  *   the soonest first, with that episode's metadata.
  * - Schedule: the anime of the lists but the dropped ones that air or will air, or that belong to the previous, the
@@ -100,6 +106,19 @@ export function resumeEpisodeNumber(row: { episodeNumber: number, positionSecond
     return done ? row.episodeNumber + 1 : row.episodeNumber
 }
 
+/** Whether one of the "streaming titles in your anime lists" switches is on (rules above) */
+export async function streamingInLists(environment: Environment): Promise<boolean> {
+    await environment.pause("library: stream switches")
+    const settings = (await ownSettingsAndLook(await environment.database())).settings
+    if (isRecord(settings) && isRecord(settings.library) && settings.library.includeOnlineStreamingInLibrary === true) return true
+    await environment.pause("library: torrent switch")
+    const torrent = (await withTorrentSettings({}, environment as CoreEnvironment) as Json).torrentstreamSettings
+    if (isRecord(torrent) && torrent.enabled === true && torrent.includeInLibrary === true) return true
+    await environment.pause("library: debrid switch")
+    const debrid = (await withDebridSettings({}, environment as CoreEnvironment) as Json).debridSettings
+    return isRecord(debrid) && debrid.enabled === true && typeof debrid.provider === "string" && debrid.provider !== "" && debrid.includeDebridStreamInLibrary === true
+}
+
 /** GET /api/v1/library/collection, built by the core (rules above) */
 export async function ownLibraryCollection(environment: Environment): Promise<Json> {
     const entries = await listEntries(environment)
@@ -112,6 +131,7 @@ export async function ownLibraryCollection(environment: Environment): Promise<Js
         .sort((a, b) => (watched.get(b.media.id as number) ?? 0) - (watched.get(a.media.id as number) ?? 0)
             || whole(b.entry.updatedAt) - whole(a.entry.updatedAt))
     const own = await ownFilesPart(environment, entries)
+    if (!await streamingInLists(environment)) return own
     // the app shows both parts in one row: an anime whose next episode is on the device is there once, with that file
     const onDevice = new Set((own.continueWatchingList as Json[]).map(episode => (episode.baseAnime as Json | undefined)?.id))
     const continueWatching: Json[] = []

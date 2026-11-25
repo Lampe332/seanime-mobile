@@ -38,7 +38,7 @@ describe("the keys a backup may carry", () => {
     })
 
     it("screen, network and installed-app settings travel in the file backup, never in the account's sync", () => {
-        const keys = ["sea-ui-settings-show-status-bar", "sea-ui-settings-navigation-preload-mode", "sea-playback-downloaded-media",
+        const keys = ["sea-ui-settings-show-status-bar", "sea-ui-settings-card-size", "sea-ui-settings-navigation-preload-mode", "sea-playback-downloaded-media",
             "sea-playback-external-player-link", "sea-playback-external-player-link-encode-path"]
         for (const key of keys) {
             expect(isSyncDeviceKey(key)).toBe(true)

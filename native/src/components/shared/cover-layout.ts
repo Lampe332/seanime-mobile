@@ -3,11 +3,28 @@
  * the lengths (`--ps-text-zoom`): covers grow with it, so large text gets fewer, wider cards instead of squeezed titles.
  */
 
-/** `.ps-grid`: `repeat(auto-fill, minmax(max(100px, 78px × zoom), 1fr))`, 12dp apart; tablet 8.75rem and 16dp. */
-export function gridLayout(contentWidth: number, rail: boolean, zoom: number) {
+/** "Card size" (settings → Appearance, per device): a factor on the grid's least card width. Normal is the kit's size. */
+export type CardSize = "small" | "normal" | "large"
+export const CARD_SIZE_FACTORS: Record<CardSize, number> = { small: 0.7, normal: 1, large: 1.3 }
+export const cardSizeFactor = (size: CardSize | undefined) => CARD_SIZE_FACTORS[size ?? "normal"] ?? 1
+
+/**
+ * Columns of cells at least `min` × `factor` wide, `gap` apart. A larger card size never drops below two columns where the
+ * normal size fits two (a phone keeps a grid, not one cover per row).
+ */
+export function coverColumns(contentWidth: number, min: number, gap: number, factor = 1) {
+    const fit = (cell: number) => Math.max(1, Math.floor((contentWidth + gap) / (cell + gap)))
+    return Math.max(fit(min * factor), Math.min(2, fit(min)))
+}
+
+/**
+ * `.ps-grid`: `repeat(auto-fill, minmax(max(100px, 78px × zoom), 1fr))`, 12dp apart; tablet 8.75rem and 16dp. `factor`
+ * is the card size (CARD_SIZE_FACTORS).
+ */
+export function gridLayout(contentWidth: number, rail: boolean, zoom: number, factor = 1) {
     const min = rail ? 140 : Math.max(100, 78 * zoom)
     const gap = rail ? 16 : 12
-    const columns = Math.max(1, Math.floor((contentWidth + gap) / (min + gap)))
+    const columns = coverColumns(contentWidth, min, gap, factor)
     return { columns, gap, rowGap: rail ? 20 : 16, width: Math.max(0, (contentWidth - gap * (columns - 1)) / columns) }
 }
 

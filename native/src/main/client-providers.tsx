@@ -1,5 +1,6 @@
 import { connectAppBuild, connectAppFront } from "@/api/client/core-switch"
 import { QUERY_RETRY_DELAY_MS, shouldRetryQuery } from "@/api/client/query-retry"
+import { buildSeaQuery } from "@/api/client/requests"
 import { useGetStatus } from "@/api/hooks/status.hooks"
 import * as Application from "expo-application"
 import { Toaster } from "@/components/ui/toast/toaster"
@@ -93,7 +94,14 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     React.useEffect(() => {
         const sub = AppState.addEventListener("change", state => {
             focusManager.setFocused(state === "active")
-            if (state === "active") void pingUsageIfDue()
+            if (state === "active") {
+                void pingUsageIfDue()
+                // "Refresh the library automatically": the core looks at the folders at most every 10 minutes and scans
+                // only when their files changed (core/library/folders.ts scanWhenBack)
+                if (store.get(serverStatusAtom)?.settings?.library?.autoScan) {
+                    void buildSeaQuery({ endpoint: "/api/v1/library/auto-scan", method: "POST" }).catch(() => undefined)
+                }
+            }
         })
         // the anonymous daily count waits until the start is done (usage-ping.ts)
         const firstPing = setTimeout(() => void pingUsageIfDue(), USAGE_PING_DELAY_MS)
