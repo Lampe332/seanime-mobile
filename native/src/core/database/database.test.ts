@@ -52,6 +52,23 @@ describe("schema steps", () => {
         expect(await rows("SELECT item_id, schema_version FROM home_items")).toEqual([["a", 0]])
     })
 
+    it("take step 21 (media server) on a database of stage 20 and keep its data", async () => {
+        const upTo20 = SCHEMA_STEPS.filter(step => step.step <= 20)
+        expect(await bringUpToDate(driver(), 1000, upTo20)).toEqual(upTo20.map(step => step.step))
+        await driver()("INSERT INTO own_shows (media_id, progress, listed, changed_at) VALUES (-7, 3, 1, 5)", [], "run")
+        await driver()("INSERT INTO settings_sections (section, content, changed_at) VALUES ('library', '{}', 5)", [], "run")
+        expect(await tableNames()).not.toContain("mediaserver_series")
+        expect(await bringUpToDate(driver(), 2000)).toEqual(SCHEMA_STEPS.filter(step => step.step > 20).map(step => step.step))
+        expect(await rows("SELECT media_id, progress, listed FROM own_shows")).toEqual([[-7, 3, 1]])
+        expect(await rows("SELECT section FROM settings_sections")).toEqual([["library"]])
+        expect(await rows("SELECT step, applied_at FROM schema_steps WHERE step >= 20")).toEqual([[20, 1000], ...SCHEMA_STEPS.filter(step => step.step > 20).map(step => [step.step, 2000])])
+        const database = await openCoreDatabase(driver(), () => 3000)
+        await database.insert(schema.mediaserverSeries).values({ serverId: "srv", seriesId: "s1", content: { series: { id: "s1" } } as never, fetchedAt: 3000 })
+        await database.insert(schema.mediaserverMappings).values({ serverId: "srv", itemId: "s1", mediaId: 1, episodeOffset: 0, origin: "manual", changedAt: 3000 })
+        expect((await database.select().from(schema.mediaserverSeries)).map(row => row.seriesId)).toEqual(["s1"])
+        await expect(database.insert(schema.mediaserverMappings).values({ serverId: "srv", itemId: "s1", mediaId: 2, episodeOffset: 0, origin: "manual", changedAt: 3000 })).rejects.toThrow()
+    })
+
     it("leave nothing behind when a step fails", async () => {
         const broken: SchemaStep[] = [{ step: 1, name: "broken", statements: ["CREATE TABLE half (id INTEGER)", "CREATE TABLE (nonsense"] }]
         await expect(bringUpToDate(driver(), 1000, broken)).rejects.toThrow()

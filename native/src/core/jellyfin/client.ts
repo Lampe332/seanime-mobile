@@ -121,12 +121,14 @@ export function jellyfinUrl(base: string, path: string, query: Record<string, st
 async function ask(fetch: HttpFetch, url: string, authorization: string, method = "GET", body?: Json): Promise<unknown> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), JELLYFIN_TIMEOUT_MS)
+    // the time limit holds even for a fetch that does not listen to the signal
+    const late = new Promise<never>((_resolve, reject) => controller.signal.addEventListener("abort", () => reject(new JellyfinFailure("Jellyfin did not answer in time", 0))))
     try {
         const headers: Record<string, string> = { Accept: "application/json", Authorization: authorization }
         if (body) headers["Content-Type"] = "application/json"
-        const response = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, signal: controller.signal })
+        const response = await Promise.race([fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, signal: controller.signal }), late])
         if (response.status !== 200) throw new JellyfinFailure(`Jellyfin answered ${response.status}`, response.status)
-        return JSON.parse(await response.text())
+        return JSON.parse(await Promise.race([response.text(), late]))
     }
     catch (error) {
         if (error instanceof JellyfinFailure) throw error

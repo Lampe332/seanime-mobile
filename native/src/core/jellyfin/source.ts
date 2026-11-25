@@ -1,17 +1,17 @@
 // geschrieben nach: Seanime_Jellyfin_Plan.md §2, §3, §5 Punkt 2 und §6 und dem Nakama-Muster aus core/nakama/guest.ts (withHostLibrary, withHostFiles); kein Server-Quelltext
 
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { listDataOf } from "../anilist/changes"
 import { storedEntry } from "../anilist/store"
 import { inOrder } from "../database/database"
-import { anilistListEntries, anilistMedia, mediaserverMappings, mediaserverSeries, settingsSections } from "../database/schema"
+import { anilistListEntries, anilistMedia, episodeMetadata, mediaserverMappings, mediaserverSeries, settingsSections } from "../database/schema"
 import { CoreError } from "../errors"
 import { animeWithEpisodes, episodesOut } from "../library/library"
 import { type LocalFileRow, episodeOfFile, libraryDataOf } from "../library/local-files"
 import { animeMetadata } from "../library/metadata"
 import type { CoreEnvironment } from "../registry"
-import { type JellyfinSeries, type JellyfinSession, listEpisodes, listSeasons, listSeries } from "./client"
-import { type AnilistTitle, type EpisodeMatch, type MatchRule, type ServerShow, matchLibrary } from "./match"
+import { type JellyfinSeries, type JellyfinSession, listEpisodes, listSeasons, listSeries, providerId } from "./client"
+import { type AnilistTitle, type EpisodeMatch, type MatchRule, type ServerShow, matchLibrary, matchS1 } from "./match"
 
 /*
  * The media server as a source of the library. Own rules:
@@ -19,8 +19,12 @@ import { type AnilistTitle, type EpisodeMatch, type MatchRule, type ServerShow, 
  * - One server at a time. Its address, user id, device id and the switch "progress to the server" are an own section
  *   of the settings table (`mediaserver`, like the app's switches in settings/incognito.ts; not part of the status).
  *   The token lives only in the device's safe store (`MEDIASERVER_TOKEN_SECRET`), the password is never kept.
- * - The server's series with their seasons and episodes are kept in `mediaserver_series` and read again after
- *   `SERIES_FRESH_MS`. A server that cannot be asked leaves library and anime page exactly as they were.
+ * - The server's series with their seasons and episodes are kept in `mediaserver_series`. Library and anime page read
+ *   only that and never wait for the server: a missing or old state (`SERIES_FRESH_MS`) starts one reading in the
+ *   background (pattern of anilist/sequels.ts), whose result the next request shows. A failed reading keeps the old
+ *   state and is tried again after `RETRY_PAUSE_MS`; "read again" from the settings (`refreshServerLibrary`) waits for
+ *   it and ignores the pause. A reading asks at most `REQUESTS_AT_ONCE` things of the server at once and asks ani.zip
+ *   only for titles whose match needs its numbers (rules S2, S3).
  * - Order of sources: own files, then Nakama, then the media server. A title that already has an entry is not touched.
  * - Only titles of the user's AniList lists are matched for the library; any other title is matched when its page opens.
  * - A row of `mediaserver_mappings` (a series or a season given to a title by hand, media id 0 = to no title) beats
@@ -30,11 +34,15 @@ import { type AnilistTitle, type EpisodeMatch, type MatchRule, type ServerShow, 
  */
 
 type Json = Record<string, unknown>
-type Environment = Pick<CoreEnvironment, "fetch" | "secret" | "database" | "now" | "pause"> & Partial<Pick<CoreEnvironment, "keepSecret">>
+type Environment = Pick<CoreEnvironment, "fetch" | "secret" | "database" | "now" | "pause"> & Partial<Pick<CoreEnvironment, "keepSecret" | "unasked">>
 
 export const MEDIASERVER_TOKEN_SECRET = "seanime-mediaserver-token"
 export const MEDIASERVER_SECTION = "mediaserver"
 export const SERIES_FRESH_MS = 6 * 60 * 60 * 1000
+export const RETRY_PAUSE_MS = 5 * 60 * 1000
+export const REQUESTS_AT_ONCE = 4
+/** The numbers by which rules S2 and S3 find a series (match.ts `showByIds`) */
+const ID_KEYS = ["AniDB", "Tvdb", "Tmdb"] as const
 const PAGE = 200
 const FILE_SCHEME = "mediaserver://"
 
@@ -121,6 +129,7 @@ export async function saveServerSettings(input: unknown, environment: Environmen
         if (other) await transaction.delete(mediaserverSeries)
     }))
     forgetServerSource()
+    lastTry = null
     return next
 }
 
@@ -154,6 +163,66 @@ function movieShow(series: JellyfinSeries): ServerShow {
     return { series, seasons: [], episodes: [{ id: series.id, seriesId: series.id, seasonId: "", season: 1, index: 1, name: series.name, providerIds: {}, mediaSources: [] }] }
 }
 
+/** Runs `work` over the items with at most `limit` of them at once; the first failure fails all */
+async function atMost<T>(limit: number, items: T[], work: (item: T) => Promise<void>): Promise<void> {
+    let next = 0
+    let failed = false
+    const worker = async () => {
+        while (!failed && next < items.length) {
+            const item = items[next++]
+            try {
+                await work(item)
+            }
+            catch (error) {
+                failed = true
+                throw error
+            }
+        }
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+}
+
+/** The anime of the user's AniList lists with their status */
+async function listedTitles(environment: Environment): Promise<Map<number, Listed>> {
+    const database = await environment.database()
+    const rows = await inOrder(database, () => database.select({ entry: anilistListEntries.content, media: anilistMedia.content })
+        .from(anilistListEntries).innerJoin(anilistMedia, eq(anilistListEntries.media, anilistMedia.id)).where(eq(anilistListEntries.kind, "ANIME")))
+    const listed = new Map<number, Listed>()
+    for (const row of rows) if (row.media && whole(row.media.id)) listed.set(whole(row.media.id), { media: row.media, status: text(row.entry.status) })
+    return listed
+}
+
+/** The kept ani.zip answers of these titles (core/library/metadata.ts keeps them); asks nobody */
+async function keptMetadata(environment: Environment, ids: number[]): Promise<Map<number, Json>> {
+    const kept = new Map<number, Json>()
+    const database = await environment.database()
+    for (let at = 0; at < ids.length; at += 500) {
+        const part = ids.slice(at, at + 500)
+        const rows = await inOrder(database, () => database.select().from(episodeMetadata).where(inArray(episodeMetadata.anilistId, part)))
+        for (const row of rows) kept.set(row.anilistId, row.content)
+    }
+    return kept
+}
+
+/**
+ * Asks ani.zip (through its kept answers) for the listed titles whose match needs its numbers: only when the server
+ * has a series with an AniDB, Tvdb or Tmdb number (rules S2, S3) and rule S1 does not already find every aired episode.
+ */
+async function metadataNeeded(environment: Environment, shows: ServerShow[]): Promise<void> {
+    if (!shows.some(show => ID_KEYS.some(key => providerId(show.series.providerIds, key)))) return
+    const listed = await listedTitles(environment)
+    const now = environment.now()
+    const needed = [...listed.entries()].filter(([, item]) => {
+        const title = titleOf(item.media, null, now)
+        const found = matchS1(title, shows)
+        return !found || found.episodes.length < title.aired
+    }).map(([id]) => id)
+    await atMost(REQUESTS_AT_ONCE, needed, async id => {
+        await environment.pause("mediaserver metadata")
+        await metadataFor(environment, id)
+    })
+}
+
 /** Reads every series of the server with its seasons and episodes and keeps them in place of the ones kept before */
 export async function refreshServerShows(environment: Environment, session: JellyfinSession): Promise<ServerShow[]> {
     const all: JellyfinSeries[] = []
@@ -163,17 +232,16 @@ export async function refreshServerShows(environment: Environment, session: Jell
         if (page.items.length === 0 || start + page.items.length >= page.total) break
         await environment.pause("mediaserver series")
     }
-    const shows: ServerShow[] = []
-    for (const series of all) {
-        if (!series.id) continue
-        if (series.type === "Movie") {
-            shows.push(movieShow(series))
-            continue
-        }
+    const series = all.filter(item => item.id)
+    const read = new Map<string, ServerShow>()
+    await atMost(REQUESTS_AT_ONCE, series.filter(item => item.type !== "Movie"), async item => {
         await environment.pause("mediaserver series")
-        const [seasons, episodes] = await Promise.all([listSeasons(environment.fetch, session, series.id), listEpisodes(environment.fetch, session, series.id)])
-        shows.push({ series, seasons, episodes })
-    }
+        const seasons = await listSeasons(environment.fetch, session, item.id)
+        const episodes = await listEpisodes(environment.fetch, session, item.id)
+        read.set(item.id, { series: item, seasons, episodes })
+    })
+    const shows = series.map(item => (item.type === "Movie" ? movieShow(item) : read.get(item.id) as ServerShow))
+    await metadataNeeded(environment, shows)
     const database = await environment.database()
     const fetchedAt = environment.now()
     await inOrder(database, () => database.transaction(async transaction => {
@@ -184,13 +252,61 @@ export async function refreshServerShows(environment: Environment, session: Jell
     return shows
 }
 
-/** The kept series while they are fresh, else read again from the server (which may fail: `JellyfinFailure`) */
+let reading: Promise<ServerShow[]> | null = null
+let lastTry: { serverId: string, at: number, failed: boolean } | null = null
+
+/** One reading of the server at a time; `asked`: the user wants it (not through `unasked`) */
+function readServer(environment: Environment, session: JellyfinSession, asked: boolean): Promise<ServerShow[]> {
+    const work = () => refreshServerShows(environment, session)
+    const run = (async () => {
+        try {
+            await environment.pause("mediaserver read")
+            const shows = asked || !environment.unasked ? await work() : await environment.unasked("mediaserver read again", work) as ServerShow[]
+            lastTry = { serverId: session.serverId, at: environment.now(), failed: false }
+            return shows
+        }
+        catch (error) {
+            // the kept series stay as they were
+            lastTry = { serverId: session.serverId, at: environment.now(), failed: true }
+            throw error
+        }
+        finally {
+            reading = null
+        }
+    })()
+    reading = run
+    return run
+}
+
+/** Starts a reading in the background when the kept series are missing or old, none runs and no failure is too recent */
+function readWhenDue(environment: Environment, session: JellyfinSession, kept: boolean, fetchedAt: number): void {
+    if (reading) return
+    const now = environment.now()
+    const tried = lastTry?.serverId === session.serverId ? lastTry : null
+    if (tried?.failed && now - tried.at < RETRY_PAUSE_MS) return
+    if (kept && now - fetchedAt < SERIES_FRESH_MS) return
+    if (tried && !tried.failed && now - tried.at < SERIES_FRESH_MS) return
+    void readServer(environment, session, false).catch(() => undefined)
+}
+
+/**
+ * "Read again" from the settings: reads the server now, after a reading that runs, without the pause after a failure.
+ * Fails with `JellyfinFailure` when the server cannot be asked (the kept series stay) and with 400 when none is set up.
+ */
+export async function refreshServerLibrary(environment: Environment): Promise<ServerShow[]> {
+    const session = await serverSession(environment)
+    if (!session) throw new CoreError("no media server is signed in", 400)
+    while (reading) await reading.catch(() => undefined)
+    return readServer(environment, session, true)
+}
+
+/** The kept series, however old; starts a reading in the background when one is due. Never waits for the server. */
 async function serverShows(environment: Environment, session: JellyfinSession): Promise<{ shows: ServerShow[], fetchedAt: number }> {
     const database = await environment.database()
     const rows = await inOrder(database, () => database.select().from(mediaserverSeries).where(eq(mediaserverSeries.serverId, session.serverId)))
     const fetchedAt = rows.length ? Math.min(...rows.map(row => row.fetchedAt)) : 0
-    if (rows.length && environment.now() - fetchedAt < SERIES_FRESH_MS) return { shows: rows.map(row => row.content), fetchedAt }
-    return { shows: await refreshServerShows(environment, session), fetchedAt: environment.now() }
+    readWhenDue(environment, session, rows.length > 0, fetchedAt)
+    return { shows: rows.map(row => row.content), fetchedAt }
 }
 
 /* ── Matching ─────────────────────────────────────────────────────────── */
@@ -266,17 +382,12 @@ async function libraryState(environment: Environment, session: JellyfinSession):
     await environment.pause("mediaserver library")
     const database = await environment.database()
     const mappings = await inOrder(database, () => database.select().from(mediaserverMappings).where(eq(mediaserverMappings.serverId, session.serverId)))
-    const rows = await inOrder(database, () => database.select({ entry: anilistListEntries.content, media: anilistMedia.content })
-        .from(anilistListEntries).innerJoin(anilistMedia, eq(anilistListEntries.media, anilistMedia.id)).where(eq(anilistListEntries.kind, "ANIME")))
-    const listed = new Map<number, Listed>()
-    for (const row of rows) if (row.media && whole(row.media.id)) listed.set(whole(row.media.id), { media: row.media, status: text(row.entry.status) })
+    const listed = await listedTitles(environment)
     const key = [session.serverId, fetchedAt, Math.floor(environment.now() / SERIES_FRESH_MS), mappings.map(row => `${row.itemId}:${row.changedAt}`).join(","), [...listed.keys()].join(",")].join("|")
     if (remembered?.key === key) return remembered.state
+    const metadata = shows.length ? await keptMetadata(environment, [...listed.keys()]) : new Map<number, Json>()
     const titles: AnilistTitle[] = []
-    for (const [id, item] of listed) {
-        await environment.pause("mediaserver library")
-        titles.push(titleOf(item.media, await metadataFor(environment, id), environment.now()))
-    }
+    for (const [id, item] of listed) titles.push(titleOf(item.media, metadata.get(id) ?? null, environment.now()))
     const state = { shows, mappings, titles, listed, matches: allMatches(titles, shows, mappings) }
     remembered = { key, state }
     return state
@@ -376,7 +487,7 @@ export async function withServerFiles(entry: unknown, environment: Environment):
         match = state.matches.find(candidate => candidate.anilistId === id)
         if (!match && !state.listed.has(id) && isRecord(entry.media)) {
             // a title outside the lists is matched now, with the lists' titles, so that no episode gets two titles
-            const title = titleOf({ ...entry.media, id }, await metadataFor(environment, id), environment.now())
+            const title = titleOf({ ...entry.media, id }, (await keptMetadata(environment, [id])).get(id) ?? null, environment.now())
             match = allMatches([...state.titles, title], shows, state.mappings).find(candidate => candidate.anilistId === id)
         }
     }
