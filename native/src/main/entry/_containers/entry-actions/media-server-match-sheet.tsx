@@ -65,8 +65,11 @@ function failureText(t: Translate, error: unknown): string {
     }
 }
 
-function ruleText(t: Translate, rule: MatchSubject["rule"]): string {
+function ruleText(t: Translate, rule: MatchSubject["rule"], leftPart?: string): string {
     switch (ruleKind(rule)) {
+        case "left-out": return leftPart
+            ? t(`${leftPart} left out of your library`, `${leftPart} aus deiner Bibliothek genommen`)
+            : t("Left out of your library", "Aus deiner Bibliothek genommen")
         case "manual": return t("Matched by hand", "Von Hand zugeordnet")
         case "title": return t("Matched automatically by its title, not certain", "Automatisch über den Titel zugeordnet, nicht sicher")
         case "numbers": return t("Matched automatically by its numbers", "Automatisch über die Nummern zugeordnet")
@@ -133,6 +136,9 @@ export function MediaServerMatchSheet({ subject, open, onOpenChange, cover }: {
         : (anime ? [anime] : [])
     const loading = search ? (asId ? loadingId : searching) : false
     const part = seasonId ? subject.seasons.find(season => season.id === seasonId)?.name : undefined
+    // a season of "Left out": the header names it, so it is clear the rest of the series is not left out
+    const leftSeason = subject.seasons.find(season => subject.mappings.some(row => row.itemId === season.id))
+    const leftPart = leftSeason ? leftSeason.name || t(`Season ${leftSeason.index ?? "?"}`, `Staffel ${leftSeason.index ?? "?"}`) : undefined
 
     const done = (message: string) => {
         toast.success(message)
@@ -165,7 +171,7 @@ export function MediaServerMatchSheet({ subject, open, onOpenChange, cover }: {
             </Button>}>
             <View accessible className="gap-0.5 rounded-surface bg-sm-surface-raised px-4 py-3">
                 <Text className="text-[15px] font-semibold">{subject.year ? `${subject.name} (${subject.year})` : subject.name}</Text>
-                <Muted>{[ruleText(t, subject.rule), plural(t, subject.episodes, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])].join(" · ")}</Muted>
+                <Muted>{[ruleText(t, subject.rule, leftPart), plural(t, subject.episodes, ["1 episode", "{0} episodes"], ["1 Folge", "{0} Folgen"])].join(" · ")}</Muted>
             </View>
 
             <SheetGroup title={t("Which anime is it?", "Welcher Anime ist es?")}
@@ -208,9 +214,9 @@ export function MediaServerMatchSheet({ subject, open, onOpenChange, cover }: {
 
             <SheetGroup title={t("Other options", "Weitere Möglichkeiten")}>
                 <RowGroup>
-                    <ActionRow icon={CircleOff} label={part ? t(`${part} belongs to nothing`, `${part} gehört zu nichts`) : t("Belongs to nothing", "Gehört zu nichts")} disabled={busy}
+                    {!(ruleKind(subject.rule) === "left-out" && subject.mappings.some(row => row.itemId === itemId)) && <ActionRow icon={CircleOff} label={part ? t(`${part} belongs to nothing`, `${part} gehört zu nichts`) : t("Belongs to nothing", "Gehört zu nichts")} disabled={busy}
                         note={t("Keeps it out of your library, for extras or series that are not on AniList.", "Hält sie aus deiner Bibliothek heraus, für Extras oder Serien, die es bei AniList nicht gibt.")}
-                        onPress={belongsToNothing} />
+                        onPress={belongsToNothing} />}
                     {subject.mappings.length > 0 && <ActionRow icon={RotateCcw} label={remove.isPending ? t("Resetting…", "Wird zurückgesetzt…") : t("Back to automatic", "Zurück zu automatisch")}
                         disabled={busy} note={t("Forgets what you set by hand; the app matches it by itself again.", "Vergisst, was du von Hand eingestellt hast; die App ordnet wieder selbst zu.")}
                         onPress={backToAutomatic} />}

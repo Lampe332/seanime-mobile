@@ -3,7 +3,7 @@ import { type MediaServerStatus, readingFinished, STATUS_READING_POLL_MS, status
 
 const status = (reading: boolean): MediaServerStatus => ({
     signedIn: true, serverName: "Made", username: "made", url: "https://media.example", sendProgress: true,
-    reading, series: reading ? 0 : 4, matched: reading ? 0 : 2, unmatched: [], lastReadAt: reading ? null : 1, problem: "",
+    reading, series: reading ? 0 : 4, matched: reading ? 0 : 2, unmatched: [], leftOutSeries: 0, leftOut: [], lastReadAt: reading ? null : 1, problem: "",
 })
 
 describe("the media server status on the settings page", () => {

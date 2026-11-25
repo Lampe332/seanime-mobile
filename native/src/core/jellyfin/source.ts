@@ -757,6 +757,10 @@ export interface ServerOverview {
     matched: number
     /** Series without a certain match, with the uncertain suggestion if there is one */
     unmatched: { seriesId: string, name: string, year: number, seasons: ServerSeasonInfo[], suggestion: { anilistId: number, title: string } | null }[]
+    /** Series that are neither matched nor in `unmatched`: rows made by hand take them, to no title; series = matched + unmatched + leftOutSeries */
+    leftOutSeries: number
+    /** The rows made by hand to no title (`itemId`: the series or a season, `seasonName` set for a season), by name */
+    leftOut: { itemId: string, seriesId: string, name: string, year: number, seasonName: string | null, seasons: ServerSeasonInfo[] }[]
     /** When the kept series were read last, null when none are kept */
     lastReadAt: number | null
     /** Why the last reading failed ("unreachable", "rejected", "failed"), empty when it did not */
@@ -768,7 +772,7 @@ export async function serverOverview(environment: Environment): Promise<ServerOv
     const settings = await serverSettingsOf(environment)
     const session = await serverSession(environment)
     const shown = { signedIn: session !== null, serverName: settings.serverName, username: settings.username, url: settings.url, sendProgress: settings.sendProgress }
-    if (!session) return { ...shown, reading: false, series: 0, matched: 0, unmatched: [], lastReadAt: null, problem: "" }
+    if (!session) return { ...shown, reading: false, series: 0, matched: 0, unmatched: [], leftOutSeries: 0, leftOut: [], lastReadAt: null, problem: "" }
     const state = await libraryState(environment, session)
     const unassigned = await unassignedServerShows(environment)
     const database = await environment.database()
@@ -779,11 +783,24 @@ export async function serverOverview(environment: Environment): Promise<ServerOv
         return text(title.userPreferred) || text(title.english) || text(title.romaji) || `AniList ${id}`
     }
     const tried = lastTry?.serverId === session.serverId ? lastTry : null
+    const matched = new Set(state.matches.filter(match => match.certain).map(match => match.seriesId))
+    const unlisted = new Set(unassigned.map(show => show.seriesId))
+    const leftOut = state.mappings.filter(row => row.mediaId === 0).flatMap(row => {
+        const show = state.shows.find(item => item.series.id === row.itemId || item.seasons.some(season => season.id === row.itemId))
+        if (!show) return []
+        const season = show.seasons.find(item => item.id === row.itemId)
+        return [{
+            itemId: row.itemId, seriesId: show.series.id, name: show.series.name, year: show.series.year,
+            seasonName: season ? season.name : null, seasons: seasonsOf(show),
+        }]
+    }).sort((a, b) => a.name.localeCompare(b.name) || (a.seasonName ?? "").localeCompare(b.seasonName ?? ""))
     return {
         ...shown,
         reading: reading !== null,
         series: state.shows.length,
-        matched: new Set(state.matches.filter(match => match.certain).map(match => match.seriesId)).size,
+        matched: matched.size,
+        leftOutSeries: state.shows.filter(show => !matched.has(show.series.id) && !unlisted.has(show.series.id)).length,
+        leftOut,
         unmatched: unassigned.map(show => ({
             seriesId: show.seriesId, name: show.name, year: show.year, seasons: show.seasons,
             suggestion: show.suggestion ? { anilistId: show.suggestion.anilistId, title: titleOfId(show.suggestion.anilistId) } : null,

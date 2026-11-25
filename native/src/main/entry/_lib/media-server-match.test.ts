@@ -6,6 +6,7 @@ import {
     parseFirstEpisode,
     ruleKind,
     startFirstEpisode,
+    subjectOfLeftOut,
     subjectOfUnmatched,
 } from "./media-server-match"
 
@@ -93,5 +94,16 @@ describe("subjectOfUnmatched", () => {
 
     it("picks nothing without a suggestion", () => {
         expect(subjectOfUnmatched({ seriesId: "x", name: "Show", year: 0, seasons: [], suggestion: null }).title).toBeNull()
+    })
+})
+
+describe("subjectOfLeftOut", () => {
+    it("is left out, picks no title and carries its row, so the sheet offers Back to automatic", () => {
+        const subject = subjectOfLeftOut({
+            itemId: "b", seriesId: "x", name: "Show", year: 2020, seasonName: "Season 2", seasons: [season("a", 12, 1), season("b", 13, 2)],
+        })
+        expect(subject).toMatchObject({ seriesId: "x", rule: "left-out", title: null, episodes: 25, mappings: [{ itemId: "b", episodeOffset: 0 }] })
+        expect(ruleKind(subject.rule)).toBe("left-out")
+        expect(matchItemId(subject, "b")).toBe("b")
     })
 })

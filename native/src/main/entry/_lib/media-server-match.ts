@@ -13,8 +13,8 @@ export type MatchSubject = {
     year: number
     episodes: number
     seasons: MediaServerSeason[]
-    /** how it is matched now; "none" for a series of "Not matched" */
-    rule: MediaServerMapping["rule"] | "none"
+    /** how it is matched now; "none" for a series of "Not matched", "left-out" for one of "Left out" */
+    rule: MediaServerMapping["rule"] | "none" | "left-out"
     /** the rows made by hand (`itemId`: the series or a season) */
     mappings: { itemId: string, episodeOffset: number }[]
     /** the title picked when the sheet opens: the current one, or the core's suggestion */
@@ -33,6 +33,15 @@ export function subjectOfUnmatched(show: MediaServerStatus["unmatched"][number])
         seriesId: show.seriesId, name: show.name, year: show.year, seasons: show.seasons,
         episodes: show.seasons.reduce((sum, season) => sum + season.episodes, 0),
         rule: "none", mappings: [], title: show.suggestion ? { id: show.suggestion.anilistId, title: show.suggestion.title } : null,
+    }
+}
+
+/** A row of "Left out": the sheet opens on the left-out series or season, with "Back to automatic" for that row */
+export function subjectOfLeftOut(item: MediaServerStatus["leftOut"][number]): MatchSubject {
+    return {
+        seriesId: item.seriesId, name: item.name, year: item.year, seasons: item.seasons,
+        episodes: item.seasons.reduce((sum, season) => sum + season.episodes, 0),
+        rule: "left-out", mappings: [{ itemId: item.itemId, episodeOffset: 0 }], title: null,
     }
 }
 
@@ -70,7 +79,8 @@ export function startFirstEpisode(subject: Pick<MatchSubject, "mappings">, itemI
 }
 
 /** How the series is matched now, as a kind the sheet names */
-export function ruleKind(rule: MatchSubject["rule"]): "numbers" | "title" | "manual" | "none" {
+export function ruleKind(rule: MatchSubject["rule"]): "numbers" | "title" | "manual" | "none" | "left-out" {
+    if (rule === "left-out") return "left-out"
     if (rule === "manual") return "manual"
     if (rule === "S4") return "title"
     if (rule === "none") return "none"

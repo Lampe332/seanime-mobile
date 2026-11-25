@@ -527,6 +527,38 @@ describe("matching by hand", () => {
         expect(await unassignedServerShows(environment)).toEqual([])
     })
 
+    it("lists a series given to no title under left out, counts it there, and gives it back when the row is taken away", async () => {
+        await readServer()
+        const before = await serverOverview(environment)
+        expect(before).toMatchObject({ leftOut: [], leftOutSeries: 0 })
+        expect(before.matched + before.unmatched.length + before.leftOutSeries).toBe(before.series)
+        await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sA", mediaId: 0 })
+        const left = await serverOverview(environment)
+        expect(left.leftOut).toEqual([{
+            itemId: "sA", seriesId: "sA", name: NAMES[SERVER_ONLY], year: 2020, seasonName: null,
+            seasons: [{ id: "sA-s1", name: "Season 1", index: 1, episodes: 2 }],
+        }])
+        expect(left.unmatched.map(show => show.seriesId)).not.toContain("sA")
+        expect(left).toMatchObject({ series: before.series, matched: before.matched - 1, leftOutSeries: 1 })
+        expect(left.matched + left.unmatched.length + left.leftOutSeries).toBe(left.series)
+        await removeServerMapping("sA", environment)
+        const back = await serverOverview(environment)
+        expect(back).toMatchObject({ leftOut: [], leftOutSeries: 0, matched: before.matched })
+        expect(await libraryIds()).toContain(SERVER_ONLY)
+    })
+
+    it("names the season when only a season is given to no title", async () => {
+        await readServer()
+        await route("POST", "/api/v1/mediaserver/mapping", { itemId: "sB-s1", mediaId: 0 })
+        const status = await serverOverview(environment)
+        expect(status.leftOut).toEqual([{
+            itemId: "sB-s1", seriesId: "sB", name: NAMES[UNSURE], year: 2020, seasonName: "Season 1",
+            seasons: [{ id: "sB-s1", name: "Season 1", index: 1, episodes: 2 }],
+        }])
+        expect(status.unmatched).toEqual([])
+        expect(status.matched + status.unmatched.length + status.leftOutSeries).toBe(status.series)
+    })
+
     it("shows the library as it is now right after a change, from the kept series, without asking the server", async () => {
         await readServer()
         await withServerLibrary(collection(), environment)

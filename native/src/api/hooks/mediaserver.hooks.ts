@@ -74,6 +74,10 @@ export type MediaServerStatus = {
     series: number
     matched: number
     unmatched: { seriesId: string, name: string, year: number, seasons: MediaServerSeason[], suggestion: { anilistId: number, title: string } | null }[]
+    /** series = matched + unmatched + leftOutSeries */
+    leftOutSeries: number
+    /** rows made by hand to no title ("Belongs to nothing"); `itemId` is the series or a season, `seasonName` set for a season */
+    leftOut: { itemId: string, seriesId: string, name: string, year: number, seasonName: string | null, seasons: MediaServerSeason[] }[]
     lastReadAt: number | null
     /** "unreachable", "rejected", "failed" or empty */
     problem: string

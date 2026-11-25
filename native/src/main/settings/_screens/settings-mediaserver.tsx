@@ -13,7 +13,7 @@ import { accentInput } from "@/lib/theme/tokens"
 import { ConfirmSheet, InfoRow, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { checkServerAddress } from "@/main/settings/_lib/mediaserver-host"
 import { MediaServerMatchSheet } from "@/main/entry/_containers/entry-actions/media-server-match-sheet"
-import { type MatchSubject, subjectOfUnmatched } from "@/main/entry/_lib/media-server-match"
+import { type MatchSubject, subjectOfLeftOut, subjectOfUnmatched } from "@/main/entry/_lib/media-server-match"
 import { useQueryClient } from "@tanstack/react-query"
 import Eye from "lucide-react-native/icons/eye"
 import EyeOff from "lucide-react-native/icons/eye-off"
@@ -217,6 +217,7 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
                     <InfoRow label={t("Series on the server", "Serien auf dem Server")} value={String(status.series)} />
                     <InfoRow label={t("Matched", "Zugeordnet")} value={String(status.matched)} />
                     <InfoRow label={t("Not matched", "Nicht zugeordnet")} value={String(status.unmatched.length)} />
+                    {status.leftOutSeries > 0 && <InfoRow label={t("Left out", "Ausgelassen")} value={String(status.leftOutSeries)} />}
                 </>}
             <InfoRow label={t("Last read", "Zuletzt eingelesen")} value={readAgo(t, status.lastReadAt, now)} />
             <LinkRow label={reading ? t("Reading…", "Lese ein …") : t("Read again", "Neu einlesen")} chevron={false} disabled={reading || logout.isPending}
@@ -231,7 +232,14 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
                 note={show.suggestion ? t(`Suggestion: ${show.suggestion.title}`, `Vorschlag: ${show.suggestion.title}`) : t("No suggestion", "Kein Vorschlag")}
                 onPress={() => { setMatching(subjectOfUnmatched(show)); setMatchOpen(true) }} />)}
         </SettingsGroup>}
-        {/* kept in state: the series leaves "Not matched" once saved, the sheet stays until it closes */}
+        {status.leftOut.length > 0 && <SettingsGroup title={t("Left out", "Ausgelassen")}
+            note={t("Series you marked as belonging to nothing. They stay out of your library.",
+                "Serien, die du als „gehört zu nichts“ markiert hast. Sie bleiben aus deiner Bibliothek heraus.")}>
+            {status.leftOut.map(item => <LinkRow key={item.itemId} label={item.year ? `${item.name} (${item.year})` : item.name}
+                note={item.seasonName !== null ? leftSeasonName(t, item) : t("Whole series", "Ganze Serie")}
+                onPress={() => { setMatching(subjectOfLeftOut(item)); setMatchOpen(true) }} />)}
+        </SettingsGroup>}
+        {/* kept in state: the series leaves its group once saved, the sheet stays until it closes */}
         {!!matching && <MediaServerMatchSheet subject={matching} open={matchOpen} onOpenChange={setMatchOpen} />}
 
         <ProgressSwitch status={status} t={t} />
@@ -247,6 +255,13 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
             text={t("The server's series leave your library until you sign in again.", "Die Serien des Servers verschwinden aus deiner Bibliothek, bis du dich wieder anmeldest.")}
             action={t("Sign out", "Abmelden")} onConfirm={signOut} />
     </>
+}
+
+/** The left-out season of a "Left out" row, by its name on the server or else its number */
+function leftSeasonName(t: Translate, item: MediaServerStatus["leftOut"][number]): string {
+    if (item.seasonName) return item.seasonName
+    const index = item.seasons.find(season => season.id === item.itemId)?.index ?? "?"
+    return t(`Season ${index}`, `Staffel ${index}`)
 }
 
 /** Whether a playing server episode tells its server start, position and end (core/jellyfin/playback.ts asks it every time) */
