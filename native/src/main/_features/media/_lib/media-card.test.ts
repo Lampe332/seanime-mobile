@@ -1,7 +1,7 @@
 import type { AL_BaseAnime, AL_BaseManga } from "@/api/generated/types"
 import { describe, expect, it } from "vitest"
 import { CARD_SIZE_FACTORS, fitRowWidth, gridLayout, rowCardWidth } from "@/components/shared/cover-layout"
-import { CARD_PILL, cardPillFit, cardPillWidth, cardProgressBar, cardProgressLabel, cardSeasonLine, cardUnwatchedCount, mediaEntryHref, userScoreColor } from "./media-card"
+import { CARD_PILL, cardPillFit, cardPillWidth, cardScoreWidth, cardProgressBar, cardProgressLabel, cardSeasonLine, cardUnwatchedCount, mediaEntryHref, userScoreColor } from "./media-card"
 
 describe("card link", () => {
     it("opens the anime page or the manga page at the web paths", () => {
@@ -56,6 +56,28 @@ describe("progress pill", () => {
         expect(cardPillFit(110, "139", "31/170")).toMatchObject({ top: true, label: "31/170", pad: 5 })
         expect(cardPillFit(smallest, "139", "31/170")).toMatchObject({ top: false, label: "31/170" })
         expect(cardPillFit(smallest, "12", "1234/1500")).toMatchObject({ top: false, label: "1234" })
+    })
+
+    it("keeps a visible gap to the score badge and never runs under it", () => {
+        const small = fitRowWidth(rowCardWidth(411, CARD_SIZE_FACTORS.small), 411)
+        expect(cardScoreWidth(90)).toBe(56)
+        expect(cardScoreWidth(100)).toBe(56)
+        expect(cardScoreWidth(95, 1.3)).toBeGreaterThan(56)
+        // the device finding: a 105dp card, "▶ 4 | 3" beside "★ 9"; before, the badge sat on the "3"
+        const ends = (fit: ReturnType<typeof cardPillFit>, top: string | null, fontScale = 1) => CARD_PILL.inset + shown(fit, top, fontScale)
+        for (const width of [105, small, smallest, rowCardWidth(411)])
+            for (const fontScale of [1, 1.3])
+                for (const score of [90, 95, 100])
+                    for (const [top, label] of [["4", "3"], ["139", "31/170"], ["12", "1234/1500"], [null, "7/-"]] as const) {
+                        const badge = cardScoreWidth(score, fontScale)
+                        const fit = cardPillFit(width, top, label, fontScale, badge)
+                        if (fit.top || fit.label) expect(ends(fit, top, fontScale)).toBeLessThanOrEqual(width - badge - 4)
+                        expect(fit.label === null || label?.startsWith(fit.label)).toBe(true)
+                    }
+        expect(cardPillFit(105, "4", "3", 1, cardScoreWidth(90))).toMatchObject({ top: false, label: "3" })
+        // without a badge nothing changes
+        expect(cardPillFit(105, "4", "3")).toEqual(cardPillFit(105, "4", "3", 1, 0))
+        expect(cardPillFit(rowCardWidth(411), "139", "31/170", 1, cardScoreWidth(90))).toMatchObject({ label: "31/170" })
     })
 })
 

@@ -5,8 +5,13 @@ import type { AL_AnimeCollection_MediaListCollection_Lists, AL_AnimeCollection_M
  * titles already on any of their lists. Pure logic; the hook (discover-phone-hooks.ts) asks for the recommendations.
  */
 
-/** At most this many source titles: as many rows and as many extra requests */
-export const BECAUSE_MAX_SOURCES = 2
+/**
+ * At most this many candidate titles, asked for in turn: a long-time watcher has most recommendations of the last titles
+ * on a list already, so a thin or failed row passes on to the next candidate (becauseFetchCount)
+ */
+export const BECAUSE_MAX_SOURCES = 6
+/** At most this many rows, and so at most this many requests open at once */
+export const BECAUSE_MAX_ROWS = 2
 /** At most this many covers a row */
 export const BECAUSE_MAX_ITEMS = 20
 /** A row with fewer titles is not shown */
@@ -67,31 +72,63 @@ export type BecauseRow = {
     items: AL_BaseAnime[] | undefined
 }
 
+/** One row's titles: not on any list, not in an earlier row (`shown`), no adult ones unless allowed, at most 20 */
+function rowItems(recommendations: (AL_BaseAnime | null | undefined)[], listed: Set<number>, shown: Set<number>, allowAdult: boolean) {
+    const items: AL_BaseAnime[] = []
+    const inRow = new Set<number>()
+    for (const media of recommendations) {
+        if (!media?.id || listed.has(media.id) || shown.has(media.id) || inRow.has(media.id)) continue
+        if (media.isAdult && !allowAdult) continue
+        inRow.add(media.id)
+        items.push(media)
+        if (items.length === BECAUSE_MAX_ITEMS) break
+    }
+    return items
+}
+
 /**
- * The rows to show, in the order of the sources: recommendations not on any list, no adult titles unless allowed, each
- * title only in the first row that shows it, at most 20. A row with fewer than 4 titles or a failed request is left out.
- * A row waits while one before it loads, so its titles do not change when the earlier row arrives.
+ * How many candidates from the front to ask for, given what came back so far (`results[i]` the recommendations of
+ * candidate i; undefined while it loads or before it is asked for): the next one only while the rows done plus those
+ * loading are fewer than two, so normally two requests, never more than two open, at worst all six.
+ */
+export function becauseFetchCount(results: BecauseSource["recommendations"][], listed: Set<number>, allowAdult: boolean): number {
+    const shown = new Set<number>()
+    let rows = 0
+    for (let index = 0; index < results.length; index++) {
+        if (rows >= BECAUSE_MAX_ROWS) return index
+        const recommendations = results[index]
+        if (recommendations === null) continue
+        if (recommendations === undefined) {
+            rows++
+            continue
+        }
+        const items = rowItems(recommendations, listed, shown, allowAdult)
+        if (items.length < BECAUSE_MIN_ITEMS) continue
+        items.forEach(media => shown.add(media.id))
+        rows++
+    }
+    return results.length
+}
+
+/**
+ * The rows to show, at most two, in the order of the candidates asked for: recommendations not on any list, no adult
+ * titles unless allowed, each title only in the first row that shows it, at most 20. A row with fewer than 4 titles or a
+ * failed request is left out. A row waits while one before it loads, so its titles do not change when the earlier row
+ * arrives; once every candidate is through, only real rows are left.
  */
 export function becauseRows(sources: BecauseSource[], listed: Set<number>, allowAdult: boolean): BecauseRow[] {
     const shown = new Set<number>()
     const rows: BecauseRow[] = []
     let waiting = false
     for (const { source, recommendations } of sources) {
+        if (rows.length >= BECAUSE_MAX_ROWS) break
         if (recommendations === null) continue
         if (waiting || recommendations === undefined) {
             waiting = true
             rows.push({ source, items: undefined })
             continue
         }
-        const items: AL_BaseAnime[] = []
-        const inRow = new Set<number>()
-        for (const media of recommendations) {
-            if (!media?.id || listed.has(media.id) || shown.has(media.id) || inRow.has(media.id)) continue
-            if (media.isAdult && !allowAdult) continue
-            inRow.add(media.id)
-            items.push(media)
-            if (items.length === BECAUSE_MAX_ITEMS) break
-        }
+        const items = rowItems(recommendations, listed, shown, allowAdult)
         if (items.length < BECAUSE_MIN_ITEMS) continue
         items.forEach(media => shown.add(media.id))
         rows.push({ source, items })

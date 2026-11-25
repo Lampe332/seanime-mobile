@@ -1,6 +1,6 @@
 import type { AL_AnimeCollection_MediaListCollection_Lists, AL_BaseAnime } from "@/api/generated/types"
 import { describe, expect, it } from "vitest"
-import { becauseRows, listedIds, pickSources, sourceTitle } from "./because-you-watched"
+import { BECAUSE_MAX_SOURCES, becauseFetchCount, becauseRows, listedIds, pickSources, sourceTitle } from "./because-you-watched"
 
 const anime = (id: number, isAdult = false) => ({ id, isAdult, title: { userPreferred: `Title ${id}` } }) as AL_BaseAnime
 
@@ -30,7 +30,7 @@ describe("pickSources", () => {
             { id: 3, status: "CURRENT", updatedAt: 1_990_000_000 },
             { id: 4, status: "COMPLETED", updatedAt: 1_700_000_000 },
         ), false)
-        expect(ids(picked)).toEqual([2, 1])
+        expect(ids(picked)).toEqual([2, 1, 4])
     })
 
     it("prefers liked or unscored titles, uses 50 to 69 only after them and never one below 50", () => {
@@ -91,6 +91,64 @@ describe("becauseRows", () => {
             { source: anime(2), recommendations: range(10, 15) },
         ], new Set(), false)
         expect(rows.map(row => [row.source.id, row.items])).toEqual([[1, undefined], [2, undefined]])
+    })
+
+    it("shows at most two rows", () => {
+        const rows = becauseRows([1, 2, 3].map(id => ({ source: anime(id), recommendations: range(id * 10, id * 10 + 5) })), new Set(), false)
+        expect(rows.map(row => row.source.id)).toEqual([1, 2])
+    })
+})
+
+describe("candidate chain", () => {
+    const thin = range(10, 12)
+    const good = (from: number) => range(from, from + 5)
+    const fetchCount = (results: (AL_BaseAnime[] | null | undefined)[], listed = new Set<number>()) => becauseFetchCount(results, listed, false)
+    const sources = (results: (AL_BaseAnime[] | null | undefined)[]) =>
+        results.slice(0, fetchCount(results)).map((recommendations, index) => ({ source: anime(index + 1), recommendations }))
+
+    it("picks up to six candidates in the old order", () => {
+        const many = lists(...Array.from({ length: 9 }, (_, i) => ({ id: i + 1, status: "COMPLETED", completed: [2026, 1, 9 - i] as [number, number, number] })))
+        expect(ids(pickSources(many, false))).toEqual([1, 2, 3, 4, 5, 6])
+        expect(BECAUSE_MAX_SOURCES).toBe(6)
+    })
+
+    it("asks for two at first and no more while they load or when both give a row", () => {
+        expect(fetchCount([undefined, undefined, undefined, undefined, undefined, undefined])).toBe(2)
+        expect(fetchCount([good(10), good(20), undefined, undefined, undefined, undefined])).toBe(2)
+        expect(fetchCount([good(10), undefined, undefined, undefined, undefined, undefined])).toBe(2)
+    })
+
+    it("asks for the third when the first two are too thin", () => {
+        expect(fetchCount([thin, thin, undefined, undefined, undefined, undefined])).toBe(4)
+        expect(fetchCount([thin, undefined, undefined, undefined, undefined, undefined])).toBe(3)
+        // titles on the lists thin a row too: the big account
+        const listed = new Set(range(10, 40).map(m => m.id))
+        expect(fetchCount([good(10), good(20), undefined, undefined, undefined, undefined], listed)).toBe(4)
+    })
+
+    it("asks for the third when the first is good and the second failed", () => {
+        const results = [good(10), null, undefined, undefined, undefined, undefined]
+        expect(fetchCount(results)).toBe(3)
+        expect(becauseRows(sources(results), new Set(), false).map(row => [row.source.id, ids(row.items)])).toEqual([[1, ids(good(10))], [3, undefined]])
+    })
+
+    it("never has more than two requests open", () => {
+        for (const results of [[thin, undefined, undefined, undefined, undefined, undefined], [null, null, undefined, undefined, undefined, undefined], [thin, null, thin, undefined, undefined, undefined]]) {
+            const asked = fetchCount(results)
+            expect(results.slice(0, asked).filter(r => r === undefined).length).toBeLessThanOrEqual(2)
+        }
+    })
+
+    it("fills the rows from later candidates in candidate order, a title only once", () => {
+        const results = [thin, good(20), null, good(20).concat(good(30)), undefined, undefined]
+        expect(fetchCount(results)).toBe(4)
+        expect(becauseRows(sources(results), new Set(), false).map(row => [row.source.id, ids(row.items)])).toEqual([[2, ids(good(20))], [4, ids(good(30))]])
+    })
+
+    it("shows nothing, not even placeholders, when all six are thin or failed", () => {
+        const results = [thin, thin, null, thin, null, thin]
+        expect(fetchCount(results)).toBe(6)
+        expect(becauseRows(sources(results), new Set(), false)).toEqual([])
     })
 })
 

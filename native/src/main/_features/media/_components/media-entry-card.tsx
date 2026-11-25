@@ -29,7 +29,7 @@ import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-p
 import { useLibraryExplorer } from "@/main/_features/library-explorer/library-explorer.atoms"
 import { usePlaylistMenuItem } from "@/main/_features/playlists/_components/playlist-menu-item"
 import { usePluginCardMenuItems } from "@/main/_features/plugin/plugin-actions"
-import { cardPillFit, cardProgressBar, cardProgressLabel, cardProgressTotal, cardSeasonLine, cardUnwatchedCount, mediaEntryHref, userScoreColor } from "../_lib/media-card"
+import { cardPillFit, cardScoreWidth, cardProgressBar, cardProgressLabel, cardProgressTotal, cardSeasonLine, cardUnwatchedCount, mediaEntryHref, userScoreColor } from "../_lib/media-card"
 
 /*
  * A cover card as on Android Home (media-entry-card.tsx + home-mobile.css): the 3:4 cover with 12dp corners, a faint
@@ -76,6 +76,8 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
     const season = cardSeasonLine(t, media, withFormat)
     const releasing = (media.status === "RELEASING" || media.status === "NOT_YET_RELEASED") && !hideReleasingBadge
     const score = withScore ? listData?.score : undefined
+    const fontScale = useWindowDimensions().fontScale
+    const scoreWidth = score ? cardScoreWidth(score, fontScale) : 0
     const { setPreviewModalMediaId } = useMediaPreviewModal()
     const { openDirInLibraryExplorer } = useLibraryExplorer()
     const [menuAt, setMenuAt] = React.useState<CardMenuAnchor | null>(null)
@@ -136,10 +138,10 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
                 )}
                 {overlay}
                 {(!!label || unwatched > 0 || type === "manga") && (
-                    <CardPill type={type} mediaId={media.id} label={label} unwatched={unwatched} progress={listData?.progress} width={width} />
+                    <CardPill type={type} mediaId={media.id} label={label} unwatched={unwatched} progress={listData?.progress} width={width} badgeWidth={scoreWidth} />
                 )}
                 {!!score && (
-                    <View style={{ backgroundColor: userScoreColor(score) }} className="absolute bottom-0 right-0 h-7 w-14 flex-row items-center justify-center gap-1 rounded-tl-ui">
+                    <View style={{ backgroundColor: userScoreColor(score), width: scoreWidth }} className="absolute bottom-0 right-0 h-7 flex-row items-center justify-center gap-1 rounded-tl-ui">
                         <Star size={13} color="#ffffff" fill={score >= 90 ? "#ffffff" : "transparent"} />
                         <Text className="text-sm font-bold text-white">{score / 10}</Text>
                     </View>
@@ -155,15 +157,15 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
 })
 
 /** The dark pill bottom left: the unwatched / unread count, then the progress, on one line (never broken into "1" over "3"). */
-function CardPill({ type, mediaId, label, unwatched, progress, width }: { type: "anime" | "manga", mediaId: number, label: string | null, unwatched: number, progress?: number, width: number }) {
+function CardPill({ type, mediaId, label, unwatched, progress, width, badgeWidth }: { type: "anime" | "manga", mediaId: number, label: string | null, unwatched: number, progress?: number, width: number, badgeWidth: number }) {
     const ts = useThemeSettings()
     const mangaData = useAtomValue(__mangaLibrary_latestChapterNumbersAtom)
     const unread = type === "manga" && ts.showMangaUnreadCount
         ? getMangaEntryUnreadState(mediaId, progress || 0, mangaData.latestChapterNumbers, mangaData.storedProviders, mangaData.storedFilters)
         : null
     const count = unwatched > 0 ? unwatched : unread?.known && unread.unread > 0 ? unread.unread : 0
-    // a narrow card (small card size) tightens the pill, then lets the count go, then the total (cardPillFit)
-    const fit = cardPillFit(width, count ? String(count) : null, label, useWindowDimensions().fontScale)
+    // a narrow card (small card size) or the score badge beside it tightens the pill, then lets the count go, then the total (cardPillFit)
+    const fit = cardPillFit(width, count ? String(count) : null, label, useWindowDimensions().fontScale, badgeWidth)
     const top = fit.top && count
         ? <View className="flex-row items-center gap-1">{unwatched > 0 ? <CirclePlay size={14} color={colors.smText} /> : <BookOpen size={12} color={colors.smText} />}<Text numberOfLines={1} className="text-[11px] font-normal leading-[14px]" style={{ fontVariant: ["tabular-nums"] }}>{count}</Text></View>
         : null

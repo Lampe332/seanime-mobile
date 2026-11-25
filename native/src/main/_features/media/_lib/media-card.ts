@@ -53,19 +53,32 @@ export function cardPillWidth(top: string | null, label: string | null, fontScal
     return 2 * pad + topWidth + (top && label ? 2 * gap + CARD_PILL.divider : 0) + labelWidth
 }
 
+/** The score badge bottom right (media-entry-card.tsx), dp at font scale 1: 56dp at least, a 13dp star, 14dp bold digits. */
+export const CARD_SCORE = { minWidth: 56, pad: 6, star: 13, gap: 4, font: 14, charEm: 0.6, space: 4 } as const
+
+/** Width of the score badge for `score` (AniList 0-100, shown as "9", "9.5", "10") at `fontScale`. */
+export function cardScoreWidth(score: number, fontScale = 1) {
+    const text = String(score / 10)
+    const char = CARD_SCORE.font * CARD_SCORE.charEm * Math.max(1, fontScale)
+    return Math.max(CARD_SCORE.minWidth, Math.ceil(2 * CARD_SCORE.pad + CARD_SCORE.star + CARD_SCORE.gap + text.length * char))
+}
+
 /**
  * What of the pill a card `cardWidth` wide shows, on one line and inside the card: all of it; all of it with tighter
- * spacing; the progress alone ("31/170", the count goes); the episodes done alone ("31"). Never a cut digit.
+ * spacing; the progress alone ("31/170", the count goes); the episodes done alone ("31"). Never a cut digit. With a score
+ * badge `badgeWidth` wide in the right corner the pill keeps a visible gap to it and shows nothing rather than run under it.
  */
-export function cardPillFit(cardWidth: number, top: string | null, label: string | null, fontScale = 1): CardPillFit {
-    const room = cardWidth - 2 * CARD_PILL.inset
+export function cardPillFit(cardWidth: number, top: string | null, label: string | null, fontScale = 1, badgeWidth = 0): CardPillFit {
+    const room = cardWidth - CARD_PILL.inset - (badgeWidth > 0 ? badgeWidth + CARD_SCORE.space : CARD_PILL.inset)
     const done = label?.split("/")[0] ?? null
     const tries: CardPillFit[] = [
         { top: !!top, label, pad: 7, gap: 6 },
         { top: !!top, label, pad: 5, gap: 4 },
         ...(label ? [{ top: false, label, pad: 7, gap: 6 }, { top: false, label, pad: 5, gap: 4 }, { top: false, label: done, pad: 5, gap: 4 }] : []),
     ]
-    return tries.find(fit => cardPillWidth(fit.top ? top : null, fit.label, fontScale, fit.pad, fit.gap) <= room) ?? tries[tries.length - 1]!
+    const fit = tries.find(fit => cardPillWidth(fit.top ? top : null, fit.label, fontScale, fit.pad, fit.gap) <= room)
+    if (fit) return fit
+    return badgeWidth > 0 ? { top: false, label: null, pad: 5, gap: 4 } : tries[tries.length - 1]!
 }
 
 /** Unwatched episodes of a series being watched: from the local files when it is in the library, else from AniList. */

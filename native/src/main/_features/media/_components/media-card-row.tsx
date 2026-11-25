@@ -1,4 +1,4 @@
-import { fitRowWidth, ROW_GAP, ROW_GUTTER, rowCardWidth, rowEndPad, snappedOffset, snapRow } from "@/components/shared/cover-layout"
+import { fitRowWidth, ROW_GAP, ROW_GUTTER, rowCardWidth, rowEndPad, rowRestoreOffset, snapRow } from "@/components/shared/cover-layout"
 import { useCardSizeFactor } from "@/lib/card-size-setting"
 import { FlashList, type FlashListRef } from "@shopify/flash-list"
 import React from "react"
@@ -47,19 +47,38 @@ export function MediaCardRow<T>({ data, keyOf, renderCard, inset = ROW_GUTTER, d
     const { width, step, snapInterval, viewport, onLayout } = useRowFit(desired ?? home, inset)
     const endPad = rowEndPad(data.length, step, viewport, PixelRatio.get(), inset)
     const list = React.useRef<FlashListRef<T>>(null)
-    // where the row settled, to put it back on a card when the card size (the step) changes
+    // where the row stands, followed on every scroll (a ref, no re-render), to put it back on a card when the card size
+    // (the step) changes. The new place waits in `pending` until the row reports it: set at once, again a frame later
+    // and after each new content size, because the cards get their new widths only after this render (and a page in the
+    // background lays them out when it comes back).
     const offset = React.useRef(0)
+    const pending = React.useRef<number | null>(null)
     const lastStep = React.useRef(step)
-    const onSettled = React.useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => { offset.current = e.nativeEvent.contentOffset.x }, [])
+    const applyPending = React.useCallback(() => {
+        if (pending.current !== null) list.current?.scrollToOffset({ offset: pending.current, animated: false })
+    }, [])
+    const onScroll = React.useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const x = e.nativeEvent.contentOffset.x
+        offset.current = x
+        if (pending.current !== null && Math.abs(x - pending.current) < 1) pending.current = null
+    }, [])
+    // a finger on the row wins over a place still waiting
+    const onScrollBeginDrag = React.useCallback(() => { pending.current = null }, [])
+    const count = data.length
     React.useEffect(() => {
         const from = lastStep.current
         lastStep.current = step
-        if (from === step || offset.current <= 0) return
-        offset.current = snappedOffset(offset.current, from, step)
-        list.current?.scrollToOffset({ offset: offset.current, animated: false })
-    }, [step])
+        if (from === step) return
+        const base = pending.current ?? offset.current
+        if (base <= 0) return
+        pending.current = rowRestoreOffset(base, from, step, count, viewport, PixelRatio.get(), inset)
+        applyPending()
+        const frame = requestAnimationFrame(applyPending)
+        return () => cancelAnimationFrame(frame)
+    }, [step, count, viewport, inset, applyPending])
     React.useEffect(() => {
         offset.current = 0
+        pending.current = null
         list.current?.scrollToOffset({ offset: 0, animated: false })
     }, [restartKey])
     const renderItem = React.useCallback(({ item }: { item: T }) => renderCard(item, width), [renderCard, width])
@@ -76,8 +95,10 @@ export function MediaCardRow<T>({ data, keyOf, renderCard, inset = ROW_GUTTER, d
                 snapToInterval={snapInterval}
                 snapToAlignment="start"
                 decelerationRate="fast"
-                onMomentumScrollEnd={onSettled}
-                onScrollEndDrag={onSettled}
+                onScroll={onScroll}
+                scrollEventThrottle={16}
+                onScrollBeginDrag={onScrollBeginDrag}
+                onContentSizeChange={applyPending}
                 // the row keeps its own place (snapped, see above), not an anchored card's old pixel offset
                 maintainVisibleContentPosition={{ disabled: true }}
                 contentContainerStyle={{ paddingLeft: inset, paddingRight: inset + endPad, paddingBottom: bottom }}

@@ -15,7 +15,7 @@ import { useGetRawAnimeCollection } from "@/api/hooks/anilist.hooks"
 import { getEntryPreloadStaleTime } from "@/lib/entry-preloader"
 import { getAnimeLibraryEntryAtom } from "@/main/_atoms/anime-library-collection.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
-import { becauseRows, type BecauseRow, type BecauseSource, listedIds, pickSources } from "@/main/discover/_lib/because-you-watched"
+import { becauseFetchCount, becauseRows, type BecauseRow, type BecauseSource, listedIds, pickSources } from "@/main/discover/_lib/because-you-watched"
 import { getMangaCollectionEntryAtom } from "@/main/_atoms/manga-collection.atoms"
 import { serverAuthTokenAtom } from "@/main/_atoms/server-status.atoms"
 import { useAnilistUserAnimeListData } from "@/main/_hooks/anilist-collection-loader"
@@ -90,12 +90,12 @@ export function usePhoneMissedSequels(enabled: boolean) {
  * An anime's details as the entry page asks for them (same endpoint and key, so both share the cache and the core keeps
  * them for offline), without the error toast: a "Because you watched" row that fails just stays away.
  */
-function useSourceDetails(id: number | undefined) {
+function useSourceDetails(id: number | undefined, enabled: boolean) {
     return useServerQuery<AL_AnimeDetailsById_Media>({
         endpoint: API_ENDPOINTS.ANILIST.GetAnilistAnimeDetails.endpoint.replace("{id}", String(id)),
         method: API_ENDPOINTS.ANILIST.GetAnilistAnimeDetails.methods[0],
         queryKey: [API_ENDPOINTS.ANILIST.GetAnilistAnimeDetails.key, String(id)],
-        enabled: !!id,
+        enabled: !!id && enabled,
         muteError: true,
         staleTime: getEntryPreloadStaleTime("anime", id),
     })
@@ -113,22 +113,33 @@ function useRecommendations(query: DetailsQuery): BecauseSource["recommendations
     }, [data, gone])
 }
 
+/** One candidate's recommendations, asked for only when `enabled`; undefined before that, like while loading */
+function useCandidate(id: number | undefined, enabled: boolean) {
+    return useRecommendations(useSourceDetails(id, enabled))
+}
+
 /**
- * The "Because you watched" rows (because-you-watched.ts): up to two anime the user finished lately, from the lists
- * Discover reads anyway, and the recommendations of each, one details request a source.
+ * The "Because you watched" rows (because-you-watched.ts): up to six anime the user finished lately, from the lists
+ * Discover reads anyway, asked for in turn (becauseFetchCount: the next only while the earlier ones give fewer than two
+ * rows), one details request a candidate. Six fixed hook calls, each switched on by what the ones before it gave.
  */
 export function useBecauseYouWatched(): BecauseRow[] {
     const lists = useGetRawAnimeCollection().data?.MediaListCollection?.lists
     const allowAdult = !!useServerStatus()?.settings?.anilist?.enableAdultContent
     const sources = React.useMemo(() => pickSources(lists, allowAdult), [lists, allowAdult])
     const listed = React.useMemo(() => listedIds(lists), [lists])
-    const firstRecommendations = useRecommendations(useSourceDetails(sources[0]?.id))
-    const secondRecommendations = useRecommendations(useSourceDetails(sources[1]?.id))
-    return React.useMemo(() => becauseRows(
-        sources.map((source, index) => ({ source, recommendations: index === 0 ? firstRecommendations : secondRecommendations })),
-        listed,
-        allowAdult,
-    ), [sources, listed, allowAdult, firstRecommendations, secondRecommendations])
+    const wants = (before: BecauseSource["recommendations"][]) => becauseFetchCount([...before, undefined], listed, allowAdult) > before.length
+    const r0 = useCandidate(sources[0]?.id, true)
+    const r1 = useCandidate(sources[1]?.id, wants([r0]))
+    const r2 = useCandidate(sources[2]?.id, wants([r0, r1]))
+    const r3 = useCandidate(sources[3]?.id, wants([r0, r1, r2]))
+    const r4 = useCandidate(sources[4]?.id, wants([r0, r1, r2, r3]))
+    const r5 = useCandidate(sources[5]?.id, wants([r0, r1, r2, r3, r4]))
+    return React.useMemo(() => {
+        const results = [r0, r1, r2, r3, r4, r5].slice(0, sources.length)
+        const asked = becauseFetchCount(results, listed, allowAdult)
+        return becauseRows(sources.slice(0, asked).map((source, index) => ({ source, recommendations: results[index] })), listed, allowAdult)
+    }, [sources, listed, allowAdult, r0, r1, r2, r3, r4, r5])
 }
 
 export type DiscoverListData = Anime_EntryListData | Manga_EntryListData

@@ -113,6 +113,19 @@ export function rowEndPad(count: number, step: number, viewport: number, density
 }
 
 /**
+ * Where a row of `count` cards goes when its step changes from `oldStep` to `newStep` (the card size setting): on the
+ * same card in the new raster, but never past the new end of the row (which rowEndPad makes a card position too), so the
+ * row can tell when it got there.
+ */
+export function rowRestoreOffset(offset: number, oldStep: number, newStep: number, count: number, viewport: number, density: number,
+    inset = ROW_GUTTER, gap = ROW_GAP) {
+    const target = snappedOffset(offset, oldStep, newStep)
+    if (target <= 0 || !(viewport > 0)) return target
+    const end = 2 * inset + count * newStep - gap + rowEndPad(count, newStep, viewport, density, inset, gap) - viewport
+    return Math.max(0, Math.min(target, end))
+}
+
+/**
  * Width the grid's cards take when they do not fill one row (fewer results than columns): the end-of-list note centres
  * under them instead of under the empty cells. A full row (or none) takes the content width.
  */

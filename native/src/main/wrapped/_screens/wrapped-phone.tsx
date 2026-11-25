@@ -65,13 +65,17 @@ export function WrappedPhone() {
         })
         return () => sub.remove()
     }, [goBack]))
+    // the route stays mounted behind the hidden tab bar; leaving it builds the page anew at the top (PhoneScreen has no
+    // scroll handle), so it opens at its start again, not at the share image. A year picked on a chip keeps the position.
+    const [visit, setVisit] = React.useState(0)
+    useFocusEffect(React.useCallback(() => () => setVisit(value => value + 1), []))
 
     const loading = hasUser && animeQuery.isPending
     const failed = hasUser && animeQuery.isError && !animeQuery.data
     const refresh = () => Promise.all([animeQuery.refetch(), enableManga ? mangaQuery.refetch() : null])
 
     return (
-        <PhoneScreen onRefresh={hasUser ? refresh : undefined}>
+        <PhoneScreen key={visit} onRefresh={hasUser ? refresh : undefined}>
             <View className="gap-1">
                 <BackRow label={t("Back", "Zurück")} onPress={goBack} />
                 <Heading>{t("Your year", "Dein Jahr")}</Heading>

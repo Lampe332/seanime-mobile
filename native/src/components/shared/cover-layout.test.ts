@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { CARD_SIZE_FACTORS, cardSizeFactor, coverColumns, fitRowWidth, gridLayout, gridRowWidth, listColumns, ROW_GAP, ROW_GUTTER, ROW_PEEK_MAX, ROW_PEEK_MIN, rowCardWidth, rowEndPad, rowCoverWidth, scaleRowWidth, snappedOffset, snapRow } from "./cover-layout"
+import { CARD_SIZE_FACTORS, cardSizeFactor, coverColumns, fitRowWidth, gridLayout, gridRowWidth, listColumns, ROW_GAP, ROW_GUTTER, ROW_PEEK_MAX, ROW_PEEK_MIN, rowCardWidth, rowEndPad, rowCoverWidth, rowRestoreOffset, scaleRowWidth, snappedOffset, snapRow } from "./cover-layout"
 
 const CARD_GAP = 12
 
@@ -197,6 +197,24 @@ describe("snapping rows on device pixels", () => {
         expect(snappedOffset(177 * 3 + 60, 177, 120)).toBe(360)
         expect(snappedOffset(177 * 3 + 100, 177, 120)).toBe(480)
         expect(snappedOffset(500, 0, 120)).toBe(0)
+    })
+
+    it("restores a row after a card size change on a card, never past its new end", () => {
+        // the device finding: Home at 411dp, density 3.5, Small to Large with 8 cards in the row
+        const density = 3.5, viewport = 1440 / density, count = 8
+        const small = snapRow(fitRowWidth(rowCardWidth(viewport, CARD_SIZE_FACTORS.small), viewport), density).step
+        const large = snapRow(fitRowWidth(rowCardWidth(viewport, CARD_SIZE_FACTORS.large), viewport), density).step
+        const end = 2 * ROW_GUTTER + count * large - ROW_GAP + rowEndPad(count, large, viewport, density) - viewport
+        // in the middle: the same card in the new raster
+        expect(rowRestoreOffset(small * 2, small, large, count, viewport, density)).toBe(2 * large)
+        // a position from a longer row (the list shrank meanwhile): snappedOffset alone points past the end, the row stops at its last card
+        expect(snappedOffset(small * 15, small, large)).toBeGreaterThan(end)
+        const restored = rowRestoreOffset(small * 15, small, large, count, viewport, density)
+        expect(restored).toBeCloseTo(end, 6)
+        expect(Math.round(restored * density) % Math.round(large * density)).toBe(0)
+        // a position between two cards (the row was still moving) goes to the nearer one
+        expect(rowRestoreOffset(small * 2 + small * 0.4, small, large, count, viewport, density)).toBe(2 * large)
+        expect(rowRestoreOffset(0, small, large, count, viewport, density)).toBe(0)
     })
 
     it("ends a row on a card: the last scroll position is a whole number of steps", () => {
