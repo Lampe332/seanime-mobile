@@ -105,7 +105,9 @@ import {
     toPlayerTrack,
 } from "./player-logic"
 import { useSubtitleTranslation } from "./use-subtitle-translation"
-import { player_castingAtom, player_fullscreenAtom, player_miniAtom, player_seekBackAtom, player_seekForwardAtom, player_trackMemoryAtom } from "./player.atoms"
+import { player_anime4kAtom, player_castingAtom, player_fullscreenAtom, player_miniAtom, player_seekBackAtom, player_seekForwardAtom, player_trackMemoryAtom } from "./player.atoms"
+import { anime4kModeOf } from "./player-anime4k"
+import { anime4kOpenOptions } from "./player-anime4k-files"
 import { boxScroll, player_boxSlotAtom, player_nowAtom } from "./player-box"
 import { castTitle, playerCastUrl } from "./player-cast"
 import { CastPill, CastSheet, usePlayerCast } from "./player-cast-panel"
@@ -365,16 +367,21 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     const optionsKey = headerOptions.length ? `${viewKey}|${headerOptions[0][1]}` : viewKey
     const [optionsView, setOptionsView] = React.useState<string | null>(null)
     const mpvOptionsSet = optionsView === optionsKey
+    // Anime4K shaders (settings → Playback) go in with the open options; a shader file that cannot be provided gives an
+    // empty list and the episode plays without them (player-anime4k-files.ts)
+    const anime4k = anime4kModeOf(useAtomValue(player_anime4kAtom))
     React.useEffect(() => {
         const view = mpv.current
         if (!view) return
         let alive = true
-        void Promise.all([...MPV_OPEN_OPTIONS, ...headerOptions].map(([name, value]) => view.setPropertyString(name, value).catch(() => {})))
+        void anime4kOpenOptions(anime4k)
+            .then(shaderOptions => Promise.all([...MPV_OPEN_OPTIONS, ...headerOptions, ...shaderOptions]
+                .map(([name, value]) => view.setPropertyString(name, value).catch(() => {}))))
             .then(() => alive && setOptionsView(optionsKey))
         return () => {
             alive = false
         }
-    }, [optionsKey, headerOptions])
+    }, [optionsKey, headerOptions, anime4k])
     // offline episodes do not wait for the watch history; every mode waits for the open options (preroll, E3 device fix)
     const source = info?.streamUrl && (offline || !waiting) && mpvOptionsSet ? info.streamUrl : undefined
 

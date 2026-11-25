@@ -3,7 +3,8 @@ import { type Translate } from "@/lib/app-language"
 import { ANDROID_PLAYER_PRESETS, androidPlayerLink, androidPlayerPresetOf } from "@/lib/external-player-link/android-player-presets"
 import { PlaybackDownloadedMedia, useCurrentDevicePlaybackSettings, useExternalPlayerLink } from "@/main/_atoms/playback.atoms"
 import { SEEK_STEP_OPTIONS, seekStep, SEEK_BACK_SECONDS, SEEK_FORWARD_SECONDS } from "@/main/_features/player/player-logic"
-import { player_seekBackAtom, player_seekForwardAtom } from "@/main/_features/player/player.atoms"
+import { ANIME4K_DEFAULT_MODE, anime4kModeOf, type Anime4kMode } from "@/main/_features/player/player-anime4k"
+import { player_anime4kAtom, player_seekBackAtom, player_seekForwardAtom } from "@/main/_features/player/player.atoms"
 import { vc_autoNextAtom } from "@/main/_features/video-core/video-core.atoms"
 import { LocalSwitch, SelectRow, SettingsGroup, TextSettingRow } from "@/main/settings/_components/settings-kit"
 import { useAtom } from "jotai"
@@ -48,6 +49,8 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
                     "Startet 5 Sekunden nach dem Ende einer Folge. Derselbe Schalter wie „Nächste Folge automatisch“ im Player-Menü.")} />
         </SettingsGroup>
 
+        <Anime4kGroup t={t} />
+
         <SeekGroup t={t} />
 
         <SettingsGroup title={t("External player", "Externer Player")}
@@ -81,6 +84,28 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
 }
 
 /** The seek steps of the app's player: centre buttons and double taps (player-logic SEEK_STEP_OPTIONS), only on this device. */
+/** Anime4K upscaling of the built-in player (player-anime4k.ts), only on this device; applies when an episode opens */
+function Anime4kGroup({ t }: { t: Translate }) {
+    const [stored, setMode] = useAtom(player_anime4kAtom)
+    const mode = anime4kModeOf(stored)
+    const notes: Record<Anime4kMode, string> = {
+        off: t("Plays the video as it is.", "Spielt das Video unverändert."),
+        fast: t("Light shaders. Sharper lines, a little more battery.", "Leichte Shader. Schärfere Linien, etwas mehr Akku."),
+        quality: t("Heavier shaders for a fast phone. Uses clearly more battery.", "Schwerere Shader für ein schnelles Handy. Braucht deutlich mehr Akku."),
+    }
+    return <SettingsGroup title={t("Picture", "Bild")}
+        note={t("Applies to the next episode you open. Only on this device.", "Gilt ab der nächsten Folge, die du öffnest. Nur auf diesem Gerät.")}>
+        <SelectRow label={t("Anime4K upscaling", "Anime4K-Hochskalierung")} value={mode} defaultValue={ANIME4K_DEFAULT_MODE}
+            note={t("Higher levels use more battery and can stutter.", "Höhere Stufen brauchen mehr Akku und können ruckeln.")}
+            options={[
+                { value: "off", label: t("Off", "Aus"), note: notes.off },
+                { value: "fast", label: t("Fast", "Schnell"), note: notes.fast },
+                { value: "quality", label: t("Quality", "Qualität"), note: notes.quality },
+            ]}
+            onChange={value => setMode(anime4kModeOf(value))} />
+    </SettingsGroup>
+}
+
 function SeekGroup({ t }: { t: Translate }) {
     const [back, setBack] = useAtom(player_seekBackAtom)
     const [forward, setForward] = useAtom(player_seekForwardAtom)

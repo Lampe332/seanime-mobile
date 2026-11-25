@@ -121,6 +121,8 @@ export const SETTINGS_SEARCH_INDEX: readonly SettingsSearchEntry[] = [
     { section: "playback", group: ["Files on this device", "Dateien auf diesem Gerät"], label: ["Player for files", "Player für Dateien"], note: ["Hands the episode to another app, chosen below.", "Gibt die Folge an eine andere App, unten gewählt."] },
     { section: "playback", group: ["Next episode", "Nächste Folge"] },
     { section: "playback", group: ["Next episode", "Nächste Folge"], label: ["Play the next episode automatically", "Nächste Folge automatisch abspielen"], note: ["Starts 5 seconds after an episode ends. Same switch as Auto next in the player menu.", "Startet 5 Sekunden nach dem Ende einer Folge. Derselbe Schalter wie „Nächste Folge automatisch“ im Player-Menü."] },
+    { section: "playback", group: ["Picture", "Bild"], note: ["Applies to the next episode you open. Only on this device.", "Gilt ab der nächsten Folge, die du öffnest. Nur auf diesem Gerät."] },
+    { section: "playback", group: ["Picture", "Bild"], label: ["Anime4K upscaling", "Anime4K-Hochskalierung"], note: ["Higher levels use more battery and can stutter.", "Höhere Stufen brauchen mehr Akku und können ruckeln."] },
     { section: "playback", group: ["Seeking", "Spulen"], note: ["For the buttons next to Play and for double taps in the player.", "Für die Tasten neben Abspielen und für Doppeltipps im Player."] },
     { section: "playback", group: ["Seeking", "Spulen"], label: ["Back", "Zurück"], note: ["How far one tap jumps back.", "Wie weit ein Tipp zurückspringt."] },
     { section: "playback", group: ["Seeking", "Spulen"], label: ["Forward", "Vor"], note: ["How far one tap jumps ahead.", "Wie weit ein Tipp vorspringt."] },

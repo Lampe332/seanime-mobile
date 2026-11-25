@@ -5,6 +5,10 @@ const { current } = require('./app-variants.json');
 
 const config = getDefaultConfig(__dirname);
 
+// Anime4K's mpv shaders (assets/shaders/anime4k) are bundled as assets; the player hands their paths to mpv
+// (src/main/_features/player/player-anime4k-files.ts).
+config.resolver.assetExts.push('glsl');
+
 // Developer checks that only the test and scratch apps run: the release bundle (app-variants.json "release", set by
 // scripts/build-android.ps1 -Release in its staged copy) gets an empty module in their place.
 const DEVELOPER_ONLY = new Set([path.join(__dirname, 'src', 'lib', 'account-sodium-selftest.ts')]);

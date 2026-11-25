@@ -2,6 +2,7 @@ import type { MobileOffline_Item } from "@/api/generated/types"
 import { atomWithStorage } from "@/lib/storage"
 import { atom } from "jotai"
 import { SEEK_BACK_SECONDS, SEEK_FORWARD_SECONDS, type SleepPick, type TrackMemory } from "./player-logic"
+import { ANIME4K_DEFAULT_MODE, type Anime4kMode } from "./player-anime4k"
 import type { HeardStreamState } from "./torrent-stream-state"
 
 /**
@@ -21,7 +22,10 @@ export const player_fullscreenAtom = atom(false)
 export const player_seekBackAtom = atomWithStorage<number>("sea-player-seek-back-seconds", SEEK_BACK_SECONDS)
 export const player_seekForwardAtom = atomWithStorage<number>("sea-player-seek-forward-seconds", SEEK_FORWARD_SECONDS)
 
-export const player_trackMemoryAtom = atomWithStorage<TrackMemory>("sea-player-track-memory", {})
+/** Anime4K upscaling (settings → Playback), only on this device: it depends on the phone's GPU and battery. */
+export const player_anime4kAtom = atomWithStorage<Anime4kMode>("sea-player-anime4k", ANIME4K_DEFAULT_MODE)
+
+export const player_trackMemoryAtom =atomWithStorage<TrackMemory>("sea-player-track-memory", {})
 
 /**
  * A cast session is running (set by useCastEventsBridge in lib/cast/use-cast.ts from the cast controller). Picture in
