@@ -8,6 +8,7 @@ import { getImageUrl } from "@/lib/server/assets"
 import { getSpoilerFreeAnimeImage, useEpisodeSpoilerState, useMissingEpisodeSpoilers } from "@/lib/theme/anime-spoilers"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-preview-phone"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -193,9 +194,10 @@ function useCarouselAutoplay(places: number, scrollTo: (place: number) => void) 
 }
 
 /** The card shows its still dimmed over sm-surface */
-const UPCOMING_LOOK = { opacity: 0.5, ground: colors.smSurface }
+const UPCOMING_LOOK = { opacity: 0.5, get ground() { return colors.smSurface } }
 
 const UpcomingCard = React.memo(function UpcomingCard({ item, width, spoilerActive }: { item: Anime_UpcomingEpisode, width: number, spoilerActive: boolean }) {
+    useThemeColors()
     const t = useTr()
     const fade = useImageFade()
     const ts = useThemeSettings()

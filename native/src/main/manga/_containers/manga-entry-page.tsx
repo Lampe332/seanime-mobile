@@ -17,6 +17,7 @@ import { getImageUrl } from "@/lib/server/assets"
 import { getCustomSourceMediaSiteUrl, isCustomSource } from "@/lib/server/utils"
 import { entryColumnGaps, entryColumnWidth, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { MediaEntryCharactersSection } from "@/main/_features/media/_components/media-entry-characters-section"
 import { EntryAboutLinks } from "@/main/_features/media/_components/entry-about-links"
@@ -72,6 +73,7 @@ function pageTint(top: number) {
 }
 
 export function MangaEntryPage() {
+    useThemeColors()
     const t = useTr()
     const router = useRouter()
     const params = useLocalSearchParams<{ id?: string }>()

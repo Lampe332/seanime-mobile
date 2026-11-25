@@ -26,13 +26,14 @@ export function isDeviceKey(key: string): boolean {
 
 /**
  * Keys the account's sync keeps on each device although a file backup carries them: the app's language is chosen per
- * device (a tablet set to German must not switch the phone). So are the status bar, the card size and preloading (they depend
+ * device (a tablet set to German must not switch the phone). So are the status bar, AMOLED black, the card size and preloading (they depend
  * on the screen and the network) and the player for files with the external player link (they depend on the installed apps).
  * The file backup is the user's own step and keeps them.
  */
 const SYNC_DEVICE_KEYS = [
     /^seanime-mobile-language$/,
     /^sea-ui-settings-show-status-bar$/,
+    /^sea-ui-settings-amoled$/,
     /^sea-ui-settings-card-size$/,
     /^sea-ui-settings-navigation-preload-mode$/,
     /^sea-playback-downloaded-media$/,

@@ -7,6 +7,7 @@ import { MobileIcon, type MobileIconName } from "@/lib/mobile-icons"
 import { MAX_NAV_ITEMS, menuTargets, moveInBar, moveToBar, moveToMenu, navCount, navIcon, navItemLabel, navLabel, type NavEditResult } from "@/lib/nav/nav-items"
 import { saveNavItems, useAllNavItems } from "@/lib/nav/nav-store"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useAtomValue } from "jotai"
 import ArrowDown from "lucide-react-native/icons/arrow-down"
 import ArrowUp from "lucide-react-native/icons/arrow-up"
@@ -20,6 +21,7 @@ import { Pressable, View } from "react-native"
  * entries move with ↑/↓ (Karte §9). Every change is stored at once under the old keys, so the bar follows behind the sheet.
  */
 export function NavigationEditor({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+    useThemeColors()
     const t = useTr()
     const language = useAtomValue(appLanguageAtom)
     const items = useAllNavItems()

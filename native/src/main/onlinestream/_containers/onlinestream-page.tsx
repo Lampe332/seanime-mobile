@@ -19,6 +19,7 @@ import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { atomWithStorage } from "@/lib/storage"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { usePlayNext } from "@/main/_atoms/playback.atoms"
 import { nativePlayer_initialState, nativePlayer_stateAtom } from "@/main/_features/native-player/native-player.atoms"
 import { player_miniAtom, player_offlineItemAtom } from "@/main/_features/player/player.atoms"
@@ -98,6 +99,7 @@ const onlineEpisodeKey = (episode: Onlinestream_Episode) => `${episode.number}-$
 const ONLINE_ROW_ESTIMATE = 80
 
 export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry, bottomSection?: React.ReactNode }) {
+    useThemeColors()
     const t = useTr()
     const router = useRouter()
     const media = entry.media!

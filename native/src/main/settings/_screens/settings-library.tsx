@@ -9,6 +9,7 @@ import {
     useSettingValue,
 } from "@/main/settings/_components/settings-kit"
 import { PickFolderButton, usePickFolder } from "@/main/settings/_components/pick-folder"
+import { readScannerConfig } from "@/core/library/scanner-config"
 import React from "react"
 
 /*
@@ -66,22 +67,31 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
     </>
 }
 
-/** Scanner rules as JSON; empty means none. */
+/** An example of the rules, in the original's form (core/library/scanner-config.ts) */
+const SCANNER_EXAMPLE = `{
+  "matching": { "rules": [
+    { "pattern": "(?i)/Frieren/", "mediaId": 154587 }
+  ] },
+  "hydration": { "rules": [
+    { "pattern": "(?i)frieren", "mediaId": 154587, "files": [
+      { "filename": "E([0-9]+)", "isRegex": true, "episode": "$1-12" }
+    ] }
+  ] }
+}`
+
+/** Scanner rules as JSON; empty means none. Checked with the core's own reader, which names the broken rule. */
 function ScannerConfigRow({ t }: { t: Translate }) {
     const save = useSaveSetting()
     const config = useSettingValue("library.scannerConfig", "")
     return <TextSettingRow label={t("Scanner rules", "Scanner-Regeln")} value={config} empty={t("None", "Keine")} multiline
-        display={() => t("Set", "Gesetzt")} placeholder={"{\n  \"matching\": { \"rules\": [] }\n}"}
-        note={t("Matching and hydration rules in JSON. Leave empty for none.", "Regeln für Zuordnung und Ergänzung als JSON. Leer lassen für keine.")}
+        display={() => t("Set", "Gesetzt")} placeholder={SCANNER_EXAMPLE}
+        note={t("Matching rules give a file an anime by a regex on its full path; hydration rules set the episode by a regex on its name ($1 is the first group, sums like \"$1-12\" work). Start a pattern with (?i) to ignore case. Leave empty for none.",
+            "Zuordnungsregeln geben einer Datei per Regex auf ihren vollen Pfad einen Anime; Ergänzungsregeln setzen die Folge per Regex auf ihren Namen ($1 ist die erste Gruppe, Rechnungen wie \"$1-12\" gehen). Beginnt ein Muster mit (?i), zählt Groß/klein nicht. Leer lassen für keine.")}
         validate={value => {
-            if (!value.trim()) return null
-            try {
-                JSON.parse(value)
-                return null
-            }
-            catch {
-                return t("This is not valid JSON.", "Das ist kein gültiges JSON.")
-            }
+            const problems = readScannerConfig(value).problems
+            if (problems.length === 0) return null
+            const more = problems.length > 3 ? t(` (and ${problems.length - 3} more)`, ` (und ${problems.length - 3} weitere)`) : ""
+            return t("Fix the rules: ", "Regeln korrigieren: ") + problems.slice(0, 3).join("; ") + more
         }}
         onApply={value => void save("library.scannerConfig", value.trim())} />
 }

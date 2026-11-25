@@ -15,6 +15,7 @@ import { useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { getLibraryCollectionTitle, getMangaCollectionTitle } from "@/lib/server/utils"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { __anilist_userAnimeMediaAtom } from "@/main/_atoms/anilist.atoms"
@@ -197,6 +198,7 @@ function NoSections() {
 
 /** No library entries and only library sections: say why Home is empty, offer the one next step, show what is trending. */
 function EmptyHome() {
+    useThemeColors()
     const t = useTr()
     const serverStatus = useServerStatus()
     const allUserMedia = useAtomValue(__anilist_userAnimeMediaAtom)

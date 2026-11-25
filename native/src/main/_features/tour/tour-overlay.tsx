@@ -3,6 +3,7 @@ import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { PHONE_EASE, POP_EASE, TOUR_FINALE, TOUR_MOTION, type TourMotion, tourRingDelayMs, tourSparks, tourTravelMs } from "@/lib/motion"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import Sparkles from "lucide-react-native/icons/sparkles"
 import React from "react"
@@ -45,6 +46,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path)
 const AnimatedRect = Animated.createAnimatedComponent(SvgRect)
 
 export function TourOverlay() {
+    useThemeColors()
     const state = useTourState()
     const { active, steps, currentIndex, status, asModal } = state
     const step = active ? steps[currentIndex] : undefined

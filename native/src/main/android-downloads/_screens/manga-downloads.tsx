@@ -14,6 +14,7 @@ import { plural, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { getImageUrl } from "@/lib/server/assets"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { plainDescription } from "@/main/_features/media/_lib/media-labels"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { __manga_selectedChapterAtom, useMangaReaderSource } from "@/main/manga/_lib/handle-chapter-reader"
@@ -188,6 +189,7 @@ function MangaCard({ group, width, t, onOpen }: { group: MangaDownloadGroup, wid
 
 function MangaDetail({ group, queue, t, onChanged }: { group: MangaDownloadGroup, queue: Models_ChapterDownloadQueueItem[], t: Translate, onChanged: () => void }) {
     // the entry with the list's data: the reader holds the chapter against the saved progress, as from the manga's page (4.3.1)
+    useThemeColors()
     const { data: mangaEntry } = useGetMangaEntry(group.mediaId)
     const media = group.media ?? mangaEntry?.media
     const listData = mangaEntry?.listData

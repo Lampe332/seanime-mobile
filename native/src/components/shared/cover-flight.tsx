@@ -7,6 +7,7 @@ import {
 } from "@/lib/motion"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { Image } from "expo-image"
 import { useFocusEffect, useGlobalSearchParams, usePathname } from "expo-router"
@@ -65,6 +66,7 @@ function measureBox(view: ViewRef | null): Promise<Box | null> {
 
 /** The flying cover, over everything; mounted once in the main layout */
 export function CoverFlightHost() {
+    useThemeColors()
     const flight = useCoverFlight(s => s.flight)
     const origin = useCoverFlight(s => s.origin)
     const isTablet = useIsTabletScreen()

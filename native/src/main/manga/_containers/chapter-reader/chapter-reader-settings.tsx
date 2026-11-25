@@ -4,6 +4,7 @@ import { SwitchRow } from "@/components/ui/switch/switch"
 import { Muted, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { defaultPageLayout, isDefaultPageLayout } from "@/main/manga/_lib/chapter-reader"
 import { useEffectiveReadingMode, useMangaPageZoomControls } from "@/main/manga/_lib/handle-chapter-reader"
@@ -96,6 +97,7 @@ export function useEntryReaderSettings(mediaId: number) {
 }
 
 export function ChapterReaderSettings() {
+    useThemeColors()
     const t = useTr()
     const isTablet = useIsTabletScreen()
     const [open, setOpen] = useAtom(__manga_readerSettingsOpenAtom)

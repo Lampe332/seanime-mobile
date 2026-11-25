@@ -10,6 +10,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate, plural, useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useHasDebridService, useHasOnlineStreaming, useHasTorrentStreaming } from "@/main/_hooks/use-server-status"
 import { Image } from "expo-image"
 import Check from "lucide-react-native/icons/check"
@@ -65,6 +66,7 @@ function RoundAction({ label, icon: Icon, disabled, onPress }: { label: string, 
 }
 
 export function MobilePlaylists() {
+    useThemeColors()
     const t = useTr()
     const manager = usePlaylistEditorManager()
     const { data: library, isLoading: libraryLoading } = useGetLibraryCollection()
@@ -341,6 +343,7 @@ function EpisodeSelection({ t, entry, episodes, onChange, defaultWatchType }: {
     onChange: (episodes: Anime_PlaylistEpisode[]) => void
     defaultWatchType: Anime_WatchType
 }) {
+    useThemeColors()
     const { data, isLoading, isError, refetch } = useGetPlaylistEpisodes(entry.mediaId)
     const { episodeToAdd, selectedMedia, setEpisodeToAdd } = usePlaylistEditorManager()
     const available = React.useMemo(() => (data ?? []).filter(n => !!n.episode).slice()

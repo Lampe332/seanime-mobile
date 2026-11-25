@@ -12,6 +12,7 @@ import { logger } from "@/lib/helpers/debug"
 import { usePathname, useRouter } from "@/lib/navigation"
 import { WSEvents } from "@/lib/server/ws-events"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useCurrentDevicePlaybackSettings, usesAndroidBuiltInPlayer } from "@/main/_atoms/playback.atoms"
 import { useAutoPlaySelectedTorrent } from "@/main/_features/autoplay/autoplay.atoms"
@@ -266,6 +267,7 @@ export function GlobalPlaylistManager() {
 
 /** The round button over the bottom bar (global-playlist-popup.tsx, `bottom-24 right-4`); tablet: at the foot beside the rail */
 function PlaylistButton({ open, onPress }: { open: boolean, onPress: () => void }) {
+    useThemeColors()
     const t = useTr()
     const insets = useSafeAreaInsets()
     const barHeight = useNavBarHeight()

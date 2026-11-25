@@ -5,6 +5,8 @@ import { cva, type VariantProps } from "class-variance-authority"
 import React from "react"
 import { ActivityIndicator, Pressable, type PressableProps, View } from "react-native"
 import Animated from "react-native-reanimated"
+import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 
 /*
  * The phone kit's buttons (phone-screen.css): `.ps-primary` (brand fill), `.ps-secondary` (control surface),
@@ -44,7 +46,7 @@ const ButtonAnatomy = {
     }),
 }
 
-const SPINNER_COLOR = { primary: "#ffffff", secondary: "#ededf0", danger: "#1a1a1d", text: "rgb(199, 194, 255)", icon: "#b6b6bc" } as const
+const SPINNER_COLOR = { primary: "#ffffff", secondary: "#ededf0", danger: "#1a1a1d", get text() { return colors.smAccent }, icon: "#b6b6bc" } as const
 
 export type ButtonProps = Omit<PressableProps, "children"> & VariantProps<typeof ButtonAnatomy.root> & {
     className?: string
@@ -61,6 +63,7 @@ export type ButtonProps = Omit<PressableProps, "children"> & VariantProps<typeof
 export const ButtonSizeContext = React.createContext<"md" | "lg">("md")
 
 export function Button(props: ButtonProps) {
+    useThemeColors()
     const contextSize = React.useContext(ButtonSizeContext)
     const { intent = "primary", size = contextSize, className, wrapperClassName, labelClassName, children, leftIcon, rightIcon, loading, disabled, onPressIn, onPressOut, ...rest } = props
     const isDisabled = !!disabled || !!loading

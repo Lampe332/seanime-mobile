@@ -7,6 +7,7 @@ import { SectionTitle, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { getLibraryCollectionTitle } from "@/lib/server/utils"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { __mainLibrary_paramsAtom } from "@/main/_features/anime-library/_lib/handle-library-collection"
 import { homeCurrentGenresAtom } from "@/main/_features/anime-library/library-phone.atoms"
 import { filterByGenres, genreCounts } from "@/main/_features/home/home-layout"
@@ -101,6 +102,7 @@ function EntryRow({ entries, streamingMediaIds }: { entries: Anime_LibraryCollec
 
 /** Android home: filter sheet for "Currently watching" with the unwatched toggle and the genres of the listed series. */
 function HomeCurrentFilter({ list }: { list: Anime_LibraryCollectionList }) {
+    useThemeColors()
     const t = useTr()
     const [open, setOpen] = React.useState(false)
     const [params, setParams] = useAtom(__mainLibrary_paramsAtom)

@@ -6,6 +6,7 @@ import { usePortalKey } from "@/components/ui/core/portal-key"
 import { Text } from "@/components/ui/text/text"
 import { MobileIcon } from "@/lib/mobile-icons"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import * as SelectPrimitive from "@rn-primitives/select"
 import React from "react"
 import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native"
@@ -40,6 +41,7 @@ export function Select({ value, onValueChange, options, placeholder, disabled, c
     valueClassName?: string
     accessibilityLabel?: string
 }) {
+    useThemeColors()
     const insets = useSafeAreaInsets()
     const { height } = useWindowDimensions()
     const [triggerWidth, setTriggerWidth] = React.useState(0)

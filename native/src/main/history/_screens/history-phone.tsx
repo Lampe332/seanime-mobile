@@ -9,6 +9,7 @@ import { Text } from "@/components/ui/text/text"
 import { appLanguageAtom, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { usePlayNext } from "@/main/_atoms/playback.atoms"
 import { __manga_resumeLocationsAtom } from "@/main/manga/_lib/manga-chapter-reader.atoms"
 import { ConfirmSheet } from "@/main/settings/_components/settings-kit"
@@ -28,6 +29,7 @@ type Media = { title?: { userPreferred?: string | null } | null, coverImage?: { 
  * Only the app's own history changes, never AniList.
  */
 export function HistoryPhone() {
+    useThemeColors()
     const t = useTr()
     const language = useAtomValue(appLanguageAtom)
     const router = useRouter()

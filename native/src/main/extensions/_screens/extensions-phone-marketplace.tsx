@@ -9,6 +9,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { appLanguageAtom, type Translate } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { LANGUAGES_LIST } from "@/main/manga/_lib/language-map"
 import NetInfo from "@react-native-community/netinfo"
 import { pressTourTarget, TOUR_TARGETS, useTourTarget } from "@/main/_features/tour/tour-targets"
@@ -56,6 +57,7 @@ const HIDDEN_PANE = {
 } as const
 
 export function MarketplacePhone({ t, installedIds, tourOn, active = true }: { t: Translate, installedIds: Set<string>, tourOn: boolean, active?: boolean }) {
+    useThemeColors()
     const [url, setUrl] = useAtom(marketplaceUrlAtom)
     const appLanguage = useAtomValue(appLanguageAtom)
     const { data, isPending, isError, isFetching, refetch } = useGetMarketplaceExtensions(url)
@@ -238,6 +240,7 @@ function TypeChip({ t, chip, chosen, tourOn, onPress }: {
 }
 
 const MarketRow = React.memo(function MarketRow({ t, extension, installed, onOpen, tourOn }: { t: Translate, extension: Extension_Extension, installed: boolean, onOpen: (extension: Extension_Extension) => void, tourOn: boolean }) {
+    useThemeColors()
     const { mutate: install, isPending } = useInstallExternalExtension()
     // The list only learns about the install from the server's reload event; until then the row keeps the result.
     const [justInstalled, setJustInstalled] = React.useState(false)

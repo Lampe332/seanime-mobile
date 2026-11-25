@@ -9,6 +9,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { useDebounce } from "@/hooks/use-debounce"
 import { openInAppBrowser } from "@/lib/helpers/browser"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker"
 import { Image } from "expo-image"
 import React from "react"
@@ -374,9 +375,10 @@ function PluginDropdownMenuItem(props: Record<string, unknown>) {
     </PopoverClose>
 }
 
-const ALERT_TONES: Record<string, string> = { success: colors.smSuccess, warning: colors.smWarning, alert: colors.smDanger, info: colors.smAccent }
+const ALERT_TONES: Record<string, string> = { success: colors.smSuccess, warning: colors.smWarning, alert: colors.smDanger, get info() { return colors.smAccent } }
 
 function PluginAlert(props: Record<string, unknown>) {
+    useThemeColors()
     const tone = ALERT_TONES[str(props.intent) ?? "info"] ?? colors.smAccent
     return <View accessibilityRole="alert" style={{ borderLeftColor: tone }} className="gap-1 rounded-surface border-l-4 bg-sm-surface-raised p-4">
         {!!str(props.title) && <Text className="font-semibold" style={{ color: tone }}>{str(props.title)}</Text>}
@@ -385,6 +387,7 @@ function PluginAlert(props: Record<string, unknown>) {
 }
 
 function PluginBadge(props: Record<string, unknown>) {
+    useThemeColors()
     const intent = str(props.intent) ?? "gray"
     const tone = intent === "success" ? colors.smSuccess : intent === "warning" ? colors.smWarning : intent === "alert" ? colors.smDanger
         : intent === "primary" || intent === "info" || intent === "blue" ? colors.smAccent : colors.smTextMuted

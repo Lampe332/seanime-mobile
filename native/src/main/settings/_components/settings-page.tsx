@@ -5,6 +5,7 @@ import { Heading, Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { haptic } from "@/lib/feedback"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { type TourScrollHost, TourScrollContext } from "@/main/_features/tour/tour-targets"
 import { activeJumpIndex, chipRowOffset, SETTINGS_WIDE_COLUMN_WIDTH, settingsColumnMaxWidth } from "@/main/settings/_lib/settings-page-layout"
@@ -82,6 +83,7 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
     focus?: SettingsPageFocus | null
     children: React.ReactNode
 }) {
+    useThemeColors()
     const t = useTr()
     const insets = useSafeAreaInsets()
     const top = usePageTop()

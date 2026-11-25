@@ -4,7 +4,7 @@ import { desc, inArray } from "drizzle-orm"
 import { animeCollection } from "../anilist/anilist"
 import { editListEntry, listDataOf } from "../anilist/changes"
 import { askAnilist, clientFor } from "../anilist/client"
-import { SEARCH_FILE_MATCH } from "../anilist/queries"
+import { ENTRY_MEDIA, SEARCH_FILE_MATCH } from "../anilist/queries"
 import { storedEntry } from "../anilist/store"
 import { inOrder } from "../database/database"
 import { localFiles, scanSummaries } from "../database/schema"
@@ -15,6 +15,7 @@ import { ownSettingsAndLook } from "../settings/settings"
 import { listEntries } from "./home"
 import { animeWithEpisodes } from "./library"
 import { type LocalFileRow, VIDEO_EXTENSIONS, allFiles, asLocalFile, bestMatch, episodeOfFile, fileMetadataOf, plainTitle, readName, seasonOf } from "./local-files"
+import { mediaIdByRule, metaByRule, readScannerConfig } from "./scanner-config"
 
 /*
  * The scan of the user's library folders (area `library`, phase 5b-1, docs/EIGENER-KERN.md §4p) and what hangs on it:
@@ -102,6 +103,17 @@ export async function searchAnilist(environment: CoreEnvironment, title: string)
     }
 }
 
+/** The anime of an id a scanner rule names, asked of AniList (only read); none when AniList cannot be asked */
+export async function anilistMediaById(environment: CoreEnvironment, id: number): Promise<Json | null> {
+    try {
+        const media = (await askAnilist(clientFor(environment), ENTRY_MEDIA, { id })).Media
+        return isRecord(media) ? media : null
+    }
+    catch {
+        return null
+    }
+}
+
 function tell(progress: number, status: string) {
     emitCoreEvent("scan-progress", progress)
     emitCoreEvent("scan-status", status)
@@ -131,6 +143,8 @@ async function scan(options: Json, environment: CoreEnvironment): Promise<Json[]
     const enhanced = options.enhanced === true
     const skipLocked = options.skipLockedFiles !== false
     const skipIgnored = options.skipIgnoredFiles !== false
+    // the scanner rules (library.scannerConfig), read once; broken ones are left out and named in the first file's log
+    const rules = readScannerConfig((await librarySettings(environment)).scannerConfig)
     tell(0, "Retrieving local files...")
     const found = await walk(await environment.localFolders(), roots, environment)
     tell(20, `Found ${found.length} video files`)
@@ -145,6 +159,15 @@ async function scan(options: Json, environment: CoreEnvironment): Promise<Json[]
     const rows: LocalFileRow[] = []
     const logs = new Map<string, string[]>()
     const near = new Map<string, Json[]>()
+    const ruleMedia = new Map<number, Json | null>()
+    const mediaOfRule = async (id: number): Promise<Json | null> => {
+        if (media.has(id)) return media.get(id)!
+        if (!ruleMedia.has(id)) {
+            ruleMedia.set(id, await anilistMediaById(environment, id))
+            await environment.pause("library scan match")
+        }
+        return ruleMedia.get(id) ?? null
+    }
     tell(30, "Matching local files...")
     for (const file of found) {
         // before every file: a file matched against every anime in the lists is a few ms on the tablet, 20 of them were
@@ -162,9 +185,11 @@ async function scan(options: Json, environment: CoreEnvironment): Promise<Json[]
         const title = typeof parsed.title === "string" ? parsed.title : folderTitle ?? ""
         const season = Number(parsed.season) || Number([...folders].reverse().find(folder => folder.season)?.season) || 0
         const others: Json[] = []
-        let match = title ? bestMatch(title, season, candidates, others) : null
+        // a matching rule (regex on the full path) gives the anime and skips the comparing of titles
+        const ruleId = mediaIdByRule(rules, file.path)
+        let match = !ruleId && title ? bestMatch(title, season, candidates, others) : null
         let how = "in your lists"
-        if (!match && title && enhanced) {
+        if (!ruleId && !match && title && enhanced) {
             const key = seasonOf(plainTitle(title)).base
             let results = searched.get(key)
             if (!results && searched.size < MAX_SEARCHES) {
@@ -175,17 +200,31 @@ async function scan(options: Json, environment: CoreEnvironment): Promise<Json[]
             match = bestMatch(title, season, results ?? [], others)
             how = "on AniList"
         }
-        if (match) media.set(match.media.id as number, match.media)
-        const meta = fileMetadataOf(parsed, kinds, match?.media ?? null)
+        const ruled = ruleId ? await mediaOfRule(ruleId) : null
+        const item = ruled ?? match?.media ?? null
+        const mediaId = ruleId || (match ? match.media.id as number : 0)
+        if (item) media.set(item.id as number, item)
+        // a hydration rule takes the place of the normal guess of the episode
+        const normal = fileMetadataOf(parsed, kinds, item)
+        const hydrated = metaByRule(rules, { name: file.name, mediaId }, normal)
+        const meta = hydrated?.meta ?? normal
         rows.push({
-            path: file.path, name: file.name, mediaId: match ? match.media.id as number : 0, episode: meta.episode,
+            path: file.path, name: file.name, mediaId, episode: meta.episode,
             anidbEpisode: meta.anidbEpisode, type: meta.type, locked: false, ignored: false, size: file.size, parsed, folders,
             changedAt: environment.now(),
         })
         near.set(file.path, others)
-        logs.set(file.path, [match
-            ? `Matched "${title}" ${how} (score ${match.score.toFixed(2)}), ${meta.type} ${meta.anidbEpisode}`
-            : title ? `No anime fits "${title}"` : "No title in the file's name or folders"])
+        const ruledTitle = isRecord(ruled?.title) ? String(ruled.title.userPreferred ?? ruled.title.romaji ?? "") : ""
+        logs.set(file.path, [
+            ruleId ? `Matched by rule to ${ruledTitle ? `"${ruledTitle}"` : `anime ${ruleId}`}, ${meta.type} ${meta.anidbEpisode}`
+                : match ? `Matched "${title}" ${how} (score ${match.score.toFixed(2)}), ${meta.type} ${meta.anidbEpisode}`
+                    : title ? `No anime fits "${title}"` : "No title in the file's name or folders",
+            ...(hydrated ? [`Episode from rule: ${meta.type} ${meta.anidbEpisode}`, ...hydrated.problems.map(problem => `Scanner rules: ${problem}`)] : []),
+        ])
+    }
+    if (rules.problems.length > 0 && rows.length > 0) {
+        const first = rows[0].path
+        logs.set(first, [...(logs.get(first) ?? []), ...rules.problems.map(problem => `Scanner rules: ${problem}, left out`)])
     }
 
     tell(70, "Saving local files...")

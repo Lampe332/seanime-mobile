@@ -14,6 +14,10 @@ import React from 'react';
 import { AppState, Dimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { startDiagnostics } from '@/lib/diagnostics/collect-diagnostics';
+import { applyStoredAppearance, useAppearanceSync, useThemeColors } from '@/lib/theme/appearance';
+
+// the stored accent colour and AMOLED black before the first frame (settings → Appearance; no violet flash)
+applyStoredAppearance();
 
 // the last log lines and error toasts, in memory for the diagnostic report (settings → Logs & cache)
 startDiagnostics();
@@ -40,8 +44,10 @@ export default function RootLayout() {
   const playerFullscreen = useAtomValue(player_fullscreenAtom);
   const statusBarHidden = !showStatusBar || playerFullscreen;
   useKeepSystemBarsHidden(statusBarHidden);
+  useAppearanceSync();
+  const { background } = useThemeColors();
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#070707' }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: background }}>
       {/* The hidden page for extensions (docs/EIGENER-KERN.md §4k): nothing until one is asked for, then beneath everything */}
       <HiddenBrowserHost />
       <ClientProviders>
@@ -51,7 +57,7 @@ export default function RootLayout() {
             The status bar can be shown outside the fullscreen player (settings → Appearance). */}
         <StatusBar style="light" hidden={statusBarHidden} />
         <NavigationBar hidden />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#070707' } }} />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: background } }} />
       </ClientProviders>
     </GestureHandlerRootView>
   );

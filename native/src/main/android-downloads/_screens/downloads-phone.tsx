@@ -18,6 +18,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { appLanguageAtom, plural, type Translate, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { MANGA_FOLDER } from "@/api/client/core-offline"
 import { OLD_MANGA_FOLDER } from "@/core"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -433,6 +434,7 @@ function AnimeDetail({ group, size, onBack, onAction, onPlay, onDelete, onDelete
     onDelete: (item: OfflineItem) => void
     onDeleteAll: () => void
 }) {
+    useThemeColors()
     const t = useTr()
     const [width, setWidth] = React.useState(0)
     const [about, setAbout] = React.useState(false)

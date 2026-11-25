@@ -38,13 +38,15 @@ describe("the keys a backup may carry", () => {
     })
 
     it("screen, network and installed-app settings travel in the file backup, never in the account's sync", () => {
-        const keys = ["sea-ui-settings-show-status-bar", "sea-ui-settings-card-size", "sea-ui-settings-navigation-preload-mode", "sea-playback-downloaded-media",
+        const keys = ["sea-ui-settings-show-status-bar", "sea-ui-settings-amoled", "sea-ui-settings-card-size", "sea-ui-settings-navigation-preload-mode", "sea-playback-downloaded-media",
             "sea-playback-external-player-link", "sea-playback-external-player-link-encode-path"]
         for (const key of keys) {
             expect(isSyncDeviceKey(key)).toBe(true)
             expect(isDeviceKey(key)).toBe(false)
         }
         expect(isSyncDeviceKey("sea-playback-torrentstream")).toBe(false)
+        // the accent colour is taste and follows the account; AMOLED black (above) stays with the screen
+        expect(isSyncDeviceKey("sea-ui-settings-accent")).toBe(false)
         expect(isSyncDeviceKey("sea-player-seek-forward-seconds")).toBe(false)
     })
 

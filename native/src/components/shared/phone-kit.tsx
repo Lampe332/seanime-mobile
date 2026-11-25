@@ -4,6 +4,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import Check from "lucide-react-native/icons/check"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
@@ -41,6 +42,7 @@ export function ActionRow({ icon: Icon, label, note, value, chevron, trailing, t
     disabled?: boolean
     onPress?: () => void
 }) {
+    useThemeColors()
     const iconColor = tone === "attention" ? colors.smAccent : tone === "danger" ? colors.smDanger : colors.smTextMuted
     return (
         <Pressable
@@ -178,6 +180,7 @@ export function Choices({ label, chips, selected, onToggle, showCheck, quiet, on
     /** chips inside a raised block (the settings' `.pst-chips`): unchosen ones on the control surface */
     onRaised?: boolean
 }) {
+    useThemeColors()
     return (
         <View accessibilityRole="none" accessibilityLabel={label} className="flex-row flex-wrap gap-2">
             {chips.map(chip => {

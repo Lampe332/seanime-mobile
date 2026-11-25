@@ -15,6 +15,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
 import { MOTION_EASE_OUT, PHONE_EASE } from "@/lib/motion"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { genreLabel } from "@/main/discover/_lib/discover-phone"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -369,6 +370,7 @@ function HomeSectionRow({ item, index, items, needs, onMove, onOptions, onRemove
 
 /** A section that is not on Home: one tap on it adds it; "?" explains it first. */
 function AddSectionRow({ type, needs, onAdd }: { type: string, needs: string, onAdd: () => void }) {
+    useThemeColors()
     const t = useTr()
     const name = homeSectionName(type, t)
     const summary = homeSectionSummary(type, t)
@@ -421,6 +423,7 @@ function HomeItemOptionsSheet({ item: openedWith, open, onClose, onSave }: {
     onClose: () => void
     onSave: (options: HomeOptions) => void
 }) {
+    useThemeColors()
     const t = useTr()
     // The section as it was when its options opened: the sheet keeps it while it slides out, also after a removal
     const [item] = React.useState(openedWith)

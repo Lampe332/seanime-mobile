@@ -13,6 +13,7 @@ import { openExternalPlayer } from "@/lib/external-player-link/open-external-pla
 import { openWithWatchedAsk } from "@/lib/external-player-link/watched-after-player"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useExternalPlayerLink } from "@/main/_atoms/playback.atoms"
 import { __mpt_currentExternalPlayerLinkAtom } from "@/main/_features/progress-tracking/progress-tracking.atoms"
 import { useMediastreamCurrentFile } from "@/main/mediastream/_lib/mediastream.atoms"
@@ -34,6 +35,7 @@ import { downloadedEpisodeGroups, encodeFilePath, episodeFacts, isWatched } from
  */
 
 function EpisodeRow({ t, episode, watched, playing, onPlay }: { t: Translate, episode: Anime_Episode, watched: boolean, playing: boolean, onPlay: () => void }) {
+    useThemeColors()
     const image = episode.episodeMetadata?.image || episode.baseAnime?.coverImage?.large
     return (
         <Pressable accessibilityRole="button" accessibilityState={{ selected: playing }} onPress={onPlay}

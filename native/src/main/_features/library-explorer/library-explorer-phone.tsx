@@ -10,6 +10,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { plural, useTr } from "@/lib/app-language"
 import { upath } from "@/lib/helpers/upath"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { UnmatchedPhoneSheet } from "@/main/_features/anime-library/_screens/library-phone"
 import {
     type ExplorerFilter,
@@ -60,6 +61,7 @@ export function LibraryExplorerPhone() {
 }
 
 function ExplorerSheet() {
+    useThemeColors()
     const t = useTr()
     const [open, setOpen] = useAtom(libraryExplorer_drawerOpenAtom)
     const [openDirectory, setOpenDirectory] = useAtom(libraryExplorer_openDirectoryAtom)

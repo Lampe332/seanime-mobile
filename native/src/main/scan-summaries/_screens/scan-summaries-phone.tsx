@@ -12,6 +12,7 @@ import { getAppLanguage, plural, type Translate, useTr } from "@/lib/app-languag
 import { upath } from "@/lib/helpers/upath"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { __scanner_modalIsOpen } from "@/main/_features/anime-library/library-phone.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { Image } from "expo-image"
@@ -52,6 +53,7 @@ function useOpenForSearch(query: string) {
 }
 
 function FileRow({ t, file, query }: { t: Translate, file: Summary_ScanSummaryFile, query: string }) {
+    useThemeColors()
     const [open, setOpen] = useOpenForSearch(query)
     const lf = file.localFile
     if (!lf) return null

@@ -36,6 +36,8 @@ let tree: Record<string, LocalFolderEntry[]> = {}
 let searches: string[] = []
 let searchAnswer: Json[] = []
 let documents: string[] = []
+let asked: number[] = []
+let byId: Record<number, Json> = {}
 let autoScan = false
 let removed: string[] = []
 let deletedFiles: string[] = []
@@ -45,9 +47,13 @@ let events: CoreEvent[] = []
 
 const httpFetch: HttpFetch = async (url, init) => {
     if (url === ANILIST_URL) {
-        const body = JSON.parse(String(init?.body)) as { query: string, variables: { search: string } }
+        const body = JSON.parse(String(init?.body)) as { query: string, variables: { search?: string, id?: number } }
         documents.push(body.query)
-        searches.push(body.variables.search)
+        if (body.variables.id !== undefined) {
+            asked.push(body.variables.id)
+            return { status: 200, headers: { get: () => null }, text: async () => JSON.stringify({ data: { Media: byId[body.variables.id!] ?? null } }) }
+        }
+        searches.push(body.variables.search!)
         return { status: 200, headers: { get: () => null }, text: async () => JSON.stringify({ data: { Page: { pageInfo: {}, media: searchAnswer } } }) }
     }
     if (url.startsWith(METADATA_URL)) throw new TypeError("no metadata in these tests")
@@ -147,6 +153,8 @@ beforeEach(async () => {
     searches = []
     searchAnswer = []
     documents = []
+    asked = []
+    byId = {}
     autoScan = false
     removed = []
     forgetScanAtStart()
@@ -515,5 +523,73 @@ describe("matching many files (5b-2: 42.2 ms library scan match on the tablet)",
             environment.pause = original
         }
         expect(parts.filter(part => part === "library scan match").length).toBeGreaterThanOrEqual(45)
+    })
+})
+
+describe("the scanner rules (library.scannerConfig, original's config.go/matcher.go/hydrator.go)", () => {
+    const rulesAre = (scannerConfig: string) => ask("POST", "/api/v1/start", { library: { libraryPath: ROOT + "/", libraryPaths: [], refreshLibraryOnStart: false, scannerConfig } })
+    const lastSummary = async () => ((await ask("GET", "/api/v1/library/scan-summaries")) as Json[])[0].scanSummary as Json
+    const logsOf = (summary: Json, name: string) => [...(summary.groups as Json[]).flatMap(group => group.files as Json[]), ...(summary.unmatchedFiles as Json[])]
+        .find(item => (item.localFile as Json).name === name)?.logs as Json[]
+
+    it("a matching rule on the full path gives a file with an unfitting name its anime; (?i) ignores case", async () => {
+        await lists()
+        await rulesAre(JSON.stringify({ matching: { rules: [{ pattern: "(?i)/other/urlaub", mediaId: WARS }, { pattern: "/other/", mediaId: OTHER }] } }))
+        const files = await scanned()
+        expect(byName(files, "Urlaub am See 2025 - 03.mp4")).toMatchObject({ mediaId: WARS, metadata: { episode: 3, aniDBEpisode: "3", type: "main" } })
+        expect(byName(files, "Dr. STONE - 01.mp4").mediaId).toBe(STONE)
+        expect(asked).toEqual([])
+        const summary = await lastSummary()
+        expect(logsOf(summary, "Urlaub am See 2025 - 03.mp4")[0]).toMatchObject({ level: "info", message: expect.stringContaining("Matched by rule") })
+        expect(summary.groups).toContainEqual(expect.objectContaining({ mediaId: WARS, mediaTitle: "Dr. STONE: STONE WARS" }))
+    })
+
+    it("an anime not in the lists is read from AniList by its id, once", async () => {
+        await lists()
+        byId = { [OTHER]: media(OTHER, "Made Astra") }
+        tree[`${ROOT}/Other`] = [file("Urlaub 1.mp4"), file("Urlaub 2.mp4")]
+        await rulesAre(JSON.stringify({ matching: { rules: [{ pattern: "Urlaub", mediaId: OTHER }] } }))
+        const files = await scanned()
+        expect(byName(files, "Urlaub 2.mp4").mediaId).toBe(OTHER)
+        expect(asked).toEqual([OTHER])
+        expect((await lastSummary()).groups).toContainEqual(expect.objectContaining({ mediaId: OTHER, mediaTitle: "Made Astra", mediaIsInCollection: false }))
+    })
+
+    it("a hydration rule sets the episode from $1 and a sum", async () => {
+        await lists()
+        tree[ROOT] = [file("Dr. STONE - 15.mp4"), file("Dr. STONE - NCOP.mp4")]
+        await rulesAre(JSON.stringify({ hydration: { rules: [{ pattern: "^Dr\\. STONE", mediaId: STONE, files: [
+            { filename: "- (\\d+)\\.mp4$", isRegex: true, episode: "$1-12" },
+            { filename: "dr. stone - ncop.mp4", isRegex: false, episode: "1", aniDbEpisode: "OP{calc(2*(1+1)-3)}", type: "nc" },
+        ] }] } }))
+        const files = await scanned()
+        expect(byName(files, "Dr. STONE - 15.mp4")).toMatchObject({ mediaId: STONE, metadata: { episode: 3, aniDBEpisode: "3", type: "main" } })
+        expect(byName(files, "Dr. STONE - NCOP.mp4")).toMatchObject({ metadata: { episode: 1, aniDBEpisode: "OP1", type: "nc" } })
+        expect(logsOf(await lastSummary(), "Dr. STONE - 15.mp4").map(log => log.message)).toContain("Episode from rule: main 3")
+    })
+
+    it("broken JSON or a broken regex: the scan runs as without rules, the problem is in the log", async () => {
+        await lists()
+        await rulesAre("{ matching: ")
+        expect(byName(await scanned(), "Dr. STONE - 01.mp4")).toMatchObject({ mediaId: STONE, metadata: { episode: 1 } })
+        await rulesAre(JSON.stringify({ matching: { rules: [{ pattern: "(Urlaub", mediaId: WARS }] } }))
+        now += 1000
+        const files = await scanned()
+        expect(byName(files, "Urlaub am See 2025 - 03.mp4").mediaId).toBe(0)
+        expect(byName(files, "Dr. STONE - 02.mp4").mediaId).toBe(STONE)
+        const summary = await lastSummary()
+        const messages = [...(summary.groups as Json[]).flatMap(group => group.files as Json[]), ...(summary.unmatchedFiles as Json[])]
+            .flatMap(item => (item.logs as Json[]).map(log => log.message))
+        expect(messages).toContainEqual(expect.stringContaining("matching rule 1: invalid pattern"))
+    })
+
+    it("a matching rule does not take a file that keeps its anime", async () => {
+        await lists()
+        await scanned()
+        await ask("PATCH", "/api/v1/library/local-file", { path: `${ROOT}/Dr. STONE - 02.mp4`, metadata: { episode: 2, aniDBEpisode: "2", type: "main" }, locked: true, ignored: false, mediaId: STONE })
+        await rulesAre(JSON.stringify({ matching: { rules: [{ pattern: "STONE", mediaId: WARS }] } }))
+        const files = await scanned()
+        expect(byName(files, "Dr. STONE - 02.mp4")).toMatchObject({ mediaId: STONE, locked: true })
+        expect(byName(files, "Dr. STONE - 01.mp4").mediaId).toBe(WARS)
     })
 })

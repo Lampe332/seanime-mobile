@@ -7,6 +7,7 @@ import {
     SelectRow,
     LocalSwitch,
     SettingsGroup,
+    SwatchRow,
     TextSettingRow,
     ThemeSwitch,
     useSaveTheme,
@@ -19,10 +20,12 @@ import { showStatusBarAtom } from "@/lib/status-bar-setting"
 import { cardSizeAtom } from "@/lib/card-size-setting"
 import type { CardSize } from "@/components/shared/cover-layout"
 import { useAtom } from "jotai"
+import { accentColorAtom, amoledAtom } from "@/lib/theme/appearance"
+import { ACCENT_IDS, buildPalette, DEFAULT_ACCENT, isAccentId } from "@/lib/theme/palette"
 
 /*
  * Appearance (settings-phone-ui.tsx). Only what the native screens read is here (as the settings audit asked: no switch
- * without effect). Waiting for their reader (Karte §9, E2 2.12): custom colours + presets (the tokens are fixed so far),
+ * without effect). Waiting for their reader (Karte §9, E2 2.12): custom colours beyond the accent presets,
  * background image (no native CustomBackgroundImage yet), classic episode cards, blur effects, and on tablets episode
  * summaries / file names. Custom CSS has no meaning without a
  * WebView (🗑️). Removed in the audit and not coming back: blurred background on anime pages, the banner on tablets, episode
@@ -61,6 +64,7 @@ const SORTING_DE: Record<string, string> = {
 
 export function SettingsUISection({ t, tablet }: { t: Translate, tablet: boolean }) {
     return <>
+        <ColorsGroup t={t} />
         {!tablet && <BannerGroup t={t} />}
         <SortingGroup t={t} />
         <SettingsGroup title={t("Cards and episodes", "Karten und Folgen")}>
@@ -188,6 +192,25 @@ function PreloadGroup({ t }: { t: Translate }) {
                 },
             ]}
             onChange={value => setMode(value as NavigationPreloadMode)} />
+    </SettingsGroup>
+}
+
+/** Accent colour (synced, a matter of taste) and AMOLED black (this screen only): both switch at once, appearance.ts */
+function ColorsGroup({ t }: { t: Translate }) {
+    const [accent, setAccent] = useAtom(accentColorAtom)
+    const [amoled, setAmoled] = useAtom(amoledAtom)
+    const names = {
+        violet: t("Violet", "Violett"), blue: t("Blue", "Blau"), green: t("Green", "Grün"),
+        pink: t("Pink", "Rosa"), orange: t("Orange", "Orange"), red: t("Red", "Rot"),
+    }
+    const options = ACCENT_IDS.map(id => ({ value: id, color: buildPalette(id, false).swatch, label: names[id] }))
+    return <SettingsGroup title={t("Colors", "Farben")}>
+        <SwatchRow label={t("Accent color", "Akzentfarbe")} value={accent} options={options} defaultValue={DEFAULT_ACCENT}
+            onChange={value => isAccentId(value) && setAccent(value)} scope="synced"
+            note={t("Buttons, switches and highlights across the app.", "Knöpfe, Schalter und Hervorhebungen in der ganzen App.")} />
+        <LocalSwitch label={t("AMOLED black", "AMOLED-Schwarz")} checked={amoled} onCheckedChange={setAmoled} defaultChecked={false}
+            note={t("True black background that saves power on OLED screens. Only on this device.",
+                "Echt schwarzer Hintergrund, spart Strom auf OLED-Bildschirmen. Nur auf diesem Gerät.")} />
     </SettingsGroup>
 }
 

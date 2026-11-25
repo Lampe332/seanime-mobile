@@ -12,6 +12,7 @@ import {
 import { MobileIcon } from "@/lib/mobile-icons"
 import { localStore } from "@/lib/storage"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { atom, useAtom, useSetAtom } from "jotai"
 import React from "react"
@@ -28,7 +29,6 @@ import { formatNumber } from "@/lib/i18n/format"
 
 export const updateModalOpenAtom = atom(false)
 
-const ACCENT = colors.smAccent
 const MUTED = colors.smTextMuted
 const DANGER = colors.smDanger
 
@@ -73,11 +73,13 @@ function useUpdateState() {
 type UpdateState = ReturnType<typeof useUpdateState>
 
 function Spinner() {
-    return <ActivityIndicator size="small" color={ACCENT} />
+    useThemeColors()
+    return <ActivityIndicator size="small" color={colors.smAccent} />
 }
 
 /** `.mobile-update`: the full panel (in the Menu while something is to do, and at the top of the dialog) */
 function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) {
+    useThemeColors()
     const { t, state, version, check, busy } = s
     const complete = state.status === "installed"
     const failed = state.status === "failed" || state.status === "error"
@@ -87,18 +89,18 @@ function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) 
     const percent = downloadPercent(state)
     const hint = updateHint(state, t)
     const mb = (bytes: number) => formatNumber(bytes / (1024 * 1024), getAppLanguage(), 1) + " MB"
-    const tone = failed || check.error ? DANGER : ACCENT
+    const tone = failed || check.error ? DANGER : colors.smAccent
     return (
         <View accessibilityLabel={t("App update", "App-Update")} className={cn(inDialog ? "py-1" : "p-4")}>
             <View className="flex-row items-center gap-3">
                 <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-sm-accent-soft">
-                    <MobileIcon name={complete ? "check" : "update"} size={24} color={ACCENT} />
+                    <MobileIcon name={complete ? "check" : "update"} size={24} color={colors.smAccent} />
                 </View>
                 <View className="min-w-0 flex-1">
                     <Text className={cn("font-semibold text-sm-text", inDialog ? "text-lg" : "text-base")}>Seanime Mobile</Text>
                     <View className="mt-0.5 flex-row flex-wrap gap-x-3">
                         {!!installed && <Text style={{ color: MUTED }} className="text-[13px]">{t("Installed", "Installiert")}: <Text className="text-[13px] font-medium text-sm-text">{installed}</Text></Text>}
-                        {!!version && !complete && <Text style={{ color: ACCENT }} className="text-[13px]">{t("Available", "Verfügbar")}: <Text style={{ color: ACCENT }} className="text-[13px] font-medium">{version}</Text></Text>}
+                        {!!version && !complete && <Text style={{ color: colors.smAccent }} className="text-[13px]">{t("Available", "Verfügbar")}: <Text style={{ color: colors.smAccent }} className="text-[13px] font-medium">{version}</Text></Text>}
                     </View>
                 </View>
             </View>
@@ -110,7 +112,7 @@ function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) 
                 <View className="mt-3">
                     <View accessibilityRole="progressbar" accessibilityLabel={t("Download progress", "Downloadfortschritt")} accessibilityValue={{ min: 0, max: 100, now: percent }}
                         className="h-1.5 overflow-hidden rounded-full bg-sm-line-strong">
-                        <View style={{ width: `${percent ?? 0}%`, backgroundColor: ACCENT }} className="h-full" />
+                        <View style={{ width: `${percent ?? 0}%`, backgroundColor: colors.smAccent }} className="h-full" />
                     </View>
                     {typeof state.bytes === "number" && <Text style={{ color: MUTED, fontVariant: ["tabular-nums"] }} className="mt-1.5 text-right text-xs">
                         {mb(state.bytes)}{state.total && state.total > 0 ? ` / ${mb(state.total)}` : ""}
@@ -140,7 +142,7 @@ function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) 
                 )}
                 {!!version && !inDialog && <Button intent="text" className="-ml-2" onPress={s.showDetails}>{t("Update details", "Updateinformationen")}</Button>}
                 {!version && (
-                    <Button intent="text" className="-ml-2" disabled={check.fetching} onPress={() => void s.checkAgain()} leftIcon={<MobileIcon name="refresh" size={18} color={ACCENT} />}>
+                    <Button intent="text" className="-ml-2" disabled={check.fetching} onPress={() => void s.checkAgain()} leftIcon={<MobileIcon name="refresh" size={18} color={colors.smAccent} />}>
                         {check.fetching ? t("Checking…", "Prüfung läuft…") : check.error ? t("Try again", "Erneut versuchen") : t("Check again", "Erneut prüfen")}
                     </Button>
                 )}
@@ -151,6 +153,7 @@ function UpdateSummary({ s, inDialog }: { s: UpdateState, inDialog?: boolean }) 
 
 /** The Menu's top: one quiet line while nothing is to do, else the full panel (`#__seanime_update_menu_host`) */
 export function MobileUpdatePanel() {
+    useThemeColors()
     const s = useUpdateState()
     const { t, state, version, check, busy } = s
     const quiet = !version && state.status !== "installed" && !installReady(state) && state.status !== "failed" && state.status !== "error" && !busy && !updateHint(state, t)
@@ -158,14 +161,14 @@ export function MobileUpdatePanel() {
         <View style={{ borderBottomWidth: 1, borderBottomColor: colors.smLine }} className="mb-1.5">
             {quiet ? (
                 <View accessibilityLabel={t("App update", "App-Update")} className="flex-row items-center gap-2.5 py-0.5 pl-4 pr-1">
-                    {check.fetching || check.loading ? <Spinner /> : <MobileIcon name={check.error ? "close" : "check"} size={16} color={check.error ? DANGER : ACCENT} />}
+                    {check.fetching || check.loading ? <Spinner /> : <MobileIcon name={check.error ? "close" : "check"} size={16} color={check.error ? DANGER : colors.smAccent} />}
                     <Text accessibilityLiveRegion="polite" style={{ color: MUTED, fontVariant: ["tabular-nums"] }} className="min-w-0 flex-1 text-[13px]">
                         {[`App ${s.data?.current_version || currentVersion()}`, check.fetching || check.loading ? t("checking…", "wird geprüft…") : check.error ? t("check failed", "Prüfung fehlgeschlagen")
                             : check.hasData ? t("up to date", "aktuell") : t("check unavailable", "Prüfung nicht verfügbar")].join(" · ")}
                     </Text>
                     <Pressable accessibilityRole="button" accessibilityLabel={t("Check for updates", "Nach Updates suchen")} disabled={check.fetching} onPress={() => void s.checkAgain()}
                         className="h-12 w-12 items-center justify-center rounded-xl active:bg-sm-accent-soft">
-                        <MobileIcon name="refresh" size={20} color={ACCENT} />
+                        <MobileIcon name="refresh" size={20} color={colors.smAccent} />
                     </Pressable>
                 </View>
             ) : <UpdateSummary s={s} />}

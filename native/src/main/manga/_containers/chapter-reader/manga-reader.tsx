@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider/slider"
 import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
 import { releaseOrientation } from "@/main/_features/player/player-system"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -66,7 +67,7 @@ import { __manga_scrollSignalAtom, MangaVerticalReader } from "./chapter-vertica
  */
 
 // the paper behind the pages, as the user picks it: black and white are the page colours themselves, gray the raised surface
-const READER_BACKGROUNDS: Record<string, string> = { black: "#000", gray: colors.smSurfaceRaised, white: "#f4f4f5" }
+const READER_BACKGROUNDS: Record<string, string> = { black: "#000", get gray() { return colors.smSurfaceRaised }, white: "#f4f4f5" }
 /** The chapter (its key) whose start state the reader set; kept with the other reader atoms, so the reset is one step */
 const startedForAtom = atom("")
 const BAR_HEIGHT = 56
@@ -80,6 +81,7 @@ export function MangaReader() {
 }
 
 function Reader({ source }: { source: MangaReaderSource }) {
+    useThemeColors()
     const { entry, chapterContainer } = source
     const t = useTr()
     const serverStatus = useServerStatus()

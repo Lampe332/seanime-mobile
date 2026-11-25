@@ -2,6 +2,7 @@ import type { AL_BaseAnime, AL_BaseManga, Anime_EntryLibraryData, Anime_EntryLis
 import { Text } from "@/components/ui/text/text"
 import { getImageUrl } from "@/lib/server/assets"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { __mangaLibrary_latestChapterNumbersAtom } from "@/main/manga/_lib/handle-manga-collection"
@@ -60,6 +61,7 @@ export const MediaEntryCard = React.memo(function MediaEntryCard({ media, type, 
     /** The format before the year ("Movie · 2021"), for related titles whose badge names only the relation */
     withFormat?: boolean
 }) {
+    useThemeColors()
     const serverStatus = useServerStatus()
     const ts = useThemeSettings()
     const total = cardProgressTotal(type, media)

@@ -3,6 +3,7 @@ import { getToasts, stackedToast, subscribeToasts, toast, toasterFrame, type Toa
 import { haptic } from "@/lib/feedback"
 import { DURATION, POP_EASE, SCALE } from "@/lib/motion"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import React from "react"
 import { Pressable, Text, useWindowDimensions, View } from "react-native"
 import Animated, { Easing, Keyframe, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated"
@@ -22,7 +23,7 @@ const ICON_COLOR: Record<ToastType, string> = {
     success: colors.smSuccess,
     error: colors.smDanger,
     warning: colors.smWarning,
-    info: colors.smAccent,
+    get info() { return colors.smAccent },
 }
 
 /** sonner's icons (SuccessIcon, ErrorIcon, WarningIcon, InfoIcon): 20dp, filled, the mark cut out */
@@ -45,6 +46,7 @@ const checkPop = new Keyframe({
 }).duration(DURATION.toastCheck).delay(DURATION.toastCheckDelay).reduceMotion(ReduceMotion.System)
 
 function ToastIcon({ type }: { type: ToastType }) {
+    useThemeColors()
     if (type === "default") return null
     const { viewBox, d } = ICON[type]
     const icon = (

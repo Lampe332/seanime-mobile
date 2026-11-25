@@ -13,6 +13,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { openInAppBrowser } from "@/lib/helpers/browser"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
 import ExternalLink from "lucide-react-native/icons/external-link"
 import React from "react"
@@ -37,6 +38,7 @@ export function OnlinestreamManualMappingSheet({ entry, provider, open, onOpenCh
 }
 
 function MatchContent({ entry, provider }: { entry: Anime_Entry, provider: string }) {
+    useThemeColors()
     const t = useTr()
     const { data: existingMapping, isLoading: mappingLoading } = useGetOnlinestreamMapping({ provider, mediaId: entry.mediaId })
     const { mutate: search, data: results, isPending: searching, isSuccess, isError, reset } = useOnlinestreamManualSearch(entry.mediaId, provider)

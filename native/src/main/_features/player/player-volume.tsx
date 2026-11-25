@@ -1,5 +1,6 @@
 import { useTr } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import Volume from "lucide-react-native/icons/volume"
 import Volume1 from "lucide-react-native/icons/volume-1"
 import Volume2 from "lucide-react-native/icons/volume-2"
@@ -71,6 +72,7 @@ export function VolumePanel({ top, right, width, volume, muted, onVolume, onMute
     onMuted: (muted: boolean) => void
     onClose: () => void
 }) {
+    useThemeColors()
     const t = useTr()
     const idle = React.useRef<ReturnType<typeof setTimeout> | null>(null)
     const keepOpen = React.useCallback(() => {

@@ -3,6 +3,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { haptic } from "@/lib/feedback"
 import { DURATION, MOTION_EASE_OUT } from "@/lib/motion"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import * as SwitchPrimitive from "@rn-primitives/switch"
 import React from "react"
 import { Pressable, View } from "react-native"
@@ -25,14 +26,15 @@ export type SwitchProps = {
 }
 
 export function Switch({ checked, onCheckedChange, disabled, accessibilityLabel, className }: SwitchProps) {
+    const { smSurfaceControl, smAccentStrong, smAccentClear } = useThemeColors()
     const progress = useDerivedValue(() => withTiming(checked ? 1 : 0, {
         duration: DURATION.toggle,
         easing: TOGGLE_EASING,
         reduceMotion: ReduceMotion.System,
     }), [checked])
     const trackStyle = useAnimatedStyle(() => ({
-        backgroundColor: interpolateColor(progress.get(), [0, 1], [colors.smSurfaceControl, colors.smAccentStrong]),
-        borderColor: interpolateColor(progress.get(), [0, 1], [colors.smLineStrong, "rgba(159, 146, 255, 0)"]),
+        backgroundColor: interpolateColor(progress.get(), [0, 1], [smSurfaceControl, smAccentStrong]),
+        borderColor: interpolateColor(progress.get(), [0, 1], [colors.smLineStrong, smAccentClear]),
     }))
     const knobStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: progress.get() * KNOB_TRAVEL }],

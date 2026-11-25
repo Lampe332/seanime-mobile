@@ -4,6 +4,7 @@ import { Slider } from "@/components/ui/slider/slider"
 import { type Translate, useTr } from "@/lib/app-language"
 import { ANDROID_PLAYER_PRESETS } from "@/lib/external-player-link/android-player-presets"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { getSkipPatternError } from "@/main/_features/media-core/media-core-chapters"
 import { mediaCorePreferencesAtom } from "@/main/_features/media-core/media-core-preferences"
 import {
@@ -186,6 +187,7 @@ export function PlayerMenu(props: {
     /** called before a "Translate subtitles" setting is written (the player may start a translation) */
     onTranslateSettings?: () => void
 }) {
+    useThemeColors()
     const { open, onOpenChange, page, onPageChange, anchor } = props
     const t = useTr()
     const window = useWindowDimensions()
@@ -779,6 +781,7 @@ function ActionRow({ icon, label, disabled, onPress }: { icon: Icon, label: stri
 
 /** `.vc-phone-row` switch: the whole row flips; the 38×22 switch of the web sheet */
 function SwitchRow({ icon, label, checked, onChange }: { icon: Icon, label: string, checked: boolean, onChange: (value: boolean) => void }) {
+    useThemeColors()
     const thumb = useAnimatedStyle(() => ({ transform: [{ translateX: withTiming(checked ? 16 : 0, { duration: 150 }) }] }), [checked])
     const narrow = React.use(NarrowRows)
     return (
@@ -853,6 +856,7 @@ function MenuTitle({ children, action }: { children: React.ReactNode, action?: R
 
 /** `setting-select-option`: a check in front of the chosen one */
 function OptionRow({ checked, label, onPress }: { checked: boolean, label: string, onPress: () => void }) {
+    useThemeColors()
     return (
         <Pressable accessibilityRole="radio" accessibilityState={{ checked }} onPress={onPress}
             className="min-h-12 flex-row items-center rounded-surface-sm px-3 py-2 active:bg-white/10">

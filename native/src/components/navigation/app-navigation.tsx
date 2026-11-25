@@ -20,6 +20,7 @@ import { useExtensionUpdateCount } from "@/main/extensions/_lib/use-extension-up
 import { useUpdatesCount } from "@/lib/updates/use-updates"
 import { pressTourTarget, TOUR_TARGETS, useTourTarget } from "@/main/_features/tour/tour-targets"
 import { colors, sizes } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { Image } from "expo-image"
 import { useAtomValue } from "jotai"
 import React from "react"
@@ -62,6 +63,7 @@ function NavEntry({ item, active, dense, rail, railHeight, onPress, onLayout, st
     /** the pill on this entry until the gliding one has its place (GlideStandIn) */
     standIn: React.ReactNode
 }) {
+    useThemeColors()
     const language = useAtomValue(appLanguageAtom)
     const label = navItemTabLabel(item, language)
     // the setup tour points at the Menu button

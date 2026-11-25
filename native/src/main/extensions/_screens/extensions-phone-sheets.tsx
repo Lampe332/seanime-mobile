@@ -24,6 +24,7 @@ import { type Translate, tr } from "@/lib/app-language"
 import { openInAppBrowser } from "@/lib/helpers/browser"
 import { useRouter } from "@/lib/navigation"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useWebsocketMessageListener } from "@/main/_hooks/handle-websockets"
 import * as Clipboard from "expo-clipboard"
 import { Image } from "expo-image"
@@ -531,6 +532,7 @@ export function ExtensionPreferencesSheet({ t, open, onOpenChange, extension, us
     extension: Extension_Extension
     userConfigError?: Extension_InvalidExtension
 }) {
+    useThemeColors()
     const { data, isLoading, isError } = useGetExtensionUserConfig(extension.id)
     const { mutate: save, isPending } = useSaveExtensionUserConfig()
     // Per extension: the form starts from what this extension saved, never from another one's typed values
@@ -605,6 +607,7 @@ export function ExtensionCodeSheet({ t, open, onOpenChange, extension, readOnly,
     readOnly: boolean
     diff?: string
 }) {
+    useThemeColors()
     const { data: payload, isLoading } = useGetExtensionPayload(extension.id)
     const { mutate: updateCode, isPending } = useUpdateExtensionCode()
     const [code, setCode] = React.useState(extension.payload ?? "")

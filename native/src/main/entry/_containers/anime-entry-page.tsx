@@ -16,6 +16,7 @@ import { getImageUrl } from "@/lib/server/assets"
 import { isCustomSource } from "@/lib/server/utils"
 import { entryColumnGaps, entryColumnWidth, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { AnilistMediaEntryButton } from "@/main/_features/media/_containers/anilist-media-entry-sheet"
 import { MEDIA_STATUS_LABELS, plainDescription } from "@/main/_features/media/_lib/media-labels"
@@ -101,6 +102,7 @@ import { useGetMyShows, useUpdateMyShows } from "@/api/hooks/other_sources.hooks
 
 /** `.mobile-shared-chip`: the anime comes from the Nakama host's library */
 function SharedByChip() {
+    useThemeColors()
     const t = useTr()
     const host = useNakamaStatus()?.hostConnectionStatus?.username
     return (
@@ -123,6 +125,7 @@ function pageTint(top: number) {
 const SCROLL_SIGNAL_MS = 50
 
 export function AnimeEntryPage() {
+    useThemeColors()
     const t = useTr()
     const router = useRouter()
     const setRouteParams = useSetRouteParams()

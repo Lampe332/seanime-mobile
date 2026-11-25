@@ -3,6 +3,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Muted, Text } from "@/components/ui/text/text"
 import { type AppLanguage, getAppLanguage, translate, type Translate } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import type { SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 import { buildSearchDocs, searchSettings, type SettingsSearchDoc, type SettingsSearchSection } from "@/main/settings/_lib/settings-search"
 import { SETTINGS_SEARCH_INDEX } from "@/main/settings/_lib/settings-search-index"
@@ -61,6 +62,7 @@ const SearchHits = React.memo(function SearchHits({ t, hits, sections, onOpen, c
     onOpen: (hit: SettingsSearchDoc) => void
     compact?: boolean
 }) {
+    useThemeColors()
     const icons = React.useMemo(() => Object.fromEntries(sections.map(section => [section.id, section.icon])) as Record<SettingsSectionId, LucideIcon>, [sections])
     if (hits.length === 0) {
         return (

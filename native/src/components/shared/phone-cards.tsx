@@ -5,6 +5,7 @@ import { SectionTitle, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
 import { getImageUrl } from "@/lib/server/assets"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useMediaPreviewModal } from "@/main/_features/media/_containers/media-preview-phone"
 import { mediaEntryHref } from "@/main/_features/media/_lib/media-card"
@@ -278,6 +279,7 @@ export function ChipRow({ label, chips, selected, onSelect, multiple }: {
     /** several chosen (toggles with a check mark) instead of one (a radio group) */
     multiple?: boolean
 }) {
+    useThemeColors()
     const scroll = React.useRef<ScrollViewInstance>(null)
     const places = React.useRef(new Map<string, { x: number, width: number }>())
     const [rowWidth, setRowWidth] = React.useState(0)

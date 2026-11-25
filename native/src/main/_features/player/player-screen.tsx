@@ -6,6 +6,7 @@ import { useTr } from "@/lib/app-language"
 import { openInPlayerApp } from "@/lib/external-player-link/open-external-player"
 import { openWithWatchedAsk } from "@/lib/external-player-link/watched-after-player"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { showsRail } from "@/lib/tablet-ui"
 import { barButtonHitSlop, BOX_BAR_FADE, bottomPad, boxControlSizes, controlSizes, fitBarButton, topPad } from "./control-sizes"
 import { useIsTabletScreen } from "@/lib/use-tablet-ui"
@@ -181,6 +182,7 @@ export function PlayerScreen({ info, loadingState, playbackError, onClose, offli
     /** an online stream (onlinestream page): its episode list, quality, subtitle preference and "Save this episode" */
     online?: OnlinePlayback
 }) {
+    useThemeColors()
     const t = useTr()
     const insets = useSafeAreaInsets()
     const window = useWindowDimensions()
@@ -1433,6 +1435,7 @@ function TimeBar({ position, duration, buffered, pieces, highlight, track, thumb
     onScrubStart: () => void
     onScrubEnd: (target: number | null) => void
 }) {
+    useThemeColors()
     const [scrub, setScrubState] = React.useState<ScrubState>(SCRUB_IDLE)
     // Touch moves arrive faster than React re-renders: the handlers read the latest state from the ref (with only the
     // state, the first moves saw "idle" and a drag never scrubbed – S22)
@@ -1508,6 +1511,7 @@ function MiniPlayer({ frame, title, subtitle, playing, loading, error, progress,
     frame: MiniFrame, title: string, subtitle: string, playing: boolean, loading: boolean, error: string | null, progress: number,
     onExpand: () => void, onPlay: () => void, onClose: () => void
 }) {
+    useThemeColors()
     const t = useTr()
     const bar = frame.kind === "bar"
     const pad = bar ? MINI_BAR.pad : MINI_CARD.pad

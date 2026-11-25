@@ -2,6 +2,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted } from "@/components/ui/text/text"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { player_boxSlotAtom, player_nowAtom } from "@/main/_features/player/player-box"
 import { type MiniFrame, miniFrame, miniPlayerShown, pageBottomPad } from "@/main/_features/player/player-chrome"
@@ -59,6 +60,7 @@ export function usePageBottomPad(base: number): number {
  * accent colour under the page's top inset, until the promise settles. A second pull while it runs does nothing.
  */
 export function usePullRefresh(onRefresh: (() => Promise<unknown>) | undefined, top: number) {
+    useThemeColors()
     const [refreshing, setRefreshing] = React.useState(false)
     if (!onRefresh) return undefined
     const pull = () => {

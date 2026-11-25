@@ -17,6 +17,7 @@ import { getAppLanguage, plural, type Translate, useTr } from "@/lib/app-languag
 import { useRouter } from "@/lib/navigation"
 import { atomWithStorage } from "@/lib/storage"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { searchBesideTabs, TABLET_SEARCH_MAX_WIDTH, TABLET_SEGMENT_WIDTH } from "@/lib/tablet-ui"
@@ -219,6 +220,7 @@ type LibraryInfo = { local: boolean, unwatched: number | null }
 type CollectionProps = { type: ListType, typeSwitch: React.ReactNode, refreshButton: React.ReactNode, statsButton: React.ReactNode, swapOnMount: boolean, onRefresh: () => Promise<unknown> }
 
 function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnMount, onRefresh }: CollectionProps) {
+    useThemeColors()
     const t = useTr()
     const router = useRouter()
     const serverStatus = useServerStatus()

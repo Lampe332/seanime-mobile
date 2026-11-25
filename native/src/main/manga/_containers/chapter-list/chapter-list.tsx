@@ -16,6 +16,7 @@ import { MENU_ENTRIES } from "@/lib/nav/nav-items"
 import { useRouter } from "@/lib/navigation"
 import { atomWithStorage } from "@/lib/storage"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { MangaManualMappingSheet } from "@/main/manga/_containers/chapter-list/manga-manual-mapping-sheet"
 import {
     CHAPTER_ORDER_STORAGE,
@@ -79,6 +80,7 @@ export function ChapterList({ mediaId, entry, downloadData, downloadDataLoading,
     /** scrolls the page so the given y (within this list) is in sight */
     onJumpTo: (y: number) => void
 }) {
+    useThemeColors()
     const t = useTr()
     const router = useRouter()
     const {

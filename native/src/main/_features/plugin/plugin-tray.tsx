@@ -6,6 +6,7 @@ import { Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { WSEvents } from "@/lib/server/ws-events"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { useWebsocketMessageListener } from "@/main/_hooks/handle-websockets"
 import { useServerDisabledFeatures } from "@/main/_hooks/use-server-status"
 import { Image } from "expo-image"
@@ -79,6 +80,7 @@ export function PluginTrayHost() {
 }
 
 function PluginTrayWindow({ icon }: { icon: TrayIcon }) {
+    useThemeColors()
     const t = useTr()
     const send = usePluginSend()
     const [opened, setOpened] = useAtom(__plugin_openedTrayAtom)
@@ -150,6 +152,7 @@ function PluginIcon({ icon, size = 40 }: { icon: TrayIcon, size?: number }) {
  * `bar`: the quiet 48dp icon of the other screens' top bar.
  */
 export function PluginTrayButton({ variant }: { variant: "home" | "bar" }) {
+    useThemeColors()
     const t = useTr()
     const icons = useAtomValue(__plugin_trayIconsAtom)
     const [chooserOpen, setChooserOpen] = useAtom(__plugin_chooserOpenAtom)
@@ -186,6 +189,7 @@ export function PluginTrayButton({ variant }: { variant: "home" | "bar" }) {
 }
 
 function PluginChooser({ open, onOpenChange, icons }: { open: boolean, onOpenChange: (open: boolean) => void, icons: TrayIcon[] }) {
+    useThemeColors()
     const t = useTr()
     const [query, setQuery] = React.useState("")
     const { data: settings, isLoading, isError, refetch } = useGetPluginSettings()

@@ -11,6 +11,7 @@ import { type CastDevice, castErrorText, type CastState } from "@/lib/cast/cast-
 import { useCast } from "@/lib/cast/use-cast"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import Cast from "lucide-react-native/icons/cast"
 import ChevronRight from "lucide-react-native/icons/chevron-right"
 import Minus from "lucide-react-native/icons/minus"
@@ -136,6 +137,7 @@ export function usePlayerCast({ castUrl, ready, title, artwork, playing, positio
 
 /** Over the player while a TV plays and the sheet is closed; opens the remote. */
 export function CastPill({ device, onPress }: { device: string, onPress: () => void }) {
+    useThemeColors()
     const t = useTr()
     const label = t(`Playing on ${device}`, `Läuft auf ${device}`)
     return (
@@ -192,6 +194,7 @@ export function CastSheet({ cast: c, title, hasNext, onNext }: { cast: PlayerCas
 }
 
 function Waiting({ text }: { text: string }) {
+    useThemeColors()
     return (
         <View accessibilityRole="progressbar" accessibilityLabel={text} className="min-h-24 flex-1 flex-row items-center justify-center gap-3 rounded-surface bg-sm-surface-raised px-4">
             <ActivityIndicator color={colors.smAccent} />
@@ -239,6 +242,7 @@ function CastLeave({ t, state, hasNext, row }: { t: Translate, state: CastState,
 
 function CastRemote({ t, state, title, onNext, leaveInFoot }: { t: Translate, state: CastState, title: string, onNext?: () => void, leaveInFoot: boolean }) {
     // While dragging, the bar shows the finger, not the TV
+    useThemeColors()
     const [dragMs, setDragMs] = React.useState<number | null>(null)
     const control = (action: "play" | "pause" | "seek" | "skip" | "volume", value?: number) => void castController.control(action, value)
     const duration = state.durationMs

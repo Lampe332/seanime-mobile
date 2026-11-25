@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate, useTr } from "@/lib/app-language"
 import { haptic } from "@/lib/feedback"
 import { colors } from "@/lib/theme/tokens"
+import { useThemeColors } from "@/lib/theme/appearance"
 import { THEME_DEFAULT_VALUES } from "@/lib/theme/theme-hooks"
 import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
@@ -182,6 +183,7 @@ function RowHighlight({ label }: { label: string }) {
 }
 
 function RowGlow({ reveal }: { reveal: RowReveal }) {
+    useThemeColors()
     const ref = React.useRef<React.ComponentRef<typeof View>>(null)
     const [opacity] = React.useState(() => new Animated.Value(0))
     const reducedMotion = useReducedMotion()
@@ -268,6 +270,7 @@ function RowText({ label, note, scope, changed, tone, className }: {
     tone?: "danger" | "accent"
     className?: string
 }) {
+    useThemeColors()
     const t = useTr()
     const ScopeIcon = scope === "device" ? Smartphone : RefreshCw
     return (
@@ -366,6 +369,49 @@ export function LocalSwitch({ label, note, checked, onCheckedChange, sub, disabl
         changed={defaultChecked !== undefined && checked !== defaultChecked} />
 }
 
+/** A colour circle: its name for the screen reader, the colour it shows */
+export type SwatchOption = { value: string, color: string, label: string }
+
+/**
+ * A row of colour circles: name and note above, the circles below (48dp to tap, the colour 36dp inside). The current one
+ * is ringed and checked; with `defaultValue` a dot marks a changed value.
+ */
+export function SwatchRow({ label, note, value, options, onChange, scope, defaultValue }: {
+    label: string
+    note?: string
+    value: string
+    options: SwatchOption[]
+    onChange: (value: string) => void
+    scope?: SettingScope
+    defaultValue?: string
+}) {
+    useThemeColors()
+    return (
+        <View accessibilityRole="radiogroup" accessibilityLabel={label} className={cn(ROW, "flex-col items-stretch gap-3")}>
+            <RowHighlight label={label} />
+            <RowText label={label} note={note} scope={scope} changed={defaultValue !== undefined && value !== defaultValue} className="min-w-0" />
+            <View className="flex-row flex-wrap gap-1.5">
+                {options.map(option => {
+                    const selected = option.value === value
+                    return <Pressable key={option.value} accessibilityRole="radio" accessibilityLabel={option.label}
+                        accessibilityState={{ checked: selected }}
+                        onPress={() => {
+                            if (selected) return
+                            haptic("tick")
+                            onChange(option.value)
+                        }}
+                        className="size-12 items-center justify-center rounded-full border-2"
+                        style={{ borderColor: selected ? colors.smText : "transparent" }}>
+                        <View className="size-9 items-center justify-center rounded-full" style={{ backgroundColor: option.color }}>
+                            {selected && <Check size={18} strokeWidth={3} color={colors.paper} />}
+                        </View>
+                    </Pressable>
+                })}
+            </View>
+        </View>
+    )
+}
+
 /** An option may say in one sentence what it does (shown in the sheet of all options) */
 export type SelectOption = Option & { note?: string }
 
@@ -392,6 +438,7 @@ export function SelectRow({ label, note, value, options, onChange, disabled, sub
     scope?: SettingScope
     defaultValue?: string
 }) {
+    useThemeColors()
     const t = useTr()
     const { height: windowHeight } = useWindowDimensions()
     const [open, setOpen] = React.useState(false)
