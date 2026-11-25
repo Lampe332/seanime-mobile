@@ -15,7 +15,8 @@ import { useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
 import { getLibraryCollectionTitle, getMangaCollectionTitle } from "@/lib/server/utils"
 import { colors } from "@/lib/theme/tokens"
-import { useThemeColors } from "@/lib/theme/appearance"
+import { usePalette, useThemeColors } from "@/lib/theme/appearance"
+import { accentGlow } from "@/lib/theme/palette"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { __anilist_userAnimeMediaAtom } from "@/main/_atoms/anilist.atoms"
@@ -77,6 +78,7 @@ import { MyShowsRow } from "./my-shows-row"
  * `home-screen-bottom` (after the sections) show plugin pages (2.17).
  */
 export function HomeScreen() {
+    usePalette()
     const t = useTr()
     const serverStatus = useServerStatus()
     const window = useWindowDimensions()
@@ -144,14 +146,14 @@ export function HomeScreen() {
 
     // Header .16 → .11 and Home .11 → transparent over 40rem, as one gradient from the top of the screen
     const head = 110
-    const tint = `linear-gradient(180deg, rgba(97,82,223,0.16) 0px, rgba(97,82,223,0.11) ${head}px, rgba(97,82,223,0.085) ${head + 115}px, rgba(97,82,223,0.055) ${head + 256}px, rgba(97,82,223,0.028) ${head + 397}px, rgba(97,82,223,0.01) ${head + 525}px, rgba(0,0,0,0) ${head + 640}px)`
+    const tint = accentGlow([[0.16, 0], [0.11, head], [0.085, head + 115], [0.055, head + 256], [0.028, head + 397], [0.01, head + 525]], head + 640)
 
     return (
         <>
             <ScrollView
                 {...homeScrollHandlers}
                 className="flex-1"
-                contentContainerStyle={{ minHeight: window.height, paddingBottom: pageBottom, ...(!rail ? { backgroundImage: tint } : null) }}
+                contentContainerStyle={{ minHeight: window.height, paddingBottom: pageBottom, ...(!rail && tint ? { backgroundImage: tint } : null) }}
             >
                 <HomeMobileHeader actions={actions} />
                 <View className={cn("w-full px-4", !rail && "max-w-[1152px] self-center")}>

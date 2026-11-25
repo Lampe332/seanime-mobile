@@ -20,7 +20,8 @@ import { useExtensionUpdateCount } from "@/main/extensions/_lib/use-extension-up
 import { useUpdatesCount } from "@/lib/updates/use-updates"
 import { pressTourTarget, TOUR_TARGETS, useTourTarget } from "@/main/_features/tour/tour-targets"
 import { colors, sizes } from "@/lib/theme/tokens"
-import { useThemeColors } from "@/lib/theme/appearance"
+import { usePalette, useThemeColors } from "@/lib/theme/appearance"
+import { menuRowHighlight } from "@/lib/theme/palette"
 import { Image } from "expo-image"
 import { useAtomValue } from "jotai"
 import React from "react"
@@ -236,6 +237,7 @@ function MenuRow({ label, icon, current, first, tourTarget, onPress, count, coun
 }) {
     const { animatedStyle, pressIn, pressOut } = usePressScale(0.975)
     const tourRef = useTourTarget(tourTarget ?? null)
+    const highlight = menuRowHighlight(usePalette())
     return (
         <Animated.View style={animatedStyle}>
             {!first && !current && <View pointerEvents="none" className="absolute left-16 right-3 top-0 h-px bg-white/5" />}
@@ -250,16 +252,17 @@ function MenuRow({ label, icon, current, first, tourTarget, onPress, count, coun
                 }}
                 onPressIn={pressIn}
                 onPressOut={pressOut}
-                style={current ? { backgroundImage: "linear-gradient(90deg, rgba(97,82,223,0.30), rgba(139,92,246,0.06))" } : undefined}
+                style={current ? { backgroundImage: highlight.row } : undefined}
                 className="min-h-14 flex-row items-center gap-3.5 rounded-[16px] pl-2.5 pr-3 active:bg-white/8"
             >
                 <View
                     style={current ? {
-                        backgroundImage: "linear-gradient(135deg, #6152df, #8b5cf6)",
-                        boxShadow: "0 0 16px rgba(97,82,223,0.65)",
+                        backgroundImage: highlight.tile,
+                        boxShadow: highlight.glow,
+                        borderColor: highlight.border,
                     } : undefined}
                     className={cn("h-[38px] w-[38px] items-center justify-center rounded-[12px] border",
-                        current ? "border-[rgba(196,181,253,0.45)]" : "border-white/7 bg-white/6")}
+                        !current && "border-white/7 bg-white/6")}
                 >
                     <MobileIcon name={icon} size={22} color={current ? "#ffffff" : "rgba(255,255,255,0.78)"} />
                 </View>

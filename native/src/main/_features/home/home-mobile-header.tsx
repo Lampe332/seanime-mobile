@@ -3,6 +3,8 @@ import { Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
 import { getAssetUrl } from "@/lib/server/assets"
 import { colors } from "@/lib/theme/tokens"
+import { usePalette } from "@/lib/theme/appearance"
+import { glowGroundFade } from "@/lib/theme/palette"
 import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useRouter } from "@/lib/navigation"
@@ -47,6 +49,7 @@ export function HomeMobileHeader({ actions }: { actions?: React.ReactNode }) {
  * text and faded out at the bottom. It fades in once loaded (opacity only, 320 ms).
  */
 function HomeBanner({ image, opacity, position }: { image: string, opacity: number, position?: string }) {
+    usePalette()
     return (
         <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="absolute inset-0 overflow-hidden">
             <Image
@@ -60,7 +63,7 @@ function HomeBanner({ image, opacity, position }: { image: string, opacity: numb
             {/* the scrim under the title (::after) */}
             <View className="absolute inset-0" style={{ backgroundImage: "linear-gradient(90deg, rgba(12,12,14,0.62), rgba(12,12,14,0.28) 70%, rgba(12,12,14,0.4))" }} />
             {/* React Native has no mask-image: the lower 45% fades into the head's tint instead of to transparent */}
-            <View className="absolute inset-0" style={{ backgroundImage: "linear-gradient(180deg, rgba(17,15,31,0) 55%, rgb(17,15,31) 100%)" }} />
+            <View className="absolute inset-0" style={{ backgroundImage: glowGroundFade(0.11) }} />
         </View>
     )
 }

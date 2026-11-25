@@ -52,6 +52,11 @@ export function useAppearanceSync() {
  * palette changes. Returns the current script colours.
  */
 export function useThemeColors() {
+    return usePalette().js
+}
+
+/** The whole current palette (for accentGlow, navHighlight … of palette.ts), rendering again when it changes */
+export function usePalette() {
     useSyncExternalStore(subscribePalette, paletteVersion, paletteVersion)
-    return currentPalette().js
+    return currentPalette()
 }

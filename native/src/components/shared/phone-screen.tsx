@@ -2,7 +2,8 @@ import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted } from "@/components/ui/text/text"
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { colors } from "@/lib/theme/tokens"
-import { useThemeColors } from "@/lib/theme/appearance"
+import { usePalette, useThemeColors } from "@/lib/theme/appearance"
+import { accentGlow, type GlowStop } from "@/lib/theme/palette"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { player_boxSlotAtom, player_nowAtom } from "@/main/_features/player/player-box"
 import { type MiniFrame, miniFrame, miniPlayerShown, pageBottomPad } from "@/main/_features/player/player-chrome"
@@ -22,7 +23,12 @@ import { pageTop } from "./page-top"
  * cap of [data-phone-screen] never centred them).
  */
 export const TABLET_PAGE_GUTTER = 16
-export const PHONE_PAGE_TINT = "linear-gradient(180deg, rgba(97,82,223,0.16) 0px, rgba(97,82,223,0.11) 56px, rgba(97,82,223,0.055) 261px, rgba(97,82,223,0.01) 476px, rgba(0,0,0,0) 568px)"
+const PHONE_PAGE_GLOW: GlowStop[] = [[0.16, 0], [0.11, 56], [0.055, 261], [0.01, 476]]
+
+/** The phone pages' accent glow (568dp, none with AMOLED black); renders the caller again when the palette changes */
+export function usePhonePageTint() {
+    return accentGlow(PHONE_PAGE_GLOW, 568, usePalette())
+}
 
 /*
  * The top of every page (page-top.ts): Nick 10.11. dropped 2.0.32's empty 3.5rem navbar over the phone tabs (and the
@@ -98,6 +104,7 @@ export function PhoneScreen({ title, subtitle, actions, children, className, onR
     const barHeight = useNavBarHeight()
     const { rail } = useTabletLayout()
     const { height } = useWindowDimensions()
+    const pageTint = usePhonePageTint()
     // the phone bar overlays the page; the tablet rail sits beside it
     const bottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
     const refreshControl = usePullRefresh(onRefresh, top)
@@ -126,7 +133,7 @@ export function PhoneScreen({ title, subtitle, actions, children, className, onR
                     minHeight: height,
                     paddingTop: top,
                     paddingBottom: bottom,
-                    ...(!rail ? { backgroundImage: PHONE_PAGE_TINT } : null),
+                    ...(!rail && pageTint ? { backgroundImage: pageTint } : null),
                 }}
                 contentContainerClassName={cn("w-full gap-6 px-4", !rail && "max-w-[1152px] self-center", className)}
             >

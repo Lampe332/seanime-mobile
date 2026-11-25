@@ -3,7 +3,7 @@ import { useNavBarHeight } from "@/components/navigation/app-navigation"
 import { HEAD_ACTIONS_STYLE } from "@/components/shared/page-head"
 import { GridBones, PhoneEmpty, useGridColumns } from "@/components/shared/phone-cards"
 import { Notice, TextAction } from "@/components/shared/phone-kit"
-import { PHONE_PAGE_TINT, PhoneHeadTray, usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
+import { PhoneHeadTray, usePageBottomPad, usePageTop, usePhonePageTint } from "@/components/shared/phone-screen"
 import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
@@ -31,6 +31,7 @@ export function StaffPhone({ id, name, kind }: { id: number, name?: string, kind
     const t = useTr()
     const insets = useSafeAreaInsets()
     const top = usePageTop()
+    const pageTint = usePhonePageTint()
     const barHeight = useNavBarHeight()
     const { rail } = useTabletLayout()
     const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
@@ -115,7 +116,7 @@ export function StaffPhone({ id, name, kind }: { id: number, name?: string, kind
 
     return (
         <View className="flex-1">
-            {!rail && <View pointerEvents="none" className="absolute inset-x-0 top-0 h-[568px]" style={{ backgroundImage: PHONE_PAGE_TINT }} />}
+            {!rail && <View pointerEvents="none" className="absolute inset-x-0 top-0 h-[568px]" style={{ backgroundImage: pageTint }} />}
             <View className={cn("w-full flex-1", !rail && "max-w-[1152px] self-center")} style={{ paddingHorizontal: gutter }}
                 onLayout={event => setContentWidth(event.nativeEvent.layout.width - gutter * 2)}>
                 <FlashList

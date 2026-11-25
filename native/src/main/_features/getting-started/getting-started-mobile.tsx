@@ -4,6 +4,8 @@ import { cn } from "@/components/ui/core/styling"
 import { Text } from "@/components/ui/text/text"
 import { APP_LANGUAGES, type AppLanguage, appLanguageAtom, useTr } from "@/lib/app-language"
 import { useRouter } from "@/lib/navigation"
+import { usePalette } from "@/lib/theme/appearance"
+import { accentGlow, type GlowStop } from "@/lib/theme/palette"
 import { buildGettingStartedPayload, DEFAULT_GETTING_STARTED_FEATURES } from "@/main/_features/getting-started/getting-started-payload"
 import { useSetServerStatus } from "@/main/_hooks/use-server-status"
 import { Image } from "expo-image"
@@ -20,10 +22,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
  * `onPreviewStart` (test and scratch only, intro-preview.ts): the button goes on to the preview's AniList sheet and
  * nothing is saved.
  */
-const TINT = "linear-gradient(180deg, rgba(97,82,223,0.14) 0px, rgba(97,82,223,0.05) 246px, rgba(97,82,223,0) 448px)"
+const TINT: GlowStop[] = [[0.14, 0], [0.05, 246], [0, 448]]
 
 export function MobileGettingStarted({ status, onPreviewStart }: { status: Status, onPreviewStart?: () => void }) {
     const t = useTr()
+    const palette = usePalette()
     const insets = useSafeAreaInsets()
     const router = useRouter()
     const setServerStatus = useSetServerStatus()
@@ -51,7 +54,7 @@ export function MobileGettingStarted({ status, onPreviewStart }: { status: Statu
         <ScrollView
             className="flex-1 bg-sm-surface-sunken"
             contentContainerStyle={{
-                backgroundImage: TINT,
+                backgroundImage: accentGlow(TINT, undefined, palette),
                 flexGrow: 1,
                 paddingTop: Math.max(40, insets.top + 24),
                 paddingBottom: Math.max(24, insets.bottom),

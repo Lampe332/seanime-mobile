@@ -1,4 +1,4 @@
-import { PHONE_PAGE_TINT, PhoneHeadTray, usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
+import { PhoneHeadTray, usePageBottomPad, usePageTop, usePhonePageTint } from "@/components/shared/phone-screen"
 import { HEAD_ACTIONS_STYLE } from "@/components/shared/page-head"
 import { buildSeaQuery } from "@/api/client/requests"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
@@ -106,6 +106,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
     // with a custom-source extension the results head links its screen (search-phone.tsx `data-search-custom-sources`)
     const insets = useSafeAreaInsets()
     const top = usePageTop()
+    const pageTint = usePhonePageTint()
     const barHeight = useNavBarHeight()
     const { rail, isTablet } = useTabletLayout()
     const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
@@ -353,7 +354,7 @@ export function SearchPhone({ params }: { params: SearchLinkParams }) {
         <View className="flex-1">
             {/* the page tint of the phone tabs (the tablet's ground carries its own) */}
             {!rail && <View pointerEvents="none" className="absolute inset-x-0 top-0 h-[568px]"
-                style={{ backgroundImage: PHONE_PAGE_TINT }} />}
+                style={{ backgroundImage: pageTint }} />}
             <View className={cn("w-full flex-1", !rail && "max-w-[1152px] self-center")} style={{ paddingHorizontal: gutter }}
                 onLayout={event => setContentWidth(event.nativeEvent.layout.width - gutter * 2)}>
                 <StaleContext value={stale}>

@@ -1,5 +1,5 @@
 import { useNavBarHeight } from "@/components/navigation/app-navigation"
-import { PHONE_PAGE_TINT, usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
+import { usePageBottomPad, usePageTop, usePhonePageTint } from "@/components/shared/phone-screen"
 import { cn } from "@/components/ui/core/styling"
 import { Heading, Muted, Text } from "@/components/ui/text/text"
 import { useTr } from "@/lib/app-language"
@@ -87,6 +87,7 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
     const t = useTr()
     const insets = useSafeAreaInsets()
     const top = usePageTop()
+    const pageTint = usePhonePageTint()
     const barHeight = useNavBarHeight()
     const { rail, isTablet } = useTabletLayout()
     const { height } = useWindowDimensions()
@@ -260,7 +261,7 @@ export function SettingsPage({ icon: Icon, title, summary, onBack, jump = true, 
     const side = pane ? "" : "px-4"
 
     const page = (
-        <View className="flex-1" style={pane ? { width: "100%", maxWidth: SETTINGS_WIDE_COLUMN_WIDTH } : { paddingTop: top, ...(!rail ? { backgroundImage: PHONE_PAGE_TINT } : null) }}>
+        <View className="flex-1" style={pane ? { width: "100%", maxWidth: SETTINGS_WIDE_COLUMN_WIDTH } : { paddingTop: top, ...(!rail && pageTint ? { backgroundImage: pageTint } : null) }}>
             {pane ? (
                 <View className="flex-row items-center gap-3.5 pb-4">
                     <Icon size={22} color={colors.smAccent} />

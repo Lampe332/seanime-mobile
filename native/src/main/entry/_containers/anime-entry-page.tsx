@@ -17,6 +17,7 @@ import { isCustomSource } from "@/lib/server/utils"
 import { entryColumnGaps, entryColumnWidth, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
+import { accentGlow, type GlowStop } from "@/lib/theme/palette"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { AnilistMediaEntryButton } from "@/main/_features/media/_containers/anilist-media-entry-sheet"
 import { MEDIA_STATUS_LABELS, plainDescription } from "@/main/_features/media/_lib/media-labels"
@@ -117,8 +118,8 @@ function SharedByChip() {
 
 /** The page tint (mobile-anime.css) from `top` dp down */
 function pageTint(top: number) {
-    const stops: [number, number][] = [[0.16, 0], [0.11, 56], [0.085, 172], [0.055, 312], [0.028, 453], [0.01, 581]]
-    return `linear-gradient(180deg, ${stops.map(([alpha, at]) => `rgba(97,82,223,${alpha}) ${at + top}px`).join(", ")}, rgba(0,0,0,0) ${696 + top}px)`
+    const stops: GlowStop[] = [[0.16, 0], [0.11, 56], [0.085, 172], [0.055, 312], [0.028, 453], [0.01, 581]]
+    return accentGlow(stops.map(([alpha, at]) => [alpha, at + top] as const), 696 + top)
 }
 
 /** How often the scrolling page tells the long online list where it is (windowed-rows.tsx) */

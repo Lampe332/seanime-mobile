@@ -1,4 +1,4 @@
-import { PHONE_PAGE_TINT, usePageBottomPad, usePageTop, usePullRefresh } from "@/components/shared/phone-screen"
+import { usePageBottomPad, usePageTop, usePullRefresh, usePhonePageTint } from "@/components/shared/phone-screen"
 import { useServerMutation } from "@/api/client/requests"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import type { AL_AnimeCollection, AL_BaseAnime, AL_BaseManga } from "@/api/generated/types"
@@ -343,6 +343,7 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
     const list = React.useRef<FlashListRef<ListEntry>>(null)
     // the same top as every page (page-top.ts)
     const topPadding = usePageTop()
+    const pageTint = usePhonePageTint()
     const refreshControl = usePullRefresh(onRefresh, topPadding)
     // Where the switch, search and pills start: "Back to top" and a focused search scroll there, not to the title.
     const controlsY = React.useRef(0)
@@ -466,7 +467,7 @@ function ListsCollection({ type, typeSwitch, refreshButton, statsButton, swapOnM
         <View className="flex-1">
             {/* the page tint of the phone tabs (the tablet's ground carries its own) */}
             {!rail && <View pointerEvents="none" className="absolute inset-x-0 top-0 h-[568px]"
-                style={{ backgroundImage: PHONE_PAGE_TINT }} />}
+                style={{ backgroundImage: pageTint }} />}
             <View className={cn("w-full flex-1", !rail && "max-w-[1152px] self-center")} style={{ paddingHorizontal: gutter }}
                 onLayout={event => setContentWidth(event.nativeEvent.layout.width - gutter * 2)}>
                 <FlashList

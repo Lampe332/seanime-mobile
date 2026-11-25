@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { ACCENT_IDS, ACCENT_PRESETS, buildPalette, contrastRatio, type RGB } from "./palette"
+import { accentGlow, accentRgba, ACCENT_IDS, ACCENT_PRESETS, buildPalette, contrastRatio, glowGroundFade, menuRowHighlight, type RGB } from "./palette"
 
 const WHITE: RGB = [255, 255, 255]
 const blend = (top: RGB, alpha: number, under: RGB): RGB => top.map((v, i) => Math.round(v * alpha + under[i] * (1 - alpha))) as unknown as RGB
@@ -67,5 +67,50 @@ describe("palette", () => {
     it("every preset sets every variable the default sets", () => {
         const names = Object.keys(buildPalette("violet", false).css).sort()
         for (const id of ACCENT_IDS) expect(Object.keys(buildPalette(id, true).css).sort()).toEqual(names)
+    })
+})
+
+describe("accent tints drawn in script", () => {
+    const violet = buildPalette("violet", false)
+    const blue = buildPalette("blue", false)
+    const phone = [[0.16, 0], [0.11, 56], [0.055, 261], [0.01, 476]] as const
+    const tablet = [[0.16, 0], [0.13, 74], [0.102, 147], [0.078, 221], [0.058, 294], [0.04, 368], [0.026, 442], [0.014, 515], [0.0064, 589], [0.0016, 662], [0, 736]] as const
+
+    it("violet gives exactly the strings the screens had written in", () => {
+        expect(accentGlow(phone, 568, violet)).toBe("linear-gradient(180deg, rgba(97,82,223,0.16) 0px, rgba(97,82,223,0.11) 56px, rgba(97,82,223,0.055) 261px, rgba(97,82,223,0.01) 476px, rgba(0,0,0,0) 568px)")
+        expect(accentGlow(tablet, undefined, violet)).toBe("linear-gradient(180deg, rgba(97,82,223,0.16) 0px, rgba(97,82,223,0.13) 74px, rgba(97,82,223,0.102) 147px, rgba(97,82,223,0.078) 221px, rgba(97,82,223,0.058) 294px, rgba(97,82,223,0.04) 368px, rgba(97,82,223,0.026) 442px, rgba(97,82,223,0.014) 515px, rgba(97,82,223,0.0064) 589px, rgba(97,82,223,0.0016) 662px, rgba(97,82,223,0) 736px)")
+        expect(accentGlow([[0.14, 0], [0.05, 246], [0, 448]], undefined, violet)).toBe("linear-gradient(180deg, rgba(97,82,223,0.14) 0px, rgba(97,82,223,0.05) 246px, rgba(97,82,223,0) 448px)")
+        const head = 110
+        expect(accentGlow([[0.16, 0], [0.11, head], [0.085, head + 115], [0.055, head + 256], [0.028, head + 397], [0.01, head + 525]], head + 640, violet))
+            .toBe(`linear-gradient(180deg, rgba(97,82,223,0.16) 0px, rgba(97,82,223,0.11) ${head}px, rgba(97,82,223,0.085) ${head + 115}px, rgba(97,82,223,0.055) ${head + 256}px, rgba(97,82,223,0.028) ${head + 397}px, rgba(97,82,223,0.01) ${head + 525}px, rgba(0,0,0,0) ${head + 640}px)`)
+        expect(glowGroundFade(0.11, violet)).toBe("linear-gradient(180deg, rgba(17,15,31,0) 55%, rgb(17,15,31) 100%)")
+        expect(menuRowHighlight(violet)).toEqual({
+            row: "linear-gradient(90deg, rgba(97,82,223,0.30), rgba(139,92,246,0.06))",
+            tile: "linear-gradient(135deg, #6152df, #8b5cf6)",
+            glow: "0 0 16px rgba(97,82,223,0.65)",
+            border: "rgba(196,181,253,0.45)",
+        })
+        expect(accentRgba(0.65, violet)).toBe("rgba(97,82,223,0.65)")
+    })
+
+    it("another accent carries its own 500", () => {
+        const blue500 = ACCENT_PRESETS.blue.ramp[500].join(",")
+        expect(accentGlow(phone, 568, blue)).toContain(`rgba(${blue500},0.16) 0px`)
+        expect(accentGlow(phone, 568, blue)).not.toContain("97,82,223")
+        const nav = menuRowHighlight(blue)
+        expect(nav.row).toContain(`rgba(${blue500},0.30)`)
+        expect(nav.glow).toBe(`0 0 16px rgba(${blue500},0.65)`)
+        expect(nav.tile).toBe("linear-gradient(135deg, #2563eb, #3b82f6)")
+        expect(accentRgba(0.5, blue)).toBe(`rgba(${blue500},0.5)`)
+    })
+
+    it("AMOLED black has no page glow and its fades end in black; the menu highlight stays", () => {
+        for (const id of ACCENT_IDS) {
+            const amoled = buildPalette(id, true)
+            expect(accentGlow(phone, 568, amoled)).toBeUndefined()
+            expect(accentGlow(tablet, undefined, amoled)).toBeUndefined()
+            expect(glowGroundFade(0.11, amoled)).toBe("linear-gradient(180deg, rgba(0,0,0,0) 55%, rgb(0,0,0) 100%)")
+            expect(menuRowHighlight(amoled)).toEqual(menuRowHighlight(buildPalette(id, false)))
+        }
     })
 })

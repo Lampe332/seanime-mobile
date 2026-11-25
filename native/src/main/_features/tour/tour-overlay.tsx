@@ -494,7 +494,7 @@ function TourHero({ kind, animate, isTablet, delay }: { kind: NonNullable<TourSt
                             }).duration(f.sparks).delay(delay + f.sparksDelay + s.delay)}
                             // where each ends: gone (the move above leaves it there)
                             style={{ position: "absolute", left: s.fromX - SPARK / 2, top: s.fromY - SPARK / 2, width: SPARK, height: SPARK, borderRadius: SPARK / 2, opacity: 0,
-                                backgroundColor: i % 2 ? "#c4b5fd" : "#fde68a" }} />
+                                backgroundColor: i % 2 ? colors.navActive : "#fde68a" }} />
                     ))}
                 </View>
             )}

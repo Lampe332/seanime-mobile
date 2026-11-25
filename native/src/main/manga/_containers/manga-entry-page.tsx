@@ -18,6 +18,7 @@ import { getCustomSourceMediaSiteUrl, isCustomSource } from "@/lib/server/utils"
 import { entryColumnGaps, entryColumnWidth, WIDE_MIN_WIDTH } from "@/lib/tablet-ui"
 import { colors } from "@/lib/theme/tokens"
 import { useThemeColors } from "@/lib/theme/appearance"
+import { accentGlow, type GlowStop } from "@/lib/theme/palette"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { MediaEntryCharactersSection } from "@/main/_features/media/_components/media-entry-characters-section"
 import { EntryAboutLinks } from "@/main/_features/media/_components/entry-about-links"
@@ -68,8 +69,8 @@ import { __manga_selectedChapterAtom } from "@/main/manga/_lib/handle-chapter-re
  */
 
 function pageTint(top: number) {
-    const stops: [number, number][] = [[0.16, 0], [0.11, 56], [0.085, 172], [0.055, 312], [0.028, 453], [0.01, 581]]
-    return `linear-gradient(180deg, ${stops.map(([alpha, at]) => `rgba(97,82,223,${alpha}) ${at + top}px`).join(", ")}, rgba(0,0,0,0) ${696 + top}px)`
+    const stops: GlowStop[] = [[0.16, 0], [0.11, 56], [0.085, 172], [0.055, 312], [0.028, 453], [0.01, 581]]
+    return accentGlow(stops.map(([alpha, at]) => [alpha, at + top] as const), 696 + top)
 }
 
 export function MangaEntryPage() {

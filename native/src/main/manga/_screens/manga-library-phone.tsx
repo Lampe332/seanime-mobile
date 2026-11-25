@@ -1,4 +1,4 @@
-import { PHONE_PAGE_TINT, usePageBottomPad, usePageTop } from "@/components/shared/phone-screen"
+import { usePageBottomPad, usePageTop, usePhonePageTint } from "@/components/shared/phone-screen"
 import { cn } from "@/components/ui/core/styling"
 import type { Manga_CollectionEntry, Manga_CollectionList, Manga_MangaLatestChapterNumberItem } from "@/api/generated/types"
 import { useUpdateTheme } from "@/api/hooks/theme.hooks"
@@ -77,6 +77,7 @@ export function MangaLibraryPhone({ lists, rawLists, loading, error, onRetry, la
     const serverStatus = useServerStatus()
     const insets = useSafeAreaInsets()
     const top = usePageTop()
+    const pageTint = usePhonePageTint()
     const barHeight = useNavBarHeight()
     const { rail } = useTabletLayout()
     const pageBottom = usePageBottomPad((rail ? 32 : barHeight + 32) + insets.bottom)
@@ -203,7 +204,7 @@ export function MangaLibraryPhone({ lists, rawLists, loading, error, onRetry, la
     return (
         <View className="flex-1">
             {!rail && <View pointerEvents="none" className="absolute inset-x-0 top-0 h-[568px]"
-                style={{ backgroundImage: PHONE_PAGE_TINT }} />}
+                style={{ backgroundImage: pageTint }} />}
             <View className={cn("w-full flex-1", !rail && "max-w-[1152px] self-center")} style={{ paddingHorizontal: gutter }}
                 onLayout={event => setContentWidth(event.nativeEvent.layout.width - gutter * 2)}>
                 <FlashList

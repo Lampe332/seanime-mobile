@@ -126,7 +126,7 @@ export function buildPalette(accent: AccentId, amoled: boolean) {
         navActiveBg: rgba(nav.tint, 0.18),
         menuBorder: rgba(nav.tint, 0.22),
     }
-    return { css, js, swatch: hex(r[400]), surfaces: s, ramp: r, nav }
+    return { css, js, swatch: hex(r[400]), surfaces: s, ramp: r, nav, amoled }
 }
 
 export type Palette = ReturnType<typeof buildPalette>
@@ -167,4 +167,51 @@ export function subscribePalette(listener: () => void) {
 
 export function paletteVersion() {
     return version
+}
+
+/* Accent tints drawn in script (gradients, glows), in the compact form they were written in: rgba(97,82,223,0.16) */
+const tight = (c: RGB, a: number | string) => `rgba(${c.join(",")},${a})`
+
+/** The accent fill (500) at an alpha */
+export function accentRgba(alpha: number, palette: Palette = current) {
+    return tight(palette.ramp[500], alpha)
+}
+
+/** A stop of a page glow: the accent's alpha and its offset in dp from the top */
+export type GlowStop = readonly [alpha: number, at: number]
+
+/**
+ * The accent glow down from the top of a page; `clearAt` closes it with a clear stop. AMOLED black keeps the page true
+ * black: no glow (undefined, so the style property drops out).
+ */
+export function accentGlow(stops: readonly GlowStop[], clearAt?: number, palette: Palette = current): string | undefined {
+    if (palette.amoled) return undefined
+    const parts = stops.map(([alpha, at]) => `${accentRgba(alpha, palette)} ${at}px`)
+    if (clearAt !== undefined) parts.push(`rgba(0,0,0,0) ${clearAt}px`)
+    return `linear-gradient(180deg, ${parts.join(", ")})`
+}
+
+/** The page ground where the glow has `alpha`: background and accent mixed (just the background with AMOLED black) */
+export function glowGround(alpha: number, palette: Palette = current): RGB {
+    const bg = palette.surfaces.background
+    if (palette.amoled) return bg
+    const a = palette.ramp[500]
+    return [0, 1, 2].map(i => Math.round(bg[i] + (a[i] - bg[i]) * alpha)) as [number, number, number]
+}
+
+/** A fade from clear to the ground under the glow at `alpha` (a banner that ends in the page) */
+export function glowGroundFade(alpha: number, palette: Palette = current) {
+    const g = glowGround(alpha, palette)
+    return `linear-gradient(180deg, ${tight(g, 0)} 55%, rgb(${g.join(",")}) 100%)`
+}
+
+/** The menu's current row: the accent wash of the row, the gradient and glow of its icon tile, the tile's border */
+export function menuRowHighlight(palette: Palette = current) {
+    const { ramp: r, nav } = palette
+    return {
+        row: `linear-gradient(90deg, ${tight(r[500], "0.30")}, ${tight(nav.tint, "0.06")})`,
+        tile: `linear-gradient(135deg, ${hex(r[500])}, ${hex(nav.tint)})`,
+        glow: `0 0 16px ${tight(r[500], "0.65")}`,
+        border: tight(nav.active, "0.45"),
+    }
 }

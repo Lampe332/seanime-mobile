@@ -3,6 +3,8 @@ import { NavBar, NavMenu, type NavMenuAction, NavRail, useNavItems } from "@/com
 import { CoverFlightHost } from "@/components/shared/cover-flight"
 import { renderPage } from "@/components/ui/core/page-transition"
 import { useRouter } from "@/lib/navigation"
+import { usePalette } from "@/lib/theme/appearance"
+import { accentGlow, type GlowStop } from "@/lib/theme/palette"
 import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { isLoginModalOpenAtom } from "@/main/_atoms/server-status.atoms"
 import { LibraryStatus } from "@/main/_features/anime-library/_containers/library-status"
@@ -49,7 +51,7 @@ import { useWindowDimensions, View } from "react-native"
  * Phone: the bar over the bottom edge. Tablet (smaller screen side ≥ 600dp, window ≥ 600dp wide): the rail on the left,
  * on the shared ground with its brand tint easing out from the top (tablet.css).
  */
-const TABLET_GROUND = "linear-gradient(180deg, rgba(97,82,223,0.16) 0px, rgba(97,82,223,0.13) 74px, rgba(97,82,223,0.102) 147px, rgba(97,82,223,0.078) 221px, rgba(97,82,223,0.058) 294px, rgba(97,82,223,0.04) 368px, rgba(97,82,223,0.026) 442px, rgba(97,82,223,0.014) 515px, rgba(97,82,223,0.0064) 589px, rgba(97,82,223,0.0016) 662px, rgba(97,82,223,0) 736px)"
+const TABLET_GROUND: GlowStop[] = [[0.16, 0], [0.13, 74], [0.102, 147], [0.078, 221], [0.058, 294], [0.04, 368], [0.026, 442], [0.014, 515], [0.0064, 589], [0.0016, 662], [0, 736]]
 
 export default function MainLayout() {
     return (
@@ -63,6 +65,7 @@ function MainFrame() {
     const pathname = usePathname()
     const router = useRouter()
     const { rail, shortRail } = useTabletLayout()
+    const ground = accentGlow(TABLET_GROUND, undefined, usePalette())
     const items = useNavItems()
     const [menuOpen, setMenuOpen] = React.useState(false)
     const user = useCurrentUser()
@@ -127,7 +130,7 @@ function MainFrame() {
     return (
         // Back goes to the page the user came from (the old app's WebView history), not always to Home
         <Tabs style={{ flex: 1 }} options={{ backBehavior: "history" }}>
-            <View className="flex-1 flex-row bg-background" style={rail ? { backgroundImage: TABLET_GROUND } : undefined}>
+            <View className="flex-1 flex-row bg-background" style={rail && ground ? { backgroundImage: ground } : undefined}>
                 {rail && <NavRail {...navProps} short={shortRail} />}
                 <View className="flex-1">
                     <ContentGate pathname={pathname}>
