@@ -12,6 +12,8 @@ import { useThemeColors } from "@/lib/theme/appearance"
 import { accentInput } from "@/lib/theme/tokens"
 import { ConfirmSheet, InfoRow, LinkRow, LocalSwitch, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import { checkServerAddress } from "@/main/settings/_lib/mediaserver-host"
+import { MediaServerMatchSheet } from "@/main/entry/_containers/entry-actions/media-server-match-sheet"
+import { type MatchSubject, subjectOfUnmatched } from "@/main/entry/_lib/media-server-match"
 import { useQueryClient } from "@tanstack/react-query"
 import Eye from "lucide-react-native/icons/eye"
 import EyeOff from "lucide-react-native/icons/eye-off"
@@ -21,7 +23,7 @@ import { Pressable, TextInput, type TextInputInstance, View } from "react-native
 /*
  * Settings › Media server. Signed out: address, username and password, then Sign in. Signed in: the server, the user,
  * how many series it has and how many of them were matched, when it was last read, Read again, the series that were not
- * matched (shown only) and Sign out. The password only goes to the server: the field is emptied after signing in and it
+ * matched (tapping one opens "Change match" with its suggestion picked) and Sign out. The password only goes to the server: the field is emptied after signing in and it
  * is never kept. Jellyfin only for now.
  */
 
@@ -179,6 +181,8 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
     const refresh = useMediaServerRefresh()
     const logout = useMediaServerLogout()
     const [confirmOut, setConfirmOut] = React.useState(false)
+    const [matching, setMatching] = React.useState<MatchSubject | null>(null)
+    const [matchOpen, setMatchOpen] = React.useState(false)
     // The time "last read" is counted from; it moves on with each answer
     const [now, setNow] = React.useState(() => Date.now())
     const reading = refresh.isPending || status.reading
@@ -223,9 +227,12 @@ function SignedIn({ t, status }: { t: Translate, status: MediaServerStatus }) {
         {status.unmatched.length > 0 && <SettingsGroup title={t("Not matched", "Nicht zugeordnet")}
             note={t("These series could not be matched to an AniList entry, so they do not show up in your library.",
                 "Diese Serien ließen sich keinem AniList-Eintrag zuordnen, deshalb erscheinen sie nicht in deiner Bibliothek.")}>
-            {status.unmatched.map(show => <InfoRow key={show.seriesId} label={show.year ? `${show.name} (${show.year})` : show.name}
-                note={show.suggestion ? t(`Suggestion: ${show.suggestion.title}`, `Vorschlag: ${show.suggestion.title}`) : t("No suggestion", "Kein Vorschlag")} />)}
+            {status.unmatched.map(show => <LinkRow key={show.seriesId} label={show.year ? `${show.name} (${show.year})` : show.name}
+                note={show.suggestion ? t(`Suggestion: ${show.suggestion.title}`, `Vorschlag: ${show.suggestion.title}`) : t("No suggestion", "Kein Vorschlag")}
+                onPress={() => { setMatching(subjectOfUnmatched(show)); setMatchOpen(true) }} />)}
         </SettingsGroup>}
+        {/* kept in state: the series leaves "Not matched" once saved, the sheet stays until it closes */}
+        {!!matching && <MediaServerMatchSheet subject={matching} open={matchOpen} onOpenChange={setMatchOpen} />}
 
         <ProgressSwitch status={status} t={t} />
 

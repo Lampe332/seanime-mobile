@@ -28,9 +28,11 @@ import { EntryCredits } from "@/main/entry/_components/entry-credits"
 import type { TagInput } from "@/main/entry/_lib/entry-credits"
 import { airingPeriod } from "@/main/entry/_lib/anime-meta"
 import { isMediaServerEntry } from "@/main/entry/_lib/media-server-play"
-import { useMediaServerStatus } from "@/api/hooks/mediaserver.hooks"
+import { useMediaServerMapping, useMediaServerStatus } from "@/api/hooks/mediaserver.hooks"
 import { isTvmazeId } from "@/core/tvmaze/tvmaze"
-import { AnimeEntryPhoneMenu } from "@/main/entry/_containers/entry-actions/anime-entry-phone-menu"
+import { AnimeEntryPhoneMenu, entryTitle } from "@/main/entry/_containers/entry-actions/anime-entry-phone-menu"
+import { MediaServerMatchSheet } from "@/main/entry/_containers/entry-actions/media-server-match-sheet"
+import { subjectOfMapping } from "@/main/entry/_lib/media-server-match"
 import { PluginPageButtons } from "@/main/_features/plugin/plugin-actions"
 import { PluginTrayButton } from "@/main/_features/plugin/plugin-tray"
 import { PluginWebviewSlot } from "@/main/_features/plugin/plugin-webview"
@@ -118,18 +120,27 @@ function SharedByChip() {
     )
 }
 
-/** The same chip for an anime of the media server: "From <server>" */
-function FromServerChip() {
+/** The same chip for an anime of the media server: "From <server>"; tapping it opens "Change match" (as More does) */
+function FromServerChip({ entry }: { entry: Anime_Entry }) {
     const colors = useThemeColors()
     const t = useTr()
     const server = useMediaServerStatus().data?.serverName || t("media server", "Medienserver")
     const label = t("From {server}", "Von {server}").replace("{server}", server)
-    return (
-        <View accessibilityLabel={label} className="min-h-12 flex-row items-center gap-2 rounded-full bg-sm-accent-softer pl-3.5 pr-4">
-            <Server size={20} color={colors.smAccent} />
-            <Text numberOfLines={1} className="text-sm font-semibold">{label}</Text>
-        </View>
+    const { data: serverMatch } = useMediaServerMapping(entry.mediaId)
+    const [matchOpen, setMatchOpen] = React.useState(false)
+    const chip = <>
+        <Server size={20} color={colors.smAccent} />
+        <Text numberOfLines={1} className="text-sm font-semibold">{label}</Text>
+    </>
+    if (!serverMatch) return (
+        <View accessibilityLabel={label} className="min-h-12 flex-row items-center gap-2 rounded-full bg-sm-accent-softer pl-3.5 pr-4">{chip}</View>
     )
+    return <>
+        <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint={t("Change match", "Zuordnung ändern")} onPress={() => setMatchOpen(true)}
+            className="min-h-12 flex-row items-center gap-2 rounded-full bg-sm-accent-softer pl-3.5 pr-4 active:bg-sm-accent-soft">{chip}</Pressable>
+        <MediaServerMatchSheet subject={subjectOfMapping(serverMatch, entryTitle(entry))} open={matchOpen} onOpenChange={setMatchOpen}
+            cover={entry.media?.coverImage?.medium || entry.media?.coverImage?.large} />
+    </>
 }
 
 
@@ -296,7 +307,7 @@ export function AnimeEntryPage() {
                 <LockFilesToggle mediaId={entry.mediaId} allFilesLocked={entry.libraryData.allFilesLocked} />
             </>}
             {pageView === "library" && entry._isNakamaEntry && <SharedByChip />}
-            {pageView === "library" && isMediaServerEntry(entry) && <FromServerChip />}
+            {pageView === "library" && isMediaServerEntry(entry) && <FromServerChip entry={entry} />}
             {/* no top bar strip: the puzzle joins the actions */}
             <PluginTrayButton variant="bar" />
         </View>}

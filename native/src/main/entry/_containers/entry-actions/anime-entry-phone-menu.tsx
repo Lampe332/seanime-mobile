@@ -17,6 +17,10 @@ import { colors, accentInput } from "@/lib/theme/tokens"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { __anime_hiddenEntryViewsAtom, getEntryTabSettings } from "@/main/entry/_lib/anime-entry-view"
 import { isMediaServerEntry } from "@/main/entry/_lib/media-server-play"
+import { useMediaServerMapping } from "@/api/hooks/mediaserver.hooks"
+import { subjectOfMapping } from "@/main/entry/_lib/media-server-match"
+import { MediaServerMatchSheet } from "@/main/entry/_containers/entry-actions/media-server-match-sheet"
+import Link from "lucide-react-native/icons/link"
 import { shareEntry } from "@/main/entry/_lib/share-entry"
 import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
 import { __torrentSearch_selectionAtom } from "@/main/entry/_containers/torrent-search/torrent-search.atoms"
@@ -43,7 +47,10 @@ import { TextInput, View } from "react-native"
  * the settings shows its "Off in the settings" row, which opens the settings on that area (`/settings?tab=…`, 2.12).
  */
 
-type MenuView = "menu" | "metadata" | "unmatch" | "delete" | null
+type MenuView = "menu" | "metadata" | "unmatch" | "delete" | "match" | null
+
+/** The title shown for the anime's current match */
+export const entryTitle = (entry: Anime_Entry) => entry.media?.title?.userPreferred || entry.media?.title?.romaji || entry.media?.title?.english || "Anime"
 
 export function ExternalRow({ href, label, note }: { href: string, label: string, note: string }) {
     return <ActionRow icon={Globe} label={label} note={note} onPress={() => openInAppBrowser(href)} trailing={<ArrowUpRight size={18} color={colors.smTextSubtle} />} />
@@ -84,6 +91,9 @@ export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibr
     // the plugins' items for this page (usePluginAnimePageDropdownItems)
     const pluginItems = usePluginActions("animePageItems")
     const runPlugin = useRunPluginAction()
+    // the media server series of an anime with server episodes; none (no server, no series) has no "Change match"
+    const { data: serverMatch } = useMediaServerMapping(entry.mediaId, isMediaServerEntry(entry))
+    const matchSubject = serverMatch ? subjectOfMapping(serverMatch, entryTitle(entry)) : null
 
     // One sheet at a time, so Back always returns to the page: the menu leaves in the same render the next sheet comes in
     const shown: MenuView = view ?? (open ? "menu" : null)
@@ -117,6 +127,12 @@ export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibr
                             close(false)
                             openTorrentSearch("download")
                         }} />}
+                </RowGroup>
+            </SheetGroup>}
+            {!!matchSubject && <SheetGroup title={t("Media server", "Medienserver")}>
+                <RowGroup>
+                    <ActionRow icon={Link} label={t("Change match", "Zuordnung ändern")} chevron
+                        note={t(`Which of ${matchSubject.name}'s episodes belong here`, `Welche Folgen von ${matchSubject.name} hierher gehören`)} onPress={() => go("match")} />
                 </RowGroup>
             </SheetGroup>}
             {hasFiles && <SheetGroup title={t("Files on this device", "Dateien auf diesem Gerät")} note={plural(t, files, ["1 file", "{0} files"], ["1 Datei", "{0} Dateien"])}>
@@ -155,6 +171,8 @@ export function AnimeEntryPhoneMenu({ entry, details, open, onOpenChange, isLibr
         <MetadataSheet t={t} entry={entry} details={details} open={shown === "metadata"} onOpenChange={close} />
         {hasFiles && <FilesSheet t={t} entry={entry} mode="unmatch" open={shown === "unmatch"} onOpenChange={close} />}
         {hasFiles && <FilesSheet t={t} entry={entry} mode="delete" open={shown === "delete"} onOpenChange={close} />}
+        {!!matchSubject && <MediaServerMatchSheet subject={matchSubject} open={shown === "match"} onOpenChange={close}
+            cover={entry.media?.coverImage?.medium || entry.media?.coverImage?.large} />}
     </>
 }
 
