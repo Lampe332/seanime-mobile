@@ -40,6 +40,7 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
             }}
                 note={t("Tap to remove it from the library.", "Antippen, um ihn aus der Bibliothek zu entfernen.")} />)}
             {available && <LinkRow label={picking ? t("Choosing…", "Wird gewählt …") : t("Add another folder", "Weiteren Ordner hinzufügen")} disabled={picking}
+                note={t("Files in more than one folder all count as your library.", "Dateien in mehreren Ordnern zählen alle zu deiner Bibliothek.")}
                 onPress={async () => {
                     const path = await pick()
                     if (path && path !== libraryPath && !libraryPaths.includes(path)) void save("library.libraryPaths", [...libraryPaths, path])
@@ -51,9 +52,10 @@ export function SettingsLibrarySection({ t }: { t: Translate }) {
             action={t("Remove", "Entfernen")} danger onConfirm={() => void save("library.libraryPaths", libraryPaths.filter(path => path !== removing))} />
 
         <SettingsGroup title={t("Scanning", "Scannen")}>
-            <SettingSwitch path="library.autoScan" label={t("Refresh the library automatically", "Bibliothek automatisch aktualisieren")}
+            <SettingSwitch path="library.autoScan" label={t("Refresh the library automatically", "Bibliothek automatisch aktualisieren")} defaultChecked={false}
                 note={t("Scans when files change. Large batches may not all be picked up.", "Scannt, wenn sich Dateien ändern. Große Mengen werden evtl. nicht alle erkannt.")} />
-            <SettingSwitch path="library.refreshLibraryOnStart" label={t("Refresh the library when the app starts", "Bibliothek beim App-Start aktualisieren")} />
+            <SettingSwitch path="library.refreshLibraryOnStart" label={t("Refresh the library when the app starts", "Bibliothek beim App-Start aktualisieren")}
+                defaultChecked={false} note={t("Scans your folders each time the app opens.", "Scannt deine Ordner bei jedem App-Start.")} />
         </SettingsGroup>
 
         <SettingsGroup title={t("Matching", "Zuordnung")} note={t("How the scanner matches files to AniList entries.", "Wie der Scanner Dateien AniList-Einträgen zuordnet.")}>

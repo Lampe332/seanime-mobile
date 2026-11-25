@@ -17,7 +17,7 @@ import { useTabletLayout } from "@/lib/use-tablet-ui"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { SakuraBurst } from "@/main/settings/_components/sakura-burst"
 import { UpdateCheckRow } from "@/main/settings/_components/settings-app-services"
-import { LinkRow, SettingsGroup, SettingSwitch } from "@/main/settings/_components/settings-kit"
+import { InfoRow, LinkRow, SettingsGroup, SettingSwitch } from "@/main/settings/_components/settings-kit"
 import { SettingsPage } from "@/main/settings/_components/settings-page"
 import { contactHref, DISCORD_INVITE, KOFI_URL, LEGAL, shortLink } from "@/main/settings/_lib/legal"
 import { sectionFromTab, SETTINGS_SECTIONS, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
@@ -262,16 +262,18 @@ function SettingsAboutSection({ t }: { t: Translate }) {
     }
     return <>
         {!!app && <SettingsGroup title={t("Version", "Version")}>
-            <VersionRow label="Seanime Mobile" value={app} onPress={onVersionTap} />
+            <LinkRow label="Seanime Mobile" value={app} chevron={false} onPress={onVersionTap}
+                note={t("The version installed on this device.", "Die auf diesem Gerät installierte Version.")} />
         </SettingsGroup>}
         <SettingsGroup title={t("Updates", "Updates")}>
-            <SettingSwitch path="library.disableUpdateCheck" invert label={t("Look for new versions", "Nach neuen Versionen suchen")}
+            <SettingSwitch path="library.disableUpdateCheck" invert defaultChecked label={t("Look for new versions", "Nach neuen Versionen suchen")}
                 note={t("Shows a notice when a new app version is out.", "Zeigt einen Hinweis, sobald eine neue App-Version erscheint.")} />
             <UpdateCheck t={t} />
         </SettingsGroup>
         <SettingsGroup title={t("Community", "Community")}
             note={t("Questions, help with setup and news about the app.", "Fragen, Hilfe bei der Einrichtung und Neuigkeiten zur App.")}>
-            <LinkRow label="Discord" value={shortLink(DISCORD_INVITE)} onPress={() => openTab(DISCORD_INVITE)} />
+            <LinkRow label="Discord" value={shortLink(DISCORD_INVITE)} onPress={() => openTab(DISCORD_INVITE)}
+                note={t("Opens the invite in Discord or your browser.", "Öffnet die Einladung in Discord oder im Browser.")} />
             <LinkRow icon={Heart} label={t("Support Seanime Mobile", "Seanime Mobile unterstützen")}
                 note={t("Buy me a coffee on Ko-fi", "Spendier mir einen Kaffee auf Ko-fi")} onPress={() => openTab(KOFI_URL)} />
         </SettingsGroup>
@@ -287,20 +289,15 @@ const TAP_HINT_TOAST = "version-taps"
 function LegalGroup({ t }: { t: Translate }) {
     return <SettingsGroup title={t("Legal", "Rechtliches")}
         note={t("Unofficial app, built on Seanime by 5rahim. No analytics or tracking. Only an anonymous daily usage count, which you can turn off under App > Privacy.", "Inoffizielle App, gebaut auf Seanime von 5rahim. Keine Analyse, kein Tracking. Nur eine anonyme tägliche Nutzungszählung, die du unter App > Datenschutz abschalten kannst.")}>
-        <View accessible accessibilityLabel={`${t("Imprint", "Impressum")}: ${LEGAL.name}, ${LEGAL.region}`} className="gap-0.5 bg-sm-surface-raised px-4 py-3">
-            <Text className="text-[15px]">{LEGAL.name}</Text>
-            <Muted className="text-[13px] leading-[19px]">{LEGAL.region}</Muted>
-        </View>
-        <LinkRow label={t("Contact", "Kontakt")} value={LEGAL.email} onPress={() => openTab(contactHref())} />
-        <LinkRow label={t("Website", "Website")} value={shortLink(LEGAL.website)} onPress={() => openTab(LEGAL.website)} />
-        <LinkRow label={t("Privacy policy", "Datenschutz")} onPress={() => openTab(LEGAL.privacy)} />
-        <LinkRow label={t("Imprint", "Impressum")} onPress={() => openTab(LEGAL.imprint)} />
+        <InfoRow label={LEGAL.name} note={LEGAL.region} />
+        <LinkRow label={t("Contact", "Kontakt")} value={LEGAL.email} onPress={() => openTab(contactHref())}
+            note={t("Write an email about the app.", "Eine E-Mail zur App schreiben.")} />
+        <LinkRow label={t("Website", "Website")} value={shortLink(LEGAL.website)} onPress={() => openTab(LEGAL.website)}
+            note={t("The app's website, opens in the browser.", "Die Website der App, öffnet im Browser.")} />
+        <LinkRow label={t("Privacy policy", "Datenschutz")} onPress={() => openTab(LEGAL.privacy)}
+            note={t("What data the app handles and why.", "Welche Daten die App verarbeitet und warum.")} />
+        <LinkRow label={t("Imprint", "Impressum")} onPress={() => openTab(LEGAL.imprint)}
+            note={t("Who is responsible for the app.", "Wer für die App verantwortlich ist.")} />
     </SettingsGroup>
 }
 
-function VersionRow({ label, value, onPress }: { label: string, value: string, onPress: () => void }) {
-    return <Pressable onPress={onPress} className="flex-row flex-wrap items-baseline justify-between gap-x-4 bg-sm-surface-raised px-4 py-3 active:bg-sm-surface-control">
-        <Text className="text-sm text-sm-text-muted">{label}</Text>
-        <Text className="ml-auto text-right text-base font-semibold">{value}</Text>
-    </Pressable>
-}

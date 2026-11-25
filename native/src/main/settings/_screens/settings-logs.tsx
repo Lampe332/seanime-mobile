@@ -49,11 +49,13 @@ function DiagnosticGroup({ t }: { t: Translate }) {
         note={t("App and Android version, device, language and the app's recent log lines, for a bug report. Sign-ins, email addresses, links, file paths and your AniList name are left out.",
             "App- und Android-Version, Gerät, Sprache und die letzten Log-Zeilen der App, für eine Fehlermeldung. Anmeldungen, E-Mail-Adressen, Links, Dateipfade und dein AniList-Name bleiben draußen.")}>
         <LinkRow label={t("Copy diagnostic report", "Fehlerbericht kopieren")} icon={Copy} chevron={false} disabled={busy}
+            note={t("Puts the report on the clipboard, to paste into a message.", "Legt den Bericht in die Zwischenablage, zum Einfügen in eine Nachricht.")}
             onPress={() => void withReport(async report => {
                 await Clipboard.setStringAsync(report)
                 toast.success(t("Diagnostic report copied", "Fehlerbericht kopiert"))
             })} />
         <LinkRow label={t("Share diagnostic report", "Fehlerbericht teilen")} icon={Share2} chevron={false} disabled={busy}
+            note={t("Sends the report with an app of your choice.", "Schickt den Bericht mit einer App deiner Wahl.")}
             onPress={() => void withReport(async report => {
                 await Share.share({ message: report, title: t("Seanime Mobile diagnostic report", "Seanime-Mobile-Fehlerbericht") })
             })} />
@@ -81,8 +83,12 @@ function CacheGroup({ t }: { t: Translate }) {
     })
     return <SettingsGroup title={t("Cache", "Cache")}
         note={t("Saved source data. Cleared data loads again from the sources.", "Gespeicherte Daten der Quellen. Geleerte Daten lädt die App neu von den Quellen.")}>
-        <LinkRow label={t("Clear the manga cache", "Manga-Cache leeren")} disabled={clearing} onPress={() => ask("manga")} />
-        <LinkRow label={t("Clear the online streaming cache", "Online-Streaming-Cache leeren")} disabled={clearing} onPress={() => ask("onlinestream")} />
+        <LinkRow label={t("Clear the manga cache", "Manga-Cache leeren")} disabled={clearing} onPress={() => ask("manga")}
+            note={t("Chapter lists and pages. Helps when a manga shows old or broken chapters.",
+                "Kapitellisten und Seiten. Hilft, wenn ein Manga alte oder kaputte Kapitel zeigt.")} />
+        <LinkRow label={t("Clear the online streaming cache", "Online-Streaming-Cache leeren")} disabled={clearing} onPress={() => ask("onlinestream")}
+            note={t("Episode lists and stream links. Helps when an episode is missing or does not play.",
+                "Folgenlisten und Stream-Links. Hilft, wenn eine Folge fehlt oder nicht abspielt.")} />
         <ConfirmSheet open={confirm} onOpenChange={setConfirm}
             title={clear === "manga" ? t("Clear the manga cache?", "Manga-Cache leeren?") : t("Clear the online streaming cache?", "Online-Streaming-Cache leeren?")}
             text={clear === "manga" ? t("Chapter lists and pages load again from the sources.", "Kapitellisten und Seiten lädt die App neu von den Quellen.")

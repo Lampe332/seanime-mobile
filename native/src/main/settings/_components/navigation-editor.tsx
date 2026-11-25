@@ -58,8 +58,8 @@ export function NavigationEditor({ open, onOpenChange }: { open: boolean, onOpen
                 {bar.map((item, i) => {
                     const label = navItemLabel(item, language)
                     return <EditRow key={item.id} icon={item.isMenu ? "menu" : navIcon(item)} label={label}
-                        accessibilityLabel={item.isMenu ? t(`${label} – always stays in the bar`, `${label} – bleibt immer in der Leiste`)
-                            : t(`${label} – move back to the menu`, `${label} – zurück ins Menü geben`)}
+                        accessibilityLabel={item.isMenu ? t(`${label}, always stays in the bar`, `${label}, bleibt immer in der Leiste`)
+                            : t(`${label}, move back to the menu`, `${label}, zurück ins Menü geben`)}
                         onPress={() => apply(moveToMenu(items, item.id))}
                         trailing={item.isMenu
                             ? <Text className="text-[13px] font-semibold text-sm-text-subtle">{t("Fixed", "Fest")}</Text>
@@ -80,7 +80,7 @@ export function NavigationEditor({ open, onOpenChange }: { open: boolean, onOpen
                     {menu.map(target => {
                         const label = navLabel(target.label, language)
                         return <EditRow key={target.id} icon={target.icon} label={label}
-                            accessibilityLabel={t(`${label} – move into the bar`, `${label} – in die Leiste holen`)}
+                            accessibilityLabel={t(`${label}, move into the bar`, `${label}, in die Leiste holen`)}
                             onPress={() => apply(moveToBar(items, target))} />
                     })}
                 </View>

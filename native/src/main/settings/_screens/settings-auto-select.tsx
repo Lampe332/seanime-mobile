@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button/button"
 import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
 import { cn } from "@/components/ui/core/styling"
 import { Sheet, SheetGroup } from "@/components/ui/sheet/sheet"
-import { SwitchRow } from "@/components/ui/switch/switch"
 import { Muted, Text } from "@/components/ui/text/text"
 import { toast } from "@/components/ui/toast/toast-store"
 import { type Translate } from "@/lib/app-language"
 import { colors } from "@/lib/theme/tokens"
-import { ConfirmSheet, LinkRow, SelectRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
+import { ConfirmSheet, LinkRow, LocalSwitch, type SelectOption, SelectRow, SettingsGroup } from "@/main/settings/_components/settings-kit"
 import {
     addToken,
     type AutoSelectForm,
@@ -67,15 +66,15 @@ const SOURCES: [string, string, string][] = [
     ["AT-X", "AT-X", "AT-X"],
 ]
 
-function preferenceOptions(t: Translate): Option[] {
-    const labels: Record<Anime_AutoSelectPreference, string> = {
-        neutral: t("Don't care", "Egal"),
-        prefer: t("Prefer", "Bevorzugen"),
-        avoid: t("Avoid", "Vermeiden"),
-        only: t("Only these", "Nur diese"),
-        never: t("Never", "Nie"),
+function preferenceOptions(t: Translate): SelectOption[] {
+    const labels: Record<Anime_AutoSelectPreference, [string, string]> = {
+        neutral: [t("Don't care", "Egal"), t("Plays no part in the choice.", "Spielt für die Wahl keine Rolle.")],
+        prefer: [t("Prefer", "Bevorzugen"), t("Ranked higher. Other torrents stay possible.", "Wird höher bewertet. Andere Torrents bleiben möglich.")],
+        avoid: [t("Avoid", "Vermeiden"), t("Ranked lower, but still possible.", "Wird niedriger bewertet, bleibt aber möglich.")],
+        only: [t("Only these", "Nur diese"), t("Other torrents are never picked.", "Andere Torrents werden nie gewählt.")],
+        never: [t("Never", "Nie"), t("Such torrents are never picked.", "Solche Torrents werden nie gewählt.")],
     }
-    return PREFERENCES.map(value => ({ value, label: labels[value] }))
+    return PREFERENCES.map(value => ({ value, label: labels[value][0], note: labels[value][1] }))
 }
 
 export function AutoSelectGroup({ t }: { t: Translate }) {
@@ -133,7 +132,7 @@ function AutoSelectSheet({ t, onClose, dbId, stored }: { t: Translate, onClose: 
     }
 
     const preferenceRow = (key: PreferenceKey, label: string, note: string) =>
-        <SelectRow label={label} note={note} value={draft[key]} options={preferenceOptions(t)} onChange={value => set(key, value as Anime_AutoSelectPreference)} />
+        <SelectRow label={label} note={note} value={draft[key]} options={preferenceOptions(t)} defaultValue="neutral" onChange={value => set(key, value as Anime_AutoSelectPreference)} />
 
     return <Sheet title={t("Auto-select profile", "Auto-Auswahl-Profil")} open onOpenChange={open => !open && onClose()}
         description={t("Tap the chips in the order you want: the number on a chip is its priority, 1 counts most.",
@@ -146,11 +145,12 @@ function AutoSelectSheet({ t, onClose, dbId, stored }: { t: Translate, onClose: 
         </>}>
         <SheetGroup title={t("Quality", "Qualität")}>
             <Rows>
-                <ChipPicker label={t("Resolution", "Auflösung")} chips={resolutionChips} selected={draft.resolutions} onToggle={toggle("resolutions")} />
-                <ChipPicker label={t("Providers (max. 3)", "Anbieter (max. 3)")} chips={providerChips} selected={draft.providers} onToggle={toggle("providers", MAX_PROVIDERS)}
+                <ChipPicker label={t("Resolution", "Auflösung")} note={t("The first one counts most.", "Die erste zählt am meisten.")} chips={resolutionChips} selected={draft.resolutions} onToggle={toggle("resolutions")} />
+                <ChipPicker label={t("Providers (max. 3)", "Anbieter (max. 3)")} note={t("The torrent providers the choice prefers, the first one most.", "Die Torrent-Anbieter, die die Wahl bevorzugt, den ersten am meisten.")}
+                    chips={providerChips} selected={draft.providers} onToggle={toggle("providers", MAX_PROVIDERS)}
                     empty={t("No torrent provider is installed.", "Kein Torrent-Anbieter installiert.")} />
-                <SwitchRow label={t("Prefer larger files", "Größere Dateien bevorzugen")} checked={draft.preferLargerFiles}
-                    description={t("When two torrents are otherwise equal, the larger one wins, even with fewer seeders. Set minimum seeders below to keep slow ones out.",
+                <LocalSwitch label={t("Prefer larger files", "Größere Dateien bevorzugen")} checked={draft.preferLargerFiles} defaultChecked={false}
+                    note={t("When two torrents are otherwise equal, the larger one wins, even with fewer seeders. Set minimum seeders below to keep slow ones out.",
                         "Sind zwei Torrents sonst gleich, gewinnt der größere, auch mit weniger Seedern. Mit der Mindestanzahl Seeder unten bleiben langsame draußen.")}
                     onCheckedChange={value => set("preferLargerFiles", value)} />
             </Rows>
@@ -159,17 +159,20 @@ function AutoSelectSheet({ t, onClose, dbId, stored }: { t: Translate, onClose: 
         <SheetGroup title={t("Language, codec, source", "Sprache, Codec, Quelle")}>
             <Rows>
                 <ChipPicker label={t("Languages", "Sprachen")} chips={languageChips} selected={draft.preferredLanguages} onToggle={toggle("preferredLanguages")} />
-                <SwitchRow label={t("Skip torrents without a preferred language", "Torrents ohne bevorzugte Sprache ablehnen")} checked={draft.requireLanguage}
+                <LocalSwitch label={t("Skip torrents without a preferred language", "Torrents ohne bevorzugte Sprache ablehnen")} checked={draft.requireLanguage} defaultChecked={false}
+                    note={t("Torrents without one of the chosen languages are never picked.", "Torrents ohne eine der gewählten Sprachen werden nie gewählt.")}
                     onCheckedChange={value => set("requireLanguage", value)} />
             </Rows>
             <Rows>
                 <ChipPicker label={t("Codecs", "Codecs")} chips={codecChips} selected={draft.preferredCodecs} onToggle={toggle("preferredCodecs")} />
-                <SwitchRow label={t("Skip torrents without a preferred codec", "Torrents ohne bevorzugten Codec ablehnen")} checked={draft.requireCodec}
+                <LocalSwitch label={t("Skip torrents without a preferred codec", "Torrents ohne bevorzugten Codec ablehnen")} checked={draft.requireCodec} defaultChecked={false}
+                    note={t("Torrents without one of the chosen codecs are never picked.", "Torrents ohne eine der gewählten Codecs werden nie gewählt.")}
                     onCheckedChange={value => set("requireCodec", value)} />
             </Rows>
             <Rows>
                 <ChipPicker label={t("Sources", "Quellen")} chips={sourceChips} selected={draft.preferredSources} onToggle={toggle("preferredSources")} />
-                <SwitchRow label={t("Skip torrents without a preferred source", "Torrents ohne bevorzugte Quelle ablehnen")} checked={draft.requireSource}
+                <LocalSwitch label={t("Skip torrents without a preferred source", "Torrents ohne bevorzugte Quelle ablehnen")} checked={draft.requireSource} defaultChecked={false}
+                    note={t("Torrents without one of the chosen sources are never picked.", "Torrents ohne eine der gewählten Quellen werden nie gewählt.")}
                     onCheckedChange={value => set("requireSource", value)} />
             </Rows>
         </SheetGroup>
@@ -217,8 +220,9 @@ function Rows({ children }: { children: React.ReactNode }) {
 }
 
 /** `.pas-picker`: toggle chips under their label; the position in `selected` is the priority, shown as a number in front */
-function ChipPicker({ label, chips, selected, onToggle, empty }: {
+function ChipPicker({ label, note, chips, selected, onToggle, empty }: {
     label: string
+    note?: string
     chips: Option[]
     selected: string[]
     onToggle: (value: string) => void
@@ -226,7 +230,10 @@ function ChipPicker({ label, chips, selected, onToggle, empty }: {
 }) {
     return (
         <View accessibilityLabel={label} className="gap-2.5 bg-sm-surface-raised px-4 pb-4 pt-3.5">
-            <Text className="text-[15px] font-semibold">{label}</Text>
+            <View className="gap-0.5">
+                <Text className="text-base">{label}</Text>
+                {!!note && <Muted className="text-[13px] leading-[19px]">{note}</Muted>}
+            </View>
             {chips.length
                 ? <View className="flex-row flex-wrap gap-2">
                     {chips.map(chip => {

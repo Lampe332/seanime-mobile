@@ -22,11 +22,14 @@ import React from "react"
 /* Online streaming, Manga and Nakama (settings-phone-more.tsx) */
 
 export function SettingsOnlinestreamSection({ t }: { t: Translate }) {
-    return <SettingsGroup title={t("Online streaming", "Online-Streaming")}>
-        <SettingSwitch path="library.enableOnlinestream" label={t("Online streaming", "Online-Streaming")}
+    return <SettingsGroup title={t("Online streaming", "Online-Streaming")}
+        note={t("Sources come from streaming extensions, which you install under Extensions.",
+            "Die Quellen kommen aus Streaming-Erweiterungen, die du unter Erweiterungen installierst.")}>
+        <SettingSwitch path="library.enableOnlinestream" label={t("Online streaming", "Online-Streaming")} defaultChecked
             note={t("Watch episodes from online sources (streaming extensions).", "Folgen aus Online-Quellen schauen (Streaming-Erweiterungen).")} />
-        <SettingSwitch path="library.includeOnlineStreamingInLibrary" label={t("Streaming titles in your anime lists", "Streaming-Titel in deinen Anime-Listen")}
-            note={t("Shows the titles you are watching online in your anime lists.", "Zeigt online geschaute Titel in deinen Anime-Listen.")} />
+        <SettingSwitch path="library.includeOnlineStreamingInLibrary" label={t("Streaming titles in your anime lists", "Streaming-Titel in deinen Anime-Listen")} defaultChecked
+            note={t("Shows the titles you are watching online in your anime lists, even without files on this device.",
+                "Zeigt online geschaute Titel in deinen Anime-Listen, auch ohne Dateien auf diesem Gerät.")} />
     </SettingsGroup>
 }
 
@@ -48,20 +51,23 @@ export function SettingsMangaSection({ t }: { t: Translate }) {
 
     return <>
         <SettingsGroup title={t("Manga", "Manga")}>
-            <SettingSwitch path="library.enableManga" label={t("Manga", "Manga")}
+            <SettingSwitch path="library.enableManga" label={t("Manga", "Manga")} defaultChecked
                 note={t("Read manga, download chapters and track your progress.", "Manga lesen, Kapitel laden und Fortschritt speichern.")} />
-            <SettingSwitch path="manga.mangaAutoUpdateProgress" label={t("Update progress automatically", "Fortschritt automatisch speichern")}
+            <SettingSwitch path="manga.mangaAutoUpdateProgress" label={t("Update progress automatically", "Fortschritt automatisch speichern")} defaultChecked={false}
                 note={t("Saves your progress when you reach the end of a chapter.", "Speichert den Fortschritt am Ende eines Kapitels.")} />
         </SettingsGroup>
 
-        <SettingsGroup title={t("Source", "Quelle")}>
-            <SelectRow label={t("Default source", "Standardquelle")} value={defaultProvider || "-"} options={options}
+        <SettingsGroup title={t("Source", "Quelle")}
+            note={t("Sources come from manga extensions. Each manga keeps the source you chose for it.",
+                "Die Quellen kommen aus Manga-Erweiterungen. Jeder Manga behält die Quelle, die du für ihn gewählt hast.")}>
+            <SelectRow label={t("Default source", "Standardquelle")} value={defaultProvider || "-"} options={options} defaultValue="-"
                 note={t("Chosen when you open a manga for the first time.", "Wird gewählt, wenn du einen Manga zum ersten Mal öffnest.")}
                 onChange={value => void save("manga.defaultMangaProvider", value === "-" ? "" : value)} />
             {!!defaultExtension && <LinkRow label={t(`Use ${defaultExtension.name} for every manga`, `${defaultExtension.name} für jeden Manga nutzen`)}
                 note={t("Replaces the source you chose for each manga you opened.", "Ersetzt die Quelle, die du für jeden geöffneten Manga gewählt hast.")}
                 onPress={() => setConfirm(true)} />}
             {!!history && <LinkRow label={t("Undo: restore the previous sources", "Rückgängig: vorige Quellen wiederherstellen")}
+                note={t("Possible until the app closes.", "Möglich, bis die App geschlossen wird.")}
                 onPress={() => {
                     overwriteStoredProviders(history)
                     setHistory(null)
@@ -100,26 +106,29 @@ export function SettingsNakamaSection({ t }: { t: Translate }) {
         <SettingsGroup title={t("Nakama", "Nakama")}
             note={t("Stream the anime library of Seanime on your PC or home server, or watch together.",
                 "Die Anime-Bibliothek von Seanime auf deinem PC oder Home-Server streamen oder gemeinsam schauen.")}>
-            <SettingSwitch path="nakama.enabled" label={t("Nakama", "Nakama")} />
+            <SettingSwitch path="nakama.enabled" label={t("Nakama", "Nakama")} defaultChecked={false}
+                note={t("Connects this device to a Nakama host.", "Verbindet dieses Gerät mit einem Nakama-Host.")} />
             <TextSettingRow label={t("Name", "Name")} value={username} empty={t("Random", "Zufällig")} placeholder={t("Your name", "Dein Name")}
                 note={t("How others see you. Empty gives a random ID.", "So sehen dich andere. Leer ergibt eine zufällige ID.")}
                 onApply={value => void save("nakama.username", value.trim())} />
         </SettingsGroup>
 
-        <SettingsGroup title={t("Host", "Host")}>
-            {isHost && <>
-                <Notice text={t("Host mode is on, so this device cannot join a host. Phones and tablets cannot host.",
-                    "Der Host-Modus ist an, deshalb kann dieses Gerät keinem Host beitreten. Handys und Tablets können nicht hosten.")} />
-                <SettingSwitch path="nakama.isHost" label={t("Host mode", "Host-Modus")} />
-            </>}
+        <SettingsGroup title={t("Host", "Host")}
+            note={t("The Seanime server you join. Its owner gives you the address and the passcode.",
+                "Der Seanime-Server, dem du beitrittst. Adresse und Passwort bekommst du von seinem Besitzer.")}
+            notice={isHost ? <Notice text={t("Host mode is on, so this device cannot join a host. Phones and tablets cannot host.",
+                "Der Host-Modus ist an, deshalb kann dieses Gerät keinem Host beitreten. Handys und Tablets können nicht hosten.")} />
+                : isUnencryptedHost(url) ? <Notice text={t("This address has no https://, so the passcode and the streams go over the network unencrypted. Use https:// if your host supports it.",
+                    "Diese Adresse hat kein https://, deshalb gehen Passwort und Streams unverschlüsselt durchs Netzwerk. Nutze https://, wenn dein Host es unterstützt.")} /> : undefined}>
+            {isHost && <SettingSwitch path="nakama.isHost" label={t("Host mode", "Host-Modus")} defaultChecked={false}
+                note={t("Turn it off to join a host from this device.", "Schalte ihn aus, um von diesem Gerät einem Host beizutreten.")} />}
             <TextSettingRow label={t("Host address", "Host-Adresse")} value={url} empty={notSet} keyboardType="url" placeholder="https://… / room://…"
                 note={t("The address of the Nakama host or a room link.", "Die Adresse des Nakama-Hosts oder ein Raum-Link.")}
                 onApply={value => void save("nakama.remoteServerURL", value.trim())} />
-            {!isHost && isUnencryptedHost(url) && <Notice text={t("This address has no https://, so the passcode and the streams go over the network unencrypted. Use https:// if your host supports it.",
-                "Diese Adresse hat kein https://, deshalb gehen Passwort und Streams unverschlüsselt durchs Netzwerk. Nutze https://, wenn dein Host es unterstützt.")} />}
             <TextSettingRow label={t("Host passcode", "Host-Passwort")} value={passcode} empty={notSet} secure display={() => "••••••"}
+                note={t("The passcode the host set for guests.", "Das Passwort, das der Host für Gäste festgelegt hat.")}
                 onApply={value => void save("nakama.remoteServerPassword", value)} />
-            <SettingSwitch path="nakama.includeNakamaAnimeLibrary" disabled={isHost} label={t("Use the host's anime library", "Anime-Bibliothek des Hosts nutzen")}
+            <SettingSwitch path="nakama.includeNakamaAnimeLibrary" disabled={isHost} label={t("Use the host's anime library", "Anime-Bibliothek des Hosts nutzen")} defaultChecked={false}
                 note={t("When the host shares it, its anime join your library. Episodes on this device stay.",
                     "Wenn der Host sie teilt, kommen seine Anime zu deiner Bibliothek dazu. Folgen auf diesem Gerät bleiben.")} />
             {enabled && !!url && !isHost && <NakamaConnectionRow t={t} />}

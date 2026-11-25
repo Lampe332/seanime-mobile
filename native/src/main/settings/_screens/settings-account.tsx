@@ -1,5 +1,6 @@
 // geschrieben nach: Plan „Account + Sync“ (Abschnitt 2 Nutzer-Erlebnis, 6.1–6.9, 8 UI-Liste) und settings-kit.tsx / backup-group.tsx (Zeilen, Sheets, Felder)
 
+import { Notice, TextAction } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
 import { cn } from "@/components/ui/core/styling"
@@ -60,6 +61,7 @@ function LoadFailed({ t }: { t: Translate }) {
     return <SettingsGroup title={t("Couldn't load your account", "Konto konnte nicht geladen werden")}
         note={t("This device's secure storage didn't answer. Your data on this device is fine.", "Der sichere Speicher dieses Geräts hat nicht geantwortet. Deine Daten auf diesem Gerät sind in Ordnung.")}>
         <LinkRow label={busy ? t("Loading…", "Wird geladen …") : t("Try again", "Nochmal versuchen")} tone="accent" disabled={busy} chevron={false}
+            note={t("Reads this device's secure storage once more.", "Liest den sicheren Speicher dieses Geräts noch einmal.")}
             onPress={() => {
                 setBusy(true)
                 void retryAccountLoad().finally(() => setBusy(false))
@@ -81,16 +83,14 @@ function SignedOut({ t }: { t: Translate }) {
     }} />
     if (step === "code") return <CodeSignIn t={t} initialEmail={codeEmail} onBack={() => setStep("signin")} />
     return <View className="gap-6">
-        {notice === "removed" && <SettingsGroup title={t("This device was removed", "Dieses Gerät wurde entfernt")}
-            note={t("It was removed from your account on another device or on the website, so its key was deleted here. The data on this device stays. Sign in again to ask for access.",
-                "Es wurde auf einem anderen Gerät oder auf der Website aus deinem Konto entfernt, deshalb wurde sein Schlüssel hier gelöscht. Die Daten auf diesem Gerät bleiben. Melde dich neu an, um wieder Zugang anzufragen.")}>
-            {null}
-        </SettingsGroup>}
+        {/* a warning, not a section: no group of its own, so it never becomes a jump chip */}
+        {notice === "removed" && <Notice text={t("This device was removed from your account on another device or on the website, so its key was deleted here. The data on this device stays. Sign in again to ask for access.",
+            "Dieses Gerät wurde auf einem anderen Gerät oder auf der Website aus deinem Konto entfernt, deshalb wurde sein Schlüssel hier gelöscht. Die Daten auf diesem Gerät bleiben. Melde dich neu an, um wieder Zugang anzufragen.")} />}
         <SettingsGroup title={t("Sync between your devices", "Zwischen deinen Geräten synchronisieren")}
-        note={t("Settings, extensions, playlists and watch history go to your account, encrypted on this device. Only your devices can read them, not even we can. An account is optional.",
-            "Einstellungen, Erweiterungen, Playlists und Verlauf gehen verschlüsselt in dein Konto. Lesen können sie nur deine Geräte, nicht einmal wir. Ein Konto ist freiwillig.")}>
-        <LinkRow label={t("Create account", "Konto erstellen")} tone="accent" note={t("With your email and a password", "Mit E-Mail und Passwort")} onPress={() => setStep("create")} />
-        <LinkRow label={t("Sign in", "Anmelden")} onPress={() => setStep("signin")} />
+            note={t("Settings, extensions, playlists and watch history go to your account, encrypted on this device. Only your devices can read them, not even we can. An account is optional.",
+                "Einstellungen, Erweiterungen, Playlists und Verlauf gehen verschlüsselt in dein Konto. Lesen können sie nur deine Geräte, nicht einmal wir. Ein Konto ist freiwillig.")}>
+            <LinkRow label={t("Create account", "Konto erstellen")} tone="accent" note={t("New here? Sign up with your email and a password.", "Neu hier? Registriere dich mit E-Mail und Passwort.")} onPress={() => setStep("create")} />
+            <LinkRow label={t("Sign in", "Anmelden")} note={t("Already have an account? Use your password or a code from your email.", "Schon ein Konto? Mit Passwort oder einem Code aus deiner E-Mail.")} onPress={() => setStep("signin")} />
         </SettingsGroup>
     </View>
 }
@@ -143,14 +143,18 @@ function CredentialsForm({ t, mode, onBack, onCode }: { t: Translate, mode: "cre
                 {!!error && <Text accessibilityRole="alert" className="px-1 text-[13px] leading-[19.5px] text-sm-danger">{error}</Text>}
             </View>
         </SettingsGroup>
-        <View className="gap-3">
-            <Button intent="primary" disabled={!ready} loading={busy} onPress={() => void submit()}>
-                {create ? t("Create account", "Konto erstellen") : mailLink ? t("Continue", "Weiter") : t("Sign in", "Anmelden")}
-            </Button>
-            {!create && onCode && <Button intent="secondary" disabled={busy} onPress={() => onCode(email.trim())}>{t("Sign in with a code instead", "Stattdessen mit Code anmelden")}</Button>}
-            {!create && <Button intent="text" disabled={busy} onPress={() => openTab(RESET_PAGE)}>{t("Forgot password", "Passwort vergessen")}</Button>}
-            <Button intent="text" disabled={busy} onPress={onBack}>{t("Back", "Zurück")}</Button>
-        </View>
+        <Button intent="primary" disabled={!ready} loading={busy} onPress={() => void submit()}>
+            {create ? t("Create account", "Konto erstellen") : mailLink ? t("Continue", "Weiter") : t("Sign in", "Anmelden")}
+        </Button>
+        {!create && <SettingsGroup title={t("Other ways in", "Andere Wege")}>
+            {onCode && <LinkRow label={t("Sign in with a code instead", "Stattdessen mit Code anmelden")} disabled={busy}
+                note={t("We email you a 6-digit code. You don't need your password for it.", "Wir schicken dir einen 6-stelligen Code per E-Mail. Dein Passwort brauchst du dafür nicht.")}
+                onPress={() => onCode(email.trim())} />}
+            <LinkRow label={t("Forgot password", "Passwort vergessen")} disabled={busy}
+                note={t("Opens the reset page on seanimemobile.com in your browser.", "Öffnet die Seite zum Zurücksetzen auf seanimemobile.com im Browser.")}
+                onPress={() => openTab(RESET_PAGE)} />
+        </SettingsGroup>}
+        <Button intent="text" disabled={busy} onPress={onBack}>{t("Back", "Zurück")}</Button>
     </View>
 }
 
@@ -238,12 +242,10 @@ function CodeSignIn({ t, initialEmail, onBack }: { t: Translate, initialEmail: s
                 {failure !== null && <Text accessibilityRole="alert" className="px-1 text-[13px] leading-[19.5px] text-sm-danger">{accountErrorText(t, failure, "code")}</Text>}
             </View>
         </SettingsGroup>
-        <View className="gap-3">
-            <Button intent="primary" disabled={!emailOk || waiting} loading={busy === "send"} onPress={() => void send()}>
-                {waiting ? t(`Send code in ${wait} s`, `Code senden in ${wait} s`) : t("Send code", "Code senden")}
-            </Button>
-            <Button intent="text" disabled={!!busy} onPress={onBack}>{t("Back", "Zurück")}</Button>
-        </View>
+        <Button intent="primary" disabled={!emailOk || waiting} loading={busy === "send"} onPress={() => void send()}>
+            {waiting ? t(`Send code in ${wait} s`, `Code senden in ${wait} s`) : t("Send code", "Code senden")}
+        </Button>
+        <Button intent="text" disabled={!!busy} onPress={onBack}>{t("Back", "Zurück")}</Button>
     </View>
 
     return <View className="gap-6">
@@ -254,17 +256,20 @@ function CodeSignIn({ t, initialEmail, onBack }: { t: Translate, initialEmail: s
                 {failure !== null && <Text accessibilityRole="alert" className="px-1 text-[13px] leading-[19.5px] text-sm-danger">{accountErrorText(t, failure, "code")}</Text>}
             </View>
         </SettingsGroup>
-        <View className="gap-3">
-            <Button intent="primary" disabled={!code} loading={busy === "check"} onPress={() => code && void check(code)}>{t("Sign in", "Anmelden")}</Button>
-            <Button intent="secondary" disabled={waiting || !!busy} loading={busy === "send"} onPress={() => void send()}>
-                {waiting ? t(`Send a new code in ${wait} s`, `Neuen Code senden in ${wait} s`) : t("Send a new code", "Neuen Code senden")}
-            </Button>
-            <Button intent="text" disabled={!!busy} onPress={() => {
-                setSentTo(null)
-                setFailure(null)
-                setDigits(EMPTY_CODE)
-            }}>{t("Use another email", "Andere E-Mail nutzen")}</Button>
-        </View>
+        <Button intent="primary" disabled={!code} loading={busy === "check"} onPress={() => code && void check(code)}>{t("Sign in", "Anmelden")}</Button>
+        <SettingsGroup title={t("No code?", "Kein Code da?")}>
+            <LinkRow label={busy === "send" ? t("Sending…", "Wird gesendet …") : t("Send a new code", "Neuen Code senden")} chevron={false}
+                value={waiting ? t(`in ${wait} s`, `in ${wait} s`) : undefined} disabled={waiting || !!busy}
+                note={t("Check your spam folder first. You can ask again after a short wait.", "Schau zuerst im Spam-Ordner nach. Nach kurzer Wartezeit kannst du neu anfragen.")}
+                onPress={() => void send()} />
+            <LinkRow label={t("Use another email", "Andere E-Mail nutzen")} disabled={!!busy}
+                note={t("Go back and type a different address.", "Zurück, um eine andere Adresse einzugeben.")}
+                onPress={() => {
+                    setSentTo(null)
+                    setFailure(null)
+                    setDigits(EMPTY_CODE)
+                }} />
+        </SettingsGroup>
     </View>
 }
 
@@ -436,11 +441,8 @@ function ApproveOnPhone({ t }: { t: Translate }) {
 
     return <View className="gap-6">
         <NoScreenshots id="account-approve-here" />
-        {notice === "key-changed" && <SettingsGroup title={t("Your account's key changed", "Der Schlüssel deines Kontos hat sich geändert")}
-            note={t("Since this device last synced, the account switched to a key none of your devices vouched for. That happens after Start fresh on another device, or when someone tries to get in. Nothing was imported or uploaded. If you didn't start fresh, don't approve this device and change your password.",
-                "Seit dieses Gerät zuletzt synchronisiert hat, nutzt das Konto einen Schlüssel, den keines deiner Geräte bestätigt hat. Das passiert nach Neu anfangen auf einem anderen Gerät oder wenn jemand reinzukommen versucht. Nichts wurde importiert oder hochgeladen. Wenn du nicht neu angefangen hast, gib dieses Gerät nicht frei und ändere dein Passwort.")}>
-            {null}
-        </SettingsGroup>}
+        {notice === "key-changed" && <Notice text={t("Your account's key changed. Since this device last synced, the account switched to a key none of your devices vouched for. That happens after Start fresh on another device, or when someone tries to get in. Nothing was imported or uploaded. If you didn't start fresh, don't approve this device and change your password.",
+            "Der Schlüssel deines Kontos hat sich geändert. Seit dieses Gerät zuletzt synchronisiert hat, nutzt das Konto einen Schlüssel, den keines deiner Geräte bestätigt hat. Das passiert nach Neu anfangen auf einem anderen Gerät oder wenn jemand reinzukommen versucht. Nichts wurde importiert oder hochgeladen. Wenn du nicht neu angefangen hast, gib dieses Gerät nicht frei und ändere dein Passwort.")} />}
         <SettingsGroup title={t("Approve on your phone", "Auf deinem Handy freigeben")}
             note={t("Open Seanime Mobile on a device that is already signed in. It asks if this device may sign in.",
                 "Öffne Seanime Mobile auf einem Gerät, das schon angemeldet ist. Es fragt, ob dieses Gerät sich anmelden darf.")}>
@@ -454,16 +456,22 @@ function ApproveOnPhone({ t }: { t: Translate }) {
                 <Button intent="secondary" wrapperClassName="flex-1" disabled={answering} onPress={() => void answer(false)}>{t("No, different", "Nein, andere")}</Button>
                 <Button intent="primary" wrapperClassName="flex-1" loading={answering} onPress={() => void answer(true)}>{t("Yes, same number", "Ja, dieselbe")}</Button>
             </View>}
-            {ended && <LinkRow label={t("Ask again", "Neu anfragen")} tone="accent" onPress={() => {
+            {ended && <LinkRow label={t("Ask again", "Neu anfragen")} tone="accent"
+                note={t("Sends a new request to your other device.", "Schickt eine neue Anfrage an dein anderes Gerät.")} onPress={() => {
                 setStatus("asking")
                 setSas(null)
                 setAttempt(count => count + 1)
             }} />}
         </SettingsGroup>
-        <SettingsGroup title={t("No other device?", "Kein anderes Gerät?")}>
-            {recoveryCodeUsable() && <LinkRow label={t("Use recovery code", "Wiederherstellungscode nutzen")} onPress={() => setSheet("recovery")} />}
-            <LinkRow label={t("Start fresh", "Neu anfangen")} tone="danger" note={t("Deletes the synced data in your account", "Löscht die synchronisierten Daten im Konto")} onPress={() => setSheet("fresh")} />
-            <LinkRow label={t("Sign out", "Abmelden")} onPress={() => setSheet("signout")} />
+        {recoveryCodeUsable() && <SettingsGroup title={t("No other device?", "Kein anderes Gerät?")}>
+            <LinkRow label={t("Use recovery code", "Wiederherstellungscode nutzen")}
+                note={t("Unlock with the 26-character code you saved.", "Entsperre mit dem 26-stelligen Code, den du gespeichert hast.")} onPress={() => setSheet("recovery")} />
+        </SettingsGroup>}
+        <SettingsGroup title={t("Leave or start over", "Verlassen oder neu anfangen")}>
+            <LinkRow label={t("Start fresh", "Neu anfangen")} tone="danger"
+                note={t("Deletes the synced data in your account. Only if you have no other device and no recovery code.", "Löscht die synchronisierten Daten im Konto. Nur, wenn du kein anderes Gerät und keinen Code hast.")}
+                onPress={() => setSheet("fresh")} />
+            <LinkRow label={t("Sign out", "Abmelden")} tone="danger" note={t("The data on this device stays.", "Die Daten auf diesem Gerät bleiben.")} onPress={() => setSheet("signout")} />
         </SettingsGroup>
         <InputSheet t={t} open={sheet === "recovery"} onOpenChange={open => !open && setSheet(null)} title={t("Use recovery code", "Wiederherstellungscode nutzen")}
             text={t("Enter the 26 characters of your recovery code. Spaces don't matter.", "Gib die 26 Zeichen deines Codes ein. Leerzeichen sind egal.")}
@@ -561,29 +569,30 @@ function Overview({ t }: { t: Translate }) {
     const shortDate = (seconds: number) => accountDate(language, seconds)
 
     return <View className="gap-6">
-        {passwordOffer && <SettingsGroup title={t("Set a new password", "Neues Passwort festlegen")}
-            note={t("You signed in with a code. Set a new password now if you forgot the old one. Your other devices stay signed in.",
-                "Du hast dich mit einem Code angemeldet. Leg jetzt ein neues Passwort fest, falls du das alte vergessen hast. Deine anderen Geräte bleiben angemeldet.")}>
-            <LinkRow label={t("Set a new password", "Neues Passwort festlegen")} tone="accent" onPress={() => setSheet("new-password")} />
-            <LinkRow label={t("Not now", "Jetzt nicht")} chevron={false} onPress={skipNewPassword} />
-        </SettingsGroup>}
-        {info && !info.emailVerified && <SettingsGroup title={t("Confirm your email", "Bestätige deine E-Mail")}
-            note={t(`We sent a link to ${info.email}. Nothing is blocked until then; unconfirmed accounts are deleted after 7 days.`,
-                `Wir haben einen Link an ${info.email} geschickt. Bis dahin ist nichts gesperrt; unbestätigte Konten werden nach 7 Tagen gelöscht.`)}>
-            <LinkRow label={t("Resend email", "E-Mail erneut senden")} onPress={() => void resend()} />
-        </SettingsGroup>}
+        {/* prompts, not sections: no group of their own, so they never become jump chips */}
+        {passwordOffer && <Notice text={t("You signed in with a code. Set a new password now if you forgot the old one. Your other devices stay signed in.",
+            "Du hast dich mit einem Code angemeldet. Leg jetzt ein neues Passwort fest, falls du das alte vergessen hast. Deine anderen Geräte bleiben angemeldet.")}>
+            <TextAction label={t("Set a new password", "Neues Passwort festlegen")} onPress={() => setSheet("new-password")} />
+            <TextAction label={t("Not now", "Jetzt nicht")} onPress={skipNewPassword} />
+        </Notice>}
+        {info && !info.emailVerified && <Notice text={t(`Confirm your email. We sent a link to ${info.email}. Nothing is blocked until then; unconfirmed accounts are deleted after 7 days.`,
+            `Bestätige deine E-Mail. Wir haben einen Link an ${info.email} geschickt. Bis dahin ist nichts gesperrt; unbestätigte Konten werden nach 7 Tagen gelöscht.`)}>
+            <TextAction label={t("Resend email", "E-Mail erneut senden")} onPress={() => void resend()} />
+        </Notice>}
 
-        <SettingsGroup title={t("Sync", "Synchronisierung")} note={account.email ?? undefined}>
+        <SettingsGroup title={t("Sync", "Synchronisierung")}
+            note={t("Settings, extensions, playlists and watch history stay the same on all your devices.", "Einstellungen, Erweiterungen, Playlists und Verlauf bleiben auf allen deinen Geräten gleich.")}>
+            {!!account.email && <InfoRow label={t("Signed in as", "Angemeldet als")} note={account.email} />}
             {lastSync?.state === "import-available" && <LinkRow label={t("Import your settings", "Einstellungen importieren")} tone="accent"
-                note={t("Your account has data from another device", "Dein Konto hat Daten von einem anderen Gerät")} onPress={() => setImportDismissed(false)} />}
+                note={t("Your account has data from another device. Bring it to this one.", "Dein Konto hat Daten von einem anderen Gerät. Hol sie auf dieses.")} onPress={() => setImportDismissed(false)} />}
             {/* the status under the action, not beside it: as a value it took 55 % of the row, and in Russian the label broke
                 mid-word ("Синхронизирова/ть") while the status was cut ("Синхронизировано 5 м…") */}
-            <LinkRow label={syncing ? t("Syncing…", "Wird synchronisiert …") : t("Sync now", "Jetzt synchronisieren")} disabled={syncing}
+            <LinkRow label={syncing ? t("Syncing…", "Wird synchronisiert …") : t("Sync now", "Jetzt synchronisieren")} disabled={syncing} tone={syncing ? undefined : "accent"}
                 note={[syncedAgo(t, account.lastSyncAt, Math.max(now, account.lastSyncAt ?? 0)), syncNote].filter(Boolean).join("\n")} chevron={false}
                 onPress={() => void syncNowPressed()} />
             {/* the device keeps its old key: it joins again only through a new sign-in (password, recovery code or approval) */}
             {(lastSync?.state === "key-untrusted" || lastSync?.state === "key-changed") && <LinkRow label={t("Sign out to join again", "Abmelden, um wieder reinzukommen")}
-                tone="accent" note={t("The data on this device stays", "Die Daten auf diesem Gerät bleiben")} onPress={() => setSheet("signout")} />}
+                tone="accent" note={t("The data on this device stays. Then sign in again.", "Die Daten auf diesem Gerät bleiben. Danach meldest du dich neu an.")} onPress={() => setSheet("signout")} />}
         </SettingsGroup>
 
         <SettingsGroup title={t("Devices", "Geräte")} note={t("Only the devices you keep get a new key. Removing a device or leaving it out signs it out for good, so it can't read anything new.",
@@ -612,18 +621,16 @@ function Overview({ t }: { t: Translate }) {
             {info.events.map((event, index) => <InfoRow key={`${event.at}-${index}`} label={eventText(t, event)} value={shortDate(event.at)} />)}
         </SettingsGroup>}
 
-        <SettingsGroup title={t("Recovery code", "Wiederherstellungscode")}
-            note={renewal ? t("Your recovery code stopped working when a device was removed. Save a new one.", "Dein Code gilt nicht mehr, seit ein Gerät entfernt wurde. Speichere einen neuen.")
-                : t("Only needed if you lose all your devices at once.", "Nur nötig, wenn alle deine Geräte auf einmal weg sind.")}>
-            <LinkRow label={info?.hasRecovery && !renewal ? t("Make a new recovery code", "Neuen Code erstellen") : t("Save a recovery code", "Code speichern")}
+        <SettingsGroup title={t("Sign-in and access", "Anmeldung und Zugriff")}>
+            <LinkRow label={info?.hasRecovery && !renewal ? t("Make a new recovery code", "Neuen Wiederherstellungscode erstellen") : t("Save a recovery code", "Wiederherstellungscode speichern")}
                 tone={renewal || !info?.hasRecovery ? "accent" : undefined}
-                note={info?.hasRecovery && !renewal ? t("The new code replaces the old one", "Der neue ersetzt den alten") : undefined} onPress={() => setSheet("recovery")} />
-        </SettingsGroup>
-
-        <SettingsGroup title={t("Account", "Konto")}>
-            {account.kind === "email" && <LinkRow label={t("Change password", "Passwort ändern")} note={t("Signs out your other devices", "Meldet deine anderen Geräte ab")} onPress={() => setSheet("password")} />}
+                note={renewal ? t("Your recovery code stopped working when a device was removed. Save a new one.", "Dein Code gilt nicht mehr, seit ein Gerät entfernt wurde. Speichere einen neuen.")
+                    : info?.hasRecovery ? t("Only needed if you lose all your devices at once. The new code replaces the old one.", "Nur nötig, wenn alle deine Geräte auf einmal weg sind. Der neue Code ersetzt den alten.")
+                        : t("Only needed if you lose all your devices at once.", "Nur nötig, wenn alle deine Geräte auf einmal weg sind.")}
+                onPress={() => setSheet("recovery")} />
+            {account.kind === "email" && <LinkRow label={t("Change password", "Passwort ändern")} note={t("You need your current password. Your other devices are signed out.", "Du brauchst dein aktuelles Passwort. Deine anderen Geräte werden abgemeldet.")} onPress={() => setSheet("password")} />}
             {account.kind === "email" && info?.googleLinked && <LinkRow label={t("Disconnect Google", "Google trennen")}
-                note={t("Google sign-in is linked to this account", "Google-Anmeldung ist mit diesem Konto verknüpft")} onPress={() => setSheet("google")} />}
+                note={t("Google sign-in is linked to this account. After this you sign in with email and password.", "Google-Anmeldung ist mit diesem Konto verknüpft. Danach meldest du dich mit E-Mail und Passwort an.")} onPress={() => setSheet("google")} />}
             {/* opt-in: on, the server holds the key; turning it on asks for the password, turning it off is immediate */}
             {account.kind === "email" && info?.hasPassword && <LocalSwitch label={t("Sign in with an email code only", "Nur mit E-Mail-Code anmelden")}
                 note={t("Seanime can then read your synced data. Off keeps it end-to-end encrypted.", "Seanime kann deine synchronisierten Daten dann lesen. Aus bleiben sie Ende-zu-Ende-verschlüsselt.")}
@@ -635,9 +642,14 @@ function Overview({ t }: { t: Translate }) {
                     "Entsperre und ändere deine Einstellungen auf seanimemobile.com. Aus bleibt der Schlüssel nur auf deinen Geräten.")}
                 checked={info.webEdit === true} disabled={webEditBusy}
                 onCheckedChange={checked => checked ? setSheet("web-edit") : void webEditOff()} />}
-            <LinkRow label={t("Sign out", "Abmelden")} note={t("The data on this device stays", "Die Daten auf diesem Gerät bleiben")} onPress={() => setSheet("signout")} />
-            <LinkRow label={t("Delete synced data", "Synchronisierte Daten löschen")} tone="danger" onPress={() => setSheet("data")} />
-            <LinkRow label={t("Delete account", "Konto löschen")} tone="danger" onPress={() => setSheet("delete")} />
+        </SettingsGroup>
+
+        <SettingsGroup title={t("Sign out or delete", "Abmelden oder löschen")}>
+            <LinkRow label={t("Sign out", "Abmelden")} tone="danger" note={t("The data on this device stays. Sync stops until you sign in again.", "Die Daten auf diesem Gerät bleiben. Die Synchronisierung stoppt, bis du dich wieder anmeldest.")} onPress={() => setSheet("signout")} />
+            <LinkRow label={t("Delete synced data", "Synchronisierte Daten löschen")} tone="danger"
+                note={t("Deletes the encrypted copy in your account. Your devices keep their data.", "Löscht die verschlüsselte Kopie im Konto. Deine Geräte behalten ihre Daten.")} onPress={() => setSheet("data")} />
+            <LinkRow label={t("Delete account", "Konto löschen")} tone="danger"
+                note={t("Deletes your account, its devices and the synced data for good.", "Löscht Konto, Geräte und synchronisierte Daten endgültig.")} onPress={() => setSheet("delete")} />
         </SettingsGroup>
 
         <InputSheet t={t} open={sheet === "recovery"} onOpenChange={open => !open && setSheet(null)} title={t("Save a recovery code", "Code speichern")}

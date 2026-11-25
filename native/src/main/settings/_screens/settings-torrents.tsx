@@ -7,7 +7,6 @@ import { Notice, TextAction } from "@/components/shared/phone-kit"
 import { Button } from "@/components/ui/button/button"
 import { useReleaseFocusOnLeave } from "@/components/ui/core/page-focus"
 import { cn } from "@/components/ui/core/styling"
-import { SwitchRow } from "@/components/ui/switch/switch"
 import { toast } from "@/components/ui/toast/toast-store"
 import { Muted, Text } from "@/components/ui/text/text"
 import { type Translate, useTr } from "@/lib/app-language"
@@ -15,8 +14,8 @@ import { colors } from "@/lib/theme/tokens"
 import { serverStatusAtom } from "@/main/_atoms/server-status.atoms"
 import { useServerStatus } from "@/main/_hooks/use-server-status"
 import { AutoSelectGroup } from "@/main/settings/_screens/settings-auto-select"
-import { enqueue, pendingAtom, saveFailed, SelectRow, SettingsGroup, usePending, useSaveSetting, useSettingValue } from "@/main/settings/_components/settings-kit"
-import { debridProviderPatch, debridSwitchPatch, keyCheckDetail, limitOptions, type Option, planRestricted, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
+import { enqueue, LocalSwitch, pendingAtom, saveFailed, type SelectOption, SelectRow, SettingsGroup, usePending, useSaveSetting, useSettingValue } from "@/main/settings/_components/settings-kit"
+import { debridProviderPatch, debridSwitchPatch, keyCheckDetail, limitOptions, planRestricted, type SettingsSectionId } from "@/main/settings/_lib/settings-phone"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAtomValue, useStore } from "jotai"
 import React from "react"
@@ -91,25 +90,30 @@ function useRowValue<K extends Kind, F extends keyof Row<K>>(kind: K, field: F, 
     return (stored ?? fallback) as Row<K>[F]
 }
 
-function RowSwitch<K extends Kind>({ kind, field, label, note, sub }: {
+function RowSwitch<K extends Kind>({ kind, field, label, note, sub, defaultChecked }: {
     kind: K
     field: keyof Row<K> & string
     label: string
     note?: string
     sub?: boolean
+    /** The row's value on a fresh app (core/start/without-server.ts) */
+    defaultChecked?: boolean
 }) {
     const save = useSaveRow(kind)
     const value = useRowValue(kind, field as keyof Row<K>, false as Row<K>[keyof Row<K>])
-    return <SwitchRow label={label} description={note} checked={!!value} className={sub ? "pl-8" : undefined}
+    return <LocalSwitch label={label} note={note} checked={!!value} sub={sub} defaultChecked={defaultChecked}
         onCheckedChange={checked => void save({ [field]: checked } as Partial<Row<K>>)} />
 }
 
-function resolutionOptions(t: Translate): Option[] {
+function resolutionOptions(t: Translate): SelectOption[] {
     return [
-        { value: "-", label: t("Highest", "Höchste") },
+        {
+            value: "-", label: t("Highest", "Höchste"),
+            note: t("The best quality on offer. Needs the most data.", "Die beste angebotene Qualität. Braucht die meisten Daten."),
+        },
         { value: "1080", label: "1080p" },
         { value: "720", label: "720p" },
-        { value: "480", label: "480p" },
+        { value: "480", label: "480p", note: t("Smallest files, for slow or mobile connections.", "Kleinste Dateien, für langsame oder mobile Verbindungen.") },
     ]
 }
 
@@ -143,7 +147,8 @@ function ProvidersGroup({ t, onOpenExtensions }: { t: Translate, onOpenExtension
     const value = searched?.id ?? ""
     const shown = providers.some(option => option.value === value) || !searched ? providers : [...providers, { value, label: searched.name }]
 
-    return <SettingsGroup title={t("Torrent providers", "Torrent-Anbieter")}>
+    return <SettingsGroup title={t("Torrent providers", "Torrent-Anbieter")}
+        note={t("Torrent providers are extensions that search torrent sites for you.", "Torrent-Anbieter sind Erweiterungen, die Torrent-Seiten für dich durchsuchen.")}>
         {!isLoading && !providers.length
             ? <Notice text={t("No torrent provider is installed. Torrent providers are installed under Extensions.",
                 "Kein Torrent-Anbieter installiert. Torrent-Anbieter installierst du unter Erweiterungen.")}>
@@ -165,16 +170,17 @@ function StreamingGroup({ t }: { t: Translate }) {
     return <SettingsGroup title={t("Streaming torrents", "Torrents streamen")}
         note={t("Torrents use your connection's data, mobile data too. Streamed data is cached by the app while you watch.",
             "Torrents verbrauchen das Datenvolumen deiner Verbindung, auch mobile Daten. Gestreamte Daten speichert die App beim Schauen zwischen.")}>
-        <RowSwitch kind="torrentstream" field="enabled" label={t("Torrent streaming", "Torrent-Streaming")}
+        <RowSwitch kind="torrentstream" field="enabled" label={t("Torrent streaming", "Torrent-Streaming")} defaultChecked={false}
             note={t("Play episodes from torrents while they download.", "Folgen aus Torrents abspielen, während sie laden.")} />
         {enabled && <>
-            <RowSwitch kind="torrentstream" field="autoSelect" label={t("Auto-select the best torrent", "Besten Torrent automatisch wählen")}
+            <RowSwitch kind="torrentstream" field="autoSelect" label={t("Auto-select the best torrent", "Besten Torrent automatisch wählen")} defaultChecked
                 note={t("Picks a torrent for you instead of showing the list.", "Wählt einen Torrent für dich, statt die Liste zu zeigen.")} sub />
             {autoSelect && <SelectRow label={t("Preferred resolution", "Bevorzugte Auflösung")} value={resolution || "-"} options={resolutionOptions(t)} sub
+                note={t("The quality the automatic choice looks for first.", "Die Qualität, nach der die automatische Wahl zuerst sucht.")} defaultValue="-"
                 onChange={next => void save({ preferredResolution: next === "-" ? "" : next })} />}
-            <RowSwitch kind="torrentstream" field="preloadNextStream" label={t("Preload the next episode", "Nächste Folge vorladen")}
+            <RowSwitch kind="torrentstream" field="preloadNextStream" label={t("Preload the next episode", "Nächste Folge vorladen")} defaultChecked={false}
                 note={t("Starts downloading it in the background. Experimental, uses more data.", "Lädt sie im Hintergrund. Experimentell, braucht mehr Daten.")} sub />
-            <RowSwitch kind="torrentstream" field="includeInLibrary" label={t("Streaming titles in your anime lists", "Streaming-Titel in deinen Anime-Listen")}
+            <RowSwitch kind="torrentstream" field="includeInLibrary" label={t("Streaming titles in your anime lists", "Streaming-Titel in deinen Anime-Listen")} defaultChecked={false}
                 note={t("Shows the titles you are streaming in your anime lists.", "Zeigt gestreamte Titel in deinen Anime-Listen.")} sub />
         </>}
     </SettingsGroup>
@@ -197,18 +203,19 @@ function DownloadsGroup({ t, onOpen }: { t: Translate, onOpen: (id: SettingsSect
             "Es ist noch kein Bibliotheksordner gesetzt. Wähle einen, bevor du etwas lädst.")}>
             <TextAction label={t("Open Local library", "Lokale Bibliothek öffnen")} onPress={() => onOpen("library")} />
         </Notice>}>
-        <SelectRow label={t("Download limit", "Download-Limit")} value={String(download)}
+        <SelectRow label={t("Download limit", "Download-Limit")} value={String(download)} defaultValue="0"
+            note={t("The top speed for downloads. A limit leaves room for other apps.", "Die Höchstgeschwindigkeit für Downloads. Ein Limit lässt anderen Apps Platz.")}
             options={limitOptions([0, 512, 1024, 2048, 5120, 10240, 20480], download, unlimited)}
             onChange={next => void save("torrent.seanimeDownloadLimit", Number(next))} />
-        <SelectRow label={t("Upload limit", "Upload-Limit")} value={String(upload)}
-            note={t("Sharing back is part of how torrents work; a low limit saves data.", "Teilen gehört zu Torrents dazu; ein niedriges Limit spart Daten.")}
+        <SelectRow label={t("Upload limit", "Upload-Limit")} value={String(upload)} defaultValue="0"
+            note={t("Sharing back is part of how torrents work. A low limit saves data.", "Teilen gehört zu Torrents dazu. Ein niedriges Limit spart Daten.")}
             options={limitOptions([0, 64, 128, 256, 512, 1024, 2048], upload, unlimited)}
             onChange={next => void save("torrent.seanimeUploadLimit", Number(next))} />
-        <SelectRow label={t("Downloads at the same time", "Gleichzeitige Downloads")} value={String(active)}
+        <SelectRow label={t("Downloads at the same time", "Gleichzeitige Downloads")} value={String(active)} defaultValue="3"
             options={Array.from(new Set([1, 2, 3, 4, 5, active])).sort((a, b) => a - b).map(n => ({ value: String(n), label: String(n) }))}
             note={t("The others wait for their turn. A stream never waits.", "Die anderen warten, bis sie dran sind. Ein Stream wartet nie.")}
             onChange={next => void save("torrent.seanimeMaxActiveDownloads", Number(next))} />
-        <RowSwitch kind="torrentstream" field="stopSeedingWhenFinished" label={t("Stop sharing when finished", "Teilen beenden, wenn fertig")}
+        <RowSwitch kind="torrentstream" field="stopSeedingWhenFinished" label={t("Stop sharing when finished", "Teilen beenden, wenn fertig")} defaultChecked={false}
             note={t("Pauses a download once it is complete instead of sharing it on.", "Pausiert einen Download, sobald er fertig ist, statt ihn weiter zu teilen.")} />
     </SettingsGroup>
 }
@@ -244,14 +251,15 @@ function DebridGroup({ t }: { t: Translate }) {
         note={t("A paid service that downloads torrents for you and streams them from its servers.",
             "Ein kostenpflichtiger Dienst, der Torrents für dich lädt und von seinen Servern streamt.")}>
         {/* On only with a provider: without one debrid cannot run, the switch says so instead (choosing None turns it off) */}
-        <SwitchRow label={t("Debrid service", "Debrid-Dienst")} checked={!!enabled}
-            description={t("Stream and download through your debrid account.", "Über dein Debrid-Konto streamen und laden.")}
+        <LocalSwitch label={t("Debrid service", "Debrid-Dienst")} checked={!!enabled} defaultChecked={false}
+            note={t("Stream and download through your debrid account.", "Über dein Debrid-Konto streamen und laden.")}
             onCheckedChange={checked => {
                 const patch = debridSwitchPatch(checked, provider)
                 if (patch) void save(patch)
                 else toast.error(t("Choose a provider first.", "Wähle zuerst einen Anbieter."))
             }} />
-        <SelectRow label={t("Provider", "Anbieter")} value={provider || "-"} sub
+        <SelectRow label={t("Provider", "Anbieter")} value={provider || "-"} sub defaultValue="-"
+            note={t("The service your account is with. None turns debrid off.", "Der Dienst, bei dem dein Konto ist. Keiner schaltet Debrid aus.")}
             options={[{ value: "-", label: t("None", "Keiner") }, ...DEBRID_PROVIDERS]}
             onChange={next => void save(debridProviderPatch(next))} />
         {enabled && <>
@@ -265,11 +273,12 @@ function DebridGroup({ t }: { t: Translate }) {
                 {!!failed && !planRestricted(failed) && <Muted className="w-full px-2 text-[13px] leading-[19px]">{failed}</Muted>}
                 <TextAction label={t("Check again", "Erneut prüfen")} onPress={check.run} />
             </Notice>}
-            <RowSwitch kind="debrid" field="streamAutoSelect" label={t("Auto-select the best torrent", "Besten Torrent automatisch wählen")}
+            <RowSwitch kind="debrid" field="streamAutoSelect" label={t("Auto-select the best torrent", "Besten Torrent automatisch wählen")} defaultChecked={false}
                 note={t("Picks a cached torrent for you instead of showing the list.", "Wählt einen zwischengespeicherten Torrent für dich, statt die Liste zu zeigen.")} sub />
             {autoSelect && <SelectRow label={t("Preferred resolution", "Bevorzugte Auflösung")} value={resolution || "-"} options={resolutionOptions(t)} sub
+                note={t("The quality the automatic choice looks for first.", "Die Qualität, nach der die automatische Wahl zuerst sucht.")} defaultValue="-"
                 onChange={next => void save({ streamPreferredResolution: next === "-" ? "" : next })} />}
-            <RowSwitch kind="debrid" field="includeDebridStreamInLibrary" label={t("Streaming titles in your anime lists", "Streaming-Titel in deinen Anime-Listen")}
+            <RowSwitch kind="debrid" field="includeDebridStreamInLibrary" label={t("Streaming titles in your anime lists", "Streaming-Titel in deinen Anime-Listen")} defaultChecked={false}
                 note={t("Shows the titles you are streaming in your anime lists.", "Zeigt gestreamte Titel in deinen Anime-Listen.")} sub />
         </>}
     </SettingsGroup>
@@ -332,7 +341,7 @@ function ApiKeyField({ t, providerName, hasKey, check, onSave }: {
     }
     return (
         <View className="gap-2 bg-sm-surface-raised py-3 pl-8 pr-4">
-            <Text className="text-[15px]">{t("API key", "API-Schlüssel")}</Text>
+            <Text className="text-base">{t("API key", "API-Schlüssel")}</Text>
             <TextInput ref={field} value={draft} onChangeText={setDraft} secureTextEntry autoComplete="off" autoCapitalize="none" autoCorrect={false}
                 accessibilityLabel={t("API key", "API-Schlüssel")} returnKeyType="done" onSubmitEditing={() => void submit()}
                 placeholder={hasKey ? t("Saved key", "Gespeicherter Schlüssel") : t("Paste your API key", "API-Schlüssel einfügen")}
