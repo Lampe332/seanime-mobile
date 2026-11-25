@@ -119,7 +119,7 @@ function SortingGroup({ t }: { t: Translate }) {
             options={CONTINUE_WATCHING_SORTING_OPTIONS.map(option => ({ value: option.value, label: label(option) }))}
             onChange={value => void save({ continueWatchingDefaultSorting: value })} />
         <SelectRow label={t("Anime library", "Anime-Bibliothek")} value={animeLibrary}
-            note={t("The order of the anime in each list of your library.", "Die Reihenfolge der Anime in jeder Liste deiner Bibliothek.")}
+            note={t("The order of \"Anime on this device\" on Home. Your lists keep their own sorting.", "Die Reihenfolge von „Anime auf diesem Gerät“ auf der Startseite. Deine Listen haben ihre eigene Sortierung.")}
             defaultValue={THEME_DEFAULT_VALUES.animeLibraryCollectionDefaultSorting}
             options={ANIME_COLLECTION_SORTING_OPTIONS.filter(option => !option.value.includes("END")).map(option => ({ value: option.value, label: label(option) }))}
             onChange={value => void save({ animeLibraryCollectionDefaultSorting: value })} />

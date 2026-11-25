@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { type AutoSelectProfile, type FoundTorrent, chooseTorrent, decodeEntities, emptyProfile, isMovieRelease, profileOf, readTorrent } from "./autoselect"
+import { type AutoSelectProfile, type FoundTorrent, chooseTorrent, decodeEntities, emptyProfile, isMovieRelease, profileOf, readTorrent, resolutionHeight } from "./autoselect"
 
 // 4.2.0 (Chamok): "Prefer larger files" and the minimum seeders, with release names as Nyaa lists them
 const HASH = "ab".repeat(20)
@@ -143,5 +143,26 @@ describe("auto-select: a film for a series", () => {
     it("decodes entities in the provider's group too", () => {
         expect(readTorrent({ ...EPISODE, releaseGroup: "A&amp;C" }).group).toBe("a&c")
         expect(decodeEntities("[A&amp;C] One Piece")).toBe("[A&C] One Piece")
+    })
+})
+
+describe("auto-select: the preferred resolution from the settings", () => {
+    const uhd = nyaa("[Group] Sousou no Frieren S2 - 05 [2160p]", 4 * GiB, 50)
+    const fhd = nyaa("[Group] Sousou no Frieren S2 - 05 [1080p]", 1.5 * GiB, 40)
+    const choose = (preferredResolution: string) =>
+        chooseTorrent([uhd, fhd], emptyProfile(), { episodeNumber: 5, preferredResolution })?.torrent.name ?? null
+
+    it("takes the 1080p torrent before 2160p when the settings say \"1080\"", () => {
+        expect(choose("1080")).toBe(fhd.name)
+        expect(choose("1080p")).toBe(fhd.name)
+        expect(choose("")).toBe(uhd.name)
+    })
+
+    it("reads the height from every way of writing it", () => {
+        expect(resolutionHeight("1080p")).toBe(1080)
+        expect(resolutionHeight("1080")).toBe(1080)
+        expect(resolutionHeight("1920x1080")).toBe(1080)
+        expect(resolutionHeight("4K")).toBe(2160)
+        expect(resolutionHeight("")).toBe(0)
     })
 })

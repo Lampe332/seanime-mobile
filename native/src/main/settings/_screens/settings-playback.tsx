@@ -22,7 +22,7 @@ export function SettingsPlaybackSection({ t }: { t: Translate }) {
 
     return <>
         <SettingsGroup title={t("Files on this device", "Dateien auf diesem Gerät")}
-            note={t("How episodes from your local library play. Only on this device.", "Wie Folgen aus deiner lokalen Bibliothek abspielen. Nur auf diesem Gerät.")}>
+            note={t("How episodes from your local library play.", "Wie Folgen aus deiner lokalen Bibliothek abspielen.")}>
             <SelectRow label={t("Player for files", "Player für Dateien")}
                 value={external ? PlaybackDownloadedMedia.ExternalPlayerLink : PlaybackDownloadedMedia.Default}
                 defaultValue={PlaybackDownloadedMedia.Default}

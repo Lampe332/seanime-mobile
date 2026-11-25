@@ -258,7 +258,14 @@ const rankIn = (list: string[], value: string) => {
     const at = list.findIndex(item => value === item || value.includes(item))
     return at < 0 ? list.length : at
 }
-const height = (resolution: string) => Number(/(\d{3,4})/.exec(resolution)?.[1] ?? (/4k/.test(resolution) ? 2160 : 0))
+/** The height a resolution names, so "1080p", "1080" and "1920x1080" are all 1080 ("4k": 2160); 0 when none */
+export function resolutionHeight(resolution: string): number {
+    const text = resolution.toLowerCase()
+    const found = /(\d{3,4})[pi]/.exec(text) ?? /\d{3,4}\s*x\s*(\d{3,4})/.exec(text) ?? /(\d{3,4})/.exec(text)
+    if (found) return Number(found[1])
+    return /4k|uhd/.test(text) ? 2160 : 0
+}
+const height = resolutionHeight
 
 function fitsPreference(preference: string, applies: boolean): boolean {
     if (preference === "never") return !applies
@@ -313,7 +320,7 @@ export function chooseTorrent(torrents: FoundTorrent[], profile: AutoSelectProfi
     }
     const minSize = bytesOf(profile.minSize)
     const maxSize = bytesOf(profile.maxSize)
-    const preferred = lower(wanted.preferredResolution)
+    const preferred = resolutionHeight(wanted.preferredResolution)
 
     const fitting = torrents.map(readTorrent).filter(read => {
         const { torrent } = read
@@ -341,7 +348,7 @@ export function chooseTorrent(torrents: FoundTorrent[], profile: AutoSelectProfi
 
     const resolutionRank = (read: ReadTorrent) => {
         if (resolutions.length > 0) return rankIn(resolutions, read.resolution)
-        if (preferred && read.resolution === preferred) return -10_000
+        if (preferred && height(read.resolution) === preferred) return -10_000
         return -height(read.resolution)
     }
     const score = (read: ReadTorrent) =>

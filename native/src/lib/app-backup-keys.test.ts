@@ -37,6 +37,17 @@ describe("the keys a backup may carry", () => {
         expect(isSyncDeviceKey("marketplace-url")).toBe(false)
     })
 
+    it("screen, network and installed-app settings travel in the file backup, never in the account's sync", () => {
+        const keys = ["sea-ui-settings-show-status-bar", "sea-ui-settings-navigation-preload-mode", "sea-playback-downloaded-media",
+            "sea-playback-external-player-link", "sea-playback-external-player-link-encode-path"]
+        for (const key of keys) {
+            expect(isSyncDeviceKey(key)).toBe(true)
+            expect(isDeviceKey(key)).toBe(false)
+        }
+        expect(isSyncDeviceKey("sea-playback-torrentstream")).toBe(false)
+        expect(isSyncDeviceKey("sea-player-seek-forward-seconds")).toBe(false)
+    })
+
     it("matches whole names only where the list says so", () => {
         expect(isDeviceKey("seanime-mobile-airing-next")).toBe(true)
         expect(isDeviceKey("seanime-mobile-airing-notifications")).toBe(false)

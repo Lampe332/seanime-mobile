@@ -58,6 +58,8 @@ import { usePlaylistManager } from "@/main/_features/playlists/_containers/globa
 import { playlistNavigation } from "@/main/_features/playlists/lib/mobile-playlist-state"
 import type { AxiosError } from "axios"
 import { Image } from "expo-image"
+import { useEpisodeSpoilerState } from "@/lib/theme/anime-spoilers"
+import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { useLocalSearchParams } from "expo-router"
 import { useSetRouteParams } from "@/lib/route-params"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
@@ -180,7 +182,10 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     const episodeListError = episodeListFailed && !isNoEntryFound(episodeListFailure)
     const episodes = episodeListResponse?.episodes
     const sortedEpisodes = React.useMemo(() => [...(episodes ?? [])].filter(Boolean).sort((a, b) => a.number - b.number), [episodes])
+    const ts = useThemeSettings()
     const currentEpisode = episodes?.find(e => e.number === currentEpisodeNumber)
+    // the card above the list shows the chosen episode (often the next unwatched one): same spoiler rule as the rows
+    const spoiler = useEpisodeSpoilerState(ts, { mediaId: media.id, episodeNumber: currentEpisode?.number, watchedProgress: progress })
     // the provider's neighbours of the episode: a gap in the numbering is stepped over (mobile-episode-selection)
     const episodeNumbers = React.useMemo(() => sortedEpisodes.map(e => e.number), [sortedEpisodes])
     const previousNumber = neighbourEpisode(episodeNumbers, currentEpisodeNumber, "previous")
@@ -589,13 +594,13 @@ export function OnlinestreamPage({ entry, bottomSection }: { entry: Anime_Entry,
     </View>
 
     const heading = currentEpisodeNumber !== null ? t(`Episode ${currentEpisodeNumber}`, `Folge ${currentEpisodeNumber}`) : t("Episodes", "Episoden")
-    const card = currentEpisode?.image || currentEpisode?.metadata?.episodeMetadata?.image || media.bannerImage || media.coverImage?.extraLarge || media.coverImage?.large
+    const card = (spoiler.isSpoiler && ts.hideAnimeSpoilerThumbnails ? "" : currentEpisode?.image || currentEpisode?.metadata?.episodeMetadata?.image) || media.bannerImage || media.coverImage?.extraLarge || media.coverImage?.large
 
     return <View className="min-w-0">
         {sourceOptions}
 
         <View className="mb-2 mt-1 flex-row items-center gap-2">
-            <Text numberOfLines={2} className="min-w-0 flex-1 text-[17px] font-bold leading-[23px]">{heading}{currentEpisode?.title ? ` · ${currentEpisode.title}` : ""}</Text>
+            <Text numberOfLines={2} className="min-w-0 flex-1 text-[17px] font-bold leading-[23px]">{heading}{currentEpisode?.title && !spoiler.hideFileName ? ` · ${currentEpisode.title}` : ""}</Text>
             <View className="flex-row overflow-hidden rounded-surface-sm" style={{ gap: 2 }}>
                 <NavButton label={t("Previous episode", "Vorherige Folge")} disabled={episodeLoading || !hasPrevious} onPress={() => handlePlayEpisode("previous")}>
                     <ChevronLeft size={20} color={colors.smText} />
