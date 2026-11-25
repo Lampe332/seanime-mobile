@@ -63,8 +63,8 @@ export function buildShareCard(view: WrappedView, t: Translate, f: ShareFormats)
         genres: view.genres.slice(0, 3).map(genre => clip(genre.name, SHARE_LIMITS.genre)),
         studio: view.studios[0]?.name ? clip(view.studios[0].name, SHARE_LIMITS.studio) : null,
         footer: hours > 0
-            ? t("Counted from my AniList lists. Hours are estimated.", "Gezählt aus meinen AniList-Listen. Stunden geschätzt.")
-            : t("Counted from my AniList lists.", "Gezählt aus meinen AniList-Listen."),
+            ? t("Counted from my lists. Hours are estimated.", "Gezählt aus meinen Listen. Stunden geschätzt.")
+            : t("Counted from my lists.", "Gezählt aus meinen Listen."),
     }
 }
 
